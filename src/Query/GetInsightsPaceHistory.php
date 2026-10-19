@@ -73,7 +73,8 @@ SQL;
     }
 
     /**
-     * Only the paces at one piece count, no solve or puzzle (the forecast's milestones) - an index range.
+     * Only the paces at one piece count, no puzzle (the forecast's milestones) - an index range; a row whose solve was
+     * flagged suspicious since the last batch run is left out, like in forPlayer().
      *
      * @return list<PacePoint> in time order
      */
@@ -81,10 +82,13 @@ SQL;
     {
         /** @var list<array{valid_from: string, qualifying_count: int|string, baseline_seconds: int|string}> $rows */
         $rows = $this->database->fetchAllAssociative(
-            'SELECT valid_from, qualifying_count, baseline_seconds
-            FROM player_pace_history
-            WHERE player_id = :playerId AND pieces_count = :piecesCount
-            ORDER BY valid_from, valid_from_tracked_at, qualifying_count',
+            'SELECT h.valid_from, h.qualifying_count, h.baseline_seconds
+            FROM player_pace_history h
+            JOIN puzzle_solving_time pst ON pst.id = h.time_id
+            WHERE h.player_id = :playerId
+                AND h.pieces_count = :piecesCount
+                AND pst.suspicious = false
+            ORDER BY h.valid_from, h.valid_from_tracked_at, h.qualifying_count',
             ['playerId' => $playerId, 'piecesCount' => $piecesCount],
         );
 

@@ -14,6 +14,8 @@ enum RatingStanding: string
     case NearLadder = 'near_ladder';
     /** Not on the ladder and further away - the moves are what the entries are worth, no path */
     case OffLadder = 'off_ladder';
+    /** Opted out of rankings (docs/features/opt-out.md): the rating and its moves, never a ladder place nor a path onto it */
+    case OptedOut = 'opted_out';
     /** No rating entries at all */
     case NoEntries = 'no_entries';
     /** Private players have no MSP rating (rankings are public-only) */

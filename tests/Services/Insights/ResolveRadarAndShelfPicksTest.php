@@ -53,12 +53,39 @@ final class ResolveRadarAndShelfPicksTest extends KernelTestCase
         $recent = $this->puzzle('Recent');
         $secret = $this->puzzle('Secret', hidden: true);
         $big = $this->puzzle('Big', pieces: 1777);
+        $doneTogether = $this->puzzle('Done together lately');
+        $flaggedLately = $this->puzzle('Flagged lately');
 
         $this->solve($this->player, $old, 4000, 400);
         $this->solve($this->player, $recent, 4000, 100);
         $this->solve($this->player, $secret, 4000, 400);
         $this->solve($this->player, $big, 9000, 500);
         $this->shelve($this->player, $old);
+
+        // Solved solo long ago, but done since: in a pair a month ago, or solo with a result flagged for verification
+        $this->solve($this->player, $doneTogether, 4000, 400);
+        $this->solve($this->player, $flaggedLately, 4000, 400);
+        $this->solve($this->player, $flaggedLately, 3000, 20, firstAttempt: false);
+        $this->connection->executeStatement(
+            'UPDATE puzzle_solving_time SET suspicious = true WHERE player_id = :player AND puzzle_id = :puzzle AND seconds_to_solve = 3000',
+            ['player' => $this->player, 'puzzle' => $flaggedLately],
+        );
+        $partner = $this->newPlayer('partner');
+        $team = Uuid::uuid7()->toString();
+        $this->connection->executeStatement('INSERT INTO puzzling_team (id, composition_key, size, created_at) VALUES (:id, :key, 2, NOW())', ['id' => $team, 'key' => sha1($team)]);
+
+        foreach ([$this->player, $partner] as $position => $member) {
+            $this->connection->executeStatement(
+                'INSERT INTO puzzling_team_member (id, team_id, member_key, player_id, guest_name, position) VALUES (:id, :team, :key, :player, NULL, :position)',
+                ['id' => Uuid::uuid7()->toString(), 'team' => $team, 'key' => $member, 'player' => $member, 'position' => $position],
+            );
+        }
+
+        $this->connection->executeStatement(
+            "INSERT INTO puzzle_solving_time (id, player_id, puzzle_id, seconds_to_solve, tracked_at, finished_at, verified, first_attempt, puzzling_type, puzzlers_count, puzzling_team_id)
+            VALUES (:id, :tracker, :puzzle, 2500, :at, :at, true, false, 'duo', 2, :team)",
+            ['id' => Uuid::uuid7()->toString(), 'tracker' => $partner, 'puzzle' => $doneTogether, 'team' => $team, 'at' => $this->now->modify('-30 days')->format('Y-m-d H:i:s')],
+        );
 
         $radar = $this->radar()->build($this->player);
         $ids = array_map(static fn ($candidate): string => $candidate->puzzle->puzzleId, $radar->candidates);
@@ -67,6 +94,8 @@ final class ResolveRadarAndShelfPicksTest extends KernelTestCase
         self::assertContains($big, $ids);
         self::assertNotContains($recent, $ids, 'Solved less than 12 months ago');
         self::assertNotContains($secret, $ids);
+        self::assertNotContains($doneTogether, $ids, 'Done in a pair a month ago, tracked by the partner');
+        self::assertNotContains($flaggedLately, $ids, 'Done solo lately, whatever the verification says');
         self::assertSame(1, $radar->onShelfCount);
 
         /** @var GetPlayerPredictions $predictions */

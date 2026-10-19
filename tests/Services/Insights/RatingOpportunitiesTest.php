@@ -59,20 +59,22 @@ final class RatingOpportunitiesTest extends KernelTestCase
         // 56: rated, everybody but the player has solved it - on the player's shelf
         // 57: 10 solvers incl. the player - nearly rated
         // 58: rated, but secret - on the player's shelf
+        // 59: 19 public first-attempt solvers, the player not among them - on the player's shelf: a first try makes it count
         $this->connection->executeStatement(
             "INSERT INTO puzzle (id, pieces_count, name, approved, is_available, hide_until)
             SELECT CAST('019b0001-0000-7000-8000-' || lpad(n::text, 12, '0') AS uuid), 500, 'Insights Puzzle ' || n, true, true,
                 CASE WHEN n = 58 THEN CAST(:future AS timestamp) END
-            FROM generate_series(56, 58) AS n",
+            FROM generate_series(56, 59) AS n",
             ['future' => $this->now->modify('+1 year')->format('Y-m-d H:i:s')],
         );
         $this->seedSolves($this->connection, $this->now, [
             'SELECT p, 56, 1600 + 61 * p, 80 + p, true FROM generate_series(1, 22) AS p WHERE p <> ' . self::PLAYER,
             'SELECT p, 57, 1700 + 50 * p, 50 + p, true FROM generate_series(6, 15) AS p',
             'SELECT p, 58, 1650 + 55 * p, 70 + p, true FROM generate_series(1, 22) AS p WHERE p <> ' . self::PLAYER,
+            'SELECT p, 59, 1620 + 58 * p, 60 + p, true FROM generate_series(1, 20) AS p WHERE p <> ' . self::PLAYER,
         ]);
 
-        foreach ([56, 58] as $puzzle) {
+        foreach ([56, 58, 59] as $puzzle) {
             $this->connection->executeStatement(
                 'INSERT INTO collection_item (id, collection_id, player_id, puzzle_id, comment, added_at) VALUES (:id, NULL, :player, :puzzle, NULL, NOW())',
                 ['id' => Uuid::uuid7()->toString(), 'player' => self::ladderPlayer(self::PLAYER), 'puzzle' => self::ladderPuzzle($puzzle)],
@@ -122,6 +124,7 @@ final class RatingOpportunitiesTest extends KernelTestCase
             now: $this->now,
             piecesCount: 500,
             private: false,
+            optedOut: false,
             solved: $solved['puzzles'],
             shelf: [],
             timeLists: $inputs->ratingTimes([$puzzleId]),
@@ -216,7 +219,89 @@ final class RatingOpportunitiesTest extends KernelTestCase
         }
 
         $shelf = $this->shelf()->unsolved(self::ladderPlayer(self::PLAYER));
-        self::assertSame([self::ladderPuzzle(56)], array_map(static fn ($puzzle): string => $puzzle->puzzle->puzzleId, $shelf));
+        self::assertSame([self::ladderPuzzle(56), self::ladderPuzzle(59)], array_map(static fn ($puzzle): string => $puzzle->puzzle->puzzleId, $shelf));
+    }
+
+    public function testAFirstTryThatMakesAPuzzleCount(): void
+    {
+        $playerId = self::ladderPlayer(self::PLAYER);
+        $puzzleId = self::ladderPuzzle(59);
+        $times = $this->inputs()->ratingTimes([$puzzleId])[$puzzleId];
+        self::assertFalse($times->qualifies);
+        self::assertSame(19, $times->solverCount);
+        self::assertNotNull($times->difficultyWeight);
+
+        $move = $this->moveFor($this->loader()->load($playerId, 500)->moves, $puzzleId);
+        self::assertSame(RatingMoveKind::FirstTry, $move->kind);
+        self::assertTrue($move->makesPuzzleCount);
+        self::assertGreaterThan(0.0, $move->gain);
+        self::assertFalse($this->moveFor($this->loader()->load($playerId, 500)->moves, self::ladderPuzzle(56))->makesPuzzleCount);
+
+        // Once really solved in that time the puzzle counts, with the player's entry at exactly that percentile
+        $this->seedSolves($this->connection, $this->now, ["SELECT " . self::PLAYER . ", 59, {$move->expectedSeconds}, 0, true"]);
+        $this->recalculate();
+
+        self::assertTrue($this->inputs()->ratingTimes([$puzzleId])[$puzzleId]->qualifies);
+        /** @var false|float|string $stored */
+        $stored = $this->connection->fetchOne(
+            "SELECT percentile FROM player_rating_entry WHERE player_id = :player AND puzzle_id = :puzzle AND portfolio = 'first_attempt'",
+            ['player' => $playerId, 'puzzle' => $puzzleId],
+        );
+        self::assertNotFalse($stored);
+        self::assertSame($move->fasterThanShare, (float) $stored);
+    }
+
+    public function testPlayersOptedOutOfRankingsHaveARatingButNoPlace(): void
+    {
+        $playerId = self::ladderPlayer(self::PLAYER);
+        $this->connection->executeStatement('UPDATE player SET ranking_opted_out = true WHERE id = :player', ['player' => $playerId]);
+
+        $result = $this->opportunities()->build($playerId);
+
+        self::assertSame(RatingStanding::OptedOut, $result->standing);
+        self::assertEqualsWithDelta($this->storedRating(self::PLAYER) * 1000, $result->rating, 1e-9);
+        self::assertNull($result->place);
+        self::assertNull($result->placeAfterBestTen);
+        self::assertNull($result->ladderPath);
+        self::assertSame(0, $result->ladderSize);
+        self::assertNotSame([], $result->moves, 'The moves stay');
+
+        $forecast = $this->forecast()->build($playerId);
+        self::assertSame(RatingStanding::OptedOut, $forecast->standing);
+        self::assertNull($forecast->ladder);
+
+        foreach ($forecast->lines as $line) {
+            foreach ($line->points as $point) {
+                self::assertFalse($point->onLadder);
+            }
+        }
+
+        // Nearly on the ladder is no path for them either
+        $this->connection->executeStatement(
+            'DELETE FROM player_rating_entry WHERE player_id = :player AND portfolio = :portfolio AND puzzle_id IN (SELECT puzzle_id FROM player_rating_entry WHERE player_id = :player AND portfolio = :portfolio ORDER BY puzzle_id LIMIT 40)',
+            ['player' => $playerId, 'portfolio' => 'first_attempt'],
+        );
+        $near = $this->opportunities()->build($playerId);
+        self::assertSame(RatingStanding::OptedOut, $near->standing);
+        self::assertNull($near->ladderPath);
+    }
+
+    public function testAPrivatePlayerWithoutSolvesIsPrivateInOneStatement(): void
+    {
+        $playerId = Uuid::uuid7()->toString();
+        $this->connection->executeStatement(
+            "INSERT INTO player (id, code, name, registered_at, is_private) VALUES (:id, 'insprivate', 'Private, no solves', NOW(), true)",
+            ['id' => $playerId],
+        );
+
+        /** @var DebugDataHolder $holder */
+        $holder = self::getContainer()->get('doctrine.debug_data_holder');
+        $holder->reset();
+
+        $result = $this->opportunities()->build($playerId);
+
+        self::assertSame(RatingStanding::Private, $result->standing);
+        self::assertSame(1, $this->statements($holder));
     }
 
     public function testPrivatePlayersHaveNoRating(): void

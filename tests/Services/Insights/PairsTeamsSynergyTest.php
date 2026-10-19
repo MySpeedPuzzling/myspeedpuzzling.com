@@ -152,8 +152,9 @@ final class PairsTeamsSynergyTest extends KernelTestCase
         $signedOut = $this->synergy()->build(PlayerFixture::PLAYER_REGULAR);
         self::assertCount(1, $signedOut->pairs);
         $partner = $signedOut->pairs[0]->partners[0];
-        self::assertSame(PlayerFixture::PLAYER_PRIVATE, $partner->playerId);
+        self::assertNull($partner->playerId, 'Not even the id of a hidden teammate');
         self::assertTrue($partner->hidden);
+        self::assertFalse($partner->isGuest());
         self::assertNull($partner->name);
         self::assertNull($partner->code);
 

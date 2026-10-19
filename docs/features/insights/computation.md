@@ -246,8 +246,9 @@ the members' pace history (`PaceTimelineLoader::forPlayers()`, one statement) an
   difficulty) ÷ the time together ("together 1.8× as fast as you alone").
 - **Like with like:** `pairs` (size 2) and `teams` (3+) are separate lists, best effect first, unscored ones last by
   results; `bestPairResults` / `bestTeamResults` = the 5 results most under expected. Solo results never enter.
-- **People:** a private member the viewer may not see (`PrivateProfileAccess`) is `hidden` - name and code null, shown
-  as a hidden puzzler; a pair/team with a member **the viewer blocks** is left out of everything here (the player's
+- **People:** a private member the viewer may not see (`PrivateProfileAccess`) is `hidden` - player id, name and code
+  null, shown as a hidden puzzler (the id stays inside the query result, `InsightsGroupResults::$memberIdsByTime`, for
+  the pace lookup only); a pair/team with a member **the viewer blocks** is left out of everything here (the player's
   own history keeps such results - HiddenPlayers - but a "who you solve best with" list never names a blocked person).
 
 ### 4c.2 Rating opportunities
@@ -262,8 +263,12 @@ ladder's other ratings (the pool of `GetPlayerRatingRanking`: public, not opted 
 
 - **Current rating** = the stored entries' points, best 100 per portfolio, `MspRatingFormula::rating()` - equal to
   `player_elo` (pinned). On the ladder = ≥ 20 first-attempt entries, ≥ 20 first attempts and ≥ 50 results at the piece
-  count in the window (`MspRatingCalculator` rules). A private player has no rating (`standing = private`, nothing
-  else, one statement).
+  count in the window (`MspRatingCalculator` rules). The privacy and opt-out flags come from the player's row (the
+  solves are LEFT JOINed to it), so they are known without any solve: a private player has no rating
+  (`standing = private`, nothing else, one statement); a player **opted out of rankings** (`ranking_opted_out`,
+  docs/features/opt-out.md) gets `standing = opted_out` - the rating, its entries and moves stay, but no place, no
+  `placeAfterBestTen`, no path onto the ladder, no ladder milestone in the forecast and no "on the ladder" in its points
+  (and the ladder's ratings are not even read).
 - **Re-solve** (`resolve`): every rated solved puzzle, expected time T = the personal prediction; new best b′ = min(b,
   T), percentile with the own b replaced by b′ in the best times (`Model\RatingWhatIf::percentileReplacing()`, binary
   search; an own time missing from the list - solved after the last batch run - is inserted instead), points =
@@ -271,7 +276,10 @@ ladder's other ratings (the pool of `GetPlayerRatingRanking`: public, not opted 
   time). **Defend** (`defend`) = a re-solve of a best-time entry leaving the window within 60 days (`daysUntilLeaving`).
 - **First try from the shelf** (`first_try`): every unsolved shelf puzzle that counts (qualifying list), T = the
   statistical prediction, inserted into both lists (`percentileInserting()`), a new entry in both portfolios;
-  `fasterThanShare` = its first-attempt percentile ("faster than 84 % of its solvers").
+  `fasterThanShare` = its first-attempt percentile ("faster than 84 % of its solvers"). Also a puzzle **one solver short
+  of counting** (19 public first-attempt solvers and a difficulty, `qualifies = false`): the player's first try makes
+  it count (`makesPuzzleCount`), and the gain is that of the newly counting puzzle (pinned: the stored entry afterwards
+  has exactly the move's percentile).
 - Each gain = rating after the one change − now, in ladder points (× 1000), the mean after one change in O(1)
   (`Model\PortfolioScore::meanWith()`, equal to a rebuild - pinned); moves below 0.05 points are dropped.
   `gainPerHour` = gain ÷ expected hours. The result keeps the 30 best by gain and the 30 best by gain per hour
@@ -296,7 +304,8 @@ and activity (`GetInsightsActivity`: all results, the last 182 days, the last 91
 statement). Months 0-6, the rating at "now + k months" in three scenarios (`Value\RatingForecastScenario`):
 
 - `stop`: today's entries, each decayed to that moment (`MspRatingFormula::decay()`, memoised per day and month by
-  `Model\DecayTable`), dropped once out of the window;
+  `Model\DecayTable`; "now + k months" is the same day k months on, the month's last day where it has none - never
+  "+1 month" drifting 31 Jan into March), dropped once out of the window;
 - `keep_pace`: plus the last 6 months' rated first tries again, a sixth of them per month (placed mid-month; each a new
   first-attempt and best-time entry at its raw points) - the prototype's projection;
 - `best_moves`: keep pace plus the 10 best moves of §4c.2 done in the first month (re-solves replace their best-time
@@ -315,8 +324,10 @@ window, with the replayed results). Milestones:
 
 ### 4c.4 Re-solve radar
 
-Puzzles last solved ≥ 12 months ago (solo, not suspicious, timed, boxed - the results the personal predictions are
-built on; one statement with best time, last solve, attempts, on-shelf, the puzzle's solo count) whose personal
+Puzzles not done for ≥ 12 months - "last solved" counts **any** result of the player on the puzzle (solo or a
+pair/team through `puzzling_team_member`, boxed or not, timed or not, suspicious included: when they last did it) - with
+the best time and attempts from the results the personal predictions are built on (solo, not suspicious, timed, boxed;
+one statement with the on-shelf flag and the puzzle's solo count), whose personal
 prediction for the next attempt (`GetPlayerPredictions::forAllSolvedPuzzles()`, three statements, shared with every
 other part of a request) is at least 5 % under the best: `likelyGain` = 1 − predicted ÷ best, with the prediction's
 range, months since, on shelf. Biggest gain first; `onShelfCount`. Stream 3b's model improvements arrive through
@@ -361,8 +372,9 @@ parts are disposable - a miss is one recompute - so never redis-state. Tests use
 - `keyFor(playerId)` → `Value\InsightsCacheKey` (2 statements): the generation (`InsightsGeneration::current()`), the
   player's fingerprint (`GetInsightsFingerprint`: one statement summing `hashtext()` of every own result - solo, and
   pair/team results through `puzzling_team_member`, whoever tracked them - over id, puzzle, seconds, dates, suspicious,
-  unboxed, first try, type, team, event links, plus their collection items and lending; any add, delete, edit or flag
-  set by SQL changes it), and the viewer (a hash of their blocks and private-profile allow list, "all" for nearly
+  unboxed, first try, type, team, event links; their pairs/teams as shown - the team name and every member's key, id,
+  name, code and viewer-aware private flag, so a teammate turning private (or public) or a rename is never served from
+  the cache; their collection items and lending; any add, delete, edit or flag set by SQL changes it), and the viewer (a hash of their blocks and private-profile allow list, "all" for nearly
   everybody).
 - `get(key, part, context, compute)`: key `insights.<part>.<player>.<generation>.<fingerprint>.<viewer>.<context hash>`;
   the context carries the part's own inputs (filters, membership). TTL 45 min: the 15-minute batch moves the generation,
@@ -387,11 +399,14 @@ All `readonly` in `src/Results/Insights/`; rating numbers in ladder points (× 1
 (−0.05 = 5 % faster), times in seconds, puzzles as `InsightsPuzzleRef` (id, name, image, brand name, pieces).
 - `PairsTeamsSynergyResult`: `pairResultsCount`, `teamResultsCount`, `pairs` / `teams` (`GroupSynergy`: team id + name,
   size, `partners` (`GroupResultMember`: player id / guest name / name / code / `hidden` / `blocked`), results and
-  scored counts, `effect` (`Value\ShrunkEffect`: n, effect, low, high), `verdict`, `speedVsAlone`), `bestPairResults` /
+  scored counts, `effect` (`Value\ShrunkEffect`: n, effect, low, high), `verdict` (great_match / as_expected /
+  faster_apart / not_sure_yet / no_solo_pace = a guest in it), `speedVsAlone`), `bestPairResults` /
   `bestTeamResults` (`GroupResultScore`: the `InsightsGroupResult`, expected seconds, ratio).
-- `RatingOpportunitiesResult`: piece count, `standing` (`Value\RatingStanding`), rating, place, ladder size, the two
+- `RatingOpportunitiesResult`: piece count, `standing` (`Value\RatingStanding`: on_ladder / near_ladder / off_ladder /
+  opted_out / no_entries / private), rating, place, ladder size, the two
   averages, entries leaving within 60 days, `movesCount`, `moves` / `movesByGainPerHour` (`RatingMove`: kind, puzzle,
-  expected seconds, current best, gain, gain per hour, days until leaving, solvers, faster-than share, on shelf),
+  expected seconds, current best, gain, gain per hour, days until leaving, solvers, faster-than share, on shelf, makes
+  the puzzle count),
   `pending` (`PendingQualification`), best 5 / 10 gains, place after the best 10, `ladderPath` (`LadderPath`),
   `firstAttemptEntries` / `bestTimeEntries` (`RatingEntryView`: puzzle or null, seconds, solved, points, counts,
   leaves at).

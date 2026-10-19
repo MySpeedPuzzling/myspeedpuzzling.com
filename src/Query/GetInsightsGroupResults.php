@@ -89,17 +89,21 @@ SQL;
 
         $results = [];
         $memberIds = [];
+        $memberIdsByTime = [];
 
         foreach ($rows as $row) {
             /** @var list<array{0: null|string, 1: null|string, 2: null|string, 3: null|string, 4: null|bool}> $memberRows */
             $memberRows = json_decode($row['members'], true, flags: JSON_THROW_ON_ERROR);
             $members = [];
+            $ids = [];
 
             foreach ($memberRows as [$memberId, $guestName, $name, $code, $private]) {
                 $hidden = $memberId !== null && $private === true && strtolower($memberId) !== strtolower($playerId);
+                $ids[] = $memberId;
 
                 $members[] = new GroupResultMember(
-                    playerId: $memberId,
+                    // A private member the viewer may not see is nobody in what the page gets - not even an id
+                    playerId: $hidden ? null : $memberId,
                     guestName: $memberId === null ? $guestName : null,
                     name: $hidden ? null : $name,
                     code: $hidden ? null : $code,
@@ -112,6 +116,7 @@ SQL;
                 }
             }
 
+            $memberIdsByTime[$row['time_id']] = $ids;
             $results[] = new InsightsGroupResult(
                 timeId: $row['time_id'],
                 puzzleId: $row['puzzle_id'],
@@ -132,7 +137,7 @@ SQL;
             );
         }
 
-        return new InsightsGroupResults($results, array_map(strval(...), array_keys($memberIds)));
+        return new InsightsGroupResults($results, array_map(strval(...), array_keys($memberIds)), $memberIdsByTime);
     }
 
     private static function bool(bool|int|string $value): bool

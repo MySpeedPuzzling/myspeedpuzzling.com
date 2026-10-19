@@ -14,7 +14,7 @@ use SpeedPuzzling\Web\Services\Insights\Model\RatingModel;
 /**
  * Reads what a rating what-if needs and builds the RatingModel: the solved puzzles with their entries, the shelf, the
  * time lists of those puzzles, the predictions (GetPlayerPredictions - list scale, never one per puzzle) and the
- * ladder. Eight statements (two for a private player), whatever the player's size.
+ * ladder. At most eight statements (one for a private player), whatever the player's size.
  */
 readonly final class RatingModelLoader
 {
@@ -35,7 +35,7 @@ readonly final class RatingModelLoader
         $solved = $this->getInsightsRatingInputs->solvedPuzzles($playerId, $piecesCount);
 
         if ($solved['private']) {
-            return RatingModel::build($now, $piecesCount, true, $solved['puzzles'], [], [], [], []);
+            return RatingModel::build($now, $piecesCount, true, $solved['optedOut'], $solved['puzzles'], [], [], [], []);
         }
 
         $shelf ??= $this->getInsightsShelf->unsolved($playerId);
@@ -53,11 +53,13 @@ readonly final class RatingModelLoader
             now: $now,
             piecesCount: $piecesCount,
             private: false,
+            optedOut: $solved['optedOut'],
             solved: $solved['puzzles'],
             shelf: $shelf,
             timeLists: $timeLists,
             predictions: $predictions,
-            ladder: $this->getInsightsRatingInputs->ladderRatings($piecesCount, $playerId),
+            // No place for a player opted out of rankings - no ladder to read
+            ladder: $solved['optedOut'] ? [] : $this->getInsightsRatingInputs->ladderRatings($piecesCount, $playerId),
         );
     }
 }

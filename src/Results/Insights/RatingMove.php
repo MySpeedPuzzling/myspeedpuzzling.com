@@ -29,6 +29,8 @@ readonly final class RatingMove
         /** First try: the share of its solvers (first attempts) the expected time beats, 0-1 */
         public null|float $fasterThanShare,
         public bool $onShelf,
+        /** First try: the puzzle has 19 public first-attempt solvers - this first try makes it count in ratings */
+        public bool $makesPuzzleCount,
     ) {
     }
 }

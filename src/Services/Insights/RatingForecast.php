@@ -163,7 +163,7 @@ readonly final class RatingForecast
         array $resultDates,
         DecayTable $decay,
     ): RatingForecastPoint {
-        $at = $model->now->modify("+{$month} months");
+        $at = $decay->month($month);
 
         if ($month === 0) {
             return new RatingForecastPoint(0, $at, $model->rating() * RatingModel::DISPLAY_SCALE, $model->onLadder());
@@ -242,7 +242,9 @@ readonly final class RatingForecast
             monthsAhead: $month,
             date: $at,
             rating: PortfolioScore::rating($firstAttemptScore->mean(), $bestTimeScore->mean(), $firstAttemptScore->count() > 0) * RatingModel::DISPLAY_SCALE,
-            onLadder: $firstAttemptScore->count() >= MspRatingCalculator::MINIMUM_FIRST_ATTEMPTS
+            onLadder: $model->optedOut === false
+                && $model->private === false
+                && $firstAttemptScore->count() >= MspRatingCalculator::MINIMUM_FIRST_ATTEMPTS
                 && $progressFirstAttempts >= MspRatingCalculator::MINIMUM_FIRST_ATTEMPTS
                 && $progressResults >= MspRatingCalculator::MINIMUM_TOTAL_SOLVES,
         );

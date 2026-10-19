@@ -75,23 +75,32 @@ final class InsightsCacheTest extends KernelTestCase
         );
         self::assertSame(7, $this->part($player));
 
+        // A teammate turning public (the page would name them now), then the pair renamed
+        $this->connection->executeStatement('UPDATE player SET is_private = false WHERE id = :player', ['player' => PlayerFixture::PLAYER_PRIVATE]);
+        self::assertSame(8, $this->part($player));
+        $this->connection->executeStatement(
+            "UPDATE puzzling_team SET name = 'The Fixtures' WHERE id IN (SELECT team_id FROM puzzling_team_member WHERE player_id = :player)",
+            ['player' => $player],
+        );
+        self::assertSame(9, $this->part($player));
+
         // The batch generation
         /** @var InsightsGeneration $generation */
         $generation = self::getContainer()->get(InsightsGeneration::class);
         $generation->advance();
-        self::assertSame(8, $this->part($player));
+        self::assertSame(10, $this->part($player));
 
         // The viewer: PLAYER_REGULAR blocks PLAYER_PRIVATE
         TestingViewer::signIn(self::getContainer(), $player);
-        self::assertSame(9, $this->part($player));
-        self::assertSame(9, $this->part($player));
+        self::assertSame(11, $this->part($player));
+        self::assertSame(11, $this->part($player));
 
         // Another player's change does not touch this player's entries
         $this->connection->executeStatement(
             "UPDATE puzzle_solving_time SET seconds_to_solve = seconds_to_solve + 1 WHERE player_id = :other AND puzzling_type = 'solo'",
             ['other' => PlayerFixture::PLAYER_WITH_STRIPE],
         );
-        self::assertSame(9, $this->part($player));
+        self::assertSame(11, $this->part($player));
     }
 
     public function testThePerGenerationPartIgnoresTheResultsButNotTheGeneration(): void

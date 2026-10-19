@@ -32,9 +32,10 @@ readonly final class GetInsightsRatingInputs
     /**
      * Every puzzle of the piece count the player has solo results on, all time, aggregated the way the rating takes
      * them (MspRatingCalculator: solo, not suspicious, timed - unboxed included), with the stored entries. One
-     * statement; `private` is the player's own setting (a private player has no MSP rating at all).
+     * statement, read from the player's row, so `private` (a private player has no MSP rating at all) and `optedOut`
+     * (opted out of rankings: a rating, never a ladder place - docs/features/opt-out.md) are known with no solves too.
      *
-     * @return array{private: bool, puzzles: list<RatingSolvedPuzzle>}
+     * @return array{private: bool, optedOut: bool, puzzles: list<RatingSolvedPuzzle>}
      */
     public function solvedPuzzles(string $playerId, int $piecesCount): array
     {
@@ -58,7 +59,9 @@ WITH solves AS (
     GROUP BY pst.puzzle_id
 )
 SELECT
-    (SELECT owner.is_private FROM player owner WHERE owner.id = :playerId) AS player_private,
+    owner.is_private AS player_private,
+    owner.ranking_opted_out AS player_opted_out,
+    s.puzzle_id AS solved_puzzle_id,
     s.first_attempt_seconds,
     s.first_attempt_at,
     s.best_seconds,
@@ -81,16 +84,20 @@ SELECT
     bt.points AS bt_points,
     bt.in_top AS bt_in_top,
     {$puzzleColumns}
-FROM solves s
-JOIN puzzle p ON p.id = s.puzzle_id AND p.pieces_count = :piecesCount
-LEFT JOIN manufacturer m ON m.id = p.manufacturer_id
-LEFT JOIN puzzle_rating_times prt ON prt.puzzle_id = s.puzzle_id
-LEFT JOIN player_rating_entry fa ON fa.player_id = :playerId AND fa.pieces_count = :piecesCount AND fa.puzzle_id = s.puzzle_id AND fa.portfolio = :firstAttempt
-LEFT JOIN player_rating_entry bt ON bt.player_id = :playerId AND bt.pieces_count = :piecesCount AND bt.puzzle_id = s.puzzle_id AND bt.portfolio = :bestTime
+FROM player owner
+LEFT JOIN (
+    solves s
+    JOIN puzzle p ON p.id = s.puzzle_id AND p.pieces_count = :piecesCount
+    LEFT JOIN manufacturer m ON m.id = p.manufacturer_id
+    LEFT JOIN puzzle_rating_times prt ON prt.puzzle_id = s.puzzle_id
+    LEFT JOIN player_rating_entry fa ON fa.player_id = :playerId AND fa.pieces_count = :piecesCount AND fa.puzzle_id = s.puzzle_id AND fa.portfolio = :firstAttempt
+    LEFT JOIN player_rating_entry bt ON bt.player_id = :playerId AND bt.pieces_count = :piecesCount AND bt.puzzle_id = s.puzzle_id AND bt.portfolio = :bestTime
+) ON true
+WHERE owner.id = :playerId
 ORDER BY s.puzzle_id
 SQL;
 
-        /** @var list<array{player_private: null|bool|int|string, first_attempt_seconds: null|int|string, first_attempt_at: null|string, best_seconds: int|string, latest_at: string, attempts: int|string, on_shelf: bool|int|string, qualifies: null|bool|int|string, solver_count: null|int|string, difficulty_weight: null|float|string, fa_seconds: null|int|string, fa_solved_at: null|string, fa_percentile: null|float|string, fa_weight: null|float|string, fa_points: null|float|string, fa_in_top: null|bool|int|string, bt_seconds: null|int|string, bt_solved_at: null|string, bt_percentile: null|float|string, bt_weight: null|float|string, bt_points: null|float|string, bt_in_top: null|bool|int|string, puzzle_id: string, puzzle_name: string, puzzle_image: null|string, brand_name: null|string, pieces_count: int|string, puzzle_secret: bool|int|string}> $rows */
+        /** @var list<array{player_private: null|bool|int|string, player_opted_out: null|bool|int|string, solved_puzzle_id: null|string, first_attempt_seconds: null|int|string, first_attempt_at: null|string, best_seconds: null|int|string, latest_at: null|string, attempts: null|int|string, on_shelf: null|bool|int|string, qualifies: null|bool|int|string, solver_count: null|int|string, difficulty_weight: null|float|string, fa_seconds: null|int|string, fa_solved_at: null|string, fa_percentile: null|float|string, fa_weight: null|float|string, fa_points: null|float|string, fa_in_top: null|bool|int|string, bt_seconds: null|int|string, bt_solved_at: null|string, bt_percentile: null|float|string, bt_weight: null|float|string, bt_points: null|float|string, bt_in_top: null|bool|int|string, puzzle_id: null|string, puzzle_name: null|string, puzzle_image: null|string, brand_name: null|string, pieces_count: null|int|string, puzzle_secret: null|bool|int|string}> $rows */
         $rows = $this->database->fetchAllAssociative($query, [
             'playerId' => $playerId,
             'piecesCount' => $piecesCount,
@@ -100,18 +107,31 @@ SQL;
         ]);
 
         $private = $rows !== [] && self::bool($rows[0]['player_private']);
+        $optedOut = $rows !== [] && self::bool($rows[0]['player_opted_out']);
         $puzzles = [];
 
         foreach ($rows as $row) {
+            // The player's row alone: no solves at the piece count
+            if ($row['solved_puzzle_id'] === null || $row['puzzle_id'] === null || $row['puzzle_name'] === null || $row['pieces_count'] === null || $row['puzzle_secret'] === null || $row['latest_at'] === null) {
+                continue;
+            }
+
             $puzzles[] = new RatingSolvedPuzzle(
                 puzzleId: $row['puzzle_id'],
-                puzzle: InsightsPuzzleRef::fromRow($row),
+                puzzle: InsightsPuzzleRef::fromRow([
+                    'puzzle_id' => $row['puzzle_id'],
+                    'puzzle_name' => $row['puzzle_name'],
+                    'puzzle_image' => $row['puzzle_image'],
+                    'brand_name' => $row['brand_name'],
+                    'pieces_count' => $row['pieces_count'],
+                    'puzzle_secret' => $row['puzzle_secret'],
+                ]),
                 firstAttemptSeconds: $row['first_attempt_seconds'] !== null ? (int) $row['first_attempt_seconds'] : null,
                 firstAttemptAt: $row['first_attempt_at'] !== null ? new DateTimeImmutable($row['first_attempt_at']) : null,
                 bestSeconds: (int) $row['best_seconds'],
                 latestAt: new DateTimeImmutable($row['latest_at']),
                 attempts: (int) $row['attempts'],
-                onShelf: self::bool($row['on_shelf']),
+                onShelf: self::bool($row['on_shelf'] ?? false),
                 qualifies: $row['qualifies'] !== null ? self::bool($row['qualifies']) : null,
                 solverCount: $row['solver_count'] !== null ? (int) $row['solver_count'] : null,
                 difficultyWeight: $row['difficulty_weight'] !== null ? (float) $row['difficulty_weight'] : null,
@@ -120,7 +140,7 @@ SQL;
             );
         }
 
-        return ['private' => $private, 'puzzles' => $puzzles];
+        return ['private' => $private, 'optedOut' => $optedOut, 'puzzles' => $puzzles];
     }
 
     /**

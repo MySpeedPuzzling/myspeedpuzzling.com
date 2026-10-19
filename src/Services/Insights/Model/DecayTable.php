@@ -39,8 +39,20 @@ final class DecayTable
         return $this->month($month - 1)->modify('+15 days');
     }
 
-    private function month(int $monthsAhead): DateTimeImmutable
+    public function month(int $monthsAhead): DateTimeImmutable
     {
-        return $this->months[$monthsAhead] ??= $this->now->modify("+{$monthsAhead} months");
+        return $this->months[$monthsAhead] ??= self::monthsAhead($this->now, $monthsAhead);
+    }
+
+    /**
+     * The same day N months on, the month's last day where it has no such day (31 Jan + 1 month = 28/29 Feb, never
+     * 2/3 Mar as "+1 month" gives), at the same time of day.
+     */
+    public static function monthsAhead(DateTimeImmutable $from, int $months): DateTimeImmutable
+    {
+        $target = $from->modify('first day of this month')->modify("+{$months} months");
+        $day = min((int) $from->format('j'), (int) $target->format('t'));
+
+        return $target->setDate((int) $target->format('Y'), (int) $target->format('n'), $day);
     }
 }

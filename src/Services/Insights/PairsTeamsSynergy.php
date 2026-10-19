@@ -93,7 +93,7 @@ readonly final class PairsTeamsSynergy
                 continue;
             }
 
-            $score = self::score($result, $timeline, $constants);
+            $score = self::score($result, $all->memberIdsByTime[$result->timeId] ?? [], $timeline, $constants);
 
             if ($score !== null) {
                 $scoresByTeam[$result->teamId][] = $score;
@@ -158,9 +158,10 @@ readonly final class PairsTeamsSynergy
     }
 
     /**
+     * @param list<null|string> $memberIds every member's player id, hidden ones too (null = a guest)
      * @param array<int, array{first: float, repeat: float}> $constants
      */
-    private static function score(InsightsGroupResult $result, PaceTimeline $timeline, array $constants): null|GroupResultScore
+    private static function score(InsightsGroupResult $result, array $memberIds, PaceTimeline $timeline, array $constants): null|GroupResultScore
     {
         if ($result->puzzle === null || $result->difficulty === null || $result->unboxed) {
             return null;
@@ -168,7 +169,7 @@ readonly final class PairsTeamsSynergy
 
         $rate = GroupExpectation::combinedRate(
             $timeline,
-            array_map(static fn (GroupResultMember $member): null|string => $member->playerId, $result->members),
+            $memberIds,
             $result->piecesCount,
             $result->solvedEpoch,
             $result->trackedEpoch,

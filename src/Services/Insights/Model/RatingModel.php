@@ -52,6 +52,8 @@ final class RatingModel
         public readonly DateTimeImmutable $now,
         public readonly int $piecesCount,
         public readonly bool $private,
+        /** Opted out of rankings (docs/features/opt-out.md): a rating and its moves, never a ladder place */
+        public readonly bool $optedOut,
         public readonly PortfolioScore $firstAttempts,
         public readonly PortfolioScore $bestTimes,
         public readonly array $solved,
@@ -75,6 +77,7 @@ final class RatingModel
         DateTimeImmutable $now,
         int $piecesCount,
         bool $private,
+        bool $optedOut,
         array $solved,
         array $shelf,
         array $timeLists,
@@ -113,7 +116,7 @@ final class RatingModel
         $current = PortfolioScore::rating($firstAttempts->mean(), $bestTimes->mean(), $firstAttempts->count() > 0);
 
         if ($private) {
-            return new self($now, $piecesCount, true, $firstAttempts, $bestTimes, $solvedById, $firstAttemptsInWindow, $resultsInWindow, $ladder, [], [], []);
+            return new self($now, $piecesCount, true, $optedOut, $firstAttempts, $bestTimes, $solvedById, $firstAttemptsInWindow, $resultsInWindow, $ladder, [], [], []);
         }
 
         $defendBefore = MspRatingFormula::windowStart($now->modify('+' . self::DEFEND_WITHIN_DAYS . ' days'));
@@ -148,18 +151,26 @@ final class RatingModel
                     solverCount: $lists->solverCount,
                     fasterThanShare: null,
                     onShelf: $puzzle->onShelf,
+                    makesPuzzleCount: false,
                 ),
                 'effect' => ['puzzleId' => $puzzle->puzzleId, 'firstAttempt' => null, 'bestTime' => $newPoints],
             ];
         }
 
-        // First tries from the shelf: a new entry in both portfolios
+        // First tries from the shelf: a new entry in both portfolios - also on a puzzle one solver short of counting,
+        // which the player's own first try makes count (MIN_SOLVERS_PER_PUZZLE reached)
         foreach ($shelf as $shelfPuzzle) {
             $puzzleId = $shelfPuzzle->puzzle->puzzleId;
             $lists = $timeLists[$puzzleId] ?? null;
             $prediction = $predictions[$puzzleId] ?? null;
 
-            if ($shelfPuzzle->puzzle->piecesCount !== $piecesCount || isset($solvedById[$puzzleId]) || $lists === null || $lists->qualifies === false || $lists->difficultyWeight === null || $prediction === null) {
+            if ($shelfPuzzle->puzzle->piecesCount !== $piecesCount || isset($solvedById[$puzzleId]) || $lists === null || $lists->difficultyWeight === null || $prediction === null) {
+                continue;
+            }
+
+            $makesPuzzleCount = $lists->qualifies === false && $lists->solverCount + 1 >= MspRatingFormula::MIN_SOLVERS_PER_PUZZLE;
+
+            if ($lists->qualifies === false && $makesPuzzleCount === false) {
                 continue;
             }
 
@@ -181,6 +192,7 @@ final class RatingModel
                     solverCount: $lists->solverCount,
                     fasterThanShare: $firstAttemptPercentile,
                     onShelf: true,
+                    makesPuzzleCount: $makesPuzzleCount,
                 ),
                 'effect' => ['puzzleId' => $puzzleId, 'firstAttempt' => $firstAttemptNew, 'bestTime' => $bestTimeNew],
             ];
@@ -193,6 +205,7 @@ final class RatingModel
             now: $now,
             piecesCount: $piecesCount,
             private: false,
+            optedOut: $optedOut,
             firstAttempts: $firstAttempts,
             bestTimes: $bestTimes,
             solved: $solvedById,
@@ -216,6 +229,7 @@ final class RatingModel
     public function onLadder(): bool
     {
         return $this->private === false
+            && $this->optedOut === false
             && $this->firstAttemptsInWindow >= MspRatingCalculator::MINIMUM_FIRST_ATTEMPTS
             && $this->resultsInWindow >= MspRatingCalculator::MINIMUM_TOTAL_SOLVES
             && $this->firstAttempts->count() >= MspRatingCalculator::MINIMUM_FIRST_ATTEMPTS;
@@ -236,8 +250,9 @@ final class RatingModel
     {
         return match (true) {
             $this->private => RatingStanding::Private,
-            $this->onLadder() => RatingStanding::OnLadder,
             $this->firstAttempts->count() === 0 && $this->bestTimes->count() === 0 => RatingStanding::NoEntries,
+            $this->optedOut => RatingStanding::OptedOut,
+            $this->onLadder() => RatingStanding::OnLadder,
             $this->newResultsNeeded() <= self::LADDER_REACH => RatingStanding::NearLadder,
             default => RatingStanding::OffLadder,
         };

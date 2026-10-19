@@ -137,7 +137,8 @@ that would otherwise be forgotten. Newest section on top.
       2026-10-14); hard bounces and complaints are Sentry warnings (30d1f880).
 - [ ] Research first-party open/click tracking (links on our own domain, e.g. a redirect on myspeedpuzzling.com)
       - SES tracking was left off on purpose: `awstrack.me` links are a spam signal (Jan: no spam-score cost).
-- [ ] Metrics per stream (sent / delivered / bounced / complained a day); a paused
+- [ ] Metrics per stream (sent / delivered / bounced / complained a day) - the alarms per stream exist since
+      2026-10-19 (README "Alerts"), a dashboard/page with the numbers does not; a paused
       Listmonk campaign alert that does not go by e-mail.
 - [ ] Un-suppress an address (admin action + removal from the SES suppression list) for "my mailbox works again".
 - [x] Delete the deactivated old access key of IAM user `ses-api-app` (`…AC3MYBX7`, leaked in a transcript,

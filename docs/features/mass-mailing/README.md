@@ -64,6 +64,10 @@ or the 6 months - 13 Apr 2027 - run out).
   `SES_SMTP_USERNAME`/`_PASSWORD`; the old one deactivated - delete it after a clean day).
 - **Alerts:** every hard bounce / complaint = Sentry warning (30d1f880, see Rules); CloudWatch alarms
   `ses-bounce-rate-4pct` and `ses-complaint-rate-0.08pct` → SNS `ses-alarms` → e-mail to Jan (`aws-setup.sh alarms`).
+  Per stream since 2026-10-19 (configuration-set reputation metrics, so one stream cannot hide in the account
+  average): `ses-<stream>-complaint-rate-0.1pct` and `ses-<stream>-bounce-rate-2pct` for `transactional`,
+  `notifications`, `newsletter`, plus `ses-events-dlq-not-empty` (events that never reached us). Every alarm also
+  e-mails when it returns to OK.
 **Gotcha:** an env change needs a redeploy (re-run the `deploy` job: `dump_secrets` renders `/srv/myspeedpuzzling/.env`)
 **and** `docker compose up -d --no-deps --force-recreate messenger-consumer digest-consumer` - the same-image redeploy
 recreates only the web containers, the queue workers keep the old env.
@@ -144,6 +148,12 @@ but they need warm-up and steady volume we don't have. Every stream stays on SES
    Anything else gets 403. An empty `SES_EVENTS_TOPIC_ARNS` makes the endpoint 404.
 3. A **subscription confirmation** is confirmed by fetching its SubscribeURL, which must be an SNS URL.
 4. A **notification** becomes `ProcessSesEvent` on `async`. SNS gets its 204 at once, and SNS retries any non-2xx.
+   **SES events dead-letter queue (2026-10-19):** all three HTTPS subscriptions (app ×2, Listmonk) retry for about
+   an hour (40 retries, backoff 10 s → 120 s; the SNS default gave up after ~20 s) and then park the event in SQS
+   `ses-events-dlq` (14 days). Anything parked = alarm `ses-events-dlq-not-empty` → e-mail to Jan. Replay with
+   `python3 -I tools/ses-events-dlq-replay.py` (dry run) / `--replay`: a parked message is the original signed SNS
+   envelope and the verifier has no age limit, so it is POSTed to its topic's endpoints again and deleted only when
+   all of them answered 2xx.
 5. **`ProcessSesEventHandler`** applies the rules below (`SesEvent` parses both event shapes).
 
 ### Rules (Jan, 2026-10-12)

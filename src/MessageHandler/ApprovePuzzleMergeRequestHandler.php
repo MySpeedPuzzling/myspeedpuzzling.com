@@ -34,6 +34,7 @@ use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Exceptions\PuzzleMergeRequestNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
+use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\RecalculateKarma;
 use SpeedPuzzling\Web\Message\RecalculateXpChainForSolve;
 use SpeedPuzzling\Web\Repository\ManufacturerRepository;
@@ -337,6 +338,11 @@ readonly final class ApprovePuzzleMergeRequestHandler
             $survivorPuzzle->addedByUser,
             ...array_map(static fn (Puzzle $puzzle): null|Player => $puzzle->addedByUser, $puzzlesToMerge),
         ));
+
+        // Librarian counts accepted reports - the reporter sees the tier now, not after the nightly evaluation
+        if ($mergeRequest->reporter !== null) {
+            $this->messageBus->dispatch(new RecalculateBadgesForPlayer($mergeRequest->reporter->id->toString()));
+        }
 
         // Puzzle deletions are handled by PuzzleMergeApproved event (recorded in approve() method)
         // This ensures migrations are flushed first, then deletions happen in a separate transaction

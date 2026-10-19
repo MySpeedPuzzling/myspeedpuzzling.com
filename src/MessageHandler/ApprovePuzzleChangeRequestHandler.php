@@ -37,6 +37,7 @@ use SpeedPuzzling\Web\Value\NotificationType;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 use SpeedPuzzling\Web\Services\OutdatedPuzzleRequests;
+use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\RecalculateKarma;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -184,6 +185,9 @@ readonly final class ApprovePuzzleChangeRequestHandler
 
         // Karma (docs/features/karma.md): the proposer, the moderator - and the puzzle's adder, an EAN may have come
         $this->messageBus->dispatch(RecalculateKarma::forPlayers($changeRequest->reporter, $reviewer, $puzzle->addedByUser));
+
+        // Librarian counts accepted proposals - the proposer sees the tier now, not after the nightly evaluation
+        $this->messageBus->dispatch(new RecalculateBadgesForPlayer($changeRequest->reporter->id->toString()));
     }
 
     /**

@@ -25,6 +25,7 @@ use SpeedPuzzling\Web\Value\PuzzleImageChoice;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
 use SpeedPuzzling\Web\Services\OutdatedPuzzleRequests;
+use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\RecalculateKarma;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -142,6 +143,11 @@ readonly final class ApprovePuzzleHandler
 
         // Karma (docs/features/karma.md): the adder (a puzzle with an EAN counts once approved) and the moderator
         $this->messageBus->dispatch(RecalculateKarma::forPlayers($puzzle->addedByUser, $reviewer));
+
+        // Cataloger counts approved puzzles - the adder sees the tier now, not after the nightly evaluation
+        if ($puzzle->addedByUser !== null) {
+            $this->messageBus->dispatch(new RecalculateBadgesForPlayer($puzzle->addedByUser->id->toString()));
+        }
     }
 
     /**

@@ -151,7 +151,12 @@ final class EventTypesTest extends WebTestCase
 
         foreach ($boxes as $box) {
             self::assertInstanceOf(ChoiceFormField::class, $box);
-            in_array($box->availableOptionValues()[0] ?? null, $types, true) ? $box->tick() : $box->untick();
+            // A ticked box holds its own value
+            $box->tick();
+
+            if (in_array($box->getValue(), $types, true) === false) {
+                $box->untick();
+            }
         }
 
         return $form;

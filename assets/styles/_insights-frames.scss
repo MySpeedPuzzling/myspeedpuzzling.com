@@ -406,3 +406,8 @@ a.ins-srow {
         display: grid;
     }
 }
+
+// The pair/team verdicts are longer than the skill map's ("+21 % · Skvělá souhra"): they wrap in their column
+a.ins-srow .ins-stag {
+    white-space: normal;
+}

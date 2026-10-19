@@ -1,0 +1,30 @@
+{#
+    The placeholder of a lazy Insights part (docs/features/insights/page.md "Lazy frames"): a Turbo Frame that loads
+    from the part's own route once scrolled near (loading="lazy"), showing its sections' heads meanwhile - the question
+    chips' anchors exist before it loads. `data-live-ignore`: the Insights live component's re-renders leave a loaded
+    frame alone while its id stays the same; a filter the part reads changes the id (InsightsLazyPart::frameId()), the
+    component then puts this placeholder back with the new src and Turbo loads it again. Links inside go to the whole
+    page (target="_top").
+
+    Variables: part (InsightsLazyPart value), criteria (InsightsCriteria)
+#}
+{% set frame = insights_frame(part, criteria) %}
+{% set heads = {
+    'insights-rating': {key: 'rating'},
+    'insights-forecast': {key: 'forecast'},
+    'insights-resolve': {key: 'resolve'},
+    'insights-pairs': {key: 'pairs'},
+    'insights-improvement': {key: 'improvement'},
+} %}
+<turbo-frame id="{{ frame.id }}" src="{{ frame.src }}" loading="lazy" target="_top" data-live-ignore data-testid="insights-frame-{{ part }}">
+    {% for anchor in frame.anchors %}
+        {% set key = heads[anchor].key %}
+        <section class="ins-sec ins-sec--loading" id="{{ anchor }}" data-testid="insights-lazy-{{ key }}" aria-busy="true">
+            {{ include('insights/_section_head.html.twig', {question: 'insights.' ~ key ~ '.question', title: 'insights.' ~ key ~ '.title', badge: 'member', badge_text: 'insights.badge.members'}) }}
+            <div class="ins-loading-box" role="status">
+                <span class="spinner-border spinner-border-sm text-primary" aria-hidden="true"></span>
+                <span>{{ 'insights.loading'|trans }}</span>
+            </div>
+        </section>
+    {% endfor %}
+</turbo-frame>

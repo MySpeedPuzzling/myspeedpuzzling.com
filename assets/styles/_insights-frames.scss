@@ -1,0 +1,399 @@
+//
+// Insights page - the lazy frames (docs/features/insights/page.md "Lazy frames"): rating + forecast, re-solve radar,
+// pairs & teams, improvement curve. Builds on _insights.scss (its $ins-* colours, .ins-sec, .ins-row, .ins-srow …).
+// Mobile first, 320 px without sideways scroll.
+//
+
+// --- Placeholder while a frame loads -----------------------------------------------------------------------------------
+
+.ins-sec--loading {
+    min-height: 220px;
+}
+
+.ins-loading-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    min-height: 140px;
+    margin-top: .875rem;
+    border-radius: .5rem;
+    background: $ins-surface-2;
+    font-size: .8125rem;
+    color: $ins-muted;
+}
+
+// --- Shared bits ---------------------------------------------------------------------------------------------------------
+
+.ins-next {
+    margin: .5rem 0 0;
+    font-size: .875rem;
+    font-weight: 500;
+}
+
+.ins-take--small {
+    font-size: .875rem;
+}
+
+.ins-subsec {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid $ins-line;
+
+    &__title {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+}
+
+.ins-row--plain {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: .625rem;
+    padding: .375rem;
+}
+
+.ins-chip--small {
+    display: inline-block;
+    margin-left: .25rem;
+    padding: 0 .375rem;
+    border-radius: 999px;
+    background: $ins-surface-2;
+    color: $ins-ink-2;
+    font-size: .6875rem;
+    vertical-align: 1px;
+}
+
+a.ins-srow {
+    text-decoration: none;
+
+    &:hover {
+        color: $ins-ink;
+    }
+}
+
+.ins-legend--hollow {
+    border: 1.5px solid $ins-you;
+    background: $white;
+}
+
+// --- Rating: moves, path, strips -------------------------------------------------------------------------------------
+
+.ins-moves {
+    position: relative;
+
+    &__radio {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        opacity: 0;
+    }
+
+    &__head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: .375rem .75rem;
+        margin: .75rem 0 .375rem;
+
+        .ins-listh {
+            margin: 0;
+        }
+    }
+
+    &__list--hour {
+        display: none;
+    }
+
+    #insights-moves-hour:checked ~ &__list--points {
+        display: none;
+    }
+
+    #insights-moves-hour:checked ~ &__list--hour {
+        display: grid;
+    }
+
+    #insights-moves-points:checked ~ &__head .ins-seg__points,
+    #insights-moves-hour:checked ~ &__head .ins-seg__hour {
+        border-color: $ins-ref;
+        background: $ins-ref-soft;
+        color: $ins-ref;
+        font-weight: 600;
+    }
+
+    #insights-moves-points:focus-visible ~ &__head .ins-seg__points,
+    #insights-moves-hour:focus-visible ~ &__head .ins-seg__hour {
+        outline: 2px solid $ins-ref;
+        outline-offset: 2px;
+    }
+}
+
+.ins-seg {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: .25rem;
+
+    label {
+        display: inline-flex;
+        align-items: center;
+        min-height: 32px;
+        margin: 0;
+        padding: 0 .75rem;
+        border: 1px solid $ins-line;
+        border-radius: 999px;
+        background: $white;
+        color: $ins-ink-2;
+        font-size: .8125rem;
+        cursor: pointer;
+    }
+}
+
+.ins-kind {
+    display: inline-block;
+    margin-right: .375rem;
+    padding: 0 .375rem;
+    border-radius: 4px;
+    font-size: .6875rem;
+    font-weight: 600;
+    vertical-align: 1px;
+
+    &--first_try {
+        background: rgba($ins-faster, .14);
+        color: darken($ins-faster, 12%);
+    }
+
+    &--resolve {
+        background: $ins-ref-soft;
+        color: $ins-ref;
+    }
+
+    &--defend {
+        background: rgba($ins-slower, .14);
+        color: darken($ins-slower, 14%);
+    }
+}
+
+.ins-path {
+    margin-top: 1rem;
+    padding: .75rem;
+    border-radius: .5rem;
+    background: $ins-surface-2;
+
+    .ins-listh {
+        margin-top: 0;
+    }
+
+    &__row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: .25rem;
+        margin-bottom: .5rem;
+
+        @include media-breakpoint-up(sm) {
+            grid-template-columns: minmax(0, 1fr) minmax(120px, 220px);
+            align-items: center;
+        }
+    }
+
+    &__label {
+        font-size: .8125rem;
+        color: $ins-ink-2;
+    }
+
+    &__bar {
+        position: relative;
+        display: block;
+        height: 8px;
+        overflow: hidden;
+        border-radius: 4px;
+        background: $ins-grid;
+
+        span {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            border-radius: 4px;
+            background: $ins-ref;
+        }
+
+        &--small {
+            max-width: 160px;
+            height: 6px;
+            margin-top: 4px;
+
+            span {
+                background: $ins-neutral;
+            }
+        }
+    }
+}
+
+.ins-strips {
+    &__label {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 0 .75rem;
+        margin: .5rem 0 .125rem;
+        font-size: .75rem;
+        color: $ins-ink-2;
+
+        span:last-child {
+            color: $ins-muted;
+        }
+    }
+
+    &__svg {
+        display: block;
+        width: 100%;
+        height: 64px;
+
+        .is-counted {
+            fill: $ins-ref;
+        }
+
+        .is-out {
+            fill: $ins-neutral;
+        }
+    }
+
+    &__cut {
+        stroke: $ins-ink-2;
+        stroke-dasharray: 3 3;
+        vector-effect: non-scaling-stroke;
+    }
+
+    &__base {
+        stroke: $ins-line;
+        vector-effect: non-scaling-stroke;
+    }
+
+    &__more {
+        margin: .125rem 0 0;
+        font-size: .75rem;
+        color: $ins-muted;
+    }
+}
+
+// --- Forecast milestones -----------------------------------------------------------------------------------------------
+
+.ins-milestones {
+    display: grid;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ins-milestone {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr);
+    align-items: center;
+    gap: .25rem .625rem;
+    padding: .375rem;
+
+    @include media-breakpoint-up(sm) {
+        grid-template-columns: 32px minmax(0, 1fr) minmax(0, auto);
+    }
+
+    &__n {
+        display: grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        background: $ins-ref-soft;
+        color: $ins-ref;
+        font-weight: 600;
+    }
+
+    &__main {
+        display: grid;
+        min-width: 0;
+    }
+
+    &__name {
+        font-size: .875rem;
+        font-weight: 500;
+    }
+
+    &__meta {
+        font-size: .75rem;
+        color: $ins-muted;
+    }
+
+    &__value {
+        grid-column: 2;
+        font-size: .875rem;
+        font-weight: 600;
+
+        @include media-breakpoint-up(sm) {
+            grid-column: auto;
+            max-width: 160px;
+            text-align: right;
+        }
+    }
+}
+
+// --- Pairs & teams: together vs. alone ---------------------------------------------------------------------------------
+
+.ins-bars {
+    display: grid;
+    gap: .375rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    &__row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: .125rem .625rem;
+
+        @include media-breakpoint-up(sm) {
+            grid-template-columns: minmax(90px, 150px) minmax(0, 1fr) auto;
+        }
+    }
+
+    &__label {
+        overflow: hidden;
+        font-size: .8125rem;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    &__track {
+        position: relative;
+        grid-column: 1 / -1;
+        grid-row: 2;
+        height: 14px;
+        overflow: hidden;
+        border-radius: 4px;
+        background: $ins-grid;
+
+        @include media-breakpoint-up(sm) {
+            grid-column: auto;
+            grid-row: auto;
+        }
+
+        span {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            border-radius: 4px;
+            background: $ins-ref;
+        }
+    }
+
+    &__value {
+        font-size: .8125rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+}

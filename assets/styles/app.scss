@@ -74,6 +74,8 @@
 
 // The player's own Insights (docs/features/insights/page.md)
 @import 'insights';
+// …and its lazy frames (rating + forecast, re-solve radar, pairs & teams, improvement)
+@import 'insights-frames';
 
 // Personal time estimates, option C (docs/features/insights/estimates.md)
 @import 'estimates';

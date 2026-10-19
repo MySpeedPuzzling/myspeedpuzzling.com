@@ -408,7 +408,7 @@ final class Insights
     }
 
     /**
-     * The question chips at the top, in page order: [anchor, translation key, free]. Stream 6b adds its own sections'
+     * The question chips at the top, in page order: [anchor, translation key, free]. The lazy frames add their own sections'
      * questions here (rating, forecast, re-solve, pairs & teams).
      *
      * @return list<array{anchor: string, key: string, free: bool}>
@@ -423,8 +423,14 @@ final class Insights
             ['anchor' => 'insights-expected', 'key' => 'insights.ask.expected', 'free' => false],
             ['anchor' => 'insights-median', 'key' => 'insights.ask.median', 'free' => true],
             ['anchor' => 'insights-close-calls', 'key' => 'insights.ask.close_calls', 'free' => true],
+            // The lazy frames' sections (InsightsLazyPart::anchors() - the placeholders carry the anchors)
+            ['anchor' => 'insights-rating', 'key' => 'insights.rating.ask', 'free' => false],
+            ['anchor' => 'insights-forecast', 'key' => 'insights.forecast.ask', 'free' => false],
+            ['anchor' => 'insights-resolve', 'key' => 'insights.resolve.ask', 'free' => false],
             ['anchor' => 'insights-learning', 'key' => 'insights.ask.learning', 'free' => false],
+            ['anchor' => 'insights-pairs', 'key' => 'insights.pairs.ask', 'free' => false],
             ['anchor' => 'insights-habits', 'key' => 'insights.ask.habits', 'free' => true],
+            ['anchor' => 'insights-improvement', 'key' => 'insights.improvement.ask', 'free' => false],
         ];
     }
 

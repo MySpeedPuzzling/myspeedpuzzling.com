@@ -1,0 +1,129 @@
+{#
+    Lazy frame (InsightsPairsFrameController): section 13 "Who do I solve best with?" (PairsTeamsSynergy). Like with
+    like: pairs and teams are separate lists and nothing here mixes into the solo sections. Every pair/team against
+    what its people's solo paces predict together; guests have no solo pace (listed without a score). Free players: the
+    counts in the takeaway and one lock.
+
+    Variables: context (InsightsFrameContext), synergy (PairsTeamsSynergyResult)
+#}
+{% import 'insights/_macros.html.twig' as ins %}
+{% set is_member = context.isMember %}
+{% set results_count = synergy.pairResultsCount + synergy.teamResultsCount %}
+{% set groups = synergy.pairs|merge(synergy.teams) %}
+{% set verdict_style = {great_match: 'strength', as_expected: 'about_usual', faster_apart: 'weak_spot', not_sure_yet: 'not_sure_yet', no_solo_pace: 'not_sure_yet'} %}
+{% set range = 0.25 %}
+<turbo-frame id="{{ context.frameId }}">
+<section class="ins-sec" id="insights-pairs" data-testid="insights-section-pairs">
+    {{ include('insights/_section_head.html.twig', {question: 'insights.pairs.question', title: 'insights.pairs.title', badge: 'member', badge_text: 'insights.badge.members'}) }}
+
+    {% if results_count == 0 %}
+        <p class="ins-take">{{ 'insights.pairs.none'|trans }}</p>
+    {% elseif not is_member %}
+        <p class="ins-take">{{ 'insights.pairs.takeaway.free'|trans({'%count%': results_count, '%groups%': groups|length})|raw }}</p>
+        {{ include('insights/_lock.html.twig', {
+            title: 'insights.pairs.lock.title'|trans({'%count%': groups|length}),
+            text: 'insights.pairs.lock.text'|trans,
+            testid: 'insights-lock-pairs',
+        }) }}
+    {% else %}
+        {% set best = groups|filter(g => g.verdict.value == 'great_match')|first %}
+        {% set apart = groups|filter(g => g.verdict.value == 'faster_apart')|first %}
+        <p class="ins-take" data-testid="insights-pairs-takeaway">
+            {%- if best -%}
+                {{ 'insights.pairs.takeaway.best'|trans({
+                    '%name%': '<b>' ~ include('insights/frames/_group_name.html.twig', {synergy: best}) ~ '</b>',
+                    '%percent%': (-best.effect.effect * 100)|round,
+                })|raw }}
+                {%- if best.speedVsAlone is not null %} {{ 'insights.pairs.takeaway.alone'|trans({'%times%': best.speedVsAlone|format_number({fraction_digit: 1})}) }}{% endif -%}
+            {%- else -%}
+                {{ 'insights.pairs.takeaway.none_stands_out'|trans }}
+            {%- endif -%}
+            {%- if apart %} {{ 'insights.pairs.takeaway.apart'|trans({'%name%': '<b>' ~ include('insights/frames/_group_name.html.twig', {synergy: apart}) ~ '</b>'})|raw }}{% endif -%}
+        </p>
+
+        <div class="ins-two">
+            <div>
+                {% for list in [{key: 'pairs', items: synergy.pairs}, {key: 'teams', items: synergy.teams}] %}
+                    {% if list.items is not empty %}
+                        <p class="ins-listh">{{ ('insights.pairs.list.' ~ list.key)|trans }}</p>
+                        <div class="ins-saxis" aria-hidden="true"><span></span><span class="ins-saxis__scale"><span>{{ 'insights.pairs.axis.slower'|trans }}</span><span>{{ 'insights.pairs.axis.faster'|trans }}</span></span><span class="ins-saxis__n">{{ 'insights.skills.axis.results'|trans }}</span><span></span></div>
+                        <div class="ins-smap" data-testid="insights-pairs-{{ list.key }}">
+                            {% for group in list.items %}
+                                {% set verdict = verdict_style[group.verdict.value] %}
+                                <a class="ins-srow" href="{{ path('puzzling_team_detail', {teamId: group.teamId}) }}">
+                                    <span class="ins-srow__label">
+                                        {{- include('insights/frames/_group_name.html.twig', {synergy: group}) -}}
+                                        {%- if group.size > 2 %} <span class="ins-chip ins-chip--small">{{ 'insights.pairs.team_of'|trans({'%count%': group.size}) }}</span>{% endif -%}
+                                    </span>
+                                    <span class="ins-strip ins-strip--{{ verdict }}" aria-hidden="true">
+                                        {% if group.effect is not null %}
+                                            {% set low = max(-range, min(range, group.effect.low)) %}
+                                            {% set high = max(-range, min(range, group.effect.high)) %}
+                                            {% set effect = max(-range, min(range, group.effect.effect)) %}
+                                            <span class="ins-strip__range" style="left: {{ ((range - high) / (2 * range) * 100)|round(1) }}%; width: {{ ((high - low) / (2 * range) * 100)|round(1) }}%"></span>
+                                            <span class="ins-strip__dot" style="left: {{ ((range - effect) / (2 * range) * 100)|round(1) }}%"></span>
+                                        {% endif %}
+                                    </span>
+                                    <span class="ins-srow__n">{{ group.resultsCount }}</span>
+                                    <span class="ins-stag ins-stag--{{ verdict }}">
+                                        {%- if group.effect is not null and group.verdict.value in ['great_match', 'faster_apart'] -%}
+                                            {{ ins.signed_percent(-group.effect.effect) }} · {% endif -%}
+                                        {{ ('insights.pairs.verdict.' ~ group.verdict.value)|trans }}
+                                    </span>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+                <p class="ins-note">{{ 'insights.pairs.note'|trans }}</p>
+            </div>
+            <div>
+                {% set together = groups|filter(g => g.speedVsAlone is not null)|sort((a, b) => b.speedVsAlone <=> a.speedVsAlone) %}
+                {% if together is not empty %}
+                    {% set max_speed = max(together|map(g => g.speedVsAlone)|merge([2])) %}
+                    <p class="ins-listh">{{ 'insights.pairs.together.title'|trans }}</p>
+                    <ul class="ins-bars" data-testid="insights-pairs-together">
+                        {% for group in together|slice(0, 8) %}
+                            <li class="ins-bars__row">
+                                <span class="ins-bars__label">{{ include('insights/frames/_group_name.html.twig', {synergy: group}) }}</span>
+                                <span class="ins-bars__track" aria-hidden="true"><span style="width: {{ (group.speedVsAlone / max_speed * 100)|round }}%"></span></span>
+                                <span class="ins-bars__value">{{ 'insights.pairs.together.times'|trans({'%times%': group.speedVsAlone|format_number({fraction_digit: 1})}) }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    <p class="ins-note">{{ 'insights.pairs.together.note'|trans }}</p>
+                {% endif %}
+
+                {% set names = {} %}
+                {% for group in groups %}
+                    {% set names = names|merge({(group.teamId): include('insights/frames/_group_name.html.twig', {synergy: group})}) %}
+                {% endfor %}
+                {% for list in [{key: 'pairs', items: synergy.bestPairResults}, {key: 'teams', items: synergy.bestTeamResults}] %}
+                    {% set shown = list.items|filter(score => score.result.puzzle is not null) %}
+                    {% if shown is not empty %}
+                        <p class="ins-listh">{{ ('insights.pairs.best.' ~ list.key)|trans }}</p>
+                        <ul class="ins-list" data-testid="insights-pairs-best-{{ list.key }}">
+                            {% for score in shown %}
+                                {% set puzzle = score.result.puzzle %}
+                                <li class="ins-row">
+                                    <a class="ins-row__link" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                                        {{ lazy_puzzle_image(puzzle.image, 'puzzle_small', puzzle.name, 999, 48, 'rounded-2 ins-row__image', 48) }}
+                                        <span class="ins-row__main">
+                                            <span class="ins-row__name">{{ puzzle.name }}</span>
+                                            <span class="ins-row__meta">{{ 'insights.pairs.best.meta'|trans({'%name%': (names[score.result.teamId] ?? '')|striptags, '%pieces%': puzzle.piecesCount, '%date%': score.result.solvedAt|format_date('medium')}) }}</span>
+                                        </span>
+                                        <span class="ins-row__num">{{ score.result.seconds|puzzlingTime }}<small>
+                                            {%- set percent = ((1 - score.ratio)|abs * 100)|round -%}
+                                            {{- (percent < 1 ? 'insights.pairs.best.level' : (score.ratio < 1 ? 'insights.pairs.best.faster' : 'insights.pairs.best.slower'))|trans({'%percent%': percent}) -}}
+                                        </small></span>
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+</section>
+</turbo-frame>

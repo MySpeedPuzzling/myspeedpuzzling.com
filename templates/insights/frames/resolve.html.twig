@@ -1,0 +1,69 @@
+{#
+    Lazy frame (InsightsResolveFrameController): section 11 "What should I re-solve?" - puzzles last solved a year or
+    more ago that would likely go at least 5 % faster now (ResolveRadar: personal predictions in bulk). Time predictions
+    switched off = the note and the setting instead; free players: the lock with the count.
+
+    Variables: context (InsightsFrameContext), radar (null|ResolveRadarResult), chart (null|Chart, members)
+#}
+{% set is_member = context.isMember %}
+<turbo-frame id="{{ context.frameId }}">
+<section class="ins-sec" id="insights-resolve" data-testid="insights-section-resolve">
+    {{ include('insights/_section_head.html.twig', {question: 'insights.resolve.question', title: 'insights.resolve.title', badge: 'member', badge_text: 'insights.badge.members'}) }}
+
+    {% if radar is null %}
+        <p class="ins-take" data-testid="insights-predictions-off">
+            {{ 'insights.resolve.predictions_off'|trans }}
+            <a href="{{ path('edit_profile') }}">{{ 'statistics.change_in_settings'|trans }}</a>
+        </p>
+    {% elseif not is_member %}
+        {{ include('insights/_lock.html.twig', {
+            title: 'insights.resolve.lock.title'|trans({'%count%': radar.candidates|length}),
+            text: 'insights.resolve.lock.text'|trans,
+            testid: 'insights-lock-resolve',
+        }) }}
+    {% elseif radar.candidates is empty %}
+        <p class="ins-take">{{ 'insights.resolve.none'|trans({'%months%': constant('SpeedPuzzling\\Web\\Services\\Insights\\ResolveRadar::MINIMUM_MONTHS')}) }}</p>
+    {% else %}
+        <p class="ins-take" data-testid="insights-resolve-takeaway">{{ 'insights.resolve.takeaway'|trans({'%count%': radar.candidates|length, '%shelf%': radar.onShelfCount})|raw }}</p>
+
+        <div class="ins-two">
+            <div>
+                {% if chart is not null %}
+                    <div class="ins-chart" id="ins-chart-resolve-{{ context.frameId }}" data-controller="comparison-chart">
+                        {{ render_chart(chart, {role: 'img', 'aria-label': 'insights.resolve.chart_label'|trans}) }}
+                    </div>
+                    <div class="ins-legend" aria-hidden="true">
+                        <span><i class="ins-legend__dot ins-legend--you"></i>{{ 'insights.resolve.legend.shelf'|trans }}</span>
+                        <span><i class="ins-legend__dot ins-legend--hollow"></i>{{ 'insights.resolve.legend.other'|trans }}</span>
+                        <span>{{ 'insights.resolve.legend.size'|trans }}</span>
+                    </div>
+                {% endif %}
+            </div>
+            <div>
+                <p class="ins-listh">{{ 'insights.resolve.list'|trans }}</p>
+                <ul class="ins-list" data-testid="insights-resolve-list">
+                    {% for candidate in radar.candidates|slice(0, 8) %}
+                        {% set puzzle = candidate.puzzle %}
+                        <li class="ins-row">
+                            <a class="ins-row__link" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                                {{ lazy_puzzle_image(puzzle.image, 'puzzle_small', puzzle.name, 999, 48, 'rounded-2 ins-row__image', 48) }}
+                                <span class="ins-row__main">
+                                    <span class="ins-row__name">{{ puzzle.name }}</span>
+                                    <span class="ins-row__meta">
+                                        {{- 'insights.resolve.meta'|trans({'%pieces%': puzzle.piecesCount, '%brand%': puzzle.brandName ?? '', '%count%': candidate.monthsSinceLastSolve|round}) -}}
+                                        {%- if candidate.onShelf %} · {{ 'insights.resolve.on_shelf'|trans }}{% endif -%}
+                                    </span>
+                                </span>
+                                <span class="ins-row__num">{{ 'insights.percent'|trans({'%value%': '−' ~ (candidate.likelyGain * 100)|round}) }}<small>{{ candidate.bestSeconds|puzzlingTime }} → {{ candidate.predictedSeconds|puzzlingTime }}</small></span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <p class="ins-next"><a href="{{ path('puzzle_picker', enum('SpeedPuzzling\\Web\\Value\\PuzzlePickerPreset').BeatMyRecord.queryParams()) }}">{{ 'insights.resolve.picker'|trans }} →</a></p>
+            </div>
+        </div>
+
+        <p class="ins-note">{{ 'insights.resolve.note'|trans }}</p>
+    {% endif %}
+</section>
+</turbo-frame>

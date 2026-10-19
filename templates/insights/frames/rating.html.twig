@@ -1,0 +1,287 @@
+{#
+    Lazy frame (InsightsRatingFrameController): sections 9 "Where can I gain MSP rating points?" and 10 "Where am I
+    heading?" from one rating model. Members: moves, portfolio strips, pending puzzles, the path onto the ladder (only
+    while within reach), the forecast and its milestones. Free players: one lock per section with counts only.
+    Every place is a place on today's ladder - the text says so (everybody else's ratings move too). Players opted out
+    of rankings have a rating but no ladder place; time predictions switched off = no moves, no "best moves" line.
+
+    Variables: context (InsightsFrameContext), opportunities (RatingOpportunitiesResult),
+               forecast (null|RatingForecastResult, members), forecast_chart (null|Chart)
+#}
+{% set o = opportunities %}
+{% set is_member = context.isMember %}
+{% set predictions = context.predictionsAllowed %}
+{% set standing = o.standing.value %}
+{% set has_entries = standing not in ['private', 'no_entries'] %}
+{% set show_moves = predictions and o.movesCount > 0 %}
+<turbo-frame id="{{ context.frameId }}">
+<section class="ins-sec" id="insights-rating" data-testid="insights-section-rating">
+    {{ include('insights/_section_head.html.twig', {question: 'insights.rating.question', title: 'insights.rating.title', badge: 'member', badge_text: 'insights.badge.members'}) }}
+
+    {% if standing == 'private' %}
+        <p class="ins-take" data-testid="insights-rating-private">{{ 'insights.rating.private'|trans }}</p>
+    {% elseif standing == 'no_entries' %}
+        <p class="ins-take" data-testid="insights-rating-none">{{ 'insights.rating.no_entries'|trans }}</p>
+        <p class="ins-next"><a href="{{ path('puzzle_picker', enum('SpeedPuzzling\\Web\\Value\\PuzzlePickerPreset').RatingGrind.queryParams()) }}">{{ 'insights.rating.picker'|trans }} →</a></p>
+    {% elseif not is_member %}
+        {{ include('insights/_lock.html.twig', {
+            title: show_moves
+                ? 'insights.rating.lock.moves'|trans({'%count%': o.movesCount, '%gain%': o.bestTenGain|format_number({fraction_digit: 1})})
+                : 'insights.rating.lock.entries'|trans({'%count%': o.firstAttemptEntries|length + o.bestTimeEntries|length}),
+            text: 'insights.rating.lock.text'|trans,
+            testid: 'insights-lock-rating',
+        }) }}
+    {% else %}
+        <p class="ins-take" data-testid="insights-rating-takeaway">
+            {%- if standing == 'on_ladder' -%}
+                {{ 'insights.rating.takeaway.on_ladder'|trans({'%rating%': o.rating|round, '%place%': o.place, '%count%': o.ladderSize})|raw }}
+            {%- elseif standing == 'opted_out' -%}
+                {{ 'insights.rating.takeaway.opted_out'|trans({'%rating%': o.rating|round})|raw }}
+            {%- elseif standing == 'near_ladder' and o.ladderPath is not null -%}
+                {{ 'insights.rating.takeaway.near_ladder'|trans({'%rating%': o.rating|round, '%count%': o.ladderPath.newResultsNeeded, '%place%': o.ladderPath.placeWhenOnLadder})|raw }}
+            {%- else -%}
+                {{ 'insights.rating.takeaway.off_ladder'|trans({'%rating%': o.rating|round, '%first%': o.firstAttemptEntries|length, '%first_needed%': constant('SpeedPuzzling\\Web\\Services\\PuzzleIntelligence\\MspRatingCalculator::MINIMUM_FIRST_ATTEMPTS'), '%results_needed%': constant('SpeedPuzzling\\Web\\Services\\PuzzleIntelligence\\MspRatingCalculator::MINIMUM_TOTAL_SOLVES')})|raw }}
+            {%- endif -%}
+            {%- if show_moves %}
+                {% if standing == 'on_ladder' and o.placeAfterBestTen is not null -%}
+                    {{ 'insights.rating.takeaway.moves_place'|trans({'%five%': o.bestFiveGain|format_number({fraction_digit: 1}), '%ten%': o.bestTenGain|format_number({fraction_digit: 1}), '%place%': o.placeAfterBestTen})|raw }}
+                {%- else -%}
+                    {{ 'insights.rating.takeaway.moves'|trans({'%five%': o.bestFiveGain|format_number({fraction_digit: 1}), '%ten%': o.bestTenGain|format_number({fraction_digit: 1})})|raw }}
+                {%- endif %}
+                {{ 'insights.rating.takeaway.first_tries'|trans }}
+            {%- endif -%}
+        </p>
+
+        <div class="ins-totals">
+            <div><b>{{ o.firstAttemptEntries|length }}</b>{{ 'insights.rating.totals.first_tries'|trans }}</div>
+            <div><b>{{ o.bestTimeEntries|length }}</b>{{ 'insights.rating.totals.best_times'|trans }}</div>
+            <div><b>{{ o.entriesLeavingWithin60Days }}</b>{{ 'insights.rating.totals.leaving'|trans }}</div>
+            <div><b>{{ o.firstAttemptAverage|round }} / {{ o.bestTimeAverage|round }}</b>{{ 'insights.rating.totals.averages'|trans }}</div>
+        </div>
+
+        {% if o.ladderPath is not null %}
+            {% set path_to = o.ladderPath %}
+            <div class="ins-path" data-testid="insights-ladder-path">
+                <p class="ins-listh">{{ 'insights.rating.path.title'|trans }}</p>
+                {% for need in [
+                    {label: 'insights.rating.path.first_tries', have: path_to.firstTries, needed: path_to.firstTriesNeeded},
+                    {label: 'insights.rating.path.results', have: path_to.results, needed: path_to.resultsNeeded},
+                ] %}
+                    <div class="ins-path__row">
+                        <span class="ins-path__label">{{ need.label|trans({'%have%': min(need.have, need.needed), '%needed%': need.needed}) }}</span>
+                        <span class="ins-path__bar" aria-hidden="true"><span style="width: {{ (min(need.have, need.needed) / max(1, need.needed) * 100)|round }}%"></span></span>
+                    </div>
+                {% endfor %}
+                <p class="ins-note">{{ 'insights.rating.path.note'|trans({'%count%': path_to.newResultsNeeded, '%place%': path_to.placeWhenOnLadder}) }}</p>
+            </div>
+        {% endif %}
+
+        <div class="ins-two">
+            <div>
+                {% if not predictions %}
+                    <p class="ins-take ins-take--small" data-testid="insights-predictions-off">
+                        {{ 'insights.rating.predictions_off'|trans }}
+                        <a href="{{ path('edit_profile') }}">{{ 'statistics.change_in_settings'|trans }}</a>
+                    </p>
+                {% elseif o.moves is empty %}
+                    <p class="ins-listh">{{ 'insights.rating.moves.title'|trans }}</p>
+                    <p class="ins-row ins-row--empty">{{ 'insights.rating.moves.none'|trans }}</p>
+                {% else %}
+                    <div class="ins-moves" data-testid="insights-rating-moves">
+                        <input type="radio" class="ins-moves__radio" name="insights-moves-sort" id="insights-moves-points" checked>
+                        <input type="radio" class="ins-moves__radio" name="insights-moves-sort" id="insights-moves-hour">
+                        <div class="ins-moves__head">
+                            <p class="ins-listh">{{ 'insights.rating.moves.title'|trans }}</p>
+                            <div class="ins-seg">
+                                <label for="insights-moves-points" class="ins-seg__points">{{ 'insights.rating.moves.sort_points'|trans }}</label>
+                                <label for="insights-moves-hour" class="ins-seg__hour">{{ 'insights.rating.moves.sort_hour'|trans }}</label>
+                            </div>
+                        </div>
+                        {% for list in [{key: 'points', moves: o.moves}, {key: 'hour', moves: o.movesByGainPerHour}] %}
+                            {% set shown = list.moves|slice(0, 8) %}
+                            {% set max_value = max(shown|map(move => list.key == 'points' ? move.gain : move.gainPerHour)|merge([0.1])) %}
+                            <ul class="ins-list ins-moves__list ins-moves__list--{{ list.key }}">
+                                {% for move in shown %}
+                                    {% set value = list.key == 'points' ? move.gain : move.gainPerHour %}
+                                    <li class="ins-row ins-row--move">
+                                        <a class="ins-row__link" href="{{ path('puzzle_detail', {puzzleId: move.puzzle.puzzleId}) }}">
+                                            {{ lazy_puzzle_image(move.puzzle.image, 'puzzle_small', move.puzzle.name, 999, 48, 'rounded-2 ins-row__image', 48) }}
+                                            <span class="ins-row__main">
+                                                <span class="ins-row__name"><span class="ins-kind ins-kind--{{ move.kind.value }}">{{ ('insights.rating.kind.' ~ move.kind.value)|trans }}</span>{{ move.puzzle.name }}</span>
+                                                <span class="ins-row__meta">
+                                                    {%- if move.kind.value == 'first_try' -%}
+                                                        {{ 'insights.rating.moves.meta.first_try'|trans({'%expected%': move.expectedSeconds|puzzlingTime, '%percent%': ((move.fasterThanShare ?? 0) * 100)|round, '%count%': move.solverCount}) }}
+                                                    {%- elseif move.kind.value == 'defend' -%}
+                                                        {{ 'insights.rating.moves.meta.defend'|trans({'%count%': move.daysUntilLeaving ?? 0, '%best%': (move.currentBestSeconds ?? 0)|puzzlingTime}) }}
+                                                    {%- else -%}
+                                                        {{ 'insights.rating.moves.meta.resolve'|trans({'%best%': (move.currentBestSeconds ?? 0)|puzzlingTime, '%expected%': move.expectedSeconds|puzzlingTime}) }}
+                                                    {%- endif -%}
+                                                    {%- if move.onShelf %} · {{ 'insights.rating.moves.on_shelf'|trans }}{% endif -%}
+                                                    {%- if move.makesPuzzleCount %} · {{ 'insights.rating.moves.makes_it_count'|trans }}{% endif -%}
+                                                </span>
+                                            </span>
+                                            <span class="ins-gainbar" aria-hidden="true"><span style="width: {{ max(4, (value / max_value * 100)|round) }}%"></span></span>
+                                            <span class="ins-row__num">+{{ move.gain|format_number({fraction_digit: 1}) }}<small>
+                                                {%- if list.key == 'points' -%}
+                                                    ~{{ move.expectedSeconds|puzzlingTime }}
+                                                {%- else -%}
+                                                    {{ 'insights.rating.moves.per_hour'|trans({'%value%': move.gainPerHour|format_number({fraction_digit: 1})}) }}
+                                                {%- endif -%}
+                                            </small></span>
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% endfor %}
+                        <p class="ins-next"><a href="{{ path('puzzle_picker', enum('SpeedPuzzling\\Web\\Value\\PuzzlePickerPreset').RatingGrind.queryParams()) }}">{{ 'insights.rating.picker'|trans }} →</a></p>
+                    </div>
+                {% endif %}
+            </div>
+            <div>
+                <p class="ins-listh">{{ 'insights.rating.strips.title'|trans }}</p>
+                {{ include('insights/frames/_rating_strips.html.twig', {opportunities: o}) }}
+                <p class="ins-note">{{ 'insights.rating.strips.note'|trans }}</p>
+
+                <p class="ins-listh">{{ 'insights.rating.pending.title'|trans }}</p>
+                <ul class="ins-list" data-testid="insights-rating-pending">
+                    {% for pending in o.pending|slice(0, 5) %}
+                        <li class="ins-row">
+                            <a class="ins-row__link" href="{{ path('puzzle_detail', {puzzleId: pending.puzzle.puzzleId}) }}">
+                                {{ lazy_puzzle_image(pending.puzzle.image, 'puzzle_small', pending.puzzle.name, 999, 48, 'rounded-2 ins-row__image', 48) }}
+                                <span class="ins-row__main">
+                                    <span class="ins-row__name">{{ pending.puzzle.name }}</span>
+                                    <span class="ins-row__meta">{{ 'insights.rating.pending.meta'|trans({'%have%': pending.solverCount, '%needed%': pending.solversNeeded, '%count%': max(0, pending.solversNeeded - pending.solverCount)}) }}</span>
+                                    <span class="ins-path__bar ins-path__bar--small" aria-hidden="true"><span style="width: {{ (min(pending.solverCount, pending.solversNeeded) / max(1, pending.solversNeeded) * 100)|round }}%"></span></span>
+                                </span>
+                                <span class="ins-row__num">{{ pending.gainWhenItCounts >= 0.05 ? '+' ~ pending.gainWhenItCounts|format_number({fraction_digit: 1}) : '±0' }}<small>{{ 'insights.rating.pending.when'|trans }}</small></span>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="ins-row ins-row--empty">{{ 'insights.rating.pending.none'|trans }}</li>
+                    {% endfor %}
+                </ul>
+                <p class="ins-note">{{ 'insights.rating.pending.note'|trans }}</p>
+            </div>
+        </div>
+    {% endif %}
+
+    <p class="ins-note">{{ 'insights.rating.note'|trans }}</p>
+</section>
+
+<section class="ins-sec" id="insights-forecast" data-testid="insights-section-forecast">
+    {{ include('insights/_section_head.html.twig', {question: 'insights.forecast.question', title: 'insights.forecast.title', badge: 'member', badge_text: 'insights.badge.members'}) }}
+
+    {% if not has_entries %}
+        <p class="ins-take">{{ 'insights.forecast.none'|trans }}</p>
+    {% elseif not is_member or forecast is null %}
+        {{ include('insights/_lock.html.twig', {
+            title: 'insights.forecast.lock.title'|trans({'%count%': o.entriesLeavingWithin60Days}),
+            text: 'insights.forecast.lock.text'|trans,
+            testid: 'insights-lock-forecast',
+        }) }}
+    {% else %}
+        {% set ends = {} %}
+        {% for line in forecast.lines %}
+            {% set ends = ends|merge({(line.scenario.value): line.end}) %}
+        {% endfor %}
+        {% set last = ends.stop ?? null %}
+        <p class="ins-take" data-testid="insights-forecast-takeaway">
+            {%- if last is not null and ends.keep_pace is defined -%}
+                {{ 'insights.forecast.takeaway.base'|trans({
+                    '%stop%': ends.stop.rating|round,
+                    '%month%': ends.stop.date|format_date(pattern: 'LLLL y'),
+                    '%per_month%': forecast.firstTriesPerMonth|format_number({fraction_digit: 1}),
+                    '%pace%': ends.keep_pace.rating|round,
+                })|raw }}
+                {%- if predictions and ends.best_moves is defined %} {{ 'insights.forecast.takeaway.best'|trans({'%best%': ends.best_moves.rating|round})|raw }}{% endif -%}
+            {%- endif -%}
+        </p>
+
+        <div class="ins-two">
+            <div>
+                <p class="ins-listh">{{ 'insights.forecast.chart_title'|trans({'%count%': constant('SpeedPuzzling\\Web\\Services\\Insights\\RatingForecast::MONTHS')}) }}</p>
+                {% if forecast_chart is not null %}
+                    <div class="ins-chart" id="ins-chart-forecast-{{ context.frameId }}" data-controller="comparison-chart">
+                        {{ render_chart(forecast_chart, {role: 'img', 'aria-label': 'insights.forecast.chart_label'|trans}) }}
+                    </div>
+                    <div class="ins-legend" aria-hidden="true">
+                        {% if predictions %}<span><i class="ins-legend__line ins-legend--you"></i>{{ 'insights.forecast.scenario.best_moves'|trans }}</span>{% endif %}
+                        <span><i class="ins-legend__line ins-legend--ref"></i>{{ 'insights.forecast.scenario.keep_pace'|trans }}</span>
+                        <span><i class="ins-legend__line ins-legend--neutral"></i>{{ 'insights.forecast.scenario.stop'|trans }}</span>
+                    </div>
+                {% endif %}
+                {% if not predictions %}
+                    <p class="ins-note" data-testid="insights-forecast-predictions-off">
+                        {{ 'insights.forecast.predictions_off'|trans }}
+                        <a href="{{ path('edit_profile') }}">{{ 'statistics.change_in_settings'|trans }}</a>
+                    </p>
+                {% endif %}
+            </div>
+            <div>
+                <p class="ins-listh">{{ 'insights.forecast.milestones.title'|trans }}</p>
+                {% set milestones = [] %}
+                {% if forecast.ladder is not null %}
+                    {% set ladder = forecast.ladder %}
+                    {% set reached = ladder.reachedBy is null or (ladder.reachedBy.value == 'best_moves' and not predictions) ? 'none' : ladder.reachedBy.value %}
+                    {% set milestones = milestones|merge([{
+                        name: (ladder.targetPlace == 1 ? 'insights.forecast.milestones.ladder.first' : 'insights.forecast.milestones.ladder.name')|trans({'%place%': ladder.targetPlace}),
+                        meta: 'insights.forecast.milestones.ladder.meta'|trans({'%place%': ladder.place, '%needed%': ladder.ratingNeeded|round, '%gap%': ladder.gap|round}),
+                        value: ('insights.forecast.milestones.ladder.reached.' ~ reached)|trans,
+                        testid: 'ladder',
+                    }]) %}
+                {% endif %}
+                {% if forecast.pace is not null %}
+                    {% set pace = forecast.pace %}
+                    {% set change = (pace.changePerYear * 100)|round %}
+                    {% set milestones = milestones|merge([{
+                        name: 'insights.forecast.milestones.pace.name'|trans({'%pieces%': pace.piecesCount, '%date%': pace.yearEnd|format_date('medium')}),
+                        meta: 'insights.forecast.milestones.pace.meta'|trans({'%pace%': pace.paceSeconds|puzzlingTime, '%ago%': pace.paceYearAgoSeconds|puzzlingTime})
+                            ~ ' · ' ~ (change < 0 ? 'insights.forecast.milestones.pace.faster' : (change > 0 ? 'insights.forecast.milestones.pace.slower' : 'insights.forecast.milestones.pace.flat'))|trans({'%percent%': change|abs}),
+                        value: '~' ~ pace.projectedSeconds|puzzlingTime,
+                        testid: 'pace',
+                    }]) %}
+                {% endif %}
+                {% if forecast.results is not null %}
+                    {% set results = forecast.results %}
+                    {% set milestones = milestones|merge([{
+                        name: 'insights.forecast.milestones.results.name'|trans({'%count%': results.nextMilestone|format_number}),
+                        meta: 'insights.forecast.milestones.results.meta'|trans({'%total%': results.results|format_number, '%per_month%': results.perMonth|round}),
+                        value: results.expectedAt is not null ? 'insights.forecast.milestones.results.around'|trans({'%month%': results.expectedAt|format_date(pattern: 'LLL y')}) : '–',
+                        testid: 'results',
+                    }]) %}
+                {% endif %}
+                {% if forecast.targetTime is not null %}
+                    {% set target = forecast.targetTime %}
+                    {% set milestones = milestones|merge([{
+                        name: 'insights.forecast.milestones.target.name'|trans({'%pieces%': target.piecesCount, '%target%': target.targetSeconds|puzzlingTime}),
+                        meta: 'insights.forecast.milestones.target.meta'|trans({'%under%': target.under, '%count%': target.results})
+                            ~ (target.projectedShare is not null ? ' ' ~ 'insights.forecast.milestones.target.trend'|trans({'%percent%': (min(0.95, target.projectedShare) * 100)|round}) : ''),
+                        value: target.under > 0 ? 'insights.forecast.milestones.target.share'|trans({'%percent%': (target.share * 100)|round}) : 'insights.forecast.milestones.target.not_yet'|trans,
+                        testid: 'target',
+                    }]) %}
+                {% endif %}
+                {% set milestones = milestones|merge([{
+                    name: 'insights.forecast.milestones.leaving.name'|trans,
+                    meta: predictions ? 'insights.forecast.milestones.leaving.meta'|trans : '',
+                    value: 'insights.forecast.milestones.leaving.value'|trans({'%count%': forecast.entriesLeavingWithin60Days}),
+                    testid: 'leaving',
+                }]) %}
+                <ol class="ins-milestones" data-testid="insights-forecast-milestones">
+                    {% for milestone in milestones %}
+                        <li class="ins-milestone" data-testid="insights-milestone-{{ milestone.testid }}">
+                            <span class="ins-milestone__n" aria-hidden="true">{{ loop.index }}</span>
+                            <span class="ins-milestone__main">
+                                <span class="ins-milestone__name">{{ milestone.name }}</span>
+                                {% if milestone.meta is not empty %}<span class="ins-milestone__meta">{{ milestone.meta }}</span>{% endif %}
+                            </span>
+                            <span class="ins-milestone__value">{{ milestone.value }}</span>
+                        </li>
+                    {% endfor %}
+                </ol>
+            </div>
+        </div>
+
+        <p class="ins-note">{{ 'insights.forecast.note'|trans }}</p>
+    {% endif %}
+</section>
+</turbo-frame>

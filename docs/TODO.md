@@ -124,7 +124,7 @@ that would otherwise be forgotten. Newest section on top.
       API + `MailStreamRouting` retry/pause/fallback, Listmonk idle_timeout 5 s.
 - [ ] Watch a week after the SES API switch (2026-10-19): `email_audit_log` failures per transport, the "Amazon SES
       failed twice in a row" warning in Sentry (should never appear), no Seznam rows at all (SES only since 2026-10-19).
-- [ ] Seznam blocked `notify@` ("bulk unsolicited mail") after the 2026-10-19 digest - Jan is asking them to unblock
+- [x] Seznam blocked `notify@` ("bulk unsolicited mail") after the 2026-10-19 digest - Jan is asking them to unblock
       it. Production sends SES only; the Seznam rollback was removed 2026-10-19 (`MAILER_DSN_SEZNAM` deleted, Listmonk's
       Seznam server + POP mailbox removed, subdomain SPF `-all`). Inbound mail decided 2026-10-19: MX stays on Seznam Email Profi for the apex and all three
       subdomains - Seznam blocked only the one `notify@` mailbox, the domain catch-all ("Doménový koš" →
@@ -237,7 +237,7 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Link the page (`my_activity`) from the app: user menu / own profile / the recap ("See your week") - nothing links it yet besides the e-mail
 - [ ] Visual check of the page and both e-mails at 375 / 320 px and in a long locale (not done in WS-E: no isolated browser run)
 - [ ] Admin line with per-run counts (`content_digest_run`) on the e-mail audit page
-- [ ] Seznam Email Profi daily ceiling (README §17.1) before the audience passes ~10k/day
+- [x] Seznam Email Profi daily ceiling (README §17.1) - obsolete: every stream on SES since 2026-10-19 (50k/day)
 
 ## High-frequency series (`docs/features/events-page/high-frequency-series.md`, PR #253)
 

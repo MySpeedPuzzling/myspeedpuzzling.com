@@ -46,10 +46,9 @@ readonly final class PuzzleIntelligenceRecalculator
     }
 
     /**
-     * @param bool $refitPredictionModel fit the prediction model now, not only once a day (PredictionModelRecalculator)
-     * @return array{baselines_direct: int, baselines_interpolated: int, scaling_exponent: float, pace_history_changed_pairs: int, pace_history_rows_written: int, difficulties: int, prediction_model_fitted: bool, drift_rows_written: int, metrics: int, improvement_ratios: int, skills: int, rating: int, history: int, snapshots: int, durations: array<string, float>, peak_memory: array<string, int>}
+     * @return array{baselines_direct: int, baselines_interpolated: int, scaling_exponent: float, pace_history_changed_pairs: int, pace_history_rows_written: int, difficulties: int, drift_rows_written: int, metrics: int, improvement_ratios: int, skills: int, rating: int, history: int, snapshots: int, durations: array<string, float>, peak_memory: array<string, int>}
      */
-    public function recalculate(null|string $specificPlayer = null, null|string $specificPuzzle = null, bool $refitPredictionModel = false): array
+    public function recalculate(null|string $specificPlayer = null, null|string $specificPuzzle = null): array
     {
         $now = $this->clock->now();
 
@@ -63,8 +62,8 @@ readonly final class PuzzleIntelligenceRecalculator
          *          Improvement ratios (independent — uses raw solve times only)
          * Level 3: Puzzle difficulty (indices = time ÷ the solver's pace-history row before the solve;
          *          interpolation/extrapolation uses the scaling exponent of the fresh baselines)
-         *          Prediction model (full runs only): drift + spread on the pace history, once a day the fit
-         *          (priors, tau, thin sizes, windows) - uses the same in-memory first attempts as the difficulty
+         *          Prediction model (full runs only): drift + spread on the pace history with the stored fit (the
+         *          fit itself is the daily fit-prediction-model) - the same in-memory first attempts as the difficulty
          * Level 4: Global learning rate + derived metrics (uses difficulty; indices ÷ the as-of pace)
          * Level 5: Player skills + MSP Rating + personality metrics (use difficulty)
          * Level 6: Rating snapshots + skill history (uses skills + rating)
@@ -98,12 +97,12 @@ readonly final class PuzzleIntelligenceRecalculator
         $difficulty = $step('difficulty', fn (): array => $this->computePuzzleDifficulty($now, $specificPuzzle));
         [$difficulties, $firstAttempts, $timeline] = $difficulty;
 
-        // Level 3: Prediction model - drift and spread for every pair, the daily fit
-        $predictionModel = ['fitted' => false, 'prior_groups' => 0, 'drift_rows_written' => 0];
+        // Level 3: Prediction model - drift and spread for every pair
+        $predictionModel = ['drift_rows_written' => 0];
 
         if ($firstAttempts !== null && $timeline !== null && $specificPlayer === null && $specificPuzzle === null) {
-            /** @var array{fitted: bool, prior_groups: int, drift_rows_written: int} $predictionModel */
-            $predictionModel = $step('prediction_model', fn (): array => $this->predictionModelRecalculator->recalculate($firstAttempts, $timeline, $now, $refitPredictionModel));
+            /** @var array{drift_rows_written: int} $predictionModel */
+            $predictionModel = $step('prediction_model', fn (): array => $this->predictionModelRecalculator->recalculate($firstAttempts, $timeline));
         }
 
         unset($firstAttempts, $difficulty);
@@ -130,7 +129,6 @@ readonly final class PuzzleIntelligenceRecalculator
             'pace_history_changed_pairs' => $paceHistory->changedPairs,
             'pace_history_rows_written' => $paceHistory->deleted + $paceHistory->inserted,
             'difficulties' => $difficulties,
-            'prediction_model_fitted' => $predictionModel['fitted'],
             'drift_rows_written' => $predictionModel['drift_rows_written'],
             'metrics' => $metrics,
             'improvement_ratios' => $improvementRatios,

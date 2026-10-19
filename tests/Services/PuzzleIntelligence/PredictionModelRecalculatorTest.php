@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Message\FitPredictionModel;
 use SpeedPuzzling\Web\Query\GetPlayerPrediction;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\PredictionEvaluator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionModelParametersProvider;
@@ -14,10 +15,11 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
- * The prediction model's step of the insights batch (PredictionModelRecalculator): the daily fit, the drift and spread
- * on the pace history, the BrandPiecesPrior groups - and what predictions take from them.
+ * The prediction model's jobs (PredictionModelRecalculator): the batch's drift and spread on the pace history, the daily
+ * fit with the BrandPiecesPrior groups - and what predictions take from them.
  */
 final class PredictionModelRecalculatorTest extends KernelTestCase
 {
@@ -33,10 +35,10 @@ final class PredictionModelRecalculatorTest extends KernelTestCase
         $this->database = $container->get(Connection::class);
     }
 
-    public function testAFullRunFitsTheModelOnceAndWritesOnlyChangedDrift(): void
+    public function testTheBatchWritesOnlyChangedDriftAndTheDailyFitStoresTheModel(): void
     {
-        $first = $this->recalculator->recalculate(refitPredictionModel: true);
-        self::assertTrue($first['prediction_model_fitted']);
+        $this->recalculator->recalculate();
+        $this->fit();
 
         $fitted = self::getContainer()->get(PredictionModelParametersProvider::class)->current();
         self::assertNotNull($fitted->fittedAt, 'The fit is stored for the current model version');
@@ -48,10 +50,13 @@ final class PredictionModelRecalculatorTest extends KernelTestCase
         $groups = $this->database->fetchOne('SELECT COUNT(*) FROM difficulty_prior_group');
         self::assertGreaterThan(0, (int) $groups);
 
-        // The next run: no fit (one a day), nothing to write
-        $second = $this->recalculator->recalculate();
-        self::assertFalse($second['prediction_model_fitted']);
-        self::assertSame(0, $second['drift_rows_written']);
+        // The next batch run, with the fit the drift was just written with: nothing to write
+        self::assertSame(0, $this->recalculator->recalculate()['drift_rows_written']);
+    }
+
+    private function fit(): void
+    {
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new FitPredictionModel());
     }
 
     /**
@@ -59,7 +64,8 @@ final class PredictionModelRecalculatorTest extends KernelTestCase
      */
     public function testSecretPuzzlesHaveNoPriorAndFeedNone(): void
     {
-        $this->recalculator->recalculate(refitPredictionModel: true);
+        $this->recalculator->recalculate();
+        $this->fit();
 
         /** @var int|string $secretShares */
         $secretShares = $this->database->fetchOne('
@@ -82,7 +88,8 @@ final class PredictionModelRecalculatorTest extends KernelTestCase
      */
     public function testAPuzzleWithoutIndicesIsPredictedFromItsPriorOnlyWhenAsked(): void
     {
-        $this->recalculator->recalculate(refitPredictionModel: true);
+        $this->recalculator->recalculate();
+        $this->fit();
 
         /** @var GetPlayerPrediction $getPlayerPrediction */
         $getPlayerPrediction = self::getContainer()->get(GetPlayerPrediction::class);

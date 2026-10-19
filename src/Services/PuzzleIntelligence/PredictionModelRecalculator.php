@@ -14,17 +14,18 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\RepeatHistory;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
 
 /**
- * The prediction model's step of the insights batch (README "Step 8: Time Prediction", "The model's batch step"),
- * a genuine bulk operation over every pace-history row - set-based SQL like the rest of the batch:
+ * The prediction model's two jobs (README "Step 8: Time Prediction", "The model's batch step and its daily fit"), both
+ * genuine bulk operations over every pace-history row - set-based SQL like the rest of the insights batch:
  *
- * - once a day (FIT_EVERY_HOURS): BrandPiecesPrior's groups and every puzzle's share in them, then the rest of the
- *   model (PredictionModelFitter, the last FIT_WINDOW_MONTHS) into prediction_model_fit;
- * - every run: the drift and spread of every player_pace_history row, replayed with PredictionEngine over all
- *   qualifying first attempts - only the rows whose values changed are written.
+ * - the 15-minute batch (recalculate()): the drift and spread of every player_pace_history row, replayed with
+ *   PredictionEngine over all qualifying first attempts with the stored fit - only the rows whose values changed are
+ *   written (~1 s);
+ * - the daily fit (fit(), `myspeedpuzzling:fit-prediction-model`): BrandPiecesPrior's groups and every puzzle's share
+ *   in them, the rest of the model (PredictionModelFitter, the last FIT_WINDOW_MONTHS) into prediction_model_fit, then
+ *   the drift and spread with the new fit (~3-4 s - kept out of the 15-minute batch).
  */
 readonly final class PredictionModelRecalculator
 {
-    public const int FIT_EVERY_HOURS = 20;
     public const int FIT_WINDOW_MONTHS = 12;
 
     private const int CHUNK = 5000;
@@ -34,46 +35,50 @@ readonly final class PredictionModelRecalculator
         private TimePredictionCalculator $calculator,
         private PredictionModelFitter $fitter,
         private PredictionModelParametersProvider $parametersProvider,
+        private PaceTimelineLoader $paceTimelineLoader,
+        private PlayerBaselineCalculator $baselineCalculator,
     ) {
     }
 
     /**
-     * @return array{fitted: bool, prior_groups: int, drift_rows_written: int}
+     * The batch's step: drift and spread with the stored fit (defaults and no priors before the first fit).
+     *
+     * @return array{drift_rows_written: int}
      */
-    public function recalculate(FirstAttemptSet $set, PaceTimeline $timeline, DateTimeImmutable $now, bool $forceFit = false): array
+    public function recalculate(FirstAttemptSet $set, PaceTimeline $timeline): array
     {
-        $stored = $this->parametersProvider->current();
-        $fitDue = $forceFit
-            || $stored->fittedAt === null
-            || $stored->fittedAt < $now->modify('-' . self::FIT_EVERY_HOURS . ' hours');
-
+        $parameters = $this->parametersProvider->current();
         $engine = new PredictionEngine($set, $timeline, $this->calculator);
         $engine->computeAsOfDifficulty();
-        $manufacturers = $this->manufacturerByPuzzle();
+        $engine->computeDrift($this->storedPriors($this->manufacturerByPuzzle()), $parameters->tau);
 
-        if ($fitDue) {
-            $priors = PriorLookup::fit($set, $manufacturers);
-            $this->writePriors($priors, $now);
+        return ['drift_rows_written' => $this->writeDrift($engine)];
+    }
 
-            $from = (float) $now->modify('-' . self::FIT_WINDOW_MONTHS . ' months')->getTimestamp();
-            $parameters = $this->fitter->fit(
-                $engine,
-                $priors,
-                RepeatHistory::load($this->connection, $from),
-                $from,
-                (float) $now->getTimestamp(),
-                $now,
-            );
-            $this->storeParameters($parameters, $now);
-        } else {
-            $priors = $this->storedPriors($manufacturers);
-            $engine->computeDrift($priors, $stored->tau);
-        }
+    /**
+     * The daily fit on everything as it is now, then the drift and spread with it.
+     *
+     * @return array{prior_groups: int, drift_rows_written: int, parameters: PredictionModelParameters}
+     */
+    public function fit(DateTimeImmutable $now): array
+    {
+        $timeline = $this->paceTimelineLoader->all();
+        $set = FirstAttemptSet::build($this->baselineCalculator->iterateQualifyingFirstAttempts(paceOrder: true), $timeline);
+        $engine = new PredictionEngine($set, $timeline, $this->calculator);
+        $engine->computeAsOfDifficulty();
+
+        $priors = PriorLookup::fit($set, $this->manufacturerByPuzzle());
+        $this->writePriors($priors, $now);
+
+        $from = (float) $now->modify('-' . self::FIT_WINDOW_MONTHS . ' months')->getTimestamp();
+        // Fitting tau computes the drift with it (PredictionModelFitter step 2)
+        $parameters = $this->fitter->fit($engine, $priors, RepeatHistory::load($this->connection, $from), $from, (float) $now->getTimestamp(), $now);
+        $this->storeParameters($parameters, $now);
 
         return [
-            'fitted' => $fitDue,
             'prior_groups' => count($priors->groupSums),
             'drift_rows_written' => $this->writeDrift($engine),
+            'parameters' => $parameters,
         ];
     }
 

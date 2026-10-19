@@ -292,8 +292,9 @@ Rules:
 
 ### Production run for v3 (after the deploy)
 
-1. The insights batch runs on its own (cron): its first run fits the model (no fit row yet) and writes drift and spread
-   on every pace-history row (~3 s on the copy of production).
+1. Fit the model once: `docker compose exec -T web php bin/console myspeedpuzzling:fit-prediction-model` (~4 s on the
+   copy of production; it writes the prior groups, the fit and drift + spread on every pace-history row). Until then
+   predictions use the default parameters. Then add its daily cron row.
 2. Then once, detached:
    `nohup docker compose exec -T -e SENTRY_DSN= web php -d memory_limit=1G bin/console myspeedpuzzling:backfill-solving-time-predictions --recompute-reconstructed > /tmp/backfill-v3.log 2>&1 &`
    It writes the v3 side row of every solo time with seconds (~460k) and replaces the ~445k shown predictions

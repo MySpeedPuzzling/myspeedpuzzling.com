@@ -510,6 +510,8 @@ final class PuzzleIntelligenceRecalculatorWritesTest extends KernelTestCase
                 new TimePredictionCalculator(),
                 new PredictionModelFitter(),
                 new PredictionModelParametersProvider($this->connection),
+                $paceTimelineLoader,
+                $baselineCalculator,
             ),
         ))->recalculate();
     }

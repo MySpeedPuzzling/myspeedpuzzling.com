@@ -627,19 +627,21 @@ bounds     = centre × exp(q × sigma)      q = quantiles 10 / 25 / 75 / 90 % of
 - Stored: `predicted_range_low/high_seconds` = the 50 % window, `predicted_range80_low/high_seconds` = the 80 % range.
   Rounding and wording are the display's (Insights stream 3c), never outward.
 
-### The model's batch step (`PredictionModelRecalculator`)
+### The model's batch step and its daily fit (`PredictionModelRecalculator`)
 
-A step of `recalculate-puzzle-intelligence` right after the difficulty, full runs only (not `--player` / `--puzzle`).
-It replays the statistical model over every qualifying first attempt **as of its own moment** (`Model\PredictionEngine`
+The batch step runs in `recalculate-puzzle-intelligence` right after the difficulty, full runs only (not `--player` /
+`--puzzle`); the fit is its own daily command, kept out of the 15-minute batch. Both replay the statistical model over every qualifying first attempt **as of its own moment** (`Model\PredictionEngine`
 over `Model\FirstAttemptSet`, the in-memory first attempts the difficulty step loads anyway): the puzzle's difficulty
 from the indices known strictly before the attempt (an index is known from its solve on; a solver's "first pace"
 index only from that pace's row), the pace rows before it, the drift and spread of the attempts before it.
 
-- Every run: drift and spread of every pace-history row; only changed rows are written (`UPDATE ... FROM unnest`).
-- Once a day (`FIT_EVERY_HOURS` = 20, or `--refit-prediction-model`): the prior groups and shares (one transaction),
-  then `Model\PredictionModelFitter` - τ, drift with that τ, the thin-size rules, the first-try and repeat windows - into
-  `prediction_model_fit` (one JSON row per model version). Read on the site through `PredictionModelParametersProvider::SQL`
-  as a scalar subquery of a statement that runs anyway: **the upgrade costs no query** on any page.
+- Every batch run: drift and spread of every pace-history row with the stored fit (defaults and no priors before the
+  first fit); only changed rows are written (`UPDATE ... FROM unnest`, the stored rows streamed, never held).
+- Daily, `myspeedpuzzling:fit-prediction-model` (`FitPredictionModel`): the prior groups and shares (one transaction),
+  then `Model\PredictionModelFitter` - τ, drift with that τ, the thin-size rules, the first-try and repeat windows -
+  into `prediction_model_fit` (one JSON row per model version), then the drift and spread with the new fit. Read on
+  the site through `PredictionModelParametersProvider::SQL` as a scalar subquery of a statement that runs anyway:
+  **the upgrade costs no query** on any page. Run it once right after the deploy (until then: defaults).
 
 Measured on the copy of production (523k times, laptop, no debug): the step takes ~1 s on a normal run and ~3 s on
 the daily fit run; the whole batch ~17 s locally (production ~11 s before Phase 3).
@@ -791,7 +793,7 @@ Mar 2026: 52 min (Expert)
 | Spread | last 20 residuals clipped at ±0.5, + 5 × 0.13² pseudo-residuals |
 | Prior pseudo-count | 20 indices (BrandPiecesPrior), τ fitted daily (default 1.0) |
 | Minimum sigma | 0.045 |
-| Fit | every 20 h, on the last 12 months |
+| Fit | daily (`fit-prediction-model`), on the last 12 months |
 | Model version | 3 (`TimePredictionCalculator::MODEL_VERSION`) |
 
 ---
@@ -855,7 +857,7 @@ Cron (every 15 minutes):
 2. Bring the pace history up to date (only the pairs whose solves changed)
 3. Recompute improvement ratios (global + player)
 4. Recompute all puzzle difficulty scores (as-of indices)
-5. Prediction model (full runs): drift + spread on the pace history; once a day the fit (priors, τ, thin sizes, windows)
+5. Prediction model (full runs): drift + spread on the pace history (the fit: daily `fit-prediction-model`)
 6. Recompute derived metrics (as-of indices)
 7. Recompute all player skill scores + percentiles
 8. Recompute MSP-ELO ratings
@@ -871,7 +873,6 @@ indices in all; peak memory of the run ~390 MB.
 
 - `--player=UUID` — Recompute only for specific player (pace history: only that player's pairs)
 - `--puzzle=UUID` — Recompute only for specific puzzle
-- `--refit-prediction-model` — fit the prediction model now (otherwise once a day)
 
 ### First-Time Setup
 

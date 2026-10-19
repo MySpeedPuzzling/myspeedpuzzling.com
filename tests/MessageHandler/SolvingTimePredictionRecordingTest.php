@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\BackfillSolvingTimePredictions;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
+use SpeedPuzzling\Web\Message\FitPredictionModel;
 use SpeedPuzzling\Web\Query\GetPlayerPrediction;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
@@ -96,6 +97,8 @@ final class SolvingTimePredictionRecordingTest extends KernelTestCase
      */
     public function testAPriorOnlyPredictionIsStoredSideBySideButNotShown(): void
     {
+        $this->messageBus->dispatch(new FitPredictionModel());
+
         $timeId = $this->addSoloTime(CompetitionApiFixture::PUZZLE_HIDDEN_IMAGE, '00:40:00', finishedAt: null);
 
         self::assertFalse($this->predictionRow($timeId)['predictable']);

@@ -3728,7 +3728,7 @@ puzzle_intelligence:
         prediction_statistical_example_baseline: "Votre référence 500 pièces :"
         prediction_statistical_example_difficulty: "Difficulté du puzzle :"
         prediction_statistical_example_predicted: "Temps prévu :"
-        prediction_statistical_range: "La fourchette utilise P25–P75 des indices de difficulté du puzzle : référence × P25 à référence × P75. Des bornes de sécurité maintiennent la fourchette entre 30%% et 300%% du temps prévu."
+        prediction_statistical_range: "La fourchette est la fourchette probable : la moitié des résolutions tombent dedans. Sa largeur dépend de la régularité de vos temps récents et de notre certitude sur la difficulté du puzzle (moins de résolutions = plus large) ; elle est recalibrée chaque nuit sur des résultats réels. Affichée arrondie à la minute (à 5 ou 10 minutes pour les fourchettes larges)."
         section_data_quality_title: "Qualité des données"
         section_data_quality_solo: "<strong>Solo uniquement :</strong> Les résolutions en duo et en équipe sont exclues"
         section_data_quality_first: "<strong>Premières tentatives :</strong> Seules les premières rencontres avec chaque puzzle comptent pour la difficulté et les références"

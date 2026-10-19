@@ -3625,7 +3625,7 @@ puzzle_intelligence:
         prediction_statistical_example_baseline: "あなたの500pcベースライン："
         prediction_statistical_example_difficulty: "パズル難易度："
         prediction_statistical_example_predicted: "予測タイム："
-        prediction_statistical_range: "範囲はパズルの難易度指数のP25–P75を使用：ベースライン × P25からベースライン × P75。安全境界により範囲は予測タイムの30%%から300%%の間に保たれます。"
+        prediction_statistical_range: "範囲は「見込み範囲」です：完成の半分がこの範囲に入ります。幅は最近のあなたのタイムの安定度と、パズルの難易度の確かさ（完成数が少ないほど広い）で決まり、毎晩実際の結果で調整されます。表示は1分単位で丸めます（広い範囲では5分または10分単位）。"
         section_data_quality_title: "データ品質"
         section_data_quality_solo: "<strong>ソロのみ：</strong>ペアとチームの完成は除外されます"
         section_data_quality_first: "<strong>初回挑戦：</strong>難易度とベースラインには各パズルとの初回遭遇のみがカウントされます"

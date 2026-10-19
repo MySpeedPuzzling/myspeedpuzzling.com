@@ -50,7 +50,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *     added_at: string,
  *     statistics: array{solved_times: int, solo: StatisticsGroup, duo: StatisticsGroup, team: StatisticsGroup},
  *     difficulty: null|array{score: null|float, level: null|string, confidence: string, sample_size: int},
- *     prediction: null|array{predicted_seconds: null|int, range_low_seconds: null|int, range_high_seconds: null|int, is_personalized: bool, personal_solve_count: null|int, predicted_attempt_number: null|int, last_time_seconds: null|int},
+ *     prediction: null|array{predicted_seconds: null|int, range_low_seconds: null|int, range_high_seconds: null|int, range80_low_seconds: null|int, range80_high_seconds: null|int, is_personalized: bool, personal_solve_count: null|int, predicted_attempt_number: null|int, last_time_seconds: null|int},
  *     solves: null|array{solo: SolvesGroup, duo: SolvesGroup, team: SolvesGroup},
  * }
  * @phpstan-type ListResponse array{collection_id: string, count: int, items: list<Item>}
@@ -189,7 +189,7 @@ final class MyCollectionItemsEndpointTest extends WebTestCase
         $rawSolved = $this->rawItem($browser, PuzzleFixture::PUZZLE_500_01);
         $this->assertSame(['score', 'level', 'confidence', 'sample_size'], $this->keys($rawSolved['difficulty']));
         $this->assertSame(
-            ['predicted_seconds', 'range_low_seconds', 'range_high_seconds', 'is_personalized', 'personal_solve_count', 'predicted_attempt_number', 'last_time_seconds'],
+            ['predicted_seconds', 'range_low_seconds', 'range_high_seconds', 'range80_low_seconds', 'range80_high_seconds', 'is_personalized', 'personal_solve_count', 'predicted_attempt_number', 'last_time_seconds'],
             $this->keys($rawSolved['prediction']),
         );
         $solved = $this->item($response, PuzzleFixture::PUZZLE_500_01);
@@ -207,7 +207,7 @@ final class MyCollectionItemsEndpointTest extends WebTestCase
 
         // PUZZLE_500_04: never solved, nothing to predict from - the object is present, all null
         $this->assertSame(
-            ['predicted_seconds' => null, 'range_low_seconds' => null, 'range_high_seconds' => null, 'is_personalized' => false, 'personal_solve_count' => null, 'predicted_attempt_number' => null, 'last_time_seconds' => null],
+            ['predicted_seconds' => null, 'range_low_seconds' => null, 'range_high_seconds' => null, 'range80_low_seconds' => null, 'range80_high_seconds' => null, 'is_personalized' => false, 'personal_solve_count' => null, 'predicted_attempt_number' => null, 'last_time_seconds' => null],
             $this->item($response, PuzzleFixture::PUZZLE_500_04)['prediction'],
         );
     }

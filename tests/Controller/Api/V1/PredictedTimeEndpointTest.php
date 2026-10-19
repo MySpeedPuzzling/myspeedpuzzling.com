@@ -79,6 +79,13 @@ final class PredictedTimeEndpointTest extends WebTestCase
         $this->assertNull($response['last_time_seconds']);
         $this->assertIsInt($response['predicted_seconds']);
         $this->assertGreaterThan(0, $response['predicted_seconds']);
+        // The 50 % "likely" window inside the 80 % range, raw seconds
+        $this->assertIsInt($response['range_low_seconds']);
+        $this->assertIsInt($response['range_high_seconds']);
+        $this->assertIsInt($response['range80_low_seconds']);
+        $this->assertIsInt($response['range80_high_seconds']);
+        $this->assertLessThanOrEqual($response['range_low_seconds'], $response['range80_low_seconds']);
+        $this->assertGreaterThanOrEqual($response['range_high_seconds'], $response['range80_high_seconds']);
         $this->assertSame(1.3, $response['difficulty_score']);
         $this->assertSame('hard', $response['difficulty_level']);
         $this->assertSame('low', $response['difficulty_confidence']);
@@ -102,6 +109,8 @@ final class PredictedTimeEndpointTest extends WebTestCase
         $this->assertNull($response['predicted_seconds']);
         $this->assertNull($response['range_low_seconds']);
         $this->assertNull($response['range_high_seconds']);
+        $this->assertNull($response['range80_low_seconds']);
+        $this->assertNull($response['range80_high_seconds']);
         $this->assertFalse($response['is_personalized']);
         $this->assertSame(0.7, $response['difficulty_score']);
         $this->assertSame('very_easy', $response['difficulty_level']);
@@ -128,6 +137,8 @@ final class PredictedTimeEndpointTest extends WebTestCase
         $this->assertNull($response['predicted_seconds']);
         $this->assertNull($response['range_low_seconds']);
         $this->assertNull($response['range_high_seconds']);
+        $this->assertNull($response['range80_low_seconds']);
+        $this->assertNull($response['range80_high_seconds']);
         $this->assertFalse($response['is_personalized']);
         $this->assertNull($response['personal_solve_count']);
         $this->assertNull($response['last_time_seconds']);

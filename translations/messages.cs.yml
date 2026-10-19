@@ -3666,7 +3666,7 @@ puzzle_intelligence:
         prediction_statistical_example_baseline: "Váš základ pro 500 dílků:"
         prediction_statistical_example_difficulty: "Obtížnost puzzle:"
         prediction_statistical_example_predicted: "Předpovězený čas:"
-        prediction_statistical_range: "Rozmezí používá P25–P75 indexů obtížnosti puzzle: základ × P25 až základ × P75. Bezpečnostní hranice udržují rozmezí mezi 30%% a 300%% předpovězeného času."
+        prediction_statistical_range: "Rozmezí je to pravděpodobné: vejde se do něj polovina složení. Jeho šířka vychází z toho, jak vyrovnané jsou vaše poslední časy a jak jistí si jsme obtížností puzzle (méně složení = širší rozmezí); každou noc se dolaďuje podle skutečných výsledků. Zobrazuje se zaokrouhlené na celé minuty (u širokých rozmezí na 5 nebo 10 minut)."
         section_data_quality_title: "Kvalita dat"
         section_data_quality_solo: "<strong>Pouze sólo:</strong> Dvojice a týmová složení jsou vyloučena"
         section_data_quality_first: "<strong>První pokusy:</strong> Pro obtížnost a základy se počítají pouze první setkání s puzzlem"

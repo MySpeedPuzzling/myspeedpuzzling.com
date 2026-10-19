@@ -3635,7 +3635,7 @@ puzzle_intelligence:
         prediction_statistical_example_baseline: "Deine 500-Teile-Baseline:"
         prediction_statistical_example_difficulty: "Puzzle-Schwierigkeit:"
         prediction_statistical_example_predicted: "Vorhergesagte Zeit:"
-        prediction_statistical_range: "Der Bereich verwendet P25–P75 der Schwierigkeitsindizes des Puzzles: Baseline × P25 bis Baseline × P75. Sicherheitsgrenzen halten den Bereich zwischen 30%% und 300%% der vorhergesagten Zeit."
+        prediction_statistical_range: "Der Bereich ist der wahrscheinliche: Die Hälfte aller Lösungen landet darin. Seine Breite hängt davon ab, wie gleichmäßig deine letzten Zeiten sind und wie sicher wir uns bei der Schwierigkeit des Puzzles sind (weniger Lösungen = breiter); er wird jede Nacht an echten Ergebnissen neu abgestimmt. Angezeigt auf volle Minuten gerundet (bei breiten Bereichen auf 5 oder 10 Minuten)."
         section_data_quality_title: "Datenqualität"
         section_data_quality_solo: "<strong>Nur Solo:</strong> Paar- und Team-Lösungen sind ausgeschlossen"
         section_data_quality_first: "<strong>Erstversuche:</strong> Nur erste Begegnungen mit jedem Puzzle zählen für Schwierigkeit und Baselines"

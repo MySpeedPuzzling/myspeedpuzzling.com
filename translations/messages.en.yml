@@ -4380,7 +4380,7 @@ puzzle_intelligence:
         prediction_statistical_example_baseline: "Your 500pc baseline:"
         prediction_statistical_example_difficulty: "Puzzle difficulty:"
         prediction_statistical_example_predicted: "Predicted time:"
-        prediction_statistical_range: "Range uses P25–P75 of the puzzle's difficulty indices: baseline × P25 to baseline × P75. Safety bounds keep the range between 30% and 300% of the predicted time."
+        prediction_statistical_range: "The range is the likely window: half of solves land inside it. Its width comes from how steady your own recent times are and how sure we are about the puzzle's difficulty (fewer solves = wider); it is fitted every night on real results. Shown rounded to the nearest minute (5 or 10 minutes for wide windows)."
         personality_memorability_detail: "Measures how quickly players learn this puzzle across their first 3 attempts, normalized against the average puzzle learning rate. A value > 1.0 means this puzzle rewards familiarity more than average. Min: 8 players with 3+ attempts."
         personality_skill_sensitivity_detail: "Ratio of 75th to 25th percentile difficulty indices. Higher = bigger gap between fast and slow solvers. Min: 20 qualifying indices."
         personality_predictability_detail: "Score from 0 to 1 (bounded). Closer to 1 = more consistent difficulty experience across different solvers. Min: 20 qualifying indices."

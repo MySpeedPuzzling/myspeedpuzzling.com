@@ -56,7 +56,7 @@ use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
  *     is_approved: bool,
  *     statistics: array{solved_times: int, solo: StatisticsGroup, duo: StatisticsGroup, team: StatisticsGroup},
  *     difficulty: null|array{score: null|float, level: null|string, confidence: string, sample_size: int},
- *     prediction: null|array{predicted_seconds: null|int, range_low_seconds: null|int, range_high_seconds: null|int, is_personalized: bool, personal_solve_count: null|int, predicted_attempt_number: null|int, last_time_seconds: null|int},
+ *     prediction: null|array{predicted_seconds: null|int, range_low_seconds: null|int, range_high_seconds: null|int, range80_low_seconds: null|int, range80_high_seconds: null|int, is_personalized: bool, personal_solve_count: null|int, predicted_attempt_number: null|int, last_time_seconds: null|int},
  *     solves: null|array{solo: SolvesGroup, duo: SolvesGroup, team: SolvesGroup},
  * }
  */
@@ -267,7 +267,7 @@ final class PuzzleDetailEndpointTest extends WebTestCase
         $this->assertSame(5000, $detail['pieces_count']);
         $this->assertSame(['score' => null, 'level' => null, 'confidence' => 'insufficient', 'sample_size' => 0], $detail['difficulty']);
         $this->assertSame(
-            ['predicted_seconds' => null, 'range_low_seconds' => null, 'range_high_seconds' => null, 'is_personalized' => false, 'personal_solve_count' => null, 'predicted_attempt_number' => null, 'last_time_seconds' => null],
+            ['predicted_seconds' => null, 'range_low_seconds' => null, 'range_high_seconds' => null, 'range80_low_seconds' => null, 'range80_high_seconds' => null, 'is_personalized' => false, 'personal_solve_count' => null, 'predicted_attempt_number' => null, 'last_time_seconds' => null],
             $detail['prediction'],
         );
         $this->assertSame(['solo' => self::EMPTY_SOLVES_GROUP, 'duo' => self::EMPTY_SOLVES_GROUP, 'team' => self::EMPTY_SOLVES_GROUP], $detail['solves']);
@@ -412,7 +412,7 @@ final class PuzzleDetailEndpointTest extends WebTestCase
 
         $browser->request('GET', '/api/v1/me/puzzles/' . PuzzleFixture::PUZZLE_500_01 . '/predicted-time');
         $this->assertResponseIsSuccessful();
-        /** @var array{predicted_seconds: int, range_low_seconds: int, range_high_seconds: int, is_personalized: bool, personal_solve_count: int, last_time_seconds: int, difficulty_score: float, difficulty_level: string, difficulty_confidence: string} $flat */
+        /** @var array{predicted_seconds: int, range_low_seconds: int, range_high_seconds: int, range80_low_seconds: null|int, range80_high_seconds: null|int, is_personalized: bool, personal_solve_count: int, last_time_seconds: int, difficulty_score: float, difficulty_level: string, difficulty_confidence: string} $flat */
         $flat = $this->decodeJson($browser);
 
         $this->assertNotNull($detail['prediction']);

@@ -190,9 +190,13 @@ The stored (and the live) `range_low/high` is the window players see - since Ins
   the puzzle page Insights (`puzzle/_difficulty_section.html.twig`, live), the Puzzle Picker card
   (`puzzle_picker/_card.html.twig`), the collections "+ predictions" pill tooltip (`_puzzle_library_item.html.twig`).
   The add-time pace check shows a point "usual time" only, the result detail no prediction. API v1 keeps the raw
-  seconds (`rangeLowSeconds` / `rangeHighSeconds` = the 50 % window). The point estimate keeps its existing format
-  (`~57min 23s`, `compactTime`, not rounded). The 80 % range is not shown yet - it belongs in the Insights detail
-  sheet (Phase 6).
+  seconds: `range_low_seconds` / `range_high_seconds` = the 50 % window, `range80_low_seconds` /
+  `range80_high_seconds` (additive, 2026-10) = the 80 % range, null on rows stored before model v3
+  (`docs/features/api/README.md`). The point estimate keeps its existing format (`~57min 23s`, `compactTime`, not
+  rounded). The 80 % range is not shown on these surfaces - it belongs in the Insights detail sheet (Phase 6), which
+  gets it rounded the same way through `prediction_range80(prediction)` (null when the prediction has none).
+- **Methodology page**: `puzzle_intelligence.methodology.prediction_statistical_range` describes the calibrated likely
+  window (was P25-P75 + safety bounds, all 6 locales).
 
 ## Backfill
 

@@ -52,7 +52,7 @@ use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
  *     is_approved: bool,
  *     statistics: array{solved_times: int, solo: StatisticsGroup, duo: StatisticsGroup, team: StatisticsGroup},
  *     difficulty: null|array{score: null|float, level: null|string, confidence: string, sample_size: int},
- *     prediction: null|array{predicted_seconds: null|int, range_low_seconds: null|int, range_high_seconds: null|int, is_personalized: bool, personal_solve_count: null|int, predicted_attempt_number: null|int, last_time_seconds: null|int},
+ *     prediction: null|array{predicted_seconds: null|int, range_low_seconds: null|int, range_high_seconds: null|int, range80_low_seconds: null|int, range80_high_seconds: null|int, is_personalized: bool, personal_solve_count: null|int, predicted_attempt_number: null|int, last_time_seconds: null|int},
  *     solves: null|array{solo: SolvesGroup, duo: SolvesGroup, team: SolvesGroup},
  * }
  * @phpstan-type ListResponse array{count: int, total: int, page: int, limit: int, has_more: bool, puzzles: list<Card>}
@@ -672,7 +672,7 @@ final class PuzzleSearchEndpointTest extends WebTestCase
         $this->assertResponseIsSuccessful();
 
         $this->assertSame(
-            ['predicted_seconds', 'range_low_seconds', 'range_high_seconds', 'is_personalized', 'personal_solve_count', 'predicted_attempt_number', 'last_time_seconds'],
+            ['predicted_seconds', 'range_low_seconds', 'range_high_seconds', 'range80_low_seconds', 'range80_high_seconds', 'is_personalized', 'personal_solve_count', 'predicted_attempt_number', 'last_time_seconds'],
             $this->keys($this->firstRawCard($browser)['prediction']),
         );
 
@@ -739,7 +739,7 @@ final class PuzzleSearchEndpointTest extends WebTestCase
         $browser->request('GET', self::ENDPOINT, ['pieces_min' => '9000', 'pieces_max' => '9000']);
         $this->assertResponseIsSuccessful();
         $this->assertSame(
-            ['predicted_seconds' => null, 'range_low_seconds' => null, 'range_high_seconds' => null, 'is_personalized' => false, 'personal_solve_count' => null, 'predicted_attempt_number' => null, 'last_time_seconds' => null],
+            ['predicted_seconds' => null, 'range_low_seconds' => null, 'range_high_seconds' => null, 'range80_low_seconds' => null, 'range80_high_seconds' => null, 'is_personalized' => false, 'personal_solve_count' => null, 'predicted_attempt_number' => null, 'last_time_seconds' => null],
             $this->decode($browser)['puzzles'][0]['prediction'],
         );
     }

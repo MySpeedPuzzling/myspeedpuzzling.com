@@ -444,6 +444,10 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       tag if missing and keep its puzzles in sync with the rounds (today only the internal API's SetCompetitionPuzzles
       creates/fills tags), so the puzzle badge and the puzzle database's 'Competition / event' filter work without
       asking us. Promised to Stefan (MSP #333, follow-up F152).
+- [ ] Let a player edit their own pending puzzle change suggestion or add to it (e.g. an EAN found after suggesting a
+      new picture) - today a pending picture/EAN/brand/pieces/code suggestion blocks any new one on that puzzle until a
+      moderator decides it (GetPendingPuzzleProposals::blocksNewProposal()). Promised to Patrick (MSP #340, follow-up
+      F160).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

@@ -61,9 +61,28 @@ final class SegmentEffectTest extends TestCase
         $stats = SegmentEffect::of($residuals);
         $shrink = 25 / 33;
 
-        // half = 1.96 · √25 / 2 = 4.9 → order statistics floor(12.5 − 4.9) = 7 and ceil(12.5 + 4.9) = 18 (0-based)
-        self::assertEqualsWithDelta(exp(log(0.88) * $shrink) - 1, $stats->low, 1e-12);
+        // 1.96 · √25 = 9.8 → ranks floor(15.2 / 2) = 7 and ceil(1 + 34.8 / 2) = 19, i.e. 0-based 6 and 18 around 12
+        self::assertEqualsWithDelta(exp(log(0.87) * $shrink) - 1, $stats->low, 1e-12);
         self::assertEqualsWithDelta(exp(log(0.99) * $shrink) - 1, $stats->high, 1e-12);
         self::assertEqualsWithDelta(exp(log(0.93) * $shrink) - 1, $stats->effect, 1e-12);
+    }
+
+    public function testTheRangeIsSymmetric(): void
+    {
+        // n = 10: the range spans every result (ranks 1 … 10), so one result at your usual keeps both sides honest
+        $faster = SegmentEffect::of([...array_fill(0, 9, 0.90), 1.0]);
+        $slower = SegmentEffect::of([...array_fill(0, 9, 1.10), 1.0]);
+
+        self::assertSame(InsightsVerdict::AboutUsual, $faster->verdict);
+        self::assertSame(InsightsVerdict::AboutUsual, $slower->verdict);
+        self::assertSame(0.0, $faster->high);
+        self::assertSame(0.0, $slower->low);
+
+        // Twenty: the range no longer reaches the one result at your usual - a strength exactly when its mirror is a weak spot
+        $fasterTwenty = SegmentEffect::of([...array_fill(0, 19, 0.90), 1.0]);
+        $slowerTwenty = SegmentEffect::of([...array_fill(0, 19, 1.10), 1.0]);
+
+        self::assertSame(InsightsVerdict::Strength, $fasterTwenty->verdict);
+        self::assertSame(InsightsVerdict::WeakSpot, $slowerTwenty->verdict);
     }
 }

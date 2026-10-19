@@ -11,6 +11,11 @@ namespace SpeedPuzzling\Web\Results\Insights;
  */
 readonly final class InsightsAccuracySection
 {
+    /**
+     * The first prediction model version with calibrated windows: stream 3b bumps TimePredictionCalculator::MODEL_VERSION
+     * to 3 together with them. Until 3b ships no stored prediction reaches it, so accuracy is "not enough yet" and
+     * expected vs actual calibrates every prediction by your margin.
+     */
     public const int CALIBRATED_MODEL_VERSION = 3;
 
     public const int MIN_PREDICTIONS = 10;

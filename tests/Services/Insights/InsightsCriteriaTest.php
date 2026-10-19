@@ -83,7 +83,10 @@ final class InsightsCriteriaTest extends TestCase
         // The URL is the state: the applied values read back give the same criteria
         $again = InsightsCriteria::fromUserInput($criteria->toQueryParameters(), isMember: true, hasTimezone: true);
         self::assertEquals($criteria, $again);
-        self::assertSame($criteria->cacheKey(), $again->cacheKey());
+        self::assertSame($criteria->cacheKey('Europe/Prague'), $again->cacheKey('Europe/Prague'));
+        // Solve days and the time of day depend on the zone: another zone is another page
+        self::assertNotSame($criteria->cacheKey('Europe/Prague'), $criteria->cacheKey('America/New_York'));
+        self::assertNotSame($criteria->cacheKey('Europe/Prague'), $criteria->cacheKey(null));
     }
 
     public function testTheTimeOfDayNeedsATimeZone(): void
@@ -138,6 +141,13 @@ final class InsightsCriteriaTest extends TestCase
         self::assertFalse($custom->inPeriod(new \DateTimeImmutable('2026-03-02 00:00:00', new \DateTimeZone('UTC')), $now));
 
         self::assertNull(InsightsCriteria::fromUserInput(['period' => 'all'], isMember: true)->periodFrom($now));
+
+        // Month ends never roll over into the next month
+        $sixMonths = InsightsCriteria::fromUserInput(['period' => '6m'], isMember: true);
+        $endOfAugust = new \DateTimeImmutable('2026-08-31 15:00:00', new \DateTimeZone('UTC'));
+        self::assertSame('2026-02-28 00:00:00', $sixMonths->periodFrom($endOfAugust)?->format('Y-m-d H:i:s'));
+        self::assertSame('2027-02-28', InsightsCriteria::fromUserInput(['period' => '12m'], isMember: true)->periodFrom(new \DateTimeImmutable('2028-02-29', new \DateTimeZone('UTC')))?->format('Y-m-d'));
+        self::assertSame('2026-04-30', InsightsCriteria::fromUserInput(['period' => '3m'], isMember: true)->periodFrom(new \DateTimeImmutable('2026-07-31', new \DateTimeZone('UTC')))?->format('Y-m-d'));
     }
 
     public function testFiltersMatchResultsAndPuzzles(): void

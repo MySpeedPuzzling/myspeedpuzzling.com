@@ -459,7 +459,8 @@ here is wording: sections return numbers, sample sizes, codes and a `notSureYet`
 `InsightsCriteria::fromUserInput(array $query, bool $isMember, bool $hasTimezone = false)` - the URL is the state, like
 Compare's `ComparisonCriteria`: invalid values fall back to the default, members-only values are dropped silently and
 named in `strippedForMembers` (the page shows the lock). `toQueryParameters()` gives only what differs from the defaults
-(the URL), `cacheKey()` a short stable key (membership included). Within one multi-value filter the values are
+(the URL), `cacheKey($timezone)` a short stable key (membership and the player's time zone included - solve days,
+weekdays and the time of day depend on it). Within one multi-value filter the values are
 alternatives, different filters all apply.
 
 | Key | Values | Free |
@@ -476,7 +477,8 @@ alternatives, different filters all apply.
 | `timeOfDay[]` | `morning` 5-12, `afternoon` 12-17, `evening` 17-22, `night` - only with a time zone (dropped without one), "when you logged" | - |
 
 Period bounds are midnight UTC (solve days are stored as UTC dates), relative periods start at midnight - the page is
-the same all day. `matchesPuzzle()` = the puzzle filters (pieces, brand, difficulty, shelf, personality, traits);
+the same all day - on the same day N months back, clamped to that month's last day (31 Aug − 6 months = 28/29 Feb,
+never 3 Mar). `matchesPuzzle()` = the puzzle filters (pieces, brand, difficulty, shelf, personality, traits);
 `matchesResult()` = those + results, events, unboxed, weekday, time of day; `inPeriod()` the period.
 
 ### 2. Solo results (`GetInsightsSoloResults::forPlayer()`)
@@ -499,10 +501,11 @@ keys (`puzzle_tag`, a correlated `json_agg` limited to the registry's keys) + th
 ### 3. Close calls (`GetCloseCalls::forPlayer()`)
 
 One statement, per puzzle the player has a solo time on: their best, their place and the times of the places above.
-It reads **only the times faster than the player's best**: a place is 1 + the players whose best is faster (ties share),
-and the time of place N is the N-th fastest of their bests - a slow player on a popular puzzle costs no more than the
-players ahead. Per puzzle a LATERAL over `custom_pst_solo_board` (index only): `COUNT(*)`, `MAX` = the next place,
-`MAX … FILTER (WHERE position = N)` for N in `LeaderboardPosition::RANK_MILESTONES` (1, 3, 10, 25, 50, 100, 250, 500,
+It keeps **only the times faster than the player's best**: a place is 1 + the players whose best is faster (ties share),
+and the time of place N is the N-th fastest of their bests. Per puzzle a LATERAL over `custom_pst_solo_board` (index
+only): `seconds_to_solve` is an INCLUDE column, not a key, so the probe still reads every index entry of the puzzle -
+what shrinks is the grouping, numbering and sorting, which only the players ahead go through. Then `COUNT(*)`, `MAX` =
+the next place, `MAX … FILTER (WHERE position = N)` for N in `LeaderboardPosition::RANK_MILESTONES` (1, 3, 10, 25, 50, 100, 250, 500,
 1000, 2500, 5000).
 
 - **The pool is GetRanking's** (the puzzle page's): best non-suspicious solo time > 0 per player, the viewer's hidden
@@ -543,8 +546,9 @@ filters), the same definitions as the profile card (§6):
 ### 6. Splits (`SegmentEffect`) - skill map, habits, pairs later
 
 For a group of residuals: the median of the log residuals **shrunk by n / (n + 8)**, with the **order-statistic range**
-of that median (distribution free: sorted logs at floor(n/2 − 1.96·√n/2) and ceil(n/2 + 1.96·√n/2), shrunk the same way -
-never a bootstrap: same answer every time, O(n log n)). Shown from 5 results; a verdict only from **10**: strength when
+of that median (distribution free: the sorted logs at the 1-based ranks floor((n − 1.96·√n) / 2) and
+ceil(1 + (n + 1.96·√n) / 2) - symmetric around the median, n = 10: 1 … 10, n = 25: 7 … 19; the rule of 4c's
+`Value\ShrunkEffect` - shrunk the same way; never a bootstrap: same answer every time, O(n log n)). Shown from 5 results; a verdict only from **10**: strength when
 the whole range lies below −1.5 %, weak spot above +1.5 %, else about usual; under 10 "not sure yet".
 
 **Skill map** (`SkillMapBuilder`): groups brand (the 9 with most results; label = brand name), piece count (only with ≥ 2
@@ -572,7 +576,7 @@ finding.
 | Section | Builder | Rows | Definition | Not sure yet |
 |---|---|---|---|---|
 | Summary tiles | `SummaryBuilder` | selection; trend: without period | speed = median ratio; trend = median ratio of the last 182 days ÷ 365-547 days ago − 1; consistency = q75 ÷ q25 of residuals | speed < 5, trend < 5 in either window, consistency < 10 |
-| Form | `FormBuilder` | without period | months of the period (from your first result in the selection, ≥ 4, ≤ 60): median, q25, q75, best result (≥ 3 results), your usual at mid-month; change = last median − first | < 2 months with a median |
+| Form | `FormBuilder` | selection (the period's own results) | months of the period, from your first result in the selection and never past today (≥ 4, ≤ 60): median, q25, q75, best result (≥ 3 results), your usual = the median of the month's results' own `InsightsRow::form` (the baseline every residual divides by); change = last median − first | < 2 months with a median |
 | Histogram + outliers | `HistogramBuilder` | selection | 24 bars of 5 % faster/slower than the median solver, ±60 % (end bars hold the rest); outliers = residual > 1.3 or < 1 ÷ 1.3, 4 each | < 5 |
 | Learning curve | `LearningCurveBuilder` | puzzle filters, all time, boxed | you = cumulative `player_improvement_ratio`; community = `LearningFactors` for the selection's piece class (500 for several); in selection = median of t_N ÷ t_1 × usual₁ ÷ usual_N per attempt (≥ 3); the 6 puzzles you improved on most | neither your attempt 2 nor the selection's |
 | Habits | `HabitsBuilder` | selection | per weekday, per break bucket (0, 1, 2-7, 8-14, 15+ days), per time of day (with a zone, else null): count + `SegmentEffect` | no results |
@@ -666,10 +670,13 @@ mismatches). Peak memory of the build process 175 MB (the whole kernel; the repo
 it only reads, one report per player - minutes - and a transaction held that long would keep the locks of everything it
 read) → per player with ≥ 10 solo results in the last 12 months: the report with the members' 12-month view, no filters
 and no close calls → `InsightsSnapshotFactory` JSON → chunks of 200 via `StorePlayerInsightsSnapshots` (each its own
-transaction, `PlayerInsightsSnapshotWriter`: one set-based upsert - a re-run of the month replaces its rows).
+transaction, `PlayerInsightsSnapshotWriter`: one set-based upsert) → `PrunePlayerInsightsSnapshots`: the month's rows of
+every player the run did not write are deleted (one bulk DELETE) - a re-run replaces the month. A snapshot is today's
+data, so `--month` accepts only the current month, or the previous one in a month's first 3 days (a late run);
+anything else is refused (`InsightsSnapshotCriteria::month()`, the command and the handler).
 
 Row: `player_id` (cascade), `month` (first day), `data` jsonb, `computed_at`; unique (player, month). `data` (version 1):
-`period`, `results`, `speed`, `trend`, `form` (your usual at the last mid-month), `consistency`, `strengths` /
+`period`, `results`, `speed`, `trend`, `form` (your usual in the latest month with results), `consistency`, `strengths` /
 `weak_spots` (≤ 5 each: group, key, label, effect, low, high, n), `rating_500`, `profile` (axis → percentile). Self-only;
 nothing reads it yet ("what changed since last month" later).
 

@@ -6,8 +6,8 @@ namespace SpeedPuzzling\Web\Results\Insights;
 
 /**
  * One month of the form chart. medianRatio / q25 / q75 of your time ÷ the puzzle median, from MIN_RESULTS results on;
- * usual = the rolling "your usual" (median of first-try ratios ±75 days) at mid-month; best = the month's fastest
- * result against its median.
+ * usual = the median of the month's results' own "your usual" (InsightsRow::form, the residuals' baseline); best =
+ * the month's fastest result against its median.
  */
 readonly final class InsightsFormMonth
 {

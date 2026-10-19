@@ -10,9 +10,10 @@ use SpeedPuzzling\Web\Results\Insights\InsightsFormMonth;
 use SpeedPuzzling\Web\Results\Insights\InsightsFormSection;
 
 /**
- * "Am I getting better?" - monthly medians of your ratio to the puzzle median over the period, and the rolling usual
- * (median of your boxed first tries within ±75 days, the profile card's "form") at each mid-month. Every filter but
- * the period applies to the rows; the period only picks the months (README §3: free players see 6 months).
+ * "Am I getting better?" - monthly medians of your ratio to the puzzle median over the period, and your usual that
+ * month: the median of the results' own "your usual" (InsightsRow::form - the baseline every residual divides by,
+ * unfiltered, the profile card's "form"). Every filter applies to the rows; the period picks the months (never past
+ * today) and only its own results count (README §3: free players see 6 months).
  */
 readonly final class FormBuilder
 {
@@ -27,10 +28,11 @@ readonly final class FormBuilder
     public function build(array $rows, null|DateTimeImmutable $periodFrom, null|DateTimeImmutable $periodBefore, DateTimeImmutable $now): InsightsFormSection
     {
         $utc = new DateTimeZone('UTC');
-        $end = ($periodBefore ?? $now)->setTimezone($utc);
+        // Up to the period's end, never past today: `to=2100-12-31` or this year as a "past year" adds no future months
+        $end = $now->setTimezone($utc);
 
-        if ($periodBefore !== null) {
-            $end = $end->modify('-1 second');
+        if ($periodBefore !== null && $periodBefore->modify('-1 second') < $end) {
+            $end = $periodBefore->modify('-1 second')->setTimezone($utc);
         }
 
         // From the period's start, but never before your first result in the selection (the prototype's rule)
@@ -64,29 +66,24 @@ readonly final class FormBuilder
 
         /** @var array<string, list<InsightsRow>> $byMonth */
         $byMonth = [];
-        $points = [];
+        $fromMoment = $periodFrom?->getTimestamp();
+        $endMoment = $end->getTimestamp();
 
         foreach ($rows as $row) {
-            if ($row->ratio === null) {
+            // Only the period's own results - the first month may begin before the period does
+            if ($row->ratio === null || ($fromMoment !== null && $row->solveMoment < $fromMoment) || $row->solveMoment > $endMoment) {
                 continue;
             }
 
             $byMonth[substr($row->solveDate, 0, 7)][] = $row;
-
-            if ($row->result->firstAttempt && $row->result->unboxed === false) {
-                $points[] = [$row->solveMoment, $row->ratio];
-            }
         }
-
-        $midMonths = array_map(static fn (DateTimeImmutable $month): int => $month->modify('+14 days')->getTimestamp(), $months);
-        $usuals = InsightsMath::rollingMedian($points, $midMonths, InsightsRowsPreparer::FORM_HALF_WINDOW);
 
         $result = [];
         $first = null;
         $last = null;
         $sampleSize = 0;
 
-        foreach ($months as $index => $month) {
+        foreach ($months as $month) {
             $key = $month->format('Y-m');
             $monthRows = $byMonth[$key] ?? [];
             $count = count($monthRows);
@@ -113,13 +110,16 @@ readonly final class FormBuilder
                 $sampleSize += $count;
             }
 
+            // Your usual that month: the median of the very baseline every residual divides by (InsightsRow::form)
+            $forms = array_values(array_filter(array_map(static fn (InsightsRow $row): null|float => $row->form, $monthRows), static fn (null|float $form): bool => $form !== null));
+
             $result[] = new InsightsFormMonth(
                 month: $key,
                 count: $count,
                 medianRatio: $median,
                 q25Ratio: $q25,
                 q75Ratio: $q75,
-                usual: $usuals[$index],
+                usual: $forms !== [] ? InsightsMath::median($forms) : null,
                 bestTimeId: $best?->result->timeId,
                 bestPuzzleId: $best?->result->puzzleId,
                 bestRatio: $best?->ratio,

@@ -17,7 +17,8 @@ use SpeedPuzzling\Web\Results\InsightsSoloResult;
  * usual, residual, solve day), then filtered:
  * - the selection = every filter incl. the period: summary, skill map, histogram + outliers, expected vs actual,
  *   habits, consistency, prediction accuracy, findings;
- * - the selection without its period: the form chart (the period picks its months) and the trend tile;
+ * - the selection without its period: the trend tile, and the form chart (which keeps the period's own results and
+ *   starts at your first result);
  * - the puzzle filters only, all time: close calls and the learning curve (about puzzles, not about when);
  * - nothing: the profile card (all your puzzling, batch-computed).
  */

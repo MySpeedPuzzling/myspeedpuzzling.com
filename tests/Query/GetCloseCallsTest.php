@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Query\GetCloseCalls;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
+use SpeedPuzzling\Web\Tests\ClonesSolvingTimes;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestingViewer;
@@ -22,6 +23,8 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  */
 final class GetCloseCallsTest extends KernelTestCase
 {
+    use ClonesSolvingTimes;
+
     /**
      * @return iterable<string, array{string}>
      */
@@ -79,6 +82,46 @@ final class GetCloseCallsTest extends KernelTestCase
         self::assertSame(1, $first->rank);
         self::assertNull($first->nextPlaceSeconds);
         self::assertSame([], $first->milestoneSeconds);
+    }
+
+    public function testTiedTimesAndSuspiciousTimesRankLikeTheLeaderboard(): void
+    {
+        self::bootKernel();
+
+        // PUZZLE_500_01: stripe ties regular at 1750; a suspicious 100 s by stripe and 500 s by favorites never count
+        $this->cloneSolvingTime($this->soloTimeOf(PlayerFixture::PLAYER_WITH_STRIPE), ['seconds_to_solve' => 1750, 'first_attempt' => false]);
+        $this->cloneSolvingTime($this->soloTimeOf(PlayerFixture::PLAYER_WITH_STRIPE), ['seconds_to_solve' => 100, 'suspicious' => true, 'first_attempt' => false]);
+        $this->cloneSolvingTime($this->soloTimeOf(PlayerFixture::PLAYER_WITH_FAVORITES), ['seconds_to_solve' => 500, 'suspicious' => true, 'first_attempt' => false]);
+
+        foreach (array_map(static fn (array $player): string => $player[0], iterator_to_array(self::players(), false)) as $playerId) {
+            $this->assertParity($playerId);
+        }
+
+        $closeCalls = self::getContainer()->get(GetCloseCalls::class);
+
+        // Public pool: admin 1200, regular 1750 = stripe 1750, favorites 3000
+        self::assertSame(2, $closeCalls->forPlayer(PlayerFixture::PLAYER_REGULAR)[PuzzleFixture::PUZZLE_500_01]->rank);
+        self::assertSame(2, $closeCalls->forPlayer(PlayerFixture::PLAYER_WITH_STRIPE)[PuzzleFixture::PUZZLE_500_01]->rank);
+        self::assertSame(1750, $closeCalls->forPlayer(PlayerFixture::PLAYER_WITH_STRIPE)[PuzzleFixture::PUZZLE_500_01]->bestSeconds);
+
+        $favorites = $closeCalls->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES)[PuzzleFixture::PUZZLE_500_01];
+        self::assertSame(3000, $favorites->bestSeconds);
+        self::assertSame(4, $favorites->rank);
+        self::assertSame(1750, $favorites->nextPlaceSeconds);
+        self::assertSame([1 => 1200, 3 => 1750], $favorites->milestoneSeconds);
+
+        self::assertSame(1, $closeCalls->forPlayer(PlayerFixture::PLAYER_ADMIN)[PuzzleFixture::PUZZLE_500_01]->rank);
+    }
+
+    private function soloTimeOf(string $playerId): string
+    {
+        $timeId = self::getContainer()->get(Connection::class)->fetchOne(
+            "SELECT id::text FROM puzzle_solving_time WHERE player_id = :player AND puzzle_id = :puzzle AND puzzling_type = 'solo' ORDER BY seconds_to_solve LIMIT 1",
+            ['player' => $playerId, 'puzzle' => PuzzleFixture::PUZZLE_500_01],
+        );
+        self::assertIsString($timeId);
+
+        return $timeId;
     }
 
     private function assertParity(string $playerId): void

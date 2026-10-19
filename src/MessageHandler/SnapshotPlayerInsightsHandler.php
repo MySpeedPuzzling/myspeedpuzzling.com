@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Message\PrunePlayerInsightsSnapshots;
 use SpeedPuzzling\Web\Message\SnapshotPlayerInsights;
 use SpeedPuzzling\Web\Message\StorePlayerInsightsSnapshots;
 use SpeedPuzzling\Web\Query\GetInsightsContext;
@@ -43,14 +44,13 @@ readonly final class SnapshotPlayerInsightsHandler
     public function __invoke(SnapshotPlayerInsights $message): array
     {
         $now = $this->clock->now();
-        $month = $message->month !== null
-            ? new DateTimeImmutable($message->month . '-01')
-            : new DateTimeImmutable($now->format('Y-m-01'));
+        $month = InsightsSnapshotCriteria::month($message->month, $now);
         $criteria = InsightsSnapshotCriteria::criteria();
 
         $chunk = [];
         $players = 0;
         $written = 0;
+        $writtenPlayers = [];
 
         foreach ($this->activePlayers($criteria->periodFrom($now) ?? $now) as $playerId) {
             $context = $this->getInsightsContext->forPlayer($playerId);
@@ -61,6 +61,7 @@ readonly final class SnapshotPlayerInsightsHandler
             }
 
             $chunk[$playerId] = $this->snapshotFactory->fromReport($report, $context);
+            $writtenPlayers[] = $playerId;
             $players++;
 
             if (count($chunk) >= self::CHUNK) {
@@ -70,6 +71,9 @@ readonly final class SnapshotPlayerInsightsHandler
         }
 
         $written += $this->store($month, $chunk);
+
+        // A re-run of the month replaces it: whoever is no longer active loses this month's row
+        $this->messageBus->dispatch(new PrunePlayerInsightsSnapshots($month->format('Y-m-d'), $writtenPlayers));
 
         return ['month' => $month->format('Y-m'), 'players' => $players, 'written' => $written];
     }

@@ -8,7 +8,7 @@ use SpeedPuzzling\Web\Services\MessengerMiddleware\HandledOutsideTransaction;
 
 /**
  * The monthly Insights snapshot of every active player (`myspeedpuzzling:snapshot-player-insights`, docs/features/
- * insights/computation.md "Core sections" §12). `month` = Y-m, null = the current month.
+ * insights/computation.md "Core sections" §12). `month` = Y-m, null = the current month (InsightsSnapshotCriteria::month() decides what is allowed).
  *
  * Handled outside a transaction: the handler only reads (one report per player, minutes for all of them - held in
  * one transaction it would keep the locks of everything it read, and a deploy's ALTER TABLE would wait behind it);

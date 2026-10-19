@@ -17,9 +17,10 @@ use SpeedPuzzling\Web\Value\LeaderboardPosition;
  * Close calls of the Insights page (docs/features/insights/computation.md "Core sections" §3): for every puzzle the
  * player has a solo time on, their place on its solo leaderboard and the times of the places above them.
  *
- * It reads only times faster than the player's best: a place is 1 + the players whose best time is faster, and the
- * time of place N above you is the N-th fastest of their bests - so a slow player on a popular puzzle costs no more
- * than the players ahead. The pool is GetRanking's (the puzzle page's): best non-suspicious solo time per player, the
+ * It keeps only the times faster than the player's best: a place is 1 + the players whose best time is faster, and the
+ * time of place N above you is the N-th fastest of their bests. The probe still reads every custom_pst_solo_board entry
+ * of the puzzle (seconds_to_solve is an INCLUDE column, not a key) - only the players ahead are grouped, numbered and
+ * sorted. The pool is GetRanking's (the puzzle page's): best non-suspicious solo time per player, the
  * players the viewer hides left out, private players only when the viewer may see them - the places equal
  * GetRanking::allForPlayer() (pinned by GetCloseCallsTest). The players left out are one MATERIALIZED CTE: inlined
  * into every lateral probe, the plan crossed the JIT threshold (+290 ms on the heaviest player).

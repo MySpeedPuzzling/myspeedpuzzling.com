@@ -202,7 +202,11 @@ final readonly class InsightsCriteria
         $months = $this->period->months();
 
         if ($months !== null) {
-            return $now->setTime(0, 0)->modify("-{$months} months");
+            // The same day N months back, clamped to that month's last day (31 Aug − 6 months = 28/29 Feb, never 3 Mar)
+            $target = $now->setDate((int) $now->format('Y'), (int) $now->format('n'), 1)->modify("-{$months} months");
+            $day = min((int) $now->format('j'), (int) $target->format('t'));
+
+            return $target->setDate((int) $target->format('Y'), (int) $target->format('n'), $day)->setTime(0, 0);
         }
 
         return match ($this->period) {
@@ -387,14 +391,17 @@ final readonly class InsightsCriteria
     }
 
     /**
-     * A short stable key of the applied filters (membership included) - for the page cache.
+     * A short stable key of the applied filters, membership and the player's time zone (solve days, weekdays and the
+     * time of day depend on it) - for the page cache.
+     *
+     * @param null|string $timezone the zone the report is built with (InsightsPageLoader's), null = none
      */
-    public function cacheKey(): string
+    public function cacheKey(null|string $timezone): string
     {
         $parameters = $this->toQueryParameters();
         ksort($parameters);
 
-        return substr(md5(($this->isMember ? 'm' : 'f') . json_encode($parameters, JSON_THROW_ON_ERROR)), 0, 16);
+        return substr(md5(($this->isMember ? 'm' : 'f') . '|' . ($timezone ?? '') . '|' . json_encode($parameters, JSON_THROW_ON_ERROR)), 0, 16);
     }
 
     /**

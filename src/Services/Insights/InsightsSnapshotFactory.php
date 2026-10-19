@@ -35,7 +35,13 @@ readonly final class InsightsSnapshotFactory
      */
     public function fromReport(InsightsReport $report, InsightsContext $context): array
     {
-        $lastMonth = $report->form->months[count($report->form->months) - 1] ?? null;
+        // Your usual in the latest month with results (a run on the 1st finds the new month empty)
+        $usual = null;
+
+        foreach ($report->form->months as $month) {
+            $usual = $month->usual ?? $usual;
+        }
+
         $profile = [];
 
         foreach ($context->profileAxes as $axis) {
@@ -48,7 +54,7 @@ readonly final class InsightsSnapshotFactory
             'results' => $report->summary->resultCount,
             'speed' => self::round($report->summary->speedRatio),
             'trend' => self::round($report->summary->trendChange),
-            'form' => self::round($lastMonth?->usual),
+            'form' => self::round($usual),
             'consistency' => self::round($report->consistency->spread),
             'strengths' => self::segments($report->skillMap->strengths),
             'weak_spots' => self::segments($report->skillMap->weakSpots),

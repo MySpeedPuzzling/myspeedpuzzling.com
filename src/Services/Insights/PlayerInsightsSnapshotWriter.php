@@ -11,7 +11,8 @@ use Ramsey\Uuid\Uuid;
 /**
  * Writes a chunk of monthly snapshots (player_insights_snapshot) in one statement. Native SQL on purpose - a genuine
  * bulk operation: one row per active player and month, upserted (a re-run of the month replaces its rows), no entity
- * is ever loaded one by one for it. Called by StorePlayerInsightsSnapshotsHandler, inside its transaction.
+ * is ever loaded one by one for it. Called by StorePlayerInsightsSnapshotsHandler and PrunePlayerInsightsSnapshotsHandler,
+ * inside their transactions.
  */
 readonly final class PlayerInsightsSnapshotWriter
 {
@@ -46,5 +47,21 @@ readonly final class PlayerInsightsSnapshotWriter
             . ' ON CONFLICT (player_id, month) DO UPDATE SET data = EXCLUDED.data, computed_at = EXCLUDED.computed_at';
 
         return (int) $this->connection->executeStatement($sql, $parameters);
+    }
+
+    /**
+     * The month's rows of every other player go. Native SQL on purpose, a genuine bulk operation: the rows of players
+     * a re-run no longer writes (no longer active) are never loaded one by one to be removed.
+     *
+     * @param list<string> $keptPlayerIds
+     */
+    public function deleteOthers(DateTimeImmutable $month, array $keptPlayerIds): int
+    {
+        $kept = array_values(array_filter($keptPlayerIds, Uuid::isValid(...)));
+
+        return (int) $this->connection->executeStatement(
+            'DELETE FROM player_insights_snapshot WHERE month = CAST(:month AS date) AND NOT (player_id = ANY(CAST(:kept AS uuid[])))',
+            ['month' => $month->format('Y-m-d'), 'kept' => '{' . implode(',', $kept) . '}'],
+        );
     }
 }

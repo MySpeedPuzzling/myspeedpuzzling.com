@@ -10,8 +10,9 @@ use SpeedPuzzling\Web\Value\InsightsVerdict;
 /**
  * How a group of results compares with your usual (README §6 "Show how sure we are"): the median of the log
  * residuals, shrunk toward your usual by n / (n + 8), with the distribution-free order-statistic range of that median
- * (never a bootstrap - same answer every time, O(n log n)), shrunk the same way. A strength or weak spot only from
- * MIN_VERDICT results on and only when the whole range lies beyond ±THRESHOLD.
+ * - 1-based ranks floor((n − 1.96·√n) / 2) and ceil(1 + (n + 1.96·√n) / 2), symmetric around the median; never a
+ * bootstrap: same answer every time, O(n log n) - shrunk the same way. A strength or weak spot only from MIN_VERDICT
+ * results on and only when the whole range lies beyond ±THRESHOLD.
  */
 final class SegmentEffect
 {
@@ -41,9 +42,12 @@ final class SegmentEffect
         sort($logs);
 
         $shrink = $count / ($count + self::SHRINKAGE);
-        $half = self::Z * sqrt($count) / 2;
-        $lowIndex = max(0, (int) floor($count / 2 - $half));
-        $highIndex = min($count - 1, (int) ceil($count / 2 + $half));
+
+        // 1-based ranks of the order statistics bounding the median at 95 %, symmetric around it (n = 10: 1 … 10,
+        // n = 25: 7 … 19) - the same rule as Value\ShrunkEffect (stream 4c)
+        $spread = self::Z * sqrt($count);
+        $lowIndex = max(1, (int) floor(($count - $spread) / 2)) - 1;
+        $highIndex = min($count, (int) ceil(1 + ($count + $spread) / 2)) - 1;
 
         $effect = exp(InsightsMath::medianOfSorted($logs) * $shrink) - 1;
         $low = exp($logs[$lowIndex] * $shrink) - 1;

@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\ConsoleCommands;
 
+use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Exceptions\InsightsSnapshotMonthNotAllowed;
 use SpeedPuzzling\Web\Message\SnapshotPlayerInsights;
+use SpeedPuzzling\Web\Services\Insights\InsightsSnapshotCriteria;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -22,13 +25,14 @@ final class SnapshotPlayerInsightsConsoleCommand extends Command
 {
     public function __construct(
         private readonly MessageBusInterface $messageBus,
+        private readonly ClockInterface $clock,
     ) {
         parent::__construct();
     }
 
     protected function configure(): void
     {
-        $this->addOption('month', null, InputOption::VALUE_REQUIRED, 'The month to store the snapshots as (Y-m), default the current one');
+        $this->addOption('month', null, InputOption::VALUE_REQUIRED, 'The month to store the snapshots as (Y-m): the current one (default), or the previous one in a month\'s first 3 days');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -38,6 +42,14 @@ final class SnapshotPlayerInsightsConsoleCommand extends Command
 
         if ($month !== null && (is_string($month) === false || preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month) !== 1)) {
             $io->error('--month must be Y-m, e.g. 2026-11.');
+
+            return Command::INVALID;
+        }
+
+        try {
+            InsightsSnapshotCriteria::month($month, $this->clock->now());
+        } catch (InsightsSnapshotMonthNotAllowed $exception) {
+            $io->error($exception->getMessage());
 
             return Command::INVALID;
         }

@@ -50,11 +50,11 @@
                                 <span class="ins-row__main">
                                     <span class="ins-row__name">{{ puzzle.name }}</span>
                                     <span class="ins-row__meta">
-                                        {{- ['insights.skills.pieces'|trans({'%count%': puzzle.piecesCount}), puzzle.brandName, 'insights.resolve.ago'|trans({'%count%': candidate.monthsSinceLastSolve|round})]|filter(part => part is not empty)|join(' · ') -}}
+                                        {{- ['insights.resolve.best'|trans({'%best%': candidate.bestSeconds|puzzlingTime}), 'insights.resolve.ago'|trans({'%count%': candidate.monthsSinceLastSolve|round}), 'insights.skills.pieces'|trans({'%count%': puzzle.piecesCount}), puzzle.brandName]|filter(part => part is not empty)|join(' · ') -}}
                                         {%- if candidate.onShelf %} · {{ 'insights.resolve.on_shelf'|trans }}{% endif -%}
                                     </span>
                                 </span>
-                                <span class="ins-row__num">{{ 'insights.percent'|trans({'%value%': '−' ~ (candidate.likelyGain * 100)|round}) }}<small>{{ candidate.bestSeconds|puzzlingTime }} → {{ candidate.window|prediction_window_range }}</small></span>
+                                <span class="ins-row__num">{{ 'insights.percent'|trans({'%value%': '−' ~ (candidate.likelyGain * 100)|round}) }}<small>→ {{ candidate.window|prediction_window_range }}</small></span>
                             </a>
                         </li>
                     {% endfor %}

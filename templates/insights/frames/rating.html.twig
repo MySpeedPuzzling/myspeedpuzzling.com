@@ -122,13 +122,10 @@
                                                 </span>
                                             </span>
                                             <span class="ins-gainbar" aria-hidden="true"><span style="width: {{ max(4, (value / max_value * 100)|round) }}%"></span></span>
-                                            <span class="ins-row__num">+{{ move.gain|format_number({fraction_digit: 1}) }}<small>
-                                                {%- if list.key == 'points' -%}
-                                                    {{ move.window|prediction_window_range }}
-                                                {%- else -%}
-                                                    {{ 'insights.rating.moves.per_hour'|trans({'%value%': move.gainPerHour|format_number({fraction_digit: 1})}) }}
-                                                {%- endif -%}
-                                            </small></span>
+                                            {# The likely window is in the meta line; the per-hour list says what it sorts by #}
+                                            <span class="ins-row__num">+{{ move.gain|format_number({fraction_digit: 1}) }}
+                                                {%- if list.key == 'hour' %}<small>{{ 'insights.rating.moves.per_hour'|trans({'%value%': move.gainPerHour|format_number({fraction_digit: 1})}) }}</small>{% endif -%}
+                                            </span>
                                         </a>
                                     </li>
                                 {% endfor %}

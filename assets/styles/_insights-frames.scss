@@ -397,3 +397,12 @@ a.ins-srow {
         white-space: nowrap;
     }
 }
+
+// The pairs axis: its labels are longer than the skill map's - below md the dot and the verdict tag say it alone
+.ins-saxis--frame {
+    display: none;
+
+    @include media-breakpoint-up(md) {
+        display: grid;
+    }
+}

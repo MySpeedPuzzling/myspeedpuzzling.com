@@ -46,7 +46,7 @@
                 {% for list in [{key: 'pairs', items: synergy.pairs}, {key: 'teams', items: synergy.teams}] %}
                     {% if list.items is not empty %}
                         <p class="ins-listh">{{ ('insights.pairs.list.' ~ list.key)|trans }}</p>
-                        <div class="ins-saxis" aria-hidden="true"><span></span><span class="ins-saxis__scale"><span>{{ 'insights.pairs.axis.slower'|trans }}</span><span>{{ 'insights.pairs.axis.faster'|trans }}</span></span><span class="ins-saxis__n">{{ 'insights.skills.axis.results'|trans }}</span><span></span></div>
+                        <div class="ins-saxis ins-saxis--frame" aria-hidden="true"><span></span><span class="ins-saxis__scale"><span>{{ 'insights.pairs.axis.slower'|trans }}</span><span>{{ 'insights.pairs.axis.faster'|trans }}</span></span><span class="ins-saxis__n">{{ 'insights.skills.axis.results'|trans }}</span><span></span></div>
                         <div class="ins-smap" data-testid="insights-pairs-{{ list.key }}">
                             {% for group in list.items %}
                                 {% set verdict = verdict_style[group.verdict.value] %}

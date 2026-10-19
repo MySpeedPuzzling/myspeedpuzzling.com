@@ -1198,9 +1198,9 @@ raw scan on the box in `/root/bucket-scan.csv` + `/root/db-image-refs.tsv`.
       #213 - see [`features/account-deletion.md`](features/account-deletion.md); a deleted account's files now go automatically)
 - [ ] Optional: downscale the 84 pre-`ImageOptimizer` originals above 30 MP to 2,000 px like today's uploads
       (`2-oversized-originals-over-30mp.csv`); not needed for serving since the limit covers them
-- [x] A large imgproxy preset - shipped 2026-09-30: `puzzle_large=rs:fit:1200:1200/eth:0/f:jpg` (lily.srv
+- [x] A large imgproxy preset - shipped 2026-09-30: `puzzle_large=rs:fit:1200:1200/f:jpg` (lily.srv
       `IMGPROXY_PRESETS` + local `compose.yml`; JPEG pinned so every link previewer takes it and the bytes never
-      depend on `Accept`, `eth:0` = the full HEIC instead of its embedded ~320 px thumbnail). Used by the image
+      depend on `Accept`; its `eth:0` went with `IMGPROXY_ENFORCE_THUMBNAIL` on 2026-10-19). Used by the image
       sitemap, the puzzle `og:image` + Product JSON-LD, the event/edition/series JSON-LD `image` and the photo
       links (puzzle page, own finished photos) - no public page links a raw original (`/original/…`) any more;
       admin review pages still do on purpose
@@ -1214,8 +1214,9 @@ raw scan on the box in `/root/bucket-scan.csv` + `/root/db-image-refs.tsv`.
 - [x] ~~Cloudflare prefix purge of `img.myspeedpuzzling.com/original/` + `img.myspeedpuzzling.com/puzzle/`~~ - skipped
       (Jan, 2026-09-30): old cached copies expire on their own (1-year TTL, rarely requested files are evicted much
       sooner, and no public page links an original any more); `cdn.*` and every imgproxy render are clean
-- [ ] `puzzle_small`/`puzzle_medium` of a HEIC source are drawn from its embedded ~320 px thumbnail
-      (`IMGPROXY_ENFORCE_THUMBNAIL=true`) - `puzzle_medium` (`el:1`) upscales it to 400 px; `eth:0` there too?
+- [x] `puzzle_medium` and every crop/resize of a HEIC source were drawn from its embedded ~240×320 preview
+      (`IMGPROXY_ENFORCE_THUMBNAIL=true`) - setting removed 2026-10-19 (lily.srv `616bfc3`, journal `2be5d17`,
+      681 cached HEIC/AVIF renders deleted). AVIF was never affected (no embedded preview)
 
 ## Multiscan
 

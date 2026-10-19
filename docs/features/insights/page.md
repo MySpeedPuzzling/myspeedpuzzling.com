@@ -168,8 +168,11 @@ response is unchanged by them: the placeholders cost no statement (`InsightsPage
 | `improvement` | `insights_improvement`, `GET /{_locale}/insights/improvement` | `InsightsImprovementFrameController` | 15 improvement curve + rating over time | period (rating over time), pieces (which curves) | key 1 + 1 (+ rating over time 1, members) = ≤ 3 |
 
 Pinned by `tests/Services/Insights/InsightsFramesBudgetTest.php` on the insights ladder fixture (also < 100 ms per part,
-and a cache hit = the key only). Measured 2026-10-19 in the test env (one-off container, ladder fixture, cache miss):
-see the STATUS entry of 6b.
+and a cache hit = the key only). Measured 2026-10-19 in the test env (one-off container on Jan's Mac, cache miss):
+- `InsightsFrames` on the ladder fixture (best of 3): rating member 11 statements / 10.3 ms, rating free 9 / 7.5 ms,
+  re-solve 5 / 3.2 ms, pairs 5 / 2.2 ms, improvement member 3 / 2.6 ms, improvement free 2 / 2.8 ms;
+- the whole frame request (kernel boot, security, profile, render) for a fixture player on the ladder: rating 48 ms
+  (member) / 78 ms (free, first request of the kernel), re-solve 29-36 ms, pairs 27-41 ms, improvement 25-46 ms.
 
 **How a frame works:**
 - The placeholder (`templates/insights/frames/_lazy.html.twig`, included by the four `_lazy_*` partials) is
@@ -191,6 +194,10 @@ see the STATUS entry of 6b.
   response. The portfolio strips, the synergy rows and the together-vs-alone bars are HTML/SVG. Dates come from ICU
   skeletons (`EventsPageDates`).
 - Styles: `assets/styles/_insights-frames.scss` (after `_insights.scss`).
+
+**Prediction windows** follow stream 3c: a move's or a re-solve candidate's expected time is shown only as the likely
+window (`RatingMove::window()` / `ResolveCandidate::window()` = `PredictionWindow::rounded()`, Twig
+`prediction_window_range`, wording `puzzle_intelligence.prediction.window.likely`), never as a point time.
 
 **Rules carried into the frames:**
 - Every ladder place is a place **on today's ladder** and says so (other players' ratings move too).

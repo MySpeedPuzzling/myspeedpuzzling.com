@@ -1,0 +1,24 @@
+{#
+    One result in an Insights list: the puzzle's picture and name (GetInsightsPuzzles), what it was, and a number.
+    A puzzle the hydrate did not return (a secret one) is never listed.
+
+    Variables: puzzle (InsightsPuzzle), meta (string), number (string), number_note (null|string),
+               situations (list<InsightsSituation>, optional), position (int)
+#}
+<li class="ins-row">
+    <a class="ins-row__link" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+        {{ lazy_puzzle_image(puzzle.image, 'puzzle_small', puzzle.name, position|default(999), 48, 'rounded-2 ins-row__image', 48, puzzle.imageRatio) }}
+        <span class="ins-row__main">
+            <span class="ins-row__name">{{ puzzle.name }}</span>
+            <span class="ins-row__meta">{{ meta }}</span>
+            {% if situations|default([]) is not empty %}
+                <span class="ins-why">
+                    {% for situation in situations|slice(0, 4) %}
+                        <span>{{ ('insights.why.' ~ situation.value)|trans }}</span>
+                    {% endfor %}
+                </span>
+            {% endif %}
+        </span>
+        <span class="ins-row__num">{{ number }}{% if number_note|default(null) %}<small>{{ number_note }}</small>{% endif %}</span>
+    </a>
+</li>

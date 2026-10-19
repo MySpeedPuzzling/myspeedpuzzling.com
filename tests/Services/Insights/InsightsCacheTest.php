@@ -124,7 +124,10 @@ final class InsightsCacheTest extends KernelTestCase
         self::assertSame(2, $cache->getForGeneration('close_calls', PlayerFixture::PLAYER_REGULAR, [], $compute));
     }
 
-    public function testTheKeyCostsTwoStatements(): void
+    /**
+     * The generation rides on the fingerprint's statement (the Insights page's first response stays within its budget)
+     */
+    public function testTheKeyCostsOneStatement(): void
     {
         /** @var DebugDataHolder $holder */
         $holder = self::getContainer()->get('doctrine.debug_data_holder');
@@ -133,7 +136,7 @@ final class InsightsCacheTest extends KernelTestCase
         $this->cache()->keyFor(PlayerFixture::PLAYER_WITH_STRIPE);
 
         $queries = $holder->getData()['default'] ?? [];
-        self::assertCount(2, is_array($queries) ? $queries : []);
+        self::assertCount(1, is_array($queries) ? $queries : []);
     }
 
     /**

@@ -16,6 +16,28 @@ The free trial (`docs/features/free-trial/README.md`) shipped dark behind it for
 
 Meta App Review approved + app published (2026-09-30), so Facebook lost its flag and follows the credentials rule like Google, Microsoft and Apple: available and shown iff `FACEBOOK_APP_ID` + `FACEBOOK_APP_SECRET` are configured (`SocialLoginSettings::isAvailable()`; templates ask `social_login.isProviderAvailable('facebook')`). `isShown()` / `isProviderShown()` / `isAnyShown()` collapsed into `isAvailable()` / `isProviderAvailable()` / `isAnyAvailable()`. The review preview (`?facebook_preview=1`, the `msp_fb_preview` cookie set by `NativeAuthPageSubscriber`, `FacebookReviewPreviewTest`) is gone too - a leftover cookie in a browser is harmless, nothing reads it; so is a box `.env` / Infisical that still sets the flag. Kill switch = empty the credentials.
 
+## Insights (`INSIGHTS_PUBLIC`)
+
+- **Feature:** the player's own Insights page and everything new it brings (`docs/features/insights/README.md`,
+  page: `docs/features/insights/page.md`): the page, the profile tab, the menu row, the "See why" links; later (streams
+  6b/6c) the lazy sections and the estimates
+- **Flag:** env var `INSIGHTS_PUBLIC` → parameter `insightsPublic` (`config/services.php`, bound as `$insightsPublic`)
+  → `InsightsFeature::isVisibleTo(?PlayerProfile)` = flag **or** `ADMIN_ACCESS`, the single decision point (nobody signed
+  in never). Twig function `insights_visible()` (`InsightsTwigExtension`) for the links. Not a Twig global
+- **Default:** `0` (`.env`). Admins always see it
+- **Gated files:**
+  - `src/Services/Insights/InsightsFeature.php` — `isVisibleTo()`
+  - `src/Controller/InsightsController.php` — 404 while hidden
+  - `src/Component/Insights.php` — the Live component renders nothing while hidden (its `/_components` endpoint too)
+  - `src/Component/PlayerHeader.php` — `PlayerHeaderTab::Insights`, own profile only
+  - `templates/base.html.twig` — the user menu row (`insights_visible()`)
+  - `templates/added_time_recap.html.twig`, `templates/puzzle_result/_body.html.twig` — the "See why" links (own results only)
+- **Tests:** `OverridesFeatureFlagEnv` (`overrideFeatureFlagEnv('INSIGHTS_PUBLIC', …)` before the kernel boots) -
+  `tests/Controller/InsightsControllerTest.php`
+- **Remove when:** the launch (`docs/features/insights/implementation-plan.md` §8): the image backfill is complete, the
+  estimate gates pass and Jan says yes. Then delete the flag check in `InsightsFeature` (keep the class as the place that
+  says who gets the page if useful), the `.env` entry and the binding; move this section to "Retired"
+
 ## Background photo uploads (`DIRECT_PHOTO_UPLOADS`)
 
 - **Feature:** the add/edit-time form and multiscan quick-add upload each photo in the background, straight to object

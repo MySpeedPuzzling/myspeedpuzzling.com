@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\Insights;
 
+use SpeedPuzzling\Web\Results\Insights\InsightsDrillDownResult;
 use SpeedPuzzling\Web\Results\Insights\InsightsSkillGroupResult;
 use SpeedPuzzling\Web\Results\Insights\InsightsSkillMapSection;
 use SpeedPuzzling\Web\Results\Insights\InsightsSkillSegment;
@@ -163,6 +164,7 @@ readonly final class SkillMapBuilder
             $stats = SegmentEffect::ofRows($rows);
 
             usort($rows, static fn (InsightsRow $a, InsightsRow $b): int => $a->residual <=> $b->residual);
+            $drillRows = array_slice($rows, 0, InsightsSkillSegment::DRILL_DOWN_LIMIT);
 
             $segments[] = new InsightsSkillSegment(
                 group: $group,
@@ -171,7 +173,19 @@ readonly final class SkillMapBuilder
                 stats: $stats,
                 drillDownTimeIds: array_map(
                     static fn (InsightsRow $row): string => $row->result->timeId,
-                    array_slice($rows, 0, InsightsSkillSegment::DRILL_DOWN_LIMIT),
+                    $drillRows,
+                ),
+                drillDown: array_map(
+                    static fn (InsightsRow $row): InsightsDrillDownResult => new InsightsDrillDownResult(
+                        timeId: $row->result->timeId,
+                        puzzleId: $row->result->puzzleId,
+                        seconds: $row->result->seconds,
+                        solvedAt: $row->result->solvedAt,
+                        piecesCount: $row->result->piecesCount,
+                        manufacturerName: $row->result->manufacturerName,
+                        residual: (float) $row->residual,
+                    ),
+                    $drillRows,
                 ),
             );
         }

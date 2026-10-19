@@ -1,0 +1,39 @@
+{# "Am I getting better?" - monthly medians against the median solver (FormBuilder; free: the last 6 months) #}
+{% import 'insights/_macros.html.twig' as ins %}
+{% set form = this.report.form %}
+<section class="ins-sec" id="insights-form" data-testid="insights-section-form">
+    {{ include('insights/_section_head.html.twig', {question: 'insights.form.question', title: 'insights.form.title', badge: 'mixed', badge_text: 'insights.badge.form'}) }}
+
+    {% if form.notSureYet %}
+        <p class="ins-take">{{ 'insights.form.not_sure_yet'|trans }}</p>
+    {% else %}
+        <p class="ins-take">
+            {%- if form.change is not null and form.change|abs > 0.015 -%}
+                {{ 'insights.form.takeaway.moved'|trans({
+                    '%months%': form.months|length,
+                    '%from%': '<b>' ~ ins.versus(form.firstMedianRatio, 'median') ~ '</b>',
+                    '%to%': '<b>' ~ ins.versus(form.lastMedianRatio, 'median') ~ '</b>',
+                })|raw }}
+            {%- else -%}
+                {{ 'insights.form.takeaway.steady'|trans({
+                    '%months%': form.months|length,
+                    '%versus%': '<b>' ~ ins.versus(form.lastMedianRatio, 'median') ~ '</b>',
+                })|raw }}
+            {%- endif -%}
+            {%- if not this.isMember %} {{ 'insights.form.members_dates'|trans }}{% endif -%}
+        </p>
+
+        {% if this.charts.form is defined %}
+            <div class="ins-chart" id="ins-chart-form-{{ this.stateKey }}" data-controller="comparison-chart">
+                {{ render_chart(this.charts.form, {role: 'img', 'aria-label': 'insights.form.chart_label'|trans}) }}
+            </div>
+            <div class="ins-legend" aria-hidden="true">
+                <span><i class="ins-legend__line ins-legend--you"></i>{{ 'insights.form.legend.median'|trans }}</span>
+                <span><i class="ins-legend__square ins-legend--band"></i>{{ 'insights.form.legend.band'|trans }}</span>
+                <span><i class="ins-legend__line ins-legend--ref"></i>{{ 'insights.form.legend.usual'|trans }}</span>
+            </div>
+        {% endif %}
+    {% endif %}
+
+    <p class="ins-note">{{ 'insights.form.note'|trans }}</p>
+</section>

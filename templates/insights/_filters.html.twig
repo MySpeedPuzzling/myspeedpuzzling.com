@@ -1,0 +1,54 @@
+{#
+    The filter row, Compare-style: when (period / past year / exact dates), pieces - free - and "More filters" (the
+    members' sheet; a free player gets the members' modal). The URL holds the state (Insights live component).
+#}
+{% set criteria = this.criteria %}
+{% set more_count = this.moreFiltersCount %}
+<div class="ins-filters" data-testid="insights-filters">
+    <div class="ins-filters__row">
+        <label class="visually-hidden" for="insights-when">{{ 'insights.filters.period'|trans }}</label>
+        <select id="insights-when" class="form-select ins-pill ins-pill--select" data-model="when" data-testid="insights-filter-when">
+            {% for option in this.whenOptions %}
+                <option value="{{ option.value }}" {{ this.when == option.value ? 'selected' }}>{{ option.label|trans(option.parameters) }}</option>
+            {% endfor %}
+        </select>
+
+        <label class="visually-hidden" for="insights-pieces">{{ 'insights.filters.pieces'|trans }}</label>
+        <select id="insights-pieces" class="form-select ins-pill ins-pill--select{{ criteria.pieces.toParam != '' ? ' is-on' }}" data-model="pieces" data-testid="insights-filter-pieces">
+            <option value="">{{ 'insights.filters.any_pieces'|trans }}</option>
+            {% for param, label in this.piecesOptions %}
+                <option value="{{ param }}" {{ criteria.pieces.toParam == param ? 'selected' }}>{{ 'insights.filters.pieces_value'|trans({'%pieces%': label}) }}</option>
+            {% endfor %}
+        </select>
+
+        {% if this.isMember %}
+            <button type="button" class="ins-pill{{ more_count > 0 ? ' is-on' }}" data-bs-toggle="modal" data-bs-target="#insights-filters-modal" data-testid="insights-more-filters">
+                <i class="bi bi-sliders" aria-hidden="true"></i>{{ 'insights.filters.more'|trans }}
+                {%- if more_count > 0 %} <span class="ins-pill__count">{{ more_count }}</span>{% endif %}
+            </button>
+        {% else %}
+            <button type="button" class="ins-pill ins-pill--locked" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" data-testid="insights-more-filters-locked">
+                <i class="ci-locked" aria-hidden="true"></i>{{ 'insights.filters.more'|trans }}
+            </button>
+        {% endif %}
+
+        <span class="ins-filters__count">{{ 'insights.filters.count'|trans({'%count%': this.report.summary.resultCount}) }}</span>
+
+        {% if this.hasActiveFilters %}
+            <button type="button" class="btn btn-link btn-sm ins-filters__clear" data-action="live#action" data-live-action-param="clearFilters">{{ 'insights.filters.clear'|trans }}</button>
+        {% endif %}
+    </div>
+
+    {% if this.isMember and criteria.period.value == 'custom' %}
+        <div class="ins-filters__dates">
+            <label for="insights-from">{{ 'insights.filters.from'|trans }}</label>
+            <input type="date" id="insights-from" class="form-control form-control-sm" data-model="from" value="{{ this.from }}">
+            <label for="insights-to">{{ 'insights.filters.to'|trans }}</label>
+            <input type="date" id="insights-to" class="form-control form-control-sm" data-model="to" value="{{ this.to }}">
+        </div>
+    {% endif %}
+
+    {% if this.report.strippedForMembers is not empty %}
+        <p class="ins-filters__stripped" role="status">{{ 'insights.filters.stripped'|trans }}</p>
+    {% endif %}
+</div>

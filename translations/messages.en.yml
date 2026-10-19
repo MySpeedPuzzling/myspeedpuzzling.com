@@ -1,4 +1,5 @@
 menu:
+    insights: "Insights"
     pairs_and_teams: "Pairs & teams"
     my_profile: "My profile"
     puzzle_add: "Add"
@@ -7353,6 +7354,7 @@ player_header:
     tabs:
         profile: "Profile"
         statistics: "Statistics"
+        insights: "Insights"
         calendar: "Calendar"
         achievements: "Achievements"
         library: "Library"
@@ -10244,3 +10246,416 @@ puzzle_tags:
     look:
         photo: "Photo"
         drawn: "Illustration or painting"
+
+insights:
+    meta_title: "Your insights"
+    title: "Your puzzling, explained"
+    lead: "Only your own results, compared with each puzzle's other solvers and with your own usual pace. Pick a question or scroll through."
+    only_you: "Only you see this page."
+    loading: "Loading…"
+    see_why: "See why in your insights"
+    percent: "%value%%"
+    none_in_selection: "None in this selection"
+    empty:
+        title: "Insights start at %count% results"
+        text: "{0}You have no solo results with a time yet. Insights compare your results with each puzzle's other solvers and with your own usual pace, so they need a few to work with: log %needed% and this page fills in.|{1}You have 1 solo result with a time. Insights compare your results with each puzzle's other solvers and with your own usual pace, so they need a few to work with: log %needed% and this page fills in.|]1,Inf[You have %count% solo results with a time. Insights compare your results with each puzzle's other solvers and with your own usual pace, so they need a few to work with: log %needed% and this page fills in."
+        add: "Add a time"
+    ask:
+        label: "Questions this page answers"
+        profile: "What kind of puzzler am I?"
+        form: "Am I getting better?"
+        strengths: "What are my strengths?"
+        weak_spots: "Where can I improve?"
+        expected: "Faster or slower than expected?"
+        median: "Where am I way off the median?"
+        close_calls: "Where am I close to a better place?"
+        learning: "How much do repeats help?"
+        habits: "When do I puzzle best?"
+    badge:
+        free: "Free"
+        free_only_you: "Free · only you see it"
+        members: "Members"
+        everyone: "Everyone"
+        form: "Free: 6 months · Members: any dates"
+        skills: "Free: your top strength and weak spot"
+        median: "Free: the chart · Members: outliers explained"
+        habits: "Free: when you puzzle · Members: how it affects your pace"
+        preview: "Preview"
+    period:
+        3m: "Last 3 months"
+        6m: "Last 6 months"
+        12m: "Last 12 months"
+        24m: "Last 24 months"
+        year: "This year"
+        past_year: "%year%"
+        all: "All time"
+        custom: "Exact dates…"
+    filters:
+        period: "Solved in"
+        pieces: "Pieces"
+        any_pieces: "All piece counts"
+        pieces_value: "%pieces% pieces"
+        more: "More filters"
+        title: "Filters"
+        count: "{0}No results|{1}1 result|]1,Inf[%count% results"
+        clear: "Clear filters"
+        done: "Done"
+        from: "From"
+        to: "to"
+        stripped: "Some filters of this link are for members. You see the free part: the last 3 or 6 months and the piece count."
+        results: "Results"
+        results_all: "All results"
+        results_first: "First tries"
+        results_repeat: "Repeat solves"
+        events: "Events"
+        events_any: "Any"
+        events_only: "Only at events"
+        events_exclude: "Without events"
+        unboxed: "Solved without the box"
+        unboxed_any: "Include"
+        unboxed_only: "Only these"
+        unboxed_exclude: "Leave out"
+        shelf: "Your shelf"
+        shelf_any: "Any"
+        shelf_only: "Still on my shelf"
+        shelf_exclude: "Not on my shelf"
+        difficulty: "Difficulty"
+        brands: "Brand"
+        weekdays: "Weekday"
+        personality: "Puzzle personality"
+        traits: "Picture"
+        traits_hint: "Preview: comes with the picture analysis of box images, still running."
+        time_of_day: "Time of day"
+        time_of_day_hint: "When you logged results on the day you solved them."
+    versus:
+        median:
+            faster: "%percent%% faster than the median solver"
+            slower: "%percent%% slower than the median solver"
+            level: "level with the median solver"
+        usual:
+            faster: "%percent%% faster than your usual"
+            slower: "%percent%% slower than your usual"
+            level: "right at your usual"
+        expected:
+            faster: "%percent%% faster than expected"
+            slower: "%percent%% slower than expected"
+            level: "right as expected"
+        year_ago:
+            faster: "%percent%% faster than a year ago"
+            slower: "%percent%% slower than a year ago"
+            level: "as fast as a year ago"
+    findings:
+        label: "Top findings"
+    finding:
+        speed:
+            kicker: "Speed"
+            text: "On the same puzzles you are %versus%."
+        form_trend:
+            kicker: "Form"
+            text: "Your recent results are %versus%."
+        strength:
+            kicker: "Strength"
+            text: "%segment%: %versus%."
+        weak_spot:
+            kicker: "Weak spot"
+            text: "%segment%: %versus%."
+        close_call:
+            kicker: "Close call"
+            text: "You are %gap% from top %rank% on %puzzle%."
+            text_first: "You are %gap% from first place on %puzzle%."
+        best_result:
+            kicker: "Best result"
+            text: "%puzzle% went %versus%."
+        surprises:
+            kicker: "Surprises"
+            text: "{1}<b>1 puzzle</b> went more than 10% better than expected for you.|[0,Inf[<b>%count% puzzles</b> went more than 10% better than expected for you."
+            locked: "{0}Surprises are counted once you have results with predictions. Members see which.|{1}1 surprise in this period. Members see which.|]1,Inf[%count% surprises in this period. Members see which."
+    tiles:
+        not_enough: "Not enough results yet"
+        members: "Members"
+        speed:
+            label: "Speed vs. the median solver"
+            faster: "{1}faster · 1 result|[0,Inf[faster · %count% results"
+            slower: "{1}slower · 1 result|[0,Inf[slower · %count% results"
+        form:
+            label: "Form vs. a year ago"
+            faster: "faster: the last 6 months vs. 12-18 months ago"
+            slower: "slower: the last 6 months vs. 12-18 months ago"
+            needs_year: "Needs a year of results"
+        consistency:
+            label: "Consistency"
+            sub: "the middle half of your results around your usual"
+            percentile: "steadier than %percent%% of puzzlers"
+            not_enough: "Needs %count% results"
+    profile:
+        question: "What kind of puzzler am I?"
+        title: "Your puzzler profile"
+        takeaway: "Your strongest side is %strongest%. Your most room to grow: %room%."
+        takeaway_strongest: "Your strongest side is %strongest%. The other scores fill in as you log more results."
+        not_sure_yet: "Your card fills in as you log results: each score needs a few results of its own. It is computed once a day."
+        chart_label: "Your puzzler profile: seven scores against all puzzlers"
+        note: "Each score is your place among all puzzlers with enough results (50 = the middle). Computed once a day, so everybody's card compares against the same people. Like all of your insights, only you see it."
+    axis:
+        speed:
+            name: "Speed"
+            description: "your time against each puzzle's median"
+        improvement:
+            name: "Improvement"
+            description: "how much faster than a year ago"
+        consistency:
+            name: "Consistency"
+            description: "how close your results stay to your usual"
+        learning:
+            name: "Learning"
+            description: "how much your second attempt gains"
+        hard_puzzles:
+            name: "Hard puzzles"
+            description: "your pace on Hard and Very hard puzzles"
+        big_puzzles:
+            name: "Big puzzles"
+            description: "your pace on 1000+ pieces"
+        events:
+            name: "Events"
+            description: "your pace at events against at home"
+    form:
+        question: "Am I getting better?"
+        title: "Your form over time"
+        not_sure_yet: "Your form shows once two months of this selection have at least 3 results each."
+        takeaway:
+            moved: "Over %months% months your monthly median moved from %from% to %to%."
+            steady: "Over %months% months your monthly median stayed around %versus%."
+        members_dates: "Members pick any dates and filter by brand, difficulty, events and more."
+        chart_label: "Your monthly median against each puzzle's median solver"
+        legend:
+            median: "Your monthly median"
+            band: "Middle half of your results"
+            usual: "Your usual"
+        note: "Measured as your time against each puzzle's median solo time, so a month of hard puzzles does not look like a bad month. Up means faster."
+    skills:
+        question: "What are my strengths? Where can I improve?"
+        title: "Strengths and weak spots"
+        not_sure_yet: "Strengths and weak spots show once you have 10 results with a puzzle median in this selection."
+        none: "No clear strengths or weak spots in this selection: you are close to your usual everywhere."
+        takeaway:
+            strong: "Strong: %segments%."
+            weak: "{1}Weak spot: %segments%.|[0,Inf[Weak spots: %segments%."
+        lock:
+            title: "See every strength and weak spot"
+            text: "{0}Brands, sizes, difficulty, events, breaks and puzzle types, each with how sure we are.|{1}1 clear finding across brands, sizes, difficulty, situations and puzzle types, each with how sure we are.|]1,Inf[%count% clear findings across brands, sizes, difficulty, situations and puzzle types, each with how sure we are."
+        axis:
+            slower: "← slower than your usual"
+            faster: "faster →"
+            results: "results"
+        pieces: "%count% pieces"
+        unrated: "Not rated yet"
+        preview: "Preview · the picture analysis is still running"
+        drill:
+            title: "{1}%segment%: 1 result, fastest against your usual first|[0,Inf[%segment%: %count% results, fastest against your usual first"
+            more: "{1}and 1 more|[0,Inf[and %count% more"
+        note: "Each row compares those results with your usual pace at the time, after taking out puzzle difficulty and your improvement. The bar is the likely range: a short bar means we are sure, a long one not yet. Rows with fewer than 5 results are left out, and a row only becomes a strength or weak spot when its whole range sits beyond ±1.5% and it rests on 10 results."
+    skill_group:
+        brand: "Brand"
+        pieces: "Piece count"
+        difficulty: "Difficulty"
+        situation: "Situation"
+        personality: "Puzzle personality"
+        image_traits: "Picture"
+    verdict:
+        strength: "Strength"
+        weak_spot: "Weak spot"
+        about_usual: "About usual"
+        not_sure_yet: "Not sure yet"
+    situation:
+        first_tries: "First tries"
+        repeats: "Repeat solves"
+        at_event: "At an event"
+        weekend: "Weekend"
+        after_break: "After a break of 2+ weeks"
+        second_of_the_day: "Second puzzle of the day"
+        unboxed: "Without the box"
+    personality:
+        rewards_skill: "Rewards skill"
+        equaliser: "Equaliser"
+        box_helps: "Box helps a lot"
+        memorable: "Memorable"
+    personality_hint:
+        rewards_skill: "A big gap between fast and slow solvers"
+        equaliser: "Most people finish close together"
+        box_helps: "Much harder without the box"
+        memorable: "Much easier the second time"
+    why:
+        first_tries: "first try"
+        repeats: "repeat"
+        at_event: "at an event"
+        weekend: "weekend"
+        after_break: "after a break"
+        second_of_the_day: "2nd puzzle that day"
+        unboxed: "without the box"
+    meta:
+        result: "%pieces% pc · %brand% · %date%"
+    expected:
+        question: "Which puzzles did I solve faster or slower than expected?"
+        title: "Expected vs. actual"
+        predictions_off: "Time predictions are switched off in your settings, so there are no expected times here."
+        not_sure_yet: "Expected times show once your results in this selection have stored predictions."
+        takeaway: "Against what we expect from you, <b>%better%</b> results went more than 10% better and <b>%worse%</b> more than 10% slower; %within% landed within 10%."
+        chart_label: "Your time against the time expected for you"
+        legend:
+            better: "More than 10% faster"
+            within: "Within 10%"
+            worse: "More than 10% slower"
+        list:
+            better: "Faster than expected"
+            worse: "Slower than expected"
+        vs: "%actual% vs. %expected%"
+        margin: "Speed puzzlers tend to beat first-try predictions. Your margin: a median %percent%% under them, and the expected times here build that in, so green means better than your typical first try."
+        note: "Expected = the prediction stored with each result, adjusted by your own usual margin on older predictions."
+        accuracy:
+            not_sure_yet: "How often you land inside your likely window shows once %count% of your results have a calibrated prediction."
+            hits: "Inside your likely window: %hits% of %count% (%percent%%) - the window promises half."
+        lock:
+            title: "{0}Your surprises|{1}1 puzzle went better than expected|]1,Inf[%count% puzzles went better than expected"
+            text: "Every result against what we expected for you, and the puzzles that went much better or slower."
+    median:
+        question: "Where am I way off the median?"
+        title: "You against the median solver"
+        not_sure_yet: "This chart shows once you have 5 results with a puzzle median in this selection."
+        takeaway: "You are usually %versus%, and slower than the median on <b>%slower% of %count%</b> results. %outliers% results sit more than 30% from your usual."
+        chart_label: "Your results by how much faster or slower than each puzzle's median solver they were"
+        legend:
+            results: "Your results"
+            median: "Median solver (0)"
+            usual: "Your usual"
+        list:
+            slow: "Way slower than your usual"
+            fast: "Way faster than your usual"
+        lock:
+            title: "{0}Your outliers|{1}1 outlier found|]1,Inf[%count% outliers found"
+            text: "The results far from your usual, with what they have in common."
+    close_calls:
+        question: "Where am I close to a better place?"
+        title: "Close calls on the leaderboards"
+        none: "No close calls in this selection."
+        takeaway: "{0}None of your puzzles is within 3% of your time of the next milestone place. The closest: %gap% from %target% on %puzzle%.|{1}On <b>1</b> puzzle you are less than 3% of your time away from the next milestone place. The closest: %gap% from %target% on %puzzle%.|]1,Inf[On <b>%count%</b> puzzles you are less than 3% of your time away from the next milestone place. The closest: %gap% from %target% on %puzzle%."
+        top: "top %rank%"
+        first_place: "first place"
+        meta: "#%rank% · best %best% · %brand%"
+        totals:
+            first: "first places"
+            podium: "podium places"
+            top_ten: "top-10 places"
+            puzzles: "puzzles in this selection"
+        note: "Built from the public puzzle leaderboards, places only. Other solvers move the targets, so they can change any time."
+    learning:
+        question: "How much do I gain from repeating a puzzle?"
+        title: "Your learning curve"
+        not_sure_yet: "Your learning curve shows once you have solved a few puzzles more than once."
+        takeaway:
+            second: "Your second attempt is <b>%percent%% faster</b> than the first (all solvers: %community%%)."
+            fourth: "By the fourth you are <b>%percent%% faster</b>."
+            selection: "{1}1 puzzle solved more than once in this selection.|[0,Inf[%count% puzzles solved more than once in this selection."
+        chart_label: "Your time on each attempt against the first, you and all solvers"
+        legend:
+            you: "You"
+            community: "All solvers (%pieces% pieces)"
+        list: "Puzzles you improved on most"
+        meta: "{1}%pieces% pc · %brand% · 1 attempt|[0,Inf[%pieces% pc · %brand% · %count% attempts"
+        lock:
+            title: "{0}Your learning curve|{1}Your learning curve across 1 repeated puzzle|]1,Inf[Your learning curve across %count% repeated puzzles"
+            text: "How much faster each repeat gets for you, against everybody else."
+    habits:
+        question: "When do I puzzle best?"
+        title: "Habits and conditions"
+        not_sure_yet: "No results in this selection."
+        takeaway:
+            busiest: "You puzzle most on %day%."
+            break: "After a break of two weeks or more you are %versus%."
+        weekdays: "Results per weekday"
+        weekdays_label: "Your results per weekday"
+        breaks: "Pace after a break"
+        time_of_day: "Pace by the time you logged"
+        too_few: "too few"
+        lock:
+            title: "Does a break slow you down?"
+            text: "{0}Your pace after breaks, on each weekday and by the time of day.|{1}Your pace after breaks, on each weekday and by the time of day - 1 of your results came after a break of two weeks or more.|]1,Inf[Your pace after breaks, on each weekday and by the time of day - %count% of your results came after a break of two weeks or more."
+        note_logged: "The time of day is when you logged a result on the day you solved it."
+        note_no_zone: "Set your time zone to see your pace by the time of day."
+        set_zone: "Set your time zone"
+    break:
+        "0": "Same day"
+        "1": "1 day"
+        2-7: "2-7 days"
+        8-14: "8-14 days"
+        15+: "15+ days"
+    time_of_day:
+        morning: "Morning"
+        afternoon: "Afternoon"
+        evening: "Evening"
+        night: "Night"
+    weekday:
+        "1": "Monday"
+        "2": "Tuesday"
+        "3": "Wednesday"
+        "4": "Thursday"
+        "5": "Friday"
+        "6": "Saturday"
+        "7": "Sunday"
+    weekday_short:
+        "1": "Mon"
+        "2": "Tue"
+        "3": "Wed"
+        "4": "Thu"
+        "5": "Fri"
+        "6": "Sat"
+        "7": "Sun"
+    nudges:
+        question: "How can my insights get sharper?"
+        title: "Make your insights sharper"
+        action:
+            add: "Add a time"
+            results: "Your results"
+            settings: "Settings"
+        more_results:
+            title: "{1}Log 1 more result|[0,Inf[Log %count% more results"
+            text_10: "At 10 solo results your insights start."
+            text_25: "At 25 results your strengths and weak spots start to show: each of them needs 10 results of its own."
+            text_50: "At 50 results your form month by month and your puzzler profile become steady."
+        mark_first_tries:
+            title: "{1}1 first result on a puzzle is not marked as a first try|[0,Inf[%count% first results on a puzzle are not marked as first tries"
+            text: "If they were first tries, mark them when you edit the result: first tries make your expected times and your skill map fairer."
+        set_timezone:
+            title: "Set your time zone"
+            text: "With it, the results you log on the day you solve them tell your pace by the time of day."
+        mark_unboxed:
+            title: "Tell us when you solved without the box"
+            text: "Solving without the box is much harder. Without the mark such a result looks like a slow day."
+        unrated_puzzles:
+            title: "{1}1 of your puzzles has no difficulty yet|[0,Inf[%count% of your puzzles have no difficulty yet"
+            text: "A puzzle gets one once enough puzzlers have solved it. Their results still count in your form and median charts."
+        predictions_off:
+            title: "Time predictions are switched off"
+            text: "Without them there are no expected times on this page. You can switch them back on in your settings."
+    chart:
+        results: "{1}1 result|[0,Inf[%count% results"
+        profile:
+            better_than: "Better than %percent%% of puzzlers"
+            not_enough: "Not enough results yet"
+        form:
+            median_solver: "median"
+        histogram:
+            axis: "← slower · faster than the median solver →"
+            faster: "%from%-%to%% faster"
+            slower: "%from%-%to%% slower"
+        expected:
+            axis_x: "expected"
+            axis_y: "your time"
+            yours: "Your time: %time%"
+            expected: "Expected: %time%"
+        learning:
+            attempt_1: "1st"
+            attempt_2: "2nd"
+            attempt_3: "3rd"
+            attempt_4: "4th+"
+            first: "First attempt"
+            first_short: "1st"
+            faster: "%percent%% faster than the first attempt"

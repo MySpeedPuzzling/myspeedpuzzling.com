@@ -1,0 +1,29 @@
+{#
+    How your pace moves per bucket against your usual (InsightsHabitBucket list) - one diverging bar per row, faster to
+    the right. Variables: buckets, prefix (translation key prefix of a bucket's name), range (clamp), testid
+#}
+{% import 'insights/_macros.html.twig' as ins %}
+<ul class="ins-pace" data-testid="{{ testid }}">
+    {% for bucket in buckets %}
+        {% set stats = bucket.stats %}
+        <li class="ins-pace__row">
+            <span class="ins-pace__label">{{ (prefix ~ bucket.key)|trans }}</span>
+            <span class="ins-pace__track">
+                {% if stats.effect is not null %}
+                    {% set effect = max(-range, min(range, stats.effect)) %}
+                    {% set width = (effect|abs / range * 50)|round(1) %}
+                    <span class="ins-pace__bar ins-pace__bar--{{ stats.verdict.value }}{{ effect < 0 ? ' is-faster' : ' is-slower' }}"
+                        style="{{ effect < 0 ? 'left: 50%' : 'right: 50%' }}; width: {{ max(1, width) }}%"></span>
+                {% endif %}
+            </span>
+            <span class="ins-pace__value">
+                {%- if stats.effect is not null -%}
+                    {{ ins.signed_percent(-stats.effect) }}
+                {%- else -%}
+                    <small>{{ 'insights.habits.too_few'|trans }}</small>
+                {%- endif -%}
+            </span>
+            <span class="ins-pace__n">{{ bucket.count }}</span>
+        </li>
+    {% endfor %}
+</ul>

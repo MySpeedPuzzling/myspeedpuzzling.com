@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Services\Insights\InsightsBuilder;
 use SpeedPuzzling\Web\Services\Insights\InsightsCriteria;
 use SpeedPuzzling\Web\Services\Insights\InsightsRowsPreparer;
 use SpeedPuzzling\Web\Services\Insights\LearningCurveBuilder;
+use SpeedPuzzling\Web\Services\Insights\NudgesBuilder;
 use SpeedPuzzling\Web\Services\Insights\PredictionAccuracyBuilder;
 use SpeedPuzzling\Web\Services\Insights\ProfileCardBuilder;
 use SpeedPuzzling\Web\Services\Insights\SkillMapBuilder;
@@ -48,6 +49,7 @@ final class InsightsBuilderTest extends TestCase
             new PredictionAccuracyBuilder(),
             new ProfileCardBuilder(),
             new FindingsBuilder(),
+            new NudgesBuilder(),
         );
     }
 

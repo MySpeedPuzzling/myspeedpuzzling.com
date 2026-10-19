@@ -1,0 +1,9 @@
+{# The question chips: each jumps to the section that answers it; a members-only answer carries a lock for free players #}
+<nav class="ins-asks" aria-label="{{ 'insights.ask.label'|trans }}">
+    {% for question in this.questions %}
+        <a class="ins-ask" href="#{{ question.anchor }}">
+            <span class="ins-ask__q" aria-hidden="true">?</span>{{ question.key|trans }}
+            {%- if not question.free and not this.isMember %} <i class="ci-locked ins-ask__lock" aria-hidden="true"></i>{% endif %}
+        </a>
+    {% endfor %}
+</nav>

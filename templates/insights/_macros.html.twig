@@ -1,0 +1,27 @@
+{#
+    Wording helpers of the Insights page. Every number becomes a neutral phrase: "12 % faster", "3 % slower", never a
+    verdict on the player. Ratios: your time ÷ a yardstick (0.88 = 12 % faster).
+#}
+
+{# "12 % faster than …" / "3 % slower than …" / "level with …" - `against` picks the yardstick: median | usual | expected #}
+{% macro versus(ratio, against) -%}
+    {%- if ratio is null -%}
+        –
+    {%- else -%}
+        {%- set change = 1 - ratio -%}
+        {%- set percent = (change|abs * 100)|round -%}
+        {%- if percent < 1 -%}
+            {{ ('insights.versus.' ~ against ~ '.level')|trans }}
+        {%- elseif change > 0 -%}
+            {{ ('insights.versus.' ~ against ~ '.faster')|trans({'%percent%': percent}) }}
+        {%- else -%}
+            {{ ('insights.versus.' ~ against ~ '.slower')|trans({'%percent%': percent}) }}
+        {%- endif -%}
+    {%- endif -%}
+{%- endmacro %}
+
+{# A signed share of time saved: +12 % (faster) / −3 % (slower); `change` = 1 − ratio #}
+{% macro signed_percent(change) -%}
+    {%- set percent = (change|abs * 100)|round -%}
+    {{- 'insights.percent'|trans({'%value%': percent < 1 ? '0' : (change > 0 ? '+' : '−') ~ percent}) -}}
+{%- endmacro %}

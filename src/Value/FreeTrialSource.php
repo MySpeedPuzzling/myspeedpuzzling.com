@@ -13,4 +13,6 @@ enum FreeTrialSource: string
     case MembershipPage = 'membership_page';
     case MembersModal = 'members_modal';
     case OfferModal = 'offer_modal';
+    /** A lock of the Insights page (docs/features/insights/page.md) */
+    case Insights = 'insights';
 }

@@ -1,0 +1,99 @@
+{#
+    The takeaways at the top (FindingsBuilder) and the tiles. Findings name real puzzles and segments; a members-only
+    finding is a lock with its count for a free player (README "Free tier").
+#}
+{% import 'insights/_macros.html.twig' as ins %}
+{% set report = this.report %}
+{% set summary = report.summary %}
+{% set anchors = {
+    findings: 'insights-findings', profile: 'insights-profile', form: 'insights-form', skill_map: 'insights-skills',
+    expected: 'insights-expected', histogram: 'insights-median', outliers: 'insights-median', close_calls: 'insights-close-calls',
+    learning: 'insights-learning', habits: 'insights-habits', consistency: 'insights-findings', accuracy: 'insights-expected',
+} %}
+
+{% if report.findings is not empty %}
+    <div class="ins-findings" id="insights-findings" aria-label="{{ 'insights.findings.label'|trans }}" data-testid="insights-findings">
+        {% for finding in report.findings %}
+            {% set locked = finding.membersOnly and not this.isMember %}
+            {% set puzzle = this.puzzle(finding.puzzleId) %}
+            <a class="ins-finding{{ locked ? ' is-locked' }}" href="#{{ anchors[finding.section.value] }}" data-testid="insights-finding-{{ finding.code.value }}">
+                <span class="ins-finding__kicker">
+                    {{- ('insights.finding.' ~ finding.code.value ~ '.kicker')|trans -}}
+                    {%- if locked %} <i class="ci-locked" aria-hidden="true"></i>{% endif -%}
+                </span>
+                <span class="ins-finding__text">
+                    {%- if locked -%}
+                        {{ 'insights.finding.surprises.locked'|trans({'%count%': finding.count}) }}
+                    {%- elseif finding.code.value == 'speed' -%}
+                        {{ 'insights.finding.speed.text'|trans({'%versus%': '<b>' ~ ins.versus(1 - finding.value, 'median') ~ '</b>'})|raw }}
+                    {%- elseif finding.code.value == 'form_trend' -%}
+                        {{ 'insights.finding.form_trend.text'|trans({'%versus%': '<b>' ~ ins.versus(1 + finding.value, 'year_ago') ~ '</b>'})|raw }}
+                    {%- elseif finding.code.value in ['strength', 'weak_spot'] -%}
+                        {{ ('insights.finding.' ~ finding.code.value ~ '.text')|trans({
+                            '%segment%': '<b>' ~ this.segmentLabel(finding.segment)|e ~ '</b>',
+                            '%versus%': ins.versus(1 + finding.value, 'usual'),
+                        })|raw }}
+                    {%- elseif finding.code.value == 'close_call' -%}
+                        {{ (finding.rank == 1 ? 'insights.finding.close_call.text_first' : 'insights.finding.close_call.text')|trans({
+                            '%gap%': '<b>' ~ (finding.seconds ?? 0)|puzzlingTime ~ '</b>',
+                            '%rank%': finding.rank,
+                            '%puzzle%': (puzzle ? puzzle.name : '')|e,
+                        })|raw }}
+                    {%- elseif finding.code.value == 'best_result' -%}
+                        {{ 'insights.finding.best_result.text'|trans({
+                            '%puzzle%': '<b>' ~ (puzzle ? puzzle.name : '')|e ~ '</b>',
+                            '%versus%': ins.versus(1 - finding.value, 'usual'),
+                        })|raw }}
+                    {%- elseif finding.code.value == 'surprises' -%}
+                        {{ 'insights.finding.surprises.text'|trans({'%count%': finding.count})|raw }}
+                    {%- endif -%}
+                </span>
+            </a>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<div class="ins-tiles" data-testid="insights-tiles">
+    <div class="ins-tile">
+        <p class="ins-tile__label">{{ 'insights.tiles.speed.label'|trans }}</p>
+        {% if summary.speedRatio is not null %}
+            {% set change = 1 - summary.speedRatio %}
+            <p class="ins-tile__value">{{ 'insights.percent'|trans({'%value%': (change|abs * 100)|round}) }}</p>
+            <p class="ins-tile__sub">{{ (change >= 0 ? 'insights.tiles.speed.faster' : 'insights.tiles.speed.slower')|trans({'%count%': summary.ratioCount}) }}</p>
+        {% else %}
+            <p class="ins-tile__value">–</p>
+            <p class="ins-tile__sub">{{ 'insights.tiles.not_enough'|trans }}</p>
+        {% endif %}
+    </div>
+
+    <div class="ins-tile">
+        <p class="ins-tile__label">{{ 'insights.tiles.form.label'|trans }}</p>
+        {% if summary.trendChange is not null %}
+            {% set faster = summary.trendChange < 0 %}
+            <p class="ins-tile__value {{ faster ? 'is-faster' : 'is-slower' }}">{{ faster ? '↑' : '↓' }} {{ 'insights.percent'|trans({'%value%': (summary.trendChange|abs * 100)|round}) }}</p>
+            <p class="ins-tile__sub">{{ (faster ? 'insights.tiles.form.faster' : 'insights.tiles.form.slower')|trans }}</p>
+        {% else %}
+            <p class="ins-tile__value">–</p>
+            <p class="ins-tile__sub">{{ 'insights.tiles.form.needs_year'|trans }}</p>
+        {% endif %}
+    </div>
+
+    <div class="ins-tile">
+        <p class="ins-tile__label">{{ 'insights.tiles.consistency.label'|trans }}</p>
+        {% if not this.isMember %}
+            <p class="ins-tile__value"><i class="ci-locked" aria-hidden="true"></i></p>
+            <p class="ins-tile__sub">
+                <button type="button" class="btn btn-link btn-sm p-0" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">{{ 'insights.tiles.members'|trans }}</button>
+            </p>
+        {% elseif report.consistency.plusMinus is not null %}
+            <p class="ins-tile__value">{{ 'insights.percent'|trans({'%value%': '±' ~ (report.consistency.plusMinus * 100)|round}) }}</p>
+            <p class="ins-tile__sub">
+                {{ 'insights.tiles.consistency.sub'|trans }}
+                {%- if report.consistency.percentile is not null %} · {{ 'insights.tiles.consistency.percentile'|trans({'%percent%': report.consistency.percentile|round}) }}{% endif %}
+            </p>
+        {% else %}
+            <p class="ins-tile__value">–</p>
+            <p class="ins-tile__sub">{{ 'insights.tiles.consistency.not_enough'|trans({'%count%': constant('SpeedPuzzling\\Web\\Results\\Insights\\InsightsConsistencySection::MIN_RESULTS')}) }}</p>
+        {% endif %}
+    </div>
+</div>

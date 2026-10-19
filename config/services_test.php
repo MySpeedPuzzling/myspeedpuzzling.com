@@ -35,6 +35,8 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Services/Insights/InsightsCriteria.php',
             __DIR__ . '/../src/Services/Insights/InsightsRow.php',
             __DIR__ . '/../src/Services/Insights/LearningFactors.php',
+            // needs the INSIGHTS_PUBLIC binding of services.php - already public there
+            __DIR__ . '/../src/Services/Insights/InsightsFeature.php',
         ]);
     $services->set(\SpeedPuzzling\Web\Query\GetInsightsGroupResults::class)->public();
     $services->set(\SpeedPuzzling\Web\Query\GetInsightsRatingInputs::class)->public();

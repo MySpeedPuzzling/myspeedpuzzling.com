@@ -15,7 +15,8 @@ use SpeedPuzzling\Web\Services\PrivateProfileAccess;
  * shows them (the team's name, each member's name, code and whether this viewer may see them: a teammate turning
  * private, or a guest renamed, is never served from the cache), their collections and their lending. One statement
  * over the player's indexes (~1-3 ms for the heaviest player); the hashes are summed, so the order of rows never
- * matters. Other players' results reach the page only through the batch, covered by the generation.
+ * matters. Other players' results reach the page only through the batch, covered by the generation - which the same
+ * statement reads (withGeneration()), so a cache key costs one statement.
  */
 readonly final class GetInsightsFingerprint
 {
@@ -27,13 +28,25 @@ readonly final class GetInsightsFingerprint
 
     public function forPlayer(string $playerId): string
     {
+        return $this->withGeneration($playerId)['fingerprint'];
+    }
+
+    /**
+     * The fingerprint and the batch generation (InsightsGeneration::current(), 0 = no run yet) in one statement - the
+     * whole cache key of InsightsCache::keyFor().
+     *
+     * @return array{generation: int, fingerprint: string}
+     */
+    public function withGeneration(string $playerId): array
+    {
         $resultHash = "hashtext(concat_ws('|', pst.id, pst.puzzle_id, pst.seconds_to_solve, pst.finished_at, pst.tracked_at, pst.suspicious, pst.unboxed, pst.first_attempt, pst.puzzling_type, pst.puzzling_team_id, pst.competition_id, pst.competition_series_id))";
 
         $isPrivate = $this->privateProfileAccess->sqlIsPrivate('member');
 
-        /** @var array{own: string, together: string, teams: string, collections: string, lending: string}|false $row */
+        /** @var array{generation: null|int|string, own: string, together: string, teams: string, collections: string, lending: string}|false $row */
         $row = $this->database->fetchAssociative(
             "SELECT
+                (SELECT generation FROM insights_generation WHERE id = 1) AS generation,
                 (SELECT COUNT(*) || ':' || COALESCE(SUM({$resultHash}), 0) FROM puzzle_solving_time pst WHERE pst.player_id = :playerId) AS own,
                 (
                     SELECT COUNT(*) || ':' || COALESCE(SUM({$resultHash}), 0)
@@ -63,9 +76,12 @@ readonly final class GetInsightsFingerprint
         );
 
         if ($row === false) {
-            return 'none';
+            return ['generation' => 0, 'fingerprint' => 'none'];
         }
 
-        return substr(sha1($row['own'] . '/' . $row['together'] . '/' . $row['teams'] . '/' . $row['collections'] . '/' . $row['lending']), 0, 16);
+        return [
+            'generation' => (int) ($row['generation'] ?? 0),
+            'fingerprint' => substr(sha1($row['own'] . '/' . $row['together'] . '/' . $row['teams'] . '/' . $row['collections'] . '/' . $row['lending']), 0, 16),
+        ];
     }
 }

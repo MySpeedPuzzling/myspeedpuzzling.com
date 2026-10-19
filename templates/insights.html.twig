@@ -1,0 +1,11 @@
+{% extends 'base.html.twig' %}
+
+{# The player's own Insights (docs/features/insights/page.md) - only its owner ever gets it (InsightsController) #}
+{% block title %}{{ 'insights.meta_title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <twig:PlayerHeader player="{{ player }}" tab="insights" />
+
+    {{ component('Insights') }}
+{% endblock %}

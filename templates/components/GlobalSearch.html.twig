@@ -31,6 +31,10 @@
             </button>
         </div>
 
+        {# The camera before the results, never after: it is data-live-ignore, and the results appearing with the first
+           query in front of it made the re-render pair them with the camera - a scanned code never showed its results #}
+        {{ include('_barcode_scanner_viewfinder.html.twig', {class: 'global-search-barcode-scan'}) }}
+
         {% if this.query %}
             <div class="global-search-results" data-skip-morph data-barcode-scanner-target="results">
                 <h3 class="h6 mb-2"><i class="bi-people"></i> {{ 'menu.players'|trans }}</h3>
@@ -136,6 +140,5 @@
             </div>
         {% endif %}
 
-        {{ include('_barcode_scanner_viewfinder.html.twig', {class: 'global-search-barcode-scan'}) }}
     </div>
 </div>

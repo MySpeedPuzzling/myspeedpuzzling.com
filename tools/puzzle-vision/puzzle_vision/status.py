@@ -60,7 +60,7 @@ def coverage(items: Iterable[WorkItem], versions: dict[str, str], now: float | N
     return out
 
 
-def report(api: Any, profile: Profile, workstate: WorkState | None = None, all_analyzers: bool = False) -> dict[str, Any]:
+def report(api: Any, profile: Profile, workstate: WorkState | None = None, all_analyzers: bool = False, report_dir: Any = None) -> dict[str, Any]:
     versions = {a: profile.version(a) for a in RAW if a in profile.analyzers}
     versions |= {a: profile.version(a) for a in DERIVED if a in profile.derived_versions}
     if all_analyzers:
@@ -81,7 +81,9 @@ def report(api: Any, profile: Profile, workstate: WorkState | None = None, all_a
         local["failures"] = workstate.failure_counts()
         local["recentFailures"] = workstate.failures(limit=10)
         local["cacheBytes"] = workstate.cache_bytes()
-    return {"profile": profile.name, "coverage": cov, "thisMachine": local}
+    from .derive.difficulty_prior import blocked_lines
+
+    return {"profile": profile.name, "coverage": cov, "thisMachine": local, "difficultyPriorBlocked": blocked_lines(report_dir)}
 
 
 def render(rep: dict[str, Any]) -> str:
@@ -95,4 +97,5 @@ def render(rep: dict[str, Any]) -> str:
         lines.append("this machine (last hour / 24 h stored): " + ", ".join(
             f"{a} {v['storedLastHour']}/{v['storedLast24h']}" for a, v in local.items() if isinstance(v, dict) and "storedLastHour" in v and (v["storedLastHour"] or v["storedLast24h"])))
         lines.append(f"failures: {local.get('failures') or 'none'}; image cache {local.get('cacheBytes', 0) / 1e9:.1f} GB")
+    lines.extend(rep.get("difficultyPriorBlocked") or [])
     return "\n".join(lines)

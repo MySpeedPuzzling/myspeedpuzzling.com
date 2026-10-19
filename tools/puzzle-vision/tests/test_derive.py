@@ -74,6 +74,7 @@ def test_needs_push_rules():
 
 
 def test_difficulty_prior_refuses_until_phase_5(api, filled, tmp_path):
+    filled.phase5 = False  # a production without the Phase 5 endpoints
     with pytest.raises(difficulty_prior.NotAvailableYet, match="not deployed yet"):
         difficulty_prior.run(api)
     summary = Deriver(api, VERSIONS, tmp_path, text_features=fake_text).run(only=["difficulty_prior"])
@@ -81,10 +82,7 @@ def test_difficulty_prior_refuses_until_phase_5(api, filled, tmp_path):
     assert not any(r["path"].startswith("/internal-api/puzzle-difficulty-estimates") for r in filled.requests if r["method"] != "GET")
 
 
-def test_difficulty_prior_refuses_even_when_the_endpoints_exist():
-    class Api:
-        def endpoint_exists(self, path):
-            return True
-
-    with pytest.raises(difficulty_prior.NotAvailableYet, match="still a stub"):
-        difficulty_prior.run(Api())
+def test_difficulty_prior_runs_by_default_and_says_why_it_did_nothing(api, filled, tmp_path):
+    summary = Deriver(api, VERSIONS, tmp_path, text_features=fake_text).run(only=["difficulty_prior"])
+    assert "no model has 200" in summary["difficulty_prior"]["skipped"]  # no labels in the fixture
+    assert not any(r["method"] in ("PUT", "POST") and r["path"].startswith("/internal-api/puzzle-difficulty-estimates") for r in filled.requests)

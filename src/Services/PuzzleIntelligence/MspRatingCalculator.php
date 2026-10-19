@@ -7,6 +7,9 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Results\PlayerRatingPortfolio;
+use SpeedPuzzling\Web\Results\RatingEntry;
+use SpeedPuzzling\Web\Value\RatingPortfolio;
 use Symfony\Contracts\Service\ResetInterface;
 
 /**
@@ -14,26 +17,26 @@ use Symfony\Contracts\Service\ResetInterface;
  *
  * Evaluates players on their best results from a rolling 24-month window,
  * combining first-attempt and best-time portfolios with difficulty weighting
- * and time decay (3-month plateau, gentle exponential decline).
+ * and time decay (3-month plateau, gentle exponential decline). The arithmetic
+ * lives in MspRatingFormula; every entry behind a rating is kept
+ * (calculatePortfolio(), stored by the batch in player_rating_entry).
  */
 final class MspRatingCalculator implements ResetInterface
 {
     public const int MINIMUM_FIRST_ATTEMPTS = 20;
     public const int MINIMUM_TOTAL_SOLVES = 50;
 
-    private const int CAP = 100;
-    private const int WINDOW_MONTHS = 24;
-    private const float DECAY_PLATEAU_MONTHS = 3.0;
-    private const float DECAY_RATE_MONTHS = 30.0;
-    private const int MIN_SOLVERS_PER_PUZZLE = 20;
-    private const float DIFFICULTY_BLEND = 0.5;
-    private const int DIFF_CONFIDENCE_THRESHOLD = 50;
-    private const float FIRST_ATTEMPT_WEIGHT = 0.75;
+    /**
+     * Puzzles with this many public first-attempt solvers are loaded too, while they do not count yet: their sorted
+     * times are stored for the Insights "pending qualification" what-ifs (docs/features/insights/computation.md).
+     */
+    public const int NEAR_QUALIFYING_MIN_SOLVERS = 9;
 
     /**
-     * Pre-computed puzzle ranking data for the current recalculation run.
+     * Pre-computed puzzle ranking data for the current recalculation run: every puzzle of the piece count with at
+     * least NEAR_QUALIFYING_MIN_SOLVERS public first-attempt solvers; only the qualifying ones count in a rating.
      *
-     * @var array<string, array{fa_times: list<int>, bt_times: list<int>, difficulty: float, sample_size: int}>|null
+     * @var array<string, array{fa_times: list<int>, bt_times: list<int>, difficulty: float|null, sample_size: int, qualifies: bool}>|null
      */
     private null|array $puzzleRankingCache = null;
 
@@ -58,34 +61,33 @@ final class MspRatingCalculator implements ResetInterface
     }
 
     /**
-     * Pre-compute puzzle ranking data for all qualifying puzzles.
+     * Pre-compute puzzle ranking data for all qualifying (and near-qualifying) puzzles.
      * Call once before the per-player loop for efficiency.
      */
     public function precomputePuzzleRankings(int $piecesCount): void
     {
-        // Get all puzzles with 20+ first-attempt public solvers and a difficulty score
-        /** @var list<array{puzzle_id: string, difficulty_score: float|string, sample_size: int|string}> $puzzles */
+        // Every puzzle with enough first-attempt public solvers; it counts with 20+ of them and a difficulty score
+        /** @var list<array{puzzle_id: string, solvers: int|string, difficulty_score: float|string|null, sample_size: int|string|null, confidence: string|null}> $puzzles */
         $puzzles = $this->connection->fetchAllAssociative("
-            SELECT pd.puzzle_id, pd.difficulty_score, pd.sample_size
-            FROM puzzle_difficulty pd
-            JOIN puzzle p ON p.id = pd.puzzle_id
-            WHERE p.pieces_count = :piecesCount
-                AND pd.difficulty_score IS NOT NULL
-                AND pd.confidence != 'insufficient'
-                AND (
-                    SELECT COUNT(DISTINCT pst.player_id)
-                    FROM puzzle_solving_time pst
-                    JOIN player pl ON pl.id = pst.player_id
-                    WHERE pst.puzzle_id = pd.puzzle_id
-                        AND pst.first_attempt = true
-                        AND pst.puzzling_type = 'solo'
-                        AND pst.suspicious = false
-                        AND pst.seconds_to_solve IS NOT NULL
-                        AND pl.is_private = false
-                ) >= :minSolvers
+            SELECT solvers.puzzle_id, solvers.solvers, pd.difficulty_score, pd.sample_size, pd.confidence
+            FROM (
+                SELECT pst.puzzle_id, COUNT(DISTINCT pst.player_id) AS solvers
+                FROM puzzle_solving_time pst
+                JOIN puzzle p ON p.id = pst.puzzle_id
+                JOIN player pl ON pl.id = pst.player_id
+                WHERE p.pieces_count = :piecesCount
+                    AND pst.first_attempt = true
+                    AND pst.puzzling_type = 'solo'
+                    AND pst.suspicious = false
+                    AND pst.seconds_to_solve IS NOT NULL
+                    AND pl.is_private = false
+                GROUP BY pst.puzzle_id
+                HAVING COUNT(DISTINCT pst.player_id) >= :nearMinSolvers
+            ) solvers
+            LEFT JOIN puzzle_difficulty pd ON pd.puzzle_id = solvers.puzzle_id
         ", [
             'piecesCount' => $piecesCount,
-            'minSolvers' => self::MIN_SOLVERS_PER_PUZZLE,
+            'nearMinSolvers' => min(self::NEAR_QUALIFYING_MIN_SOLVERS, MspRatingFormula::MIN_SOLVERS_PER_PUZZLE),
         ]);
 
         if ($puzzles === []) {
@@ -155,15 +157,33 @@ final class MspRatingCalculator implements ResetInterface
             sort($faTimesSorted);
             sort($btTimesSorted);
 
+            $difficulty = $puzzle['difficulty_score'] !== null ? (float) $puzzle['difficulty_score'] : null;
+
             $cache[$puzzleId] = [
                 'fa_times' => $faTimesSorted,
                 'bt_times' => $btTimesSorted,
-                'difficulty' => (float) $puzzle['difficulty_score'],
+                'difficulty' => $difficulty,
                 'sample_size' => (int) $puzzle['sample_size'],
+                'qualifies' => (int) $puzzle['solvers'] >= MspRatingFormula::MIN_SOLVERS_PER_PUZZLE
+                    && $difficulty !== null
+                    && $puzzle['confidence'] !== 'insufficient',
             ];
         }
 
         $this->puzzleRankingCache = $cache;
+    }
+
+    /**
+     * The puzzles loaded by precomputePuzzleRankings(): sorted first-attempt and best times of public players, the
+     * difficulty, and whether the puzzle counts in ratings.
+     *
+     * @return array<string, array{fa_times: list<int>, bt_times: list<int>, difficulty: float|null, sample_size: int, qualifies: bool}>
+     */
+    public function puzzleRankings(): array
+    {
+        assert($this->puzzleRankingCache !== null, 'Call precomputePuzzleRankings() first');
+
+        return $this->puzzleRankingCache;
     }
 
     /**
@@ -302,6 +322,16 @@ final class MspRatingCalculator implements ResetInterface
             return 0.0;
         }
 
+        return $this->calculatePortfolio($playerId, $piecesCount)->rating;
+    }
+
+    /**
+     * The rating and every entry behind it. Entries are scored for any player (the rating is 0.0 until the player is
+     * eligible and has MINIMUM_FIRST_ATTEMPTS first-attempt entries); each portfolio is sorted by decayed points, best
+     * first (ties by puzzle id), and its first CAP entries are the counted ones.
+     */
+    public function calculatePortfolio(string $playerId, int $piecesCount): PlayerRatingPortfolio
+    {
         assert($this->puzzleRankingCache !== null, 'Call precomputePuzzleRankings() before calculateForPlayer()');
 
         $cutoffDate = $this->getCutoffDate();
@@ -334,25 +364,34 @@ final class MspRatingCalculator implements ResetInterface
             ]);
         }
 
+        /** @var list<array{puzzle_id: string, seconds: int, solved_at: string, percentile: float, weight: float, decay: float, points: float}> $firstAttemptEntries */
         $firstAttemptEntries = [];
+        /** @var list<array{puzzle_id: string, seconds: int, solved_at: string, percentile: float, weight: float, decay: float, points: float}> $bestTimeEntries */
         $bestTimeEntries = [];
 
         foreach ($playerSolves as $solve) {
             $puzzleId = $solve['puzzle_id'];
+            $puzzleData = $this->puzzleRankingCache[$puzzleId] ?? null;
 
-            if (!isset($this->puzzleRankingCache[$puzzleId])) {
+            if ($puzzleData === null || $puzzleData['qualifies'] === false || $puzzleData['difficulty'] === null) {
                 continue; // Puzzle doesn't qualify (< 20 solvers or no difficulty)
             }
 
-            $puzzleData = $this->puzzleRankingCache[$puzzleId];
-            $difficultyWeight = $this->computeDifficultyWeight($puzzleData['difficulty'], $puzzleData['sample_size']);
+            $difficultyWeight = MspRatingFormula::difficultyWeight($puzzleData['difficulty'], $puzzleData['sample_size']);
 
             // Best-time portfolio: any solve in window qualifies, decayed by latest solve date
             $bestTime = (int) $solve['best_time'];
-            $btPercentile = $this->computePercentileInSortedArray($bestTime, $puzzleData['bt_times']);
-            $latestSolveDate = new \DateTimeImmutable($solve['latest_solve_date']);
-            $btDecay = $this->computeDecayWeight($latestSolveDate, $now);
-            $bestTimeEntries[] = $btPercentile * $difficultyWeight * $btDecay;
+            $btPercentile = MspRatingFormula::percentileInSortedTimes($bestTime, $puzzleData['bt_times']);
+            $btDecay = MspRatingFormula::decay(new \DateTimeImmutable($solve['latest_solve_date']), $now);
+            $bestTimeEntries[] = [
+                'puzzle_id' => $puzzleId,
+                'seconds' => $bestTime,
+                'solved_at' => $solve['latest_solve_date'],
+                'percentile' => $btPercentile,
+                'weight' => $difficultyWeight,
+                'decay' => $btDecay,
+                'points' => $btPercentile * $difficultyWeight * $btDecay,
+            ];
 
             // First-attempt portfolio: first attempt must exist and be in window
             if ($solve['first_attempt_time'] !== null && $solve['first_attempt_date'] !== null) {
@@ -360,87 +399,67 @@ final class MspRatingCalculator implements ResetInterface
 
                 if ($faDate >= $cutoffDate) {
                     $faTime = (int) $solve['first_attempt_time'];
-                    $faPercentile = $this->computePercentileInSortedArray($faTime, $puzzleData['fa_times']);
-                    $faDecay = $this->computeDecayWeight($faDate, $now);
-                    $firstAttemptEntries[] = $faPercentile * $difficultyWeight * $faDecay;
+                    $faPercentile = MspRatingFormula::percentileInSortedTimes($faTime, $puzzleData['fa_times']);
+                    $faDecay = MspRatingFormula::decay($faDate, $now);
+                    $firstAttemptEntries[] = [
+                        'puzzle_id' => $puzzleId,
+                        'seconds' => $faTime,
+                        'solved_at' => $solve['first_attempt_date'],
+                        'percentile' => $faPercentile,
+                        'weight' => $difficultyWeight,
+                        'decay' => $faDecay,
+                        'points' => $faPercentile * $difficultyWeight * $faDecay,
+                    ];
                 }
             }
         }
 
-        // Check minimum entry requirements
-        if (count($firstAttemptEntries) < self::MINIMUM_FIRST_ATTEMPTS) {
-            return 0.0;
-        }
-
         // Build portfolios: sort descending (decayed points), take top CAP
-        rsort($firstAttemptEntries);
-        rsort($bestTimeEntries);
+        usort($firstAttemptEntries, self::byPoints(...));
+        usort($bestTimeEntries, self::byPoints(...));
 
-        $faTop = array_slice($firstAttemptEntries, 0, self::CAP);
-        $btTop = array_slice($bestTimeEntries, 0, self::CAP);
+        $faTop = array_column(array_slice($firstAttemptEntries, 0, MspRatingFormula::CAP), 'points');
+        $btTop = array_column(array_slice($bestTimeEntries, 0, MspRatingFormula::CAP), 'points');
 
-        $faScore = array_sum($faTop) / count($faTop);
-        $btScore = $btTop !== [] ? array_sum($btTop) / count($btTop) : 0.0;
+        // Check minimum entry requirements
+        $rating = $this->isEligible($playerId, $piecesCount) && count($firstAttemptEntries) >= self::MINIMUM_FIRST_ATTEMPTS
+            ? MspRatingFormula::rating($faTop, $btTop)
+            : 0.0;
 
-        return self::FIRST_ATTEMPT_WEIGHT * $faScore + (1.0 - self::FIRST_ATTEMPT_WEIGHT) * $btScore;
-    }
+        $entries = [];
 
-    /**
-     * Compute percentile of a time in a sorted array using average rank method.
-     * Returns 0.0 (slowest) to 1.0 (fastest).
-     *
-     * @param list<int> $sortedTimes ascending
-     */
-    private function computePercentileInSortedArray(int $playerTime, array $sortedTimes): float
-    {
-        $total = count($sortedTimes);
-
-        if ($total <= 1) {
-            return 0.5;
-        }
-
-        $slowerCount = 0;
-        $tiedCount = 0;
-
-        foreach ($sortedTimes as $time) {
-            if ($time > $playerTime) {
-                $slowerCount++;
-            } elseif ($time === $playerTime) {
-                $tiedCount++;
+        foreach ([[RatingPortfolio::FirstAttempt, $firstAttemptEntries], [RatingPortfolio::BestTime, $bestTimeEntries]] as [$portfolio, $portfolioEntries]) {
+            foreach ($portfolioEntries as $position => $entry) {
+                $entries[] = new RatingEntry(
+                    puzzleId: $entry['puzzle_id'],
+                    portfolio: $portfolio,
+                    seconds: $entry['seconds'],
+                    solvedAt: $entry['solved_at'],
+                    percentile: $entry['percentile'],
+                    difficultyWeight: $entry['weight'],
+                    decay: $entry['decay'],
+                    points: $entry['points'],
+                    inTop: $position < MspRatingFormula::CAP,
+                );
             }
         }
 
-        // Exclude self from tied count (player is one of the tied entries)
-        $tiedOthers = max(0, $tiedCount - 1);
-
-        return ($slowerCount + $tiedOthers / 2.0) / ($total - 1);
+        return new PlayerRatingPortfolio($rating, $entries);
     }
 
-    private function computeDifficultyWeight(float $difficulty, int $sampleSize): float
+    /**
+     * Best entry first; equal points by puzzle id, so which of tied entries is counted never changes between runs
+     *
+     * @param array{puzzle_id: string, points: float, ...} $a
+     * @param array{puzzle_id: string, points: float, ...} $b
+     */
+    private static function byPoints(array $a, array $b): int
     {
-        $confidence = min(1.0, $sampleSize / self::DIFF_CONFIDENCE_THRESHOLD);
-        $blend = self::DIFFICULTY_BLEND * $confidence;
-
-        return (1.0 - $blend) + $blend * $difficulty;
-    }
-
-    private function computeDecayWeight(\DateTimeImmutable $solveDate, \DateTimeImmutable $now): float
-    {
-        $ageInMonths = $this->calculateAgeInMonths($solveDate, $now);
-        $effectiveAge = max(0.0, $ageInMonths - self::DECAY_PLATEAU_MONTHS);
-
-        return exp(-$effectiveAge / self::DECAY_RATE_MONTHS);
-    }
-
-    private function calculateAgeInMonths(\DateTimeImmutable $from, \DateTimeImmutable $to): float
-    {
-        $diff = $from->diff($to);
-
-        return ($diff->y * 12) + $diff->m + ($diff->d / 30.0);
+        return $b['points'] <=> $a['points'] ?: strcmp($a['puzzle_id'], $b['puzzle_id']);
     }
 
     private function getCutoffDate(): \DateTimeImmutable
     {
-        return $this->clock->now()->modify('-' . self::WINDOW_MONTHS . ' months');
+        return MspRatingFormula::windowStart($this->clock->now());
     }
 }

@@ -249,6 +249,9 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Services/PuzzleIntelligence/Model/NormalEquations.php',
             __DIR__ . '/../src/Services/PuzzleIntelligence/Prior/PriorContext.php',
             __DIR__ . '/../src/Services/PuzzleIntelligence/Prior/PriorEstimate.php',
+            // one sync of ChangedRowsSync / of the rating entries, opened per batch step - not services
+            __DIR__ . '/../src/Services/PuzzleIntelligence/ChangedRowsSyncRun.php',
+            __DIR__ . '/../src/Services/PuzzleIntelligence/RatingEntriesSync.php',
         ]);
 
     // framework.session.handler_id. After the Services load, which would otherwise

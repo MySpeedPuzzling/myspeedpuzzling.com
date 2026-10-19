@@ -502,9 +502,12 @@ Simulated in Chrome (Google's reader 350 ms slower while zbar ran in the last 30
 Google's reader stayed at 41 ms a frame (baseline 40) - before the budget it averaged 204 ms.
 
 **When a code is handed over** - `assets/barcode_acceptance.js`, pinned by `BarcodeAcceptanceScriptTest`:
-- **zbar** by its own rule (4 agreeing reads with quality ≥ 3, 8 for codes starting with `0` and EAN-8) while zbar saw
-  no other code in the last 2 s - exactly the rule it reads with alone on every iPhone. A code only Google's reader saw
-  does not stop it: in the browser run a reader repeating its misread on every frame blocked the right code forever.
+- **zbar** by its own rule (4 agreeing reads with quality ≥ 3, 8 for codes starting with `0` and EAN-8) while zbar read
+  no other code twice in the last 2 s, or with it in one frame - the rule it reads with alone on every iPhone. A code
+  only Google's reader saw does not stop it: in the browser run a reader repeating its misread on every frame blocked
+  the right code forever. A one-off zbar misread does not either (2026-10-19): on Allison's Anatolian box (a white
+  label tight around the bars) zbar read the right code from 0.8 s on, 390 times, but single misreads with quality
+  4-9 held it up for 2 s each - accepted after 3.6 s, 4.6 s and 11.6 s in her three tries.
 - **Google's reader** by its own rule (10 agreeing reads) while *neither* reader saw another code in the last 2 s - zbar
   contradicting it stops its misread.
 - **Both agreeing**: the same code read twice by each reader, each within the last 2 s, is accepted at once - unless both
@@ -540,6 +543,98 @@ back (`zbar.max_backoff`), plus every code seen per reader (`seen`, e.g. `400555
 
 If zbar sees the code in practically every session that reads, Android drops Google's reader and every platform runs
 one path (requirement 3). If not, both stay until Step 4's decoder can replace Google's.
+
+### 5.8 The scanner rests while there is nothing to read (2026-10-19)
+
+Allison (iPhone Pro, multiscan, 2026-10-18): "I can use it for about 2 minutes (20ish puzzles) before I'm worried about
+the temperature of my phone". The reports showed why: every iPhone session decoded **every camera frame, 25-29 a
+second, for as long as the camera was open** (her session: 3,913 frames in 208 s; another one ran 19.5 minutes), each
+costing 15-35 ms of crop and zbar - half to all of a core, nonstop. Since §5.6 the frames are 1080p, so each costs more
+than the 640×480 ones before.
+
+Now:
+- every frame is decoded only while a reader saw any code in the last second (`ACTIVE_FOR_MS`); otherwise at most 10
+  a second (`RESTING_INTERVAL_MS`). In multiscan a box taken within the cooldown, still in view, counts as nothing new;
+- the overlay (a full-size canvas) is redrawn only when the guide moved or a code's outline was drawn, not every frame.
+
+Hardening after an independent review (2026-10-19, `54d98f44` + the next commit):
+- every loop step runs in try/catch and always schedules the next frame - next to Google's reader, zbar's loop read a
+  property of a reader not yet downloaded once the first second passed without a code, and the error ended the loop
+  for the session (silently Google's reader alone again);
+- after every wait a step checks the session is still the one running (a stop or quick restart replaces its state),
+  and drops a result that arrives while multiscan is paused;
+- nothing is decoded while the tab is hidden, and a frame is decoded once: the 250 ms fallback (and
+  requestAnimationFrame) decode only when the browser's frame counter moved - a stalled camera decoded again and again
+  counted one frame as many agreeing reads;
+- only reads of the last 3 s count towards an acceptance (`READ_WINDOW_MS`) - a misread now and then over a long
+  session could add up before;
+- the 250 ms fallback timers are cleared when the frame arrives, the overlay's guide position is read from the layout
+  twice a second, not on every frame.
+
+Measured in Chrome with a fake camera: nothing in view 25-29 → 8-10 decodes a second; a box appearing after 4 s read
+0.2-0.3 s after it appeared (at most 0.1 s added to the first sight); multiscan with a box held in view re-reads it
+every ~2.7 s as before, at 10-15 decodes a second instead of ~30. The reports' `frames` / `duration_ms` show the
+effect in the field.
+
+### 5.9 zbar from our own server (2026-10-19)
+
+Since §5.7 every Android session downloads zbar too, and every iPhone depends on it. jsdelivr is a reliable CDN
+(Cloudflare + Fastly, a year of cache), so this is not a rescue - what self-hosting buys:
+- no extra DNS + TLS connection to a third party on the first scan (~0.1-0.3 s on mobile);
+- works where jsdelivr is blocked (some company networks, countries, content blockers); visitors' IPs stay with us.
+
+**The files:** `public/barcode-scanner/zbar-wasm-0.9.15/` - `zbar-wasm.js` + `zbar.wasm` (@undecaf/zbar-wasm 0.9.15,
+LGPL-2.1+) and `barcode-detector-polyfill.js` (@undecaf/barcode-detector-polyfill 0.9.21, MIT), each package's
+LICENSE next to them. The exact bytes of the npm tarballs (sha512 = the registry's integrity), identical to what
+jsdelivr serves; `BarcodeScannerCaddyRuleTest` pins their sha256. zbar finds its `.wasm` next to the script that
+loaded it. About 264 KB, 169 KB over the wire (brotli). **A new version is a new directory, never new bytes here.**
+
+**Serving:** `.docker/barcode-scanner/barcode-scanner.caddyfile` (copied by the Dockerfile, like the finish
+detector's rule): `public, max-age=31536000, immutable` for existing files, `no-store` for a missing one, `encode zstd
+br gzip`, never PHP; `.wasm` gets `application/wasm` from /etc/mime.types. Checked with FrankenPHP of the base image.
+**The service worker never touches it** - it intercepts `/build/*`, `/fonts/*`, navigations and images only - so no
+`CACHE_VERSION` bump, now or for a new version (a new directory).
+
+**Loading** (`_loadZbar()` / `_zbarFrom()`): our copy first, jsdelivr only when ours does not work, each within 8 s:
+- our `.wasm` is fetched first - a source whose `.wasm` does not arrive is skipped before any of its scripts runs;
+- a source counts only once zbar's WebAssembly instance started (`zbarWasm.getInstance()`) - a script that loads with
+  a `.wasm` that does not would otherwise fail on every frame without falling back;
+- **two copies of zbar are never loaded into one page**: they share globals, and the second one's `detect()` never
+  answered (tested). Once a source's scripts ran - or were still downloading when the 8 s ran out - no other source is
+  tried; zbar is then unavailable for that page view, as when jsdelivr failed before.
+
+The reports carry `zbar_source` (`self` / `cdn`) and `zbar_failures` (the sources that failed before it).
+
+Tested in Chrome (fake camera, our files served by the dev stack): ours works → `self`; our script blocked → `cdn`,
+reads; our `.wasm` blocked → `cdn`, reads; both blocked → zbar unavailable (iOS-like: no reader; Android: Google's
+reader alone, reads); our scripts ran but the `.wasm` failed afterwards → no second copy, unavailable.
+
+### 5.10 The camera is let go while the page is hidden (2026-10-19)
+
+Jan's iPhone (Safari + the PWA, 2026-10-19 00:46): multiscan showed a black picture with the spinner and never read,
+until a reload. The reports: those sessions ran the current code (`zbar_source: self`) and decoded frames, but several
+camera sessions of that phone overlapped (the Hub's global search for 58 s, multiscan pages next to each other). An
+iPhone gives the camera to one page at a time; a page that loses it - to another tab, the PWA or an app - keeps a muted
+track, a black picture until reload. Nothing ever let go of the camera while its page was in the background.
+
+Now (`_visibilityChanged()`, `_restartCamera()`):
+- **page hidden** → the camera stops (its session is reported) and is released; shown again → it starts again if it
+  was running. A camera still opening when the page is hidden is given back at once;
+- **the camera taken away while the page is shown** (the track `ended`) → stopped and started again after 500 ms, at
+  most 3 times a minute, so a camera another app keeps taking cannot loop.
+
+**Reopening (same night, 00:58):** in Safari the global search's scanner opened a second time (after a read) showed
+the spinner over a blank picture - the camera on, 72 frames decoded in 6.7 s, nothing painted. Neither Chrome nor
+Playwright's WebKit reproduces it (the old code paints every reopen there too), so two guards plus evidence:
+- every camera start after the first gets a **fresh `<video>`** (`cloneNode(false)`) instead of the reused one, and
+  stopping no longer calls `video.load()`;
+- `play()` is asked again once the stream's metadata arrives (iOS may refuse the first one, which comes after the
+  camera wait, outside the tap);
+- the session report says what the picture did: `video_paused`, `video_ready_state`, `video_connected`,
+  `video_shown` (on-screen size), `play_error`, `video_frames_total` - the next failing session shows which it was.
+
+Tested in Chrome: hidden → no live track; shown → a new one, reads; `ended` → restarted, the 4th within a minute is
+not. Also less battery: a scanner left open in a background tab no longer runs at all.
 
 ## 6. Open questions for Jan
 

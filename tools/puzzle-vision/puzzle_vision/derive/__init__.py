@@ -1,5 +1,6 @@
 """Derived analyzers, recomputed from stored raw outputs only - no image touched (image-taxonomy.md §9.2, §11.2):
-`box_text`, `zeroshot`, `neighbours`, `tags`; `difficulty_prior` from Phase 5 (a stub until then).
+`box_text`, `zeroshot`, `neighbours`, `tags`, then the `difficulty_prior` step (plan §5.3 - not an image analyzer:
+it pushes difficulty estimates + a model record through its own endpoints, see `difficulty_prior.py`).
 
 Reads every input through the bulk endpoint (`onlyCurrent=1`), computes, and pushes only rows that changed (another
 version, another picture, or another content) in batches of <= 200.
@@ -51,7 +52,8 @@ def needs_push(analyzer: str, old: dict[str, Any] | None, version: str, fingerpr
 class Deriver:
     def __init__(self, api: InternalApi, versions: dict[str, str], cache_dir: Any,
                  text_features: Callable[[list[str], list[str]], np.ndarray] | None = None,
-                 model_lock: Callable[[], Any] | None = None, lock_stop: Any = None, lock_timeout: float | None = None) -> None:
+                 model_lock: Callable[[], Any] | None = None, lock_stop: Any = None, lock_timeout: float | None = None,
+                 report_dir: Any = None) -> None:
         self.api = api
         self.versions = versions
         self.cache_dir = cache_dir
@@ -59,6 +61,7 @@ class Deriver:
         self._model_lock = model_lock
         self._lock_stop = lock_stop
         self._lock_timeout = lock_timeout
+        self.report_dir = report_dir
         self.meta: dict[str, WorkItem] = {}
         self.inputs: dict[str, dict[str, dict[str, Any]]] = {}
         self.summary: dict[str, Any] = {}
@@ -165,8 +168,14 @@ class Deriver:
                 counts[o.status] = counts.get(o.status, 0) + 1
         return counts
 
-    def run(self, only: Iterable[str] | None = None, dry_run: bool = False) -> dict[str, Any]:
-        selected = list(only) if only else list(ORDER)
+    def _rows(self, analyzer: str) -> Iterable[dict[str, Any]]:
+        """For difficulty_prior: what an earlier step loaded already (no second download), else a streaming read."""
+        if analyzer in self.inputs:
+            return self.inputs[analyzer].values()
+        return self.api.iter_analyses(analyzer, only_current=True, limit=1000)
+
+    def run(self, only: Iterable[str] | None = None, dry_run: bool = False, force_model: bool = False) -> dict[str, Any]:
+        selected = list(only) if only else [*ORDER, "difficulty_prior"]
         started = time.monotonic()
         self.load_meta()
         fresh: dict[str, dict[str, dict[str, Any]]] = {}
@@ -185,8 +194,13 @@ class Deriver:
             log.info("[derive] %s: %s", analyzer, self.summary[analyzer])
         if "difficulty_prior" in selected:
             try:
-                difficulty_prior.run(self.api)
+                self.summary["difficulty_prior"] = difficulty_prior.run(
+                    self.api, meta=self.meta, rows=self._rows, force_model=force_model, dry_run=dry_run, report_dir=self.report_dir)
             except difficulty_prior.NotAvailableYet as e:
                 self.summary["difficulty_prior"] = {"skipped": str(e)}
+            except Exception as e:  # noqa: BLE001 - a crash here must not end the nightly run (crop proposals follow)
+                log.exception("[derive] difficulty_prior failed - nothing more of it this run")
+                self.summary["difficulty_prior"] = {"error": f"{type(e).__name__}: {e}"}
+            log.info("[derive] difficulty_prior: %s", {k: v for k, v in self.summary["difficulty_prior"].items() if k != "overall"})
         self.summary["seconds"] = round(time.monotonic() - started, 1)
         return self.summary

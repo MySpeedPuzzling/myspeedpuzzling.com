@@ -64,6 +64,12 @@ final class ScanSessionControllerTest extends WebTestCase
         self::assertSame(['frames' => 40, 'decode_ms' => 45, 'first_seen_ms' => 610, 'solo_ms' => null, 'baseline_ms' => 41, 'max_backoff' => null], $logged[0]['context']['native']);
         self::assertSame(['frames' => 21, 'decode_ms' => 31, 'first_seen_ms' => 700, 'solo_ms' => 1210, 'baseline_ms' => null, 'max_backoff' => 4], $logged[0]['context']['zbar']);
         self::assertFalse($logged[0]['context']['zbar_missing']);
+        self::assertSame('cdn', $logged[0]['context']['zbar_source']);
+        self::assertSame('self', $logged[0]['context']['zbar_failures']);
+        self::assertFalse($logged[0]['context']['video_paused']);
+        self::assertSame('390x520', $logged[0]['context']['video_shown']);
+        self::assertSame('NotAllowedError', $logged[0]['context']['play_error']);
+        self::assertSame(512, $logged[0]['context']['video_frames_total']);
         self::assertSame('4005555017585 native x3 zbar x4 q113', $logged[0]['context']['seen']);
     }
 
@@ -107,6 +113,14 @@ final class ScanSessionControllerTest extends WebTestCase
             'native' => ['frames' => 40, 'decodeMs' => 45, 'firstSeenMs' => 610, 'soloMs' => null, 'baselineMs' => 41, 'maxBackoff' => null],
             'zbar' => ['frames' => 21, 'decodeMs' => 31, 'firstSeenMs' => 700, 'soloMs' => 1210, 'baselineMs' => null, 'maxBackoff' => 4],
             'zbarMissing' => false,
+            'zbarSource' => 'cdn',
+            'zbarFailures' => 'self',
+            'videoPaused' => false,
+            'videoReadyState' => 4,
+            'videoConnected' => true,
+            'videoShown' => '390x520',
+            'playError' => 'NotAllowedError',
+            'videoFramesTotal' => 512,
             'seen' => '4005555017585 native x3 zbar x4 q113',
             'camera' => 'camera 0, facing back',
             'cameraPick' => 'main lens',

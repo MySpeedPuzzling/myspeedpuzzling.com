@@ -40,7 +40,7 @@ final class RecalculatePuzzleIntelligenceConsoleCommand extends Command
         $result = $this->recalculator->recalculate($specificPlayer, $specificPuzzle);
 
         $io->success(sprintf(
-            "Puzzle insights recalculation complete:\n  %d direct baselines, %d interpolated (exponent: %.2f)\n  pace history: %d pairs changed, %d rows written\n  %d difficulties, %d drift rows written\n  %d metrics, %d improvement ratios\n  %d skills, %d ratings\n  %d history, %d snapshots",
+            "Puzzle insights recalculation complete:\n  %d direct baselines, %d interpolated (exponent: %.2f)\n  pace history: %d pairs changed, %d rows written\n  %d difficulties, %d drift rows written\n  %d metrics, %d improvement ratios\n  %d skills, %d ratings\n  %d history, %d snapshots\n  rating entries: %d written, %d deleted; puzzle rating times: %d written, %d deleted\n  insights generation %d",
             $result['baselines_direct'],
             $result['baselines_interpolated'],
             $result['scaling_exponent'],
@@ -54,6 +54,11 @@ final class RecalculatePuzzleIntelligenceConsoleCommand extends Command
             $result['rating'],
             $result['history'],
             $result['snapshots'],
+            $result['rating_entries']['written'],
+            $result['rating_entries']['deleted'],
+            $result['rating_times']['written'],
+            $result['rating_times']['deleted'],
+            $result['generation'],
         ));
 
         if ($output->isVerbose()) {

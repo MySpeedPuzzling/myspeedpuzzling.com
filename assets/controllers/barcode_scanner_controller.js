@@ -12,12 +12,34 @@ const FOCUS_KICK_DISTANCE_M = 0.25;
 const FOCUS_KICK_HOLD_MS = 250;
 const FOCUS_KICK_FIRST_MS = 2500;
 const FOCUS_KICK_EVERY_MS = 6000;
+// Every camera frame is decoded only while a reader saw a code in the last second; otherwise at most 10 a second.
+// Decoding every frame kept a phone's main core busy for as long as the camera was open - an iPhone got hot after
+// ~2 minutes of multiscan (2026-10-18, README §5.8).
+const ACTIVE_FOR_MS = 1000;
+const RESTING_INTERVAL_MS = 100;
 const FORMATS = ['ean_8', 'ean_13'];
-const ZBAR_SCRIPTS = [
-    'https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js',
-    // Depends on zbar-wasm, loaded second
-    'https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.21/dist/index.js',
+// zbar from our own server first (README §5.9: the same npm bytes, immutable, no third party, no extra connection),
+// jsdelivr only when ours does not work. Each source: zbar-wasm, then the polyfill that depends on it.
+const ZBAR_SOURCES = [
+    {
+        name: 'self',
+        // Fetched first: a source whose .wasm does not arrive is skipped before any of its scripts runs
+        wasm: '/barcode-scanner/zbar-wasm-0.9.15/zbar.wasm',
+        scripts: [
+            '/barcode-scanner/zbar-wasm-0.9.15/zbar-wasm.js',
+            '/barcode-scanner/zbar-wasm-0.9.15/barcode-detector-polyfill.js',
+        ],
+    },
+    {
+        name: 'cdn',
+        scripts: [
+            'https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js',
+            'https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.21/dist/index.js',
+        ],
+    },
 ];
+// A source that has not answered by then is given up for the next one
+const ZBAR_SOURCE_TIMEOUT_MS = 8000;
 
 const STORAGE_CAMERA = 'msp-scan-camera';
 const STORAGE_ZOOM = 'msp-scan-zoom';
@@ -73,6 +95,12 @@ export default class extends Controller {
         this._boundPageHide = () => this._reportSession();
         window.addEventListener('pagehide', this._boundPageHide);
 
+        // The camera is released while the page is hidden and taken again when it is back (README §5.10): an iPhone
+        // gives the camera to one page at a time, and a page that lost it (another tab, the PWA, an app) kept a muted
+        // track - a black picture until reload (2026-10-19). Hidden, it would only cost battery anyway.
+        this._boundVisibility = () => this._visibilityChanged();
+        document.addEventListener('visibilitychange', this._boundVisibility);
+
         this._boundPause = () => this.pause();
         this._boundResume = () => this.resume();
         window.addEventListener('barcode-scan:pause', this._boundPause);
@@ -104,6 +132,8 @@ export default class extends Controller {
         this.stopScanning();
         window.removeEventListener('barcode-scan:close', this._boundStopScanning);
         window.removeEventListener('pagehide', this._boundPageHide);
+        document.removeEventListener('visibilitychange', this._boundVisibility);
+        window.clearTimeout(this.cameraRestartTimer);
         window.removeEventListener('barcode-scan:pause', this._boundPause);
         window.removeEventListener('barcode-scan:resume', this._boundResume);
         this.wrapperTarget.removeEventListener('click', this._boundTap);
@@ -159,6 +189,57 @@ export default class extends Controller {
         this._startCamera();
     }
 
+    _play() {
+        const video = this.videoTarget;
+        if (!video.paused) {
+            return;
+        }
+
+        const played = video.play();
+        if (played && typeof played.catch === 'function') {
+            played.catch(err => {
+                this.playError = err && err.name ? err.name : String(err);
+                console.error('Video play failed:', err);
+            });
+        }
+    }
+
+    _visibilityChanged() {
+        if (document.hidden) {
+            if (this.scanning) {
+                this.resumeWhenVisible = true;
+                this.stopScanning();
+            }
+            return;
+        }
+
+        if (this.resumeWhenVisible) {
+            this.resumeWhenVisible = false;
+            this.initCamera();
+        }
+    }
+
+    /**
+     * Stop and start the camera again - at most 3 times a minute, so a camera another app keeps taking cannot loop
+     */
+    _restartCamera(reason) {
+        const now = Date.now();
+        this.cameraRestarts = (this.cameraRestarts || []).filter(at => now - at < 60000);
+        if (this.cameraRestarts.length >= 3) {
+            console.error(`Barcode scanner: the camera ${reason} again - not restarting`);
+            return;
+        }
+        this.cameraRestarts.push(now);
+
+        this.stopScanning();
+        window.clearTimeout(this.cameraRestartTimer);
+        this.cameraRestartTimer = window.setTimeout(() => {
+            if (!document.hidden && !this.scanning) {
+                this.initCamera();
+            }
+        }, 500);
+    }
+
     // --- Camera ---
 
     async _startCamera() {
@@ -191,11 +272,37 @@ export default class extends Controller {
             return;
         }
 
+        // Hidden while the camera was opening: give it back, take it again when the page is shown
+        if (document.hidden) {
+            opened.stream.getTracks().forEach(track => track.stop());
+            this.resumeWhenVisible = true;
+            this.stopScanning();
+            return;
+        }
+
         this.cameraPick = opened.pick;
         this.videoTrack = opened.stream.getVideoTracks()[0] || null;
+        if (this.videoTrack) {
+            // Taken away while the page is shown (another tab or app opened the camera): take it back once in a while
+            const track = this.videoTrack;
+            track.addEventListener('ended', () => {
+                if (track === this.videoTrack && this.scanning) {
+                    this._restartCamera('ended');
+                }
+            });
+        }
         this.trackCapabilities = this._capabilities(this.videoTrack);
+        // A <video> that already showed a camera gets replaced by a fresh one: Safari did not paint the second stream
+        // in a reused element - the camera on, frames decoded, but a blank picture with the spinner (iPhone,
+        // 2026-10-19: global search after a read, and every restart of §5.10)
+        if (this.videoUsed) {
+            const fresh = this.videoTarget.cloneNode(false);
+            this.videoTarget.replaceWith(fresh);
+        }
+        this.videoUsed = true;
         this.videoTarget.srcObject = opened.stream;
-        this.videoTarget.play().catch(err => console.error('Video play failed:', err));
+        this.playError = null;
+        this._play();
         this.scanning = true;
         this.startedAt = Date.now();
         this.sessionReported = false;
@@ -205,7 +312,11 @@ export default class extends Controller {
         }
         this.nextFocusKickAt = this.startedAt + FOCUS_KICK_FIRST_MS;
 
-        this.videoTarget.addEventListener('loadedmetadata', () => this._sizeOverlay(), { once: true });
+        // iOS may refuse the first play() - it comes after the camera wait, outside the tap: again once the stream is there
+        this.videoTarget.addEventListener('loadedmetadata', () => {
+            this._sizeOverlay();
+            this._play();
+        }, { once: true });
 
         this._setupTrack();
         this._startDebug();
@@ -472,6 +583,8 @@ export default class extends Controller {
         this.engine = null;
         this.engines = {};
         this.zbarBudget = null;
+        this.zbarPlanned = false;
+        this.frameCounterMoves = false;
         this.lastFocusKick = null;
         this.nextFocusKickAt = 0;
         this.stats = { frames: 0, decodeMs: [], seen: new Map(), accepted: null, acceptedBy: null };
@@ -537,16 +650,17 @@ export default class extends Controller {
     _loadZbar() {
         if (!this._zbarPromise) {
             this._zbarPromise = (async () => {
-                try {
-                    for (const src of ZBAR_SCRIPTS) {
-                        await this._loadScript(src);
+                for (const source of ZBAR_SOURCES) {
+                    const result = await this._zbarFrom(source);
+                    if (result.Zbar) {
+                        this.zbarSource = source.name;
+                        return result.Zbar;
                     }
-                } catch (e) {
-                    console.error('Barcode decoder could not be loaded:', e);
-                }
-
-                if (typeof barcodeDetectorPolyfill !== 'undefined' && barcodeDetectorPolyfill.BarcodeDetectorPolyfill) {
-                    return barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+                    // Two copies of zbar in one page share its globals - the second one's detect() then never
+                    // answered (tested 2026-10-19). Once a source's scripts ran, no other source is tried.
+                    if (result.ran) {
+                        break;
+                    }
                 }
 
                 this._zbarPromise = null;
@@ -555,6 +669,62 @@ export default class extends Controller {
         }
 
         return this._zbarPromise;
+    }
+
+    /**
+     * Loads one source and proves it works: zbar's WebAssembly instance must start (it fetches zbar.wasm next to the
+     * script) - a script that loads with a .wasm that does not would fail on every frame, never falling back.
+     *
+     * @returns {Promise<{Zbar: Function|null, ran: boolean}>} ran = its scripts ran (another source is unsafe then)
+     */
+    async _zbarFrom(source) {
+        let timer = null;
+        let ran = false;
+        let downloading = false;
+        const timeout = new Promise((resolve, reject) => {
+            timer = window.setTimeout(() => reject(new Error(`timed out after ${ZBAR_SOURCE_TIMEOUT_MS} ms`)), ZBAR_SOURCE_TIMEOUT_MS);
+        });
+
+        try {
+            const Zbar = await Promise.race([timeout, (async () => {
+                if (source.wasm) {
+                    // The whole file, so zbar's own fetch of it is answered by the browser cache (immutable)
+                    const response = await fetch(source.wasm);
+                    if (!response.ok) {
+                        throw new Error(`${source.wasm}: HTTP ${response.status}`);
+                    }
+                    await response.arrayBuffer();
+                }
+
+                for (const src of source.scripts) {
+                    // A script still downloading when the time is up may still run later - as good as ran
+                    downloading = true;
+                    try {
+                        await this._loadScript(src);
+                    } finally {
+                        // An error event = the script never ran; only the time running out leaves it pending
+                        downloading = false;
+                    }
+                    ran = ran || typeof zbarWasm !== 'undefined';
+                }
+
+                if (typeof zbarWasm === 'undefined' || typeof barcodeDetectorPolyfill === 'undefined' || !barcodeDetectorPolyfill.BarcodeDetectorPolyfill) {
+                    throw new Error('the scripts define no decoder');
+                }
+                await zbarWasm.getInstance();
+
+                return barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+            })()]);
+
+            return { Zbar, ran: true };
+        } catch (e) {
+            console.error(`Barcode decoder (${source.name}) could not be loaded:`, e);
+            this.zbarFailures = (this.zbarFailures || []).concat(source.name);
+
+            return { Zbar: null, ran: ran || downloading || typeof zbarWasm !== 'undefined' };
+        } finally {
+            window.clearTimeout(timer);
+        }
     }
 
     _loadScript(src) {
@@ -579,7 +749,7 @@ export default class extends Controller {
     _engineState(name, detector) {
         this.acceptance.addReader(name);
 
-        return { detector, frames: 0, decodeMs: [], region: null };
+        return { detector, frames: 0, decodeMs: [], region: null, lastDecodeAt: -Infinity, lastFrameCount: undefined };
     }
 
     _engineName() {
@@ -626,61 +796,31 @@ export default class extends Controller {
         }
 
         const ctx = this.overlayTarget.getContext('2d');
-        const video = this.videoTarget;
         // The reader that paces the session and draws the overlay: Google's where it runs, else zbar
         const primary = plan.native ? 'native' : 'zbar';
+        // The first second at full pace: the player is just pointing the camera
+        this.lastActivityAt = performance.now();
         // Next to Google's reader, zbar only within a budget that keeps Google's at its own pace (HelperBudget)
         this.zbarBudget = plan.native && plan.zbar ? new HelperBudget() : null;
 
         // One loop per reader, each at its own pace - waiting for both on every frame slowed a mid-range phone's
         // Google reader five times
         const loop = (name) => {
-            const step = async () => {
+            const step = async (fresh = true) => {
                 if (!current()) {
                     return;
                 }
 
-                const engine = this.engines[name];
-                const isPrimary = name === primary;
-
-                if (!this.paused && isPrimary) {
-                    if (Date.now() >= this.nextFocusKickAt) {
-                        this.kickFocus();
-                    }
-                    this._sizeOverlay();
-                    ctx.clearRect(0, 0, this.overlayTarget.width, this.overlayTarget.height);
-                    this._drawGuide(ctx);
+                try {
+                    await this._scanStep(name, primary, ctx, current, fresh);
+                } catch (error) {
+                    // One bad frame must never end the loop - the scanner would stop reading without a word
+                    console.error('Barcode scan step failed:', error);
                 }
 
-                // zbar next to Google's reader may not be downloaded yet - this loop then only waits
-                const ready = engine && video.videoWidth && video.videoHeight;
-                if (!this.paused && ready && (isPrimary || this.zbarBudget.mayRun(performance.now()))) {
-                    const start = performance.now();
-                    const frame = name === 'native'
-                        ? { source: video, x: 0, y: 0, w: video.videoWidth, h: video.videoHeight, vertical: false }
-                        : this._band(engine);
-                    const barcodes = await this._decode(name, engine, frame);
-                    const cost = performance.now() - start;
-
-                    if (isPrimary) {
-                        this.stats.frames++;
-                        this.stats.decodeMs.push(cost);
-                        if (this.stats.decodeMs.length > 30) {
-                            this.stats.decodeMs.shift();
-                        }
-                        if (this.zbarBudget) {
-                            this.zbarBudget.primaryDecoded(cost);
-                        }
-                    } else {
-                        this.zbarBudget.helperRan(cost, performance.now());
-                    }
-
-                    if (barcodes.length > 0 && current()) {
-                        this._handleBarcodes(name, barcodes, frame, ctx);
-                    }
+                if (current()) {
+                    this._onNextFrame(step);
                 }
-
-                this._onNextFrame(step);
             };
 
             step();
@@ -689,6 +829,69 @@ export default class extends Controller {
         loop(primary);
         if (this.zbarBudget) {
             loop('zbar');
+        }
+    }
+
+    /**
+     * One frame of one reader's loop (scanLoop). `current` = this session is still the one running: checked again
+     * after every wait, since a stop or a quick restart replaces the state this step works on.
+     */
+    async _scanStep(name, primary, ctx, current, fresh) {
+        const engine = this.engines[name];
+        const isPrimary = name === primary;
+        const video = this.videoTarget;
+
+        // Nothing to decode while paused (multiscan shows a result) or while the tab is hidden - the frame
+        // fallback timer would otherwise keep decoding in the background
+        if (this.paused || document.hidden) {
+            return;
+        }
+
+        if (isPrimary) {
+            if (Date.now() >= this.nextFocusKickAt) {
+                this.kickFocus();
+            }
+            this._refreshOverlay(ctx);
+        }
+
+        // zbar next to Google's reader may not be downloaded yet - this loop then only waits
+        if (!engine || !video.videoWidth || !video.videoHeight) {
+            return;
+        }
+
+        const now = performance.now();
+        const due = now - this.lastActivityAt < ACTIVE_FOR_MS || now - engine.lastDecodeAt >= RESTING_INTERVAL_MS;
+        if (!due || (!isPrimary && !this.zbarBudget.mayRun(now)) || !this._newFrame(engine, fresh)) {
+            return;
+        }
+
+        engine.lastDecodeAt = now;
+        const frame = name === 'native'
+            ? { source: video, x: 0, y: 0, w: video.videoWidth, h: video.videoHeight, vertical: false }
+            : this._band(engine);
+        const barcodes = await this._decode(name, engine, frame);
+        const cost = performance.now() - now;
+
+        if (!current()) {
+            return;
+        }
+
+        if (isPrimary) {
+            this.stats.frames++;
+            this.stats.decodeMs.push(cost);
+            if (this.stats.decodeMs.length > 30) {
+                this.stats.decodeMs.shift();
+            }
+            if (this.zbarBudget) {
+                this.zbarBudget.primaryDecoded(cost);
+            }
+        } else {
+            this.zbarBudget.helperRan(cost, performance.now());
+        }
+
+        // Paused meanwhile: multiscan is showing the last result
+        if (barcodes.length > 0 && !this.paused) {
+            this._handleBarcodes(name, barcodes, frame, ctx);
         }
     }
 
@@ -781,12 +984,40 @@ export default class extends Controller {
         };
     }
 
+    /**
+     * @returns {boolean} whether it resized the overlay, which also cleared it
+     */
     _sizeOverlay() {
         const video = this.videoTarget;
         if (video.videoWidth && (this.overlayTarget.width !== video.videoWidth || this.overlayTarget.height !== video.videoHeight)) {
             this.overlayTarget.width = video.videoWidth;
             this.overlayTarget.height = video.videoHeight;
+            return true;
         }
+
+        return false;
+    }
+
+    // The guide is redrawn only when it moved or a code's outline was drawn over it - the overlay is a full-size
+    // canvas the phone composites again after every change
+    _refreshOverlay(ctx) {
+        const resized = this._sizeOverlay();
+        // Where the guide belongs reads the layout - not on every frame, twice a second is enough for a rotation
+        const now = performance.now();
+        let guide = this.overlayGuide;
+        if (resized || guide === null || guide === undefined || now - (this.overlayGuideAt || 0) >= 500) {
+            const band = this._horizontalBand(this._visibleRect());
+            guide = `${band.x},${band.y},${band.w},${band.h}`;
+            this.overlayGuideAt = now;
+        }
+        if (!resized && !this.overlayMarked && guide === this.overlayGuide) {
+            return;
+        }
+
+        ctx.clearRect(0, 0, this.overlayTarget.width, this.overlayTarget.height);
+        this._drawGuide(ctx);
+        this.overlayMarked = false;
+        this.overlayGuide = guide;
     }
 
     // Corner marks of the horizontal band: where to hold the code (zbar decodes nothing outside it)
@@ -823,6 +1054,11 @@ export default class extends Controller {
         // A frame that reads two different codes is not trusted at all: two boxes in view, or a misread
         const sameCodeOnly = barcodes.every(b => canonicalCode(b.rawValue) === code);
 
+        // Something to read: every frame again - unless it is only the box multiscan just took, still in view
+        if (!this.continuousValue || barcodes.some(b => now - (this.acceptedAt.get(canonicalCode(b.rawValue)) || 0) >= this.cooldownMsValue)) {
+            this.lastActivityAt = performance.now();
+        }
+
         // The camera sees a code, so it is roughly in focus: no kick for a while
         this.nextFocusKickAt = Math.max(this.nextFocusKickAt, now + FOCUS_KICK_FIRST_MS);
         // The player found the distance; the hint would only cover the picture now
@@ -840,6 +1076,7 @@ export default class extends Controller {
             ctx.lineWidth = 3;
             ctx.strokeStyle = '#fe4042';
             ctx.stroke();
+            this.overlayMarked = true;
         }
 
         if (!sameCodeOnly) {
@@ -879,26 +1116,60 @@ export default class extends Controller {
         const video = this.videoTarget;
 
         if (typeof video.requestVideoFrameCallback !== 'function') {
-            requestAnimationFrame(callback);
+            requestAnimationFrame(() => callback(false));
             return;
         }
 
         let called = false;
-        const run = () => {
+        let timer = null;
+        const run = (fresh) => {
             if (!called) {
                 called = true;
-                callback();
+                window.clearTimeout(timer);
+                callback(fresh);
             }
         };
-        const handle = video.requestVideoFrameCallback(run);
+        const handle = video.requestVideoFrameCallback(() => run(true));
 
-        // Never stall when a browser stops reporting frames - fall back to decoding what is on screen
-        window.setTimeout(() => {
+        // Never stall when a browser stops reporting frames - fall back to decoding what is on screen (only if it
+        // changed: `_newFrame()`)
+        timer = window.setTimeout(() => {
             if (!called) {
                 video.cancelVideoFrameCallback(handle);
-                run();
+                run(false);
             }
         }, 250);
+    }
+
+    /**
+     * Whether the video shows a frame this reader has not decoded yet. A frame the browser reported is new; without
+     * that report (the 250 ms fallback, requestAnimationFrame) the browser's frame counter decides - a stalled video
+     * decoded again and again would count one frame as many agreeing reads. A counter that never moves is not
+     * trusted (some browsers do not count camera frames), and the frame is decoded as before.
+     */
+    _videoFramesTotal() {
+        try {
+            const quality = typeof this.videoTarget.getVideoPlaybackQuality === 'function' ? this.videoTarget.getVideoPlaybackQuality() : null;
+            return quality && typeof quality.totalVideoFrames === 'number' ? quality.totalVideoFrames : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    _newFrame(engine, fresh) {
+        let count = null;
+        try {
+            const quality = typeof this.videoTarget.getVideoPlaybackQuality === 'function' ? this.videoTarget.getVideoPlaybackQuality() : null;
+            count = quality && typeof quality.totalVideoFrames === 'number' ? quality.totalVideoFrames : null;
+        } catch (e) { /* not supported */ }
+
+        const last = engine.lastFrameCount;
+        engine.lastFrameCount = count;
+        if (count !== null && last !== undefined && last !== null && count !== last) {
+            this.frameCounterMoves = true;
+        }
+
+        return fresh || count === null || !this.frameCounterMoves || count !== last;
     }
 
     stopScanning() {
@@ -920,16 +1191,16 @@ export default class extends Controller {
             stream.getTracks().forEach(track => track.stop());
         }
 
-        // Fully release video element resources
+        // Release the stream; the element itself is replaced on the next start (no load() - see _startCamera)
         this.videoTarget.pause();
         this.videoTarget.srcObject = null;
-        this.videoTarget.load(); // Forces browser to release video memory
 
         // Clear canvas and reset dimensions to release memory
         const ctx = this.overlayTarget.getContext('2d');
         ctx.clearRect(0, 0, this.overlayTarget.width, this.overlayTarget.height);
         this.overlayTarget.width = 0;
         this.overlayTarget.height = 0;
+        this.overlayGuide = null;
         this._cropCanvases = null;
 
         // Clear references to allow garbage collection
@@ -1053,6 +1324,9 @@ export default class extends Controller {
             native: this._engineReport('native'),
             zbar: this._engineReport('zbar'),
             zbarMissing: !!this.zbarPlanned && !this.engines.zbar,
+            // Where zbar came from (README §5.9) and which sources failed before it
+            zbarSource: this.zbarSource || null,
+            zbarFailures: (this.zbarFailures || []).join(',') || null,
             seen: this._seenText().slice(0, 300),
             camera: this.videoTrack ? this.videoTrack.label : null,
             cameraPick: this.cameraPick,
@@ -1062,6 +1336,13 @@ export default class extends Controller {
             focusModes: caps.focusMode || [],
             focusDistanceMin: caps.focusDistance && typeof caps.focusDistance.min === 'number' ? caps.focusDistance.min : null,
             torch: this.torchSupported,
+            // What the picture did (README §5.10): a camera on, frames decoded, yet nothing painted on an iPhone
+            videoPaused: video.paused,
+            videoReadyState: video.readyState,
+            videoConnected: video.isConnected,
+            videoShown: `${video.clientWidth}x${video.clientHeight}`,
+            playError: this.playError,
+            videoFramesTotal: this._videoFramesTotal(),
             model: this.deviceModel || null,
         };
 

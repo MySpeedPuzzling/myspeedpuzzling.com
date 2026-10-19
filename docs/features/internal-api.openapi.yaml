@@ -2466,6 +2466,162 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /internal-api/puzzle-difficulty-labels:
+    get:
+      summary: Training labels for the image pipeline's difficulty model (as-of, aggregates only)
+      operationId: listPuzzleDifficultyLabels
+      description: |
+        Every puzzle with at least one as-of difficulty index (each index = a solver's first attempt ÷ that solver's
+        pace just before it), in puzzle id order. Secret puzzles (`hide_until` / `hide_image_until` ahead) are never
+        listed. Aggregates of the puzzle only - nothing of any player. `logDifficulty` = ln of the stored median index
+        where the batch keeps one (≥ 5 indices, `labelSource: median`), else the mean ln index (1-4 indices,
+        `labelSource: mean_log`).
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 5000, default: 1000 }
+        - name: after
+          in: query
+          required: false
+          description: The `nextCursor` of the previous page.
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: A page of labels
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [labels, nextCursor]
+                properties:
+                  labels:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PuzzleDifficultyLabel"
+                  nextCursor:
+                    type: [string, "null"]
+                    format: uuid
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /internal-api/puzzle-difficulty-estimates:
+    put:
+      summary: Store up to 500 picture-based difficulty estimates (the current value per puzzle)
+      operationId: recordPuzzleDifficultyEstimates
+      description: |
+        One transaction; a refused item never fails the others - every item gets its outcome, in order. An estimate
+        replaces the puzzle's stored one whole (idempotent: the same batch again stores the same values). Refused:
+        secret puzzles / pictures (`hidden`), another picture than the puzzle's current one (`stale_fingerprint`),
+        unknown puzzles (`unknown_puzzle`), invalid items (`invalid` with `errors`). The same puzzle twice: the later
+        item wins.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  maxItems: 500
+                  items:
+                    $ref: "#/components/schemas/PuzzleDifficultyEstimateBody"
+      responses:
+        "200":
+          description: Every item's outcome
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [counts, items]
+                properties:
+                  counts:
+                    type: object
+                    required: [stored, stale_fingerprint, hidden, unknown_puzzle, invalid]
+                    additionalProperties:
+                      type: integer
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [index, status]
+                      properties:
+                        index: { type: integer, description: The item's position in the request }
+                        puzzleId: { type: string }
+                        status:
+                          type: string
+                          enum: [stored, stale_fingerprint, hidden, unknown_puzzle, invalid]
+                        message: { type: string }
+                        currentFingerprint:
+                          type: string
+                          description: stale_fingerprint only - the puzzle's picture now (absent when it has none)
+                        errors:
+                          type: object
+                          description: invalid only - field => what is wrong
+                          additionalProperties: { type: string }
+        "400":
+          $ref: "#/components/responses/InvalidJson"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/InvalidDifficultyEstimate"
+
+  /internal-api/puzzle-difficulty-estimates/model:
+    get:
+      summary: The current model record (the latest run) - the Mac's push guard compares with it
+      operationId: getPuzzleDifficultyEstimateModel
+      parameters:
+        - name: model
+          in: query
+          required: false
+          description: Only runs of this model name.
+          schema: { type: string, maxLength: 50 }
+      responses:
+        "200":
+          description: The latest recorded run, null before the first one
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [current]
+                properties:
+                  current:
+                    oneOf:
+                      - $ref: "#/components/schemas/PuzzleDifficultyEstimateModel"
+                      - type: "null"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      summary: Record a run of the difficulty model with its evaluation (becomes the current record, history kept)
+      operationId: recordPuzzleDifficultyEstimateModel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PuzzleDifficultyEstimateModelBody"
+      responses:
+        "201":
+          description: The stored record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PuzzleDifficultyEstimateModel"
+        "400":
+          $ref: "#/components/responses/InvalidJson"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/InvalidDifficultyEstimate"
+
 components:
   securitySchemes:
     InternalApiBearer:
@@ -3879,6 +4035,82 @@ components:
               worker: { type: string }
               expiresAt: { type: string, format: date-time }
 
+    PuzzleDifficultyLabel:
+      type: object
+      required: [puzzleId, logDifficulty, labelSource, meanLogIndex, indexCount, piecesCount, manufacturerId, addedAt, imageFingerprint]
+      properties:
+        puzzleId: { type: string, format: uuid }
+        logDifficulty:
+          type: number
+          description: ln of the as-of difficulty (0 = average) - the training label
+        labelSource:
+          type: string
+          enum: [median, mean_log]
+          description: median = ln of the stored median index (≥ 5 indices); mean_log = the mean ln index (1-4)
+        meanLogIndex:
+          type: number
+          description: sum_log_indices ÷ indexCount - for every puzzle
+        indexCount: { type: integer, minimum: 1, description: Solvers' first attempts behind the label (k) }
+        piecesCount: { type: integer }
+        manufacturerId: { type: [string, "null"], format: uuid }
+        addedAt: { type: [string, "null"], format: date-time }
+        imageFingerprint:
+          type: [string, "null"]
+          description: The puzzle's current picture (PuzzleImageFingerprint) - join embeddings on it; null = no picture
+    PuzzleDifficultyEstimateBody:
+      type: object
+      additionalProperties: false
+      required: [puzzleId, model, modelVersion, logDifficulty, logP10, logP90, outOfFold, trainingSize, imageFingerprint]
+      properties:
+        puzzleId: { type: string, format: uuid }
+        model: { type: string, maxLength: 50 }
+        modelVersion: { type: string, maxLength: 50 }
+        logDifficulty: { type: number, minimum: -5, maximum: 5 }
+        logP10: { type: number, minimum: -5, maximum: 5, description: At most logDifficulty }
+        logP90: { type: number, minimum: -5, maximum: 5, description: At least logDifficulty }
+        outOfFold:
+          type: boolean
+          description: A labelled puzzle estimated by a model that did not see it (cross-fitted) - the only kind a reconstructed prediction uses
+        trainingSize: { type: integer, minimum: 1 }
+        imageFingerprint: { type: string, maxLength: 64, description: The picture it was made from - exactly as the lists gave it }
+        computedAt:
+          type: [string, "null"]
+          format: date-time
+          description: The pipeline's clock (UTC without an offset); absent = the moment of the push
+    PuzzleDifficultyEstimateModelBody:
+      type: object
+      additionalProperties: false
+      required: [model, modelVersion, trainingSize, holdoutSpearman, evaluation]
+      properties:
+        model: { type: string, maxLength: 50 }
+        modelVersion: { type: string, maxLength: 50 }
+        trainingSize: { type: integer, minimum: 1 }
+        holdoutSpearman:
+          type: number
+          minimum: -1
+          maximum: 1
+          description: Spearman on the newer-from-older holdout - the push guard's number
+        evaluation:
+          type: object
+          minProperties: 1
+          description: |
+            The run's numbers as the pipeline sends them (≤ 256 KB JSON), stored as they came. Recommended shape:
+            `overall` {spearman, mae, tierExact, tierWithinOne, window50Hit, window80Hit, count}, `groups`
+            [{sizeGroup, imageKind, …the same numbers}], `holdouts` {brands, newerFromOlder: {…}}.
+        createdAt:
+          type: [string, "null"]
+          format: date-time
+          description: The pipeline's clock; absent = the moment of the push
+    PuzzleDifficultyEstimateModel:
+      allOf:
+        - $ref: "#/components/schemas/PuzzleDifficultyEstimateModelBody"
+        - type: object
+          required: [id, createdAt, receivedAt]
+          properties:
+            id: { type: string, format: uuid }
+            createdAt: { type: string, format: date-time }
+            receivedAt: { type: string, format: date-time }
+
     Error:
       type: object
       additionalProperties: false
@@ -3989,6 +4221,12 @@ components:
               answer: { type: [string, "null"], description: The moderators' answer to it }
 
   responses:
+    InvalidDifficultyEstimate:
+      description: An invalid model record, or an estimate batch that is no list of 1-500 items (an invalid single estimate is its item's `invalid` outcome)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     InvalidTagKey:
       description: A tag key that cannot be in the taxonomy - `<facet>.<key>` of a known facet, at most 100 characters
       content:

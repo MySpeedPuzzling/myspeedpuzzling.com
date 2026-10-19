@@ -6,15 +6,17 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Photo uploads on slow connections (`docs/features/photo-uploads/README.md`)
 
-- [ ] After a week live: read the `photo_upload` channel in Loki - `event=save outcome=failed` per day (should be ~0),
-      `event=upload outcome=failed` by `reason`, how often `photos_in_form > 0` (the plain path still used) - and tune
-      the backoff / stall numbers if needed.
-- [ ] lily.srv: deny `tmp-uploads/` in the images nginx like `online/` (kept and background-uploaded photos are private
+- [ ] **2026-10-25** (a week live, Claude does it): read the `photo_upload` channel in Loki - `event=save outcome=failed`
+      per day (should be ~0), `event=upload outcome=failed` by `reason`, how often `photos_in_form > 0` (the plain path
+      still used), p95 upload `duration_ms` - tune the backoff / stall numbers and the Loki alert thresholds below.
+      Between reviews the Loki alerts (lily.srv `log-alerts.yml`, group `myspeedpuzzling-photo-uploads`, 2026-10-18)
+      e-mail on: ≥ 3 failed saves in 6h, > 30 % of saves falling back to photos in the form, > 15 % of uploads failing.
+- [x] lily.srv: deny `tmp-uploads/` in the images nginx like `online/` (kept and background-uploaded photos are private
       for 24 h; the tokens are unguessable, but nothing needs to serve them publicly).
-- [ ] lily.srv: Traefik `readTimeout` 180 s (already planned for the maintenance window) - the plain form path still
+- [x] lily.srv: Traefik `readTimeout` 180 s (applied 2026-10-18; already planned for the maintenance window) - the plain form path still
       exists as the fallback.
 - [ ] The other photo forms (moderators' puzzle forms, "Suggest a change", a round's new puzzle, event / series logos)
-      still send photos with the form - give them the background upload when one of them shows up in the telemetry
+      still send photos with the form - GitHub issue #266 (full context) - give them the background upload when one of them shows up in the telemetry
       (`submit_prevention_controller.js` takes the same `upload-url` values; FormPhotoStash already restores tokens).
 - [ ] Nothing typed survives closing the tab or the phone killing the browser while the camera is open - a draft of the
       add form in sessionStorage (like multiscan's tray) would cover it; the photos are already server-side by token.
@@ -648,11 +650,11 @@ player lost the form. Shipped: limit 128M (`web-base-php85/php.ini`), photos up 
       the full image into an `<img>` first - a 200 MP shot may be too big to decode on a phone, a HEIC cannot be
       decoded outside Safari. Try `createImageBitmap(file, {resizeWidth, resizeHeight})`, and a beacon when
       compression fails, to see how often it happens.
-- [ ] Traefik's default `readTimeout` is 60 s for the whole request, body included (lily's `traefik.yml` sets none):
+- [x] Traefik's default `readTimeout` is 60 s for the whole request, body included (lily's `traefik.yml` sets none):
       a 60 MB photo that the browser could not shrink needs ~8 Mbit/s upload to make it. Raise it on `websecure`
       (shared edge, all apps) or accept that the fallback only works on a fast connection.
 - [ ] The other photo forms (Suggest a change, puzzle record, avatar, competition logo) have no submit-time
-      compression or guard yet - they only take small files, but the same body-limit loss applies above 128M.
+      compression or guard yet (part of GitHub issue #266) - they only take small files, but the same body-limit loss applies above 128M.
 
 ## Events through the internal API (`docs/features/internal-api.md` §Competitions and events)
 
@@ -696,13 +698,25 @@ player lost the form. Shipped: limit 128M (`web-base-php85/php.ini`), photos up 
       read did zbar see the accepted code (`zbar.first_seen_ms` not null), how much later than Google's reader, which
       phone models only Google's reader read, and how often Google's reader saw another code (`seen`). Then decide:
       Android drops Google's reader (one path everywhere), or both stay until Step 4.
-- [ ] Self-host zbar (`@undecaf/zbar-wasm` + the polyfill through npm, cached by the service worker) instead of
-      jsdelivr - every Android session now downloads it too; a jsdelivr outage leaves Android on Google's reader alone
-      and iOS without a scanner (README §5.3 "Web Worker").
-- [ ] Scanner heat (Allison, iPhone Pro, multiscan, 2026-10-18 - MSP #321 / F143): the phone gets hot after ~2 min /
-      20 boxes. Her session: zbar ~19 decodes/s at 1080p for 3.5 min (since 10-13; 640x480 before). Idea: decode
-      every frame only while a code was seen in the last ~1 s, otherwise ~8/s; measure with `frames`/`duration_ms`.
-      Wait for her answer (new since 10-13?) first.
+- [x] 2026-10-19: zbar from our own server, jsdelivr as the fallback (README §5.9). Check `zbar_source` in the
+      reports: practically all `self`; `zbar_failures` = `self` would mean our copy fails somewhere.
+- [x] Scanner heat (Allison, iPhone Pro, multiscan, 2026-10-18 - MSP #321 / F143): every session decoded every frame
+      nonstop; 2026-10-19 the scanner rests at ≤ 10 decodes/s while no code is in view (README §5.8).
+- [ ] Check the rest mode in the reports (`frames` / `duration_ms` of long iOS sessions, ~10/s idle) and ask Allison
+      whether her phone stays cooler - if it still gets hot, the 1080p camera itself is next (a lower resolution while
+      resting would need a camera restart - measure first).
+- [ ] When no zbar source loads (8 s each since README §5.9), iOS shows a camera that never reads - say so in the
+      scanner and point to "Type a code" (texts in 6 locales).
+- [ ] A camera that fails to open (permission denied, no camera) sends no `/-/scan-session` report - count them too
+      (outcome `camera-error` + the error name).
+- [x] 2026-10-19: zbar is no longer held up by its own one-off misreads (a competitor must be read twice in 2 s) -
+      Allison's Anatolian Route 66 was read from 0.8 s but accepted after 3.6-11.6 s, up to a minute before.
+- [ ] The debug panel's "Copy" text arrives URL-encoded from Chrome on iOS (Allison's paste, 2026-10-19: `engine:%20zbar…`)
+      - check `navigator.clipboard.writeText` there; readable after decoding, so low priority.
+- [ ] Global search scanner layout on iPhone (Jan, 2026-10-19 screenshot): the video is narrower than the box and
+      centred while the guide corners sit at the box's edges - make the video fill the width (`object-fit: cover` on
+      a full-width video, as in multiscan) so picture, guide and decoded band line up.
+- [ ] The scanner HUD's zoom − / + buttons are not round on iPhone (`_barcode_scanner_hud.html.twig`) - a detail.
 - [ ] Labels without a quiet zone: Anatolian boxes (white label tight around the bars on a black box, e.g.
       `8698543136342`, `8698543135796`) barely read or not at all - zbar needs the white margin to find the start.
       A test case for Step 4's decoder (it fits geometry, needs no quiet zone); her photo is in MSP inbox:8800.

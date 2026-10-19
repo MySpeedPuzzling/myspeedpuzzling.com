@@ -125,6 +125,39 @@ final class BarcodeAcceptanceScriptTest extends TestCase
         self::assertSame(array_fill(0, 8, null), $this->accept(['native', 'zbar'], $reads)['results']);
     }
 
+    /**
+     * Allison's Anatolian box (2026-10-19, debug copy): zbar read the right code from 0.8 s on, but a one-off misread
+     * of the hard label now and then held it up for 2 s each time - accepted only after 3.6-11.6 s. A misread zbar
+     * read once no longer blocks it; one read twice still does.
+     */
+    public function testZbarIsNotHeldUpByItsOwnOneOffMisreads(): void
+    {
+        $reads = [
+            ['reader' => 'zbar', 'code' => self::RAVENSBURGER, 'quality' => 100, 'at' => 0],
+            ['reader' => 'zbar', 'code' => '8692543736342', 'quality' => 4, 'at' => 50],
+            ['reader' => 'zbar', 'code' => self::RAVENSBURGER, 'quality' => 100, 'at' => 100],
+            ['reader' => 'zbar', 'code' => self::RAVENSBURGER, 'quality' => 100, 'at' => 150],
+            ['reader' => 'zbar', 'code' => self::RAVENSBURGER, 'quality' => 100, 'at' => 200],
+        ];
+        self::assertSame([null, null, null, null, 'zbar'], $this->accept(['zbar'], $reads)['results']);
+
+        // The same misread twice is something real (another box in the band): wait
+        array_splice($reads, 2, 0, [['reader' => 'zbar', 'code' => '8692543736342', 'quality' => 4, 'at' => 60]]);
+        self::assertNotContains('zbar', $this->accept(['zbar'], $reads)['results']);
+    }
+
+    /**
+     * Google's reader stays strict: a single read of zbar's contradicting it stops its misread.
+     */
+    public function testASingleZbarReadStillStopsGooglesReader(): void
+    {
+        $reads = self::reads('native', self::MISREAD, 9);
+        $reads[] = ['reader' => 'zbar', 'code' => self::RAVENSBURGER, 'quality' => 30, 'at' => 850];
+        $reads[] = ['reader' => 'native', 'code' => self::MISREAD, 'at' => 900];
+
+        self::assertNotContains('native', $this->accept(['native', 'zbar'], $reads)['results']);
+    }
+
     public function testAFrameWithTwoCodesBlocksBothForTwoSeconds(): void
     {
         $reads = [
@@ -146,6 +179,20 @@ final class BarcodeAcceptanceScriptTest extends TestCase
         ];
 
         self::assertSame([null, null, null, null], $this->accept(['native', 'zbar'], $reads)['results']);
+    }
+
+    /**
+     * A misread now and then over a long session never adds up: only reads of the last 3 s count.
+     */
+    public function testReadsSpreadOverALongSessionNeverAddUp(): void
+    {
+        $reads = [];
+        for ($i = 0; $i < 12; $i++) {
+            $reads[] = ['reader' => 'native', 'code' => self::MISREAD, 'at' => $i * 2500];
+        }
+
+        self::assertSame(array_fill(0, 12, null), $this->accept(['native'], $reads)['results']);
+        self::assertSame(array_fill(0, 12, null), $this->accept(['zbar'], array_map(static fn (array $read): array => ['reader' => 'zbar', 'code' => self::RAVENSBURGER, 'quality' => 30, 'at' => $read['at']], $reads))['results']);
     }
 
     public function testAnAcceptedCodeStartsCountingAgain(): void

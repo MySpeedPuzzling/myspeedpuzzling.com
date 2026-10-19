@@ -1,5 +1,6 @@
 """A fake of the internal API (docs/features/internal-api.md § "Puzzle image analysis" + the Phase 1 additions:
-claims `requires`, change requests from the pipeline) on httpx.MockTransport - the tests never touch the network."""
+claims `requires`, change requests from the pipeline; § "Puzzle difficulty labels and estimates" - labels, estimates,
+model record) on httpx.MockTransport - the tests never touch the network."""
 
 from __future__ import annotations
 
@@ -57,6 +58,11 @@ class FakeServer:
         self.fail_next: dict[str, list[httpx.Response]] = {}
         self.page_limit_cap: int | None = None
         self.hidden: set[str] = set()
+        # Phase 5: difficulty labels (set by a test: puzzleId -> label fields), stored estimates, model records
+        self.phase5 = True
+        self.labels: dict[str, dict[str, Any]] = {}
+        self.estimates: dict[str, dict[str, Any]] = {}
+        self.models: list[dict[str, Any]] = []
         for i in range(n):
             self.add_puzzle(i)
 
@@ -145,6 +151,14 @@ class FakeServer:
         if path.startswith("/internal-api/puzzle-change-requests/") and request.method == "POST":
             _, _, _, cid, action = path.split("/")
             return self.decide(cid, action, body)
+        if self.phase5 and path == "/internal-api/puzzle-difficulty-labels" and request.method == "GET":
+            return self.list_labels(q)
+        if self.phase5 and path == "/internal-api/puzzle-difficulty-estimates" and request.method == "PUT":
+            return self.store_estimates(body)
+        if self.phase5 and path == "/internal-api/puzzle-difficulty-estimates/model" and request.method == "POST":
+            return self.record_model(body)
+        if self.phase5 and path == "/internal-api/puzzle-difficulty-estimates/model" and request.method == "GET":
+            return self.current_model(q)
         return httpx.Response(404, json={"error": "No route"})
 
     def list_images(self, q: dict[str, str]) -> httpx.Response:
@@ -290,6 +304,98 @@ class FakeServer:
                 c["_body"] = b
                 return httpx.Response(204)
         return httpx.Response(404, json={"error": "not found"})
+
+    # difficulty labels + estimates (ListPuzzleDifficultyLabelsController, RecordPuzzleDifficultyEstimatesController) --
+    def label(self, p: str, log_difficulty: float, index_count: int, median: bool | None = None) -> None:
+        """A puzzle's as-of label as the app would list it - median from 5 indices, the mean ln index below."""
+        is_median = index_count >= 5 if median is None else median
+        self.labels[p] = {"puzzleId": p, "logDifficulty": log_difficulty, "labelSource": "median" if is_median else "mean_log",
+                          "meanLogIndex": log_difficulty, "indexCount": index_count, "piecesCount": self.puzzles[p]["piecesCount"],
+                          "manufacturerId": (self.puzzles[p].get("manufacturer") or {}).get("id"),
+                          "addedAt": "2026-01-01T00:00:00+00:00"}
+
+    def list_labels(self, q: dict[str, str]) -> httpx.Response:
+        unknown = sorted(set(q) - {"limit", "after"})
+        limit = int(q.get("limit", 1000))
+        if unknown or not 1 <= limit <= 5000:
+            return httpx.Response(400, json={"error": "Invalid input", "errors": {k: "unknown" for k in unknown} or {"limit": "1-5000"}})
+        ids = [p for p in sorted(self.labels) if p not in self.hidden and (not q.get("after") or p > q["after"])]
+        page = ids[:limit]
+        labels = [self.labels[p] | {"imageFingerprint": self.puzzles[p]["imageFingerprint"] if p in self.puzzles else None} for p in page]
+        return httpx.Response(200, json={"labels": labels, "nextCursor": page[-1] if len(page) == limit else None})
+
+    @staticmethod
+    def _estimate_errors(it: Any) -> dict[str, str]:
+        if not isinstance(it, dict):
+            return {"item": "must be a JSON object."}
+        known = {"puzzleId", "model", "modelVersion", "logDifficulty", "logP10", "logP90", "outOfFold", "trainingSize", "imageFingerprint", "computedAt"}
+        errors = {k: "is not a field of this endpoint" for k in it if k not in known}
+        for k in ("model", "modelVersion", "imageFingerprint", "puzzleId"):
+            if not isinstance(it.get(k), str) or not it[k].strip():
+                errors[k] = "is required"
+        nums = {}
+        for k in ("logDifficulty", "logP10", "logP90"):
+            v = it.get(k)
+            if isinstance(v, bool) or not isinstance(v, (int, float)) or not -5 <= v <= 5:
+                errors[k] = "is required - a number from -5 to 5."
+            else:
+                nums[k] = float(v)
+        if "logDifficulty" in nums and "logP10" in nums and nums["logP10"] > nums["logDifficulty"] + 1e-6:
+            errors["logP10"] = "must not be above logDifficulty."
+        if "logDifficulty" in nums and "logP90" in nums and nums["logP90"] < nums["logDifficulty"] - 1e-6:
+            errors["logP90"] = "must not be below logDifficulty."
+        if not isinstance(it.get("outOfFold"), bool):
+            errors["outOfFold"] = "is required - true or false."
+        if isinstance(it.get("trainingSize"), bool) or not isinstance(it.get("trainingSize"), int) or it["trainingSize"] < 1:
+            errors["trainingSize"] = "is required - a whole number from 1."
+        return errors
+
+    def store_estimates(self, b: dict[str, Any]) -> httpx.Response:
+        items = b.get("items") if isinstance(b, dict) else None
+        if not isinstance(items, list) or not 1 <= len(items) <= 500 or set(b) - {"items"}:
+            return httpx.Response(422, json={"error": "1-500 items", "errors": {"items": "must be a list of 1 to 500 estimates."}})
+        counts = {"stored": 0, "stale_fingerprint": 0, "hidden": 0, "unknown_puzzle": 0, "invalid": 0}
+        out = []
+        for i, it in enumerate(items):
+            errors = self._estimate_errors(it)
+            p = it.get("puzzleId") if isinstance(it, dict) else None
+            if errors:
+                r: dict[str, Any] = {"status": "invalid", "errors": errors}
+            elif p not in self.puzzles:
+                r = {"status": "unknown_puzzle"}
+            elif p in self.hidden:
+                r = {"status": "hidden"}
+            elif it["imageFingerprint"] != self.puzzles[p]["imageFingerprint"]:
+                r = {"status": "stale_fingerprint", "currentFingerprint": self.puzzles[p]["imageFingerprint"]}
+            else:
+                self.estimates[p] = dict(it)
+                r = {"status": "stored"}
+            counts[r["status"]] += 1
+            out.append({"index": i, **({"puzzleId": p} if isinstance(p, str) else {}), **r})
+        return httpx.Response(200, json={"counts": counts, "items": out})
+
+    def record_model(self, b: dict[str, Any]) -> httpx.Response:
+        errors = {}
+        for k in ("model", "modelVersion"):
+            if not isinstance(b.get(k), str) or not b[k].strip():
+                errors[k] = "is required"
+        if not isinstance(b.get("trainingSize"), int) or b["trainingSize"] < 1:
+            errors["trainingSize"] = "is required"
+        hs = b.get("holdoutSpearman")
+        if isinstance(hs, bool) or not isinstance(hs, (int, float)) or not -1 <= hs <= 1:
+            errors["holdoutSpearman"] = "is required - a number from -1 to 1."
+        if not isinstance(b.get("evaluation"), dict) or not b["evaluation"]:
+            errors["evaluation"] = "is required - a JSON object with at least one field."
+        if errors:
+            return httpx.Response(422, json={"error": "Invalid difficulty estimate", "errors": errors})
+        record = {"id": pid(7000 + len(self.models)), **b, "createdAt": b.get("createdAt") or "2026-10-19T03:00:00+00:00",
+                  "receivedAt": "2026-10-19T03:00:00+00:00", "evaluation": php(b["evaluation"])}
+        self.models.append(record)
+        return httpx.Response(201, json=record)
+
+    def current_model(self, q: dict[str, str]) -> httpx.Response:
+        rows = [m for m in self.models if not q.get("model") or m["model"] == q["model"]]
+        return httpx.Response(200, json={"current": rows[-1] if rows else None})
 
 
 @pytest.fixture

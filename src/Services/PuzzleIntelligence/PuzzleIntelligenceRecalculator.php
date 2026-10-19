@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PaceHistorySyncResult;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\FirstAttemptSet;
+use SpeedPuzzling\Web\Services\Insights\InsightsGeneration;
 use SpeedPuzzling\Web\Value\SkillTier;
 
 /**
@@ -42,11 +43,13 @@ readonly final class PuzzleIntelligenceRecalculator
         private ImprovementRatioCalculator $improvementRatioCalculator,
         private PaceTimelineLoader $paceTimelineLoader,
         private PredictionModelRecalculator $predictionModelRecalculator,
+        private RatingInsightsWriter $ratingInsightsWriter,
+        private InsightsGeneration $insightsGeneration,
     ) {
     }
 
     /**
-     * @return array{baselines_direct: int, baselines_interpolated: int, scaling_exponent: float, pace_history_changed_pairs: int, pace_history_rows_written: int, difficulties: int, drift_rows_written: int, metrics: int, improvement_ratios: int, skills: int, rating: int, history: int, snapshots: int, durations: array<string, float>, peak_memory: array<string, int>}
+     * @return array{baselines_direct: int, baselines_interpolated: int, scaling_exponent: float, pace_history_changed_pairs: int, pace_history_rows_written: int, difficulties: int, drift_rows_written: int, metrics: int, improvement_ratios: int, skills: int, rating: int, history: int, snapshots: int, durations: array<string, float>, peak_memory: array<string, int>, rating_entries: array{written: int, deleted: int}, rating_times: array{written: int, deleted: int}, generation: int}
      */
     public function recalculate(null|string $specificPlayer = null, null|string $specificPuzzle = null): array
     {
@@ -67,6 +70,7 @@ readonly final class PuzzleIntelligenceRecalculator
          * Level 4: Global learning rate + derived metrics (uses difficulty; indices ÷ the as-of pace)
          * Level 5: Player skills + MSP Rating + personality metrics (use difficulty)
          * Level 6: Rating snapshots + skill history (uses skills + rating)
+         * Level 7: Insights generation (after the last write: caches of batch data key on it)
          */
 
         // Seconds and the peak memory (MB) up to each step, printed by the command with -v (the batch's budget:
@@ -113,14 +117,17 @@ readonly final class PuzzleIntelligenceRecalculator
         unset($timeline);
         /** @var int $skills */
         $skills = $step('skills', fn (): int => $this->computePlayerSkills($now, $specificPlayer));
-        /** @var int $rating */
-        $rating = $step('ratings', fn (): int => $this->computeRatings($now, $specificPlayer));
+        /** @var array{rating: int, entries: array{written: int, deleted: int}, times: array{written: int, deleted: int}} $ratings */
+        $ratings = $step('ratings', fn (): array => $this->computeRatings($now, $specificPlayer));
 
         // Level 6: History + snapshots
         /** @var int $history */
         $history = $step('skill_history', fn (): int => $this->recordSkillHistory($now));
         /** @var int $snapshots */
         $snapshots = $step('snapshots', fn (): int => $this->recordRatingSnapshots($now));
+
+        // Level 7: Insights generation
+        $generation = $this->insightsGeneration->advance();
 
         return [
             'baselines_direct' => $baselines['direct'],
@@ -133,11 +140,14 @@ readonly final class PuzzleIntelligenceRecalculator
             'metrics' => $metrics,
             'improvement_ratios' => $improvementRatios,
             'skills' => $skills,
-            'rating' => $rating,
+            'rating' => $ratings['rating'],
             'history' => $history,
             'snapshots' => $snapshots,
             'durations' => $durations,
             'peak_memory' => $peakMemory,
+            'rating_entries' => $ratings['entries'],
+            'rating_times' => $ratings['times'],
+            'generation' => $generation,
         ];
     }
 
@@ -477,7 +487,13 @@ readonly final class PuzzleIntelligenceRecalculator
         return $count;
     }
 
-    private function computeRatings(\DateTimeImmutable $now, null|string $specificPlayer): int
+    /**
+     * Besides player_elo, stores what the rating is made of for Insights: every entry of every portfolio
+     * (player_rating_entry) and the sorted times of the rated and nearly rated puzzles (puzzle_rating_times).
+     *
+     * @return array{rating: int, entries: array{written: int, deleted: int}, times: array{written: int, deleted: int}}
+     */
+    private function computeRatings(\DateTimeImmutable $now, null|string $specificPlayer): array
     {
         // v2: Upsert-only approach — no DELETE before recompute.
         // Data is always present during recalculation (zero downtime).
@@ -485,6 +501,8 @@ readonly final class PuzzleIntelligenceRecalculator
         $players = $this->getPublicPlayersWithSolves($specificPlayer);
         $count = 0;
         $producedKeys = [];
+        $ratingEntries = $this->ratingInsightsWriter->openEntries($now);
+        $ratingTimes = $this->ratingInsightsWriter->openTimes();
 
         foreach (self::RATING_PIECES_COUNTS as $piecesCount) {
             $this->ratingCalculator->precomputePuzzleRankings($piecesCount);
@@ -496,7 +514,9 @@ readonly final class PuzzleIntelligenceRecalculator
             $buffer = [];
 
             foreach ($players as $playerId) {
-                $playerRating = $this->ratingCalculator->calculateForPlayer($playerId, $piecesCount);
+                $portfolio = $this->ratingCalculator->calculatePortfolio($playerId, $piecesCount);
+                $playerRating = $portfolio->rating;
+                $this->ratingInsightsWriter->addEntries($ratingEntries, $playerId, $piecesCount, $portfolio);
 
                 if ($playerRating > 0.0) {
                     $buffer[] = [
@@ -519,8 +539,12 @@ readonly final class PuzzleIntelligenceRecalculator
                 $this->flushRatingBuffer($buffer);
             }
 
+            $this->ratingInsightsWriter->addTimes($ratingTimes, $piecesCount, $this->ratingCalculator->puzzleRankings(), $now);
             $this->ratingCalculator->clearCache();
         }
+
+        $entries = $this->ratingInsightsWriter->finishEntries($ratingEntries, $specificPlayer);
+        $times = $this->ratingInsightsWriter->finishTimes($ratingTimes, $now);
 
         // Clean up: remove entries not produced in this run (players who no longer qualify)
         $this->deleteRowsNotProduced('player_elo', self::PLAYER_PIECES_KEY, $producedKeys, $now);
@@ -536,7 +560,7 @@ readonly final class PuzzleIntelligenceRecalculator
             'DELETE FROM player_elo WHERE player_id IN (SELECT id FROM player WHERE is_private = true)',
         );
 
-        return $count;
+        return ['rating' => $count, 'entries' => $entries, 'times' => $times];
     }
 
     /**

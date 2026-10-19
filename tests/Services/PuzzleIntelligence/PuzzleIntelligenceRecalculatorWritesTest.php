@@ -7,6 +7,8 @@ namespace SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence;
 use DateTimeImmutable;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Services\Insights\InsightsGeneration;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\ChangedRowsSync;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\DerivedMetricsCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\ImprovementRatioCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\MspRatingCalculator;
@@ -22,6 +24,7 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionModelParametersProvi
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionModelRecalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\RatingInsightsWriter;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
@@ -513,6 +516,8 @@ final class PuzzleIntelligenceRecalculatorWritesTest extends KernelTestCase
                 $paceTimelineLoader,
                 $baselineCalculator,
             ),
+            new RatingInsightsWriter($this->connection, new ChangedRowsSync($this->connection)),
+            new InsightsGeneration($this->connection, $clock),
         ))->recalculate();
     }
 

@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\Insights;
 
-use DateTimeImmutable;
-use IntlDateFormatter;
 use SpeedPuzzling\Web\Results\Insights\ImprovementCurveSize;
 use SpeedPuzzling\Web\Results\Insights\RatingForecastResult;
 use SpeedPuzzling\Web\Results\Insights\RatingOverTimeSeries;
 use SpeedPuzzling\Web\Results\Insights\ResolveCandidate;
 use SpeedPuzzling\Web\Results\Insights\ResolveRadarResult;
+use SpeedPuzzling\Web\Services\EventsPage\EventsPageDates;
 use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
 use SpeedPuzzling\Web\Value\RatingForecastScenario;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -35,6 +34,8 @@ readonly final class InsightsFramesChartsFactory
         private ChartBuilderInterface $chartBuilder,
         private TranslatorInterface $translator,
         private PuzzlingTimeFormatter $timeFormatter,
+        /** Locale-aware dates from ICU skeletons (the events pages' helper) */
+        private EventsPageDates $dates,
     ) {
     }
 
@@ -67,7 +68,7 @@ readonly final class InsightsFramesChartsFactory
         $labels = [];
 
         foreach ($first->points as $point) {
-            $labels[] = $point->monthsAhead === 0 ? $this->trans('frames.chart.now') : $this->date($point->date, 'LLL');
+            $labels[] = $point->monthsAhead === 0 ? $this->trans('frames.chart.now') : $this->dates->format($point->date, 'MMM');
         }
 
         $datasets = [];
@@ -93,7 +94,7 @@ readonly final class InsightsFramesChartsFactory
                 $lineTooltips[] = [
                     'title' => $name,
                     'lines' => [$this->trans('frames.chart.forecast_point', [
-                        '%when%' => $point->monthsAhead === 0 ? $this->trans('frames.chart.today') : $this->date($point->date, 'LLLL y'),
+                        '%when%' => $point->monthsAhead === 0 ? $this->trans('frames.chart.today') : $this->dates->format($point->date, 'yMMMM'),
                         '%rating%' => $rating,
                     ])],
                 ];
@@ -234,7 +235,7 @@ readonly final class InsightsFramesChartsFactory
             $you[] = ['x' => $point->firstTries, 'y' => $point->paceSeconds];
             $values[] = $point->paceSeconds;
             $youTooltips[] = [
-                'title' => $this->date($point->date, 'd MMM y'),
+                'title' => $this->dates->format($point->date, 'yMMMd'),
                 'lines' => [
                     $this->trans('frames.chart.pace', ['%pace%' => $this->timeFormatter->formatTime($point->paceSeconds)]),
                     $this->trans('frames.chart.first_tries', ['%count%' => $point->firstTries]),
@@ -328,7 +329,7 @@ readonly final class InsightsFramesChartsFactory
 
         foreach ($series->days as $day) {
             $rating = (int) round($day->rating);
-            $labels[] = $this->date($day->date, 'd MMM');
+            $labels[] = $this->dates->format($day->date, 'MMMd');
             $data[] = $rating;
             $lines = [$this->trans('frames.chart.rating', ['%rating%' => $rating])];
 
@@ -340,7 +341,7 @@ readonly final class InsightsFramesChartsFactory
                 $lines[] = $this->trans('frames.chart.rating_place', ['%place%' => $day->place]);
             }
 
-            $tooltips[] = ['title' => $this->date($day->date, 'd MMM y'), 'lines' => $lines];
+            $tooltips[] = ['title' => $this->dates->format($day->date, 'yMMMd'), 'lines' => $lines];
         }
 
         [$min, $max, $ticks] = self::niceTicks((int) floor(min($data) - 5), (int) ceil(max($data) + 5), 4);
@@ -420,12 +421,6 @@ readonly final class InsightsFramesChartsFactory
         return 7200;
     }
 
-    private function date(DateTimeImmutable $date, string $pattern): string
-    {
-        $formatter = new IntlDateFormatter($this->translator->getLocale(), IntlDateFormatter::NONE, IntlDateFormatter::NONE, 'UTC', null, $pattern);
-
-        return (string) $formatter->format($date);
-    }
 
     /**
      * @param array<string, mixed> $options

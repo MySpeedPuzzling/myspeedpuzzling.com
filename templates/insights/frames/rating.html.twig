@@ -189,7 +189,7 @@
             {%- if last is not null and ends.keep_pace is defined -%}
                 {{ 'insights.forecast.takeaway.base'|trans({
                     '%stop%': ends.stop.rating|round,
-                    '%month%': ends.stop.date|format_date(pattern: 'LLLL y'),
+                    '%month%': ends.stop.date|events_date('yMMMM'),
                     '%per_month%': forecast.firstTriesPerMonth|format_number({fraction_digit: 1}),
                     '%pace%': ends.keep_pace.rating|round,
                 })|raw }}
@@ -246,7 +246,7 @@
                     {% set milestones = milestones|merge([{
                         name: 'insights.forecast.milestones.results.name'|trans({'%count%': results.nextMilestone|format_number}),
                         meta: 'insights.forecast.milestones.results.meta'|trans({'%total%': results.results|format_number, '%per_month%': results.perMonth|round}),
-                        value: results.expectedAt is not null ? 'insights.forecast.milestones.results.around'|trans({'%month%': results.expectedAt|format_date(pattern: 'LLL y')}) : '–',
+                        value: results.expectedAt is not null ? 'insights.forecast.milestones.results.around'|trans({'%month%': results.expectedAt|events_date('yMMM')}) : '–',
                         testid: 'results',
                     }]) %}
                 {% endif %}

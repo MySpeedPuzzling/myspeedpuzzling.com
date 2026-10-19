@@ -54,7 +54,7 @@ readonly final class ResolvePersonalEstimates
         return PersonalEstimates::shown($this->getPersonalEstimates->forPuzzles(
             $viewer->playerId,
             $puzzleIds,
-            fn (PiecesGroup $group, ImageKind $kind): bool => $this->imageEstimateGate->passesFor($group, $kind),
+            fn (PiecesGroup $group, ImageKind $kind, string $generation): bool => $this->imageEstimateGate->passesFor($group, $kind, $generation),
         ));
     }
 

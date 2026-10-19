@@ -28,6 +28,8 @@
             {%- set window = estimate.window -%}
             {%- set range80 = estimate.range80 -%}
             {%- set certainty = estimate.certainty -%}
+            {#- Shown together: one style for both (PredictionWindowFormatter::ranges()) -#}
+            {%- set range_texts = window is not null and range80 is not null ? prediction_window_ranges(window, range80) : [window is not null ? window|prediction_window_range : '', ''] -%}
             <div class="est-card__state">{{ ('insights.estimate.state.' ~ estimate.basis.value)|trans({'%count%': estimate.basisCount, '%pieces%': pieces_count}) }}</div>
             <div class="est-card__time" data-testid="estimate-card-time">
                 {%- if estimate.isCommunity -%}
@@ -35,15 +37,15 @@
                 {%- else -%}
                     {{ 'insights.estimate.for_you'|trans({'%time%': estimate|estimate_time}) }}
                 {%- endif -%}
-                {%- if estimate.isEstimated %} <span class="visually-hidden">{{ 'insights.estimate.a11y.estimated'|trans }}</span>{% endif -%}
+                {%- if estimate.isEstimated %} <span class="visually-hidden">{{ 'insights.estimate.a11y.estimated_short'|trans }}</span>{% endif -%}
             </div>
             {{- include('insights/estimate/_bar.html.twig', {estimate: estimate, mini: false}, with_context = false) -}}
             <div class="est-card__lines">
                 {%- if window is not null -%}
-                    <div>{{ 'puzzle_intelligence.prediction.window.likely_half'|trans({'%range%': window|prediction_window_range}) }}</div>
+                    <div>{{ 'puzzle_intelligence.prediction.window.likely_half'|trans({'%range%': range_texts[0]}) }}</div>
                 {%- endif -%}
                 {%- if range80 is not null -%}
-                    <div class="est-card__note">{{ 'insights.estimate.range80_line'|trans({'%range%': range80|prediction_window_range}) }}{% if certainty is not null %} · {{ certainty.translationKey|trans }}{% endif %}</div>
+                    <div class="est-card__note">{{ 'insights.estimate.range80_line'|trans({'%range%': range_texts[1]}) }}{% if certainty is not null %} · {{ certainty.translationKey|trans }}{% endif %}</div>
                 {%- endif -%}
                 <div class="est-card__note">{{ ('insights.estimate.basis.' ~ estimate.basis.value)|trans({'%count%': estimate.basisCount, '%pieces%': pieces_count}) }}</div>
                 {%- if estimate.tier is not null or collection_context|default(null) is not null -%}
@@ -52,7 +54,7 @@
                             {{- include('insights/estimate/_chip.html.twig', {estimate: estimate}, with_context = false) -}}
                         {%- endif -%}
                         {%- if collection_context|default(null) is not null -%}
-                            <span class="est-card__context" data-testid="estimate-card-context">{{ ('insights.estimate.context.' ~ (collection_context.hardest ? 'hardest_' : 'easiest_') ~ collection_context.rank)|trans({'%pieces%': pieces_count}) }}</span>
+                            <span class="est-card__context" data-testid="estimate-card-context">{{ ('insights.estimate.context.' ~ (estimate.tierEstimated ? 'likely_' : '') ~ (collection_context.hardest ? 'hardest_' : 'easiest_') ~ collection_context.rank)|trans({'%pieces%': pieces_count}) }}</span>
                         {%- endif -%}
                     </div>
                 {%- endif -%}

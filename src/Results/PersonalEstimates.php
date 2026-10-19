@@ -65,6 +65,15 @@ readonly final class PersonalEstimates
         return $predictions;
     }
 
+    /**
+     * The viewer gets times on this page (a member who has not switched predictions off) - the estimate line then
+     * stands in for the collections' "+ predictions" pill
+     */
+    public function showsTimes(): bool
+    {
+        return $this->locked === false && $this->optedOut === false;
+    }
+
     public function hasAny(): bool
     {
         return $this->byPuzzle !== [];

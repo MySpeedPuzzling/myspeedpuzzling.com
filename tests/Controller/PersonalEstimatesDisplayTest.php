@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
+use SpeedPuzzling\Web\Tests\DataFixtures\CollectionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
@@ -215,6 +216,20 @@ final class PersonalEstimatesDisplayTest extends WebTestCase
         self::assertCount(1, $page->filter('[data-testid="estimate-card-none"]'));
     }
 
+    public function testAPassingRecordOfAnotherEstimateGenerationKeepsThePictureClosed(): void
+    {
+        // The record measured generation A ("… 0.9.0"); the puzzle's estimate is generation B ("… 1.0.0") - a derive
+        // model change nobody has evaluated yet: closed, whatever A's numbers say
+        $browser = $this->browser(flag: true, player: self::MEMBER);
+        $this->storePictureEstimate($browser, PuzzleFixture::PUZZLE_500_04, 0.3, 'box_front');
+        $this->storeGateRecord($browser, passing: true, generation: 'ridge-siglip2-dinov2 0.9.0');
+
+        $page = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_04);
+
+        self::assertCount(1, $page->filter('[data-testid="estimate-card-none"]'));
+        self::assertCount(0, $page->filter('[data-testid="estimate-card-time"]'));
+    }
+
     public function testASecretPuzzleOnAListHasNoEstimate(): void
     {
         $browser = $this->browser(flag: true, player: self::MEMBER);
@@ -231,6 +246,85 @@ final class PersonalEstimatesDisplayTest extends WebTestCase
 
         $page = $browser->request('GET', $url);
         self::assertCount(0, $page->filter('[data-puzzle-id="' . $secret . '"] [data-testid="estimate-line"]'), 'no estimate while the puzzle is secret');
+    }
+
+    /**
+     * The statements the estimates cost with the flag on (estimates.md "Cost"): the puzzle page = 1 estimate statement
+     * in place of GetPlayerPrediction's + the collection rank when the puzzle is in a collection (+ the gate record only
+     * for a k = 0 picture candidate - none here); the Picker = 1 in place of GetPlayerPredictions' for the cards; a custom
+     * collection = exactly one more than with the flag off.
+     */
+    public function testTheStatementBudgetsWithTheFlagOn(): void
+    {
+        $counts = [];
+        $sql = [];
+        $urls = [
+            'puzzle page' => '/en/puzzle/' . PuzzleFixture::PUZZLE_500_02,
+            'picker' => '/en/what-to-solve-next?seed=6c6c6c6c&pieces=500',
+            'custom collection' => '/en/collection/' . CollectionFixture::COLLECTION_STRIPE_TREFL,
+        ];
+
+        foreach ([false, true] as $flag) {
+            $browser = $this->browser(flag: $flag, player: self::MEMBER);
+
+            foreach ($urls as $name => $url) {
+                $browser->request('GET', $url);
+                $this->startCountingQueries($browser);
+                $browser->request('GET', $url);
+                self::assertResponseIsSuccessful($name);
+                $counts[$name][$flag ? 'on' : 'off'] = $this->queryCount($browser);
+                $sql[$name][$flag ? 'on' : 'off'] = $this->executedSql($browser);
+            }
+        }
+
+        $count = self::statementsWith(...);
+        $predictionStatements = self::predictionStatements(...);
+
+        /** @var Connection $connection */
+        $connection = self::getContainer()->get(Connection::class);
+        $inCollection = $connection->fetchOne('SELECT EXISTS (SELECT 1 FROM collection_item WHERE player_id = :player AND puzzle_id = :puzzle)', ['player' => self::MEMBER, 'puzzle' => PuzzleFixture::PUZZLE_500_02]) === true ? 1 : 0;
+
+        // Puzzle page
+        $on = $sql['puzzle page']['on'];
+        self::assertSame(1, $count($on, 'listed AS ('), 'one estimate statement');
+        self::assertSame($inCollection, $count($on, 'collection_item own'), 'the collection rank only for a puzzle in a collection');
+        self::assertSame(0, $count($on, 'image_estimate_evaluation'), 'no gate record without a k = 0 picture candidate');
+        self::assertSame(0, $predictionStatements($on), 'no GetPlayerPrediction statement while the card shows');
+        $off = $predictionStatements($sql['puzzle page']['off']);
+        self::assertGreaterThanOrEqual(2, $off);
+        self::assertSame($counts['puzzle page']['off'] - $off + 1 + $inCollection, $counts['puzzle page']['on'], sprintf('puzzle page: off %d (%d prediction statements), on %d, in collection %d', $counts['puzzle page']['off'], $off, $counts['puzzle page']['on'], $inCollection));
+
+        // Picker
+        $on = $sql['picker']['on'];
+        self::assertSame(1, $count($on, 'listed AS ('));
+        self::assertSame(0, $predictionStatements($on), 'no GetPlayerPredictions statement for the cards');
+        $off = $predictionStatements($sql['picker']['off']);
+        self::assertSame($counts['picker']['off'] - $off + 1, $counts['picker']['on'], sprintf("picker: off %d (%d prediction statements), on %d\n%s\n---\n%s", $counts['picker']['off'], $off, $counts['picker']['on'], implode("\n", array_map(static fn (string $q): string => substr($q, 0, 90), $sql['picker']['off'])), implode("\n", array_map(static fn (string $q): string => substr($q, 0, 90), $on))));
+
+        // Custom collection
+        self::assertSame($counts['custom collection']['off'] + 1, $counts['custom collection']['on']);
+    }
+
+    public function testTheEstimateLineStandsInForThePredictionPillWithoutLoadingThePredictionsTwice(): void
+    {
+        $browser = $this->browser(flag: true, player: self::MEMBER);
+        /** @var Connection $connection */
+        $connection = $browser->getContainer()->get(Connection::class);
+        $connection->executeStatement("UPDATE player SET collection_display_mode = 'times_predictions' WHERE id = :id", ['id' => self::MEMBER]);
+        $url = $this->pages()['system collection'];
+
+        $browser->request('GET', $url);
+        $this->startCountingQueries($browser);
+        $page = $browser->request('GET', $url);
+
+        self::assertResponseIsSuccessful();
+        self::assertGreaterThan(0, $page->filter('[data-testid="estimate-line"]')->count());
+        self::assertGreaterThan(0, $page->filter('.collection-my-times')->count(), 'the display mode still shows the own times');
+        self::assertCount(0, $page->filter('.collection-prediction'), 'the line stands in for the pill');
+
+        foreach ($this->executedSql($browser) as $statement) {
+            self::assertStringNotContainsString('json_object_agg(from_attempt, median_ratio)', $statement, 'GetPlayerPredictions is not loaded a second time');
+        }
     }
 
     public function testThePickerCardCarriesTheLine(): void
@@ -278,6 +372,39 @@ final class PersonalEstimatesDisplayTest extends WebTestCase
         });
     }
 
+    /**
+     * @param list<string> $statements
+     */
+    private static function statementsWith(array $statements, string $marker): int
+    {
+        return count(array_filter($statements, static fn (string $statement): bool => str_contains($statement, $marker)));
+    }
+
+    /**
+     * GetPlayerPrediction (one puzzle) and GetPlayerPredictions (many): what the estimate statement replaces. The logged
+     * SQL carries positional placeholders, so no marker names a parameter.
+     *
+     * @param list<string> $statements
+     */
+    private static function predictionStatements(array $statements): int
+    {
+        $markers = ['AS solved_at', 'SELECT pieces_count FROM puzzle WHERE id =', 'AND from_attempt =', 'global_improvement_ratio WHERE pieces_count', 'AS model_parameters', 'json_object_agg(from_attempt, median_ratio)', 'ORDER BY pst.puzzle_id, COALESCE', 'own_pace AS ('];
+
+        return count(array_filter($statements, static function (string $statement) use ($markers): bool {
+            if (str_contains($statement, 'listed AS (')) {
+                return false;
+            }
+
+            foreach ($markers as $marker) {
+                if (str_contains($statement, $marker)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }));
+    }
+
     private function storePictureEstimate(KernelBrowser $browser, string $puzzleId, float $logDifficulty, string $artworkKind): void
     {
         /** @var Connection $connection */
@@ -297,7 +424,7 @@ final class PersonalEstimatesDisplayTest extends WebTestCase
         );
     }
 
-    private function storeGateRecord(KernelBrowser $browser, bool $passing): void
+    private function storeGateRecord(KernelBrowser $browser, bool $passing, string $generation = 'ridge-siglip2-dinov2 1.0.0'): void
     {
         /** @var Connection $connection */
         $connection = $browser->getContainer()->get(Connection::class);
@@ -311,6 +438,7 @@ final class PersonalEstimatesDisplayTest extends WebTestCase
             'alwaysAverage' => 0.46,
             'window50Hit' => 0.51,
             'window80Hit' => 0.79,
+            'estimateModels' => [$generation => 120],
         ];
         $connection->executeStatement(
             "INSERT INTO image_estimate_evaluation (id, evaluated_at, model_version, newer_than, measured_min_indices, groups, overall, by_k)

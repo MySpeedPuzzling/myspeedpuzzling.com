@@ -128,14 +128,17 @@
                         {{ include('insights/estimate/_line.html.twig', {estimates: estimates, puzzle_id: suggestion.puzzleId, name: suggestion.puzzleName}, with_context = false) }}
                     </div>
                     {% set estimate = estimates.of(suggestion.puzzleId) %}
+                    {# Against the raw prediction, never the rounded time; said only when the difference is at least the
+                       shown time's rounding step - "≈ 3h" must not claim to beat a 3:04:00 best by 30 seconds #}
                     {% if suggestion.myFastestSeconds is not null and estimate.prediction is not null %}
-                        {% set delta_minutes = ((suggestion.myFastestSeconds - estimate.roundedSeconds) / 60)|round %}
-                        {% if delta_minutes > 0 %}
-                            <div class="text-success puzzle-picker-prediction-vs-best"><i class="bi bi-arrow-right-short"></i>{{ 'puzzle_picker.card.prediction_beats_record'|trans({'%delta%': (delta_minutes * 60)|compactTime}) }}</div>
-                        {% elseif delta_minutes < 0 %}
-                            <div class="text-muted puzzle-picker-prediction-vs-best"><i class="bi bi-arrow-right-short"></i>{{ 'puzzle_picker.card.prediction_slower_than_best'|trans({'%delta%': (delta_minutes|abs * 60)|compactTime}) }}</div>
-                        {% else %}
-                            <div class="text-muted puzzle-picker-prediction-vs-best"><i class="bi bi-arrow-right-short"></i>{{ 'puzzle_picker.card.prediction_at_best'|trans }}</div>
+                        {% set delta_seconds = suggestion.myFastestSeconds - estimate.prediction.predictedSeconds %}
+                        {% if delta_seconds|abs >= estimate.stepSeconds %}
+                            {% set delta_text = ((delta_seconds|abs / 60)|round * 60)|compactTime %}
+                            {% if delta_seconds > 0 %}
+                                <div class="text-success puzzle-picker-prediction-vs-best"><i class="bi bi-arrow-right-short"></i>{{ 'puzzle_picker.card.prediction_beats_record'|trans({'%delta%': delta_text}) }}</div>
+                            {% else %}
+                                <div class="text-muted puzzle-picker-prediction-vs-best"><i class="bi bi-arrow-right-short"></i>{{ 'puzzle_picker.card.prediction_slower_than_best'|trans({'%delta%': delta_text}) }}</div>
+                            {% endif %}
                         {% endif %}
                     {% endif %}
                 {% else %}

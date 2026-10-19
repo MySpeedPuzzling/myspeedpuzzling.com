@@ -213,6 +213,7 @@ final class ResolveRadarAndShelfPicksTest extends KernelTestCase
                 'alwaysAverage' => 0.4,
                 'window50Hit' => 0.5,
                 'window80Hit' => 0.8,
+                'estimateModels' => ['ridge-siglip2-dinov2 1.0.0' => 80],
             ]], JSON_THROW_ON_ERROR)],
         );
         self::getContainer()->get('services_resetter')->reset();

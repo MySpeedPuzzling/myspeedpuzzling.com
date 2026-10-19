@@ -25,14 +25,38 @@ readonly final class PredictionWindowFormatter
 
     public function range(PredictionWindow $window): string
     {
-        $low = $window->lowSeconds;
-        $high = $window->highSeconds;
+        return $this->format($window, self::minutesOnly($window));
+    }
 
-        if ($low % 60 === 0 && $high % 60 === 0 && $low < 3600 && $high < self::MINUTES_ONLY_BELOW_SECONDS) {
-            return sprintf('%d–%d min', intdiv($low, 60), intdiv($high, 60));
+    /**
+     * Two windows shown together - the 50 % window and the 80 % range of a personal estimate
+     * (docs/features/insights/estimates.md): one style for both, minutes only when both qualify. Apart, "1h – 1h 9min"
+     * next to "57–74 min" read like two different units.
+     *
+     * @return array{0: string, 1: string}
+     */
+    public function ranges(PredictionWindow $window, PredictionWindow $range80): array
+    {
+        $minutesOnly = self::minutesOnly($window) && self::minutesOnly($range80);
+
+        return [$this->format($window, $minutesOnly), $this->format($range80, $minutesOnly)];
+    }
+
+    private static function minutesOnly(PredictionWindow $window): bool
+    {
+        return $window->lowSeconds % 60 === 0
+            && $window->highSeconds % 60 === 0
+            && $window->lowSeconds < 3600
+            && $window->highSeconds < self::MINUTES_ONLY_BELOW_SECONDS;
+    }
+
+    private function format(PredictionWindow $window, bool $minutesOnly): string
+    {
+        if ($minutesOnly) {
+            return sprintf('%d–%d min', intdiv($window->lowSeconds, 60), intdiv($window->highSeconds, 60));
         }
 
-        return $this->timeFormatter->compactTime($low) . ' – ' . $this->timeFormatter->compactTime($high);
+        return $this->timeFormatter->compactTime($window->lowSeconds) . ' – ' . $this->timeFormatter->compactTime($window->highSeconds);
     }
 
     /**

@@ -80,9 +80,13 @@ final class CollectionDetailController extends AbstractController
 
         // The viewer's own times (+ predictions) next to each item - always the
         // viewer's, also on somebody else's public collection
+        // The viewer's own time on each puzzle - null while Insights are hidden from them (docs/features/insights/estimates.md)
+        $estimates = $this->resolvePersonalEstimates->forViewer($loggedPlayerProfile, array_column($items, 'puzzleId'));
+
         $display = $this->resolveCollectionDisplay->forViewer(
             $loggedPlayerProfile,
             array_map(static fn (CollectionItemOverview $item): string => $item->puzzleId, $items),
+            estimatesShowTimes: $estimates?->showsTimes() === true,
         );
 
         $collectionOverview = new CollectionOverview(
@@ -106,8 +110,7 @@ final class CollectionDetailController extends AbstractController
             'system_collection_id' => Collection::SYSTEM_ID,
             ...$display->templateParameters(),
             ...$this->resolvePuzzleListInsights->forViewer($loggedPlayerProfile, array_column($items, 'puzzleId'))->templateParameters(),
-            // The viewer's own time on each puzzle - null while Insights are hidden from them (docs/features/insights/estimates.md)
-            'estimates' => $this->resolvePersonalEstimates->forViewer($loggedPlayerProfile, array_column($items, 'puzzleId')),
+            'estimates' => $estimates,
         ]);
     }
 }

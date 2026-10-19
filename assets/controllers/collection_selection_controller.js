@@ -70,7 +70,8 @@ export default class extends Controller {
 
         const card = event.target.closest('[data-collection-filter-target~="item"]');
 
-        if (card === null || !this.element.contains(card) || event.target.closest('input, .collection-select-check')) {
+        // The personal estimate opens its own sheet (docs/features/insights/estimates.md) - never ticks the card
+        if (card === null || !this.element.contains(card) || event.target.closest('input, .collection-select-check, .est-line')) {
             return;
         }
 

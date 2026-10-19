@@ -108,7 +108,7 @@ readonly final class ShelfPicks
         $estimates = $this->getPersonalEstimates->forPuzzles(
             $playerId,
             array_map(strval(...), array_keys($rated)),
-            fn (PiecesGroup $group, ImageKind $kind): bool => $this->imageEstimateGate->passesFor($group, $kind),
+            fn (PiecesGroup $group, ImageKind $kind, string $generation): bool => $this->imageEstimateGate->passesFor($group, $kind, $generation),
         );
         $expected = [];
 

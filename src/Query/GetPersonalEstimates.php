@@ -55,7 +55,8 @@ readonly final class GetPersonalEstimates
 
     /**
      * @param array<string> $puzzleIds duplicates are fine
-     * @param callable(PiecesGroup, ImageKind): bool $pictureShown whether picture-only estimates show for the group
+     * @param callable(PiecesGroup, ImageKind, string): bool $pictureShown whether picture-only estimates of this estimate
+     *                                                         generation show for the group (ImageEstimateGate::passesFor())
      *
      * @return array<string, PersonalEstimate> keyed by puzzle id; a puzzle without anything to show is missing
      */
@@ -104,7 +105,7 @@ readonly final class GetPersonalEstimates
             $k = $inputs->kIndices;
             $group = PiecesGroup::fromPiecesCount($inputs->piecesCount);
             // Asked once per puzzle at most, and only for a puzzle nobody has measured that has a picture estimate
-            $pictureOpen = $k === 0 && $imageEstimate !== null && $pictureShown($group, $imageEstimate->kind);
+            $pictureOpen = $k === 0 && $imageEstimate !== null && $pictureShown($group, $imageEstimate->kind, $imageEstimate->generation());
             $pictureEstimate = $pictureOpen ? $imageEstimate : null;
             [$tier, $tierEstimated, $difficulty] = $this->tierOf($row, $inputs, $pictureEstimate, $parameters);
 

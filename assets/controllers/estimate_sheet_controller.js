@@ -49,6 +49,8 @@ export default class extends Controller {
         this.toggleRow(sheet, 'tier', chip !== null);
         this.toggleRow(sheet, 'estimated', this.estimatedValue);
 
+        // Bootstrap gives the focus back only to a data-bs-toggle trigger - this one is not
+        sheet.addEventListener('hidden.bs.modal', () => this.element.focus(), { once: true });
         Modal.getOrCreateInstance(sheet).show(this.element);
     }
 

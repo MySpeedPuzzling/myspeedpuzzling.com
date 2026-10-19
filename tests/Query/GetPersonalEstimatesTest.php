@@ -123,15 +123,15 @@ final class GetPersonalEstimatesTest extends KernelTestCase
     {
         $this->storeEstimate(PuzzleFixture::PUZZLE_500_04, self::LOG_500_04, 'box_front');
         $asked = [];
-        $gate = static function (PiecesGroup $group, ImageKind $kind) use (&$asked): bool {
-            $asked[] = [$group, $kind];
+        $gate = static function (PiecesGroup $group, ImageKind $kind, string $generation) use (&$asked): bool {
+            $asked[] = [$group, $kind, $generation];
 
             return true;
         };
 
         $estimate = $this->estimates->forPuzzles(PlayerFixture::PLAYER_WITH_STRIPE, [PuzzleFixture::PUZZLE_500_04], $gate)[PuzzleFixture::PUZZLE_500_04] ?? null;
 
-        self::assertSame([[PiecesGroup::FiveHundred, ImageKind::Box]], $asked, 'the gate is asked for the size group × image kind');
+        self::assertSame([[PiecesGroup::FiveHundred, ImageKind::Box, 'ridge-siglip2-dinov2 1.0.0']], $asked, 'the gate is asked for the size group × image kind × estimate generation');
         self::assertInstanceOf(PersonalEstimate::class, $estimate);
         self::assertSame(EstimateBasis::Picture, $estimate->basis);
         self::assertTrue($estimate->isEstimated());

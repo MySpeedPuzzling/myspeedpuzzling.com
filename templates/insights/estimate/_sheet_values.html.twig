@@ -6,6 +6,8 @@
 {%- set window = estimate.window -%}
 {%- set range80 = estimate.range80 -%}
 {%- set certainty = estimate.certainty -%}
+{#- Shown together: one style for both (PredictionWindowFormatter::ranges()) -#}
+{%- set range_texts = window is not null and range80 is not null ? prediction_window_ranges(window, range80) : [window is not null ? window|prediction_window_range : '', ''] -%}
 {%- if estimate.isCommunity -%}
     {%- set time_text = 'insights.estimate.community_time'|trans({'%time%': estimate|estimate_time}) -%}
 {%- else -%}
@@ -16,8 +18,8 @@ data-controller="estimate-sheet"
 data-action="estimate-sheet#open"
 data-estimate-sheet-name-value="{{ name|default('') }}"
 data-estimate-sheet-time-value="{{ time_text }}"
-data-estimate-sheet-likely-value="{{ window is not null ? window|prediction_window_range : '' }}"
-data-estimate-sheet-range80-value="{{ range80 is not null ? range80|prediction_window_range : '' }}"
+data-estimate-sheet-likely-value="{{ range_texts[0] }}"
+data-estimate-sheet-range80-value="{{ range_texts[1] }}"
 data-estimate-sheet-basis-value="{{ basis_text }}"
 data-estimate-sheet-certainty-value="{{ certainty is not null ? certainty.translationKey|trans : '' }}"
 data-estimate-sheet-estimated-value="{{ estimate.isEstimated ? 'true' : 'false' }}"

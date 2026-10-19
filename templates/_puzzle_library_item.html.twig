@@ -94,7 +94,7 @@
      {% endif %}
      {% if show_my_times %}
      data-my-fastest-seconds="{{ my_time is not null and my_time.fastestSeconds is not null ? my_time.fastestSeconds : '' }}"
-     data-predicted-seconds="{{ my_prediction is not null ? my_prediction.predictedSeconds : '' }}"
+     data-predicted-seconds="{{ my_prediction is not null ? my_prediction.predictedSeconds : (estimates|default(null) is not null and estimates.of(item.puzzleId) is not null and estimates.of(item.puzzleId).prediction is not null ? estimates.of(item.puzzleId).prediction.predictedSeconds : '') }}"
      {% endif %}
      {# The search filter reads the stored keys, folded by the server (lend/borrow lists have no filter) #}
      {% if item.searchNames is defined %}
@@ -135,7 +135,7 @@
 
             <div class="ps-2 flex-grow-1">
                 <div class="d-flex justify-content-between">
-                    <div class="pe-2{{ estimates|default(null) is not null ? ' est-host' }}">
+                    <div class="pe-2{{ estimates|default(null) is not null and estimates.of(item.puzzleId) is not null ? ' est-host' }}">
                         {# Puzzle name link - the column takes the row's width while the estimate line is in it (its
                            width comes from the column: docs/features/insights/estimates.md) #}
                         <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}"

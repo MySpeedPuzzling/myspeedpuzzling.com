@@ -10,8 +10,8 @@ tab → "Image prediction" (option C, mobile first). Gates: [`image-estimate-gat
 | Where | What |
 |---|---|
 | Puzzle page | The card above the actions (`insights/estimate/_card.html.twig`): what it rests on ("20 solves · measured"), "≈ 3h for you", the certainty bar, "Likely 2h 40min – 3h · half of solves land inside", "8 in 10 solves: 2h 30min – 3h 10min · Quite sure", what it rests on in a sentence, the tier chip, and a context line from the player's collection ("The 2nd-hardest 1000-piece puzzle in your collection"). The head's tier shows the estimated tier ("Hard?", dashed) in place of "not enough data" |
-| Collections (system + custom), wishlist, unsolved | One line under the pieces (`insights/estimate/_line.html.twig`): **≈ time · tiny certainty bar · tier chip** |
-| Puzzle Picker card | The same line in place of the card's prediction row (the "vs your best" line stays, against the shown time) |
+| Collections (system + custom), wishlist, unsolved | One line under the pieces (`insights/estimate/_line.html.twig`): **≈ time · tiny certainty bar · tier chip**. In the collections' "times + predictions" display mode the line stands in for the prediction pill, so `ResolveCollectionDisplay` does not load `GetPlayerPredictions` a second time (`estimatesShowTimes`). In selection mode a tap on the line opens the sheet and never ticks the card |
+| Puzzle Picker card | The same line in place of the card's prediction row. The "vs your best" line stays: measured from the raw prediction (never the rounded time) and said only when the difference is at least the shown time's rounding step - "≈ 3h" never "beats" a 3:04:00 best by 30 seconds (`PuzzlePickerCardEstimateTest`) |
 | Marketplace card | The same line under the puzzle's link; an estimated tier on the picture's corner (dashed ring + "?") |
 | The sheet | A tap on a line opens `#estimate-sheet` (one per page, `base.html.twig`): the time, the 50 % likely window, the 80 % range, what it rests on, how sure, the tier. A bottom sheet on phones |
 
@@ -47,7 +47,7 @@ collections prediction rows (while the flag hides the estimates), the recap's li
 | The player solved it before (solo, valid, boxed) | the personal (repeat) prediction | `your_solves` | no |
 | 5+ difficulty indices | the statistical prediction (pace × measured difficulty × drift) | `measured` | no |
 | 1-4 indices | the statistical prediction, difficulty shrunk toward brand × pieces | `first_solves` | yes |
-| 0 indices, a picture estimate of the current picture, **its gate passed** (size group × image kind) | pace × drift × exp(estimate) - the stored `image` side row's number, window from the estimate's interval | `picture` | yes |
+| 0 indices, a picture estimate of the current picture, **its gate passed** (size group × image kind × the estimate's generation - a record vouches only for the estimate generation it measured, `image-estimate-gates.md`) | pace × drift × exp(estimate) - the stored `image` side row's number, window from the estimate's interval | `picture` | yes |
 | 0 indices otherwise | nothing (the prior-only number is never shown) | - | - |
 | The player has no baseline at any piece count (and no repeat) | the community's median direct pace at the piece count (≥ 20 puzzlers), clearly labelled "Typically ≈ …", no window, no bar | `community` | no |
 | Secret puzzle (`hide_until` / `hide_image_until` ahead) | nothing, whatever it has | - | - |
@@ -70,13 +70,19 @@ picture's tier where its gate passed (both dashed + "?").
   It never contradicts the window next to it: when the step would put it outside the shown 50 % window (a narrow
   window on the minute grid), it rounds on the window's step ("≈ 1h 5min" in a 1h 1min – 1h 9min window).
 - **Windows**: Phase 3c's `PredictionWindow` / `PredictionWindowFormatter` (nearest step, ties inward); the 80 % range
-  only in the sheet and on the card.
+  only in the sheet and on the card. Shown together, both go through one formatting decision
+  (`PredictionWindowFormatter::ranges()`, Twig `prediction_window_ranges()`): minutes only when both qualify, else both
+  in hours - "1h – 1h 9min" with "57min – 1h 14min", never next to "57–74 min".
 - **Certainty bar**: the 80 % range drawn on a scale of the time × 0.5 … × 1.5, the time in the middle - wide = unsure.
   No numbers on it, hidden from screen readers.
 - **How sure** (`EstimateCertainty`, from the 80 % range ÷ the time): ≤ 30 % "Quite sure", ≤ 55 % "Fairly sure", wider
   "A rough estimate" (a measured 500 of a steady player ~25 %, a picture-only estimate ~45-60 %).
 - **Estimated vs measured is never colour alone**: dashed outline + "?" after the tier + "(estimated)" in the accessible
-  name (chip, corner); the card's outline is dashed too; the line's hidden text says "for you, estimated".
+  name (chip, corner); the card's outline is dashed too and its time carries a hidden "(estimated)" (it already says
+  "for you"); the line's hidden text says "for you, estimated". The sheet gives the focus back to the line it was opened
+  from.
+- **Context line** on the card: "The 2nd-hardest 1000-piece puzzle in your collection" on a measured tier, "Likely the
+  2nd-hardest …" on an estimated one.
 - **One line** (`.est-line`): `white-space: nowrap`, the time never shrinks, the chip's label is dropped by a container
   query once the line is narrower than the longest time + bar + label needs (14.5 rem, German 16.5 rem - measured in all
   6 locales: 206-216 px, German 240 px), the chip clips as the last guard. In a library row the column holding the
@@ -91,9 +97,9 @@ picture's tier where its gate passed (both dashed + "?").
 
 | Page | Flag off / non-admin | Flag on, member |
 |---|---|---|
-| Puzzle page | unchanged | `GetPlayerPrediction` (2-4 statements) replaced by 1; + 1 collection-rank statement when the puzzle is in the player's collection; + 1 gate record when the puzzle has a picture estimate and nobody measured it |
-| Collections, wishlist, unsolved, marketplace | unchanged | **+ 1** (pinned by `PersonalEstimatesDisplayTest::testListsShowOneLinePerRowForOneStatementMore`), + 1 gate record only with a k = 0 picture candidate |
-| Picker | unchanged | `GetPlayerPredictions::forPuzzles()` for the picked cards (up to 4, unless the pick memoised them) replaced by 1 (+ gate). The Picker's own SQL is untouched - no re-measure needed |
+| Puzzle page | unchanged | `GetPlayerPrediction` (2-4 statements) replaced by 1; + 1 collection-rank statement when the puzzle is in the player's collection; + 1 gate record when the puzzle has a picture estimate and nobody measured it (pinned by `testTheStatementBudgetsWithTheFlagOn`) |
+| Collections, wishlist, unsolved, marketplace | unchanged | **+ 1** (pinned by `PersonalEstimatesDisplayTest::testListsShowOneLinePerRowForOneStatementMore` and, for a custom collection, `testTheStatementBudgetsWithTheFlagOn`), + 1 gate record only with a k = 0 picture candidate; the "+ predictions" display mode no longer loads `GetPlayerPredictions` (up to 4 fewer) |
+| Picker | unchanged | `GetPlayerPredictions::forPuzzles()` for the picked cards (up to 4, unless the pick memoised them) replaced by 1 (+ gate), pinned by `testTheStatementBudgetsWithTheFlagOn`. The Picker's own SQL is untouched - no re-measure needed |
 | Insights page, shelf picks (`ShelfPicks`) | - | 4 + gate (was 7: `GetPlayerPredictions` replaced by `GetPersonalEstimates`) |
 
 **Measured 2026-10-19** on a copy of the dev database (production data, 41k puzzles, 523k times; migrated and fitted
@@ -149,6 +155,8 @@ on the production copy with synthetic picture estimates; they are not in the rep
   `blend_prior_log` for k = 0 (measure the Picker then).
 
 ## Not built / follow-ups
+
+(Also in `docs/TODO.md`, "Insights page".)
 
 - Estimated tiers on the other thumbnail corners (profile results, recent activity, ladders, most solved, round
   results, result detail, calendar): only the marketplace cards carry them (they have the estimates anyway).

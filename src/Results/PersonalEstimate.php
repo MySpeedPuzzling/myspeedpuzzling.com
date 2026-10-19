@@ -83,6 +83,14 @@ readonly final class PersonalEstimate
         return PredictionWindow::rounded($prediction->range80LowSeconds, $prediction->range80HighSeconds, $prediction->predictedSeconds);
     }
 
+    /**
+     * The rounding step of the shown time (EstimateTime::stepFor()) - a difference smaller than it says nothing
+     */
+    public function stepSeconds(): int
+    {
+        return EstimateTime::stepFor($this->seconds());
+    }
+
     public function isEstimated(): bool
     {
         return $this->basis->isEstimated();

@@ -198,4 +198,4 @@ Decisions for Phase 6 (orchestrator, 2026-10-19):
   `profile.timezone`, and wires `InsightsCriteria::cacheKey($timezone)` into 4c's `InsightsCacheKey`.
 - 3b: a live add in the minutes between a deploy and the first fit writes a v3 side row from the defaults
   (docs/TODO.md); stale leave-one-out, fit centre vs live baseline, RepeatHistory same-moment exclusion are in
-  docs/TODO.md. Measure the prod batch and Picker after the one-off backfill (below).
+  docs/TODO.md. Measured on prod 2026-10-19: batch 25.4-25.8 s (TODO.md); Puzzle Picker whole requests (Sentry) last 4 h after 3b p50 93 ms / p95 122 ms (n = 40) vs the 7-day baseline p50 76 ms / p95 127 ms (n = 3,880) - re-check over a full day.

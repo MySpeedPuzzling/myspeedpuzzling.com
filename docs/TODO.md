@@ -419,10 +419,15 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
 - [ ] Puzzle page: make Puzzle Insights easier to reach - the side-panel dropdown needs scrolling to see all data;
       consider opening the insights in a full-screen popup/modal. Promised to HighMansWith_An_S (MSP #312, follow-up
       F139).
-- [ ] Series pick matching: when several editions tie on the same revealed round puzzle (or date), pick the one edition
-      the player is registered in as a participant (a league runs the same puzzles at several venues in the same weeks,
-      so today every such time stays series-level) - SeriesEditionMatch,
-      docs/features/events-page/high-frequency-series.md. Promised to Dakota (MSP #331, follow-up F149).
+- [ ] Results stay secret while their round puzzle is secret: a solving time linked to a round whose puzzle has not
+      been revealed yet is shown only to its people (tracker + registered pair/team members), the event's team and
+      admins - nowhere else (leaderboards, feeds, profiles, puzzle page, stats, API) until the reveal moment
+      (`RoundPuzzleReveal`), so an organiser running the same puzzles at several venues on different days can keep them
+      secret until e.g. Friday. Idea: stored `puzzle_solving_time.hidden_until` kept in sync by the add/edit handlers,
+      round/series reconcilers and the reveal handlers, one read fragment like `HiddenPlayers` + a coverage test like
+      `SuspiciousTimeQueryCoverageTest` + a canary. **Needs a proper plan first** (Jan, 2026-10-19): who exactly sees it,
+      times not linked to the event, official results, notifications/e-mails, achievements/XP and stats recomputation.
+      Promised to Dakota (MSP #331, follow-up F149).
 - [ ] Add/edit event form: when 'recurring series' is ticked, make Location optional for the series and explain in the
       help text that every edition has its own location, dates, rounds, participants and results (an organiser read
       'series' as 'same place every time') - CompetitionFormData, add_competition.html.twig, all 6 locales. Promised to

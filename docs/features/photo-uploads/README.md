@@ -86,7 +86,8 @@ Why this one:
 - `PhotoUploadStartController` - `POST /{_locale}/photo-upload`, JSON + `X-CSRF-Token` (stateless id `photo_upload`),
   signed in. Body `{bytes, type, name, token?, replaces?}` → `{token, url, headers, expiresAtMs}`. Refusals are JSON
   `{error}` the browser does not show - it then sends the photo with the form. Rate limiter `photo_upload`
-  (120 new places per player and hour; a re-sign of the same token is free). Kill switch `DIRECT_PHOTO_UPLOADS`
+  (2000 new places per player and hour - an abuse ceiling only, a player catching up on photos for old results must
+  never meet it; a re-sign of the same token is free). Kill switch `DIRECT_PHOTO_UPLOADS`
   (docs/features/feature_flags.md): 404 `disabled`, and the pages stop asking.
 - `DirectPhotoUpload::start()` - refuses what the form would refuse (empty, > `PhotoUploadLimits::MAX_PHOTO_BYTES`,
   a type not in `MIME_TYPES`), reserves a place (`PhotoStash::reserve()`: the `.json` description now, the photo

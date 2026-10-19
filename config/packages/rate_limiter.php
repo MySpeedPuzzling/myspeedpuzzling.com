@@ -116,11 +116,11 @@ return App::config([
                 'interval' => '1 hour',
             ],
             // Background photo uploads straight to object storage (PhotoUploadStartController,
-            // docs/features/photo-uploads/README.md): every new place is a photo in our bucket for a day. Per player:
-            // many forms and quick-adds in a row (a re-picked photo counts again), never a free image host.
+            // docs/features/photo-uploads/README.md): every new place is a photo in our bucket for a day. Only an abuse
+            // ceiling, never a real player's: a player adding photos to their old results did ~270 in 2 h (2026-10-19).
             'photo_upload' => [
                 'policy' => 'sliding_window',
-                'limit' => 120,
+                'limit' => 2000,
                 'interval' => '1 hour',
             ],
             // Public API catalog search (GET /api/v1/puzzles) - the only unbounded

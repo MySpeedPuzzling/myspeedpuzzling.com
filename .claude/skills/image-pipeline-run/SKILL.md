@@ -1,7 +1,7 @@
 ---
 name: image-pipeline-run
 description: Start or resume this Mac's image pipeline profile (tools/puzzle-vision) - backfill until done, a time-capped run, one phase, or daily mode - and report progress. Use when the user says "/image-pipeline-run", "start the backfill", "run the image pipeline for 6 hours", "resume the pipeline", "stop the pipeline".
-argument-hint: "[--profile m3-max|m1-air] [--hours N] [--phase X] [--daily|--follow]"
+argument-hint: "[--profile m3-max|m1-air|m3-solo] [--hours N] [--phase X] [--daily|--follow]"
 allowed-tools: Bash, Read
 ---
 

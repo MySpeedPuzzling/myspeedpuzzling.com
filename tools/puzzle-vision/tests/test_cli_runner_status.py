@@ -154,3 +154,7 @@ def test_setup_check_reports_without_loading_anything(tmp_path):
     assert not checks["model google/siglip2-so400m-patch14-384"].ok
     assert checks["model mlx-community/Qwen3.5-9B-MLX-4bit"].ok  # behind the describe-parity gate
     assert all(c.line().startswith(("PASS", "FAIL")) for c in checks.values())
+    solo = {c.name: c for c in run_checks(profiles.load("m3-solo"), s, api_factory=None, cache=tmp_path / "hub")}
+    for repo in ("google/siglip2-so400m-patch14-384", "mlx-community/Qwen3-VL-4B-Instruct-4bit", "facebook/dinov2-large",
+                 "tue-mps/coco_panoptic_eomt_large_640", "mlx-community/Qwen3.5-9B-MLX-4bit"):
+        assert not solo[f"model {repo}"].ok  # one Mac needs every model, describe's included (no gate)

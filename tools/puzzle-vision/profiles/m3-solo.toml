@@ -1,0 +1,133 @@
+# MacBook Pro M3 Max 36 GB running EVERY analyzer alone (the M1 Air is out for now) - image-pipeline.md §1 "One Mac".
+# Versions must equal m3-max.toml and m1-air.toml (tests pin it): one version per analyzer at a time.
+# Phases run in launch order: the picture-based difficulty estimate (derive/difficulty_prior.py) reads only `artwork`,
+# `embed_siglip2` + `embed_dinov2` (crop) and `embed_siglip2_full`, so those come first and `describe` (~5 days) last.
+# seconds_per_image = the M3 measurements of image-taxonomy.md §19 (analyzers.M3_SECONDS_PER_IMAGE), idle machine;
+# the images come from the cache the artwork phase filled, so no stage after it waits on downloads.
+name = "m3-solo"
+description = "M3 Max 36 GB alone: artwork, the embeddings (difficulty estimate), Apple Vision, segmentation + labels (+ colours/traits), describe last"
+
+[analyzers.artwork]
+version = "1.0.0+siglip2-q3vl4b"
+requires = []
+claim_limit = 50
+seconds_per_image = 2.6  # per VLM picture (~76 % of them); ~2.0 per puzzle with the flat ones trimmed
+
+[analyzers.embed_siglip2_full]
+version = "1.0.0+so400m-14-384"
+requires = []
+claim_limit = 200
+seconds_per_image = 0.18  # §19: 0.36 per puzzle for crop + full
+
+[analyzers.embed_siglip2]
+version = "1.0.0+so400m-14-384"
+requires = ["artwork"]
+claim_limit = 200
+seconds_per_image = 0.18
+
+[analyzers.embed_dinov2]
+version = "1.0.0+dinov2-l14-224"
+requires = ["artwork"]
+claim_limit = 200
+seconds_per_image = 0.035  # an estimate: DINOv2-base measured 0.010, L/14 ~3.5x the FLOPs
+
+[analyzers.ocr]
+version = "1.0.0+apple-vision-ocr3"
+requires = []
+claim_limit = 200
+seconds_per_image = 0.18  # §19: Apple Vision 0.134 median, 0.18 mean (+ language detection)
+
+[analyzers.barcode]
+version = "1.0.0+apple-vision"
+requires = []
+claim_limit = 200
+seconds_per_image = 0.1  # the M1's figure; §19's 0.134 covers the whole Apple Vision set, one barcode request is less
+
+[analyzers.segmentation]
+version = "1.0.0+eomt-l-coco640"
+requires = ["artwork"]
+claim_limit = 200
+seconds_per_image = 0.31
+
+[analyzers.vision_labels]
+version = "1.0.0+apple-vision"
+requires = ["artwork"]
+claim_limit = 200
+seconds_per_image = 0.134
+
+# CPU sidecar: per single-threaded worker (§19: 0.47 CPU-s an image for both, 0.078 s/img wall with 6 workers)
+[analyzers.colors]
+version = "1.0.0+oklab-k8"
+requires = ["artwork"]
+claim_limit = 200
+seconds_per_image = 0.2
+workers = 3
+
+[analyzers.traits]
+version = "1.0.0+cv-grid16"
+requires = ["artwork"]
+claim_limit = 200
+seconds_per_image = 0.35
+workers = 3
+
+[analyzers.describe]
+version = "1.0.0+qwen35-9b-4bit"
+requires = ["artwork", "ocr"]
+claim_limit = 20
+seconds_per_image = 10.75
+
+# 1. the crops (gate, then Qwen3-VL-4B on the non-flat pictures) - every crop-based stage and describe wait on it
+[[phases]]
+name = "artwork"
+stages = ["artwork"]
+
+# 2. the launch path: the picture embeddings the difficulty estimate reads (whole image first - the fallback model)
+[[phases]]
+name = "embed"
+stages = ["embed_siglip2_full", "embed_siglip2", "embed_dinov2"]
+
+# 3. Apple Vision on the full image, in a phase of its own (describe needs ocr)
+#
+# Not a sidecar of the GPU phases: Apple Vision next to a GPU-saturating model took 14.8 s/img instead of 0.13
+# (image-taxonomy.md §19; the taxonomy lab saw 27-42 s stalls), and the runner refuses any sidecar that is not a CPU
+# stage (profiles.parse: unit "cpu" only - ocr/barcode are "ane"). Running it beside the embed phase would save at most
+# this phase's ~3.4 h of a ~7-day run. Should a measurement ever show the Neural Engine path unaffected on the M3
+# (e.g. `ocr` next to `embed_dinov2`, `bench` both ways), it would need profiles.parse to accept "ane" sidecars, then:
+#   [[phases]]
+#   name = "embed"
+#   stages = ["embed_siglip2_full", "embed_siglip2", "embed_dinov2"]
+#   sidecar = ["ocr", "barcode"]
+[[phases]]
+name = "apple"
+stages = ["ocr", "barcode"]
+
+# 4. crop features: EoMT, then Apple Vision labels (never next to a GPU stage); colours + traits in CPU workers alongside
+[[phases]]
+name = "features"
+stages = ["segmentation", "vision_labels"]
+sidecar = ["colors", "traits"]
+
+# 5. describe (Qwen3.5-9B 4-bit, ~10.75 s an image) - last, nothing of the launch waits on it
+[[phases]]
+name = "describe"
+stages = ["describe"]
+
+[derived.versions]
+box_text = "1.0.0+rules"
+zeroshot = "1.0.0+so400m@tax1.0.0"
+neighbours = "1.0.0+siglip2-dinov2l"
+tags = "1.0.0+fusion@tax1.0.0"
+
+[daily]
+# new / stale images (~60 a day: ~20 min with the model loads, describe ~11 of them), then derive and a few crop proposals
+phases = ["artwork", "embed", "apple", "features", "describe"]
+derive = true
+propose_crops = 50
+
+[launchd]
+# nightly window like m3-max (Jan works on this machine by day): start 01:30, stop after 6 hours
+keep_alive = false
+start_hour = 1
+start_minute = 30
+hours = 6
+mode = "daily"

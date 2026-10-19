@@ -160,5 +160,8 @@ def test_launchd_plists(tmp_path):
     m3 = plistlib.loads(launchd.render(profiles.load("m3-max"), tmp_path, uv="/opt/homebrew/bin/uv").encode())
     assert "KeepAlive" not in m3 and m3["StartCalendarInterval"] == {"Hour": 1, "Minute": 30}
     assert m3["ProgramArguments"][-3:] == ["--daily", "--hours", "6"]
+    solo = plistlib.loads(launchd.render(profiles.load("m3-solo"), tmp_path, uv="/opt/homebrew/bin/uv").encode())
+    assert solo["Label"] == "com.myspeedpuzzling.puzzle-vision.m3-solo" and solo["StartCalendarInterval"] == {"Hour": 1, "Minute": 30}
+    assert solo["ProgramArguments"][-6:] == ["run", "--profile", "m3-solo", "--daily", "--hours", "6"]
     text = launchd.render(profiles.load("m3-max"), tmp_path)
     assert "MSP_INTERNAL_API_TOKEN" not in text and "Bearer" not in text

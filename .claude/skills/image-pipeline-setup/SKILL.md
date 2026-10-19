@@ -1,7 +1,7 @@
 ---
 name: image-pipeline-setup
 description: Prepare this Mac to run the MySpeedPuzzling image pipeline (tools/puzzle-vision) for a machine profile - uv environment with the model stack, model downloads, the internal API token in the Keychain (Jan pastes it himself), setup-check, and the launchd job for daily mode (loaded only when asked). Use when the user says "set up the image pipeline", "/image-pipeline-setup m3-max", "prepare the M1 Air for the backfill" or setup-check fails.
-argument-hint: "<m3-max|m1-air>"
+argument-hint: "<m3-max|m1-air|m3-solo>"
 allowed-tools: Bash, Read
 ---
 
@@ -31,6 +31,7 @@ MacBook Pro M3 Max, `m1-air` on the MacBook Air M1). If it is missing, ask which
    - m3-max: `google/siglip2-so400m-patch14-384`, `mlx-community/Qwen3-VL-4B-Instruct-4bit`, `mlx-community/Qwen3.5-9B-MLX-4bit` (~13.6 GB)
    - m1-air: `google/siglip2-so400m-patch14-384`, `facebook/dinov2-large`, `tue-mps/coco_panoptic_eomt_large_640` (~8 GB);
      `mlx-community/Qwen3.5-9B-MLX-4bit` only later, before it joins `describe`
+   - m3-solo (the M3 alone): all five (~16 GB)
    `uv run --extra ml hf download <repo>` for each missing one (one at a time; report sizes).
 6. `uv run --extra ml puzzle-vision setup-check --profile <p>` - every line must PASS (python, uv, disk, ml extra,
    models, token, API 200, memory). Report the output (it never contains the token).

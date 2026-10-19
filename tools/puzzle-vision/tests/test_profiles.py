@@ -4,7 +4,7 @@ from puzzle_vision import analyzers as A
 from puzzle_vision import profiles
 
 
-@pytest.fixture(params=["m3-max", "m1-air"])
+@pytest.fixture(params=["m3-max", "m1-air", "m3-solo"])
 def profile(request):
     return profiles.load(request.param)
 
@@ -24,9 +24,13 @@ def test_requires_match_the_dependency_table(profile):
 
 def test_one_version_per_analyzer_across_machines():
     m3, m1 = profiles.load("m3-max"), profiles.load("m1-air")
-    for name in set(m3.analyzers) & set(m1.analyzers):
-        assert m3.version(name) == m1.version(name), name
-    assert m3.derived_versions == m1.derived_versions
+    loaded = [profiles.load(n) for n in profiles.available()]
+    assert {"m3-max", "m1-air", "m3-solo"} <= {p.name for p in loaded}
+    for a in loaded:
+        for b in loaded:
+            for name in set(a.analyzers) & set(b.analyzers):
+                assert a.version(name) == b.version(name), (a.name, b.name, name)
+            assert a.derived_versions == b.derived_versions, (a.name, b.name)
     assert m3.version("artwork") == "1.0.0+siglip2-q3vl4b"
     assert m3.version("describe") == "1.0.0+qwen35-9b-4bit"
     assert m1.version("embed_siglip2") == "1.0.0+so400m-14-384" == m1.version("embed_siglip2_full")
@@ -43,6 +47,36 @@ def test_the_split():
     assert m1.phase("A").stages[:2] == ("ocr", "barcode")  # OCR first: the M3's describe waits on it
     assert m1.phase("B").sidecar == ("colors", "traits")
     assert m1.launchd["keep_alive"] is True and m3.launchd["mode"] == "daily"
+
+
+def test_one_mac_runs_everything_with_the_launch_path_first():
+    solo = profiles.load("m3-solo")
+    runs = [a for ph in solo.phases for a in ph.stages + ph.sidecar]
+    assert sorted(runs) == sorted(A.RAW) and len(runs) == len(set(runs))
+    assert [ph.name for ph in solo.phases] == ["artwork", "embed", "apple", "features", "describe"]
+    # what derive/difficulty_prior.py reads is done before anything else after the crops
+    assert solo.phase("artwork").stages == ("artwork",)
+    assert set(solo.phase("embed").stages) == {"embed_siglip2_full", "embed_siglip2", "embed_dinov2"}
+    assert solo.phase("apple").stages == ("ocr", "barcode") and not solo.phase("apple").sidecar
+    assert solo.phase("features").stages == ("segmentation", "vision_labels")
+    assert solo.phase("features").sidecar == ("colors", "traits")
+    assert solo.phases[-1].stages == ("describe",) and solo.phases[-1].gate is None
+    # every stage's `requires` is produced by an earlier phase (or the same one, earlier) - one Mac waits on nobody
+    done: set[str] = set()
+    for ph in solo.phases:
+        for a in ph.stages:
+            assert set(A.REQUIRES[a]) <= done, a
+            done.add(a)
+        for a in ph.sidecar:
+            assert set(A.REQUIRES[a]) <= done - set(ph.stages), a
+            done.add(a)
+    assert solo.daily_phases == tuple(ph.name for ph in solo.phases) and solo.derive_after_daily
+    assert solo.launchd["mode"] == "daily" and solo.launchd["keep_alive"] is False
+    m1 = profiles.load("m1-air")
+    m1_runs = {a for ph in m1.phases for a in ph.stages + ph.sidecar}
+    for a, s in solo.analyzers.items():  # the M3 is never slower than the Air on what the Air runs
+        assert a not in m1_runs or s.seconds_per_image <= m1.analyzers[a].seconds_per_image, a
+        assert 60 <= s.lease_seconds() <= 7200
 
 
 def test_apple_vision_never_runs_beside_a_gpu_stage():

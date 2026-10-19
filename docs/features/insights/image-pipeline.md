@@ -23,6 +23,21 @@ Claude Code skills wrap everything here: `/image-pipeline-setup`, `/image-pipeli
 |---|---|---|---|
 | MacBook Pro **M3 Max** 36 GB | `m3-max` | phase `artwork` (SigLIP 2 gate, then Qwen3-VL-4B on the non-flat pictures + OpenCV quad snap), then phase `describe` (Qwen3.5-9B 4-bit) | artwork ~24 h, describe ~123 h (10.75 s/img idle; 20-50 % slower with other GPU work) |
 | MacBook Air **M1** 16 GB, fanless, nonstop | `m1-air` | phase `A`: `ocr`, `barcode`, `embed_siglip2_full`; phase `B` (needs artwork): `embed_siglip2`, `embed_dinov2`, `segmentation`, `vision_labels` + `colors`/`traits` in CPU workers alongside; then helps with `describe` after the parity check | A + B ≈ 2.4 days |
+| MacBook Pro **M3 Max** 36 GB **alone** | `m3-solo` | `artwork` → `embed` (`embed_siglip2_full`, `embed_siglip2`, `embed_dinov2`) → `apple` (`ocr`, `barcode`) → `features` (`segmentation`, `vision_labels` + `colors`/`traits` in CPU workers alongside) → `describe` | ≈ 7 days for 43k (below) |
+
+### One Mac (`m3-solo`, since 2026-10-19)
+
+The M1 Air is out for now, so the M3 runs every analyzer with `m3-solo` (same versions as the two-machine profiles -
+the tests pin it; never run `m3-solo` and `m3-max`/`m1-air` with different versions). The phases follow the launch:
+the picture-based difficulty estimate (`difficulty_prior`, §7) reads only `artwork`, the two crop embeddings and the
+whole-image SigLIP 2, so those come first (`artwork` ~25 h, `embed` ~5 h - the launch path is ready after ~30 h), then
+Apple Vision in its own phase (~3.3 h; `describe` needs `ocr`), the crop features (~5.3 h, colours/traits alongside
+in 3 + 3 CPU workers) and `describe` last (~128 h). Estimates for ~43k images from the §19 M3 numbers on an idle
+machine (DINOv2-L and barcode alone are not measured; everything after `artwork` reads the image cache `artwork`
+filled). Apple Vision stays out of the GPU phases: next to a GPU-saturating model it took 14.8 s/img instead of 0.13
+(§19), and the runner allows only CPU stages as a sidecar - the profile says what a measurement would have to show.
+`run --profile m3-solo --phase embed` runs one phase; the nightly launchd window and `--daily` run every phase, then
+`derive` and the crop proposals, like `m3-max`.
 
 Total ≈ **5.5 days** wall clock with both machines (≈ 6.1 without the Air on describe). Why this way round
 (§19): `describe` is ~80 % of all compute and must be one model for the whole catalogue - on the Air it is ~57 s/img,
@@ -70,13 +85,13 @@ API (testing only; production is the default and the only real target) - **any o
 
 **Models** - download only what the profile runs (Hugging Face cache `~/.cache/huggingface/hub/`; all Apache-2.0 / MIT):
 
-| Model | Size | Used by | m3-max | m1-air |
-|---|---|---|---|---|
-| `google/siglip2-so400m-patch14-384` | 4.5 GB | artwork gate, `embed_siglip2(_full)`, zero-shot text side, crop proposals | yes | yes |
-| `mlx-community/Qwen3-VL-4B-Instruct-4bit` | 3.1 GB | `artwork` (VLM box + corners) | yes | - |
-| `mlx-community/Qwen3.5-9B-MLX-4bit` | 6.0 GB | `describe` | yes | only to join describe |
-| `facebook/dinov2-large` | 1.2 GB (2.4 GB with both weight formats) | `embed_dinov2` | - | yes |
-| `tue-mps/coco_panoptic_eomt_large_640` | 1.3 GB | `segmentation` | - | yes |
+| Model | Size | Used by | m3-max | m1-air | m3-solo |
+|---|---|---|---|---|---|
+| `google/siglip2-so400m-patch14-384` | 4.5 GB | artwork gate, `embed_siglip2(_full)`, zero-shot text side, crop proposals | yes | yes | yes |
+| `mlx-community/Qwen3-VL-4B-Instruct-4bit` | 3.1 GB | `artwork` (VLM box + corners) | yes | - | yes |
+| `mlx-community/Qwen3.5-9B-MLX-4bit` | 6.0 GB | `describe` | yes | only to join describe | yes |
+| `facebook/dinov2-large` | 1.2 GB (2.4 GB with both weight formats) | `embed_dinov2` | - | yes | yes |
+| `tue-mps/coco_panoptic_eomt_large_640` | 1.3 GB | `segmentation` | - | yes | yes |
 
 ```sh
 uv run --extra ml hf download google/siglip2-so400m-patch14-384
@@ -91,7 +106,7 @@ Apple Vision (OCR, barcodes, labels) is part of macOS - nothing to download.
 **Check** - everything above in one go (models are looked up in the cache, never loaded):
 
 ```sh
-uv run --extra ml puzzle-vision setup-check --profile m3-max     # or m1-air; PASS/FAIL per line
+uv run --extra ml puzzle-vision setup-check --profile m3-max     # or m1-air, m3-solo; PASS/FAIL per line
 ```
 
 ## 3. Running
@@ -113,7 +128,15 @@ uv run --extra ml puzzle-vision run --profile m3-max --daily         # one pass 
   its downloads go out when ~80 % of the batch is done → analyse → store in batches of ≤ 200 (slow stages, > 5 s an
   image like `describe`, store every result at once) → per-image failure: recorded + claim released → at the end (or
   on SIGTERM / Ctrl-C / the memory watchdog / `--hours`) store what is done and release every own claim. A store that
-  fails keeps its results for the next try. Leases are 3× the batch's measured time + the store interval + 2 min
+  fails keeps its results for the next try. A released (failed / skipped) or expired image stays stale, so the claim
+  hands it out first again (lowest ids); a claim of only images the run already handled is not the end - they are the
+  worker's own claims now, which come last, so the next claim reaches past them. It stops only when a claim brings back
+  nothing but what the claim before it brought (before 2026-10-19 the first such claim ended the stage: the M1's
+  `barcode` stopped at 14,800 with ~28k to do).
+- **Apple Vision watchdog:** every `ocr` / `barcode` / `vision_labels` call runs on its own thread; past 60 s its
+  requests are cancelled and the image fails (`VisionTimeout`), the stage goes on. A call still stuck 10 s after the
+  cancel is left behind; after two of them the stage ends ("stage broken" - stored, claims released) and the next
+  pass starts it in a fresh process (an OCR call once hung on the M1 for good). Leases are 3× the batch's measured time + the store interval + 2 min
   (the M3 runs up to 2-3× slower while Jan works on it).
 - `artwork` runs as two processes: the **gate** walks the stale list and scores every picture with SigLIP 2 (stored
   locally only), then the **VLM pass** claims: gate-flat pictures get the border trim (ms), the rest Qwen3-VL-4B + the
@@ -390,6 +413,7 @@ pushed. Specifics beyond image-taxonomy.md §11:
 | `describe` claims nothing | It needs `artwork` and `ocr` of the current picture - the other Mac is still behind (`status` shows `waiting`). Backfill mode sleeps and retries. |
 | M1 never runs `describe` | `verify --describe-parity` has not passed on this machine for the current describe version (20 images compared byte for byte with the M3's results). Run it after phase B; if it fails, the Air stays on its own analyzers. |
 | Throughput far below §19 | Other GPU work on the machine (20-50 % slower), the Air throttling (expected), or Apple Vision next to a GPU job. `bench --stage <s> --limit 20` compares with the measured numbers (±30 %). |
+| `VisionTimeout` failures, "stage broken" | An Apple Vision call took > 60 s (cancelled, that image failed) / stayed stuck after the cancel twice (the stage ended; the next pass starts a fresh process). Many timeouts: something else is on the GPU or the Neural Engine (§5). |
 | Images failing to decode | HEIC/AVIF are converted through `sips`; a picture failing 3 times is skipped until the next version (work state `failures`, `status`). |
 | `difficulty_prior` `skipped` "the model needs 200" | Fewer than 200 labelled puzzles (≥ 3 indices) have that model's embeddings yet - normal during the backfill; nothing was recorded or pushed for it (the fallback may still have run). |
 | `difficulty_prior` `blocked`, exit 3, `status` "blocked since …" | The push guard: a comparable run's holdout Spearman fell > 0.05 below the current record. Nothing recorded or pushed for that model; read `difficulty_prior-last-run.json` (§7) and decide; override only by hand with `--force-model`. |

@@ -1,7 +1,7 @@
 ---
 name: image-pipeline-status
 description: Report the image pipeline's coverage per analyzer and version from the production API (done / stale / missing / waiting / claimed), throughput per machine, failures and ETA. Use when the user says "/image-pipeline-status", "how far is the backfill", "image pipeline progress", "what is left to analyse".
-argument-hint: "[--profile m3-max|m1-air] [--all]"
+argument-hint: "[--profile m3-max|m1-air|m3-solo] [--all]"
 allowed-tools: Bash, Read
 ---
 

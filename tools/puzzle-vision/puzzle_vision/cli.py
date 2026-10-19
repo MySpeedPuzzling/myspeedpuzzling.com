@@ -474,7 +474,9 @@ def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="puzzle-vision", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--version", action="version", version=f"puzzle-vision {__version__}")
     common = argparse.ArgumentParser(add_help=False)
-    common.add_argument("--profile", help="machine profile (m3-max, m1-air); default $PUZZLE_VISION_PROFILE")
+    from .profiles import available
+
+    common.add_argument("--profile", help=f"machine profile ({', '.join(available())}); default $PUZZLE_VISION_PROFILE")
     common.add_argument("--base-url", default=DEFAULT_BASE_URL, help="API base URL (testing only; production is the default)")
     common.add_argument("-v", "--verbose", action="store_true")
     sub = p.add_subparsers(dest="command", required=True)

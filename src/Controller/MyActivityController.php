@@ -75,7 +75,7 @@ final class MyActivityController extends AbstractController
         $next = $digestPeriod->next();
 
         $response = $this->render('my_activity.html.twig', [
-            'activity' => $this->activityReader->read($profile->playerId, $digestPeriod, $profile->activeMembership, withPlaces: true),
+            'activity' => $this->activityReader->read($profile->playerId, $digestPeriod, $profile->activeMembership, withFavorites: true),
             'period' => $digestPeriod,
             'in_progress' => $digestPeriod->hasEndedAt($now) === false,
             'previous_period' => $previous->end > new \DateTimeImmutable(self::EARLIEST) ? $previous : null,

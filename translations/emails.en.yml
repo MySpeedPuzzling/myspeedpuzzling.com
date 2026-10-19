@@ -382,9 +382,9 @@ organization_rejected:
 activity_digest:
     puzzler: "puzzler"
     subject:
-        week: "Your week on MySpeedPuzzling"
-        two_weeks: "Your two weeks on MySpeedPuzzling"
-        month: "Your month on MySpeedPuzzling"
+        week: "Your week %dates% on MySpeedPuzzling"
+        two_weeks: "Your two weeks %dates% on MySpeedPuzzling"
+        month: "Your %month% on MySpeedPuzzling"
     preheader:
         achievement: "New achievement: %achievement% – and the rest of your week."
         achievement_locked: "You earned an achievement – and here is the rest of your week."
@@ -400,11 +400,26 @@ activity_digest:
         puzzles: "{1}puzzle|]1,Inf[puzzles|{0}puzzles"
         pieces: "{1}piece|]1,Inf[pieces|{0}pieces"
         streak: "day streak"
+        time: "time puzzling"
     level: "Level %level%"
     level_up: "Level %from% → %to%"
     new_achievement: "New: %achievement%"
     achievement_teaser: "{1}You earned an achievement. Become a member to find out which.|[0,Inf[You earned %count% achievements. Become a member to find out which."
     become_member: "Become a member"
+    change:
+        week: "%change% vs last week"
+        two_weeks: "%change% vs the two weeks before"
+        month: "%change% vs last month"
+    xp_gained:
+        week: "+%xp% XP this week"
+        two_weeks: "+%xp% XP in two weeks"
+        month: "+%xp% XP this month"
+    xp_to_next: "%xp% XP to Level %level%"
+    more_achievements: "{1}+1 more achievement|[0,Inf[+%count% more achievements"
+    next_achievement: "Next up: %achievement% · %tier%"
+    next_achievement_count: "%current% of %target%"
+    next_achievement_time: "your best %current%, goal %target%"
+    place: "#%rank% of %total%"
     rating: "MSP Rating: #%rank% of %total%"
     rating_up: "{1}up 1 place|[0,Inf[up %count% places"
     rating_down: "{1}down 1 place|[0,Inf[down %count% places"
@@ -418,8 +433,6 @@ activity_digest:
         week: "See your week"
         two_weeks: "See your two weeks"
         month: "See your month"
-    favorites_title: "Your favourite puzzlers"
-    favorite_solves: "{1}1 puzzle|[0,Inf[%count% puzzles"
     most_solved: "Most solved by the community:"
     most_solved_count: "{1}(1 puzzler)|[0,Inf[(%count% puzzlers)"
     footer:

@@ -375,12 +375,24 @@ organization_rejected:
 activity_digest:
     achievement_teaser: "{1}Du hast einen Erfolg verdient. Werde Mitglied, um herauszufinden, welchen.|[0,Inf[Du hast %count% Erfolge verdient. Werde Mitglied, um herauszufinden, welche."
     become_member: "Mitglied werden"
+    change:
+        week: "%change% zur Vorwoche"
+        two_weeks: "%change% zu den zwei Wochen davor"
+        month: "%change% zum Vormonat"
+    xp_gained:
+        week: "+%xp% XP diese Woche"
+        two_weeks: "+%xp% XP in zwei Wochen"
+        month: "+%xp% XP diesen Monat"
+    xp_to_next: "Noch %xp% XP bis Level %level%"
+    more_achievements: "{1}+1 weiterer Erfolg|[0,Inf[+%count% weitere Erfolge"
+    next_achievement: "Als Nächstes: %achievement% · %tier%"
+    next_achievement_count: "%current% von %target%"
+    next_achievement_time: "deine Bestzeit %current%, Ziel %target%"
+    place: "#%rank% von %total%"
     button:
         month: "Deinen Monat ansehen"
         two_weeks: "Deine zwei Wochen ansehen"
         week: "Deine Woche ansehen"
-    favorite_solves: "{1}1 Puzzle|[0,Inf[%count% Puzzles"
-    favorites_title: "Deine Lieblings-Puzzler"
     footer:
         change: "E-Mails ändern"
         every_two_weeks: "Du bekommst diese E-Mail jeden zweiten Montag."
@@ -425,10 +437,11 @@ activity_digest:
         pieces: "{1}Teil|]1,Inf[Teile|{0}Teile"
         puzzles: "{1}Puzzle|]1,Inf[Puzzles|{0}Puzzles"
         streak: "Tage in Folge"
+        time: "gepuzzelt"
     subject:
-        month: "Dein Monat auf MySpeedPuzzling"
-        two_weeks: "Deine zwei Wochen auf MySpeedPuzzling"
-        week: "Deine Woche auf MySpeedPuzzling"
+        month: "Dein %month% auf MySpeedPuzzling"
+        two_weeks: "Deine zwei Wochen %dates% auf MySpeedPuzzling"
+        week: "Deine Woche %dates% auf MySpeedPuzzling"
     title:
         month: "Dein Monat, %name%"
         two_weeks: "Deine zwei Wochen, %name%"

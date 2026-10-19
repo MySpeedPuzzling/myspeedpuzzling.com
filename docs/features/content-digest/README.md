@@ -129,7 +129,7 @@ GROUP BY 1;
 - **Content** (`templates/emails/content_digest_miss_you.html.twig`, keys `activity_digest.miss_you.*`): "Your puzzles
   miss you" / "We miss your times" - maybe a break, maybe puzzling in secret; times can still be added with the day they
   were finished ("Add a time" button → `puzzle_add`), then: let us pick your next puzzle (Puzzle Picker), see what the
-  community is puzzling (Hub), your profile; the community's most solved of last week, the favourites. No guilt, no
+  community is puzzling (Hub), your profile; the community's most solved of last week (no favourites since 2026-10-19). No guilt, no
   blame, no streak talk. Humour that survives translation (no puns).
 - Opt-outs: the digest has its own switch only. `experience_system_opted_out` no longer stops the e-mail - it leaves
   out XP and level lines (e-mail and page). `streak_opted_out` hides the streak, `ranking_opted_out` the MSP Rating.
@@ -158,7 +158,9 @@ cron Mon 07:01 → myspeedpuzzling:send-content-digest activity      (Tue 07:01 
 - **Preview** before a run: `myspeedpuzzling:send-content-digest-preview <email> [--player=<id|code|e-mail>]
   [--period=2026-W42] [--kind=activity|miss_you]` - a player's real e-mail for the period (default: the player of
   `<email>`, last week) to one address, through the same factory (`ContentDigestEmailFactory`) and transport; handled
-  at once (not routed), writes nothing, ignores the player's switches.
+  at once (not routed), writes nothing, ignores the player's switches. An activity digest of a period the player did
+  nothing in is refused (`NoActivityInDigestPeriod`) - a real one is never sent, so its preview would show an e-mail
+  nobody gets.
 - **Delivery** goes through `MailStreamRouting` (mass-mailing README "Reliability"): SES with one retry, no Seznam
   fallback for the digest - a failed send is deferred by the handler (10 / 30 min) and counted by the breaker. The
   first run (Mon 19 Oct 2026) stopped at 468 of 1,915 because the digest had silently moved to Seznam and Seznam
@@ -186,16 +188,17 @@ e-mail, in order (`templates/emails/content_digest_activity.html.twig`):
 
 | Line | Shown when | Links to |
 |---|---|---|
+| Subject "Your week 12–18 Oct on MySpeedPuzzling" / "Your two weeks …" / "Your October on MySpeedPuzzling" (ICU skeleton `MMMd` / `MMMM`, e-mail locale; no numbers - Jan 2026-10-19) | always | - |
 | "Your week, Name" + the dates (ICU skeleton, e-mail locale) | always | - |
-| puzzles · pieces · day streak | always (streak > 1, not opted out) | - |
-| Level N → M · +X XP | XP visible and gained | XP history (`xp_history`) |
-| New: achievement · tier · +N AP (members) / "You earned an achievement. Become a member to find out which." | earned in the period | the achievement page / membership |
+| puzzles · pieces (each with "+3 vs last week" against the period before, `previousPeriodTotals()`; nothing when that one was empty or equal) · time puzzling (`compactTime`, when > 0) · day streak | always (streak > 1, not opted out) | - |
+| Level block: "Level N → M" · "+X XP this week", a bar toward the next level (table cells) and "N XP to Level M+1" (no bar at Level 50) | XP visible | XP history (`xp_history`) |
+| New: achievement · tier · +N AP (members, the 3 with the most points, then "+N more achievements") / "You earned an achievement. Become a member to find out which." | earned in the period | the achievement page / the "Your week" page / membership |
+| Next up: achievement · tier, "37 of 50" (or "your best 1:05:00, goal 59:59") · % (members) | an achievement with progress (closest to its next tier) | the achievement page |
 | MSP Rating: #rank of total · up/down N places | moved (snapshots before vs in the period, 500 pc) | the ladder |
 | New skill tier for N pieces (members) | tier changed | the ladder |
 | Karma thanks | karma gained (workstream F hook) | (F's karma history) |
-| Highlights: up to 3 results, PB / first try first | results | the puzzle |
+| Highlights: up to 3 results, PB / first try first, each with its place on the puzzle's solo leaderboard ("#4 of 210", `GetRanking::forPuzzles()` for the period's puzzles - one statement) | results | the puzzle |
 | **See your week** (44 px Inky button) | always | `my_activity` with the period key |
-| Favourites: name · N puzzles | favourites solved (own blocks + allow list applied in SQL) | their profiles |
 | Most solved by the community | ≥ 3 puzzlers solved one puzzle | the puzzle |
 | You get this every Monday · Change e-mails · Unsubscribe | always | token preferences page (no sign-in) / one-click unsubscribe |
 

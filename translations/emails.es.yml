@@ -375,9 +375,9 @@ organization_rejected:
 activity_digest:
     puzzler: "puzzlero"
     subject:
-        week: "Tu semana en MySpeedPuzzling"
-        two_weeks: "Tus dos semanas en MySpeedPuzzling"
-        month: "Tu mes en MySpeedPuzzling"
+        week: "Tu semana %dates% en MySpeedPuzzling"
+        two_weeks: "Tus dos semanas %dates% en MySpeedPuzzling"
+        month: "Tu %month% en MySpeedPuzzling"
     preheader:
         achievement: "Nuevo logro: %achievement% – y el resto de tu semana."
         achievement_locked: "Conseguiste un logro – y aquí tienes el resto de tu semana."
@@ -393,11 +393,26 @@ activity_digest:
         puzzles: "{1}puzzle|]1,Inf[puzzles|{0}puzzles"
         pieces: "{1}pieza|]1,Inf[piezas|{0}piezas"
         streak: "días de racha"
+        time: "armando puzzles"
     level: "Nivel %level%"
     level_up: "Nivel %from% → %to%"
     new_achievement: "Nuevo: %achievement%"
     achievement_teaser: "{1}Conseguiste un logro. Hazte miembro para descubrir cuál.|[0,Inf[Conseguiste %count% logros. Hazte miembro para descubrir cuáles."
     become_member: "Hazte miembro"
+    change:
+        week: "%change% respecto a la semana pasada"
+        two_weeks: "%change% respecto a las dos semanas anteriores"
+        month: "%change% respecto al mes pasado"
+    xp_gained:
+        week: "+%xp% XP esta semana"
+        two_weeks: "+%xp% XP en dos semanas"
+        month: "+%xp% XP este mes"
+    xp_to_next: "%xp% XP para el Nivel %level%"
+    more_achievements: "{1}+1 logro más|[0,Inf[+%count% logros más"
+    next_achievement: "Lo siguiente: %achievement% · %tier%"
+    next_achievement_count: "%current% de %target%"
+    next_achievement_time: "tu mejor tiempo %current%, objetivo %target%"
+    place: "#%rank% de %total%"
     rating: "MSP Rating: #%rank% de %total%"
     rating_up: "{1}subiste 1 puesto|[0,Inf[subiste %count% puestos"
     rating_down: "{1}bajaste 1 puesto|[0,Inf[bajaste %count% puestos"
@@ -411,8 +426,6 @@ activity_digest:
         week: "Ver tu semana"
         two_weeks: "Ver tus dos semanas"
         month: "Ver tu mes"
-    favorites_title: "Tus puzzleros favoritos"
-    favorite_solves: "{1}1 puzzle|[0,Inf[%count% puzzles"
     most_solved: "Lo más armado por la comunidad:"
     most_solved_count: "{1}(1 puzzlero)|[0,Inf[(%count% puzzleros)"
     footer:

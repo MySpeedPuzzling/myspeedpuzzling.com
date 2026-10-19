@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\ConsoleCommands;
 
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\InvalidDigestPeriod;
+use SpeedPuzzling\Web\Exceptions\NoActivityInDigestPeriod;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\SendContentDigestPreview;
 use SpeedPuzzling\Web\Services\ResolvePlayerByIdentifier;
@@ -19,6 +20,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
@@ -95,7 +97,17 @@ final class SendContentDigestPreviewConsoleCommand extends Command
             return self::FAILURE;
         }
 
-        $this->messageBus->dispatch(new SendContentDigestPreview($player->id->toString(), $email, $kind, $period->key));
+        try {
+            $this->messageBus->dispatch(new SendContentDigestPreview($player->id->toString(), $email, $kind, $period->key));
+        } catch (HandlerFailedException $e) {
+            if (!$e->getPrevious() instanceof NoActivityInDigestPeriod) {
+                throw $e;
+            }
+
+            $io->error(sprintf('#%s has no activity in %s - nobody gets an activity digest for such a period, so nothing was sent. Pick another --player or --period.', $player->code, $period->key));
+
+            return self::FAILURE;
+        }
 
         $io->success(sprintf('Digest of #%s for %s (%s) sent to %s.', $player->code, $period->key, $kind->value, $email));
 

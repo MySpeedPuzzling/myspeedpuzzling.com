@@ -1,15 +1,17 @@
 {% trans_default_domain 'emails' %}
 {#
-    The activity digest (docs/features/content-digest/README.md §"Content"): the period first (puzzles, pieces,
-    streak), then progress (level + XP, achievements - members see which with "+N AP", everybody else only that they
-    earned one -, MSP Rating, karma), the best results, ONE button to the "Your week" page, favourites, the community.
-    Every line links somewhere: level → XP history, achievement → its page, rating → the ladder, puzzle → the puzzle,
-    favourite → the profile. The preheader names the best thing of the period.
+    The activity digest (docs/features/content-digest/README.md §"Content"): the period first (puzzles, pieces - each
+    with the change against the period before -, time, streak), then progress (level block with XP and a bar to the
+    next level, up to 3 achievements - members see which with "+N AP", everybody else only that they earned one -, a
+    member's next achievement, MSP Rating, karma), the best results with their leaderboard place, ONE button to the
+    "Your week" page, the community. Every line links somewhere: level → XP history, achievement → its page, rating →
+    the ladder, puzzle → the puzzle. The preheader names the best thing of the period. No favourites (Jan 2026-10-19:
+    some players have 100+, it said nothing).
 #}
 {% set length = period.length.value %}
 {% set range_label = length == 'month' ? period.start|events_date('yMMMM') : events_date_range(period.start, period.lastDay(), 'MMMMd') %}
 {% set week_url = url('my_activity', {period: period.key, _locale: locale}) %}
-{% set best_achievement = activity.achievementsEarned|sort((a, b) => (b.tier ? b.tier.points() : 0) <=> (a.tier ? a.tier.points() : 0))|first %}
+{% set best_achievement = activity.achievementsByPoints()|first %}
 {% set personal_bests = activity.personalBests() %}
 
 {% if activity.isMember and best_achievement %}
@@ -42,22 +44,30 @@
                 </columns>
             </row>
 
-            {# The period in numbers #}
+            {# The period in numbers, each with the change against the period before #}
+            {% set tiles = [
+                {value: activity.puzzlesCount|plain_number, label: 'activity_digest.stat.puzzles'|trans({'%count%': activity.puzzlesCount}), change: activity.puzzlesChange()},
+                {value: activity.piecesCount|plain_number, label: 'activity_digest.stat.pieces'|trans({'%count%': activity.piecesCount}), change: activity.piecesChange()},
+            ] %}
+            {% if activity.minutesSpent > 0 %}
+                {% set tiles = tiles|merge([{value: (activity.minutesSpent * 60)|compactTime, label: 'activity_digest.stat.time'|trans, change: null}]) %}
+            {% endif %}
+            {% if activity.streakDays > 1 %}
+                {% set tiles = tiles|merge([{value: activity.streakDays, label: 'activity_digest.stat.streak'|trans({'%count%': activity.streakDays}), change: null}]) %}
+            {% endif %}
             <row>
                 <columns>
                     <table role="presentation" width="100%" style="width: 100%; border-collapse: separate; border-spacing: 6px 0;">
                         <tr>
-                            <td style="background: #f3f5f9; border-radius: 8px; padding: 10px 6px; text-align: center; width: 33%;">
-                                <strong style="display: block; font-size: 20px; color: #373f50;">{{ activity.puzzlesCount|plain_number }}</strong> <span style="font-size: 13px;">{{ 'activity_digest.stat.puzzles'|trans({'%count%': activity.puzzlesCount}) }}</span>
-                            </td>
-                            <td style="background: #f3f5f9; border-radius: 8px; padding: 10px 6px; text-align: center; width: 33%;">
-                                <strong style="display: block; font-size: 20px; color: #373f50;">{{ activity.piecesCount|plain_number }}</strong> <span style="font-size: 13px;">{{ 'activity_digest.stat.pieces'|trans({'%count%': activity.piecesCount}) }}</span>
-                            </td>
-                            {% if activity.streakDays > 1 %}
-                                <td style="background: #f3f5f9; border-radius: 8px; padding: 10px 6px; text-align: center; width: 33%;">
-                                    <strong style="display: block; font-size: 20px; color: #373f50;">{{ activity.streakDays }}</strong> <span style="font-size: 13px;">{{ 'activity_digest.stat.streak'|trans({'%count%': activity.streakDays}) }}</span>
+                            {% for tile in tiles %}
+                                <td style="background: #f3f5f9; border-radius: 8px; padding: 10px 4px; text-align: center; vertical-align: top; width: {{ (100 / tiles|length)|round(0, 'floor') }}%;">
+                                    <strong style="display: block; font-size: 20px; color: #373f50;">{{ tile.value }}</strong>
+                                    <span style="font-size: 13px;">{{ tile.label }}</span>
+                                    {% if tile.change is not null %}
+                                        <span style="display: block; font-size: 12px; color: #6b7488;">{{ ('activity_digest.change.' ~ length)|trans({'%change%': (tile.change > 0 ? '+' : '−') ~ (tile.change|abs)|plain_number}) }}</span>
+                                    {% endif %}
                                 </td>
-                            {% endif %}
+                            {% endfor %}
                         </tr>
                     </table>
                     <spacer size-sm="16"></spacer>
@@ -67,23 +77,47 @@
             {# Progress #}
             <row>
                 <columns>
-                    {% if activity.xpVisible and activity.xpGained > 0 %}
-                        <p>
-                            <a href="{{ url('xp_history', {_locale: locale}) }}">
-                                {%- if activity.levelledUp() -%}
-                                    {{ 'activity_digest.level_up'|trans({'%from%': activity.levelBefore, '%to%': activity.levelAfter}) }}
-                                {%- else -%}
-                                    {{ 'activity_digest.level'|trans({'%level%': activity.levelAfter}) }}
-                                {%- endif -%}
-                            </a>
-                            · <strong>+{{ activity.xpGained|plain_number }} XP</strong>
-                        </p>
+                    {% if activity.xpVisible %}
+                        {# The level: before → after, the period's XP, a bar toward the next level (none at Level 50) #}
+                        <table role="presentation" width="100%" style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+                            <tr>
+                                <td style="padding: 0 0 6px 0;">
+                                    <a href="{{ url('xp_history', {_locale: locale}) }}"><strong>
+                                        {%- if activity.levelledUp() -%}
+                                            {{ 'activity_digest.level_up'|trans({'%from%': activity.levelBefore, '%to%': activity.levelAfter}) }}
+                                        {%- else -%}
+                                            {{ 'activity_digest.level'|trans({'%level%': activity.levelAfter}) }}
+                                        {%- endif -%}
+                                    </strong></a>
+                                    {% if activity.xpGained > 0 %} · <strong style="color: #1e8a5a;">{{ ('activity_digest.xp_gained.' ~ length)|trans({'%xp%': activity.xpGained|plain_number}) }}</strong>{% endif %}
+                                </td>
+                            </tr>
+                            {% if activity.levelProgress is not null and activity.xpToNextLevel is not null %}
+                                {% set filled = max(2, min(98, (activity.levelProgress * 100)|round)) %}
+                                <tr>
+                                    <td style="padding: 0;">
+                                        <table role="presentation" width="100%" style="width: 100%; border-collapse: collapse;">
+                                            <tr>
+                                                <td width="{{ filled }}%" height="8" bgcolor="#d63c42" style="width: {{ filled }}%; height: 8px; line-height: 8px; font-size: 1px; background: #d63c42; border-radius: 4px 0 0 4px;">&nbsp;</td>
+                                                <td width="{{ 100 - filled }}%" height="8" bgcolor="#e3e7ee" style="width: {{ 100 - filled }}%; height: 8px; line-height: 8px; font-size: 1px; background: #e3e7ee; border-radius: 0 4px 4px 0;">&nbsp;</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 4px 0 0 0; font-size: 13px; color: #6b7488;">
+                                        {{ 'activity_digest.xp_to_next'|trans({'%xp%': activity.xpToNextLevel|plain_number, '%level%': activity.levelAfter + 1}) }}
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </table>
                     {% endif %}
 
                     {% if activity.achievementsEarned is not empty %}
                         {% if activity.isMember %}
+                            {% set shown_achievements = activity.achievementsByPoints()|slice(0, 3) %}
                             <table role="presentation" style="border-collapse: collapse;">
-                                {% for badge in activity.achievementsEarned %}
+                                {% for badge in shown_achievements %}
                                     {% set badge_url = url('achievement_detail', {type: badge.type.value, _locale: locale}) %}
                                     <tr>
                                         <td width="48" style="width: 48px; padding: 6px 12px 6px 0; vertical-align: middle;">
@@ -96,12 +130,39 @@
                                     </tr>
                                 {% endfor %}
                             </table>
+                            {% set more_achievements = activity.achievementsEarned|length - shown_achievements|length %}
+                            {% if more_achievements > 0 %}
+                                <p style="margin-top: 4px;"><a href="{{ week_url }}">{{ 'activity_digest.more_achievements'|trans({'%count%': more_achievements}) }}</a></p>
+                            {% endif %}
                         {% else %}
                             <p>
                                 {{ 'activity_digest.achievement_teaser'|trans({'%count%': activity.achievementsEarned|length}) }}
                                 <a href="{{ url('membership', {_locale: locale}) }}">{{ 'activity_digest.become_member'|trans }}</a>
                             </p>
                         {% endif %}
+                    {% endif %}
+
+                    {# Members: the achievement closest to its next tier #}
+                    {% set next = activity.nextAchievement() %}
+                    {% if next is not null %}
+                        {% set next_url = url('achievement_detail', {type: next.type.value, _locale: locale}) %}
+                        <table role="presentation" style="border-collapse: collapse; margin-bottom: 12px;">
+                            <tr>
+                                <td width="40" style="width: 40px; padding: 6px 12px 6px 0; vertical-align: middle;">
+                                    <a href="{{ next_url }}"><img src="{{ badge_art_url(next.type, next.progress.nextTier, 'png', 96, absolute = true) }}" alt="" width="40" height="40" style="display: block; width: 40px; height: 40px; border: 0; opacity: 0.6;"></a>
+                                </td>
+                                <td style="padding: 6px 0; vertical-align: middle;">
+                                    <a href="{{ next_url }}">{{ 'activity_digest.next_achievement'|trans({'%achievement%': next.type.translationKey()|trans({}, 'messages'), '%tier%': next.progress.nextTier.translationKey()|trans({}, 'messages')}) }}</a>
+                                    <br><span style="font-size: 13px; color: #6b7488;">
+                                        {%- if next.progress.unit.value == 'seconds' -%}
+                                            {{ 'activity_digest.next_achievement_time'|trans({'%current%': next.progress.currentValue|puzzlingTime, '%target%': next.progress.targetValue|puzzlingTime}) }}
+                                        {%- else -%}
+                                            {{ 'activity_digest.next_achievement_count'|trans({'%current%': next.progress.currentValue|plain_number, '%target%': next.progress.targetValue|plain_number}) }}
+                                        {%- endif %} · {{ next.progress.percent }} %
+                                    </span>
+                                </td>
+                            </tr>
+                        </table>
                     {% endif %}
 
                     {% if activity.rating is not null and activity.rating.rank is not null and activity.rating.placesGained != 0 %}
@@ -143,6 +204,7 @@
                                 <li>
                                     <a href="{{ url('puzzle_detail', {puzzleId: result.puzzleId, _locale: locale}) }}">{{ result.puzzleName }}</a>
                                     {%- if result.secondsToSolve is not null %} · {{ result.secondsToSolve|puzzlingTime }}{% endif %}
+                                    {%- if result.rank is not null and result.rankTotal is not null %} · {{ 'activity_digest.place'|trans({'%rank%': result.rank|plain_number, '%total%': result.rankTotal|plain_number}) }}{% endif %}
                                     {%- if result.personalBest %} · {{ 'activity_digest.mark.personal_best'|trans }}{% endif %}
                                     {%- if result.firstAttempt %} · {{ 'activity_digest.mark.first_try'|trans }}{% endif %}
                                 </li>
@@ -162,7 +224,6 @@
                 </columns>
             </row>
 
-            {{ include('emails/content_digest/_favorites.html.twig') }}
             {{ include('emails/content_digest/_community.html.twig') }}
             {{ include('emails/content_digest/_settings.html.twig') }}
 

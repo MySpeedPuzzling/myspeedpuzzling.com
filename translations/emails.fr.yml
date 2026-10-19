@@ -375,9 +375,9 @@ organization_rejected:
 activity_digest:
     puzzler: "puzzleur"
     subject:
-        week: "Votre semaine sur MySpeedPuzzling"
-        two_weeks: "Vos deux semaines sur MySpeedPuzzling"
-        month: "Votre mois sur MySpeedPuzzling"
+        week: "Votre semaine du %dates% sur MySpeedPuzzling"
+        two_weeks: "Vos deux semaines du %dates% sur MySpeedPuzzling"
+        month: "Votre %month% sur MySpeedPuzzling"
     preheader:
         achievement: "Nouveau succès : %achievement% – et le reste de votre semaine."
         achievement_locked: "Vous avez obtenu un succès – et voici le reste de votre semaine."
@@ -393,11 +393,26 @@ activity_digest:
         puzzles: "{1}puzzle|]1,Inf[puzzles|{0}puzzle"
         pieces: "{1}pièce|]1,Inf[pièces|{0}pièce"
         streak: "jours d'affilée"
+        time: "de puzzle"
     level: "Niveau %level%"
     level_up: "Niveau %from% → %to%"
     new_achievement: "Nouveau : %achievement%"
     achievement_teaser: "{1}Vous avez obtenu un succès. Devenez membre pour découvrir lequel.|[0,Inf[Vous avez obtenu %count% succès. Devenez membre pour découvrir lesquels."
     become_member: "Devenir membre"
+    change:
+        week: "%change% par rapport à la semaine dernière"
+        two_weeks: "%change% par rapport aux deux semaines précédentes"
+        month: "%change% par rapport au mois dernier"
+    xp_gained:
+        week: "+%xp% XP cette semaine"
+        two_weeks: "+%xp% XP en deux semaines"
+        month: "+%xp% XP ce mois-ci"
+    xp_to_next: "Encore %xp% XP avant le niveau %level%"
+    more_achievements: "{1}+1 autre succès|[0,Inf[+%count% autres succès"
+    next_achievement: "Prochain : %achievement% · %tier%"
+    next_achievement_count: "%current% sur %target%"
+    next_achievement_time: "votre meilleur temps %current%, objectif %target%"
+    place: "#%rank% sur %total%"
     rating: "MSP Rating : #%rank% sur %total%"
     rating_up: "{1}en hausse d'1 place|[0,Inf[en hausse de %count% places"
     rating_down: "{1}en baisse d'1 place|[0,Inf[en baisse de %count% places"
@@ -411,8 +426,6 @@ activity_digest:
         week: "Voir votre semaine"
         two_weeks: "Voir vos deux semaines"
         month: "Voir votre mois"
-    favorites_title: "Vos puzzleurs favoris"
-    favorite_solves: "{1}1 puzzle|[0,Inf[%count% puzzles"
     most_solved: "Les plus résolus par la communauté :"
     most_solved_count: "{1}(1 puzzleur)|[0,Inf[(%count% puzzleurs)"
     footer:

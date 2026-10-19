@@ -65,14 +65,11 @@ readonly final class PlayerPeriodActivityReader
     /**
      * @throws PlayerNotFound
      */
-    public function read(string $playerId, DigestPeriod $period, bool $isMember, bool $withPlaces = false): PlayerPeriodActivity
+    public function read(string $playerId, DigestPeriod $period, bool $isMember, bool $withFavorites = false): PlayerPeriodActivity
     {
         $player = $this->player($playerId, $period);
-        $results = $this->results($playerId, $period);
-
-        if ($withPlaces && $results !== []) {
-            $results = $this->withPlaces($playerId, $results);
-        }
+        $results = $this->withPlaces($playerId, $this->results($playerId, $period));
+        $previous = $this->previousPeriodTotals($playerId, $period->previous());
 
         $counted = array_filter($results, static fn (PeriodResult $result): bool => $result->awaitingVerification === false);
         $xpVisible = $player['experience_system_opted_out'] === false;
@@ -92,6 +89,7 @@ readonly final class PlayerPeriodActivityReader
             levelBefore: LevelTable::levelForXp(max(0, $xpAtEnd - $player['xp_gained'])),
             levelAfter: LevelTable::levelForXp($xpAtEnd),
             levelProgress: LevelTable::progressToNext($xpAtEnd),
+            xpToNextLevel: LevelTable::levelForXp($xpAtEnd) >= LevelTable::MAX_LEVEL ? null : LevelTable::xpForLevel(LevelTable::levelForXp($xpAtEnd) + 1) - $xpAtEnd,
             isMember: $isMember,
             achievementsEarned: $achievements,
             achievementPointsGained: array_sum(array_map(
@@ -100,10 +98,12 @@ readonly final class PlayerPeriodActivityReader
             )),
             rating: $player['ranking_opted_out'] ? null : $this->ratingChange($playerId, $period, $isMember),
             streakDays: $player['streak_opted_out'] ? 0 : $this->currentStreak($playerId),
-            favoritesActivity: $this->favoritesActivity($playerId, $player['favorite_players'], $period),
+            favoritesActivity: $withFavorites ? $this->favoritesActivity($playerId, $player['favorite_players'], $period) : [],
             mostSolved: $this->mostSolved($period),
             nextAchievements: $isMember && $achievementsVisible ? $this->nextAchievements($playerId) : [],
             karmaGained: $this->karmaGained(),
+            previousPuzzlesCount: $previous['puzzles'],
+            previousPiecesCount: $previous['pieces'],
         );
     }
 
@@ -252,13 +252,55 @@ SQL;
      */
     private function withPlaces(string $playerId, array $results): array
     {
-        $rankings = $this->getRanking->allForPlayer($playerId);
+        $soloPuzzleIds = array_values(array_unique(array_map(
+            static fn (PeriodResult $result): string => $result->puzzleId,
+            array_filter($results, static fn (PeriodResult $result): bool => $result->isSolo()),
+        )));
+
+        if ($soloPuzzleIds === []) {
+            return $results;
+        }
+
+        // One statement for the period's puzzles only (GetRanking::forPuzzles), never the player's whole history
+        $rankings = $this->getRanking->forPuzzles($playerId, $soloPuzzleIds);
 
         return array_map(static function (PeriodResult $result) use ($rankings): PeriodResult {
             $ranking = $result->isSolo() ? ($rankings[$result->puzzleId] ?? null) : null;
 
             return $ranking === null ? $result : $result->withRank($ranking->rank, $ranking->totalPlayers);
         }, $results);
+    }
+
+    /**
+     * Puzzles and pieces of the period before, counted like the period itself (solved in it, solo or as a registered
+     * member of the pair/team, not awaiting verification) - the "+3 vs last week" under the numbers.
+     *
+     * @return array{puzzles: int, pieces: int}
+     */
+    private function previousPeriodTotals(string $playerId, DigestPeriod $period): array
+    {
+        $sql = <<<SQL
+SELECT COUNT(*) AS puzzles, COALESCE(SUM(COALESCE(pst.pieces_count_snapshot, pz.pieces_count)), 0) AS pieces
+FROM puzzle_solving_time pst
+INNER JOIN puzzle pz ON pz.id = pst.puzzle_id
+WHERE (
+        pst.player_id = :playerId
+        OR pst.puzzling_team_id IN (SELECT ptm.team_id FROM puzzling_team_member ptm WHERE ptm.player_id = :playerId)
+    )
+  AND pst.suspicious = false
+  AND pst.tracked_at >= CAST(:periodStart AS TIMESTAMP)
+  AND COALESCE(pst.finished_at, pst.tracked_at) >= CAST(:periodStart AS TIMESTAMP)
+  AND COALESCE(pst.finished_at, pst.tracked_at) < CAST(:periodEnd AS TIMESTAMP)
+SQL;
+
+        /** @var array{puzzles: int|string, pieces: int|string} $row */
+        $row = $this->database->executeQuery($sql, [
+            'playerId' => $playerId,
+            'periodStart' => $period->startUtc(),
+            'periodEnd' => $period->endUtc(),
+        ])->fetchAssociative();
+
+        return ['puzzles' => (int) $row['puzzles'], 'pieces' => (int) $row['pieces']];
     }
 
     /**

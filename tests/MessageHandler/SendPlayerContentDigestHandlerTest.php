@@ -70,7 +70,7 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
         $email = $transport->sent[0];
         self::assertInstanceOf(TemplatedEmail::class, $email);
         self::assertSame('emails/content_digest_activity.html.twig', $email->getHtmlTemplate());
-        self::assertSame('Your week on MySpeedPuzzling', $email->getSubject());
+        self::assertSame('Your week 4–10 Mar on MySpeedPuzzling', $email->getSubject(), 'Short: the period and the site, no numbers');
         self::assertSame('List-Unsubscribe=One-Click', $email->getHeaders()->get('List-Unsubscribe-Post')?->getBodyAsString());
         self::assertSame('notifications', $email->getHeaders()->get('X-Transport')?->getBodyAsString());
         self::assertSame('bulk', $email->getHeaders()->get('Precedence')?->getBodyAsString());
@@ -101,6 +101,35 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
 
         self::assertStringContainsString('/en/my/activity/2030-W10', $text);
         self::assertStringContainsString('/en/email-preferences/', $text);
+    }
+
+    public function testTheDigestShowsTheLevelTheTimeTheChangeAgainstTheWeekBeforeAndTheFirstThreeAchievements(): void
+    {
+        $this->insertSolve(self::MEMBER, '2030-03-05 18:00:00');
+        $this->insertSolve(self::MEMBER, '2030-03-06 18:00:00');
+        $this->insertSolve(self::MEMBER, '2030-02-27 18:00:00');
+
+        foreach (['puzzles_solved', 'pieces_solved', 'streak', 'speed_500_pieces'] as $type) {
+            $this->insertBadge(self::MEMBER, '2030-03-06 18:00:01', $type);
+        }
+
+        $transport = new TransportSpy();
+        ($this->handler($transport))(new SendPlayerContentDigest(self::MEMBER, self::PERIOD, ContentDigestKind::Activity, $this->insertRun()));
+
+        $email = $transport->sent[0];
+        self::assertInstanceOf(TemplatedEmail::class, $email);
+        $this->render($email);
+        $html = html_entity_decode((string) $email->getHtmlBody());
+
+        self::assertStringContainsString('+1 vs last week', $html, '2 puzzles against 1 the week before');
+        self::assertStringContainsString('2h', $html, 'Two hours of puzzling');
+        self::assertStringContainsString('time puzzling', $html);
+        self::assertMatchesRegularExpression('/\d+ XP to Level \d+/', $html, 'The bar toward the next level');
+        self::assertMatchesRegularExpression('/#\d+ of \d+/', $html, 'A highlight carries its leaderboard place');
+        self::assertSame(3, substr_count($html, '/img/badges/') - substr_count($html, 'opacity: 0.6'), 'At most three achievements');
+        self::assertStringContainsString('+1 more achievement', $html);
+        self::assertStringNotContainsString('favourite puzzlers', $html);
+        self::assertStringNotContainsString(',Inf[', $html);
     }
 
     public function testANonMemberIsToldOnlyThatAnAchievementWasEarned(): void
@@ -467,11 +496,11 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
         return $id;
     }
 
-    private function insertBadge(string $playerId, string $earnedAtUtc): void
+    private function insertBadge(string $playerId, string $earnedAtUtc, string $type = 'puzzles_solved'): void
     {
         $this->database->executeStatement(
-            "INSERT INTO badge (id, player_id, type, tier, earned_at) VALUES (:id, :playerId, 'puzzles_solved', 1, :earnedAt)",
-            ['id' => Uuid::uuid7()->toString(), 'playerId' => $playerId, 'earnedAt' => $earnedAtUtc],
+            'INSERT INTO badge (id, player_id, type, tier, earned_at) VALUES (:id, :playerId, :type, 1, :earnedAt)',
+            ['id' => Uuid::uuid7()->toString(), 'playerId' => $playerId, 'type' => $type, 'earnedAt' => $earnedAtUtc],
         );
     }
 

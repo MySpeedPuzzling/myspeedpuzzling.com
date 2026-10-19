@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use SpeedPuzzling\Web\Value\BadgeTier;
 use SpeedPuzzling\Web\Value\BadgeType;
 use SpeedPuzzling\Web\Value\DigestPeriod;
 
@@ -34,6 +35,8 @@ readonly final class PlayerPeriodActivity
         public int $levelAfter,
         /** 0.0-1.0 toward the next level at the period's end, null at Level 50 */
         public null|float $levelProgress,
+        /** XP still missing to the next level at the period's end, null at Level 50 */
+        public null|int $xpToNextLevel,
         public bool $isMember,
         public array $achievementsEarned,
         public int $achievementPointsGained,
@@ -47,7 +50,55 @@ readonly final class PlayerPeriodActivity
          * model); PlayerPeriodActivityReader::karmaGained() is the one place to wire it.
          */
         public null|int $karmaGained = null,
+        /** The period before, counted the same way - the change under the numbers */
+        public int $previousPuzzlesCount = 0,
+        public int $previousPiecesCount = 0,
     ) {
+    }
+
+    /**
+     * Change against the period before, null when there is nothing to compare: the period before was empty or the
+     * numbers are equal.
+     */
+    public function puzzlesChange(): null|int
+    {
+        return self::change($this->puzzlesCount, $this->previousPuzzlesCount);
+    }
+
+    public function piecesChange(): null|int
+    {
+        return self::change($this->piecesCount, $this->previousPiecesCount);
+    }
+
+    /**
+     * The achievements of the period by their points, highest first - the e-mail shows the first few.
+     *
+     * @return list<BadgeResult>
+     */
+    public function achievementsByPoints(): array
+    {
+        $achievements = $this->achievementsEarned;
+
+        usort($achievements, static fn (BadgeResult $a, BadgeResult $b): int => ($b->tier?->points() ?? BadgeTier::SINGLE_TIER_POINTS) <=> ($a->tier?->points() ?? BadgeTier::SINGLE_TIER_POINTS));
+
+        return $achievements;
+    }
+
+    /**
+     * @return null|array{type: BadgeType, progress: BadgeProgress}
+     */
+    public function nextAchievement(): null|array
+    {
+        return $this->nextAchievements[0] ?? null;
+    }
+
+    private static function change(int $now, int $before): null|int
+    {
+        if ($before === 0 || $now === $before) {
+            return null;
+        }
+
+        return $now - $before;
     }
 
     public function hadActivity(): bool

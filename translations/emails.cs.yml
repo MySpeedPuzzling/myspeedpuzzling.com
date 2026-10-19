@@ -375,9 +375,9 @@ organization_rejected:
 activity_digest:
     puzzler: "puzzler"
     subject:
-        week: "Tvůj týden na MySpeedPuzzling"
-        two_weeks: "Tvoje dva týdny na MySpeedPuzzling"
-        month: "Tvůj měsíc na MySpeedPuzzling"
+        week: "Tvůj týden %dates% na MySpeedPuzzling"
+        two_weeks: "Tvoje dva týdny %dates% na MySpeedPuzzling"
+        month: "Tvůj %month% na MySpeedPuzzling"
     preheader:
         achievement: "Nový úspěch: %achievement% – a k tomu zbytek tvého týdne."
         achievement_locked: "Máš nový úspěch – a tady je zbytek tvého týdne."
@@ -393,11 +393,26 @@ activity_digest:
         puzzles: "{0}puzzlí|{1}puzzle|[2,4]puzzle|[5,Inf[puzzlí"
         pieces: "{0}dílků|{1}dílek|[2,4]dílky|[5,Inf[dílků"
         streak: "dní v řadě"
+        time: "skládání"
     level: "Úroveň %level%"
     level_up: "Úroveň %from% → %to%"
     new_achievement: "Nový úspěch: %achievement%"
     achievement_teaser: "{1}Máš nový úspěch. Staň se členem a zjisti, který to je.|[2,4]Máš %count% nové úspěchy. Staň se členem a zjisti, které to jsou.|[0,Inf[Máš %count% nových úspěchů. Staň se členem a zjisti, které to jsou."
     become_member: "Staň se členem"
+    change:
+        week: "%change% oproti minulému týdnu"
+        two_weeks: "%change% oproti předchozím dvěma týdnům"
+        month: "%change% oproti minulému měsíci"
+    xp_gained:
+        week: "+%xp% XP za týden"
+        two_weeks: "+%xp% XP za dva týdny"
+        month: "+%xp% XP za měsíc"
+    xp_to_next: "Do úrovně %level% zbývá %xp% XP"
+    more_achievements: "{1}+1 další úspěch|[2,4]+%count% další úspěchy|[0,Inf[+%count% dalších úspěchů"
+    next_achievement: "Na dosah: %achievement% · %tier%"
+    next_achievement_count: "%current% z %target%"
+    next_achievement_time: "tvůj nejlepší čas %current%, cíl %target%"
+    place: "#%rank% z %total%"
     rating: "MSP Rating: #%rank% z %total%"
     rating_up: "{1}o 1 místo výš|[2,4]o %count% místa výš|[0,Inf[o %count% míst výš"
     rating_down: "{1}o 1 místo níž|[2,4]o %count% místa níž|[0,Inf[o %count% míst níž"
@@ -411,8 +426,6 @@ activity_digest:
         week: "Podívej se na svůj týden"
         two_weeks: "Podívej se na své dva týdny"
         month: "Podívej se na svůj měsíc"
-    favorites_title: "Tvoji oblíbení puzzleři"
-    favorite_solves: "{1}1 puzzle|[2,4]%count% puzzle|[0,Inf[%count% puzzlí"
     most_solved: "Nejčastěji skládané v komunitě:"
     most_solved_count: "{1}(1 puzzler)|[2,4](%count% puzzleři)|[0,Inf[(%count% puzzlerů)"
     footer:

@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\ImageKind;
 
 /**
  * A puzzle's picture-based difficulty estimate (PuzzleDifficultyEstimate) as GetPuzzleDifficultyEstimates reads it -
  * always of the puzzle's current picture, never of a secret puzzle. Log space: exp(logDifficulty) is the difficulty
- * index (1.0 = average), logP10 / logP90 its 80 % interval.
+ * index (1.0 = average), logP10 / logP90 its 80 % interval; imageKind what the same picture shows (its `artwork`
+ * analysis - unknown without one).
  */
 readonly final class PuzzleDifficultyEstimateResult
 {
@@ -25,12 +27,13 @@ readonly final class PuzzleDifficultyEstimateResult
         public string $imageFingerprint,
         public DateTimeImmutable $computedAt,
         public DateTimeImmutable $receivedAt,
+        public ImageKind $imageKind = ImageKind::Unknown,
     ) {
     }
 
     /**
      * @param array<string, mixed> $row puzzle_id, model, model_version, log_difficulty, log_p10, log_p90, out_of_fold,
-     *                                  training_size, image_fingerprint, computed_at, received_at
+     *                                  training_size, image_fingerprint, computed_at, received_at, artwork_kind
      */
     public static function fromDatabaseRow(array $row): self
     {
@@ -58,6 +61,7 @@ readonly final class PuzzleDifficultyEstimateResult
             imageFingerprint: $row['image_fingerprint'],
             computedAt: new DateTimeImmutable($row['computed_at']),
             receivedAt: new DateTimeImmutable($row['received_at']),
+            imageKind: ImageKind::fromArtworkKind($row['artwork_kind'] ?? null),
         );
     }
 }

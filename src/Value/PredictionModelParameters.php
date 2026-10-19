@@ -119,10 +119,14 @@ readonly final class PredictionModelParameters
         );
     }
 
-    public function firstTrySigma(float $playerSpread, int $k, PiecesGroup $group): float
+    /**
+     * @param null|float $puzzleVariance the puzzle term when the difficulty's own uncertainty is known (a prediction
+     *                                   resting on the image estimate alone: its interval) instead of b ÷ (k + 1)
+     */
+    public function firstTrySigma(float $playerSpread, int $k, PiecesGroup $group, null|float $puzzleVariance = null): float
     {
         $variance = $this->firstTryPlayerSpreadWeight * $playerSpread ** 2
-            + $this->firstTryPuzzleWeight / (max(0, $k) + 1)
+            + ($puzzleVariance ?? $this->firstTryPuzzleWeight / (max(0, $k) + 1))
             + ($this->firstTrySizeTerms[$group->value] ?? 0.0);
 
         return max(sqrt(max($variance, 0.0)), self::MINIMUM_SIGMA);

@@ -77,6 +77,12 @@ class PuzzleDifficulty
     #[Column(nullable: true)]
     public null|float $priorLog = null;
 
+    // The blend predictor's prior (difficulty_prior_puzzle.blend_prior_log: the image estimate first, Insights 5d) - kept
+    // equal the same way, for the Picker and bulk readers once the estimates are shown (Insights Phase 6)
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|float $blendPriorLog = null;
+
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column]
     public DateTimeImmutable $computedAt;

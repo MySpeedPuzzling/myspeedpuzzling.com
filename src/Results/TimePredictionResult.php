@@ -39,4 +39,27 @@ readonly final class TimePredictionResult
         public bool $calibratedWindow = true,
     ) {
     }
+
+    public function withKIndices(int $kIndices): self
+    {
+        return new self(
+            predictedSeconds: $this->predictedSeconds,
+            rangeLowSeconds: $this->rangeLowSeconds,
+            rangeHighSeconds: $this->rangeHighSeconds,
+            difficultyForPlayer: $this->difficultyForPlayer,
+            isPersonalized: $this->isPersonalized,
+            personalSolveCount: $this->personalSolveCount,
+            predictedAttemptNumber: $this->predictedAttemptNumber,
+            lastTimeSeconds: $this->lastTimeSeconds,
+            range80LowSeconds: $this->range80LowSeconds,
+            range80HighSeconds: $this->range80HighSeconds,
+            difficultySource: $this->difficultySource,
+            kIndices: $kIndices,
+            priorLog: $this->priorLog,
+            logDifficulty: $this->logDifficulty,
+            windowBucket: $this->windowBucket,
+            paceSource: $this->paceSource,
+            calibratedWindow: $this->calibratedWindow,
+        );
+    }
 }

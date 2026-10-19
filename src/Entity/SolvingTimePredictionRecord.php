@@ -17,6 +17,8 @@ use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Value\DifficultySource;
+use SpeedPuzzling\Web\Value\ImageKind;
+use SpeedPuzzling\Web\Value\ImagePriorInput;
 use SpeedPuzzling\Web\Value\PaceSource;
 use SpeedPuzzling\Web\Value\PredictorKind;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
@@ -29,6 +31,10 @@ use SpeedPuzzling\Web\Value\TimePredictionSource;
  * the prediction that is shown; these rows are for comparing predictors and models (accuracy, calibration, Insights'
  * expected vs actual). Written live by SolvingTimePredictor and reconstructed by the prediction backfill; records no
  * domain event. Goes with its time (cascade).
+ *
+ * The `image` and `blend` rows (first tries only, Insights plan §5.4) say which picture estimate they rested on:
+ * `imageModel` + `imageKind` - null on a live row written while the puzzle had no estimate (predictable = false; the
+ * backfill replaces it with a reconstruction once an out-of-fold estimate exists).
  */
 #[Entity]
 #[Table(name: 'solving_time_prediction')]
@@ -95,6 +101,15 @@ class SolvingTimePredictionRecord
     #[Column(length: 40, nullable: true)]
     public null|string $windowBucket = null;
 
+    // image / blend rows: the estimate's model (ridge-siglip2-dinov2, ridge-siglip2-full) and what the picture shows
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(length: 50, nullable: true)]
+    public null|string $imageModel = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::STRING, length: 20, nullable: true, enumType: ImageKind::class)]
+    public null|ImageKind $imageKind = null;
+
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column]
     public DateTimeImmutable $computedAt;
@@ -116,14 +131,16 @@ class SolvingTimePredictionRecord
         public int $modelVersion,
         SolvingTimePrediction $prediction,
         DateTimeImmutable $computedAt,
+        null|ImagePriorInput $imageEstimate = null,
     ) {
-        $this->record($prediction, $computedAt);
+        $this->record($prediction, $computedAt, $imageEstimate);
     }
 
     /**
-     * A reconstruction of the same predictor and model version replaces what was there (an edit made it obsolete).
+     * A reconstruction of the same predictor and model version replaces what was there (an edit made it obsolete, a
+     * live image row was written without an estimate).
      */
-    public function record(SolvingTimePrediction $prediction, DateTimeImmutable $computedAt): void
+    public function record(SolvingTimePrediction $prediction, DateTimeImmutable $computedAt, null|ImagePriorInput $imageEstimate = null): void
     {
         $result = $prediction->result;
 
@@ -145,6 +162,8 @@ class SolvingTimePredictionRecord
         $this->paceSource = $result?->paceSource;
         $this->priorLog = $result?->priorLog;
         $this->windowBucket = $result?->windowBucket;
+        $this->imageModel = $imageEstimate?->model;
+        $this->imageKind = $imageEstimate?->kind;
         $this->computedAt = $computedAt;
     }
 }

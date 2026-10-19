@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\PriorContext;
 use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
+use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
 use SpeedPuzzling\Web\Value\StatisticalPredictionInputs;
 
 /**
@@ -55,6 +56,34 @@ final class StatisticalInputsSql
      * (Insights plan principle: never leak secret puzzles) - the condition on `p` every prior join carries.
      */
     public const string NOT_SECRET = '(p.hide_until IS NULL OR p.hide_until <= NOW()) AND (p.hide_image_until IS NULL OR p.hide_image_until <= NOW())';
+
+    /**
+     * The puzzle's image estimate for the side-by-side `image` / `blend` predictors (ImagePriorInput::fromRow()) -
+     * with imageEstimateJoins(); never part of COLUMNS: the statistical predictor does not use it.
+     */
+    public const string IMAGE_ESTIMATE_COLUMNS = "
+        img.log_difficulty AS image_log,
+        img.log_p10 AS image_log_p10,
+        img.log_p90 AS image_log_p90,
+        img.model AS image_model,
+        art.result->>'kind' AS image_artwork_kind
+    ";
+
+    /**
+     * The estimate of the puzzle's current picture (its fingerprint) and the `artwork` kind of that picture - none for
+     * a secret puzzle or picture. $outOfFoldOnly for a reconstruction: an in-sample estimate was trained on the
+     * puzzle's own solves, maybe the very solve being reconstructed (PuzzleDifficultyEstimate::$outOfFold). Expects `p`.
+     */
+    public static function imageEstimateJoins(bool $outOfFoldOnly): string
+    {
+        $fingerprint = PuzzleImageFingerprint::sql('p.image');
+        $outOfFold = $outOfFoldOnly ? 'AND img.out_of_fold = true' : '';
+
+        return "
+            LEFT JOIN puzzle_difficulty_estimate img ON img.puzzle_id = p.id AND img.image_fingerprint = {$fingerprint} {$outOfFold} AND " . self::NOT_SECRET . "
+            LEFT JOIN puzzle_image_analysis art ON art.puzzle_id = img.puzzle_id AND art.analyzer = 'artwork' AND art.image_fingerprint = img.image_fingerprint
+        ";
+    }
 
     /**
      * One puzzle: the latest row of the pair and of the 500-piece pair, one index step each.
@@ -133,7 +162,8 @@ final class StatisticalInputsSql
      *   `pd` (puzzle_difficulty.prior_log, the copy of difficulty_prior_puzzle.prior_log);
      * - the expression over them and `pd`: × the score (5+ indices) or × exp(shrunk log difficulty) (1-4), NULL where
      *   the calculator returns null. The same operations in the same order as the calculator - pinned equal by
-     *   GetPuzzlePickerSuggestionsTest. Any prior of the chain reaches it through prior_log (the daily fit writes it).
+     *   GetPuzzlePickerSuggestionsTest. The statistical predictor's prior reaches it through prior_log (the daily fit
+     *   writes it); the blend's (the image estimate first) would come through blend_prior_log - not read here.
      *
      * @return array{0: string, 1: string, 2: string, 3: array<string, float|int>} the CTEs (with a trailing comma), the joins, the centre, the parameters
      */

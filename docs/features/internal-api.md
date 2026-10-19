@@ -512,7 +512,10 @@ curl -s -X PUT -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: 
 The image pipeline's `difficulty_prior` step (on Jan's Mac, [`insights/implementation-plan.md`](./insights/implementation-plan.md)
 §5.3) trains a ridge model nightly: picture embeddings + pieces → the puzzle's measured difficulty. It reads its
 training labels here and pushes back one **estimate** per puzzle plus a **model record** of the run. Stored, not
-shown: the app uses the estimates as the prior of its predictions (§5.4, stream 5d). No reviewer needed.
+shown: the app predicts every first try with them side by side with the shown statistical model - `image` (the
+estimate alone) and `blend` (shrunk toward it), live from the current estimate, reconstructed from out-of-fold ones only
+- and measures those predictions for the gates (§5.4, [`insights/image-estimate-gates.md`](./insights/image-estimate-gates.md)).
+No reviewer needed.
 
 | Method | Path | Purpose |
 |---|---|---|

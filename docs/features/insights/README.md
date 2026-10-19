@@ -33,6 +33,7 @@ mock-ups, among them the estimate display options (Plan tab → "Image predictio
 |---|---|
 | [`prediction-research.md`](./prediction-research.md) | The age bias, the pace history, image → difficulty / time pilot, piece counts, personal taste, train-or-not, side-by-side storage, **calibrated windows** (§12), realtime |
 | [`image-taxonomy.md`](./image-taxonomy.md) | What to extract from box images, the taxonomy (~310 keys), analyzer payload schemas (§11), run order, the description-model bake-off (§18), **measured resources per stage + the M3 Max / M1 Air split** (§19) |
+| [`image-estimate-gates.md`](./image-estimate-gates.md) | How the app measures the picture-based estimates on its stored predictions (`myspeedpuzzling:evaluate-image-estimates`) and the gates that decide where they may be shown (`ImageEstimateGate`) |
 | [`vision-analysis.md`](./vision-analysis.md) | The vision proof of concept: finding/cropping the artwork (mIoU 0.915), the first difficulty signals |
 | [`data-opportunities.md`](./data-opportunities.md) | The data-warehouse brainstorm (puzzle science, handicap, year in review, brand reports, retention) - follow-up features, not this plan |
 | [`prototype.html`](./prototype.html) | Prototype + plan (artifact export) |

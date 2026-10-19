@@ -312,24 +312,27 @@ version in `solving_time_prediction` (Insights plan §3.5, research §5):
 |---|---|
 | `id` | UUIDv7 |
 | `time_id` | the solving time (FK, `ON DELETE CASCADE` - it goes with its time; a merge moves the time and keeps it) |
-| `predictor` | `statistical` today; `image` / `blend` come with Insights Phase 5 (`PredictorKind`) |
+| `predictor` | `statistical` (the shown model), `image`, `blend` (Insights 5d, first tries only - "Image and blend predictions" below; `PredictorKind`) |
 | `model_version` | the model version that made it; unique `(time_id, predictor, model_version)` |
 | `source` | `live` / `reconstructed` |
 | `predictable` | false = no prediction possible from what there was |
 | `method` | `personal` (a repeat) / `statistical` (a first try) - an addition to the plan's column list: without it a repeat and a first try without difficulty data could not be told apart |
 | `predicted_seconds`, `range50_low/high`, `range80_low/high` | the centre and the two windows |
 | `difficulty_used` | first tries: the difficulty (index scale) the centre was built with |
-| `difficulty_source` | `solves` (5+ indices) / `shrunk` (1-4 indices, or none and the prior alone) / `image` (Phase 5) |
+| `difficulty_source` | `solves` (5+ indices) / `shrunk` (1-4 indices, or none and the brand prior alone) / `image` (the picture estimate alone: every `image` row, a `blend` row at k = 0) |
 | `k_indices`, `prior_log` | the puzzle's index count then and the prior (log) the difficulty was shrunk toward |
 | `pace_source` | first tries: what the pace rested on - `own` (a direct baseline, with its drift) / `interpolated` / `scaled_500` (the 500-piece pace of a thin-size rule) - an addition: the time verification leaves `scaled_500` out |
 | `window_bucket` | the calibration bucket of the windows (`WindowBucket::key()`) - an addition: what the calibration report groups by |
+| `image_model`, `image_kind` | `image` / `blend` rows: the estimate's model (`ridge-siglip2-dinov2` / `ridge-siglip2-full`) and what the picture shows (`ImageKind`: flat / box / assembled / other / unknown, from its `artwork` analysis) - null on a live row written while the puzzle had no estimate (Insights 5d) |
 | `computed_at` | when it was written |
 
 Rules:
 - **Live**: `SolvingTimePredictor` computes the statistical predictor's prediction once (prior-only predictions
   allowed) inside its savepoint, records `forDisplay()` of it as the shown prediction (a prior alone is not shown:
-  `predictable = false` there) and persists the side row with the time, in the handler's flush - a plain insert of
-  computed values (the reads that could fail ran inside the savepoint). +1 INSERT per solo add.
+  `predictable = false` there) and writes the side rows right after the handler's flush - a plain insert of computed
+  values (the reads that could fail ran inside the savepoint). +1 INSERT per solo add, whatever the number of rows
+  (since Insights 5d one multi-row INSERT by `LivePredictionRowsWriter`, a `postFlush` listener: three rows through the
+  unit of work would be three statements).
 - **Reconstructed**: the backfill handler writes the side row of every solo time with seconds that has none for the
   current model version, and replaces it when the time was re-evaluated (an edit). A time whose shown prediction is
   live keeps it and gets a reconstructed side row.
@@ -360,6 +363,71 @@ In this order - the backfill writes no side-by-side rows until the model is fitt
    on the copy (the work list query), so its Sentry monitor is not in danger. Before step 1 it writes only the shown
    predictions of pending times.
 
+## Image and blend predictions (Insights 5d, 2026-10)
+
+Two more predictors side by side with the statistical one, for **first tries** (a repeat's personal prediction does
+not use the puzzle's difficulty - no rows), from the puzzle's picture-based difficulty estimate
+(`puzzle_difficulty_estimate`, pushed by the image pipeline - `docs/features/insights/image-pipeline.md` §7):
+
+- `image` - pace × drift × exp(estimate): the picture and the pieces alone, whatever the solves say. Window: the
+  k = 0 bucket with the estimate's own interval as the puzzle term. `difficulty_source = image`, `prior_log` = the
+  estimate, `k_indices` = the puzzle's index count then (what the evaluation groups by).
+- `blend` - the statistical model shrunk toward the estimate (`ImageEstimatePrior` in front of brand × pieces): the
+  estimate alone at k = 0 (= the image prediction), `shrunk` toward it at 1-4, the solves' median from 5 indices on.
+
+Neither is shown anywhere: the columns on `puzzle_solving_time` stay the statistical prediction, `GetPlayerPrediction`
+/ `GetPlayerPredictions` / the Picker never put the estimate into the statistical predictor's prior (README "Step 8",
+Prior). Same model version as the statistical rows (`TimePredictionCalculator::MODEL_VERSION`); the estimate's own
+model is on the row (`image_model`).
+
+**Which estimate - the as-of rule**:
+- **Live** (`GetPlayerPrediction::sideBySide()`, the statistical statement with two more LEFT JOINs - no statement of
+  its own): the estimate of the puzzle's current picture, in-sample or not - it was pushed before the solve existed, so
+  the solve cannot be in it.
+- **Reconstructed** (`PredictionReconstructor::reconstructSideBySide()`, the prior statement with the same joins):
+  **only an out-of-fold estimate** (`out_of_fold = true`: the cross-fitted model that made it never saw the puzzle's
+  own difficulty label - so no solve of the puzzle, the reconstructed one included, reached it). An in-sample estimate
+  (the full model, for a puzzle unlabelled when it was pushed) never feeds a reconstruction: the time waits, without a
+  row, until the next derive marks the puzzle out of fold (the pipeline's labelled puzzles with 1+ indices are). There
+  is no estimate history - a reconstruction uses the out-of-fold estimate current when it runs (like it uses today's
+  fit). Pinned by `ImagePredictionsSideBySideTest::testAnInSampleEstimateNeverFeedsAReconstruction` (mutation-checked:
+  it fails when the reconstruction takes in-sample estimates).
+- **Secret puzzles** (`hide_until` / `hide_image_until` ahead): no estimate, ever - `ImageEstimateSecretPuzzleCanaryTest`.
+- Live == reconstructed as of now, statistical, image and blend alike: `ImagePredictionsSideBySideTest`.
+
+**Writing them**:
+- Live: a first try always gets both rows. Without an estimate (a puzzle added together with its first time never has
+  one) they say not predictable and name no estimate (`image_model` NULL) - the backfill's cue to reconstruct them once
+  the puzzle has an out-of-fold estimate. A live row that rested on an estimate is history, like every live row.
+- Backfill (`BackfillSolvingTimePredictionsHandler`): the work list adds first tries - their statistical row of the
+  current model is a statistical prediction or none was possible - on a puzzle with an out-of-fold estimate of its
+  current picture and no image row yet, or only a live one without an estimate (`GetTimesAwaitingImagePredictions`).
+  Times on puzzles without an out-of-fold estimate are not listed: a missing estimate never becomes "not predictable"
+  in a reconstruction. An edit that makes the time no first try any more (or leaves it without an out-of-fold estimate)
+  removes its image / blend rows; `--recompute-reconstructed` replaces reconstructed ones from before the fit, like the
+  statistical rows.
+- `--recompute-image`: also every reconstructed image / blend row older than the out-of-fold estimate its puzzle has
+  now (`computed_at < received_at` - a newer derive pushed it). The derive re-pushes every estimate nightly, so this is
+  "recompute them all" - the one-off before an evaluation of the estimates, not the cron's.
+
+Measured on a copy of the dev data with a synthetic estimate for every pictured puzzle: 300 players, 52,378 times (all
+three predictors written from scratch, 36,224 + 1,637 image rows) in 275 s; the work list's image condition over all
+523k times 1.2 s (the "nothing to do" cron run ~0.7 → ~2 s).
+
+### Production run for the image rows (after the deploy)
+
+1. Nothing before the estimates exist: the 4×-daily backfill cron (`34 1,7,13,19 * * *`) picks up each puzzle's first
+   tries as soon as the nightly derive has pushed an out-of-fold estimate for it, and the live rows start at once.
+2. One-off fill while the image backfill on the Macs runs - optional, the cron gets there too, a night's new estimates
+   at a time:
+   `nohup docker compose exec -T -e SENTRY_DSN= web php -d memory_limit=1G bin/console myspeedpuzzling:backfill-solving-time-predictions > /tmp/backfill-image.log 2>&1 &`
+   (after the running `--recompute-reconstructed` one-off of v3 has finished - both lock a player's times; never two
+   at once). Resumable.
+3. Before the gate decision (launch, `implementation-plan.md` §8), after the final derive on the complete data:
+   `myspeedpuzzling:backfill-solving-time-predictions --recompute-image` (detached, as above - every reconstructed
+   image / blend row is made again from the final estimates; on prod expect the length of the v3 fill, ~1 h), then
+   `myspeedpuzzling:evaluate-image-estimates` (a few seconds) stores the gate record.
+
 ## Rollout
 
 1. ✅ Migration `Version20260930130108` + entity + value objects + invalidation.
@@ -386,6 +454,12 @@ statistical model looks biased slow on first attempts and its range too narrow -
   same-day order, unboxed = predicted but no input, first solve of a piece count = not predictable.
 - `tests/MessageHandler/BackfillSolvingTimePredictionsHandlerTest` - only pending rows, never a live one, no domain
   events, second run no-op, every fixture player backfillable.
+- `tests/Services/PuzzleIntelligence/ImagePredictionsSideBySideTest` - the three live rows in one INSERT (the estimate
+  read by the statistical statement), the shown prediction untouched, no image rows for repeats, live == reconstructed
+  for image / blend, in-sample estimates never reconstructed, live rows without an estimate reconstructed later,
+  `--recompute-image`, the fit's blend prior equal to the readers' chain.
+- `tests/ImageEstimateSecretPuzzleCanaryTest` - no reader gets a secret puzzle's estimate (read side, live, reconstructed,
+  work list, the fit's priors, the evaluation).
 - `tests/Services/PuzzleIntelligence/ImprovementRatioCalculatorTest` - `globalRatiosBefore()` = batch ratios.
 - `CreateSolvingTimePredictionEndpointTest` - budgets include the live recording; the statistical case now needs
   5 difficulty indices *before* the solve (it passed before only because the new time counted itself).

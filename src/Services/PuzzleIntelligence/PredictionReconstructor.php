@@ -9,9 +9,11 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\TimePredictionResult;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\PriorContext;
+use SpeedPuzzling\Web\Value\ImagePriorInput;
 use SpeedPuzzling\Web\Value\MetricConfidence;
 use SpeedPuzzling\Web\Value\PredictionInputSolve;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
+use SpeedPuzzling\Web\Value\PredictionsSideBySide;
 use SpeedPuzzling\Web\Value\StatisticalPredictionInputs;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
 use SpeedPuzzling\Web\Value\TimePredictionSource;
@@ -36,6 +38,14 @@ use Symfony\Contracts\Service\ResetInterface;
  *
  * Loads its inputs once per player: the player's solo times, the solves of the puzzles that need a
  * statistical prediction and the pace history of their solvers. The rest is PHP.
+ *
+ * The side-by-side `image` / `blend` predictions of a first try (reconstructSideBySide(), Insights plan §5.4) use the
+ * estimate of the puzzle's current picture **only when it is out of fold** (PuzzleDifficultyEstimate::$outOfFold): the
+ * model that made it never saw the puzzle's own difficulty label, so no solve of the puzzle - the reconstructed one
+ * included - reached it. An in-sample estimate (the full model, for a puzzle that had no label when it was pushed)
+ * never feeds a reconstruction: the time has no image prediction until the nightly derive marks the puzzle out of fold.
+ * There is no estimate history - the reconstruction takes the out-of-fold estimate current when it runs (documented
+ * approximation, like the fit). Secret puzzles have none (StatisticalInputsSql::imageEstimateJoins()).
  */
 final class PredictionReconstructor implements ResetInterface
 {
@@ -77,6 +87,22 @@ final class PredictionReconstructor implements ResetInterface
      *                                              with seconds of the player are left out
      */
     public function reconstruct(string $playerId, array $timeIds): array
+    {
+        return array_map(
+            static fn (PredictionsSideBySide $predictions): SolvingTimePrediction => $predictions->statistical,
+            $this->reconstructSideBySide($playerId, $timeIds),
+        );
+    }
+
+    /**
+     * Every predictor's prediction of each solve: the statistical model's and, for a first try on a puzzle with an
+     * out-of-fold estimate of its current picture, the image and blend ones (TimePredictionCalculator::sideBySide()).
+     *
+     * @param list<string> $timeIds solo times with seconds of this player
+     * @return array<string, PredictionsSideBySide> keyed by time id; ids that are not a solo time with seconds of the
+     *                                              player are left out
+     */
+    public function reconstructSideBySide(string $playerId, array $timeIds): array
     {
         $targetIds = array_flip($timeIds);
 
@@ -130,20 +156,33 @@ final class PredictionReconstructor implements ResetInterface
         $firstAttemptCandidates = $this->firstAttemptCandidatesByPiecesCount($qualifyingByPuzzle);
         $puzzleFirstAttemptCandidates = $this->puzzleFirstAttemptCandidates(array_keys($statisticalPuzzleIds));
         $solverPaces = $this->solverPaces($puzzleFirstAttemptCandidates, $playerId);
-        $priorContexts = $this->priorContexts(array_keys($statisticalPuzzleIds));
+        [$priorContexts, $imageEstimates] = $this->priorContexts(array_keys($statisticalPuzzleIds));
 
         $predictions = [];
 
         foreach ($targets as $target) {
             $prior = $priorAttemptsOfTargets[$target->id];
 
-            $result = $prior !== []
-                ? $this->personalPrediction($prior, $target, $playerTransitions, $repeatResiduals[$target->id] ?? [], $parameters)
-                : $this->statisticalPrediction($playerId, $target, $firstAttemptCandidates, $puzzleFirstAttemptCandidates[$target->puzzleId] ?? [], $solverPaces, $priorContexts[$target->puzzleId] ?? null, $parameters);
+            if ($prior !== []) {
+                $predictions[$target->id] = PredictionsSideBySide::repeat(
+                    $this->personalPrediction($prior, $target, $playerTransitions, $repeatResiduals[$target->id] ?? [], $parameters),
+                    TimePredictionSource::Reconstructed,
+                );
 
-            $predictions[$target->id] = $result !== null
-                ? SolvingTimePrediction::predicted($result, TimePredictionSource::Reconstructed)
-                : SolvingTimePrediction::notPredictable(TimePredictionSource::Reconstructed);
+                continue;
+            }
+
+            $estimate = $imageEstimates[$target->puzzleId] ?? null;
+            $inputs = $this->statisticalInputs($playerId, $target, $firstAttemptCandidates, $puzzleFirstAttemptCandidates[$target->puzzleId] ?? [], $solverPaces, $priorContexts[$target->puzzleId] ?? null, $parameters);
+
+            if ($inputs === null) {
+                $predictions[$target->id] = PredictionsSideBySide::firstTry(TimePredictionSource::Reconstructed, null, $estimate);
+
+                continue;
+            }
+
+            [$statistical, $image, $blend] = $this->calculator->sideBySide($inputs, $estimate, $parameters);
+            $predictions[$target->id] = PredictionsSideBySide::firstTry(TimePredictionSource::Reconstructed, $statistical, $estimate, $image, $blend);
         }
 
         return $predictions;
@@ -199,10 +238,13 @@ final class PredictionReconstructor implements ResetInterface
     }
 
     /**
+     * The statistical inputs of a first try as of its solve - null when the player had no pace for the piece count
+     * then (own or the 500-scaled one), so nothing can be predicted.
+     *
      * @param array<int, array<string, list<PredictionInputSolve>>> $firstAttemptCandidates the player's, pieces count => puzzle => candidates
      * @param array<string, list<PredictionInputSolve>> $puzzleCandidates every solver of the target's puzzle, player => candidates
      */
-    private function statisticalPrediction(
+    private function statisticalInputs(
         string $playerId,
         PredictionInputSolve $target,
         array $firstAttemptCandidates,
@@ -210,7 +252,7 @@ final class PredictionReconstructor implements ResetInterface
         PaceTimeline $solverPaces,
         null|PriorContext $priorContext,
         PredictionModelParameters $parameters,
-    ): null|TimePredictionResult {
+    ): null|StatisticalPredictionInputs {
         [$ownBaseline, $ownDirect, $ownCount] = $this->baselineBefore($target, $firstAttemptCandidates);
         $pace500 = $target->piecesCount !== 500 ? $this->directBaselineBefore($target, $firstAttemptCandidates[500] ?? []) : null;
         $prior = $priorContext ?? new PriorContext($target->puzzleId, $target->piecesCount);
@@ -249,24 +291,20 @@ final class PredictionReconstructor implements ResetInterface
         $ownRow = $solverPaces->directRowBefore($playerId, $target->piecesCount, $target->solved, $target->tracked);
         $fiveRow = $pace500 !== null ? $solverPaces->directRowBefore($playerId, 500, $target->solved, $target->tracked) : null;
 
-        return $this->calculator->statistical(
-            new StatisticalPredictionInputs(
-                piecesCount: $target->piecesCount,
-                ownBaselineSeconds: $ownBaseline,
-                ownBaselineDirect: $ownDirect,
-                ownQualifyingCount: $ownCount,
-                ownDrift: $ownDirect ? $ownRow['drift'] ?? null : null,
-                ownSpread: $ownDirect ? $ownRow['spread'] ?? null : null,
-                pace500Seconds: $pace500,
-                drift500: $pace500 !== null ? $fiveRow['drift'] ?? null : null,
-                spread500: $pace500 !== null ? $fiveRow['spread'] ?? null : null,
-                kIndices: $difficulty['sample_size'],
-                sumLogIndices: $difficulty['sum_log_indices'],
-                difficultyScore: $difficulty['confidence'] !== MetricConfidence::Insufficient ? $difficulty['difficulty_score'] : null,
-                prior: $prior,
-            ),
-            $parameters,
-            allowPriorOnly: true,
+        return new StatisticalPredictionInputs(
+            piecesCount: $target->piecesCount,
+            ownBaselineSeconds: $ownBaseline,
+            ownBaselineDirect: $ownDirect,
+            ownQualifyingCount: $ownCount,
+            ownDrift: $ownDirect ? $ownRow['drift'] ?? null : null,
+            ownSpread: $ownDirect ? $ownRow['spread'] ?? null : null,
+            pace500Seconds: $pace500,
+            drift500: $pace500 !== null ? $fiveRow['drift'] ?? null : null,
+            spread500: $pace500 !== null ? $fiveRow['spread'] ?? null : null,
+            kIndices: $difficulty['sample_size'],
+            sumLogIndices: $difficulty['sum_log_indices'],
+            difficultyScore: $difficulty['confidence'] !== MetricConfidence::Insufficient ? $difficulty['difficulty_score'] : null,
+            prior: $prior,
         );
     }
 
@@ -327,27 +365,37 @@ final class PredictionReconstructor implements ResetInterface
     }
 
     /**
-     * BrandPiecesPrior's inputs of the target puzzles as stored by the last fit (the live statements' join).
+     * BrandPiecesPrior's inputs of the target puzzles as stored by the last fit (the live statements' join), and their
+     * out-of-fold image estimates (the same statement - the image / blend reconstructions cost no query of their own).
      *
      * @param list<string> $puzzleIds
-     * @return array<string, PriorContext>
+     * @return array{0: array<string, PriorContext>, 1: array<string, ImagePriorInput>}
      */
     private function priorContexts(array $puzzleIds): array
     {
         $contexts = [];
+        $estimates = [];
 
         foreach (array_chunk($puzzleIds, self::PUZZLE_CHUNK_SIZE) as $chunk) {
             /** @var list<array{id: string, pieces_count: int|string, manufacturer_id: null|string, prior_fit_sum_log: null|float|string, prior_fit_count: null|int|string, group_sum_log: null|float|string, group_index_count: null|int|string}> $rows */
             $rows = $this->connection->fetchAllAssociative('
                 SELECT p.id, p.pieces_count, p.manufacturer_id, dpp.sum_log_indices AS prior_fit_sum_log, dpp.index_count AS prior_fit_count,
-                    g.sum_log_indices AS group_sum_log, g.index_count AS group_index_count
+                    g.sum_log_indices AS group_sum_log, g.index_count AS group_index_count,
+                    ' . StatisticalInputsSql::IMAGE_ESTIMATE_COLUMNS . '
                 FROM puzzle p
                 LEFT JOIN difficulty_prior_puzzle dpp ON dpp.puzzle_id = p.id
                 LEFT JOIN difficulty_prior_group g ON g.manufacturer_id = p.manufacturer_id AND g.pieces_count = p.pieces_count AND ' . StatisticalInputsSql::NOT_SECRET . '
+                ' . StatisticalInputsSql::imageEstimateJoins(outOfFoldOnly: true) . '
                 WHERE p.id IN (:puzzleIds)
             ', ['puzzleIds' => $chunk], ['puzzleIds' => ArrayParameterType::STRING]);
 
             foreach ($rows as $row) {
+                $estimate = ImagePriorInput::fromRow($row);
+
+                if ($estimate !== null) {
+                    $estimates[$row['id']] = $estimate;
+                }
+
                 $contexts[$row['id']] = new PriorContext(
                     puzzleId: $row['id'],
                     piecesCount: (int) $row['pieces_count'],
@@ -360,7 +408,7 @@ final class PredictionReconstructor implements ResetInterface
             }
         }
 
-        return $contexts;
+        return [$contexts, $estimates];
     }
 
     /**

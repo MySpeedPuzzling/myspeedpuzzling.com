@@ -8,9 +8,11 @@ use DateTimeImmutable;
 use SpeedPuzzling\Web\Results\TimePredictionResult;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\BrandPiecesPrior;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\DifficultyPriors;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\ImageEstimatePrior;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\PriorContext;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\PriorEstimate;
 use SpeedPuzzling\Web\Value\DifficultySource;
+use SpeedPuzzling\Web\Value\ImagePriorInput;
 use SpeedPuzzling\Web\Value\PaceSource;
 use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
@@ -31,7 +33,7 @@ use SpeedPuzzling\Web\Value\WindowBucket;
 final readonly class TimePredictionCalculator
 {
     public function __construct(
-        private DifficultyPriors $priors = new DifficultyPriors([new BrandPiecesPrior()]),
+        private DifficultyPriors $priors = new DifficultyPriors([new ImageEstimatePrior(), new BrandPiecesPrior()]),
     ) {
     }
 
@@ -217,7 +219,9 @@ final readonly class TimePredictionCalculator
         $group = PiecesGroup::fromPiecesCount($inputs->piecesCount);
         $spread ??= PredictionModelParameters::GLOBAL_SPREAD;
         $bucket = WindowBucket::firstTry($spread, $parameters->firstTryConsistencyEdges, $inputs->kIndices, $group);
-        $window = self::window($centre, $parameters->firstTrySigma($spread, $inputs->kIndices, $group), $parameters->quantilesFor($bucket));
+        // Resting on the picture alone: the estimate's own interval is the puzzle's uncertainty (ImagePriorInput::variance())
+        $puzzleVariance = $source === DifficultySource::Image ? $prior?->variance : null;
+        $window = self::window($centre, $parameters->firstTrySigma($spread, $inputs->kIndices, $group, $puzzleVariance), $parameters->quantilesFor($bucket));
 
         return new TimePredictionResult(
             predictedSeconds: max((int) round($centre), 1),
@@ -238,6 +242,37 @@ final readonly class TimePredictionCalculator
     public function prior(PriorContext $context): null|PriorEstimate
     {
         return $this->priors->priorFor($context);
+    }
+
+    /**
+     * A first try three ways, side by side (Insights plan §5.4, solving_time_prediction):
+     * - `statistical` - the shown model: shrunk toward brand × pieces, the image estimate never reaches it;
+     * - `image` - the picture and the pieces alone: pace × drift × the estimate, whatever the solves say (null without
+     *   an estimate);
+     * - `blend` - the statistical model shrunk toward the image estimate (ImageEstimatePrior in front of the brand
+     *   prior): the estimate alone at k = 0, fading with k, the solves' median from 5 indices on (null without an
+     *   estimate).
+     * Prior-only predictions are allowed for all three - they are stored side by side, never shown from here.
+     *
+     * @return array{0: null|TimePredictionResult, 1: null|TimePredictionResult, 2: null|TimePredictionResult} statistical, image, blend
+     */
+    public function sideBySide(StatisticalPredictionInputs $inputs, null|ImagePriorInput $imageEstimate, null|PredictionModelParameters $parameters = null): array
+    {
+        $statistical = $this->statistical($inputs->withImageEstimate(null), $parameters, allowPriorOnly: true);
+
+        if ($imageEstimate === null) {
+            return [$statistical, null, null];
+        }
+
+        $withImage = $inputs->withImageEstimate($imageEstimate);
+        $image = $this->statistical($withImage->withoutSolves(), $parameters, allowPriorOnly: true);
+
+        return [
+            $statistical,
+            // The puzzle's index count then stays on the row (what the evaluation groups by); the window used k = 0
+            $image !== null ? $image->withKIndices($inputs->kIndices) : null,
+            $this->statistical($withImage, $parameters, allowPriorOnly: true),
+        ];
     }
 
     /**

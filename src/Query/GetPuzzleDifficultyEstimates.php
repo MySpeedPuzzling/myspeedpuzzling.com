@@ -15,7 +15,9 @@ use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
  * The picture-based difficulty estimates of puzzles (PuzzleDifficultyEstimate, docs/features/internal-api.md "Puzzle
  * difficulty labels and estimates") for the app - the image prior of the predictions (implementation-plan.md §5.4).
  * Only an estimate of the picture a puzzle has now counts (its image changed = no estimate until the pipeline made a
- * new one), and a secret puzzle or picture (hide_until / hide_image_until ahead) has none, whatever is stored.
+ * new one), and a secret puzzle or picture (hide_until / hide_image_until ahead) has none, whatever is stored. With
+ * the `artwork` kind of the same picture (ImageKind - unknown without one), the other half of the key of
+ * ImageEstimateGate::passesFor().
  */
 readonly final class GetPuzzleDifficultyEstimates
 {
@@ -56,9 +58,11 @@ SELECT
     e.training_size,
     e.image_fingerprint,
     e.computed_at,
-    e.received_at
+    e.received_at,
+    art.result->>'kind' AS artwork_kind
 FROM puzzle_difficulty_estimate e
 JOIN puzzle p ON p.id = e.puzzle_id
+LEFT JOIN puzzle_image_analysis art ON art.puzzle_id = e.puzzle_id AND art.analyzer = 'artwork' AND art.image_fingerprint = e.image_fingerprint
 WHERE e.puzzle_id IN (:puzzleIds)
     AND e.image_fingerprint = {$fingerprint}
     AND (p.hide_until IS NULL OR p.hide_until <= :now)

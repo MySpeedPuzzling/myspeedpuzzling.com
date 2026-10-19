@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\PredictionEngine;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\PredictionModelFitter;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\PriorLookup;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\RepeatHistory;
+use SpeedPuzzling\Web\Value\ImagePriorInput;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
 
 /**
@@ -21,8 +22,9 @@ use SpeedPuzzling\Web\Value\PredictionModelParameters;
  *   PredictionEngine over all qualifying first attempts with the stored fit - only the rows whose values changed are
  *   written (~1 s);
  * - the daily fit (fit(), `myspeedpuzzling:fit-prediction-model`): BrandPiecesPrior's groups and every puzzle's share
- *   in them, the rest of the model (PredictionModelFitter, the last FIT_WINDOW_MONTHS) into prediction_model_fit, then
- *   the drift and spread with the new fit (~3-4 s - kept out of the 15-minute batch).
+ *   in them, every puzzle's finished priors (the statistical chain's and the blend's, with the image estimate in front),
+ *   the rest of the model (PredictionModelFitter, the last FIT_WINDOW_MONTHS) into prediction_model_fit, then the drift
+ *   and spread with the new fit (~3-4 s - kept out of the 15-minute batch).
  */
 readonly final class PredictionModelRecalculator
 {
@@ -71,7 +73,7 @@ readonly final class PredictionModelRecalculator
 
         $priorsStartedAt = microtime(true);
         $priors = PriorLookup::fit($set, $this->manufacturerByPuzzle());
-        $priorRows = $this->puzzlePriors($priors);
+        $priorRows = $this->puzzlePriors($priors, $this->imageEstimates());
         $this->writePriors($priors, $priorRows, $now);
         $priorsSeconds = microtime(true) - $priorsStartedAt;
 
@@ -121,14 +123,18 @@ readonly final class PredictionModelRecalculator
     }
 
     /**
-     * Every puzzle with a share in a group or a prior: its share (0 / 0 without one) and its finished prior as the
-     * prior chain gives it now (TimePredictionCalculator::prior() - BrandPiecesPrior today; Insights 5d adds the image
-     * prior for puzzles without a brand prior through this same slot, difficulty_prior_puzzle.prior_log). Secret puzzles
-     * have no brand in the lookup: neither.
+     * Every puzzle with a share in a group or a prior: its share (0 / 0 without one) and its finished priors as the
+     * prior chain gives them now (TimePredictionCalculator::prior()):
+     * - prior_log - the statistical (shown) predictor's: the context without the image estimate, so brand × pieces;
+     * - blend_prior_log - the blend predictor's: the same context with the estimate of the puzzle's current picture,
+     *   so ImageEstimatePrior first, else brand × pieces (Insights 5d - for the Picker and bulk readers once the
+     *   estimates are shown, Phase 6).
+     * Secret puzzles have no brand in the lookup and no estimate: neither.
      *
-     * @return array<string, array{0: float, 1: int, 2: null|float}> puzzle => [share sum, share count, prior log]
+     * @param array<string, ImagePriorInput> $imageEstimates imageEstimates()
+     * @return array<string, array{0: float, 1: int, 2: null|float, 3: null|float}> puzzle => [share sum, share count, prior log, blend prior log]
      */
-    private function puzzlePriors(PriorLookup $priors): array
+    private function puzzlePriors(PriorLookup $priors, array $imageEstimates): array
     {
         $rows = [];
 
@@ -136,10 +142,13 @@ readonly final class PredictionModelRecalculator
             /** @var string $puzzleId */
             /** @var int|string $piecesCount */
             $share = $priors->puzzleShares[$puzzleId] ?? null;
-            $prior = $this->calculator->prior($priors->contextFor($puzzleId, (int) $piecesCount))?->logDifficulty;
+            $context = $priors->contextFor($puzzleId, (int) $piecesCount);
+            $prior = $this->calculator->prior($context)?->logDifficulty;
+            $estimate = $imageEstimates[$puzzleId] ?? null;
+            $blendPrior = $estimate !== null ? $this->calculator->prior($context->withImageEstimate($estimate))?->logDifficulty : $prior;
 
-            if ($share !== null || $prior !== null) {
-                $rows[$puzzleId] = [$share[0] ?? 0.0, $share[1] ?? 0, $prior];
+            if ($share !== null || $prior !== null || $blendPrior !== null) {
+                $rows[$puzzleId] = [$share[0] ?? 0.0, $share[1] ?? 0, $prior, $blendPrior];
             }
         }
 
@@ -147,10 +156,38 @@ readonly final class PredictionModelRecalculator
     }
 
     /**
+     * The estimate of every puzzle's current picture (any, in-sample too: a current-state prior like the live
+     * prediction's, StatisticalInputsSql::imageEstimateJoins()) - none for a secret puzzle.
+     *
+     * @return array<string, ImagePriorInput>
+     */
+    private function imageEstimates(): array
+    {
+        $estimates = [];
+        $rows = $this->connection->iterateAssociative('
+            SELECT p.id, ' . StatisticalInputsSql::IMAGE_ESTIMATE_COLUMNS . '
+            FROM puzzle p
+            ' . StatisticalInputsSql::imageEstimateJoins(outOfFoldOnly: false) . '
+            WHERE img.puzzle_id IS NOT NULL
+        ');
+
+        foreach ($rows as $row) {
+            /** @var array<string, mixed> $row */
+            $estimate = ImagePriorInput::fromRow($row);
+
+            if ($estimate !== null && is_string($row['id'])) {
+                $estimates[$row['id']] = $estimate;
+            }
+        }
+
+        return $estimates;
+    }
+
+    /**
      * Groups, shares and the finished priors change together (one transaction): a prediction never sees new sums with
      * old shares, nor a prior of another fit than its sums.
      *
-     * @param array<string, array{0: float, 1: int, 2: null|float}> $puzzleRows puzzlePriors()
+     * @param array<string, array{0: float, 1: int, 2: null|float, 3: null|float}> $puzzleRows puzzlePriors()
      */
     private function writePriors(PriorLookup $priors, array $puzzleRows, DateTimeImmutable $now): void
     {
@@ -206,23 +243,25 @@ readonly final class PredictionModelRecalculator
 
             foreach (array_chunk($puzzles, self::CHUNK) as $chunk) {
                 $connection->executeStatement('
-                    INSERT INTO difficulty_prior_puzzle (puzzle_id, sum_log_indices, index_count, prior_log, computed_at)
-                    SELECT fresh.puzzle_id, fresh.sum_log_indices, fresh.index_count, fresh.prior_log, CAST(:now AS timestamp)
-                    FROM unnest(CAST(:puzzles AS uuid[]), CAST(:sums AS double precision[]), CAST(:counts AS int[]), CAST(:priors AS double precision[]))
-                        AS fresh (puzzle_id, sum_log_indices, index_count, prior_log)
+                    INSERT INTO difficulty_prior_puzzle (puzzle_id, sum_log_indices, index_count, prior_log, blend_prior_log, computed_at)
+                    SELECT fresh.puzzle_id, fresh.sum_log_indices, fresh.index_count, fresh.prior_log, fresh.blend_prior_log, CAST(:now AS timestamp)
+                    FROM unnest(CAST(:puzzles AS uuid[]), CAST(:sums AS double precision[]), CAST(:counts AS int[]), CAST(:priors AS double precision[]), CAST(:blendPriors AS double precision[]))
+                        AS fresh (puzzle_id, sum_log_indices, index_count, prior_log, blend_prior_log)
                     ON CONFLICT (puzzle_id) DO UPDATE SET
                         sum_log_indices = EXCLUDED.sum_log_indices,
                         index_count = EXCLUDED.index_count,
                         prior_log = EXCLUDED.prior_log,
+                        blend_prior_log = EXCLUDED.blend_prior_log,
                         computed_at = EXCLUDED.computed_at
-                    WHERE (difficulty_prior_puzzle.sum_log_indices, difficulty_prior_puzzle.index_count, difficulty_prior_puzzle.prior_log)
-                        IS DISTINCT FROM (EXCLUDED.sum_log_indices, EXCLUDED.index_count, EXCLUDED.prior_log)
+                    WHERE (difficulty_prior_puzzle.sum_log_indices, difficulty_prior_puzzle.index_count, difficulty_prior_puzzle.prior_log, difficulty_prior_puzzle.blend_prior_log)
+                        IS DISTINCT FROM (EXCLUDED.sum_log_indices, EXCLUDED.index_count, EXCLUDED.prior_log, EXCLUDED.blend_prior_log)
                 ', [
                     'now' => $now->format('Y-m-d H:i:s'),
                     'puzzles' => self::arrayLiteral($chunk),
                     'sums' => self::arrayLiteral(array_map(static fn (string $puzzle): float => $puzzleRows[$puzzle][0], $chunk)),
                     'counts' => self::arrayLiteral(array_map(static fn (string $puzzle): int => $puzzleRows[$puzzle][1], $chunk)),
                     'priors' => self::arrayLiteral(array_map(static fn (string $puzzle): null|float => $puzzleRows[$puzzle][2], $chunk)),
+                    'blendPriors' => self::arrayLiteral(array_map(static fn (string $puzzle): null|float => $puzzleRows[$puzzle][3], $chunk)),
                 ]);
             }
 
@@ -236,10 +275,10 @@ readonly final class PredictionModelRecalculator
     }
 
     /**
-     * puzzle_difficulty.prior_log = difficulty_prior_puzzle.prior_log of the same puzzle (null without one) - the copy
-     * the Puzzle Picker reads with the difficulty it joins anyway, one lookup per candidate less. Run by the fit with the
-     * prior tables (one transaction) and by the batch after its difficulty step, which can insert rows. Writes only the
-     * rows that differ.
+     * puzzle_difficulty.prior_log / blend_prior_log = difficulty_prior_puzzle's of the same puzzle (null without one) -
+     * the copy the Puzzle Picker reads with the difficulty it joins anyway, one lookup per candidate less. Run by the fit
+     * with the prior tables (one transaction) and by the batch after its difficulty step, which can insert rows. Writes
+     * only the rows that differ.
      *
      * @return int rows written
      */
@@ -251,13 +290,14 @@ readonly final class PredictionModelRecalculator
     private static function syncDifficultyPriorsOn(Connection $connection): int
     {
         return (int) $connection->executeStatement('
-            UPDATE puzzle_difficulty pd SET prior_log = fresh.prior_log
+            UPDATE puzzle_difficulty pd SET prior_log = fresh.prior_log, blend_prior_log = fresh.blend_prior_log
             FROM (
-                SELECT d.puzzle_id, dpp.prior_log
+                SELECT d.puzzle_id, dpp.prior_log, dpp.blend_prior_log
                 FROM puzzle_difficulty d
                 LEFT JOIN difficulty_prior_puzzle dpp ON dpp.puzzle_id = d.puzzle_id
             ) fresh
-            WHERE fresh.puzzle_id = pd.puzzle_id AND pd.prior_log IS DISTINCT FROM fresh.prior_log
+            WHERE fresh.puzzle_id = pd.puzzle_id
+                AND (pd.prior_log, pd.blend_prior_log) IS DISTINCT FROM (fresh.prior_log, fresh.blend_prior_log)
         ');
     }
 

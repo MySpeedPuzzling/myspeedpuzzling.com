@@ -25,6 +25,14 @@ readonly final class DifficultyPriors
         return new self([new BrandPiecesPrior()]);
     }
 
+    /**
+     * The chain the container builds, for code outside it (unit tests): the image estimate first, then brand × pieces.
+     */
+    public static function all(): self
+    {
+        return new self([new ImageEstimatePrior(), new BrandPiecesPrior()]);
+    }
+
     public function priorFor(PriorContext $context): null|PriorEstimate
     {
         foreach ($this->priors as $prior) {

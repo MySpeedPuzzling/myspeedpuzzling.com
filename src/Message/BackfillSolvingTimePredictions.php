@@ -25,6 +25,9 @@ readonly final class BackfillSolvingTimePredictions
         // Also replace every reconstructed prediction - shown, and the current model's side-by-side row - with one of
         // the current fit (live ones are history, never); only once the model is fitted
         public bool $recomputeReconstructed = false,
+        // Also replace every reconstructed image / blend row older than the out-of-fold estimate its puzzle has now (a
+        // newer derive) - the one-off before an evaluation of the estimates; only once the model is fitted
+        public bool $recomputeImage = false,
     ) {
     }
 }

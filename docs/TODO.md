@@ -1051,6 +1051,25 @@ First delivery = store + backfill; the UI comes after it.
 - [ ] Player-level accuracy: how often inside the range, average beat, trend over time (Insights section)
 - [ ] Ideas for later: "beat the prediction" streaks/badges, API fields on result rows (additive: `prediction`, `faster_than_predicted_percent`)
 
+## Image estimates in the predictions (Insights 5d, `features/insights/image-estimate-gates.md`)
+
+- [ ] lily.srv: a daily cron row for `myspeedpuzzling:evaluate-image-estimates` (after the 4×-daily prediction backfill,
+      e.g. `5 8 * * *`) once Phase 6c shows estimates - until then run it by hand
+- [ ] Before the launch decision: final derive → `backfill-solving-time-predictions --recompute-image` (detached, ~1 h)
+      → `evaluate-image-estimates` (prediction-history.md "Production run for the image rows")
+- [ ] The image predictor's window = the estimate's interval as the puzzle term with the statistical k = 0 quantiles; if
+      the window gate fails on the real backfill, fit a calibration table of the image rows' own (like
+      `PredictionModelFitter`'s first-try buckets) rather than loosening the gate
+- [ ] No estimate history: a reconstruction uses the out-of-fold estimate current when it runs (the derive re-pushes
+      nightly). Store estimate history only if a gate decision ever needs "the estimate as of the solve"
+- [ ] `puzzle_difficulty.blend_prior_log` / `difficulty_prior_puzzle.blend_prior_log` have no reader yet - the Picker and
+      bulk readers of Phase 6c; and `ShelfPicks::estimates()` (computation.md §4c.7) is 6c's seam for picture-only shelf picks
+- [ ] Whether the shown statistical prediction should shrink toward the image prior at k = 1-4 once the gates pass
+      (research: 0.133 → 0.124 at k = 1-2) - a model change: bump `TimePredictionCalculator::MODEL_VERSION`, never
+      switch it by the gate record
+- [ ] The backfill work list's image condition costs ~1.2 s over 523k times with an estimate for every puzzle (the
+      "nothing to do" cron ~0.7 → ~2 s); watch the Sentry monitor of `backfill-solving-time-predictions`
+
 ## SEO site-wide links (WS-F2)
 
 Shipped with WS-F2 of [`features/seo/implementation-plan-2026-10.md`](features/seo/implementation-plan-2026-10.md).

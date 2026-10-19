@@ -12,8 +12,11 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionModelParametersProvi
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\RepeatResiduals;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\StatisticalInputsSql;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
+use SpeedPuzzling\Web\Value\ImagePriorInput;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
+use SpeedPuzzling\Web\Value\PredictionsSideBySide;
 use SpeedPuzzling\Web\Value\SolveMoment;
+use SpeedPuzzling\Web\Value\TimePredictionSource;
 
 /**
  * Time prediction of one player on one puzzle. Fetches the inputs and hands the
@@ -54,6 +57,39 @@ readonly final class GetPlayerPrediction
         }
 
         return $this->statisticalPrediction($playerId, $puzzleId, $allowPriorOnly);
+    }
+
+    /**
+     * Every predictor's prediction of a solve being added now (SolvingTimePredictor, the live side-by-side rows): the
+     * statistical model's (prior-only allowed) and, for a first try, the image / blend ones from the estimate of the
+     * puzzle's current picture - read by the statistical statement itself (two LEFT JOINs), no statement of its own.
+     */
+    public function sideBySide(
+        string $playerId,
+        string $puzzleId,
+        null|string $excludeTimeId = null,
+        null|SolveMoment $before = null,
+    ): PredictionsSideBySide {
+        $personalPrediction = $this->personalPrediction($playerId, $puzzleId, $excludeTimeId, $before);
+
+        if ($personalPrediction !== null) {
+            return PredictionsSideBySide::repeat($personalPrediction, TimePredictionSource::Live);
+        }
+
+        $row = $this->statisticalRow($playerId, $puzzleId, withImageEstimate: true);
+
+        if ($row === null) {
+            return PredictionsSideBySide::firstTry(TimePredictionSource::Live, null);
+        }
+
+        $estimate = ImagePriorInput::fromRow($row);
+        [$statistical, $image, $blend] = $this->calculator->sideBySide(
+            StatisticalInputsSql::hydrate($row),
+            $estimate,
+            PredictionModelParametersProvider::fromJson(is_string($row['model_parameters']) ? $row['model_parameters'] : null),
+        );
+
+        return PredictionsSideBySide::firstTry(TimePredictionSource::Live, $statistical, $estimate, $image, $blend);
     }
 
     private function personalPrediction(string $playerId, string $puzzleId, null|string $excludeTimeId, null|SolveMoment $before): null|TimePredictionResult
@@ -198,8 +234,26 @@ SQL;
 
     private function statisticalPrediction(string $playerId, string $puzzleId, bool $allowPriorOnly): null|TimePredictionResult
     {
-        $columns = StatisticalInputsSql::COLUMNS;
-        $joins = StatisticalInputsSql::JOINS . StatisticalInputsSql::lateralPaceJoins();
+        $row = $this->statisticalRow($playerId, $puzzleId, withImageEstimate: false);
+
+        if ($row === null) {
+            return null;
+        }
+
+        return $this->calculator->statistical(
+            StatisticalInputsSql::hydrate($row),
+            PredictionModelParametersProvider::fromJson(is_string($row['model_parameters']) ? $row['model_parameters'] : null),
+            $allowPriorOnly,
+        );
+    }
+
+    /**
+     * @return null|array<string, mixed>
+     */
+    private function statisticalRow(string $playerId, string $puzzleId, bool $withImageEstimate): null|array
+    {
+        $columns = StatisticalInputsSql::COLUMNS . ($withImageEstimate ? ', ' . StatisticalInputsSql::IMAGE_ESTIMATE_COLUMNS : '');
+        $joins = StatisticalInputsSql::JOINS . StatisticalInputsSql::lateralPaceJoins() . ($withImageEstimate ? StatisticalInputsSql::imageEstimateJoins(outOfFoldOnly: false) : '');
         $parameters = PredictionModelParametersProvider::SQL;
 
         /** @var array<string, mixed>|false $row */
@@ -214,14 +268,6 @@ SQL;
             'modelVersion' => TimePredictionCalculator::MODEL_VERSION,
         ])->fetchAssociative();
 
-        if ($row === false) {
-            return null;
-        }
-
-        return $this->calculator->statistical(
-            StatisticalInputsSql::hydrate($row),
-            PredictionModelParametersProvider::fromJson(is_string($row['model_parameters']) ? $row['model_parameters'] : null),
-            $allowPriorOnly,
-        );
+        return $row !== false ? $row : null;
     }
 }

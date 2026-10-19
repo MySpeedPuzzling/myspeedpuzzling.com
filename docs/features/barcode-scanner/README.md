@@ -652,6 +652,12 @@ multiscan a quarter), so the same box held the same way looked - and read - diff
 is the player's one remembered choice (`msp-scan-zoom`) everywhere; Safari and the installed PWA keep separate storage,
 so each remembers its own.
 
+**The picture only when final (2026-10-19):** an iPhone showed the camera for about a third of a second unscaled - a
+narrow portrait strip at 1x in the middle of the window - before the crop and the zoom applied. The video, the read
+overlay and the zoom pill stay transparent (opacity: the readers decode meanwhile) with the spinner and the hint until
+the zoom is set and three frames in a row came at one size (`_revealWhenSteady()`, class `barcode-scanner-live`),
+never longer than 2 s.
+
 ## 6. Open questions for Jan
 
 1. OK to restore Google's detector on Android right away (§5.0), until our own decoder replaces it (§5.4)?

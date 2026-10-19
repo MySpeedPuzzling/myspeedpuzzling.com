@@ -659,6 +659,16 @@ td.rank {
         object-fit: cover;
         pointer-events: none;
     }
+
+    // Until the picture is the final one (barcode_scanner_controller.js `_revealWhenSteady()`): only the spinner and
+    // the hint. Opacity, not visibility or display: the readers decode the video meanwhile
+    &:not(.barcode-scanner-live) {
+        video,
+        canvas,
+        .barcode-scanner-pill {
+            opacity: 0;
+        }
+    }
 }
 
 // Over every scanner's camera (_barcode_scanner_hud.html.twig): above the <video> (z-index 20) and the read overlay

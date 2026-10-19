@@ -251,6 +251,7 @@ export default class extends Controller {
         this.forcedEngine = forced === 'zbar' || forced === 'native' ? forced : null;
 
         this.wrapperTarget.classList.remove('d-none');
+        this.wrapperTarget.classList.remove('barcode-scanner-live');
         const session = ++this.cameraSession;
         // Download the decoders while the camera opens, not after
         this._warmDecoders();
@@ -315,9 +316,48 @@ export default class extends Controller {
             this._play();
         }, { once: true });
 
-        this._setupTrack();
+        this._revealWhenSteady(session, this._setupTrack());
         this._startDebug();
         this.scanLoop();
+    }
+
+    /**
+     * The picture only once it is the final one: an iPhone first showed the camera unscaled (a narrow portrait strip
+     * in the middle of the window, at 1x) for about a third of a second before the window's crop and the zoom applied
+     * (2026-10-19). Until then the spinner and the hint stay; the readers already decode. Shown once the zoom is set
+     * and three frames in a row came at one size - never later than 2 s.
+     */
+    async _revealWhenSteady(session, setup) {
+        const reveal = () => {
+            if (session === this.cameraSession) {
+                this.wrapperTarget.classList.add('barcode-scanner-live');
+            }
+        };
+        const fallback = window.setTimeout(reveal, 2000);
+
+        await setup;
+
+        let size = null;
+        let steady = 0;
+        const check = () => {
+            if (session !== this.cameraSession) {
+                window.clearTimeout(fallback);
+                return;
+            }
+
+            const video = this.videoTarget;
+            const now = `${video.videoWidth}x${video.videoHeight}`;
+            steady = video.videoWidth > 0 && now === size ? steady + 1 : 0;
+            size = now;
+            if (steady >= 2) {
+                window.clearTimeout(fallback);
+                reveal();
+                return;
+            }
+
+            this._onNextFrame(check);
+        };
+        check();
     }
 
     _freshVideo() {

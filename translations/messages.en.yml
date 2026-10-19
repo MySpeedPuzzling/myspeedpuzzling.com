@@ -10847,7 +10847,7 @@ insights:
             other: "Not on your shelf"
             size: "Bigger = more results"
         list: "Best candidates"
-        meta: "{0}%pieces% pc · %brand% · this month|{1}%pieces% pc · %brand% · 1 month ago|]1,Inf[%pieces% pc · %brand% · %count% months ago"
+        ago: "{0}this month|{1}1 month ago|]1,Inf[%count% months ago"
         on_shelf: "on your shelf"
         picker: "More puzzles to beat your record in the Puzzle Picker"
         note: "Likely = your personal prediction for the next attempt, against your best time on the puzzle."

@@ -234,7 +234,7 @@
                     {% set pace = forecast.pace %}
                     {% set change = (pace.changePerYear * 100)|round %}
                     {% set milestones = milestones|merge([{
-                        name: 'insights.forecast.milestones.pace.name'|trans({'%pieces%': pace.piecesCount, '%date%': pace.yearEnd|format_date('medium')}),
+                        name: 'insights.forecast.milestones.pace.name'|trans({'%pieces%': pace.piecesCount, '%date%': pace.yearEnd|events_date('yMMMd')}),
                         meta: 'insights.forecast.milestones.pace.meta'|trans({'%pace%': pace.paceSeconds|puzzlingTime, '%ago%': pace.paceYearAgoSeconds|puzzlingTime})
                             ~ ' · ' ~ (change < 0 ? 'insights.forecast.milestones.pace.faster' : (change > 0 ? 'insights.forecast.milestones.pace.slower' : 'insights.forecast.milestones.pace.flat'))|trans({'%percent%': change|abs}),
                         value: '~' ~ pace.projectedSeconds|puzzlingTime,

@@ -31,7 +31,7 @@
                     {% set months = (now - entry.solvedAt.timestamp) / 2630016 %}
                     <rect x="{{ (2 + loop.index0 * bar)|round(2) }}" y="{{ (height - 12 - bar_height)|round(2) }}" width="{{ max(1, bar - 1)|round(2) }}" height="{{ bar_height|round(2) }}"
                         class="{{ entry.counts ? 'is-counted' : 'is-out' }}" fill-opacity="{{ max(0.3, 1 - months / 30)|round(2) }}">
-                        <title>{{ entry.puzzle is not null ? entry.puzzle.name : 'insights.rating.strips.secret'|trans }} · {{ 'insights.rating.strips.points'|trans({'%points%': entry.points|round, '%position%': loop.index}) }} · {{ entry.solvedAt|format_date('medium') }}{{ entry.counts ? '' : ' · ' ~ 'insights.rating.strips.outside'|trans({'%cap%': cap}) }}</title>
+                        <title>{{ entry.puzzle is not null ? entry.puzzle.name : 'insights.rating.strips.secret'|trans }} · {{ 'insights.rating.strips.points'|trans({'%points%': entry.points|round, '%position%': loop.index}) }} · {{ entry.solvedAt|events_date('yMMMd') }}{{ entry.counts ? '' : ' · ' ~ 'insights.rating.strips.outside'|trans({'%cap%': cap}) }}</title>
                     </rect>
                 {% endfor %}
                 {% if shown|length > cap %}

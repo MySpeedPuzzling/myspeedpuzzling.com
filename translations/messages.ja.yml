@@ -10563,7 +10563,7 @@ insights:
             other: "棚にない"
             size: "大きいほど結果が多い"
         list: "有力候補"
-        meta: "{0}%pieces%ピース · %brand% · 今月|[1,Inf[%pieces%ピース · %brand% · %count%か月前"
+        ago: "{0}今月|[1,Inf[%count%か月前"
         on_shelf: "棚にあり"
         picker: "「次はどのパズルを組む？」で記録更新を狙えるパズルをもっと探す"
         note: "予想＝次の挑戦でのあなた専用の予想タイム。そのパズルの自己ベストと比べています。"

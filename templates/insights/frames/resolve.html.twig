@@ -50,7 +50,7 @@
                                 <span class="ins-row__main">
                                     <span class="ins-row__name">{{ puzzle.name }}</span>
                                     <span class="ins-row__meta">
-                                        {{- 'insights.resolve.meta'|trans({'%pieces%': puzzle.piecesCount, '%brand%': puzzle.brandName ?? '', '%count%': candidate.monthsSinceLastSolve|round}) -}}
+                                        {{- ['insights.skills.pieces'|trans({'%count%': puzzle.piecesCount}), puzzle.brandName, 'insights.resolve.ago'|trans({'%count%': candidate.monthsSinceLastSolve|round})]|filter(part => part is not empty)|join(' · ') -}}
                                         {%- if candidate.onShelf %} · {{ 'insights.resolve.on_shelf'|trans }}{% endif -%}
                                     </span>
                                 </span>

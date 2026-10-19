@@ -1,7 +1,8 @@
 # Insights - the page as built (Phase 6)
 
-The player's own Insights page, built by stream **6a**. Phase 6b and 6c add parts, listed at the end. The personal time
-estimates (6c) on the puzzle page, the lists, the Picker and the marketplace: [`estimates.md`](./estimates.md). Decisions:
+The player's own Insights page: the first response built by stream **6a**, the lazy frames below the fold by **6b**
+("Lazy frames" below). The personal time estimates (6c) on the puzzle page, the lists, the Picker and the
+marketplace: [`estimates.md`](./estimates.md). Decisions:
 [`README.md`](./README.md). Plan: [`implementation-plan.md`](./implementation-plan.md) §7. Visual design of record:
 [`prototype.html`](./prototype.html). Numbers: [`computation.md`](./computation.md).
 
@@ -52,11 +53,12 @@ morphing it. The skill map strips, the profile bars and the pace bars are plain 
 | 6 | Expected vs. actual | `expectedVsActual`, `predictionAccuracy` | lock: "N puzzles went better than expected" | scatter, better / slower lists with "why" chips, "your margin", the hit rate of the likely window and of the 80 % range (calibrated predictions, model ≥ 3, from 10 each; a hit is judged against the window as shown - 3c's `PredictionWindow::rounded()`, so it agrees with the recap) |
 | 7 | You against the median solver | `histogram` | the histogram + takeaway; lock: "N outliers found" | + the outliers both ways |
 | 8 | Close calls | `closeCalls` | yes (places only, nobody named) | yes |
-| 9-11 | rating + forecast, re-solve radar | - | 6b placeholders | 6b |
+| 9-10 | Rating opportunities + forecast | lazy frame `insights_rating` (`RatingOpportunities` + `RatingForecast` from one `RatingModel`) | one lock each: "N moves found, worth up to +X points" / "N entries leave your rating within 2 months" | moves (most points / per hour), portfolio strips, pending puzzles, the path onto the ladder (near the ladder only), forecast chart + milestones |
+| 11 | Re-solve radar | lazy frame `insights_resolve` (`ResolveRadar`) | lock: "N old puzzles you would likely beat now" | scatter + best candidates + Puzzle Picker link |
 | 12 | Learning curve | `learningCurve` | lock: "your learning curve across N repeated puzzles" | chart you vs all solvers + puzzles improved most |
-| 13 | Pairs & teams | - | 6b placeholder | 6b |
+| 13 | Pairs & teams | lazy frame `insights_pairs` (`PairsTeamsSynergy`) | takeaway with the count of results together; lock: "N pairs and teams analysed" | pairs and teams apart, synergy rows, together vs. alone, best results together |
 | 14 | Habits | `habits` | results per weekday (counts only); lock with the long-break count | + pace in the weekday tooltip, pace after a break, by the time you logged (with a time zone) |
-| 15 | Improvement curve + rating over time | - | 6b placeholder | 6b |
+| 15 | Improvement curve + rating over time | lazy frame `insights_improvement` (`ImprovementCurve` + `RatingOverTime`) | lock: "N big jumps in your pace over M first tries" | pace curve (+ typical newcomer at 500), biggest jumps, plateau, other piece counts, MSP rating day by day |
 | 16 | Make your insights sharper | `nudges` (`NudgesBuilder`) | yes | yes |
 
 **Accessibility:** the findings are a labelled region; a locked question chip says "members only" to screen readers;
@@ -153,10 +155,70 @@ vous), German du, Spanish tú; Czech says "puzzler", "predikce", "pravděpodobn�
   instead, and the legend says so (the takeaway names your usual).
 - A sticky filter bar: it would collide with the player header's compact bar, so the filter row scrolls with the page.
 
-## Left for 6b
+## Lazy frames (6b)
 
-- The four placeholder partials, `templates/insights/_lazy_{rating,resolve,pairs,improvement}.html.twig`. Each one
-  becomes a lazy Turbo Frame with `data-live-ignore`, so the component's re-renders do not reload it. Add the
-  section's question chip in `Insights::getQuestions()`, and if it has a finding, its anchor in `_findings.html.twig`.
-- The MSP rating tile, the "Try next" shelf pick, and the rating findings of the prototype's top row.
-- Screenshots at 320 / 390 / 1200 px and the button-overflow audit in 6 languages; the §6.3 canaries for the lazy parts.
+Sections 9-11, 13 and 15 load after the first response, each part in its own Turbo Frame below the fold. The first
+response is unchanged by them: the placeholders cost no statement (`InsightsPageQueryBudgetTest` still pins 10).
+
+| Part (`InsightsLazyPart`) | Route | Controller | Sections | Filters it reads | Statements on a cache miss |
+|---|---|---|---|---|---|
+| `rating` | `insights_rating`, `GET /{_locale}/insights/rating` | `InsightsRatingFrameController` | 9 rating opportunities + pending + portfolio, 10 forecast | none (MSP rating = 500 pieces, its own 24-month window) | key 1 + model ≤ 8 (+ forecast 2, members) = ≤ 11 member / ≤ 9 free |
+| `resolve` | `insights_resolve`, `GET /{_locale}/insights/re-solve` | `InsightsResolveFrameController` | 11 re-solve radar | pieces | key 1 + ≤ 4 = ≤ 5; predictions off = 0 |
+| `pairs` | `insights_pairs`, `GET /{_locale}/insights/pairs-and-teams` | `InsightsPairsFrameController` | 13 pairs & teams | period, pieces | key 1 + ≤ 4 = ≤ 5 |
+| `improvement` | `insights_improvement`, `GET /{_locale}/insights/improvement` | `InsightsImprovementFrameController` | 15 improvement curve + rating over time | period (rating over time), pieces (which curves) | key 1 + 1 (+ rating over time 1, members) = ≤ 3 |
+
+Pinned by `tests/Services/Insights/InsightsFramesBudgetTest.php` on the insights ladder fixture (also < 100 ms per part,
+and a cache hit = the key only). Measured 2026-10-19 in the test env (one-off container, ladder fixture, cache miss):
+see the STATUS entry of 6b.
+
+**How a frame works:**
+- The placeholder (`templates/insights/frames/_lazy.html.twig`, included by the four `_lazy_*` partials) is
+  `<turbo-frame loading="lazy" target="_top" data-live-ignore>` with the sections' heads and anchors (the question
+  chips jump there before it loads). Twig `insights_frame(part, criteria)` gives its id and src.
+- **The frame id is keyed by the filters the part reads** (`InsightsLazyPart::frameId()`). The live component leaves a
+  frame with the same id alone (`data-live-ignore`); when a filter the part reads changes, the id changes, Live puts
+  the placeholder back with the new `src` and Turbo loads it again. A filter the part ignores never reloads it.
+- `InsightsFrameRequest::context()` applies the page's rules: signed in, `InsightsFeature` (404 while hidden), the
+  signed-in player's own id only (the URL carries no player), membership with trials counted
+  (`PlayerProfile::$activeMembership`), `time_predictions_opted_out`, the time zone for the criteria, and the page's
+  filters from the URL - only the part's keys, a free player's members-only values dropped (`InsightsCriteria`).
+- A frame URL opened without the `Turbo-Frame` header (a new tab) redirects to its section of the page.
+- `InsightsFrames` builds each part through `InsightsCache` (parts `frame_rating`, `frame_resolve`, `frame_pairs`,
+  `frame_improvement`; the context = membership + the part's filters (+ the day for period-relative parts)). A free
+  player's part is built only for the counts of its lock: no forecast, no rating over time.
+- Charts (`InsightsFramesChartsFactory`, members only): forecast lines, the re-solve scatter, the pace curve, the
+  rating over time - Chart.js through `ChartBuilderInterface` and `comparison_chart_controller.js`, like the first
+  response. The portfolio strips, the synergy rows and the together-vs-alone bars are HTML/SVG. Dates come from ICU
+  skeletons (`EventsPageDates`).
+- Styles: `assets/styles/_insights-frames.scss` (after `_insights.scss`).
+
+**Rules carried into the frames:**
+- Every ladder place is a place **on today's ladder** and says so (other players' ratings move too).
+- Players opted out of rankings (`RatingStanding::OptedOut`) get their rating and its moves but no place, no path
+  onto the ladder and no ladder milestone; the takeaway says it neutrally ("You chose not to appear in rankings").
+  Private players have no MSP rating (rankings are public-only): the section says so.
+- The path onto the ladder shows only while it is within reach (`RatingStanding::NearLadder`, ≤ 10 new results).
+- **Time predictions switched off:** no moves (a move is worth what its expected time gives), no "best moves" forecast
+  line, no re-solve radar (it is nothing but predictions) - each says so and links to the setting. The rating, its
+  entries, pending puzzles and the pace milestones stay (they are no predictions).
+- Pairs and teams are separate lists and never mix into solo. A private teammate who has not let the viewer see them
+  is "Hidden Puzzler" (no player id reaches the page); a guest is shown by name, without a score (no solo pace); a
+  pair/team with a blocked member is left out (`PairsTeamsSynergy`).
+- Secret puzzles (`hide_until` / `hide_image_until`) are never named: the builders leave them out of every suggestion;
+  an entry or a jump on one keeps its number without the puzzle ("A puzzle kept secret for now").
+- Free players get one lock per section with real counts and the free-trial button - no moves, strips, charts, times,
+  names of partners or puzzles.
+
+**Tests:**
+- `tests/Controller/InsightsFramesControllerTest.php` (the fixture players join the insights ladder):
+  - flag off = 404 for every frame; guests to sign-in; a frame opened on its own redirects to its section;
+  - the page's frame ids and srcs are the ones that answer;
+  - every frame for a member and a free player; the free HTML carries locks with counts and no members-only markup;
+  - predictions switched off; opted out of rankings; only the viewer's own data;
+  - canaries: secret puzzles, a suspicious result, a hidden private teammate.
+- `tests/Services/Insights/InsightsFramesBudgetTest.php`: statements and time per part.
+
+## Still open
+
+- The MSP rating tile, the "Try next" shelf pick, and the rating findings of the prototype's top row (first response;
+  the shelf pick needs `ShelfPicks`, ≤ 7 statements - a lazy part of its own if it comes).

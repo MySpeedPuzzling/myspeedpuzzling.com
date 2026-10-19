@@ -110,7 +110,7 @@
                                         {{ lazy_puzzle_image(puzzle.image, 'puzzle_small', puzzle.name, 999, 48, 'rounded-2 ins-row__image', 48) }}
                                         <span class="ins-row__main">
                                             <span class="ins-row__name">{{ puzzle.name }}</span>
-                                            <span class="ins-row__meta">{{ 'insights.pairs.best.meta'|trans({'%name%': (names[score.result.teamId] ?? '')|striptags, '%pieces%': puzzle.piecesCount, '%date%': score.result.solvedAt|format_date('medium')}) }}</span>
+                                            <span class="ins-row__meta">{{ 'insights.pairs.best.meta'|trans({'%name%': (names[score.result.teamId] ?? '')|striptags, '%pieces%': puzzle.piecesCount, '%date%': score.result.solvedAt|events_date('yMMMd')}) }}</span>
                                         </span>
                                         <span class="ins-row__num">{{ score.result.seconds|puzzlingTime }}<small>
                                             {%- set percent = ((1 - score.ratio)|abs * 100)|round -%}

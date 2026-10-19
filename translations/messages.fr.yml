@@ -10593,7 +10593,7 @@ insights:
             other: "Pas sur votre étagère"
             size: "Plus grand = plus de résultats"
         list: "Meilleurs candidats"
-        meta: "{0}%pieces% pièces · %brand% · ce mois-ci|{1}%pieces% pièces · %brand% · il y a 1 mois|]1,Inf[%pieces% pièces · %brand% · il y a %count% mois"
+        ago: "{0}ce mois-ci|{1}il y a 1 mois|]1,Inf[il y a %count% mois"
         on_shelf: "sur votre étagère"
         picker: "Plus de puzzles pour battre votre record dans « Quel puzzle faire ensuite ? »"
         note: "Probablement = votre prédiction personnelle pour le prochain essai, comparée à votre meilleur temps sur le puzzle."

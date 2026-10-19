@@ -10600,7 +10600,7 @@ insights:
             other: "Mimo poličku"
             size: "Větší = víc výsledků"
         list: "Nejlepší kandidáti"
-        meta: "{0}%pieces% dílků · %brand% · tento měsíc|{1}%pieces% dílků · %brand% · před 1 měsícem|[2,Inf[%pieces% dílků · %brand% · před %count% měsíci"
+        ago: "{0}tento měsíc|{1}před 1 měsícem|[2,Inf[před %count% měsíci"
         on_shelf: "na vaší poličce"
         picker: "Další puzzle k překonání rekordu najdete v „Co skládat dál?“"
         note: "Nejspíš = vaše osobní předpověď dalšího pokusu, proti vašemu nejlepšímu času na tom puzzle."

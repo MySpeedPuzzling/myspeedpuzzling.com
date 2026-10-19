@@ -10573,7 +10573,7 @@ insights:
             other: "Nicht in deinem Regal"
             size: "Größer = mehr Ergebnisse"
         list: "Beste Kandidaten"
-        meta: "{0}%pieces% Teile · %brand% · diesen Monat|{1}%pieces% Teile · %brand% · vor 1 Monat|]1,Inf[%pieces% Teile · %brand% · vor %count% Monaten"
+        ago: "{0}diesen Monat|{1}vor 1 Monat|]1,Inf[vor %count% Monaten"
         on_shelf: "in deinem Regal"
         picker: "Mehr Puzzles für einen neuen Rekord in „Welches Puzzle als Nächstes?“"
         note: "Wahrscheinlich = deine persönliche Vorhersage für den nächsten Versuch, verglichen mit deiner Bestzeit beim Puzzle."

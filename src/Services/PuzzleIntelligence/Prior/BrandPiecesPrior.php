@@ -11,7 +11,8 @@ use Symfony\Component\DependencyInjection\Attribute\AsTaggedItem;
  * a pseudo-count of 20 indices and without the puzzle's own indices (leave-one-out) - fitted once a day by the batch
  * (PredictionModelRecalculator): the groups' sums in difficulty_prior_group, each puzzle's share in them in
  * difficulty_prior_puzzle. Unknown brands and groups with fewer than
- * MINIMUM_GROUP_INDICES other indices have no prior. StatisticalInputsSql::priorSql() is the same formula in SQL.
+ * MINIMUM_GROUP_INDICES other indices have no prior. The fit also stores every puzzle's finished prior
+ * (difficulty_prior_puzzle.prior_log) for the Puzzle Picker's SQL.
  */
 #[AsTaggedItem(priority: 0)]
 readonly final class BrandPiecesPrior implements DifficultyPrior

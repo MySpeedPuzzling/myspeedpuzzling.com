@@ -69,6 +69,14 @@ class PuzzleDifficulty
     #[Column(nullable: true)]
     public null|float $sumLogIndices = null;
 
+    // The puzzle's finished difficulty prior as of the last daily fit: a copy of difficulty_prior_puzzle.prior_log on the
+    // row the Puzzle Picker reads for every candidate anyway (StatisticalInputsSql::centreSql()) - kept equal by
+    // PredictionModelRecalculator::syncDifficultyPriors() (the fit, the batch after the difficulty step) and the
+    // incremental insert
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|float $priorLog = null;
+
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column]
     public DateTimeImmutable $computedAt;

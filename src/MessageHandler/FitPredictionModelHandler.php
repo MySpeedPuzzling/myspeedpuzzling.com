@@ -22,7 +22,7 @@ readonly final class FitPredictionModelHandler
     }
 
     /**
-     * @return array{prior_groups: int, drift_rows_written: int, parameters: PredictionModelParameters}
+     * @return array{prior_groups: int, prior_puzzles: int, priors_seconds: float, drift_rows_written: int, parameters: PredictionModelParameters}
      */
     public function __invoke(FitPredictionModel $message): array
     {

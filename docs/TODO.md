@@ -1035,9 +1035,6 @@ First delivery = store + backfill; the UI comes after it.
       matters for the window calibration (review of Insights 3b)
 - [ ] `RepeatHistory` (the repeat window's fit and evaluation) does not leave out repeats of the same moment the way
       `RepeatResiduals::beforeEverySolve()` does for live/reconstructed windows (review of Insights 3b)
-- [ ] Puzzle Picker on v3: the prior of puzzles with 1-4 indices costs two lookups per candidate (`centreSql()`);
-      precomputed per puzzle at the fit it would bring the heaviest player's "any + gap" 137 → ~113 ms and "any
-      unsolved + budget" 225 → ~153 ms locally (main 109 / 70) - puzzle-picker README "Prediction model v3"
 - [ ] Live predictions before the first fit (the minutes between the deploy and `fit-prediction-model`) still write a
       v3 side row from the defaults (only the backfill waits for the fit) - a live row is history and stays; run the
       fit right after the deploy

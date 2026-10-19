@@ -31,13 +31,15 @@ final class FitPredictionModelConsoleCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $startedAt = microtime(true);
 
-        /** @var array{prior_groups: int, drift_rows_written: int, parameters: PredictionModelParameters} $result */
+        /** @var array{prior_groups: int, prior_puzzles: int, priors_seconds: float, drift_rows_written: int, parameters: PredictionModelParameters} $result */
         $result = $this->messageBus->dispatch(new FitPredictionModel())->last(HandledStamp::class)?->getResult();
 
         $io->table(['Setting', 'Value'], [
             ['tau', $result['parameters']->tau],
             ['thin sizes', json_encode($result['parameters']->thinSizes, JSON_THROW_ON_ERROR)],
             ['prior groups', $result['prior_groups']],
+            ['puzzles with a share or a prior', $result['prior_puzzles']],
+            ['priors written in (s)', $result['priors_seconds']],
             ['drift rows written', $result['drift_rows_written']],
             ...array_map(static fn (string $key, int|float|string $value): array => [$key, $value], array_keys($result['parameters']->summary), $result['parameters']->summary),
         ]);

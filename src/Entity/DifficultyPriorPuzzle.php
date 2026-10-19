@@ -14,9 +14,13 @@ use Ramsey\Uuid\UuidInterface;
 
 /**
  * One puzzle's share in its BrandPiecesPrior group (DifficultyPriorGroup) as of the last daily fit: the sum of its log
- * difficulty indices and their count then - left out of its own prior, so a puzzle never shrinks toward itself.
- * Written with the groups in one transaction by the insights batch (PredictionModelRecalculator), in SQL. No foreign
- * key, like the groups: a merged puzzle's row is left for the next fit to remove.
+ * difficulty indices and their count then (0 / 0 for a puzzle without indices) - left out of its own prior, so a puzzle
+ * never shrinks toward itself - and its finished prior then (prior_log, null = none): what the prior chain gives
+ * (BrandPiecesPrior today; Insights 5d writes the image prior of puzzles without a brand prior into this same column).
+ * A row for every puzzle with a share or a prior. The Puzzle Picker reads prior_log - one lookup per candidate; the
+ * other readers build the prior from the sums (PriorContext). Written with the groups in one transaction by the daily
+ * fit (PredictionModelRecalculator), in SQL. No foreign key, like the groups: a merged puzzle's row is left for the next
+ * fit to remove.
  */
 #[Entity]
 class DifficultyPriorPuzzle
@@ -32,6 +36,9 @@ class DifficultyPriorPuzzle
         #[Immutable]
         #[Column]
         public float $sumLogIndices,
+        #[Immutable]
+        #[Column(nullable: true)]
+        public null|float $priorLog,
         #[Immutable]
         #[Column]
         public DateTimeImmutable $computedAt,

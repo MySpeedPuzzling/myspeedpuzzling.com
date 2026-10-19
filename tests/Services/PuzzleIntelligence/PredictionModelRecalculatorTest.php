@@ -11,7 +11,10 @@ use SpeedPuzzling\Web\Message\FitPredictionModel;
 use SpeedPuzzling\Web\Query\GetPlayerPrediction;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\PredictionEvaluator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionModelParametersProvider;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\PriorContext;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\StatisticalInputsSql;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -52,6 +55,63 @@ final class PredictionModelRecalculatorTest extends KernelTestCase
 
         // The next batch run, with the fit the drift was just written with: nothing to write
         self::assertSame(0, $this->recalculator->recalculate()['drift_rows_written']);
+    }
+
+    /**
+     * The fit stores every puzzle's finished prior (difficulty_prior_puzzle.prior_log - what the Puzzle Picker reads):
+     * equal to the last bit to the prior the other readers build from the stored sums, a row for every puzzle that has
+     * one - also without indices of its own - and none for a puzzle without.
+     */
+    public function testTheFitStoresEveryPuzzlesFinishedPrior(): void
+    {
+        $this->recalculator->recalculate();
+        $this->fit();
+
+        /** @var TimePredictionCalculator $calculator */
+        $calculator = self::getContainer()->get(TimePredictionCalculator::class);
+        /** @var list<array{id: string, pieces_count: int|string, manufacturer_id: null|string, group_sum: null|float|string, group_count: null|int|string, own_sum: null|float|string, own_count: null|int|string, prior_log: null|float|string, has_row: bool}> $rows */
+        $rows = $this->database->fetchAllAssociative('
+            SELECT p.id, p.pieces_count, p.manufacturer_id, g.sum_log_indices AS group_sum, g.index_count AS group_count,
+                dpp.sum_log_indices AS own_sum, dpp.index_count AS own_count, dpp.prior_log, dpp.puzzle_id IS NOT NULL AS has_row
+            FROM puzzle p
+            LEFT JOIN difficulty_prior_group g ON g.manufacturer_id = p.manufacturer_id AND g.pieces_count = p.pieces_count AND ' . StatisticalInputsSql::NOT_SECRET . '
+            LEFT JOIN difficulty_prior_puzzle dpp ON dpp.puzzle_id = p.id
+        ');
+        $withoutIndices = 0;
+
+        foreach ($rows as $row) {
+            $prior = $calculator->prior(new PriorContext(
+                puzzleId: $row['id'],
+                piecesCount: (int) $row['pieces_count'],
+                manufacturerId: $row['manufacturer_id'],
+                brandPiecesGroupSumLog: (float) ($row['group_sum'] ?? 0.0),
+                brandPiecesGroupCount: (int) ($row['group_count'] ?? 0),
+                brandPiecesOwnSumLog: (float) ($row['own_sum'] ?? 0.0),
+                brandPiecesOwnCount: (int) ($row['own_count'] ?? 0),
+            ))?->logDifficulty;
+
+            self::assertSame($prior, $row['prior_log'] !== null ? (float) $row['prior_log'] : null, $row['id']);
+
+            if ($prior !== null) {
+                self::assertTrue($row['has_row'], $row['id']);
+                $withoutIndices += (int) $row['own_count'] === 0 ? 1 : 0;
+            }
+        }
+
+        self::assertGreaterThan(0, $withoutIndices, 'Puzzles without indices of their own get their prior too');
+
+        // Its copy on the difficulty row (what the Puzzle Picker reads), also after the next batch run
+        $this->recalculator->recalculate();
+        /** @var int|string $copiesDiffering */
+        $copiesDiffering = $this->database->fetchOne('
+            SELECT COUNT(*) FROM puzzle_difficulty pd
+            LEFT JOIN difficulty_prior_puzzle dpp ON dpp.puzzle_id = pd.puzzle_id
+            WHERE pd.prior_log IS DISTINCT FROM dpp.prior_log
+        ');
+        self::assertSame(0, (int) $copiesDiffering);
+        /** @var int|string $copies */
+        $copies = $this->database->fetchOne('SELECT COUNT(*) FROM puzzle_difficulty WHERE prior_log IS NOT NULL');
+        self::assertGreaterThan(0, (int) $copies);
     }
 
     private function fit(): void

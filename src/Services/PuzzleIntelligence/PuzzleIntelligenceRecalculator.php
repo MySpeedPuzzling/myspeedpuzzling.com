@@ -318,6 +318,9 @@ readonly final class PuzzleIntelligenceRecalculator
             $this->flushDifficultyBuffer($buffer);
         }
 
+        // A row inserted just now carries the puzzle's prior of the last fit too (the Puzzle Picker reads it there)
+        $this->predictionModelRecalculator->syncDifficultyPriors();
+
         $this->difficultyCalculator->clearPreloadedData();
 
         return [$count, $firstAttempts, $timeline];

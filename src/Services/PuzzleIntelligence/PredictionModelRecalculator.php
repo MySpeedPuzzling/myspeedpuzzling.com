@@ -60,7 +60,7 @@ readonly final class PredictionModelRecalculator
     /**
      * The daily fit on everything as it is now, then the drift and spread with it.
      *
-     * @return array{prior_groups: int, drift_rows_written: int, parameters: PredictionModelParameters}
+     * @return array{prior_groups: int, prior_puzzles: int, priors_seconds: float, drift_rows_written: int, parameters: PredictionModelParameters}
      */
     public function fit(DateTimeImmutable $now): array
     {
@@ -69,8 +69,11 @@ readonly final class PredictionModelRecalculator
         $engine = new PredictionEngine($set, $timeline, $this->calculator);
         $engine->computeAsOfDifficulty();
 
+        $priorsStartedAt = microtime(true);
         $priors = PriorLookup::fit($set, $this->manufacturerByPuzzle());
-        $this->writePriors($priors, $now);
+        $priorRows = $this->puzzlePriors($priors);
+        $this->writePriors($priors, $priorRows, $now);
+        $priorsSeconds = microtime(true) - $priorsStartedAt;
 
         $from = (float) $now->modify('-' . self::FIT_WINDOW_MONTHS . ' months')->getTimestamp();
         // Fitting tau computes the drift with it (PredictionModelFitter step 2)
@@ -79,6 +82,8 @@ readonly final class PredictionModelRecalculator
 
         return [
             'prior_groups' => count($priors->groupSums),
+            'prior_puzzles' => count($priorRows),
+            'priors_seconds' => round($priorsSeconds, 2),
             'drift_rows_written' => $this->writeDrift($engine),
             'parameters' => $parameters,
         ];
@@ -116,11 +121,40 @@ readonly final class PredictionModelRecalculator
     }
 
     /**
-     * Groups and shares change together (one transaction): a prediction never sees new sums with old shares.
+     * Every puzzle with a share in a group or a prior: its share (0 / 0 without one) and its finished prior as the
+     * prior chain gives it now (TimePredictionCalculator::prior() - BrandPiecesPrior today; Insights 5d adds the image
+     * prior for puzzles without a brand prior through this same slot, difficulty_prior_puzzle.prior_log). Secret puzzles
+     * have no brand in the lookup: neither.
+     *
+     * @return array<string, array{0: float, 1: int, 2: null|float}> puzzle => [share sum, share count, prior log]
      */
-    private function writePriors(PriorLookup $priors, DateTimeImmutable $now): void
+    private function puzzlePriors(PriorLookup $priors): array
     {
-        $this->connection->transactional(function (Connection $connection) use ($priors, $now): void {
+        $rows = [];
+
+        foreach ($this->connection->iterateKeyValue('SELECT id, pieces_count FROM puzzle') as $puzzleId => $piecesCount) {
+            /** @var string $puzzleId */
+            /** @var int|string $piecesCount */
+            $share = $priors->puzzleShares[$puzzleId] ?? null;
+            $prior = $this->calculator->prior($priors->contextFor($puzzleId, (int) $piecesCount))?->logDifficulty;
+
+            if ($share !== null || $prior !== null) {
+                $rows[$puzzleId] = [$share[0] ?? 0.0, $share[1] ?? 0, $prior];
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Groups, shares and the finished priors change together (one transaction): a prediction never sees new sums with
+     * old shares, nor a prior of another fit than its sums.
+     *
+     * @param array<string, array{0: float, 1: int, 2: null|float}> $puzzleRows puzzlePriors()
+     */
+    private function writePriors(PriorLookup $priors, array $puzzleRows, DateTimeImmutable $now): void
+    {
+        $this->connection->transactional(function (Connection $connection) use ($priors, $puzzleRows, $now): void {
             $keys = array_keys($priors->groupSums);
 
             foreach (array_chunk($keys, self::CHUNK) as $chunk) {
@@ -168,24 +202,27 @@ readonly final class PredictionModelRecalculator
                 'pieces' => self::arrayLiteral(array_map(static fn (string $key): int => (int) explode('|', $key)[1], $keys)),
             ]);
 
-            $puzzles = array_keys($priors->puzzleShares);
+            $puzzles = array_map('strval', array_keys($puzzleRows));
 
             foreach (array_chunk($puzzles, self::CHUNK) as $chunk) {
                 $connection->executeStatement('
-                    INSERT INTO difficulty_prior_puzzle (puzzle_id, sum_log_indices, index_count, computed_at)
-                    SELECT fresh.puzzle_id, fresh.sum_log_indices, fresh.index_count, CAST(:now AS timestamp)
-                    FROM unnest(CAST(:puzzles AS uuid[]), CAST(:sums AS double precision[]), CAST(:counts AS int[])) AS fresh (puzzle_id, sum_log_indices, index_count)
+                    INSERT INTO difficulty_prior_puzzle (puzzle_id, sum_log_indices, index_count, prior_log, computed_at)
+                    SELECT fresh.puzzle_id, fresh.sum_log_indices, fresh.index_count, fresh.prior_log, CAST(:now AS timestamp)
+                    FROM unnest(CAST(:puzzles AS uuid[]), CAST(:sums AS double precision[]), CAST(:counts AS int[]), CAST(:priors AS double precision[]))
+                        AS fresh (puzzle_id, sum_log_indices, index_count, prior_log)
                     ON CONFLICT (puzzle_id) DO UPDATE SET
                         sum_log_indices = EXCLUDED.sum_log_indices,
                         index_count = EXCLUDED.index_count,
+                        prior_log = EXCLUDED.prior_log,
                         computed_at = EXCLUDED.computed_at
-                    WHERE (difficulty_prior_puzzle.sum_log_indices, difficulty_prior_puzzle.index_count)
-                        IS DISTINCT FROM (EXCLUDED.sum_log_indices, EXCLUDED.index_count)
+                    WHERE (difficulty_prior_puzzle.sum_log_indices, difficulty_prior_puzzle.index_count, difficulty_prior_puzzle.prior_log)
+                        IS DISTINCT FROM (EXCLUDED.sum_log_indices, EXCLUDED.index_count, EXCLUDED.prior_log)
                 ', [
                     'now' => $now->format('Y-m-d H:i:s'),
                     'puzzles' => self::arrayLiteral($chunk),
-                    'sums' => self::arrayLiteral(array_map(static fn (string $puzzle): float => $priors->puzzleShares[$puzzle][0], $chunk)),
-                    'counts' => self::arrayLiteral(array_map(static fn (string $puzzle): int => $priors->puzzleShares[$puzzle][1], $chunk)),
+                    'sums' => self::arrayLiteral(array_map(static fn (string $puzzle): float => $puzzleRows[$puzzle][0], $chunk)),
+                    'counts' => self::arrayLiteral(array_map(static fn (string $puzzle): int => $puzzleRows[$puzzle][1], $chunk)),
+                    'priors' => self::arrayLiteral(array_map(static fn (string $puzzle): null|float => $puzzleRows[$puzzle][2], $chunk)),
                 ]);
             }
 
@@ -193,7 +230,35 @@ readonly final class PredictionModelRecalculator
                 'DELETE FROM difficulty_prior_puzzle WHERE NOT (puzzle_id = ANY (CAST(:puzzles AS uuid[])))',
                 ['puzzles' => self::arrayLiteral($puzzles)],
             );
+
+            self::syncDifficultyPriorsOn($connection);
         });
+    }
+
+    /**
+     * puzzle_difficulty.prior_log = difficulty_prior_puzzle.prior_log of the same puzzle (null without one) - the copy
+     * the Puzzle Picker reads with the difficulty it joins anyway, one lookup per candidate less. Run by the fit with the
+     * prior tables (one transaction) and by the batch after its difficulty step, which can insert rows. Writes only the
+     * rows that differ.
+     *
+     * @return int rows written
+     */
+    public function syncDifficultyPriors(): int
+    {
+        return self::syncDifficultyPriorsOn($this->connection);
+    }
+
+    private static function syncDifficultyPriorsOn(Connection $connection): int
+    {
+        return (int) $connection->executeStatement('
+            UPDATE puzzle_difficulty pd SET prior_log = fresh.prior_log
+            FROM (
+                SELECT d.puzzle_id, dpp.prior_log
+                FROM puzzle_difficulty d
+                LEFT JOIN difficulty_prior_puzzle dpp ON dpp.puzzle_id = d.puzzle_id
+            ) fresh
+            WHERE fresh.puzzle_id = pd.puzzle_id AND pd.prior_log IS DISTINCT FROM fresh.prior_log
+        ');
     }
 
     private function storeParameters(PredictionModelParameters $parameters, DateTimeImmutable $now): void

@@ -599,8 +599,17 @@ centre = pace × exp(log_difficulty + drift)
   priority: the first that knows the puzzle answers). Today `BrandPiecesPrior`: the mean log index of the puzzle's brand
   at its piece count, shrunk toward 0 with 20 pseudo-indices, **the puzzle's own indices left out** (the group's sums in
   `difficulty_prior_group`, every puzzle's share in them in `difficulty_prior_puzzle`, both fitted daily; fewer than 5
-  other indices = no prior; no brand = no prior). Phase 5 puts `ImageEstimatePrior` in front of it (a field in
-  `PriorContext`, a higher `#[AsTaggedItem]` priority, its term in `StatisticalInputsSql::centreSql()`). **Secret
+  other indices = no prior; no brand = no prior). The fit also stores every puzzle's finished prior as the chain gives
+  it then (`difficulty_prior_puzzle.prior_log`, a row for every puzzle with a share or a prior, 0 indices included,
+  written in the same transaction as the sums - 38k rows, ~0.35 s of the fit) and a copy of it on the puzzle's
+  difficulty row (`puzzle_difficulty.prior_log`, `PredictionModelRecalculator::syncDifficultyPriors()`: in the fit's
+  transaction and after the batch's difficulty step, ~20 ms when nothing changed; the incremental handler fills it on
+  insert). The Puzzle Picker reads the copy - the difficulty row it joins anyway, no lookup of its own - while the
+  other current-state readers and `PredictionReconstructor` build the prior from the sums (`PriorContext`); equal to the
+  last bit (`BrandPiecesPrior::fromSums()` on the same doubles), pinned by the Picker's parity test and
+  `PredictionModelRecalculatorTest`.
+  Phase 5 puts `ImageEstimatePrior` in front of it (a field in `PriorContext`, a higher `#[AsTaggedItem]` priority;
+  the fit writes its value into the same `prior_log`, Insights 5d). **Secret
   puzzles** (`hide_until` / `hide_image_until` in the future) have no prior and are no training row of one
   (`StatisticalInputsSql::NOT_SECRET`).
 - **Drift** - the `drift` of the pace-history row the pace came from (own pair, or the 500-piece pair for a thin size;
@@ -652,10 +661,11 @@ index only from that pace's row), the pace rows before it, the drift and spread 
   **the upgrade costs no query** on any page. Run it once right after the deploy (until then: defaults).
 
 Measured on a copy of the dev data (523k times, laptop, no debug, 512 MB container, steady state, two runs each,
-2026-10-19): the step takes ~0.9 s; the whole batch 14.8 / 15.0 s against 13.8 / 13.8 s for main on the same copy
-(+1.0-1.2 s: this step, the as-of pace of the derived metrics +0.4 s, the difficulty step +0.3 s), peak memory 362 MB
-(the run frees the allocator's caches between steps, `gc_mem_caches()`). The first run after the deploy writes every
-row (~6.7 s). The daily fit takes ~4.7 s within 512 MB (~7 s the first time, when it rewrites every row).
+2026-10-19): the step takes ~0.9 s; the whole batch 14.8 / 14.7 s against 13.5 / 13.4 s for main on the same copy
+(+1.3 s: this step, the as-of pace of the derived metrics +0.4 s, the difficulty step +0.2 s with the prior copy's
+sync), peak memory 362 MB (the run frees the allocator's caches between steps, `gc_mem_caches()`). The first run after
+the deploy writes every row (~6.6 s). The daily fit takes ~4.4 s within 512 MB (~7-10 s the first time, when it
+rewrites every row).
 
 ### Shared by every read path
 

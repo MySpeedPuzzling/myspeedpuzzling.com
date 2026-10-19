@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 
-use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\BrandPiecesPrior;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\PriorContext;
 use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
@@ -130,11 +129,11 @@ final class StatisticalInputsSql
      *   thin-size rule applies - own first attempts below the rule's -, else the own baseline × its drift) and
      *   `pace_by_size` = those as one array indexed by piece count;
      * - the joins: the pace by a subscript of that array per candidate (its subqueries are evaluated once - joining
-     *   player_pace was planned as a nested loop over it for every candidate), the prior's tables for puzzles with 1-4
-     *   indices only;
+     *   player_pace was planned as a nested loop over it for every candidate); the stored finished prior comes with
+     *   `pd` (puzzle_difficulty.prior_log, the copy of difficulty_prior_puzzle.prior_log);
      * - the expression over them and `pd`: × the score (5+ indices) or × exp(shrunk log difficulty) (1-4), NULL where
      *   the calculator returns null. The same operations in the same order as the calculator - pinned equal by
-     *   GetPuzzlePickerSuggestionsTest. BrandPiecesPrior only - a prior added in front of it needs its term here too.
+     *   GetPuzzlePickerSuggestionsTest. Any prior of the chain reaches it through prior_log (the daily fit writes it).
      *
      * @return array{0: string, 1: string, 2: string, 3: array<string, float|int>} the CTEs (with a trailing comma), the joins, the centre, the parameters
      */
@@ -192,8 +191,9 @@ final class StatisticalInputsSql
             pace_by_size AS (
                 -- One row: the paces in one array indexed by piece count (from the smallest), read per candidate by a
                 -- subscript of the subqueries below (evaluated once) - a join of player_pace was planned as a nested
-                -- loop over it for every candidate, a jsonb object costs a search per candidate
-                SELECT array_agg(pace.paced ORDER BY sizes.pieces_count) AS paces, min(sizes.pieces_count) AS first_size
+                -- loop over it for every candidate, a jsonb object costs a search per candidate. 0 = no pace (a pace is
+                -- never 0): an array with NULLs costs a walk of its null bitmap per subscript, one without is O(1)
+                SELECT array_agg(COALESCE(pace.paced, 0) ORDER BY sizes.pieces_count) AS paces, min(sizes.pieces_count) AS first_size
                 FROM generate_series((SELECT min(pieces_count) FROM player_pace), (SELECT max(pieces_count) FROM player_pace)) AS sizes (pieces_count)
                 LEFT JOIN player_pace pace ON pace.pieces_count = sizes.pieces_count
             ),
@@ -202,17 +202,18 @@ final class StatisticalInputsSql
         $notSecret = self::NOT_SECRET;
         $rated = TimePredictionCalculator::RATED_INDICES;
         $shrunk = $rated - 1;
-        // The prior's tables are joined for the puzzles with 1-4 indices only: as scalar subqueries in that arm they cost
-        // two index lookups per such candidate - most of the catalogue (measured 2026-10-19: gap order +45 ms)
+        // The finished prior the daily fit stored per puzzle (difficulty_prior_puzzle.prior_log - the prior chain's
+        // value, computed from the same sums the other readers build it from), read from its copy on the difficulty row
+        // `pd` already joined: no lookup of its own. Measured 2026-10-19 on "any unsolved + budget": deriving it from the
+        // group and the puzzle's share (two lookups per candidate) 225 ms, one lookup of difficulty_prior_puzzle 140 ms,
+        // the copy 95 ms (main 56 ms)
         $joins = "
     CROSS JOIN LATERAL (
-        SELECT ((SELECT paces FROM pace_by_size))[p.pieces_count - (SELECT first_size FROM pace_by_size) + 1] AS paced
+        SELECT NULLIF(((SELECT paces FROM pace_by_size))[p.pieces_count - (SELECT first_size FROM pace_by_size) + 1], 0) AS paced
     ) ppace
-    LEFT JOIN difficulty_prior_group g ON g.manufacturer_id = p.manufacturer_id AND g.pieces_count = p.pieces_count AND pd.sample_size BETWEEN 1 AND {$shrunk} AND {$notSecret}
-    LEFT JOIN difficulty_prior_puzzle dpp ON dpp.puzzle_id = p.id AND pd.sample_size BETWEEN 1 AND {$shrunk}
 ";
 
-        $prior = self::priorSql();
+        $prior = "CASE WHEN {$notSecret} THEN pd.prior_log END";
         $tau = 'CAST(:centreTau AS double precision)';
         // One arm per difficulty source, so a missing difficulty stays NULL (GREATEST() would turn NULL into 1)
         $centre = "CASE
@@ -224,19 +225,6 @@ final class StatisticalInputsSql
         END";
 
         return [$cte, $joins, $centre, $params];
-    }
-
-    /**
-     * BrandPiecesPrior::fromSums() in SQL over `g` and `dpp`: NULL without a prior.
-     */
-    public static function priorSql(): string
-    {
-        $minimum = BrandPiecesPrior::MINIMUM_GROUP_INDICES;
-        $pseudo = BrandPiecesPrior::PSEUDO_COUNT;
-
-        return "(CASE WHEN g.index_count - COALESCE(dpp.index_count, 0) >= {$minimum}
-            THEN (g.sum_log_indices - COALESCE(dpp.sum_log_indices, 0)) / CAST(g.index_count - COALESCE(dpp.index_count, 0) + {$pseudo} AS double precision)
-        END)";
     }
 
     private static function groupCondition(PiecesGroup $group, string $column): string

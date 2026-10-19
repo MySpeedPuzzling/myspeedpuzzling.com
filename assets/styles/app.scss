@@ -615,16 +615,17 @@ td.rank {
     font-size: 24px;
 }
 
-// Every scanner's camera (_barcode_scanner_viewfinder.html.twig): add form, panels, global search, multiscan look and
-// behave the same. A phone held upright gets a 1080x1920 stream, shown full width that is taller than the screen -
-// cropped to half the screen (compact: a quarter, multiscan keeps the newest tray row in view). The overlay is cropped
-// the same way and sits exactly on the video (inside the 5 px padding), so the aiming band and the read outline line
-// up; the controller decodes only what is on screen (_visibleRect)
+// Every scanner's camera (_barcode_scanner_viewfinder.html.twig): add form, panels, global search and multiscan are one
+// picture - the same 8:5 window on the stream (a 1080x1920 portrait stream cropped to its middle), so the same box
+// held at the same distance looks the same and reads the same everywhere (Jan, 2026-10-19: the windows differed and
+// so did the results). Low enough that multiscan's newest tray row stays on screen. The overlay is cropped the same
+// way and sits exactly on the video (inside the 5 px padding), so the aiming band and the read outline line up; the
+// controller decodes only what is on screen (_visibleRect)
 .barcode-scanner-viewfinder {
     background: #fff;
     padding: 5px;
     border-radius: 8px;
-    min-height: 200px;
+    min-height: 160px;
 
     .spinner {
         position: absolute;
@@ -639,7 +640,8 @@ td.rank {
         position: relative;
         z-index: 20;
         border-radius: 5px;
-        max-height: 50vh;
+        aspect-ratio: 8 / 5;
+        max-height: 42vh;
         object-fit: cover;
     }
 
@@ -651,18 +653,6 @@ td.rank {
         height: calc(100% - 10px) !important;
         object-fit: cover;
         pointer-events: none;
-    }
-}
-
-.barcode-scanner-viewfinder--compact {
-    min-height: 160px;
-
-    video {
-        max-height: 26vh;
-
-        @media (min-width: 768px) {
-            max-height: 42vh;
-        }
     }
 }
 

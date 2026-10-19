@@ -8,7 +8,7 @@
      data-barcode-scanner-autostart-value="true"
      data-multiscan-target="scanner">
 
-    {{ include('_barcode_scanner_viewfinder.html.twig', {class: 'multiscan-viewfinder', compact: true, flash: true}) }}
+    {{ include('_barcode_scanner_viewfinder.html.twig', {class: 'multiscan-viewfinder', flash: true}) }}
 
     {# Camera off (not started, denied, stopped): a slim bar so the card never collapses to nothing #}
     <div class="multiscan-scanner-idle align-items-center gap-2 px-3 text-muted small" data-action="click->barcode-scanner#toggle" role="button">

@@ -645,6 +645,13 @@ document, and Safari paints no camera stream into such an element. Now **every c
 `document.createElement`** (`_freshVideo()`: attributes copied, `muted` / `playsInline` / `autoplay` set as properties
 too), which also covers the reopening case above.
 
+**One window on the stream (2026-10-19):** every scanner renders `_barcode_scanner_viewfinder.html.twig` and the
+same `.barcode-scanner-viewfinder`: the `<video>` is an 8:5 window (max 42vh) on the stream, `object-fit: cover`. The
+scanners had shown different crops of the same camera (the add form and global search up to half the screen,
+multiscan a quarter), so the same box held the same way looked - and read - differently from page to page. The zoom
+is the player's one remembered choice (`msp-scan-zoom`) everywhere; Safari and the installed PWA keep separate storage,
+so each remembers its own.
+
 ## 6. Open questions for Jan
 
 1. OK to restore Google's detector on Android right away (§5.0), until our own decoder replaces it (§5.4)?

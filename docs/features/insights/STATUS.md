@@ -11,7 +11,7 @@ state, PR, merge and deploy, deviations from the plan (and why), follow-ups.
 | 2 Mac pipeline | **done** | #261 | 2026-10-18 | 2026-10-18 | `solvedCount` live on the work list; `bench` / `verify --end-to-end` run in the M3 session (see deviations) |
 | Backfill (M3 Max + M1 Air sessions) | **ready to start** (prompts handed to Jan 2026-10-18) | - | - | - | starts after 1 + 2 are deployed; ≈ 5.5 days |
 | 3 Prediction fix | in progress (3a done; 3b, then 3c) | #263 (3a) | 3a: 2026-10-18 | 3a: 2026-10-18 | 3a: backfill on prod 244,985 rows / 4,235 players in 33 s; first as-of batch 22 s (was 16-18 s; re-check steady state); tiers 1-6 = 249 / 1,838 / 2,956 / 891 / 400 / 225, 6,559 rated |
-| 4 Insights computation | in progress (4a done; 4b + 4c building) | #269 (4a) | 4a: 2026-10-19 | 4a: 2026-10-19 | 4a: first batch filled 310,209 rating entries + 2,687 time arrays (29 s first run); daily command 4.5 s, 3,808 profile cards, 6 constants; cron `recalculate-insights-daily` 04:41 in lily.srv (4a17f81) |
+| 4 Insights computation | in progress (4a done; 4c in review; 4b building) | #269 (4a), #270 (4c) | 4a: 2026-10-19 | 4a: 2026-10-19 | 4a: first batch filled 310,209 rating entries + 2,687 time arrays (29 s first run); daily command 4.5 s, 3,808 profile cards, 6 constants; cron `recalculate-insights-daily` 04:41 in lily.srv (4a17f81) |
 | 5 Image intelligence on the server | in progress (5a, 5b, 5c done; 5d after 3b) | #265 (5a), #267 (5b), #268 (5c) | 2026-10-18/19 | 2026-10-18/19 | 5a: crons 07:40/07:45 (lily.srv 0953a4b), ran clean. 5b: labels endpoint live, model record empty until the first derive. 5c: Python only, 187 tests |
 | 6 Display behind INSIGHTS_PUBLIC | not started | | | | |
 | Launch (flag removed) | not started | | | | waits for the backfill + gates |
@@ -107,6 +107,12 @@ Phase 3 starts as soon as a subagent slot frees (1a is small).
 - **3c (built, waits for 3b):** window ends follow the research rule (step by the point prediction; 10 s steps under
   3 min); the point estimate stays unrounded as today (no 5/10-min rounding existed - kept, small puzzles would
   suffer).
+- **Batch runtime after 3a + 4a:** `recalculate-puzzle-intelligence` steady state 23 s (2026-10-18 23:02 UTC), was
+  16-18 s before Phase 3/4: +5-7 s against the combined Phase 3 (+5 s) + Phase 4 (+3 s) budget. 3b has ~1-2 s left.
+- **4c:** the monthly rating snapshot belongs to 4b (brief), not 4c. `GroupCoordinationFitter` (4a) now fits on
+  as-of paces like the synergy (computation.md §5 planned it): pairs 1.198 / 1.090, teams of 3 1.317 / 1.252, 4+
+  1.368 / 1.326 (were drifting to 1.29 / 1.17 on today's baselines). "Faster than N % of its solvers" counts public
+  first attempts only, like the rating's lists.
 
 ## Follow-ups
 
@@ -117,3 +123,5 @@ Phase 3 starts as soon as a subagent slot frees (1a is small).
   box-text run for brand / brand-code false positives (licensor brands, "No." prefixes) before relying on those filters.
 - 3a: `reconstructed` predictions stored before 3a stay v1 (frozen history); suspicious-time detection now sees
   expected times ~7 % shorter (inputs changed, classifier version unchanged).
+- 4c: 4b's skill-map ranges should share `Value\ShrunkEffect`; Phase 6 loads rating + forecast in one frame (or shares
+  the cached rating model); the ladder milestone compares against today's ladder - the page text must say so.

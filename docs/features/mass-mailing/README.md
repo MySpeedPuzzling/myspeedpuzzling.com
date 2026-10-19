@@ -177,7 +177,9 @@ A new address is not suppressed, so changing it clears the banner.
 | `SES_EVENTS_TOPIC_ARNS` | empty | comma-separated SNS topic ARNs allowed to post events; empty = endpoint off |
 
 Secrets in a DSN must be URL-encoded (SES SMTP passwords and AWS secret keys contain `/` and `+`). Rollback keys in
-Infisical (copy one into `MAILER_DSN`, re-deploy, recreate both workers): `MAILER_DSN_SES_SMTP` (SES over SMTP with
+Infisical (copy one into `MAILER_DSN`, re-deploy, recreate both workers; the box script `/root/infisical_mail.py`
+does it: `rollback-ses-smtp` / `rollback-seznam` / `ses-api`, `store-api` for a new key): `MAILER_DSN_SES_API` (the
+SES API one, to switch back), `MAILER_DSN_SES_SMTP` (SES over SMTP with
 `ping_threshold=5`, IAM `ses-smtp-app`) and `MAILER_DSN_SEZNAM` (Seznam `robot@` - transactional volume only, never
 the digest: Seznam blocks bulk mail). The variables before 2026-10-19 (`MAILER_SES_DSN`, `MAILER_TRANSACTIONAL_DSN`,
 `MAILER_NOTIFICATIONS_DSN` + copies) are gone.

@@ -547,8 +547,8 @@ filters), the same definitions as the profile card (§6):
 
 For a group of residuals: the median of the log residuals **shrunk by n / (n + 8)**, with the **order-statistic range**
 of that median (distribution free: the sorted logs at the 1-based ranks floor((n − 1.96·√n) / 2) and
-ceil(1 + (n + 1.96·√n) / 2) - symmetric around the median, n = 10: 1 … 10, n = 25: 7 … 19; the rule of 4c's
-`Value\ShrunkEffect` - shrunk the same way; never a bootstrap: same answer every time, O(n log n)). Shown from 5 results; a verdict only from **10**: strength when
+ceil(1 + (n + 1.96·√n) / 2) - symmetric around the median, n = 10: 1 … 10, n = 25: 7 … 19 - shrunk the same way;
+never a bootstrap: same answer every time, O(n log n)). `SegmentEffect` is 4c's `Value\ShrunkEffect` plus the verdict. Shown from 5 results; a verdict only from **10**: strength when
 the whole range lies below −1.5 %, weak spot above +1.5 %, else about usual; under 10 "not sure yet".
 
 **Skill map** (`SkillMapBuilder`): groups brand (the 9 with most results; label = brand name), piece count (only with ≥ 2

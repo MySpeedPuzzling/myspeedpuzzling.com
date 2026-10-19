@@ -391,6 +391,18 @@ final class PuzzleTimesLeaderboardLimitTest extends WebTestCase
         self::assertSame(['00:15:00 behind the fastest'], $this->standing($crawler));
     }
 
+    public function testTheAverageStaysNextToOnesOwnBest(): void
+    {
+        $client = self::createClient();
+        TestingLogin::asPlayer($client, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $this->mountSoloLeaderboard($client, PuzzleFixture::PUZZLE_500_01, 500)->render()->crawler();
+
+        self::assertCount(4, $crawler->filter('.lb-stats-4 .lb-stat'));
+        self::assertStringContainsString('Average', $crawler->filter('.lb-stats')->text());
+        self::assertCount(1, $crawler->filter('.lb-stat-mine'));
+    }
+
     public function testRowsShowTheirGapsToTheFastestAndToTheNextFasterTime(): void
     {
         $client = self::createClient();

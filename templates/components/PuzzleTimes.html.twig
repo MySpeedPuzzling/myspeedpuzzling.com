@@ -32,12 +32,13 @@
         </button>
     </div>
 
-    {# The tab's numbers at a glance (docs/features/puzzle-leaderboard-chart.md): the fastest time, the median and the
-       viewer's own best of this tab (with any pair or team in Pair/Team) with their rank - a tap jumps to their row.
-       Without a time of their own the third number is the average. Everything here follows the selected tab. #}
+    {# The tab's numbers at a glance (docs/features/puzzle-leaderboard-chart.md): the fastest time, the median, the
+       average and the viewer's own best of this tab (with any pair or team in Pair/Team) with their rank - a tap jumps
+       to their row. Everything here follows the selected tab. #}
     {% if this.times|length > 0 %}
         {% set has_mine = logged_user.profile is not null and this.myFastestAttempt is not null and this.myFastestAttempt.time is not null %}
-        <div class="lb-stats" data-nosnippet>
+        {% set has_average = this.averageTime and this.times|length > 1 %}
+        <div class="lb-stats{{ has_mine and has_average ? ' lb-stats-4' }}" data-nosnippet>
             {% if this.leaderTime is not null %}
                 <div class="lb-stat">
                     <span class="lb-stat-label"><i class="bi bi-1-circle" aria-hidden="true"></i>{{ 'puzzle_times.stats.fastest'|trans }}</span>
@@ -48,6 +49,12 @@
                 <div class="lb-stat">
                     <span class="lb-stat-label"><svg class="stat-icon" width="14" height="14" aria-hidden="true"><use href="/stat-icons-sprite.svg#stat-med"/></svg>{{ 'puzzle_times.stats.median'|trans }}</span>
                     <span class="lb-stat-value">{{ this.medianTime|puzzlingTime }}</span>
+                </div>
+            {% endif %}
+            {% if has_average %}
+                <div class="lb-stat">
+                    <span class="lb-stat-label"><svg class="stat-icon" width="14" height="14" aria-hidden="true"><use href="/stat-icons-sprite.svg#stat-avg"/></svg>{{ 'puzzle_times.stats.average'|trans }}</span>
+                    <span class="lb-stat-value">{{ this.averageTime|puzzlingTime }}</span>
                 </div>
             {% endif %}
             {% if has_mine %}
@@ -63,11 +70,6 @@
                 {% else %}
                     <div class="lb-stat lb-stat-mine">{{ mine_inner }}</div>
                 {% endif %}
-            {% elseif this.averageTime and this.times|length > 1 %}
-                <div class="lb-stat">
-                    <span class="lb-stat-label"><svg class="stat-icon" width="14" height="14" aria-hidden="true"><use href="/stat-icons-sprite.svg#stat-avg"/></svg>{{ 'puzzle_times.stats.average'|trans }}</span>
-                    <span class="lb-stat-value">{{ this.averageTime|puzzlingTime }}</span>
-                </div>
             {% endif %}
         </div>
     {% endif %}

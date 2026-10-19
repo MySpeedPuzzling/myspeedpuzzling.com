@@ -159,19 +159,13 @@ readonly final class GetPuzzlePickerSuggestions
         if ($playerId !== null && $needsPredictions) {
             [$predictionIds, $predictionSeconds] = self::predictionArrays($this->getPlayerPredictions->forAllSolvedPuzzles($playerId));
             // The statistical fallback is TimePredictionCalculator::statistical()'s centre in SQL (pinned equal by the tests)
-            [$centre, $centreParams] = StatisticalInputsSql::centreSql($this->getPlayerPredictions->modelParameters($playerId));
+            [$centreCte, $centreJoins, $centre, $centreParams] = StatisticalInputsSql::centreSql($this->getPlayerPredictions->modelParameters($playerId));
             $params = [...$params, ...$centreParams];
-            $predictionCte = StatisticalInputsSql::ownPaceCte() . ',';
-            $paceJoins = StatisticalInputsSql::ownPaceCteJoins();
-            $notSecret = StatisticalInputsSql::NOT_SECRET;
+            $predictionCte = StatisticalInputsSql::ownPaceCte() . ',' . $centreCte;
 
             $insightsJoins .= <<<SQL
 
-    LEFT JOIN player_baseline pb ON pb.player_id = :playerId AND pb.pieces_count = p.pieces_count
-    LEFT JOIN player_baseline pb500 ON pb500.player_id = :playerId AND pb500.pieces_count = 500 AND pb500.baseline_type = 'direct'
-    LEFT JOIN difficulty_prior_group g ON g.manufacturer_id = p.manufacturer_id AND g.pieces_count = p.pieces_count AND {$notSecret}
-    LEFT JOIN difficulty_prior_puzzle dpp ON dpp.puzzle_id = p.id
-    {$paceJoins}
+    {$centreJoins}
     LEFT JOIN unnest(:predictionIds::uuid[], :predictionSeconds::int[]) AS pp(puzzle_id, predicted) ON pp.puzzle_id = p.id
     CROSS JOIN LATERAL (
         SELECT COALESCE(pp.predicted, {$centre}) AS predicted_seconds

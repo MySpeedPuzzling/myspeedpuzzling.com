@@ -121,16 +121,23 @@ final class StatisticalInputsSql
     }
 
     /**
-     * TimePredictionCalculator::statistical()'s centre (rounded seconds) in SQL over the COLUMNS' relations, for a
-     * puzzle with at least one difficulty index (prior-only predictions are not shown on surfaces). NULL when the
-     * calculator returns null. BrandPiecesPrior only - a prior added in front of it needs its term here too.
+     * TimePredictionCalculator::statistical()'s centre (rounded seconds) in SQL for a candidate list (the Puzzle
+     * Picker), for a puzzle with at least one difficulty index (prior-only predictions are not shown on surfaces):
+     * - a CTE `player_pace` with the player's pace × drift once per piece count of the catalogue (the thin-size rule,
+     *   the own baseline or none) - expects the `own_pace` CTE (ownPaceCte()) and :playerId;
+     * - joins of `p` to it and to the prior's tables;
+     * - the expression over them and `pd`: pace × drift × the score (5+ indices) or × exp(shrunk log difficulty)
+     *   (1-4), NULL where the calculator returns null. The same operations in the same order as the calculator -
+     *   pinned equal by GetPuzzlePickerSuggestionsTest. BrandPiecesPrior only - a prior added in front of it needs its
+     *   term here too.
      *
-     * @return array{0: string, 1: array<string, float|int>}
+     * @return array{0: string, 1: string, 2: string, 3: array<string, float|int>} the CTE (with a trailing comma), the joins, the centre, the parameters
      */
     public static function centreSql(PredictionModelParameters $parameters): array
     {
         $params = ['centreTau' => $parameters->tau];
-        $thinConditions = [];
+        $alphaCases = '';
+        $maxCases = '';
 
         foreach ([PiecesGroup::UpTo300, PiecesGroup::Thousand, PiecesGroup::From1500, PiecesGroup::Odd] as $index => $group) {
             $rule = $parameters->thinSizeRule($group);
@@ -139,34 +146,59 @@ final class StatisticalInputsSql
                 continue;
             }
 
-            $thinConditions[$index] = sprintf(
-                "%s AND pb500.baseline_seconds > 0 AND (CASE WHEN pb.baseline_type = 'direct' THEN pb.qualifying_solves_count ELSE 0 END) < CAST(:thinMax%d AS int)",
-                self::groupCondition($group),
-                $index,
-            );
+            $condition = self::groupCondition($group, 'sizes.pieces_count');
+            $alphaCases .= " WHEN {$condition} THEN CAST(:thinAlpha{$index} AS double precision)";
+            $maxCases .= " WHEN {$condition} THEN CAST(:thinMax{$index} AS int)";
             $params["thinMax{$index}"] = $rule['max_own_solves'];
             $params["thinAlpha{$index}"] = $rule['alpha'];
         }
 
-        $baseCases = '';
-        $driftCases = '';
+        $alpha = $alphaCases !== '' ? "CASE{$alphaCases} END" : 'NULL::double precision';
+        $max = $maxCases !== '' ? "CASE{$maxCases} END" : 'NULL::int';
+        $thin = "(rule.alpha IS NOT NULL AND pb500.baseline_seconds > 0 AND (CASE WHEN pb.baseline_type = 'direct' THEN pb.qualifying_solves_count ELSE 0 END) < rule.max_own)";
 
-        foreach ($thinConditions as $index => $condition) {
-            $baseCases .= " WHEN {$condition} THEN pb500.baseline_seconds * power(p.pieces_count::double precision / 500.0::double precision, CAST(:thinAlpha{$index} AS double precision))";
-            $driftCases .= " WHEN {$condition} THEN COALESCE(five.drift, 0)";
-        }
+        $cte = "
+            player_pace AS (
+                SELECT
+                    sizes.pieces_count,
+                    (CASE
+                        WHEN {$thin} THEN pb500.baseline_seconds * power(sizes.pieces_count::double precision / 500.0::double precision, rule.alpha)
+                        WHEN pb.baseline_seconds > 0 THEN pb.baseline_seconds::double precision
+                    END) * exp(CASE
+                        WHEN {$thin} THEN COALESCE(five.drift, 0)
+                        WHEN pb.baseline_seconds > 0 AND pb.baseline_type = 'direct' THEN COALESCE(own.drift, 0)
+                        ELSE 0
+                    END) AS paced
+                FROM (SELECT DISTINCT pieces_count FROM puzzle) sizes
+                LEFT JOIN player_baseline pb ON pb.player_id = :playerId AND pb.pieces_count = sizes.pieces_count
+                LEFT JOIN player_baseline pb500 ON pb500.player_id = :playerId AND pb500.pieces_count = 500 AND pb500.baseline_type = 'direct'
+                LEFT JOIN own_pace own ON own.pieces_count = sizes.pieces_count
+                LEFT JOIN own_pace five ON five.pieces_count = 500
+                CROSS JOIN LATERAL (SELECT {$alpha} AS alpha, {$max} AS max_own) rule
+            ),
+        ";
 
-        $base = "CASE{$baseCases} WHEN pb.baseline_seconds > 0 THEN pb.baseline_seconds::double precision END";
-        $drift = "CASE{$driftCases} WHEN pb.baseline_seconds > 0 AND pb.baseline_type = 'direct' THEN COALESCE(own.drift, 0) ELSE 0 END";
+        $notSecret = self::NOT_SECRET;
+        $shrunk = TimePredictionCalculator::RATED_INDICES - 1;
+        $joins = "
+    LEFT JOIN player_pace ppace ON ppace.pieces_count = p.pieces_count
+    LEFT JOIN difficulty_prior_group g ON g.manufacturer_id = p.manufacturer_id AND g.pieces_count = p.pieces_count AND pd.sample_size BETWEEN 1 AND {$shrunk} AND {$notSecret}
+    LEFT JOIN difficulty_prior_puzzle dpp ON dpp.puzzle_id = p.id AND pd.sample_size BETWEEN 1 AND {$shrunk}
+";
 
-        $difficulty = 'CASE
-            WHEN pd.sample_size >= ' . TimePredictionCalculator::RATED_INDICES . ' AND pd.difficulty_score > 0 THEN ln(pd.difficulty_score)
-            WHEN pd.sample_size BETWEEN 1 AND ' . (TimePredictionCalculator::RATED_INDICES - 1) . ' AND pd.sum_log_indices IS NOT NULL
-                THEN (pd.sum_log_indices + CAST(:centreTau AS double precision) * COALESCE(' . self::priorSql() . ', 0)) / (pd.sample_size + CAST(:centreTau AS double precision))
-        END';
+        $prior = self::priorSql();
+        $rated = TimePredictionCalculator::RATED_INDICES;
+        $tau = 'CAST(:centreTau AS double precision)';
+        // One arm per difficulty source, so a missing difficulty stays NULL (GREATEST() would turn NULL into 1)
+        $centre = "CASE
+            WHEN ppace.paced IS NULL THEN NULL
+            WHEN pd.sample_size >= {$rated} AND pd.difficulty_score > 0
+                THEN GREATEST(round(ppace.paced * pd.difficulty_score)::int, 1)
+            WHEN pd.sample_size BETWEEN 1 AND {$shrunk} AND pd.sum_log_indices IS NOT NULL
+                THEN GREATEST(round(ppace.paced * exp((pd.sum_log_indices + {$tau} * COALESCE({$prior}, 0)) / (pd.sample_size + {$tau})))::int, 1)
+        END";
 
-        // GREATEST() skips NULLs - no pace or no difficulty must stay NULL
-        return ["CASE WHEN ({$base}) IS NOT NULL AND ({$difficulty}) IS NOT NULL THEN GREATEST(round(({$base}) * exp(({$difficulty}) + ({$drift})))::int, 1) END", $params];
+        return [$cte, $joins, $centre, $params];
     }
 
     /**
@@ -182,14 +214,14 @@ final class StatisticalInputsSql
         END)";
     }
 
-    private static function groupCondition(PiecesGroup $group): string
+    private static function groupCondition(PiecesGroup $group, string $column): string
     {
         return match ($group) {
-            PiecesGroup::UpTo300 => 'p.pieces_count <= 300',
-            PiecesGroup::FiveHundred => 'p.pieces_count = 500',
-            PiecesGroup::Thousand => 'p.pieces_count = 1000',
-            PiecesGroup::From1500 => 'p.pieces_count >= 1500',
-            PiecesGroup::Odd => '(p.pieces_count > 300 AND p.pieces_count < 1500 AND p.pieces_count NOT IN (500, 1000))',
+            PiecesGroup::UpTo300 => "{$column} <= 300",
+            PiecesGroup::FiveHundred => "{$column} = 500",
+            PiecesGroup::Thousand => "{$column} = 1000",
+            PiecesGroup::From1500 => "{$column} >= 1500",
+            PiecesGroup::Odd => "({$column} > 300 AND {$column} < 1500 AND {$column} NOT IN (500, 1000))",
         };
     }
 

@@ -62,6 +62,7 @@ final class PredictionEngine
         $set = $this->set;
 
         foreach ($set->puzzles() as $puzzle) {
+            // Chronological already (FirstAttemptSet)
             $attempts = $set->attemptsOfPuzzle($puzzle);
             // The indices as parallel lists - no array per index
             $knownSolved = [];
@@ -82,7 +83,6 @@ final class PredictionEngine
             }
 
             array_multisort($knownSolved, $knownTracked, $indices);
-            usort($attempts, static fn (int $a, int $b): int => ($set->solved[$a] <=> $set->solved[$b]) ?: ($set->tracked[$a] <=> $set->tracked[$b]));
 
             $sorted = [];
             $sum = 0.0;

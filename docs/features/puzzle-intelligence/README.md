@@ -592,7 +592,7 @@ centre = pace × exp(log_difficulty + drift)
     never on a surface (`SolvingTimePrediction::forDisplay()`, `GetPlayerPrediction` default) - estimates for unsolved
     puzzles are Insights plan Phase 6.
   τ is fitted daily from {0.25, 0.5, 0.75, 1, 1.5, 2, 3} on the last 12 months' attempts at puzzles with 1-4 indices
-  (the copy of production: 0.5).
+  (the copy of production: 0.5 on everything, 0.75 when fitted before 2026-04-11 or 2026-07-01).
 - **Prior** - behind the interface `Prior\DifficultyPrior`, a chain (`Prior\DifficultyPriors`, tagged services by
   priority: the first that knows the puzzle answers). Today `BrandPiecesPrior`: the mean log index of the puzzle's brand
   at its piece count, shrunk toward 0 with 20 pseudo-indices, **the puzzle's own indices left out** (the group's sums in
@@ -643,8 +643,10 @@ index only from that pace's row), the pace rows before it, the drift and spread 
   the site through `PredictionModelParametersProvider::SQL` as a scalar subquery of a statement that runs anyway:
   **the upgrade costs no query** on any page. Run it once right after the deploy (until then: defaults).
 
-Measured on the copy of production (523k times, laptop, no debug): the step takes ~1 s on a normal run and ~3 s on
-the daily fit run; the whole batch ~17 s locally (production ~11 s before Phase 3).
+Measured on the copy of production (523k times, laptop, no debug, quiet machine): the step takes ~1.05 s; the whole
+batch 14.9-15.1 s against 13.15 s for main on the same copy (+1.75-1.95 s: this step, the as-of pace of the derived
+metrics +0.4 s, the difficulty step +0.2 s), peak memory 352 MB against 386 MB on main (the run frees the allocator's
+caches between steps, `gc_mem_caches()`). The daily fit takes ~4.5 s within 512 MB.
 
 ### Shared by every read path
 
@@ -660,18 +662,21 @@ shrunk or prior-only first-try prediction is no expectation there.
 
 `myspeedpuzzling:evaluate-predictions --fit-before=YYYY-MM-DD [--until=] [--json]` fits everything on what was solved
 before the date and measures every first attempt and repeat after it (read only, a few seconds and ~1 GB on the copy
-of production). On the copy (fit before 2026-04-11, 83,981 first attempts and 5,300 repeats after it):
+of production). On the copy (fit before 2026-04-11, 83,981 first attempts and 47,985 repeats after it):
 
 | | n | coverage | error (MAE ln) | median bias | 50 % hit / width | 80 % hit / width |
 |---|---|---|---|---|---|---|
-| first tries shown (k ≥ 1) | 70,900 | 84.4 % (v2 rule: 73 %) | 0.087 | −0.2 % | 50.9 % / 13.8 % | 80.3 % / 26.9 % |
-| rated puzzles (k ≥ 5) | 62,445 | 74.4 % | 0.082 | −0.2 % | 50.9 % / 13.2 % | 80.4 % / 25.3 % |
-| puzzles with 1-4 indices | 8,455 | 10.1 % | 0.123 | +0.1 % | 50.6 % / 19.1 % | 79.9 % / 37.9 % |
-| prior only (k = 0, not shown) | 4,141 | 4.9 % | 0.186 | +1.3 % | 49.8 % / 31.0 % | 79.8 % / 62.1 % |
-| repeats | 5,300 | - | 0.076 | +1.0 % | 49.5 % / 11.2 % | 79.2 % / 21.9 % |
+| first tries shown (k ≥ 1) | 70,900 | 84.4 % (v2 rule: 73 %) | 0.087 | −0.2 % | 50.8 % / 13.8 % | 80.3 % / 26.9 % |
+| rated puzzles (k ≥ 5) | 62,445 | 74.4 % | 0.083 | −0.3 % | 50.9 % / 13.1 % | 80.3 % / 25.2 % |
+| puzzles with 1-4 indices | 8,455 | 10.1 % | 0.123 | +0.1 % | 49.9 % / 18.9 % | 79.9 % / 38.0 % |
+| prior only (k = 0, not shown) | 4,141 | 4.9 % | 0.186 | +1.3 % | 50.0 % / 30.5 % | 79.8 % / 61.9 % |
+| repeats | 47,985 | - | 0.077 | +0.4 % | 50.2 % / 11.9 % | 79.7 % / 23.1 % |
 
-Per consistency quartile (first tries shown) the 50 % window holds 50.7 / 51.3 / 50.8 / 50.8 % at a median width of
-10.5 / 12.5 / 15.1 / 16.8 %. Before (v1/v2 as stored): first tries 29 % inside a 16 % range, repeats 76 % inside 30 %.
+Per consistency quartile (first tries shown) the 50 % window holds 50.7 / 51.1 / 50.9 / 50.4 % at a median width of
+10.5 / 12.5 / 15.1 / 16.8 %. A later cut (fit before 2026-07-01, 36,522 first tries shown, 25,304 repeats): MAE 0.088,
+bias −0.1 %, 50 % window 50.5 % / 13.7 %, 80 % window 80.0 % / 26.9 %; repeats 50.5 % / 11.8 %. Thin sizes: 1000
+pieces from the 500 pace always (α ≈ 1.43), ≤ 300 below 20 own first attempts (α ≈ 1.34); thin groups stay the
+weakest (1000: MAE 0.129, bias −3 %; 1500+: 29 attempts). Before (v1/v2 as stored): first tries 29 % inside a 16 % range, repeats 76 % inside 30 %.
 
 ### Calibration monitor
 

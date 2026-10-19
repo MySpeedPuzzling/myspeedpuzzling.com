@@ -320,6 +320,13 @@ Why this shape:
 | Any puzzle + predicted-time budget (difficulty + baseline joined pre-LIMIT) | 4.7k → 2.6k | 57 ms |
 
 For the median player (12 solves, 25 items) everything is single-digit ms. Budget: p95 < 100 ms.
+
+Prediction model v3 (Insights 3b, 2026-10) made the statistical centre pace × drift × difficulty, with the shrunk
+difficulty (1-4 indices) and the thin-size rules: the player's pace per piece count is computed once in a CTE
+(`StatisticalInputsSql::centreSql()`, `player_pace`, one row per piece count of the catalogue) and joined, the prior
+tables only for puzzles with 1-4 indices. Measured locally on the copy of production (heaviest player, median of
+runs): "any puzzle, ordered by gap" 90 → 114 ms, the bulk prediction of 2,000 puzzles 20 → 36 ms; a naive
+per-row version took 212 ms. Production is usually faster than the laptop (75 ms there for main's 90 ms here).
 No new index is required; if the "any puzzle" pool ever gets hot, a covering index
 `puzzle (approved, pieces_count, manufacturer_id) WHERE approved` and/or `hashtext()` instead of
 `md5()` are the cheap knobs. Verify with `EXPLAIN ANALYZE` on prod-size data before merging PR 1

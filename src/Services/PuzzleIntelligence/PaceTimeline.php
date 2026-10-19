@@ -23,6 +23,9 @@ final class PaceTimeline
     /** @var array<string, array<int, array{solved: list<float>, tracked: list<float>, baseline: list<int>, drift: list<null|float>, spread: list<null|float>, sorted: bool}>> player => piece count => rows ascending */
     private array $rows = [];
 
+    /** @var array<string, true> players with a pair whose rows came out of order */
+    private array $unsortedPlayers = [];
+
     public function __construct(
         private readonly PlayerBaselineCalculator $baselineCalculator,
         private null|float $scalingExponent = null,
@@ -59,6 +62,7 @@ final class PaceTimeline
 
             if ($order < 0) {
                 $pair['sorted'] = false;
+                $this->unsortedPlayers[$playerId] = true;
             }
         }
 
@@ -222,13 +226,19 @@ final class PaceTimeline
      */
     private function latestIndex(array $pair, float $solved, float $tracked, bool $inclusive): null|int
     {
+        $solvedRows = $pair['solved'];
         $low = 0;
-        $high = count($pair['solved']);
+        $high = count($solvedRows);
+
+        // The common case first: the moment lies after the pair's last row (a solve after the pace history so far)
+        if ($high > 0 && $solvedRows[$high - 1] < $solved) {
+            return $high - 1;
+        }
 
         // First index whose row is not before (or at) the moment
         while ($low < $high) {
-            $middle = intdiv($low + $high, 2);
-            $order = ($pair['solved'][$middle] <=> $solved) ?: ($pair['tracked'][$middle] <=> $tracked);
+            $middle = ($low + $high) >> 1;
+            $order = ($solvedRows[$middle] <=> $solved) ?: ($pair['tracked'][$middle] <=> $tracked);
 
             if ($order < 0 || ($inclusive && $order === 0)) {
                 $low = $middle + 1;
@@ -262,6 +272,13 @@ final class PaceTimeline
 
     private function sortPlayer(string $playerId): void
     {
+        // Rows mostly come in order (the loader sorts them): nothing to look at then, on every lookup
+        if (!isset($this->unsortedPlayers[$playerId])) {
+            return;
+        }
+
+        unset($this->unsortedPlayers[$playerId]);
+
         foreach ($this->rows[$playerId] as $piecesCount => $pair) {
             if ($pair['sorted']) {
                 continue;

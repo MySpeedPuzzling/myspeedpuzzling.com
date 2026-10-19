@@ -1014,11 +1014,15 @@ First delivery = store + backfill; the UI comes after it.
 - [x] Cron `34 1,7,13,19 * * *` Prague in lily.srv (c32e756), Sentry monitor `backfill-solving-time-predictions`
 - [x] Calibration check (first numbers after the backfill): personal predictions 74 % inside their range, median
       -0.3 % (well centred); statistical only 32 % inside the p25-p75 range and players a median 9.8 % faster than
-      predicted - fixed by prediction model v3 (Insights 3b, 2026-10): on a time split first tries 50.9 % inside the
+      predicted - fixed by prediction model v3 (Insights 3b, 2026-10): on a time split first tries 50.8 % inside the
       50 % window, bias -0.2 % (README "Step 8", Accuracy)
 - [x] `--recompute-reconstructed` on the backfill command (Insights 3b): selects the shown predictions reconstructed by
       an older model version (no bulk reset to NULL); `live` rows stay. Production run: prediction-history.md "Production
       run for v3"
+- [ ] Model v3 rollout on lily.srv (after the deploy): run `myspeedpuzzling:fit-prediction-model` once, then the
+      detached `backfill-solving-time-predictions --recompute-reconstructed` (~35-45 min, prediction-history.md
+      "Production run for v3"); cron rows `11 4 * * * myspeedpuzzling:fit-prediction-model` and
+      `41 4 * * * myspeedpuzzling:report-prediction-calibration` (Prague; the report after the fit)
 - [ ] Time verification on shrunk predictions (model v3): the scan and the form check ignore first-try predictions of
       puzzles with 1-4 indices (they keep the expectations they had); using them would cover more first tries - decide,
       and bump `SuspiciousTimeClassifier::VERSION` with it

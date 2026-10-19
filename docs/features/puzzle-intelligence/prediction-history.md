@@ -298,8 +298,8 @@ Rules:
 2. Then once, detached:
    `nohup docker compose exec -T -e SENTRY_DSN= web php -d memory_limit=1G bin/console myspeedpuzzling:backfill-solving-time-predictions --recompute-reconstructed > /tmp/backfill-v3.log 2>&1 &`
    It writes the v3 side row of every solo time with seconds (~460k) and replaces the ~445k shown predictions
-   reconstructed by v1/v2; live ones stay. Measured on the copy of production: see the report of Insights 3b
-   (STATUS.md). Resumable: kill it, run it again.
+   reconstructed by v1/v2; live ones stay. Measured on the copy of production (laptop, no debug): 300 players /
+   52,378 times in 219 s, peak ~350 MB → the whole run ~35-45 min. Resumable: kill it, run it again.
 3. The 4×-daily cron (`34 1,7,13,19 * * *`) keeps going as before; from then on it finds only new gaps (an old
    container's insert during a deploy, a failed live write).
 

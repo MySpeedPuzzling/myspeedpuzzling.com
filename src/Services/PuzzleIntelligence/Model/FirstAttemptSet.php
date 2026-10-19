@@ -151,10 +151,17 @@ final class FirstAttemptSet
             $offset += $puzzleCount;
         }
 
+        // In the order of the solves, so a puzzle's attempts come out chronological (sorted once, not per puzzle)
+        $chronological = range(0, $count - 1);
+        $solvedCopy = $set->solved;
+        $trackedCopy = $set->tracked;
+        array_multisort($solvedCopy, SORT_ASC, SORT_NUMERIC, $trackedCopy, SORT_ASC, SORT_NUMERIC, $chronological);
+        unset($solvedCopy, $trackedCopy);
+
         $order = array_fill(0, $count, 0);
         $filled = [];
 
-        for ($i = 0; $i < $count; $i++) {
+        foreach ($chronological as $i) {
             $puzzle = $set->puzzle[$i];
             $slot = $set->puzzleStart[$puzzle] + ($filled[$puzzle] ?? 0);
             $filled[$puzzle] = ($filled[$puzzle] ?? 0) + 1;
@@ -237,6 +244,8 @@ final class FirstAttemptSet
     }
 
     /**
+     * The puzzle's attempts in the order of the solves (solve moment, tracked_at).
+     *
      * @return list<int>
      */
     public function attemptsOfPuzzle(string $puzzleId): array

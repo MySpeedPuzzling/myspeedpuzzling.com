@@ -202,7 +202,10 @@ final readonly class TimePredictionCalculator
         [$baselineSeconds, $drift, $spread] = $baseline;
         [$logDifficulty, $source] = $difficulty;
 
-        $centre = $baselineSeconds * exp($logDifficulty + $drift);
+        // pace × drift first, then the difficulty: the order of operations the Picker's SQL twin uses
+        // (StatisticalInputsSql::centreSql()) - a rated puzzle multiplies by its score itself
+        $multiplier = $source === DifficultySource::Solves && $inputs->difficultyScore !== null ? $inputs->difficultyScore : exp($logDifficulty);
+        $centre = $baselineSeconds * exp($drift) * $multiplier;
         $group = PiecesGroup::fromPiecesCount($inputs->piecesCount);
         $spread ??= PredictionModelParameters::GLOBAL_SPREAD;
         $bucket = WindowBucket::firstTry($spread, $parameters->firstTryConsistencyEdges, $inputs->kIndices, $group);

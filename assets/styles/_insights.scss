@@ -60,9 +60,16 @@ $ins-primary-ink: #d63c42;
 
 .ins-asks {
     display: flex;
-    flex-wrap: wrap;
     gap: .5rem;
     margin-top: .875rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    // From md up the chips wrap; on a phone they are one line that scrolls inside itself
+    @include media-breakpoint-up(md) {
+        flex-wrap: wrap;
+        overflow-x: visible;
+    }
 }
 
 .ins-ask {
@@ -74,8 +81,10 @@ $ins-primary-ink: #d63c42;
     border: 1px solid $ins-line;
     border-radius: 999px;
     background: $white;
+    flex: 0 0 auto;
     color: $ins-ink;
     font-size: .875rem;
+    white-space: nowrap;
     text-decoration: none;
 
     &:hover {
@@ -98,9 +107,6 @@ $ins-primary-ink: #d63c42;
 // --- Filters ----------------------------------------------------------------------------------------------------------
 
 .ins-filters {
-    position: sticky;
-    top: 0;
-    z-index: 20;
     margin-top: .875rem;
     padding: .625rem 0;
     border-bottom: 1px solid $ins-line;
@@ -108,10 +114,9 @@ $ins-primary-ink: #d63c42;
 
     &__row {
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         gap: .5rem;
-        overflow-x: auto;
-        scrollbar-width: none;
     }
 
     &__count {
@@ -510,6 +515,10 @@ $ins-primary-ink: #d63c42;
         background: rgba($ins-you, .18);
     }
 
+    &--you-soft {
+        background: rgba($ins-you, .45);
+    }
+
     &--ref {
         background: $ins-ref;
     }
@@ -800,7 +809,7 @@ $ins-primary-ink: #d63c42;
 
 // --- Skill map --------------------------------------------------------------------------------------------------------
 
-$ins-srow-columns: minmax(84px, 110px) minmax(0, 1fr) 96px;
+$ins-srow-columns: minmax(84px, 110px) minmax(0, 1fr) 84px;
 $ins-srow-columns-wide: minmax(110px, 190px) minmax(0, 1fr) 54px 130px;
 
 .ins-saxis {
@@ -815,6 +824,9 @@ $ins-srow-columns-wide: minmax(110px, 190px) minmax(0, 1fr) 54px 130px;
     &__scale {
         display: flex;
         justify-content: space-between;
+        gap: .25rem;
+        white-space: nowrap;
+        overflow: hidden;
     }
 
     &__n {
@@ -955,8 +967,12 @@ $ins-srow-columns-wide: minmax(110px, 190px) minmax(0, 1fr) 54px 130px;
     border-radius: 999px;
     font-size: .6875rem;
     font-weight: 600;
+    line-height: 1.25;
     text-align: center;
-    white-space: nowrap;
+
+    @include media-breakpoint-up(md) {
+        white-space: nowrap;
+    }
 
     &--strength {
         background: rgba($ins-faster, .16);
@@ -972,6 +988,15 @@ $ins-srow-columns-wide: minmax(110px, 190px) minmax(0, 1fr) 54px 130px;
     &--not_sure_yet {
         background: $ins-surface-2;
         color: $ins-muted;
+    }
+
+    // On a phone the row's strip already shows the size; the verdict stays in words (never colour alone)
+    &__pct {
+        display: none;
+
+        @include media-breakpoint-up(md) {
+            display: inline;
+        }
     }
 }
 

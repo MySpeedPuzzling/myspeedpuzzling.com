@@ -10238,9 +10238,8 @@ insights:
         takeaway: "あなたはふだん%versus%で、<b>%count%件中%slower%件</b>で中央値より遅くなっています。%outliers%件の結果がいつものペースから30%以上離れています。"
         chart_label: "各パズルの中央値と比べてどれだけ速かった・遅かったかで見た結果"
         legend:
-            results: "あなたの結果"
-            median: "中央値（0）"
-            usual: "いつものペース"
+            faster: "中央値より速い"
+            slower: "中央値より遅い"
         list:
             slow: "いつもよりかなり遅い"
             fast: "いつもよりかなり速い"

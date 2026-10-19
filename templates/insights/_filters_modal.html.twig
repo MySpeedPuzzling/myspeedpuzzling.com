@@ -37,7 +37,7 @@
                     <div class="ins-mf__options">
                         {% for option in this.difficultyOptions %}
                             <label class="ins-chip">
-                                <input type="checkbox" class="visually-hidden" data-model="difficulty" value="{{ option.value }}" {{ option.value in this.criteria.difficultyTiers ? 'checked' }}>
+                                <input type="checkbox" class="visually-hidden" data-model="difficulty[]" value="{{ option.value }}" {{ option.value in this.criteria.difficultyTiers ? 'checked' }}>
                                 <span>{{ option.tier is not null ? option.tier.translationKey|trans : 'insights.skills.unrated'|trans }}</span>
                             </label>
                         {% endfor %}
@@ -50,7 +50,7 @@
                         <div class="ins-mf__options">
                             {% for id, name in options.brands %}
                                 <label class="ins-chip">
-                                    <input type="checkbox" class="visually-hidden" data-model="brands" value="{{ id }}" {{ id in this.criteria.brandIds ? 'checked' }}>
+                                    <input type="checkbox" class="visually-hidden" data-model="brands[]" value="{{ id }}" {{ id in this.criteria.brandIds ? 'checked' }}>
                                     <span>{{ name }}</span>
                                 </label>
                             {% endfor %}
@@ -63,7 +63,7 @@
                     <div class="ins-mf__options">
                         {% for day in 1..7 %}
                             <label class="ins-chip">
-                                <input type="checkbox" class="visually-hidden" data-model="weekdays" value="{{ day }}" {{ day in this.criteria.weekdays ? 'checked' }}>
+                                <input type="checkbox" class="visually-hidden" data-model="weekdays[]" value="{{ day }}" {{ day in this.criteria.weekdays ? 'checked' }}>
                                 <span>{{ ('insights.weekday_short.' ~ day)|trans }}</span>
                             </label>
                         {% endfor %}
@@ -75,7 +75,7 @@
                     <div class="ins-mf__options">
                         {% for option in this.personalityOptions %}
                             <label class="ins-chip" title="{{ ('insights.personality_hint.' ~ option.value)|trans }}">
-                                <input type="checkbox" class="visually-hidden" data-model="personality" value="{{ option.value }}" {{ option in this.criteria.personalities ? 'checked' }}>
+                                <input type="checkbox" class="visually-hidden" data-model="personality[]" value="{{ option.value }}" {{ option in this.criteria.personalities ? 'checked' }}>
                                 <span>{{ ('insights.personality.' ~ option.value)|trans }}</span>
                             </label>
                         {% endfor %}
@@ -87,7 +87,7 @@
                     <div class="ins-mf__options">
                         {% for option in this.traitOptions %}
                             <label class="ins-chip">
-                                <input type="checkbox" class="visually-hidden" data-model="traits" value="{{ option.value }}" {{ option in this.criteria.imageTraits ? 'checked' }}>
+                                <input type="checkbox" class="visually-hidden" data-model="traits[]" value="{{ option.value }}" {{ option in this.criteria.imageTraits ? 'checked' }}>
                                 <span>{{ option.labelKey|trans }}</span>
                             </label>
                         {% endfor %}
@@ -101,7 +101,7 @@
                         <div class="ins-mf__options">
                             {% for option in this.timeOfDayOptions %}
                                 <label class="ins-chip">
-                                    <input type="checkbox" class="visually-hidden" data-model="timeOfDay" value="{{ option.value }}" {{ option in this.criteria.timesOfDay ? 'checked' }}>
+                                    <input type="checkbox" class="visually-hidden" data-model="timeOfDay[]" value="{{ option.value }}" {{ option in this.criteria.timesOfDay ? 'checked' }}>
                                     <span>{{ ('insights.time_of_day.' ~ option.value)|trans }}</span>
                                 </label>
                             {% endfor %}

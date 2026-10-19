@@ -10523,9 +10523,8 @@ insights:
         takeaway: "You are usually %versus%, and slower than the median on <b>%slower% of %count%</b> results. %outliers% results sit more than 30% from your usual."
         chart_label: "Your results by how much faster or slower than each puzzle's median solver they were"
         legend:
-            results: "Your results"
-            median: "Median solver (0)"
-            usual: "Your usual"
+            faster: "Faster than the median solver"
+            slower: "Slower than the median solver"
         list:
             slow: "Way slower than your usual"
             fast: "Way faster than your usual"

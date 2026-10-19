@@ -10275,9 +10275,8 @@ insights:
         takeaway: "Obvykle skládáš %versus% a pomaleji než medián jsi u <b>%slower% z %count%</b> výsledků. %outliers% výsledků je o víc než 30 % od tvého obvyklého tempa."
         chart_label: "Tvé výsledky podle toho, o kolik byly rychlejší nebo pomalejší než medián každého puzzle"
         legend:
-            results: "Tvé výsledky"
-            median: "Medián (0)"
-            usual: "Tvé obvyklé tempo"
+            faster: "Rychleji než medián"
+            slower: "Pomaleji než medián"
         list:
             slow: "Výrazně pomaleji než obvykle"
             fast: "Výrazně rychleji než obvykle"

@@ -25,9 +25,8 @@
                         {{ render_chart(this.charts.histogram, {role: 'img', 'aria-label': 'insights.median.chart_label'|trans}) }}
                     </div>
                     <div class="ins-legend" aria-hidden="true">
-                        <span><i class="ins-legend__square ins-legend--you"></i>{{ 'insights.median.legend.results'|trans }}</span>
-                        <span><i class="ins-legend__line ins-legend--ink"></i>{{ 'insights.median.legend.median'|trans }}</span>
-                        <span><i class="ins-legend__line ins-legend--ref"></i>{{ 'insights.median.legend.usual'|trans }}</span>
+                        <span><i class="ins-legend__square ins-legend--you"></i>{{ 'insights.median.legend.faster'|trans }}</span>
+                        <span><i class="ins-legend__square ins-legend--you-soft"></i>{{ 'insights.median.legend.slower'|trans }}</span>
                     </div>
                 {% endif %}
             </div>

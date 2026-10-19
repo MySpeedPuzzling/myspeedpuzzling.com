@@ -10248,9 +10248,8 @@ insights:
         takeaway: "Du bist meist %versus% und bei <b>%slower% von %count%</b> Ergebnissen langsamer als der Median. %outliers% Ergebnisse liegen über 30 % von deinem üblichen Tempo entfernt."
         chart_label: "Deine Ergebnisse danach, wie viel schneller oder langsamer als der Median jedes Puzzles sie waren"
         legend:
-            results: "Deine Ergebnisse"
-            median: "Median (0)"
-            usual: "Dein übliches Tempo"
+            faster: "Schneller als der Median"
+            slower: "Langsamer als der Median"
         list:
             slow: "Deutlich langsamer als üblich"
             fast: "Deutlich schneller als üblich"

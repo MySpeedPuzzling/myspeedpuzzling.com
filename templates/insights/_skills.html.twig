@@ -66,7 +66,7 @@
                             <span class="ins-srow__n">{{ stats.sampleSize }}</span>
                             <span class="ins-stag ins-stag--{{ verdict }}">
                                 {%- if stats.effect is not null and verdict != 'not_sure_yet' -%}
-                                    {{ ins.signed_percent(-stats.effect) }} · {% endif -%}
+                                    <span class="ins-stag__pct">{{ ins.signed_percent(-stats.effect) }} · </span>{% endif -%}
                                 {{ ('insights.verdict.' ~ verdict)|trans }}
                             </span>
                         </button>

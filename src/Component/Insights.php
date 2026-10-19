@@ -24,7 +24,6 @@ use SpeedPuzzling\Web\Value\InsightsInclusionFilter;
 use SpeedPuzzling\Web\Value\InsightsPeriod;
 use SpeedPuzzling\Web\Value\InsightsPuzzlePersonality;
 use SpeedPuzzling\Web\Value\InsightsResultsFilter;
-use SpeedPuzzling\Web\Value\InsightsSection;
 use SpeedPuzzling\Web\Value\InsightsSkillGroup;
 use SpeedPuzzling\Web\Value\InsightsTimeOfDay;
 use SpeedPuzzling\Web\Value\PiecesRange;
@@ -219,19 +218,6 @@ final class Insights
     }
 
     // --- Template helpers --------------------------------------------------------------------------------------------
-
-    public function isFree(InsightsSection $section): bool
-    {
-        return $section->isFree();
-    }
-
-    /**
-     * Whether the members-only part of a section is shown: members always; free players get the lock (counts only)
-     */
-    public function shows(InsightsSection $section): bool
-    {
-        return $this->isMember || $section->isFree();
-    }
 
     public function enoughResults(): bool
     {

@@ -10249,9 +10249,8 @@ insights:
         takeaway: "Normalmente vas %versus%, y vas más lento que la mediana en <b>%slower% de %count%</b> resultados. %outliers% resultados se alejan más de un 30 % de tu ritmo habitual."
         chart_label: "Tus resultados según lo más rápidos o lentos que fueron frente a la mediana de cada puzzle"
         legend:
-            results: "Tus resultados"
-            median: "Mediana (0)"
-            usual: "Tu ritmo habitual"
+            faster: "Más rápido que la mediana"
+            slower: "Más lento que la mediana"
         list:
             slow: "Mucho más lento que tu ritmo habitual"
             fast: "Mucho más rápido que tu ritmo habitual"

@@ -89,7 +89,8 @@ final class RateTransactionController extends AbstractController
                     ? 'rating/_rate_transaction_modal.html.twig'
                     : 'rating/rate_transaction.html.twig';
 
-                return $this->render($template, $templateParams);
+                // 422: Turbo Drive discards a 200 answer to a full-page form submission
+                return $this->render($template, $templateParams, new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY));
             }
 
             try {

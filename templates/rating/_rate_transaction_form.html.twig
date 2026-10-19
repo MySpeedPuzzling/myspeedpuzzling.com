@@ -35,7 +35,9 @@
 <form method="post"
       action="{{ path('rate_transaction', {soldSwappedItemId: sold_swapped_item.id}) }}"
       data-turbo="true"
-      data-turbo-frame="modal-frame">
+      {# Only inside the modal: the standalone page (the notifications' "Rate" link) posting into modal-frame
+          opened the modal with a spinner that never ended, as the answer only empties the frame #}
+      {% if in_modal|default(false) %}data-turbo-frame="modal-frame"{% endif %}>
     {% if return_url is defined and return_url %}
         <input type="hidden" name="return" value="{{ return_url }}">
     {% endif %}

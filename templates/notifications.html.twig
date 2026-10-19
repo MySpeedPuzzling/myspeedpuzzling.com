@@ -89,7 +89,7 @@
                                 </td>
 
                                 <td class="" style="width: 80px;">
-                                    <a href="{{ path('rate_transaction', {soldSwappedItemId: notification.soldSwappedItemId}) }}" class="btn btn-sm btn-warning">
+                                    <a href="{{ path('rate_transaction', {soldSwappedItemId: notification.soldSwappedItemId, return: path('notifications')}) }}" class="btn btn-sm btn-warning">
                                         <i class="bi bi-star"></i> Rate
                                     </a>
                                 </td>

@@ -116,4 +116,48 @@ final class RateTransactionControllerTest extends WebTestCase
 
         $this->assertResponseRedirects();
     }
+
+    /**
+     * Regression guard: the standalone page (the notifications' "Rate" link) posted into modal-frame, so the modal
+     * opened with a spinner that never ended - the stream answer only empties the frame.
+     */
+    public function testStandalonePageFormDoesNotTargetTheModalFrame(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/rate-transaction/' . SoldSwappedItemFixture::SOLD_RECENT . '?return=' . rawurlencode('/en/notifications'));
+
+        $this->assertResponseIsSuccessful();
+        self::assertNull($crawler->filter('form[method="post"]')->attr('data-turbo-frame'));
+        self::assertSame('/en/notifications', $crawler->filter('input[name="return"]')->attr('value'));
+    }
+
+    public function testModalFormTargetsTheModalFrame(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/rate-transaction/' . SoldSwappedItemFixture::SOLD_RECENT, server: [
+            'HTTP_TURBO_FRAME' => 'modal-frame',
+        ]);
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame('modal-frame', $crawler->filter('form[method="post"]')->attr('data-turbo-frame'));
+    }
+
+    public function testFormSubmissionFromTheStandalonePageRedirectsBack(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $browser->request('GET', '/en/rate-transaction/' . SoldSwappedItemFixture::SOLD_RECENT . '?return=' . rawurlencode('/en/notifications'));
+
+        $browser->submitForm('Submit Rating', ['stars' => '5']);
+
+        self::assertResponseRedirects('/en/notifications');
+    }
 }

@@ -34,6 +34,9 @@ readonly final class TimePredictionResult
         public null|string $windowBucket = null,
         // Statistical predictions only: what the pace rested on
         public null|PaceSource $paceSource = null,
+        // False for a prediction stored by a model before the calibrated windows
+        // (TimePredictionCalculator::FIRST_CALIBRATED_WINDOW_MODEL_VERSION): its range is no "half of solves" window
+        public bool $calibratedWindow = true,
     ) {
     }
 }

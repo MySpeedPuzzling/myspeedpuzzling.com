@@ -3649,7 +3649,6 @@ puzzle_intelligence:
         elo_example_player_b_score: "Skóre: 0.75 × 0.70 + 0.25 × 1.12 = <strong>0.81</strong>"
         elo_example_conclusion: "Hráč A jasně vítězí — surový talent při skládání napoprvé vede, ale B dostává částečný kredit za zlepšení."
         section_prediction_title: "Predikce času"
-        section_prediction_formula: "Rozmezí ukazuje, kam spadá 50%% hráčů s vaší rychlostí (P25-P75). Pro opakované hráče na základě vaší osobní historie."
         prediction_intro: "Používáme vrstvený systém predikcí. Pokud jste puzzle již skládali, dostanete <strong>osobní predikci</strong> využívající vaši historii zlepšování a datově podložené poměry zlepšení. Jinak dostanete <strong>statistickou predikci</strong> na základě vašeho základu a obtížnosti puzzle."
         prediction_ratios_title: "Poměry zlepšení"
         prediction_ratios_desc: "Počítáme <strong>poměry zlepšení</strong> — o kolik jsou hráči typicky rychlejší mezi po sobě jdoucími pokusy (1.→2., 2.→3. atd.). Tyto poměry jsou vypočítány ze skutečných dat všech hráčů a puzzlí, rozvrstvené podle časového odstupu mezi pokusy."
@@ -3711,6 +3710,7 @@ puzzle_intelligence:
             likely: "Pravděpodobně %range%"
             likely_half: "Pravděpodobně %range% · vejde se sem polovina složení"
             hit: "Ve vašem pravděpodobném rozmezí – to se podaří jen polovině složení"
+            hit_uncalibrated: "Ve vašem pravděpodobném rozmezí"
             faster: "O %margin% rychleji, než je pravděpodobné"
             slower: "O %margin% pomaleji, než je pravděpodobné"
             first_try_faster: "Vaše rezerva: o %margin% rychleji, než je pravděpodobné"
@@ -3752,15 +3752,6 @@ puzzle_intelligence:
             expert: "Expert"
             master: "Mistr"
             legend: "Legenda"
-    solve_analysis:
-        title: "Analýza složení"
-        your_time: "Váš čas"
-        predicted_range: "Předpovězené rozmezí"
-        puzzle_difficulty: "Obtížnost puzzle"
-        percentile_on_puzzle: "Top %percentile%% na tomto puzzle"
-        result_faster: "O %percent%% rychlejší než předpověď!"
-        result_on_target: "Přesně v cíli!"
-        result_slower: "O %percent%% pomalejší než předpověď"
 
 feature_requests:
     title: "Návrhy funkcí"

@@ -17,6 +17,7 @@ final class PredictionWindowMessagesTest extends KernelTestCase
         'puzzle_intelligence.prediction.window.likely' => '%range%',
         'puzzle_intelligence.prediction.window.likely_half' => '%range%',
         'puzzle_intelligence.prediction.window.hit' => null,
+        'puzzle_intelligence.prediction.window.hit_uncalibrated' => null,
         'puzzle_intelligence.prediction.window.faster' => '%margin%',
         'puzzle_intelligence.prediction.window.slower' => '%margin%',
         'puzzle_intelligence.prediction.window.first_try_faster' => '%margin%',

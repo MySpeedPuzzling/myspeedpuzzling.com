@@ -3608,7 +3608,6 @@ puzzle_intelligence:
         elo_example_player_b_score: "スコア：0.75 × 0.70 + 0.25 × 1.12 = <strong>0.81</strong>"
         elo_example_conclusion: "プレイヤーAが圧勝 — 初見の才能がリードしますが、Bは上達分の評価を得ます。"
         section_prediction_title: "タイム予測"
-        section_prediction_formula: "範囲は、あなたの速度のプレイヤーの50%%が収まる範囲（P25-P75）を示します。再挑戦の場合は、個人履歴に基づきます。"
         prediction_intro: "階層型予測システムを使用しています。パズルを以前に解いたことがある場合、改善履歴とデータ駆動型改善率を活用した<strong>個人予測</strong>が得られます。そうでない場合、ベースラインとパズルの難易度に基づく<strong>統計予測</strong>が得られます。"
         prediction_ratios_title: "改善率"
         prediction_ratios_desc: "<strong>改善率</strong>を計算します — 連続する挑戦間でプレイヤーが通常どれだけ速くなるか（1回目→2回目、2回目→3回目など）。これらは全プレイヤーとパズルの実データから計算され、挑戦間の時間間隔で層別化されています。"
@@ -3670,6 +3669,7 @@ puzzle_intelligence:
             likely: "見込み %range%"
             likely_half: "見込み %range% · 完成の半分がこの範囲に入ります"
             hit: "見込み範囲内 – この範囲に入るのは完成の半分だけです"
+            hit_uncalibrated: "見込み範囲内"
             faster: "見込みより%margin%速い"
             slower: "見込みより%margin%遅い"
             first_try_faster: "あなたのマージン: 見込みより%margin%速い"
@@ -3711,15 +3711,6 @@ puzzle_intelligence:
             expert: "エキスパート"
             master: "マスター"
             legend: "レジェンド"
-    solve_analysis:
-        title: "解答分析"
-        your_time: "あなたのタイム"
-        predicted_range: "予測範囲"
-        puzzle_difficulty: "パズル難易度"
-        percentile_on_puzzle: "このパズルで上位%percentile%%"
-        result_faster: "予測より%percent%%速い！"
-        result_on_target: "予測通り！"
-        result_slower: "予測より%percent%%遅い"
 
 qr_code:
     button: "QRコード"

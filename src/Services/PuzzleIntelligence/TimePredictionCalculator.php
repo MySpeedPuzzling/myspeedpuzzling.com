@@ -47,6 +47,12 @@ final readonly class TimePredictionCalculator
      */
     public const int MODEL_VERSION = 3;
 
+    /**
+     * The first model whose range is the calibrated 50 % "likely" window - a range stored by an older model is not
+     * (v1/v2 first tries landed inside 29 %, repeats 76 %), so it is never called "half of solves land inside"
+     */
+    public const int FIRST_CALIBRATED_WINDOW_MODEL_VERSION = 3;
+
     /** From this many difficulty indices on a puzzle is rated (its median is the difficulty) */
     public const int RATED_INDICES = 5;
 

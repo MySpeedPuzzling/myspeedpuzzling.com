@@ -20,6 +20,8 @@
         {% set window = prediction_window(time_prediction) %}
         {% set margin = window.marginOf(solved_puzzle.time) %}
         {% set first_try = not time_prediction.isPersonalized %}
+        {# A range stored by a model before the calibrated windows (v1/v2) is no "half of solves" window: plain wording #}
+        {% set calibrated = time_prediction.calibratedWindow %}
 
         <div class="card shadow-sm mb-3 border-0">
             <div class="card-body text-center">
@@ -36,12 +38,12 @@
                 {% else %}
                     <div class="alert alert-secondary d-flex align-items-center justify-content-center py-2 mb-0 prediction-outcome prediction-outcome-inside">
                         <i class="bi bi-bullseye fs-4 me-2"></i>
-                        <strong>{{ 'puzzle_intelligence.prediction.window.hit'|trans }}</strong>
+                        <strong>{{ (calibrated ? 'puzzle_intelligence.prediction.window.hit' : 'puzzle_intelligence.prediction.window.hit_uncalibrated')|trans }}</strong>
                     </div>
                 {% endif %}
 
                 <div class="text-muted small mt-2 prediction-window">
-                    {{ 'puzzle_intelligence.prediction.window.likely_half'|trans({'%range%': window|prediction_window_range}) }}
+                    {{ (calibrated ? 'puzzle_intelligence.prediction.window.likely_half' : 'puzzle_intelligence.prediction.window.likely')|trans({'%range%': window|prediction_window_range}) }}
                     {% if time_prediction.isPersonalized and time_prediction.predictedAttemptNumber is not null %}
                         <br>{{ 'puzzle_intelligence.prediction.personal_attempt_explanation'|trans({'%attempt%': time_prediction.predictedAttemptNumber, '%count%': time_prediction.personalSolveCount}) }}
                     {% elseif time_prediction.isPersonalized %}

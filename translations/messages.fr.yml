@@ -3711,7 +3711,6 @@ puzzle_intelligence:
         elo_example_player_b_score: "Score : 0.75 × 0.70 + 0.25 × 1.12 = <strong>0.81</strong>"
         elo_example_conclusion: "Le Joueur A l'emporte nettement — le talent brut à froid prime, mais B obtient un crédit partiel pour son amélioration."
         section_prediction_title: "Prédiction de temps"
-        section_prediction_formula: "La fourchette montre où 50%% des joueurs avec votre vitesse se situent (P25-P75). Pour les joueurs récurrents, basée sur votre historique personnel."
         prediction_intro: "Nous utilisons un système de prédiction en couches. Si vous avez déjà résolu le puzzle, vous obtenez une <strong>prédiction personnelle</strong> utilisant votre historique d'amélioration et des ratios d'amélioration basés sur les données. Sinon, vous obtenez une <strong>prédiction statistique</strong> basée sur votre référence et la difficulté du puzzle."
         prediction_ratios_title: "Ratios d'amélioration"
         prediction_ratios_desc: "Nous calculons des <strong>ratios d'amélioration</strong> — combien les joueurs s'améliorent typiquement entre tentatives consécutives (1re→2e, 2e→3e, etc.). Ceux-ci sont calculés à partir de données réelles de tous les joueurs et puzzles, stratifiés par l'intervalle entre les tentatives."
@@ -3773,6 +3772,7 @@ puzzle_intelligence:
             likely: "Probablement %range%"
             likely_half: "Probablement %range% · la moitié des résolutions tombent dans cette fourchette"
             hit: "Dans votre fourchette probable – seule la moitié des résolutions y parviennent"
+            hit_uncalibrated: "Dans votre fourchette probable"
             faster: "%margin% plus rapide que la fourchette probable"
             slower: "%margin% plus lent que la fourchette probable"
             first_try_faster: "Votre marge : %margin% plus rapide que la fourchette probable"
@@ -3814,15 +3814,6 @@ puzzle_intelligence:
             expert: "Expert"
             master: "Maître"
             legend: "Légende"
-    solve_analysis:
-        title: "Analyse de la résolution"
-        your_time: "Votre temps"
-        predicted_range: "Fourchette prévue"
-        puzzle_difficulty: "Difficulté du puzzle"
-        percentile_on_puzzle: "Top %percentile%% sur ce puzzle"
-        result_faster: "%percent%% plus rapide que prévu !"
-        result_on_target: "Pile dans le mille !"
-        result_slower: "%percent%% plus lent que prévu"
 
 qr_code:
     button: "Code QR"

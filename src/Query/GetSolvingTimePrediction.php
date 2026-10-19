@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\TimePredictionResult;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Value\SolveMoment;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
 use SpeedPuzzling\Web\Value\TimePredictionMethod;
@@ -109,6 +110,7 @@ readonly final class GetSolvingTimePrediction
                 lastTimeSeconds: $isPersonalized && $row['prediction_last_time_seconds'] !== null ? (int) $row['prediction_last_time_seconds'] : null,
                 range80LowSeconds: $row['predicted_range80_low_seconds'] !== null ? (int) $row['predicted_range80_low_seconds'] : null,
                 range80HighSeconds: $row['predicted_range80_high_seconds'] !== null ? (int) $row['predicted_range80_high_seconds'] : null,
+                calibratedWindow: $modelVersion >= TimePredictionCalculator::FIRST_CALIBRATED_WINDOW_MODEL_VERSION,
             ),
             $source,
             $modelVersion,

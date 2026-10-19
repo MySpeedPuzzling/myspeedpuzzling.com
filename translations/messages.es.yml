@@ -3619,7 +3619,6 @@ puzzle_intelligence:
         elo_example_player_b_score: "Puntuación: 0.75 × 0.70 + 0.25 × 1.12 = <strong>0.81</strong>"
         elo_example_conclusion: "El Jugador A gana decisivamente — el talento puro de resolución en frío lidera, pero B obtiene crédito parcial por la mejora."
         section_prediction_title: "Predicción de Tiempo"
-        section_prediction_formula: "El rango muestra dónde cae el 50%% de los resolutores con tu velocidad (P25-P75). Para resolutores repetidos, basado en tu historial personal."
         prediction_intro: "Usamos un sistema de predicción por capas. Si ya resolviste el puzzle antes, obtienes una <strong>predicción personal</strong> usando tu historial de mejora y ratios de mejora basados en datos. De lo contrario, obtienes una <strong>predicción estadística</strong> basada en tu línea base y la dificultad del puzzle."
         prediction_ratios_title: "Ratios de mejora"
         prediction_ratios_desc: "Calculamos <strong>ratios de mejora</strong> — cuánto más rápidos son los jugadores típicamente entre intentos consecutivos (1.°→2.°, 2.°→3.°, etc.). Se calculan a partir de datos reales de todos los jugadores y puzzles, estratificados por el intervalo de tiempo entre intentos."
@@ -3681,6 +3680,7 @@ puzzle_intelligence:
             likely: "Probablemente %range%"
             likely_half: "Probablemente %range% · la mitad de las resoluciones caen aquí"
             hit: "Dentro de tu rango probable: solo la mitad de las resoluciones lo logran"
+            hit_uncalibrated: "Dentro de tu rango probable"
             faster: "%margin% más rápido de lo probable"
             slower: "%margin% más lento de lo probable"
             first_try_faster: "Tu margen: %margin% más rápido de lo probable"
@@ -3722,15 +3722,6 @@ puzzle_intelligence:
             expert: "Experto"
             master: "Maestro"
             legend: "Leyenda"
-    solve_analysis:
-        title: "Análisis de Resolución"
-        your_time: "Tu tiempo"
-        predicted_range: "Rango predicho"
-        puzzle_difficulty: "Dificultad del puzzle"
-        percentile_on_puzzle: "Top %percentile%% en este puzzle"
-        result_faster: "¡%percent%% más rápido de lo predicho!"
-        result_on_target: "¡Justo en el objetivo!"
-        result_slower: "%percent%% más lento de lo predicho"
 
 qr_code:
     button: "Código QR"

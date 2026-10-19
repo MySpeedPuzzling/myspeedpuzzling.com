@@ -186,6 +186,10 @@ The stored (and the live) `range_low/high` is the window players see - since Ins
   "3 min faster than likely" / "5 min slower than likely" - never failure wording. A first try (statistical
   prediction) beating the window is framed as the player's margin: "Your margin: 3 min faster than likely" (README
   §3 "First-try predictions"). The old "12 % faster than predicted" / "Right on target!" lines are gone.
+  A prediction stored by a model before the calibrated windows (`prediction_model_version` <
+  `TimePredictionCalculator::FIRST_CALIBRATED_WINDOW_MODEL_VERSION` = 3, `TimePredictionResult::$calibratedWindow`
+  false, set by `GetSolvingTimePrediction`) never claims "half of solves": its range reads "Likely 57–64 min" and a hit
+  "Inside your likely window" (`hit_uncalibrated`) - v1/v2 ranges held 29 % of first tries and 76 % of repeats.
 - **Surfaces**: the add-time recap (`added_time_recap/_performance_summary.html.twig`, stored prediction + outcome),
   the puzzle page Insights (`puzzle/_difficulty_section.html.twig`, live), the Puzzle Picker card
   (`puzzle_picker/_card.html.twig`), the collections "+ predictions" pill tooltip (`_puzzle_library_item.html.twig`).

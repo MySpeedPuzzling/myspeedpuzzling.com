@@ -86,6 +86,8 @@ SELECT
     pst.predicted_seconds,
     pst.predicted_range_low_seconds,
     pst.predicted_range_high_seconds,
+    pst.predicted_range80_low_seconds,
+    pst.predicted_range80_high_seconds,
     pst.predicted_attempt_number,
     pst.prediction_model_version,
     (
@@ -154,6 +156,8 @@ SQL;
              *     predicted_seconds: null|int|string,
              *     predicted_range_low_seconds: null|int|string,
              *     predicted_range_high_seconds: null|int|string,
+             *     predicted_range80_low_seconds: null|int|string,
+             *     predicted_range80_high_seconds: null|int|string,
              *     predicted_attempt_number: null|int|string,
              *     prediction_model_version: null|int|string,
              *     image_tag_keys: null|string,

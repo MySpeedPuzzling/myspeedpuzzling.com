@@ -10239,6 +10239,7 @@ insights:
         accuracy:
             not_sure_yet: "Lo a menudo que caes dentro de tu ventana probable aparecerá cuando %count% de tus resultados tengan una predicción calibrada."
             hits: "Dentro de tu ventana probable: %hits% de %count% (%percent% %) - la ventana promete la mitad."
+            hits80: "Dentro de tu rango del 80 %: %hits% de %count% (%percent% %) - promete 4 de cada 5."
         lock:
             title: "{0}Tus sorpresas|{1}1 puzzle salió mejor de lo esperado|]1,Inf[%count% puzzles salieron mejor de lo esperado"
             text: "Cada resultado frente a lo que esperábamos de ti, y los puzzles que salieron mucho mejor o más lentos."

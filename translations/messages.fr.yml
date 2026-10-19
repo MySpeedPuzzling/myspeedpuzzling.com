@@ -9993,17 +9993,17 @@ puzzle_tags:
         drawn: "Illustration ou peinture"
 
 insights:
-    meta_title: "Tes analyses"
-    title: "Ton puzzle, expliqué"
-    lead: "Uniquement tes propres résultats, comparés aux autres personnes qui ont fait chaque puzzle et à ton rythme habituel. Choisis une question ou parcours la page."
-    only_you: "Toi seul(e) vois cette page."
+    meta_title: "Vos analyses"
+    title: "Votre puzzle, expliqué"
+    lead: "Uniquement vos propres résultats, comparés aux autres personnes qui ont fait chaque puzzle et à votre rythme habituel. Choisissez une question ou parcourez la page."
+    only_you: "Vous seul(e) voyez cette page."
     loading: "Chargement…"
-    see_why: "Pourquoi ? Regarde dans tes analyses"
+    see_why: "Pourquoi ? Regardez dans vos analyses"
     percent: "%value% %"
     none_in_selection: "Aucun dans cette sélection"
     empty:
         title: "Les analyses commencent à %count% résultats"
-        text: "{0}Tu n'as encore aucun résultat solo avec un temps. Les analyses comparent tes résultats aux autres personnes qui ont fait chaque puzzle et à ton rythme habituel, il leur en faut donc quelques-uns : enregistres-en %needed% et cette page se remplit.|{1}Tu as 1 résultat solo avec un temps. Les analyses comparent tes résultats aux autres personnes qui ont fait chaque puzzle et à ton rythme habituel, il leur en faut donc quelques-uns : enregistres-en %needed% et cette page se remplit.|]1,Inf[Tu as %count% résultats solo avec un temps. Les analyses comparent tes résultats aux autres personnes qui ont fait chaque puzzle et à ton rythme habituel, il leur en faut donc quelques-uns : enregistres-en %needed% et cette page se remplit."
+        text: "{0}Vous n'avez encore aucun résultat solo avec un temps. Les analyses comparent vos résultats aux autres personnes qui ont fait chaque puzzle et à votre rythme habituel, il leur en faut donc quelques-uns : enregistrez-en %needed% et cette page se remplit.|{1}Vous avez 1 résultat solo avec un temps. Les analyses comparent vos résultats aux autres personnes qui ont fait chaque puzzle et à votre rythme habituel, il leur en faut donc quelques-uns : enregistrez-en %needed% et cette page se remplit.|]1,Inf[Vous avez %count% résultats solo avec un temps. Les analyses comparent vos résultats aux autres personnes qui ont fait chaque puzzle et à votre rythme habituel, il leur en faut donc quelques-uns : enregistrez-en %needed% et cette page se remplit."
         add: "Ajouter un temps"
     ask:
         label: "Les questions auxquelles cette page répond"
@@ -10018,13 +10018,13 @@ insights:
         habits: "Quand est-ce que je fais le mieux ?"
     badge:
         free: "Gratuit"
-        free_only_you: "Gratuit · visible par toi seul(e)"
+        free_only_you: "Gratuit · visible par vous seul(e)"
         members: "Membres"
         everyone: "Tout le monde"
         form: "Gratuit : 6 mois · Membres : toutes les dates"
-        skills: "Gratuit : ton principal point fort et point faible"
+        skills: "Gratuit : votre principal point fort et point faible"
         median: "Gratuit : le graphique · Membres : écarts expliqués"
-        habits: "Gratuit : quand tu fais des puzzles · Membres : l'effet sur ton rythme"
+        habits: "Gratuit : quand vous faites des puzzles · Membres : l'effet sur votre rythme"
         preview: "Aperçu"
     period:
         3m: "3 derniers mois"
@@ -10047,7 +10047,7 @@ insights:
         done: "Terminé"
         from: "Du"
         to: "au"
-        stripped: "Certains filtres de ce lien sont réservés aux membres. Tu vois la partie gratuite : les 3 ou 6 derniers mois et le nombre de pièces."
+        stripped: "Certains filtres de ce lien sont réservés aux membres. Vous voyez la partie gratuite : les 3 ou 6 derniers mois et le nombre de pièces."
         results: "Résultats"
         results_all: "Tous les résultats"
         results_first: "Premiers essais"
@@ -10060,7 +10060,7 @@ insights:
         unboxed_any: "Inclure"
         unboxed_only: "Uniquement ceux-ci"
         unboxed_exclude: "Exclure"
-        shelf: "Ton étagère"
+        shelf: "Votre étagère"
         shelf_any: "Tous"
         shelf_only: "Encore sur mon étagère"
         shelf_exclude: "Pas sur mon étagère"
@@ -10071,7 +10071,7 @@ insights:
         traits: "Image"
         traits_hint: "Aperçu : arrive avec l'analyse des images des boîtes, toujours en cours."
         time_of_day: "Moment de la journée"
-        time_of_day_hint: "Quand tu as enregistré des résultats le jour même où tu les as faits."
+        time_of_day_hint: "Quand vous avez enregistré des résultats le jour même où vous les avez faits."
     versus:
         median:
             faster: "%percent% % plus rapide que la médiane"
@@ -10080,7 +10080,7 @@ insights:
         usual:
             faster: "%percent% % plus rapide que d'habitude"
             slower: "%percent% % plus lent que d'habitude"
-            level: "pile à ton rythme habituel"
+            level: "pile à votre rythme habituel"
         expected:
             faster: "%percent% % plus rapide que prévu"
             slower: "%percent% % plus lent que prévu"
@@ -10094,10 +10094,10 @@ insights:
     finding:
         speed:
             kicker: "Vitesse"
-            text: "Sur les mêmes puzzles, tu es %versus%."
+            text: "Sur les mêmes puzzles, vous êtes %versus%."
         form_trend:
             kicker: "Forme"
-            text: "Tes résultats récents sont %versus%."
+            text: "Vos résultats récents sont %versus%."
         strength:
             kicker: "Point fort"
             text: "%segment% : %versus%."
@@ -10106,15 +10106,15 @@ insights:
             text: "%segment% : %versus%."
         close_call:
             kicker: "Tout près"
-            text: "Il te manque %gap% pour le top %rank% sur %puzzle%."
-            text_first: "Il te manque %gap% pour la première place sur %puzzle%."
+            text: "Il vous manque %gap% pour le top %rank% sur %puzzle%."
+            text_first: "Il vous manque %gap% pour la première place sur %puzzle%."
         best_result:
             kicker: "Meilleur résultat"
             text: "%puzzle% : %versus%."
         surprises:
             kicker: "Surprises"
-            text: "[0,1]<b>%count% puzzle</b> s'est passé plus de 10 % mieux que prévu pour toi.|]1,Inf[<b>%count% puzzles</b> se sont passés plus de 10 % mieux que prévu pour toi."
-            locked: "{0}Les surprises se comptent dès que tu as des résultats avec prédiction. Les membres voient lesquelles.|{1}1 surprise sur cette période. Les membres voient laquelle.|]1,Inf[%count% surprises sur cette période. Les membres voient lesquelles."
+            text: "[0,1]<b>%count% puzzle</b> s'est passé plus de 10 % mieux que prévu pour vous.|]1,Inf[<b>%count% puzzles</b> se sont passés plus de 10 % mieux que prévu pour vous."
+            locked: "{0}Les surprises se comptent dès que vous avez des résultats avec prédiction. Les membres voient lesquelles.|{1}1 surprise sur cette période. Les membres voient laquelle.|]1,Inf[%count% surprises sur cette période. Les membres voient lesquelles."
     tiles:
         not_enough: "Pas encore assez de résultats"
         members: "Membres"
@@ -10129,63 +10129,63 @@ insights:
             needs_year: "Il faut un an de résultats"
         consistency:
             label: "Régularité"
-            sub: "la moitié centrale de tes résultats autour de ton rythme habituel"
+            sub: "la moitié centrale de vos résultats autour de votre rythme habituel"
             percentile: "plus régulier que %percent% % des puzzleurs"
             not_enough: "Il faut %count% résultats"
     profile:
         question: "Quel type de puzzleur suis-je ?"
-        title: "Ton profil de puzzleur"
-        takeaway: "Ton point le plus fort : %strongest%. Là où tu as le plus de marge : %room%."
-        takeaway_strongest: "Ton point le plus fort : %strongest%. Les autres scores se rempliront avec plus de résultats."
-        not_sure_yet: "Ton profil se remplit au fil de tes résultats : chaque score a besoin de quelques résultats propres. Il est calculé une fois par jour."
-        chart_label: "Ton profil de puzzleur : sept scores face à tous les puzzleurs"
-        note: "Chaque score est ta place parmi tous les puzzleurs ayant assez de résultats (50 = le milieu). Calculé une fois par jour, pour que tout le monde soit comparé aux mêmes personnes. Comme toutes tes analyses, toi seul(e) le vois."
+        title: "Votre profil de puzzleur"
+        takeaway: "Votre point le plus fort : %strongest%. Là où vous avez le plus de marge : %room%."
+        takeaway_strongest: "Votre point le plus fort : %strongest%. Les autres scores se rempliront avec plus de résultats."
+        not_sure_yet: "Votre profil se remplit au fil de vos résultats : chaque score a besoin de quelques résultats propres. Il est calculé une fois par jour."
+        chart_label: "Votre profil de puzzleur : sept scores face à tous les puzzleurs"
+        note: "Chaque score est votre place parmi tous les puzzleurs ayant assez de résultats (50 = le milieu). Calculé une fois par jour, pour que tout le monde soit comparé aux mêmes personnes. Comme toutes vos analyses, vous seul(e) le voyez."
     axis:
         speed:
             name: "Vitesse"
-            description: "ton temps face à la médiane de chaque puzzle"
+            description: "votre temps face à la médiane de chaque puzzle"
         improvement:
             name: "Progrès"
             description: "combien plus rapide qu'il y a un an"
         consistency:
             name: "Régularité"
-            description: "à quel point tes résultats restent proches de ton rythme habituel"
+            description: "à quel point vos résultats restent proches de votre rythme habituel"
         learning:
             name: "Apprentissage"
-            description: "ce que t'apporte ton deuxième essai"
+            description: "ce que vous apporte votre deuxième essai"
         hard_puzzles:
             name: "Puzzles difficiles"
-            description: "ton rythme sur les puzzles difficiles et très difficiles"
+            description: "votre rythme sur les puzzles difficiles et très difficiles"
         big_puzzles:
             name: "Grands puzzles"
-            description: "ton rythme à partir de 1000 pièces"
+            description: "votre rythme à partir de 1000 pièces"
         events:
             name: "Événements"
-            description: "ton rythme en événement face à la maison"
+            description: "votre rythme en événement face à la maison"
     form:
         question: "Est-ce que je progresse ?"
-        title: "Ta forme dans le temps"
-        not_sure_yet: "Ta forme s'affiche dès que deux mois de cette sélection ont chacun au moins 3 résultats."
+        title: "Votre forme dans le temps"
+        not_sure_yet: "Votre forme s'affiche dès que deux mois de cette sélection ont chacun au moins 3 résultats."
         takeaway:
-            moved: "En %months% mois, ta médiane mensuelle est passée de %from% à %to%."
-            steady: "En %months% mois, ta médiane mensuelle est restée autour de %versus%."
+            moved: "En %months% mois, votre médiane mensuelle est passée de %from% à %to%."
+            steady: "En %months% mois, votre médiane mensuelle est restée autour de %versus%."
         members_dates: "Les membres choisissent n'importe quelles dates et filtrent par marque, difficulté, événements et plus."
-        chart_label: "Ta médiane mensuelle face à la médiane de chaque puzzle"
+        chart_label: "Votre médiane mensuelle face à la médiane de chaque puzzle"
         legend:
-            median: "Ta médiane mensuelle"
-            band: "Moitié centrale de tes résultats"
-            usual: "Ton rythme habituel"
-        note: "Mesuré par ton temps face au temps solo médian de chaque puzzle, pour qu'un mois de puzzles difficiles ne ressemble pas à un mauvais mois. Vers le haut = plus rapide."
+            median: "Votre médiane mensuelle"
+            band: "Moitié centrale de vos résultats"
+            usual: "Votre rythme habituel"
+        note: "Mesuré par votre temps face au temps solo médian de chaque puzzle, pour qu'un mois de puzzles difficiles ne ressemble pas à un mauvais mois. Vers le haut = plus rapide."
     skills:
         question: "Quels sont mes points forts ? Où puis-je progresser ?"
         title: "Points forts et points faibles"
-        not_sure_yet: "Les points forts et faibles s'affichent dès que tu as 10 résultats avec une médiane du puzzle dans cette sélection."
-        none: "Pas de point fort ni de point faible net dans cette sélection : tu es proche de ton rythme habituel partout."
+        not_sure_yet: "Les points forts et faibles s'affichent dès que vous avez 10 résultats avec une médiane du puzzle dans cette sélection."
+        none: "Pas de point fort ni de point faible net dans cette sélection : vous êtes proche de votre rythme habituel partout."
         takeaway:
             strong: "Fort : %segments%."
             weak: "[0,1]Point faible : %segments%.|]1,Inf[Points faibles : %segments%."
         lock:
-            title: "Voir tous tes points forts et faibles"
+            title: "Voir tous vos points forts et faibles"
             text: "{0}Marques, tailles, difficulté, événements, pauses et types de puzzle, chacun avec notre degré de certitude.|{1}1 constat net parmi les marques, tailles, difficulté, situations et types de puzzle, avec notre degré de certitude.|]1,Inf[%count% constats nets parmi les marques, tailles, difficulté, situations et types de puzzle, chacun avec notre degré de certitude."
         axis:
             slower: "← plus lent que d'habitude"
@@ -10195,9 +10195,9 @@ insights:
         unrated: "Pas encore évalué"
         preview: "Aperçu · l'analyse des images est toujours en cours"
         drill:
-            title: "[0,1]%segment% : %count% résultat, le plus rapide face à ton rythme habituel d'abord|]1,Inf[%segment% : %count% résultats, les plus rapides face à ton rythme habituel d'abord"
+            title: "[0,1]%segment% : %count% résultat, le plus rapide face à votre rythme habituel d'abord|]1,Inf[%segment% : %count% résultats, les plus rapides face à votre rythme habituel d'abord"
             more: "[0,1]et %count% autre|]1,Inf[et %count% autres"
-        note: "Chaque ligne compare ces résultats à ton rythme habituel du moment, sans la difficulté du puzzle ni tes progrès. La barre est la plage probable : une barre courte veut dire que nous sommes sûrs, une longue pas encore. Les lignes de moins de 5 résultats sont omises, et une ligne ne devient point fort ou point faible que lorsque toute sa plage dépasse ±1,5 % et repose sur 10 résultats."
+        note: "Chaque ligne compare ces résultats à votre rythme habituel du moment, sans la difficulté du puzzle ni vos progrès. La barre est la plage probable : une barre courte veut dire que nous sommes sûrs, une longue pas encore. Les lignes de moins de 5 résultats sont omises, et une ligne ne devient point fort ou point faible que lorsque toute sa plage dépasse ±1,5 % et repose sur 10 résultats."
     skill_group:
         brand: "Marque"
         pieces: "Nombre de pièces"
@@ -10241,10 +10241,10 @@ insights:
     expected:
         question: "Quels puzzles ai-je faits plus vite ou plus lentement que prévu ?"
         title: "Prévu ou réel"
-        predictions_off: "Les prédictions de temps sont désactivées dans tes paramètres, il n'y a donc pas de temps prévus ici."
-        not_sure_yet: "Les temps prévus s'affichent dès que tes résultats de cette sélection ont des prédictions enregistrées."
-        takeaway: "Par rapport à ce que nous attendons de toi, <b>%better%</b> résultats se sont passés plus de 10 % mieux et <b>%worse%</b> plus de 10 % plus lentement ; %within% sont restés à moins de 10 %."
-        chart_label: "Ton temps face au temps prévu pour toi"
+        predictions_off: "Les prédictions de temps sont désactivées dans vos paramètres, il n'y a donc pas de temps prévus ici."
+        not_sure_yet: "Les temps prévus s'affichent dès que vos résultats de cette sélection ont des prédictions enregistrées."
+        takeaway: "Par rapport à ce que nous attendons de vous, <b>%better%</b> résultats se sont passés plus de 10 % mieux et <b>%worse%</b> plus de 10 % plus lentement ; %within% sont restés à moins de 10 %."
+        chart_label: "Votre temps face au temps prévu pour vous"
         legend:
             better: "Plus de 10 % plus rapide"
             within: "À moins de 10 %"
@@ -10253,20 +10253,21 @@ insights:
             better: "Plus rapide que prévu"
             worse: "Plus lent que prévu"
         vs: "%actual% contre %expected%"
-        margin: "Les speed puzzleurs battent souvent les prédictions des premiers essais. Ta marge : une médiane de %percent% % en dessous, et les temps prévus ici l'intègrent, donc le vert veut dire mieux que ton premier essai habituel."
-        note: "Prévu = la prédiction enregistrée avec chaque résultat, ajustée de ta marge habituelle pour les prédictions plus anciennes."
+        margin: "Les speed puzzleurs battent souvent les prédictions des premiers essais. Votre marge : une médiane de %percent% % en dessous, et les temps prévus ici l'intègrent, donc le vert veut dire mieux que votre premier essai habituel."
+        note: "Prévu = la prédiction enregistrée avec chaque résultat, ajustée de votre marge habituelle pour les prédictions plus anciennes."
         accuracy:
-            not_sure_yet: "La fréquence à laquelle tu tombes dans ta fenêtre probable s'affichera dès que %count% de tes résultats auront une prédiction calibrée."
-            hits: "Dans ta fenêtre probable : %hits% sur %count% (%percent% %) - la fenêtre promet la moitié."
+            not_sure_yet: "La fréquence à laquelle vous tombez dans votre fourchette probable s'affichera dès que %count% de vos résultats auront une prédiction calibrée."
+            hits: "Dans votre fourchette probable : %hits% sur %count% (%percent% %) - la fourchette promet la moitié."
+            hits80: "Dans la fourchette à 80 % : %hits% sur %count% (%percent% %) - elle en promet 4 sur 5."
         lock:
-            title: "{0}Tes surprises|{1}1 puzzle s'est passé mieux que prévu|]1,Inf[%count% puzzles se sont passés mieux que prévu"
-            text: "Chaque résultat face à ce qui était prévu pour toi, et les puzzles qui se sont passés beaucoup mieux ou plus lentement."
+            title: "{0}Vos surprises|{1}1 puzzle s'est passé mieux que prévu|]1,Inf[%count% puzzles se sont passés mieux que prévu"
+            text: "Chaque résultat face à ce qui était prévu pour vous, et les puzzles qui se sont passés beaucoup mieux ou plus lentement."
     median:
         question: "Où suis-je loin de la médiane ?"
-        title: "Toi face à la médiane"
-        not_sure_yet: "Ce graphique s'affiche dès que tu as 5 résultats avec une médiane du puzzle dans cette sélection."
-        takeaway: "Tu es d'habitude %versus%, et plus lent que la médiane sur <b>%slower% sur %count%</b> résultats. %outliers% résultats s'écartent de plus de 30 % de ton rythme habituel."
-        chart_label: "Tes résultats selon leur écart, plus rapide ou plus lent, avec la médiane de chaque puzzle"
+        title: "Vous face à la médiane"
+        not_sure_yet: "Ce graphique s'affiche dès que vous avez 5 résultats avec une médiane du puzzle dans cette sélection."
+        takeaway: "Vous êtes d'habitude %versus%, et plus lent que la médiane sur <b>%slower% sur %count%</b> résultats. %outliers% résultats s'écartent de plus de 30 % de votre rythme habituel."
+        chart_label: "Vos résultats selon leur écart, plus rapide ou plus lent, avec la médiane de chaque puzzle"
         legend:
             faster: "Plus rapide que la médiane"
             slower: "Plus lent que la médiane"
@@ -10274,13 +10275,13 @@ insights:
             slow: "Bien plus lent que d'habitude"
             fast: "Bien plus rapide que d'habitude"
         lock:
-            title: "{0}Tes écarts|{1}1 écart trouvé|]1,Inf[%count% écarts trouvés"
-            text: "Les résultats loin de ton rythme habituel, et ce qu'ils ont en commun."
+            title: "{0}Vos écarts|{1}1 écart trouvé|]1,Inf[%count% écarts trouvés"
+            text: "Les résultats loin de votre rythme habituel, et ce qu'ils ont en commun."
     close_calls:
         question: "Où suis-je proche d'une meilleure place ?"
         title: "Tout près dans les classements"
         none: "Rien de tout près dans cette sélection."
-        takeaway: "{0}Aucun de tes puzzles n'est à moins de 3 % de ton temps de la prochaine place repère. Le plus proche : %gap% pour %target% sur %puzzle%.|{1}Sur <b>1</b> puzzle, tu es à moins de 3 % de ton temps de la prochaine place repère. Le plus proche : %gap% pour %target% sur %puzzle%.|]1,Inf[Sur <b>%count%</b> puzzles, tu es à moins de 3 % de ton temps de la prochaine place repère. Le plus proche : %gap% pour %target% sur %puzzle%."
+        takeaway: "{0}Aucun de vos puzzles n'est à moins de 3 % de votre temps de la prochaine place repère. Le plus proche : %gap% pour %target% sur %puzzle%.|{1}Sur <b>1</b> puzzle, vous êtes à moins de 3 % de votre temps de la prochaine place repère. Le plus proche : %gap% pour %target% sur %puzzle%.|]1,Inf[Sur <b>%count%</b> puzzles, vous êtes à moins de 3 % de votre temps de la prochaine place repère. Le plus proche : %gap% pour %target% sur %puzzle%."
         top: "le top %rank%"
         first_place: "la première place"
         meta: "#%rank% · meilleur %best% · %brand%"
@@ -10292,38 +10293,38 @@ insights:
         note: "Établi à partir des classements publics des puzzles, uniquement des places. Les autres puzzleurs déplacent les objectifs, qui peuvent donc changer à tout moment."
     learning:
         question: "Que m'apporte le fait de refaire un puzzle ?"
-        title: "Ta courbe d'apprentissage"
-        not_sure_yet: "Ta courbe d'apprentissage s'affiche dès que tu as fait quelques puzzles plus d'une fois."
+        title: "Votre courbe d'apprentissage"
+        not_sure_yet: "Votre courbe d'apprentissage s'affiche dès que vous avez fait quelques puzzles plus d'une fois."
         takeaway:
-            second: "Ton deuxième essai est <b>%percent% % plus rapide</b> que le premier (tous les puzzleurs : %community% %)."
-            fourth: "Au quatrième, tu es <b>%percent% % plus rapide</b>."
+            second: "Votre deuxième essai est <b>%percent% % plus rapide</b> que le premier (tous les puzzleurs : %community% %)."
+            fourth: "Au quatrième, vous êtes <b>%percent% % plus rapide</b>."
             selection: "[0,1]%count% puzzle fait plus d'une fois dans cette sélection.|]1,Inf[%count% puzzles faits plus d'une fois dans cette sélection."
-        chart_label: "Ton temps à chaque essai face au premier, toi et tous les puzzleurs"
+        chart_label: "Votre temps à chaque essai face au premier, vous et tous les puzzleurs"
         legend:
-            you: "Toi"
+            you: "Vous"
             community: "Tous les puzzleurs (%pieces% pièces)"
-        list: "Puzzles sur lesquels tu as le plus progressé"
+        list: "Puzzles sur lesquels vous avez le plus progressé"
         meta: "[0,1]%pieces% pièces · %brand% · %count% essai|]1,Inf[%pieces% pièces · %brand% · %count% essais"
         lock:
-            title: "{0}Ta courbe d'apprentissage|{1}Ta courbe d'apprentissage sur 1 puzzle refait|]1,Inf[Ta courbe d'apprentissage sur %count% puzzles refaits"
-            text: "Combien chaque répétition te rend plus rapide, face à tous les autres."
+            title: "{0}Votre courbe d'apprentissage|{1}Votre courbe d'apprentissage sur 1 puzzle refait|]1,Inf[Votre courbe d'apprentissage sur %count% puzzles refaits"
+            text: "Combien chaque répétition vous rend plus rapide, face à tous les autres."
     habits:
         question: "Quand est-ce que je fais le mieux ?"
         title: "Habitudes et conditions"
         not_sure_yet: "Aucun résultat dans cette sélection."
         takeaway:
-            busiest: "Tu fais le plus de puzzles le %day%."
-            break: "Après une pause de deux semaines ou plus, tu es %versus%."
+            busiest: "Vous faites le plus de puzzles le %day%."
+            break: "Après une pause de deux semaines ou plus, vous êtes %versus%."
         weekdays: "Résultats par jour de la semaine"
-        weekdays_label: "Tes résultats par jour de la semaine"
+        weekdays_label: "Vos résultats par jour de la semaine"
         breaks: "Rythme après une pause"
         time_of_day: "Rythme selon l'heure d'enregistrement"
         too_few: "trop peu"
         lock:
-            title: "Une pause te ralentit-elle ?"
-            text: "{0}Ton rythme après les pauses, chaque jour de la semaine et selon le moment de la journée.|{1}Ton rythme après les pauses, chaque jour de la semaine et selon le moment de la journée - 1 de tes résultats est venu après une pause de deux semaines ou plus.|]1,Inf[Ton rythme après les pauses, chaque jour de la semaine et selon le moment de la journée - %count% de tes résultats sont venus après une pause de deux semaines ou plus."
-        note_logged: "Le moment de la journée est celui où tu as enregistré un résultat le jour même où tu l'as fait."
-        note_no_zone: "Règle ton fuseau horaire pour voir ton rythme selon le moment de la journée."
+            title: "Une pause vous ralentit-elle ?"
+            text: "{0}Votre rythme après les pauses, chaque jour de la semaine et selon le moment de la journée.|{1}Votre rythme après les pauses, chaque jour de la semaine et selon le moment de la journée - 1 de vos résultats est venu après une pause de deux semaines ou plus.|]1,Inf[Votre rythme après les pauses, chaque jour de la semaine et selon le moment de la journée - %count% de vos résultats sont venus après une pause de deux semaines ou plus."
+        note_logged: "Le moment de la journée est celui où vous avez enregistré un résultat le jour même où vous l'avez fait."
+        note_no_zone: "Réglez votre fuseau horaire pour voir votre rythme selon le moment de la journée."
         set_zone: "Régler le fuseau horaire"
     break:
         "0": "Le même jour"
@@ -10354,31 +10355,31 @@ insights:
         "7": "dim"
     nudges:
         question: "Comment rendre mes analyses plus précises ?"
-        title: "Rends tes analyses plus précises"
+        title: "Rendez vos analyses plus précises"
         action:
             add: "Ajouter un temps"
-            results: "Tes résultats"
+            results: "Vos résultats"
             settings: "Paramètres"
         more_results:
-            title: "[0,1]Enregistre encore %count% résultat|]1,Inf[Enregistre encore %count% résultats"
-            text_10: "À partir de 10 résultats solo, tes analyses démarrent."
-            text_25: "À partir de 25 résultats, tes points forts et faibles apparaissent : chacun a besoin de 10 résultats propres."
-            text_50: "À partir de 50 résultats, ta forme mois par mois et ton profil de puzzleur se stabilisent."
+            title: "[0,1]Enregistrez encore %count% résultat|]1,Inf[Enregistrez encore %count% résultats"
+            text_10: "À partir de 10 résultats solo, vos analyses démarrent."
+            text_25: "À partir de 25 résultats, vos points forts et faibles apparaissent : chacun a besoin de 10 résultats propres."
+            text_50: "À partir de 50 résultats, votre forme mois par mois et votre profil de puzzleur se stabilisent."
         mark_first_tries:
             title: "[0,1]%count% premier résultat d'un puzzle n'est pas marqué comme premier essai|]1,Inf[%count% premiers résultats de puzzles ne sont pas marqués comme premiers essais"
-            text: "S'il s'agissait de premiers essais, marque-les en modifiant le résultat : les premiers essais rendent tes temps prévus et ta carte des points forts plus justes."
+            text: "S'il s'agissait de premiers essais, marquez-les en modifiant le résultat : les premiers essais rendent vos temps prévus et votre carte des points forts plus justes."
         set_timezone:
-            title: "Règle ton fuseau horaire"
-            text: "Avec lui, les résultats que tu enregistres le jour même montrent ton rythme selon le moment de la journée."
+            title: "Réglez votre fuseau horaire"
+            text: "Avec lui, les résultats que vous enregistrez le jour même montrent votre rythme selon le moment de la journée."
         mark_unboxed:
-            title: "Dis-nous quand tu as fait un puzzle sans l'image"
+            title: "Dites-nous quand vous avez fait un puzzle sans l'image"
             text: "Faire un puzzle sans l'image est bien plus difficile. Sans la marque, un tel résultat ressemble à un jour lent."
         unrated_puzzles:
-            title: "[0,1]%count% de tes puzzles n'a pas encore de difficulté|]1,Inf[%count% de tes puzzles n'ont pas encore de difficulté"
-            text: "Un puzzle en reçoit une dès qu'assez de puzzleurs l'ont fait. Ses résultats comptent quand même dans tes graphiques de forme et de médiane."
+            title: "[0,1]%count% de vos puzzles n'a pas encore de difficulté|]1,Inf[%count% de vos puzzles n'ont pas encore de difficulté"
+            text: "Un puzzle en reçoit une dès qu'assez de puzzleurs l'ont fait. Ses résultats comptent quand même dans vos graphiques de forme et de médiane."
         predictions_off:
             title: "Les prédictions de temps sont désactivées"
-            text: "Sans elles, il n'y a pas de temps prévus sur cette page. Tu peux les réactiver dans tes paramètres."
+            text: "Sans elles, il n'y a pas de temps prévus sur cette page. Vous pouvez les réactiver dans vos paramètres."
     chart:
         results: "[0,1]%count% résultat|]1,Inf[%count% résultats"
         profile:
@@ -10392,8 +10393,8 @@ insights:
             slower: "%from%-%to% % plus lent"
         expected:
             axis_x: "prévu"
-            axis_y: "ton temps"
-            yours: "Ton temps : %time%"
+            axis_y: "votre temps"
+            yours: "Votre temps : %time%"
             expected: "Prévu : %time%"
         learning:
             attempt_1: "1er"

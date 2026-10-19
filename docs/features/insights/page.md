@@ -8,7 +8,7 @@ The player's own Insights page, built by stream **6a**. Phase 6b and 6c add part
 
 | What | Where |
 |---|---|
-| Page | route `insights`, `GET /{_locale}/insights`, `InsightsController` - signed in (`IS_AUTHENTICATED_REMEMBERED`), always the viewer's own data (no player in the URL), `noindex, nofollow`, `Cache-Control: private, no-store` |
+| Page | route `insights`, `GET /{_locale}/insights`, `InsightsController` - signed in (`IS_AUTHENTICATED_REMEMBERED`), always the viewer's own data (no player in the URL), `noindex, nofollow`, `Cache-Control: private, no-store`; the floating Compare launcher is hidden (`hide_comparison_launcher`) |
 | Live component | `Insights` (`src/Component/Insights.php`, `templates/components/Insights.html.twig`, partials in `templates/insights/`) |
 | Profile tab | `PlayerHeaderTab::Insights` after Statistics, owner-only (`isOwnerOnly()`), its link has no player (`routeParameters()`) |
 | Menu row | user menu, after Statistics (`data-testid="menu-insights"`) |
@@ -47,7 +47,7 @@ morphing it. The skill map strips, the profile bars and the pace bars are plain 
 | 3 | Puzzler profile (7 axes) | `profileCard` | yes (radar + bars) | yes |
 | 4 | Form | `form` | yes - the criteria limit free players to 3 / 6 months | any period |
 | 5 | Strengths and weak spots | `skillMap` | takeaway with the top strength + weak spot by name; lock: "N clear findings" | every row with its range; tap = drill-down (`toggleDrill`, the row's `drillDown` + one `GetInsightsPuzzles::byIds()` for puzzles the first response did not hydrate) |
-| 6 | Expected vs. actual | `expectedVsActual`, `predictionAccuracy` | lock: "N puzzles went better than expected" | scatter, better / slower lists with "why" chips, your margin, the likely-window hit rate (not sure yet until 3b's calibrated model) |
+| 6 | Expected vs. actual | `expectedVsActual`, `predictionAccuracy` | lock: "N puzzles went better than expected" | scatter, better / slower lists with "why" chips, "your margin", the hit rate of the likely window and of the 80 % range (calibrated predictions, model ≥ 3, from 10 each; a hit is judged against the window as shown - 3c's `PredictionWindow::rounded()`, so it agrees with the recap) |
 | 7 | You against the median solver | `histogram` | the histogram + takeaway; lock: "N outliers found" | + the outliers both ways |
 | 8 | Close calls | `closeCalls` | yes (places only, nobody named) | yes |
 | 9-11 | rating + forecast, re-solve radar | - | 6b placeholders | 6b |
@@ -108,6 +108,7 @@ same.
   - owner-only and guests;
   - every section for a free and a member player, in all 6 languages;
   - the free page has locks and no members-only markup;
+  - the profile card from a seeded `player_insights_profile` row, radar data included;
   - predictions off and the empty state;
   - canaries: a secret puzzle (`hide_until`) is gone and its results are not counted; a suspicious result is not counted;
   - "See why".
@@ -117,6 +118,8 @@ same.
   - the drill-down;
   - nothing renders while the flag is off.
 - `tests/Controller/InsightsPageQueryBudgetTest.php`: the statement budget.
+- `tests/Services/Insights/PredictionAccuracyBuilderTest.php`: the 80 % hit rate (only predictions with a stored 80 %
+  range, judged against the shown range, from 10 on).
 - `tests/Services/Insights/InsightsBuilderTest.php`:
   - predictions off;
   - drill-down order;
@@ -128,6 +131,22 @@ same.
   bystander. Insights is self-only and never names another player: close calls are places, and the 6b pairs section
   lists the player's own teammates through `GetInsightsGroupResults`, which already honours blocks and private profiles.
 
+## Wording
+
+Prediction windows follow stream 3c (`PredictionWindow`, `PredictionWindowFormatter`, `puzzle_intelligence.prediction.window.*`):
+"likely window", "Your margin" for first tries, a hit judged against the shown window. The page shows aggregates
+(hit rates, margins), no per-result window. Register matches `puzzle_intelligence.*`: Czech and French formal (vy /
+vous), German du, Spanish tú; Czech says "puzzler", "predikce", "pravděpodobné rozmezí", "rezerva"; French says
+"fourchette probable", "marge".
+
+## Not built yet
+
+- The prototype's "Expected for you / Prediction as shown" switch: the builder exposes only the calibrated view (it
+  would need the raw deviation per point from `ExpectedVsActualBuilder`).
+- The histogram's median-solver and "your usual" marker lines: the bars are coloured faster / slower than the median
+  instead, and the legend says so (the takeaway names your usual).
+- A sticky filter bar: it would collide with the player header's compact bar, so the filter row scrolls with the page.
+
 ## Left for 6b
 
 - The four placeholder partials, `templates/insights/_lazy_{rating,resolve,pairs,improvement}.html.twig`. Each one
@@ -135,5 +154,3 @@ same.
   section's question chip in `Insights::getQuestions()`, and if it has a finding, its anchor in `_findings.html.twig`.
 - The MSP rating tile, the "Try next" shelf pick, and the rating findings of the prototype's top row.
 - Screenshots at 320 / 390 / 1200 px and the button-overflow audit in 6 languages; the §6.3 canaries for the lazy parts.
-- The prototype's "Expected for you / Prediction as shown" switch was not built: the builder only exposes the
-  calibrated view. Add it if 6b's review wants it (it needs the raw deviation per point from `ExpectedVsActualBuilder`).

@@ -160,6 +160,44 @@ final class InsightsControllerTest extends WebTestCase
         self::assertSame($locale, $page->filter('html')->attr('lang'));
     }
 
+    /**
+     * The daily card (player_insights_profile) through the whole page: the axes with their percentiles, the strongest
+     * and the most room to grow, and the radar chart's data
+     */
+    public function testTheProfileCardRendersFromTheDailyRow(): void
+    {
+        $browser = $this->browser(flag: true, player: self::FREE);
+        $this->growResults($browser, self::FREE, 20);
+        $this->connection($browser)->executeStatement(
+            "INSERT INTO player_insights_profile (player_id, computed_at,
+                speed_score, speed_sample_size, speed_percentile,
+                improvement_score, improvement_sample_size, improvement_percentile,
+                consistency_score, consistency_sample_size, consistency_percentile,
+                learning_score, learning_sample_size, learning_percentile,
+                hard_puzzles_score, hard_puzzles_sample_size, hard_puzzles_percentile,
+                big_puzzles_score, big_puzzles_sample_size, big_puzzles_percentile,
+                events_score, events_sample_size, events_percentile)
+             VALUES (:player, NOW(), 0.9, 40, 81.4, 0.05, 12, 62.0, 1.15, 30, 47.0, 0.12, 6, 55.5, NULL, 2, NULL, 1.02, 8, 23.6, NULL, 0, NULL)",
+            ['player' => self::FREE],
+        );
+
+        $page = $browser->request('GET', self::URL);
+        self::assertResponseIsSuccessful();
+        $section = $page->filter('[data-testid="insights-section-profile"]');
+
+        self::assertCount(7, $section->filter('.ins-axis'));
+        self::assertSame(['81', '62', '47', '56', '–', '24', '–'], $section->filter('.ins-axis__value')->each(static fn (Crawler $value): string => trim($value->text())));
+        self::assertStringContainsString('Your strongest side is Speed. Your most room to grow: Big puzzles.', $section->filter('.ins-take')->text());
+
+        // The radar is a real chart with the card's numbers (null where an axis has too few results)
+        $chart = $section->filter('[id^="ins-chart-profile"] canvas');
+        self::assertCount(1, $chart);
+        /** @var array{type: string, data: array{datasets: list<array{data: list<null|float|int>}>}} $view */
+        $view = json_decode((string) $chart->attr('data-symfony--ux-chartjs--chart-view-value'), true, flags: JSON_THROW_ON_ERROR);
+        self::assertSame('radar', $view['type']);
+        self::assertSame([81, 62, 47, 56, null, 24, null], array_map(static fn (null|float|int $value): null|int => $value === null ? null : (int) $value, $view['data']['datasets'][0]['data']));
+    }
+
     public function testPredictionsSwitchedOffMeanNoExpectedTimes(): void
     {
         $browser = $this->browser(flag: true, player: self::MEMBER);

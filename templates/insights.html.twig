@@ -1,5 +1,8 @@
 {% extends 'base.html.twig' %}
 
+{# The floating Compare launcher would cover the sections on a phone - like on the compare page #}
+{% set hide_comparison_launcher = true %}
+
 {# The player's own Insights (docs/features/insights/page.md) - only its owner ever gets it (InsightsController) #}
 {% block title %}{{ 'insights.meta_title'|trans }}{% endblock %}
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}

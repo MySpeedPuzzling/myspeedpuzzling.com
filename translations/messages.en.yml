@@ -10513,6 +10513,7 @@ insights:
         accuracy:
             not_sure_yet: "How often you land inside your likely window shows once %count% of your results have a calibrated prediction."
             hits: "Inside your likely window: %hits% of %count% (%percent%%) - the window promises half."
+            hits80: "Inside your 80% range: %hits% of %count% (%percent%%) - it promises 4 in 5."
         lock:
             title: "{0}Your surprises|{1}1 puzzle went better than expected|]1,Inf[%count% puzzles went better than expected"
             text: "Every result against what we expected for you, and the puzzles that went much better or slower."

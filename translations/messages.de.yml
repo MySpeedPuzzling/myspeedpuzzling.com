@@ -10238,6 +10238,7 @@ insights:
         accuracy:
             not_sure_yet: "Wie oft du in deinem wahrscheinlichen Fenster landest, siehst du, sobald %count% deiner Ergebnisse eine kalibrierte Vorhersage haben."
             hits: "Innerhalb deines wahrscheinlichen Fensters: %hits% von %count% (%percent% %) - das Fenster verspricht die Hälfte."
+            hits80: "Innerhalb deines 80-%-Bereichs: %hits% von %count% (%percent% %) - er verspricht 4 von 5."
         lock:
             title: "{0}Deine Überraschungen|{1}1 Puzzle lief besser als erwartet|]1,Inf[%count% Puzzles liefen besser als erwartet"
             text: "Jedes Ergebnis gegenüber dem, was für dich erwartet wurde, und die Puzzles, die viel besser oder langsamer liefen."

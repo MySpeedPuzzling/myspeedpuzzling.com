@@ -76,6 +76,25 @@ final class GetInsightsSoloResultsTest extends KernelTestCase
         self::assertNotContains(PuzzleFixture::PUZZLE_500_01, array_map(static fn ($result) => $result->puzzleId, $afterSecret));
     }
 
+    public function testTheStoredEightyPercentRangeIsRead(): void
+    {
+        $first = $this->query->forPlayer(PlayerFixture::PLAYER_REGULAR)[0];
+        $this->connection->executeStatement(
+            'UPDATE puzzle_solving_time SET predicted_range80_low_seconds = 1500, predicted_range80_high_seconds = 2100 WHERE id = :id',
+            ['id' => $first->timeId],
+        );
+
+        $results = $this->query->forPlayer(PlayerFixture::PLAYER_REGULAR);
+        $byId = [];
+
+        foreach ($results as $result) {
+            $byId[$result->timeId] = $result;
+        }
+
+        self::assertSame(1500, $byId[$first->timeId]->predictedRange80LowSeconds);
+        self::assertSame(2100, $byId[$first->timeId]->predictedRange80HighSeconds);
+    }
+
     public function testShelfAndImageTraits(): void
     {
         /** @var list<string> $shelf */

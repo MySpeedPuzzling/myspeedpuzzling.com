@@ -1,6 +1,6 @@
 {#
     "Which puzzles did I solve faster or slower than expected?" (members; ExpectedVsActualBuilder +
-    PredictionAccuracyBuilder). A player who switched time predictions off gets no expected times - the section says so
+    PredictionAccuracyBuilder - hits judged against the window as shown, stream 3c's PredictionWindow). A player who switched time predictions off gets no expected times - the section says so
     and links to the setting. First-try margins are framed as "your margin" (README: never discouraging).
 #}
 {% import 'insights/_macros.html.twig' as ins %}
@@ -76,6 +76,7 @@
                 {{ 'insights.expected.accuracy.not_sure_yet'|trans({'%count%': constant('SpeedPuzzling\\Web\\Results\\Insights\\InsightsAccuracySection::MIN_PREDICTIONS')}) }}
             {%- else -%}
                 {{ 'insights.expected.accuracy.hits'|trans({'%hits%': accuracy.hits, '%count%': accuracy.sampleSize, '%percent%': ((accuracy.hitRate ?? 0) * 100)|round}) }}
+                {%- if accuracy.range80HitRate is not null %} {{ 'insights.expected.accuracy.hits80'|trans({'%hits%': accuracy.range80Hits, '%count%': accuracy.range80SampleSize, '%percent%': (accuracy.range80HitRate * 100)|round}) }}{% endif -%}
             {%- endif -%}
         </p>
     {% endif %}

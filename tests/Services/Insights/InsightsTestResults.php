@@ -74,6 +74,8 @@ final class InsightsTestResults
             'predictedAttemptNumber' => null,
             'predictionModelVersion' => null,
             'imageTagKeys' => [],
+            'predictedRange80LowSeconds' => null,
+            'predictedRange80HighSeconds' => null,
         ];
 
         foreach ($overrides as $key => $value) {
@@ -91,7 +93,8 @@ final class InsightsTestResults
          *     predictabilityScore: null|float, boxDependenceScore: null|float, improvementCeilingScore: null|float,
          *     predictable: null|bool, predictionMethod: null|TimePredictionMethod, predictedSeconds: null|int,
          *     predictedRangeLowSeconds: null|int, predictedRangeHighSeconds: null|int, predictedAttemptNumber: null|int,
-         *     predictionModelVersion: null|int, imageTagKeys: list<string>,
+         *     predictionModelVersion: null|int, imageTagKeys: list<string>, predictedRange80LowSeconds: null|int,
+         *     predictedRange80HighSeconds: null|int,
          * } $arguments
          */
         return new InsightsSoloResult(...$arguments);

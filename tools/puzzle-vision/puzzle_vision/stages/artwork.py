@@ -60,6 +60,22 @@ Also give the picture's four corners (top-left, top-right, bottom-right, bottom-
 Answer with JSON only: {"kind": "...", "bbox_2d": [x1, y1, x2, y2], "corners": [[x, y], [x, y], [x, y], [x, y]]}"""
 
 
+def vlm_json_schema() -> dict[str, Any]:
+    """The answer VLM_PROMPT asks for, for the constrained second try (coordinates 0..1000 like Qwen3-VL answers)."""
+    coord = {"type": "integer", "minimum": 0, "maximum": 1000}
+    point = {"type": "array", "items": coord, "minItems": 2, "maxItems": 2}
+    return {
+        "type": "object",
+        "properties": {
+            "kind": {"enum": list(KINDS)},
+            "bbox_2d": {"type": "array", "items": coord, "minItems": 4, "maxItems": 4},
+            "corners": {"type": "array", "items": point, "minItems": 4, "maxItems": 4},
+        },
+        "required": ["kind", "bbox_2d", "corners"],
+        "additionalProperties": False,
+    }
+
+
 # --- classic OpenCV (detect_classic.py) -----------------------------------------------------------------------------
 def trim_uniform_border(a: np.ndarray, tol: float = 10.0) -> tuple[int, int, int, int]:
     """Rows/columns at the edges in one flat colour (letterbox / white canvas) trimmed. Returns x0, y0, x1, y1 px."""
@@ -285,6 +301,7 @@ class ArtworkStage(Stage):
         super().__init__(version, workers)
         self.workstate = workstate
         self._vlm = None
+        self._vlm_logits = None
 
     @property
     def model(self) -> str:
@@ -293,7 +310,7 @@ class ArtworkStage(Stage):
     def load(self) -> None:
         pass  # the VLM loads on the first non-flat picture (a daily run may have none)
 
-    def _vlm_answer(self, rgb: np.ndarray) -> str:
+    def _vlm_answer(self, rgb: np.ndarray, constrained: bool = False) -> str:
         if self._vlm is None:
             from mlx_vlm import generate, load
             from mlx_vlm.prompt_utils import apply_chat_template
@@ -302,13 +319,21 @@ class ArtworkStage(Stage):
             prompt = apply_chat_template(proc, model.config, VLM_PROMPT, num_images=1)
             self._vlm = (model, proc, prompt, generate)
         model, proc, prompt, generate = self._vlm
+        extra: dict[str, Any] = {}
+        if constrained:
+            if self._vlm_logits is None:
+                from mlx_vlm.structured import build_json_schema_logits_processor
+
+                tok = proc.tokenizer if hasattr(proc, "tokenizer") else proc
+                self._vlm_logits = build_json_schema_logits_processor(tok, vlm_json_schema())  # once per process
+            extra["logits_processors"] = [self._vlm_logits.clone()]  # clone = a fresh matcher per image
         im = Image.fromarray(rgb)
         im.thumbnail((VLM_SIDE, VLM_SIDE), Image.LANCZOS)
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
             im.save(f.name)
             path = f.name
         try:
-            out = generate(model, proc, prompt, image=[path], max_tokens=160, temperature=0.0, verbose=False)
+            out = generate(model, proc, prompt, image=[path], max_tokens=160, temperature=0.0, verbose=False, **extra)
         finally:
             os.unlink(path)
         return out.text if hasattr(out, "text") else str(out)
@@ -329,6 +354,13 @@ class ArtworkStage(Stage):
         answer = self._vlm_answer(p.rgb)
         vlm = parse_vlm(answer)
         if vlm["kind"] is None or vlm["box"] is None:
+            # greedy decoding answers the same broken JSON on every retry (a stray token in a key or a number), so
+            # ask once more constrained to the schema; a valid unconstrained answer is never re-asked, so the
+            # results stay those of the version
+            log.info("[artwork] %s: unparsable VLM answer, asking again constrained to the schema", p.item.puzzle_id)
+            answer = self._vlm_answer(p.rgb, constrained=True)
+            vlm = parse_vlm(answer)
+        if vlm["kind"] is None or vlm["box"] is None:
             # never store a guess ("flat" + the whole image) for a picture the gate called a photo: a failure is
             # retried (3 attempts per version), then left for a later version
             raise ValueError(f"the VLM answer has no usable kind / box: {answer[:200]!r}")
@@ -337,3 +369,4 @@ class ArtworkStage(Stage):
 
     def close(self) -> None:
         self._vlm = None
+        self._vlm_logits = None

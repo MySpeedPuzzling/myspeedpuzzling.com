@@ -10,10 +10,10 @@ state, PR, merge and deploy, deviations from the plan (and why), follow-ups.
 | 1 Production API for the pipeline | **done** | #258 (1a), #259 (1b), #260 (1c) | 2026-10-18 | 2026-10-18 | verified: 401 without token, `requires` filter (400 on bogus), change-request list 200, source backfill 897 internal_api / 2,790 player, picture grid behind login |
 | 2 Mac pipeline | **done** | #261 | 2026-10-18 | 2026-10-18 | `solvedCount` live on the work list; `bench` / `verify --end-to-end` run in the M3 session (see deviations) |
 | Backfill (M3 Max + M1 Air sessions) | **ready to start** (prompts handed to Jan 2026-10-18) | - | - | - | starts after 1 + 2 are deployed; ≈ 5.5 days |
-| 3 Prediction fix | in progress (3a done; 3b, then 3c) | #263 (3a) | 3a: 2026-10-18 | 3a: 2026-10-18 | 3a: backfill on prod 244,985 rows / 4,235 players in 33 s; first as-of batch 22 s (was 16-18 s; re-check steady state); tiers 1-6 = 249 / 1,838 / 2,956 / 891 / 400 / 225, 6,559 rated |
+| 3 Prediction fix | in progress (3a done; 3b in review round 2 - Picker prior precompute; then 3c) | #263 (3a) | 3a: 2026-10-18 | 3a: 2026-10-18 | 3a: backfill on prod 244,985 rows / 4,235 players in 33 s; first as-of batch 22 s (was 16-18 s; re-check steady state); tiers 1-6 = 249 / 1,838 / 2,956 / 891 / 400 / 225, 6,559 rated |
 | 4 Insights computation | done | #269 (4a), #270 (4c), #271 (4b) | 2026-10-19 | 2026-10-19 | 4a: first batch filled 310,209 rating entries + 2,687 time arrays (29 s first run); daily command 4.5 s, 3,808 profile cards, 6 constants; cron `recalculate-insights-daily` 04:41 in lily.srv (4a17f81). 4c: daily rerun 4.7 s, constants on as-of paces (pairs 1.296 → 1.200 first attempt, 1.173 → 1.091 other; teams of 3 1.316 / 1.257, 4+ 1.367 / 1.325). 4b: migration Version20261018230621 ran at boot; first snapshot 2026-10 (taken 2026-10-19 = mid-month state, not a 1st-of-month one): 2,908 players, 1.5 MB, 24.5 s; cron `snapshot-player-insights` 05:15 on the 1st in lily.srv (6934ba3) |
 | 5 Image intelligence on the server | in progress (5a, 5b, 5c done; 5d after 3b) | #265 (5a), #267 (5b), #268 (5c) | 2026-10-18/19 | 2026-10-18/19 | 5a: crons 07:40/07:45 (lily.srv 0953a4b), ran clean. 5b: labels endpoint live, model record empty until the first derive. 5c: Python only, 187 tests |
-| 6 Display behind INSIGHTS_PUBLIC | not started | | | | |
+| 6 Display behind INSIGHTS_PUBLIC | in progress (6a started 2026-10-19) | | | | |
 | Launch (flag removed) | not started | | | | waits for the backfill + gates |
 
 ## Orchestration
@@ -60,6 +60,22 @@ Phases 4 and 5 are split so the parts that do not need the Phase 3 model start a
 
 Merge order: 1a → 1b → 1c → 2 (2 is built in parallel against the documented contract, merged after 1a/1b are on main).
 Phase 3 starts as soon as a subagent slot frees (1a is small).
+
+### Phase 6 stream plan (2026-10-19)
+
+| Stream | Branch | Scope (plan §) | Depends on | Migration |
+|---|---|---|---|---|
+| **6a** flag + page + first response | `insights/phase-6a` | §6.0 flag `INSIGHTS_PUBLIC` (`InsightsFeature::isVisibleTo()`, Twig `insights_visible()`, `feature_flags.md`); §6.1 route `insights`, `PlayerHeaderTab::Insights` (own profile only), menu row, "See why" links (recap + own result rows); Live Component with URL filters (`InsightsCriteria`); sections 1-8, 12 (learning curve), 14 (habits), 16 (nudges); one lock per section with real counts + trial button; free page from 10 results; skill-map drill-down (own hydrate); 6 locales | Phase 4 (on main) | not expected |
+| **6b** lazy frames (stacked on 6a) | `insights/phase-6b` | §6.1 sections 9 (rating opportunities + pending + portfolio) and 10 (forecast) in one frame, 11 re-solve radar, 13 pairs & teams, 15 improvement curve + rating over time; "today's ladder" wording; screenshots 320 / 390 / 1200 px; button overflow audit in 6 locales; §6.3 canaries | 6a | no |
+| **6c** estimates, option C | `insights/phase-6c` | §6.2 puzzle page card + one-line list estimates + sheet, bulk per list page, `ImageEstimateGate` | 3b, 3c, 5d | no |
+
+Decisions for Phase 6 (orchestrator, 2026-10-19):
+- Insights honours `time_predictions_opted_out` like the puzzle page, the Picker and the recap do. For an opted-out
+  player there are no expected times in expected vs actual, moves, shelf picks or radar. The section says predictions
+  are switched off and links to the setting.
+- The page calls `InsightsPageLoader` only for the signed-in player's own id. It passes membership (trials count) and
+  `profile.timezone`. Free players never receive members-only content in the HTML: a lock shows only counts.
+- Rating opportunities and the forecast share one lazy frame, so the rating model loads once.
 
 ## Deviations and decisions during the build
 

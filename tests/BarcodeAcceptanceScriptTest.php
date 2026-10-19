@@ -262,6 +262,20 @@ final class BarcodeAcceptanceScriptTest extends TestCase
     }
 
     /**
+     * Vanja's Galaxy S25 (2026-10-19): 20-24 ms a frame before the box came into view, 45 with it - a spike stepped zbar
+     * back, and the ratio alone never let it return while the box stayed in view.
+     */
+    public function testOnAFastPhoneZbarReturnsWhileACodeKeepsGooglesReaderAtItsUsualPace(): void
+    {
+        $events = [['p', 24], ['p', 24], ['p', 24], ['p', 24], ['p', 24]];
+        $events = [...$events, ['p', 90], ['p', 80], ['p', 85], ['p', 80], ['p', 90]];
+        self::assertSame(2, $this->budget($events)['backoff']);
+
+        $code = array_fill(0, 15, ['p', 45]);
+        self::assertSame(1, $this->budget([...$events, ...$code])['backoff']);
+    }
+
+    /**
      * @param list<array{0: string, 1: int, 2?: int}> $events
      * @return array{answers: list<null|bool>, baselineMs: null|int, backoff: int, maxBackoff: int}
      */

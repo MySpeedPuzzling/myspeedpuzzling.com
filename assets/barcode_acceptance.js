@@ -190,6 +190,10 @@ function median(values) {
  *   counts). Clearly slower than its baseline - zbar waits twice as long right away (up to 32x, which on a slow phone
  *   means practically off); it comes back one step only after 3 good windows in a row, so it does not swing back
  *   into the way.
+ * - "Clearly slower" and "good" both allow some milliseconds on top of the ratio: the baseline is taken before a code
+ *   is in view, and Google's reader takes longer on a frame that holds one (20 -> 45 ms on a Galaxy S25). With the
+ *   ratio alone, fast phones stepped zbar back to 32x and never let it return (2026-10-19, 261 sessions: 0.8 s from
+ *   Google's first sight to acceptance at backoff <= 2, 2.1 s at 16-32x).
  * A phone too slow for both therefore scans as before the change, with Google's reader alone.
  */
 export class HelperBudget {
@@ -220,11 +224,11 @@ export class HelperBudget {
 
         const average = this.recent.reduce((a, b) => a + b, 0) / this.recent.length;
         this.recent = [];
-        if (average > Math.max(this.baselineMs * 1.5, this.baselineMs + 30)) {
+        if (average > Math.max(this.baselineMs * 1.5, this.baselineMs + 50)) {
             this.backoff = Math.min(this.backoff * 2, MAX_BACKOFF);
             this.maxBackoff = Math.max(this.maxBackoff, this.backoff);
             this.goodWindows = 0;
-        } else if (average <= this.baselineMs * 1.25 && ++this.goodWindows >= 3) {
+        } else if (average <= Math.max(this.baselineMs * 1.25, this.baselineMs + 30) && ++this.goodWindows >= 3) {
             this.backoff = Math.max(1, this.backoff / 2);
             this.goodWindows = 0;
         }

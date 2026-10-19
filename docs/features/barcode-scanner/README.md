@@ -495,8 +495,13 @@ after release) showed what that costs: Google's reader took **418 ms a frame ins
 - zbar starts once Google's reader decoded 5 frames alone - their median is its baseline on this phone;
 - after each crop + decode zbar waits three times as long as it took (a quarter of the time at most);
 - Google's reader is judged on the average of every 5 frames: clearly slower than its baseline (more than 1.5x and
-  30 ms) = zbar waits twice as long right away, up to 32x (practically off); it comes back one step only after 3 good
-  windows in a row. A phone too slow for both scans as before the change, with Google's reader alone.
+  50 ms) = zbar waits twice as long right away, up to 32x (practically off); it comes back one step only after 3 good
+  windows in a row (at most 1.25x or 30 ms over the baseline). A phone too slow for both scans as before the change,
+  with Google's reader alone.
+- The milliseconds on top of the ratio (2026-10-19, from 261 production sessions on 72 Android phones): the baseline is
+  taken before a box is in view, and Google's reader takes longer on a frame holding a code (Vanja's Galaxy S25: 20-24
+  -> 45 ms). With 30 ms to trip and the ratio alone to return, fast phones stepped zbar back to 16-32x and kept it
+  there for the whole scan - 2.1 s from Google's first sight of the code to acceptance, against 0.8 s at backoff ≤ 2.
 
 Simulated in Chrome (Google's reader 350 ms slower while zbar ran in the last 300 ms): zbar backed off to 32x and
 Google's reader stayed at 41 ms a frame (baseline 40) - before the budget it averaged 204 ms.

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use SpeedPuzzling\Web\Value\DifficultySource;
+use SpeedPuzzling\Web\Value\PaceSource;
 
 /**
  * A time prediction. The range is the calibrated 50 % "likely" window (half of solves land inside it), the 80 %
@@ -31,6 +32,8 @@ readonly final class TimePredictionResult
         public null|float $logDifficulty = null,
         // The calibration bucket the window came from (WindowBucket::key())
         public null|string $windowBucket = null,
+        // Statistical predictions only: what the pace rested on
+        public null|PaceSource $paceSource = null,
     ) {
     }
 }

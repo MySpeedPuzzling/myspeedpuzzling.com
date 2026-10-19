@@ -56,7 +56,8 @@ final readonly class PredictionEvaluator
         $firstTry = new EvaluationGroups();
 
         foreach ($set->solved as $i => $solved) {
-            if ($solved < $cut || $solved >= $end) {
+            // A 0-second time is no measurement (no log)
+            if ($solved < $cut || $solved >= $end || $set->seconds[$i] <= 0) {
                 continue;
             }
 

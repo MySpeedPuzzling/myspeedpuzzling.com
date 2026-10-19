@@ -496,11 +496,13 @@ final class PuzzleIntelligenceRecalculatorWritesTest extends KernelTestCase
         $paceHistoryReadiness = new PaceHistoryReadiness($this->connection);
         $paceTimelineLoader = new PaceTimelineLoader($this->connection, $baselineCalculator);
 
+        $paceHistoryWriter = new PlayerPaceHistoryWriter($this->connection, $baselineCalculator, new PlayerPaceHistoryCalculator($baselineCalculator), $paceHistoryReadiness);
+
         (new PuzzleIntelligenceRecalculator(
             $this->connection,
             $clock,
             $baselineCalculator,
-            new PlayerPaceHistoryWriter($this->connection, $baselineCalculator, new PlayerPaceHistoryCalculator($baselineCalculator), $paceHistoryReadiness),
+            $paceHistoryWriter,
             $paceHistoryReadiness,
             new PuzzleDifficultyCalculator($baselineCalculator, $paceTimelineLoader),
             new PlayerSkillCalculator($this->connection, $clock),
@@ -515,6 +517,7 @@ final class PuzzleIntelligenceRecalculatorWritesTest extends KernelTestCase
                 new PredictionModelParametersProvider($this->connection),
                 $paceTimelineLoader,
                 $baselineCalculator,
+                $paceHistoryWriter,
             ),
             new RatingInsightsWriter($this->connection, new ChangedRowsSync($this->connection)),
             new InsightsGeneration($this->connection, $clock),

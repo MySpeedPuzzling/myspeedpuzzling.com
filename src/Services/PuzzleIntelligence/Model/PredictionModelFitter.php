@@ -39,6 +39,12 @@ final readonly class PredictionModelFitter
     private const float THIN_MINIMUM_GAIN = 0.001;
     private const int MINIMUM_VARIANCE_SAMPLES = 2000;
     private const int MINIMUM_BUCKET_SAMPLES = 200;
+    /**
+     * A size group's own term needs this many first tries, like a calibration bucket: a variance estimated from n
+     * residuals is off by ~sqrt(2/n) of itself (10 % at 200) - below that a group keeps the research's term instead of
+     * a noisy one or the 0 the non-negative fit can push it to.
+     */
+    public const int MINIMUM_SIZE_TERM_SAMPLES = 200;
     private const float RESIDUAL_CLIP = 1.0;
 
     /**
@@ -81,6 +87,8 @@ final readonly class PredictionModelFitter
     }
 
     /**
+     * The attempts fitted on - without 0-second times: no measurement, and no log (the drift skips them too).
+     *
      * @return list<int>
      */
     private function window(FirstAttemptSet $set, float $from, float $to): array
@@ -88,7 +96,7 @@ final readonly class PredictionModelFitter
         $window = [];
 
         foreach ($set->solved as $i => $solved) {
-            if ($solved >= $from && $solved < $to) {
+            if ($solved >= $from && $solved < $to && $set->seconds[$i] > 0) {
                 $window[] = $i;
             }
         }
@@ -118,7 +126,7 @@ final readonly class PredictionModelFitter
                 continue;
             }
 
-            $prior = $engine->calculator()->prior($priors->contextFor((string) $set->puzzle[$i], (int) $set->pieces[$i]))->logDifficulty ?? 0.0;
+            $prior = $engine->priorLog($i, $priors) ?? 0.0;
             $samples[] = [log($set->seconds[$i] / $row['baseline']), $engine->sumLog[$i], $k, $prior];
         }
 
@@ -210,7 +218,7 @@ final readonly class PredictionModelFitter
                     continue;
                 }
 
-                $prior = $inputs->kIndices < TimePredictionCalculator::RATED_INDICES ? $engine->calculator()->prior($inputs->prior)?->logDifficulty : null;
+                $prior = $inputs->kIndices < TimePredictionCalculator::RATED_INDICES ? $engine->priorLog($i, $priors) : null;
                 $difficulty = TimePredictionCalculator::logDifficulty($inputs->kIndices, $inputs->sumLogIndices, $inputs->difficultyScore, $prior, $tau);
 
                 if ($difficulty === null) {
@@ -298,22 +306,32 @@ final readonly class PredictionModelFitter
             return ['samples' => $count];
         }
 
-        $normal = new NormalEquations(2 + count($groups));
+        // Groups with too few first tries keep their default term: their samples still count for the two shared
+        // weights, with that term taken off their target
+        $perGroup = array_count_values(array_map(static fn (PiecesGroup $group): string => $group->value, $sampleGroups));
+        $fittedGroups = array_values(array_filter(
+            $groups,
+            static fn (PiecesGroup $group): bool => ($perGroup[$group->value] ?? 0) >= self::MINIMUM_SIZE_TERM_SAMPLES,
+        ));
+        $defaultTerms = $parameters->firstTrySizeTerms;
+        $normal = new NormalEquations(2 + count($fittedGroups));
 
         foreach ($errors as $sample => $error) {
             $row = [$spreads[$sample] ** 2, 1 / ($ks[$sample] + 1)];
+            $sampleGroup = $sampleGroups[$sample];
+            $fixedTerm = in_array($sampleGroup, $fittedGroups, true) ? 0.0 : ($defaultTerms[$sampleGroup->value] ?? 0.0);
 
-            foreach ($groups as $group) {
-                $row[] = $sampleGroups[$sample] === $group ? 1.0 : 0.0;
+            foreach ($fittedGroups as $group) {
+                $row[] = $sampleGroup === $group ? 1.0 : 0.0;
             }
 
-            $normal->add($row, min(abs($error), self::RESIDUAL_CLIP) ** 2);
+            $normal->add($row, min(abs($error), self::RESIDUAL_CLIP) ** 2 - $fixedTerm);
         }
 
         $coefficients = $normal->solveNonNegative();
-        $sizeTerms = [];
+        $sizeTerms = $defaultTerms;
 
-        foreach ($groups as $index => $group) {
+        foreach ($fittedGroups as $index => $group) {
             $sizeTerms[$group->value] = round($coefficients[$index + 2], 6);
         }
 

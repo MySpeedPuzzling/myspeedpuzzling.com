@@ -25,6 +25,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleIntelligenceFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Value\DifficultySource;
+use SpeedPuzzling\Web\Value\PaceSource;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
 use SpeedPuzzling\Web\Value\TimePredictionSource;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -35,10 +36,12 @@ use Symfony\Contracts\Cache\CacheInterface;
  * PredictionReconstructor = today's model fed only with the data before a solve. Two kinds of guards:
  * reconstructing "as of now" must give exactly what the live model (GetPlayerPrediction on freshly
  * recalculated tables) gives - one model, not two - and nothing after a solve may change its
- * reconstruction.
+ * reconstruction. On a fitted model (FitsThePredictionModel).
  */
 final class PredictionReconstructorTest extends KernelTestCase
 {
+    use FitsThePredictionModel;
+
     private PredictionReconstructor $reconstructor;
     private EntityManagerInterface $entityManager;
     private Connection $database;
@@ -51,6 +54,8 @@ final class PredictionReconstructorTest extends KernelTestCase
         /** @var PuzzleIntelligenceRecalculator $recalculator */
         $recalculator = $container->get(PuzzleIntelligenceRecalculator::class);
         $recalculator->recalculate();
+
+        $this->fitPredictionModel();
 
         $this->reconstructor = $container->get(PredictionReconstructor::class);
         $this->entityManager = $container->get(EntityManagerInterface::class);
@@ -162,8 +167,11 @@ final class PredictionReconstructorTest extends KernelTestCase
         self::assertSame(5, $difficultyCalculator->calculateForPuzzle(PuzzleFixture::PUZZLE_500_04)['sample_size'], 'Known today');
 
         $targetId = $this->persistSoloTime(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 2000, $this->now()->modify('-5 days'));
+        $reconstructed = $this->reconstructed(PlayerFixture::PLAYER_REGULAR, $targetId);
 
-        self::assertFalse($this->reconstructed(PlayerFixture::PLAYER_REGULAR, $targetId)->isPredictable());
+        // No index known then: at most the brand prior alone (side by side), nothing shown
+        self::assertSame(0, $reconstructed->result->kIndices ?? 0);
+        self::assertFalse($reconstructed->forDisplay()->isPredictable());
     }
 
     /**
@@ -247,15 +255,46 @@ final class PredictionReconstructorTest extends KernelTestCase
      */
     public function testAShrunkStatisticalReconstructionAsOfNowEqualsTheLiveModel(): void
     {
+        $this->switchOnThinSizeRules();
+
         $live = $this->livePrediction(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_05);
         self::assertNotNull($live);
         self::assertFalse($live->isPersonalized);
         self::assertSame(DifficultySource::Shrunk, $live->difficultySource);
         self::assertSame(2, $live->kIndices);
+        self::assertNotNull($live->priorLog, 'Shrunk toward the fitted brand prior');
 
         $timeId = $this->persistSoloTime(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_05, 2000, $this->now());
 
         self::assertEquals($live, $this->reconstructed(PlayerFixture::PLAYER_REGULAR, $timeId)->result);
+    }
+
+    /**
+     * A player with a 500-piece pace only, first try at another size: with the thin-size rules on, the live prediction
+     * comes from the 500-piece pace scaled by the size exponent - and the reconstruction of a solve right now gives
+     * exactly that prediction.
+     */
+    public function testA500ScaledStatisticalReconstructionAsOfNowEqualsTheLiveModel(): void
+    {
+        $this->switchOnThinSizeRules();
+        $playerId = $this->playerWith500PiecePace(1800);
+        $this->recalculate();
+
+        /** @var false|string $puzzleId */
+        $puzzleId = $this->database->fetchOne(
+            'SELECT p.id FROM puzzle p INNER JOIN puzzle_difficulty pd ON pd.puzzle_id = p.id
+            WHERE p.pieces_count <> 500 AND pd.sample_size >= 1 AND p.hide_until IS NULL ORDER BY pd.sample_size DESC, p.id LIMIT 1',
+        );
+        self::assertIsString($puzzleId, 'A puzzle of another size with difficulty indices');
+
+        $live = $this->livePrediction($playerId, $puzzleId);
+        self::assertNotNull($live);
+        self::assertFalse($live->isPersonalized);
+        self::assertSame(PaceSource::Scaled500, $live->paceSource);
+
+        $timeId = $this->persistSoloTime($playerId, $puzzleId, 3000, $this->now());
+
+        self::assertEquals($live, $this->reconstructed($playerId, $timeId)->result);
     }
 
     /**

@@ -132,7 +132,7 @@ that moved it.
 | `qualifying_count` | the solve's position among the pair's qualifying first attempts (5 = first row); unique per pair |
 | `baseline_seconds` | `PlayerBaselineCalculator::weightedBaselineSeconds()` over solves 1..k, **ages measured to the k-th solve** - the one baseline rule, never re-implemented |
 | `step` | `ln(baseline_k / baseline_{k-1})`, rounded to 6 decimals; NULL on the pair's first row and when either baseline is 0 (0-second times). Log, so steps add up and ±3 % reads the same both ways ("your biggest jumps") |
-| `drift` | the improvement drift as of this row (prediction model v3): the mean residual `ln(actual / predicted without drift)` of the pair's last 10 qualifying first attempts up to and including this row - each against its own pace row before it and the puzzle's difficulty as of it (the model's: median, shrunk or prior, below) - divided by (n + 5), so few solves shrink it toward 0 (`TimePredictionCalculator::drift()`). 0.0 on the first row. Written by the batch's prediction-model step on every run (only rows whose value changed); NULL on a row written since the last run |
+| `drift` | the improvement drift as of this row (prediction model v3): the mean residual `ln(actual / predicted without drift)` of the pair's last 10 qualifying first attempts up to and including this row - each against its own pace row before it and the puzzle's difficulty as of it (the model's: median, shrunk or prior, below) - divided by (n + 5), so few solves shrink it toward 0, each residual clipped at ±0.5 like the spread's (one typo time moves the next first tries by ~3 %, not ~14 %); a 0-second time is no residual (no log - it leaves the drift as it was, like the pace history and the difficulty skip it) (`TimePredictionCalculator::drift()`). 0.0 on the first row. Written by the batch's prediction-model step on every run (only rows whose value changed); NULL on a row written since the last run |
 | `spread` | the player's consistency at this piece count as of this row: the root mean square of the last 20 residuals around the drift-corrected prediction, each clipped at ±0.5, shrunk toward the global 0.13 with 5 pseudo-residuals (`TimePredictionCalculator::playerSpread()`) - what the window width rests on. Written with the drift |
 | `inputs_checksum` | running sum of the hashes of the pair's qualifying solves up to this one (below) |
 
@@ -582,7 +582,9 @@ centre = pace × exp(log_difficulty + drift)
   α from the players with direct paces at both sizes, the threshold from {1, 10, 20, 50, always} by the error on the
   last 12 months' first attempts, and **no rule where the 500-scaled pace never beats the own baseline**. Measured on
   the copy of production (fit on the year before 2026-04-11): 1000 pc always (0.136 vs 0.148), ≤300 below 20 own first
-  attempts (0.106 vs 0.114), odd sizes and 1500+ no rule.
+  attempts (0.106 vs 0.114), odd sizes and 1500+ no rule. What the pace was is recorded with the prediction
+  (`TimePredictionResult::$paceSource`, `solving_time_prediction.pace_source`: `own` / `interpolated` /
+  `scaled_500`) - the time verification leaves the 500-scaled one out.
 - **Difficulty** - `log_difficulty` by the puzzle's index count k (`TimePredictionCalculator::logDifficulty()`):
   - k ≥ 5: ln(difficulty score), the median shown as the tier - source `solves`;
   - k = 1..4: **shrunk** `(Σ ln index + τ × prior) / (k + τ)` (`puzzle_difficulty.sum_log_indices`, `sample_size`),
@@ -621,7 +623,10 @@ bounds     = centre × exp(q × sigma)      q = quantiles 10 / 25 / 75 / 90 % of
   size group, the k bucket, the kind alone).
 - a, b, the size terms, a_r, b_r (least squares on the clipped squared residuals, never negative), the quartile edges
   and the quantile table are fitted daily on the last 12 months; `PredictionModelParameters::defaults()` (the
-  research's numbers) stand in before the first fit and for any part with too few samples. sigma ≥ 0.045.
+  research's numbers) stand in before the first fit and for any part with too few samples - a size group's own term
+  needs 200 first tries (`PredictionModelFitter::MINIMUM_SIZE_TERM_SAMPLES`, like a calibration bucket: a variance
+  from n residuals is off by ~√(2/n) of itself, 10 % at 200), below that it keeps the default term and its samples
+  count for a and b with that term taken off. 0-second times are no sample of any part. sigma ≥ 0.045.
 - Asymmetric: the slow tail is longer (q90 ≈ +1.2 vs q10 ≈ −1.2, but q25 ≈ −0.6 vs q75 ≈ +0.6 around a centre that
   already carries the drift). The inner window is never wider than the outer one; bounds ≥ 1 s.
 - Stored: `predicted_range_low/high_seconds` = the 50 % window, `predicted_range80_low/high_seconds` = the 80 % range.
@@ -636,17 +641,21 @@ from the indices known strictly before the attempt (an index is known from its s
 index only from that pace's row), the pace rows before it, the drift and spread of the attempts before it.
 
 - Every batch run: drift and spread of every pace-history row with the stored fit (defaults and no priors before the
-  first fit); only changed rows are written (`UPDATE ... FROM unnest`, the stored rows streamed, never held).
+  first fit); only changed rows are written (`UPDATE ... FROM unnest`), compared with the values loaded with the pace
+  timeline (`PaceTimelineLoader::all(withStoredStates: true)` - no second read of the table). The writes take the pace
+  history writer's lock (`PlayerPaceHistoryWriter::underLock()`; the daily fit holds it until its commit), so the batch
+  and the fit never UPDATE the same rows in two orders.
 - Daily, `myspeedpuzzling:fit-prediction-model` (`FitPredictionModel`): the prior groups and shares (one transaction),
   then `Model\PredictionModelFitter` - τ, drift with that τ, the thin-size rules, the first-try and repeat windows -
   into `prediction_model_fit` (one JSON row per model version), then the drift and spread with the new fit. Read on
   the site through `PredictionModelParametersProvider::SQL` as a scalar subquery of a statement that runs anyway:
   **the upgrade costs no query** on any page. Run it once right after the deploy (until then: defaults).
 
-Measured on the copy of production (523k times, laptop, no debug, quiet machine): the step takes ~1.05 s; the whole
-batch 14.9-15.1 s against 13.15 s for main on the same copy (+1.75-1.95 s: this step, the as-of pace of the derived
-metrics +0.4 s, the difficulty step +0.2 s), peak memory 352 MB against 386 MB on main (the run frees the allocator's
-caches between steps, `gc_mem_caches()`). The daily fit takes ~4.5 s within 512 MB.
+Measured on a copy of the dev data (523k times, laptop, no debug, 512 MB container, steady state, two runs each,
+2026-10-19): the step takes ~0.9 s; the whole batch 14.8 / 15.0 s against 13.8 / 13.8 s for main on the same copy
+(+1.0-1.2 s: this step, the as-of pace of the derived metrics +0.4 s, the difficulty step +0.3 s), peak memory 362 MB
+(the run frees the allocator's caches between steps, `gc_mem_caches()`). The first run after the deploy writes every
+row (~6.7 s). The daily fit takes ~4.7 s within 512 MB (~7 s the first time, when it rewrites every row).
 
 ### Shared by every read path
 
@@ -655,8 +664,9 @@ caches between steps, `gc_mem_caches()`). The daily fit takes ~4.5 s within 512 
 (many, one DISTINCT ON relation) and the Puzzle Picker, whose pre-LIMIT filter mirrors the calculator's centre in SQL
 (`centreSql()` - the same IEEE operations; pinned equal by `GetPuzzlePickerSuggestionsTest`, thin sizes and shrunk
 difficulty included). `PredictionReconstructor` builds the same inputs as of the solve. The time verification
-(`SingleTimeSuspicionCheck`, the scan) keeps using only predictions resting on a rated puzzle or a personal one - a
-shrunk or prior-only first-try prediction is no expectation there.
+(`SingleTimeSuspicionCheck`, the scan) keeps using only predictions v2 would have made - on a rated puzzle and the
+player's own pace (or a personal one): a shrunk, prior-only or 500-scaled first-try prediction is no expectation
+there (`suspicious-time-review.md`).
 
 ### Accuracy (measured, the acceptance of Insights plan §3.6)
 
@@ -666,15 +676,16 @@ of production). On the copy (fit before 2026-04-11, 83,981 first attempts and 47
 
 | | n | coverage | error (MAE ln) | median bias | 50 % hit / width | 80 % hit / width |
 |---|---|---|---|---|---|---|
-| first tries shown (k ≥ 1) | 70,900 | 84.4 % (v2 rule: 73 %) | 0.087 | −0.2 % | 50.8 % / 13.8 % | 80.3 % / 26.9 % |
-| rated puzzles (k ≥ 5) | 62,445 | 74.4 % | 0.083 | −0.3 % | 50.9 % / 13.1 % | 80.3 % / 25.2 % |
-| puzzles with 1-4 indices | 8,455 | 10.1 % | 0.123 | +0.1 % | 49.9 % / 18.9 % | 79.9 % / 38.0 % |
-| prior only (k = 0, not shown) | 4,141 | 4.9 % | 0.186 | +1.3 % | 50.0 % / 30.5 % | 79.8 % / 61.9 % |
+| first tries shown (k ≥ 1) | 70,900 | 84.4 % (v2 rule: 73 %) | 0.087 | −0.2 % | 50.8 % / 13.8 % | 80.2 % / 26.9 % |
+| rated puzzles (k ≥ 5) | 62,445 | 74.4 % | 0.082 | −0.2 % | 51.0 % / 13.1 % | 80.3 % / 25.2 % |
+| puzzles with 1-4 indices | 8,455 | 10.1 % | 0.123 | +0.1 % | 49.9 % / 19.0 % | 79.8 % / 38.0 % |
+| prior only (k = 0, not shown) | 4,141 | 4.9 % | 0.186 | +1.5 % | 49.8 % / 30.9 % | 79.7 % / 62.1 % |
 | repeats | 47,985 | - | 0.077 | +0.4 % | 50.2 % / 11.9 % | 79.7 % / 23.1 % |
 
-Per consistency quartile (first tries shown) the 50 % window holds 50.7 / 51.1 / 50.9 / 50.4 % at a median width of
-10.5 / 12.5 / 15.1 / 16.8 %. A later cut (fit before 2026-07-01, 36,522 first tries shown, 25,304 repeats): MAE 0.088,
-bias −0.1 %, 50 % window 50.5 % / 13.7 %, 80 % window 80.0 % / 26.9 %; repeats 50.5 % / 11.8 %. Thin sizes: 1000
+Per consistency quartile (first tries shown) the 50 % window holds 50.8 / 51.1 / 50.9 / 50.6 % at a median width of
+10.5 / 12.5 / 15.1 / 16.8 %. A later cut (fit before 2026-07-01, 36,522 first tries shown, 25,304 repeats): MAE 0.087,
+bias −0.1 %, 50 % window 50.5 % / 13.7 % (quartiles 51.4 / 49.7 / 50.5 / 50.0 %), 80 % window 80.0 % / 26.9 %;
+repeats 50.5 % / 11.8 %. Measured 2026-10-19 with the drift clipped at ±0.5. Thin sizes: 1000
 pieces from the 500 pace always (α ≈ 1.43), ≤ 300 below 20 own first attempts (α ≈ 1.34); thin groups stay the
 weakest (1000: MAE 0.129, bias −3 %; 1500+: 29 attempts). Before (v1/v2 as stored): first tries 29 % inside a 16 % range, repeats 76 % inside 30 %.
 
@@ -794,7 +805,7 @@ Mar 2026: 52 min (Expert)
 |----------|-------|
 | Safety floor | best_time × 0.70 |
 | Holt's blend cutoff | N ≥ 6 (pure Holt's) |
-| Drift | last 10 residuals, ÷ (n + 5) |
+| Drift | last 10 residuals, each clipped at ±0.5, ÷ (n + 5) |
 | Spread | last 20 residuals clipped at ±0.5, + 5 × 0.13² pseudo-residuals |
 | Prior pseudo-count | 20 indices (BrandPiecesPrior), τ fitted daily (default 1.0) |
 | Minimum sigma | 0.045 |

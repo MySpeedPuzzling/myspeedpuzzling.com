@@ -26,6 +26,15 @@ final class PaceTimeline
     /** @var array<string, true> players with a pair whose rows came out of order */
     private array $unsortedPlayers = [];
 
+    /**
+     * The drift and spread stored on every row, as loaded (PaceTimelineLoader::all() with them) - what the prediction
+     * model's step compares its fresh values with, so it writes only changed rows without reading the table again.
+     * Kept apart from the lookup rows (those merge rows of one moment), as plain lists per pair.
+     *
+     * @var array<string, array{qualifying: list<int>, drift: list<null|float>, spread: list<null|float>}> "player|pieces" => rows
+     */
+    private array $storedStates = [];
+
     public function __construct(
         private readonly PlayerBaselineCalculator $baselineCalculator,
         private null|float $scalingExponent = null,
@@ -74,6 +83,32 @@ final class PaceTimeline
             $pair['drift'][] = $drift;
             $pair['spread'][] = $spread;
         }
+    }
+
+    public function addStoredState(string $playerId, int $piecesCount, int $qualifyingCount, null|float $drift, null|float $spread): void
+    {
+        $key = $playerId . '|' . $piecesCount;
+        $this->storedStates[$key] ??= ['qualifying' => [], 'drift' => [], 'spread' => []];
+        $this->storedStates[$key]['qualifying'][] = $qualifyingCount;
+        $this->storedStates[$key]['drift'][] = $drift;
+        $this->storedStates[$key]['spread'][] = $spread;
+    }
+
+    /**
+     * @return iterable<array{0: string, 1: int, 2: null|float, 3: null|float}> pair key, qualifying_count, stored drift, stored spread
+     */
+    public function storedStates(): iterable
+    {
+        foreach ($this->storedStates as $key => $rows) {
+            foreach ($rows['qualifying'] as $index => $qualifyingCount) {
+                yield [(string) $key, $qualifyingCount, $rows['drift'][$index], $rows['spread'][$index]];
+            }
+        }
+    }
+
+    public function forgetStoredStates(): void
+    {
+        $this->storedStates = [];
     }
 
     /**

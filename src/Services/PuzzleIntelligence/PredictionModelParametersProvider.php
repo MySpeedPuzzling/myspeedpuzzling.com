@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use JsonException;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
@@ -20,6 +21,21 @@ readonly final class PredictionModelParametersProvider
     public function __construct(
         private Connection $connection,
     ) {
+    }
+
+    /**
+     * When the current model version was last fitted (myspeedpuzzling:fit-prediction-model); null = never - its
+     * predictions then run on the defaults without priors, and the backfill writes no side-by-side rows of them.
+     */
+    public function fittedAt(): null|DateTimeImmutable
+    {
+        /** @var false|null|string $fittedAt */
+        $fittedAt = $this->connection->fetchOne(
+            'SELECT fitted_at FROM prediction_model_fit WHERE model_version = :modelVersion',
+            ['modelVersion' => TimePredictionCalculator::MODEL_VERSION],
+        );
+
+        return is_string($fittedAt) ? new DateTimeImmutable($fittedAt) : null;
     }
 
     public function current(): PredictionModelParameters

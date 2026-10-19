@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\DifficultyPriors;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\PriorContext;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\PriorEstimate;
 use SpeedPuzzling\Web\Value\DifficultySource;
+use SpeedPuzzling\Web\Value\PaceSource;
 use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
 use SpeedPuzzling\Web\Value\StatisticalPredictionInputs;
@@ -51,6 +52,7 @@ final readonly class TimePredictionCalculator
 
     private const int DRIFT_WINDOW = 10;
     private const int DRIFT_SHRINK = 5;
+    private const float DRIFT_CLIP = 0.5;
     private const int SPREAD_WINDOW = 20;
     private const int SPREAD_SHRINK = 5;
     private const float SPREAD_CLIP = 0.5;
@@ -199,7 +201,7 @@ final readonly class TimePredictionCalculator
             return null;
         }
 
-        [$baselineSeconds, $drift, $spread] = $baseline;
+        [$baselineSeconds, $drift, $spread, $paceSource] = $baseline;
         [$logDifficulty, $source] = $difficulty;
 
         // pace × drift first, then the difficulty: the order of operations the Picker's SQL twin uses
@@ -223,6 +225,7 @@ final readonly class TimePredictionCalculator
             priorLog: $prior?->logDifficulty,
             logDifficulty: round($logDifficulty, 6),
             windowBucket: $bucket->key(),
+            paceSource: $paceSource,
         );
     }
 
@@ -257,7 +260,7 @@ final readonly class TimePredictionCalculator
      * than the fitted threshold, else their own baseline (direct: with its drift and spread; interpolated or
      * extrapolated: no drift, the global spread).
      *
-     * @return null|array{0: float, 1: float, 2: null|float} baseline seconds, drift, spread
+     * @return null|array{0: float, 1: float, 2: null|float, 3: PaceSource} baseline seconds, drift, spread, what the pace is
      */
     public static function baselineFor(StatisticalPredictionInputs $inputs, PredictionModelParameters $parameters): null|array
     {
@@ -269,6 +272,7 @@ final readonly class TimePredictionCalculator
                 $inputs->pace500Seconds * ($inputs->piecesCount / 500) ** $rule['alpha'],
                 $inputs->drift500 ?? 0.0,
                 $inputs->spread500,
+                PaceSource::Scaled500,
             ];
         }
 
@@ -277,10 +281,10 @@ final readonly class TimePredictionCalculator
         }
 
         if ($inputs->ownBaselineDirect) {
-            return [(float) $inputs->ownBaselineSeconds, $inputs->ownDrift ?? 0.0, $inputs->ownSpread];
+            return [(float) $inputs->ownBaselineSeconds, $inputs->ownDrift ?? 0.0, $inputs->ownSpread, PaceSource::Own];
         }
 
-        return [(float) $inputs->ownBaselineSeconds, 0.0, null];
+        return [(float) $inputs->ownBaselineSeconds, 0.0, null, PaceSource::Interpolated];
     }
 
     /**
@@ -307,15 +311,21 @@ final readonly class TimePredictionCalculator
 
     /**
      * Improvement drift (log) from a pair's residuals ln(actual ÷ predicted without drift), oldest first: the mean
-     * of the last 10, shrunk toward 0 with few (÷ (n + 5)).
+     * of the last 10, each clipped at ±0.5 like the spread's (one typo time moves the next first tries by at most
+     * ~3 %, not by ~14 %), shrunk toward 0 with few (÷ (n + 5)).
      *
      * @param list<float> $residuals
      */
     public static function drift(array $residuals): float
     {
+        $sum = 0.0;
         $last = array_slice($residuals, -self::DRIFT_WINDOW);
 
-        return round(array_sum($last) / (count($last) + self::DRIFT_SHRINK), 4);
+        foreach ($last as $residual) {
+            $sum += max(-self::DRIFT_CLIP, min(self::DRIFT_CLIP, $residual));
+        }
+
+        return round($sum / (count($last) + self::DRIFT_SHRINK), 4);
     }
 
     /**

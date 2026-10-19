@@ -123,15 +123,20 @@ final class StatisticalInputsSql
     /**
      * TimePredictionCalculator::statistical()'s centre (rounded seconds) in SQL for a candidate list (the Puzzle
      * Picker), for a puzzle with at least one difficulty index (prior-only predictions are not shown on surfaces):
-     * - a CTE `player_pace` with the player's pace × drift once per piece count of the catalogue (the thin-size rule,
-     *   the own baseline or none) - expects the `own_pace` CTE (ownPaceCte()) and :playerId;
-     * - joins of `p` to it and to the prior's tables;
-     * - the expression over them and `pd`: pace × drift × the score (5+ indices) or × exp(shrunk log difficulty)
-     *   (1-4), NULL where the calculator returns null. The same operations in the same order as the calculator -
-     *   pinned equal by GetPuzzlePickerSuggestionsTest. BrandPiecesPrior only - a prior added in front of it needs its
-     *   term here too.
+     * - CTEs (expect the `own_pace` CTE - ownPaceCte() -, :playerId and a WITH RECURSIVE): `piece_sizes` = the
+     *   catalogue's piece counts by a skip scan of the puzzle.pieces_count index (one probe per size, never the table),
+     *   `pace_five` = the player's direct 500-piece pace with its drift (one row or none), `player_pace` = pace × drift
+     *   once per piece count instead of once per candidate (the 500 pace × (pieces ÷ 500)^alpha × its drift while a
+     *   thin-size rule applies - own first attempts below the rule's -, else the own baseline × its drift) and
+     *   `pace_by_size` = those as one array indexed by piece count;
+     * - the joins: the pace by a subscript of that array per candidate (its subqueries are evaluated once - joining
+     *   player_pace was planned as a nested loop over it for every candidate), the prior's tables for puzzles with 1-4
+     *   indices only;
+     * - the expression over them and `pd`: × the score (5+ indices) or × exp(shrunk log difficulty) (1-4), NULL where
+     *   the calculator returns null. The same operations in the same order as the calculator - pinned equal by
+     *   GetPuzzlePickerSuggestionsTest. BrandPiecesPrior only - a prior added in front of it needs its term here too.
      *
-     * @return array{0: string, 1: string, 2: string, 3: array<string, float|int>} the CTE (with a trailing comma), the joins, the centre, the parameters
+     * @return array{0: string, 1: string, 2: string, 3: array<string, float|int>} the CTEs (with a trailing comma), the joins, the centre, the parameters
      */
     public static function centreSql(PredictionModelParameters $parameters): array
     {
@@ -155,39 +160,59 @@ final class StatisticalInputsSql
 
         $alpha = $alphaCases !== '' ? "CASE{$alphaCases} END" : 'NULL::double precision';
         $max = $maxCases !== '' ? "CASE{$maxCases} END" : 'NULL::int';
-        $thin = "(rule.alpha IS NOT NULL AND pb500.baseline_seconds > 0 AND (CASE WHEN pb.baseline_type = 'direct' THEN pb.qualifying_solves_count ELSE 0 END) < rule.max_own)";
+        $thin = "(rule.alpha IS NOT NULL AND pace_five.pace IS NOT NULL AND (CASE WHEN pb.baseline_type = 'direct' THEN pb.qualifying_solves_count ELSE 0 END) < rule.max_own)";
 
         $cte = "
+            piece_sizes AS (
+                SELECT min(pieces_count) AS pieces_count FROM puzzle
+                UNION ALL
+                SELECT (SELECT min(next.pieces_count) FROM puzzle next WHERE next.pieces_count > piece_sizes.pieces_count)
+                FROM piece_sizes
+                WHERE piece_sizes.pieces_count IS NOT NULL
+            ),
+            pace_five AS (
+                SELECT pb.baseline_seconds::double precision AS pace, COALESCE(own.drift, 0) AS drift
+                FROM player_baseline pb
+                LEFT JOIN own_pace own ON own.pieces_count = 500
+                WHERE pb.player_id = :playerId AND pb.pieces_count = 500 AND pb.baseline_type = 'direct' AND pb.baseline_seconds > 0
+            ),
             player_pace AS (
-                SELECT
-                    sizes.pieces_count,
-                    (CASE
-                        WHEN {$thin} THEN pb500.baseline_seconds * power(sizes.pieces_count::double precision / 500.0::double precision, rule.alpha)
-                        WHEN pb.baseline_seconds > 0 THEN pb.baseline_seconds::double precision
-                    END) * exp(CASE
-                        WHEN {$thin} THEN COALESCE(five.drift, 0)
-                        WHEN pb.baseline_seconds > 0 AND pb.baseline_type = 'direct' THEN COALESCE(own.drift, 0)
-                        ELSE 0
-                    END) AS paced
-                FROM (SELECT DISTINCT pieces_count FROM puzzle) sizes
+                SELECT sizes.pieces_count, paced.value AS paced
+                FROM piece_sizes sizes
                 LEFT JOIN player_baseline pb ON pb.player_id = :playerId AND pb.pieces_count = sizes.pieces_count
-                LEFT JOIN player_baseline pb500 ON pb500.player_id = :playerId AND pb500.pieces_count = 500 AND pb500.baseline_type = 'direct'
                 LEFT JOIN own_pace own ON own.pieces_count = sizes.pieces_count
-                LEFT JOIN own_pace five ON five.pieces_count = 500
+                LEFT JOIN pace_five ON true
                 CROSS JOIN LATERAL (SELECT {$alpha} AS alpha, {$max} AS max_own) rule
+                CROSS JOIN LATERAL (SELECT CASE
+                    WHEN {$thin} THEN pace_five.pace * power(sizes.pieces_count::double precision / 500.0::double precision, rule.alpha) * exp(pace_five.drift)
+                    WHEN pb.baseline_seconds > 0 THEN pb.baseline_seconds::double precision * exp(CASE WHEN pb.baseline_type = 'direct' THEN COALESCE(own.drift, 0) ELSE 0 END)
+                END AS value) paced
+                WHERE sizes.pieces_count IS NOT NULL AND paced.value IS NOT NULL
+            ),
+            pace_by_size AS (
+                -- One row: the paces in one array indexed by piece count (from the smallest), read per candidate by a
+                -- subscript of the subqueries below (evaluated once) - a join of player_pace was planned as a nested
+                -- loop over it for every candidate, a jsonb object costs a search per candidate
+                SELECT array_agg(pace.paced ORDER BY sizes.pieces_count) AS paces, min(sizes.pieces_count) AS first_size
+                FROM generate_series((SELECT min(pieces_count) FROM player_pace), (SELECT max(pieces_count) FROM player_pace)) AS sizes (pieces_count)
+                LEFT JOIN player_pace pace ON pace.pieces_count = sizes.pieces_count
             ),
         ";
 
         $notSecret = self::NOT_SECRET;
-        $shrunk = TimePredictionCalculator::RATED_INDICES - 1;
+        $rated = TimePredictionCalculator::RATED_INDICES;
+        $shrunk = $rated - 1;
+        // The prior's tables are joined for the puzzles with 1-4 indices only: as scalar subqueries in that arm they cost
+        // two index lookups per such candidate - most of the catalogue (measured 2026-10-19: gap order +45 ms)
         $joins = "
-    LEFT JOIN player_pace ppace ON ppace.pieces_count = p.pieces_count
+    CROSS JOIN LATERAL (
+        SELECT ((SELECT paces FROM pace_by_size))[p.pieces_count - (SELECT first_size FROM pace_by_size) + 1] AS paced
+    ) ppace
     LEFT JOIN difficulty_prior_group g ON g.manufacturer_id = p.manufacturer_id AND g.pieces_count = p.pieces_count AND pd.sample_size BETWEEN 1 AND {$shrunk} AND {$notSecret}
     LEFT JOIN difficulty_prior_puzzle dpp ON dpp.puzzle_id = p.id AND pd.sample_size BETWEEN 1 AND {$shrunk}
 ";
 
         $prior = self::priorSql();
-        $rated = TimePredictionCalculator::RATED_INDICES;
         $tau = 'CAST(:centreTau AS double precision)';
         // One arm per difficulty source, so a missing difficulty stays NULL (GREATEST() would turn NULL into 1)
         $centre = "CASE

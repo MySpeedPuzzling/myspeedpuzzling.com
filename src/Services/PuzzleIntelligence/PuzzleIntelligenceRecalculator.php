@@ -98,7 +98,7 @@ readonly final class PuzzleIntelligenceRecalculator
 
         // Level 3: Puzzle difficulty
         /** @var array{0: int, 1: null|FirstAttemptSet, 2: null|PaceTimeline} $difficulty */
-        $difficulty = $step('difficulty', fn (): array => $this->computePuzzleDifficulty($now, $specificPuzzle));
+        $difficulty = $step('difficulty', fn (): array => $this->computePuzzleDifficulty($now, $specificPuzzle, withStoredStates: $specificPlayer === null));
         [$difficulties, $firstAttempts, $timeline] = $difficulty;
 
         // Level 3: Prediction model - drift and spread for every pair
@@ -268,7 +268,7 @@ readonly final class PuzzleIntelligenceRecalculator
      * @return array{0: int, 1: null|FirstAttemptSet, 2: null|PaceTimeline} difficulties, and for a run over every puzzle the
      *                                                                  first attempts and the pace timeline loaded for them
      */
-    private function computePuzzleDifficulty(\DateTimeImmutable $now, null|string $specificPuzzle): array
+    private function computePuzzleDifficulty(\DateTimeImmutable $now, null|string $specificPuzzle, bool $withStoredStates): array
     {
         // A full run has just built the pace history; a --player run before the first full one has not -
         // the stored difficulties stay until then
@@ -280,7 +280,8 @@ readonly final class PuzzleIntelligenceRecalculator
         $timeline = null;
 
         if ($specificPuzzle === null) {
-            $timeline = $this->paceTimelineLoader->all();
+            // A full run with the rows' stored drift and spread: the prediction model step writes only what changed
+            $timeline = $this->paceTimelineLoader->all(withStoredStates: $withStoredStates);
             $firstAttempts = $this->difficultyCalculator->preloadAllData($timeline);
         }
 

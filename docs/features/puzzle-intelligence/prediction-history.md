@@ -170,9 +170,9 @@ very same message the backfill uses - and the row gets a `reconstructed` predict
 
 - The command only lists players and dispatches; the logic is in the handler (tests test the handler).
 - `GetPlayersWithPendingPredictions` → the players with a solo time with seconds that is pending (`predictable IS NULL`)
-  **or has no side-by-side row of the current model** (`solving_time_prediction`, model v3 on) - with
-  `--recompute-reconstructed` also those with a shown prediction reconstructed by an older model (the handler loads
-  with the same condition).
+  **or has no side-by-side row of the current model** (`solving_time_prediction`, model v3 on; only once the model is
+  fitted) - with `--recompute-reconstructed` also those with a reconstructed prediction, shown or side by side (the
+  handler loads with the same condition).
 - For each player: `dispatch(new BackfillSolvingTimePredictions($playerId))`, then `$entityManager->clear()` -
   the identity map never grows past one player's times (worst case 2,346 entities in one flush) - and
   `gc_collect_cycles()` every 50 players; the progress bar prints memory.
@@ -184,9 +184,17 @@ very same message the backfill uses - and the row gets a `reconstructed` predict
   during a blue-green deploy, a live prediction that failed, a `DeletePlayer` group change that turned a team time
   into a solo one. Cheap self-healing instead of edge-case code in every handler.
 
-`--recompute-reconstructed` (model v3 on): the shown prediction of a time reconstructed by an older model version is
-replaced by the current model's reconstruction - selected by the handler's query (no bulk `UPDATE … SET predictable =
-NULL`, so a run that stops halfway leaves nothing pending). `live` rows are never recomputed - they are history.
+`--recompute-reconstructed` (model v3 on): every reconstruction computed no later than the current fit
+(`prediction_model_fit.fitted_at`) is replaced by one of the current model and fit - a shown prediction reconstructed by
+any model version, and the current model's side-by-side row whose source is `reconstructed` - selected by the
+handler's query (no bulk `UPDATE … SET predictable = NULL`, so a run that stops halfway leaves nothing pending, and
+running it again continues with what is still older than the fit). `live` rows - shown or side by side - are never
+recomputed: they are history.
+
+**Before the model's first fit** (no `prediction_model_fit` row of the current version) the backfill writes no
+side-by-side rows at all, and `--recompute-reconstructed` does nothing (the command says so and succeeds): a side row
+of v3 computed from the defaults without priors would look fitted, and nothing would ever replace it. Pending times
+still get their shown prediction - the post-deploy `--recompute-reconstructed` run replaces those too.
 
 ### Handler `BackfillSolvingTimePredictionsHandler`
 
@@ -273,6 +281,7 @@ version in `solving_time_prediction` (Insights plan §3.5, research §5):
 | `difficulty_used` | first tries: the difficulty (index scale) the centre was built with |
 | `difficulty_source` | `solves` (5+ indices) / `shrunk` (1-4 indices, or none and the prior alone) / `image` (Phase 5) |
 | `k_indices`, `prior_log` | the puzzle's index count then and the prior (log) the difficulty was shrunk toward |
+| `pace_source` | first tries: what the pace rested on - `own` (a direct baseline, with its drift) / `interpolated` / `scaled_500` (the 500-piece pace of a thin-size rule) - an addition: the time verification leaves `scaled_500` out |
 | `window_bucket` | the calibration bucket of the windows (`WindowBucket::key()`) - an addition: what the calibration report groups by |
 | `computed_at` | when it was written |
 
@@ -286,22 +295,30 @@ Rules:
   live keeps it and gets a reconstructed side row.
 - No domain events (the existing rule).
 - Undo of an automatic removal (`RemovedResultSnapshot`) restores the shown prediction (with the 80 % range) but not
-  the side rows - the backfill cron writes a reconstructed one again.
-- The time verification keeps using only predictions that rest on a rated puzzle or a personal one: the scan reads the
-  stored prediction unless its side row says `difficulty_source = 'shrunk'`, the form check ignores such a live one.
+  the side rows - the backfill cron writes a reconstructed one again (`PuzzleSolvingTime::restore()` says so).
+- The time verification keeps using only predictions v2 would have made, on a rated puzzle and the player's own pace
+  (or a personal one): the scan reads the stored prediction unless its side row says `difficulty_source = 'shrunk'` or
+  `pace_source = 'scaled_500'`, the form check ignores such a live one.
 
 ### Production run for v3 (after the deploy)
 
-1. Fit the model once: `docker compose exec -T web php bin/console myspeedpuzzling:fit-prediction-model` (~4 s on the
-   copy of production; it writes the prior groups, the fit and drift + spread on every pace-history row). Until then
-   predictions use the default parameters. Then add its daily cron row.
-2. Then once, detached:
+In this order - the backfill writes no side-by-side rows until the model is fitted:
+
+1. Fit the model once: `docker compose exec -T web php bin/console myspeedpuzzling:fit-prediction-model` (~7 s the
+   first time on the copy of the data, ~5 s afterwards; it writes the prior groups and shares, the fit, and drift +
+   spread on every pace-history row, under the pace history writer's lock). Until then predictions use the default
+   parameters. Then add its daily cron row (`11 4 * * *`) and the calibration report's (`51 4 * * *`).
+2. Then once, detached, right after a slot of the 4×-daily backfill cron (both lock a player's times, so they may
+   overlap, but the cron would then take part of the work):
    `nohup docker compose exec -T -e SENTRY_DSN= web php -d memory_limit=1G bin/console myspeedpuzzling:backfill-solving-time-predictions --recompute-reconstructed > /tmp/backfill-v3.log 2>&1 &`
-   It writes the v3 side row of every solo time with seconds (~460k) and replaces the ~445k shown predictions
-   reconstructed by v1/v2; live ones stay. Measured on the copy of production (laptop, no debug): 300 players /
-   52,378 times in 219 s, peak ~350 MB → the whole run ~35-45 min. Resumable: kill it, run it again.
+   It writes the v3 side row of every solo time with seconds and replaces every shown prediction reconstructed before
+   the fit (v1/v2, and v3 ones written before it); live ones stay. Measured on a copy of the dev data (laptop, no
+   debug): 440,716 times of 7,212 players in 56 min (20 of them with a test run alongside), peak 392 MiB, 0 failures.
+   Resumable: kill it and run it again - it continues with what is still older than the fit.
 3. The 4×-daily cron (`34 1,7,13,19 * * *`) keeps going as before; from then on it finds only new gaps (an old
-   container's insert during a deploy, a failed live write).
+   container's insert during a deploy, a failed live write, a restored result): a run with nothing to do took 0.7 s
+   on the copy (the work list query), so its Sentry monitor is not in danger. Before step 1 it writes only the shown
+   predictions of pending times.
 
 ## Rollout
 

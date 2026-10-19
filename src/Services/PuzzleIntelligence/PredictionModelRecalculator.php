@@ -37,11 +37,13 @@ readonly final class PredictionModelRecalculator
         private PredictionModelParametersProvider $parametersProvider,
         private PaceTimelineLoader $paceTimelineLoader,
         private PlayerBaselineCalculator $baselineCalculator,
+        private PlayerPaceHistoryWriter $paceHistoryWriter,
     ) {
     }
 
     /**
-     * The batch's step: drift and spread with the stored fit (defaults and no priors before the first fit).
+     * The batch's step: drift and spread with the stored fit (defaults and no priors before the first fit). The timeline
+     * comes with the rows' stored drift and spread (PaceTimelineLoader::all(withStoredStates: true)).
      *
      * @return array{drift_rows_written: int}
      */
@@ -62,7 +64,7 @@ readonly final class PredictionModelRecalculator
      */
     public function fit(DateTimeImmutable $now): array
     {
-        $timeline = $this->paceTimelineLoader->all();
+        $timeline = $this->paceTimelineLoader->all(withStoredStates: true);
         $set = FirstAttemptSet::build($this->baselineCalculator->iterateQualifyingFirstAttempts(paceOrder: true), $timeline);
         $engine = new PredictionEngine($set, $timeline, $this->calculator);
         $engine->computeAsOfDifficulty();
@@ -207,45 +209,47 @@ readonly final class PredictionModelRecalculator
     }
 
     /**
-     * Streams the stored rows (no map of them in memory): a row is the attempt at its qualifying_count of its pair.
+     * Compares the fresh drift and spread with the ones stored on every row (loaded with the timeline - no second read
+     * of the table) and writes the changed rows, under the pace history writer's lock: the daily fit and the batch
+     * UPDATE the same rows in chunks. A row is the attempt at its qualifying_count of its pair; the UPDATE goes by that
+     * attempt's time - should the pace history be behind the solves (the fit between two batches), the next batch
+     * syncs it and writes the rest.
      *
      * @return int rows written
      */
     private function writeDrift(PredictionEngine $engine): int
     {
         $set = $engine->set;
-        $changed = [];
-        $written = 0;
-        /** @var null|array<string, int> $byId built only if a row is not where it should be */
-        $byId = null;
 
-        foreach ($this->connection->iterateNumeric('SELECT time_id, player_id, pieces_count, qualifying_count, drift, spread FROM player_pace_history') as $row) {
-            /** @var array{0: string, 1: string, 2: int|string, 3: int|string, 4: null|float|string, 5: null|float|string} $row */
-            [$timeId, $playerId, $piecesCount, $qualifyingCount, $drift, $spread] = $row;
-            $i = $set->attemptAt($playerId . '|' . $piecesCount, (int) $qualifyingCount);
+        $written = $this->paceHistoryWriter->underLock(function () use ($engine, $set): int {
+            $changed = [];
+            $written = 0;
 
-            if ($i === null || $set->id[$i] !== $timeId) {
-                $byId ??= array_flip($set->id);
-                $i = $byId[$timeId] ?? null;
+            foreach ($engine->timeline->storedStates() as [$pairKey, $qualifyingCount, $drift, $spread]) {
+                $i = $set->attemptAt($pairKey, $qualifyingCount);
+
+                if ($i === null) {
+                    continue;
+                }
+
+                $fresh = [$engine->driftAfter[$i], $engine->spreadAfter[$i]];
+
+                if (self::differs($drift, $fresh[0]) || self::differs($spread, $fresh[1])) {
+                    $changed[] = [$set->id[$i], $fresh[0], $fresh[1]];
+                }
+
+                if (count($changed) >= self::CHUNK) {
+                    $written += $this->updateDrift($changed);
+                    $changed = [];
+                }
             }
 
-            if ($i === null) {
-                continue;
-            }
+            return $written + $this->updateDrift($changed);
+        });
 
-            $fresh = [$engine->driftAfter[$i], $engine->spreadAfter[$i]];
+        $engine->timeline->forgetStoredStates();
 
-            if (self::differs($drift !== null ? (float) $drift : null, $fresh[0]) || self::differs($spread !== null ? (float) $spread : null, $fresh[1])) {
-                $changed[] = [$timeId, $fresh[0], $fresh[1]];
-            }
-
-            if (count($changed) >= self::CHUNK) {
-                $written += $this->updateDrift($changed);
-                $changed = [];
-            }
-        }
-
-        return $written + $this->updateDrift($changed);
+        return $written;
     }
 
     /**

@@ -417,11 +417,13 @@ final class RatingInsightsBatchTest extends KernelTestCase
         $paceHistoryReadiness = new PaceHistoryReadiness($this->connection);
         $paceTimelineLoader = new PaceTimelineLoader($this->connection, $baselineCalculator);
 
+        $paceHistoryWriter = new PlayerPaceHistoryWriter($this->connection, $baselineCalculator, new PlayerPaceHistoryCalculator($baselineCalculator), $paceHistoryReadiness);
+
         return new PuzzleIntelligenceRecalculator(
             $this->connection,
             $clock,
             $baselineCalculator,
-            new PlayerPaceHistoryWriter($this->connection, $baselineCalculator, new PlayerPaceHistoryCalculator($baselineCalculator), $paceHistoryReadiness),
+            $paceHistoryWriter,
             $paceHistoryReadiness,
             new PuzzleDifficultyCalculator($baselineCalculator, $paceTimelineLoader),
             new PlayerSkillCalculator($this->connection, $clock),
@@ -436,6 +438,7 @@ final class RatingInsightsBatchTest extends KernelTestCase
                 new PredictionModelParametersProvider($this->connection),
                 $paceTimelineLoader,
                 $baselineCalculator,
+                $paceHistoryWriter,
             ),
             new RatingInsightsWriter($this->connection, new ChangedRowsSync($this->connection)),
             new InsightsGeneration($this->connection, $clock),

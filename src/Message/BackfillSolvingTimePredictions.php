@@ -22,7 +22,8 @@ readonly final class BackfillSolvingTimePredictions
         public string $playerId,
         /** @var list<string> */
         public array $reevaluateTimeIds = [],
-        // Also replace shown predictions reconstructed by an older model version (live ones are history, never)
+        // Also replace every reconstructed prediction - shown, and the current model's side-by-side row - with one of
+        // the current fit (live ones are history, never); only once the model is fitted
         public bool $recomputeReconstructed = false,
     ) {
     }

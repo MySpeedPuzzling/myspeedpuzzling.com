@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\ConsoleCommands;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Message\BackfillSolvingTimePredictions;
 use SpeedPuzzling\Web\Query\GetPlayersWithPendingPredictions;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionModelParametersProvider;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProgressBar;
@@ -32,6 +33,7 @@ final class BackfillSolvingTimePredictionsConsoleCommand extends Command
         readonly private MessageBusInterface $messageBus,
         readonly private GetPlayersWithPendingPredictions $getPlayersWithPendingPredictions,
         readonly private EntityManagerInterface $entityManager,
+        readonly private PredictionModelParametersProvider $parametersProvider,
     ) {
         parent::__construct();
     }
@@ -40,7 +42,7 @@ final class BackfillSolvingTimePredictionsConsoleCommand extends Command
     {
         $this->addOption('player', null, InputOption::VALUE_REQUIRED, 'Only this player (uuid)');
         $this->addOption('limit', null, InputOption::VALUE_REQUIRED, 'Stop after this many players');
-        $this->addOption('recompute-reconstructed', null, InputOption::VALUE_NONE, 'Also replace shown predictions reconstructed by an older model version (live ones stay)');
+        $this->addOption('recompute-reconstructed', null, InputOption::VALUE_NONE, 'Also replace every reconstructed prediction (shown and side by side) with the current fit - live ones stay; once the model is fitted');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -52,8 +54,18 @@ final class BackfillSolvingTimePredictionsConsoleCommand extends Command
         /** @var null|string $limitOption */
         $limitOption = $input->getOption('limit');
 
+        $fittedAt = $this->parametersProvider->fittedAt();
         $recompute = (bool) $input->getOption('recompute-reconstructed');
-        $playerIds = $playerOption !== null ? [$playerOption] : $this->getPlayersWithPendingPredictions->all($recompute);
+
+        if ($fittedAt === null) {
+            // Not a failure: the cron runs this before the first fit too - pending times still get their shown prediction
+            $io->note('The prediction model is not fitted yet (myspeedpuzzling:fit-prediction-model): only pending times, no side-by-side rows' . ($recompute ? ', nothing recomputed.' : '.'));
+            $recompute = false;
+        }
+
+        $playerIds = $playerOption !== null
+            ? [$playerOption]
+            : $this->getPlayersWithPendingPredictions->all($recompute ? $fittedAt : null, withSideRows: $fittedAt !== null);
 
         if ($limitOption !== null) {
             $playerIds = array_slice($playerIds, 0, max(1, (int) $limitOption));

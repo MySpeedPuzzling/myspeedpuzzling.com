@@ -1020,12 +1020,27 @@ First delivery = store + backfill; the UI comes after it.
       an older model version (no bulk reset to NULL); `live` rows stay. Production run: prediction-history.md "Production
       run for v3"
 - [ ] Model v3 rollout on lily.srv (after the deploy): run `myspeedpuzzling:fit-prediction-model` once, then the
-      detached `backfill-solving-time-predictions --recompute-reconstructed` (~35-45 min, prediction-history.md
+      detached `backfill-solving-time-predictions --recompute-reconstructed` (~1 h, resumable, prediction-history.md
       "Production run for v3"); cron rows `11 4 * * * myspeedpuzzling:fit-prediction-model` and
-      `41 4 * * * myspeedpuzzling:report-prediction-calibration` (Prague; the report after the fit)
-- [ ] Time verification on shrunk predictions (model v3): the scan and the form check ignore first-try predictions of
-      puzzles with 1-4 indices (they keep the expectations they had); using them would cover more first tries - decide,
-      and bump `SuspiciousTimeClassifier::VERSION` with it
+      `51 4 * * * myspeedpuzzling:report-prediction-calibration` (Prague; the report after the fit)
+- [ ] Time verification on shrunk and 500-scaled predictions (model v3): the scan and the form check ignore first-try
+      predictions of puzzles with 1-4 indices and those resting on the 500-piece pace scaled to a thin size
+      (`pace_source = 'scaled_500'`) - they keep the expectations they had; using them would cover more first tries -
+      decide, and bump `SuspiciousTimeClassifier::VERSION` with it
+- [ ] Stale leave-one-out prior after a piece-count fix or a brand merge, until the next daily fit: the puzzle's own
+      share (`difficulty_prior_puzzle`) is subtracted from a group it was never part of (or no longer is) - bounded
+      by a day; refit on such catalogue changes or keep the share per group (review of Insights 3b)
+- [ ] The fit's centre uses the pace-history row's baseline (as of the attempt), the live prediction today's
+      `player_baseline` - equal for a direct baseline, an interpolated one can differ slightly; measure whether it
+      matters for the window calibration (review of Insights 3b)
+- [ ] `RepeatHistory` (the repeat window's fit and evaluation) does not leave out repeats of the same moment the way
+      `RepeatResiduals::beforeEverySolve()` does for live/reconstructed windows (review of Insights 3b)
+- [ ] Puzzle Picker on v3: the prior of puzzles with 1-4 indices costs two lookups per candidate (`centreSql()`);
+      precomputed per puzzle at the fit it would bring the heaviest player's "any + gap" 137 → ~113 ms and "any
+      unsolved + budget" 225 → ~153 ms locally (main 109 / 70) - puzzle-picker README "Prediction model v3"
+- [ ] Live predictions before the first fit (the minutes between the deploy and `fit-prediction-model`) still write a
+      v3 side row from the defaults (only the backfill waits for the fit) - a live row is history and stays; run the
+      fit right after the deploy
 - [ ] Prior-only predictions (k = 0) are stored side by side only (`SolvingTimePrediction::forDisplay()`); showing them is
       Insights Phase 6 (estimates, marked as estimated)
 - [ ] Live drift / spread lag the batch by up to 15 minutes (only the batch writes pace-history rows): a live prediction

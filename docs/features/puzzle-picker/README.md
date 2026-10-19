@@ -322,11 +322,18 @@ Why this shape:
 For the median player (12 solves, 25 items) everything is single-digit ms. Budget: p95 < 100 ms.
 
 Prediction model v3 (Insights 3b, 2026-10) made the statistical centre pace × drift × difficulty, with the shrunk
-difficulty (1-4 indices) and the thin-size rules: the player's pace per piece count is computed once in a CTE
-(`StatisticalInputsSql::centreSql()`, `player_pace`, one row per piece count of the catalogue) and joined, the prior
-tables only for puzzles with 1-4 indices. Measured locally on the copy of production (heaviest player, median of
-runs): "any puzzle, ordered by gap" 90 → 114 ms, the bulk prediction of 2,000 puzzles 20 → 36 ms; a naive
-per-row version took 212 ms. Production is usually faster than the laptop (75 ms there for main's 90 ms here).
+difficulty for puzzles with 1-4 indices (most of the catalogue) and the thin-size rules (`StatisticalInputsSql::
+centreSql()`). What keeps it near main: the player's pace × drift is computed once per piece count (the sizes by a
+skip scan of the `pieces_count` index) and read per candidate from one array by a subscript; the prior's tables are
+joined only for puzzles with 1-4 indices; the personal predictions of solved puzzles are a lookup in one constant
+jsonb object, no join. Every join of a small relation to the candidates (the unnested personal predictions, the
+per-size paces) was planned as a nested loop over it for every candidate on the budget filter - the planner keeps the
+seeded order for the LIMIT on a misestimate of the candidates (4.5k estimated, 38k real) - 3.7 s and 0.9 s
+measured. Measured locally on a copy of the dev data (heaviest player, median of 5, fitted model, 2026-10-19):
+"any puzzle, ordered by gap" 109 → 137-143 ms, "any unsolved + predicted-time budget" 70 → 225 ms, the bulk
+prediction of 2,000 puzzles 20 → 40 ms. The rest is the price of predicting the puzzles with 1-4 indices (two prior
+lookups and exp() per such candidate): with the prior left out the same queries take 113 and 153 ms - a prior
+precomputed per puzzle would bring them there (docs/TODO.md).
 No new index is required; if the "any puzzle" pool ever gets hot, a covering index
 `puzzle (approved, pieces_count, manufacturer_id) WHERE approved` and/or `hashtext()` instead of
 `md5()` are the cheap knobs. Verify with `EXPLAIN ANALYZE` on prod-size data before merging PR 1

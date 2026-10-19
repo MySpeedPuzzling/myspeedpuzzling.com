@@ -157,7 +157,7 @@ readonly final class GetPuzzlePickerSuggestions
         $predictionCte = '';
 
         if ($playerId !== null && $needsPredictions) {
-            [$predictionIds, $predictionSeconds] = self::predictionArrays($this->getPlayerPredictions->forAllSolvedPuzzles($playerId));
+            $personalPredictions = self::predictionsJson($this->getPlayerPredictions->forAllSolvedPuzzles($playerId));
             // The statistical fallback is TimePredictionCalculator::statistical()'s centre in SQL (pinned equal by the tests)
             [$centreCte, $centreJoins, $centre, $centreParams] = StatisticalInputsSql::centreSql($this->getPlayerPredictions->modelParameters($playerId));
             $params = [...$params, ...$centreParams];
@@ -166,16 +166,20 @@ readonly final class GetPuzzlePickerSuggestions
             $insightsJoins .= <<<SQL
 
     {$centreJoins}
-    LEFT JOIN unnest(:predictionIds::uuid[], :predictionSeconds::int[]) AS pp(puzzle_id, predicted) ON pp.puzzle_id = p.id
     CROSS JOIN LATERAL (
-        SELECT COALESCE(pp.predicted, {$centre}) AS predicted_seconds
+        -- The player's predictions of solved puzzles: a lookup in one constant jsonb object, for the puzzles they solved
+        -- only (my_solves), no join - a join of the unnested arrays was planned as a nested loop over every candidate
+        -- (seconds on the heaviest player)
+        SELECT COALESCE(
+            CASE WHEN s.puzzle_id IS NOT NULL THEN (CAST(:personalPredictions AS jsonb) ->> p.id::text)::int END,
+            {$centre}
+        ) AS predicted_seconds
     ) pr
     CROSS JOIN LATERAL (
         SELECT CASE WHEN COALESCE(s.solve_count_solo, 0) > 0 THEN s.fastest_seconds - pr.predicted_seconds END AS gap_seconds
     ) gp
 SQL;
-            $params['predictionIds'] = $predictionIds;
-            $params['predictionSeconds'] = $predictionSeconds;
+            $params['personalPredictions'] = $personalPredictions;
             $predictedSelect = 'pr.predicted_seconds, gp.gap_seconds,';
 
             if ($criteria->predictedMaxMinutes !== null) {
@@ -201,7 +205,7 @@ SQL;
         }
 
         $query = <<<SQL
-WITH {$predictionCte} my_solves AS (
+WITH RECURSIVE {$predictionCte} my_solves AS (
     SELECT
         pst.puzzle_id,
         count(*) AS solve_count_any,
@@ -390,26 +394,13 @@ SQL;
     }
 
     /**
-     * Personal predictions as two parallel Postgres array literals for
-     * unnest(:ids::uuid[], :seconds::int[]) — empty arrays when there are none.
-     *
-     * @param array<string, TimePredictionResult> $predictions
-     *
-     * @return array{string, string}
+     * @param array<string, TimePredictionResult> $predictions by puzzle id
      */
-    private static function predictionArrays(array $predictions): array
+    private static function predictionsJson(array $predictions): string
     {
-        $ids = [];
-        $seconds = [];
-
-        foreach ($predictions as $puzzleId => $prediction) {
-            $ids[] = $puzzleId;
-            $seconds[] = $prediction->predictedSeconds;
-        }
-
-        return [
-            '{' . implode(',', $ids) . '}',
-            '{' . implode(',', $seconds) . '}',
-        ];
+        return json_encode(
+            array_map(static fn (TimePredictionResult $prediction): int => $prediction->predictedSeconds, $predictions),
+            JSON_THROW_ON_ERROR | JSON_FORCE_OBJECT,
+        );
     }
 }

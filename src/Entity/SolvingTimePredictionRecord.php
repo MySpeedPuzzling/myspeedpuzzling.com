@@ -17,6 +17,7 @@ use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Value\DifficultySource;
+use SpeedPuzzling\Web\Value\PaceSource;
 use SpeedPuzzling\Web\Value\PredictorKind;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
 use SpeedPuzzling\Web\Value\TimePredictionMethod;
@@ -80,6 +81,11 @@ class SolvingTimePredictionRecord
     #[Column(nullable: true)]
     public null|int $kIndices = null;
 
+    // What the pace of a first try rested on - the time verification leaves the 500-scaled one out
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::STRING, length: 20, nullable: true, enumType: PaceSource::class)]
+    public null|PaceSource $paceSource = null;
+
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
     public null|float $priorLog = null;
@@ -136,6 +142,7 @@ class SolvingTimePredictionRecord
         $this->difficultyUsed = $result !== null && $result->isPersonalized === false ? $result->difficultyForPlayer : null;
         $this->difficultySource = $result?->difficultySource;
         $this->kIndices = $result?->kIndices;
+        $this->paceSource = $result?->paceSource;
         $this->priorLog = $result?->priorLog;
         $this->windowBucket = $result?->windowBucket;
         $this->computedAt = $computedAt;

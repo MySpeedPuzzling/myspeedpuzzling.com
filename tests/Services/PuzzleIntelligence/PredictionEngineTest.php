@@ -12,12 +12,14 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\PredictionModelFitter;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\PriorLookup;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PaceTimeline;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerBaselineCalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\PriorContext;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\RepeatResiduals;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\PredictionInputSolve;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
+use SpeedPuzzling\Web\Value\StatisticalPredictionInputs;
 use SpeedPuzzling\Web\Results\TimePredictionResult;
 use SpeedPuzzling\Web\Value\TimePredictionSource;
 use SpeedPuzzling\Web\Value\WindowBucket;
@@ -102,6 +104,80 @@ final class PredictionEngineTest extends TestCase
             self::assertSame($without->driftAfter[$i], $with->driftAfter[$i]);
             self::assertSame($without->spreadAfter[$i], $with->spreadAfter[$i]);
         }
+    }
+
+    /**
+     * A 0-second time is no measurement: after the pair's 5th attempt it must not drag the drift to -INF (a prediction
+     * of 1 second for the next 10 first tries) - it leaves the drift as it was, like the pace history and the
+     * difficulty skip it.
+     */
+    public function testAZeroSecondAttemptLeavesTheDriftAsItWas(): void
+    {
+        $build = function (bool $withZero): PredictionEngine {
+            $timeline = $this->timeline();
+            $rows = [];
+
+            for ($i = 1; $i <= 8; $i++) {
+                $seconds = $withZero && $i === 6 ? 0 : 1900;
+                $rows[] = self::row("t{$i}", 'a', "puzzle-{$i}", $seconds, $i * self::DAY);
+
+                if ($i >= 5) {
+                    $timeline->add('a', 500, $i * self::DAY, $i * self::DAY, 2000);
+                }
+            }
+
+            $set = FirstAttemptSet::build($rows, $timeline);
+            $engine = new PredictionEngine($set, $timeline, new TimePredictionCalculator());
+            $engine->computeAsOfDifficulty();
+            $engine->computeDrift(new PriorLookup([], [], []), 1.0);
+
+            return $engine;
+        };
+
+        $with = $build(true);
+        $without = $build(false);
+        $at = static fn (PredictionEngine $engine, string $id): int => (int) array_search($id, $engine->set->id, true);
+
+        foreach (['t5', 't6', 't7', 't8'] as $id) {
+            $drift = $with->driftAfter[$at($with, $id)];
+            self::assertNotNull($drift);
+            self::assertTrue(is_finite($drift), "Drift after {$id} is finite");
+            self::assertTrue(is_finite((float) $with->spreadAfter[$at($with, $id)]));
+        }
+
+        // The zero attempt counts nothing: after it the drift is the one before it
+        self::assertSame($with->driftAfter[$at($with, 't5')], $with->driftAfter[$at($with, 't6')]);
+        // Residuals of the attempts with a pace row before them (day 5 on): t6..t8, without the zero one t7 and t8
+        self::assertSame(TimePredictionCalculator::drift(array_fill(0, 2, log(1900 / 2000))), $with->driftAfter[$at($with, 't8')]);
+        self::assertSame(TimePredictionCalculator::drift(array_fill(0, 3, log(1900 / 2000))), $without->driftAfter[$at($without, 't8')]);
+
+        // The next first try is predicted from a sane pace (2000 s × the drift), not 1 second
+        $next = $with->calculator()->statistical(new StatisticalPredictionInputs(
+            piecesCount: 500,
+            ownBaselineSeconds: 2000,
+            ownBaselineDirect: true,
+            ownQualifyingCount: 8,
+            ownDrift: $with->driftAfter[$at($with, 't8')],
+            ownSpread: $with->spreadAfter[$at($with, 't8')],
+            pace500Seconds: 2000,
+            drift500: $with->driftAfter[$at($with, 't8')],
+            spread500: $with->spreadAfter[$at($with, 't8')],
+            kIndices: 10,
+            sumLogIndices: 0.0,
+            difficultyScore: 1.0,
+            prior: new PriorContext('puzzle-9', 500),
+        ));
+        self::assertNotNull($next);
+        self::assertGreaterThan(1900, $next->predictedSeconds);
+        self::assertLessThan(2000, $next->predictedSeconds);
+    }
+
+    public function testOneWildTimeMovesTheDriftByAtMostItsClip(): void
+    {
+        // A typo (10× the pace) next to three normal attempts: clipped at +0.5 instead of ln(10) = 2.3
+        self::assertSame(round(0.5 / 9, 4), TimePredictionCalculator::drift([0.0, 0.0, 0.0, log(10.0)]));
+        self::assertSame(round(-0.5 / 6, 4), TimePredictionCalculator::drift([log(0.01)]));
+        self::assertSame(round(0.2 / 6, 4), TimePredictionCalculator::drift([0.2]));
     }
 
     public function testThePriorLeavesThePuzzlesOwnIndicesOut(): void

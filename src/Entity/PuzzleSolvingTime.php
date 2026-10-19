@@ -233,6 +233,9 @@ class PuzzleSolvingTime implements EntityWithEvents
             competitionSeries: $competitionSeries,
         );
 
+        // The shown prediction comes back as it was; its side-by-side rows (solving_time_prediction) went with the
+        // deleted row - the prediction backfill cron writes the current model's again (a reconstructed one: the live
+        // moment is gone), so nothing here has to rebuild them
         $time->predictable = $snapshot->predictable;
         $time->predictionMethod = $snapshot->predictionMethod;
         $time->predictedSeconds = $snapshot->predictedSeconds;

@@ -35,6 +35,10 @@ final class PredictionEngine
     /** @var array<int, null|float> */
     public array $spreadAfter;
 
+    /** @var array<string, null|float> the prior's log difficulty per puzzle, for $priorsOf */
+    private array $priorLogs = [];
+    private null|PriorLookup $priorsOf = null;
+
     public function __construct(
         public readonly FirstAttemptSet $set,
         public readonly PaceTimeline $timeline,
@@ -116,7 +120,8 @@ final class PredictionEngine
     /**
      * Drift and spread of every pair after each of its attempts, from the residuals of the attempts with a direct pace
      * before them: ln(actual) - ln(pace) - log difficulty (the model's, with this prior and tau; a puzzle without
-     * indices counts as its prior, the average puzzle without one).
+     * indices counts as its prior, the average puzzle without one). A 0-second time is no measurement (it has no log -
+     * the pace history and the difficulty skip it the same way) and leaves the drift as it was.
      */
     public function computeDrift(PriorLookup $priors, float $tau): void
     {
@@ -130,10 +135,8 @@ final class PredictionEngine
             for ($i = $start, $end = $start + $pairCount; $i < $end; $i++) {
                 $row = $this->timeline->directRowBefore($set->player[$i], $set->pieces[$i], $set->solved[$i], $set->tracked[$i]);
 
-                if ($row !== null && $row['baseline'] > 0) {
-                    $prior = $this->k[$i] < TimePredictionCalculator::RATED_INDICES
-                        ? $this->calculator->prior($priors->contextFor($set->puzzle[$i], $set->pieces[$i]))?->logDifficulty
-                        : null;
+                if ($row !== null && $row['baseline'] > 0 && $set->seconds[$i] > 0) {
+                    $prior = $this->k[$i] < TimePredictionCalculator::RATED_INDICES ? $this->priorLog($i, $priors) : null;
                     $difficulty = TimePredictionCalculator::logDifficulty($this->k[$i], $this->sumLog[$i], $this->score[$i], $prior, $tau);
                     $logDifficulty = $difficulty[0] ?? $prior ?? 0.0;
                     $residual = log($set->seconds[$i] / $row['baseline']) - $logDifficulty;
@@ -148,6 +151,25 @@ final class PredictionEngine
                 }
             }
         }
+    }
+
+    /**
+     * The prior's log difficulty of the attempt's puzzle (null = none), once per puzzle and prior lookup.
+     */
+    public function priorLog(int $i, PriorLookup $priors): null|float
+    {
+        if ($this->priorsOf !== $priors) {
+            $this->priorsOf = $priors;
+            $this->priorLogs = [];
+        }
+
+        $puzzle = $this->set->puzzle[$i];
+
+        if (!array_key_exists($puzzle, $this->priorLogs)) {
+            $this->priorLogs[$puzzle] = $this->calculator->prior($priors->contextFor($puzzle, $this->set->pieces[$i]))?->logDifficulty;
+        }
+
+        return $this->priorLogs[$puzzle];
     }
 
     /**

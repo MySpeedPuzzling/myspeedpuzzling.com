@@ -10676,6 +10676,8 @@ insights:
             note: "Un point par jour avec un rating : la dernière valeur du jour. La période de vos filtres s'applique."
         note: "Votre rythme = votre temps typique de premier essai à un nombre de pièces, mis à jour à chaque premier essai qui compte. La courbe couvre tout votre historique."
     frames:
+        error: "Impossible de charger cette partie."
+        retry: "Réessayer"
         chart:
             now: "Maintenant"
             today: "Aujourd'hui"
@@ -10687,7 +10689,6 @@ insights:
             first_tries: "{0}Pas encore de premier essai|{1}1 premier essai|]1,Inf[%count% premiers essais"
             rating: "Rating %rating%"
             rating_change: "%change% par rapport à la veille"
-            rating_place: "#%place% au classement"
     shelf:
         ask: "Qu'est-ce qui me convient sur mon étagère ?"
         question: "Qu'est-ce qui me convient sur mon étagère ?"

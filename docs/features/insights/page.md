@@ -165,7 +165,7 @@ response is unchanged by them: the placeholders cost no statement (`InsightsPage
 |---|---|---|---|---|---|
 | `rating` | `insights_rating`, `GET /{_locale}/insights/rating` | `InsightsRatingFrameController` | 9 rating opportunities + pending + portfolio, 10 forecast | none (MSP rating = 500 pieces, its own 24-month window) | key 1 + model ≤ 8 (+ forecast 2, members) = ≤ 11 member / ≤ 9 free |
 | `top` | `insights_top`, `GET /{_locale}/insights/top-findings` | `InsightsTopFrameController` | the top row's "Try next" + "MSP rating" finding cards (in the findings grid, eager) | pieces (the shelf pick) | key 1 + rating ≤ 10 + shelf ≤ 5 = ≤ 16 member / ≤ 10 free; predictions off = 0 and no frame |
-| `shelf` | `insights_shelf`, `GET /{_locale}/insights/shelf` | `InsightsShelfFrameController` | "Try next from your shelf" (anchor `insights-try-next` - `insights-shelf` is the members' shelf filter) | pieces | key 1 + ShelfPicks ≤ 5 = ≤ 6 member / 2 free, + 1 per request for the picks' estimate lines (`ResolvePersonalEstimates`, + the gate record when a picture estimate is listed); predictions off = 0 |
+| `shelf` | `insights_shelf`, `GET /{_locale}/insights/shelf` | `InsightsShelfFrameController` | "Try next from your shelf" (anchor `insights-try-next` - `insights-shelf` is the members' shelf filter) | pieces | key 1 + ShelfPicks ≤ 5 = ≤ 6 member / 2 free, + 1 per request for the picks' estimate lines (`ResolvePersonalEstimates`, + the gate record when a picture estimate is listed) - the whole frame request: 7 (route-level budget in `InsightsFramesControllerTest`); predictions off = 0 |
 | `resolve` | `insights_resolve`, `GET /{_locale}/insights/re-solve` | `InsightsResolveFrameController` | 11 re-solve radar | pieces | key 1 + ≤ 4 = ≤ 5; predictions off = 0 |
 | `pairs` | `insights_pairs`, `GET /{_locale}/insights/pairs-and-teams` | `InsightsPairsFrameController` | 13 pairs & teams | period, pieces | key 1 + ≤ 4 = ≤ 5 |
 | `improvement` | `insights_improvement`, `GET /{_locale}/insights/improvement` | `InsightsImprovementFrameController` | 15 improvement curve + rating over time | period (rating over time), pieces (which curves) | key 1 + 1 (+ rating over time 1, members) = ≤ 3 |
@@ -191,7 +191,9 @@ and a cache hit = the key only). Measured 2026-10-19 in the test env (one-off co
   findings grid (`display: contents`, so it loads eagerly - a lazy frame without a box never comes into view), two
   skeleton cards while it loads, built from the cache entries the `shelf` and `rating` frames share (whichever loads
   first builds them; afterwards each costs only the key). Opted out of rankings: the tile shows the rating and says
-  neutrally that there is no place; private: no rating.
+  neutrally that there is no place; private: no rating. The rating over time (improvement frame) shows the rating
+  only - the snapshot's stored place follows another rule than today's ladder and the opt-out - and nothing for a
+  private profile.
 - **Shelf picks show stream 6c's estimate line** (`insights/estimate/_line.html.twig`: ≈ time, certainty bar, tier chip,
   a tap opens the shared `#estimate-sheet`) - the same numbers as the puzzle page and the lists (ShelfPicks reads
   `GetPersonalEstimates` since 6c). The controller resolves them for the picks with `ResolvePersonalEstimates`
@@ -202,6 +204,12 @@ and a cache hit = the key only). Measured 2026-10-19 in the test env (one-off co
   (`PlayerProfile::$activeMembership`), `time_predictions_opted_out`, the time zone for the criteria, and the page's
   filters from the URL - only the part's keys, a free player's members-only values dropped (`InsightsCriteria`).
 - A frame URL opened without the `Turbo-Frame` header (a new tab) redirects to its section of the page.
+- **A frame that fails to load** (`turbo:fetch-request-error`; `turbo:frame-missing` = an answer without the frame, e.g.
+  an expired session's redirect to sign in - prevented, so Turbo never pastes "Content missing") shows "Couldn't load
+  this part" with "Try again" in place of its loading boxes, keeping the sections' heads (`insights_frame_controller.js`,
+  eager; the top row gets one card in the findings grid). "Try again" puts the placeholder back and sets `src` anew.
+- The rating part's cache context includes the player's own privacy and ranking opt-out (on the profile row), so the
+  section never lags the tile after a switch.
 - `InsightsFrames` builds each part through `InsightsCache` (parts `frame_rating`, `frame_resolve`, `frame_pairs`,
   `frame_improvement`; the context = membership + the part's filters (+ the day for period-relative parts)). A free
   player's part is built only for the counts of its lock: no forecast, no rating over time.

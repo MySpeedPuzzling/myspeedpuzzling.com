@@ -447,3 +447,19 @@ a.ins-srow .ins-stag {
         text-decoration: underline;
     }
 }
+
+// --- A frame that could not load (insights_frame_controller.js) --------------------------------------------------------
+
+.ins-frame-error {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem .75rem;
+    color: $ins-ink-2;
+    text-align: center;
+
+    .btn {
+        white-space: normal;
+    }
+}

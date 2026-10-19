@@ -45,7 +45,9 @@ final class InsightsImprovementFrameController extends AbstractController
 
         $frame = $this->insightsFrames->improvement($context->profile->playerId, $context->criteria, $context->isMember);
         $main = $frame->curve->sizes[0] ?? null;
-        $ratingSeries = $frame->ratingOverTime?->series[0] ?? null;
+        // Private players have no MSP rating (rankings are public-only) - the rating section says the same
+        $ratingPrivate = $context->profile->isPrivateProfile;
+        $ratingSeries = $ratingPrivate ? null : ($frame->ratingOverTime?->series[0] ?? null);
 
         return InsightsFrameRequest::privateResponse($this->render('insights/frames/improvement.html.twig', [
             'context' => $context,
@@ -53,6 +55,7 @@ final class InsightsImprovementFrameController extends AbstractController
             'main' => $main,
             'others' => array_slice($frame->curve->sizes, 1),
             'rating_series' => $context->isMember ? $ratingSeries : null,
+            'rating_private' => $ratingPrivate,
             'curve_chart' => $context->isMember && $main instanceof ImprovementCurveSize ? $this->chartsFactory->improvement($main) : null,
             'rating_chart' => $context->isMember && $ratingSeries !== null ? $this->chartsFactory->ratingOverTime($ratingSeries) : null,
         ]));

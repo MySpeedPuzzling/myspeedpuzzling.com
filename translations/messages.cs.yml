@@ -10683,6 +10683,8 @@ insights:
             note: "Jeden bod za každý den s ratingem: poslední hodnota dne. Platí období z vašich filtrů."
         note: "Vaše tempo = váš typický čas prvního pokusu u daného počtu dílků, upravený každým započítaným prvním pokusem. Křivka pokrývá celou vaši historii."
     frames:
+        error: "Tuto část se nepodařilo načíst."
+        retry: "Zkusit znovu"
         chart:
             now: "Teď"
             today: "Dnes"
@@ -10694,7 +10696,6 @@ insights:
             first_tries: "{0}Zatím žádné první pokusy|{1}1 první pokus|[2,4]%count% první pokusy|[5,Inf[%count% prvních pokusů"
             rating: "Rating %rating%"
             rating_change: "%change% proti předchozímu dni"
-            rating_place: "%place%. místo na žebříčku"
     shelf:
         ask: "Co z mé poličky mi sedne?"
         question: "Co z mé poličky mi sedne?"

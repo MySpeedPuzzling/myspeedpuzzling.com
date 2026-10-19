@@ -43,7 +43,7 @@ final class InsightsTopFrameController extends AbstractController
 
         return InsightsFrameRequest::privateResponse($this->render('insights/frames/top.html.twig', [
             'context' => $context,
-            'top' => $this->insightsFrames->top($context->profile->playerId, $context->criteria, $context->isMember, $context->predictionsAllowed),
+            'top' => $this->insightsFrames->top($context->profile->playerId, $context->criteria, $context->isMember, $context->predictionsAllowed, $context->profile->isPrivateProfile, $context->profile->rankingOptedOut),
         ]));
     }
 }

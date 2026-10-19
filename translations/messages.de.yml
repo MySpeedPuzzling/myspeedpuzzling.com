@@ -10656,6 +10656,8 @@ insights:
             note: "Ein Punkt pro Tag mit Rating: der letzte Wert des Tages. Es gilt der Zeitraum deiner Filter."
         note: "Dein Tempo = deine typische Zeit beim ersten Versuch bei einer Teilezahl, aktualisiert mit jedem zählenden ersten Versuch. Die Kurve umfasst deine ganze Geschichte."
     frames:
+        error: "Dieser Teil konnte nicht geladen werden."
+        retry: "Erneut versuchen"
         chart:
             now: "Jetzt"
             today: "Heute"
@@ -10667,7 +10669,6 @@ insights:
             first_tries: "{0}Noch keine ersten Versuche|{1}1 erster Versuch|]1,Inf[%count% erste Versuche"
             rating: "Rating %rating%"
             rating_change: "%change% zum Vortag"
-            rating_place: "#%place% auf der Rangliste"
     shelf:
         ask: "Was aus meinem Regal passt zu mir?"
         question: "Was aus meinem Regal passt zu mir?"

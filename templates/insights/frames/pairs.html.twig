@@ -96,7 +96,12 @@
 
                 {% set names = {} %}
                 {% for group in groups %}
-                    {% set names = names|merge({(group.teamId): include('insights/frames/_group_name.html.twig', {synergy: group})}) %}
+                    {# Plain text (escaped once, by the trans output below) - the partial's markup would be escaped twice #}
+                    {% set hidden_name = 'secret_puzzler_name'|trans %}
+                    {% set plain_name = group.teamName is not empty
+                        ? group.teamName
+                        : group.partners|map(m => m.hidden ? hidden_name : (m.playerId is not null ? (m.name ?? ('#' ~ m.code)) : m.guestName))|join(', ') %}
+                    {% set names = names|merge({(group.teamId): plain_name}) %}
                 {% endfor %}
                 {% for list in [{key: 'pairs', items: synergy.bestPairResults}, {key: 'teams', items: synergy.bestTeamResults}] %}
                     {% set shown = list.items|filter(score => score.result.puzzle is not null) %}
@@ -110,7 +115,7 @@
                                         {{ lazy_puzzle_image(puzzle.image, 'puzzle_small', puzzle.name, 999, 48, 'rounded-2 ins-row__image', 48) }}
                                         <span class="ins-row__main">
                                             <span class="ins-row__name">{{ puzzle.name }}</span>
-                                            <span class="ins-row__meta">{{ 'insights.pairs.best.meta'|trans({'%name%': (names[score.result.teamId] ?? '')|striptags, '%pieces%': puzzle.piecesCount, '%date%': score.result.solvedAt|events_date('yMMMd')}) }}</span>
+                                            <span class="ins-row__meta">{{ 'insights.pairs.best.meta'|trans({'%name%': names[score.result.teamId] ?? '', '%pieces%': puzzle.piecesCount, '%date%': score.result.solvedAt|events_date('yMMMd')}) }}</span>
                                         </span>
                                         <span class="ins-row__num">{{ score.result.seconds|puzzlingTime }}<small>
                                             {%- set percent = ((1 - score.ratio)|abs * 100)|round -%}

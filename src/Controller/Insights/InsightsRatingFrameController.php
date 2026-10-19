@@ -43,7 +43,7 @@ final class InsightsRatingFrameController extends AbstractController
             return $redirect;
         }
 
-        $frame = $this->insightsFrames->rating($context->profile->playerId, $context->isMember);
+        $frame = $this->insightsFrames->rating($context->profile->playerId, $context->isMember, $context->profile->isPrivateProfile, $context->profile->rankingOptedOut);
         $forecastChart = $context->isMember && $frame->forecast !== null
             ? $this->chartsFactory->forecast($frame->forecast, $context->predictionsAllowed)
             : null;

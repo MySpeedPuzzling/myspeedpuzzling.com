@@ -4,7 +4,8 @@
     chips' anchors exist before it loads. `data-live-ignore`: the Insights live component's re-renders leave a loaded
     frame alone while its id stays the same; a filter the part reads changes the id (InsightsLazyPart::frameId()), the
     component then puts this placeholder back with the new src and Turbo loads it again. Links inside go to the whole
-    page (target="_top").
+    page (target="_top"). A failed load (an error, an answer without the frame - an expired session) shows "Couldn't load
+    this part" with "Try again" (insights_frame_controller.js).
 
     Variables: part (InsightsLazyPart value), criteria (InsightsCriteria)
 #}
@@ -17,7 +18,8 @@
     'insights-pairs': {key: 'pairs'},
     'insights-improvement': {key: 'improvement'},
 } %}
-<turbo-frame id="{{ frame.id }}" src="{{ frame.src }}" loading="lazy" target="_top" data-live-ignore data-testid="insights-frame-{{ part }}">
+<turbo-frame id="{{ frame.id }}" src="{{ frame.src }}" loading="lazy" target="_top" data-live-ignore data-testid="insights-frame-{{ part }}"
+    data-controller="insights-frame" data-insights-frame-error-value="{{ 'insights.frames.error'|trans }}" data-insights-frame-retry-value="{{ 'insights.frames.retry'|trans }}">
     {% for anchor in frame.anchors %}
         {% set key = heads[anchor].key %}
         <section class="ins-sec ins-sec--loading" id="{{ anchor }}" data-testid="insights-lazy-{{ key }}" aria-busy="true">

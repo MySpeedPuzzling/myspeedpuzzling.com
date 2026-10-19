@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\InsightsLadderSeeding;
 use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
+use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -27,6 +28,7 @@ final class InsightsFramesControllerTest extends WebTestCase
 {
     use InsightsLadderSeeding;
     use OverridesFeatureFlagEnv;
+    use QueryCountAssertions;
 
     private const string FLAG = 'INSIGHTS_PUBLIC';
     private const string FREE = PlayerFixture::PLAYER_REGULAR;
@@ -42,6 +44,12 @@ final class InsightsFramesControllerTest extends WebTestCase
     ];
 
     private const string PAIR_NAME = 'Canary Pair Name';
+
+    /**
+     * A whole shelf frame request on a cache miss (measured 7): account + profile 2, the cache key 1, ShelfPicks 3, the
+     * picks' estimate lines 1 (ResolvePersonalEstimates; + the gate record once when a picture estimate is listed)
+     */
+    private const int SHELF_FRAME_BUDGET = 7;
 
     protected function tearDown(): void
     {
@@ -315,6 +323,120 @@ final class InsightsFramesControllerTest extends WebTestCase
         $rating = $this->frame($browser, '/en/insights/rating');
         self::assertResponseIsSuccessful();
         self::assertStringNotContainsString('Insights Puzzle 41', (string) $rating->html(), 'the member\'s shelf');
+    }
+
+    public function testAPendingPuzzleCountsTowardsTwentySolvers(): void
+    {
+        $browser = $this->browser(flag: true, player: self::MEMBER);
+        $this->joinLadder($browser, self::MEMBER, beforeRecalculating: function (Connection $connection): void {
+            // A puzzle the member solved with 14 other public first tries: 15 of the 20 solvers the rating needs
+            $connection->executeStatement("INSERT INTO puzzle (id, pieces_count, name, approved, is_available) VALUES (:id, 500, 'Insights Puzzle 57', true, true)", ['id' => self::ladderPuzzle(57)]);
+            $this->seedSolves($connection, new DateTimeImmutable('today 12:00:00'), ['SELECT p, 57, 1800 + 30 * p, 50, true FROM generate_series(2, 15) AS p']);
+            $connection->executeStatement(
+                "INSERT INTO puzzle_solving_time (id, player_id, puzzle_id, seconds_to_solve, tracked_at, finished_at, verified, first_attempt)
+                VALUES (gen_random_uuid(), :player, :puzzle, 1500, NOW() - INTERVAL '40 days', NOW() - INTERVAL '40 days', true, true)",
+                ['player' => self::MEMBER, 'puzzle' => self::ladderPuzzle(57)],
+            );
+        });
+
+        $rating = $this->frame($browser, '/en/insights/rating');
+        self::assertResponseIsSuccessful();
+
+        $metas = $rating->filter('[data-testid="insights-pending-meta"]')->each(static fn (Crawler $meta): string => $meta->text());
+        self::assertContains('15 of 20 solvers · 5 more needed', $metas);
+    }
+
+    public function testRatingOverTimeShowsNoPlaceAndNothingForAPrivateProfile(): void
+    {
+        $browser = $this->browser(flag: true, player: self::MEMBER);
+        $this->joinLadder($browser, self::MEMBER);
+        $connection = $this->connection($browser);
+
+        foreach ([[10, 0.700], [1, 0.720]] as [$daysAgo, $rating]) {
+            $connection->executeStatement(
+                "INSERT INTO player_rating_snapshot (id, player_id, pieces_count, snapshot_date, elo_rating, elo_rank, computed_at)
+                VALUES (:id, :player, 500, CAST(CURRENT_DATE AS timestamp) - make_interval(days => :days), :rating, 7, NOW())",
+                ['id' => Uuid::uuid7()->toString(), 'player' => self::MEMBER, 'days' => $daysAgo, 'rating' => $rating],
+            );
+        }
+
+        // Opted out of rankings: the rating over time, never a place (the snapshot's stored rank follows another rule)
+        $connection->executeStatement('UPDATE player SET ranking_opted_out = true WHERE id = :id', ['id' => self::MEMBER]);
+        $improvement = $this->frame($browser, '/en/insights/improvement?period=all');
+        self::assertResponseIsSuccessful();
+
+        $chart = $improvement->filter('[id^="ins-chart-rating-"] [data-symfony--ux-chartjs--chart-view-value]');
+        self::assertCount(1, $chart);
+        $view = (string) $chart->attr('data-symfony--ux-chartjs--chart-view-value');
+        self::assertStringContainsString('Rating 720', $view);
+        self::assertStringNotContainsString('ladder', $view);
+
+        // Private: no MSP rating at all, like the rating section says
+        $connection->executeStatement('UPDATE player SET is_private = true WHERE id = :id', ['id' => self::MEMBER]);
+        $improvement = $this->frame($browser, '/en/insights/improvement?period=all');
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $improvement->filter('[data-testid="insights-rating-over-time-private"]'));
+        self::assertCount(0, $improvement->filter('[id^="ins-chart-rating-"]'));
+    }
+
+    public function testATeamNameIsEscapedOnce(): void
+    {
+        $browser = $this->browser(flag: true, player: self::MEMBER);
+        $this->joinLadder($browser, self::MEMBER, beforeRecalculating: function (Connection $connection): void {
+            $connection->executeStatement("UPDATE puzzling_team SET name = 'Jan''s & Eva' WHERE name = :name", ['name' => self::PAIR_NAME]);
+        });
+
+        $pairs = $this->frame($browser, '/en/insights/pairs-and-teams?period=all');
+        self::assertResponseIsSuccessful();
+        $html = (string) $browser->getResponse()->getContent();
+
+        self::assertStringNotContainsString('&amp;#039;', $html);
+        self::assertStringNotContainsString('&amp;amp;', $html);
+        self::assertStringContainsString("with Jan's & Eva", $pairs->filter('[data-testid="insights-pairs-best-pairs"]')->text());
+        self::assertStringContainsString("Jan's & Eva", $pairs->filter('[data-testid="insights-pairs-takeaway"]')->text());
+    }
+
+    public function testEveryFrameShowsAnErrorInsteadOfFailingSilently(): void
+    {
+        $browser = $this->browser(flag: true, player: self::MEMBER);
+        $this->joinLadder($browser, self::MEMBER);
+
+        $page = $browser->request('GET', '/en/insights');
+        self::assertResponseIsSuccessful();
+
+        $frames = $page->filter('turbo-frame[data-testid^="insights-frame-"]');
+        self::assertCount(6, $frames);
+
+        foreach ($frames as $frame) {
+            self::assertInstanceOf(\DOMElement::class, $frame);
+            self::assertSame('insights-frame', $frame->getAttribute('data-controller'));
+            self::assertSame("Couldn't load this part.", $frame->getAttribute('data-insights-frame-error-value'));
+            self::assertSame('Try again', $frame->getAttribute('data-insights-frame-retry-value'));
+        }
+
+        // An expired session: the frame's request is sent to sign in - the answer has no frame, which the controller turns
+        // into the error state (turbo:frame-missing)
+        $browser->getCookieJar()->clear();
+        $browser->restart();
+        $this->frame($browser, '/en/insights/shelf');
+        self::assertResponseRedirects();
+        self::assertStringStartsWith('/login', (string) $browser->getResponse()->headers->get('Location'));
+    }
+
+    public function testTheShelfFrameRequestStaysWithinItsBudget(): void
+    {
+        $browser = $this->browser(flag: true, player: self::MEMBER);
+        $this->joinLadder($browser, self::MEMBER);
+
+        // The first request of a session does one-off work (sign-in bookkeeping) - not the frame's
+        $this->frame($browser, '/en/insights/shelf');
+
+        $this->startCountingQueries($browser);
+        $shelf = $this->frame($browser, '/en/insights/shelf');
+        self::assertResponseIsSuccessful();
+        self::assertGreaterThan(0, $shelf->filter('[data-testid="estimate-line"]')->count());
+
+        self::assertQueryCountAtMost($browser, self::SHELF_FRAME_BUDGET, 'the shelf frame on a cache miss');
     }
 
     /**

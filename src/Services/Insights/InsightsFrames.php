@@ -48,9 +48,9 @@ readonly final class InsightsFrames
     /**
      * Sections 9 + 10 from one rating model (MSP rating = 500 pieces, its own 24-month window: no filter applies)
      */
-    public function rating(string $playerId, bool $isMember): InsightsRatingFrame
+    public function rating(string $playerId, bool $isMember, bool $isPrivate, bool $rankingOptedOut): InsightsRatingFrame
     {
-        return $this->ratingFor($this->insightsCache->keyFor($playerId), $playerId, $isMember);
+        return $this->ratingFor($this->insightsCache->keyFor($playerId), $playerId, $isMember, $isPrivate, $rankingOptedOut);
     }
 
     /**
@@ -70,7 +70,7 @@ readonly final class InsightsFrames
      * The top row's "Try next" and "MSP rating" cards: the shelf's and the rating's cache entries under one key -
      * whichever frame comes first builds them, the others read them. Null with predictions off (both rest on them).
      */
-    public function top(string $playerId, InsightsCriteria $criteria, bool $isMember, bool $predictionsAllowed): null|InsightsTopFrame
+    public function top(string $playerId, InsightsCriteria $criteria, bool $isMember, bool $predictionsAllowed, bool $isPrivate, bool $rankingOptedOut): null|InsightsTopFrame
     {
         if ($predictionsAllowed === false) {
             return null;
@@ -79,14 +79,19 @@ readonly final class InsightsFrames
         $key = $this->insightsCache->keyFor($playerId);
 
         return new InsightsTopFrame(
-            $this->ratingFor($key, $playerId, $isMember)->opportunities,
+            $this->ratingFor($key, $playerId, $isMember, $isPrivate, $rankingOptedOut)->opportunities,
             $this->shelfFor($key, $playerId, $criteria, $isMember),
         );
     }
 
-    private function ratingFor(InsightsCacheKey $key, string $playerId, bool $isMember): InsightsRatingFrame
+    /**
+     * Keyed by the player's own privacy and ranking opt-out too (the profile row has them): they change the standing at
+     * once, while the fingerprint only covers results and the generation moves every 15 minutes - the section must not
+     * lag the rating tile (which reads them live) after a switch
+     */
+    private function ratingFor(InsightsCacheKey $key, string $playerId, bool $isMember, bool $isPrivate, bool $rankingOptedOut): InsightsRatingFrame
     {
-        return $this->insightsCache->get($key, self::part(InsightsLazyPart::Rating), ['member' => $isMember], function () use ($playerId, $isMember): InsightsRatingFrame {
+        return $this->insightsCache->get($key, self::part(InsightsLazyPart::Rating), ['member' => $isMember, 'private' => $isPrivate, 'opted_out' => $rankingOptedOut], function () use ($playerId, $isMember): InsightsRatingFrame {
             $model = $this->ratingModelLoader->load($playerId, PuzzleIntelligenceRecalculator::RATING_PIECES_COUNTS[0]);
 
             return new InsightsRatingFrame(

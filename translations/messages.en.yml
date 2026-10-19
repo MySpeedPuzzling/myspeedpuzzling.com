@@ -10930,6 +10930,8 @@ insights:
             note: "One point per day you had a rating: the day's last value. The period of your filters applies."
         note: "Your pace = your typical first-try time at a piece count, updated with every first try that counts. The curve covers your whole history."
     frames:
+        error: "Couldn't load this part."
+        retry: "Try again"
         chart:
             now: "Now"
             today: "Today"
@@ -10941,7 +10943,6 @@ insights:
             first_tries: "{0}No first tries yet|{1}1 first try|]1,Inf[%count% first tries"
             rating: "Rating %rating%"
             rating_change: "%change% on the day before"
-            rating_place: "#%place% on the ladder"
     shelf:
         ask: "What from my shelf suits me?"
         question: "What from my shelf suits me?"

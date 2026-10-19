@@ -10657,6 +10657,8 @@ insights:
             note: "Un punto por cada día con rating: el último valor del día. Se aplica el periodo de tus filtros."
         note: "Tu ritmo = tu tiempo típico de primer intento en un número de piezas, actualizado con cada primer intento que cuenta. La curva cubre todo tu historial."
     frames:
+        error: "No se ha podido cargar esta parte."
+        retry: "Reintentar"
         chart:
             now: "Ahora"
             today: "Hoy"
@@ -10668,7 +10670,6 @@ insights:
             first_tries: "{0}Aún sin primeros intentos|{1}1 primer intento|]1,Inf[%count% primeros intentos"
             rating: "Rating %rating%"
             rating_change: "%change% respecto al día anterior"
-            rating_place: "#%place% en la escalera"
     shelf:
         ask: "¿Qué de mi estantería me va bien?"
         question: "¿Qué de mi estantería me va bien?"

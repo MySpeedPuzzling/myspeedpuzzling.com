@@ -5,7 +5,8 @@
     Members; free players get the lock with counts.
 
     Variables: context (InsightsFrameContext), frame (InsightsImprovementFrame), main (null|ImprovementCurveSize),
-               others (list<ImprovementCurveSize>), rating_series (null|RatingOverTimeSeries), curve_chart, rating_chart
+               others (list<ImprovementCurveSize>), rating_series (null|RatingOverTimeSeries), rating_private (bool: no
+               rating for a private profile), curve_chart, rating_chart
 #}
 {% set is_member = context.isMember %}
 <turbo-frame id="{{ context.frameId }}">
@@ -101,7 +102,9 @@
 
         <div class="ins-subsec" data-testid="insights-rating-over-time">
             <h3 class="ins-subsec__title">{{ 'insights.improvement.rating.title'|trans }}</h3>
-            {% if rating_series is null %}
+            {% if rating_private %}
+                <p class="ins-take" data-testid="insights-rating-over-time-private">{{ 'insights.rating.private'|trans }}</p>
+            {% elseif rating_series is null %}
                 <p class="ins-take">{{ 'insights.improvement.rating.none'|trans }}</p>
             {% else %}
                 <p class="ins-take">

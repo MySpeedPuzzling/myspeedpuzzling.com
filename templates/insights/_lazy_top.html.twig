@@ -8,7 +8,8 @@
 #}
 {% if predictions_allowed %}
     {% set frame = insights_frame('top', criteria) %}
-    <turbo-frame id="{{ frame.id }}" src="{{ frame.src }}" target="_top" class="ins-findings__frame" data-live-ignore data-testid="insights-frame-top">
+    <turbo-frame id="{{ frame.id }}" src="{{ frame.src }}" target="_top" class="ins-findings__frame" data-live-ignore data-testid="insights-frame-top"
+        data-controller="insights-frame" data-insights-frame-error-value="{{ 'insights.frames.error'|trans }}" data-insights-frame-retry-value="{{ 'insights.frames.retry'|trans }}">
         {% for kicker in ['insights.top.try_next.kicker', 'insights.top.rating.kicker'] %}
             <span class="ins-finding is-loading" aria-hidden="true">
                 <span class="ins-finding__kicker">{{ kicker|trans }}</span>

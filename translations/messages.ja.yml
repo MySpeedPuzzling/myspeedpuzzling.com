@@ -10646,6 +10646,8 @@ insights:
             note: "レーティングのある日ごとに1点（その日の最後の値）。フィルターの期間が適用されます。"
         note: "ペース＝あるピース数での初回のいつものタイム。対象になる初回のたびに更新されます。曲線は全期間をカバーします。"
     frames:
+        error: "この部分を読み込めませんでした。"
+        retry: "もう一度試す"
         chart:
             now: "今"
             today: "今日"
@@ -10657,7 +10659,6 @@ insights:
             first_tries: "{0}初回はまだありません|[1,Inf[初回%count%件"
             rating: "レーティング %rating%"
             rating_change: "前日比%change%"
-            rating_place: "ラダー#%place%位"
     shelf:
         ask: "棚のどれが自分に合う？"
         question: "棚のどれが自分に合う？"

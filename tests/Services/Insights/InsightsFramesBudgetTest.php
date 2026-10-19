@@ -94,12 +94,12 @@ final class InsightsFramesBudgetTest extends KernelTestCase
         $frames = $container->get(InsightsFrames::class);
 
         $parts = [
-            'rating, member' => static fn () => $frames->rating($player, true),
-            'rating, free' => static fn () => $frames->rating($player, false),
+            'rating, member' => static fn () => $frames->rating($player, true, false, false),
+            'rating, free' => static fn () => $frames->rating($player, false, false, false),
             'shelf picks, member' => static fn () => $frames->shelf($player, $member, true, true),
             'shelf picks, free' => static fn () => $frames->shelf($player, $free, false, true),
-            'top row, member' => static fn () => $frames->top($player, $member, true, true),
-            'top row, free' => static fn () => $frames->top($player, $free, false, true),
+            'top row, member' => static fn () => $frames->top($player, $member, true, true, false, false),
+            'top row, free' => static fn () => $frames->top($player, $free, false, true, false, false),
             're-solve radar' => static fn () => $frames->resolve($player, $member, true),
             'pairs & teams' => static fn () => $frames->pairs($player, $member),
             'improvement, member' => static fn () => $frames->improvement($player, $member, true),
@@ -141,15 +141,15 @@ final class InsightsFramesBudgetTest extends KernelTestCase
         $holder->reset();
         self::assertNull($frames->resolve($player, $member, false));
         self::assertNull($frames->shelf($player, $member, true, false));
-        self::assertNull($frames->top($player, $member, true, false));
+        self::assertNull($frames->top($player, $member, true, false, false, false));
         self::assertSame(0, $this->statements($holder));
 
         // The top row and the frames below share their cache entries: after the top row, rating and shelf cost the key only
         $resetter->reset();
         $this->loadViewer();
-        $frames->top($player, $member, true, true);
+        $frames->top($player, $member, true, true, false, false);
         $holder->reset();
-        $frames->rating($player, true);
+        $frames->rating($player, true, false, false);
         $frames->shelf($player, $member, true, true);
         self::assertSame(2, $this->statements($holder));
     }

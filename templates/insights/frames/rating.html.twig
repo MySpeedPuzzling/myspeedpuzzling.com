@@ -148,8 +148,10 @@
                                 {{ lazy_puzzle_image(pending.puzzle.image, 'puzzle_small', pending.puzzle.name, 999, 48, 'rounded-2 ins-row__image', 48) }}
                                 <span class="ins-row__main">
                                     <span class="ins-row__name">{{ pending.puzzle.name }}</span>
-                                    <span class="ins-row__meta">{{ 'insights.rating.pending.meta'|trans({'%have%': pending.solverCount, '%needed%': pending.solversNeeded, '%count%': max(0, pending.solversNeeded - pending.solverCount)}) }}</span>
-                                    <span class="ins-path__bar ins-path__bar--small" aria-hidden="true"><span style="width: {{ (min(pending.solverCount, pending.solversNeeded) / max(1, pending.solversNeeded) * 100)|round }}%"></span></span>
+                                    {# solversNeeded = how many are still missing; the target is the rating's 20 solvers a puzzle #}
+                                    {% set target = constant('SpeedPuzzling\\Web\\Services\\PuzzleIntelligence\\MspRatingFormula::MIN_SOLVERS_PER_PUZZLE') %}
+                                    <span class="ins-row__meta" data-testid="insights-pending-meta">{{ 'insights.rating.pending.meta'|trans({'%have%': pending.solverCount, '%needed%': target, '%count%': max(0, pending.solversNeeded)}) }}</span>
+                                    <span class="ins-path__bar ins-path__bar--small" aria-hidden="true"><span style="width: {{ (min(pending.solverCount, target) / target * 100)|round }}%"></span></span>
                                 </span>
                                 <span class="ins-row__num">{{ pending.gainWhenItCounts >= 0.05 ? '+' ~ pending.gainWhenItCounts|format_number({fraction_digit: 1}) : '±0' }}<small>{{ 'insights.rating.pending.when'|trans }}</small></span>
                             </a>

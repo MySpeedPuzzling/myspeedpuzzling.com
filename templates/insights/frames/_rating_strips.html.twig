@@ -1,7 +1,8 @@
 {#
     "Your rating, entry by entry" (members): one bar per entry of each portfolio, best first - its points, faded by
     age, the best 100 that count in indigo, a dashed cut at #100. Plain SVG, no script: every bar carries its own
-    <title>. A secret puzzle's entry counts but is not named.
+    <title> for a pointer, and a visually hidden list carries the same for screen readers (the SVG is one image). A
+    secret puzzle's entry counts but is not named.
 
     Variables: opportunities (RatingOpportunitiesResult)
 #}
@@ -39,6 +40,12 @@
                 {% endif %}
                 <line x1="0" x2="{{ width }}" y1="{{ height - 12 }}" y2="{{ height - 12 }}" class="ins-strips__base"/>
             </svg>
+            {# The bars' details for screen readers (the SVG is one image) #}
+            <ol class="visually-hidden" data-testid="insights-rating-strip-list">
+                {% for entry in shown %}
+                    <li>{{ entry.puzzle is not null ? entry.puzzle.name : 'insights.rating.strips.secret'|trans }} · {{ 'insights.rating.strips.points'|trans({'%points%': entry.points|round, '%position%': loop.index}) }} · {{ entry.solvedAt|events_date('yMMMd') }}{{ entry.counts ? '' : ' · ' ~ 'insights.rating.strips.outside'|trans({'%cap%': cap}) }}</li>
+                {% endfor %}
+            </ol>
             {% if row.entries|length > shown|length %}
                 <p class="ins-strips__more">{{ 'insights.rating.strips.more'|trans({'%count%': row.entries|length - shown|length}) }}</p>
             {% endif %}

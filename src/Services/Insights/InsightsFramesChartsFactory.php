@@ -318,7 +318,8 @@ readonly final class InsightsFramesChartsFactory
     }
 
     /**
-     * The daily rating (player_rating_snapshot) within the period
+     * The daily rating (player_rating_snapshot) within the period - the rating only: the snapshot's stored place
+     * follows another rule than today's ladder (and the ranking opt-out), so no place is shown here
      */
     public function ratingOverTime(RatingOverTimeSeries $series): null|Chart
     {
@@ -338,10 +339,6 @@ readonly final class InsightsFramesChartsFactory
 
             if ($day->change !== null && abs($day->change) >= 0.5) {
                 $lines[] = $this->trans('frames.chart.rating_change', ['%change%' => sprintf('%+d', (int) round($day->change))]);
-            }
-
-            if ($day->place !== null) {
-                $lines[] = $this->trans('frames.chart.rating_place', ['%place%' => $day->place]);
             }
 
             $tooltips[] = ['title' => $this->dates->format($day->date, 'yMMMd'), 'lines' => $lines];

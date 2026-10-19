@@ -292,14 +292,11 @@ export default class extends Controller {
             });
         }
         this.trackCapabilities = this._capabilities(this.videoTrack);
-        // A <video> that already showed a camera gets replaced by a fresh one: Safari did not paint the second stream
-        // in a reused element - the camera on, frames decoded, but a blank picture with the spinner (iPhone,
-        // 2026-10-19: global search after a read, and every restart of §5.10)
-        if (this.videoUsed) {
-            const fresh = this.videoTarget.cloneNode(false);
-            this.videoTarget.replaceWith(fresh);
-        }
-        this.videoUsed = true;
+        // Every start gets a <video> made right here by this document: Safari painted no frame of the camera (playing,
+        // readyState 4, 0 frames shown - a blank picture with the spinner) in an element Turbo had brought from the
+        // next page's parsed HTML - every scanner after a page change, until a reload (iPhone, 2026-10-19) - nor a
+        // second stream in a reused element (global search after a read, every restart of §5.10)
+        this._freshVideo();
         this.videoTarget.srcObject = opened.stream;
         this.playError = null;
         this._play();
@@ -321,6 +318,19 @@ export default class extends Controller {
         this._setupTrack();
         this._startDebug();
         this.scanLoop();
+    }
+
+    _freshVideo() {
+        const old = this.videoTarget;
+        const video = document.createElement('video');
+        for (const attribute of old.attributes) {
+            video.setAttribute(attribute.name, attribute.value);
+        }
+        // The properties too: an element not made by the page's own parser does not take them from the attributes
+        video.muted = true;
+        video.playsInline = true;
+        video.autoplay = true;
+        old.replaceWith(video);
     }
 
     /**

@@ -626,7 +626,8 @@ Now (`_visibilityChanged()`, `_restartCamera()`):
 **Reopening (same night, 00:58):** in Safari the global search's scanner opened a second time (after a read) showed
 the spinner over a blank picture - the camera on, 72 frames decoded in 6.7 s, nothing painted. Neither Chrome nor
 Playwright's WebKit reproduces it (the old code paints every reopen there too), so two guards plus evidence:
-- every camera start after the first gets a **fresh `<video>`** (`cloneNode(false)`) instead of the reused one, and
+- every camera start after the first gets a **fresh `<video>`** instead of the reused one (since the page-change fix
+  below: on every start, `_freshVideo()`), and
   stopping no longer calls `video.load()`;
 - `play()` is asked again once the stream's metadata arrives (iOS may refuse the first one, which comes after the
   camera wait, outside the tap);
@@ -635,6 +636,14 @@ Playwright's WebKit reproduces it (the old code paints every reopen there too), 
 
 Tested in Chrome: hidden → no live track; shown → a new one, reads; `ended` → restarted, the 4th within a minute is
 not. Also less battery: a scanner left open in a background tab no longer runs at all.
+
+**After a page change (2026-10-19, 07:15):** the reports answered it - every scanner opened after a Turbo page change
+(add form, global search, multiscan; any page) was playing (`video_paused` false, `video_ready_state` 4, no
+`play_error`) with **0 frames painted** (`video_frames_total` 0, often `video_shown` 0x0) until a reload. Turbo builds
+the next page in a parsed document of its own and moves its body in, so the `<video>` was not made by the page's
+document, and Safari paints no camera stream into such an element. Now **every camera start makes its `<video>` with
+`document.createElement`** (`_freshVideo()`: attributes copied, `muted` / `playsInline` / `autoplay` set as properties
+too), which also covers the reopening case above.
 
 ## 6. Open questions for Jan
 

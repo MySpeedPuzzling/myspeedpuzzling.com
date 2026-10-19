@@ -428,7 +428,7 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       `SuspiciousTimeQueryCoverageTest` + a canary. **Needs a proper plan first** (Jan, 2026-10-19): who exactly sees it,
       times not linked to the event, official results, notifications/e-mails, achievements/XP and stats recomputation.
       Promised to Dakota (MSP #331, follow-up F149).
-- [ ] Add/edit event form: when 'recurring series' is ticked, make Location optional for the series and explain in the
+- [x] Add/edit event form: when 'recurring series' is ticked, make Location optional for the series and explain in the
       help text that every edition has its own location, dates, rounds, participants and results (an organiser read
       'series' as 'same place every time') - CompetitionFormData, add_competition.html.twig, all 6 locales. Promised to
       Dakota (MSP #331, follow-up F150).

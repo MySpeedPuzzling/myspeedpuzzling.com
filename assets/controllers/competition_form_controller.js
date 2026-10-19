@@ -10,7 +10,14 @@ export default class extends Controller {
         'typeSelectedFields',
         'editionLinks',
         'editionLinksNote',
+        'locationLabel',
+        'seriesLocationHelp',
     ];
+
+    // The series edit form has no "Recurring" checkbox - it is a series
+    static values = {
+        series: Boolean,
+    };
 
     connect() {
         this._toggle();
@@ -25,7 +32,7 @@ export default class extends Controller {
         const hasSelection = checkedRadio !== null;
         const isOnline = checkedRadio !== null && checkedRadio.value === '1';
         const recurringCheckbox = this.element.querySelector('input[type="checkbox"][name*="isRecurring"]');
-        const isRecurring = recurringCheckbox !== null && recurringCheckbox.checked;
+        const isRecurring = this.seriesValue || (recurringCheckbox !== null && recurringCheckbox.checked);
 
         this.offlineFieldsTargets.forEach(el => {
             el.style.display = hasSelection && !isOnline ? '' : 'none';
@@ -42,6 +49,15 @@ export default class extends Controller {
 
         this.onlineDatesHelpTargets.forEach(el => {
             el.style.display = isOnline ? '' : 'none';
+        });
+
+        // Location is required for a one-time event only - every edition of a series has its own
+        this.locationLabelTargets.forEach(el => {
+            el.classList.toggle('required', !isRecurring);
+        });
+
+        this.seriesLocationHelpTargets.forEach(el => {
+            el.style.display = isRecurring ? '' : 'none';
         });
 
         // A series has no registration and results links - its editions have them

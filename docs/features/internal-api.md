@@ -1074,7 +1074,7 @@ list answers `{"total", "limit", "offset", "organizations": [...]}` without `mai
 | `shortcut`, `description` | |
 | `link` | The series' website (URL) |
 | `isOnline` | `false` by default; `true` clears `location` |
-| `location`, `locationCountryCode` | An in-person series needs a location; editions take the series' place when they are created |
+| `location`, `locationCountryCode` | Optional, also for an in-person series (every edition has its own location); editions take the series' place when they are created |
 | `eligibility` | "Who can enter", ≤ 120 characters - shown by editions without their own |
 | `schedule` | "When it happens", ≤ 160 characters ("Second Thursday of the month, 7:30 pm") - free text, each date is still its own edition |
 | `slug`, `maintainerIds` | As for competitions |

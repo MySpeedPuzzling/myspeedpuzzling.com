@@ -35,7 +35,7 @@
                 <div class="card shadow my-4">
                     <div class="card-body">
                         {{ form_start(form) }}
-                        <div data-controller="competition-form">
+                        <div data-controller="competition-form" data-competition-form-series-value="true">
                             <div class="required">{{ form_row(form.name) }}</div>
                             {{ form_row(form.shortcut) }}
                             <div class="mb-3">
@@ -57,8 +57,12 @@
                             </div>
                             <div data-competition-form-target="offlineFields">
                                 <div class="mb-3">
-                                    {{ form_label(form.location, null, {label_attr: {class: 'form-label required'}}) }}
+                                    {#- Optional: every edition of a series has its own location -#}
+                                    {{ form_label(form.location, null, {label_attr: {class: 'form-label'}}) }}
                                     {{ form_widget(form.location) }}
+                                    <div class="form-text" data-competition-form-target="seriesLocationHelp">
+                                        {{ 'competition.form.location_series_help'|trans }}
+                                    </div>
                                     {{ form_errors(form.location) }}
                                 </div>
                             </div>

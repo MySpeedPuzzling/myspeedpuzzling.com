@@ -324,7 +324,10 @@ wait for approval and are not drafts (a draft is submitted by publishing it).
   (`AssignEventToOrganization`, dispatched after the edit; the actor's right to the target organization is checked
   before anything is saved - a lost right is a form error, 422). **Who can enter** (help: "Leave empty when anyone can
   enter. Shown as a tag, …"); series: **When it happens** (help with an example - each date is still its own edition;
-  on the add form shown only while "Recurring" is ticked, dropped otherwise).
+  on the add form shown only while "Recurring" is ticked, dropped otherwise). **Location** is required for an in-person
+  one-time event only: a series' location is optional (`CompetitionFormData::validateOfflineFields()`, also the series
+  edit form and the internal API), because every edition has its own location, dates, rounds, participants and results
+  - the help under it says so while "Recurring" is ticked (an organiser read "series" as "same place every time").
 - **Add edition** (`add_edition`): Who can enter (help: "Leave empty to use the series' setting."), and a link "Add
   several dates" to `add_editions`.
 - **Add organization** (`add_organization`) / **edit organization** (`edit_organization`): name, short name, kind,

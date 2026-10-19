@@ -130,7 +130,7 @@ readonly final class AddCompetitionSeriesHandler
             return;
         }
 
-        $this->competitionSubmittedMailer->notifyAdmin($message->name, $player->name ?? 'Unknown', $message->location ?? 'Online');
+        $this->competitionSubmittedMailer->notifyAdmin($message->name, $player->name ?? 'Unknown', $message->isOnline ? 'Online' : ($message->location ?? '-'));
     }
 
     private function generateUniqueSlug(string $name): string

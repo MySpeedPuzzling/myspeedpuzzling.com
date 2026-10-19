@@ -12,8 +12,8 @@ use SpeedPuzzling\Web\Value\CountryCode;
 /**
  * The series fields of a create / update body, applied onto the web form's data object of "Add event" with "Recurring"
  * ticked (CompetitionFormData, `isRecurring = true`) - so the API validates a series by the form's rules: required
- * name, an in-person series needs a location, links that are URLs, "Who can enter" ≤ 120 and "When it happens" ≤ 160
- * characters. A field left out keeps the value already in `$data`.
+ * name, links that are URLs, "Who can enter" ≤ 120 and "When it happens" ≤ 160 characters; the location is optional
+ * (every edition has its own). A field left out keeps the value already in `$data`.
  */
 final class SeriesInput
 {

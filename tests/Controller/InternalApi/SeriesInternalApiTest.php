@@ -125,9 +125,11 @@ final class SeriesInternalApiTest extends WebTestCase
         ]);
         self::assertResponseStatusCodeSame(400);
         self::assertIsArray($answer['errors']);
-        foreach (['name', 'location', 'link', 'eligibility', 'schedule', 'organizationId'] as $field) {
+        foreach (['name', 'link', 'eligibility', 'schedule', 'organizationId'] as $field) {
             self::assertArrayHasKey($field, $answer['errors'], $field);
         }
+        // Every edition has its own location - an in-person series does not need one
+        self::assertArrayNotHasKey('location', $answer['errors']);
 
         self::callInternalApi($browser, 'POST', '/internal-api/series', ['name' => 'Copy', 'isOnline' => true, 'slug' => OrganizationFixture::SERIES_LANTERN_NIGHTS_SLUG]);
         self::assertResponseStatusCodeSame(409);

@@ -1345,7 +1345,7 @@ for_organizers:
         title: "And there's more"
         series:
             title: "Recurring series"
-            description: "Run weekly or monthly events? Group editions under a series. Each keeps its own participants and results."
+            description: "Run weekly, monthly or yearly events - at one venue or somewhere new each time? Group the editions under a series. Each keeps its own location, participants and results."
         co_maintainers:
             title: "Co-maintainers"
             description: "Share management access with your team. Multiple organizers can edit the same event simultaneously."
@@ -4481,6 +4481,7 @@ competition:
         results_link: "Results URL"
         links_per_edition: "Registration and results links are set for each edition separately, once the series is created."
         location: "Location"
+        location_series_help: "Optional for a series - each edition has its own location. Fill it in only when it always takes place at the same venue."
         country: "Country"
         country_placeholder: "Select country..."
         date_from: "Start date"
@@ -4491,7 +4492,7 @@ competition:
         event_type_offline: "Offline event"
         event_type_online: "Online event"
         is_recurring: "This is a recurring event series"
-        is_recurring_help: "Check this if the event happens on a regular basis (e.g. every week, every month). You will manage each occurrence as a separate edition with its own dates, rounds, and participants."
+        is_recurring_help: "Check this if the event comes back regularly - every week, every month or every year, also when it moves to a new venue. Each date is an edition with its own location, dates, rounds, participants and results."
         logo: "Logo"
         logo_current: "Current logo"
         logo_keep_help: "Leave empty to keep the current logo."

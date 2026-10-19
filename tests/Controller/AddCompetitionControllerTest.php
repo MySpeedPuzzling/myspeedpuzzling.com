@@ -161,6 +161,52 @@ final class AddCompetitionControllerTest extends WebTestCase
         ));
     }
 
+    public function testAnInPersonSeriesCanBeAddedWithoutALocation(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/add-event');
+        // The help under Location says why a series may leave it empty (shown by competition_form_controller.js)
+        $this->assertSelectorTextContains('[data-competition-form-target="seriesLocationHelp"]', 'each edition has its own location');
+        self::assertCount(1, $crawler->filter('label[data-competition-form-target="locationLabel"][for="competition_form_location"]'));
+
+        $browser->submitForm('Submit for Approval', [
+            'competition_form[name]' => 'Wandering Puzzle Nights',
+            'competition_form[isOnline]' => '0',
+            'competition_form[isRecurring]' => true,
+        ]);
+
+        $this->assertResponseRedirects();
+        $row = self::getContainer()->get(Connection::class)->fetchAssociative(
+            'SELECT location, is_online FROM competition_series WHERE name = :name',
+            ['name' => 'Wandering Puzzle Nights'],
+        );
+        self::assertIsArray($row);
+        self::assertNull($row['location']);
+        self::assertFalse($row['is_online']);
+    }
+
+    public function testAnInPersonOneTimeEventStillNeedsALocation(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', '/en/add-event');
+        $browser->submitForm('Submit for Approval', [
+            'competition_form[name]' => 'Placeless Puzzle Open',
+            'competition_form[isOnline]' => '0',
+            'competition_form[dateFrom]' => '14.11.2026',
+            'competition_form[dateTo]' => '14.11.2026',
+        ]);
+
+        $this->assertResponseStatusCodeSame(422);
+        self::assertFalse(self::getContainer()->get(Connection::class)->fetchOne(
+            'SELECT id FROM competition WHERE name = :name',
+            ['name' => 'Placeless Puzzle Open'],
+        ));
+    }
+
     public function testALogoChosenForARefusedSubmitIsKeptForTheNextOne(): void
     {
         $browser = self::createClient();

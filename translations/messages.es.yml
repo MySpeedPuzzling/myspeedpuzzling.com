@@ -1156,7 +1156,7 @@ competition_referees:
     "title": "Y hay más"
     "series":
       "title": "Series recurrentes"
-      "description": "¿Organizas eventos semanales o mensuales? Agrupa ediciones en una serie. Cada una conserva sus propios participantes y resultados."
+      "description": "¿Organizas eventos semanales, mensuales o anuales, en el mismo lugar o en uno distinto cada vez? Agrupa las ediciones en una serie. Cada una conserva su propia ubicación, participantes y resultados."
     "co_maintainers":
       "title": "Co-organizadores"
       "description": "Comparte el acceso de gestión con tu equipo. Varios organizadores pueden editar el mismo evento simultáneamente."
@@ -3897,6 +3897,7 @@ fair_use_policy:
     "results_link": "URL de resultados"
     "links_per_edition": "Los enlaces de inscripción y de resultados se indican en cada edición por separado, una vez creada la serie."
     "location": "Ubicación"
+    "location_series_help": "Opcional para una serie: cada edición tiene su propia ubicación. Rellénala solo si siempre se celebra en el mismo lugar."
     "country": "País"
     "country_placeholder": "Seleccionar país..."
     "date_from": "Fecha de inicio"
@@ -3907,7 +3908,7 @@ fair_use_policy:
     "event_type_offline": "Evento presencial"
     "event_type_online": "Evento en línea"
     "is_recurring": "Esta es una serie de eventos recurrente"
-    "is_recurring_help": "Marca esto si el evento se celebra de forma regular (p.ej. cada semana, cada mes). Gestionarás cada celebración como una edición independiente con sus propias fechas, rondas y participantes."
+    "is_recurring_help": "Marca esto si el evento se repite con regularidad: cada semana, cada mes o cada año, también si cambia de sede. Cada fecha es una edición con su propia ubicación, fechas, rondas, participantes y resultados."
     "logo": "Logo"
     "logo_current": "Logo actual"
     "logo_keep_help": "Déjalo vacío para conservar el logo actual."

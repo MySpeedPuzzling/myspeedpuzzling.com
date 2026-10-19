@@ -54,8 +54,13 @@
                                 {{ form_row(form.isRecurring, {attr: {'data-approval-note-target': 'recurring'}}) }}
                             </div>
                             <div class="mb-3" data-competition-form-target="offlineFields">
-                                {{ form_label(form.location, null, {label_attr: {class: 'form-label required'}}) }}
+                                {#- Required for a one-time event only: every edition of a series has its own location
+                                    (competition_form_controller.js follows "Recurring") -#}
+                                {{ form_label(form.location, null, {label_attr: {class: 'form-label' ~ (recurring ? '' : ' required'), 'data-competition-form-target': 'locationLabel'}}) }}
                                 {{ form_widget(form.location) }}
+                                <div class="form-text" data-competition-form-target="seriesLocationHelp"{% if not recurring %} style="display: none;"{% endif %}>
+                                    {{ 'competition.form.location_series_help'|trans }}
+                                </div>
                                 {{ form_errors(form.location) }}
                             </div>
                             <div data-competition-form-target="typeSelectedFields" data-controller="country-autocomplete">

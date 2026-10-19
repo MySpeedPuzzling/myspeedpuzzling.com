@@ -63,14 +63,16 @@ final class CompetitionFormData
             return;
         }
 
-        if ($this->location === null || $this->location === '') {
+        // A series has no place of its own: every edition has its own location, dates, rounds, participants and
+        // results - the series' location is optional, filled in only when it always takes place at the same venue
+        if ($this->isRecurring) {
+            return;
+        }
+
+        if ($this->location === null || trim($this->location) === '') {
             $context->buildViolation('This value should not be blank.')
                 ->atPath('location')
                 ->addViolation();
-        }
-
-        if ($this->isRecurring) {
-            return;
         }
 
         if ($this->dateFrom === null) {

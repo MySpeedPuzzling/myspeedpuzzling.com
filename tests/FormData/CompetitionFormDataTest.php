@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\FormData;
 use DateTimeImmutable;
 use SpeedPuzzling\Web\FormData\CompetitionFormData;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class CompetitionFormDataTest extends KernelTestCase
@@ -94,5 +95,42 @@ final class CompetitionFormDataTest extends KernelTestCase
         }
 
         self::assertContains('dateTo', $paths);
+    }
+
+    public function testAnInPersonSeriesNeedsNoLocation(): void
+    {
+        // Every edition has its own location - a series does not have to name one
+        $data = new CompetitionFormData(
+            name: 'Lantern Nights League',
+            isOnline: false,
+            isRecurring: true,
+        );
+
+        self::assertNotContains('location', self::violationPaths($this->validator->validate($data)));
+    }
+
+    public function testAnInPersonOneTimeEventStillNeedsALocation(): void
+    {
+        $data = new CompetitionFormData(
+            name: 'Lantern Nights Open',
+            dateFrom: new DateTimeImmutable('2026-11-14'),
+            dateTo: new DateTimeImmutable('2026-11-14'),
+            isOnline: false,
+        );
+
+        self::assertContains('location', self::violationPaths($this->validator->validate($data)));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function violationPaths(ConstraintViolationListInterface $violations): array
+    {
+        $paths = [];
+        foreach ($violations as $violation) {
+            $paths[] = $violation->getPropertyPath();
+        }
+
+        return $paths;
     }
 }

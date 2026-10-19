@@ -1024,7 +1024,7 @@ competition_referees:
     "title": "A to není vše"
     "series":
       "title": "Opakující se série"
-      "description": "Pořádáte týdenní nebo měsíční události? Seskupte edice do série. Každá si zachová své účastníky a výsledky."
+      "description": "Pořádáte týdenní, měsíční nebo každoroční události – na jednom místě, nebo pokaždé jinde? Seskupte edice do série. Každá si zachová své místo, účastníky a výsledky."
     "co_maintainers":
       "title": "Spolupořadatelé"
       "description": "Sdílejte přístup ke správě se svým týmem. Více organizátorů může upravovat stejnou událost současně."
@@ -3997,6 +3997,7 @@ qr_code:
     "results_link": "URL výsledků"
     "links_per_edition": "Odkazy na registraci a výsledky se zadávají u každé edice zvlášť, jakmile sérii vytvoříte."
     "location": "Místo"
+    "location_series_help": "U série nepovinné – každá edice má své vlastní místo. Vyplňte jen tehdy, když se koná vždy na stejném místě."
     "country": "Země"
     "country_placeholder": "Vyberte zemi..."
     "date_from": "Datum začátku"
@@ -4007,7 +4008,7 @@ qr_code:
     "event_type_offline": "Offline událost"
     "event_type_online": "Online událost"
     "is_recurring": "Toto je pravidelná série událostí"
-    "is_recurring_help": "Zaškrtněte, pokud se událost koná pravidelně (např. každý týden, každý měsíc). Každý termín budete spravovat jako samostatnou edici s vlastními daty, koly a účastníky."
+    "is_recurring_help": "Zaškrtněte, pokud se událost pravidelně opakuje – každý týden, každý měsíc nebo každý rok, i když se pokaždé koná jinde. Každý termín je edice s vlastním místem, daty, koly, účastníky a výsledky."
     "logo": "Logo"
     "logo_current": "Současné logo"
     "logo_keep_help": "Ponechte prázdné, pokud chcete zachovat současné logo."

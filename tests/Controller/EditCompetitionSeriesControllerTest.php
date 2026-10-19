@@ -79,6 +79,25 @@ final class EditCompetitionSeriesControllerTest extends WebTestCase
         self::assertSame('puzzle-meetup-prague', $after['slug']);
     }
 
+    public function testTheLocationOfAnInPersonSeriesCanBeLeftEmpty(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $browser->request('GET', '/en/edit-series/' . CompetitionSeriesFixture::SERIES_OFFLINE);
+        $this->assertSelectorTextContains('[data-competition-form-target="seriesLocationHelp"]', 'each edition has its own location');
+
+        $browser->submitForm('Save Changes', [
+            'competition_form[location]' => '',
+        ]);
+
+        $this->assertResponseRedirects();
+        self::assertNull(self::getContainer()->get(Connection::class)->fetchOne(
+            'SELECT location FROM competition_series WHERE id = :id',
+            ['id' => CompetitionSeriesFixture::SERIES_OFFLINE],
+        ));
+    }
+
     public function testASeriesUrlCanBeChangedOnPurposeAndIsNormalised(): void
     {
         $browser = self::createClient();

@@ -972,7 +972,7 @@ competition_referees:
     "title": "Und es gibt noch mehr"
     "series":
       "title": "Wiederkehrende Serien"
-      "description": "Veranstalten Sie wöchentliche oder monatliche Events? Gruppieren Sie Ausgaben in einer Serie. Jede behält ihre eigenen Teilnehmer und Ergebnisse."
+      "description": "Veranstalten Sie wöchentliche, monatliche oder jährliche Events – immer am selben Ort oder jedes Mal woanders? Fassen Sie die Ausgaben in einer Serie zusammen. Jede behält ihren eigenen Ort, ihre Teilnehmer und Ergebnisse."
     "co_maintainers":
       "title": "Mitverwalter"
       "description": "Teilen Sie den Verwaltungszugang mit Ihrem Team. Mehrere Veranstalter können dasselbe Event gleichzeitig bearbeiten."
@@ -3896,6 +3896,7 @@ qr_code:
     "results_link": "Ergebnis-URL"
     "links_per_edition": "Registrierungs- und Ergebnis-Links werden für jede Ausgabe einzeln angegeben, sobald die Serie angelegt ist."
     "location": "Ort"
+    "location_series_help": "Bei einer Serie optional – jede Ausgabe hat ihren eigenen Ort. Füllen Sie das Feld nur aus, wenn sie immer am selben Ort stattfindet."
     "country": "Land"
     "country_placeholder": "Land auswählen..."
     "date_from": "Startdatum"
@@ -3906,7 +3907,7 @@ qr_code:
     "event_type_offline": "Offline-Veranstaltung"
     "event_type_online": "Online-Veranstaltung"
     "is_recurring": "Dies ist eine wiederkehrende Veranstaltungsserie"
-    "is_recurring_help": "Aktivieren Sie dies, wenn die Veranstaltung regelmäßig stattfindet (z.B. jede Woche, jeden Monat). Sie verwalten jeden Termin als eigene Edition mit eigenen Daten, Runden und Teilnehmern."
+    "is_recurring_help": "Aktivieren Sie dies, wenn die Veranstaltung regelmäßig wiederkehrt – jede Woche, jeden Monat oder jedes Jahr, auch wenn sie an wechselnden Orten stattfindet. Jeder Termin ist eine Ausgabe mit eigenem Ort, eigenen Daten, Runden, Teilnehmern und Ergebnissen."
     "logo": "Logo"
     "logo_current": "Aktuelles Logo"
     "logo_keep_help": "Leer lassen, um das aktuelle Logo zu behalten."

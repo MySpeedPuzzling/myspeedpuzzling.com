@@ -4,7 +4,8 @@
 2. pre-fetch the next claim (and its downloads) while working on this one - a plain second claim;
 3. download, run, batch-store (<= 200 per batch);
 4. a per-image failure is recorded in the workstate and its claim released (after 3 failures the image is held
-   until the stage ends, so it does not come back first on every claim);
+   until the stage ends, so it does not come back first on every claim). Released or expired images this run already
+   handled come back first (lowest ids, stale); a claim of only those is no end - the next claim reaches past them;
 5. on SIGTERM / Ctrl-C / the memory watchdog / the deadline: store what is done, release all own claims, exit.
 
 A 409 / `stale_fingerprint` (the picture changed meanwhile) is skipped; production is the truth, the workstate is a cache.
@@ -28,7 +29,7 @@ from .payload import MAX_RESULT_BYTES, PayloadTooLarge, check_size, envelope
 from typing import Callable
 
 from .profiles import AnalyzerSettings
-from .stages.base import ArtifactSource, Defer, Prepared, Skip, Stage
+from .stages.base import ArtifactSource, Defer, Prepared, Skip, Stage, StageBroken
 from .workstate import WorkState
 
 log = logging.getLogger(__name__)
@@ -138,11 +139,23 @@ class StageWorker:
         started = time.monotonic()
         try:
             batch, downloads = self._claim_and_download()
+            handled_again: set[str] = set()  # ids of the claims in a row that brought nothing new
             while not self._should_stop():
                 fresh = [i for i in batch if i.puzzle_id not in self._seen]
                 if not fresh:
-                    self.stats.stop_reason = self.stats.stop_reason or "no more work"
-                    break
+                    # Only images this run already handled came back. Failed / skipped ones are released without a
+                    # result (and held ones lose their lease), so they stay stale and the server hands them out first
+                    # again (lowest ids). This claim made them our own again, and our own claims come last - claim once
+                    # more to reach past them. It is the end only when a claim brings back nothing but ids it already
+                    # brought back in this row (the server has nothing else left for us).
+                    ids = {i.puzzle_id for i in batch}
+                    if not ids or ids <= handled_again:
+                        self.stats.stop_reason = self.stats.stop_reason or "no more work"
+                        break
+                    handled_again |= ids
+                    batch, downloads = self._claim_and_download()
+                    continue
+                handled_again.clear()
                 self._seen.update(i.puzzle_id for i in fresh)
                 self._upcoming = None
                 more = self.max_images is None or self._done + len(fresh) < self.max_images
@@ -153,6 +166,9 @@ class StageWorker:
                 if self._upcoming is None:  # the batch ended before the pre-fetch point (skips, failures)
                     self._upcoming = self._pool.submit(self._claim_and_download)
                 batch, downloads = self._upcoming.result()
+        except StageBroken as e:
+            self.stats.stop_reason = f"stage broken: {e}"
+            log.error("[%s] the stage cannot go on in this process: %s", self.analyzer, e)
         finally:
             try:
                 self.flush(force=True)

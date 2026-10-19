@@ -3,19 +3,33 @@ on the artwork crop (image-taxonomy.md §11.1). Never in the same phase as a GPU
 (0.13 -> 14.8 s/img when they shared the GPU, §19).
 
 Coordinates: Vision's boxes have the origin bottom-left; payloads use top-left (x, y, w, h fractions).
+
+Every Vision call runs under a watchdog (`VisionWatchdog`): an OCR call once hung on the M1 for good and the stage had
+to be killed. A call over `VISION_TIMEOUT_SECONDS` is cancelled (`VNRequest.cancel`) and counts as that image's failure;
+the stage goes on with the next image. A call that does not return even after the cancel is left behind on its thread;
+after `VISION_MAX_STUCK` of them the stage ends (`StageBroken`) and the next pass starts it in a fresh process.
 """
 
 from __future__ import annotations
 
+import logging
 import platform
+import threading
 from dataclasses import dataclass
-from typing import Any, Sequence
+from typing import Any, Callable, ClassVar, Sequence
 
 import numpy as np
 
 from ..imaging import bbox_to_xyxy, to_png_bytes
 from ..payload import encoded_size
-from .base import Prepared, Stage
+from .base import Prepared, Stage, StageBroken
+
+log = logging.getLogger(__name__)
+
+# 0.13 s an image measured on the M3 (§19), stalls of 15-42 s only while a GPU job ran beside it - 60 s is a hang
+VISION_TIMEOUT_SECONDS = 60.0
+VISION_CANCEL_GRACE_SECONDS = 10.0
+VISION_MAX_STUCK = 2
 
 OCR_MAX_LINES = 400
 OCR_MAX_LINE_CHARS = 200
@@ -189,7 +203,90 @@ def detect_languages(text: str) -> list[str]:
     return [str(k) for k, v in sorted(dict(hyp).items(), key=lambda kv: -float(kv[1])) if float(v) >= 0.2]
 
 
-class OcrStage(Stage):
+class VisionTimeout(TimeoutError):
+    """One image's Apple Vision call took longer than the watchdog allows - that image's failure, the stage goes on."""
+
+
+def _autorelease_pool() -> Any:
+    """Each call runs on a thread of its own: give it an autorelease pool, so Vision's objects are freed per image."""
+    try:
+        import objc  # type: ignore[import-not-found]
+    except ImportError:  # tests without the ml extra
+        import contextlib
+
+        return contextlib.nullcontext()
+    return objc.autorelease_pool()
+
+
+class VisionWatchdog:
+    """Runs one Vision call on its own daemon thread and waits at most `timeout` seconds. Past it, the call's requests
+    (registered by the call in the list it is handed) are cancelled and the image fails with VisionTimeout. A call
+    that still does not return `grace` seconds after the cancel is stuck: its thread is left behind (a native call
+    cannot be killed), and once `max_stuck` threads are stuck, the next call raises StageBroken instead of starting a
+    thread - this process's Vision is wedged; a fresh one is not."""
+
+    def __init__(self, timeout: float = VISION_TIMEOUT_SECONDS, grace: float = VISION_CANCEL_GRACE_SECONDS,
+                 max_stuck: int = VISION_MAX_STUCK, name: str = "apple-vision") -> None:
+        self.timeout = timeout
+        self.grace = grace
+        self.max_stuck = max_stuck
+        self.name = name
+        self.stuck = 0
+        self.timeouts = 0
+
+    def run(self, call: Callable[[list[Any]], dict[str, Any]]) -> dict[str, Any]:
+        if self.stuck >= self.max_stuck:
+            raise StageBroken(f"{self.stuck} Apple Vision calls are stuck even after a cancel - restart the stage")
+        requests: list[Any] = []
+        outcome: dict[str, Any] = {}
+        done = threading.Event()
+
+        def target() -> None:
+            try:
+                with _autorelease_pool():
+                    outcome["result"] = call(requests)
+            except BaseException as e:  # noqa: BLE001 - handed to the waiting thread
+                outcome["error"] = e
+            finally:
+                done.set()
+
+        threading.Thread(target=target, name=self.name, daemon=True).start()
+        if not done.wait(self.timeout):
+            self.timeouts += 1
+            for req in list(requests):
+                try:
+                    req.cancel()
+                except Exception:  # noqa: BLE001 - best effort; the grace wait below decides
+                    pass
+            if done.wait(self.grace):
+                raise VisionTimeout(f"Apple Vision did not answer within {self.timeout:.0f} s (cancelled)")
+            self.stuck += 1
+            log.error("Apple Vision call stuck %.0f s after its cancel - its thread is left behind (%d of %d)",
+                      self.grace, self.stuck, self.max_stuck)
+            raise VisionTimeout(f"Apple Vision did not answer within {self.timeout:.0f} s and is stuck after a cancel")
+        if "error" in outcome:
+            raise outcome["error"]
+        return outcome["result"]
+
+
+class AppleVisionStage(Stage):
+    """An Apple Vision stage: `analyse` runs `vision(p, requests)` under the watchdog. `vision` appends every VNRequest
+    to `requests` before performing it, so a hang can be cancelled."""
+
+    timeout_seconds: ClassVar[float] = VISION_TIMEOUT_SECONDS
+
+    def __init__(self, version: str, workers: int = 1) -> None:
+        super().__init__(version, workers)
+        self.watchdog = VisionWatchdog(self.timeout_seconds, name=f"apple-vision-{self.analyzer}")
+
+    def analyse(self, p: Prepared) -> dict[str, Any]:
+        return self.watchdog.run(lambda requests: self.vision(p, requests))
+
+    def vision(self, p: Prepared, requests: list[Any]) -> dict[str, Any]:
+        raise NotImplementedError
+
+
+class OcrStage(AppleVisionStage):
     analyzer = "ocr"
     optional_upstream = ("artwork",)  # only when already cached: ocr runs before artwork exists on the M1
 
@@ -197,13 +294,14 @@ class OcrStage(Stage):
     def model(self) -> str:
         return f"apple-vision/VNRecognizeTextRequest/rev3/accurate/macOS{macos()}"
 
-    def analyse(self, p: Prepared) -> dict[str, Any]:
+    def vision(self, p: Prepared, requests: list[Any]) -> dict[str, Any]:
         import Vision  # type: ignore[import-not-found]
 
         req = Vision.VNRecognizeTextRequest.alloc().init()
         req.setRecognitionLevel_(Vision.VNRequestTextRecognitionLevelAccurate)
         req.setUsesLanguageCorrection_(True)
         req.setAutomaticallyDetectsLanguage_(True)
+        requests.append(req)
         _url_handler(p.image.path).performRequests_error_([req], None)
         lines = []
         for o in req.results() or []:
@@ -213,22 +311,23 @@ class OcrStage(Stage):
         return ocr_payload(lines, p.upstream.get("artwork"), detect_languages(" ".join(line.text for line in lines)))
 
 
-class BarcodeStage(Stage):
+class BarcodeStage(AppleVisionStage):
     analyzer = "barcode"
 
     @property
     def model(self) -> str:
         return f"apple-vision/VNDetectBarcodesRequest/macOS{macos()}"
 
-    def analyse(self, p: Prepared) -> dict[str, Any]:
+    def vision(self, p: Prepared, requests: list[Any]) -> dict[str, Any]:
         import Vision  # type: ignore[import-not-found]
 
         req = Vision.VNDetectBarcodesRequest.alloc().init()
+        requests.append(req)
         _url_handler(p.image.path).performRequests_error_([req], None)
         return barcode_payload([(str(o.symbology()), str(o.payloadStringValue() or ""), _box(o)) for o in req.results() or []])
 
 
-class VisionLabelsStage(Stage):
+class VisionLabelsStage(AppleVisionStage):
     analyzer = "vision_labels"
     upstream = ("artwork",)
     uses_crop = True
@@ -237,13 +336,14 @@ class VisionLabelsStage(Stage):
     def model(self) -> str:
         return f"apple-vision/VNClassifyImageRequest+faces+humans+attention-saliency/macOS{macos()}"
 
-    def analyse(self, p: Prepared) -> dict[str, Any]:
+    def vision(self, p: Prepared, requests: list[Any]) -> dict[str, Any]:
         import Vision  # type: ignore[import-not-found]
 
         cls = Vision.VNClassifyImageRequest.alloc().init()
         face = Vision.VNDetectFaceRectanglesRequest.alloc().init()
         hum = Vision.VNDetectHumanRectanglesRequest.alloc().init()
         sal = Vision.VNGenerateAttentionBasedSaliencyImageRequest.alloc().init()
+        requests.extend([cls, face, hum, sal])
         _handler(to_png_bytes(p.subject)).performRequests_error_([cls, face, hum, sal], None)
         labels = [(str(o.identifier()), float(o.confidence())) for o in cls.results() or []]
         faces = [(_box(o)[2] * _box(o)[3], float(o.confidence())) for o in face.results() or []]

@@ -23,6 +23,11 @@ class Skip(Exception):
     """Cannot be done for this picture (an upstream result is not current any more): release, no failure."""
 
 
+class StageBroken(Exception):
+    """The stage cannot go on in this process (e.g. Apple Vision calls stuck past every timeout): not this picture's
+    fault - the worker stops, stores what is done and releases its claims; the next pass starts a fresh process."""
+
+
 @dataclass
 class Prepared:
     item: WorkItem
@@ -70,6 +75,8 @@ class Stage:
         for p in ps:
             try:
                 out.append(self.analyse(p))
+            except StageBroken:
+                raise
             except Exception as e:  # noqa: BLE001 - per-image failure
                 out.append(e)
         return out

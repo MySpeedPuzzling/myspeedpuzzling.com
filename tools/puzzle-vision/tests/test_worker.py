@@ -5,6 +5,7 @@ import pytest
 
 from puzzle_vision.download import Downloader
 from puzzle_vision.profiles import AnalyzerSettings
+from puzzle_vision.stages.apple_vision import AppleVisionStage, VisionWatchdog
 from puzzle_vision.stages.base import Defer, Stage
 from puzzle_vision.worker import StageWorker
 from puzzle_vision.workstate import WorkState
@@ -149,3 +150,118 @@ def test_max_images_and_downloads_are_never_repeated(api, server, ws, dl):
     StageWorker(FakeStage(), settings(limit=5), api, dl, ws, "w2").run()
     image_gets = [r for r in server.requests if r["path"].startswith("/original/")]
     assert len(image_gets) == n + 3  # the first two pictures came from the cache
+
+
+# early "no more work" (the M1's barcode stopped at 14,800 with ~28k left) ---------------------------------------------
+def _claims(server):
+    return [r for r in server.requests if r["path"] == "/internal-api/puzzle-image-claims"]
+
+
+def test_released_failures_coming_back_first_never_end_the_stage(api, server, ws, dl):
+    """A failed image is released without a result, so it stays stale and - lowest ids first - fills the front of the
+    next claim. Once a whole claim of them piles up, that claim holds only ids this run already handled; the worker
+    must reach past them (they are its own claims now, which the server hands out last) instead of stopping."""
+    for i in range(5, 12):
+        server.add_puzzle(i)
+    stage = FakeStage(fail={pid(0), pid(1), pid(2), pid(3)})
+    stats = StageWorker(stage, settings(limit=2), api, dl, ws, "w").run()
+    assert stored(server) == [pid(i) for i in range(4, 12)]
+    assert stats.failed == 4 and stats.stop_reason == "no more work"
+    assert sorted(stage.seen) == sorted(pid(i) for i in range(12))  # every image analysed exactly once
+    assert len(_claims(server)) <= 14 and not server.claims
+
+
+def test_held_images_whose_lease_ran_out_never_end_the_stage(api, server, ws, dl):
+    """Images held without a result (given up here, deferred) come back first once their lease has run out."""
+    t = [1000.0]
+    server.now = lambda: t[0]
+    for i in range(5, 9):
+        server.add_puzzle(i)
+    for i in (0, 1):
+        for _ in range(3):
+            ws.record_failure("ocr", "1.0.0+fake", pid(i), server.puzzles[pid(i)]["imageFingerprint"], "boom")
+
+    def time_passes(p):
+        t[0] += 10_000  # every lease taken so far has run out
+
+    stage = FakeStage(on_analyse=time_passes)
+    stats = StageWorker(stage, settings(limit=2), api, dl, ws, "w").run()
+    assert stored(server) == [pid(i) for i in range(2, 9)]
+    assert pid(0) not in stage.seen and pid(1) not in stage.seen and stats.stop_reason == "no more work"
+    assert not server.claims
+
+
+def test_a_worker_left_with_only_its_own_handled_images_stops(api, server, ws, dl):
+    """The other side: when nothing fresh is left, the claims bring back only what this run already handled - it
+    stops after one more claim instead of claiming forever."""
+    stats = StageWorker(FakeStage(fail={pid(i) for i in range(5)}), settings(limit=2), api, dl, ws, "w").run()
+    assert stats.failed == 5 and stats.stop_reason == "no more work" and not stored(server)
+    assert len(_claims(server)) <= 8 and not server.claims
+
+
+# Apple Vision watchdog (an OCR call hung on the M1 for good) -----------------------------------------------------------
+class FakeRequest:
+    """A VNRequest stand-in: `perform` blocks until cancelled (or, stuck, until the test lets go)."""
+
+    def __init__(self, honours_cancel=True):
+        self.honours_cancel = honours_cancel
+        self.cancelled = threading.Event()
+        self.let_go = threading.Event()
+
+    def cancel(self):
+        self.cancelled.set()
+
+    def perform(self):
+        while not self.let_go.is_set():
+            if self.honours_cancel and self.cancelled.is_set():
+                return
+            self.let_go.wait(0.005)
+
+
+class HangingVisionStage(AppleVisionStage):
+    analyzer = "ocr"
+    needs_model_lock = False
+
+    def __init__(self, hang=(), honours_cancel=True, max_stuck=2):
+        super().__init__("1.0.0+fake")
+        self.watchdog = VisionWatchdog(timeout=0.05, grace=0.1, max_stuck=max_stuck)
+        self.hang, self.honours_cancel = set(hang), honours_cancel
+        self.hung: list[FakeRequest] = []
+
+    def vision(self, p, requests):
+        if p.item.puzzle_id in self.hang:
+            req = FakeRequest(self.honours_cancel)
+            self.hung.append(req)
+            requests.append(req)
+            req.perform()
+            return {"lines": ["too late"]}
+        return {"lines": []}
+
+
+def test_a_hung_vision_call_is_cancelled_and_counts_as_that_images_failure(api, server, ws, dl):
+    stage = HangingVisionStage(hang={pid(1)})
+    stats = StageWorker(stage, settings(), api, dl, ws, "w").run()
+    assert stored(server) == [pid(0), pid(2), pid(3), pid(4)]
+    assert stats.failed == 1 and stats.stop_reason == "no more work" and stage.hung[0].cancelled.is_set()
+    assert "VisionTimeout" in ws.failures("ocr")[0]["lastError"] and stage.watchdog.stuck == 0
+    assert not server.claims
+
+
+def test_vision_stuck_even_after_the_cancel_ends_the_stage_cleanly(api, server, ws, dl):
+    stage = HangingVisionStage(hang={pid(1), pid(2)}, honours_cancel=False, max_stuck=2)
+    try:
+        stats = StageWorker(stage, settings(limit=5), api, dl, ws, "w").run()
+    finally:
+        for req in stage.hung:
+            req.let_go.set()
+    # both stuck images failed, then the stage stopped instead of starting more threads into a wedged Vision
+    assert stats.failed == 2 and stats.stop_reason.startswith("stage broken")
+    assert stored(server) == [pid(0)] and not server.claims  # stored what was done, released the rest
+
+
+def test_the_watchdog_hands_back_results_and_errors():
+    wd = VisionWatchdog(timeout=1.0, grace=0.1)
+    assert wd.run(lambda requests: {"ok": 1}) == {"ok": 1}
+    with pytest.raises(ValueError):
+        wd.run(lambda requests: (_ for _ in ()).throw(ValueError("bad image")))
+    assert wd.timeouts == 0 and wd.stuck == 0

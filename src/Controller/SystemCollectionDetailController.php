@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Results\CollectionItemOverview;
 use SpeedPuzzling\Web\Results\CollectionOverview;
 use SpeedPuzzling\Web\Services\ResolveCollectionDisplay;
+use SpeedPuzzling\Web\Services\Insights\ResolvePersonalEstimates;
 use SpeedPuzzling\Web\Services\ResolvePuzzleListInsights;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
@@ -32,6 +33,7 @@ final class SystemCollectionDetailController extends AbstractController
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private ResolveCollectionDisplay $resolveCollectionDisplay,
         readonly private ResolvePuzzleListInsights $resolvePuzzleListInsights,
+        readonly private ResolvePersonalEstimates $resolvePersonalEstimates,
     ) {
     }
 
@@ -100,6 +102,8 @@ final class SystemCollectionDetailController extends AbstractController
             'system_collection_id' => Collection::SYSTEM_ID,
             ...$display->templateParameters(),
             ...$this->resolvePuzzleListInsights->forViewer($loggedPlayerProfile, array_column($items, 'puzzleId'))->templateParameters(),
+            // The viewer's own time on each puzzle - null while Insights are hidden from them (docs/features/insights/estimates.md)
+            'estimates' => $this->resolvePersonalEstimates->forViewer($loggedPlayerProfile, array_column($items, 'puzzleId')),
         ]);
     }
 }

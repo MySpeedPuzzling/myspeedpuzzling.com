@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Results\PuzzleCatalogueLinks;
 use SpeedPuzzling\Web\Results\PuzzleMarketplaceOffer;
 use SpeedPuzzling\Web\Services\CatalogueStatsProvider;
+use SpeedPuzzling\Web\Services\Insights\ResolvePersonalEstimates;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -48,6 +49,7 @@ final class PuzzleDetailController extends AbstractController
         readonly private GetPuzzleSummary $getPuzzleSummary,
         readonly private CatalogueStatsProvider $catalogueStatsProvider,
         readonly private SecretPuzzleAccess $secretPuzzleAccess,
+        readonly private ResolvePersonalEstimates $resolvePersonalEstimates,
     ) {
     }
 
@@ -93,9 +95,20 @@ final class PuzzleDetailController extends AbstractController
 
         $puzzleDifficulty = $this->getPuzzleDifficulty->byPuzzleId($puzzleId);
 
+        // Personal time estimates (docs/features/insights/estimates.md): null while Insights are hidden from the viewer
+        // (INSIGHTS_PUBLIC, admins always) - the page is then exactly what it was. Otherwise the estimate card shows the
+        // prediction (the same number, from the same calculator) and the Insights panel leaves its own out
+        $estimates = $this->resolvePersonalEstimates->forViewer($loggedPlayer, [$puzzleId]);
+        $estimate = $estimates?->of($puzzleId);
+        $collectionContext = null;
         $timePrediction = null;
-        if ($loggedPlayer !== null && $loggedPlayer->activeMembership && !$loggedPlayer->timePredictionsOptedOut) {
+
+        if ($estimates === null && $loggedPlayer !== null && $loggedPlayer->activeMembership && !$loggedPlayer->timePredictionsOptedOut) {
             $timePrediction = $this->getPlayerPrediction->forPuzzle($loggedPlayer->playerId, $puzzleId);
+        }
+
+        if ($estimate !== null && $loggedPlayer !== null && $puzzleCollections !== []) {
+            $collectionContext = $this->resolvePersonalEstimates->collectionContext($loggedPlayer, $estimate);
         }
 
         // Only a brand × pieces page can be at stake, and the brand hub stats
@@ -125,6 +138,8 @@ final class PuzzleDetailController extends AbstractController
             'is_image_hidden' => $isImageHidden,
             'puzzle_difficulty' => $puzzleDifficulty,
             'time_prediction' => $timePrediction,
+            'estimates' => $estimates,
+            'estimate_collection_context' => $collectionContext,
             'show_seo_sections' => $showSeoSections,
             'related' => $showSeoSections ? $this->getRelatedPuzzles->forPuzzle($puzzle->manufacturerId, $puzzle->piecesCount, $puzzleId) : null,
             'puzzle_summary' => $this->getPuzzleSummary->forPuzzle($puzzleId),

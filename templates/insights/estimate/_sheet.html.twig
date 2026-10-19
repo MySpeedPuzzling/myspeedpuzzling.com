@@ -1,0 +1,45 @@
+{#
+    The estimate sheet - one per page (base.html.twig, only while insights_visible()), filled by
+    estimate_sheet_controller.js from the values of the estimate that was tapped (_sheet_values.html.twig): the time,
+    the 50 % likely window, the 80 % range, what it rests on, how sure, the tier. A bottom sheet on phones.
+#}
+<div class="modal fade est-sheet" tabindex="-1" id="estimate-sheet" aria-labelledby="estimate-sheet-title" aria-hidden="true" data-testid="estimate-sheet">
+    <div class="modal-dialog modal-dialog-centered est-sheet__dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="estimate-sheet-title">{{ 'insights.estimate.sheet.title'|trans }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+            </div>
+            <div class="modal-body">
+                <p class="est-sheet__name" data-estimate-sheet-field="name"></p>
+                <p class="est-sheet__time" data-estimate-sheet-field="time"></p>
+                <dl class="est-sheet__facts">
+                    <div data-estimate-sheet-row="likely">
+                        <dt>{{ 'insights.estimate.sheet.likely'|trans }}</dt>
+                        <dd data-estimate-sheet-field="likely"></dd>
+                    </div>
+                    <div data-estimate-sheet-row="range80">
+                        <dt>{{ 'insights.estimate.sheet.range80'|trans }}</dt>
+                        <dd data-estimate-sheet-field="range80"></dd>
+                    </div>
+                    <div data-estimate-sheet-row="basis">
+                        <dt>{{ 'insights.estimate.sheet.basis'|trans }}</dt>
+                        <dd data-estimate-sheet-field="basis"></dd>
+                    </div>
+                    <div data-estimate-sheet-row="certainty">
+                        <dt>{{ 'insights.estimate.sheet.certainty'|trans }}</dt>
+                        <dd data-estimate-sheet-field="certainty"></dd>
+                    </div>
+                    <div data-estimate-sheet-row="tier">
+                        <dt>{{ 'puzzle_intelligence.difficulty.tier_label'|trans }}</dt>
+                        <dd data-estimate-sheet-field="tier"></dd>
+                    </div>
+                </dl>
+                <p class="est-sheet__note" data-estimate-sheet-row="estimated">{{ 'insights.estimate.sheet.estimated_note'|trans }}</p>
+                <a class="fs-sm" href="{{ path('methodology') }}">
+                    <i class="bi bi-question-circle me-1" aria-hidden="true"></i>{{ 'difficulty_ranking.methodology_link'|trans }}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

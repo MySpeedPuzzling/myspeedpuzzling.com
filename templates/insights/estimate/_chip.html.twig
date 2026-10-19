@@ -1,0 +1,15 @@
+{#
+    The puzzle's tier next to a personal estimate (docs/features/insights/estimates.md): solid = measured, dashed + "?"
+    + "estimated" in the accessible name = estimated (never colour alone). In a list line the label goes first when
+    space runs out (.est-line), the icon stays.
+    Inputs: estimate (PersonalEstimate with a tier)
+#}
+{%- set tier = estimate.tier -%}
+{%- set tier_name = tier.translationKey|trans -%}
+<span class="est-chip{{ estimate.tierEstimated ? ' est-chip--estimated' }}" style="--est-chip-color: var(--{{ tier.icon }})" data-testid="estimate-chip"
+    {%- if estimate.tierEstimated %} data-estimated{% endif %}>
+    <svg class="est-chip__icon" width="12" height="12" aria-hidden="true"><use href="/difficulty-icons-sprite.svg#{{ tier.icon }}"/></svg>
+    <span class="est-chip__label" aria-hidden="true">{{ tier_name }}{{ estimate.tierEstimated ? '?' }}</span>
+    <span class="visually-hidden">{{ estimate.tierEstimated ? 'insights.estimate.tier_estimated'|trans({'%tier%': tier_name}) : tier_name }}</span>
+</span>
+{#- -#}

@@ -25,6 +25,8 @@
     - puzzle_insights: map puzzle id => PuzzleListInsight (difficulty tier + solve count, see
       ResolvePuzzleListInsights). Absent on turbo-stream re-renders: the item then shows neither.
     - insights_with_difficulty: whether the viewer may see tiers (active membership)
+    - estimates: null|PersonalEstimates - the viewer's personal time estimates, one line per item (collections, wishlist,
+      unsolved; docs/features/insights/estimates.md); while set, the "+ predictions" pill gives way to it
 #}
 
 {# Set defaults for optional parameters #}
@@ -153,7 +155,7 @@
                             </span>
                         {% else %}
                             <small class="fw-bold">{{ 'pieces_count'|trans({'%count%': item.piecesCount})|raw }}</small>
-                        {% endif %}
+                        {% endif %}{% if estimates|default(null) is not null %}{{ include('insights/estimate/_line.html.twig', {estimates: estimates, puzzle_id: item.puzzleId, name: item.puzzleName}, with_context = false) }}{% endif %}
 
                         {# Manufacturer name #}
                         <div class="fs-sm text-muted">
@@ -194,7 +196,7 @@
                                         class_prefix: 'collection-my-times',
                                     }, with_context = false) }}
                                 {% endif %}
-                                {% if my_prediction is not null %}
+                                {% if my_prediction is not null and estimates|default(null) is null %}
                                     <span class="badge border border-primary text-primary rounded-pill collection-prediction ms-1"
                                           title="{{ 'puzzle_picker.card.prediction'|trans }} ~{{ my_prediction.predictedSeconds|compactTime }} · {{ 'puzzle_intelligence.prediction.window.likely_half'|trans({'%range%': prediction_window(my_prediction)|prediction_window_range}) }} · {{ my_prediction.isPersonalized ? 'puzzle_intelligence.prediction.personal_explanation'|trans({'%count%': my_prediction.personalSolveCount}) : 'puzzle_intelligence.prediction.explanation'|trans }}">
                                         <i class="bi bi-clock-history"></i> ~{{ my_prediction.predictedSeconds|compactTime }} <i class="bi {{ my_prediction.isPersonalized ? 'bi-person-check' : 'bi-graph-up' }}"></i>

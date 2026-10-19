@@ -18,6 +18,8 @@ use SpeedPuzzling\Web\Results\MarketplaceEvent;
 use SpeedPuzzling\Web\Results\MarketplaceListingsCount;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Results\MarketplaceListingItem;
+use SpeedPuzzling\Web\Services\Insights\ResolvePersonalEstimates;
+use SpeedPuzzling\Web\Results\PersonalEstimates;
 use SpeedPuzzling\Web\Services\ResolveDifficultyTiers;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CountryCode;
@@ -148,6 +150,10 @@ final class MarketplaceListing
 
     private bool $difficultyTiersResolved = false;
 
+    private null|PersonalEstimates $cachedEstimates = null;
+
+    private bool $estimatesResolved = false;
+
     public function __construct(
         readonly private GetMarketplaceListings $getMarketplaceListings,
         readonly private GetPuzzleOverview $getPuzzleOverview,
@@ -159,6 +165,7 @@ final class MarketplaceListing
         readonly private GetEventsWithSellersGoing $getEventsWithSellersGoing,
         readonly private GetMarketplaceEvents $getMarketplaceEvents,
         readonly private SecretPuzzleAccess $secretPuzzleAccess,
+        readonly private ResolvePersonalEstimates $resolvePersonalEstimates,
     ) {
     }
 
@@ -200,6 +207,8 @@ final class MarketplaceListing
         $this->filteredPuzzleOverview = null;
         $this->cachedDifficultyTiers = null;
         $this->difficultyTiersResolved = false;
+        $this->cachedEstimates = null;
+        $this->estimatesResolved = false;
 
         $currentHash = $this->computeFilterHash();
 
@@ -359,6 +368,23 @@ final class MarketplaceListing
         }
 
         return $this->cachedDifficultyTiers;
+    }
+
+    /**
+     * The viewer's own time on each listed puzzle (docs/features/insights/estimates.md) - null while Insights are hidden
+     * from them, one statement for the page otherwise (ResolvePersonalEstimates).
+     */
+    public function getEstimates(): null|PersonalEstimates
+    {
+        if ($this->estimatesResolved === false) {
+            $this->cachedEstimates = $this->resolvePersonalEstimates->forViewer(
+                $this->retrieveLoggedUserProfile->getProfile(),
+                array_map(static fn (MarketplaceListingItem $item): string => $item->puzzleId, $this->getItems()),
+            );
+            $this->estimatesResolved = true;
+        }
+
+        return $this->cachedEstimates;
     }
 
     /**

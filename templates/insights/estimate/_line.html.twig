@@ -1,0 +1,26 @@
+{#
+    A personal time estimate on a list row (option C, docs/features/insights/estimates.md): one line under the name -
+    the time, a tiny certainty bar, the puzzle's tier chip - that never wraps; when space runs out the chip's label goes
+    first, the time never does. A tap opens the sheet (#estimate-sheet in base.html.twig) with the windows, what it
+    rests on and how sure it is. Renders nothing without an estimate for the puzzle - a locked or opted-out viewer keeps
+    the row as it was (ResolvePersonalEstimates).
+    Inputs: estimates (null|PersonalEstimates), puzzle_id, name (the puzzle's name, for the sheet), class (optional)
+#}
+{%- set estimate = estimates is not null ? estimates.of(puzzle_id) : null -%}
+{%- if estimate is not null -%}
+    <button type="button" class="est-line{{ estimate.isEstimated ? ' est-line--estimated' }}{{ estimate.isCommunity ? ' est-line--community' }} {{ class|default('') }}" data-testid="estimate-line" data-basis="{{ estimate.basis.value }}"
+        {{ include('insights/estimate/_sheet_values.html.twig', {estimate: estimate, name: name|default('')}, with_context = false) }}>
+        {%- if estimate.isCommunity -%}
+            <i class="bi bi-people est-line__icon" aria-hidden="true"></i>
+        {%- endif -%}
+        <span class="est-line__time">≈&nbsp;{{ estimate|estimate_time }}</span>
+        <span class="visually-hidden">
+            {{- estimate.isCommunity ? 'insights.estimate.a11y.community'|trans : (estimate.isEstimated ? 'insights.estimate.a11y.estimated'|trans : 'insights.estimate.a11y.for_you'|trans) -}}
+        </span>
+        {{- include('insights/estimate/_bar.html.twig', {estimate: estimate, mini: true}, with_context = false) -}}
+        {%- if estimate.tier is not null -%}
+            {{- include('insights/estimate/_chip.html.twig', {estimate: estimate}, with_context = false) -}}
+        {%- endif -%}
+        <span class="visually-hidden">{{ 'insights.estimate.a11y.details'|trans }}</span>
+    </button>
+{%- endif -%}

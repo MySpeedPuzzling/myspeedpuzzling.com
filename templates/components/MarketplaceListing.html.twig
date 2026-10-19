@@ -341,7 +341,7 @@
                     </div>
                 {% endif %}
                 <div class="col" id="marketplace-listing-{{ item.itemId }}">
-                    {% include 'marketplace/_listing_card.html.twig' with {item: item, marketplaceReturnUrl: marketplaceReturnUrl, difficulty_tiers: difficulty_tiers, event: chosen_event} only %}
+                    {% include 'marketplace/_listing_card.html.twig' with {item: item, marketplaceReturnUrl: marketplaceReturnUrl, difficulty_tiers: difficulty_tiers, event: chosen_event, estimates: this.estimates} only %}
                 </div>
             {% endfor %}
         </div>

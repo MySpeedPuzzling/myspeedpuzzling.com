@@ -19,8 +19,8 @@ Meta App Review approved + app published (2026-09-30), so Facebook lost its flag
 ## Insights (`INSIGHTS_PUBLIC`)
 
 - **Feature:** the player's own Insights page and everything new it brings (`docs/features/insights/README.md`,
-  page: `docs/features/insights/page.md`): the page, the profile tab, the menu row, the "See why" links; later (streams
-  6b/6c) the lazy sections and the estimates
+  page: `docs/features/insights/page.md`): the page, the profile tab, the menu row, the "See why" links, the personal
+  time estimates (`docs/features/insights/estimates.md`, stream 6c); later (stream 6b) the lazy sections
 - **Flag:** env var `INSIGHTS_PUBLIC` → parameter `insightsPublic` (`config/services.php`, bound as `$insightsPublic`)
   → `InsightsFeature::isVisibleTo(?PlayerProfile)` = flag **or** `ADMIN_ACCESS`, the single decision point (nobody signed
   in never). Twig function `insights_visible()` (`InsightsTwigExtension`) for the links. Not a Twig global
@@ -32,11 +32,32 @@ Meta App Review approved + app published (2026-09-30), so Facebook lost its flag
   - `src/Component/PlayerHeader.php` — `PlayerHeaderTab::Insights`, own profile only
   - `templates/base.html.twig` — the user menu row (`insights_visible()`)
   - `templates/added_time_recap.html.twig`, `templates/puzzle_result/_body.html.twig` — the "See why" links (own results only)
+  - Personal time estimates (stream 6c, `docs/features/insights/estimates.md`) - all through
+    `src/Services/Insights/ResolvePersonalEstimates.php` (`forViewer()` = null while hidden: nothing queried, the
+    templates render what they did before):
+    - `src/Controller/PuzzleDetailController.php` — the estimate card; the Insights panel's own prediction (and its
+      `GetPlayerPrediction` call) only while hidden
+    - `src/Controller/SystemCollectionDetailController.php`, `src/Controller/CollectionDetailController.php`,
+      `src/Controller/Wishlist/WishListDetailController.php`, `src/Controller/UnsolvedPuzzlesDetailController.php` — the
+      `estimates` of the list rows
+    - `src/Controller/PuzzlePickerController.php` — the card's estimate in place of its prediction row
+    - `src/Component/MarketplaceListing.php` — `getEstimates()` for the cards (line + estimated corner)
+    - `templates/base.html.twig` — the estimate sheet (`insights/estimate/_sheet.html.twig`, members only)
+    - `templates/puzzle_detail.html.twig`, `templates/puzzle/_difficulty_section.html.twig`,
+      `templates/_puzzle_library_item.html.twig`, `templates/puzzle_picker/_card.html.twig`,
+      `templates/marketplace/_listing_card.html.twig`, `templates/_difficulty_corner.html.twig` — render the new parts
+      only when `estimates` is set (whitespace-identical output otherwise)
+    - **Not gated by the flag, on purpose:** `ImageEstimateGate` - picture-only estimates show only where it passed,
+      also after the flag is gone; `ShelfPicks` (the Insights page's own part) asks it too
 - **Tests:** `OverridesFeatureFlagEnv` (`overrideFeatureFlagEnv('INSIGHTS_PUBLIC', …)` before the kernel boots) -
-  `tests/Controller/InsightsControllerTest.php`
+  `tests/Controller/InsightsControllerTest.php`, `tests/Controller/PersonalEstimatesDisplayTest.php` (flag off: no
+  markup and no statement on every estimate surface)
 - **Remove when:** the launch (`docs/features/insights/implementation-plan.md` §8): the image backfill is complete, the
   estimate gates pass and Jan says yes. Then delete the flag check in `InsightsFeature` (keep the class as the place that
-  says who gets the page if useful), the `.env` entry and the binding; move this section to "Retired"
+  says who gets the page if useful), the `.env` entry and the binding; move this section to "Retired". With it go the
+  "while hidden" branches of the estimate surfaces: the Insights panel's own prediction block
+  (`_difficulty_section.html.twig`), the Picker card's old prediction row, the collections "+ predictions" pill and
+  the `GetPlayerPrediction` / `GetPlayerPredictions` calls they need (`estimates.md` "At the launch")
 
 ## Background photo uploads (`DIRECT_PHOTO_UPLOADS`)
 

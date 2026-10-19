@@ -110,7 +110,7 @@
                         {# Members only - the listing passes the tiers; the reserve/unreserve streams do not, the card
                            shows no difficulty until reload #}
                         {% if difficulty_tiers|default(null) is not null %}
-                            {{ include('_difficulty_corner.html.twig', {tier: difficulty_tiers[item.puzzleId] ?? null}) }}
+                            {{ include('_difficulty_corner.html.twig', difficulty_tiers[item.puzzleId] is defined or estimates|default(null) is null or estimates.of(item.puzzleId) is null or not estimates.of(item.puzzleId).tierEstimated ? {tier: difficulty_tiers[item.puzzleId] ?? null} : {tier: estimates.of(item.puzzleId).tier, estimated: true}) }}
                         {% endif %}
                     </span>
                 </div>
@@ -159,7 +159,7 @@
             </div>
         </a>
 
-        {# Marketplace at events #}
+        {% if estimates|default(null) is not null %}{{ include('insights/estimate/_line.html.twig', {estimates: estimates, puzzle_id: item.puzzleId, name: item.puzzleName, class: 'mb-1'}, with_context = false) }}{% endif %}{# Marketplace at events - above it the viewer's own time on the puzzle (docs/features/insights/estimates.md) #}
         {% if chosen_event is not null %}
             {% if item.bringing %}
                 <div class="mb-1">

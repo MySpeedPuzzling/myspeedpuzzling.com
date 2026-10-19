@@ -1,0 +1,62 @@
+{#
+    The puzzle page's personal estimate card (option C, docs/features/insights/estimates.md): "≈ 3h 10min for you", the
+    certainty bar, the 50 % likely window and the 80 % range, what it rests on, the tier chip and a context line from the
+    player's collection. Free players get the lock ("≈ ? for you"), opted-out members a note; nothing while
+    ResolvePersonalEstimates gives null (flag off for this viewer, guests).
+    Inputs: estimates (null|PersonalEstimates), puzzle_id, pieces_count, collection_context (null|{hardest, rank})
+#}
+{%- if estimates is not null -%}
+    {%- set estimate = estimates.of(puzzle_id) -%}
+    <section class="est-card{{ estimate is not null and estimate.isEstimated ? ' est-card--estimated' }}" data-testid="estimate-card" data-nosnippet aria-labelledby="estimate-card-title">
+        <h2 class="visually-hidden" id="estimate-card-title">{{ 'insights.estimate.sheet.title'|trans }}</h2>
+        {%- if estimates.locked -%}
+            <button type="button" class="est-card__locked" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" data-testid="estimate-card-locked">
+                <span class="est-card__time">{{ 'insights.estimate.locked'|trans }}</span>
+                <i class="ci-locked" aria-hidden="true"></i>
+                <span class="est-card__note d-block">{{ 'insights.estimate.locked_hint'|trans }}</span>
+            </button>
+        {%- elseif estimates.optedOut -%}
+            <p class="est-card__note mb-0" data-testid="estimate-card-opted-out">
+                <i class="bi bi-eye-slash me-1" aria-hidden="true"></i>{{ 'puzzle_intelligence.prediction.time_predictions_opted_out'|trans }}
+                <a href="{{ path('edit_profile') }}">{{ 'statistics.change_in_settings'|trans }}</a>
+            </p>
+        {%- elseif estimate is null -%}
+            <p class="est-card__note mb-0" data-testid="estimate-card-none">
+                <i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>{{ 'insights.estimate.none'|trans }}
+            </p>
+        {%- else -%}
+            {%- set window = estimate.window -%}
+            {%- set range80 = estimate.range80 -%}
+            {%- set certainty = estimate.certainty -%}
+            <div class="est-card__state">{{ ('insights.estimate.state.' ~ estimate.basis.value)|trans({'%count%': estimate.basisCount, '%pieces%': pieces_count}) }}</div>
+            <div class="est-card__time" data-testid="estimate-card-time">
+                {%- if estimate.isCommunity -%}
+                    {{ 'insights.estimate.community_time'|trans({'%time%': estimate|estimate_time}) }}
+                {%- else -%}
+                    {{ 'insights.estimate.for_you'|trans({'%time%': estimate|estimate_time}) }}
+                {%- endif -%}
+                {%- if estimate.isEstimated %} <span class="visually-hidden">{{ 'insights.estimate.a11y.estimated'|trans }}</span>{% endif -%}
+            </div>
+            {{- include('insights/estimate/_bar.html.twig', {estimate: estimate, mini: false}, with_context = false) -}}
+            <div class="est-card__lines">
+                {%- if window is not null -%}
+                    <div>{{ 'puzzle_intelligence.prediction.window.likely_half'|trans({'%range%': window|prediction_window_range}) }}</div>
+                {%- endif -%}
+                {%- if range80 is not null -%}
+                    <div class="est-card__note">{{ 'insights.estimate.range80_line'|trans({'%range%': range80|prediction_window_range}) }}{% if certainty is not null %} · {{ certainty.translationKey|trans }}{% endif %}</div>
+                {%- endif -%}
+                <div class="est-card__note">{{ ('insights.estimate.basis.' ~ estimate.basis.value)|trans({'%count%': estimate.basisCount, '%pieces%': pieces_count}) }}</div>
+                {%- if estimate.tier is not null or collection_context|default(null) is not null -%}
+                    <div class="est-card__meta">
+                        {%- if estimate.tier is not null -%}
+                            {{- include('insights/estimate/_chip.html.twig', {estimate: estimate}, with_context = false) -}}
+                        {%- endif -%}
+                        {%- if collection_context|default(null) is not null -%}
+                            <span class="est-card__context" data-testid="estimate-card-context">{{ ('insights.estimate.context.' ~ (collection_context.hardest ? 'hardest_' : 'easiest_') ~ collection_context.rank)|trans({'%pieces%': pieces_count}) }}</span>
+                        {%- endif -%}
+                    </div>
+                {%- endif -%}
+            </div>
+        {%- endif -%}
+    </section>
+{%- endif -%}

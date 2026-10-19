@@ -83,7 +83,7 @@ final class InsightsLazyPartsBudgetTest extends KernelTestCase
             'pairs & teams' => [4, static fn () => $container->get(PairsTeamsSynergy::class)->build($player)],
             'improvement curve' => [1, static fn () => $container->get(ImprovementCurve::class)->build($player)],
             'rating over time' => [1, static fn () => $container->get(RatingOverTime::class)->build($player)],
-            'shelf picks' => [7, static fn () => $container->get(ShelfPicks::class)->build($player, isMember: true)],
+            'shelf picks' => [5, static fn () => $container->get(ShelfPicks::class)->build($player, isMember: true)],
             'cache key' => [2, static fn () => $container->get(InsightsCache::class)->keyFor($player)],
         ];
 

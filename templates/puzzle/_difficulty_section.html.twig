@@ -33,8 +33,8 @@
                         {{ confidence_indicator(puzzle_difficulty.confidence.value, puzzle_difficulty.sampleSize) }}
                     </div>
 
-                    {# Time Prediction #}
-                    <hr class="my-3">
+                    {# Time Prediction - the estimate card above the actions has it while Insights are shown (docs/features/insights/estimates.md) #}
+                    {% if estimates|default(null) is null %}<hr class="my-3">
                     <h6 class="fs-sm text-muted mb-0 d-flex align-items-center gap-1">
                         <i class="bi bi-clock-history" style="font-size: 1.1em;"></i>{{ 'puzzle_intelligence.prediction.title'|trans }}
                     </h6>
@@ -82,7 +82,7 @@
                         </div>
                     {% else %}
                         <small class="text-muted">{{ 'puzzle_intelligence.prediction.not_available_generic'|trans }}</small>
-                    {% endif %}
+                    {% endif %}{% endif %}
 
                     {# Personality Traits — each as its own section #}
                     {% if puzzle_difficulty.memorabilityScore is not null %}

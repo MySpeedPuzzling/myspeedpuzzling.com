@@ -8,7 +8,7 @@ name = "m3-solo"
 description = "M3 Max 36 GB alone: artwork, the embeddings (difficulty estimate), Apple Vision, segmentation + labels (+ colours/traits), describe last"
 
 [analyzers.artwork]
-version = "1.0.0+siglip2-q3vl4b"
+version = "1.1.0+siglip2-q3vl4b"
 requires = []
 claim_limit = 50
 seconds_per_image = 2.6  # per VLM picture (~76 % of them); ~2.0 per puzzle with the flat ones trimmed
@@ -20,13 +20,13 @@ claim_limit = 200
 seconds_per_image = 0.18  # §19: 0.36 per puzzle for crop + full
 
 [analyzers.embed_siglip2]
-version = "1.0.0+so400m-14-384"
+version = "1.0.1+so400m-14-384"
 requires = ["artwork"]
 claim_limit = 200
 seconds_per_image = 0.18
 
 [analyzers.embed_dinov2]
-version = "1.0.0+dinov2-l14-224"
+version = "1.0.1+dinov2-l14-224"
 requires = ["artwork"]
 claim_limit = 200
 seconds_per_image = 0.035  # an estimate: DINOv2-base measured 0.010, L/14 ~3.5x the FLOPs
@@ -44,34 +44,34 @@ claim_limit = 200
 seconds_per_image = 0.1  # the M1's figure; §19's 0.134 covers the whole Apple Vision set, one barcode request is less
 
 [analyzers.segmentation]
-version = "1.0.0+eomt-l-coco640"
+version = "1.0.1+eomt-l-coco640"
 requires = ["artwork"]
 claim_limit = 200
 seconds_per_image = 0.31
 
 [analyzers.vision_labels]
-version = "1.0.0+apple-vision"
+version = "1.0.1+apple-vision"
 requires = ["artwork"]
 claim_limit = 200
 seconds_per_image = 0.134
 
 # CPU sidecar: per single-threaded worker (§19: 0.47 CPU-s an image for both, 0.078 s/img wall with 6 workers)
 [analyzers.colors]
-version = "1.0.0+oklab-k8"
+version = "1.0.1+oklab-k8"
 requires = ["artwork"]
 claim_limit = 200
 seconds_per_image = 0.2
 workers = 3
 
 [analyzers.traits]
-version = "1.0.0+cv-grid16"
+version = "1.0.1+cv-grid16"
 requires = ["artwork"]
 claim_limit = 200
 seconds_per_image = 0.35
 workers = 3
 
 [analyzers.describe]
-version = "1.0.0+qwen35-9b-4bit"
+version = "1.0.1+qwen35-9b-4bit"
 requires = ["artwork", "ocr"]
 claim_limit = 20
 seconds_per_image = 10.75

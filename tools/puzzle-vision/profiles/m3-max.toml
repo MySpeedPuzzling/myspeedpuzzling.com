@@ -4,7 +4,7 @@ name = "m3-max"
 description = "M3 Max 36 GB: artwork (SigLIP 2 gate, then Qwen3-VL-4B on box photos) then describe (Qwen3.5-9B 4-bit)"
 
 [analyzers.artwork]
-version = "1.0.0+siglip2-q3vl4b"
+version = "1.1.0+siglip2-q3vl4b"
 requires = []
 claim_limit = 50
 seconds_per_image = 2.6
@@ -15,7 +15,7 @@ version = "1.0.0+apple-vision-ocr3"
 requires = []
 
 [analyzers.describe]
-version = "1.0.0+qwen35-9b-4bit"
+version = "1.0.1+qwen35-9b-4bit"
 requires = ["artwork", "ocr"]
 claim_limit = 20
 seconds_per_image = 10.75

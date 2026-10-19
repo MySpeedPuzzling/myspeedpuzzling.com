@@ -188,8 +188,8 @@ class StageWorker:
             self._upcoming = self._pool.submit(self._claim_and_download)
 
     def _work(self, items: list[WorkItem], downloads: dict[str, Future], prefetch_at: int | None = None) -> None:
-        for upstream in self.stage.upstream:
-            self.artifacts.ensure(upstream, items)
+        for upstream in self.stage.upstream + self.stage.fetch_optional:
+            self.artifacts.ensure(upstream, [i for i in items if upstream in self.stage.upstream or i.analyses.get(upstream)])
         size = max(1, self.stage.batch_size)
         processed = 0
         for start in range(0, len(items), size):
@@ -243,6 +243,11 @@ class StageWorker:
             self._fail(item, f"download/decode: {type(e).__name__}: {e}")
             return None
         p = Prepared(item=item, image=image, rgb=rgb)
+        for upstream, expected in self.settings.upstream_versions:
+            listed = item.analyses.get(upstream) if isinstance(item.analyses, dict) else None
+            if isinstance(listed, dict) and listed.get("analyzerVersion") not in (None, expected):
+                self._skip(item, f"{upstream} {listed.get('analyzerVersion')} is not this profile's {expected}")
+                return None
         for upstream in self.stage.upstream + self.stage.optional_upstream:
             payload = self.artifacts.get(upstream, item)
             if payload is not None:

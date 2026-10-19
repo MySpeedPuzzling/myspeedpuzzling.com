@@ -9,7 +9,7 @@ single-threaded worker processes.
 from __future__ import annotations
 
 import tomllib
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from . import analyzers as A
@@ -29,6 +29,9 @@ class AnalyzerSettings:
     claim_limit: int = 50
     seconds_per_image: float = 1.0
     workers: int = 1
+    # the profile's version of each required analyzer: a result of another version (an older `artwork` while a new
+    # one is being rolled out) is never used - its crop would be stored under this stage's version for good
+    upstream_versions: tuple[tuple[str, str], ...] = ()
 
     def lease_seconds(self) -> int:
         """A claimed batch is worked on after the last ~20 % of the batch before it (the pre-fetch) and may run up to
@@ -109,6 +112,10 @@ def parse(data: dict) -> Profile:
             seconds_per_image=float(cfg.get("seconds_per_image", 1.0)),
             workers=int(cfg.get("workers", 1)),
         )
+    for key, settings in list(analyzers.items()):
+        ups = tuple((r, analyzers[r].version) for r in settings.requires if r in analyzers)
+        if ups:
+            analyzers[key] = replace(settings, upstream_versions=ups)
     phases = []
     for p in data.get("phases", []):
         stages = tuple(p.get("stages", []))

@@ -48,6 +48,9 @@ class Stage:
     # which upstream payloads `prepare` must fetch (current fingerprint only); `optional_upstream` only when cached
     upstream: ClassVar[tuple[str, ...]] = ()
     optional_upstream: ClassVar[tuple[str, ...]] = ()
+    # optional upstream payloads fetched like required ones when stored (absent = fine, e.g. the stage's own previous
+    # result it re-uses); the rest of `optional_upstream` is read only when already cached
+    fetch_optional: ClassVar[tuple[str, ...]] = ()
     uses_crop: ClassVar[bool] = False
     needs_model_lock: ClassVar[bool] = True
     batch_size: ClassVar[int] = 1

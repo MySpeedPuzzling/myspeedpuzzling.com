@@ -423,6 +423,10 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       the player is registered in as a participant (a league runs the same puzzles at several venues in the same weeks,
       so today every such time stays series-level) - SeriesEditionMatch,
       docs/features/events-page/high-frequency-series.md. Promised to Dakota (MSP #331, follow-up F149).
+- [ ] Add/edit event form: when 'recurring series' is ticked, make Location optional for the series and explain in the
+      help text that every edition has its own location, dates, rounds, participants and results (an organiser read
+      'series' as 'same place every time') - CompetitionFormData, add_competition.html.twig, all 6 locales. Promised to
+      Dakota (MSP #331, follow-up F150).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

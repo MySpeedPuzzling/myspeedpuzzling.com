@@ -714,6 +714,10 @@ player lost the form. Shipped: limit 128M (`web-base-php85/php.ini`), photos up 
       read did zbar see the accepted code (`zbar.first_seen_ms` not null), how much later than Google's reader, which
       phone models only Google's reader read, and how often Google's reader saw another code (`seen`). Then decide:
       Android drops Google's reader (one path everywhere), or both stay until Step 4.
+      Also compare before/after a58edf419 (2026-10-19 ~17:30 UTC, zbar's budget allows milliseconds on top of the
+      ratio): `zbar.max_backoff` per phone and the time from `native.first_seen_ms` to `first_read_ms` - before it,
+      0.8 s at backoff ≤ 2 vs 2.1 s at 16-32x (261 sessions). Fast phones should now sit at ≤ 2 while Google's reader
+      keeps its `decode_ms`; a mid-range phone whose `native.decode_ms` grew against its `baseline_ms` means too loose.
 - [x] 2026-10-19: zbar from our own server, jsdelivr as the fallback (README §5.9). Check `zbar_source` in the
       reports: practically all `self`; `zbar_failures` = `self` would mean our copy fails somewhere.
 - [x] Scanner heat (Allison, iPhone Pro, multiscan, 2026-10-18 - MSP #321 / F143): every session decoded every frame

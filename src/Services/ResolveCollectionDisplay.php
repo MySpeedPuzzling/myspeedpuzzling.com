@@ -29,8 +29,11 @@ readonly final class ResolveCollectionDisplay
 
     /**
      * @param array<string> $puzzleIds the puzzles listed on the page (duplicates are fine)
+     * @param bool $estimatesShowTimes the personal estimates show the viewer's times on this page
+     *                                 (docs/features/insights/estimates.md): the estimate line stands in for the
+     *                                 "+ predictions" pill, so the predictions are not loaded a second time
      */
-    public function forViewer(null|PlayerProfile $viewer, array $puzzleIds): CollectionDisplay
+    public function forViewer(null|PlayerProfile $viewer, array $puzzleIds, bool $estimatesShowTimes = false): CollectionDisplay
     {
         if ($viewer === null) {
             return CollectionDisplay::off();
@@ -51,7 +54,7 @@ readonly final class ResolveCollectionDisplay
         return new CollectionDisplay(
             mode: $mode,
             myTimes: $this->getPlayerPuzzleTimes->forPuzzles($viewer->playerId, $puzzleIds),
-            predictions: $mode->showsPredictions()
+            predictions: $mode->showsPredictions() && $estimatesShowTimes === false
                 ? $this->getPlayerPredictions->forPuzzles($viewer->playerId, $puzzleIds)
                 : [],
         );

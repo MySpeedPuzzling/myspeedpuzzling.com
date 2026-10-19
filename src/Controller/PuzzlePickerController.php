@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Query\GetPlayerPredictions;
 use SpeedPuzzling\Web\Query\GetPuzzlePickerSuggestions;
 use SpeedPuzzling\Web\Results\PlayerProfile;
 use SpeedPuzzling\Web\Results\PuzzlePickerSuggestion;
+use SpeedPuzzling\Web\Services\Insights\ResolvePersonalEstimates;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\PuzzlePickerCriteria;
 use SpeedPuzzling\Web\Value\PuzzlePickerPreset;
@@ -46,6 +47,7 @@ final class PuzzlePickerController extends AbstractController
         readonly private GetManufacturers $getManufacturers,
         readonly private GetPlayerCollectionsWithCounts $getPlayerCollectionsWithCounts,
         readonly private TranslatorInterface $translator,
+        readonly private ResolvePersonalEstimates $resolvePersonalEstimates,
     ) {
     }
 
@@ -98,12 +100,15 @@ final class PuzzlePickerController extends AbstractController
         // statistical) for the picked puzzles only - the exact same numbers the
         // puzzle detail page shows, from the same calculator
         $predictions = [];
+        $pickedIds = $pick !== null ? array_map(static fn (PuzzlePickerSuggestion $suggestion): string => $suggestion->puzzleId, $pick->suggestions) : [];
+        // While Insights are shown to the viewer, the card carries the personal estimate (docs/features/insights/
+        // estimates.md) - the same numbers in one statement, plus picture-only estimates where their gate passed
+        $estimates = $pickedIds !== [] ? $this->resolvePersonalEstimates->forViewer($profile, $pickedIds) : null;
 
-        if ($pick !== null && $profile !== null && $predictionsAllowed && $pick->isEmpty() === false) {
-            $predictions = $this->getPlayerPredictions->forPuzzles(
-                $profile->playerId,
-                array_map(static fn (PuzzlePickerSuggestion $suggestion): string => $suggestion->puzzleId, $pick->suggestions),
-            );
+        if ($estimates !== null) {
+            $predictions = $estimates->predictions();
+        } elseif ($pickedIds !== [] && $profile !== null && $predictionsAllowed) {
+            $predictions = $this->getPlayerPredictions->forPuzzles($profile->playerId, $pickedIds);
         }
 
         $collections = $profile !== null && $insightsAllowed ? $this->collectionsOf($profile) : [];
@@ -122,6 +127,7 @@ final class PuzzlePickerController extends AbstractController
             'draw_duration_ms' => self::DRAW_DURATION_MS,
             'pick' => $pick,
             'predictions' => $predictions,
+            'estimates' => $estimates,
             'brand_names' => array_map(static fn (array $brand): string => $brand['name'], $brands = $this->getManufacturers->namesAndLogosByIds($criteria->brandIds)),
             'brand_logos' => array_filter(array_map(static fn (array $brand): null|string => $brand['logo'], $brands)),
             'collections' => $collections,

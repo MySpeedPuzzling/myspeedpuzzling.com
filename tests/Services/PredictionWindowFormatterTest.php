@@ -38,6 +38,27 @@ final class PredictionWindowFormatterTest extends TestCase
     }
 
     /**
+     * The 50 % window and the 80 % range shown together share one style (the sheet's "1h – 1h 9min" next to
+     * "57–74 min", docs/features/insights/estimates.md)
+     */
+    public function testTwoWindowsShownTogetherShareOneStyle(): void
+    {
+        $formatter = self::formatter();
+
+        // Apart: one in hours, one in minutes
+        $window = PredictionWindow::rounded(3600, 4140, 3800);
+        $range80 = PredictionWindow::rounded(3420, 4440, 3800);
+        self::assertSame('1h – 1h 9min', $formatter->range($window));
+        self::assertSame('57–74 min', $formatter->range($range80));
+
+        // Together: both in hours
+        self::assertSame(['1h – 1h 9min', '57min – 1h 14min'], $formatter->ranges($window, $range80));
+
+        // Both under an hour and 90 min: both in minutes
+        self::assertSame(['57–64 min', '52–70 min'], $formatter->ranges(PredictionWindow::rounded(3440, 3820, 3600), PredictionWindow::rounded(3120, 4200, 3600)));
+    }
+
+    /**
      * @return iterable<string, array{int, string}>
      */
     public static function margins(): iterable

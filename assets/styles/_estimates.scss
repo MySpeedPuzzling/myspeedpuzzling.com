@@ -1,0 +1,319 @@
+//
+// Personal time estimates, option C (docs/features/insights/estimates.md, design of record: docs/features/insights/
+// prototype.html "Image prediction"): the puzzle page card, the one-line list estimate, the sheet, the tier chip and the
+// certainty bar. Mobile first: the list line never wraps at 320 px in any locale - the chip's label goes first, the time
+// never does. Estimated vs measured is never colour alone: dashed outline + "?" + "estimated" in the accessible name.
+//
+
+$est-ink: #2b3445;
+$est-muted: #6b7488;
+$est-ref: #4e54c8;
+$est-grid: #e3e9ef;
+
+// --- Tier chip ----------------------------------------------------------------------------------------------------------
+
+.est-chip {
+    --est-chip-color: #{$est-muted};
+    display: inline-flex;
+    flex: 0 1 auto;
+    align-items: center;
+    gap: 3px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px 0 3px;
+    overflow: hidden;
+    border: 1px solid var(--est-chip-color);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--est-chip-color) 10%, transparent);
+    color: $est-ink;
+    font-size: .6875rem;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+
+    &--estimated {
+        border-style: dashed;
+        background: transparent;
+    }
+
+    &__icon {
+        flex: none;
+        color: var(--est-chip-color);
+    }
+
+    &__label {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: clip;
+    }
+}
+
+// --- Certainty bar ------------------------------------------------------------------------------------------------------
+
+.est-bar {
+    position: relative;
+    display: block;
+    width: 100%;
+    max-width: 220px;
+    height: 6px;
+    margin: 6px 0 4px;
+    border-radius: 3px;
+    background: $est-grid;
+
+    &__range {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        border-radius: 3px;
+        background: rgba($est-ref, .4);
+    }
+
+    &__mark {
+        position: absolute;
+        top: -3px;
+        left: calc(50% - 1px);
+        width: 3px;
+        height: 12px;
+        border-radius: 2px;
+        background: $est-ref;
+    }
+
+    &--mini {
+        display: inline-block;
+        flex: none;
+        width: 28px;
+        height: 4px;
+        margin: 0;
+        border-radius: 2px;
+
+        .est-bar__range {
+            border-radius: 2px;
+            background: rgba($est-ref, .55);
+        }
+    }
+}
+
+// --- One line on a list row ---------------------------------------------------------------------------------------------
+
+// The column holding the line takes the row's width: the line's own width comes from its column (container-type gives it
+// no width of its own), and a column shrink-wrapped to the puzzle's name left it too narrow for its chip
+.est-host {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.est-line {
+    container-type: inline-size;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin: 2px 0;
+    padding: 1px 0;
+    overflow: hidden;
+    border: 0;
+    background: none;
+    color: $est-ink;
+    font-size: .8125rem;
+    line-height: 1.25;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:hover &__time,
+    &:focus-visible &__time {
+        text-decoration: underline;
+    }
+
+    &__time {
+        flex: none;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+    }
+
+    &__icon {
+        flex: none;
+        color: $est-muted;
+    }
+
+    &--community &__time {
+        font-weight: 500;
+        color: $est-muted;
+    }
+}
+
+// The chip shrinks to its icon before the time ever does: no label once the line is narrower than the longest time +
+// bar + tier label needs - measured in all 6 locales (2026-10-19: 206-216 px, German 240 px; docs/features/insights/
+// estimates.md "One line"). The chip clips its label as the last guard, never the time.
+@mixin est-icon-only {
+    .est-line .est-chip {
+        padding: 0 2px;
+    }
+
+    .est-line .est-chip__label {
+        display: none;
+    }
+}
+
+@container (max-width: 14.5rem) {
+    @include est-icon-only;
+}
+
+@container (max-width: 16.5rem) {
+    :lang(de) {
+        @include est-icon-only;
+    }
+}
+
+// --- Puzzle page card ---------------------------------------------------------------------------------------------------
+
+.est-card {
+    margin: .75rem 0 .25rem;
+    padding: .75rem .875rem;
+    border: 1px solid $est-grid;
+    border-radius: .5rem;
+    background: #fff;
+    color: $est-ink;
+
+    &--estimated {
+        border-style: dashed;
+    }
+
+    &__state {
+        color: $est-muted;
+        font-size: .6875rem;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+    }
+
+    &__time {
+        font-size: 1.125rem;
+        font-weight: 600;
+        line-height: 1.25;
+        font-variant-numeric: tabular-nums;
+    }
+
+    &__lines {
+        font-size: .8125rem;
+    }
+
+    &__note {
+        color: $est-muted;
+        font-size: .8125rem;
+    }
+
+    &__meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        margin-top: .375rem;
+    }
+
+    &__context {
+        color: $est-muted;
+        font-size: .8125rem;
+    }
+
+    &__locked {
+        display: block;
+        width: 100%;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: inherit;
+        text-align: left;
+
+        .ci-locked {
+            color: $est-muted;
+        }
+    }
+
+    .est-chip {
+        height: 20px;
+        font-size: .75rem;
+    }
+}
+
+// --- The sheet ----------------------------------------------------------------------------------------------------------
+
+.est-sheet {
+    &__name {
+        margin-bottom: .25rem;
+        color: $est-muted;
+        font-size: .8125rem;
+    }
+
+    &__time {
+        margin-bottom: .75rem;
+        font-size: 1.25rem;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+    }
+
+    &__facts {
+        margin-bottom: .75rem;
+
+        > div {
+            padding: .375rem 0;
+            border-top: 1px solid $est-grid;
+        }
+
+        dt {
+            color: $est-muted;
+            font-size: .75rem;
+            font-weight: 500;
+        }
+
+        dd {
+            margin: 0;
+            font-size: .875rem;
+        }
+
+        [hidden] {
+            display: none;
+        }
+    }
+
+    &__note {
+        color: $est-muted;
+        font-size: .8125rem;
+    }
+
+    // A bottom sheet on phones
+    @media (max-width: 575.98px) {
+        .est-sheet__dialog {
+            align-items: flex-end;
+            min-height: 100%;
+            margin: 0;
+        }
+
+        .modal-content {
+            border-radius: 1rem 1rem 0 0;
+        }
+    }
+}
+
+// --- An estimated tier on a thumbnail's corner (_difficulty_corner.html.twig) -------------------------------------------
+
+.diff-corner--estimated {
+    box-shadow: none;
+    border: 1.5px dashed var(--est-chip-color, #{$est-muted});
+
+    .diff-corner__question {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: $est-ink;
+        color: #fff;
+        font-size: 9px;
+        font-weight: 700;
+        line-height: 13px;
+        text-align: center;
+    }
+}

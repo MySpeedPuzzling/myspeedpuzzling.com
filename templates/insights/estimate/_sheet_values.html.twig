@@ -1,0 +1,25 @@
+{#
+    The texts the estimate sheet shows (estimate_sheet_controller.js fills #estimate-sheet with them) as Stimulus values
+    on the element that opens it - one sheet per page, so a list of 1,700 puzzles carries only these few strings per row.
+    Inputs: estimate (PersonalEstimate), name (the puzzle's name, optional)
+#}
+{%- set window = estimate.window -%}
+{%- set range80 = estimate.range80 -%}
+{%- set certainty = estimate.certainty -%}
+{#- Shown together: one style for both (PredictionWindowFormatter::ranges()) -#}
+{%- set range_texts = window is not null and range80 is not null ? prediction_window_ranges(window, range80) : [window is not null ? window|prediction_window_range : '', ''] -%}
+{%- if estimate.isCommunity -%}
+    {%- set time_text = 'insights.estimate.community_time'|trans({'%time%': estimate|estimate_time}) -%}
+{%- else -%}
+    {%- set time_text = 'insights.estimate.for_you'|trans({'%time%': estimate|estimate_time}) -%}
+{%- endif -%}
+{%- set basis_text = ('insights.estimate.basis.' ~ estimate.basis.value)|trans({'%count%': estimate.basisCount, '%pieces%': estimate.piecesCount}) -%}
+data-controller="estimate-sheet"
+data-action="estimate-sheet#open"
+data-estimate-sheet-name-value="{{ name|default('') }}"
+data-estimate-sheet-time-value="{{ time_text }}"
+data-estimate-sheet-likely-value="{{ range_texts[0] }}"
+data-estimate-sheet-range80-value="{{ range_texts[1] }}"
+data-estimate-sheet-basis-value="{{ basis_text }}"
+data-estimate-sheet-certainty-value="{{ certainty is not null ? certainty.translationKey|trans : '' }}"
+data-estimate-sheet-estimated-value="{{ estimate.isEstimated ? 'true' : 'false' }}"

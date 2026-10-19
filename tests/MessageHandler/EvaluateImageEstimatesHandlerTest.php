@@ -34,6 +34,9 @@ final class EvaluateImageEstimatesHandlerTest extends KernelTestCase
 {
     use FitsThePredictionModel;
 
+    /** The estimates this test pushes: "<model> <model version>" (ImagePriorInput::generation()) */
+    private const string GENERATION = 'ridge-siglip2-full 1.0.0';
+
     private Connection $database;
     private MessageBusInterface $messageBus;
 
@@ -102,18 +105,19 @@ final class EvaluateImageEstimatesHandlerTest extends KernelTestCase
 
     /**
      * The gate fails closed: before any record, for a group that is not in it, for too few puzzles, for a record of
-     * another model version - and opens for a group whose stored numbers pass.
+     * another model version, for an estimate generation the record did not measure - and opens for a group whose
+     * stored numbers pass.
      */
     public function testTheGateReadsTheLatestRecordAndFailsClosed(): void
     {
         $gate = $this->gate();
-        self::assertFalse($gate->passesFor(PiecesGroup::FiveHundred, ImageKind::Unknown), 'No record yet');
-        self::assertStringContainsString('no gate record', $gate->failuresFor(PiecesGroup::FiveHundred, ImageKind::Unknown)[0]);
+        self::assertFalse($gate->passesFor(PiecesGroup::FiveHundred, ImageKind::Unknown, self::GENERATION), 'No record yet');
+        self::assertStringContainsString('no gate record', $gate->failuresFor(PiecesGroup::FiveHundred, ImageKind::Unknown, self::GENERATION)[0]);
 
         $this->evaluate();
         $gate->reset();
-        self::assertFalse($gate->passesFor(PiecesGroup::FiveHundred, ImageKind::Unknown), 'Too few measured puzzles');
-        self::assertFalse($gate->passesFor(PiecesGroup::FiveHundred, ImageKind::Flat), 'Not in the record');
+        self::assertFalse($gate->passesFor(PiecesGroup::FiveHundred, ImageKind::Unknown, self::GENERATION), 'Too few measured puzzles');
+        self::assertFalse($gate->passesFor(PiecesGroup::FiveHundred, ImageKind::Flat, self::GENERATION), 'Not in the record');
 
         $passing = [
             'sizeGroup' => PiecesGroup::FiveHundred->value,
@@ -125,16 +129,21 @@ final class EvaluateImageEstimatesHandlerTest extends KernelTestCase
             'alwaysAverage' => 0.46,
             'window50Hit' => 0.5,
             'window80Hit' => 0.8,
+            'estimateModels' => [self::GENERATION => 140],
         ];
         $this->storeRecord(TimePredictionCalculator::MODEL_VERSION, [$passing]);
         $gate->reset();
-        self::assertTrue($gate->passesFor(PiecesGroup::FiveHundred, ImageKind::Flat));
-        self::assertFalse($gate->passesFor(PiecesGroup::Thousand, ImageKind::Flat), 'Per size group');
-        self::assertFalse($gate->passesFor(PiecesGroup::FiveHundred, ImageKind::Unknown), 'Per image kind');
+        self::assertTrue($gate->passesFor(PiecesGroup::FiveHundred, ImageKind::Flat, self::GENERATION));
+        // A record vouches only for the estimate generation it measured: a derive model change stays closed until a
+        // new record measured its estimates
+        self::assertFalse($gate->passesFor(PiecesGroup::FiveHundred, ImageKind::Flat, 'ridge-siglip2-full 2.0.0'), 'Another estimate generation');
+        self::assertStringContainsString('did not measure', $gate->failuresFor(PiecesGroup::FiveHundred, ImageKind::Flat, 'ridge-siglip2-full 2.0.0')[0]);
+        self::assertFalse($gate->passesFor(PiecesGroup::Thousand, ImageKind::Flat, self::GENERATION), 'Per size group');
+        self::assertFalse($gate->passesFor(PiecesGroup::FiveHundred, ImageKind::Unknown, self::GENERATION), 'Per image kind');
 
         $this->storeRecord(TimePredictionCalculator::MODEL_VERSION + 1, [$passing]);
         $gate->reset();
-        self::assertFalse($gate->passesFor(PiecesGroup::FiveHundred, ImageKind::Flat), 'A record of another model version');
+        self::assertFalse($gate->passesFor(PiecesGroup::FiveHundred, ImageKind::Flat, self::GENERATION), 'A record of another model version');
     }
 
     private function evaluate(int $newerThanMonths = 12): ImageEstimateEvaluation

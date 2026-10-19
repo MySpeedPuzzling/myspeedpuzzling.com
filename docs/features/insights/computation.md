@@ -217,7 +217,7 @@ the batch tables above and the player's own data, pure PHP after a fixed number 
 | Re-solve radar | `ResolveRadar::build(playerId, pieces)` → `ResolveRadarResult` | 4 | 27 ms |
 | Improvement curve | `ImprovementCurve::build(playerId)` → `ImprovementCurveResult` | 1 | 15 ms |
 | Rating over time | `RatingOverTime::build(playerId, from, to)` → `RatingOverTimeResult` | 1 | 3 ms |
-| Shelf picks | `ShelfPicks::build(playerId, isMember, pieces)` → `ShelfPicksResult` | ≤ 7 (1 for free players) | 47 ms |
+| Shelf picks | `ShelfPicks::build(playerId, isMember, pieces)` → `ShelfPicksResult` | ≤ 5 (1 for free players; was ≤ 7 before 6c) | 47 ms (before 6c) |
 | Cache key | `InsightsCache::keyFor(playerId)` | 2 | 1.5-5.6 ms (fingerprint ~1-3 ms) |
 
 Budgets are pinned by a statement-count test per part; times in §4c.11.
@@ -357,12 +357,14 @@ least that far back), the biggest rise and drop. Optional period.
 `GetInsightsShelf::unsolved()` (one statement): puzzles in any of the player's collections (the system one included)
 and not lent out, or borrowed (the Picker's "mine", `sqlOnShelf()`), with **no result of the player of any kind** (solo
 or in a pair/team, suspicious or untimed included), never secret. Free players get `locked` + the count. Members: the
-expected time of every rated one (`GetPlayerPredictions::forPuzzles()`, statistical = pace × difficulty), and
+expected time of every rated one (statistical = pace × difficulty; since 6c from `GetPersonalEstimates`, one statement,
+the same number as every other surface - estimates.md), and
 `fasterThanShare` against the puzzle's public first-attempt times - the rating's stored lists where a puzzle has one,
 the rest aggregated from the results (`firstAttemptTimes()`, one statement for the rest only) - from 5 solvers on.
 Best place first (higher share), then the shorter expected time; 12 shown, `withExpectedTime` counted.
-**Phase 5d seam:** `ShelfPicks::estimates()` is where the picture-only estimate joins for shelf puzzles without a
-statistical prediction (`Value\ShelfPickSource` gets `image`, marked estimated).
+**Picture-only estimates (6c):** `ShelfPicks::estimates()` gives a shelf puzzle nobody has solved (k = 0) its
+picture-only estimate where `ImageEstimateGate` passed for its size group × image kind (`ShelfPickSource::Image`,
+`isEstimated()`); puzzles with 1-4 indices stay out as before ([`estimates.md`](./estimates.md)).
 
 ### 4c.8 Cache
 

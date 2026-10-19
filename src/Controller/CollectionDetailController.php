@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Repository\CollectionRepository;
 use SpeedPuzzling\Web\Results\CollectionItemOverview;
 use SpeedPuzzling\Web\Results\CollectionOverview;
 use SpeedPuzzling\Web\Services\ResolveCollectionDisplay;
+use SpeedPuzzling\Web\Services\Insights\ResolvePersonalEstimates;
 use SpeedPuzzling\Web\Services\ResolvePuzzleListInsights;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
@@ -34,6 +35,7 @@ final class CollectionDetailController extends AbstractController
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private ResolveCollectionDisplay $resolveCollectionDisplay,
         readonly private ResolvePuzzleListInsights $resolvePuzzleListInsights,
+        readonly private ResolvePersonalEstimates $resolvePersonalEstimates,
     ) {
     }
 
@@ -78,9 +80,13 @@ final class CollectionDetailController extends AbstractController
 
         // The viewer's own times (+ predictions) next to each item - always the
         // viewer's, also on somebody else's public collection
+        // The viewer's own time on each puzzle - null while Insights are hidden from them (docs/features/insights/estimates.md)
+        $estimates = $this->resolvePersonalEstimates->forViewer($loggedPlayerProfile, array_column($items, 'puzzleId'));
+
         $display = $this->resolveCollectionDisplay->forViewer(
             $loggedPlayerProfile,
             array_map(static fn (CollectionItemOverview $item): string => $item->puzzleId, $items),
+            estimatesShowTimes: $estimates?->showsTimes() === true,
         );
 
         $collectionOverview = new CollectionOverview(
@@ -104,6 +110,7 @@ final class CollectionDetailController extends AbstractController
             'system_collection_id' => Collection::SYSTEM_ID,
             ...$display->templateParameters(),
             ...$this->resolvePuzzleListInsights->forViewer($loggedPlayerProfile, array_column($items, 'puzzleId'))->templateParameters(),
+            'estimates' => $estimates,
         ]);
     }
 }

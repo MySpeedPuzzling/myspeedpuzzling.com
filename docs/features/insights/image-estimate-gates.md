@@ -48,7 +48,7 @@ row is the current record (`GetLatestImageEstimateEvaluation`). Thresholds are n
 read, so the history keeps meaning the same when they change. A table of its own rather than the pipeline's model
 record: that one is the Mac's numbers on labels and drives the push guard; this one is the app's on stored predictions.
 
-## The gate - `ImageEstimateGate::passesFor(PiecesGroup, ImageKind)`
+## The gate - `ImageEstimateGate::passesFor(PiecesGroup, ImageKind, estimateGeneration)`
 
 Reads the current record once per request (`ResetInterface`) and applies, to that group's numbers
 (`ImageEstimateGate::failures()`, which also says why):
@@ -65,7 +65,13 @@ Reads the current record once per request (`ResetInterface`) and applies, to tha
    calibration monitor's tolerance).
 
 **Fails closed**: no record yet, a record of another model version (`TimePredictionCalculator::MODEL_VERSION`), no
-numbers for the group, a missing number, or fewer than 50 measured puzzles = no. Size groups and kinds are never
+numbers for the group, a missing number, or fewer than 50 measured puzzles = no. **And per estimate generation**: the
+shown estimate's `"<model> <model version>"` (`ImagePriorInput::generation()`, the same spelling as the record's
+`estimateModels`) must be among the group's `estimateModels` - a record vouches only for the estimates it measured.
+After a derive model change (a new `difficulty_prior` model or model version pushed), the new estimates stay closed
+until `myspeedpuzzling:backfill-solving-time-predictions --recompute-image` + `evaluate-image-estimates` stored a record
+that measured them (pinned by `EvaluateImageEstimatesHandlerTest` and
+`PersonalEstimatesDisplayTest::testAPassingRecordOfAnotherEstimateGenerationKeepsThePictureClosed`). Size groups and kinds are never
 pooled to pass: 1500+ and odd sizes will mostly stay closed (too few measured puzzles), and so will `unknown` unless the
 fallback model earns it on its own.
 
@@ -101,7 +107,14 @@ is clamped to the int columns (`TimePredictionCalculator::seconds()`, again in `
 number can make the add-time INSERT fail and roll the player's time back
 (`ImagePredictionsSideBySideTest::testAnExtremeEstimateNeverCostsTheTime`, with an estimate written past the API).
 
-## For Phase 6c (readers of the stored blend prior)
+## Read by Phase 6c
+
+`ResolvePersonalEstimates` asks `passesFor()` once per listed puzzle nobody has measured that has a picture estimate
+(the record is read once per request), and `ShelfPicks` for shelf puzzles - [`estimates.md`](./estimates.md). The
+stored `blend_prior_log` is not read by 6c: shown predictions with solves stay the statistical ones until the launch
+`MODEL_VERSION` bump; the picture-only number is computed from the estimate itself (the `image` side row's number).
+
+## For readers of the stored blend prior
 
 `difficulty_prior_puzzle.blend_prior_log` / `puzzle_difficulty.blend_prior_log` are written by the daily fit, which
 leaves secret puzzles out - but a stored value outlives a hide (`hide_until` / `hide_image_until` set after the fit)

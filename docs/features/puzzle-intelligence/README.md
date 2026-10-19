@@ -591,8 +591,9 @@ centre = pace × exp(log_difficulty + drift)
     toward the prior, toward the average puzzle (0) without one - source `shrunk`. The tier shown stays "not rated yet"
     below 5 indices: only predictions use it;
   - k = 0: the prior alone, only where it is asked for (`allowPriorOnly`: the live and reconstructed side-by-side rows),
-    never on a surface (`SolvingTimePrediction::forDisplay()`, `GetPlayerPrediction` default) - estimates for unsolved
-    puzzles are Insights plan Phase 6.
+    never on a surface (`SolvingTimePrediction::forDisplay()`, `GetPlayerPrediction` default) - the personal estimates
+    of Insights Phase 6c show the *image* prediction at k = 0 only where its gate passed, never the prior-only
+    statistical one (`docs/features/insights/estimates.md`).
   τ is fitted daily from {0.25, 0.5, 0.75, 1, 1.5, 2, 3} on the last 12 months' attempts at puzzles with 1-4 indices
   (the copy of production: 0.5 on everything, 0.75 when fitted before 2026-04-11 or 2026-07-01).
 - **Prior** - behind the interface `Prior\DifficultyPrior`, a chain (`Prior\DifficultyPriors`, tagged services by

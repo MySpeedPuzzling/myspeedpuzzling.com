@@ -1,6 +1,7 @@
 {# One picker card: puzzle basics, my history on it, community numbers, insights (members), CTAs.
    Expects: suggestion (PuzzlePickerSuggestion), position (1-based, for eager image loading), criteria,
-   predictions (puzzle id => TimePredictionResult, only for members with predictions) #}
+   predictions (puzzle id => TimePredictionResult, only for members with predictions),
+   estimates (null|PersonalEstimates - while Insights are shown: the one-line estimate replaces the prediction row) #}
 {% from 'puzzle_intelligence/_macros.html.twig' import difficulty_icon %}
 {% set puzzle_full_name = (suggestion.manufacturerName is not null ? suggestion.manufacturerName ~ ' ' : '') ~ suggestion.puzzleName %}
 {% set is_authenticated = criteria.isAuthenticated %}
@@ -120,7 +121,32 @@
            row. Members who opted out: the opt-out notice. Eligible members: the same numbers as the
            puzzle detail page (personalised or statistical), plus how it compares to my best. #}
         {% if is_authenticated %}
-            {% if not criteria.insightsAllowed %}
+            {% if estimates|default(null) is not null and not estimates.locked and not estimates.optedOut %}
+                {# Your time on it, option C (docs/features/insights/estimates.md) - while Insights are shown to the viewer #}
+                {% if estimates.of(suggestion.puzzleId) is not null %}
+                    <div class="mt-1 puzzle-picker-estimate">
+                        {{ include('insights/estimate/_line.html.twig', {estimates: estimates, puzzle_id: suggestion.puzzleId, name: suggestion.puzzleName}, with_context = false) }}
+                    </div>
+                    {% set estimate = estimates.of(suggestion.puzzleId) %}
+                    {# Against the raw prediction, never the rounded time; said only when the difference is at least the
+                       shown time's rounding step - "≈ 3h" must not claim to beat a 3:04:00 best by 30 seconds #}
+                    {% if suggestion.myFastestSeconds is not null and estimate.prediction is not null %}
+                        {% set delta_seconds = suggestion.myFastestSeconds - estimate.prediction.predictedSeconds %}
+                        {% if delta_seconds|abs >= estimate.stepSeconds %}
+                            {% set delta_text = ((delta_seconds|abs / 60)|round * 60)|compactTime %}
+                            {% if delta_seconds > 0 %}
+                                <div class="text-success puzzle-picker-prediction-vs-best"><i class="bi bi-arrow-right-short"></i>{{ 'puzzle_picker.card.prediction_beats_record'|trans({'%delta%': delta_text}) }}</div>
+                            {% else %}
+                                <div class="text-muted puzzle-picker-prediction-vs-best"><i class="bi bi-arrow-right-short"></i>{{ 'puzzle_picker.card.prediction_slower_than_best'|trans({'%delta%': delta_text}) }}</div>
+                            {% endif %}
+                        {% endif %}
+                    {% endif %}
+                {% else %}
+                    <div class="mt-1 text-muted puzzle-picker-prediction-unavailable">
+                        <i class="bi bi-clock-history me-1"></i>{{ 'puzzle_picker.card.prediction_unavailable'|trans }}
+                    </div>
+                {% endif %}
+            {% elseif not criteria.insightsAllowed %}
                 <div class="mt-1 puzzle-picker-prediction-locked">
                     <a href="#" class="text-muted text-decoration-none" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
                         <i class="ci-locked me-1"></i>{{ 'puzzle_picker.card.prediction_locked'|trans }}

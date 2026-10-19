@@ -30,6 +30,9 @@ use Symfony\Contracts\Service\ResetInterface;
  * the groups that just pass the size rule; the image pilot cleared it on a random set (60 % vs 46 %,
  * prediction-research.md §2 Q3).
  *
+ * The gate also fails closed for an estimate generation ("<model> <model version>") the record did not measure in the
+ * group (`estimateModels`): a derive model change would otherwise show never-evaluated picture-only times.
+ *
  * The record is read once per request (ResetInterface - FrankenPHP worker mode).
  */
 final class ImageEstimateGate implements ResetInterface
@@ -58,17 +61,22 @@ final class ImageEstimateGate implements ResetInterface
         $this->record = null;
     }
 
-    public function passesFor(PiecesGroup $sizeGroup, ImageKind $imageKind): bool
+    /**
+     * @param string $estimateGeneration the shown estimate's generation (ImagePriorInput::generation()):
+     *                                   a record vouches only for the estimates it measured - after a derive model change
+     *                                   the new estimates stay closed until a record measured them
+     */
+    public function passesFor(PiecesGroup $sizeGroup, ImageKind $imageKind, string $estimateGeneration): bool
     {
-        return $this->failuresFor($sizeGroup, $imageKind) === [];
+        return $this->failuresFor($sizeGroup, $imageKind, $estimateGeneration) === [];
     }
 
     /**
-     * Why the gate is closed for the group (empty = open).
+     * Why the gate is closed for the group and estimate generation (empty = open).
      *
      * @return list<string>
      */
-    public function failuresFor(PiecesGroup $sizeGroup, ImageKind $imageKind): array
+    public function failuresFor(PiecesGroup $sizeGroup, ImageKind $imageKind, string $estimateGeneration): array
     {
         if ($this->loaded === false) {
             $this->record = $this->getLatestImageEstimateEvaluation->latest();
@@ -87,6 +95,14 @@ final class ImageEstimateGate implements ResetInterface
 
         if ($group === null) {
             return ['no evaluated predictions in this group'];
+        }
+
+        $measured = $group['estimateModels'] ?? [];
+
+        $rows = is_array($measured) ? ($measured[$estimateGeneration] ?? 0) : 0;
+
+        if (!is_int($rows) || $rows <= 0) {
+            return [sprintf('the gate record did not measure the estimates of "%s" in this group', $estimateGeneration)];
         }
 
         return self::failures($group);

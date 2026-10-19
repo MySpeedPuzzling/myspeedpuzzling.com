@@ -1,6 +1,7 @@
 # Insights - the page as built (Phase 6)
 
-The player's own Insights page, built by stream **6a**. Phase 6b and 6c add parts, listed at the end. Decisions:
+The player's own Insights page, built by stream **6a**. Phase 6b and 6c add parts, listed at the end. The personal time
+estimates (6c) on the puzzle page, the lists, the Picker and the marketplace: [`estimates.md`](./estimates.md). Decisions:
 [`README.md`](./README.md). Plan: [`implementation-plan.md`](./implementation-plan.md) §7. Visual design of record:
 [`prototype.html`](./prototype.html). Numbers: [`computation.md`](./computation.md).
 

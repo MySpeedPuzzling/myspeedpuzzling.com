@@ -25,6 +25,8 @@
     - puzzle_insights: map puzzle id => PuzzleListInsight (difficulty tier + solve count, see
       ResolvePuzzleListInsights). Absent on turbo-stream re-renders: the item then shows neither.
     - insights_with_difficulty: whether the viewer may see tiers (active membership)
+    - estimates: null|PersonalEstimates - the viewer's personal time estimates, one line per item (collections, wishlist,
+      unsolved; docs/features/insights/estimates.md); while set, the "+ predictions" pill gives way to it
 #}
 
 {# Set defaults for optional parameters #}
@@ -92,7 +94,7 @@
      {% endif %}
      {% if show_my_times %}
      data-my-fastest-seconds="{{ my_time is not null and my_time.fastestSeconds is not null ? my_time.fastestSeconds : '' }}"
-     data-predicted-seconds="{{ my_prediction is not null ? my_prediction.predictedSeconds : '' }}"
+     data-predicted-seconds="{{ my_prediction is not null ? my_prediction.predictedSeconds : (estimates|default(null) is not null and estimates.of(item.puzzleId) is not null and estimates.of(item.puzzleId).prediction is not null ? estimates.of(item.puzzleId).prediction.predictedSeconds : '') }}"
      {% endif %}
      {# The search filter reads the stored keys, folded by the server (lend/borrow lists have no filter) #}
      {% if item.searchNames is defined %}
@@ -133,8 +135,9 @@
 
             <div class="ps-2 flex-grow-1">
                 <div class="d-flex justify-content-between">
-                    <div class="pe-2">
-                        {# Puzzle name link #}
+                    <div class="pe-2{{ estimates|default(null) is not null and estimates.of(item.puzzleId) is not null ? ' est-host' }}">
+                        {# Puzzle name link - the column takes the row's width while the estimate line is in it (its
+                           width comes from the column: docs/features/insights/estimates.md) #}
                         <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}"
                            class="text-decoration-underline fs-sm low-line-height d-inline-block mb-1">
                             {{ item.puzzleName }}
@@ -153,7 +156,7 @@
                             </span>
                         {% else %}
                             <small class="fw-bold">{{ 'pieces_count'|trans({'%count%': item.piecesCount})|raw }}</small>
-                        {% endif %}
+                        {% endif %}{% if estimates|default(null) is not null %}{{ include('insights/estimate/_line.html.twig', {estimates: estimates, puzzle_id: item.puzzleId, name: item.puzzleName}, with_context = false) }}{% endif %}
 
                         {# Manufacturer name #}
                         <div class="fs-sm text-muted">
@@ -194,7 +197,7 @@
                                         class_prefix: 'collection-my-times',
                                     }, with_context = false) }}
                                 {% endif %}
-                                {% if my_prediction is not null %}
+                                {% if my_prediction is not null and estimates|default(null) is null %}
                                     <span class="badge border border-primary text-primary rounded-pill collection-prediction ms-1"
                                           title="{{ 'puzzle_picker.card.prediction'|trans }} ~{{ my_prediction.predictedSeconds|compactTime }} · {{ 'puzzle_intelligence.prediction.window.likely_half'|trans({'%range%': prediction_window(my_prediction)|prediction_window_range}) }} · {{ my_prediction.isPersonalized ? 'puzzle_intelligence.prediction.personal_explanation'|trans({'%count%': my_prediction.personalSolveCount}) : 'puzzle_intelligence.prediction.explanation'|trans }}">
                                         <i class="bi bi-clock-history"></i> ~{{ my_prediction.predictedSeconds|compactTime }} <i class="bi {{ my_prediction.isPersonalized ? 'bi-person-check' : 'bi-graph-up' }}"></i>

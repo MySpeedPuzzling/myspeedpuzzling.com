@@ -11,7 +11,12 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetPlayerPredictions;
 use SpeedPuzzling\Web\Services\Insights\ResolveRadar;
 use SpeedPuzzling\Web\Services\Insights\ShelfPicks;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
+use SpeedPuzzling\Web\Value\ImageKind;
+use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\PiecesRange;
+use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
+use SpeedPuzzling\Web\Value\ShelfPickSource;
 use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
@@ -160,7 +165,7 @@ final class ResolveRadarAndShelfPicksTest extends KernelTestCase
 
         $holder->reset();
         $member = $this->picks()->build($this->player, isMember: true);
-        self::assertSame(7, $this->statements($holder), "Shelf, predictions (4), stored time lists, the other puzzles' times");
+        self::assertSame(4, $this->statements($holder), "Shelf, estimates (GetPersonalEstimates), stored time lists, the other puzzles' times");
 
         self::assertFalse($member->locked);
         self::assertSame(4, $member->withExpectedTime, 'Every rated one');
@@ -171,6 +176,58 @@ final class ResolveRadarAndShelfPicksTest extends KernelTestCase
         self::assertEqualsWithDelta(0.25, $member->picks[1]->fasterThanShare, 1e-12);
         self::assertNull($member->picks[2]->fasterThanShare, 'One solver says nothing');
         self::assertNull($member->picks[3]->fasterThanShare, 'Nobody else yet');
+    }
+
+    public function testAShelfPuzzleNobodyHasSolvedGetsItsPictureEstimateOnlyWhereTheGatePassed(): void
+    {
+        $unrated = $this->puzzle('Unrated');
+        $this->shelve($this->player, $unrated);
+        $image = 'box-' . $unrated . '.jpg';
+        $fingerprint = PuzzleImageFingerprint::of($image);
+        $this->connection->executeStatement('UPDATE puzzle SET image = :image WHERE id = :id', ['image' => $image, 'id' => $unrated]);
+        $this->connection->executeStatement(
+            "INSERT INTO puzzle_difficulty_estimate (puzzle_id, model, model_version, log_difficulty, log_p10, log_p90, out_of_fold, training_size, image_fingerprint, computed_at, received_at)
+            VALUES (:puzzle, 'ridge-siglip2-dinov2', '1.0.0', 0.1, -0.1, 0.35, true, 4979, :fingerprint, NOW(), NOW())",
+            ['puzzle' => $unrated, 'fingerprint' => $fingerprint],
+        );
+        $this->connection->executeStatement(
+            "INSERT INTO puzzle_image_analysis (id, puzzle_id, analyzer, analyzer_version, image_fingerprint, result, analyzed_at, received_at)
+            VALUES (:id, :puzzle, 'artwork', '1.0.0', :fingerprint, '{\"kind\": \"flat\"}', NULL, NOW())",
+            ['id' => Uuid::uuid7()->toString(), 'puzzle' => $unrated, 'fingerprint' => $fingerprint],
+        );
+
+        // No gate record: closed - nothing to pick
+        $closed = $this->picks()->build($this->player, isMember: true);
+        self::assertSame(0, $closed->withExpectedTime);
+
+        $this->connection->executeStatement(
+            "INSERT INTO image_estimate_evaluation (id, evaluated_at, model_version, newer_than, measured_min_indices, groups, overall, by_k)
+            VALUES (:id, NOW(), :version, NOW() - INTERVAL '1 year', 10, CAST(:groups AS jsonb), '{}', '[]')",
+            ['id' => Uuid::uuid7()->toString(), 'version' => TimePredictionCalculator::MODEL_VERSION, 'groups' => json_encode([[
+                'sizeGroup' => PiecesGroup::Odd->value,
+                'imageKind' => ImageKind::Flat->value,
+                'measuredPuzzles' => 80,
+                'spearman' => 0.7,
+                'tierWithinOne' => 0.9,
+                'tierExact' => 0.6,
+                'alwaysAverage' => 0.4,
+                'window50Hit' => 0.5,
+                'window80Hit' => 0.8,
+                'estimateModels' => ['ridge-siglip2-dinov2 1.0.0' => 80],
+            ]], JSON_THROW_ON_ERROR)],
+        );
+        self::getContainer()->get('services_resetter')->reset();
+
+        $open = $this->picks()->build($this->player, isMember: true);
+        $picks = $open->picks;
+
+        self::assertSame(1, $open->withExpectedTime);
+        self::assertCount(1, $picks);
+        self::assertSame($unrated, $picks[0]->puzzle->puzzleId);
+        self::assertSame(ShelfPickSource::Image, $picks[0]->source);
+        self::assertTrue($picks[0]->source->isEstimated());
+        // The player's 777-piece pace × exp(0.1)
+        self::assertEqualsWithDelta(3000 * exp(0.1), $picks[0]->expectedSeconds, 1.0);
     }
 
     public function testRadarStatements(): void

@@ -992,7 +992,8 @@
             </div>
         </div>
 
-        <div class="global-search-overlay" data-global-search-target="overlay"></div>
+        {# The one sheet of the personal time estimates on list rows (docs/features/insights/estimates.md) - members only,
+           only while Insights are shown to them (INSIGHTS_PUBLIC, admins always) #}{% if logged_user.profile is not null and logged_user.profile.activeMembership and insights_visible() %}{{ include('insights/estimate/_sheet.html.twig') }}{% endif %}<div class="global-search-overlay" data-global-search-target="overlay"></div>
 
         <!-- Toast Container -->
         <div id="toast-container" class="toast-container position-fixed p-3" data-toast-target="container" style="z-index: 1060;"></div>

@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\StatisticalInputsSql;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Value\ImageEstimateEvaluationRow;
 use SpeedPuzzling\Web\Value\ImageKind;
+use SpeedPuzzling\Web\Value\ImagePriorInput;
 use SpeedPuzzling\Web\Value\PiecesGroup;
 
 /**
@@ -109,7 +110,7 @@ readonly final class GetImageEstimateEvaluationRows
                 statisticalSeconds: self::intOrNull($row['statistical_seconds']),
                 measuredIndices: (int) $row['measured_indices'],
                 measuredScore: $row['measured_score'] !== null ? (float) $row['measured_score'] : null,
-                estimateModel: trim($row['image_model'] . ' ' . ($row['image_model_version'] ?? '')),
+                estimateModel: ImagePriorInput::generationOf($row['image_model'], $row['image_model_version']),
             );
         }
     }

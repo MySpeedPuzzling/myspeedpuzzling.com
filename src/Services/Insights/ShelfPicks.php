@@ -6,20 +6,26 @@ namespace SpeedPuzzling\Web\Services\Insights;
 
 use SpeedPuzzling\Web\Query\GetInsightsRatingInputs;
 use SpeedPuzzling\Web\Query\GetInsightsShelf;
-use SpeedPuzzling\Web\Query\GetPlayerPredictions;
+use SpeedPuzzling\Web\Query\GetPersonalEstimates;
 use SpeedPuzzling\Web\Results\Insights\ShelfPick;
 use SpeedPuzzling\Web\Results\Insights\ShelfPicksResult;
 use SpeedPuzzling\Web\Results\Insights\ShelfPuzzle;
 use SpeedPuzzling\Web\Results\TimePredictionResult;
 use SpeedPuzzling\Web\Services\Insights\Model\RatingWhatIf;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\ImageEstimates\ImageEstimateGate;
+use SpeedPuzzling\Web\Value\EstimateBasis;
+use SpeedPuzzling\Web\Value\ImageKind;
+use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\PiecesRange;
 use SpeedPuzzling\Web\Value\ShelfPickSource;
 
 /**
  * "What from my shelf suits me?" (docs/features/insights/computation.md §4c.7): the unsolved shelf puzzles with an
- * expected time (GetPlayerPredictions in bulk: your pace × the puzzle's difficulty), ranked by the share of its solvers
- * the expected time beats - the place you would likely take. Members only: free players get the number of unsolved
- * shelf puzzles (one statement); members seven at most whatever the shelf's size.
+ * expected time - your pace × the puzzle's measured difficulty, and for a puzzle nobody has solved yet the picture-only
+ * estimate where its gate passed (GetPersonalEstimates in one statement, the same numbers the puzzle page shows -
+ * docs/features/insights/estimates.md) - ranked by the share of its solvers the expected time beats: the place you
+ * would likely take. Members only: free players get the number of unsolved shelf puzzles (one statement); members five
+ * at most whatever the shelf's size.
  */
 readonly final class ShelfPicks
 {
@@ -30,8 +36,9 @@ readonly final class ShelfPicks
 
     public function __construct(
         private GetInsightsShelf $getInsightsShelf,
-        private GetPlayerPredictions $getPlayerPredictions,
+        private GetPersonalEstimates $getPersonalEstimates,
         private GetInsightsRatingInputs $getInsightsRatingInputs,
+        private ImageEstimateGate $imageEstimateGate,
     ) {
     }
 
@@ -51,9 +58,9 @@ readonly final class ShelfPicks
         $picks = [];
 
         foreach ($shelf as $puzzle) {
-            $estimate = $estimates[$puzzle->puzzle->puzzleId] ?? null;
+            [$estimate, $source] = $estimates[$puzzle->puzzle->puzzleId] ?? [null, null];
 
-            if ($estimate === null) {
+            if ($estimate === null || $source === null) {
                 continue;
             }
 
@@ -64,7 +71,7 @@ readonly final class ShelfPicks
                 expectedSeconds: $estimate->predictedSeconds,
                 expectedLowSeconds: $estimate->rangeLowSeconds,
                 expectedHighSeconds: $estimate->rangeHighSeconds,
-                source: ShelfPickSource::Statistical,
+                source: $source,
                 fasterThanShare: count($solverTimes) >= self::MINIMUM_SOLVERS ? RatingWhatIf::percentileInserting($solverTimes, $estimate->predictedSeconds) : null,
                 solverCount: count($solverTimes),
                 difficultyTier: $puzzle->difficultyTier,
@@ -82,24 +89,42 @@ readonly final class ShelfPicks
     }
 
     /**
-     * The expected time of each shelf puzzle that has one. Phase 5d: puzzles without a statistical prediction get the
-     * picture-only estimate here (ShelfPickSource::ImageEstimate).
+     * The expected time of each shelf puzzle that has one: the statistical prediction of a rated puzzle, and of a puzzle
+     * nobody has solved yet (k = 0) the picture-only one where ImageEstimateGate passed for its size group × image kind
+     * (ShelfPickSource::Image, marked as estimated). Puzzles with 1-4 difficulty indices are left out, as before.
      *
      * @param list<ShelfPuzzle> $shelf
      *
-     * @return array<string, TimePredictionResult>
+     * @return array<string, array{0: TimePredictionResult, 1: ShelfPickSource}>
      */
     private function estimates(string $playerId, array $shelf): array
     {
         $rated = [];
 
         foreach ($shelf as $puzzle) {
-            if ($puzzle->difficulty !== null) {
-                $rated[] = $puzzle->puzzle->puzzleId;
+            $rated[$puzzle->puzzle->puzzleId] = $puzzle->difficulty !== null;
+        }
+
+        $estimates = $this->getPersonalEstimates->forPuzzles(
+            $playerId,
+            array_map(strval(...), array_keys($rated)),
+            fn (PiecesGroup $group, ImageKind $kind, string $generation): bool => $this->imageEstimateGate->passesFor($group, $kind, $generation),
+        );
+        $expected = [];
+
+        foreach ($estimates as $puzzleId => $estimate) {
+            if ($estimate->prediction === null) {
+                continue;
+            }
+
+            if (($rated[$puzzleId] ?? false) && $estimate->basis === EstimateBasis::Measured) {
+                $expected[$puzzleId] = [$estimate->prediction, ShelfPickSource::Statistical];
+            } elseif ($estimate->basis === EstimateBasis::Picture) {
+                $expected[$puzzleId] = [$estimate->prediction, ShelfPickSource::Image];
             }
         }
 
-        return $rated !== [] ? $this->getPlayerPredictions->forPuzzles($playerId, $rated) : [];
+        return $expected;
     }
 
     /**

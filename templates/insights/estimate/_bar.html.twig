@@ -1,0 +1,12 @@
+{#
+    The certainty bar of a personal estimate: the 80 % range on a scale of the time × 0.5 … × 1.5 - wide = unsure. No
+    numbers on it (the sheet and the card have them), hidden from screen readers (the certainty is said in words).
+    Inputs: estimate (PersonalEstimate), mini (bool, the list line's tiny one)
+#}
+{%- set bar = estimate.bar -%}
+{%- if bar is not null -%}
+    <span class="est-bar{{ mini|default(false) ? ' est-bar--mini' }}" aria-hidden="true">
+        <span class="est-bar__range" style="left: {{ bar.left }}%; right: {{ bar.right }}%"></span>
+        {%- if not mini|default(false) %}<span class="est-bar__mark"></span>{% endif -%}
+    </span>
+{%- endif -%}

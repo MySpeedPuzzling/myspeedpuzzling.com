@@ -37,6 +37,23 @@ readonly final class ImagePriorInput
     }
 
     /**
+     * The estimate generation as the gate record keys it (`estimateModels`, ImageEstimateGate::passesFor())
+     */
+    public function generation(): string
+    {
+        return self::generationOf($this->model, $this->modelVersion);
+    }
+
+    /**
+     * "<model> <model version>" - the one spelling of an estimate generation, also the evaluation's
+     * (GetImageEstimateEvaluationRows)
+     */
+    public static function generationOf(string $model, null|string $modelVersion): string
+    {
+        return trim($model . ' ' . ($modelVersion ?? ''));
+    }
+
+    /**
      * @param array<string, mixed> $row image_log, image_log_p10, image_log_p90, image_model, image_model_version, image_artwork_kind
      */
     public static function fromRow(array $row): null|self

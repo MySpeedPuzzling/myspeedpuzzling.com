@@ -322,6 +322,9 @@
                                     {% set dt_icon_map = {'veryeasy':'diff-very-easy','easy':'diff-easy','average':'diff-average','challenging':'diff-challenging','hard':'diff-hard','veryhard':'diff-very-hard'} %}
                                     <svg class="diff-icon" width="24" height="24" style="color: var(--{{ dt_icon_map[dt_name] ?? 'diff-unknown' }})"><use href="/difficulty-icons-sprite.svg#{{ dt_icon_map[dt_name] ?? 'diff-unknown' }}"/></svg>
                                     <small>{{ puzzle_difficulty.difficultyTier.translationKey|trans }}</small>
+                                {% elseif estimates|default(null) is not null and estimates.of(puzzle.puzzleId) is not null and estimates.of(puzzle.puzzleId).tier is not null and estimates.of(puzzle.puzzleId).tierEstimated %}
+                                    {# Not rated yet, but estimated - from its first solves or its picture (docs/features/insights/estimates.md) #}
+                                    {{ include('insights/estimate/_chip.html.twig', {estimate: estimates.of(puzzle.puzzleId)}, with_context = false) }}
                                 {% else %}
                                     <svg class="diff-icon" width="24" height="24" style="color: var(--diff-unknown)"><use href="/difficulty-icons-sprite.svg#diff-unknown"/></svg>
                                     <small class="text-muted">{{ 'puzzle_intelligence.difficulty.not_enough_data'|trans }}</small>
@@ -378,7 +381,8 @@
                 </div>
             </div>
 
-            {# The two things people come here to do, then ⋯ with every action on the puzzle #}
+            {# The two things people come here to do, then ⋯ with every action on the puzzle - above them your time on it
+               (docs/features/insights/estimates.md), only while Insights are shown to the viewer #}{% if estimates|default(null) is not null %}{{ include('insights/estimate/_card.html.twig', {estimates: estimates, puzzle_id: puzzle.puzzleId, pieces_count: puzzle.piecesCount, collection_context: estimate_collection_context|default(null)}, with_context = false) }}{% endif %}
             <div class="puzzle-head-actions" data-nosnippet data-compact-bar-target="head">
                 <a class="btn btn-primary" data-turbo-frame="_top" rel="nofollow" href="{{ path('puzzle_add', {puzzleId: puzzle.puzzleId}) }}">
                     <i class="ci-add me-1"></i> {{ 'add_solving'|trans }}
@@ -473,6 +477,7 @@
             {{ include('puzzle/_difficulty_section.html.twig', {
                 puzzle_difficulty: puzzle_difficulty,
                 time_prediction: time_prediction,
+                estimates: estimates|default(null),
             }) }}
 
         </aside>

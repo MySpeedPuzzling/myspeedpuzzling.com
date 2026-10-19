@@ -957,6 +957,16 @@ Shipped: [`features/first-try-integrity.md`](features/first-try-integrity.md).
       `page_stylesheets` once the page is public (needs `docker compose restart js-watch` on dev)
 - [ ] `recalculate-puzzle-intelligence` on production is 25.4-25.8 s (2026-10-19, after 3a + 4a + 3b; was 16-18 s
       before Insights, plan budget ~+8 s): profile the steps and trim before more is added to the batch
+- [ ] Personal estimates (`docs/features/insights/estimates.md`, 6c): estimated tiers on the other thumbnail corners
+      (profile results, recent activity, ladders, most solved, round results, result detail, calendar) - only the
+      marketplace cards carry them; `ResolveDifficultyTiers` needs its own estimated-tier read
+- [ ] Personal estimates: no line on the solved, sell/swap and lend/borrow lists (not in the plan's list) - decide
+- [ ] Personal estimates: a list row whose puzzle has a tier but no time (no pace at that size) shows no line and so no
+      estimated tier
+- [ ] Personal estimates at the launch (§8): remove the "while hidden" branches (Insights panel prediction block,
+      Picker card prediction row, collections "+ predictions" pill, the `GetPlayerPrediction(s)` calls they need -
+      `feature_flags.md`), and decide whether the Picker's budget / gap filters read picture estimates at k = 0
+      (measure the Picker then)
 
 ## Insights recalculation writes only what changed
 

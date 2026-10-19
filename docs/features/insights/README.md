@@ -23,7 +23,8 @@ Jan's, made during the planning session of 2026-10-18 - do not re-ask them.
 4. **Display behind one feature flag** (`INSIGHTS_PUBLIC`, admins always see it), removed once the image backfill is
    complete and the estimate gates pass.
 
-The page as built (routes, flag, sections, free/member split, budget): [`page.md`](./page.md).
+The page as built (routes, flag, sections, free/member split, budget): [`page.md`](./page.md). The personal time
+estimates as built: [`estimates.md`](./estimates.md).
 
 Visual reference: [`prototype.html`](./prototype.html), the interactive prototype with sample data plus the plan. Open it in a browser.
 The "Prototype" tab is the page design; the "Plan & research" tab holds the same decisions as this file, with
@@ -35,6 +36,7 @@ mock-ups, among them the estimate display options (Plan tab → "Image predictio
 |---|---|
 | [`prediction-research.md`](./prediction-research.md) | The age bias, the pace history, image → difficulty / time pilot, piece counts, personal taste, train-or-not, side-by-side storage, **calibrated windows** (§12), realtime |
 | [`image-taxonomy.md`](./image-taxonomy.md) | What to extract from box images, the taxonomy (~310 keys), analyzer payload schemas (§11), run order, the description-model bake-off (§18), **measured resources per stage + the M3 Max / M1 Air split** (§19) |
+| [`estimates.md`](./estimates.md) | The personal time estimates as built (Phase 6c, option C): who sees what, which number shows where (the one rule), rounding, the one-line list display, statement costs |
 | [`image-estimate-gates.md`](./image-estimate-gates.md) | How the app measures the picture-based estimates on its stored predictions (`myspeedpuzzling:evaluate-image-estimates`) and the gates that decide where they may be shown (`ImageEstimateGate`) |
 | [`vision-analysis.md`](./vision-analysis.md) | The vision proof of concept: finding/cropping the artwork (mIoU 0.915), the first difficulty signals |
 | [`data-opportunities.md`](./data-opportunities.md) | The data-warehouse brainstorm (puzzle science, handicap, year in review, brand reports, retention) - follow-up features, not this plan |

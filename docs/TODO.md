@@ -126,8 +126,11 @@ that would otherwise be forgotten. Newest section on top.
       failed twice in a row" warning in Sentry (should never appear), no Seznam rows at all (SES only since 2026-10-19).
 - [ ] Seznam blocked `notify@` ("bulk unsolicited mail") after the 2026-10-19 digest - Jan is asking them to unblock
       it. Production sends SES only; Seznam stays the rollback (`infisical_mail.py seznam-fallback`) at most, never
-      for bulk mail. Decide inbound mail for `mail.` / `notify.` / the apex (MX on Seznam): Cloudflare Email Routing
-      (forward only) vs a mailbox provider - see the 2026-10-19 session notes in project memory.
+      for bulk mail. Inbound mail decided 2026-10-19: MX stays on Seznam Email Profi for the apex and all three
+      subdomains - Seznam blocked only the one `notify@` mailbox, the domain catch-all ("Doménový koš" →
+      jan@myspeedpuzzling.com) receives fine. Remove the `notify@notify` mailbox once its contents are not needed, so
+      its mail falls into the catch-all too (a blocked mailbox does not). Fallback if Seznam ever blocks a whole
+      domain: SES receiving in eu-north-1 (receipt rule per subdomain = catch-all, S3 + forwarding Lambda).
 - [x] Privacy policy: AWS listed (0a01bd8d, 2026-10-14).
 - [x] Google Postmaster Tools: the three domains were already there (Jan, 2026-10-14).
 - [x] CloudWatch alarms bounce rate >= 4 % / complaint rate >= 0.08 % → e-mail to Jan (`aws-setup.sh alarms`,

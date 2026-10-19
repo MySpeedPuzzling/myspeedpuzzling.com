@@ -10,10 +10,10 @@ state, PR, merge and deploy, deviations from the plan (and why), follow-ups.
 | 1 Production API for the pipeline | **done** | #258 (1a), #259 (1b), #260 (1c) | 2026-10-18 | 2026-10-18 | verified: 401 without token, `requires` filter (400 on bogus), change-request list 200, source backfill 897 internal_api / 2,790 player, picture grid behind login |
 | 2 Mac pipeline | **done** | #261 | 2026-10-18 | 2026-10-18 | `solvedCount` live on the work list; `bench` / `verify --end-to-end` run in the M3 session (see deviations) |
 | Backfill (M3 Max + M1 Air sessions) | **ready to start** (prompts handed to Jan 2026-10-18) | - | - | - | starts after 1 + 2 are deployed; ≈ 5.5 days |
-| 3 Prediction fix | in progress (3a, 3b done; 3c in review) | #263 (3a), #272 (3b) | 3a: 2026-10-18, 3b: 2026-10-19 | 3a: 2026-10-18, 3b: 2026-10-19 | 3a: backfill on prod 244,985 rows / 4,235 players in 33 s; first as-of batch 22 s (was 16-18 s; re-check steady state); tiers 1-6 = 249 / 1,838 / 2,956 / 891 / 400 / 225, 6,559 rated. 3b: migration Version20261019025300 ran at boot; first prod fit 13.9 s (39,966 puzzle priors, 245,069 drift rows, 146,215 first-try / 90,117 repeat samples, tau 0.5; thin rules: up to 300 below 20 own first tries, 1000 below 50, odd sizes always, 1500+ too few samples); `--recompute-reconstructed` one-off started 05:15 Prague (7,528 players, ETA ~3 h on prod); crons fit 04:11 + calibration 04:51 in lily.srv (da7d296) |
+| 3 Prediction fix | **done** (backfill one-off running) | #263 (3a), #272 (3b), #273 (3c) | 3a: 2026-10-18, 3b + 3c: 2026-10-19 | 3a: 2026-10-18, 3b + 3c: 2026-10-19 | 3a: backfill on prod 244,985 rows / 4,235 players in 33 s; first as-of batch 22 s (was 16-18 s; re-check steady state); tiers 1-6 = 249 / 1,838 / 2,956 / 891 / 400 / 225, 6,559 rated. 3b: migration Version20261019025300 ran at boot; first prod fit 13.9 s (39,966 puzzle priors, 245,069 drift rows, 146,215 first-try / 90,117 repeat samples, tau 0.5; thin rules: up to 300 below 20 own first tries, 1000 below 50, odd sizes always, 1500+ too few samples); `--recompute-reconstructed` one-off started 05:15 Prague (7,528 players); the 3c deploy at 05:36 replaced the web container and killed it at 1,526 players - restarted 05:38 (resumable: 6,001 left, ETA ~1-1.5 h). Lesson: a deploy kills a one-off run through `docker compose exec web`; crons fit 04:11 + calibration 04:51 in lily.srv (da7d296) |
 | 4 Insights computation | done | #269 (4a), #270 (4c), #271 (4b) | 2026-10-19 | 2026-10-19 | 4a: first batch filled 310,209 rating entries + 2,687 time arrays (29 s first run); daily command 4.5 s, 3,808 profile cards, 6 constants; cron `recalculate-insights-daily` 04:41 in lily.srv (4a17f81). 4c: daily rerun 4.7 s, constants on as-of paces (pairs 1.296 → 1.200 first attempt, 1.173 → 1.091 other; teams of 3 1.316 / 1.257, 4+ 1.367 / 1.325). 4b: migration Version20261018230621 ran at boot; first snapshot 2026-10 (taken 2026-10-19 = mid-month state, not a 1st-of-month one): 2,908 players, 1.5 MB, 24.5 s; cron `snapshot-player-insights` 05:15 on the 1st in lily.srv (6934ba3) |
-| 5 Image intelligence on the server | in progress (5a, 5b, 5c done; 5d after 3b) | #265 (5a), #267 (5b), #268 (5c) | 2026-10-18/19 | 2026-10-18/19 | 5a: crons 07:40/07:45 (lily.srv 0953a4b), ran clean. 5b: labels endpoint live, model record empty until the first derive. 5c: Python only, 187 tests |
-| 6 Display behind INSIGHTS_PUBLIC | in progress (6a started 2026-10-19) | | | | |
+| 5 Image intelligence on the server | in progress (5a, 5b, 5c done; 5d building since 2026-10-19) | #265 (5a), #267 (5b), #268 (5c) | 2026-10-18/19 | 2026-10-18/19 | 5a: crons 07:40/07:45 (lily.srv 0953a4b), ran clean. 5b: labels endpoint live, model record empty until the first derive. 5c: Python only, 187 tests |
+| 6 Display behind INSIGHTS_PUBLIC | in progress (6a review round 2, 6b building, 6c after 5d) | | | | |
 | Launch (flag removed) | not started | | | | waits for the backfill + gates |
 
 ## Orchestration
@@ -151,6 +151,17 @@ Decisions for Phase 6 (orchestrator, 2026-10-19):
   nested-loop plan 3b no longer has), "any + gap" 107-108 ms (main 87-90). Batch +1.3 s locally. Add-time statement
   budget 44 → 45 (the live side row INSERT). §3.6 numbers (fit before 2026-04-11): MAE 0.087, bias −0.2 %, 50 % hit
   50.8 % / width 13.8 % (quartiles 50.8 / 51.1 / 50.9 / 50.6), 80 % hit 80.2 %, repeats 50.2 % / 11.9 %.
+- **3c:** API v1 fields are `range80_low_seconds` / `range80_high_seconds` (next to the existing `range_low_seconds` /
+  `range_high_seconds`; `predicted_range_*` are only column names). "Never outward" = nearest step, ties inward
+  (`prediction-research.md`: outward rounding gave 76 % hits); a window that rounds to nothing becomes the step holding
+  the prediction; minutes-only text ("50-85 min") only while the high end is under 90 min. Stored pre-v3 predictions
+  (recap) never claim "half of solves" (`TimePredictionResult::$calibratedWindow`). Picker cards keep the short
+  "Likely …" (compact). Point estimate stays unrounded.
+- **Phase 6 register (orchestrator, 2026-10-19):** Insights texts follow `puzzle_intelligence.*` on main - Czech
+  formal "vy", French "vous", German "du", Spanish "tú" (the site mixes registers per area).
+- **6a:** first response 10 statements (5 Insights + 5 page), 27-34 ms full request on a 1,011-result fixture. Not
+  built: "Prediction as shown" switch, histogram median / usual markers, sticky filter bar (collides with the
+  player header's compact bar). No "Your puzzling" menu heading exists - the row sits after Statistics.
 ## Follow-ups
 
 - Rejected crop images are deleted like any rejected proposal's file (decision + confidence stay, which is what the

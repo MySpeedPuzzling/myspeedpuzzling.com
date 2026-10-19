@@ -33,6 +33,13 @@ or the 6 months - 13 Apr 2027 - run out).
   pass on `bounce.<domain>`, DKIM pass with `d=<domain>` (aligned → DMARC pass), iprev pass. A second DKIM
   signature `d=amazonses.com` is normal. List-Unsubscribe headers arrive intact and are DKIM-signed. Seznam files
   notification mail under "Newsletters", as before.
+- **DNS since 2026-10-19 (SES only):** SPF of `mail.` / `notify.` / `news.` and of their `bounce.` MAIL FROM
+  domains = `v=spf1 include:amazonses.com -all` (hard fail; was `include:spf.seznam.cz ~all` - Seznam never sends
+  for these names any more). DMARC `p=reject` (relaxed alignment, reports to Sendvery) and the SES 2048-bit DKIM keys
+  unchanged; the old Seznam `szn*._domainkey` CNAMEs stay (harmless public keys, Email Profi still serves the
+  domains). Inbound: MX stays on Seznam Email Profi, the mailboxes were deleted, the domain catch-all
+  ("Doménový koš") hands everything to jan@myspeedpuzzling.com. SES feedback e-mails stay on (a backstop; they land
+  in jan@ through the catch-all). The apex `myspeedpuzzling.com` (people's mail, Seznam) is untouched.
 - Privacy policy lists Amazon Web Services EMEA SARL (sections 13 + 15, 6 locales, 0a01bd8d).
 - **Listmonk on SES (step 7 done):** second SMTP server "Amazon SES" (IAM user `ses-smtp-listmonk`, From
   `@news.` only, key also in Infisical `SES_SMTP_LISTMONK_*`), header `X-SES-CONFIGURATION-SET: newsletter`,

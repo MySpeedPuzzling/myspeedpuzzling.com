@@ -10,7 +10,7 @@ state, PR, merge and deploy, deviations from the plan (and why), follow-ups.
 | 1 Production API for the pipeline | **done** | #258 (1a), #259 (1b), #260 (1c) | 2026-10-18 | 2026-10-18 | verified: 401 without token, `requires` filter (400 on bogus), change-request list 200, source backfill 897 internal_api / 2,790 player, picture grid behind login |
 | 2 Mac pipeline | **done** | #261 | 2026-10-18 | 2026-10-18 | `solvedCount` live on the work list; `bench` / `verify --end-to-end` run in the M3 session (see deviations) |
 | Backfill (M3 Max + M1 Air sessions) | **ready to start** (prompts handed to Jan 2026-10-18) | - | - | - | starts after 1 + 2 are deployed; ≈ 5.5 days |
-| 3 Prediction fix | in progress (3a done; 3b in review round 2 - Picker prior precompute; then 3c) | #263 (3a) | 3a: 2026-10-18 | 3a: 2026-10-18 | 3a: backfill on prod 244,985 rows / 4,235 players in 33 s; first as-of batch 22 s (was 16-18 s; re-check steady state); tiers 1-6 = 249 / 1,838 / 2,956 / 891 / 400 / 225, 6,559 rated |
+| 3 Prediction fix | in progress (3a, 3b done; 3c in review) | #263 (3a), #272 (3b) | 3a: 2026-10-18, 3b: 2026-10-19 | 3a: 2026-10-18, 3b: 2026-10-19 | 3a: backfill on prod 244,985 rows / 4,235 players in 33 s; first as-of batch 22 s (was 16-18 s; re-check steady state); tiers 1-6 = 249 / 1,838 / 2,956 / 891 / 400 / 225, 6,559 rated. 3b: migration Version20261019025300 ran at boot; first prod fit 13.9 s (39,966 puzzle priors, 245,069 drift rows, 146,215 first-try / 90,117 repeat samples, tau 0.5; thin rules: up to 300 below 20 own first tries, 1000 below 50, odd sizes always, 1500+ too few samples); `--recompute-reconstructed` one-off started 05:15 Prague (7,528 players, ETA ~3 h on prod); crons fit 04:11 + calibration 04:51 in lily.srv (da7d296) |
 | 4 Insights computation | done | #269 (4a), #270 (4c), #271 (4b) | 2026-10-19 | 2026-10-19 | 4a: first batch filled 310,209 rating entries + 2,687 time arrays (29 s first run); daily command 4.5 s, 3,808 profile cards, 6 constants; cron `recalculate-insights-daily` 04:41 in lily.srv (4a17f81). 4c: daily rerun 4.7 s, constants on as-of paces (pairs 1.296 → 1.200 first attempt, 1.173 → 1.091 other; teams of 3 1.316 / 1.257, 4+ 1.367 / 1.325). 4b: migration Version20261018230621 ran at boot; first snapshot 2026-10 (taken 2026-10-19 = mid-month state, not a 1st-of-month one): 2,908 players, 1.5 MB, 24.5 s; cron `snapshot-player-insights` 05:15 on the 1st in lily.srv (6934ba3) |
 | 5 Image intelligence on the server | in progress (5a, 5b, 5c done; 5d after 3b) | #265 (5a), #267 (5b), #268 (5c) | 2026-10-18/19 | 2026-10-18/19 | 5a: crons 07:40/07:45 (lily.srv 0953a4b), ran clean. 5b: labels endpoint live, model record empty until the first derive. 5c: Python only, 187 tests |
 | 6 Display behind INSIGHTS_PUBLIC | in progress (6a started 2026-10-19) | | | | |
@@ -140,6 +140,17 @@ Decisions for Phase 6 (orchestrator, 2026-10-19):
   4c's `ShrunkEffect` (symmetric), the form chart never runs into the future, a snapshot re-run replaces its month,
   `--month` only the current (or, in the first 3 days, the previous) month, zone in `InsightsCriteria::cacheKey()`.
 
+- **3b:** model version 3 (not "v2" as the plan says - v2 was 3a's as-of inputs). Review fixes: 0-second first
+  attempts never feed drift / fit / evaluation; drift residuals clipped at ±0.5; no side-by-side rows before the first
+  fit, `--recompute-reconstructed` re-records everything computed before `fitted_at` (resumable); `pace_source` (own /
+  interpolated / scaled_500) on the result and the side row, time verification leaves scaled-500 predictions out like
+  shrunk ones (no classifier version bump); a size group keeps the default window term below 200 first tries; the fit
+  takes the pace-history writer's lock. Picker: the finished prior is stored per puzzle (`difficulty_prior_puzzle.prior_log`)
+  and copied onto `puzzle_difficulty.prior_log` (one lookup per candidate still cost ~45 ms on "any unsolved +
+  budget"): heaviest player 100-107 ms (main 55-59 ms; main itself went to ~3 s on a freshly rewritten copy - a
+  nested-loop plan 3b no longer has), "any + gap" 107-108 ms (main 87-90). Batch +1.3 s locally. Add-time statement
+  budget 44 → 45 (the live side row INSERT). §3.6 numbers (fit before 2026-04-11): MAE 0.087, bias −0.2 %, 50 % hit
+  50.8 % / width 13.8 % (quartiles 50.8 / 51.1 / 50.9 / 50.6), 80 % hit 80.2 %, repeats 50.2 % / 11.9 %.
 ## Follow-ups
 
 - Rejected crop images are deleted like any rejected proposal's file (decision + confidence stay, which is what the
@@ -157,3 +168,6 @@ Decisions for Phase 6 (orchestrator, 2026-10-19):
   (5d/3c follow-up); flip `IMAGE_TRAITS_ARE_PREVIEW` at launch; drill-down result ids need their own hydrate call;
   Phase 6 calls `InsightsPageLoader` only for the signed-in player's own id, passes membership (trials included) and
   `profile.timezone`, and wires `InsightsCriteria::cacheKey($timezone)` into 4c's `InsightsCacheKey`.
+- 3b: a live add in the minutes between a deploy and the first fit writes a v3 side row from the defaults
+  (docs/TODO.md); stale leave-one-out, fit centre vs live baseline, RepeatHistory same-moment exclusion are in
+  docs/TODO.md. Measure the prod batch and Picker after the one-off backfill (below).

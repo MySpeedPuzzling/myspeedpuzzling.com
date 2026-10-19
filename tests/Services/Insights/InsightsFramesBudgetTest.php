@@ -36,9 +36,9 @@ final class InsightsFramesBudgetTest extends KernelTestCase
     private const array BUDGETS = [
         'rating, member' => 11,
         'rating, free' => 9,
-        'shelf picks, member' => 7,
+        'shelf picks, member' => 6,
         'shelf picks, free' => 2,
-        'top row, member' => 17,
+        'top row, member' => 16,
         'top row, free' => 10,
         're-solve radar' => 5,
         'pairs & teams' => 5,

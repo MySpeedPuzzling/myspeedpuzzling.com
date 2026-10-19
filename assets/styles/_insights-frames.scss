@@ -437,6 +437,13 @@ a.ins-srow .ins-stag {
 
 // --- Shelf picks -----------------------------------------------------------------------------------------------------------
 
-.ins-shelf__estimate {
-    color: $ins-ink-2;
+// A pick's row holds stream 6c's estimate line (a button), so the picture and the name are the links, not the row
+.ins-shelf__name {
+    color: $ins-ink;
+    text-decoration: none;
+
+    &:hover {
+        color: $ins-ink;
+        text-decoration: underline;
+    }
 }

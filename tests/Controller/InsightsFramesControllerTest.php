@@ -141,7 +141,8 @@ final class InsightsFramesControllerTest extends WebTestCase
 
         $shelf = $frames['/en/insights/shelf'];
         self::assertGreaterThan(0, $shelf->filter('[data-testid="insights-shelf-picks"] li')->count(), 'shelf picks');
-        self::assertStringContainsString('Likely', $shelf->filter('[data-testid="insights-shelf-picks"]')->text(), '3c\'s likely window');
+        self::assertCount($shelf->filter('[data-testid="insights-shelf-picks"] li')->count(), $shelf->filter('[data-testid="insights-shelf-picks"] [data-testid="estimate-line"]'), '6c\'s estimate line on every pick');
+        self::assertCount(0, $shelf->filter('[data-testid="insights-shelf-picks"] a [data-testid="estimate-line"]'), 'the line is no part of a link');
         self::assertStringContainsString('Insights Puzzle 4', $shelf->filter('[data-testid="insights-shelf-picks"]')->text());
 
         $top = $this->frame($browser, '/en/insights/top-findings');

@@ -10682,7 +10682,7 @@ insights:
         beaten: "{0}geschlagen|{1}von 1 geschlagen|]1,Inf[von %count% geschlagen"
         few_solvers: "noch zu wenige Puzzler"
         picker: "Alle deine ungelegten Puzzles in „Welches Puzzle als Nächstes?“"
-        note: "Wahrscheinlich = deine persönliche Vorhersage für einen ersten Versuch. Geschlagen = der Anteil der öffentlichen ersten Versuche beim Puzzle, die deine wahrscheinliche Zeit unterbieten würde."
+        note: "≈ = deine Zeit für das Puzzle, dieselbe wie auf seiner Seite – tippe darauf für den wahrscheinlichen Bereich und wie sicher sie ist. Geschlagen = der Anteil der öffentlichen ersten Versuche beim Puzzle, die diese Zeit unterbieten würde."
     top:
         try_next:
             kicker: "Als Nächstes"

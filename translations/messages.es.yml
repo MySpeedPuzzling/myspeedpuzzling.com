@@ -10683,7 +10683,7 @@ insights:
         beaten: "{0}superados|{1}de 1 superado|]1,Inf[de %count% superados"
         few_solvers: "aún pocos puzzleros"
         picker: "Todos tus puzzles sin armar en «¿Qué puzzle armar ahora?»"
-        note: "Probablemente = tu predicción personal para un primer intento. Superados = la parte de los primeros intentos públicos del puzzle que tu tiempo probable mejoraría."
+        note: "≈ = tu tiempo en el puzzle, el mismo que en su página: tócalo para ver el rango probable y lo seguro que es. Superados = la parte de los primeros intentos públicos del puzzle que ese tiempo mejoraría."
     top:
         try_next:
             kicker: "Prueba ahora"

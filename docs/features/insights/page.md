@@ -54,7 +54,7 @@ morphing it. The skill map strips, the profile bars and the pace bars are plain 
 | 7 | You against the median solver | `histogram` | the histogram + takeaway; lock: "N outliers found" | + the outliers both ways |
 | 8 | Close calls | `closeCalls` | yes (places only, nobody named) | yes |
 | 9-10 | Rating opportunities + forecast | lazy frame `insights_rating` (`RatingOpportunities` + `RatingForecast` from one `RatingModel`) | one lock each: "N moves found, worth up to +X points" / "N entries leave your rating within 2 months" | moves (most points / per hour), portfolio strips, pending puzzles, the path onto the ladder (near the ladder only), forecast chart + milestones |
-| 10b | Try next from your shelf | lazy frame `insights_shelf` (`ShelfPicks`) | lock: "N unsolved puzzles on your shelf" | up to 12 picks: likely window (`_shelf_estimate.html.twig`, 6c replaces it), share of solvers beaten |
+| 10b | Try next from your shelf | lazy frame `insights_shelf` (`ShelfPicks`) | lock: "N unsolved puzzles on your shelf" | up to 12 picks: stream 6c's estimate line (≈ time, certainty bar, tier chip, the shared sheet), share of solvers beaten |
 | 11 | Re-solve radar | lazy frame `insights_resolve` (`ResolveRadar`) | lock: "N old puzzles you would likely beat now" | scatter + best candidates + Puzzle Picker link |
 | 12 | Learning curve | `learningCurve` | lock: "your learning curve across N repeated puzzles" | chart you vs all solvers + puzzles improved most |
 | 13 | Pairs & teams | lazy frame `insights_pairs` (`PairsTeamsSynergy`) | takeaway with the count of results together; lock: "N pairs and teams analysed" | pairs and teams apart, synergy rows, together vs. alone, best results together |
@@ -164,8 +164,8 @@ response is unchanged by them: the placeholders cost no statement (`InsightsPage
 | Part (`InsightsLazyPart`) | Route | Controller | Sections | Filters it reads | Statements on a cache miss |
 |---|---|---|---|---|---|
 | `rating` | `insights_rating`, `GET /{_locale}/insights/rating` | `InsightsRatingFrameController` | 9 rating opportunities + pending + portfolio, 10 forecast | none (MSP rating = 500 pieces, its own 24-month window) | key 1 + model ≤ 8 (+ forecast 2, members) = ≤ 11 member / ≤ 9 free |
-| `top` | `insights_top`, `GET /{_locale}/insights/top-findings` | `InsightsTopFrameController` | the top row's "Try next" + "MSP rating" finding cards (in the findings grid, eager) | pieces (the shelf pick) | key 1 + rating ≤ 10 + shelf ≤ 6 = ≤ 17 member (14 measured) / ≤ 10 free; predictions off = 0 and no frame |
-| `shelf` | `insights_shelf`, `GET /{_locale}/insights/shelf` | `InsightsShelfFrameController` | "Try next from your shelf" (anchor `insights-try-next` - `insights-shelf` is the members' shelf filter) | pieces | key 1 + ≤ 6 = ≤ 7 member / 2 free; predictions off = 0 |
+| `top` | `insights_top`, `GET /{_locale}/insights/top-findings` | `InsightsTopFrameController` | the top row's "Try next" + "MSP rating" finding cards (in the findings grid, eager) | pieces (the shelf pick) | key 1 + rating ≤ 10 + shelf ≤ 5 = ≤ 16 member / ≤ 10 free; predictions off = 0 and no frame |
+| `shelf` | `insights_shelf`, `GET /{_locale}/insights/shelf` | `InsightsShelfFrameController` | "Try next from your shelf" (anchor `insights-try-next` - `insights-shelf` is the members' shelf filter) | pieces | key 1 + ShelfPicks ≤ 5 = ≤ 6 member / 2 free, + 1 per request for the picks' estimate lines (`ResolvePersonalEstimates`, + the gate record when a picture estimate is listed); predictions off = 0 |
 | `resolve` | `insights_resolve`, `GET /{_locale}/insights/re-solve` | `InsightsResolveFrameController` | 11 re-solve radar | pieces | key 1 + ≤ 4 = ≤ 5; predictions off = 0 |
 | `pairs` | `insights_pairs`, `GET /{_locale}/insights/pairs-and-teams` | `InsightsPairsFrameController` | 13 pairs & teams | period, pieces | key 1 + ≤ 4 = ≤ 5 |
 | `improvement` | `insights_improvement`, `GET /{_locale}/insights/improvement` | `InsightsImprovementFrameController` | 15 improvement curve + rating over time | period (rating over time), pieces (which curves) | key 1 + 1 (+ rating over time 1, members) = ≤ 3 |
@@ -192,6 +192,11 @@ and a cache hit = the key only). Measured 2026-10-19 in the test env (one-off co
   skeleton cards while it loads, built from the cache entries the `shelf` and `rating` frames share (whichever loads
   first builds them; afterwards each costs only the key). Opted out of rankings: the tile shows the rating and says
   neutrally that there is no place; private: no rating.
+- **Shelf picks show stream 6c's estimate line** (`insights/estimate/_line.html.twig`: ≈ time, certainty bar, tier chip,
+  a tap opens the shared `#estimate-sheet`) - the same numbers as the puzzle page and the lists (ShelfPicks reads
+  `GetPersonalEstimates` since 6c). The controller resolves them for the picks with `ResolvePersonalEstimates`
+  (members only, null while InsightsFeature hides Insights); the line is a button, so the row's picture and name are
+  the links.
 - `InsightsFrameRequest::context()` applies the page's rules: signed in, `InsightsFeature` (404 while hidden), the
   signed-in player's own id only (the URL carries no player), membership with trials counted
   (`PlayerProfile::$activeMembership`), `time_predictions_opted_out`, the time zone for the criteria, and the page's
@@ -206,8 +211,8 @@ and a cache hit = the key only). Measured 2026-10-19 in the test env (one-off co
   skeletons (`EventsPageDates`).
 - Styles: `assets/styles/_insights-frames.scss` (after `_insights.scss`).
 
-**Prediction windows** follow stream 3c: a move's, a re-solve candidate's or a shelf pick's expected time is shown only
-as the likely window (`RatingMove::window()` / `ResolveCandidate::window()` / `ShelfPick::window()` = `PredictionWindow::rounded()`, Twig
+**Prediction windows** follow stream 3c: a move's or a re-solve candidate's expected time (and the "Try next" card's) is
+shown only as the likely window (`RatingMove::window()` / `ResolveCandidate::window()` / `ShelfPick::window()` = `PredictionWindow::rounded()`, Twig
 `prediction_window_range`, wording `puzzle_intelligence.prediction.window.likely`), never as a point time.
 
 **Rules carried into the frames:**

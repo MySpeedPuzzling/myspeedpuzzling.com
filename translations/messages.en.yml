@@ -10956,7 +10956,7 @@ insights:
         beaten: "{0}beaten|{1}of 1 beaten|]1,Inf[of %count% beaten"
         few_solvers: "too few solvers yet"
         picker: "All your unsolved puzzles in the Puzzle Picker"
-        note: "Likely = your personal prediction for a first try. Beaten = the share of the puzzle's public first tries your likely time would be faster than."
+        note: "≈ = your time on the puzzle, the same as on its page - tap it for the likely window and how sure it is. Beaten = the share of the puzzle's public first tries that time would be faster than."
     top:
         try_next:
             kicker: "Try next"

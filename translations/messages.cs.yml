@@ -10709,7 +10709,7 @@ insights:
         beaten: "{0}poraženo|{1}z 1 poraženo|[2,Inf[z %count% poraženo"
         few_solvers: "zatím málo puzzlerů"
         picker: "Všechna nesložená puzzle v „Co skládat dál?“"
-        note: "Pravděpodobně = vaše osobní predikce prvního pokusu. Poraženo = podíl veřejných prvních pokusů na puzzle, který by váš pravděpodobný čas překonal."
+        note: "≈ = váš čas na puzzle, stejný jako na jeho stránce – klepnutím uvidíte pravděpodobné rozmezí a jak je jistý. Poraženo = podíl veřejných prvních pokusů na puzzle, který by tento čas překonal."
     top:
         try_next:
             kicker: "Zkuste příště"

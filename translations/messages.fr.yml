@@ -10702,7 +10702,7 @@ insights:
         beaten: "{0}battus|{1}sur 1 battu|]1,Inf[sur %count% battus"
         few_solvers: "encore trop peu de puzzleurs"
         picker: "Tous vos puzzles non faits dans « Quel puzzle faire ensuite ? »"
-        note: "Probablement = votre prédiction personnelle pour un premier essai. Battus = la part des premiers essais publics du puzzle que votre temps probable battrait."
+        note: "≈ = votre temps sur le puzzle, le même que sur sa page – touchez-le pour voir la fourchette probable et sa fiabilité. Battus = la part des premiers essais publics du puzzle que ce temps battrait."
     top:
         try_next:
             kicker: "À essayer"

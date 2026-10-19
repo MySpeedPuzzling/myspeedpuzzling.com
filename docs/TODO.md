@@ -948,6 +948,16 @@ Shipped: [`features/first-try-integrity.md`](features/first-try-integrity.md).
       close those on a thread restart (reproduced: 2 threads, 9 restarts, 11 connections left) - the session handler
       deliberately uses the worker's Doctrine connection instead.
 
+## Insights page (`docs/features/insights/page.md`, Phase 6)
+
+- [ ] "Expected for you / Prediction as shown" switch from the prototype (6a built only the calibrated view)
+- [ ] Median histogram: median and "your usual" marker lines (6a colours the bars faster / slower instead)
+- [ ] Sticky filter bar - collides with the player header's compact bar today; needs one shared sticky stack
+- [ ] `_insights.scss` (~1,100 lines) lives in the global `app.scss`; move it to its own Encore entry via
+      `page_stylesheets` once the page is public (needs `docker compose restart js-watch` on dev)
+- [ ] `recalculate-puzzle-intelligence` on production is 25.4-25.8 s (2026-10-19, after 3a + 4a + 3b; was 16-18 s
+      before Insights, plan budget ~+8 s): profile the steps and trim before more is added to the batch
+
 ## Insights recalculation writes only what changed
 
 Shipped 2026-09-30: [`features/puzzle-intelligence/README.md`](features/puzzle-intelligence/README.md) §"Writes: only what changed".

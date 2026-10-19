@@ -132,7 +132,6 @@ readonly final class InsightsBuilder
             playerId: $playerId,
             isMember: $criteria->isMember,
             criteria: $criteria->toQueryParameters(),
-            strippedForMembers: $criteria->strippedForMembers,
             builtAt: $now,
             generation: $context->generation,
             hasTimezone: $timezone !== null,

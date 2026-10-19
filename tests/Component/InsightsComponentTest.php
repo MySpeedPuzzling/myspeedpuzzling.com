@@ -65,7 +65,10 @@ final class InsightsComponentTest extends WebTestCase
         self::assertNull($insights->results);
         self::assertSame([], $insights->weekdays);
         self::assertSame('500', $insights->pieces, 'the piece count is free');
-        self::assertCount(1, $crawler->filter('.ins-filters__stripped'));
+        // The props are normalized at mount, and this helper renders from them: nothing is left to strip - the
+        // notice belongs to the request that carried the link (InsightsControllerTest covers it on the page)
+        self::assertCount(0, $crawler->filter('.ins-filters__stripped'));
+        self::assertCount(1, $crawler->filter('#insights-when option[value="6m"][selected]'));
 
         // Free players get no drill-down even when they ask the endpoint for one
         $component->call('toggleDrill', ['segment' => 'difficulty:3']);
@@ -109,6 +112,30 @@ final class InsightsComponentTest extends WebTestCase
         $insights = $component->component();
         self::assertSame('12m', $insights->period);
         self::assertNull($insights->year);
+    }
+
+    /**
+     * A past year from a link that is not among the offered years (no results that year) keeps its own option -
+     * the select never falls back to the first option, which Live would write back as the period
+     */
+    public function testAPastYearWithoutResultsKeepsItsOption(): void
+    {
+        $client = $this->client(flag: true, player: PlayerFixture::PLAYER_WITH_STRIPE);
+        $this->growResults($client, PlayerFixture::PLAYER_WITH_STRIPE, 12);
+
+        $component = $this->createLiveComponent('Insights', ['period' => 'past_year', 'year' => '2001'], $client);
+        $component->setRouteLocale('en');
+        $crawler = $component->render()->crawler();
+
+        $selected = $crawler->filter('#insights-when option[selected]');
+        self::assertCount(1, $selected);
+        self::assertSame(Insights::WHEN_PAST_YEAR_PREFIX . '2001', $selected->attr('value'));
+        self::assertSame('2001', trim($selected->text()));
+
+        /** @var Insights $insights */
+        $insights = $component->component();
+        self::assertSame(Insights::WHEN_PAST_YEAR_PREFIX . '2001', $insights->when);
+        self::assertSame('past_year', $insights->period);
     }
 
     private function client(bool $flag, string $player): KernelBrowser

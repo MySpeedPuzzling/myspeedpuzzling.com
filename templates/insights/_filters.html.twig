@@ -48,7 +48,8 @@
         </div>
     {% endif %}
 
-    {% if this.report.strippedForMembers is not empty %}
+    {# This request's own criteria, never the cached report: two links that strip to the same filters share the report #}
+    {% if criteria.strippedForMembers is not empty %}
         <p class="ins-filters__stripped" role="status">{{ 'insights.filters.stripped'|trans }}</p>
     {% endif %}
 </div>

@@ -26,6 +26,26 @@
                     <div class="ins-chart ins-chart--short" id="ins-chart-weekdays-{{ this.stateKey }}" data-controller="comparison-chart">
                         {{ render_chart(this.charts.weekdays, {role: 'img', 'aria-label': 'insights.habits.weekdays_label'|trans}) }}
                     </div>
+                    {# The chart's numbers for screen readers - the pace only for members, like the chart's tooltips #}
+                    <table class="visually-hidden" data-testid="insights-weekdays-table">
+                        <caption>{{ 'insights.habits.weekdays_label'|trans }}</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">{{ 'insights.chart.table.day'|trans }}</th>
+                                <th scope="col">{{ 'insights.chart.table.results'|trans }}</th>
+                                {% if this.isMember %}<th scope="col">{{ 'insights.chart.table.pace'|trans }}</th>{% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for bucket in habits.weekdays %}
+                                <tr>
+                                    <th scope="row">{{ ('insights.weekday.' ~ bucket.key)|trans }}</th>
+                                    <td>{{ bucket.count }}</td>
+                                    {% if this.isMember %}<td>{{ bucket.stats.effect is not null ? ins.versus(1 + bucket.stats.effect, 'usual') : 'insights.habits.too_few'|trans }}</td>{% endif %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 {% endif %}
             </div>
             <div>

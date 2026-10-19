@@ -73,7 +73,7 @@
                 {# Why it went the way it did: the player's own Insights (docs/features/insights/page.md) #}
                 {% if logged_user.profile is not null and logged_user.profile.playerId == player.playerId and insights_visible() %}
                     <p class="recap-see-why small mb-3">
-                        <a href="{{ path('insights') }}#{{ logged_user.profile.activeMembership ? 'insights-expected' : 'insights-median' }}" data-testid="recap-see-why">
+                        <a href="{{ insights_see_why_url() }}" data-testid="recap-see-why">
                             <i class="bi bi-lightbulb me-1" aria-hidden="true"></i>{{ 'insights.see_why'|trans }}
                         </a>
                     </p>

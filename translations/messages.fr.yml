@@ -10007,6 +10007,7 @@ insights:
         add: "Ajouter un temps"
     ask:
         label: "Les questions auxquelles cette page répond"
+        members_only: "réservé aux membres"
         profile: "Quel type de puzzleur suis-je ?"
         form: "Est-ce que je progresse ?"
         strengths: "Quels sont mes points forts ?"
@@ -10243,7 +10244,10 @@ insights:
         title: "Prévu ou réel"
         predictions_off: "Les prédictions de temps sont désactivées dans vos paramètres, il n'y a donc pas de temps prévus ici."
         not_sure_yet: "Les temps prévus s'affichent dès que vos résultats de cette sélection ont des prédictions enregistrées."
-        takeaway: "Par rapport à ce que nous attendons de vous, <b>%better%</b> résultats se sont passés plus de 10 % mieux et <b>%worse%</b> plus de 10 % plus lentement ; %within% sont restés à moins de 10 %."
+        takeaway:
+            better: "[0,1]Par rapport à ce que nous attendons de vous, <b>%count%</b> résultat s'est passé plus de 10 % mieux.|]1,Inf[Par rapport à ce que nous attendons de vous, <b>%count%</b> résultats se sont passés plus de 10 % mieux."
+            worse: "[0,1]<b>%count%</b> s'est passé plus de 10 % plus lentement.|]1,Inf[<b>%count%</b> se sont passés plus de 10 % plus lentement."
+            within: "[0,1]%count% est resté à moins de 10 %.|]1,Inf[%count% sont restés à moins de 10 %."
         chart_label: "Votre temps face au temps prévu pour vous"
         legend:
             better: "Plus de 10 % plus rapide"
@@ -10266,7 +10270,8 @@ insights:
         question: "Où suis-je loin de la médiane ?"
         title: "Vous face à la médiane"
         not_sure_yet: "Ce graphique s'affiche dès que vous avez 5 résultats avec une médiane du puzzle dans cette sélection."
-        takeaway: "Vous êtes d'habitude %versus%, et plus lent que la médiane sur <b>%slower% sur %count%</b> résultats. %outliers% résultats s'écartent de plus de 30 % de votre rythme habituel."
+        takeaway: "Vous êtes d'habitude %versus%, et plus lent que la médiane sur <b>%slower% sur %count%</b> résultats."
+        outliers: "{0}Aucun ne s'écarte de plus de 30 % de votre rythme habituel.|{1}1 résultat s'écarte de plus de 30 % de votre rythme habituel.|]1,Inf[%count% résultats s'écartent de plus de 30 % de votre rythme habituel."
         chart_label: "Vos résultats selon leur écart, plus rapide ou plus lent, avec la médiane de chaque puzzle"
         legend:
             faster: "Plus rapide que la médiane"
@@ -10382,6 +10387,11 @@ insights:
             text: "Sans elles, il n'y a pas de temps prévus sur cette page. Vous pouvez les réactiver dans vos paramètres."
     chart:
         results: "[0,1]%count% résultat|]1,Inf[%count% résultats"
+        table:
+            day: "Jour"
+            results: "Résultats"
+            pace: "Rythme face à votre rythme habituel"
+            against_median: "Face à la médiane"
         profile:
             better_than: "Mieux que %percent% % des puzzleurs"
             not_enough: "Pas encore assez de résultats"

@@ -129,7 +129,7 @@
     {# Your own solo results: why they went the way they did lives on your Insights page (docs/features/insights/page.md) #}
     {% if not result.isGroup and viewer_id is not null and result.player.playerId == viewer_id and insights_visible() %}
         <p class="pr-see-why mb-0 mt-2">
-            <a href="{{ path('insights') }}#{{ is_member ? 'insights-expected' : 'insights-median' }}" data-turbo-frame="_top" data-testid="result-see-why">
+            <a href="{{ insights_see_why_url() }}" data-turbo-frame="_top" data-testid="result-see-why">
                 <i class="bi bi-lightbulb me-1" aria-hidden="true"></i>{{ 'insights.see_why'|trans }}
             </a>
         </p>

@@ -12,7 +12,7 @@
 } %}
 
 {% if report.findings is not empty %}
-    <div class="ins-findings" id="insights-findings" aria-label="{{ 'insights.findings.label'|trans }}" data-testid="insights-findings">
+    <div class="ins-findings" id="insights-findings" role="region" aria-label="{{ 'insights.findings.label'|trans }}" data-testid="insights-findings">
         {% for finding in report.findings %}
             {% set locked = finding.membersOnly and not this.isMember %}
             {% set puzzle = this.puzzle(finding.puzzleId) %}

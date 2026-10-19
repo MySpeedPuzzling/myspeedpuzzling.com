@@ -9,9 +9,11 @@ use DateTimeImmutable;
 /**
  * The core sections of one player's Insights page for one filter state (InsightsBuilder) - plain data, serializable
  * (the page cache stores it). Every section carries its sample size and a "not sure yet" state; the page's wording
- * (Phase 6) turns codes and numbers into sentences. What is free and what members only: InsightsSection::isFree();
- * the builder computes everything for everybody, so a lock can show real counts - a template must not render a
- * members-only section's content for a free player. docs/features/insights/computation.md "Core sections".
+ * (Phase 6) turns codes and numbers into sentences. What a free player's link asked for and did not get is the
+ * request's own (InsightsCriteria::$strippedForMembers) - never in the cached report, whose cache key hashes the
+ * stripped filters. What is free and what members only: InsightsSection::isFree(); the builder computes everything
+ * for everybody, so a lock can show real counts - a template must not render a members-only section's content for a
+ * free player. docs/features/insights/computation.md "Core sections".
  */
 readonly final class InsightsReport
 {
@@ -29,7 +31,6 @@ readonly final class InsightsReport
 
     /**
      * @param array<string, string|list<string>> $criteria the applied filters (InsightsCriteria::toQueryParameters())
-     * @param list<string> $strippedForMembers filters a free player asked for and did not get
      * @param list<InsightsFinding> $findings at most 8, page order
      * @param list<string> $puzzleIdsShown the puzzles the sections list, at most MAX_SHOWN_PUZZLES - hydrate these
      * @param int $totalResultCount every solo result of the player that counts, whatever the filters
@@ -41,7 +42,6 @@ readonly final class InsightsReport
         public string $playerId,
         public bool $isMember,
         public array $criteria,
-        public array $strippedForMembers,
         public DateTimeImmutable $builtAt,
         public int $generation,
         public bool $hasTimezone,

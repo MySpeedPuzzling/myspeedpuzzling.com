@@ -24,11 +24,11 @@
     {% elseif expected.notSureYet %}
         <p class="ins-take">{{ 'insights.expected.not_sure_yet'|trans }}</p>
     {% else %}
-        <p class="ins-take">{{ 'insights.expected.takeaway'|trans({
-            '%better%': expected.betterCount,
-            '%worse%': expected.worseCount,
-            '%within%': expected.withinCount,
-        })|raw }}</p>
+        <p class="ins-take">
+            {{- 'insights.expected.takeaway.better'|trans({'%count%': expected.betterCount})|raw }}
+            {{ 'insights.expected.takeaway.worse'|trans({'%count%': expected.worseCount})|raw }}
+            {{ 'insights.expected.takeaway.within'|trans({'%count%': expected.withinCount}) -}}
+        </p>
 
         <div class="ins-two">
             <div>

@@ -601,7 +601,7 @@ already restrict a free player's selection to 3 / 6 months and pieces.
 All `readonly` plain data in `src/Results/Insights/` (serializable - the 4c page cache stores the report):
 
 - `InsightsPage { report: InsightsReport, puzzles: array<puzzleId, InsightsPuzzle> }`
-- `InsightsReport { playerId, isMember, criteria (applied query params), strippedForMembers, builtAt, generation,
+- `InsightsReport { playerId, isMember, criteria (applied query params), builtAt, generation,
   hasTimezone, summary, findings[], profileCard, form, skillMap, expectedVsActual, histogram, closeCalls, learningCurve,
   habits, consistency, predictionAccuracy, puzzleIdsShown[] }`
 - `InsightsSummary { resultCount, ratioCount, speedRatio?, trendChange?, trendRecentCount, trendOlderCount,

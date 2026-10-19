@@ -39,6 +39,7 @@
                         {{ lazy_puzzle_image(puzzle.image, 'puzzle_small', puzzle.name, loop.index, 48, 'rounded-2 ins-row__image', 48, puzzle.imageRatio) }}
                         <span class="ins-row__main">
                             <span class="ins-row__name">{{ puzzle.name }}</span>
+                            {{ include('puzzle/_name.html.twig', {name: puzzle.name, alternative_names: puzzle.alternativeNames, class: 'ins-row__local text-truncate'}) }}
                             <span class="ins-row__meta">{{ 'insights.close_calls.meta'|trans({'%rank%': item.rank, '%best%': item.bestSeconds|puzzlingTime, '%brand%': (puzzle.manufacturerName ?? '')}) }}</span>
                         </span>
                         <span class="ins-gainbar" aria-hidden="true"><span style="width: {{ max(4, ((item.targetGapShare ?? 0) / max_share * 100)|round) }}%"></span></span>

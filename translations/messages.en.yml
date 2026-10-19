@@ -10262,6 +10262,7 @@ insights:
         add: "Add a time"
     ask:
         label: "Questions this page answers"
+        members_only: "members only"
         profile: "What kind of puzzler am I?"
         form: "Am I getting better?"
         strengths: "What are my strengths?"
@@ -10498,7 +10499,10 @@ insights:
         title: "Expected vs. actual"
         predictions_off: "Time predictions are switched off in your settings, so there are no expected times here."
         not_sure_yet: "Expected times show once your results in this selection have stored predictions."
-        takeaway: "Against what we expect from you, <b>%better%</b> results went more than 10% better and <b>%worse%</b> more than 10% slower; %within% landed within 10%."
+        takeaway:
+            better: "{1}Against what we expect from you, <b>1</b> result went more than 10% better.|[0,Inf[Against what we expect from you, <b>%count%</b> results went more than 10% better."
+            worse: "{1}<b>1</b> went more than 10% slower.|[0,Inf[<b>%count%</b> went more than 10% slower."
+            within: "{1}1 landed within 10%.|[0,Inf[%count% landed within 10%."
         chart_label: "Your time against the time expected for you"
         legend:
             better: "More than 10% faster"
@@ -10521,7 +10525,8 @@ insights:
         question: "Where am I way off the median?"
         title: "You against the median solver"
         not_sure_yet: "This chart shows once you have 5 results with a puzzle median in this selection."
-        takeaway: "You are usually %versus%, and slower than the median on <b>%slower% of %count%</b> results. %outliers% results sit more than 30% from your usual."
+        takeaway: "You are usually %versus%, and slower than the median on <b>%slower% of %count%</b> results."
+        outliers: "{0}None of them sits more than 30% from your usual.|{1}1 result sits more than 30% from your usual.|]1,Inf[%count% results sit more than 30% from your usual."
         chart_label: "Your results by how much faster or slower than each puzzle's median solver they were"
         legend:
             faster: "Faster than the median solver"
@@ -10637,6 +10642,11 @@ insights:
             text: "Without them there are no expected times on this page. You can switch them back on in your settings."
     chart:
         results: "{1}1 result|[0,Inf[%count% results"
+        table:
+            day: "Day"
+            results: "Results"
+            pace: "Pace against your usual"
+            against_median: "Against the median solver"
         profile:
             better_than: "Better than %percent%% of puzzlers"
             not_enough: "Not enough results yet"

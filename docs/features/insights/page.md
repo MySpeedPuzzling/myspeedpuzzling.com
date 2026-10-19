@@ -12,7 +12,7 @@ The player's own Insights page, built by stream **6a**. Phase 6b and 6c add part
 | Live component | `Insights` (`src/Component/Insights.php`, `templates/components/Insights.html.twig`, partials in `templates/insights/`) |
 | Profile tab | `PlayerHeaderTab::Insights` after Statistics, owner-only (`isOwnerOnly()`), its link has no player (`routeParameters()`) |
 | Menu row | user menu, after Statistics (`data-testid="menu-insights"`) |
-| "See why" | the added-time recap (`recap-see-why`) and the result detail (`result-see-why`), own solo results only; they jump to `#insights-expected` for members and `#insights-median` for free players |
+| "See why" | the added-time recap (`recap-see-why`) and the result detail (`result-see-why`), own solo results only (`insights_see_why_url()`): to `#insights-expected` for members and `#insights-median` for free players once the player has `InsightsReport::MIN_RESULTS` results that count (`GetInsightsResultCount`, one short statement, only while Insights is visible), to the page itself (its empty state) before that |
 | Flag | `INSIGHTS_PUBLIC` (default `0`) → `InsightsFeature::isVisibleTo(?PlayerProfile)` = flag **or** `ADMIN_ACCESS`; Twig `insights_visible()`. While it is off, a non-admin gets a 404, no tab, no menu row, no "See why", and the Live endpoint renders nothing. See `docs/features/feature_flags.md` |
 
 ## How a render works
@@ -20,7 +20,8 @@ The player's own Insights page, built by stream **6a**. Phase 6b and 6c add part
 1. `Insights::load()`: the signed-in profile (the time zone and `time_predictions_opted_out` are only on the viewer's own
    row), then `InsightsFeature`.
 2. The props are normalised through `InsightsCriteria::fromUserInput(props, isMember, hasTimezone)`. A free player's
-   members-only values are dropped, and "Some filters of this link are for members" names them. The normalised values
+   members-only values are dropped, and "Some filters of this link are for members" says so - read from this
+   request's criteria, never from the cached report (two links that strip to the same filters share one report). The normalised values
    go back into the props, so the URL always says what is shown.
 3. `InsightsCache::keyFor(playerId)` costs **one statement**: the generation rides on the fingerprint
    (`GetInsightsFingerprint::withGeneration()`). The cached part is `page`, with context `criteria` =
@@ -56,6 +57,10 @@ morphing it. The skill map strips, the profile bars and the pace bars are plain 
 | 14 | Habits | `habits` | results per weekday (counts only); lock with the long-break count | + pace in the weekday tooltip, pace after a break, by the time you logged (with a time zone) |
 | 15 | Improvement curve + rating over time | - | 6b placeholder | 6b |
 | 16 | Make your insights sharper | `nudges` (`NudgesBuilder`) | yes | yes |
+
+**Accessibility:** the findings are a labelled region; a locked question chip says "members only" to screen readers;
+the weekday and histogram charts carry a visually hidden table with every bar's numbers (the weekday pace only for
+members). List rows show the name in the viewer's language under the main title (`puzzle/_name.html.twig`).
 
 **Free players never receive members-only content.** The builder computes everything for everybody, so the counts in
 the locks are real. The templates render a members-only part only for members. The members-only charts (expected,

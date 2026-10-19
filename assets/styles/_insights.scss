@@ -626,6 +626,12 @@ $ins-primary-ink: #d63c42;
         text-overflow: ellipsis;
     }
 
+    // The name in the viewer's language (puzzle/_name.html.twig), under the main title
+    &__local {
+        font-size: .75rem;
+        color: $ins-ink-2;
+    }
+
     &__meta {
         overflow: hidden;
         font-size: .75rem;

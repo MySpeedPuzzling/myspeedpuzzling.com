@@ -10,6 +10,7 @@
         {{ lazy_puzzle_image(puzzle.image, 'puzzle_small', puzzle.name, position|default(999), 48, 'rounded-2 ins-row__image', 48, puzzle.imageRatio) }}
         <span class="ins-row__main">
             <span class="ins-row__name">{{ puzzle.name }}</span>
+            {{ include('puzzle/_name.html.twig', {name: puzzle.name, alternative_names: puzzle.alternativeNames, class: 'ins-row__local text-truncate'}) }}
             <span class="ins-row__meta">{{ meta }}</span>
             {% if situations|default([]) is not empty %}
                 <span class="ins-why">

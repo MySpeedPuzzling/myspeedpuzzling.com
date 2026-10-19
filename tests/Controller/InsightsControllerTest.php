@@ -122,6 +122,28 @@ final class InsightsControllerTest extends WebTestCase
         self::assertStringNotContainsString('Jane Smith', $html, 'no other player on the page');
     }
 
+    /**
+     * `?period=all` and the plain visit strip to the same filters, so a free player's two visits share one cached
+     * report - the "for members" notice is this request's own, never the cached report's
+     */
+    public function testTheMembersNoticeBelongsToTheRequestNotTheCachedReport(): void
+    {
+        $browser = $this->browser(flag: true, player: self::FREE);
+        $this->growResults($browser, self::FREE, 20);
+        // One kernel for every request: the page cache (an array pool in tests) keeps what the first visit built
+        $browser->disableReboot();
+
+        $stripped = $browser->request('GET', self::URL . '?period=all');
+        self::assertCount(1, $stripped->filter('.ins-filters__stripped'));
+
+        $plain = $browser->request('GET', self::URL);
+        self::assertCount(0, $plain->filter('.ins-filters__stripped'), 'the plain visit is served the cached report without the notice');
+
+        $again = $browser->request('GET', self::URL . '?period=all&results=first');
+        self::assertCount(1, $again->filter('.ins-filters__stripped'), 'a stripped link after a plain visit still says so');
+        self::assertSame($this->resultCount($plain), $this->resultCount($again), 'the same report');
+    }
+
     public function testAMemberGetsEverySectionWithoutLocks(): void
     {
         $browser = $this->browser(flag: true, player: self::MEMBER);
@@ -268,14 +290,27 @@ final class InsightsControllerTest extends WebTestCase
     {
         $browser = $this->browser(flag: true, player: self::MEMBER);
         $timeId = $this->growResults($browser, self::MEMBER, 1)[0];
+        // Below InsightsReport::MIN_RESULTS: the page itself (its empty state says why), no section to jump to
+        $this->connection($browser)->executeStatement(
+            "UPDATE puzzle_solving_time SET suspicious = true WHERE player_id = :id AND puzzling_type = 'solo' AND id <> :time",
+            ['id' => self::MEMBER, 'time' => $timeId],
+        );
 
         $detail = $browser->request('GET', '/en/result/' . $timeId);
         self::assertResponseIsSuccessful();
-        self::assertCount(1, $detail->filter('[data-testid="result-see-why"][href^="' . self::URL . '"]'));
+        self::assertSame(self::URL, $detail->filter('[data-testid="result-see-why"]')->attr('href'));
+
+        // Enough results: straight to the section that explains it (members: expected vs actual)
+        $this->connection($browser)->executeStatement("UPDATE puzzle_solving_time SET suspicious = false WHERE player_id = :id", ['id' => self::MEMBER]);
+        $this->growResults($browser, self::MEMBER, 12);
+
+        $detail = $browser->request('GET', '/en/result/' . $timeId);
+        self::assertResponseIsSuccessful();
+        self::assertSame(self::URL . '#insights-expected', $detail->filter('[data-testid="result-see-why"]')->attr('href'));
 
         $recap = $browser->request('GET', '/en/time-added/' . $timeId);
         self::assertResponseIsSuccessful();
-        self::assertCount(1, $recap->filter('[data-testid="recap-see-why"][href^="' . self::URL . '"]'));
+        self::assertSame(self::URL . '#insights-expected', $recap->filter('[data-testid="recap-see-why"]')->attr('href'));
 
         // Somebody else looking at that result gets no link
         TestingLogin::asPlayer($browser, self::FREE);

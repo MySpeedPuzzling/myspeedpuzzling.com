@@ -10014,6 +10014,7 @@ insights:
         add: "Přidat čas"
     ask:
         label: "Otázky, na které stránka odpovídá"
+        members_only: "jen pro členy"
         profile: "Jaký jsem puzzler?"
         form: "Zlepšuji se?"
         strengths: "Kde jsou mé silné stránky?"
@@ -10250,7 +10251,10 @@ insights:
         title: "Očekávání vs. skutečnost"
         predictions_off: "Predikce časů máte v nastavení vypnuté, takže tu nejsou žádné očekávané časy."
         not_sure_yet: "Očekávané časy se ukážou, jakmile budou mít vaše výsledky v tomto výběru uložené predikce."
-        takeaway: "Proti tomu, co od vás čekáme, šlo <b>%better%</b> výsledků o víc než 10 % lépe a <b>%worse%</b> o víc než 10 % pomaleji; %within% skončilo do 10 %."
+        takeaway:
+            better: "{1}Proti tomu, co od vás čekáme, šel <b>1</b> výsledek o víc než 10 % lépe.|[2,4]Proti tomu, co od vás čekáme, šly <b>%count%</b> výsledky o víc než 10 % lépe.|[0,Inf[Proti tomu, co od vás čekáme, šlo <b>%count%</b> výsledků o víc než 10 % lépe."
+            worse: "{1}<b>1</b> šel o víc než 10 % pomaleji.|[2,4]<b>%count%</b> šly o víc než 10 % pomaleji.|[0,Inf[<b>%count%</b> šlo o víc než 10 % pomaleji."
+            within: "{1}1 skončil do 10 %.|[2,4]%count% skončily do 10 %.|[0,Inf[%count% skončilo do 10 %."
         chart_label: "Váš čas proti času, který se u vás čekal"
         legend:
             better: "O víc než 10 % rychleji"
@@ -10273,7 +10277,8 @@ insights:
         question: "Kde jsem daleko od mediánu?"
         title: "Vy proti mediánu"
         not_sure_yet: "Graf se ukáže, jakmile budete mít v tomto výběru 5 výsledků s mediánem puzzle."
-        takeaway: "Obvykle skládáte %versus% a pomaleji než medián jste u <b>%slower% z %count%</b> výsledků. %outliers% výsledků je o víc než 30 % od vašeho obvyklého tempa."
+        takeaway: "Obvykle skládáte %versus% a pomaleji než medián jste u <b>%slower% z %count%</b> výsledků."
+        outliers: "{0}Žádný výsledek není o víc než 30 % od vašeho obvyklého tempa.|{1}1 výsledek je o víc než 30 % od vašeho obvyklého tempa.|[2,4]%count% výsledky jsou o víc než 30 % od vašeho obvyklého tempa.|[5,Inf[%count% výsledků je o víc než 30 % od vašeho obvyklého tempa."
         chart_label: "Vaše výsledky podle toho, o kolik byly rychlejší nebo pomalejší než medián každého puzzle"
         legend:
             faster: "Rychleji než medián"
@@ -10389,6 +10394,11 @@ insights:
             text: "Bez nich na této stránce nejsou očekávané časy. Znovu je zapnete v nastavení."
     chart:
         results: "{1}1 výsledek|[2,4]%count% výsledky|[0,Inf[%count% výsledků"
+        table:
+            day: "Den"
+            results: "Výsledky"
+            pace: "Tempo proti obvyklému"
+            against_median: "Proti mediánu"
         profile:
             better_than: "Lepší než %percent% % puzzlerů"
             not_enough: "Zatím málo výsledků"

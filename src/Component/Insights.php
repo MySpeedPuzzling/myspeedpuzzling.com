@@ -296,7 +296,7 @@ final class Insights
     /**
      * The period options: free players the last 3 and 6 months, members everything plus the years they solved in
      *
-     * @return list<array{value: string, label: string, parameters: array<string, int|string>, locked: bool}>
+     * @return list<array{value: string, label: string, parameters: array<string, int|string>}>
      */
     public function getWhenOptions(): array
     {
@@ -304,7 +304,7 @@ final class Insights
 
         foreach ([InsightsPeriod::Last3Months, InsightsPeriod::Last6Months, InsightsPeriod::Last12Months, InsightsPeriod::Last24Months, InsightsPeriod::ThisYear] as $period) {
             if ($this->isMember || $period->isFree()) {
-                $options[] = ['value' => $period->value, 'label' => 'insights.period.' . $period->value, 'parameters' => [], 'locked' => false];
+                $options[] = ['value' => $period->value, 'label' => 'insights.period.' . $period->value, 'parameters' => []];
             }
         }
 
@@ -313,12 +313,20 @@ final class Insights
 
             foreach ($this->report?->filterOptions->years ?? [] as $year) {
                 if ($year < $thisYear) {
-                    $options[] = ['value' => self::WHEN_PAST_YEAR_PREFIX . $year, 'label' => 'insights.period.past_year', 'parameters' => ['%year%' => $year], 'locked' => false];
+                    $options[] = ['value' => self::WHEN_PAST_YEAR_PREFIX . $year, 'label' => 'insights.period.past_year', 'parameters' => ['%year%' => $year]];
                 }
             }
 
-            $options[] = ['value' => InsightsPeriod::All->value, 'label' => 'insights.period.all', 'parameters' => [], 'locked' => false];
-            $options[] = ['value' => InsightsPeriod::Custom->value, 'label' => 'insights.period.custom', 'parameters' => [], 'locked' => false];
+            $options[] = ['value' => InsightsPeriod::All->value, 'label' => 'insights.period.all', 'parameters' => []];
+            $options[] = ['value' => InsightsPeriod::Custom->value, 'label' => 'insights.period.custom', 'parameters' => []];
+        }
+
+        // The shown period always has its option - a past year without results (or the current year as a past year,
+        // from a link) would otherwise show the first option, and Live would write that back into `when`
+        if (in_array($this->when, array_column($options, 'value'), true) === false) {
+            $options[] = $this->criteria->period === InsightsPeriod::PastYear
+                ? ['value' => $this->when, 'label' => 'insights.period.past_year', 'parameters' => ['%year%' => (int) $this->criteria->year]]
+                : ['value' => $this->when, 'label' => 'insights.period.' . $this->criteria->period->value, 'parameters' => []];
         }
 
         return $options;

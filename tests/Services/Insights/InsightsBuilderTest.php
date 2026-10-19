@@ -117,7 +117,6 @@ final class InsightsBuilderTest extends TestCase
         );
 
         self::assertFalse($report->isMember);
-        self::assertSame(['period', 'results'], $report->strippedForMembers);
         self::assertSame([], $report->criteria);
         self::assertLessThan(400, $report->summary->resultCount);
         self::assertLessThanOrEqual(7, count($report->form->months));

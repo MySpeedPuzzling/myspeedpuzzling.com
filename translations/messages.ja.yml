@@ -9977,6 +9977,7 @@ insights:
         add: "タイムを追加"
     ask:
         label: "このページが答える質問"
+        members_only: "メンバー限定"
         profile: "私はどんなパズラー？"
         form: "上達している？"
         strengths: "私の得意なところは？"
@@ -10213,7 +10214,10 @@ insights:
         title: "予想と実際"
         predictions_off: "設定でタイム予想をオフにしているため、ここには予想タイムがありません。"
         not_sure_yet: "この条件の結果に保存された予想があると表示されます。"
-        takeaway: "あなたへの予想と比べて、<b>%better%</b>件の結果が10%以上よく、<b>%worse%</b>件が10%以上遅く、%within%件が10%以内でした。"
+        takeaway:
+            better: "あなたへの予想と比べて、<b>%count%</b>件の結果が10%以上よい結果でした。"
+            worse: "<b>%count%</b>件は10%以上遅くなりました。"
+            within: "%count%件は10%以内でした。"
         chart_label: "あなたへの予想タイムと実際のタイム"
         legend:
             better: "10%以上速い"
@@ -10236,7 +10240,8 @@ insights:
         question: "中央値から大きく外れているのはどこ？"
         title: "中央値と比べたあなた"
         not_sure_yet: "この条件でパズル中央値のある結果が5件そろうと表示されます。"
-        takeaway: "あなたはふだん%versus%で、<b>%count%件中%slower%件</b>で中央値より遅くなっています。%outliers%件の結果がいつものペースから30%以上離れています。"
+        takeaway: "あなたはふだん%versus%で、<b>%count%件中%slower%件</b>で中央値より遅くなっています。"
+        outliers: "{0}いつものペースから30%以上離れた結果はありません。|[1,Inf[%count%件の結果がいつものペースから30%以上離れています。"
         chart_label: "各パズルの中央値と比べてどれだけ速かった・遅かったかで見た結果"
         legend:
             faster: "中央値より速い"
@@ -10352,6 +10357,11 @@ insights:
             text: "オフのあいだは、このページに予想タイムがありません。設定でいつでもオンに戻せます。"
     chart:
         results: "%count%件の結果"
+        table:
+            day: "曜日"
+            results: "結果"
+            pace: "いつもと比べたペース"
+            against_median: "中央値と比べて"
         profile:
             better_than: "パズラーの%percent%%より上"
             not_enough: "まだ結果が足りません"

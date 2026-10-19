@@ -23,7 +23,7 @@
         </a>
         {% if this.currentTab is not null %}
             <i class="bi bi-chevron-right player-strip-sep" aria-hidden="true"></i>
-            <a class="player-strip-section" href="{{ path(this.currentTab.routeName, {playerId: player.playerId}) }}"{% if this.currentTab.nofollow %} rel="nofollow"{% endif %}>{{ this.currentTab.translationKey|trans }}</a>
+            <a class="player-strip-section" href="{{ path(this.currentTab.routeName, this.currentTab.routeParameters(player.playerId)) }}"{% if this.currentTab.nofollow %} rel="nofollow"{% endif %}>{{ this.currentTab.translationKey|trans }}</a>
         {% endif %}
     </nav>
 {% else %}

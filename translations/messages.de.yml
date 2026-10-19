@@ -9987,6 +9987,7 @@ insights:
         add: "Zeit hinzufügen"
     ask:
         label: "Fragen, die diese Seite beantwortet"
+        members_only: "nur für Mitglieder"
         profile: "Was für ein Puzzler bin ich?"
         form: "Werde ich besser?"
         strengths: "Was sind meine Stärken?"
@@ -10223,7 +10224,10 @@ insights:
         title: "Erwartet vs. tatsächlich"
         predictions_off: "Zeitvorhersagen sind in deinen Einstellungen ausgeschaltet, deshalb gibt es hier keine erwarteten Zeiten."
         not_sure_yet: "Erwartete Zeiten werden angezeigt, sobald deine Ergebnisse in dieser Auswahl gespeicherte Vorhersagen haben."
-        takeaway: "Gegenüber dem, was wir von dir erwarten, liefen <b>%better%</b> Ergebnisse über 10 % besser und <b>%worse%</b> über 10 % langsamer; %within% lagen innerhalb von 10 %."
+        takeaway:
+            better: "{1}Gegenüber dem, was wir von dir erwarten, lief <b>1</b> Ergebnis über 10 % besser.|[0,Inf[Gegenüber dem, was wir von dir erwarten, liefen <b>%count%</b> Ergebnisse über 10 % besser."
+            worse: "{1}<b>1</b> lief über 10 % langsamer.|[0,Inf[<b>%count%</b> liefen über 10 % langsamer."
+            within: "{1}1 lag innerhalb von 10 %.|[0,Inf[%count% lagen innerhalb von 10 %."
         chart_label: "Deine Zeit gegenüber der für dich erwarteten Zeit"
         legend:
             better: "Über 10 % schneller"
@@ -10246,7 +10250,8 @@ insights:
         question: "Wo liege ich weit vom Median?"
         title: "Du gegenüber dem Median"
         not_sure_yet: "Dieses Diagramm erscheint, sobald du in dieser Auswahl 5 Ergebnisse mit Puzzle-Median hast."
-        takeaway: "Du bist meist %versus% und bei <b>%slower% von %count%</b> Ergebnissen langsamer als der Median. %outliers% Ergebnisse liegen über 30 % von deinem üblichen Tempo entfernt."
+        takeaway: "Du bist meist %versus% und bei <b>%slower% von %count%</b> Ergebnissen langsamer als der Median."
+        outliers: "{0}Keines liegt über 30 % von deinem üblichen Tempo entfernt.|{1}1 Ergebnis liegt über 30 % von deinem üblichen Tempo entfernt.|]1,Inf[%count% Ergebnisse liegen über 30 % von deinem üblichen Tempo entfernt."
         chart_label: "Deine Ergebnisse danach, wie viel schneller oder langsamer als der Median jedes Puzzles sie waren"
         legend:
             faster: "Schneller als der Median"
@@ -10362,6 +10367,11 @@ insights:
             text: "Ohne sie gibt es auf dieser Seite keine erwarteten Zeiten. Du kannst sie in deinen Einstellungen wieder einschalten."
     chart:
         results: "{1}1 Ergebnis|[0,Inf[%count% Ergebnisse"
+        table:
+            day: "Tag"
+            results: "Ergebnisse"
+            pace: "Tempo gegenüber deinem üblichen"
+            against_median: "Gegenüber dem Median"
         profile:
             better_than: "Besser als %percent% % der Puzzler"
             not_enough: "Noch nicht genug Ergebnisse"

@@ -10015,7 +10015,7 @@ insights:
             your_solves: "{1}Z vašeho složení|[0,Inf[Z vašich %count% složení"
             community: "Obvyklé pro %pieces% dílků"
         basis:
-            picture: "Vaše tempo a obrázek krabice: puzzle zatím nikdo nesložil, je to tedy hrubý odhad."
+            picture: "Vaše tempo a obrázek krabice – tohle puzzle zatím nikdo nesložil."
             first_solves: "{1}Vaše tempo a první složení tohoto puzzle – odhad, dokud ho nesloží 5 puzzlerů.|[0,Inf[Vaše tempo a prvních %count% složení tohoto puzzle – odhad, dokud ho nesloží 5 puzzlerů."
             measured: "{1}Vaše tempo a obtížnost puzzle změřená na 1 puzzlerovi.|[0,Inf[Vaše tempo a obtížnost puzzle změřená na %count% puzzlerech."
             your_solves: "{1}Vaše vlastní složení tohoto puzzle a to, jak se puzzleři obvykle zlepšují.|[0,Inf[Vašich %count% složení tohoto puzzle a to, jak se puzzleři obvykle zlepšují."

@@ -9988,7 +9988,7 @@ insights:
             your_solves: "{1}Aus deiner Lösung|[0,Inf[Aus deinen %count% Lösungen"
             community: "Üblich für %pieces% Teile"
         basis:
-            picture: "Dein Tempo und das Bild der Schachtel: Dieses Puzzle hat noch niemand gelöst, also ist es eine grobe Schätzung."
+            picture: "Dein Tempo und das Bild der Schachtel – dieses Puzzle hat noch niemand gelöst."
             first_solves: "{1}Dein Tempo und die erste Lösung des Puzzles – eine Schätzung, bis 5 Puzzler es gelöst haben.|[0,Inf[Dein Tempo und die ersten %count% Lösungen des Puzzles – eine Schätzung, bis 5 Puzzler es gelöst haben."
             measured: "{1}Dein Tempo und die Schwierigkeit des Puzzles, gemessen an 1 Puzzler.|[0,Inf[Dein Tempo und die Schwierigkeit des Puzzles, gemessen an %count% Puzzlern."
             your_solves: "{1}Deine eigene Lösung dieses Puzzles und wie sehr sich Puzzler meist verbessern.|[0,Inf[Deine eigenen %count% Lösungen dieses Puzzles und wie sehr sich Puzzler meist verbessern."

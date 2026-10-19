@@ -278,7 +278,6 @@ JOIN puzzle p ON p.id = listed.id
 LEFT JOIN attempts att ON att.puzzle_id = p.id
 LEFT JOIN player ON p.id = (SELECT first.id FROM listed first JOIN puzzle known ON known.id = first.id ORDER BY first.id LIMIT 1)
 SQL;
-
     }
 
     /**

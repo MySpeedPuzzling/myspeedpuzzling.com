@@ -10263,7 +10263,7 @@ insights:
             your_solves: "{1}From your solve|[0,Inf[From your %count% solves"
             community: "Typical for %pieces% pieces"
         basis:
-            picture: "Your pace and the picture of the box: nobody has solved this puzzle yet, so it is a rough estimate."
+            picture: "Your pace and the picture of the box - nobody has solved this puzzle yet."
             first_solves: "{1}Your pace and the puzzle's first solve - an estimate until 5 puzzlers have solved it.|[0,Inf[Your pace and the puzzle's first %count% solves - an estimate until 5 puzzlers have solved it."
             measured: "{1}Your pace and the puzzle's difficulty, measured on 1 solver.|[0,Inf[Your pace and the puzzle's difficulty, measured on %count% solvers."
             your_solves: "{1}Your own solve of this puzzle and how much puzzlers usually improve.|[0,Inf[Your own %count% solves of this puzzle and how much puzzlers usually improve."

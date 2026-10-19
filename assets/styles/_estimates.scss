@@ -95,6 +95,13 @@ $est-grid: #e3e9ef;
 
 // --- One line on a list row ---------------------------------------------------------------------------------------------
 
+// The column holding the line takes the row's width: the line's own width comes from its column (container-type gives it
+// no width of its own), and a column shrink-wrapped to the puzzle's name left it too narrow for its chip
+.est-host {
+    flex-grow: 1;
+    min-width: 0;
+}
+
 .est-line {
     container-type: inline-size;
     display: flex;
@@ -137,15 +144,26 @@ $est-grid: #e3e9ef;
     }
 }
 
-// The chip shrinks to its icon before the time ever does: no label once the line is narrow (measured in all 6 locales
-// at 320-414 px, docs/features/insights/estimates.md)
-@container (max-width: 15rem) {
+// The chip shrinks to its icon before the time ever does: no label once the line is narrower than the longest time +
+// bar + tier label needs - measured in all 6 locales (2026-10-19: 206-216 px, German 240 px; docs/features/insights/
+// estimates.md "One line"). The chip clips its label as the last guard, never the time.
+@mixin est-icon-only {
     .est-line .est-chip {
         padding: 0 2px;
     }
 
     .est-line .est-chip__label {
         display: none;
+    }
+}
+
+@container (max-width: 14.5rem) {
+    @include est-icon-only;
+}
+
+@container (max-width: 16.5rem) {
+    :lang(de) {
+        @include est-icon-only;
     }
 }
 

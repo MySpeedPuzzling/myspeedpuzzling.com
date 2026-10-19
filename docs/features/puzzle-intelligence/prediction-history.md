@@ -192,7 +192,9 @@ The stored (and the live) `range_low/high` is the window players see - since Ins
   "Inside your likely window" (`hit_uncalibrated`) - v1/v2 ranges held 29 % of first tries and 76 % of repeats.
 - **Surfaces**: the add-time recap (`added_time_recap/_performance_summary.html.twig`, stored prediction + outcome),
   the puzzle page Insights (`puzzle/_difficulty_section.html.twig`, live), the Puzzle Picker card
-  (`puzzle_picker/_card.html.twig`), the collections "+ predictions" pill tooltip (`_puzzle_library_item.html.twig`).
+  (`puzzle_picker/_card.html.twig`), the collections "+ predictions" pill tooltip (`_puzzle_library_item.html.twig`);
+  while Insights are shown to the viewer (`INSIGHTS_PUBLIC`, admins), the personal estimate card and list lines take
+  the puzzle page's, the Picker card's and the pill's place with the same numbers (`docs/features/insights/estimates.md`).
   The add-time pace check shows a point "usual time" only, the result detail no prediction. API v1 keeps the raw
   seconds: `range_low_seconds` / `range_high_seconds` = the 50 % window, `range80_low_seconds` /
   `range80_high_seconds` (additive, 2026-10) = the 80 % range, null on rows stored before model v3

@@ -135,8 +135,9 @@
 
             <div class="ps-2 flex-grow-1">
                 <div class="d-flex justify-content-between">
-                    <div class="pe-2">
-                        {# Puzzle name link #}
+                    <div class="pe-2{{ estimates|default(null) is not null ? ' est-host' }}">
+                        {# Puzzle name link - the column takes the row's width while the estimate line is in it (its
+                           width comes from the column: docs/features/insights/estimates.md) #}
                         <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}"
                            class="text-decoration-underline fs-sm low-line-height d-inline-block mb-1">
                             {{ item.puzzleName }}

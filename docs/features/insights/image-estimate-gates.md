@@ -101,7 +101,14 @@ is clamped to the int columns (`TimePredictionCalculator::seconds()`, again in `
 number can make the add-time INSERT fail and roll the player's time back
 (`ImagePredictionsSideBySideTest::testAnExtremeEstimateNeverCostsTheTime`, with an estimate written past the API).
 
-## For Phase 6c (readers of the stored blend prior)
+## Read by Phase 6c
+
+`ResolvePersonalEstimates` asks `passesFor()` once per listed puzzle nobody has measured that has a picture estimate
+(the record is read once per request), and `ShelfPicks` for shelf puzzles - [`estimates.md`](./estimates.md). The
+stored `blend_prior_log` is not read by 6c: shown predictions with solves stay the statistical ones until the launch
+`MODEL_VERSION` bump; the picture-only number is computed from the estimate itself (the `image` side row's number).
+
+## For readers of the stored blend prior
 
 `difficulty_prior_puzzle.blend_prior_log` / `puzzle_difficulty.blend_prior_log` are written by the daily fit, which
 leaves secret puzzles out - but a stored value outlives a hide (`hide_until` / `hide_image_until` set after the fit)

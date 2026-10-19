@@ -10008,7 +10008,7 @@ insights:
             your_solves: "{1}D'après votre résolution|[0,Inf[D'après vos %count% résolutions"
             community: "Habituel pour %pieces% pièces"
         basis:
-            picture: "Votre rythme et l'image de la boîte : personne n'a encore résolu ce puzzle, c'est donc une estimation approximative."
+            picture: "Votre rythme et l'image de la boîte – personne n'a encore résolu ce puzzle."
             first_solves: "{1}Votre rythme et la première résolution du puzzle – une estimation jusqu'à ce que 5 puzzlers l'aient résolu.|[0,Inf[Votre rythme et les %count% premières résolutions du puzzle – une estimation jusqu'à ce que 5 puzzlers l'aient résolu."
             measured: "{1}Votre rythme et la difficulté du puzzle, mesurée sur 1 puzzler.|[0,Inf[Votre rythme et la difficulté du puzzle, mesurée sur %count% puzzlers."
             your_solves: "{1}Votre propre résolution de ce puzzle et la progression habituelle des puzzlers.|[0,Inf[Vos %count% résolutions de ce puzzle et la progression habituelle des puzzlers."

@@ -9989,7 +9989,7 @@ insights:
             your_solves: "{1}De tu resolución|[0,Inf[De tus %count% resoluciones"
             community: "Lo habitual para %pieces% piezas"
         basis:
-            picture: "Tu ritmo y la imagen de la caja: nadie ha resuelto aún este puzzle, así que es una estimación aproximada."
+            picture: "Tu ritmo y la imagen de la caja: nadie ha resuelto aún este puzzle."
             first_solves: "{1}Tu ritmo y la primera resolución del puzzle, una estimación hasta que lo resuelvan 5 puzzlers.|[0,Inf[Tu ritmo y las primeras %count% resoluciones del puzzle, una estimación hasta que lo resuelvan 5 puzzlers."
             measured: "{1}Tu ritmo y la dificultad del puzzle, medida con 1 puzzler.|[0,Inf[Tu ritmo y la dificultad del puzzle, medida con %count% puzzlers."
             your_solves: "{1}Tu propia resolución de este puzzle y lo que los puzzlers suelen mejorar.|[0,Inf[Tus propias %count% resoluciones de este puzzle y lo que los puzzlers suelen mejorar."

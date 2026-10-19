@@ -210,10 +210,49 @@ def test_artwork_refuses_an_unparsable_vlm_answer(tmp_path):
     ws = WorkState(tmp_path / "w.sqlite")
     ws.put_gate("fp", aw.GATE_VERSION, {"flat": 0.0, "box": 0.3}, False)
     stage = aw.ArtworkStage("v", workstate=ws)
-    stage._vlm_answer = lambda rgb: "I cannot tell."
+    asked = []
+    stage._vlm_answer = lambda rgb, constrained=False: asked.append(constrained) or "I cannot tell."
     p = Prepared(W("p", "u", "fp"), LocalImage("p", "fp", "x", "s", 64, 48, 64, 48), np.zeros((48, 64, 3), np.uint8))
     with pytest.raises(ValueError, match="no usable kind"):
         stage.analyse(p)
+    assert asked == [False, True]
+
+
+def _artwork_stage_on_a_photo(tmp_path, answers):
+    from puzzle_vision.api import WorkItem as W
+    from puzzle_vision.download import LocalImage
+    from puzzle_vision.stages.base import Prepared
+
+    ws = WorkState(tmp_path / "w.sqlite")
+    ws.put_gate("fp", aw.GATE_VERSION, {"flat": 0.0, "box": 0.3}, False)
+    stage = aw.ArtworkStage("v", workstate=ws)
+    asked = []
+    stage._vlm_answer = lambda rgb, constrained=False: asked.append(constrained) or answers[constrained]
+    p = Prepared(W("p", "u", "fp"), LocalImage("p", "fp", "x", "s", 64, 48, 64, 48), np.zeros((48, 64, 3), np.uint8))
+    return stage, p, asked
+
+
+def test_artwork_asks_again_constrained_when_the_answer_is_broken(tmp_path):
+    # a real answer from the M3 backfill: a stray token in the key, the same on every greedy retry
+    broken = '{"kind": "flat", "bbox_2b": [0, 0, 1000, 998], "corners": [[0, 0], [1000, 0], [1000, 998], [0, 998]]}'
+    good = '{"kind": "box_front", "bbox_2d": [100, 100, 900, 900], "corners": [[100, 100], [900, 100], [900, 900], [100, 900]]}'
+    stage, p, asked = _artwork_stage_on_a_photo(tmp_path, {False: broken, True: good})
+    payload = stage.analyse(p)
+    assert asked == [False, True]
+    assert payload["kind"] == "box_front"
+
+
+def test_artwork_never_asks_twice_for_a_valid_answer(tmp_path):
+    good = '{"kind": "box_front", "bbox_2d": [100, 100, 900, 900], "corners": [[100, 100], [900, 100], [900, 900], [100, 900]]}'
+    stage, p, asked = _artwork_stage_on_a_photo(tmp_path, {False: good, True: "never asked"})
+    stage.analyse(p)
+    assert asked == [False]
+
+
+def test_the_constrained_schema_matches_what_the_parser_reads():
+    schema = aw.vlm_json_schema()
+    assert schema["properties"]["kind"]["enum"] == list(aw.KINDS)
+    assert set(schema["required"]) == {"kind", "bbox_2d", "corners"}
 
 
 # 11. / 12. flush, lock ------------------------------------------------------------------------------------------------

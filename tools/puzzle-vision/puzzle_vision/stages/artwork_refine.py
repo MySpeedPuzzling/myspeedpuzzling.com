@@ -265,6 +265,20 @@ def is_quad_skewed(quad: Sequence[Sequence[float]] | None) -> bool:
 
 # --- the box face pass (finding 2) ------------------------------------------------------------------------------------
 FACE_KINDS = ("box_front", "box_angled")
+
+
+def face_caps(box: Sequence[float], before: Sequence[float] | None) -> dict[str, float]:
+    """How deep the face pass may trim each side of an axis-aligned crop: FACE_MAX_TRIM of the face, plus whatever the
+    1.1 pass added on that side (pad, widening) - so a widened side can come back to the VLM's own line and a bit."""
+    w, h = max(1e-6, box[2] - box[0]), max(1e-6, box[3] - box[1])
+    if before is None:
+        return {}
+    return {
+        "left": FACE_MAX_TRIM + max(0.0, before[0] - box[0]) / w,
+        "top": FACE_MAX_TRIM + max(0.0, before[1] - box[1]) / h,
+        "right": FACE_MAX_TRIM + max(0.0, box[2] - before[2]) / w,
+        "bottom": FACE_MAX_TRIM + max(0.0, box[3] - before[3]) / h,
+    }
 FACE_SIDE = 1024          # the straightened face the VLM sees (it resizes to its own 672 px)
 FACE_MAX_TRIM = 0.35      # never trim more than this share of a side
 FACE_MIN_TRIM = 0.015     # thinner than this is the crop's own inset - leave it
@@ -294,7 +308,8 @@ def map_rect(rect_face: Sequence[float], face_wh: tuple[int, int], h_face_to_img
     return [[round(float(x), 5), round(float(y), 5)] for x, y in out]
 
 
-def face_pass(rgb: np.ndarray, quad: Sequence[Sequence[float]], ask: Any) -> tuple[list[list[float]] | None, dict[str, Any]]:
+def face_pass(rgb: np.ndarray, quad: Sequence[Sequence[float]], ask: Any,
+              max_trim: dict[str, float] | None = None) -> tuple[list[list[float]] | None, dict[str, Any]]:
     """The picture inside a box face. `ask(face_rgb)` = the VLM's [u0, v0, u1, v1] (0..1 of the face) or None.
     Each side moves in only when the VLM wants at least FACE_MIN_TRIM, at most FACE_MAX_TRIM, and its line sits on a
     real colour step on the face (art crossing the line = no step = veto: never cut artwork). Answers the new
@@ -315,9 +330,10 @@ def face_pass(rgb: np.ndarray, quad: Sequence[Sequence[float]], ask: Any) -> tup
     sides: dict[str, Any] = {}
     for side, t in want.items():
         m = measures[side]
+        cap = (max_trim or {}).get(side, FACE_MAX_TRIM)
         if t < FACE_MIN_TRIM:
             why = "none wanted"
-        elif t > FACE_MAX_TRIM:
+        elif t > cap:
             why = "too deep"
         elif m["support"] < FACE_EDGE_SUPPORT:
             why = "no edge on the line"
@@ -393,8 +409,10 @@ def refine(rgb: np.ndarray, a: np.ndarray, fp: dict[str, Any], source: tuple[int
         signals["kindCheck"] = {"first": fp.get("vlmKind"), "second": second, "gate": gate_group(fp.get("gateScores")), "result": why}
     box, quad, method = list(g["bbox"]), g["quad"], g["method"]
     outline = quad if quad is not None else box_quad(box)
-    if kind in FACE_KINDS and ask_face is not None:
-        new, info = face_pass(rgb, outline, ask_face)
+    unsure = g["signals"].get("quad") in ("rejected", "partly") or bool(g["signals"].get("widened"))
+    if ask_face is not None and (kind in FACE_KINDS or (kind == "assembled" and unsure)):
+        caps = face_caps(box, fp.get("vlmBbox")) if quad is None else None
+        new, info = face_pass(rgb, outline, lambda face: ask_face(face, kind), caps)
         signals["face"] = info
         if new is not None:
             outline = new

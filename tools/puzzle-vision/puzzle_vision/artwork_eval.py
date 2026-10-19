@@ -250,7 +250,25 @@ def v11_candidate(item: dict[str, Any], ask_kind: Any = None, ask_face: Any = No
                       **{k: out["signals"][k] for k in ("quad", "widened", "kindCheck", "face") if k in out["signals"]}})
 
 
+_STAGE: list[Any] = []
+
+
+def v11_vlm_candidate(item: dict[str, Any]) -> Candidate | None:
+    """The whole 1.1 pass with Qwen3-VL-4B for the kind's second opinion and the face pass - loads the model under
+    the shared model lock (never next to another GPU job)."""
+    if not _STAGE:
+        from .lock import ModelLock
+        from .stages.artwork import ArtworkStage
+
+        lock = ModelLock("artwork-eval")
+        lock.acquire(timeout=3600)
+        _STAGE.extend([ArtworkStage("eval"), lock])
+    stage = _STAGE[0]
+    return v11_candidate(item, stage.ask_kind, stage.ask_face)
+
+
 CANDIDATES: dict[str, Callable[[dict[str, Any]], Candidate | None]] = {
+    "v11": v11_vlm_candidate,
     "v11-cpu": v11_candidate,
     "stored": lambda item: stored_candidate(item["stored"]) if item.get("stored") else None,
     "v11-geometry": v11_geometry_candidate,
@@ -297,7 +315,11 @@ def main(argv: list[str] | None = None) -> int:
     for d in a.dir or []:
         items.update({i["id"]: i for i in json.loads((Path(d) / "items.json").read_text())})
         truth.update(load_truth(sorted((Path(d) / "truth").glob("*.jsonl"))))
-    rows, summary = evaluate(items, truth, CANDIDATES[a.candidate])
+    try:
+        rows, summary = evaluate(items, truth, CANDIDATES[a.candidate])
+    finally:
+        if _STAGE:
+            _STAGE[1].release()
     if a.rows:
         Path(a.rows).write_text("".join(json.dumps(r) + "\n" for r in rows))
     if a.json:

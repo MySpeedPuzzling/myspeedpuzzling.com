@@ -68,6 +68,12 @@ Logos, titles or badges printed over the picture itself stay inside.
 If the picture fills the whole image, answer the whole image.
 Answer with JSON only: {"bbox_2d": [x1, y1, x2, y2]}"""
 
+FACE_PROMPT_ASSEMBLED = """This image shows an assembled jigsaw puzzle, straightened (or a crop around it).
+Find the puzzle's picture only: the area of the assembled puzzle.
+Leave out the table, mat, frame, hands and background around the puzzle.
+If the puzzle fills the whole image, answer the whole image.
+Answer with JSON only: {"bbox_2d": [x1, y1, x2, y2]}"""
+
 KIND_PROMPT = """What does this image of a jigsaw puzzle product show? Choose exactly one:
 - "flat": a digital image, scan or painting of the puzzle's picture itself (a plain margin around it is fine)
 - "box_front": a photo or scan of a puzzle box seen straight from the front
@@ -383,9 +389,9 @@ class ArtworkStage(Stage):
     def _vlm_answer(self, rgb: np.ndarray, constrained: bool = False) -> str:
         return self._generate(VLM_PROMPT, rgb, vlm_json_schema() if constrained else None, "first")
 
-    def ask_face(self, face_rgb: np.ndarray) -> list[float] | None:
-        box = parse_face(self._generate(FACE_PROMPT, face_rgb, face_json_schema(), "face", max_tokens=40))
-        return box
+    def ask_face(self, face_rgb: np.ndarray, kind: str = "box_front") -> list[float] | None:
+        prompt = FACE_PROMPT_ASSEMBLED if kind == "assembled" else FACE_PROMPT
+        return parse_face(self._generate(prompt, face_rgb, face_json_schema(), "face", max_tokens=40))
 
     def ask_kind(self, rgb: np.ndarray) -> str | None:
         kind = parse_vlm(self._generate(KIND_PROMPT, rgb, kind_json_schema(), "kind", max_tokens=20))["kind"]

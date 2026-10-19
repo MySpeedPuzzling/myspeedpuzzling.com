@@ -143,7 +143,7 @@ def test_refine_builds_the_1_1_payload():
     rgb = scene()
     asked = []
     out = ar.refine(rgb, rgb, first_pass(kind="other", vlm_kind="other"), (W, H), (400, 300),
-                    ask_kind=lambda im: asked.append("kind") or "box_front", ask_face=lambda face: asked.append("face") or None)
+                    ask_kind=lambda im: asked.append("kind") or "box_front", ask_face=lambda face, kind: asked.append("face") or None)
     assert asked == ["kind", "face"] and out["kind"] == "box_front"
     assert out["firstPass"]["vlmKind"] == "other" and out["signals"]["kindCheck"]["second"] == "box_front"
     q = out["quality"]
@@ -157,7 +157,7 @@ def test_the_stage_reuses_the_stored_first_pass_without_the_gate_or_the_first_vl
     ws = WorkState(tmp_path / "w.sqlite")  # nothing gated
     stage = aw.ArtworkStage("1.1.0+t", workstate=ws)
     stage._vlm_answer = lambda *a, **k: pytest.fail("the first pass must not run again")
-    stage.ask_face = lambda face: None
+    stage.ask_face = lambda face, kind="box_front": None
     stage.ask_kind = lambda rgb: pytest.fail("no second opinion needed")
     stored = {"kind": "box_front", "bbox": {"x": 0.2, "y": 0.15, "w": 0.6, "h": 0.7}, "method": "vlm",
               "kindScores": {"flat": 0.0, "box": 0.3, "assembled": 0.1, "other": 0.0},
@@ -235,3 +235,9 @@ def test_a_crop_stage_skips_an_artwork_result_of_another_version(tmp_path):
     Image.new("RGB", (4, 4)).save(tmp_path / "x.png")
     old = WorkItem("p", "u", "fp", analyses={"artwork": {"analyzerVersion": "1.0.0+siglip2-q3vl4b", "imageFingerprint": "fp"}})
     assert w._prepare(old, None) is None and "is not this profile's" in skipped[0]
+
+
+def test_a_widened_side_may_be_trimmed_back_further():
+    caps = ar.face_caps([0.0, 0.0, 1.0, 1.0], [0.3, 0.1, 0.9, 0.9])
+    assert caps["left"] == pytest.approx(ar.FACE_MAX_TRIM + 0.3) and caps["top"] == pytest.approx(ar.FACE_MAX_TRIM + 0.1)
+    assert ar.face_caps([0, 0, 1, 1], None) == {}

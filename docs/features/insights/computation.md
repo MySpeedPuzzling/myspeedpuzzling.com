@@ -446,3 +446,231 @@ The first build of a request with a cold Postgres buffer cache reached ~100 ms f
 CPU with other streams' batch runs (earlier measurements under that load were up to 2× slower). Two fixes came out of
 measuring: the shelf's "nothing done with it yet" check is one materialized set (a per-puzzle team lookup took 2-6 s
 for an 855-puzzle shelf), and re-solves read only the best-time lists (half the JSON to decode).
+
+## Core sections (stream 4b: read models and builders)
+
+The first response of the Insights page: four statements whatever the player's size, then pure PHP
+(`InsightsPageLoader::load()` → `InsightsBuilder::build()` → `InsightsReport`, + the hydrate → `InsightsPage`). Nothing
+here is wording: sections return numbers, sample sizes, codes and a `notSureYet` flag; Phase 6 turns them into sentences
+(neutral wording, README §6). Measurements: §11.
+
+### 1. Filters (`Services\Insights\InsightsCriteria`)
+
+`InsightsCriteria::fromUserInput(array $query, bool $isMember, bool $hasTimezone = false)` - the URL is the state, like
+Compare's `ComparisonCriteria`: invalid values fall back to the default, members-only values are dropped silently and
+named in `strippedForMembers` (the page shows the lock). `toQueryParameters()` gives only what differs from the defaults
+(the URL), `cacheKey()` a short stable key (membership included). Within one multi-value filter the values are
+alternatives, different filters all apply.
+
+| Key | Values | Free |
+|---|---|---|
+| `period` | `3m`, `6m` (free) · `12m`, `24m` (members' default), `year` (this year), `past_year` + `year=YYYY`, `all`, `custom` + `from` / `to` (`Y-m-d`, swapped when reversed) | 3 / 6 months, default 6 |
+| `pieces` | `PiecesRange` grammar (`500`, `300-1000`, `1000-`) | yes |
+| `results` | `all` / `first` / `repeat` | - |
+| `brands[]` | manufacturer ids (≤ 20) | - |
+| `difficulty[]` | tiers 1-6, `0` = not rated yet | - |
+| `events`, `unboxed`, `shelf` | `any` / `only` / `exclude` (at an event / without the box / the puzzle is in one of your collections) | - |
+| `weekdays[]` | ISO 1-7 of the solve day | - |
+| `personality[]` | `rewards_skill` (skill sensitivity ≥ 1.8), `equaliser` (< 1.3), `box_helps` (box dependence ≥ 1.4), `memorable` (memorability ≥ 1.4) - the puzzle page's own "high" / "low" levels | - |
+| `traits[]` | `InsightsImageTrait`: the `PuzzleTagGroup::ImageTraits` keys of `puzzle_tag` (5a), photo styles = `photo`, drawn styles = `drawn` | - |
+| `timeOfDay[]` | `morning` 5-12, `afternoon` 12-17, `evening` 17-22, `night` - only with a time zone (dropped without one), "when you logged" | - |
+
+Period bounds are midnight UTC (solve days are stored as UTC dates), relative periods start at midnight - the page is
+the same all day. `matchesPuzzle()` = the puzzle filters (pieces, brand, difficulty, shelf, personality, traits);
+`matchesResult()` = those + results, events, unboxed, weekday, time of day; `inPeriod()` the period.
+
+### 2. Solo results (`GetInsightsSoloResults::forPlayer()`)
+
+One statement: the player's solo results + puzzle + `puzzle_statistics` (median, solo count) + `puzzle_difficulty` (tier,
+score, confidence, sample size, `sum_log_indices`, the five derived metrics) + the stored prediction (method, seconds,
+range, attempt, model version) + on-shelf (`collection_item`, any collection, a MATERIALIZED CTE) + the image-trait tag
+keys (`puzzle_tag`, a correlated `json_agg` limited to the registry's keys) + the manufacturer name. Oldest first
+(`COALESCE(finished_at, tracked_at)`, `tracked_at`, id). Served by `custom_pst_player_puzzle_type` (player first).
+
+- **Left out:** suspicious results (Insights is statistics, and no statistic counts them - suspicious-times.md; the
+  player's own results page still lists them), results without a time (`seconds_to_solve` 0 / null), secret puzzles
+  (`hide_until` / `hide_image_until` in the future - no aggregate for anything secret, README §6; the profile card's
+  rule). A player cannot record a time on a competition-secret puzzle before its reveal anyway (`SecretPuzzleAccess`);
+  this covers the hand-hidden placeholders and a picture hidden later.
+- `attempt` = 1-based number among what is left, by solve moment then logging moment (the profile card's numbering).
+- **Self-only:** the owner's own rows, private players included; no other player is read.
+- `InsightsSoloResult::ratio()` = time ÷ the puzzle's median solo time, null while the median rests on < 5 solo times.
+
+### 3. Close calls (`GetCloseCalls::forPlayer()`)
+
+One statement, per puzzle the player has a solo time on: their best, their place and the times of the places above.
+It reads **only the times faster than the player's best**: a place is 1 + the players whose best is faster (ties share),
+and the time of place N is the N-th fastest of their bests - a slow player on a popular puzzle costs no more than the
+players ahead. Per puzzle a LATERAL over `custom_pst_solo_board` (index only): `COUNT(*)`, `MAX` = the next place,
+`MAX … FILTER (WHERE position = N)` for N in `LeaderboardPosition::RANK_MILESTONES` (1, 3, 10, 25, 50, 100, 250, 500,
+1000, 2500, 5000).
+
+- **The pool is GetRanking's** (the puzzle page's): best non-suspicious solo time > 0 per player, the viewer's hidden
+  players left out (`HiddenPlayers`), private players only when the viewer may see them (`PrivateProfileAccess`) or the
+  player themselves. The players outside the pool are one **MATERIALIZED CTE** (`left_out` = NOT (public-or-self AND
+  not hidden)) probed by `NOT IN` - inlined into every lateral probe the plan crossed the JIT threshold (+290 ms).
+- **Parity:** the places equal `GetRanking::allForPlayer()` for every fixture player, without a viewer, as themselves,
+  with a block and with a private profile revealed by its allow list (`GetCloseCallsTest`).
+- Secret puzzles are left out. Close calls name places, never people.
+
+`CloseCallsBuilder`: per ranked puzzle passing the **puzzle filters only** (a place is about the puzzle, not about when
+you solved it), target = the nearest milestone place above yours, `targetGapSeconds` = best − its time (tie it and you
+reach it), `targetGapShare` = that ÷ your best, `nextPlaceGapSeconds` = best − the next place's time ("#12, 4 s from
+#11"). Sorted by share; the closest 8; `closeCount` = under 3 %; first places, podium (≤ 3), top 10, puzzles.
+
+### 4. Context and hydrate
+
+- `GetInsightsContext::forPlayer()` - one statement: `insights_generation` (0 = none), the player's
+  `player_insights_profile` row (7 axes: score, sample size, percentile), `player_improvement_ratio`, every
+  `global_improvement_ratio` row of gap bucket `all` (small) and the 500-piece `player_elo` rating.
+- `GetInsightsPuzzles::byIds()` - one statement for `InsightsReport::$puzzleIdsShown` (≤ 50): name, other names
+  (`PuzzleNames`, for `puzzle/_name.html.twig`), brand, pieces, image + ratio; secret puzzles left out.
+
+### 5. Prepared rows (`InsightsRowsPreparer`)
+
+Once per build, over **all** results (filters come after - your usual at a moment is your usual whatever the page
+filters), the same definitions as the profile card (§6):
+- `ratio` = time ÷ puzzle median; `form` ("your usual") = the median ratio of your **boxed first tries** within ±75 days
+  (`InsightsMath::rollingMedian()`, one sorted window sliding along both lists - O(n·w); the profile card now uses the
+  same function); `residual` = ratio ÷ form ÷ the community learning factor (`LearningFactors`, the profile card's rule,
+  now shared too). 1.0 = exactly your usual, 0.9 = 10 % faster.
+- Solve day = the date you gave (`finished_at`), else the logging day in your zone (UTC without one); weekday of it;
+  `daysSincePrevious` (to the latest earlier solve day, solo results only); `sameDayIndex`.
+- Time of day = `tracked_at` in `player.timezone` - only with a zone and only when the logging day is the solve day.
+- Situations ("why" chips, skill map): first try / repeat, at an event, weekend, after a break (> 14 days), second of the
+  day, unboxed.
+
+### 6. Splits (`SegmentEffect`) - skill map, habits, pairs later
+
+For a group of residuals: the median of the log residuals **shrunk by n / (n + 8)**, with the **order-statistic range**
+of that median (distribution free: sorted logs at floor(n/2 − 1.96·√n/2) and ceil(n/2 + 1.96·√n/2), shrunk the same way -
+never a bootstrap: same answer every time, O(n log n)). Shown from 5 results; a verdict only from **10**: strength when
+the whole range lies below −1.5 %, weak spot above +1.5 %, else about usual; under 10 "not sure yet".
+
+**Skill map** (`SkillMapBuilder`): groups brand (the 9 with most results; label = brand name), piece count (only with ≥ 2
+classes in the selection), difficulty (tier, 0 = not rated yet), situation, personality (§1) and image traits (§1). Each
+segment carries its 10 fastest results against your usual (`drillDownTimeIds` - hydrate them when the drill-down opens).
+Strengths / weak spots: every segment with that verdict, clearest first. **Image traits are a preview group** until
+the picture backfill is complete (`SkillMapBuilder::IMAGE_TRAITS_ARE_PREVIEW`): shown, never a strength, weak spot or
+finding.
+
+### 7. Expected vs actual and prediction accuracy
+
+- **Expected** (`ExpectedVsActualBuilder`): every result of the selection with a stored prediction. Predictions of the
+  calibrated model (`prediction_model_version` ≥ `InsightsAccuracySection::CALIBRATED_MODEL_VERSION` = 3, stream 3b)
+  are taken as they are. Older ones ran ~10 % slow on first tries (the age bias), so expected = prediction × your usual
+  ratio to them: the median actual ÷ predicted of that method's older predictions in the selection (from 5 on, else
+  1.0) - "your margin" built in (`firstTryMargin` = 1 − the statistical factor). Better / worse = beyond ±10 %; the 5
+  biggest each with their situations.
+- **Prediction accuracy** (`PredictionAccuracyBuilder`): the hit rate of the likely windows, **only predictions of model
+  version ≥ 3** (their stored range is the calibrated 50 % window; older ranges promised nothing) - "not enough yet" under
+  10. Also faster / slower than the window, the median margin, first tries vs repeats, and how many older predictions
+  were not counted. When 3b adds `predicted_range80_*`, the 80 % hit rate is one more counter here.
+
+### 8. The other sections
+
+| Section | Builder | Rows | Definition | Not sure yet |
+|---|---|---|---|---|
+| Summary tiles | `SummaryBuilder` | selection; trend: without period | speed = median ratio; trend = median ratio of the last 182 days ÷ 365-547 days ago − 1; consistency = q75 ÷ q25 of residuals | speed < 5, trend < 5 in either window, consistency < 10 |
+| Form | `FormBuilder` | without period | months of the period (from your first result in the selection, ≥ 4, ≤ 60): median, q25, q75, best result (≥ 3 results), your usual at mid-month; change = last median − first | < 2 months with a median |
+| Histogram + outliers | `HistogramBuilder` | selection | 24 bars of 5 % faster/slower than the median solver, ±60 % (end bars hold the rest); outliers = residual > 1.3 or < 1 ÷ 1.3, 4 each | < 5 |
+| Learning curve | `LearningCurveBuilder` | puzzle filters, all time, boxed | you = cumulative `player_improvement_ratio`; community = `LearningFactors` for the selection's piece class (500 for several); in selection = median of t_N ÷ t_1 × usual₁ ÷ usual_N per attempt (≥ 3); the 6 puzzles you improved on most | neither your attempt 2 nor the selection's |
+| Habits | `HabitsBuilder` | selection | per weekday, per break bucket (0, 1, 2-7, 8-14, 15+ days), per time of day (with a zone, else null): count + `SegmentEffect` | no results |
+| Consistency | `ConsistencyBuilder` | selection | spread = q75 ÷ q25 of residuals, ± = (spread − 1) ÷ 2, last 182 days vs before, the card's percentile | < 10 |
+| Profile card | `ProfileCardBuilder` | the stored card (§6), unfiltered | 7 axes, strongest = highest percentile, room to grow = lowest (≥ 2 known axes) | no percentile |
+
+### 9. Findings and the puzzles shown
+
+`FindingsBuilder`, ≤ 8, in page order: `speed` (share faster than the median solver), `form_trend`, `strength` and
+`weak_spot` (the clearest segment), `close_call` (the closest: puzzle, target place, seconds), `best_result` (the result
+furthest under your usual, from 10 residuals on), `surprises` (members: results > 10 % better than expected + the
+biggest). Free players get every finding but `surprises` (a lock with its count). Rating moves and shelf picks come from
+stream 4c's builders. `puzzleIdsShown`: findings, close calls, outliers, surprises, learned most, the months' best -
+deduplicated, ≤ 50, most prominent first.
+
+Free vs members (README §3, `InsightsSection::isFree()`): the builder computes **everything for everybody** so a lock
+can show real counts; a template must not render a members-only section's content for a free player. The criteria
+already restrict a free player's selection to 3 / 6 months and pieces.
+
+### 10. Result shapes for Phase 6 and 4c
+
+All `readonly` plain data in `src/Results/Insights/` (serializable - the 4c page cache stores the report):
+
+- `InsightsPage { report: InsightsReport, puzzles: array<puzzleId, InsightsPuzzle> }`
+- `InsightsReport { playerId, isMember, criteria (applied query params), strippedForMembers, builtAt, generation,
+  hasTimezone, summary, findings[], profileCard, form, skillMap, expectedVsActual, histogram, closeCalls, learningCurve,
+  habits, consistency, predictionAccuracy, puzzleIdsShown[] }`
+- `InsightsSummary { resultCount, ratioCount, speedRatio?, trendChange?, trendRecentCount, trendOlderCount,
+  consistencySpread?, consistencySampleSize }`
+- `InsightsFinding { code: InsightsFindingCode, section: InsightsSection, membersOnly, value?, count?, puzzleId?,
+  timeId?, segment?: InsightsSkillSegment, rank?, seconds? }`
+- `InsightsProfileCardSection { axes[]: InsightsProfileAxisScore{axis, score?, sampleSize, percentile?}, strongest?,
+  roomToGrow?, computedAt?, notSureYet }`
+- `InsightsFormSection { months[]: InsightsFormMonth{month 'Y-m', count, medianRatio?, q25Ratio?, q75Ratio?, usual?,
+  bestTimeId?, bestPuzzleId?, bestRatio?}, firstMedianRatio?, lastMedianRatio?, change?, sampleSize, notSureYet }`
+- `InsightsSkillMapSection { groups[]: InsightsSkillGroupResult{group, segments[], preview}, strengths[], weakSpots[],
+  sampleSize, notSureYet }`; `InsightsSkillSegment { group: InsightsSkillGroup, key, label?, stats:
+  InsightsSegmentStats{sampleSize, effect?, low?, high?, verdict: InsightsVerdict}, drillDownTimeIds[] }`
+- `InsightsHistogramSection { bins[]: {fromPercent, toPercent, count}, usualPercent?, slowerThanMedianCount, sampleSize,
+  slowOutlierCount, fastOutlierCount, slowOutliers[], fastOutliers[], notSureYet }`
+- `InsightsExpectedSection { points[]: {timeId, expectedSeconds, actualSeconds, deviation, method?}, betterCount,
+  worseCount, withinCount, sampleSize, calibratedCount, calibration[method => factor], firstTryMargin?, better[],
+  worse[], notSureYet }`
+- `InsightsCloseCallsSection { items[]: InsightsCloseCall{puzzleId, rank, bestSeconds, targetRank?, targetGapSeconds?,
+  targetGapShare?, nextPlaceGapSeconds?}, closeCount, candidateCount, firstPlaceCount, podiumCount, topTenCount,
+  puzzleCount, notSureYet }`
+- `InsightsLearningSection { you[], community[], communityPiecesCount, inSelection[]: InsightsLearningPoint{attempt,
+  factor?, sampleSize}, learnedMost[]: {puzzleId, attempts, firstSeconds, bestSeconds, gain}, repeatedPuzzleCount,
+  notSureYet }`
+- `InsightsHabitsSection { weekdays[] (Monday first), busiestWeekday?, breaks[], timesOfDay[]? : InsightsHabitBucket{key,
+  count, stats}, sampleSize, notSureYet }`
+- `InsightsConsistencySection { spread?, plusMinus?, sampleSize, recentSpread?, recentSampleSize, earlierSpread?,
+  earlierSampleSize, percentile?, notSureYet }`
+- `InsightsAccuracySection { sampleSize, hits, hitRate?, fasterThanWindow, slowerThanWindow, medianMargin?,
+  firstTrySampleSize, firstTryHits, repeatSampleSize, repeatHits, olderPredictionCount, notSureYet }`
+- Lists of results: `InsightsResultItem { timeId, puzzleId, seconds, solvedAt, attempt, firstAttempt, piecesCount,
+  manufacturerName?, puzzleMedianSeconds?, ratio?, residual?, expectedSeconds?, daysSincePrevious?, situations[],
+  imageTraits[] }`.
+
+For 4c: `GetInsightsSoloResults` rows (`InsightsSoloResult`) and the prepared rows (`InsightsRowsPreparer`, `InsightsRow`
+- ratio, form, residual) are the shared inputs; `SegmentEffect` is the split rule (pairs & teams synergy uses it on
+actual ÷ expected); `InsightsCriteria::matchesPuzzle()` / `matchesResult()` / `inPeriod()` the filters.
+
+### 11. Measured (production copy)
+
+Scratch copy of the dev DB (production data to 2026-10-11, 523k results), migrated to this branch, production planner
+settings (`jit = off`, `random_page_cost = 1.1`, `work_mem = 32MB`), laptop under load (load average 6-10 - the research's
+own solo statement took 14-30 ms in the same run, 7-9 ms when it was measured quietly). Median of 7 runs, PHP timings
+including hydration of the result objects; "total" = the four statements + the member build, i.e. the first response:
+
+| Player (solo results / ranked puzzles) | solo | close calls | context | build (member / free) | hydrate | total |
+|---|---|---|---|---|---|---|
+| heaviest (2,292 / 2,129) | 33.0 | 32.0 | 1.5 | 34.7 / 28.6 | 0.9 | **99.8** |
+| 1,661 / 966 | 23.3 | 23.3 | 1.3 | 28.6 / 16.6 | 0.7 | 77.2 |
+| 1,614 / 860 | 22.2 | 40.9 | 1.2 | 26.8 / 18.4 | 0.7 | 93.7 |
+| 1,561 / 295 | 20.1 | 25.6 | 1.2 | 19.7 / 11.6 | 0.6 | 68.9 |
+| 1,361 / 868 | 18.5 | 27.2 | 1.2 | 11.2 / 8.2 | 0.8 | 60.5 |
+| 630 / 335 (the research's worst close calls) | 10.9 | 54.7 | 1.1 | 9.7 / 6.8 | 0.5 | 77.1 |
+| 305 / 108 (puzzles with the most solvers) | 4.6 | 8.1 | 1.0 | 3.9 / 2.1 | 0.5 | 18.4 |
+| 160 / 140 | 3.1 | 21.4 | 1.2 | 2.4 / 1.4 | 0.6 | 28.4 |
+
+All first responses **< 150 ms** (the plan's target; the page's hard maximum is 1 s). The solo statement alone
+(`EXPLAIN ANALYZE`, warm) is 14-17 ms for the heaviest player in the same conditions - the rest of "solo" is building
+2,292 result objects. The image-tag subquery costs ~1-2 ms there (production has few tags yet; it is one primary-key
+probe per result). The places equal `GetRanking::allForPlayer()` on every puzzle of every measured player (0
+mismatches). Peak memory of the build process 175 MB (the whole kernel; the report itself is a few hundred kB).
+
+### 12. Monthly snapshot (`player_insights_snapshot`)
+
+`myspeedpuzzling:snapshot-player-insights [--month=Y-m]` → `SnapshotPlayerInsights` (handled **outside** a transaction:
+it only reads, one report per player - minutes - and a transaction held that long would keep the locks of everything it
+read) → per player with ≥ 10 solo results in the last 12 months: the report with the members' 12-month view, no filters
+and no close calls → `InsightsSnapshotFactory` JSON → chunks of 200 via `StorePlayerInsightsSnapshots` (each its own
+transaction, `PlayerInsightsSnapshotWriter`: one set-based upsert - a re-run of the month replaces its rows).
+
+Row: `player_id` (cascade), `month` (first day), `data` jsonb, `computed_at`; unique (player, month). `data` (version 1):
+`period`, `results`, `speed`, `trend`, `form` (your usual at the last mid-month), `consistency`, `strengths` /
+`weak_spots` (≤ 5 each: group, key, label, effect, low, high, n), `rating_500`, `profile` (axis → percentile). Self-only;
+nothing reads it yet ("what changed since last month" later).
+
+Cron row (lily.srv): `15 5 1 * * docker compose exec -T web php bin/console myspeedpuzzling:snapshot-player-insights`.

@@ -245,6 +245,10 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Services/PuzzleIntelligence/RatingEntriesSync.php',
             // the in-memory state of one Insights computation (a player's rating portfolios and what-ifs) - not services
             __DIR__ . '/../src/Services/Insights/Model/',
+            // the Insights page's filter state, one prepared result row and the learning factors of one build - values, not services
+            __DIR__ . '/../src/Services/Insights/InsightsCriteria.php',
+            __DIR__ . '/../src/Services/Insights/InsightsRow.php',
+            __DIR__ . '/../src/Services/Insights/LearningFactors.php',
         ]);
 
     // framework.session.handler_id. After the Services load, which would otherwise

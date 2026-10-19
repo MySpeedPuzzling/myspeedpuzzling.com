@@ -356,11 +356,9 @@ return static function (ContainerConfigurator $configurator): void {
         ->decorate('mailer.transports')
         ->args([
             '$inner' => service('.inner'),
-            '$sesDsn' => env('MAILER_SES_DSN'),
-            '$transactionalDsn' => env('MAILER_TRANSACTIONAL_DSN'),
         ]);
 
-    // ses+https (MAILER_SES_DSN): Symfony's factory hands AsyncAws the framework's HTTP client, and AsyncAws adds its
+    // ses+https (MAILER_DSN): Symfony's factory hands AsyncAws the framework's HTTP client, and AsyncAws adds its
     // retries (throttling, 5xx, a dropped connection) only to a client it creates itself - so the factory gets a
     // client of its own: retried twice (1 s, 2 s) and bounded, instead of PHP's 60 s socket timeout per wait
     $services->set('ses.http_client', RetryableHttpClient::class)

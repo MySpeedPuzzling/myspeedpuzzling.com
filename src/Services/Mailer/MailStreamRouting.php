@@ -18,46 +18,36 @@ use Symfony\Component\Mailer\Transport\TransportInterface;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\Message;
-use Symfony\Component\Mime\Header\Headers;
 use Symfony\Component\Mime\RawMessage;
 
 /**
- * Sits in front of the mailer's transports (decorates `mailer.transports`), where X-Transport still says which
- * stream a message belongs to, and decides which transport sends it (docs/features/mass-mailing/README.md
- * "Reliability"):
+ * Sits in front of the mailer's transport (decorates `mailer.transports`), where X-Transport still says which stream
+ * a message belongs to (docs/features/mass-mailing/README.md "Reliability"):
  *
- * - marks the stream on the message for the SES headers (SesMessageHeaders::STREAM_HEADER);
+ * - marks the stream on the message for the SES headers (SesMessageHeaders::STREAM_HEADER) and takes X-Transport off -
+ *   there is one transport, MAILER_DSN (Amazon SES on production, SES only since 2026-10-19);
  * - drops notifications to an address that hard-bounced (email_suppression) - transactional mail is still tried,
  *   a sign-in link must never be held back by us;
- * - with MAILER_SES_DSN set, every stream goes through Amazon SES first. A failed attempt is tried once more right
- *   away (a fresh connection - SES replaces the machines behind its endpoint), after a second failure SES is left
- *   alone for SES_PAUSE_SECONDS (an outage costs one wait, not one per e-mail), and only **transactional** mail then
- *   falls back to its stream's own transport - and only while MAILER_TRANSACTIONAL_DSN is a real one. Production
- *   runs SES only (MAILER_TRANSACTIONAL_DSN null://null since 2026-10-19, Seznam blocked the account for the
- *   digest it was handed): every e-mail is a Messenger message, so a failure is simply sent again by the retry
- *   (30 s, 2 min, 8 min, 30 min). Notifications never fall back: bulk mail must never land on a mailbox provider's
- *   account, which is what got it blocked on 2026-10-19. Primary first for every message, unlike Symfony's
- *   failover(), which stays on the second transport after one hiccup and answers "No transports found" once both
- *   failed within a minute;
- * - MAILER_SES_DSN null://null = SES off: every stream on its own transport (the rollback).
+ * - a failed attempt is tried once more right away (a fresh connection - SES replaces the machines behind its
+ *   endpoint), after a second failure the transport is left alone for PAUSE_SECONDS (an outage costs one wait, not one
+ *   per e-mail) and the failure goes back to Messenger: every e-mail is a message, its retry sends it again (30 s,
+ *   2 min, 8 min, 30 min) - no second provider (the Seznam fallback is gone: it got the account blocked on
+ *   2026-10-19, README "Reliability").
  *
  * The pause is kept for the life of the worker on purpose (no ResetInterface): it holds no user data, and a reset
- * between messages would make every message wait for a dead SES again.
+ * between messages would make every message wait for a dead transport again.
  */
 final class MailStreamRouting implements TransportInterface
 {
-    public const string SES_TRANSPORT = 'ses';
-    public const int SES_PAUSE_SECONDS = 60;
+    public const int PAUSE_SECONDS = 60;
 
-    private null|\DateTimeImmutable $sesPausedUntil = null;
+    private null|\DateTimeImmutable $pausedUntil = null;
 
     public function __construct(
         private readonly TransportInterface $inner,
         private readonly EmailSuppressionRepository $emailSuppressionRepository,
         private readonly LoggerInterface $logger,
         private readonly ClockInterface $clock,
-        private readonly string $sesDsn,
-        private readonly string $transactionalDsn,
     ) {
     }
 
@@ -70,6 +60,7 @@ final class MailStreamRouting implements TransportInterface
         $headers = $message->getHeaders();
         $stream = MailStream::fromTransportName($headers->get('X-Transport')?->getBodyAsString());
 
+        $headers->remove('X-Transport');
         $headers->remove(SesMessageHeaders::STREAM_HEADER);
         $headers->addTextHeader(SesMessageHeaders::STREAM_HEADER, $stream->value);
 
@@ -85,38 +76,14 @@ final class MailStreamRouting implements TransportInterface
             }
         }
 
-        if (!$this->isSesConfigured()) {
-            return $this->inner->send($message, $envelope);
-        }
-
-        try {
-            return $this->sendThroughSes($message, $envelope);
-        } catch (TransportExceptionInterface $sesFailure) {
-            if ($stream !== MailStream::Transactional || !self::isRealTransport($this->transactionalDsn) || self::isRecipientRejection($sesFailure)) {
-                throw $sesFailure;
-            }
-
-            return $this->sendThroughFallback($message, $envelope, $stream, $sesFailure);
-        }
-    }
-
-    public function __toString(): string
-    {
-        return (string) $this->inner;
-    }
-
-    private function sendThroughSes(Message $message, null|Envelope $envelope): null|SentMessage
-    {
         $now = $this->clock->now();
 
-        if ($this->sesPausedUntil !== null && $now < $this->sesPausedUntil) {
+        if ($this->pausedUntil !== null && $now < $this->pausedUntil) {
             throw new TransportException(sprintf(
-                'Amazon SES is not tried until %s, it failed twice in a row',
-                $this->sesPausedUntil->format(\DateTimeInterface::ATOM),
+                'The mail transport is not tried until %s, it failed twice in a row',
+                $this->pausedUntil->format(\DateTimeInterface::ATOM),
             ));
         }
-
-        self::useTransport($message->getHeaders(), self::SES_TRANSPORT);
 
         try {
             $sent = $this->inner->send($message, $envelope);
@@ -125,7 +92,7 @@ final class MailStreamRouting implements TransportInterface
                 throw $firstFailure;
             }
 
-            $this->logger->info('Amazon SES failed to send an e-mail, trying once more', [
+            $this->logger->info('Sending an e-mail failed, trying once more', [
                 'exception' => $firstFailure,
             ]);
 
@@ -136,9 +103,9 @@ final class MailStreamRouting implements TransportInterface
                     throw $secondFailure;
                 }
 
-                $this->sesPausedUntil = $this->clock->now()->modify(sprintf('+%d seconds', self::SES_PAUSE_SECONDS));
+                $this->pausedUntil = $this->clock->now()->modify(sprintf('+%d seconds', self::PAUSE_SECONDS));
 
-                $this->logger->warning('Amazon SES failed twice in a row, not tried for a minute', [
+                $this->logger->warning('Sending e-mails failed twice in a row, the transport is not tried for a minute', [
                     'exception' => $secondFailure,
                     'first_failure' => $firstFailure->getMessage(),
                 ]);
@@ -147,40 +114,14 @@ final class MailStreamRouting implements TransportInterface
             }
         }
 
-        $this->sesPausedUntil = null;
+        $this->pausedUntil = null;
 
         return $sent;
     }
 
-    private function sendThroughFallback(Message $message, null|Envelope $envelope, MailStream $stream, TransportExceptionInterface $sesFailure): null|SentMessage
+    public function __toString(): string
     {
-        self::useTransport($message->getHeaders(), $stream->value);
-
-        try {
-            $sent = $this->inner->send($message, $envelope);
-        } catch (TransportExceptionInterface $fallbackFailure) {
-            throw new TransportException(
-                sprintf('Amazon SES and the fallback transport both failed. Amazon SES: %s Fallback: %s', $sesFailure->getMessage(), $fallbackFailure->getMessage()),
-                0,
-                $fallbackFailure,
-            );
-        }
-
-        $this->logger->info('Transactional e-mail sent through the fallback transport, Amazon SES failed', [
-            'exception' => $sesFailure,
-        ]);
-
-        return $sent;
-    }
-
-    private function isSesConfigured(): bool
-    {
-        return self::isRealTransport($this->sesDsn);
-    }
-
-    private static function isRealTransport(string $dsn): bool
-    {
-        return $dsn !== '' && !str_starts_with($dsn, 'null://');
+        return (string) $this->inner;
     }
 
     /**
@@ -201,15 +142,6 @@ final class MailStreamRouting implements TransportInterface
             && $exception->getCode() >= 400
             && $exception->getCode() < 500
             && $exception->getCode() !== 429;
-    }
-
-    /**
-     * Transports picks the transport by X-Transport (and puts it back when sending failed)
-     */
-    private static function useTransport(Headers $headers, string $transport): void
-    {
-        $headers->remove('X-Transport');
-        $headers->addTextHeader('X-Transport', $transport);
     }
 
     /**

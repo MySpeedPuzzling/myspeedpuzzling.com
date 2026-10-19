@@ -20,104 +20,63 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
 
 final class MailStreamRoutingTest extends TestCase
 {
-    private const string SES_DSN = 'ses+https://key:secret@default?region=eu-north-1';
-    private const string SEZNAM_DSN = 'smtp://robot:secret@smtp.seznam.cz:587';
-
-    public function testWithSesOffEverythingStaysOnItsOwnTransport(): void
+    public function testEveryStreamGoesThroughTheOneTransportMarkedWithItsStream(): void
     {
         $transports = new ScriptedTransports();
-        $routing = $this->routing($transports, sesDsn: 'null://null');
+        $routing = $this->routing($transports);
 
         $routing->send($this->email('player@example.com', 'notifications'));
         $routing->send($this->email('player@example.com'));
 
-        self::assertSame(['notifications', null], $transports->attempts);
+        self::assertSame(2, $transports->attempts);
         self::assertSame(['notifications', 'transactional'], $transports->streams);
+        self::assertSame([null, null], $transports->transportHeaders, 'X-Transport is taken off: there is one transport');
     }
 
-    public function testWithSesOnEveryStreamGoesThroughSes(): void
+    public function testAFailedAttemptIsTriedOnceMore(): void
     {
-        $transports = new ScriptedTransports();
-        $routing = $this->routing($transports);
+        $transports = new ScriptedTransports([self::staleConnection()]);
 
-        $routing->send($this->email('player@example.com', 'notifications'));
-        $routing->send($this->email('player@example.com'));
+        $this->routing($transports)->send($this->email('player@example.com'));
 
-        self::assertSame(['ses', 'ses'], $transports->attempts);
-        self::assertSame(['notifications', 'transactional'], $transports->streams, 'The stream survives the reroute');
+        self::assertSame(2, $transports->attempts);
+        self::assertSame(['transactional'], $transports->streams);
     }
 
-    public function testAFailedSesAttemptIsTriedOnceMoreBeforeAnythingElse(): void
-    {
-        $transports = new ScriptedTransports(ses: [self::staleConnection()]);
-        $routing = $this->routing($transports);
-
-        $routing->send($this->email('player@example.com', 'notifications'));
-        $routing->send($this->email('player@example.com'));
-
-        self::assertSame(['ses', 'ses', 'ses'], $transports->attempts);
-    }
-
-    public function testTransactionalMailFallsBackOnlyAfterSesFailedTwiceAndSesIsTriedFirstAgainAfterThePause(): void
+    public function testTwoFailuresGoBackToMessengerAndPauseTheTransportForAMinuteNoOtherProvider(): void
     {
         $clock = new MockClock('2026-10-19 10:00:00');
-        $transports = new ScriptedTransports(ses: [self::staleConnection(), self::staleConnection()]);
-        $routing = $this->routing($transports, clock: $clock);
-
-        $routing->send($this->email('player@example.com'));
-        self::assertSame(['ses', 'ses', 'transactional'], $transports->attempts);
-
-        // Paused: straight to the fallback, SES is not asked
-        $clock->sleep(MailStreamRouting::SES_PAUSE_SECONDS - 1);
-        $routing->send($this->email('player@example.com'));
-        self::assertSame(['ses', 'ses', 'transactional', 'transactional'], $transports->attempts);
-
-        // Not sticky: once the pause is over SES is first again
-        $clock->sleep(2);
-        $routing->send($this->email('player@example.com'));
-        self::assertSame(['ses', 'ses', 'transactional', 'transactional', 'ses'], $transports->attempts);
-    }
-
-    public function testWithoutARealTransactionalTransportSesIsTheOnlyOneAndAFailureIsLeftToMessengersRetry(): void
-    {
-        $transports = new ScriptedTransports(ses: [self::staleConnection(), self::staleConnection()]);
-        $routing = $this->routing($transports, transactionalDsn: 'null://null');
+        $transports = new ScriptedTransports([self::staleConnection(), self::staleConnection()]);
+        $routing = $this->routing($transports, $clock);
 
         try {
             $routing->send($this->email('player@example.com'));
-            self::fail('Expected the SES failure - never a "sent" into null://');
+            self::fail('Expected the failure - Messenger retries the message');
         } catch (TransportExceptionInterface $exception) {
             self::assertStringContainsString('451', $exception->getMessage());
         }
 
-        self::assertSame(['ses', 'ses'], $transports->attempts);
-    }
-
-    public function testNotificationsNeverFallBackTheyFailToBeTriedLater(): void
-    {
-        $transports = new ScriptedTransports(ses: [self::staleConnection(), self::staleConnection()]);
-        $routing = $this->routing($transports);
+        // Paused: refused at once, the transport is not asked
+        $clock->sleep(MailStreamRouting::PAUSE_SECONDS - 1);
 
         try {
-            $routing->send($this->email('player@example.com', 'notifications'));
-            self::fail('Expected the SES failure');
-        } catch (TransportExceptionInterface $exception) {
-            self::assertStringContainsString('451', $exception->getMessage());
+            $routing->send($this->email('player@example.com'));
+            self::fail('Expected the pause');
+        } catch (TransportException $exception) {
+            self::assertStringContainsString('not tried until', $exception->getMessage());
         }
 
-        // Paused: refused at once, still never the fallback
-        $this->expectException(TransportException::class);
+        self::assertSame(2, $transports->attempts);
 
-        try {
-            $routing->send($this->email('player@example.com', 'notifications'));
-        } finally {
-            self::assertSame(['ses', 'ses'], $transports->attempts);
-        }
+        // After the pause the transport is asked again
+        $clock->sleep(2);
+        $routing->send($this->email('player@example.com'));
+        self::assertSame(3, $transports->attempts);
     }
 
-    public function testARecipientRejectionIsFinalNoRetryNoFallbackNoPause(): void
+    public function testARecipientRejectionIsFinalNoRetryNoPause(): void
     {
-        $transports = new ScriptedTransports(ses: [new UnexpectedResponseException('550 Mailbox unavailable', 550)]);
+        $transports = new ScriptedTransports([new UnexpectedResponseException('550 Mailbox unavailable', 550)]);
         $routing = $this->routing($transports);
 
         try {
@@ -129,35 +88,23 @@ final class MailStreamRoutingTest extends TestCase
 
         $routing->send($this->email('player@example.com'));
 
-        self::assertSame(['ses', 'ses'], $transports->attempts);
+        self::assertSame(2, $transports->attempts);
     }
 
-    public function testAnApiRefusalIsNotRepeatedButTransactionalMailStillFallsBackWithoutPausingSes(): void
+    public function testAnApiRefusalIsNotRepeatedAndDoesNotPause(): void
     {
-        $transports = new ScriptedTransports(ses: [$this->apiRefusal(400)]);
+        $transports = new ScriptedTransports([$this->apiRefusal(400)]);
         $routing = $this->routing($transports);
 
-        $routing->send($this->email('player@example.com'));
-        $routing->send($this->email('player@example.com'));
-
-        self::assertSame(['ses', 'transactional', 'ses'], $transports->attempts);
-    }
-
-    public function testWhenSesAndTheFallbackBothFailBothCausesAreReported(): void
-    {
-        $transports = new ScriptedTransports(
-            ses: [self::staleConnection(), self::staleConnection()],
-            transactional: [new TransportException('525 Authentication refused')],
-        );
-
         try {
-            $this->routing($transports)->send($this->email('player@example.com'));
-            self::fail('Expected both failures');
-        } catch (TransportException $exception) {
-            self::assertStringContainsString('451 4.4.2', $exception->getMessage());
-            self::assertStringContainsString('525 Authentication refused', $exception->getMessage());
-            self::assertStringNotContainsString('No transports found', $exception->getMessage());
+            $routing->send($this->email('player@example.com'));
+            self::fail('Expected the refusal');
+        } catch (HttpTransportException) {
         }
+
+        $routing->send($this->email('player@example.com'));
+
+        self::assertSame(2, $transports->attempts);
     }
 
     public function testNotificationsToASuppressedAddressAreDroppedButTransactionalMailIsStillTried(): void
@@ -165,7 +112,7 @@ final class MailStreamRoutingTest extends TestCase
         $transports = new ScriptedTransports();
         $suppressions = $this->createStub(EmailSuppressionRepository::class);
         $suppressions->method('isSuppressed')->willReturnCallback(static fn (string $email): bool => $email === 'gone@example.com');
-        $routing = new MailStreamRouting($transports, $suppressions, new NullLogger(), new MockClock(), self::SES_DSN, self::SEZNAM_DSN);
+        $routing = new MailStreamRouting($transports, $suppressions, new NullLogger(), new MockClock());
 
         self::assertNull($routing->send($this->email('gone@example.com', 'notifications')));
         $routing->send($this->email('gone@example.com'));
@@ -183,12 +130,12 @@ final class MailStreamRoutingTest extends TestCase
         self::assertSame('smtp://smtp.seznam.cz:587', SesMessageHeaders::transportLabel('smtp://smtp.seznam.cz:587'));
     }
 
-    private function routing(ScriptedTransports $transports, string $sesDsn = self::SES_DSN, null|MockClock $clock = null, string $transactionalDsn = self::SEZNAM_DSN): MailStreamRouting
+    private function routing(ScriptedTransports $transports, null|MockClock $clock = null): MailStreamRouting
     {
         $suppressions = $this->createStub(EmailSuppressionRepository::class);
         $suppressions->method('isSuppressed')->willReturn(false);
 
-        return new MailStreamRouting($transports, $suppressions, new NullLogger(), $clock ?? new MockClock(), $sesDsn, $transactionalDsn);
+        return new MailStreamRouting($transports, $suppressions, new NullLogger(), $clock ?? new MockClock());
     }
 
     private function email(string $to, null|string $transport = null): Email

@@ -75,11 +75,12 @@ its SMTP server (`email-smtp.eu-north-1.amazonaws.com:587`).
 
 | Stream | Sent by | Mailer transport (env) | SES configuration set | Tracking |
 |---|---|---|---|---|
-| transactional (sign-in links, verification, password reset, membership…) | app | `ses` (`MAILER_SES_DSN`), fallback `transactional` (`MAILER_TRANSACTIONAL_DSN`, Seznam) | `transactional` | none |
-| notifications (unread digest, activity digest / "We miss you", "Your results") | app | `ses` (`MAILER_SES_DSN`), no fallback | `notifications` | none |
+| transactional (sign-in links, verification, password reset, membership…) | app | the one transport (`MAILER_DSN`) | `transactional` | none |
+| notifications (unread digest, activity digest / "We miss you", "Your results") | app | the one transport (`MAILER_DSN`) | `notifications` | none |
 | newsletter | Listmonk | Listmonk's SMTP server setting | `newsletter` | Listmonk's own (no SES tracking) |
 
-The stream is the message's `X-Transport` header (none = transactional). `MailStream` is the enum.
+The stream is the message's `X-Transport` header (none = transactional), read and taken off by `MailStreamRouting` -
+there is one transport, so X-Transport names no transport any more. `MailStream` is the enum.
 
 ### Why three sending subdomains (checked 2026-10-13)
 
@@ -172,13 +173,14 @@ A new address is not suppressed, so changing it clears the banner.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `MAILER_SES_DSN` | `null://null` | **The switch.** Set = every stream through SES first. Prod: `ses+https://<access key id>:<secret>@default?region=eu-north-1` (IAM user `ses-api-app`). Over SMTP instead it must carry `?ping_threshold=5`. `null://null` = SES off, every stream on its own DSN (the rollback) |
-| `MAILER_TRANSACTIONAL_DSN` | Seznam `robot@` | Transactional's fallback when SES fails twice (and its transport while SES is off). Never `failover(...)` again - `MailStreamRouting` decides |
-| `MAILER_NOTIFICATIONS_DSN` | Seznam `notify@` | Notifications' transport **only while SES is off** - with SES on, notifications have no fallback |
+| `MAILER_DSN` | `smtp://mailer:1025` (Mailpit) | The one transport of every app stream. Prod: `ses+https://<access key id>:<secret>@default?region=eu-north-1` (IAM user `ses-api-app`). Over SMTP instead it must carry `?ping_threshold=5`. Never `failover(...)` - `MailStreamRouting` retries once and pauses, Messenger retries the rest |
 | `SES_EVENTS_TOPIC_ARNS` | empty | comma-separated SNS topic ARNs allowed to post events; empty = endpoint off |
 
 Secrets in a DSN must be URL-encoded (SES SMTP passwords and AWS secret keys contain `/` and `+`). Rollback keys in
-Infisical: `MAILER_SES_SMTP_DSN` (SES over SMTP with `ping_threshold=5` - copy it into `MAILER_SES_DSN`).
+Infisical (copy one into `MAILER_DSN`, re-deploy, recreate both workers): `MAILER_DSN_SES_SMTP` (SES over SMTP with
+`ping_threshold=5`, IAM `ses-smtp-app`) and `MAILER_DSN_SEZNAM` (Seznam `robot@` - transactional volume only, never
+the digest: Seznam blocks bulk mail). The variables before 2026-10-19 (`MAILER_SES_DSN`, `MAILER_TRANSACTIONAL_DSN`,
+`MAILER_NOTIFICATIONS_DSN` + copies) are gone.
 
 ## Reliability (2026-10-19)
 
@@ -251,7 +253,8 @@ Steps 1-2 on AWS are scripted: [`aws-setup.sh`](aws-setup.sh) `identities` (prin
 | 7 | Listmonk | SMTP server → SES (+ `X-SES-CONFIGURATION-SET: newsletter` header), SES bounce webhook on, POP scanner off, keep the rate under the SES per-second quota (Listmonk never retries a 454) | old SMTP server |
 | 8 | cleanup | `SES_TEST_RECIPIENTS` / `MAILER_SES_DSN` emptied | - |
 | 9 | 2026-10-19 | Reliability: `MAILER_SES_DSN` = SES API, stream DSNs = Seznam only, Listmonk `idle_timeout` 5 s | `MAILER_SES_DSN` = `MAILER_SES_SMTP_DSN` (SES over SMTP) or `null://null` + the old `failover(...)` DSNs |
-| 10 | 2026-10-19 | SES only: stream DSNs `null://null`, no Seznam behind anything | `infisical_mail.py seznam-fallback` (once Seznam unblocked `notify@`); SES off needs the stream DSNs real first |
+| 10 | 2026-10-19 | SES only: stream DSNs `null://null`, no Seznam behind anything | - |
+| 11 | 2026-10-19 | One variable `MAILER_DSN` (old ones added first, code switched, then the old keys deleted), fallback code removed | `MAILER_DSN` = `MAILER_DSN_SES_SMTP` or `MAILER_DSN_SEZNAM` |
 
 ## Open (docs/TODO.md)
 

@@ -316,10 +316,9 @@ warm-up, only domain warm-up (§14).
 
 ## 2. What already exists (reused, not rebuilt)
 
-- **Mailer**: two named transports in `config/packages/mailer.php` — `transactional` (default) and
-  `notifications`; per-message selection via the `X-Transport` header. Digests use `notifications`
-  (`MAILER_NOTIFICATIONS_DSN` = Seznam identity `notify@notify.myspeedpuzzling.com`), same as the
-  unread-messages digest (`PrepareDigestEmailForPlayerHandler`).
+- **Mailer**: one transport (`MAILER_DSN`, Amazon SES since 2026-10-19); the `X-Transport: notifications` header
+  marks the stream (SES configuration set `notifications`), same as the unread-messages digest
+  (`PrepareDigestEmailForPlayerHandler`) - mass-mailing README "Reliability".
 - **Messenger**: single `command_bus` with `ClearEntityManagerMiddleware` + `doctrine_transaction`;
   Doctrine transport on Postgres (`messenger_messages`, composite index
   `(queue_name, available_at, delivered_at, id)` since `Version20260213165323`); `failed` failure

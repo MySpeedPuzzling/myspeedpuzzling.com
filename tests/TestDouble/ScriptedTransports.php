@@ -12,46 +12,37 @@ use Symfony\Component\Mime\Message;
 use Symfony\Component\Mime\RawMessage;
 
 /**
- * Stands in for the mailer's Transports: picks by X-Transport like it does (and puts the header back after a
- * failure), and answers each transport's attempts from a script - an exception fails that attempt, then it sends
+ * Stands in for the mailer's one transport: answers its attempts from a script - an exception fails that attempt,
+ * then it sends
  */
 final class ScriptedTransports implements TransportInterface
 {
-    /** @var list<null|string> X-Transport of every attempt */
-    public array $attempts = [];
+    public int $attempts = 0;
 
     /** @var list<null|string> the stream marker of every message sent */
     public array $streams = [];
 
-    /** @var array<string, list<\Throwable>> */
-    private array $script;
+    /** @var list<null|string> X-Transport of every attempt - must always be null, the routing takes it off */
+    public array $transportHeaders = [];
 
     /**
-     * @param list<\Throwable> $ses
-     * @param list<\Throwable> $transactional
+     * @param list<\Throwable> $failures
      */
-    public function __construct(array $ses = [], array $transactional = [])
-    {
-        $this->script = ['ses' => $ses, 'transactional' => $transactional];
+    public function __construct(
+        private array $failures = [],
+    ) {
     }
 
     public function send(RawMessage $message, null|Envelope $envelope = null): null|SentMessage
     {
         \assert($message instanceof Message);
         $headers = $message->getHeaders();
-        $transport = $headers->get('X-Transport')?->getBodyAsString();
-        $this->attempts[] = $transport;
-        $headers->remove('X-Transport');
+        $this->attempts++;
+        $this->transportHeaders[] = $headers->get('X-Transport')?->getBodyAsString();
 
-        $key = $transport ?? 'transactional';
-        $this->script[$key] ??= [];
-        $failure = array_shift($this->script[$key]);
+        $failure = array_shift($this->failures);
 
         if ($failure !== null) {
-            if ($transport !== null) {
-                $headers->addTextHeader('X-Transport', $transport);
-            }
-
             throw $failure;
         }
 

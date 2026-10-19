@@ -17,6 +17,13 @@ enum InsightsLazyPart: string
 {
     /** Sections 9 (rating opportunities + pending + portfolio) and 10 (forecast) - one frame, the rating model loads once */
     case Rating = 'rating';
+    /**
+     * The top row's "Try next" and "MSP rating" finding cards - eager (it sits in the findings grid, above the fold),
+     * from the shelf's and the rating's cache entries
+     */
+    case Top = 'top';
+    /** "What from my shelf suits me?" - the shelf picks (ShelfPicks), after the rating frame */
+    case Shelf = 'shelf';
     /** Section 11, re-solve radar */
     case Resolve = 'resolve';
     /** Section 13, pairs & teams */
@@ -30,6 +37,14 @@ enum InsightsLazyPart: string
     }
 
     /**
+     * Where a frame URL opened on its own goes: its first section, or the top of the page
+     */
+    public function pageAnchor(): string
+    {
+        return $this->anchors()[0] ?? 'insights-findings';
+    }
+
+    /**
      * The section anchors in the frame, in page order (the question chips jump to them)
      *
      * @return list<string>
@@ -38,6 +53,8 @@ enum InsightsLazyPart: string
     {
         return match ($this) {
             self::Rating => ['insights-rating', 'insights-forecast'],
+            self::Top => [],
+            self::Shelf => ['insights-try-next'],
             self::Resolve => ['insights-resolve'],
             self::Pairs => ['insights-pairs'],
             self::Improvement => ['insights-improvement'],
@@ -54,7 +71,7 @@ enum InsightsLazyPart: string
     {
         return match ($this) {
             self::Rating => [],
-            self::Resolve => ['pieces'],
+            self::Resolve, self::Top, self::Shelf => ['pieces'],
             self::Pairs, self::Improvement => ['period', 'year', 'from', 'to', 'pieces'],
         };
     }

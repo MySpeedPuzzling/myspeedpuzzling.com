@@ -46,7 +46,7 @@ morphing it. The skill map strips, the profile bars and the pace bars are plain 
 | # | Section | Builder data | Free | Members |
 |---|---|---|---|---|
 | 1 | Question chips | `Insights::getQuestions()` | all; a lock icon on members' answers | all |
-| 2 | Findings + tiles | `findings`, `summary`, `consistency` | every finding but `surprises` (a lock with the count); speed + form tiles | + surprises, consistency tile |
+| 2 | Findings + tiles | `findings`, `summary`, `consistency`; the MSP rating tile from `InsightsReport::$rating500` / `$ratingPlace500` (the context statement); "Try next" + "MSP rating" cards = lazy frame `insights_top` | every finding but `surprises` (a lock with the count); speed + form tiles; "Try next" / "MSP rating" locked with counts | + surprises, consistency tile, MSP rating tile (rating + place on today's ladder), "Try next" (best shelf pick + likely window), "MSP rating" (what the best 5 moves add) |
 | 3 | Puzzler profile (7 axes) | `profileCard` | yes (radar + bars) | yes |
 | 4 | Form | `form` | yes - the criteria limit free players to 3 / 6 months | any period |
 | 5 | Strengths and weak spots | `skillMap` | takeaway with the top strength + weak spot by name; lock: "N clear findings" | every row with its range; tap = drill-down (`toggleDrill`, the row's `drillDown` + one `GetInsightsPuzzles::byIds()` for puzzles the first response did not hydrate) |
@@ -54,6 +54,7 @@ morphing it. The skill map strips, the profile bars and the pace bars are plain 
 | 7 | You against the median solver | `histogram` | the histogram + takeaway; lock: "N outliers found" | + the outliers both ways |
 | 8 | Close calls | `closeCalls` | yes (places only, nobody named) | yes |
 | 9-10 | Rating opportunities + forecast | lazy frame `insights_rating` (`RatingOpportunities` + `RatingForecast` from one `RatingModel`) | one lock each: "N moves found, worth up to +X points" / "N entries leave your rating within 2 months" | moves (most points / per hour), portfolio strips, pending puzzles, the path onto the ladder (near the ladder only), forecast chart + milestones |
+| 10b | Try next from your shelf | lazy frame `insights_shelf` (`ShelfPicks`) | lock: "N unsolved puzzles on your shelf" | up to 12 picks: likely window (`_shelf_estimate.html.twig`, 6c replaces it), share of solvers beaten |
 | 11 | Re-solve radar | lazy frame `insights_resolve` (`ResolveRadar`) | lock: "N old puzzles you would likely beat now" | scatter + best candidates + Puzzle Picker link |
 | 12 | Learning curve | `learningCurve` | lock: "your learning curve across N repeated puzzles" | chart you vs all solvers + puzzles improved most |
 | 13 | Pairs & teams | lazy frame `insights_pairs` (`PairsTeamsSynergy`) | takeaway with the count of results together; lock: "N pairs and teams analysed" | pairs and teams apart, synergy rows, together vs. alone, best results together |
@@ -163,6 +164,8 @@ response is unchanged by them: the placeholders cost no statement (`InsightsPage
 | Part (`InsightsLazyPart`) | Route | Controller | Sections | Filters it reads | Statements on a cache miss |
 |---|---|---|---|---|---|
 | `rating` | `insights_rating`, `GET /{_locale}/insights/rating` | `InsightsRatingFrameController` | 9 rating opportunities + pending + portfolio, 10 forecast | none (MSP rating = 500 pieces, its own 24-month window) | key 1 + model ≤ 8 (+ forecast 2, members) = ≤ 11 member / ≤ 9 free |
+| `top` | `insights_top`, `GET /{_locale}/insights/top-findings` | `InsightsTopFrameController` | the top row's "Try next" + "MSP rating" finding cards (in the findings grid, eager) | pieces (the shelf pick) | key 1 + rating ≤ 10 + shelf ≤ 6 = ≤ 17 member (14 measured) / ≤ 10 free; predictions off = 0 and no frame |
+| `shelf` | `insights_shelf`, `GET /{_locale}/insights/shelf` | `InsightsShelfFrameController` | "Try next from your shelf" (anchor `insights-try-next` - `insights-shelf` is the members' shelf filter) | pieces | key 1 + ≤ 6 = ≤ 7 member / 2 free; predictions off = 0 |
 | `resolve` | `insights_resolve`, `GET /{_locale}/insights/re-solve` | `InsightsResolveFrameController` | 11 re-solve radar | pieces | key 1 + ≤ 4 = ≤ 5; predictions off = 0 |
 | `pairs` | `insights_pairs`, `GET /{_locale}/insights/pairs-and-teams` | `InsightsPairsFrameController` | 13 pairs & teams | period, pieces | key 1 + ≤ 4 = ≤ 5 |
 | `improvement` | `insights_improvement`, `GET /{_locale}/insights/improvement` | `InsightsImprovementFrameController` | 15 improvement curve + rating over time | period (rating over time), pieces (which curves) | key 1 + 1 (+ rating over time 1, members) = ≤ 3 |
@@ -181,6 +184,14 @@ and a cache hit = the key only). Measured 2026-10-19 in the test env (one-off co
 - **The frame id is keyed by the filters the part reads** (`InsightsLazyPart::frameId()`). The live component leaves a
   frame with the same id alone (`data-live-ignore`); when a filter the part reads changes, the id changes, Live puts
   the placeholder back with the new `src` and Turbo loads it again. A filter the part ignores never reloads it.
+- **The top row** needs no rating model in the first response: the MSP rating tile reads the stored 500-piece rating
+  and its place on today's ladder from the context statement (`GetInsightsContext`, the header's
+  `GetPlayerRatingRanking::sqlRankOf()` as one more column - the first response stays 10 statements). The "Try next"
+  and "MSP rating" finding cards need the shelf picks and the rating model, so they are the `top` frame: inside the
+  findings grid (`display: contents`, so it loads eagerly - a lazy frame without a box never comes into view), two
+  skeleton cards while it loads, built from the cache entries the `shelf` and `rating` frames share (whichever loads
+  first builds them; afterwards each costs only the key). Opted out of rankings: the tile shows the rating and says
+  neutrally that there is no place; private: no rating.
 - `InsightsFrameRequest::context()` applies the page's rules: signed in, `InsightsFeature` (404 while hidden), the
   signed-in player's own id only (the URL carries no player), membership with trials counted
   (`PlayerProfile::$activeMembership`), `time_predictions_opted_out`, the time zone for the criteria, and the page's
@@ -195,8 +206,8 @@ and a cache hit = the key only). Measured 2026-10-19 in the test env (one-off co
   skeletons (`EventsPageDates`).
 - Styles: `assets/styles/_insights-frames.scss` (after `_insights.scss`).
 
-**Prediction windows** follow stream 3c: a move's or a re-solve candidate's expected time is shown only as the likely
-window (`RatingMove::window()` / `ResolveCandidate::window()` = `PredictionWindow::rounded()`, Twig
+**Prediction windows** follow stream 3c: a move's, a re-solve candidate's or a shelf pick's expected time is shown only
+as the likely window (`RatingMove::window()` / `ResolveCandidate::window()` / `ShelfPick::window()` = `PredictionWindow::rounded()`, Twig
 `prediction_window_range`, wording `puzzle_intelligence.prediction.window.likely`), never as a point time.
 
 **Rules carried into the frames:**
@@ -206,7 +217,7 @@ window (`RatingMove::window()` / `ResolveCandidate::window()` = `PredictionWindo
   Private players have no MSP rating (rankings are public-only): the section says so.
 - The path onto the ladder shows only while it is within reach (`RatingStanding::NearLadder`, ≤ 10 new results).
 - **Time predictions switched off:** no moves (a move is worth what its expected time gives), no "best moves" forecast
-  line, no re-solve radar (it is nothing but predictions) - each says so and links to the setting. The rating, its
+  line, no re-solve radar and no shelf picks (they are nothing but predictions), no "Try next" / "MSP rating" cards - each says so and links to the setting. The rating, its
   entries, pending puzzles and the pace milestones stay (they are no predictions).
 - Pairs and teams are separate lists and never mix into solo. A private teammate who has not let the viewer see them
   is "Hidden Puzzler" (no player id reaches the page); a guest is shown by name, without a score (no solo pace); a
@@ -223,9 +234,17 @@ window (`RatingMove::window()` / `ResolveCandidate::window()` = `PredictionWindo
   - every frame for a member and a free player; the free HTML carries locks with counts and no members-only markup;
   - predictions switched off; opted out of rankings; only the viewer's own data;
   - canaries: secret puzzles, a suspicious result, a hidden private teammate.
-- `tests/Services/Insights/InsightsFramesBudgetTest.php`: statements and time per part.
+  - the top row: "Try next" + "MSP rating" cards (members), locked with counts (free), absent with predictions off; the
+    rating tile in the first response (locked for free players).
+- `tests/Services/Insights/InsightsFramesBudgetTest.php`: statements and time per part; the top row shares the rating
+  and shelf cache entries; the rating tile's place rides on the context statement (none while opted out or private).
 
-## Still open
+## Phone layout notes
 
-- The MSP rating tile, the "Try next" shelf pick, and the rating findings of the prototype's top row (first response;
-  the shelf pick needs `ShelfPicks`, ≤ 7 statements - a lazy part of its own if it comes).
+- The strips' axis (`.ins-saxis`, skill map and pairs) shows from md up only: in a phone's narrow strip column its
+  labels were cut off (6a) or overlapped (pairs), and every row's tag says faster or slower in words. The pairs axis
+  wraps its two labels in the narrower half of `.ins-two`.
+- The question chips' row scrolls sideways on a phone; it is `position: relative`, so the locked chips'
+  visually-hidden labels stay inside it instead of widening the page.
+- Checked 2026-10-19: no text overflow and no sideways page scroll in 6 locales × member / free × 320, 375, 390, 414,
+  768, 992, 1200 px (buttons, labels, tags, chips, the skill-map and pairs axes, every lazy frame).

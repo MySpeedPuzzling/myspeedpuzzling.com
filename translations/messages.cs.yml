@@ -10695,3 +10695,35 @@ insights:
             rating: "Rating %rating%"
             rating_change: "%change% proti předchozímu dni"
             rating_place: "%place%. místo na žebříčku"
+    shelf:
+        ask: "Co z mé poličky mi sedne?"
+        question: "Co z mé poličky mi sedne?"
+        title: "Zkuste z poličky"
+        predictions_off: "Predikce časů máte v nastavení vypnuté. Výběr z poličky je z nich složený, takže zůstává prázdný."
+        empty: "V tomto výběru nemáte na poličce nic nesloženého."
+        lock:
+            title: "{0}Puzzle z vaší poličky vybraná pro vás|{1}1 nesložené puzzle na poličce – podívejte se, jestli vám sedne|[2,4]%count% nesložená puzzle na poličce – podívejte se, která vám sednou|[5,Inf[%count% nesložených puzzle na poličce – podívejte se, která vám sednou"
+            text: "Ta, která vám sednou nejlépe, s vaším pravděpodobným časem a kolik jejich puzzlerů byste pravděpodobně porazili."
+        no_estimates: "{0}Vaše nesložená puzzle z poličky zatím nemají očekávaný čas: nejdřív potřebují obtížnost.|{1}Vaše 1 nesložené puzzle z poličky zatím nemá očekávaný čas: nejdřív potřebuje obtížnost.|[2,Inf[Žádné z vašich %count% nesložených puzzle z poličky zatím nemá očekávaný čas: nejdřív potřebují obtížnost."
+        takeaway: "{0}Žádné z vašich %total% nesložených puzzle z poličky zatím nemá očekávaný čas.|{1}<b>1</b> z vašich %total% nesložených puzzle z poličky má pro vás očekávaný čas. Na těch nahoře byste pravděpodobně porazili nejvíc puzzlerů.|[2,4]<b>%count%</b> z vašich %total% nesložených puzzle z poličky mají pro vás očekávaný čas. Na těch nahoře byste pravděpodobně porazili nejvíc puzzlerů.|[5,Inf[<b>%count%</b> z vašich %total% nesložených puzzle z poličky má pro vás očekávaný čas. Na těch nahoře byste pravděpodobně porazili nejvíc puzzlerů."
+        beaten: "{0}poraženo|{1}z 1 poraženo|[2,Inf[z %count% poraženo"
+        few_solvers: "zatím málo puzzlerů"
+        picker: "Všechna nesložená puzzle v „Co skládat dál?“"
+        note: "Pravděpodobně = vaše osobní predikce prvního pokusu. Poraženo = podíl veřejných prvních pokusů na puzzle, který by váš pravděpodobný čas překonal."
+    top:
+        try_next:
+            kicker: "Zkuste příště"
+            text: "Z vaší poličky vám sedne %puzzle%. %window%, rychleji než zhruba %percent% % jeho puzzlerů."
+            text_no_share: "Z vaší poličky vám sedne %puzzle%. %window%."
+            locked: "{0}Puzzle z vaší poličky vybrané pro vás. Členové uvidí které.|{1}Výběr z 1 nesloženého puzzle na poličce. Členové uvidí které.|[2,Inf[Výběr z %count% nesložených puzzle na poličce. Členové uvidí které."
+        rating:
+            kicker: "MSP Rating"
+            text: "Vašich 5 nejlepších tahů by mohlo přidat zhruba %gain% bodu."
+            locked: "{0}Tahy, které zvednou váš rating.|{1}Našli jsme pro vás 1 tah pro rating. Členové uvidí který.|[2,4]Našli jsme pro vás %count% tahy pro rating. Členové uvidí které.|[5,Inf[Našli jsme pro vás %count% tahů pro rating. Členové uvidí které."
+    rating_tile:
+        label: "MSP Rating (500 dílků)"
+        place: "%place%. místo na dnešním žebříčku"
+        opted_out: "rozhodli jste se nebýt v žebříčcích"
+        no_place: "mimo dnešní žebříček"
+        private: "soukromé profily nemají MSP Rating"
+        none: "zatím mimo žebříček"

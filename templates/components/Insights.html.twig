@@ -4,8 +4,9 @@
     partials live in templates/insights/, styles in assets/styles/_insights.scss.
 
     Free vs members (README §3, InsightsSection::isFree()): a members-only part is never rendered for a free player -
-    one lock per section with real counts instead (insights/_lock.html.twig). The 6b placeholders (_lazy_*) keep the
-    prototype's order: rating + forecast, re-solve radar, pairs & teams, improvement curve.
+    one lock per section with real counts instead (insights/_lock.html.twig). The lazy frames (_lazy_*) keep the
+    prototype's order: rating + forecast, shelf picks, re-solve radar, pairs & teams, improvement curve; the top row's
+    "Try next" / "MSP rating" cards are a frame in the findings grid (_lazy_top).
 #}
 {% set report = this.report %}
 {% set is_member = this.isMember %}
@@ -39,8 +40,9 @@
             {{ include('insights/_median.html.twig') }}
             {{ include('insights/_close_calls.html.twig') }}
 
-            {# Stream 6b: lazy frames below the fold, in the prototype's order - empty until then #}
+            {# The lazy frames below the fold (docs/features/insights/page.md "Lazy frames"), in the prototype's order #}
             {{ include('insights/_lazy_rating.html.twig', {criteria: this.criteria}) }}
+            {{ include('insights/_lazy_shelf.html.twig', {criteria: this.criteria}) }}
             {{ include('insights/_lazy_resolve.html.twig', {criteria: this.criteria}) }}
 
             {{ include('insights/_learning.html.twig') }}

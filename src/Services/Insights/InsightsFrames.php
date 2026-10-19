@@ -9,9 +9,12 @@ use SpeedPuzzling\Web\Results\Insights\ImprovementCurveResult;
 use SpeedPuzzling\Web\Results\Insights\ImprovementCurveSize;
 use SpeedPuzzling\Web\Results\Insights\InsightsImprovementFrame;
 use SpeedPuzzling\Web\Results\Insights\InsightsRatingFrame;
+use SpeedPuzzling\Web\Results\Insights\InsightsTopFrame;
+use SpeedPuzzling\Web\Results\Insights\ShelfPicksResult;
 use SpeedPuzzling\Web\Results\Insights\PairsTeamsSynergyResult;
 use SpeedPuzzling\Web\Results\Insights\ResolveRadarResult;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
+use SpeedPuzzling\Web\Value\InsightsCacheKey;
 use SpeedPuzzling\Web\Value\InsightsLazyPart;
 
 /**
@@ -20,8 +23,9 @@ use SpeedPuzzling\Web\Value\InsightsLazyPart;
  * context). Call it for the signed-in player's own id only - like InsightsPageLoader.
  *
  * Statements on a cache miss, whatever the player's size (pinned by InsightsFramesBudgetTest): the cache key 1, plus
- * rating ≤ 8 (free) / ≤ 10 (member: + forecast), re-solve radar ≤ 4 (none with predictions off), pairs & teams ≤ 4,
- * improvement 1 (free) / 2 (member: + rating over time). A hit costs only the key.
+ * rating ≤ 8 (free) / ≤ 10 (member: + forecast), shelf picks 1 (free) / ≤ 6 (member), re-solve radar ≤ 4, pairs &
+ * teams ≤ 4, improvement 1 (free) / 2 (member: + rating over time); the top row = rating + shelf under one key. Parts
+ * resting on predictions (shelf, re-solve, top) cost nothing with predictions off. A hit costs only the key.
  *
  * A free player's part is built for the counts of its lock only (the template never renders more); the forecast and
  * the rating over time are not built for them at all.
@@ -32,6 +36,7 @@ readonly final class InsightsFrames
         private InsightsCache $insightsCache,
         private RatingModelLoader $ratingModelLoader,
         private RatingForecast $ratingForecast,
+        private ShelfPicks $shelfPicks,
         private ResolveRadar $resolveRadar,
         private PairsTeamsSynergy $pairsTeamsSynergy,
         private ImprovementCurve $improvementCurve,
@@ -45,8 +50,42 @@ readonly final class InsightsFrames
      */
     public function rating(string $playerId, bool $isMember): InsightsRatingFrame
     {
+        return $this->ratingFor($this->insightsCache->keyFor($playerId), $playerId, $isMember);
+    }
+
+    /**
+     * "What from my shelf suits me?" (ShelfPicks, the page's piece-count filter) - null with predictions off: a pick is
+     * its expected time. A free player's part is the count of unsolved shelf puzzles only.
+     */
+    public function shelf(string $playerId, InsightsCriteria $criteria, bool $isMember, bool $predictionsAllowed): null|ShelfPicksResult
+    {
+        if ($predictionsAllowed === false) {
+            return null;
+        }
+
+        return $this->shelfFor($this->insightsCache->keyFor($playerId), $playerId, $criteria, $isMember);
+    }
+
+    /**
+     * The top row's "Try next" and "MSP rating" cards: the shelf's and the rating's cache entries under one key -
+     * whichever frame comes first builds them, the others read them. Null with predictions off (both rest on them).
+     */
+    public function top(string $playerId, InsightsCriteria $criteria, bool $isMember, bool $predictionsAllowed): null|InsightsTopFrame
+    {
+        if ($predictionsAllowed === false) {
+            return null;
+        }
+
         $key = $this->insightsCache->keyFor($playerId);
 
+        return new InsightsTopFrame(
+            $this->ratingFor($key, $playerId, $isMember)->opportunities,
+            $this->shelfFor($key, $playerId, $criteria, $isMember),
+        );
+    }
+
+    private function ratingFor(InsightsCacheKey $key, string $playerId, bool $isMember): InsightsRatingFrame
+    {
         return $this->insightsCache->get($key, self::part(InsightsLazyPart::Rating), ['member' => $isMember], function () use ($playerId, $isMember): InsightsRatingFrame {
             $model = $this->ratingModelLoader->load($playerId, PuzzleIntelligenceRecalculator::RATING_PIECES_COUNTS[0]);
 
@@ -55,6 +94,16 @@ readonly final class InsightsFrames
                 $isMember ? $this->ratingForecast->forModel($playerId, $model) : null,
             );
         });
+    }
+
+    private function shelfFor(InsightsCacheKey $key, string $playerId, InsightsCriteria $criteria, bool $isMember): ShelfPicksResult
+    {
+        return $this->insightsCache->get(
+            $key,
+            self::part(InsightsLazyPart::Shelf),
+            ['member' => $isMember, 'pieces' => $criteria->pieces->toParam()],
+            fn (): ShelfPicksResult => $this->shelfPicks->build($playerId, $isMember, $criteria->pieces),
+        );
     }
 
     /**

@@ -59,6 +59,9 @@ $ins-primary-ink: #d63c42;
 }
 
 .ins-asks {
+    // The containing block of the chips' visually-hidden labels: absolutely positioned, they would escape the scroller
+    // and widen the whole page on a phone
+    position: relative;
     display: flex;
     gap: .5rem;
     margin-top: .875rem;
@@ -818,8 +821,10 @@ $ins-primary-ink: #d63c42;
 $ins-srow-columns: minmax(84px, 110px) minmax(0, 1fr) 84px;
 $ins-srow-columns-wide: minmax(110px, 190px) minmax(0, 1fr) 54px 130px;
 
+// The axis of the strips: from md up only - in a phone's narrow strip column its labels are cut off, and every row's
+// tag says faster or slower in words
 .ins-saxis {
-    display: grid;
+    display: none;
     grid-template-columns: $ins-srow-columns;
     gap: .625rem;
     margin-top: .875rem;
@@ -840,6 +845,7 @@ $ins-srow-columns-wide: minmax(110px, 190px) minmax(0, 1fr) 54px 130px;
     }
 
     @include media-breakpoint-up(md) {
+        display: grid;
         grid-template-columns: $ins-srow-columns-wide;
 
         &__n {

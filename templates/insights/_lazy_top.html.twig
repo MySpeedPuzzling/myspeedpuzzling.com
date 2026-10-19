@@ -1,0 +1,19 @@
+{#
+    The top row's "Try next" and "MSP rating" finding cards: a frame inside the findings grid (InsightsTopFrameController).
+    Eager - `display: contents` gives a lazy frame no box to come into view with, and it is at the top anyway. Its
+    placeholder holds two skeleton cards so the grid keeps its shape while it loads. Not at all with predictions off.
+    `data-live-ignore` + an id keyed by the filters it reads, like every lazy part (InsightsLazyPart::frameId()).
+
+    Variables: criteria (InsightsCriteria), predictions_allowed (bool)
+#}
+{% if predictions_allowed %}
+    {% set frame = insights_frame('top', criteria) %}
+    <turbo-frame id="{{ frame.id }}" src="{{ frame.src }}" target="_top" class="ins-findings__frame" data-live-ignore data-testid="insights-frame-top">
+        {% for kicker in ['insights.top.try_next.kicker', 'insights.top.rating.kicker'] %}
+            <span class="ins-finding is-loading" aria-hidden="true">
+                <span class="ins-finding__kicker">{{ kicker|trans }}</span>
+                <span class="ins-finding__text ins-finding__skeleton"></span>
+            </span>
+        {% endfor %}
+    </turbo-frame>
+{% endif %}

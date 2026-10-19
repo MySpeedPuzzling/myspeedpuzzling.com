@@ -10688,3 +10688,35 @@ insights:
             rating: "Rating %rating%"
             rating_change: "%change% par rapport à la veille"
             rating_place: "#%place% au classement"
+    shelf:
+        ask: "Qu'est-ce qui me convient sur mon étagère ?"
+        question: "Qu'est-ce qui me convient sur mon étagère ?"
+        title: "À essayer sur votre étagère"
+        predictions_off: "Les prédictions de temps sont désactivées dans vos paramètres. La sélection de votre étagère en est faite, elle reste donc vide."
+        empty: "Rien de non fait sur votre étagère dans cette sélection."
+        lock:
+            title: "{0}Des puzzles de votre étagère choisis pour vous|{1}1 puzzle non fait sur votre étagère – voyez s'il vous convient|]1,Inf[%count% puzzles non faits sur votre étagère – voyez lesquels vous conviennent"
+            text: "Ceux qui vous conviennent le mieux, avec votre temps probable et combien de leurs puzzleurs vous battriez probablement."
+        no_estimates: "{0}Vos puzzles non faits de l'étagère n'ont pas encore de temps prévu : il leur faut d'abord une difficulté.|{1}Votre puzzle non fait de l'étagère n'a pas encore de temps prévu : il lui faut d'abord une difficulté.|]1,Inf[Aucun de vos %count% puzzles non faits de l'étagère n'a encore de temps prévu : il leur faut d'abord une difficulté."
+        takeaway: "{0}Aucun de vos %total% puzzles non faits de l'étagère n'a encore de temps prévu.|{1}<b>1</b> de vos %total% puzzles non faits de l'étagère a un temps prévu pour vous. Sur ceux du haut, vous battriez probablement le plus de puzzleurs.|]1,Inf[<b>%count%</b> de vos %total% puzzles non faits de l'étagère ont un temps prévu pour vous. Sur ceux du haut, vous battriez probablement le plus de puzzleurs."
+        beaten: "{0}battus|{1}sur 1 battu|]1,Inf[sur %count% battus"
+        few_solvers: "encore trop peu de puzzleurs"
+        picker: "Tous vos puzzles non faits dans « Quel puzzle faire ensuite ? »"
+        note: "Probablement = votre prédiction personnelle pour un premier essai. Battus = la part des premiers essais publics du puzzle que votre temps probable battrait."
+    top:
+        try_next:
+            kicker: "À essayer"
+            text: "Sur votre étagère, %puzzle% vous convient. %window%, plus rapide qu'environ %percent% % de ses puzzleurs."
+            text_no_share: "Sur votre étagère, %puzzle% vous convient. %window%."
+            locked: "{0}Un puzzle de votre étagère choisi pour vous. Les membres voient lequel.|{1}Un choix parmi 1 puzzle non fait sur votre étagère. Les membres voient lequel.|]1,Inf[Un choix parmi %count% puzzles non faits sur votre étagère. Les membres voient lequel."
+        rating:
+            kicker: "MSP Rating"
+            text: "Vos 5 meilleurs coups pourraient ajouter environ %gain% points."
+            locked: "{0}Les coups qui font monter votre rating.|{1}1 coup de rating trouvé pour vous. Les membres voient lequel.|]1,Inf[%count% coups de rating trouvés pour vous. Les membres voient lesquels."
+    rating_tile:
+        label: "MSP Rating (500 pièces)"
+        place: "#%place% au classement d'aujourd'hui"
+        opted_out: "vous avez choisi de ne pas apparaître dans les classements"
+        no_place: "hors du classement d'aujourd'hui"
+        private: "les profils privés n'ont pas de MSP Rating"
+        none: "pas encore au classement"

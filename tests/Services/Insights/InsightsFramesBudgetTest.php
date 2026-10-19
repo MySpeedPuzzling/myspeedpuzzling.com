@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Query\GetInsightsContext;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\Insights\InsightsCriteria;
 use SpeedPuzzling\Web\Services\Insights\InsightsFrames;
@@ -35,6 +36,10 @@ final class InsightsFramesBudgetTest extends KernelTestCase
     private const array BUDGETS = [
         'rating, member' => 11,
         'rating, free' => 9,
+        'shelf picks, member' => 7,
+        'shelf picks, free' => 2,
+        'top row, member' => 17,
+        'top row, free' => 10,
         're-solve radar' => 5,
         'pairs & teams' => 5,
         'improvement, member' => 3,
@@ -91,6 +96,10 @@ final class InsightsFramesBudgetTest extends KernelTestCase
         $parts = [
             'rating, member' => static fn () => $frames->rating($player, true),
             'rating, free' => static fn () => $frames->rating($player, false),
+            'shelf picks, member' => static fn () => $frames->shelf($player, $member, true, true),
+            'shelf picks, free' => static fn () => $frames->shelf($player, $free, false, true),
+            'top row, member' => static fn () => $frames->top($player, $member, true, true),
+            'top row, free' => static fn () => $frames->top($player, $free, false, true),
             're-solve radar' => static fn () => $frames->resolve($player, $member, true),
             'pairs & teams' => static fn () => $frames->pairs($player, $member),
             'improvement, member' => static fn () => $frames->improvement($player, $member, true),
@@ -131,7 +140,51 @@ final class InsightsFramesBudgetTest extends KernelTestCase
         $this->loadViewer();
         $holder->reset();
         self::assertNull($frames->resolve($player, $member, false));
+        self::assertNull($frames->shelf($player, $member, true, false));
+        self::assertNull($frames->top($player, $member, true, false));
         self::assertSame(0, $this->statements($holder));
+
+        // The top row and the frames below share their cache entries: after the top row, rating and shelf cost the key only
+        $resetter->reset();
+        $this->loadViewer();
+        $frames->top($player, $member, true, true);
+        $holder->reset();
+        $frames->rating($player, true);
+        $frames->shelf($player, $member, true, true);
+        self::assertSame(2, $this->statements($holder));
+    }
+
+    /**
+     * The top row's rating tile reads the stored rating and its place on today's ladder from the first response's
+     * context statement - no statement of its own, no rating model. Opted out of rankings or private: no place.
+     */
+    public function testTheRatingTileRidesOnTheContextStatement(): void
+    {
+        self::bootKernel();
+        $now = new DateTimeImmutable('today 12:00:00');
+        self::getContainer()->set(ClockInterface::class, new MockClock($now));
+
+        /** @var Connection $connection */
+        $connection = self::getContainer()->get(Connection::class);
+        $this->seedLadder($connection, $now);
+        self::getContainer()->get(PuzzleIntelligenceRecalculator::class)->recalculate();
+
+        /** @var DebugDataHolder $holder */
+        $holder = self::getContainer()->get('doctrine.debug_data_holder');
+        $getContext = self::getContainer()->get(GetInsightsContext::class);
+        $this->loadViewer();
+        $holder->reset();
+
+        $context = $getContext->forPlayer(self::ladderPlayer(1));
+        self::assertSame(1, $this->statements($holder));
+        self::assertNotNull($context->rating500);
+        self::assertNotNull($context->ratingPlace500);
+        self::assertGreaterThanOrEqual(1, $context->ratingPlace500);
+
+        $connection->executeStatement('UPDATE player SET ranking_opted_out = true WHERE id = :id', ['id' => self::ladderPlayer(1)]);
+        self::assertNull($getContext->forPlayer(self::ladderPlayer(1))->ratingPlace500, 'opted out of rankings: no place');
+
+        self::assertNull($getContext->forPlayer(self::ladderPlayer(23))->ratingPlace500, 'private: no place');
     }
 
     /**

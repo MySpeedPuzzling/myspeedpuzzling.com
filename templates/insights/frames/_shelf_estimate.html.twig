@@ -1,0 +1,6 @@
+{#
+    The expected time of one shelf pick: the likely window, exactly as every surface shows it (stream 3c). Kept on its
+    own so the estimates of stream 6c (ShelfPicks::estimates(), picture-only estimates) replace this one line.
+    Variables: pick (ShelfPick)
+#}
+<span class="ins-row__meta ins-shelf__estimate">{{ 'puzzle_intelligence.prediction.window.likely'|trans({'%range%': pick.window|prediction_window_range}) }}</span>

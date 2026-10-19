@@ -426,6 +426,7 @@ final class Insights
             // The lazy frames' sections (InsightsLazyPart::anchors() - the placeholders carry the anchors)
             ['anchor' => 'insights-rating', 'key' => 'insights.rating.ask', 'free' => false],
             ['anchor' => 'insights-forecast', 'key' => 'insights.forecast.ask', 'free' => false],
+            ['anchor' => 'insights-try-next', 'key' => 'insights.shelf.ask', 'free' => false],
             ['anchor' => 'insights-resolve', 'key' => 'insights.resolve.ask', 'free' => false],
             ['anchor' => 'insights-learning', 'key' => 'insights.ask.learning', 'free' => false],
             ['anchor' => 'insights-pairs', 'key' => 'insights.pairs.ask', 'free' => false],

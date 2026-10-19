@@ -398,16 +398,45 @@ a.ins-srow {
     }
 }
 
-// The pairs axis: its labels are longer than the skill map's - below md the dot and the verdict tag say it alone
-.ins-saxis--frame {
-    display: none;
 
-    @include media-breakpoint-up(md) {
-        display: grid;
+// The pairs axis sits in the narrower half of .ins-two and its labels are longer than the skill map's: both labels
+// wrap (the right one onto its own line when they do not fit side by side) instead of being cut. From md up only
+// (_insights.scss).
+#insights-pairs .ins-saxis__scale {
+    flex-wrap: wrap;
+    overflow: visible;
+    white-space: normal;
+
+    span:last-child {
+        margin-left: auto;
+        text-align: right;
     }
 }
 
 // The pair/team verdicts are longer than the skill map's ("+21 % · Skvělá souhra"): they wrap in their column
 a.ins-srow .ins-stag {
     white-space: normal;
+}
+
+// --- Top row: the lazy finding cards sit in 6a's findings grid as its own items ----------------------------------------
+
+.ins-findings__frame {
+    display: contents;
+}
+
+.ins-finding.is-loading {
+    pointer-events: none;
+}
+
+.ins-finding__skeleton {
+    display: block;
+    height: 2.5rem;
+    border-radius: .25rem;
+    background: linear-gradient(90deg, $ins-surface-2, $ins-grid, $ins-surface-2);
+}
+
+// --- Shelf picks -----------------------------------------------------------------------------------------------------------
+
+.ins-shelf__estimate {
+    color: $ins-ink-2;
 }

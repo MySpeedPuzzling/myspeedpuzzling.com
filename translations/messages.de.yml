@@ -10668,3 +10668,35 @@ insights:
             rating: "Rating %rating%"
             rating_change: "%change% zum Vortag"
             rating_place: "#%place% auf der Rangliste"
+    shelf:
+        ask: "Was aus meinem Regal passt zu mir?"
+        question: "Was aus meinem Regal passt zu mir?"
+        title: "Als Nächstes aus deinem Regal"
+        predictions_off: "Zeitvorhersagen sind in deinen Einstellungen ausgeschaltet. Die Auswahl aus dem Regal besteht aus ihnen, deshalb bleibt sie leer."
+        empty: "In dieser Auswahl liegt nichts Ungelegtes in deinem Regal."
+        lock:
+            title: "{0}Puzzles aus deinem Regal, für dich ausgesucht|{1}1 ungelegtes Puzzle in deinem Regal – sieh, ob es zu dir passt|]1,Inf[%count% ungelegte Puzzles in deinem Regal – sieh, welche zu dir passen"
+            text: "Die, die am besten zu dir passen, mit deiner wahrscheinlichen Zeit und wie viele ihrer Puzzler du wahrscheinlich schlagen würdest."
+        no_estimates: "{0}Deine ungelegten Regal-Puzzles haben noch keine erwartete Zeit: Sie brauchen zuerst eine Schwierigkeit.|{1}Dein 1 ungelegtes Regal-Puzzle hat noch keine erwartete Zeit: Es braucht zuerst eine Schwierigkeit.|]1,Inf[Keines deiner %count% ungelegten Regal-Puzzles hat schon eine erwartete Zeit: Sie brauchen zuerst eine Schwierigkeit."
+        takeaway: "{0}Keines deiner %total% ungelegten Regal-Puzzles hat schon eine erwartete Zeit.|{1}<b>1</b> deiner %total% ungelegten Regal-Puzzles hat eine erwartete Zeit für dich. Bei denen oben würdest du wahrscheinlich die meisten Puzzler schlagen.|]1,Inf[<b>%count%</b> deiner %total% ungelegten Regal-Puzzles haben eine erwartete Zeit für dich. Bei denen oben würdest du wahrscheinlich die meisten Puzzler schlagen."
+        beaten: "{0}geschlagen|{1}von 1 geschlagen|]1,Inf[von %count% geschlagen"
+        few_solvers: "noch zu wenige Puzzler"
+        picker: "Alle deine ungelegten Puzzles in „Welches Puzzle als Nächstes?“"
+        note: "Wahrscheinlich = deine persönliche Vorhersage für einen ersten Versuch. Geschlagen = der Anteil der öffentlichen ersten Versuche beim Puzzle, die deine wahrscheinliche Zeit unterbieten würde."
+    top:
+        try_next:
+            kicker: "Als Nächstes"
+            text: "Aus deinem Regal passt %puzzle% zu dir. %window%, schneller als etwa %percent% % seiner Puzzler."
+            text_no_share: "Aus deinem Regal passt %puzzle% zu dir. %window%."
+            locked: "{0}Ein Puzzle aus deinem Regal, für dich ausgesucht. Mitglieder sehen, welches.|{1}Eine Auswahl aus 1 ungelegten Puzzle in deinem Regal. Mitglieder sehen, welches.|]1,Inf[Eine Auswahl aus %count% ungelegten Puzzles in deinem Regal. Mitglieder sehen, welches."
+        rating:
+            kicker: "MSP Rating"
+            text: "Deine 5 besten Züge könnten etwa %gain% Punkte bringen."
+            locked: "{0}Züge, die dein Rating heben.|{1}1 Rating-Zug für dich gefunden. Mitglieder sehen, welcher.|]1,Inf[%count% Rating-Züge für dich gefunden. Mitglieder sehen, welche."
+    rating_tile:
+        label: "MSP Rating (500 Teile)"
+        place: "#%place% auf der heutigen Rangliste"
+        opted_out: "du hast dich gegen Ranglisten entschieden"
+        no_place: "nicht auf der heutigen Rangliste"
+        private: "private Profile haben kein MSP Rating"
+        none: "noch nicht auf der Rangliste"

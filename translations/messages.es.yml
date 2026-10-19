@@ -10669,3 +10669,35 @@ insights:
             rating: "Rating %rating%"
             rating_change: "%change% respecto al día anterior"
             rating_place: "#%place% en la escalera"
+    shelf:
+        ask: "¿Qué de mi estantería me va bien?"
+        question: "¿Qué de mi estantería me va bien?"
+        title: "Prueba ahora de tu estantería"
+        predictions_off: "Las predicciones de tiempo están desactivadas en tus ajustes. La selección de tu estantería está hecha de ellas, así que queda vacía."
+        empty: "En esta selección no hay nada sin armar en tu estantería."
+        lock:
+            title: "{0}Puzzles de tu estantería elegidos para ti|{1}1 puzzle sin armar en tu estantería: mira si te va bien|]1,Inf[%count% puzzles sin armar en tu estantería: mira cuáles te van bien"
+            text: "Los que mejor te van, con tu tiempo probable y a cuántos de sus puzzleros probablemente superarías."
+        no_estimates: "{0}Tus puzzles sin armar de la estantería aún no tienen tiempo esperado: primero necesitan una dificultad.|{1}Tu puzzle sin armar de la estantería aún no tiene tiempo esperado: primero necesita una dificultad.|]1,Inf[Ninguno de tus %count% puzzles sin armar de la estantería tiene aún tiempo esperado: primero necesitan una dificultad."
+        takeaway: "{0}Ninguno de tus %total% puzzles sin armar de la estantería tiene aún tiempo esperado.|{1}<b>1</b> de tus %total% puzzles sin armar de la estantería tiene un tiempo esperado para ti. En los de arriba probablemente superarías a más puzzleros.|]1,Inf[<b>%count%</b> de tus %total% puzzles sin armar de la estantería tienen un tiempo esperado para ti. En los de arriba probablemente superarías a más puzzleros."
+        beaten: "{0}superados|{1}de 1 superado|]1,Inf[de %count% superados"
+        few_solvers: "aún pocos puzzleros"
+        picker: "Todos tus puzzles sin armar en «¿Qué puzzle armar ahora?»"
+        note: "Probablemente = tu predicción personal para un primer intento. Superados = la parte de los primeros intentos públicos del puzzle que tu tiempo probable mejoraría."
+    top:
+        try_next:
+            kicker: "Prueba ahora"
+            text: "De tu estantería: %puzzle% te va bien. %window%, más rápido que alrededor del %percent% % de sus puzzleros."
+            text_no_share: "De tu estantería: %puzzle% te va bien. %window%."
+            locked: "{0}Un puzzle de tu estantería elegido para ti. Los miembros ven cuál.|{1}Una elección entre 1 puzzle sin armar de tu estantería. Los miembros ven cuál.|]1,Inf[Una elección entre %count% puzzles sin armar de tu estantería. Los miembros ven cuál."
+        rating:
+            kicker: "MSP Rating"
+            text: "Tus 5 mejores jugadas podrían sumar unos %gain% puntos."
+            locked: "{0}Jugadas que suben tu rating.|{1}1 jugada de rating encontrada para ti. Los miembros ven cuál.|]1,Inf[%count% jugadas de rating encontradas para ti. Los miembros ven cuáles."
+    rating_tile:
+        label: "MSP Rating (500 piezas)"
+        place: "#%place% en la escalera de hoy"
+        opted_out: "elegiste no aparecer en las clasificaciones"
+        no_place: "fuera de la escalera de hoy"
+        private: "los perfiles privados no tienen MSP Rating"
+        none: "aún fuera de la escalera"

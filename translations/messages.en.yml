@@ -10942,3 +10942,35 @@ insights:
             rating: "Rating %rating%"
             rating_change: "%change% on the day before"
             rating_place: "#%place% on the ladder"
+    shelf:
+        ask: "What from my shelf suits me?"
+        question: "What from my shelf suits me?"
+        title: "Try next from your shelf"
+        predictions_off: "Time predictions are switched off in your settings. Shelf picks are made of them, so this stays empty."
+        empty: "Nothing unsolved on your shelf in this selection."
+        lock:
+            title: "{0}Puzzles from your shelf picked for you|{1}1 unsolved puzzle on your shelf - see if it suits you|]1,Inf[%count% unsolved puzzles on your shelf - see which suit you"
+            text: "The ones that suit you best, with your likely time and how many of their solvers you would likely beat."
+        no_estimates: "{0}Your unsolved shelf puzzles have no expected time yet: they need a difficulty first.|{1}Your 1 unsolved shelf puzzle has no expected time yet: it needs a difficulty first.|]1,Inf[None of your %count% unsolved shelf puzzles has an expected time yet: they need a difficulty first."
+        takeaway: "{0}None of your %total% unsolved shelf puzzles has an expected time yet.|{1}<b>1</b> of your %total% unsolved shelf puzzles has an expected time for you. On the ones at the top you would likely beat the most solvers.|]1,Inf[<b>%count%</b> of your %total% unsolved shelf puzzles have an expected time for you. On the ones at the top you would likely beat the most solvers."
+        beaten: "{0}beaten|{1}of 1 beaten|]1,Inf[of %count% beaten"
+        few_solvers: "too few solvers yet"
+        picker: "All your unsolved puzzles in the Puzzle Picker"
+        note: "Likely = your personal prediction for a first try. Beaten = the share of the puzzle's public first tries your likely time would be faster than."
+    top:
+        try_next:
+            kicker: "Try next"
+            text: "From your shelf: %puzzle% suits you. %window%, faster than about %percent%% of its solvers."
+            text_no_share: "From your shelf: %puzzle% suits you. %window%."
+            locked: "{0}A puzzle from your shelf, picked for you. Members see which.|{1}A pick from 1 unsolved puzzle on your shelf. Members see which.|]1,Inf[A pick from %count% unsolved puzzles on your shelf. Members see which."
+        rating:
+            kicker: "MSP rating"
+            text: "Your best 5 moves could add about %gain% points."
+            locked: "{0}Moves that raise your rating.|{1}1 rating move found for you. Members see which.|]1,Inf[%count% rating moves found for you. Members see which."
+    rating_tile:
+        label: "MSP rating (500 pieces)"
+        place: "#%place% on today's ladder"
+        opted_out: "you chose not to appear in rankings"
+        no_place: "not on today's ladder"
+        private: "private profiles have no MSP rating"
+        none: "not on the ladder yet"

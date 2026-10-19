@@ -35,6 +35,7 @@ final class InsightsFramesControllerTest extends WebTestCase
     /** Frame route => the sections it renders */
     private const array FRAMES = [
         '/en/insights/rating' => ['rating', 'forecast'],
+        '/en/insights/shelf' => ['shelf'],
         '/en/insights/re-solve' => ['resolve'],
         '/en/insights/pairs-and-teams' => ['pairs'],
         '/en/insights/improvement' => ['improvement'],
@@ -53,7 +54,7 @@ final class InsightsFramesControllerTest extends WebTestCase
     {
         $browser = $this->browser(flag: false, player: self::MEMBER);
 
-        foreach (array_keys(self::FRAMES) as $url) {
+        foreach ([...array_keys(self::FRAMES), '/en/insights/top-findings'] as $url) {
             $this->frame($browser, $url);
             self::assertResponseStatusCodeSame(404, $url);
         }
@@ -76,8 +77,10 @@ final class InsightsFramesControllerTest extends WebTestCase
         $browser = $this->browser(flag: true, player: self::MEMBER);
 
         $browser->request('GET', '/en/insights/pairs-and-teams?pieces=500&brands[]=x');
-
         self::assertResponseRedirects('/en/insights?pieces=500#insights-pairs');
+
+        $browser->request('GET', '/en/insights/top-findings');
+        self::assertResponseRedirects('/en/insights#insights-findings');
     }
 
     public function testTheFramesThePageAsksForAreTheOnesThatAnswer(): void
@@ -88,10 +91,11 @@ final class InsightsFramesControllerTest extends WebTestCase
         $page = $browser->request('GET', '/en/insights?pieces=500');
         self::assertResponseIsSuccessful();
 
-        foreach (['rating', 'resolve', 'pairs', 'improvement'] as $part) {
+        foreach (['top', 'rating', 'shelf', 'resolve', 'pairs', 'improvement'] as $part) {
             $frame = $page->filter('turbo-frame[data-testid="insights-frame-' . $part . '"]');
             self::assertCount(1, $frame, $part);
-            self::assertSame('lazy', $frame->attr('loading'));
+            // The top row's frame sits in the findings grid (display: contents - nothing to come into view): eager
+            self::assertSame($part === 'top' ? null : 'lazy', $frame->attr('loading'), $part);
             self::assertSame('_top', $frame->attr('target'));
             self::assertNotNull($frame->attr('data-live-ignore'));
 
@@ -110,7 +114,10 @@ final class InsightsFramesControllerTest extends WebTestCase
         self::assertSame('/en/insights/re-solve?pieces=500', $page->filter('turbo-frame[data-testid="insights-frame-resolve"]')->attr('src'));
 
         // The placeholders carry the chips' anchors, no section test id of the first response
-        foreach (['rating', 'forecast', 'resolve', 'pairs', 'improvement'] as $anchor) {
+        self::assertCount(1, $page->filter('[data-testid="insights-findings"] turbo-frame[data-testid="insights-frame-top"]'), 'in the findings grid');
+        self::assertCount(1, $page->filter('[data-testid="insights-tile-rating"]'), 'the rating tile is in the first response');
+
+        foreach (['rating', 'forecast', 'try-next', 'resolve', 'pairs', 'improvement'] as $anchor) {
             self::assertCount(1, $page->filter('#insights-' . $anchor), $anchor);
             self::assertCount(1, $page->filter('.ins-asks a[href="#insights-' . $anchor . '"]'), $anchor);
         }
@@ -131,6 +138,21 @@ final class InsightsFramesControllerTest extends WebTestCase
         self::assertGreaterThan(0, $rating->filter('[data-testid="insights-rating-strips"] rect')->count());
         self::assertCount(1, $rating->filter('[id^="ins-chart-forecast-"]'), 'forecast chart');
         self::assertGreaterThan(0, $rating->filter('[data-testid="insights-forecast-milestones"] li')->count());
+
+        $shelf = $frames['/en/insights/shelf'];
+        self::assertGreaterThan(0, $shelf->filter('[data-testid="insights-shelf-picks"] li')->count(), 'shelf picks');
+        self::assertStringContainsString('Likely', $shelf->filter('[data-testid="insights-shelf-picks"]')->text(), '3c\'s likely window');
+        self::assertStringContainsString('Insights Puzzle 4', $shelf->filter('[data-testid="insights-shelf-picks"]')->text());
+
+        $top = $this->frame($browser, '/en/insights/top-findings');
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $top->filter('[data-testid="insights-finding-try_next"]:not(.is-locked)'));
+        self::assertStringContainsString('Likely', $top->filter('[data-testid="insights-finding-try_next"]')->text());
+        self::assertCount(1, $top->filter('[data-testid="insights-finding-rating_moves"]:not(.is-locked)'));
+        self::assertMatchesRegularExpression('/\+\d/', $top->filter('[data-testid="insights-finding-rating_moves"]')->text());
+
+        $page = $browser->request('GET', '/en/insights');
+        self::assertCount(0, $page->filter('[data-testid="insights-tile-rating"] .ci-locked'));
 
         $resolve = $frames['/en/insights/re-solve'];
         self::assertGreaterThan(0, $resolve->filter('[data-testid="insights-resolve-list"] li')->count(), 'old puzzles to re-solve');
@@ -156,6 +178,7 @@ final class InsightsFramesControllerTest extends WebTestCase
 
         $locks = [
             '/en/insights/rating' => ['rating', 'forecast'],
+            '/en/insights/shelf' => ['shelf'],
             '/en/insights/re-solve' => ['resolve'],
             '/en/insights/pairs-and-teams' => ['pairs'],
             '/en/insights/improvement' => ['improvement'],
@@ -182,6 +205,19 @@ final class InsightsFramesControllerTest extends WebTestCase
         self::assertStringNotContainsString(self::PAIR_NAME, $html, 'who brings out the best is for members');
         self::assertStringNotContainsString('insights-improvement-jumps', $html);
         self::assertStringNotContainsString('Insights Puzzle', $html, 'no puzzle of a suggestion');
+        self::assertStringNotContainsString('insights-shelf-picks', $html);
+
+        // The top row: both cards locked, with their counts; the rating tile locked
+        $top = $this->frame($browser, '/en/insights/top-findings');
+        self::assertResponseIsSuccessful();
+        self::assertCount(2, $top->filter('.ins-finding.is-locked'));
+        self::assertMatchesRegularExpression('/\d/', $top->filter('[data-testid="insights-finding-try_next"]')->text());
+        self::assertMatchesRegularExpression('/\d/', $top->filter('[data-testid="insights-finding-rating_moves"]')->text());
+        self::assertStringNotContainsString('Insights Puzzle', (string) $top->html());
+        self::assertStringNotContainsString('Likely', (string) $top->html());
+
+        $page = $browser->request('GET', '/en/insights');
+        self::assertCount(1, $page->filter('[data-testid="insights-tile-rating"] .ci-locked'));
     }
 
     public function testPredictionsSwitchedOffMeanNoExpectedTimes(): void
@@ -199,6 +235,17 @@ final class InsightsFramesControllerTest extends WebTestCase
         self::assertStringNotContainsString('likely', (string) $rating->html());
         // The rating itself and its entries stay
         self::assertCount(1, $rating->filter('[data-testid="insights-rating-strips"]'));
+
+        $shelf = $this->frame($browser, '/en/insights/shelf');
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $shelf->filter('[data-testid="insights-predictions-off"] a[href$="/edit-profile"]'));
+        self::assertCount(0, $shelf->filter('[data-testid="insights-shelf-picks"]'));
+
+        $top = $this->frame($browser, '/en/insights/top-findings');
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $top->filter('.ins-finding'));
+        $page = $browser->request('GET', '/en/insights');
+        self::assertCount(0, $page->filter('turbo-frame[data-testid="insights-frame-top"]'), 'no top cards without predictions');
 
         $resolve = $this->frame($browser, '/en/insights/re-solve');
         self::assertResponseIsSuccessful();
@@ -241,7 +288,8 @@ final class InsightsFramesControllerTest extends WebTestCase
         });
 
         $frames = $this->everyFrame($browser);
-        $html = implode("\n", array_map(static fn (Crawler $frame): string => (string) $frame->html(), $frames));
+        $html = implode("\n", array_map(static fn (Crawler $frame): string => (string) $frame->html(), $frames))
+            . $this->frame($browser, '/en/insights/top-findings')->html();
 
         self::assertStringNotContainsString('Secret canary', $html);
         self::assertStringNotContainsString(self::ladderPuzzle(41), $html);
@@ -281,7 +329,8 @@ final class InsightsFramesControllerTest extends WebTestCase
 
             foreach ($sections as $section) {
                 self::assertCount(1, $frame->filter('turbo-frame [data-testid="insights-section-' . $section . '"]'), $section);
-                self::assertCount(1, $frame->filter('#insights-' . $section), $section);
+                // The shelf section's anchor: "insights-shelf" is the members' shelf filter's select
+                self::assertCount(1, $frame->filter('#insights-' . ($section === 'shelf' ? 'try-next' : $section)), $section);
             }
 
             $frames[$url] = $frame;

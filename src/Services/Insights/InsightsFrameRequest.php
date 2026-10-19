@@ -68,7 +68,7 @@ readonly final class InsightsFrameRequest
 
         $url = $this->router->generate('insights', $context->part->query($context->criteria), UrlGeneratorInterface::ABSOLUTE_PATH);
 
-        return new RedirectResponse($url . '#' . $context->part->anchors()[0], Response::HTTP_FOUND);
+        return new RedirectResponse($url . '#' . $context->part->pageAnchor(), Response::HTTP_FOUND);
     }
 
     /**

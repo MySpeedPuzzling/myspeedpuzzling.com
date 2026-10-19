@@ -448,6 +448,9 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       new picture) - today a pending picture/EAN/brand/pieces/code suggestion blocks any new one on that puzzle until a
       moderator decides it (GetPendingPuzzleProposals::blocksNewProposal()). Promised to Patrick (MSP #340, follow-up
       F160).
+- [ ] Report / suggest a change on event, edition and series pages (e.g. 'this is a duplicate of …', wrong date or
+      details) so players can flag event listings without the feedback form - today there is no way to report or propose
+      edits to an event they don't manage. Promised to SickHippie (MSP #342, follow-up F161).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

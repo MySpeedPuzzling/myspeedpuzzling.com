@@ -432,6 +432,10 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       help text that every edition has its own location, dates, rounds, participants and results (an organiser read
       'series' as 'same place every time') - CompetitionFormData, add_competition.html.twig, all 6 locales. Promised to
       Dakota (MSP #331, follow-up F150).
+- [ ] Unify event tags with rounds: when an organiser sets an event's (or edition's) round puzzles, create the event's
+      tag if missing and keep its puzzles in sync with the rounds (today only the internal API's SetCompetitionPuzzles
+      creates/fills tags), so the puzzle badge and the puzzle database's 'Competition / event' filter work without
+      asking us. Promised to Stefan (MSP #333, follow-up F152).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

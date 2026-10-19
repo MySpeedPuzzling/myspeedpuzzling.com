@@ -140,8 +140,8 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Metrics per stream (sent / delivered / bounced / complained a day); a paused
       Listmonk campaign alert that does not go by e-mail.
 - [ ] Un-suppress an address (admin action + removal from the SES suppression list) for "my mailbox works again".
-- [ ] Delete the deactivated old access key of IAM user `ses-api-app` (`…AC3MYBX7`, leaked in a transcript and
-      rotated 2026-10-19) after a clean day on the new key.
+- [x] Delete the deactivated old access key of IAM user `ses-api-app` (`…AC3MYBX7`, leaked in a transcript,
+      rotated and deleted 2026-10-19; failure transport empty, no failed attempts after the swap).
 - [x] Rotate/delete the Seznam `newsletter@news` mailbox password - the mailbox itself was deleted 2026-10-19
       (catch-all to jan@ instead). Was: rotate/delete the Seznam `newsletter@news` mailbox password (it was printed in a session transcript on
       2026-10-12) - Listmonk no longer uses it (SMTP disabled, POP scanner off 2026-10-14); keep the mailbox itself,

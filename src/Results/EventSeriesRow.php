@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\EventTypes;
 
 readonly final class EventSeriesRow
 {
@@ -21,6 +22,8 @@ readonly final class EventSeriesRow
         public null|string $eligibility = null,
         public null|string $schedule = null,
         public bool $isDraft = false,
+        // what kind of events - null = not set
+        public null|EventTypes $eventTypes = null,
     ) {
     }
 }

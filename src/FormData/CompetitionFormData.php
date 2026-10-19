@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\FormData;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Entity\Competition;
+use SpeedPuzzling\Web\Value\EventType;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
@@ -51,6 +52,9 @@ final class CompetitionFormData
         // "Who can enter"
         #[Assert\Length(max: 120)]
         public null|string $eligibility = null,
+        // What kind of event - none = not set (EventTypesType)
+        /** @var list<EventType> */
+        public array $eventTypes = [],
         // "When it happens" (series only)
         #[Assert\Length(max: 160)]
         public null|string $schedule = null,
@@ -126,6 +130,8 @@ final class CompetitionFormData
         $data->dateTo = $competition->dateTo;
         $data->isOnline = $competition->isOnline;
         $data->eligibility = $competition->eligibility;
+        // An edition without its own shows its series' - saved unchanged it keeps following them
+        $data->eventTypes = $competition->eventTypes()->types ?? [];
         $data->organizationId = $competition->organization?->id->toString();
 
         $maintainerIds = [];

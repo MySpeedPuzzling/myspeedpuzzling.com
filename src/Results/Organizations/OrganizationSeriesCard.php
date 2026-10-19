@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Results\Organizations;
 use SpeedPuzzling\Web\Results\EventsPage\ManageRef;
 use SpeedPuzzling\Web\Results\EventsPage\Place;
 use SpeedPuzzling\Web\Results\EventsPage\SeriesNext;
+use SpeedPuzzling\Web\Value\EventType;
 use SpeedPuzzling\Web\Value\FollowTarget;
 
 /**
@@ -34,6 +35,9 @@ readonly final class OrganizationSeriesCard
         public bool $isDraft,
         // waiting for approval (or rejected later) - and not a draft
         public bool $isPending,
+        // the kinds of event shown (EventTypes::shownOf())
+        /** @var list<EventType> */
+        public array $eventTypes = [],
     ) {
     }
 }

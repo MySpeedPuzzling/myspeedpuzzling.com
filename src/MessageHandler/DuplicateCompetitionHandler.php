@@ -105,6 +105,7 @@ readonly final class DuplicateCompetitionHandler
             isDraft: true,
             eligibility: $source->eligibility,
         );
+        $copy->changeEventTypes($source->eventTypes());
 
         if ($source->registrationTimezone !== null) {
             $copy->changeRegistrationSettings(

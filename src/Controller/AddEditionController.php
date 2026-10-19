@@ -9,8 +9,9 @@ use SpeedPuzzling\Web\FormData\EditionFormData;
 use SpeedPuzzling\Web\FormType\EditionFormType;
 use SpeedPuzzling\Web\Message\AddEdition;
 use SpeedPuzzling\Web\Query\GetCompetitionSeries;
-use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
 use SpeedPuzzling\Web\Security\CompetitionSeriesEditVoter;
+use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
+use SpeedPuzzling\Web\Value\EventTypes;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\ClickableInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -53,6 +54,8 @@ final class AddEditionController extends AbstractController
         $series = $this->getCompetitionSeries->byId($seriesId);
 
         $formData = new EditionFormData();
+        // Its series' types preset - unchanged, the edition keeps following them
+        $formData->eventTypes = $series->eventTypes->types ?? [];
         $form = $this->createForm(EditionFormType::class, $formData);
         $form->handleRequest($request);
 
@@ -74,6 +77,7 @@ final class AddEditionController extends AbstractController
                 link: $data->link,
                 description: $data->description,
                 eligibility: $data->eligibility,
+                eventTypes: EventTypes::of($data->eventTypes),
                 isDraft: $isDraft,
             ));
 

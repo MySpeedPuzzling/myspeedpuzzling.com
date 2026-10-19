@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Message;
 
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Value\EventTypes;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 readonly final class AddCompetitionSeries
@@ -31,6 +32,8 @@ readonly final class AddCompetitionSeries
         // "Who can enter" (shown by editions without their own) and "When it happens"
         public null|string $eligibility = null,
         public null|string $schedule = null,
+        // What kind of events - optional (EventTypes), shown by editions without their own
+        public null|EventTypes $eventTypes = null,
         public bool $isDraft = false,
         // The e-mail asking an admin to review the new series - pointless when an admin creates it
         public bool $notifyAdmin = true,

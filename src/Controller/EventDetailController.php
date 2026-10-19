@@ -14,7 +14,6 @@ use SpeedPuzzling\Web\Query\GetEditionRounds;
 use SpeedPuzzling\Web\Query\GetEventAttendance;
 use SpeedPuzzling\Web\Query\GetEventOffers;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
-use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
 use SpeedPuzzling\Web\Results\CompetitionReference;
@@ -24,12 +23,14 @@ use SpeedPuzzling\Web\Results\EventsPage\ManageRef;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\EventDetail\EventPagePuzzles;
 use SpeedPuzzling\Web\Services\EventDetail\RoundsTimelineBuilder;
-use SpeedPuzzling\Web\Services\EventsPage\EventRowFactory;
 use SpeedPuzzling\Web\Services\EventJustJoinedFlash;
+use SpeedPuzzling\Web\Services\EventsPage\EventRowFactory;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\EventTitle;
+use SpeedPuzzling\Web\Value\EventTypes;
 use SpeedPuzzling\Web\Value\FollowTarget;
 use SpeedPuzzling\Web\Value\RoundTimezone;
+use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -167,6 +168,7 @@ final class EventDetailController extends AbstractController
             // The byline (docs/features/organizations/README.md): "Organized by", "Who can enter"
             'organization' => $competitionEvent->organization,
             'eligibility' => $competitionEvent->eligibility,
+            'event_types' => EventTypes::shownOf($competitionEvent->eventTypes),
             'draft_state' => $competitionEvent->isDraft
                 ? new DraftState(DraftState::KIND_COMPETITION, $competitionId, $competitionEvent->name, true)
                 : null,

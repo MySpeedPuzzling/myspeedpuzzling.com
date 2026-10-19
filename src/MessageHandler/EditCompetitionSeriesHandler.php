@@ -93,6 +93,7 @@ readonly final class EditCompetitionSeriesHandler
             shortcut: $message->shortcut,
         );
         $series->changeEligibilityAndSchedule($message->eligibility, $message->schedule);
+        $series->changeEventTypes($message->eventTypes);
 
         $series->maintainers->clear();
         foreach ($message->maintainerIds as $maintainerId) {

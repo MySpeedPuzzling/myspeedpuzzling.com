@@ -23,6 +23,7 @@ use SpeedPuzzling\Web\Services\EventsPage\EventRowFactory;
 use SpeedPuzzling\Web\Services\EventsPage\EventUrls;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
+use SpeedPuzzling\Web\Value\EventTypes;
 use SpeedPuzzling\Web\Value\EventsScope;
 use SpeedPuzzling\Web\Value\FollowTarget;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
@@ -207,6 +208,7 @@ readonly final class OrganizationPageBuilder
                 manage: new ManageRef(ManageRef::KIND_SERIES, $row->id, $row->name),
                 isDraft: $row->isDraft,
                 isPending: $row->isPublic === false && $row->isDraft === false,
+                eventTypes: EventTypes::shownOf($row->eventTypes),
             );
         }
 
@@ -294,6 +296,7 @@ readonly final class OrganizationPageBuilder
                 manage: new ManageRef(ManageRef::KIND_COMPETITION, $occurrence->competitionId, $occurrence->name),
                 isDraft: $occurrence->isDraft,
                 isPending: $occurrence->isPublic === false && $occurrence->isDraft === false,
+                eventTypes: EventTypes::shownOf($occurrence->eventTypes),
             );
         }
 

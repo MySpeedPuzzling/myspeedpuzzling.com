@@ -19,6 +19,7 @@ use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Events\SeriesEditionsChanged;
+use SpeedPuzzling\Web\Value\EventTypes;
 
 /**
  * Records SeriesEditionsChanged when its visibility changes - its editions become or stop being match candidates for
@@ -107,6 +108,12 @@ class CompetitionSeries implements EntityWithEvents
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(length: 160, nullable: true)]
         public null|string $schedule = null,
+        // What kind of events (EventTypes), optional: [] = not set; its editions without their own show these -
+        // changeEventTypes()
+        /** @var list<string> */
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(type: Types::JSONB, options: ['default' => '[]'])]
+        public array $eventTypes = [],
     ) {
         $this->locationCountryCode = self::normalizeCountryCode($locationCountryCode);
     }
@@ -146,6 +153,16 @@ class CompetitionSeries implements EntityWithEvents
     {
         $this->eligibility = $eligibility;
         $this->schedule = $schedule;
+    }
+
+    public function changeEventTypes(null|EventTypes $types): void
+    {
+        $this->eventTypes = EventTypes::toStoredOrEmpty($types);
+    }
+
+    public function eventTypes(): null|EventTypes
+    {
+        return EventTypes::fromStored($this->eventTypes);
     }
 
     public function approve(Player $approvedBy, DateTimeImmutable $approvedAt): void

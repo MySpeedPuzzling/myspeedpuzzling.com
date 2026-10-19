@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller\InternalApi;
 use SpeedPuzzling\Web\FormData\CompetitionFormData;
 use SpeedPuzzling\Web\Services\CompetitionSlugGenerator;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\EventType;
 
 /**
  * The competition fields of a create / update body, applied onto the web form's data object - so the API validates
@@ -28,6 +29,7 @@ final class CompetitionInput
         'resultsLink',
         'isOnline',
         'eligibility',
+        'eventTypes',
         'slug',
         'maintainerIds',
     ];
@@ -70,6 +72,10 @@ final class CompetitionInput
             $data->eligibility = $input->string('eligibility');
         }
 
+        if ($input->has('eventTypes')) {
+            $data->eventTypes = self::eventTypes($input);
+        }
+
         if ($input->has('locationCountryCode')) {
             $countryCode = $input->string('locationCountryCode');
             $country = CountryCode::fromCode($countryCode);
@@ -109,5 +115,32 @@ final class CompetitionInput
             'slug' => $slug,
             'maintainerIds' => $input->idList('maintainerIds'),
         ];
+    }
+
+    /**
+     * `eventTypes`: a list of EventType values, `[]` or null = not set (an edition: its series')
+     *
+     * @return list<EventType>
+     */
+    public static function eventTypes(InternalApiInput $input): array
+    {
+        $types = [];
+
+        foreach ($input->stringList('eventTypes') ?? [] as $value) {
+            $type = EventType::tryFrom($value);
+
+            if ($type === null) {
+                $input->addError('eventTypes', 'must be a list of: ' . implode(', ', array_map(
+                    static fn (EventType $case): string => $case->value,
+                    EventType::cases(),
+                )) . '.');
+
+                return [];
+            }
+
+            $types[] = $type;
+        }
+
+        return $types;
     }
 }

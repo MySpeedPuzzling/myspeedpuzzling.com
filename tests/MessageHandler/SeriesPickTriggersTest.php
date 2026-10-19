@@ -369,6 +369,7 @@ final class SeriesPickTriggersTest extends KernelTestCase
             logo: null,
             maintainerIds: [],
             eligibility: null,
+            eventTypes: null,
         ));
     }
 

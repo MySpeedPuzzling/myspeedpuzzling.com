@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Message\AddCompetitionSeries;
 use SpeedPuzzling\Web\Message\ApproveCompetitionSeries;
 use SpeedPuzzling\Web\Query\GetAdminOrganizations;
 use SpeedPuzzling\Web\Query\GetAdminSeries;
+use SpeedPuzzling\Web\Value\EventTypes;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -85,6 +86,7 @@ final class CreateSeriesController extends AbstractController
             organizationId: $organizationId,
             eligibility: $data->eligibility,
             schedule: $data->schedule,
+            eventTypes: EventTypes::of($data->eventTypes),
             isDraft: $isDraft,
             // An admin creates it - nobody has to be asked to review it
             notifyAdmin: false,

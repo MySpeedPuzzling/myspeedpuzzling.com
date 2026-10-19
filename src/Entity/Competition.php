@@ -23,6 +23,7 @@ use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Events\SeriesEditionsChanged;
 use SpeedPuzzling\Web\Exceptions\OrganizationOnEdition;
+use SpeedPuzzling\Web\Value\EventTypes;
 use SpeedPuzzling\Web\Value\RegistrationAvailability;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 
@@ -143,6 +144,11 @@ class Competition implements EntityWithEvents
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(length: 120, nullable: true)]
         public null|string $eligibility = null,
+        // What kind of event (EventTypes), optional: [] = not set - an edition shows its series' - changeEventTypes()
+        /** @var list<string> */
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(type: Types::JSONB, options: ['default' => '[]'])]
+        public array $eventTypes = [],
     ) {
         if ($series !== null && $organization !== null) {
             throw new OrganizationOnEdition();
@@ -219,6 +225,24 @@ class Competition implements EntityWithEvents
     public function changeEligibility(null|string $eligibility): void
     {
         $this->eligibility = $eligibility;
+    }
+
+    /**
+     * An edition's types equal to its series' are stored as not set, so it keeps following its series
+     */
+    public function changeEventTypes(null|EventTypes $types): void
+    {
+        $this->eventTypes = $this->series !== null && EventTypes::same($types, $this->series->eventTypes())
+            ? []
+            : EventTypes::toStoredOrEmpty($types);
+    }
+
+    /**
+     * Its own, else its series' - null when none is set
+     */
+    public function eventTypes(): null|EventTypes
+    {
+        return EventTypes::fromStored($this->eventTypes) ?? $this->series?->eventTypes();
     }
 
     /**

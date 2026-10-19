@@ -240,6 +240,14 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Admin line with per-run counts (`content_digest_run`) on the e-mail audit page
 - [x] Seznam Email Profi daily ceiling (README §17.1) - obsolete: every stream on SES since 2026-10-19 (50k/day)
 
+## Event types (`docs/features/events-page/event-types.md`, 2026-10-19)
+
+- [ ] Filter by kind on the events page (chips next to the scope: Competitions / Workshops / Casual puzzling / Swaps /
+      Marathons), in the browser over the index like the scope - needs the kinds in the index entries (a new key,
+      `EventsIndexFactory::DEFAULTS` + `expandEventsIndex()`) and the URL state in `events_page_controller.js`
+- [ ] More kinds when organisers ask (Michelle of Virginia JPA asked in MSP #334) - a new `EventType` case at the end
+      + `event_type.*` in all 6 locales
+
 ## High-frequency series (`docs/features/events-page/high-frequency-series.md`, PR #253)
 
 - [ ] **The converted weekly online series (2026-10-09)**: tell its organiser about the change (Jan, by mail - drafts

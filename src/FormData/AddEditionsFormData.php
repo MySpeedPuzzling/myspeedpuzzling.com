@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use SpeedPuzzling\Web\Value\EditionDateRule;
 use SpeedPuzzling\Web\Value\EditionDateRuleKind;
+use SpeedPuzzling\Web\Value\EventType;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
@@ -45,6 +46,9 @@ final class AddEditionsFormData
         public null|string $namePattern = null,
         #[Assert\Length(max: 120)]
         public null|string $eligibility = null,
+        // What kind of event - its series' preset, the dates keep following the series while unchanged
+        /** @var list<EventType> */
+        public array $eventTypes = [],
     ) {
     }
 

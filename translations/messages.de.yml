@@ -8431,6 +8431,9 @@ organizer_tools:
         eligibility: "Wer teilnehmen kann"
         eligibility_help: "Leer lassen, wenn jeder teilnehmen kann. Wird als Label angezeigt, z.B. „Mitglieder des Vereins“, „ab 18“."
         eligibility_edition_help: "Leer lassen, um die Einstellung der Serie zu übernehmen."
+        event_types: "Art der Veranstaltung"
+        event_types_help: "Optional. Alles ankreuzen, was dort stattfindet, z.B. ein Wettbewerb mit Puzzle-Tausch."
+        event_types_edition_help: "Die Arten der Serie sind angekreuzt – nur ändern, wenn dieser Termin anders ist."
         schedule: "Wann es stattfindet"
         schedule_help: "Bei einer Serie z.B. „Vierter Freitag im Monat, 20 Uhr“ – jeder Termin bleibt eine eigene Ausgabe."
         save_draft: "Als Entwurf speichern"
@@ -10702,3 +10705,10 @@ insights:
         no_place: "nicht auf der heutigen Rangliste"
         private: "private Profile haben kein MSP Rating"
         none: "noch nicht auf der Rangliste"
+
+event_type:
+    competition: "Wettbewerb"
+    marathon: "Puzzle-Marathon"
+    workshop: "Workshop"
+    casual_puzzling: "Gemütliches Puzzeln"
+    puzzle_swap: "Puzzle-Tausch"

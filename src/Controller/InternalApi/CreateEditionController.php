@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Message\AddEdition;
 use SpeedPuzzling\Web\Query\GetAdminCompetitions;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
 use SpeedPuzzling\Web\Services\CompetitionSlugGenerator;
+use SpeedPuzzling\Web\Value\EventTypes;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -38,6 +39,7 @@ final class CreateEditionController extends AbstractController
         'resultsLink',
         'description',
         'eligibility',
+        'eventTypes',
         'draft',
     ];
 
@@ -68,6 +70,8 @@ final class CreateEditionController extends AbstractController
             link: $input->string('link'),
             description: $input->string('description'),
             eligibility: $input->string('eligibility'),
+            // Left out = its series'
+            eventTypes: $input->has('eventTypes') ? CompetitionInput::eventTypes($input) : ($series->eventTypes()->types ?? []),
         );
         $slug = $input->string('slug');
         $isDraft = $input->bool('draft') ?? false;
@@ -96,6 +100,7 @@ final class CreateEditionController extends AbstractController
             link: $data->link,
             description: $data->description,
             eligibility: $data->eligibility,
+            eventTypes: EventTypes::of($data->eventTypes),
             isDraft: $isDraft,
             slug: $slug,
         ));

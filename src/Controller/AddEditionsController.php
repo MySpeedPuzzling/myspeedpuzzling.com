@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Query\GetCompetitionSeries;
 use SpeedPuzzling\Web\Results\SeriesEdition;
 use SpeedPuzzling\Web\Security\CompetitionSeriesEditVoter;
 use SpeedPuzzling\Web\Services\EventsPage\EventsPageDates;
+use SpeedPuzzling\Web\Value\EventTypes;
 use SpeedPuzzling\Web\Value\NewEdition;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -73,6 +74,8 @@ final class AddEditionsController extends AbstractController
             weekday: (int) $today->format('N'),
             starting: $today,
             namePattern: AddEditionsFormData::defaultNamePattern($series->name),
+            // Its series' types preset - unchanged, the dates keep following them
+            eventTypes: $series->eventTypes->types ?? [],
         );
 
         /** @var FormInterface<AddEditionsFormData> $form */
@@ -114,6 +117,7 @@ final class AddEditionsController extends AbstractController
                     seriesId: $seriesId,
                     editions: $editions,
                     eligibility: $form->getData()->eligibility,
+                    eventTypes: EventTypes::of($form->getData()->eventTypes),
                     isDraft: $isDraft,
                 ));
                 $created = $envelope->last(HandledStamp::class)?->getResult();

@@ -675,6 +675,7 @@ is no JSON object (`{"error": "The body must be a JSON object."}`). Every invali
 | `maintainerIds` | Player ids who may manage the event - a list replaces the whole list, `[]` removes everyone, left out or `null` keeps it |
 | `approve` | Create only: `true` approves right away (no "approved" e-mail - the reviewer player is the creator, `ApproveCompetition::$notifyCreator = false`). Not needed under an approved organization - it is approved at once there |
 | `eligibility` | "Who can enter" (≤ 120 characters, `"18+"`, `"Members of the club"`) - an edition without its own shows its series' |
+| `eventTypes` | What kind of event, optional - a list of `competition`, `marathon`, `workshop`, `casual_puzzling`, `puzzle_swap` (answered each once, in this order); `[]` = not set, an edition's equal to its series' is stored as not set and follows the series ([event-types.md](./events-page/event-types.md)) |
 | `organizationId` | A one-time event's organization: on create it is created under it (approved at once when the organization is approved - the reviewer player is an admin, `OrganizationApprovalPolicy`), on `PATCH` it moves into it or out of it (`null`, `AssignEventToOrganization`). An edition refuses one (`409` - it is its series'). An unknown id is a `400`; `403` when the reviewer player is neither an admin nor on the organization's team |
 | `draft` | Create: `true` creates a draft (only its team sees it). `PATCH`: `false` publishes, `true` takes it back to draft - `409` while somebody joined it or official results / solving times are linked to it (checked before anything of the `PATCH` is written) |
 
@@ -814,6 +815,7 @@ Competition answer (`GET`, and the answer of create / update / set puzzles):
   "organizationId": null,
   "organization": null,
   "eligibility": null,
+  "eventTypes": [],
   "logo": null,
   "tagId": "018d0001-0000-0000-0000-000000000001",
   "tagName": "WJPC",
@@ -1076,6 +1078,7 @@ list answers `{"total", "limit", "offset", "organizations": [...]}` without `mai
 | `isOnline` | `false` by default; `true` clears `location` |
 | `location`, `locationCountryCode` | Optional, also for an in-person series (every edition has its own location); editions take the series' place when they are created |
 | `eligibility` | "Who can enter", ≤ 120 characters - shown by editions without their own |
+| `eventTypes` | What kind of events, optional (values as for competitions) - shown by editions without their own |
 | `schedule` | "When it happens", ≤ 160 characters ("Second Thursday of the month, 7:30 pm") - free text, each date is still its own edition |
 | `slug`, `maintainerIds` | As for competitions |
 | `organizationId` | Create: under that organization; `PATCH`: moves it (`null` = out). An unknown id is a `400` |
@@ -1083,7 +1086,7 @@ list answers `{"total", "limit", "offset", "organizations": [...]}` without `mai
 
 The series answer: `seriesId`, `name`, `slug`, `shortcut`, `description`, `link`, `isOnline`, `location`,
 `locationCountryCode`, `logo`, `organizationId`, `organization` (`organizationId`, `name`, `slug`), `eligibility`,
-`schedule`, `status`, `draft`, `approvedAt`, `approvedByPlayerId`, `rejectedAt`, `rejectionReason`, `publiclyVisible`
+`schedule`, `eventTypes`, `status`, `draft`, `approvedAt`, `approvedByPlayerId`, `rejectedAt`, `rejectionReason`, `publiclyVisible`
 (`IsSeriesPubliclyVisible`), `createdAt`, `addedByPlayerId`, `addedByPlayerName`, `editionsCount`, `resultsCount`,
 `resultsWithoutEditionCount`, `maintainers` and `editions` - every edition with
 the competition list's fields (`competitionId`, `name`, `slug`, `dateFrom`, `dateTo`, `status`, `draft`,
@@ -1101,7 +1104,7 @@ tells how many the reconcile has matched since.
 **Creating an edition** (`POST …/series/{seriesId}/editions`): `name` (required), `dateFrom` and `dateTo` (required,
 ISO days, `dateTo` not before `dateFrom` - like the "Add edition" form; a `PATCH` of the competition can clear them
 afterwards), `slug` (else generated from the name; `409` when taken in the series or by a one-time event), `link`,
-`registrationLink`, `resultsLink`, `description`, `eligibility`, `draft`. It takes the series' place and online flag.
+`registrationLink`, `resultsLink`, `description`, `eligibility`, `eventTypes` (left out = its series'), `draft`. It takes the series' place and online flag.
 The 30-day span rule of the event form is not checked here - a later `PATCH` of the edition validates the whole record
 with it. Rounds follow with `POST /internal-api/competitions/{competitionId}/rounds`.
 

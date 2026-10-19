@@ -85,6 +85,7 @@ readonly final class AddEditionsHandler
                 isDraft: $message->isDraft,
                 eligibility: $eligibility,
             );
+            $competition->changeEventTypes($message->eventTypes);
 
             $this->competitionRepository->save($competition);
         }

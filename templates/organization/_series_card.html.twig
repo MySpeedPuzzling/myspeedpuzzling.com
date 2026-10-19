@@ -17,6 +17,7 @@
             {%- if card.schedule %}<span class="ev-org-card-schedule" data-org-schedule><span class="visually-hidden">{{ 'organization_page.card.when_it_happens'|trans }}: </span>{{ card.schedule }}</span>{% endif -%}
         </p>
         <p class="ev-org-card-line">
+            {%- if card.eventTypes is not empty %}<span class="ev-org-card-eligibility" data-org-event-types>{{ card.eventTypes|map(type => type.translationKey|trans)|join(' · ') }}</span>{% endif -%}
             {%- if card.eligibility %}<span class="ev-org-card-eligibility" data-org-eligibility><span class="visually-hidden">{{ 'events_page.tag.eligibility'|trans }}: </span>{{ card.eligibility }}</span>{% endif -%}
             <span class="ev-org-card-count">{{ card.editionCount > 0 ? 'events_page.series.editions'|trans({'%count%': card.editionCount}) : 'events_page.series.no_editions'|trans }}</span>
         </p>

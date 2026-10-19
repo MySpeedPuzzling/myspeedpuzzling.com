@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use SpeedPuzzling\Web\Results\EventsPage\ManageRef;
 use SpeedPuzzling\Web\Results\EventsPage\Place;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
+use SpeedPuzzling\Web\Value\EventType;
 use SpeedPuzzling\Web\Value\FollowTarget;
 
 /**
@@ -36,6 +37,9 @@ readonly final class OrganizationEventCard
         public bool $isDraft,
         // waiting for approval - and not a draft
         public bool $isPending,
+        // the kinds of event shown (EventTypes::shownOf())
+        /** @var list<EventType> */
+        public array $eventTypes = [],
     ) {
     }
 

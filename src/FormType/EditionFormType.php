@@ -70,6 +70,8 @@ final class EditionFormType extends AbstractType
             'required' => false,
         ]);
 
+        $builder->add('eventTypes', EventTypesType::class);
+
         $builder->add('eligibility', TextType::class, [
             'label' => 'organizer_tools.form.eligibility',
             'help' => 'organizer_tools.form.eligibility_edition_help',

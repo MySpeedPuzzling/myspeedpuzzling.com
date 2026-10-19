@@ -111,6 +111,7 @@ readonly final class AddCompetitionHandler
             isDraft: $message->isDraft,
             eligibility: $message->eligibility,
         );
+        $competition->changeEventTypes($message->eventTypes);
 
         foreach ($message->maintainerIds as $maintainerId) {
             $maintainer = $this->playerRepository->get($maintainerId);

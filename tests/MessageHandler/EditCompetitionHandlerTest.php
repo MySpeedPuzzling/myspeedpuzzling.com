@@ -76,6 +76,7 @@ final class EditCompetitionHandlerTest extends KernelTestCase
             logo: null,
             maintainerIds: [],
             eligibility: $eligibility,
+            eventTypes: null,
             slug: $slug,
         );
     }

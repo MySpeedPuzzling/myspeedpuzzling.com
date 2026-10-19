@@ -30,6 +30,7 @@ use SpeedPuzzling\Web\Results\EventsViewerData;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\CountryRegion;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
+use SpeedPuzzling\Web\Value\EventTypes;
 use SpeedPuzzling\Web\Value\EventsScope;
 use SpeedPuzzling\Web\Value\FollowTarget;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
@@ -434,6 +435,15 @@ readonly final class EventsPageBuilder
         }
 
         $tags[] = new RowTag(RowTagType::Recurring);
+
+        // The kinds of event, like "Who can enter" below: only when every date of the row has the same
+        $eventTypes = array_map(static fn (array $item): array => EventTypes::shownOf($item['occurrence']->eventTypes), $items);
+
+        if (count(array_unique(array_map(serialize(...), $eventTypes))) === 1) {
+            foreach ($eventTypes[0] as $eventType) {
+                $tags[] = new RowTag(RowTagType::EventType, eventType: $eventType);
+            }
+        }
 
         // "Who can enter" in the order of a single row (EventRowFactory::tags()) - only when every date of the row says
         // the same (an edition's own, else its series'), so the row never claims one date's rule for the others

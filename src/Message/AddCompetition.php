@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Message;
 
 use DateTimeImmutable;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Value\EventTypes;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 readonly final class AddCompetition
@@ -38,6 +39,8 @@ readonly final class AddCompetition
         public null|string $organizationId = null,
         // "Who can enter"
         public null|string $eligibility = null,
+        // What kind of event - optional (EventTypes), null = not set
+        public null|EventTypes $eventTypes = null,
         // "Save as draft" - only its team sees it, no admin e-mail until it is published
         public bool $isDraft = false,
     ) {

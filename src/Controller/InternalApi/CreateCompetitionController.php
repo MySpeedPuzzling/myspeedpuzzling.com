@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Message\AddCompetition;
 use SpeedPuzzling\Web\Message\ApproveCompetition;
 use SpeedPuzzling\Web\Query\GetAdminCompetitions;
 use SpeedPuzzling\Web\Query\GetAdminOrganizations;
+use SpeedPuzzling\Web\Value\EventTypes;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -91,6 +92,7 @@ final class CreateCompetitionController extends AbstractController
             notifyAdmin: false,
             organizationId: $organizationId,
             eligibility: $data->eligibility,
+            eventTypes: EventTypes::of($data->eventTypes),
             isDraft: $isDraft,
         ));
 

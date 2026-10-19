@@ -9,6 +9,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\EventSeriesRow;
 use SpeedPuzzling\Web\Results\OrganizationRef;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\EventTypes;
 
 /**
  * The series of the events page's directory (docs/features/events-page/implementation-plan.md, 1.4). Edition counts,
@@ -66,7 +67,7 @@ readonly final class GetEventSeriesDirectory
         $query = <<<SQL
 SELECT cs.id, cs.name, cs.slug, cs.is_online, cs.location, cs.location_country_code,
     ({$visible}) AS is_public,
-    cs.eligibility, cs.schedule, cs.is_draft,
+    cs.eligibility, cs.schedule, cs.is_draft, cs.event_types,
     o.id AS organization_id,
     o.name AS organization_name,
     o.short_name AS organization_short_name,
@@ -95,6 +96,7 @@ SQL;
                 eligibility: self::nullableString($row['eligibility']),
                 schedule: self::nullableString($row['schedule']),
                 isDraft: (bool) $row['is_draft'],
+                eventTypes: EventTypes::fromJson($row['event_types']),
             );
         }
 

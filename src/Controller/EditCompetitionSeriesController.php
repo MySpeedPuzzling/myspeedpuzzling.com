@@ -14,12 +14,13 @@ use SpeedPuzzling\Web\Message\EditCompetitionSeries;
 use SpeedPuzzling\Web\Query\GetCompetitionSeries;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
 use SpeedPuzzling\Web\Security\AdminAccessVoter;
-use SpeedPuzzling\Web\Security\OrganizationEditVoter;
 use SpeedPuzzling\Web\Security\CompetitionSeriesEditVoter;
+use SpeedPuzzling\Web\Security\OrganizationEditVoter;
 use SpeedPuzzling\Web\Services\CompetitionUrlField;
 use SpeedPuzzling\Web\Services\Organizations\OrganizationSelectChoices;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\EventTypes;
 use SpeedPuzzling\Web\Value\OrganizationItemKind;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
@@ -86,6 +87,7 @@ final class EditCompetitionSeriesController extends AbstractController
         $formData->slug = $series->slug;
         $formData->eligibility = $series->eligibility;
         $formData->schedule = $series->schedule;
+        $formData->eventTypes = $series->eventTypes()->types ?? [];
         $formData->organizationId = $series->organization?->id->toString();
         $currentOrganizationId = $formData->organizationId;
         // A series is recurring: its in-person form must not ask for dates (they belong to its editions)
@@ -139,6 +141,7 @@ final class EditCompetitionSeriesController extends AbstractController
                         maintainerIds: $data->maintainers,
                         eligibility: $data->eligibility,
                         schedule: $data->schedule,
+                        eventTypes: EventTypes::of($data->eventTypes),
                         slug: $slug,
                     ));
 

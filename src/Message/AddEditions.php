@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Message;
 
 use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
+use SpeedPuzzling\Web\Value\EventTypes;
 use SpeedPuzzling\Web\Value\NewEdition;
 
 /**
@@ -26,6 +27,8 @@ readonly final class AddEditions implements SerializedByLock
         public string $seriesId,
         public array $editions,
         public null|string $eligibility = null,
+        // What kind of event - null = its series'
+        public null|EventTypes $eventTypes = null,
         public bool $isDraft = false,
     ) {
     }

@@ -14,6 +14,7 @@
         {% endif %}
         <p class="ev-org-card-line">
             {{- include('event_parts/_place.html.twig', {place: card.place}) -}}
+            {%- if card.eventTypes is not empty %}<span class="ev-org-card-eligibility" data-org-event-types>{{ card.eventTypes|map(type => type.translationKey|trans)|join(' · ') }}</span>{% endif -%}
             {%- if card.eligibility %}<span class="ev-org-card-eligibility" data-org-eligibility><span class="visually-hidden">{{ 'events_page.tag.eligibility'|trans }}: </span>{{ card.eligibility }}</span>{% endif -%}
         </p>
         <p class="ev-org-card-next{{ card.isLive ? ' ev-org-card-next-live' }}" data-org-event-date>

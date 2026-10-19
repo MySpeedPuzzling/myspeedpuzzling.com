@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Message;
 
 use DateTimeImmutable;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Value\EventTypes;
 
 readonly final class AddEdition
 {
@@ -21,6 +22,8 @@ readonly final class AddEdition
         public null|string $description = null,
         // "Who can enter" - null shows its series'
         public null|string $eligibility = null,
+        // What kind of event - null = its series'
+        public null|EventTypes $eventTypes = null,
         public bool $isDraft = false,
         // An explicitly chosen slug (validated, free in the series) - null generates it from the name
         public null|string $slug = null,

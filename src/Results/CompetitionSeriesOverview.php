@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\EventTypes;
 
 readonly final class CompetitionSeriesOverview
 {
@@ -32,6 +33,8 @@ readonly final class CompetitionSeriesOverview
         public null|string $eligibility = null,
         public null|string $schedule = null,
         public bool $isDraft = false,
+        // What kind of events - only byId()/bySlug() read it, null = not set
+        public null|EventTypes $eventTypes = null,
     ) {
         $this->link = $link !== null
             ? $link . (str_contains($link, '?') ? '&' : '?') . 'utm_source=myspeedpuzzling'

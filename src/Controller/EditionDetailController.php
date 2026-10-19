@@ -24,10 +24,11 @@ use SpeedPuzzling\Web\Results\EventsPage\ManageRef;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\EventDetail\EventPagePuzzles;
 use SpeedPuzzling\Web\Services\EventDetail\RoundsTimelineBuilder;
-use SpeedPuzzling\Web\Services\EventsPage\EventRowFactory;
 use SpeedPuzzling\Web\Services\EventJustJoinedFlash;
+use SpeedPuzzling\Web\Services\EventsPage\EventRowFactory;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\EventTitle;
+use SpeedPuzzling\Web\Value\EventTypes;
 use SpeedPuzzling\Web\Value\FollowTarget;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -182,6 +183,7 @@ final class EditionDetailController extends AbstractController
             // "Who can enter" is its own, else its series'
             'organization' => $seriesOverview->organization,
             'eligibility' => $competitionEvent->eligibility ?? $seriesOverview->eligibility,
+            'event_types' => EventTypes::shownOf($competitionEvent->eventTypes ?? $seriesOverview->eventTypes),
             // The edition is a draft and/or its series is one (P7)
             'draft_state' => $competition->isDraft || $seriesOverview->isDraft
                 ? new DraftState(

@@ -8432,6 +8432,9 @@ organizer_tools:
         eligibility: "Quién puede participar"
         eligibility_help: "Déjalo vacío si puede participar cualquiera. Se muestra como etiqueta, p.ej. «Socios del club», «Mayores de 18»."
         eligibility_edition_help: "Déjalo vacío para usar el ajuste de la serie."
+        event_types: "Tipo de evento"
+        event_types_help: "Opcional. Marca todo lo que ocurre allí, p.ej. una competición con intercambio de puzzles."
+        event_types_edition_help: "Están marcados los tipos de la serie: cámbialos solo si esta fecha es distinta."
         schedule: "Cuándo se celebra"
         schedule_help: "Para una serie, p.ej. «El cuarto viernes del mes, 20:00»: cada fecha sigue siendo una edición propia."
         save_draft: "Guardar como borrador"
@@ -10703,3 +10706,10 @@ insights:
         no_place: "fuera de la escalera de hoy"
         private: "los perfiles privados no tienen MSP Rating"
         none: "aún fuera de la escalera"
+
+event_type:
+    competition: "Competición"
+    marathon: "Maratón de puzzles"
+    workshop: "Taller"
+    casual_puzzling: "Puzzles sin prisa"
+    puzzle_swap: "Intercambio de puzzles"

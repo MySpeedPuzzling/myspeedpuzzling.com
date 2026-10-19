@@ -202,6 +202,7 @@ final class OnlineTimingGuardsTest extends KernelTestCase
             logo: null,
             maintainerIds: [],
             eligibility: null,
+            eventTypes: null,
         ));
         $this->clear();
     }
@@ -223,6 +224,7 @@ final class OnlineTimingGuardsTest extends KernelTestCase
             maintainerIds: [],
             eligibility: null,
             schedule: null,
+            eventTypes: null,
         ));
         $this->clear();
     }

@@ -15,12 +15,13 @@ use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Results\OrganizationRef;
 use SpeedPuzzling\Web\Security\AdminAccessVoter;
-use SpeedPuzzling\Web\Security\OrganizationEditVoter;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Security\OrganizationEditVoter;
 use SpeedPuzzling\Web\Services\CompetitionUrlField;
 use SpeedPuzzling\Web\Services\Organizations\OrganizationSelectChoices;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\EventTypes;
 use SpeedPuzzling\Web\Value\OrganizationItemKind;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
@@ -136,6 +137,7 @@ final class EditCompetitionController extends AbstractController
                         logo: $data->logo,
                         maintainerIds: $data->maintainers,
                         eligibility: $data->eligibility,
+                        eventTypes: EventTypes::of($data->eventTypes),
                         slug: $slug,
                     ));
 

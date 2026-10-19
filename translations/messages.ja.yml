@@ -8421,6 +8421,9 @@ organizer_tools:
         eligibility: "参加資格"
         eligibility_help: "誰でも参加できる場合は空欄のままにしてください。タグとして表示されます（例：「クラブ会員」「18歳以上」）。"
         eligibility_edition_help: "空欄にすると、シリーズの設定が使われます。"
+        event_types: "イベントの種類"
+        event_types_help: "任意。そこで行われるものをすべて選んでください（例：パズル交換会のある大会）。"
+        event_types_edition_help: "シリーズの種類が選ばれています。この回だけ異なる場合にのみ変更してください。"
         schedule: "開催スケジュール"
         schedule_help: "シリーズの場合の例：「毎月第4金曜日 20:00」。各回は引き続き、それぞれ独立したエディションです。"
         save_draft: "下書きとして保存"
@@ -10692,3 +10695,10 @@ insights:
         no_place: "今日のラダー外"
         private: "非公開プロフィールにはMSP Ratingがありません"
         none: "まだラダー外"
+
+event_type:
+    competition: "大会"
+    marathon: "パズルマラソン"
+    workshop: "ワークショップ"
+    casual_puzzling: "気軽なパズル"
+    puzzle_swap: "パズル交換会"

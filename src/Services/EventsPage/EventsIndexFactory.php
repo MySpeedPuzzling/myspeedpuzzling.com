@@ -10,6 +10,8 @@ use SpeedPuzzling\Web\Results\EventsPage\Place;
 use SpeedPuzzling\Web\Results\EventsPage\SeriesLine;
 use SpeedPuzzling\Web\Results\OrganizationRef;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
+use SpeedPuzzling\Web\Value\EventType;
+use SpeedPuzzling\Web\Value\EventTypes;
 use SpeedPuzzling\Web\Value\EventsScope;
 use SpeedPuzzling\Web\Value\SearchText;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -27,7 +29,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * country code / ''), `c` (country code), `p` (place label), `st` (EventOccurrenceStatus, null for a series), `r`
  * (results), `w` (waiting for approval), `x` (folded search text: names, a session's label, location, the country's
  * localised and English name, the year, "online", the name and short name of its organization while that is publicly
- * visible - docs/features/organizations/README.md - and the names of its revealed round puzzles).
+ * visible - docs/features/organizations/README.md - the names of its revealed round puzzles and of the kinds of event
+ * its tags show, docs/features/events-page/event-types.md).
  *
  * occurrence() and series() give the full entries (EventsPage::$index - what the server reads); compact() turns them
  * into what the page ships (docs/features/events-page/high-frequency-series.md P25 - a series with 200 editions must
@@ -105,6 +108,7 @@ readonly final class EventsIndexFactory
             $occurrence->isOnline ? 'online' : null,
             ...self::organizationNames($occurrence->organization),
             ...$occurrence->puzzleNames(),
+            ...$this->eventTypeNames($occurrence->eventTypes, $locale),
         ]);
 
         if ($isEdition && $seriesEntry !== null) {
@@ -165,6 +169,7 @@ readonly final class EventsIndexFactory
                 $series->countryCode?->value,
                 $series->isOnline ? 'online' : null,
                 ...self::organizationNames($line->organization),
+                ...$this->eventTypeNames($series->eventTypes, $locale),
             ]),
         ];
     }
@@ -308,6 +313,19 @@ readonly final class EventsIndexFactory
         $series = $index[$seriesId] ?? null;
 
         return is_array($series) && ($series['k'] ?? null) === 's' && ($series['id'] ?? null) === $seriesId ? $series : null;
+    }
+
+    /**
+     * The kinds of event its tags show, in the page's language - "swap" finds the puzzle swaps
+     *
+     * @return list<string>
+     */
+    private function eventTypeNames(null|EventTypes $eventTypes, string $locale): array
+    {
+        return array_map(
+            fn (EventType $type): string => $this->translator->trans($type->translationKey(), locale: $locale),
+            EventTypes::shownOf($eventTypes),
+        );
     }
 
     /**

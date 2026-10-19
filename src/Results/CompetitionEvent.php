@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\EventTypes;
 
 /**
  * @phpstan-type CompetitionEventDatabaseRow array{
@@ -45,6 +46,7 @@ use SpeedPuzzling\Web\Value\CountryCode;
  *     organization_id?: null|string,
  *     is_draft?: bool|string,
  *     eligibility?: null|string,
+ *     event_types?: null|string,
  *     organization_ref_id?: null|string,
  *     organization_ref_name?: null|string,
  *     organization_ref_short_name?: null|string,
@@ -101,6 +103,8 @@ readonly final class CompetitionEvent
         // "Who can enter" - its own (an edition without one shows its series')
         public null|string $eligibility = null,
         public bool $isDraft = false,
+        // What kind of event - its own (an edition without them shows its series'), null = not set
+        public null|EventTypes $eventTypes = null,
     ) {
         $this->link = $this->appendUtm($link);
         // While the event manages registration on MySpeedPuzzling the external link stays saved but is not shown -
@@ -155,6 +159,7 @@ readonly final class CompetitionEvent
             organization: OrganizationRef::fromRow($row, 'organization_ref_'),
             eligibility: $row['eligibility'] ?? null,
             isDraft: self::parseBool($row['is_draft'] ?? false),
+            eventTypes: EventTypes::fromJson($row['event_types'] ?? null),
         );
     }
 

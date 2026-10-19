@@ -2809,6 +2809,10 @@ components:
           type: [string, "null"]
           maxLength: 120
           description: '"Who can enter" ("Members of the club", "18+") - an edition without its own shows its series''.'
+        eventTypes:
+          type: array
+          items: { type: string, enum: [competition, marathon, workshop, casual_puzzling, puzzle_swap] }
+          description: 'What kind of event, optional (docs/features/events-page/event-types.md) - each once, answered in this order; `[]` = not set, an edition''s equal to its series'' follows the series. Left out = unchanged.'
         slug:
           type: string
           pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
@@ -2861,6 +2865,7 @@ components:
             name: { type: string }
             slug: { type: string }
         eligibility: { type: [string, "null"], description: '"Who can enter" - its own; an edition without one shows its series''' }
+        eventTypes: { type: array, items: { type: string, enum: [competition, marathon, workshop, casual_puzzling, puzzle_swap] }, description: 'Its own kinds of event, `[]` = not set (an edition: its series'')' }
         logo: { type: [string, "null"] }
         tagId: { type: [string, "null"] }
         tagName: { type: [string, "null"] }
@@ -3104,6 +3109,10 @@ components:
           type: [string, "null"]
           maxLength: 120
           description: '"Who can enter" - editions without their own show it.'
+        eventTypes:
+          type: array
+          items: { type: string, enum: [competition, marathon, workshop, casual_puzzling, puzzle_swap] }
+          description: 'What kind of events, optional - editions without their own show them; `[]` = not set. Left out = unchanged.'
           example: 18+
         schedule:
           type: [string, "null"]
@@ -3143,6 +3152,7 @@ components:
             slug: { type: string }
         eligibility: { type: [string, "null"] }
         schedule: { type: [string, "null"] }
+        eventTypes: { type: array, items: { type: string, enum: [competition, marathon, workshop, casual_puzzling, puzzle_swap] }, description: '`[]` = not set' }
         status:
           type: string
           enum: [approved, pending, rejected]
@@ -3220,6 +3230,10 @@ components:
           type: [string, "null"]
           maxLength: 120
           description: '"Who can enter" - empty shows the series''.'
+        eventTypes:
+          type: array
+          items: { type: string, enum: [competition, marathon, workshop, casual_puzzling, puzzle_swap] }
+          description: 'What kind of event - left out = its series''.'
         draft:
           type: boolean
           default: false

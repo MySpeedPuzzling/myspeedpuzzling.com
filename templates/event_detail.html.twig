@@ -78,6 +78,7 @@
         } %}
             {% block byline %}
                 {{- include('event_parts/_organized_by.html.twig', {organization: organization}) -}}
+                {{- include('event_parts/_event_types.html.twig', {event_types: event_types}) -}}
                 {{- include('event_parts/_eligibility.html.twig', {eligibility: eligibility}) -}}
             {% endblock %}
             {% block facts %}{{ include('event_parts/_event_header_facts.html.twig', {recurring: false}) }}{% endblock %}

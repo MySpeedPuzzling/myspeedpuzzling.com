@@ -13,10 +13,11 @@ use SpeedPuzzling\Web\Message\AddCompetitionSeries;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
 use SpeedPuzzling\Web\Security\AdminAccessVoter;
+use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
 use SpeedPuzzling\Web\Services\Organizations\OrganizationSelectChoices;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
-use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
+use SpeedPuzzling\Web\Value\EventTypes;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\ClickableInterface;
 use Symfony\Component\Form\FormError;
@@ -110,6 +111,7 @@ final class AddCompetitionController extends AbstractController
                         organizationId: $data->organizationId,
                         eligibility: $data->eligibility,
                         schedule: $data->schedule,
+                        eventTypes: EventTypes::of($data->eventTypes),
                         isDraft: $isDraft,
                         notifyAdmin: $isAdmin === false,
                     ));
@@ -148,6 +150,7 @@ final class AddCompetitionController extends AbstractController
                     notifyAdmin: $isAdmin === false,
                     organizationId: $data->organizationId,
                     eligibility: $data->eligibility,
+                    eventTypes: EventTypes::of($data->eventTypes),
                     isDraft: $isDraft,
                 ));
 

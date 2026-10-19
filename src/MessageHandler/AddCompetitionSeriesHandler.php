@@ -109,6 +109,7 @@ readonly final class AddCompetitionSeriesHandler
             eligibility: $message->eligibility,
             schedule: $message->schedule,
         );
+        $series->changeEventTypes($message->eventTypes);
 
         foreach ($message->maintainerIds as $maintainerId) {
             $maintainer = $this->playerRepository->get($maintainerId);

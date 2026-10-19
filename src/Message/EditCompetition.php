@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Message;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\EventTypes;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 readonly final class EditCompetition
@@ -29,6 +30,8 @@ readonly final class EditCompetition
         public array $maintainerIds,
         // "Who can enter" (docs/features/organizations/README.md) - an edition without one shows its series'
         public null|string $eligibility,
+        // What kind of event (EventTypes) - null = not set, an edition's equal to its series' follows the series
+        public null|EventTypes $eventTypes,
         // An explicitly chosen slug (validated unique) - null keeps the slug, also on a rename: published links and
         // search engines know the competition by it
         public null|string $slug = null,

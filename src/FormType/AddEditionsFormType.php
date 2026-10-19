@@ -105,6 +105,8 @@ final class AddEditionsFormType extends AbstractType
             'attr' => ['maxlength' => AddEditionsFormData::NAME_PATTERN_MAX_LENGTH],
         ]);
 
+        $builder->add('eventTypes', EventTypesType::class);
+
         $builder->add('eligibility', TextType::class, [
             'label' => 'organizer_tools.form.eligibility',
             'help' => 'organizer_tools.form.eligibility_edition_help',

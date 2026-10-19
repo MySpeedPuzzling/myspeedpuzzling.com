@@ -27,6 +27,7 @@ final class SeriesInput
         'locationCountryCode',
         'eligibility',
         'schedule',
+        'eventTypes',
         'slug',
         'maintainerIds',
     ];
@@ -44,6 +45,7 @@ final class SeriesInput
             isRecurring: true,
             eligibility: $series->eligibility,
             schedule: $series->schedule,
+            eventTypes: $series->eventTypes()->types ?? [],
         );
 
         $maintainerIds = [];
@@ -90,6 +92,10 @@ final class SeriesInput
 
         if ($input->has('schedule')) {
             $data->schedule = $input->string('schedule');
+        }
+
+        if ($input->has('eventTypes')) {
+            $data->eventTypes = CompetitionInput::eventTypes($input);
         }
 
         if ($input->has('locationCountryCode')) {

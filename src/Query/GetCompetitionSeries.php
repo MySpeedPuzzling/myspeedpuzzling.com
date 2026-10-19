@@ -11,8 +11,9 @@ use SpeedPuzzling\Web\Exceptions\CompetitionSeriesNotFound;
 use SpeedPuzzling\Web\Results\CompetitionSeriesOverview;
 use SpeedPuzzling\Web\Results\OrganizationRef;
 use SpeedPuzzling\Web\Results\SeriesEdition;
-use SpeedPuzzling\Web\Value\RoundTimezone;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\EventTypes;
+use SpeedPuzzling\Web\Value\RoundTimezone;
 
 readonly final class GetCompetitionSeries
 {
@@ -106,7 +107,7 @@ SQL;
         return <<<SQL
 cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id, cs.approved_at, cs.rejected_at,
        EXISTS (SELECT 1 FROM competition_page_section s WHERE {$shownOnPage}) AS has_page_sections,
-       cs.eligibility, cs.schedule, cs.is_draft,
+       cs.eligibility, cs.schedule, cs.is_draft, cs.event_types,
        o.id AS organization_id, o.name AS organization_name, o.short_name AS organization_short_name, o.slug AS organization_slug,
        COALESCE(({$organizationVisible}), false) AS organization_public
 SQL;
@@ -247,6 +248,7 @@ SQL;
          *     eligibility?: null|string,
          *     schedule?: null|string,
          *     is_draft?: bool,
+         *     event_types?: null|string,
          * } $row
          */
 
@@ -274,6 +276,7 @@ SQL;
             eligibility: $row['eligibility'] ?? null,
             schedule: $row['schedule'] ?? null,
             isDraft: $row['is_draft'] ?? false,
+            eventTypes: EventTypes::fromJson($row['event_types'] ?? null),
         );
     }
 }

@@ -63,6 +63,7 @@ readonly final class AddEditionHandler
             isDraft: $message->isDraft,
             eligibility: self::emptyToNull($message->eligibility),
         );
+        $competition->changeEventTypes($message->eventTypes);
 
         $this->entityManager->persist($competition);
     }

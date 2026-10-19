@@ -8547,6 +8547,9 @@ organizer_tools:
         eligibility: "Kdo se může zúčastnit"
         eligibility_help: "Nechte prázdné, pokud se může zúčastnit kdokoli. Zobrazí se jako štítek, např. „Členové klubu“, „18+“."
         eligibility_edition_help: "Nechte prázdné, aby se použilo nastavení série."
+        event_types: "Typ akce"
+        event_types_help: "Nepovinné. Zaškrtněte vše, co se na akci koná, např. soutěž s výměnou puzzlí."
+        event_types_edition_help: "Zaškrtnuté jsou typy série – změňte je, jen když je tento termín jiný."
         schedule: "Kdy se koná"
         schedule_help: "U série např. „Čtvrtý pátek v měsíci, 20:00“ – každý termín je přesto samostatná edice."
         save_draft: "Uložit jako koncept"
@@ -10729,3 +10732,10 @@ insights:
         no_place: "mimo dnešní žebříček"
         private: "soukromé profily nemají MSP Rating"
         none: "zatím mimo žebříček"
+
+event_type:
+    competition: "Soutěž"
+    marathon: "Puzzle maraton"
+    workshop: "Workshop"
+    casual_puzzling: "Volné skládání"
+    puzzle_swap: "Výměna puzzlí"

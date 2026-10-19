@@ -8540,6 +8540,9 @@ organizer_tools:
         eligibility: "Qui peut participer"
         eligibility_help: "Laissez vide si tout le monde peut participer. Affiché comme une étiquette, par ex. « Membres du club », « 18 ans et plus »."
         eligibility_edition_help: "Laissez vide pour reprendre le réglage de la série."
+        event_types: "Type d'événement"
+        event_types_help: "Facultatif. Cochez tout ce qui s'y passe, par ex. une compétition avec un échange de puzzles."
+        event_types_edition_help: "Les types de la série sont cochés – modifiez-les seulement si cette date est différente."
         schedule: "Quand ça a lieu"
         schedule_help: "Pour une série, par ex. « Le quatrième vendredi du mois, 20 h » – chaque date reste une édition à part entière."
         save_draft: "Enregistrer comme brouillon"
@@ -10722,3 +10725,10 @@ insights:
         no_place: "hors du classement d'aujourd'hui"
         private: "les profils privés n'ont pas de MSP Rating"
         none: "pas encore au classement"
+
+event_type:
+    competition: "Compétition"
+    marathon: "Marathon de puzzles"
+    workshop: "Atelier"
+    casual_puzzling: "Puzzle détente"
+    puzzle_swap: "Échange de puzzles"

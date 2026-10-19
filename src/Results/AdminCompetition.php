@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use SpeedPuzzling\Web\Value\EventTypes;
+
 /**
  * A competition as the internal API shows it to an admin - every competition, approved, pending or rejected, with
  * every field the API can edit.
@@ -40,6 +42,8 @@ readonly final class AdminCompetition
         public bool $isDraft,
         // "Who can enter" - an edition without its own shows its series'
         public null|string $eligibility,
+        // What kind of event - its own, null = not set (an edition: its series')
+        public null|EventTypes $eventTypes,
         public null|string $tagId,
         public null|string $tagName,
         public null|string $approvedAt,
@@ -94,6 +98,7 @@ readonly final class AdminCompetition
      *     organization_slug: null|string,
      *     is_draft: bool,
      *     eligibility: null|string,
+     *     event_types: string,
      *     tag_id: null|string,
      *     tag_name: null|string,
      *     approved_at: null|string,
@@ -140,6 +145,7 @@ readonly final class AdminCompetition
             organizationSlug: $row['organization_slug'],
             isDraft: $row['is_draft'],
             eligibility: $row['eligibility'],
+            eventTypes: EventTypes::fromJson($row['event_types']),
             tagId: $row['tag_id'],
             tagName: $row['tag_name'],
             approvedAt: self::isoDateTime($row['approved_at']),
@@ -231,6 +237,7 @@ readonly final class AdminCompetition
                 'slug' => $this->organizationSlug,
             ],
             'eligibility' => $this->eligibility,
+            'eventTypes' => EventTypes::toStoredOrEmpty($this->eventTypes),
             'logo' => $this->logo,
             'tagId' => $this->tagId,
             'tagName' => $this->tagName,

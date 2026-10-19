@@ -144,6 +144,7 @@
                             </div>
 
                             {# An edition without its own shows its series' #}
+                            {{ form_row(form.eventTypes, competition.seriesId ? {help: 'organizer_tools.form.event_types_edition_help'} : {}) }}
                             {{ form_row(form.eligibility, competition.seriesId ? {help: 'organizer_tools.form.eligibility_edition_help'} : {}) }}
                             {{ form_row(form.link) }}
                             {{ form_row(form.registrationLink) }}

@@ -1,0 +1,9 @@
+{#
+    The kinds of event in the byline of the series, edition and event pages (docs/features/events-page/event-types.md) -
+    nothing for a plain competition or when none is set.
+
+    Variables: event_types (list<EventType>, EventTypes::shownOf()) - an edition passes its own, else its series'.
+#}
+{%- if event_types is not empty -%}
+    <span class="ev-detail-by ev-detail-event-types" data-event-types>{{ event_types|map(type => type.translationKey|trans)|join(' · ') }}</span>
+{%- endif -%}

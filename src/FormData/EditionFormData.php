@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\FormData;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\EventType;
 use Symfony\Component\Validator\Constraints as Assert;
 
 final class EditionFormData
@@ -31,6 +32,9 @@ final class EditionFormData
         // "Who can enter" - empty shows the series' (docs/features/organizations/README.md)
         #[Assert\Length(max: 120)]
         public null|string $eligibility = null,
+        // What kind of event - its series' preset, saved unchanged it keeps following them
+        /** @var list<EventType> */
+        public array $eventTypes = [],
     ) {
     }
 }

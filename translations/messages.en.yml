@@ -8796,6 +8796,9 @@ organizer_tools:
         eligibility: "Who can enter"
         eligibility_help: "Leave empty when anyone can enter. Shown as a tag, e.g. “Members of the club”, “18+”."
         eligibility_edition_help: "Leave empty to use the series' setting."
+        event_types: "What kind of event"
+        event_types_help: "Optional. Tick everything that happens there, e.g. a competition with a puzzle swap."
+        event_types_edition_help: "Its series' kinds are ticked - change them only when this date is different."
         schedule: "When it happens"
         schedule_help: "For a series, e.g. “Fourth Friday of the month, 8 pm” - each date is still its own edition."
         save_draft: "Save as draft"
@@ -10976,3 +10979,10 @@ insights:
         no_place: "not on today's ladder"
         private: "private profiles have no MSP rating"
         none: "not on the ladder yet"
+
+event_type:
+    competition: "Competition"
+    marathon: "Puzzle marathon"
+    workshop: "Workshop"
+    casual_puzzling: "Casual puzzling"
+    puzzle_swap: "Puzzle swap"

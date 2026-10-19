@@ -13,9 +13,10 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\EventOccurrence;
 use SpeedPuzzling\Web\Results\OrganizationRef;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\EventTypes;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
-use SpeedPuzzling\Web\Value\RoundTimezone;
 use SpeedPuzzling\Web\Value\OccurrenceRound;
+use SpeedPuzzling\Web\Value\RoundTimezone;
 
 /**
  * Every occurrence of the events page in one statement (docs/features/events-page/implementation-plan.md, 1.4):
@@ -170,6 +171,7 @@ SELECT
     (c.results_link IS NOT NULL) AS has_results_link,
     ({$visible}) AS is_public,
     COALESCE(c.eligibility, cs.eligibility) AS eligibility,
+    CASE WHEN c.event_types <> '[]'::jsonb THEN c.event_types ELSE cs.event_types END AS event_types,
     (c.is_draft OR COALESCE(cs.is_draft, false)) AS is_draft,
     o.id AS organization_id,
     o.name AS organization_name,
@@ -255,6 +257,7 @@ SQL;
             registrationLink: self::withUtm(self::nullableString($row['registration_link'])),
             organization: OrganizationRef::fromRow($row),
             eligibility: self::nullableString($row['eligibility']),
+            eventTypes: EventTypes::fromJson($row['event_types']),
             isDraft: (bool) $row['is_draft'],
             zone: $dates->zone(),
             rounds: self::roundsOf($rounds, $dates),

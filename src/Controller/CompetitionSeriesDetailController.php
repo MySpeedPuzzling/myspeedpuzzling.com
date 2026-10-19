@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Results\EventsPage\ManageRef;
 use SpeedPuzzling\Web\Security\CompetitionSeriesEditVoter;
 use SpeedPuzzling\Web\Services\EventDetail\SeriesPageBuilder;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\EventTypes;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -96,6 +97,7 @@ final class CompetitionSeriesDetailController extends AbstractController
             // The byline (docs/features/organizations/README.md): "Organized by", "Who can enter", "When it happens"
             'organization' => $series->organization,
             'eligibility' => $series->eligibility,
+            'event_types' => EventTypes::shownOf($series->eventTypes),
             'schedule' => $series->schedule,
             'draft_state' => $series->isDraft
                 ? new DraftState(DraftState::KIND_SERIES, $series->id, $series->name, true)

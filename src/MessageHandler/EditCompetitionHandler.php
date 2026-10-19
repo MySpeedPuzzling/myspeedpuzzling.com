@@ -97,6 +97,7 @@ readonly final class EditCompetitionHandler
             isOnline: $message->isOnline,
         );
         $competition->changeEligibility($message->eligibility);
+        $competition->changeEventTypes($message->eventTypes);
 
         // Sync maintainers
         $competition->maintainers->clear();

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use SpeedPuzzling\Web\Value\EventTypes;
+
 /**
  * A series as the internal API shows it to an admin - approved, pending, rejected or a draft, with every field the API
  * can edit (docs/features/internal-api.md "Organizations, series and drafts").
@@ -28,6 +30,8 @@ readonly final class AdminSeries
         public null|string $eligibility,
         public null|string $schedule,
         public bool $isDraft,
+        // What kind of events - null = not set
+        public null|EventTypes $eventTypes,
         public null|string $approvedAt,
         public null|string $approvedByPlayerId,
         public null|string $rejectedAt,
@@ -62,6 +66,7 @@ readonly final class AdminSeries
      *     organization_name: null|string,
      *     organization_slug: null|string,
      *     eligibility: null|string,
+     *     event_types: string,
      *     schedule: null|string,
      *     is_draft: bool,
      *     approved_at: null|string,
@@ -96,6 +101,7 @@ readonly final class AdminSeries
             eligibility: $row['eligibility'],
             schedule: $row['schedule'],
             isDraft: $row['is_draft'],
+            eventTypes: EventTypes::fromJson($row['event_types']),
             approvedAt: AdminCompetition::isoDateTime($row['approved_at']),
             approvedByPlayerId: $row['approved_by_player_id'],
             rejectedAt: AdminCompetition::isoDateTime($row['rejected_at']),
@@ -146,6 +152,7 @@ readonly final class AdminSeries
             ],
             'eligibility' => $this->eligibility,
             'schedule' => $this->schedule,
+            'eventTypes' => EventTypes::toStoredOrEmpty($this->eventTypes),
             'status' => $this->status(),
             'draft' => $this->isDraft,
             'approvedAt' => $this->approvedAt,

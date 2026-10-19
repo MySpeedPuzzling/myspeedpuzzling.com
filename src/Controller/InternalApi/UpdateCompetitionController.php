@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\OrganizationRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\Drafts\UnpublishBlockers;
+use SpeedPuzzling\Web\Value\EventTypes;
 use SpeedPuzzling\Web\Value\OrganizationItemKind;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -140,6 +141,7 @@ final class UpdateCompetitionController extends AbstractController
                 logo: null,
                 maintainerIds: $maintainerIds ?? $data->maintainers,
                 eligibility: $data->eligibility,
+                eventTypes: EventTypes::of($data->eventTypes),
                 slug: $slug !== $competition->slug ? $slug : null,
             ));
         }

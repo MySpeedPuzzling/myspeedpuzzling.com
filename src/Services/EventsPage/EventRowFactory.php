@@ -17,8 +17,9 @@ use SpeedPuzzling\Web\Results\EventsPage\WhenLabel;
 use SpeedPuzzling\Web\Results\EventsViewerData;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
-use SpeedPuzzling\Web\Value\EventsScope;
 use SpeedPuzzling\Web\Value\EventTime;
+use SpeedPuzzling\Web\Value\EventTypes;
+use SpeedPuzzling\Web\Value\EventsScope;
 use SpeedPuzzling\Web\Value\FollowTarget;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
 use SpeedPuzzling\Web\Value\RegistrationAvailability;
@@ -165,7 +166,7 @@ readonly final class EventRowFactory
     }
 
     /**
-     * WaitingForApproval or Draft, Going, Recurring, Eligibility, registration, Results, RunsUntil, GoingCount - in this
+     * WaitingForApproval or Draft, Going, Recurring, EventType (one per kind shown), Eligibility, registration, Results, RunsUntil, GoingCount - in this
      * order. The series page leaves out WaitingForApproval and Recurring. A draft (only its team gets its row) says Draft
      * everywhere and never "Waiting for approval" - it is submitted by publishing it.
      *
@@ -195,6 +196,10 @@ readonly final class EventRowFactory
 
         if ($occurrence->isEdition() && $onSeriesPage === false) {
             $tags[] = new RowTag(RowTagType::Recurring);
+        }
+
+        foreach (EventTypes::shownOf($occurrence->eventTypes) as $eventType) {
+            $tags[] = new RowTag(RowTagType::EventType, eventType: $eventType);
         }
 
         if ($occurrence->eligibility !== null) {

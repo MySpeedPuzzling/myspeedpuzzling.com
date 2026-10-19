@@ -93,6 +93,7 @@ readonly final class ConvertCompetitionToSeriesHandler
             isDraft: $competition->isDraft,
             eligibility: $competition->eligibility,
         );
+        $series->changeEventTypes($competition->eventTypes());
 
         foreach ($competition->maintainers as $maintainer) {
             $series->maintainers->add($maintainer);
@@ -125,6 +126,7 @@ readonly final class ConvertCompetitionToSeriesHandler
         // Its draft state and "Who can enter" are the series' now
         $competition->publish();
         $competition->changeEligibility(null);
+        $competition->changeEventTypes($series->eventTypes());
         $competition->shortcut = null;
         $competition->logo = null;
         $competition->description = null;

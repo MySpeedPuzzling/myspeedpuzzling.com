@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Services\EventsPage\EventsPageBuilder;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EditionName;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
+use SpeedPuzzling\Web\Value\EventTypes;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
 use SpeedPuzzling\Web\Value\OccurrenceRound;
 use SpeedPuzzling\Web\Value\OccurrenceSession;
@@ -60,6 +61,8 @@ readonly final class EventOccurrence
         public null|OrganizationRef $organization = null,
         // "Who can enter": its own, else its series'
         public null|string $eligibility = null,
+        // what kind of event: its own, else its series' - null = not set
+        public null|EventTypes $eventTypes = null,
         // a draft itself, or an edition of a draft series - only its team ever gets such a row
         public bool $isDraft = false,
         // the zone its days are in (OccurrenceDates::$zone) - its "today" is today there

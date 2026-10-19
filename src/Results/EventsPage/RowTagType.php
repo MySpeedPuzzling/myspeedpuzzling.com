@@ -14,6 +14,8 @@ enum RowTagType: string
     case Draft = 'draft';
     case Going = 'going';
     case Recurring = 'recurring';
+    // one per kind of event shown (EventTypes::shownOf()) - RowTag::$eventType
+    case EventType = 'event_type';
     // "Who can enter" - RowTag::$text
     case Eligibility = 'eligibility';
     // only an external registration link - never claims registration is open

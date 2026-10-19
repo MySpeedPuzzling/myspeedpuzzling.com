@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
+use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Tests\ClonesSolvingTimes;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
@@ -135,6 +136,30 @@ final class InsightsControllerTest extends WebTestCase
         self::assertContains('all', $page->filter('#insights-when option')->each(static fn (Crawler $option): string => (string) $option->attr('value')));
     }
 
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function provideLocalesAndPlayers(): iterable
+    {
+        foreach (['cs', 'de', 'en', 'es', 'fr', 'ja'] as $locale) {
+            yield $locale . ' free' => [$locale, self::FREE];
+            yield $locale . ' member' => [$locale, self::MEMBER];
+        }
+    }
+
+    #[DataProvider('provideLocalesAndPlayers')]
+    public function testThePageRendersInEveryLanguage(string $locale, string $playerId): void
+    {
+        $browser = $this->browser(flag: true, player: $playerId);
+        $this->growResults($browser, $playerId, 30);
+
+        $page = $browser->request('GET', '/' . $locale . '/insights?period=all');
+        self::assertResponseIsSuccessful();
+
+        $this->assertEverySection($page);
+        self::assertSame($locale, $page->filter('html')->attr('lang'));
+    }
+
     public function testPredictionsSwitchedOffMeanNoExpectedTimes(): void
     {
         $browser = $this->browser(flag: true, player: self::MEMBER);
@@ -201,7 +226,7 @@ final class InsightsControllerTest extends WebTestCase
         self::assertStringNotContainsString(strtolower($secret['puzzle_id']), strtolower((string) $browser->getResponse()->getContent()));
     }
 
-    public function testSeeWhyLinksFromTheOwnResultDetail(): void
+    public function testSeeWhyLinksFromTheOwnRecapAndResultDetail(): void
     {
         $browser = $this->browser(flag: true, player: self::MEMBER);
         $timeId = $this->growResults($browser, self::MEMBER, 1)[0];
@@ -210,11 +235,27 @@ final class InsightsControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertCount(1, $detail->filter('[data-testid="result-see-why"][href^="' . self::URL . '"]'));
 
+        $recap = $browser->request('GET', '/en/time-added/' . $timeId);
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $recap->filter('[data-testid="recap-see-why"][href^="' . self::URL . '"]'));
+
         // Somebody else looking at that result gets no link
         TestingLogin::asPlayer($browser, self::FREE);
         $detail = $browser->request('GET', '/en/result/' . $timeId);
         self::assertResponseIsSuccessful();
         self::assertCount(0, $detail->filter('[data-testid="result-see-why"]'));
+    }
+
+    public function testNoSeeWhyWhileTheFlagHidesInsights(): void
+    {
+        $browser = $this->browser(flag: false, player: self::MEMBER);
+        $timeId = $this->growResults($browser, self::MEMBER, 1)[0];
+
+        $browser->request('GET', '/en/result/' . $timeId);
+        self::assertCount(0, (new Crawler((string) $browser->getResponse()->getContent()))->filter('[data-testid="result-see-why"]'));
+
+        $browser->request('GET', '/en/time-added/' . $timeId);
+        self::assertCount(0, (new Crawler((string) $browser->getResponse()->getContent()))->filter('[data-testid="recap-see-why"]'));
     }
 
     private function assertEverySection(Crawler $page): void
@@ -265,7 +306,8 @@ final class InsightsControllerTest extends WebTestCase
         for ($i = 0; $i < $count; $i++) {
             $created[] = $this->cloneSolvingTime($times[$i % count($times)], [
                 'days_ago' => ($i * 7) % 360 + 1,
-                'first_attempt' => false,
+                // Half of them first tries: "your usual" (the form) rests on first tries
+                'first_attempt' => $i % 2 === 0,
                 'seconds_to_solve' => 1800 + ($i * 137) % 1500,
             ]);
         }

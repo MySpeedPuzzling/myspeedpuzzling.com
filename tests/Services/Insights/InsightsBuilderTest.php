@@ -26,6 +26,7 @@ use SpeedPuzzling\Web\Services\Insights\ProfileCardBuilder;
 use SpeedPuzzling\Web\Services\Insights\SkillMapBuilder;
 use SpeedPuzzling\Web\Services\Insights\SummaryBuilder;
 use SpeedPuzzling\Web\Value\InsightsFindingCode;
+use SpeedPuzzling\Web\Value\InsightsNudgeCode;
 use SpeedPuzzling\Web\Value\InsightsSection;
 use SpeedPuzzling\Web\Value\TimePredictionMethod;
 
@@ -138,6 +139,86 @@ final class InsightsBuilderTest extends TestCase
         self::assertTrue($report->predictionAccuracy->notSureYet);
         self::assertTrue($report->profileCard->notSureYet);
         self::assertSame([], $report->puzzleIdsShown);
+    }
+
+    public function testSwitchedOffPredictionsLeaveNoExpectedTimes(): void
+    {
+        $report = self::builder()->build(
+            self::PLAYER,
+            self::player(400),
+            [],
+            InsightsContext::empty(),
+            InsightsCriteria::fromUserInput(['period' => 'all'], isMember: true),
+            null,
+            InsightsTestResults::now(),
+            predictionsAllowed: false,
+        );
+
+        self::assertTrue($report->predictionsOff);
+        self::assertTrue($report->expectedVsActual->notSureYet);
+        self::assertSame([], $report->expectedVsActual->points);
+        self::assertSame(0, $report->predictionAccuracy->sampleSize);
+        self::assertNotContains(InsightsFindingCode::Surprises, array_map(static fn ($finding) => $finding->code, $report->findings));
+        self::assertContains(InsightsNudgeCode::PredictionsOff, array_map(static fn ($nudge) => $nudge->code, $report->nudges));
+    }
+
+    public function testEverySkillMapRowCarriesItsDrillDownAndTheFiltersOfferTheOwnBrandsAndYears(): void
+    {
+        $report = self::builder()->build(
+            self::PLAYER,
+            self::player(400),
+            [],
+            InsightsContext::empty(),
+            InsightsCriteria::fromUserInput(['period' => 'all'], isMember: true),
+            null,
+            InsightsTestResults::now(),
+        );
+
+        self::assertNotEmpty($report->skillMap->groups);
+
+        foreach ($report->skillMap->groups as $group) {
+            foreach ($group->segments as $segment) {
+                self::assertSame($segment->drillDownTimeIds, array_map(static fn ($result) => $result->timeId, $segment->drillDown));
+                $residuals = array_map(static fn ($result) => $result->residual, $segment->drillDown);
+                $sorted = $residuals;
+                sort($sorted);
+                self::assertSame($sorted, $residuals, 'fastest against your usual first');
+            }
+        }
+
+        self::assertSame(400, $report->totalResultCount);
+        self::assertCount(3, $report->filterOptions->brands);
+        self::assertSame(range((int) InsightsTestResults::now()->format('Y'), (int) InsightsTestResults::now()->modify('-1400 days')->format('Y'), -1), $report->filterOptions->years);
+    }
+
+    public function testTheNudgesSayWhatUnlocksNext(): void
+    {
+        $results = array_map(
+            static fn (int $i) => InsightsTestResults::result(['days_ago' => $i + 1, 'firstAttempt' => false, 'difficultyTier' => $i === 0 ? null : 3]),
+            range(0, 11),
+        );
+
+        $report = self::builder()->build(self::PLAYER, $results, [], InsightsContext::empty(), InsightsCriteria::fromUserInput([], isMember: false), null, InsightsTestResults::now());
+        /** @var array<string, array{0: null|int, 1: null|int}> $nudges */
+        $nudges = [];
+
+        foreach ($report->nudges as $nudge) {
+            $nudges[$nudge->code->value] = [$nudge->count, $nudge->target];
+        }
+
+        self::assertSame([13, 25], $nudges['more_results'], '12 results: 13 more to 25');
+        self::assertSame([12, null], $nudges['mark_first_tries'], 'all first on their puzzle, none marked');
+        self::assertArrayHasKey('set_timezone', $nudges);
+        self::assertArrayHasKey('mark_unboxed', $nudges);
+        self::assertSame([1, null], $nudges['unrated_puzzles']);
+        self::assertArrayNotHasKey('predictions_off', $nudges);
+
+        $report = self::builder()->build(self::PLAYER, array_slice($results, 0, 4), [], InsightsContext::empty(), InsightsCriteria::fromUserInput([], isMember: false), new \DateTimeZone('Europe/Prague'), InsightsTestResults::now());
+        $codes = array_map(static fn ($nudge) => $nudge->code, $report->nudges);
+        self::assertSame(InsightsNudgeCode::MoreResults, $codes[0]);
+        self::assertSame(10, $report->nudges[0]->target);
+        self::assertNotContains(InsightsNudgeCode::SetTimezone, $codes);
+        self::assertNotContains(InsightsNudgeCode::MarkUnboxed, $codes, 'not before the page works');
     }
 
     /**

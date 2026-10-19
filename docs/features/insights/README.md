@@ -23,6 +23,8 @@ Jan's, made during the planning session of 2026-10-18 - do not re-ask them.
 4. **Display behind one feature flag** (`INSIGHTS_PUBLIC`, admins always see it), removed once the image backfill is
    complete and the estimate gates pass.
 
+The page as built (routes, flag, sections, free/member split, budget): [`page.md`](./page.md).
+
 Visual reference: [`prototype.html`](./prototype.html), the interactive prototype with sample data plus the plan. Open it in a browser.
 The "Prototype" tab is the page design; the "Plan & research" tab holds the same decisions as this file, with
 mock-ups, among them the estimate display options (Plan tab → "Image prediction").

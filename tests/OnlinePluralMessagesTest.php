@@ -22,7 +22,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final class OnlinePluralMessagesTest extends KernelTestCase
 {
-    private const array ROOTS = ['compete.', 'online_rounds.'];
+    /** + the Insights page (docs/features/insights/page.md) - the same plural formats, the same failure modes */
+    private const array ROOTS = ['compete.', 'online_rounds.', 'insights.'];
 
     private const array EXTRA_COUNTS = [100, 1000];
 

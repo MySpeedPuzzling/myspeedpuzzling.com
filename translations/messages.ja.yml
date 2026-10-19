@@ -1,4 +1,5 @@
 "menu":
+  "insights": "インサイト"
   "my_profile": "マイプロフィール"
   "puzzle_add": "追加"
   "stopwatch": "ストップウォッチ"
@@ -6786,6 +6787,7 @@ comparison_entry:
 player_header:
     pages: "プレイヤーのページ"
     tabs:
+        insights: "インサイト"
         profile: "プロフィール"
         statistics: "統計"
         calendar: "カレンダー"
@@ -9959,3 +9961,416 @@ puzzle_tags:
     look:
         photo: "写真"
         drawn: "イラスト・絵画"
+
+insights:
+    meta_title: "あなたのインサイト"
+    title: "あなたのパズル、徹底分析"
+    lead: "あなた自身の結果だけを、そのパズルを解いた他の人たち、そしてあなたのいつものペースと比べます。質問を選ぶか、スクロールして見てください。"
+    only_you: "このページはあなただけが見られます。"
+    loading: "読み込み中…"
+    see_why: "理由はインサイトで確認"
+    percent: "%value%%"
+    none_in_selection: "この条件では該当なし"
+    empty:
+        title: "インサイトは%count%件の結果から始まります"
+        text: "{0}タイム付きのソロ結果はまだありません。インサイトはあなたの結果を、そのパズルを解いた他の人たちやあなたのいつものペースと比べるため、いくつか結果が必要です。%needed%件記録すると、このページが埋まります。|[1,Inf[タイム付きのソロ結果は%count%件です。インサイトはあなたの結果を、そのパズルを解いた他の人たちやあなたのいつものペースと比べるため、いくつか結果が必要です。%needed%件記録すると、このページが埋まります。"
+        add: "タイムを追加"
+    ask:
+        label: "このページが答える質問"
+        profile: "私はどんなパズラー？"
+        form: "上達している？"
+        strengths: "私の得意なところは？"
+        weak_spots: "どこを伸ばせる？"
+        expected: "予想より速かった？遅かった？"
+        median: "中央値から大きく外れているのはどこ？"
+        close_calls: "もう少しで順位が上がるのはどこ？"
+        learning: "繰り返しはどれくらい効く？"
+        habits: "いつが一番調子がいい？"
+    badge:
+        free: "無料"
+        free_only_you: "無料 · あなただけが見られます"
+        members: "メンバー"
+        everyone: "全員"
+        form: "無料：6か月 · メンバー：任意の期間"
+        skills: "無料：一番の得意と苦手"
+        median: "無料：グラフ · メンバー：外れ値の解説"
+        habits: "無料：いつ解いているか · メンバー：ペースへの影響"
+        preview: "プレビュー"
+    period:
+        3m: "過去3か月"
+        6m: "過去6か月"
+        12m: "過去12か月"
+        24m: "過去24か月"
+        year: "今年"
+        past_year: "%year%年"
+        all: "全期間"
+        custom: "期間を指定…"
+    filters:
+        period: "完成した期間"
+        pieces: "ピース数"
+        any_pieces: "すべてのピース数"
+        pieces_value: "%pieces%ピース"
+        more: "その他のフィルター"
+        title: "フィルター"
+        count: "{0}結果なし|[1,Inf[%count%件の結果"
+        clear: "フィルターをクリア"
+        done: "完了"
+        from: "開始"
+        to: "終了"
+        stripped: "このリンクのフィルターの一部はメンバー向けです。無料の部分（過去3か月または6か月とピース数）を表示しています。"
+        results: "結果"
+        results_all: "すべての結果"
+        results_first: "初回"
+        results_repeat: "リピート"
+        events: "イベント"
+        events_any: "すべて"
+        events_only: "イベントのみ"
+        events_exclude: "イベントを除く"
+        unboxed: "箱の絵なしで完成"
+        unboxed_any: "含める"
+        unboxed_only: "これだけ"
+        unboxed_exclude: "除く"
+        shelf: "あなたの棚"
+        shelf_any: "すべて"
+        shelf_only: "まだ棚にある"
+        shelf_exclude: "棚にない"
+        difficulty: "難易度"
+        brands: "ブランド"
+        weekdays: "曜日"
+        personality: "パズルの性格"
+        traits: "絵柄"
+        traits_hint: "プレビュー：箱の画像の分析とともに追加されます（分析中）。"
+        time_of_day: "時間帯"
+        time_of_day_hint: "完成した当日に結果を記録した時刻です。"
+    versus:
+        median:
+            faster: "中央値より%percent%%速い"
+            slower: "中央値より%percent%%遅い"
+            level: "中央値と同じ"
+        usual:
+            faster: "いつもより%percent%%速い"
+            slower: "いつもより%percent%%遅い"
+            level: "いつもどおり"
+        expected:
+            faster: "予想より%percent%%速い"
+            slower: "予想より%percent%%遅い"
+            level: "予想どおり"
+        year_ago:
+            faster: "1年前より%percent%%速い"
+            slower: "1年前より%percent%%遅い"
+            level: "1年前と同じ速さ"
+    findings:
+        label: "主な発見"
+    finding:
+        speed:
+            kicker: "スピード"
+            text: "同じパズルで、あなたは%versus%です。"
+        form_trend:
+            kicker: "調子"
+            text: "最近の結果は%versus%です。"
+        strength:
+            kicker: "得意"
+            text: "%segment%：%versus%。"
+        weak_spot:
+            kicker: "苦手"
+            text: "%segment%：%versus%。"
+        close_call:
+            kicker: "あと少し"
+            text: "%puzzle%でトップ%rank%まであと%gap%です。"
+            text_first: "%puzzle%で1位まであと%gap%です。"
+        best_result:
+            kicker: "ベスト結果"
+            text: "%puzzle%は%versus%でした。"
+        surprises:
+            kicker: "サプライズ"
+            text: "<b>%count%個のパズル</b>が、あなたへの予想より10%以上よい結果でした。"
+            locked: "{0}予想付きの結果がそろうとサプライズを数えます。どれかはメンバーが見られます。|[1,Inf[この期間のサプライズは%count%件。どれかはメンバーが見られます。"
+    tiles:
+        not_enough: "まだ結果が足りません"
+        members: "メンバー"
+        speed:
+            label: "中央値と比べたスピード"
+            faster: "速い · %count%件の結果"
+            slower: "遅い · %count%件の結果"
+        form:
+            label: "1年前と比べた調子"
+            faster: "速い：過去6か月と12〜18か月前の比較"
+            slower: "遅い：過去6か月と12〜18か月前の比較"
+            needs_year: "1年分の結果が必要です"
+        consistency:
+            label: "安定性"
+            sub: "いつものペースを中心にした結果の中央半分"
+            percentile: "パズラーの%percent%%より安定"
+            not_enough: "%count%件の結果が必要です"
+    profile:
+        question: "私はどんなパズラー？"
+        title: "あなたのパズラープロフィール"
+        takeaway: "一番の強み：%strongest%。一番の伸びしろ：%room%。"
+        takeaway_strongest: "一番の強み：%strongest%。他のスコアは結果が増えると埋まります。"
+        not_sure_yet: "結果を記録するとプロフィールが埋まっていきます。各スコアにはそれぞれ数件の結果が必要です。1日1回計算されます。"
+        chart_label: "あなたのパズラープロフィール：全パズラーと比べた7つのスコア"
+        note: "各スコアは、十分な結果があるすべてのパズラーの中でのあなたの位置です（50 = 真ん中）。1日1回計算されるので、全員が同じ人たちと比べられます。インサイトのすべてと同じく、あなただけが見られます。"
+    axis:
+        speed:
+            name: "スピード"
+            description: "各パズルの中央値と比べたタイム"
+        improvement:
+            name: "上達"
+            description: "1年前よりどれだけ速いか"
+        consistency:
+            name: "安定性"
+            description: "結果がいつものペースにどれだけ近いか"
+        learning:
+            name: "学習"
+            description: "2回目でどれだけ伸びるか"
+        hard_puzzles:
+            name: "難しいパズル"
+            description: "難しい・とても難しいパズルでのペース"
+        big_puzzles:
+            name: "大きいパズル"
+            description: "1000ピース以上でのペース"
+        events:
+            name: "イベント"
+            description: "自宅と比べたイベントでのペース"
+    form:
+        question: "上達している？"
+        title: "調子の推移"
+        not_sure_yet: "この条件で2か月にそれぞれ3件以上の結果がそろうと表示されます。"
+        takeaway:
+            moved: "%months%か月で、月ごとの中央値は%from%から%to%に変わりました。"
+            steady: "%months%か月、月ごとの中央値は%versus%前後で安定していました。"
+        members_dates: "メンバーは任意の期間を選び、ブランド・難易度・イベントなどで絞り込めます。"
+        chart_label: "各パズルの中央値と比べた月ごとの中央値"
+        legend:
+            median: "月ごとの中央値"
+            band: "結果の中央半分"
+            usual: "いつものペース"
+        note: "各パズルのソロ中央値タイムと比べて測るので、難しいパズルが続いた月が不調な月に見えることはありません。上が速いです。"
+    skills:
+        question: "得意なところは？どこを伸ばせる？"
+        title: "得意と苦手"
+        not_sure_yet: "この条件でパズル中央値のある結果が10件そろうと表示されます。"
+        none: "この条件では、はっきりした得意も苦手もありません。どこでもいつものペースに近いです。"
+        takeaway:
+            strong: "得意：%segments%。"
+            weak: "苦手：%segments%。"
+        lock:
+            title: "すべての得意と苦手を見る"
+            text: "{0}ブランド、サイズ、難易度、イベント、間隔、パズルのタイプ。それぞれどれだけ確かかも表示します。|[1,Inf[ブランド、サイズ、難易度、状況、パズルのタイプにわたる%count%件のはっきりした発見。それぞれどれだけ確かかも表示します。"
+        axis:
+            slower: "← いつもより遅い"
+            faster: "速い →"
+            results: "結果"
+        pieces: "%count%ピース"
+        unrated: "まだ評価なし"
+        preview: "プレビュー · 画像分析はまだ進行中"
+        drill:
+            title: "%segment%：%count%件の結果、いつもと比べて速い順"
+            more: "ほか%count%件"
+        note: "各行は、パズルの難しさとあなたの上達を除いたうえで、その結果を当時のいつものペースと比べます。バーは可能性の高い範囲で、短いバーは確か、長いバーはまだ不確かという意味です。結果が5件未満の行は表示せず、範囲全体が±1.5%を超え、10件の結果に基づくときだけ得意・苦手になります。"
+    skill_group:
+        brand: "ブランド"
+        pieces: "ピース数"
+        difficulty: "難易度"
+        situation: "状況"
+        personality: "パズルの性格"
+        image_traits: "絵柄"
+    verdict:
+        strength: "得意"
+        weak_spot: "苦手"
+        about_usual: "いつもどおり"
+        not_sure_yet: "まだ不確か"
+    situation:
+        first_tries: "初回"
+        repeats: "リピート"
+        at_event: "イベントで"
+        weekend: "週末"
+        after_break: "2週間以上の間隔のあと"
+        second_of_the_day: "その日2つ目のパズル"
+        unboxed: "箱の絵なし"
+    personality:
+        rewards_skill: "腕が出る"
+        equaliser: "差がつきにくい"
+        box_helps: "箱の絵が大きな助け"
+        memorable: "覚えやすい"
+    personality_hint:
+        rewards_skill: "速い人と遅い人の差が大きい"
+        equaliser: "ほとんどの人が近いタイムで終える"
+        box_helps: "箱の絵がないとずっと難しい"
+        memorable: "2回目はずっと簡単"
+    why:
+        first_tries: "初回"
+        repeats: "リピート"
+        at_event: "イベント"
+        weekend: "週末"
+        after_break: "間隔のあと"
+        second_of_the_day: "その日2つ目"
+        unboxed: "箱の絵なし"
+    meta:
+        result: "%pieces%ピース · %brand% · %date%"
+    expected:
+        question: "予想より速く・遅く解けたパズルは？"
+        title: "予想と実際"
+        predictions_off: "設定でタイム予想をオフにしているため、ここには予想タイムがありません。"
+        not_sure_yet: "この条件の結果に保存された予想があると表示されます。"
+        takeaway: "あなたへの予想と比べて、<b>%better%</b>件の結果が10%以上よく、<b>%worse%</b>件が10%以上遅く、%within%件が10%以内でした。"
+        chart_label: "あなたへの予想タイムと実際のタイム"
+        legend:
+            better: "10%以上速い"
+            within: "10%以内"
+            worse: "10%以上遅い"
+        list:
+            better: "予想より速い"
+            worse: "予想より遅い"
+        vs: "%actual% / 予想 %expected%"
+        margin: "スピードパズラーは初回の予想をよく上回ります。あなたの余裕：中央値で%percent%%下回っていて、ここの予想タイムはそれを織り込んでいます。緑はいつもの初回よりよいという意味です。"
+        note: "予想 = 各結果に保存された予想。古い予想は、あなたのいつもの余裕で補正しています。"
+        accuracy:
+            not_sure_yet: "結果の%count%件に調整済みの予想がそろうと、予想範囲に入る頻度が表示されます。"
+            hits: "予想範囲内：%count%件中%hits%件（%percent%%）- 範囲は半分が入る設計です。"
+        lock:
+            title: "{0}あなたのサプライズ|[1,Inf[%count%個のパズルが予想よりよい結果"
+            text: "すべての結果をあなたへの予想と比べ、ずっとよかった・遅かったパズルを表示します。"
+    median:
+        question: "中央値から大きく外れているのはどこ？"
+        title: "中央値と比べたあなた"
+        not_sure_yet: "この条件でパズル中央値のある結果が5件そろうと表示されます。"
+        takeaway: "あなたはふだん%versus%で、<b>%count%件中%slower%件</b>で中央値より遅くなっています。%outliers%件の結果がいつものペースから30%以上離れています。"
+        chart_label: "各パズルの中央値と比べてどれだけ速かった・遅かったかで見た結果"
+        legend:
+            results: "あなたの結果"
+            median: "中央値（0）"
+            usual: "いつものペース"
+        list:
+            slow: "いつもよりかなり遅い"
+            fast: "いつもよりかなり速い"
+        lock:
+            title: "{0}あなたの外れ値|[1,Inf[外れ値が%count%件見つかりました"
+            text: "いつものペースから大きく離れた結果と、その共通点。"
+    close_calls:
+        question: "もう少しで順位が上がるのはどこ？"
+        title: "ランキングであと少し"
+        none: "この条件では「あと少し」はありません。"
+        takeaway: "{0}次の節目の順位までタイムの3%以内のパズルはありません。一番近いのは%puzzle%で、%target%まであと%gap%です。|[1,Inf[<b>%count%</b>個のパズルで、次の節目の順位までタイムの3%未満です。一番近いのは%puzzle%で、%target%まであと%gap%です。"
+        top: "トップ%rank%"
+        first_place: "1位"
+        meta: "#%rank% · ベスト %best% · %brand%"
+        totals:
+            first: "1位"
+            podium: "表彰台"
+            top_ten: "トップ10"
+            puzzles: "この条件のパズル"
+        note: "公開されているパズルのランキングから作成し、順位だけを表示します。他の人の結果で目標は動くので、いつでも変わります。"
+    learning:
+        question: "同じパズルを繰り返すとどれだけ伸びる？"
+        title: "学習曲線"
+        not_sure_yet: "いくつかのパズルを2回以上解くと表示されます。"
+        takeaway:
+            second: "2回目は1回目より<b>%percent%%速い</b>です（全パズラー：%community%%）。"
+            fourth: "4回目では<b>%percent%%速く</b>なっています。"
+            selection: "この条件で2回以上解いたパズルは%count%個です。"
+        chart_label: "1回目と比べた各回のタイム（あなたと全パズラー）"
+        legend:
+            you: "あなた"
+            community: "全パズラー（%pieces%ピース）"
+        list: "一番伸びたパズル"
+        meta: "%pieces%ピース · %brand% · %count%回"
+        lock:
+            title: "{0}あなたの学習曲線|[1,Inf[%count%個の繰り返したパズルでの学習曲線"
+            text: "繰り返すごとにどれだけ速くなるかを、他のみんなと比べます。"
+    habits:
+        question: "いつが一番調子がいい？"
+        title: "習慣とコンディション"
+        not_sure_yet: "この条件では結果がありません。"
+        takeaway:
+            busiest: "一番よく解くのは%day%です。"
+            break: "2週間以上あいたあとは%versus%です。"
+        weekdays: "曜日ごとの結果"
+        weekdays_label: "曜日ごとのあなたの結果"
+        breaks: "間隔があいたあとのペース"
+        time_of_day: "記録した時間帯ごとのペース"
+        too_few: "少なすぎ"
+        lock:
+            title: "間隔があくと遅くなる？"
+            text: "{0}間隔があいたあと、曜日ごと、時間帯ごとのペース。|[1,Inf[間隔があいたあと、曜日ごと、時間帯ごとのペース。2週間以上あいたあとの結果は%count%件です。"
+        note_logged: "時間帯は、完成した当日に結果を記録した時刻です。"
+        note_no_zone: "タイムゾーンを設定すると、時間帯ごとのペースが見られます。"
+        set_zone: "タイムゾーンを設定"
+    break:
+        "0": "同じ日"
+        "1": "1日"
+        2-7: "2〜7日"
+        8-14: "8〜14日"
+        15+: "15日以上"
+    time_of_day:
+        morning: "朝"
+        afternoon: "午後"
+        evening: "夕方"
+        night: "夜"
+    weekday:
+        "1": "月曜日"
+        "2": "火曜日"
+        "3": "水曜日"
+        "4": "木曜日"
+        "5": "金曜日"
+        "6": "土曜日"
+        "7": "日曜日"
+    weekday_short:
+        "1": "月"
+        "2": "火"
+        "3": "水"
+        "4": "木"
+        "5": "金"
+        "6": "土"
+        "7": "日"
+    nudges:
+        question: "インサイトをもっと正確にするには？"
+        title: "インサイトをもっと正確に"
+        action:
+            add: "タイムを追加"
+            results: "あなたの結果"
+            settings: "設定"
+        more_results:
+            title: "あと%count%件の結果を記録"
+            text_10: "ソロ結果が10件になるとインサイトが始まります。"
+            text_25: "25件になると得意と苦手が見え始めます。それぞれに10件の結果が必要です。"
+            text_50: "50件になると月ごとの調子とパズラープロフィールが安定します。"
+        mark_first_tries:
+            title: "パズルの最初の結果%count%件が初回として記録されていません"
+            text: "初回だった場合は、結果を編集して初回にしてください。初回の記録があると、予想タイムや得意・苦手マップがより公平になります。"
+        set_timezone:
+            title: "タイムゾーンを設定"
+            text: "設定すると、完成した当日に記録した結果から時間帯ごとのペースがわかります。"
+        mark_unboxed:
+            title: "箱の絵なしで解いたときは教えてください"
+            text: "箱の絵なしで解くのはずっと難しいです。記録がないと、その結果は調子の悪い日に見えてしまいます。"
+        unrated_puzzles:
+            title: "あなたのパズルのうち%count%個はまだ難易度がありません"
+            text: "十分な人数が解くと難易度がつきます。その結果も調子と中央値のグラフには含まれます。"
+        predictions_off:
+            title: "タイム予想がオフになっています"
+            text: "オフのあいだは、このページに予想タイムがありません。設定でいつでもオンに戻せます。"
+    chart:
+        results: "%count%件の結果"
+        profile:
+            better_than: "パズラーの%percent%%より上"
+            not_enough: "まだ結果が足りません"
+        form:
+            median_solver: "中央値"
+        histogram:
+            axis: "← 遅い · 中央値より速い →"
+            faster: "%from%〜%to%%速い"
+            slower: "%from%〜%to%%遅い"
+        expected:
+            axis_x: "予想"
+            axis_y: "あなたのタイム"
+            yours: "あなたのタイム：%time%"
+            expected: "予想：%time%"
+        learning:
+            attempt_1: "1回目"
+            attempt_2: "2回目"
+            attempt_3: "3回目"
+            attempt_4: "4回目以降"
+            first: "1回目"
+            first_short: "1回目"
+            faster: "1回目より%percent%%速い"

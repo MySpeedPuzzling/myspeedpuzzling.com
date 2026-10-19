@@ -110,8 +110,10 @@ final class NotifyWhenPuzzleSolvedTest extends KernelTestCase
         // lock on the id, the id lookup + GetRecentIdenticalSolvingTime, docs/features/duplicate-results.md), 3 look
         // for a twin right after the save (a savepoint pair + the scoped candidate query, DetectDuplicateResultsOnSave),
         // 4 dispatch RecalculateBadgesForPlayer + AwardXpForSolvingTime (async - a savepoint pair each, the
-        // doctrine_transaction middleware wraps every dispatch inside the open transaction)
-        self::assertLessThanOrEqual(44, count($queries), implode("\n", $queries));
+        // doctrine_transaction middleware wraps every dispatch inside the open transaction), 1 inserts the live
+        // side-by-side prediction row in the same flush (solving_time_prediction, prediction model v3 - the fit's
+        // parameters ride on the ratio read, no statement of their own)
+        self::assertLessThanOrEqual(45, count($queries), implode("\n", $queries));
     }
 
     public function testTeamMemberFollowedTwiceIsNotifiedOnceAndPrivateMembersNotifyNobody(): void

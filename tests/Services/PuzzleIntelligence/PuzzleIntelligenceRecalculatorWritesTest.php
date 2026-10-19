@@ -19,7 +19,11 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerPaceHistoryCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerPaceHistoryWriter;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerSkillCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleDifficultyCalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\PredictionModelFitter;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionModelParametersProvider;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionModelRecalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\RatingInsightsWriter;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -490,18 +494,31 @@ final class PuzzleIntelligenceRecalculatorWritesTest extends KernelTestCase
         $clock = new MockClock($now);
         $baselineCalculator = new PlayerBaselineCalculator($this->connection, $clock);
         $paceHistoryReadiness = new PaceHistoryReadiness($this->connection);
+        $paceTimelineLoader = new PaceTimelineLoader($this->connection, $baselineCalculator);
+
+        $paceHistoryWriter = new PlayerPaceHistoryWriter($this->connection, $baselineCalculator, new PlayerPaceHistoryCalculator($baselineCalculator), $paceHistoryReadiness);
 
         (new PuzzleIntelligenceRecalculator(
             $this->connection,
             $clock,
             $baselineCalculator,
-            new PlayerPaceHistoryWriter($this->connection, $baselineCalculator, new PlayerPaceHistoryCalculator($baselineCalculator), $paceHistoryReadiness),
+            $paceHistoryWriter,
             $paceHistoryReadiness,
-            new PuzzleDifficultyCalculator($baselineCalculator, new PaceTimelineLoader($this->connection, $baselineCalculator)),
+            new PuzzleDifficultyCalculator($baselineCalculator, $paceTimelineLoader),
             new PlayerSkillCalculator($this->connection, $clock),
-            new DerivedMetricsCalculator($this->connection),
+            new DerivedMetricsCalculator($this->connection, $paceTimelineLoader, $paceHistoryReadiness),
             new MspRatingCalculator($this->connection, $clock),
             new ImprovementRatioCalculator($this->connection),
+            $paceTimelineLoader,
+            new PredictionModelRecalculator(
+                $this->connection,
+                new TimePredictionCalculator(),
+                new PredictionModelFitter(),
+                new PredictionModelParametersProvider($this->connection),
+                $paceTimelineLoader,
+                $baselineCalculator,
+                $paceHistoryWriter,
+            ),
             new RatingInsightsWriter($this->connection, new ChangedRowsSync($this->connection)),
             new InsightsGeneration($this->connection, $clock),
         ))->recalculate();

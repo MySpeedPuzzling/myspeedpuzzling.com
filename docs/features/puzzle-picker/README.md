@@ -320,6 +320,23 @@ Why this shape:
 | Any puzzle + predicted-time budget (difficulty + baseline joined pre-LIMIT) | 4.7k → 2.6k | 57 ms |
 
 For the median player (12 solves, 25 items) everything is single-digit ms. Budget: p95 < 100 ms.
+
+Prediction model v3 (Insights 3b, 2026-10) made the statistical centre pace × drift × difficulty, with the shrunk
+difficulty for puzzles with 1-4 indices (most of the catalogue) and the thin-size rules (`StatisticalInputsSql::
+centreSql()`). What keeps it near main: the player's pace × drift is computed once per piece count (the sizes by a
+skip scan of the `pieces_count` index) and read per candidate from one array by a subscript (no NULLs in it: a
+subscript into an array with a null bitmap walks the bitmap); the prior of a puzzle with 1-4 indices is the finished
+value the daily fit stored, read from its copy on the difficulty row the query joins anyway
+(`puzzle_difficulty.prior_log`, no lookup of its own); the personal predictions of solved puzzles are a lookup in one
+constant jsonb object, no join. Every join of a small relation to the candidates (the unnested personal predictions,
+the per-size paces) was planned as a nested loop over it for every candidate on the budget filter - the planner sorts
+the candidates by the seeded order in a parallel worker and keeps that order through nested loops for the LIMIT, on
+a misestimate of the candidates (4.5k estimated, 38k real) - 3.7 s and 0.9 s measured; the same shape costs every
+index lookup per candidate, so the centre takes none it can avoid. Measured locally on a copy of the dev data
+(heaviest player, median of 5, fitted model, 2026-10-19): "any puzzle, ordered by gap" 87-90 → 107-108 ms, "any
+unsolved + predicted-time budget" 55-59 → 100-107 ms, the bulk prediction of 2,000 puzzles 16-19 → 33-36 ms. Main
+itself is plan-fragile on the budget filter: on the same copy it went from 55-59 ms to ~3 s after the difficulty rows
+were rewritten (its unnest join planned as that nested loop); v3 has no such join.
 No new index is required; if the "any puzzle" pool ever gets hot, a covering index
 `puzzle (approved, pieces_count, manufacturer_id) WHERE approved` and/or `hashtext()` instead of
 `md5()` are the cheap knobs. Verify with `EXPLAIN ANALYZE` on prod-size data before merging PR 1
@@ -358,6 +375,12 @@ tables in one query, and runs the existing per-puzzle math in a loop — a parit
 gap/prediction filter is active: personal predictions for the player's solved puzzles are passed
 into the SQL as `unnest(:ids, :predictions)` so *one* query still does filtering, ordering and
 sampling; `predicted = COALESCE(pp.predicted, round(pb.baseline_seconds * pd.difficulty_score))`.
+**Since prediction model v3 (Insights 3b, 2026-10)** the statistical fallback is the calculator's centre in SQL,
+`StatisticalInputsSql::centreSql()`: pace (own, or the 500-scaled one of a thin-size rule) × difficulty (median from 5
+indices, shrunk toward the brand prior for 1-4) × the player's drift, with the player's latest pace rows read once per
+statement (a DISTINCT ON relation) and the fitted parameters from `GetPlayerPredictions::modelParameters()` (taken with
+the personal pass, no query of its own). Puzzles with 1-4 solves now get a prediction; one without any index does not.
+Pinned equal to `GetPlayerPredictions` by `GetPuzzlePickerSuggestionsTest`, thin sizes included.
 Collections use the same service for their visible items. Cache the per-player result for a few
 minutes (Symfony cache pool, keyed by player + latest solve id) so "5 more"/back navigation is free.
 

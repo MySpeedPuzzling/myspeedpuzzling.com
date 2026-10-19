@@ -73,6 +73,16 @@ class PuzzleSolvingTime implements EntityWithEvents
     #[Column(nullable: true)]
     public null|int $predictedRangeHighSeconds = null;
 
+    // The 80 % range around the prediction (model v3 on; the range above is then the 50 % "likely" window). Null on
+    // predictions of older models and when not predicted
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|int $predictedRange80LowSeconds = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|int $predictedRange80HighSeconds = null;
+
     // Personal predictions only: which attempt was predicted, and the time of the attempt before it
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::SMALLINT, nullable: true)]
@@ -223,11 +233,16 @@ class PuzzleSolvingTime implements EntityWithEvents
             competitionSeries: $competitionSeries,
         );
 
+        // The shown prediction comes back as it was; its side-by-side rows (solving_time_prediction) went with the
+        // deleted row - the prediction backfill cron writes the current model's again (a reconstructed one: the live
+        // moment is gone), so nothing here has to rebuild them
         $time->predictable = $snapshot->predictable;
         $time->predictionMethod = $snapshot->predictionMethod;
         $time->predictedSeconds = $snapshot->predictedSeconds;
         $time->predictedRangeLowSeconds = $snapshot->predictedRangeLowSeconds;
         $time->predictedRangeHighSeconds = $snapshot->predictedRangeHighSeconds;
+        $time->predictedRange80LowSeconds = $snapshot->predictedRange80LowSeconds;
+        $time->predictedRange80HighSeconds = $snapshot->predictedRange80HighSeconds;
         $time->predictedAttemptNumber = $snapshot->predictedAttemptNumber;
         $time->predictionLastTimeSeconds = $snapshot->predictionLastTimeSeconds;
         $time->predictionSource = $snapshot->predictionSource;
@@ -503,6 +518,8 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->predictedSeconds = $result?->predictedSeconds;
         $this->predictedRangeLowSeconds = $result?->rangeLowSeconds;
         $this->predictedRangeHighSeconds = $result?->rangeHighSeconds;
+        $this->predictedRange80LowSeconds = $result?->range80LowSeconds;
+        $this->predictedRange80HighSeconds = $result?->range80HighSeconds;
         $this->predictedAttemptNumber = $result?->isPersonalized === true ? $result->predictedAttemptNumber : null;
         $this->predictionLastTimeSeconds = $result?->isPersonalized === true ? $result->lastTimeSeconds : null;
         $this->predictionSource = $prediction->source;
@@ -647,6 +664,8 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->predictedSeconds = null;
         $this->predictedRangeLowSeconds = null;
         $this->predictedRangeHighSeconds = null;
+        $this->predictedRange80LowSeconds = null;
+        $this->predictedRange80HighSeconds = null;
         $this->predictedAttemptNumber = null;
         $this->predictionLastTimeSeconds = null;
         $this->predictionSource = null;

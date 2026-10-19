@@ -11,7 +11,9 @@ use SpeedPuzzling\Web\Query\GetPlayerPrediction;
 use SpeedPuzzling\Web\Query\GetSuspicionEntryFacts;
 use SpeedPuzzling\Web\Query\GetSuspiciousTimeEvidence;
 use SpeedPuzzling\Web\Query\GetSuspiciousTimeReferences;
+use SpeedPuzzling\Web\Value\DifficultySource;
 use SpeedPuzzling\Web\Value\PaceRequest;
+use SpeedPuzzling\Web\Value\PaceSource;
 use SpeedPuzzling\Web\Value\PuzzlingType;
 use SpeedPuzzling\Web\Value\SolveMoment;
 use SpeedPuzzling\Web\Value\SuspicionAssessment;
@@ -104,6 +106,17 @@ readonly final class SingleTimeSuspicionCheck
 
         if ($solo) {
             $prediction = $this->getPlayerPrediction->forPuzzle($playerId, $puzzleId, $excludeTimeId, $moment);
+
+            // Like the scan: a first try's prediction counts only as v2 made them, on a rated puzzle and the player's
+            // own pace - one resting on a few indices shrunk toward a prior or on the 500-piece pace scaled to a thin
+            // size (prediction model v3) is no expectation for the verification
+            if (
+                $prediction !== null && $prediction->isPersonalized === false
+                && ($prediction->difficultySource !== DifficultySource::Solves || $prediction->paceSource === PaceSource::Scaled500)
+            ) {
+                $prediction = null;
+            }
+
             $predictedSeconds = $prediction?->predictedSeconds;
             // What a stored prediction keeps as prediction_last_time_seconds: the attempt a personal prediction came from
             $previousAttemptSeconds = $prediction?->isPersonalized === true ? $prediction->lastTimeSeconds : null;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\FirstAttemptSet;
 use SpeedPuzzling\Web\Value\DifficultyTier;
 use SpeedPuzzling\Web\Value\MetricConfidence;
 use Symfony\Contracts\Service\ResetInterface;
@@ -13,8 +14,7 @@ final class PuzzleDifficultyCalculator implements ResetInterface
     private const int MINIMUM_INDICES = 5;
     private const float OUTLIER_CEILING = 5.0;
 
-    /** @var array<string, list<array{seconds_to_solve: int|string, baseline_seconds: int|string}>>|null */
-    private null|array $indicesCache = null;
+    private null|FirstAttemptSet $preloaded = null;
 
     public function __construct(
         private readonly PlayerBaselineCalculator $baselineCalculator,
@@ -24,35 +24,25 @@ final class PuzzleDifficultyCalculator implements ResetInterface
 
     /**
      * Bulk-load every qualifying first attempt with its solver's pace as of the solve: one query for
-     * the solves, one for the whole pace history, the lookups in PHP.
+     * the solves, one for the whole pace history, the lookups in PHP. Returns the set, which the
+     * batch's prediction model step works on too.
      */
-    public function preloadAllData(): void
+    public function preloadAllData(null|PaceTimeline $timeline = null): FirstAttemptSet
     {
-        $timeline = $this->paceTimelineLoader->all();
-        $cache = [];
-
-        foreach ($this->baselineCalculator->iterateQualifyingFirstAttempts() as $row) {
-            $pace = $timeline->paceAt($row['player_id'], (int) $row['pieces_count'], (float) $row['solved_ts'], (float) $row['tracked_ts']);
-
-            if ($pace !== null) {
-                $cache[$row['puzzle_id']][] = [
-                    'seconds_to_solve' => $row['seconds_to_solve'],
-                    'baseline_seconds' => $pace,
-                ];
-            }
-        }
-
-        $this->indicesCache = $cache;
+        return $this->preloaded = FirstAttemptSet::build(
+            $this->baselineCalculator->iterateQualifyingFirstAttempts(paceOrder: true),
+            $timeline ?? $this->paceTimelineLoader->all(),
+        );
     }
 
     public function clearPreloadedData(): void
     {
-        $this->indicesCache = null;
+        $this->preloaded = null;
     }
 
     public function reset(): void
     {
-        $this->indicesCache = null;
+        $this->preloaded = null;
     }
 
     /**
@@ -68,6 +58,10 @@ final class PuzzleDifficultyCalculator implements ResetInterface
      */
     public function calculateForPuzzle(string $puzzleId): array
     {
+        if ($this->preloaded !== null) {
+            return $this->calculateFromIndices($this->preloaded->indicesOfPuzzle($puzzleId));
+        }
+
         return $this->calculateFromSolves($this->fetchFirstAttemptsWithBaselines($puzzleId) ?? []);
     }
 
@@ -113,8 +107,25 @@ final class PuzzleDifficultyCalculator implements ResetInterface
      */
     public function calculateFromSolves(array $solves): array
     {
-        $indices = $this->computeDifficultyIndices($solves);
+        return $this->calculateFromIndices($this->computeDifficultyIndices($solves));
+    }
 
+    /**
+     * calculateFromSolves() from the indices themselves (FirstAttemptSet holds them).
+     *
+     * @param list<float> $indices
+     * @return array{
+     *     difficulty_score: float|null,
+     *     difficulty_tier: DifficultyTier|null,
+     *     confidence: MetricConfidence,
+     *     sample_size: int,
+     *     indices_p25: float|null,
+     *     indices_p75: float|null,
+     *     sum_log_indices: float,
+     * }
+     */
+    public function calculateFromIndices(array $indices): array
+    {
         // Sorted before summing: the same indices always give the same sum, whatever order they came in
         sort($indices);
 
@@ -148,16 +159,12 @@ final class PuzzleDifficultyCalculator implements ResetInterface
 
     /**
      * First attempt of every qualifying player of a puzzle, with the player's pace as of that solve;
-     * null while the pace history is not built (never with preloaded data - the batch builds it first).
+     * null while the pace history is not built.
      *
      * @return null|list<array{seconds_to_solve: int|string, baseline_seconds: int|string}>
      */
     private function fetchFirstAttemptsWithBaselines(string $puzzleId): null|array
     {
-        if ($this->indicesCache !== null) {
-            return $this->indicesCache[$puzzleId] ?? [];
-        }
-
         $loaded = $this->paceTimelineLoader->forPuzzleFirstAttempts($puzzleId);
 
         if ($loaded === null) {

@@ -147,7 +147,7 @@ SELECT
     pst.seconds_to_solve,
     pst.puzzling_type,
     EXTRACT(EPOCH FROM COALESCE(pst.finished_at, pst.tracked_at))::bigint AS solved_at,
-    CASE WHEN pst.puzzling_type = 'solo' AND pst.predictable = true THEN pst.predicted_seconds END AS predicted_seconds,
+    CASE WHEN pst.puzzling_type = 'solo' AND pst.predictable = true AND stp.difficulty_source IS DISTINCT FROM 'shrunk' AND stp.pace_source IS DISTINCT FROM 'scaled_500' THEN pst.predicted_seconds END AS predicted_seconds,
     CASE WHEN pst.puzzling_type = 'solo' AND pst.predictable = true THEN pst.prediction_last_time_seconds END AS previous_attempt_seconds,
     CASE
         WHEN pst.puzzling_type = 'solo' AND pst.predictable = true AND pst.prediction_last_time_seconds IS NOT NULL
@@ -179,6 +179,10 @@ LEFT JOIN suspicious_time_case sc ON sc.time_id = pst.id
 LEFT JOIN player_baseline pb ON pb.player_id = pst.player_id AND pb.pieces_count = p.pieces_count
 LEFT JOIN puzzle_difficulty pd ON pd.puzzle_id = pst.puzzle_id
 LEFT JOIN suspicious_time_puzzle_confirmation conf ON conf.puzzle_id = pst.puzzle_id
+-- A first try's stored prediction counts only as v2 made them: on a rated puzzle and the player's own pace - one resting
+-- on a few indices shrunk toward a prior or on the 500-piece pace scaled to a thin size (prediction model v3,
+-- solving_time_prediction.difficulty_source / pace_source) is no expectation for the verification
+LEFT JOIN solving_time_prediction stp ON stp.time_id = pst.id AND stp.predictor = 'statistical' AND stp.model_version = pst.prediction_model_version
 WHERE pst.seconds_to_solve > 0
     AND pst.suspicious = false
     AND p.pieces_count > 0

@@ -162,8 +162,13 @@ readonly final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange
     private function upsertDifficulty(string $puzzleId, array $result, \DateTimeImmutable $now): void
     {
         $this->connection->executeStatement("
-            INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, difficulty_tier, confidence, sample_size, indices_p25, indices_p75, sum_log_indices, computed_at)
-            VALUES (:puzzleId, :score, :tier, :confidence, :sampleSize, :indicesP25, :indicesP75, :sumLogIndices, :now)
+            INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, difficulty_tier, confidence, sample_size, indices_p25, indices_p75, sum_log_indices, prior_log, computed_at)
+            VALUES (
+                :puzzleId, :score, :tier, :confidence, :sampleSize, :indicesP25, :indicesP75, :sumLogIndices,
+                -- A new row carries the puzzle's prior of the last fit (PredictionModelRecalculator::syncDifficultyPriors())
+                (SELECT prior_log FROM difficulty_prior_puzzle WHERE puzzle_id = :puzzleId),
+                :now
+            )
             ON CONFLICT (puzzle_id) DO UPDATE SET
                 difficulty_score = EXCLUDED.difficulty_score,
                 difficulty_tier = EXCLUDED.difficulty_tier,

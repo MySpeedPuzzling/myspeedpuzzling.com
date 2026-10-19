@@ -35,6 +35,22 @@ readonly final class SolvingTimePrediction
         return new self(null, $source, $modelVersion);
     }
 
+    /**
+     * What is shown for the solve (the columns on puzzle_solving_time): a first try of a puzzle without any difficulty
+     * index rests on a prior alone - stored side by side (solving_time_prediction), not shown until the Insights
+     * estimates are (Insights plan Phase 6).
+     */
+    public function forDisplay(): self
+    {
+        $result = $this->result;
+
+        if ($result !== null && $result->isPersonalized === false && $result->kIndices === 0) {
+            return self::notPredictable($this->source, $this->modelVersion);
+        }
+
+        return $this;
+    }
+
     public function isPredictable(): bool
     {
         return $this->result !== null;

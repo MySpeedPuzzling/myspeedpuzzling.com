@@ -1012,13 +1012,40 @@ First delivery = store + backfill; the UI comes after it.
 - [x] Backfill on production 2026-09-30: 393,074 times of 6,977 players in 27 min (first attempt OOM-killed by Sentry
       console tracing - command excluded since 7581129d)
 - [x] Cron `34 1,7,13,19 * * *` Prague in lily.srv (c32e756), Sentry monitor `backfill-solving-time-predictions`
-- [ ] Calibration check (first numbers after the backfill): personal predictions 74 % inside their range, median
-      -0.3 % (well centred); statistical only 32 % inside the p25-p75 range (a calibrated IQR holds ~50 %) and players
-      are a median 9.8 % faster than predicted - look into it before the UI shows "faster than expected" on first solves
-- [ ] `--recompute-reconstructed` on the backfill command, built together with the calibration fix: after a
-      `TimePredictionCalculator::MODEL_VERSION` bump it resets the `reconstructed` rows to NULL (a genuine bulk
-      `UPDATE`, commented as such) so the next run rebuilds them with the new model - `live` rows stay, they are
-      history. Without it the ~445k reconstructed rows keep model version 1 and only new times get the new model
+- [x] Calibration check (first numbers after the backfill): personal predictions 74 % inside their range, median
+      -0.3 % (well centred); statistical only 32 % inside the p25-p75 range and players a median 9.8 % faster than
+      predicted - fixed by prediction model v3 (Insights 3b, 2026-10): on a time split first tries 50.8 % inside the
+      50 % window, bias -0.2 % (README "Step 8", Accuracy)
+- [x] `--recompute-reconstructed` on the backfill command (Insights 3b): selects the shown predictions reconstructed by
+      an older model version (no bulk reset to NULL); `live` rows stay. Production run: prediction-history.md "Production
+      run for v3"
+- [ ] Model v3 rollout on lily.srv (after the deploy): run `myspeedpuzzling:fit-prediction-model` once, then the
+      detached `backfill-solving-time-predictions --recompute-reconstructed` (~1 h, resumable, prediction-history.md
+      "Production run for v3"); cron rows `11 4 * * * myspeedpuzzling:fit-prediction-model` and
+      `51 4 * * * myspeedpuzzling:report-prediction-calibration` (Prague; the report after the fit)
+- [ ] Time verification on shrunk and 500-scaled predictions (model v3): the scan and the form check ignore first-try
+      predictions of puzzles with 1-4 indices and those resting on the 500-piece pace scaled to a thin size
+      (`pace_source = 'scaled_500'`) - they keep the expectations they had; using them would cover more first tries -
+      decide, and bump `SuspiciousTimeClassifier::VERSION` with it
+- [ ] Stale leave-one-out prior after a piece-count fix or a brand merge, until the next daily fit: the puzzle's own
+      share (`difficulty_prior_puzzle`) is subtracted from a group it was never part of (or no longer is) - bounded
+      by a day; refit on such catalogue changes or keep the share per group (review of Insights 3b)
+- [ ] The fit's centre uses the pace-history row's baseline (as of the attempt), the live prediction today's
+      `player_baseline` - equal for a direct baseline, an interpolated one can differ slightly; measure whether it
+      matters for the window calibration (review of Insights 3b)
+- [ ] `RepeatHistory` (the repeat window's fit and evaluation) does not leave out repeats of the same moment the way
+      `RepeatResiduals::beforeEverySolve()` does for live/reconstructed windows (review of Insights 3b)
+- [ ] Live predictions before the first fit (the minutes between the deploy and `fit-prediction-model`) still write a
+      v3 side row from the defaults (only the backfill waits for the fit) - a live row is history and stays; run the
+      fit right after the deploy
+- [ ] Prior-only predictions (k = 0) are stored side by side only (`SolvingTimePrediction::forDisplay()`); showing them is
+      Insights Phase 6 (estimates, marked as estimated)
+- [ ] Live drift / spread lag the batch by up to 15 minutes (only the batch writes pace-history rows): a live prediction
+      right after another solve of the same piece count misses that solve's residual; the reconstruction later has it
+- [ ] `solving_time_prediction` keeps one row per solo time per predictor and model version (~460k per version): prune
+      the rows of versions nobody compares any more (after Phase 5's evaluation)
+- [ ] Calibration buckets of repeats and of odd / 1500+ sizes are thin: revisit `PredictionModelFitter::MINIMUM_BUCKET_SAMPLES`
+      and the fallbacks after a few months of live rows (`report-prediction-calibration`)
 - [ ] Per-time outcome in the player's history (puzzle page "my times", profile): range, "12 % faster than predicted", inside/outside the range, members-only, hidden for players who opted out of predictions (stored anyway), decide for unboxed/suspicious times
 - [ ] Mark `reconstructed` predictions in the UI ("reconstructed from your earlier solves") vs `live`
 - [ ] Player-level accuracy: how often inside the range, average beat, trend over time (Insights section)

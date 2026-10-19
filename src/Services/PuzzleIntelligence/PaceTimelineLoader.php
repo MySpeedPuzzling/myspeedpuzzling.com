@@ -21,7 +21,9 @@ readonly final class PaceTimelineLoader
         h.pieces_count,
         EXTRACT(EPOCH FROM h.valid_from) AS solved_ts,
         EXTRACT(EPOCH FROM h.valid_from_tracked_at) AS tracked_ts,
-        h.baseline_seconds
+        h.baseline_seconds,
+        h.drift,
+        h.spread
     ';
 
     public function __construct(
@@ -30,13 +32,29 @@ readonly final class PaceTimelineLoader
     ) {
     }
 
-    public function all(null|float $scalingExponent = null): PaceTimeline
+    /**
+     * Every row, without their drift and spread for the lookups (the batch and the evaluation compute their own -
+     * PredictionEngine); with $withStoredStates the stored drift and spread per row on the side
+     * (PaceTimeline::storedStates() - what the prediction model's step writes only the changes against).
+     */
+    public function all(null|float $scalingExponent = null, bool $withStoredStates = false): PaceTimeline
     {
-        $timeline = new PaceTimeline($this->baselineCalculator, $scalingExponent);
+        $timeline = new PaceTimeline($this->baselineCalculator, $scalingExponent, withStates: false);
+        $states = $withStoredStates ? 'h.qualifying_count, h.drift, h.spread' : 'NULL AS qualifying_count, NULL AS drift, NULL AS spread';
 
-        $this->addRows($timeline, $this->connection->executeQuery(
-            'SELECT ' . self::COLUMNS . ' FROM player_pace_history h ORDER BY h.player_id, h.pieces_count, h.valid_from, h.valid_from_tracked_at, h.qualifying_count',
-        )->iterateAssociative());
+        $rows = $this->connection->executeQuery(
+            "SELECT h.player_id, h.pieces_count, EXTRACT(EPOCH FROM h.valid_from) AS solved_ts, EXTRACT(EPOCH FROM h.valid_from_tracked_at) AS tracked_ts, h.baseline_seconds, {$states}
+            FROM player_pace_history h ORDER BY h.player_id, h.pieces_count, h.valid_from, h.valid_from_tracked_at, h.qualifying_count",
+        )->iterateNumeric();
+
+        foreach ($rows as $row) {
+            /** @var array{0: string, 1: int|string, 2: float|int|string, 3: float|int|string, 4: int|string, 5: null|int|string, 6: null|float|string, 7: null|float|string} $row */
+            $timeline->add($row[0], (int) $row[1], (float) $row[2], (float) $row[3], (int) $row[4]);
+
+            if ($withStoredStates) {
+                $timeline->addStoredState($row[0], (int) $row[1], (int) $row[5], $row[6] !== null ? (float) $row[6] : null, $row[7] !== null ? (float) $row[7] : null);
+            }
+        }
 
         return $timeline;
     }
@@ -160,8 +178,16 @@ readonly final class PaceTimelineLoader
     private function addRows(PaceTimeline $timeline, iterable $rows): void
     {
         foreach ($rows as $row) {
-            /** @var array{player_id: string, pieces_count: int|string, solved_ts: float|int|string, tracked_ts: float|int|string, baseline_seconds: int|string} $row */
-            $timeline->add($row['player_id'], (int) $row['pieces_count'], (float) $row['solved_ts'], (float) $row['tracked_ts'], (int) $row['baseline_seconds']);
+            /** @var array{player_id: string, pieces_count: int|string, solved_ts: float|int|string, tracked_ts: float|int|string, baseline_seconds: int|string, drift: null|float|string, spread: null|float|string} $row */
+            $timeline->add(
+                $row['player_id'],
+                (int) $row['pieces_count'],
+                (float) $row['solved_ts'],
+                (float) $row['tracked_ts'],
+                (int) $row['baseline_seconds'],
+                $row['drift'] !== null ? (float) $row['drift'] : null,
+                $row['spread'] !== null ? (float) $row['spread'] : null,
+            );
         }
     }
 }

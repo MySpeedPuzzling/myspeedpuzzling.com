@@ -6,6 +6,16 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Results\TimePredictionResult;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\BrandPiecesPrior;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\DifficultyPriors;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\PriorContext;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\PriorEstimate;
+use SpeedPuzzling\Web\Value\DifficultySource;
+use SpeedPuzzling\Web\Value\PaceSource;
+use SpeedPuzzling\Web\Value\PiecesGroup;
+use SpeedPuzzling\Web\Value\PredictionModelParameters;
+use SpeedPuzzling\Web\Value\StatisticalPredictionInputs;
+use SpeedPuzzling\Web\Value\WindowBucket;
 
 /**
  * Pure time-prediction math shared by the single-puzzle GetPlayerPrediction and
@@ -15,20 +25,37 @@ use SpeedPuzzling\Web\Results\TimePredictionResult;
  * improvement ratio for the upcoming attempt number and the gap since the last
  * solve, blended with Holt's damped trend once there are ≥ 2 attempts, floored
  * at 70 % of the personal best. Statistical prediction (never solved): the
- * player's baseline for the piece count × the puzzle's difficulty score with the
- * puzzle's p25/p75 difficulty indices as the range.
+ * player's pace for the piece count × the puzzle's difficulty × the player's
+ * drift. Both with calibrated 50 / 80 % windows (README "Step 8: Time Prediction").
  */
 final readonly class TimePredictionCalculator
 {
+    public function __construct(
+        private DifficultyPriors $priors = new DifficultyPriors([new BrandPiecesPrior()]),
+    ) {
+    }
+
     /**
      * Stored with every solving-time prediction. Bump it whenever a change here (or in the inputs:
      * baselines, difficulty, improvement ratios) changes what gets predicted, so accuracy
      * statistics never mix two models silently.
      *
      * 1 = 2026-09-30, difficulty indices divided by today's baselines; 2 = 2026-10, as-of difficulty
-     * indices (the solver's pace-history row before the solve, puzzle-intelligence README "Pace history").
+     * indices (the solver's pace-history row before the solve, puzzle-intelligence README "Pace history");
+     * 3 = 2026-10, drift, shrunk difficulty for 1-4 indices, the 500-scaled pace for thin sizes and
+     * calibrated 50 / 80 % windows (README "Step 8: Time Prediction").
      */
-    public const int MODEL_VERSION = 2;
+    public const int MODEL_VERSION = 3;
+
+    /** From this many difficulty indices on a puzzle is rated (its median is the difficulty) */
+    public const int RATED_INDICES = 5;
+
+    private const int DRIFT_WINDOW = 10;
+    private const int DRIFT_SHRINK = 5;
+    private const float DRIFT_CLIP = 0.5;
+    private const int SPREAD_WINDOW = 20;
+    private const int SPREAD_SHRINK = 5;
+    private const float SPREAD_CLIP = 0.5;
 
     public const float DEFAULT_IMPROVEMENT_RATIO = 0.90;
 
@@ -90,10 +117,20 @@ final readonly class TimePredictionCalculator
     }
 
     /**
+     * The prediction for a repeat: last time × an improvement ratio, blended with Holt's damped trend once there are
+     * 2+ attempts, floored at 70 % of the personal best. The window comes from the player's own repeat spread (the
+     * stored repeat predictions' residuals, playerSpread()), calibrated per WindowBucket.
+     *
      * @param non-empty-list<int> $times chronologically ordered solve times of the player on the puzzle
      */
-    public function personal(array $times, float $improvementRatio): TimePredictionResult
-    {
+    public function personal(
+        array $times,
+        float $improvementRatio,
+        null|float $repeatSpread = null,
+        int $piecesCount = 500,
+        null|PredictionModelParameters $parameters = null,
+    ): TimePredictionResult {
+        $parameters ??= PredictionModelParameters::defaults();
         $count = count($times);
         $bestTime = min($times);
         $lastTime = $times[$count - 1];
@@ -114,65 +151,201 @@ final readonly class TimePredictionCalculator
         }
 
         // Safety floor: can't predict faster than 30% improvement over personal best
-        $predicted = max($predicted, (int) round($bestTime * 0.70));
+        $predicted = max($predicted, (int) round($bestTime * 0.70), 1);
 
-        // Range calculation
-        if ($count >= 2) {
-            // Use residual-based range from Holt's fitted values
-            $fittedValues = self::holtsFittedValues($times);
-            $residuals = [];
-
-            for ($i = 0; $i < $count; $i++) {
-                $residuals[] = abs($times[$i] - $fittedValues[$i]);
-            }
-
-            $mad = array_sum($residuals) / count($residuals);
-            $spread = max($mad * 1.5, $predicted * 0.05);
-        } else {
-            // N=1: wider spread (15% or 2 minutes minimum)
-            $spread = max($predicted * 0.15, 120);
-        }
-
-        $rangeLow = (int) round($predicted - $spread);
-        $rangeHigh = (int) round($predicted + $spread);
-
-        // Safety: range low can't be below 70% of best time
-        $rangeLow = max($rangeLow, (int) round($bestTime * 0.70));
-        $rangeLow = max($rangeLow, 1);
+        $spread = $repeatSpread ?? PredictionModelParameters::GLOBAL_SPREAD;
+        $bucket = WindowBucket::repeat($spread, $parameters->repeatConsistencyEdges, PiecesGroup::fromPiecesCount($piecesCount));
+        $window = self::window((float) $predicted, $parameters->repeatSigma($spread), $parameters->quantilesFor($bucket));
 
         return new TimePredictionResult(
             predictedSeconds: $predicted,
-            rangeLowSeconds: $rangeLow,
-            rangeHighSeconds: $rangeHigh,
+            rangeLowSeconds: $window[1],
+            rangeHighSeconds: $window[2],
             difficultyForPlayer: 0.0,
             isPersonalized: true,
             personalSolveCount: $count,
             predictedAttemptNumber: $count + 1,
             lastTimeSeconds: $lastTime,
+            range80LowSeconds: $window[0],
+            range80HighSeconds: $window[3],
+            windowBucket: $bucket->key(),
         );
     }
 
-    public function statistical(int $baselineSeconds, float $difficultyScore, null|float $p25, null|float $p75): TimePredictionResult
-    {
-        $predictedSeconds = (int) round($baselineSeconds * $difficultyScore);
+    /**
+     * The prediction for a first try: the player's pace × the puzzle's difficulty × the player's drift, with a
+     * calibrated window (README "Step 8: Time Prediction"). Null when the inputs do not carry a prediction: no pace
+     * for the piece count, or no difficulty - a puzzle without indices counts only with a prior and $allowPriorOnly
+     * (surfaces do not show those yet, Insights plan Phase 6).
+     */
+    public function statistical(
+        StatisticalPredictionInputs $inputs,
+        null|PredictionModelParameters $parameters = null,
+        bool $allowPriorOnly = false,
+    ): null|TimePredictionResult {
+        $parameters ??= PredictionModelParameters::defaults();
+        $prior = $this->priors->priorFor($inputs->prior);
+        $difficulty = self::logDifficulty($inputs->kIndices, $inputs->sumLogIndices, $inputs->difficultyScore, $prior?->logDifficulty, $parameters->tau);
 
-        // Use pre-computed IQR, with fallback for pre-migration state
-        $p25 ??= $difficultyScore * 0.85;
-        $p75 ??= $difficultyScore * 1.15;
+        if ($difficulty === null) {
+            if ($prior === null || $inputs->kIndices > 0 || $allowPriorOnly === false) {
+                return null;
+            }
 
-        $rangeLow = (int) round($baselineSeconds * $p25);
-        $rangeHigh = (int) round($baselineSeconds * $p75);
+            $difficulty = [$prior->logDifficulty, $prior->sourceWithoutSolves];
+        }
 
-        // Safety bounds
-        $rangeLow = (int) max($rangeLow, (int) round($predictedSeconds * 0.30), 1);
-        $rangeHigh = (int) min($rangeHigh, (int) round($predictedSeconds * 3.00));
+        $baseline = self::baselineFor($inputs, $parameters);
+
+        if ($baseline === null) {
+            return null;
+        }
+
+        [$baselineSeconds, $drift, $spread, $paceSource] = $baseline;
+        [$logDifficulty, $source] = $difficulty;
+
+        // pace × drift first, then the difficulty: the order of operations the Picker's SQL twin uses
+        // (StatisticalInputsSql::centreSql()) - a rated puzzle multiplies by its score itself
+        $multiplier = $source === DifficultySource::Solves && $inputs->difficultyScore !== null ? $inputs->difficultyScore : exp($logDifficulty);
+        $centre = $baselineSeconds * exp($drift) * $multiplier;
+        $group = PiecesGroup::fromPiecesCount($inputs->piecesCount);
+        $spread ??= PredictionModelParameters::GLOBAL_SPREAD;
+        $bucket = WindowBucket::firstTry($spread, $parameters->firstTryConsistencyEdges, $inputs->kIndices, $group);
+        $window = self::window($centre, $parameters->firstTrySigma($spread, $inputs->kIndices, $group), $parameters->quantilesFor($bucket));
 
         return new TimePredictionResult(
-            predictedSeconds: $predictedSeconds,
-            rangeLowSeconds: $rangeLow,
-            rangeHighSeconds: $rangeHigh,
-            difficultyForPlayer: $difficultyScore,
+            predictedSeconds: max((int) round($centre), 1),
+            rangeLowSeconds: $window[1],
+            rangeHighSeconds: $window[2],
+            difficultyForPlayer: round(exp($logDifficulty), 4),
+            range80LowSeconds: $window[0],
+            range80HighSeconds: $window[3],
+            difficultySource: $source,
+            kIndices: $inputs->kIndices,
+            priorLog: $prior?->logDifficulty,
+            logDifficulty: round($logDifficulty, 6),
+            windowBucket: $bucket->key(),
+            paceSource: $paceSource,
         );
+    }
+
+    public function prior(PriorContext $context): null|PriorEstimate
+    {
+        return $this->priors->priorFor($context);
+    }
+
+    /**
+     * The puzzle's log difficulty: the log of the median index from 5 indices on (the shown difficulty), the shrunk
+     * mean (Σ log indices + τ × prior) ÷ (k + τ) for 1-4 indices - toward the average puzzle (0.0) without a prior.
+     * Null for k = 0 (the caller decides whether a prior alone may stand in).
+     *
+     * @return null|array{0: float, 1: DifficultySource}
+     */
+    public static function logDifficulty(int $k, null|float $sumLogIndices, null|float $difficultyScore, null|float $priorLog, float $tau): null|array
+    {
+        if ($k >= self::RATED_INDICES) {
+            return $difficultyScore !== null && $difficultyScore > 0.0 ? [log($difficultyScore), DifficultySource::Solves] : null;
+        }
+
+        if ($k <= 0 || $sumLogIndices === null) {
+            return null;
+        }
+
+        return [($sumLogIndices + $tau * ($priorLog ?? 0.0)) / ($k + $tau), DifficultySource::Shrunk];
+    }
+
+    /**
+     * The pace a first try is predicted from, with the drift and spread that belong to it: the player's 500-piece
+     * pace scaled by the group's size exponent while their own baseline at a thin size rests on fewer first attempts
+     * than the fitted threshold, else their own baseline (direct: with its drift and spread; interpolated or
+     * extrapolated: no drift, the global spread).
+     *
+     * @return null|array{0: float, 1: float, 2: null|float, 3: PaceSource} baseline seconds, drift, spread, what the pace is
+     */
+    public static function baselineFor(StatisticalPredictionInputs $inputs, PredictionModelParameters $parameters): null|array
+    {
+        $rule = $inputs->piecesCount !== 500 ? $parameters->thinSizeRule(PiecesGroup::fromPiecesCount($inputs->piecesCount)) : null;
+        $ownCount = $inputs->ownBaselineDirect ? $inputs->ownQualifyingCount : 0;
+
+        if ($rule !== null && $inputs->pace500Seconds !== null && $inputs->pace500Seconds > 0 && $ownCount < $rule['max_own_solves']) {
+            return [
+                $inputs->pace500Seconds * ($inputs->piecesCount / 500) ** $rule['alpha'],
+                $inputs->drift500 ?? 0.0,
+                $inputs->spread500,
+                PaceSource::Scaled500,
+            ];
+        }
+
+        if ($inputs->ownBaselineSeconds === null || $inputs->ownBaselineSeconds <= 0) {
+            return null;
+        }
+
+        if ($inputs->ownBaselineDirect) {
+            return [(float) $inputs->ownBaselineSeconds, $inputs->ownDrift ?? 0.0, $inputs->ownSpread, PaceSource::Own];
+        }
+
+        return [(float) $inputs->ownBaselineSeconds, 0.0, null, PaceSource::Interpolated];
+    }
+
+    /**
+     * The window around a centre: centre × exp(q × sigma) for the 10 / 25 / 75 / 90 % quantiles, whole seconds, at
+     * least 1 second, the inner window never wider than the outer one.
+     *
+     * @param array{0: float, 1: float, 2: float, 3: float} $quantiles
+     * @return array{0: int, 1: int, 2: int, 3: int} 80 % low, 50 % low, 50 % high, 80 % high
+     */
+    public static function window(float $centre, float $sigma, array $quantiles): array
+    {
+        $bounds = array_map(
+            static fn (float $quantile): int => max((int) round($centre * exp($quantile * $sigma)), 1),
+            $quantiles,
+        );
+
+        return [
+            min($bounds[0], $bounds[1]),
+            $bounds[1],
+            $bounds[2],
+            max($bounds[2], $bounds[3]),
+        ];
+    }
+
+    /**
+     * Improvement drift (log) from a pair's residuals ln(actual ÷ predicted without drift), oldest first: the mean
+     * of the last 10, each clipped at ±0.5 like the spread's (one typo time moves the next first tries by at most
+     * ~3 %, not by ~14 %), shrunk toward 0 with few (÷ (n + 5)).
+     *
+     * @param list<float> $residuals
+     */
+    public static function drift(array $residuals): float
+    {
+        $sum = 0.0;
+        $last = array_slice($residuals, -self::DRIFT_WINDOW);
+
+        foreach ($last as $residual) {
+            $sum += max(-self::DRIFT_CLIP, min(self::DRIFT_CLIP, $residual));
+        }
+
+        return round($sum / (count($last) + self::DRIFT_SHRINK), 4);
+    }
+
+    /**
+     * A player's spread (log): the root mean square of their last 20 residuals, each clipped at ±0.5 (one wild solve
+     * does not make a player inconsistent), shrunk toward the global spread with few (+ 5 pseudo-residuals).
+     *
+     * @param list<float> $residuals oldest first
+     */
+    public static function playerSpread(array $residuals): float
+    {
+        $sum = 0.0;
+        $last = array_slice($residuals, -self::SPREAD_WINDOW);
+
+        foreach ($last as $residual) {
+            $sum += min(abs($residual), self::SPREAD_CLIP) ** 2;
+        }
+
+        $global = PredictionModelParameters::GLOBAL_SPREAD ** 2;
+
+        return round(sqrt(($sum + self::SPREAD_SHRINK * $global) / (count($last) + self::SPREAD_SHRINK)), 4);
     }
 
     /**
@@ -194,30 +367,5 @@ final readonly class TimePredictionCalculator
         }
 
         return (int) round($level + self::HOLT_PHI * $trend);
-    }
-
-    /**
-     * Returns fitted values from Holt's damped trend for residual calculation.
-     *
-     * @param non-empty-list<int> $times
-     * @return list<float>
-     */
-    private static function holtsFittedValues(array $times): array
-    {
-        $count = count($times);
-
-        $level = (float) $times[0];
-        $trend = (float) ($times[1] - $times[0]);
-
-        $fittedValues = [(float) $times[0]];
-
-        for ($i = 1; $i < $count; $i++) {
-            $fittedValues[] = $level + self::HOLT_PHI * $trend;
-            $prevLevel = $level;
-            $level = self::HOLT_ALPHA * $times[$i] + (1.0 - self::HOLT_ALPHA) * ($level + self::HOLT_PHI * $trend);
-            $trend = self::HOLT_BETA * ($level - $prevLevel) + (1.0 - self::HOLT_BETA) * self::HOLT_PHI * $trend;
-        }
-
-        return $fittedValues;
     }
 }

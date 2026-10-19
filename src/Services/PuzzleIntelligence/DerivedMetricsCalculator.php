@@ -16,43 +16,28 @@ final class DerivedMetricsCalculator implements ResetInterface
     private const int MINIMUM_FOR_BOX_DEPENDENCE_BOXED = 5;
     private const int MINIMUM_FOR_IMPROVEMENT_CEILING = 20;
 
-    /** @var array<string, list<array{puzzle_id: string, player_id: string, seconds_to_solve: int|string, first_attempt: bool, unboxed: bool, baseline_seconds: int|string|null, solve_date: string}>>|null */
+    /** @var array<string, list<array{player_id: string, seconds_to_solve: int, first_attempt: bool, unboxed: bool, baseline_seconds: null|int}>>|null */
     private null|array $solveDataCache = null;
 
     public function __construct(
         private readonly Connection $connection,
+        private readonly PaceTimelineLoader $paceTimelineLoader,
+        private readonly PaceHistoryReadiness $paceHistoryReadiness,
     ) {
     }
 
     /**
-     * Bulk-load all solve data for puzzles with difficulty scores in one query.
+     * Bulk-load all solve data for puzzles with difficulty scores in one query. Every solve is divided by its
+     * solver's pace as of that solve (PaceTimeline::paceAt(), the difficulty indices' lookup) - the batch hands in
+     * the timeline it loaded for the difficulty; without one (the pace history is not built yet) by today's baseline.
      */
-    public function preloadAllData(): void
+    public function preloadAllData(null|PaceTimeline $timeline = null): void
     {
-        /** @var list<array{puzzle_id: string, player_id: string, seconds_to_solve: int|string, first_attempt: bool, unboxed: bool, baseline_seconds: int|string|null, solve_date: string}> $rows */
-        $rows = $this->connection->fetchAllAssociative("
-            SELECT
-                pst.puzzle_id,
-                pst.player_id,
-                pst.seconds_to_solve,
-                pst.first_attempt,
-                pst.unboxed,
-                COALESCE(pst.finished_at, pst.tracked_at) AS solve_date,
-                pb.baseline_seconds
-            FROM puzzle_solving_time pst
-            JOIN puzzle p ON p.id = pst.puzzle_id
-            LEFT JOIN player_baseline pb ON pb.player_id = pst.player_id AND pb.pieces_count = p.pieces_count
-            WHERE pst.puzzling_type = 'solo'
-                AND pst.suspicious = false
-                AND pst.seconds_to_solve IS NOT NULL
-                AND pst.puzzle_id IN (SELECT puzzle_id FROM puzzle_difficulty WHERE difficulty_score IS NOT NULL)
-            ORDER BY pst.puzzle_id, pst.player_id, COALESCE(pst.finished_at, pst.tracked_at) ASC, pst.tracked_at ASC
-        ");
-
+        $condition = 'pst.puzzle_id IN (SELECT puzzle_id FROM puzzle_difficulty WHERE difficulty_score IS NOT NULL)';
         $cache = [];
 
-        foreach ($rows as $row) {
-            $cache[$row['puzzle_id']][] = $row;
+        foreach ($this->loadSolves($condition, [], $timeline) as $puzzleId => $solves) {
+            $cache[$puzzleId] = $solves;
         }
 
         $this->solveDataCache = $cache;
@@ -66,6 +51,83 @@ final class DerivedMetricsCalculator implements ResetInterface
     public function reset(): void
     {
         $this->solveDataCache = null;
+    }
+
+    /**
+     * Solo, non-suspicious, timed solves per puzzle in the order of each player's attempts, each with its solver's
+     * pace as of the solve ($timeline) or today's baseline (no timeline).
+     *
+     * @param array<string, string> $params
+     * @return array<string, list<array{player_id: string, seconds_to_solve: int, first_attempt: bool, unboxed: bool, baseline_seconds: null|int}>>
+     */
+    private function loadSolves(string $condition, array $params, null|PaceTimeline $timeline): array
+    {
+        $baselineJoin = $timeline === null
+            ? 'LEFT JOIN player_baseline pb ON pb.player_id = pst.player_id AND pb.pieces_count = p.pieces_count'
+            : '';
+        $baselineColumn = $timeline === null ? 'pb.baseline_seconds' : 'NULL AS baseline_seconds';
+
+        $rows = $this->connection->executeQuery("
+            SELECT
+                pst.puzzle_id,
+                pst.player_id,
+                p.pieces_count,
+                pst.seconds_to_solve,
+                pst.first_attempt,
+                pst.unboxed,
+                EXTRACT(EPOCH FROM COALESCE(pst.finished_at, pst.tracked_at)) AS solved_ts,
+                EXTRACT(EPOCH FROM pst.tracked_at) AS tracked_ts,
+                {$baselineColumn}
+            FROM puzzle_solving_time pst
+            JOIN puzzle p ON p.id = pst.puzzle_id
+            {$baselineJoin}
+            WHERE pst.puzzling_type = 'solo'
+                AND pst.suspicious = false
+                AND pst.seconds_to_solve IS NOT NULL
+                AND {$condition}
+            ORDER BY pst.puzzle_id, pst.player_id, COALESCE(pst.finished_at, pst.tracked_at) ASC, pst.tracked_at ASC
+        ", $params)->iterateAssociative();
+
+        $solves = [];
+
+        foreach ($rows as $row) {
+            /** @var array{puzzle_id: string, player_id: string, pieces_count: int|string, seconds_to_solve: int|string, first_attempt: bool, unboxed: bool, solved_ts: float|int|string, tracked_ts: float|int|string, baseline_seconds: null|int|string} $row */
+            $baseline = $timeline !== null
+                ? $timeline->paceAt($row['player_id'], (int) $row['pieces_count'], (float) $row['solved_ts'], (float) $row['tracked_ts'])
+                : ($row['baseline_seconds'] !== null ? (int) $row['baseline_seconds'] : null);
+
+            $solves[$row['puzzle_id']][] = [
+                'player_id' => $row['player_id'],
+                'seconds_to_solve' => (int) $row['seconds_to_solve'],
+                'first_attempt' => (bool) $row['first_attempt'],
+                'unboxed' => (bool) $row['unboxed'],
+                'baseline_seconds' => $baseline,
+            ];
+        }
+
+        return $solves;
+    }
+
+    /**
+     * One puzzle (the incremental path, RecalculateDerivedMetricsForPuzzle): its solves and only its solvers' pace history.
+     *
+     * @return list<array{player_id: string, seconds_to_solve: int, first_attempt: bool, unboxed: bool, baseline_seconds: null|int}>
+     */
+    private function solvesOfPuzzle(string $puzzleId): array
+    {
+        $exponent = $this->paceHistoryReadiness->scalingExponent();
+        $timeline = null;
+
+        if ($exponent !== null) {
+            /** @var list<string> $solvers */
+            $solvers = $this->connection->fetchFirstColumn(
+                "SELECT DISTINCT player_id FROM puzzle_solving_time WHERE puzzle_id = :puzzleId AND puzzling_type = 'solo' AND suspicious = false AND seconds_to_solve IS NOT NULL",
+                ['puzzleId' => $puzzleId],
+            );
+            $timeline = $this->paceTimelineLoader->forPlayers($solvers, $exponent);
+        }
+
+        return $this->loadSolves('pst.puzzle_id = :puzzleId', ['puzzleId' => $puzzleId], $timeline)[$puzzleId] ?? [];
     }
 
     /**
@@ -83,31 +145,31 @@ final class DerivedMetricsCalculator implements ResetInterface
      */
     public function calculateForPuzzle(string $puzzleId): array
     {
-        if ($this->solveDataCache !== null) {
-            $boxedIndices = $this->computeIndicesFromCache($puzzleId, boxedOnly: true);
-            $unboxedIndices = $this->computeIndicesFromCache($puzzleId, unboxedOnly: true);
-        } else {
-            $boxedIndices = $this->fetchDifficultyIndices($puzzleId, boxedOnly: true);
-            $unboxedIndices = $this->fetchDifficultyIndices($puzzleId, unboxedOnly: true);
-        }
+        $solves = $this->solveDataCache !== null
+            ? ($this->solveDataCache[$puzzleId] ?? [])
+            : $this->solvesOfPuzzle($puzzleId);
+
+        $boxedIndices = self::indices($solves, boxedOnly: true);
+        $unboxedIndices = self::indices($solves, unboxedOnly: true);
 
         return [
-            'memorability_score' => $this->computePuzzleLearningRate($puzzleId),
+            'memorability_score' => $this->computeLearningRate($solves),
             'skill_sensitivity_score' => $this->computeSkillSensitivity($boxedIndices),
             'predictability_score' => $this->computePredictability($boxedIndices),
             'box_dependence_score' => $this->computeBoxDependence($unboxedIndices, $boxedIndices),
-            'improvement_ceiling_score' => $this->computeImprovementCeiling($puzzleId),
+            'improvement_ceiling_score' => $this->computeImprovementCeiling($solves),
         ];
     }
 
     /**
-     * Compute difficulty indices from preloaded cache data.
+     * Each solve ÷ its solver's pace (as of the solve, or today's baseline before the pace history exists); the 5.0
+     * outlier ceiling like the difficulty indices.
      *
+     * @param list<array{player_id: string, seconds_to_solve: int, first_attempt: bool, unboxed: bool, baseline_seconds: null|int}> $solves
      * @return list<float>
      */
-    private function computeIndicesFromCache(string $puzzleId, bool $unboxedOnly = false, bool $boxedOnly = false): array
+    private static function indices(array $solves, bool $unboxedOnly = false, bool $boxedOnly = false): array
     {
-        $solves = $this->solveDataCache[$puzzleId] ?? [];
         $indices = [];
 
         foreach ($solves as $row) {
@@ -119,13 +181,13 @@ final class DerivedMetricsCalculator implements ResetInterface
                 continue;
             }
 
-            $baseline = (int) ($row['baseline_seconds'] ?? 0);
+            $baseline = $row['baseline_seconds'] ?? 0;
 
             if ($baseline <= 0) {
                 continue;
             }
 
-            $index = (int) $row['seconds_to_solve'] / $baseline;
+            $index = $row['seconds_to_solve'] / $baseline;
 
             if ($index > 5.0) {
                 continue;
@@ -142,37 +204,11 @@ final class DerivedMetricsCalculator implements ResetInterface
      * For each player with 3+ attempts, compute (attempt1 - attempt3) / attempt1.
      * Returns the raw puzzle learning rate (median of per-player rates).
      * The orchestrator normalizes against the global median.
+     *
+     * @param list<array{player_id: string, seconds_to_solve: int, first_attempt: bool, unboxed: bool, baseline_seconds: null|int}> $solves ordered by player, solve date
      */
-    private function computePuzzleLearningRate(string $puzzleId): null|float
+    private function computeLearningRate(array $solves): null|float
     {
-        if ($this->solveDataCache !== null) {
-            return $this->computeLearningRateFromCache($puzzleId);
-        }
-
-        /** @var list<array{player_id: string, seconds_to_solve: int|string, attempt_num: int|string}> $rows */
-        $rows = $this->connection->fetchAllAssociative("
-            SELECT
-                pst.player_id,
-                pst.seconds_to_solve,
-                ROW_NUMBER() OVER (PARTITION BY pst.player_id ORDER BY COALESCE(pst.finished_at, pst.tracked_at) ASC, pst.tracked_at ASC) AS attempt_num
-            FROM puzzle_solving_time pst
-            WHERE pst.puzzle_id = :puzzleId
-                AND pst.puzzling_type = 'solo'
-                AND pst.suspicious = false
-                AND pst.seconds_to_solve IS NOT NULL
-        ", ['puzzleId' => $puzzleId]);
-
-        return $this->extractLearningRate($rows);
-    }
-
-    /**
-     * Compute learning rate from preloaded cache (data is already ordered by player+date).
-     */
-    private function computeLearningRateFromCache(string $puzzleId): null|float
-    {
-        $solves = $this->solveDataCache[$puzzleId] ?? [];
-
-        // Data is ordered by player_id, solve_date ASC — compute attempt numbers
         $playerAttempts = [];
         $playerCounter = [];
 
@@ -182,39 +218,7 @@ final class DerivedMetricsCalculator implements ResetInterface
             $num = $playerCounter[$playerId];
 
             if ($num === 1 || $num === 3) {
-                $playerAttempts[$playerId][$num] = (int) $row['seconds_to_solve'];
-            }
-        }
-
-        $learningRates = [];
-
-        foreach ($playerAttempts as $attempts) {
-            if (!isset($attempts[1], $attempts[3]) || $attempts[1] <= 0) {
-                continue;
-            }
-
-            $learningRates[] = ($attempts[1] - $attempts[3]) / $attempts[1];
-        }
-
-        if (count($learningRates) < self::MINIMUM_FOR_MEMORABILITY) {
-            return null;
-        }
-
-        return round($this->computeMedian($learningRates), 6);
-    }
-
-    /**
-     * @param list<array{player_id: string, seconds_to_solve: int|string, attempt_num: int|string}> $rows
-     */
-    private function extractLearningRate(array $rows): null|float
-    {
-        $playerAttempts = [];
-
-        foreach ($rows as $row) {
-            $num = (int) $row['attempt_num'];
-
-            if ($num === 1 || $num === 3) {
-                $playerAttempts[$row['player_id']][$num] = (int) $row['seconds_to_solve'];
+                $playerAttempts[$playerId][$num] = $row['seconds_to_solve'];
             }
         }
 
@@ -317,46 +321,20 @@ final class DerivedMetricsCalculator implements ResetInterface
     /**
      * v2 Improvement Ceiling: P50(first_attempt_times) / P10(all_attempt_times).
      * Measures how much a puzzle can be optimized through practice.
+     *
+     * @param list<array{player_id: string, seconds_to_solve: int, first_attempt: bool, unboxed: bool, baseline_seconds: null|int}> $solves
      */
-    private function computeImprovementCeiling(string $puzzleId): null|float
+    private function computeImprovementCeiling(array $solves): null|float
     {
-        if ($this->solveDataCache !== null) {
-            $solves = $this->solveDataCache[$puzzleId] ?? [];
-            $firstTimes = [];
-            $allTimes = [];
+        $firstTimes = [];
+        $allTimes = [];
 
-            foreach ($solves as $row) {
-                $time = (int) $row['seconds_to_solve'];
-                $allTimes[] = $time;
+        foreach ($solves as $row) {
+            $allTimes[] = $row['seconds_to_solve'];
 
-                if ($row['first_attempt']) {
-                    $firstTimes[] = $time;
-                }
+            if ($row['first_attempt']) {
+                $firstTimes[] = $row['seconds_to_solve'];
             }
-        } else {
-            /** @var list<array{seconds_to_solve: int|string}> $firstAttemptRows */
-            $firstAttemptRows = $this->connection->fetchAllAssociative("
-                SELECT pst.seconds_to_solve
-                FROM puzzle_solving_time pst
-                WHERE pst.puzzle_id = :puzzleId
-                    AND pst.first_attempt = true
-                    AND pst.puzzling_type = 'solo'
-                    AND pst.suspicious = false
-                    AND pst.seconds_to_solve IS NOT NULL
-            ", ['puzzleId' => $puzzleId]);
-
-            /** @var list<array{seconds_to_solve: int|string}> $allAttemptRows */
-            $allAttemptRows = $this->connection->fetchAllAssociative("
-                SELECT pst.seconds_to_solve
-                FROM puzzle_solving_time pst
-                WHERE pst.puzzle_id = :puzzleId
-                    AND pst.puzzling_type = 'solo'
-                    AND pst.suspicious = false
-                    AND pst.seconds_to_solve IS NOT NULL
-            ", ['puzzleId' => $puzzleId]);
-
-            $firstTimes = array_map(static fn (array $r): int => (int) $r['seconds_to_solve'], $firstAttemptRows);
-            $allTimes = array_map(static fn (array $r): int => (int) $r['seconds_to_solve'], $allAttemptRows);
         }
 
         if (count($firstTimes) < self::MINIMUM_FOR_IMPROVEMENT_CEILING) {
@@ -371,67 +349,6 @@ final class DerivedMetricsCalculator implements ResetInterface
         }
 
         return round($p50First / $p10All, 3);
-    }
-
-    /**
-     * @return list<float>
-     */
-    private function fetchDifficultyIndices(
-        string $puzzleId,
-        bool $unboxedOnly = false,
-        bool $boxedOnly = false,
-    ): array {
-        $conditions = [
-            'pst.puzzle_id = :puzzleId',
-            "pst.puzzling_type = 'solo'",
-            'pst.suspicious = false',
-            'pst.seconds_to_solve IS NOT NULL',
-        ];
-
-        if ($unboxedOnly) {
-            $conditions[] = 'pst.unboxed = true';
-        }
-
-        if ($boxedOnly) {
-            $conditions[] = 'pst.unboxed = false';
-        }
-
-        $where = implode(' AND ', $conditions);
-
-        $sql = "
-            SELECT
-                pst.seconds_to_solve,
-                pb.baseline_seconds
-            FROM puzzle_solving_time pst
-            JOIN puzzle p ON p.id = pst.puzzle_id
-            JOIN player_baseline pb ON pb.player_id = pst.player_id AND pb.pieces_count = p.pieces_count
-            WHERE {$where}
-        ";
-
-        /** @var list<array{seconds_to_solve: int|string, baseline_seconds: int|string}> $rows */
-        $rows = $this->connection->fetchAllAssociative($sql, [
-            'puzzleId' => $puzzleId,
-        ]);
-
-        $indices = [];
-
-        foreach ($rows as $row) {
-            $baseline = (int) $row['baseline_seconds'];
-
-            if ($baseline <= 0) {
-                continue;
-            }
-
-            $index = (int) $row['seconds_to_solve'] / $baseline;
-
-            if ($index > 5.0) {
-                continue;
-            }
-
-            $indices[] = $index;
-        }
-
-        return $indices;
     }
 
     /**

@@ -132,7 +132,8 @@ that moved it.
 | `qualifying_count` | the solve's position among the pair's qualifying first attempts (5 = first row); unique per pair |
 | `baseline_seconds` | `PlayerBaselineCalculator::weightedBaselineSeconds()` over solves 1..k, **ages measured to the k-th solve** - the one baseline rule, never re-implemented |
 | `step` | `ln(baseline_k / baseline_{k-1})`, rounded to 6 decimals; NULL on the pair's first row and when either baseline is 0 (0-second times). Log, so steps add up and ±3 % reads the same both ways ("your biggest jumps") |
-| `drift` | defined here, filled by the prediction model v2 (stream 3b): the improvement drift as of this row = the mean log residual `ln(actual / predicted)` of the player's last 10 first attempts at this piece count up to and including this row, shrunk toward 0 with few solves. NULL until then |
+| `drift` | the improvement drift as of this row (prediction model v3): the mean residual `ln(actual / predicted without drift)` of the pair's last 10 qualifying first attempts up to and including this row - each against its own pace row before it and the puzzle's difficulty as of it (the model's: median, shrunk or prior, below) - divided by (n + 5), so few solves shrink it toward 0, each residual clipped at ±0.5 like the spread's (one typo time moves the next first tries by ~3 %, not ~14 %); a 0-second time is no residual (no log - it leaves the drift as it was, like the pace history and the difficulty skip it) (`TimePredictionCalculator::drift()`). 0.0 on the first row. Written by the batch's prediction-model step on every run (only rows whose value changed); NULL on a row written since the last run |
+| `spread` | the player's consistency at this piece count as of this row: the root mean square of the last 20 residuals around the drift-corrected prediction, each clipped at ±0.5, shrunk toward the global 0.13 with 5 pseudo-residuals (`TimePredictionCalculator::playerSpread()`) - what the window width rests on. Written with the drift |
 | `inputs_checksum` | running sum of the hashes of the pair's qualifying solves up to this one (below) |
 
 Indexes: `(player_id, pieces_count, valid_from, valid_from_tracked_at)` for the as-of lookup (the plan's
@@ -262,8 +263,12 @@ after the switch: puzzles with ≥ 10 indices -7.2 % at the median, 42.8 % one t
 6,284 puzzles rated instead of 6,285 (the first-pace rule keeps the newcomers' solves); tiers 1-6 went from
 71 / 892 / 3,032 / 1,281 / 652 / 357 to 238 / 1,763 / 2,832 / 861 / 371 / 219.
 
-The other per-solve indices of the batch - memorability, skill sensitivity, predictability, box dependence
-(`DerivedMetricsCalculator`) - still divide by the current baseline (a follow-up of the Insights plan).
+The other per-solve indices of the batch - skill sensitivity, predictability, box dependence (`DerivedMetricsCalculator`) -
+divide by the same as-of pace since prediction model v3 (Insights stream 3b): every solo solve (repeats and unboxed ones
+too, as before) by its solver's pace at that solve (`PaceTimeline::paceAt()`, the batch hands in the timeline it loaded
+for the difficulty; the incremental path loads the puzzle's solvers' rows). They measure how a puzzle spreads players
+of a given pace apart, the same purpose as the difficulty index, so today's pace inflated them for old solves the same
+way. Before the pace history is built they fall back to today's baseline (the rollout guard below).
 
 ---
 
@@ -530,15 +535,18 @@ effective_ratio = player_ratio × gap_correction
 
 ## Step 8: Time Prediction
 
-Personalized estimate for how long a puzzle will take a specific player.
+Personalized estimate for how long a puzzle will take a specific player, with **calibrated windows**: the range is the
+50 % "likely" window (half of solves land inside it), next to it the 80 % range. Model version 3 (Insights stream 3b,
+`TimePredictionCalculator::MODEL_VERSION`); the research behind every number: `docs/features/insights/prediction-research.md`
+(§2 Q1/Q2, piece-count groups, §12 windows).
 
-Storing the prediction on every solving time (history + backfill): [`prediction-history.md`](prediction-history.md).
+Storing the prediction on every solving time (history, backfill, the side-by-side table): [`prediction-history.md`](prediction-history.md).
 
 ### Prediction Hierarchy
 
 | Prior Solves (N) | Method |
 |---|---|
-| 0 | Statistical: `baseline × difficulty` |
+| 0 | Statistical: `pace × difficulty × drift` (below) |
 | 1 | Ratio-based: `last_time × ratio(1→2, gap)` |
 | 2-5 | Blend: ratio + Holt's (Holt's weight = (N-1)/5) |
 | 6+ | Pure Holt's damped trend |
@@ -559,23 +567,150 @@ holts_weight = min(1.0, (N - 1) / 5)
 predicted = holts_weight × holts + (1 - holts_weight) × ratio_prediction
 ```
 
-### Safety Bounds
+Floor: `best_time × 0.70` (max 30% improvement over personal best).
 
-- Floor: `best_time × 0.70` (max 30% improvement over personal best)
-- Range spread: 15% for N=1, residual-based MAD×1.5 for N≥2
-
-### Statistical Prediction (N=0)
+### Statistical Prediction (N=0, a first try)
 
 ```
-predicted_time = player_baseline × puzzle_difficulty
-range_low = baseline × P25
-range_high = baseline × P75
+centre = pace × exp(log_difficulty + drift)
 ```
+
+- **Pace** - the player's baseline at the piece count (`player_baseline`: direct from 5+ first attempts, else
+  interpolated/extrapolated), or, for a **thin size**, their direct 500-piece pace × (pieces / 500)^α of the size group,
+  while their own direct baseline rests on fewer first attempts than the group's fitted threshold (no own baseline at
+  all counts as 0). Groups (`PiecesGroup`): ≤300 / 500 / 1000 / 1500+ / odd sizes. The daily fit decides per group:
+  α from the players with direct paces at both sizes, the threshold from {1, 10, 20, 50, always} by the error on the
+  last 12 months' first attempts, and **no rule where the 500-scaled pace never beats the own baseline**. Measured on
+  the copy of production (fit on the year before 2026-04-11): 1000 pc always (0.136 vs 0.148), ≤300 below 20 own first
+  attempts (0.106 vs 0.114), odd sizes and 1500+ no rule. What the pace was is recorded with the prediction
+  (`TimePredictionResult::$paceSource`, `solving_time_prediction.pace_source`: `own` / `interpolated` /
+  `scaled_500`) - the time verification leaves the 500-scaled one out.
+- **Difficulty** - `log_difficulty` by the puzzle's index count k (`TimePredictionCalculator::logDifficulty()`):
+  - k ≥ 5: ln(difficulty score), the median shown as the tier - source `solves`;
+  - k = 1..4: **shrunk** `(Σ ln index + τ × prior) / (k + τ)` (`puzzle_difficulty.sum_log_indices`, `sample_size`),
+    toward the prior, toward the average puzzle (0) without one - source `shrunk`. The tier shown stays "not rated yet"
+    below 5 indices: only predictions use it;
+  - k = 0: the prior alone, only where it is asked for (`allowPriorOnly`: the live and reconstructed side-by-side rows),
+    never on a surface (`SolvingTimePrediction::forDisplay()`, `GetPlayerPrediction` default) - estimates for unsolved
+    puzzles are Insights plan Phase 6.
+  τ is fitted daily from {0.25, 0.5, 0.75, 1, 1.5, 2, 3} on the last 12 months' attempts at puzzles with 1-4 indices
+  (the copy of production: 0.5 on everything, 0.75 when fitted before 2026-04-11 or 2026-07-01).
+- **Prior** - behind the interface `Prior\DifficultyPrior`, a chain (`Prior\DifficultyPriors`, tagged services by
+  priority: the first that knows the puzzle answers). Today `BrandPiecesPrior`: the mean log index of the puzzle's brand
+  at its piece count, shrunk toward 0 with 20 pseudo-indices, **the puzzle's own indices left out** (the group's sums in
+  `difficulty_prior_group`, every puzzle's share in them in `difficulty_prior_puzzle`, both fitted daily; fewer than 5
+  other indices = no prior; no brand = no prior). The fit also stores every puzzle's finished prior as the chain gives
+  it then (`difficulty_prior_puzzle.prior_log`, a row for every puzzle with a share or a prior, 0 indices included,
+  written in the same transaction as the sums - 38k rows, ~0.35 s of the fit) and a copy of it on the puzzle's
+  difficulty row (`puzzle_difficulty.prior_log`, `PredictionModelRecalculator::syncDifficultyPriors()`: in the fit's
+  transaction and after the batch's difficulty step, ~20 ms when nothing changed; the incremental handler fills it on
+  insert). The Puzzle Picker reads the copy - the difficulty row it joins anyway, no lookup of its own - while the
+  other current-state readers and `PredictionReconstructor` build the prior from the sums (`PriorContext`); equal to the
+  last bit (`BrandPiecesPrior::fromSums()` on the same doubles), pinned by the Picker's parity test and
+  `PredictionModelRecalculatorTest`.
+  Phase 5 puts `ImageEstimatePrior` in front of it (a field in `PriorContext`, a higher `#[AsTaggedItem]` priority;
+  the fit writes its value into the same `prior_log`, Insights 5d). **Secret
+  puzzles** (`hide_until` / `hide_image_until` in the future) have no prior and are no training row of one
+  (`StatisticalInputsSql::NOT_SECRET`).
+- **Drift** - the `drift` of the pace-history row the pace came from (own pair, or the 500-piece pair for a thin size;
+  an interpolated/extrapolated baseline has none): the player's recent first tries ran this much faster or slower than
+  their pace says. Research: the error of later solves 0.160 → 0.137.
+
+### Windows (both kinds)
+
+```
+first try: sigma² = a × spread² + b / (k + 1) + size_term(group)
+repeat:    sigma² = a_r × repeat_spread² + b_r
+bounds     = centre × exp(q × sigma)      q = quantiles 10 / 25 / 75 / 90 % of the bucket
+```
+
+- `spread` = the pair's `spread` (first tries; none = the global 0.13), `repeat_spread` = the same formula over the
+  residuals `ln(actual / predicted)` of the player's last 20 repeats with a stored personal prediction before the solve
+  (`RepeatResiduals`; a repeat's centre - Holt - is the same in every model version, so all stored ones count).
+- The bucket (`WindowBucket`): first try / repeat × consistency quartile of the spread × k bucket (0, 1-4, 5-19, 20+;
+  first tries) × size group; a bucket with fewer than 200 samples falls back to the less specific ones (without the
+  size group, the k bucket, the kind alone).
+- a, b, the size terms, a_r, b_r (least squares on the clipped squared residuals, never negative), the quartile edges
+  and the quantile table are fitted daily on the last 12 months; `PredictionModelParameters::defaults()` (the
+  research's numbers) stand in before the first fit and for any part with too few samples - a size group's own term
+  needs 200 first tries (`PredictionModelFitter::MINIMUM_SIZE_TERM_SAMPLES`, like a calibration bucket: a variance
+  from n residuals is off by ~√(2/n) of itself, 10 % at 200), below that it keeps the default term and its samples
+  count for a and b with that term taken off. 0-second times are no sample of any part. sigma ≥ 0.045.
+- Asymmetric: the slow tail is longer (q90 ≈ +1.2 vs q10 ≈ −1.2, but q25 ≈ −0.6 vs q75 ≈ +0.6 around a centre that
+  already carries the drift). The inner window is never wider than the outer one; bounds ≥ 1 s.
+- Stored: `predicted_range_low/high_seconds` = the 50 % window, `predicted_range80_low/high_seconds` = the 80 % range.
+  Rounding and wording are the display's (Insights stream 3c), never outward.
+
+### The model's batch step and its daily fit (`PredictionModelRecalculator`)
+
+The batch step runs in `recalculate-puzzle-intelligence` right after the difficulty, full runs only (not `--player` /
+`--puzzle`); the fit is its own daily command, kept out of the 15-minute batch. Both replay the statistical model over every qualifying first attempt **as of its own moment** (`Model\PredictionEngine`
+over `Model\FirstAttemptSet`, the in-memory first attempts the difficulty step loads anyway): the puzzle's difficulty
+from the indices known strictly before the attempt (an index is known from its solve on; a solver's "first pace"
+index only from that pace's row), the pace rows before it, the drift and spread of the attempts before it.
+
+- Every batch run: drift and spread of every pace-history row with the stored fit (defaults and no priors before the
+  first fit); only changed rows are written (`UPDATE ... FROM unnest`), compared with the values loaded with the pace
+  timeline (`PaceTimelineLoader::all(withStoredStates: true)` - no second read of the table). The writes take the pace
+  history writer's lock (`PlayerPaceHistoryWriter::underLock()`; the daily fit holds it until its commit), so the batch
+  and the fit never UPDATE the same rows in two orders.
+- Daily, `myspeedpuzzling:fit-prediction-model` (`FitPredictionModel`): the prior groups and shares (one transaction),
+  then `Model\PredictionModelFitter` - τ, drift with that τ, the thin-size rules, the first-try and repeat windows -
+  into `prediction_model_fit` (one JSON row per model version), then the drift and spread with the new fit. Read on
+  the site through `PredictionModelParametersProvider::SQL` as a scalar subquery of a statement that runs anyway:
+  **the upgrade costs no query** on any page. Run it once right after the deploy (until then: defaults).
+
+Measured on a copy of the dev data (523k times, laptop, no debug, 512 MB container, steady state, two runs each,
+2026-10-19): the step takes ~0.9 s; the whole batch 14.8 / 14.7 s against 13.5 / 13.4 s for main on the same copy
+(+1.3 s: this step, the as-of pace of the derived metrics +0.4 s, the difficulty step +0.2 s with the prior copy's
+sync), peak memory 362 MB (the run frees the allocator's caches between steps, `gc_mem_caches()`). The first run after
+the deploy writes every row (~6.6 s). The daily fit takes ~4.4 s within 512 MB (~7-10 s the first time, when it
+rewrites every row).
+
+### Shared by every read path
+
+`StatisticalInputsSql` is the one place of the live tables' inputs (`COLUMNS` + `JOINS`, hydrated into
+`StatisticalPredictionInputs`): `GetPlayerPrediction` (one puzzle, latest pace rows by LATERAL), `GetPlayerPredictions`
+(many, one DISTINCT ON relation) and the Puzzle Picker, whose pre-LIMIT filter mirrors the calculator's centre in SQL
+(`centreSql()` - the same IEEE operations; pinned equal by `GetPuzzlePickerSuggestionsTest`, thin sizes and shrunk
+difficulty included). `PredictionReconstructor` builds the same inputs as of the solve. The time verification
+(`SingleTimeSuspicionCheck`, the scan) keeps using only predictions v2 would have made - on a rated puzzle and the
+player's own pace (or a personal one): a shrunk, prior-only or 500-scaled first-try prediction is no expectation
+there (`suspicious-time-review.md`).
+
+### Accuracy (measured, the acceptance of Insights plan §3.6)
+
+`myspeedpuzzling:evaluate-predictions --fit-before=YYYY-MM-DD [--until=] [--json]` fits everything on what was solved
+before the date and measures every first attempt and repeat after it (read only, a few seconds and ~1 GB on the copy
+of production). On the copy (fit before 2026-04-11, 83,981 first attempts and 47,985 repeats after it):
+
+| | n | coverage | error (MAE ln) | median bias | 50 % hit / width | 80 % hit / width |
+|---|---|---|---|---|---|---|
+| first tries shown (k ≥ 1) | 70,900 | 84.4 % (v2 rule: 73 %) | 0.087 | −0.2 % | 50.8 % / 13.8 % | 80.2 % / 26.9 % |
+| rated puzzles (k ≥ 5) | 62,445 | 74.4 % | 0.082 | −0.2 % | 51.0 % / 13.1 % | 80.3 % / 25.2 % |
+| puzzles with 1-4 indices | 8,455 | 10.1 % | 0.123 | +0.1 % | 49.9 % / 19.0 % | 79.8 % / 38.0 % |
+| prior only (k = 0, not shown) | 4,141 | 4.9 % | 0.186 | +1.5 % | 49.8 % / 30.9 % | 79.7 % / 62.1 % |
+| repeats | 47,985 | - | 0.077 | +0.4 % | 50.2 % / 11.9 % | 79.7 % / 23.1 % |
+
+Per consistency quartile (first tries shown) the 50 % window holds 50.8 / 51.1 / 50.9 / 50.6 % at a median width of
+10.5 / 12.5 / 15.1 / 16.8 %. A later cut (fit before 2026-07-01, 36,522 first tries shown, 25,304 repeats): MAE 0.087,
+bias −0.1 %, 50 % window 50.5 % / 13.7 % (quartiles 51.4 / 49.7 / 50.5 / 50.0 %), 80 % window 80.0 % / 26.9 %;
+repeats 50.5 % / 11.8 %. Measured 2026-10-19 with the drift clipped at ±0.5. Thin sizes: 1000
+pieces from the 500 pace always (α ≈ 1.43), ≤ 300 below 20 own first attempts (α ≈ 1.34); thin groups stay the
+weakest (1000: MAE 0.129, bias −3 %; 1500+: 29 attempts). Before (v1/v2 as stored): first tries 29 % inside a 16 % range, repeats 76 % inside 30 %.
+
+### Calibration monitor
+
+`myspeedpuzzling:report-prediction-calibration [--days=90] [--min-samples=200]` (daily cron): per bucket of the stored
+**live** side-by-side rows of the current model (`GetPredictionCalibration`: solo, not suspicious, not unboxed), how
+often the actual time landed inside the 50 % and 80 % windows; a bucket (or the first-try / repeat total) with enough
+samples more than 3 points from its target is a **warning** (Sentry): the nightly fit no longer matches what players do.
 
 ### Requirements
 
 - Personal: At least 1 prior solo solve on the same puzzle
-- Statistical: Player baseline + puzzle difficulty score (at least Low confidence)
+- Statistical: a pace for the piece count (own, interpolated, or the 500-scaled one of a thin-size rule) and at least
+  one difficulty index (or a prior, side by side only)
 
 ### Example (Personal, N=1)
 
@@ -585,8 +720,7 @@ range_high = baseline × P75
 
 ```
 Predicted time: 65 × 0.87 = 56.55 → ~57 minutes
-Range: 57 ± 15% → 48–65 min
-Display: "Attempt #2 (based on 1 prior solve): ~57 minutes (48-65 min range)"
+Likely window (50 %): 57 × exp(q25 σ) … 57 × exp(q75 σ), σ from the player's repeat spread
 ```
 
 ---
@@ -627,6 +761,9 @@ Mar 2026: 52 min (Expert)
 | Box dependence | 10 unboxed + 5 boxed solvers |
 | Player improvement ratio | 3 puzzles with that transition (cross-piece-count) |
 | Personal prediction | 1 prior solo solve on the same puzzle |
+| Statistical prediction | a pace for the piece count + 1 difficulty index (shrunk below 5; a prior alone side by side only) |
+| Brand × pieces prior | 5 indices of other puzzles of the brand at the piece count |
+| Window bucket of its own | 200 samples in the fit window (else a less specific bucket) |
 | Improvement ceiling | 20 solvers |
 
 ---
@@ -677,9 +814,13 @@ Mar 2026: 52 min (Expert)
 | Constant | Value |
 |----------|-------|
 | Safety floor | best_time × 0.70 |
-| Range spread (N=1) | 15% of predicted |
-| Range spread (N≥2) | MAD × 1.5, min 5% |
 | Holt's blend cutoff | N ≥ 6 (pure Holt's) |
+| Drift | last 10 residuals, each clipped at ±0.5, ÷ (n + 5) |
+| Spread | last 20 residuals clipped at ±0.5, + 5 × 0.13² pseudo-residuals |
+| Prior pseudo-count | 20 indices (BrandPiecesPrior), τ fitted daily (default 1.0) |
+| Minimum sigma | 0.045 |
+| Fit | daily (`fit-prediction-model`), on the last 12 months |
+| Model version | 3 (`TimePredictionCalculator::MODEL_VERSION`) |
 
 ---
 
@@ -747,14 +888,15 @@ Daily (Insights: coordination constants + profile cards, ~2.5 s):
 2. Bring the pace history up to date (only the pairs whose solves changed)
 3. Recompute improvement ratios (global + player)
 4. Recompute all puzzle difficulty scores (as-of indices)
-5. Recompute derived metrics
-6. Recompute all player skill scores + percentiles
-7. Recompute MSP-ELO ratings - and store, for Insights, every entry behind them (`player_rating_entry`) and the
+5. Prediction model (full runs): drift + spread on the pace history (the fit: daily `fit-prediction-model`)
+6. Recompute derived metrics (as-of indices)
+7. Recompute all player skill scores + percentiles
+8. Recompute MSP-ELO ratings - and store, for Insights, every entry behind them (`player_rating_entry`) and the
    sorted times of every rated and nearly rated puzzle (`puzzle_rating_times`)
-8. Record skill history and rating snapshots
-9. Move the insights generation on (`insights_generation`; caches of batch data key on it)
+9. Record skill history and rating snapshots
+10. Move the insights generation on (`insights_generation`; caches of batch data key on it)
 
-Steps 7 (the Insights part) and 9 and the daily `myspeedpuzzling:recalculate-insights-daily` (pair/team coordination
+Steps 8 (the Insights part) and 10 and the daily `myspeedpuzzling:recalculate-insights-daily` (pair/team coordination
 constants, the puzzler profile cards): [`../insights/computation.md`](../insights/computation.md).
 
 With `-v` the command prints the seconds of every step. Measured 2026-10-18 on a copy of the production data (solves

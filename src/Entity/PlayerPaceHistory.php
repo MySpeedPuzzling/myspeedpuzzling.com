@@ -64,7 +64,9 @@ class PlayerPaceHistory
         #[Immutable]
         #[Column(nullable: true)]
         public null|float $step,
-        // Improvement drift (log) as of this row - defined in the README, filled by the prediction model v2
+        // Improvement drift (log) as of this row: the mean residual of the pair's last 10 first attempts up to it,
+        // shrunk toward 0 (TimePredictionCalculator::drift()). Filled by the insights batch (PaceDriftWriter); null
+        // until then
         #[Immutable]
         #[Column(nullable: true)]
         public null|float $drift,
@@ -72,6 +74,12 @@ class PlayerPaceHistory
         #[Immutable]
         #[Column(type: Types::BIGINT)]
         public int $inputsChecksum,
+        // The player's spread (log) at this piece count as of this row: their last 20 residuals around the drift-
+        // corrected prediction (TimePredictionCalculator::playerSpread()) - the consistency behind the window width.
+        // Filled with the drift
+        #[Immutable]
+        #[Column(nullable: true)]
+        public null|float $spread = null,
     ) {
     }
 }

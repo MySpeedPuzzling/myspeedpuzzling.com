@@ -18,23 +18,30 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerPaceHistoryWriter;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionReconstructor;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleDifficultyCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
+use SpeedPuzzling\Web\Message\BackfillSolvingTimePredictions;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleIntelligenceFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Value\DifficultySource;
+use SpeedPuzzling\Web\Value\PaceSource;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
 use SpeedPuzzling\Web\Value\TimePredictionSource;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Contracts\Cache\CacheInterface;
 
 /**
  * PredictionReconstructor = today's model fed only with the data before a solve. Two kinds of guards:
  * reconstructing "as of now" must give exactly what the live model (GetPlayerPrediction on freshly
  * recalculated tables) gives - one model, not two - and nothing after a solve may change its
- * reconstruction.
+ * reconstruction. On a fitted model (FitsThePredictionModel).
  */
 final class PredictionReconstructorTest extends KernelTestCase
 {
+    use FitsThePredictionModel;
+
     private PredictionReconstructor $reconstructor;
     private EntityManagerInterface $entityManager;
     private Connection $database;
@@ -47,6 +54,8 @@ final class PredictionReconstructorTest extends KernelTestCase
         /** @var PuzzleIntelligenceRecalculator $recalculator */
         $recalculator = $container->get(PuzzleIntelligenceRecalculator::class);
         $recalculator->recalculate();
+
+        $this->fitPredictionModel();
 
         $this->reconstructor = $container->get(PredictionReconstructor::class);
         $this->entityManager = $container->get(EntityManagerInterface::class);
@@ -158,8 +167,11 @@ final class PredictionReconstructorTest extends KernelTestCase
         self::assertSame(5, $difficultyCalculator->calculateForPuzzle(PuzzleFixture::PUZZLE_500_04)['sample_size'], 'Known today');
 
         $targetId = $this->persistSoloTime(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 2000, $this->now()->modify('-5 days'));
+        $reconstructed = $this->reconstructed(PlayerFixture::PLAYER_REGULAR, $targetId);
 
-        self::assertFalse($this->reconstructed(PlayerFixture::PLAYER_REGULAR, $targetId)->isPredictable());
+        // No index known then: at most the brand prior alone (side by side), nothing shown
+        self::assertSame(0, $reconstructed->result->kIndices ?? 0);
+        self::assertFalse($reconstructed->forDisplay()->isPredictable());
     }
 
     /**
@@ -235,6 +247,138 @@ final class PredictionReconstructorTest extends KernelTestCase
         // INTEL_TIME_10 (2000 s) is the only qualifying earlier solve - the unboxed one does not count
         self::assertSame(1, $next->personalSolveCount);
         self::assertSame(2000, $next->lastTimeSeconds);
+    }
+
+    /**
+     * PUZZLE_500_05 has two difficulty indices: the live prediction shrinks them toward the prior (model v3) - and
+     * the reconstruction of a solve right now gives exactly that prediction, windows included.
+     */
+    public function testAShrunkStatisticalReconstructionAsOfNowEqualsTheLiveModel(): void
+    {
+        $this->switchOnThinSizeRules();
+
+        $live = $this->livePrediction(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_05);
+        self::assertNotNull($live);
+        self::assertFalse($live->isPersonalized);
+        self::assertSame(DifficultySource::Shrunk, $live->difficultySource);
+        self::assertSame(2, $live->kIndices);
+        self::assertNotNull($live->priorLog, 'Shrunk toward the fitted brand prior');
+
+        $timeId = $this->persistSoloTime(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_05, 2000, $this->now());
+
+        self::assertEquals($live, $this->reconstructed(PlayerFixture::PLAYER_REGULAR, $timeId)->result);
+    }
+
+    /**
+     * A player with a 500-piece pace only, first try at another size: with the thin-size rules on, the live prediction
+     * comes from the 500-piece pace scaled by the size exponent - and the reconstruction of a solve right now gives
+     * exactly that prediction.
+     */
+    public function testA500ScaledStatisticalReconstructionAsOfNowEqualsTheLiveModel(): void
+    {
+        $this->switchOnThinSizeRules();
+        $playerId = $this->playerWith500PiecePace(1800);
+        $this->recalculate();
+
+        /** @var false|string $puzzleId */
+        $puzzleId = $this->database->fetchOne(
+            'SELECT p.id FROM puzzle p INNER JOIN puzzle_difficulty pd ON pd.puzzle_id = p.id
+            WHERE p.pieces_count <> 500 AND pd.sample_size >= 1 AND p.hide_until IS NULL ORDER BY pd.sample_size DESC, p.id LIMIT 1',
+        );
+        self::assertIsString($puzzleId, 'A puzzle of another size with difficulty indices');
+
+        $live = $this->livePrediction($playerId, $puzzleId);
+        self::assertNotNull($live);
+        self::assertFalse($live->isPersonalized);
+        self::assertSame(PaceSource::Scaled500, $live->paceSource);
+
+        $timeId = $this->persistSoloTime($playerId, $puzzleId, 3000, $this->now());
+
+        self::assertEquals($live, $this->reconstructed($playerId, $timeId)->result);
+    }
+
+    /**
+     * A player whose last first tries ran far faster than their pace: the batch stores a negative drift on their
+     * pace history, the live prediction carries it, the reconstruction reads it from the row before the solve - and
+     * much slower solves after it change nothing of it, not even once the batch has run again.
+     */
+    public function testTheDriftOfTheRowBeforeTheSolveIsPartOfTheCentre(): void
+    {
+        $playerId = $this->newPlayer();
+        $slow = [CompetitionApiFixture::PUZZLE_HIDDEN_ENTIRELY, CompetitionApiFixture::PUZZLE_HIDDEN_IMAGE, CompetitionApiFixture::PUZZLE_PLATFORM_HIDDEN, CompetitionApiFixture::PUZZLE_PLATFORM_IMAGE_HIDDEN, PuzzleFixture::PUZZLE_500_04];
+
+        foreach ($slow as $index => $puzzleId) {
+            $this->persistSoloTime($playerId, $puzzleId, 2400, $this->now()->modify('-' . (100 - $index) . ' days'), firstAttempt: true);
+        }
+
+        foreach ([PuzzleFixture::PUZZLE_500_05, PuzzleIntelligenceFixture::INTEL_PUZZLE_B, PuzzleFixture::PUZZLE_500_03] as $index => $puzzleId) {
+            $this->persistSoloTime($playerId, $puzzleId, 1700, $this->now()->modify('-' . (10 - $index) . ' days'), firstAttempt: true);
+        }
+
+        $this->recalculate();
+
+        /** @var float|string $drift */
+        $drift = $this->database->fetchOne(
+            'SELECT drift FROM player_pace_history WHERE player_id = :player AND pieces_count = 500 ORDER BY qualifying_count DESC LIMIT 1',
+            ['player' => $playerId],
+        );
+        self::assertLessThan(-0.05, (float) $drift);
+
+        $live = $this->livePrediction($playerId, PuzzleFixture::PUZZLE_500_01);
+        self::assertNotNull($live);
+        self::assertSame(DifficultySource::Solves, $live->difficultySource);
+
+        /** @var int|string $baseline */
+        $baseline = $this->database->fetchOne('SELECT baseline_seconds FROM player_baseline WHERE player_id = :player AND pieces_count = 500', ['player' => $playerId]);
+        self::assertSame((int) round((int) $baseline * $live->difficultyForPlayer * exp((float) $drift)), $live->predictedSeconds);
+
+        $targetId = $this->persistSoloTime($playerId, PuzzleFixture::PUZZLE_500_01, 2000, $this->now());
+        $reconstructed = $this->reconstructed($playerId, $targetId);
+        self::assertEquals($live, $reconstructed->result);
+
+        // Solves after the target, and the batch over them: the row before the target keeps its drift
+        $this->persistSoloTime($playerId, PuzzleFixture::PUZZLE_500_02, 9000, $this->now()->modify('+1 hour'), firstAttempt: true);
+        $this->persistSoloTime($playerId, PuzzleIntelligenceFixture::INTEL_PUZZLE_A, 9000, $this->now()->modify('+2 hours'), firstAttempt: true);
+        $this->recalculate();
+
+        self::assertEquals($reconstructed, $this->reconstructed($playerId, $targetId));
+    }
+
+    /**
+     * A repeat's window rests on the player's stored repeat predictions before it: once the backfill has stored
+     * PLAYER_REGULAR's, the live window and the reconstruction of a repeat right now still agree.
+     */
+    public function testARepeatWindowFromStoredRepeatPredictionsAsOfNowEqualsTheLiveModel(): void
+    {
+        // Pinned first: the backfill fills the month's snapshot itself
+        $this->pinGlobalRatioSnapshotToTheCurrentTable();
+
+        /** @var MessageBusInterface $messageBus */
+        $messageBus = self::getContainer()->get(MessageBusInterface::class);
+        $messageBus->dispatch(new BackfillSolvingTimePredictions(PlayerFixture::PLAYER_REGULAR));
+
+        /** @var int|string $repeats */
+        $repeats = $this->database->fetchOne(
+            "SELECT COUNT(*) FROM puzzle_solving_time WHERE player_id = :player AND prediction_method = 'personal'",
+            ['player' => PlayerFixture::PLAYER_REGULAR],
+        );
+        self::assertGreaterThan(0, (int) $repeats);
+
+        $live = $this->livePrediction(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_02);
+        self::assertNotNull($live);
+        self::assertTrue($live->isPersonalized);
+
+        $timeId = $this->persistSoloTime(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_02, 1500, $this->now());
+
+        self::assertEquals($live, $this->reconstructed(PlayerFixture::PLAYER_REGULAR, $timeId)->result);
+    }
+
+    private function recalculate(): void
+    {
+        /** @var PuzzleIntelligenceRecalculator $recalculator */
+        $recalculator = self::getContainer()->get(PuzzleIntelligenceRecalculator::class);
+        $recalculator->recalculate();
+        $this->entityManager->clear();
     }
 
     public function testIdsThatAreNotSoloTimesWithSecondsAreLeftOut(): void

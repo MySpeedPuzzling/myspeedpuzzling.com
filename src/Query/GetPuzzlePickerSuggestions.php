@@ -10,6 +10,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PuzzlePickerPick;
 use SpeedPuzzling\Web\Results\PuzzlePickerSuggestion;
 use SpeedPuzzling\Web\Results\TimePredictionResult;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\StatisticalInputsSql;
 use SpeedPuzzling\Web\Value\PuzzlePickerCriteria;
 use SpeedPuzzling\Web\Value\PuzzlePickerGap;
 use SpeedPuzzling\Web\Value\PuzzlePickerOrder;
@@ -42,9 +43,10 @@ use SpeedPuzzling\Web\Value\PuzzlePickerOrder;
  * Insights layer (members, design doc §6.4): only when an insights filter is
  * active are puzzle_difficulty / player_baseline / puzzle_statistics joined
  * *before* the LIMIT. My personal predictions (bulk GetPlayerPredictions, PHP)
- * are handed to SQL as unnest(ids, seconds); the statistical fallback
- * round(baseline × difficulty) is plain arithmetic, so one query still does the
- * filtering, the gap ordering and the sampling.
+ * are handed to SQL as unnest(ids, seconds); the statistical fallback is the
+ * calculator's centre in SQL (StatisticalInputsSql::centreSql(): pace × difficulty
+ * × drift, shrunk difficulty for 1-4 indices, the 500-scaled pace for thin sizes),
+ * so one query still does the filtering, the gap ordering and the sampling.
  */
 readonly final class GetPuzzlePickerSuggestions
 {
@@ -152,25 +154,32 @@ readonly final class GetPuzzlePickerSuggestions
             $insightsConditions .= "\n        AND " . $criteria->community->sqlCondition('ps.solved_times_solo_count');
         }
 
+        $predictionCte = '';
+
         if ($playerId !== null && $needsPredictions) {
-            [$predictionIds, $predictionSeconds] = self::predictionArrays($this->getPlayerPredictions->forAllSolvedPuzzles($playerId));
+            $personalPredictions = self::predictionsJson($this->getPlayerPredictions->forAllSolvedPuzzles($playerId));
+            // The statistical fallback is TimePredictionCalculator::statistical()'s centre in SQL (pinned equal by the tests)
+            [$centreCte, $centreJoins, $centre, $centreParams] = StatisticalInputsSql::centreSql($this->getPlayerPredictions->modelParameters($playerId));
+            $params = [...$params, ...$centreParams];
+            $predictionCte = StatisticalInputsSql::ownPaceCte() . ',' . $centreCte;
 
             $insightsJoins .= <<<SQL
 
-    LEFT JOIN player_baseline pb ON pb.player_id = :playerId AND pb.pieces_count = p.pieces_count
-    LEFT JOIN unnest(:predictionIds::uuid[], :predictionSeconds::int[]) AS pp(puzzle_id, predicted) ON pp.puzzle_id = p.id
+    {$centreJoins}
     CROSS JOIN LATERAL (
+        -- The player's predictions of solved puzzles: a lookup in one constant jsonb object, for the puzzles they solved
+        -- only (my_solves), no join - a join of the unnested arrays was planned as a nested loop over every candidate
+        -- (seconds on the heaviest player)
         SELECT COALESCE(
-            pp.predicted,
-            CASE WHEN pd.difficulty_score IS NOT NULL AND pd.confidence <> 'insufficient' THEN round(pb.baseline_seconds * pd.difficulty_score)::int END
+            CASE WHEN s.puzzle_id IS NOT NULL THEN (CAST(:personalPredictions AS jsonb) ->> p.id::text)::int END,
+            {$centre}
         ) AS predicted_seconds
     ) pr
     CROSS JOIN LATERAL (
         SELECT CASE WHEN COALESCE(s.solve_count_solo, 0) > 0 THEN s.fastest_seconds - pr.predicted_seconds END AS gap_seconds
     ) gp
 SQL;
-            $params['predictionIds'] = $predictionIds;
-            $params['predictionSeconds'] = $predictionSeconds;
+            $params['personalPredictions'] = $personalPredictions;
             $predictedSelect = 'pr.predicted_seconds, gp.gap_seconds,';
 
             if ($criteria->predictedMaxMinutes !== null) {
@@ -196,7 +205,7 @@ SQL;
         }
 
         $query = <<<SQL
-WITH my_solves AS (
+WITH RECURSIVE {$predictionCte} my_solves AS (
     SELECT
         pst.puzzle_id,
         count(*) AS solve_count_any,
@@ -385,26 +394,13 @@ SQL;
     }
 
     /**
-     * Personal predictions as two parallel Postgres array literals for
-     * unnest(:ids::uuid[], :seconds::int[]) — empty arrays when there are none.
-     *
-     * @param array<string, TimePredictionResult> $predictions
-     *
-     * @return array{string, string}
+     * @param array<string, TimePredictionResult> $predictions by puzzle id
      */
-    private static function predictionArrays(array $predictions): array
+    private static function predictionsJson(array $predictions): string
     {
-        $ids = [];
-        $seconds = [];
-
-        foreach ($predictions as $puzzleId => $prediction) {
-            $ids[] = $puzzleId;
-            $seconds[] = $prediction->predictedSeconds;
-        }
-
-        return [
-            '{' . implode(',', $ids) . '}',
-            '{' . implode(',', $seconds) . '}',
-        ];
+        return json_encode(
+            array_map(static fn (TimePredictionResult $prediction): int => $prediction->predictedSeconds, $predictions),
+            JSON_THROW_ON_ERROR | JSON_FORCE_OBJECT,
+        );
     }
 }

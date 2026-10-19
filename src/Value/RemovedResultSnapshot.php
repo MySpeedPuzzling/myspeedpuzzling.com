@@ -58,6 +58,9 @@ readonly final class RemovedResultSnapshot
         // neither key, read as null. Undo restores the pick and matches its edition again (P9)
         public null|string $competitionSeriesId = null,
         public null|SeriesEditionMatchKind $seriesEditionMatch = null,
+        // The 80 % range (prediction model v3) - older snapshots have no key, read as null
+        public null|int $predictedRange80LowSeconds = null,
+        public null|int $predictedRange80HighSeconds = null,
     ) {
     }
 
@@ -107,6 +110,8 @@ readonly final class RemovedResultSnapshot
             predictionModelVersion: $time->predictionModelVersion,
             competitionSeriesId: $time->competitionSeries?->id->toString(),
             seriesEditionMatch: $time->seriesEditionMatch,
+            predictedRange80LowSeconds: $time->predictedRange80LowSeconds,
+            predictedRange80HighSeconds: $time->predictedRange80HighSeconds,
         );
     }
 
@@ -163,6 +168,8 @@ readonly final class RemovedResultSnapshot
             'predicted_seconds' => $this->predictedSeconds,
             'predicted_range_low_seconds' => $this->predictedRangeLowSeconds,
             'predicted_range_high_seconds' => $this->predictedRangeHighSeconds,
+            'predicted_range80_low_seconds' => $this->predictedRange80LowSeconds,
+            'predicted_range80_high_seconds' => $this->predictedRange80HighSeconds,
             'predicted_attempt_number' => $this->predictedAttemptNumber,
             'prediction_last_time_seconds' => $this->predictionLastTimeSeconds,
             'prediction_source' => $this->predictionSource?->value,
@@ -178,7 +185,7 @@ readonly final class RemovedResultSnapshot
      */
     public static function fromArray(array $data): self
     {
-        /** @var array{id: string, seconds_to_solve: null|int, player_id: string, puzzle_id: string, puzzle_name: string, tracked_at: string, verified: bool, team: null|array{team_id: null|string, puzzlers: list<array{player_id: null|string, player_name: null|string}>}, puzzling_team_id: null|string, finished_at: null|string, comment: null|string, finished_puzzle_photo: null|string, first_attempt: bool, unboxed: bool, competition_id: null|string, competition_round_id: null|string, pieces_placed: null|int, qualified: null|bool, suspicious: bool, finished_later_seconds: null|int, created_via: null|string, predictable: null|bool, prediction_method: null|string, predicted_seconds: null|int, predicted_range_low_seconds: null|int, predicted_range_high_seconds: null|int, predicted_attempt_number: null|int, prediction_last_time_seconds: null|int, prediction_source: null|string, prediction_computed_at: null|string, prediction_model_version: null|int, competition_series_id?: null|string, series_edition_match?: null|string} $data */
+        /** @var array{id: string, seconds_to_solve: null|int, player_id: string, puzzle_id: string, puzzle_name: string, tracked_at: string, verified: bool, team: null|array{team_id: null|string, puzzlers: list<array{player_id: null|string, player_name: null|string}>}, puzzling_team_id: null|string, finished_at: null|string, comment: null|string, finished_puzzle_photo: null|string, first_attempt: bool, unboxed: bool, competition_id: null|string, competition_round_id: null|string, pieces_placed: null|int, qualified: null|bool, suspicious: bool, finished_later_seconds: null|int, created_via: null|string, predictable: null|bool, prediction_method: null|string, predicted_seconds: null|int, predicted_range_low_seconds: null|int, predicted_range_high_seconds: null|int, predicted_attempt_number: null|int, prediction_last_time_seconds: null|int, prediction_source: null|string, prediction_computed_at: null|string, prediction_model_version: null|int, competition_series_id?: null|string, series_edition_match?: null|string, predicted_range80_low_seconds?: null|int, predicted_range80_high_seconds?: null|int} $data */
 
         return new self(
             id: $data['id'],
@@ -214,6 +221,8 @@ readonly final class RemovedResultSnapshot
             predictionModelVersion: $data['prediction_model_version'],
             competitionSeriesId: $data['competition_series_id'] ?? null,
             seriesEditionMatch: isset($data['series_edition_match']) ? SeriesEditionMatchKind::from($data['series_edition_match']) : null,
+            predictedRange80LowSeconds: $data['predicted_range80_low_seconds'] ?? null,
+            predictedRange80HighSeconds: $data['predicted_range80_high_seconds'] ?? null,
         );
     }
 }

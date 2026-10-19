@@ -65,11 +65,12 @@ readonly final class GetSolvingTimePrediction
      */
     public function byTimeId(string $timeId): null|SolvingTimePrediction
     {
-        /** @var false|array{predictable: null|bool, prediction_method: null|string, predicted_seconds: null|int|string, predicted_range_low_seconds: null|int|string, predicted_range_high_seconds: null|int|string, predicted_attempt_number: null|int|string, prediction_last_time_seconds: null|int|string, prediction_source: null|string, prediction_model_version: null|int|string} $row */
+        /** @var false|array{predictable: null|bool, prediction_method: null|string, predicted_seconds: null|int|string, predicted_range_low_seconds: null|int|string, predicted_range_high_seconds: null|int|string, predicted_range80_low_seconds: null|int|string, predicted_range80_high_seconds: null|int|string, predicted_attempt_number: null|int|string, prediction_last_time_seconds: null|int|string, prediction_source: null|string, prediction_model_version: null|int|string} $row */
         $row = $this->database->fetchAssociative(
             <<<'SQL'
             SELECT predictable, prediction_method, predicted_seconds, predicted_range_low_seconds,
-                predicted_range_high_seconds, predicted_attempt_number, prediction_last_time_seconds,
+                predicted_range_high_seconds, predicted_range80_low_seconds, predicted_range80_high_seconds,
+                predicted_attempt_number, prediction_last_time_seconds,
                 prediction_source, prediction_model_version
             FROM puzzle_solving_time
             WHERE id = :timeId
@@ -106,6 +107,8 @@ readonly final class GetSolvingTimePrediction
                 personalSolveCount: $isPersonalized && $attemptNumber !== null ? $attemptNumber - 1 : null,
                 predictedAttemptNumber: $isPersonalized ? $attemptNumber : null,
                 lastTimeSeconds: $isPersonalized && $row['prediction_last_time_seconds'] !== null ? (int) $row['prediction_last_time_seconds'] : null,
+                range80LowSeconds: $row['predicted_range80_low_seconds'] !== null ? (int) $row['predicted_range80_low_seconds'] : null,
+                range80HighSeconds: $row['predicted_range80_high_seconds'] !== null ? (int) $row['predicted_range80_high_seconds'] : null,
             ),
             $source,
             $modelVersion,

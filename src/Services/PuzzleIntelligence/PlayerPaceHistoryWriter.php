@@ -25,7 +25,8 @@ use SpeedPuzzling\Web\Results\PaceHistorySyncResult;
  */
 final readonly class PlayerPaceHistoryWriter
 {
-    // Batch runs and the backfill take turns (session-level; re-entrant inside the backfill's own transaction lock)
+    // Batch runs, the backfill and the prediction model's drift writes take turns (session-level; re-entrant inside the
+    // backfill's and the daily fit's own transaction lock)
     public const int LOCK_KEY = 7_270_301;
 
     private const int INSERT_CHUNK = 400;
@@ -48,17 +49,30 @@ final readonly class PlayerPaceHistoryWriter
             return new PaceHistorySyncResult();
         }
 
+        return $this->underLock(fn (): PaceHistorySyncResult => $this->syncUnderLock($playerIds));
+    }
+
+    /**
+     * Runs a write of player_pace_history under the writer's lock (session-level, released afterwards) - the batch's
+     * drift and spread writes, which must not interleave with the daily fit's (both UPDATE the rows in chunks).
+     *
+     * @template T
+     * @param callable(): T $run
+     * @return T
+     */
+    public function underLock(callable $run): mixed
+    {
         $this->connection->executeStatement('SELECT pg_advisory_lock(:key)', ['key' => self::LOCK_KEY]);
 
         try {
-            return $this->syncUnderLock($playerIds);
+            return $run();
         } finally {
             $this->connection->executeStatement('SELECT pg_advisory_unlock(:key)', ['key' => self::LOCK_KEY]);
         }
     }
 
     /**
-     * Holds the writer's lock until the surrounding transaction ends (the backfill handler's).
+     * Holds the writer's lock until the surrounding transaction ends (the backfill handler's, the daily fit's).
      */
     public function lockUntilCommit(): void
     {

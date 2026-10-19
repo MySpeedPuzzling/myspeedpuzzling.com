@@ -23,6 +23,8 @@ final readonly class PredictionInputSolve
         public bool $qualifying,
         public float $solved,
         public float $tracked,
+        // The stored (shown) prediction when it was a personal one - the repeat residuals of RepeatResiduals
+        public null|int $storedPersonalPredictionSeconds = null,
     ) {
     }
 

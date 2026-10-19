@@ -28,6 +28,8 @@ final class PrivateProfileQueryCoverageTest extends TestCase
         'Query/GetRoundResultEntries.php' => 'Organiser tooling (and write handlers / live updates without a viewer): the participant list as recorded; the raw setting rides along only for RoundResultEntry::forReferee(), which masks private players for referees through PrivateProfileAccess (RefereeEntriesView).',
         'Query/GetCompetitionNameTags.php' => 'A name tag is worn in public: a linked player\'s #CODE is printed only for a public profile, whoever prints it - the organiser\'s own allow list must not decide what strangers read on a badge.',
         'Query/GetAffiliateSupporters.php' => 'Public supporters list of somebody else\'s profile - stays public-only.',
+        'Query/GetInsightsRatingInputs.php' => 'The player\'s own setting (a private player has no MSP rating, Insights says so), and the ladder pool of "which place would that be" - the global ranking\'s, public players only.',
+        'Query/GetInsightsShelf.php' => '"Faster than N % of its solvers" counts the public first-attempt times only, like the rating\'s time lists - an aggregate without identity.',
         'Query/GetFastestGroups.php' => 'fastest_teams keeps a group only if a member is public - the same rows and positions for every viewer; names on them go through the service.',
         'Query/GetFastestPairs.php' => 'fastest_teams keeps a pair only if a member is public - the same rows and positions for every viewer; names on them go through the service.',
         'Query/GetFastestPlayers.php' => self::GLOBAL_RANKING,

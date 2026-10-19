@@ -58,6 +58,8 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetFreeTrialsEndingSoon' => self::BACKGROUND,
         'GetFreeTrialStatistics' => self::ADMIN,
         'GetGettingStartedProgress' => self::OWN_DATA,
+        'GetInsightsFingerprint' => 'A hash of the viewer\'s own results, teams, collections and lending - returns no identity.',
+        'GetInsightsShelf' => 'The viewer\'s own shelf; "faster than N % of its solvers" counts times without identity.',
         'GetPlayerKarma' => self::OWN_DATA,
         'GetProgressionDrift' => 'Nightly safety net (cron, no viewer): player ids whose stored progression disagrees with their records - nothing is shown to anybody.',
         'GetProposerTrackRecords' => 'Review queues: the proposer of a request a moderator is deciding, by id, with no identity - their karma and accepted/declined counts.',

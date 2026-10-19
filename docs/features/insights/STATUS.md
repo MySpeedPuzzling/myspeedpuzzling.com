@@ -11,7 +11,7 @@ state, PR, merge and deploy, deviations from the plan (and why), follow-ups.
 | 2 Mac pipeline | **done** | #261 | 2026-10-18 | 2026-10-18 | `solvedCount` live on the work list; `bench` / `verify --end-to-end` run in the M3 session (see deviations) |
 | Backfill (M3 Max + M1 Air sessions) | **ready to start** (prompts handed to Jan 2026-10-18) | - | - | - | starts after 1 + 2 are deployed; ≈ 5.5 days |
 | 3 Prediction fix | in progress (3a done; 3b, then 3c) | #263 (3a) | 3a: 2026-10-18 | 3a: 2026-10-18 | 3a: backfill on prod 244,985 rows / 4,235 players in 33 s; first as-of batch 22 s (was 16-18 s; re-check steady state); tiers 1-6 = 249 / 1,838 / 2,956 / 891 / 400 / 225, 6,559 rated |
-| 4 Insights computation | in progress (4a done; 4c in review; 4b building) | #269 (4a), #270 (4c) | 4a: 2026-10-19 | 4a: 2026-10-19 | 4a: first batch filled 310,209 rating entries + 2,687 time arrays (29 s first run); daily command 4.5 s, 3,808 profile cards, 6 constants; cron `recalculate-insights-daily` 04:41 in lily.srv (4a17f81) |
+| 4 Insights computation | done | #269 (4a), #270 (4c), #271 (4b) | 2026-10-19 | 2026-10-19 | 4a: first batch filled 310,209 rating entries + 2,687 time arrays (29 s first run); daily command 4.5 s, 3,808 profile cards, 6 constants; cron `recalculate-insights-daily` 04:41 in lily.srv (4a17f81). 4c: daily rerun 4.7 s, constants on as-of paces (pairs 1.296 → 1.200 first attempt, 1.173 → 1.091 other; teams of 3 1.316 / 1.257, 4+ 1.367 / 1.325). 4b: migration Version20261018230621 ran at boot; first snapshot 2026-10 (taken 2026-10-19 = mid-month state, not a 1st-of-month one): 2,908 players, 1.5 MB, 24.5 s; cron `snapshot-player-insights` 05:15 on the 1st in lily.srv (6934ba3) |
 | 5 Image intelligence on the server | in progress (5a, 5b, 5c done; 5d after 3b) | #265 (5a), #267 (5b), #268 (5c) | 2026-10-18/19 | 2026-10-18/19 | 5a: crons 07:40/07:45 (lily.srv 0953a4b), ran clean. 5b: labels endpoint live, model record empty until the first derive. 5c: Python only, 187 tests |
 | 6 Display behind INSIGHTS_PUBLIC | not started | | | | |
 | Launch (flag removed) | not started | | | | waits for the backfill + gates |
@@ -112,7 +112,17 @@ Phase 3 starts as soon as a subagent slot frees (1a is small).
 - **4c:** the monthly rating snapshot belongs to 4b (brief), not 4c. `GroupCoordinationFitter` (4a) now fits on
   as-of paces like the synergy (computation.md §5 planned it): pairs 1.198 / 1.090, teams of 3 1.317 / 1.252, 4+
   1.368 / 1.326 (were drifting to 1.29 / 1.17 on today's baselines). "Faster than N % of its solvers" counts public
-  first attempts only, like the rating's lists.
+  first attempts only, like the rating's lists. Review fixes: players opted out of rankings get a rating but never a
+  ladder place (`RatingStanding::OptedOut`); a hidden private teammate carries no player id; a first try that makes a
+  puzzle reach 20 solvers is a move of its own.
+- **4b:** the monthly snapshot (`player_insights_snapshot`) is 4b's, not 4c's. Suspicious results and secret puzzles
+  are out of every section; close calls and the learning curve follow only the puzzle filters, not the period; the
+  builder computes everything for free players too (locks show real counts) - Phase 6 must not render members-only
+  content for them; image traits are a preview group in the skill map until launch
+  (`SkillMapBuilder::IMAGE_TRAITS_ARE_PREVIEW`); member default period 24 months, free 6; prediction accuracy counts
+  model version >= 3 only (`CALIBRATED_MODEL_VERSION`, needs 3b's bump). Review fixes: the segment range is
+  4c's `ShrunkEffect` (symmetric), the form chart never runs into the future, a snapshot re-run replaces its month,
+  `--month` only the current (or, in the first 3 days, the previous) month, zone in `InsightsCriteria::cacheKey()`.
 
 ## Follow-ups
 
@@ -123,5 +133,11 @@ Phase 3 starts as soon as a subagent slot frees (1a is small).
   box-text run for brand / brand-code false positives (licensor brands, "No." prefixes) before relying on those filters.
 - 3a: `reconstructed` predictions stored before 3a stay v1 (frozen history); suspicious-time detection now sees
   expected times ~7 % shorter (inputs changed, classifier version unchanged).
-- 4c: 4b's skill-map ranges should share `Value\ShrunkEffect`; Phase 6 loads rating + forecast in one frame (or shares
-  the cached rating model); the ladder milestone compares against today's ladder - the page text must say so.
+- 4c: Phase 6 loads rating + forecast in one frame (or shares the cached rating model); the ladder milestone compares
+  against today's ladder - the page text must say so; a re-solve what-if can count a just-improved best time twice
+  until the next 15-min batch (documented). Phase 6 decides whether Insights honours `time_predictions_opted_out`
+  (expected times in moves, shelf picks, radar).
+- 4b: after 3b add `predicted_range80_*` to `GetInsightsSoloResults` + an 80 % hit rate to `PredictionAccuracyBuilder`
+  (5d/3c follow-up); flip `IMAGE_TRAITS_ARE_PREVIEW` at launch; drill-down result ids need their own hydrate call;
+  Phase 6 calls `InsightsPageLoader` only for the signed-in player's own id, passes membership (trials included) and
+  `profile.timezone`, and wires `InsightsCriteria::cacheKey($timezone)` into 4c's `InsightsCacheKey`.

@@ -252,6 +252,12 @@ return static function (ContainerConfigurator $configurator): void {
             // one sync of ChangedRowsSync / of the rating entries, opened per batch step - not services
             __DIR__ . '/../src/Services/PuzzleIntelligence/ChangedRowsSyncRun.php',
             __DIR__ . '/../src/Services/PuzzleIntelligence/RatingEntriesSync.php',
+            // the in-memory state of one Insights computation (a player's rating portfolios and what-ifs) - not services
+            __DIR__ . '/../src/Services/Insights/Model/',
+            // the Insights page's filter state, one prepared result row and the learning factors of one build - values, not services
+            __DIR__ . '/../src/Services/Insights/InsightsCriteria.php',
+            __DIR__ . '/../src/Services/Insights/InsightsRow.php',
+            __DIR__ . '/../src/Services/Insights/LearningFactors.php',
         ]);
 
     // framework.session.handler_id. After the Services load, which would otherwise

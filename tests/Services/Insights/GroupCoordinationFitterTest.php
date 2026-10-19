@@ -9,15 +9,18 @@ use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetGroupCoordinationConstants;
 use SpeedPuzzling\Web\Services\Insights\GroupCoordinationFitter;
+use SpeedPuzzling\Web\Tests\InsightsPaceSeeding;
 use SpeedPuzzling\Web\Value\GroupCoordination;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
- * c = median of group time ÷ (difficulty × 1 / Σ 1/baselineᵢ) over comparable group results; the seed while a bucket
- * has too few of them.
+ * c = median of group time × Σ 1/paceᵢ ÷ difficulty over comparable group results, every pace as of the solve (the
+ * pace history); the seed while a bucket has too few of them, and for every bucket before the history is built.
  */
 final class GroupCoordinationFitterTest extends KernelTestCase
 {
+    use InsightsPaceSeeding;
+
     private Connection $connection;
     private DateTimeImmutable $now;
 
@@ -32,6 +35,7 @@ final class GroupCoordinationFitterTest extends KernelTestCase
 
         // The fixtures' own pair/team results stay out of the fit
         $this->connection->executeStatement("UPDATE puzzle_solving_time SET suspicious = true WHERE puzzling_type <> 'solo'");
+        $this->markPaceHistoryBuilt($this->connection);
     }
 
     public function testFitsTheMedianAndKeepsSeedsForThinBuckets(): void
@@ -55,7 +59,7 @@ final class GroupCoordinationFitterTest extends KernelTestCase
             $this->time($pair, $alice, $puzzle, 2160, false);
         }
 
-        // Left out: a guest member, a member without a baseline, an unboxed result, a secret or unrated puzzle
+        // Left out: a guest member, a member without a pace, an unboxed result, a secret or unrated puzzle
         $withGuest = $this->team([$alice], ['Grandma']);
         $withoutBaseline = $this->team([$alice, $dave]);
 
@@ -94,6 +98,25 @@ final class GroupCoordinationFitterTest extends KernelTestCase
         self::assertSame(1.4, $stored[3]['first']);
     }
 
+    public function testSeedsEverywhereBeforeThePaceHistoryIsBuilt(): void
+    {
+        $alice = $this->player('alice', 3600);
+        $bob = $this->player('bob', 3600);
+        $puzzle = $this->puzzle(1.2, 'high');
+        $pair = $this->team([$alice, $bob]);
+
+        for ($i = 0; $i < 40; $i++) {
+            $this->time($pair, $alice, $puzzle, 3240, true);
+        }
+
+        $this->connection->executeStatement('DELETE FROM pace_history_build');
+
+        /** @var GroupCoordinationFitter $fitter */
+        $fitter = self::getContainer()->get(GroupCoordinationFitter::class);
+
+        self::assertSame(['coordination' => GroupCoordination::SEEDS[2]['first'], 'sample_size' => 0, 'fitted' => false], $fitter->fit($this->now)[2]['first']);
+    }
+
     public function testSeedsWithoutAnyStoredConstant(): void
     {
         $this->connection->executeStatement('DELETE FROM group_coordination_constant');
@@ -114,10 +137,16 @@ final class GroupCoordinationFitterTest extends KernelTestCase
         );
 
         if ($baseline500 !== null) {
+            // The pace as of the solves (10 days ago), an older slower one before it, and a faster one after them -
+            // only the one valid just before each solve counts
+            $this->paceRow($this->connection, $id, 500, $this->now->modify('-400 days'), $baseline500 * 2, 5);
+            $this->paceRow($this->connection, $id, 500, $this->now->modify('-100 days'), $baseline500, 6);
+            $this->paceRow($this->connection, $id, 500, $this->now->modify('-1 day'), intdiv($baseline500, 2), 7);
+            // Today's baseline says nothing about the past solves
             $this->connection->executeStatement(
                 "INSERT INTO player_baseline (id, player_id, pieces_count, baseline_seconds, qualifying_solves_count, baseline_type, computed_at)
                 VALUES (gen_random_uuid(), :id, 500, :baseline, 10, 'direct', NOW())",
-                ['id' => $id, 'baseline' => $baseline500],
+                ['id' => $id, 'baseline' => intdiv($baseline500, 2)],
             );
         }
 

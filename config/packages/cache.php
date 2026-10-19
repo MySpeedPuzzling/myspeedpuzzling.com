@@ -89,6 +89,12 @@ return App::config([
                 'online_watch_spectators' => [
                     'adapters' => ['cache.adapter.redis'],
                 ],
+                // Insights page parts of one player (InsightsCache): keyed by the batch generation + a fingerprint of the
+                // player's results, so a stale entry is never asked for again - disposable (a miss is one recompute),
+                // hence the cache Redis, never redis-state. TTL 45 minutes
+                'insights_cache' => [
+                    'adapters' => ['cache.app'],
+                ],
                 // Amazon SNS signing certificates (SnsMessageVerifier), keyed by their URL
                 'sns_certificate_cache' => [
                     'adapters' => ['cache.app'],

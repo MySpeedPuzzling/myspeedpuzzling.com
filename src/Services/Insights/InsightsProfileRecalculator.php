@@ -22,11 +22,6 @@ readonly final class InsightsProfileRecalculator
 
     private const int PLAYERS_PER_CHUNK = 500;
 
-    /** Learning factors per piece count rest on at least this many transitions, else the 500-piece ones */
-    private const int MIN_LEARNING_SAMPLES = 30;
-
-    private const int FALLBACK_PIECES = 500;
-
     public function __construct(
         private Connection $connection,
         private ChangedRowsSync $sync,
@@ -228,46 +223,27 @@ readonly final class InsightsProfileRecalculator
     }
 
     /**
-     * The community's cumulative learning factor per piece count and attempt (attempt 1 = 1.0, attempt n = the product
-     * of the median ratios of the transitions before it, attempts beyond 4 as 4), from global_improvement_ratio's
-     * "all" gap bucket; a piece count with too few transitions uses the 500-piece factors, then 1.0.
+     * The community's cumulative learning factor per piece count and attempt (LearningFactors - the one rule, shared
+     * with the Insights page).
      *
      * @return callable(int, int): float
      */
     private function learningFactors(): callable
     {
-        /** @var list<array{pieces_count: int|string, from_attempt: int|string, median_ratio: float|string}> $rows */
+        /** @var list<array{pieces_count: int|string, from_attempt: int|string, median_ratio: float|string, sample_size: int|string}> $rows */
         $rows = $this->connection->fetchAllAssociative("
-            SELECT pieces_count, from_attempt, median_ratio
+            SELECT pieces_count, from_attempt, median_ratio, sample_size
             FROM global_improvement_ratio
-            WHERE gap_bucket = 'all' AND sample_size >= :minSamples AND from_attempt <= 3
-        ", ['minSamples' => self::MIN_LEARNING_SAMPLES]);
+            WHERE gap_bucket = 'all'
+        ");
 
-        $transitions = [];
+        $ratios = [];
 
         foreach ($rows as $row) {
-            $transitions[(int) $row['pieces_count']][(int) $row['from_attempt']] = (float) $row['median_ratio'];
+            $ratios[(int) $row['pieces_count']][(int) $row['from_attempt']] = ['ratio' => (float) $row['median_ratio'], 'sample_size' => (int) $row['sample_size']];
         }
 
-        $cumulative = [];
-
-        return static function (int $pieces, int $attempt) use ($transitions, &$cumulative): float {
-            if ($attempt <= 1) {
-                return 1.0;
-            }
-
-            if (!isset($cumulative[$pieces][$attempt])) {
-                $factor = 1.0;
-
-                for ($from = 1; $from < $attempt; $from++) {
-                    $factor *= $transitions[$pieces][$from] ?? $transitions[self::FALLBACK_PIECES][$from] ?? 1.0;
-                }
-
-                $cumulative[$pieces][$attempt] = $factor;
-            }
-
-            return $cumulative[$pieces][$attempt];
-        };
+        return LearningFactors::fromGlobalRatios($ratios)->factor(...);
     }
 
     private static function bool(bool|int|string $value): bool

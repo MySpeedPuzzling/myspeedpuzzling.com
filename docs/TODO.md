@@ -419,6 +419,10 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
 - [ ] Puzzle page: make Puzzle Insights easier to reach - the side-panel dropdown needs scrolling to see all data;
       consider opening the insights in a full-screen popup/modal. Promised to HighMansWith_An_S (MSP #312, follow-up
       F139).
+- [ ] Series pick matching: when several editions tie on the same revealed round puzzle (or date), pick the one edition
+      the player is registered in as a participant (a league runs the same puzzles at several venues in the same weeks,
+      so today every such time stays series-level) - SeriesEditionMatch,
+      docs/features/events-page/high-frequency-series.md. Promised to Dakota (MSP #331, follow-up F149).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

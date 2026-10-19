@@ -88,7 +88,8 @@ readonly final class GetPersonalEstimates
         $repeatSpread = TimePredictionCalculator::playerSpread(RepeatResiduals::fromJson(is_string($first['repeats'] ?? null) ? $first['repeats'] : null));
         $globalRatios = self::globalRatios($first['global_ratios'] ?? null);
         $community = self::community($first['community'] ?? null);
-        $hasBaseline = ($first['has_baseline'] ?? false) === true;
+        // Unknown (no row carried the player's part) = no community time: a player with a pace never gets one
+        $hasBaseline = ($first['has_baseline'] ?? null) !== false;
         $now = $this->clock->now();
         $estimates = [];
 

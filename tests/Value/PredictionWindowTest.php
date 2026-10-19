@@ -24,6 +24,9 @@ final class PredictionWindowTest extends TestCase
         yield 'both ends halfway go inward' => [3390, 3810, 3600, 3420, 3780, 60];
         yield 'rounds to nothing: the step holding the midpoint' => [3700, 3730, 3715, 3660, 3720, 60];
         yield 'midpoint on a step: the step starting there' => [3590, 3610, 3600, 3600, 3660, 60];
+        yield 'rounds to nothing: the step holding the prediction, not the midpoint' => [176, 184, 179, 170, 180, 10];
+        yield 'rounds to nothing, prediction off-centre: its own step' => [3700, 3730, 3725, 3720, 3780, 60];
+        yield 'rounds to nothing, prediction outside the raw window counts as its nearer end' => [3700, 3730, 3500, 3660, 3720, 60];
         yield 'ties collapsing a one-step window' => [3630, 3690, 3660, 3660, 3720, 60];
         yield '5-minute grid under an hour' => [2640, 4080, 3300, 2700, 4200, 300];
         yield '5-minute grid crossing the hour' => [3000, 4320, 3500, 3000, 4200, 300];
@@ -61,20 +64,38 @@ final class PredictionWindowTest extends TestCase
      */
     public function testNeverMovesAnEndMoreThanHalfAStepOutward(): void
     {
-        for ($low = 1800; $low <= 9000; $low += 37) {
-            for ($width = 0; $width <= 3000; $width += 53) {
+        // The minute / 5 / 10-minute grids
+        $this->sweep(1800, 9000, 37, 3000, 53);
+        // The 10-second grid: predictions under 3 min
+        $this->sweep(1, 400, 7, 300, 11);
+    }
+
+    /**
+     * Every window of the range, with the prediction at its low end, a quarter in, the middle, three quarters in, its
+     * high end and outside it on both sides: at least one step wide, on the grid, and - whenever the raw window is at
+     * least one step wide and its low end is not lifted off 0 - no end more than half a step outward. (The step a
+     * window that rounds to nothing falls back to is pinned by the cases of windows().)
+     */
+    private function sweep(int $fromLow, int $toLow, int $lowStep, int $maxWidth, int $widthStep): void
+    {
+        for ($low = $fromLow; $low <= $toLow; $low += $lowStep) {
+            for ($width = 0; $width <= $maxWidth; $width += $widthStep) {
                 $high = $low + $width;
-                $window = PredictionWindow::rounded($low, $high, $low + intdiv($width, 2));
-                $step = $window->stepSeconds;
-                $context = sprintf('%d-%d → %d-%d', $low, $high, $window->lowSeconds, $window->highSeconds);
 
-                self::assertGreaterThanOrEqual($step, $window->highSeconds - $window->lowSeconds, $context);
-                self::assertSame(0, $window->lowSeconds % $step, $context);
-                self::assertSame(0, $window->highSeconds % $step, $context);
+                foreach ([$low, $low + intdiv($width, 4), $low + intdiv($width, 2), $high - intdiv($width, 4), $high, max(0, $low - 40), $high + 40] as $centre) {
+                    $window = PredictionWindow::rounded($low, $high, $centre);
+                    $step = $window->stepSeconds;
+                    $context = sprintf('%d-%d (centre %d) → %d-%d', $low, $high, $centre, $window->lowSeconds, $window->highSeconds);
 
-                if ($width >= $step) {
-                    self::assertGreaterThanOrEqual($low - $step / 2, $window->lowSeconds, $context);
-                    self::assertLessThanOrEqual($high + $step / 2, $window->highSeconds, $context);
+                    self::assertGreaterThanOrEqual($step, $window->highSeconds - $window->lowSeconds, $context);
+                    self::assertGreaterThanOrEqual($step, $window->lowSeconds, $context);
+                    self::assertSame(0, $window->lowSeconds % $step, $context);
+                    self::assertSame(0, $window->highSeconds % $step, $context);
+
+                    if ($width >= $step && $low >= $step) {
+                        self::assertGreaterThanOrEqual($low - $step / 2, $window->lowSeconds, $context);
+                        self::assertLessThanOrEqual($high + $step / 2, $window->highSeconds, $context);
+                    }
                 }
             }
         }

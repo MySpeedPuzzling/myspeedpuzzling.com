@@ -22,6 +22,9 @@ final class PredictionWindowFormatterTest extends TestCase
         yield 'minutes past the hour' => [3000, 4320, 3500, '50–70 min'];
         yield 'ending on the hour' => [3000, 3610, 3300, '50–60 min'];
         yield 'starting on the hour' => [3600, 4320, 3900, '1h – 1h 12min'];
+        yield 'minutes while the high end is under 90 min' => [3000, 5200, 3500, '50–85 min'];
+        yield 'hours from a high end of 90 min on' => [3000, 5340, 3500, '50min – 1h 30min'];
+        yield 'a wide first-try window past 90 min' => [3000, 8400, 4800, '50min – 2h 20min'];
         yield 'hours' => [6420, 8160, 7200, '1h 50min – 2h 20min'];
         yield 'tiny, whole minutes' => [64, 116, 90, '1–2 min'];
         yield 'tiny, seconds' => [32, 58, 45, '30s – 1min'];

@@ -128,6 +128,20 @@ final class AddedTimeRecapControllerTest extends WebTestCase
             'Likely 1h 40min – 1h 48min · half of solves land inside',
             3,
         ];
+        yield 'a repeat faster than the window: side and margin, no "your margin"' => [
+            new TimePredictionResult(7500, 7200, 7800, 1.0, isPersonalized: true, personalSolveCount: 1, predictedAttemptNumber: 2, lastTimeSeconds: 7600),
+            '.prediction-outcome-faster',
+            '3 min faster than likely',
+            'Likely 2h – 2h 10min · half of solves land inside',
+            3,
+        ];
+        yield 'a first try slower than the window: side and margin' => [
+            new TimePredictionResult(6250, 6000, 6500, 1.0),
+            '.prediction-outcome-slower',
+            '9 min slower than likely',
+            'Likely 1h 40min – 1h 48min · half of solves land inside',
+            3,
+        ];
         // Stored by a model before the calibrated windows (v2): the same rounding, no "half of solves" claim
         yield 'an uncalibrated window: inside, without the half claim' => [
             new TimePredictionResult(7100, 6800, 7400, 1.0),

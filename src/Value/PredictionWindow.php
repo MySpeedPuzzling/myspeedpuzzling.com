@@ -22,14 +22,17 @@ namespace SpeedPuzzling\Web\Value;
  * An end moves by at most half a step, on average as much inward as outward.
  *
  * At least one step wide: a raw window that rounds to nothing (both ends to the same step) becomes the one-step window
- * holding the raw window's midpoint. The low end is never shown as 0 (a 40 s window low on the 1-minute grid stays
+ * holding the point prediction (the raw midpoint when none is passed; a prediction outside the raw window counts as
+ * its nearer end). The low end is never shown as 0 (a 40 s window low on the 1-minute grid stays
  * 1 min). These two are the only cases an end can land further out than the nearest step.
  *
  * Examples (centre: raw low - raw high → shown), all pinned by PredictionWindowTest:
  * - 1:00:00: 57:20 - 63:40 → 57-64 min (1-minute grid, nearest)
  * - 1:00:00: 56:30 - 63:30 → 57-63 min (both ends halfway: inward)
- * - 1:01:55: 61:40 - 62:10 → 61-62 min (rounds to nothing: the step holding the midpoint)
+ * - 1:01:55: 61:40 - 62:10 → 61-62 min (rounds to nothing: the step holding the prediction)
+ * - 2:59: 2:56 - 3:04 → 2:50 - 3:00 (10-second grid, rounds to nothing: the step holding 2:59)
  * - 55:00: 44:00 - 1:08:00 → 45-70 min (5-minute grid, the centre is under 1 h)
+ * - 1:20:00: 50:00 - 2:20:00 → 50 min - 2 h 20 min (10-minute grid)
  * - 2:00:00: 1:47:00 - 2:16:00 → 1h 50min - 2h 20min (10-minute grid)
  * - 1:30: 1:04 - 1:56 → 1-2 min (10-second grid); 0:45: 0:32 - 0:58 → 30 s - 1 min
  * - 3:20: 0:20 - 6:40 → 1-7 min (the low end is never 0)
@@ -73,8 +76,9 @@ final readonly class PredictionWindow
         $shownHigh = self::nearestStep($high, $step, roundTiesUp: false);
 
         if ($shownHigh - $shownLow < $step) {
-            // Narrower than one step: the one-step window holding the raw midpoint (never starting at 0)
-            $index = max(1, intdiv(intdiv($low + $high, 2), $step));
+            // Narrower than one step: the one-step window holding the prediction (kept within the raw window, so the
+            // step always overlaps it), never starting at 0
+            $index = max(1, intdiv(max($low, min($high, $centre)), $step));
             $shownLow = $index * $step;
             $shownHigh = $shownLow + $step;
         }

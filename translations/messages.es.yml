@@ -3635,7 +3635,7 @@ puzzle_intelligence:
         prediction_statistical_example_baseline: "Tu línea base de 500 piezas:"
         prediction_statistical_example_difficulty: "Dificultad del puzzle:"
         prediction_statistical_example_predicted: "Tiempo predicho:"
-        prediction_statistical_range: "El rango es el probable: la mitad de las resoluciones caen dentro. Su anchura depende de lo constantes que sean tus tiempos recientes y de lo seguros que estemos de la dificultad del puzzle (menos resoluciones = más ancho); se ajusta cada noche con resultados reales. Se muestra redondeado al minuto (a 5 o 10 minutos en rangos amplios)."
+        prediction_statistical_range: "El rango es el probable: la mitad de las resoluciones caen dentro. Su anchura depende de lo constantes que sean tus tiempos recientes y de lo seguros que estemos de la dificultad del puzzle (menos resoluciones = más ancho); se ajusta cada noche con resultados reales. Se muestra redondeado al minuto (a 5 o 10 minutos en rangos amplios, a 10 segundos en predicciones de menos de 3 minutos)."
         section_data_quality_title: "Calidad de Datos"
         section_data_quality_solo: "<strong>Solo en solitario:</strong> Las resoluciones en pareja y en equipo se excluyen"
         section_data_quality_first: "<strong>Primeros intentos:</strong> Solo los primeros encuentros con cada puzzle cuentan para dificultad y líneas base"

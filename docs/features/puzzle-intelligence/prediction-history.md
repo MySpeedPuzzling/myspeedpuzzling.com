@@ -173,12 +173,12 @@ The stored (and the live) `range_low/high` is the window players see - since Ins
     `prediction-research.md` §12 measured it);
   - each end to the **nearest** step, a tie goes inward (low up, high down). "Never outward" = never floor the low
     end and ceil the high end (that turned the 50 % window into a 76 % one); nearest keeps it at 51 %;
-  - at least one step wide (a window that rounds to nothing becomes the step holding its midpoint) and the low end
-    is never 0. Examples in the class docblock, edge cases in `PredictionWindowTest` (incl. a sweep proving no end
+  - at least one step wide (a window that rounds to nothing becomes the step holding the point prediction, kept
+    within the raw window - a 2:56-3:04 window around 2:59 shows 2:50-3:00) and the low end is never 0. Examples in the class docblock, edge cases in `PredictionWindowTest` (incl. a sweep proving no end
     moves more than half a step outward).
 - **Text** - `Services\PredictionWindowFormatter` (Twig: `prediction_window(prediction)|prediction_window_range`,
-  `seconds|prediction_margin`): "57–64 min" when the window starts under an hour (also past it: "50–70 min"),
-  "1h 50min – 2h 20min" from an hour on, "30s – 1min" on the 10-second grid; margins "20s" / "3 min" / "1h 5min".
+  `seconds|prediction_margin`): "57–64 min" when the window starts under an hour and ends under 90 min (also past
+  the hour: "50–70 min"), otherwise in hours ("50min – 2h 20min", "1h 50min – 2h 20min"), "30s – 1min" on the 10-second grid; margins "20s" / "3 min" / "1h 5min".
 - **Wording** (`puzzle_intelligence.prediction.window.*`, all 6 locales, `PredictionWindowMessagesTest`):
   "Likely 57–64 min · half of solves land inside" (`likely_half`; cards: `likely` = "Likely 57–64 min").
 - **Outcome** (recap) - read against the **shown** window, so "inside" agrees with the numbers on the card:

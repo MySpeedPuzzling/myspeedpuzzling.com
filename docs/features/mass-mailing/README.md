@@ -43,8 +43,9 @@ or the 6 months - 13 Apr 2027 - run out).
 - Privacy policy lists Amazon Web Services EMEA SARL (sections 13 + 15, 6 locales, 0a01bd8d).
 - **Listmonk on SES (step 7 done):** second SMTP server "Amazon SES" (IAM user `ses-smtp-listmonk`, From
   `@news.` only, key also in Infisical `SES_SMTP_LISTMONK_*`), header `X-SES-CONFIGURATION-SET: newsletter`,
-  `max_conns` 4, HELO `news.myspeedpuzzling.com`; the Seznam server kept but **disabled** (rollback = enable it,
-  disable SES, reload). Speed: concurrency 2 × `message_rate` 2, sliding window **1,500 / 10 min** (~2.5/s,
+  `max_conns` 4, HELO `news.myspeedpuzzling.com`; the Seznam SMTP server and the Seznam POP bounce mailbox were
+  removed from the settings on 2026-10-19 (the mailbox no longer exists; backup of the rows on the box,
+  `/root/listmonk-settings-backup-2026-10-19-seznam.json`). Speed: concurrency 2 × `message_rate` 2, sliding window **1,500 / 10 min** (~2.5/s,
   11k in ~75 min, the app keeps ≥ 10/s of the 14/s quota). Bounces: `bounce.ses_enabled` + `webhooks_enabled`
   on, SNS topic `ses-events-newsletter` → `https://listmonk.myspeedpuzzling.com/webhooks/service/ses`
   (confirmed), the Seznam POP scanner **off** (it also deleted human replies). Written via the DB + `POST
@@ -185,11 +186,12 @@ A new address is not suppressed, so changing it clears the banner.
 
 Secrets in a DSN must be URL-encoded (SES SMTP passwords and AWS secret keys contain `/` and `+`). Rollback keys in
 Infisical (copy one into `MAILER_DSN`, re-deploy, recreate both workers; the box script `/root/infisical_mail.py`
-does it: `rollback-ses-smtp` / `rollback-seznam` / `ses-api`, `store-api` for a new key): `MAILER_DSN_SES_API` (the
-SES API one, to switch back), `MAILER_DSN_SES_SMTP` (SES over SMTP with
-`ping_threshold=5`, IAM `ses-smtp-app`) and `MAILER_DSN_SEZNAM` (Seznam `robot@` - transactional volume only, never
-the digest: Seznam blocks bulk mail). The variables before 2026-10-19 (`MAILER_SES_DSN`, `MAILER_TRANSACTIONAL_DSN`,
-`MAILER_NOTIFICATIONS_DSN` + copies) are gone.
+does it: `rollback-ses-smtp` / `ses-api`, `store-api` for a new key): `MAILER_DSN_SES_API` (the
+SES API one, to switch back) and `MAILER_DSN_SES_SMTP` (SES over SMTP with `ping_threshold=5`, IAM `ses-smtp-app`).
+**There is no Seznam rollback any more** (2026-10-19): `MAILER_DSN_SEZNAM` was deleted, the Seznam mailboxes of
+`mail.` / `notify.` / `news.` are gone and their SPF hard-fails everything but SES. The variables before 2026-10-19
+(`MAILER_SES_DSN`, `MAILER_TRANSACTIONAL_DSN`, `MAILER_NOTIFICATIONS_DSN` + copies) are gone too. The SES API key
+of IAM user `ses-api-app` was rotated 2026-10-19 (the old one was printed in a session transcript; deactivated).
 
 ## Reliability (2026-10-19)
 
@@ -263,7 +265,7 @@ Steps 1-2 on AWS are scripted: [`aws-setup.sh`](aws-setup.sh) `identities` (prin
 | 8 | cleanup | `SES_TEST_RECIPIENTS` / `MAILER_SES_DSN` emptied | - |
 | 9 | 2026-10-19 | Reliability: `MAILER_SES_DSN` = SES API, stream DSNs = Seznam only, Listmonk `idle_timeout` 5 s | `MAILER_SES_DSN` = `MAILER_SES_SMTP_DSN` (SES over SMTP) or `null://null` + the old `failover(...)` DSNs |
 | 10 | 2026-10-19 | SES only: stream DSNs `null://null`, no Seznam behind anything | - |
-| 11 | 2026-10-19 | One variable `MAILER_DSN` (old ones added first, code switched, then the old keys deleted), fallback code removed | `MAILER_DSN` = `MAILER_DSN_SES_SMTP` or `MAILER_DSN_SEZNAM` |
+| 11 | 2026-10-19 | One variable `MAILER_DSN` (old ones added first, code switched, then the old keys deleted), fallback code removed | `MAILER_DSN` = `MAILER_DSN_SES_SMTP` (Seznam rollback deleted the same evening) |
 
 ## Open (docs/TODO.md)
 

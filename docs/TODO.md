@@ -125,8 +125,8 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Watch a week after the SES API switch (2026-10-19): `email_audit_log` failures per transport, the "Amazon SES
       failed twice in a row" warning in Sentry (should never appear), no Seznam rows at all (SES only since 2026-10-19).
 - [ ] Seznam blocked `notify@` ("bulk unsolicited mail") after the 2026-10-19 digest - Jan is asking them to unblock
-      it. Production sends SES only; Seznam stays the rollback (`infisical_mail.py seznam-fallback`) at most, never
-      for bulk mail. Inbound mail decided 2026-10-19: MX stays on Seznam Email Profi for the apex and all three
+      it. Production sends SES only; the Seznam rollback was removed 2026-10-19 (`MAILER_DSN_SEZNAM` deleted, Listmonk's
+      Seznam server + POP mailbox removed, subdomain SPF `-all`). Inbound mail decided 2026-10-19: MX stays on Seznam Email Profi for the apex and all three
       subdomains - Seznam blocked only the one `notify@` mailbox, the domain catch-all ("Doménový koš" →
       jan@myspeedpuzzling.com) receives fine. Remove the `notify@notify` mailbox once its contents are not needed, so
       its mail falls into the catch-all too (a blocked mailbox does not). Fallback if Seznam ever blocks a whole
@@ -140,7 +140,10 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Metrics per stream (sent / delivered / bounced / complained a day); a paused
       Listmonk campaign alert that does not go by e-mail.
 - [ ] Un-suppress an address (admin action + removal from the SES suppression list) for "my mailbox works again".
-- [ ] Rotate/delete the Seznam `newsletter@news` mailbox password (it was printed in a session transcript on
+- [ ] Delete the deactivated old access key of IAM user `ses-api-app` (`…AC3MYBX7`, leaked in a transcript and
+      rotated 2026-10-19) after a clean day on the new key.
+- [x] Rotate/delete the Seznam `newsletter@news` mailbox password - the mailbox itself was deleted 2026-10-19
+      (catch-all to jan@ instead). Was: rotate/delete the Seznam `newsletter@news` mailbox password (it was printed in a session transcript on
       2026-10-12) - Listmonk no longer uses it (SMTP disabled, POP scanner off 2026-10-14); keep the mailbox itself,
       it receives replies.
 

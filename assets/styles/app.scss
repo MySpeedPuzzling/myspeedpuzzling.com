@@ -615,28 +615,54 @@ td.rank {
     font-size: 24px;
 }
 
-.barcode-scanner-video {
-    width: 100%;
-    display: block;
-}
+// Every scanner's camera (_barcode_scanner_viewfinder.html.twig): add form, panels, global search, multiscan look and
+// behave the same. A phone held upright gets a 1080x1920 stream, shown full width that is taller than the screen -
+// cropped to half the screen (compact: a quarter, multiscan keeps the newest tray row in view). The overlay is cropped
+// the same way and sits exactly on the video (inside the 5 px padding), so the aiming band and the read outline line
+// up; the controller decodes only what is on screen (_visibleRect)
+.barcode-scanner-viewfinder {
+    background: #fff;
+    padding: 5px;
+    border-radius: 8px;
+    min-height: 200px;
 
-// The scanner window, its panel and the global search: a phone held upright gets a 1080x1920 stream, shown full
-// width that is taller than the screen - cropped to half the screen like multiscan. The overlay is cropped the same
-// way and sits exactly on the video (inside the 5 px padding), so the aiming band and the read outline line up;
-// the controller decodes only what is on screen (_visibleRect)
-@mixin barcode-scanner-viewfinder {
+    .spinner {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        margin-left: -16px;
+        margin-top: -16px;
+        z-index: 19;
+    }
+
     video {
+        position: relative;
+        z-index: 20;
+        border-radius: 5px;
         max-height: 50vh;
         object-fit: cover;
     }
 
     canvas {
+        z-index: 30;
         top: 5px !important;
         left: 5px !important;
         width: calc(100% - 10px) !important;
         height: calc(100% - 10px) !important;
         object-fit: cover;
         pointer-events: none;
+    }
+}
+
+.barcode-scanner-viewfinder--compact {
+    min-height: 160px;
+
+    video {
+        max-height: 26vh;
+
+        @media (min-width: 768px) {
+            max-height: 42vh;
+        }
     }
 }
 
@@ -676,6 +702,17 @@ td.rank {
     background: #fff;
     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.15);
     pointer-events: auto;
+
+    // Round, not oval: rounded-circle on a padded small button is wider than tall
+    .btn {
+        width: 32px;
+        height: 32px;
+        padding: 0 !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
 
     .btn.active {
         background: #fe696a;
@@ -1552,35 +1589,12 @@ canvas {
     }
 }
 
+// The global search's floating box around the shared viewfinder
 .global-search-barcode-scan {
     z-index: 20;
     width: 100%;
     margin: 15px 0 0;
-    background: #fff;
-    padding: 5px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
-    border-radius: 8px;
-    position: relative;
-
-    .spinner {
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        margin-left: -16px;
-        margin-top: -16px;
-        z-index: 19;
-    }
-
-    video {
-        position: relative;
-        z-index: 20;
-    }
-
-    canvas {
-        z-index: 30;
-    }
-
-    @include barcode-scanner-viewfinder;
 }
 
 // Scrolling inside a modal must never chain to the page: in the installed PWA the first
@@ -1681,34 +1695,6 @@ canvas {
 @keyframes puzzle-picker-fade-up {
     from { opacity: 0; transform: translateY(14px); }
     to { opacity: 1; transform: translateY(0); }
-}
-
-.modal-barcode-scan {
-    background: #fff;
-    padding: 5px;
-    border-radius: 8px;
-    min-height: 200px;
-
-    .spinner {
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        margin-left: -16px;
-        margin-top: -16px;
-        z-index: 19;
-    }
-
-    video {
-        position: relative;
-        z-index: 20;
-        border-radius: 5px;
-    }
-
-    canvas {
-        z-index: 30;
-    }
-
-    @include barcode-scanner-viewfinder;
 }
 
 .global-search-results {

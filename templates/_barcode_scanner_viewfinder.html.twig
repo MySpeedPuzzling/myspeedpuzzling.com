@@ -1,0 +1,25 @@
+{#
+    The camera of barcode_scanner_controller.js - one markup for every scanner (add form, panels, global search,
+    multiscan), so each looks and behaves the same: spinner, the picture, the read overlay, the hint + zoom/light pill.
+    Goes inside the element holding the controller.
+    - compact (multiscan): a lower picture, so the newest tray row stays on screen
+    - flash: the coloured pulse over the picture after a read (multiscan)
+    - hidden: d-none until the toggle button starts the camera
+    - class: the host's own frame around it (the global search's floating box)
+    data-live-ignore: inside a Live Component (global search) a re-render must never touch what the controller set up
+#}
+{% set compact = compact ?? false %}
+<div data-barcode-scanner-target="wrapper"
+     data-live-ignore
+     class="barcode-scanner-viewfinder position-relative {{ compact ? 'barcode-scanner-viewfinder--compact' }} {{ (hidden ?? true) ? 'd-none' }} {{ class ?? '' }}">
+    <div class="spinner spinner-border text-primary" role="status">
+        <span class="visually-hidden">{{ 'loading'|trans }}</span>
+    </div>
+    <video class="w-100 d-block" data-barcode-scanner-target="video" muted autoplay playsinline></video>
+    <canvas data-barcode-scanner-target="overlay" class="position-absolute top-0 start-0 w-100 h-100"></canvas>
+    {% if flash ?? false %}
+        <div class="multiscan-flash" data-barcode-scanner-target="flash" aria-hidden="true"></div>
+    {% endif %}
+
+    {{ include('_barcode_scanner_hud.html.twig') }}
+</div>

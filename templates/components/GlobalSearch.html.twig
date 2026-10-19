@@ -136,14 +136,6 @@
             </div>
         {% endif %}
 
-        <div data-barcode-scanner-target="wrapper" class="global-search-barcode-scan position-relative d-none">
-            <div class="spinner spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <video class="barcode-scanner-video" data-barcode-scanner-target="video" muted autoplay playsinline></video>
-            <canvas data-barcode-scanner-target="overlay" class="position-absolute top-0 start-0 w-100"></canvas>
-
-            {{ include('_barcode_scanner_hud.html.twig') }}
-        </div>
+        {{ include('_barcode_scanner_viewfinder.html.twig', {class: 'global-search-barcode-scan'}) }}
     </div>
 </div>

@@ -5,13 +5,5 @@
     `barcode-scanner:scanned`. The hidden input is the scanner's own, never a form field: starting the camera empties it.
     Switching the modal's tabs stops the camera.
 #}
-<div data-barcode-scanner-target="wrapper" class="modal-barcode-scan position-relative d-none mb-3">
-    <div class="spinner spinner-border text-primary" role="status">
-        <span class="visually-hidden">{{ 'loading'|trans }}</span>
-    </div>
-    <video class="w-100 d-block" data-barcode-scanner-target="video" muted autoplay playsinline></video>
-    <canvas data-barcode-scanner-target="overlay" class="position-absolute top-0 start-0 w-100 h-100" style="pointer-events: none;"></canvas>
-
-    {{ include('_barcode_scanner_hud.html.twig') }}
-</div>
+{{ include('_barcode_scanner_viewfinder.html.twig', {class: 'mb-3'}) }}
 <input type="hidden" data-barcode-scanner-target="input">

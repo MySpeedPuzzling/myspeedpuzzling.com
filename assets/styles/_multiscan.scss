@@ -1,37 +1,9 @@
 // Multiscan page (docs/features/multiscan/README.md)
 
+// The shared viewfinder (compact) inside the scanner card: its top corners follow the card
 .multiscan-viewfinder {
-    background: #000;
     border-radius: 8px 8px 0 0;
     overflow: hidden;
-    min-height: 160px;
-
-    video {
-        // Phones: the camera must leave the newest tray row on screen
-        max-height: 26vh;
-        object-fit: cover;
-        position: relative;
-        z-index: 20;
-
-        @media (min-width: 768px) {
-            max-height: 42vh;
-        }
-    }
-
-    canvas {
-        z-index: 30;
-        // Cropped like the video, so a read's outline and the aiming band land where they are on screen
-        object-fit: cover;
-    }
-
-    .spinner {
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        margin-left: -16px;
-        margin-top: -16px;
-        z-index: 19;
-    }
 }
 
 // Short colour pulse over the camera: what the last read meant

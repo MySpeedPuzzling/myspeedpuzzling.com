@@ -19,7 +19,7 @@ use Symfony\Contracts\Cache\ItemInterface;
  * (filters, membership) - so nothing cached outlives the data it was built from, and an old generation's entries are
  * simply never asked for again (TTL_SECONDS bounds them). Nothing is kept in the service between requests.
  *
- *     $key = $insightsCache->keyFor($playerId);                                   // 2 statements
+ *     $key = $insightsCache->keyFor($playerId);                                   // 1 statement
  *     $result = $insightsCache->get($key, 'rating', ['pieces' => 500], fn () => $ratingOpportunities->build(...));
  *     $closeCalls = $insightsCache->getForGeneration('close_calls', $playerId, [], fn () => ...); // 1 statement
  */
@@ -37,12 +37,17 @@ readonly final class InsightsCache
     ) {
     }
 
+    /**
+     * The generation and the fingerprint come from one statement (GetInsightsFingerprint::withGeneration())
+     */
     public function keyFor(string $playerId): InsightsCacheKey
     {
+        $parts = $this->getInsightsFingerprint->withGeneration($playerId);
+
         return new InsightsCacheKey(
             playerId: strtolower($playerId),
-            generation: $this->insightsGeneration->current(),
-            fingerprint: $this->getInsightsFingerprint->forPlayer($playerId),
+            generation: $parts['generation'],
+            fingerprint: $parts['fingerprint'],
             viewer: $this->viewer(),
         );
     }

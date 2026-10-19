@@ -1,0 +1,61 @@
+{#
+    The player's own Insights (docs/features/insights/page.md, design of record: docs/features/insights/prototype.html).
+    Mobile first, one column of sections; every section answers one question with a takeaway above its chart. Section
+    partials live in templates/insights/, styles in assets/styles/_insights.scss.
+
+    Free vs members (README §3, InsightsSection::isFree()): a members-only part is never rendered for a free player -
+    one lock per section with real counts instead (insights/_lock.html.twig). The 6b placeholders (_lazy_*) keep the
+    prototype's order: rating + forecast, re-solve radar, pairs & teams, improvement curve.
+#}
+{% set report = this.report %}
+{% set is_member = this.isMember %}
+<div {{ attributes.defaults({class: 'ins', 'data-testid': 'insights'}) }}>
+    {% if this.visible and report is not null %}
+        <div class="ins-intro">
+            <div class="ins-intro__head">
+                <h1 class="ins-title">{{ 'insights.title'|trans }}</h1>
+                <span class="text-primary ins-loading" style="display: none;" data-loading="show" role="status">
+                    <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                    <span class="visually-hidden">{{ 'insights.loading'|trans }}</span>
+                </span>
+            </div>
+            <p class="ins-lead">{{ 'insights.lead'|trans }}</p>
+            <p class="ins-only-you"><i class="bi bi-lock me-1" aria-hidden="true"></i>{{ 'insights.only_you'|trans }}</p>
+        </div>
+
+        {% if not this.enoughResults %}
+            {{ include('insights/_empty.html.twig') }}
+        {% else %}
+            {{ include('insights/_questions.html.twig') }}
+
+            {{ include('insights/_filters.html.twig') }}
+
+            {{ include('insights/_findings.html.twig') }}
+
+            {{ include('insights/_profile.html.twig') }}
+            {{ include('insights/_form.html.twig') }}
+            {{ include('insights/_skills.html.twig') }}
+            {{ include('insights/_expected.html.twig') }}
+            {{ include('insights/_median.html.twig') }}
+            {{ include('insights/_close_calls.html.twig') }}
+
+            {# Stream 6b: lazy frames below the fold, in the prototype's order - empty until then #}
+            {{ include('insights/_lazy_rating.html.twig', {criteria: this.criteria}) }}
+            {{ include('insights/_lazy_resolve.html.twig', {criteria: this.criteria}) }}
+
+            {{ include('insights/_learning.html.twig') }}
+
+            {{ include('insights/_lazy_pairs.html.twig', {criteria: this.criteria}) }}
+
+            {{ include('insights/_habits.html.twig') }}
+
+            {{ include('insights/_lazy_improvement.html.twig', {criteria: this.criteria}) }}
+        {% endif %}
+
+        {{ include('insights/_nudges.html.twig') }}
+
+        {% if is_member %}
+            {{ include('insights/_filters_modal.html.twig') }}
+        {% endif %}
+    {% endif %}
+</div>

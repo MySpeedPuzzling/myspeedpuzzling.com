@@ -126,6 +126,9 @@ return static function (ContainerConfigurator $configurator): void {
     // Background photo uploads straight to object storage (docs/features/feature_flags.md): the kill switch, on by default
     $parameters->set('directPhotoUploads', '%env(bool:DIRECT_PHOTO_UPLOADS)%');
 
+    // Insights (docs/features/feature_flags.md): the page and its links only while 1, admins always.
+    $parameters->set('insightsPublic', '%env(bool:INSIGHTS_PUBLIC)%');
+
     // Online competitions (docs/features/feature_flags.md): organisers may set up online timing only while 1, admins always.
     $parameters->set('onlineRoundsForOrganisers', '%env(bool:ONLINE_ROUNDS_FOR_ORGANISERS)%');
 
@@ -167,6 +170,7 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$kernelSecret', '%kernel.secret%')
         ->bind('$pairsTeamsPickerPublic', '%pairsTeamsPickerPublic%')
         ->bind('$onlineRoundsForOrganisers', '%onlineRoundsForOrganisers%')
+        ->bind('$insightsPublic', '%insightsPublic%')
         ->bind('$resultReviewEmailsPerRun', '%result_review_emails_per_run%')
         ->bind('$resultReviewEmailsPerDay', '%result_review_emails_per_day%')
         ->bind('$resultReviewEmailSpacingSeconds', '%result_review_email_spacing_seconds%')

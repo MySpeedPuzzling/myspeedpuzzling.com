@@ -1,0 +1,54 @@
+{#
+    "Where am I close to a better place?" (free; CloseCallsBuilder over the public leaderboards) - places only, nobody
+    is named. The puzzle filters apply, the period does not: a leaderboard place is about the puzzle.
+#}
+{% set calls = this.report.closeCalls %}
+<section class="ins-sec" id="insights-close-calls" data-testid="insights-section-close-calls">
+    {{ include('insights/_section_head.html.twig', {question: 'insights.close_calls.question', title: 'insights.close_calls.title', badge: 'free', badge_text: 'insights.badge.free'}) }}
+
+    {% set closest = calls.items|first %}
+    {% set closest_puzzle = closest ? this.puzzle(closest.puzzleId) : null %}
+    <p class="ins-take">
+        {%- if closest is empty or closest.targetRank is null -%}
+            {{ 'insights.close_calls.none'|trans }}
+        {%- else -%}
+            {{ 'insights.close_calls.takeaway'|trans({
+                '%count%': calls.closeCount,
+                '%gap%': '<b>' ~ (closest.targetGapSeconds ?? 0)|puzzlingTime ~ '</b>',
+                '%target%': (closest.targetRank == 1 ? 'insights.close_calls.first_place' : 'insights.close_calls.top')|trans({'%rank%': closest.targetRank}),
+                '%puzzle%': (closest_puzzle ? closest_puzzle.name : '')|e,
+            })|raw }}
+        {%- endif -%}
+    </p>
+
+    <div class="ins-totals">
+        <div><b>{{ calls.firstPlaceCount }}</b>{{ 'insights.close_calls.totals.first'|trans }}</div>
+        <div><b>{{ calls.podiumCount }}</b>{{ 'insights.close_calls.totals.podium'|trans }}</div>
+        <div><b>{{ calls.topTenCount }}</b>{{ 'insights.close_calls.totals.top_ten'|trans }}</div>
+        <div><b>{{ calls.puzzleCount }}</b>{{ 'insights.close_calls.totals.puzzles'|trans }}</div>
+    </div>
+
+    {% set shown = calls.items|filter(item => item.targetRank is not null and this.puzzle(item.puzzleId) is not null) %}
+    {% if shown is not empty %}
+        {% set max_share = max(shown|map(item => (item.targetGapShare ?? 0))|merge([0.01])) %}
+        <ul class="ins-list ins-list--moves" data-testid="insights-close-calls-list">
+            {% for item in shown %}
+                {% set puzzle = this.puzzle(item.puzzleId) %}
+                <li class="ins-row ins-row--move">
+                    <a class="ins-row__link" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                        {{ lazy_puzzle_image(puzzle.image, 'puzzle_small', puzzle.name, loop.index, 48, 'rounded-2 ins-row__image', 48, puzzle.imageRatio) }}
+                        <span class="ins-row__main">
+                            <span class="ins-row__name">{{ puzzle.name }}</span>
+                            {{ include('puzzle/_name.html.twig', {name: puzzle.name, alternative_names: puzzle.alternativeNames, class: 'ins-row__local text-truncate'}) }}
+                            <span class="ins-row__meta">{{ 'insights.close_calls.meta'|trans({'%rank%': item.rank, '%best%': item.bestSeconds|puzzlingTime, '%brand%': (puzzle.manufacturerName ?? '')}) }}</span>
+                        </span>
+                        <span class="ins-gainbar" aria-hidden="true"><span style="width: {{ max(4, ((item.targetGapShare ?? 0) / max_share * 100)|round) }}%"></span></span>
+                        <span class="ins-row__num">−{{ (item.targetGapSeconds ?? 0)|puzzlingTime }}<small>{{ (item.targetRank == 1 ? 'insights.close_calls.first_place' : 'insights.close_calls.top')|trans({'%rank%': item.targetRank}) }}</small></span>
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <p class="ins-note">{{ 'insights.close_calls.note'|trans }}</p>
+</section>

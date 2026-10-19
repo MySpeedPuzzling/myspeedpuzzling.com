@@ -1,4 +1,5 @@
 "menu":
+  "insights": "Postřehy"
   "my_profile": "Můj profil"
   "puzzle_add": "Přidat"
   "stopwatch": "Stopky"
@@ -6897,6 +6898,7 @@ comparison_entry:
 player_header:
     pages: "Stránky hráče"
     tabs:
+        insights: "Postřehy"
         profile: "Profil"
         statistics: "Statistiky"
         calendar: "Kalendář"
@@ -9996,3 +9998,426 @@ puzzle_tags:
     look:
         photo: "Fotografie"
         drawn: "Ilustrace nebo malba"
+
+insights:
+    meta_title: "Vaše postřehy"
+    title: "Vaše skládání pod lupou"
+    lead: "Jen vaše vlastní výsledky, porovnané s ostatními, kdo dané puzzle skládali, a s vaším obvyklým tempem. Vyberte si otázku, nebo projděte celou stránku."
+    only_you: "Tuto stránku vidíte jen vy."
+    loading: "Načítám…"
+    see_why: "Proč? Podívejte se do svých postřehů"
+    percent: "%value% %"
+    none_in_selection: "V tomto výběru nic"
+    empty:
+        title: "Postřehy začínají od %count% výsledků"
+        text: "{0}Zatím nemáte žádný sólo výsledek s časem. Postřehy porovnávají vaše výsledky s ostatními, kdo dané puzzle skládali, a s vaším obvyklým tempem, takže potřebují pár výsledků: zapište jich %needed% a stránka se naplní.|{1}Máte 1 sólo výsledek s časem. Postřehy porovnávají vaše výsledky s ostatními, kdo dané puzzle skládali, a s vaším obvyklým tempem, takže potřebují pár výsledků: zapište jich %needed% a stránka se naplní.|[2,4]Máte %count% sólo výsledky s časem. Postřehy porovnávají vaše výsledky s ostatními, kdo dané puzzle skládali, a s vaším obvyklým tempem, takže potřebují pár výsledků: zapište jich %needed% a stránka se naplní.|[5,Inf[Máte %count% sólo výsledků s časem. Postřehy porovnávají vaše výsledky s ostatními, kdo dané puzzle skládali, a s vaším obvyklým tempem, takže potřebují pár výsledků: zapište jich %needed% a stránka se naplní."
+        add: "Přidat čas"
+    ask:
+        label: "Otázky, na které stránka odpovídá"
+        members_only: "jen pro členy"
+        profile: "Jaký jsem puzzler?"
+        form: "Zlepšuji se?"
+        strengths: "Kde jsou mé silné stránky?"
+        weak_spots: "Kde se můžu zlepšit?"
+        expected: "Rychleji, nebo pomaleji, než se čekalo?"
+        median: "Kde jsem daleko od mediánu?"
+        close_calls: "Kde mám blízko k lepšímu místu?"
+        learning: "Kolik mi dávají opakování?"
+        habits: "Kdy skládám nejlépe?"
+    badge:
+        free: "Zdarma"
+        free_only_you: "Zdarma · vidíte jen vy"
+        members: "Členové"
+        everyone: "Všichni"
+        form: "Zdarma: 6 měsíců · Členové: libovolná data"
+        skills: "Zdarma: hlavní silná a slabší stránka"
+        median: "Zdarma: graf · Členové: vysvětlení odchylek"
+        habits: "Zdarma: kdy skládáte · Členové: jak to ovlivní tempo"
+        preview: "Náhled"
+    period:
+        3m: "Poslední 3 měsíce"
+        6m: "Posledních 6 měsíců"
+        12m: "Posledních 12 měsíců"
+        24m: "Posledních 24 měsíců"
+        year: "Letos"
+        past_year: "%year%"
+        all: "Celou dobu"
+        custom: "Přesná data…"
+    filters:
+        period: "Složeno"
+        pieces: "Dílků"
+        any_pieces: "Jakýkoli počet dílků"
+        pieces_value: "%pieces% dílků"
+        more: "Další filtry"
+        title: "Filtry"
+        count: "{0}Žádné výsledky|{1}1 výsledek|[2,4]%count% výsledky|[5,Inf[%count% výsledků"
+        clear: "Zrušit filtry"
+        done: "Hotovo"
+        from: "Od"
+        to: "do"
+        stripped: "Některé filtry tohoto odkazu jsou pro členy. Vidíte bezplatnou část: poslední 3 nebo 6 měsíců a počet dílků."
+        results: "Výsledky"
+        results_all: "Všechny výsledky"
+        results_first: "První pokusy"
+        results_repeat: "Opakovaná skládání"
+        events: "Akce"
+        events_any: "Jakékoli"
+        events_only: "Jen na akcích"
+        events_exclude: "Bez akcí"
+        unboxed: "Složeno bez obrázku"
+        unboxed_any: "Zahrnout"
+        unboxed_only: "Jen tyto"
+        unboxed_exclude: "Vynechat"
+        shelf: "Vaše polička"
+        shelf_any: "Jakékoli"
+        shelf_only: "Pořád na mé poličce"
+        shelf_exclude: "Ne na mé poličce"
+        difficulty: "Obtížnost"
+        brands: "Značka"
+        weekdays: "Den v týdnu"
+        personality: "Povaha puzzle"
+        traits: "Obrázek"
+        traits_hint: "Náhled: přijde s analýzou obrázků z krabic, která ještě běží."
+        time_of_day: "Denní doba"
+        time_of_day_hint: "Kdy jste výsledky zapsali ve stejný den, kdy jste je složili."
+    versus:
+        median:
+            faster: "o %percent% % rychleji než medián"
+            slower: "o %percent% % pomaleji než medián"
+            level: "stejně jako medián"
+        usual:
+            faster: "o %percent% % rychleji než obvykle"
+            slower: "o %percent% % pomaleji než obvykle"
+            level: "přesně jako obvykle"
+        expected:
+            faster: "o %percent% % rychleji, než se čekalo"
+            slower: "o %percent% % pomaleji, než se čekalo"
+            level: "přesně podle očekávání"
+        year_ago:
+            faster: "o %percent% % rychlejší než před rokem"
+            slower: "o %percent% % pomalejší než před rokem"
+            level: "stejně rychlé jako před rokem"
+    findings:
+        label: "Hlavní zjištění"
+    finding:
+        speed:
+            kicker: "Rychlost"
+            text: "Na stejných puzzle skládáte %versus%."
+        form_trend:
+            kicker: "Forma"
+            text: "Vaše poslední výsledky jsou %versus%."
+        strength:
+            kicker: "Silná stránka"
+            text: "%segment%: %versus%."
+        weak_spot:
+            kicker: "Slabší stránka"
+            text: "%segment%: %versus%."
+        close_call:
+            kicker: "Těsně vedle"
+            text: "Chybí vám %gap% do top %rank% na %puzzle%."
+            text_first: "Chybí vám %gap% na první místo na %puzzle%."
+        best_result:
+            kicker: "Nejlepší výsledek"
+            text: "%puzzle% šlo %versus%."
+        surprises:
+            kicker: "Překvapení"
+            text: "{1}<b>1 puzzle</b> šlo o víc než 10 % lépe, než se u vás čekalo.|[2,4]<b>%count% puzzle</b> šla o víc než 10 % lépe, než se u vás čekalo.|[0,Inf[<b>%count% puzzle</b> šlo o víc než 10 % lépe, než se u vás čekalo."
+            locked: "{0}Překvapení se počítají, jakmile máte výsledky s predikcí. Členové uvidí která.|{1}1 překvapení v tomto období. Členové uvidí které.|[2,4]%count% překvapení v tomto období. Členové uvidí která.|[5,Inf[%count% překvapení v tomto období. Členové uvidí která."
+    tiles:
+        not_enough: "Zatím málo výsledků"
+        members: "Členové"
+        speed:
+            label: "Rychlost proti mediánu"
+            faster: "{1}rychleji · 1 výsledek|[2,4]rychleji · %count% výsledky|[0,Inf[rychleji · %count% výsledků"
+            slower: "{1}pomaleji · 1 výsledek|[2,4]pomaleji · %count% výsledky|[0,Inf[pomaleji · %count% výsledků"
+        form:
+            label: "Forma proti loňsku"
+            faster: "rychleji: posledních 6 měsíců proti období před 12-18 měsíci"
+            slower: "pomaleji: posledních 6 měsíců proti období před 12-18 měsíci"
+            needs_year: "Potřebuje rok výsledků"
+        consistency:
+            label: "Vyrovnanost"
+            sub: "prostřední polovina vašich výsledků kolem vašeho obvyklého tempa"
+            percentile: "vyrovnanější než %percent% % puzzlerů"
+            not_enough: "Potřebuje %count% výsledků"
+    profile:
+        question: "Jaký jsem puzzler?"
+        title: "Váš profil puzzlera"
+        takeaway: "Vaše nejsilnější stránka: %strongest%. Nejvíc prostoru ke zlepšení: %room%."
+        takeaway_strongest: "Vaše nejsilnější stránka: %strongest%. Další skóre přibudou s dalšími výsledky."
+        not_sure_yet: "Profil se naplní, jak budete zapisovat výsledky: každé skóre potřebuje pár vlastních výsledků. Počítá se jednou denně."
+        chart_label: "Váš profil puzzlera: sedm skóre proti všem puzzlerům"
+        note: "Každé skóre je vaše místo mezi všemi puzzlery s dostatkem výsledků (50 = střed). Počítá se jednou denně, takže se všichni porovnávají se stejnými lidmi. Jako všechny vaše postřehy ho vidíte jen vy."
+    axis:
+        speed:
+            name: "Rychlost"
+            description: "váš čas proti mediánu každého puzzle"
+        improvement:
+            name: "Zlepšení"
+            description: "o kolik rychleji než před rokem"
+        consistency:
+            name: "Vyrovnanost"
+            description: "jak blízko vašeho obvyklého tempa se výsledky drží"
+        learning:
+            name: "Učení"
+            description: "kolik vám dá druhý pokus"
+        hard_puzzles:
+            name: "Těžká puzzle"
+            description: "vaše tempo na těžkých a velmi těžkých puzzle"
+        big_puzzles:
+            name: "Velká puzzle"
+            description: "vaše tempo na 1000 a více dílcích"
+        events:
+            name: "Akce"
+            description: "vaše tempo na akcích proti domovu"
+    form:
+        question: "Zlepšuji se?"
+        title: "Vaše forma v čase"
+        not_sure_yet: "Forma se ukáže, jakmile budou mít v tomto výběru dva měsíce aspoň po 3 výsledcích."
+        takeaway:
+            moved: "Za %months% měsíců se váš měsíční medián posunul z %from% na %to%."
+            steady: "Za %months% měsíců se váš měsíční medián držel kolem %versus%."
+        members_dates: "Členové si vyberou libovolná data a filtrují podle značky, obtížnosti, akcí a dalších."
+        chart_label: "Váš měsíční medián proti mediánu každého puzzle"
+        legend:
+            median: "Váš měsíční medián"
+            band: "Prostřední polovina vašich výsledků"
+            usual: "Vaše obvyklé tempo"
+        note: "Měří se váš čas proti mediánu sólo času každého puzzle, takže měsíc těžkých puzzle nevypadá jako špatný měsíc. Nahoru znamená rychleji."
+    skills:
+        question: "Kde jsou mé silné stránky? Kde se můžu zlepšit?"
+        title: "Silné a slabší stránky"
+        not_sure_yet: "Silné a slabší stránky se ukážou, jakmile budete mít v tomto výběru 10 výsledků s mediánem puzzle."
+        none: "V tomto výběru nejsou žádné jasné silné ani slabší stránky: všude jste blízko svého obvyklého tempa."
+        takeaway:
+            strong: "Silné: %segments%."
+            weak: "{1}Slabší stránka: %segments%.|[0,Inf[Slabší stránky: %segments%."
+        lock:
+            title: "Uvidíte všechny silné a slabší stránky"
+            text: "{0}Značky, velikosti, obtížnost, akce, přestávky a typy puzzle, u každé s tím, jak moc si jsme jistí.|{1}1 jasné zjištění napříč značkami, velikostmi, obtížností, situacemi a typy puzzle, u každého s tím, jak moc si jsme jistí.|[2,4]%count% jasná zjištění napříč značkami, velikostmi, obtížností, situacemi a typy puzzle, u každého s tím, jak moc si jsme jistí.|[5,Inf[%count% jasných zjištění napříč značkami, velikostmi, obtížností, situacemi a typy puzzle, u každého s tím, jak moc si jsme jistí."
+        axis:
+            slower: "← pomaleji než obvykle"
+            faster: "rychleji →"
+            results: "výsledky"
+        pieces: "%count% dílků"
+        unrated: "Zatím bez hodnocení"
+        preview: "Náhled · analýza obrázků ještě běží"
+        drill:
+            title: "{1}%segment%: 1 výsledek, nejrychlejší proti obvyklému tempu první|[2,4]%segment%: %count% výsledky, nejrychlejší proti obvyklému tempu první|[0,Inf[%segment%: %count% výsledků, nejrychlejší proti obvyklému tempu první"
+            more: "{1}a 1 další|[2,4]a %count% další|[0,Inf[a %count% dalších"
+        note: "Každý řádek porovnává tyto výsledky s vaším obvyklým tempem v té době, bez vlivu obtížnosti puzzle a vašeho zlepšování. Pruh ukazuje pravděpodobné rozmezí: krátký pruh znamená, že si jsme jistí, dlouhý ještě ne. Řádky s méně než 5 výsledky vynecháváme a silnou či slabší stránkou se řádek stane, až celé rozmezí leží za ±1,5 % a stojí na 10 výsledcích."
+    skill_group:
+        brand: "Značka"
+        pieces: "Počet dílků"
+        difficulty: "Obtížnost"
+        situation: "Situace"
+        personality: "Povaha puzzle"
+        image_traits: "Obrázek"
+    verdict:
+        strength: "Silná stránka"
+        weak_spot: "Slabší stránka"
+        about_usual: "Jako obvykle"
+        not_sure_yet: "Zatím nejisté"
+    situation:
+        first_tries: "První pokusy"
+        repeats: "Opakovaná skládání"
+        at_event: "Na akci"
+        weekend: "Víkend"
+        after_break: "Po pauze 2+ týdny"
+        second_of_the_day: "Druhé puzzle dne"
+        unboxed: "Bez obrázku"
+    personality:
+        rewards_skill: "Odměňuje zručnost"
+        equaliser: "Vyrovnávač"
+        box_helps: "Obrázek hodně pomáhá"
+        memorable: "Zapamatovatelné"
+    personality_hint:
+        rewards_skill: "Velký rozdíl mezi rychlými a pomalými puzzlery"
+        equaliser: "Většina lidí skončí blízko sebe"
+        box_helps: "Bez obrázku mnohem těžší"
+        memorable: "Podruhé mnohem snazší"
+    why:
+        first_tries: "první pokus"
+        repeats: "opakování"
+        at_event: "na akci"
+        weekend: "víkend"
+        after_break: "po pauze"
+        second_of_the_day: "2. puzzle dne"
+        unboxed: "bez obrázku"
+    meta:
+        result: "%pieces% dílků · %brand% · %date%"
+    expected:
+        question: "Která puzzle jsem složil(a) rychleji nebo pomaleji, než se čekalo?"
+        title: "Očekávání vs. skutečnost"
+        predictions_off: "Predikce časů máte v nastavení vypnuté, takže tu nejsou žádné očekávané časy."
+        not_sure_yet: "Očekávané časy se ukážou, jakmile budou mít vaše výsledky v tomto výběru uložené predikce."
+        takeaway:
+            better: "{1}Proti tomu, co od vás čekáme, šel <b>1</b> výsledek o víc než 10 % lépe.|[2,4]Proti tomu, co od vás čekáme, šly <b>%count%</b> výsledky o víc než 10 % lépe.|[0,Inf[Proti tomu, co od vás čekáme, šlo <b>%count%</b> výsledků o víc než 10 % lépe."
+            worse: "{1}<b>1</b> šel o víc než 10 % pomaleji.|[2,4]<b>%count%</b> šly o víc než 10 % pomaleji.|[0,Inf[<b>%count%</b> šlo o víc než 10 % pomaleji."
+            within: "{1}1 skončil do 10 %.|[2,4]%count% skončily do 10 %.|[0,Inf[%count% skončilo do 10 %."
+        chart_label: "Váš čas proti času, který se u vás čekal"
+        legend:
+            better: "O víc než 10 % rychleji"
+            within: "Do 10 %"
+            worse: "O víc než 10 % pomaleji"
+        list:
+            better: "Rychleji, než se čekalo"
+            worse: "Pomaleji, než se čekalo"
+        vs: "%actual% vs. %expected%"
+        margin: "Speed puzzleři obvykle porážejí predikce prvních pokusů. Vaše rezerva: medián %percent% % pod nimi a očekávané časy tady s ní počítají, takže zelená znamená lépe než váš typický první pokus."
+        note: "Očekávaný čas = predikce uložená u každého výsledku, upravená o vaši obvyklou rezervu u starších predikcí."
+        accuracy:
+            not_sure_yet: "Jak často se trefíte do svého pravděpodobného rozmezí, se ukáže, až %count% vašich výsledků bude mít kalibrovanou predikci."
+            hits: "Ve vašem pravděpodobném rozmezí: %hits% z %count% (%percent% %) - rozmezí slibuje polovinu."
+            hits80: "V rozmezí 80 %: %hits% z %count% (%percent% %) - slibuje 4 z 5."
+        lock:
+            title: "{0}Vaše překvapení|{1}1 puzzle šlo lépe, než se čekalo|[2,4]%count% puzzle šla lépe, než se čekalo|[5,Inf[%count% puzzle šlo lépe, než se čekalo"
+            text: "Každý výsledek proti tomu, co se u vás čekalo, a puzzle, která šla mnohem lépe nebo pomaleji."
+    median:
+        question: "Kde jsem daleko od mediánu?"
+        title: "Vy proti mediánu"
+        not_sure_yet: "Graf se ukáže, jakmile budete mít v tomto výběru 5 výsledků s mediánem puzzle."
+        takeaway: "Obvykle skládáte %versus% a pomaleji než medián jste u <b>%slower% z %count%</b> výsledků."
+        outliers: "{0}Žádný výsledek není o víc než 30 % od vašeho obvyklého tempa.|{1}1 výsledek je o víc než 30 % od vašeho obvyklého tempa.|[2,4]%count% výsledky jsou o víc než 30 % od vašeho obvyklého tempa.|[5,Inf[%count% výsledků je o víc než 30 % od vašeho obvyklého tempa."
+        chart_label: "Vaše výsledky podle toho, o kolik byly rychlejší nebo pomalejší než medián každého puzzle"
+        legend:
+            faster: "Rychleji než medián"
+            slower: "Pomaleji než medián"
+        list:
+            slow: "Výrazně pomaleji než obvykle"
+            fast: "Výrazně rychleji než obvykle"
+        lock:
+            title: "{0}Vaše odchylky|{1}Nalezena 1 odchylka|[2,4]Nalezeny %count% odchylky|[5,Inf[Nalezeno %count% odchylek"
+            text: "Výsledky daleko od vašeho obvyklého tempa a co mají společného."
+    close_calls:
+        question: "Kde mám blízko k lepšímu místu?"
+        title: "Těsně vedle v žebříčcích"
+        none: "V tomto výběru nemáte nic těsně vedle."
+        takeaway: "{0}Žádné vaše puzzle není do 3 % vašeho času od dalšího milníku. Nejblíž: %gap% do %target% na %puzzle%.|{1}U <b>1</b> puzzle vám do dalšího milníku chybí méně než 3 % vašeho času. Nejblíž: %gap% do %target% na %puzzle%.|[2,Inf[U <b>%count%</b> puzzle vám do dalšího milníku chybí méně než 3 % vašeho času. Nejblíž: %gap% do %target% na %puzzle%."
+        top: "top %rank%"
+        first_place: "prvního místa"
+        meta: "#%rank% · nejlepší %best% · %brand%"
+        totals:
+            first: "první místa"
+            podium: "místa na stupních vítězů"
+            top_ten: "místa v top 10"
+            puzzles: "puzzle v tomto výběru"
+        note: "Sestaveno z veřejných žebříčků puzzle, jen místa. Ostatní puzzleři cíle posouvají, takže se můžou kdykoli změnit."
+    learning:
+        question: "Kolik získám opakováním puzzle?"
+        title: "Vaše křivka učení"
+        not_sure_yet: "Křivka učení se ukáže, jakmile složíte pár puzzle víckrát."
+        takeaway:
+            second: "Váš druhý pokus je <b>o %percent% % rychlejší</b> než první (všichni puzzleři: %community% %)."
+            fourth: "U čtvrtého jste <b>o %percent% % rychlejší</b>."
+            selection: "{1}V tomto výběru je 1 puzzle složené víckrát.|[2,4]V tomto výběru jsou %count% puzzle složená víckrát.|[0,Inf[V tomto výběru je %count% puzzle složených víckrát."
+        chart_label: "Váš čas v každém pokusu proti prvnímu, vy a všichni puzzleři"
+        legend:
+            you: "Vy"
+            community: "Všichni puzzleři (%pieces% dílků)"
+        list: "Puzzle, na kterých jste se zlepšili nejvíc"
+        meta: "{1}%pieces% dílků · %brand% · 1 pokus|[2,4]%pieces% dílků · %brand% · %count% pokusy|[0,Inf[%pieces% dílků · %brand% · %count% pokusů"
+        lock:
+            title: "{0}Vaše křivka učení|{1}Vaše křivka učení na 1 opakovaném puzzle|[2,Inf[Vaše křivka učení na %count% opakovaných puzzle"
+            text: "O kolik rychlejší je u vás každé opakování, proti všem ostatním."
+    habits:
+        question: "Kdy skládám nejlépe?"
+        title: "Zvyky a podmínky"
+        not_sure_yet: "V tomto výběru nejsou žádné výsledky."
+        takeaway:
+            busiest: "Nejvíc skládáte v den: %day%."
+            break: "Po pauze dvou a více týdnů skládáte %versus%."
+        weekdays: "Výsledky podle dne v týdnu"
+        weekdays_label: "Vaše výsledky podle dne v týdnu"
+        breaks: "Tempo po pauze"
+        time_of_day: "Tempo podle času zápisu"
+        too_few: "málo"
+        lock:
+            title: "Zpomalí vás pauza?"
+            text: "{0}Vaše tempo po pauzách, v jednotlivé dny a podle denní doby.|{1}Vaše tempo po pauzách, v jednotlivé dny a podle denní doby - 1 váš výsledek přišel po pauze dvou a více týdnů.|[2,4]Vaše tempo po pauzách, v jednotlivé dny a podle denní doby - %count% vaše výsledky přišly po pauze dvou a více týdnů.|[5,Inf[Vaše tempo po pauzách, v jednotlivé dny a podle denní doby - %count% vašich výsledků přišlo po pauze dvou a více týdnů."
+        note_logged: "Denní doba je chvíle, kdy jste výsledek zapsali ve stejný den, kdy jste ho složili."
+        note_no_zone: "Nastavte si časové pásmo a uvidíte své tempo podle denní doby."
+        set_zone: "Nastavit časové pásmo"
+    break:
+        "0": "Stejný den"
+        "1": "1 den"
+        2-7: "2-7 dní"
+        8-14: "8-14 dní"
+        15+: "15+ dní"
+    time_of_day:
+        morning: "Ráno"
+        afternoon: "Odpoledne"
+        evening: "Večer"
+        night: "Noc"
+    weekday:
+        "1": "pondělí"
+        "2": "úterý"
+        "3": "středa"
+        "4": "čtvrtek"
+        "5": "pátek"
+        "6": "sobota"
+        "7": "neděle"
+    weekday_short:
+        "1": "Po"
+        "2": "Út"
+        "3": "St"
+        "4": "Čt"
+        "5": "Pá"
+        "6": "So"
+        "7": "Ne"
+    nudges:
+        question: "Jak můžou být mé postřehy přesnější?"
+        title: "Zpřesněte své postřehy"
+        action:
+            add: "Přidat čas"
+            results: "Vaše výsledky"
+            settings: "Nastavení"
+        more_results:
+            title: "{1}Zapište ještě 1 výsledek|[2,4]Zapište ještě %count% výsledky|[0,Inf[Zapište ještě %count% výsledků"
+            text_10: "Od 10 sólo výsledků se vaše postřehy rozběhnou."
+            text_25: "Od 25 výsledků se začnou ukazovat vaše silné a slabší stránky: každá potřebuje 10 vlastních výsledků."
+            text_50: "Od 50 výsledků se ustálí vaše forma po měsících i váš profil puzzlera."
+        mark_first_tries:
+            title: "{1}1 první výsledek na puzzle není označený jako první pokus|[2,4]%count% první výsledky na puzzle nejsou označené jako první pokusy|[0,Inf[%count% prvních výsledků na puzzle není označených jako první pokusy"
+            text: "Pokud to byly první pokusy, označte je při úpravě výsledku: první pokusy dělají vaše očekávané časy i mapu silných stránek spravedlivější."
+        set_timezone:
+            title: "Nastavte si časové pásmo"
+            text: "S ním výsledky zapsané ve stejný den, kdy jste je složili, ukážou vaše tempo podle denní doby."
+        mark_unboxed:
+            title: "Dejte nám vědět, když skládáte bez obrázku"
+            text: "Skládání bez obrázku je mnohem těžší. Bez označení takový výsledek vypadá jako pomalý den."
+        unrated_puzzles:
+            title: "{1}1 vaše puzzle zatím nemá obtížnost|[2,4]%count% vaše puzzle zatím nemají obtížnost|[0,Inf[%count% vašich puzzle zatím nemá obtížnost"
+            text: "Puzzle ji dostane, jakmile ho složí dost lidí. Jeho výsledky se přitom počítají do grafu formy i mediánu."
+        predictions_off:
+            title: "Predikce časů máte vypnuté"
+            text: "Bez nich na této stránce nejsou očekávané časy. Znovu je zapnete v nastavení."
+    chart:
+        results: "{1}1 výsledek|[2,4]%count% výsledky|[0,Inf[%count% výsledků"
+        table:
+            day: "Den"
+            results: "Výsledky"
+            pace: "Tempo proti obvyklému"
+            against_median: "Proti mediánu"
+        profile:
+            better_than: "Lepší než %percent% % puzzlerů"
+            not_enough: "Zatím málo výsledků"
+        form:
+            median_solver: "medián"
+        histogram:
+            axis: "← pomaleji · rychleji než medián →"
+            faster: "o %from%-%to% % rychleji"
+            slower: "o %from%-%to% % pomaleji"
+        expected:
+            axis_x: "očekávaný"
+            axis_y: "váš čas"
+            yours: "Váš čas: %time%"
+            expected: "Očekávaný: %time%"
+        learning:
+            attempt_1: "1."
+            attempt_2: "2."
+            attempt_3: "3."
+            attempt_4: "4.+"
+            first: "První pokus"
+            first_short: "1."
+            faster: "O %percent% % rychleji než první pokus"

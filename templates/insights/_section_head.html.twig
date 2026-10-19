@@ -1,0 +1,11 @@
+{#
+    The head of an Insights section: the question it answers, its title and what of it is free.
+    Variables: question (key), title (key), badge ('free' | 'member' | 'mixed'), badge_text (key)
+#}
+<div class="ins-sec__head">
+    <div>
+        <p class="ins-sec__question">{{ question|trans }}</p>
+        <h2 class="ins-sec__title">{{ title|trans }}</h2>
+    </div>
+    <span class="ins-badge ins-badge--{{ badge }}">{{ badge_text|trans }}</span>
+</div>

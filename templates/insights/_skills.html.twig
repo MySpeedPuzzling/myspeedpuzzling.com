@@ -1,0 +1,102 @@
+{#
+    "What are my strengths? Where should I improve?" - the skill map (SkillMapBuilder). Free: the top strength and weak
+    spot by name in the takeaway, the rest behind one lock (counts only). Members: every row with its likely range,
+    and a drill-down into the results behind it (its own hydrate - Insights::loadDrill()).
+#}
+{% import 'insights/_macros.html.twig' as ins %}
+{% set map = this.report.skillMap %}
+{% set shown = this.isMember ? 3 : 1 %}
+{% set range = 0.25 %}
+<section class="ins-sec" id="insights-skills" data-testid="insights-section-skills">
+    {{ include('insights/_section_head.html.twig', {question: 'insights.skills.question', title: 'insights.skills.title', badge: 'mixed', badge_text: 'insights.badge.skills'}) }}
+
+    <p class="ins-take">
+        {%- if map.notSureYet -%}
+            {{ 'insights.skills.not_sure_yet'|trans }}
+        {%- elseif map.strengths is empty and map.weakSpots is empty -%}
+            {{ 'insights.skills.none'|trans }}
+        {%- else -%}
+            {%- if map.strengths is not empty -%}
+                {{ 'insights.skills.takeaway.strong'|trans({'%segments%': '<b>' ~ map.strengths|slice(0, shown)|map(s => this.segmentLabel(s)|e)|join(', ') ~ '</b>'})|raw }}
+            {%- endif -%}
+            {%- if map.weakSpots is not empty %} {{ 'insights.skills.takeaway.weak'|trans({'%count%': min(shown, map.weakSpots|length), '%segments%': '<b>' ~ map.weakSpots|slice(0, shown)|map(s => this.segmentLabel(s)|e)|join(', ') ~ '</b>'})|raw }}{% endif -%}
+        {%- endif -%}
+    </p>
+
+    {% if not this.isMember %}
+        {% set found = map.strengths|length + map.weakSpots|length %}
+        {{ include('insights/_lock.html.twig', {
+            title: 'insights.skills.lock.title'|trans,
+            text: 'insights.skills.lock.text'|trans({'%count%': found}),
+            testid: 'insights-lock-skills',
+        }) }}
+    {% elseif map.groups is not empty %}
+        <div class="ins-saxis" aria-hidden="true"><span></span><span class="ins-saxis__scale"><span>{{ 'insights.skills.axis.slower'|trans }}</span><span>{{ 'insights.skills.axis.faster'|trans }}</span></span><span class="ins-saxis__n">{{ 'insights.skills.axis.results'|trans }}</span><span></span></div>
+
+        <div class="ins-smap">
+            {% for group in map.groups %}
+                <div class="ins-sgroup{{ group.preview ? ' is-preview' }}">
+                    <h3 class="ins-sgroup__title">
+                        {{ ('insights.skill_group.' ~ group.group.value)|trans }}
+                        {% if group.preview %}<span class="ins-badge ins-badge--preview">{{ 'insights.skills.preview'|trans }}</span>{% endif %}
+                    </h3>
+
+                    {% for segment in group.segments %}
+                        {% set stats = segment.stats %}
+                        {% set id = this.segmentId(segment) %}
+                        {% set open = this.drill == id %}
+                        {% set verdict = group.preview and stats.verdict.value in ['strength', 'weak_spot'] ? 'about_usual' : stats.verdict.value %}
+                        {% set label = this.segmentLabel(segment) %}
+                        <button type="button" class="ins-srow{{ open ? ' is-open' }}"
+                            aria-expanded="{{ open ? 'true' : 'false' }}"
+                            data-action="live#action" data-live-action-param="toggleDrill" data-live-segment-param="{{ id }}"
+                            title="{{ group.group.value == 'personality' ? ('insights.personality_hint.' ~ segment.key)|trans : label }}"
+                        >
+                            <span class="ins-srow__label">{{ label }}</span>
+                            <span class="ins-strip ins-strip--{{ verdict }}" aria-hidden="true">
+                                {% if stats.effect is not null %}
+                                    {% set low = max(-range, min(range, (stats.low ?? stats.effect))) %}
+                                    {% set high = max(-range, min(range, (stats.high ?? stats.effect))) %}
+                                    {% set effect = max(-range, min(range, stats.effect)) %}
+                                    {# Faster (a negative effect) to the right, like the prototype #}
+                                    <span class="ins-strip__range" style="left: {{ ((range - high) / (2 * range) * 100)|round(1) }}%; width: {{ ((high - low) / (2 * range) * 100)|round(1) }}%"></span>
+                                    <span class="ins-strip__dot" style="left: {{ ((range - effect) / (2 * range) * 100)|round(1) }}%"></span>
+                                {% endif %}
+                            </span>
+                            <span class="ins-srow__n">{{ stats.sampleSize }}</span>
+                            <span class="ins-stag ins-stag--{{ verdict }}">
+                                {%- if stats.effect is not null and verdict != 'not_sure_yet' -%}
+                                    <span class="ins-stag__pct">{{ ins.signed_percent(-stats.effect) }} · </span>{% endif -%}
+                                {{ ('insights.verdict.' ~ verdict)|trans }}
+                            </span>
+                        </button>
+
+                        {% if open %}
+                            {% set results = this.drillResults %}
+                            <div class="ins-drill" data-testid="insights-drill">
+                                <p class="ins-listh">{{ 'insights.skills.drill.title'|trans({'%segment%': label, '%count%': stats.sampleSize}) }}</p>
+                                <ul class="ins-list">
+                                    {% for result in results %}
+                                        {% set puzzle = this.puzzle(result.puzzleId) %}
+                                        {{ include('insights/_result_row.html.twig', {
+                                            puzzle: puzzle,
+                                            meta: 'insights.meta.result'|trans({'%pieces%': result.piecesCount, '%brand%': (result.manufacturerName ?? ''), '%date%': result.solvedAt|format_date('medium')}),
+                                            number: result.seconds|puzzlingTime,
+                                            number_note: ins.versus(result.residual, 'usual'),
+                                            position: loop.index,
+                                        }) }}
+                                    {% endfor %}
+                                </ul>
+                                {% if stats.sampleSize > results|length %}
+                                    <p class="ins-note">{{ 'insights.skills.drill.more'|trans({'%count%': stats.sampleSize - results|length}) }}</p>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+
+        <p class="ins-note">{{ 'insights.skills.note'|trans }}</p>
+    {% endif %}
+</section>

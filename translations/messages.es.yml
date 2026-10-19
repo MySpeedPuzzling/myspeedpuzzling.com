@@ -1,4 +1,5 @@
 "menu":
+  "insights": "Análisis"
   "my_profile": "Mi perfil"
   "puzzle_add": "Agregar"
   "stopwatch": "Cronómetro"
@@ -6797,6 +6798,7 @@ comparison_entry:
 player_header:
     pages: "Páginas del jugador"
     tabs:
+        insights: "Análisis"
         profile: "Perfil"
         statistics: "Estadísticas"
         calendar: "Calendario"
@@ -9970,3 +9972,426 @@ puzzle_tags:
     look:
         photo: "Foto"
         drawn: "Ilustración o pintura"
+
+insights:
+    meta_title: "Tu análisis"
+    title: "Tu forma de armar, explicada"
+    lead: "Solo tus propios resultados, comparados con los demás que armaron cada puzzle y con tu ritmo habitual. Elige una pregunta o recorre la página."
+    only_you: "Solo tú ves esta página."
+    loading: "Cargando…"
+    see_why: "¿Por qué? Míralo en tu análisis"
+    percent: "%value% %"
+    none_in_selection: "Ninguno en esta selección"
+    empty:
+        title: "El análisis empieza con %count% resultados"
+        text: "{0}Todavía no tienes ningún resultado individual con tiempo. El análisis compara tus resultados con los demás que armaron cada puzzle y con tu ritmo habitual, así que necesita algunos: registra %needed% y esta página se llena.|{1}Tienes 1 resultado individual con tiempo. El análisis compara tus resultados con los demás que armaron cada puzzle y con tu ritmo habitual, así que necesita algunos: registra %needed% y esta página se llena.|]1,Inf[Tienes %count% resultados individuales con tiempo. El análisis compara tus resultados con los demás que armaron cada puzzle y con tu ritmo habitual, así que necesita algunos: registra %needed% y esta página se llena."
+        add: "Añadir un tiempo"
+    ask:
+        label: "Preguntas que responde esta página"
+        members_only: "solo para miembros"
+        profile: "¿Qué tipo de puzzler soy?"
+        form: "¿Estoy mejorando?"
+        strengths: "¿Cuáles son mis puntos fuertes?"
+        weak_spots: "¿Dónde puedo mejorar?"
+        expected: "¿Más rápido o más lento de lo esperado?"
+        median: "¿Dónde estoy lejos de la mediana?"
+        close_calls: "¿Dónde estoy cerca de un puesto mejor?"
+        learning: "¿Cuánto ayudan las repeticiones?"
+        habits: "¿Cuándo armo mejor?"
+    badge:
+        free: "Gratis"
+        free_only_you: "Gratis · solo tú lo ves"
+        members: "Miembros"
+        everyone: "Todos"
+        form: "Gratis: 6 meses · Miembros: cualquier fecha"
+        skills: "Gratis: tu principal punto fuerte y punto débil"
+        median: "Gratis: el gráfico · Miembros: valores atípicos explicados"
+        habits: "Gratis: cuándo armas · Miembros: cómo afecta a tu ritmo"
+        preview: "Vista previa"
+    period:
+        3m: "Últimos 3 meses"
+        6m: "Últimos 6 meses"
+        12m: "Últimos 12 meses"
+        24m: "Últimos 24 meses"
+        year: "Este año"
+        past_year: "%year%"
+        all: "Todo el tiempo"
+        custom: "Fechas exactas…"
+    filters:
+        period: "Armado en"
+        pieces: "Piezas"
+        any_pieces: "Cualquier número de piezas"
+        pieces_value: "%pieces% piezas"
+        more: "Más filtros"
+        title: "Filtros"
+        count: "{0}Sin resultados|{1}1 resultado|]1,Inf[%count% resultados"
+        clear: "Quitar filtros"
+        done: "Listo"
+        from: "Desde"
+        to: "hasta"
+        stripped: "Algunos filtros de este enlace son para miembros. Ves la parte gratuita: los últimos 3 o 6 meses y el número de piezas."
+        results: "Resultados"
+        results_all: "Todos los resultados"
+        results_first: "Primeros intentos"
+        results_repeat: "Repeticiones"
+        events: "Eventos"
+        events_any: "Cualquiera"
+        events_only: "Solo en eventos"
+        events_exclude: "Sin eventos"
+        unboxed: "Armado sin la imagen"
+        unboxed_any: "Incluir"
+        unboxed_only: "Solo estos"
+        unboxed_exclude: "Excluir"
+        shelf: "Tu estantería"
+        shelf_any: "Cualquiera"
+        shelf_only: "Aún en mi estantería"
+        shelf_exclude: "No en mi estantería"
+        difficulty: "Dificultad"
+        brands: "Marca"
+        weekdays: "Día de la semana"
+        personality: "Carácter del puzzle"
+        traits: "Imagen"
+        traits_hint: "Vista previa: llega con el análisis de las imágenes de las cajas, que aún está en marcha."
+        time_of_day: "Momento del día"
+        time_of_day_hint: "Cuándo registraste resultados el mismo día en que los armaste."
+    versus:
+        median:
+            faster: "un %percent% % más rápido que la mediana"
+            slower: "un %percent% % más lento que la mediana"
+            level: "igual que la mediana"
+        usual:
+            faster: "un %percent% % más rápido que tu ritmo habitual"
+            slower: "un %percent% % más lento que tu ritmo habitual"
+            level: "justo en tu ritmo habitual"
+        expected:
+            faster: "un %percent% % más rápido de lo esperado"
+            slower: "un %percent% % más lento de lo esperado"
+            level: "justo lo esperado"
+        year_ago:
+            faster: "un %percent% % más rápidos que hace un año"
+            slower: "un %percent% % más lentos que hace un año"
+            level: "tan rápidos como hace un año"
+    findings:
+        label: "Principales hallazgos"
+    finding:
+        speed:
+            kicker: "Velocidad"
+            text: "En los mismos puzzles vas %versus%."
+        form_trend:
+            kicker: "Forma"
+            text: "Tus resultados recientes son %versus%."
+        strength:
+            kicker: "Punto fuerte"
+            text: "%segment%: %versus%."
+        weak_spot:
+            kicker: "Punto débil"
+            text: "%segment%: %versus%."
+        close_call:
+            kicker: "A un paso"
+            text: "Te faltan %gap% para el top %rank% en %puzzle%."
+            text_first: "Te faltan %gap% para el primer puesto en %puzzle%."
+        best_result:
+            kicker: "Mejor resultado"
+            text: "%puzzle% salió %versus%."
+        surprises:
+            kicker: "Sorpresas"
+            text: "{1}<b>1 puzzle</b> salió más de un 10 % mejor de lo esperado para ti.|[0,Inf[<b>%count% puzzles</b> salieron más de un 10 % mejor de lo esperado para ti."
+            locked: "{0}Las sorpresas se cuentan cuando tienes resultados con predicción. Los miembros ven cuáles.|{1}1 sorpresa en este periodo. Los miembros ven cuál.|]1,Inf[%count% sorpresas en este periodo. Los miembros ven cuáles."
+    tiles:
+        not_enough: "Aún no hay suficientes resultados"
+        members: "Miembros"
+        speed:
+            label: "Velocidad frente a la mediana"
+            faster: "{1}más rápido · 1 resultado|[0,Inf[más rápido · %count% resultados"
+            slower: "{1}más lento · 1 resultado|[0,Inf[más lento · %count% resultados"
+        form:
+            label: "Forma frente a hace un año"
+            faster: "más rápido: los últimos 6 meses frente a hace 12-18 meses"
+            slower: "más lento: los últimos 6 meses frente a hace 12-18 meses"
+            needs_year: "Necesita un año de resultados"
+        consistency:
+            label: "Regularidad"
+            sub: "la mitad central de tus resultados alrededor de tu ritmo habitual"
+            percentile: "más regular que el %percent% % de los puzzlers"
+            not_enough: "Necesita %count% resultados"
+    profile:
+        question: "¿Qué tipo de puzzler soy?"
+        title: "Tu perfil de puzzler"
+        takeaway: "Tu punto más fuerte: %strongest%. Donde más margen tienes: %room%."
+        takeaway_strongest: "Tu punto más fuerte: %strongest%. Las demás puntuaciones se completan con más resultados."
+        not_sure_yet: "Tu perfil se completa a medida que registras resultados: cada puntuación necesita algunos resultados propios. Se calcula una vez al día."
+        chart_label: "Tu perfil de puzzler: siete puntuaciones frente a todos los puzzlers"
+        note: "Cada puntuación es tu puesto entre todos los puzzlers con suficientes resultados (50 = el centro). Se calcula una vez al día, así todos se comparan con las mismas personas. Como todo tu análisis, solo lo ves tú."
+    axis:
+        speed:
+            name: "Velocidad"
+            description: "tu tiempo frente a la mediana de cada puzzle"
+        improvement:
+            name: "Progreso"
+            description: "cuánto más rápido que hace un año"
+        consistency:
+            name: "Regularidad"
+            description: "lo cerca que se quedan tus resultados de tu ritmo habitual"
+        learning:
+            name: "Aprendizaje"
+            description: "cuánto gana tu segundo intento"
+        hard_puzzles:
+            name: "Puzzles difíciles"
+            description: "tu ritmo en puzzles difíciles y muy difíciles"
+        big_puzzles:
+            name: "Puzzles grandes"
+            description: "tu ritmo con 1000 piezas o más"
+        events:
+            name: "Eventos"
+            description: "tu ritmo en eventos frente a en casa"
+    form:
+        question: "¿Estoy mejorando?"
+        title: "Tu forma a lo largo del tiempo"
+        not_sure_yet: "Tu forma aparece cuando dos meses de esta selección tienen al menos 3 resultados cada uno."
+        takeaway:
+            moved: "En %months% meses tu mediana mensual pasó de %from% a %to%."
+            steady: "En %months% meses tu mediana mensual se mantuvo en torno a %versus%."
+        members_dates: "Los miembros eligen cualquier fecha y filtran por marca, dificultad, eventos y más."
+        chart_label: "Tu mediana mensual frente a la mediana de cada puzzle"
+        legend:
+            median: "Tu mediana mensual"
+            band: "Mitad central de tus resultados"
+            usual: "Tu ritmo habitual"
+        note: "Se mide tu tiempo frente al tiempo individual mediano de cada puzzle, para que un mes de puzzles difíciles no parezca un mal mes. Hacia arriba significa más rápido."
+    skills:
+        question: "¿Cuáles son mis puntos fuertes? ¿Dónde puedo mejorar?"
+        title: "Puntos fuertes y débiles"
+        not_sure_yet: "Los puntos fuertes y débiles aparecen cuando tienes 10 resultados con mediana del puzzle en esta selección."
+        none: "No hay puntos fuertes ni débiles claros en esta selección: estás cerca de tu ritmo habitual en todo."
+        takeaway:
+            strong: "Fuerte: %segments%."
+            weak: "{1}Punto débil: %segments%.|[0,Inf[Puntos débiles: %segments%."
+        lock:
+            title: "Ve todos tus puntos fuertes y débiles"
+            text: "{0}Marcas, tamaños, dificultad, eventos, pausas y tipos de puzzle, cada uno con lo seguros que estamos.|{1}1 hallazgo claro entre marcas, tamaños, dificultad, situaciones y tipos de puzzle, con lo seguros que estamos.|]1,Inf[%count% hallazgos claros entre marcas, tamaños, dificultad, situaciones y tipos de puzzle, cada uno con lo seguros que estamos."
+        axis:
+            slower: "← más lento que tu ritmo habitual"
+            faster: "más rápido →"
+            results: "resultados"
+        pieces: "%count% piezas"
+        unrated: "Aún sin valorar"
+        preview: "Vista previa · el análisis de imágenes sigue en marcha"
+        drill:
+            title: "{1}%segment%: 1 resultado, el más rápido frente a tu ritmo habitual primero|[0,Inf[%segment%: %count% resultados, los más rápidos frente a tu ritmo habitual primero"
+            more: "{1}y 1 más|[0,Inf[y %count% más"
+        note: "Cada fila compara esos resultados con tu ritmo habitual de aquel momento, sin la dificultad del puzzle ni tu progreso. La barra es el rango probable: una barra corta significa que estamos seguros, una larga, aún no. Las filas con menos de 5 resultados no aparecen, y una fila solo se convierte en punto fuerte o débil cuando todo su rango queda más allá de ±1,5 % y se basa en 10 resultados."
+    skill_group:
+        brand: "Marca"
+        pieces: "Número de piezas"
+        difficulty: "Dificultad"
+        situation: "Situación"
+        personality: "Carácter del puzzle"
+        image_traits: "Imagen"
+    verdict:
+        strength: "Punto fuerte"
+        weak_spot: "Punto débil"
+        about_usual: "Como siempre"
+        not_sure_yet: "Aún no es seguro"
+    situation:
+        first_tries: "Primeros intentos"
+        repeats: "Repeticiones"
+        at_event: "En un evento"
+        weekend: "Fin de semana"
+        after_break: "Tras una pausa de 2+ semanas"
+        second_of_the_day: "Segundo puzzle del día"
+        unboxed: "Sin la imagen"
+    personality:
+        rewards_skill: "Premia la habilidad"
+        equaliser: "Igualador"
+        box_helps: "La imagen ayuda mucho"
+        memorable: "Fácil de recordar"
+    personality_hint:
+        rewards_skill: "Gran diferencia entre puzzlers rápidos y lentos"
+        equaliser: "La mayoría termina con tiempos parecidos"
+        box_helps: "Mucho más difícil sin la imagen"
+        memorable: "Mucho más fácil la segunda vez"
+    why:
+        first_tries: "primer intento"
+        repeats: "repetición"
+        at_event: "en un evento"
+        weekend: "fin de semana"
+        after_break: "tras una pausa"
+        second_of_the_day: "2.º puzzle del día"
+        unboxed: "sin la imagen"
+    meta:
+        result: "%pieces% piezas · %brand% · %date%"
+    expected:
+        question: "¿Qué puzzles armé más rápido o más lento de lo esperado?"
+        title: "Esperado frente a real"
+        predictions_off: "Las predicciones de tiempo están desactivadas en tus ajustes, así que aquí no hay tiempos esperados."
+        not_sure_yet: "Los tiempos esperados aparecen cuando tus resultados de esta selección tienen predicciones guardadas."
+        takeaway:
+            better: "{1}Frente a lo que esperamos de ti, <b>1</b> resultado salió más de un 10 % mejor.|[0,Inf[Frente a lo que esperamos de ti, <b>%count%</b> resultados salieron más de un 10 % mejor."
+            worse: "{1}<b>1</b> salió más de un 10 % más lento.|[0,Inf[<b>%count%</b> salieron más de un 10 % más lentos."
+            within: "{1}1 quedó dentro del 10 %.|[0,Inf[%count% quedaron dentro del 10 %."
+        chart_label: "Tu tiempo frente al tiempo esperado para ti"
+        legend:
+            better: "Más de un 10 % más rápido"
+            within: "Dentro del 10 %"
+            worse: "Más de un 10 % más lento"
+        list:
+            better: "Más rápido de lo esperado"
+            worse: "Más lento de lo esperado"
+        vs: "%actual% frente a %expected%"
+        margin: "Los speed puzzlers suelen batir las predicciones de primer intento. Tu margen: una mediana del %percent% % por debajo, y los tiempos esperados de aquí ya lo incluyen, así que el verde significa mejor que tu primer intento típico."
+        note: "Esperado = la predicción guardada con cada resultado, ajustada por tu margen habitual en las predicciones antiguas."
+        accuracy:
+            not_sure_yet: "Lo a menudo que caes dentro de tu ventana probable aparecerá cuando %count% de tus resultados tengan una predicción calibrada."
+            hits: "Dentro de tu ventana probable: %hits% de %count% (%percent% %) - la ventana promete la mitad."
+            hits80: "Dentro de tu rango del 80 %: %hits% de %count% (%percent% %) - promete 4 de cada 5."
+        lock:
+            title: "{0}Tus sorpresas|{1}1 puzzle salió mejor de lo esperado|]1,Inf[%count% puzzles salieron mejor de lo esperado"
+            text: "Cada resultado frente a lo que esperábamos de ti, y los puzzles que salieron mucho mejor o más lentos."
+    median:
+        question: "¿Dónde estoy lejos de la mediana?"
+        title: "Tú frente a la mediana"
+        not_sure_yet: "Este gráfico aparece cuando tienes 5 resultados con mediana del puzzle en esta selección."
+        takeaway: "Normalmente vas %versus%, y vas más lento que la mediana en <b>%slower% de %count%</b> resultados."
+        outliers: "{0}Ninguno se aleja más de un 30 % de tu ritmo habitual.|{1}1 resultado se aleja más de un 30 % de tu ritmo habitual.|]1,Inf[%count% resultados se alejan más de un 30 % de tu ritmo habitual."
+        chart_label: "Tus resultados según lo más rápidos o lentos que fueron frente a la mediana de cada puzzle"
+        legend:
+            faster: "Más rápido que la mediana"
+            slower: "Más lento que la mediana"
+        list:
+            slow: "Mucho más lento que tu ritmo habitual"
+            fast: "Mucho más rápido que tu ritmo habitual"
+        lock:
+            title: "{0}Tus valores atípicos|{1}1 valor atípico encontrado|]1,Inf[%count% valores atípicos encontrados"
+            text: "Los resultados lejos de tu ritmo habitual, y lo que tienen en común."
+    close_calls:
+        question: "¿Dónde estoy cerca de un puesto mejor?"
+        title: "A un paso en las clasificaciones"
+        none: "Nada a un paso en esta selección."
+        takeaway: "{0}Ninguno de tus puzzles está a menos de un 3 % de tu tiempo del siguiente puesto clave. El más cercano: %gap% para %target% en %puzzle%.|{1}En <b>1</b> puzzle estás a menos de un 3 % de tu tiempo del siguiente puesto clave. El más cercano: %gap% para %target% en %puzzle%.|]1,Inf[En <b>%count%</b> puzzles estás a menos de un 3 % de tu tiempo del siguiente puesto clave. El más cercano: %gap% para %target% en %puzzle%."
+        top: "el top %rank%"
+        first_place: "el primer puesto"
+        meta: "#%rank% · mejor %best% · %brand%"
+        totals:
+            first: "primeros puestos"
+            podium: "puestos de podio"
+            top_ten: "puestos en el top 10"
+            puzzles: "puzzles en esta selección"
+        note: "Hecho a partir de las clasificaciones públicas de cada puzzle, solo puestos. Otros puzzlers mueven los objetivos, así que pueden cambiar en cualquier momento."
+    learning:
+        question: "¿Cuánto gano repitiendo un puzzle?"
+        title: "Tu curva de aprendizaje"
+        not_sure_yet: "Tu curva de aprendizaje aparece cuando hayas armado algunos puzzles más de una vez."
+        takeaway:
+            second: "Tu segundo intento es <b>un %percent% % más rápido</b> que el primero (todos los puzzlers: %community% %)."
+            fourth: "En el cuarto eres <b>un %percent% % más rápido</b>."
+            selection: "{1}1 puzzle armado más de una vez en esta selección.|[0,Inf[%count% puzzles armados más de una vez en esta selección."
+        chart_label: "Tu tiempo en cada intento frente al primero, tú y todos los puzzlers"
+        legend:
+            you: "Tú"
+            community: "Todos los puzzlers (%pieces% piezas)"
+        list: "Puzzles en los que más mejoraste"
+        meta: "{1}%pieces% piezas · %brand% · 1 intento|[0,Inf[%pieces% piezas · %brand% · %count% intentos"
+        lock:
+            title: "{0}Tu curva de aprendizaje|{1}Tu curva de aprendizaje con 1 puzzle repetido|]1,Inf[Tu curva de aprendizaje con %count% puzzles repetidos"
+            text: "Cuánto más rápida es cada repetición para ti, frente a todos los demás."
+    habits:
+        question: "¿Cuándo armo mejor?"
+        title: "Hábitos y condiciones"
+        not_sure_yet: "No hay resultados en esta selección."
+        takeaway:
+            busiest: "Armas más los %day%."
+            break: "Después de una pausa de dos semanas o más vas %versus%."
+        weekdays: "Resultados por día de la semana"
+        weekdays_label: "Tus resultados por día de la semana"
+        breaks: "Ritmo tras una pausa"
+        time_of_day: "Ritmo según la hora de registro"
+        too_few: "muy pocos"
+        lock:
+            title: "¿Te frena una pausa?"
+            text: "{0}Tu ritmo tras las pausas, cada día de la semana y según el momento del día.|{1}Tu ritmo tras las pausas, cada día de la semana y según el momento del día - 1 de tus resultados llegó tras una pausa de dos semanas o más.|]1,Inf[Tu ritmo tras las pausas, cada día de la semana y según el momento del día - %count% de tus resultados llegaron tras una pausa de dos semanas o más."
+        note_logged: "El momento del día es cuando registraste un resultado el mismo día en que lo armaste."
+        note_no_zone: "Configura tu zona horaria para ver tu ritmo según el momento del día."
+        set_zone: "Configurar la zona horaria"
+    break:
+        "0": "El mismo día"
+        "1": "1 día"
+        2-7: "2-7 días"
+        8-14: "8-14 días"
+        15+: "15+ días"
+    time_of_day:
+        morning: "Mañana"
+        afternoon: "Tarde"
+        evening: "Noche temprana"
+        night: "Noche"
+    weekday:
+        "1": "lunes"
+        "2": "martes"
+        "3": "miércoles"
+        "4": "jueves"
+        "5": "viernes"
+        "6": "sábados"
+        "7": "domingos"
+    weekday_short:
+        "1": "lu"
+        "2": "ma"
+        "3": "mi"
+        "4": "ju"
+        "5": "vi"
+        "6": "sá"
+        "7": "do"
+    nudges:
+        question: "¿Cómo puede ser más preciso mi análisis?"
+        title: "Haz tu análisis más preciso"
+        action:
+            add: "Añadir un tiempo"
+            results: "Tus resultados"
+            settings: "Ajustes"
+        more_results:
+            title: "{1}Registra 1 resultado más|[0,Inf[Registra %count% resultados más"
+            text_10: "Con 10 resultados individuales empieza tu análisis."
+            text_25: "Con 25 resultados empiezan a verse tus puntos fuertes y débiles: cada uno necesita 10 resultados propios."
+            text_50: "Con 50 resultados tu forma mes a mes y tu perfil de puzzler se estabilizan."
+        mark_first_tries:
+            title: "{1}1 primer resultado de un puzzle no está marcado como primer intento|[0,Inf[%count% primeros resultados de puzzles no están marcados como primeros intentos"
+            text: "Si fueron primeros intentos, márcalos al editar el resultado: los primeros intentos hacen más justos tus tiempos esperados y tu mapa de puntos fuertes."
+        set_timezone:
+            title: "Configura tu zona horaria"
+            text: "Con ella, los resultados que registras el día en que los armas muestran tu ritmo según el momento del día."
+        mark_unboxed:
+            title: "Avísanos cuando armes sin la imagen"
+            text: "Armar sin la imagen es mucho más difícil. Sin la marca, ese resultado parece un día lento."
+        unrated_puzzles:
+            title: "{1}1 de tus puzzles aún no tiene dificultad|[0,Inf[%count% de tus puzzles aún no tienen dificultad"
+            text: "Un puzzle la recibe cuando suficientes puzzlers lo han armado. Sus resultados cuentan igualmente en tus gráficos de forma y mediana."
+        predictions_off:
+            title: "Las predicciones de tiempo están desactivadas"
+            text: "Sin ellas no hay tiempos esperados en esta página. Puedes volver a activarlas en tus ajustes."
+    chart:
+        results: "{1}1 resultado|[0,Inf[%count% resultados"
+        table:
+            day: "Día"
+            results: "Resultados"
+            pace: "Ritmo frente a tu ritmo habitual"
+            against_median: "Frente a la mediana"
+        profile:
+            better_than: "Mejor que el %percent% % de los puzzlers"
+            not_enough: "Aún no hay suficientes resultados"
+        form:
+            median_solver: "mediana"
+        histogram:
+            axis: "← más lento · más rápido que la mediana →"
+            faster: "%from%-%to% % más rápido"
+            slower: "%from%-%to% % más lento"
+        expected:
+            axis_x: "esperado"
+            axis_y: "tu tiempo"
+            yours: "Tu tiempo: %time%"
+            expected: "Esperado: %time%"
+        learning:
+            attempt_1: "1.º"
+            attempt_2: "2.º"
+            attempt_3: "3.º"
+            attempt_4: "4.º+"
+            first: "Primer intento"
+            first_short: "1.º"
+            faster: "Un %percent% % más rápido que el primer intento"

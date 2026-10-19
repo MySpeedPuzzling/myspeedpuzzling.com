@@ -1,0 +1,26 @@
+{#
+    The one lock of a section for a free player (README "Conversion hooks"): what is there for them - real counts only,
+    never the content - and the free trial in reach. Never more than one per section.
+
+    Variables: title (string, translated, with the counts), text (string, translated), testid (string)
+#}
+{% set profile = logged_user.profile %}
+<div class="ins-lock" data-testid="{{ testid }}">
+    <i class="ci-locked ins-lock__icon" aria-hidden="true"></i>
+    <p class="ins-lock__title">{{ title }}</p>
+    <p class="ins-lock__text">{{ text }}</p>
+
+    {% if is_web() and profile is not null and profile.canStartFreeTrial %}
+        {{ include('membership/_free_trial_start_form.html.twig', {
+            source: 'insights',
+            label: 'free_trial.modal.button'|trans({'%days%': constant('SpeedPuzzling\\Web\\Value\\FreeTrial::DAYS')}),
+            return: path('insights'),
+            button_class: 'btn btn-primary btn-sm',
+        }) }}
+    {% else %}
+        {% if is_web() and profile is not null and profile.freeTrialAvailable %}
+            <p class="ins-lock__note">{{ include('membership/_free_trial_unlock_sentence.html.twig', {profile: profile}) }}</p>
+        {% endif %}
+        <a class="btn btn-primary btn-sm" href="{{ path('membership') }}">{{ 'membership.modal.cta'|trans }}</a>
+    {% endif %}
+</div>

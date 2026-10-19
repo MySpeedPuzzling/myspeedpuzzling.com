@@ -8,6 +8,8 @@ namespace SpeedPuzzling\Web\Results\Insights;
  * "How good are my predictions?" (members): the hit rate of your likely windows - only predictions of the calibrated
  * model (model version ≥ CALIBRATED_MODEL_VERSION), whose stored range is the 50 % window; older ranges promised
  * nothing calibrated and are only counted (`olderPredictionCount`). medianMargin = median actual ÷ predicted − 1.
+ * range80* = the same for the 80 % range, over the calibrated predictions that stored one (model v3 on). A hit is
+ * measured against the window as shown (PredictionWindow::rounded()), so it agrees with the recap and the puzzle page.
  */
 readonly final class InsightsAccuracySection
 {
@@ -23,6 +25,9 @@ readonly final class InsightsAccuracySection
     /** The share of solves the likely window promises */
     public const float TARGET_HIT_RATE = 0.5;
 
+    /** The share of solves the 80 % range promises */
+    public const float TARGET_RANGE80_HIT_RATE = 0.8;
+
     public function __construct(
         public int $sampleSize,
         public int $hits,
@@ -36,6 +41,9 @@ readonly final class InsightsAccuracySection
         public int $repeatHits,
         public int $olderPredictionCount,
         public bool $notSureYet,
+        public int $range80SampleSize = 0,
+        public int $range80Hits = 0,
+        public null|float $range80HitRate = null,
     ) {
     }
 }

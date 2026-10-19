@@ -1,0 +1,124 @@
+{#
+    The members' filter sheet: every InsightsCriteria filter. Checkboxes and selects are Live models - a change
+    re-renders the page right away. Brands and years come from the player's own results (InsightsFilterOptions).
+#}
+{% set options = this.report.filterOptions %}
+<div class="modal fade" id="insights-filters-modal" tabindex="-1" aria-labelledby="insights-filters-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="insights-filters-title">{{ 'insights.filters.title'|trans }}</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+            </div>
+            <div class="modal-body ins-mf">
+                <div class="ins-mf__group">
+                    <label class="ins-mf__title" for="insights-results">{{ 'insights.filters.results'|trans }}</label>
+                    <select id="insights-results" class="form-select form-select-sm" data-model="results">
+                        {% for option in this.resultsOptions %}
+                            <option value="{{ option.value == 'all' ? '' : option.value }}" {{ this.criteria.results == option ? 'selected' }}>{{ ('insights.filters.results_' ~ option.value)|trans }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {% for name in ['events', 'unboxed', 'shelf'] %}
+                    {% set current = attribute(this.criteria, name) %}
+                    <div class="ins-mf__group">
+                        <label class="ins-mf__title" for="insights-{{ name }}">{{ ('insights.filters.' ~ name)|trans }}</label>
+                        <select id="insights-{{ name }}" class="form-select form-select-sm" data-model="{{ name }}">
+                            {% for option in this.inclusionOptions %}
+                                <option value="{{ option.value == 'any' ? '' : option.value }}" {{ current == option ? 'selected' }}>{{ ('insights.filters.' ~ name ~ '_' ~ option.value)|trans }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endfor %}
+
+                <fieldset class="ins-mf__group">
+                    <legend class="ins-mf__title">{{ 'insights.filters.difficulty'|trans }}</legend>
+                    <div class="ins-mf__options">
+                        {% for option in this.difficultyOptions %}
+                            <label class="ins-chip">
+                                <input type="checkbox" class="visually-hidden" data-model="difficulty[]" value="{{ option.value }}" {{ option.value in this.criteria.difficultyTiers ? 'checked' }}>
+                                <span>{{ option.tier is not null ? option.tier.translationKey|trans : 'insights.skills.unrated'|trans }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </fieldset>
+
+                {% if options.brands is not empty %}
+                    <fieldset class="ins-mf__group">
+                        <legend class="ins-mf__title">{{ 'insights.filters.brands'|trans }}</legend>
+                        <div class="ins-mf__options">
+                            {% for id, name in options.brands %}
+                                <label class="ins-chip">
+                                    <input type="checkbox" class="visually-hidden" data-model="brands[]" value="{{ id }}" {{ id in this.criteria.brandIds ? 'checked' }}>
+                                    <span>{{ name }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </fieldset>
+                {% endif %}
+
+                <fieldset class="ins-mf__group">
+                    <legend class="ins-mf__title">{{ 'insights.filters.weekdays'|trans }}</legend>
+                    <div class="ins-mf__options">
+                        {% for day in 1..7 %}
+                            <label class="ins-chip">
+                                <input type="checkbox" class="visually-hidden" data-model="weekdays[]" value="{{ day }}" {{ day in this.criteria.weekdays ? 'checked' }}>
+                                <span>{{ ('insights.weekday_short.' ~ day)|trans }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </fieldset>
+
+                <fieldset class="ins-mf__group">
+                    <legend class="ins-mf__title">{{ 'insights.filters.personality'|trans }}</legend>
+                    <div class="ins-mf__options">
+                        {% for option in this.personalityOptions %}
+                            <label class="ins-chip" title="{{ ('insights.personality_hint.' ~ option.value)|trans }}">
+                                <input type="checkbox" class="visually-hidden" data-model="personality[]" value="{{ option.value }}" {{ option in this.criteria.personalities ? 'checked' }}>
+                                <span>{{ ('insights.personality.' ~ option.value)|trans }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </fieldset>
+
+                <fieldset class="ins-mf__group">
+                    <legend class="ins-mf__title">{{ 'insights.filters.traits'|trans }}</legend>
+                    <div class="ins-mf__options">
+                        {% for option in this.traitOptions %}
+                            <label class="ins-chip">
+                                <input type="checkbox" class="visually-hidden" data-model="traits[]" value="{{ option.value }}" {{ option in this.criteria.imageTraits ? 'checked' }}>
+                                <span>{{ option.labelKey|trans }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                    <p class="ins-mf__hint">{{ 'insights.filters.traits_hint'|trans }}</p>
+                </fieldset>
+
+                <fieldset class="ins-mf__group">
+                    <legend class="ins-mf__title">{{ 'insights.filters.time_of_day'|trans }}</legend>
+                    {% if this.report.hasTimezone %}
+                        <div class="ins-mf__options">
+                            {% for option in this.timeOfDayOptions %}
+                                <label class="ins-chip">
+                                    <input type="checkbox" class="visually-hidden" data-model="timeOfDay[]" value="{{ option.value }}" {{ option in this.criteria.timesOfDay ? 'checked' }}>
+                                    <span>{{ ('insights.time_of_day.' ~ option.value)|trans }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                        <p class="ins-mf__hint">{{ 'insights.filters.time_of_day_hint'|trans }}</p>
+                    {% else %}
+                        <p class="ins-mf__hint">{{ 'insights.habits.note_no_zone'|trans }} <a href="{{ path('edit_profile') }}#timezone">{{ 'insights.habits.set_zone'|trans }}</a></p>
+                    {% endif %}
+                </fieldset>
+            </div>
+            <div class="modal-footer">
+                {% if this.moreFiltersCount > 0 %}
+                    <button type="button" class="btn btn-link btn-sm me-auto" data-action="live#action" data-live-action-param="clearFilters">{{ 'insights.filters.clear'|trans }}</button>
+                {% endif %}
+                <span class="ins-filters__count">{{ 'insights.filters.count'|trans({'%count%': this.report.summary.resultCount}) }}</span>
+                <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">{{ 'insights.filters.done'|trans }}</button>
+            </div>
+        </div>
+    </div>
+</div>

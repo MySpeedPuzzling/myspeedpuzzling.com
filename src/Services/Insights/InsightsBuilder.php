@@ -40,6 +40,7 @@ readonly final class InsightsBuilder
         private PredictionAccuracyBuilder $accuracyBuilder,
         private ProfileCardBuilder $profileCardBuilder,
         private FindingsBuilder $findingsBuilder,
+        private NudgesBuilder $nudgesBuilder,
     ) {
     }
 
@@ -47,6 +48,8 @@ readonly final class InsightsBuilder
      * @param list<InsightsSoloResult> $results GetInsightsSoloResults::forPlayer(), oldest first
      * @param array<string, CloseCallCandidate> $closeCalls GetCloseCalls::forPlayer()
      * @param null|DateTimeZone $timezone the player's own zone (player.timezone), null = none
+     * @param bool $predictionsAllowed false for a player who switched time predictions off (player.time_predictions_opted_out):
+     *                                 no expected times anywhere, like the puzzle page, the Picker and the recap
      */
     public function build(
         string $playerId,
@@ -56,6 +59,7 @@ readonly final class InsightsBuilder
         InsightsCriteria $criteria,
         null|DateTimeZone $timezone,
         DateTimeImmutable $now,
+        bool $predictionsAllowed = true,
     ): InsightsReport {
         $learningFactors = LearningFactors::fromGlobalRatios($context->globalImprovementRatios);
         $rows = $this->preparer->prepare($results, $learningFactors, $timezone);
@@ -85,7 +89,7 @@ readonly final class InsightsBuilder
         $form = $this->formBuilder->build($withoutPeriod, $criteria->periodFrom($now), $criteria->periodBefore(), $now);
         $skillMap = $this->skillMapBuilder->build($selection);
         $histogram = $this->histogramBuilder->build($selection);
-        $expected = $this->expectedBuilder->build($selection);
+        $expected = $this->expectedBuilder->build($predictionsAllowed ? $selection : []);
         $closeCallsSection = $this->closeCallsBuilder->build($closeCalls, $puzzles, $criteria);
         $learning = $this->learningCurveBuilder->build(
             $puzzleRows,
@@ -95,7 +99,7 @@ readonly final class InsightsBuilder
         );
         $habits = $this->habitsBuilder->build($selection, $timezone !== null);
         $consistency = $this->consistencyBuilder->build($selection, $context->profileAxes, $now);
-        $accuracy = $this->accuracyBuilder->build($selection);
+        $accuracy = $this->accuracyBuilder->build($predictionsAllowed ? $selection : []);
         $profileCard = $this->profileCardBuilder->build($context);
         $findings = $this->findingsBuilder->build($selection, $summary, $skillMap, $closeCallsSection, $expected);
 
@@ -128,7 +132,6 @@ readonly final class InsightsBuilder
             playerId: $playerId,
             isMember: $criteria->isMember,
             criteria: $criteria->toQueryParameters(),
-            strippedForMembers: $criteria->strippedForMembers,
             builtAt: $now,
             generation: $context->generation,
             hasTimezone: $timezone !== null,
@@ -145,6 +148,10 @@ readonly final class InsightsBuilder
             consistency: $consistency,
             predictionAccuracy: $accuracy,
             puzzleIdsShown: $shown,
+            totalResultCount: count($rows),
+            predictionsOff: $predictionsAllowed === false,
+            nudges: $this->nudgesBuilder->nudges($rows, $timezone !== null, $predictionsAllowed),
+            filterOptions: $this->nudgesBuilder->filterOptions($rows),
         );
     }
 }

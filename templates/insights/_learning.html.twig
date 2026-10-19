@@ -1,0 +1,62 @@
+{# "How much do I gain from repeating a puzzle?" (members; LearningCurveBuilder) - you against everybody #}
+{% set learning = this.report.learningCurve %}
+<section class="ins-sec" id="insights-learning" data-testid="insights-section-learning">
+    {{ include('insights/_section_head.html.twig', {question: 'insights.learning.question', title: 'insights.learning.title', badge: 'member', badge_text: 'insights.badge.members'}) }}
+
+    {% if not this.isMember %}
+        {{ include('insights/_lock.html.twig', {
+            title: 'insights.learning.lock.title'|trans({'%count%': learning.repeatedPuzzleCount}),
+            text: 'insights.learning.lock.text'|trans,
+            testid: 'insights-lock-learning',
+        }) }}
+    {% elseif learning.notSureYet %}
+        <p class="ins-take">{{ 'insights.learning.not_sure_yet'|trans }}</p>
+    {% else %}
+        {% set second = learning.you|filter(point => point.attempt == 2)|first %}
+        {% set fourth = learning.you|filter(point => point.attempt == 4)|first %}
+        {% set community_second = learning.community|filter(point => point.attempt == 2)|first %}
+        <p class="ins-take">
+            {%- if second and second.factor is not null -%}
+                {{ 'insights.learning.takeaway.second'|trans({
+                    '%percent%': ((1 - second.factor) * 100)|round,
+                    '%community%': community_second and community_second.factor is not null ? ((1 - community_second.factor) * 100)|round : '–',
+                })|raw }}
+                {%- if fourth and fourth.factor is not null %} {{ 'insights.learning.takeaway.fourth'|trans({'%percent%': ((1 - fourth.factor) * 100)|round})|raw }}{% endif -%}
+            {%- else -%}
+                {{ 'insights.learning.takeaway.selection'|trans({'%count%': learning.repeatedPuzzleCount}) }}
+            {%- endif -%}
+        </p>
+
+        <div class="ins-two">
+            <div>
+                {% if this.charts.learning is defined %}
+                    <div class="ins-chart" id="ins-chart-learning-{{ this.stateKey }}" data-controller="comparison-chart">
+                        {{ render_chart(this.charts.learning, {role: 'img', 'aria-label': 'insights.learning.chart_label'|trans}) }}
+                    </div>
+                    <div class="ins-legend" aria-hidden="true">
+                        <span><i class="ins-legend__line ins-legend--you"></i>{{ 'insights.learning.legend.you'|trans }}</span>
+                        <span><i class="ins-legend__line ins-legend--ref"></i>{{ 'insights.learning.legend.community'|trans({'%pieces%': learning.communityPiecesCount}) }}</span>
+                    </div>
+                {% endif %}
+            </div>
+            <div>
+                <p class="ins-listh">{{ 'insights.learning.list'|trans }}</p>
+                <ul class="ins-list">
+                    {% for learned in learning.learnedMost %}
+                        {% set puzzle = this.puzzle(learned.puzzleId) %}
+                        {% if puzzle is not null %}
+                            {{ include('insights/_result_row.html.twig', {
+                                puzzle: puzzle,
+                                meta: 'insights.learning.meta'|trans({'%pieces%': puzzle.piecesCount, '%brand%': (puzzle.manufacturerName ?? ''), '%count%': learned.attempts}),
+                                number: 'insights.percent'|trans({'%value%': '−' ~ (learned.gain * 100)|round}),
+                                number_note: learned.firstSeconds|puzzlingTime ~ ' → ' ~ learned.bestSeconds|puzzlingTime,
+                            }) }}
+                        {% endif %}
+                    {% else %}
+                        <li class="ins-row ins-row--empty">{{ 'insights.none_in_selection'|trans }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    {% endif %}
+</section>

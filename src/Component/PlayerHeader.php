@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Component;
 
 use SpeedPuzzling\Web\Query\HasExistingConversation;
 use SpeedPuzzling\Web\Results\PlayerProfile;
+use SpeedPuzzling\Web\Services\Insights\InsightsFeature;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Value\ComparisonSubjectRef;
@@ -76,6 +77,7 @@ final class PlayerHeader
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private HasExistingConversation $hasExistingConversation,
         readonly private XpFeatureGate $xpFeatureGate,
+        readonly private InsightsFeature $insightsFeature,
     ) {
     }
 
@@ -104,10 +106,14 @@ final class PlayerHeader
                 && $player->achievementsOptedOut === false
                 && ($player->activeMembership || $this->isOwnProfile);
 
+            // Insights: the owner's own, while the INSIGHTS_PUBLIC flag (or admin access) shows them
+            $insightsTab = $this->isOwnProfile && $this->insightsFeature->isVisibleTo($viewer);
+
             $this->tabs = array_values(array_filter(
                 PlayerHeaderTab::cases(),
                 fn (PlayerHeaderTab $tab): bool => ($tab->isOwnerOnly() === false || $this->isOwnProfile)
-                    && ($tab !== PlayerHeaderTab::Achievements || $achievementsTab),
+                    && ($tab !== PlayerHeaderTab::Achievements || $achievementsTab)
+                    && ($tab !== PlayerHeaderTab::Insights || $insightsTab),
             ));
         }
 

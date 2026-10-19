@@ -1,0 +1,7 @@
+{# Fewer than InsightsReport::MIN_RESULTS solo results: what Insights needs, kindly - and the way to get there #}
+{% set report = this.report %}
+<section class="ins-sec ins-empty" data-testid="insights-empty">
+    <h2 class="ins-sec__title">{{ 'insights.empty.title'|trans({'%count%': constant('SpeedPuzzling\\Web\\Results\\Insights\\InsightsReport::MIN_RESULTS')}) }}</h2>
+    <p>{{ 'insights.empty.text'|trans({'%count%': report.totalResultCount, '%needed%': constant('SpeedPuzzling\\Web\\Results\\Insights\\InsightsReport::MIN_RESULTS')}) }}</p>
+    <a class="btn btn-primary btn-sm" href="{{ path('puzzle_add') }}"><i class="ci-add me-1" aria-hidden="true"></i>{{ 'insights.empty.add'|trans }}</a>
+</section>

@@ -1,0 +1,83 @@
+{#
+    "Which puzzles did I solve faster or slower than expected?" (members; ExpectedVsActualBuilder +
+    PredictionAccuracyBuilder - hits judged against the window as shown, stream 3c's PredictionWindow). A player who switched time predictions off gets no expected times - the section says so
+    and links to the setting. First-try margins are framed as "your margin" (README: never discouraging).
+#}
+{% import 'insights/_macros.html.twig' as ins %}
+{% set report = this.report %}
+{% set expected = report.expectedVsActual %}
+{% set accuracy = report.predictionAccuracy %}
+<section class="ins-sec" id="insights-expected" data-testid="insights-section-expected">
+    {{ include('insights/_section_head.html.twig', {question: 'insights.expected.question', title: 'insights.expected.title', badge: 'member', badge_text: 'insights.badge.members'}) }}
+
+    {% if report.predictionsOff %}
+        <p class="ins-take" data-testid="insights-predictions-off">
+            {{ 'insights.expected.predictions_off'|trans }}
+            <a href="{{ path('edit_profile') }}">{{ 'statistics.change_in_settings'|trans }}</a>
+        </p>
+    {% elseif not this.isMember %}
+        {{ include('insights/_lock.html.twig', {
+            title: 'insights.expected.lock.title'|trans({'%count%': expected.betterCount}),
+            text: 'insights.expected.lock.text'|trans,
+            testid: 'insights-lock-expected',
+        }) }}
+    {% elseif expected.notSureYet %}
+        <p class="ins-take">{{ 'insights.expected.not_sure_yet'|trans }}</p>
+    {% else %}
+        <p class="ins-take">
+            {{- 'insights.expected.takeaway.better'|trans({'%count%': expected.betterCount})|raw }}
+            {{ 'insights.expected.takeaway.worse'|trans({'%count%': expected.worseCount})|raw }}
+            {{ 'insights.expected.takeaway.within'|trans({'%count%': expected.withinCount}) -}}
+        </p>
+
+        <div class="ins-two">
+            <div>
+                {% if this.charts.expected is defined %}
+                    <div class="ins-chart ins-chart--square" id="ins-chart-expected-{{ this.stateKey }}" data-controller="comparison-chart">
+                        {{ render_chart(this.charts.expected, {role: 'img', 'aria-label': 'insights.expected.chart_label'|trans}) }}
+                    </div>
+                    <div class="ins-legend" aria-hidden="true">
+                        <span><i class="ins-legend__dot ins-legend--faster"></i>{{ 'insights.expected.legend.better'|trans }}</span>
+                        <span><i class="ins-legend__dot ins-legend--neutral"></i>{{ 'insights.expected.legend.within'|trans }}</span>
+                        <span><i class="ins-legend__dot ins-legend--slower"></i>{{ 'insights.expected.legend.worse'|trans }}</span>
+                    </div>
+                {% endif %}
+            </div>
+            <div>
+                {% for list in [{key: 'better', items: expected.better}, {key: 'worse', items: expected.worse}] %}
+                    <p class="ins-listh"><span class="ins-dot ins-dot--{{ list.key }}" aria-hidden="true"></span>{{ ('insights.expected.list.' ~ list.key)|trans }}</p>
+                    <ul class="ins-list">
+                        {% for item in list.items %}
+                            {% set puzzle = this.puzzle(item.puzzleId) %}
+                            {% if puzzle is not null and item.expectedSeconds is not null %}
+                                {{ include('insights/_result_row.html.twig', {
+                                    puzzle: puzzle,
+                                    meta: 'insights.meta.result'|trans({'%pieces%': item.piecesCount, '%brand%': (item.manufacturerName ?? ''), '%date%': item.solvedAt|format_date('medium')}),
+                                    number: ins.signed_percent(1 - item.seconds / item.expectedSeconds),
+                                    number_note: 'insights.expected.vs'|trans({'%actual%': item.seconds|puzzlingTime, '%expected%': item.expectedSeconds|puzzlingTime}),
+                                    situations: item.situations,
+                                }) }}
+                            {% endif %}
+                        {% else %}
+                            <li class="ins-row ins-row--empty">{{ 'insights.none_in_selection'|trans }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endfor %}
+            </div>
+        </div>
+
+        <p class="ins-note">
+            {%- if expected.firstTryMargin is not null and expected.firstTryMargin > 0.005 -%}
+                {{ 'insights.expected.margin'|trans({'%percent%': (expected.firstTryMargin * 100)|round}) }}
+            {%- else -%}
+                {{ 'insights.expected.note'|trans }}
+            {%- endif %}
+            {% if accuracy.notSureYet -%}
+                {{ 'insights.expected.accuracy.not_sure_yet'|trans({'%count%': constant('SpeedPuzzling\\Web\\Results\\Insights\\InsightsAccuracySection::MIN_PREDICTIONS')}) }}
+            {%- else -%}
+                {{ 'insights.expected.accuracy.hits'|trans({'%hits%': accuracy.hits, '%count%': accuracy.sampleSize, '%percent%': ((accuracy.hitRate ?? 0) * 100)|round}) }}
+                {%- if accuracy.range80HitRate is not null %} {{ 'insights.expected.accuracy.hits80'|trans({'%hits%': accuracy.range80Hits, '%count%': accuracy.range80SampleSize, '%percent%': (accuracy.range80HitRate * 100)|round}) }}{% endif -%}
+            {%- endif -%}
+        </p>
+    {% endif %}
+</section>

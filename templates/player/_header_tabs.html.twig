@@ -11,7 +11,7 @@
         {% for tab in header.tabs %}
             {% set is_current = tab == header.currentTab %}
             <a class="player-tab{{ is_current ? ' active' }}"
-               href="{{ path(tab.routeName, {playerId: player.playerId}) }}"
+               href="{{ path(tab.routeName, tab.routeParameters(player.playerId)) }}"
                {%- if tab.nofollow %} rel="nofollow"{% endif %}
                {%- if is_current %} aria-current="{{ current_route == tab.routeName ? 'page' : 'true' }}"{% endif %}
             >{{ tab.translationKey|trans }}</a>

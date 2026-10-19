@@ -35,9 +35,10 @@ readonly final class InsightsPageLoader
 
     /**
      * @param null|string $timezone the player's own zone (PlayerProfile::$timezone)
+     * @param bool $predictionsAllowed false when the player switched time predictions off (PlayerProfile::$timePredictionsOptedOut)
      * @throws PlayerNotFound
      */
-    public function report(string $playerId, InsightsCriteria $criteria, null|string $timezone): InsightsReport
+    public function report(string $playerId, InsightsCriteria $criteria, null|string $timezone, bool $predictionsAllowed = true): InsightsReport
     {
         return $this->builder->build(
             $playerId,
@@ -47,16 +48,18 @@ readonly final class InsightsPageLoader
             $criteria,
             self::zone($timezone),
             $this->clock->now(),
+            $predictionsAllowed,
         );
     }
 
     /**
      * @param null|string $timezone the player's own zone (PlayerProfile::$timezone)
+     * @param bool $predictionsAllowed false when the player switched time predictions off (PlayerProfile::$timePredictionsOptedOut)
      * @throws PlayerNotFound
      */
-    public function load(string $playerId, InsightsCriteria $criteria, null|string $timezone): InsightsPage
+    public function load(string $playerId, InsightsCriteria $criteria, null|string $timezone, bool $predictionsAllowed = true): InsightsPage
     {
-        $report = $this->report($playerId, $criteria, $timezone);
+        $report = $this->report($playerId, $criteria, $timezone, $predictionsAllowed);
 
         return new InsightsPage($report, $this->getInsightsPuzzles->byIds($report->puzzleIdsShown));
     }

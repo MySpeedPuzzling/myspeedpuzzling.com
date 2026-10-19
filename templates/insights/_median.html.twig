@@ -1,0 +1,85 @@
+{#
+    "Where am I way off the median?" - the histogram of your results against each puzzle's median solver (free) and
+    the outliers more than 30 % off your usual (members, HistogramBuilder).
+#}
+{% import 'insights/_macros.html.twig' as ins %}
+{% set histogram = this.report.histogram %}
+<section class="ins-sec" id="insights-median" data-testid="insights-section-median">
+    {{ include('insights/_section_head.html.twig', {question: 'insights.median.question', title: 'insights.median.title', badge: 'mixed', badge_text: 'insights.badge.median'}) }}
+
+    {% if histogram.notSureYet %}
+        <p class="ins-take">{{ 'insights.median.not_sure_yet'|trans }}</p>
+    {% else %}
+        {% set outliers = histogram.slowOutlierCount + histogram.fastOutlierCount %}
+        <p class="ins-take">
+            {{- 'insights.median.takeaway'|trans({
+                '%versus%': '<b>' ~ ins.versus(1 - (histogram.usualPercent ?? 0) / 100, 'median') ~ '</b>',
+                '%slower%': histogram.slowerThanMedianCount,
+                '%count%': histogram.sampleSize,
+            })|raw }}
+            {{ 'insights.median.outliers'|trans({'%count%': outliers}) -}}
+        </p>
+
+        <div class="ins-two">
+            <div>
+                {% if this.charts.histogram is defined %}
+                    <div class="ins-chart" id="ins-chart-histogram-{{ this.stateKey }}" data-controller="comparison-chart">
+                        {{ render_chart(this.charts.histogram, {role: 'img', 'aria-label': 'insights.median.chart_label'|trans}) }}
+                    </div>
+                    {# The chart's numbers for screen readers: every bar with results #}
+                    <table class="visually-hidden" data-testid="insights-histogram-table">
+                        <caption>{{ 'insights.median.chart_label'|trans }}</caption>
+                        <thead><tr><th scope="col">{{ 'insights.chart.table.against_median'|trans }}</th><th scope="col">{{ 'insights.chart.table.results'|trans }}</th></tr></thead>
+                        <tbody>
+                            {% for bin in histogram.bins|filter(bin => bin.count > 0) %}
+                                <tr>
+                                    <th scope="row">
+                                        {%- if bin.fromPercent >= 0 -%}
+                                            {{ 'insights.chart.histogram.faster'|trans({'%from%': bin.fromPercent, '%to%': bin.toPercent}) }}
+                                        {%- else -%}
+                                            {{ 'insights.chart.histogram.slower'|trans({'%from%': -bin.toPercent, '%to%': -bin.fromPercent}) }}
+                                        {%- endif -%}
+                                    </th>
+                                    <td>{{ bin.count }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <div class="ins-legend" aria-hidden="true">
+                        <span><i class="ins-legend__square ins-legend--you"></i>{{ 'insights.median.legend.faster'|trans }}</span>
+                        <span><i class="ins-legend__square ins-legend--you-soft"></i>{{ 'insights.median.legend.slower'|trans }}</span>
+                    </div>
+                {% endif %}
+            </div>
+            <div>
+                {% if not this.isMember %}
+                    {{ include('insights/_lock.html.twig', {
+                        title: 'insights.median.lock.title'|trans({'%count%': outliers}),
+                        text: 'insights.median.lock.text'|trans,
+                        testid: 'insights-lock-outliers',
+                    }) }}
+                {% else %}
+                    {% for list in [{key: 'slow', items: histogram.slowOutliers}, {key: 'fast', items: histogram.fastOutliers}] %}
+                        <p class="ins-listh">{{ ('insights.median.list.' ~ list.key)|trans }}</p>
+                        <ul class="ins-list" data-testid="insights-outliers-{{ list.key }}">
+                            {% for item in list.items %}
+                                {% set puzzle = this.puzzle(item.puzzleId) %}
+                                {% if puzzle is not null %}
+                                    {{ include('insights/_result_row.html.twig', {
+                                        puzzle: puzzle,
+                                        meta: 'insights.meta.result'|trans({'%pieces%': item.piecesCount, '%brand%': (item.manufacturerName ?? ''), '%date%': item.solvedAt|format_date('medium')}),
+                                        number: item.seconds|puzzlingTime,
+                                        number_note: ins.versus(item.residual, 'usual'),
+                                        situations: item.situations,
+                                    }) }}
+                                {% endif %}
+                            {% else %}
+                                <li class="ins-row ins-row--empty">{{ 'insights.none_in_selection'|trans }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</section>

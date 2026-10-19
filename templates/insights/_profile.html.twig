@@ -1,0 +1,41 @@
+{# "What kind of puzzler am I?" - the 7-axis puzzler card (free, self-only; ProfileCardBuilder, computed daily) #}
+{% set card = this.report.profileCard %}
+<section class="ins-sec" id="insights-profile" data-testid="insights-section-profile">
+    {{ include('insights/_section_head.html.twig', {question: 'insights.profile.question', title: 'insights.profile.title', badge: 'free', badge_text: 'insights.badge.free_only_you'}) }}
+
+    {% if card.notSureYet or card.strongest is null %}
+        <p class="ins-take">{{ 'insights.profile.not_sure_yet'|trans }}</p>
+    {% elseif card.roomToGrow is null %}
+        <p class="ins-take">{{ 'insights.profile.takeaway_strongest'|trans({
+            '%strongest%': '<b>' ~ ('insights.axis.' ~ card.strongest.value ~ '.name')|trans ~ '</b>',
+        })|raw }}</p>
+    {% else %}
+        <p class="ins-take">{{ 'insights.profile.takeaway'|trans({
+            '%strongest%': '<b>' ~ ('insights.axis.' ~ card.strongest.value ~ '.name')|trans ~ '</b>',
+            '%room%': '<b>' ~ ('insights.axis.' ~ card.roomToGrow.value ~ '.name')|trans ~ '</b>',
+        })|raw }}</p>
+    {% endif %}
+
+    <div class="ins-profile">
+        {% if this.charts.profile is defined %}
+            <div class="ins-chart ins-chart--radar" id="ins-chart-profile-{{ this.stateKey }}" data-controller="comparison-chart">
+                {{ render_chart(this.charts.profile, {role: 'img', 'aria-label': 'insights.profile.chart_label'|trans}) }}
+            </div>
+        {% endif %}
+
+        <ul class="ins-axes">
+            {% for axis in card.axes %}
+                <li class="ins-axis">
+                    <span class="ins-axis__name">
+                        {{- ('insights.axis.' ~ axis.axis.value ~ '.name')|trans -}}
+                        <small>{{ ('insights.axis.' ~ axis.axis.value ~ '.description')|trans }}</small>
+                    </span>
+                    <span class="ins-axis__bar" aria-hidden="true"><span style="width: {{ axis.percentile is not null ? axis.percentile|round : 0 }}%"></span></span>
+                    <b class="ins-axis__value">{{ axis.percentile is not null ? axis.percentile|round : '–' }}</b>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <p class="ins-note">{{ 'insights.profile.note'|trans }}</p>
+</section>

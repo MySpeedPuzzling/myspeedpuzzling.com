@@ -1,0 +1,78 @@
+{#
+    "When do I puzzle best?" (HabitsBuilder) - results per weekday are free; how a weekday, a break and the time of day
+    move your pace are members only. The time of day exists only with a time zone and is "when you logged".
+#}
+{% import 'insights/_macros.html.twig' as ins %}
+{% set habits = this.report.habits %}
+{% set break_range = 0.15 %}
+<section class="ins-sec" id="insights-habits" data-testid="insights-section-habits">
+    {{ include('insights/_section_head.html.twig', {question: 'insights.habits.question', title: 'insights.habits.title', badge: 'mixed', badge_text: 'insights.badge.habits'}) }}
+
+    {% if habits.notSureYet %}
+        <p class="ins-take">{{ 'insights.habits.not_sure_yet'|trans }}</p>
+    {% else %}
+        {% set long_break = habits.breaks|filter(bucket => bucket.key == '15+')|first %}
+        <p class="ins-take">
+            {%- if habits.busiestWeekday is not null -%}
+                {{ 'insights.habits.takeaway.busiest'|trans({'%day%': '<b>' ~ ('insights.weekday.' ~ habits.busiestWeekday)|trans ~ '</b>'})|raw }}
+            {%- endif -%}
+            {%- if this.isMember and long_break and long_break.stats.effect is not null and long_break.stats.verdict.value != 'not_sure_yet' %} {{ 'insights.habits.takeaway.break'|trans({'%versus%': '<b>' ~ ins.versus(1 + long_break.stats.effect, 'usual') ~ '</b>'})|raw }}{% endif -%}
+        </p>
+
+        <div class="ins-two">
+            <div>
+                <p class="ins-listh">{{ 'insights.habits.weekdays'|trans }}</p>
+                {% if this.charts.weekdays is defined %}
+                    <div class="ins-chart ins-chart--short" id="ins-chart-weekdays-{{ this.stateKey }}" data-controller="comparison-chart">
+                        {{ render_chart(this.charts.weekdays, {role: 'img', 'aria-label': 'insights.habits.weekdays_label'|trans}) }}
+                    </div>
+                    {# The chart's numbers for screen readers - the pace only for members, like the chart's tooltips #}
+                    <table class="visually-hidden" data-testid="insights-weekdays-table">
+                        <caption>{{ 'insights.habits.weekdays_label'|trans }}</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">{{ 'insights.chart.table.day'|trans }}</th>
+                                <th scope="col">{{ 'insights.chart.table.results'|trans }}</th>
+                                {% if this.isMember %}<th scope="col">{{ 'insights.chart.table.pace'|trans }}</th>{% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for bucket in habits.weekdays %}
+                                <tr>
+                                    <th scope="row">{{ ('insights.weekday.' ~ bucket.key)|trans }}</th>
+                                    <td>{{ bucket.count }}</td>
+                                    {% if this.isMember %}<td>{{ bucket.stats.effect is not null ? ins.versus(1 + bucket.stats.effect, 'usual') : 'insights.habits.too_few'|trans }}</td>{% endif %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+            </div>
+            <div>
+                {% if not this.isMember %}
+                    {{ include('insights/_lock.html.twig', {
+                        title: 'insights.habits.lock.title'|trans,
+                        text: 'insights.habits.lock.text'|trans({'%count%': long_break ? long_break.count : 0}),
+                        testid: 'insights-lock-habits',
+                    }) }}
+                {% else %}
+                    <p class="ins-listh">{{ 'insights.habits.breaks'|trans }}</p>
+                    {{ include('insights/_pace_bars.html.twig', {buckets: habits.breaks, prefix: 'insights.break.', range: break_range, testid: 'insights-breaks'}) }}
+
+                    {% if habits.timesOfDay is not null %}
+                        <p class="ins-listh mt-3">{{ 'insights.habits.time_of_day'|trans }}</p>
+                        {{ include('insights/_pace_bars.html.twig', {buckets: habits.timesOfDay, prefix: 'insights.time_of_day.', range: break_range, testid: 'insights-time-of-day'}) }}
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+
+    <p class="ins-note">
+        {%- if this.report.hasTimezone -%}
+            {{ 'insights.habits.note_logged'|trans }}
+        {%- else -%}
+            {{ 'insights.habits.note_no_zone'|trans }} <a href="{{ path('edit_profile') }}#timezone">{{ 'insights.habits.set_zone'|trans }}</a>
+        {%- endif -%}
+    </p>
+</section>

@@ -1,0 +1,27 @@
+{# "How can my insights get sharper?" - what the player can do so the page knows more (NudgesBuilder), for everyone #}
+{% set nudges = this.report.nudges %}
+{% if nudges is not empty %}
+    <section class="ins-sec" id="insights-sharper" data-testid="insights-section-nudges">
+        {{ include('insights/_section_head.html.twig', {question: 'insights.nudges.question', title: 'insights.nudges.title', badge: 'free', badge_text: 'insights.badge.everyone'}) }}
+
+        <ol class="ins-nudges">
+            {% for nudge in nudges %}
+                {% set code = nudge.code.value %}
+                <li class="ins-nudge" data-testid="insights-nudge-{{ code }}">
+                    <span class="ins-nudge__n" aria-hidden="true">{{ loop.index }}</span>
+                    <span class="ins-nudge__main">
+                        <span class="ins-nudge__title">{{ ('insights.nudges.' ~ code ~ '.title')|trans({'%count%': (nudge.count ?? 0), '%target%': (nudge.target ?? 0)}) }}</span>
+                        <span class="ins-nudge__text">{{ ('insights.nudges.' ~ code ~ '.text' ~ (code == 'more_results' ? '_' ~ nudge.target))|trans({'%count%': (nudge.count ?? 0), '%target%': (nudge.target ?? 0)}) }}</span>
+                    </span>
+                    {% if code == 'more_results' %}
+                        <a class="btn btn-outline-primary btn-sm" href="{{ path('puzzle_add') }}">{{ 'insights.nudges.action.add'|trans }}</a>
+                    {% elseif code == 'mark_first_tries' %}
+                        <a class="btn btn-outline-primary btn-sm" href="{{ path('my_profile') }}">{{ 'insights.nudges.action.results'|trans }}</a>
+                    {% elseif code in ['set_timezone', 'predictions_off'] %}
+                        <a class="btn btn-outline-primary btn-sm" href="{{ path('edit_profile') }}{{ code == 'set_timezone' ? '#timezone' }}">{{ 'insights.nudges.action.settings'|trans }}</a>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ol>
+    </section>
+{% endif %}

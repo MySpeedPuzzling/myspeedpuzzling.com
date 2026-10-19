@@ -93,6 +93,32 @@ final class ImageEstimateEvaluatorTest extends TestCase
         self::assertNotNull($group['spearman']);
     }
 
+    /**
+     * A puzzle whose picture was reclassified between two rows counts at puzzle level in its latest row's kind only;
+     * the rows stay where they were made. Every group says which estimate generations its rows rested on.
+     */
+    public function testAPuzzleCountsInOneKindAndTheEstimateGenerationsAreCounted(): void
+    {
+        $rows = [
+            $this->row('a', k: 0, actual: 1000, image: 1000, imageLog: 0.0, computedAt: 1.0, blend: null, statistical: null, measuredIndices: 12, measuredScore: 1.0),
+            $this->row('a', k: 1, actual: 1000, image: 1000, imageLog: 0.0, computedAt: 2.0, blend: null, statistical: null, measuredIndices: 12, measuredScore: 1.0, kind: ImageKind::Box, estimateModel: 'ridge-siglip2-dinov2 1.1.0'),
+        ];
+
+        $result = ImageEstimateEvaluator::evaluate($rows);
+        $groups = array_column($result['groups'], null, 'imageKind');
+
+        self::assertSame(1, $groups['flat']['rows']);
+        self::assertSame(0, $groups['flat']['measuredPuzzles'], 'Its latest row is a box');
+        self::assertSame(1, $groups['box']['measuredPuzzles']);
+        self::assertSame(1, $result['overall']['measuredPuzzles']);
+        self::assertSame(['ridge-siglip2-dinov2 1.0.0' => 1], $groups['flat']['estimateModels']);
+        self::assertSame(['ridge-siglip2-dinov2 1.0.0' => 1, 'ridge-siglip2-dinov2 1.1.0' => 1], $result['overall']['estimateModels']);
+
+        $byK = array_column($result['byK'], null, 'k');
+        self::assertSame(0, $byK['0']['measuredPuzzles']);
+        self::assertSame(1, $byK['1-2']['measuredPuzzles']);
+    }
+
     private function row(
         string $puzzle,
         int $k,
@@ -104,11 +130,13 @@ final class ImageEstimateEvaluatorTest extends TestCase
         null|int $statistical,
         int $measuredIndices,
         null|float $measuredScore,
+        ImageKind $kind = ImageKind::Flat,
+        string $estimateModel = 'ridge-siglip2-dinov2 1.0.0',
     ): ImageEstimateEvaluationRow {
         return new ImageEstimateEvaluationRow(
             puzzleId: $puzzle,
             sizeGroup: PiecesGroup::FiveHundred,
-            imageKind: ImageKind::Flat,
+            imageKind: $kind,
             kIndices: $k,
             actualSeconds: $actual,
             imageLogDifficulty: $imageLog,
@@ -126,6 +154,7 @@ final class ImageEstimateEvaluatorTest extends TestCase
             statisticalSeconds: $statistical,
             measuredIndices: $measuredIndices,
             measuredScore: $measuredScore,
+            estimateModel: $estimateModel,
         );
     }
 }

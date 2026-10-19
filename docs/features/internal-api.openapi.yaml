@@ -4067,7 +4067,7 @@ components:
         modelVersion: { type: string, maxLength: 50 }
         logDifficulty: { type: number, minimum: -5, maximum: 5 }
         logP10: { type: number, minimum: -5, maximum: 5, description: At most logDifficulty }
-        logP90: { type: number, minimum: -5, maximum: 5, description: At least logDifficulty }
+        logP90: { type: number, minimum: -5, maximum: 5, description: At least logDifficulty, and at most 1.5 above logP10 }
         outOfFold:
           type: boolean
           description: A labelled puzzle estimated by a model that did not see it (cross-fitted) - the only kind a reconstructed prediction uses

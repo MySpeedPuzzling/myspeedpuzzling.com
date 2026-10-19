@@ -386,9 +386,12 @@ model is on the row (`image_model`).
   the solve cannot be in it.
 - **Reconstructed** (`PredictionReconstructor::reconstructSideBySide()`, the prior statement with the same joins):
   **only an out-of-fold estimate** (`out_of_fold = true`: the cross-fitted model that made it never saw the puzzle's
-  own difficulty label - so no solve of the puzzle, the reconstructed one included, reached it). An in-sample estimate
-  (the full model, for a puzzle unlabelled when it was pushed) never feeds a reconstruction: the time waits, without a
-  row, until the next derive marks the puzzle out of fold (the pipeline's labelled puzzles with 1+ indices are). There
+  own difficulty label - so no solve of the puzzle, the reconstructed one included, reached it). `out_of_fold = false`
+  is pushed only for a puzzle that had no label when the model was trained (the full model, which never saw it either -
+  `docs/features/insights/image-pipeline.md` §7), so it would leak nothing today; it is kept out all the same,
+  conservatively - the flag is the only evidence the app has of what the model saw, and the next derive re-pushes the
+  puzzle out of fold once it is labelled (the pipeline's labelled puzzles with 1+ indices are). Until then the time
+  waits, without a row. There
   is no estimate history - a reconstruction uses the out-of-fold estimate current when it runs (like it uses today's
   fit). Pinned by `ImagePredictionsSideBySideTest::testAnInSampleEstimateNeverFeedsAReconstruction` (mutation-checked:
   it fails when the reconstruction takes in-sample estimates).
@@ -403,8 +406,11 @@ model is on the row (`image_model`).
   current model is a statistical prediction or none was possible - on a puzzle with an out-of-fold estimate of its
   current picture and no image row yet, or only a live one without an estimate (`GetTimesAwaitingImagePredictions`).
   Times on puzzles without an out-of-fold estimate are not listed: a missing estimate never becomes "not predictable"
-  in a reconstruction. An edit that makes the time no first try any more (or leaves it without an out-of-fold estimate)
-  removes its image / blend rows; `--recompute-reconstructed` replaces reconstructed ones from before the fit, like the
+  in a reconstruction. The work list judges "first try" by the stored statistical row; a time that reconstructs as a
+  repeat now (a merge or an earlier solve back-dated in front of it - they do not re-evaluate later times, docs/TODO.md)
+  gets reconstructed "not predictable" rows without an estimate, which close it - never listed twice
+  (`testATimeThatBecameARepeatLeavesTheWorkListAfterOneRun`). An edit that makes the time no first try any more (or
+  leaves it without an out-of-fold estimate) removes its image / blend rows; `--recompute-reconstructed` replaces reconstructed ones from before the fit, like the
   statistical rows.
 - `--recompute-image`: also every reconstructed image / blend row older than the out-of-fold estimate its puzzle has
   now (`computed_at < received_at` - a newer derive pushed it). The derive re-pushes every estimate nightly, so this is

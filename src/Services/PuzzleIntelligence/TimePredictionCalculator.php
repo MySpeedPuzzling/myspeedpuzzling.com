@@ -67,6 +67,13 @@ final readonly class TimePredictionCalculator
 
     public const float DEFAULT_IMPROVEMENT_RATIO = 0.90;
 
+    /**
+     * The largest number of seconds a prediction or a window end may hold - the int columns it is stored in. Inputs
+     * pushed from outside (the image estimate) must never make a number the INSERT refuses: that would cost the player
+     * the time being added.
+     */
+    public const int MAX_SECONDS = 2_147_483_647;
+
     public const int MAX_TRANSITION = 4;
 
     private const float HOLT_ALPHA = 0.5;
@@ -224,7 +231,7 @@ final readonly class TimePredictionCalculator
         $window = self::window($centre, $parameters->firstTrySigma($spread, $inputs->kIndices, $group, $puzzleVariance), $parameters->quantilesFor($bucket));
 
         return new TimePredictionResult(
-            predictedSeconds: max((int) round($centre), 1),
+            predictedSeconds: self::seconds($centre),
             rangeLowSeconds: $window[1],
             rangeHighSeconds: $window[2],
             difficultyForPlayer: round(exp($logDifficulty), 4),
@@ -338,7 +345,7 @@ final readonly class TimePredictionCalculator
     public static function window(float $centre, float $sigma, array $quantiles): array
     {
         $bounds = array_map(
-            static fn (float $quantile): int => max((int) round($centre * exp($quantile * $sigma)), 1),
+            static fn (float $quantile): int => self::seconds($centre * exp($quantile * $sigma)),
             $quantiles,
         );
 
@@ -348,6 +355,18 @@ final readonly class TimePredictionCalculator
             $bounds[2],
             max($bounds[2], $bounds[3]),
         ];
+    }
+
+    /**
+     * Whole seconds within 1 .. MAX_SECONDS - also for an overflow to infinity.
+     */
+    public static function seconds(float $seconds): int
+    {
+        if (is_nan($seconds) || $seconds >= self::MAX_SECONDS) {
+            return $seconds >= self::MAX_SECONDS ? self::MAX_SECONDS : 1;
+        }
+
+        return max((int) round($seconds), 1);
     }
 
     /**

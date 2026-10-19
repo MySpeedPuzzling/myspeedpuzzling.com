@@ -7,8 +7,9 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence\ImageEstimates;
 use SpeedPuzzling\Web\Value\ImageEstimateEvaluationRow;
 
 /**
- * The running sums of one group of ImageEstimateEvaluator - what its metrics need and nothing per row beyond the two
- * widths (medians).
+ * The running sums of one group of ImageEstimateEvaluator over its rows - what its row metrics need and nothing per row
+ * beyond the widths (medians). The puzzle-level numbers are ImageEstimateEvaluator's: a puzzle counts in the group of
+ * its latest row only.
  */
 final class RowAccumulator
 {
@@ -34,15 +35,17 @@ final class RowAccumulator
     /** @var list<float> */
     public array $blendWidth80 = [];
 
-    /**
-     * Per puzzle: the estimate (log) of its latest row, that row's time, its measured log difficulty (null = not
-     * measured well enough)
-     *
-     * @var array<string, array{0: float, 1: float, 2: null|float}>
-     */
-    public array $puzzles = [];
+    /** @var array<string, true> */
+    public array $puzzleIds = [];
 
-    public function add(ImageEstimateEvaluationRow $row, int $measuredMinIndices): void
+    /**
+     * Image rows per estimate generation ("<model> <version>") - which estimates the numbers measured
+     *
+     * @var array<string, int>
+     */
+    public array $estimateModels = [];
+
+    public function add(ImageEstimateEvaluationRow $row): void
     {
         $actual = (float) $row->actualSeconds;
 
@@ -69,14 +72,8 @@ final class RowAccumulator
             $this->blendWidth80[] = ($row->blendRange80High - $row->blendRange80Low) / max(1, $row->blendSeconds);
         }
 
-        $known = $this->puzzles[$row->puzzleId] ?? null;
-
-        if ($known === null || $row->computedAt > $known[1]) {
-            $measured = $row->measuredIndices >= $measuredMinIndices && $row->measuredScore !== null && $row->measuredScore > 0.0
-                ? log($row->measuredScore)
-                : null;
-            $this->puzzles[$row->puzzleId] = [$row->imageLogDifficulty, $row->computedAt, $measured];
-        }
+        $this->puzzleIds[$row->puzzleId] = true;
+        $this->estimateModels[$row->estimateModel] = ($this->estimateModels[$row->estimateModel] ?? 0) + 1;
     }
 
     private static function inside(int $actual, int $low, int $high): int

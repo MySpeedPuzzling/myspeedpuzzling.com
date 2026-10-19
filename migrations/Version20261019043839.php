@@ -10,11 +10,11 @@ use Doctrine\Migrations\AbstractMigration;
 /**
  * Auto-generated Migration: Please modify to your needs!
  */
-final class Version20261019035502 extends AbstractMigration
+final class Version20261019043839 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return 'Insights 5d: image prior - image / blend side-by-side rows (image_model, image_kind), blend prior per puzzle, gate record of the image estimates';
+        return 'Insights 5d: image prior - image / blend side-by-side rows (image_model, image_model_version, image_kind), blend prior per puzzle, gate record of the image estimates';
     }
 
     public function up(Schema $schema): void
@@ -25,6 +25,7 @@ final class Version20261019035502 extends AbstractMigration
         $this->addSql('ALTER TABLE difficulty_prior_puzzle ADD blend_prior_log DOUBLE PRECISION DEFAULT NULL');
         $this->addSql('ALTER TABLE puzzle_difficulty ADD blend_prior_log DOUBLE PRECISION DEFAULT NULL');
         $this->addSql('ALTER TABLE solving_time_prediction ADD image_model VARCHAR(50) DEFAULT NULL');
+        $this->addSql('ALTER TABLE solving_time_prediction ADD image_model_version VARCHAR(50) DEFAULT NULL');
         $this->addSql('ALTER TABLE solving_time_prediction ADD image_kind VARCHAR(20) DEFAULT NULL');
     }
 
@@ -35,6 +36,7 @@ final class Version20261019035502 extends AbstractMigration
         $this->addSql('ALTER TABLE difficulty_prior_puzzle DROP blend_prior_log');
         $this->addSql('ALTER TABLE puzzle_difficulty DROP blend_prior_log');
         $this->addSql('ALTER TABLE solving_time_prediction DROP image_model');
+        $this->addSql('ALTER TABLE solving_time_prediction DROP image_model_version');
         $this->addSql('ALTER TABLE solving_time_prediction DROP image_kind');
     }
 }

@@ -39,7 +39,8 @@ estimates land there), plus `overall` and `byK` (0 / 1-2 / 3-4) for people:
 | `alwaysAverage` | the share of those puzzles whose measured tier is Average - what always saying "Average" would get right |
 | `maeImage`, `maeBlend`, `maeStatistical` | mean \|ln(actual ÷ predicted)\| on the rows all three predicted (`pairedRows`); `maeImageAll` on every image row |
 | `window50Hit` / `window80Hit`, `…Width` | how often the actual time landed inside the image prediction's 50 % / 80 % window, and the median relative width (high − low) ÷ predicted; the same for the blend (`blendWindow…`) |
-| `rows`, `puzzles`, `measuredPuzzles` | what the numbers rest on |
+| `rows`, `puzzles`, `measuredPuzzles` | what the numbers rest on - a puzzle's puzzle-level numbers count in the size group × kind (and k bucket) of its **latest** row only, never in two kinds when its picture was reclassified |
+| `estimateModels` | image rows per estimate generation, `"<model> <model version>"` (`solving_time_prediction.image_model` + `image_model_version`) - which estimates the record measured |
 
 **The record**: `image_estimate_evaluation` (entity `ImageEstimateEvaluation`), append-only, one row per run: when, the
 model version measured, the newer-than cut, the measured threshold, `groups` / `overall` / `byK` as JSON. The latest
@@ -80,6 +81,33 @@ not shown either; what members will see is the estimate and its window, which ru
   first to pass.
 - Daily afterwards (a cron row after the 4×-daily backfill, e.g. `5 8 * * *`) so the gate follows the live rows; the
   orchestrator adds it to lily.srv when Phase 6c ships.
+
+### After a `TimePredictionCalculator::MODEL_VERSION` bump
+
+The gate closes at once: the current record measured the old model (`failuresFor()` says so), and the new model has no
+image rows yet. Before any estimate shows again, in this order:
+1. `myspeedpuzzling:fit-prediction-model` (the new version's fit - the backfill writes no side rows before it);
+2. `myspeedpuzzling:backfill-solving-time-predictions --recompute-image` (detached, ~1 h: the new version's image /
+   blend rows; `--recompute-image` also remakes any written before the final derive);
+3. `myspeedpuzzling:evaluate-image-estimates` - a record of the new version; the gate opens where it passes.
+
+The same after a new estimate generation worth judging on its own (a model change in the derive): steps 2-3.
+
+## Inputs pushed from outside never cost a time
+
+The estimate is the only prediction input pushed from outside. The internal API bounds it (values within ±5, the 80 %
+interval at most 1.5 wide - `PuzzleDifficultyEstimateInput::MAX_INTERVAL_WIDTH`), every predicted second and window end
+is clamped to the int columns (`TimePredictionCalculator::seconds()`, again in `LivePredictionRowsWriter`), so no
+number can make the add-time INSERT fail and roll the player's time back
+(`ImagePredictionsSideBySideTest::testAnExtremeEstimateNeverCostsTheTime`, with an estimate written past the API).
+
+## For Phase 6c (readers of the stored blend prior)
+
+`difficulty_prior_puzzle.blend_prior_log` / `puzzle_difficulty.blend_prior_log` are written by the daily fit, which
+leaves secret puzzles out - but a stored value outlives a hide (`hide_until` / `hide_image_until` set after the fit)
+until the next fit. **Every reader filters secret puzzles itself**, like the Picker does for `prior_log`
+(`CASE WHEN StatisticalInputsSql::NOT_SECRET THEN pd.prior_log END`), and keys the gate by the puzzle's size group and
+`PuzzleDifficultyEstimateResult::$imageKind`.
 
 ## Measured on synthetic data (only that the machinery works)
 

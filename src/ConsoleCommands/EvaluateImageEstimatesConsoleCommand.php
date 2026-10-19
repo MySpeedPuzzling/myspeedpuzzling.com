@@ -63,6 +63,16 @@ final class EvaluateImageEstimatesConsoleCommand extends Command
 
         $io->title(sprintf('Image estimates - puzzles added since %s, k = 0..4', $evaluation->newerThan->format('Y-m-d')));
 
+        $generations = $evaluation->overall['estimateModels'] ?? [];
+
+        if (is_array($generations) && $generations !== []) {
+            $io->text('Estimate generations (image rows): ' . implode(', ', array_map(
+                static fn (int|string $model, mixed $rows): string => sprintf('%s: %s', $model, is_int($rows) ? $rows : '?'),
+                array_keys($generations),
+                $generations,
+            )));
+        }
+
         $rows = [];
 
         foreach ([['all', 'all', $evaluation->overall], ...array_map(static fn (array $group): array => [$group['sizeGroup'], $group['imageKind'], $group], $evaluation->groups)] as [$size, $kind, $metrics]) {

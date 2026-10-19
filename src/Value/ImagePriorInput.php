@@ -20,6 +20,8 @@ readonly final class ImagePriorInput
         public float $logP90,
         public string $model,
         public ImageKind $kind,
+        // The estimate's model version (the derive's MODEL_VERSION) - which estimate generation a prediction rested on
+        public null|string $modelVersion = null,
     ) {
     }
 
@@ -35,7 +37,7 @@ readonly final class ImagePriorInput
     }
 
     /**
-     * @param array<string, mixed> $row image_log, image_log_p10, image_log_p90, image_model, image_artwork_kind
+     * @param array<string, mixed> $row image_log, image_log_p10, image_log_p90, image_model, image_model_version, image_artwork_kind
      */
     public static function fromRow(array $row): null|self
     {
@@ -48,6 +50,8 @@ readonly final class ImagePriorInput
             return null;
         }
 
-        return new self((float) $log, (float) $p10, (float) $p90, $model, ImageKind::fromArtworkKind($row['image_artwork_kind'] ?? null));
+        $version = $row['image_model_version'] ?? null;
+
+        return new self((float) $log, (float) $p10, (float) $p90, $model, ImageKind::fromArtworkKind($row['image_artwork_kind'] ?? null), is_string($version) ? $version : null);
     }
 }

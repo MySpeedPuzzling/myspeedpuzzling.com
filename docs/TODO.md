@@ -1067,6 +1067,11 @@ First delivery = store + backfill; the UI comes after it.
 - [ ] Whether the shown statistical prediction should shrink toward the image prior at k = 1-4 once the gates pass
       (research: 0.133 → 0.124 at k = 1-2) - a model change: bump `TimePredictionCalculator::MODEL_VERSION`, never
       switch it by the gate record
+- [ ] Root cause of stale side rows: a duplicate merge (`migrateToPuzzle()` keeps the prediction), `moveToPuzzle()` and a
+      solve back-dated in front of others never re-evaluate the later times of the same puzzle - their stored statistical
+      row still says "first try" (or a stale personal prediction). The image work list now closes such times with
+      "not predictable" rows (143 on the dev copy); re-evaluating the affected later times on merge / move / back-dated
+      add would fix the statistical rows too
 - [ ] The backfill work list's image condition costs ~1.2 s over 523k times with an estimate for every puzzle (the
       "nothing to do" cron ~0.7 → ~2 s); watch the Sentry monitor of `backfill-solving-time-predictions`
 

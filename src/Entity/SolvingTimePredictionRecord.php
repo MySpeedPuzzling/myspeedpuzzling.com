@@ -33,7 +33,7 @@ use SpeedPuzzling\Web\Value\TimePredictionSource;
  * domain event. Goes with its time (cascade).
  *
  * The `image` and `blend` rows (first tries only, Insights plan §5.4) say which picture estimate they rested on:
- * `imageModel` + `imageKind` - null on a live row written while the puzzle had no estimate (predictable = false; the
+ * `imageModel` (+ version) + `imageKind` - null on a live row written while the puzzle had no estimate (predictable = false; the
  * backfill replaces it with a reconstruction once an out-of-fold estimate exists).
  */
 #[Entity]
@@ -101,10 +101,15 @@ class SolvingTimePredictionRecord
     #[Column(length: 40, nullable: true)]
     public null|string $windowBucket = null;
 
-    // image / blend rows: the estimate's model (ridge-siglip2-dinov2, ridge-siglip2-full) and what the picture shows
+    // image / blend rows: the estimate's model (ridge-siglip2-dinov2, ridge-siglip2-full), its version (which estimate
+    // generation it was) and what the picture shows
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(length: 50, nullable: true)]
     public null|string $imageModel = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(length: 50, nullable: true)]
+    public null|string $imageModelVersion = null;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::STRING, length: 20, nullable: true, enumType: ImageKind::class)]
@@ -163,6 +168,7 @@ class SolvingTimePredictionRecord
         $this->priorLog = $result?->priorLog;
         $this->windowBucket = $result?->windowBucket;
         $this->imageModel = $imageEstimate?->model;
+        $this->imageModelVersion = $imageEstimate?->modelVersion;
         $this->imageKind = $imageEstimate?->kind;
         $this->computedAt = $computedAt;
     }

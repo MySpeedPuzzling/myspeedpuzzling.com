@@ -32,6 +32,7 @@ use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
 use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
 
 /**
  * The `image` and `blend` predictors side by side with the statistical one (Insights plan §5.4,
@@ -129,6 +130,27 @@ final class ImagePredictionsSideBySideTest extends KernelTestCase
         self::assertNotSame($rows['statistical']['predicted_seconds'], $rows['blend']['predicted_seconds']);
     }
 
+    /**
+     * An estimate no API would take (written by SQL: ×147, an interval over the whole log range) and a pace in the
+     * millions: the time is saved all the same, its image row holds the largest number the column takes.
+     */
+    public function testAnExtremeEstimateNeverCostsTheTime(): void
+    {
+        $this->database->executeStatement(
+            'UPDATE puzzle_difficulty_estimate SET log_difficulty = 4.99, log_p10 = -5, log_p90 = 5 WHERE puzzle_id = :id',
+            ['id' => PuzzleFixture::PUZZLE_500_04],
+        );
+        $this->database->executeStatement(
+            'UPDATE player_baseline SET baseline_seconds = 50000000 WHERE player_id = :player AND pieces_count = 500',
+            ['player' => PlayerFixture::PLAYER_REGULAR],
+        );
+
+        $timeId = $this->addSoloTime(PuzzleFixture::PUZZLE_500_04, '00:50:00');
+
+        self::assertSame(3000, $this->database->fetchOne('SELECT seconds_to_solve FROM puzzle_solving_time WHERE id = :id', ['id' => $timeId]));
+        self::assertSame(TimePredictionCalculator::MAX_SECONDS, $this->sideRows($timeId)['image']['predicted_seconds']);
+    }
+
     public function testARepeatGetsNoImageRows(): void
     {
         $timeId = $this->addSoloTime(PuzzleFixture::PUZZLE_500_02, '00:26:40');
@@ -161,9 +183,10 @@ final class ImagePredictionsSideBySideTest extends KernelTestCase
     }
 
     /**
-     * As-of correctness: an in-sample estimate (the full model, trained on the puzzle's own label - maybe on the very
-     * solve) feeds live predictions (made before the solve existed) but never a reconstruction. The time waits - no
-     * row, no "not predictable" - until the estimate is out of fold, then the backfill writes it.
+     * As-of correctness, conservatively: an estimate pushed with `outOfFold: false` (the pipeline's full model, for a
+     * puzzle that had no label when it was trained - image-pipeline.md §7) feeds live predictions (made before the
+     * solve existed) but never a reconstruction - the flag is the only evidence of what the model saw. The time waits -
+     * no row, no "not predictable" - until the next derive pushes the estimate out of fold, then the backfill writes it.
      */
     public function testAnInSampleEstimateNeverFeedsAReconstruction(): void
     {
@@ -238,6 +261,41 @@ final class ImagePredictionsSideBySideTest extends KernelTestCase
         $liveWithEstimate = $this->addSoloTime(PuzzleFixture::PUZZLE_500_04, '00:50:00');
         $this->backfill();
         self::assertSame('live', $this->sideRows($liveWithEstimate)['image']['source']);
+    }
+
+    /**
+     * A live first try, then an earlier solve of the same puzzle back-dated in front of it: its stored statistical row
+     * still says first try, but it reconstructs as a repeat. Once the puzzle has an estimate the work list names it -
+     * once: the backfill closes it with reconstructed "not predictable" rows, it is never named again.
+     */
+    public function testATimeThatBecameARepeatLeavesTheWorkListAfterOneRun(): void
+    {
+        $this->database->executeStatement('DELETE FROM puzzle_difficulty_estimate WHERE puzzle_id = :id', ['id' => PuzzleFixture::PUZZLE_500_05]);
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+
+        $laterId = $this->addSoloTime(PuzzleFixture::PUZZLE_500_05, '00:45:00');
+        self::assertSame('statistical', $this->database->fetchOne(
+            "SELECT method FROM solving_time_prediction WHERE time_id = :id AND predictor = 'statistical'",
+            ['id' => $laterId],
+        ));
+
+        $earlierId = $this->persistSoloTime(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_05, 2900, $this->now()->modify('-10 days'));
+        $this->storeEstimate(PuzzleFixture::PUZZLE_500_05, self::LOG_500_05, outOfFold: true);
+
+        self::assertSame([$laterId], $this->awaiting()->ofPlayer(PlayerFixture::PLAYER_REGULAR));
+        self::assertGreaterThan(0, $this->backfill());
+
+        $rows = $this->sideRows($laterId);
+
+        foreach (['image', 'blend'] as $predictor) {
+            self::assertSame('reconstructed', $rows[$predictor]['source'], $predictor);
+            self::assertFalse($rows[$predictor]['predictable'], $predictor);
+            self::assertNull($rows[$predictor]['image_model'], $predictor);
+        }
+
+        self::assertTrue($this->sideRows($earlierId)['image']['predictable'], 'The earlier solve is the first try now');
+        self::assertSame([], $this->awaiting()->ofPlayer(PlayerFixture::PLAYER_REGULAR));
+        self::assertSame(0, $this->backfill(), 'Nothing written on the second run');
     }
 
     /**
@@ -413,13 +471,18 @@ final class ImagePredictionsSideBySideTest extends KernelTestCase
         return $time->id->toString();
     }
 
-    private function backfill(bool $recomputeImage = false): void
+    private function backfill(bool $recomputeImage = false): int
     {
-        $this->messageBus->dispatch(new BackfillSolvingTimePredictions(PlayerFixture::PLAYER_REGULAR, recomputeImage: $recomputeImage));
+        $envelope = $this->messageBus->dispatch(new BackfillSolvingTimePredictions(PlayerFixture::PLAYER_REGULAR, recomputeImage: $recomputeImage));
 
         /** @var EntityManagerInterface $entityManager */
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $entityManager->clear();
+
+        $recorded = $envelope->last(HandledStamp::class)?->getResult();
+        self::assertIsInt($recorded);
+
+        return $recorded;
     }
 
     /**

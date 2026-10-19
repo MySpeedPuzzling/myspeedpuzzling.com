@@ -42,6 +42,8 @@ readonly final class GetImageEstimateEvaluationRows
                 pst.puzzle_id,
                 p.pieces_count,
                 i.image_kind,
+                i.image_model,
+                i.image_model_version,
                 i.k_indices,
                 pst.seconds_to_solve,
                 i.prior_log AS image_log,
@@ -85,7 +87,7 @@ readonly final class GetImageEstimateEvaluationRows
         ]);
 
         foreach ($rows as $row) {
-            /** @var array{puzzle_id: string, pieces_count: int|string, image_kind: null|string, k_indices: int|string, seconds_to_solve: int|string, image_log: float|string, computed_ts: float|string, image_seconds: int|string, image_r50_low: int|string, image_r50_high: int|string, image_r80_low: int|string, image_r80_high: int|string, blend_seconds: null|int|string, blend_r50_low: null|int|string, blend_r50_high: null|int|string, blend_r80_low: null|int|string, blend_r80_high: null|int|string, statistical_seconds: null|int|string, measured_indices: int|string, measured_score: null|float|string} $row */
+            /** @var array{puzzle_id: string, pieces_count: int|string, image_kind: null|string, image_model: string, image_model_version: null|string, k_indices: int|string, seconds_to_solve: int|string, image_log: float|string, computed_ts: float|string, image_seconds: int|string, image_r50_low: int|string, image_r50_high: int|string, image_r80_low: int|string, image_r80_high: int|string, blend_seconds: null|int|string, blend_r50_low: null|int|string, blend_r50_high: null|int|string, blend_r80_low: null|int|string, blend_r80_high: null|int|string, statistical_seconds: null|int|string, measured_indices: int|string, measured_score: null|float|string} $row */
             yield new ImageEstimateEvaluationRow(
                 puzzleId: $row['puzzle_id'],
                 sizeGroup: PiecesGroup::fromPiecesCount((int) $row['pieces_count']),
@@ -107,6 +109,7 @@ readonly final class GetImageEstimateEvaluationRows
                 statisticalSeconds: self::intOrNull($row['statistical_seconds']),
                 measuredIndices: (int) $row['measured_indices'],
                 measuredScore: $row['measured_score'] !== null ? (float) $row['measured_score'] : null,
+                estimateModel: trim($row['image_model'] . ' ' . ($row['image_model_version'] ?? '')),
             );
         }
     }

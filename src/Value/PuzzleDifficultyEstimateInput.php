@@ -11,7 +11,8 @@ use SpeedPuzzling\Web\Exceptions\InvalidPuzzleDifficultyEstimate;
 /**
  * One item of `PUT /internal-api/puzzle-difficulty-estimates`, checked (docs/features/internal-api.md, "Puzzle
  * difficulty labels and estimates"): `model` / `modelVersion` strings of at most 50 characters, `logDifficulty`,
- * `logP10`, `logP90` numbers within ±LOG_BOUND with logP10 ≤ logDifficulty ≤ logP90, `outOfFold` true/false,
+ * `logP10`, `logP90` numbers within ±LOG_BOUND with logP10 ≤ logDifficulty ≤ logP90 and logP90 − logP10 at most
+ * MAX_INTERVAL_WIDTH, `outOfFold` true/false,
  * `trainingSize` a whole number ≥ 1, `imageFingerprint` a string (whether it is the puzzle's current picture is the
  * handler's check), `computedAt` ISO 8601 or null. Every mistake is collected (InvalidPuzzleDifficultyEstimate - the
  * item's `invalid` outcome); a field the endpoint does not know is a mistake too - a typo would be dropped unseen.
@@ -26,6 +27,15 @@ final readonly class PuzzleDifficultyEstimateInput
 
     // ln of a difficulty index - the batch caps indices at 5.0 (ln 1.61); anything beyond ±5 (×148) is a bug upstream
     public const float LOG_BOUND = 5.0;
+
+    /**
+     * The widest 80 % interval an estimate may carry (log units): the rated puzzles' own difficulty spreads 0.44 between
+     * its 10th and 90th percentile and 0.93 between the 1st and 99th (dev copy of production, 2026-10-19, 6,285 puzzles
+     * with 5+ indices) - an interval of 1.5 says less than "some puzzle", so it is a bug upstream. Its width becomes the
+     * window of the picture-only prediction (ImagePriorInput::variance()): bounded here, a pushed number can never blow
+     * a window up.
+     */
+    public const float MAX_INTERVAL_WIDTH = 1.5;
 
     public const int MAX_TRAINING_SIZE = 10_000_000;
 
@@ -90,6 +100,8 @@ final readonly class PuzzleDifficultyEstimateInput
 
         if ($logDifficulty !== null && $logP90 !== null && $logP90 < $logDifficulty - self::TOLERANCE) {
             $errors['logP90'] = 'must not be below logDifficulty.';
+        } elseif ($logP10 !== null && $logP90 !== null && $logP90 - $logP10 > self::MAX_INTERVAL_WIDTH + self::TOLERANCE) {
+            $errors['logP90'] = sprintf('the 80 %% interval (logP90 - logP10) can be at most %s wide.', self::MAX_INTERVAL_WIDTH);
         }
 
         $outOfFold = $item['outOfFold'] ?? null;

@@ -66,13 +66,17 @@ final class StatisticalInputsSql
         img.log_p10 AS image_log_p10,
         img.log_p90 AS image_log_p90,
         img.model AS image_model,
+        img.model_version AS image_model_version,
         art.result->>'kind' AS image_artwork_kind
     ";
 
     /**
      * The estimate of the puzzle's current picture (its fingerprint) and the `artwork` kind of that picture - none for
-     * a secret puzzle or picture. $outOfFoldOnly for a reconstruction: an in-sample estimate was trained on the
-     * puzzle's own solves, maybe the very solve being reconstructed (PuzzleDifficultyEstimate::$outOfFold). Expects `p`.
+     * a secret puzzle or picture. $outOfFoldOnly for a reconstruction (PuzzleDifficultyEstimate::$outOfFold): the
+     * pipeline pushes `outOfFold: false` only for a puzzle that had no label when the model was trained (the full model,
+     * which never saw it either - image-pipeline.md §7), so it holds none of the puzzle's solves; the filter is the
+     * conservative choice all the same - the flag is the only evidence the app has of what the model saw, and the next
+     * derive re-pushes the puzzle out of fold once it is labelled. Expects `p`.
      */
     public static function imageEstimateJoins(bool $outOfFoldOnly): string
     {

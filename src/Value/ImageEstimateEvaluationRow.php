@@ -35,6 +35,8 @@ readonly final class ImageEstimateEvaluationRow
         // The puzzle's measured difficulty now: its index count and the median (null below RATED_INDICES)
         public int $measuredIndices,
         public null|float $measuredScore,
+        // The estimate generation the image row rested on: "<model> <model version>"
+        public string $estimateModel = 'unknown',
     ) {
     }
 }

@@ -42,8 +42,10 @@ use Symfony\Contracts\Service\ResetInterface;
  * The side-by-side `image` / `blend` predictions of a first try (reconstructSideBySide(), Insights plan §5.4) use the
  * estimate of the puzzle's current picture **only when it is out of fold** (PuzzleDifficultyEstimate::$outOfFold): the
  * model that made it never saw the puzzle's own difficulty label, so no solve of the puzzle - the reconstructed one
- * included - reached it. An in-sample estimate (the full model, for a puzzle that had no label when it was pushed)
- * never feeds a reconstruction: the time has no image prediction until the nightly derive marks the puzzle out of fold.
+ * included - reached it. `outOfFold: false` is pushed only for a puzzle that had no label at training time (the full
+ * model never saw it either), so it would leak nothing today - kept out all the same, conservatively: the flag is the
+ * only evidence of what the model saw, and the nightly derive re-pushes the puzzle out of fold once it is labelled. Until
+ * then the time has no image prediction.
  * There is no estimate history - the reconstruction takes the out-of-fold estimate current when it runs (documented
  * approximation, like the fit). Secret puzzles have none (StatisticalInputsSql::imageEstimateJoins()).
  */

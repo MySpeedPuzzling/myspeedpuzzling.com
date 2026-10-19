@@ -15,10 +15,12 @@ use SpeedPuzzling\Web\Value\ImageEstimateEvaluationRow;
  * solve was predicted):
  * - puzzle level (one value per puzzle: the estimate of its latest image row; truth = its measured difficulty now,
  *   only from MEASURED_MIN_INDICES indices on): Spearman of difficulty, tier exact / within one next to always
- *   "Average" on the same puzzles;
+ *   "Average" on the same puzzles - a puzzle counts in the size group × kind (and k bucket) of its latest row only, never
+ *   in two kinds when its picture was reclassified;
  * - row level: MAE of ln(actual ÷ predicted) of image, blend and statistical on the rows all three predicted, and the
  *   image predictor's alone; the 50 % / 80 % windows' hit rate and median relative width (high − low) ÷ predicted, of
- *   the image predictor and, for comparison, the blend.
+ *   the image predictor and, for comparison, the blend; how many rows each estimate generation ("<model> <version>")
+ *   made (`estimateModels`).
  */
 final class ImageEstimateEvaluator
 {
@@ -44,14 +46,26 @@ final class ImageEstimateEvaluator
         /** @var array<string, RowAccumulator> $byK */
         $byK = [];
         $overall = new RowAccumulator();
+        // Per puzzle, from its latest row: [estimate (log), that row's time, measured log difficulty or null, group, k bucket]
+        /** @var array<string, array{0: float, 1: float, 2: null|float, 3: string, 4: string}> $puzzles */
+        $puzzles = [];
 
         foreach ($rows as $row) {
             $groupKey = $row->sizeGroup->value . '|' . $row->imageKind->value;
             $kKey = self::kBucket($row->kIndices);
 
-            ($groups[$groupKey] ??= new RowAccumulator())->add($row, $measuredMinIndices);
-            ($byK[$kKey] ??= new RowAccumulator())->add($row, $measuredMinIndices);
-            $overall->add($row, $measuredMinIndices);
+            ($groups[$groupKey] ??= new RowAccumulator())->add($row);
+            ($byK[$kKey] ??= new RowAccumulator())->add($row);
+            $overall->add($row);
+
+            $known = $puzzles[$row->puzzleId] ?? null;
+
+            if ($known === null || $row->computedAt > $known[1]) {
+                $measured = $row->measuredIndices >= $measuredMinIndices && $row->measuredScore !== null && $row->measuredScore > 0.0
+                    ? log($row->measuredScore)
+                    : null;
+                $puzzles[$row->puzzleId] = [$row->imageLogDifficulty, $row->computedAt, $measured, $groupKey, $kKey];
+            }
         }
 
         ksort($groups);
@@ -59,18 +73,20 @@ final class ImageEstimateEvaluator
 
         foreach ($groups as $key => $accumulator) {
             [$sizeGroup, $imageKind] = explode('|', $key);
-            $groupMetrics[] = ['sizeGroup' => $sizeGroup, 'imageKind' => $imageKind] + self::metrics($accumulator);
+            $own = array_filter($puzzles, static fn (array $puzzle): bool => $puzzle[3] === $key);
+            $groupMetrics[] = ['sizeGroup' => $sizeGroup, 'imageKind' => $imageKind] + self::metrics($accumulator, $own);
         }
 
         $kMetrics = [];
 
         foreach (['0', '1-2', '3-4'] as $kKey) {
             if (isset($byK[$kKey])) {
-                $kMetrics[] = ['k' => $kKey] + self::metrics($byK[$kKey]);
+                $own = array_filter($puzzles, static fn (array $puzzle): bool => $puzzle[4] === $kKey);
+                $kMetrics[] = ['k' => $kKey] + self::metrics($byK[$kKey], $own);
             }
         }
 
-        return ['groups' => $groupMetrics, 'overall' => self::metrics($overall), 'byK' => $kMetrics];
+        return ['groups' => $groupMetrics, 'overall' => self::metrics($overall, $puzzles), 'byK' => $kMetrics];
     }
 
     /**
@@ -111,9 +127,10 @@ final class ImageEstimateEvaluator
     }
 
     /**
-     * @return array<string, null|int|float>
+     * @param array<string, array{0: float, 1: float, 2: null|float, 3: string, 4: string}> $puzzles the group's own (by their latest row)
+     * @return array<string, null|int|float|array<string, int>>
      */
-    private static function metrics(RowAccumulator $accumulator): array
+    private static function metrics(RowAccumulator $accumulator, array $puzzles): array
     {
         $estimates = [];
         $measured = [];
@@ -121,7 +138,7 @@ final class ImageEstimateEvaluator
         $withinOne = 0;
         $average = 0;
 
-        foreach ($accumulator->puzzles as [$estimate, , $truth]) {
+        foreach ($puzzles as [$estimate, , $truth]) {
             if ($truth === null) {
                 continue;
             }
@@ -139,7 +156,8 @@ final class ImageEstimateEvaluator
 
         return [
             'rows' => $accumulator->rows,
-            'puzzles' => count($accumulator->puzzles),
+            // Puzzles with a row in the group; the puzzle-level numbers count each puzzle in its latest row's group
+            'puzzles' => count($accumulator->puzzleIds),
             'measuredPuzzles' => $measuredPuzzles,
             'spearman' => self::round(self::spearman($estimates, $measured)),
             'tierExact' => self::share($exact, $measuredPuzzles),
@@ -159,6 +177,7 @@ final class ImageEstimateEvaluator
             'blendWindow50Width' => self::round(self::median($accumulator->blendWidth50)),
             'blendWindow80Hit' => self::share($accumulator->blendHit80, $accumulator->blendRows),
             'blendWindow80Width' => self::round(self::median($accumulator->blendWidth80)),
+            'estimateModels' => $accumulator->estimateModels,
         ];
     }
 

@@ -158,6 +158,28 @@ final class ImageEstimatePriorTest extends TestCase
         self::assertLessThan($vague->range80HighSeconds - $vague->range80LowSeconds, $sharp->range80HighSeconds - $sharp->range80LowSeconds);
     }
 
+    /**
+     * An estimate at the edge of what anything could push (×148, an interval over the whole log range) and a huge pace:
+     * every number stays within the int columns - never an INSERT that would cost the player the time.
+     */
+    public function testAnExtremeEstimateNeverOverflowsTheSeconds(): void
+    {
+        $inputs = new StatisticalPredictionInputs(500, 20_000_000, true, 12, 0.0, 0.12, 20_000_000, 0.0, 0.12, 0, null, null, $this->context(withBrandPrior: true));
+
+        [, $image, $blend] = new TimePredictionCalculator()->sideBySide($inputs, new ImagePriorInput(5.0, -5.0, 5.0, 'm', ImageKind::Unknown), $this->parameters());
+
+        foreach ([$image, $blend] as $prediction) {
+            self::assertNotNull($prediction);
+            self::assertSame(TimePredictionCalculator::MAX_SECONDS, $prediction->predictedSeconds);
+            self::assertSame(TimePredictionCalculator::MAX_SECONDS, $prediction->range80HighSeconds);
+            self::assertGreaterThanOrEqual(1, $prediction->range80LowSeconds);
+        }
+
+        self::assertSame(1, TimePredictionCalculator::seconds(NAN));
+        self::assertSame(TimePredictionCalculator::MAX_SECONDS, TimePredictionCalculator::seconds(INF));
+        self::assertSame(1, TimePredictionCalculator::seconds(0.2));
+    }
+
     public function testNoPaceNoImagePrediction(): void
     {
         $inputs = new StatisticalPredictionInputs(500, null, false, 0, null, null, null, null, null, 0, null, null, $this->context(withBrandPrior: true));

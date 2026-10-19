@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 use BackedEnum;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Event\PostFlushEventArgs;
 use Doctrine\ORM\Events;
 use SpeedPuzzling\Web\Entity\SolvingTimePredictionRecord;
@@ -80,7 +81,7 @@ final class LivePredictionRowsWriter implements ResetInterface
         foreach ($metadata->getFieldNames() as $field) {
             $mapping = $metadata->getFieldMapping($field);
             $columns[] = $mapping->columnName;
-            $fields[] = [$field, Type::getType($mapping->type)];
+            $fields[] = [$field, Type::getType($mapping->type), $mapping->type === Types::INTEGER];
         }
 
         $timeJoinColumn = $metadata->getSingleAssociationJoinColumnName('time');
@@ -93,11 +94,17 @@ final class LivePredictionRowsWriter implements ResetInterface
         foreach ($ready as $record) {
             $placeholders = [];
 
-            foreach ($fields as [$field, $type]) {
+            foreach ($fields as [$field, $type, $integer]) {
                 $value = $metadata->getFieldValue($record, $field);
 
                 if ($value instanceof BackedEnum) {
                     $value = $value->value;
+                }
+
+                // Seconds within the int column (TimePredictionCalculator::seconds() does it already) - a number the
+                // INSERT refuses would roll back the time being added
+                if ($integer && is_int($value)) {
+                    $value = max(-TimePredictionCalculator::MAX_SECONDS - 1, min($value, TimePredictionCalculator::MAX_SECONDS));
                 }
 
                 $params[] = $type->convertToDatabaseValue($value, $platform);

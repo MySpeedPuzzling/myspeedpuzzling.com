@@ -10473,8 +10473,8 @@ insights:
             on_shelf: "棚にあり"
             makes_it_count: "あなたの初回で対象になります"
             meta:
-                first_try: "予想%expected% · 解いた%count%人中%percent%%より速い"
-                resolve: "自己ベスト%best% → 予想%expected%"
+                first_try: "%window% · 解いた%count%人中%percent%%より速い"
+                resolve: "自己ベスト%best% → %window%"
                 defend: "{0}1日以内にレーティングから外れる · 自己ベスト%best%|[1,Inf[%count%日後にレーティングから外れる · 自己ベスト%best%"
         kind:
             first_try: "初回"
@@ -10649,7 +10649,7 @@ insights:
             now: "今"
             today: "今日"
             forecast_point: "%when%：約%rating%"
-            resolve_times: "自己ベスト%best% → 予想%likely%（−%percent%%）"
+            resolve_times: "自己ベスト%best% → %window%（−%percent%%）"
             resolve_last: "{0}最後に解いたのは今月|[1,Inf[最後に解いたのは%count%か月前"
             months: "%count%か月"
             pace: "ペース %pace%"

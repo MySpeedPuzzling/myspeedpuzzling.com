@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Results\Insights\RatingOverTimeSeries;
 use SpeedPuzzling\Web\Results\Insights\ResolveCandidate;
 use SpeedPuzzling\Web\Results\Insights\ResolveRadarResult;
 use SpeedPuzzling\Web\Services\EventsPage\EventsPageDates;
+use SpeedPuzzling\Web\Services\PredictionWindowFormatter;
 use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
 use SpeedPuzzling\Web\Value\RatingForecastScenario;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -36,6 +37,8 @@ readonly final class InsightsFramesChartsFactory
         private PuzzlingTimeFormatter $timeFormatter,
         /** Locale-aware dates from ICU skeletons (the events pages' helper) */
         private EventsPageDates $dates,
+        /** Prediction windows exactly as every other surface shows them (stream 3c) */
+        private PredictionWindowFormatter $windowFormatter,
     ) {
     }
 
@@ -182,7 +185,7 @@ readonly final class InsightsFramesChartsFactory
                 'lines' => array_values(array_filter([
                     $this->trans('frames.chart.resolve_times', [
                         '%best%' => $this->timeFormatter->formatTime($candidate->bestSeconds),
-                        '%likely%' => $this->timeFormatter->formatTime($candidate->predictedSeconds),
+                        '%window%' => $this->translator->trans('puzzle_intelligence.prediction.window.likely', ['%range%' => $this->windowFormatter->range($candidate->window())]),
                         '%percent%' => round($candidate->likelyGain * 100),
                     ]),
                     $this->trans('frames.chart.resolve_last', ['%count%' => (int) round($candidate->monthsSinceLastSolve)]),

@@ -103,6 +103,7 @@
                             <ul class="ins-list ins-moves__list ins-moves__list--{{ list.key }}">
                                 {% for move in shown %}
                                     {% set value = list.key == 'points' ? move.gain : move.gainPerHour %}
+                                    {% set likely = 'puzzle_intelligence.prediction.window.likely'|trans({'%range%': move.window|prediction_window_range}) %}
                                     <li class="ins-row ins-row--move">
                                         <a class="ins-row__link" href="{{ path('puzzle_detail', {puzzleId: move.puzzle.puzzleId}) }}">
                                             {{ lazy_puzzle_image(move.puzzle.image, 'puzzle_small', move.puzzle.name, 999, 48, 'rounded-2 ins-row__image', 48) }}
@@ -110,11 +111,11 @@
                                                 <span class="ins-row__name"><span class="ins-kind ins-kind--{{ move.kind.value }}">{{ ('insights.rating.kind.' ~ move.kind.value)|trans }}</span>{{ move.puzzle.name }}</span>
                                                 <span class="ins-row__meta">
                                                     {%- if move.kind.value == 'first_try' -%}
-                                                        {{ 'insights.rating.moves.meta.first_try'|trans({'%expected%': move.expectedSeconds|puzzlingTime, '%percent%': ((move.fasterThanShare ?? 0) * 100)|round, '%count%': move.solverCount}) }}
+                                                        {{ 'insights.rating.moves.meta.first_try'|trans({'%window%': likely, '%percent%': ((move.fasterThanShare ?? 0) * 100)|round, '%count%': move.solverCount}) }}
                                                     {%- elseif move.kind.value == 'defend' -%}
                                                         {{ 'insights.rating.moves.meta.defend'|trans({'%count%': move.daysUntilLeaving ?? 0, '%best%': (move.currentBestSeconds ?? 0)|puzzlingTime}) }}
                                                     {%- else -%}
-                                                        {{ 'insights.rating.moves.meta.resolve'|trans({'%best%': (move.currentBestSeconds ?? 0)|puzzlingTime, '%expected%': move.expectedSeconds|puzzlingTime}) }}
+                                                        {{ 'insights.rating.moves.meta.resolve'|trans({'%best%': (move.currentBestSeconds ?? 0)|puzzlingTime, '%window%': likely}) }}
                                                     {%- endif -%}
                                                     {%- if move.onShelf %} · {{ 'insights.rating.moves.on_shelf'|trans }}{% endif -%}
                                                     {%- if move.makesPuzzleCount %} · {{ 'insights.rating.moves.makes_it_count'|trans }}{% endif -%}
@@ -123,7 +124,7 @@
                                             <span class="ins-gainbar" aria-hidden="true"><span style="width: {{ max(4, (value / max_value * 100)|round) }}%"></span></span>
                                             <span class="ins-row__num">+{{ move.gain|format_number({fraction_digit: 1}) }}<small>
                                                 {%- if list.key == 'points' -%}
-                                                    ~{{ move.expectedSeconds|puzzlingTime }}
+                                                    {{ move.window|prediction_window_range }}
                                                 {%- else -%}
                                                     {{ 'insights.rating.moves.per_hour'|trans({'%value%': move.gainPerHour|format_number({fraction_digit: 1})}) }}
                                                 {%- endif -%}

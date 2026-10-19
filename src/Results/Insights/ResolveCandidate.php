@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results\Insights;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\PredictionWindow;
 
 /**
  * A puzzle solved a year or more ago that would likely go clearly faster now (ResolveRadar).
@@ -27,5 +28,13 @@ readonly final class ResolveCandidate
         /** The puzzle's solo results (dot size) */
         public int $soloResultsCount,
     ) {
+    }
+
+    /**
+     * The likely window of the next attempt as every surface shows it (PredictionWindow::rounded())
+     */
+    public function window(): PredictionWindow
+    {
+        return PredictionWindow::rounded($this->predictedLowSeconds, $this->predictedHighSeconds, $this->predictedSeconds);
     }
 }

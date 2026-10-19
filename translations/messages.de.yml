@@ -10483,8 +10483,8 @@ insights:
             on_shelf: "in deinem Regal"
             makes_it_count: "dein erster Versuch lässt es zählen"
             meta:
-                first_try: "wahrscheinlich %expected% · schneller als %percent% % seiner %count% Puzzler"
-                resolve: "Bestzeit %best% → wahrscheinlich %expected%"
+                first_try: "%window% · schneller als %percent% % seiner %count% Puzzler"
+                resolve: "Bestzeit %best% → %window%"
                 defend: "[0,1]fällt innerhalb eines Tages aus deinem Rating · Bestzeit %best%|]1,Inf[fällt in %count% Tagen aus deinem Rating · Bestzeit %best%"
         kind:
             first_try: "Erster Versuch"
@@ -10659,7 +10659,7 @@ insights:
             now: "Jetzt"
             today: "Heute"
             forecast_point: "%when%: etwa %rating%"
-            resolve_times: "Bestzeit %best% → wahrscheinlich %likely% (−%percent% %)"
+            resolve_times: "Bestzeit %best% → %window% (−%percent% %)"
             resolve_last: "{0}Zuletzt diesen Monat gelegt|{1}Zuletzt vor 1 Monat gelegt|]1,Inf[Zuletzt vor %count% Monaten gelegt"
             months: "%count% Mon."
             pace: "Tempo %pace%"

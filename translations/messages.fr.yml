@@ -10503,8 +10503,8 @@ insights:
             on_shelf: "sur votre étagère"
             makes_it_count: "votre premier essai le fait compter"
             meta:
-                first_try: "probablement %expected% · plus rapide que %percent% % de ses %count% puzzleurs"
-                resolve: "meilleur %best% → probablement %expected%"
+                first_try: "%window% · plus rapide que %percent% % de ses %count% puzzleurs"
+                resolve: "meilleur %best% → %window%"
                 defend: "[0,1]sort de votre rating d'ici un jour · meilleur %best%|]1,Inf[sort de votre rating dans %count% jours · meilleur %best%"
         kind:
             first_try: "Premier essai"
@@ -10679,7 +10679,7 @@ insights:
             now: "Maintenant"
             today: "Aujourd'hui"
             forecast_point: "%when% : environ %rating%"
-            resolve_times: "Meilleur %best% → probablement %likely% (−%percent% %)"
+            resolve_times: "Meilleur %best% → %window% (−%percent% %)"
             resolve_last: "{0}Fait pour la dernière fois ce mois-ci|{1}Fait pour la dernière fois il y a 1 mois|]1,Inf[Fait pour la dernière fois il y a %count% mois"
             months: "%count% mois"
             pace: "Rythme %pace%"

@@ -10476,7 +10476,7 @@ insights:
         question: "Kde můžu získat body MSP Ratingu?"
         title: "Příležitosti v ratingu"
         private: "Soukromé profily nejsou na žebříčku MSP Rating, proto tu žádný rating není. Vaše výsledky se počítají všude jinde na této stránce."
-        no_entries: "Zatím nemáte žádné položky ratingu. MSP Rating počítá vaše první pokusy a nejlepší časy na puzzle o 500 dílcích s alespoň 20 skladači, za posledních 24 měsíců."
+        no_entries: "Zatím nemáte žádné položky ratingu. MSP Rating počítá vaše první pokusy a nejlepší časy na puzzle o 500 dílcích s alespoň 20 puzzlery, za posledních 24 měsíců."
         picker: "Najděte puzzle o 500 dílcích s ratingem, která jste ještě neskládali"
         lock:
             moves: "{0}Tahy, které zvednou váš rating|{1}1 tah v hodnotě až +%gain% bodu|[2,4]Nalezeny %count% tahy v hodnotě až +%gain% bodu|[5,Inf[Nalezeno %count% tahů v hodnotě až +%gain% bodu"
@@ -10500,7 +10500,7 @@ insights:
             first_tries: "První pokusy: %have% z %needed%"
             results: "Výsledky: %have% z %needed%"
             note: "[0,1]Stačí 1 nový výsledek – první pokus se počítá do obojího. S dnešními položkami je to %place%. místo na dnešním žebříčku.|[2,4]Stačí %count% nové výsledky – první pokus se počítá do obojího. S dnešními položkami je to %place%. místo na dnešním žebříčku.|[5,Inf[Stačí %count% nových výsledků – první pokus se počítá do obojího. S dnešními položkami je to %place%. místo na dnešním žebříčku."
-        predictions_off: "Předpovědi časů máte v nastavení vypnuté, takže tu nejsou žádné tahy: tah má hodnotu podle svého očekávaného času."
+        predictions_off: "Predikce časů máte v nastavení vypnuté, takže tu nejsou žádné tahy: tah má hodnotu podle svého očekávaného času."
         moves:
             title: "Nejlepší další tahy"
             none: "Teď by žádný tah nepřidal ani bod."
@@ -10510,8 +10510,8 @@ insights:
             on_shelf: "na vaší poličce"
             makes_it_count: "vaším prvním pokusem se začne počítat"
             meta:
-                first_try: "nejspíš %expected% · rychleji než %percent% % z jeho %count% skladačů"
-                resolve: "nejlepší %best% → nejspíš %expected%"
+                first_try: "%window% · rychleji než %percent% % z jeho %count% puzzlerů"
+                resolve: "nejlepší %best% → %window%"
                 defend: "[0,1]vypadne z ratingu do jednoho dne · nejlepší %best%|[2,4]vypadne z ratingu za %count% dny · nejlepší %best%|[5,Inf[vypadne z ratingu za %count% dní · nejlepší %best%"
         kind:
             first_try: "První pokus"
@@ -10527,14 +10527,14 @@ insights:
             outside: "mimo nejlepších %cap%"
             secret: "Puzzle, které je zatím tajné"
             more: "{0}Žádné další položky|{1}+ 1 další položka|[2,4]+ %count% další položky|[5,Inf[+ %count% dalších položek"
-            note: "Každý sloupec jsou body jednoho puzzle: kolik skladačů jste porazili × obtížnost × stáří. V každé řadě se počítá jen vašich nejlepších 100. Sloupce blednou se stářím výsledků a po 24 měsících vypadnou."
+            note: "Každý sloupec jsou body jednoho puzzle: kolik puzzlerů jste porazili × obtížnost × stáří. V každé řadě se počítá jen vašich nejlepších 100. Sloupce blednou se stářím výsledků a po 24 měsících vypadnou."
         pending:
             title: "Co přijde do vašeho ratingu"
-            meta: "{0}%have% z %needed% skladačů|{1}%have% z %needed% skladačů · chybí 1|[2,Inf[%have% z %needed% skladačů · chybí %count%"
+            meta: "{0}%have% z %needed% puzzlerů|{1}%have% z %needed% puzzlerů · chybí 1|[2,Inf[%have% z %needed% puzzlerů · chybí %count%"
             when: "až se začne počítat"
             none: "Nic nečeká"
-            note: "Puzzle, která jste složili, ale zatím se nepočítají: do ratingu se přidají sama, jakmile dosáhnou 20 skladačů. Počítá se při otevření stránky, protože každý nový skladač to mění."
-        note: "MSP Rating počítá puzzle o 500 dílcích s alespoň 20 skladači. Místa jsou na dnešním žebříčku, který se mění, jak skládají ostatní."
+            note: "Puzzle, která jste složili, ale zatím se nepočítají: do ratingu se přidají sama, jakmile dosáhnou 20 puzzlerů. Počítá se při otevření stránky, protože každý nový puzzler to mění."
+        note: "MSP Rating počítá puzzle o 500 dílcích s alespoň 20 puzzlery. Místa jsou na dnešním žebříčku, který se mění, jak skládají ostatní."
     forecast:
         ask: "Kam míří můj rating?"
         question: "Kam směřuji?"
@@ -10552,7 +10552,7 @@ insights:
             stop: "Přestat skládat"
             keep_pace: "Udržet tempo"
             best_moves: "Tempo + 10 nejlepších tahů"
-        predictions_off: "Předpovědi časů máte v nastavení vypnuté, takže čára s nejlepšími tahy chybí."
+        predictions_off: "Predikce časů máte v nastavení vypnuté, takže čára s nejlepšími tahy chybí."
         milestones:
             title: "Milníky při současném trendu"
             ladder:
@@ -10588,12 +10588,12 @@ insights:
         ask: "Co složit znovu?"
         question: "Co bych měl(a) složit znovu?"
         title: "Radar opakování"
-        predictions_off: "Předpovědi časů máte v nastavení vypnuté. Radar opakování je z nich složený, takže zůstává prázdný."
+        predictions_off: "Predikce časů máte v nastavení vypnuté. Radar opakování je z nich složený, takže zůstává prázdný."
         lock:
-            title: "{0}Puzzle složená před 12+ měsíci, která byste teď porazili|{1}1 staré puzzle, které byste teď nejspíš porazili|[2,4]%count% stará puzzle, která byste teď nejspíš porazili|[5,Inf[%count% starých puzzle, která byste teď nejspíš porazili"
-            text: "Puzzle, která jste skládali, když jste byli pomalejší, seřazená podle toho, kolik času byste nejspíš ubrali."
-        none: "Žádné z puzzle, která jste naposledy složili před %months% a více měsíci, by teď nejspíš nešlo aspoň o 5 % rychleji."
-        takeaway: "{0}Žádné z puzzle, která jste naposledy složili před rokem a víc, by teď nejspíš nešlo aspoň o 5 % rychleji.|{1}<b>1</b> puzzle, které jste naposledy složili před rokem a víc, by teď nejspíš šlo aspoň o 5 % rychleji. Na poličce: <b>%shelf%</b>.|[2,4]<b>%count%</b> puzzle, která jste naposledy složili před rokem a víc, by teď nejspíš šla aspoň o 5 % rychleji. Na poličce: <b>%shelf%</b>.|[5,Inf[<b>%count%</b> puzzle, která jste naposledy složili před rokem a víc, by teď nejspíš šlo aspoň o 5 % rychleji. Na poličce: <b>%shelf%</b>."
+            title: "{0}Puzzle složená před 12+ měsíci, která byste teď porazili|{1}1 staré puzzle, které byste teď pravděpodobně porazili|[2,4]%count% stará puzzle, která byste teď pravděpodobně porazili|[5,Inf[%count% starých puzzle, která byste teď pravděpodobně porazili"
+            text: "Puzzle, která jste skládali, když jste byli pomalejší, seřazená podle toho, kolik času byste pravděpodobně ubrali."
+        none: "Žádné z puzzle, která jste naposledy složili před %months% a více měsíci, by teď pravděpodobně nešlo aspoň o 5 % rychleji."
+        takeaway: "{0}Žádné z puzzle, která jste naposledy složili před rokem a víc, by teď pravděpodobně nešlo aspoň o 5 % rychleji.|{1}<b>1</b> puzzle, které jste naposledy složili před rokem a víc, by teď pravděpodobně šlo aspoň o 5 % rychleji. Na poličce: <b>%shelf%</b>.|[2,4]<b>%count%</b> puzzle, která jste naposledy složili před rokem a víc, by teď pravděpodobně šla aspoň o 5 % rychleji. Na poličce: <b>%shelf%</b>.|[5,Inf[<b>%count%</b> puzzle, která jste naposledy složili před rokem a víc, by teď pravděpodobně šlo aspoň o 5 % rychleji. Na poličce: <b>%shelf%</b>."
         chart_label: "Puzzle složená naposledy před rokem a víc: měsíce od posledního složení proti pravděpodobné úspoře času"
         legend:
             shelf: "Na vaší poličce"
@@ -10603,7 +10603,7 @@ insights:
         ago: "{0}tento měsíc|{1}před 1 měsícem|[2,Inf[před %count% měsíci"
         on_shelf: "na vaší poličce"
         picker: "Další puzzle k překonání rekordu najdete v „Co skládat dál?“"
-        note: "Nejspíš = vaše osobní předpověď dalšího pokusu, proti vašemu nejlepšímu času na tom puzzle."
+        note: "Pravděpodobně = vaše osobní predikce dalšího pokusu, proti vašemu nejlepšímu času na tom puzzle."
     pairs:
         ask: "S kým skládám nejlépe?"
         question: "S kým skládám nejlépe?"
@@ -10611,7 +10611,7 @@ insights:
         none: "V tomto výběru nejsou žádné výsledky dvojic ani týmů."
         takeaway:
             free: "{0}V tomto výběru jste nesložili žádné puzzle ve dvojici ani v týmu.|{1}V tomto výběru jste ve dvojici nebo týmu složili <b>1</b> puzzle. Členové uvidí, kdo z vás dostane to nejlepší.|[2,Inf[V tomto výběru jste ve dvojici nebo týmu složili <b>%count%</b> puzzle. Členové uvidí, kdo z vás dostane to nejlepší."
-            best: "Nejlépe vám to jde v této sestavě: %name% – společně jste o <b>%percent% % rychlejší</b>, než předpovídají sólo tempa."
+            best: "Nejlépe vám to jde v této sestavě: %name% – společně jste o <b>%percent% % rychlejší</b>, než odpovídá predikci ze sólo temp."
             alone: "To je %times%× rychleji, než byste skládali sami."
             none_stands_out: "V tomto výběru zatím žádná dvojice ani tým nevyčnívá."
             apart: "%name%: každý zvlášť jste rychlejší než společně."
@@ -10631,7 +10631,7 @@ insights:
             faster_apart: "Lépe zvlášť"
             not_sure_yet: "Zatím nejisté"
             no_solo_pace: "Bez sólo tempa"
-        note: "Očekávání = co společně předpovídá vaše sólo tempo a sólo tempa vašich parťáků, každé tak, jak bylo ten den. Hosté sólo tempo nemají, proto jsou jejich dvojice a týmy bez hodnocení. Výsledky dvojic a týmů se nikdy nemíchají do vašich sólo sekcí."
+        note: "Očekávání = predikce z vašeho sólo tempa a sólo temp vašich parťáků dohromady, každé tak, jak bylo ten den. Hosté sólo tempo nemají, proto jsou jejich dvojice a týmy bez hodnocení. Výsledky dvojic a týmů se nikdy nemíchají do vašich sólo sekcí."
         together:
             title: "Společně vs. vy sami"
             times: "%times%×"
@@ -10640,9 +10640,9 @@ insights:
             pairs: "Nejlepší výsledky ve dvojici"
             teams: "Nejlepší výsledky v týmu"
             meta: "s: %name% · %pieces% dílků · %date%"
-            faster: "o %percent% % pod předpovědí sólo temp"
-            slower: "o %percent% % nad předpovědí sólo temp"
-            level: "podle předpovědi sólo temp"
+            faster: "o %percent% % pod predikcí ze sólo temp"
+            slower: "o %percent% % nad predikcí ze sólo temp"
+            level: "podle predikce ze sólo temp"
     improvement:
         ask: "Kdy jsem se zlepšil(a)?"
         question: "Zlepšuji se, a kdy se to stalo?"
@@ -10650,19 +10650,19 @@ insights:
         none: "Vaše křivka zlepšení začne, jakmile budete mít tempo u nějakého počtu dílků – stačí pár prvních pokusů."
         lock:
             title: "{0}Vaše křivka zlepšení (prvních pokusů: %first%)|{1}1 velký skok v tempu (prvních pokusů: %first%)|[2,4]%count% velké skoky v tempu (prvních pokusů: %first%)|[5,Inf[%count% velkých skoků v tempu (prvních pokusů: %first%)"
-            text: "Jak se vaše tempo měnilo s každým prvním pokusem, vaše největší skoky a na kterých puzzle, proti typickému skladači – a váš rating v čase."
+            text: "Jak se vaše tempo měnilo s každým prvním pokusem, vaše největší skoky a na kterých puzzle, proti typickému puzzlerovi – a váš rating v čase."
         takeaway:
             curve: "Vaše tempo na %pieces% dílcích se změnilo z %first% na %now% (prvních pokusů: %count%): %change%."
-            typical: "Typický skladač je po stejném počtu prvních pokusů zhruba o %percent% % rychlejší."
+            typical: "Typický puzzler je po stejném počtu prvních pokusů zhruba o %percent% % rychlejší."
             plateau: "Od %date% se drží v rozmezí 2 % (prvních pokusů: %count%)."
         change:
             faster: "o %percent% % rychleji"
             slower: "o %percent% % pomaleji"
             same: "zhruba stejně"
-        chart_label: "Vaše tempo na %pieces% dílcích podle prvních pokusů, proti typickému skladači"
+        chart_label: "Vaše tempo na %pieces% dílcích podle prvních pokusů, proti typickému puzzlerovi"
         legend:
             you: "Vaše tempo (%pieces% dílků)"
-            typical: "Typický skladač ze stejného startu"
+            typical: "Typický puzzler ze stejného startu"
         other_sizes: "Další počty dílků"
         size_meta: "{0}%first% → %now%|{1}%first% → %now% · 1 první pokus|[2,4]%first% → %now% · %count% první pokusy|[5,Inf[%first% → %now% · %count% prvních pokusů"
         jumps:
@@ -10686,7 +10686,7 @@ insights:
             now: "Teď"
             today: "Dnes"
             forecast_point: "%when%: zhruba %rating%"
-            resolve_times: "Nejlepší %best% → nejspíš %likely% (−%percent% %)"
+            resolve_times: "Nejlepší %best% → %window% (−%percent% %)"
             resolve_last: "{0}Naposledy složeno tento měsíc|{1}Naposledy složeno před 1 měsícem|[2,Inf[Naposledy složeno před %count% měsíci"
             months: "%count% měs."
             pace: "Tempo %pace%"

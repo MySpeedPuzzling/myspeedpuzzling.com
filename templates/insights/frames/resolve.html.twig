@@ -54,7 +54,7 @@
                                         {%- if candidate.onShelf %} · {{ 'insights.resolve.on_shelf'|trans }}{% endif -%}
                                     </span>
                                 </span>
-                                <span class="ins-row__num">{{ 'insights.percent'|trans({'%value%': '−' ~ (candidate.likelyGain * 100)|round}) }}<small>{{ candidate.bestSeconds|puzzlingTime }} → {{ candidate.predictedSeconds|puzzlingTime }}</small></span>
+                                <span class="ins-row__num">{{ 'insights.percent'|trans({'%value%': '−' ~ (candidate.likelyGain * 100)|round}) }}<small>{{ candidate.bestSeconds|puzzlingTime }} → {{ candidate.window|prediction_window_range }}</small></span>
                             </a>
                         </li>
                     {% endfor %}

@@ -10757,8 +10757,8 @@ insights:
             on_shelf: "on your shelf"
             makes_it_count: "your first try makes it count"
             meta:
-                first_try: "likely %expected% · faster than %percent%% of its %count% solvers"
-                resolve: "best %best% → likely %expected%"
+                first_try: "%window% · faster than %percent%% of its %count% solvers"
+                resolve: "best %best% → %window%"
                 defend: "[0,1]leaves your rating within a day · best %best%|]1,Inf[leaves your rating in %count% days · best %best%"
         kind:
             first_try: "First try"
@@ -10933,7 +10933,7 @@ insights:
             now: "Now"
             today: "Today"
             forecast_point: "%when%: about %rating%"
-            resolve_times: "Best %best% → likely %likely% (−%percent%%)"
+            resolve_times: "Best %best% → %window% (−%percent%%)"
             resolve_last: "{0}Last solved this month|{1}Last solved 1 month ago|]1,Inf[Last solved %count% months ago"
             months: "%count% mo"
             pace: "Pace %pace%"

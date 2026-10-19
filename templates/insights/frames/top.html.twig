@@ -1,0 +1,44 @@
+{#
+    Lazy frame (InsightsTopFrameController): the top row's "Try next" (the best shelf pick) and "MSP rating" (what the
+    best 5 moves add) finding cards, in 6a's finding style. Nothing with time predictions switched off (both rest on
+    expected times); a free player gets each card locked, with its count; a card with nothing to say is left out.
+
+    Variables: context (InsightsFrameContext), top (null|InsightsTopFrame)
+#}
+{% set is_member = context.isMember %}
+<turbo-frame id="{{ context.frameId }}">
+{% if top is not null %}
+    {% set pick = top.shelf.picks|first %}
+    {% if is_member and pick %}
+        <a class="ins-finding" href="#insights-try-next" data-testid="insights-finding-try_next">
+            <span class="ins-finding__kicker">{{ 'insights.top.try_next.kicker'|trans }}</span>
+            <span class="ins-finding__text">
+                {{- (pick.fasterThanShare is not null ? 'insights.top.try_next.text' : 'insights.top.try_next.text_no_share')|trans({
+                    '%puzzle%': '<b>' ~ (pick.puzzle.name|e) ~ '</b>',
+                    '%window%': 'puzzle_intelligence.prediction.window.likely'|trans({'%range%': pick.window|prediction_window_range})|e,
+                    '%percent%': ((pick.fasterThanShare ?? 0) * 100)|round,
+                })|raw -}}
+            </span>
+        </a>
+    {% elseif not is_member and top.shelf.unsolvedOnShelf > 0 %}
+        <a class="ins-finding is-locked" href="#insights-try-next" data-testid="insights-finding-try_next">
+            <span class="ins-finding__kicker">{{ 'insights.top.try_next.kicker'|trans }} <i class="ci-locked" aria-hidden="true"></i></span>
+            <span class="ins-finding__text">{{ 'insights.top.try_next.locked'|trans({'%count%': top.shelf.unsolvedOnShelf}) }}</span>
+        </a>
+    {% endif %}
+
+    {% set o = top.rating %}
+    {% if o.standing.value not in ['private', 'no_entries'] and o.movesCount > 0 %}
+        <a class="ins-finding{{ is_member ? '' : ' is-locked' }}" href="#insights-rating" data-testid="insights-finding-rating_moves">
+            <span class="ins-finding__kicker">{{ 'insights.top.rating.kicker'|trans }}{% if not is_member %} <i class="ci-locked" aria-hidden="true"></i>{% endif %}</span>
+            <span class="ins-finding__text">
+                {%- if is_member -%}
+                    {{ 'insights.top.rating.text'|trans({'%gain%': '<b>+' ~ o.bestFiveGain|format_number({fraction_digit: 1}) ~ '</b>'})|raw }}
+                {%- else -%}
+                    {{ 'insights.top.rating.locked'|trans({'%count%': o.movesCount}) }}
+                {%- endif -%}
+            </span>
+        </a>
+    {% endif %}
+{% endif %}
+</turbo-frame>

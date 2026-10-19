@@ -58,6 +58,7 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetFreeTrialsEndingSoon' => self::BACKGROUND,
         'GetFreeTrialStatistics' => self::ADMIN,
         'GetGettingStartedProgress' => self::OWN_DATA,
+        'GetInsightsContext' => 'The viewer\'s own batch inputs; its ladder place uses GetPlayerRatingRanking::sqlRankOf(), which closes up the viewer\'s hidden players like the ladder - returns no identity.',
         'GetInsightsFingerprint' => 'A hash of the viewer\'s own results, teams, collections and lending - returns no identity.',
         'GetInsightsShelf' => 'The viewer\'s own shelf; "faster than N % of its solvers" counts times without identity.',
         'GetPersonalEstimates' => 'The viewer\'s own estimates: their own attempts, paces and ratios; other players only as aggregates (difficulty, the community\'s median pace by piece count) - returns no identity.',

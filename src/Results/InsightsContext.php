@@ -27,6 +27,8 @@ readonly final class InsightsContext
         public array $playerImprovementRatios,
         public array $globalImprovementRatios,
         public null|float $rating500,
+        /** The place on today's 500-piece ladder; null off the ladder (private, opted out of rankings, unrated) */
+        public null|int $ratingPlace500 = null,
     ) {
     }
 

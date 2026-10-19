@@ -1,0 +1,63 @@
+{#
+    Lazy frame (InsightsShelfFrameController): "What from my shelf suits me?" (ShelfPicks) - the unsolved shelf puzzles
+    with an expected time, those you would likely beat the most solvers on first. Members; a free player gets the lock
+    with the number of unsolved shelf puzzles. Time predictions switched off = the note and the setting.
+
+    Each pick's time is stream 6c's estimate line (time + certainty bar + tier chip, a tap opens the shared sheet in
+    base.html.twig) - a button, so the row is no single link: the picture and the name link to the puzzle.
+
+    Variables: context (InsightsFrameContext), shelf (null|ShelfPicksResult), estimates (null|PersonalEstimates)
+#}
+{% set is_member = context.isMember %}
+<turbo-frame id="{{ context.frameId }}">
+<section class="ins-sec" id="insights-try-next" data-testid="insights-section-shelf">
+    {{ include('insights/_section_head.html.twig', {question: 'insights.shelf.question', title: 'insights.shelf.title', badge: 'member', badge_text: 'insights.badge.members'}) }}
+
+    {% if shelf is null %}
+        <p class="ins-take" data-testid="insights-predictions-off">
+            {{ 'insights.shelf.predictions_off'|trans }}
+            <a href="{{ path('edit_profile') }}">{{ 'statistics.change_in_settings'|trans }}</a>
+        </p>
+    {% elseif shelf.unsolvedOnShelf == 0 %}
+        <p class="ins-take">{{ 'insights.shelf.empty'|trans }}</p>
+    {% elseif not is_member %}
+        {{ include('insights/_lock.html.twig', {
+            title: 'insights.shelf.lock.title'|trans({'%count%': shelf.unsolvedOnShelf}),
+            text: 'insights.shelf.lock.text'|trans,
+            testid: 'insights-lock-shelf',
+        }) }}
+    {% elseif shelf.picks is empty %}
+        <p class="ins-take">{{ 'insights.shelf.no_estimates'|trans({'%count%': shelf.unsolvedOnShelf}) }}</p>
+    {% else %}
+        <p class="ins-take" data-testid="insights-shelf-takeaway">{{ 'insights.shelf.takeaway'|trans({'%count%': shelf.withExpectedTime, '%total%': shelf.unsolvedOnShelf})|raw }}</p>
+
+        <ul class="ins-list ins-shelf" data-testid="insights-shelf-picks">
+            {% for pick in shelf.picks %}
+                {% set puzzle = pick.puzzle %}
+                {% set has_estimate = estimates is not null and estimates.of(puzzle.puzzleId) is not null %}
+                <li class="ins-row">
+                    <div class="ins-row__link ins-shelf__row">
+                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" tabindex="-1" aria-hidden="true">
+                            {{- lazy_puzzle_image(puzzle.image, 'puzzle_small', puzzle.name, 999, 48, 'rounded-2 ins-row__image', 48) -}}
+                        </a>
+                        <span class="ins-row__main{{ has_estimate ? ' est-host' }}">
+                            <a class="ins-row__name ins-shelf__name" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">{{ puzzle.name }}</a>
+                            {%- if has_estimate %}{{ include('insights/estimate/_line.html.twig', {estimates: estimates, puzzle_id: puzzle.puzzleId, name: puzzle.name}, with_context = false) }}{% endif %}
+                            <span class="ins-row__meta">{{ ['insights.skills.pieces'|trans({'%count%': puzzle.piecesCount}), puzzle.brandName]|filter(part => part is not empty)|join(' · ') }}</span>
+                        </span>
+                        <span class="ins-row__num">
+                            {%- if pick.fasterThanShare is not null -%}
+                                {{ 'insights.percent'|trans({'%value%': (pick.fasterThanShare * 100)|round}) }}<small>{{ 'insights.shelf.beaten'|trans({'%count%': pick.solverCount}) }}</small>
+                            {%- else -%}
+                                –<small>{{ 'insights.shelf.few_solvers'|trans }}</small>
+                            {%- endif -%}
+                        </span>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+        <p class="ins-next"><a href="{{ path('puzzle_picker', {source: 'mine', solved: 'never'}) }}">{{ 'insights.shelf.picker'|trans }} →</a></p>
+        <p class="ins-note">{{ 'insights.shelf.note'|trans }}</p>
+    {% endif %}
+</section>
+</turbo-frame>

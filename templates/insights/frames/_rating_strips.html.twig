@@ -1,0 +1,54 @@
+{#
+    "Your rating, entry by entry" (members): one bar per entry of each portfolio, best first - its points, faded by
+    age, the best 100 that count in indigo, a dashed cut at #100. Plain SVG, no script: every bar carries its own
+    <title> for a pointer, and a visually hidden list carries the same for screen readers (the SVG is one image). A
+    secret puzzle's entry counts but is not named.
+
+    Variables: opportunities (RatingOpportunitiesResult)
+#}
+{% set cap = constant('SpeedPuzzling\\Web\\Services\\PuzzleIntelligence\\MspRatingFormula::CAP') %}
+{% set rows = [
+    {key: 'first_attempt', entries: opportunities.firstAttemptEntries},
+    {key: 'best_time', entries: opportunities.bestTimeEntries},
+] %}
+{% set max_points = max((opportunities.firstAttemptEntries|merge(opportunities.bestTimeEntries))|map(e => e.points)|merge([1])) %}
+{% set now = date().timestamp %}
+{% set width = 330 %}
+{% set height = 64 %}
+<div class="ins-strips" data-testid="insights-rating-strips">
+    {% for row in rows %}
+        {% set shown = row.entries|slice(0, 150) %}
+        {% set bar = (width - 4) / max(shown|length, 110) %}
+        <p class="ins-strips__label">
+            <span>{{ ('insights.rating.strips.' ~ row.key)|trans }}</span>
+            <span>{{ 'insights.rating.strips.count'|trans({'%count%': row.entries|length, '%cap%': cap}) }}</span>
+        </p>
+        {% if shown is empty %}
+            <p class="ins-row ins-row--empty">{{ 'insights.rating.strips.none'|trans }}</p>
+        {% else %}
+            <svg class="ins-strips__svg" viewBox="0 0 {{ width }} {{ height }}" preserveAspectRatio="none" role="img" aria-label="{{ ('insights.rating.strips.' ~ row.key)|trans }}">
+                {% for entry in shown %}
+                    {% set bar_height = max(2, entry.points / max_points * (height - 14)) %}
+                    {% set months = (now - entry.solvedAt.timestamp) / 2630016 %}
+                    <rect x="{{ (2 + loop.index0 * bar)|round(2) }}" y="{{ (height - 12 - bar_height)|round(2) }}" width="{{ max(1, bar - 1)|round(2) }}" height="{{ bar_height|round(2) }}"
+                        class="{{ entry.counts ? 'is-counted' : 'is-out' }}" fill-opacity="{{ max(0.3, 1 - months / 30)|round(2) }}">
+                        <title>{{ entry.puzzle is not null ? entry.puzzle.name : 'insights.rating.strips.secret'|trans }} · {{ 'insights.rating.strips.points'|trans({'%points%': entry.points|round, '%position%': loop.index}) }} · {{ entry.solvedAt|events_date('yMMMd') }}{{ entry.counts ? '' : ' · ' ~ 'insights.rating.strips.outside'|trans({'%cap%': cap}) }}</title>
+                    </rect>
+                {% endfor %}
+                {% if shown|length > cap %}
+                    <line x1="{{ (2 + cap * bar)|round(2) }}" x2="{{ (2 + cap * bar)|round(2) }}" y1="0" y2="{{ height - 10 }}" class="ins-strips__cut"/>
+                {% endif %}
+                <line x1="0" x2="{{ width }}" y1="{{ height - 12 }}" y2="{{ height - 12 }}" class="ins-strips__base"/>
+            </svg>
+            {# The bars' details for screen readers (the SVG is one image) #}
+            <ol class="visually-hidden" data-testid="insights-rating-strip-list">
+                {% for entry in shown %}
+                    <li>{{ entry.puzzle is not null ? entry.puzzle.name : 'insights.rating.strips.secret'|trans }} · {{ 'insights.rating.strips.points'|trans({'%points%': entry.points|round, '%position%': loop.index}) }} · {{ entry.solvedAt|events_date('yMMMd') }}{{ entry.counts ? '' : ' · ' ~ 'insights.rating.strips.outside'|trans({'%cap%': cap}) }}</li>
+                {% endfor %}
+            </ol>
+            {% if row.entries|length > shown|length %}
+                <p class="ins-strips__more">{{ 'insights.rating.strips.more'|trans({'%count%': row.entries|length - shown|length}) }}</p>
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+</div>

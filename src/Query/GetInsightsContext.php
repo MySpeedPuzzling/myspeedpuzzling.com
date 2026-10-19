@@ -15,12 +15,14 @@ use SpeedPuzzling\Web\Value\InsightsProfileAxis;
 /**
  * The batch-computed inputs of one player's Insights page in one statement (docs/features/insights/computation.md
  * "Core sections" §4): the insights generation, the profile card (player_insights_profile), the player's and the
- * community's learning ratios and the 500-piece MSP rating. Self-only - the owner's own rows.
+ * community's learning ratios, the 500-piece MSP rating and its place on today's ladder (the header's rule,
+ * GetPlayerRatingRanking::sqlRankOf(); none while private or opted out of rankings). Self-only - the owner's own rows.
  */
 readonly final class GetInsightsContext
 {
     public function __construct(
         private Connection $database,
+        private GetPlayerRatingRanking $getPlayerRatingRanking,
     ) {
     }
 
@@ -40,6 +42,7 @@ readonly final class GetInsightsContext
         }
 
         $axisSelect = implode(",\n    ", $axisColumns);
+        $ratingPlace = $this->getPlayerRatingRanking->sqlRankOf('ctx_elo');
 
         $query = <<<SQL
 SELECT
@@ -57,9 +60,14 @@ SELECT
         FROM global_improvement_ratio gir
         WHERE gir.gap_bucket = 'all'
     ) AS global_ratios,
-    (SELECT pe.elo_rating FROM player_elo pe WHERE pe.player_id = :playerId AND pe.pieces_count = 500) AS rating_500
+    ctx_elo.elo_rating AS rating_500,
+    CASE WHEN ctx_player.is_private = false AND ctx_player.ranking_opted_out = false AND ctx_elo.id IS NOT NULL
+        THEN {$ratingPlace}
+    END AS rating_500_place
 FROM (SELECT 1) AS one
 LEFT JOIN player_insights_profile ip ON ip.player_id = :playerId
+LEFT JOIN player ctx_player ON ctx_player.id = :playerId
+LEFT JOIN player_elo ctx_elo ON ctx_elo.player_id = :playerId AND ctx_elo.pieces_count = 500
 SQL;
 
         /** @var array<string, mixed> $row */
@@ -99,6 +107,7 @@ SQL;
         $generation = $row['generation'] ?? null;
         $computedAt = $row['profile_computed_at'] ?? null;
         $rating = $row['rating_500'] ?? null;
+        $place = $row['rating_500_place'] ?? null;
 
         return new InsightsContext(
             generation: is_numeric($generation) ? (int) $generation : 0,
@@ -107,6 +116,7 @@ SQL;
             playerImprovementRatios: $playerRatios,
             globalImprovementRatios: $globalRatios,
             rating500: is_numeric($rating) ? (float) $rating : null,
+            ratingPlace500: is_numeric($place) ? (int) $place : null,
         );
     }
 

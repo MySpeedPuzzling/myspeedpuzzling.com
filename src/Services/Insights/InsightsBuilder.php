@@ -152,6 +152,8 @@ readonly final class InsightsBuilder
             predictionsOff: $predictionsAllowed === false,
             nudges: $this->nudgesBuilder->nudges($rows, $timezone !== null, $predictionsAllowed),
             filterOptions: $this->nudgesBuilder->filterOptions($rows),
+            rating500: $context->rating500,
+            ratingPlace500: $context->ratingPlace500,
         );
     }
 }

@@ -1,0 +1,19 @@
+{#
+    A pair's or team's name as the viewer may see its people: the shared team name, else the partners - a private
+    player who has not let the viewer see them is "Hidden Puzzler" (no player id reaches the page), a guest by the name
+    typed in. Variables: synergy (GroupSynergy)
+#}
+{%- if synergy.teamName is not null and synergy.teamName is not empty -%}
+    {{ synergy.teamName }}
+{%- else -%}
+    {%- for member in synergy.partners -%}
+        {%- if not loop.first %}, {% endif -%}
+        {%- if member.hidden -%}
+            <span class="text-muted">{{ 'secret_puzzler_name'|trans }}</span> <i class="bi bi-incognito text-muted" aria-hidden="true"></i>
+        {%- elseif member.playerId is not null -%}
+            {{ member.name ?? ('#' ~ member.code) }}
+        {%- else -%}
+            {{ member.guestName }}
+        {%- endif -%}
+    {%- endfor -%}
+{%- endif -%}

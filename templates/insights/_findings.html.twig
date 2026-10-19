@@ -11,7 +11,8 @@
     learning: 'insights-learning', habits: 'insights-habits', consistency: 'insights-findings', accuracy: 'insights-expected',
 } %}
 
-{% if report.findings is not empty %}
+{% set top_cards = this.profile is not null and not this.profile.timePredictionsOptedOut %}
+{% if report.findings is not empty or top_cards %}
     <div class="ins-findings" id="insights-findings" role="region" aria-label="{{ 'insights.findings.label'|trans }}" data-testid="insights-findings">
         {% for finding in report.findings %}
             {% set locked = finding.membersOnly and not this.isMember %}
@@ -50,6 +51,9 @@
                 </span>
             </a>
         {% endfor %}
+
+        {# "Try next" + "MSP rating": they need the shelf picks and the rating model - a lazy frame, never the first response #}
+        {{ include('insights/_lazy_top.html.twig', {criteria: this.criteria, predictions_allowed: top_cards}) }}
     </div>
 {% endif %}
 
@@ -94,6 +98,31 @@
         {% else %}
             <p class="ins-tile__value">–</p>
             <p class="ins-tile__sub">{{ 'insights.tiles.consistency.not_enough'|trans({'%count%': constant('SpeedPuzzling\\Web\\Results\\Insights\\InsightsConsistencySection::MIN_RESULTS')}) }}</p>
+        {% endif %}
+    </div>
+
+    {# The stored 500-piece MSP rating and its place on today's ladder - both ride on the context statement (no model) #}
+    <div class="ins-tile" data-testid="insights-tile-rating">
+        <p class="ins-tile__label">{{ 'insights.rating_tile.label'|trans }}</p>
+        {% if not this.isMember %}
+            <p class="ins-tile__value"><i class="ci-locked" aria-hidden="true"></i></p>
+            <p class="ins-tile__sub">
+                <button type="button" class="btn btn-link btn-sm p-0" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">{{ 'insights.tiles.members'|trans }}</button>
+            </p>
+        {% elseif report.rating500 is not null and not this.profile.isPrivateProfile %}
+            <p class="ins-tile__value">{{ (report.rating500 * 1000)|round }}</p>
+            <p class="ins-tile__sub">
+                {%- if report.ratingPlace500 is not null -%}
+                    {{ 'insights.rating_tile.place'|trans({'%place%': report.ratingPlace500}) }}
+                {%- elseif this.profile.rankingOptedOut -%}
+                    {{ 'insights.rating_tile.opted_out'|trans }}
+                {%- else -%}
+                    {{ 'insights.rating_tile.no_place'|trans }}
+                {%- endif -%}
+            </p>
+        {% else %}
+            <p class="ins-tile__value">–</p>
+            <p class="ins-tile__sub">{{ (this.profile.isPrivateProfile ? 'insights.rating_tile.private' : 'insights.rating_tile.none')|trans }}</p>
         {% endif %}
     </div>
 </div>

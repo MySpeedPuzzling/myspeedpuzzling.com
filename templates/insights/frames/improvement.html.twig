@@ -1,0 +1,130 @@
+{#
+    Lazy frame (InsightsImprovementFrameController): section 15 "Am I getting better, and when did it happen?" - the
+    pace curve per piece count from the pace history (ImprovementCurve: biggest jumps with their puzzle, plateau, the
+    typical newcomer's curve at 500 pieces) and the MSP rating over time (RatingOverTime, player_rating_snapshot).
+    Members; free players get the lock with counts.
+
+    Variables: context (InsightsFrameContext), frame (InsightsImprovementFrame), main (null|ImprovementCurveSize),
+               others (list<ImprovementCurveSize>), rating_series (null|RatingOverTimeSeries), rating_private (bool: no
+               rating for a private profile), curve_chart, rating_chart
+#}
+{% set is_member = context.isMember %}
+<turbo-frame id="{{ context.frameId }}">
+<section class="ins-sec" id="insights-improvement" data-testid="insights-section-improvement">
+    {{ include('insights/_section_head.html.twig', {question: 'insights.improvement.question', title: 'insights.improvement.title', badge: 'member', badge_text: 'insights.badge.members'}) }}
+
+    {% if main is null %}
+        <p class="ins-take">{{ 'insights.improvement.none'|trans }}</p>
+    {% elseif not is_member %}
+        {{ include('insights/_lock.html.twig', {
+            title: 'insights.improvement.lock.title'|trans({'%count%': frame.jumpsCount, '%first%': frame.firstTriesCount}),
+            text: 'insights.improvement.lock.text'|trans,
+            testid: 'insights-lock-improvement',
+        }) }}
+    {% else %}
+        {% set change = (main.changeSinceFirst * 100)|round %}
+        <p class="ins-take" data-testid="insights-improvement-takeaway">
+            {{- 'insights.improvement.takeaway.curve'|trans({
+                '%pieces%': main.piecesCount,
+                '%first%': '<b>' ~ main.firstPaceSeconds|puzzlingTime ~ '</b>',
+                '%now%': '<b>' ~ main.paceSeconds|puzzlingTime ~ '</b>',
+                '%count%': main.firstTries,
+                '%change%': (change < 0 ? 'insights.improvement.change.faster' : (change > 0 ? 'insights.improvement.change.slower' : 'insights.improvement.change.same'))|trans({'%percent%': change|abs}),
+            })|raw -}}
+            {%- if main.typicalChange is not null %} {{ 'insights.improvement.takeaway.typical'|trans({'%percent%': (-main.typicalChange * 100)|round}) }}{% endif -%}
+            {%- if main.plateau is not null %} {{ 'insights.improvement.takeaway.plateau'|trans({'%date%': main.plateau.since|events_date('yMMMd'), '%count%': main.plateau.firstTries}) }}{% endif -%}
+        </p>
+
+        <div class="ins-two">
+            <div>
+                {% if curve_chart is not null %}
+                    <div class="ins-chart" id="ins-chart-improvement-{{ context.frameId }}" data-controller="comparison-chart">
+                        {{ render_chart(curve_chart, {role: 'img', 'aria-label': 'insights.improvement.chart_label'|trans({'%pieces%': main.piecesCount})}) }}
+                    </div>
+                    <div class="ins-legend" aria-hidden="true">
+                        <span><i class="ins-legend__line ins-legend--you"></i>{{ 'insights.improvement.legend.you'|trans({'%pieces%': main.piecesCount}) }}</span>
+                        {% if main.typicalCurve|length >= 2 %}<span><i class="ins-legend__line ins-legend--ref"></i>{{ 'insights.improvement.legend.typical'|trans }}</span>{% endif %}
+                    </div>
+                {% endif %}
+
+                {% if others is not empty %}
+                    <p class="ins-listh">{{ 'insights.improvement.other_sizes'|trans }}</p>
+                    <ul class="ins-list" data-testid="insights-improvement-sizes">
+                        {% for size in others|slice(0, 5) %}
+                            {% set size_change = (size.changeSinceFirst * 100)|round %}
+                            <li class="ins-row ins-row--plain">
+                                <span class="ins-row__main">
+                                    <span class="ins-row__name">{{ 'insights.skills.pieces'|trans({'%count%': size.piecesCount}) }}</span>
+                                    <span class="ins-row__meta">{{ 'insights.improvement.size_meta'|trans({'%first%': size.firstPaceSeconds|puzzlingTime, '%now%': size.paceSeconds|puzzlingTime, '%count%': size.firstTries}) }}</span>
+                                </span>
+                                <span class="ins-row__num">{{ (size_change < 0 ? 'insights.improvement.change.faster' : (size_change > 0 ? 'insights.improvement.change.slower' : 'insights.improvement.change.same'))|trans({'%percent%': size_change|abs}) }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+            <div>
+                <p class="ins-listh">{{ 'insights.improvement.jumps.title'|trans }}</p>
+                <ul class="ins-list" data-testid="insights-improvement-jumps">
+                    {% for jump in main.biggestJumps %}
+                        {% set meta = 'insights.improvement.jumps.meta'|trans({'%date%': jump.date|events_date('yMMMd'), '%time%': jump.solveSeconds|puzzlingTime}) %}
+                        {% set number = 'insights.percent'|trans({'%value%': '−' ~ (-jump.change * 100)|round}) %}
+                        {% set note = 'insights.improvement.jumps.pace'|trans({'%before%': jump.paceBeforeSeconds|puzzlingTime, '%after%': jump.paceAfterSeconds|puzzlingTime}) %}
+                        {% if jump.puzzle is not null %}
+                            <li class="ins-row">
+                                <a class="ins-row__link" href="{{ path('puzzle_detail', {puzzleId: jump.puzzle.puzzleId}) }}">
+                                    {{ lazy_puzzle_image(jump.puzzle.image, 'puzzle_small', jump.puzzle.name, 999, 48, 'rounded-2 ins-row__image', 48) }}
+                                    <span class="ins-row__main">
+                                        <span class="ins-row__name">{{ jump.puzzle.name }}</span>
+                                        <span class="ins-row__meta">{{ meta }}</span>
+                                    </span>
+                                    <span class="ins-row__num">{{ number }}<small>{{ note }}</small></span>
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="ins-row ins-row--plain">
+                                <span class="ins-row__main">
+                                    <span class="ins-row__name">{{ 'insights.improvement.jumps.secret'|trans }}</span>
+                                    <span class="ins-row__meta">{{ meta }}</span>
+                                </span>
+                                <span class="ins-row__num">{{ number }}<small>{{ note }}</small></span>
+                            </li>
+                        {% endif %}
+                    {% else %}
+                        <li class="ins-row ins-row--empty">{{ 'insights.improvement.jumps.none'|trans }}</li>
+                    {% endfor %}
+                </ul>
+                {% if main.stepsCount > 0 %}
+                    <p class="ins-note">{{ 'insights.improvement.jumps.note'|trans({'%count%': main.jumpsCount, '%steps%': main.stepsCount}) }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="ins-subsec" data-testid="insights-rating-over-time">
+            <h3 class="ins-subsec__title">{{ 'insights.improvement.rating.title'|trans }}</h3>
+            {% if rating_private %}
+                <p class="ins-take" data-testid="insights-rating-over-time-private">{{ 'insights.rating.private'|trans }}</p>
+            {% elseif rating_series is null %}
+                <p class="ins-take">{{ 'insights.improvement.rating.none'|trans }}</p>
+            {% else %}
+                <p class="ins-take">
+                    {%- set latest = rating_series.days|last -%}
+                    {{- 'insights.improvement.rating.latest'|trans({'%rating%': '<b>' ~ latest.rating|round ~ '</b>', '%date%': latest.date|events_date('yMMMd')})|raw -}}
+                    {%- for window in [{days: 30, change: rating_series.changeOver30Days}, {days: 90, change: rating_series.changeOver90Days}] -%}
+                        {%- if window.change is not null %} {{ 'insights.improvement.rating.change'|trans({'%days%': window.days, '%change%': '<b>' ~ (window.change >= 0 ? '+' : '−') ~ window.change|abs|round ~ '</b>'})|raw }}{% endif -%}
+                    {%- endfor -%}
+                    {%- if rating_series.biggestRise is not null %} {{ 'insights.improvement.rating.rise'|trans({'%change%': rating_series.biggestRise.change|round, '%date%': rating_series.biggestRise.date|events_date('yMMMd')}) }}{% endif -%}
+                </p>
+                {% if rating_chart is not null %}
+                    <div class="ins-chart ins-chart--short" id="ins-chart-rating-{{ context.frameId }}" data-controller="comparison-chart">
+                        {{ render_chart(rating_chart, {role: 'img', 'aria-label': 'insights.improvement.rating.chart_label'|trans}) }}
+                    </div>
+                {% endif %}
+                <p class="ins-note">{{ 'insights.improvement.rating.note'|trans }}</p>
+            {% endif %}
+        </div>
+
+        <p class="ins-note">{{ 'insights.improvement.note'|trans }}</p>
+    {% endif %}
+</section>
+</turbo-frame>

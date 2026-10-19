@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results\Insights;
 
+use SpeedPuzzling\Web\Value\PredictionWindow;
 use SpeedPuzzling\Web\Value\RatingMoveKind;
 
 /**
@@ -16,6 +17,9 @@ readonly final class RatingMove
         public InsightsPuzzleRef $puzzle,
         /** The prediction for the attempt (personal for a re-solve, statistical for a first try) */
         public int $expectedSeconds,
+        /** The prediction's raw 50 % "likely" range - shown only through window() (stream 3c's rounding) */
+        public int $expectedLowSeconds,
+        public int $expectedHighSeconds,
         /** Re-solve / defend: today's best time */
         public null|int $currentBestSeconds,
         /** Rating points as the ladder shows them (rating × 1000) the move adds alone */
@@ -32,5 +36,13 @@ readonly final class RatingMove
         /** First try: the puzzle has 19 public first-attempt solvers - this first try makes it count in ratings */
         public bool $makesPuzzleCount,
     ) {
+    }
+
+    /**
+     * The likely window as every surface shows it (PredictionWindow::rounded(), docs/features/insights/README.md §3)
+     */
+    public function window(): PredictionWindow
+    {
+        return PredictionWindow::rounded($this->expectedLowSeconds, $this->expectedHighSeconds, $this->expectedSeconds);
     }
 }

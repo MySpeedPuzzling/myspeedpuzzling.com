@@ -62,6 +62,9 @@ readonly final class InsightsReport
         public bool $predictionsOff = false,
         public array $nudges = [],
         public InsightsFilterOptions $filterOptions = new InsightsFilterOptions(),
+        /** The stored 500-piece MSP rating (player_elo) and its place on today's ladder - the top row's rating tile */
+        public null|float $rating500 = null,
+        public null|int $ratingPlace500 = null,
     ) {
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results\Insights;
 
+use SpeedPuzzling\Web\Value\PredictionWindow;
 use SpeedPuzzling\Web\Value\ShelfPickSource;
 
 /**
@@ -23,5 +24,13 @@ readonly final class ShelfPick
         public null|int $difficultyTier,
         public null|int $medianSoloSeconds,
     ) {
+    }
+
+    /**
+     * The likely window as every surface shows it (PredictionWindow::rounded(), stream 3c)
+     */
+    public function window(): PredictionWindow
+    {
+        return PredictionWindow::rounded($this->expectedLowSeconds, $this->expectedHighSeconds, $this->expectedSeconds);
     }
 }

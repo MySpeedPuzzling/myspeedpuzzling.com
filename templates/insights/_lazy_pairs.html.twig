@@ -1,8 +1,2 @@
-{#
-    Placeholder of stream 6b (docs/features/insights/page.md "Left for 6b"): section 13 pairs & teams.
-    6b turns this into a lazy Turbo Frame (loading="lazy", its own route, below the fold) - keep it one partial,
-    give the frame data-live-ignore so the Insights live component's re-renders never reload it, and add its question
-    chip in Insights::getQuestions(). Renders nothing until then - never shown to users.
-
-    Variables: report (InsightsReport), is_member (bool), criteria (InsightsCriteria)
-#}
+{# Section 13, pairs & teams: a lazy frame (InsightsPairsFrameController) #}
+{{ include('insights/frames/_lazy.html.twig', {part: 'pairs', criteria: criteria}) }}

@@ -29,7 +29,13 @@ return static function (ContainerConfigurator $configurator): void {
         ]);
 
     // Insights builders and their read models (public for testing; nothing outside the tests uses them before Phase 6)
-    $services->load('SpeedPuzzling\\Web\\Services\\Insights\\', __DIR__ . '/../src/Services/Insights/{*.php}');
+    $services->load('SpeedPuzzling\\Web\\Services\\Insights\\', __DIR__ . '/../src/Services/Insights/{*.php}')
+        ->exclude([
+            // values, not services (excluded in services.php too)
+            __DIR__ . '/../src/Services/Insights/InsightsCriteria.php',
+            __DIR__ . '/../src/Services/Insights/InsightsRow.php',
+            __DIR__ . '/../src/Services/Insights/LearningFactors.php',
+        ]);
     $services->set(\SpeedPuzzling\Web\Query\GetInsightsGroupResults::class)->public();
     $services->set(\SpeedPuzzling\Web\Query\GetInsightsRatingInputs::class)->public();
     $services->set(\SpeedPuzzling\Web\Query\GetInsightsShelf::class)->public();

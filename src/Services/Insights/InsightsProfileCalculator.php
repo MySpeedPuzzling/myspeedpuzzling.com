@@ -148,8 +148,8 @@ final class InsightsProfileCalculator
     }
 
     /**
-     * Rolling median of first-try ratios within ±75 days of every result, with one sorted window sliding along the
-     * results (they are ordered by time) - O(n · w) instead of sorting a window per result.
+     * Rolling median of first-try ratios within ±75 days of every result (InsightsMath::rollingMedian() - the one
+     * "your usual" rule, shared with the Insights page).
      *
      * @param list<array{puzzle_id: string, seconds: int, at: int, first_attempt: bool, attempt: int, pieces: int, median: int, tier: null|int, event: bool}> $results
      * @param array<int, float> $ratios
@@ -158,30 +158,13 @@ final class InsightsProfileCalculator
      */
     private function forms(array $results, array $ratios, array $firstTries): array
     {
-        $forms = [];
-        /** @var list<float> $window sorted */
-        $window = [];
-        $nextToAdd = 0;
-        $nextToRemove = 0;
-        $firstTryCount = count($firstTries);
+        $points = [];
 
-        foreach ($results as $i => $result) {
-            while ($nextToAdd < $firstTryCount && $results[$firstTries[$nextToAdd]]['at'] <= $result['at'] + self::FORM_HALF_WINDOW) {
-                $value = $ratios[$firstTries[$nextToAdd]];
-                array_splice($window, self::insertionPoint($window, $value), 0, [$value]);
-                $nextToAdd++;
-            }
-
-            while ($nextToRemove < $nextToAdd && $results[$firstTries[$nextToRemove]]['at'] < $result['at'] - self::FORM_HALF_WINDOW) {
-                $value = $ratios[$firstTries[$nextToRemove]];
-                array_splice($window, self::insertionPoint($window, $value), 1);
-                $nextToRemove++;
-            }
-
-            $forms[$i] = $window === [] ? null : self::medianOfSorted($window);
+        foreach ($firstTries as $index) {
+            $points[] = [$results[$index]['at'], $ratios[$index]];
         }
 
-        return $forms;
+        return InsightsMath::rollingMedian($points, array_map(static fn (array $result): int => $result['at'], $results), self::FORM_HALF_WINDOW);
     }
 
     /**
@@ -197,47 +180,11 @@ final class InsightsProfileCalculator
     }
 
     /**
-     * First index whose value is >= $value
-     *
-     * @param list<float> $sorted
-     */
-    private static function insertionPoint(array $sorted, float $value): int
-    {
-        $low = 0;
-        $high = count($sorted);
-
-        while ($low < $high) {
-            $middle = ($low + $high) >> 1;
-
-            if ($sorted[$middle] < $value) {
-                $low = $middle + 1;
-            } else {
-                $high = $middle;
-            }
-        }
-
-        return $low;
-    }
-
-    /**
      * @param list<float> $values
      */
     public static function median(array $values): float
     {
-        sort($values);
-
-        return self::medianOfSorted($values);
-    }
-
-    /**
-     * @param list<float> $sorted not empty
-     */
-    private static function medianOfSorted(array $sorted): float
-    {
-        $count = count($sorted);
-        $middle = $count >> 1;
-
-        return $count % 2 === 1 ? $sorted[$middle] : ($sorted[$middle - 1] + $sorted[$middle]) / 2;
+        return InsightsMath::median($values);
     }
 
     /**
@@ -247,11 +194,6 @@ final class InsightsProfileCalculator
      */
     public static function quantile(array $values, float $q): float
     {
-        sort($values);
-        $position = (count($values) - 1) * $q;
-        $low = (int) floor($position);
-        $high = (int) ceil($position);
-
-        return $values[$low] + ($values[$high] - $values[$low]) * ($position - $low);
+        return InsightsMath::quantile($values, $q);
     }
 }

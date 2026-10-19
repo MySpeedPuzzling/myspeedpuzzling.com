@@ -12,15 +12,12 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\SendPlayerContentDigest;
 use SpeedPuzzling\Web\MessageHandler\SendPlayerContentDigestHandler;
 use SpeedPuzzling\Web\Query\GetContentDigestRecipients;
-use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Repository\ContentDigestLogRepository;
 use SpeedPuzzling\Web\Repository\ContentDigestRunRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Results\ContentDigestRunCounts;
-use SpeedPuzzling\Web\Services\ContentDigestUnsubscribeUrl;
+use SpeedPuzzling\Web\Services\Digest\ContentDigestEmailFactory;
 use SpeedPuzzling\Web\Services\Digest\MissYouHoldout;
-use SpeedPuzzling\Web\Services\Digest\PlayerPeriodActivityReader;
-use SpeedPuzzling\Web\Services\EmailPreferencesLinkGenerator;
 use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness;
@@ -39,7 +36,6 @@ use Symfony\Component\Mailer\Transport\TransportInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * One activity digest / no-activity e-mail (docs/features/content-digest/README.md §"Sending"). The period is far in
@@ -408,15 +404,11 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
 
         return new SendPlayerContentDigestHandler(
             playerRepository: $container->get(PlayerRepository::class),
-            getPlayerProfile: $container->get(GetPlayerProfile::class),
             getContentDigestRecipients: $container->get(GetContentDigestRecipients::class),
             logRepository: $container->get(ContentDigestLogRepository::class),
             runRepository: $container->get(ContentDigestRunRepository::class),
-            activityReader: $container->get(PlayerPeriodActivityReader::class),
+            emailFactory: $container->get(ContentDigestEmailFactory::class),
             transport: $transport,
-            translator: $container->get(TranslatorInterface::class),
-            unsubscribeUrl: $container->get(ContentDigestUnsubscribeUrl::class),
-            emailPreferencesLinkGenerator: $container->get(EmailPreferencesLinkGenerator::class),
             messageBus: $container->get(MessageBusInterface::class),
             clock: $this->clock,
             logger: $logger ?? new NullLogger(),

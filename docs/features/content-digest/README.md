@@ -155,6 +155,14 @@ cron Mon 07:01 → myspeedpuzzling:send-content-digest activity      (Tue 07:01 
 - The command only dispatches `PlanContentDigestRuns` and prints a table per frequency: `planned` (+ recipients,
   spacing), `dry_run`, `not_ready` (launch switch), `paused` (before the first digest period / before the first "We miss you" day), `stale`.
   Re-running it the same day queues nobody twice.
+- **Preview** before a run: `myspeedpuzzling:send-content-digest-preview <email> [--player=<id|code|e-mail>]
+  [--period=2026-W42] [--kind=activity|miss_you]` - a player's real e-mail for the period (default: the player of
+  `<email>`, last week) to one address, through the same factory (`ContentDigestEmailFactory`) and transport; handled
+  at once (not routed), writes nothing, ignores the player's switches.
+- **Delivery** goes through `MailStreamRouting` (mass-mailing README "Reliability"): SES with one retry, no Seznam
+  fallback for the digest - a failed send is deferred by the handler (10 / 30 min) and counted by the breaker. The
+  first run (Mon 19 Oct 2026) stopped at 468 of 1,915 because the digest had silently moved to Seznam and Seznam
+  refused the account; a re-run the same day sends to whoever got nothing.
 - The XP reveal e-mail (removed by workstream A) used the log as its once-only marker (`period_key = 'xp_reveal'`)
   until it is deleted.
 

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e986e1f4359f1aae2ac1e1bf90c502dd",
+    "content-hash": "59b96819a902d061afe152293b91bf75",
     "packages": [
         {
             "name": "api-platform/core",
@@ -360,6 +360,68 @@
                 }
             ],
             "time": "2026-07-29T12:54:05+00:00"
+        },
+        {
+            "name": "async-aws/ses",
+            "version": "1.17.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/async-aws/ses.git",
+                "reference": "8cf52ad5b8d432c996dacb07cf57d50bee56d875"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/async-aws/ses/zipball/8cf52ad5b8d432c996dacb07cf57d50bee56d875",
+                "reference": "8cf52ad5b8d432c996dacb07cf57d50bee56d875",
+                "shasum": ""
+            },
+            "require": {
+                "async-aws/core": "^1.9",
+                "ext-filter": "*",
+                "php": "^8.2"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "^11.5.42",
+                "symfony/error-handler": "^7.3.2 || ^8.0",
+                "symfony/phpunit-bridge": "^7.3.2 || ^8.0"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "1.17-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AsyncAws\\Ses\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "SES client, part of the AWS SDK provided by AsyncAws.",
+            "keywords": [
+                "amazon",
+                "async-aws",
+                "aws",
+                "sdk",
+                "ses"
+            ],
+            "support": {
+                "source": "https://github.com/async-aws/ses/tree/1.17.0"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/jderusse",
+                    "type": "github"
+                },
+                {
+                    "url": "https://github.com/nyholm",
+                    "type": "github"
+                }
+            ],
+            "time": "2026-09-09T11:10:02+00:00"
         },
         {
             "name": "bacon/bacon-qr-code",
@@ -5851,6 +5913,76 @@
                 "source": "https://github.com/stripe/stripe-php/tree/v20.3.1"
             },
             "time": "2026-07-09T17:57:50+00:00"
+        },
+        {
+            "name": "symfony/amazon-mailer",
+            "version": "v8.1.5",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/symfony/amazon-mailer.git",
+                "reference": "053c95a45b71ae830cb6b482d0cc137daa32bb4f"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/symfony/amazon-mailer/zipball/053c95a45b71ae830cb6b482d0cc137daa32bb4f",
+                "reference": "053c95a45b71ae830cb6b482d0cc137daa32bb4f",
+                "shasum": ""
+            },
+            "require": {
+                "async-aws/ses": "^1.8",
+                "php": ">=8.4.1",
+                "symfony/mailer": "^7.4|^8.0"
+            },
+            "require-dev": {
+                "symfony/http-client": "^7.4|^8.0"
+            },
+            "type": "symfony-mailer-bridge",
+            "autoload": {
+                "psr-4": {
+                    "Symfony\\Component\\Mailer\\Bridge\\Amazon\\": ""
+                },
+                "exclude-from-classmap": [
+                    "/Tests/"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Fabien Potencier",
+                    "email": "fabien@symfony.com"
+                },
+                {
+                    "name": "Symfony Community",
+                    "homepage": "https://symfony.com/contributors"
+                }
+            ],
+            "description": "Symfony Amazon Mailer Bridge",
+            "homepage": "https://symfony.com",
+            "support": {
+                "source": "https://github.com/symfony/amazon-mailer/tree/v8.1.5"
+            },
+            "funding": [
+                {
+                    "url": "https://symfony.com/sponsor",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/fabpot",
+                    "type": "github"
+                },
+                {
+                    "url": "https://github.com/nicolas-grekas",
+                    "type": "github"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+                    "type": "tidelift"
+                }
+            ],
+            "time": "2026-08-21T17:47:34+00:00"
         },
         {
             "name": "symfony/asset",

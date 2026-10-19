@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use AsyncAws\Core\Configuration;
+use AsyncAws\Core\HttpClient\AwsRetryStrategy;
 use AsyncAws\S3\S3Client;
 use League\Flysystem\AsyncAwsS3\AsyncAwsS3Adapter;
 use League\Flysystem\Filesystem;
@@ -43,6 +44,8 @@ use Stripe\StripeClient;
 use Symfony\Bridge\Doctrine\SchemaListener\PdoSessionHandlerSchemaListener;
 use Symfony\Component\Cache\Adapter\RedisAdapter;
 use Symfony\Component\HttpClient\HttpClient;
+use Symfony\Component\HttpClient\RetryableHttpClient;
+use Symfony\Component\Mailer\Bridge\Amazon\Transport\SesTransportFactory;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler;
 
@@ -345,16 +348,33 @@ return static function (ContainerConfigurator $configurator): void {
             null, // own transport - autowiring would hand it the framework http_client
         ]);
 
-    // Amazon SES (docs/features/mass-mailing/README.md): stream marking, suppression and the pre-approval test
-    // routing sit in front of the mailer's transports; SNS certificates and subscription confirmations are fetched
-    // with a client of their own (tests swap it, config/services_test.php)
+    // Amazon SES (docs/features/mass-mailing/README.md): stream marking, suppression and which transport sends
+    // (SES first, the retry, the pause, the transactional fallback) sit in front of the mailer's transports; SNS
+    // certificates and subscription confirmations are fetched with a client of their own (tests swap it,
+    // config/services_test.php)
     $services->set(MailStreamRouting::class)
         ->decorate('mailer.transports')
         ->args([
             '$inner' => service('.inner'),
-            '$sesTestRecipients' => env('SES_TEST_RECIPIENTS'),
             '$sesDsn' => env('MAILER_SES_DSN'),
         ]);
+
+    // ses+https (MAILER_SES_DSN): Symfony's factory hands AsyncAws the framework's HTTP client, and AsyncAws adds its
+    // retries (throttling, 5xx, a dropped connection) only to a client it creates itself - so the factory gets a
+    // client of its own: retried twice (1 s, 2 s) and bounded, instead of PHP's 60 s socket timeout per wait
+    $services->set('ses.http_client', RetryableHttpClient::class)
+        ->args([
+            inline_service(HttpClientInterface::class)
+                ->factory([HttpClient::class, 'create'])
+                ->args([['timeout' => 10, 'max_duration' => 20]]),
+            inline_service(AwsRetryStrategy::class),
+            2,
+            service('logger'),
+        ]);
+
+    $services->set('mailer.transport_factory.amazon', SesTransportFactory::class)
+        ->args([service('event_dispatcher'), service('ses.http_client'), service('logger')])
+        ->tag('mailer.transport_factory');
 
     $services->set('ses_events.http_client', HttpClientInterface::class)
         ->factory([HttpClient::class, 'create'])

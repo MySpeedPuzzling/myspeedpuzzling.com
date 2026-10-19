@@ -8,10 +8,11 @@ use SpeedPuzzling\Web\Value\MailStream;
 use Symfony\Component\Mime\Header\Headers;
 
 /**
- * What Amazon SES needs on a message sent over its SMTP interface: the configuration set (per stream - it decides
- * which events come back and where) and message tags. The tags come back in every event of the message
- * (`mail.tags`), so a delivery, bounce or complaint finds its email_audit_log row without a lookup.
- * SES removes these headers before delivering the message.
+ * What Amazon SES needs on a message: the configuration set (per stream - it decides which events come back and
+ * where) and message tags. The tags come back in every event of the message (`mail.tags`), so a delivery, bounce or
+ * complaint finds its email_audit_log row without a lookup. Both are headers of the message, which SES reads over
+ * SMTP and over the API's raw content alike (ses+https - its transport also passes the configuration set as the
+ * request's ConfigurationSetName). SES removes these headers before delivering the message.
  */
 final class SesMessageHeaders
 {
@@ -24,9 +25,20 @@ final class SesMessageHeaders
     private const string CONFIGURATION_SET_HEADER = 'X-SES-CONFIGURATION-SET';
     private const string TAGS_HEADER = 'X-SES-MESSAGE-TAGS';
 
+    /**
+     * SES over SMTP (`smtp://email-smtp.<region>.amazonaws.com:587`) or over its API (`ses+https://<key id>@<region>`)
+     */
     public static function isSes(string $transport): bool
     {
-        return str_contains($transport, '.amazonaws.com');
+        return str_contains($transport, '.amazonaws.com') || str_starts_with($transport, 'ses+');
+    }
+
+    /**
+     * The transport's name as stored and logged: the API transport names itself with the access key id
+     */
+    public static function transportLabel(string $transport): string
+    {
+        return (string) preg_replace('#^(ses\+[a-z]+://)[^@/]*@#', '$1', $transport);
     }
 
     public static function takeStream(Headers $headers): MailStream

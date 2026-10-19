@@ -10,7 +10,7 @@ return App::config([
             'transports' => [
                 'transactional' => '%env(MAILER_TRANSACTIONAL_DSN)%',
                 'notifications' => '%env(MAILER_NOTIFICATIONS_DSN)%',
-                // Amazon SES for the addresses in SES_TEST_RECIPIENTS only (MailStreamRouting)
+                // Amazon SES, tried first for every stream when configured - MailStreamRouting decides
                 'ses' => '%env(MAILER_SES_DSN)%',
             ],
             'headers' => [

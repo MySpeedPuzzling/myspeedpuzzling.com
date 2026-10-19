@@ -63,15 +63,20 @@ recreates only the web containers, the queue workers keep the old env.
 **State (2026-10-14): every stream on SES**, Seznam behind the app's two streams as failover, Listmonk's Seznam server
 kept disabled for rollback. (Built switched off 2026-10-12, moved one stream at a time.)
 
+**2026-10-19: hardened after the first weekly digest** - see [Reliability](#reliability-2026-10-19). The app sends
+through the SES **API** (`ses+https`), SES first for every stream with one retry and a pause, Seznam behind
+transactional mail only; Listmonk's SES pool closes idle connections after 5 s.
+
 ## How it works
 
-All three streams go to SES over **SMTP** (`email-smtp.eu-north-1.amazonaws.com:587`, SES SMTP credentials). There
-is no SES API client and no new package. The app keeps Symfony's SMTP transports and Listmonk keeps its SMTP server.
+The app sends to SES over its **HTTPS API** (`ses+https`, `symfony/amazon-mailer` + `async-aws/ses`, IAM access key)
+since 2026-10-19 - over SMTP before, see [Reliability](#reliability-2026-10-19). Listmonk speaks SMTP only and keeps
+its SMTP server (`email-smtp.eu-north-1.amazonaws.com:587`).
 
 | Stream | Sent by | Mailer transport (env) | SES configuration set | Tracking |
 |---|---|---|---|---|
-| transactional (sign-in links, verification, password reset, membership…) | app | `transactional` (`MAILER_TRANSACTIONAL_DSN`) | `transactional` | none |
-| notifications (unread digest, activity digest / "We miss you", "Your results") | app | `notifications` (`MAILER_NOTIFICATIONS_DSN`) | `notifications` | opens + clicks |
+| transactional (sign-in links, verification, password reset, membership…) | app | `ses` (`MAILER_SES_DSN`), fallback `transactional` (`MAILER_TRANSACTIONAL_DSN`, Seznam) | `transactional` | none |
+| notifications (unread digest, activity digest / "We miss you", "Your results") | app | `ses` (`MAILER_SES_DSN`), no fallback | `notifications` | none |
 | newsletter | Listmonk | Listmonk's SMTP server setting | `newsletter` | Listmonk's own (no SES tracking) |
 
 The stream is the message's `X-Transport` header (none = transactional). `MailStream` is the enum.
@@ -103,16 +108,18 @@ but they need warm-up and steady volume we don't have. Every stream stays on SES
   - it marks the stream on the message (`X-MSP-Stream`, removed again before sending);
   - it **drops notifications to a suppressed address** (`email_suppression`, see below). Transactional mail is
     always tried, so a sign-in link is never held back by us;
-  - **test mode:** when every recipient is in `SES_TEST_RECIPIENTS` and `MAILER_SES_DSN` is set, the message goes
-    through the `ses` transport. Everyone else stays on their stream's transport.
-- **`EmailAuditSubscriber`** (existing) adds the SES headers when, and only when, the attempt goes to an
-  `*.amazonaws.com` host. `SesMessageHeaders` sets them:
+  - it **picks the transport** - SES first, one retry, the pause, the transactional fallback ([Reliability](#reliability-2026-10-19)).
+    The pre-approval test mode (`SES_TEST_RECIPIENTS`) is gone (2026-10-19).
+- **`EmailAuditSubscriber`** (existing) adds the SES headers when, and only when, the attempt goes to SES
+  (`SesMessageHeaders::isSes()`: an `*.amazonaws.com` host or a `ses+…` transport). It stores the transport's name
+  without the API's access key id (`transportLabel()`). `SesMessageHeaders` sets:
   - `X-SES-CONFIGURATION-SET: <stream>`;
   - `X-SES-MESSAGE-TAGS: audit_id=<email_audit_log id>, email_type=<template name>`.
 
-  The tags come back in every event, so an event finds its audit row without a lookup. Inside a `failover()`
-  transport the decision is made per attempt, so the Seznam attempt gets none of it. A failed SES attempt followed
-  by a Seznam one leaves two audit rows (failed + sent).
+  The tags come back in every event, so an event finds its audit row without a lookup. Over the API they travel in
+  the raw message too (SES reads them there, AWS "Specify your configuration set"; the transport also passes the
+  configuration set as `ConfigurationSetName`). The decision is made per attempt, so a Seznam attempt gets none of
+  it. Every attempt is its own audit row (a failed SES attempt + its retry + a Seznam fallback = three rows).
 
 ### Events back (`/-/ses-events`)
 
@@ -165,13 +172,56 @@ A new address is not suppressed, so changing it clears the banner.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `MAILER_TRANSACTIONAL_DSN` | Seznam `robot@` | **The switch for transactional.** SES: `failover(smtp://<ses-user>:<ses-pass>@email-smtp.eu-north-1.amazonaws.com:587 smtp://<seznam robot@>)` |
-| `MAILER_NOTIFICATIONS_DSN` | Seznam `notify@` | **The switch for notifications** (`smtp://<ses-user>:<ses-pass>@email-smtp.eu-north-1.amazonaws.com:587`) |
-| `MAILER_SES_DSN` | `null://null` | SES for test mode only |
-| `SES_TEST_RECIPIENTS` | empty | comma-separated, verified in SES; empty = no test mode |
+| `MAILER_SES_DSN` | `null://null` | **The switch.** Set = every stream through SES first. Prod: `ses+https://<access key id>:<secret>@default?region=eu-north-1` (IAM user `ses-api-app`). Over SMTP instead it must carry `?ping_threshold=5`. `null://null` = SES off, every stream on its own DSN (the rollback) |
+| `MAILER_TRANSACTIONAL_DSN` | Seznam `robot@` | Transactional's fallback when SES fails twice (and its transport while SES is off). Never `failover(...)` again - `MailStreamRouting` decides |
+| `MAILER_NOTIFICATIONS_DSN` | Seznam `notify@` | Notifications' transport **only while SES is off** - with SES on, notifications have no fallback |
 | `SES_EVENTS_TOPIC_ARNS` | empty | comma-separated SNS topic ARNs allowed to post events; empty = endpoint off |
 
-SMTP passwords must be URL-encoded in a DSN, because SES SMTP passwords contain `/` and `+`.
+Secrets in a DSN must be URL-encoded (SES SMTP passwords and AWS secret keys contain `/` and `+`). Rollback keys in
+Infisical: `MAILER_SES_SMTP_DSN` (SES over SMTP with `ping_threshold=5` - copy it into `MAILER_SES_DSN`).
+
+## Reliability (2026-10-19)
+
+**What happened.** The first weekly activity digest (Mon 19 Oct, 1,915 recipients, one every 22 s) stopped after 468
+with Sentry WEB-E5 "No transports found" and the digest breaker's warning. `email_audit_log` told the story:
+
+1. **SES closes an idle SMTP connection after about 10 s** ("451 4.4.2 Timeout waiting for data from client",
+   answered straight to `MAIL FROM`). Symfony's SMTP transport checks a kept connection (NOOP) only after
+   `ping_threshold` = 100 s of quiet, so every gap of ~10-100 s between two e-mails of one worker hit a dead
+   connection. Symfony's mailer docs say it for `ses+smtp` with Messenger: `ping_threshold` below 10. It had been
+   failing 3-7 times a day since 14 Oct, unnoticed (each one fell back to Seznam).
+2. **`failover()` is sticky.** After one SES failure Symfony's FailoverTransport stays on the second transport until
+   the worker restarts - the digest went to **Seznam** (471 mails from 05:01 to 07:53 UTC).
+3. **Seznam then refused the account** (`525` at AUTH for `notify@`) after ~470 mails in 3 h - its sending limit.
+   Both transports failed within the 60 s dead period → "No transports found" (no real error in the report), 25
+   deferrals → the breaker stopped the run.
+
+**What changed.**
+
+- **App → SES API (`ses+https`).** No connection to keep alive, so nothing to time out; each send is one HTTPS
+  request answered with the SES message id. Raw MIME, so every header stays (List-Unsubscribe, Message-ID, the
+  `X-SES-*` ones). `ses+api` (fields instead of raw MIME) would drop custom headers; `ses+smtp` adds nothing for
+  reliability over plain `smtp://` (no `ping_threshold` default either). AsyncAws retries throttling / 5xx / dropped
+  connections only on a client it creates itself, and Symfony's factory hands it the framework client - so
+  `mailer.transport_factory.amazon` is redefined in `config/services.php` with `ses.http_client`
+  (RetryableHttpClient + AwsRetryStrategy, 2 retries, 10 s timeout, 20 s per request).
+- **`MailStreamRouting` decides, not `failover()`:**
+  - SES first for **every message** (never sticky);
+  - a failed attempt is **tried once more** at once (a fresh connection over SMTP - AWS asks senders to retry: the
+    endpoint's machines are replaced behind its load balancer);
+  - SES failing twice in a row → **paused 60 s** (`SES_PAUSE_SECONDS`, one warning → Sentry) so an outage costs one
+    wait, not one per e-mail; then SES is first again;
+  - **transactional** then falls back to Seznam (`MAILER_TRANSACTIONAL_DSN`) - a sign-in link must arrive;
+  - **notifications never fall back**: they fail and are tried later (Messenger's `async` retry 30 s → 30 min; the
+    digest's own deferral 10 / 30 min + breaker). Bulk mail must never hit Seznam's limit again - that is what took
+    the transactional fallback down with it;
+  - no retry for a recipient rejection (SMTP 550-553) or an API refusal (HTTP 4xx but 429); a refusal still lets
+    transactional mail fall back, neither pauses SES;
+  - both failing = one exception naming both causes, never "No transports found".
+- **Listmonk:** SES server `idle_timeout` 15 s → **5 s** (below SES's 10 s), `max_msg_retries` 3 kept. Written in its
+  `settings` row + restart (no campaign running); backup `/root/listmonk-smtp-settings-backup-2026-10-19.json`.
+- **Preview:** `myspeedpuzzling:send-content-digest-preview <email> [--player=] [--period=] [--kind=]` sends a
+  player's real digest through the same path (content-digest README "Sending").
 
 ## Rollout (one step at a time, each reversible by an env change)
 
@@ -189,6 +239,7 @@ Steps 1-2 on AWS are scripted: [`aws-setup.sh`](aws-setup.sh) `identities` (prin
 | 6 | deploy | Notifications: `MAILER_NOTIFICATIONS_DSN` = SES | old DSN |
 | 7 | Listmonk | SMTP server → SES (+ `X-SES-CONFIGURATION-SET: newsletter` header), SES bounce webhook on, POP scanner off, keep the rate under the SES per-second quota (Listmonk never retries a 454) | old SMTP server |
 | 8 | cleanup | `SES_TEST_RECIPIENTS` / `MAILER_SES_DSN` emptied | - |
+| 9 | 2026-10-19 | Reliability: `MAILER_SES_DSN` = SES API, stream DSNs = Seznam only, Listmonk `idle_timeout` 5 s | `MAILER_SES_DSN` = `MAILER_SES_SMTP_DSN` (SES over SMTP) or `null://null` + the old `failover(...)` DSNs |
 
 ## Open (docs/TODO.md)
 

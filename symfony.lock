@@ -208,6 +208,15 @@
             "config/packages/stripe.yaml"
         ]
     },
+    "symfony/amazon-mailer": {
+        "version": "8.1",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "4.4",
+            "ref": "9648db3ecae5c8a6b1a5f74715d3907124348815"
+        }
+    },
     "symfony/console": {
         "version": "6.2",
         "recipe": {

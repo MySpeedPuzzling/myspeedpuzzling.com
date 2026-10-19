@@ -125,7 +125,7 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
             $envelope = $this->messageBus->dispatch(new CreateEmailAuditLog(
                 recipientEmail: $message->getTo()[0]->getAddress(),
                 subject: $message->getSubject() ?? '',
-                transportName: $event->getTransport(),
+                transportName: SesMessageHeaders::transportLabel($event->getTransport()),
                 emailType: $emailType,
                 bodyHtml: $skipBody ? null : $this->readBody($message->getHtmlBody()),
                 bodyText: $skipBody ? null : $this->readBody($message->getTextBody()),
@@ -139,7 +139,7 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
             $this->pendingAuditIds[$objectId] = $auditLogId;
 
             // Over SES: the stream's configuration set (which events come back) + tags naming this audit row.
-            // Decided per attempt - inside a failover() transport the Seznam attempt gets none of it
+            // Decided per attempt - a fallback attempt through Seznam (MailStreamRouting) gets none of it
             if (SesMessageHeaders::isSes($event->getTransport())) {
                 SesMessageHeaders::apply($headers, $stream, $auditLogId, $emailType);
             }

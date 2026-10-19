@@ -11,16 +11,12 @@ use SpeedPuzzling\Web\Exceptions\InvalidDigestPeriod;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\SendPlayerContentDigest;
 use SpeedPuzzling\Web\Query\GetContentDigestRecipients;
-use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Repository\ContentDigestLogRepository;
 use SpeedPuzzling\Web\Repository\ContentDigestRunRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Results\ContentDigestRunCounts;
-use SpeedPuzzling\Web\Services\ContentDigestUnsubscribeUrl;
+use SpeedPuzzling\Web\Services\Digest\ContentDigestEmailFactory;
 use SpeedPuzzling\Web\Services\Digest\MissYouHoldout;
-use SpeedPuzzling\Web\Services\Digest\PlayerPeriodActivityReader;
-use SpeedPuzzling\Web\Services\EmailPreferencesLinkGenerator;
-use SpeedPuzzling\Web\Services\Listmonk\ListmonkNewsletterLists;
 use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Value\ContentDigestFrequency;
@@ -28,15 +24,12 @@ use SpeedPuzzling\Web\Value\ContentDigestKind;
 use SpeedPuzzling\Web\Value\DigestPeriod;
 use SpeedPuzzling\Web\Value\DigestPeriodLength;
 use SpeedPuzzling\Web\Value\MissYouRun;
-use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mailer\Exception\UnexpectedResponseException;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
-use Symfony\Component\Mime\Address;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Sends ONE activity digest or "We miss you" e-mail to ONE player (docs/features/content-digest/README.md §"Sending").
@@ -72,15 +65,11 @@ readonly final class SendPlayerContentDigestHandler
 
     public function __construct(
         private PlayerRepository $playerRepository,
-        private GetPlayerProfile $getPlayerProfile,
         private GetContentDigestRecipients $getContentDigestRecipients,
         private ContentDigestLogRepository $logRepository,
         private ContentDigestRunRepository $runRepository,
-        private PlayerPeriodActivityReader $activityReader,
+        private ContentDigestEmailFactory $emailFactory,
         private TransportInterface $transport,
-        private TranslatorInterface $translator,
-        private ContentDigestUnsubscribeUrl $unsubscribeUrl,
-        private EmailPreferencesLinkGenerator $emailPreferencesLinkGenerator,
         private MessageBusInterface $messageBus,
         private ClockInterface $clock,
         private LoggerInterface $logger,
@@ -168,32 +157,7 @@ readonly final class SendPlayerContentDigestHandler
             return;
         }
 
-        $locale = ListmonkNewsletterLists::normalizeLocale($player->locale);
-        $profile = $this->getPlayerProfile->byId($message->playerId);
-        $activity = $this->activityReader->read($message->playerId, $contentPeriod, $profile->activeMembership);
-        $unsubscribeUrl = $this->unsubscribeUrl->forPlayer($message->playerId, $locale);
-
-        $templatedEmail = (new TemplatedEmail())
-            ->from(new Address('notify@notify.myspeedpuzzling.com', 'MySpeedPuzzling'))
-            ->to($email)
-            ->locale($locale)
-            ->subject($this->subject($message->kind, $contentPeriod->length, $locale))
-            ->htmlTemplate($hadActivity ? 'emails/content_digest_activity.html.twig' : 'emails/content_digest_miss_you.html.twig')
-            ->context([
-                'playerName' => $player->name,
-                'activity' => $activity,
-                'period' => $contentPeriod,
-                'frequency' => $frequency,
-                'unsubscribeUrl' => $unsubscribeUrl,
-                'preferencesUrl' => $this->emailPreferencesLinkGenerator->forPlayer($message->playerId, $email, $locale),
-                'locale' => $locale,
-            ]);
-
-        $headers = $templatedEmail->getHeaders();
-        $headers->addTextHeader('X-Transport', 'notifications');
-        $headers->addTextHeader('List-Unsubscribe', sprintf('<%s>', $unsubscribeUrl));
-        $headers->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
-        $headers->addTextHeader('Precedence', 'bulk');
+        $templatedEmail = $this->emailFactory->create($player, $email, $message->kind, $contentPeriod, $frequency);
 
         try {
             $this->transport->send($templatedEmail);
@@ -262,14 +226,5 @@ readonly final class SendPlayerContentDigestHandler
             : [self::MISS_YOU_BREAKER_MIN_FAILURES, self::MISS_YOU_BREAKER_FAILURE_SHARE];
 
         return $counts->failures() >= $minFailures && $counts->failures() >= $share * $counts->attempts();
-    }
-
-    private function subject(ContentDigestKind $kind, DigestPeriodLength $length, string $locale): string
-    {
-        $key = $kind === ContentDigestKind::Activity
-            ? 'activity_digest.subject.' . $length->value
-            : 'activity_digest.miss_you.subject';
-
-        return $this->translator->trans($key, domain: 'emails', locale: $locale);
     }
 }

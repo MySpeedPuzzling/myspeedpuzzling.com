@@ -116,9 +116,16 @@ that would otherwise be forgotten. Newest section on top.
 ## Mass mailing on Amazon SES (`docs/features/mass-mailing/README.md`, built switched off 2026-10-12)
 
 - [x] Rollout done 2026-10-14: notifications, Listmonk and transactional on SES (failover to Seznam), test mode off.
-- [ ] Delete the deactivated old access key of IAM user `ses-smtp-app` after a clean day (rotated 2026-10-14).
-- [ ] Monday 2026-10-19: the first weekly digest through SES (~1.9k) - delivered / bounced / complained counts,
-      Sentry "E-mail hard bounced" issue, the CloudWatch alarms' state.
+- [ ] Delete the deactivated old access key of IAM user `ses-smtp-app` after a clean day (rotated 2026-10-14) - and
+      once the app has run a week on the SES API (`ses-api-app`, 2026-10-19), the whole `ses-smtp-app` user (only
+      the `MAILER_SES_SMTP_DSN` rollback key uses it).
+- [x] Monday 2026-10-19: the first weekly digest - stopped at 468 / 1,915: SES dropped idle SMTP connections, the
+      sticky `failover()` moved the digest to Seznam, Seznam refused the account (README "Reliability"). Fixed: SES
+      API + `MailStreamRouting` retry/pause/fallback, Listmonk idle_timeout 5 s.
+- [ ] Watch a week after the SES API switch (2026-10-19): `email_audit_log` failures per transport, the "Amazon SES
+      failed twice in a row" warning in Sentry (should never appear), no Seznam rows but transactional fallbacks.
+- [ ] Seznam `notify@` refused AUTH (525) after the 2026-10-19 digest: check it works again (it is only the rollback
+      transport for notifications now; `robot@` is transactional's fallback).
 - [x] Privacy policy: AWS listed (0a01bd8d, 2026-10-14).
 - [x] Google Postmaster Tools: the three domains were already there (Jan, 2026-10-14).
 - [x] CloudWatch alarms bounce rate >= 4 % / complaint rate >= 0.08 % → e-mail to Jan (`aws-setup.sh alarms`,

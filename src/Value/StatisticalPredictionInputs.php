@@ -34,4 +34,47 @@ readonly final class StatisticalPredictionInputs
         public PriorContext $prior,
     ) {
     }
+
+    /**
+     * The same inputs with the puzzle's image estimate in the prior context - the side-by-side `blend` predictor's
+     * (and, without the solves, the `image` one's); null = the statistical predictor's.
+     */
+    public function withImageEstimate(null|ImagePriorInput $imageEstimate): self
+    {
+        return $this->with(prior: $this->prior->withImageEstimate($imageEstimate));
+    }
+
+    /**
+     * The same inputs as if nobody had solved the puzzle: the `image` predictor rests on the picture and the pieces
+     * alone (Insights plan §5.4), whatever the solves say.
+     */
+    public function withoutSolves(): self
+    {
+        return $this->with(kIndices: 0, sumLogIndices: null, difficultyScore: null);
+    }
+
+    private function with(
+        null|int $kIndices = null,
+        null|float $sumLogIndices = null,
+        null|float $difficultyScore = null,
+        null|PriorContext $prior = null,
+    ): self {
+        $solvesChanged = $kIndices !== null;
+
+        return new self(
+            piecesCount: $this->piecesCount,
+            ownBaselineSeconds: $this->ownBaselineSeconds,
+            ownBaselineDirect: $this->ownBaselineDirect,
+            ownQualifyingCount: $this->ownQualifyingCount,
+            ownDrift: $this->ownDrift,
+            ownSpread: $this->ownSpread,
+            pace500Seconds: $this->pace500Seconds,
+            drift500: $this->drift500,
+            spread500: $this->spread500,
+            kIndices: $kIndices ?? $this->kIndices,
+            sumLogIndices: $solvesChanged ? $sumLogIndices : $this->sumLogIndices,
+            difficultyScore: $solvesChanged ? $difficultyScore : $this->difficultyScore,
+            prior: $prior ?? $this->prior,
+        );
+    }
 }

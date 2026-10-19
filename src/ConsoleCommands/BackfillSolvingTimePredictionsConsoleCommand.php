@@ -22,7 +22,7 @@ use Throwable;
 
 #[AsCommand(
     'myspeedpuzzling:backfill-solving-time-predictions',
-    'Reconstructs the prediction of every solo time that has none yet (shown, and side by side for the current model), one player at a time. Safe to interrupt and to run again; daily it heals whatever the live recording missed.',
+    'Reconstructs the prediction of every solo time that has none yet (shown, and side by side for the current model - the image / blend rows of first tries once their puzzle has an out-of-fold estimate), one player at a time. Safe to interrupt and to run again; daily it heals whatever the live recording missed.',
 )]
 final class BackfillSolvingTimePredictionsConsoleCommand extends Command
 {
@@ -43,6 +43,7 @@ final class BackfillSolvingTimePredictionsConsoleCommand extends Command
         $this->addOption('player', null, InputOption::VALUE_REQUIRED, 'Only this player (uuid)');
         $this->addOption('limit', null, InputOption::VALUE_REQUIRED, 'Stop after this many players');
         $this->addOption('recompute-reconstructed', null, InputOption::VALUE_NONE, 'Also replace every reconstructed prediction (shown and side by side) with the current fit - live ones stay; once the model is fitted');
+        $this->addOption('recompute-image', null, InputOption::VALUE_NONE, 'Also replace every reconstructed image / blend row older than the out-of-fold estimate its puzzle has now (after a new derive, before myspeedpuzzling:evaluate-image-estimates); once the model is fitted');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -56,16 +57,18 @@ final class BackfillSolvingTimePredictionsConsoleCommand extends Command
 
         $fittedAt = $this->parametersProvider->fittedAt();
         $recompute = (bool) $input->getOption('recompute-reconstructed');
+        $recomputeImage = (bool) $input->getOption('recompute-image');
 
         if ($fittedAt === null) {
             // Not a failure: the cron runs this before the first fit too - pending times still get their shown prediction
-            $io->note('The prediction model is not fitted yet (myspeedpuzzling:fit-prediction-model): only pending times, no side-by-side rows' . ($recompute ? ', nothing recomputed.' : '.'));
+            $io->note('The prediction model is not fitted yet (myspeedpuzzling:fit-prediction-model): only pending times, no side-by-side rows' . ($recompute || $recomputeImage ? ', nothing recomputed.' : '.'));
             $recompute = false;
+            $recomputeImage = false;
         }
 
         $playerIds = $playerOption !== null
             ? [$playerOption]
-            : $this->getPlayersWithPendingPredictions->all($recompute ? $fittedAt : null, withSideRows: $fittedAt !== null);
+            : $this->getPlayersWithPendingPredictions->all($recompute ? $fittedAt : null, withSideRows: $fittedAt !== null, recomputeImage: $recomputeImage);
 
         if ($limitOption !== null) {
             $playerIds = array_slice($playerIds, 0, max(1, (int) $limitOption));
@@ -88,7 +91,7 @@ final class BackfillSolvingTimePredictionsConsoleCommand extends Command
 
         foreach ($playerIds as $index => $playerId) {
             try {
-                $envelope = $this->messageBus->dispatch(new BackfillSolvingTimePredictions($playerId, recomputeReconstructed: $recompute));
+                $envelope = $this->messageBus->dispatch(new BackfillSolvingTimePredictions($playerId, recomputeReconstructed: $recompute, recomputeImage: $recomputeImage));
 
                 /** @var int $recorded */
                 $recorded = $envelope->last(HandledStamp::class)?->getResult() ?? 0;

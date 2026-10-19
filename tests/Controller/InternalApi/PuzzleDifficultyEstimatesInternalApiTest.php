@@ -268,10 +268,11 @@ final class PuzzleDifficultyEstimatesInternalApiTest extends WebTestCase
             ],
             ['logP90' => 0.0] + self::estimate(PuzzleFixture::PUZZLE_500_01),
             'not an object',
+            ['logP10' => -1.0, 'logP90' => 0.6] + self::estimate(PuzzleFixture::PUZZLE_500_01),
         ]]);
         self::assertResponseIsSuccessful();
         self::assertIsArray($answer['counts']);
-        self::assertSame(3, $answer['counts']['invalid']);
+        self::assertSame(4, $answer['counts']['invalid']);
         self::assertIsArray($answer['items']);
         self::assertIsArray($answer['items'][0]);
         self::assertIsArray($answer['items'][0]['errors']);
@@ -285,6 +286,9 @@ final class PuzzleDifficultyEstimatesInternalApiTest extends WebTestCase
         self::assertIsArray($answer['items'][2]);
         self::assertIsArray($answer['items'][2]['errors']);
         self::assertSame(['item'], self::sortedKeys($answer['items'][2]['errors']));
+        self::assertIsArray($answer['items'][3]);
+        self::assertIsArray($answer['items'][3]['errors']);
+        self::assertSame(['logP90'], self::sortedKeys($answer['items'][3]['errors']), 'An interval wider than 1.5');
         self::assertSame(0, $this->database()->fetchOne('SELECT COUNT(*) FROM puzzle_difficulty_estimate'));
     }
 

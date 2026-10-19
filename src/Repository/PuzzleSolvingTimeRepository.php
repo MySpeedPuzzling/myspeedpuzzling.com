@@ -110,13 +110,16 @@ readonly final class PuzzleSolvingTimeRepository
      * Solo times with seconds of the player whose prediction was not evaluated yet or (with $withSideRows - once the
      * model is fitted) that have no side-by-side row of the current model version (solving_time_prediction), plus the
      * listed ones - and with $recomputeReconstructed (the time of the current fit) every one with a reconstructed
-     * prediction computed no later than it (shown, or the current model's side-by-side row). Locked for the rest of the transaction: an edit of one of them waits until the new
-     * predictions are committed, and two reconstructions of one player never interleave.
+     * prediction computed no later than it (shown, or the current model's side-by-side row), and $imageTimeIds (first
+     * tries waiting for their image / blend rows - GetTimesAwaitingImagePredictions, native SQL the fingerprint needs).
+     * Locked for the rest of the transaction: an edit of one of them waits until the new predictions are committed,
+     * and two reconstructions of one player never interleave.
      *
      * @param list<string> $alsoTimeIds
+     * @param list<string> $imageTimeIds
      * @return list<PuzzleSolvingTime>
      */
-    public function findForPredictionOfPlayer(string $playerId, array $alsoTimeIds = [], null|DateTimeImmutable $recomputeReconstructed = null, bool $withSideRows = true): array
+    public function findForPredictionOfPlayer(string $playerId, array $alsoTimeIds = [], null|DateTimeImmutable $recomputeReconstructed = null, bool $withSideRows = true, array $imageTimeIds = []): array
     {
         $queryBuilder = $this->entityManager->createQueryBuilder()
             ->select('time')
@@ -137,6 +140,11 @@ readonly final class PuzzleSolvingTimeRepository
         if ($alsoTimeIds !== []) {
             $conditions[] = 'time.id IN (:alsoTimeIds)';
             $queryBuilder->setParameter('alsoTimeIds', $alsoTimeIds);
+        }
+
+        if ($imageTimeIds !== []) {
+            $conditions[] = 'time.id IN (:imageTimeIds)';
+            $queryBuilder->setParameter('imageTimeIds', $imageTimeIds);
         }
 
         // Every reconstruction again - shown (of any model version) and the current model's side-by-side row; live

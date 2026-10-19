@@ -512,7 +512,10 @@ curl -s -X PUT -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: 
 The image pipeline's `difficulty_prior` step (on Jan's Mac, [`insights/implementation-plan.md`](./insights/implementation-plan.md)
 §5.3) trains a ridge model nightly: picture embeddings + pieces → the puzzle's measured difficulty. It reads its
 training labels here and pushes back one **estimate** per puzzle plus a **model record** of the run. Stored, not
-shown: the app uses the estimates as the prior of its predictions (§5.4, stream 5d). No reviewer needed.
+shown: the app predicts every first try with them side by side with the shown statistical model - `image` (the
+estimate alone) and `blend` (shrunk toward it), live from the current estimate, reconstructed from out-of-fold ones only
+- and measures those predictions for the gates (§5.4, [`insights/image-estimate-gates.md`](./insights/image-estimate-gates.md)).
+No reviewer needed.
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -544,7 +547,9 @@ shown: the app uses the estimates as the prior of its predictions (§5.4, stream
 - **Estimates** `PUT` `{"items": [{puzzleId, model, modelVersion, logDifficulty, logP10, logP90, outOfFold,
   trainingSize, imageFingerprint, computedAt?}, …]}` (1-500 items, else `422`) into `puzzle_difficulty_estimate`
   (one row per puzzle - **the current value only**, a newer push replaces it whole). Log space like the label:
-  `logDifficulty`, `logP10`, `logP90` (its 80 % interval) numbers within ±5 with `logP10 ≤ logDifficulty ≤ logP90`;
+  `logDifficulty`, `logP10`, `logP90` (its 80 % interval) numbers within ±5 with `logP10 ≤ logDifficulty ≤ logP90`
+  and `logP90 - logP10` at most 1.5 (the rated puzzles' own difficulty spreads 0.44 between p10 and p90 and 0.93
+  between p1 and p99 - a wider interval is a bug upstream; it becomes the window of a picture-only prediction);
   `outOfFold` = a labelled puzzle estimated by a model that did not see it (5-fold cross-fitted) - the only kind a
   reconstructed prediction may use; `model` / `modelVersion` ≤ 50 characters; `trainingSize` ≥ 1; `computedAt`
   ISO 8601 (UTC without an offset; absent = the moment of the push). One transaction, under one advisory lock

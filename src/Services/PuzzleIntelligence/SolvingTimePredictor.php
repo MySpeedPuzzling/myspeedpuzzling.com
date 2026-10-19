@@ -12,7 +12,6 @@ use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\SolvingTimePredictionRecord;
 use SpeedPuzzling\Web\Message\BackfillSolvingTimePredictions;
 use SpeedPuzzling\Web\Query\GetPlayerPrediction;
-use SpeedPuzzling\Web\Repository\SolvingTimePredictionRecordRepository;
 use SpeedPuzzling\Web\Value\PredictorKind;
 use SpeedPuzzling\Web\Value\SolveMoment;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
@@ -33,8 +32,11 @@ use Throwable;
  *
  * Every live prediction is stored twice: as the shown prediction (the columns on the time, without prior-only
  * predictions - SolvingTimePrediction::forDisplay()) and as the statistical predictor's side-by-side row of the
- * current model version (solving_time_prediction, persisted with the time in the handler's flush - a plain insert of
- * computed values; the reads that could fail ran inside the savepoint).
+ * current model version (solving_time_prediction). A first try also gets the `image` and `blend` predictors' rows
+ * (Insights plan §5.4) - not predictable when the puzzle has no estimate of its current picture (a puzzle added
+ * together with its first time never has one; the backfill reconstructs those rows once an out-of-fold estimate
+ * exists). All of them go in one multi-row INSERT right after the handler's flush (LivePredictionRowsWriter): plain
+ * values computed here - the reads that could fail ran inside the savepoint.
  */
 readonly final class SolvingTimePredictor
 {
@@ -44,7 +46,7 @@ readonly final class SolvingTimePredictor
         private ClockInterface $clock,
         private MessageBusInterface $messageBus,
         private LoggerInterface $logger,
-        private SolvingTimePredictionRecordRepository $recordRepository,
+        private LivePredictionRowsWriter $liveRows,
     ) {
     }
 
@@ -68,12 +70,11 @@ readonly final class SolvingTimePredictor
         $this->connection->beginTransaction();
 
         try {
-            $result = $this->getPlayerPrediction->forPuzzle(
+            $predictions = $this->getPlayerPrediction->sideBySide(
                 $time->player->id->toString(),
                 $time->puzzle->id->toString(),
                 excludeTimeId: $time->id->toString(),
                 before: SolveMoment::of($time->finishedAt, $time->trackedAt),
-                allowPriorOnly: true,
             );
 
             $this->connection->commit();
@@ -90,13 +91,24 @@ readonly final class SolvingTimePredictor
             return;
         }
 
-        $prediction = $result !== null
-            ? SolvingTimePrediction::predicted($result, TimePredictionSource::Live)
-            : SolvingTimePrediction::notPredictable(TimePredictionSource::Live);
+        $prediction = $predictions->statistical;
         $now = $this->clock->now();
 
         $time->recordPrediction($prediction->forDisplay(), $now);
-        $this->recordRepository->save(new SolvingTimePredictionRecord(Uuid::uuid7(), $time, PredictorKind::Statistical, $prediction->modelVersion, $prediction, $now));
+
+        $records = [new SolvingTimePredictionRecord(Uuid::uuid7(), $time, PredictorKind::Statistical, $prediction->modelVersion, $prediction, $now)];
+
+        if ($predictions->firstTry) {
+            // Without an estimate: not predictable, and no estimate named on the row - the backfill's cue to
+            // reconstruct it later (GetTimesAwaitingImagePredictions)
+            $notPredictable = SolvingTimePrediction::notPredictable(TimePredictionSource::Live);
+            $estimate = $predictions->imageEstimate;
+
+            $records[] = new SolvingTimePredictionRecord(Uuid::uuid7(), $time, PredictorKind::Image, $prediction->modelVersion, $predictions->image ?? $notPredictable, $now, $estimate);
+            $records[] = new SolvingTimePredictionRecord(Uuid::uuid7(), $time, PredictorKind::Blend, $prediction->modelVersion, $predictions->blend ?? $notPredictable, $now, $estimate);
+        }
+
+        $this->liveRows->add(...$records);
     }
 
     /**

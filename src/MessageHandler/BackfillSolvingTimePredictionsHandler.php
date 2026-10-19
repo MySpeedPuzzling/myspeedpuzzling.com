@@ -10,12 +10,15 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\SolvingTimePredictionRecord;
 use SpeedPuzzling\Web\Message\BackfillSolvingTimePredictions;
+use SpeedPuzzling\Web\Query\GetTimesAwaitingImagePredictions;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Repository\SolvingTimePredictionRecordRepository;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionModelParametersProvider;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionReconstructor;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
+use SpeedPuzzling\Web\Value\PredictionsSideBySide;
 use SpeedPuzzling\Web\Value\PredictorKind;
+use SpeedPuzzling\Web\Value\SolvingTimePrediction;
 use SpeedPuzzling\Web\Value\TimePredictionSource;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -28,6 +31,7 @@ readonly final class BackfillSolvingTimePredictionsHandler
         private SolvingTimePredictionRecordRepository $recordRepository,
         private ClockInterface $clock,
         private PredictionModelParametersProvider $parametersProvider,
+        private GetTimesAwaitingImagePredictions $getTimesAwaitingImagePredictions,
     ) {
     }
 
@@ -37,11 +41,18 @@ readonly final class BackfillSolvingTimePredictionsHandler
      * row of the current model is written wherever it is missing, and replaced when the time was re-evaluated (or,
      * asked for, when it is a reconstruction from before the current fit).
      *
+     * The image / blend rows of a first try (Insights plan §5.4) follow the same rules, from the puzzle's out-of-fold
+     * estimate only (PredictionReconstructor): written once the puzzle has one, a live row written without an estimate
+     * replaced by the reconstruction, a re-evaluated time that is no first try any more (or has no out-of-fold estimate
+     * now) loses its rows; with recomputeImage also reconstructions older than the estimate. A time the work list names
+     * as a first try that reconstructs as a repeat (its stored statistical row is older than a merge or a back-dated
+     * earlier solve) gets reconstructed "not predictable" rows without an estimate - done, never listed again.
+     *
      * Before the model's first fit (prediction_model_fit) no side-by-side rows at all: they would hold the defaults'
      * predictions without priors under the current model version, as if fitted - the shown prediction of a pending
      * time is still written (and replaced by the post-deploy `--recompute-reconstructed` run).
      *
-     * @return int how many times got a prediction (or "not predictable") - shown or side by side
+     * @return int how many times got something written (shown or side by side)
      */
     public function __invoke(BackfillSolvingTimePredictions $message): int
     {
@@ -49,50 +60,124 @@ readonly final class BackfillSolvingTimePredictionsHandler
         $fitted = $fittedAt !== null;
         // Only reconstructions from before the current fit: a run that stopped continues where it was
         $recomputeBefore = $message->recomputeReconstructed ? $fittedAt : null;
+        $imageTimeIds = $fitted ? $this->getTimesAwaitingImagePredictions->ofPlayer($message->playerId, $message->recomputeImage) : [];
 
         // Locked before anything is read, so the reconstruction sees every edit committed before it
-        $times = $this->puzzleSolvingTimeRepository->findForPredictionOfPlayer($message->playerId, $message->reevaluateTimeIds, $recomputeBefore, withSideRows: $fitted);
+        $times = $this->puzzleSolvingTimeRepository->findForPredictionOfPlayer($message->playerId, $message->reevaluateTimeIds, $recomputeBefore, withSideRows: $fitted, imageTimeIds: $imageTimeIds);
 
         if ($times === []) {
             return 0;
         }
 
         $timeIds = array_map(static fn (PuzzleSolvingTime $time): string => $time->id->toString(), $times);
-        $predictions = $this->predictionReconstructor->reconstruct($message->playerId, $timeIds);
-        $records = $this->recordRepository->forTimes($timeIds, PredictorKind::Statistical, TimePredictionCalculator::MODEL_VERSION);
+        $predictions = $this->predictionReconstructor->reconstructSideBySide($message->playerId, $timeIds);
+        $records = $fitted
+            ? $this->recordRepository->forTimesByPredictor($timeIds, [PredictorKind::Statistical, PredictorKind::Image, PredictorKind::Blend], TimePredictionCalculator::MODEL_VERSION)
+            : [];
         $reevaluate = array_flip($message->reevaluateTimeIds);
+        $awaitingImage = array_flip($imageTimeIds);
 
         $now = $this->clock->now();
         $recorded = 0;
 
         foreach ($times as $time) {
             $timeId = $time->id->toString();
-            $prediction = $predictions[$timeId] ?? null;
+            $sideBySide = $predictions[$timeId] ?? null;
 
-            if ($prediction === null) {
+            if ($sideBySide === null) {
                 continue;
             }
 
+            $prediction = $sideBySide->statistical;
             $reevaluated = isset($reevaluate[$timeId]) || $time->isPredictionPending();
+            $written = false;
 
             if ($reevaluated || self::isReconstructionBefore($time->predictionSource, $time->predictionComputedAt, $recomputeBefore)) {
                 $time->recordPrediction($prediction->forDisplay(), $now);
+                $written = true;
             }
 
             if ($fitted) {
-                $record = $records[$timeId] ?? null;
+                $record = $records[PredictorKind::Statistical->value][$timeId] ?? null;
 
                 if ($record === null) {
                     $this->recordRepository->save(new SolvingTimePredictionRecord(Uuid::uuid7(), $time, PredictorKind::Statistical, TimePredictionCalculator::MODEL_VERSION, $prediction, $now));
+                    $written = true;
                 } elseif ($reevaluated || self::isReconstructionBefore($record->source, $record->computedAt, $recomputeBefore)) {
                     $record->record($prediction, $now);
+                    $written = true;
                 }
+
+                $written = $this->recordImageRows($time, $sideBySide, $records, $reevaluated, isset($awaitingImage[$timeId]), $recomputeBefore, $now) || $written;
             }
 
-            $recorded++;
+            if ($written) {
+                $recorded++;
+            }
         }
 
         return $recorded;
+    }
+
+    /**
+     * @param array<string, array<string, SolvingTimePredictionRecord>> $records predictor => time id => row
+     * @param bool $reevaluated pending or named (an edit)
+     * @param bool $awaiting listed by GetTimesAwaitingImagePredictions (missing, written live without an estimate, stale)
+     * @return bool whether a row was written or removed
+     */
+    private function recordImageRows(
+        PuzzleSolvingTime $time,
+        PredictionsSideBySide $sideBySide,
+        array $records,
+        bool $reevaluated,
+        bool $awaiting,
+        null|DateTimeImmutable $recomputeBefore,
+        DateTimeImmutable $now,
+    ): bool {
+        $timeId = $time->id->toString();
+        $written = false;
+        $rows = [
+            [PredictorKind::Image, $sideBySide->image],
+            [PredictorKind::Blend, $sideBySide->blend],
+        ];
+
+        foreach ($rows as [$predictor, $prediction]) {
+            $record = $records[$predictor->value][$timeId] ?? null;
+
+            if ($prediction === null) {
+                if ($awaiting) {
+                    // Listed as a first try (its stored statistical row says so) but it reconstructs as a repeat now -
+                    // a merge or an earlier solve back-dated in front of it (docs/TODO.md): a reconstructed "not
+                    // predictable" row without an estimate closes it, or the work list would name it on every run
+                    $closed = SolvingTimePrediction::notPredictable(TimePredictionSource::Reconstructed);
+
+                    if ($record === null) {
+                        $this->recordRepository->save(new SolvingTimePredictionRecord(Uuid::uuid7(), $time, $predictor, TimePredictionCalculator::MODEL_VERSION, $closed, $now));
+                    } else {
+                        $record->record($closed, $now);
+                    }
+
+                    $written = true;
+                } elseif ($record !== null && $reevaluated) {
+                    // No image prediction for this time now (a repeat, or no out-of-fold estimate): an edit made what
+                    // was there obsolete; otherwise the row stays (a live one is history)
+                    $this->recordRepository->delete($record);
+                    $written = true;
+                }
+
+                continue;
+            }
+
+            if ($record === null) {
+                $this->recordRepository->save(new SolvingTimePredictionRecord(Uuid::uuid7(), $time, $predictor, TimePredictionCalculator::MODEL_VERSION, $prediction, $now, $sideBySide->imageEstimate));
+                $written = true;
+            } elseif ($reevaluated || $awaiting || self::isReconstructionBefore($record->source, $record->computedAt, $recomputeBefore)) {
+                $record->record($prediction, $now, $sideBySide->imageEstimate);
+                $written = true;
+            }
+        }
+
+        return $written;
     }
 
     private static function isReconstructionBefore(null|TimePredictionSource $source, null|DateTimeImmutable $computedAt, null|DateTimeImmutable $fittedAt): bool

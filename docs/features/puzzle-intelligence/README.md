@@ -596,22 +596,38 @@ centre = pace × exp(log_difficulty + drift)
   τ is fitted daily from {0.25, 0.5, 0.75, 1, 1.5, 2, 3} on the last 12 months' attempts at puzzles with 1-4 indices
   (the copy of production: 0.5 on everything, 0.75 when fitted before 2026-04-11 or 2026-07-01).
 - **Prior** - behind the interface `Prior\DifficultyPrior`, a chain (`Prior\DifficultyPriors`, tagged services by
-  priority: the first that knows the puzzle answers). Today `BrandPiecesPrior`: the mean log index of the puzzle's brand
-  at its piece count, shrunk toward 0 with 20 pseudo-indices, **the puzzle's own indices left out** (the group's sums in
-  `difficulty_prior_group`, every puzzle's share in them in `difficulty_prior_puzzle`, both fitted daily; fewer than 5
-  other indices = no prior; no brand = no prior). The fit also stores every puzzle's finished prior as the chain gives
-  it then (`difficulty_prior_puzzle.prior_log`, a row for every puzzle with a share or a prior, 0 indices included,
-  written in the same transaction as the sums - 38k rows, ~0.35 s of the fit) and a copy of it on the puzzle's
-  difficulty row (`puzzle_difficulty.prior_log`, `PredictionModelRecalculator::syncDifficultyPriors()`: in the fit's
-  transaction and after the batch's difficulty step, ~20 ms when nothing changed; the incremental handler fills it on
-  insert). The Puzzle Picker reads the copy - the difficulty row it joins anyway, no lookup of its own - while the
-  other current-state readers and `PredictionReconstructor` build the prior from the sums (`PriorContext`); equal to the
-  last bit (`BrandPiecesPrior::fromSums()` on the same doubles), pinned by the Picker's parity test and
-  `PredictionModelRecalculatorTest`.
-  Phase 5 puts `ImageEstimatePrior` in front of it (a field in `PriorContext`, a higher `#[AsTaggedItem]` priority;
-  the fit writes its value into the same `prior_log`, Insights 5d). **Secret
-  puzzles** (`hide_until` / `hide_image_until` in the future) have no prior and are no training row of one
-  (`StatisticalInputsSql::NOT_SECRET`).
+  priority: the first that knows the puzzle answers): `ImageEstimatePrior` (priority 10) in front of `BrandPiecesPrior`
+  (0).
+  - `BrandPiecesPrior`: the mean log index of the puzzle's brand at its piece count, shrunk toward 0 with 20
+    pseudo-indices, **the puzzle's own indices left out** (the group's sums in `difficulty_prior_group`, every puzzle's
+    share in them in `difficulty_prior_puzzle`, both fitted daily; fewer than 5 other indices = no prior; no brand = no
+    prior).
+  - `ImageEstimatePrior` (Insights 5d): the estimate of the puzzle's **current picture** (`puzzle_difficulty_estimate`,
+    the image pipeline's ridge model - its fingerprint must match) as the log difficulty, else it falls through to
+    brand × pieces. It answers only when the `PriorContext` carries an estimate, and **only the side-by-side `image` /
+    `blend` predictors' contexts do** (`PriorContext::withImageEstimate()`): the statistical predictor - the shown one,
+    on every surface - keeps shrinking toward brand × pieces until the estimates have passed their gates
+    (`docs/features/insights/image-estimate-gates.md`). It fades like any prior: weight τ ÷ (k + τ), with τ ≈ 0.5 about
+    14 % at k = 3, nothing from 5 indices on (the median). A prediction resting on it alone (k = 0) has the difficulty
+    source `image` and takes the estimate's own interval as the puzzle term of its window: σ_img² = ((p90 − p10) ÷
+    2.563)², in place of b ÷ (k + 1) (`ImagePriorInput::variance()`, `PredictionModelParameters::firstTrySigma()`).
+  - The fit stores every puzzle's finished priors as the chain gives them then: `difficulty_prior_puzzle.prior_log` =
+    the statistical predictor's (no estimate in the context: brand × pieces) and `blend_prior_log` = the blend
+    predictor's (with the estimate of the current picture, any - in-sample too, like a live prediction; equal to
+    `prior_log` without one) - a row for every puzzle with a share or a prior, 0 indices included, written in the same
+    transaction as the sums (38k rows, ~0.35 s of the fit; ~0.6 s with an estimate for every pictured puzzle) - and a
+    copy of both on the puzzle's difficulty row (`puzzle_difficulty.prior_log` / `blend_prior_log`,
+    `PredictionModelRecalculator::syncDifficultyPriors()`: in the fit's transaction and after the batch's difficulty
+    step, ~20 ms when nothing changed; the incremental handler fills them on insert). The Puzzle Picker reads
+    `prior_log` from the copy - the difficulty row it joins anyway, no lookup of its own - while the other
+    current-state readers and `PredictionReconstructor` build the prior from the sums and the estimate
+    (`PriorContext`); equal to the last bit (`BrandPiecesPrior::fromSums()` on the same doubles, the estimate's own
+    double), pinned by the Picker's parity test, `PredictionModelRecalculatorTest` and
+    `ImagePredictionsSideBySideTest`. `blend_prior_log` has no reader yet: it is there for the Picker and the bulk
+    readers once estimates are shown (Insights Phase 6), at no extra cost.
+  - **Secret puzzles** (`hide_until` / `hide_image_until` in the future) have no prior of either kind, no estimate
+    reaches them, and they are no training row of a brand prior (`StatisticalInputsSql::NOT_SECRET`, also in
+    `imageEstimateJoins()`; `ImageEstimateSecretPuzzleCanaryTest`).
 - **Drift** - the `drift` of the pace-history row the pace came from (own pair, or the 500-piece pair for a thin size;
   an interpolated/extrapolated baseline has none): the player's recent first tries ran this much faster or slower than
   their pace says. Research: the error of later solves 0.160 → 0.137.
@@ -705,6 +721,29 @@ weakest (1000: MAE 0.129, bias −3 %; 1500+: 29 attempts). Before (v1/v2 as sto
 **live** side-by-side rows of the current model (`GetPredictionCalibration`: solo, not suspicious, not unboxed), how
 often the actual time landed inside the 50 % and 80 % windows; a bucket (or the first-try / repeat total) with enough
 samples more than 3 points from its target is a **warning** (Sentry): the nightly fit no longer matches what players do.
+
+### Image and blend predictions (side by side, Insights 5d)
+
+Every first try also gets two predictions from the puzzle's picture estimate, stored next to the statistical one and
+**never shown** (`solving_time_prediction`, `PredictorKind`; `TimePredictionCalculator::sideBySide()`):
+
+| Predictor | Centre | Window |
+|---|---|---|
+| `statistical` (shown) | pace × drift × difficulty shrunk toward brand × pieces | as above |
+| `image` | pace × drift × exp(estimate) - the picture and the pieces alone, whatever the solves say | k = 0 bucket, puzzle term = the estimate's interval |
+| `blend` | pace × drift × difficulty shrunk toward the estimate (`ImageEstimatePrior` first): the estimate alone at k = 0, fading with k, the solves' median from 5 indices on | like `statistical`; at k = 0 like `image` |
+
+Only for a first try on a puzzle with an estimate of its current picture (repeats are personal predictions, which do
+not use the difficulty); live from any current estimate, reconstructed **from out-of-fold estimates only**. Storage,
+backfill and the as-of rule: [prediction-history.md](prediction-history.md) "Image and blend predictions". They feed
+the estimates' evaluation and gates (`myspeedpuzzling:evaluate-image-estimates`, `ImageEstimateGate` -
+[`docs/features/insights/image-estimate-gates.md`](../insights/image-estimate-gates.md)); Insights Phase 6 shows
+estimates only where a gate passes.
+
+Measured on a copy of the dev data (523k times, laptop, no debug, 2026-10-19) with a synthetic estimate for every
+pictured puzzle (41,266): the daily fit 5.6 → 6.0 s (the estimates' read and the blend prior per puzzle), the 15-minute
+batch unchanged (18.6 s - only the copy's sync compares one more column). The add-time path costs no statement: the
+estimate rides on the statistical read (two LEFT JOINs) and the three side rows go in one INSERT.
 
 ### Requirements
 

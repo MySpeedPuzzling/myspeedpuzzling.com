@@ -41,8 +41,8 @@ export default class extends Controller {
 
                                 // Add edit button if not exists
                                 let editBtn = fileArea[i].querySelector('.file-drop-edit-btn');
-                                // Only where the image editor is around to open it (not in the modal's forms)
-                                if (!editBtn && fileArea[i].closest('[data-controller~="image-editor"]')) {
+                                // Only where the image editor is around to open it, never in the modal (no modal on a modal)
+                                if (!editBtn && fileArea[i].closest('[data-controller~="image-editor"]') && !fileArea[i].closest('#modal-frame')) {
                                     // Get translation from image-editor controller if available
                                     const imageEditorEl = fileArea[i].closest('[data-image-editor-edit-value]');
                                     const editLabel = imageEditorEl ? imageEditorEl.dataset.imageEditorEditValue : 'Edit';

@@ -1,4 +1,5 @@
-<div data-controller="{{ copuzzler_picker_enabled|default(false) ? '' : 'add-copuzzler ' }}image-editor"
+{# file-drop-area wires the photo inputs itself: in the edit modal (calendar, puzzle page) the <body> one ran before the form came #}
+<div data-controller="{{ copuzzler_picker_enabled|default(false) ? '' : 'add-copuzzler ' }}image-editor file-drop-area"
      data-image-editor-title-value="{{ 'image_editor.title'|trans }}"
      data-image-editor-rotate-left-value="{{ 'image_editor.rotate_left'|trans }}"
      data-image-editor-rotate-right-value="{{ 'image_editor.rotate_right'|trans }}"

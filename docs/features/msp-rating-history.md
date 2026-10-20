@@ -45,8 +45,10 @@ quiet grey for a lost place and green only for a gain.
   blocks. One statement as before (two CTEs more).
 - **"This week on the ladder"** (`MspRating:ThisWeek` above the Live ladder): the biggest climber (green "▲ 25 places ·
   now #324"; only with a rating entry solved after the compared day - nobody "climbs" because others faded), the
-  best-placed new entry, the most active (most puzzles in their rating solved since the compared day - Jan found "best
-  place ever" meaningless and asked for one title colour for every tile). `GetRatingLadderThisWeek` returns 5
+  best-placed new entry, the most active ("12 rated 500-piece puzzles": distinct 500-piece puzzles in their rating
+  solved since the compared day - Jan found "best place ever" meaningless and asked for one title colour for every
+  tile; "biggest rating gain" was rejected as the climber's twin: the same person on 21 of 47 days, measured
+  2026-10-20, while a "top 100 mover" was the climber on 3 of 47). `GetRatingLadderThisWeek` returns 5
   candidates per tile for everybody, cached 15 minutes (`rating_ladder_this_week_cache`); `RatingLadderThisWeek`
   leaves out the viewer's hidden players and gives one player one tile. A player who goes private, opts out or deletes
   the account can stay on a tile until the cache expires (≤ 15 minutes).

@@ -11047,7 +11047,8 @@ msp_rating:
         climber_places: "▲ 1 place|▲ %count% places"
         now_at: "now #%rank%"
         most_active: "Most active"
-        most_active_what: "1 puzzle solved|%count% puzzles solved"
+        most_active_what: "1 rated 500-piece puzzle|%count% rated 500-piece puzzles"
+        most_active_title: "500-piece puzzles solved this week that count for the MSP Rating"
     season:
         current: "Season %season%"
         next_starts: "Season %season% starts on %date%"

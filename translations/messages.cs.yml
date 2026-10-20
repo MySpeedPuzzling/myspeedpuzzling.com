@@ -10800,7 +10800,8 @@ msp_rating:
         climber_places: "▲ 1 místo|▲ %count% místa|▲ %count% míst"
         now_at: "teď %rank%. místo"
         most_active: "Nejaktivnější"
-        most_active_what: "1 složené puzzle|%count% složená puzzle|%count% složených puzzlí"
+        most_active_what: "1 hodnocené puzzle na 500 dílků|%count% hodnocená puzzle na 500 dílků|%count% hodnocených puzzlí na 500 dílků"
+        most_active_title: "Puzzle na 500 dílků složená tento týden, která se počítají do MSP Rating"
     season:
         current: "Sezóna %season%"
         next_starts: "Sezóna %season% začíná %date%"

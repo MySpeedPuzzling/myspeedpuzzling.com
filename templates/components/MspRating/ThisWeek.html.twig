@@ -33,7 +33,7 @@
                             {%- elseif tile.kind == 'new_entry' -%}
                                 {{ 'msp_rating.this_week.new_entry_what'|trans({'%rank%': tile.rank|plain_number}) }}
                             {%- else -%}
-                                {{ 'msp_rating.this_week.most_active_what'|trans({'%count%': tile.value}) }}
+                                <span title="{{ 'msp_rating.this_week.most_active_title'|trans }}">{{ 'msp_rating.this_week.most_active_what'|trans({'%count%': tile.value}) }}</span>
                                 · {{ 'msp_rating.this_week.now_at'|trans({'%rank%': tile.rank|plain_number}) }}
                             {%- endif -%}
                         </span>

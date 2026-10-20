@@ -264,7 +264,32 @@ def v11_vlm_candidate(item: dict[str, Any]) -> Candidate | None:
         lock.acquire(timeout=3600)
         _STAGE.extend([ArtworkStage("eval"), lock])
     stage = _STAGE[0]
-    return v11_candidate(item, stage.ask_kind, stage.ask_face)
+    memo = _memo()
+
+    def cached(kind: str, fn: Any) -> Any:
+        def ask(im: np.ndarray, *args: Any) -> Any:
+            import hashlib
+
+            key = f"{item['id']}:{kind}:{args}:{hashlib.md5(np.ascontiguousarray(im).tobytes()).hexdigest()}"
+            if key not in memo:
+                memo[key] = fn(im, *args)
+                _MEMO_PATH.write_text(json.dumps(memo))
+            return memo[key]
+        return ask
+
+    return v11_candidate(item, cached("kind", stage.ask_kind), cached("face", stage.ask_face))
+
+
+_MEMO_PATH = Path.home() / "Library/Caches/puzzle-vision/artwork-reference/vlm-answers.json"
+_MEMO: list[dict[str, Any]] = []
+
+
+def _memo() -> dict[str, Any]:
+    """VLM answers of earlier eval runs (same picture, prompt and pixels = same greedy answer) - re-scoring a rule
+    change does not ask the model again."""
+    if not _MEMO:
+        _MEMO.append(json.loads(_MEMO_PATH.read_text()) if _MEMO_PATH.exists() else {})
+    return _MEMO[0]
 
 
 CANDIDATES: dict[str, Callable[[dict[str, Any]], Candidate | None]] = {

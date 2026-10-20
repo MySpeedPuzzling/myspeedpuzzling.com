@@ -112,7 +112,8 @@ def test_the_face_pass_trims_a_band_on_a_real_edge():
     # the VLM says: the picture starts below the band (face coordinates; the band is 0.12 / 0.70 of the face)
     new, info = ar.face_pass(a, box, lambda face: [0.0, 0.17, 1.0, 1.0])
     assert info["sides"]["top"]["result"] == "trimmed" and new is not None
-    assert ar.quad_to_box(new)[1] == pytest.approx(0.15 + 0.17 * 0.70, abs=0.01)
+    top = ar.quad_to_box(new)[1]
+    assert 0.15 + 0.17 * 0.70 - 0.03 <= top <= 0.27  # just above the picture (back-off), never into it
 
 
 def test_the_face_pass_never_trims_where_the_picture_crosses_the_line():
@@ -135,17 +136,19 @@ def test_the_kind_gets_a_second_opinion_for_other_and_disagreements():
     assert ar.decide_kind(fp, "box_front") == ("box_front", "second agrees with the gate")
     assert ar.decide_kind(fp, "assembled") == ("assembled", "confirmed")
     assert ar.decide_kind(fp, "flat") == ("assembled", "kept")
-    assert ar.decide_kind(first_pass(kind="other", vlm_kind="other", gate={"other": 0.5}), "flat")[0] == "flat"
+    # `other` stays: the second opinion called picture-less products and multi-packs boxes on the tuning set
+    assert ar.decide_kind(first_pass(kind="other", vlm_kind="other", gate={"box": 0.5}), "box_front") == ("other", "other kept")
 
 
 # --- the whole pass -----------------------------------------------------------------------------------------------------------
 def test_refine_builds_the_1_1_payload():
     rgb = scene()
     asked = []
-    out = ar.refine(rgb, rgb, first_pass(kind="other", vlm_kind="other"), (W, H), (400, 300),
+    box_gate = {"flat": 0.1, "box": 0.4, "assembled": 0.2, "other": 0.1}
+    out = ar.refine(rgb, rgb, first_pass(kind="assembled", gate=box_gate), (W, H), (400, 300),
                     ask_kind=lambda im: asked.append("kind") or "box_front", ask_face=lambda face, kind: asked.append("face") or None)
     assert asked == ["kind", "face"] and out["kind"] == "box_front"
-    assert out["firstPass"]["vlmKind"] == "other" and out["signals"]["kindCheck"]["second"] == "box_front"
+    assert out["firstPass"]["vlmKind"] == "assembled" and out["signals"]["kindCheck"]["second"] == "box_front"
     q = out["quality"]
     assert "small_original" in q["reasons"] and "low_resolution_artwork" in q["reasons"] and q["needsBetterImage"]
     assert q["originalSize"] == {"width": 400, "height": 300}

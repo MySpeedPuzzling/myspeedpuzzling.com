@@ -267,6 +267,18 @@ def is_quad_skewed(quad: Sequence[Sequence[float]] | None) -> bool:
 FACE_KINDS = ("box_front", "box_angled")
 
 
+AGREE = True
+
+
+def first_pass_in_face(box: Sequence[float], before: Sequence[float] | None) -> dict[str, float]:
+    """Where the first pass's VLM box had each side, as a trim of the (axis-aligned) face `box`."""
+    if before is None:
+        return {}
+    w, h = max(1e-6, box[2] - box[0]), max(1e-6, box[3] - box[1])
+    return {"left": (before[0] - box[0]) / w, "top": (before[1] - box[1]) / h,
+            "right": (box[2] - before[2]) / w, "bottom": (box[3] - before[3]) / h}
+
+
 def face_caps(box: Sequence[float], before: Sequence[float] | None) -> dict[str, float]:
     """How deep the face pass may trim each side of an axis-aligned crop: FACE_MAX_TRIM of the face, plus whatever the
     1.1 pass added on that side (pad, widening) - so a widened side can come back to the VLM's own line and a bit."""
@@ -308,8 +320,49 @@ def map_rect(rect_face: Sequence[float], face_wh: tuple[int, int], h_face_to_img
     return [[round(float(x), 5), round(float(y), 5)] for x, y in out]
 
 
+SNAP_OUT = 0.04     # a VLM line moves out to the outermost real edge within this share of the face ...
+SNAP_IN = 0.0       # ... never further in than the VLM's line (allowing 1 % in cut art on 6 of 82 tuning boxes)
+FACE_BACKOFF = 0.015  # every face trim stops this share of the face short of its edge: a sliver of band is left
+                      # rather than art cut (the VLM's lines and the labels are good to ~1 %)
+SNAP_STEP_DE = 9.0
+
+
+def edge_profile(lab: np.ndarray, side: int) -> np.ndarray:
+    """Per position from the face's `side` (0 left, 1 top, 2 right, 3 bottom) inward: the share of the line (its middle
+    84 %) on a colour step that stands out of its neighbourhood. The face is straightened, so lines are axis-aligned."""
+    k = {0: 3, 1: 0, 2: 1, 3: 2}[side]  # np.rot90 k times brings that side to the top
+    r = np.ascontiguousarray(np.rot90(lab, k))
+    h, w = r.shape[:2]
+    sm = cv2.GaussianBlur(r, (0, 0), 1.0)
+    step = np.zeros((h, w), np.float32)
+    step[2:-2] = np.linalg.norm(sm[4:] - sm[:-4], axis=2)
+    c0, c1 = int(0.08 * w), int(0.92 * w)
+    band = step[:, c0:c1]
+    local = cv2.blur(band, (1, max(3, int(0.06 * h)) | 1))  # the typical step around each row, per column
+    strong = (band >= SNAP_STEP_DE) & (band >= 2.2 * (local + 1.0))
+    strong = cv2.dilate(strong.astype(np.uint8), np.ones((5, 1), np.uint8)).astype(bool)  # +-2 px
+    return strong.mean(axis=1)
+
+
+def snap_trim(lab: np.ndarray, side: int, t: float) -> tuple[float | None, float]:
+    """The outermost trim within [t - SNAP_OUT, t + SNAP_IN] on a real edge, or None (veto)."""
+    prof = edge_profile(lab, side)
+    n = len(prof)
+    lo, hi = max(1, int((t - SNAP_OUT) * n)), min(n - 1, int(np.ceil((t + SNAP_IN) * n)))
+    best = float(prof[lo:hi + 1].max()) if hi >= lo else 0.0
+    for y in range(lo, hi + 1):
+        if prof[y] >= FACE_EDGE_SUPPORT:
+            return y / n, round(best, 3)
+    return None, round(best, 3)
+
+
+AGREE_TOL = 0.02    # the face pass and the first pass put a side within this share of the face of each other ...
+AGREE_PAD = 0.02    # ... = trusted without a visible edge, with this margin outward
+
+
 def face_pass(rgb: np.ndarray, quad: Sequence[Sequence[float]], ask: Any,
-              max_trim: dict[str, float] | None = None) -> tuple[list[list[float]] | None, dict[str, Any]]:
+              max_trim: dict[str, float] | None = None,
+              first_at: dict[str, float] | None = None) -> tuple[list[list[float]] | None, dict[str, Any]]:
     """The picture inside a box face. `ask(face_rgb)` = the VLM's [u0, v0, u1, v1] (0..1 of the face) or None.
     Each side moves in only when the VLM wants at least FACE_MIN_TRIM, at most FACE_MAX_TRIM, and its line sits on a
     real colour step on the face (art crossing the line = no step = veto: never cut artwork). Answers the new
@@ -325,22 +378,37 @@ def face_pass(rgb: np.ndarray, quad: Sequence[Sequence[float]], ask: Any,
     info["answer"] = [round(u0, 4), round(v0, 4), round(u1, 4), round(v1, 4)]
     want = {"left": u0, "top": v0, "right": 1.0 - u1, "bottom": 1.0 - v1}
     lab = lab_image(face)
-    measures = {m["side"]: m for m in side_measures(lab, box_quad([u0, v0, u1, v1]))}
     trims: dict[str, float] = {}
     sides: dict[str, Any] = {}
-    for side, t in want.items():
-        m = measures[side]
+    for k, (side, t) in enumerate(want.items()):
         cap = (max_trim or {}).get(side, FACE_MAX_TRIM)
+        entry: dict[str, Any] = {"want": round(t, 4)}
         if t < FACE_MIN_TRIM:
             why = "none wanted"
         elif t > cap:
             why = "too deep"
-        elif m["support"] < FACE_EDGE_SUPPORT:
-            why = "no edge on the line"
         else:
-            trims[side] = t
-            why = "trimmed"
-        sides[side] = {"want": round(t, 4), "support": m["support"], "result": why}
+            snapped, sup = snap_trim(lab, ("left", "top", "right", "bottom").index(side), t)
+            entry["support"] = sup
+            before = (first_at or {}).get(side)
+            if snapped is None and AGREE and before is not None and abs(before - t) <= AGREE_TOL:
+                tt = min(t, before) - AGREE_PAD
+                if tt >= FACE_MIN_TRIM:
+                    trims[side] = tt
+                    entry["trim"] = round(tt, 4)
+                    entry["result"] = "both passes agree"
+                    sides[side] = entry
+                    continue
+            if snapped is None:
+                why = "no edge on the line"
+            elif snapped - FACE_BACKOFF < FACE_MIN_TRIM:
+                why = "edge at the face's own border"
+            else:
+                trims[side] = snapped - FACE_BACKOFF
+                entry["trim"] = round(snapped - FACE_BACKOFF, 4)
+                why = "trimmed"
+        entry["result"] = why
+        sides[side] = entry
     info["sides"] = sides
     if not trims:
         return None, info
@@ -369,16 +437,18 @@ def needs_kind_check(fp: dict[str, Any]) -> bool:
 
 
 def decide_kind(fp: dict[str, Any], second: str | None) -> tuple[str, str]:
-    """Three opinions: the gate (group only), the first VLM answer, the second. Two that agree win; else the first."""
+    """Three opinions: the gate (group only), the first VLM answer, the second. The second wins only when it agrees
+    with the gate. `other` is never left: on the tuning set it was right where the second opinion called a picture-
+    less product, a box side or a 3-pack a box (the face pass then cut into a sub-picture)."""
     first = fp.get("vlmKind") or fp.get("kind") or "other"
     if second is None:
         return first, "no second answer"
     if second == first:
         return first, "confirmed"
+    if first == "other":
+        return first, "other kept"
     if KIND_GROUPS.get(second) == gate_group(fp.get("gateScores")):
         return second, "second agrees with the gate"
-    if first == "other" and second != "other":
-        return second, "second names it"
     return first, "kept"
 
 
@@ -412,7 +482,8 @@ def refine(rgb: np.ndarray, a: np.ndarray, fp: dict[str, Any], source: tuple[int
     unsure = g["signals"].get("quad") in ("rejected", "partly") or bool(g["signals"].get("widened"))
     if ask_face is not None and (kind in FACE_KINDS or (kind == "assembled" and unsure)):
         caps = face_caps(box, fp.get("vlmBbox")) if quad is None else None
-        new, info = face_pass(rgb, outline, lambda face: ask_face(face, kind), caps)
+        first_at = first_pass_in_face(box, fp.get("vlmBbox")) if quad is None else None
+        new, info = face_pass(rgb, outline, lambda face: ask_face(face, kind), caps, first_at)
         signals["face"] = info
         if new is not None:
             outline = new
@@ -421,7 +492,11 @@ def refine(rgb: np.ndarray, a: np.ndarray, fp: dict[str, Any], source: tuple[int
             method = f"{method}+face"
     lab = lab_image(a)
     final_sides = side_measures(lab, outline)
-    confirmed = sum(1 for m in final_sides if side_ok(m))
+    # a side the face pass put on an edge (then backed off it) or where both passes agree is confirmed too - the
+    # back-off itself leaves no step on the final line
+    by_face = {side for side, v in ((signals.get("face") or {}).get("sides") or {}).items()
+               if v.get("result") in ("trimmed", "both passes agree")} if method.endswith("+face") else set()
+    confirmed = sum(1 for m in final_sides if side_ok(m) or m["side"] in by_face)
     signals["finalSides"] = [{k: m[k] for k in ("side", "support", "similarity", "photoEdge")} for m in final_sides]
     crop_rgb = _crop_rgb(rgb, box, quad)
     corners = None

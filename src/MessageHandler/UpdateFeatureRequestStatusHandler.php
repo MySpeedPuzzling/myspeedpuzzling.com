@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\FeatureRequestNotFound;
 use SpeedPuzzling\Web\Message\UpdateFeatureRequestStatus;
 use SpeedPuzzling\Web\Repository\FeatureRequestRepository;
@@ -14,6 +15,7 @@ readonly final class UpdateFeatureRequestStatusHandler
 {
     public function __construct(
         private FeatureRequestRepository $featureRequestRepository,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -26,6 +28,7 @@ readonly final class UpdateFeatureRequestStatusHandler
 
         $featureRequest->updateStatus(
             $message->status,
+            $this->clock->now(),
             $message->githubUrl,
             $message->adminComment,
         );

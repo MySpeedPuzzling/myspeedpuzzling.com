@@ -202,6 +202,17 @@ feature_request_completed:
             <p><strong>Komentář od týmu:</strong> %adminComment%</p>
         github_note: |
             <p>Jelikož vyvíjíme veřejně a jsme 100% transparentní, pokud vás zajímá kód a technické detaily této změny, klidně se <a href="%githubUrl%" class="link-underline">podívejte na GitHub</a>. Jinak to klidně ignorujte :)</p>
+    follower:
+        subject: "Návrh na funkci byl vydán: %title%"
+        preheader: "„%featureRequestTitle%“ už je na MySpeedPuzzling k dispozici."
+        title: "Je tu něco nového!"
+        content: |
+            <p>Dobrá zpráva! Návrh na funkci <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> byl vydán a je nyní živý na MySpeedPuzzling.</p>
+            <p>Tento e-mail dostáváte, protože sledujete všechny návrhy funkcí.</p>
+        admin_comment: |
+            <p><strong>Komentář od týmu:</strong> %adminComment%</p>
+        github_note: |
+            <p>Jelikož vyvíjíme veřejně a jsme 100% transparentní, pokud vás zajímá kód a technické detaily této změny, klidně se <a href="%githubUrl%" class="link-underline">podívejte na GitHub</a>. Jinak to klidně ignorujte :)</p>
 
 feature_request_declined:
     subject: "Váš návrh na funkci byl zamítnut: %title%"
@@ -219,6 +230,15 @@ feature_request_declined:
         content: |
             <p>Návrh na funkci, který jste podpořili — <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> — byl zamítnut.</p>
             <p>Přesto děkujeme za podporu nápadu! Vaše vstupy nám pomáhají pochopit, co komunitu zajímá.</p>
+        admin_comment: |
+            <p><strong>Komentář od týmu:</strong> %adminComment%</p>
+    follower:
+        subject: "Návrh na funkci byl zamítnut: %title%"
+        preheader: "Návrh „%featureRequestTitle%“ jsme se rozhodli nerealizovat."
+        title: "Návrh na funkci byl zamítnut"
+        content: |
+            <p>Návrh na funkci <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> byl zamítnut.</p>
+            <p>Tento e-mail dostáváte, protože sledujete všechny návrhy funkcí.</p>
         admin_comment: |
             <p><strong>Komentář od týmu:</strong> %adminComment%</p>
 
@@ -460,3 +480,9 @@ activity_digest:
         link_hub: "Podívej se, co skládá komunita"
         link_profile: "Zajdi na svůj profil"
         footer: "Tenhle e-mail posíláme jen jednou po delší pauze. Patří k tvému e-mailu o aktivitě."
+
+feature_request_emails:
+    opt_out:
+        author: "Tento e-mail dostáváte, protože jste tuto funkci navrhli. <a href=\"%settingsUrl%\">Nastavení e-mailů</a> · <a href=\"%unsubscribeUrl%\">Už mi nepište o návrzích funkcí</a>"
+        upvoter: "Tento e-mail dostáváte, protože jste tuto funkci podpořili. <a href=\"%settingsUrl%\">Nastavení e-mailů</a> (tam můžete sledovat i všechny návrhy) · <a href=\"%unsubscribeUrl%\">Už mi nepište o návrzích funkcí</a>"
+        follower: "Tento e-mail dostáváte, protože sledujete všechny návrhy funkcí. <a href=\"%settingsUrl%\">Nastavení e-mailů</a> · <a href=\"%unsubscribeUrl%\">Už mi nepište o návrzích funkcí</a>"

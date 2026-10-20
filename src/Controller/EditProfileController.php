@@ -182,6 +182,7 @@ final class EditProfileController extends AbstractController
                     $messagingSettingsFormData->newsletterEnabled,
                     $messagingSettingsFormData->resultEmailsEnabled,
                     $xpSurfacesVisible ? $messagingSettingsFormData->contentDigestFrequency : null,
+                    $messagingSettingsFormData->featureRequestEmails,
                 )
             );
 

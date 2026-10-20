@@ -62,4 +62,39 @@ final class UpdateFeatureRequestStatusHandlerTest extends KernelTestCase
         self::assertSame(FeatureRequestStatus::Declined, $detail->status);
         self::assertSame('Not feasible at this time.', $detail->adminComment);
     }
+
+    public function testCompletingStoresTheDateAndAnotherStatusClearsIt(): void
+    {
+        self::assertNull($this->completedAt());
+
+        $this->messageBus->dispatch(new UpdateFeatureRequestStatus(
+            featureRequestId: FeatureRequestFixture::FEATURE_REQUEST_NEW,
+            status: FeatureRequestStatus::Completed,
+        ));
+
+        $completedAt = $this->completedAt();
+        self::assertNotNull($completedAt);
+
+        // Marked completed again (e.g. with the GitHub link added later) - the date stays
+        $this->messageBus->dispatch(new UpdateFeatureRequestStatus(
+            featureRequestId: FeatureRequestFixture::FEATURE_REQUEST_NEW,
+            status: FeatureRequestStatus::Completed,
+            githubUrl: 'https://github.com/example/repo/pull/2',
+        ));
+        self::assertSame($completedAt, $this->completedAt());
+
+        $this->messageBus->dispatch(new UpdateFeatureRequestStatus(
+            featureRequestId: FeatureRequestFixture::FEATURE_REQUEST_NEW,
+            status: FeatureRequestStatus::InProgress,
+        ));
+        self::assertNull($this->completedAt());
+    }
+
+    /**
+     * @phpstan-impure
+     */
+    private function completedAt(): null|string
+    {
+        return $this->getFeatureRequestDetail->byId(FeatureRequestFixture::FEATURE_REQUEST_NEW)->completedAt;
+    }
 }

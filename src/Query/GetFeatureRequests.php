@@ -52,6 +52,9 @@ readonly final class GetFeatureRequests
             'least_votes' => "{$statusOrder}, vote_count ASC, fr.created_at DESC",
             'newest' => "{$statusOrder}, fr.created_at DESC",
             'oldest' => "{$statusOrder}, fr.created_at ASC",
+            // What was shipped lately: completed requests first, newest completion on top (those completed before the
+            // date was stored at the end of them), then everything else as by default
+            'recently_completed' => "fr.completed_at DESC NULLS LAST, CASE fr.status WHEN 'completed' THEN 0 ELSE 1 END, {$statusOrder}, vote_count DESC, fr.created_at DESC",
             default => "{$statusOrder}, vote_count DESC, fr.created_at DESC",
         };
 
@@ -64,6 +67,7 @@ SELECT
     fr.status,
     fr.github_url,
     fr.admin_comment,
+    fr.completed_at,
     1 + (SELECT COUNT(*) FROM feature_request_vote fv WHERE fv.feature_request_id = fr.id) AS vote_count,
     (SELECT COUNT(*) FROM feature_request_comment frc WHERE frc.feature_request_id = fr.id) AS comment_count,
     p.id AS author_id,
@@ -79,7 +83,7 @@ SQL;
         $rows = $this->database->executeQuery($query, $params)->fetchAllAssociative();
 
         return array_map(static function (array $row): FeatureRequestOverview {
-            /** @var array{id: string, title: string, description: string, created_at: string, vote_count: int|string, comment_count: int|string, author_id: string, author_name: string, author_avatar: null|string, author_country: null|string, status: string, github_url: null|string, admin_comment: null|string} $row */
+            /** @var array{id: string, title: string, description: string, created_at: string, vote_count: int|string, comment_count: int|string, author_id: string, author_name: string, author_avatar: null|string, author_country: null|string, status: string, github_url: null|string, admin_comment: null|string, completed_at: null|string} $row */
             return FeatureRequestOverview::fromDatabaseRow($row);
         }, $rows);
     }

@@ -202,6 +202,17 @@ feature_request_completed:
             <p><strong>Commentaire de l'équipe :</strong> %adminComment%</p>
         github_note: |
             <p>Comme nous développons de manière ouverte et en toute transparence, si le code et les détails techniques de ce changement vous intéressent, n'hésitez pas à <a href="%githubUrl%" class="link-underline">y jeter un œil sur GitHub</a>. Sinon, ignorez simplement ce message :)</p>
+    follower:
+        subject: "Une suggestion de fonctionnalité est en ligne : %title%"
+        preheader: "« %featureRequestTitle% » est maintenant disponible sur MySpeedPuzzling."
+        title: "Du nouveau est en ligne !"
+        content: |
+            <p>Bonne nouvelle ! La suggestion <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> a été réalisée et est maintenant disponible sur MySpeedPuzzling.</p>
+            <p>Vous recevez cet e-mail parce que vous suivez toutes les suggestions de fonctionnalités.</p>
+        admin_comment: |
+            <p><strong>Commentaire de l’équipe :</strong> %adminComment%</p>
+        github_note: |
+            <p>Comme nous développons en public et restons 100 % transparents, si le code et les détails techniques de ce changement vous intéressent, <a href="%githubUrl%" class="link-underline">jetez un œil sur GitHub</a>. Sinon, ignorez simplement ceci :)</p>
 
 feature_request_declined:
     subject: "Votre demande de fonctionnalité a été refusée : %title%"
@@ -221,6 +232,15 @@ feature_request_declined:
             <p>Merci tout de même d'avoir soutenu cette idée ! Votre contribution nous aide à comprendre ce qui compte pour la communauté.</p>
         admin_comment: |
             <p><strong>Commentaire de l'équipe :</strong> %adminComment%</p>
+    follower:
+        subject: "Une suggestion de fonctionnalité a été refusée : %title%"
+        preheader: "Nous avons décidé de ne pas réaliser « %featureRequestTitle% »."
+        title: "Une suggestion de fonctionnalité a été refusée"
+        content: |
+            <p>La suggestion <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> a été refusée.</p>
+            <p>Vous recevez cet e-mail parce que vous suivez toutes les suggestions de fonctionnalités.</p>
+        admin_comment: |
+            <p><strong>Commentaire de l’équipe :</strong> %adminComment%</p>
 
 sign_in_link:
     subject: "%code% est votre code de connexion MySpeedPuzzling"
@@ -460,3 +480,9 @@ activity_digest:
         link_hub: "Voir ce que la communauté est en train d'assembler"
         link_profile: "Faire un tour sur votre profil"
         footer: "Nous n'envoyons ce message qu'une seule fois après une période calme. Il accompagne votre e-mail d'activité."
+
+feature_request_emails:
+    opt_out:
+        author: "Vous recevez cet e-mail parce que vous avez proposé cette fonctionnalité. <a href=\"%settingsUrl%\">Paramètres des e-mails</a> · <a href=\"%unsubscribeUrl%\">Ne plus recevoir d’e-mails sur les suggestions</a>"
+        upvoter: "Vous recevez cet e-mail parce que vous avez soutenu cette fonctionnalité. <a href=\"%settingsUrl%\">Paramètres des e-mails</a> (vous pouvez y suivre toutes les suggestions) · <a href=\"%unsubscribeUrl%\">Ne plus recevoir d’e-mails sur les suggestions</a>"
+        follower: "Vous recevez cet e-mail parce que vous suivez toutes les suggestions de fonctionnalités. <a href=\"%settingsUrl%\">Paramètres des e-mails</a> · <a href=\"%unsubscribeUrl%\">Ne plus recevoir d’e-mails sur les suggestions</a>"

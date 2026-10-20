@@ -1111,6 +1111,8 @@ competition_referees:
   "newsletter_help": "Nous enverrons occasionnellement une newsletter sur les nouveautés de la plateforme, généralement pour expliquer les nouvelles fonctionnalités. Pas de marketing, pas de promotions — uniquement les nouveautés. Fréquence prévue : pas plus d'une fois par mois."
   "result_emails_enabled": "E-mails sur mes résultats"
   "result_emails_help": "Nous vous prévenons quand certains de vos résultats semblent apparaître en double, ou quand nous avons retiré une copie en trop. Au plus une fois par semaine, et seulement s’il y a du nouveau."
+  "feature_request_emails": "E-mails sur les suggestions de fonctionnalités"
+  "feature_request_emails_help": "Un e-mail quand une suggestion est réalisée ou refusée. Choisissez « Toutes les suggestions » pour être au courant de tout ce que nous mettons en ligne."
   "messaging_notifications": "Messagerie et notifications"
   "personal_access_tokens": "Jetons d'accès personnels"
   "personal_access_tokens_description": "Jetons pour accéder à vos propres données via l'API."
@@ -3536,8 +3538,12 @@ feature_requests:
         least_votes: "Moins votés"
         newest: "Plus récents"
         oldest: "Plus anciens"
+        recently_completed: "Réalisées récemment"
     admin_response: "Réponse de l'administrateur"
     view_on_github: "Voir sur GitHub"
+    completed_on: "Réalisée le %date%"
+    emails_setting: "E-mails sur les suggestions réalisées et refusées : %setting%"
+    emails_setting_change: "Modifier"
     form:
         title_label: "Titre"
         title_placeholder: "Titre court et descriptif pour votre idée"
@@ -5748,6 +5754,8 @@ email_preferences:
     notifications_description: "Un petit mot quand quelqu'un vous écrit ou souhaite entrer en contact — uniquement quand quelque chose vous attend vraiment."
     result_emails_title: "Vos résultats"
     result_emails_description: "Quand certains de vos résultats semblent apparaître en double, ou que nous avons retiré une copie en trop — au plus une fois par semaine, et seulement s’il y a du nouveau."
+    feature_request_emails_title: "Suggestions de fonctionnalités"
+    feature_request_emails_description: "Un e-mail quand une suggestion de fonctionnalité est réalisée ou refusée."
     frequency_label: "À quelle fréquence au maximum ?"
     save_button: "Enregistrer mes préférences"
     more_hint: "Vous cherchez plus ? Tous les réglages de votre compte se trouvent dans votre profil."
@@ -10798,3 +10806,14 @@ msp_rating:
 
 rank_share:
     fastest: "le plus rapide"
+
+feature_request_emails:
+    all: "Toutes les suggestions"
+    upvoted: "Seulement celles que j’ai proposées ou soutenues"
+    none: "Aucun"
+    unsubscribe:
+        headline: "E-mails sur les suggestions de fonctionnalités"
+        text: "Vous ne voulez plus d’e-mails sur les suggestions réalisées ou refusées ? Vos autres e-mails (messages, résultats, newsletter) restent inchangés."
+        confirm_button: "Arrêter ces e-mails"
+        done: "C’est fait – vous ne recevrez plus d’e-mails sur les suggestions de fonctionnalités, pas même sur les vôtres."
+        settings_hint: "Vous pouvez les réactiver à tout moment dans les paramètres de votre profil, rubrique « Messagerie et notifications »."

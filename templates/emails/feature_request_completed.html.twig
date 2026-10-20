@@ -41,6 +41,12 @@
                 </row>
             {% endif %}
 
+            <row>
+                <columns>
+                    <p class="small-print">{{ optOutKey|trans({'%settingsUrl%': settingsUrl, '%unsubscribeUrl%': unsubscribeUrl})|raw }}</p>
+                </columns>
+            </row>
+
             {{ include('emails/_footer.html.twig') }}
         </container>
     </wrapper>

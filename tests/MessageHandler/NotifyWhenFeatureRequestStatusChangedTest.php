@@ -11,6 +11,8 @@ use SpeedPuzzling\Web\Events\FeatureRequestStatusChanged;
 use SpeedPuzzling\Web\MessageHandler\NotifyWhenFeatureRequestStatusChanged;
 use SpeedPuzzling\Web\Query\GetFeatureRequestVoters;
 use SpeedPuzzling\Web\Repository\FeatureRequestRepository;
+use SpeedPuzzling\Web\Services\EmailPreferencesLinkGenerator;
+use SpeedPuzzling\Web\Services\FeatureRequestEmailsUnsubscribeUrl;
 use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Tests\DataFixtures\FeatureRequestFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -27,6 +29,8 @@ final class NotifyWhenFeatureRequestStatusChangedTest extends KernelTestCase
     private const string COMPLETED_UPVOTER_TEMPLATE = 'emails/feature_request_completed_upvoter.html.twig';
     private const string DECLINED_AUTHOR_TEMPLATE = 'emails/feature_request_declined.html.twig';
     private const string DECLINED_UPVOTER_TEMPLATE = 'emails/feature_request_declined_upvoter.html.twig';
+    private const string COMPLETED_FOLLOWER_TEMPLATE = 'emails/feature_request_completed_follower.html.twig';
+    private const string DECLINED_FOLLOWER_TEMPLATE = 'emails/feature_request_declined_follower.html.twig';
 
     private NotifyWhenFeatureRequestStatusChanged $handler;
     private TestMailerSpy $mailer;
@@ -48,6 +52,8 @@ final class NotifyWhenFeatureRequestStatusChangedTest extends KernelTestCase
             mailer: $this->mailer,
             translator: $container->get(TranslatorInterface::class),
             playerAccountEmail: $container->get(PlayerAccountEmail::class),
+            emailPreferencesLinkGenerator: $container->get(EmailPreferencesLinkGenerator::class),
+            unsubscribeUrl: $container->get(FeatureRequestEmailsUnsubscribeUrl::class),
         );
     }
 
@@ -328,6 +334,95 @@ final class NotifyWhenFeatureRequestStatusChangedTest extends KernelTestCase
             $email = $this->assertTemplatedEmail($message);
             self::assertNull($email->getContext()['githubUrl']);
         }
+    }
+
+    public function testFollowersOfEveryRequestGetTheirOwnEmail(): void
+    {
+        // PLAYER_PRIVATE neither suggested nor upvoted FEATURE_REQUEST_POPULAR; REGULAR upvoted it and follows all too
+        $this->setFeatureRequestEmails(PlayerFixture::PLAYER_PRIVATE, 'all');
+        $this->setFeatureRequestEmails(PlayerFixture::PLAYER_REGULAR, 'all');
+
+        ($this->handler)(new FeatureRequestStatusChanged(
+            featureRequestId: Uuid::fromString(FeatureRequestFixture::FEATURE_REQUEST_POPULAR),
+            oldStatus: FeatureRequestStatus::InProgress,
+            newStatus: FeatureRequestStatus::Completed,
+        ));
+
+        self::assertCount(4, $this->mailer->sent);
+
+        $summary = $this->summarize($this->mailer->sent);
+
+        self::assertSame(self::COMPLETED_AUTHOR_TEMPLATE, $summary[PlayerFixture::PLAYER_WITH_STRIPE_EMAIL]);
+        self::assertSame(self::COMPLETED_UPVOTER_TEMPLATE, $summary[PlayerFixture::PLAYER_ADMIN_EMAIL]);
+        // An upvoter who follows everything still gets one e-mail - the upvoter one
+        self::assertSame(self::COMPLETED_UPVOTER_TEMPLATE, $summary[PlayerFixture::PLAYER_REGULAR_EMAIL]);
+        self::assertSame(self::COMPLETED_FOLLOWER_TEMPLATE, $summary[PlayerFixture::PLAYER_PRIVATE_EMAIL]);
+    }
+
+    public function testFollowersGetDeclinedRequestsToo(): void
+    {
+        $this->setFeatureRequestEmails(PlayerFixture::PLAYER_PRIVATE, 'all');
+
+        ($this->handler)(new FeatureRequestStatusChanged(
+            featureRequestId: Uuid::fromString(FeatureRequestFixture::FEATURE_REQUEST_POPULAR),
+            oldStatus: FeatureRequestStatus::Open,
+            newStatus: FeatureRequestStatus::Declined,
+        ));
+
+        $summary = $this->summarize($this->mailer->sent);
+        self::assertSame(self::DECLINED_FOLLOWER_TEMPLATE, $summary[PlayerFixture::PLAYER_PRIVATE_EMAIL]);
+    }
+
+    public function testNoneSilencesAuthorAndUpvoters(): void
+    {
+        $this->setFeatureRequestEmails(PlayerFixture::PLAYER_WITH_STRIPE, 'none');
+        $this->setFeatureRequestEmails(PlayerFixture::PLAYER_ADMIN, 'none');
+
+        ($this->handler)(new FeatureRequestStatusChanged(
+            featureRequestId: Uuid::fromString(FeatureRequestFixture::FEATURE_REQUEST_POPULAR),
+            oldStatus: FeatureRequestStatus::InProgress,
+            newStatus: FeatureRequestStatus::Completed,
+        ));
+
+        self::assertSame(
+            [PlayerFixture::PLAYER_REGULAR_EMAIL => self::COMPLETED_UPVOTER_TEMPLATE],
+            $this->summarize($this->mailer->sent),
+        );
+    }
+
+    public function testEveryEmailCarriesOneClickUnsubscribeAndItsReason(): void
+    {
+        $this->setFeatureRequestEmails(PlayerFixture::PLAYER_PRIVATE, 'all');
+
+        ($this->handler)(new FeatureRequestStatusChanged(
+            featureRequestId: Uuid::fromString(FeatureRequestFixture::FEATURE_REQUEST_POPULAR),
+            oldStatus: FeatureRequestStatus::InProgress,
+            newStatus: FeatureRequestStatus::Completed,
+        ));
+
+        $reasons = [];
+        foreach ($this->mailer->sent as $message) {
+            $email = $this->assertTemplatedEmail($message);
+            $unsubscribeUrl = $email->getContext()['unsubscribeUrl'];
+            self::assertIsString($unsubscribeUrl);
+            self::assertStringContainsString('/feature-request-emails/unsubscribe/', $unsubscribeUrl);
+            self::assertSame('<' . $unsubscribeUrl . '>', $email->getHeaders()->get('List-Unsubscribe')?->getBodyAsString());
+            self::assertSame('List-Unsubscribe=One-Click', $email->getHeaders()->get('List-Unsubscribe-Post')?->getBodyAsString());
+            $reasons[$this->toAddresses($email)[0]] = $email->getContext()['optOutKey'];
+        }
+
+        self::assertSame('feature_request_emails.opt_out.author', $reasons[PlayerFixture::PLAYER_WITH_STRIPE_EMAIL]);
+        self::assertSame('feature_request_emails.opt_out.upvoter', $reasons[PlayerFixture::PLAYER_ADMIN_EMAIL]);
+        self::assertSame('feature_request_emails.opt_out.follower', $reasons[PlayerFixture::PLAYER_PRIVATE_EMAIL]);
+    }
+
+    private function setFeatureRequestEmails(string $playerId, string $value): void
+    {
+        $this->connection->executeStatement(
+            'UPDATE player SET feature_request_emails = :value WHERE id = :id',
+            ['value' => $value, 'id' => $playerId],
+        );
+        $this->entityManager->clear();
     }
 
     /**

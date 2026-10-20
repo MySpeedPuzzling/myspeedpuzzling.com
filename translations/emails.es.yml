@@ -202,6 +202,17 @@ feature_request_completed:
             <p><strong>Comentario del equipo:</strong> %adminComment%</p>
         github_note: |
             <p>Como desarrollamos en abierto y mantenemos todo 100% transparente, si tienes curiosidad por el código y los detalles técnicos detrás de este cambio, puedes <a href="%githubUrl%" class="link-underline">echarle un vistazo en GitHub</a>. Si no, simplemente ignora esto :)</p>
+    follower:
+        subject: "Se ha publicado una propuesta de función: %title%"
+        preheader: "«%featureRequestTitle%» ya está disponible en MySpeedPuzzling."
+        title: "¡Hay algo nuevo!"
+        content: |
+            <p>¡Buenas noticias! La propuesta de función <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> se ha publicado y ya está disponible en MySpeedPuzzling.</p>
+            <p>Recibes este correo porque sigues todas las propuestas de funciones.</p>
+        admin_comment: |
+            <p><strong>Comentario del equipo:</strong> %adminComment%</p>
+        github_note: |
+            <p>Como desarrollamos en abierto y somos 100 % transparentes, si te interesan el código y los detalles técnicos de este cambio, <a href="%githubUrl%" class="link-underline">échale un vistazo en GitHub</a>. Si no, ignora esto :)</p>
 
 feature_request_declined:
     subject: "Tu solicitud de función ha sido rechazada: %title%"
@@ -219,6 +230,15 @@ feature_request_declined:
         content: |
             <p>Una solicitud de función que votaste — <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> — ha sido rechazada.</p>
             <p>¡Gracias por apoyar la idea de todos modos! Tus aportes nos ayudan a entender lo que le importa a la comunidad.</p>
+        admin_comment: |
+            <p><strong>Comentario del equipo:</strong> %adminComment%</p>
+    follower:
+        subject: "Se ha rechazado una propuesta de función: %title%"
+        preheader: "Hemos decidido no desarrollar «%featureRequestTitle%»."
+        title: "Se ha rechazado una propuesta de función"
+        content: |
+            <p>La propuesta de función <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> ha sido rechazada.</p>
+            <p>Recibes este correo porque sigues todas las propuestas de funciones.</p>
         admin_comment: |
             <p><strong>Comentario del equipo:</strong> %adminComment%</p>
 
@@ -460,3 +480,9 @@ activity_digest:
         link_hub: "Mira qué está armando la comunidad"
         link_profile: "Visita tu perfil"
         footer: "Solo te lo enviamos una vez tras una temporada tranquila. Forma parte de tu correo de actividad."
+
+feature_request_emails:
+    opt_out:
+        author: "Recibes este correo porque propusiste esta función. <a href=\"%settingsUrl%\">Ajustes de correo</a> · <a href=\"%unsubscribeUrl%\">No más correos sobre propuestas de funciones</a>"
+        upvoter: "Recibes este correo porque votaste esta función. <a href=\"%settingsUrl%\">Ajustes de correo</a> (ahí también puedes seguir todas las propuestas) · <a href=\"%unsubscribeUrl%\">No más correos sobre propuestas de funciones</a>"
+        follower: "Recibes este correo porque sigues todas las propuestas de funciones. <a href=\"%settingsUrl%\">Ajustes de correo</a> · <a href=\"%unsubscribeUrl%\">No más correos sobre propuestas de funciones</a>"

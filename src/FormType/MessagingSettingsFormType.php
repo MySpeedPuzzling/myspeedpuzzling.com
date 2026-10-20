@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\FormType;
 use SpeedPuzzling\Web\FormData\MessagingSettingsFormData;
 use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
+use SpeedPuzzling\Web\Value\FeatureRequestEmails;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
@@ -56,6 +57,16 @@ final class MessagingSettingsFormType extends AbstractType
             'label' => 'edit_profile.result_emails_enabled',
             'help' => 'edit_profile.result_emails_help',
             'required' => false,
+        ]);
+
+        $builder->add('featureRequestEmails', EnumType::class, [
+            'class' => FeatureRequestEmails::class,
+            'label' => 'edit_profile.feature_request_emails',
+            'help' => 'edit_profile.feature_request_emails_help',
+            'expanded' => true,
+            'choice_label' => static fn (FeatureRequestEmails $choice): string => $choice->translationKey(),
+            // The list page links here (#feature-request-emails)
+            'row_attr' => ['id' => 'feature-request-emails'],
         ]);
 
         // The activity digest e-mail - shown once the XP launch switch is on (XpFeatureGate), admins before

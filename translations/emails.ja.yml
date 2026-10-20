@@ -202,6 +202,17 @@ feature_request_completed:
             <p><strong>チームからのコメント:</strong> %adminComment%</p>
         github_note: |
             <p>私たちは透明性を100%大切にし、オープンに開発を進めています。この変更のコードや技術的な詳細にご興味があれば、<a href="%githubUrl%" class="link-underline">GitHubでご覧いただけます</a>。興味がなければ、どうぞ気にせず無視してください :)</p>
+    follower:
+        subject: "機能リクエストがリリースされました：%title%"
+        preheader: "「%featureRequestTitle%」が MySpeedPuzzling で使えるようになりました。"
+        title: "新しい機能が公開されました！"
+        content: |
+            <p>うれしいお知らせです！機能リクエスト <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> がリリースされ、MySpeedPuzzling で使えるようになりました。</p>
+            <p>すべての機能リクエストをフォローしているため、このメールをお送りしています。</p>
+        admin_comment: |
+            <p><strong>チームからのコメント：</strong> %adminComment%</p>
+        github_note: |
+            <p>私たちはオープンに開発し、100% 透明性を大切にしています。この変更のコードや技術的な詳細に興味があれば、<a href="%githubUrl%" class="link-underline">GitHub でご覧ください</a>。興味がなければ無視してください :)</p>
 
 feature_request_declined:
     subject: "ご提案の機能リクエストは見送られました: %title%"
@@ -221,6 +232,15 @@ feature_request_declined:
             <p>それでも、このアイデアを応援してくださりありがとうございました！皆様のご意見は、コミュニティが何を大切にしているかを理解する助けになっています。</p>
         admin_comment: |
             <p><strong>チームからのコメント:</strong> %adminComment%</p>
+    follower:
+        subject: "機能リクエストが却下されました：%title%"
+        preheader: "「%featureRequestTitle%」は実装しないことにしました。"
+        title: "機能リクエストが却下されました"
+        content: |
+            <p>機能リクエスト <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> は却下されました。</p>
+            <p>すべての機能リクエストをフォローしているため、このメールをお送りしています。</p>
+        admin_comment: |
+            <p><strong>チームからのコメント：</strong> %adminComment%</p>
 
 sign_in_link:
     subject: "MySpeedPuzzlingのサインインコード: %code%"
@@ -460,3 +480,9 @@ activity_digest:
         link_hub: "コミュニティが今どんなパズルをしているか見る"
         link_profile: "プロフィールを見る"
         footer: "このメールは、しばらく記録がないときに一度だけお送りしています。アクティビティメールと一緒に届きます。"
+
+feature_request_emails:
+    opt_out:
+        author: "この機能を提案されたため、このメールをお送りしています。<a href=\"%settingsUrl%\">メール設定</a> · <a href=\"%unsubscribeUrl%\">機能リクエストのメールを停止</a>"
+        upvoter: "この機能に投票されたため、このメールをお送りしています。<a href=\"%settingsUrl%\">メール設定</a>（すべてのリクエストのフォローも設定できます） · <a href=\"%unsubscribeUrl%\">機能リクエストのメールを停止</a>"
+        follower: "すべての機能リクエストをフォローしているため、このメールをお送りしています。<a href=\"%settingsUrl%\">メール設定</a> · <a href=\"%unsubscribeUrl%\">機能リクエストのメールを停止</a>"

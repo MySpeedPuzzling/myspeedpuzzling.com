@@ -44,6 +44,11 @@ class FeatureRequest implements EntityWithEvents
     #[Column(type: Types::STRING, length: 200, nullable: true)]
     public null|string $authorName = null;
 
+    // When it was marked completed - null for every other status (requests completed before this column existed too)
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $completedAt = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -78,6 +83,7 @@ class FeatureRequest implements EntityWithEvents
 
     public function updateStatus(
         FeatureRequestStatus $status,
+        DateTimeImmutable $now,
         null|string $githubUrl = null,
         null|string $adminComment = null,
     ): void {
@@ -86,6 +92,13 @@ class FeatureRequest implements EntityWithEvents
         $this->status = $status;
         $this->githubUrl = $githubUrl;
         $this->adminComment = $adminComment;
+
+        if ($status !== FeatureRequestStatus::Completed) {
+            $this->completedAt = null;
+        } elseif ($oldStatus !== FeatureRequestStatus::Completed) {
+            // Marking an already completed request again (a new GitHub link) keeps its date
+            $this->completedAt = $now;
+        }
 
         if ($oldStatus !== $status) {
             $this->recordThat(new FeatureRequestStatusChanged(

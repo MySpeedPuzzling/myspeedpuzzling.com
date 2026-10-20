@@ -24,6 +24,7 @@ use SpeedPuzzling\Web\Value\ComparisonView;
 use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
+use SpeedPuzzling\Web\Value\FeatureRequestEmails;
 use SpeedPuzzling\Web\Value\LeaderboardChartView;
 use SpeedPuzzling\Web\Value\SellSwapListSettings;
 use SpeedPuzzling\Web\Value\TimezoneIdentifier;
@@ -174,6 +175,11 @@ class Player
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::BOOLEAN, options: ['default' => true])]
     public bool $resultEmailsEnabled = true;
+
+    // E-mails when a feature request is completed or declined (docs/features/feature-requests.md)
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::STRING, enumType: FeatureRequestEmails::class, options: ['default' => 'upvoted'])]
+    public FeatureRequestEmails $featureRequestEmails = FeatureRequestEmails::Upvoted;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::STRING, enumType: ContentDigestFrequency::class, options: ['default' => 'weekly'])]
@@ -524,6 +530,11 @@ class Player
     public function changeResultEmailsEnabled(bool $enabled): void
     {
         $this->resultEmailsEnabled = $enabled;
+    }
+
+    public function changeFeatureRequestEmails(FeatureRequestEmails $featureRequestEmails): void
+    {
+        $this->featureRequestEmails = $featureRequestEmails;
     }
 
     public function changeContentDigestFrequency(ContentDigestFrequency $frequency): void

@@ -68,5 +68,14 @@
         </div>
     {% endif %}
 
+    {% if logged_user.profile is not null %}
+        {# Which of these e-mails the player gets - the setting lives in the profile settings (docs/features/feature-requests.md) #}
+        <p class="small text-muted mb-3" data-testid="feature-request-emails-setting">
+            <i class="bi bi-envelope me-1"></i>
+            {{ 'feature_requests.emails_setting'|trans({'%setting%': logged_user.profile.featureRequestEmails.translationKey|trans}) }}
+            <a href="{{ path('edit_profile') }}#feature-request-emails" class="link-underline ms-1">{{ 'feature_requests.emails_setting_change'|trans }}</a>
+        </p>
+    {% endif %}
+
     <twig:FeatureRequestList :votesUsedThisMonth="votes_used_this_month" />
 {% endblock %}

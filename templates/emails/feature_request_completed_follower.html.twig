@@ -1,0 +1,53 @@
+{% trans_default_domain 'emails' %}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
+    <wrapper>
+        <container>
+            {{ include('emails/_header.html.twig', {preheader: 'feature_request_completed.follower.preheader'|trans({'%featureRequestTitle%': featureRequestTitle})}) }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="24"></spacer>
+                    <h3>{{ 'feature_request_completed.follower.title'|trans }}</h3>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    {{ 'feature_request_completed.follower.content'|trans({
+                        '%featureRequestTitle%': featureRequestTitle,
+                        '%featureRequestUrl%': url('feature_request_detail', {featureRequestId: featureRequestId}),
+                    })|raw }}
+                </columns>
+            </row>
+
+            {% if adminComment is not null %}
+                <row>
+                    <columns>
+                        {{ 'feature_request_completed.follower.admin_comment'|trans({
+                            '%adminComment%': adminComment,
+                        })|raw }}
+                    </columns>
+                </row>
+            {% endif %}
+
+            {% if githubUrl is not null %}
+                <row>
+                    <columns>
+                        {{ 'feature_request_completed.follower.github_note'|trans({
+                            '%githubUrl%': githubUrl,
+                        })|raw }}
+                    </columns>
+                </row>
+            {% endif %}
+
+            <row>
+                <columns>
+                    <p class="small-print">{{ optOutKey|trans({'%settingsUrl%': settingsUrl, '%unsubscribeUrl%': unsubscribeUrl})|raw }}</p>
+                </columns>
+            </row>
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

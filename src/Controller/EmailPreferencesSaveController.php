@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Services\NewsletterTokenSigner;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
+use SpeedPuzzling\Web\Value\FeatureRequestEmails;
 use SpeedPuzzling\Web\Value\NewsletterAudience;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -81,6 +82,8 @@ final class EmailPreferencesSaveController extends AbstractController
                 contentDigestFrequency: $this->xpFeatureGate->isVisibleFor($profile)
                     ? ContentDigestFrequency::tryFrom($request->request->getString('content_digest_frequency')) ?? $profile->contentDigestFrequency
                     : null,
+                featureRequestEmails: FeatureRequestEmails::tryFrom($request->request->getString('feature_request_emails'))
+                    ?? $profile->featureRequestEmails,
             ),
         );
 

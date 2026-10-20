@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Value\FeatureRequestStatus;
  *     status: string,
  *     github_url: null|string,
  *     admin_comment: null|string,
+ *     completed_at: null|string,
  * }
  */
 readonly final class FeatureRequestDetail
@@ -37,6 +38,7 @@ readonly final class FeatureRequestDetail
         public FeatureRequestStatus $status,
         public null|string $githubUrl,
         public null|string $adminComment,
+        public null|string $completedAt = null,
     ) {
     }
 
@@ -58,6 +60,7 @@ readonly final class FeatureRequestDetail
             status: FeatureRequestStatus::from($row['status']),
             githubUrl: $row['github_url'],
             adminComment: $row['admin_comment'],
+            completedAt: $row['completed_at'],
         );
     }
 }

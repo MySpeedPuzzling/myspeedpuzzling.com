@@ -39,6 +39,7 @@
                 <option value="least_votes" {{ this.sort == 'least_votes' ? 'selected' }}>{{ 'feature_requests.sort.least_votes'|trans }}</option>
                 <option value="newest" {{ this.sort == 'newest' ? 'selected' }}>{{ 'feature_requests.sort.newest'|trans }}</option>
                 <option value="oldest" {{ this.sort == 'oldest' ? 'selected' }}>{{ 'feature_requests.sort.oldest'|trans }}</option>
+                <option value="recently_completed" {{ this.sort == 'recently_completed' ? 'selected' }}>{{ 'feature_requests.sort.recently_completed'|trans }}</option>
             </select>
         </div>
     </div>
@@ -122,6 +123,10 @@
                             <span>{{ fr.authorName }}</span>
                             <span>&middot;</span>
                             <span>{{ fr.createdAt|ago }}</span>
+                            {% if fr.completedAt is not null %}
+                                <span>&middot;</span>
+                                <span class="text-success"><i class="bi bi-check2-circle me-1"></i>{{ 'feature_requests.completed_on'|trans({'%date%': fr.completedAt|format_date('medium')}) }}</span>
+                            {% endif %}
                             <span>&middot;</span>
                             <span><i class="bi bi-chat-dots me-1"></i>{{ fr.commentCount }}</span>
                             {% if fr.githubUrl %}

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Message;
 
 use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
+use SpeedPuzzling\Web\Value\FeatureRequestEmails;
 
 readonly final class EditEmailPreferences
 {
@@ -17,6 +18,8 @@ readonly final class EditEmailPreferences
         public bool $resultEmailsEnabled,
         /** The activity digest; null = not shown on the page, keep the stored value */
         public null|ContentDigestFrequency $contentDigestFrequency = null,
+        /** Null = not on the form, keep the stored preference */
+        public null|FeatureRequestEmails $featureRequestEmails = null,
     ) {
     }
 }

@@ -49,7 +49,7 @@ final class FeatureRequestList
 
         $statusEnum = FeatureRequestStatus::tryFrom($this->status);
 
-        $allowedSorts = ['most_votes', 'least_votes', 'newest', 'oldest'];
+        $allowedSorts = ['most_votes', 'least_votes', 'newest', 'oldest', 'recently_completed'];
         $sort = in_array($this->sort, $allowedSorts, true) ? $this->sort : 'most_votes';
 
         $authorId = null;

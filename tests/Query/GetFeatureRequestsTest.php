@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetFeatureRequests;
 use SpeedPuzzling\Web\Tests\DataFixtures\FeatureRequestFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -32,5 +33,24 @@ final class GetFeatureRequestsTest extends KernelTestCase
         self::assertNotFalse($popularIndex);
         self::assertNotFalse($newIndex);
         self::assertLessThan($newIndex, $popularIndex, 'Popular request should come before new request');
+    }
+
+    public function testRecentlyCompletedPutsTheLatestCompletionFirst(): void
+    {
+        $connection = self::getContainer()->get(Connection::class);
+        $connection->executeStatement(
+            "UPDATE feature_request SET status = 'completed', completed_at = :at WHERE id = :id",
+            ['at' => '2026-10-01 10:00:00', 'id' => FeatureRequestFixture::FEATURE_REQUEST_POPULAR],
+        );
+        $connection->executeStatement(
+            "UPDATE feature_request SET status = 'completed', completed_at = :at WHERE id = :id",
+            ['at' => '2026-10-15 10:00:00', 'id' => FeatureRequestFixture::FEATURE_REQUEST_NEW],
+        );
+
+        $results = $this->getFeatureRequests->findAll(sort: 'recently_completed');
+
+        self::assertSame(FeatureRequestFixture::FEATURE_REQUEST_NEW, $results[0]->id);
+        self::assertSame(FeatureRequestFixture::FEATURE_REQUEST_POPULAR, $results[1]->id);
+        self::assertNotNull($results[0]->completedAt);
     }
 }

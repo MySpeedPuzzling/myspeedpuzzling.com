@@ -1128,6 +1128,8 @@ competition_referees:
   "newsletter_help": "Občas vám pošleme newsletter o novinkách na platformě, většinou o nových funkcích. Žádný marketing, žádná reklama — jen novinky. Očekávaná frekvence: maximálně 1x měsíčně."
   "result_emails_enabled": "E-maily o mých výsledcích"
   "result_emails_help": "Dáme vám vědět, když se některé vaše výsledky nejspíš objevují dvakrát, nebo když jsme odstranili kopii navíc. Nejvýš jednou týdně a jen když je něco nového."
+  "feature_request_emails": "E-maily o návrzích funkcí"
+  "feature_request_emails_help": "E-mail, když je návrh na funkci dokončen nebo zamítnut. Zvolte „Všechny návrhy“ a dozvíte se o všem, co vydáme."
   "messaging_notifications": "Zprávy a upozornění"
   "features_options": "Nastavení funkcí"
   "hide_ranking": "Skrýt mé hodnocení a dovednosti"
@@ -3822,8 +3824,12 @@ feature_requests:
         least_votes: "Nejméně hlasů"
         newest: "Nejnovější"
         oldest: "Nejstarší"
+        recently_completed: "Nedávno dokončené"
     admin_response: "Odpověď administrátora"
     view_on_github: "Zobrazit na GitHubu"
+    completed_on: "Dokončeno %date%"
+    emails_setting: "E-maily o dokončených a zamítnutých návrzích: %setting%"
+    emails_setting_change: "Změnit"
     form:
         title_label: "Název"
         title_placeholder: "Krátký výstižný název vašeho nápadu"
@@ -5755,6 +5761,8 @@ email_preferences:
     notifications_description: "Dáme vám vědět, když vám někdo napíše nebo se s vámi chce spojit — píšeme jen tehdy, když na vás opravdu něco čeká."
     result_emails_title: "Vaše výsledky"
     result_emails_description: "Když se některé vaše výsledky nejspíš objevují dvakrát, nebo jsme odstranili kopii navíc — nejvýš jednou týdně a jen když je něco nového."
+    feature_request_emails_title: "Návrhy funkcí"
+    feature_request_emails_description: "E-mail, když je návrh na funkci dokončen nebo zamítnut."
     frequency_label: "Jak často nejvýše?"
     save_button: "Uložit nastavení"
     more_hint: "Hledáte víc? Všechna nastavení účtu najdete ve svém profilu."
@@ -10805,3 +10813,14 @@ msp_rating:
 
 rank_share:
     fastest: "nejrychlejší"
+
+feature_request_emails:
+    all: "Všechny návrhy"
+    upvoted: "Jen ty, které jsem navrhl(a) nebo podpořil(a)"
+    none: "Žádné"
+    unsubscribe:
+        headline: "E-maily o návrzích funkcí"
+        text: "Už nechcete e-maily o dokončených a zamítnutých návrzích funkcí? Ostatní e-maily (o zprávách, o výsledcích, newsletter) zůstanou, jak jsou."
+        confirm_button: "Vypnout tyto e-maily"
+        done: "Hotovo – e-maily o návrzích funkcí už vám nepošleme, ani o vašich vlastních návrzích."
+        settings_hint: "Kdykoli je můžete znovu zapnout v nastavení profilu v části „Zprávy a upozornění“."

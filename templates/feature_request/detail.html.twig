@@ -88,6 +88,10 @@
                 <span>{{ 'feature_requests.requested_by'|trans }} <strong>{{ feature_request.authorName }}</strong></span>
                 <span>&middot;</span>
                 <span>{{ feature_request.createdAt|ago }}</span>
+                {% if feature_request.completedAt is not null %}
+                    <span>&middot;</span>
+                    <span class="text-success"><i class="bi bi-check2-circle me-1"></i>{{ 'feature_requests.completed_on'|trans({'%date%': feature_request.completedAt|format_date('medium')}) }}</span>
+                {% endif %}
             </div>
 
             {% if is_mine %}

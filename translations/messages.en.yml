@@ -1572,6 +1572,8 @@ edit_profile:
     newsletter_help: "We will occasionally send a newsletter about what's new on the platform, usually explaining new features. No marketing, no promotions — just what's new. Expected frequency: no more than 1 per month."
     result_emails_enabled: "E-mails about my results"
     result_emails_help: "We let you know when some of your results seem to show up twice, or when we removed an extra copy. At most once a week, and only when there is something new."
+    feature_request_emails: "E-mails about feature requests"
+    feature_request_emails_help: "An e-mail when a feature request is completed or declined. Pick \"Every feature request\" to hear about everything we ship."
     personal_access_tokens: "Personal Access Tokens"
     personal_access_tokens_description: "Tokens for accessing your own data through the API."
     pat_created_title: "Your Personal Access Token"
@@ -4108,8 +4110,12 @@ feature_requests:
         least_votes: "Least Votes"
         newest: "Newest"
         oldest: "Oldest"
+        recently_completed: "Recently completed"
     admin_response: "Admin Response"
     view_on_github: "View on GitHub"
+    completed_on: "Completed %date%"
+    emails_setting: "E-mails about completed and declined requests: %setting%"
+    emails_setting_change: "Change"
     form:
         title_label: "Title"
         title_placeholder: "Short, descriptive title for your feature idea"
@@ -6207,6 +6213,8 @@ email_preferences:
     notifications_description: "A friendly heads-up when someone messages you or wants to connect — sent only when something is actually waiting for you."
     result_emails_title: "Your results"
     result_emails_description: "When some of your results seem to show up twice, or we removed an extra copy — at most once a week, only when there is something new."
+    feature_request_emails_title: "Feature requests"
+    feature_request_emails_description: "An e-mail when a feature request is completed or declined."
     frequency_label: "How often at most?"
     save_button: "Save my preferences"
     more_hint: "Looking for more? All account settings live in your profile."
@@ -11052,3 +11060,14 @@ msp_rating:
 
 rank_share:
     fastest: "fastest"
+
+feature_request_emails:
+    all: "Every feature request"
+    upvoted: "Only the ones I suggested or upvoted"
+    none: "None"
+    unsubscribe:
+        headline: "E-mails about feature requests"
+        text: "Don't want e-mails about completed and declined feature requests any more? Your other e-mails (about your messages, your results, the newsletter) stay as they are."
+        confirm_button: "Stop these e-mails"
+        done: "Done – you won't get e-mails about feature requests any more, not even about your own suggestions."
+        settings_hint: "You can switch them on again any time in your profile settings under \"Messaging & Notifications\"."

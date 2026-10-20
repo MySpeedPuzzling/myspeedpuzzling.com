@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Value\ComparisonView;
 use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
+use SpeedPuzzling\Web\Value\FeatureRequestEmails;
 use SpeedPuzzling\Web\Value\FreeTrial;
 use SpeedPuzzling\Web\Value\LeaderboardChartView;
 use SpeedPuzzling\Web\Value\LevelTable;
@@ -53,6 +54,7 @@ use SpeedPuzzling\Web\Value\SkillTier;
  *     email_notification_frequency: string,
  *     newsletter_enabled: bool,
  *     result_emails_enabled: bool,
+ *     feature_request_emails: string,
  *     rating_count: int|string,
  *     average_rating: null|string,
  *     streak_opted_out: bool,
@@ -128,6 +130,7 @@ readonly final class PlayerProfile
         public EmailNotificationFrequency $emailNotificationFrequency = EmailNotificationFrequency::TwentyFourHours,
         public bool $newsletterEnabled = true,
         public bool $resultEmailsEnabled = true,
+        public FeatureRequestEmails $featureRequestEmails = FeatureRequestEmails::Upvoted,
         public ContentDigestFrequency $contentDigestFrequency = ContentDigestFrequency::Weekly,
         public bool $experienceSystemOptedOut = false,
         public int $ratingCount = 0,
@@ -424,6 +427,7 @@ readonly final class PlayerProfile
             emailNotificationFrequency: EmailNotificationFrequency::from($row['email_notification_frequency']),
             newsletterEnabled: (bool) $row['newsletter_enabled'],
             resultEmailsEnabled: (bool) $row['result_emails_enabled'],
+            featureRequestEmails: FeatureRequestEmails::from($row['feature_request_emails']),
             ratingCount: (int) $row['rating_count'],
             averageRating: $row['average_rating'] !== null ? (float) $row['average_rating'] : null,
             streakOptedOut: (bool) $row['streak_opted_out'],

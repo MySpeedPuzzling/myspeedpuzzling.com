@@ -41,6 +41,10 @@ readonly final class EditMessagingSettingsHandler
             $player->changeContentDigestFrequency($message->contentDigestFrequency);
         }
 
+        if ($message->featureRequestEmails !== null) {
+            $player->changeFeatureRequestEmails($message->featureRequestEmails);
+        }
+
         $playerEmail = $newsletterChanged ? $this->playerAccountEmail->ofPlayer($player) : null;
 
         if ($playerEmail !== null) {

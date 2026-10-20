@@ -68,6 +68,20 @@
                     <p class="fs-sm text-muted mb-0 mt-1">{{ 'email_preferences.result_emails_description'|trans }}</p>
                 </div>
 
+                <div class="card card-body shadow-lg mb-3">
+                    <label class="form-label d-block fw-bold mb-1" for="feature-request-emails">
+                        💡 {{ 'email_preferences.feature_request_emails_title'|trans }}
+                    </label>
+                    <p class="fs-sm text-muted mb-2">{{ 'email_preferences.feature_request_emails_description'|trans }}</p>
+                    <select class="form-select" id="feature-request-emails" name="feature_request_emails">
+                        {% for choice in featureRequestEmailChoices %}
+                            <option value="{{ choice.value }}" {{ choice == featureRequestEmails ? 'selected' }}>
+                                {{ choice.translationKey()|trans }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
                 {% if showContentDigest %}
                     <div class="card card-body shadow-lg mb-3">
                         <label class="form-label d-block fw-bold mb-1" for="content-digest-frequency">

@@ -206,6 +206,17 @@ feature_request_completed:
             <p><strong>Comment from the team:</strong> %adminComment%</p>
         github_note: |
             <p>Since we build in public and keep things 100% transparent, if you're curious about the code and technical details behind this change, feel free to <a href="%githubUrl%" class="link-underline">check it out on GitHub</a>. Otherwise, just ignore this :)</p>
+    follower:
+        subject: "A feature request has been released: %title%"
+        preheader: "\"%featureRequestTitle%\" is now live on MySpeedPuzzling."
+        title: "Something new is live!"
+        content: |
+            <p>Good news! The feature request <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> has been released and is now live on MySpeedPuzzling.</p>
+            <p>You get this because you follow every feature request.</p>
+        admin_comment: |
+            <p><strong>Comment from the team:</strong> %adminComment%</p>
+        github_note: |
+            <p>Since we build in public and keep things 100% transparent, if you're curious about the code and technical details behind this change, feel free to <a href="%githubUrl%" class="link-underline">check it out on GitHub</a>. Otherwise, just ignore this :)</p>
 
 feature_request_declined:
     subject: "Your feature request has been declined: %title%"
@@ -223,6 +234,15 @@ feature_request_declined:
         content: |
             <p>A feature request you upvoted — <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> — has been declined.</p>
             <p>Thanks for supporting the idea anyway! Your input helps us understand what the community cares about.</p>
+        admin_comment: |
+            <p><strong>Comment from the team:</strong> %adminComment%</p>
+    follower:
+        subject: "A feature request has been declined: %title%"
+        preheader: "We decided not to build \"%featureRequestTitle%\"."
+        title: "A feature request has been declined"
+        content: |
+            <p>The feature request <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> has been declined.</p>
+            <p>You get this because you follow every feature request.</p>
         admin_comment: |
             <p><strong>Comment from the team:</strong> %adminComment%</p>
 
@@ -468,3 +488,9 @@ activity_digest:
         link_profile: "Visit your profile"
         footer: "We send this only once after a quiet stretch. It comes with your activity e-mail."
 
+
+feature_request_emails:
+    opt_out:
+        author: "You get this e-mail because you suggested this feature. <a href=\"%settingsUrl%\">E-mail settings</a> · <a href=\"%unsubscribeUrl%\">Stop e-mails about feature requests</a>"
+        upvoter: "You get this e-mail because you upvoted this feature. <a href=\"%settingsUrl%\">E-mail settings</a> (you can follow every feature request there) · <a href=\"%unsubscribeUrl%\">Stop e-mails about feature requests</a>"
+        follower: "You get this e-mail because you follow every feature request. <a href=\"%settingsUrl%\">E-mail settings</a> · <a href=\"%unsubscribeUrl%\">Stop e-mails about feature requests</a>"

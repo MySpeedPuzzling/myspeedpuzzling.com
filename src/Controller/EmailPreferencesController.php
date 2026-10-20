@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Services\NewsletterTokenSigner;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
+use SpeedPuzzling\Web\Value\FeatureRequestEmails;
 use SpeedPuzzling\Web\Value\NewsletterAudience;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -73,6 +74,8 @@ final class EmailPreferencesController extends AbstractController
             'emailNotificationsEnabled' => $profile->emailNotificationsEnabled,
             'emailNotificationFrequency' => $profile->emailNotificationFrequency,
             'resultEmailsEnabled' => $profile->resultEmailsEnabled,
+            'featureRequestEmails' => $profile->featureRequestEmails,
+            'featureRequestEmailChoices' => FeatureRequestEmails::cases(),
             'frequencies' => EmailNotificationFrequency::cases(),
             // The activity digest switch follows the XP launch switch, like the e-mail itself
             'showContentDigest' => $this->xpFeatureGate->isVisibleFor($profile),

@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Message\EditMessagingSettings;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
+use SpeedPuzzling\Web\Value\FeatureRequestEmails;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -120,5 +121,35 @@ final class EditMessagingSettingsHandlerTest extends KernelTestCase
         self::assertFalse($player->resultEmailsEnabled);
         self::assertTrue($player->emailNotificationsEnabled);
         self::assertTrue($player->newsletterEnabled);
+    }
+
+    public function testFeatureRequestEmailsAreSavedAndNullKeepsThem(): void
+    {
+        $this->messageBus->dispatch(
+            new EditMessagingSettings(
+                playerId: PlayerFixture::PLAYER_REGULAR,
+                allowDirectMessages: true,
+                emailNotificationsEnabled: true,
+                emailNotificationFrequency: EmailNotificationFrequency::TwentyFourHours,
+                newsletterEnabled: true,
+                resultEmailsEnabled: true,
+                featureRequestEmails: FeatureRequestEmails::All,
+            ),
+        );
+
+        self::assertSame(FeatureRequestEmails::All, $this->playerRepository->get(PlayerFixture::PLAYER_REGULAR)->featureRequestEmails);
+
+        $this->messageBus->dispatch(
+            new EditMessagingSettings(
+                playerId: PlayerFixture::PLAYER_REGULAR,
+                allowDirectMessages: true,
+                emailNotificationsEnabled: true,
+                emailNotificationFrequency: EmailNotificationFrequency::TwentyFourHours,
+                newsletterEnabled: true,
+                resultEmailsEnabled: true,
+            ),
+        );
+
+        self::assertSame(FeatureRequestEmails::All, $this->playerRepository->get(PlayerFixture::PLAYER_REGULAR)->featureRequestEmails);
     }
 }

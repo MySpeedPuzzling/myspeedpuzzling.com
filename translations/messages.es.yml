@@ -798,6 +798,8 @@
   "newsletter_help": "Ocasionalmente enviaremos un boletín sobre novedades en la plataforma, generalmente explicando nuevas funciones. Sin marketing ni promociones: solo novedades. Frecuencia esperada: no más de 1 al mes."
   "result_emails_enabled": "Correos sobre mis resultados"
   "result_emails_help": "Te avisamos cuando algunos de tus resultados parecen aparecer dos veces o cuando eliminamos una copia sobrante. Como mucho una vez por semana y solo si hay algo nuevo."
+  "feature_request_emails": "Correos sobre propuestas de funciones"
+  "feature_request_emails_help": "Un correo cuando una propuesta se completa o se rechaza. Elige «Todas las propuestas» para enterarte de todo lo que publicamos."
   "features_options": "Opciones de funciones"
   "hide_ranking": "Ocultar mi clasificación y habilidad"
   "hide_ranking_help": "Tu nivel de habilidad y clasificación Rating se ocultarán. No aparecerás en la escalera MSP Rating. Tus datos seguirán usándose en los cálculos de dificultad de puzzles y clasificaciones de otros jugadores."
@@ -3446,8 +3448,12 @@ feature_requests:
         least_votes: "Menos votados"
         newest: "Más recientes"
         oldest: "Más antiguos"
+        recently_completed: "Completadas recientemente"
     admin_response: "Respuesta del administrador"
     view_on_github: "Ver en GitHub"
+    completed_on: "Completada el %date%"
+    emails_setting: "Correos sobre propuestas completadas y rechazadas: %setting%"
+    emails_setting_change: "Cambiar"
     form:
         title_label: "Título"
         title_placeholder: "Título corto y descriptivo para tu idea"
@@ -5657,6 +5663,8 @@ email_preferences:
     notifications_description: "Un aviso cuando alguien te escribe o quiere conectar contigo — solo cuando de verdad hay algo esperándote."
     result_emails_title: "Tus resultados"
     result_emails_description: "Cuando algunos de tus resultados parecen aparecer dos veces o eliminamos una copia sobrante — como mucho una vez por semana y solo si hay algo nuevo."
+    feature_request_emails_title: "Propuestas de funciones"
+    feature_request_emails_description: "Un correo cuando una propuesta de función se completa o se rechaza."
     frequency_label: "¿Con qué frecuencia como máximo?"
     save_button: "Guardar mis preferencias"
     more_hint: "¿Buscas más? Todos los ajustes de tu cuenta están en tu perfil."
@@ -10779,3 +10787,14 @@ msp_rating:
 
 rank_share:
     fastest: "el más rápido"
+
+feature_request_emails:
+    all: "Todas las propuestas"
+    upvoted: "Solo las que propuse o voté"
+    none: "Ninguno"
+    unsubscribe:
+        headline: "Correos sobre propuestas de funciones"
+        text: "¿Ya no quieres correos sobre propuestas de funciones completadas o rechazadas? Tus otros correos (sobre mensajes, tus resultados, el boletín) siguen como están."
+        confirm_button: "Dejar de recibir estos correos"
+        done: "Listo: ya no recibirás correos sobre propuestas de funciones, tampoco sobre las tuyas."
+        settings_hint: "Puedes volver a activarlos cuando quieras en los ajustes de tu perfil, en «Mensajes y notificaciones»."

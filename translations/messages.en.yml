@@ -351,7 +351,6 @@ puzzle_result:
     close: "Close"
     team_page: "Team page"
     best_time: "Best time"
-    rank: "Rank %rank% of %total%"
     attempt_number: "Attempt no. %number%"
     chart:
         fastest: "Fastest"
@@ -379,10 +378,6 @@ puzzle_times:
         rank: "Rank %rank% of %total%"
         jump_to_me: "Jump to me"
         show_all: "All my times (%count%)"
-        faster_than:
-            solo: "faster than %percent%% of puzzlers"
-            duo: "faster than %percent%% of pairs"
-            group: "faster than %percent%% of teams"
         behind_fastest: "%time% behind the fastest"
         behind_top: "%time% from the top %rank%"
     leaderboard:
@@ -2643,7 +2638,6 @@ recap_progress:
         title: "#%rank% of %total% on this puzzle"
         first_solver: "You are the first to solve this puzzle"
         fastest: "The fastest time on this puzzle"
-        faster_than: "Faster than %percent% % of puzzlers"
     competition:
         rating: "MSP Rating %rating% · #%rank% of %total%"
         rating_progress: "MSP Rating: %first% of %first_needed% first tries, %solves% of %solves_needed% puzzles"
@@ -11055,3 +11049,6 @@ msp_rating:
     profile:
         heading: "MSP Rating over time"
         ladder_link: "See the ladder"
+
+rank_share:
+    fastest: "fastest"

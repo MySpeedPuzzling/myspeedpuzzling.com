@@ -107,9 +107,6 @@ final class PuzzleTimes
     // Same rank as the viewer's row shows: a time equal to the row above shares its rank
     public null|int $myRank = null;
 
-    // Share of the other rows that are slower than the viewer, rounded down - null when too few rows to say
-    public null|int $myPercentile = null;
-
     // The nearest milestone rank above the viewer (RANK_MILESTONES) and how far behind its time they are
     public null|int $myTargetRank = null;
     public null|int $myTargetGap = null;
@@ -625,13 +622,12 @@ final class PuzzleTimes
     }
 
     /**
-     * The viewer's position line: "Rank 612 of 1718 · faster than 64 % of puzzlers · 00:04:12 from the top 500"
+     * The viewer's rank ("#612 of 1718 · top 35.7 %" in the "Your best" tile) and the gap to the next milestone ("00:04:12 from the top 500")
      */
     private function describeViewerPosition(): void
     {
         $this->myRank = null;
         $this->myTime = null;
-        $this->myPercentile = null;
         $this->myTargetRank = null;
         $this->myTargetGap = null;
 
@@ -660,10 +656,8 @@ final class PuzzleTimes
             ownValue: $myTime,
             milestoneValues: $milestoneTimes,
             higherIsBetter: false,
-            rowsBehind: $myTime === null ? null : count(array_filter($times, static fn (null|int $time): bool => $time !== null && $time > $myTime)),
         );
 
-        $this->myPercentile = $position->percentile;
         $this->myTargetRank = $position->targetRank;
         $this->myTargetGap = $position->targetGap;
     }

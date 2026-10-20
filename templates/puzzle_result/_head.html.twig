@@ -25,9 +25,7 @@
 
         {% if standing is not null %}
             <div class="pr-rank">
-                <span class="pr-chip pr-chip-rank">
-                    {{ 'puzzle_result.rank'|trans({'%rank%': standing.rank, '%total%': standing.total}) }}
-                </span>
+                {{ include('_rank_chip.html.twig', {rank: standing.rank, total: standing.total}) }}
             </div>
         {% endif %}
     </div>

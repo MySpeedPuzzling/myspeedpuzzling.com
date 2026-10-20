@@ -109,7 +109,8 @@ a.pr-team-link {
 
 // Best time on the right, its gaps under it
 .pr-best {
-    flex: 0 0 auto;
+    // Gives way to the rank chip on a narrow screen: its gap chips stack instead of squeezing the rank (320 px)
+    flex: 0 1 auto;
     text-align: right;
     line-height: 1;
 }
@@ -162,6 +163,60 @@ a.pr-team-link {
     font-family: inherit;
     font-weight: 400;
     color: #111;
+    // "#204 of 1391 ▬ top 14.7 %" (_rank_chip.html.twig): on a narrow row the share drops under the rank whole -
+    // a pill on one line, a rounded box on two, never past the row's edge
+    flex-wrap: wrap;
+    column-gap: 6px;
+    row-gap: 1px;
+    max-width: 100%;
+    white-space: normal;
+    border-radius: .75rem;
+}
+
+.pr-chip-rank-place {
+    white-space: nowrap;
+}
+
+// The share next to a rank on a puzzle (_rank_share.html.twig): a short bar filled with the share of the others behind
+.rank-share {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.rank-share-bar {
+    position: relative;
+    flex: none;
+    width: 28px;
+    height: 4px;
+    border-radius: 999px;
+    background: #dcdfe7;
+    overflow: hidden;
+
+    > span {
+        position: absolute;
+        inset: 0 auto 0 0;
+        border-radius: inherit;
+        background: $primary;
+    }
+}
+
+// The narrow "Your best" tile on the puzzle page: the text over a full-width bar
+.rank-share-stacked {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 3px;
+    white-space: normal;
+
+    .rank-share-bar {
+        width: 100%;
+        max-width: 72px;
+        height: 3px;
+        background: #f3d6d7;
+    }
 }
 
 // Every attempt: date #N ......... time, then PPM ......... deltas

@@ -93,7 +93,7 @@ final class PuzzleResultDetailControllerTest extends WebTestCase
         // Leaderboard for a guest: 22:30, 28:20, 33:20, 35:00
         $text = $crawler->text();
         self::assertStringContainsString('00:28:20', $text);
-        self::assertStringContainsString('Rank 2 of 4', $text);
+        self::assertStringContainsString('#2 of 4', $text);
         self::assertStringContainsString('+05:50', $crawler->filter('.bi-1-circle')->closest('span')?->text() ?? '');
         self::assertCount(0, $crawler->filter('.bi-arrow-up'), 'The next faster time is the leader');
     }
@@ -105,7 +105,7 @@ final class PuzzleResultDetailControllerTest extends WebTestCase
 
         $crawler = $this->modal($browser, $timeId);
 
-        self::assertStringContainsString('Rank 3 of 4', $crawler->text());
+        self::assertStringContainsString('#3 of 4', $crawler->text());
         self::assertStringContainsString('+10:50', $crawler->filter('.bi-1-circle')->closest('span')?->text() ?? '');
         self::assertStringContainsString('+05:00', $crawler->filter('.bi-arrow-up')->closest('span')?->text() ?? '');
     }
@@ -121,7 +121,7 @@ final class PuzzleResultDetailControllerTest extends WebTestCase
 
         self::assertCount(2, $crawler->filter('li.pr-attempt'));
         self::assertStringNotContainsString('01:30:00', $crawler->text());
-        self::assertStringContainsString('Rank 1 of 2', $crawler->text());
+        self::assertStringContainsString('#1 of 2', $crawler->text());
         self::assertCount(1, $crawler->filter('a[href^="/en/teams/"]'));
         // Per person PPM next to the pair's
         self::assertStringContainsString('(2×', $crawler->text());
@@ -130,7 +130,7 @@ final class PuzzleResultDetailControllerTest extends WebTestCase
 
         $crawler = $this->modal($browser, $otherPairTime);
         self::assertCount(1, $crawler->filter('li.pr-attempt'));
-        self::assertStringContainsString('Rank 2 of 2', $crawler->text());
+        self::assertStringContainsString('#2 of 2', $crawler->text());
         self::assertStringContainsString('+35:00', $crawler->filter('.bi-1-circle')->closest('span')?->text() ?? '');
     }
 

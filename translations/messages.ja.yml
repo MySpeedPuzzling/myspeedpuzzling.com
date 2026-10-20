@@ -321,10 +321,6 @@
     "rank": "%total% 中 %rank% 位"
     "jump_to_me": "自分へジャンプ"
     "show_all": "自分の全タイム (%count%)"
-    "faster_than":
-      "solo": "パズラーの%percent%%より速い"
-      "duo": "ペアの%percent%%より速い"
-      "group": "チームの%percent%%より速い"
     "behind_fastest": "最速まであと%time%"
     "behind_top": "トップ%rank%まであと%time%"
   "leaderboard":
@@ -8693,7 +8689,6 @@ puzzle_result:
     close: "閉じる"
     team_page: "チームページ"
     best_time: "ベストタイム"
-    rank: "%total%人中%rank%位"
     attempt_number: "%number%回目"
     chart:
         fastest: "最速"
@@ -8732,7 +8727,6 @@ recap_progress:
         title: "このパズルで%total%人中%rank%位"
         first_solver: "このパズルを最初に完成させたのはあなたです"
         fastest: "このパズルの最速タイム"
-        faster_than: "パズラーの%percent%%より速いタイム"
     competition:
         rating: "MSP Rating %rating% · %total%人中%rank%位"
         rating_progress: "MSP Rating：初挑戦 %first_needed%回中%first%回、パズル %solves_needed%個中%solves%個"
@@ -10771,3 +10765,6 @@ msp_rating:
     profile:
         heading: "MSP Ratingの推移"
         ladder_link: "ランキングを見る"
+
+rank_share:
+    fastest: "最速"

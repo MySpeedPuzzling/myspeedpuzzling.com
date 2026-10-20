@@ -321,10 +321,6 @@
     "rank": "Puesto %rank% de %total%"
     "jump_to_me": "Ir a mí"
     "show_all": "Todos mis tiempos (%count%)"
-    "faster_than":
-      "solo": "más rápido que el %percent%% de los puzzlers"
-      "duo": "más rápido que el %percent%% de las parejas"
-      "group": "más rápido que el %percent%% de los equipos"
     "behind_fastest": "a %time% del más rápido"
     "behind_top": "a %time% del top %rank%"
   "leaderboard":
@@ -8704,7 +8700,6 @@ puzzle_result:
     close: "Cerrar"
     team_page: "Página del equipo"
     best_time: "Mejor tiempo"
-    rank: "Puesto %rank% de %total%"
     attempt_number: "Intento n.º %number%"
     chart:
         fastest: "El más rápido"
@@ -8743,7 +8738,6 @@ recap_progress:
         title: "#%rank% de %total% en este puzzle"
         first_solver: "Eres la primera persona en resolver este puzzle"
         fastest: "El tiempo más rápido en este puzzle"
-        faster_than: "Más rápido que el %percent% % de los puzzleros"
     competition:
         rating: "MSP Rating %rating% · #%rank% de %total%"
         rating_progress: "MSP Rating: %first% de %first_needed% primeros intentos, %solves% de %solves_needed% puzzles"
@@ -10782,3 +10776,6 @@ msp_rating:
     profile:
         heading: "MSP Rating a lo largo del tiempo"
         ladder_link: "Ver la clasificación"
+
+rank_share:
+    fastest: "el más rápido"

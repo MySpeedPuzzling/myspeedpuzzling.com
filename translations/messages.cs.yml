@@ -330,7 +330,6 @@ puzzle_result:
     close: "Zavřít"
     team_page: "Stránka týmu"
     best_time: "Nejlepší čas"
-    rank: "Pořadí %rank% z %total%"
     attempt_number: "%number%. pokus"
     chart:
         fastest: "Nejrychlejší"
@@ -358,10 +357,6 @@ puzzle_result:
     "rank": "Pořadí %rank% z %total%"
     "jump_to_me": "Skočit na mě"
     "show_all": "Všechny moje časy (%count%)"
-    "faster_than":
-      "solo": "rychlejší než %percent%% puzzlerů"
-      "duo": "rychlejší než %percent%% dvojic"
-      "group": "rychlejší než %percent%% týmů"
     "behind_fastest": "%time% za nejrychlejším"
     "behind_top": "%time% do top %rank%"
   "leaderboard":
@@ -2169,7 +2164,6 @@ recap_progress:
         title: "#%rank% z %total% na tomto puzzle"
         first_solver: "Jsi první, kdo tohle puzzle složil"
         fastest: "Nejrychlejší čas na tomto puzzle"
-        faster_than: "Rychlejší než %percent% % puzzlerů"
     competition:
         rating: "MSP Rating %rating% · #%rank% z %total%"
         rating_progress: "MSP Rating: %first% z %first_needed% prvních pokusů, %solves% z %solves_needed% puzzlí"
@@ -10807,3 +10801,6 @@ msp_rating:
     profile:
         heading: "MSP Rating v čase"
         ladder_link: "Zobrazit žebříček"
+
+rank_share:
+    fastest: "nejrychlejší"

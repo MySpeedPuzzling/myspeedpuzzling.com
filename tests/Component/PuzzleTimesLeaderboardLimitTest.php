@@ -219,7 +219,9 @@ final class PuzzleTimesLeaderboardLimitTest extends WebTestCase
         self::assertSame('#151 of 251', $crawler->filter('[data-testid="my-rank"]')->text());
         // Far down, "Jump to me" under the chart as well
         self::assertCount(1, $crawler->filter('a[href^="#leaderboard-row-"]:not(.lb-stat)'));
-        self::assertSame(['faster than 40% of puzzlers', '00:08:25 from the top 100'], $this->standing($crawler));
+        // 151 of 251 = 60.16 %, rounded up
+        self::assertSame('top 60.2%', trim($crawler->filter('.lb-stat-mine [data-testid="rank-share"]')->text()));
+        self::assertSame(['00:08:25 from the top 100'], $this->standing($crawler));
 
         // "Show more" continues after the viewer's rows (154-251), the gap row fills 101-148
         self::assertSame('Show 98 more', $this->buttonText($crawler, 'showMore'));

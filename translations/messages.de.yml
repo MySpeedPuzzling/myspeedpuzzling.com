@@ -319,10 +319,6 @@
     "rank": "Rang %rank% von %total%"
     "jump_to_me": "Zu mir springen"
     "show_all": "Alle meine Zeiten (%count%)"
-    "faster_than":
-      "solo": "schneller als %percent%% der Puzzler"
-      "duo": "schneller als %percent%% der Paare"
-      "group": "schneller als %percent%% der Teams"
     "behind_fastest": "%time% hinter der schnellsten Zeit"
     "behind_top": "%time% bis zu den Top %rank%"
   "leaderboard":
@@ -8940,7 +8936,6 @@ puzzle_result:
     gap_to_best: "Rückstand auf die persönliche Bestzeit"
     meta_title: "Ergebnisse bei %puzzle%"
     personal_best: "Persönliche Bestzeit"
-    rank: "Platz %rank% von %total%"
     team_page: "Team-Seite"
     title: "Ergebnisse bei diesem Puzzle"
 
@@ -8967,7 +8962,6 @@ recap_progress:
         to_next: "%current% von %needed% XP bis Level %level%"
         xp_gained: "+%xp% XP"
     place:
-        faster_than: "Schneller als %percent% % der Puzzler"
         fastest: "Die schnellste Zeit bei diesem Puzzle"
         first_solver: "Niemand hat dieses Puzzle vor dir gelegt"
         title: "#%rank% von %total% bei diesem Puzzle"
@@ -10780,3 +10774,6 @@ msp_rating:
     profile:
         heading: "MSP Rating im Verlauf"
         ladder_link: "Zur Rangliste"
+
+rank_share:
+    fastest: "Bestzeit"

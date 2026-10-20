@@ -151,7 +151,6 @@ final class AddedTimeRecapController extends AbstractController
             'player' => $player,
             'is_timed_solo' => $isTimedSolo,
             'ranking' => $ranking,
-            'faster_than_percent' => $ranking !== null ? RecapProgress::fasterThanPercent($ranking->rank, $ranking->totalPlayers) : null,
             'puzzle_history' => $puzzleHistory,
             'has_rating' => $hasRating,
             'has_skill_tier' => $hasSkillTier,

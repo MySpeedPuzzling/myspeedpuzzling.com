@@ -15,7 +15,7 @@ Jan's redesign of the puzzle page (mobile first, designs on a claude.ai canvas):
   to one's own best (2026-10-19, a player missed it once they had a time); four cells fold into 2 × 2 below 576 px. It
   lives in the Live component, so a tab switch re-renders it with the list and chart.
 - The old "my attempts" card became one slim line under the strip: latest time (or "My time") with its edit button, then
-  "faster than N %" and the gap to the next milestone - parts that do not fit move to the next line whole, the "·" shows only
+  the gap to the next milestone ("faster than N %" left 2026-10-20 for the rank share, see below) - parts that do not fit move to the next line whole, the "·" shows only
   between parts on one line (`.lb-parts`) - then "All my times (N)" opening the history and the personal chart as before.
   The rank moved into the strip (`data-testid="my-rank"`), "Jump to me" into the strip's link.
 - The page header (outside the component): the box in its own proportions (≤ 112 px square on phones, 160 px tablets,
@@ -323,9 +323,16 @@ the reasoning of 2026-09-30.)*
 - No separate "load rows around me" control: ±2 rows answer "who is right around me"; the gap row, "Show more" and "Show all"
   reveal everything else.
 - **Position line** in the viewer's own card, for every signed-in player (it only restates the public table):
-  *"Rank 600 of 1718 · faster than 65% of puzzlers · 00:02:36 from the top 500"*.
+  *"#600 of 1718 · top 35.0 %"* in the "Your best" cell, *"00:02:36 from the top 500"* in the line under the strip.
   - Rank: the same tie rule as the table (equal time = rank of the row above); it used to be the position, which could disagree.
-  - Percentage: share of the **other** rows that are strictly slower, rounded down; hidden below 10 rows, at 0 %, and for #1.
+  - **Rank share (feature request #281, 2026-10-20):** every rank on a puzzle - the "Your best" cell, the profile's results
+    chip, the result detail's chip, the recap after adding a time - is followed by `_rank_share.html.twig`: a short bar
+    (filled with the share of the others behind) + "top 14.7 %". `Value\RankShare` is the one rule: rank ÷ total rounded
+    **up** (never better than the truth), one decimal, two under 1 % ("top 0.22 %"), #1 = "fastest", nothing below 10 on
+    the list, shown in the bottom half too (the rank next to it says the same - Jan). It replaced "faster than N %" (one
+    percentage per screen). Chips (`_rank_chip.html.twig`) let the share drop under the rank whole on a narrow row; the
+    result detail's best-time column gives way (its gap chips stack) so the rank chip keeps room at 320 px. The other
+    leaderboards' position line (`LeaderboardPosition`, top half only) is unchanged.
   - Next goal: the gap to the nearest of #1, 3, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000 above the viewer
     ("… behind the fastest" for #2 and #3).
 - Pairs / teams: the viewer's best pair or team row is "theirs" (position line, neighbourhood, chart marker); their other

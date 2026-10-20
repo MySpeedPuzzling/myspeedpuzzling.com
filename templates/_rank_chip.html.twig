@@ -1,0 +1,7 @@
+{#- A rank on a puzzle as a chip: "#204 of 1391 ▬ top 14.7 %" - the profile results and the result detail.
+    The share drops to a second line of the chip whole when the row is narrow, never past its edge. -#}
+{%- set share = rank_share(rank, total) -%}
+<span class="pr-chip pr-chip-rank" data-testid="rank-chip">
+    <span class="pr-chip-rank-place">{{ 'puzzle_times.stats.rank'|trans({'%rank%': rank|plain_number, '%total%': total|plain_number}) }}</span>
+    {%- if share %} {{ include('_rank_share.html.twig', {share: share}) }}{% endif -%}
+</span>

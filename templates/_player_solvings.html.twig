@@ -59,9 +59,7 @@
                         <div class="ps-tags">
                             {# Rank for solo (only if ranking exists - won't exist for relax-only puzzles) #}
                             {% if puzzle.players is null and this.ranking[puzzle.puzzleId] is defined %}
-                                <span class="pr-chip pr-chip-rank">
-                                    {{ 'puzzle_result.rank'|trans({'%rank%': this.ranking[puzzle.puzzleId].rank, '%total%': this.ranking[puzzle.puzzleId].totalPlayers}) }}
-                                </span>
+                                {{ include('_rank_chip.html.twig', {rank: this.ranking[puzzle.puzzleId].rank, total: this.ranking[puzzle.puzzleId].totalPlayers}) }}
                             {% endif %}
 
                             {{ include('_leaderboard_time_badges.html.twig', {

@@ -1,0 +1,21 @@
+{#-
+    The share next to a rank on a puzzle: a short bar + "top 14.7 %" (RankShare, feature request #281).
+      {% set share = rank_share(rank, total) %}
+      {% if share %}{{ include('_rank_share.html.twig', {share: share, stacked: false}) }}{% endif %}
+    stacked: true = text over a full-width bar, for the narrow "Your best" tile; otherwise bar and text on one line.
+    The bar fills with the share of the others behind the rank; it is decoration, the text says it.
+-#}
+<span class="rank-share{{ stacked|default(false) ? ' rank-share-stacked' }}" data-testid="rank-share">
+    {%- set bar -%}
+        <span class="rank-share-bar" aria-hidden="true"><span style="width: {{ (share.aheadFraction * 100)|round(1) }}%"></span></span>
+    {%- endset -%}
+    {%- if not stacked|default(false) %}{{ bar }}{% endif -%}
+    <span class="rank-share-text">
+        {%- if share.isFastest -%}
+            {{ 'rank_share.fastest'|trans }}
+        {%- else -%}
+            {{ 'leaderboards.position.top_share'|trans({'%percent%': share.fraction|format_percent_number({min_fraction_digit: share.fractionDigits, max_fraction_digit: share.fractionDigits})}) }}
+        {%- endif -%}
+    </span>
+    {%- if stacked|default(false) %}{{ bar }}{% endif -%}
+</span>

@@ -1,0 +1,221 @@
+// MSP Rating history (docs/features/msp-rating-history.md): the ladder's movement, "This week on the ladder", the rating
+// card's story and the profile's rating block. A lost place is quiet grey on purpose - most places drop every week
+// without anybody doing anything wrong; a gained one is green; "New" is violet.
+
+$msp-move-up: #188a5c;
+$msp-move-down: #7d879c;
+$msp-move-new: #6a5bd6;
+$msp-teal: #1d6f6b;
+
+.lb-move {
+    display: block;
+    margin-top: 1px;
+    font-size: .6875rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.lb-move-up { color: $msp-move-up; }
+.lb-move-down { color: $msp-move-down; }
+.lb-move-new { color: $msp-move-new; }
+.lb-move-same { color: $msp-move-down; }
+
+.lb-move-points {
+    font-size: .6875rem;
+    font-weight: 600;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    vertical-align: middle;
+}
+
+.player-chip-move {
+    margin-left: .25rem;
+    font-size: .75em;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+// The season sneak peek under the ladder's title
+.msp-season {
+    font-size: .8125rem;
+    color: $gray-600;
+}
+
+.msp-season-current {
+    font-weight: 600;
+    letter-spacing: .02em;
+}
+
+// "This week on the ladder"
+.msp-this-week {
+    margin-bottom: 1rem;
+}
+
+.msp-this-week-heading {
+    margin-bottom: .5rem;
+    font-size: .9375rem;
+    font-weight: 600;
+}
+
+.msp-this-week-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+    gap: .5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.msp-this-week-tile {
+    display: grid;
+    gap: .375rem;
+    align-content: start;
+    min-width: 0;
+    padding: .625rem .75rem;
+    border-radius: .625rem;
+    background: $gray-100;
+    font-size: .8125rem;
+}
+
+.msp-this-week-kind {
+    font-size: .6875rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.msp-this-week-climber .msp-this-week-kind { color: $msp-move-up; }
+.msp-this-week-new_entry .msp-this-week-kind { color: $msp-move-new; }
+.msp-this-week-best_ever .msp-this-week-kind { color: #a26a12; }
+
+.msp-this-week-person {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+    color: $gray-900;
+    font-weight: 500;
+    text-decoration: none;
+
+    &:hover .msp-this-week-name { text-decoration: underline; }
+}
+
+.msp-this-week-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.msp-this-week-what {
+    color: $gray-700;
+}
+
+// The rating card's / profile block's story
+.msp-story-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .5rem;
+    margin: 0;
+
+    dt {
+        font-size: .6875rem;
+        font-weight: 500;
+        color: $gray-600;
+    }
+
+    dd {
+        display: grid;
+        margin: 0;
+    }
+}
+
+.msp-story-stat {
+    min-width: 0;
+    padding: .5rem .625rem;
+    border-radius: .5rem;
+    background: $gray-100;
+}
+
+.msp-story-value {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: $msp-teal;
+    font-variant-numeric: tabular-nums;
+}
+
+.msp-story-sub {
+    font-size: .6875rem;
+    color: $gray-600;
+}
+
+.msp-story-charts {
+    display: grid;
+    gap: .75rem;
+}
+
+.msp-story-chart {
+    margin: 0;
+
+    figcaption {
+        margin-bottom: .125rem;
+        font-size: .75rem;
+        font-weight: 600;
+        color: $gray-700;
+    }
+}
+
+// A fixed height: Chart.js does not keep an aspect ratio here, and the popover must not jump while the chart draws
+.msp-story-canvas {
+    position: relative;
+    height: 7.5rem;
+}
+
+.msp-story-note {
+    margin: 0;
+    font-size: .75rem;
+    color: $gray-600;
+}
+
+.msp-card .players-card-meta {
+    color: $gray-600;
+}
+
+// The profile's block
+.msp-profile-history {
+    display: grid;
+    gap: .75rem;
+    margin-bottom: .5rem;
+    padding: .75rem 1rem;
+    border-radius: .5rem;
+    background: #fff;
+    box-shadow: 0 .125rem .5rem rgba($gray-900, .08);
+
+    .msp-story-canvas { height: 9rem; }
+}
+
+.msp-profile-history-loading {
+    min-height: 22rem;
+}
+
+.msp-profile-history-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .25rem .75rem;
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.msp-profile-history-link {
+    font-size: .8125rem;
+    font-weight: 400;
+}
+
+@media (min-width: 768px) {
+    .msp-profile-history .msp-story-charts {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}

@@ -52,4 +52,15 @@ readonly final class GetPlayerRatingSnapshots
             'place' => $row['elo_rank'] !== null ? (int) $row['elo_rank'] : null,
         ], $rows);
     }
+
+    /**
+     * The first stored day - where `myspeedpuzzling:rerank-rating-snapshots` starts. Null without any snapshot.
+     */
+    public function firstDay(): null|DateTimeImmutable
+    {
+        /** @var false|null|string $day */
+        $day = $this->database->fetchOne('SELECT MIN(snapshot_date) FROM player_rating_snapshot');
+
+        return is_string($day) ? new DateTimeImmutable($day) : null;
+    }
 }

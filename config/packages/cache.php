@@ -55,6 +55,11 @@ return App::config([
                 'achievement_rarity_cache' => [
                     'adapters' => ['cache.app'],
                 ],
+                // "This week on the ladder" candidates (RatingLadderThisWeek): one ~150 ms statement over the
+                // rating snapshots, the same for everybody, 15 minutes like the rating batch
+                'rating_ladder_this_week_cache' => [
+                    'adapters' => ['cache.app'],
+                ],
                 // Global improvement ratios as they were at the start of a month
                 // (PredictionReconstructor) - recomputing one takes a second or two
                 // over every repeat solve, and the messenger worker resets the

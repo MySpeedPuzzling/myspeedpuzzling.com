@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetPlayerRatingRanking;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\MspRatingCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\MspRatingTimeline;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -20,6 +22,7 @@ final class MspRatingLadderController extends AbstractController
         readonly private GetPlayerRatingRanking $getPlayerRatingRanking,
         readonly private MspRatingCalculator $mspRatingCalculator,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -65,6 +68,9 @@ final class MspRatingLadderController extends AbstractController
             'ranking_opted_out' => $rankingOptedOut,
             'min_first_attempts' => MspRatingCalculator::MINIMUM_FIRST_ATTEMPTS,
             'min_total_solves' => MspRatingCalculator::MINIMUM_TOTAL_SOLVES,
+            'current_season' => MspRatingTimeline::CURRENT_SEASON,
+            'next_season' => MspRatingTimeline::NEXT_SEASON,
+            'next_season_starts_on' => MspRatingTimeline::nextSeasonAnnounced($this->clock->now()) ? MspRatingTimeline::nextSeasonStartsOn() : null,
         ]);
     }
 }

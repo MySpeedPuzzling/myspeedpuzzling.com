@@ -1,0 +1,73 @@
+{#
+    A player's MSP Rating card (docs/features/msp-rating-history.md), rendered inside <turbo-frame id="player-card">:
+    on the ladder in the puzzler card's popover / bottom sheet (players_card_controller.js - it needs .players-card,
+    #players-card-name and data-players-card-close), and on the card's own page. Links that leave the card carry
+    data-turbo-frame="_top"; Compare stays in the frame and comes back to it.
+
+    Inputs (MspRatingCardController): player (PlayerProfile), story (RatingStory),
+    compare ('add' | 'open' | 'sign_in' | null = own card), comparison_ref (string)
+#}
+{%- set name = player.playerName ?? ('#' ~ player.code|upper) -%}
+{%- set profile_path = path('player_profile', {playerId: player.playerId}) -%}
+<article class="players-card msp-card" aria-labelledby="players-card-name">
+    <button type="button" class="btn-close players-card-close" data-players-card-close aria-label="{{ 'players.card.close'|trans }}"></button>
+
+    <div class="players-card-id">
+        {{ include('_player_avatar.html.twig', {
+            player_id: player.playerId,
+            name: name,
+            avatar: player.avatar,
+            country_code: player.countryCode ? player.countryCode.name : null,
+            country_name: player.countryCode ? player.countryCode.value : null,
+            size: 'lg',
+        }) }}
+        <div class="players-card-who">
+            <h2 class="players-card-name" id="players-card-name">{{ name }}</h2>
+            <div class="players-card-meta">
+                <span class="players-card-code">#{{ player.code|upper }}</span> · {{ 'msp_rating.card.kicker'|trans }}
+            </div>
+        </div>
+    </div>
+
+    {{ include('msp_rating/_story.html.twig', {story: story, chart_id: 'msp-card-' ~ player.playerId}) }}
+
+    {% if app.request.hasPreviousSession %}
+        {% set comparison_added_flash = constant('SpeedPuzzling\\Web\\Controller\\AddComparisonSubjectController::ADDED_FLASH') %}
+        {% for label in ['success', 'info', 'warning', 'danger'] %}
+            {% for message in app.flashes(label) %}
+                <p class="players-card-notice players-card-notice-{{ label }}" role="status">{{ message }}</p>
+            {% endfor %}
+        {% endfor %}
+        {% for added in app.flashes(comparison_added_flash) %}
+            <p class="players-card-notice players-card-notice-success" role="status">
+                {{ added.message }}
+                <a href="{{ path('comparison', added.kind ? {kind: added.kind} : {}) }}" data-turbo-frame="_top">{{ 'comparison_entry.open'|trans }}</a>
+            </p>
+        {% endfor %}
+    {% endif %}
+
+    <div class="players-card-actions{{ compare is null ? ' is-own' }}">
+        {% if compare == 'add' %}
+            {{ include('comparison_entry/_subject_form.html.twig', {
+                action: 'add',
+                subject: comparison_ref,
+                form_class: 'players-card-action-form',
+                button_class: 'btn btn-sm btn-outline-secondary players-card-action',
+                icon: 'bi-arrow-left-right',
+                label: 'players.card.compare'|trans,
+            }) }}
+        {% elseif compare == 'open' %}
+            <a class="btn btn-sm btn-outline-secondary players-card-action is-on" href="{{ path('comparison', {kind: 'solo'}) }}" data-turbo-frame="_top" title="{{ 'player_header.compare_open'|trans }}">
+                <i class="bi bi-arrow-left-right" aria-hidden="true"></i> {{ 'players.card.compare_open'|trans }}
+            </a>
+        {% elseif compare == 'sign_in' %}
+            <a class="btn btn-sm btn-outline-secondary players-card-action" href="{{ path('login', {return: profile_path}) }}" rel="nofollow" data-turbo-frame="_top">
+                <i class="bi bi-arrow-left-right" aria-hidden="true"></i> {{ 'players.card.compare'|trans }}
+            </a>
+        {% endif %}
+
+        <a class="btn btn-sm btn-primary players-card-action players-card-profile" href="{{ profile_path }}" data-turbo-frame="_top">
+            {{ 'players.card.profile'|trans }} <i class="ci-arrow-right" aria-hidden="true"></i>
+        </a>
+    </div>
+</article>

@@ -79,6 +79,7 @@ use SpeedPuzzling\Web\Value\SkillTier;
  *     level?: int|string,
  *     achievement_points?: int|string,
  *     msp_rating_rank?: null|int|string,
+ *     msp_rating_rank_before?: null|int|string,
  *     skill_tier?: null|int|string,
  *     email_undeliverable?: bool,
  *     email_undeliverable_sub_type?: null|string,
@@ -218,6 +219,8 @@ readonly final class PlayerProfile
          * on the ladder (unrated, private, opted out of rankings). Public, like the ladder.
          */
         public null|int $mspRatingRank = null,
+        // The place on the stored day the ladder's movement compares with (GetPlayerRatingRanking::sqlPlaceOnStoredDayOf())
+        public null|int $mspRatingRankBefore = null,
         /**
          * GetPlayerProfile::byId() only: the skill tier at PlayerHeader::TIER_PIECES_COUNT pieces. Members-only data -
          * shown through PlayerHeader::tierChip() and the player card's rules, never on its own.
@@ -457,6 +460,7 @@ readonly final class PlayerProfile
             level: (int) ($row['level'] ?? 1),
             achievementPoints: (int) ($row['achievement_points'] ?? 0),
             mspRatingRank: isset($row['msp_rating_rank']) ? (int) $row['msp_rating_rank'] : null,
+            mspRatingRankBefore: isset($row['msp_rating_rank_before']) ? (int) $row['msp_rating_rank_before'] : null,
             skillTier: isset($row['skill_tier']) ? SkillTier::tryFrom((int) $row['skill_tier']) : null,
             emailUndeliverable: $emailUndeliverable,
             emailVerificationReminder: $emailVerificationReminder,

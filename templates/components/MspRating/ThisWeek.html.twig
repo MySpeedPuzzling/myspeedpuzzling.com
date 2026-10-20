@@ -1,0 +1,43 @@
+{#
+    "This week on the ladder" (MspRating\ThisWeek, docs/features/msp-rating-history.md): up to three tiles, each a
+    person with what happened; a tap opens their rating card (players_card_controller.js on the page wrapper),
+    Ctrl/Cmd-click and no JavaScript go to the profile.
+#}
+{% set tiles = this.tiles %}
+<div{{ attributes }}>
+    {% if tiles|length > 0 %}
+        <section class="msp-this-week" aria-labelledby="msp-this-week-heading">
+            <h2 class="msp-this-week-heading" id="msp-this-week-heading">{{ 'msp_rating.this_week.heading'|trans }}</h2>
+            <ul class="msp-this-week-tiles">
+                {% for tile in tiles %}
+                    {% set name = tile.playerName ?? ('#' ~ tile.playerCode|upper) %}
+                    <li class="msp-this-week-tile msp-this-week-{{ tile.kind }}">
+                        <span class="msp-this-week-kind">{{ ('msp_rating.this_week.' ~ tile.kind)|trans }}</span>
+                        <a class="msp-this-week-person"
+                           href="{{ path('player_profile', {playerId: tile.playerId, return: app.request.uri, return_title: 'puzzle_intelligence.elo.title'|trans}) }}"
+                           data-action="players-card#open"
+                           data-players-card-url-param="{{ path('msp_rating_card', {playerId: tile.playerId}) }}">
+                            {{ include('_player_avatar.html.twig', {
+                                player_id: tile.playerId,
+                                name: name,
+                                avatar: tile.playerAvatar,
+                                country_code: tile.playerCountry,
+                                country_name: null,
+                            }) }}
+                            <span class="msp-this-week-name">{{ name }}</span>
+                        </a>
+                        <span class="msp-this-week-what">
+                            {%- if tile.kind == 'climber' -%}
+                                {{ 'msp_rating.this_week.climber_what'|trans({'%count%': tile.value, '%rank%': tile.rank|plain_number}) }}
+                            {%- elseif tile.kind == 'new_entry' -%}
+                                {{ 'msp_rating.this_week.new_entry_what'|trans({'%rank%': tile.rank|plain_number}) }}
+                            {%- else -%}
+                                {{ 'msp_rating.this_week.best_ever_what'|trans({'%rank%': tile.rank|plain_number}) }}
+                            {%- endif -%}
+                        </span>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+</div>

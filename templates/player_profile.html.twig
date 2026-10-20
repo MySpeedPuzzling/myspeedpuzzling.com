@@ -157,6 +157,14 @@
                     />
                 </div>
             {% endif %}
+
+            {# The MSP Rating day by day (docs/features/msp-rating-history.md) - only for a player on the ladder, loaded
+               when it scrolls into view so the profile pays nothing for it up front #}
+            {% if player.mspRatingRank is not null %}
+                <turbo-frame id="msp-rating-history" class="d-block w-100" src="{{ path('msp_rating_card', {playerId: player.playerId}) }}" loading="lazy">
+                    <div class="msp-profile-history msp-profile-history-loading" aria-hidden="true"></div>
+                </turbo-frame>
+            {% endif %}
         </div>
 
         <ul class="nav nav-fill nav-tabs mt-2" role="tablist" {{ stimulus_controller('tabs') }}>

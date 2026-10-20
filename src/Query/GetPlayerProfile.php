@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Results\ComparisonLineUp;
 use SpeedPuzzling\Web\Results\PlayerProfile;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
+use SpeedPuzzling\Web\Value\MspRatingTimeline;
 
 /**
  * @phpstan-import-type PlayerProfileRow from PlayerProfile
@@ -44,6 +45,11 @@ readonly final class GetPlayerProfile
         $isPrivate = $this->privateProfileAccess->sqlIsPrivate('player');
         $mspRatingRank = $this->getPlayerRatingRanking->sqlRankOf('header_elo');
         $headerPieces = PlayerHeader::TIER_PIECES_COUNT;
+        // The chip's 7-day move (docs/features/msp-rating-history.md): the place on the stored day the ladder compares with
+        $moveSince = MspRatingTimeline::moveReferenceDay($this->clock->now(), GetPlayerRatingRanking::MOVE_DAYS);
+        $mspRatingRankBefore = $moveSince !== null
+            ? $this->getPlayerRatingRanking->sqlPlaceOnStoredDayOf('player.id', (string) $headerPieces, ':mspMoveSince', ':mspMoveNotBefore')
+            : 'NULL';
 
         $query = <<<SQL
 SELECT
@@ -103,6 +109,9 @@ SELECT
     CASE WHEN player.is_private = false AND player.ranking_opted_out = false AND header_elo.id IS NOT NULL
         THEN {$mspRatingRank}
     END AS msp_rating_rank,
+    CASE WHEN player.is_private = false AND player.ranking_opted_out = false AND header_elo.id IS NOT NULL
+        THEN {$mspRatingRankBefore}
+    END AS msp_rating_rank_before,
     header_skill.skill_tier
 FROM player
 LEFT JOIN user_account ON user_account.user_id = player.user_id
@@ -116,9 +125,11 @@ SQL;
          * @var false|PlayerProfileRow $row
          */
         $row = $this->database
-            ->executeQuery($query, [
+            ->executeQuery($query, array_filter([
                 'playerId' => $playerId,
-            ])
+                'mspMoveSince' => $moveSince?->format('Y-m-d'),
+                'mspMoveNotBefore' => $moveSince !== null ? MspRatingTimeline::moveNotBefore($moveSince, GetPlayerRatingRanking::MOVE_DAYS)->format('Y-m-d') : null,
+            ], static fn (null|string $value): bool => $value !== null))
             ->fetchAssociative();
 
         if (is_array($row) === false) {

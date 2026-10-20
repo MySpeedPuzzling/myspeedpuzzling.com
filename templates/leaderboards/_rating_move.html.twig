@@ -1,0 +1,26 @@
+{#-
+    A ladder row's movement against the compared day (docs/features/msp-rating-history.md): "▲ 3" (up, green), "▼ 2"
+    (down, quiet grey - most places drop every week without anybody doing anything wrong), "New"; the same place shows
+    nothing but a sentence for screen readers.
+      {{ include('leaderboards/_rating_move.html.twig', {move: entry.move, part: 'places'}) }}  under the place
+      {{ include('leaderboards/_rating_move.html.twig', {move: entry.move, part: 'points'}) }}  the rating points
+    move: RatingMove or null (nothing rendered); part: places | points. The screen reader gets the sentence with the day.
+-#}
+{%- if move is not null -%}
+    {%- set since = move.since|events_date('MMMd') -%}
+    {%- if part == 'places' -%}
+        {%- if move.isNew -%}
+            <span class="lb-move lb-move-new" title="{{ 'msp_rating.move.new_title'|trans({'%since%': since}) }}">{{ 'msp_rating.move.new'|trans }}</span>
+        {%- elseif move.placesGained > 0 -%}
+            <span class="lb-move lb-move-up" title="{{ 'msp_rating.move.up_title'|trans({'%count%': move.placesGained, '%since%': since}) }}"><span aria-hidden="true">▲&nbsp;{{ move.placesGained|plain_number }}</span><span class="visually-hidden">{{ 'msp_rating.move.up_title'|trans({'%count%': move.placesGained, '%since%': since}) }}</span></span>
+        {%- elseif move.placesGained < 0 -%}
+            <span class="lb-move lb-move-down" title="{{ 'msp_rating.move.down_title'|trans({'%count%': -move.placesGained, '%since%': since}) }}"><span aria-hidden="true">▼&nbsp;{{ (-move.placesGained)|plain_number }}</span><span class="visually-hidden">{{ 'msp_rating.move.down_title'|trans({'%count%': -move.placesGained, '%since%': since}) }}</span></span>
+        {%- else -%}
+            {#- Most places do not move between two days - a dash on every row is noise, the sentence is for screen readers -#}
+            <span class="visually-hidden">{{ 'msp_rating.move.same_title'|trans({'%since%': since}) }}</span>
+        {%- endif -%}
+    {%- elseif move.pointsChange is not null and move.pointsChange != 0 -%}
+        {%- set points = (move.pointsChange > 0 ? '+' : '−') ~ (move.pointsChange|abs) -%}
+        <span class="lb-move-points {{ move.pointsChange > 0 ? 'lb-move-up' : 'lb-move-down' }}" title="{{ 'msp_rating.move.points_title'|trans({'%change%': points, '%since%': since}) }}">{{ points }}</span>
+    {%- endif -%}
+{%- endif -%}

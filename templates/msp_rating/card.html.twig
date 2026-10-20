@@ -1,0 +1,30 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The MSP Rating card as a page of its own: the card's URL opened directly (a new tab, no JavaScript). The profile is
+    the page to index.
+#}
+
+{% block title %}{{ 'msp_rating.card.meta_title'|trans({'%name%': player.playerName ?? ('#' ~ player.code|upper)}) }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, follow">{% endblock %}
+
+{% block canonical %}
+    <link rel="canonical" href="{{ url('player_profile', {playerId: player.playerId}) }}">
+{% endblock %}
+
+{% block hreflang %}{% endblock %}
+
+{% block content %}
+    <div class="players-card-page">
+        <a class="players-card-page-back" href="{{ path('msp_rating_ladder') }}">
+            <i class="ci-arrow-left" aria-hidden="true"></i> {{ 'puzzle_intelligence.elo.title'|trans }}
+        </a>
+
+        <h1 class="players-card-page-title">{{ 'msp_rating.card.title'|trans }}</h1>
+
+        <turbo-frame id="player-card">
+            {{ include('msp_rating/_card.html.twig') }}
+        </turbo-frame>
+    </div>
+{% endblock %}

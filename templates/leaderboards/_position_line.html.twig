@@ -9,6 +9,7 @@
           jump_href: '#board-row-…' | null,     only when the own row is below the first screen (LeaderboardWindow::ownRowBelowFirstScreen())
           goal_key: 'leaderboards.times.goal' | null,  the goal's wording when "to the top N" does not fit the value (a time
                                                 must get *faster*); default leaderboards.position.goal
+          move_html: rendered HTML | null,      one more part after the rank: the MSP Rating's own movement ("▲ 6 places since 13 Oct")
       }) }}
     Every number goes through format_number, the share through the locale's percent format (one decimal under 10 %), the
     rank sign lives in the translations. Parts that do not fit move to the next line whole (.lb-parts).
@@ -23,6 +24,9 @@
                 {{ 'leaderboards.position.rank_world'|trans(rank_params) }}
             {%- endif -%}
         </span>
+        {%- if move_html|default('')|trim is not same as('') %}
+            <span>{{ move_html|raw }}</span>
+        {%- endif %}
         {%- if position.topFraction is not null %}
             <span>{{ 'leaderboards.position.top_share'|trans({'%percent%': position.topFraction|format_percent_number({fraction_digit: position.topFraction < 0.1 ? 1 : 0})}) }}</span>
         {%- endif %}

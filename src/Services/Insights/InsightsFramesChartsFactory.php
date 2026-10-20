@@ -318,8 +318,8 @@ readonly final class InsightsFramesChartsFactory
     }
 
     /**
-     * The daily rating (player_rating_snapshot) within the period - the rating only: the snapshot's stored place
-     * follows another rule than today's ladder (and the ranking opt-out), so no place is shown here
+     * The daily rating (player_rating_snapshot) within the period - the rating only; the place day by day is the MSP
+     * Rating card's (RatingHistoryChartFactory, docs/features/msp-rating-history.md)
      */
     public function ratingOverTime(RatingOverTimeSeries $series): null|Chart
     {

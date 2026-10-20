@@ -1600,6 +1600,8 @@ competition_referees:
   "moderator_role":
     "granted": "Nyní jste komunitní moderátor - můžete kontrolovat žádosti o změnu puzzlí a reporty duplikátů. Děkujeme za pomoc!"
     "revoked": "Vaše role komunitního moderátora skončila. Děkujeme za vaši pomoc!"
+    "invited": "Zveme vás, abyste se stali komunitním moderátorem! Přečtěte si průvodce pro moderátory - na jeho konci můžete pozvánku přijmout."
+    "open_guide": "Otevřít průvodce pro moderátory"
   "puzzling_team":
     "renamed": "%player% pojmenoval(a) vaši dvojici/tým „%name%“."
     "name_removed": "%player% odstranil(a) název vaší dvojice/týmu."
@@ -3046,13 +3048,13 @@ recap_progress:
     "validation_failed": "Je vyžadováno cílové puzzle, název a počet dílků."
   "moderators":
     "title": "Komunitní moderátoři"
-    "intro": "Komunitní moderátoři mohou kontrolovat žádosti o změnu puzzlí a žádosti o sloučení puzzlí. Do žádné jiné části administrace se nedostanou a jmenovat či odvolávat je mohou pouze administrátoři."
-    "add_title": "Přidat moderátory"
+    "intro": "Komunitní moderátoři se starají o katalog puzzlí a ověřují časy. Do žádné jiné části administrace se nedostanou. Zvát a odvolávat je mohou pouze administrátoři - pozvaný hráč se stane moderátorem, až si přečte průvodce pro moderátory a souhlasí s ním."
+    "add_title": "Pozvat moderátory"
     "add_label": "Hráči"
     "add_help": "Hledejte podle jména nebo kódu hráče. Můžete přidat několik hráčů najednou."
-    "add_submit": "Udělit roli moderátora"
+    "add_submit": "Poslat pozvánku"
     "choose_player": "Vyberte alespoň jednoho hráče."
-    "granted": "{1}Role moderátora byla udělena.|[0,Inf[Role moderátora byla udělena %count% hráčům."
+    "invited": "{1}Pozvánka byla odeslána.|[0,Inf[Pozvánky byly odeslány %count% hráčům."
     "revoked": "Role moderátora byla odebrána."
     "revoke": "Odebrat"
     "revoke_confirm": "Odebrat tomuto hráči roli moderátora?"
@@ -3063,6 +3065,19 @@ recap_progress:
     "column_merge_requests": "Zkontrolované žádosti o sloučení"
     "column_last_review": "Poslední kontrola"
     "never": "nikdy"
+    "invitation_explained": "Hráč dostane e-mail a notifikaci s odkazem na průvodce pro moderátory. Hráči, kteří už moderátory jsou nebo mají otevřenou pozvánku, se přeskočí."
+    "open_guide": "Přečíst průvodce"
+    "invitations_title": "Pozvánky"
+    "column_invited": "Pozván(a)"
+    "column_status": "Stav"
+    "status_pending": "Čeká na odpověď"
+    "status_declined": "Odmítnuto"
+    "status_withdrawn": "Staženo"
+    "withdraw": "Stáhnout"
+    "withdraw_confirm": "Stáhnout tuto pozvánku? Hráč se to nedozví."
+    "invitation_withdrawn": "Pozvánka byla stažena."
+    "column_agreed": "Souhlas s průvodcem"
+    "agreed_before_invitations": "před pozvánkami"
     "column_karma": "Karma"
   "puzzle_edit":
     "saved": "Puzzle uloženo."
@@ -6898,6 +6913,10 @@ comparison_entry:
 
 player_header:
     pages: "Stránky hráče"
+    role_team: "Tým MySpeedPuzzling"
+    role_team_title: "Součást týmu, který MySpeedPuzzling provozuje"
+    role_moderator: "Komunitní moderátor"
+    role_moderator_title: "Pomáhá celé komunitě starat se o katalog puzzlí"
     tabs:
         insights: "Postřehy"
         profile: "Profil"

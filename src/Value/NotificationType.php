@@ -35,6 +35,8 @@ enum NotificationType: string
     // Community moderator role (no target entity - the notification is the whole message)
     case ModeratorRoleGranted = 'ModeratorRoleGranted';
     case ModeratorRoleRevoked = 'ModeratorRoleRevoked';
+    // An admin invited the player - the notification leads to the moderator guide, where they accept or decline
+    case ModeratorInvitationReceived = 'ModeratorInvitationReceived';
 
     // A pair/team the player belongs to was named or renamed by another member
     case PuzzlingTeamRenamed = 'PuzzlingTeamRenamed';

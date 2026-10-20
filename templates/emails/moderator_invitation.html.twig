@@ -1,0 +1,36 @@
+{% trans_default_domain 'emails' %}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
+    <wrapper>
+        <container>
+            {{ include('emails/_header.html.twig', {preheader: 'moderator_invitation.preheader'|trans}) }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="24"></spacer>
+                    <h3>{{ 'moderator_invitation.title'|trans }}</h3>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    {{ 'moderator_invitation.content'|trans({'%playerName%': playerName|e})|raw }}
+                    {% if invitedByName is not null %}
+                        <p>{{ 'moderator_invitation.invited_by'|trans({'%name%': invitedByName}) }}</p>
+                    {% endif %}
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <spacer size-sm="8"></spacer>
+                    <button href="{{ guideUrl }}">{{ 'moderator_invitation.button'|trans }}</button>
+                    <spacer size-sm="8"></spacer>
+                    <p class="small-print">{{ 'moderator_invitation.no_pressure'|trans }}</p>
+                </columns>
+            </row>
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

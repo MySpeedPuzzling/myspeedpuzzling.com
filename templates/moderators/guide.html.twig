@@ -1,0 +1,222 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Moderator guide{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block hreflang %}{% endblock %}
+
+{#
+    The moderator guide (docs/features/community-moderators.md, ModeratorGuideController). English only, like the
+    review pages it explains. Invited players read it and agree to the pledge at the end; moderators and admins come
+    back to it from the key menu. Anchors are linked from the e-mails and the key menu - do not rename them.
+    Bump ModeratorGuide::VERSION when what we ask of moderators changes (not for wording).
+#}
+
+{% block content %}
+    <div class="mx-auto pb-5" style="max-width: 760px;">
+        <header class="mb-4">
+            <p class="text-uppercase text-muted fs-xs fw-semibold mb-1"><i class="bi bi-shield-check me-1" aria-hidden="true"></i>Community moderators</p>
+            <h1 class="h2 mb-2">Moderator guide</h1>
+            {% if invited %}
+                <p class="fs-lg mb-2">You have been invited to become a community moderator. Thank you for considering it! Please read this guide first - at the end you can accept the invitation.</p>
+            {% else %}
+                <p class="fs-lg mb-2">How moderation on MySpeedPuzzling works, what we ask of you and where everything is. Come back any time - it is always in the key menu in the top bar.</p>
+            {% endif %}
+            <blockquote class="border-start border-4 border-primary ps-3 py-1 my-4">
+                <p class="h4 mb-1">“{{ motto }}”</p>
+                <p class="text-muted fs-sm mb-0">The one rule behind everything below.</p>
+            </blockquote>
+        </header>
+
+        <nav class="card card-body bg-secondary border-0 mb-5" aria-label="Contents">
+            <p class="fw-semibold mb-2">In this guide</p>
+            <ol class="mb-0 fs-sm">
+                <li><a href="#why">Why we need you</a></li>
+                <li><a href="#what-we-ask">What we ask of you</a></li>
+                <li><a href="#tools">Your tools and where to find them</a></li>
+                <li><a href="#change-requests">Change requests</a></li>
+                <li><a href="#merge-requests">Merge requests - duplicates</a></li>
+                <li><a href="#approvals">Approving new puzzles and brands</a></li>
+                <li><a href="#direct-edits">Editing a puzzle directly, history, restoring a picture</a></li>
+                <li><a href="#box-text">Box-text mismatches</a></li>
+                <li><a href="#time-verification">Time verification</a></li>
+                <li><a href="#talking-to-players">Talking to players</a></li>
+                <li><a href="#cannot-be-undone">What cannot be undone</a></li>
+                <li><a href="#help">When you are not sure</a></li>
+                {% if invited %}<li><a href="#accept">Accept the invitation</a></li>{% endif %}
+            </ol>
+        </nav>
+
+        <section id="why" class="mb-5">
+            <h2 class="h4">1. Why we need you</h2>
+            <p>The puzzle catalogue is the heart of MySpeedPuzzling. Every solving time, every collection, wishlist, marketplace listing and leaderboard hangs on a puzzle in it. When a puzzle is in the catalogue twice, its leaderboard is split in two. When a piece count is wrong, the times on it look too fast or too slow. When a photo is missing, nobody recognises the box.</p>
+            <p>Puzzlers add new puzzles and suggest corrections every day - far more than a couple of people can look after. Moderators are the community members who review them, so the catalogue stays something everybody can trust.</p>
+            <p class="mb-0">You do not have to know every puzzle in the world. What matters is care: looking closely, comparing what you see, and choosing the outcome that leaves the catalogue a little better than before.</p>
+        </section>
+
+        <section id="what-we-ask" class="mb-5">
+            <h2 class="h4">2. What we ask of you</h2>
+            <ul>
+                <li><strong>Care over speed.</strong> A careful decision a day is worth more than twenty quick ones. There is no quota and no deadline - every review you do helps.</li>
+                <li><strong>When in doubt, leave it.</strong> A request that stays in the queue costs nothing. A wrong merge or a wrong correction costs players their data. Skip it, or ask.</li>
+                <li><strong>Check the box, not the title.</strong> Many brands print the same title (“Tropical Paradise” exists from several brands in 500 pieces). The box picture, the brand, the piece count and the codes decide - not the name alone.</li>
+                <li><strong>Be kind and specific.</strong> The player who suggested something reads your rejection reason. Thank them and say why, in a sentence they understand.</li>
+                <li><strong>Keep what you see to yourself.</strong> The review pages show things the public does not see - for example the times of players with a private profile while they wait in the time verification. Never share them outside the review pages.</li>
+                <li><strong>Respect secrets.</strong> Some puzzles are hidden until a competition reveals them. Never talk about a puzzle that is not public yet.</li>
+                <li><strong>Your own suggestions.</strong> You may decide your own proposals - we trust you. Look at them as strictly as at anybody else's.</li>
+                <li><strong>Let us know when you step back.</strong> Life happens. If you have less time, or want to stop, just tell us - no explanation needed.</li>
+            </ul>
+            <p class="mb-0">Every decision you make is recorded with your name - who decided what, and when - so we can always look back, learn, and fix a mistake together. It also counts towards your <a href="{{ path('karma_explainer') }}">karma</a>: one karma for every decision.</p>
+        </section>
+
+        <section id="tools" class="mb-5">
+            <h2 class="h4">3. Your tools and where to find them</h2>
+            <p>Signed in as a moderator, you have a <strong><i class="ci-key" aria-hidden="true"></i> key icon</strong> in the top bar. It opens a menu with every queue, and the number next to each one is how much is waiting there. The review pages are in English.</p>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle fs-sm">
+                    <thead>
+                        <tr><th>Where</th><th>What you do there</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><a href="{{ path('admin_puzzle_change_requests') }}">Puzzle Change Requests</a></td><td>Corrections players suggest: names, brand, pieces, EAN, brand code, picture. Also the <a href="{{ path('admin_puzzle_change_request_pictures') }}">picture review</a> - proposed pictures side by side.</td></tr>
+                        <tr><td><a href="{{ path('admin_puzzle_merge_requests') }}">Puzzle Merge Requests</a></td><td>Reports that two or more entries are the same puzzle.</td></tr>
+                        <tr><td><a href="{{ path('admin_puzzle_approvals') }}">Puzzle Approvals</a></td><td>Puzzles players added that are not in the public catalogue yet, and their new brands.</td></tr>
+                        <tr><td><a href="{{ path('admin_box_text_mismatches') }}">Box-text mismatches</a></td><td>What the box picture says and the catalogue does not.</td></tr>
+                        <tr><td><a href="{{ path('admin_time_verification') }}">Time verification</a></td><td>Times that look far too fast or too slow for the player and the puzzle.</td></tr>
+                        <tr><td>“Edit puzzle” on any puzzle page</td><td>Fix a puzzle right away, without a request. Its history is linked there too.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            {# Screenshots of the queues go here once the moderators' workflow is written down (docs/TODO.md) #}
+        </section>
+
+        <section id="change-requests" class="mb-5">
+            <h2 class="h4">4. Change requests</h2>
+            <p>A player pressed “Suggest a change” on a puzzle. The review shows <strong>the whole puzzle</strong> as a form: what the player proposed is filled in and marked <span class="badge bg-warning text-dark">Proposed</span>, everything else is the puzzle as it is now. You can change any field - your own changes are marked <span class="badge bg-info text-dark">Your edit</span> - and above the button a summary says exactly what approving will save.</p>
+            <p><strong>Your options:</strong></p>
+            <ul>
+                <li><strong>Approve</strong> - everything the summary lists is saved, and the player is told their suggestion was accepted.</li>
+                <li><strong>Approve with corrections</strong> - take the good part, “Keep current” for a proposal that is wrong, fix a typo yourself.</li>
+                <li><strong>Reject</strong> - with a reason the player reads.</li>
+                <li><strong>Leave it</strong> - for somebody else, or until you have asked.</li>
+            </ul>
+            <p>Add a short <strong>note for the history</strong> when the reason for your decision is not obvious.</p>
+            <details class="mb-3">
+                <summary class="fw-semibold">Examples</summary>
+                <ul class="mt-2">
+                    <li>A player adds a second EAN to a puzzle. <strong>Fine</strong> - one puzzle may have several EANs and brand codes, one per edition or region. Never reduce such a list to one code.</li>
+                    <li>A player changes the piece count from 1000 to 1008. Look at the box picture: if it says 1008, approve. If it says 1000, reject kindly (“The box says 1000 pieces - thank you for checking!”).</li>
+                    <li>A new picture is blurry, a photo of the finished puzzle, or shows a different box. Keep the current picture and reject the picture part - the box is what people recognise.</li>
+                    <li>The name proposal is a translation (“Kočky” for “Cats”). Do not replace the main title - add it as another name in its language. The puzzle is then found under both.</li>
+                </ul>
+            </details>
+            <p class="mb-0"><strong>Picture review:</strong> proposed pictures (many from our picture analysis, with a confidence) are shown side by side as cards. Approve or reject each one - the keyboard works too (<kbd>A</kbd> approve, <kbd>R</kbd> reject, <kbd>J</kbd>/<kbd>K</kbd> next/previous). A request that proposes more than a picture opens as a normal change request.</p>
+        </section>
+
+        <section id="merge-requests" class="mb-5">
+            <h2 class="h4">5. Merge requests - duplicates</h2>
+            <p>Somebody reported that two (or more) entries are the same puzzle. The review shows them side by side with what differs highlighted. You choose <strong>which one keeps its address</strong> (by default the one with most solving times), which name, brand and pieces stay, and which picture. EANs and brand codes of all of them are kept together.</p>
+            <p>Approving <strong>deletes the other entries</strong> and moves everybody's times, collections, wishlists, listings and lending onto the one that stays. Every name of every entry is kept as another name, so people still find it.</p>
+            <details class="mb-3">
+                <summary class="fw-semibold">Is it really the same puzzle?</summary>
+                <ul class="mt-2">
+                    <li><strong>Same:</strong> the same box from the same brand, one entry with an EAN and one without; a typo in the name; the same puzzle added twice on the same day.</li>
+                    <li><strong>Not the same:</strong> a different piece count (500 and 1000 of one picture are two puzzles), a different brand printing the same title, a different artwork, a mini edition, a reissue with a different picture.</li>
+                    <li><strong>Unsure:</strong> leave it, or ask. A puzzle that stays in the catalogue twice for a week is a small problem; two different puzzles merged into one cannot be taken apart.</li>
+                </ul>
+            </details>
+            <p class="mb-0">Requests the catalogue has already taken care of (another merge joined the puzzles meanwhile) close by themselves - you find them under <em>Already done</em>.</p>
+        </section>
+
+        <section id="approvals" class="mb-5">
+            <h2 class="h4">6. Approving new puzzles and brands</h2>
+            <p>When a player adds a puzzle, only they see it until a moderator approves it. A new puzzle almost always carries the player's solving time, so <strong>there is no reject</strong> - you have two choices:</p>
+            <ol>
+                <li><strong>Approve</strong>, correcting the record on the way: names and their language, pieces, EAN, brand code, a better photo of the box.</li>
+                <li><strong>Merge</strong> into the puzzle it duplicates. <em>“Is it already in the catalogue?”</em> lists similar puzzles - similar, not necessarily duplicates. A shared EAN is a strong sign; the same title from another brand usually is a different puzzle. “It's the same puzzle - merge” opens the merge review described above.</li>
+            </ol>
+            <p><strong>New brands.</strong> Players often create a brand that already exists (“Lluneta Puzzles” was created seven times). When the puzzle's brand is new, you choose:</p>
+            <ul class="mb-0">
+                <li><strong>It duplicates an existing brand</strong> - merge it: all its puzzles move to the existing brand.</li>
+                <li><strong>Use an existing brand</strong> for this puzzle only.</li>
+                <li><strong>It is a genuine new brand</strong> - approve it. Check the spelling the brand itself uses.</li>
+            </ul>
+        </section>
+
+        <section id="direct-edits" class="mb-5">
+            <h2 class="h4">7. Editing a puzzle directly, history, restoring a picture</h2>
+            <p>Every puzzle page has <strong>“Edit puzzle”</strong> for you: the same form as the reviews, without a proposal. Use it for clear mistakes you notice yourself. If somebody already suggested the fix, approve their request instead - they get thanked and it counts for them.</p>
+            <p>Each puzzle has a <strong>history</strong>: who changed, approved or merged what, and when, with before and after. When a picture was replaced by mistake, <strong>“Restore this picture”</strong> on the history puts the earlier one back.</p>
+            <p class="mb-0">If somebody saved the puzzle while you had the form open, saving is refused and the form comes back with what you typed - look at the change first, then save again.</p>
+        </section>
+
+        <section id="box-text" class="mb-5">
+            <h2 class="h4">8. Box-text mismatches</h2>
+            <p>Our picture analysis reads the box: piece counts, EANs, brand codes, brand names. This list shows where the box says something the catalogue does not. The reading is not always right - boxes say “500” for puzzles that have 520 pieces, a letter is misread - so nothing changes by itself.</p>
+            <ul class="mb-0">
+                <li>The catalogue is wrong - <strong>Edit puzzle</strong> and fix it.</li>
+                <li>The reading is wrong, or both are fine - <strong>Dismiss</strong>. It does not come back while the box reads the same.</li>
+            </ul>
+        </section>
+
+        <section id="time-verification" class="mb-5">
+            <h2 class="h4">9. Time verification</h2>
+            <p>Some times look far off for the player and the puzzle - usually a typo (minutes typed into the hours box, a pair saved as solo, another edition of the puzzle). Each card shows the time, what we would expect from that player's own times, the reasons, and the player's numbers.</p>
+            <ul>
+                <li><strong>Needs verification</strong> - the time is left out of leaderboards and statistics until the player fixes it or confirms it. Tick the reasons the player should see and add a short, friendly note if it helps.</li>
+                <li><strong>Looks fine</strong> - the time is trusted and never raised again.</li>
+                <li><strong>Keep marked</strong> - when a player replied but the time still does not add up; a note for the player is required.</li>
+                <li>On a puzzle card: <strong>Edit the puzzle</strong> when its piece count is wrong, or <strong>It is a hard puzzle</strong> for puzzles that are slow for everybody (one colour, for example).</li>
+            </ul>
+            <p class="mb-0">Most of these are honest mistakes. Assume good faith - the goal is correct leaderboards, not catching anybody.</p>
+        </section>
+
+        <section id="talking-to-players" class="mb-5">
+            <h2 class="h4">10. Talking to players</h2>
+            <ul class="mb-0">
+                <li>Players read your rejection reasons and notes. Start with thanks, say what you saw, and keep it to a sentence or two: <em>“Thank you! The box says 1000 pieces, so we kept it as it is.”</em></li>
+                <li>Never call a time “suspicious” or a player a cheater - a time <em>needs verification</em>.</li>
+                <li>Neutral wording: describe the puzzle and the box, never the person.</li>
+                <li>Many players do not speak English. Simple words help everybody.</li>
+            </ul>
+        </section>
+
+        <section id="cannot-be-undone" class="mb-5">
+            <h2 class="h4">11. What cannot be undone</h2>
+            <div class="alert alert-warning mb-0">
+                <ul class="mb-0">
+                    <li><strong>Approving a merge</strong> deletes the merged entries. Their data moves over and everything is recorded, but the puzzles cannot be split again.</li>
+                    <li><strong>Merging a brand</strong> into another moves all its puzzles.</li>
+                </ul>
+                <p class="mt-2 mb-0">Everything else - an edit, an approved correction, a replaced picture - can be fixed again from the puzzle's history.</p>
+            </div>
+        </section>
+
+        {#
+            Slot: "How we work day to day" - the experienced moderators' routine (order of the queues, tools and
+            searches used to check a box, typical cases). Jan is collecting it from Simona (docs/TODO.md).
+        #}
+
+        <section id="help" class="mb-5">
+            <h2 class="h4">12. When you are not sure</h2>
+            <p class="mb-0">Leave it in the queue and ask. Write to us through <a href="{{ path('feedback') }}" data-turbo-frame="modal-frame">Feedback</a> in the top bar, or e-mail <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>. There are no silly questions - every question you ask makes this guide better for the next moderator.</p>
+        </section>
+
+        {% if invited %}
+            <section id="accept" class="card card-body shadow-sm border-primary">
+                <h2 class="h4">Accept the invitation</h2>
+                <p>Being a moderator is voluntary, and you can step back whenever you like. If you are in, tick the box below.</p>
+                <p class="h5 mb-3">“{{ motto }}”</p>
+
+                {{ form_start(form, {action: path('moderator_guide')}) }}
+                    {{ form_row(form.pledge) }}
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-shield-check me-1" aria-hidden="true"></i> Accept and become a moderator</button>
+                {{ form_end(form) }}
+
+                <form method="post" action="{{ path('moderator_invitation_decline') }}" class="mt-3">
+                    <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DeclineModeratorInvitationController::CSRF_TOKEN_ID')) }}">
+                    <button type="submit" class="btn btn-link px-0 text-muted">Not now - decline the invitation</button>
+                </form>
+            </section>
+        {% endif %}
+    </div>
+{% endblock %}

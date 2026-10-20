@@ -2070,6 +2070,8 @@ notifications:
     moderator_role:
         granted: "You are now a community moderator - you can review puzzle change requests and duplicate reports. Thank you for helping!"
         revoked: "Your community moderator role has ended. Thank you for your help!"
+        invited: "You are invited to become a community moderator! Read the moderator guide - you can accept the invitation at its end."
+        open_guide: "Open the moderator guide"
     puzzling_team:
         renamed: "%player% named your pair/team “%name%”."
         name_removed: "%player% removed the name of your pair/team."
@@ -3676,13 +3678,13 @@ admin:
         back_title: "Admin — approvals"
     moderators:
         title: "Community moderators"
-        intro: "Community moderators can review puzzle change requests and puzzle merge requests. They cannot reach any other part of the admin area, and only admins can appoint or remove them."
-        add_title: "Add moderators"
+        intro: "Community moderators look after the puzzle catalogue and verify times. They cannot reach any other part of the admin area. Only admins invite or remove them - an invited player becomes a moderator once they have read the moderator guide and agreed to it."
+        add_title: "Invite moderators"
         add_label: "Players"
         add_help: "Search by name or player code. You can add several players at once."
-        add_submit: "Grant moderator role"
+        add_submit: "Send invitation"
         choose_player: "Choose at least one player."
-        granted: "Moderator role granted.|Moderator role granted to %count% players."
+        invited: "Invitation sent.|Invitations sent to %count% players."
         revoked: "Moderator role revoked."
         revoke: "Revoke"
         revoke_confirm: "Remove the moderator role from this player?"
@@ -3694,6 +3696,19 @@ admin:
         column_last_review: "Last review"
         column_karma: "Karma"
         never: "never"
+        invitation_explained: "The player gets an e-mail and a notification leading to the moderator guide. Players who already are moderators or have an open invitation are skipped."
+        open_guide: "Read the guide"
+        invitations_title: "Invitations"
+        column_invited: "Invited"
+        column_status: "Status"
+        status_pending: "Waiting for an answer"
+        status_declined: "Declined"
+        status_withdrawn: "Withdrawn"
+        withdraw: "Withdraw"
+        withdraw_confirm: "Withdraw this invitation? The player will not be told."
+        invitation_withdrawn: "Invitation withdrawn."
+        column_agreed: "Agreed to the guide"
+        agreed_before_invitations: "before invitations"
 
 pending_proposals:
     badge: "Pending Proposal"
@@ -7351,6 +7366,10 @@ comparison_entry:
 
 player_header:
     pages: "Player pages"
+    role_team: "MySpeedPuzzling team"
+    role_team_title: "Part of the team that runs MySpeedPuzzling"
+    role_moderator: "Community moderator"
+    role_moderator_title: "Helps look after the puzzle catalogue for the whole community"
     tabs:
         profile: "Profile"
         statistics: "Statistics"

@@ -141,7 +141,7 @@ final class ModeratorAccessTest extends WebTestCase
         self::assertCount(0, $crawler->filter('a[href="/admin/vouchers"]'));
     }
 
-    public function testAdminAppointsAndRevokesAModerator(): void
+    public function testAdminInvitesAModeratorWhoAcceptsAndIsRevokedLater(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
@@ -149,21 +149,33 @@ final class ModeratorAccessTest extends WebTestCase
         $browser->request('GET', '/admin/moderators');
         self::assertResponseIsSuccessful();
 
-        $browser->submitForm('Grant moderator role', [
+        $browser->submitForm('Send invitation', [
             'add_moderators_form[players]' => PlayerFixture::PLAYER_REGULAR . ',' . PlayerFixture::PLAYER_PRIVATE,
         ]);
         self::assertResponseRedirects('/admin/moderators');
 
-        $moderators = $browser->getContainer()->get(GetModerators::class)->all();
-        self::assertCount(2, $moderators);
-
+        // An invitation is not the role: nobody is a moderator before agreeing to the guide
+        self::assertCount(0, $browser->getContainer()->get(GetModerators::class)->all());
         $crawler = $browser->followRedirect();
-        $browser->submit($crawler->filter('form[action$="/' . PlayerFixture::PLAYER_PRIVATE . '/revoke"]')->form());
-        self::assertResponseRedirects('/admin/moderators');
+        self::assertCount(2, $crawler->filter('form[action*="/admin/moderator-invitations/"][action$="/withdraw"]'));
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $browser->request('GET', '/en/moderator-guide');
+        self::assertResponseIsSuccessful();
+        $browser->submitForm('Accept and become a moderator', ['accept_moderator_invitation_form[pledge]' => '1']);
+        self::assertResponseRedirects('/en/moderator-guide#tools');
 
         $moderators = $browser->getContainer()->get(GetModerators::class)->all();
         self::assertCount(1, $moderators);
         self::assertSame(PlayerFixture::PLAYER_REGULAR, $moderators[0]->playerId);
+        self::assertNotNull($moderators[0]->agreedAt);
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $crawler = $browser->request('GET', '/admin/moderators');
+        $browser->submit($crawler->filter('form[action$="/' . PlayerFixture::PLAYER_REGULAR . '/revoke"]')->form());
+        self::assertResponseRedirects('/admin/moderators');
+
+        self::assertCount(0, $browser->getContainer()->get(GetModerators::class)->all());
     }
 
     public function testEmptySelectionIsRejected(): void
@@ -172,7 +184,7 @@ final class ModeratorAccessTest extends WebTestCase
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
         $browser->request('GET', '/admin/moderators');
-        $browser->submitForm('Grant moderator role', ['add_moderators_form[players]' => '']);
+        $browser->submitForm('Send invitation', ['add_moderators_form[players]' => '']);
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
     }

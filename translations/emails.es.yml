@@ -119,7 +119,7 @@ moderator_role_granted:
     title: "¡Bienvenido al equipo de moderadores!"
     content: |
         <p>Hola %playerName%,</p>
-        <p>te hemos nombrado <strong>moderador de la comunidad</strong> en MySpeedPuzzling. Gracias por ofrecerte a ayudar a mantener ordenado el catálogo de puzzles - significa mucho para nosotros y para toda la comunidad.</p>
+        <p>gracias por aceptar la invitación: ya eres <strong>moderador de la comunidad</strong> en MySpeedPuzzling. Gracias por ofrecerte a ayudar a mantener ordenado el catálogo de puzzles - significa mucho para nosotros y para toda la comunidad.</p>
         <p>A partir de ahora puedes revisar lo que proponen otros puzzleros:</p>
         <ul>
             <li><a href="%changeRequestsUrl%">Solicitudes de cambio de puzzles</a> - correcciones de nombres, marcas, número de piezas, códigos y fotos</li>
@@ -128,6 +128,20 @@ moderator_role_granted:
         <p>Encontrarás ambas bajo el icono de la llave en la barra superior una vez que hayas iniciado sesión.</p>
         <p><strong>Un aviso de cuidado sobre las fusiones:</strong> aprobar una fusión elimina las entradas duplicadas y traslada los tiempos y colecciones de todos a la que permanece. No se puede deshacer, así que en caso de duda - distinto número de piezas, distinta ilustración, una edición diferente - es mejor dejarla o rechazarla. Un puzzle puede tener varios códigos EAN; eso está bien.</p>
         <p>Si algo no está claro, escríbenos a través del enlace «Enviar comentarios» en la parte superior del sitio web.</p>
+    guide: "<p>Puedes volver a la <a href=\"%guideUrl%\">guía para moderadores</a> cuando quieras; también está en el menú de la llave.</p>"
+
+moderator_invitation:
+    subject: "Te invitamos a ser moderador de la comunidad de MySpeedPuzzling"
+    preheader: "Nos encantaría que nos ayudaras a cuidar el catálogo de puzzles: esto es lo que significa."
+    title: "¿Te gustaría ser moderador?"
+    content: |
+        <p>Hola %playerName%,</p>
+        <p>nos encantaría invitarte a ser <strong>moderador de la comunidad</strong> en MySpeedPuzzling. Los moderadores cuidan el catálogo de puzzles para todos: revisan las correcciones y los puzzles nuevos que envían otros puzzlers, encuentran duplicados y ayudan a que las clasificaciones sean justas.</p>
+        <p>Antes de decidir, lee la guía para moderadores. Explica cómo funciona la moderación, qué te pedimos y dónde encontrarás todo. Al final puedes aceptar la invitación. Nuestro lema: <strong>«Déjalo mejor de lo que lo encontraste».</strong></p>
+        <p>La guía está en inglés, como las páginas de moderación.</p>
+    invited_by: "La invitación es de %name%."
+    button: "Leer la guía y decidir"
+    no_pressure: "Ser moderador es voluntario y puedes dejarlo cuando quieras. Si ahora no es para ti, puedes rechazar la invitación al final de la guía."
 
 competition_registration:
     entry_fee: "Cuota de inscripción (fijada por el organizador):"

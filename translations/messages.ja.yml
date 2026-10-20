@@ -568,6 +568,8 @@
   "moderator_role":
     "granted": "コミュニティモデレーターになりました。パズルの変更リクエストと重複報告を確認できます。ご協力ありがとうございます！"
     "revoked": "コミュニティモデレーターの役割が終了しました。ご協力ありがとうございました！"
+    "invited": "コミュニティモデレーターへの招待が届きました！モデレーターガイドをお読みください。最後に招待を承諾できます。"
+    "open_guide": "モデレーターガイドを開く"
   "puzzling_team":
     "renamed": "%player%さんがあなたのペア／チームに「%name%」という名前を付けました。"
     "name_removed": "%player%さんがあなたのペア／チームの名前を削除しました。"
@@ -2935,13 +2937,13 @@ badges:
     "back_title": "管理 — 承認"
   "moderators":
     "title": "コミュニティモデレーター"
-    "intro": "コミュニティモデレーターは、パズルの変更リクエストと統合リクエストを確認できます。管理画面の他の部分にはアクセスできず、任命と解任ができるのは管理者のみです。"
-    "add_title": "モデレーターを追加"
+    "intro": "コミュニティモデレーターはパズルカタログを整え、タイムを確認します。管理画面の他の部分にはアクセスできません。招待と解任ができるのは管理者のみで、招待されたプレイヤーはモデレーターガイドを読んで同意するとモデレーターになります。"
+    "add_title": "モデレーターを招待"
     "add_label": "プレイヤー"
     "add_help": "名前またはプレイヤーコードで検索してください。複数のプレイヤーを一度に追加できます。"
-    "add_submit": "モデレーターの役割を付与"
+    "add_submit": "招待を送る"
     "choose_player": "プレイヤーを1人以上選択してください。"
-    "granted": "%count%人のプレイヤーにモデレーターの役割を付与しました。"
+    "invited": "%count%人のプレイヤーに招待を送りました。"
     "revoked": "モデレーターの役割を取り消しました。"
     "revoke": "取り消す"
     "revoke_confirm": "このプレイヤーからモデレーターの役割を取り消しますか？"
@@ -2952,6 +2954,19 @@ badges:
     "column_merge_requests": "確認した統合リクエスト"
     "column_last_review": "最終確認"
     "never": "なし"
+    "invitation_explained": "プレイヤーにはモデレーターガイドへのリンク付きのメールと通知が届きます。すでにモデレーターのプレイヤーや、未回答の招待があるプレイヤーはスキップされます。"
+    "open_guide": "ガイドを読む"
+    "invitations_title": "招待"
+    "column_invited": "招待日"
+    "column_status": "状態"
+    "status_pending": "返答待ち"
+    "status_declined": "辞退"
+    "status_withdrawn": "取り消し"
+    "withdraw": "取り消す"
+    "withdraw_confirm": "この招待を取り消しますか？プレイヤーには通知されません。"
+    "invitation_withdrawn": "招待を取り消しました。"
+    "column_agreed": "ガイドへの同意"
+    "agreed_before_invitations": "招待制の導入前"
     "column_karma": "カルマ"
   "puzzle_edit":
     "saved": "パズルを保存しました。"
@@ -6787,6 +6802,10 @@ comparison_entry:
 
 player_header:
     pages: "プレイヤーのページ"
+    role_team: "MySpeedPuzzlingチーム"
+    role_team_title: "MySpeedPuzzlingを運営するチームのメンバー"
+    role_moderator: "コミュニティモデレーター"
+    role_moderator_title: "コミュニティ全体のためにパズルカタログを整えています"
     tabs:
         insights: "インサイト"
         profile: "プロフィール"

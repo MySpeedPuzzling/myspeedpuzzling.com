@@ -695,7 +695,7 @@ SELECT * FROM (
         NULL::varchar AS round_series_slug
     FROM notification
     WHERE notification.player_id = :playerId
-        AND notification.type IN ('ModeratorRoleGranted', 'ModeratorRoleRevoked')
+        AND notification.type IN ('ModeratorRoleGranted', 'ModeratorRoleRevoked', 'ModeratorInvitationReceived')
 
     UNION ALL
 

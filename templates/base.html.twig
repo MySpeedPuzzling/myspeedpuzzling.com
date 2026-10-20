@@ -508,6 +508,12 @@
                                 {% set queue_counts = admin_queue_counts(is_granted('ADMIN_ACCESS')) %}
                                 <ul class="dropdown-menu">
                                     <li>
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'moderator_guide' %}active{% endif %}" href="{{ path('moderator_guide') }}">
+                                            <i class="bi bi-book me-1" aria-hidden="true"></i> Moderator guide
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
                                         <a class="dropdown-item pb-1 {% if currentRoute == 'admin_puzzle_change_requests' %}active{% endif %}" href="{{ path('admin_puzzle_change_requests') }}">
                                             Puzzle Change Requests
                                             {% if queue_counts.changeRequests is not null %}<span class="badge {{ queue_counts.changeRequests > 0 ? 'bg-warning text-dark' : 'bg-success' }} ms-1" data-testid="queue-count-change-requests">{{ queue_counts.changeRequests }}</span>{% endif %}

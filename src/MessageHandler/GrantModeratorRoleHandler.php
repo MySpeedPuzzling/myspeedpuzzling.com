@@ -19,6 +19,10 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+/**
+ * Grants the role - reached through AcceptModeratorInvitation only (the player agreed to the guide first);
+ * the admin page sends invitations, never this message.
+ */
 #[AsMessageHandler]
 readonly final class GrantModeratorRoleHandler
 {
@@ -74,6 +78,7 @@ readonly final class GrantModeratorRoleHandler
                 'playerName' => $player->name ?? $player->code,
                 'changeRequestsUrl' => $this->urlGenerator->generate('admin_puzzle_change_requests', [], UrlGeneratorInterface::ABSOLUTE_URL),
                 'mergeRequestsUrl' => $this->urlGenerator->generate('admin_puzzle_merge_requests', [], UrlGeneratorInterface::ABSOLUTE_URL),
+                'guideUrl' => $this->urlGenerator->generate('moderator_guide', [], UrlGeneratorInterface::ABSOLUTE_URL),
             ]);
         $email->getHeaders()->addTextHeader('X-Transport', 'transactional');
 

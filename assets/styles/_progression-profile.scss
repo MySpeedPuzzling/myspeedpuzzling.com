@@ -217,6 +217,25 @@ a.xp-avatar-ring:focus-visible {
     }
 }
 
+// The badge of honour (docs/features/community-moderators.md): a moderator or a member of the MySpeedPuzzling team.
+// A word on the #CODE line like membership, in a soft pill so it reads as something given, not something bought.
+// #3d3fa8 on #eceefe = 7.6:1
+.player-head-role {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    padding: .0625rem .5rem;
+    border-radius: 999px;
+    background: #eceefe;
+    color: #3d3fa8;
+    font-weight: 600;
+    white-space: nowrap;
+
+    .bi {
+        font-size: .8125rem;
+    }
+}
+
 // A small lift for the progression cards - the showcase here, the shelf cells and reference cards
 // (_achievements-shelf.scss reuses it as $shelf-shadow)
 $progression-card-shadow: 0 1px 2px rgba(43, 52, 69, .06), 0 4px 14px rgba(43, 52, 69, .06);

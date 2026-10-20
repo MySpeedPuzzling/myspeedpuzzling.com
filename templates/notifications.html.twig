@@ -131,19 +131,27 @@
                                     {% endif %}
                                 </td>
                             {% elseif notification.isModeratorRoleNotification %}
-                                {# Community moderator role granted / revoked #}
-                                {% set moderator_granted = notification.notificationType.value == 'ModeratorRoleGranted' %}
+                                {# Community moderator role: invited (leads to the guide), granted, revoked #}
+                                {% set moderator_type = notification.notificationType.value %}
                                 <td class="text-center" style="width: 60px;">
-                                    <i class="bi {{ moderator_granted ? 'bi-shield-check text-success' : 'bi-shield-x text-muted' }} fs-3"></i>
+                                    <i class="bi {{ moderator_type == 'ModeratorRoleRevoked' ? 'bi-shield-x text-muted' : (moderator_type == 'ModeratorInvitationReceived' ? 'bi-envelope-heart text-primary' : 'bi-shield-check text-success') }} fs-3"></i>
                                 </td>
 
                                 <td class="align-middle fs-sm text-muted">
                                     <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
-                                    {{ (moderator_granted ? 'notifications.moderator_role.granted' : 'notifications.moderator_role.revoked')|trans }}
+                                    {{ {
+                                        'ModeratorInvitationReceived': 'notifications.moderator_role.invited',
+                                        'ModeratorRoleGranted': 'notifications.moderator_role.granted',
+                                        'ModeratorRoleRevoked': 'notifications.moderator_role.revoked',
+                                    }[moderator_type]|trans }}
                                 </td>
 
                                 <td class="" style="width: 80px;">
-                                    {% if moderator_granted and is_granted('PUZZLE_MODERATION_ACCESS') %}
+                                    {% if moderator_type == 'ModeratorInvitationReceived' %}
+                                        <a href="{{ path('moderator_guide') }}" class="btn btn-sm btn-outline-primary" aria-label="{{ 'notifications.moderator_role.open_guide'|trans }}">
+                                            <i class="bi bi-arrow-right"></i>
+                                        </a>
+                                    {% elseif moderator_type == 'ModeratorRoleGranted' and is_granted('PUZZLE_MODERATION_ACCESS') %}
                                         <a href="{{ path('admin_puzzle_change_requests') }}" class="btn btn-sm btn-outline-primary">
                                             <i class="bi bi-arrow-right"></i>
                                         </a>

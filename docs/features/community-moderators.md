@@ -44,26 +44,75 @@ Granting twice keeps the original date; revoking sets it back to `NULL`.
 - The top-bar key menu shows for `PUZZLE_MODERATION_ACCESS`; the admin-only entries inside it are
   wrapped in `is_granted('ADMIN_ACCESS')`.
 
-## Managing moderators
+## Becoming a moderator - invitation, guide, pledge (2026-10-20)
 
-`/admin/moderators` (admins only, key menu → "Community Moderators"):
+An admin no longer grants the role directly. Adding players on `/admin/moderators` **invites** them; the role comes
+only when the player has read the moderator guide and agreed to its pledge. Jan: moderators must know what we ask of
+them before they start, and we keep a record that they agreed.
 
-- **Add** — the same player picker as the event form's "maintainers" field (`AddModeratorsFormType`,
-  TomSelect fed by `player_search_autocomplete`), several players at once → one `GrantModeratorRole` each.
-- **List** — `GetModerators`: since when, how many change/merge requests they reviewed *since the role
-  was granted*, and their last review — the numbers to look at before revoking someone.
-- **Revoke** — `POST /admin/moderators/{playerId}/revoke` (CSRF) → `RevokeModeratorRole`. Takes effect
-  on the moderator's next request; there is nothing cached to invalidate.
+1. **Invite** - `/admin/moderators` (admins only, key menu → "Community Moderators"): the same player picker as the
+   event form's "maintainers" field (`AddModeratorsFormType`, TomSelect fed by `player_search_autocomplete`), several
+   players at once → one `InviteModerator` each. `InviteModeratorHandler` stores a `moderator_invitation` row (player,
+   invited by, when), an in-app notification (`ModeratorInvitationReceived`, target-less) and an e-mail
+   (`emails/moderator_invitation.html.twig`, `moderator_invitation.*` in all 6 locales) - both lead to the guide.
+   A moderator, or a player with an open invitation, is skipped (nobody is asked twice).
+2. **Read** - the guide `moderator_guide` (`/en/moderator-guide`, `ModeratorGuideController`, English only like the
+   review pages, `noindex`): why we need moderators, what we ask of them, every tool and where it is, how each review
+   works with examples, wording towards players, what cannot be undone, where to ask. Readable by players with an open
+   invitation, moderators and admins (key menu → "Moderator guide"); 403 for everybody else.
+3. **Accept or decline** - an invited player gets the pledge at the end of the guide: a checkbox
+   ("… leave it better than I found it", must be ticked - 422 otherwise) + "Accept and become a moderator"
+   → `AcceptModeratorInvitation`: the invitation is marked accepted with **when** (`answered_at`) and **which guide**
+   (`agreed_guide_version` = `ModeratorGuide::VERSION`), then `GrantModeratorRole` runs in the same transaction
+   (`player.moderator_since`, `ModeratorRoleGranted` notification, welcome e-mail - now with a link back to the guide).
+   "Not now" → `DeclineModeratorInvitation` (nobody is told; the admins see "Declined" and may ask again later).
+4. **Withdraw** - an admin takes back an open invitation (`WithdrawModeratorInvitation`, CSRF); the player is not told,
+   the guide simply stops offering the pledge.
+
+The motto is **"Leave it better than you found it."** (`ModeratorGuide::MOTTO`). Bump `ModeratorGuide::VERSION` when
+what we ask of moderators changes, not for wording - accepted invitations keep the version they agreed to.
+
+`GrantModeratorRole` is now reached only through an accepted invitation (and from tests, which use it to set up a
+moderator); the admin page never dispatches it.
+
+### `moderator_invitation`
+
+One row per invitation, kept after the answer - the history of who was asked, by whom, and what they said.
+`accepted` null = no answer (pending, or withdrawn - `withdrawn_at`), true = accepted, false = declined.
+`player_id` cascades with the player, `invited_by_id` is set null when the admin's player is deleted.
+
+### The admin page
+
+- **Invitations** - open ones first ("Waiting for an answer", Withdraw), then the declined and withdrawn ones
+  (`GetModeratorInvitations::notAccepted()`, newest first, 50).
+- **Moderators** - `GetModerators`: since when, **when they agreed to the guide** ("before invitations" for those
+  appointed before 2026-10-20), how many change/merge requests they reviewed *since the role was granted*, their last
+  review and karma - the numbers to look at before revoking someone.
+- **Revoke** - `POST /admin/moderators/{playerId}/revoke` (CSRF) → `RevokeModeratorRole`. Takes effect
+  on the moderator's next request; there is nothing cached to invalidate. Their accepted invitation stays as history;
+  asking them back later is a new invitation.
+
+## Badge of honour on the profile
+
+Every player header (`components/PlayerHeader.html.twig`) shows a soft pill on the `#CODE` line, for everybody to see:
+**"MySpeedPuzzling team"** for admins (`player.is_admin`), else **"Community moderator"** for moderators - one of them,
+the team first. Not an achievement and gives nothing; it says the person looks after the community. Read from the
+profile row (`PlayerProfile::$isAdmin` / `$isModerator`) - no query of its own; not shown on a private profile hidden
+from the viewer. Style `.player-head-role` (`_progression-profile.scss`), labels `player_header.role_*` in all 6 locales.
 
 ## Tests
 
-`tests/Controller/Admin/ModeratorAccessTest.php` (reach / forbidden matrix, menu, appoint + revoke,
-a moderator deciding a request), `tests/MessageHandler/GrantModeratorRoleHandlerTest.php`,
+`tests/Controller/Admin/ModeratorAccessTest.php` (reach / forbidden matrix, menu, invite → accept → revoke,
+a moderator deciding a request), `tests/MessageHandler/ModeratorInvitationHandlersTest.php` (invite, twice, accept,
+decline, withdraw), `tests/Controller/ModeratorGuideControllerTest.php` (who may read it, the pledge, decline),
+`tests/Controller/PlayerRoleBadgeTest.php`, `tests/MessageHandler/GrantModeratorRoleHandlerTest.php`,
 `tests/Query/GetModeratorsTest.php`.
 
 ## Telling the player
 
-- **Granted** → in-app notification (`NotificationType::ModeratorRoleGranted`) **and** a welcome e-mail
+- **Invited** → in-app notification (`NotificationType::ModeratorInvitationReceived`) + the invitation e-mail, both
+  leading to the guide (above).
+- **Granted** (= accepted) → in-app notification (`NotificationType::ModeratorRoleGranted`) **and** a welcome e-mail
   (`emails/moderator_role_granted.html.twig`, `moderator_role_granted.*` in `emails.en.yml`): what they
   can now do, links to both queues, and a word of care about merges being irreversible. Sent by
   `GrantModeratorRoleHandler`, only when the role is newly granted — granting twice welcomes once.
@@ -77,4 +126,5 @@ a moderator deciding a request), `tests/MessageHandler/GrantModeratorRoleHandler
 ## Decisions
 
 - A moderator may decide their **own** proposal — they are trusted (Jan, 2026-09-18).
-- A public "badge of honor" for moderators is planned, not built.
+- The badge of honour on the profile shows moderators **and** admins (Jan, 2026-10-20) - above.
+- No moderator was appointed before invitations existed (Jan, 2026-10-20), so every moderator has an agreement; "before invitations" on the admin page is only a fallback.

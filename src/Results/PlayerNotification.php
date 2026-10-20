@@ -247,7 +247,8 @@ readonly final class PlayerNotification
     public function isModeratorRoleNotification(): bool
     {
         return $this->notificationType === NotificationType::ModeratorRoleGranted
-            || $this->notificationType === NotificationType::ModeratorRoleRevoked;
+            || $this->notificationType === NotificationType::ModeratorRoleRevoked
+            || $this->notificationType === NotificationType::ModeratorInvitationReceived;
     }
 
     public function isGuestLinkNotification(): bool

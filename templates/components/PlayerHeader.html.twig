@@ -57,10 +57,15 @@
                 {# The country is the flag on the avatar; membership and the own privacy setting are words on this line #}
                 {% set show_member = player.activeMembership and not this.isHidden %}
                 {% set show_private = this.isOwnProfile and player.isPrivateProfile %}
+                {# The badge of honour: admins = the MySpeedPuzzling team, moderators = community moderators (one, the team first) #}
+                {% set role_badge = this.isHidden ? null : (player.isAdmin ? 'team' : (player.isModerator ? 'moderator' : null)) %}
                 <div class="player-head-meta">
                     #{{ player.code|upper }}
                     {%- if show_member %}
                         <span aria-hidden="true">·</span> <a class="player-head-member" href="{{ path('membership') }}"><i class="ci-heart-filled" aria-hidden="true"></i> {{ 'player_header.member'|trans }}</a>
+                    {%- endif %}
+                    {%- if role_badge is not null %}
+                        <span aria-hidden="true">·</span> <span class="player-head-role" title="{{ ('player_header.role_' ~ role_badge ~ '_title')|trans }}"><i class="bi {{ role_badge == 'team' ? 'bi-patch-check-fill' : 'bi-shield-check' }}" aria-hidden="true"></i> {{ ('player_header.role_' ~ role_badge)|trans }}</span>
                     {%- endif %}
                     {%- if show_private %}
                         <span aria-hidden="true">·</span> <a class="player-head-private" href="{{ path('private_profile_viewers') }}" title="{{ 'private_profile_viewers.title'|trans }}"><i class="bi bi-incognito" aria-hidden="true"></i> {{ 'player_header.private_profile'|trans }}</a>

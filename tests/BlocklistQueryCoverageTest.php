@@ -73,6 +73,7 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetMessages' => self::BILATERAL,
         'GetModerationActions' => self::ADMIN,
         'GetModerators' => 'Public list of a site role, like the team page.',
+        'GetModeratorInvitations' => self::ADMIN . ' hasPending() is the viewer\'s own invitation.',
         'GetNewsletterRecipients' => self::BACKGROUND,
         'GetOAuth2ClientRequests' => self::ADMIN,
         'GetOrganizations' => self::ADMIN . ' Only allUnapproved() reads a player: the creator\'s name in the approval queue.',

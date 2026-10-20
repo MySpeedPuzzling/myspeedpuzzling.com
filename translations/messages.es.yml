@@ -1564,6 +1564,8 @@ competition_referees:
   "moderator_role":
     "granted": "Ahora eres moderador de la comunidad - puedes revisar solicitudes de cambio de puzzles y reportes de duplicados. ¡Gracias por ayudar!"
     "revoked": "Tu rol de moderador de la comunidad ha terminado. ¡Gracias por tu ayuda!"
+    "invited": "¡Te invitamos a ser moderador de la comunidad! Lee la guía para moderadores: al final puedes aceptar la invitación."
+    "open_guide": "Abrir la guía para moderadores"
   "puzzling_team":
     "renamed": "%player% puso a tu pareja/equipo el nombre «%name%»."
     "name_removed": "%player% quitó el nombre de tu pareja/equipo."
@@ -2946,13 +2948,13 @@ badges:
     "validation_failed": "Se requiere el puzzle objetivo, nombre y cantidad de piezas."
   "moderators":
     "title": "Moderadores de la comunidad"
-    "intro": "Los moderadores de la comunidad pueden revisar solicitudes de cambio y solicitudes de fusión de puzzles. No pueden acceder a ninguna otra parte del área de administración, y solo los administradores pueden nombrarlos o retirarlos."
-    "add_title": "Añadir moderadores"
+    "intro": "Los moderadores de la comunidad cuidan el catálogo de puzzles y verifican tiempos. No pueden acceder a ninguna otra parte del área de administración. Solo los administradores los invitan o los retiran: un jugador invitado se convierte en moderador cuando ha leído la guía para moderadores y la ha aceptado."
+    "add_title": "Invitar moderadores"
     "add_label": "Jugadores"
     "add_help": "Busca por nombre o código de jugador. Puedes añadir varios jugadores a la vez."
-    "add_submit": "Conceder rol de moderador"
+    "add_submit": "Enviar invitación"
     "choose_player": "Elige al menos un jugador."
-    "granted": "Rol de moderador concedido.|Rol de moderador concedido a %count% jugadores."
+    "invited": "Invitación enviada.|Invitaciones enviadas a %count% jugadores."
     "revoked": "Rol de moderador revocado."
     "revoke": "Revocar"
     "revoke_confirm": "¿Quitar el rol de moderador a este jugador?"
@@ -2963,6 +2965,19 @@ badges:
     "column_merge_requests": "Solicitudes de fusión revisadas"
     "column_last_review": "Última revisión"
     "never": "nunca"
+    "invitation_explained": "El jugador recibe un correo y una notificación que llevan a la guía para moderadores. Se omiten los jugadores que ya son moderadores o tienen una invitación abierta."
+    "open_guide": "Leer la guía"
+    "invitations_title": "Invitaciones"
+    "column_invited": "Invitado"
+    "column_status": "Estado"
+    "status_pending": "Esperando respuesta"
+    "status_declined": "Rechazada"
+    "status_withdrawn": "Retirada"
+    "withdraw": "Retirar"
+    "withdraw_confirm": "¿Retirar esta invitación? El jugador no será avisado."
+    "invitation_withdrawn": "Invitación retirada."
+    "column_agreed": "Aceptó la guía"
+    "agreed_before_invitations": "antes de las invitaciones"
     "column_karma": "Karma"
   "puzzle_edit":
     "saved": "Puzzle guardado."
@@ -6798,6 +6813,10 @@ comparison_entry:
 
 player_header:
     pages: "Páginas del jugador"
+    role_team: "Equipo de MySpeedPuzzling"
+    role_team_title: "Forma parte del equipo que gestiona MySpeedPuzzling"
+    role_moderator: "Moderador de la comunidad"
+    role_moderator_title: "Ayuda a cuidar el catálogo de puzzles para toda la comunidad"
     tabs:
         insights: "Análisis"
         profile: "Perfil"

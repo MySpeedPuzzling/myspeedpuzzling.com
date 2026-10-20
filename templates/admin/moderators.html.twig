@@ -16,7 +16,61 @@
 
             <button type="submit" class="btn btn-primary">{{ 'admin.moderators.add_submit'|trans }}</button>
         {{ form_end(form) }}
+        <p class="text-muted fs-sm mt-3 mb-0">
+            {{ 'admin.moderators.invitation_explained'|trans }}
+            <a href="{{ path('moderator_guide') }}">{{ 'admin.moderators.open_guide'|trans }}</a>
+        </p>
     </div>
+
+    {% if invitations is not empty %}
+        <h2 class="h5">{{ 'admin.moderators.invitations_title'|trans }}</h2>
+        <div class="table-responsive mb-4">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>{{ 'admin.moderators.column_player'|trans }}</th>
+                        <th>{{ 'admin.moderators.column_invited'|trans }}</th>
+                        <th>{{ 'admin.moderators.column_status'|trans }}</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for invitation in invitations %}
+                        <tr>
+                            <td>
+                                {% if invitation.playerCountry is not null %}
+                                    <span class="shadow-custom fi fi-{{ invitation.playerCountry.name }} me-1"></span>
+                                {% endif %}
+                                <a href="{{ path('player_profile', {playerId: invitation.playerId}) }}">{{ invitation.playerName ?? ('#' ~ invitation.playerCode) }}</a>
+                                <small class="text-muted">#{{ invitation.playerCode }}</small>
+                            </td>
+                            <td>
+                                {{ invitation.invitedAt|date('d.m.Y') }}
+                                {% if invitation.invitedByName is not null %}<small class="text-muted">· {{ invitation.invitedByName }}</small>{% endif %}
+                            </td>
+                            <td>
+                                {% if invitation.isPending %}
+                                    <span class="badge bg-warning text-dark">{{ 'admin.moderators.status_pending'|trans }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ ('admin.moderators.status_' ~ invitation.status)|trans }}</span>
+                                    {% if invitation.closedAt is not null %}<small class="text-muted">{{ invitation.closedAt|date('d.m.Y') }}</small>{% endif %}
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if invitation.isPending %}
+                                    <form method="post" action="{{ path('admin_withdraw_moderator_invitation', {invitationId: invitation.invitationId}) }}" class="d-inline"
+                                          onsubmit="return confirm('{{ 'admin.moderators.withdraw_confirm'|trans|e('js') }}')">
+                                        <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\Admin\\WithdrawModeratorInvitationController::CSRF_TOKEN_ID')) }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary">{{ 'admin.moderators.withdraw'|trans }}</button>
+                                    </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
 
     {% if moderators is empty %}
         <p class="text-muted">{{ 'admin.moderators.empty'|trans }}</p>
@@ -27,6 +81,7 @@
                     <tr>
                         <th>{{ 'admin.moderators.column_player'|trans }}</th>
                         <th>{{ 'admin.moderators.column_since'|trans }}</th>
+                        <th>{{ 'admin.moderators.column_agreed'|trans }}</th>
                         <th class="text-end">{{ 'admin.moderators.column_change_requests'|trans }}</th>
                         <th class="text-end">{{ 'admin.moderators.column_merge_requests'|trans }}</th>
                         <th>{{ 'admin.moderators.column_last_review'|trans }}</th>
@@ -45,6 +100,7 @@
                                 <small class="text-muted">#{{ moderator.playerCode }}</small>
                             </td>
                             <td>{{ moderator.moderatorSince|date('d.m.Y') }}</td>
+                            <td>{{ moderator.agreedAt is not null ? moderator.agreedAt|date('d.m.Y') : 'admin.moderators.agreed_before_invitations'|trans }}</td>
                             <td class="text-end">{{ moderator.reviewedChangeRequests }}</td>
                             <td class="text-end">{{ moderator.reviewedMergeRequests }}</td>
                             <td>{{ moderator.lastReviewAt is not null ? moderator.lastReviewAt|date('d.m.Y H:i') : 'admin.moderators.never'|trans }}</td>

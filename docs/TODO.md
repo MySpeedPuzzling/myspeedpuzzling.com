@@ -4,6 +4,11 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Moderator invitations + guide (`docs/features/community-moderators.md`, 2026-10-20)
+
+- [ ] Simona's day-to-day routine into the guide: the slot "How we work day to day" in `templates/moderators/guide.html.twig` (order of the queues, how she checks a box - which sites/searches, typical cases and their answers)
+- [ ] Screenshots of the queues in the guide (slot under "Your tools") - once the routine is written, so they show what it describes
+
 ## Photo uploads on slow connections (`docs/features/photo-uploads/README.md`)
 
 - [ ] **2026-10-25** (a week live, Claude does it): read the `photo_upload` channel in Loki - `event=save outcome=failed`

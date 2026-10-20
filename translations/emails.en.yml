@@ -119,7 +119,7 @@ moderator_role_granted:
     title: "Welcome to the moderator team!"
     content: |
         <p>Hi %playerName%,</p>
-        <p>we have made you a <strong>community moderator</strong> on MySpeedPuzzling. Thank you for offering to help keep the puzzle catalogue tidy - it means a lot to us and to the whole community.</p>
+        <p>thank you for accepting the invitation - you are now a <strong>community moderator</strong> on MySpeedPuzzling. Thank you for offering to help keep the puzzle catalogue tidy - it means a lot to us and to the whole community.</p>
         <p>From now on you can review what other puzzlers propose:</p>
         <ul>
             <li><a href="%changeRequestsUrl%">Puzzle change requests</a> - corrections of names, brands, piece counts, codes and photos</li>
@@ -128,6 +128,20 @@ moderator_role_granted:
         <p>You will find both under the key icon in the top bar once you are signed in.</p>
         <p><strong>A word of care about merges:</strong> approving a merge deletes the duplicate entries and moves everybody's times and collections onto the one that stays. It cannot be undone, so when in doubt - different piece count, different artwork, a different edition - rather leave it or reject it. One puzzle may hold several EAN codes; that is fine.</p>
         <p>If anything is unclear, write to us through the Feedback link at the top of the website.</p>
+    guide: "<p>The <a href=\"%guideUrl%\">moderator guide</a> is always there for you to come back to - you find it in the key menu too.</p>"
+
+moderator_invitation:
+    subject: "You are invited to become a MySpeedPuzzling community moderator"
+    preheader: "We would love your help looking after the puzzle catalogue - here is what it means."
+    title: "Would you like to become a moderator?"
+    content: |
+        <p>Hi %playerName%,</p>
+        <p>we would love to invite you to become a <strong>community moderator</strong> on MySpeedPuzzling. Moderators look after the puzzle catalogue for everybody: they review the corrections and new puzzles other puzzlers send, find duplicates and help keep the leaderboards fair.</p>
+        <p>Before you decide, please read the moderator guide. It explains how moderation works, what we ask of you and where you will find everything. At its end you can accept the invitation. Our motto: <strong>“Leave it better than you found it.”</strong></p>
+        <p>The guide is in English, like the moderation pages.</p>
+    invited_by: "The invitation comes from %name%."
+    button: "Read the guide and decide"
+    no_pressure: "Being a moderator is voluntary and you can step back at any time. If it is not for you right now, you can decline at the end of the guide."
 
 competition_registration:
     entry_fee: "Entry fee (set by the organiser):"

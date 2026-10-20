@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 /**
- * One tile of "This week on the ladder" (GetRatingLadderThisWeek): the biggest climber, the best new entry or a new
- * best place ever. $value = places gained (climber), the best place before (best place ever), null for a new entry.
+ * One tile of "This week on the ladder" (GetRatingLadderThisWeek): the biggest climber, the best new entry or the most
+ * active. $value = places gained (climber), puzzles solved for the rating (most active), null for a new entry.
  */
 readonly final class RatingLadderSpotlight
 {
     public const string CLIMBER = 'climber';
     public const string NEW_ENTRY = 'new_entry';
-    public const string BEST_EVER = 'best_ever';
+    public const string MOST_ACTIVE = 'most_active';
 
     public function __construct(
         public string $kind,

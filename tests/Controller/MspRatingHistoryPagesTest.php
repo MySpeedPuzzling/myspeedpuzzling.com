@@ -35,9 +35,14 @@ final class MspRatingHistoryPagesTest extends WebTestCase
         self::assertCount(2, $crawler->filter('.lb-move.lb-move-down'));
         self::assertCount(1, $crawler->filter('.lb-move.lb-move-new'));
         self::assertSame("▲\u{a0}2", trim($crawler->filter('.lb-move.lb-move-up [aria-hidden="true"]')->text()));
-        // A tap on a name opens the rating card
-        self::assertGreaterThan(0, $crawler->filter('[data-controller="players-card"] a.lb-name[data-action="players-card#open"]')->count());
-        self::assertStringContainsString('/en/msp-rating/card/', (string) $crawler->filter('a.lb-name')->first()->attr('data-players-card-url-param'));
+        // A tap anywhere on a row opens the rating card; the name stays a plain link to the profile
+        $rows = $crawler->filter('[data-controller="players-card"] tr.lb-row-card[data-action="click->players-card#open"]');
+        self::assertCount(4, $rows);
+        self::assertStringContainsString('/en/msp-rating/card/', (string) $rows->first()->attr('data-players-card-url-param'));
+        self::assertNull($crawler->filter('a.lb-name')->first()->attr('data-action'));
+        // The skill tier is the icon next to the name (a lock for a guest), no text line under the rating
+        self::assertCount(4, $rows->filter('.lb-solver .rank-icon'));
+        self::assertCount(0, $crawler->filter('.lb-table .lb-value-secondary'));
         // This week: the climber and the new entry
         self::assertCount(2, $crawler->filter('.msp-this-week-tile'));
         // Season 0, Season 1 announced

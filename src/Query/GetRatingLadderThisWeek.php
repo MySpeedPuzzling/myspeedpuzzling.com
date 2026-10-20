@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
-use DateTimeZone;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\RatingLadderSpotlight;
 use SpeedPuzzling\Web\Value\MspRatingTimeline;
@@ -16,16 +15,13 @@ use SpeedPuzzling\Web\Value\MspRatingTimeline;
  * - the biggest climber - only a player with a new result in the rating since that day, so nobody climbs because
  *   others' older results faded,
  * - the best-placed new entry,
- * - a player at a better place than on any stored day before, with at least a week of history.
+ * - the most active - the most puzzles in their rating solved since that day.
  * The world list without anybody's blocks (GetPlayerRatingRanking::sqlOnStoredLadder()), a few candidates per tile:
  * Services\RatingLadderThisWeek caches them for everybody and leaves out the viewer's hidden players and repeats.
- * One statement, ~150 ms on a copy of production (the best-ever history per climber) - never run per request.
+ * One statement - cached anyway, the same for everybody.
  */
 readonly final class GetRatingLadderThisWeek
 {
-    // A player needs this many stored days on the ladder before a place counts as a best ever
-    public const int BEST_EVER_MIN_DAYS = 7;
-
     // Candidates per tile - enough for a viewer who hides a few of them
     public const int CANDIDATES = 5;
 
@@ -35,7 +31,7 @@ readonly final class GetRatingLadderThisWeek
     }
 
     /**
-     * @return list<RatingLadderSpotlight> best first within each kind, kinds in the order climber, new entry, best ever
+     * @return list<RatingLadderSpotlight> best first within each kind, kinds in the order climber, new entry, most active
      */
     public function candidates(int $piecesCount, DateTimeImmutable $now): array
     {
@@ -99,28 +95,25 @@ new_entry AS (
     ORDER BY moved.rank, moved.player_id
     LIMIT :candidates
 ),
-best_ever AS (
-    SELECT moved.player_id, moved.rank, history.best_before AS value,
-        ROW_NUMBER() OVER (ORDER BY moved.rank, moved.player_id) AS position
+most_active AS (
+    SELECT moved.player_id, moved.rank, active.puzzles AS value,
+        ROW_NUMBER() OVER (ORDER BY active.puzzles DESC, moved.rank, moved.player_id) AS position
     FROM moved
     CROSS JOIN LATERAL (
-        SELECT MIN(s.elo_rank) AS best_before, COUNT(*) AS days
-        FROM player_rating_snapshot s
-        WHERE s.player_id = moved.player_id
-            AND s.pieces_count = :piecesCount
-            AND s.snapshot_date < CAST(:today AS timestamp)
-            AND s.elo_rank IS NOT NULL
-    ) history
-    WHERE moved.prev_rank > moved.rank
-        AND history.days >= :bestEverMinDays
-        AND moved.rank < history.best_before
-    ORDER BY moved.rank, moved.player_id
+        SELECT COUNT(DISTINCT e.puzzle_id)::int AS puzzles
+        FROM player_rating_entry e
+        WHERE e.player_id = moved.player_id
+            AND e.pieces_count = :piecesCount
+            AND e.solved_at > (SELECT day FROM reference)
+    ) active
+    WHERE active.puzzles > 0
+    ORDER BY active.puzzles DESC, moved.rank, moved.player_id
     LIMIT :candidates
 ),
 tiles AS (
     SELECT 1 AS sort, 'climber' AS kind, climber.* FROM climber
     UNION ALL SELECT 2, 'new_entry', new_entry.* FROM new_entry
-    UNION ALL SELECT 3, 'best_ever', best_ever.* FROM best_ever
+    UNION ALL SELECT 3, 'most_active', most_active.* FROM most_active
 )
 SELECT
     tiles.kind,
@@ -141,8 +134,6 @@ SQL;
             'piecesCount' => $piecesCount,
             'referenceDay' => $referenceDay->format('Y-m-d'),
             'notBefore' => MspRatingTimeline::moveNotBefore($referenceDay, GetPlayerRatingRanking::MOVE_DAYS)->format('Y-m-d'),
-            'today' => $now->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d'),
-            'bestEverMinDays' => self::BEST_EVER_MIN_DAYS,
             'candidates' => self::CANDIDATES,
         ]);
 

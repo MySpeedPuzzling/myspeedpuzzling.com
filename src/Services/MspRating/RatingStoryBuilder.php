@@ -65,14 +65,6 @@ readonly final class RatingStoryBuilder
         }
 
         $charts = $this->chartFactory->charts($history);
-        $showsFormulaChange = false;
-
-        if ($history->days !== []) {
-            foreach (MspRatingTimeline::markersBetween($history->days[0]['date'], $history->days[count($history->days) - 1]['date']) as $marker) {
-                $showsFormulaChange = $showsFormulaChange || $marker['kind'] === 'formula';
-            }
-        }
-
         return new RatingStory(
             rank: $player->mspRatingRank,
             total: $today['total'],
@@ -81,7 +73,8 @@ readonly final class RatingStoryBuilder
             history: $history,
             ratingChart: $charts['rating'] ?? null,
             placeChart: $charts['place'] ?? null,
-            showsFormulaChange: $showsFormulaChange,
+            // Formula changes are not marked for now (RatingHistoryChartFactory::markers()) - so no note either
+            showsFormulaChange: false,
         );
     }
 }

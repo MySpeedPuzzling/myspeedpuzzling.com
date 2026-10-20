@@ -11,7 +11,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class RatingHistoryChartFactoryTest extends KernelTestCase
 {
-    public function testRatingAndReversedPlaceWithTheFormulaChangeMarked(): void
+    public function testRatingAndReversedPlace(): void
     {
         self::bootKernel();
         /** @var RatingHistoryChartFactory $factory */
@@ -33,7 +33,7 @@ final class RatingHistoryChartFactoryTest extends KernelTestCase
         self::assertNotNull($charts);
         self::assertNotNull($charts['place']);
 
-        /** @var array{scales: array{y: array{reverse: bool}}, plugins: array{leaderboardMarkers: array{markers: list<array{position: float}>}}} $rating */
+        /** @var array{scales: array{y: array{reverse: bool}}, plugins: array{leaderboardMarkers: array{markers: list<mixed>}}} $rating */
         $rating = $charts['rating']->getOptions();
         /** @var array{scales: array{y: array{reverse: bool}}} $place */
         $place = $charts['place']->getOptions();
@@ -46,9 +46,8 @@ final class RatingHistoryChartFactoryTest extends KernelTestCase
         self::assertFalse($rating['scales']['y']['reverse']);
         self::assertTrue($place['scales']['y']['reverse']);
         self::assertSame([12, 10, 9, null], $placeData['datasets'][0]['data']);
-        // 18 Oct is the third day: centred on 2.5 in the marker plugin's bar units
-        self::assertCount(1, $rating['plugins']['leaderboardMarkers']['markers']);
-        self::assertSame(2.5, $rating['plugins']['leaderboardMarkers']['markers'][0]['position']);
+        // The 18 Oct formula change is not marked (RatingHistoryChartFactory::markers())
+        self::assertSame([], $rating['plugins']['leaderboardMarkers']['markers']);
     }
 
     public function testNoChartForASingleDay(): void

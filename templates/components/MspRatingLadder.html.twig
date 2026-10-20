@@ -91,23 +91,23 @@
                             {{ include('leaderboards/_gap_row.html.twig', {count: gaps_before[loop.index0], reveal: this.gapReveal, total: this.totalCount, colspan: 3, live_action: 'revealGap'}) }}
                         {% endif %}
                         {% set is_current_player = logged_user.profile is not null and entry.playerId == logged_user.profile.playerId %}
-                        <tr id="{{ this.rowId(entry) }}" class="{{ is_current_player ? 'table-active-player' }}" tabindex="-1">
+                        {# A tap anywhere on the row opens the rating card (players_card_controller.js on the page) - Ctrl/Cmd-click
+                           and no JavaScript follow the name to the profile #}
+                        <tr id="{{ this.rowId(entry) }}" class="lb-row-card{{ is_current_player ? ' table-active-player' }}" tabindex="-1"
+                            data-action="click->players-card#open" data-players-card-url-param="{{ path('msp_rating_card', {playerId: entry.playerId}) }}">
                             <td class="rank"><span class="lb-rank">{{ entry.rank|plain_number }}</span>{{ include('leaderboards/_rating_move.html.twig', {move: entry.move, part: 'places'}) }}</td>
                             <td class="lb-solver">
-                                {# The Skill tier is the value's second line (members), not an icon as well - one value + one line per row (P6) #}
+                                {# The Skill tier is the icon next to the name, like on the other boards (members; a lock for others) #}
                                 {{ include('_leaderboard_player.html.twig', {
                                     player: entry,
-                                    show_tier: false,
                                     highlight_query: this.search|trim,
                                     profile_params: {return: app.request.uri, return_title: 'puzzle_intelligence.elo.title'|trans},
-                                    card_url: path('msp_rating_card', {playerId: entry.playerId}),
                                 }) }}
                             </td>
                             <td class="lb-time">
                                 {{ include('leaderboards/_value.html.twig', {
                                     value: entry.displayRating|plain_number,
                                     value_suffix: include('leaderboards/_rating_move.html.twig', {move: entry.move, part: 'points'}),
-                                    secondary: is_member and entry.skillTierName is not null ? ('puzzle_intelligence.skill.tiers.' ~ entry.skillTierName)|trans : null,
                                     family: 'competition',
                                 }) }}
                             </td>

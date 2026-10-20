@@ -40,6 +40,9 @@ final class MspRatingCardControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('turbo-frame#player-card .players-card.msp-card'));
         self::assertCount(1, $crawler->filter('#players-card-name'));
+        // The name leads to the profile, out of the card's frame
+        self::assertSame('/en/player-profile/' . PlayerFixture::PLAYER_REGULAR, $crawler->filter('#players-card-name a')->attr('href'));
+        self::assertSame('_top', $crawler->filter('#players-card-name a')->attr('data-turbo-frame'));
         self::assertCount(1, $crawler->filter('[data-players-card-close]'));
         self::assertStringContainsString('Turbo-Frame', (string) $browser->getResponse()->headers->get('Vary'));
         // #2 behind Admin today, #1 a week ago (14 Jun)

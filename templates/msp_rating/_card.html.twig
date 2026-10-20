@@ -22,7 +22,7 @@
             size: 'lg',
         }) }}
         <div class="players-card-who">
-            <h2 class="players-card-name" id="players-card-name">{{ name }}</h2>
+            <h2 class="players-card-name" id="players-card-name"><a class="msp-card-name-link" href="{{ profile_path }}" data-turbo-frame="_top">{{ name }}</a></h2>
             <div class="players-card-meta">
                 <span class="players-card-code">#{{ player.code|upper }}</span> · {{ 'msp_rating.card.kicker'|trans }}
             </div>

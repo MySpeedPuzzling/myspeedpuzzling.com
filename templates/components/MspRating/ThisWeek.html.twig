@@ -28,11 +28,13 @@
                         </a>
                         <span class="msp-this-week-what">
                             {%- if tile.kind == 'climber' -%}
-                                {{ 'msp_rating.this_week.climber_what'|trans({'%count%': tile.value, '%rank%': tile.rank|plain_number}) }}
+                                <span class="lb-move-up">{{ 'msp_rating.this_week.climber_places'|trans({'%count%': tile.value}) }}</span>
+                                · {{ 'msp_rating.this_week.now_at'|trans({'%rank%': tile.rank|plain_number}) }}
                             {%- elseif tile.kind == 'new_entry' -%}
                                 {{ 'msp_rating.this_week.new_entry_what'|trans({'%rank%': tile.rank|plain_number}) }}
                             {%- else -%}
-                                {{ 'msp_rating.this_week.best_ever_what'|trans({'%rank%': tile.rank|plain_number}) }}
+                                {{ 'msp_rating.this_week.most_active_what'|trans({'%count%': tile.value}) }}
+                                · {{ 'msp_rating.this_week.now_at'|trans({'%rank%': tile.rank|plain_number}) }}
                             {%- endif -%}
                         </span>
                     </li>

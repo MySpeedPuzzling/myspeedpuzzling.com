@@ -30,7 +30,7 @@ readonly final class RatingLadderThisWeek
     }
 
     /**
-     * @return list<RatingLadderSpotlight> at most one per kind: climber, new entry, best ever
+     * @return list<RatingLadderSpotlight> at most one per kind: climber, new entry, most active
      */
     public function spotlights(int $piecesCount): array
     {

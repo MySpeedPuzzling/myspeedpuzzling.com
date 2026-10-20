@@ -11,7 +11,7 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 
 /**
  * "This week on the ladder" above the MSP Rating ladder (docs/features/msp-rating-history.md): the biggest climber, the
- * best new entry and a new best place ever. A plain Twig component outside the ladder's Live root, so the ladder's
+ * best new entry and the most active. A plain Twig component outside the ladder's Live root, so the ladder's
  * filters never re-render it. Each tile opens the player's rating card. Nothing at all when no tile has a player.
  */
 #[AsTwigComponent]

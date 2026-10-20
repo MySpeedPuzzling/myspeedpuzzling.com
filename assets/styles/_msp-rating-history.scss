@@ -37,6 +37,21 @@ $msp-teal: #1d6f6b;
     white-space: nowrap;
 }
 
+// A ladder row opens the rating card
+.lb-row-card {
+    cursor: pointer;
+}
+
+.msp-card-name-link {
+    color: inherit;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        text-decoration: underline;
+    }
+}
+
 // The season sneak peek under the ladder's title
 .msp-season {
     font-size: .8125rem;
@@ -84,11 +99,12 @@ $msp-teal: #1d6f6b;
     font-weight: 600;
     letter-spacing: .06em;
     text-transform: uppercase;
+    color: $gray-600;
 }
 
-.msp-this-week-climber .msp-this-week-kind { color: $msp-move-up; }
-.msp-this-week-new_entry .msp-this-week-kind { color: $msp-move-new; }
-.msp-this-week-best_ever .msp-this-week-kind { color: #a26a12; }
+.msp-this-week-what .lb-move-up {
+    font-weight: 600;
+}
 
 .msp-this-week-person {
     display: flex;
@@ -180,6 +196,24 @@ $msp-teal: #1d6f6b;
 
 .msp-card .players-card-meta {
     color: $gray-600;
+}
+
+// Two buttons (Compare · Profile), not the puzzler card's three-column grid: each as wide as its label at least,
+// the rest of the row shared - "Dans la comparaison" never wraps
+.msp-card .players-card-actions {
+    display: flex;
+
+    > * {
+        flex: 1 0 auto;
+    }
+}
+
+.msp-card .players-card-actions > .players-card-action {
+    width: auto;
+}
+
+.msp-card .players-card-action {
+    white-space: nowrap;
 }
 
 // The profile's block

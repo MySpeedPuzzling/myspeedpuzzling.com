@@ -21,7 +21,6 @@ readonly final class RatingHistoryChartFactory
 {
     private const string LINE = '#1d6f6b';
     private const string FILL = 'rgba(29, 111, 107, 0.12)';
-    private const string FORMULA_MARKER = '#b7791f';
     private const string SEASON_MARKER = '#6a5bd6';
     private const string INK = '#4b566b';
     private const string INK_MUTED = '#6b7488';
@@ -90,6 +89,14 @@ readonly final class RatingHistoryChartFactory
         $markers = [];
 
         foreach (MspRatingTimeline::markersBetween($first, $last) as $marker) {
+            // The days the rating formula changed are not marked for now - a dashed "Formula update" line meant
+            // nothing to players yet (Jan, 2026-10-20). Kept for later: drop this skip to draw them again (label
+            // msp_rating.chart.formula_marker) and set RatingStory::$showsFormulaChange in RatingStoryBuilder for the
+            // note under the charts (msp_rating.card.formula_note)
+            if ($marker['kind'] === 'formula') {
+                continue;
+            }
+
             foreach ($history->days as $index => $day) {
                 if ($day['date']->format('Y-m-d') !== $marker['date']->format('Y-m-d')) {
                     continue;
@@ -99,10 +106,9 @@ readonly final class RatingHistoryChartFactory
                 $markers[] = [
                     'kind' => 'vertical',
                     'position' => $index + 0.5,
-                    'label' => $marker['kind'] === 'season'
-                        ? $this->translator->trans('msp_rating.chart.season_marker', ['%season%' => $marker['key']])
-                        : $this->translator->trans('msp_rating.chart.formula_marker'),
-                    'color' => $marker['kind'] === 'season' ? self::SEASON_MARKER : self::FORMULA_MARKER,
+                    // Only season starts get here; a formula change would be msp_rating.chart.formula_marker in FORMULA_MARKER
+                    'label' => $this->translator->trans('msp_rating.chart.season_marker', ['%season%' => $marker['key']]),
+                    'color' => self::SEASON_MARKER,
                     'dashed' => true,
                 ];
             }

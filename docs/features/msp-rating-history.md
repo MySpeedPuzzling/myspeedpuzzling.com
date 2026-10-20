@@ -38,21 +38,25 @@ quiet grey for a lost place and green only for a gain.
 
 ## Surfaces
 
-- **Ladder rows** (`GetPlayerRatingRanking::window(now:)`, `RatingMove` on `PlayerRatingEntry`): "▲ 3" / "▼ 2" / "–" /
-  "New" under the place (`leaderboards/_rating_move.html.twig`), the points change after the rating, the viewer's own
+- **Ladder rows** (`GetPlayerRatingRanking::window(now:)`, `RatingMove` on `PlayerRatingEntry`): "▲ 3" / "▼ 2" /
+  "New" under the place (an unchanged place shows nothing but a screen-reader sentence); the skill tier is the icon
+  next to the name like on the other boards; a tap anywhere on the row opens the rating card (`leaderboards/_rating_move.html.twig`), the points change after the rating, the viewer's own
   move on the position line (`_rating_move_line.html.twig`). Follows the country / favourites filters and the viewer's
   blocks. One statement as before (two CTEs more).
-- **"This week on the ladder"** (`MspRating:ThisWeek` above the Live ladder): the biggest climber (only with a rating
-  entry solved after the compared day - nobody "climbs" because others faded), the best-placed new entry, a new best
-  place ever (≥ 7 stored days before). `GetRatingLadderThisWeek` returns 5 candidates per tile for everybody (~150 ms on
-  a production copy, the best-ever history per candidate), cached 15 minutes (`rating_ladder_this_week_cache`);
-  `RatingLadderThisWeek` leaves out the viewer's hidden players and gives one player one tile. A player who goes
-  private, opts out or deletes the account can stay on a tile until the cache expires (≤ 15 minutes).
+- **"This week on the ladder"** (`MspRating:ThisWeek` above the Live ladder): the biggest climber (green "▲ 25 places ·
+  now #324"; only with a rating entry solved after the compared day - nobody "climbs" because others faded), the
+  best-placed new entry, the most active (most puzzles in their rating solved since the compared day - Jan found "best
+  place ever" meaningless and asked for one title colour for every tile). `GetRatingLadderThisWeek` returns 5
+  candidates per tile for everybody, cached 15 minutes (`rating_ladder_this_week_cache`); `RatingLadderThisWeek`
+  leaves out the viewer's hidden players and gives one player one tile. A player who goes private, opts out or deletes
+  the account can stay on a tile until the cache expires (≤ 15 minutes).
 - **Rating card** (`msp_rating_card`, `/en/msp-rating/card/{playerId}`): a tap on a ladder name or a "This week" tile
-  opens it in the puzzler card's popover / sheet (`players_card_controller.js` on a wrapper outside the Live root;
+  opens it in the puzzler card's popover / sheet (the card's name links to the profile) (`players_card_controller.js` on a wrapper outside the Live root;
   `<turbo-frame id="player-card">`). Place + move, rating + points change, best place + date, rating and place day by day
   (`RatingHistoryChartFactory`: two Chart.js lines, place reversed; tooltips/ticks via `comparison-chart`, dashed lines
-  via `leaderboard-chart`'s vertical markers at day index + 0.5), Compare + Profile. Only for a player on the ladder -
+  via `leaderboard-chart`'s vertical markers at day index + 0.5 - formula changes are **not** marked for now
+  (`RatingHistoryChartFactory::markers()`, Jan 2026-10-20: "Formula update" meant nothing to players), the
+  season start will be), Compare + Profile. Only for a player on the ladder -
   a global ranking, so private players never (the allow list does not apply), opted-out / blocked / unrated = the
   neutral "not available". Noindex page twin, robots.txt Disallow. 3 statements (`RatingStoryBuilder`).
 - **Profile**: the header's MSP chip carries the move ("#312 ▲ 6"; `GetPlayerProfile::byId()` one more scalar,

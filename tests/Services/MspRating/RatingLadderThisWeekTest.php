@@ -19,7 +19,7 @@ use Symfony\Component\Clock\MockClock;
 
 /**
  * "This week on the ladder" (docs/features/msp-rating-history.md): the biggest climber with a new result, the best new
- * entry, a new best place ever - one player in one tile, the viewer's hidden players left out.
+ * entry, the most active - one player in one tile, the viewer's hidden players left out.
  */
 final class RatingLadderThisWeekTest extends KernelTestCase
 {
@@ -32,23 +32,34 @@ final class RatingLadderThisWeekTest extends KernelTestCase
 
         $tiles = $this->tiles();
 
-        // Admin: #3 a week ago, #1 now, with a new result - also his best place ever, but one player gets one tile
+        // Admin: #3 a week ago, #1 now, with a new result - also the most active, but one player gets one tile
         self::assertSame(['climber', 'new_entry'], array_map(static fn (RatingLadderSpotlight $tile): string => $tile->kind, $tiles));
         self::assertSame([PlayerFixture::PLAYER_ADMIN, 1, 2], [$tiles[0]->playerId, $tiles[0]->rank, $tiles[0]->value]);
         // With favorites: not rated a week ago
         self::assertSame([PlayerFixture::PLAYER_WITH_FAVORITES, 4], [$tiles[1]->playerId, $tiles[1]->rank]);
     }
 
-    public function testWithoutANewResultTheRiseIsABestPlaceEverNotAClimb(): void
+    public function testWithoutANewResultARiseIsNoClimb(): void
     {
         self::bootKernel();
         $this->world(withNewResult: false);
 
+        self::assertSame(['new_entry'], array_map(static fn (RatingLadderSpotlight $tile): string => $tile->kind, $this->tiles()));
+    }
+
+    public function testTheMostActiveSolvedTheMostPuzzlesForTheRating(): void
+    {
+        self::bootKernel();
+        $this->world();
+        // Regular: two puzzles since the compared day, Admin (the climber) one; an older solve does not count
+        $this->entry(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_01, '2026-06-16');
+        $this->entry(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_02, '2026-06-19');
+        $this->entry(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_03, '2026-06-01');
+
         $tiles = $this->tiles();
 
-        self::assertSame(['new_entry', 'best_ever'], array_map(static fn (RatingLadderSpotlight $tile): string => $tile->kind, $tiles));
-        // #1 now, never better than #3 on the stored days before today
-        self::assertSame([PlayerFixture::PLAYER_ADMIN, 1, 3], [$tiles[1]->playerId, $tiles[1]->rank, $tiles[1]->value]);
+        self::assertSame(['climber', 'new_entry', 'most_active'], array_map(static fn (RatingLadderSpotlight $tile): string => $tile->kind, $tiles));
+        self::assertSame([PlayerFixture::PLAYER_REGULAR, 3, 2], [$tiles[2]->playerId, $tiles[2]->rank, $tiles[2]->value]);
     }
 
     public function testAHiddenPlayerIsLeftOut(): void
@@ -90,12 +101,17 @@ final class RatingLadderThisWeekTest extends KernelTestCase
         }
 
         if ($withNewResult) {
-            $connection->executeStatement(
-                "INSERT INTO player_rating_entry (player_id, pieces_count, puzzle_id, portfolio, seconds, solved_at, percentile, difficulty_weight, decay, points, in_top, computed_at)
-                 VALUES (:player, 500, :puzzle, 'first_attempt', 3000, '2026-06-18', 90.0, 1.0, 1.0, 0.9, true, NOW())",
-                ['player' => PlayerFixture::PLAYER_ADMIN, 'puzzle' => PuzzleFixture::PUZZLE_500_01],
-            );
+            $this->entry(PlayerFixture::PLAYER_ADMIN, PuzzleFixture::PUZZLE_500_01, '2026-06-18');
         }
+    }
+
+    private function entry(string $playerId, string $puzzleId, string $solvedAt): void
+    {
+        $this->connection()->executeStatement(
+            "INSERT INTO player_rating_entry (player_id, pieces_count, puzzle_id, portfolio, seconds, solved_at, percentile, difficulty_weight, decay, points, in_top, computed_at)
+             VALUES (:player, 500, :puzzle, 'first_attempt', 3000, :solvedAt, 90.0, 1.0, 1.0, 0.9, true, NOW())",
+            ['player' => $playerId, 'puzzle' => $puzzleId, 'solvedAt' => $solvedAt],
+        );
     }
 
     /**

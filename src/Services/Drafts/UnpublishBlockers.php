@@ -18,6 +18,10 @@ use SpeedPuzzling\Web\Services\OfficialResultsGuard;
  * A series also counts its series picks (docs/features/events-page/high-frequency-series.md P20): a time linked to the
  * series itself - matched to an edition or not (series-level, a normal and permanent result of the series) - is the
  * series' result. A competition counts every time linked to it, automatic links to an edition included (unchanged).
+ *
+ * The times are counted as a UNION of one indexed lookup per link (competition, round, series) - an OR across those
+ * columns cannot use their indexes and scanned the whole puzzle_solving_time table once per counted competition
+ * ("You organize" took seconds for 20 rows, measured 2026-10-20).
  */
 readonly final class UnpublishBlockers
 {
@@ -40,9 +44,11 @@ readonly final class UnpublishBlockers
 (SELECT COUNT(*) FROM competition_participant cp WHERE cp.competition_id = {$competitionId} AND cp.deleted_at IS NULL) AS blocking_participants,
 (SELECT COUNT(*) FROM competition_participant_round cpr INNER JOIN competition_round cr ON cr.id = cpr.round_id WHERE cr.competition_id = {$competitionId} AND {$entryHolds})
     + (SELECT COUNT(*) FROM competition_team ct INNER JOIN competition_round cr ON cr.id = ct.round_id WHERE cr.competition_id = {$competitionId} AND {$teamHolds}) AS blocking_results,
-(SELECT COUNT(*) FROM puzzle_solving_time pst
-    WHERE pst.competition_id = {$competitionId}
-        OR pst.competition_round_id IN (SELECT cr.id FROM competition_round cr WHERE cr.competition_id = {$competitionId})) AS blocking_solving_times
+(SELECT COUNT(*) FROM (
+    SELECT pst.id FROM puzzle_solving_time pst WHERE pst.competition_id = {$competitionId}
+    UNION
+    SELECT pst.id FROM puzzle_solving_time pst INNER JOIN competition_round cr ON cr.id = pst.competition_round_id WHERE cr.competition_id = {$competitionId}
+) blocking_times) AS blocking_solving_times
 SQL;
     }
 
@@ -106,10 +112,13 @@ SELECT
         WHERE cp.competition_id IN (SELECT id FROM checked) AND cp.deleted_at IS NULL) AS participants,
     (SELECT COUNT(*) FROM competition_participant_round cpr WHERE cpr.round_id IN (SELECT id FROM checked_rounds) AND {$entryHolds})
         + (SELECT COUNT(*) FROM competition_team ct WHERE ct.round_id IN (SELECT id FROM checked_rounds) AND {$teamHolds}) AS results,
-    (SELECT COUNT(*) FROM puzzle_solving_time pst
-        WHERE pst.competition_id IN (SELECT id FROM checked)
-            OR pst.competition_round_id IN (SELECT id FROM checked_rounds)
-            OR {$alsoTimes}) AS solving_times
+    (SELECT COUNT(*) FROM (
+        SELECT pst.id FROM puzzle_solving_time pst WHERE pst.competition_id IN (SELECT id FROM checked)
+        UNION
+        SELECT pst.id FROM puzzle_solving_time pst WHERE pst.competition_round_id IN (SELECT id FROM checked_rounds)
+        UNION
+        SELECT pst.id FROM puzzle_solving_time pst WHERE {$alsoTimes}
+    ) blocking_times) AS solving_times
 SQL,
             ['id' => $id],
         );

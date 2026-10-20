@@ -46,7 +46,8 @@ def _tile(im: np.ndarray | Image.Image) -> Image.Image:
     return t
 
 
-def sheet(path: str, old: dict[str, Any], new: dict[str, Any], out: str) -> None:
+def sheet(path: str, old: dict[str, Any], new: dict[str, Any], out: str, previous: dict[str, Any] | None = None) -> None:
+    """original | old crop | (previous try) | new crop."""
     rgb = load_rgb(path)
     h, w = rgb.shape[:2]
     orig = Image.fromarray(rgb)
@@ -55,10 +56,16 @@ def sheet(path: str, old: dict[str, Any], new: dict[str, Any], out: str) -> None
     for res, col in ((old, (255, 140, 0)), (new, (0, 200, 255))):
         pts = [(x * w, y * h) for x, y in _outline(res)]
         d.line(pts + [pts[0]], fill=col, width=lw)
-    tiles = [_tile(orig), _tile(_crop_of(rgb, old)), _tile(_crop_of(rgb, new))]
-    canvas = Image.new("RGB", (3 * TILE + 20, TILE + 26), (255, 255, 255))
+    tiles = [_tile(orig), _tile(_crop_of(rgb, old))]
+    labels = ["original: old orange, new blue", "old crop (1.0)"]
+    if previous is not None:
+        tiles.append(_tile(_crop_of(rgb, previous)))
+        labels.append("1.1 first try (reviewed)")
+    tiles.append(_tile(_crop_of(rgb, new)))
+    labels.append(f"new crop (1.1) - {new.get('kind')}, {new.get('method')}")
+    canvas = Image.new("RGB", (len(tiles) * (TILE + 10) - 10, TILE + 26), (255, 255, 255))
     cd = ImageDraw.Draw(canvas)
-    for k, (t, label) in enumerate(zip(tiles, ("original: old orange, new blue", "old crop (1.0)", "new crop (1.1)"))):
+    for k, (t, label) in enumerate(zip(tiles, labels)):
         canvas.paste(t, (k * (TILE + 10), 26))
         cd.text((k * (TILE + 10) + 4, 6), label, fill=(0, 0, 0))
     canvas.save(out, quality=85)
@@ -129,7 +136,7 @@ def cmd_sheets(a: argparse.Namespace) -> int:
     for n, r in enumerate(rows, 1):
         if r.get("new"):
             r["sheet"] = f"sheets/{n:03d}.jpg"
-            sheet(r["path"], r["stored"], r["new"], str(out / r["sheet"]))
+            sheet(r["path"], r["stored"], r["new"], str(out / r["sheet"]), r.get("previous"))
     (out / "pilot.json").write_text(json.dumps(rows, indent=1, ensure_ascii=False))
     print(f"{sum(1 for r in rows if r.get('sheet'))} sheets in {out / 'sheets'}")
     return 0

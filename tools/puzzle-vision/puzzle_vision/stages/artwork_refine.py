@@ -318,7 +318,8 @@ def is_quad_skewed(quad: Sequence[Sequence[float]] | None) -> bool:
 # --- the box face pass (finding 2) ------------------------------------------------------------------------------------
 FACE_KINDS = ("box_front", "box_angled")
 TRIM_KIND_CHECK = True  # a trimmed "flat" picture gets the kind's second opinion; a box goes through the face pass ...
-TRIM_BOX_MAX_SHARE = 0.9  # ... and stays a box only when the picture found in it covers less than this of the photo
+TRIM_BOX_MAX_SHARE = 0.9  # ... and stays a box only when the picture found in it covers less than this of the trimmed
+                          # picture (a digital picture's own white margin is no box: pilot #166)
 
 
 def quad_area(q: Sequence[Sequence[float]]) -> float:
@@ -631,7 +632,7 @@ def refine(rgb: np.ndarray, a: np.ndarray, fp: dict[str, Any], source: tuple[int
             info["grown"] = sorted(grow)
             method = f"{method}+grow"
         signals["face"] = info
-        if g["method"] == "kind" and (new is None or quad_area(new) > TRIM_BOX_MAX_SHARE):
+        if g["method"] == "kind" and (new is None or quad_area(new) > TRIM_BOX_MAX_SHARE * quad_area(box_quad(fp["bbox"]))):
             # the second opinion said "box" but no smaller picture was found in it: a digital picture after all (2 of
             # 18 flats on the tuning set were called boxes)
             kind, new = "flat", None

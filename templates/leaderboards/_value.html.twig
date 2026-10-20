@@ -4,10 +4,11 @@
     by this column. Put it inside <td class="lb-time">.
       {{ include('leaderboards/_value.html.twig', {value: '2,140 XP', secondary: 'Lv 34', family: 'level'}) }}
     family: level (indigo) · achievements (amber) · karma (rose) · competition (teal) · ink (times, unchanged); secondary optional
-    value_suffix (optional, rendered HTML): a small mark after the number - the MSP Rating's points change
+    value_prefix (optional, rendered HTML): a small mark before the number, the number stays on the right edge - the MSP
+    Rating's points change "(−1) 996"
 -#}
 <span class="lb-value lb-value-{{ family|default('ink') }}">
-    <span class="lb-value-number">{{ value }}{% if value_suffix|default('')|trim is not same as('') %} {{ value_suffix|raw }}{% endif %}</span>
+    <span class="lb-value-number">{% if value_prefix|default('')|trim is not same as('') %}{{ value_prefix|raw }} {% endif %}{{ value }}</span>
     {%- if secondary|default(null) is not null and secondary is not same as('') %}
         <span class="lb-value-secondary">{{ secondary }}</span>
     {%- endif %}

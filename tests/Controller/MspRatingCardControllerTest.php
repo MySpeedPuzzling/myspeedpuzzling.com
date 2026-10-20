@@ -49,7 +49,7 @@ final class MspRatingCardControllerTest extends WebTestCase
         self::assertStringContainsString('#2', $crawler->filter('.msp-story-stat')->eq(0)->text());
         self::assertCount(1, $crawler->filter('.msp-story-stat .lb-move.lb-move-down'));
         // 873 today, 900 a week ago
-        self::assertSame('−27', trim($crawler->filter('.msp-story-stat .lb-move-points')->text()));
+        self::assertSame('(−27)', trim($crawler->filter('.msp-story-stat .lb-move-points')->text()));
         // Best place #1, the two charts
         self::assertStringContainsString('#1', $crawler->filter('.msp-story-stat')->eq(2)->text());
         self::assertCount(2, $crawler->filter('.msp-story-canvas canvas'));

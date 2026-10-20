@@ -107,7 +107,7 @@
                             <td class="lb-time">
                                 {{ include('leaderboards/_value.html.twig', {
                                     value: entry.displayRating|plain_number,
-                                    value_suffix: include('leaderboards/_rating_move.html.twig', {move: entry.move, part: 'points'}),
+                                    value_prefix: include('leaderboards/_rating_move.html.twig', {move: entry.move, part: 'points'}),
                                     family: 'competition',
                                 }) }}
                             </td>

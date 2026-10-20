@@ -19,8 +19,9 @@ use Symfony\UX\Chartjs\Model\Chart;
  */
 readonly final class RatingHistoryChartFactory
 {
-    private const string LINE = '#1d6f6b';
-    private const string FILL = 'rgba(29, 111, 107, 0.12)';
+    // The site's primary colour ($primary)
+    private const string LINE = '#fe696a';
+    private const string FILL = 'rgba(254, 105, 106, 0.12)';
     private const string SEASON_MARKER = '#6a5bd6';
     private const string INK = '#4b566b';
     private const string INK_MUTED = '#6b7488';
@@ -134,7 +135,8 @@ readonly final class RatingHistoryChartFactory
                 'data' => $data,
                 'borderColor' => self::LINE,
                 'backgroundColor' => self::FILL,
-                'fill' => $reverse ? 'end' : 'start',
+                // Under the line on both charts - Chart.js's 'start' is the bottom edge, also on the reversed place axis
+                'fill' => 'start',
                 'borderWidth' => 2,
                 'pointRadius' => 0,
                 'pointHoverRadius' => 4,

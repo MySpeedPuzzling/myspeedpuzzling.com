@@ -39,7 +39,8 @@ readonly final class RatingLadderThisWeek
 
         /** @var list<RatingLadderSpotlight> $candidates */
         $candidates = $this->ratingLadderThisWeekCache->get(
-            "rating_ladder_this_week_{$piecesCount}_{$day}",
+            // v2: the candidates' kinds changed (best_ever -> most_active) - a bump drops the old shape at once
+            "rating_ladder_this_week_v2_{$piecesCount}_{$day}",
             function (ItemInterface $item) use ($piecesCount, $now): array {
                 $item->expiresAfter(self::CACHE_TTL);
 

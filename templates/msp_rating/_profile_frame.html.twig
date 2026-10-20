@@ -1,0 +1,10 @@
+{# The profile's MSP Rating block, loaded lazily (Turbo-Frame: msp-rating-history) - see MspRatingCardController #}
+<turbo-frame id="msp-rating-history">
+    <section class="msp-profile-history" aria-labelledby="msp-profile-history-heading">
+        <h2 class="msp-profile-history-heading" id="msp-profile-history-heading">
+            <i class="bi bi-trophy" aria-hidden="true"></i> {{ 'msp_rating.profile.heading'|trans }}
+            <a class="msp-profile-history-link" href="{{ path('msp_rating_ladder') }}" data-turbo-frame="_top">{{ 'msp_rating.profile.ladder_link'|trans }}</a>
+        </h2>
+        {{ include('msp_rating/_story.html.twig', {story: story, chart_id: 'msp-profile-' ~ player.playerId}) }}
+    </section>
+</turbo-frame>

@@ -1,0 +1,16 @@
+{#-
+    The viewer's own movement on the MSP Rating position line: "▲ 6 places since 13 Oct" (docs/features/msp-rating-history.md).
+    move: RatingMove or null (nothing rendered)
+-#}
+{%- if move is not null -%}
+    {%- set since = move.since|events_date('MMMd') -%}
+    {%- if move.isNew -%}
+        <span class="lb-move-new">{{ 'msp_rating.move.line_new'|trans({'%since%': since}) }}</span>
+    {%- elseif move.placesGained > 0 -%}
+        <span class="lb-move-up">{{ 'msp_rating.move.line_up'|trans({'%count%': move.placesGained, '%since%': since}) }}</span>
+    {%- elseif move.placesGained < 0 -%}
+        <span class="lb-move-down">{{ 'msp_rating.move.line_down'|trans({'%count%': -move.placesGained, '%since%': since}) }}</span>
+    {%- else -%}
+        <span>{{ 'msp_rating.move.line_same'|trans({'%since%': since}) }}</span>
+    {%- endif -%}
+{%- endif -%}

@@ -17,6 +17,8 @@ readonly final class PlayerRatingEntry
         public float $eloRating,
         public int $rank,
         public null|string $skillTierName = null,
+        // Against the stored day about a week ago - null when the board was loaded without one
+        public null|RatingMove $move = null,
     ) {
     }
 
@@ -40,7 +42,7 @@ readonly final class PlayerRatingEntry
      *     rank: int|string,
      * } $row
      */
-    public static function fromDatabaseRow(array $row): self
+    public static function fromDatabaseRow(array $row, null|RatingMove $move = null): self
     {
         $skillTierName = $row['skill_tier'] !== null
             ? strtolower(SkillTier::from((int) $row['skill_tier'])->name)
@@ -55,6 +57,7 @@ readonly final class PlayerRatingEntry
             eloRating: (float) $row['elo_rating'],
             rank: (int) $row['rank'],
             skillTierName: $skillTierName,
+            move: $move,
         );
     }
 }

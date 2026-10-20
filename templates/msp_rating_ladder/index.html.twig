@@ -15,6 +15,13 @@
                 <h1 class="h2 mb-0">{{ 'puzzle_intelligence.elo.heading_500'|trans }}</h1>
                 <span class="badge bg-info">{{ 'puzzle_intelligence.elo.beta_badge'|trans }}</span>
             </div>
+            {# Seasons are coming (docs/features/msp-rating-history.md "Seasons") - a sneak peek, details in the newsletter #}
+            <p class="msp-season mb-1">
+                <span class="msp-season-current">{{ 'msp_rating.season.current'|trans({'%season%': current_season}) }}</span>
+                {%- if next_season_starts_on is not null %}
+                    <span class="msp-season-next">· {{ 'msp_rating.season.next_starts'|trans({'%season%': next_season, '%date%': next_season_starts_on|events_date('yMMMMd')}) }}</span>
+                {%- endif %}
+            </p>
             <p class="text-muted mb-0 fs-sm">
                 {{ 'puzzle_intelligence.elo.subtitle_portfolio'|trans }}
                 <a href="{{ path('methodology') }}#msp-rating" class="ms-1">{{ 'puzzle_intelligence.elo.how_it_works'|trans }}</a>
@@ -99,5 +106,11 @@
         </div>
     {% endif %}
 
-    <twig:MspRatingLadder />
+    {# A tap on a person opens their rating card (MspRatingCardController) in the puzzler card's popover / sheet -
+       outside the ladder's Live root, so a re-render never touches the controller #}
+    <div data-controller="players-card">
+        <twig:MspRating:ThisWeek />
+
+        <twig:MspRatingLadder />
+    </div>
 {% endblock %}

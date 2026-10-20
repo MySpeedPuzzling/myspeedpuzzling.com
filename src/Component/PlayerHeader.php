@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
+use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Query\GetPlayerRatingRanking;
 use SpeedPuzzling\Web\Query\HasExistingConversation;
 use SpeedPuzzling\Web\Results\PlayerProfile;
 use SpeedPuzzling\Web\Services\Insights\InsightsFeature;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Value\ComparisonSubjectRef;
+use SpeedPuzzling\Web\Value\MspRatingTimeline;
 use SpeedPuzzling\Web\Value\PlayerHeaderTab;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
@@ -68,6 +72,14 @@ final class PlayerHeader
     public null|int $mspRatingRank = null;
 
     /**
+     * Places gained (negative = lost) since the day the ladder's movement compares with - the chip's arrow, null when
+     * there is nothing to compare (new on the ladder, no stored day) (docs/features/msp-rating-history.md)
+     */
+    public null|int $mspRatingPlacesGained = null;
+
+    public null|DateTimeImmutable $mspRatingMoveSince = null;
+
+    /**
      * The XP level ring around the avatar (docs/features/xp-levels/launch-2026-10.md): not for a player who opted out
      * of the experience system, nor for a private profile hidden from this viewer.
      */
@@ -78,6 +90,7 @@ final class PlayerHeader
         readonly private HasExistingConversation $hasExistingConversation,
         readonly private XpFeatureGate $xpFeatureGate,
         readonly private InsightsFeature $insightsFeature,
+        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -137,6 +150,11 @@ final class PlayerHeader
 
         $this->tierChip = $this->tierChip($viewer?->activeMembership === true);
         $this->mspRatingRank = $this->isHidden || $player->rankingOptedOut ? null : $player->mspRatingRank;
+
+        if ($this->mspRatingRank !== null && $player->mspRatingRankBefore !== null) {
+            $this->mspRatingPlacesGained = $player->mspRatingRankBefore - $this->mspRatingRank;
+            $this->mspRatingMoveSince = MspRatingTimeline::moveReferenceDay($this->clock->now(), GetPlayerRatingRanking::MOVE_DAYS);
+        }
     }
 
     /**

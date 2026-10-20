@@ -4,14 +4,20 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\LeaderboardSlice;
 use SpeedPuzzling\Web\Results\PlayerRatingEntry;
+use SpeedPuzzling\Web\Results\RatingMove;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Value\LeaderboardPosition;
+use SpeedPuzzling\Web\Value\MspRatingTimeline;
 
 readonly final class GetPlayerRatingRanking
 {
+    // The ladder's movement compares today with the last stored day at least this many days ago
+    public const int MOVE_DAYS = 7;
+
     public function __construct(
         private Connection $database,
         private HiddenPlayers $hiddenPlayers,
@@ -39,6 +45,7 @@ readonly final class GetPlayerRatingRanking
         null|string $country = null,
         null|string $searchTerm = null,
         null|string $favoriteOfPlayerId = null,
+        null|DateTimeImmutable $now = null,
     ): LeaderboardSlice {
         $params = [
             'piecesCount' => $piecesCount,
@@ -49,17 +56,37 @@ readonly final class GetPlayerRatingRanking
             'milestones' => '{' . implode(',', LeaderboardPosition::RANK_MILESTONES) . '}',
         ];
 
-        $listFilter = '';
-
         if ($country !== null) {
-            $listFilter .= ' AND p.country = :country';
             $params['country'] = $country;
         }
 
         if ($favoriteOfPlayerId !== null) {
-            $listFilter .= ' AND (pe.player_id = :favoriteOfPlayerId OR pe.player_id IN (SELECT fav_id::uuid FROM player fp, json_array_elements_text(fp.favorite_players) AS fav_id WHERE fp.id = :favoriteOfPlayerId))';
             $params['favoriteOfPlayerId'] = $favoriteOfPlayerId;
         }
+
+        // The country and favorites filters by the player id column - the ladder today (pe) and the movement's stored day (s)
+        $listFilter = static function (string $playerIdColumn) use ($country, $favoriteOfPlayerId): string {
+            $filter = '';
+
+            if ($country !== null) {
+                $filter .= ' AND p.country = :country';
+            }
+
+            if ($favoriteOfPlayerId !== null) {
+                $filter .= " AND ({$playerIdColumn} = :favoriteOfPlayerId OR {$playerIdColumn} IN (SELECT fav_id::uuid FROM player fp, json_array_elements_text(fp.favorite_players) AS fav_id WHERE fp.id = :favoriteOfPlayerId))";
+            }
+
+            return $filter;
+        };
+
+        // The movement: the same list ranked on the last stored day at least a week before today, never across a formula
+        // change (MspRatingTimeline, docs/features/msp-rating-history.md). Without $now the board has no movement and
+        // the CTE ranks nothing.
+        $referenceDay = $now !== null ? MspRatingTimeline::moveReferenceDay($now, self::MOVE_DAYS) : null;
+        $params['referenceDay'] = $referenceDay?->format('Y-m-d');
+        $params['notBefore'] = $referenceDay !== null
+            ? MspRatingTimeline::moveNotBefore($referenceDay, self::MOVE_DAYS)->format('Y-m-d')
+            : null;
 
         $searchFilter = '';
 
@@ -88,7 +115,27 @@ WITH board AS (
     LEFT JOIN player_skill ps ON ps.player_id = pe.player_id AND ps.pieces_count = pe.pieces_count
     WHERE pe.pieces_count = :piecesCount
         AND {$onLadder}
-        {$listFilter}
+        {$listFilter('pe.player_id')}
+),
+reference AS (
+    SELECT MAX(snapshot_date) AS day
+    FROM player_rating_snapshot
+    WHERE pieces_count = :piecesCount
+        AND elo_rating IS NOT NULL
+        AND snapshot_date <= CAST(:referenceDay AS timestamp)
+        AND snapshot_date >= CAST(:notBefore AS timestamp)
+),
+prev AS (
+    SELECT
+        s.player_id,
+        s.elo_rating AS prev_rating,
+        RANK() OVER (ORDER BY s.elo_rating DESC) AS prev_rank
+    FROM reference
+    INNER JOIN player_rating_snapshot s ON s.pieces_count = :piecesCount AND s.snapshot_date = reference.day
+    INNER JOIN player p ON p.id = s.player_id
+    WHERE s.elo_rating IS NOT NULL
+        AND {$onLadder}
+        {$listFilter('s.player_id')}
 ),
 listed AS (
     SELECT
@@ -109,15 +156,16 @@ own AS (
     FROM board
     WHERE board.player_id = CAST(:viewerPlayerId AS UUID)
 )
-SELECT listed.*, own.*
+SELECT listed.*, own.*, prev.prev_rank, prev.prev_rating, (SELECT day FROM reference) AS reference_day
 FROM (SELECT 1) AS anchor
 LEFT JOIN own ON TRUE
 LEFT JOIN listed ON listed.position <= :limit
     OR listed.position BETWEEN own.own_position - :above AND own.own_position + :below
+LEFT JOIN prev ON prev.player_id = listed.player_id
 ORDER BY listed.position
 SQL;
 
-        /** @var list<array{player_id: null|string, player_name: null|string, player_code: string, player_country: null|string, player_avatar: null|string, elo_rating: float|string, skill_tier: null|int|string, rank: int|string, position: null|int|string, total: null|int|string, own_rank: null|int|string, own_value: null|int|string, board_total: null|int|string, rows_behind: null|int|string, milestone_values: null|string, own_position: null|int|string}> $rows */
+        /** @var list<array{player_id: null|string, player_name: null|string, player_code: string, player_country: null|string, player_avatar: null|string, elo_rating: float|string, skill_tier: null|int|string, rank: int|string, position: null|int|string, total: null|int|string, own_rank: null|int|string, own_value: null|int|string, board_total: null|int|string, rows_behind: null|int|string, milestone_values: null|string, own_position: null|int|string, prev_rank: null|int|string, prev_rating: null|float|string, reference_day: null|string}> $rows */
         $rows = $this->database->executeQuery($query, $params)->fetchAllAssociative();
 
         $entries = [];
@@ -133,6 +181,19 @@ SQL;
                 continue;
             }
 
+            $move = null;
+
+            if ($now !== null && $row['reference_day'] !== null) {
+                $move = RatingMove::between(
+                    rank: (int) $row['rank'],
+                    rating: (float) $row['elo_rating'],
+                    previousRank: $row['prev_rank'] !== null ? (int) $row['prev_rank'] : null,
+                    previousRating: $row['prev_rating'] !== null ? (float) $row['prev_rating'] : null,
+                    referenceDay: new DateTimeImmutable($row['reference_day']),
+                    now: $now,
+                );
+            }
+
             $entry = PlayerRatingEntry::fromDatabaseRow([
                 'player_id' => $playerId,
                 'player_name' => $row['player_name'],
@@ -142,7 +203,7 @@ SQL;
                 'elo_rating' => $row['elo_rating'],
                 'skill_tier' => $row['skill_tier'],
                 'rank' => $row['rank'],
-            ]);
+            ], $move);
             $entries[] = $entry;
             $ranks[] = $entry->rank;
             $positions[] = (int) $position - 1;
@@ -258,6 +319,22 @@ SQL;
     }
 
     /**
+     * The player's place on the last stored day up to the day parameter, not before the not-before parameter (both Y-m-d,
+     * MspRatingTimeline::moveReferenceDay() / moveNotBefore()) - ranked like
+     * sqlRankOf() (the ladder's pool, the viewer's blocks closed up) from that day's stored ratings, so it compares with
+     * today's place. Null when the player had no rating that day or no day is stored.
+     */
+    public function sqlPlaceOnStoredDayOf(string $playerIdSql, string $piecesCountSql, string $dayParameter, string $notBeforeParameter): string
+    {
+        $rankPool = $this->sqlOnLadder('day_p');
+
+        return "(SELECT 1 + (SELECT COUNT(*) FROM player_rating_snapshot day_o INNER JOIN player day_p ON day_p.id = day_o.player_id WHERE day_o.pieces_count = day_s.pieces_count AND day_o.snapshot_date = day_s.snapshot_date AND day_o.elo_rating > day_s.elo_rating AND {$rankPool})"
+            . " FROM player_rating_snapshot day_s"
+            . " WHERE day_s.player_id = {$playerIdSql} AND day_s.pieces_count = {$piecesCountSql} AND day_s.elo_rating IS NOT NULL"
+            . " AND day_s.snapshot_date = (SELECT MAX(day_r.snapshot_date) FROM player_rating_snapshot day_r WHERE day_r.pieces_count = {$piecesCountSql} AND day_r.elo_rating IS NOT NULL AND day_r.snapshot_date <= CAST({$dayParameter} AS timestamp) AND day_r.snapshot_date >= CAST({$notBeforeParameter} AS timestamp)))";
+    }
+
+    /**
      * Who is on the ladder - the one definition for the ladder rows, their count, the country facet and every
      * "#rank of total" (allForPlayer()). Each place used to spell it out on its own, and the profile card forgot the
      * players who opted out of rankings: the same player was #303 of 1136 there and #300 of 1126 on the ladder.
@@ -265,7 +342,15 @@ SQL;
      */
     private function sqlOnLadder(string $playerAlias): string
     {
-        return "{$playerAlias}.is_private = false AND {$playerAlias}.ranking_opted_out = false"
-            . $this->hiddenPlayers->sqlExclude("{$playerAlias}.id");
+        return self::sqlOnStoredLadder($playerAlias) . $this->hiddenPlayers->sqlExclude("{$playerAlias}.id");
+    }
+
+    /**
+     * The ladder without the viewer's own hidden players - what the stored places of player_rating_snapshot rank by
+     * (the batch has no viewer). sqlOnLadder() is this plus the viewer's blocks.
+     */
+    public static function sqlOnStoredLadder(string $playerAlias): string
+    {
+        return "{$playerAlias}.is_private = false AND {$playerAlias}.ranking_opted_out = false";
     }
 }

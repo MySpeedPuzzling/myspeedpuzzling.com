@@ -1,0 +1,63 @@
+{#-
+    A player's MSP Rating story (docs/features/msp-rating-history.md) - the rating card and the profile's rating block:
+    place, rating and best place with the movement the ladder shows, then the rating and the place day by day.
+      {{ include('msp_rating/_story.html.twig', {story: RatingStory, chart_id: 'unique-prefix'}) }}
+    The charts are Chart.js (RatingHistoryChartFactory): comparison-chart writes the server's tooltips and ticks,
+    leaderboard-chart draws the dashed formula / season lines. Both controllers are eager.
+-#}
+{%- set history = story.history -%}
+<dl class="msp-story-stats">
+    <div class="msp-story-stat">
+        <dt>{{ 'msp_rating.card.place'|trans }}</dt>
+        <dd>
+            <span class="msp-story-value">#{{ story.rank|plain_number }}</span>
+            <span class="msp-story-sub">{{ 'msp_rating.card.of_total'|trans({'%total%': story.total|plain_number}) }}</span>
+            {{ include('leaderboards/_rating_move.html.twig', {move: story.move, part: 'places'}) }}
+        </dd>
+    </div>
+    <div class="msp-story-stat">
+        <dt>{{ 'msp_rating.card.rating'|trans }}</dt>
+        <dd>
+            <span class="msp-story-value">{{ story.rating|plain_number }}</span>
+            {{ include('leaderboards/_rating_move.html.twig', {move: story.move, part: 'points'}) }}
+        </dd>
+    </div>
+    <div class="msp-story-stat">
+        <dt>{{ 'msp_rating.card.best_place'|trans }}</dt>
+        <dd>
+            {%- if history.bestPlace is not null -%}
+                <span class="msp-story-value">#{{ history.bestPlace|plain_number }}</span>
+                <span class="msp-story-sub">{{ history.bestPlaceOn|events_date('yMMMd') }}</span>
+            {%- else -%}
+                <span class="msp-story-value" aria-hidden="true">–</span>
+            {%- endif -%}
+        </dd>
+    </div>
+</dl>
+
+{% if story.ratingChart is not null %}
+    <div class="msp-story-charts">
+        <figure class="msp-story-chart">
+            <figcaption>{{ 'msp_rating.card.rating_heading'|trans }}</figcaption>
+            <div class="msp-story-canvas" data-controller="comparison-chart leaderboard-chart">
+                {{ render_chart(story.ratingChart, {id: chart_id ~ '-rating', role: 'img', 'aria-label': 'msp_rating.card.rating_chart_label'|trans({'%count%': history.days|length})}) }}
+            </div>
+        </figure>
+        {% if story.placeChart is not null %}
+            <figure class="msp-story-chart">
+                <figcaption>{{ 'msp_rating.card.place_heading'|trans }}</figcaption>
+                <div class="msp-story-canvas" data-controller="comparison-chart leaderboard-chart">
+                    {{ render_chart(story.placeChart, {id: chart_id ~ '-place', role: 'img', 'aria-label': 'msp_rating.card.place_chart_label'|trans({'%count%': history.days|length})}) }}
+                </div>
+            </figure>
+        {% endif %}
+    </div>
+    <p class="msp-story-note">
+        {{ 'msp_rating.card.on_ladder_for'|trans({'%count%': history.daysOnLadder}) }}
+        {%- if story.showsFormulaChange %}
+            · {{ 'msp_rating.card.formula_note'|trans }}
+        {%- endif %}
+    </p>
+{% else %}
+    <p class="msp-story-note">{{ 'msp_rating.card.no_history'|trans }}</p>
+{% endif %}

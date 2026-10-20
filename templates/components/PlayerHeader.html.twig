@@ -111,6 +111,14 @@
                                 <a class="player-chip player-chip-competition" href="{{ path('msp_rating_ladder', chip_return) }}" rel="nofollow" title="{{ 'player_progress.msp_chip_title'|trans({'%rank%': this.mspRatingRank, '%pieces%': tier_pieces}) }}">
                                     <i class="bi bi-trophy" aria-hidden="true"></i>
                                     {{ 'player_progress.msp_chip'|trans({'%rank%': this.mspRatingRank}) }}
+                                    {%- if this.mspRatingPlacesGained is not null and this.mspRatingPlacesGained != 0 and this.mspRatingMoveSince is not null %}
+                                        {%- set move_since = this.mspRatingMoveSince|events_date('MMMd') %}
+                                        {%- if this.mspRatingPlacesGained > 0 %}
+                                            <span class="player-chip-move lb-move-up"><span aria-hidden="true">▲&nbsp;{{ this.mspRatingPlacesGained|plain_number }}</span><span class="visually-hidden">{{ 'msp_rating.move.up_title'|trans({'%count%': this.mspRatingPlacesGained, '%since%': move_since}) }}</span></span>
+                                        {%- else %}
+                                            <span class="player-chip-move lb-move-down"><span aria-hidden="true">▼&nbsp;{{ (-this.mspRatingPlacesGained)|plain_number }}</span><span class="visually-hidden">{{ 'msp_rating.move.down_title'|trans({'%count%': -this.mspRatingPlacesGained, '%since%': move_since}) }}</span></span>
+                                        {%- endif %}
+                                    {%- endif %}
                                 </a>
                             </li>
                         {% endif %}

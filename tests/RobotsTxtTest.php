@@ -38,6 +38,8 @@ final class RobotsTxtTest extends KernelTestCase
             'player statistics' => ['player_statistics', ['playerId' => self::SAMPLE_ID]],
             // The Players page's player card (docs/features/players-page/README.md)
             'player card' => ['player_card', ['playerId' => self::SAMPLE_ID]],
+            // The MSP Rating card on the ladder (docs/features/msp-rating-history.md)
+            'MSP rating card' => ['msp_rating_card', ['playerId' => self::SAMPLE_ID]],
             // The old 1:1 compare page, now a redirect to the compare page (docs/features/player-comparison.md)
             'old compare page' => ['compare_players', ['opponentPlayerId' => self::SAMPLE_ID]],
         ];

@@ -11,6 +11,8 @@
       - profile_params (map, optional): extra query parameters of the profile link (e.g. ?return=)
       - show_tier (bool, optional, default true): the skill tier icon - off where the data has no tier
       - highlight_query (string, optional): marks the searched text in the name (search results)
+      - card_url (string, optional): a tap on the name opens this card (players_card_controller.js on an ancestor) -
+                Ctrl/Cmd-click and no JavaScript still go to the profile
 
     The name truncates with an ellipsis instead of widening the table - the row must never scroll sideways.
 #}
@@ -39,7 +41,7 @@
         {%- else -%}
             {{ skill_icon('locked', 16) }}
         {%- endif -%}
-        <a class="lb-name" href="{{ path('player_profile', {playerId: player.playerId}|merge(profile_params|default({}))) }}"{% if links_turbo_frame is defined %} data-turbo-frame="{{ links_turbo_frame }}"{% endif %}>
+        <a class="lb-name" href="{{ path('player_profile', {playerId: player.playerId}|merge(profile_params|default({}))) }}"{% if links_turbo_frame is defined %} data-turbo-frame="{{ links_turbo_frame }}"{% endif %}{% if card_url|default(null) %} data-action="players-card#open" data-players-card-url-param="{{ card_url }}"{% endif %}>
             {%- if logged_user.profile is not null and player.playerId in logged_user.profile.favoritePlayers -%}
                 <i class="ci-star-filled text-warning me-1"></i>
             {%- endif -%}

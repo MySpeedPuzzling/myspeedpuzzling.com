@@ -4,6 +4,14 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## MSP Rating history (`docs/features/msp-rating-history.md`, 2026-10-20)
+
+- [ ] After the deploy: `myspeedpuzzling:rerank-rating-snapshots` once on production, before the next weekly digest
+- [ ] "Why did my place move" on the own rating card - store the portfolio entries per day (or the day's points per entry) first
+- [ ] Ladder milestones (top 100, best place ever) as player moments on the Players page / future Hub feed
+- [ ] Rating lines side by side on Compare's Charts tab
+- [ ] Season 1: formula, rules (only times after the start), the season switch on the ladder - newsletter first
+
 ## Moderator invitations + guide (`docs/features/community-moderators.md`, 2026-10-20)
 
 - [ ] Simona's day-to-day routine into the guide: the slot "How we work day to day" in `templates/moderators/guide.html.twig` (order of the queues, how she checks a box - which sites/searches, typical cases and their answers)

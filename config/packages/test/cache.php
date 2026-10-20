@@ -36,6 +36,9 @@ return App::config([
                 'achievement_rarity_cache' => [
                     'adapters' => ['cache.adapter.array'],
                 ],
+                'rating_ladder_this_week_cache' => [
+                    'adapters' => ['cache.adapter.array'],
+                ],
                 'global_improvement_ratio_snapshot_cache' => [
                     'adapters' => ['cache.adapter.array'],
                 ],

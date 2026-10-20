@@ -310,6 +310,8 @@ function createCustomIndexes(): void
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_unapproved ON puzzle (id) INCLUDE (hide_until, hide_image_until) WHERE approved = false');
     // The solo Times boards' best-time aggregate (Version20261011130000)
     $pdo->exec("CREATE INDEX IF NOT EXISTS custom_pst_solo_board ON puzzle_solving_time (puzzle_id) INCLUDE (player_id, seconds_to_solve) WHERE puzzling_type = 'solo' AND suspicious = false AND seconds_to_solve > 0");
+    // One stored day of the MSP Rating ladder - movement, header chip, "This week" (Version20261020200000)
+    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_rating_snapshot_day ON player_rating_snapshot (pieces_count, snapshot_date) INCLUDE (player_id, elo_rating, elo_rank) WHERE elo_rating IS NOT NULL');
     // Badge uniqueness — partial indexes for tiered vs single-tier badges (Version20260416210601)
     $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS custom_badge_unique_tiered ON badge (player_id, type, tier) WHERE tier IS NOT NULL');
     $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS custom_badge_unique_single_tier ON badge (player_id, type) WHERE tier IS NULL');

@@ -187,6 +187,15 @@ Disallow: /ja/プレイヤーカード/
 Disallow: /fr/carte-joueur/
 Disallow: /de/puzzler-karte/
 
+# MSP Rating card on the ladder: the same kind of fragment, noindex page with the
+# profile as canonical.
+Disallow: /msp-rating/karta/
+Disallow: /en/msp-rating/card/
+Disallow: /es/msp-rating/tarjeta/
+Disallow: /ja/msp-rating/card/
+Disallow: /fr/msp-rating/carte/
+Disallow: /de/msp-rating/karte/
+
 # Player statistics: every ?month=&year= period is its own noindex URL.
 Disallow: /statistiky-hrace
 Disallow: /en/player-statistics

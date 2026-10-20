@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetPlayerRatingRanking;
 use SpeedPuzzling\Web\Results\LeaderboardSlice;
 use SpeedPuzzling\Web\Results\PlayerRatingEntry;
+use SpeedPuzzling\Web\Results\RatingMove;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CountryCode;
@@ -94,6 +96,7 @@ final class MspRatingLadder
     public function __construct(
         readonly private GetPlayerRatingRanking $getPlayerRatingRanking,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -155,6 +158,7 @@ final class MspRatingLadder
             country: $this->country !== '' ? $this->country : null,
             searchTerm: $search !== '' ? $search : null,
             favoriteOfPlayerId: $this->onlyFavorites ? $profile?->playerId : null,
+            now: $this->clock->now(),
         );
 
         $this->viewerPlayerId = $profile?->playerId;
@@ -243,6 +247,18 @@ final class MspRatingLadder
     public function getShowMoreCount(): int
     {
         return $this->getWindow()->showMoreCount();
+    }
+
+    // The viewer's own movement for the position line - their row is always among the loaded ones while on the list
+    public function getViewerMove(): null|RatingMove
+    {
+        foreach ($this->getSlice()->rows as $entry) {
+            if ($entry->playerId === $this->viewerPlayerId) {
+                return $entry->move;
+            }
+        }
+
+        return null;
     }
 
     // The viewer's line above the list - null when they are not on this list (not rated, private, opted out, filtered out)

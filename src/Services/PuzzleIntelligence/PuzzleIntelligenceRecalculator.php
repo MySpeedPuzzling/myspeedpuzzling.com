@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Query\GetPlayerRatingRanking;
 use SpeedPuzzling\Web\Results\PaceHistorySyncResult;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\FirstAttemptSet;
 use SpeedPuzzling\Web\Services\Insights\InsightsGeneration;
@@ -621,6 +622,10 @@ readonly final class PuzzleIntelligenceRecalculator
     {
         $snapshotDate = $now->format('Y-m-d');
 
+        // The place is the ladder's of that day without anybody's blocks (RANK(): one more than the players on the ladder
+        // rated higher, NULL off the ladder) - the rule RerankRatingSnapshotsHandler re-ranks older days by
+        $onStoredLadder = GetPlayerRatingRanking::sqlOnStoredLadder('ladder_p');
+
         // Bulk insert snapshots for all players with baselines, joining skill and rating data
         $this->connection->executeStatement("
             INSERT INTO player_rating_snapshot (id, player_id, pieces_count, snapshot_date, skill_score, skill_tier, skill_percentile, elo_rating, elo_rank, baseline_seconds, baseline_type, computed_at)
@@ -646,12 +651,21 @@ readonly final class PuzzleIntelligenceRecalculator
                     ps.skill_tier,
                     ps.skill_percentile,
                     pe.elo_rating,
-                    (SELECT COUNT(*) FROM player_elo pe2 INNER JOIN player p2 ON p2.id = pe2.player_id WHERE pe2.pieces_count = pb.pieces_count AND p2.is_private = false AND pe2.elo_rating >= pe.elo_rating) AS elo_rank,
+                    ladder.place AS elo_rank,
                     pb.baseline_seconds,
                     pb.baseline_type
                 FROM player_baseline pb
                 LEFT JOIN player_skill ps ON ps.player_id = pb.player_id AND ps.pieces_count = pb.pieces_count
                 LEFT JOIN player_elo pe ON pe.player_id = pb.player_id AND pe.pieces_count = pb.pieces_count
+                LEFT JOIN (
+                    SELECT
+                        ladder_pe.player_id,
+                        ladder_pe.pieces_count,
+                        RANK() OVER (PARTITION BY ladder_pe.pieces_count ORDER BY ladder_pe.elo_rating DESC) AS place
+                    FROM player_elo ladder_pe
+                    INNER JOIN player ladder_p ON ladder_p.id = ladder_pe.player_id
+                    WHERE {$onStoredLadder}
+                ) ladder ON ladder.player_id = pb.player_id AND ladder.pieces_count = pb.pieces_count
             ) fresh
             LEFT JOIN player_rating_snapshot stored ON stored.player_id = fresh.player_id
                 AND stored.pieces_count = fresh.pieces_count

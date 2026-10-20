@@ -64,6 +64,7 @@
                 : (active_country is not null ? 'leaderboards.position.in_country'|trans({'%country%': active_country.name|upper|country_name}) : null),
             gap_text: viewer_position.targetGap is not null ? 'leaderboards.rating.gap'|trans({'%value%': viewer_position.targetGap|plain_number}) : null,
             jump_href: this.ownRowBelowFirstScreen ? '#my-rating-row' : null,
+            move_html: include('leaderboards/_rating_move_line.html.twig', {move: this.viewerMove}),
         }) }}
     {% endif %}
 
@@ -91,7 +92,7 @@
                         {% endif %}
                         {% set is_current_player = logged_user.profile is not null and entry.playerId == logged_user.profile.playerId %}
                         <tr id="{{ this.rowId(entry) }}" class="{{ is_current_player ? 'table-active-player' }}" tabindex="-1">
-                            <td class="rank"><span class="lb-rank">{{ entry.rank|plain_number }}</span></td>
+                            <td class="rank"><span class="lb-rank">{{ entry.rank|plain_number }}</span>{{ include('leaderboards/_rating_move.html.twig', {move: entry.move, part: 'places'}) }}</td>
                             <td class="lb-solver">
                                 {# The Skill tier is the value's second line (members), not an icon as well - one value + one line per row (P6) #}
                                 {{ include('_leaderboard_player.html.twig', {
@@ -99,11 +100,13 @@
                                     show_tier: false,
                                     highlight_query: this.search|trim,
                                     profile_params: {return: app.request.uri, return_title: 'puzzle_intelligence.elo.title'|trans},
+                                    card_url: path('msp_rating_card', {playerId: entry.playerId}),
                                 }) }}
                             </td>
                             <td class="lb-time">
                                 {{ include('leaderboards/_value.html.twig', {
                                     value: entry.displayRating|plain_number,
+                                    value_suffix: include('leaderboards/_rating_move.html.twig', {move: entry.move, part: 'points'}),
                                     secondary: is_member and entry.skillTierName is not null ? ('puzzle_intelligence.skill.tiers.' ~ entry.skillTierName)|trans : null,
                                     family: 'competition',
                                 }) }}

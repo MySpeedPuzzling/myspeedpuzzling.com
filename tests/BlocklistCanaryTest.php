@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\MarketplaceEventFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
@@ -13,6 +16,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Clock\MockClock;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
@@ -192,6 +196,51 @@ final class BlocklistCanaryTest extends WebTestCase
         self::assertSame(['1', '2', '4'], $crawler->filter('[data-official-results] tbody tr')->each(
             static fn (Crawler $row): string => (string) $row->attr('data-official-rank'),
         ));
+    }
+
+    /**
+     * The MSP Rating ladder (docs/features/msp-rating-history.md): its rows and "This week on the ladder" - the strip's
+     * candidates are cached for everybody and the blocked player is the climber there, so the strip must drop them.
+     */
+    public function testBlockedPlayerIsNowhereOnTheMspRatingLadder(): void
+    {
+        $browser = self::createClient();
+        self::getContainer()->set(ClockInterface::class, new MockClock(new DateTimeImmutable('2026-06-21 12:00', new DateTimeZone('UTC'))));
+        $connection = self::getContainer()->get(Connection::class);
+        $connection->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+
+        foreach ([self::BLOCKED => [1.6, 1.2], self::BYSTANDER => [1.5, 1.5], self::BLOCKER => [1.4, 1.4]] as $playerId => [$today, $weekAgo]) {
+            $connection->executeStatement(
+                'INSERT INTO player_elo (id, player_id, pieces_count, elo_rating, computed_at) VALUES (:id, :player, 500, :rating, NOW())',
+                ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'rating' => $today],
+            );
+            $connection->executeStatement(
+                'INSERT INTO player_rating_snapshot (id, player_id, pieces_count, snapshot_date, elo_rating, computed_at) VALUES (gen_random_uuid(), :player, 500, :day, :rating, NOW())',
+                ['player' => $playerId, 'day' => '2026-06-14', 'rating' => $weekAgo],
+            );
+        }
+
+        $connection->executeStatement(
+            "INSERT INTO player_rating_entry (player_id, pieces_count, puzzle_id, portfolio, seconds, solved_at, percentile, difficulty_weight, decay, points, in_top, computed_at)
+             VALUES (:player, 500, :puzzle, 'first_attempt', 3000, '2026-06-18', 90.0, 1.0, 1.0, 0.9, true, NOW())",
+            ['player' => self::BLOCKED, 'puzzle' => PuzzleFixture::PUZZLE_500_01],
+        );
+
+        TestingLogin::asPlayer($browser, self::BYSTANDER);
+        $crawler = $browser->request('GET', '/en/msp-rating');
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(self::BLOCKED_NAME, $crawler->filter('.msp-this-week')->text(), 'The climber tile is no canary.');
+        self::assertStringContainsString(self::BLOCKED_NAME, $crawler->filter('.lb-table')->text(), 'The ladder row is no canary.');
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $browser->request('GET', '/en/msp-rating');
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString(self::BLOCKED_NAME, $content, 'The blocker is shown a player they blocked.');
     }
 
     /**

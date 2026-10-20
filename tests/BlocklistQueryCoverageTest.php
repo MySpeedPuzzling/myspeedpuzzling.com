@@ -65,6 +65,7 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetPlayerKarma' => self::OWN_DATA,
         'GetProgressionDrift' => 'Nightly safety net (cron, no viewer): player ids whose stored progression disagrees with their records - nothing is shown to anybody.',
         'GetProposerTrackRecords' => 'Review queues: the proposer of a request a moderator is deciding, by id, with no identity - their karma and accepted/declined counts.',
+        'GetRatingLadderThisWeek' => 'Candidates cached for everybody (RatingLadderThisWeek): the viewer\'s hidden players are left out per request with HiddenPlayers::isHidden() before a tile is shown.',
         'GetLendBorrowCounterparties' => self::BILATERAL,
         'GetLendBorrowHistory' => self::BILATERAL,
         'GetLentPuzzleHistory' => self::BILATERAL,

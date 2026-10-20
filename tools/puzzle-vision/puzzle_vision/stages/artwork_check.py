@@ -195,3 +195,74 @@ def quad_angles(quad: Sequence[Sequence[float]], source: tuple[int, int]) -> dic
 def box_quad(box: Sequence[float]) -> list[list[float]]:
     x0, y0, x1, y1 = box
     return [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]
+
+
+# --- the box's own straight edges (a tilted or angled box) ----------------------------------------------------------
+FIT_SEARCH = 0.06   # each side's line is looked for this share of the box's size either side of the box's side ...
+FIT_STEPS = 25      # ... both ends moving independently (so tilted up to that much), on this grid
+FIT_SUPPORT = 0.6   # a fitted side must sit on a colour step along this share of its length
+
+
+def strong_steps(lab: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Where a horizontal (first) / vertical (second) line would sit on a colour step that stands out of its
+    neighbourhood - the face pass's edge rule (stages.artwork_refine.edge_profile) for lines at any position, +-2 px."""
+    sm = cv2.GaussianBlur(lab, (0, 0), 1.0)
+    h, w = lab.shape[:2]
+    out = []
+    for axis in (0, 1):
+        s = np.zeros((h, w), np.float32)
+        if axis == 0:
+            s[2:-2] = np.linalg.norm(sm[4:] - sm[:-4], axis=2)
+            local = cv2.blur(s, (1, max(3, int(0.06 * h)) | 1))
+            k = np.ones((5, 1), np.uint8)
+        else:
+            s[:, 2:-2] = np.linalg.norm(sm[:, 4:] - sm[:, :-4], axis=2)
+            local = cv2.blur(s, (max(3, int(0.06 * w)) | 1, 1))
+            k = np.ones((1, 5), np.uint8)
+        strong = (s >= MIN_STEP_DE) & (s >= STEP_OVER_TYPICAL * (local + 1.0))
+        out.append(cv2.dilate(strong.astype(np.uint8), k).astype(np.float32))
+    return out[0], out[1]
+
+
+def fit_quad(lab: np.ndarray, box: Sequence[float], search: float | None = None) -> tuple[list[list[float]] | None, list[float]]:
+    """The four straight edges nearest an axis-aligned box (fractions x0, y0, x1, y1): per side the line, its ends
+    each within `search` of the box's side, that sits on a colour step most often (ties: the outer one). Answers the
+    quad (TL, TR, BR, BL fractions; None when a side has no line or the quad is not sane) and each side's support."""
+    search = FIT_SEARCH if search is None else search
+    h, w = lab.shape[:2]
+    horiz, vert = strong_steps(lab)
+    x0, y0, x1, y1 = box[0] * w, box[1] * h, box[2] * w, box[3] * h
+    bw, bh = x1 - x0, y1 - y0
+    ts = np.linspace(END_SKIP, 1 - END_SKIP, SAMPLES)
+    offs = np.linspace(-search, search, FIT_STEPS)
+    lines, supports = [], []
+    # top, right, bottom, left: (start, end, outward normal, the map, the search size)
+    for a, b, n, m, size in (((x0, y0), (x1, y0), (0, -1), horiz, bh), ((x1, y0), (x1, y1), (1, 0), vert, bw),
+                             ((x1, y1), (x0, y1), (0, 1), horiz, bh), ((x0, y1), (x0, y0), (-1, 0), vert, bw)):
+        a, b, n = np.asarray(a, float), np.asarray(b, float), np.asarray(n, float)
+        d0 = offs[:, None] * size
+        d1 = offs[None, :] * size
+        pa = a[None, None, :] + n[None, None, :] * d0[..., None]           # (S, 1, 2)
+        pb = b[None, None, :] + n[None, None, :] * d1[..., None]           # (1, S, 2)
+        pts = pa[..., None, :] + (pb - pa)[..., None, :] * ts[None, None, :, None]  # (S, S, T, 2)
+        xi = np.clip(np.round(pts[..., 0]).astype(int), 0, w - 1)
+        yi = np.clip(np.round(pts[..., 1]).astype(int), 0, h - 1)
+        inside = (pts[..., 0] >= 0) & (pts[..., 0] <= w - 1) & (pts[..., 1] >= 0) & (pts[..., 1] <= h - 1)
+        sup = (m[yi, xi] * inside).mean(axis=2)
+        score = sup + 1e-3 * (offs[:, None] + offs[None, :])               # ties: the outer line
+        i, j = np.unravel_index(int(np.argmax(score)), score.shape)
+        supports.append(round(float(sup[i, j]), 3))
+        lines.append(np.cross(np.append(pa[i, 0], 1.0), np.append(pb[0, j], 1.0)))
+    if min(supports) < FIT_SUPPORT:
+        return None, supports
+    pts = []
+    for k in range(4):
+        p = np.cross(lines[k - 1], lines[k])  # corner k = previous side x this side: TL = left x top, ...
+        if abs(p[2]) < 1e-9:
+            return None, supports
+        pts.append(p[:2] / p[2])
+    q = np.asarray(pts) / [w, h]
+    if q.min() < -0.02 or q.max() > 1.02 or not cv2.isContourConvex(q.astype(np.float32).reshape(-1, 1, 2)):
+        return None, supports
+    q = np.clip(q, 0.0, 1.0)
+    return [[round(float(x), 5), round(float(y), 5)] for x, y in q], supports

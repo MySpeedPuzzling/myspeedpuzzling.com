@@ -116,13 +116,71 @@ def test_the_face_pass_trims_a_band_on_a_real_edge():
     assert 0.15 + 0.17 * 0.70 - 0.03 <= top <= 0.27  # just above the picture (back-off), never into it
 
 
-def test_the_face_pass_never_trims_where_the_picture_crosses_the_line():
+def test_the_face_pass_takes_the_vlms_line_where_no_edge_is_near(monkeypatch):
+    # Jan's pilot review 2026-10-21: box print left in is worse than a sliver of art - the VLM's line is taken
     a = scene()
-    new, info = ar.face_pass(a, ar.box_quad(PIC), lambda face: [0.0, 0.2, 1.0, 1.0])  # no band: art crosses the line
-    assert new is None and info["sides"]["top"]["result"] == "no edge on the line"
+    new, info = ar.face_pass(a, ar.box_quad(PIC), lambda face: [0.0, 0.2, 1.0, 1.0])
+    assert info["sides"]["top"]["result"] == "the VLM's line" and "stripSim" in info["sides"]["top"]
+    assert ar.quad_to_box(new)[1] == pytest.approx(0.15 + 0.2 * 0.70, abs=0.01)
     new, info = ar.face_pass(a, ar.box_quad(PIC), lambda face: [0.0, 0.5, 1.0, 1.0])
     assert new is None and info["sides"]["top"]["result"] == "too deep"
-    assert ar.face_pass(a, ar.box_quad(PIC), lambda face: None) == (None, {"face": {"width": 480, "height": 420}, "answer": None})
+    assert ar.face_pass(a, ar.box_quad(PIC), lambda face: None)[1]["answer"] is None
+    monkeypatch.setattr(ar, "FACE_TRUST", False)  # the first 1.1 rule: never cut where the picture crosses the line
+    new, info = ar.face_pass(a, ar.box_quad(PIC), lambda face: [0.0, 0.2, 1.0, 1.0])
+    assert new is None and info["sides"]["top"]["result"] == "no edge on the line"
+
+
+def test_a_tilted_box_gets_its_own_straight_edges():
+    import cv2
+
+    from puzzle_vision.stages.artwork_check import fit_quad
+
+    img = np.full((600, 800, 3), 200, np.uint8)
+    rng = np.random.default_rng(1)
+    tex = cv2.GaussianBlur(rng.integers(0, 255, (600, 800, 3)).astype(np.uint8), (0, 0), 3)
+    corners = np.int32([[210, 110], [600, 140], [590, 470], [190, 450]])
+    mask = np.zeros((600, 800), np.uint8)
+    cv2.fillPoly(mask, [corners], 1)
+    img[mask > 0] = tex[mask > 0] // 2 + 60
+    quad, support = fit_quad(lab_image(img), [200 / 800, 120 / 600, 595 / 800, 460 / 600])
+    assert min(support) >= 0.6
+    assert np.abs(np.asarray(quad) * [800, 600] - corners).max() <= 6
+    fp = first_pass(vlm_bbox=(200 / 800, 120 / 600, 595 / 800, 460 / 600), kind="box_front")
+    g = ar.crop_geometry(img, fp)
+    assert g["method"] == "vlm+fit" and g["quad"] is not None
+
+
+def test_a_capped_widened_side_grows_to_the_border_when_the_vlm_reaches_it():
+    widened = {"bottom": {"from": 0.55, "to": 0.6}, "left": {"from": 0.1, "to": 0.0}}
+    info = {"sides": {"bottom": {"want": 0.02}, "left": {"want": 0.0}, "top": {"want": 0.0}}}
+    assert ar.grow_sides([0.0, 0.1, 0.9, 0.6], widened, info) == {"bottom": 1.0}  # left is at the border, top not widened
+    assert ar.grow_sides([0.0, 0.1, 0.9, 0.6], widened, {"sides": {"bottom": {"want": 0.1}}}) == {}
+
+
+def test_a_trimmed_picture_stays_digital_unless_a_smaller_picture_is_found_in_it():
+    a = scene()
+    fp = {"kind": "flat", "method": "trim", "bbox": [0.0, 0.0, 1.0, 1.0], "quad": None, "gateScores": {"flat": 0.3},
+          "gateMargin": 0.01, "vlmKind": None, "vlmBbox": None, "quadIou": None}
+    whole = ar.refine(a, a, fp, (W, H), (W, H), lambda rgb: "box_front", lambda face, kind: [0.0, 0.0, 1.0, 1.0])
+    assert whole["kind"] == "flat" and whole["method"] == "trim"
+    assert whole["signals"]["kindCheck"]["result"] == "no picture inside, kept"
+    boxed = ar.refine(a, a, fp, (W, H), (W, H), lambda rgb: "box_front", lambda face, kind: list(PIC))
+    assert boxed["kind"] == "box_front" and boxed["method"].startswith("kind+face")
+    assert ar.iou(ar.bbox_to_xyxy(boxed["bbox"]), PIC) > 0.9
+    assert "not_digital_artwork" in boxed["quality"]["reasons"]
+
+
+def test_a_paper_margin_is_kept_as_part_of_a_digital_picture():
+    from puzzle_vision.stages.artwork import trim_uniform_border
+
+    rng = np.random.default_rng(3)
+    img = np.clip(np.full((400, 400, 3), (225, 205, 160), float) + rng.normal(0, 6.0, (400, 400, 3)), 0, 255).astype(np.uint8)
+    img[60:340, 60:340] = scene()[150:430, 250:530]
+    assert trim_uniform_border(img, 10.0)[0] > 30            # 1.0 called the paper a frame
+    assert trim_uniform_border(img, ar.TRIM_TOL)[0] < 5      # 1.1 keeps it
+    blank = img.copy()
+    blank[:60] = blank[340:] = 255
+    assert trim_uniform_border(blank, ar.TRIM_TOL)[1] >= 55  # a white canvas still goes
 
 
 # --- kind ---------------------------------------------------------------------------------------------------------------------

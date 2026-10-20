@@ -128,6 +128,7 @@ def score(candidate: Candidate, truth: dict[str, Any], aspect: float) -> dict[st
     tk, ck = truth.get("kind"), candidate.kind
     return {
         "how": how,
+        "crop": [[round(float(x), 4), round(float(y), 4)] for x, y in c],
         "cut": round(float(cut), 4),
         "extra": round(float(extra), 4),
         "iou": round(_iou(c, t, aspect), 4),
@@ -301,7 +302,7 @@ CANDIDATES: dict[str, Callable[[dict[str, Any]], Candidate | None]] = {
 
 
 REFERENCE_DIR = Path(__file__).resolve().parent.parent / "reference"
-SETS = ("reference", "tuning")  # reference = held out: measure only, never tune on it
+SETS = ("reference", "tuning", "feedback")  # reference = held out: measure only, never tune on it; feedback = Jan's pilot review (tuned on)
 
 
 def load_set(name: str, cache_dir: Path) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:

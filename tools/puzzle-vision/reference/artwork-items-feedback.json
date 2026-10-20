@@ -1,0 +1,1948 @@
+[
+{
+"id": "019d2c16-5a38-7361-af90-b63203e6e288",
+"image": "019d2c16-5a38-7361-af90-b63203e6e288-1774561155.jpg",
+"fingerprint": "97a9d5bf723e95c7",
+"pieces": 160,
+"sets": [
+"feedback:pilot-4"
+],
+"width": 1600,
+"height": 1023,
+"originalWidth": 2000,
+"originalHeight": 1279,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.99847,
+"w": 0.99414,
+"x": 0,
+"y": 0
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm+quad",
+"schema": 1,
+"source": {
+"width": 1600,
+"height": 1023
+},
+"corners": [
+[
+0,
+0
+],
+[
+0.93262,
+0.05344
+],
+[
+0.99414,
+0.99847
+],
+[
+0,
+0.98168
+]
+],
+"signals": {
+"quadIou": 0.8657,
+"vlmBbox": {
+"h": 0.92,
+"w": 0.934,
+"x": 0.038,
+"y": 0.048
+},
+"vlmKind": "box_front",
+"gateMargin": -0.0241
+},
+"runtimeMs": 2307,
+"confidence": 0.8657,
+"kindScores": {
+"box": 0.1136,
+"flat": 0.0895,
+"other": 0.0213,
+"assembled": 0.0769
+},
+"sourceSha256": "3a304631b16238060eef2758987d1fbf5da27a5deaff59086ef6903357553fe8"
+}
+},
+{
+"id": "019bb449-2d45-7315-99d4-f5bf25822963",
+"image": "019bb449-2d45-7315-99d4-f5bf25822963-1768256253.jpg",
+"fingerprint": "de560aae5516c48e",
+"pieces": 54,
+"sets": [
+"feedback:pilot-5"
+],
+"width": 1111,
+"height": 1536,
+"originalWidth": 1111,
+"originalHeight": 1536,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.874,
+"w": 0.924,
+"x": 0.048,
+"y": 0.025
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 1111,
+"height": 1536
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.874,
+"w": 0.924,
+"x": 0.048,
+"y": 0.025
+},
+"vlmKind": "box_front",
+"gateMargin": -0.0175
+},
+"runtimeMs": 2335,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.075,
+"flat": 0.0575,
+"other": 0.0125,
+"assembled": 0.0269
+},
+"sourceSha256": "ff4371d950202ead6c2d361aa470c6cefa8df614f76207d23ee52c7fc8369de7"
+}
+},
+{
+"id": "01a05348-60f8-7385-ac74-08923cd7eced",
+"image": "whsmith-sweet-shop-dash-1000-01a05348.jpg",
+"fingerprint": "48cf22886ce1aed8",
+"pieces": 1000,
+"sets": [
+"feedback:pilot-12"
+],
+"width": 1600,
+"height": 1209,
+"originalWidth": 2000,
+"originalHeight": 1511,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.85659,
+"w": 0.99609,
+"x": 0.00293,
+"y": 0.11886
+},
+"crop": null,
+"kind": "assembled",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm+quad",
+"schema": 1,
+"source": {
+"width": 1600,
+"height": 1209
+},
+"corners": [
+[
+0.08496,
+0.11886
+],
+[
+0.99902,
+0.1447
+],
+[
+0.99902,
+0.97545
+],
+[
+0.00293,
+0.93411
+]
+],
+"signals": {
+"quadIou": 0.9021,
+"vlmBbox": {
+"h": 0.939,
+"w": 0.985,
+"x": 0.01,
+"y": 0.036
+},
+"vlmKind": "assembled",
+"gateMargin": -0.0475
+},
+"runtimeMs": 2339,
+"confidence": 0.9021,
+"kindScores": {
+"box": 0.1233,
+"flat": 0.1057,
+"other": 0.0142,
+"assembled": 0.1532
+},
+"sourceSha256": "c52cbe891c164055437d06b02fc742411941edad6ed687487ebf2937b9eeb6ab"
+}
+},
+{
+"id": "019669bd-9cf4-716c-9e8e-0acbc180ae76",
+"image": "019669bd-9cf4-716c-9e8e-0acbc180ae76-1745530756.jpg",
+"fingerprint": "cc15882eb4f5f1b3",
+"pieces": 500,
+"sets": [
+"feedback:pilot-16"
+],
+"width": 819,
+"height": 1024,
+"originalWidth": 819,
+"originalHeight": 1024,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.863,
+"w": 0.804,
+"x": 0.102,
+"y": 0.062
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 819,
+"height": 1024
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.863,
+"w": 0.804,
+"x": 0.102,
+"y": 0.062
+},
+"vlmKind": "box_front",
+"gateMargin": -0.0516
+},
+"runtimeMs": 2761,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.1371,
+"flat": 0.0855,
+"other": 0.0148,
+"assembled": 0.0704
+},
+"sourceSha256": "1010176bf5e3c2a572eeaa5af150f96ecfd78f33c4a82905b7119e84066751a9"
+}
+},
+{
+"id": "0198da1b-4dfc-7021-b52c-7ce727f7d82a",
+"image": "0198da1b-4dfc-7021-b52c-7ce727f7d82a-1756005879.jpg",
+"fingerprint": "c444fe0dc23c32b1",
+"pieces": 300,
+"sets": [
+"feedback:pilot-21"
+],
+"width": 1200,
+"height": 1600,
+"originalWidth": 4032,
+"originalHeight": 3024,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.643,
+"w": 0.913,
+"x": 0.059,
+"y": 0.085
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 1200,
+"height": 1600
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.643,
+"w": 0.913,
+"x": 0.059,
+"y": 0.085
+},
+"vlmKind": "box_front",
+"gateMargin": -0.0699
+},
+"runtimeMs": 2028,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.1716,
+"flat": 0.1017,
+"other": 0.0656,
+"assembled": 0.1403
+},
+"sourceSha256": "24377b5e46e56ecc30ed022410553f31ee628fd07744131d7eba319335165b36"
+}
+},
+{
+"id": "019e5e60-dcf4-73bb-a3e9-55afbd840e43",
+"image": "019e5e60-dcf4-73bb-a3e9-55afbd840e43-1779699866.jpg",
+"fingerprint": "9df3a901b7921398",
+"pieces": 1000,
+"sets": [
+"feedback:pilot-26"
+],
+"width": 1202,
+"height": 1600,
+"originalWidth": 1502,
+"originalHeight": 2000,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.832,
+"w": 0.819,
+"x": 0.073,
+"y": 0.116
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 1202,
+"height": 1600
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.832,
+"w": 0.819,
+"x": 0.073,
+"y": 0.116
+},
+"vlmKind": "box_front",
+"gateMargin": -0.0591
+},
+"runtimeMs": 2169,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.1521,
+"flat": 0.093,
+"other": 0.0575,
+"assembled": 0.1219
+},
+"sourceSha256": "522b222c5fb625751b5b7c5abdb640c67e7ddacdce6501be35aec0fc8df55719"
+}
+},
+{
+"id": "019cf27b-7210-714f-8d62-b1141ffc996d",
+"image": "019cf27b-7210-714f-8d62-b1141ffc996d-1773594702.jpg",
+"fingerprint": "ef5951da1b746a89",
+"pieces": 504,
+"sets": [
+"feedback:pilot-34"
+],
+"width": 1600,
+"height": 1404,
+"originalWidth": 1751,
+"originalHeight": 1536,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.796,
+"w": 1,
+"x": 0,
+"y": 0.102
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 1600,
+"height": 1404
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.796,
+"w": 1,
+"x": 0,
+"y": 0.102
+},
+"vlmKind": "box_front",
+"gateMargin": -0.0328
+},
+"runtimeMs": 2536,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.132,
+"flat": 0.0995,
+"other": 0.0475,
+"assembled": 0.1323
+},
+"sourceSha256": "7be4e36188e46b4e2051eab44b59054ad319476b863c936a899628cafd7c42cb"
+}
+},
+{
+"id": "019b392e-6a71-72dd-9a34-251dac9972bc",
+"image": "019b392e-6a71-72dd-9a34-251dac9972bc-1766190901.jpg",
+"fingerprint": "639b9596cb5d472f",
+"pieces": 1000,
+"sets": [
+"feedback:pilot-41"
+],
+"width": 739,
+"height": 1600,
+"originalWidth": 4000,
+"originalHeight": 1848,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.496,
+"w": 0.716,
+"x": 0.122,
+"y": 0.188
+},
+"crop": null,
+"kind": "box_angled",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 739,
+"height": 1600
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.496,
+"w": 0.716,
+"x": 0.122,
+"y": 0.188
+},
+"vlmKind": "box_angled",
+"gateMargin": -0.051
+},
+"runtimeMs": 2130,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.1545,
+"flat": 0.1035,
+"other": 0.054,
+"assembled": 0.1242
+},
+"sourceSha256": "b79286ff831c494362047c5ffb7ee78b0299c9d69acb3d92c4aa145329b300aa"
+}
+},
+{
+"id": "019dfe8e-8c6c-73cf-be8c-0cd110f0e090",
+"image": "019dfe8e-8c6c-73cf-be8c-0cd110f0e090-1778092248.jpg",
+"fingerprint": "d2ead7d43e531d27",
+"pieces": 980,
+"sets": [
+"feedback:pilot-43"
+],
+"width": 1600,
+"height": 1167,
+"originalWidth": 2000,
+"originalHeight": 1459,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.85266,
+"w": 0.99023,
+"x": 0.00293,
+"y": 0.128
+},
+"crop": null,
+"kind": "box_angled",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm+quad",
+"schema": 1,
+"source": {
+"width": 1600,
+"height": 1167
+},
+"corners": [
+[
+0.00293,
+0.128
+],
+[
+0.99316,
+0.19894
+],
+[
+0.96387,
+0.98066
+],
+[
+0.03516,
+0.98066
+]
+],
+"signals": {
+"quadIou": 0.8459,
+"vlmBbox": {
+"h": 0.734,
+"w": 0.973,
+"x": 0.012,
+"y": 0.188
+},
+"vlmKind": "box_angled",
+"gateMargin": -0.0455
+},
+"runtimeMs": 2543,
+"confidence": 0.8459,
+"kindScores": {
+"box": 0.1388,
+"flat": 0.0933,
+"other": 0.051,
+"assembled": 0.0881
+},
+"sourceSha256": "41ab5e144f48d8038d9980598bea80e4e2a04b45e0fcf69f069122b3e74902a5"
+}
+},
+{
+"id": "019f7c90-f9a5-737d-9a39-2cbd3c3bfdd0",
+"image": "kingdom-of-threads-starfall-celebration-250-019f7c90.jpg",
+"fingerprint": "3cf2b333d693de96",
+"pieces": 250,
+"sets": [
+"feedback:pilot-44"
+],
+"width": 1096,
+"height": 1600,
+"originalWidth": 1370,
+"originalHeight": 2000,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.77,
+"w": 0.857,
+"x": 0.088,
+"y": 0.028
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 1096,
+"height": 1600
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.77,
+"w": 0.857,
+"x": 0.088,
+"y": 0.028
+},
+"vlmKind": "box_front",
+"gateMargin": -0.0438
+},
+"runtimeMs": 2246,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.1377,
+"flat": 0.0939,
+"other": 0.0484,
+"assembled": 0.0795
+},
+"sourceSha256": "e3ba9fd9ae4c1baad5216d2138877b958f515ed75af357c35c795267298753fa"
+}
+},
+{
+"id": "019dcb2b-9376-716d-af78-6af72ccc34a0",
+"image": "019dcb2b-9376-716d-af78-6af72ccc34a0-1777230123.jpg",
+"fingerprint": "c8e5ea604ce99d3d",
+"pieces": 636,
+"sets": [
+"feedback:pilot-47"
+],
+"width": 474,
+"height": 323,
+"originalWidth": 474,
+"originalHeight": 323,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.75762,
+"w": 0.86746,
+"x": 0.08622,
+"y": 0.08529
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm+quad",
+"schema": 1,
+"source": {
+"width": 474,
+"height": 323
+},
+"corners": [
+[
+0.11359,
+0.18734
+],
+[
+0.95368,
+0.08529
+],
+[
+0.94315,
+0.61098
+],
+[
+0.08622,
+0.84291
+]
+],
+"signals": {
+"quadIou": 0.8645,
+"vlmBbox": {
+"h": 0.684,
+"w": 0.876,
+"x": 0.102,
+"y": 0.102
+},
+"vlmKind": "box_front",
+"gateMargin": -0.0606
+},
+"runtimeMs": 2348,
+"confidence": 0.8645,
+"kindScores": {
+"box": 0.1242,
+"flat": 0.0636,
+"other": 0.0218,
+"assembled": 0.0557
+},
+"sourceSha256": "4816965452abea2fbc11bffb8b00c965e5c81fd37a83725e4f7f6981b5229a54"
+}
+},
+{
+"id": "019dd873-c1f5-71e3-80ac-b9741c0a8324",
+"image": "019dd873-c1f5-71e3-80ac-b9741c0a8324-1777452958.jpg",
+"fingerprint": "68e8190fe8fe39a9",
+"pieces": 60,
+"sets": [
+"feedback:pilot-55"
+],
+"width": 738,
+"height": 1600,
+"originalWidth": 923,
+"originalHeight": 2000,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.637,
+"w": 0.786,
+"x": 0.102,
+"y": 0.288
+},
+"crop": null,
+"kind": "box_angled",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 738,
+"height": 1600
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.637,
+"w": 0.786,
+"x": 0.102,
+"y": 0.288
+},
+"vlmKind": "box_angled",
+"gateMargin": -0.0456
+},
+"runtimeMs": 2627,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.1022,
+"flat": 0.0566,
+"other": 0.0121,
+"assembled": 0.0667
+},
+"sourceSha256": "28a3c9f2570cff7b0272e00933f9d76a4ca9c9f2f17aefcd32754d61efd6a89a"
+}
+},
+{
+"id": "01a127ec-fd2f-72d6-ab82-fe8f499069cc",
+"image": "springbok-summer-sips-1000-01a127ec-6e3078ee.jpg",
+"fingerprint": "c04795809a2fd396",
+"pieces": 1000,
+"sets": [
+"feedback:pilot-57"
+],
+"width": 1152,
+"height": 1175,
+"originalWidth": 1152,
+"originalHeight": 1175,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.912,
+"w": 0.887,
+"x": 0.068,
+"y": 0.03
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 1152,
+"height": 1175
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.912,
+"w": 0.887,
+"x": 0.068,
+"y": 0.03
+},
+"vlmKind": "box_front",
+"gateMargin": -0.0701
+},
+"runtimeMs": 2344,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.1417,
+"flat": 0.0716,
+"other": 0.0224,
+"assembled": 0.11
+},
+"sourceSha256": "50d68a0dadabf7904307509702b048df5e13700a6e8e01d4e27db8a17da4782e"
+}
+},
+{
+"id": "019b882e-91fe-73a6-b86f-981b0eea1136",
+"image": "019b882e-91fe-73a6-b86f-981b0eea1136-1767516312.png",
+"fingerprint": "4ec09c3b1525c464",
+"pieces": 144,
+"sets": [
+"feedback:pilot-67"
+],
+"width": 867,
+"height": 867,
+"originalWidth": 867,
+"originalHeight": 867,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.88351,
+"w": 0.95617,
+"x": 0.02191,
+"y": 0.04268
+},
+"crop": null,
+"kind": "flat",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "trim",
+"schema": 1,
+"source": {
+"width": 867,
+"height": 867
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": null,
+"vlmKind": null,
+"gateMargin": 0.0585
+},
+"runtimeMs": 8,
+"confidence": 0.0585,
+"kindScores": {
+"box": -0.0221,
+"flat": 0.0704,
+"other": 0.0119,
+"assembled": -0.0081
+},
+"sourceSha256": "a8133cc26a23ebc2151ce4f92f483332d1cd1eb8004817af63b9784ecde59218"
+}
+},
+{
+"id": "019e9fbd-f81e-72e4-99a4-68e658b503a3",
+"image": "019e9fbd-f81e-72e4-99a4-68e658b503a3-1780796487.jpg",
+"fingerprint": "c5e90c0ae74b65ef",
+"pieces": 240,
+"sets": [
+"feedback:pilot-73"
+],
+"width": 1200,
+"height": 1600,
+"originalWidth": 1500,
+"originalHeight": 2000,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.686,
+"w": 0.683,
+"x": 0.202,
+"y": 0.114
+},
+"crop": null,
+"kind": "box_angled",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 1200,
+"height": 1600
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.686,
+"w": 0.683,
+"x": 0.202,
+"y": 0.114
+},
+"vlmKind": "box_angled",
+"gateMargin": -0.0671
+},
+"runtimeMs": 2541,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.1324,
+"flat": 0.0653,
+"other": 0.0806,
+"assembled": 0.1035
+},
+"sourceSha256": "5c87ed7ceca0153e885bad1221e5772243253eeb1682b3885f5c179691bd3e59"
+}
+},
+{
+"id": "019c6e47-ce88-72cd-a80e-d15592017a29",
+"image": "019c6e47-ce88-72cd-a80e-d15592017a29-1771376725.jpg",
+"fingerprint": "cde34a755ab0e593",
+"pieces": 500,
+"sets": [
+"feedback:pilot-76"
+],
+"width": 1542,
+"height": 1083,
+"originalWidth": 1542,
+"originalHeight": 1083,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.72,
+"w": 0.736,
+"x": 0.106,
+"y": 0.125
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 1542,
+"height": 1083
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.72,
+"w": 0.736,
+"x": 0.106,
+"y": 0.125
+},
+"vlmKind": "box_front",
+"gateMargin": -0.0577
+},
+"runtimeMs": 2492,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.1495,
+"flat": 0.0918,
+"other": 0.0454,
+"assembled": 0.0861
+},
+"sourceSha256": "17c07a45224242ab3069b33cdf73c5370bf9669df7724d98e9fab90ff740bec0"
+}
+},
+{
+"id": "019d4aaf-f501-732f-9f77-24a813a601b7",
+"image": "019d4aaf-f501-732f-9f77-24a813a601b7-1775074538.jpg",
+"fingerprint": "eed71ef185bc697e",
+"pieces": 1000,
+"sets": [
+"feedback:pilot-86"
+],
+"width": 1200,
+"height": 1600,
+"originalWidth": 1500,
+"originalHeight": 2000,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.97949,
+"w": 0.89844,
+"x": 0.02995,
+"y": 0.01953
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm+quad",
+"schema": 1,
+"source": {
+"width": 1200,
+"height": 1600
+},
+"corners": [
+[
+0.03516,
+0.03223
+],
+[
+0.90755,
+0.01953
+],
+[
+0.92839,
+0.9082
+],
+[
+0.02995,
+0.99902
+]
+],
+"signals": {
+"quadIou": 0.888,
+"vlmBbox": {
+"h": 0.997,
+"w": 0.992,
+"x": 0.003,
+"y": 0.001
+},
+"vlmKind": "box_front",
+"gateMargin": -0.0553
+},
+"runtimeMs": 2511,
+"confidence": 0.888,
+"kindScores": {
+"box": 0.1304,
+"flat": 0.0751,
+"other": 0.0118,
+"assembled": 0.095
+},
+"sourceSha256": "ebff5d2efa78f39a41833b09ac5de5fb422c2c7d01dd62fb418cea2cb5520dd2"
+}
+},
+{
+"id": "0194089e-1af3-71e4-8980-c1799b981332",
+"image": "0194089e-1af3-71e4-8980-c1799b981332-1735311366.jpg",
+"fingerprint": "d057f82dd1fe77dc",
+"pieces": 300,
+"sets": [
+"feedback:pilot-89"
+],
+"width": 1200,
+"height": 1600,
+"originalWidth": 4032,
+"originalHeight": 3024,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.713,
+"w": 0.96,
+"x": 0.012,
+"y": 0.162
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 1200,
+"height": 1600
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.713,
+"w": 0.96,
+"x": 0.012,
+"y": 0.162
+},
+"vlmKind": "box_front",
+"gateMargin": -0.069
+},
+"runtimeMs": 2232,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.1489,
+"flat": 0.0799,
+"other": 0.0347,
+"assembled": 0.1094
+},
+"sourceSha256": "e60b5a51c7f6cc6763076146b8dad94385f69f2f731a5c55718b4c0c9a32a74e"
+}
+},
+{
+"id": "01927d67-432e-73c2-ae56-a7b577c6d169",
+"image": "trevell-curiosites-magiques-99.jpg",
+"fingerprint": "d0dd928018c580db",
+"pieces": 99,
+"sets": [
+"feedback:pilot-94"
+],
+"width": 408,
+"height": 572,
+"originalWidth": 408,
+"originalHeight": 572,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.71,
+"w": 0.626,
+"x": 0.262,
+"y": 0.178
+},
+"crop": null,
+"kind": "box_angled",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 408,
+"height": 572
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.71,
+"w": 0.626,
+"x": 0.262,
+"y": 0.178
+},
+"vlmKind": "box_angled",
+"gateMargin": -0.0811
+},
+"runtimeMs": 2219,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.1422,
+"flat": 0.0611,
+"other": 0.1169,
+"assembled": 0.0707
+},
+"sourceSha256": "31b539d84d4462409d717d3a99561a4373c0bfe513612f28433589af0d985fb9"
+}
+},
+{
+"id": "01944d91-9e9d-7323-903f-f7ecf18ab222",
+"image": "01944d91-9e9d-7323-903f-f7ecf18ab222-1736468176.jpg",
+"fingerprint": "8b3c6bdc016f4948",
+"pieces": 100,
+"sets": [
+"feedback:pilot-95"
+],
+"width": 1591,
+"height": 1600,
+"originalWidth": 2956,
+"originalHeight": 2972,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.873,
+"w": 0.68,
+"x": 0.032,
+"y": 0.052
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 1591,
+"height": 1600
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.873,
+"w": 0.68,
+"x": 0.032,
+"y": 0.052
+},
+"vlmKind": "box_front",
+"gateMargin": -0.0495
+},
+"runtimeMs": 2899,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.1274,
+"flat": 0.0779,
+"other": 0.0231,
+"assembled": 0.0703
+},
+"sourceSha256": "a106c70875e9d122212fa0ec6947ef712022572d0a509479303f85ff3af792c1"
+}
+},
+{
+"id": "01a0489b-b701-71f7-a0b1-ab9c6759495d",
+"image": "verdensmalsgavlene-ringkobing-jellyfish-1000-01a0489b.jpg",
+"fingerprint": "f21ec13404723659",
+"pieces": 1000,
+"sets": [
+"feedback:pilot-96"
+],
+"width": 1600,
+"height": 1600,
+"originalWidth": 2000,
+"originalHeight": 2000,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.63,
+"w": 0.904,
+"x": 0.078,
+"y": 0.052
+},
+"crop": null,
+"kind": "box_angled",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 1600,
+"height": 1600
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.63,
+"w": 0.904,
+"x": 0.078,
+"y": 0.052
+},
+"vlmKind": "box_angled",
+"gateMargin": -0.0886
+},
+"runtimeMs": 2369,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.1687,
+"flat": 0.0801,
+"other": 0.1283,
+"assembled": 0.1116
+},
+"sourceSha256": "d3ce846fa99e2e7f71d54f149c45f01ce2f7119f3a7b102d580216d32e00a49c"
+}
+},
+{
+"id": "019b6f3c-b5f6-7207-9f45-a6aaeb172b91",
+"image": "019b6f3c-b5f6-7207-9f45-a6aaeb172b91-1767097808.jpg",
+"fingerprint": "2e8c54304a258419",
+"pieces": 1000,
+"sets": [
+"feedback:pilot-97"
+],
+"width": 573,
+"height": 1149,
+"originalWidth": 573,
+"originalHeight": 1149,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 1,
+"w": 1,
+"x": 0,
+"y": 0
+},
+"crop": null,
+"kind": "flat",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "trim",
+"schema": 1,
+"source": {
+"width": 573,
+"height": 1149
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": null,
+"vlmKind": null,
+"gateMargin": 0.0194
+},
+"runtimeMs": 16,
+"confidence": 0.0194,
+"kindScores": {
+"box": 0.0316,
+"flat": 0.0526,
+"other": 0.0332,
+"assembled": 0.0079
+},
+"sourceSha256": "28385c337b02610dad3cd10982d6a1618ec7b4fe0c54d4735127fae28e91a994"
+}
+},
+{
+"id": "019bfb64-236c-70e6-b968-c31e8c6f6bb5",
+"image": "019bfb64-236c-70e6-b968-c31e8c6f6bb5-1769449202.jpg",
+"fingerprint": "4aaa9137c3b0de54",
+"pieces": 1000,
+"sets": [
+"feedback:pilot-102"
+],
+"width": 1600,
+"height": 981,
+"originalWidth": 1822,
+"originalHeight": 1117,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.98567,
+"w": 0.98926,
+"x": 0.00586,
+"y": 0.00318
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm+quad",
+"schema": 1,
+"source": {
+"width": 1600,
+"height": 981
+},
+"corners": [
+[
+0.02441,
+0.00318
+],
+[
+0.98047,
+0.03822
+],
+[
+0.99512,
+0.98885
+],
+[
+0.00586,
+0.98885
+]
+],
+"signals": {
+"quadIou": 0.9709,
+"vlmBbox": {
+"h": 0.97,
+"w": 0.976,
+"x": 0.012,
+"y": 0.016
+},
+"vlmKind": "box_front",
+"gateMargin": -0.0681
+},
+"runtimeMs": 2239,
+"confidence": 0.9709,
+"kindScores": {
+"box": 0.1411,
+"flat": 0.073,
+"other": 0.0377,
+"assembled": 0.0938
+},
+"sourceSha256": "4a1761f42ed194406107e063b9042bee69ebad77a11b5873e8e6a3cb86fb13d2"
+}
+},
+{
+"id": "01a0f208-bdc9-700c-a83e-b97f636f8f79",
+"image": "mb-puzzle-swallows-corona-puzzle-500-01a0f208.jpg",
+"fingerprint": "e0756da6a57ccd6d",
+"pieces": 500,
+"sets": [
+"feedback:pilot-105"
+],
+"width": 1350,
+"height": 1600,
+"originalWidth": 1688,
+"originalHeight": 2000,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.997,
+"w": 0.996,
+"x": 0.002,
+"y": 0.001
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 1350,
+"height": 1600
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.997,
+"w": 0.996,
+"x": 0.002,
+"y": 0.001
+},
+"vlmKind": "box_front",
+"gateMargin": -0.0711
+},
+"runtimeMs": 2550,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.1453,
+"flat": 0.0742,
+"other": 0.0295,
+"assembled": 0.0966
+},
+"sourceSha256": "de7355edb2fa74b31260ee0b13b696efd917f89a7a82b824c94d383bbadb4952"
+}
+},
+{
+"id": "019f4f6e-a38a-7290-9342-b1998d204739",
+"image": "funbox-sozopol-bulgaria-500-019f4f6e.jpg",
+"fingerprint": "68552c4bb965764e",
+"pieces": 500,
+"sets": [
+"feedback:pilot-111"
+],
+"width": 1600,
+"height": 1200,
+"originalWidth": 2000,
+"originalHeight": 1500,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.396,
+"w": 0.802,
+"x": 0.106,
+"y": 0.152
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 1600,
+"height": 1200
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.396,
+"w": 0.802,
+"x": 0.106,
+"y": 0.152
+},
+"vlmKind": "box_front",
+"gateMargin": -0.0909
+},
+"runtimeMs": 2120,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.1665,
+"flat": 0.0756,
+"other": 0.0616,
+"assembled": 0.1262
+},
+"sourceSha256": "6a4ee9efcde3353c9afd59510c0823a8c532262376c2354850bcf2c37870f416"
+}
+},
+{
+"id": "0199088b-2962-72fc-ac48-7c5d29cc1ddc",
+"image": "0199088b-2962-72fc-ac48-7c5d29cc1ddc-1756784961.jpg",
+"fingerprint": "19e74307f03e72f4",
+"pieces": 300,
+"sets": [
+"feedback:pilot-124"
+],
+"width": 1200,
+"height": 1600,
+"originalWidth": 4032,
+"originalHeight": 3024,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.616,
+"w": 0.999,
+"x": 0,
+"y": 0.382
+},
+"crop": null,
+"kind": "box_angled",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 1200,
+"height": 1600
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.616,
+"w": 0.999,
+"x": 0,
+"y": 0.382
+},
+"vlmKind": "box_angled",
+"gateMargin": -0.0511
+},
+"runtimeMs": 2004,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.1511,
+"flat": 0.1,
+"other": 0.0474,
+"assembled": 0.1456
+},
+"sourceSha256": "f4015e6372a35303db31d28b4dbda1b0a7dd7a80a85211e2e33822aea65e3a40"
+}
+},
+{
+"id": "019fa581-0b77-71e2-9a01-bd8b084675b4",
+"image": "the-heart-of-reykjavik-cats-in-reykjavik-500-019fa581.jpg",
+"fingerprint": "b274881f7ac3306b",
+"pieces": 500,
+"sets": [
+"feedback:pilot-132"
+],
+"width": 1205,
+"height": 1600,
+"originalWidth": 1506,
+"originalHeight": 2000,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.82692,
+"w": 0.79168,
+"x": 0.10532,
+"y": 0.09853
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm+quad",
+"schema": 1,
+"source": {
+"width": 1205,
+"height": 1600
+},
+"corners": null,
+"signals": {
+"quadIou": 0.9841,
+"vlmBbox": {
+"h": 0.827,
+"w": 0.782,
+"x": 0.116,
+"y": 0.098
+},
+"vlmKind": "box_front",
+"gateMargin": -0.0686
+},
+"runtimeMs": 2127,
+"confidence": 0.9841,
+"kindScores": {
+"box": 0.1638,
+"flat": 0.0952,
+"other": 0.0537,
+"assembled": 0.1077
+},
+"sourceSha256": "3ef5e41df6b3780d9c3223eeb7848e83fc018c6d0cd5e0f3faed36c61ba430f7"
+}
+},
+{
+"id": "019dc724-ebdb-73f9-8060-711ac45fbaa5",
+"image": "019dc724-ebdb-73f9-8060-711ac45fbaa5-1777162578.jpg",
+"fingerprint": "cb9f0fe06d3fe13b",
+"pieces": 750,
+"sets": [
+"feedback:pilot-134"
+],
+"width": 1600,
+"height": 1578,
+"originalWidth": 2000,
+"originalHeight": 1973,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.998,
+"w": 1,
+"x": 0,
+"y": 0
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 1600,
+"height": 1578
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.998,
+"w": 1,
+"x": 0,
+"y": 0
+},
+"vlmKind": "box_front",
+"gateMargin": -0.0328
+},
+"runtimeMs": 3757,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.1313,
+"flat": 0.0985,
+"other": 0.0414,
+"assembled": 0.0881
+},
+"sourceSha256": "fde194b1f49b2cf884b712244405288fa59ad72e84638d78ae04fe071df6c3db"
+}
+},
+{
+"id": "01a12cc3-f18a-70d7-9f88-d9118039c1f4",
+"image": "springbok-marbles-500-01a12cc3-f94d6478.jpg",
+"fingerprint": "f0cf069d608c2ae1",
+"pieces": 500,
+"sets": [
+"feedback:pilot-138"
+],
+"width": 1200,
+"height": 1600,
+"originalWidth": 1500,
+"originalHeight": 2000,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.695,
+"w": 0.933,
+"x": 0.033,
+"y": 0.142
+},
+"crop": null,
+"kind": "assembled",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 1200,
+"height": 1600
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.695,
+"w": 0.933,
+"x": 0.033,
+"y": 0.142
+},
+"vlmKind": "assembled",
+"gateMargin": -0.0586
+},
+"runtimeMs": 2477,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.1232,
+"flat": 0.0646,
+"other": 0.0483,
+"assembled": 0.1206
+},
+"sourceSha256": "c5f7766ded9e477b4ff4372cf355160542d4c8ba36671bb56b3e40d508817a38"
+}
+},
+{
+"id": "0199c068-4f68-71d7-ab7a-82e057dd4605",
+"image": "0199c068-4f68-71d7-ab7a-82e057dd4605-1759869685.jpg",
+"fingerprint": "6705366d915d600d",
+"pieces": 300,
+"sets": [
+"feedback:pilot-143"
+],
+"width": 1200,
+"height": 1600,
+"originalWidth": 4000,
+"originalHeight": 3000,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.928,
+"w": 0.83,
+"x": 0.078,
+"y": 0.05
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 1200,
+"height": 1600
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.928,
+"w": 0.83,
+"x": 0.078,
+"y": 0.05
+},
+"vlmKind": "box_front",
+"gateMargin": -0.0547
+},
+"runtimeMs": 2040,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.1335,
+"flat": 0.0788,
+"other": 0.0439,
+"assembled": 0.0884
+},
+"sourceSha256": "0fc436acbfa78d70eda8c2d09efe7ed54d85f0fd86d1defda7041917b0856316"
+}
+},
+{
+"id": "01a150cc-0b35-7158-9607-ab81e064e5ca",
+"image": "mega-puzzles-changing-of-the-guard-1000-01a150cc-855ca962.jpg",
+"fingerprint": "1a919ec1cd6eb97d",
+"pieces": 1000,
+"sets": [
+"feedback:pilot-146"
+],
+"width": 1600,
+"height": 1338,
+"originalWidth": 2000,
+"originalHeight": 1672,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.7664,
+"w": 0.89834,
+"x": 0.06585,
+"y": 0.13392
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm+quad",
+"schema": 1,
+"source": {
+"width": 1600,
+"height": 1338
+},
+"corners": [
+[
+0.08733,
+0.13976
+],
+[
+0.91146,
+0.13392
+],
+[
+0.96419,
+0.90032
+],
+[
+0.06585,
+0.84307
+]
+],
+"signals": {
+"quadIou": 0.8678,
+"vlmBbox": {
+"h": 0.72,
+"w": 0.834,
+"x": 0.078,
+"y": 0.132
+},
+"vlmKind": "box_front",
+"gateMargin": -0.0615
+},
+"runtimeMs": 2287,
+"confidence": 0.8678,
+"kindScores": {
+"box": 0.1608,
+"flat": 0.0993,
+"other": 0.0468,
+"assembled": 0.1183
+},
+"sourceSha256": "a012f8aaf77138eaabedbaa5eb61afd5d4b81d58151a427f671f4f909408fe0e"
+}
+},
+{
+"id": "019f3a38-3b7f-7074-a093-93ac25a4c7aa",
+"image": "019f3a38-3b7f-7074-a093-93ac25a4c7aa-1783388191.jpg",
+"fingerprint": "1a77df3fdaa04588",
+"pieces": 500,
+"sets": [
+"feedback:pilot-149"
+],
+"width": 1600,
+"height": 1200,
+"originalWidth": 2000,
+"originalHeight": 1500,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.736,
+"w": 0.842,
+"x": 0.106,
+"y": 0.106
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 1600,
+"height": 1200
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.736,
+"w": 0.842,
+"x": 0.106,
+"y": 0.106
+},
+"vlmKind": "box_front",
+"gateMargin": -0.0671
+},
+"runtimeMs": 2172,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.1547,
+"flat": 0.0876,
+"other": 0.0666,
+"assembled": 0.1135
+},
+"sourceSha256": "da79265da3ddc048dcf295eaab899178a586a5078f5827ae642c13158d4723b4"
+}
+},
+{
+"id": "01a12294-a292-7084-8b29-6c522c450503",
+"image": "wonder-forge-the-artist-s-cabinet-1000-01a12294-0fb21ceb.jpg",
+"fingerprint": "512221b2e5a5a69c",
+"pieces": 1000,
+"sets": [
+"feedback:pilot-153"
+],
+"width": 1600,
+"height": 1218,
+"originalWidth": 2000,
+"originalHeight": 1523,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.957,
+"w": 0.94,
+"x": 0.032,
+"y": 0.028
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 1600,
+"height": 1218
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.957,
+"w": 0.94,
+"x": 0.032,
+"y": 0.028
+},
+"vlmKind": "box_front",
+"gateMargin": -0.0685
+},
+"runtimeMs": 2165,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.1613,
+"flat": 0.0928,
+"other": 0.0619,
+"assembled": 0.1118
+},
+"sourceSha256": "86eb2c354ff96c9c23c1f29268ad554aafc1ea908ad2414432b1e628dc33a328"
+}
+},
+{
+"id": "019c638c-c45c-70f3-aee6-1336a34f50dd",
+"image": "019c638c-c45c-70f3-aee6-1336a34f50dd-1771196695.jpg",
+"fingerprint": "d2c8eeacca7e382f",
+"pieces": 400,
+"sets": [
+"feedback:pilot-155"
+],
+"width": 1541,
+"height": 1542,
+"originalWidth": 1541,
+"originalHeight": 1542,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.999,
+"w": 0.999,
+"x": 0,
+"y": 0
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm",
+"schema": 1,
+"source": {
+"width": 1541,
+"height": 1542
+},
+"corners": null,
+"signals": {
+"quadIou": null,
+"vlmBbox": {
+"h": 0.999,
+"w": 0.999,
+"x": 0,
+"y": 0
+},
+"vlmKind": "box_front",
+"gateMargin": -0.0586
+},
+"runtimeMs": 3160,
+"confidence": 0.5,
+"kindScores": {
+"box": 0.1247,
+"flat": 0.0661,
+"other": 0.0136,
+"assembled": 0.0814
+},
+"sourceSha256": "bd4e1a49a20217fec35c3fc93f7b97fa762f79d81bdc83ab658608e7f29163a3"
+}
+},
+{
+"id": "019ffd8b-b75f-70de-8681-89a64636301c",
+"image": "buffalo-games-the-white-lotus-500-019ffd8b.jpg",
+"fingerprint": "de597f2d2b6eead3",
+"pieces": 500,
+"sets": [
+"feedback:pilot-177"
+],
+"width": 1200,
+"height": 1600,
+"originalWidth": 1500,
+"originalHeight": 2000,
+"storedVersion": "1.0.0+siglip2-q3vl4b",
+"stored": {
+"bbox": {
+"h": 0.65323,
+"w": 0.9987,
+"x": 0,
+"y": 0.095
+},
+"crop": null,
+"kind": "box_front",
+"model": "google/siglip2-so400m-patch14-384 (gate, 768 px, margin 0.01) + mlx-community/Qwen3-VL-4B-Instruct-4bit (672 px) + opencv quad snap",
+"method": "vlm+quad",
+"schema": 1,
+"source": {
+"width": 1200,
+"height": 1600
+},
+"corners": [
+[
+0,
+0.095
+],
+[
+0.9987,
+0.11257
+],
+[
+0.90495,
+0.74823
+],
+[
+0.00391,
+0.66328
+]
+],
+"signals": {
+"quadIou": 0.826,
+"vlmBbox": {
+"h": 0.75,
+"w": 0.94,
+"x": 0.012,
+"y": 0.072
+},
+"vlmKind": "box_front",
+"gateMargin": -0.0758
+},
+"runtimeMs": 2045,
+"confidence": 0.826,
+"kindScores": {
+"box": 0.1844,
+"flat": 0.1086,
+"other": 0.094,
+"assembled": 0.1406
+},
+"sourceSha256": "d38cd0b9c3499c902aa105760ccaa0883ebac640c07605b3d5cdd79e59ede274"
+}
+}
+]

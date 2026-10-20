@@ -41,8 +41,8 @@ $msp-teal: #1d6f6b;
 .lb-row-card {
     cursor: pointer;
 
-    // The place's movement as a small white badge on the rank cell's bottom-right corner, between the rank and the
-    // photo - no second line in the row (the avatar's flag sits the same way on its corner)
+    // The place's movement as a small mark on the rank cell's corner next to the photo - no second line in the row: a
+    // gain at the top corner, a loss (and "New") at the bottom one
     td.rank {
         position: relative;
         padding-right: .875rem;
@@ -50,31 +50,17 @@ $msp-teal: #1d6f6b;
 
     .lb-move {
         position: absolute;
-        right: -.5rem;
-        bottom: .1875rem;
+        right: -.375rem;
+        bottom: .25rem;
         z-index: 1;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 1.25rem;
-        height: 1.125rem;
         margin: 0;
-        padding: 0 .25rem;
-        border-radius: 999px;
-        background: #fff;
-        box-shadow: 0 0 0 1px rgba($gray-900, .1), 0 1px 2px rgba($gray-900, .12);
-        font-size: .5625rem;
+        font-size: .625rem;
         line-height: 1;
     }
-}
 
-.msp-card-name-link {
-    color: inherit;
-    text-decoration: none;
-
-    &:hover,
-    &:focus-visible {
-        text-decoration: underline;
+    .lb-move.lb-move-up {
+        bottom: auto;
+        top: .5rem;
     }
 }
 

@@ -31,6 +31,8 @@ LOW_RES_ARTWORK = 700     # the artwork's long side in the original below this: 
 SMALL_IN_PHOTO = 0.25     # the artwork fills less than this share of the photo
 ANGLED_DEG, ANGLED_RATIO = 6.0, 0.93
 NO_CLEAN_CROP_SIDES = 2   # fewer confirmed sides than this on a photo = the crop could not be confirmed
+PAD_ONLY_UNCONFIRMED = False  # True left thin frames out but cut 3 boxes (one by 23 %) on the tuning set: a "confirmed"
+                              # side was a line inside the picture - the pad on every side protects
 HYBRID = True             # keep a rejected quad's confirmed sides (see hybrid_quad)
 VLM_PAD = 0.02            # VLM-only crops move out by this share of their size per side: the VLM box is often 1-5 %
                           # tight (tuning set: cuts 19 -> 13, print left in 58 -> 75 - the face pass trims boxes)
@@ -81,7 +83,11 @@ def picture_continues(m: dict[str, Any]) -> bool:
     return not m["photoEdge"] and m["support"] < SIDE_SUPPORT
 
 
-def widen_box(lab: np.ndarray, box: Sequence[float]) -> tuple[list[float], dict[str, Any]]:
+BOX_WIDEN_MAX: float | None = 0.1   # box photos: a side moves out at most this share of the box's size (tuning set:
+                                    # border 0.865 box mIoU, 0.1 -> 0.873, both 0 box cuts; 0.05 cut one box 3 %)
+
+
+def widen_box(lab: np.ndarray, box: Sequence[float], max_out: float | None = None) -> tuple[list[float], dict[str, Any]]:
     """Sides of an axis-aligned crop that are not on a real edge move out to the photo's border. Searching outward
     for the next edge instead stopped on edges inside the picture: 10 cuts on the tuning set against 4, for the same
     print left in (82 vs 81)."""
@@ -93,6 +99,9 @@ def widen_box(lab: np.ndarray, box: Sequence[float]) -> tuple[list[float], dict[
             continue
         idx = {"left": 0, "top": 1, "right": 2, "bottom": 3}[m["side"]]
         pos = 0.0 if idx < 2 else 1.0
+        if max_out is not None:
+            size = (box[2] - box[0]) if idx in (0, 2) else (box[3] - box[1])
+            pos = max(pos, out[idx] - max_out * size) if idx < 2 else min(pos, out[idx] + max_out * size)
         if out[idx] != pos:
             moved[m["side"]] = {"from": round(out[idx], 4), "to": pos}
             out[idx] = pos
@@ -208,6 +217,9 @@ def hybrid_quad(quad: Sequence[Sequence[float]], ok: Sequence[bool], box: Sequen
     return [[round(float(x), 5), round(float(y), 5)] for x, y in out]
 
 
+WIDEN_KINDS = ("assembled", "other", "flat", "box_front", "box_angled")  # first-pass kinds whose unconfirmed sides go out
+
+
 def crop_geometry(a: np.ndarray, fp: dict[str, Any]) -> dict[str, Any]:
     """Steps 1-2 on the <= 1024 px working image: which outline the crop uses and why. Answers bbox [x0,y0,x1,y1],
     quad (TL, TR, BR, BL; None = the bbox), method, and the side measures as signals."""
@@ -237,8 +249,17 @@ def crop_geometry(a: np.ndarray, fp: dict[str, Any]) -> dict[str, Any]:
                         "confirmed": sum(ok), "quadRejected": True}
     if VLM_PAD > 0:
         pw, ph = VLM_PAD * (box[2] - box[0]), VLM_PAD * (box[3] - box[1])
-        box = [max(0.0, box[0] - pw), max(0.0, box[1] - ph), min(1.0, box[2] + pw), min(1.0, box[3] + ph)]
-    widened, info = widen_box(lab, box)
+        if PAD_ONLY_UNCONFIRMED:
+            ok = {m["side"]: side_ok(m) for m in side_measures(lab, box_quad(box))}
+            box = [box[0] if ok["left"] else max(0.0, box[0] - pw), box[1] if ok["top"] else max(0.0, box[1] - ph),
+                   box[2] if ok["right"] else min(1.0, box[2] + pw), box[3] if ok["bottom"] else min(1.0, box[3] + ph)]
+        else:
+            box = [max(0.0, box[0] - pw), max(0.0, box[1] - ph), min(1.0, box[2] + pw), min(1.0, box[3] + ph)]
+    if (fp.get("kind") or "other") in WIDEN_KINDS:
+        is_box = (fp.get("kind") or "") in ("box_front", "box_angled")
+        widened, info = widen_box(lab, box, BOX_WIDEN_MAX if is_box else None)
+    else:
+        widened, info = list(box), {"sides": side_measures(lab, box_quad(box)), "moved": {}}
     signals["boxSides"] = info["sides"]
     if info["moved"]:
         signals["widened"] = info["moved"]
@@ -325,6 +346,8 @@ SNAP_IN = 0.0       # ... never further in than the VLM's line (allowing 1 % in 
 FACE_BACKOFF = 0.015  # every face trim stops this share of the face short of its edge: a sliver of band is left
                       # rather than art cut (the VLM's lines and the labels are good to ~1 %)
 SNAP_STEP_DE = 9.0
+SNAP_NEAREST = True   # the edge nearest the VLM's line going out, not the outermost (that was a frame's outer line:
+                      # tuning box print 52 -> 45, no new cut; the pilot's "frame kept" cases)
 
 
 def edge_profile(lab: np.ndarray, side: int) -> np.ndarray:
@@ -350,7 +373,8 @@ def snap_trim(lab: np.ndarray, side: int, t: float) -> tuple[float | None, float
     n = len(prof)
     lo, hi = max(1, int((t - SNAP_OUT) * n)), min(n - 1, int(np.ceil((t + SNAP_IN) * n)))
     best = float(prof[lo:hi + 1].max()) if hi >= lo else 0.0
-    for y in range(lo, hi + 1):
+    order = range(hi, lo - 1, -1) if SNAP_NEAREST else range(lo, hi + 1)
+    for y in order:
         if prof[y] >= FACE_EDGE_SUPPORT:
             return y / n, round(best, 3)
     return None, round(best, 3)
@@ -496,7 +520,9 @@ def refine(rgb: np.ndarray, a: np.ndarray, fp: dict[str, Any], source: tuple[int
     # back-off itself leaves no step on the final line
     by_face = {side for side, v in ((signals.get("face") or {}).get("sides") or {}).items()
                if v.get("result") in ("trimmed", "both passes agree")} if method.endswith("+face") else set()
-    confirmed = sum(1 for m in final_sides if side_ok(m) or m["side"] in by_face)
+    widened = set(g["signals"].get("widened") or {})  # moved out for want of an edge: a photo border there proves nothing
+    confirmed = sum(1 for m in final_sides
+                    if m["side"] in by_face or (side_ok(m) and m["side"] not in widened))
     signals["finalSides"] = [{k: m[k] for k in ("side", "support", "similarity", "photoEdge")} for m in final_sides]
     crop_rgb = _crop_rgb(rgb, box, quad)
     corners = None

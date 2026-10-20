@@ -151,6 +151,7 @@ def test_refine_builds_the_1_1_payload():
     assert out["firstPass"]["vlmKind"] == "assembled" and out["signals"]["kindCheck"]["second"] == "box_front"
     q = out["quality"]
     assert "small_original" in q["reasons"] and "low_resolution_artwork" in q["reasons"] and q["needsBetterImage"]
+    assert "not_digital_artwork" in q["reasons"]  # a box photo is never a perfect catalogue picture
     assert q["originalSize"] == {"width": 400, "height": 300}
     assert out["geometry"]["view"] in ("front", "angled") and 0 <= out["confidence"] <= 1
     assert set(out["bbox"]) == {"x", "y", "w", "h"}

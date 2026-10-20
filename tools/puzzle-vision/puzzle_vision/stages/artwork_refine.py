@@ -156,6 +156,10 @@ def quality(kind: str, final_quad: Sequence[Sequence[float]], source: tuple[int,
         reasons.append("artwork_small_in_photo")
     if kind == "other":
         reasons.append("not_the_picture")
+    if kind != "flat":
+        # Jan 2026-10-20: only digital artwork is a perfect catalogue picture - every photo (a box, an assembled
+        # puzzle, a shop render of a box) needs a better one, however good the crop
+        reasons.append("not_digital_artwork")
     if kind != "flat" and confirmed_sides < NO_CLEAN_CROP_SIDES:
         reasons.append("no_clean_crop")
     # no "glare" reason: near-white, unsaturated pixels were white backgrounds and white artwork more often than

@@ -10824,3 +10824,19 @@ feature_request_emails:
         confirm_button: "Vypnout tyto e-maily"
         done: "Hotovo – e-maily o návrzích funkcí už vám nepošleme, ani o vašich vlastních návrzích."
         settings_hint: "Kdykoli je můžete znovu zapnout v nastavení profilu v části „Zprávy a upozornění“."
+puzzles_needing_improvement:
+    title: "Puzzle k vylepšení"
+    footer_link: "Pomozte vylepšit puzzle"
+    meta:
+        title: "Puzzle k vylepšení - pomozte doplnit databázi puzzle"
+    intro: "U těchto puzzle nám v databázi něco chybí. Pokud některé máte doma nebo je uvidíte v obchodě, můžete údaje doplnit."
+    how_it_works: "Zatím seznam ukazuje puzzle bez EAN - třináctimístného čísla pod čárovým kódem na krabici. Klikněte na „Navrhnout změnu“, napište EAN (nebo přidejte fotku krabice) a moderátor ho zkontroluje. Za každou schválenou změnu získáte karmu."
+    karma_link: "Co je karma?"
+    brand_filter: "Značka"
+    all_brands: "Všechny značky"
+    apply_filter: "Zobrazit"
+    count: "%total% puzzle bez EAN"
+    empty: "Tady není co vylepšovat - děkujeme!"
+    badge:
+        ean_missing: "Chybí EAN"
+        proposed: "Navrženo, čeká na kontrolu"

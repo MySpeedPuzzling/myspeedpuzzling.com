@@ -11071,3 +11071,19 @@ feature_request_emails:
         confirm_button: "Stop these e-mails"
         done: "Done – you won't get e-mails about feature requests any more, not even about your own suggestions."
         settings_hint: "You can switch them on again any time in your profile settings under \"Messaging & Notifications\"."
+puzzles_needing_improvement:
+    title: "Puzzles needing improvement"
+    footer_link: "Help improve puzzles"
+    meta:
+        title: "Puzzles needing improvement - help complete the puzzle database"
+    intro: "These puzzles are missing something in our database. If you have one of them at home, or find it in a shop, you can fill it in."
+    how_it_works: "For now the list shows puzzles without an EAN - the 13-digit number under the barcode on the box. Click \"Suggest a change\", type the EAN (or add a photo of the box) and a moderator will check it. Every approved change earns you karma."
+    karma_link: "What is karma?"
+    brand_filter: "Brand"
+    all_brands: "All brands"
+    apply_filter: "Show"
+    count: "{1}%total% puzzle without an EAN|[0,Inf[%total% puzzles without an EAN"
+    empty: "Nothing to improve here - thank you!"
+    badge:
+        ean_missing: "EAN missing"
+        proposed: "Suggested, waiting for review"

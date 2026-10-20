@@ -10787,3 +10787,19 @@ feature_request_emails:
         confirm_button: "このメールを停止する"
         done: "完了しました。機能リクエストに関するメールは、ご自身の提案についても今後お送りしません。"
         settings_hint: "プロフィール設定の「メッセージと通知」からいつでも再開できます。"
+puzzles_needing_improvement:
+    title: "改善が必要なパズル"
+    footer_link: "パズル情報の改善に協力"
+    meta:
+        title: "改善が必要なパズル - パズルデータベースの充実にご協力ください"
+    intro: "これらのパズルはデータベースの情報が不足しています。お手元にある場合やお店で見かけた場合は、情報を追加できます。"
+    how_it_works: "現在は EAN（箱のバーコードの下にある13桁の番号）がないパズルを表示しています。「変更を提案」をクリックして EAN を入力（または箱の写真を追加）すると、モデレーターが確認します。承認された変更ごとにカルマがもらえます。"
+    karma_link: "カルマとは？"
+    brand_filter: "ブランド"
+    all_brands: "すべてのブランド"
+    apply_filter: "表示"
+    count: "EAN のないパズル %total% 件"
+    empty: "改善が必要なパズルはありません。ありがとうございます！"
+    badge:
+        ean_missing: "EAN なし"
+        proposed: "提案済み・確認待ち"

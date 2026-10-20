@@ -1,0 +1,79 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'puzzles_needing_improvement.meta.title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'puzzles_needing_improvement.intro'|trans }}{% endblock %}
+{# A work list that changes all the time - linked from the footer only #}
+{% block robots %}<meta name="robots" content="noindex, follow">{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'puzzle_detail.breadcrumb.database'|trans, url: path('puzzles')},
+        {label: 'puzzles_needing_improvement.title'|trans},
+    ]}) }}
+
+    <h1 class="mb-2">{{ 'puzzles_needing_improvement.title'|trans }}</h1>
+    <p class="mb-2">{{ 'puzzles_needing_improvement.intro'|trans }}</p>
+    <p class="text-muted fs-sm mb-3">
+        {{ 'puzzles_needing_improvement.how_it_works'|trans }}
+        <a href="{{ path('karma_explainer') }}">{{ 'puzzles_needing_improvement.karma_link'|trans }}</a>
+    </p>
+
+    <form method="get" class="mb-3 d-flex flex-wrap align-items-center gap-2" data-turbo="false" data-controller="auto-submit" data-action="change->auto-submit#submit">
+        <label class="form-label mb-0" for="improvement-brand">{{ 'puzzles_needing_improvement.brand_filter'|trans }}</label>
+        <select class="form-select w-auto" id="improvement-brand" name="brand">
+            <option value="">{{ 'puzzles_needing_improvement.all_brands'|trans }}</option>
+            {% for brand in brands %}
+                <option value="{{ brand.manufacturerId }}" {% if brand.manufacturerId == brand_id %}selected{% endif %}>{{ brand.manufacturerName }} ({{ brand.puzzlesCount|plain_number }})</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-outline-secondary" data-auto-submit-target="fallback">{{ 'puzzles_needing_improvement.apply_filter'|trans }}</button>
+    </form>
+
+    <p class="fs-sm mb-2">{{ 'puzzles_needing_improvement.count'|trans({'%count%': total, '%total%': total|plain_number}) }}</p>
+
+    {% if puzzles is empty %}
+        <p class="text-muted">{{ 'puzzles_needing_improvement.empty'|trans }}</p>
+    {% else %}
+        <ul class="list-group mb-3">
+            {% for puzzle in puzzles %}
+                <li class="list-group-item d-flex align-items-center gap-3 px-2 py-2">
+                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="flex-shrink-0">
+                        {{ include('_puzzle_row_image.html.twig', {image: puzzle.puzzleImage, alt: puzzle.puzzleName, position: loop.index, ratio: null}) }}
+                    </a>
+
+                    <div class="flex-grow-1 min-w-0">
+                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="fw-semibold d-block text-truncate">{{ puzzle.puzzleName }}</a>
+                        <small class="text-muted d-block">
+                            {{ include('_pieces_brand.html.twig', {pieces: puzzle.piecesCount, brand: puzzle.manufacturerName ?? ''}) }}
+                            {% if puzzle.solvedTimesCount > 0 %}· {{ 'puzzle_solved_times'|trans({'%count%': puzzle.solvedTimesCount}) }}{% endif %}
+                        </small>
+                        <span class="badge bg-warning text-dark rounded-pill mt-1">{{ 'puzzles_needing_improvement.badge.ean_missing'|trans }}</span>
+                    </div>
+
+                    {# Replaced by the proposal form's answer once a change is suggested (puzzle-report/_stream.html.twig) #}
+                    <div class="flex-shrink-0 text-end" id="improvement-action-{{ puzzle.puzzleId }}">
+                        {% if puzzle.eanProposed %}
+                            {{ include('puzzle-report/_improvement_proposed.html.twig') }}
+                        {% else %}
+                            <a class="btn btn-sm btn-outline-primary"
+                               href="{{ path('puzzle_suggest_change', {puzzleId: puzzle.puzzleId}) }}"
+                               rel="nofollow"
+                               {% if logged_user.profile is not null %}data-turbo-frame="modal-frame"{% endif %}>
+                                <i class="bi bi-pencil-square" aria-hidden="true"></i>
+                                <span class="d-none d-sm-inline ms-1">{{ 'puzzle_report.dropdown.suggest_change'|trans }}</span>
+                                <span class="visually-hidden d-sm-none">{{ 'puzzle_report.dropdown.suggest_change'|trans }}</span>
+                            </a>
+                        {% endif %}
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    {{ include('puzzle/_pagination.html.twig', {
+        pagination: pagination,
+        route: 'puzzles_needing_improvement',
+        page_route: 'puzzles_needing_improvement',
+        route_params: brand_id is not null ? {brand: brand_id} : {},
+    }) }}
+{% endblock %}

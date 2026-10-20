@@ -10817,3 +10817,19 @@ feature_request_emails:
         confirm_button: "Arrêter ces e-mails"
         done: "C’est fait – vous ne recevrez plus d’e-mails sur les suggestions de fonctionnalités, pas même sur les vôtres."
         settings_hint: "Vous pouvez les réactiver à tout moment dans les paramètres de votre profil, rubrique « Messagerie et notifications »."
+puzzles_needing_improvement:
+    title: "Puzzles à améliorer"
+    footer_link: "Aidez à améliorer les puzzles"
+    meta:
+        title: "Puzzles à améliorer - aidez à compléter la base de données de puzzles"
+    intro: "Il manque quelque chose à ces puzzles dans notre base de données. Si vous en avez un chez vous ou le voyez en magasin, vous pouvez le compléter."
+    how_it_works: "Pour l'instant, la liste montre les puzzles sans EAN, le numéro à 13 chiffres sous le code-barres de la boîte. Cliquez sur « Suggérer une modification », saisissez l'EAN (ou ajoutez une photo de la boîte) et un modérateur le vérifiera. Chaque modification approuvée vous rapporte du karma."
+    karma_link: "Qu'est-ce que le karma ?"
+    brand_filter: "Marque"
+    all_brands: "Toutes les marques"
+    apply_filter: "Afficher"
+    count: "{0,1}%total% puzzle sans EAN|]1,Inf[%total% puzzles sans EAN"
+    empty: "Rien à améliorer ici, merci !"
+    badge:
+        ean_missing: "EAN manquant"
+        proposed: "Suggéré, en attente de vérification"

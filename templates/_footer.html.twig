@@ -49,6 +49,7 @@
                 <li><a href="{{ path('puzzle_tracker_app') }}">{{ 'footer.puzzle_tracker_app'|trans }}</a></li>
                 <li><a rel="nofollow" href="{{ path('membership') }}">{{ 'menu.membership'|trans }}</a></li>
                 <li><a href="{{ path('feature_requests') }}">{{ 'menu.feature_requests'|trans }}</a></li>
+                <li><a rel="nofollow" href="{{ path('puzzles_needing_improvement') }}">{{ 'puzzles_needing_improvement.footer_link'|trans }}</a></li>
                 <li><a rel="nofollow" href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="modal-frame"{% endif %}>{{ 'menu.feedback'|trans }}</a></li>
                 <li><a href="{{ path('for_organizers') }}">{{ 'menu.for_organizers'|trans }}</a></li>
                 <li><a href="{{ path('for_developers') }}">{{ 'menu.for_developers'|trans }}</a></li>

@@ -5,8 +5,16 @@
     Parameters:
     - puzzle_id: The puzzle ID
     - message: Toast message
+    - mark_improvement_row (optional): a change was suggested - marks the puzzle's row on "Puzzles needing
+      improvement"; nothing happens on pages without that row
 #}
 
 {{ include('_modal_close_stream.html.twig') }}
 
 {{ include('_toast_stream.html.twig', {message: message}) }}
+
+{% if mark_improvement_row|default(false) %}
+    <turbo-stream action="update" target="improvement-action-{{ puzzle_id }}">
+        <template>{{ include('puzzle-report/_improvement_proposed.html.twig') }}</template>
+    </turbo-stream>
+{% endif %}

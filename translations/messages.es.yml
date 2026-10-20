@@ -10702,7 +10702,7 @@ insights:
         predictions_off: "Las predicciones de tiempo están desactivadas en tus ajustes. La selección de tu estantería está hecha de ellas, así que queda vacía."
         empty: "En esta selección no hay nada sin armar en tu estantería."
         lock:
-            title: "{0}Puzzles de tu estantería elegidos para ti|{1}1 puzzle sin armar en tu estantería: mira si te va bien|]1,Inf[%count% puzzles sin armar en tu estantería: mira cuáles te van bien"
+            title: "{0}Puzzles de tu estantería elegidos para ti|{1}1 puzzle sin armar en tu estantería: mira si te va bien|[0,Inf[%count% puzzles sin armar en tu estantería: mira cuáles te van bien"
             text: "Los que mejor te van, con tu tiempo probable y a cuántos de sus puzzleros probablemente superarías."
         no_estimates: "{0}Tus puzzles sin armar de la estantería aún no tienen tiempo esperado: primero necesitan una dificultad.|{1}Tu puzzle sin armar de la estantería aún no tiene tiempo esperado: primero necesita una dificultad.|]1,Inf[Ninguno de tus %count% puzzles sin armar de la estantería tiene aún tiempo esperado: primero necesitan una dificultad."
         takeaway: "{0}Ninguno de tus %total% puzzles sin armar de la estantería tiene aún tiempo esperado.|{1}<b>1</b> de tus %total% puzzles sin armar de la estantería tiene un tiempo esperado para ti. En los de arriba probablemente superarías a más puzzleros.|]1,Inf[<b>%count%</b> de tus %total% puzzles sin armar de la estantería tienen un tiempo esperado para ti. En los de arriba probablemente superarías a más puzzleros."
@@ -10798,3 +10798,19 @@ feature_request_emails:
         confirm_button: "Dejar de recibir estos correos"
         done: "Listo: ya no recibirás correos sobre propuestas de funciones, tampoco sobre las tuyas."
         settings_hint: "Puedes volver a activarlos cuando quieras en los ajustes de tu perfil, en «Mensajes y notificaciones»."
+puzzles_needing_improvement:
+    title: "Puzzles por mejorar"
+    footer_link: "Ayuda a mejorar los puzzles"
+    meta:
+        title: "Puzzles por mejorar - ayuda a completar la base de datos de puzzles"
+    intro: "A estos puzzles les falta algo en nuestra base de datos. Si tienes alguno en casa o lo ves en una tienda, puedes completarlo."
+    how_it_works: "Por ahora la lista muestra puzzles sin EAN, el número de 13 dígitos bajo el código de barras de la caja. Haz clic en «Sugerir un cambio», escribe el EAN (o añade una foto de la caja) y un moderador lo revisará. Cada cambio aprobado te da karma."
+    karma_link: "¿Qué es el karma?"
+    brand_filter: "Marca"
+    all_brands: "Todas las marcas"
+    apply_filter: "Mostrar"
+    count: "{1}%total% puzzle sin EAN|[0,Inf[%total% puzzles sin EAN"
+    empty: "No hay nada que mejorar aquí. ¡Gracias!"
+    badge:
+        ean_missing: "Falta el EAN"
+        proposed: "Sugerido, pendiente de revisión"

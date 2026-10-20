@@ -10797,3 +10797,19 @@ feature_request_emails:
         confirm_button: "Diese E-Mails abbestellen"
         done: "Erledigt – Sie erhalten keine E-Mails mehr zu Funktionsvorschlägen, auch nicht zu Ihren eigenen."
         settings_hint: "Sie können sie jederzeit in Ihren Profileinstellungen unter „Nachrichten & Benachrichtigungen“ wieder einschalten."
+puzzles_needing_improvement:
+    title: "Puzzles, die Verbesserung brauchen"
+    footer_link: "Hilf, Puzzles zu verbessern"
+    meta:
+        title: "Puzzles, die Verbesserung brauchen - hilf mit, die Puzzle-Datenbank zu vervollständigen"
+    intro: "Bei diesen Puzzles fehlt uns etwas in der Datenbank. Wenn du eines davon zu Hause hast oder im Laden siehst, kannst du es ergänzen."
+    how_it_works: "Vorerst zeigt die Liste Puzzles ohne EAN - die 13-stellige Nummer unter dem Strichcode auf der Schachtel. Klicke auf „Änderung vorschlagen“, gib die EAN ein (oder füge ein Foto der Schachtel hinzu) und ein Moderator prüft sie. Jede genehmigte Änderung bringt dir Karma."
+    karma_link: "Was ist Karma?"
+    brand_filter: "Marke"
+    all_brands: "Alle Marken"
+    apply_filter: "Anzeigen"
+    count: "{1}%total% Puzzle ohne EAN|[0,Inf[%total% Puzzles ohne EAN"
+    empty: "Hier gibt es nichts zu verbessern - danke!"
+    badge:
+        ean_missing: "EAN fehlt"
+        proposed: "Vorgeschlagen, wird geprüft"

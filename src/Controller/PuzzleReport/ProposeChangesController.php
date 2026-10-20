@@ -212,6 +212,7 @@ final class ProposeChangesController extends AbstractController
             return $this->render('puzzle-report/_stream.html.twig', [
                 'puzzle_id' => $puzzleId,
                 'message' => $this->translator->trans('puzzle_report.flash.changes_submitted'),
+                'mark_improvement_row' => true,
             ]);
         }
 

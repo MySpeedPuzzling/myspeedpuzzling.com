@@ -4,6 +4,11 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Puzzles needing improvement (`docs/features/puzzles-needing-improvement.md`, 2026-10-21)
+
+- [ ] Add puzzles whose picture needs replacing (own badge, same row + "Suggest a change"), not by priority yet -
+      promised to Laëtitia for the week of 2026-10-26 (mail #351, follow-up F164: tell her when it is live)
+
 ## MSP Rating history (`docs/features/msp-rating-history.md`, 2026-10-20)
 
 - [ ] After the deploy: `myspeedpuzzling:rerank-rating-snapshots` once on production, before the next weekly digest

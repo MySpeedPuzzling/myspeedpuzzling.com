@@ -763,6 +763,12 @@ player lost the form. Shipped: limit 128M (`web-base-php85/php.ini`), photos up 
       (outcome `camera-error` + the error name).
 - [x] 2026-10-19: zbar is no longer held up by its own one-off misreads (a competitor must be read twice in 2 s) -
       Allison's Anatolian Route 66 was read from 0.8 s but accepted after 3.6-11.6 s, up to a minute before.
+- [ ] Angled barcodes on iPhone (Allison, 2026-10-20: "3-9 s from the red box to the puzzle, instant when lined up";
+      her 8 multiscan sessions: 35 boxes, 0 wrong codes, first sight -> acceptance 0.1-7.4 s). The red box is drawn
+      for every zbar read, but only reads with quality >= 3 (scanlines) count, and a slanted code crosses few
+      scanlines. Ideas, each to measure first: report how many reads had quality < 3 (now `seen` keeps only the last
+      quality); a "hold it straight" hint when a code keeps being seen at quality < 3; zbar on a rotated copy of the
+      band now and then. Not the threshold itself - it is what keeps zbar's one-off misreads out.
 - [ ] The debug panel's "Copy" text arrives URL-encoded from Chrome on iOS (Allison's paste, 2026-10-19: `engine:%20zbar…`)
       - check `navigator.clipboard.writeText` there; readable after decoding, so low priority.
 - [x] Global search scanner layout on iPhone (Jan, 2026-10-19 screenshot): the video is narrower than the box and

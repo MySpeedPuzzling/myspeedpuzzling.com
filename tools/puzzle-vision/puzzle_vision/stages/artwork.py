@@ -74,6 +74,10 @@ Leave out the table, mat, frame, hands and background around the puzzle.
 If the puzzle fills the whole image, answer the whole image.
 Answer with JSON only: {"bbox_2d": [x1, y1, x2, y2]}"""
 
+STRIP_PROMPT = """This is the edge of a photo of a jigsaw puzzle box, turned so that edge is at the top. A red line (edged in white) runs across it.
+Look only at the part above the red line. Is it a printed band of the box - a plain coloured strip carrying the brand, title, piece count or other box text, or a plain border, the box's edge or the table - or is it a slice of the puzzle's picture itself (scenery, people, objects, patterns that continue below the line)?
+Answer with JSON only: {"above": "artwork"} or {"above": "packaging"}"""
+
 KIND_PROMPT = """What does this image of a jigsaw puzzle product show? Choose exactly one:
 - "flat": a digital image, scan or painting of the puzzle's picture itself (a plain margin around it is fine)
 - "box_front": a photo or scan of a puzzle box seen straight from the front
@@ -81,6 +85,10 @@ KIND_PROMPT = """What does this image of a jigsaw puzzle product show? Choose ex
 - "assembled": a photo of a finished, assembled jigsaw puzzle (piece outlines visible, on a table, in a frame, held up)
 - "other": none of these (box back, several products, a leaflet, loose pieces)
 Answer with JSON only: {"kind": "..."}"""
+
+
+def strip_json_schema() -> dict[str, Any]:
+    return {"type": "object", "properties": {"above": {"enum": ["artwork", "packaging"]}}, "required": ["above"], "additionalProperties": False}
 
 
 def face_json_schema() -> dict[str, Any]:
@@ -393,6 +401,15 @@ class ArtworkStage(Stage):
         prompt = FACE_PROMPT_ASSEMBLED if kind == "assembled" else FACE_PROMPT
         return parse_face(self._generate(prompt, face_rgb, face_json_schema(), "face", max_tokens=40))
 
+    def ask_strip(self, rgb: np.ndarray) -> str | None:
+        """"artwork" / "packaging" for what lies above the red line of a face's edge strip (band_check)."""
+        m = re.search(r"\{.*\}", self._generate(STRIP_PROMPT, rgb, strip_json_schema(), "strip", max_tokens=20) or "", re.S)
+        try:
+            v = json.loads(m.group(0)).get("above") if m else None
+        except ValueError:
+            v = None
+        return v if v in ("artwork", "packaging") else None
+
     def ask_kind(self, rgb: np.ndarray) -> str | None:
         kind = parse_vlm(self._generate(KIND_PROMPT, rgb, kind_json_schema(), "kind", max_tokens=20))["kind"]
         return kind
@@ -439,7 +456,7 @@ class ArtworkStage(Stage):
             fp = self.first_pass(p, a)
         out = refine(p.rgb, a, fp, (p.image.width, p.image.height),
                      (p.image.original_width or p.image.width, p.image.original_height or p.image.height),
-                     ask_kind=self.ask_kind, ask_face=self.ask_face)
+                     ask_kind=self.ask_kind, ask_face=self.ask_face, ask_strip=self.ask_strip)
         out["signals"]["firstPassReused"] = reused
         return out
 

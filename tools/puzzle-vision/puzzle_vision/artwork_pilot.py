@@ -60,7 +60,7 @@ def sheet(path: str, old: dict[str, Any], new: dict[str, Any], out: str, previou
     labels = ["original: old orange, new blue", "old crop (1.0)"]
     if previous is not None:
         tiles.append(_tile(_crop_of(rgb, previous)))
-        labels.append("1.1 first try (reviewed)")
+        labels.append("previous 1.1 try")
     tiles.append(_tile(_crop_of(rgb, new)))
     labels.append(f"new crop (1.1) - {new.get('kind')}, {new.get('method')}")
     canvas = Image.new("RGB", (len(tiles) * (TILE + 10) - 10, TILE + 26), (255, 255, 255))
@@ -120,7 +120,8 @@ def cmd_run(a: argparse.Namespace) -> int:
                 continue
             r["new"] = refine(load_rgb(local.path), load_rgb(local.path, 1024), fp, (local.width, local.height),
                               (local.original_width or local.width, local.original_height or local.height),
-                              stage.ask_kind if stage else None, stage.ask_face if stage else None)
+                              stage.ask_kind if stage else None, stage.ask_face if stage else None,
+                              stage.ask_strip if stage else None)
     finally:
         if lock is not None:
             lock.release()

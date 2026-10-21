@@ -234,7 +234,7 @@ def v11_geometry_candidate(item: dict[str, Any]) -> Candidate | None:
                      {"method": g["method"], **{k: v for k, v in g["signals"].items() if k in ("quad", "widened")}})
 
 
-def v11_candidate(item: dict[str, Any], ask_kind: Any = None, ask_face: Any = None) -> Candidate | None:
+def v11_candidate(item: dict[str, Any], ask_kind: Any = None, ask_face: Any = None, ask_strip: Any = None) -> Candidate | None:
     """The whole 1.1 pass on the stored first pass; without the VLM callables only its CPU part."""
     from .imaging import bbox_to_xyxy, load_rgb
     from .stages.artwork_refine import first_pass_from, refine
@@ -244,11 +244,11 @@ def v11_candidate(item: dict[str, Any], ask_kind: Any = None, ask_face: Any = No
         return None
     rgb = load_rgb(item["path"])
     a = load_rgb(item["path"], 1024)
-    out = refine(rgb, a, fp, (item["width"], item["height"]), (item["originalWidth"], item["originalHeight"]), ask_kind, ask_face)
+    out = refine(rgb, a, fp, (item["width"], item["height"]), (item["originalWidth"], item["originalHeight"]), ask_kind, ask_face, ask_strip)
     return Candidate(out["kind"], bbox_to_xyxy(out["bbox"]), out["corners"],
                      {"method": out["method"], "confidence": out["confidence"], "quality": out["quality"]["reasons"],
                       "sharpness": out["quality"]["sharpness"], "view": out["geometry"]["view"],
-                      **{k: out["signals"][k] for k in ("quad", "widened", "kindCheck", "face") if k in out["signals"]}})
+                      **{k: out["signals"][k] for k in ("quad", "widened", "kindCheck", "face", "tilt", "bands") if k in out["signals"]}})
 
 
 _STAGE: list[Any] = []
@@ -278,7 +278,7 @@ def v11_vlm_candidate(item: dict[str, Any]) -> Candidate | None:
             return memo[key]
         return ask
 
-    return v11_candidate(item, cached("kind", stage.ask_kind), cached("face", stage.ask_face))
+    return v11_candidate(item, cached("kind", stage.ask_kind), cached("face", stage.ask_face), cached("strip", stage.ask_strip))
 
 
 _MEMO_PATH = Path.home() / "Library/Caches/puzzle-vision/artwork-reference/vlm-answers.json"

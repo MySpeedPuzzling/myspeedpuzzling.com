@@ -303,3 +303,53 @@ def test_a_widened_side_may_be_trimmed_back_further():
     caps = ar.face_caps([0.0, 0.0, 1.0, 1.0], [0.3, 0.1, 0.9, 0.9])
     assert caps["left"] == pytest.approx(ar.FACE_MAX_TRIM + 0.3) and caps["top"] == pytest.approx(ar.FACE_MAX_TRIM + 0.1)
     assert ar.face_caps([0, 0, 1, 1], None) == {}
+
+
+def box_face(band_rows=90, seed=3):
+    """A straight-on box face 600 x 800: a flat title band with letters across its top `band_rows` px, the picture
+    (smooth colour fields, no straight lines) below."""
+    import cv2
+
+    rng = np.random.default_rng(seed)
+    noise = cv2.GaussianBlur(rng.normal(0, 1, (600, 800, 3)).astype(np.float32), (0, 0), 8)
+    noise = (noise - noise.min()) / (noise.max() - noise.min() + 1e-6)
+    img = (40 + 200 * noise).astype(np.uint8)
+    if band_rows:
+        img[:band_rows] = (200, 30, 30)
+        for k in range(8):  # the title's letters
+            img[25:65, 60 + 85 * k:100 + 85 * k] = (250, 250, 250)
+    return img
+
+
+def test_a_printed_band_is_cut_off_at_its_own_edge_when_the_vlm_calls_it_packaging():
+    img = box_face()
+    whole = [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]]
+    asked = []
+    quad, info = ar.band_check(img, whole, lambda strip: (asked.append(strip.shape), "packaging")[1])
+    assert quad is not None and abs(quad[0][1] - 90 / 600) < 0.01  # the band's own edge, from the pixels
+    assert info["top"][0]["answer"] == "packaging" and set(info) == {"top"}  # the picture's sides have no long line
+    assert ar.band_check(img, whole, lambda strip: "artwork")[0] is None  # the VLM says picture: nothing moves
+
+
+def test_a_busy_deep_strip_is_never_cut_on_the_vlms_word_alone():
+    import cv2
+
+    img = box_face(band_rows=0)
+    cv2.line(img, (0, 80), (799, 80), (255, 255, 255), 3)  # a long straight line in the art (a horizon, a frame)
+    whole = [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]]
+    quad, info = ar.band_check(img, whole, lambda strip: "packaging")
+    assert quad is None and info["top"][0]["uniform"] < ar.BAND_UNIFORM
+
+
+def test_a_box_photographed_at_a_slant_is_straightened_before_the_vlm_looks_at_it():
+    import cv2
+
+    img = np.full((600, 800, 3), 180, np.uint8)
+    corners = np.float32([[150, 140], [650, 100], [670, 480], [170, 520]])  # top/bottom lean 4.6 degrees, the sides 3
+    cv2.fillPoly(img, [corners.astype(np.int32)], (30, 60, 140))
+    upright = [[0.15, 0.13], [0.86, 0.13], [0.86, 0.9], [0.15, 0.9]]
+    angles = ar.side_angles(img, upright)
+    assert np.allclose(angles, [-4.6, -3.0, -4.6, -3.0], atol=0.5)
+    tilted = ar.tilted_outline(img, upright, angles)
+    for x, y in upright:  # the straightened face holds everything the upright one held
+        assert cv2.pointPolygonTest(np.float32(tilted).reshape(-1, 1, 2), (x, y), True) >= -1e-4

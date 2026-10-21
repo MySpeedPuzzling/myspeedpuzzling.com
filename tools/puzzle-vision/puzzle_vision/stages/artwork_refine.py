@@ -512,7 +512,12 @@ def face_pass(rgb: np.ndarray, quad: Sequence[Sequence[float]], ask: Any,
                 why = "the VLM's line at the face's own border"
             elif snapped is None:
                 why = "no edge on the line"
-            elif snapped - FACE_BACKOFF < FACE_MIN_TRIM:
+            elif BORDER_FIX and FACE_TRUST and snapped < FACE_MIN_TRIM and t >= FACE_MIN_TRIM:
+                # the edge nearest the line is the face's own outline: the VLM's line it is
+                trims[side] = t
+                entry["trim"] = round(t, 4)
+                why = "the VLM's line"
+            elif snapped - (0.0 if (BORDER_FIX and FACE_TRUST) else FACE_BACKOFF) < FACE_MIN_TRIM:
                 why = "edge at the face's own border"
             else:
                 trims[side] = snapped - (0.0 if FACE_TRUST else FACE_BACKOFF)
@@ -521,6 +526,165 @@ def face_pass(rgb: np.ndarray, quad: Sequence[Sequence[float]], ask: Any,
         entry["result"] = why
         sides[side] = entry
     info["sides"] = sides
+    if not trims:
+        return None, info
+    r = [trims.get("left", 0.0), trims.get("top", 0.0), 1.0 - trims.get("right", 0.0), 1.0 - trims.get("bottom", 0.0)]
+    return map_rect(r, (fw, fh), h_f2i, (rgb.shape[1], rgb.shape[0])), info
+
+
+BORDER_FIX = True     # a VLM line whose nearest edge is the face's own outline is the VLM's line (it was dropped:
+                      # held-out boxes print kept 57 -> 48)
+# Tried 2026-10-21 and left out (tuning + feedback sets): the face pass again on its own crop (fewer bands, more big
+# cuts), a second VLM view of the face framed in grey (the same cut / print trade-off whichever way combined), an edge
+# search further in than the VLM's line, a tilted refit of the face pass's upright crop, Qwen3.5-9B for the face (its
+# lines are within ~1 % of the 4B's on most faces - the models agree, they do not see the band).
+TILT_FIRST = True     # straighten the face along the box's own lines before the VLM looks (held-out boxes: print kept
+                      # 48 -> 45, visible bands 33 -> 30, no more big cuts)
+TILT_MIN_DEG = 3.0     # a side leaning less than this stays upright (1 degree grew the face for nothing: more print)
+TILT_MAX_DEG = 20.0    # segments leaning more than this from the side are not its edges
+TILT_EVIDENCE = 0.5    # segments near a side must add up to this share of its length to set its angle
+
+
+def side_angles(a: np.ndarray, quad: Sequence[Sequence[float]]) -> list[float | None]:
+    """The lean (degrees) of the long straight segments near each side (top, right, bottom, left) of an upright `quad`
+    - the picture's and the box's edges on a box photographed at a slant. None where there is not enough of them."""
+    h, w = a.shape[:2]
+    q = np.asarray(quad, float) * [w, h]
+    x0, y0 = q.min(0)
+    x1, y1 = q.max(0)
+    bw, bh = max(1.0, x1 - x0), max(1.0, y1 - y0)
+    segs = cv2.createLineSegmentDetector().detect(cv2.cvtColor(a, cv2.COLOR_RGB2GRAY))[0]
+    segs = np.zeros((0, 4)) if segs is None else segs.reshape(-1, 4)
+    out: list[float | None] = []
+    for side in range(4):
+        horiz = side in (0, 2)
+        span = bw if horiz else bh
+        angs, lens = [], []
+        for ax, ay, bx, by in segs:
+            dx, dy = bx - ax, by - ay
+            length = float(np.hypot(dx, dy))
+            if length < 0.1 * span:
+                continue
+            if horiz:
+                if dx < 0:
+                    dx, dy = -dx, -dy
+                ang = float(np.degrees(np.arctan2(dy, dx)))
+                mid, along, lo, hi = (ay + by) / 2, (ax + bx) / 2, x0, x1
+                near = (y0 - 0.1 * bh <= mid <= y0 + 0.4 * bh) if side == 0 else (y1 - 0.4 * bh <= mid <= y1 + 0.1 * bh)
+            else:
+                if dy < 0:
+                    dx, dy = -dx, -dy
+                ang = float(np.degrees(np.arctan2(-dx, dy)))  # lean of a vertical line, same sign convention
+                mid, along, lo, hi = (ax + bx) / 2, (ay + by) / 2, y0, y1
+                near = (x1 - 0.4 * bw <= mid <= x1 + 0.1 * bw) if side == 1 else (x0 - 0.1 * bw <= mid <= x0 + 0.4 * bw)
+            if abs(ang) > TILT_MAX_DEG or not near or not (lo <= along <= hi):
+                continue
+            angs.append(ang)
+            lens.append(length)
+        if sum(lens) < TILT_EVIDENCE * span:
+            out.append(None)
+            continue
+        order = np.argsort(angs)
+        cum = np.cumsum(np.asarray(lens)[order])
+        out.append(float(np.asarray(angs)[order][int(np.searchsorted(cum, cum[-1] / 2))]))  # length-weighted median
+    for k in range(4):  # a side without its own evidence takes the opposite side's lean
+        if out[k] is None and out[(k + 2) % 4] is not None:
+            out[k] = out[(k + 2) % 4]
+    return out
+
+
+def tilted_outline(a: np.ndarray, quad: Sequence[Sequence[float]], angles: Sequence[float | None]) -> list[list[float]]:
+    """The smallest quad with sides at `angles` that holds the upright `quad` whole (nothing of it is cut away)."""
+    h, w = a.shape[:2]
+    q = np.asarray(quad, float) * [w, h]
+    lines = []
+    for side, ang in enumerate(angles):
+        t = np.radians(ang or 0.0)
+        # direction along the side and the outward normal: top/bottom run left->right, left/right run top->bottom
+        if side in (0, 2):
+            d = np.array([np.cos(t), np.sin(t)])
+            n = np.array([d[1], -d[0]]) if side == 0 else np.array([-d[1], d[0]])
+        else:
+            d = np.array([-np.sin(t), np.cos(t)])
+            n = np.array([d[1], -d[0]]) if side == 1 else np.array([-d[1], d[0]])
+        c = max(float(n @ p) for p in q)
+        lines.append(np.array([n[0], n[1], -c]))
+    pts = []
+    for k in range(4):  # TL = left x top, TR = top x right, BR = right x bottom, BL = bottom x left
+        p = np.cross(lines[k - 1], lines[k])
+        pts.append(p[:2] / p[2])
+    r = np.asarray(pts) / [w, h]
+    return [[round(float(x), 5), round(float(y), 5)] for x, y in r]
+
+
+BAND_CHECK = False     # off: the line comes from the pixels, but no VLM here tells a printed band from a slice of art -
+                       # Qwen3-VL-4B answered "packaging" to 109 of 110 strips with the first wording; on 60 labelled
+                       # strips (48 packaging, 11 art) the wording below gets 6 of 11 art strips (Qwen3.5-35B-A3B 7);
+                       # held-out boxes with it on: print kept 45 -> 41 but big cuts 16 -> 23
+BAND_DEPTH = 0.15      # straight lines up to this share of the face in from a side are band candidates ...
+BAND_SUPPORT = 0.75    # ... when they sit on a colour step this often (a printed band's inner edge is long and straight)
+BAND_ROUNDS = 2        # per side: a band, then maybe a frame inside it
+BAND_THIN = 0.06       # a strip deeper than this ...
+BAND_UNIFORM = 0.3     # ... is a band only when one colour covers at least this share of it (a band's background;
+                       # the VLM calls deep strips of busy art "packaging" too)
+
+
+def dominant_share(lab: np.ndarray, side: int, t: float) -> float:
+    """The share of the strip from the face's `side` to `t` in its most common colour (Lab bins of 12)."""
+    k = {0: 3, 1: 0, 2: 1, 3: 2}[side]
+    r = np.rot90(lab, k)
+    strip = r[: max(1, int(round(t * r.shape[0])))].reshape(-1, 3)
+    q = np.floor(strip / 12.0).astype(np.int32)
+    _, counts = np.unique(q[:, 0] * 10000 + q[:, 1] * 100 + q[:, 2], return_counts=True)
+    return float(counts.max() / max(1, len(q)))
+
+
+def strip_view(face: np.ndarray, side: int, t: float) -> np.ndarray:
+    """The face's `side` turned to the top, cut to show what lies above the line at `t` and as much again below it,
+    the line drawn in red - what the VLM is asked about."""
+    k = {0: 3, 1: 0, 2: 1, 3: 2}[side]
+    r = np.ascontiguousarray(np.rot90(face, k))
+    h = r.shape[0]
+    y = int(round(t * h))
+    out = np.ascontiguousarray(r[: max(int(0.12 * h), min(h, 2 * y + int(0.03 * h)))].copy())
+    lw = max(2, out.shape[1] // 300)
+    out[max(0, y - lw // 2 - lw): y + lw - lw // 2 + lw] = (255, 255, 255)  # a white-edged line shows on any colour
+    out[max(0, y - lw // 2): y + lw - lw // 2] = (255, 0, 0)
+    return out
+
+
+def band_check(rgb: np.ndarray, quad: Sequence[Sequence[float]], ask: Any) -> tuple[list[list[float]] | None, dict[str, Any]]:
+    """Per side of a face: the nearest long straight line inside it, and the VLM's yes/no on whether the strip beyond
+    it is packaging. The line comes from the pixels (precise), only the question from the VLM (what it answers well)."""
+    face, h_f2i = straighten(rgb, quad)
+    fh, fw = face.shape[:2]
+    lab = lab_image(face)
+    trims: dict[str, float] = {}
+    info: dict[str, Any] = {}
+    for side, name in enumerate(("left", "top", "right", "bottom")):
+        prof = edge_profile(lab, side)
+        n = len(prof)
+        t0, steps = 0.0, []
+        for _ in range(BAND_ROUNDS):
+            ys = [y for y in range(int((t0 + FACE_MIN_TRIM) * n) + 1, int(BAND_DEPTH * n) + 1) if prof[y] >= BAND_SUPPORT]
+            if not ys:
+                break
+            run = [ys[0]]
+            for y in ys[1:]:
+                if y != run[-1] + 1:
+                    break
+                run.append(y)
+            t = (run[0] + run[-1]) / 2 / n
+            answer = ask(strip_view(face, side, t))
+            share = dominant_share(lab, side, t)
+            steps.append({"at": round(t, 4), "answer": answer, "uniform": round(share, 3)})
+            if answer != "packaging" or (t > BAND_THIN and share < BAND_UNIFORM):
+                break
+            t0 = t
+        if steps:
+            info[name] = steps
+        if t0 > 0:
+            trims[name] = t0
     if not trims:
         return None, info
     r = [trims.get("left", 0.0), trims.get("top", 0.0), 1.0 - trims.get("right", 0.0), 1.0 - trims.get("bottom", 0.0)]
@@ -587,7 +751,7 @@ def _crop_rgb(rgb: np.ndarray, box: Sequence[float], quad: Sequence[Sequence[flo
 
 
 def refine(rgb: np.ndarray, a: np.ndarray, fp: dict[str, Any], source: tuple[int, int], original: tuple[int, int],
-           ask_kind: Any = None, ask_face: Any = None) -> dict[str, Any]:
+           ask_kind: Any = None, ask_face: Any = None, ask_strip: Any = None) -> dict[str, Any]:
     """The 1.1 payload from the first pass `fp`. `rgb` = the cached image (<= 1600 px), `a` = the <= 1024 px working
     copy; `ask_kind(rgb)` / `ask_face(face_rgb)` = the VLM's second opinions (None = not asked)."""
     g = crop_geometry(a, fp)
@@ -619,6 +783,14 @@ def refine(rgb: np.ndarray, a: np.ndarray, fp: dict[str, Any], source: tuple[int
     if ask_face is not None and (kind in FACE_KINDS or (kind == "assembled" and unsure)):
         caps = face_caps(box, fp.get("vlmBbox")) if quad is None else None
         first_at = first_pass_in_face(box, fp.get("vlmBbox")) if quad is None else None
+        if TILT_FIRST and quad is None and kind in FACE_KINDS:
+            angles = side_angles(a, outline)
+            signals["tilt"] = {"angles": [None if v is None else round(v, 2) for v in angles]}
+            if any(v is not None and abs(v) >= TILT_MIN_DEG for v in angles):
+                # straighten the face along the box's own lines first: the VLM then marks an upright picture
+                outline = tilted_outline(a, outline, [v if v is not None and abs(v) >= TILT_MIN_DEG else 0.0 for v in angles])
+                caps, first_at = None, None
+                signals["tilt"]["outline"] = outline
         new, info = face_pass(rgb, outline, lambda face: ask_face(face, kind), caps, first_at)
         grow = grow_sides(box, g["signals"].get("widened") or {}, info) if quad is None and FACE_GROW else {}
         if grow:
@@ -643,12 +815,20 @@ def refine(rgb: np.ndarray, a: np.ndarray, fp: dict[str, Any], source: tuple[int
             quad = new if is_skewed(new) else None
             box = quad_to_box(new)
             method = f"{method}+face"
+    if BAND_CHECK and ask_strip is not None and kind in FACE_KINDS:
+        bq, binfo = band_check(rgb, outline, ask_strip)
+        signals["bands"] = binfo
+        if bq is not None:
+            outline = bq
+            quad = bq if is_skewed(bq) else None
+            box = quad_to_box(bq)
+            method = f"{method}+band"
     lab = lab_image(a)
     final_sides = side_measures(lab, outline)
     # a side the face pass put on an edge (then backed off it) or where both passes agree is confirmed too - the
     # back-off itself leaves no step on the final line
     by_face = {side for side, v in ((signals.get("face") or {}).get("sides") or {}).items()
-               if v.get("result") in ("trimmed", "both passes agree", "the VLM's line")} if method.endswith("+face") else set()
+               if v.get("result") in ("trimmed", "both passes agree", "the VLM's line")} if "+face" in method else set()
     widened = set(g["signals"].get("widened") or {})  # moved out for want of an edge: a photo border there proves nothing
     confirmed = sum(1 for m in final_sides
                     if m["side"] in by_face or (side_ok(m) and m["side"] not in widened))

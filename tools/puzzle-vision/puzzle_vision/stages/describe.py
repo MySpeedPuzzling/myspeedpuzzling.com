@@ -7,6 +7,13 @@ the chat template), JSON-schema constrained decoding (llguidance through
 System prompt v2 + "never the puzzle brand or publisher" on the artistSignature line (finding 7) = `promptVersion`
 "v2.1"; user message: catalogue title + <= 12 OCR lines inside the crop.
 
+Since 1.1.0 every choice the model makes from a closed list (the enum fields, each item of `themes` / `mood`, the two
+booleans) carries how sure the model was, under the constraint (`choiceProbs`): `p` = the probability of the chosen
+value (the product over its tokens, its closing quote included - "photo" vs "photo_aerial" is decided there) and
+`alt` = the values it nearly chose (>= 2 %). The VLM is one vote among several in the tags fusion and its plain answers
+are badly calibrated; a probability can be calibrated. Captured in the first full pass (~5 days) because adding it later
+is a re-run. `ChoiceRecorder` wraps the constrained logits processor and keeps the top tokens of every step.
+
 Changes against §11.1's draft (all from §18): `none` added to `time` / `weather`, `characters` is a list,
 `specialHints` removed, `extraTags` added; `subjects` lowercased + singularised + de-duplicated, "none" / "null" in
 `place` / `artistSignature` mapped to null.
@@ -16,6 +23,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import tempfile
 from typing import Any
 
@@ -248,7 +256,8 @@ def parse(text: str) -> dict[str, Any]:
     return json.loads(t[i:j + 1])
 
 
-def build_payload(model_text: str, ocr_lines: list[str], title: str | None, tokens: dict[str, int] | None = None) -> dict[str, Any]:
+def build_payload(model_text: str, ocr_lines: list[str], title: str | None, tokens: dict[str, int] | None = None,
+                  probs: dict[str, Any] | None = None) -> dict[str, Any]:
     obj = postprocess(parse(model_text))
     bad = violations(obj)
     if bad:
@@ -257,7 +266,114 @@ def build_payload(model_text: str, ocr_lines: list[str], title: str | None, toke
     result.update({"promptVersion": PROMPT_VERSION, "titleContext": bool(title), "title": title, "ocrLines": len(ocr_lines)})
     if tokens:
         result["tokens"] = tokens
+    if probs is not None:
+        result["choiceProbs"] = probs
     return result
+
+
+# Choice probabilities: the top tokens kept per step, the smallest alternative kept
+CHOICE_TOP_K = 5
+CHOICE_MIN_ALT = 0.02
+CHOICE_LISTS = ("themes", "mood")
+CHOICE_BOOLS = ("collageGrid", "seekAndFind")
+
+
+class ChoiceRecorder:
+    """A logits processor around the constrained one: returns its masked logits unchanged and keeps, per generated
+    token, the top CHOICE_TOP_K (token id, probability) of the masked distribution - what the model chose among what the
+    schema allowed. Greedy decoding picks the first of each step."""
+
+    def __init__(self, inner: Any, top_k: int = CHOICE_TOP_K) -> None:
+        self.inner = inner
+        self.top_k = top_k
+        self.steps: list[list[tuple[int, float]]] = []
+
+    def __call__(self, input_ids: Any, logits: Any) -> Any:
+        import mlx.core as mx
+
+        masked = self.inner(input_ids, logits)
+        row = masked.reshape(-1, masked.shape[-1])[0].astype(mx.float32)
+        probs = mx.softmax(row, axis=-1)
+        k = min(self.top_k, probs.shape[-1])
+        idx = mx.argpartition(-probs, kth=k - 1)[:k]
+        vals = probs[idx]
+        pairs = sorted(zip(idx.tolist(), vals.tolist()), key=lambda x: -x[1])
+        self.steps.append([(int(i), float(v)) for i, v in pairs])
+        return masked
+
+
+def token_spans(decode: Any, ids: list[int]) -> tuple[str, list[tuple[int, int]]]:
+    """The text of `ids` and each token's [start, end) in it (cumulative decoding, so merged multi-byte characters
+    settle; the choice values are ASCII)."""
+    spans: list[tuple[int, int]] = []
+    prev = 0
+    for i in range(len(ids)):
+        n = len(decode(ids[:i + 1]))
+        spans.append((prev, max(prev, n)))
+        prev = max(prev, n)
+    return decode(ids), spans
+
+
+def _value_spans(text: str) -> list[tuple[str, int, int]]:
+    """(key, start, end) of every closed-list value in the answer: an enum string, each item of a list, a boolean.
+    The span covers the value and, for strings, its closing quote."""
+    out: list[tuple[str, int, int]] = []
+    for key in ENUMS:
+        if key in CHOICE_LISTS:
+            m = re.search(r'"%s"\s*:\s*\[([^\]]*)\]' % key, text)
+            if m:
+                for n, v in enumerate(re.finditer(r'"([^"]*)"', m.group(1))):
+                    out.append((f"{key}.{n}", m.start(1) + v.start(1), m.start(1) + v.end(1) + 1))
+        else:
+            m = re.search(r'"%s"\s*:\s*"([^"]*)"' % key, text)
+            if m:
+                out.append((key, m.start(1), m.end(1) + 1))
+    for key in CHOICE_BOOLS:
+        m = re.search(r'"%s"\s*:\s*(true|false)' % key, text)
+        if m:
+            out.append((key, m.start(1), m.end(1)))
+    return out
+
+
+def _completions(key: str, prefix: str) -> list[str]:
+    """The values of `key` an answer starting with `prefix` can still become (`prefix` may end in the closing quote)."""
+    base = key.split(".", 1)[0]
+    allowed = ["true", "false"] if base in CHOICE_BOOLS else ENUMS[base]
+    if base not in CHOICE_BOOLS and '"' in prefix:
+        whole = prefix.split('"', 1)[0]
+        return [whole] if whole in allowed else []
+    return [v for v in allowed if v.startswith(prefix)]
+
+
+def choice_probs(steps: list[list[tuple[int, float]]], decode: Any) -> dict[str, Any]:
+    """Per closed-list value: {"p": probability of the chosen value, "alt": {value or "prefix*": probability}}."""
+    ids = [s[0][0] for s in steps if s]
+    text, spans = token_spans(decode, ids)
+    out: dict[str, Any] = {}
+    for key, start, end in _value_spans(text):
+        p = 1.0
+        alt: dict[str, float] = {}
+        for i, (ts, te) in enumerate(spans):
+            if te <= start or ts >= end:
+                continue
+            chosen = steps[i][0][1]
+            for tok, q in steps[i][1:]:
+                mass = p * q
+                if mass < CHOICE_MIN_ALT:
+                    continue
+                piece = decode([tok])
+                if ts < start:  # the token also holds what comes before the value (`"photo`): compare from the value on
+                    if not piece.startswith(text[ts:start]):
+                        continue
+                    piece = piece[start - ts:]
+                prefix = text[start:max(start, ts)] + piece
+                values = _completions(key, prefix)
+                name = values[0] if len(values) == 1 else (prefix.split('"', 1)[0] + "*" if values else None)
+                if name and name != text[start:end].rstrip('"'):
+                    alt[name] = round(alt.get(name, 0.0) + mass, 3)
+            p *= chosen
+        out[key] = {"p": round(p, 3), "alt": dict(sorted(alt.items(), key=lambda x: -x[1])[:4])}
+    return out
 
 
 # Fields compared by `verify --describe-parity` - the model's answer, not timings or token counts
@@ -288,23 +404,29 @@ class DescribeStage(Stage):
         tok = self.proc.tokenizer if hasattr(self.proc, "tokenizer") else self.proc
         self.logits = build_json_schema_logits_processor(tok, json_schema())  # once per process
 
-    def answer(self, crop_rgb: Any, title: str | None, ocr_lines: list[str]) -> tuple[str, dict[str, int]]:
+    def answer(self, crop_rgb: Any, title: str | None, ocr_lines: list[str]) -> tuple[str, dict[str, int], dict[str, Any] | None]:
         prompt = self._template(self.proc, self.net.config, messages(title, ocr_lines), num_images=1)
         im = Image.fromarray(crop_rgb)
         im.thumbnail((CROP_SIDE, CROP_SIDE), Image.LANCZOS)
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
             im.save(f.name)
             path = f.name
+        recorder = ChoiceRecorder(self.logits.clone())  # clone = a fresh matcher per image
         try:
             r = self._generate(self.net, self.proc, prompt, image=[path], max_tokens=MAX_TOKENS, temperature=0.0,
-                               verbose=False, logits_processors=[self.logits.clone()])  # clone = a fresh matcher per image
+                               verbose=False, logits_processors=[recorder])
         finally:
             os.unlink(path)
         tokens = {"prompt": int(getattr(r, "prompt_tokens", 0) or 0), "generation": int(getattr(r, "generation_tokens", 0) or 0)}
-        return (r.text if hasattr(r, "text") else str(r)), tokens
+        tok = self.proc.tokenizer if hasattr(self.proc, "tokenizer") else self.proc
+        try:
+            probs = choice_probs(recorder.steps, lambda ids: tok.decode(ids))
+        except Exception:  # noqa: BLE001 - the probabilities are extra, never a reason to lose the answer
+            probs = None
+        return (r.text if hasattr(r, "text") else str(r)), tokens, probs
 
     def analyse(self, p: Prepared) -> dict[str, Any]:
         lines = ocr_lines_in_crop(p.upstream.get("ocr"), p.upstream.get("artwork"))
         title = p.item.name or None
-        text, tokens = self.answer(p.subject, title, lines)
-        return build_payload(text, lines, title, tokens)
+        text, tokens, probs = self.answer(p.subject, title, lines)
+        return build_payload(text, lines, title, tokens, probs)

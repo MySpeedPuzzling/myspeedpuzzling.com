@@ -493,6 +493,12 @@ left, each cell L2-normalised>","gridShape":[2,2],"preprocess":"224 squash, dino
  "collageGrid":false,"seekAndFind":false,"extraTags":["alpine","glacier lake"],
  "promptVersion":"v2.1","titleContext":true,"title":"Moraine Lake","ocrLines":2,"tokens":{"prompt":1230,"generation":305}}
 ```
+Since 1.1.0 (2026-10-21) the payload also carries `choiceProbs`: per closed-list choice (each enum field, `themes.0`…,
+`mood.0`…, `collageGrid`, `seekAndFind`) `{"p":0.72,"alt":{"watercolour":0.15,"photo_aerial":0.08}}` - the probability
+of the chosen value under the constraint (product over its tokens incl. the closing quote) and the values it nearly
+chose (≥ 2 %, `prefix*` when a token still allows several). For calibrating the VLM's vote in `tags`; not part of the
+parity check. Captured in the first full pass, since adding it later re-runs ~5 days.
+
 Values are restricted to the Appendix A vocabularies by the JSON schema (`none` added to `time` / `weather`);
 `subjects` (lowercased, singular, de-duplicated after decoding), `place`, `characters` (a list, ≤ 6), `artistSignature`
 and `extraTags` (≤ 8) are free text - `"none"` / `"null"` in `place` / `artistSignature` become null. No

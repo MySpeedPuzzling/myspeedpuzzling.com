@@ -77,7 +77,7 @@ seconds_per_image = 0.35
 workers = 3
 
 [analyzers.describe]
-version = "1.0.1+qwen35-9b-4bit"
+version = "1.1.0+qwen35-9b-4bit"
 requires = ["artwork", "ocr"]
 claim_limit = 20
 seconds_per_image = 10.75

@@ -1,6 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 import { compressImage, shouldCompress } from '../image_compression.js';
 import { PhotoUpload, reportPhotoUpload } from '../photo_upload.js';
+import { photoMetadataOf, readPhotoMetadata, rememberPhotoMetadata } from '../photo_metadata.js';
 
 /**
  * Locks a form's submit button while it saves, shrinks photos in the browser, and - where the form opts in with an
@@ -11,6 +12,8 @@ import { PhotoUpload, reportPhotoUpload } from '../photo_upload.js';
  *   status line under the photo (progress, slow connection, waiting for the connection, uploaded, goes with the form)
  * - Save while a photo is still uploading waits for it, with the progress on the button
  * - a photo whose upload could not work is sent with the form, as before
+ * - what a shrunk (or edited) photo's EXIF said is read before the canvas drops it (assets/photo_metadata.js) and goes
+ *   with the upload's start and as `photo_metadata[<field>]` with the form (docs/features/upload-image-metadata.md)
  * - a save that never got an answer (dropped connection, the edge's plain-text 502/504) is tried once more by itself
  *   when it carried no photo bytes (time_id / new_puzzle_id make a resend safe), then said out loud
  */
@@ -106,6 +109,9 @@ export default class extends Controller {
             this.processedFiles.add(file);
             this.renderUploadStatus(input, null, this.uploadTextsValue.preparing || '');
 
+            // Read before shrinking - the canvas drops every EXIF tag. Never fails (null = nothing to send)
+            const reading = this.metadataOfOriginal(file);
+
             try {
                 const compressed = await compressImage(file);
 
@@ -116,6 +122,8 @@ export default class extends Controller {
                 // A browser that cannot decode it (some HEIC) uploads the original - the server shrinks it
             }
 
+            const metadata = await reading;
+
             // Another photo was picked (or the editor applied) meanwhile - that one has its own upload
             if (!input.files || input.files[0] !== file) {
                 return;
@@ -123,6 +131,7 @@ export default class extends Controller {
 
             if (prepared !== file) {
                 this.processedFiles.add(prepared);
+                rememberPhotoMetadata(prepared, metadata);
                 const transfer = new DataTransfer();
                 transfer.items.add(prepared);
                 input.files = transfer.files;
@@ -141,6 +150,8 @@ export default class extends Controller {
             reportUrl: this.reportUrlValue,
             field: this.fieldOf(input),
             replaces: previous ? previous.upload.token : null,
+            // Only for a photo the browser changed (shrunk, or edited) - a photo sent as picked has its own EXIF
+            metadata: photoMetadataOf(prepared),
             onChange: (changed) => this.uploadChanged(input, changed),
         });
 
@@ -244,6 +255,38 @@ export default class extends Controller {
         return hidden;
     }
 
+    /** The photo as picked - or, for the image editor's result, the photo it was made from (photo_metadata.js) */
+    metadataOfOriginal(file) {
+        const carried = photoMetadataOf(file);
+
+        return carried ? Promise.resolve(carried) : readPhotoMetadata(file);
+    }
+
+    /**
+     * `photo_metadata[<field>]` with the form: what the browser read from the photo it sends before shrinking or
+     * editing it - none for a photo sent as picked (the server reads its EXIF itself) or one it could not read
+     */
+    syncMetadataInput(input) {
+        const current = input.files && input.files[0];
+        const metadata = current ? photoMetadataOf(current) : null;
+        const name = 'photo_metadata[' + this.fieldOf(input) + ']';
+        let hidden = [...this.element.querySelectorAll('input[type="hidden"]')].find(element => element.name === name);
+
+        if (!metadata) {
+            hidden?.remove();
+            return;
+        }
+
+        if (!hidden) {
+            hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = name;
+            (input.closest('.file-drop-area') || input.parentElement).append(hidden);
+        }
+
+        hidden.value = JSON.stringify(metadata);
+    }
+
     /** Uploads of photos still in their input: those Save has to wait for, resumed when they gave up on the connection */
     pendingUploads() {
         const pending = [];
@@ -274,6 +317,8 @@ export default class extends Controller {
         for (const input of this.element.querySelectorAll('.file-drop-input')) {
             const entry = this.uploads.get(input);
             const current = input.files && input.files[0];
+
+            this.syncMetadataInput(input);
 
             if (entry && current === entry.file && entry.upload.state === 'done' && entry.upload.token) {
                 this.tokenInput(input).value = entry.upload.token;
@@ -641,12 +686,14 @@ export default class extends Controller {
     async compressAllFiles(filesToCompress) {
         for (const { input, file } of filesToCompress) {
             this.processedFiles.add(file);
+            const reading = this.metadataOfOriginal(file);
 
             try {
                 const compressedFile = await compressImage(file);
 
                 if (compressedFile.size < file.size) {
                     this.processedFiles.add(compressedFile);
+                    rememberPhotoMetadata(compressedFile, await reading);
                     const dataTransfer = new DataTransfer();
                     dataTransfer.items.add(compressedFile);
                     input.files = dataTransfer.files;

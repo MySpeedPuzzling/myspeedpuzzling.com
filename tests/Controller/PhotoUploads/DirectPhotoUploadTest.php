@@ -11,11 +11,13 @@ use Monolog\Logger;
 use SpeedPuzzling\Web\Services\PhotoStash\PhotoStash;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\ExifPhotos;
 use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
  * docs/features/photo-uploads/README.md - a photo uploaded in the background, straight to object storage, and the form
@@ -60,6 +62,98 @@ final class DirectPhotoUploadTest extends WebTestCase
         $image = $database->fetchOne('SELECT image FROM puzzle WHERE id = :id', ['id' => $ids['new_puzzle_id']]);
         self::assertIsString($image, 'The new puzzle carries the uploaded box photo');
         self::assertTrue(self::getContainer()->get(Filesystem::class)->fileExists($image));
+    }
+
+    /**
+     * docs/features/upload-image-metadata.md "Read in the browser": the browser shrank the photo (no EXIF left in it) and
+     * sent what it had read before with the upload's start
+     */
+    public function testWhatTheBrowserReadBeforeShrinkingIsStoredWithTheBackgroundUploadedPhoto(): void
+    {
+        $browser = $this->browser();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        $token = $this->uploadedPhoto($browser, 'finished.jpg', self::browserSummary());
+
+        $submission = $this->newPuzzleSubmission($crawler, 'Browser Metadata Puzzle');
+        $ids = $this->ids($crawler);
+
+        // Only the finish photo: the new puzzle takes it as its box photo too
+        $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $submission, 'photo_stash' => ['finishedPuzzlesPhoto' => $token], ...$ids]);
+        $this->assertResponseRedirects('/en/time-added/' . $ids['time_id']);
+
+        $time = $this->jsonColumn('SELECT finished_puzzle_photo_upload_metadata FROM puzzle_solving_time WHERE id = :id', $ids['time_id']);
+        self::assertSame('browser', $time['source']);
+        self::assertSame('2026-10-21T14:03:12', $time['capturedAt']);
+        self::assertSame('+02:00', $time['capturedAtOffset']);
+        self::assertSame(['phone', 'Apple', 3_456_789, 4032], [$time['software'], $time['make'], $time['bytes'], $time['width']]);
+
+        $puzzle = $this->jsonColumn('SELECT image_upload_metadata FROM puzzle WHERE id = :id', $ids['new_puzzle_id']);
+        self::assertSame($time, $puzzle);
+    }
+
+    public function testAPhotoSentWithTheFormKeepsTheBrowsersSummaryThroughARefusedSubmit(): void
+    {
+        $browser = $this->browser();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        $submission = $this->newPuzzleSubmission($crawler, 'Form Metadata Puzzle');
+        $refused = ['timeHours' => '', 'timeMinutes' => '', 'timeSeconds' => ''] + $submission;
+
+        // The background upload could not work: the shrunk photo goes as a file, its summary as photo_metadata[...]
+        $crawler = $browser->request(
+            'POST',
+            '/en/puzzle-add',
+            ['puzzle_add_form' => $refused, 'photo_metadata' => ['finishedPuzzlesPhoto' => (string) json_encode(self::browserSummary())], ...$this->ids($crawler)],
+            ['puzzle_add_form' => ['finishedPuzzlesPhoto' => $this->uploadedFile(ExifPhotos::jpeg(40, 30, null))]],
+        );
+        $this->assertResponseStatusCodeSame(422);
+
+        // The refused page shows the kept photo as a token - the browser no longer has the file nor its summary
+        $token = (string) $crawler->filter('input[name="photo_stash[finishedPuzzlesPhoto]"]')->attr('value');
+        self::assertNotSame('', $token);
+        $ids = $this->ids($crawler);
+
+        $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $submission, 'photo_stash' => ['finishedPuzzlesPhoto' => $token], ...$ids]);
+        $this->assertResponseRedirects('/en/time-added/' . $ids['time_id']);
+
+        $time = $this->jsonColumn('SELECT finished_puzzle_photo_upload_metadata FROM puzzle_solving_time WHERE id = :id', $ids['time_id']);
+        self::assertSame(['browser', '2026-10-21T14:03:12'], [$time['source'], $time['capturedAt']]);
+    }
+
+    public function testThePhotosOwnExifWinsOverWhatTheBrowserSays(): void
+    {
+        $browser = $this->browser();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        $claim = ['dateTimeOriginal' => '2020:01:01 00:00:00'] + self::browserSummary();
+        $token = $this->uploadedPhoto($browser, 'finished.jpg', $claim, ExifPhotos::iphoneJpeg(40, 30));
+
+        $ids = $this->ids($crawler);
+        $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => $this->newPuzzleSubmission($crawler, 'Server Metadata Puzzle'), 'photo_stash' => ['finishedPuzzlesPhoto' => $token], ...$ids]);
+        $this->assertResponseRedirects('/en/time-added/' . $ids['time_id']);
+
+        $time = $this->jsonColumn('SELECT finished_puzzle_photo_upload_metadata FROM puzzle_solving_time WHERE id = :id', $ids['time_id']);
+        self::assertSame(['server', '2026-10-21T14:03:12', 40], [$time['source'], $time['capturedAt'], $time['width']]);
+
+        // The new puzzle's box photo is a copy of the finish photo: stripping one never empties the other's summary
+        $puzzle = $this->jsonColumn('SELECT image_upload_metadata FROM puzzle WHERE id = :id', $ids['new_puzzle_id']);
+        self::assertSame($time, $puzzle);
+    }
+
+    public function testABrokenSummaryNeverStopsTheUpload(): void
+    {
+        $browser = $this->browser();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $answer = $this->start($browser, ['bytes' => 1000, 'type' => 'image/jpeg', 'metadata' => ['bytes' => 'a lot', 'gps' => [50.08, 14.42]]]);
+
+        $this->assertResponseIsSuccessful();
+        self::assertIsString($answer['token'] ?? null);
+        self::assertNull(self::getContainer()->get(PhotoStash::class)->browserMetadata($answer['token'], PlayerFixture::PLAYER_REGULAR));
     }
 
     public function testTheSameFormSentAgainAfterItSavedIsAnsweredAsTheSavedResult(): void
@@ -233,10 +327,13 @@ final class DirectPhotoUploadTest extends WebTestCase
     /**
      * What the browser does when a photo is picked: start the upload, then PUT the photo where the URL points
      */
-    private function uploadedPhoto(KernelBrowser $browser, string $name): string
+    /**
+     * @param null|array<string, mixed> $metadata what the browser read from the photo before shrinking it
+     */
+    private function uploadedPhoto(KernelBrowser $browser, string $name, null|array $metadata = null, null|string $photo = null): string
     {
-        $photo = $this->jpeg();
-        $answer = $this->start($browser, ['bytes' => strlen($photo), 'type' => 'image/jpeg', 'name' => $name]);
+        $photo ??= $this->jpeg();
+        $answer = $this->start($browser, ['bytes' => strlen($photo), 'type' => 'image/jpeg', 'name' => $name, ...($metadata !== null ? ['metadata' => $metadata] : [])]);
         $this->assertResponseIsSuccessful();
 
         $token = $answer['token'] ?? null;
@@ -296,6 +393,58 @@ final class DirectPhotoUploadTest extends WebTestCase
             'finishedAt' => '12.07.2026',
             'collection' => '__system_collection__',
         ];
+    }
+
+    /**
+     * What assets/photo_metadata.js sends for a phone photo it is about to shrink
+     *
+     * @return array<string, mixed>
+     */
+    private static function browserSummary(): array
+    {
+        return [
+            'bytes' => 3_456_789,
+            'format' => 'JPEG',
+            'width' => 4032,
+            'height' => 3024,
+            'exif' => true,
+            'cameraExif' => true,
+            'dateTimeOriginal' => '2026:10:21 14:03:12',
+            'offsetTimeOriginal' => '+02:00',
+            'software' => '18.0.1',
+            'make' => 'Apple',
+            'orientation' => 6,
+        ];
+    }
+
+    /**
+     * @return array{time_id: string, new_puzzle_id: string}
+     */
+    private function ids(Crawler $crawler): array
+    {
+        return [
+            'time_id' => (string) $crawler->filter('input[name="time_id"]')->attr('value'),
+            'new_puzzle_id' => (string) $crawler->filter('input[name="new_puzzle_id"]')->attr('value'),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function jsonColumn(string $sql, string $id): array
+    {
+        $json = self::getContainer()->get(Connection::class)->fetchOne($sql, ['id' => $id]);
+        self::assertIsString($json);
+        $data = json_decode($json, true);
+        self::assertIsArray($data);
+
+        /** @var array<string, mixed> $data */
+        return $data;
+    }
+
+    private function uploadedFile(string $content): UploadedFile
+    {
+        return new UploadedFile(ExifPhotos::file($content), 'finished.jpg', 'image/jpeg', null, true);
     }
 
     private function jpeg(): string

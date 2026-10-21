@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use SpeedPuzzling\Web\Value\PuzzleName;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\SolvingTime;
+use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Validator\Constraints\All;
 use Symfony\Component\Validator\Constraints\Callback;
@@ -40,6 +41,10 @@ final class PuzzleAddFormData
     public null|int $puzzlePiecesCount = null;
 
     public null|UploadedFile $puzzlePhoto = null;
+
+    // Not a form field: what the browser read from the photo before it shrank it (FormPhotoStash::browserMetadata(),
+    // docs/features/upload-image-metadata.md) - set by the controller after handleRequest()
+    public null|UploadedImageMetadata $puzzlePhotoBrowserMetadata = null;
 
     /**
      * The new puzzle's barcode - the form shows one input (CodeListType, more only from a form rendered before), blank
@@ -115,6 +120,10 @@ final class PuzzleAddFormData
     public null|string $comment = null;
 
     public null|UploadedFile $finishedPuzzlesPhoto = null;
+
+    // Not a form field: what the browser read from the photo before it shrank it (FormPhotoStash::browserMetadata(),
+    // docs/features/upload-image-metadata.md) - set by the controller after handleRequest()
+    public null|UploadedImageMetadata $finishedPuzzlesPhotoBrowserMetadata = null;
 
     // Collection specific
     #[Length(max: 100)]

@@ -4007,9 +4007,13 @@ components:
 
     UploadedImageMetadata:
       type: object
-      required: [version, bytes, format, width, height, exif, cameraExif, capturedAt, capturedAtOffset, software, make, orientation]
+      required: [version, source, bytes, format, width, height, exif, cameraExif, capturedAt, capturedAtOffset, software, make, orientation]
       properties:
         version: { type: integer, description: The summariser's version (UploadedImageMetadata::VERSION). }
+        source:
+          type: string
+          enum: [server, browser]
+          description: 'Who read it: server = from the file that arrived; browser = by the page from the photo as picked, before it shrank it (the canvas drops EXIF) - self-reported, stored only when the file that arrived had no EXIF. Summaries stored before this field existed (2026-10-21) are reported as server.'
         bytes: { type: integer, description: The file's size as uploaded - before any resize or re-encode. }
         format: { type: string, description: 'ImageMagick''s format name: JPEG, PNG, WEBP, HEIC, GIF, TIFF, ...' }
         width: { type: integer, description: Stored pixels as uploaded, before the EXIF orientation. }

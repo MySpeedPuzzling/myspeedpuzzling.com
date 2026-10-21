@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\PhotoUploadRefused;
+use SpeedPuzzling\Web\Services\BrowserImageSummary;
 use SpeedPuzzling\Web\Services\PhotoStash\DirectPhotoUpload;
 use SpeedPuzzling\Web\Services\PhotoStash\PhotoStash;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -22,6 +23,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 /**
  * Starts a background photo upload (assets/photo_upload.js, docs/features/photo-uploads/README.md): answers where the
  * browser PUTs the photo straight to object storage, and the token the form sends instead of the file.
+ *
+ * The body may carry `metadata`: what the browser read from the photo's EXIF before it shrank it (assets/photo_metadata.js,
+ * docs/features/upload-image-metadata.md) - kept with the reservation.
  *
  * Every refusal is a JSON `{"error": …}` the browser does not show - it simply sends the photo with the form, as before,
  * and the form's validation speaks to the player. JSON only + the `X-CSRF-Token` header (stateless id `photo_upload`).
@@ -89,6 +93,8 @@ final class PhotoUploadStartController extends AbstractController
                 bytes: $body['bytes'],
                 token: $token,
                 replaces: self::token($body, 'replaces'),
+                // What the browser read from the photo before shrinking it - an invalid one is left out, never refused
+                browserMetadata: BrowserImageSummary::fromInput($body['metadata'] ?? null),
             );
         } catch (PhotoUploadRefused $refused) {
             return self::refuse(

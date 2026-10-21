@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use SpeedPuzzling\Web\Services\Xp\SavedTimeProgression;
 use SpeedPuzzling\Web\Services\SecretPuzzleRefusalMessage;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
@@ -332,6 +333,10 @@ final class PuzzleAddController extends AbstractController
         $restoredPhotos = $this->formPhotoStash->restore($request, $addTimeForm, $userProfile->playerId);
         $addTimeForm->handleRequest($request);
         $this->formPhotoStash->reportLost($addTimeForm, $restoredPhotos);
+        // What the browser read from each photo before it shrank it (docs/features/upload-image-metadata.md)
+        $browserPhotoMetadata = $this->formPhotoStash->browserMetadata($request, $restoredPhotos, $userProfile->playerId);
+        $data->puzzlePhotoBrowserMetadata = $browserPhotoMetadata['puzzlePhoto'] ?? null;
+        $data->finishedPuzzlesPhotoBrowserMetadata = $browserPhotoMetadata['finishedPuzzlesPhoto'] ?? null;
 
         // The co-puzzler inputs live outside the Symfony form, so an empty one has to invalidate the form
         // explicitly - that is what makes render() answer 422. As a skipped `if` it answered 200 with a
@@ -511,8 +516,14 @@ final class PuzzleAddController extends AbstractController
                     && Uuid::isValid($data->puzzle) === false
                 ) {
                     // Photo fallback only for Speed/Relax (not Collection)
+                    $boxPhotoCopy = null;
+
                     if ($mode !== PuzzleAddMode::Collection && $data->puzzlePhoto === null && $data->finishedPuzzlesPhoto !== null) {
-                        $data->puzzlePhoto = clone $data->finishedPuzzlesPhoto;
+                        // A file of its own: AddPuzzleHandler strips the box photo's metadata in place, and the finish
+                        // photo's summary is read after it (docs/features/upload-image-metadata.md)
+                        $boxPhotoCopy = self::copyOf($data->finishedPuzzlesPhoto);
+                        $data->puzzlePhoto = $boxPhotoCopy ?? clone $data->finishedPuzzlesPhoto;
+                        $data->puzzlePhotoBrowserMetadata = $data->finishedPuzzlesPhotoBrowserMetadata;
                     }
 
                     // The form refuses a new puzzle without a photo (PuzzleAddFormType::applyDynamicRules)
@@ -521,19 +532,27 @@ final class PuzzleAddController extends AbstractController
                     }
 
                     // Sent again, the puzzle is already there and the handler creates nothing
-                    $this->messageBus->dispatch(
-                        new AddPuzzle(
-                            puzzleId: $newPuzzleId,
-                            userId: $userId,
-                            puzzleName: $data->puzzle,
-                            brand: $data->brand ?? '',
-                            piecesCount: $data->puzzlePiecesCount,
-                            puzzlePhoto: $data->puzzlePhoto,
-                            eans: EanList::fromInputs($data->puzzleEans),
-                            brandCodes: BrandCodeList::fromInputs($data->puzzleBrandCodes),
-                            alternativeNames: $data->toPuzzleNames(),
-                        ),
-                    );
+                    try {
+                        $this->messageBus->dispatch(
+                            new AddPuzzle(
+                                puzzleId: $newPuzzleId,
+                                userId: $userId,
+                                puzzleName: $data->puzzle,
+                                brand: $data->brand ?? '',
+                                piecesCount: $data->puzzlePiecesCount,
+                                puzzlePhoto: $data->puzzlePhoto,
+                                eans: EanList::fromInputs($data->puzzleEans),
+                                brandCodes: BrandCodeList::fromInputs($data->puzzleBrandCodes),
+                                alternativeNames: $data->toPuzzleNames(),
+                                puzzlePhotoBrowserMetadata: $data->puzzlePhotoBrowserMetadata,
+                            ),
+                        );
+                    } finally {
+                        // Stored by now (or not at all) - a worker process lives on, its temporary files must not
+                        if ($boxPhotoCopy !== null && is_file($boxPhotoCopy->getPathname())) {
+                            unlink($boxPhotoCopy->getPathname());
+                        }
+                    }
 
                     // After adding puzzle, change the data to the puzzle id for further handlers
                     $data->puzzle = $newPuzzleId->toString();
@@ -607,7 +626,7 @@ final class PuzzleAddController extends AbstractController
             'duplicate_confirmed' => $duplicateConfirmed,
             'pace_check' => $paceCheck,
             'pace_confirmed' => $paceConfirmed,
-            'kept_photos' => $this->formPhotoStash->keep($addTimeForm, $restoredPhotos, $userProfile->playerId),
+            'kept_photos' => $this->formPhotoStash->keep($addTimeForm, $restoredPhotos, $userProfile->playerId, $browserPhotoMetadata),
             'secret_puzzle_notice' => $secretPuzzleNotice,
             'official_entry' => $officialEntry,
             'official_entry_ref' => $officialEntryRef,
@@ -670,6 +689,27 @@ final class PuzzleAddController extends AbstractController
         $submitted = is_array($form) ? ($form['competition'] ?? null) : null;
 
         return is_string($submitted) ? CompetitionPick::tryFrom($submitted) : null;
+    }
+
+    /**
+     * The finish photo as a file of its own for the new puzzle's box photo - null when no copy can be made (then the
+     * same file serves both, as before)
+     */
+    private static function copyOf(UploadedFile $photo): null|UploadedFile
+    {
+        $path = tempnam(sys_get_temp_dir(), 'box-photo-');
+
+        if ($path === false) {
+            return null;
+        }
+
+        if (@copy($photo->getPathname(), $path) === false) {
+            @unlink($path);
+
+            return null;
+        }
+
+        return new UploadedFile($path, $photo->getClientOriginalName(), $photo->getClientMimeType(), UPLOAD_ERR_OK, test: true);
     }
 
     private function submittedIdOrNew(Request $request, string $field): UuidInterface
@@ -748,6 +788,7 @@ final class PuzzleAddController extends AbstractController
                 duplicateConfirmed: $duplicateConfirmed,
                 paceConfirmedExpectedSeconds: $paceConfirmedExpectedSeconds,
                 seriesId: $competitionPick?->seriesId(),
+                finishedPuzzlesPhotoBrowserMetadata: $data->finishedPuzzlesPhotoBrowserMetadata,
             ),
         );
 
@@ -781,6 +822,7 @@ final class PuzzleAddController extends AbstractController
                 finishedAt: $data->finishedAt,
                 teamName: $teamName,
                 createdVia: SolvingTimeSource::Form,
+                finishedPuzzlesPhotoBrowserMetadata: $data->finishedPuzzlesPhotoBrowserMetadata,
             ),
         );
 

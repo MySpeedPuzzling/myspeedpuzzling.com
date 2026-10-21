@@ -351,7 +351,9 @@ needed.
   suspicious ones left out, the catalogue's "Completed N×" from `puzzle_statistics`, 0 when nobody solved it; the
   pipeline proposes crops of the most-solved puzzles first; same statement, no extra query), `uploadMetadata` (what
   the picture's file carried when it was uploaded - camera EXIF or not, the capture time, the software family, the
-  camera brand, the original size and format; null when not known, e.g. every picture stored before 2026-10;
+  camera brand, the original size and format, and its `source`: `server` = read from the file that arrived,
+  `browser` = read by the page before it shrank the photo (self-reported); null when not known, e.g. every picture
+  stored before 2026-10;
   [upload-image-metadata.md](upload-image-metadata.md)), `analyses`
   `{<analyzer>: {analyzerVersion, imageFingerprint, analyzedAt, receivedAt}}` (an object, `{}` when none). `nextCursor` is the next page's `after`, null on the last page. `requires`
   narrows any status to puzzles whose picture already has results of those analyzers (below). Unknown parameters or

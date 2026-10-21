@@ -167,6 +167,9 @@ final class EditTimeController extends AbstractController
         $restoredPhotos = $this->formPhotoStash->restore($request, $editTimeForm, $player->playerId);
         $editTimeForm->handleRequest($request);
         $this->formPhotoStash->reportLost($editTimeForm, $restoredPhotos);
+        // What the browser read from the photo before it shrank it (docs/features/upload-image-metadata.md)
+        $browserPhotoMetadata = $this->formPhotoStash->browserMetadata($request, $restoredPhotos, $player->playerId);
+        $data->finishedPuzzlesPhotoBrowserMetadata = $browserPhotoMetadata['finishedPuzzlesPhoto'] ?? null;
 
         // The puzzle the result is saved on: another one picked by the tracker, once it is known to exist
         $activePuzzle = $storedPuzzle;
@@ -339,7 +342,7 @@ final class EditTimeController extends AbstractController
             'duplicate_confirmed' => $duplicateConfirmed,
             'pace_check' => $paceCheck,
             'pace_confirmed' => $paceConfirmed,
-            'kept_photos' => $this->formPhotoStash->keep($editTimeForm, $restoredPhotos, $player->playerId),
+            'kept_photos' => $this->formPhotoStash->keep($editTimeForm, $restoredPhotos, $player->playerId, $browserPhotoMetadata),
             // Delete dialog warning: how much XP disappears with this solve (0 = hide line). Only the tracker gets the
             // dialog (docs/features/group-time-editing.md), so a group member editing the time costs no query
             'xp_delete_warning' => $solvedPuzzle->playerId === $player->playerId && $this->xpFeatureGate->isVisibleFor($player)

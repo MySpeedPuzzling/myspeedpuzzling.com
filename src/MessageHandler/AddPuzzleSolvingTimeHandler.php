@@ -59,6 +59,7 @@ use SpeedPuzzling\Web\Value\SolvingTime;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use SpeedPuzzling\Web\Value\StopwatchStatus;
 use SpeedPuzzling\Web\Value\TeamComposition;
+use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use SpeedPuzzling\Web\Services\RoundResults\SolvingTimeRoundResolver;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -250,7 +251,11 @@ readonly final class AddPuzzleSolvingTimeHandler
             $timestamp = $this->clock->now()->getTimestamp();
             $finishedPuzzlePhotoPath = "players/$player->id/$solvingTimeId-$timestamp.$extension";
 
-            $finishedPuzzlePhotoUploadMetadata = $this->imageOptimizer->optimize($message->finishedPuzzlesPhoto->getPathname());
+            // The browser's reading of a photo it shrank (no EXIF left in the file) - docs/features/upload-image-metadata.md
+            $finishedPuzzlePhotoUploadMetadata = UploadedImageMetadata::preferring(
+                $this->imageOptimizer->optimize($message->finishedPuzzlesPhoto->getPathname()),
+                $message->finishedPuzzlesPhotoBrowserMetadata,
+            );
 
             // Stream is better because it is memory safe
             $stream = fopen($message->finishedPuzzlesPhoto->getPathname(), 'rb');

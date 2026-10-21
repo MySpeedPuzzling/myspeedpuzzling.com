@@ -82,7 +82,9 @@ export class PhotoUpload {
     /**
      * @param {File} file
      * @param {{startUrl: string, csrfToken: string, reportUrl?: string, field?: string, replaces?: string|null,
-     *          maxAttempts?: number, onChange?: function(PhotoUpload): void}} options
+     *          metadata?: object|null, maxAttempts?: number, onChange?: function(PhotoUpload): void}} options
+     *        metadata: what the browser read from the photo before it shrank it (assets/photo_metadata.js) - kept with
+     *        the reservation (docs/features/upload-image-metadata.md)
      */
     constructor(file, options) {
         this.file = file;
@@ -308,6 +310,7 @@ export class PhotoUpload {
                     name: this.file.name,
                     token: this.token,
                     replaces: this.replaces,
+                    metadata: this.options.metadata || undefined,
                 }),
             });
         } catch (error) {

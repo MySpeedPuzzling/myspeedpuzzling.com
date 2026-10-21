@@ -61,7 +61,7 @@ final class UploadedImageSummariserTest extends TestCase
         $decoded = json_decode($stored, true);
         self::assertIsArray($decoded);
         self::assertSame(
-            ['version', 'bytes', 'format', 'width', 'height', 'exif', 'cameraExif', 'capturedAt', 'capturedAtOffset', 'software', 'make', 'orientation'],
+            ['version', 'source', 'bytes', 'format', 'width', 'height', 'exif', 'cameraExif', 'capturedAt', 'capturedAtOffset', 'software', 'make', 'orientation'],
             array_keys($decoded),
         );
 

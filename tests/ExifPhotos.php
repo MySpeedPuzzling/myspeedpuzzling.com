@@ -175,6 +175,53 @@ final class ExifPhotos
         return 'RIFF' . pack('V', strlen($body)) . $body;
     }
 
+    /**
+     * The structure of a HEIC as phones write it - ftyp, meta (hdlr, pitm, iinf with an `hvc1` image item and an `Exif`
+     * item, iloc, iprp with the image's `ispe`) and mdat - with the EXIF item in mdat (iloc construction method 0) or in
+     * the meta's idat (method 1). The image item's bytes are no real HEVC: enough for a parser of the container
+     * (assets/photo_metadata.js), nothing a decoder could show. A larger `ispe` that belongs to no item makes sure the
+     * primary image's own size is the one read. $quarterTurns adds the `irot` a phone writes for a portrait photo.
+     */
+    public static function heic(int $width, int $height, string $exif, bool $exifInIdat = false, string $majorBrand = 'heic', int $quarterTurns = 0): string
+    {
+        $box = static fn (string $type, string $body): string => pack('N', 8 + strlen($body)) . $type . $body;
+        $fullBox = static fn (string $type, int $version, string $body, int $flags = 0): string => $box($type, pack('N', ($version << 24) | ($flags & 0xFFFFFF)) . $body);
+
+        // exif_tiff_header_offset, then the "Exif\0\0" header Apple writes before the TIFF block
+        $exifItem = pack('N', 6) . "Exif\0\0" . $exif;
+        $imageItem = str_repeat("\x00", 32);
+
+        $ftyp = $box('ftyp', $majorBrand . pack('N', 0) . 'mif1' . $majorBrand);
+
+        $meta = static function (int $mdatPayload) use ($box, $fullBox, $exifItem, $imageItem, $exifInIdat, $width, $height, $quarterTurns): string {
+            $iloc = $fullBox('iloc', 1, "\x44\x00" . pack('n', 2)
+                // item 1 (the image) in mdat
+                . pack('n', 1) . pack('n', 0) . pack('n', 0) . pack('n', 1) . pack('N', $mdatPayload) . pack('N', strlen($imageItem))
+                // item 2 (Exif) in mdat after the image, or at the start of idat
+                . pack('n', 2) . pack('n', $exifInIdat ? 1 : 0) . pack('n', 0) . pack('n', 1)
+                . pack('N', $exifInIdat ? 0 : $mdatPayload + strlen($imageItem)) . pack('N', strlen($exifItem)));
+
+            $body = $fullBox('hdlr', 0, pack('N', 0) . 'pict' . str_repeat("\0", 12) . "\0")
+                . $fullBox('pitm', 0, pack('n', 1))
+                . $fullBox('iinf', 0, pack('n', 2)
+                    . $fullBox('infe', 2, pack('n', 1) . pack('n', 0) . 'hvc1' . "\0")
+                    . $fullBox('infe', 2, pack('n', 2) . pack('n', 0) . 'Exif' . "\0"))
+                . $iloc
+                . $box(
+                    'iprp',
+                    $box('ipco', $fullBox('ispe', 0, pack('NN', $width * 4, $height * 4)) . $fullBox('ispe', 0, pack('NN', $width, $height)) . $box('irot', chr($quarterTurns & 3)))
+                    . $fullBox('ipma', 0, pack('N', 1) . pack('n', 1) . chr(2) . chr(0x80 | 2) . chr(0x80 | 3))
+                )
+                . ($exifInIdat ? $box('idat', $exifItem) : '');
+
+            return $fullBox('meta', 0, $body);
+        };
+
+        $mdatPayload = strlen($ftyp) + strlen($meta(0)) + 8;
+
+        return $ftyp . $meta($mdatPayload) . $box('mdat', $imageItem . ($exifInIdat ? '' : $exifItem));
+    }
+
     public static function file(string $content, string $extension = 'jpg'): string
     {
         $path = tempnam(sys_get_temp_dir(), 'exif_photo_');

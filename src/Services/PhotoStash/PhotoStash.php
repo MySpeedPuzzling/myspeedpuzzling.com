@@ -14,6 +14,8 @@ use Nette\Utils\JsonException;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Value\StashedPhoto;
+use SpeedPuzzling\Web\Value\UploadedImageMetadata;
+use SpeedPuzzling\Web\Value\UploadedImageMetadataSource;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Contracts\Service\ResetInterface;
 
@@ -28,6 +30,9 @@ use Symfony\Contracts\Service\ResetInterface;
  * A photo can also arrive without PHP (docs/features/photo-uploads/README.md): reserve() writes the description
  * first and the browser uploads the photo itself straight to object storage under objectKey() (DirectPhotoUpload).
  * The form then carries only the token, and restore() reads the photo back like a kept one.
+ *
+ * What the browser read from a photo before it shrank it (BrowserImageSummary, docs/features/upload-image-metadata.md)
+ * is kept in the description next to it, so it comes back with the photo - a refused form's photo returns as a token only.
  *
  * Nothing is deleted when the form saves: a resend of the same form (the answer got lost, an automatic retry) must
  * find its photos again to be answered as the saved result. Everything expires after KEEP_HOURS.
@@ -50,7 +55,7 @@ final class PhotoStash implements ResetInterface
     ) {
     }
 
-    public function keep(UploadedFile $file, string $playerId): null|StashedPhoto
+    public function keep(UploadedFile $file, string $playerId, null|UploadedImageMetadata $browserMetadata = null): null|StashedPhoto
     {
         if ($file->isValid() === false) {
             return null;
@@ -86,6 +91,7 @@ final class PhotoStash implements ResetInterface
                 'mime' => $file->getMimeType() ?? 'application/octet-stream',
                 'preview' => $preview !== null,
                 'storedAt' => $this->clock->now()->format(DATE_ATOM),
+                'browserMetadata' => $browserMetadata?->toArray(),
             ]));
         } catch (FilesystemException $e) {
             // Then the player chooses the photo again - exactly what happened before this existed
@@ -104,7 +110,7 @@ final class PhotoStash implements ResetInterface
      * objectKey() later. Null when object storage cannot take even the description - the browser then sends the
      * photo with the form, as before.
      */
-    public function reserve(string $playerId, string $fileName, string $mime, int $bytes): null|string
+    public function reserve(string $playerId, string $fileName, string $mime, int $bytes, null|UploadedImageMetadata $browserMetadata = null): null|string
     {
         $this->makeRoom($playerId);
 
@@ -117,6 +123,7 @@ final class PhotoStash implements ResetInterface
                 'preview' => false,
                 'bytes' => $bytes,
                 'storedAt' => $this->clock->now()->format(DATE_ATOM),
+                'browserMetadata' => $browserMetadata?->toArray(),
             ]));
         } catch (FilesystemException $e) {
             $this->logger->warning('Could not reserve a place for a directly uploaded photo', [
@@ -138,6 +145,27 @@ final class PhotoStash implements ResetInterface
     }
 
     /**
+     * What the browser read from the photo before it shrank it - kept with the reservation or the kept photo
+     */
+    public function browserMetadata(string $token, string $playerId): null|UploadedImageMetadata
+    {
+        $data = $this->meta($token, $playerId)['browserMetadata'] ?? null;
+
+        if ($data === null) {
+            return null;
+        }
+
+        try {
+            // Written here from a summary BrowserImageSummary accepted - a description broken since reads as nothing
+            $metadata = UploadedImageMetadata::fromArray($data);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $metadata?->source === UploadedImageMetadataSource::Browser ? $metadata : null;
+    }
+
+    /**
      * Where the photo of a token lives in object storage - what a direct upload is signed for
      */
     public function objectKey(string $playerId, string $token): string
@@ -148,7 +176,7 @@ final class PhotoStash implements ResetInterface
     /**
      * A directly uploaded photo has no preview until a refused form shows it again - made then from the restored file
      */
-    public function addPreview(string $token, string $playerId, UploadedFile $file): null|StashedPhoto
+    public function addPreview(string $token, string $playerId, UploadedFile $file, null|UploadedImageMetadata $browserMetadata = null): null|StashedPhoto
     {
         $meta = $this->meta($token, $playerId);
 
@@ -176,6 +204,7 @@ final class PhotoStash implements ResetInterface
                 'preview' => true,
                 'bytes' => $meta['bytes'],
                 'storedAt' => $meta['storedAt']->format(DATE_ATOM),
+                'browserMetadata' => $meta['browserMetadata'] ?? $browserMetadata?->toArray(),
             ]));
         } catch (FilesystemException) {
             return new StashedPhoto($token, $meta['name'], false);
@@ -311,7 +340,7 @@ final class PhotoStash implements ResetInterface
     }
 
     /**
-     * @return null|array{name: string, mime: string, preview: bool, bytes: null|int, storedAt: DateTimeImmutable}
+     * @return null|array{name: string, mime: string, preview: bool, bytes: null|int, storedAt: DateTimeImmutable, browserMetadata: null|array<mixed>}
      */
     private function meta(string $token, string $playerId): null|array
     {
@@ -346,6 +375,7 @@ final class PhotoStash implements ResetInterface
             'preview' => ($meta['preview'] ?? false) === true,
             'bytes' => is_int($meta['bytes'] ?? null) ? $meta['bytes'] : null,
             'storedAt' => $storedAt,
+            'browserMetadata' => is_array($meta['browserMetadata'] ?? null) ? $meta['browserMetadata'] : null,
         ];
     }
 

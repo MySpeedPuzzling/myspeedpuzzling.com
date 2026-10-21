@@ -27,6 +27,7 @@ use SpeedPuzzling\Web\Services\ImageOptimizer;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
+use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -98,7 +99,11 @@ readonly final class AddPuzzleTrackingHandler
             $timestamp = $this->clock->now()->getTimestamp();
             $finishedPuzzlePhotoPath = "players/$player->id/$trackingId-$timestamp.$extension";
 
-            $finishedPuzzlePhotoUploadMetadata = $this->imageOptimizer->optimize($message->finishedPuzzlesPhoto->getPathname());
+            // The browser's reading of a photo it shrank (no EXIF left in the file) - docs/features/upload-image-metadata.md
+            $finishedPuzzlePhotoUploadMetadata = UploadedImageMetadata::preferring(
+                $this->imageOptimizer->optimize($message->finishedPuzzlesPhoto->getPathname()),
+                $message->finishedPuzzlesPhotoBrowserMetadata,
+            );
 
             // Stream is better because it is memory safe
             $stream = fopen($message->finishedPuzzlesPhoto->getPathname(), 'rb');

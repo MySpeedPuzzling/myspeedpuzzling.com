@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\FormData\EditPuzzleSolvingTimeFormData;
 use SpeedPuzzling\Web\Value\CompetitionPick;
 use SpeedPuzzling\Web\Value\FirstTryResolution;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
+use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 readonly final class EditPuzzleSolvingTime
@@ -42,6 +43,9 @@ readonly final class EditPuzzleSolvingTime
         // A series pick (docs/features/events-page/high-frequency-series.md): MySpeedPuzzling finds the edition again
         // on every save. Only when competitionId is null - an explicit link wins
         public null|string $seriesId = null,
+        // What the browser read from the finish photo before it shrank it (BrowserImageSummary) - stored when the photo
+        // that arrived has no EXIF of its own (docs/features/upload-image-metadata.md)
+        public null|UploadedImageMetadata $finishedPuzzlesPhotoBrowserMetadata = null,
     ) {
     }
 
@@ -78,6 +82,7 @@ readonly final class EditPuzzleSolvingTime
             puzzleId: $formData->puzzle,
             paceConfirmedExpectedSeconds: $paceConfirmedExpectedSeconds,
             seriesId: $competitionPick?->seriesId(),
+            finishedPuzzlesPhotoBrowserMetadata: $formData->finishedPuzzlesPhotoBrowserMetadata,
         );
     }
 }

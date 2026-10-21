@@ -84,7 +84,9 @@ Why this one:
 **Server**
 
 - `PhotoUploadStartController` - `POST /{_locale}/photo-upload`, JSON + `X-CSRF-Token` (stateless id `photo_upload`),
-  signed in. Body `{bytes, type, name, token?, replaces?}` → `{token, url, headers, expiresAtMs}`. Refusals are JSON
+  signed in. Body `{bytes, type, name, token?, replaces?, metadata?}` → `{token, url, headers, expiresAtMs}`.
+  `metadata` = what the browser read from the photo's EXIF before shrinking it, kept in the reservation's description
+  (an invalid one is left out, never refused - docs/features/upload-image-metadata.md "Read in the browser"). Refusals are JSON
   `{error}` the browser does not show - it then sends the photo with the form. Rate limiter `photo_upload`
   (2000 new places per player and hour - an abuse ceiling only, a player catching up on photos for old results must
   never meet it; a re-sign of the same token is free). Kill switch `DIRECT_PHOTO_UPLOADS`
@@ -112,6 +114,10 @@ Why this one:
 **Browser** - `assets/photo_upload.js` (`PhotoUpload`), used by `submit_prevention_controller.js` (add/edit-time form)
 and `multiscan_controller.js` (quick-add):
 
+- Before shrinking, the photo's EXIF allow-list is read (`assets/photo_metadata.js` - the canvas drops it): sent with
+  the start (`metadata`), and as `photo_metadata[<field>]` with a photo that goes with the form; multiscan sends it as
+  the `createPuzzle` action's `photoMetadata`. Stored only when the photo that arrives has no EXIF of its own
+  (docs/features/upload-image-metadata.md).
 - Sign, then `PUT` with `XMLHttpRequest` (upload progress events; `fetch()` has none).
 - **Stall watchdog:** no progress for 30 s → abort and try again (a dead connection that never says so).
 - **Retries:** network error / stall / store 5xx → backoff 1, 3, 8, 15, 30 s (60 s while `navigator.onLine` is false),
@@ -196,5 +202,8 @@ plain path is still used).
   puzzle saved with a background-uploaded photo, the resend after a save answered as the saved result, a refused form
   keeping the token with a preview, another player's token refused, the telemetry levels.
 - `tests/Component/MultiscanTrayTest.php` - quick-add with a token.
+- What the browser read before shrinking: `tests/PhotoMetadataParityTest.php` (the parser under node),
+  `tests/Services/BrowserImageSummaryTest.php`, and in `tests/Controller/PhotoUploads/DirectPhotoUploadTest.php` the
+  summary with a background upload, through a refused form, and the photo's own EXIF winning.
 - Real browser (2026-10-18): Selenium Chromium on the compose network against a worktree build, MinIO as the store,
   with the network throttled and uploads made to fail - see the PR description.

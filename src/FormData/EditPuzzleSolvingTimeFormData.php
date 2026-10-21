@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\FormData;
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use SpeedPuzzling\Web\Value\SolvingTime;
+use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Validator\Constraints\Callback;
 use Symfony\Component\Validator\Constraints\PositiveOrZero;
@@ -61,6 +62,10 @@ final class EditPuzzleSolvingTimeFormData
     }
 
     public null|UploadedFile $finishedPuzzlesPhoto = null;
+
+    // Not a form field: what the browser read from the photo before it shrank it (FormPhotoStash::browserMetadata(),
+    // docs/features/upload-image-metadata.md) - set by the controller after handleRequest()
+    public null|UploadedImageMetadata $finishedPuzzlesPhotoBrowserMetadata = null;
 
     public null|string $brand = null;
 

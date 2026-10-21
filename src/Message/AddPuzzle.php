@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
+use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
@@ -30,6 +31,9 @@ readonly final class AddPuzzle implements SerializedByLock
         public BrandCodeList $brandCodes,
         // Names of other boxes of the puzzle (docs/features/puzzle-names/) - the add form's "+ name in another language"
         public PuzzleNames $alternativeNames = new PuzzleNames(),
+        // What the browser read from the box photo before it shrank it (BrowserImageSummary) - stored when the photo
+        // that arrived has no EXIF of its own (docs/features/upload-image-metadata.md)
+        public null|UploadedImageMetadata $puzzlePhotoBrowserMetadata = null,
     ) {
     }
 

@@ -1,5 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 import { Modal } from 'bootstrap';
+import { photoMetadataFor, rememberPhotoMetadata } from '../photo_metadata.js';
 
 export default class extends Controller {
     static values = {
@@ -209,18 +210,25 @@ export default class extends Controller {
             imageSmoothingQuality: 'high',
         });
 
-        canvas.toBlob((blob) => {
-            const fileName = this.originalFile.name.replace(/\.[^.]+$/, '.jpg');
+        const original = this.originalFile;
+        const input = this.currentFileInput;
+
+        canvas.toBlob(async (blob) => {
+            const fileName = original.name.replace(/\.[^.]+$/, '.jpg');
             const file = new File([blob], fileName, {
                 type: 'image/jpeg',
                 lastModified: Date.now()
             });
 
+            // A cropped or turned photo is still the photo it was made from - its EXIF (capture time, ...) is read from
+            // that one, since the canvas drops it (docs/features/upload-image-metadata.md). Never fails
+            rememberPhotoMetadata(file, await photoMetadataFor(original));
+
             const dataTransfer = new DataTransfer();
             dataTransfer.items.add(file);
-            this.currentFileInput.files = dataTransfer.files;
+            input.files = dataTransfer.files;
 
-            this.currentFileInput.dispatchEvent(new Event('change', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
 
             this.hideModal();
         }, 'image/jpeg', 0.92);

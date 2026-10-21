@@ -131,7 +131,7 @@ final readonly class UploadedImageSummariser
         $ifd0 = self::section($exif, 'IFD0');
         $exifIfd = self::section($exif, 'EXIF');
         $computed = self::section($exif, 'COMPUTED');
-        [$capturedAt, $capturedAtOffset] = self::captureTime($exifIfd);
+        [$capturedAt, $capturedAtOffset] = self::captureTime(self::text($exifIfd, 'DateTimeOriginal'), self::text($exifIfd, 'OffsetTimeOriginal'));
         $make = self::make(self::text($ifd0, 'Make'));
 
         return new UploadedImageMetadata(
@@ -339,15 +339,13 @@ final readonly class UploadedImageSummariser
 
     /**
      * DateTimeOriginal as `Y-m-d\TH:i:s` (no zone guessed) and OffsetTimeOriginal, each null when missing or not a
-     * real value (cameras without a set clock write "0000:00:00 00:00:00").
+     * real value (cameras without a set clock write "0000:00:00 00:00:00"). Also what BrowserImageSummary makes of the
+     * two tags as the browser read them.
      *
-     * @param array<mixed> $exifIfd
      * @return array{null|string, null|string}
      */
-    private static function captureTime(array $exifIfd): array
+    public static function captureTime(null|string $original, null|string $offset): array
     {
-        $original = self::text($exifIfd, 'DateTimeOriginal');
-
         if ($original === null || preg_match('/^(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/', $original, $matches) !== 1) {
             return [null, null];
         }
@@ -359,8 +357,6 @@ final readonly class UploadedImageSummariser
         }
 
         $capturedAt = sprintf('%04d-%02d-%02dT%02d:%02d:%02d', $year, $month, $day, $hour, $minute, $second);
-        $offset = self::text($exifIfd, 'OffsetTimeOriginal');
-
         if ($offset === null || preg_match('/^[+-](\d{2}):(\d{2})$/', $offset, $offsetParts) !== 1 || (int) $offsetParts[1] > 14 || (int) $offsetParts[2] > 59) {
             $offset = null;
         }

@@ -44,6 +44,7 @@ use SpeedPuzzling\Web\Results\PlayerIdentification;
 use SpeedPuzzling\Web\Results\PlayerProfile;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Results\UserPuzzleStatuses;
+use SpeedPuzzling\Web\Services\BrowserImageSummary;
 use SpeedPuzzling\Web\Services\LendBorrowParticipantParser;
 use SpeedPuzzling\Web\Services\MultiscanEligibility;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -724,9 +725,11 @@ final class MultiscanTray
     /**
      * @param string $photoToken the box photo, uploaded by the browser in the background (DirectPhotoUpload,
      *                           docs/features/photo-uploads/README.md) - used when no file comes with the request
+     * @param string $photoMetadata what the browser read from the photo before it shrank it (JSON, BrowserImageSummary,
+     *                              docs/features/upload-image-metadata.md) - else the one kept with the token
      */
     #[LiveAction]
-    public function createPuzzle(Request $request, #[LiveArg] string $photoToken = ''): void
+    public function createPuzzle(Request $request, #[LiveArg] string $photoToken = '', #[LiveArg] string $photoMetadata = ''): void
     {
         $this->clearTransient();
         $profile = $this->requireMember();
@@ -809,8 +812,11 @@ final class MultiscanTray
         // Same rule as the add form: no new puzzle without a photo of its box
         $photo = $request->files->get('photo');
 
+        $browserMetadata = BrowserImageSummary::fromJson($photoMetadata);
+
         if (!$photo instanceof UploadedFile && $photoToken !== '') {
             $photo = $this->photoStash->restore($photoToken, $profile->playerId);
+            $browserMetadata ??= $this->photoStash->browserMetadata($photoToken, $profile->playerId);
         }
 
         if (!$photo instanceof UploadedFile) {
@@ -835,6 +841,7 @@ final class MultiscanTray
                 puzzlePhoto: $photo,
                 eans: EanList::fromStored($ean->digits),
                 brandCodes: BrandCodeList::fromStored(null),
+                puzzlePhotoBrowserMetadata: $browserMetadata,
             ));
         } catch (ManufacturerNotFound) {
             // The picked brand is gone (merged or deleted since the sheet opened). Not wrapped:

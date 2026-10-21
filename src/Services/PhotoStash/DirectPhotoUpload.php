@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Services\OnlineRounds\S3QueryPresigner;
 use SpeedPuzzling\Web\Value\OnlineMediaStore;
 use SpeedPuzzling\Web\Value\PhotoUploadLimits;
 use SpeedPuzzling\Web\Value\PresignedPhotoUpload;
+use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 
 /**
  * A photo the browser uploads in the background, straight to object storage, while the player is still filling in the
@@ -42,6 +43,8 @@ final readonly class DirectPhotoUpload
     /**
      * @param null|string $token a reservation of this player to sign again (a retry) - else a new one is made
      * @param null|string $replaces the player's earlier reservation for the same field (another photo picked) - let go
+     * @param null|UploadedImageMetadata $browserMetadata what the browser read from the photo before it shrank it
+     *        (BrowserImageSummary) - kept with a new reservation, stored when the photo itself has no EXIF left
      *
      * @throws PhotoUploadRefused
      */
@@ -52,6 +55,7 @@ final readonly class DirectPhotoUpload
         int $bytes,
         null|string $token = null,
         null|string $replaces = null,
+        null|UploadedImageMetadata $browserMetadata = null,
     ): PresignedPhotoUpload {
         $mime = strtolower(trim($mime));
 
@@ -75,7 +79,7 @@ final readonly class DirectPhotoUpload
         }
 
         if ($token === null || $token === '') {
-            $token = $this->photoStash->reserve($playerId, $fileName, $mime, $bytes)
+            $token = $this->photoStash->reserve($playerId, $fileName, $mime, $bytes, $browserMetadata)
                 ?? throw new PhotoUploadRefused('storage');
         }
 

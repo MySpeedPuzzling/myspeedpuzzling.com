@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Value\FirstTryResolution;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
+use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 readonly final class AddPuzzleSolvingTime
@@ -43,6 +44,9 @@ readonly final class AddPuzzleSolvingTime
         // A series pick (docs/features/events-page/high-frequency-series.md): MySpeedPuzzling finds the edition. Only
         // when neither roundId nor competitionId is given - those are explicit links and win
         public null|string $seriesId = null,
+        // What the browser read from the finish photo before it shrank it (BrowserImageSummary) - stored when the photo
+        // that arrived has no EXIF of its own (docs/features/upload-image-metadata.md)
+        public null|UploadedImageMetadata $finishedPuzzlesPhotoBrowserMetadata = null,
     ) {
     }
 }

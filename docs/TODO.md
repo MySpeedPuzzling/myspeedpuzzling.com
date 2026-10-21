@@ -6,10 +6,9 @@ that would otherwise be forgotten. Newest section on top.
 
 ## What an uploaded picture's file carried (`docs/features/upload-image-metadata.md`, 2026-10-21)
 
-- [ ] The browser shrinks photos over 500 KB before upload (add/edit-time form, multiscan) and the canvas re-encode
-      drops all EXIF - so most finish photos arrive without a capture time. Read the same allow-list in the browser
-      before shrinking (`assets/image_compression.js`) and send it with the photo (form field + PhotoStash token),
-      stored as the summary when the server sees no EXIF itself
+- [x] The browser shrinks photos over 500 KB before upload (add/edit-time form, multiscan) and the canvas re-encode
+      drops all EXIF - read in the browser first (`assets/photo_metadata.js`), sent with the upload start / form,
+      stored with `source: browser` when the server sees no EXIF itself (2026-10-21, "Read in the browser")
 - [ ] Time verification / duplicate results: read `finished_puzzle_photo_upload_metadata.capturedAt` next to `finished_at`
 - [ ] Image pipeline: use `uploadMetadata` of the work list as the photo-vs-artwork prior
 

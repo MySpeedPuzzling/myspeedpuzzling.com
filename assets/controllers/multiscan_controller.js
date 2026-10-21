@@ -1,7 +1,8 @@
 import { Controller } from '@hotwired/stimulus';
 import { getComponent } from '@symfony/ux-live-component';
-import { compressedOrOriginal } from '../image_compression.js';
+import { compressedOrOriginal, shouldCompress } from '../image_compression.js';
 import { PhotoUpload } from '../photo_upload.js';
+import { readPhotoMetadata } from '../photo_metadata.js';
 
 /**
  * Bridge between the continuous barcode scanner and the MultiscanTray Live
@@ -386,13 +387,19 @@ export default class extends Controller {
         }
 
         this.renderPhoto(box, null, true);
-        const prepared = await compressedOrOriginal(file);
+        // What its EXIF says is read before shrinking - the canvas drops it (docs/features/upload-image-metadata.md)
+        const [prepared, read] = await Promise.all([
+            compressedOrOriginal(file),
+            shouldCompress(file) ? readPhotoMetadata(file) : Promise.resolve(null),
+        ]);
+        // Only for a shrunk photo - one sent as picked has its own EXIF, the server reads it
+        const metadata = prepared !== file ? read : null;
         input.value = '';
 
         const previousToken = this.photos.get(ean)?.upload?.token || null;
         this.forgetPhoto(ean);
 
-        const photo = { file: prepared, url: URL.createObjectURL(prepared), upload: null, withFile: false };
+        const photo = { file: prepared, url: URL.createObjectURL(prepared), upload: null, withFile: false, metadata };
 
         if (this.uploadUrlValue !== '') {
             photo.upload = new PhotoUpload(prepared, {
@@ -401,6 +408,7 @@ export default class extends Controller {
                 reportUrl: this.reportUrlValue,
                 field: 'multiscan',
                 replaces: previousToken,
+                metadata,
                 onChange: () => this.renderUploadStatus(ean),
             });
         }
@@ -487,7 +495,10 @@ export default class extends Controller {
 
         try {
             await Promise.race([
-                this.component.action('createPuzzle', token !== '' ? { photoToken: token } : {}),
+                this.component.action('createPuzzle', {
+                    ...(token !== '' ? { photoToken: token } : {}),
+                    ...(photo.metadata ? { photoMetadata: JSON.stringify(photo.metadata) } : {}),
+                }),
                 new Promise((_, reject) => window.setTimeout(() => reject(new Error('stall')), this.constructor.CREATE_STALL_MS)),
             ]);
 

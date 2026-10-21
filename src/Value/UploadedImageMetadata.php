@@ -12,6 +12,9 @@ namespace SpeedPuzzling\Web\Value;
  *
  * Never anything that identifies a person, a place or a device: no GPS, no serial numbers, no owner / artist /
  * copyright / user comment, no maker notes, no thumbnail, no camera model - only the brand.
+ *
+ * Read by the server from the file that arrived, or - for a photo the browser shrank before uploading (the canvas
+ * re-encode drops all EXIF) - by the browser from the photo as picked (BrowserImageSummary). `source` tells them apart.
  */
 readonly final class UploadedImageMetadata
 {
@@ -19,7 +22,7 @@ readonly final class UploadedImageMetadata
     public const int VERSION = 1;
 
     public function __construct(
-        // The file as uploaded, before any resize or re-encode
+        // The file as uploaded (as picked, for a browser summary), before any resize or re-encode
         public int $bytes,
         // ImageMagick's name of the format: JPEG, PNG, WEBP, HEIC, GIF, TIFF, ...
         public string $format,
@@ -41,16 +44,33 @@ readonly final class UploadedImageMetadata
         // EXIF orientation 1-8
         public null|int $orientation = null,
         public int $version = self::VERSION,
+        // Who read it - a summary stored without one (the first days, 2026-10-21) is the server's
+        public UploadedImageMetadataSource $source = UploadedImageMetadataSource::Server,
     ) {
     }
 
     /**
-     * @return array{version: int, bytes: int, format: string, width: int, height: int, exif: bool, cameraExif: bool, capturedAt: null|string, capturedAtOffset: null|string, software: null|string, make: null|string, orientation: null|int}
+     * What is stored for an upload: the server's own reading when the file that arrived still had EXIF, else what the
+     * browser read from the photo before it shrank it, else the server's reading (no EXIF, or null when unreadable).
+     * The browser's word never overrides EXIF the server saw - it is self-reported (so is EXIF, but in the file).
+     */
+    public static function preferring(null|self $server, null|self $browser): null|self
+    {
+        if ($server !== null && $server->exif) {
+            return $server;
+        }
+
+        return $browser ?? $server;
+    }
+
+    /**
+     * @return array{version: int, source: string, bytes: int, format: string, width: int, height: int, exif: bool, cameraExif: bool, capturedAt: null|string, capturedAtOffset: null|string, software: null|string, make: null|string, orientation: null|int}
      */
     public function toArray(): array
     {
         return [
             'version' => $this->version,
+            'source' => $this->source->value,
             'bytes' => $this->bytes,
             'format' => $this->format,
             'width' => $this->width,
@@ -74,7 +94,7 @@ readonly final class UploadedImageMetadata
             return null;
         }
 
-        /** @var array{version: int, bytes: int, format: string, width: int, height: int, exif: bool, cameraExif: bool, capturedAt?: null|string, capturedAtOffset?: null|string, software?: null|string, make?: null|string, orientation?: null|int} $data */
+        /** @var array{version: int, source?: string, bytes: int, format: string, width: int, height: int, exif: bool, cameraExif: bool, capturedAt?: null|string, capturedAtOffset?: null|string, software?: null|string, make?: null|string, orientation?: null|int} $data */
 
         return new self(
             bytes: $data['bytes'],
@@ -89,6 +109,7 @@ readonly final class UploadedImageMetadata
             make: $data['make'] ?? null,
             orientation: $data['orientation'] ?? null,
             version: $data['version'],
+            source: UploadedImageMetadataSource::tryFrom($data['source'] ?? '') ?? UploadedImageMetadataSource::Server,
         );
     }
 }

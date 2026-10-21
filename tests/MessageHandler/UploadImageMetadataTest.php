@@ -14,12 +14,14 @@ use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\RejectPuzzleChangeRequest;
 use SpeedPuzzling\Web\Message\SubmitPuzzleChangeRequest;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Services\BrowserImageSummary;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\ExifPhotos;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
+use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -129,6 +131,47 @@ final class UploadImageMetadataTest extends KernelTestCase
         self::assertSame(30, $replaced['width']);
     }
 
+    public function testAnEditedTimeKeepsWhatTheBrowserReadFromThePhotoItShrank(): void
+    {
+        $browser = self::browserSummary('2026:09:30 21:47:05');
+
+        // The browser shrank the photo: the file that arrives has no EXIF, the browser's reading is stored
+        $this->editTime01($this->photo(ExifPhotos::jpeg(30, 20, null)), $browser);
+        $stored = $this->timeMetadata(PuzzleSolvingTimeFixture::TIME_01);
+        self::assertNotNull($stored);
+        self::assertSame('browser', $stored['source']);
+        self::assertSame('2026-09-30T21:47:05', $stored['capturedAt']);
+        self::assertSame(4032, $stored['width'], 'The photo as picked, not the shrunk copy');
+
+        // A photo that arrives with its EXIF: the server's own reading, whatever the browser says
+        $this->editTime01($this->photo(ExifPhotos::iphoneJpeg()), $browser);
+        $stored = $this->timeMetadata(PuzzleSolvingTimeFixture::TIME_01);
+        self::assertNotNull($stored);
+        self::assertSame('server', $stored['source']);
+        self::assertSame('2026-10-21T14:03:12', $stored['capturedAt']);
+    }
+
+    public function testAQuickAddedPuzzleKeepsWhatTheBrowserReadFromItsBoxPhoto(): void
+    {
+        $puzzleId = Uuid::uuid7();
+
+        $this->messageBus->dispatch(new AddPuzzle(
+            puzzleId: $puzzleId,
+            userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
+            puzzleName: 'Browser metadata quick-add',
+            brand: 'Metadata test brand',
+            piecesCount: 500,
+            puzzlePhoto: $this->photo(ExifPhotos::jpeg(40, 30, null)),
+            eans: EanList::fromStored(null),
+            brandCodes: BrandCodeList::fromStored(null),
+            puzzlePhotoBrowserMetadata: self::browserSummary('2026:10:01 10:00:00'),
+        ));
+
+        $stored = $this->jsonColumn('SELECT image_upload_metadata FROM puzzle WHERE id = :id', $puzzleId->toString());
+        self::assertNotNull($stored);
+        self::assertSame(['browser', '2026-10-01T10:00:00', 'phone', 'Apple'], [$stored['source'], $stored['capturedAt'], $stored['software'], $stored['make']]);
+    }
+
     public function testDeletingThePlayerTakesTheSummariesAlong(): void
     {
         // TIME_01 is PLAYER_REGULAR's solo time, TIME_12 the pair time they own with PLAYER_PRIVATE
@@ -190,7 +233,25 @@ final class UploadImageMetadataTest extends KernelTestCase
         self::assertNull($this->jsonColumn('SELECT proposed_image_upload_metadata FROM puzzle_change_request WHERE id = :id', $changeRequestId));
     }
 
-    private function editTime01(null|UploadedFile $photo): void
+    private static function browserSummary(string $dateTimeOriginal): UploadedImageMetadata
+    {
+        $summary = BrowserImageSummary::fromInput([
+            'bytes' => 3_456_789,
+            'format' => 'JPEG',
+            'width' => 4032,
+            'height' => 3024,
+            'exif' => true,
+            'cameraExif' => true,
+            'dateTimeOriginal' => $dateTimeOriginal,
+            'software' => '18.0.1',
+            'make' => 'Apple',
+        ]);
+        self::assertNotNull($summary);
+
+        return $summary;
+    }
+
+    private function editTime01(null|UploadedFile $photo, null|UploadedImageMetadata $browserMetadata = null): void
     {
         $this->messageBus->dispatch(new EditPuzzleSolvingTime(
             currentUserId: PlayerFixture::PLAYER_REGULAR_USER_ID,
@@ -203,6 +264,7 @@ final class UploadImageMetadataTest extends KernelTestCase
             finishedPuzzlesPhoto: $photo,
             firstAttempt: false,
             unboxed: false,
+            finishedPuzzlesPhotoBrowserMetadata: $browserMetadata,
         ));
     }
 

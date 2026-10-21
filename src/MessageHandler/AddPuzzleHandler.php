@@ -139,7 +139,11 @@ readonly final class AddPuzzleHandler
             $extension,
         );
 
-        $uploadMetadata = $this->imageOptimizer->optimize($message->puzzlePhoto->getPathname());
+        // The browser's reading of a photo it shrank (no EXIF left in the file) - docs/features/upload-image-metadata.md
+        $uploadMetadata = UploadedImageMetadata::preferring(
+            $this->imageOptimizer->optimize($message->puzzlePhoto->getPathname()),
+            $message->puzzlePhotoBrowserMetadata,
+        );
         $puzzleImageRatio = $this->imageOptimizer->getImageRatio($message->puzzlePhoto->getPathname());
 
         // Stream is better because it is memory safe

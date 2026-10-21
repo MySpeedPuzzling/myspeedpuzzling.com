@@ -4,6 +4,25 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Wasgij, multipacks and reverting merges (`docs/features/wasgij-and-multipacks.md`, 2026-10-22)
+
+- [ ] Decide the concepts: multipack (one box, several puzzles sharing name/EAN/brand code) and Wasgij (the image is
+      not the puzzle, solution picture = spoiler) - open questions in the doc
+- [ ] Duplicate checks (merge review, `duplicate_puzzle_signal`, approval queue) must not offer merging puzzles of one box
+- [ ] **"Revert merge"** on an approved merge request - **admins only, never moderators** (own access rule above the
+      moderators' `^/admin/puzzle(s/|-((change|merge)-requests…` rule): recreate the deleted puzzles with their ids,
+      restore the survivor's fields, move back every migrated row still on the survivor (report the rest), delete the
+      redirects, reject the request with a reason for the reporter, record a `merge_reverted` decision, recalculate
+      statistics/karma/XP. First extend `puzzle_merge_audit` to snapshot every puzzle column (`approved_at`,
+      `approved_by_id`, `names_changed_at`, `image_upload_metadata`, …) and the full rows dropped as duplicates (today
+      only their ids - not recoverable). The 2026-10-19 Christmas 10 merge was reverted by hand (steps in the doc)
+- [ ] Rozebeest's pending proposal `01a1607a-f950-7189-ab13-b68a0150f541` puts "- BOX IMAGE" on the *solution* entry
+      (`0191be5d…`) - contradicts our proposals `01a16093…`/`01a16094-0758…` (box image = `0191be5e…`); decide, then
+      approve ours + Christmas 16 (`01a16094-1395…`, `01a16094-1fdd…`)
+- [ ] Second look at the six "Look out Below!" advent calendar merges of 2026-10-16 (day numbers differ: 1→19, 2→7,
+      6→12, 6→10, 9→15, 3→9) - one puzzle per day, so possibly wrong merges
+- [ ] Interim naming convention ("… - box image" / "… - non box image") into the moderators' guide; label existing pairs
+
 ## What an uploaded picture's file carried (`docs/features/upload-image-metadata.md`, 2026-10-21)
 
 - [x] The browser shrinks photos over 500 KB before upload (add/edit-time form, multiscan) and the canvas re-encode

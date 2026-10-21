@@ -6,7 +6,7 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Wasgij, multipacks and reverting merges (`docs/features/wasgij-and-multipacks.md`, 2026-10-22)
 
-- [ ] Decide the concepts: multipack (one box, several puzzles sharing name/EAN/brand code) and Wasgij (the image is
+- [ ] Decide the two separate concepts (they can meet in one box): multipack (one box, several puzzles sharing name/EAN/brand code) and Wasgij (the image is
       not the puzzle, solution picture = spoiler) - open questions in the doc
 - [ ] Duplicate checks (merge review, `duplicate_puzzle_signal`, approval queue) must not offer merging puzzles of one box
 - [ ] **"Revert merge"** on an approved merge request - **admins only, never moderators** (own access rule above the

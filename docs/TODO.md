@@ -19,7 +19,7 @@ that would otherwise be forgotten. Newest section on top.
 
 ## MSP Rating history (`docs/features/msp-rating-history.md`, 2026-10-20)
 
-- [ ] After the deploy: `myspeedpuzzling:rerank-rating-snapshots` once on production, before the next weekly digest
+- [x] After the deploy: `myspeedpuzzling:rerank-rating-snapshots` once on production, before the next weekly digest (run 2026-10-20; re-run 2026-10-21 wrote 0 places, cleared 0 - history matches the ladder)
 - [ ] "Why did my place move" on the own rating card - store the portfolio entries per day (or the day's points per entry) first
 - [ ] Ladder milestones (top 100, best place ever) as player moments on the Players page / future Hub feed
 - [ ] Rating lines side by side on Compare's Charts tab

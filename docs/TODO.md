@@ -16,9 +16,9 @@ that would otherwise be forgotten. Newest section on top.
       statistics/karma/XP. First extend `puzzle_merge_audit` to snapshot every puzzle column (`approved_at`,
       `approved_by_id`, `names_changed_at`, `image_upload_metadata`, …) and the full rows dropped as duplicates (today
       only their ids - not recoverable). The 2026-10-19 Christmas 10 merge was reverted by hand (steps in the doc)
-- [ ] Rozebeest's pending proposal `01a1607a-f950-7189-ab13-b68a0150f541` puts "- BOX IMAGE" on the *solution* entry
-      (`0191be5d…`) - contradicts our proposals `01a16093…`/`01a16094-0758…` (box image = `0191be5e…`); decide, then
-      approve ours + Christmas 16 (`01a16094-1395…`, `01a16094-1fdd…`)
+- [x] Christmas 10 + 16 labelled "… - box image" / "… - non box image" (4 proposals approved 2026-10-22)
+- [ ] Reject Rozebeest's pending proposal `01a1607a-f950-7189-ab13-b68a0150f541` - it puts "- BOX IMAGE" on the
+      Wasgij entry `0191be5d…` (now "non box image"); approving it would overwrite the correct name
 - [ ] Second look at the six "Look out Below!" advent calendar merges of 2026-10-16 (day numbers differ: 1→19, 2→7,
       6→12, 6→10, 9→15, 3→9) - one puzzle per day, so possibly wrong merges
 - [ ] Interim naming convention ("… - box image" / "… - non box image") into the moderators' guide; label existing pairs

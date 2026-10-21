@@ -10,6 +10,8 @@
         }) }}
             {{ form_row(feedback_form.message) }}
 
+            {{ include('_feedback_screenshots.html.twig') }}
+
             <p class="mt-3 mb-0">
                 <input type="submit" name="submit" value="{{ 'forms.send_feedback'|trans }}" class="btn btn-primary" />
             </p>

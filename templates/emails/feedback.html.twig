@@ -4,3 +4,14 @@
     <b>URL:</b> {{ url }}<br>
     <b>Message:</b> {{ message }}
 </p>
+
+{% if lostScreenshots > 0 %}
+    <p><i>{{ lostScreenshots }} screenshot(s) could not be read and are missing from this e-mail.</i></p>
+{% endif %}
+
+{% for screenshot in screenshots %}
+    <p>
+        <b>Screenshot {{ loop.index }}:</b><br>
+        <img src="cid:{{ screenshot }}" alt="Screenshot {{ loop.index }}" style="max-width: 100%; height: auto; border: 1px solid #ddd;">
+    </p>
+{% endfor %}

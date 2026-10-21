@@ -656,6 +656,17 @@
   "progression_perks": "<h3 class=\"h4\">実績</h3>\n<ul>\n    <li>ブロンズからダイヤモンドまでの実績を集めて、実績ポイント（AP）を獲得</li>\n    <li>実績をプロフィールに飾って、実績ポイントのリーダーボードに参加</li>\n</ul>\n<p class=\"text-muted\">XPとレベルは、メンバーかどうかに関係なく誰でも無料です。</p>\n"
   "coming_soon_description": "<h3 class=\"h4\">近日公開予定の機能は？</h3>\n<ul>\n    <li>月間・年間レポート <small class=\"ms-1 text-muted\">（近日公開）</small></li>\n    <li>mypuzzler.comの公開プロフィール <small class=\"ms-1 text-muted\">（近日公開）</small></li>\n    <li class=\"mt-2\">メンバー限定の特別チャレンジ</li>\n    <li>メンバー間でのパズルの貸し借りと販売</li>\n    <li>&hellip; ほかにもたくさん。これは準備中の機能のほんの一部です！</li>\n</ul>\n"
 "feedback":
+  "rate_limited": "この1時間にたくさんのフィードバックをお送りいただきました。少し時間をおいてから再度お試しください。"
+  "screenshots":
+    "label": "スクリーンショット（任意）"
+    "add": "スクリーンショットを追加"
+    "help": "最大%max%枚まで。スクリーンショットは言葉よりも多くを伝えることがあります。"
+    "paste_hint": "貼り付け（Ctrl+V）やドラッグ＆ドロップでも追加できます。"
+    "privacy": "閲覧できるのは私たちのチームだけです。スクリーンショットにはメールアドレスなどの個人情報が写ることがあるので、必要に応じて切り取ってください。"
+    "too_many": "追加できるスクリーンショットは最大%max%枚です。"
+    "not_image": "追加できるのは画像のみです（JPG、PNG、WebP、HEIC…）。"
+    "too_large": "この画像は大きすぎます。もっと小さい画像を選んでください。"
+    "sending": "送信中…"
   "title": "フィードバック"
   "message": "メッセージ"
   "send": "送信"

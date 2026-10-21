@@ -2032,6 +2032,17 @@ dates:
         12: "December"
 
 feedback:
+    rate_limited: "You have sent us a lot of feedback in the last hour - please try again a little later."
+    screenshots:
+        label: "Screenshots (optional)"
+        add: "Add screenshot"
+        help: "Up to %max% pictures - a screenshot often says more than words."
+        paste_hint: "You can also paste one (Ctrl+V) or drop it here."
+        privacy: "Only our team sees them. Screenshots can show personal details, such as your e-mail address - crop them out if you like."
+        too_many: "You can add up to %max% screenshots."
+        not_image: "Only pictures can be added (JPG, PNG, WebP, HEIC…)."
+        too_large: "This picture is too large - please choose a smaller one."
+        sending: "Sending…"
     title: "Send feedback"
     success_msg: "We have received your feedback and highly appreciate it! We will let you know soon."
     message: "Message"

@@ -1563,6 +1563,17 @@ competition_referees:
     11: "Listopad"
     12: "Prosinec"
 "feedback":
+  "rate_limited": "Za poslední hodinu jste nám poslali hodně zpráv - zkuste to prosím o něco později."
+  "screenshots":
+    "label": "Snímky obrazovky (nepovinné)"
+    "add": "Přidat snímek obrazovky"
+    "help": "Až %max% obrázky - snímek obrazovky často řekne víc než slova."
+    "paste_hint": "Můžete ho také vložit (Ctrl+V) nebo přetáhnout sem."
+    "privacy": "Uvidí je jen náš tým. Na snímcích mohou být osobní údaje, třeba vaše e-mailová adresa - klidně je ořízněte."
+    "too_many": "Přidat můžete nejvýše %max% snímky."
+    "not_image": "Přidat lze jen obrázky (JPG, PNG, WebP, HEIC…)."
+    "too_large": "Tento obrázek je příliš velký - vyberte prosím menší."
+    "sending": "Odesílám…"
   "title": "Poslat zpětnou vazbu"
   "success_msg": "Obdrželi jsme vaši zpětnu vazbu, moc si jí vážíme! Brzy se vám ozveme."
   "message": "Zpráva"

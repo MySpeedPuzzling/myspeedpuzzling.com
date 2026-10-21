@@ -115,6 +115,14 @@ return App::config([
                 'limit' => 60,
                 'interval' => '1 hour',
             ],
+            // The feedback form (FeedbackController): every feedback is an e-mail to our inbox, up to 3 screenshots
+            // attached (docs/features/feedback-screenshots.md). Per player - far above anybody writing to us, a stop
+            // for a script.
+            'feedback' => [
+                'policy' => 'sliding_window',
+                'limit' => 10,
+                'interval' => '1 hour',
+            ],
             // Background photo uploads straight to object storage (PhotoUploadStartController,
             // docs/features/photo-uploads/README.md): every new place is a photo in our bucket for a day. Only an abuse
             // ceiling, never a real player's: a player adding photos to their old results did ~270 in 2 h (2026-10-19).

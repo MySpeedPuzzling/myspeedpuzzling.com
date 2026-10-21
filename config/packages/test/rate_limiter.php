@@ -20,6 +20,12 @@ return App::config([
                 'limit' => 100000,
                 'interval' => '1 minute',
             ],
+            // Per player, and the test players are the same in every run
+            'feedback' => [
+                'policy' => 'sliding_window',
+                'limit' => 100000,
+                'interval' => '1 hour',
+            ],
             'newsletter_subscribe_ip' => [
                 'policy' => 'sliding_window',
                 'limit' => 100000,

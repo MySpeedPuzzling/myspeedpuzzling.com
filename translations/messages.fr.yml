@@ -1546,6 +1546,17 @@ competition_referees:
     11: "Novembre"
     12: "Décembre"
 "feedback":
+  "rate_limited": "Vous nous avez envoyé beaucoup de commentaires au cours de la dernière heure - veuillez réessayer un peu plus tard."
+  "screenshots":
+    "label": "Captures d'écran (facultatif)"
+    "add": "Ajouter une capture"
+    "help": "Jusqu'à %max% images - une capture d'écran en dit souvent plus que des mots."
+    "paste_hint": "Vous pouvez aussi la coller (Ctrl+V) ou la déposer ici."
+    "privacy": "Seule notre équipe les voit. Une capture peut montrer des données personnelles, comme votre adresse e-mail - recadrez-la si vous le souhaitez."
+    "too_many": "Vous pouvez ajouter jusqu'à %max% captures."
+    "not_image": "Seules des images peuvent être ajoutées (JPG, PNG, WebP, HEIC…)."
+    "too_large": "Cette image est trop grande - veuillez en choisir une plus petite."
+    "sending": "Envoi…"
   "title": "Envoyer un commentaire"
   "success_msg": "Nous avons reçu vos commentaires et les apprécions grandement ! Nous vous ferons savoir bientôt."
   "message": "Message"

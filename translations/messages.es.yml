@@ -1515,6 +1515,17 @@ competition_referees:
     11: "Noviembre"
     12: "Diciembre"
 "feedback":
+  "rate_limited": "Nos has enviado muchos comentarios en la última hora; inténtalo de nuevo un poco más tarde."
+  "screenshots":
+    "label": "Capturas de pantalla (opcional)"
+    "add": "Añadir captura"
+    "help": "Hasta %max% imágenes: una captura a menudo dice más que las palabras."
+    "paste_hint": "También puedes pegarla (Ctrl+V) o arrastrarla aquí."
+    "privacy": "Solo las ve nuestro equipo. Las capturas pueden mostrar datos personales, como tu correo electrónico; recórtalos si quieres."
+    "too_many": "Puedes añadir hasta %max% capturas."
+    "not_image": "Solo se pueden añadir imágenes (JPG, PNG, WebP, HEIC…)."
+    "too_large": "Esta imagen es demasiado grande; elige una más pequeña."
+    "sending": "Enviando…"
   "title": "Enviar comentarios"
   "success_msg": "¡Hemos recibido tus comentarios y los apreciamos mucho! Te avisaremos pronto."
   "message": "Mensaje"

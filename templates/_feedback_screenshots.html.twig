@@ -1,0 +1,66 @@
+{#
+    Screenshots of the feedback form (docs/features/feedback-screenshots.md, feedback_screenshots_controller.js).
+    Without JavaScript the file input is all there is; with it the input hides behind "Add screenshot", pasting and
+    dropping, and every picture uploads in the background - its token goes with the form.
+#}
+{% set max_screenshots = constant('SpeedPuzzling\\Web\\Value\\FeedbackScreenshotLimits::MAX_SCREENSHOTS') %}
+<div class="mt-3"
+     data-controller="feedback-screenshots"
+     data-feedback-screenshots-max-value="{{ max_screenshots }}"
+     data-feedback-screenshots-max-file-bytes-value="{{ constant('SpeedPuzzling\\Web\\Value\\PhotoUploadLimits::MAX_PHOTO_BYTES') }}"
+     data-feedback-screenshots-max-request-bytes-value="{{ constant('SpeedPuzzling\\Web\\Value\\PhotoUploadLimits::MAX_REQUEST_BYTES') }}"
+     {% if direct_photo_uploads %}
+     data-feedback-screenshots-upload-url-value="{{ path('photo_upload_start') }}"
+     data-feedback-screenshots-upload-csrf-token-value="{{ csrf_token('photo_upload') }}"
+     data-feedback-screenshots-report-url-value="{{ path('photo_upload_report') }}"
+     {% endif %}
+     data-feedback-screenshots-texts-value="{{ {
+         uploading: 'photo_upload.uploading'|trans,
+         uploading_slow: 'photo_upload.uploading_slow'|trans,
+         retrying: 'photo_upload.retrying'|trans,
+         waiting: 'photo_upload.waiting'|trans,
+         with_form: 'photo_upload.with_form'|trans,
+         too_many: 'feedback.screenshots.too_many'|trans({'%max%': max_screenshots}),
+         not_image: 'feedback.screenshots.not_image'|trans,
+         too_large: 'feedback.screenshots.too_large'|trans,
+         sending: 'feedback.screenshots.sending'|trans,
+         remove: 'photo_stash.remove'|trans,
+     }|json_encode }}"
+>
+    <label class="form-label" for="{{ feedback_form.screenshots.vars.id }}">{{ 'feedback.screenshots.label'|trans }}</label>
+
+    <ul class="list-unstyled d-flex flex-wrap gap-2 mb-2" data-feedback-screenshots-target="list">
+        {% for photo in kept_screenshots|default([]) %}
+            <li class="feedback-screenshot position-relative border rounded overflow-hidden" data-feedback-screenshots-target="item">
+                {% if photo.hasPreview %}
+                    <img src="{{ path('photo_stash_preview', {token: photo.token}) }}" alt="" width="80" height="80" class="d-block object-fit-cover">
+                {% else %}
+                    <span class="d-flex align-items-center justify-content-center small text-muted p-1 text-break" style="width: 80px; height: 80px;">{{ photo.fileName }}</span>
+                {% endif %}
+                <input type="hidden" name="photo_stash[screenshots][]" value="{{ photo.token }}">
+                <button type="button" class="btn-close position-absolute top-0 end-0 m-1 bg-white rounded-circle p-1" data-action="feedback-screenshots#remove" aria-label="{{ 'photo_stash.remove'|trans }}"></button>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <div class="small text-muted mb-2" aria-live="polite" data-feedback-screenshots-target="status"></div>
+
+    {{ form_widget(feedback_form.screenshots, {attr: {
+        class: 'form-control',
+        'data-feedback-screenshots-target': 'input',
+        'data-action': 'change->feedback-screenshots#picked',
+    }}) }}
+
+    <button type="button" class="btn btn-outline-secondary btn-sm" hidden data-feedback-screenshots-target="addButton" data-action="feedback-screenshots#choose">
+        <i class="ci-image me-1"></i>{{ 'feedback.screenshots.add'|trans }}
+    </button>
+
+    <div class="small text-danger mt-1" role="alert" hidden data-feedback-screenshots-target="error"></div>
+    {{ form_errors(feedback_form.screenshots) }}
+
+    <div class="form-text">
+        {{ 'feedback.screenshots.help'|trans({'%max%': max_screenshots}) }}
+        <span data-feedback-screenshots-target="pasteHint" hidden>{{ 'feedback.screenshots.paste_hint'|trans }}</span>
+    </div>
+    <div class="form-text">{{ 'feedback.screenshots.privacy'|trans }}</div>
+</div>

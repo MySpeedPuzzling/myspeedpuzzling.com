@@ -1512,6 +1512,17 @@ competition_referees:
     11: "November"
     12: "Dezember"
 "feedback":
+  "rate_limited": "Sie haben uns in der letzten Stunde viel Feedback geschickt - bitte versuchen Sie es etwas später noch einmal."
+  "screenshots":
+    "label": "Screenshots (optional)"
+    "add": "Screenshot hinzufügen"
+    "help": "Bis zu %max% Bilder - ein Screenshot sagt oft mehr als Worte."
+    "paste_hint": "Sie können ihn auch einfügen (Strg+V) oder hierher ziehen."
+    "privacy": "Nur unser Team sieht sie. Screenshots können persönliche Angaben zeigen, etwa Ihre E-Mail-Adresse - schneiden Sie sie gern heraus."
+    "too_many": "Sie können bis zu %max% Screenshots hinzufügen."
+    "not_image": "Es können nur Bilder hinzugefügt werden (JPG, PNG, WebP, HEIC…)."
+    "too_large": "Dieses Bild ist zu groß - bitte wählen Sie ein kleineres."
+    "sending": "Wird gesendet…"
   "title": "Feedback senden"
   "message": "Nachricht"
   "send": "Senden"

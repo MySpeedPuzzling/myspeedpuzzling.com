@@ -104,6 +104,23 @@ def test_vision_labels_payload():
     p = wrap(av.vision_labels_payload([("sky", 0.78), ("tiny", 0.05)] + [(f"l{i}", 0.5) for i in range(50)], [(0.012, 0.9)], 3, [(0.1, 0.5, 0.4, 0.3)]))
     assert len(p["labels"]) == 40 and p["labels"][0] == ["sky", 0.78] and p["humans"] == 3
     assert p["faces"] == [{"area": 0.012, "c": 0.9}] and p["saliency"]["bbox"] == [0.1, 0.2, 0.4, 0.3]
+    assert p["aesthetics"] is None and p["featurePrint"] is None and p["horizonDeg"] is None
+
+
+def test_vision_labels_extras_keep_the_aesthetics_score_the_feature_print_and_the_horizon():
+    class Obs:
+        def __init__(self, **kw):
+            self.kw = kw
+
+        def __getattr__(self, name):
+            return lambda: self.kw[name]
+
+    fp = np.random.default_rng(3).normal(size=768).astype(np.float32)
+    extras = av.vision_extras(Obs(overallScore=0.8461, isUtility=False), Obs(elementType=1, data=fp.tobytes()), Obs(angle=np.pi / 2))
+    p = wrap(av.vision_labels_payload([("sky", 0.78)], [], 0, [], extras))
+    assert p["aesthetics"] == {"overall": 0.8461, "utility": False} and p["horizonDeg"] == 90.0
+    assert p["featurePrint"]["dim"] == 768 and np.allclose(b64_to_vector(p["featurePrint"]["vector"]), fp / np.linalg.norm(fp), atol=2e-3)
+    assert av.vision_extras(None, None, None) == {"aesthetics": None, "featurePrint": None, "horizonDeg": None}
 
 
 @pytest.mark.parametrize("cls", [em.Siglip2Stage, em.Siglip2FullStage])

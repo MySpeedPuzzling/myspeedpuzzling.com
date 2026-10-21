@@ -13,6 +13,7 @@ after `VISION_MAX_STUCK` of them the stage ends (`StageBroken`) and the next pas
 from __future__ import annotations
 
 import logging
+import math
 import platform
 import threading
 from dataclasses import dataclass
@@ -21,7 +22,7 @@ from typing import Any, Callable, ClassVar, Sequence
 import numpy as np
 
 from ..imaging import bbox_to_xyxy, to_png_bytes
-from ..payload import encoded_size
+from ..payload import encoded_size, vector_to_b64
 from .base import Prepared, Stage, StageBroken
 
 log = logging.getLogger(__name__)
@@ -145,8 +146,9 @@ def barcode_payload(codes: list[tuple[str, str, Sequence[float]]]) -> dict[str, 
 
 
 def vision_labels_payload(labels: list[tuple[str, float]], faces: list[tuple[float, float]], humans: int,
-                          saliency: list[Sequence[float]]) -> dict[str, Any]:
-    """labels: (identifier, confidence); faces: (area share, confidence); saliency: Vision boxes of salient objects."""
+                          saliency: list[Sequence[float]], extras: dict[str, Any] | None = None) -> dict[str, Any]:
+    """labels: (identifier, confidence); faces: (area share, confidence); saliency: Vision boxes of salient objects;
+    extras: what `vision_extras` read (each key None when that request gave nothing)."""
     kept = sorted(((str(i), round(float(c), 3)) for i, c in labels if c >= LABEL_MIN_CONFIDENCE), key=lambda x: -x[1])[:LABELS_MAX]
     sal = None
     if saliency:
@@ -162,7 +164,30 @@ def vision_labels_payload(labels: list[tuple[str, float]], faces: list[tuple[flo
         "faces": [{"area": round(float(a), 4), "c": round(float(c), 2)} for a, c in faces],
         "humans": int(humans),
         "saliency": sal,
+        **{k: (extras or {}).get(k) for k in EXTRA_KEYS},
     }
+
+
+# Extras since 1.1.0, captured in the first full pass because a later one costs a re-run (data-mining research
+# 2026-10-21): Apple's aesthetics score (`overall` -1..1, `utility` = a document/screenshot-like picture) to rank which
+# pictures most need a better one, the image feature print (a third embedding for duplicates/editions, 768-d rev 2)
+# and the horizon angle (assembled photos turned by 90°).
+EXTRA_KEYS = ("aesthetics", "featurePrint", "horizonDeg")
+
+
+def vision_extras(aesthetics: Any, feature_print: Any, horizon: Any) -> dict[str, Any]:
+    """The first observation of each extra request (or None) -> the payload's extra keys."""
+    out: dict[str, Any] = dict.fromkeys(EXTRA_KEYS)
+    if aesthetics is not None:
+        out["aesthetics"] = {"overall": round(float(aesthetics.overallScore()), 4), "utility": bool(aesthetics.isUtility())}
+    if feature_print is not None:
+        dtype = np.float32 if int(feature_print.elementType()) == 1 else np.float64
+        v = np.frombuffer(bytes(feature_print.data()), dtype=dtype)
+        if v.size:
+            out["featurePrint"] = {"dim": int(v.size), "dtype": "f16", "norm": "l2", "vector": vector_to_b64(v)}
+    if horizon is not None:
+        out["horizonDeg"] = round(math.degrees(float(horizon.angle())), 2)
+    return out
 
 
 def macos() -> str:
@@ -334,7 +359,7 @@ class VisionLabelsStage(AppleVisionStage):
 
     @property
     def model(self) -> str:
-        return f"apple-vision/VNClassifyImageRequest+faces+humans+attention-saliency/macOS{macos()}"
+        return f"apple-vision/VNClassifyImageRequest+faces+humans+attention-saliency+aesthetics+featureprint+horizon/macOS{macos()}"
 
     def vision(self, p: Prepared, requests: list[Any]) -> dict[str, Any]:
         import Vision  # type: ignore[import-not-found]
@@ -343,8 +368,11 @@ class VisionLabelsStage(AppleVisionStage):
         face = Vision.VNDetectFaceRectanglesRequest.alloc().init()
         hum = Vision.VNDetectHumanRectanglesRequest.alloc().init()
         sal = Vision.VNGenerateAttentionBasedSaliencyImageRequest.alloc().init()
-        requests.extend([cls, face, hum, sal])
-        _handler(to_png_bytes(p.subject)).performRequests_error_([cls, face, hum, sal], None)
+        extra = [Vision.VNCalculateImageAestheticsScoresRequest.alloc().init(),
+                 Vision.VNGenerateImageFeaturePrintRequest.alloc().init(),
+                 Vision.VNDetectHorizonRequest.alloc().init()]
+        requests.extend([cls, face, hum, sal, *extra])
+        _handler(to_png_bytes(p.subject)).performRequests_error_([cls, face, hum, sal, *extra], None)
         labels = [(str(o.identifier()), float(o.confidence())) for o in cls.results() or []]
         faces = [(_box(o)[2] * _box(o)[3], float(o.confidence())) for o in face.results() or []]
         humans = len(hum.results() or [])
@@ -352,4 +380,5 @@ class VisionLabelsStage(AppleVisionStage):
         for o in sal.results() or []:
             for s in o.salientObjects() or []:
                 salient.append(_box(s))
-        return vision_labels_payload(labels, faces, humans, salient)
+        first = [(r.results() or [None])[0] for r in extra]
+        return vision_labels_payload(labels, faces, humans, salient, vision_extras(*first))

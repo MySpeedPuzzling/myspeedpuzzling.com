@@ -35,8 +35,9 @@ def test_one_version_per_analyzer_across_machines():
     # every analyzer that reads the artwork crop moved with artwork 1.1 (its crops changed)
     assert m3.version("describe") == "1.0.1+qwen35-9b-4bit"
     assert m1.version("embed_siglip2") == "1.0.1+so400m-14-384" and m1.version("embed_siglip2_full") == "1.0.0+so400m-14-384"
-    for name in ("colors", "traits", "segmentation", "embed_dinov2", "embed_siglip2", "vision_labels", "describe"):
+    for name in ("colors", "traits", "segmentation", "embed_dinov2", "embed_siglip2", "describe"):
         assert m1.version(name).startswith("1.0.1+"), name
+    assert m1.version("vision_labels") == "1.1.0+apple-vision"  # + aesthetics, feature print, horizon
     assert all(v.split("+")[0].count(".") == 2 and len(v) <= 50 for v in list(m1.derived_versions.values()))
 
 

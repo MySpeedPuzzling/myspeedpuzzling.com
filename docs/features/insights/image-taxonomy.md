@@ -459,7 +459,11 @@ as `[]`).
 `barcode` (full image): `{"codes":[{"sym":"EAN13","v":"4005556173709","b":[…],"checksumOk":true,"reader":"apple"}]}`.
 
 `vision_labels` (crop): `{"labels":[["sky",0.78],…≤40 with confidence ≥ 0.1],"faces":[{"area":0.012,"c":0.9}],
-"humans":3,"saliency":{"bbox":[…],"areaShare":0.42}}` - no face crops, no face embeddings, no landmarks.
+"humans":3,"saliency":{"bbox":[…],"areaShare":0.42},"aesthetics":{"overall":0.85,"utility":false},
+"featurePrint":{"dim":768,"dtype":"f16","norm":"l2","vector":"<base64>"},"horizonDeg":null}` - no face crops, no face
+embeddings, no landmarks. The last three since 1.1.0 (2026-10-21, captured in the first full pass): Apple's aesthetics
+score (`overall` -1..1; `utility` = document/screenshot-like) to rank which pictures need a better one most, the image
+feature print (rev 2, a third embedding for duplicates and editions) and the horizon angle (null when none found).
 
 `embed_siglip2` (crop - needs `artwork`): `{"dim":1152,"dtype":"f16","norm":"l2","vector":"<base64>","preprocess":"384 squash, siglip2 processor"}`,
 envelope `crop` = the `artwork` bbox/corners used.

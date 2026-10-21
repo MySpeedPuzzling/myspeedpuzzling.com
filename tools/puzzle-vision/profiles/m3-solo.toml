@@ -31,6 +31,12 @@ requires = ["artwork"]
 claim_limit = 200
 seconds_per_image = 0.035  # an estimate: DINOv2-base measured 0.010, L/14 ~3.5x the FLOPs
 
+[analyzers.embed_dinov2_patches]
+version = "1.0.0+dinov2-l14-224sq"
+requires = ["artwork"]
+claim_limit = 200
+seconds_per_image = 0.035  # DINOv2-L at 224, like embed_dinov2
+
 [analyzers.ocr]
 version = "1.0.0+apple-vision-ocr3"
 requires = []
@@ -84,7 +90,7 @@ stages = ["artwork"]
 # 2. the launch path: the picture embeddings the difficulty estimate reads (whole image first - the fallback model)
 [[phases]]
 name = "embed"
-stages = ["embed_siglip2_full", "embed_siglip2", "embed_dinov2"]
+stages = ["embed_siglip2_full", "embed_siglip2", "embed_dinov2", "embed_dinov2_patches"]
 
 # 3. Apple Vision on the full image, in a phase of its own (describe needs ocr)
 #
@@ -95,7 +101,7 @@ stages = ["embed_siglip2_full", "embed_siglip2", "embed_dinov2"]
 # (e.g. `ocr` next to `embed_dinov2`, `bench` both ways), it would need profiles.parse to accept "ane" sidecars, then:
 #   [[phases]]
 #   name = "embed"
-#   stages = ["embed_siglip2_full", "embed_siglip2", "embed_dinov2"]
+#   stages = ["embed_siglip2_full", "embed_siglip2", "embed_dinov2", "embed_dinov2_patches"]
 #   sidecar = ["ocr", "barcode"]
 [[phases]]
 name = "apple"

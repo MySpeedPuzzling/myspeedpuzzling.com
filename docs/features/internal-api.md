@@ -330,7 +330,8 @@ needed.
   [`insights/image-taxonomy.md`](./insights/image-taxonomy.md) §11): raw, from the image - `artwork`, `colors`,
   `traits`, `ocr`, `barcode`, `vision_labels`, `embed_siglip2` (SigLIP 2 of the artwork crop), `embed_siglip2_full`
   (SigLIP 2 of the whole image - its own analyzer since 2026-10-18, so it can run before `artwork` exists),
-  `embed_dinov2` (embeddings as base64 float16 inside the JSON, ~3 KB a vector), `segmentation`, `describe`; derived on the Mac from those - `box_text`, `zeroshot`,
+  `embed_dinov2` (embeddings as base64 float16 inside the JSON, ~3 KB a vector), `embed_dinov2_patches` (DINOv2 patch
+  tokens of the crop: mean + 2×2 grid, ~14 KB, for search by a photo of a part), `segmentation`, `describe`; derived on the Mac from those - `box_text`, `zeroshot`,
   `neighbours`, `tags`. The largest expected payload (`ocr`, capped at 400 lines) is ~16 KB. What part of the image an analyzer looks at (the cropped artwork, the whole photo) is its own
   business - the fingerprint always names the source image.
 - **imageFingerprint** - which picture an analysis describes: the first 16 hex characters of `md5(puzzle.image)`
@@ -413,7 +414,7 @@ needed.
   | Analyzer | requires |
   |---|---|
   | `ocr`, `barcode`, `embed_siglip2_full`, `artwork` | - |
-  | `colors`, `traits`, `segmentation`, `embed_dinov2`, `embed_siglip2`, `vision_labels` | `artwork` |
+  | `colors`, `traits`, `segmentation`, `embed_dinov2`, `embed_dinov2_patches`, `embed_siglip2`, `vision_labels` | `artwork` |
   | `describe` | `artwork`, `ocr` |
   | `box_text`, `zeroshot`, `neighbours`, `tags` (derived on the Mac) | their raw inputs (no image needed) |
 

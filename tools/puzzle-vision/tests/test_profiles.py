@@ -18,7 +18,7 @@ def test_requires_match_the_dependency_table(profile):
         assert tuple(sorted(s.requires)) == tuple(sorted(A.REQUIRES[name]))
     assert A.REQUIRES["describe"] == ("artwork", "ocr")
     assert A.REQUIRES["ocr"] == () and A.REQUIRES["embed_siglip2_full"] == () and A.REQUIRES["artwork"] == ()
-    for crop in ("colors", "traits", "segmentation", "embed_dinov2", "embed_siglip2", "vision_labels"):
+    for crop in ("colors", "traits", "segmentation", "embed_dinov2", "embed_dinov2_patches", "embed_siglip2", "vision_labels"):
         assert A.REQUIRES[crop] == ("artwork",)
 
 
@@ -59,7 +59,7 @@ def test_one_mac_runs_everything_with_the_launch_path_first():
     assert [ph.name for ph in solo.phases] == ["artwork", "embed", "apple", "features", "describe"]
     # what derive/difficulty_prior.py reads is done before anything else after the crops
     assert solo.phase("artwork").stages == ("artwork",)
-    assert set(solo.phase("embed").stages) == {"embed_siglip2_full", "embed_siglip2", "embed_dinov2"}
+    assert set(solo.phase("embed").stages) == {"embed_siglip2_full", "embed_siglip2", "embed_dinov2", "embed_dinov2_patches"}
     assert solo.phase("apple").stages == ("ocr", "barcode") and not solo.phase("apple").sidecar
     assert solo.phase("features").stages == ("segmentation", "vision_labels")
     assert solo.phase("features").sidecar == ("colors", "traits")

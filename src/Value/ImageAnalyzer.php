@@ -38,6 +38,9 @@ enum ImageAnalyzer: string
     case EmbedSiglip2Full = 'embed_siglip2_full';
     // DINOv2 image embedding (crop), base64 float16
     case EmbedDinov2 = 'embed_dinov2';
+    // DINOv2 patch tokens of the whole crop: their mean + a 2×2 grid of means, base64 float16 (~14 KB) - region-level
+    // similarity for finding a puzzle from a photo of a part of it; its own analyzer so `embed_dinov2` reads stay small
+    case EmbedDinov2Patches = 'embed_dinov2_patches';
     // Class shares, instance counts and a coarse class grid of the artwork
     case Segmentation = 'segmentation';
     // A vision-language model's caption and structured description of the artwork

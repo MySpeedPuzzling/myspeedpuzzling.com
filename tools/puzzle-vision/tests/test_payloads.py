@@ -123,6 +123,24 @@ def test_dinov2_payload():
     assert p["dim"] == 1024 and "cls" in p and p["preprocess"] == "224 short side, centre"
 
 
+def test_dinov2_patches_payload_keeps_the_mean_and_a_two_by_two_grid_of_the_whole_crop():
+    tokens = np.zeros((16, 16, 1024), np.float32)
+    tokens[:8, :8, 0] = 1  # top left
+    tokens[:8, 8:, 1] = 1  # top right
+    tokens[8:, :8, 2] = 1  # bottom left
+    tokens[8:, 8:, 3] = 2  # bottom right, stronger
+    p = wrap(em.dinov2_patches_payload(*em.pooled_patches(tokens)))
+    assert set(p) - ENVELOPE == {"dim", "dtype", "norm", "mean", "grid", "gridShape", "preprocess"}
+    assert p["dim"] == 1024 and p["gridShape"] == [2, 2]
+    grid = b64_to_vector(p["grid"]).reshape(4, 1024)
+    assert np.allclose(np.linalg.norm(grid, axis=1), 1, atol=1e-3)
+    assert [int(np.argmax(c)) for c in grid] == [0, 1, 2, 3]
+    mean = b64_to_vector(p["mean"])
+    assert abs(np.linalg.norm(mean) - 1) < 1e-3 and np.argmax(mean) == 3
+    assert em.Dinov2PatchesStage.uses_crop and em.Dinov2PatchesStage.upstream == ("artwork",)
+    assert len(json.dumps(p)) < 16_000
+
+
 def test_segmentation_summary():
     ids = np.zeros((64, 64), np.int32)
     ids[:32] = 1   # sky (stuff)

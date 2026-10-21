@@ -25,6 +25,7 @@ final class ImageAnalyzerTest extends TestCase
             'embed_siglip2',
             'embed_siglip2_full',
             'embed_dinov2',
+            'embed_dinov2_patches',
             'segmentation',
             'describe',
             'box_text',

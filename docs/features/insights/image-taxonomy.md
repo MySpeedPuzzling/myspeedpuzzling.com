@@ -469,6 +469,12 @@ exists, and one analyzer = one payload = one push. Both use the same model and p
 comparable (full vs crop of the same box).
 `embed_dinov2`: `{"dim":1024,"dtype":"f16","norm":"l2","cls":"<base64>","preprocess":"224 short side, centre"}` (crop only).
 
+`embed_dinov2_patches` (added 2026-10-21, captured during the first full pass so search by a photo of a *part* of a
+puzzle never needs a re-run): the same DINOv2-L/14 on the whole crop squashed to 224×224 (no centre crop), patch tokens
+pooled - `{"dim":1024,"dtype":"f16","norm":"l2","mean":"<base64 1024>","grid":"<base64 4×1024, row-major from the top
+left, each cell L2-normalised>","gridShape":[2,2],"preprocess":"224 squash, dinov2 processor without resize/crop"}`
+(~14 KB). Read the grid with `b64_to_vector(grid).reshape(4, 1024)`.
+
 `segmentation` (crop): `{"classes":{"sky":0.31,"tree":0.18,"grass":0.07,"sea":0.12,"building":0.05,"person":0.01,…≥0.002},
 "instances":{"person":4,"dog":1,"bird":7},"grid16":[256 class ids],"classList":"coco-panoptic-133"}`.
 

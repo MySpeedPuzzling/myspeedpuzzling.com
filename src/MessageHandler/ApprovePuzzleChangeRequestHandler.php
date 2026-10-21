@@ -130,9 +130,10 @@ readonly final class ApprovePuzzleChangeRequestHandler
             $changeRequest->proposedImageRatio,
             // Only an admin corrects a secret competition puzzle before its reveal
             allowSecret: $reviewer->isAdmin,
+            proposedImageUploadMetadata: $changeRequest->proposedImageUploadMetadata(),
         );
 
-        $changeRequest->approve($reviewer, $this->clock->now());
+        $changeRequest->approve($reviewer, $this->clock->now(), proposedImageUsed: $values->image === PuzzleImageChoice::Proposed);
 
         if ($archivePath !== null) {
             $changeRequest->originalArchived($archivePath);

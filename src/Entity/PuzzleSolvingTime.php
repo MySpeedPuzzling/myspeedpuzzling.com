@@ -33,6 +33,7 @@ use SpeedPuzzling\Web\Value\SolvingTimePrediction;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use SpeedPuzzling\Web\Value\TimePredictionMethod;
 use SpeedPuzzling\Web\Value\TimePredictionSource;
+use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 
 #[Entity]
 #[Index(columns: ['tracked_at'])]
@@ -120,6 +121,19 @@ class PuzzleSolvingTime implements EntityWithEvents
     #[Column(type: Types::INTEGER, nullable: true)]
     public null|int $piecesCountSnapshot;
 
+    /**
+     * What the finished-puzzle photo's file carried when it was uploaded, UploadedImageMetadata::toArray() - read it as
+     * finishedPuzzlePhotoUploadMetadata(); the capture time is evidence next to finishedAt for the time verification
+     * and duplicate results. Null when not known: photos stored before it was recorded (2026-10), an unreadable file,
+     * no photo. Changes only together with the photo (constructor, modify(), takeOverFrom(), restore()), and goes when
+     * the time is handed over to another member of a deleted player's pair/team (docs/features/upload-image-metadata.md)
+     *
+     * @var null|array<string, mixed>
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::JSONB, nullable: true)]
+    public null|array $finishedPuzzlePhotoUploadMetadata = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -180,11 +194,13 @@ class PuzzleSolvingTime implements EntityWithEvents
         #[ManyToOne]
         #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
         public null|CompetitionSeries $competitionSeries = null,
+        null|UploadedImageMetadata $finishedPuzzlePhotoUploadMetadata = null,
     ) {
         if ($competitionSeries !== null && $competition !== null) {
             throw new LogicException('A series pick starts without an edition - seriesEditionResolved() links it.');
         }
 
+        $this->finishedPuzzlePhotoUploadMetadata = $finishedPuzzlePhoto !== null ? $finishedPuzzlePhotoUploadMetadata?->toArray() : null;
         $this->puzzlersCount = $this->calculatePuzzlersCount();
         $this->puzzlingType = PuzzlingType::fromPuzzlersCount($this->puzzlersCount);
         $this->piecesCountSnapshot = $puzzle->piecesCount;
@@ -231,6 +247,7 @@ class PuzzleSolvingTime implements EntityWithEvents
             puzzlingTeam: $group === null ? null : $puzzlingTeam,
             createdVia: $snapshot->createdVia,
             competitionSeries: $competitionSeries,
+            finishedPuzzlePhotoUploadMetadata: $snapshot->finishedPuzzlePhotoUploadMetadata,
         );
 
         // The shown prediction comes back as it was; its side-by-side rows (solving_time_prediction) went with the
@@ -275,6 +292,7 @@ class PuzzleSolvingTime implements EntityWithEvents
         foreach ($copies as $copy) {
             if ($this->finishedPuzzlePhoto === null && $copy->finishedPuzzlePhoto !== null) {
                 $this->finishedPuzzlePhoto = $copy->finishedPuzzlePhoto;
+                $this->finishedPuzzlePhotoUploadMetadata = $copy->finishedPuzzlePhotoUploadMetadata;
                 $changed = true;
             }
 
@@ -527,6 +545,11 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->predictionModelVersion = $prediction->modelVersion;
     }
 
+    public function finishedPuzzlePhotoUploadMetadata(): null|UploadedImageMetadata
+    {
+        return UploadedImageMetadata::fromArray($this->finishedPuzzlePhotoUploadMetadata);
+    }
+
     /**
      * Solo with seconds and not evaluated yet - what the live add, the edit and the backfill pick up.
      */
@@ -550,6 +573,10 @@ class PuzzleSolvingTime implements EntityWithEvents
         // A series pick (then $competition is null): the caller resolves its edition afterwards
         // (seriesEditionResolved()) - an edit is always a fresh evaluation
         null|CompetitionSeries $competitionSeries = null,
+        // A photo was uploaded with this edit (its object may even have the old path - the name has a seconds timestamp)
+        // and what its file carried; without one the summary stays while the path does, and goes when the path changes
+        bool $finishedPuzzlePhotoUploaded = false,
+        null|UploadedImageMetadata $finishedPuzzlePhotoUploadMetadata = null,
     ): void {
         if ($competitionSeries !== null && $competition !== null) {
             throw new LogicException('A series pick starts without an edition - seriesEditionResolved() links it.');
@@ -564,6 +591,13 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->team = $puzzlersGroup;
         $this->puzzlingTeam = $puzzlersGroup === null ? null : $puzzlingTeam;
         $this->finishedAt = $finishedAt;
+
+        if ($finishedPuzzlePhotoUploaded) {
+            $this->finishedPuzzlePhotoUploadMetadata = $finishedPuzzlePhoto !== null ? $finishedPuzzlePhotoUploadMetadata?->toArray() : null;
+        } elseif ($finishedPuzzlePhoto !== $this->finishedPuzzlePhoto) {
+            $this->finishedPuzzlePhotoUploadMetadata = null;
+        }
+
         $this->finishedPuzzlePhoto = $finishedPuzzlePhoto;
         $this->firstAttempt = $firstAttempt;
         $this->unboxed = $unboxed;
@@ -632,6 +666,9 @@ class PuzzleSolvingTime implements EntityWithEvents
 
         // Someone else's time now - the daily backfill evaluates it again
         $this->forgetPrediction();
+
+        // The photo stays for the others; what its file told about the deleted player's device does not
+        $this->finishedPuzzlePhotoUploadMetadata = null;
     }
 
     public function replaceTeam(null|PuzzlersGroup $newTeam): void

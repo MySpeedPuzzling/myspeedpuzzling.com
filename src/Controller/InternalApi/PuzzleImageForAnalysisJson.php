@@ -53,6 +53,9 @@ final class PuzzleImageForAnalysisJson
             'imageRatio' => $puzzle->imageRatio,
             // Every counted result (solo, pairs, teams; suspicious left out) - for most-solved-first ordering
             'solvedCount' => $puzzle->solvedCount,
+            // What the picture's file carried when it was uploaded (docs/features/upload-image-metadata.md): camera EXIF
+            // or not, the capture time, the software family, ... - null when not known (pictures from before 2026-10)
+            'uploadMetadata' => $puzzle->uploadMetadata?->toArray(),
             // Objects even when empty
             'analyses' => (object) $analyses,
             // Who is working on the image now, per analyzer (claims not expired)

@@ -21,6 +21,7 @@ use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\LanguageTag;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleSearchKeys;
+use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 
 #[Entity]
 #[Index(columns: ['pieces_count'])]
@@ -68,6 +69,18 @@ class Puzzle
     public null|string $ean = null;
 
     /**
+     * What the picture's file carried when it was uploaded, UploadedImageMetadata::toArray() - read it as
+     * imageUploadMetadata(). Null when not known: pictures stored before it was recorded (2026-10), an unreadable file,
+     * or none. Changes only together with the image (useImage(), takeImageOf(), correctNewlyAdded()); a renamed object
+     * (moveImageTo()) is the same picture and keeps it (docs/features/upload-image-metadata.md)
+     *
+     * @var null|array<string, mixed>
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::JSONB, nullable: true)]
+    public null|array $imageUploadMetadata = null;
+
+    /**
      * @throws InvalidPuzzleValues
      */
     public function __construct(
@@ -82,6 +95,8 @@ class Puzzle
         public string $name,
         #[Column]
         public bool $approved,
+        // Changed through useImage() / takeImageOf() / moveImageTo(), which keep imageUploadMetadata with it
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(nullable: true)]
         public null|string $image = null,
         #[Column(nullable: true)]
@@ -112,7 +127,9 @@ class Puzzle
         #[JoinColumn(onDelete: 'SET NULL')]
         public null|Player $approvedBy = null,
         null|string $nameLanguage = null,
+        null|UploadedImageMetadata $imageUploadMetadata = null,
     ) {
+        $this->imageUploadMetadata = $image !== null ? $imageUploadMetadata?->toArray() : null;
         $this->applyNames($name, $nameLanguage, $alternativeNames);
         $this->updateProductIdentifiers($eans ?? EanList::fromStored(null), $brandCodes ?? BrandCodeList::fromStored(null));
     }
@@ -130,6 +147,31 @@ class Puzzle
     public function brandCodes(): BrandCodeList
     {
         return BrandCodeList::fromStored($this->identificationNumber);
+    }
+
+    public function imageUploadMetadata(): null|UploadedImageMetadata
+    {
+        return UploadedImageMetadata::fromArray($this->imageUploadMetadata);
+    }
+
+    /**
+     * A new picture: its object path, ratio and what its file carried when uploaded (null = not known).
+     */
+    public function useImage(string $path, null|float $ratio, null|UploadedImageMetadata $uploadMetadata): void
+    {
+        $this->image = $path;
+        $this->imageRatio = $ratio;
+        $this->imageUploadMetadata = $uploadMetadata?->toArray();
+    }
+
+    /**
+     * Another puzzle's picture becomes this one's (a merge) - the very same object, so what is known about it comes along.
+     */
+    public function takeImageOf(self $other): void
+    {
+        $this->image = $other->image;
+        $this->imageRatio = $other->imageRatio;
+        $this->imageUploadMetadata = $other->image !== null ? $other->imageUploadMetadata : null;
     }
 
     /**
@@ -218,12 +260,12 @@ class Puzzle
         EanList $eans,
         BrandCodeList $brandCodes,
         DateTimeImmutable $now,
+        null|UploadedImageMetadata $imageUploadMetadata = null,
     ): void {
         $this->changeNames($name, $this->nameLanguage, $alternativeNames, $now);
         $this->piecesCount = $piecesCount;
         $this->manufacturer = $manufacturer;
-        $this->image = $image;
-        $this->imageRatio = $imageRatio;
+        $this->useImage($image, $imageRatio, $imageUploadMetadata);
         $this->updateProductIdentifiers($eans, $brandCodes);
     }
 

@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleName;
 use SpeedPuzzling\Web\Value\PuzzleNames;
+use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 
 final class PuzzleTest extends TestCase
 {
@@ -45,6 +46,29 @@ final class PuzzleTest extends TestCase
         self::assertSame('4005556147090', $puzzle->ean, 'stored in the canonical form');
         self::assertSame("\ne:4005556147090\nc:14709\nc:147090\n", $puzzle->searchCodes);
         self::assertNull($puzzle->namesChangedAt);
+    }
+
+    public function testWhatAPicturesFileCarriedGoesWithThePicture(): void
+    {
+        $uploaded = new UploadedImageMetadata(bytes: 1000, format: 'JPEG', width: 40, height: 30, exif: true, cameraExif: true, make: 'Apple');
+        $merged = new Puzzle(id: Uuid::uuid7(), piecesCount: 500, name: 'Merged', approved: true, image: 'merged.jpg', imageUploadMetadata: $uploaded);
+        $survivor = new Puzzle(id: Uuid::uuid7(), piecesCount: 500, name: 'Survivor', approved: true);
+
+        // A merge hands the very same object over - and what is known about it
+        $survivor->takeImageOf($merged);
+        self::assertSame('merged.jpg', $survivor->image);
+        self::assertEquals($uploaded, $survivor->imageUploadMetadata());
+
+        // A secret puzzle's picture renamed is still the same picture
+        $survivor->moveImageTo('0123456789abcdef.jpg');
+        self::assertEquals($uploaded, $survivor->imageUploadMetadata());
+
+        // A new picture brings its own summary, or none
+        $survivor->useImage('new.jpg', 1.5, null);
+        self::assertNull($survivor->imageUploadMetadata);
+
+        // Without a picture there is nothing to describe
+        self::assertNull(new Puzzle(id: Uuid::uuid7(), piecesCount: 500, name: 'No image', approved: true, imageUploadMetadata: $uploaded)->imageUploadMetadata);
     }
 
     public function testAPuzzleWithoutOtherNamesOrCodes(): void

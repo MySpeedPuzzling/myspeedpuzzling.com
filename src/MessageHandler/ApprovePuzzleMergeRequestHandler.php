@@ -212,8 +212,7 @@ readonly final class ApprovePuzzleMergeRequestHandler
             try {
                 $imagePuzzle = $this->puzzleRepository->get($message->selectedImagePuzzleId);
                 if ($imagePuzzle->image !== null) {
-                    $survivorPuzzle->image = $imagePuzzle->image;
-                    $survivorPuzzle->imageRatio = $imagePuzzle->imageRatio;
+                    $survivorPuzzle->takeImageOf($imagePuzzle);
                 }
             } catch (PuzzleNotFound) {
                 $this->logger->debug('Image puzzle {puzzleId} not found, keeping survivor image', [
@@ -380,8 +379,7 @@ readonly final class ApprovePuzzleMergeRequestHandler
             );
 
             if ($survivorPuzzle->image === null && $puzzleToMerge->image !== null) {
-                $survivorPuzzle->image = $puzzleToMerge->image;
-                $survivorPuzzle->imageRatio = $puzzleToMerge->imageRatio;
+                $survivorPuzzle->takeImageOf($puzzleToMerge);
             }
 
             if ($survivorPuzzle->manufacturer === null && $puzzleToMerge->manufacturer !== null) {

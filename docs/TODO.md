@@ -4,6 +4,15 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## What an uploaded picture's file carried (`docs/features/upload-image-metadata.md`, 2026-10-21)
+
+- [ ] The browser shrinks photos over 500 KB before upload (add/edit-time form, multiscan) and the canvas re-encode
+      drops all EXIF - so most finish photos arrive without a capture time. Read the same allow-list in the browser
+      before shrinking (`assets/image_compression.js`) and send it with the photo (form field + PhotoStash token),
+      stored as the summary when the server sees no EXIF itself
+- [ ] Time verification / duplicate results: read `finished_puzzle_photo_upload_metadata.capturedAt` next to `finished_at`
+- [ ] Image pipeline: use `uploadMetadata` of the work list as the photo-vs-artwork prior
+
 ## Puzzles needing improvement (`docs/features/puzzles-needing-improvement.md`, 2026-10-21)
 
 - [ ] Add puzzles whose picture needs replacing (own badge, same row + "Suggest a change"), not by priority yet -

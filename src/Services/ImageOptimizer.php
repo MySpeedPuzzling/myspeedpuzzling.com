@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services;
 use Imagick;
 use ImagickException;
 use Psr\Log\LoggerInterface;
+use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 
 final readonly class ImageOptimizer
 {
@@ -17,6 +18,7 @@ final readonly class ImageOptimizer
 
     public function __construct(
         private LoggerInterface $logger,
+        private UploadedImageSummariser $uploadedImageSummariser = new UploadedImageSummariser(),
     ) {
     }
 
@@ -79,9 +81,14 @@ final readonly class ImageOptimizer
      * whatever size it is, its metadata goes (GPS position, camera, capture time, XMP, IPTC, comments -
      * see ImageMetadata). Only the colour profile stays. An image without metadata that fits is stored
      * byte for byte as uploaded - the browser's own resize already produced exactly that.
+     *
+     * Answers the privacy-safe summary of what the file carried (UploadedImageMetadata), read before anything changes
+     * it - the caller stores it with the picture where someone reads it (docs/features/upload-image-metadata.md). Null
+     * when it could not be read: that never fails an upload.
      */
-    public function optimize(string $filePath): void
+    public function optimize(string $filePath): null|UploadedImageMetadata
     {
+        $uploadMetadata = $this->summarise($filePath);
         $imagick = new Imagick();
 
         // A JPEG size hint lets libjpeg decode a big photo at a fraction of its size (faster, far less
@@ -99,12 +106,12 @@ final readonly class ImageOptimizer
             $tooLarge = $width > self::MAX_DIMENSION || $height > self::MAX_DIMENSION;
 
             if ($tooLarge === false && ImageMetadata::isCarriedBy($imagick, $filePath) === false) {
-                return;
+                return $uploadMetadata;
             }
 
             // Re-encoding keeps one frame only - an animation that fits is kept as it is
             if ($tooLarge === false && $imagick->getNumberImages() > 1) {
-                return;
+                return $uploadMetadata;
             }
 
             // Read before anything changes: a photo that only loses its metadata is written at its own quality
@@ -148,9 +155,26 @@ final readonly class ImageOptimizer
                     'exception' => $e,
                 ]);
             }
+
+            return $uploadMetadata;
         } finally {
             $imagick->clear();
             $imagick->destroy();
+        }
+    }
+
+    private function summarise(string $filePath): null|UploadedImageMetadata
+    {
+        try {
+            return $this->uploadedImageSummariser->summarise($filePath);
+        } catch (\Throwable $e) {
+            // Nothing is recorded then - the upload itself carries on (a file Imagick cannot read fails below, as before)
+            $this->logger->info('Could not read the metadata summary of an uploaded image', [
+                'path' => $filePath,
+                'exception' => $e,
+            ]);
+
+            return null;
         }
     }
 

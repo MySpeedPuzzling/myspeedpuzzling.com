@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Value\PuzzleImageChoice;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
 use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
+use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 
 /**
  * Saves a puzzle's catalogue record - every name with its language, brand, pieces, codes and image. The one
@@ -54,6 +55,8 @@ readonly final class PuzzleRecordUpdater
         null|string $proposedImage = null,
         null|float $proposedImageRatio = null,
         bool $allowSecret = false,
+        // What the proposed picture's file carried when uploaded - it comes along (docs/features/upload-image-metadata.md)
+        null|UploadedImageMetadata $proposedImageUploadMetadata = null,
     ): array {
         // A secret competition puzzle is corrected only by an admin before its reveal ($allowSecret) - never approved,
         // never changed through a player's suggestion
@@ -100,7 +103,7 @@ readonly final class PuzzleRecordUpdater
 
         // After the fields above: the image's file name is built from the final brand, name and pieces
         if ($values->image === PuzzleImageChoice::Proposed) {
-            $this->puzzleImageStorage->useProposed($proposedImage, $proposedImageRatio, $puzzle);
+            $this->puzzleImageStorage->useProposed($proposedImage, $proposedImageRatio, $puzzle, $proposedImageUploadMetadata);
         }
 
         if ($values->image === PuzzleImageChoice::Upload) {

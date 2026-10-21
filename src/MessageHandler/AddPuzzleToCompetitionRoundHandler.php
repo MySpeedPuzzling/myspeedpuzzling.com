@@ -147,6 +147,7 @@ readonly final class AddPuzzleToCompetitionRoundHandler
 
         $puzzleId = Uuid::uuid7();
         $puzzlePhotoPath = null;
+        $uploadMetadata = null;
 
         if ($message->puzzlePhoto !== null) {
             $extension = $message->puzzlePhoto->guessExtension() ?? 'jpg';
@@ -161,7 +162,7 @@ readonly final class AddPuzzleToCompetitionRoundHandler
                     $extension,
                 );
 
-            $this->imageOptimizer->optimize($message->puzzlePhoto->getPathname());
+            $uploadMetadata = $this->imageOptimizer->optimize($message->puzzlePhoto->getPathname());
 
             $stream = fopen($message->puzzlePhoto->getPathname(), 'rb');
             $this->filesystem->writeStream($puzzlePhotoPath, $stream);
@@ -182,6 +183,7 @@ readonly final class AddPuzzleToCompetitionRoundHandler
             addedAt: $now,
             brandCodes: $message->brandCodes,
             eans: $message->eans,
+            imageUploadMetadata: $uploadMetadata,
         );
 
         $this->entityManager->persist($puzzle);

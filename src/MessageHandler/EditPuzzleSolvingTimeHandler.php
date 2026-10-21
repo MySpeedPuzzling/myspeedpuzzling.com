@@ -185,13 +185,14 @@ readonly final class EditPuzzleSolvingTimeHandler
         }
 
         $finishedPuzzlePhotoPath = $solvingTime->finishedPuzzlePhoto;
+        $finishedPuzzlePhotoUploadMetadata = null;
 
         if ($message->finishedPuzzlesPhoto !== null) {
             $extension = $message->finishedPuzzlesPhoto->guessExtension();
             $timestamp = $this->clock->now()->getTimestamp();
             $finishedPuzzlePhotoPath = "players/{$solvingTime->player->id->toString()}/{$message->puzzleSolvingTimeId}-$timestamp.$extension";
 
-            $this->imageOptimizer->optimize($message->finishedPuzzlesPhoto->getPathname());
+            $finishedPuzzlePhotoUploadMetadata = $this->imageOptimizer->optimize($message->finishedPuzzlesPhoto->getPathname());
 
             // Stream is better because it is memory safe
             $stream = fopen($message->finishedPuzzlesPhoto->getPathname(), 'rb');
@@ -222,6 +223,8 @@ readonly final class EditPuzzleSolvingTimeHandler
             competition: $competition,
             puzzlingTeam: $puzzlingTeam = $this->puzzlingTeamResolver->resolve($group, usedByPlayerId: $currentPlayer->id->toString()),
             competitionSeries: $competitionSeries,
+            finishedPuzzlePhotoUploaded: $message->finishedPuzzlesPhoto !== null,
+            finishedPuzzlePhotoUploadMetadata: $finishedPuzzlePhotoUploadMetadata,
         );
 
         // Only when a name was typed: touching the team otherwise would load it for nothing

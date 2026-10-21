@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Value\ImageAnalyzer;
 use SpeedPuzzling\Web\Value\PuzzleImageAnalysisStatus;
 use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
 use SpeedPuzzling\Web\Value\RequiredImageAnalyses;
+use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 
 /**
  * The image analysis pipeline's work list (GET /internal-api/puzzle-images, docs/features/internal-api.md "Puzzle
@@ -143,6 +144,7 @@ SELECT
     p.pieces_count,
     p.image,
     p.image_ratio,
+    p.image_upload_metadata,
     {$fingerprint} AS image_fingerprint,
     m.id AS manufacturer_id,
     m.name AS manufacturer_name,
@@ -188,10 +190,22 @@ SQL,
                 solvedCount: $solvedCount,
                 analyses: $analyses[$puzzleId] ?? [],
                 claims: $claims[$puzzleId] ?? [],
+                uploadMetadata: self::uploadMetadata($row['image_upload_metadata']),
             );
         }
 
         return $items;
+    }
+
+    private static function uploadMetadata(mixed $json): null|UploadedImageMetadata
+    {
+        if (is_string($json) === false) {
+            return null;
+        }
+
+        $data = json_decode($json, true);
+
+        return is_array($data) ? UploadedImageMetadata::fromArray($data) : null;
     }
 
     /**

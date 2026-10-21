@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 
 /**
  * A puzzle with a shown image, as the image analysis pipeline lists it (GetPuzzleImagesForAnalysis): what to download
@@ -30,6 +31,8 @@ readonly final class PuzzleImageForAnalysis
         public int $solvedCount,
         public array $analyses,
         public array $claims = [],
+        // What the picture's file carried when it was uploaded (docs/features/upload-image-metadata.md) - null = not known
+        public null|UploadedImageMetadata $uploadMetadata = null,
     ) {
     }
 }

@@ -159,6 +159,7 @@ readonly final class AddPuzzleSolvingTimeHandler
         $group = $this->puzzlersGrouping->assembleGroup($player, $message->groupPlayers);
         $solvingTimeId = $message->timeId;
         $finishedPuzzlePhotoPath = null;
+        $finishedPuzzlePhotoUploadMetadata = null;
         $puzzlersCount = 1;
         $competitionRound = null;
         $competition = null;
@@ -249,7 +250,7 @@ readonly final class AddPuzzleSolvingTimeHandler
             $timestamp = $this->clock->now()->getTimestamp();
             $finishedPuzzlePhotoPath = "players/$player->id/$solvingTimeId-$timestamp.$extension";
 
-            $this->imageOptimizer->optimize($message->finishedPuzzlesPhoto->getPathname());
+            $finishedPuzzlePhotoUploadMetadata = $this->imageOptimizer->optimize($message->finishedPuzzlesPhoto->getPathname());
 
             // Stream is better because it is memory safe
             $stream = fopen($message->finishedPuzzlesPhoto->getPathname(), 'rb');
@@ -280,6 +281,7 @@ readonly final class AddPuzzleSolvingTimeHandler
             puzzlingTeam: $puzzlingTeam = $this->puzzlingTeamResolver->resolve($group, usedByPlayerId: $player->id->toString()),
             createdVia: $message->createdVia,
             competitionSeries: $competitionSeries,
+            finishedPuzzlePhotoUploadMetadata: $finishedPuzzlePhotoUploadMetadata,
         );
 
         // Only when a name was typed: touching the team otherwise would load it for nothing

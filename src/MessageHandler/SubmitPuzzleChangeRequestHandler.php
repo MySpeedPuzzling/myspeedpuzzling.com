@@ -67,11 +67,12 @@ readonly final class SubmitPuzzleChangeRequestHandler
         // Store proposed image with temporary name - proper SEO name is assigned on approval
         $proposedImagePath = null;
         $proposedImageRatio = null;
+        $proposedImageUploadMetadata = null;
         if ($message->proposedPhoto !== null) {
             $extension = $message->proposedPhoto->guessExtension() ?? 'jpg';
             $proposedImagePath = "proposal-{$message->changeRequestId}.{$extension}";
 
-            $this->imageOptimizer->optimize($message->proposedPhoto->getPathname());
+            $proposedImageUploadMetadata = $this->imageOptimizer->optimize($message->proposedPhoto->getPathname());
             $proposedImageRatio = $this->imageOptimizer->getImageRatio($message->proposedPhoto->getPathname());
 
             $stream = fopen($message->proposedPhoto->getPathname(), 'rb');
@@ -113,6 +114,7 @@ readonly final class SubmitPuzzleChangeRequestHandler
             confidence: $message->confidence,
             modelVersion: $message->modelVersion,
             sourceImageFingerprint: $message->sourceImageFingerprint,
+            proposedImageUploadMetadata: $proposedImageUploadMetadata,
         );
 
         $this->entityManager->persist($changeRequest);

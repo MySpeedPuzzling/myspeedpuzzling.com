@@ -4005,9 +4005,29 @@ components:
         receivedAt: { type: string, format: date-time }
         result: { type: object }
 
+    UploadedImageMetadata:
+      type: object
+      required: [version, bytes, format, width, height, exif, cameraExif, capturedAt, capturedAtOffset, software, make, orientation]
+      properties:
+        version: { type: integer, description: The summariser's version (UploadedImageMetadata::VERSION). }
+        bytes: { type: integer, description: The file's size as uploaded - before any resize or re-encode. }
+        format: { type: string, description: 'ImageMagick''s format name: JPEG, PNG, WEBP, HEIC, GIF, TIFF, ...' }
+        width: { type: integer, description: Stored pixels as uploaded, before the EXIF orientation. }
+        height: { type: integer }
+        exif: { type: boolean, description: Any EXIF block at all. }
+        cameraExif: { type: boolean, description: 'EXIF a camera writes: make or model, capture time, exposure, aperture, ISO or focal length.' }
+        capturedAt: { type: [string, "null"], description: 'DateTimeOriginal as found, the camera''s local wall-clock time (Y-m-d\THH:mm:ss, no zone).' }
+        capturedAtOffset: { type: [string, "null"], description: 'OffsetTimeOriginal as found (+02:00), only when the camera wrote one.' }
+        software:
+          type: [string, "null"]
+          enum: [camera, phone, editor, screenshot, unknown, null]
+          description: The family of the Software tag (the tag itself is never stored); null without one.
+        make: { type: [string, "null"], description: 'The camera brand (Apple, Samsung, Canon, ...), "Other" for an unknown one - never the model.' }
+        orientation: { type: [integer, "null"], minimum: 1, maximum: 8 }
+
     PuzzleImageForAnalysis:
       type: object
-      required: [puzzleId, name, piecesCount, manufacturer, imageUrl, imageFingerprint, imageRatio, solvedCount, analyses, claims]
+      required: [puzzleId, name, piecesCount, manufacturer, imageUrl, imageFingerprint, imageRatio, solvedCount, uploadMetadata, analyses, claims]
       properties:
         puzzleId: { type: string, format: uuid }
         name: { type: string }
@@ -4028,6 +4048,11 @@ components:
           type: integer
           minimum: 0
           description: Every counted result of the puzzle (solo, pairs and teams; suspicious ones left out - puzzle_statistics.solved_times_count), 0 when nobody solved it.
+        uploadMetadata:
+          description: What the picture's file carried when it was uploaded, read before its metadata was stripped (docs/features/upload-image-metadata.md) - null when not known (pictures stored before 2026-10, an unreadable file).
+          oneOf:
+            - type: "null"
+            - $ref: '#/components/schemas/UploadedImageMetadata'
         analyses:
           type: object
           description: What is stored per analyzer (an object, {} when nothing).

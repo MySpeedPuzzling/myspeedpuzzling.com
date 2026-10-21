@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\Doctrine\IdLock;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
+use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 use SpeedPuzzling\Web\Services\ManufacturerResolver;
 use SpeedPuzzling\Web\Services\PuzzleImageNamer;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -77,7 +78,7 @@ readonly final class AddPuzzleHandler
 
         $now = $this->clock->now();
         $manufacturer = $this->manufacturerResolver->resolve($message->brand, $player, $now);
-        [$puzzlePhotoPath, $puzzleImageRatio] = $this->storePhoto($message, $manufacturer);
+        [$puzzlePhotoPath, $puzzleImageRatio, $uploadMetadata] = $this->storePhoto($message, $manufacturer);
 
         $puzzle = new Puzzle(
             $message->puzzleId,
@@ -92,6 +93,7 @@ readonly final class AddPuzzleHandler
             addedAt: $now,
             brandCodes: $message->brandCodes,
             eans: $message->eans,
+            imageUploadMetadata: $uploadMetadata,
         );
 
         $this->entityManager->persist($puzzle);
@@ -107,7 +109,7 @@ readonly final class AddPuzzleHandler
         // The brand typed again finds the one this form created the first time - not a second new brand
         $manufacturer = $this->manufacturerResolver->resolve($message->brand, $player, $now);
 
-        [$puzzlePhotoPath, $puzzleImageRatio] = $this->storePhoto($message, $manufacturer);
+        [$puzzlePhotoPath, $puzzleImageRatio, $uploadMetadata] = $this->storePhoto($message, $manufacturer);
 
         $puzzle->correctNewlyAdded(
             name: $message->puzzleName,
@@ -119,11 +121,12 @@ readonly final class AddPuzzleHandler
             eans: $message->eans,
             brandCodes: $message->brandCodes,
             now: $now,
+            imageUploadMetadata: $uploadMetadata,
         );
     }
 
     /**
-     * @return array{string, float}
+     * @return array{string, float, null|UploadedImageMetadata}
      */
     private function storePhoto(AddPuzzle $message, Manufacturer $manufacturer): array
     {
@@ -136,7 +139,7 @@ readonly final class AddPuzzleHandler
             $extension,
         );
 
-        $this->imageOptimizer->optimize($message->puzzlePhoto->getPathname());
+        $uploadMetadata = $this->imageOptimizer->optimize($message->puzzlePhoto->getPathname());
         $puzzleImageRatio = $this->imageOptimizer->getImageRatio($message->puzzlePhoto->getPathname());
 
         // Stream is better because it is memory safe
@@ -147,6 +150,6 @@ readonly final class AddPuzzleHandler
             fclose($stream);
         }
 
-        return [$puzzlePhotoPath, $puzzleImageRatio];
+        return [$puzzlePhotoPath, $puzzleImageRatio, $uploadMetadata];
     }
 }

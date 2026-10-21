@@ -349,7 +349,10 @@ needed.
   `imageUrl` (the full-size original, `{NGINX_PROXY_BASE_URL}/original/<path>` - downloadable from anywhere),
   `imageFingerprint`, `imageRatio`, `solvedCount` (every counted result of the puzzle - solo, pairs and teams,
   suspicious ones left out, the catalogue's "Completed N×" from `puzzle_statistics`, 0 when nobody solved it; the
-  pipeline proposes crops of the most-solved puzzles first; same statement, no extra query), `analyses`
+  pipeline proposes crops of the most-solved puzzles first; same statement, no extra query), `uploadMetadata` (what
+  the picture's file carried when it was uploaded - camera EXIF or not, the capture time, the software family, the
+  camera brand, the original size and format; null when not known, e.g. every picture stored before 2026-10;
+  [upload-image-metadata.md](upload-image-metadata.md)), `analyses`
   `{<analyzer>: {analyzerVersion, imageFingerprint, analyzedAt, receivedAt}}` (an object, `{}` when none). `nextCursor` is the next page's `after`, null on the last page. `requires`
   narrows any status to puzzles whose picture already has results of those analyzers (below). Unknown parameters or
   bad values: `400` with `errors`. The last, empty page of a `stale` walk reads every puzzle once
@@ -438,7 +441,7 @@ curl -s -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
   "https://myspeedpuzzling.com/internal-api/puzzle-images?analyzer=colors&version=colors-v2&status=stale&limit=500" | jq
 # → {"puzzles": [{"puzzleId": "018d…", "name": "…", "piecesCount": 1000, "manufacturer": {"id": "…", "name": "Ravensburger"},
 #     "imageUrl": "https://img.myspeedpuzzling.com/original/ravensburger-….jpg", "imageFingerprint": "3f2a9c0d4b1e7a65",
-#     "imageRatio": 1.38, "solvedCount": 42, "analyses": {"artwork": {"analyzerVersion": "crop-v1", "imageFingerprint": "3f2a9c0d4b1e7a65",
+#     "imageRatio": 1.38, "solvedCount": 42, "uploadMetadata": null, "analyses": {"artwork": {"analyzerVersion": "crop-v1", "imageFingerprint": "3f2a9c0d4b1e7a65",
 #     "analyzedAt": "2026-10-18T05:12:00+00:00", "receivedAt": "2026-10-18T06:00:03+00:00"}}}], "nextCursor": "018d…"}
 
 # Store one

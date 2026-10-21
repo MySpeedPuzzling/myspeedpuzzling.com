@@ -7,13 +7,15 @@ namespace SpeedPuzzling\Web\Services;
 use League\Flysystem\Filesystem;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Query\IsPuzzleKeptSecret;
+use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
  * Puts a new image on a puzzle - a moderator's uploaded photo, a change request's proposed one or an earlier picture
  * restored from the history - under a file name
  * built from the puzzle's brand, name and pieces: call it after those are final. Used by PuzzleRecordUpdater and the
- * merge review (ApprovePuzzleMergeRequestHandler).
+ * merge review (ApprovePuzzleMergeRequestHandler). What the picture's file carried when uploaded comes along with it
+ * (Puzzle::useImage(), docs/features/upload-image-metadata.md).
  */
 readonly final class PuzzleImageStorage
 {
@@ -29,7 +31,7 @@ readonly final class PuzzleImageStorage
     {
         $newImagePath = $this->newImagePath($puzzle, $uploadedImage->guessExtension() ?? 'jpg');
 
-        $this->imageOptimizer->optimize($uploadedImage->getPathname());
+        $uploadMetadata = $this->imageOptimizer->optimize($uploadedImage->getPathname());
         $imageRatio = $this->imageOptimizer->getImageRatio($uploadedImage->getPathname());
 
         // Stream is better because it is memory safe
@@ -40,25 +42,28 @@ readonly final class PuzzleImageStorage
             fclose($stream);
         }
 
-        $puzzle->image = $newImagePath;
-        $puzzle->imageRatio = $imageRatio;
+        $puzzle->useImage($newImagePath, $imageRatio, $uploadMetadata);
     }
 
-    public function useProposed(string $proposedImage, null|float $proposedImageRatio, Puzzle $puzzle): void
-    {
+    public function useProposed(
+        string $proposedImage,
+        null|float $proposedImageRatio,
+        Puzzle $puzzle,
+        null|UploadedImageMetadata $proposedImageUploadMetadata = null,
+    ): void {
         $newImagePath = $this->newImagePath($puzzle, pathinfo($proposedImage, PATHINFO_EXTENSION) ?: 'jpg');
 
         $this->filesystem->copy($proposedImage, $newImagePath);
         $this->filesystem->delete($proposedImage);
 
-        $puzzle->image = $newImagePath;
-        $puzzle->imageRatio = $proposedImageRatio;
+        $puzzle->useImage($newImagePath, $proposedImageRatio, $proposedImageUploadMetadata);
     }
 
     /**
      * Puts an earlier picture back (RestorePuzzleImageHandler): a copy under a name never written before - the image
      * caches key on the name, and the new name gives the picture a new fingerprint, so its analyses run again. The
-     * stored object it is copied from stays where it is.
+     * stored object it is copied from stays where it is. What its file carried when uploaded went with it when it was
+     * replaced - not known for the copy.
      */
     public function useCopyOf(string $storedImage, null|float $imageRatio, Puzzle $puzzle): void
     {
@@ -66,8 +71,7 @@ readonly final class PuzzleImageStorage
 
         $this->filesystem->copy($storedImage, $newImagePath);
 
-        $puzzle->image = $newImagePath;
-        $puzzle->imageRatio = $imageRatio;
+        $puzzle->useImage($newImagePath, $imageRatio, null);
     }
 
     private function newImagePath(Puzzle $puzzle, string $extension): string

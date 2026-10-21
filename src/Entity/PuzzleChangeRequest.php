@@ -21,10 +21,22 @@ use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleNamesDiff;
 use SpeedPuzzling\Web\Value\PuzzleReportOutdatedReason;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
+use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 
 #[Entity]
 class PuzzleChangeRequest
 {
+    /**
+     * What the proposed picture's file carried when it was uploaded, UploadedImageMetadata::toArray() - read it as
+     * proposedImageUploadMetadata(). Null when not known, and once the proposal object is gone: moved to the puzzle on
+     * approval (which keeps it from then on) or deleted on rejection (docs/features/upload-image-metadata.md)
+     *
+     * @var null|array<string, mixed>
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::JSONB, nullable: true)]
+    public null|array $proposedImageUploadMetadata = null;
+
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: 'string', enumType: PuzzleReportStatus::class)]
     public PuzzleReportStatus $status = PuzzleReportStatus::Pending;
@@ -175,7 +187,14 @@ class PuzzleChangeRequest
         #[Immutable]
         #[Column(length: 16, nullable: true)]
         public null|string $sourceImageFingerprint = null,
+        null|UploadedImageMetadata $proposedImageUploadMetadata = null,
     ) {
+        $this->proposedImageUploadMetadata = $proposedImage !== null ? $proposedImageUploadMetadata?->toArray() : null;
+    }
+
+    public function proposedImageUploadMetadata(): null|UploadedImageMetadata
+    {
+        return UploadedImageMetadata::fromArray($this->proposedImageUploadMetadata);
     }
 
     /**
@@ -199,11 +218,19 @@ class PuzzleChangeRequest
             ->diff(PuzzleNames::fromArray($this->originalAlternativeNames ?? []));
     }
 
-    public function approve(Player $reviewedBy, DateTimeImmutable $reviewedAt): void
+    /**
+     * @param bool $proposedImageUsed the proposed picture became the puzzle's (PuzzleImageStorage::useProposed() moved
+     *                                the object) - what is known about its file went with it
+     */
+    public function approve(Player $reviewedBy, DateTimeImmutable $reviewedAt, bool $proposedImageUsed = false): void
     {
         $this->status = PuzzleReportStatus::Approved;
         $this->reviewedBy = $reviewedBy;
         $this->reviewedAt = $reviewedAt;
+
+        if ($proposedImageUsed) {
+            $this->proposedImageUploadMetadata = null;
+        }
     }
 
     public function reject(Player $reviewedBy, DateTimeImmutable $reviewedAt, string $reason): void
@@ -212,6 +239,8 @@ class PuzzleChangeRequest
         $this->reviewedBy = $reviewedBy;
         $this->reviewedAt = $reviewedAt;
         $this->rejectionReason = $reason;
+        // The proposed picture is deleted with the rejection (RejectPuzzleChangeRequestHandler)
+        $this->proposedImageUploadMetadata = null;
     }
 
     /**

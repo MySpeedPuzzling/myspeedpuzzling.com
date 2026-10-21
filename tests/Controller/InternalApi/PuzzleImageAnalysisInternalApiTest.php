@@ -7,7 +7,9 @@ namespace SpeedPuzzling\Web\Tests\Controller\InternalApi;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Value\ImageSoftwareFamily;
 use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
+use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -97,6 +99,9 @@ final class PuzzleImageAnalysisInternalApiTest extends WebTestCase
         self::assertSame(500, $puzzle['piecesCount']);
         self::assertIsArray($puzzle['manufacturer']);
         self::assertSame([], $puzzle['analyses']);
+        // Not known for a picture stored before its upload's metadata was recorded
+        self::assertArrayHasKey('uploadMetadata', $puzzle);
+        self::assertNull($puzzle['uploadMetadata']);
 
         // solvedCount = the puzzle's counted results (puzzle_statistics), 0 for a puzzle nobody solved
         $connection = self::getContainer()->get(Connection::class);
@@ -106,6 +111,47 @@ final class PuzzleImageAnalysisInternalApiTest extends WebTestCase
         self::assertSame($solved, $puzzle['solvedCount']);
         self::assertFalse($connection->fetchOne('SELECT 1 FROM puzzle_statistics WHERE puzzle_id = ?', [CompetitionApiFixture::PUZZLE_VISIBLE]));
         self::assertSame(0, $listed[CompetitionApiFixture::PUZZLE_VISIBLE]['solvedCount']);
+    }
+
+    public function testListsWhatThePicturesFileCarriedWhenUploaded(): void
+    {
+        $browser = self::createClient();
+        $this->giveImages();
+        $metadata = new UploadedImageMetadata(
+            bytes: 2_345_678,
+            format: 'JPEG',
+            width: 4032,
+            height: 3024,
+            exif: true,
+            cameraExif: true,
+            capturedAt: '2026-10-21T14:03:12',
+            capturedAtOffset: '+02:00',
+            software: ImageSoftwareFamily::Phone,
+            make: 'Apple',
+            orientation: 6,
+        );
+
+        foreach ([PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_HIDDEN_IMAGE] as $puzzleId) {
+            $this->database()->executeStatement(
+                'UPDATE puzzle SET image_upload_metadata = :metadata WHERE id = :id',
+                ['metadata' => json_encode($metadata->toArray()), 'id' => $puzzleId],
+            );
+        }
+
+        $page = self::callInternalApi($browser, 'GET', '/internal-api/puzzle-images?limit=1000');
+        self::assertResponseIsSuccessful();
+        self::assertIsArray($page['puzzles']);
+        $listed = [];
+
+        foreach ($page['puzzles'] as $puzzle) {
+            self::assertIsArray($puzzle);
+            self::assertIsString($puzzle['puzzleId']);
+            $listed[$puzzle['puzzleId']] = $puzzle;
+        }
+
+        self::assertSame($metadata->toArray(), $listed[PuzzleFixture::PUZZLE_500_02]['uploadMetadata']);
+        // A hidden picture stays out of the list, and so does what is known about it
+        self::assertArrayNotHasKey(PuzzleFixture::PUZZLE_HIDDEN_IMAGE, $listed);
     }
 
     public function testFiltersByWhatIsStoredForTheAnalyzer(): void

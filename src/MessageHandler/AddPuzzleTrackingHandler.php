@@ -90,6 +90,7 @@ readonly final class AddPuzzleTrackingHandler
         $group = $this->puzzlersGrouping->assembleGroup($player, $message->groupPlayers);
         $trackingId = $message->trackingId;
         $finishedPuzzlePhotoPath = null;
+        $finishedPuzzlePhotoUploadMetadata = null;
         $finishedAt = $message->finishedAt;
 
         if ($message->finishedPuzzlesPhoto !== null) {
@@ -97,7 +98,7 @@ readonly final class AddPuzzleTrackingHandler
             $timestamp = $this->clock->now()->getTimestamp();
             $finishedPuzzlePhotoPath = "players/$player->id/$trackingId-$timestamp.$extension";
 
-            $this->imageOptimizer->optimize($message->finishedPuzzlesPhoto->getPathname());
+            $finishedPuzzlePhotoUploadMetadata = $this->imageOptimizer->optimize($message->finishedPuzzlesPhoto->getPathname());
 
             // Stream is better because it is memory safe
             $stream = fopen($message->finishedPuzzlesPhoto->getPathname(), 'rb');
@@ -123,6 +124,7 @@ readonly final class AddPuzzleTrackingHandler
             unboxed: false,
             puzzlingTeam: $puzzlingTeam = $this->puzzlingTeamResolver->resolve($group, usedByPlayerId: $player->id->toString()),
             createdVia: $message->createdVia,
+            finishedPuzzlePhotoUploadMetadata: $finishedPuzzlePhotoUploadMetadata,
         );
 
         // Only when a name was typed: touching the team otherwise would load it for nothing

@@ -34,6 +34,10 @@ ENV APP_ENV="prod" \
 # disabled behind XDEBUG_MODE, but prod should not even carry the ini)
 RUN rm -f $PHP_INI_DIR/conf.d/docker-php-ext-xdebug.ini $PHP_INI_DIR/conf.d/docker-php-ext-xdebug.ini.disabled
 
+# Never ship a PHP older than the fix for CVE-2026-109618 / CVE-2026-109619 (unauthenticated RCE, the second one
+# through state surviving between requests of one worker - our mode). A stale base image fails the build here.
+RUN php -r 'if (version_compare(PHP_VERSION, "8.5.12", "<")) { fwrite(STDERR, "PHP " . PHP_VERSION . " < 8.5.12\n"); exit(1); }'
+
 COPY .docker/on-startup.sh /docker-entrypoint.d/
 
 # The finish detector's files at a versioned path outside /build/ (README §5.7 "Downloads"), and the Caddy rule that

@@ -20,8 +20,9 @@ Jan's, made during the planning session of 2026-10-18 - do not re-ask them.
    - Artwork crop, colours, traits, OCR, embeddings, segmentation, structured description; results go through the internal API.
    - It powers **the killer feature**: a personal time estimate for puzzles nobody has solved yet.
    - It also powers image traits in the skill map, look-alikes for duplicate checks, and later public surfaces.
-4. **Display behind one feature flag** (`INSIGHTS_PUBLIC`, admins always see it), removed once the image backfill is
-   complete and the estimate gates pass.
+4. **Display behind one feature flag** (`INSIGHTS_PUBLIC`, admins always see it), removed once the estimate gates pass
+   and the image analysis apart from `describe` is complete (Jan 2026-10-23: launch before `describe`, which fills
+   its tags in the ~6 days after).
 
 The page as built (routes, flag, sections, free/member split, budget): [`page.md`](./page.md). The personal time
 estimates as built: [`estimates.md`](./estimates.md).
@@ -65,7 +66,7 @@ Prerequisites already live: player time zone (#254, `docs/features/player-timezo
 | Estimates | **Option C - your time first** ("≈ 3 h for you", certainty bar, tier chip secondary), **mobile first and compact**: one line on list rows (time + tiny certainty bar + dashed "Hard?" chip, a sheet on tap), the full card on the puzzle page. Personal through the time; the tier stays a property of the puzzle (difficulty is skill-invariant: a hard puzzle is 1.49-1.54× an easy one in every speed band). Estimated = dashed outline + "?" + "estimated" in the accessible name; measured = solid. Members only, like today's difficulty. |
 | Picture-only estimates | **The killer feature**: a personal time estimate for puzzles nobody has solved yet, from the image analysis, with honest reliability and as precise a window as the data allows. Members, clearly marked as estimated; switched on once the out-of-sample gates pass on the backfill. |
 | Predicted difficulty | For unrated puzzles members only, through the existing difficulty mechanisms. |
-| Display rollout | All new display (Insights page, estimates, improvement and rating charts) behind one flag `INSIGHTS_PUBLIC`; admins always see it; the flag is removed once every image is analysed and the gates pass. The prediction fix (Phase 3) improves numbers already shown and ships unflagged. |
+| Display rollout | All new display (Insights page, estimates, improvement and rating charts) behind one flag `INSIGHTS_PUBLIC`; admins always see it; the flag is removed once the gates pass and every analyzer but `describe` is complete (Jan 2026-10-23: `describe` runs last and fills its tags after the launch). The prediction fix (Phase 3) improves numbers already shown and ships unflagged. |
 
 ### Image intelligence
 | Topic | Decision |

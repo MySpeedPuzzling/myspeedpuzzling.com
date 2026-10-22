@@ -211,6 +211,41 @@
                                         </button>
                                     </form>
                                 </td>
+                            {% elseif notification.isPartnerTeamedUpNotification or notification.isPartnerGroupMemberNotification %}
+                                {# The actor's partner finder listing names the reader: they teamed up ("Found my partner" naming the
+                                   reader) or the reader is in their group (docs/features/partner-finder.md "Phase 2 as built") -
+                                   still listed at the event = the text asks to close the reader's own listing too #}
+                                {% set partner_finder_link = partner_finder_url(notification.partnerCompetitionSlug, notification.partnerSeriesSlug) %}
+                                {% set actor_name = notification.targetPlayerName ?? notification.targetPlayerId %}
+                                {% set partner_text = notification.isPartnerTeamedUpNotification ? 'teamed_up' : 'group_member' %}
+                                <td class="text-center" style="width: 60px;">
+                                    {% if notification.targetPlayerAvatar is not null and not notification.targetPlayerIsPrivate %}
+                                        <img class="rounded-circle" style="max-width: 50px;max-height: 50px;" alt="Avatar" src="{{ notification.targetPlayerAvatar|thumbnail('puzzle_small') }}">
+                                    {% else %}
+                                        <span class="avatar-name rounded-circle">{{ actor_name|slice(0, 1)|upper }}</span>
+                                    {% endif %}
+                                </td>
+
+                                <td class="align-middle fs-sm text-muted">
+                                    <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
+                                    {{ ('partner_finder.notification.text_' ~ partner_text)|trans({
+                                        '%player%': notification.targetPlayerIsPrivate
+                                            ? '<b>' ~ actor_name|e ~ '</b>'
+                                            : '<a class="text-decoration-underline" href="' ~ path('player_profile', {playerId: notification.targetPlayerId}) ~ '">' ~ actor_name|e ~ '</a>',
+                                        '%event%': notification.partnerCompetitionName|e,
+                                    })|raw }}
+                                    {% if notification.partnerReaderListed %}
+                                        <br>{{ 'partner_finder.notification.close_yours'|trans }}
+                                    {% endif %}
+                                </td>
+
+                                <td class="" style="width: 80px;">
+                                    {% if partner_finder_link is not null %}
+                                        <a href="{{ partner_finder_link }}" class="btn btn-sm {{ notification.partnerReaderListed ? 'btn-primary' : 'btn-outline-primary' }} text-nowrap">
+                                            {{- (notification.partnerReaderListed ? 'partner_finder.notification.open_listing' : 'partner_finder.notification.see_listings')|trans -}}
+                                        </a>
+                                    {% endif %}
+                                </td>
                             {% elseif notification.isOfficialResultNotification %}
                                 {# The official results of a round the player has a result in were published #}
                                 {% if notification.roundCompetitionSlug is null %}

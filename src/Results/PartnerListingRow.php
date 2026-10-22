@@ -19,12 +19,13 @@ use SpeedPuzzling\Web\Value\SkillTier;
  */
 readonly final class PartnerListingRow
 {
-    // "Similar to you" within this share of the viewer's best 500 either way
+    // "Similar to you" within this share of the viewer's median 500 either way
     public const float SIMILAR_SPEED_SHARE = 0.10;
 
     /**
      * @param list<PartnerKind> $lookingFor
      * @param list<PartnerCoMember> $coMembers
+     * @param list<PartnerCoMember> $teamUpCandidates
      * @param list<PartnerStrength> $strengths
      * @param list<string> $customStrengths
      * @param list<string> $languages
@@ -59,6 +60,8 @@ readonly final class PartnerListingRow
         public null|bool $registered,
         public bool $sent,
         public int $requestsCount,
+        // Own row only: who "Found my partner" can name (PartnerTeamUpCandidates) - masked never, avatar null when private
+        public array $teamUpCandidates = [],
     ) {
     }
 

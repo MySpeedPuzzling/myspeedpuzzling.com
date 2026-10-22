@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Results\PartnerFinderTeaser;
 use SpeedPuzzling\Web\Results\PartnerListingRow;
 use SpeedPuzzling\Web\Results\PartnerListings;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Services\PartnerFinder\PartnerTeamUpCandidates;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Value\PartnerGoal;
 use SpeedPuzzling\Web\Value\PartnerKind;
@@ -64,6 +65,9 @@ readonly final class GetPartnerListings
         // The viewer's own row (and the viewer as somebody's co-member) is never masked, private or not - see the SQL
         $privateToViewer = $this->privateProfileAccess->sqlIsPrivate('p');
         $coMemberPrivate = $this->privateProfileAccess->sqlIsPrivate('cm');
+        // "Who did you team up with?" on the own row: named even when private (they listed or asked - consent), no avatar then
+        $candidatePrivate = $this->privateProfileAccess->sqlIsPrivate('cand');
+        $teamUpCandidates = PartnerTeamUpCandidates::sql('l.id', 'l.player_id', 'event.id');
         $registered = GetMarketplaceEvents::sqlPlayerGoing('event.id', 'l.player_id');
         $limit = self::LIMIT;
 
@@ -112,6 +116,7 @@ SELECT
     event.registration_managed,
     event.categories,
     event.team_size,
+    event.found_count,
     (SELECT viewer_stats.median500_seconds FROM community_player_stats viewer_stats WHERE viewer_stats.player_id = :viewerId) AS viewer_median500,
     l.id,
     l.player_id,
@@ -153,7 +158,19 @@ SELECT
         INNER JOIN player cm ON cm.id = member.id::uuid
         WHERE NOT EXISTS (SELECT 1 FROM user_block member_block WHERE member_block.blocker_id = cm.id AND member_block.blocked_id = :viewerId)
             {$notHiddenCoMember}
-    ) AS co_members
+    ) AS co_members,
+    CASE WHEN l.is_own THEN (
+        SELECT json_agg(json_build_object(
+            'id', cand.id,
+            'name', cand.name,
+            'code', cand.code,
+            'country', cand.country,
+            'avatar', CASE WHEN {$candidatePrivate} THEN NULL ELSE cand.avatar END,
+            'masked', false
+        ) ORDER BY cand.name NULLS LAST, cand.code)
+        FROM player cand
+        WHERE cand.id IN ({$teamUpCandidates})
+    ) END AS team_up_candidates
 FROM event
 LEFT JOIN listing l ON true
 LEFT JOIN community_player_stats stats ON stats.player_id = l.player_id
@@ -174,6 +191,7 @@ SQL;
          *     registration_managed: bool,
          *     categories: string,
          *     team_size: null|int|string,
+         *     found_count: int|string,
          *     viewer_median500: null|int|string,
          *     id: null|string,
          *     player_id: null|string,
@@ -203,6 +221,7 @@ SQL;
          *     sent: bool,
          *     requests_count: int|string,
          *     co_members: null|string,
+         *     team_up_candidates: null|string,
          * }> $rows
          */
         $rows = $this->database->executeQuery($query, $parameters)->fetchAllAssociative();
@@ -247,6 +266,7 @@ SQL;
                 registered: $row['registered'],
                 sent: $row['sent'],
                 requestsCount: (int) $row['requests_count'],
+                teamUpCandidates: self::coMembers($row['team_up_candidates']),
             );
         }
 
@@ -256,6 +276,7 @@ SQL;
             viewerMedian500Seconds: $first['viewer_median500'] !== null ? (int) $first['viewer_median500'] : null,
             rows: $listings,
             totalOpen: $listings === [] ? 0 : (int) $first['total_open'],
+            foundCount: (int) $first['found_count'],
         );
     }
 
@@ -295,6 +316,7 @@ open_listing AS (
 SELECT
     event.categories,
     event.team_size,
+    event.found_count,
     (SELECT COUNT(*) FROM open_listing) AS total,
     (SELECT COUNT(*) FROM open_listing o WHERE o.group_size = 1 AND o.looking_for @> '["pair"]'::jsonb) AS pairs,
     (SELECT COUNT(*) FROM open_listing o WHERE o.group_size = 1 AND o.looking_for @> '["team"]'::jsonb) AS teams,
@@ -324,6 +346,7 @@ SQL;
          * @var false|array{
          *     categories: string,
          *     team_size: null|int|string,
+         *     found_count: int|string,
          *     total: int|string,
          *     pairs: int|string,
          *     teams: int|string,
@@ -361,6 +384,7 @@ SQL;
             pairs: (int) $row['pairs'],
             teams: (int) $row['teams'],
             groups: (int) $row['groups'],
+            foundCount: (int) $row['found_count'],
             countries: $countries,
             faces: array_map(static fn (array $face): array => [
                 'playerId' => $face['id'],
@@ -373,7 +397,7 @@ SQL;
 
     /**
      * `event AS (…)`: the event when it has a partner finder (PartnerFinderEligibility::SQL_QUALIFIES - publicly visible,
-     * drafts never), with what its rounds offer. Binds :competitionId and :marketplace_today.
+     * drafts never), with what its rounds offer and how many found a partner there. Binds :competitionId and :marketplace_today.
      */
     private function eventCte(): string
     {
@@ -394,7 +418,14 @@ event AS (
             FROM competition_round cr
             WHERE cr.competition_id = c.id
                 AND cr.category = 'team'
-        ) AS team_size
+        ) AS team_size,
+        -- "N found a partner here": listings closed with "Found my partner" - an aggregate, nobody's identity
+        (
+            SELECT COUNT(*)
+            FROM partner_listing found
+            WHERE found.competition_id = c.id
+                AND found.closed_reason = 'found'
+        ) AS found_count
     FROM competition c
     LEFT JOIN competition_series cs ON cs.id = c.series_id
     WHERE c.id = :competitionId

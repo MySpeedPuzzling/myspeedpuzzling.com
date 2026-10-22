@@ -52,8 +52,8 @@ Meta App Review approved + app published (2026-09-30), so Facebook lost its flag
 - **Tests:** `OverridesFeatureFlagEnv` (`overrideFeatureFlagEnv('INSIGHTS_PUBLIC', …)` before the kernel boots) -
   `tests/Controller/InsightsControllerTest.php`, `tests/Controller/PersonalEstimatesDisplayTest.php` (flag off: no
   markup and no statement on every estimate surface)
-- **Remove when:** the launch (`docs/features/insights/implementation-plan.md` §8): the image backfill is complete, the
-  estimate gates pass and Jan says yes. Then delete the flag check in `InsightsFeature` (keep the class as the place that
+- **Remove when:** the launch (`docs/features/insights/implementation-plan.md` §8): every analyzer but `describe` is
+  complete (Jan 2026-10-23: `describe` runs last, after the launch), the estimate gates pass and Jan says yes. Then delete the flag check in `InsightsFeature` (keep the class as the place that
   says who gets the page if useful), the `.env` entry and the binding; move this section to "Retired". With it go the
   "while hidden" branches of the estimate surfaces: the Insights panel's own prediction block
   (`_difficulty_section.html.twig`), the Picker card's old prediction row, the collections "+ predictions" pill and

@@ -162,8 +162,11 @@ is worse.**
    3. `docker compose exec -T web php bin/console myspeedpuzzling:evaluate-image-estimates` on prod.
    4. Report the gates per size group × kind.
    5. **ASK JAN before removing `INSIGHTS_PUBLIC`. Never remove the flag without his explicit yes.**
-6. **After the launch:**
-   - phases `apple` (`ocr`, `barcode`), `features`, then `describe` (~5 days);
+6. **Before the launch, after `embed`:** phases `apple` (`ocr`, `barcode`) and `features` (~8.5 h) - the image traits
+   of the Insights page come from them. **`describe` is not waited for** (Jan 2026-10-23: launch before it, Jan's UX
+   feedback is fixed meanwhile).
+7. **After the launch:**
+   - phase `describe` (~6 days), last; a `derive` once it is done (tags);
    - the M1 Air can rejoin then (`--phase A`, later B). Ask Jan.
    - Before any crop proposal (`propose-crops`, source `image_pipeline`): the confidence threshold, the never-cut
      edge check, no small originals, a reviewed sample.

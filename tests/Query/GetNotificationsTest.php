@@ -10,6 +10,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetNotifications;
 use SpeedPuzzling\Web\Results\PlayerNotification;
 use SpeedPuzzling\Web\Tests\DataFixtures\LentPuzzleTransferFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\TestingViewer;
@@ -172,6 +173,55 @@ final class GetNotificationsTest extends KernelTestCase
         $plan = $this->database->fetchFirstColumn('EXPLAIN ' . $executed[0]['sql'], array_values($executed[0]['params']));
 
         self::assertStringContainsString('custom_notification_unread', implode("\n", $plan));
+    }
+
+    public function testATeamedUpNotificationNamesTheActorAndTheEventAndAsksToCloseWhileListed(): void
+    {
+        // John teamed up with Michael, who still has his open team listing at the event
+        $this->database->executeStatement(
+            "INSERT INTO notification (id, player_id, type, notified_at, actor_player_id, target_partner_listing_id) VALUES (:id, :player, 'PartnerTeamedUp', NOW(), :actor, :listing)",
+            ['id' => Uuid::uuid7()->toString(), 'player' => PlayerFixture::PLAYER_WITH_FAVORITES, 'actor' => PlayerFixture::PLAYER_REGULAR, 'listing' => PartnerFinderFixture::LISTING_REGULAR_PAIR],
+        );
+
+        $notification = $this->partnerNotification(PlayerFixture::PLAYER_WITH_FAVORITES);
+        self::assertTrue($notification->isPartnerTeamedUpNotification());
+        self::assertSame(PlayerFixture::PLAYER_REGULAR, $notification->targetPlayerId);
+        self::assertSame('Partner Finder Open', $notification->partnerCompetitionName);
+        self::assertSame(PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN_SLUG, $notification->partnerCompetitionSlug);
+        self::assertTrue($notification->partnerReaderListed);
+
+        // A private actor is named but never shown by their picture
+        $this->database->executeStatement("UPDATE player SET avatar = 'avatars/john.jpg' WHERE id = :id", ['id' => PlayerFixture::PLAYER_REGULAR]);
+        self::assertSame('avatars/john.jpg', $this->partnerNotification(PlayerFixture::PLAYER_WITH_FAVORITES)->targetPlayerAvatar);
+        $this->database->executeStatement('UPDATE player SET is_private = true WHERE id = :id', ['id' => PlayerFixture::PLAYER_REGULAR]);
+        $private = $this->partnerNotification(PlayerFixture::PLAYER_WITH_FAVORITES);
+        self::assertNull($private->targetPlayerAvatar);
+        self::assertTrue($private->targetPlayerIsPrivate);
+        self::assertSame(PlayerFixture::PLAYER_REGULAR_NAME, $private->targetPlayerName);
+        $this->database->executeStatement('UPDATE player SET is_private = false WHERE id = :id', ['id' => PlayerFixture::PLAYER_REGULAR]);
+
+        $this->database->executeStatement('UPDATE partner_listing SET closed_at = NOW() WHERE id = :id', ['id' => PartnerFinderFixture::LISTING_FAVORITES_TEAM]);
+        self::assertFalse($this->partnerNotification(PlayerFixture::PLAYER_WITH_FAVORITES)->partnerReaderListed);
+
+        // Blocked by the reader: left out, the badge agrees
+        $this->block(PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_REGULAR);
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_FAVORITES);
+        $left = array_filter(
+            $this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, 100),
+            static fn (PlayerNotification $notification): bool => $notification->isPartnerTeamedUpNotification(),
+        );
+        self::assertSame([], $left);
+    }
+
+    private function partnerNotification(string $playerId): PlayerNotification
+    {
+        foreach ($this->query->forPlayer($playerId, 100) as $notification) {
+            if ($notification->isPartnerTeamedUpNotification() || $notification->isPartnerGroupMemberNotification()) {
+                return $notification;
+            }
+        }
+
+        self::fail('No partner finder notification.');
     }
 
     /**

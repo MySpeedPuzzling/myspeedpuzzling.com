@@ -501,3 +501,22 @@ partner_request:
     no_addresses: "Nous ne partageons jamais les adresses e-mail : vous répondez sur MySpeedPuzzling, et une réponse ouvre une conversation."
     found_partner: 'Vous avez déjà trouvé votre partenaire ? <a href="%url%">Fermez votre annonce</a>'
     opt_out: 'Vous recevez cet e-mail parce que vous avez publié une annonce dans la recherche de partenaire. <a href="%settingsUrl%">Paramètres des e-mails</a> · <a href="%unsubscribeUrl%">Ne plus recevoir ces e-mails</a>'
+partner_reminder:
+    subject: "Vous cherchez encore un partenaire pour %event% ?"
+    preheader: "%event% a lieu dans deux semaines - voyez qui cherche."
+    title: "Vous cherchez encore un partenaire ?"
+    greeting: "Bonjour %name%,"
+    intro: "%event% (%dates%) a lieu dans deux semaines, et votre annonce de recherche de partenaire est toujours en ligne."
+    new_listings: "[0,1]Depuis, %count% autre puzzleur s’est inscrit.|]1,Inf[Depuis, %count% autres puzzleurs se sont inscrits."
+    no_new_listings: "Personne de nouveau ne s’est inscrit depuis - un coup d’œil à la liste peut quand même valoir la peine."
+    see_who: "Voir qui cherche"
+    found_partner: "Vous avez déjà trouvé votre partenaire ? <a href=\"%url%\">Fermez votre annonce</a> pour qu’on ne vous sollicite plus."
+partner_teamed_up:
+    subject: "%name% indique faire équipe avec vous pour %event%"
+    preheader: "Vous y avez encore une annonce ? Mettez à jour votre annonce de recherche de partenaire."
+    title: "%name% fait équipe avec vous"
+    greeting: "Bonjour %name%,"
+    intro: "%name% a fermé son annonce de recherche de partenaire pour %event% et vous a indiqué comme partenaire."
+    ask: "Votre propre annonce y est toujours en ligne, on peut donc continuer à vous solliciter. Partenaire trouvé ? Fermez-la. Il vous manque encore du monde ? Mettez-la à jour."
+    update: "Mettre à jour mon annonce"
+    not_right: "Ce n’est pas le cas ? Laissez votre annonce telle quelle - rien ne change tant que vous ne la modifiez pas."

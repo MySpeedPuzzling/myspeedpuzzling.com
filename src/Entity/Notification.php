@@ -83,6 +83,11 @@ class Notification
         #[JoinColumn(onDelete: 'CASCADE')]
         #[Immutable]
         public null|PartnerRequest $targetPartnerRequest = null,
+        // PartnerTeamedUp / PartnerGroupMember: the actor's partner finder listing (which event, where to look)
+        #[ManyToOne]
+        #[JoinColumn(onDelete: 'CASCADE')]
+        #[Immutable]
+        public null|PartnerListing $targetPartnerListing = null,
     ) {
     }
 }

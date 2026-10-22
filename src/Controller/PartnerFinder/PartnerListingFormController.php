@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\FormData\PartnerListingFormData;
 use SpeedPuzzling\Web\FormType\PartnerListingFormType;
 use SpeedPuzzling\Web\Message\EditPartnerListing;
 use SpeedPuzzling\Web\Message\ListForPartner;
+use SpeedPuzzling\Web\Query\GetAllowedPartnerCoMembers;
 use SpeedPuzzling\Web\Query\GetPartnerListings;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\PartnerListingRepository;
@@ -45,6 +46,7 @@ final class PartnerListingFormController extends AbstractController
         readonly private PartnerListingRepository $partnerListingRepository,
         readonly private PartnerListingRules $partnerListingRules,
         readonly private GetPartnerListings $getPartnerListings,
+        readonly private GetAllowedPartnerCoMembers $getAllowedPartnerCoMembers,
         readonly private PartnerFinderUrls $partnerFinderUrls,
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
@@ -119,6 +121,9 @@ final class PartnerListingFormController extends AbstractController
             'finder_url' => $finderUrl,
             'registration_managed' => $competition->registrationManaged,
             'custom_suggestions' => $suggestions,
+            // The co-member picker's picks so far (a saved listing's, or a refused form's) - nothing queried without any
+            'co_member_choices' => $this->getAllowedPartnerCoMembers->choices($viewer->playerId, $data->coMemberIdList()),
+            'viewer_player_id' => $viewer->playerId,
         ], $response);
     }
 
@@ -135,7 +140,7 @@ final class PartnerListingFormController extends AbstractController
                     groupSize: $data->groupSizeValue(),
                     lookingFor: $data->kinds(),
                     needed: $data->neededValue(),
-                    coMemberIds: null,
+                    coMemberIds: $data->coMemberIdList(),
                     goal: $data->goal,
                     strengths: $data->strengths,
                     customStrengths: $data->customStrengthList(),
@@ -157,7 +162,7 @@ final class PartnerListingFormController extends AbstractController
                 groupSize: $data->groupSizeValue(),
                 lookingFor: $data->kinds(),
                 needed: $data->neededValue(),
-                coMemberIds: [],
+                coMemberIds: $data->coMemberIdList(),
                 goal: $data->goal,
                 strengths: $data->strengths,
                 customStrengths: $data->customStrengthList(),

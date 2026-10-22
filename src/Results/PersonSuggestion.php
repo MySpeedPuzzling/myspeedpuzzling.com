@@ -27,6 +27,9 @@ readonly final class PersonSuggestion
         public float $score,
         public float $pairScore,
         public bool $isFavorite,
+        // A private player hidden from the viewer - only their code is known (the add form takes them by code; the
+        // partner finder's co-member picker leaves them out, PartnerListingRules would refuse them)
+        public bool $isHidden = false,
     ) {
     }
 

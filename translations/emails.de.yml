@@ -501,3 +501,22 @@ partner_request:
     no_addresses: "Wir geben nie E-Mail-Adressen weiter: Du antwortest auf MySpeedPuzzling, und eine Antwort öffnet einen Chat."
     found_partner: 'Schon einen Partner gefunden? <a href="%url%">Schließe deinen Eintrag</a>'
     opt_out: 'Du bekommst diese E-Mail, weil du dich in der Partnersuche eingetragen hast. <a href="%settingsUrl%">E-Mail-Einstellungen</a> · <a href="%unsubscribeUrl%">Diese E-Mails abbestellen</a>'
+partner_reminder:
+    subject: "Suchst du noch einen Partner für %event%?"
+    preheader: "%event% ist in zwei Wochen - schau, wer noch sucht."
+    title: "Suchst du noch einen Partner?"
+    greeting: "Hallo %name%,"
+    intro: "%event% (%dates%) ist in zwei Wochen, und dein Eintrag bei der Partnersuche ist noch aktiv."
+    new_listings: "{1}Seitdem hat sich 1 weiterer Puzzler eingetragen.|[0,Inf[Seitdem haben sich %count% weitere Puzzler eingetragen."
+    no_new_listings: "Seitdem hat sich niemand Neues eingetragen - ein Blick auf die Liste lohnt sich trotzdem."
+    see_who: "Ansehen, wer sucht"
+    found_partner: "Schon einen Partner gefunden? <a href=\"%url%\">Schließe deinen Eintrag</a>, damit dich niemand mehr anfragt."
+partner_teamed_up:
+    subject: "%name% hat sich für %event% mit dir zusammengetan"
+    preheader: "Bist du dort noch eingetragen? Aktualisiere deinen Eintrag bei der Partnersuche."
+    title: "%name% hat sich mit dir zusammengetan"
+    greeting: "Hallo %name%,"
+    intro: "%name% hat den eigenen Eintrag bei der Partnersuche für %event% geschlossen und dich als Partner angegeben."
+    ask: "Dein eigener Eintrag dort ist noch aktiv, also können dich weiter Leute anfragen. Partner gefunden? Schließe ihn. Braucht ihr noch mehr Leute? Aktualisiere ihn."
+    update: "Meinen Eintrag aktualisieren"
+    not_right: "Stimmt nicht? Lass deinen Eintrag, wie er ist - es ändert sich nichts, solange du nichts änderst."

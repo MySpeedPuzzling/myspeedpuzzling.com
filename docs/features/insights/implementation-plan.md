@@ -49,7 +49,7 @@ files in this folder hold the numbers and the reasoning. [`prototype.html`](./pr
 | **4** | Insights computation: batch additions, read models, builders, cache, profile percentiles (no UI) | no | 3 |
 | **5** | Image intelligence on the server: labels + estimates endpoints, image prior in shrinkage, image predictions side by side, evaluation + gates, tags registry, box-text list | moderators only | 1, 3 (derive runs on partial backfill data) |
 | **6** | Display behind `INSIGHTS_PUBLIC`: Insights page, estimates (option C), improvement + rating charts | admins only until §8 | 4, 5 |
-| **§8** | Launch: backfill complete, final derive, gates pass, Jan's yes → remove the flag | everyone | backfill |
+| **§8** | Launch: backfill complete but `describe`, final derive, gates pass, Jan's yes → remove the flag | everyone | backfill |
 
 Phase 3 can start right after Phase 1 (or in parallel with Phase 2): it touches no image code.
 
@@ -480,7 +480,7 @@ Goal: every number the page shows, computed and tested, within the performance b
 
 ## 8. Launch (waits for the backfill)
 
-1. `/image-pipeline-status`: every analyzer at 100 % current coverage, or only images that failed for a recorded reason (listed).
+1. `/image-pipeline-status`: every analyzer but `describe` at 100 % current coverage, or only images that failed for a recorded reason (listed). **`describe` does not hold the launch** (Jan 2026-10-23): the estimate never reads it; it runs last (~6 days on the M3) and its tags (Photo / Drawn, collage grid, themes, style, mood) appear as it goes - each finished picture's `tags` come with the next nightly derive.
 2. Final `/image-pipeline-derive`, including `difficulty_prior` on the complete data. `myspeedpuzzling:evaluate-image-estimates` stores a passing gate record for 500 pc at least.
 3. Jan looks at the admin-visible page and says yes.
 4. Remove the flag:

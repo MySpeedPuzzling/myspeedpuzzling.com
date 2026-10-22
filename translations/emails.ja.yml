@@ -501,3 +501,22 @@ partner_request:
     no_addresses: "メールアドレスが共有されることはありません。返信はMySpeedPuzzlingの中で行い、返信するとチャットが開きます。"
     found_partner: 'もうパートナーが見つかりましたか？<a href="%url%">募集を締め切る</a>'
     opt_out: 'パートナー探しに募集を出しているため、このメールをお送りしています。<a href="%settingsUrl%">メール設定</a> · <a href="%unsubscribeUrl%">このメールを停止する</a>'
+partner_reminder:
+    subject: "%event%のパートナーをまだ探していますか？"
+    preheader: "%event%まであと2週間です。誰が探しているか見てみましょう。"
+    title: "まだパートナーを探していますか？"
+    greeting: "%name%さん、こんにちは"
+    intro: "%event%（%dates%）まであと2週間です。あなたのパートナー募集はまだ掲載中です。"
+    new_listings: "{1}その後、新たに1人が募集を出しました。|[0,Inf[その後、新たに%count%人が募集を出しました。"
+    no_new_listings: "その後、新しい募集はありませんが、今いる人を見てみる価値はあります。"
+    see_who: "募集中の人を見る"
+    found_partner: "もうパートナーが見つかりましたか？<a href=\"%url%\">募集を締め切る</a>と、これ以上連絡が来なくなります。"
+partner_teamed_up:
+    subject: "%name%さんが%event%であなたと組んだそうです"
+    preheader: "あなたの募集はまだ掲載中ですか？パートナー募集を更新しましょう。"
+    title: "%name%さんがあなたと組みました"
+    greeting: "%name%さん、こんにちは"
+    intro: "%name%さんが%event%のパートナー募集を締め切り、組んだ相手としてあなたを指名しました。"
+    ask: "あなた自身の募集はまだ掲載中なので、引き続き連絡が来るかもしれません。パートナーが見つかったら締め切り、まだメンバーが必要なら更新してください。"
+    update: "自分の募集を更新する"
+    not_right: "違う場合は、募集をそのままにしておいてください。あなたが変更しない限り、何も変わりません。"

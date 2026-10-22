@@ -72,6 +72,7 @@ final class MyCoPuzzlersController extends AbstractController
                 'score' => round($person->score, 4),
                 'pairScore' => round($person->pairScore, 4),
                 'favorite' => $person->isFavorite,
+                'hidden' => $person->isHidden,
             ], $suggestions->people),
         ]);
     }

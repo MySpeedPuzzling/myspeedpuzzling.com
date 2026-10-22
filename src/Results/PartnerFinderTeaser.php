@@ -20,6 +20,8 @@ readonly final class PartnerFinderTeaser
         public int $pairs,
         public int $teams,
         public int $groups,
+        // Listings closed with "Found my partner" at the event
+        public int $foundCount,
         public array $countries,
         public array $faces,
     ) {

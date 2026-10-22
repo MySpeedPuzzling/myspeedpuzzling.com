@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Exceptions\PartnerListingInvalid;
 use SpeedPuzzling\Web\Exceptions\PartnerListingNotFound;
 use SpeedPuzzling\Web\Message\EditPartnerListing;
 use SpeedPuzzling\Web\Repository\PartnerListingRepository;
+use SpeedPuzzling\Web\Services\PartnerFinder\PartnerGroupMemberNotifier;
 use SpeedPuzzling\Web\Services\PartnerFinder\PartnerListingRules;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -23,6 +24,7 @@ readonly final class EditPartnerListingHandler
     public function __construct(
         private PartnerListingRepository $listingRepository,
         private PartnerListingRules $rules,
+        private PartnerGroupMemberNotifier $groupMemberNotifier,
         private ClockInterface $clock,
     ) {
     }
@@ -45,8 +47,10 @@ readonly final class EditPartnerListingHandler
         $strengths = $this->rules->strengths($message->strengths, $message->customStrengths);
         $coMemberIds = $message->coMemberIds === null
             ? $listing->coMemberIds()
-            : $this->rules->coMembers($message->playerId, $message->coMemberIds);
+            : $this->rules->editedCoMembers($message->playerId, $listing->coMemberIds(), $message->coMemberIds);
         $languages = $this->rules->languages($message->languages);
+        $newMembers = $this->groupMemberNotifier->newMembers($listing->coMemberIds(), $coMemberIds);
+        $now = $this->clock->now();
 
         $listing->edit(
             groupSize: $message->groupSize,
@@ -57,7 +61,9 @@ readonly final class EditPartnerListingHandler
             strengths: $strengths,
             languages: $languages,
             note: $message->note,
-            now: $this->clock->now(),
+            now: $now,
         );
+
+        $this->groupMemberNotifier->notify($newMembers, $listing, $now);
     }
 }

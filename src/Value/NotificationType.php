@@ -50,4 +50,11 @@ enum NotificationType: string
 
     // "I'd like to puzzle with you" on the player's partner finder listing (PartnerRequest), actor = the sender
     case PartnerRequest = 'PartnerRequest';
+
+    // The actor closed their listing as found and named the player as who they teamed up with - so the player can close
+    // theirs too (the player had an open listing at the event); target = the actor's listing
+    case PartnerTeamedUp = 'PartnerTeamedUp';
+
+    // The actor named the player as a member of their group in their partner finder listing; target = that listing
+    case PartnerGroupMember = 'PartnerGroupMember';
 }

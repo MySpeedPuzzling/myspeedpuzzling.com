@@ -47,6 +47,20 @@ $pf-goal-ink: #8a5a00;
     font-size: $font-size-sm;
 }
 
+// "N found a partner here" (closed with Found my partner) - quiet social proof under the lead
+.pf-found {
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+    margin: .5rem 0 0;
+    padding: .125rem .625rem;
+    border-radius: 2rem;
+    background: mix($success, $white, 12%);
+    color: mix($success, $black, 70%);
+    font-size: .8125rem;
+    font-weight: 500;
+}
+
 .pf-list-me {
     flex-shrink: 0;
 }
@@ -538,6 +552,48 @@ a.pf-listing-name {
     margin: 0;
     color: $pf-muted;
     font-size: .6875rem;
+}
+
+// "Who did you team up with?" under the own row's Found my partner (a .pf-contact-panel)
+.pf-found-panel fieldset {
+    display: grid;
+    gap: .125rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.pf-found-title {
+    margin: 0 0 .25rem;
+    color: $pf-ink;
+    font-size: .8125rem;
+    font-weight: 600;
+}
+
+.pf-found-person {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-height: 40px;
+    padding: .125rem .25rem;
+    border-radius: .5rem;
+    font-size: .875rem;
+    cursor: pointer;
+
+    &:hover {
+        background: $gray-100;
+    }
+
+    .form-check-input {
+        flex-shrink: 0;
+        margin: 0;
+    }
+}
+
+.pf-found-help {
+    margin: 0;
+    color: $pf-muted;
+    font-size: .75rem;
 }
 
 // Empty / no match / capped / privacy

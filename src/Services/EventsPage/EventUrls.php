@@ -47,6 +47,23 @@ readonly final class EventUrls
         return $this->urlGenerator->generate($route, $reference->routeParameters());
     }
 
+    /**
+     * The occurrence's partner finder page (docs/features/partner-finder.md) - the rule of PartnerFinderUrls::forSlugs():
+     * an edition under its series, a one-time event under its own slug, nothing without a slug
+     */
+    public function partnerFinder(EventOccurrence $occurrence): null|string
+    {
+        $reference = $occurrence->reference();
+
+        if ($reference->slug === null || $reference->isSeries) {
+            return null;
+        }
+
+        return $reference->seriesSlug !== null
+            ? $this->urlGenerator->generate('edition_partners', ['seriesSlug' => $reference->seriesSlug, 'editionSlug' => $reference->slug])
+            : $this->urlGenerator->generate('event_partners', ['slug' => $reference->slug]);
+    }
+
     public function series(null|string $slug): null|string
     {
         if ($slug === null || $slug === '') {

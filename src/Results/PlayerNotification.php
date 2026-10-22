@@ -99,6 +99,8 @@ readonly final class PlayerNotification
         public null|string $partnerCompetitionName = null,
         public null|string $partnerCompetitionSlug = null,
         public null|string $partnerSeriesSlug = null,
+        // PartnerTeamedUp / PartnerGroupMember: the reader still has an open listing at that event
+        public bool $partnerReaderListed = false,
     ) {
     }
 
@@ -228,6 +230,7 @@ readonly final class PlayerNotification
             partnerCompetitionName: is_string($row['partner_competition_name'] ?? null) ? $row['partner_competition_name'] : null,
             partnerCompetitionSlug: is_string($row['partner_competition_slug'] ?? null) ? $row['partner_competition_slug'] : null,
             partnerSeriesSlug: is_string($row['partner_series_slug'] ?? null) ? $row['partner_series_slug'] : null,
+            partnerReaderListed: ($row['partner_reader_listed'] ?? false) === true,
         );
     }
 
@@ -287,6 +290,16 @@ readonly final class PlayerNotification
     public function isPartnerRequestNotification(): bool
     {
         return $this->notificationType === NotificationType::PartnerRequest && $this->partnerRequestId !== null;
+    }
+
+    public function isPartnerTeamedUpNotification(): bool
+    {
+        return $this->notificationType === NotificationType::PartnerTeamedUp && $this->partnerCompetitionName !== null;
+    }
+
+    public function isPartnerGroupMemberNotification(): bool
+    {
+        return $this->notificationType === NotificationType::PartnerGroupMember && $this->partnerCompetitionName !== null;
     }
 
     public function isConversationRequestNotification(): bool

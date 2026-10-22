@@ -122,10 +122,11 @@ Pair/team result counts per puzzler are **phase 2** (they need precomputed colum
   `StartConversation` bypass (`partnerRequestId`, ownership checked in the handler), close on `LeaveCompetition`, cron
   `myspeedpuzzling:close-partner-listings` (event over + entered).
 
-## Phase 2 (docs/TODO.md)
+## Phase 2 (Jan, 2026-10-23)
 
-"Close yours too?" for the people you teamed up with, a reminder 14 days before the event, a line for followers of the
-event, the "N pairs found here" count, pair/team result counts on the cards, a cross-event finder, API v1 read access.
+Built: "Close yours too?" (+ its e-mail), the reminder two weeks before the event, the "found a partner here" count, the
+co-member picker, the "N looking for a partner" link in "Your events" - see "Phase 2 as built". Skipped by Jan: pair/team
+result counts on the cards, a finder across events ("you are always looking for a specific event"), API v1 access.
 
 ## Foundation as built (2026-10-22)
 
@@ -433,3 +434,63 @@ closed listings not counted; nearest first; editions named with their series; `m
 redirect, no redirect for a draft / nonsense, empty state, signed-in, budget, static sitemap), `DraftCanaryTest` (the
 picker never lists a draft edition or an edition of a draft series - Draft Night has solo rounds only, no canary),
 `SiteFooterTest` (9 New badges). Copy in all 6 locales (`partner_finder.gate.*`, footer label `partner_finder.gate.footer_link`).
+
+## Phase 2 as built (2026-10-23)
+
+**"Close yours too?"** Closing with "Found my partner" asks "Who did you team up with?" when there is anybody to name:
+`Services\PartnerFinder\PartnerTeamUpCandidates` = the people the owner exchanged an "I'd like to puzzle with you" with
+at that event, either way, who still have an open listing there, nobody blocked either way - one SQL rule for the own
+row (`GetPartnerListings`, `PartnerListingRow::$teamUpCandidates`, same statement - named even when private, avatar
+masked) and the handler's check. The step is a `<details>` panel like the contact one (`_listing_action.html.twig`);
+with no candidate the button closes at once as before. `ClosePartnerListing::$teamedUpWith` - each named candidate gets
+a `PartnerTeamedUp` notification (actor = the owner, `notification.target_partner_listing_id` = the owner's listing);
+anybody else is ignored; each person is told once per listing (a group counting down names the same people again -
+`NotificationRepository::hasPartnerListingNotification()`). **Never closed for them** (Jan asked whether it could be automatic): one click by the other
+person would silently take somebody's listing down - a mistaken pick, a pair partner who still looks for a team. The
+notification says "still listed there? close yours" only while the reader has an open listing at the event
+(`partner_reader_listed`, computed in `GetNotifications`) and links to the finder.
+
+**Jan, 2026-10-23: "we can never close someone else's offering"** - only when both agree; so beside the notification
+the named player gets an e-mail with "Update my listing" (`SendPartnerTeamedUpEmail`, async after the close; nothing
+when their listing closed meanwhile, these e-mails are off or a block stands either way by now). When they close theirs
+too, both sides agreed - nothing is ever closed by the other side's click.
+
+**"Your events"** (`/en/events`): an event of the viewer's (going, followed, a followed series' next edition) with people
+looking shows "N looking for a partner" linking straight to its finder (`AgendaRow::$partnerFinderUrl` from
+`EventUrls::partnerFinder()`, the count rides on the agenda's PartnerListings tag - no query of its own).
+
+**Private and blocked (reviewed 2026-10-23)**: a private player hidden from the viewer shows name and flag only on every
+surface - no avatar, code, median, solved count, MSP, tier, similar-speed badge or profile link (finder rows, co-member
+chips = "a private puzzler", teaser faces = flag only, event card = no face, notifications = name without picture since
+`076f5ba92`, request e-mail = name + country, no numbers). The co-member picker never offers a private player hidden
+from the lister (`PersonSuggestion::$isHidden`). Blocks hide both ways everywhere a person is shown or contacted;
+counts (gate page, agenda tag, "found here", the reminder's count of newcomers) are aggregates for everybody.
+
+**Co-members** ("a group of N" + who): the form's hidden `coMembers` field (player ids, comma-separated) is filled by
+`partner_co_members_controller.js` - TomSelect over the add form's suggestions (`my_co_puzzlers`: favorites first, then
+co-puzzlers) and the player search (`player_search_autocomplete?format=co-puzzler`), registered players only, never the
+viewer, at most "group size - 1" (shrinking the group drops the last picks). Without JavaScript the field keeps what the
+listing has. The picker is always TomSelect's multi mode (it fixes the mode from `maxItems` once - a group of 2 would
+start single). An edit checks only newly named co-members (`PartnerListingRules::editedCoMembers()`); one already on
+the listing who blocked the lister or went private since drops out quietly instead of making every edit fail. Prefill = `GetAllowedPartnerCoMembers::choices()` (the same rule as the check, no query without ids). Each
+newly added co-member gets a `PartnerGroupMember` notification - once, an edit that keeps them tells nobody
+(`PartnerGroupMemberNotifier`, players loaded before anything changes).
+
+**"N found a partner here"**: listings closed as `found` at the event, counted in the event CTE of both
+`GetPartnerListings` statements (`foundCount` on `PartnerListings` / `PartnerFinderTeaser`) - shown under the page lead
+from 1. No extra statement (budget tests unchanged).
+
+**"Still looking?" reminder**: daily `myspeedpuzzling:remind-partner-listings` (lily.srv cron) → `RemindPartnerListings`
+picks every open listing not reminded yet whose event still has a finder and starts within 14 days
+(`RemindPartnerListingsHandler::REMIND_DAYS_BEFORE`), made before that window opened (a listing from the last two weeks
+gets none - its player has just looked); marks `partner_listing.reminded_at` (once per listing, whatever the e-mail
+does) and queues `SendPartnerListingReminder` (async). The e-mail (`emails/partner_reminder.html.twig`): event + dates,
+"N puzzlers have listed since you did" (`CountNewPartnerListings`, blocks either way left out) or "nobody new", "See
+who's looking", "Found your partner already? Close your listing", the partner finder e-mails opt-out
+(`player.partner_finder_emails`, one-click unsubscribe). Nothing for a closed listing or a player who switched them off.
+
+**Tests**: `PartnerListingHandlersTest` (only a candidate is told, never closed for them, blocks either way, co-members
+told once), `RemindPartnerListingsTest` (the window, once per listing, the e-mail and its count, opt-out, blocks),
+`GetPartnerListingsTest` (found count incl. teaser, candidates on the own row only), `GetNotificationsTest` (the new
+branch, `partner_reader_listed`, blocked actor left out), `PartnerFinderPagesTest` (co-member through the form +
+notification + prefill, the team-up step end to end). Copy in all 6 locales.

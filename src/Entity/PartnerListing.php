@@ -91,6 +91,12 @@ class PartnerListing
     #[Column(nullable: true, enumType: PartnerListingClosedReason::class)]
     public null|PartnerListingClosedReason $closedReason = null;
 
+    // "Still looking?" e-mail two weeks before the event was handled (sent, or skipped for a player without e-mails) -
+    // once per listing
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $remindedAt = null;
+
     /**
      * @param list<PartnerKind> $lookingFor
      * @param list<string> $coMemberIds
@@ -191,6 +197,14 @@ class PartnerListing
         $this->closedAt = $now;
         $this->closedReason = $reason;
         $this->updatedAt = $now;
+    }
+
+    /**
+     * The "Still looking?" reminder was handled - the first moment stays.
+     */
+    public function markReminded(DateTimeImmutable $now): void
+    {
+        $this->remindedAt ??= $now;
     }
 
     /**

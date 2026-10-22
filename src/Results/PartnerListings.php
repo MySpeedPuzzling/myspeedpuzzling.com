@@ -27,6 +27,8 @@ readonly final class PartnerListings
         public null|int $viewerMedian500Seconds,
         public array $rows,
         public int $totalOpen,
+        // Listings closed with "Found my partner" at the event (D7) - social proof on the page
+        public int $foundCount = 0,
     ) {
     }
 

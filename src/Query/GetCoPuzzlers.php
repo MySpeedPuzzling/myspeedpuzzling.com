@@ -68,7 +68,8 @@ SELECT
     player.code AS player_code,
     CASE WHEN {$isPrivate} THEN NULL ELSE player.name END AS player_name,
     CASE WHEN {$isPrivate} THEN NULL ELSE player.country END AS player_country,
-    CASE WHEN {$isPrivate} THEN NULL ELSE player.avatar END AS player_avatar
+    CASE WHEN {$isPrivate} THEN NULL ELSE player.avatar END AS player_avatar,
+    (member.player_id IS NOT NULL AND {$isPrivate}) AS player_hidden
 FROM puzzling_team_member me
 INNER JOIN puzzling_team team ON team.id = me.team_id
 INNER JOIN LATERAL (
@@ -109,6 +110,7 @@ SQL;
          *     player_name: null|string,
          *     player_country: null|string,
          *     player_avatar: null|string,
+         *     player_hidden: bool,
          * }> $rows
          */
         $rows = $this->database->fetchAllAssociative($query, [
@@ -119,7 +121,7 @@ SQL;
 
         /** @var array<string, array{name: null|string, size: int, count: int, last: null|string, score: float, archived: bool, members: list<string>}> $teams */
         $teams = [];
-        /** @var array<string, array{value: string, label: string, playerId: null|string, code: null|string, country: null|string, avatar: null|string, count: int, pairCount: int, last: null|string, pairLast: null|string, score: float, pairScore: float}> $people */
+        /** @var array<string, array{value: string, label: string, playerId: null|string, code: null|string, country: null|string, avatar: null|string, hidden: bool, count: int, pairCount: int, last: null|string, pairLast: null|string, score: float, pairScore: float}> $people */
         $people = [];
 
         foreach ($rows as $row) {
@@ -145,6 +147,7 @@ SQL;
                 'code' => $row['player_code'] !== null ? strtoupper($row['player_code']) : null,
                 'country' => $row['player_country'],
                 'avatar' => $row['player_avatar'],
+                'hidden' => $row['player_hidden'],
                 'count' => 0,
                 'pairCount' => 0,
                 'last' => null,
@@ -177,6 +180,7 @@ SQL;
                 'code' => strtoupper($favorite->playerCode),
                 'country' => $favorite->playerCountry?->name,
                 'avatar' => $favorite->playerAvatar,
+                'hidden' => $favorite->isPrivate,
                 'count' => 0,
                 'pairCount' => 0,
                 'last' => null,
@@ -227,6 +231,7 @@ SQL;
                 score: $person['score'],
                 pairScore: $person['pairScore'],
                 isFavorite: $person['playerId'] !== null && isset($favoriteIds[$person['playerId']]),
+                isHidden: $person['hidden'],
             );
         }
 

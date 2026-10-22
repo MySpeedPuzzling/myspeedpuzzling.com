@@ -146,6 +146,13 @@ final class GetCoPuzzlersTest extends KernelTestCase
         self::assertNull($people[PlayerFixture::PLAYER_PRIVATE]->avatar);
         self::assertNull($people[PlayerFixture::PLAYER_PRIVATE]->country);
         self::assertSame(2, $people[PlayerFixture::PLAYER_PRIVATE]->pairTimesCount);
+        // Marked, so the partner finder's co-member picker can leave her out
+        self::assertTrue($people[PlayerFixture::PLAYER_PRIVATE]->isHidden);
+        foreach ($people as $key => $person) {
+            if ($key !== PlayerFixture::PLAYER_PRIVATE) {
+                self::assertFalse($person->isHidden, $person->label . ' is not private');
+            }
+        }
     }
 
     /**

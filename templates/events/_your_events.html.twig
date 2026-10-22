@@ -29,6 +29,14 @@
                             {%- endif %}
                             · {{ include('events/_your_event_mark.html.twig', {mark: your_event.mark}) }}
                         </span>
+                        {# People looking for a pair/team partner there - straight to the finder (docs/features/partner-finder.md
+                           "Phase 2 as built"); the count rides on the agenda's tag, no query of its own #}
+                        {%- set looking = row.tags|filter(tag => tag.type.value == 'partner_listings')|first -%}
+                        {% if looking and row.partnerFinderUrl %}
+                            <a class="ev-your-partners" href="{{ row.partnerFinderUrl }}">
+                                <i class="bi bi-people-fill" aria-hidden="true"></i> {{ 'partner_finder.events_tag.looking'|trans({'%count%': looking.count}) }}
+                            </a>
+                        {% endif %}
                     </div>
                     {% if row.logo %}
                         <img class="ev-your-logo" src="{{ row.logo|thumbnail('puzzle_small') }}" alt="" width="40" height="40" loading="lazy">

@@ -245,10 +245,8 @@ template variable `partner_finder`: `null|Results\PartnerFinderCard`):
 `testThePartnerFinderCostsOneStatementForAPlayerOnly`: Partner Finder Open costs a player exactly one statement more than
 the same page with solo rounds only, a guest the same.
 
-**Guards to remove after merging part A** (search `TODO(partner finder merge)`):
-`PartnerFinderCardResolver::url()` catches `RouteNotFoundException` and returns null for `event_partners`,
-`edition_partners` and `partner_listing_form` (templates then leave the link out); `PartnerFinderCardTest::hasFinderRoutes()`
-skips the link assertions while the routes are missing. Remove both once the routes exist.
+**Links.** The button and the card link to part A's `event_partners` / `edition_partners` and `partner_listing_form`
+(the merge guards from the parallel build are gone).
 
 **Tests.** `GetPartnerCardDataTest`, `PartnerFinderCardResolverTest` (states, wording keys), `PartnerFinderCardTest`
 (guest link, browse, listed, group, highlighted after "I'm going", closed card), `GetEventGoingCountsTest` (listing

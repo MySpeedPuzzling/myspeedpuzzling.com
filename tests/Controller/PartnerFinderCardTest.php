@@ -10,10 +10,8 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\HintType;
-use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
-use Symfony\Component\Routing\RouterInterface;
 
 /**
  * The partner card and "Find a partner (N)" on an event page (docs/features/partner-finder.md "Part B"), on Partner
@@ -36,11 +34,9 @@ final class PartnerFinderCardTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('[data-testid="partner-card"]'));
 
-        if ($this->hasFinderRoutes($browser)) {
-            $button = $crawler->filter('#taking-part [data-partner-finder-button]');
-            self::assertCount(1, $button);
-            self::assertCount(0, $button->filter('.pf-find-count'), 'no count for a guest');
-        }
+        $button = $crawler->filter('#taking-part [data-partner-finder-button]');
+        self::assertCount(1, $button);
+        self::assertCount(0, $button->filter('.pf-find-count'), 'no count for a guest');
     }
 
     public function testNotGoingWithListingsBrowses(): void
@@ -55,10 +51,8 @@ final class PartnerFinderCardTest extends WebTestCase
         self::assertCount(1, $card->filter('.pf-card-close[aria-label="Don\'t show this again"]'));
         self::assertStringNotContainsString('pf-card-accent', (string) $card->attr('class'), 'plain, no gradient');
 
-        if ($this->hasFinderRoutes($browser)) {
-            self::assertSame('2', $crawler->filter('#taking-part [data-partner-finder-button] .pf-find-count')->text());
-            self::assertCount(1, $card->filter('a.btn-primary'), 'See who\'s looking');
-        }
+        self::assertSame('2', $crawler->filter('#taking-part [data-partner-finder-button] .pf-find-count')->text());
+        self::assertCount(1, $card->filter('a.btn-primary'), 'See who\'s looking');
     }
 
     public function testAListedPlayerGetsTheStatusLine(): void
@@ -111,9 +105,7 @@ final class PartnerFinderCardTest extends WebTestCase
         $crawler = $browser->request('GET', self::PAGE);
         self::assertCount(0, $crawler->filter('[data-testid="partner-card"]'), 'closed for good');
 
-        if ($this->hasFinderRoutes($browser)) {
-            self::assertCount(1, $crawler->filter('#taking-part [data-partner-finder-button]'), 'the button stays');
-        }
+        self::assertCount(1, $crawler->filter('#taking-part [data-partner-finder-button]'), 'the button stays');
     }
 
     private function card(Crawler $crawler, string $state): Crawler
@@ -124,15 +116,5 @@ final class PartnerFinderCardTest extends WebTestCase
         self::assertSame($state, $card->attr('data-partner-card-state'));
 
         return $card;
-    }
-
-    // TODO(partner finder merge): always true once part A's routes are merged - drop the checks
-    private function hasFinderRoutes(KernelBrowser $browser): bool
-    {
-        /** @var RouterInterface $router */
-        $router = $browser->getContainer()->get(RouterInterface::class);
-
-        return $router->getRouteCollection()->get('event_partners.en') !== null
-            || $router->getRouteCollection()->get('event_partners') !== null;
     }
 }

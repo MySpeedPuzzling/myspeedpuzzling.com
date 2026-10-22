@@ -13,7 +13,6 @@ use SpeedPuzzling\Web\Results\PartnerCardData;
 use SpeedPuzzling\Web\Results\PartnerFinderCard;
 use SpeedPuzzling\Web\Results\PartnerFinderOffer;
 use SpeedPuzzling\Web\Value\PartnerCardState;
-use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
@@ -118,14 +117,8 @@ readonly final class PartnerFinderCardResolver
     /**
      * @param array<string, string> $parameters
      */
-    private function url(string $route, array $parameters): null|string
+    private function url(string $route, array $parameters): string
     {
-        // TODO(partner finder merge): the finder page and the listing form are built by part A in parallel - drop this
-        // guard once they are merged (docs/features/partner-finder.md "Part B as built")
-        try {
-            return $this->urlGenerator->generate($route, $parameters);
-        } catch (RouteNotFoundException) {
-            return null;
-        }
+        return $this->urlGenerator->generate($route, $parameters);
     }
 }

@@ -10843,7 +10843,6 @@ partner_finder:
         no_match: "Nadie coincide con estos filtros."
         reset_filters: "Mostrar a todos"
         capped: "Se muestran los %count% anuncios más recientes de %total%."
-        privacy: "No se comparte la dirección de correo de nadie: os ponéis en contacto dentro de MySpeedPuzzling."
         filters: "Filtrar los anuncios"
         filter_kind: "Tipo de anuncio"
         filter_country: "País"

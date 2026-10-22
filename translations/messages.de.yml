@@ -10842,7 +10842,6 @@ partner_finder:
         no_match: "Niemand passt zu diesen Filtern."
         reset_filters: "Alle anzeigen"
         capped: "Angezeigt werden die neuesten %count% von %total% Einträgen."
-        privacy: "E-Mail-Adressen werden nie weitergegeben - ihr nehmt auf MySpeedPuzzling Kontakt auf."
         filters: "Einträge filtern"
         filter_kind: "Art des Eintrags"
         filter_country: "Land"

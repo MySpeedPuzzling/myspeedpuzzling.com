@@ -10862,7 +10862,6 @@ partner_finder:
         no_match: "Personne ne correspond à ces filtres."
         reset_filters: "Afficher tout le monde"
         capped: "Affichage des %count% annonces les plus récentes sur %total%."
-        privacy: "Aucune adresse e-mail n’est partagée : vous prenez contact sur MySpeedPuzzling."
         filters: "Filtrer les annonces"
         filter_kind: "Type d’annonce"
         filter_country: "Pays"

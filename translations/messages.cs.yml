@@ -10869,7 +10869,6 @@ partner_finder:
         no_match: "Těmto filtrům nikdo neodpovídá."
         reset_filters: "Zobrazit všechny"
         capped: "Zobrazujeme nejnovějších %count% z %total% inzerátů."
-        privacy: "Ničí e-mailová adresa se nesdílí - domluvíte se přímo na MySpeedPuzzling."
         filters: "Filtrovat inzeráty"
         filter_kind: "Druh inzerátu"
         filter_country: "Země"

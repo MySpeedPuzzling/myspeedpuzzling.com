@@ -10832,7 +10832,6 @@ partner_finder:
         no_match: "この条件に一致する人はいません。"
         reset_filters: "全員を表示"
         capped: "全%total%件のうち、新しい%count%件を表示しています。"
-        privacy: "メールアドレスは誰にも共有されません。連絡はMySpeedPuzzlingの中で行います。"
         filters: "募集を絞り込む"
         filter_kind: "募集の種類"
         filter_country: "国"

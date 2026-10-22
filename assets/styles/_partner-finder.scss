@@ -571,12 +571,6 @@ a.pf-listing-name {
 }
 
 .pf-capped,
-.pf-privacy {
-    margin: 1rem 0 0;
-    color: $pf-muted;
-    font-size: .75rem;
-}
-
 // Guest teaser
 .pf-teaser {
     padding: 1.25rem 1rem;
@@ -798,13 +792,25 @@ a.pf-listing-name {
     font-variant-numeric: tabular-nums;
 }
 
+// What others will see once listed - the only place that says e-mail addresses stay private, so it stands out a bit
 .pf-consent {
+    display: flex;
+    gap: .625rem;
+    align-items: flex-start;
     margin: 0;
-    padding: .625rem .75rem;
+    padding: .75rem .875rem;
+    border: 1px solid mix($primary, $white, 28%);
     border-radius: .5rem;
-    background: #f6f7fa;
-    color: $gray-700;
-    font-size: .8125rem;
+    background: mix($primary, $white, 7%);
+    color: $gray-800;
+    font-size: .875rem;
+
+    .bi {
+        flex: none;
+        color: $primary;
+        font-size: 1.125rem;
+        line-height: 1.2;
+    }
 }
 
 .pf-form-actions {

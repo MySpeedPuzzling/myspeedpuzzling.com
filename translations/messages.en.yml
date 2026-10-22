@@ -11116,7 +11116,6 @@ partner_finder:
         no_match: "Nobody matches these filters."
         reset_filters: "Show everybody"
         capped: "Showing the newest %count% of %total% listings."
-        privacy: "Nobody's e-mail address is shared - you get in touch inside MySpeedPuzzling."
         filters: "Filter the listings"
         filter_kind: "Kind of listing"
         filter_country: "Country"

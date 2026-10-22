@@ -148,12 +148,15 @@
     </div>
 
     <p class="pf-consent">
-        {%- if editing -%}
-            {{ 'partner_finder.form.consent_visible'|trans }}
-        {%- elseif registration_managed -%}
-            {{ 'partner_finder.form.consent_managed'|trans }} {{ 'partner_finder.form.consent_visible'|trans }}
-        {%- else -%}
-            {{ 'partner_finder.form.consent_going'|trans }} {{ 'partner_finder.form.consent_visible'|trans }}
-        {%- endif -%}
+        <i class="bi bi-shield-check" aria-hidden="true"></i>
+        <span>
+            {%- if editing -%}
+                {{ 'partner_finder.form.consent_visible'|trans }}
+            {%- elseif registration_managed -%}
+                {{ 'partner_finder.form.consent_managed'|trans }} {{ 'partner_finder.form.consent_visible'|trans }}
+            {%- else -%}
+                {{ 'partner_finder.form.consent_going'|trans }} {{ 'partner_finder.form.consent_visible'|trans }}
+            {%- endif -%}
+        </span>
     </p>
 </div>

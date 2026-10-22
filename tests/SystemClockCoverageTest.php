@@ -11,7 +11,8 @@ use PHPUnit\Framework\TestCase;
  * Psr\Clock\ClockInterface, templates through now() (ClockTwigExtension) - so a test can freeze it. Every file whose
  * code (comments aside) reads the system clock - `new DateTimeImmutable()`, a relative string like '-3 days' or
  * 'now', time(), date(), strtotime(), microtime(), hrtime(), Clock::get(), a NativeClock; in templates `'now'|date`
- * and `date()` - fails this test, or is listed here with the reason.
+ * and `date()` - fails this test, unless that kind of read is listed for that file with the reason (a listed file
+ * still fails on any other kind of read; a listed read that is gone fails as stale).
  *
  * The listed exceptions (Jan, 2026-10-22): what the browser or another process judges by its own clock reads real
  * time on purpose - a cookie's expiry, the page's msp-rendered-at, a rate limiter's retry-after (the limiter counts
@@ -34,44 +35,48 @@ final class SystemClockCoverageTest extends TestCase
     private const string RENDERED_AT = 'msp-rendered-at is real time (the browser compares it with the server\'s Date header), so is its reader.';
     private const string PATTERN_DATA = 'A guard - the clock reads it must recognise are data.';
 
-    /** PHP files under src/ allowed to read the system clock, with the reason */
+    /**
+     * PHP files under src/ allowed to read the system clock: the hits allowed (as this test prints them) and the reason
+     *
+     * @var array<string, array{0: list<string>, 1: string}>
+     */
     private const array ALLOWED = [
-        'Api/V1/PuzzleSearchResponseProvider.php' => self::RATE_LIMIT,
-        'ConsoleCommands/BackfillPaceHistoryConsoleCommand.php' => self::DURATION,
-        'ConsoleCommands/CanonicalizePuzzleCodesConsoleCommand.php' => self::DURATION,
-        'ConsoleCommands/DateAchievementsFromHistoryConsoleCommand.php' => self::DURATION,
-        'ConsoleCommands/DetectBoxTextMismatchesConsoleCommand.php' => self::DURATION,
-        'ConsoleCommands/FitPredictionModelConsoleCommand.php' => self::DURATION,
-        'ConsoleCommands/RecalculateCommunityStatsConsoleCommand.php' => self::DURATION,
-        'ConsoleCommands/RecalculateInsightsDailyConsoleCommand.php' => self::DURATION,
-        'ConsoleCommands/RecalculateKarmaConsoleCommand.php' => self::DURATION,
-        'ConsoleCommands/RefreshPuzzleTagsConsoleCommand.php' => self::DURATION,
-        'ConsoleCommands/RerankRatingSnapshotsConsoleCommand.php' => self::DURATION,
-        'ConsoleCommands/SnapshotPlayerInsightsConsoleCommand.php' => self::DURATION,
-        'ConsoleCommands/VerifyProgressionConsoleCommand.php' => self::DURATION,
-        'ConsoleCommands/XpBackfillConsoleCommand.php' => self::DURATION,
-        'Controller/HealthCheckContainerController.php' => self::PROBE,
-        'Controller/HealthCheckLivenessController.php' => self::PROBE,
-        'Controller/OnlineRounds/OnlineWatchTokenController.php' => self::RATE_LIMIT,
-        'Controller/SocialRegisterSignInController.php' => self::COOKIE,
-        'EventSubscriber/ApiUsageSubscriber.php' => self::DURATION,
-        'EventSubscriber/BotTrustCookieSubscriber.php' => 'The bot-blocker sidecar validates the cookie\'s issued-at on its own clock, the browser its expiry.',
-        'EventSubscriber/NativeAuthPageSubscriber.php' => self::COOKIE,
-        'EventSubscriber/ReferralCookieSubscriber.php' => self::COOKIE,
-        'EventSubscriber/SlidingLoginCookiesSubscriber.php' => self::COOKIE,
-        'EventSubscriber/StaleLiveComponentPageSubscriber.php' => self::COOKIE,
-        'Security/LoginFormAuthenticator.php' => self::RATE_LIMIT,
-        'Services/AssetLoadFailureClassifier.php' => 'Page age against msp-rendered-at, which is real time (the browser compares it with the server\'s Date header).',
-        'Services/BotTrustCookieSigner.php' => 'The bot-blocker sidecar validates the issued-at on its own clock.',
-        'Services/GenerateManufacturerSlug.php' => 'microtime() as entropy for a slug, not as a time.',
-        'Services/LiveKit/StudioSpectators.php' => 'A lock-wait deadline in microtime(true) - a duration, no date is read.',
-        'Services/OnlineRounds/OnlineParticipantApi.php' => self::RATE_LIMIT,
-        'Services/PuzzleIntelligence/ImprovementRatioCalculator.php' => 'strtotime() of two stored solve moments in the batch\'s hot loop - parses given values, reads no clock.',
-        'Services/PuzzleIntelligence/Model/PredictionEvaluator.php' => self::DURATION,
-        'Services/PuzzleIntelligence/PredictionModelRecalculator.php' => self::DURATION,
-        'Services/PuzzleIntelligence/PuzzleIntelligenceRecalculator.php' => self::DURATION,
-        'Services/SecretRevealPreview.php' => 'The word \'now\' as a token of a hash (a reveal without a moment), no clock read.',
-        'Twig/ClockTwigExtension.php' => 'Registers the Twig function now() - backed by the clock.',
+        'Api/V1/PuzzleSearchResponseProvider.php' => [['time('], self::RATE_LIMIT],
+        'ConsoleCommands/BackfillPaceHistoryConsoleCommand.php' => [['microtime('], self::DURATION],
+        'ConsoleCommands/CanonicalizePuzzleCodesConsoleCommand.php' => [['microtime('], self::DURATION],
+        'ConsoleCommands/DateAchievementsFromHistoryConsoleCommand.php' => [['microtime('], self::DURATION],
+        'ConsoleCommands/DetectBoxTextMismatchesConsoleCommand.php' => [['microtime('], self::DURATION],
+        'ConsoleCommands/FitPredictionModelConsoleCommand.php' => [['microtime('], self::DURATION],
+        'ConsoleCommands/RecalculateCommunityStatsConsoleCommand.php' => [['microtime('], self::DURATION],
+        'ConsoleCommands/RecalculateInsightsDailyConsoleCommand.php' => [['microtime('], self::DURATION],
+        'ConsoleCommands/RecalculateKarmaConsoleCommand.php' => [['microtime('], self::DURATION],
+        'ConsoleCommands/RefreshPuzzleTagsConsoleCommand.php' => [['microtime('], self::DURATION],
+        'ConsoleCommands/RerankRatingSnapshotsConsoleCommand.php' => [['microtime('], self::DURATION],
+        'ConsoleCommands/SnapshotPlayerInsightsConsoleCommand.php' => [['microtime('], self::DURATION],
+        'ConsoleCommands/VerifyProgressionConsoleCommand.php' => [['microtime('], self::DURATION],
+        'ConsoleCommands/XpBackfillConsoleCommand.php' => [['microtime('], self::DURATION],
+        'Controller/HealthCheckContainerController.php' => [['time('], self::PROBE],
+        'Controller/HealthCheckLivenessController.php' => [['time('], self::PROBE],
+        'Controller/OnlineRounds/OnlineWatchTokenController.php' => [['time('], self::RATE_LIMIT],
+        'Controller/SocialRegisterSignInController.php' => [['time('], self::COOKIE],
+        'EventSubscriber/ApiUsageSubscriber.php' => [['hrtime('], self::DURATION],
+        'EventSubscriber/BotTrustCookieSubscriber.php' => [['new DateTimeImmutable()'], 'The bot-blocker sidecar validates the cookie\'s issued-at on its own clock, the browser its expiry.'],
+        'EventSubscriber/NativeAuthPageSubscriber.php' => [['time('], self::COOKIE],
+        'EventSubscriber/ReferralCookieSubscriber.php' => [['new \\DateTimeImmutable(\'+'], self::COOKIE],
+        'EventSubscriber/SlidingLoginCookiesSubscriber.php' => [['time('], self::COOKIE],
+        'EventSubscriber/StaleLiveComponentPageSubscriber.php' => [['new DateTimeImmutable(\'+'], self::COOKIE],
+        'Security/LoginFormAuthenticator.php' => [['time('], self::RATE_LIMIT],
+        'Services/AssetLoadFailureClassifier.php' => [['time('], 'Page age against msp-rendered-at, which is real time (the browser compares it with the server\'s Date header).'],
+        'Services/BotTrustCookieSigner.php' => [['new DateTimeImmutable()'], 'The bot-blocker sidecar validates the issued-at on its own clock.'],
+        'Services/GenerateManufacturerSlug.php' => [['microtime('], 'microtime() as entropy for a slug, not as a time.'],
+        'Services/LiveKit/StudioSpectators.php' => [['microtime('], 'A lock-wait deadline in microtime(true) - a duration, no date is read.'],
+        'Services/OnlineRounds/OnlineParticipantApi.php' => [['time('], self::RATE_LIMIT],
+        'Services/PuzzleIntelligence/ImprovementRatioCalculator.php' => [['strtotime('], 'strtotime() of two stored solve moments in the batch\'s hot loop - parses given values, reads no clock.'],
+        'Services/PuzzleIntelligence/Model/PredictionEvaluator.php' => [['microtime('], self::DURATION],
+        'Services/PuzzleIntelligence/PredictionModelRecalculator.php' => [['microtime('], self::DURATION],
+        'Services/PuzzleIntelligence/PuzzleIntelligenceRecalculator.php' => [['microtime('], self::DURATION],
+        'Services/SecretRevealPreview.php' => [['\'now\''], 'The word \'now\' as a token of a hash (a reveal without a moment), no clock read.'],
+        'Twig/ClockTwigExtension.php' => [['\'now\''], 'Registers the Twig function now() - backed by the clock.'],
     ];
 
     /** Templates allowed to read the system clock, with the reason */
@@ -169,82 +174,15 @@ final class SystemClockCoverageTest extends TestCase
 
     public function testApplicationCodeReadsTheTimeFromTheClock(): void
     {
-        $offending = [];
-        $stale = self::ALLOWED;
-        $root = (string) realpath(__DIR__ . '/../src');
+        [$offending, $stale] = self::compareWithAllowed((string) realpath(__DIR__ . '/../src'), self::PATTERNS, self::ALLOWED);
 
-        /** @var \SplFileInfo $file */
-        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)) as $file) {
-            if ($file->getExtension() !== 'php') {
-                continue;
-            }
-
-            $hits = self::hits(self::PATTERNS, self::code($file->getPathname()));
-
-            if ($hits === []) {
-                continue;
-            }
-
-            $relative = substr($file->getPathname(), strlen($root) + 1);
-            unset($stale[$relative]);
-
-            if (array_key_exists($relative, self::ALLOWED) === false) {
-                $offending[] = $relative . ': ' . implode(', ', $hits);
-            }
-        }
-
-        sort($offending);
-
-        self::assertSame([], $offending, 'These files read the system clock. Inject Psr\Clock\ClockInterface instead (an entity or value object takes the moment from its caller), or list the file here with the reason.');
-        self::assertSame([], array_keys($stale), 'These files no longer read the system clock - remove them from the list.');
+        self::assertSame([], $offending, 'These files read the system clock. Inject Psr\Clock\ClockInterface instead (an entity or value object takes the moment from its caller), or list the read here with the reason.');
+        self::assertSame([], $stale, 'These listed reads no longer happen - remove them from the list.');
     }
 
     public function testTestsReadTheTimeFromTheFrozenClock(): void
     {
-        $offending = [];
-        $stale = [];
-        $seen = [];
-        $root = (string) realpath(__DIR__);
-
-        /** @var \SplFileInfo $file */
-        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)) as $file) {
-            if ($file->getExtension() !== 'php') {
-                continue;
-            }
-
-            $hits = self::hits([...self::PATTERNS, ...self::TEST_PATTERNS], self::code($file->getPathname()));
-
-            if ($hits === []) {
-                continue;
-            }
-
-            $relative = substr($file->getPathname(), strlen($root) + 1);
-            $seen[$relative] = true;
-            $allowed = array_key_exists($relative, self::ALLOWED_IN_TESTS) ? self::ALLOWED_IN_TESTS[$relative][0] : [];
-
-            if ($allowed === null) {
-                continue;
-            }
-
-            foreach (array_diff($allowed, $hits) as $gone) {
-                $stale[] = $relative . ': ' . $gone;
-            }
-
-            $notAllowed = array_unique(array_diff($hits, $allowed));
-
-            if ($notAllowed !== []) {
-                $offending[] = $relative . ': ' . implode(', ', $notAllowed);
-            }
-        }
-
-        foreach (array_keys(self::ALLOWED_IN_TESTS) as $relative) {
-            if (array_key_exists($relative, $seen) === false) {
-                $stale[] = $relative;
-            }
-        }
-
-        sort($offending);
-        sort($stale);
+        [$offending, $stale] = self::compareWithAllowed((string) realpath(__DIR__), [...self::PATTERNS, ...self::TEST_PATTERNS], self::ALLOWED_IN_TESTS);
 
         self::assertSame([], $offending, 'These tests read the real clock, while the app\'s clock is frozen. Use TestClock::now() (->modify(…)), TestClock::timestamp() / milliseconds(), new MockClock(TestClock::now()) or an absolute literal - or list the read here with the reason.');
         self::assertSame([], $stale, 'These listed reads no longer happen - remove them from the list.');
@@ -779,6 +717,63 @@ final class SystemClockCoverageTest extends TestCase
     private static function isObjectOperator(null|array|string $token): bool
     {
         return is_array($token) && in_array($token[0], [T_OBJECT_OPERATOR, T_NULLSAFE_OBJECT_OPERATOR], true);
+    }
+
+    /**
+     * Every PHP file under $root against its allowlist: a read that is not listed for its file is offending, a listed
+     * read (or file) that no longer occurs is stale. null = every read (the file is a guard whose reads are data).
+     *
+     * @param array<string> $patterns
+     * @param array<string, array{0: list<string>|null, 1: string}> $allowedReads
+     * @return array{0: list<string>, 1: list<string>}
+     */
+    private static function compareWithAllowed(string $root, array $patterns, array $allowedReads): array
+    {
+        $offending = [];
+        $stale = [];
+        $seen = [];
+
+        /** @var \SplFileInfo $file */
+        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)) as $file) {
+            if ($file->getExtension() !== 'php') {
+                continue;
+            }
+
+            $hits = self::hits($patterns, self::code($file->getPathname()));
+
+            if ($hits === []) {
+                continue;
+            }
+
+            $relative = substr($file->getPathname(), strlen($root) + 1);
+            $seen[$relative] = true;
+            $allowed = array_key_exists($relative, $allowedReads) ? $allowedReads[$relative][0] : [];
+
+            if ($allowed === null) {
+                continue;
+            }
+
+            foreach (array_diff($allowed, $hits) as $gone) {
+                $stale[] = $relative . ': ' . $gone;
+            }
+
+            $notAllowed = array_unique(array_diff($hits, $allowed));
+
+            if ($notAllowed !== []) {
+                $offending[] = $relative . ': ' . implode(', ', $notAllowed);
+            }
+        }
+
+        foreach (array_keys($allowedReads) as $relative) {
+            if (array_key_exists($relative, $seen) === false) {
+                $stale[] = $relative;
+            }
+        }
+
+        sort($offending);
+        sort($stale);
+
+        return [$offending, $stale];
     }
 
     /**

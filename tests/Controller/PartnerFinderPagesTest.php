@@ -276,7 +276,7 @@ final class PartnerFinderPagesTest extends WebTestCase
         $connection = self::getContainer()->get(Connection::class);
         // Michael (still listed) asked John
         $connection->executeStatement(
-            "INSERT INTO partner_request (id, listing_id, from_player_id, kind, created_at) VALUES (gen_random_uuid(), :listing, :from, 'pair', NOW())",
+            "INSERT INTO partner_request (id, listing_id, from_player_id, kind, created_at) VALUES (gen_random_uuid(), :listing, :from, 'pair', " . TestClock::SQL_NOW . ")",
             ['listing' => PartnerFinderFixture::LISTING_REGULAR_PAIR, 'from' => PlayerFixture::PLAYER_WITH_FAVORITES],
         );
 

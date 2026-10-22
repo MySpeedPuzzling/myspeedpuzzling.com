@@ -251,7 +251,7 @@ final class GetPartnerListingsTest extends KernelTestCase
         // The fixture's closed listing was withdrawn - not counted
         self::assertSame(0, $this->listingsFor(PlayerFixture::PLAYER_ADMIN, member: false)->foundCount);
 
-        $this->database->executeStatement("UPDATE partner_listing SET closed_at = NOW(), closed_reason = 'found' WHERE id = :id", ['id' => PartnerFinderFixture::LISTING_REGULAR_PAIR]);
+        $this->database->executeStatement("UPDATE partner_listing SET closed_at = " . TestClock::SQL_NOW . ", closed_reason = 'found' WHERE id = :id", ['id' => PartnerFinderFixture::LISTING_REGULAR_PAIR]);
 
         self::assertSame(1, $this->listingsFor(PlayerFixture::PLAYER_ADMIN, member: false)->foundCount);
         $teaser = $this->query->teaserForEvent(self::EVENT);
@@ -263,7 +263,7 @@ final class GetPartnerListingsTest extends KernelTestCase
     {
         // John's listing got a request from Stripe (her own listing is closed - not offered); John asked Michael
         $this->database->executeStatement(
-            "INSERT INTO partner_request (id, listing_id, from_player_id, kind, created_at) VALUES (:id, :listing, :from, 'team', NOW())",
+            "INSERT INTO partner_request (id, listing_id, from_player_id, kind, created_at) VALUES (:id, :listing, :from, 'team', " . TestClock::SQL_NOW . ")",
             ['id' => Uuid::uuid7()->toString(), 'listing' => PartnerFinderFixture::LISTING_FAVORITES_TEAM, 'from' => PlayerFixture::PLAYER_REGULAR],
         );
 

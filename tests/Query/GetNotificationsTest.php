@@ -179,7 +179,7 @@ final class GetNotificationsTest extends KernelTestCase
     {
         // John teamed up with Michael, who still has his open team listing at the event
         $this->database->executeStatement(
-            "INSERT INTO notification (id, player_id, type, notified_at, actor_player_id, target_partner_listing_id) VALUES (:id, :player, 'PartnerTeamedUp', NOW(), :actor, :listing)",
+            "INSERT INTO notification (id, player_id, type, notified_at, actor_player_id, target_partner_listing_id) VALUES (:id, :player, 'PartnerTeamedUp', " . TestClock::SQL_NOW . ", :actor, :listing)",
             ['id' => Uuid::uuid7()->toString(), 'player' => PlayerFixture::PLAYER_WITH_FAVORITES, 'actor' => PlayerFixture::PLAYER_REGULAR, 'listing' => PartnerFinderFixture::LISTING_REGULAR_PAIR],
         );
 
@@ -200,7 +200,7 @@ final class GetNotificationsTest extends KernelTestCase
         self::assertSame(PlayerFixture::PLAYER_REGULAR_NAME, $private->targetPlayerName);
         $this->database->executeStatement('UPDATE player SET is_private = false WHERE id = :id', ['id' => PlayerFixture::PLAYER_REGULAR]);
 
-        $this->database->executeStatement('UPDATE partner_listing SET closed_at = NOW() WHERE id = :id', ['id' => PartnerFinderFixture::LISTING_FAVORITES_TEAM]);
+        $this->database->executeStatement('UPDATE partner_listing SET closed_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => PartnerFinderFixture::LISTING_FAVORITES_TEAM]);
         self::assertFalse($this->partnerNotification(PlayerFixture::PLAYER_WITH_FAVORITES)->partnerReaderListed);
 
         // Blocked by the reader: left out, the badge agrees

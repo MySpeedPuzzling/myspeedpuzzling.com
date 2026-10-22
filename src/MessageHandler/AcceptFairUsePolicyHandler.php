@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Message\AcceptFairUsePolicy;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -14,6 +15,7 @@ final readonly class AcceptFairUsePolicyHandler
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -26,7 +28,7 @@ final readonly class AcceptFairUsePolicyHandler
             return;
         }
 
-        $player->acceptFairUsePolicy();
+        $player->acceptFairUsePolicy($this->clock->now());
         $this->entityManager->flush();
     }
 }

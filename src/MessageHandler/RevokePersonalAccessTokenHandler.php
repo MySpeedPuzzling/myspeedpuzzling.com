@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\PersonalAccessToken;
 use SpeedPuzzling\Web\Message\RevokePersonalAccessToken;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -14,6 +15,7 @@ final readonly class RevokePersonalAccessTokenHandler
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -29,7 +31,7 @@ final readonly class RevokePersonalAccessTokenHandler
             return;
         }
 
-        $token->revoke();
+        $token->revoke($this->clock->now());
         $this->entityManager->flush();
     }
 }

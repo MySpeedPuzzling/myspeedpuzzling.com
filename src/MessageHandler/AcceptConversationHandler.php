@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\ConversationNotFound;
 use SpeedPuzzling\Web\Message\AcceptConversation;
 use SpeedPuzzling\Web\Repository\ConversationRepository;
@@ -19,6 +20,7 @@ readonly final class AcceptConversationHandler
         private ConversationRepository $conversationRepository,
         private MercureNotifier $mercureNotifier,
         private LoggerInterface $logger,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -37,7 +39,7 @@ readonly final class AcceptConversationHandler
             throw new ConversationNotFound();
         }
 
-        $conversation->accept();
+        $conversation->accept($this->clock->now());
 
         try {
             $this->mercureNotifier->notifyConversationAccepted($conversation);

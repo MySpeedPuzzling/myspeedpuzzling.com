@@ -107,7 +107,7 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
             comment: 'Open to offers',
             daysAgo: 15,
         );
-        $item03->markAsReserved();
+        $item03->markAsReserved($this->clock->now());
         $manager->persist($item03);
         $this->addReference(self::SELLSWAP_03, $item03);
 
@@ -122,7 +122,7 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
             comment: 'Some wear on box',
             daysAgo: 10,
         );
-        $item04->markAsReserved(Uuid::fromString(PlayerFixture::PLAYER_ADMIN));
+        $item04->markAsReserved($this->clock->now(), Uuid::fromString(PlayerFixture::PLAYER_ADMIN));
         $manager->persist($item04);
         $this->addReference(self::SELLSWAP_04, $item04);
 
@@ -137,7 +137,7 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
             comment: null,
             daysAgo: 5,
         );
-        $item05->markAsReserved();
+        $item05->markAsReserved($this->clock->now());
         $manager->persist($item05);
         $this->addReference(self::SELLSWAP_05, $item05);
 
@@ -242,7 +242,7 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
             comment: null,
             daysAgo: 3,
         );
-        $item12->markAsReserved();
+        $item12->markAsReserved($this->clock->now());
         $manager->persist($item12);
         $this->addReference(self::SELLSWAP_12, $item12);
 

@@ -78,16 +78,16 @@ class Conversation
         $this->recipient = null;
     }
 
-    public function accept(): void
+    public function accept(DateTimeImmutable $now): void
     {
         $this->status = ConversationStatus::Accepted;
-        $this->respondedAt = new DateTimeImmutable();
+        $this->respondedAt = $now;
     }
 
-    public function ignore(): void
+    public function ignore(DateTimeImmutable $now): void
     {
         $this->status = ConversationStatus::Ignored;
-        $this->respondedAt = new DateTimeImmutable();
+        $this->respondedAt = $now;
     }
 
     public function updateLastMessageAt(DateTimeImmutable $at): void

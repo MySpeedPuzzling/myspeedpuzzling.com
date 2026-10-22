@@ -33,7 +33,7 @@ class GlobalImprovementRatio
         #[Column]
         public int $sampleSize,
         #[Column]
-        public DateTimeImmutable $computedAt = new DateTimeImmutable(),
+        public DateTimeImmutable $computedAt,
     ) {
     }
 }

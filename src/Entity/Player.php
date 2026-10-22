@@ -435,9 +435,9 @@ class Player
         $this->isPrivate = $isPrivate;
     }
 
-    public function acceptFairUsePolicy(): void
+    public function acceptFairUsePolicy(DateTimeImmutable $now): void
     {
-        $this->fairUsePolicyAcceptedAt = new DateTimeImmutable();
+        $this->fairUsePolicyAcceptedAt = $now;
     }
 
     public function hasFairUsePolicyAccepted(): bool
@@ -654,13 +654,13 @@ class Player
         return $this->moderatorSince !== null;
     }
 
-    public function isMessagingMuted(): bool
+    public function isMessagingMuted(DateTimeImmutable $now): bool
     {
         if (!$this->messagingMuted) {
             return false;
         }
 
-        if ($this->messagingMutedUntil !== null && $this->messagingMutedUntil < new DateTimeImmutable()) {
+        if ($this->messagingMutedUntil !== null && $this->messagingMutedUntil < $now) {
             return false;
         }
 

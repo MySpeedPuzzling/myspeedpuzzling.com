@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PlayerElo;
@@ -64,7 +65,7 @@ final class MspRatingLadderControllerTest extends WebTestCase
         ];
 
         foreach ($ratings as $playerId => $rating) {
-            $em->persist(new PlayerElo(id: Uuid::uuid7(), player: $players->get($playerId), piecesCount: 500, eloRating: $rating));
+            $em->persist(new PlayerElo(id: Uuid::uuid7(), player: $players->get($playerId), piecesCount: 500, computedAt: new DateTimeImmutable(), eloRating: $rating));
         }
 
         $players->get(PlayerFixture::PLAYER_ADMIN)->changeRankingOptedOut(true);

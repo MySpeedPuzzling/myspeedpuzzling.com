@@ -56,7 +56,7 @@ final class GetPlayerRatingRankingMovementTest extends KernelTestCase
             PlayerFixture::PLAYER_WITH_STRIPE => 1.2,
             ] as $playerId => $rating
         ) {
-            $em->persist(new PlayerElo(id: Uuid::uuid7(), player: $players->get($playerId), piecesCount: self::PIECES_COUNT, eloRating: $rating));
+            $em->persist(new PlayerElo(id: Uuid::uuid7(), player: $players->get($playerId), piecesCount: self::PIECES_COUNT, computedAt: new DateTimeImmutable(), eloRating: $rating));
         }
 
         $em->flush();

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\ChatMessage;
 use SpeedPuzzling\Web\Exceptions\ConversationNotFound;
@@ -24,6 +24,7 @@ readonly final class SendMessageHandler
         private ConversationRepository $conversationRepository,
         private ChatMessageRepository $chatMessageRepository,
         private PlayerRepository $playerRepository,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -38,7 +39,7 @@ readonly final class SendMessageHandler
 
         $sender = $this->playerRepository->get($message->senderId);
 
-        if ($sender->isMessagingMuted()) {
+        if ($sender->isMessagingMuted($this->clock->now())) {
             throw new MessagingMuted();
         }
 
@@ -56,7 +57,7 @@ readonly final class SendMessageHandler
             ConversationStatus::Pending, ConversationStatus::Ignored => $isInitiator ? null : throw new ConversationNotFound(),
         };
 
-        $now = new DateTimeImmutable();
+        $now = $this->clock->now();
 
         $chatMessage = new ChatMessage(
             id: Uuid::uuid7(),

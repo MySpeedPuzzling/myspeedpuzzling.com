@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -173,6 +174,7 @@ final class GetPlayerRatingRankingPrivacyTest extends KernelTestCase
                 id: Uuid::uuid7(),
                 player: $player,
                 piecesCount: self::PIECES_COUNT,
+                computedAt: new DateTimeImmutable(),
                 eloRating: $rating,
             ));
         }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -302,7 +302,7 @@ final class CompetitionParticipantImporterTest extends KernelTestCase
     public function testImportNeverRestoresSelfJoinedRowThePlayerLeft(): void
     {
         $this->database->executeStatement(
-            'UPDATE competition_participant SET deleted_at = now() WHERE id = :id',
+            'UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => CompetitionParticipantFixture::PARTICIPANT_SELF_JOINED],
         );
 
@@ -1032,7 +1032,7 @@ final class CompetitionParticipantImporterTest extends KernelTestCase
             competition: $competition,
             name: $name,
             minutesLimit: 60,
-            startsAt: new DateTimeImmutable('+40 days'),
+            startsAt: TestClock::now()->modify('+40 days'),
             category: $category,
         );
         $this->entityManager->persist($round);

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use GuzzleHttp\Psr7\Response as HttpResponse;
@@ -69,7 +69,7 @@ final class AppleSignInNotificationControllerTest extends WebTestCase
         $userAccount = $this->seedAccount(password: 'hash');
         $this->seedIdentity($userAccount, $sub);
 
-        $this->postNotification(['type' => 'consent-revoked', 'sub' => $sub, 'event_time' => time() * 1000]);
+        $this->postNotification(['type' => 'consent-revoked', 'sub' => $sub, 'event_time' => TestClock::milliseconds()]);
 
         self::assertResponseStatusCodeSame(200);
         self::assertSame(0, $this->identityCount($sub));
@@ -87,7 +87,7 @@ final class AppleSignInNotificationControllerTest extends WebTestCase
         $sub = 'apple-revoke-last-' . bin2hex(random_bytes(4));
         $this->seedIdentity($this->seedAccount(password: null), $sub);
 
-        $this->postNotification(['type' => 'consent-revoked', 'sub' => $sub, 'event_time' => time() * 1000]);
+        $this->postNotification(['type' => 'consent-revoked', 'sub' => $sub, 'event_time' => TestClock::milliseconds()]);
 
         self::assertResponseStatusCodeSame(200);
         self::assertSame(1, $this->identityCount($sub), 'Re-consenting gives back the same sub - rule 1 must still find the account');
@@ -102,7 +102,7 @@ final class AppleSignInNotificationControllerTest extends WebTestCase
         $sub = 'apple-delete-' . bin2hex(random_bytes(4));
         $this->seedIdentity($this->seedAccount(password: null), $sub);
 
-        $this->postNotification(['type' => 'account-delete', 'sub' => $sub, 'event_time' => time() * 1000], eventsAsString: false);
+        $this->postNotification(['type' => 'account-delete', 'sub' => $sub, 'event_time' => TestClock::milliseconds()], eventsAsString: false);
 
         self::assertResponseStatusCodeSame(200);
         self::assertSame(0, $this->identityCount($sub));
@@ -113,7 +113,7 @@ final class AppleSignInNotificationControllerTest extends WebTestCase
         $sub = 'apple-deleted-' . bin2hex(random_bytes(4));
         $this->seedIdentity($this->seedAccount(password: 'hash'), $sub);
 
-        $token = $this->postNotification(['type' => 'account-deleted', 'sub' => $sub, 'event_time' => time() * 1000]);
+        $token = $this->postNotification(['type' => 'account-deleted', 'sub' => $sub, 'event_time' => TestClock::milliseconds()]);
         self::assertResponseStatusCodeSame(200);
 
         // Apple may deliver twice - the keys are cached now (nothing queued for a second fetch)
@@ -132,7 +132,7 @@ final class AppleSignInNotificationControllerTest extends WebTestCase
             'sub' => $sub,
             'email' => 'abc@privaterelay.appleid.com',
             'is_private_email' => 'true',
-            'event_time' => time() * 1000,
+            'event_time' => TestClock::milliseconds(),
         ]);
 
         self::assertResponseStatusCodeSame(200);
@@ -227,6 +227,7 @@ final class AppleSignInNotificationControllerTest extends WebTestCase
         return [
             'iss' => 'https://appleid.apple.com',
             'aud' => $audience,
+            // Real time on purpose: AppleServerNotificationVerifier decodes with php-jwt, which judges iat/exp by time()
             'iat' => time(),
             'exp' => time() + 600,
             'jti' => bin2hex(random_bytes(8)),
@@ -240,7 +241,7 @@ final class AppleSignInNotificationControllerTest extends WebTestCase
             Uuid::uuid7(),
             'msp|' . Uuid::uuid7()->toString(),
             'apple-s2s+' . bin2hex(random_bytes(4)) . '@example.com',
-            new DateTimeImmutable(),
+            TestClock::now(),
         );
 
         if ($password !== null) {
@@ -263,7 +264,7 @@ final class AppleSignInNotificationControllerTest extends WebTestCase
             provider: OauthProvider::Apple,
             providerUserId: $sub,
             emailAtLink: $userAccount->email,
-            linkedAt: new DateTimeImmutable(),
+            linkedAt: TestClock::now(),
         ));
         $entityManager->flush();
     }

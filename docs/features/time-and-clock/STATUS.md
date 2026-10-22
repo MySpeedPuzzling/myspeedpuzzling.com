@@ -8,7 +8,7 @@ Living record. Every phase appends: what it did, what it found, what the next ph
 | 1 - pin UTC, UTC on write | done 2026-10-22 | this commit |
 | 2 - one clock in `src/` | done 2026-10-22 | c00bf8343, e16908c18, 3a15ef3b0 + this commit |
 | 3 - frozen clock in tests | done 2026-10-22 - **branch red until Phase 4 ends** (157 tests) | fe580bfa0 |
-| 4 - tests on the frozen clock | batches 1-5 done 2026-10-22 (157 → 103 → 92 → 72 → 65 → 62 failing); batches 6-9 open | batch 1: f2483f7d3; batch 2: dc3fb4867; batch 3: d4f31c268; batch 4: 0364e10e9; batch 5: this commit |
+| 4 - tests on the frozen clock | batches 1-6 done 2026-10-22 (157 → 103 → 92 → 72 → 65 → 62 → 53 failing); batches 7-9 open | batch 1: f2483f7d3; batch 2: dc3fb4867; batch 3: d4f31c268; batch 4: 0364e10e9; batch 5: f9424402a; batch 6: this commit |
 | 5 - proof, docs, PR | not started | |
 
 ## Jan's answers (2026-10-22) - binding for every later phase
@@ -811,6 +811,70 @@ For batches 6-9:
   take dates their callers format - check the callers (`CompetitionSeriesDetailControllerTest` builds them with
   `new DateTimeImmutable('-2 days')->format(…)`, batch 6).
 
+## Phase 4 batch 6 (2026-10-22) - `Services` rest, `Controller` top level A-B
+
+Converted (63 files):
+
+- **The batch (58):** of `Services` outside `Insights`/`PuzzleIntelligence` (161 files) and `Controller` top level A-B (26),
+  46 + 12 have a clock read (case-insensitive grep); all converted. Batch 2's token-based rewrite (case-insensitive copy) did
+  the mechanical part. By hand: the heredocs in `AchievementHoldersPageTest` and `CompetitionChoicesBuilderTest`
+  (`$now = TestClock::SQL_NOW;` + `{$now}`), `ApiUsageControllerTest` (`'now'` with a zone), `BadgeArtSurfacesTest`
+  (`date('Y-m-d H:i:s')` → `TestClock::sqlParameter()`), `ParticipantImportStashTest` (`new MockClock(date(…))`),
+  `OnlineAccessTest` (`'now'` with a zone), `OnlineAccessLightTest` (`microtime(true) * 1000` → `TestClock::milliseconds()`),
+  the Apple `event_time` (payload only, the app does not read it), `strtotime(<absolute>)` in `LiveKitTokensTest` /
+  `DirectPhotoUploadTest` → `new DateTimeImmutable(…)->getTimestamp()` (a parse, but the batch-9 guard would flag the call),
+  the `(TestClock::now())->` artefact. `SolveTimeDistributionProviderTest` asserts `computedAt` equals the instant (was a
+  ±1 s bracket - stronger). A stale comment in `MicrosoftIdTokenVerifierTest` ("the real now") corrected. Checked and left as
+  is: the `private static function now()` helpers on absolute constants (`SeriesPageBuilder`, `EventRowFactory`,
+  `OrganizationPageBuilder`, `EventsPageBuilder` `TODAY`), `$this->day()` in `CompetitionChoicesBuilderTest` (container
+  clock), `OnlineRoundStateTest::startRound()` (its own clock), parses of given values.
+- **Handed over:** the lowercase `now()` files of batch 5's list in this batch's range (`BrandPiecesPuzzlesControllerTest`,
+  `CompetitionChoicesBuilderTest`, `CompetitionParticipantImporterTest`, `ParticipantImportPlannerTest`), and
+  `CompetitionSeriesDetailControllerTest` (top level C, batch 7's range - handed over for its `SeriesEditionScenario` days)
+  together with its helper **`tests/Controller/WeeklySeriesSeed.php`** (`NOW()` / `CURRENT_DATE` in a bulk INSERT - the
+  200 past editions were dated from the real date while the test's secret edition was on the frozen one).
+- **Object storage doubles (new, `tests/TestDouble/ClockedInMemoryFilesystemAdapter.php`):** Flysystem's
+  `InMemoryFilesystemAdapter` stamps Last-Modified with `time()`. A real store stamps it on its own clock, which agrees with
+  the app's; in tests the frozen clock made every file "written in the future", so the prune-by-age tests
+  (`ParticipantImportStashTest` 2, `PhotoStashTest` 1) went red once their `MockClock` moved to the instant. The double stamps
+  from a given clock (a write naming its own `timestamp` keeps it). Used by the stash tests, `DirectPhotoUploadTest`,
+  `UploadSpoolProcessorTest`, `FailoverS3AdapterTest`, `RefusingFilesystemAdapter` and `ToggleableFailingFilesystemAdapter`
+  (now takes a clock - `DeletePlayerStoredFilesHandlerTest` passes one), and **`config/services_test.php`** (spool + result
+  images adapters; the S3 double is autowired with the container clock). `OrphanedAvatarFinderTest` writes its fresh upload
+  at the instant explicitly.
+
+**Real time on purpose (each with a comment; batch 9 lists them in the guard's allowlist):**
+
+- `AssetLoadFailureControllerTest` (`'rendered' => time()`) and `AssetLoadFailureClassifierTest::secondsAgo()` - the page's
+  `msp-rendered-at` and the classifier judging it are on real time (Jan's answer 1).
+- `AppleSignInNotificationControllerTest::claims()` `iat`/`exp` - `AppleServerNotificationVerifier` decodes with php-jwt's
+  `time()` (as batch 1's `AppleIdTokenFactory`).
+- Durations measured with `microtime(true)`: `MigrationLockTest`, `StudioSpectatorsTest`, `ObjectStorageHttpClientFactoryTest`;
+  `RedisSlidingWindowLimiterTest`'s forked processes start together at a real instant (`time_sleep_until`, `NativeClock`).
+
+Fixed (9 tests, no assertion weakened, none passed by luck): `SecretRevealPreviewTest` (3, round start from the real now),
+`SeriesEditionReconcilerTest` (`reveal_at = NOW() - 1 hour`), `SolveTimeDistributionProviderTest` (real-clock bracket),
+`OrphanedAvatarFinderTest` (`time()` - 3 days), `CompetitionSeriesDetailControllerTest` (2) and - through `WeeklySeriesSeed` -
+`EventsPageHighFrequencySeriesTest::testAPastEditionIsFoundByItsPuzzleButNeverBySecretOne` (batch 7's file, its own reads not
+converted here).
+
+Gates: PHPStan clean, PHPCS clean (cs-fix removed 16 unused imports). `tests/Services` alone (ParaTest): 1776 tests green;
+the batch's Controller files and `DeletePlayerStoredFilesHandlerTest` green. Full suite (ParaTest, `speedpuzzling_clock_test`):
+**11525 tests, 50 failures + 3 errors = 53 tests** (batch 5: 62). Compared per test, with and without data-set names: the 9
+above fixed, nothing green turned red. `Services` has no failure left.
+
+Remaining (files / tests): `Controller` top level 15 / 35, `Controller/Api/V1` 4 / 5, `Controller/Compete` 3 / 3,
+`DuplicateResults` 1 / 5, `OfficialResults` 1 / 1, `OnlineRounds` 1 / 1, `ReviewResults` 1 / 1, `Seating` 1 / 1,
+`SuspiciousTimes` 1 / 1.
+
+For batches 7-9:
+
+- **Helpers outside the root:** `tests/Controller/` holds non-`*Test.php` helpers too (`WeeklySeriesSeed` was one) - grep the
+  whole directory, not only `*Test.php`.
+- A test writing files and then judging their age needs `ClockedInMemoryFilesystemAdapter` (or an explicit
+  `['timestamp' => …]`); the container's in-memory stores already stamp from the frozen clock.
+- `EventsPageHighFrequencySeriesTest` (batch 7) is green now but still has clock reads of its own to convert.
+
 ## Log
 
 - 2026-10-22: plan written (README.md, implementation-plan.md). Branch `time-and-clock` from `8447c607d`.
@@ -835,3 +899,6 @@ For batches 6-9:
   24-hour boundary (passed by luck of the real date); suite 72 → 65 failing, nothing new red.
 - 2026-10-22: Phase 4 batch 5 - `Query` rest + `Services/Insights` + `Services/PuzzleIntelligence` on the frozen clock (51 files),
   `SpotlightSeeding`'s relative strings, lowercase SQL `now()` in 9 files of finished batches; suite 65 → 62 failing, nothing new red.
+- 2026-10-22: Phase 4 batch 6 - `Services` rest + `Controller` A-B on the frozen clock (58 files), `CompetitionSeriesDetailControllerTest` +
+  `WeeklySeriesSeed`, object storage doubles stamping Last-Modified from the clock (`ClockedInMemoryFilesystemAdapter`, also in
+  `services_test.php`); suite 62 → 53 failing, nothing new red.

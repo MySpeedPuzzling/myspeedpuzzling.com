@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\Storage;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use League\Flysystem\Config;
-use League\Flysystem\InMemory\InMemoryFilesystemAdapter;
 use League\Flysystem\UnableToReadFile;
 use League\Flysystem\UnableToWriteFile;
 use PHPUnit\Framework\TestCase;
@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Services\Storage\FailoverS3Adapter;
 use SpeedPuzzling\Web\Services\Storage\SpooledOperationType;
 use SpeedPuzzling\Web\Services\Storage\UploadSpool;
 use SpeedPuzzling\Web\Services\UploadFailureCollector;
+use SpeedPuzzling\Web\Tests\TestDouble\ClockedInMemoryFilesystemAdapter;
 use SpeedPuzzling\Web\Tests\TestDouble\InMemoryLogger;
 use SpeedPuzzling\Web\Tests\TestDouble\ToggleableFailingFilesystemAdapter;
 use Symfony\Component\Clock\MockClock;
@@ -27,8 +28,9 @@ final class FailoverS3AdapterTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->s3 = new ToggleableFailingFilesystemAdapter();
-        $this->spool = new UploadSpool(new InMemoryFilesystemAdapter(), new MockClock(), new InMemoryLogger());
+        $clock = new MockClock(TestClock::now());
+        $this->s3 = new ToggleableFailingFilesystemAdapter($clock);
+        $this->spool = new UploadSpool(new ClockedInMemoryFilesystemAdapter($clock), $clock, new InMemoryLogger());
         $this->collector = new UploadFailureCollector();
         $this->logger = new InMemoryLogger();
         $this->adapter = new FailoverS3Adapter($this->s3, $this->spool, $this->collector, $this->logger);
@@ -186,11 +188,11 @@ final class FailoverS3AdapterTest extends TestCase
 
     public function testOriginalExceptionRethrownWhenSpoolAlsoFails(): void
     {
-        $failingSpoolAdapter = new ToggleableFailingFilesystemAdapter();
+        $failingSpoolAdapter = new ToggleableFailingFilesystemAdapter(new MockClock(TestClock::now()));
         $failingSpoolAdapter->setFailing(true);
         $adapter = new FailoverS3Adapter(
             $this->s3,
-            new UploadSpool($failingSpoolAdapter, new MockClock(), new InMemoryLogger()),
+            new UploadSpool($failingSpoolAdapter, new MockClock(TestClock::now()), new InMemoryLogger()),
             $this->collector,
             $this->logger,
         );

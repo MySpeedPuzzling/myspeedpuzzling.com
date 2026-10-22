@@ -96,6 +96,7 @@ final class ObjectStorageHttpClientFactoryTest extends TestCase
             httpClient: ObjectStorageHttpClientFactory::create(new InMemoryLogger(), self::withIdleTimeout(HttpClient::create(), 0.6)),
         );
 
+        // Real time on purpose: measures how long the call takes, not a moment of the app
         $startedAt = microtime(true);
 
         try {

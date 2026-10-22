@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Manufacturer;
@@ -44,7 +44,7 @@ final class BrandChoicesBuilderTest extends KernelTestCase
         /** @var EntityManagerInterface $entityManager */
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $id = Uuid::uuid7();
-        $entityManager->persist(new Manufacturer($id, '<img src=x onerror=alert(1)>', false, null, new DateTimeImmutable()));
+        $entityManager->persist(new Manufacturer($id, '<img src=x onerror=alert(1)>', false, null, TestClock::now()));
         $entityManager->flush();
 
         $choice = null;

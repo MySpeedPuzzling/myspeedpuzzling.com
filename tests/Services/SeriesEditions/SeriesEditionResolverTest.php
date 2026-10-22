@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\SeriesEditions;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
@@ -156,7 +157,7 @@ final class SeriesEditionResolverTest extends KernelTestCase
         $this->scenario->round($edition, RoundCategory::Solo, '2026-03-05 19:00', puzzleIds: [$puzzle]);
 
         self::getContainer()->get(Connection::class)->executeStatement(
-            "UPDATE puzzle SET hide_until = NOW() + INTERVAL '30 days' WHERE id = :id",
+            "UPDATE puzzle SET hide_until = " . TestClock::SQL_NOW . " + INTERVAL '30 days' WHERE id = :id",
             ['id' => $puzzle],
         );
 

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Types\DateTimeUtcImmutableType;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
-use SpeedPuzzling\Web\Doctrine\UtcDateTimeImmutableDoctrineType;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -29,6 +29,6 @@ final class TimezoneConfigurationTest extends KernelTestCase
         // Booting the connection registers the configured types
         self::getContainer()->get(Connection::class);
 
-        self::assertInstanceOf(UtcDateTimeImmutableDoctrineType::class, Type::getType(Types::DATETIME_IMMUTABLE));
+        self::assertInstanceOf(DateTimeUtcImmutableType::class, Type::getType(Types::DATETIME_IMMUTABLE));
     }
 }

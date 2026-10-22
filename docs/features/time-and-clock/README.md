@@ -79,8 +79,9 @@ Three sources of "now" exist today, and they can disagree:
 - **D3:** no code pins a zone. PHP's `date.timezone=UTC` comes from the base image's ini (asserted by
   `TimezoneConfigurationTest`); the DB session zone is the server default (see the assumption below), no middleware,
   no `PGTZ` (Jan).
-- **D4:** `UtcDateTimeImmutableDoctrineType` converts `datetime_immutable` to UTC on write (a safety net - nothing
-  stored non-UTC before), plus the call-site fix in API v1 `finishedAt` (an offset is kept as the same instant).
+- **D4:** `datetime_immutable` is mapped to DBAL's own `DateTimeUtcImmutableType` (`datetime_utc_immutable`, DBAL
+  4.5+; our first version was a hand-written copy, replaced once Jan spotted the built-in one) - UTC on write, read back
+  as UTC (a safety net - nothing stored non-UTC before), plus the call-site fix in API v1 `finishedAt` (an offset is kept as the same instant).
   `date_immutable` is **not** converted (a calendar day would move). No stored data needed a fix (prod checked).
 - **D5:** proof = the suite under libfaketime at real date **+400 days and +5 years**, once, in CI (Jan: no "-30 days"
   run - a real date before the instant is not a situation CI meets - and no weekly job; the guards catch new

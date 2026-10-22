@@ -1146,3 +1146,8 @@ for the time any more). Each step printed `date -u` and PHP's `date()` first, so
 - 2026-10-22: Phase 5 - suite under libfaketime in CI at real date +400 days (run 39832423327) and +5 years (run
   39833021765): both green, 11527 tests, nothing to classify; workflow reverted to `main`'s; CLAUDE.md, docs/TODO.md,
   README.md; PR #284 description. **All phases done** - the PR stays a draft for Jan.
+- 2026-10-22: Jan spotted DBAL's built-in `datetime_utc_immutable`. `doctrine/dbal` 4.4.4 → 4.5.0 (lock only - a
+  transitive dependency), `datetime_immutable` now maps to `Doctrine\DBAL\Types\DateTimeUtcImmutableType` (same
+  behaviour as our copy, fallback included); `src/Doctrine/UtcDateTimeImmutableDoctrineType.php` removed, its unit test
+  kept as `tests/Doctrine/DatetimeImmutableStoredAsUtcTest.php` against the registered type. The Phase 1 section above
+  describes the original hand-written type.

@@ -77,8 +77,18 @@ jobs:
           run: npm install
       -   if: steps.webpack-cache.outputs.cache-hit != 'true'
           run: npm run dev
+      # TEMPORARY (time-and-clock Phase 5 proof, reverted before merge): the PHP test
+      # processes run under libfaketime with the real date shifted; Postgres stays real
+      -   run: apt-get update -qq && apt-get install -y -qq faketime > /dev/null && ls /usr/lib/x86_64-linux-gnu/faketime/
       # Each worker gets its own clone of the test database - see tests/bootstrap.php
-      -   run: vendor/bin/paratest --testsuite "Project Test Suite" --shard=${{ matrix.shard }}/3 --shard-test-distribution=round-robin
+      -   run: |
+              date -u
+              php -r 'echo date(DATE_ATOM), PHP_EOL;'
+              vendor/bin/paratest --testsuite "Project Test Suite" --shard=${{ matrix.shard }}/3 --shard-test-distribution=round-robin
+          env:
+              LD_PRELOAD: /usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1
+              FAKETIME: '+400d'
+              FAKETIME_DONT_FAKE_MONOTONIC: '1'
 
   # DISABLED 2026-07-30 (issue #147 / PR #172): the Panther-managed `php -S`
   # server this job relies on serves requests with stale per-test DATABASE_URLs

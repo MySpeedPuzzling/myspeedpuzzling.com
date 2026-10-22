@@ -232,6 +232,81 @@ final class PartnerFinderPagesTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
+    public function testAGroupNamesWhoIsWithThemAndTheyAreTold(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $crawler = $browser->request('GET', self::FORM);
+        self::assertCount(1, $crawler->filter('[data-controller~="partner-co-members"] input[name="partner_listing_form[coMembers]"]'));
+
+        $form = $crawler->selectButton('List me')->form();
+        $form['partner_listing_form[iAm]'] = 'group';
+        $form['partner_listing_form[groupSize]'] = '3';
+        $form['partner_listing_form[needed]'] = '1';
+        self::field($form, 'partner_listing_form[coMembers]')->setValue(PlayerFixture::PLAYER_REGULAR);
+        $team = self::field($form, 'partner_listing_form[lookingFor][1]');
+        self::assertInstanceOf(ChoiceFormField::class, $team);
+        $team->tick();
+        $browser->submit($form);
+
+        self::assertResponseRedirects(self::FINDER, 303);
+        $connection = self::getContainer()->get(Connection::class);
+        self::assertSame('["' . PlayerFixture::PLAYER_REGULAR . '"]', $connection->fetchOne(
+            'SELECT co_member_ids FROM partner_listing WHERE player_id = :player AND closed_at IS NULL',
+            ['player' => PlayerFixture::PLAYER_ADMIN],
+        ));
+
+        // John reads it in his notifications
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $browser->request('GET', '/en/notifications');
+        self::assertStringContainsString('added you to their group in the partner finder for Partner Finder Open', (string) $browser->getResponse()->getContent());
+
+        // Editing shows him picked
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $crawler = $browser->request('GET', self::FORM);
+        self::assertSame(PlayerFixture::PLAYER_REGULAR, self::field($crawler->selectButton('Save')->form(), 'partner_listing_form[coMembers]')->getValue());
+        self::assertStringContainsString(PlayerFixture::PLAYER_REGULAR, (string) $crawler->filter('[data-controller~="partner-co-members"]')->attr('data-partner-co-members-selected-value'));
+    }
+
+    public function testFoundMyPartnerAsksWhoTheyTeamedUpWithAndTellsThem(): void
+    {
+        $browser = self::createClient();
+        $connection = self::getContainer()->get(Connection::class);
+        // Michael (still listed) asked John
+        $connection->executeStatement(
+            "INSERT INTO partner_request (id, listing_id, from_player_id, kind, created_at) VALUES (gen_random_uuid(), :listing, :from, 'pair', NOW())",
+            ['listing' => PartnerFinderFixture::LISTING_REGULAR_PAIR, 'from' => PlayerFixture::PLAYER_WITH_FAVORITES],
+        );
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $crawler = $browser->request('GET', self::FINDER);
+        $step = $crawler->filter('.pf-own details.pf-found-step');
+        self::assertCount(1, $step);
+        self::assertStringContainsString('Who did you team up with?', $step->text());
+        self::assertCount(1, $step->filter('input[name="teamedUpWith[]"][value="' . PlayerFixture::PLAYER_WITH_FAVORITES . '"]'));
+
+        $browser->request('POST', '/en/partners/listing/' . PartnerFinderFixture::LISTING_REGULAR_PAIR . '/close', [
+            '_token' => 'csrf-token',
+            'reason' => 'found',
+            'return' => self::FINDER,
+            'teamedUpWith' => [PlayerFixture::PLAYER_WITH_FAVORITES],
+        ], server: ['HTTP_ORIGIN' => 'http://localhost']);
+        self::assertResponseRedirects(self::FINDER, 303);
+
+        // The page counts it
+        $browser->request('GET', self::FINDER);
+        self::assertSelectorTextContains('.pf-found', '1 puzzler found a partner here');
+
+        // Michael is asked to close his listing too - never closed for him
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+        $browser->request('GET', '/en/notifications');
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringContainsString('teamed up with you for Partner Finder Open', $content);
+        self::assertStringContainsString('Close your listing', $content);
+        self::assertNull($connection->fetchOne('SELECT closed_at FROM partner_listing WHERE id = :id', ['id' => PartnerFinderFixture::LISTING_FAVORITES_TEAM]));
+    }
+
     private static function lookingForFieldset(Crawler $crawler): Crawler
     {
         $fieldset = $crawler->filterXPath('//fieldset[.//input[starts-with(@name, "partner_listing_form[lookingFor]")]]');

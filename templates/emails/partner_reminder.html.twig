@@ -1,0 +1,50 @@
+{% trans_default_domain 'emails' %}
+{# "Still looking?" two weeks before the event, once per partner finder listing (SendPartnerListingReminderHandler,
+   docs/features/partner-finder.md "Phase 2 as built"): how many listed since, the finder, closing the listing. #}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
+    <wrapper>
+        <container>
+            {{ include('emails/_header.html.twig', {preheader: 'partner_reminder.preheader'|trans({'%event%': eventName})}) }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="24"></spacer>
+                    <h3>{{ 'partner_reminder.title'|trans({'%event%': eventName}) }}</h3>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <p>{{ 'partner_reminder.greeting'|trans({'%name%': playerName}) }}</p>
+                    <p>{{ 'partner_reminder.intro'|trans({'%event%': eventName, '%dates%': event_dates(dateFrom, dateTo, locale)}) }}</p>
+
+                    <table role="presentation" width="100%" style="width: 100%; margin: 16px 0; background: #f6f9fc; border-left: 4px solid #d63c42; border-radius: 6px;">
+                        <tr>
+                            <td style="padding: 14px 16px;">
+                                <p style="margin: 0; font-weight: bold;">
+                                    {%- if newListings > 0 -%}
+                                        {{ 'partner_reminder.new_listings'|trans({'%count%': newListings}) }}
+                                    {%- else -%}
+                                        {{ 'partner_reminder.no_new_listings'|trans }}
+                                    {%- endif -%}
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <center>
+                        <button href="{{ finderUrl }}">{{ 'partner_reminder.see_who'|trans }}</button>
+                    </center>
+
+                    <spacer size-sm="10"></spacer>
+
+                    <p class="small-print">{{ 'partner_reminder.found_partner'|trans({'%url%': finderUrl})|raw }}</p>
+                    <p class="small-print">{{ 'partner_request.opt_out'|trans({'%settingsUrl%': settingsUrl, '%unsubscribeUrl%': unsubscribeUrl})|raw }}</p>
+                </columns>
+            </row>
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

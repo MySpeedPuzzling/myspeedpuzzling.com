@@ -35,6 +35,10 @@
             <div class="pf-head-text">
                 <h1 class="pf-title">{{ 'partner_finder.page.heading'|trans }}</h1>
                 <p class="pf-lead">{{ 'partner_finder.page.lead'|trans({'%event%': event_name}) }}</p>
+                {%- set found_count = listings ? listings.foundCount : teaser.foundCount -%}
+                {% if found_count > 0 %}
+                    <p class="pf-found"><i class="bi bi-people-fill" aria-hidden="true"></i> {{ 'partner_finder.page.found_here'|trans({'%count%': found_count}) }}</p>
+                {% endif %}
             </div>
             {% if listings and own is null %}
                 <a class="btn btn-primary pf-list-me" href="{{ list_me_url }}" data-turbo-frame="modal-frame" rel="nofollow">

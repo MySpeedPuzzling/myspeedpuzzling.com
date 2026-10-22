@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Results\PartnerCoMember;
 
 /**
  * Which of the players named as co-members of a partner finder listing the lister may name
@@ -28,6 +29,18 @@ readonly final class GetAllowedPartnerCoMembers
      */
     public function of(string $listerId, array $playerIds): array
     {
+        return array_map(static fn (PartnerCoMember $member): string => $member->playerId, $this->choices($listerId, $playerIds));
+    }
+
+    /**
+     * The allowed ones with what the listing form's co-member picker shows of them, in the order asked
+     *
+     * @param list<string> $playerIds
+     *
+     * @return list<PartnerCoMember>
+     */
+    public function choices(string $listerId, array $playerIds): array
+    {
         $playerIds = array_values(array_filter($playerIds, static fn (string $id): bool => Uuid::isValid($id)));
 
         if ($playerIds === [] || Uuid::isValid($listerId) === false) {
@@ -35,7 +48,7 @@ readonly final class GetAllowedPartnerCoMembers
         }
 
         $query = <<<SQL
-SELECT co.id
+SELECT co.id, co.name, co.code, co.country, co.avatar
 FROM player co
 WHERE co.id IN (:ids)
     AND (
@@ -52,16 +65,39 @@ WHERE co.id IN (:ids)
     )
 SQL;
 
-        /** @var list<string> $ids */
-        $ids = $this->database
+        /** @var list<array{id: string, name: null|string, code: string, country: null|string, avatar: null|string}> $rows */
+        $rows = $this->database
             ->executeQuery($query, [
                 'ids' => array_map(strtolower(...), $playerIds),
                 'listerId' => $listerId,
             ], [
                 'ids' => ArrayParameterType::STRING,
             ])
-            ->fetchFirstColumn();
+            ->fetchAllAssociative();
 
-        return array_map(strtolower(...), $ids);
+        $byId = [];
+
+        foreach ($rows as $row) {
+            $byId[strtolower($row['id'])] = new PartnerCoMember(
+                playerId: strtolower($row['id']),
+                name: $row['name'],
+                code: $row['code'],
+                countryCode: $row['country'],
+                avatar: $row['avatar'],
+                masked: false,
+            );
+        }
+
+        $choices = [];
+
+        foreach ($playerIds as $playerId) {
+            $member = $byId[strtolower($playerId)] ?? null;
+
+            if ($member !== null && in_array($member, $choices, true) === false) {
+                $choices[] = $member;
+            }
+        }
+
+        return $choices;
     }
 }

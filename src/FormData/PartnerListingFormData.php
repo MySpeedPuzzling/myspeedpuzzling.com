@@ -34,6 +34,9 @@ final class PartnerListingFormData
     #[Assert\Range(min: 1, max: PartnerListing::GROUP_SIZE_MAX)]
     public null|int $needed = null;
 
+    // Registered players in the group besides the lister: player ids, comma-separated (the picker's hidden field)
+    public null|string $coMembers = null;
+
     public null|PartnerGoal $goal = null;
 
     /** @var list<string> PartnerStrength values */
@@ -82,6 +85,7 @@ final class PartnerListingFormData
         $data->groupSize = $listing->isGroup() ? $listing->groupSize : 2;
         $data->lookingFor = array_map(static fn (PartnerKind $kind): string => $kind->value, $listing->lookingFor());
         $data->needed = $listing->needed;
+        $data->coMembers = $listing->coMemberIds() === [] ? null : implode(',', $listing->coMemberIds());
         $data->goal = $listing->goal;
         $data->strengths = $listing->strengths;
         $data->customStrengths = $listing->customStrengths() === [] ? null : implode(', ', $listing->customStrengths());
@@ -104,6 +108,20 @@ final class PartnerListingFormData
     public function neededValue(): null|int
     {
         return $this->isGroup() ? $this->needed : null;
+    }
+
+    /**
+     * The co-members a group names - none when listing on my own
+     *
+     * @return list<string>
+     */
+    public function coMemberIdList(): array
+    {
+        if ($this->isGroup() === false || $this->coMembers === null) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter(array_map(trim(...), explode(',', strtolower($this->coMembers))), static fn (string $id): bool => $id !== '')));
     }
 
     /**

@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Repository\PartnerListingRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Value\NotificationType;
 use SpeedPuzzling\Web\Value\PartnerGoal;
 use SpeedPuzzling\Web\Value\PartnerKind;
 use SpeedPuzzling\Web\Value\PartnerListingClosedReason;
@@ -217,6 +218,149 @@ final class PartnerListingHandlersTest extends KernelTestCase
         self::assertSame(PartnerListingClosedReason::Withdrawn, $listing->closedReason);
     }
 
+    public function testFoundMyPartnerAsksOnlyACandidateToCloseTheirsToo(): void
+    {
+        // Michael (an open team listing) asked John - a candidate; Stripe asked John too, but her listing is closed;
+        // the admin never exchanged anything with John
+        $this->database->executeStatement(
+            "INSERT INTO partner_request (id, listing_id, from_player_id, kind, created_at) VALUES (:id, :listing, :from, 'pair', NOW())",
+            ['id' => Uuid::uuid7()->toString(), 'listing' => PartnerFinderFixture::LISTING_REGULAR_PAIR, 'from' => PlayerFixture::PLAYER_WITH_FAVORITES],
+        );
+
+        $this->messageBus->dispatch(new ClosePartnerListing(
+            PartnerFinderFixture::LISTING_REGULAR_PAIR,
+            PlayerFixture::PLAYER_REGULAR,
+            PartnerListingClosedReason::Found,
+            teamedUpWith: [strtoupper(PlayerFixture::PLAYER_WITH_FAVORITES), PlayerFixture::PLAYER_WITH_STRIPE, PlayerFixture::PLAYER_ADMIN],
+        ));
+
+        self::assertFalse($this->listingRepository->get(PartnerFinderFixture::LISTING_REGULAR_PAIR)->isOpen());
+        self::assertSame([PlayerFixture::PLAYER_WITH_FAVORITES], $this->notified(NotificationType::PartnerTeamedUp, PlayerFixture::PLAYER_REGULAR));
+        // Asked, never closed for them
+        self::assertTrue($this->listingRepository->get(PartnerFinderFixture::LISTING_FAVORITES_TEAM)->isOpen());
+    }
+
+    public function testNobodyIsAskedWhenTheListingIsRemovedOrBlockedEitherWay(): void
+    {
+        $this->database->executeStatement(
+            "INSERT INTO partner_request (id, listing_id, from_player_id, kind, created_at) VALUES (:id, :listing, :from, 'pair', NOW())",
+            ['id' => Uuid::uuid7()->toString(), 'listing' => PartnerFinderFixture::LISTING_REGULAR_PAIR, 'from' => PlayerFixture::PLAYER_WITH_FAVORITES],
+        );
+        $this->database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_WITH_FAVORITES, 'blocked' => PlayerFixture::PLAYER_REGULAR],
+        );
+
+        $this->messageBus->dispatch(new ClosePartnerListing(
+            PartnerFinderFixture::LISTING_REGULAR_PAIR,
+            PlayerFixture::PLAYER_REGULAR,
+            PartnerListingClosedReason::Found,
+            teamedUpWith: [PlayerFixture::PLAYER_WITH_FAVORITES],
+        ));
+
+        self::assertSame([], $this->notified(NotificationType::PartnerTeamedUp, PlayerFixture::PLAYER_REGULAR));
+    }
+
+    public function testAGroupCountingDownTellsTheSamePartnerOnce(): void
+    {
+        // Michael's group needs 2 more; John (still listed) asked Michael
+        $this->database->executeStatement(
+            "INSERT INTO partner_request (id, listing_id, from_player_id, kind, created_at) VALUES (:id, :listing, :from, 'team', NOW())",
+            ['id' => Uuid::uuid7()->toString(), 'listing' => PartnerFinderFixture::LISTING_FAVORITES_TEAM, 'from' => PlayerFixture::PLAYER_REGULAR],
+        );
+
+        foreach ([1, 2] as $click) {
+            $this->messageBus->dispatch(new ClosePartnerListing(
+                PartnerFinderFixture::LISTING_FAVORITES_TEAM,
+                PlayerFixture::PLAYER_WITH_FAVORITES,
+                PartnerListingClosedReason::Found,
+                teamedUpWith: [PlayerFixture::PLAYER_REGULAR],
+            ));
+        }
+
+        self::assertFalse($this->listingRepository->get(PartnerFinderFixture::LISTING_FAVORITES_TEAM)->isOpen());
+        self::assertSame([PlayerFixture::PLAYER_REGULAR], $this->notified(NotificationType::PartnerTeamedUp, PlayerFixture::PLAYER_WITH_FAVORITES));
+    }
+
+    public function testAnEditDropsACoMemberWhoBlockedTheListerSinceInsteadOfFailing(): void
+    {
+        // The fixture team listing names the admin; the admin blocks Michael afterwards
+        $this->database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_ADMIN, 'blocked' => PlayerFixture::PLAYER_WITH_FAVORITES],
+        );
+
+        $edit = new EditPartnerListing(
+            listingId: PartnerFinderFixture::LISTING_FAVORITES_TEAM,
+            playerId: PlayerFixture::PLAYER_WITH_FAVORITES,
+            groupSize: 2,
+            lookingFor: [PartnerKind::Team],
+            needed: 2,
+            coMemberIds: [PlayerFixture::PLAYER_ADMIN],
+            goal: null,
+            strengths: [],
+            customStrengths: [],
+            languages: ['de'],
+            note: 'Only the note changed',
+        );
+        $this->messageBus->dispatch($edit);
+
+        $listing = $this->listingRepository->get(PartnerFinderFixture::LISTING_FAVORITES_TEAM);
+        self::assertSame('Only the note changed', $listing->note);
+        self::assertSame([], $listing->coMemberIds());
+
+        // Naming somebody new who is not allowed is still refused
+        $this->database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_REGULAR, 'blocked' => PlayerFixture::PLAYER_WITH_FAVORITES],
+        );
+        $refused = $this->refused(new EditPartnerListing(
+            listingId: PartnerFinderFixture::LISTING_FAVORITES_TEAM,
+            playerId: PlayerFixture::PLAYER_WITH_FAVORITES,
+            groupSize: 2,
+            lookingFor: [PartnerKind::Team],
+            needed: 2,
+            coMemberIds: [PlayerFixture::PLAYER_REGULAR],
+            goal: null,
+            strengths: [],
+            customStrengths: [],
+            languages: ['de'],
+            note: null,
+        ));
+        self::assertInstanceOf(PartnerListingInvalid::class, $refused);
+    }
+
+    public function testAddedCoMembersAreToldOnce(): void
+    {
+        $listingId = Uuid::uuid7()->toString();
+
+        $this->messageBus->dispatch($this->listMe($listingId, PlayerFixture::PLAYER_ADMIN, kinds: [PartnerKind::Team], groupSize: 3, needed: 1, coMembers: [PlayerFixture::PLAYER_REGULAR]));
+        self::assertSame([PlayerFixture::PLAYER_REGULAR], $this->notified(NotificationType::PartnerGroupMember, PlayerFixture::PLAYER_ADMIN));
+
+        // An edit keeping John and adding Stripe tells only Stripe
+        $edit = new EditPartnerListing(
+            listingId: $listingId,
+            playerId: PlayerFixture::PLAYER_ADMIN,
+            groupSize: 3,
+            lookingFor: [PartnerKind::Team],
+            needed: 1,
+            coMemberIds: [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_STRIPE],
+            goal: null,
+            strengths: [],
+            customStrengths: [],
+            languages: ['en'],
+            note: null,
+        );
+        $this->messageBus->dispatch($edit);
+
+        $told = $this->notified(NotificationType::PartnerGroupMember, PlayerFixture::PLAYER_ADMIN);
+        sort($told);
+        $expected = [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_STRIPE];
+        sort($expected);
+        self::assertSame($expected, $told);
+        self::assertSame([PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_STRIPE], $this->listingRepository->get($listingId)->coMemberIds());
+    }
+
     /**
      * @param list<PartnerKind> $kinds
      * @param list<string> $custom
@@ -286,6 +430,22 @@ final class PartnerListingHandlersTest extends KernelTestCase
         }
 
         self::fail('The message was not refused.');
+    }
+
+    /**
+     * Who got a notification of that type from that actor
+     *
+     * @return list<string>
+     */
+    private function notified(NotificationType $type, string $actorId): array
+    {
+        /** @var list<string> $playerIds */
+        $playerIds = $this->database->fetchFirstColumn(
+            'SELECT player_id FROM notification WHERE type = :type AND actor_player_id = :actor ORDER BY notified_at, id',
+            ['type' => $type->value, 'actor' => $actorId],
+        );
+
+        return $playerIds;
     }
 
     private function goingRows(string $playerId): int

@@ -501,3 +501,13 @@ partner_request:
     no_addresses: "Nunca compartimos direcciones de correo: respondes dentro de MySpeedPuzzling y la respuesta abre un chat."
     found_partner: '¿Ya tienes compañero? <a href="%url%">Cierra tu anuncio</a>'
     opt_out: 'Recibes este correo porque te apuntaste en el buscador de compañeros. <a href="%settingsUrl%">Ajustes de correo</a> · <a href="%unsubscribeUrl%">Dejar de recibir estos correos</a>'
+partner_reminder:
+    subject: "¿Sigues buscando compañero para %event%?"
+    preheader: "%event% es dentro de dos semanas: mira quién está buscando."
+    title: "¿Sigues buscando compañero?"
+    greeting: "Hola %name%,"
+    intro: "%event% (%dates%) es dentro de dos semanas y tu anuncio en el buscador de compañeros sigue activo."
+    new_listings: "{1}Desde entonces se ha apuntado 1 puzzlero más.|[0,Inf[Desde entonces se han apuntado %count% puzzleros más."
+    no_new_listings: "Desde entonces no se ha apuntado nadie nuevo, pero vale la pena mirar quién está."
+    see_who: "Ver quién busca"
+    found_partner: "¿Ya tienes compañero? <a href=\"%url%\">Cierra tu anuncio</a> para que nadie te siga escribiendo."

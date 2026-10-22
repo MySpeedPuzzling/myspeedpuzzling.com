@@ -6,14 +6,9 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Partner finder (`docs/features/partner-finder.md`, 2026-10-22)
 
-- [ ] Co-member picker in the listing form ("a group of N" + who): `ListForPartner` / `EditPartnerListing` and
-      `PartnerListingRules::coMembers()` already take and check player ids - the form sends none yet (an edit keeps them)
 - [ ] Look at the page with ~100 real listings on a phone once there are some (filter bar wrapping, details panel)
-- [ ] Phase 2: "Close yours too?" for the people you teamed up with, a reminder 14 days before the event ("Still looking?
-      N new puzzlers listed since"), a line for followers of the event, the "N pairs found here" count
-- [ ] Phase 2: pair/team result counts on the cards - precompute `pair_result_count` / `team_result_count` on
-      `community_player_stats` in `recalculate-community-stats` first (never count `puzzle_solving_time` per page view)
-- [ ] Phase 2: a finder across events ("a pair at any Czech event this spring"), API v1 read access
+- [ ] A line for followers of the event (Jan asked what it means, 2026-10-23 - waiting for his call): people who follow
+      the event or its series without being listed see "N puzzlers are looking for a partner here" in "Your events"
 
 ## Wasgij, multipacks and reverting merges (`docs/features/wasgij-and-multipacks.md`, 2026-10-22)
 

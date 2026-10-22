@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Query;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetPartnerListings;
+use SpeedPuzzling\Web\Results\PartnerCoMember;
 use SpeedPuzzling\Web\Results\PartnerListingRow;
 use SpeedPuzzling\Web\Results\PartnerListings;
 use SpeedPuzzling\Web\Value\PartnerKind;
@@ -242,6 +243,36 @@ final class GetPartnerListingsTest extends KernelTestCase
         $capped = new PartnerListings($listings->offer, false, null, $listings->rows, 140);
 
         self::assertTrue($capped->isCapped());
+    }
+
+    public function testFoundAPartnerHereCountsListingsClosedAsFound(): void
+    {
+        // The fixture's closed listing was withdrawn - not counted
+        self::assertSame(0, $this->listingsFor(PlayerFixture::PLAYER_ADMIN, member: false)->foundCount);
+
+        $this->database->executeStatement("UPDATE partner_listing SET closed_at = NOW(), closed_reason = 'found' WHERE id = :id", ['id' => PartnerFinderFixture::LISTING_REGULAR_PAIR]);
+
+        self::assertSame(1, $this->listingsFor(PlayerFixture::PLAYER_ADMIN, member: false)->foundCount);
+        $teaser = $this->query->teaserForEvent(self::EVENT);
+        self::assertNotNull($teaser);
+        self::assertSame(1, $teaser->foundCount);
+    }
+
+    public function testTheOwnRowOffersWhoExchangedARequestAndIsStillListed(): void
+    {
+        // John's listing got a request from Stripe (her own listing is closed - not offered); John asked Michael
+        $this->database->executeStatement(
+            "INSERT INTO partner_request (id, listing_id, from_player_id, kind, created_at) VALUES (:id, :listing, :from, 'team', NOW())",
+            ['id' => Uuid::uuid7()->toString(), 'listing' => PartnerFinderFixture::LISTING_FAVORITES_TEAM, 'from' => PlayerFixture::PLAYER_REGULAR],
+        );
+
+        $own = $this->listingsFor(PlayerFixture::PLAYER_REGULAR, member: false)->ownRow();
+        self::assertNotNull($own);
+        self::assertSame([PlayerFixture::PLAYER_WITH_FAVORITES], array_map(static fn (PartnerCoMember $candidate): string => $candidate->playerId, $own->teamUpCandidates));
+        self::assertSame('Michael Johnson', $own->teamUpCandidates[0]->name);
+
+        // Nobody else's row carries candidates
+        self::assertSame([], $this->row($this->listingsFor(PlayerFixture::PLAYER_REGULAR, member: false), PartnerFinderFixture::LISTING_FAVORITES_TEAM)->teamUpCandidates);
     }
 
     private function listingsFor(string $viewerId, bool $member): PartnerListings

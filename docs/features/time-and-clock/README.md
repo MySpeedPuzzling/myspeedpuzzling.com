@@ -1,7 +1,8 @@
 # Time and the clock: one clock, UTC everywhere, frozen in tests
 
-Status: plan of record 2026-10-22 (Jan: "time is now, carefully prepare plan"). Progress: `STATUS.md`. Phases with the
-prompt for each: `implementation-plan.md`.
+Status: **built 2026-10-22, phases 0-5 done** - draft PR #284 (branch `time-and-clock`), not merged. Plan of record
+2026-10-22 (Jan: "time is now, carefully prepare plan"). Progress and findings: `STATUS.md`. Phases: `implementation-plan.md`.
+Follow-ups: `docs/TODO.md` → "Time and the clock".
 
 ## Why
 
@@ -65,6 +66,28 @@ Three sources of "now" exist today, and they can disagree:
 - **D5 - proof:** besides the guard tests, run the whole suite once under libfaketime with the real date shifted
   (+400 days and -30 days); it must pass unchanged. Phase 0 checks libfaketime in the base image (local arm64, CI
   amd64); optional weekly CI job.
+
+## What shipped, against the decisions above
+
+- **D1:** `TestClock::FROZEN_NOW` = `2026-10-14 12:00:00` UTC as proposed, with one constraint found in Phase 0: the
+  instant must lie **before** the real date of every run (Symfony mints sign-in links with `time()` and the app checks
+  them with the clock) - pinned by `TestClockTest`. Never move it into the future; moving it rebuilds the cached test DB.
+- **D2:** the `clock` service is a `MockClock` per test container (`config/services_test.php`). No second, real clock
+  service (Jan): what another clock judges - cookie expiries, `msp-rendered-at` and its reader, rate-limiter
+  retry-after, health probes, durations - reads real time on purpose, each listed with its reason in
+  `SystemClockCoverageTest`. Twig got `now()` on the clock; `|ago` counts to the clock.
+- **D3:** no code pins a zone. PHP's `date.timezone=UTC` comes from the base image's ini (asserted by
+  `TimezoneConfigurationTest`); the DB session zone is the server default (see the assumption below), no middleware,
+  no `PGTZ` (Jan).
+- **D4:** `UtcDateTimeImmutableDoctrineType` converts `datetime_immutable` to UTC on write (a safety net - nothing
+  stored non-UTC before), plus the call-site fix in API v1 `finishedAt` (an offset is kept as the same instant).
+  `date_immutable` is **not** converted (a calendar day would move). No stored data needed a fix (prod checked).
+- **D5:** proof = the suite under libfaketime at real date **+400 days and +5 years**, once, in CI (Jan: no "-30 days"
+  run - a real date before the instant is not a situation CI meets - and no weekly job; the guards catch new
+  violations). Results in `STATUS.md` → "Phase 5".
+- **R5 guards:** `DatabaseClockCoverageTest` (SQL clock, `src/` + `tests/`, case-insensitive) and
+  `SystemClockCoverageTest` (PHP/Twig clock reads, `src/` + `templates/` + `tests/`; the `tests/` allowlist is per kind
+  of read). Object storage doubles stamp Last-Modified from the clock (`ClockedInMemoryFilesystemAdapter`).
 
 ## Inventory (2026-10-22, regenerate with the commands below)
 

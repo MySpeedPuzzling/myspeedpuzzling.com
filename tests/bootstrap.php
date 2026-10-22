@@ -322,6 +322,10 @@ function createCustomIndexes(): void
     // XP ledger idempotency anchors (Version20260713131333) — player_id is part of the key
     // because every team participant earns entries for the same solve.
     $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS custom_xp_entry_solve_reason ON xp_entry (player_id, solving_time_id, reason) WHERE solving_time_id IS NOT NULL AND reason != 'solve_compensation'");
+
+    // Partner finder: one open listing per player and event, the open listings of an event (Version20261022172651)
+    $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS custom_partner_listing_one_open ON partner_listing (competition_id, player_id) WHERE closed_at IS NULL');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_partner_listing_open_by_event ON partner_listing (competition_id) WHERE closed_at IS NULL');
 }
 
 /**

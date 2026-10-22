@@ -120,6 +120,10 @@
 @import "series-page";
 @import "event-rounds";
 
+// Partner finder (docs/features/partner-finder.md): the finder page, and the card on the event pages
+@import "partner-finder";
+@import "partner-finder-card";
+
 // Organizations and drafts (docs/features/organizations/README.md) - one file per workstream
 @import "organization-page";
 @import "drafts";

@@ -11098,3 +11098,44 @@ puzzles_needing_improvement:
     badge:
         ean_missing: "EAN missing"
         proposed: "Suggested, waiting for review"
+
+partner_finder:
+    # docs/features/partner-finder.md "Shared names": each part adds its own subtrees below its line
+    # Part A: page.*, form.*, listing.*
+
+    # Part B: card.*, events_tag.*
+
+    # Part C: request.*, notification.*, settings.*
+
+    # Foundation: strength.*, goal.*, kind.*, invalid.*
+    strength:
+        sorting: "Sorting"
+        edges: "Edges & frame"
+        sky: "Sky & gradients"
+        colour_blocks: "Colour blocks"
+        patterns: "Patterns & textures"
+        text: "Text & letters"
+        faces: "Faces & people"
+        piece_shapes: "Piece shapes"
+        staying_calm: "Staying calm"
+        splitting_work: "Splitting the work"
+    goal:
+        top_result: "A top result"
+        either: "A good time, either way"
+        fun_first: "Fun first"
+    kind:
+        pair: "Pair"
+        team: "Team"
+    invalid:
+        strength_unknown: "Pick from the list."
+        too_many_strengths: "Pick at most %max%."
+        too_many_custom_strengths: "Add at most %max% of your own."
+        custom_strength_too_long: "“%chip%” is too long - at most %max% characters."
+        custom_strength_characters: "Leave out < and >."
+        group_size: "On your own, or a group of up to %max% people."
+        needed: "Say how many more people you need."
+        looking_for: "Pick what you are looking for."
+        pair_for_group: "A group of two is a pair already - a group looks for a team."
+        co_members: "Add at most as many puzzlers as your group has besides you."
+        languages: "Pick at most %max% languages."
+        note_too_long: "Keep the note to %max% characters."

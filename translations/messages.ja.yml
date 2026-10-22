@@ -10814,3 +10814,44 @@ puzzles_needing_improvement:
     badge:
         ean_missing: "EAN なし"
         proposed: "提案済み・確認待ち"
+
+partner_finder:
+    # docs/features/partner-finder.md "Shared names": each part adds its own subtrees below its line
+    # Part A: page.*, form.*, listing.*
+
+    # Part B: card.*, events_tag.*
+
+    # Part C: request.*, notification.*, settings.*
+
+    # Foundation: strength.*, goal.*, kind.*, invalid.*
+    strength:
+        sorting: "仕分け"
+        edges: "端・枠"
+        sky: "空・グラデーション"
+        colour_blocks: "色のかたまり"
+        patterns: "模様・質感"
+        text: "文字"
+        faces: "顔・人物"
+        piece_shapes: "ピースの形"
+        staying_calm: "落ち着き"
+        splitting_work: "作業の分担"
+    goal:
+        top_result: "上位を狙う"
+        either: "どちらでも楽しく"
+        fun_first: "楽しさ優先"
+    kind:
+        pair: "ペア"
+        team: "チーム"
+    invalid:
+        strength_unknown: "リストから選んでください。"
+        too_many_strengths: "選べるのは %max% 個までです。"
+        too_many_custom_strengths: "自分で追加できるのは %max% 個までです。"
+        custom_strength_too_long: "「%chip%」は長すぎます（%max% 文字まで）。"
+        custom_strength_characters: "< と > は使えません。"
+        group_size: "1人、または %max% 人までのグループです。"
+        needed: "あと何人必要か入力してください。"
+        looking_for: "探しているものを選んでください。"
+        pair_for_group: "2人ならすでにペアです。グループはチームを探します。"
+        co_members: "追加できるのは、あなた以外のグループの人数までです。"
+        languages: "言語は %max% 個まで選べます。"
+        note_too_long: "メモは %max% 文字までです。"

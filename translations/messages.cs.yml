@@ -10851,3 +10851,44 @@ puzzles_needing_improvement:
     badge:
         ean_missing: "Chybí EAN"
         proposed: "Navrženo, čeká na kontrolu"
+
+partner_finder:
+    # docs/features/partner-finder.md "Shared names": each part adds its own subtrees below its line
+    # Part A: page.*, form.*, listing.*
+
+    # Part B: card.*, events_tag.*
+
+    # Part C: request.*, notification.*, settings.*
+
+    # Foundation: strength.*, goal.*, kind.*, invalid.*
+    strength:
+        sorting: "Třídění"
+        edges: "Okraje a rám"
+        sky: "Obloha a přechody"
+        colour_blocks: "Barevné plochy"
+        patterns: "Vzory a textury"
+        text: "Text a písmena"
+        faces: "Tváře a postavy"
+        piece_shapes: "Tvary dílků"
+        staying_calm: "Klidná hlava"
+        splitting_work: "Dělba práce"
+    goal:
+        top_result: "Špičkový výsledek"
+        either: "Dobrý čas tak či tak"
+        fun_first: "Hlavně zábava"
+    kind:
+        pair: "Dvojice"
+        team: "Tým"
+    invalid:
+        strength_unknown: "Vyberte ze seznamu."
+        too_many_strengths: "Vyberte nejvýše %max%."
+        too_many_custom_strengths: "Přidejte nejvýše %max% vlastních."
+        custom_strength_too_long: "„%chip%“ je moc dlouhé - nejvýše %max% znaků."
+        custom_strength_characters: "Vynechte < a >."
+        group_size: "Sami, nebo skupina až %max% lidí."
+        needed: "Napište, kolik lidí vám ještě chybí."
+        looking_for: "Vyberte, co hledáte."
+        pair_for_group: "Dva už jsou dvojice - skupina hledá tým."
+        co_members: "Přidejte nejvýše tolik puzzlerů, kolik má skupina členů kromě vás."
+        languages: "Vyberte nejvýše %max% jazyky."
+        note_too_long: "Poznámka může mít nejvýše %max% znaků."

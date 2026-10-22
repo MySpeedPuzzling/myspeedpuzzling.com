@@ -10844,3 +10844,44 @@ puzzles_needing_improvement:
     badge:
         ean_missing: "EAN manquant"
         proposed: "Suggéré, en attente de vérification"
+
+partner_finder:
+    # docs/features/partner-finder.md "Shared names": each part adds its own subtrees below its line
+    # Part A: page.*, form.*, listing.*
+
+    # Part B: card.*, events_tag.*
+
+    # Part C: request.*, notification.*, settings.*
+
+    # Foundation: strength.*, goal.*, kind.*, invalid.*
+    strength:
+        sorting: "Trier"
+        edges: "Bords et cadre"
+        sky: "Ciel et dégradés"
+        colour_blocks: "Aplats de couleur"
+        patterns: "Motifs et textures"
+        text: "Texte et lettres"
+        faces: "Visages et personnages"
+        piece_shapes: "Formes des pièces"
+        staying_calm: "Garder son calme"
+        splitting_work: "Répartir le travail"
+    goal:
+        top_result: "Un résultat au top"
+        either: "Un bon moment, dans tous les cas"
+        fun_first: "Le plaisir d’abord"
+    kind:
+        pair: "Duo"
+        team: "Équipe"
+    invalid:
+        strength_unknown: "Choisissez dans la liste."
+        too_many_strengths: "Choisissez-en %max% au maximum."
+        too_many_custom_strengths: "Ajoutez-en %max% au maximum."
+        custom_strength_too_long: "« %chip% » est trop long : %max% caractères au maximum."
+        custom_strength_characters: "N’utilisez pas < ni >."
+        group_size: "Seul ou en groupe de %max% personnes au maximum."
+        needed: "Indiquez combien de personnes il vous manque."
+        looking_for: "Choisissez ce que vous cherchez."
+        pair_for_group: "À deux, vous êtes déjà un duo : un groupe cherche une équipe."
+        co_members: "Ajoutez au maximum autant de puzzleurs que votre groupe en compte en plus de vous."
+        languages: "Choisissez %max% langues au maximum."
+        note_too_long: "La note ne peut pas dépasser %max% caractères."

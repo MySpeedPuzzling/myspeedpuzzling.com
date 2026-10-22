@@ -1,0 +1,94 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The partner finder page of one event (docs/features/partner-finder.md, "Part A as built"). Guests get the teaser
+    (counts, flags, faces - no names, notes or links); signed-in viewers every listing they may see, filtered and sorted
+    in the browser by partner_finder_controller.js over the rendered rows (no refetch).
+
+    Inputs (AbstractPartnerFinderPageController): competition_id, event_name, series (null | {name, url}), event_url,
+    finder_url, registration_managed, countries (list<{code, name, count}>), teaser (PartnerFinderTeaser, guests) or
+    listings (PartnerListings, signed in) + viewer_is_member
+#}
+
+{% block robots %}<meta name="robots" content="noindex, follow">{% endblock %}
+
+{% block title %}{{ 'partner_finder.page.title'|trans({'%event%': event_name}) }}{% endblock %}
+
+{% block meta_description %}{{ 'partner_finder.page.meta_description'|trans({'%event%': event_name}) }}{% endblock %}
+
+{% block content %}
+    {%- set crumbs = [{label: 'events.title'|trans, url: path('events')}]
+        |merge(series ? [{label: series.name, url: series.url}] : [])
+        |merge([{label: event_name, url: event_url}]) -%}
+    {%- set own = listings ? listings.ownRow : null -%}
+    {%- set list_me_url = path('partner_listing_form', {competitionId: competition_id}) -%}
+
+    <div class="pf-page"
+        {%- if listings %}
+            data-controller="partner-finder"
+            data-partner-finder-member-value="{{ viewer_is_member ? 'true' : 'false' }}"
+            data-partner-finder-custom-chips="{{ listings.customChipSuggestions|json_encode }}"
+        {%- endif %}>
+        {{ include('event_parts/_crumbs.html.twig', {items: crumbs}) }}
+
+        <header class="pf-head">
+            <div class="pf-head-text">
+                <h1 class="pf-title">{{ 'partner_finder.page.heading'|trans }}</h1>
+                <p class="pf-lead">{{ 'partner_finder.page.lead'|trans({'%event%': event_name}) }}</p>
+            </div>
+            {% if listings and own is null %}
+                <a class="btn btn-primary pf-list-me" href="{{ list_me_url }}" data-turbo-frame="modal-frame" rel="nofollow">
+                    <i class="bi bi-person-plus me-1" aria-hidden="true"></i>{{ 'partner_finder.page.list_me'|trans }}
+                </a>
+            {% endif %}
+        </header>
+
+        {% if teaser %}
+            {{ include('partner_finder/_teaser.html.twig') }}
+        {% else %}
+            {% set rows = listings.rows %}
+            {% set others = rows|filter(row => not row.own) %}
+
+            {% if own %}
+                <h2 class="pf-section-title">{{ 'partner_finder.page.your_listing'|trans }}</h2>
+                <div class="pf-own">
+                    {{ include('partner_finder/_listing_row.html.twig', {row: own, order: 0}) }}
+                </div>
+            {% endif %}
+
+            {% if others is empty %}
+                <div class="pf-empty">
+                    <i class="bi bi-people pf-empty-icon" aria-hidden="true"></i>
+                    <p class="pf-empty-title">{{ 'partner_finder.page.empty_title'|trans }}</p>
+                    <p class="pf-empty-text">{{ (own ? 'partner_finder.page.empty_text_listed' : 'partner_finder.page.empty_text')|trans }}</p>
+                    {% if own is null %}
+                        <a class="btn btn-primary btn-sm" href="{{ list_me_url }}" data-turbo-frame="modal-frame" rel="nofollow">{{ 'partner_finder.page.list_me'|trans }}</a>
+                    {% endif %}
+                </div>
+            {% else %}
+                {% if own %}
+                    <h2 class="pf-section-title">{{ 'partner_finder.page.others'|trans }}</h2>
+                {% endif %}
+
+                {{ include('partner_finder/_filters.html.twig') }}
+
+                <div class="pf-list" data-partner-finder-target="list" aria-live="polite">
+                    {% for row in others %}
+                        {{ include('partner_finder/_listing_row.html.twig', {row: row, order: loop.index}) }}
+                    {% endfor %}
+                </div>
+
+                <div class="pf-no-match" data-partner-finder-target="noMatch" hidden>
+                    <p class="mb-2">{{ 'partner_finder.page.no_match'|trans }}</p>
+                    <button type="button" class="btn btn-link btn-sm p-0" data-action="partner-finder#reset">{{ 'partner_finder.page.reset_filters'|trans }}</button>
+                </div>
+
+                {% if listings.capped %}
+                    <p class="pf-capped">{{ 'partner_finder.page.capped'|trans({'%count%': rows|length, '%total%': listings.totalOpen}) }}</p>
+                {% endif %}
+            {% endif %}
+
+            <p class="pf-privacy"><i class="bi bi-shield-check me-1" aria-hidden="true"></i>{{ 'partner_finder.page.privacy'|trans }}</p>
+        {% endif %}
+    </div>
+{% endblock %}

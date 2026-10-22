@@ -4,6 +4,12 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Partner finder, part A (`docs/features/partner-finder.md` "Part A as built", 2026-10-22)
+
+- [ ] Co-member picker in the listing form ("a group of N" + who): `ListForPartner` / `EditPartnerListing` and
+      `PartnerListingRules::coMembers()` already take and check player ids - the form sends none yet (an edit keeps them)
+- [ ] Look at the page with ~100 real listings on a phone once there are some (filter bar wrapping, details panel)
+
 ## Wasgij, multipacks and reverting merges (`docs/features/wasgij-and-multipacks.md`, 2026-10-22)
 
 - [ ] Decide the two separate concepts (they can meet in one box): multipack (one box, several puzzles sharing name/EAN/brand code) and Wasgij (the image is

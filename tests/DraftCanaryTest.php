@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Query\GetMarketplaceEvents;
 use SpeedPuzzling\Web\Query\GetUpcomingEventsCount;
 use SpeedPuzzling\Web\Tests\DataFixtures\OAuth2ClientFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Value\CommunityScope;
@@ -366,6 +367,31 @@ final class DraftCanaryTest extends WebTestCase
 
             // A guest again for the next item
             $browser->getCookieJar()->clear();
+        }
+    }
+
+    /**
+     * The partner finder of a draft is not there - for its team neither (PartnerFinderEligibility leaves drafts out).
+     */
+    public function testThePartnerFinderOfADraftIsNotThere(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/events/' . PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN_SLUG . '/partners';
+
+        foreach ([null, PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_ADMIN] as $viewer) {
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($browser, $viewer);
+            }
+
+            $this->setDraft(self::COMPETITION, PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN, false);
+            $browser->request('GET', $url);
+            self::assertResponseIsSuccessful('published - or the test proves nothing');
+
+            $this->setDraft(self::COMPETITION, PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN, true);
+            $browser->request('GET', $url);
+            self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+            $browser->request('GET', '/en/partners/' . PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN . '/list-me');
+            self::assertResponseStatusCodeSame($viewer === null ? Response::HTTP_FOUND : Response::HTTP_NOT_FOUND);
         }
     }
 

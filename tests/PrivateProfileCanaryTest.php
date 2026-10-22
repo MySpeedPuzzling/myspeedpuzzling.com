@@ -6,7 +6,9 @@ namespace SpeedPuzzling\Web\Tests;
 
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
@@ -356,6 +358,46 @@ final class PrivateProfileCanaryTest extends WebTestCase
 
         TestingLogin::asPlayer($browser, self::FRIEND);
         self::assertStringContainsString($profileLink, $this->get($browser, $url), 'The allowed friend does not see her profile here - the page is no canary.');
+        self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
+    }
+
+    /**
+     * The partner finder (docs/features/partner-finder.md D5): listing herself shows a private player's name, flag and
+     * listing to every signed-in viewer - never to guests, and her numbers and profile link only to the friend.
+     */
+    public function testPartnerFinderShowsAPrivateListerWithoutNumbersOrLinkToStrangers(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/events/' . PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN_SLUG . '/partners';
+        $profileLink = '/en/player-profile/' . self::OWNER;
+        $connection = self::getContainer()->get(Connection::class);
+
+        $connection->executeStatement(
+            "INSERT INTO partner_listing (id, competition_id, player_id, group_size, looking_for, co_member_ids, strengths, custom_strengths, languages, created_at, updated_at)
+             VALUES (:id, :competition, :player, 1, '[\"pair\"]', '[]', '[]', '[]', '[\"en\"]', NOW(), NOW())",
+            ['id' => Uuid::uuid7()->toString(), 'competition' => PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN, 'player' => self::OWNER],
+        );
+        $connection->executeStatement(
+            "INSERT INTO community_player_stats (player_id, solved_total, pieces_total, solves7d, pieces7d, solves30d, solves_prev30d, solves_this_month, pieces_this_month, solves_last_month, pieces_last_month, best500_seconds, best1000_seconds, monthly_solves, favorites_count, computed_at)
+             VALUES (:player, 77, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2345, NULL, '[]', 0, NOW())",
+            ['player' => self::OWNER],
+        );
+        $bestTime = 'data-best500="2345"';
+
+        self::assertStringNotContainsString(self::OWNER_NAME, $this->get($browser, $url), 'A guest is shown a private player.');
+
+        foreach (self::STRANGERS as $who => $strangerId) {
+            TestingLogin::asPlayer($browser, $strangerId);
+            $content = $this->get($browser, $url);
+            self::assertStringContainsString(self::OWNER_NAME, $content, "Her listing shows her name ({$who}).");
+            self::assertStringNotContainsString($profileLink, $content, "A signed-in stranger ({$who}) gets her profile link.");
+            self::assertStringNotContainsString($bestTime, $content, "A signed-in stranger ({$who}) sees her numbers.");
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        $content = $this->get($browser, $url);
+        self::assertStringContainsString($profileLink, $content, 'The allowed friend does not see her profile link - the page is no canary.');
+        self::assertStringContainsString($bestTime, $content);
         self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
     }
 

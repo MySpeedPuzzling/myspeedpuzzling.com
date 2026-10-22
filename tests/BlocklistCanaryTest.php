@@ -285,6 +285,47 @@ final class BlocklistCanaryTest extends WebTestCase
     }
 
     /**
+     * The partner finder (docs/features/partner-finder.md D5): blocks hide both ways - the blocker does not see the
+     * blocked player's listing, and the blocked player does not see the blocker's.
+     */
+    public function testPartnerFinderHidesListingsBothWays(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/events/' . PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN_SLUG . '/partners';
+        $connection = self::getContainer()->get(Connection::class);
+
+        $connection->executeStatement(
+            "INSERT INTO partner_listing (id, competition_id, player_id, group_size, looking_for, co_member_ids, strengths, custom_strengths, languages, created_at, updated_at)
+             VALUES (:id, :competition, :player, 1, '[\"pair\"]', '[]', '[]', '[]', '[\"en\"]', NOW(), NOW())",
+            ['id' => Uuid::uuid7()->toString(), 'competition' => PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN, 'player' => self::BLOCKED],
+        );
+        $connection->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+        $blockersListing = 'partner-listing-row-' . PartnerFinderFixture::LISTING_FAVORITES_TEAM;
+
+        TestingLogin::asPlayer($browser, self::BYSTANDER);
+        $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringContainsString(self::BLOCKED_NAME, $content, 'The page does not show the listing to anyone - it is no canary.');
+        self::assertStringContainsString($blockersListing, $content);
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString(self::BLOCKED_NAME, $content, 'The blocker is shown a player they blocked.');
+
+        TestingLogin::asPlayer($browser, self::BLOCKED);
+        $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        self::assertStringNotContainsString($blockersListing, (string) $browser->getResponse()->getContent(), 'The blocked player is shown the listing of who blocks them.');
+    }
+
+    /**
      * @return iterable<string, array{string}>
      */
     public static function providePlayerListingPages(): iterable

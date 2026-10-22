@@ -1,0 +1,136 @@
+{#
+    One listing on the finder page - who, how fast, what they look for, good at, languages, goal, note, then the action.
+    The data-* attributes are what partner_finder_controller.js filters and sorts by (docs/features/partner-finder.md
+    "Part A as built"). A private player hidden from the viewer: name and flag only - no avatar, numbers or profile link.
+    Inputs: row (PartnerListingRow), order (int, 0 = own), listings (PartnerListings), viewer_is_member, finder_url,
+    registration_managed
+#}
+{%- set name = row.playerName ?? ('#' ~ row.playerCode|upper) -%}
+{%- set viewer_best = listings.viewerBest500Seconds -%}
+{%- set speed = viewer_is_member ? row.speedComparedTo(viewer_best) : null -%}
+{%- set distance = viewer_is_member ? row.speedDistance(viewer_best) : null -%}
+{%- set kind_class = row.group ? 'group' : (row.lookingFor|length > 1 ? 'both' : (row.lookingFor|first).value) -%}
+{%- set country = row.countryCode ? enum('SpeedPuzzling\\Web\\Value\\CountryCode').fromCode(row.countryCode) : null -%}
+<article class="pf-listing{{ row.own ? ' is-own' }}" id="partner-listing-row-{{ row.listingId }}"
+    {%- if not row.own %}
+    data-partner-finder-target="row"
+    data-kinds="{{ row.kindKeys|join(' ') }}"
+    data-country="{{ row.countryCode|lower }}"
+    data-strengths="{{ row.strengthKeys|join(' ') }}"
+    data-order="{{ order }}"
+    data-best500="{{ row.best500Seconds }}"
+    data-best1000="{{ row.best1000Seconds }}"
+    data-distance="{{ distance }}"
+    {%- endif %}>
+    <div class="pf-listing-avatar">
+        {{ include('_player_avatar.html.twig', {
+            player_id: row.playerId,
+            name: name,
+            avatar: row.avatar,
+            country_code: row.countryCode,
+            country_name: country ? country.localizedName(app.request.locale) : null,
+            size: 'lg',
+        }) }}
+    </div>
+
+    <div class="pf-listing-main">
+        <div class="pf-listing-head">
+            {% if row.private %}
+                <span class="pf-listing-name">{{ name }}</span>
+            {% else %}
+                <a class="pf-listing-name" href="{{ path('player_profile', {playerId: row.playerId}) }}">{{ name }}</a>
+                {% if row.playerName %}<span class="pf-listing-code">#{{ row.playerCode|upper }}</span>{% endif %}
+            {% endif %}
+            <span class="pf-kind pf-kind-{{ kind_class }}">
+                {%- if row.group -%}
+                    {{ 'partner_finder.listing.kind_group'|trans({'%size%': row.groupSize, '%count%': row.needed ?? 1}) }}
+                {%- else -%}
+                    {{ ('partner_finder.listing.kind_' ~ kind_class)|trans }}
+                {%- endif -%}
+            </span>
+        </div>
+
+        {% if row.coMembers is not empty %}
+            <p class="pf-listing-group">
+                <span class="pf-listing-group-label">{{ 'partner_finder.listing.with'|trans }}</span>
+                {% for member in row.coMembers %}
+                    <span class="pf-listing-member">
+                        {{- include('_player_avatar.html.twig', {
+                            player_id: member.playerId,
+                            name: member.name ?? '',
+                            avatar: member.avatar,
+                            country_code: member.countryCode,
+                            hidden: member.masked,
+                            size: 'xs',
+                        }) -}}
+                        {%- if member.masked -%}
+                            {{ 'partner_finder.listing.private_member'|trans }}
+                        {%- else -%}
+                            <a href="{{ path('player_profile', {playerId: member.playerId}) }}">{{ member.name ?? ('#' ~ member.code|upper) }}</a>
+                        {%- endif -%}
+                    </span>
+                {% endfor %}
+            </p>
+        {% endif %}
+
+        {% if not row.private %}
+            <div class="pf-listing-speed">
+                {% if row.best500Seconds is not null %}
+                    <span>{{ 'partner_finder.listing.best500'|trans }} <b>{{ row.best500Seconds|puzzlingTime }}</b></span>
+                {% elseif row.best1000Seconds is not null %}
+                    <span>{{ 'partner_finder.listing.best1000'|trans }} <b>{{ row.best1000Seconds|puzzlingTime }}</b></span>
+                {% endif %}
+                <span><b>{{ (row.solvedTotal ?? 0)|plain_number }}</b> {{ 'partner_finder.listing.solved'|trans({'%count%': row.solvedTotal ?? 0}) }}</span>
+                {% if row.mspRating is not null %}
+                    <span>{{ 'partner_finder.listing.msp_rating'|trans }} <b>{{ row.mspRating|plain_number }}</b></span>
+                {% endif %}
+
+                {# The tier: members see it (or "No tier yet"), everybody else the lock; nobody for a player opted out of rankings #}
+                {% if not row.rankingOptedOut %}
+                    {% if not viewer_is_member %}
+                        <button type="button" class="players-card-chip players-card-chip-locked" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" title="{{ 'player_header.tier_locked_title'|trans }}">
+                            <i class="ci-locked" aria-hidden="true"></i> {{ 'players.card.tier_locked'|trans }}
+                        </button>
+                    {% elseif row.skillTier is not null %}
+                        {% set tier = row.skillTier.name|lower %}
+                        <span class="players-card-chip players-card-chip-tier" style="--chip-color: var(--rank-{{ tier }})">
+                            <svg class="rank-icon" width="14" height="14" aria-hidden="true"><use href="/rank-icons-sprite.svg#rank-{{ tier }}"/></svg>
+                            {{ ('puzzle_intelligence.skill.tiers.' ~ tier)|trans }}
+                        </span>
+                    {% else %}
+                        <span class="players-card-chip">{{ 'player_header.no_tier_yet'|trans }}</span>
+                    {% endif %}
+                {% endif %}
+
+                {% if speed is not null %}
+                    <span class="pf-speed pf-speed-{{ speed }}">{{ ('partner_finder.listing.speed_' ~ speed)|trans }}</span>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        {% if row.strengths is not empty or row.customStrengths is not empty or row.languages is not empty or row.goal %}
+            <ul class="pf-listing-chips">
+                {% for strength in row.strengths %}
+                    <li class="pf-chip">{{ strength.translationKey|trans }}</li>
+                {% endfor %}
+                {% for chip in row.customStrengths %}
+                    <li class="pf-chip pf-chip-custom">{{ chip }}</li>
+                {% endfor %}
+                {% for language in row.languages %}
+                    <li class="pf-chip pf-chip-lang" title="{{ language|language_name(app.request.locale) }}">{{ language|upper }}</li>
+                {% endfor %}
+                {% if row.goal %}
+                    <li class="pf-chip pf-chip-goal">{{ row.goal.translationKey|trans }}</li>
+                {% endif %}
+            </ul>
+        {% endif %}
+
+        {% if row.note %}
+            <p class="pf-listing-note">{{ row.note }}</p>
+        {% endif %}
+    </div>
+
+    <div class="pf-listing-side">
+        {{ include('partner_finder/_listing_action.html.twig') }}
+    </div>
+</article>

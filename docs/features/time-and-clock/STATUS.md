@@ -8,7 +8,7 @@ Living record. Every phase appends: what it did, what it found, what the next ph
 | 1 - pin UTC, UTC on write | done 2026-10-22 | this commit |
 | 2 - one clock in `src/` | done 2026-10-22 | c00bf8343, e16908c18, 3a15ef3b0 + this commit |
 | 3 - frozen clock in tests | done 2026-10-22 - **branch red until Phase 4 ends** (157 tests) | fe580bfa0 |
-| 4 - tests on the frozen clock | batches 1-6 done 2026-10-22 (157 → 103 → 92 → 72 → 65 → 62 → 53 failing); batches 7-9 open | batch 1: f2483f7d3; batch 2: dc3fb4867; batch 3: d4f31c268; batch 4: 0364e10e9; batch 5: f9424402a; batch 6: this commit |
+| 4 - tests on the frozen clock | batches 1-7 done 2026-10-22 (157 → 103 → 92 → 72 → 65 → 62 → 53 → 32 failing); batches 8-9 open | batch 1: f2483f7d3; batch 2: dc3fb4867; batch 3: d4f31c268; batch 4: 0364e10e9; batch 5: f9424402a; batch 6: 040672b3a; batch 7: this commit |
 | 5 - proof, docs, PR | not started | |
 
 ## Jan's answers (2026-10-22) - binding for every later phase
@@ -875,6 +875,60 @@ For batches 7-9:
   `['timestamp' => …]`); the container's in-memory stores already stamp from the frozen clock.
 - `EventsPageHighFrequencySeriesTest` (batch 7) is green now but still has clock reads of its own to convert.
 
+## Phase 4 batch 7 (2026-10-22) - online/competition `Controller` subdirectories, `Controller` top level C-E
+
+Converted (42 files): of the 124 files (`Controller/Compete`, `OnlineRounds`, `OfficialResults`, `LiveResults`,
+`ParticipantsSheet`, `Seating`, top level C-E incl. `ChangeAccountCredentials…`), 44 match the case-insensitive grep; 42 had
+a clock read (`LiveEntryServerClockTest`, `DetailPagesJsonLdTest` only parse given values). Batch 2's token-based rewrite
+(case-insensitive) did the mechanical part. By hand: the shared trait **`Compete/CompeteApiRequests::nowMs()`**
+(`microtime(true) * 1000` → `TestClock::milliseconds()` - a non-`*Test.php` helper, used by every Compete test),
+`OnlineControlRoomControllerTest` / `OnlineLiveQueryBudgetTest` (presence beats at `TestClock::milliseconds()`),
+`CompetitionRoundTimezoneTest` (`new DateTimeImmutable('-1 day', Chicago)` → `TestClock::now()->setTimezone(Chicago)->modify('-1 day')`),
+relative strings behind a variable - `OnlineRoundSettingsControllerTest::setStopwatch()` (`$relative`) and
+**`EmailUnverifiedBannerTest::unverified()` (`new DateTimeImmutable("-{$registeredDaysAgo} days")` - a double-quoted
+interpolated string, which batches 1-6's grep pattern `DateTimeImmutable\(.(now|[+-]…)` with `.` does match, but the
+"non-literal argument" check `DateTimeImmutable\(\$` does not)**, and the `(TestClock::now()->modify(…))->` artefact.
+Checked and left as is: helpers already on the container clock (`CompetitionRegistrationControllerTest::now()`,
+`Seating/StopwatchSeatingReadinessTest::startsIn()`), `EventsListUiTest`'s own `MockClock` from a stored day, parses of
+stored values (`DifficultyOnThumbnailsTest`, `EditionDetailControllerTest`, `EventDetailControllerTest::startYear()`,
+`CompetitionRoundTimezoneTest::moveEventToUnitedStates()`).
+
+**Online competitions:** everything the participant API, the control room and the round clock judge is on the app clock
+(`serverNowMs` = `RoundClock::milliseconds($clock->now())`; presence in tests = `InMemoryOnlinePresence`, fed the
+caller's ms) - no real-time exception was needed. The rate-limiter retry-after assertions (`CompeteApiGuardsTest`,
+`OnlineWatchTokenControllerTest`: 1-60 s) stay as they are - the limiter and its `Retry-After` are real time (Jan's
+answer 1), and the tests read no clock themselves.
+
+Stronger assertions (the frozen clock makes "now" exact): `ApiStateControllerTest` / `ApiHeartbeatControllerTest`
+(`serverNowMs`, `lastSeenMs`) and `ApiEventsControllerTest` (`received_at_ms`) assert equality with the instant instead of
+`>= $before`; `LiveUpdatesSubscriptionTest` asserts the Mercure token's `exp` = instant + 3600 instead of a real-clock bracket.
+
+Fixed (21 tests, no assertion weakened, none passed by luck): `Compete` 3 (`>= microtime()` brackets),
+`ConfirmAccountDeletionControllerTest` (expired link built before the real now), `EditTimePuzzleChangeTest`,
+`EmailUnverifiedBannerTest` 3 (registration date from the real now), `EventDetailControllerTest` 7 incl. data sets ("past"
+event moved by SQL `NOW()`), `EventsListUiTest` (archive rows by `CURRENT_DATE`), `LiveUpdatesSubscriptionTest`,
+`OnlineStudioPageTest` (`invited_at` from the real now), `Seating/StopwatchSeatingReadinessTest` (`NOW()` start).
+
+Gates: PHPCS clean (cs-fix removed the unused imports). PHPStan clean (run once before Jan's "CI only" instruction).
+A local full suite (run before that instruction): 11525 tests, 32 failures + 1 error; the one not on batch 6's list was
+`LiveResults/CompetitionNameTagsTest::testTwoHundredTagsRenderQuicklyOnceTheirCodesAreDrawn` (2004 ms > 1500 ms - an
+`hrtime()` duration on a heavily loaded machine, the run took 11.5 min instead of ~4; the file has no clock read and is
+untouched). From here on the suite runs in CI only (draft PR #284) - see the CI result below.
+
+Remaining (local run, files / tests): `Controller` top level 11 / 22 (`LiveKitWebhook` 6, `ManageCompetitionRounds`,
+`ManageRoundPuzzleReveal`, `MyActivity` 2, `NewsletterSignup` 4, `OnlineTime`, `RoundResults` 2, `RoundResultsSecretPuzzle`,
+`RoundRevealDelayForm`, `VerifyEmail`), `Controller/Api/V1` 4 / 5, `DuplicateResults` 1 / 5, `ReviewResults` 1 / 1,
+`SuspiciousTimes` 1 / 1 - all batch 8 / 9.
+
+For batches 8-9:
+
+- Grep also `DateTime(Immutable)?\("` (double-quoted, interpolated relative strings) - and helpers called with a
+  relative-looking argument (`'-5 minutes'`, `'+3 hours'`) to see whether they apply it to the clock.
+- `tests/Controller/Compete/CompeteApiRequests.php` and `WeeklySeriesSeed.php` were the non-`*Test.php` helpers of
+  `tests/Controller` so far; none other in batch 7's directories.
+- ParaTest takes one path; several directories = several runs.
+- `CompetitionNameTagsTest`'s 1500 ms budget fails on a loaded machine - not a clock issue; ignore it when comparing lists.
+
 ## Log
 
 - 2026-10-22: plan written (README.md, implementation-plan.md). Branch `time-and-clock` from `8447c607d`.
@@ -902,3 +956,6 @@ For batches 7-9:
 - 2026-10-22: Phase 4 batch 6 - `Services` rest + `Controller` A-B on the frozen clock (58 files), `CompetitionSeriesDetailControllerTest` +
   `WeeklySeriesSeed`, object storage doubles stamping Last-Modified from the clock (`ClockedInMemoryFilesystemAdapter`, also in
   `services_test.php`); suite 62 → 53 failing, nothing new red.
+- 2026-10-22: Phase 4 batch 7 - `Controller/Compete`, `OnlineRounds`, `OfficialResults`, `LiveResults`, `ParticipantsSheet`,
+  `Seating` + `Controller` C-E on the frozen clock (42 files), online-API "now" assertions exact; local suite 53 → 33 failing
+  (32 of batch 6's + one loaded-machine duration test); CI from here on (draft PR #284).

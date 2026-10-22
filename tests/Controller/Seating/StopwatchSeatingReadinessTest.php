@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Seating;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
@@ -64,7 +65,7 @@ final class StopwatchSeatingReadinessTest extends WebTestCase
 
         $this->startsIn('+3 hours');
 
-        $this->database->executeStatement("UPDATE competition_round SET stopwatch_status = 'running', stopwatch_started_at = date_trunc('second', NOW()) WHERE id = :id", ['id' => OfficialResultsFixture::ROUND_GROUP_A]);
+        $this->database->executeStatement("UPDATE competition_round SET stopwatch_status = 'running', stopwatch_started_at = date_trunc('second', " . TestClock::SQL_NOW . ") WHERE id = :id", ['id' => OfficialResultsFixture::ROUND_GROUP_A]);
         self::assertCount(0, $this->browser->request('GET', self::PAGE)->filter('[data-seating-readiness]'));
         $this->database->executeStatement('UPDATE competition_round SET stopwatch_status = NULL, stopwatch_started_at = NULL WHERE id = :id', ['id' => OfficialResultsFixture::ROUND_GROUP_A]);
 

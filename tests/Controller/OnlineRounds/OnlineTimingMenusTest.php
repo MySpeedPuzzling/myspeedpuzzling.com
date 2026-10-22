@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\OnlineRounds;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
@@ -227,7 +228,7 @@ final class OnlineTimingMenusTest extends WebTestCase
     {
         self::getContainer()->get(Connection::class)->executeStatement(
             "INSERT INTO competition_round (id, competition_id, name, minutes_limit, starts_at, slug)
-             VALUES (:id, :competition, 'Round Without', 30, NOW() + INTERVAL '25 days', 'round-without')",
+             VALUES (:id, :competition, 'Round Without', 30, " . TestClock::SQL_NOW . " + INTERVAL '25 days', 'round-without')",
             ['id' => self::ROUND_WITHOUT, 'competition' => self::COMPETITION],
         );
     }

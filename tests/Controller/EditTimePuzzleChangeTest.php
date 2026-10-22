@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
@@ -218,7 +218,7 @@ final class EditTimePuzzleChangeTest extends WebTestCase
 
     private function today(): string
     {
-        return new DateTimeImmutable()->format('d.m.Y');
+        return TestClock::now()->format('d.m.Y');
     }
 
     private function addOnPuzzle4000(KernelBrowser $browser): string
@@ -234,7 +234,7 @@ final class EditTimePuzzleChangeTest extends WebTestCase
             comment: 'wrong puzzle',
             finishedPuzzlesPhoto: null,
             groupPlayers: [],
-            finishedAt: new DateTimeImmutable(),
+            finishedAt: TestClock::now(),
             firstAttempt: false,
             unboxed: false,
         ));

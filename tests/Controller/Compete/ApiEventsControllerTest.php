@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Compete;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -73,7 +74,7 @@ final class ApiEventsControllerTest extends WebTestCase
         self::assertSame(['phone-a', 'phone-a'], array_column($events, 'device_id'));
         self::assertSame($now - 1_500, $events[1]['client_ms']);
         self::assertIsInt($events[1]['received_at_ms']);
-        self::assertGreaterThanOrEqual($before, $events[1]['received_at_ms']);
+        self::assertSame($before, $events[1]['received_at_ms']);
         self::assertIsString($events[1]['payload']);
         // jsonb keeps the keys in its own order
         self::assertEquals(['browser' => 'Safari 18', 'camera' => ['w' => 1920, 'h' => 1080]], json_decode($events[1]['payload'], true));
@@ -170,7 +171,7 @@ final class ApiEventsControllerTest extends WebTestCase
         $entityManager = $this->browser->getContainer()->get(EntityManagerInterface::class);
         $round = $entityManager->find(CompetitionRound::class, OnlineRoundsFixture::ROUND_ONLINE_SOLO);
         self::assertNotNull($round);
-        $round->startStopwatch(new DateTimeImmutable('-61 minutes'));
+        $round->startStopwatch(TestClock::now()->modify('-61 minutes'));
         $entityManager->flush();
         $now = self::nowMs();
 
@@ -370,7 +371,7 @@ final class ApiEventsControllerTest extends WebTestCase
         $entityManager = $this->browser->getContainer()->get(EntityManagerInterface::class);
         $participant = $entityManager->find(CompetitionParticipant::class, OnlineRoundsFixture::PARTICIPANT_WITHOUT_TOKEN);
         self::assertNotNull($participant);
-        $participant->assignOnlineToken($token, new DateTimeImmutable());
+        $participant->assignOnlineToken($token, TestClock::now());
         $entityManager->flush();
 
         $limiter = $this->browser->getContainer()->get('online_rate_limiter.online_participant_events');
@@ -408,7 +409,7 @@ final class ApiEventsControllerTest extends WebTestCase
         $entityManager = $this->browser->getContainer()->get(EntityManagerInterface::class);
         $participant = $entityManager->find(CompetitionParticipant::class, OfficialResultsFixture::PARTICIPANT_BEN);
         self::assertNotNull($participant);
-        $participant->assignOnlineToken('BenWithoutAnyRound2222', new DateTimeImmutable());
+        $participant->assignOnlineToken('BenWithoutAnyRound2222', TestClock::now());
         $entityManager->flush();
 
         self::postJson($this->browser, self::api('BenWithoutAnyRound2222', 'events'), ['deviceId' => 'phone-a', 'events' => [self::event('page.hidden', self::nowMs(), roundId: null)]]);
@@ -469,11 +470,11 @@ final class ApiEventsControllerTest extends WebTestCase
             competition: $competition,
             name: 'Online Final',
             minutesLimit: 45,
-            startsAt: new DateTimeImmutable('+30 days'),
+            startsAt: TestClock::now()->modify('+30 days'),
             category: RoundCategory::Solo,
         );
         $entityManager->persist($round);
-        $entityManager->persist(new OnlineRound(Uuid::uuid7(), $round, new DateTimeImmutable(), null));
+        $entityManager->persist(new OnlineRound(Uuid::uuid7(), $round, TestClock::now(), null));
         $entityManager->flush();
 
         return $round->id->toString();

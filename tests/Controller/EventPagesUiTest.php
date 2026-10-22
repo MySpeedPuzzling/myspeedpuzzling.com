@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
@@ -304,7 +304,7 @@ final class EventPagesUiTest extends WebTestCase
     {
         $browser = self::createClient();
         self::getContainer()->get(Connection::class)->executeStatement(
-            'UPDATE competition SET rejected_at = NOW() WHERE id = :id',
+            'UPDATE competition SET rejected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => EventsPageFixture::EDITION_SPRINT_SEASON],
         );
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
@@ -418,7 +418,7 @@ final class EventPagesUiTest extends WebTestCase
     {
         $browser = self::createClient();
         $scenario = new SeriesEditionScenario(self::getContainer());
-        $day = new DateTimeImmutable('+5 days')->format('Y-m-d');
+        $day = TestClock::now()->modify('+5 days')->format('Y-m-d');
         $editionId = $scenario->edition($scenario->series(), 'Jam No. 219', $day);
         $scenario->round($editionId, RoundCategory::Duo, $day . ' 19:00', 'Europe/Berlin');
         $path = self::getContainer()->get(Connection::class)->fetchOne(

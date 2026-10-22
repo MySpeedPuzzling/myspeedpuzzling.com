@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Compete;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -199,7 +199,7 @@ final class ApiMediaControllerTest extends WebTestCase
         $reviewer = $entityManager->find(Player::class, PlayerFixture::PLAYER_ADMIN);
         self::assertNotNull($onlineEntry);
         self::assertNotNull($reviewer);
-        $onlineEntry->confirm(1_792_002_832_345, OnlineConfirmedSource::Button, $reviewer, new DateTimeImmutable());
+        $onlineEntry->confirm(1_792_002_832_345, OnlineConfirmedSource::Button, $reviewer, TestClock::now());
         $entityManager->flush();
 
         self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'media'), self::photo());
@@ -324,7 +324,7 @@ final class ApiMediaControllerTest extends WebTestCase
         $entityManager = $this->browser->getContainer()->get(EntityManagerInterface::class);
         $participant = $entityManager->find(CompetitionParticipant::class, OnlineRoundsFixture::PARTICIPANT_WITHOUT_TOKEN);
         self::assertNotNull($participant);
-        $participant->assignOnlineToken($token, new DateTimeImmutable());
+        $participant->assignOnlineToken($token, TestClock::now());
         $entityManager->flush();
 
         $limiter = $this->browser->getContainer()->get('online_rate_limiter.online_participant_media');
@@ -358,14 +358,14 @@ final class ApiMediaControllerTest extends WebTestCase
     {
         $this->connection()->executeStatement(
             "INSERT INTO online_entry_media (id, online_entry_id, kind, taken_ms, store, object_key, content_type, declared_bytes, uploaded_at_ms, verified_bytes, abandoned_at, created_at)
-             SELECT gen_random_uuid(), :onlineEntry, 'periodic', 1792000000000, 'primary', 'online/quota/' || n || '.jpg', 'image/jpeg', :bytes, :uploadedAt, :verified, :abandonedAt, NOW()
+             SELECT gen_random_uuid(), :onlineEntry, 'periodic', 1792000000000, 'primary', 'online/quota/' || n || '.jpg', 'image/jpeg', :bytes, :uploadedAt, :verified, :abandonedAt, " . TestClock::SQL_NOW . "
              FROM generate_series(1, :count) AS n",
             [
                 'onlineEntry' => OnlineRoundsFixture::ONLINE_ENTRY_CONNECTED,
                 'bytes' => $bytes,
                 'uploadedAt' => $uploaded || $verified ? 1_792_000_001_000 : null,
                 'verified' => $verified ? $bytes : null,
-                'abandonedAt' => $abandoned ? new DateTimeImmutable()->format('Y-m-d H:i:s') : null,
+                'abandonedAt' => $abandoned ? TestClock::now()->format('Y-m-d H:i:s') : null,
                 'count' => $count,
             ],
         );
@@ -394,11 +394,11 @@ final class ApiMediaControllerTest extends WebTestCase
             competition: $competition,
             name: 'Online Final',
             minutesLimit: 45,
-            startsAt: new DateTimeImmutable('+30 days'),
+            startsAt: TestClock::now()->modify('+30 days'),
             category: RoundCategory::Solo,
         );
         $entityManager->persist($round);
-        $entityManager->persist(new OnlineRound(Uuid::uuid7(), $round, new DateTimeImmutable(), null));
+        $entityManager->persist(new OnlineRound(Uuid::uuid7(), $round, TestClock::now(), null));
         $entityManager->flush();
 
         return $round->id->toString();

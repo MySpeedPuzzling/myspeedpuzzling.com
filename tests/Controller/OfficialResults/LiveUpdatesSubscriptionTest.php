@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\OfficialResults;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Lcobucci\JWT\Configuration;
 use Lcobucci\JWT\Signer\Hmac\Sha256;
@@ -60,8 +61,6 @@ final class LiveUpdatesSubscriptionTest extends WebTestCase
     public function testTheRoundStateCarriesATokenForTheRoundAndItsStopwatchOnly(): void
     {
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
-        $before = time();
-
         $this->browser->request('GET', self::STATE);
 
         self::assertResponseIsSuccessful();
@@ -77,8 +76,7 @@ final class LiveUpdatesSubscriptionTest extends WebTestCase
         self::assertSame(['publish' => [], 'subscribe' => self::ROUND_TOPICS], $token->claims()->get('mercure'));
         $expires = $token->claims()->get('exp');
         self::assertInstanceOf(\DateTimeImmutable::class, $expires);
-        self::assertGreaterThanOrEqual($before + 3600, $expires->getTimestamp());
-        self::assertLessThanOrEqual(time() + 3600, $expires->getTimestamp());
+        self::assertSame(TestClock::timestamp() + 3600, $expires->getTimestamp());
         self::assertSame($expires->format(\DateTimeInterface::ATOM), $mercure['expiresAt']);
 
         self::assertNoRoundTopicInTheCookie($this->browser);

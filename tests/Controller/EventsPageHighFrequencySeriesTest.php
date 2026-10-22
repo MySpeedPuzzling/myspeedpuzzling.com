@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddOrganization;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -88,7 +88,7 @@ final class EventsPageHighFrequencySeriesTest extends WebTestCase
         $browser = self::createClient();
         $seed = WeeklySeriesSeed::create(self::getContainer(), past: 3, upcoming: 0);
         $scenario = new SeriesEditionScenario(self::getContainer());
-        $day = new DateTimeImmutable('-4 days')->format('Y-m-d');
+        $day = TestClock::now()->modify('-4 days')->format('Y-m-d');
         $secretEdition = $scenario->edition($seed['seriesId'], 'Secret Jam', $day);
         $scenario->round($secretEdition, RoundCategory::Solo, $day . ' 19:00', puzzleIds: [$scenario->puzzle('Velvet Comet')], secret: true);
 

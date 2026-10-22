@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Compete;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
@@ -69,7 +69,7 @@ final class ApiHeartbeatControllerTest extends WebTestCase
         $answer = self::json($this->browser);
         self::assertSame(['serverNowMs', 'stateHash', 'settingsHash', 'roundId', 'takenOverBy', 'studioInviteId'], array_keys($answer));
         self::assertIsInt($answer['serverNowMs']);
-        self::assertGreaterThanOrEqual($before, $answer['serverNowMs']);
+        self::assertSame($before, $answer['serverNowMs']);
         self::assertSame($this->roundStateHash(), $answer['stateHash']);
         self::assertSame($this->settingsHash(), $answer['settingsHash']);
         self::assertSame(OnlineRoundsFixture::ROUND_ONLINE_SOLO, $answer['roundId']);
@@ -86,7 +86,7 @@ final class ApiHeartbeatControllerTest extends WebTestCase
         self::assertSame(['offsetMs' => -12.5, 'rttMs' => 38.0], $beat['clock']);
         self::assertSame(['events' => 0, 'media' => 2], $beat['outbox']);
         self::assertIsInt($beat['lastSeenMs']);
-        self::assertGreaterThanOrEqual($before, $beat['lastSeenMs']);
+        self::assertSame($before, $beat['lastSeenMs']);
     }
 
     public function testAnotherDeviceHearsWhichOneHoldsTheEntry(): void
@@ -144,7 +144,7 @@ final class ApiHeartbeatControllerTest extends WebTestCase
         $entityManager = $this->browser->getContainer()->get(EntityManagerInterface::class);
         $participant = $entityManager->find(CompetitionParticipant::class, OnlineRoundsFixture::PARTICIPANT_WITHOUT_TOKEN);
         self::assertNotNull($participant);
-        $participant->assignOnlineToken(self::NOT_ENTERED_TOKEN, new DateTimeImmutable());
+        $participant->assignOnlineToken(self::NOT_ENTERED_TOKEN, TestClock::now());
         $entityManager->flush();
 
         self::postJson($this->browser, self::api(self::NOT_ENTERED_TOKEN, 'heartbeat'), self::beat('phone-n'));
@@ -164,7 +164,7 @@ final class ApiHeartbeatControllerTest extends WebTestCase
         $entityManager = $this->browser->getContainer()->get(EntityManagerInterface::class);
         $round = $entityManager->find(CompetitionRound::class, OnlineRoundsFixture::ROUND_ONLINE_SOLO);
         self::assertNotNull($round);
-        $round->startStopwatch(new DateTimeImmutable('+10 seconds'));
+        $round->startStopwatch(TestClock::now()->modify('+10 seconds'));
         $entityManager->flush();
         // The round's hash is shared for ROUND_HASH_TTL_SECONDS - not waited for here
         $this->browser->getContainer()->get(CacheInterface::class)->delete(OnlineAccessLight::ROUND_HASH_KEY_PREFIX . OnlineRoundsFixture::ROUND_ONLINE_SOLO);
@@ -173,7 +173,7 @@ final class ApiHeartbeatControllerTest extends WebTestCase
 
         $scheduled = self::json($this->browser)['stateHash'];
         self::assertNotSame($waiting, $scheduled);
-        self::assertSame(RoundClock::fromRound($round, new DateTimeImmutable())->stateHash(), $scheduled);
+        self::assertSame(RoundClock::fromRound($round, TestClock::now())->stateHash(), $scheduled);
     }
 
     /**
@@ -332,6 +332,6 @@ final class ApiHeartbeatControllerTest extends WebTestCase
         $round = $this->browser->getContainer()->get(EntityManagerInterface::class)->find(CompetitionRound::class, OnlineRoundsFixture::ROUND_ONLINE_SOLO);
         self::assertNotNull($round);
 
-        return RoundClock::fromRound($round, new DateTimeImmutable())->stateHash();
+        return RoundClock::fromRound($round, TestClock::now())->stateHash();
     }
 }

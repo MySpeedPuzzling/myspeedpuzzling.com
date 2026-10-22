@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -53,7 +53,7 @@ final class AddedTrackingRecapControllerTest extends WebTestCase
             ['name' => 'Puzzle One', 'language' => null],
             ['name' => 'Bayerische Romanze', 'language' => 'de'],
             ['name' => 'Hádanka jedna', 'language' => 'cs'],
-        ]), new DateTimeImmutable());
+        ]), TestClock::now());
         $entityManager->flush();
         $entityManager->clear();
 

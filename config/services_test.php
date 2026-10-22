@@ -134,8 +134,9 @@ return static function (ContainerConfigurator $configurator): void {
     // S3 failover: the real FailoverS3Adapter stays wired (see
     // config/packages/test/oneup_flysystem.php), only the raw S3 adapter and
     // the local spool are swapped for in-memory doubles. setFailing(true) on
-    // the toggleable double simulates an object storage outage.
+    // the toggleable double simulates an object storage outage. Both stamp Last-Modified from the (frozen) clock, as a
+    // real store's clock agrees with the app's (ClockedInMemoryFilesystemAdapter).
     $services->set('app.storage.s3_adapter', \SpeedPuzzling\Web\Tests\TestDouble\ToggleableFailingFilesystemAdapter::class);
-    $services->set('app.storage.spool_adapter', \League\Flysystem\InMemory\InMemoryFilesystemAdapter::class);
-    $services->set('app.storage.result_images_adapter', \League\Flysystem\InMemory\InMemoryFilesystemAdapter::class);
+    $services->set('app.storage.spool_adapter', \SpeedPuzzling\Web\Tests\TestDouble\ClockedInMemoryFilesystemAdapter::class);
+    $services->set('app.storage.result_images_adapter', \SpeedPuzzling\Web\Tests\TestDouble\ClockedInMemoryFilesystemAdapter::class);
 };

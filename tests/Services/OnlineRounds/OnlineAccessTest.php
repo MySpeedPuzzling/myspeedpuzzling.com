@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\OnlineRounds;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\ORM\EntityManagerInterface;
@@ -81,7 +82,7 @@ final class OnlineAccessTest extends KernelTestCase
     {
         $participant = $this->entityManager->find(CompetitionParticipant::class, OnlineRoundsFixture::PARTICIPANT_CONNECTED);
         self::assertNotNull($participant);
-        $participant->softDelete(new DateTimeImmutable());
+        $participant->softDelete(TestClock::now());
         $this->entityManager->flush();
         $this->entityManager->clear();
 
@@ -93,7 +94,7 @@ final class OnlineAccessTest extends KernelTestCase
     {
         $participant = $this->entityManager->find(CompetitionParticipant::class, OnlineRoundsFixture::PARTICIPANT_CONNECTED);
         self::assertNotNull($participant);
-        $participant->assignOnlineToken('NewLinkForTheConnected', new DateTimeImmutable());
+        $participant->assignOnlineToken('NewLinkForTheConnected', TestClock::now());
         $this->entityManager->flush();
 
         self::assertSame(OnlineRoundsFixture::PARTICIPANT_CONNECTED, $this->access()->forToken('NewLinkForTheConnected')->participant->id->toString());
@@ -106,7 +107,7 @@ final class OnlineAccessTest extends KernelTestCase
     {
         $participant = $this->entityManager->find(CompetitionParticipant::class, OfficialResultsFixture::PARTICIPANT_BEN);
         self::assertNotNull($participant);
-        $participant->assignOnlineToken('BenWithoutAnyRound2222', new DateTimeImmutable());
+        $participant->assignOnlineToken('BenWithoutAnyRound2222', TestClock::now());
         $this->entityManager->flush();
 
         $context = $this->access()->forToken('BenWithoutAnyRound2222');
@@ -217,7 +218,7 @@ final class OnlineAccessTest extends KernelTestCase
             $container->get(CompetitionParticipantRepository::class),
             $container->get(CompetitionParticipantRoundRepository::class),
             $container->get(OnlineRoundRepository::class),
-            new MockClock($now ?? new DateTimeImmutable('now', new DateTimeZone('UTC'))),
+            new MockClock($now ?? TestClock::now()),
         );
     }
 

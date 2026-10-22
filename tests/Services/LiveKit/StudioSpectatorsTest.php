@@ -138,6 +138,7 @@ final class StudioSpectatorsTest extends KernelTestCase
         // Another admission holds the studio's lock for the first three tries
         $store = new FlakyLockStore([new LockConflictedException(), new LockConflictedException(), new LockConflictedException()]);
         [$spectators, , $logger] = $this->spectators([['participants' => []]], new LockFactory($store));
+        // Real time on purpose: measures how long the call takes, not a moment of the app
         $started = microtime(true);
 
         self::assertTrue($spectators->admit(self::ROUND, 1));

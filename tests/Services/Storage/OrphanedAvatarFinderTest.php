@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\Storage;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use League\Flysystem\Filesystem;
 use SpeedPuzzling\Web\Message\DeleteOrphanedAvatar;
@@ -34,11 +35,11 @@ final class OrphanedAvatarFinderTest extends KernelTestCase
             'id' => PlayerFixture::PLAYER_REGULAR,
         ]);
 
-        $old = time() - 3 * 86400;
+        $old = TestClock::timestamp() - 3 * 86400;
         $this->filesystem->write(self::REFERENCED, 'image', ['timestamp' => $old]);
         $this->filesystem->write(self::ORPHAN, 'image', ['timestamp' => $old]);
         // Uploaded a moment ago - its transaction may not have committed yet
-        $this->filesystem->write(self::FRESH_ORPHAN, 'image');
+        $this->filesystem->write(self::FRESH_ORPHAN, 'image', ['timestamp' => TestClock::timestamp()]);
         $this->filesystem->write(self::NOT_AN_AVATAR, 'image', ['timestamp' => $old]);
     }
 

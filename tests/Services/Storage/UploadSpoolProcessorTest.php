@@ -10,6 +10,7 @@ use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Services\Storage\SpooledOperationType;
 use SpeedPuzzling\Web\Services\Storage\UploadSpool;
 use SpeedPuzzling\Web\Services\Storage\UploadSpoolProcessor;
+use SpeedPuzzling\Web\Tests\TestDouble\ClockedInMemoryFilesystemAdapter;
 use SpeedPuzzling\Web\Tests\TestDouble\InMemoryLogger;
 use SpeedPuzzling\Web\Tests\TestDouble\ToggleableFailingFilesystemAdapter;
 use Symfony\Component\Clock\MockClock;
@@ -27,9 +28,9 @@ final class UploadSpoolProcessorTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->s3 = new ToggleableFailingFilesystemAdapter();
-        $this->spoolAdapter = new InMemoryFilesystemAdapter();
         $this->clock = new MockClock('2026-08-01 10:00:00');
+        $this->s3 = new ToggleableFailingFilesystemAdapter($this->clock);
+        $this->spoolAdapter = new ClockedInMemoryFilesystemAdapter($this->clock);
         $this->logger = new InMemoryLogger();
         $this->spool = new UploadSpool($this->spoolAdapter, $this->clock, $this->logger);
         $this->processor = new UploadSpoolProcessor(

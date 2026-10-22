@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\Logging;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Monolog\Level;
 use Monolog\LogRecord;
 use PHPUnit\Framework\TestCase;
@@ -31,7 +31,7 @@ final class RedactOnlineTokensProcessorTest extends TestCase
         $exception = new \RuntimeException('kept as it is');
 
         $record = (new RedactOnlineTokensProcessor(new OnlineTokenRedactor($requestStack)))(new LogRecord(
-            datetime: new DateTimeImmutable(),
+            datetime: TestClock::now(),
             channel: 'request',
             level: Level::Info,
             message: 'Matched route "compete_api_heartbeat" for /api/compete/' . self::TOKEN . '/heartbeat.',
@@ -62,7 +62,7 @@ final class RedactOnlineTokensProcessorTest extends TestCase
         $error = new \TypeError('The lookup of ' . self::TOKEN . ' failed');
 
         $record = (new RedactOnlineTokensProcessor(new OnlineTokenRedactor(new RequestStack())))(new LogRecord(
-            datetime: new DateTimeImmutable(),
+            datetime: TestClock::now(),
             channel: 'request',
             level: Level::Error,
             message: 'Uncaught PHP Exception Symfony\\Component\\HttpKernel\\Exception\\NotFoundHttpException: "No route found for "GET http://localhost/api/compete/' . self::TOKEN . '/nothing"" at RouterListener.php line 156',
@@ -79,7 +79,7 @@ final class RedactOnlineTokensProcessorTest extends TestCase
 
     public function testARecordWithoutATokenIsTheSameRecord(): void
     {
-        $record = new LogRecord(new DateTimeImmutable(), 'app', Level::Warning, 'Recording an online heartbeat failed', ['round_id' => 'x']);
+        $record = new LogRecord(TestClock::now(), 'app', Level::Warning, 'Recording an online heartbeat failed', ['round_id' => 'x']);
 
         self::assertSame($record, (new RedactOnlineTokensProcessor(new OnlineTokenRedactor(new RequestStack())))($record));
     }

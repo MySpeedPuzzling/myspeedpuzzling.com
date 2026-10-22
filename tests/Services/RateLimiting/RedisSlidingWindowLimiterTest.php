@@ -166,6 +166,7 @@ final class RedisSlidingWindowLimiterTest extends TestCase
         $limit = 100;
         $results = sys_get_temp_dir() . '/rate-limit-test-' . Uuid::uuid7()->toString();
         mkdir($results);
+        // Real time on purpose: the forked processes start together at a real instant and race on a real clock
         $startAt = microtime(true) + 0.5;
         $children = [];
 

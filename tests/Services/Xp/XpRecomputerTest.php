@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\Xp;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -246,7 +247,7 @@ final class XpRecomputerTest extends KernelTestCase
     {
         $this->database->executeStatement(
             "INSERT INTO xp_entry (id, player_id, amount, reason, in_weekly_delta, earned_at, created_at)
-             VALUES (:id, :playerId, :amount, 'achievement', true, NOW(), NOW())",
+             VALUES (:id, :playerId, :amount, 'achievement', true, " . TestClock::SQL_NOW . ", " . TestClock::SQL_NOW . ")",
             ['id' => Uuid::uuid7()->toString(), 'playerId' => $playerId, 'amount' => $xp],
         );
     }

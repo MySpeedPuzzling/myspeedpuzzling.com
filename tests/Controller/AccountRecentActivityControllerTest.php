@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -69,12 +69,12 @@ final class AccountRecentActivityControllerTest extends WebTestCase
         $email = sprintf('activity+%s@example.com', bin2hex(random_bytes(4)));
         $userId = 'msp|' . bin2hex(random_bytes(4));
 
-        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now());
 
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
         $entityManager->persist($userAccount);
         $entityManager->persist(
-            new Player(Uuid::uuid7(), 'ACRA' . bin2hex(random_bytes(2)), $userId, null, new DateTimeImmutable()),
+            new Player(Uuid::uuid7(), 'ACRA' . bin2hex(random_bytes(2)), $userId, null, TestClock::now()),
         );
         $entityManager->flush();
 
@@ -94,7 +94,7 @@ final class AccountRecentActivityControllerTest extends WebTestCase
             'event_type' => $eventType,
             'ip_address' => $ipAddress,
             'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-            'occurred_at' => new DateTimeImmutable()->format('Y-m-d H:i:sP'),
+            'occurred_at' => TestClock::now()->format('Y-m-d H:i:sP'),
         ]);
     }
 }

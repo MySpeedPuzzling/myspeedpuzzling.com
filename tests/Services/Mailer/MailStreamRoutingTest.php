@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\Mailer;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use SpeedPuzzling\Web\Repository\EmailSuppressionRepository;
@@ -112,7 +113,7 @@ final class MailStreamRoutingTest extends TestCase
         $transports = new ScriptedTransports();
         $suppressions = $this->createStub(EmailSuppressionRepository::class);
         $suppressions->method('isSuppressed')->willReturnCallback(static fn (string $email): bool => $email === 'gone@example.com');
-        $routing = new MailStreamRouting($transports, $suppressions, new NullLogger(), new MockClock());
+        $routing = new MailStreamRouting($transports, $suppressions, new NullLogger(), new MockClock(TestClock::now()));
 
         self::assertNull($routing->send($this->email('gone@example.com', 'notifications')));
         $routing->send($this->email('gone@example.com'));
@@ -135,7 +136,7 @@ final class MailStreamRoutingTest extends TestCase
         $suppressions = $this->createStub(EmailSuppressionRepository::class);
         $suppressions->method('isSuppressed')->willReturn(false);
 
-        return new MailStreamRouting($transports, $suppressions, new NullLogger(), $clock ?? new MockClock());
+        return new MailStreamRouting($transports, $suppressions, new NullLogger(), $clock ?? new MockClock(TestClock::now()));
     }
 
     private function email(string $to, null|string $transport = null): Email

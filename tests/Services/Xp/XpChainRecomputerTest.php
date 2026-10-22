@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\Xp;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -69,7 +70,7 @@ final class XpChainRecomputerTest extends KernelTestCase
         self::assertNotNull($player);
         $this->database->executeStatement(
             "INSERT INTO xp_entry (id, player_id, amount, reason, in_weekly_delta, earned_at, created_at, solving_time_id)
-             VALUES (:id, :playerId, 1000, 'solve_base', true, NOW(), NOW(), :solveId)",
+             VALUES (:id, :playerId, 1000, 'solve_base', true, " . TestClock::SQL_NOW . ", " . TestClock::SQL_NOW . ", :solveId)",
             ['id' => Uuid::uuid7()->toString(), 'playerId' => PlayerFixture::PLAYER_REGULAR, 'solveId' => Uuid::uuid7()->toString()],
         );
         $this->database->executeStatement('UPDATE player SET xp_total = xp_total + 1000 WHERE id = :id', ['id' => PlayerFixture::PLAYER_REGULAR]);
@@ -565,7 +566,7 @@ final class XpChainRecomputerTest extends KernelTestCase
     {
         $this->database->executeStatement(
             "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_tier, difficulty_score, confidence, sample_size, computed_at)
-             VALUES (:puzzleId, :tier, 50, 'high', 10, NOW())
+             VALUES (:puzzleId, :tier, 50, 'high', 10, " . TestClock::SQL_NOW . ")
              ON CONFLICT (puzzle_id) DO UPDATE SET difficulty_tier = EXCLUDED.difficulty_tier",
             ['puzzleId' => $puzzleId, 'tier' => $tier],
         );

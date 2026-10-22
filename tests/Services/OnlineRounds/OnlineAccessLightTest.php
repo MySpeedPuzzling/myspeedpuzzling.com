@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\OnlineRounds;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -146,7 +146,7 @@ final class OnlineAccessLightTest extends KernelTestCase
         $hashes = $this->light->roundHashes(self::ROUND);
 
         self::assertNotNull($hashes);
-        self::assertSame(RoundClock::fromRound($this->onlineRound()->round, new DateTimeImmutable())->stateHash(), $hashes['stateHash']);
+        self::assertSame(RoundClock::fromRound($this->onlineRound()->round, TestClock::now())->stateHash(), $hashes['stateHash']);
         self::assertSame(OnlineParticipantSettings::of($this->onlineRound())->hash(), $hashes['settingsHash']);
 
         // The organiser saves another detection mode: the cached hashes stay until the save forgets them
@@ -184,7 +184,7 @@ final class OnlineAccessLightTest extends KernelTestCase
         });
 
         self::assertSame([
-            'stateHash' => RoundClock::fromRound($this->onlineRound()->round, new DateTimeImmutable())->stateHash(),
+            'stateHash' => RoundClock::fromRound($this->onlineRound()->round, TestClock::now())->stateHash(),
             'settingsHash' => OnlineParticipantSettings::of($this->onlineRound())->hash(),
         ], $cached);
     }
@@ -224,7 +224,7 @@ final class OnlineAccessLightTest extends KernelTestCase
                 'id' => Uuid::uuid7()->toString(),
                 'type' => 'device.ready',
                 'roundId' => OnlineRoundsFixture::ROUND_ONLINE_SOLO,
-                'clientMs' => (int) floor(microtime(true) * 1000),
+                'clientMs' => TestClock::milliseconds(),
                 'offsetMs' => -3.25,
                 'rttMs' => 22,
                 'data' => [],

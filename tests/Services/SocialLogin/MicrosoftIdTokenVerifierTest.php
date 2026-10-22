@@ -217,7 +217,7 @@ final class MicrosoftIdTokenVerifierTest extends TestCase
      */
     private function token(array $claims, string $keyId = MicrosoftIdTokenFactory::KEY_ID): string
     {
-        // The mock clock starts at the real "now", the factory's defaults too
+        // The mock clock starts at the frozen instant (TestClock), the factory's defaults too
         return MicrosoftIdTokenFactory::idToken($claims, $keyId);
     }
 }

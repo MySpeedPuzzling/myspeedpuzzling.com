@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
@@ -130,10 +131,11 @@ final class CompetitionChoicesBuilderTest extends KernelTestCase
 
     public function testOrganiserAuthoredStringsAreEscaped(): void
     {
+        $now = TestClock::SQL_NOW;
         $this->database->executeStatement(
             <<<SQL
             INSERT INTO competition (id, name, location, is_online, approved_at)
-            VALUES (:id, '<b>x</b>', '<i>Nowhere</i> & "there"', false, now())
+            VALUES (:id, '<b>x</b>', '<i>Nowhere</i> & "there"', false, {$now})
             SQL,
             ['id' => self::HTML_NAMED_COMPETITION],
         );

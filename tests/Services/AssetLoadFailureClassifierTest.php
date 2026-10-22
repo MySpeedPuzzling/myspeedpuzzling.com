@@ -328,6 +328,8 @@ final class AssetLoadFailureClassifierTest extends TestCase
 
     private function secondsAgo(int $seconds): int
     {
+        // Real time on purpose: the page's msp-rendered-at and the classifier that judges its age are on real time
+        // (docs/features/time-and-clock/STATUS.md, Jan's answer 1)
         return time() - $seconds;
     }
 }

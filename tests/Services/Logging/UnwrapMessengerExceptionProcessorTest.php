@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\Logging;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use LogicException;
 use Monolog\Level;
 use Monolog\LogRecord;
@@ -54,7 +54,7 @@ final class UnwrapMessengerExceptionProcessorTest extends KernelTestCase
     {
         $processor = new UnwrapMessengerExceptionProcessor();
         $plain = $this->record(new RuntimeException('Not from a handler'));
-        $withoutException = new LogRecord(new DateTimeImmutable(), 'app', Level::Error, 'No exception', ['id' => 1]);
+        $withoutException = new LogRecord(TestClock::now(), 'app', Level::Error, 'No exception', ['id' => 1]);
 
         self::assertSame($plain, $processor($plain));
         self::assertSame($withoutException, $processor($withoutException));
@@ -76,7 +76,7 @@ final class UnwrapMessengerExceptionProcessorTest extends KernelTestCase
     private function record(Throwable $exception): LogRecord
     {
         return new LogRecord(
-            datetime: new DateTimeImmutable(),
+            datetime: TestClock::now(),
             channel: 'request',
             level: Level::Critical,
             message: 'Uncaught PHP Exception ' . $exception::class,

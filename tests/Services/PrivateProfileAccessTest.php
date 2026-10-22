@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetMostActivePlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
@@ -136,7 +137,7 @@ final class PrivateProfileAccessTest extends KernelTestCase
         foreach ([[PlayerFixture::PLAYER_PRIVATE, PlayerFixture::PLAYER_WITH_FAVORITES], [PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_PRIVATE]] as [$blocker, $blocked]) {
             $database->executeStatement('DELETE FROM user_block');
             $database->executeStatement(
-                "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (gen_random_uuid(), :blocker, :blocked, NOW(), 'admin')",
+                "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (gen_random_uuid(), :blocker, :blocked, " . TestClock::SQL_NOW . ", 'admin')",
                 ['blocker' => $blocker, 'blocked' => $blocked],
             );
 
@@ -149,7 +150,7 @@ final class PrivateProfileAccessTest extends KernelTestCase
     public function testARowNamingTheOwnerThemselvesMeansNothing(): void
     {
         self::getContainer()->get(Connection::class)->executeStatement(
-            'INSERT INTO private_profile_viewer (id, owner_id, viewer_id, added_at) VALUES (gen_random_uuid(), :id, :id, NOW())',
+            'INSERT INTO private_profile_viewer (id, owner_id, viewer_id, added_at) VALUES (gen_random_uuid(), :id, :id, ' . TestClock::SQL_NOW . ')',
             ['id' => PlayerFixture::PLAYER_PRIVATE],
         );
 

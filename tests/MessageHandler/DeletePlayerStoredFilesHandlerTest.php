@@ -16,11 +16,13 @@ use SpeedPuzzling\Web\Services\ResultImageCache;
 use SpeedPuzzling\Web\Services\Storage\UploadSpool;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestDouble\DeletePlayerThenFail;
 use SpeedPuzzling\Web\Tests\TestDouble\InMemoryLogger;
 use SpeedPuzzling\Web\Tests\TestDouble\ToggleableFailingFilesystemAdapter;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 final class DeletePlayerStoredFilesHandlerTest extends KernelTestCase
@@ -165,7 +167,7 @@ final class DeletePlayerStoredFilesHandlerTest extends KernelTestCase
 
     public function testStorageFailureIsLoggedAndDoesNotThrow(): void
     {
-        $failingAdapter = new ToggleableFailingFilesystemAdapter();
+        $failingAdapter = new ToggleableFailingFilesystemAdapter(new MockClock(TestClock::now()));
         $filesystem = new Filesystem($failingAdapter);
         $filesystem->write(self::AVATAR, 'image');
         $failingAdapter->setFailing(true);

@@ -8,7 +8,7 @@ Living record. Every phase appends: what it did, what it found, what the next ph
 | 1 - pin UTC, UTC on write | done 2026-10-22 | this commit |
 | 2 - one clock in `src/` | done 2026-10-22 | c00bf8343, e16908c18, 3a15ef3b0 + this commit |
 | 3 - frozen clock in tests | done 2026-10-22 - **branch red until Phase 4 ends** (157 tests) | fe580bfa0 |
-| 4 - tests on the frozen clock | batches 1-7 done 2026-10-22 (157 → 103 → 92 → 72 → 65 → 62 → 53 → 32 failing); batches 8-9 open | batch 1: f2483f7d3; batch 2: dc3fb4867; batch 3: d4f31c268; batch 4: 0364e10e9; batch 5: f9424402a; batch 6: 040672b3a; batch 7: this commit |
+| 4 - tests on the frozen clock | batches 1-8 done 2026-10-22 (157 → 103 → 92 → 72 → 65 → 62 → 53 → 32 → 5 failing); batch 9 open | batch 1: f2483f7d3; batch 2: dc3fb4867; batch 3: d4f31c268; batch 4: 0364e10e9; batch 5: f9424402a; batch 6: 040672b3a; batch 7: 10e501bd7; batch 8: 1c93b850e |
 | 5 - proof, docs, PR | not started | |
 
 ## Jan's answers (2026-10-22) - binding for every later phase
@@ -933,6 +933,60 @@ For batches 8-9:
 - ParaTest takes one path; several directories = several runs.
 - `CompetitionNameTagsTest`'s 1500 ms budget fails on a loaded machine - not a clock issue; ignore it when comparing lists.
 
+## Phase 4 batch 8 (2026-10-22) - the other `Controller` subdirectories, `Controller` top level F-O
+
+Converted (57 files): of the 187 files (every `Controller` subdirectory batch 7 did not take - `Admin`, `Api`, `Collections`,
+`CompetitionPicker`, `DigestEmails`, `DuplicateResults`, `FeatureRequest`, `FeatureRequestEmails`, `FirstTry`, `InternalApi`,
+`Marketplace`, `Messaging`, `OAuth2`, `PhotoUploads`, `Rating`, `Referees`, `ResultEmails`, `ReviewResults`, `SellSwap`,
+`SolvedPuzzles`, `Stopwatch`, `SuspiciousTimes` - and top level F-O), 56 had a clock read by the case-insensitive grep, plus
+`NewsletterSignupControllerTest` (below). A fresh token-based rewrite (batch 2's recipe; the earlier script was not kept) did the
+mechanical part. By hand: the heredocs in `Admin/BoxTextMismatchesControllerTest`, `InternalApi/PuzzleTagsInternalApiTest`,
+`InternalApi/PuzzleDifficultyEstimatesInternalApiTest` (`$now = TestClock::SQL_NOW;` + `{$now}`), the interpolated
+`"-{$daysAgo} days"` in `Api/V1/CreateSolvingTimePredictionEndpointTest`, `'+30 days'` with a UTC zone in
+`InternalApi/RoundsInternalApiTest` (→ `TestClock::now()->modify(…)`, already UTC), `'now'` with a zone in `MyActivityControllerTest`,
+`date()`/`gmdate()` of given timestamps (`LiveKitWebhookControllerTest`, `RoundsInternalApiTest`) → `'@'`/`setTimestamp()` parses (the
+batch-9 guard would flag the calls), `date('Y-m-d H:i:s')` → `TestClock::sqlParameter()` (`LastPieceRevealPagesTest`), `date('Y')` →
+`TestClock::now()->format('Y')` (`OrganizationPageTest`), and the `(TestClock::now()->modify(…))->` artefact. Checked and left as is:
+absolute literals, parses of response/stored values, `MspRatingHistoryPagesTest::browser($now)` (absolute moments),
+`ManageCompetitionRoundsControllerTest::startsIn()` (container clock), `'startsAt' => 'tomorrow'` in
+`RoundsInternalApiTest` (an invalid API input the server refuses, not a clock read). Batch 5's hand-overs in this range
+(`BoxTextMismatches`, `CompetitionDetailEndpoint`, `PuzzleTagsInternalApi`) are done.
+
+**A relative date behind `sprintf`:** `NewsletterSignupControllerTest` matched no grep - the signup ticket was minted with
+`new MockClock(sprintf('-%d seconds', $secondsAgo))` (real now minus N), while the controller checks it with the frozen clock.
+Now `new MockClock(TestClock::now()->modify(sprintf(…)))`.
+
+No real-time exception in this batch. The LiveKit webhook tokens' `nbf`/`exp` are on `TestClock` (the verifier sets
+`JWT::$timestamp` from the app clock).
+
+Stronger assertion: `OnlineTimeControllerTest` asserts `serverNowMs` = `TestClock::milliseconds()` instead of a real-clock bracket.
+
+Fixed (27 tests, no assertion weakened, none passed by luck): `Api/V1` 5 (`hide_until` / membership end from the real now),
+`DuplicateResults/DuplicateCheckFormTest` 5 (form day = real today), `LiveKitWebhookControllerTest` 6 (token `nbf` after the frozen
+now → 401), `ManageCompetitionRounds` (stopwatch start `NOW()`), `ManageRoundPuzzleReveal`, `MyActivity` 2 (period from the real
+week), `NewsletterSignup` 4, `OnlineTime`, `ReviewResults/AwaitingVerification`, `SuspiciousTimes/TimeVerificationForm`.
+
+Gates: PHPCS clean (cs-fix removed 17 unused imports). Tests and PHPStan in CI only (Jan).
+
+**CI (draft PR #284, run 39829896541 on 1c93b850e):** phpstan + coding standards green; tests 3 shards = 2 + 2 + 1 = **5 failing
+tests (4 failures + 1 error)**, batch 7: 32. Compared per test (data-set names stripped): every one was on batch 7's list, nothing
+green turned red.
+
+Remaining (all batch 9, `Controller` top level P-Z): `RoundResultsControllerTest` 2, `RoundResultsSecretPuzzleTest`,
+`RoundRevealDelayFormTest`, `VerifyEmailControllerTest`.
+
+For batch 9:
+
+- Besides the greps of batches 5-7, look for relative strings built by `sprintf` / concatenation (`sprintf('-%d seconds', …)`,
+  `'-' . $n . ' days'`) and fed to `MockClock`, `modify()` or `DateTimeImmutable` - `NewsletterSignupControllerTest` hid one
+  that no grep pattern so far matched. The guard over `tests/` cannot see these either; review hits of `new MockClock(` whose
+  argument is not `TestClock::…` or an absolute literal.
+- `tests/Controller`'s non-`*Test.php` helpers: `Api/V1/PuzzleLibraryEndpointTestHelpers` (converted here),
+  `InternalApi/InternalApiRequests`, `DifficultyRankingPageAssertions` (no clock read), `Compete/CompeteApiRequests`,
+  `WeeklySeriesSeed` (batches 6-7).
+- `InternalApi/RoundsInternalApiTest` sends `'startsAt' => 'tomorrow'` as an API input - a `'tomorrow'` string the guard may
+  match; allowlist it with that reason or match only constructor/`modify` arguments.
+
 ## Log
 
 - 2026-10-22: plan written (README.md, implementation-plan.md). Branch `time-and-clock` from `8447c607d`.
@@ -963,3 +1017,5 @@ For batches 8-9:
 - 2026-10-22: Phase 4 batch 7 - `Controller/Compete`, `OnlineRounds`, `OfficialResults`, `LiveResults`, `ParticipantsSheet`,
   `Seating` + `Controller` C-E on the frozen clock (42 files), online-API "now" assertions exact; CI 53 → 32 failing, nothing new
   red; from here on the suite runs in CI only (draft PR #284).
+- 2026-10-22: Phase 4 batch 8 - the other `Controller` subdirectories + `Controller` F-O on the frozen clock (57 files), a relative
+  date behind `sprintf` in `NewsletterSignupControllerTest`; CI 32 → 5 failing (all batch 9), nothing new red.

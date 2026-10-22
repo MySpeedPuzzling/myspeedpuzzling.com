@@ -87,7 +87,7 @@ jobs:
               vendor/bin/paratest --testsuite "Project Test Suite" --shard=${{ matrix.shard }}/3 --shard-test-distribution=round-robin
           env:
               LD_PRELOAD: /usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1
-              FAKETIME: '+400d'
+              FAKETIME: '+1826d'
               FAKETIME_DONT_FAKE_MONOTONIC: '1'
 
   # DISABLED 2026-07-30 (issue #147 / PR #172): the Panther-managed `php -S`

@@ -7,8 +7,6 @@ that would otherwise be forgotten. Newest section on top.
 ## Partner finder (`docs/features/partner-finder.md`, 2026-10-22)
 
 - [ ] Look at the page with ~100 real listings on a phone once there are some (filter bar wrapping, details panel)
-- [ ] A line for followers of the event (Jan asked what it means, 2026-10-23 - waiting for his call): people who follow
-      the event or its series without being listed see "N puzzlers are looking for a partner here" in "Your events"
 
 ## Wasgij, multipacks and reverting merges (`docs/features/wasgij-and-multipacks.md`, 2026-10-22)
 

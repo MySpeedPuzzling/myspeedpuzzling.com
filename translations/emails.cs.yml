@@ -511,3 +511,12 @@ partner_reminder:
     no_new_listings: "Od té doby se nikdo nový nepřidal - i tak se vyplatí podívat, kdo tam je."
     see_who: "Podívat se, kdo hledá"
     found_partner: "Parťáka už máte? <a href=\"%url%\">Uzavřete inzerát</a>, ať vás nikdo zbytečně neoslovuje."
+partner_teamed_up:
+    subject: "%name% s vámi bude skládat na %event%"
+    preheader: "Máte tam ještě inzerát? Upravte ho v hledání parťáků."
+    title: "%name% s vámi bude skládat"
+    greeting: "Ahoj %name%,"
+    intro: "%name% uzavírá svůj inzerát v hledání parťáků na %event% a uvádí vás jako parťáka."
+    ask: "Váš vlastní inzerát tam je pořád aktivní, takže vás můžou další lidé dál oslovovat. Parťáka už máte? Uzavřete ho. Potřebujete ještě další lidi? Upravte ho."
+    update: "Upravit můj inzerát"
+    not_right: "Nesedí to? Nechte inzerát, jak je - nic se nezmění, dokud ho sami nezměníte."

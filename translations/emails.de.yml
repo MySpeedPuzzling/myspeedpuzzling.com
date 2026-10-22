@@ -511,3 +511,12 @@ partner_reminder:
     no_new_listings: "Seitdem hat sich niemand Neues eingetragen - ein Blick auf die Liste lohnt sich trotzdem."
     see_who: "Ansehen, wer sucht"
     found_partner: "Schon einen Partner gefunden? <a href=\"%url%\">Schließe deinen Eintrag</a>, damit dich niemand mehr anfragt."
+partner_teamed_up:
+    subject: "%name% hat sich für %event% mit dir zusammengetan"
+    preheader: "Bist du dort noch eingetragen? Aktualisiere deinen Eintrag bei der Partnersuche."
+    title: "%name% hat sich mit dir zusammengetan"
+    greeting: "Hallo %name%,"
+    intro: "%name% hat den eigenen Eintrag bei der Partnersuche für %event% geschlossen und dich als Partner angegeben."
+    ask: "Dein eigener Eintrag dort ist noch aktiv, also können dich weiter Leute anfragen. Partner gefunden? Schließe ihn. Braucht ihr noch mehr Leute? Aktualisiere ihn."
+    update: "Meinen Eintrag aktualisieren"
+    not_right: "Stimmt nicht? Lass deinen Eintrag, wie er ist - es ändert sich nichts, solange du nichts änderst."

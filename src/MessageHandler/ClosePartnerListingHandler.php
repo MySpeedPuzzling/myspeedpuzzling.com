@@ -9,6 +9,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Notification;
 use SpeedPuzzling\Web\Exceptions\PartnerListingNotFound;
 use SpeedPuzzling\Web\Message\ClosePartnerListing;
+use SpeedPuzzling\Web\Message\SendPartnerTeamedUpEmail;
 use SpeedPuzzling\Web\Repository\NotificationRepository;
 use SpeedPuzzling\Web\Repository\PartnerListingRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -16,6 +17,8 @@ use SpeedPuzzling\Web\Services\PartnerFinder\PartnerTeamUpCandidates;
 use SpeedPuzzling\Web\Value\NotificationType;
 use SpeedPuzzling\Web\Value\PartnerListingClosedReason;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 
 /**
  * "Found my partner" / "Remove listing" (docs/features/partner-finder.md D7) - the owner's own two reasons; the others
@@ -34,6 +37,7 @@ readonly final class ClosePartnerListingHandler
         private PartnerTeamUpCandidates $partnerTeamUpCandidates,
         private PlayerRepository $playerRepository,
         private NotificationRepository $notificationRepository,
+        private MessageBusInterface $messageBus,
         private ClockInterface $clock,
     ) {
     }
@@ -86,6 +90,12 @@ readonly final class ClosePartnerListingHandler
                 actorPlayer: $listing->player,
                 targetPartnerListing: $listing,
             ));
+
+            // And an e-mail with the way to update their listing (Jan: never closed for them - they agree by closing it)
+            $this->messageBus->dispatch(
+                new SendPartnerTeamedUpEmail($listing->id->toString(), $partner->id->toString()),
+                [new DispatchAfterCurrentBusStamp()],
+            );
         }
     }
 }

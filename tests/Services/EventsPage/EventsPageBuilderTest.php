@@ -426,6 +426,10 @@ final class EventsPageBuilderTest extends TestCase
         self::assertSame(6, $rows['Pairs Cup']->tags[1]->count);
         self::assertSame('partner_finder.events_tag.looking', RowTagType::PartnerListings->translationKey());
         self::assertSame([], $this->tagTypes($rows['Quiet Cup']), 'nobody listed - no tag');
+        // "Your events" links the finder while people are looking there, nothing otherwise
+        self::assertNotNull($rows['Pairs Cup']->partnerFinderUrl);
+        self::assertStringStartsWith('/event_partners/', $rows['Pairs Cup']->partnerFinderUrl);
+        self::assertNull($rows['Quiet Cup']->partnerFinderUrl);
 
         foreach ($page->ongoing as $row) {
             self::assertNotContains(RowTagType::PartnerListings, $this->tagTypes($row), 'never on an online event');

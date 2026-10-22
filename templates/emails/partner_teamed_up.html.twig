@@ -1,0 +1,38 @@
+{% trans_default_domain 'emails' %}
+{# "<name> says you teamed up" (SendPartnerTeamedUpEmailHandler, docs/features/partner-finder.md "Phase 2 as built"):
+   somebody closed their listing naming the player, whose own listing at the event is still up - update it, or leave it.
+   Nobody's listing is ever closed for them. #}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
+    <wrapper>
+        <container>
+            {{ include('emails/_header.html.twig', {preheader: 'partner_teamed_up.preheader'|trans}) }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="24"></spacer>
+                    <h3>{{ 'partner_teamed_up.title'|trans({'%name%': closerName}) }}</h3>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <p>{{ 'partner_teamed_up.greeting'|trans({'%name%': playerName}) }}</p>
+                    <p>{{ 'partner_teamed_up.intro'|trans({'%name%': closerName, '%event%': eventName}) }}</p>
+                    <p>{{ 'partner_teamed_up.ask'|trans }}</p>
+
+                    <center>
+                        <button href="{{ finderUrl }}">{{ 'partner_teamed_up.update'|trans }}</button>
+                    </center>
+
+                    <spacer size-sm="10"></spacer>
+
+                    <p class="small-print">{{ 'partner_teamed_up.not_right'|trans }}</p>
+                    <p class="small-print">{{ 'partner_request.opt_out'|trans({'%settingsUrl%': settingsUrl, '%unsubscribeUrl%': unsubscribeUrl})|raw }}</p>
+                </columns>
+            </row>
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

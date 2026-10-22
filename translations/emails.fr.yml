@@ -511,3 +511,12 @@ partner_reminder:
     no_new_listings: "Personne de nouveau ne s’est inscrit depuis - un coup d’œil à la liste peut quand même valoir la peine."
     see_who: "Voir qui cherche"
     found_partner: "Vous avez déjà trouvé votre partenaire ? <a href=\"%url%\">Fermez votre annonce</a> pour qu’on ne vous sollicite plus."
+partner_teamed_up:
+    subject: "%name% indique faire équipe avec vous pour %event%"
+    preheader: "Vous y avez encore une annonce ? Mettez à jour votre annonce de recherche de partenaire."
+    title: "%name% fait équipe avec vous"
+    greeting: "Bonjour %name%,"
+    intro: "%name% a fermé son annonce de recherche de partenaire pour %event% et vous a indiqué comme partenaire."
+    ask: "Votre propre annonce y est toujours en ligne, on peut donc continuer à vous solliciter. Partenaire trouvé ? Fermez-la. Il vous manque encore du monde ? Mettez-la à jour."
+    update: "Mettre à jour mon annonce"
+    not_right: "Ce n’est pas le cas ? Laissez votre annonce telle quelle - rien ne change tant que vous ne la modifiez pas."

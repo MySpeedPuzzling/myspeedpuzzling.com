@@ -22,6 +22,7 @@ use SpeedPuzzling\Web\Message\RecalculateXpForPlayer;
 use SpeedPuzzling\Web\Message\RemoveNewsletterSubscriberFromListmonk;
 use SpeedPuzzling\Web\Message\SendPartnerListingReminder;
 use SpeedPuzzling\Web\Message\SendPartnerRequestEmail;
+use SpeedPuzzling\Web\Message\SendPartnerTeamedUpEmail;
 use SpeedPuzzling\Web\Message\SendPlayerContentDigest;
 use SpeedPuzzling\Web\Message\SettleXpBonuses;
 use SpeedPuzzling\Web\Message\VerifyOnlineMedia;
@@ -88,6 +89,8 @@ return App::config([
                 SendPartnerRequestEmail::class => 'async',
                 // Its "Still looking?" reminder, planned by the daily myspeedpuzzling:remind-partner-listings
                 SendPartnerListingReminder::class => 'async',
+                // "<name> says you teamed up" beside the PartnerTeamedUp notification
+                SendPartnerTeamedUpEmail::class => 'async',
                 RecalculateDerivedMetricsForPuzzle::class => 'async',
                 // Listmonk API calls must not block or fail the user-facing request
                 PushNewsletterSubscriberToListmonk::class => 'async',

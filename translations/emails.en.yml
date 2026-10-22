@@ -520,3 +520,12 @@ partner_reminder:
     no_new_listings: "Nobody new has listed since you did - a look at who is there may still find your partner."
     see_who: "See who's looking"
     found_partner: 'Found your partner already? <a href="%url%">Close your listing</a>, so nobody keeps asking.'
+partner_teamed_up:
+    subject: "%name% says you teamed up for %event%"
+    preheader: "Still listed there yourself? Update your partner finder listing."
+    title: "%name% teamed up with you"
+    greeting: "Hi %name%,"
+    intro: "%name% closed their partner finder listing for %event% and named you as who they teamed up with."
+    ask: "Your own listing there is still up, so people may keep asking you. Found your partner? Close it. Still need more people? Update it."
+    update: "Update my listing"
+    not_right: "Not right? Leave your listing as it is - nothing changes unless you change it."

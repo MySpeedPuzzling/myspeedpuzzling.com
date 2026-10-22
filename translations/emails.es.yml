@@ -511,3 +511,12 @@ partner_reminder:
     no_new_listings: "Desde entonces no se ha apuntado nadie nuevo, pero vale la pena mirar quién está."
     see_who: "Ver quién busca"
     found_partner: "¿Ya tienes compañero? <a href=\"%url%\">Cierra tu anuncio</a> para que nadie te siga escribiendo."
+partner_teamed_up:
+    subject: "%name% dice que os habéis juntado para %event%"
+    preheader: "¿Sigues anunciado allí? Actualiza tu anuncio en el buscador de compañeros."
+    title: "%name% se ha juntado contigo"
+    greeting: "Hola %name%,"
+    intro: "%name% ha cerrado su anuncio en el buscador de compañeros de %event% y te ha indicado como su compañero."
+    ask: "Tu propio anuncio allí sigue activo, así que te pueden seguir escribiendo. ¿Ya tienes compañero? Ciérralo. ¿Aún os falta gente? Actualízalo."
+    update: "Actualizar mi anuncio"
+    not_right: "¿No es así? Deja tu anuncio como está: nada cambia a menos que tú lo cambies."

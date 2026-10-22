@@ -124,9 +124,9 @@ Pair/team result counts per puzzler are **phase 2** (they need precomputed colum
 
 ## Phase 2 (Jan, 2026-10-23)
 
-Built: "Close yours too?", the reminder two weeks before the event, the "found a partner here" count, the co-member
-picker - see "Phase 2 as built". Skipped by Jan: pair/team result counts on the cards, a finder across events ("you are
-always looking for a specific event"), API v1 access. Still open in `docs/TODO.md`: a line for followers of the event.
+Built: "Close yours too?" (+ its e-mail), the reminder two weeks before the event, the "found a partner here" count, the
+co-member picker, the "N looking for a partner" link in "Your events" - see "Phase 2 as built". Skipped by Jan: pair/team
+result counts on the cards, a finder across events ("you are always looking for a specific event"), API v1 access.
 
 ## Foundation as built (2026-10-22)
 
@@ -449,6 +449,22 @@ anybody else is ignored; each person is told once per listing (a group counting 
 person would silently take somebody's listing down - a mistaken pick, a pair partner who still looks for a team. The
 notification says "still listed there? close yours" only while the reader has an open listing at the event
 (`partner_reader_listed`, computed in `GetNotifications`) and links to the finder.
+
+**Jan, 2026-10-23: "we can never close someone else's offering"** - only when both agree; so beside the notification
+the named player gets an e-mail with "Update my listing" (`SendPartnerTeamedUpEmail`, async after the close; nothing
+when their listing closed meanwhile, these e-mails are off or a block stands either way by now). When they close theirs
+too, both sides agreed - nothing is ever closed by the other side's click.
+
+**"Your events"** (`/en/events`): an event of the viewer's (going, followed, a followed series' next edition) with people
+looking shows "N looking for a partner" linking straight to its finder (`AgendaRow::$partnerFinderUrl` from
+`EventUrls::partnerFinder()`, the count rides on the agenda's PartnerListings tag - no query of its own).
+
+**Private and blocked (reviewed 2026-10-23)**: a private player hidden from the viewer shows name and flag only on every
+surface - no avatar, code, median, solved count, MSP, tier, similar-speed badge or profile link (finder rows, co-member
+chips = "a private puzzler", teaser faces = flag only, event card = no face, notifications = name without picture since
+`076f5ba92`, request e-mail = name + country, no numbers). The co-member picker never offers a private player hidden
+from the lister (`PersonSuggestion::$isHidden`). Blocks hide both ways everywhere a person is shown or contacted;
+counts (gate page, agenda tag, "found here", the reminder's count of newcomers) are aggregates for everybody.
 
 **Co-members** ("a group of N" + who): the form's hidden `coMembers` field (player ids, comma-separated) is filled by
 `partner_co_members_controller.js` - TomSelect over the add form's suggestions (`my_co_puzzlers`: favorites first, then

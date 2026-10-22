@@ -52,6 +52,8 @@ readonly final class AgendaRow
         // the series page: the start of the occurrence's first round in its zone (EventRowFactory, RowContext::SeriesPage)
         public null|EventTime $time = null,
         public array $moreSessionIds = [],
+        // Its partner finder page while people are looking (the PartnerListings tag) - "Your events" links it
+        public null|string $partnerFinderUrl = null,
     ) {
     }
 

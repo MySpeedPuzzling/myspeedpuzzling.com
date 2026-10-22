@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
@@ -72,21 +73,21 @@ final class OrganizationPagesQueryBudgetTest extends WebTestCase
             $seriesId = Uuid::uuid7()->toString();
             $connection->executeStatement(
                 "INSERT INTO competition_series (id, name, slug, is_online, created_at, approved_at, organization_id)
-                 VALUES (:id, :name, :slug, false, NOW(), NOW(), :organization)",
+                 VALUES (:id, :name, :slug, false, " . TestClock::SQL_NOW . ", " . TestClock::SQL_NOW . ", :organization)",
                 ['id' => $seriesId, 'name' => 'Budget series ' . $i, 'slug' => 'budget-series-' . $i, 'organization' => OrganizationFixture::ORGANIZATION_RIVERBEND],
             );
 
             foreach ([20, 50, -40] as $days) {
                 $connection->executeStatement(
                     "INSERT INTO competition (id, name, slug, series_id, is_online, created_at, date_from, date_to)
-                     VALUES (:id, :name, :slug, :series, false, NOW(), CURRENT_DATE + make_interval(days => :days), CURRENT_DATE + make_interval(days => :days))",
+                     VALUES (:id, :name, :slug, :series, false, " . TestClock::SQL_NOW . ", " . TestClock::SQL_TODAY . " + make_interval(days => :days), " . TestClock::SQL_TODAY . " + make_interval(days => :days))",
                     ['id' => Uuid::uuid7()->toString(), 'name' => 'Budget edition ' . $days, 'slug' => 'budget-edition-' . ($days + 100), 'series' => $seriesId, 'days' => $days + $i],
                 );
             }
 
             $connection->executeStatement(
                 "INSERT INTO competition (id, name, slug, is_online, created_at, approved_at, organization_id, date_from, date_to)
-                 VALUES (:id, :name, :slug, true, NOW(), NOW(), :organization, CURRENT_DATE + make_interval(days => :days), CURRENT_DATE + make_interval(days => :days))",
+                 VALUES (:id, :name, :slug, true, " . TestClock::SQL_NOW . ", " . TestClock::SQL_NOW . ", :organization, " . TestClock::SQL_TODAY . " + make_interval(days => :days), " . TestClock::SQL_TODAY . " + make_interval(days => :days))",
                 ['id' => Uuid::uuid7()->toString(), 'name' => 'Budget event ' . $i, 'slug' => 'budget-event-' . $i, 'organization' => OrganizationFixture::ORGANIZATION_RIVERBEND, 'days' => 30 + $i],
             );
         }

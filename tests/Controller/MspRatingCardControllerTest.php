@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
@@ -123,7 +124,7 @@ final class MspRatingCardControllerTest extends WebTestCase
         $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $this->rateWithHistory(PlayerFixture::PLAYER_WITH_STRIPE);
         $this->database()->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_WITH_FAVORITES, 'blocked' => PlayerFixture::PLAYER_WITH_STRIPE],
         );
 
@@ -181,7 +182,7 @@ final class MspRatingCardControllerTest extends WebTestCase
     {
         $database = $this->database();
         $database->executeStatement(
-            'INSERT INTO player_elo (id, player_id, pieces_count, elo_rating, computed_at) VALUES (:id, :player, 500, :rating, NOW())',
+            'INSERT INTO player_elo (id, player_id, pieces_count, elo_rating, computed_at) VALUES (:id, :player, 500, :rating, ' . TestClock::SQL_NOW . ')',
             ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'rating' => $rating],
         );
 
@@ -191,7 +192,7 @@ final class MspRatingCardControllerTest extends WebTestCase
 
         for ($day = 10; $day <= 20; $day++) {
             $database->executeStatement(
-                'INSERT INTO player_rating_snapshot (id, player_id, pieces_count, snapshot_date, elo_rating, elo_rank, computed_at) VALUES (gen_random_uuid(), :player, 500, :day, 0.9, 1, NOW())',
+                'INSERT INTO player_rating_snapshot (id, player_id, pieces_count, snapshot_date, elo_rating, elo_rank, computed_at) VALUES (gen_random_uuid(), :player, 500, :day, 0.9, 1, ' . TestClock::SQL_NOW . ')',
                 ['player' => $playerId, 'day' => sprintf('2026-06-%02d', $day)],
             );
         }

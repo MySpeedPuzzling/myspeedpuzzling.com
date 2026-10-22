@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -270,7 +271,7 @@ final class OrganizationFormsTest extends WebTestCase
         /** @var Connection $connection */
         $connection = self::getContainer()->get(Connection::class);
         $connection->executeStatement(
-            "UPDATE organization SET rejected_at = NOW(), rejection_reason = 'Duplicate of another organization' WHERE id = :id",
+            "UPDATE organization SET rejected_at = " . TestClock::SQL_NOW . ", rejection_reason = 'Duplicate of another organization' WHERE id = :id",
             ['id' => OrganizationFixture::ORGANIZATION_MAPLE_PENDING],
         );
 

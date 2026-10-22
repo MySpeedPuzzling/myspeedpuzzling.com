@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Repository\NewsletterSubscriberRepository;
 use SpeedPuzzling\Web\Services\NewsletterSignupTicket;
@@ -171,7 +172,7 @@ final class NewsletterSignupControllerTest extends WebTestCase
     private function send(KernelBrowser $browser, string $email, null|string $turnstileToken, int $secondsAgo = 10, string $honeypot = ''): void
     {
         $secret = self::getContainer()->getParameter('kernel.secret');
-        $ticket = (new NewsletterSignupTicket($secret, new MockClock(sprintf('-%d seconds', $secondsAgo))))->issue();
+        $ticket = (new NewsletterSignupTicket($secret, new MockClock(TestClock::now()->modify(sprintf('-%d seconds', $secondsAgo)))))->issue();
 
         $fields = [
             '_token' => 'csrf-token',

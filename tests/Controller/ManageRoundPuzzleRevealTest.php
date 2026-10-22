@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
@@ -195,7 +196,7 @@ final class ManageRoundPuzzleRevealTest extends WebTestCase
         $entityManager->clear();
         $puzzle = $entityManager->find(\SpeedPuzzling\Web\Entity\Puzzle::class, $puzzleId);
         self::assertNotNull($puzzle);
-        self::assertFalse($puzzle->isImageHiddenAt(new \DateTimeImmutable()));
+        self::assertFalse($puzzle->isImageHiddenAt(TestClock::now()));
     }
 
     public function testDeletingTheRoundThatHoldsASecretAsksFirstForExactlyThatList(): void
@@ -261,7 +262,7 @@ final class ManageRoundPuzzleRevealTest extends WebTestCase
         self::assertNull($entityManager->find(CompetitionRound::class, CompetitionRoundFixture::ROUND_CZECH_FINAL));
         $puzzle = $entityManager->find(\SpeedPuzzling\Web\Entity\Puzzle::class, $puzzleId);
         self::assertNotNull($puzzle);
-        self::assertFalse($puzzle->isImageHiddenAt(new \DateTimeImmutable()));
+        self::assertFalse($puzzle->isImageHiddenAt(TestClock::now()));
     }
 
     public function testAConfirmationCountsOnlyForHowFarEachPuzzleComesOut(): void
@@ -318,7 +319,7 @@ final class ManageRoundPuzzleRevealTest extends WebTestCase
         $browser->request('POST', '/en/reveal-round-puzzle/' . Uuid::uuid7()->toString());
         self::assertResponseStatusCodeSame(404);
 
-        self::assertTrue($this->roundPuzzle($roundPuzzleId->toString())->isHiddenAt(new \DateTimeImmutable()));
+        self::assertTrue($this->roundPuzzle($roundPuzzleId->toString())->isHiddenAt(TestClock::now()));
     }
 
     private function revealsAt(string $roundPuzzleId): null|string

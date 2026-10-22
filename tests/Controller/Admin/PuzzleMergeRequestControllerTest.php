@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Admin;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
@@ -164,7 +164,7 @@ final class PuzzleMergeRequestControllerTest extends WebTestCase
         // Somebody edits the other puzzle in the meantime
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
         $puzzle = $browser->getContainer()->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_500_02);
-        $puzzle->changeNames('Puzzle 2', null, new PuzzleNames([new PuzzleName('Hádanka 2', 'cs')]), new DateTimeImmutable());
+        $puzzle->changeNames('Puzzle 2', null, new PuzzleNames([new PuzzleName('Hádanka 2', 'cs')]), TestClock::now());
         $entityManager->flush();
 
         $browser->submit($form, [self::FORM . '[names][name]' => 'Typed In The Review']);
@@ -281,7 +281,7 @@ final class PuzzleMergeRequestControllerTest extends WebTestCase
     {
         $container = $browser->getContainer();
         $duplicate = $container->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_500_05);
-        $duplicate->changeNames('Kouzelné ráno', null, new PuzzleNames([new PuzzleName('Magischer Morgen', 'de')]), new DateTimeImmutable());
+        $duplicate->changeNames('Kouzelné ráno', null, new PuzzleNames([new PuzzleName('Magischer Morgen', 'de')]), TestClock::now());
         $container->get(EntityManagerInterface::class)->flush();
 
         $mergeRequestId = Uuid::uuid7()->toString();
@@ -320,7 +320,7 @@ final class PuzzleMergeRequestControllerTest extends WebTestCase
             id: Uuid::uuid7(),
             sourcePuzzle: null,
             reporter: $container->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_REGULAR),
-            submittedAt: new DateTimeImmutable(),
+            submittedAt: TestClock::now(),
             // A puzzle deleted without a merge
             reportedDuplicatePuzzleIds: [PuzzleFixture::PUZZLE_500_04, Uuid::uuid7()->toString()],
         );

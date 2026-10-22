@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Api\V1;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -266,7 +267,7 @@ final class MyCollectionItemsEndpointTest extends WebTestCase
     public function testEmbargoedImageIsNull(): void
     {
         $browser = self::createClient();
-        $this->setImage($browser, PuzzleFixture::PUZZLE_500_02, 'puzzles/test/box.jpg', hideUntil: new DateTimeImmutable('+30 days'));
+        $this->setImage($browser, PuzzleFixture::PUZZLE_500_02, 'puzzles/test/box.jpg', hideUntil: TestClock::now()->modify('+30 days'));
         $this->setImage($browser, PuzzleFixture::PUZZLE_500_01, 'puzzles/test/other.jpg', hideUntil: null);
         $this->authenticatePat($browser, PlayerFixture::PLAYER_REGULAR);
 
@@ -442,8 +443,8 @@ final class MyCollectionItemsEndpointTest extends WebTestCase
         $puzzle = $entityManager->find(Puzzle::class, $puzzleId);
         $this->assertNotNull($puzzle);
 
-        $difficulty = $entityManager->find(PuzzleDifficulty::class, $puzzleId) ?? new PuzzleDifficulty($puzzle, new DateTimeImmutable());
-        $difficulty->updateDifficulty($score, $confidence, 20, new DateTimeImmutable());
+        $difficulty = $entityManager->find(PuzzleDifficulty::class, $puzzleId) ?? new PuzzleDifficulty($puzzle, TestClock::now());
+        $difficulty->updateDifficulty($score, $confidence, 20, TestClock::now());
 
         $entityManager->persist($difficulty);
         $entityManager->flush();
@@ -493,7 +494,7 @@ final class MyCollectionItemsEndpointTest extends WebTestCase
             name: 'Budget test',
             description: null,
             visibility: CollectionVisibility::Private,
-            createdAt: new DateTimeImmutable(),
+            createdAt: TestClock::now(),
         );
         $entityManager->persist($collection);
         $entityManager->flush();
@@ -526,7 +527,7 @@ final class MyCollectionItemsEndpointTest extends WebTestCase
                 player: $player,
                 puzzle: $puzzle,
                 comment: null,
-                addedAt: new DateTimeImmutable(),
+                addedAt: TestClock::now(),
             ));
         }
 

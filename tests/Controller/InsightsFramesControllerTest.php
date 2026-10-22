@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
@@ -283,7 +283,7 @@ final class InsightsFramesControllerTest extends WebTestCase
         $this->joinLadder($browser, self::MEMBER, beforeRecalculating: function (Connection $connection): void {
             // A shelf puzzle and an old solved puzzle turn secret
             $connection->executeStatement(
-                "UPDATE puzzle SET name = 'Secret canary ' || id, hide_until = NOW() + INTERVAL '1 year' WHERE id IN (:shelf, :solved)",
+                "UPDATE puzzle SET name = 'Secret canary ' || id, hide_until = " . TestClock::SQL_NOW . " + INTERVAL '1 year' WHERE id IN (:shelf, :solved)",
                 ['shelf' => self::ladderPuzzle(41), 'solved' => self::ladderPuzzle(40)],
             );
             // The partner is private and has not let the member see them
@@ -331,10 +331,10 @@ final class InsightsFramesControllerTest extends WebTestCase
         $this->joinLadder($browser, self::MEMBER, beforeRecalculating: function (Connection $connection): void {
             // A puzzle the member solved with 14 other public first tries: 15 of the 20 solvers the rating needs
             $connection->executeStatement("INSERT INTO puzzle (id, pieces_count, name, approved, is_available) VALUES (:id, 500, 'Insights Puzzle 57', true, true)", ['id' => self::ladderPuzzle(57)]);
-            $this->seedSolves($connection, new DateTimeImmutable('today 12:00:00'), ['SELECT p, 57, 1800 + 30 * p, 50, true FROM generate_series(2, 15) AS p']);
+            $this->seedSolves($connection, TestClock::now()->modify('today 12:00:00'), ['SELECT p, 57, 1800 + 30 * p, 50, true FROM generate_series(2, 15) AS p']);
             $connection->executeStatement(
                 "INSERT INTO puzzle_solving_time (id, player_id, puzzle_id, seconds_to_solve, tracked_at, finished_at, verified, first_attempt)
-                VALUES (gen_random_uuid(), :player, :puzzle, 1500, NOW() - INTERVAL '40 days', NOW() - INTERVAL '40 days', true, true)",
+                VALUES (gen_random_uuid(), :player, :puzzle, 1500, " . TestClock::SQL_NOW . " - INTERVAL '40 days', " . TestClock::SQL_NOW . " - INTERVAL '40 days', true, true)",
                 ['player' => self::MEMBER, 'puzzle' => self::ladderPuzzle(57)],
             );
         });
@@ -355,7 +355,7 @@ final class InsightsFramesControllerTest extends WebTestCase
         foreach ([[10, 0.700], [1, 0.720]] as [$daysAgo, $rating]) {
             $connection->executeStatement(
                 "INSERT INTO player_rating_snapshot (id, player_id, pieces_count, snapshot_date, elo_rating, elo_rank, computed_at)
-                VALUES (:id, :player, 500, CAST(CURRENT_DATE AS timestamp) - make_interval(days => :days), :rating, 7, NOW())",
+                VALUES (:id, :player, 500, CAST(" . TestClock::SQL_TODAY . " AS timestamp) - make_interval(days => :days), :rating, 7, " . TestClock::SQL_NOW . ")",
                 ['id' => Uuid::uuid7()->toString(), 'player' => self::MEMBER, 'days' => $daysAgo, 'rating' => $rating],
             );
         }
@@ -488,7 +488,7 @@ final class InsightsFramesControllerTest extends WebTestCase
     private function joinLadder(KernelBrowser $browser, string $playerId, null|callable $beforeRecalculating = null): void
     {
         $connection = $this->connection($browser);
-        $now = new DateTimeImmutable('today 12:00:00');
+        $now = TestClock::now()->modify('today 12:00:00');
         $this->seedLadder($connection, $now);
 
         $connection->executeStatement(
@@ -504,7 +504,7 @@ final class InsightsFramesControllerTest extends WebTestCase
 
         foreach (range(41, 45) as $puzzle) {
             $connection->executeStatement(
-                'INSERT INTO collection_item (id, collection_id, player_id, puzzle_id, comment, added_at) VALUES (:id, NULL, :player, :puzzle, NULL, NOW())',
+                'INSERT INTO collection_item (id, collection_id, player_id, puzzle_id, comment, added_at) VALUES (:id, NULL, :player, :puzzle, NULL, ' . TestClock::SQL_NOW . ')',
                 ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'puzzle' => self::ladderPuzzle($puzzle)],
             );
         }
@@ -512,7 +512,7 @@ final class InsightsFramesControllerTest extends WebTestCase
         $partner = self::ladderPlayer(2);
         $team = Uuid::uuid7()->toString();
         $connection->executeStatement(
-            'INSERT INTO puzzling_team (id, composition_key, size, created_at, name) VALUES (:id, :key, 2, NOW(), :name)',
+            'INSERT INTO puzzling_team (id, composition_key, size, created_at, name) VALUES (:id, :key, 2, ' . TestClock::SQL_NOW . ', :name)',
             ['id' => $team, 'key' => sha1($team), 'name' => self::PAIR_NAME],
         );
 

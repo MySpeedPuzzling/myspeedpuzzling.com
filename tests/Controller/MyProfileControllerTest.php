@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
@@ -41,8 +41,8 @@ final class MyProfileControllerTest extends WebTestCase
         $userId = 'auth0|' . bin2hex(random_bytes(6));
         $email = sprintf('noplayer+%s@example.com', bin2hex(random_bytes(4)));
 
-        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
-        $userAccount->applyAuth0Import($email, null, true, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now());
+        $userAccount->applyAuth0Import($email, null, true, TestClock::now());
 
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
         $entityManager->persist($userAccount);

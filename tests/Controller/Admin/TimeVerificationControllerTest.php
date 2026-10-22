@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Admin;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -142,7 +143,7 @@ final class TimeVerificationControllerTest extends WebTestCase
         // Something on every tab: a reply, a trusted case, a decision
         $this->answerTheMarkedTimeIsCorrect($browser);
         $browser->getContainer()->get(Connection::class)->executeStatement(
-            "INSERT INTO suspicious_time_decision (id, decision, decided_at, puzzle_id, reasons_shown, snapshot) VALUES (gen_random_uuid(), 'pieces_confirmed', NOW(), :puzzleId, '[]', '{}')",
+            "INSERT INTO suspicious_time_decision (id, decision, decided_at, puzzle_id, reasons_shown, snapshot) VALUES (gen_random_uuid(), 'pieces_confirmed', " . TestClock::SQL_NOW . ", :puzzleId, '[]', '{}')",
             ['puzzleId' => SuspiciousTimesFixture::PUZZLE_HARBOUR],
         );
 
@@ -302,7 +303,7 @@ final class TimeVerificationControllerTest extends WebTestCase
         $browser = $this->signedInModerator();
         // Players are usually far slower on the orchard than on others - a card of its own
         $browser->getContainer()->get(Connection::class)->executeStatement(
-            "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, confidence, sample_size, computed_at) VALUES (:id, 2.5, 'high', 30, NOW())
+            "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, confidence, sample_size, computed_at) VALUES (:id, 2.5, 'high', 30, " . TestClock::SQL_NOW . ")
              ON CONFLICT (puzzle_id) DO UPDATE SET difficulty_score = 2.5, confidence = 'high'",
             ['id' => SuspiciousTimesFixture::PUZZLE_ORCHARD],
         );

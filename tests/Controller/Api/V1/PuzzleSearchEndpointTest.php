@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Api\V1;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -509,7 +510,7 @@ final class PuzzleSearchEndpointTest extends WebTestCase
     public function testHiddenPuzzleIsNeverReturned(): void
     {
         $browser = $this->createApiClient();
-        $this->hidePuzzleUntil($browser, PuzzleFixture::PUZZLE_500_02, new DateTimeImmutable('+30 days'));
+        $this->hidePuzzleUntil($browser, PuzzleFixture::PUZZLE_500_02, TestClock::now()->modify('+30 days'));
         $this->authenticatePat($browser, PlayerFixture::PLAYER_REGULAR);
 
         $browser->request('GET', self::ENDPOINT, ['query' => 'Puzzle 2', 'limit' => 100]);
@@ -527,7 +528,7 @@ final class PuzzleSearchEndpointTest extends WebTestCase
         $this->assertLessThanOrEqual(100, $response['count']);
 
         // and it is back once the embargo has passed
-        $this->hidePuzzleUntil($browser, PuzzleFixture::PUZZLE_500_02, new DateTimeImmutable('-1 day'));
+        $this->hidePuzzleUntil($browser, PuzzleFixture::PUZZLE_500_02, TestClock::now()->modify('-1 day'));
         $browser->request('GET', self::ENDPOINT, ['ean' => '4005556123456']);
         $this->assertResponseIsSuccessful();
         $this->assertSame([PuzzleFixture::PUZZLE_500_02], $this->ids($this->decode($browser)));
@@ -536,7 +537,7 @@ final class PuzzleSearchEndpointTest extends WebTestCase
     public function testEmbargoedImageIsNull(): void
     {
         $browser = $this->createApiClient();
-        $this->setImage($browser, PuzzleFixture::PUZZLE_500_02, 'puzzles/test/box.jpg', hideUntil: new DateTimeImmutable('+30 days'));
+        $this->setImage($browser, PuzzleFixture::PUZZLE_500_02, 'puzzles/test/box.jpg', hideUntil: TestClock::now()->modify('+30 days'));
         $this->setImage($browser, PuzzleFixture::PUZZLE_1000_03, 'puzzles/test/other.jpg', hideUntil: null);
         $this->authenticatePat($browser, PlayerFixture::PLAYER_REGULAR);
 
@@ -983,8 +984,8 @@ final class PuzzleSearchEndpointTest extends WebTestCase
 
         // The incremental recalculation may already have left a row behind - reuse it,
         // the puzzle id is the primary key.
-        $difficulty = $entityManager->find(PuzzleDifficulty::class, $puzzleId) ?? new PuzzleDifficulty($puzzle, new DateTimeImmutable());
-        $difficulty->updateDifficulty($score, $confidence, 20, new DateTimeImmutable());
+        $difficulty = $entityManager->find(PuzzleDifficulty::class, $puzzleId) ?? new PuzzleDifficulty($puzzle, TestClock::now());
+        $difficulty->updateDifficulty($score, $confidence, 20, TestClock::now());
 
         $entityManager->persist($difficulty);
         $entityManager->flush();

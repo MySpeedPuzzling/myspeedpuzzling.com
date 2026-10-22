@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Admin;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
@@ -149,7 +149,7 @@ final class AdminAreaAccessTest extends WebTestCase
         $account = $container->get(UserAccountRepository::class)->findByUserId($player->userId);
 
         if ($account === null) {
-            $account = new UserAccount(Uuid::uuid7(), $player->userId, $email, new DateTimeImmutable());
+            $account = new UserAccount(Uuid::uuid7(), $player->userId, $email, TestClock::now());
             $entityManager->persist($account);
         } else {
             $account->changeEmail($email);

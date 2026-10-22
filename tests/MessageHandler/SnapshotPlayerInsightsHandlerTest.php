@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
@@ -48,7 +49,7 @@ final class SnapshotPlayerInsightsHandlerTest extends KernelTestCase
 
         // Tamper with the month: a stale row of an inactive player and changed data of an active one
         $connection->executeStatement(
-            "INSERT INTO player_insights_snapshot (id, player_id, month, data, computed_at) VALUES (:id, :player, :month, '{\"version\": 0}', NOW())",
+            "INSERT INTO player_insights_snapshot (id, player_id, month, data, computed_at) VALUES (:id, :player, :month, '{\"version\": 0}', " . TestClock::SQL_NOW . ")",
             ['id' => Uuid::uuid7()->toString(), 'player' => PlayerFixture::PLAYER_WITH_FAVORITES, 'month' => $month . '-01'],
         );
         $connection->executeStatement(

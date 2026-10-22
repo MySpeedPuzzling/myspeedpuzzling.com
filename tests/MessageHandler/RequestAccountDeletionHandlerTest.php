@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\AccountDeletionRequest;
@@ -109,8 +109,8 @@ final class RequestAccountDeletionHandlerTest extends KernelTestCase
             $bystander,
             $longExpired->selector,
             $longExpired->hashedVerifier(),
-            new DateTimeImmutable('-9 days'),
-            new DateTimeImmutable('-8 days'),
+            TestClock::now()->modify('-9 days'),
+            TestClock::now()->modify('-8 days'),
         ));
 
         // Recently expired rows survive so their links can still say "expired"
@@ -120,8 +120,8 @@ final class RequestAccountDeletionHandlerTest extends KernelTestCase
             $bystander,
             $recentlyExpired->selector,
             $recentlyExpired->hashedVerifier(),
-            new DateTimeImmutable('-2 hours'),
-            new DateTimeImmutable('-1 hour'),
+            TestClock::now()->modify('-2 hours'),
+            TestClock::now()->modify('-1 hour'),
         ));
         $this->entityManager->flush();
 
@@ -164,7 +164,7 @@ final class RequestAccountDeletionHandlerTest extends KernelTestCase
             Uuid::uuid7(),
             'msp|' . bin2hex(random_bytes(4)),
             sprintf('delete.request+%s@example.com', bin2hex(random_bytes(4))),
-            new DateTimeImmutable(),
+            TestClock::now(),
         );
 
         $this->entityManager->persist($userAccount);

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\NullLogger;
 use Ramsey\Uuid\Uuid;
@@ -52,7 +52,7 @@ final class SendEmailVerificationLinkHandlerTest extends KernelTestCase
             mailer: $this->mailer,
             translator: $container->get(TranslatorInterface::class),
             urlGenerator: $container->get(UrlGeneratorInterface::class),
-            clock: new MockClock(),
+            clock: new MockClock(TestClock::now()),
             logger: new NullLogger(),
         );
     }
@@ -88,7 +88,7 @@ final class SendEmailVerificationLinkHandlerTest extends KernelTestCase
     public function testAlreadyVerifiedAccountSendsNothing(): void
     {
         $userAccount = $this->createUserAccount('msp|sendverify2', 'send.verify.two@example.com');
-        $userAccount->markEmailVerified(new DateTimeImmutable());
+        $userAccount->markEmailVerified(TestClock::now());
         $this->entityManager->flush();
 
         ($this->handler)(new SendEmailVerificationLink('msp|sendverify2', 'en'));
@@ -154,7 +154,7 @@ final class SendEmailVerificationLinkHandlerTest extends KernelTestCase
 
     private function createUserAccount(string $userId, string $email): UserAccount
     {
-        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now());
 
         $this->entityManager->persist($userAccount);
         $this->entityManager->flush();
@@ -169,7 +169,7 @@ final class SendEmailVerificationLinkHandlerTest extends KernelTestCase
             $code,
             $userId,
             null,
-            new DateTimeImmutable(),
+            TestClock::now(),
         );
 
         if ($locale !== null) {

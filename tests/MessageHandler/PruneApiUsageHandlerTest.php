@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\PruneApiUsage;
@@ -21,8 +21,8 @@ final class PruneApiUsageHandlerTest extends KernelTestCase
         $handler = $container->get(PruneApiUsageHandler::class);
         $connection = $container->get(Connection::class);
 
-        $old = new DateTimeImmutable('-25 months');
-        $recent = new DateTimeImmutable('-1 month');
+        $old = TestClock::now()->modify('-25 months');
+        $recent = TestClock::now()->modify('-1 month');
 
         foreach ([$old, $recent] as $day) {
             $connection->insert('api_usage_day', [

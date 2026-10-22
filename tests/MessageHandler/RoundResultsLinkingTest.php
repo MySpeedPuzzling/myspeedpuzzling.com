@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
@@ -151,7 +151,7 @@ final class RoundResultsLinkingTest extends KernelTestCase
             competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
             name: 'Final Round',
             minutesLimit: 90,
-            startsAt: new DateTimeImmutable('+40 days'),
+            startsAt: TestClock::now()->modify('+40 days'),
             timezone: 'Europe/Prague',
             badgeBackgroundColor: null,
             badgeTextColor: null,
@@ -224,7 +224,7 @@ final class RoundResultsLinkingTest extends KernelTestCase
             competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
             name: 'Qualification Round',
             minutesLimit: 60,
-            startsAt: new DateTimeImmutable('+30 days'),
+            startsAt: TestClock::now()->modify('+30 days'),
             timezone: 'Europe/Prague',
             badgeBackgroundColor: null,
             badgeTextColor: null,

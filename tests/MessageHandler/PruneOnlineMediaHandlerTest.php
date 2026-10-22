@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
@@ -86,7 +86,7 @@ final class PruneOnlineMediaHandlerTest extends KernelTestCase
             'UPDATE online_round SET reference_image = :key WHERE id = :id',
             ['key' => $reference, 'id' => OnlineRoundsFixture::ONLINE_ROUND_SOLO],
         );
-        $this->storage->put(OnlineMediaStore::Primary, $reference, 2_000_000, modifiedAt: new DateTimeImmutable('-800 days'));
+        $this->storage->put(OnlineMediaStore::Primary, $reference, 2_000_000, modifiedAt: TestClock::now()->modify('-800 days'));
         $oldPhoto = $this->media(OnlineMediaKind::Button, '-400 days');
 
         $pruned = $this->prune(new PruneOnlineMedia(1));
@@ -103,7 +103,7 @@ final class PruneOnlineMediaHandlerTest extends KernelTestCase
     {
         $this->connection->executeStatement(
             "INSERT INTO online_entry_media (id, online_entry_id, kind, taken_ms, store, object_key, content_type, declared_bytes, created_at)
-             SELECT gen_random_uuid(), :onlineEntry, 'periodic', 1792000000000, 'primary', 'online/backlog/' || n || '.jpg', 'image/jpeg', 35000, NOW() - INTERVAL '40 days'
+             SELECT gen_random_uuid(), :onlineEntry, 'periodic', 1792000000000, 'primary', 'online/backlog/' || n || '.jpg', 'image/jpeg', 35000, " . TestClock::SQL_NOW . " - INTERVAL '40 days'
              FROM generate_series(1, :count) AS n",
             ['onlineEntry' => OnlineRoundsFixture::ONLINE_ENTRY_CONNECTED, 'count' => PruneOnlineMediaHandler::PAGE_SIZE + 1],
         );
@@ -280,7 +280,7 @@ final class PruneOnlineMediaHandlerTest extends KernelTestCase
             objectKey: 'online/test/' . $id->toString() . '.jpg',
             contentType: 'image/jpeg',
             declaredBytes: 35_000,
-            createdAt: new DateTimeImmutable($age),
+            createdAt: TestClock::now()->modify($age),
         );
         $this->entityManager->persist($media);
         $this->entityManager->flush();

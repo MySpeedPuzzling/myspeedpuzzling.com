@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -74,7 +74,7 @@ final class RecordOnlineEntryEventsHandlerTest extends KernelTestCase
     {
         $roundOne = $this->entityManager->find(CompetitionRound::class, OnlineRoundsFixture::ROUND_ONLINE_SOLO);
         self::assertNotNull($roundOne);
-        $roundOne->startStopwatch(new DateTimeImmutable('-2 hours'));
+        $roundOne->startStopwatch(TestClock::now()->modify('-2 hours'));
         $roundTwo = $this->onlineRound('Online Final');
         $participant = $this->entityManager->find(CompetitionParticipant::class, OnlineRoundsFixture::PARTICIPANT_ANONYMOUS);
         self::assertNotNull($participant);
@@ -114,7 +114,7 @@ final class RecordOnlineEntryEventsHandlerTest extends KernelTestCase
             unfinishedMeasure: OnlineUnfinishedMeasure::PiecesPlaced,
             missingPieceRule: OnlineMissingPieceRule::CompleteRequired,
         );
-        $onlineRound->round->startStopwatch(new DateTimeImmutable('-61 minutes'));
+        $onlineRound->round->startStopwatch(TestClock::now()->modify('-61 minutes'));
         $this->entityManager->flush();
 
         $this->record(OnlineRoundsFixture::PARTICIPANT_CONNECTED, OnlineRoundsFixture::DEVICE_CONNECTED, [self::event('timeup.pieces', self::nowMs(), ['pieces' => 480])]);
@@ -142,7 +142,7 @@ final class RecordOnlineEntryEventsHandlerTest extends KernelTestCase
         self::assertNull($this->reportedPieces());
 
         // The new run started 10 minutes ago
-        $round->startStopwatch(new DateTimeImmutable('-10 minutes'));
+        $round->startStopwatch(TestClock::now()->modify('-10 minutes'));
         $this->entityManager->flush();
         $another = self::event('timeup.pieces', $now - 15 * 60_000, ['pieces' => 9]);
         $this->record(OnlineRoundsFixture::PARTICIPANT_CONNECTED, OnlineRoundsFixture::DEVICE_CONNECTED, [$another]);
@@ -302,11 +302,11 @@ final class RecordOnlineEntryEventsHandlerTest extends KernelTestCase
             competition: $competition,
             name: $name,
             minutesLimit: 45,
-            startsAt: new DateTimeImmutable('+30 days'),
+            startsAt: TestClock::now()->modify('+30 days'),
             category: RoundCategory::Solo,
         );
         $this->entityManager->persist($round);
-        $this->entityManager->persist(new OnlineRound(Uuid::uuid7(), $round, new DateTimeImmutable(), null));
+        $this->entityManager->persist(new OnlineRound(Uuid::uuid7(), $round, TestClock::now(), null));
 
         return $round;
     }
@@ -318,6 +318,6 @@ final class RecordOnlineEntryEventsHandlerTest extends KernelTestCase
 
     private static function nowMs(): int
     {
-        return (int) floor(microtime(true) * 1000);
+        return TestClock::milliseconds();
     }
 }

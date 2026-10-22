@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\OauthIdentity;
@@ -94,7 +94,7 @@ final class UnlinkOauthIdentityHandlerTest extends KernelTestCase
 
     private function createUserAccount(string $userId, string $email, null|string $password): UserAccount
     {
-        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now());
 
         if ($password !== null) {
             $userAccount->changePassword($password);
@@ -114,7 +114,7 @@ final class UnlinkOauthIdentityHandlerTest extends KernelTestCase
             provider: $provider,
             providerUserId: $providerUserId,
             emailAtLink: $userAccount->email,
-            linkedAt: new DateTimeImmutable(),
+            linkedAt: TestClock::now(),
         ));
         $this->entityManager->flush();
     }

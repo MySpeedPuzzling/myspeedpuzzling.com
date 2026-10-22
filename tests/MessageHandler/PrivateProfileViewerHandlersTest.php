@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Exceptions\PrivateProfileViewersLimitReached;
@@ -72,15 +73,16 @@ final class PrivateProfileViewerHandlersTest extends KernelTestCase
     {
         $database = self::getContainer()->get(Connection::class);
         $database->executeStatement('DELETE FROM private_profile_viewer');
+        $now = TestClock::SQL_NOW;
         $database->executeStatement(
             <<<SQL
 INSERT INTO player (id, code, registered_at)
-SELECT gen_random_uuid(), 'cap' || n, NOW() FROM generate_series(1, :count) AS n
+SELECT gen_random_uuid(), 'cap' || n, {$now} FROM generate_series(1, :count) AS n
 SQL,
             ['count' => AllowPrivateProfileViewerHandler::MAX_VIEWERS],
         );
         $database->executeStatement(
-            "INSERT INTO private_profile_viewer (id, owner_id, viewer_id, added_at) SELECT gen_random_uuid(), :owner, id, NOW() FROM player WHERE code LIKE 'cap%'",
+            "INSERT INTO private_profile_viewer (id, owner_id, viewer_id, added_at) SELECT gen_random_uuid(), :owner, id, " . TestClock::SQL_NOW . " FROM player WHERE code LIKE 'cap%'",
             ['owner' => PlayerFixture::PLAYER_PRIVATE],
         );
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Ramsey\Uuid\Uuid;
@@ -26,7 +26,7 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
     public function testSkipsProcessingWhenSubscriptionHasPauseCollection(): void
     {
         $subscriptionId = 'sub_test_paused';
-        $voucherEndsAt = new DateTimeImmutable('+3 months');
+        $voucherEndsAt = TestClock::now()->modify('+3 months');
 
         $subscription = Subscription::constructFrom([
             'id' => $subscriptionId,
@@ -41,7 +41,7 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
                 'data' => [
                     [
                         'id' => 'si_test',
-                        'current_period_end' => (new DateTimeImmutable('+30 days'))->getTimestamp(),
+                        'current_period_end' => (TestClock::now()->modify('+30 days'))->getTimestamp(),
                     ],
                 ],
             ],
@@ -71,7 +71,7 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
             membershipRepository: $membershipRepository,
             logger: new NullLogger(),
             playerRepository: $playerRepository,
-            clock: new MockClock(),
+            clock: new MockClock(TestClock::now()),
         );
 
         $handler(new UpdateMembershipSubscription($subscriptionId));
@@ -87,20 +87,20 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
             code: 'testplayer',
             userId: 'auth0|test',
             name: 'Test Player',
-            registeredAt: new DateTimeImmutable(),
+            registeredAt: TestClock::now(),
         );
         $membership = new Membership(
             id: Uuid::uuid7(),
             player: $player,
-            createdAt: new DateTimeImmutable('-30 days'),
+            createdAt: TestClock::now()->modify('-30 days'),
             stripeSubscriptionId: $subscriptionId,
-            billingPeriodEndsAt: new DateTimeImmutable('+15 days'),
+            billingPeriodEndsAt: TestClock::now()->modify('+15 days'),
             endsAt: null,
         );
         // Clear events from constructor
         $membership->popEvents();
 
-        $billingPeriodEnd = new DateTimeImmutable('+30 days');
+        $billingPeriodEnd = TestClock::now()->modify('+30 days');
 
         $subscription = Subscription::constructFrom([
             'id' => $subscriptionId,
@@ -151,7 +151,7 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
             membershipRepository: $membershipRepository,
             logger: new NullLogger(),
             playerRepository: $playerRepository,
-            clock: new MockClock(),
+            clock: new MockClock(TestClock::now()),
         );
 
         $handler(new UpdateMembershipSubscription($subscriptionId, isPaymentConfirmed: true));
@@ -173,20 +173,20 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
             code: 'testplayer',
             userId: 'auth0|test',
             name: 'Test Player',
-            registeredAt: new DateTimeImmutable(),
+            registeredAt: TestClock::now(),
         );
         $membership = new Membership(
             id: Uuid::uuid7(),
             player: $player,
-            createdAt: new DateTimeImmutable('-30 days'),
+            createdAt: TestClock::now()->modify('-30 days'),
             stripeSubscriptionId: $subscriptionId,
-            billingPeriodEndsAt: new DateTimeImmutable('+15 days'),
+            billingPeriodEndsAt: TestClock::now()->modify('+15 days'),
             endsAt: null,
         );
         // Clear events from constructor
         $membership->popEvents();
 
-        $billingPeriodEnd = new DateTimeImmutable('+30 days');
+        $billingPeriodEnd = TestClock::now()->modify('+30 days');
 
         $subscription = Subscription::constructFrom([
             'id' => $subscriptionId,
@@ -237,7 +237,7 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
             membershipRepository: $membershipRepository,
             logger: new NullLogger(),
             playerRepository: $playerRepository,
-            clock: new MockClock(),
+            clock: new MockClock(TestClock::now()),
         );
 
         $handler(new UpdateMembershipSubscription($subscriptionId, isPaymentConfirmed: false));
@@ -287,15 +287,15 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
             code: 'discounted',
             userId: 'auth0|discounted',
             name: 'Discounted Player',
-            registeredAt: new DateTimeImmutable(),
+            registeredAt: TestClock::now(),
         );
 
         return new Membership(
             id: Uuid::uuid7(),
             player: $player,
-            createdAt: new DateTimeImmutable('-30 days'),
+            createdAt: TestClock::now()->modify('-30 days'),
             stripeSubscriptionId: $subscriptionId,
-            billingPeriodEndsAt: new DateTimeImmutable('+15 days'),
+            billingPeriodEndsAt: TestClock::now()->modify('+15 days'),
         );
     }
 
@@ -315,7 +315,7 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
                 'data' => [
                     [
                         'id' => 'si_test',
-                        'current_period_end' => (new DateTimeImmutable('+30 days'))->getTimestamp(),
+                        'current_period_end' => (TestClock::now()->modify('+30 days'))->getTimestamp(),
                     ],
                 ],
             ],
@@ -350,7 +350,7 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
             membershipRepository: $membershipRepository,
             logger: new NullLogger(),
             playerRepository: $this->createStub(PlayerRepository::class),
-            clock: new MockClock(),
+            clock: new MockClock(TestClock::now()),
         );
 
         $handler(new UpdateMembershipSubscription($subscriptionId));

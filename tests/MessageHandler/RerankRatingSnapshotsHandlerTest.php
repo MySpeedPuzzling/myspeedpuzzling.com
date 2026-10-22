@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Message\RerankRatingSnapshots;
@@ -65,7 +66,7 @@ final class RerankRatingSnapshotsHandlerTest extends KernelTestCase
     private function snapshot(string $day, string $playerId, null|float $rating, null|int $place): void
     {
         $this->connection()->executeStatement(
-            'INSERT INTO player_rating_snapshot (id, player_id, pieces_count, snapshot_date, elo_rating, elo_rank, computed_at) VALUES (gen_random_uuid(), :player, 500, :day, :rating, :place, NOW())',
+            'INSERT INTO player_rating_snapshot (id, player_id, pieces_count, snapshot_date, elo_rating, elo_rank, computed_at) VALUES (gen_random_uuid(), :player, 500, :day, :rating, :place, ' . TestClock::SQL_NOW . ')',
             ['player' => $playerId, 'day' => $day, 'rating' => $rating, 'place' => $place],
         );
     }

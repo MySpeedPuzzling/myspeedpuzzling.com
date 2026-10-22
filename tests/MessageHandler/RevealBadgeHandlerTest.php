@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -59,7 +60,7 @@ final class RevealBadgeHandlerTest extends KernelTestCase
         $id = Uuid::uuid7()->toString();
 
         $this->database->executeStatement(
-            'INSERT INTO badge (id, player_id, type, earned_at, tier) VALUES (:id, :playerId, :type, NOW(), :tier)',
+            'INSERT INTO badge (id, player_id, type, earned_at, tier) VALUES (:id, :playerId, :type, ' . TestClock::SQL_NOW . ', :tier)',
             ['id' => $id, 'playerId' => $playerId, 'type' => $type, 'tier' => $tier],
         );
 

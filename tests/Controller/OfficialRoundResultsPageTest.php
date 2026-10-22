@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
@@ -374,7 +375,7 @@ final class OfficialRoundResultsPageTest extends WebTestCase
             'INSERT INTO competition_participant_round (id, participant_id, round_id, result_seconds, result_did_not_start) VALUES (:id, :participantId, :roundId, 3000, false)',
             ['id' => Uuid::uuid7()->toString(), 'participantId' => $participantId, 'roundId' => CompetitionSeriesFixture::ROUND_EJJ_68],
         );
-        $database->executeStatement('UPDATE competition_round SET results_published_at = NOW() WHERE id = :id', ['id' => CompetitionSeriesFixture::ROUND_EJJ_68]);
+        $database->executeStatement('UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => CompetitionSeriesFixture::ROUND_EJJ_68]);
 
         $crawler = $browser->request('GET', '/en/series/euro-jigsaw-jam-series/ejj-68-february-2026');
 
@@ -389,7 +390,7 @@ final class OfficialRoundResultsPageTest extends WebTestCase
     {
         $browser = self::createClient();
         $this->database()->executeStatement(
-            "INSERT INTO notification (id, player_id, type, notified_at, target_competition_round_id) VALUES (:id, :playerId, 'OfficialResultPublished', NOW(), :roundId)",
+            "INSERT INTO notification (id, player_id, type, notified_at, target_competition_round_id) VALUES (:id, :playerId, 'OfficialResultPublished', " . TestClock::SQL_NOW . ", :roundId)",
             ['id' => Uuid::uuid7()->toString(), 'playerId' => PlayerFixture::PLAYER_ADMIN, 'roundId' => OfficialResultsFixture::ROUND_GROUP_A],
         );
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
@@ -404,7 +405,7 @@ final class OfficialRoundResultsPageTest extends WebTestCase
     private function publish(string $roundId): void
     {
         $this->database()->executeStatement(
-            'UPDATE competition_round SET results_published_at = NOW(), results_first_published_at = NOW() WHERE id = :id',
+            'UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ', results_first_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => $roundId],
         );
     }

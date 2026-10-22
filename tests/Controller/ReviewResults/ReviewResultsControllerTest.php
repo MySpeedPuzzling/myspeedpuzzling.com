@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\ReviewResults;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Services\DuplicateResults\DailyDuplicateDetection;
@@ -268,7 +269,7 @@ final class ReviewResultsControllerTest extends WebTestCase
     {
         $browser = self::createClient();
         $this->database($browser)->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => self::DANA, 'blocked' => self::TOM],
         );
         TestingLogin::asPlayer($browser, self::DANA);

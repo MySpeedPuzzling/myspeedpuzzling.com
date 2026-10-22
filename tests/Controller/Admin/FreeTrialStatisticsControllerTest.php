@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Admin;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -18,8 +19,8 @@ final class FreeTrialStatisticsControllerTest extends WebTestCase
 
         $browser->getContainer()->get(Connection::class)->executeStatement(
             "INSERT INTO player_modal_impression (id, player_id, modal, displayed_at, seen_at) VALUES
-                ('018d0000-0000-0000-0000-0000000000b1', :first, 'free_trial_offer', NOW(), NOW()),
-                ('018d0000-0000-0000-0000-0000000000b2', :second, 'free_trial_offer', NOW(), NULL)",
+                ('018d0000-0000-0000-0000-0000000000b1', :first, 'free_trial_offer', " . TestClock::SQL_NOW . ", " . TestClock::SQL_NOW . "),
+                ('018d0000-0000-0000-0000-0000000000b2', :second, 'free_trial_offer', " . TestClock::SQL_NOW . ", NULL)",
             ['first' => PlayerFixture::PLAYER_REGULAR, 'second' => PlayerFixture::PLAYER_PRIVATE],
         );
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Api\V1;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CollectionItem;
@@ -246,9 +247,9 @@ final class UnsolvedPuzzlesEndpointTest extends WebTestCase
     {
         $browser = self::createClient();
         // one borrowed, one from a collection - both queries apply the embargo
-        $this->setImage($browser, PuzzleFixture::PUZZLE_3000, 'puzzles/test/borrowed.jpg', hideUntil: new DateTimeImmutable('+30 days'));
-        $this->setImage($browser, PuzzleFixture::PUZZLE_500_05, 'puzzles/test/collection.jpg', hideUntil: new DateTimeImmutable('+30 days'));
-        $this->setImage($browser, PuzzleFixture::PUZZLE_300, 'puzzles/test/visible.jpg', hideUntil: new DateTimeImmutable('-1 day'));
+        $this->setImage($browser, PuzzleFixture::PUZZLE_3000, 'puzzles/test/borrowed.jpg', hideUntil: TestClock::now()->modify('+30 days'));
+        $this->setImage($browser, PuzzleFixture::PUZZLE_500_05, 'puzzles/test/collection.jpg', hideUntil: TestClock::now()->modify('+30 days'));
+        $this->setImage($browser, PuzzleFixture::PUZZLE_300, 'puzzles/test/visible.jpg', hideUntil: TestClock::now()->modify('-1 day'));
         $this->authenticatePat($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
         $browser->request('GET', $this->myPath());
@@ -381,7 +382,7 @@ final class UnsolvedPuzzlesEndpointTest extends WebTestCase
                 player: $player,
                 puzzle: $puzzle,
                 comment: null,
-                addedAt: new DateTimeImmutable(),
+                addedAt: TestClock::now(),
             ));
         }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Api\V1;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
@@ -277,7 +278,7 @@ final class WishlistEndpointTest extends WebTestCase
     public function testEmbargoedImageIsNull(): void
     {
         $browser = self::createClient();
-        $this->setImage($browser, PuzzleFixture::PUZZLE_9000, 'puzzles/test/box.jpg', hideUntil: new DateTimeImmutable('+30 days'));
+        $this->setImage($browser, PuzzleFixture::PUZZLE_9000, 'puzzles/test/box.jpg', hideUntil: TestClock::now()->modify('+30 days'));
         $this->setImage($browser, PuzzleFixture::PUZZLE_3000, 'puzzles/test/other.jpg', hideUntil: null);
         $this->authenticatePat($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
@@ -412,7 +413,7 @@ final class WishlistEndpointTest extends WebTestCase
                 player: $player,
                 puzzle: $puzzle,
                 removeOnCollectionAdd: false,
-                addedAt: new DateTimeImmutable(),
+                addedAt: TestClock::now(),
             ));
         }
 

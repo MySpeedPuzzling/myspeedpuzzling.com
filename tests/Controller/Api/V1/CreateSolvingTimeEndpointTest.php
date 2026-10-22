@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Api\V1;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
@@ -173,7 +174,7 @@ final class CreateSolvingTimeEndpointTest extends WebTestCase
 
         // Approved and published, the same request saves
         $this->database()->executeStatement(
-            'UPDATE competition SET approved_at = NOW() WHERE id = :id',
+            'UPDATE competition SET approved_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => OrganizationFixture::COMPETITION_DRAFT_NIGHT],
         );
         $send();

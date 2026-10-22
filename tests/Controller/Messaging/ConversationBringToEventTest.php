@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Messaging;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -55,7 +55,7 @@ final class ConversationBringToEventTest extends WebTestCase
             competition: self::getContainer()->get(CompetitionRepository::class)->get(self::FAIR),
             source: ParticipantSource::SelfJoined,
         );
-        $participant->connect(self::getContainer()->get(PlayerRepository::class)->get(self::BUYER), new DateTimeImmutable('-1 day'));
+        $participant->connect(self::getContainer()->get(PlayerRepository::class)->get(self::BUYER), TestClock::now()->modify('-1 day'));
         $entityManager->persist($participant);
         $entityManager->flush();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
@@ -103,7 +103,7 @@ final class ConversationBringToEventTest extends WebTestCase
     {
         $browser = self::createClient();
         self::getContainer()->get(Connection::class)->executeStatement(
-            'UPDATE competition_participant SET deleted_at = NOW() WHERE player_id = :player',
+            'UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW . ' WHERE player_id = :player',
             ['player' => PlayerFixture::PLAYER_WITH_STRIPE],
         );
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
@@ -289,7 +289,7 @@ final class ConversationBringToEventTest extends WebTestCase
     private function reserveFor(string $playerId): void
     {
         self::getContainer()->get(Connection::class)->executeStatement(
-            'UPDATE sell_swap_list_item SET reserved = true, reserved_at = NOW(), reserved_for_player_id = :player WHERE id = :id',
+            'UPDATE sell_swap_list_item SET reserved = true, reserved_at = ' . TestClock::SQL_NOW . ', reserved_for_player_id = :player WHERE id = :id',
             ['player' => $playerId, 'id' => SellSwapListItemFixture::SELLSWAP_01],
         );
     }

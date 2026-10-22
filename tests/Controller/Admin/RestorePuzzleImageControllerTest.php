@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Admin;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
@@ -109,7 +109,7 @@ final class RestorePuzzleImageControllerTest extends WebTestCase
             id: $id,
             puzzle: $puzzle,
             reporter: self::getContainer()->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_ADMIN),
-            submittedAt: new DateTimeImmutable(),
+            submittedAt: TestClock::now(),
             proposedName: $puzzle->name,
             proposedManufacturer: $puzzle->manufacturer,
             proposedPiecesCount: $puzzle->piecesCount,

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\InternalApi;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Controller\InternalApi\ListPuzzleMergeRequestsController;
@@ -39,7 +39,7 @@ final class ListPuzzleMergeRequestsControllerTest extends KernelTestCase
         $puzzle->changeNames($puzzle->name, $puzzle->nameLanguage, PuzzleNames::fromArray([
             ['name' => 'Rätsel zwei', 'language' => 'de'],
             ['name' => 'Hádanka dvě', 'language' => 'cs'],
-        ]), new DateTimeImmutable());
+        ]), TestClock::now());
         $entityManager->flush();
         $entityManager->clear();
 
@@ -78,7 +78,7 @@ final class ListPuzzleMergeRequestsControllerTest extends KernelTestCase
         $entityManager = $container->get(EntityManagerInterface::class);
         $puzzle = $entityManager->find(Puzzle::class, PuzzleFixture::PUZZLE_1000_02);
         self::assertNotNull($puzzle);
-        $puzzle->changeNames('Kouzelné ráno', 'cs', $puzzle->alternativeNames(), new DateTimeImmutable());
+        $puzzle->changeNames('Kouzelné ráno', 'cs', $puzzle->alternativeNames(), TestClock::now());
         $entityManager->flush();
 
         $mergeRequestId = Uuid::uuid7()->toString();

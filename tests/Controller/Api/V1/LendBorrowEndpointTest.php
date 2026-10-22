@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Api\V1;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\LentPuzzle;
@@ -237,8 +238,8 @@ final class LendBorrowEndpointTest extends WebTestCase
     {
         $browser = self::createClient();
         // one lent, one borrowed - both queries apply the embargo
-        $this->setImage($browser, PuzzleFixture::PUZZLE_500_03, 'puzzles/test/lent.jpg', hideUntil: new DateTimeImmutable('+30 days'));
-        $this->setImage($browser, PuzzleFixture::PUZZLE_3000, 'puzzles/test/borrowed.jpg', hideUntil: new DateTimeImmutable('+30 days'));
+        $this->setImage($browser, PuzzleFixture::PUZZLE_500_03, 'puzzles/test/lent.jpg', hideUntil: TestClock::now()->modify('+30 days'));
+        $this->setImage($browser, PuzzleFixture::PUZZLE_3000, 'puzzles/test/borrowed.jpg', hideUntil: TestClock::now()->modify('+30 days'));
         $this->setImage($browser, PuzzleFixture::PUZZLE_2000, 'puzzles/test/visible.jpg', hideUntil: null);
         $this->authenticatePat($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
@@ -379,7 +380,7 @@ final class LendBorrowEndpointTest extends WebTestCase
                 ownerName: null,
                 currentHolderPlayer: null,
                 currentHolderName: 'Budget test',
-                lentAt: new DateTimeImmutable(),
+                lentAt: TestClock::now(),
             ));
         }
 

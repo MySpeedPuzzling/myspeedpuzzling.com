@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\ReviewResults;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\ResultReviewContact;
@@ -74,9 +74,9 @@ final class ResultReviewVisitTest extends WebTestCase
             lastActiveOn: null,
             caseIds: [],
             removalIds: [],
-            plannedAt: new DateTimeImmutable('-1 day'),
+            plannedAt: TestClock::now()->modify('-1 day'),
         );
-        $contact->sent([], [], new DateTimeImmutable('-1 day'));
+        $contact->sent([], [], TestClock::now()->modify('-1 day'));
         $entityManager->persist($contact);
         $entityManager->flush();
 

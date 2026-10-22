@@ -85,6 +85,22 @@ final class GetPartnerFinderEventsTest extends KernelTestCase
         self::assertStringStartsWith(OrganizationFixture::SERIES_LANTERN_NIGHTS_NAME . ' · ', $edition->event->reference->displayName());
     }
 
+    public function testAnEditionWithoutItsOwnLogoShowsItsSeriesLogo(): void
+    {
+        $this->database->executeStatement('UPDATE competition SET is_draft = false, logo = NULL WHERE id = :id', ['id' => OrganizationFixture::EDITION_LANTERN_DRAFT]);
+        $this->database->executeStatement("UPDATE competition_series SET logo = 'series-logo.png' WHERE slug = :slug", ['slug' => OrganizationFixture::SERIES_LANTERN_NIGHTS_SLUG]);
+
+        $edition = $this->query->all()->find(OrganizationFixture::EDITION_LANTERN_DRAFT);
+        self::assertNotNull($edition);
+        self::assertSame('series-logo.png', $edition->logo);
+
+        $this->database->executeStatement("UPDATE competition SET logo = 'edition-logo.png' WHERE id = :id", ['id' => OrganizationFixture::EDITION_LANTERN_DRAFT]);
+
+        $edition = $this->query->all()->find(OrganizationFixture::EDITION_LANTERN_DRAFT);
+        self::assertNotNull($edition);
+        self::assertSame('edition-logo.png', $edition->logo);
+    }
+
     public function testMostLookingOrdersByOpenListings(): void
     {
         foreach ([PlayerFixture::PLAYER_WITH_STRIPE, PlayerFixture::PLAYER_PRIVATE, PlayerFixture::PLAYER_ADMIN] as $playerId) {

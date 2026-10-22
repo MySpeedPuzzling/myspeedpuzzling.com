@@ -412,14 +412,17 @@ guest and a signed-in player gets the same page (only the layout's own statement
 **Page** (`templates/partner_finder/gate.html.twig`, styles `assets/styles/_partner-finder-gate.scss`): a soft coral hero
 (eyebrow, title, lead, "Free for everyone" + "Your e-mail address stays private"), "How it works" in 3 numbered steps,
 the picker card, then "Events with people looking" = `PartnerFinderGate::mostLooking(6)` (only events with an open
-listing, most first, nearest first on a tie; date, name, place + flag, "N looking for a partner", "See who's looking"),
+listing, most first, nearest first on a tie; logo, date, name, place + flag, "N looking for a partner", "See who's looking"),
 else an empty-state line inviting to be the first.
 
 **Picker**: a plain `<select name="event">` in a GET form to the same route; each option's text is "Name · date · place"
 (the native select without JavaScript) and its `data-data` JSON the row (`name` = `CompetitionReference::displayName()`,
-so an edition reads "Series · Edition", `series`, `dates` = `event_dates()`, `place`, `flag` `fi fi-xx`, `looking` "N
-looking" when > 0, `url` = `partner_finder_url()`). `assets/controllers/partner_finder_gate_controller.js` turns it into
-a TomSelect (`dataAttr: 'data-data'`, search over name + series + place - typing a series name finds its editions, so a
+so an edition reads "Series · Edition", `series`, `dates` = `event_dates()`, `place`, `flag` `fi fi-xx`, `logo` thumbnail,
+`looking` "N looking" when > 0, `url` = `partner_finder_url()`). `assets/controllers/partner_finder_gate_controller.js` turns it into
+a TomSelect (`dataAttr: 'data'` - TomSelect reads it from the option's `dataset`; shipped as `'data-data'` the JSON
+stayed one string and the picker found nothing on production, 2026-10-22, now guarded by `TomSelectDataAttrTest` for
+every template with `data-data` options; each option = logo (or a calendar tile) · name · coral dates · flag + place ·
+"N looking", search over name + series + place - typing a series name finds its editions, so a
 series needs no entry of its own; all options, no cap) and opens the picked finder with Turbo `visit()`; it hides the
 submit button only once it runs. Without JavaScript `?event=<competition id>` → 302 to that event's finder
 (`PartnerFinderUrls::forSlugs()`), an id without a finder (passed meanwhile, a draft, nonsense) renders the page again.

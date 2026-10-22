@@ -47,6 +47,8 @@ export default class extends Controller {
             },
             // Options may carry a `logo` (thumbnail URL) - brands do, like in the add form.
             // Pre-rendered <option data-data='{"logo": ...}'> elements are picked up too.
+            // TomSelect looks the JSON up in the option's dataset, so `data-data` is 'data'.
+            dataAttr: 'data',
             render: {
                 option: (data, escape) => this.renderWithLogo(data, escape),
                 item: (data, escape) => this.renderWithLogo(data, escape),

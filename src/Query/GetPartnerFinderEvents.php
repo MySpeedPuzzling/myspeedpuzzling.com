@@ -12,8 +12,8 @@ use SpeedPuzzling\Web\Results\PartnerFinderGate;
 /**
  * Every event that has a partner finder right now (PartnerFinderEligibility::SQL_QUALIFIES: one-time events and series
  * editions, in person, publicly visible - drafts never -, dated, not over, offering a pair or a team) with its open
- * listings counted, nearest first - ONE statement for the whole gate page (docs/features/partner-finder.md "Part D as
- * built"). Only events with a page: a one-time event needs its slug, an edition its own and its series' slug.
+ * listings counted and its logo (an edition without its own shows its series'), nearest first - ONE statement for the
+ * whole gate page (docs/features/partner-finder.md "Part D as built"). Only events with a page: a one-time event needs its slug, an edition its own and its series' slug.
  * The counts are aggregates over open listings (`custom_partner_listing_open_by_event`), nobody's identity.
  *
  * @phpstan-import-type MarketplaceEventDatabaseRow from MarketplaceEvent
@@ -41,6 +41,7 @@ SELECT c.id,
     COALESCE(c.location_country_code, cs.location_country_code) AS location_country_code,
     cs.name AS series_name,
     cs.slug AS series_slug,
+    COALESCE(c.logo, cs.logo) AS logo,
     (
         SELECT COUNT(*)
         FROM partner_listing pl
@@ -62,12 +63,15 @@ SQL;
         return new PartnerFinderGate(array_map(static function (array $row): PartnerFinderEvent {
             /** @var int|string $count */
             $count = $row['listing_count'];
-            unset($row['listing_count']);
+            /** @var null|string $logo */
+            $logo = $row['logo'];
+            unset($row['listing_count'], $row['logo']);
 
             /** @var MarketplaceEventDatabaseRow $row */
             return new PartnerFinderEvent(
                 event: MarketplaceEvent::fromDatabaseRow($row),
                 listingCount: (int) $count,
+                logo: $logo,
             );
         }, $rows));
     }

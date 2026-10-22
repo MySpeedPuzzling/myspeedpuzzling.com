@@ -28,6 +28,8 @@ export default class extends Controller {
             persist: true,
             valueField: 'value',
             labelField: 'text',
+            // Pre-rendered suggestions carry `code` + `avatar` in `data-data` (TomSelect's name for it is the dataset key)
+            dataAttr: 'data',
             searchField: ['text', 'code'],
             // Pre-rendered suggestions keep their order (most useful first)
             sortField: [{ field: '$order' }, { field: '$score' }],

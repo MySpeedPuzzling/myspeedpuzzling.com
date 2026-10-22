@@ -209,7 +209,34 @@ $pfg-coral-line: mix($primary, $white, 28%);
     max-height: 22rem;
 }
 
+.pfg-logo {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid $pfg-line;
+    border-radius: .5rem;
+    background: $white;
+    object-fit: contain;
+}
+
+.pfg-logo-none {
+    border-color: $pfg-coral-line;
+    background: $pfg-coral-wash;
+    color: $pfg-coral-ink;
+    font-size: 1.0625rem;
+}
+
 .pfg-option {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    min-width: 0;
+}
+
+.pfg-option-text {
     display: flex;
     flex-direction: column;
     gap: .125rem;
@@ -221,6 +248,38 @@ $pfg-coral-line: mix($primary, $white, 28%);
     color: $pfg-ink;
     font-weight: 500;
     text-overflow: ellipsis;
+}
+
+.pfg-option-dates {
+    color: $pfg-coral-ink;
+    font-weight: 500;
+}
+
+// The picked event in the closed control: logo, name, dates on one line
+.pfg-item {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+
+    .pfg-logo {
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: .375rem;
+        font-size: .875rem;
+    }
+}
+
+.pfg-item-name {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.pfg-item-dates {
+    flex-shrink: 0;
+    color: $pfg-soft-ink;
+    font-size: .8125rem;
 }
 
 .pfg-option-meta {
@@ -291,6 +350,22 @@ $pfg-coral-line: mix($primary, $white, 28%);
     border: 1px solid $pfg-line;
     border-radius: .75rem;
     background: $white;
+}
+
+.pfg-card-head {
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+    margin-bottom: .25rem;
+
+    .pfg-logo {
+        width: 2.75rem;
+        height: 2.75rem;
+    }
+}
+
+.pfg-card-title {
+    min-width: 0;
 }
 
 .pfg-card-date {

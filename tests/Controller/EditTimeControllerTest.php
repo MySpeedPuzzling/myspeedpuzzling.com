@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
+use PHPUnit\Framework\Attributes\TestWith;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
@@ -329,6 +330,50 @@ final class EditTimeControllerTest extends WebTestCase
         $this->assertResponseStatusCodeSame(422);
         $this->assertSelectorTextContains('form[name="edit_puzzle_solving_time_form"]', 'One of the puzzlers is empty');
         self::assertNull($this->linkedCompetitionId($database));
+    }
+
+    /**
+     * A POST without a mode (or an empty one) reached the `choice_filter` closure with null and answered a 500
+     * (Sentry WEB-E9) - it keeps the time's own mode instead
+     */
+    #[TestWith([null])]
+    #[TestWith([''])]
+    public function testMissingModeKeepsTheStoredMode(null|string $mode): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', self::EDIT_URL);
+        $this->assertResponseIsSuccessful();
+
+        $submission = $this->submission($crawler, CompetitionSeriesFixture::EDITION_OFFLINE_1);
+        if ($mode === null) {
+            unset($submission['mode']);
+        } else {
+            $submission['mode'] = $mode;
+        }
+
+        $browser->request('POST', self::EDIT_URL, ['edit_puzzle_solving_time_form' => $submission]);
+
+        $this->assertResponseRedirects();
+    }
+
+    public function testModeNotOfferedOnTheEditFormIsRejected(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', self::EDIT_URL);
+        $this->assertResponseIsSuccessful();
+
+        $submission = $this->submission($crawler, CompetitionSeriesFixture::EDITION_OFFLINE_1);
+        $submission['mode'] = 'collection';
+
+        $browser->request('POST', self::EDIT_URL, ['edit_puzzle_solving_time_form' => $submission]);
+
+        $this->assertResponseStatusCodeSame(422);
     }
 
     /**

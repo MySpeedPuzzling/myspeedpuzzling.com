@@ -58,11 +58,17 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
         $submittedCompetitionPick = $options['submitted_competition_pick'] ?? null;
         $competitionChoices = $this->competitionChoicesBuilder->build($currentCompetitionPick, $submittedCompetitionPick);
 
+        // A submit without a mode (or an empty one) keeps the mode the time has - the property is not nullable
+        $data = $builder->getData();
+        $storedMode = $data instanceof EditPuzzleSolvingTimeFormData ? $data->mode : PuzzleAddMode::SpeedPuzzling;
+
         // Mode field (hidden, controlled by JS) - only Speed and Relax modes for editing
         $builder->add('mode', EnumType::class, [
             'class' => PuzzleAddMode::class,
             'label' => false,
-            'choice_filter' => fn (PuzzleAddMode $mode): bool => $mode !== PuzzleAddMode::Collection,
+            // Symfony runs the filter over the choices a value is looked up for, null included (Sentry WEB-E9)
+            'choice_filter' => fn (null|PuzzleAddMode $mode): bool => $mode !== null && $mode !== PuzzleAddMode::Collection,
+            'empty_data' => $storedMode->value,
             'attr' => [
                 'class' => 'd-none',
             ],

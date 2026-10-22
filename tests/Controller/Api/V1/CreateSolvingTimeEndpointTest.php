@@ -329,6 +329,45 @@ final class CreateSolvingTimeEndpointTest extends WebTestCase
         self::assertNotSame($timeId, $this->extractTimeId($other));
     }
 
+    public function testFinishedAtWithAnOffsetIsStoredAsTheSameInstantInUtc(): void
+    {
+        $browser = self::createClient();
+
+        $token = PatTestHelper::createToken($browser, PlayerFixture::PLAYER_REGULAR);
+        PatTestHelper::addBearerToken($browser, $token);
+
+        $send = function () use ($browser): string {
+            $browser->request(
+                'POST',
+                '/api/v1/me/solving-times',
+                server: ['CONTENT_TYPE' => 'application/json', 'HTTP_IDEMPOTENCY_KEY' => 'offset-key-1'],
+                content: (string) json_encode([
+                    'puzzle_id' => PuzzleFixture::PUZZLE_500_01,
+                    'time' => '1:11:11',
+                    'finished_at' => '2026-10-20T00:30:00+02:00',
+                ]),
+            );
+
+            $this->assertResponseStatusCodeSame(Response::HTTP_CREATED);
+
+            return (string) $browser->getResponse()->getContent();
+        };
+
+        $first = $send();
+
+        /** @var array{time_id: string, finished_at: null|string} $response */
+        $response = json_decode($first, true, 512, JSON_THROW_ON_ERROR);
+        // Same instant, in UTC - Jan's answer 2 (docs/features/time-and-clock/STATUS.md)
+        self::assertSame('2026-10-19T22:30:00+00:00', $response['finished_at']);
+        self::assertSame('2026-10-19 22:30:00', $this->database()->fetchOne(
+            'SELECT finished_at::text FROM puzzle_solving_time WHERE id = :id',
+            ['id' => $response['time_id']],
+        ));
+
+        // A retry is recognised as the same entry: the day compared is the stored one, not the offset's
+        self::assertSame($first, $send());
+    }
+
     public function testAKeyReusedForAnotherResultIsRefused(): void
     {
         $browser = self::createClient();

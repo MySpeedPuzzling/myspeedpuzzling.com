@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Doctrine\JsonbObjectArrayDoctrineType;
 use SpeedPuzzling\Web\Doctrine\LapsArrayDoctrineType;
 use SpeedPuzzling\Web\Doctrine\PuzzlersGroupDoctrineType;
 use SpeedPuzzling\Web\Doctrine\SellSwapListSettingsDoctrineType;
+use SpeedPuzzling\Web\Doctrine\UtcDateTimeImmutableDoctrineType;
 
 return App::config([
     'doctrine' => [
@@ -23,6 +24,9 @@ return App::config([
                 LapsArrayDoctrineType::NAME => LapsArrayDoctrineType::class,
                 PuzzlersGroupDoctrineType::NAME => PuzzlersGroupDoctrineType::class,
                 SellSwapListSettingsDoctrineType::NAME => SellSwapListSettingsDoctrineType::class,
+                // Overrides DBAL's datetime_immutable: every timestamp is stored as UTC wall time, whatever zone the
+                // object had (docs/features/time-and-clock/README.md, R3). Same SQL type - no schema change
+                UtcDateTimeImmutableDoctrineType::NAME => UtcDateTimeImmutableDoctrineType::class,
             ],
             // Note: schema_filter removed - using custom RegexSchemaAssetFilter service instead
             // to avoid DBAL deprecation warning (see src/Doctrine/RegexSchemaAssetFilter.php)

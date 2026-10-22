@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Repository;
 
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\NoResultException;
 use Psr\Clock\ClockInterface;
@@ -105,5 +106,25 @@ readonly class PlayerRepository
         } catch (NoResultException) {
             throw new PlayerNotFound();
         }
+    }
+
+    /**
+     * Muted players whose mute ended before the given moment.
+     *
+     * @return list<Player>
+     */
+    public function findWithMessagingMuteEndedBefore(DateTimeImmutable $moment): array
+    {
+        /** @var list<Player> $players */
+        $players = $this->entityManager->createQueryBuilder()
+            ->select('player')
+            ->from(Player::class, 'player')
+            ->where('player.messagingMuted = true')
+            ->andWhere('player.messagingMutedUntil < :moment')
+            ->setParameter('moment', $moment)
+            ->getQuery()
+            ->getResult();
+
+        return $players;
     }
 }

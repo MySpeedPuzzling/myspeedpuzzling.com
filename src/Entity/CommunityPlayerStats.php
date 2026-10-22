@@ -70,6 +70,14 @@ class CommunityPlayerStats
         #[Immutable]
         #[Column(type: Types::INTEGER, nullable: true)]
         public null|int $best1000Seconds,
+        // Median solo time on exactly 500 / 1000 pieces (every attempt counts), suspicious times left out - the partner
+        // finder's "how fast", a typical pace rather than one lucky day
+        #[Immutable]
+        #[Column(type: Types::INTEGER, nullable: true)]
+        public null|int $median500Seconds,
+        #[Immutable]
+        #[Column(type: Types::INTEGER, nullable: true)]
+        public null|int $median1000Seconds,
         #[Immutable]
         #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
         public null|DateTimeImmutable $firstSolvedAt,

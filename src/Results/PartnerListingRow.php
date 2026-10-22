@@ -48,8 +48,9 @@ readonly final class PartnerListingRow
         public array $languages,
         public null|string $note,
         public DateTimeImmutable $createdAt,
-        public null|int $best500Seconds,
-        public null|int $best1000Seconds,
+        // Median solo times (community_player_stats) - a typical pace, not one lucky day
+        public null|int $median500Seconds,
+        public null|int $median1000Seconds,
         public null|int $solvedTotal,
         public null|int $mspRating,
         public null|SkillTier $skillTier,
@@ -107,15 +108,15 @@ readonly final class PartnerListingRow
     }
 
     /**
-     * 'similar' | 'faster' | 'slower' against the viewer's best 500, null when either is unknown or it is the own row.
+     * 'similar' | 'faster' | 'slower' against the viewer's median 500, null when either is unknown or it is the own row.
      */
-    public function speedComparedTo(null|int $viewerBest500Seconds): null|string
+    public function speedComparedTo(null|int $viewerMedian500Seconds): null|string
     {
-        if ($this->own || $viewerBest500Seconds === null || $viewerBest500Seconds <= 0 || $this->best500Seconds === null) {
+        if ($this->own || $viewerMedian500Seconds === null || $viewerMedian500Seconds <= 0 || $this->median500Seconds === null) {
             return null;
         }
 
-        $share = $this->best500Seconds / $viewerBest500Seconds;
+        $share = $this->median500Seconds / $viewerMedian500Seconds;
 
         return match (true) {
             $share < 1 - self::SIMILAR_SPEED_SHARE => 'faster',
@@ -127,12 +128,12 @@ readonly final class PartnerListingRow
     /**
      * How far from the viewer's speed (for "Closest to my speed"), in thousandths of the log ratio; null = unknown.
      */
-    public function speedDistance(null|int $viewerBest500Seconds): null|int
+    public function speedDistance(null|int $viewerMedian500Seconds): null|int
     {
-        if ($viewerBest500Seconds === null || $viewerBest500Seconds <= 0 || $this->best500Seconds === null || $this->best500Seconds <= 0) {
+        if ($viewerMedian500Seconds === null || $viewerMedian500Seconds <= 0 || $this->median500Seconds === null || $this->median500Seconds <= 0) {
             return null;
         }
 
-        return (int) round(abs(log($this->best500Seconds / $viewerBest500Seconds)) * 1000);
+        return (int) round(abs(log($this->median500Seconds / $viewerMedian500Seconds)) * 1000);
     }
 }

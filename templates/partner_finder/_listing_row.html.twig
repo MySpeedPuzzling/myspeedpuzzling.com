@@ -6,9 +6,9 @@
     registration_managed
 #}
 {%- set name = row.playerName ?? ('#' ~ row.playerCode|upper) -%}
-{%- set viewer_best = listings.viewerBest500Seconds -%}
-{%- set speed = viewer_is_member ? row.speedComparedTo(viewer_best) : null -%}
-{%- set distance = viewer_is_member ? row.speedDistance(viewer_best) : null -%}
+{%- set viewer_median = listings.viewerMedian500Seconds -%}
+{%- set speed = viewer_is_member ? row.speedComparedTo(viewer_median) : null -%}
+{%- set distance = viewer_is_member ? row.speedDistance(viewer_median) : null -%}
 {%- set kind_class = row.group ? 'group' : (row.lookingFor|length > 1 ? 'both' : (row.lookingFor|first).value) -%}
 {%- set country = row.countryCode ? enum('SpeedPuzzling\\Web\\Value\\CountryCode').fromCode(row.countryCode) : null -%}
 <article class="pf-listing{{ row.own ? ' is-own' }}" id="partner-listing-row-{{ row.listingId }}"
@@ -18,8 +18,8 @@
     data-country="{{ row.countryCode|lower }}"
     data-strengths="{{ row.strengthKeys|join(' ') }}"
     data-order="{{ order }}"
-    data-best500="{{ row.best500Seconds }}"
-    data-best1000="{{ row.best1000Seconds }}"
+    data-median500="{{ row.median500Seconds }}"
+    data-median1000="{{ row.median1000Seconds }}"
     data-distance="{{ distance }}"
     {%- endif %}>
     <div class="pf-listing-avatar">
@@ -75,10 +75,10 @@
 
         {% if not row.private %}
             <div class="pf-listing-speed">
-                {% if row.best500Seconds is not null %}
-                    <span>{{ 'partner_finder.listing.best500'|trans }} <b>{{ row.best500Seconds|puzzlingTime }}</b></span>
-                {% elseif row.best1000Seconds is not null %}
-                    <span>{{ 'partner_finder.listing.best1000'|trans }} <b>{{ row.best1000Seconds|puzzlingTime }}</b></span>
+                {% if row.median500Seconds is not null %}
+                    <span>{{ 'partner_finder.listing.median500'|trans }} <b>{{ row.median500Seconds|puzzlingTime }}</b></span>
+                {% elseif row.median1000Seconds is not null %}
+                    <span>{{ 'partner_finder.listing.median1000'|trans }} <b>{{ row.median1000Seconds|puzzlingTime }}</b></span>
                 {% endif %}
                 <span><b>{{ (row.solvedTotal ?? 0)|plain_number }}</b> {{ 'partner_finder.listing.solved'|trans({'%count%': row.solvedTotal ?? 0}) }}</span>
                 {% if row.mspRating is not null %}

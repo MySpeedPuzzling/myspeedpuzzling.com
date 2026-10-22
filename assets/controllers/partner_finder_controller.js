@@ -7,7 +7,7 @@ import { Controller } from '@hotwired/stimulus';
  *   data-country    lower-case country code
  *   data-strengths  preset values and "c:<hash>" of folded custom chips, space separated
  *   data-order      the server's order (newest first)
- *   data-best500 / data-best1000   seconds, empty when unknown (or a private player)
+ *   data-median500 / data-median1000   median seconds, empty when unknown (or a private player)
  *   data-distance   members only: distance from the viewer's speed, empty when unknown
  * The own listing stands above the list and is never filtered.
  */
@@ -94,9 +94,9 @@ export default class extends Controller {
             let difference = 0;
 
             if (mode === 'fastest') {
-                // Best 500 first; somebody with a 1000 time only after everybody with a 500 time; nothing known last
-                difference = compareNumbers(number(a.dataset.best500), number(b.dataset.best500))
-                    || compareNumbers(number(a.dataset.best1000), number(b.dataset.best1000));
+                // Median 500 first; somebody with 1000 times only after everybody with 500 times; nothing known last
+                difference = compareNumbers(number(a.dataset.median500), number(b.dataset.median500))
+                    || compareNumbers(number(a.dataset.median1000), number(b.dataset.median1000));
             } else if (mode === 'closest' && this.memberValue) {
                 difference = compareNumbers(number(a.dataset.distance), number(b.dataset.distance));
             }

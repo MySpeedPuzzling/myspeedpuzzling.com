@@ -24,7 +24,7 @@ readonly final class PartnerListings
     public function __construct(
         public PartnerFinderOffer $offer,
         public bool $registrationManaged,
-        public null|int $viewerBest500Seconds,
+        public null|int $viewerMedian500Seconds,
         public array $rows,
         public int $totalOpen,
     ) {

@@ -15,7 +15,7 @@ shared, a reply opens a chat. **Free for everyone**; members see more about spee
 | D1 | A listing answers two questions: **"I am"** on my own / a group of N (optional registered co-members) and **"Looking for"** a pair partner and/or a team (multi-select). A group says "we need M more". Offered kinds come from the event's rounds (`competition_round.category` duo → pair, team → team, `team_size` shown); an event without rounds offers both; an event whose rounds are all solo has no finder. |
 | D2 | Browsing is open. **Listing marks you going in the same step** (plain events). Events with managed registration: listing allowed **without a spot** (pairs often can't register without a partner) - the row shows "Registered" / "Not registered yet"; waitlisted may list. Sending a request also marks the sender going on plain events. Leaving the event closes the listing. |
 | D3 | "Good at" = preset chips (`PartnerStrength`, translated, ≤ 4) **plus up to 5 custom chips** (≤ 30 chars, shown as typed, never translated, dedup by `SearchText::fold()`; a custom chip folding equal to a preset label in any of the 6 locales becomes that preset). Custom chips on ≥ 2 open listings of the event join the filter row. Plus languages (≤ 4 ISO 639-1 codes), goal (`PartnerGoal`), one note ≤ 200. |
-| D4 | Signed-in viewers see best 500 (else best 1000) + puzzles solved (`community_player_stats`) + MSP rating when on the ladder. **Members** also see the skill tier, a "Similar to you / Faster / Slower" badge and the "Closest to my speed" sort. Ranking opt-out = no rating, no tier. Non-members see the locked tier chip. |
+| D4 | Signed-in viewers see the median 500 (else median 1000; best times until 2026-10-22, Jan: a median reads a typical pace) + puzzles solved (`community_player_stats`) + MSP rating when on the ladder. **Members** also see the skill tier, a "Similar to you / Faster / Slower" badge and the "Closest to my speed" sort. Ranking opt-out = no rating, no tier. Non-members see the locked tier chip. |
 | D5 | Guests see a **teaser** only (counts per kind, flags per country, faces) + "Sign in to see who". Signed-in see every listing. Page `noindex`, not in the sitemap. Private players may list: name, flag and listing shown, no stats, no profile link (unless `PrivateProfileAccess` reveals them). Blocks hide both ways. |
 | D6 | "I'd like to puzzle with you" = a `partner_request` (kind + optional note ≤ 200) → in-app notification + **async** e-mail naming who. The receiver's **Reply** starts a conversation from their side (works with direct messages off). The sender only ever sees "Sent". One request per listing per sender; rate limiter 10/day; silent when blocked (the sender still sees "Sent"). New switch `player.partner_finder_emails` (default on) with signed one-click unsubscribe. |
 | D7 | "Found my partner" closes the listing (a group with `needed > 1` counts down instead). Auto-close: leaving the event, the event over (daily cron), being entered in a pair/team entry of the event. |
@@ -293,15 +293,15 @@ by slug + the teaser; signed in 6 = the event + the listings + the 4 statements 
   `event` CTE (`PartnerFinderEligibility::SQL_QUALIFIES` + the rounds' categories/team size) → `listing` CTE (open,
   `HiddenPlayers::sqlExclude()` + "the lister blocks the viewer", `PrivateProfileAccess::sqlIsPrivate()` as
   `private_to_viewer` - never for the viewer's own row nor the viewer as a co-member -, own first then newest, `LIMIT 100`, `COUNT(*) OVER ()` = `totalOpen`) → joins
-  `community_player_stats` (best 500/1000, solved - NULL for a masked private player), `player_elo` 500 (NULL when opted
+  `community_player_stats` (median 500/1000 = `median500_seconds`/`median1000_seconds`, every solo attempt, suspicious left out, written by the 15-min community stats cron; solved - NULL for a masked private player), `player_elo` 500 (NULL when opted
   out), `player_skill` 500 **only for members** (else `NULL` and the table is not joined), registered (the going rule,
   managed registration only), `sent` (EXISTS), `requests_count` (own row only), co-members as JSON (masked/blocked left
-  out), the viewer's own best 500. null = no finder.
+  out), the viewer's own median 500. null = no finder.
 - `teaserForEvent(string $competitionId): ?Results\PartnerFinderTeaser` - ONE statement: total, pairs / teams (on their
   own), groups, per country, 8 newest faces (avatar only when public). No names, notes or links reach guest HTML.
 - `Results\PartnerListings`: `others()`, `ownRow()`, `isCapped()`, `kindCounts()`, `countryCounts()`,
   `strengthFilters()` (presets at least one other listing has, in `PartnerStrength` order + custom chips of ≥ 2 listings
-  folded equal, first spelling), `customChipSuggestions()`. `Results\PartnerListingRow::speedComparedTo($viewerBest500)`
+  folded equal, first spelling), `customChipSuggestions()`. `Results\PartnerListingRow::speedComparedTo($viewerMedian500)`
   = `similar` (±10 %) / `faster` / `slower`, `speedDistance()` for "Closest to my speed" - both in PHP, members only.
 
 **Page** (`templates/partner_finder/`): `finder.html.twig` (crumbs, header + "List me", own listing under "Your listing",
@@ -312,7 +312,7 @@ by slug + the teaser; signed in 6 = the event + the listings + the 4 statements 
 `return` to `partner_request_send`). Row data attributes for `assets/controllers/partner_finder_controller.js`:
 `data-kinds` (`pair` / `team` on one's own, `group`), `data-country` (lower case), `data-strengths` (preset values +
 `c:` + 12 hex of md5 of the folded custom chip - `PartnerListingRow::customKey()`), `data-order` (server order),
-`data-best500`, `data-best1000` (seconds, empty = unknown), `data-distance` (members). The own row carries none (it is
+`data-median500`, `data-median1000` (median seconds, empty = unknown), `data-distance` (members). The own row carries none (it is
 never filtered). The country filter is the site's `country-select` with only the countries present ("Name (count)").
 Non-members see the tier as the lock (`#membersExclusiveModal`) and "Closest to my speed" disabled with a Members badge.
 

@@ -378,11 +378,11 @@ final class PrivateProfileCanaryTest extends WebTestCase
             ['id' => Uuid::uuid7()->toString(), 'competition' => PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN, 'player' => self::OWNER],
         );
         $connection->executeStatement(
-            "INSERT INTO community_player_stats (player_id, solved_total, pieces_total, solves7d, pieces7d, solves30d, solves_prev30d, solves_this_month, pieces_this_month, solves_last_month, pieces_last_month, best500_seconds, best1000_seconds, monthly_solves, favorites_count, computed_at)
-             VALUES (:player, 77, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2345, NULL, '[]', 0, NOW())",
+            "INSERT INTO community_player_stats (player_id, solved_total, pieces_total, solves7d, pieces7d, solves30d, solves_prev30d, solves_this_month, pieces_this_month, solves_last_month, pieces_last_month, best500_seconds, best1000_seconds, median500_seconds, monthly_solves, favorites_count, computed_at)
+             VALUES (:player, 77, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2345, NULL, 2345, '[]', 0, NOW())",
             ['player' => self::OWNER],
         );
-        $bestTime = 'data-best500="2345"';
+        $bestTime = 'data-median500="2345"';
 
         self::assertStringNotContainsString(self::OWNER_NAME, $this->get($browser, $url), 'A guest is shown a private player.');
 

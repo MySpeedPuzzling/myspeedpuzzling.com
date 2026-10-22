@@ -48,7 +48,7 @@
             <select id="pf-sort" class="form-select form-select-sm" data-partner-finder-target="sort" data-action="change->partner-finder#sort">
                 <option value="newest">{{ 'partner_finder.page.sort_newest'|trans }}</option>
                 <option value="fastest">{{ 'partner_finder.page.sort_fastest'|trans }}</option>
-                <option value="closest"{{ viewer_is_member and listings.viewerBest500Seconds is not null ? '' : ' disabled' }}>
+                <option value="closest"{{ viewer_is_member and listings.viewerMedian500Seconds is not null ? '' : ' disabled' }}>
                     {{- 'partner_finder.page.sort_closest'|trans -}}
                     {%- if not viewer_is_member %} · {{ 'partner_finder.page.members'|trans }}{% endif -%}
                 </option>

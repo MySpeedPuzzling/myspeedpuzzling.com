@@ -98,20 +98,20 @@ final class GetPartnerListingsTest extends KernelTestCase
     public function testAPrivatePlayerKeepsNameAndListingButShowsNoNumbersUnlessRevealed(): void
     {
         $listingId = $this->addListing(PlayerFixture::PLAYER_PRIVATE);
-        $this->addStats(PlayerFixture::PLAYER_PRIVATE, best500: 2400, solved: 50);
+        $this->addStats(PlayerFixture::PLAYER_PRIVATE, median500: 2400, solved: 50);
 
         // PLAYER_REGULAR blocks her (UserBlockFixture) - a stranger who does not: PLAYER_ADMIN
         $stranger = $this->row($this->listingsFor(PlayerFixture::PLAYER_ADMIN, member: true), $listingId);
         self::assertTrue($stranger->private);
         self::assertSame('Jane Smith', $stranger->playerName, 'listing herself shows her name (D5)');
-        self::assertNull($stranger->best500Seconds);
+        self::assertNull($stranger->median500Seconds);
         self::assertNull($stranger->solvedTotal);
         self::assertNull($stranger->avatar);
 
         // PLAYER_WITH_FAVORITES is on her allow list
         $friend = $this->row($this->listingsFor(PlayerFixture::PLAYER_WITH_FAVORITES, member: false), $listingId);
         self::assertFalse($friend->private);
-        self::assertSame(2400, $friend->best500Seconds);
+        self::assertSame(2400, $friend->median500Seconds);
         self::assertSame(50, $friend->solvedTotal);
 
         // And the viewer who blocks her does not see her at all
@@ -121,20 +121,20 @@ final class GetPartnerListingsTest extends KernelTestCase
     public function testAPrivatePlayerSeesTheirOwnRowUnmasked(): void
     {
         $listingId = $this->addListing(PlayerFixture::PLAYER_PRIVATE);
-        $this->addStats(PlayerFixture::PLAYER_PRIVATE, best500: 2400, solved: 50);
+        $this->addStats(PlayerFixture::PLAYER_PRIVATE, median500: 2400, solved: 50);
 
         $own = $this->listingsFor(PlayerFixture::PLAYER_PRIVATE, member: true)->ownRow();
 
         self::assertNotNull($own);
         self::assertSame($listingId, $own->listingId);
         self::assertFalse($own->private, 'nobody is private to themselves');
-        self::assertSame(2400, $own->best500Seconds);
+        self::assertSame(2400, $own->median500Seconds);
         self::assertSame(50, $own->solvedTotal);
     }
 
     public function testTheTierIsForMembersAndNothingRankedForAPlayerWhoOptedOut(): void
     {
-        $this->addStats(PlayerFixture::PLAYER_REGULAR, best500: 2700, solved: 120);
+        $this->addStats(PlayerFixture::PLAYER_REGULAR, median500: 2700, solved: 120);
         $this->database->executeStatement(
             'INSERT INTO player_elo (id, player_id, pieces_count, elo_rating, computed_at) VALUES (:id, :player, 500, 1.482, NOW())',
             ['id' => Uuid::uuid7()->toString(), 'player' => PlayerFixture::PLAYER_REGULAR],
@@ -143,16 +143,16 @@ final class GetPartnerListingsTest extends KernelTestCase
             "INSERT INTO player_skill (id, player_id, pieces_count, skill_score, skill_tier, skill_percentile, confidence, qualifying_puzzles_count, computed_at) VALUES (:id, :player, 500, 1.0, 5, 90.0, 'high', 10, NOW())",
             ['id' => Uuid::uuid7()->toString(), 'player' => PlayerFixture::PLAYER_REGULAR],
         );
-        $this->addStats(PlayerFixture::PLAYER_ADMIN, best500: 2800, solved: 10);
+        $this->addStats(PlayerFixture::PLAYER_ADMIN, median500: 2800, solved: 10);
 
         $member = $this->listingsFor(PlayerFixture::PLAYER_ADMIN, member: true);
         $row = $this->row($member, PartnerFinderFixture::LISTING_REGULAR_PAIR);
         self::assertSame(SkillTier::Expert, $row->skillTier);
         self::assertSame(1482, $row->mspRating);
-        self::assertSame(2700, $row->best500Seconds);
+        self::assertSame(2700, $row->median500Seconds);
         self::assertSame(120, $row->solvedTotal);
-        self::assertSame(2800, $member->viewerBest500Seconds);
-        self::assertSame('similar', $row->speedComparedTo($member->viewerBest500Seconds));
+        self::assertSame(2800, $member->viewerMedian500Seconds);
+        self::assertSame('similar', $row->speedComparedTo($member->viewerMedian500Seconds));
         self::assertSame('faster', $row->speedComparedTo(3600));
         self::assertSame('slower', $row->speedComparedTo(2000));
 
@@ -164,7 +164,7 @@ final class GetPartnerListingsTest extends KernelTestCase
         $optedOut = $this->row($this->listingsFor(PlayerFixture::PLAYER_ADMIN, member: true), PartnerFinderFixture::LISTING_REGULAR_PAIR);
         self::assertNull($optedOut->skillTier);
         self::assertNull($optedOut->mspRating);
-        self::assertSame(2700, $optedOut->best500Seconds, 'best times stay - they are not a ranking');
+        self::assertSame(2700, $optedOut->median500Seconds, 'median times stay - they are not a ranking');
     }
 
     public function testRegisteredFollowsTheGoingRuleOnAManagedEvent(): void
@@ -284,12 +284,12 @@ final class GetPartnerListingsTest extends KernelTestCase
         return $id;
     }
 
-    private function addStats(string $playerId, null|int $best500, int $solved): void
+    private function addStats(string $playerId, null|int $median500, int $solved): void
     {
         $this->database->executeStatement(
-            "INSERT INTO community_player_stats (player_id, solved_total, pieces_total, solves7d, pieces7d, solves30d, solves_prev30d, solves_this_month, pieces_this_month, solves_last_month, pieces_last_month, best500_seconds, best1000_seconds, monthly_solves, favorites_count, computed_at)
-             VALUES (:player, :solved, 0, 0, 0, 0, 0, 0, 0, 0, 0, :best500, NULL, '[]', 0, NOW())",
-            ['player' => $playerId, 'solved' => $solved, 'best500' => $best500],
+            "INSERT INTO community_player_stats (player_id, solved_total, pieces_total, solves7d, pieces7d, solves30d, solves_prev30d, solves_this_month, pieces_this_month, solves_last_month, pieces_last_month, best500_seconds, best1000_seconds, median500_seconds, median1000_seconds, monthly_solves, favorites_count, computed_at)
+             VALUES (:player, :solved, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, :median500, NULL, '[]', 0, NOW())",
+            ['player' => $playerId, 'solved' => $solved, 'median500' => $median500],
         );
     }
 }

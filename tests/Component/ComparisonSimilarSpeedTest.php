@@ -176,7 +176,7 @@ final class ComparisonSimilarSpeedTest extends WebTestCase
         for ($i = 0; $i < 6; $i++) {
             $puzzle = $this->seedPuzzle(500);
             $this->seedTime(PlayerFixture::PLAYER_WITH_STRIPE, $puzzle, 2000, $now->modify('-40 days'));
-            $this->seedTime($this->candidate, $puzzle, 2100, $now->modify($i < 2 ? '-5 days' : '-50 days'));
+            $this->seedTime($this->candidate, $puzzle, 2100, $i < 2 ? $now->modify('-5 days') : $now->modify('-50 days'));
         }
     }
 }

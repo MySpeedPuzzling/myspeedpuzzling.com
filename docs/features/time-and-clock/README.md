@@ -87,8 +87,29 @@ Three sources of "now" exist today, and they can disagree:
   run - a real date before the instant is not a situation CI meets - and no weekly job; the guards catch new
   violations). Results in `STATUS.md` → "Phase 5".
 - **R5 guards:** `DatabaseClockCoverageTest` (SQL clock, `src/` + `tests/`, case-insensitive) and
-  `SystemClockCoverageTest` (PHP/Twig clock reads, `src/` + `templates/` + `tests/`; the `tests/` allowlist is per kind
-  of read). Object storage doubles stamp Last-Modified from the clock (`ClockedInMemoryFilesystemAdapter`).
+  `SystemClockCoverageTest` (PHP/Twig clock reads, `src/` + `templates/` + `tests/`; relative-moment literals in
+  `tests/` must go straight into `->modify()` - see "What the guards cannot see"). Object storage doubles stamp Last-Modified from the clock (`ClockedInMemoryFilesystemAdapter`).
+
+## What the guards cannot see (a documented limit)
+
+The guards read source text, so they see a clock read only where it is written. Since PR #284's last round,
+`SystemClockCoverageTest` also refuses every relative-moment literal under `tests/` (`'-3 days'`, `'+1 hour'`,
+`'today 08:00'`, `'tomorrow'`, `'next monday'`, `'-%d days'` …) unless it goes straight into `->modify()` - directly,
+through `sprintf()`, or as the argument (or default) of a helper whose parameter goes straight into `->modify()` - or is
+listed with its reason (API inputs the code refuses, expected texts, the browser's clock). So a relative moment kept in
+a constant or a variable fails where it is defined.
+
+What stays out of reach - inherently, no text check can follow it:
+
+- **Moments computed at runtime**: a relative string assembled from pieces (`$sign . $n . ' days'`), read from data
+  (a data provider row, a fixture array, a file), or handed through more than one helper before it reaches
+  `new DateTimeImmutable($x)` or a `->modify()` on an object that is not the frozen clock.
+- **The object `->modify()` is called on**: the check trusts that it was built from the clock (`TestClock::now()`, the
+  container's clock, an absolute literal). An object built from the real now is caught only where it is built in a
+  shape the other patterns know (`new DateTimeImmutable()`, `time()`, …).
+
+For these the proof is the suite under a shifted real date (libfaketime, `STATUS.md` "Phase 5"): a test that reads
+the real date anywhere fails there. Run it again when in doubt.
 
 ## Inventory (2026-10-22, regenerate with the commands below)
 

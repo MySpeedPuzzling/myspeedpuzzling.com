@@ -21,7 +21,9 @@ use PHPUnit\Framework\TestCase;
  * The test suite follows the same rule (R4): the app's clock is frozen at TestClock::FROZEN_NOW, so a test takes its
  * moments from TestClock (or the container's clock) or writes them as absolute literals. A test file may read real time
  * only where the code under test, a library or the browser judges it on real time - listed per file and per kind of read,
- * so a new kind of read in a listed file still fails.
+ * so a new kind of read in a listed file still fails. A relative moment ('-3 days', 'tomorrow') in a test goes straight
+ * into ->modify() - also through a helper whose parameter does - so a constant or a variable holding one cannot end up
+ * counted from the real now; the few other ones (inputs, expected texts) are listed.
  */
 final class SystemClockCoverageTest extends TestCase
 {
@@ -109,6 +111,30 @@ final class SystemClockCoverageTest extends TestCase
         'TestClockTest.php' => [['time('], 'Checks that the frozen instant lies before the real date of the run (TestClock\'s rule).'],
         'TestDouble/InMemoryStudioInviteSignal.php' => [['time('], 'Stands in for a Redis TTL, which Redis counts on its own clock.'],
         'TestingDatabaseCaching.php' => [['time('], 'The age of the test database cache file - a file system time.'],
+    ];
+
+    private const string INPUT = 'A string sent as user or API input on purpose - the code under test refuses it as a date.';
+    private const string STOPWATCH_TABLE = 'An inline table of round states - the test hands each moment to setStopwatch(), which applies it with TestClock::now()->modify().';
+
+    /**
+     * Relative moments under tests/ that do not go straight into ->modify() (testRelativeMomentsInTestsAreAppliedToTheFrozenClock),
+     * with the reason
+     *
+     * @var array<string, array{0: list<string>, 1: string}>
+     */
+    private const array RELATIVE_LITERALS_ALLOWED = [
+        'Controller/DetailPagesJsonLdTest.php' => [["'+2 days'"], 'The expected text of a DateInterval (%R%a days) between two given dates.'],
+        'Controller/InternalApi/RoundsInternalApiTest.php' => [["'tomorrow'"], self::INPUT],
+        'Controller/OnlineRounds/OnlineRoundSettingsControllerTest.php' => [["'+1 hour'", "'-5 minutes'", "'-90 minutes'", "'-30 minutes'"], self::STOPWATCH_TABLE],
+        'Controller/StaleDocumentControllerTest.php' => [["'yesterday'"], self::INPUT],
+        'DatePickerScriptTest.php' => [["'today'"], 'flatpickr\'s maxDate option - the browser judges it on the visitor\'s clock.'],
+        'MessageHandler/OnlineRoundSetUpHandlersTest.php' => [["'+1 hour'", "'-5 minutes'", "'-90 minutes'", "'-30 minutes'"], self::STOPWATCH_TABLE],
+        'OAuth2TestHelper.php' => [["'+1 hour'"], 'league/oauth2-server judges its access tokens on its own clock (lcobucci SystemClock), never the app\'s.'],
+        'RelativeTimeParityTest.php' => [["'now'", "'59 seconds ago'", "'1 minute ago'", "'1 hour ago'", "'27 days ago'"], 'Labels the relative-time formatter prints - expected texts, no moment.'],
+        'Services/Insights/InsightsCriteriaTest.php' => [["'yesterday'"], self::INPUT],
+        'Value/ComparisonCriteriaTest.php' => [["'yesterday'"], self::INPUT],
+        'Value/PuzzleImageAnalysisInputTest.php' => [["'yesterday'"], self::INPUT],
+        'Value/PuzzlePickerCriteriaTest.php' => [["'-6 months'", "'-2 weeks'", "'-30 days'"], 'What PuzzlePickerSinceUnit::modifier() returns - expected values; the code under test applies them to the app\'s clock.'],
     ];
 
     private const array PATTERNS = [
@@ -329,6 +355,430 @@ final class SystemClockCoverageTest extends TestCase
         foreach (["{{ now()|date('Y') }}", "{{ end|date('Y') }}", "{% if now() < date('2026-09-21T00:00:00+02:00') %}", 'data-ev-group="now"'] as $code) {
             self::assertSame([], self::hits(self::TEMPLATE_PATTERNS, $code), $code);
         }
+    }
+
+    public function testRelativeMomentsInTestsAreAppliedToTheFrozenClock(): void
+    {
+        $root = (string) realpath(__DIR__);
+        $files = [];
+
+        /** @var \SplFileInfo $file */
+        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)) as $file) {
+            if ($file->getExtension() === 'php') {
+                $files[substr($file->getPathname(), strlen($root) + 1)] = $file->getPathname();
+            }
+        }
+
+        // Helpers anywhere under tests/ (SpotlightSeeding::seed(registeredAt: …) is called from other files)
+        $helpers = [];
+
+        foreach ($files as $path) {
+            foreach (self::modifyingHelpers(self::significantTokens((string) file_get_contents($path))) as $name => $definitions) {
+                foreach ($definitions as $definition) {
+                    $helpers[$name][] = $definition;
+                }
+            }
+        }
+
+        $offending = [];
+        $stale = [];
+
+        foreach ($files as $relative => $path) {
+            $allowed = self::RELATIVE_LITERALS_ALLOWED[$relative][0] ?? [];
+            $hits = self::relativeLiteralHits((string) file_get_contents($path), $helpers);
+
+            foreach (array_diff($allowed, $hits) as $gone) {
+                $stale[] = $relative . ': ' . $gone;
+            }
+
+            $notAllowed = array_unique(array_diff($hits, $allowed));
+
+            if ($notAllowed !== []) {
+                $offending[] = $relative . ': ' . implode(', ', $notAllowed);
+            }
+        }
+
+        foreach (array_keys(self::RELATIVE_LITERALS_ALLOWED) as $relative) {
+            if (array_key_exists($relative, $files) === false) {
+                $stale[] = $relative;
+            }
+        }
+
+        sort($offending);
+        sort($stale);
+
+        self::assertSame([], $offending, 'A relative moment (\'-3 days\', \'tomorrow\', …) that is not handed straight to ->modify() - or to a helper passing its parameter straight to ->modify() - may end up counted from the real now (a constant, a variable, new DateTimeImmutable($relative)). Write TestClock::now()->modify(…) where it is defined, or list it here with the reason.');
+        self::assertSame([], $stale, 'These listed relative moments no longer occur - remove them from the list.');
+    }
+
+    public function testTheRelativeMomentCheckFollowsModifyAndNothingElse(): void
+    {
+        foreach (
+            [
+            "private const string AGE = '-3 days';",
+            '$at = \'yesterday\';',
+            "\$this->seed('-1 day');",
+            "TestClock::now()->modify(\$young ? '-1 day' : '-9 days');",
+            "\$at = new DateTimeImmutable(\$x)->modify('+1 hour' . \$suffix);",
+            "\$when = sprintf('-%d minutes', \$n);",
+            'private function at(string $m = \'+1 hour\'): DateTimeImmutable { return new DateTimeImmutable($m); }',
+            "private function at(string \$m): DateTimeImmutable { return TestClock::now()->modify(\$m); }\n\$this->at(\$x, '-1 day');",
+            ] as $code
+        ) {
+            self::assertNotSame([], self::relativeLiteralHits('<?php ' . $code, []), $code);
+        }
+
+        foreach (
+            [
+            "TestClock::now()->modify('-3 days');",
+            "\$clock->modify('+10 minutes');",
+            "TestClock::now()->modify(sprintf('-%d seconds', \$age));",
+            "\$params = ['now' => \$now, 'today' => \$today];",
+            "\$at = TestClock::now()->modify(\"-{\$days} days\");",
+            "private function at(string \$m = '+0 seconds'): DateTimeImmutable { return TestClock::now()->modify(\$m); }\n\$this->at('-1 day'); self::at(m: '+2 hours'); \$this->at(sprintf('+%d days', 3));",
+            "\$label = 'Today';",
+            "\$at = new DateTimeImmutable('2026-10-14 12:00:00');",
+            ] as $code
+        ) {
+            self::assertSame([], self::relativeLiteralHits('<?php ' . $code, []), $code);
+        }
+    }
+
+    /**
+     * The relative moments of one file that do not go straight into ->modify(), as `'<literal>'`. A literal is fine as
+     * the argument of ->modify(…) (also wrapped in sprintf('<literal>', …)), as the argument of a helper whose parameter
+     * goes straight into ->modify() (the file's own helper of that name first, else every helper of that name under
+     * tests/), as the default of such a parameter, or as an array key.
+     *
+     * @param array<string, list<array<int|string, true>>> $helpers name => what each definition of it passes to ->modify()
+     * @return list<string>
+     */
+    private static function relativeLiteralHits(string $code, array $helpers): array
+    {
+        $tokens = self::significantTokens($code);
+        $own = self::modifyingHelpers($tokens);
+        $hits = [];
+
+        foreach (self::stringLiterals($tokens) as [$start, $end, $content]) {
+            if (self::isRelativeMoment($content) === false || self::text($tokens[$end + 1] ?? '') === '=>') {
+                continue;
+            }
+
+            if (self::isDefaultOfModifiedParameter($tokens, $start, $own) || self::goesIntoModify($tokens, $start, $end, $own + $helpers)) {
+                continue;
+            }
+
+            $hits[] = "'" . $content . "'";
+        }
+
+        return $hits;
+    }
+
+    /**
+     * '-3 days', '+1 hour', 'today 08:00', 'now', 'tomorrow', 'next monday', 'first day of next month', '-%d days' …
+     * - lower case, as code writes them (a label says "Today")
+     */
+    private static function isRelativeMoment(string $content): bool
+    {
+        $unit = '(?:secs?|seconds?|mins?|minutes?|hours?|days?|weekdays?|weeks?|fortnights?|months?|years?)';
+        $number = '(?:\d+|%[dsu]|\{?\$\w+\}?)';
+        $weekday = '(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)';
+        $part = "(?:now|today|tomorrow|yesterday|midnight|noon|[+-]\\s*{$number}\\s*{$unit}|{$number}\\s*{$unit}\\s+ago"
+            . "|(?:next|last|this|previous)\\s+(?:{$weekday}|{$unit})|(?:first|last)\\s+day\\s+of(?:\\s+(?:next|last|this|previous)\\s+(?:month|year))?)";
+
+        return preg_match("~^{$part}(?:\\s+{$part})*(?:\\s+\\d{1,2}:\\d{2}(?::\\d{2})?)?$~", trim($content)) === 1;
+    }
+
+    /**
+     * @param list<array{0: int, 1: string, 2: int}|string> $tokens
+     * @param array<string, list<array<int|string, true>>> $helpers
+     */
+    private static function goesIntoModify(array $tokens, int $start, int $end, array $helpers): bool
+    {
+        // At most: modify(sprintf('<literal>', …)) / helper(sprintf('<literal>', …))
+        for ($depth = 0; $depth < 2; $depth++) {
+            if (in_array(self::text($tokens[$end + 1] ?? ''), [',', ')'], true) === false) {
+                return false;
+            }
+
+            $named = null;
+            $before = $start - 1;
+
+            if (self::text($tokens[$before] ?? '') === ':' && self::isName($tokens[$before - 1] ?? null)) {
+                $named = '$' . self::text($tokens[$before - 1]);
+                $before -= 2;
+            }
+
+            if (in_array(self::text($tokens[$before] ?? ''), ['(', ','], true) === false) {
+                return false;
+            }
+
+            // The call's opening bracket and the argument's position
+            $position = 0;
+            $nesting = 0;
+            $open = $before;
+
+            for (; $open >= 0; $open--) {
+                $text = self::text($tokens[$open]);
+
+                if (in_array($text, [')', ']', '}'], true)) {
+                    $nesting++;
+                } elseif (in_array($text, ['(', '[', '{'], true)) {
+                    if ($nesting === 0) {
+                        break;
+                    }
+
+                    $nesting--;
+                } elseif ($text === ',' && $nesting === 0) {
+                    $position++;
+                }
+            }
+
+            if ($open < 1 || self::text($tokens[$open]) !== '(' || self::isName($tokens[$open - 1]) === false) {
+                return false;
+            }
+
+            $function = strtolower(self::text($tokens[$open - 1]));
+
+            if ($function === 'sprintf' && $position === 0 && $named === null) {
+                $start = $open - 1;
+                $end = self::closingBracket($tokens, $open);
+
+                continue;
+            }
+
+            if ($function === 'modify') {
+                return $position === 0 && $named === null && self::isObjectOperator($tokens[$open - 2] ?? null);
+            }
+
+            foreach ($helpers[$function] ?? [] as $flows) {
+                if (isset($flows[$named ?? $position]) === false) {
+                    return false;
+                }
+            }
+
+            return isset($helpers[$function]);
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<array{0: int, 1: string, 2: int}|string> $tokens
+     * @param array<string, list<array<int|string, true>>> $own
+     */
+    private static function isDefaultOfModifiedParameter(array $tokens, int $start, array $own): bool
+    {
+        $variable = $tokens[$start - 2] ?? null;
+
+        if (self::text($tokens[$start - 1] ?? '') !== '=' || is_array($variable) === false || $variable[0] !== T_VARIABLE) {
+            return false;
+        }
+
+        $parameter = $variable[1];
+
+        // A parameter list: `function name(` before it, at the same bracket depth
+        $nesting = 0;
+
+        for ($i = $start - 3; $i >= 2; $i--) {
+            $text = self::text($tokens[$i]);
+
+            if ($text === ')') {
+                $nesting++;
+            } elseif ($text === '(') {
+                if ($nesting === 0) {
+                    $function = $tokens[$i - 2];
+                    $name = strtolower(self::text($tokens[$i - 1]));
+
+                    return is_array($function) && $function[0] === T_FUNCTION
+                        && array_filter($own[$name] ?? [], static fn (array $flows): bool => isset($flows[$parameter])) !== [];
+                }
+
+                $nesting--;
+            } elseif (in_array($text, [';', '{', '}'], true)) {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Functions passing a parameter straight into ->modify($parameter): name => per definition, the parameter's
+     * position and its name
+     *
+     * @param list<array{0: int, 1: string, 2: int}|string> $tokens
+     * @return array<string, list<array<int|string, true>>>
+     */
+    private static function modifyingHelpers(array $tokens): array
+    {
+        $helpers = [];
+        $count = count($tokens);
+
+        for ($i = 0; $i < $count; $i++) {
+            $token = $tokens[$i];
+
+            if (is_array($token) === false || $token[0] !== T_FUNCTION) {
+                continue;
+            }
+
+            $nameAt = self::text($tokens[$i + 1] ?? '') === '&' ? $i + 2 : $i + 1;
+
+            if (self::isName($tokens[$nameAt] ?? null) === false || self::text($tokens[$nameAt + 1] ?? '') !== '(') {
+                continue;
+            }
+
+            $open = $nameAt + 1;
+            $close = self::closingBracket($tokens, $open);
+            $parameters = [];
+            $position = 0;
+            $nesting = 0;
+
+            for ($k = $open + 1; $k < $close; $k++) {
+                $text = self::text($tokens[$k]);
+
+                if (in_array($text, ['(', '['], true)) {
+                    $nesting++;
+                } elseif (in_array($text, [')', ']'], true)) {
+                    $nesting--;
+                } elseif ($text === ',' && $nesting === 0) {
+                    $position++;
+                } elseif ($nesting === 0 && is_array($tokens[$k]) && $tokens[$k][0] === T_VARIABLE && isset($parameters[$position]) === false) {
+                    $parameters[$position] = $tokens[$k][1];
+                }
+            }
+
+            $body = $close + 1;
+
+            while ($body < $count && in_array(self::text($tokens[$body]), ['{', ';'], true) === false) {
+                $body++;
+            }
+
+            if ($body >= $count || self::text($tokens[$body]) !== '{') {
+                continue;
+            }
+
+            $flows = [];
+            $bodyEnd = self::closingBracket($tokens, $body);
+
+            for ($k = $body; $k < $bodyEnd; $k++) {
+                $argument = $tokens[$k + 3] ?? null;
+
+                if (
+                    self::isObjectOperator($tokens[$k])
+                    && strtolower(self::text($tokens[$k + 1] ?? '')) === 'modify'
+                    && self::text($tokens[$k + 2] ?? '') === '('
+                    && is_array($argument) && $argument[0] === T_VARIABLE
+                    && self::text($tokens[$k + 4] ?? '') === ')'
+                ) {
+                    $position = array_search($argument[1], $parameters, true);
+
+                    if ($position !== false) {
+                        $flows[$position] = true;
+                        $flows[$argument[1]] = true;
+                    }
+                }
+            }
+
+            $helpers[strtolower(self::text($tokens[$nameAt]))][] = $flows;
+        }
+
+        return $helpers;
+    }
+
+    /**
+     * Every string literal: [first token, last token, content] - a double-quoted one with its variables written as
+     * they stand ("-{$days} days" stays "-{$days} days")
+     *
+     * @param list<array{0: int, 1: string, 2: int}|string> $tokens
+     * @return list<array{0: int, 1: int, 2: string}>
+     */
+    private static function stringLiterals(array $tokens): array
+    {
+        $literals = [];
+        $count = count($tokens);
+
+        for ($i = 0; $i < $count; $i++) {
+            $token = $tokens[$i];
+
+            if (is_array($token) && $token[0] === T_CONSTANT_ENCAPSED_STRING) {
+                $literals[] = [$i, $i, substr($token[1], 1, -1)];
+            } elseif ($token === '"') {
+                $content = '';
+                $end = $i + 1;
+
+                while ($end < $count && $tokens[$end] !== '"') {
+                    $content .= self::text($tokens[$end]);
+                    $end++;
+                }
+
+                $literals[] = [$i, $end, $content];
+                $i = $end;
+            }
+        }
+
+        return $literals;
+    }
+
+    /**
+     * @return list<array{0: int, 1: string, 2: int}|string>
+     */
+    private static function significantTokens(string $code): array
+    {
+        return array_values(array_filter(
+            token_get_all($code),
+            static fn (array|string $token): bool => is_string($token) || in_array($token[0], [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT, T_OPEN_TAG], true) === false,
+        ));
+    }
+
+    /**
+     * @param list<array{0: int, 1: string, 2: int}|string> $tokens
+     */
+    private static function closingBracket(array $tokens, int $open): int
+    {
+        $nesting = 0;
+        $count = count($tokens);
+
+        for ($i = $open; $i < $count; $i++) {
+            $token = $tokens[$i];
+            $text = self::text($token);
+
+            if (in_array($text, ['(', '[', '{'], true) || (is_array($token) && in_array($token[0], [T_CURLY_OPEN, T_DOLLAR_OPEN_CURLY_BRACES], true))) {
+                $nesting++;
+            } elseif (in_array($text, [')', ']', '}'], true)) {
+                $nesting--;
+
+                if ($nesting === 0) {
+                    return $i;
+                }
+            }
+        }
+
+        return $count - 1;
+    }
+
+    /**
+     * @param array{0: int, 1: string, 2: int}|string $token
+     */
+    private static function text(array|string $token): string
+    {
+        return is_array($token) ? $token[1] : $token;
+    }
+
+    /**
+     * @param null|array{0: int, 1: string, 2: int}|string $token
+     */
+    private static function isName(null|array|string $token): bool
+    {
+        return is_array($token) && $token[0] === T_STRING;
+    }
+
+    /**
+     * @param null|array{0: int, 1: string, 2: int}|string $token
+     */
+    private static function isObjectOperator(null|array|string $token): bool
+    {
+        return is_array($token) && in_array($token[0], [T_OBJECT_OPERATOR, T_NULLSAFE_OBJECT_OPERATOR], true);
     }
 
     /**

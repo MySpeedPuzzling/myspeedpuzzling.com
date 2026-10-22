@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Generator;
@@ -779,7 +780,7 @@ final class PuzzleDetailControllerTest extends WebTestCase
         // A marketplace offer brings in the Product structured data
         $database->executeStatement(
             "INSERT INTO sell_swap_list_item (id, listing_type, price, condition, added_at, published_on_marketplace, reserved, player_id, puzzle_id)
-             VALUES (:id, 'sell', 10, 'normal', now(), true, false, :playerId, :puzzleId)",
+             VALUES (:id, 'sell', 10, 'normal', " . TestClock::SQL_NOW . ", true, false, :playerId, :puzzleId)",
             ['id' => Uuid::uuid7()->toString(), 'playerId' => PlayerFixture::PLAYER_WITH_STRIPE, 'puzzleId' => PuzzleFixture::PUZZLE_HIDDEN_IMAGE],
         );
 

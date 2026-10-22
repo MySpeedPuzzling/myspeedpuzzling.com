@@ -165,7 +165,7 @@ final class GetPlayerSolvedPuzzlesTest extends KernelTestCase
         // It belongs to PLAYER_REGULAR, PUZZLE_1000_02
         // When filtering by date range (monthly statistics), entries without finished_at should be excluded
         $dateFrom = TestClock::now()->modify('-60 days');
-        $dateTo = TestClock::now()->modify('now');
+        $dateTo = TestClock::now();
 
         $results = $this->query->soloByPlayerId(PlayerFixture::PLAYER_REGULAR, $dateFrom, $dateTo);
 

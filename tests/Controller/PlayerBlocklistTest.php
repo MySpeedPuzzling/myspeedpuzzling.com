@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetUserBlocks;
@@ -121,7 +122,7 @@ final class PlayerBlocklistTest extends WebTestCase
         $browser = self::createClient();
 
         self::getContainer()->get(Connection::class)->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source, note) VALUES (:id, :blocker, :blocked, NOW(), 'admin', 'test')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source, note) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'admin', 'test')",
             [
                 'id' => Uuid::uuid7()->toString(),
                 'blocker' => PlayerFixture::PLAYER_WITH_FAVORITES,

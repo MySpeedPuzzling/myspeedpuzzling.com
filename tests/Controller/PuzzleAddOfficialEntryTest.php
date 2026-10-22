@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
@@ -157,7 +158,7 @@ final class PuzzleAddOfficialEntryTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
         self::getContainer()->get(Connection::class)->executeStatement(
-            "UPDATE puzzle SET hide_image_until = NOW() + INTERVAL '1 day' WHERE id = :id",
+            "UPDATE puzzle SET hide_image_until = " . TestClock::SQL_NOW . " + INTERVAL '1 day' WHERE id = :id",
             ['id' => PuzzleFixture::PUZZLE_1000_05],
         );
 
@@ -169,7 +170,7 @@ final class PuzzleAddOfficialEntryTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
         self::getContainer()->get(Connection::class)->executeStatement(
-            "UPDATE puzzle SET hide_until = NOW() + INTERVAL '1 day' WHERE id = :id",
+            "UPDATE puzzle SET hide_until = " . TestClock::SQL_NOW . " + INTERVAL '1 day' WHERE id = :id",
             ['id' => PuzzleFixture::PUZZLE_1000_05],
         );
 
@@ -230,7 +231,7 @@ final class PuzzleAddOfficialEntryTest extends WebTestCase
         foreach ([[$situation['hugo_blocks_gina'], PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_PRIVATE], [$situation['gina_blocks_hugo'], PlayerFixture::PLAYER_PRIVATE, PlayerFixture::PLAYER_REGULAR]] as [$blocks, $blocker, $blocked]) {
             if ($blocks) {
                 $database->executeStatement(
-                    "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+                    "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
                     ['id' => Uuid::uuid7()->toString(), 'blocker' => $blocker, 'blocked' => $blocked],
                 );
             }
@@ -238,7 +239,7 @@ final class PuzzleAddOfficialEntryTest extends WebTestCase
 
         if ($situation['hugo_on_ginas_allow_list']) {
             $database->executeStatement(
-                'INSERT INTO private_profile_viewer (id, owner_id, viewer_id, added_at) VALUES (:id, :gina, :hugo, NOW())',
+                'INSERT INTO private_profile_viewer (id, owner_id, viewer_id, added_at) VALUES (:id, :gina, :hugo, ' . TestClock::SQL_NOW . ')',
                 ['id' => Uuid::uuid7()->toString(), 'gina' => PlayerFixture::PLAYER_PRIVATE, 'hugo' => PlayerFixture::PLAYER_REGULAR],
             );
         }
@@ -640,7 +641,7 @@ final class PuzzleAddOfficialEntryTest extends WebTestCase
     private function publish(string $roundId): void
     {
         self::getContainer()->get(Connection::class)->executeStatement(
-            'UPDATE competition_round SET results_published_at = NOW(), results_first_published_at = NOW() WHERE id = :id',
+            'UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ', results_first_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => $roundId],
         );
     }

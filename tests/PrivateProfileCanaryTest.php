@@ -319,7 +319,7 @@ final class PrivateProfileCanaryTest extends WebTestCase
 
         // The owner blocks the friend (as an admin would impose it by SQL - no handler clean-up)
         $database->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (gen_random_uuid(), :owner, :friend, NOW(), 'admin')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (gen_random_uuid(), :owner, :friend, " . TestClock::SQL_NOW . ", 'admin')",
             ['owner' => self::OWNER, 'friend' => self::FRIEND],
         );
 
@@ -338,7 +338,7 @@ final class PrivateProfileCanaryTest extends WebTestCase
         $url = '/en/events/results-cup/results/group-b';
         $profileLink = 'href="/en/player-profile/' . self::OWNER . '"';
         self::getContainer()->get(Connection::class)->executeStatement(
-            'UPDATE competition_round SET results_published_at = NOW() WHERE id = :id',
+            'UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => OfficialResultsFixture::ROUND_GROUP_B],
         );
 

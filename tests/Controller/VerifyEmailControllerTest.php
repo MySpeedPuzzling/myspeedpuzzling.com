@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
@@ -118,7 +118,7 @@ final class VerifyEmailControllerTest extends WebTestCase
         $userAccount = $this->seedAccount($browser);
 
         $signer = $browser->getContainer()->get(EmailVerificationTokenSigner::class);
-        $expired = $signer->generate($userAccount, new DateTimeImmutable('-1 minute'));
+        $expired = $signer->generate($userAccount, TestClock::now()->modify('-1 minute'));
 
         $browser->request('GET', '/verify-email?token=' . $expired);
 
@@ -144,7 +144,7 @@ final class VerifyEmailControllerTest extends WebTestCase
     private function tokenFor(KernelBrowser $browser, UserAccount $userAccount): string
     {
         return $browser->getContainer()->get(EmailVerificationTokenSigner::class)
-            ->generate($userAccount, new DateTimeImmutable('+24 hours'));
+            ->generate($userAccount, TestClock::now()->modify('+24 hours'));
     }
 
     private function reload(KernelBrowser $browser, UserAccount $userAccount): null|UserAccount
@@ -159,7 +159,7 @@ final class VerifyEmailControllerTest extends WebTestCase
             Uuid::uuid7(),
             'msp|' . bin2hex(random_bytes(4)),
             $email,
-            new DateTimeImmutable(),
+            TestClock::now(),
         );
 
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);

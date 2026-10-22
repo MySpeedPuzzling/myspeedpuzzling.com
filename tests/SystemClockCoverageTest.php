@@ -17,6 +17,11 @@ use PHPUnit\Framework\TestCase;
  * time on purpose - a cookie's expiry, the page's msp-rendered-at, a rate limiter's retry-after (the limiter counts
  * on microtime()), the bot-blocker's issued-at, health probes. Durations are measured, not dated. Parsing a given value
  * is no clock - where the code can say so without a system-clock function it does (`new DateTimeImmutable('@' . $ts)`).
+ *
+ * The test suite follows the same rule (R4): the app's clock is frozen at TestClock::FROZEN_NOW, so a test takes its
+ * moments from TestClock (or the container's clock) or writes them as absolute literals. A test file may read real time
+ * only where the code under test, a library or the browser judges it on real time - listed per file and per kind of read,
+ * so a new kind of read in a listed file still fails.
  */
 final class SystemClockCoverageTest extends TestCase
 {
@@ -24,6 +29,9 @@ final class SystemClockCoverageTest extends TestCase
     private const string RATE_LIMIT = 'Rate-limiter retry-after - the limiter counts on the system clock (microtime()).';
     private const string DURATION = 'Measures a duration (microtime(true) / hrtime()) - no date is read.';
     private const string PROBE = 'Health probe - answers with the server\'s real time.';
+    private const string RENDERED_AT = 'msp-rendered-at is real time (the browser compares it with the server\'s Date header), so is its reader.';
+    private const string PHP_JWT = 'Apple\'s tokens are checked with php-jwt, which judges iat/exp by time() - the app sets no JWT::$timestamp there.';
+    private const string PATTERN_DATA = 'A guard - the clock reads it must recognise are data.';
 
     /** PHP files under src/ allowed to read the system clock, with the reason */
     private const array ALLOWED = [
@@ -70,6 +78,42 @@ final class SystemClockCoverageTest extends TestCase
         'base.html.twig' => 'msp-rendered-at - the browser compares it with the server\'s Date header, real time on both sides.',
     ];
 
+    /**
+     * Files under tests/ allowed to read the system clock: the hits allowed (as this test prints them) and the reason.
+     * null = every hit (the file is a guard whose clock reads are data).
+     *
+     * @var array<string, array{0: list<string>|null, 1: string}>
+     */
+    private const array ALLOWED_IN_TESTS = [
+        'Controller/AppleSignInNotificationControllerTest.php' => [['time('], self::PHP_JWT],
+        'Controller/AssetLoadFailureControllerTest.php' => [['time('], self::RENDERED_AT],
+        'Controller/LiveResults/CompetitionNameTagsTest.php' => [['hrtime('], self::DURATION],
+        'Controller/RegisterControllerTest.php' => [['time('], 'The REMEMBERME cookie\'s expiry - remember-me mints it with time(), the browser judges it on its own clock.'],
+        'Controller/StaleDocumentControllerTest.php' => [['time('], self::RENDERED_AT],
+        'DatabaseClockCoverageTest.php' => [null, self::PATTERN_DATA],
+        'EventSubscriber/BotTrustCookieSubscriberTest.php' => [['microtime('], 'The bot-blocker cookie\'s issued-at - the sidecar validates it on its own clock.'],
+        'EventSubscriber/NativeAuthPageLocaleTest.php' => [['time('], self::COOKIE],
+        'OAuth2TestHelper.php' => [['new DateTimeImmutable()', 'new DateTimeImmutable(\'+'], 'league/oauth2-server judges its access tokens on its own clock (lcobucci SystemClock), never the app\'s.'],
+        'Panther/Extension/PantherDatabaseManager.php' => [['microtime('], 'microtime() as entropy for a database name, not as a time.'],
+        'RelativeTimeParityTest.php' => [['\'now\''], 'The label "now" the relative-time formatter prints - an expected text, no clock read.'],
+        'RoundRevealMomentComputedOnlyHereTest.php' => [null, self::PATTERN_DATA],
+        'Security/RememberMeTest.php' => [['time('], self::COOKIE],
+        'Services/AssetLoadFailureClassifierTest.php' => [['time('], self::RENDERED_AT],
+        'Services/Doctrine/MigrationLockTest.php' => [['microtime('], self::DURATION],
+        'Services/Insights/InsightsBuilderTest.php' => [['hrtime('], self::DURATION],
+        'Services/Insights/InsightsFramesBudgetTest.php' => [['hrtime('], self::DURATION],
+        'Services/Insights/InsightsLazyPartsBudgetTest.php' => [['hrtime('], self::DURATION],
+        'Services/LiveKit/StudioSpectatorsTest.php' => [['microtime('], self::DURATION],
+        'Services/RateLimiting/RedisSlidingWindowLimiterTest.php' => [['microtime(', 'new NativeClock('], 'Forked processes start together at a real moment (time_sleep_until), and the limiter counts on real time.'],
+        'Services/Session/PostgresSessionHandlerTest.php' => [['hrtime('], self::DURATION],
+        'Services/Storage/ObjectStorageHttpClientFactoryTest.php' => [['microtime('], self::DURATION],
+        'SystemClockCoverageTest.php' => [null, self::PATTERN_DATA],
+        'TestClockTest.php' => [['time('], 'Checks that the frozen instant lies before the real date of the run (TestClock\'s rule).'],
+        'TestDouble/AppleIdTokenFactory.php' => [['time('], self::PHP_JWT],
+        'TestDouble/InMemoryStudioInviteSignal.php' => [['time('], 'Stands in for a Redis TTL, which Redis counts on its own clock.'],
+        'TestingDatabaseCaching.php' => [['time('], 'The age of the test database cache file - a file system time.'],
+    ];
+
     private const array PATTERNS = [
         // new DateTime(Immutable)() and every relative string ('now', 'today', '-3 days', 'first day of this month' …)
         '~new\s+\\\\?DateTime(?:Immutable)?\s*\(\s*\)~i',
@@ -81,6 +125,16 @@ final class SystemClockCoverageTest extends TestCase
         '~new\s+\\\\?(?:\w+\\\\)*(?:NativeClock|DatePoint)\s*\(~',
         // 'now' anywhere else (a default, `?? 'now'`) - except as the name of a statement's :now parameter
         '~(?<!\[)(?<!setParameter\()\'now\'(?!\s*=>)~i',
+    ];
+
+    /**
+     * Tests only: a MockClock started at the real now or a relative moment (`new MockClock()` is the real now), and
+     * relative moments built by sprintf() (NewsletterSignupControllerTest hid one that way)
+     */
+    private const array TEST_PATTERNS = [
+        '~new\s+\\\\?(?:\w+\\\\)*MockClock\s*\(\s*(?:\)|([\'"])(?:now|today|tomorrow|yesterday|midnight|noon|first\b|last\b|next\b|this\b|[+-]))~i',
+        // sprintf('-%d seconds', …) - a relative moment counted from the real now; sprintf('first monday of october %d', $year) names a day
+        '~new\s+\\\\?(?:(?:\w+\\\\)*MockClock|DateTime(?:Immutable)?)\s*\(\s*sprintf\s*\(\s*([\'"])(?:now|today|tomorrow|yesterday|[+-])~i',
     ];
 
     private const array TEMPLATE_PATTERNS = [
@@ -120,6 +174,57 @@ final class SystemClockCoverageTest extends TestCase
 
         self::assertSame([], $offending, 'These files read the system clock. Inject Psr\Clock\ClockInterface instead (an entity or value object takes the moment from its caller), or list the file here with the reason.');
         self::assertSame([], array_keys($stale), 'These files no longer read the system clock - remove them from the list.');
+    }
+
+    public function testTestsReadTheTimeFromTheFrozenClock(): void
+    {
+        $offending = [];
+        $stale = [];
+        $seen = [];
+        $root = (string) realpath(__DIR__);
+
+        /** @var \SplFileInfo $file */
+        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)) as $file) {
+            if ($file->getExtension() !== 'php') {
+                continue;
+            }
+
+            $hits = self::hits([...self::PATTERNS, ...self::TEST_PATTERNS], self::code($file->getPathname()));
+
+            if ($hits === []) {
+                continue;
+            }
+
+            $relative = substr($file->getPathname(), strlen($root) + 1);
+            $seen[$relative] = true;
+            $allowed = array_key_exists($relative, self::ALLOWED_IN_TESTS) ? self::ALLOWED_IN_TESTS[$relative][0] : [];
+
+            if ($allowed === null) {
+                continue;
+            }
+
+            foreach (array_diff($allowed, $hits) as $gone) {
+                $stale[] = $relative . ': ' . $gone;
+            }
+
+            $notAllowed = array_unique(array_diff($hits, $allowed));
+
+            if ($notAllowed !== []) {
+                $offending[] = $relative . ': ' . implode(', ', $notAllowed);
+            }
+        }
+
+        foreach (array_keys(self::ALLOWED_IN_TESTS) as $relative) {
+            if (array_key_exists($relative, $seen) === false) {
+                $stale[] = $relative;
+            }
+        }
+
+        sort($offending);
+        sort($stale);
+
+        self::assertSame([], $offending, 'These tests read the real clock, while the app\'s clock is frozen. Use TestClock::now() (->modify(…)), TestClock::timestamp() / milliseconds(), new MockClock(TestClock::now()) or an absolute literal - or list the read here with the reason.');
+        self::assertSame([], $stale, 'These listed reads no longer happen - remove them from the list.');
     }
 
     public function testTemplatesReadTheTimeFromTheClock(): void
@@ -193,6 +298,31 @@ final class SystemClockCoverageTest extends TestCase
             ] as $code
         ) {
             self::assertSame([], self::hits(self::PATTERNS, $code), $code);
+        }
+
+        foreach (
+            [
+            'new MockClock()',
+            "new MockClock('-1 day')",
+            "new \\Symfony\\Component\\Clock\\MockClock('now')",
+            "new MockClock(sprintf('-%d seconds', \$secondsAgo))",
+            "new DateTimeImmutable(sprintf('-%d days', \$days))",
+            'new DateTimeImmutable("-{$days} days")',
+            ] as $code
+        ) {
+            self::assertNotSame([], self::hits([...self::PATTERNS, ...self::TEST_PATTERNS], $code), $code);
+        }
+
+        foreach (
+            [
+            'new MockClock(TestClock::now())',
+            "new MockClock('2026-10-14 12:00:00')",
+            "new MockClock(TestClock::now()->modify(sprintf('-%d seconds', \$secondsAgo)))",
+            "TestClock::now()->modify('-3 days')",
+            "new DateTimeImmutable(sprintf('first monday of october %d', \$year))",
+            ] as $code
+        ) {
+            self::assertSame([], self::hits([...self::PATTERNS, ...self::TEST_PATTERNS], $code), $code);
         }
 
         foreach (["{{ 'now'|date('Y') }}", '{% if date() < limit %}', "{% set d = date('-1 day') %}"] as $code) {

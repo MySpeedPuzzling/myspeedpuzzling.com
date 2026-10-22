@@ -169,7 +169,7 @@ final class SuspiciousTimeGroupChangeTest extends KernelTestCase
             currentUserId: self::FAY_USER_ID,
             puzzleSolvingTimeId: SuspiciousTimesFixture::TIME_SQL_FLAGGED,
             competitionId: null,
-            time: gmdate('H:i:s', $time['seconds_to_solve']),
+            time: new DateTimeImmutable('@' . $time['seconds_to_solve'])->format('H:i:s'),
             comment: null,
             groupPlayers: $groupPlayers,
             finishedAt: new DateTimeImmutable($time['finished_at']),

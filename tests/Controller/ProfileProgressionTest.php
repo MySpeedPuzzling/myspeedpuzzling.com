@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -212,7 +213,7 @@ final class ProfileProgressionTest extends WebTestCase
     private function rate(string $playerId, float $rating): void
     {
         $this->database()->executeStatement(
-            'INSERT INTO player_elo (id, player_id, pieces_count, elo_rating, computed_at) VALUES (:id, :player, 500, :rating, NOW())',
+            'INSERT INTO player_elo (id, player_id, pieces_count, elo_rating, computed_at) VALUES (:id, :player, 500, :rating, ' . TestClock::SQL_NOW . ')',
             ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'rating' => $rating],
         );
     }
@@ -220,7 +221,7 @@ final class ProfileProgressionTest extends WebTestCase
     private function earnStreak(string $playerId): void
     {
         $this->database()->executeStatement(
-            "INSERT INTO badge (id, player_id, type, earned_at, tier, revealed_at) VALUES (:id, :player, 'streak', NOW(), 1, NOW())",
+            "INSERT INTO badge (id, player_id, type, earned_at, tier, revealed_at) VALUES (:id, :player, 'streak', " . TestClock::SQL_NOW . ", 1, " . TestClock::SQL_NOW . ")",
             ['id' => Uuid::uuid7()->toString(), 'player' => $playerId],
         );
     }

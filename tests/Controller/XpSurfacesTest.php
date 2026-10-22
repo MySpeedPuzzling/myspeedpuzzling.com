@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -72,7 +73,7 @@ final class XpSurfacesTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
         self::getContainer()->get(Connection::class)->executeStatement(
-            "INSERT INTO badge (id, player_id, type, earned_at, tier) VALUES (:id, :player, 'puzzles_solved', NOW(), 1)",
+            "INSERT INTO badge (id, player_id, type, earned_at, tier) VALUES (:id, :player, 'puzzles_solved', " . TestClock::SQL_NOW . ", 1)",
             ['id' => Uuid::uuid7()->toString(), 'player' => PlayerFixture::PLAYER_WITH_STRIPE],
         );
 

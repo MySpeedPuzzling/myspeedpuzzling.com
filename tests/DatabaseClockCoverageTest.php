@@ -12,8 +12,10 @@ use PHPUnit\Framework\TestCase;
  * so a test's frozen clock and the data it compares agree. Every file whose code (comments aside) uses NOW(),
  * CURRENT_DATE / CURRENT_TIME / CURRENT_TIMESTAMP, LOCALTIME / LOCALTIMESTAMP, clock_timestamp(),
  * statement_timestamp(), transaction_timestamp(), timeofday(), a one-argument age() or a 'now' / 'today' literal cast
- * fails this test. There is no exception today; should one ever be needed, add an allowlist `path => reason` like
- * SystemClockCoverageTest's.
+ * fails this test. Application code has no exception.
+ *
+ * The test suite follows the same rule (R4): Postgres keeps the real time while the app's clock is frozen at
+ * TestClock::FROZEN_NOW, so test SQL uses TestClock::SQL_NOW / SQL_TODAY (or binds TestClock::sqlParameter()).
  */
 final class DatabaseClockCoverageTest extends TestCase
 {
@@ -26,27 +28,41 @@ final class DatabaseClockCoverageTest extends TestCase
         '~(?<![\w>:$\\\\])age\(\s*[^,()]*\)~i',
     ];
 
+    /**
+     * Files under tests/ whose SQL-clock words are data, not SQL run against the database, with the reason
+     */
+    private const array ALLOWED_IN_TESTS = [
+        'DatabaseClockCoverageTest.php' => 'This guard - the patterns and their self-test are data.',
+        'RoundRevealMomentComputedOnlyHereTest.php' => 'A guard of its own - SQL snippets it must recognise are data.',
+        'SystemClockCoverageTest.php' => 'A guard of its own - the patterns and their self-test are data.',
+    ];
+
     public function testSqlReadsTheTimeFromTheClock(): void
     {
         $offending = [];
-        $root = (string) realpath(__DIR__ . '/../src');
 
-        /** @var \SplFileInfo $file */
-        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)) as $file) {
-            if ($file->getExtension() !== 'php') {
-                continue;
-            }
+        foreach (self::filesWithHits(__DIR__ . '/../src') as $relative => $hits) {
+            $offending[] = $relative . ': ' . implode(', ', $hits);
+        }
 
-            $hits = self::hits(self::code($file->getPathname()));
+        self::assertSame([], $offending, 'These files read the database\'s clock. Bind :now from the injected ClockInterface instead.');
+    }
 
-            if ($hits !== []) {
-                $offending[] = substr($file->getPathname(), strlen($root) + 1) . ': ' . implode(', ', $hits);
+    public function testTestSqlReadsTheTimeFromTheFrozenClock(): void
+    {
+        $offending = [];
+        $stale = self::ALLOWED_IN_TESTS;
+
+        foreach (self::filesWithHits(__DIR__) as $relative => $hits) {
+            unset($stale[$relative]);
+
+            if (array_key_exists($relative, self::ALLOWED_IN_TESTS) === false) {
+                $offending[] = $relative . ': ' . implode(', ', $hits);
             }
         }
 
-        sort($offending);
-
-        self::assertSame([], $offending, 'These files read the database\'s clock. Bind :now from the injected ClockInterface instead.');
+        self::assertSame([], $offending, 'These tests read the database\'s clock, which is not frozen. Use TestClock::SQL_NOW / TestClock::SQL_TODAY (or bind TestClock::sqlParameter()) instead.');
+        self::assertSame([], array_keys($stale), 'These files no longer read the database\'s clock - remove them from the list.');
     }
 
     public function testThePatternsCatchTheDatabaseClockAndNothingElse(): void
@@ -66,6 +82,32 @@ final class DatabaseClockCoverageTest extends TestCase
         self::assertSame([], self::hits('throw new InvalidLocalTime();'));
         self::assertSame([], self::hits('WHERE age(a, b) > INTERVAL \'1 year\''));
         self::assertSame([], self::hits('WHERE at < CAST(:now AS timestamp)'));
+    }
+
+    /**
+     * @return array<string, list<string>> path relative to $directory => hits, sorted by path
+     */
+    private static function filesWithHits(string $directory): array
+    {
+        $files = [];
+        $root = (string) realpath($directory);
+
+        /** @var \SplFileInfo $file */
+        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)) as $file) {
+            if ($file->getExtension() !== 'php') {
+                continue;
+            }
+
+            $hits = self::hits(self::code($file->getPathname()));
+
+            if ($hits !== []) {
+                $files[substr($file->getPathname(), strlen($root) + 1)] = $hits;
+            }
+        }
+
+        ksort($files);
+
+        return $files;
     }
 
     /**

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -122,7 +122,7 @@ final class SecretPuzzleWritesHttpTest extends WebTestCase
                 'timeHours' => '0',
                 'timeMinutes' => '41',
                 'timeSeconds' => '17',
-                'finishedAt' => new DateTimeImmutable()->format('d.m.Y'),
+                'finishedAt' => TestClock::now()->format('d.m.Y'),
                 'comment' => 'Typed before the reveal',
                 'collection' => '__system_collection__',
             ],
@@ -192,11 +192,11 @@ final class SecretPuzzleWritesHttpTest extends WebTestCase
     public function testTheFirstTryCheckSaysNothingAboutAHiddenPuzzle(): void
     {
         $browser = self::createClient();
-        $today = new DateTimeImmutable()->format('d.m.Y');
+        $today = TestClock::now()->format('d.m.Y');
         // TIME_02: PLAYER_PRIVATE, 25:00 on PUZZLE_500_01 - made today
         $this->database()->executeStatement(
             'UPDATE puzzle_solving_time SET finished_at = :today, tracked_at = :today WHERE id = :id',
-            ['today' => new DateTimeImmutable()->format('Y-m-d 10:00:00'), 'id' => PuzzleSolvingTimeFixture::TIME_02],
+            ['today' => TestClock::now()->format('Y-m-d 10:00:00'), 'id' => PuzzleSolvingTimeFixture::TIME_02],
         );
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
         $check = function (string $puzzleId) use ($browser, $today): string {
@@ -282,7 +282,7 @@ final class SecretPuzzleWritesHttpTest extends WebTestCase
                 'timeHours' => '0',
                 'timeMinutes' => '30',
                 'timeSeconds' => '0',
-                'finishedAt' => new DateTimeImmutable()->format('d.m.Y'),
+                'finishedAt' => TestClock::now()->format('d.m.Y'),
             ],
         ]);
     }
@@ -296,7 +296,7 @@ final class SecretPuzzleWritesHttpTest extends WebTestCase
         self::assertNotNull($puzzle);
 
         $stopwatch = new Stopwatch(Uuid::uuid7(), $player, $puzzle);
-        $stopwatch->start(new DateTimeImmutable('-20 minutes'));
+        $stopwatch->start(TestClock::now()->modify('-20 minutes'));
         $entityManager->persist($stopwatch);
         $entityManager->flush();
         $entityManager->clear();

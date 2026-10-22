@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -248,6 +249,6 @@ final class PlayerTimezoneTest extends WebTestCase
     private function notANewcomer(KernelBrowser $browser, string $playerId): void
     {
         $browser->getContainer()->get(Connection::class)
-            ->executeStatement("UPDATE player SET registered_at = NOW() - INTERVAL '60 days' WHERE id = :id", ['id' => $playerId]);
+            ->executeStatement("UPDATE player SET registered_at = " . TestClock::SQL_NOW . " - INTERVAL '60 days' WHERE id = :id", ['id' => $playerId]);
     }
 }

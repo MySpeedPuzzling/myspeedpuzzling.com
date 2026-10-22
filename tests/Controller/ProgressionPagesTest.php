@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\ArrayParameterType;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Doctrine\DBAL\Connection;
@@ -403,7 +404,7 @@ final class ProgressionPagesTest extends WebTestCase
         self::assertIsString($puzzleId, 'a 1000-piece puzzle the viewers never solved');
         $connection->executeStatement(
             "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, difficulty_tier, confidence, sample_size, computed_at)
-             VALUES (:puzzleId, 1.5, 6, 'high', 50, NOW())
+             VALUES (:puzzleId, 1.5, 6, 'high', 50, " . TestClock::SQL_NOW . ")
              ON CONFLICT (puzzle_id) DO UPDATE SET difficulty_tier = 6",
             ['puzzleId' => $puzzleId],
         );
@@ -426,7 +427,7 @@ final class ProgressionPagesTest extends WebTestCase
     private function insertBadge(string $playerId, string $type, int $tier): void
     {
         self::getContainer()->get(Connection::class)->executeStatement(
-            'INSERT INTO badge (id, player_id, type, earned_at, tier) VALUES (:id, :playerId, :type, NOW(), :tier)',
+            'INSERT INTO badge (id, player_id, type, earned_at, tier) VALUES (:id, :playerId, :type, ' . TestClock::SQL_NOW . ', :tier)',
             ['id' => Uuid::uuid7()->toString(), 'playerId' => $playerId, 'type' => $type, 'tier' => $tier],
         );
     }

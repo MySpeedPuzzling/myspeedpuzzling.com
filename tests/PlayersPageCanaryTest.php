@@ -43,7 +43,7 @@ final class PlayersPageCanaryTest extends WebTestCase
         $browser = self::createClient();
         $this->rebuildWithOnTop(self::BLOCKED);
         self::getContainer()->get(Connection::class)->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
         );
 
@@ -73,7 +73,7 @@ final class PlayersPageCanaryTest extends WebTestCase
         $browser = self::createClient();
         $this->rebuildWithOnTop(self::BLOCKED);
         self::getContainer()->get(Connection::class)->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
         );
 
@@ -152,11 +152,11 @@ final class PlayersPageCanaryTest extends WebTestCase
         $database->executeStatement(
             'UPDATE community_player_stats
              SET solves7d = 99, pieces7d = 99000, solves_this_month = 99, pieces_this_month = 99000,
-                 solves30d = 99, favorites_count = 999, solved_total = GREATEST(solved_total, 1), last_solved_at = NOW()
+                 solves30d = 99, favorites_count = 999, solved_total = GREATEST(solved_total, 1), last_solved_at = ' . TestClock::SQL_NOW . '
              WHERE player_id = :id',
             ['id' => $playerId],
         );
-        $database->executeStatement('UPDATE player SET registered_at = NOW() WHERE id = :id', ['id' => $playerId]);
+        $database->executeStatement('UPDATE player SET registered_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => $playerId]);
     }
 
     private function get(KernelBrowser $browser, string $url): string

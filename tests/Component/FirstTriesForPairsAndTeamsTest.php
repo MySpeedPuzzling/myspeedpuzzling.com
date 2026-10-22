@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Component;
 
+use DateTimeImmutable;
 use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
@@ -207,7 +208,7 @@ final class FirstTriesForPairsAndTeamsTest extends WebTestCase
             puzzleId: $puzzleId,
             competitionId: null,
             // A distinct time each: the handler takes an identical copy within seconds for a resent form
-            time: gmdate('H:i:s', $seconds),
+            time: new DateTimeImmutable('@' . $seconds)->format('H:i:s'),
             comment: null,
             finishedPuzzlesPhoto: null,
             groupPlayers: $groupPlayers,

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -44,7 +44,7 @@ final class PiecesDifficultyRankingControllerTest extends WebTestCase
         $this->seedRatedPuzzles($container, self::RAVENSBURGER, 750, 49, 'Almost');
         $this->seedRatedPuzzles($container, self::RAVENSBURGER, 750, 3, 'Low confidence', confidence: MetricConfidence::Low);
         $this->seedRatedPuzzle($container, self::RAVENSBURGER, 750, 'Unapproved', 1.5, approved: false);
-        $this->seedRatedPuzzle($container, self::RAVENSBURGER, 750, 'Hidden', 1.5, hideUntil: new DateTimeImmutable('+1 year'));
+        $this->seedRatedPuzzle($container, self::RAVENSBURGER, 750, 'Hidden', 1.5, hideUntil: TestClock::now()->modify('+1 year'));
 
         $browser->request('GET', '/en/puzzle/750-pieces/hardest');
         $this->assertResponseStatusCodeSame(404);

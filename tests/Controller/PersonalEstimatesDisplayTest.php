@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
@@ -242,7 +243,7 @@ final class PersonalEstimatesDisplayTest extends WebTestCase
 
         /** @var Connection $connection */
         $connection = $browser->getContainer()->get(Connection::class);
-        $connection->executeStatement("UPDATE puzzle SET hide_until = NOW() + INTERVAL '2 days' WHERE id = :id", ['id' => $secret]);
+        $connection->executeStatement("UPDATE puzzle SET hide_until = " . TestClock::SQL_NOW . " + INTERVAL '2 days' WHERE id = :id", ['id' => $secret]);
 
         $page = $browser->request('GET', $url);
         self::assertCount(0, $page->filter('[data-puzzle-id="' . $secret . '"] [data-testid="estimate-line"]'), 'no estimate while the puzzle is secret');
@@ -414,12 +415,12 @@ final class PersonalEstimatesDisplayTest extends WebTestCase
         $connection->executeStatement('UPDATE puzzle SET image = :image WHERE id = :id', ['image' => $image, 'id' => $puzzleId]);
         $connection->executeStatement(
             "INSERT INTO puzzle_difficulty_estimate (puzzle_id, model, model_version, log_difficulty, log_p10, log_p90, out_of_fold, training_size, image_fingerprint, computed_at, received_at)
-            VALUES (:puzzle, 'ridge-siglip2-dinov2', '1.0.0', :log, :p10, :p90, true, 4979, :fingerprint, NOW(), NOW())",
+            VALUES (:puzzle, 'ridge-siglip2-dinov2', '1.0.0', :log, :p10, :p90, true, 4979, :fingerprint, " . TestClock::SQL_NOW . ", " . TestClock::SQL_NOW . ")",
             ['puzzle' => $puzzleId, 'log' => $logDifficulty, 'p10' => $logDifficulty - 0.2, 'p90' => $logDifficulty + 0.25, 'fingerprint' => $fingerprint],
         );
         $connection->executeStatement(
             "INSERT INTO puzzle_image_analysis (id, puzzle_id, analyzer, analyzer_version, image_fingerprint, result, analyzed_at, received_at)
-            VALUES (:id, :puzzle, 'artwork', '1.0.0', :fingerprint, CAST(:result AS jsonb), NULL, NOW())",
+            VALUES (:id, :puzzle, 'artwork', '1.0.0', :fingerprint, CAST(:result AS jsonb), NULL, " . TestClock::SQL_NOW . ")",
             ['id' => Uuid::uuid7()->toString(), 'puzzle' => $puzzleId, 'fingerprint' => $fingerprint, 'result' => json_encode(['kind' => $artworkKind], JSON_THROW_ON_ERROR)],
         );
     }
@@ -442,7 +443,7 @@ final class PersonalEstimatesDisplayTest extends WebTestCase
         ];
         $connection->executeStatement(
             "INSERT INTO image_estimate_evaluation (id, evaluated_at, model_version, newer_than, measured_min_indices, groups, overall, by_k)
-            VALUES (:id, NOW() + (:offset * INTERVAL '1 second'), :version, NOW() - INTERVAL '1 year', 10, CAST(:groups AS jsonb), '{}', '[]')",
+            VALUES (:id, " . TestClock::SQL_NOW . " + (:offset * INTERVAL '1 second'), :version, " . TestClock::SQL_NOW . " - INTERVAL '1 year', 10, CAST(:groups AS jsonb), '{}', '[]')",
             ['id' => Uuid::uuid7()->toString(), 'offset' => $passing ? 1 : 2, 'version' => TimePredictionCalculator::MODEL_VERSION, 'groups' => json_encode([$group], JSON_THROW_ON_ERROR)],
         );
     }

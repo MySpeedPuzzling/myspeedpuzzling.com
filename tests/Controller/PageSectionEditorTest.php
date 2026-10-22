@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
@@ -251,7 +252,7 @@ final class PageSectionEditorTest extends WebTestCase
         self::assertSelectorExists('[data-page-sections-not-public]');
 
         // An approved event's editor says nothing of the kind
-        $this->database->executeStatement('UPDATE competition SET approved_at = NOW() WHERE id = :id', ['id' => self::OWN_EVENT]);
+        $this->database->executeStatement('UPDATE competition SET approved_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => self::OWN_EVENT]);
         $this->browser->request('GET', '/en/manage-event-page/' . self::OWN_EVENT);
         self::assertSelectorNotExists('[data-page-sections-not-public]');
         $this->browser->request('GET', '/en/events/unapproved-puzzle-event');

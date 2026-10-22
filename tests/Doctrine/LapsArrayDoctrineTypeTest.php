@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Doctrine;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Doctrine\LapsArrayDoctrineType;
@@ -99,5 +100,38 @@ class LapsArrayDoctrineTypeTest extends TestCase
                 new Lap(new DateTimeImmutable('@1699400000.950'), new DateTimeImmutable('@1699400006.937')),
             ],
         ];
+    }
+
+    public function testAMomentInAnotherZoneIsStoredAsTheSameInstantInUtc(): void
+    {
+        $type = new LapsArrayDoctrineType();
+        $prague = new DateTimeZone('Europe/Prague');
+
+        $stored = $type->convertToDatabaseValue([
+            new Lap(new DateTimeImmutable('2026-10-20 00:30:00.250', $prague), new DateTimeImmutable('2026-10-20 01:00:00', $prague)),
+        ], new PostgreSQLPlatform());
+
+        self::assertSame('[{"start":"2026-10-19 22:30:00.250","end":"2026-10-19 23:00:00.000"}]', $stored);
+    }
+
+    public function testMomentsAreReadBackAsUtcWhateverPhpsDefaultZone(): void
+    {
+        $type = new LapsArrayDoctrineType();
+        $defaultZone = date_default_timezone_get();
+        date_default_timezone_set('America/New_York');
+
+        try {
+            $laps = $type->convertToPHPValue('[{"start":"2026-10-19 22:30:00.250","end":"2026-10-19 23:00:00"}]', new PostgreSQLPlatform());
+        } finally {
+            date_default_timezone_set($defaultZone);
+        }
+
+        self::assertIsArray($laps);
+        self::assertCount(1, $laps);
+        self::assertSame('UTC', $laps[0]->start->getTimezone()->getName());
+        self::assertSame('2026-10-19T22:30:00.250+00:00', $laps[0]->start->format('Y-m-d\TH:i:s.vP'));
+        self::assertNotNull($laps[0]->end);
+        self::assertSame('UTC', $laps[0]->end->getTimezone()->getName());
+        self::assertSame(1792450800, $laps[0]->end->getTimestamp());
     }
 }

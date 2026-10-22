@@ -206,3 +206,69 @@ right below your own line. Foundation keys: `strength.*`, `goal.*`, `kind.*` (Pa
 
 **Styles**: `assets/styles/_partner-finder.scss` (part A), `_partner-finder-card.scss` (part B), imported after the
 event-detail partials in `app.scss`.
+
+## Part A as built (2026-10-22)
+
+**Routes** (`src/Controller/PartnerFinder/`): `event_partners` (`EventPartnersController`; an edition's slug 301s to
+`edition_partners`) and `edition_partners` (`EditionPartnersController`) in all 6 locales (cs `…/partneri`, es
+`…/companeros`, fr `…/partenaires`, de `…/partner`, en/ja `…/partners`), GET only, sharing
+`AbstractPartnerFinderPageController::renderFinder()`; a draft is a `DraftNotVisible` 404 for everybody (its team too -
+it has no finder), an event without a finder `PartnerFinderNotAvailable` (404); `X-Robots-Tag: noindex` + `noindex,
+follow`. `partner_listing_form` GET/POST `/{_locale}/partners/{competitionId}/list-me` (`PartnerListingFormController`:
+modal on `Turbo-Frame: modal-frame` → success = close + `refresh` stream with the flash; full page → 303 to the finder;
+`PartnerListingInvalid` → error on the field it names, 422). `partner_listing_close` POST
+`/{_locale}/partners/listing/{listingId}/close` (`ClosePartnerListingController`, stateless CSRF `partner_listing`,
+`reason` = `found` | anything else = withdrawn, `return` validated by `ReturnUrl`, PRG with a flash). URLs of an event's
+finder/page: `Services\PartnerFinder\PartnerFinderUrls`.
+
+**Messages**: `ListForPartner` (`SerializedByLock` on `CompetitionParticipantsLock::key($competitionId)`; calls
+`PartnerFinderAttendance::ensureGoing()` after saving), `EditPartnerListing` (`coMemberIds: null` = keep),
+`ClosePartnerListing` (owner only, `found` → `reduceNeeded()`, `withdrawn` → `close()`). Checks before anything changes,
+shared in `Services\PartnerFinder\PartnerListingRules`: the event qualifies (`qualifyingOffer()`), every kind is offered
+(else `PartnerListingInvalid::lookingFor()` - the form offers only the event's kinds), strengths
+(`PartnerStrengthNormalizer`), co-members (`Query\GetAllowedPartnerCoMembers`: exist, no block either way, public or
+the lister on their allow list - else `FIELD_CO_MEMBERS`), languages (`Symfony\Component\Intl\Languages::exists()`, two
+letters). **Decisions**: the same listing id again = no-op (a resent form); "List me" with another id while an open
+listing exists **edits the open one** (two tabs, an old form - the newest values win) instead of failing on the unique
+index. Both throw `PartnerListingInvalid` (unwrapped by `UnwrapHttpExceptionMiddleware`) - catch it directly.
+
+**Read model** `Query\GetPartnerListings` (statement counts pinned by `PartnerFinderQueryBudgetTest`: guest 2 = the event
+by slug + the teaser; signed in 6 = the event + the listings + the 4 statements of every signed-in request):
+- `forEvent(string $competitionId, string $viewerId, bool $viewerIsMember): ?Results\PartnerListings` - ONE statement:
+  `event` CTE (`PartnerFinderEligibility::SQL_QUALIFIES` + the rounds' categories/team size) → `listing` CTE (open,
+  `HiddenPlayers::sqlExclude()` + "the lister blocks the viewer", `PrivateProfileAccess::sqlIsPrivate()` as
+  `private_to_viewer`, own first then newest, `LIMIT 100`, `COUNT(*) OVER ()` = `totalOpen`) → joins
+  `community_player_stats` (best 500/1000, solved - NULL for a masked private player), `player_elo` 500 (NULL when opted
+  out), `player_skill` 500 **only for members** (else `NULL` and the table is not joined), registered (the going rule,
+  managed registration only), `sent` (EXISTS), `requests_count` (own row only), co-members as JSON (masked/blocked left
+  out), the viewer's own best 500. null = no finder.
+- `teaserForEvent(string $competitionId): ?Results\PartnerFinderTeaser` - ONE statement: total, pairs / teams (on their
+  own), groups, per country, 8 newest faces (avatar only when public). No names, notes or links reach guest HTML.
+- `Results\PartnerListings`: `others()`, `ownRow()`, `isCapped()`, `kindCounts()`, `countryCounts()`,
+  `strengthFilters()` (presets at least one other listing has, in `PartnerStrength` order + custom chips of ≥ 2 listings
+  folded equal, first spelling), `customChipSuggestions()`. `Results\PartnerListingRow::speedComparedTo($viewerBest500)`
+  = `similar` (±10 %) / `faster` / `slower`, `speedDistance()` for "Closest to my speed" - both in PHP, members only.
+
+**Page** (`templates/partner_finder/`): `finder.html.twig` (crumbs, header + "List me", own listing under "Your listing",
+`_filters.html.twig`, rows, "Showing the newest 100 of N", privacy line), `_teaser.html.twig`, `_listing_row.html.twig`,
+`_listing_action.html.twig` (`<turbo-frame id="partner-listing-{id}">`: own = "N got in touch" + Edit / Found my partner
+(Found one more for a group needing > 1) / Remove; others = Going | Registered | Not registered yet + `✓ Sent` or a
+`<details>` "I'd like to puzzle with you" panel posting `_token` / `kind` (radios only for two kinds) / `note` (≤ 200) /
+`return` to `partner_request_send`). Row data attributes for `assets/controllers/partner_finder_controller.js`:
+`data-kinds` (`pair` / `team` on one's own, `group`), `data-country` (lower case), `data-strengths` (preset values +
+`c:` + 12 hex of md5 of the folded custom chip - `PartnerListingRow::customKey()`), `data-order` (server order),
+`data-best500`, `data-best1000` (seconds, empty = unknown), `data-distance` (members). The own row carries none (it is
+never filtered). The country filter is the site's `country-select` with only the countries present ("Name (count)").
+Non-members see the tier as the lock (`#membersExclusiveModal`) and "Closest to my speed" disabled with a Members badge.
+
+**Form** `FormType\PartnerListingFormType` / `FormData\PartnerListingFormData` + `_listing_form.html.twig` (modal
+`_listing_form_modal.html.twig`, page `listing_form.html.twig`): hidden `listingId` (UUIDv7, kept on a 422), "I am" (only
+when the event has a team round), group size + "we need" (prefilled `teamSize - 2`), "Looking for" (offered kinds only;
+`partner_listing_form_controller.js` turns "a pair partner" off for a group), goal, preset chips (≤ 4), "your own words"
+= one comma-separated text input (`partner_strengths_controller.js` makes chips of it; suggestions = the event's chips
+from the finder page's `data-partner-finder-custom-chips` + preset labels), languages (TomSelect, ≤ 4, prefilled from
+`CountryLanguage` + English), note with counter, consent line (going / managed registration / edit).
+
+**Deviations**: no co-member picker in the form yet (`docs/TODO.md`) - the messages and checks support co-members, an edit
+keeps them. Styles only in
+`_partner-finder.scss`; it reuses the player card's tier chips (`players-card-chip*`).

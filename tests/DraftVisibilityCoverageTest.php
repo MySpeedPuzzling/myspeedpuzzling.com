@@ -10,9 +10,9 @@ use PHPUnit\Framework\TestCase;
  * A draft appears on no public surface (docs/features/organizations/README.md "Drafts") - and the read side has no
  * chokepoint: every query is hand-written SQL. So every file whose code (comments aside) reads the competition,
  * competition_series or organization table either embeds the visibility rule (IsCompetitionPubliclyVisible,
- * IsSeriesPubliclyVisible, IsOrganizationPubliclyVisible, GetMarketplaceEvents::SQL_QUALIFIES - which embeds the first)
- * or says what it does with drafts (`is_draft`), or is listed here with the reason it does not need to - or fails this
- * test until its author has made that decision.
+ * IsSeriesPubliclyVisible, IsOrganizationPubliclyVisible, GetMarketplaceEvents::SQL_QUALIFIES - which embeds the first -,
+ * PartnerFinderEligibility::SQL_QUALIFIES - built on that) or says what it does with drafts (`is_draft`), or is listed
+ * here with the reason it does not need to - or fails this test until its author has made that decision.
  *
  * The approval part alone (IsCompetitionPubliclyVisible::SQL_APPROVED) is no decision about drafts: a file naming it
  * and nothing else of the rule is listed too. DraftCanaryTest proves the public surfaces; this test keeps new readers
@@ -69,7 +69,7 @@ final class DraftVisibilityCoverageTest extends TestCase
     ];
 
     private const string READS_EVENT_TABLES = '/\b(FROM|JOIN)\s+(competition|competition_series|organization)\b(?![_a-z])/i';
-    private const string DECIDES = '/Is(Competition|Series|Organization)PubliclyVisible|\bis_draft\b|GetMarketplaceEvents::SQL_QUALIFIES/';
+    private const string DECIDES = '/Is(Competition|Series|Organization)PubliclyVisible|\bis_draft\b|GetMarketplaceEvents::SQL_QUALIFIES|PartnerFinderEligibility::SQL_QUALIFIES/';
     private const string DECIDES_DRAFTS = '/SQL_CONDITION|SQL_NOT_DRAFT|SQL_JOIN_OF_COMPETITION|\bis_draft\b|->check\(|SQL_QUALIFIES/';
 
     public function testEveryReadOfEventRowsIsADecision(): void
@@ -123,6 +123,7 @@ final class DraftVisibilityCoverageTest extends TestCase
         self::assertTrue(self::decides('$visible = IsCompetitionPubliclyVisible::SQL_CONDITION; $sql = "SELECT 1 FROM competition c WHERE {$visible}";'));
         self::assertTrue(self::decides('$sql = "SELECT 1 FROM competition_series cs WHERE cs.is_draft = false";'));
         self::assertTrue(self::decides('$qualifies = GetMarketplaceEvents::SQL_QUALIFIES;'));
+        self::assertTrue(self::decides('$qualifies = PartnerFinderEligibility::SQL_QUALIFIES;'));
         self::assertFalse(self::decides('$sql = "SELECT 1 FROM competition WHERE approved_at IS NOT NULL";'));
     }
 

@@ -1,0 +1,50 @@
+{#
+    The guest teaser (D5): how many are looking, for what, from where, a few faces - never a name, a note or a link to a
+    player. Sign in to see who. Inputs: teaser (PartnerFinderTeaser), countries (list<{code, name, count}>), finder_url
+#}
+{%- set login_url = path('login', {return: finder_url}) -%}
+<section class="pf-teaser" aria-labelledby="pf-teaser-title">
+    {% if teaser.total > 0 %}
+        {% if teaser.faces is not empty %}
+            <div class="pf-teaser-faces" aria-hidden="true">
+                {% for face in teaser.faces %}
+                    <span class="pf-face">
+                        {{ include('_player_avatar.html.twig', {
+                            player_id: face.playerId,
+                            name: '',
+                            avatar: face.avatar,
+                            country_code: face.countryCode,
+                            hidden: face.masked,
+                            size: 'lg',
+                        }) }}
+                    </span>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <h2 class="pf-teaser-title" id="pf-teaser-title">{{ 'partner_finder.page.teaser_count'|trans({'%count%': teaser.total}) }}</h2>
+
+        <ul class="pf-teaser-kinds">
+            {% if teaser.offer.offers(enum('SpeedPuzzling\\Web\\Value\\PartnerKind').Pair) %}
+                <li><span class="pf-kind pf-kind-pair">{{ 'partner_finder.kind.pair'|trans }}</span> {{ teaser.pairs|plain_number }}</li>
+            {% endif %}
+            {% if teaser.offer.offers(enum('SpeedPuzzling\\Web\\Value\\PartnerKind').Team) %}
+                <li><span class="pf-kind pf-kind-team">{{ 'partner_finder.kind.team'|trans }}</span> {{ teaser.teams|plain_number }}</li>
+                <li><span class="pf-kind pf-kind-group">{{ 'partner_finder.page.kind_groups'|trans }}</span> {{ teaser.groups|plain_number }}</li>
+            {% endif %}
+        </ul>
+
+        {% if countries is not empty %}
+            <ul class="pf-teaser-countries" aria-label="{{ 'partner_finder.page.countries'|trans }}">
+                {% for country in countries %}
+                    <li title="{{ country.name }}"><span class="fi fi-{{ country.code }}" aria-hidden="true"></span> <span class="visually-hidden">{{ country.name }}</span>{{ country.count|plain_number }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% else %}
+        <h2 class="pf-teaser-title" id="pf-teaser-title">{{ 'partner_finder.page.teaser_empty'|trans }}</h2>
+    {% endif %}
+
+    <p class="pf-teaser-text">{{ 'partner_finder.page.teaser_text'|trans }}</p>
+    <a class="btn btn-primary" href="{{ login_url }}" rel="nofollow">{{ 'partner_finder.page.sign_in'|trans }}</a>
+</section>

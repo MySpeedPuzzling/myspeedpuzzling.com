@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\ModerationAction;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
@@ -22,6 +22,7 @@ readonly final class MuteUserHandler
         private PlayerRepository $playerRepository,
         private ModerationActionRepository $moderationActionRepository,
         private ConversationReportRepository $conversationReportRepository,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -33,7 +34,7 @@ readonly final class MuteUserHandler
         $targetPlayer = $this->playerRepository->get($message->targetPlayerId);
         $admin = $this->playerRepository->get($message->adminId);
 
-        $now = new DateTimeImmutable();
+        $now = $this->clock->now();
         $expiresAt = $now->modify("+{$message->days} days");
 
         $targetPlayer->muteMessaging($expiresAt);

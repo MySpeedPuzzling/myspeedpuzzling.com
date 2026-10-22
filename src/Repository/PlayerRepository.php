@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Repository;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\NoResultException;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
@@ -17,6 +18,7 @@ readonly class PlayerRepository
     public function __construct(
         private EntityManagerInterface $entityManager,
         private GenerateUniquePlayerCode $generateUniquePlayerCode,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -61,7 +63,7 @@ readonly class PlayerRepository
                 $this->generateUniquePlayerCode->generate(),
                 $userId,
                 null,
-                new \DateTimeImmutable(),
+                $this->clock->now(),
             );
 
             $this->entityManager->persist($player);

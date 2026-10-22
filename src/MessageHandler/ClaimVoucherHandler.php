@@ -345,7 +345,7 @@ readonly final class ClaimVoucherHandler
         $subscription = $this->stripeClient->subscriptions->retrieve($subscriptionId);
         $currentPeriodEnd = $subscription->items->data[0]->current_period_end;
 
-        $paidPeriodEnd = (new \DateTimeImmutable())->setTimestamp($currentPeriodEnd);
+        $paidPeriodEnd = new \DateTimeImmutable('@' . $currentPeriodEnd);
         $trialEnd = $paidPeriodEnd->add(new DateInterval('P' . $months . 'M'));
 
         $this->stripeClient->subscriptions->update($subscriptionId, [
@@ -355,7 +355,7 @@ readonly final class ClaimVoucherHandler
 
         $this->logger->info('Stripe subscription trial_end set for voucher', [
             'subscription_id' => $subscriptionId,
-            'current_period_end' => date('Y-m-d H:i:s', $currentPeriodEnd),
+            'current_period_end' => $paidPeriodEnd->format('Y-m-d H:i:s'),
             'trial_end' => $trialEnd->format('Y-m-d H:i:s'),
             'months_added' => $months,
         ]);

@@ -5,7 +5,7 @@
     'data-controller': 'show-more-recent-activity relative-time' ~ (this.autoRefresh ? ' live-refresh' : ''),
     'data-relative-time-messages-value': relative_time_messages()|json_encode,
     'data-relative-time-locale-value': app.request.locale,
-    'data-relative-time-server-now-value': 'now'|date('U'),
+    'data-relative-time-server-now-value': now()|date('U'),
 }) }}>
     {# Same row as the ladders and the profile results (_leaderboard_player, _leaderboard_time_badges, _leaderboard.scss):
        image · who solved what · time - never scrolls sideways. A tap on the row opens the result detail (docs/features/puzzle-result-detail.md) #}

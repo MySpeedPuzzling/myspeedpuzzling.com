@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\Tests\EventSubscriber;
 use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\EventSubscriber\BotTrustCookieSubscriber;
 use SpeedPuzzling\Web\Services\BotTrustCookieSigner;
-use Symfony\Component\Clock\MockClock;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
@@ -33,20 +32,24 @@ final class BotTrustCookieSubscriberTest extends TestCase
 
     public function testGoldenVectorMatchesTheSidecarImplementation(): void
     {
-        $signer = new BotTrustCookieSigner(self::SECRET, new MockClock());
+        $signer = new BotTrustCookieSigner(self::SECRET);
 
         self::assertSame(self::GOLDEN_COOKIE, $signer->buildAt(self::GOLDEN_UID, self::GOLDEN_IAT_MS));
     }
 
     public function testBuildRoundTripsThroughParse(): void
     {
-        $clock = new MockClock('2026-08-02 12:00:00');
-        $signer = new BotTrustCookieSigner(self::SECRET, $clock);
+        $signer = new BotTrustCookieSigner(self::SECRET);
         $uid = BotTrustCookieSigner::uidFor('jan@example.com');
 
+        $before = (int) floor(microtime(true) * 1000);
         $cookie = $signer->build($uid);
 
-        self::assertSame((int) $clock->now()->format('Uv'), $signer->parseIssuedAt($cookie, $uid));
+        // Issued in real time - the sidecar judges it on its own clock
+        $issuedAt = $signer->parseIssuedAt($cookie, $uid);
+        self::assertNotNull($issuedAt);
+        self::assertGreaterThanOrEqual($before, $issuedAt);
+        self::assertLessThanOrEqual((int) ceil(microtime(true) * 1000), $issuedAt);
         self::assertNull($signer->parseIssuedAt($cookie, 'someone-else'));
         self::assertNull($signer->parseIssuedAt('garbage', $uid));
         self::assertNull($signer->parseIssuedAt($cookie . 'x', $uid));
@@ -62,7 +65,7 @@ final class BotTrustCookieSubscriberTest extends TestCase
         self::assertTrue($cookies[0]->isHttpOnly());
         self::assertSame('/', $cookies[0]->getPath());
 
-        $signer = new BotTrustCookieSigner(self::SECRET, new MockClock());
+        $signer = new BotTrustCookieSigner(self::SECRET);
         $uid = BotTrustCookieSigner::uidFor('jan@example.com');
         self::assertNotNull($signer->parseIssuedAt((string) $cookies[0]->getValue(), $uid));
     }
@@ -76,7 +79,7 @@ final class BotTrustCookieSubscriberTest extends TestCase
 
     public function testFreshCookieIsNotReminted(): void
     {
-        $signer = new BotTrustCookieSigner(self::SECRET, new MockClock());
+        $signer = new BotTrustCookieSigner(self::SECRET);
         $uid = BotTrustCookieSigner::uidFor('jan@example.com');
         $fresh = $signer->build($uid);
 
@@ -87,10 +90,9 @@ final class BotTrustCookieSubscriberTest extends TestCase
 
     public function testStaleCookieIsReminted(): void
     {
-        $clock = new MockClock();
-        $signer = new BotTrustCookieSigner(self::SECRET, $clock);
+        $signer = new BotTrustCookieSigner(self::SECRET);
         $uid = BotTrustCookieSigner::uidFor('jan@example.com');
-        $staleIat = (int) $clock->now()->format('Uv')
+        $staleIat = (int) floor(microtime(true) * 1000)
             - (BotTrustCookieSigner::REFRESH_AFTER_DAYS + 1) * 24 * 60 * 60 * 1000;
         $stale = $signer->buildAt($uid, $staleIat);
 
@@ -101,7 +103,7 @@ final class BotTrustCookieSubscriberTest extends TestCase
 
     public function testForeignAccountCookieIsReminted(): void
     {
-        $signer = new BotTrustCookieSigner(self::SECRET, new MockClock());
+        $signer = new BotTrustCookieSigner(self::SECRET);
         $foreign = $signer->build(BotTrustCookieSigner::uidFor('someone-else@example.com'));
 
         $event = $this->dispatchResponse(authenticated: true, existingCookie: $foreign);
@@ -129,7 +131,7 @@ final class BotTrustCookieSubscriberTest extends TestCase
         string $secret = self::SECRET,
         int $requestType = HttpKernelInterface::MAIN_REQUEST,
     ): ResponseEvent {
-        $signer = new BotTrustCookieSigner($secret, new MockClock());
+        $signer = new BotTrustCookieSigner($secret);
 
         $tokenStorage = new TokenStorage();
         if ($authenticated) {
@@ -137,7 +139,7 @@ final class BotTrustCookieSubscriberTest extends TestCase
             $tokenStorage->setToken(new UsernamePasswordToken($user, 'main', $user->getRoles()));
         }
 
-        $subscriber = new BotTrustCookieSubscriber($signer, $tokenStorage, new MockClock());
+        $subscriber = new BotTrustCookieSubscriber($signer, $tokenStorage);
 
         $request = Request::create('/muj-profil');
         if ($existingCookie !== null) {

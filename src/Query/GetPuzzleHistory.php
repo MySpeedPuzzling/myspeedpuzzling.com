@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use DateTimeImmutable;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\PuzzleHistoryChange;
 use SpeedPuzzling\Web\Results\PuzzleHistoryEntry;
@@ -41,6 +42,7 @@ readonly final class GetPuzzleHistory
 
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -209,7 +211,7 @@ SQL;
         $entries = [];
 
         foreach ($rows as $row) {
-            $entry = self::decisionEntry($row, $puzzleId, $names);
+            $entry = $this->decisionEntry($row, $puzzleId, $names);
 
             if ($entry !== null) {
                 $entries[] = $entry;
@@ -223,10 +225,11 @@ SQL;
      * @param array<string, mixed> $row
      * @param array<string, string> $names
      */
-    private static function decisionEntry(array $row, string $puzzleId, array $names): null|PuzzleHistoryEntry
+    private function decisionEntry(array $row, string $puzzleId, array $names): null|PuzzleHistoryEntry
     {
         $details = self::json($row['details']);
-        $at = new DateTimeImmutable(self::string($row['decided_at']) ?? 'now');
+        $decidedAt = self::string($row['decided_at']);
+        $at = $decidedAt !== null && $decidedAt !== '' ? new DateTimeImmutable($decidedAt) : $this->clock->now();
         $byId = self::string($row['decided_by_id']);
         $byName = self::string($row['decided_by_name']);
         $byCode = self::string($row['decided_by_code']);
@@ -503,7 +506,7 @@ SQL;
                     $approved => PuzzleHistoryEntryKind::ChangeRequestApproved,
                     default => PuzzleHistoryEntryKind::ChangeRequestRejected,
                 },
-                at: new DateTimeImmutable(self::string($row['reviewed_at']) ?? 'now'),
+                at: is_string($row['reviewed_at']) && $row['reviewed_at'] !== '' ? new DateTimeImmutable($row['reviewed_at']) : $this->clock->now(),
                 byId: self::string($row['reviewed_by_id']),
                 byName: self::string($row['reviewer_name']),
                 byCode: self::string($row['reviewer_code']),

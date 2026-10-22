@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
@@ -68,6 +69,7 @@ final class EditTimeController extends AbstractController
         readonly private SuspiciousTimeFormCheck $suspiciousTimeFormCheck,
         readonly private GetXpEntriesForSolve $getXpEntriesForSolve,
         readonly private XpFeatureGate $xpFeatureGate,
+        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -102,7 +104,7 @@ final class EditTimeController extends AbstractController
             : $request->query->getString('context');
         $context = EditTimeReturnContext::tryFrom($contextValue) ?? EditTimeReturnContext::Profile;
 
-        $data = new EditPuzzleSolvingTimeFormData();
+        $data = new EditPuzzleSolvingTimeFormData($this->clock->now());
 
         // Detect initial mode based on whether time exists
         $initialMode = $solvedPuzzle->time !== null ? 'speed_puzzling' : 'relax';

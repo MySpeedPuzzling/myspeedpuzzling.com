@@ -88,6 +88,7 @@ final readonly class ReferralCookieSubscriber implements EventSubscriberInterfac
         $response->headers->setCookie(
             Cookie::create(self::COOKIE_NAME)
                 ->withValue($player->code)
+                // Real time: the browser expires the cookie on its own clock
                 ->withExpires(new \DateTimeImmutable('+' . self::COOKIE_LIFETIME_DAYS . ' days'))
                 ->withPath('/')
                 ->withHttpOnly(true)

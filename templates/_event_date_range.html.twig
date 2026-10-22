@@ -8,7 +8,7 @@
 #}
 {%- set same_day = date_to is null or date_from|date('Y-m-d') == date_to|date('Y-m-d') -%}
 {%- set end = date_to ?? date_from -%}
-{%- set year_suffix = end|date('Y') != 'now'|date('Y') ? end|date('Y') : '' -%}
+{%- set year_suffix = end|date('Y') != now()|date('Y') ? end|date('Y') : '' -%}
 {%- if same_day -%}
     {{- date_from|date('d.m.') }}{{ year_suffix -}}
 {%- else -%}

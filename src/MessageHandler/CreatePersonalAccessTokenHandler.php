@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PersonalAccessToken;
 use SpeedPuzzling\Web\Entity\Player;
@@ -17,6 +17,7 @@ final readonly class CreatePersonalAccessTokenHandler
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -29,7 +30,7 @@ final readonly class CreatePersonalAccessTokenHandler
         $tokenHash = hash('sha256', $plainToken);
         $tokenPrefix = substr($plainToken, 0, 16);
 
-        $now = new DateTimeImmutable();
+        $now = $this->clock->now();
 
         $token = new PersonalAccessToken(
             id: Uuid::fromString($message->tokenId),

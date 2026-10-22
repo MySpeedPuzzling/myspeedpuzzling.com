@@ -87,6 +87,7 @@ final class SocialRegisterSignInController extends AbstractController
         $response->headers->setCookie(Cookie::create(
             name: SocialLinkFinishController::BROWSER_BINDING_COOKIE,
             value: $nonce,
+            // Real time: the browser expires the cookie on its own clock
             expire: time() + self::COOKIE_LIFETIME_SECONDS,
             path: self::COOKIE_PATH,
             secure: $request->isSecure(),

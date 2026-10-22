@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
-use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\SellSwapListItem;
 use SpeedPuzzling\Web\Exceptions\MarketplaceBanned;
@@ -28,6 +28,7 @@ readonly final class AddPuzzleToSellSwapListHandler
         private SellSwapListItemRepository $sellSwapListItemRepository,
         private ListingEventLinks $listingEventLinks,
         private SecretPuzzleAccess $secretPuzzleAccess,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -74,7 +75,7 @@ readonly final class AddPuzzleToSellSwapListHandler
             $message->price,
             $message->condition,
             $message->comment,
-            new DateTimeImmutable(),
+            $this->clock->now(),
             $message->publishedOnMarketplace,
         );
 

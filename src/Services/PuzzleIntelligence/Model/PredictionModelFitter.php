@@ -99,8 +99,8 @@ final readonly class PredictionModelFitter
             quantiles: [...$defaults->quantiles, ...($firstTry['quantiles'] ?? []), ...($repeat['quantiles'] ?? [])],
             fittedAt: $now,
             summary: [
-                'window_from' => date('Y-m-d', (int) $from),
-                'window_to' => date('Y-m-d', (int) $to),
+                'window_from' => new DateTimeImmutable('@' . (int) $from)->format('Y-m-d'),
+                'window_to' => new DateTimeImmutable('@' . (int) $to)->format('Y-m-d'),
                 'tau_samples' => $tauSamples,
                 'first_try_samples' => $firstTry['samples'],
                 'repeat_samples' => $repeat['samples'],

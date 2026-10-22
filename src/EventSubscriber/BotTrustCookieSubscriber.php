@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\EventSubscriber;
 
-use Psr\Clock\ClockInterface;
+use DateTimeImmutable;
 use SpeedPuzzling\Web\Services\BotTrustCookieSigner;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Cookie;
@@ -30,7 +30,6 @@ final readonly class BotTrustCookieSubscriber implements EventSubscriberInterfac
     public function __construct(
         private BotTrustCookieSigner $signer,
         private TokenStorageInterface $tokenStorage,
-        private ClockInterface $clock,
     ) {
     }
 
@@ -61,7 +60,10 @@ final readonly class BotTrustCookieSubscriber implements EventSubscriberInterfac
 
         $request = $event->getRequest();
         $uid = BotTrustCookieSigner::uidFor($user->getUserIdentifier());
-        $nowMs = (int) $this->clock->now()->format('Uv');
+        // Real time, never the app's clock: the issued-at and the expiry are judged by the sidecar and the browser on
+        // their own clocks (docs/features/time-and-clock)
+        $now = new DateTimeImmutable();
+        $nowMs = (int) $now->format('Uv');
 
         $existing = $request->cookies->get(BotTrustCookieSigner::COOKIE_NAME);
 
@@ -78,7 +80,7 @@ final readonly class BotTrustCookieSubscriber implements EventSubscriberInterfac
         $event->getResponse()->headers->setCookie(
             Cookie::create(BotTrustCookieSigner::COOKIE_NAME)
                 ->withValue($this->signer->build($uid))
-                ->withExpires($this->clock->now()->modify('+' . BotTrustCookieSigner::LIFETIME_DAYS . ' days'))
+                ->withExpires($now->modify('+' . BotTrustCookieSigner::LIFETIME_DAYS . ' days'))
                 ->withPath('/')
                 ->withSecure($request->isSecure())
                 ->withHttpOnly(true)

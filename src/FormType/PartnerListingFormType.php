@@ -55,6 +55,10 @@ final class PartnerListingFormType extends AbstractType
                 'attr' => ['min' => 2, 'max' => PartnerListing::GROUP_SIZE_MAX, 'inputmode' => 'numeric'],
             ]);
 
+            // Who else is in the group: player ids, comma-separated - partner_co_members_controller.js fills it from its
+            // picker; without JavaScript it keeps what the listing has
+            $builder->add('coMembers', HiddenType::class);
+
             $builder->add('needed', IntegerType::class, [
                 'label' => 'partner_finder.form.needed',
                 'required' => false,

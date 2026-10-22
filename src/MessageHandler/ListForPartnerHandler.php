@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\PartnerListingRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\PartnerFinder\PartnerFinderAttendance;
+use SpeedPuzzling\Web\Services\PartnerFinder\PartnerGroupMemberNotifier;
 use SpeedPuzzling\Web\Services\PartnerFinder\PartnerListingRules;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -41,6 +42,7 @@ readonly final class ListForPartnerHandler
         private PlayerRepository $playerRepository,
         private PartnerListingRules $rules,
         private PartnerFinderAttendance $attendance,
+        private PartnerGroupMemberNotifier $groupMemberNotifier,
         private ClockInterface $clock,
     ) {
     }
@@ -71,9 +73,11 @@ readonly final class ListForPartnerHandler
         $now = $this->clock->now();
 
         $open = $this->listingRepository->findOpenFor($message->competitionId, $message->playerId);
+        $newMembers = $this->groupMemberNotifier->newMembers($open?->coMemberIds() ?? [], $coMemberIds);
 
         // Both throw PartnerListingInvalid before they change anything
         if ($open !== null) {
+            $listing = $open;
             $open->edit(
                 groupSize: $message->groupSize,
                 lookingFor: $message->lookingFor,
@@ -86,7 +90,7 @@ readonly final class ListForPartnerHandler
                 now: $now,
             );
         } else {
-            $this->listingRepository->save(new PartnerListing(
+            $listing = new PartnerListing(
                 id: $sameId === null ? Uuid::fromString($message->listingId) : Uuid::uuid7(),
                 competition: $competition,
                 player: $player,
@@ -99,9 +103,11 @@ readonly final class ListForPartnerHandler
                 languages: $languages,
                 note: $message->note,
                 createdAt: $now,
-            ));
+            );
+            $this->listingRepository->save($listing);
         }
 
+        $this->groupMemberNotifier->notify($newMembers, $listing, $now);
         $this->attendance->ensureGoing($competition, $player);
     }
 

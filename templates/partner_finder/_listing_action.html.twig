@@ -13,14 +13,44 @@
             <a class="btn btn-outline-secondary btn-sm" href="{{ path('partner_listing_form', {competitionId: competition_id}) }}" data-turbo-frame="modal-frame" rel="nofollow">
                 <i class="bi bi-pencil me-1" aria-hidden="true"></i>{{ 'partner_finder.listing.edit'|trans }}
             </a>
-            <form method="post" action="{{ path('partner_listing_close', {listingId: row.listingId}) }}" data-turbo-frame="_top">
-                <input type="hidden" name="_token" value="{{ csrf_token('partner_listing') }}">
-                <input type="hidden" name="reason" value="found">
-                <input type="hidden" name="return" value="{{ finder_url }}">
-                <button type="submit" class="btn btn-primary btn-sm">
-                    {{- (row.needed is not null and row.needed > 1 ? 'partner_finder.listing.found_one' : 'partner_finder.listing.found')|trans -}}
-                </button>
-            </form>
+            {%- set found_label = (row.needed is not null and row.needed > 1 ? 'partner_finder.listing.found_one' : 'partner_finder.listing.found')|trans -%}
+            {% if row.teamUpCandidates is empty %}
+                <form method="post" action="{{ path('partner_listing_close', {listingId: row.listingId}) }}" data-turbo-frame="_top">
+                    <input type="hidden" name="_token" value="{{ csrf_token('partner_listing') }}">
+                    <input type="hidden" name="reason" value="found">
+                    <input type="hidden" name="return" value="{{ finder_url }}">
+                    <button type="submit" class="btn btn-primary btn-sm">{{ found_label }}</button>
+                </form>
+            {% else %}
+                {# "Who did you team up with?" - the people they exchanged a request with who are still listed here; each one
+                   picked is asked to close their listing too (PartnerTeamedUp), nobody's listing is closed for them #}
+                <details class="pf-contact pf-found-step">
+                    <summary class="btn btn-primary btn-sm">{{ found_label }}</summary>
+                    <form class="pf-contact-panel pf-found-panel" method="post" action="{{ path('partner_listing_close', {listingId: row.listingId}) }}" data-turbo-frame="_top">
+                        <input type="hidden" name="_token" value="{{ csrf_token('partner_listing') }}">
+                        <input type="hidden" name="reason" value="found">
+                        <input type="hidden" name="return" value="{{ finder_url }}">
+                        <fieldset>
+                            <legend class="pf-found-title">{{ 'partner_finder.listing.teamed_up_title'|trans }}</legend>
+                            {% for candidate in row.teamUpCandidates %}
+                                <label class="pf-found-person">
+                                    <input type="checkbox" class="form-check-input" name="teamedUpWith[]" value="{{ candidate.playerId }}">
+                                    {{ include('_player_avatar.html.twig', {
+                                        player_id: candidate.playerId,
+                                        name: candidate.name ?? candidate.code,
+                                        avatar: candidate.avatar,
+                                        country_code: candidate.countryCode,
+                                        size: 'xs',
+                                    }) }}
+                                    <span>{{ candidate.name ?? ('#' ~ candidate.code|upper) }}</span>
+                                </label>
+                            {% endfor %}
+                        </fieldset>
+                        <p class="pf-found-help">{{ 'partner_finder.listing.teamed_up_help'|trans }}</p>
+                        <button type="submit" class="btn btn-primary btn-sm w-100">{{ found_label }}</button>
+                    </form>
+                </details>
+            {% endif %}
             <form method="post" action="{{ path('partner_listing_close', {listingId: row.listingId}) }}" data-turbo-frame="_top">
                 <input type="hidden" name="_token" value="{{ csrf_token('partner_listing') }}">
                 <input type="hidden" name="reason" value="withdrawn">

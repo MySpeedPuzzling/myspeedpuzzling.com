@@ -2,8 +2,10 @@
     The listing form's fields (docs/features/partner-finder.md, "Listing yourself") - shared by the modal and the full
     page. Choices render as chips / a segmented control on real radio and checkbox inputs, so the form works without
     JavaScript; partner_listing_form_controller.js shows the group fields only for a group, keeps "a pair partner" off for
-    a group and counts the note; partner_strengths_controller.js turns "your own" into chips.
-    Inputs: form, offer (PartnerFinderOffer), editing (bool), registration_managed (bool), custom_suggestions (list<string>)
+    a group and counts the note; partner_strengths_controller.js turns "your own" into chips; partner_co_members_controller.js
+    is the group's "Who's with you" picker.
+    Inputs: form, offer (PartnerFinderOffer), editing (bool), registration_managed (bool), custom_suggestions (list<string>),
+    co_member_choices (list<PartnerCoMember>), viewer_player_id
 #}
 {%- set has_group = form.iAm is defined -%}
 {%- set team_size = offer.teamSize -%}
@@ -27,10 +29,27 @@
             </div>
             {% do form.iAm.setRendered %}
 
-            <div class="pf-form-group-fields" data-partner-listing-form-target="groupFields">
+            <div class="pf-form-group-fields" data-partner-listing-form-target="groupFields"
+                data-controller="partner-co-members"
+                data-partner-co-members-suggestions-url-value="{{ path('my_co_puzzlers') }}"
+                data-partner-co-members-search-url-value="{{ path('player_search_autocomplete', {format: 'co-puzzler'}) }}"
+                data-partner-co-members-viewer-value="{{ viewer_player_id }}"
+                data-partner-co-members-selected-value="{{ co_member_choices|map(member => {
+                    key: member.playerId,
+                    label: member.name ?? ('#' ~ member.code|upper),
+                    code: member.code|upper,
+                    country: member.countryCode,
+                    avatar: member.avatar ? member.avatar|thumbnail('puzzle_small') : null,
+                })|json_encode }}"
+                data-partner-co-members-texts-value="{{ {
+                    placeholder: 'partner_finder.form.co_members_placeholder'|trans,
+                    noResults: 'partner_finder.form.co_members_no_results'|trans,
+                    favorite: 'partner_finder.form.co_members_favorite'|trans,
+                    full: 'partner_finder.form.co_members_full'|trans,
+                }|json_encode }}">
                 <label class="pf-form-inline">
                     <span>{{ 'partner_finder.form.group_size'|trans }}</span>
-                    {{ form_widget(form.groupSize, {attr: {class: 'form-control form-control-sm pf-number'}}) }}
+                    {{ form_widget(form.groupSize, {attr: {class: 'form-control form-control-sm pf-number', 'data-partner-co-members-target': 'size', 'data-action': 'input->partner-co-members#limit'}}) }}
                 </label>
                 <label class="pf-form-inline">
                     <span>{{ 'partner_finder.form.needed'|trans }}</span>
@@ -41,6 +60,15 @@
                 {% endif %}
                 {{ form_errors(form.groupSize) }}
                 {{ form_errors(form.needed) }}
+                {# Who else is in the group (optional, registered players): favorites and co-puzzlers first, anybody by name
+                   or code - shown on the listing, and each one added is told (PartnerGroupMember) #}
+                <div class="pf-co-members" data-partner-co-members-target="field" hidden>
+                    <label class="pf-form-sublabel" for="pf-co-members-picker">{{ 'partner_finder.form.co_members'|trans }} <span class="pf-form-optional">{{ 'partner_finder.form.optional'|trans }}</span></label>
+                    <input type="text" id="pf-co-members-picker" autocomplete="off" data-partner-co-members-target="picker">
+                    {{ form_widget(form.coMembers, {attr: {'data-partner-co-members-target': 'value'}}) }}
+                    <p class="pf-form-help">{{ 'partner_finder.form.co_members_help'|trans }}</p>
+                    {{ form_errors(form.coMembers) }}
+                </div>
             </div>
         </fieldset>
     {% endif %}

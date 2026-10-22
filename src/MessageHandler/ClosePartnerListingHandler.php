@@ -5,9 +5,15 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Clock\ClockInterface;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\Notification;
 use SpeedPuzzling\Web\Exceptions\PartnerListingNotFound;
 use SpeedPuzzling\Web\Message\ClosePartnerListing;
+use SpeedPuzzling\Web\Repository\NotificationRepository;
 use SpeedPuzzling\Web\Repository\PartnerListingRepository;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\PartnerFinder\PartnerTeamUpCandidates;
+use SpeedPuzzling\Web\Value\NotificationType;
 use SpeedPuzzling\Web\Value\PartnerListingClosedReason;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -15,12 +21,19 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * "Found my partner" / "Remove listing" (docs/features/partner-finder.md D7) - the owner's own two reasons; the others
  * (not going, event over, entered) close a listing by themselves. "Found" counts a group still needing more than one
  * person down instead of closing (PartnerListing::reduceNeeded()). A closed listing stays closed with its first reason.
+ *
+ * "Found" may name who they teamed up with: each named player who is a PartnerTeamUpCandidates candidate (exchanged a
+ * request with the owner at the event, still listed there, no block either way) gets a PartnerTeamedUp notification
+ * asking them to close their listing too - never closed for them (docs/features/partner-finder.md "Phase 2 as built").
  */
 #[AsMessageHandler]
 readonly final class ClosePartnerListingHandler
 {
     public function __construct(
         private PartnerListingRepository $listingRepository,
+        private PartnerTeamUpCandidates $partnerTeamUpCandidates,
+        private PlayerRepository $playerRepository,
+        private NotificationRepository $notificationRepository,
         private ClockInterface $clock,
     ) {
     }
@@ -37,11 +50,37 @@ readonly final class ClosePartnerListingHandler
         }
 
         $now = $this->clock->now();
+        $wasOpen = $listing->isOpen();
+        $teamedUpWith = [];
+
+        if ($message->reason === PartnerListingClosedReason::Found && $wasOpen && $message->teamedUpWith !== []) {
+            $named = array_map(strtolower(...), $message->teamedUpWith);
+            $candidates = array_filter(
+                $this->partnerTeamUpCandidates->of($listing),
+                static fn (string $candidateId): bool => in_array($candidateId, $named, true),
+            );
+
+            // Loaded before anything changes - a handler validates first
+            foreach ($candidates as $candidateId) {
+                $teamedUpWith[] = $this->playerRepository->get($candidateId);
+            }
+        }
 
         match ($message->reason) {
             PartnerListingClosedReason::Found => $listing->reduceNeeded($now),
             PartnerListingClosedReason::Withdrawn => $listing->close(PartnerListingClosedReason::Withdrawn, $now),
             default => throw new \InvalidArgumentException(sprintf('A listing\'s owner closes it as found or withdrawn, not "%s".', $message->reason->value)),
         };
+
+        foreach ($teamedUpWith as $partner) {
+            $this->notificationRepository->save(new Notification(
+                Uuid::uuid7(),
+                $partner,
+                NotificationType::PartnerTeamedUp,
+                $now,
+                actorPlayer: $listing->player,
+                targetPartnerListing: $listing,
+            ));
+        }
     }
 }

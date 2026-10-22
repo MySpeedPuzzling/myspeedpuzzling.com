@@ -78,6 +78,9 @@ final class ClosePartnerListingController extends AbstractController
             listingId: $listingId,
             playerId: $viewer->playerId,
             reason: $reason,
+            teamedUpWith: $reason === PartnerListingClosedReason::Found
+                ? array_values(array_filter($request->request->all('teamedUpWith'), is_string(...)))
+                : [],
         ));
 
         $this->addFlash('success', $this->translator->trans(match (true) {

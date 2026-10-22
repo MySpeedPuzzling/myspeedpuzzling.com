@@ -886,8 +886,8 @@ a clock read (`LiveEntryServerClockTest`, `DetailPagesJsonLdTest` only parse giv
 `CompetitionRoundTimezoneTest` (`new DateTimeImmutable('-1 day', Chicago)` → `TestClock::now()->setTimezone(Chicago)->modify('-1 day')`),
 relative strings behind a variable - `OnlineRoundSettingsControllerTest::setStopwatch()` (`$relative`) and
 **`EmailUnverifiedBannerTest::unverified()` (`new DateTimeImmutable("-{$registeredDaysAgo} days")` - a double-quoted
-interpolated string, which batches 1-6's grep pattern `DateTimeImmutable\(.(now|[+-]…)` with `.` does match, but the
-"non-literal argument" check `DateTimeImmutable\(\$` does not)**, and the `(TestClock::now()->modify(…))->` artefact.
+interpolated string: neither the relative-string pattern (`[+-]` is followed by `{`, not a digit) nor the
+"non-literal argument" check `DateTimeImmutable\(\$` matches it)**, and the `(TestClock::now()->modify(…))->` artefact.
 Checked and left as is: helpers already on the container clock (`CompetitionRegistrationControllerTest::now()`,
 `Seating/StopwatchSeatingReadinessTest::startsIn()`), `EventsListUiTest`'s own `MockClock` from a stored day, parses of
 stored values (`DifficultyOnThumbnailsTest`, `EditionDetailControllerTest`, `EventDetailControllerTest::startYear()`,
@@ -914,6 +914,10 @@ A local full suite (run before that instruction): 11525 tests, 32 failures + 1 e
 `LiveResults/CompetitionNameTagsTest::testTwoHundredTagsRenderQuicklyOnceTheirCodesAreDrawn` (2004 ms > 1500 ms - an
 `hrtime()` duration on a heavily loaded machine, the run took 11.5 min instead of ~4; the file has no clock read and is
 untouched). From here on the suite runs in CI only (draft PR #284) - see the CI result below.
+
+**CI (draft PR #284, run 39828582964 on 10e501bd7):** phpstan + coding standards green; tests 3 shards = 11 + 11 + 10 =
+**32 failing tests (31 failures + 1 error)**, batch 6: 53. Compared per test (data-set names stripped): every one was on batch 6's
+list, nothing green turned red; `CompetitionNameTagsTest` passes in CI.
 
 Remaining (local run, files / tests): `Controller` top level 11 / 22 (`LiveKitWebhook` 6, `ManageCompetitionRounds`,
 `ManageRoundPuzzleReveal`, `MyActivity` 2, `NewsletterSignup` 4, `OnlineTime`, `RoundResults` 2, `RoundResultsSecretPuzzle`,
@@ -957,5 +961,5 @@ For batches 8-9:
   `WeeklySeriesSeed`, object storage doubles stamping Last-Modified from the clock (`ClockedInMemoryFilesystemAdapter`, also in
   `services_test.php`); suite 62 → 53 failing, nothing new red.
 - 2026-10-22: Phase 4 batch 7 - `Controller/Compete`, `OnlineRounds`, `OfficialResults`, `LiveResults`, `ParticipantsSheet`,
-  `Seating` + `Controller` C-E on the frozen clock (42 files), online-API "now" assertions exact; local suite 53 → 33 failing
-  (32 of batch 6's + one loaded-machine duration test); CI from here on (draft PR #284).
+  `Seating` + `Controller` C-E on the frozen clock (42 files), online-API "now" assertions exact; CI 53 → 32 failing, nothing new
+  red; from here on the suite runs in CI only (draft PR #284).

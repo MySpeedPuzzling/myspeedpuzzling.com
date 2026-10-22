@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -53,7 +54,7 @@ final class NotifyWhenOauthIdentityLinkedTest extends KernelTestCase
 
         $userAccount = $this->seedAccount($locale);
 
-        $this->handler()(new OauthIdentityLinked($userAccount->id, OauthProvider::Google, new DateTimeImmutable()));
+        $this->handler()(new OauthIdentityLinked($userAccount->id, OauthProvider::Google, TestClock::now()));
 
         $messages = self::getMailerMessages();
         self::assertCount(1, $messages);
@@ -68,7 +69,7 @@ final class NotifyWhenOauthIdentityLinkedTest extends KernelTestCase
     {
         self::bootKernel();
 
-        $this->handler()(new OauthIdentityLinked(Uuid::uuid7(), OauthProvider::Google, new DateTimeImmutable()));
+        $this->handler()(new OauthIdentityLinked(Uuid::uuid7(), OauthProvider::Google, TestClock::now()));
 
         self::assertCount(0, self::getMailerMessages());
     }
@@ -93,8 +94,8 @@ final class NotifyWhenOauthIdentityLinkedTest extends KernelTestCase
         $userId = 'msp|' . Uuid::uuid7()->toString();
         $email = sprintf('notice+%s@example.com', bin2hex(random_bytes(4)));
 
-        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
-        $player = new Player(Uuid::uuid7(), 'NT' . bin2hex(random_bytes(3)), $userId, null, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now());
+        $player = new Player(Uuid::uuid7(), 'NT' . bin2hex(random_bytes(3)), $userId, null, TestClock::now());
         $player->changeLocale($locale);
 
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);

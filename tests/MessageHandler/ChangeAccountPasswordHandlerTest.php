@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\ResetPasswordRequest;
@@ -103,7 +103,7 @@ final class ChangeAccountPasswordHandlerTest extends KernelTestCase
         $userAccount = $this->createUserAccountWithPassword('msp|chpass5', 'chpass.five@example.com', 'old-passphrase-5');
 
         $token = PasswordResetToken::generate();
-        $requestedAt = new DateTimeImmutable();
+        $requestedAt = TestClock::now();
         $this->resetPasswordRequestRepository->save(new ResetPasswordRequest(
             Uuid::uuid7(),
             $userAccount,
@@ -133,7 +133,7 @@ final class ChangeAccountPasswordHandlerTest extends KernelTestCase
 
     private function createUserAccount(string $userId, string $email): UserAccount
     {
-        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now());
 
         $this->entityManager->persist($userAccount);
         $this->entityManager->flush();

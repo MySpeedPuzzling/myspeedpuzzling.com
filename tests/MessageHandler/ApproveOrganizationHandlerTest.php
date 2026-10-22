@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Exceptions\OrganizationNotApprovable;
 use SpeedPuzzling\Web\Message\ApproveOrganization;
@@ -124,7 +125,7 @@ final class ApproveOrganizationHandlerTest extends KernelTestCase
     public function testARejectedOrganizationIsNotApproved(): void
     {
         $this->connection->executeStatement(
-            "UPDATE organization SET rejected_at = NOW(), rejection_reason = 'Duplicate' WHERE id = :id",
+            "UPDATE organization SET rejected_at = " . TestClock::SQL_NOW . ", rejection_reason = 'Duplicate' WHERE id = :id",
             ['id' => OrganizationFixture::ORGANIZATION_MAPLE_PENDING],
         );
 

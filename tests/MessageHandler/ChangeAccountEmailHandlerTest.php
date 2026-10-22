@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
@@ -38,7 +38,7 @@ final class ChangeAccountEmailHandlerTest extends KernelTestCase
     public function testChangesEmailEverywhereAndResetsVerification(): void
     {
         $userAccount = $this->createUserAccountWithPassword('msp|chmail1', 'chmail.one@example.com', 'passphrase-1');
-        $userAccount->markEmailVerified(new DateTimeImmutable());
+        $userAccount->markEmailVerified(TestClock::now());
         $this->createPlayer('msp|chmail1', 'chmail1');
         $this->entityManager->flush();
 
@@ -56,7 +56,7 @@ final class ChangeAccountEmailHandlerTest extends KernelTestCase
     public function testWrongCurrentPasswordChangesNothing(): void
     {
         $userAccount = $this->createUserAccountWithPassword('msp|chmail2', 'chmail.two@example.com', 'passphrase-2');
-        $userAccount->markEmailVerified(new DateTimeImmutable());
+        $userAccount->markEmailVerified(TestClock::now());
         $this->createPlayer('msp|chmail2', 'chmail2');
         $this->entityManager->flush();
 
@@ -112,7 +112,7 @@ final class ChangeAccountEmailHandlerTest extends KernelTestCase
     public function testChangingToTheSameAddressInDifferentCaseIsANoOp(): void
     {
         $userAccount = $this->createUserAccountWithPassword('msp|chmail5', 'chmail.five@example.com', 'passphrase-5');
-        $userAccount->markEmailVerified(new DateTimeImmutable());
+        $userAccount->markEmailVerified(TestClock::now());
         $this->entityManager->flush();
 
         $verifiedAt = $userAccount->emailVerifiedAt;
@@ -144,7 +144,7 @@ final class ChangeAccountEmailHandlerTest extends KernelTestCase
 
     private function createUserAccount(string $userId, string $email): UserAccount
     {
-        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now());
 
         $this->entityManager->persist($userAccount);
         $this->entityManager->flush();
@@ -168,7 +168,7 @@ final class ChangeAccountEmailHandlerTest extends KernelTestCase
             $code,
             $userId,
             null,
-            new DateTimeImmutable(),
+            TestClock::now(),
         );
 
         $this->entityManager->persist($player);

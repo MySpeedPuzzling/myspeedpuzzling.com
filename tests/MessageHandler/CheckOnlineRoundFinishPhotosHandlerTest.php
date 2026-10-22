@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\OnlineEntryMedia;
 use SpeedPuzzling\Web\Entity\OnlineMediaCheck;
@@ -98,7 +98,7 @@ final class CheckOnlineRoundFinishPhotosHandlerTest extends KernelTestCase
 
     private function checkRow(OnlineEntryMedia $photo, OnlineFinishCheckVerdict $verdict, string $version): void
     {
-        $this->entityManager()->persist(new OnlineMediaCheck(Uuid::uuid7(), $photo, $version, $verdict, new DateTimeImmutable()));
+        $this->entityManager()->persist(new OnlineMediaCheck(Uuid::uuid7(), $photo, $version, $verdict, TestClock::now()));
     }
 
     private function handle(CheckOnlineRoundFinishPhotos $message): int

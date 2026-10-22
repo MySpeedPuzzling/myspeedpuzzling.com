@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
@@ -379,7 +380,7 @@ final class CompetitionRegistrationTest extends KernelTestCase
         $rowId = $this->rowOf(PlayerFixture::PLAYER_ADMIN)->id->toString();
 
         $this->database->executeStatement(
-            "UPDATE competition_participant SET registration_status = 'waitlisted', deleted_at = NOW() WHERE id = :id",
+            "UPDATE competition_participant SET registration_status = 'waitlisted', deleted_at = " . TestClock::SQL_NOW . " WHERE id = :id",
             ['id' => $rowId],
         );
         self::getContainer()->get(EntityManagerInterface::class)->clear();

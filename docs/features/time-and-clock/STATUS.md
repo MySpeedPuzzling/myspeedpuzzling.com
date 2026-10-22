@@ -8,7 +8,7 @@ Living record. Every phase appends: what it did, what it found, what the next ph
 | 1 - pin UTC, UTC on write | done 2026-10-22 | this commit |
 | 2 - one clock in `src/` | done 2026-10-22 | c00bf8343, e16908c18, 3a15ef3b0 + this commit |
 | 3 - frozen clock in tests | done 2026-10-22 - **branch red until Phase 4 ends** (157 tests) | fe580bfa0 |
-| 4 - tests on the frozen clock | batch 1 done 2026-10-22 (157 → 103 failing); batches 2-9 open | batch 1: this commit |
+| 4 - tests on the frozen clock | batches 1-2 done 2026-10-22 (157 → 103 → 92 failing); batches 3-9 open | batch 1: f2483f7d3; batch 2: this commit |
 | 5 - proof, docs, PR | not started | |
 
 ## Jan's answers (2026-10-22) - binding for every later phase
@@ -644,6 +644,42 @@ For batches 2-9:
 - Watch double-quoted multi-line SQL: a `NOW()` on a continuation line must be spliced with `" . TestClock::SQL_NOW . "`,
   not single quotes (a naive "first quote on the line" rewrite gets it wrong when the line contains `'high'` etc.).
 
+## Phase 4 batch 2 (2026-10-22) - `MessageHandler` A-O, `OfficialResults`, `ParticipantsSheet`
+
+Converted (47 files - every file of the batch with a clock read; the rest of A-O had none): 42 top-level `MessageHandler`
+A-O tests, `OfficialResults/` (4), `ParticipantsSheet/ApplyParticipantSheetChangesHandlerTest`. Mechanical, by a
+token-based rewrite (PHP `token_get_all`, so a `NOW()` is spliced with the quote character of the string it sits in -
+single, double or multi-line double-quoted; no heredoc in this batch): `new DateTimeImmutable()` → `TestClock::now()`,
+relative strings → `TestClock::now()->modify(…)`, SQL `NOW()` → `TestClock::SQL_NOW`, `time()` →
+`TestClock::timestamp()`, `new MockClock()` → `new MockClock(TestClock::now())`. By hand: relative strings passed through
+a variable or constant - `EmailVerificationTokenSigner::LIFETIME` (`AuthAuditEventWiringTest`; the signer checks expiry
+with the clock), `MarkAbandonedOnlineMediaHandlerTest::media($age)`, `OnlineRoundSetUpHandlersTest::setStopwatch()`.
+Left as is (parse a given value, no clock): `CompetitionRegistrationTest`'s `new DateTimeImmutable($today)` (`$today` comes
+from the container clock), `EditMarkedTimeRecheckTest` / `NotifyWhenPuzzleSolvedTest` / `ApplyParticipantSheet…` parsing
+stored columns, absolute literals. No real-time exception in this batch.
+
+Fixed (11 tests, all test data on the real clock, none passed by luck, no assertion weakened):
+`ConfirmAccountDeletionHandlerTest` (expired token built 1 min before the real now = still valid at the instant),
+`EditCompetitionRoundRevealDelayTest` (2, round start from the real now), `MarkAbandonedOnlineMediaHandlerTest` (5, media
+`createdAt` real), `MuteUserHandlerTest` (mute checked at the real now), `NotifyWhenPuzzleSolvedTest` (`notified_at`
+bracketed by real-now ±1 s), `ApplyParticipantSheetChangesHandlerTest` (`registered_at` ≥ real-now − 1 min).
+
+Gates: PHPStan clean, PHPCS clean (cs-fix removed 17 unused `DateTimeImmutable` imports). Batch files alone: 469 tests
+green. Full suite (ParaTest, `speedpuzzling_clock_test`): **11525 tests, 88 failures + 4 errors = 92 tests** (batch 1: 103).
+Every remaining failure was already on Phase 3's list (compared per test); nothing green turned red.
+
+Remaining (files / tests): `Controller` top level 18 / 39, `Controller/Api` 4 / 5, `Controller/Compete` 3 / 3,
+`DuplicateResults` 1 / 5, `OfficialResults` 1 / 1, `OnlineRounds` 1 / 1, `ReviewResults` 1 / 1, `Seating` 1 / 1,
+`SuspiciousTimes` 1 / 1, `MessageHandler` (all P-Z, batch 3) 12 / 20, `Query` 7 / 9, `Services` 4 / 6.
+
+For batches 3-9:
+
+- The token-based rewrite is the safe way to do the SQL splices mechanically (a regex on lines cannot know the quote
+  character of a multi-line string). It flags `NOW()` inside heredocs/interpolated strings for hand work
+  (`$now = TestClock::SQL_NOW;` + `{$now}`), and lists every remaining `new DateTimeImmutable(<non-literal>)` to check
+  by hand - a relative string can hide behind a variable or a class constant.
+- Import placement: inserting `use SpeedPuzzling\Web\Tests\TestClock;` right after the namespace passes PHPCS as is.
+
 ## Log
 
 - 2026-10-22: plan written (README.md, implementation-plan.md). Branch `time-and-clock` from `8447c607d`.
@@ -661,3 +697,5 @@ For batches 2-9:
 - 2026-10-22: Phase 4 batch 1 - shared helpers, Microsoft token double, Security/Entity/Component/ConsoleCommands/
   EventSubscriber/Value/Results on the frozen clock (55 files); OAuth2/Apple/Redis-TTL doubles and cookie assertions stay on
   real time with reasons; suite 157 → 103 failing, nothing new red.
+- 2026-10-22: Phase 4 batch 2 - `MessageHandler` A-O + `OfficialResults` + `ParticipantsSheet` on the frozen clock (47 files);
+  suite 103 → 92 failing, nothing new red.

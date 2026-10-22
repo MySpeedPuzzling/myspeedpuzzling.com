@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler\OfficialResults;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -59,7 +60,7 @@ final class OfficialResultsGuardsTest extends KernelTestCase
         $round = $this->entityManager->find(CompetitionRound::class, OfficialResultsFixture::ROUND_GROUP_B);
         assert($round !== null);
         $entry = new CompetitionParticipantRound(Uuid::uuid7(), $withResult, $round);
-        $entry->recordResult(RoundEntryResult::finished(6000), null, new \DateTimeImmutable());
+        $entry->recordResult(RoundEntryResult::finished(6000), null, TestClock::now());
         $this->entityManager->persist($entry);
         $this->entityManager->flush();
 
@@ -112,7 +113,7 @@ final class OfficialResultsGuardsTest extends KernelTestCase
      */
     public function testAQualifiedMarkAloneKeepsTheCategoryAndTheRound(): void
     {
-        $this->database->executeStatement('UPDATE competition_participant_round SET qualified_at = NOW() WHERE id = :id', ['id' => OfficialResultsFixture::ENTRY_FINAL_ANNA]);
+        $this->database->executeStatement('UPDATE competition_participant_round SET qualified_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => OfficialResultsFixture::ENTRY_FINAL_ANNA]);
 
         try {
             $this->messageBus->dispatch($this->categoryChange(OfficialResultsFixture::ROUND_FINAL, RoundCategory::Team));
@@ -214,7 +215,7 @@ final class OfficialResultsGuardsTest extends KernelTestCase
         if ($playerId !== null) {
             $player = $this->entityManager->find(Player::class, $playerId);
             assert($player !== null);
-            $participant->connect($player, new \DateTimeImmutable());
+            $participant->connect($player, TestClock::now());
         }
 
         $this->entityManager->persist($participant);
@@ -229,7 +230,7 @@ final class OfficialResultsGuardsTest extends KernelTestCase
             competitionId: OfficialResultsFixture::COMPETITION_RESULTS_CUP,
             name: '',
             minutesLimit: 0,
-            startsAt: new \DateTimeImmutable(),
+            startsAt: TestClock::now(),
             timezone: 'Europe/Prague',
             badgeBackgroundColor: null,
             badgeTextColor: null,

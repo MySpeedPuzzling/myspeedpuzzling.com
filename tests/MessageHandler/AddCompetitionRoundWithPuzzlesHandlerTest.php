@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -53,7 +53,7 @@ final class AddCompetitionRoundWithPuzzlesHandlerTest extends KernelTestCase
         $puzzle = $entityManager->find(Puzzle::class, PuzzleFixture::PUZZLE_300);
         self::assertNotNull($puzzle);
         $puzzle->approved = false;
-        $puzzle->keepSecretUntil(new DateTimeImmutable('+5 days'), new DateTimeImmutable('+5 days'));
+        $puzzle->keepSecretUntil(TestClock::now()->modify('+5 days'), TestClock::now()->modify('+5 days'));
         $entityManager->flush();
         $entityManager->clear();
 
@@ -88,7 +88,7 @@ final class AddCompetitionRoundWithPuzzlesHandlerTest extends KernelTestCase
             competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
             name: 'Atomic Round ' . $roundId->toString(),
             minutesLimit: 60,
-            startsAt: new DateTimeImmutable('+20 days'),
+            startsAt: TestClock::now()->modify('+20 days'),
             timezone: 'Europe/Prague',
             badgeBackgroundColor: null,
             badgeTextColor: null,

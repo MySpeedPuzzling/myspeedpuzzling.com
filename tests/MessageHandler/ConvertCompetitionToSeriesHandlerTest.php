@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CompetitionAlreadyInSeries;
@@ -173,7 +174,7 @@ final class ConvertCompetitionToSeriesHandlerTest extends KernelTestCase
         /** @var Connection $connection */
         $connection = self::getContainer()->get(Connection::class);
         $connection->executeStatement(
-            "UPDATE competition SET rejected_at = NOW(), rejection_reason = 'Not a puzzle event' WHERE id = :id",
+            "UPDATE competition SET rejected_at = " . TestClock::SQL_NOW . ", rejection_reason = 'Not a puzzle event' WHERE id = :id",
             ['id' => CompetitionFixture::COMPETITION_RECURRING_ONLINE],
         );
 
@@ -284,7 +285,7 @@ final class ConvertCompetitionToSeriesHandlerTest extends KernelTestCase
         $second = $scenario->addTime(PlayerFixture::PLAYER_WITH_FAVORITES_USER_ID, $scenario->puzzle(), '2026-03-09', competitionId: EventsPageFixture::COMPETITION_MEADOW_TBA);
         // An old address leading to the event (a renamed slug, say)
         $connection->executeStatement(
-            "INSERT INTO event_url_redirect (id, series_slug, competition_slug, round_slug, competition_id, created_at) VALUES (:id, '', 'old-meadow-cup', '', :competition, NOW())",
+            "INSERT INTO event_url_redirect (id, series_slug, competition_slug, round_slug, competition_id, created_at) VALUES (:id, '', 'old-meadow-cup', '', :competition, " . TestClock::SQL_NOW . ")",
             ['id' => Uuid::uuid7()->toString(), 'competition' => EventsPageFixture::COMPETITION_MEADOW_TBA],
         );
         $seriesId = Uuid::uuid7();
@@ -332,11 +333,11 @@ final class ConvertCompetitionToSeriesHandlerTest extends KernelTestCase
         /** @var Connection $connection */
         $connection = self::getContainer()->get(Connection::class);
         $connection->executeStatement(
-            'INSERT INTO competition_referee (id, competition_id, player_id, added_at) VALUES (:id, :competition, :player, NOW())',
+            'INSERT INTO competition_referee (id, competition_id, player_id, added_at) VALUES (:id, :competition, :player, ' . TestClock::SQL_NOW . ')',
             ['id' => Uuid::uuid7()->toString(), 'competition' => EventsPageFixture::COMPETITION_MEADOW_TBA, 'player' => PlayerFixture::PLAYER_REGULAR],
         );
         $connection->executeStatement(
-            "INSERT INTO competition_page_section (id, competition_id, type, position, content, created_at, visible) VALUES (:id, :competition, 'text', 1, '{}', NOW(), true)",
+            "INSERT INTO competition_page_section (id, competition_id, type, position, content, created_at, visible) VALUES (:id, :competition, 'text', 1, '{}', " . TestClock::SQL_NOW . ", true)",
             ['id' => Uuid::uuid7()->toString(), 'competition' => EventsPageFixture::COMPETITION_MEADOW_TBA],
         );
         self::assertSame(

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -170,7 +171,7 @@ final class NotifyWhenFeatureRequestStatusChangedTest extends KernelTestCase
         // Defensive: bypass the business rule and insert a vote row by the author.
         $this->connection->executeStatement(
             'INSERT INTO feature_request_vote (id, feature_request_id, voter_id, voted_at) '
-            . 'VALUES (:id, :featureRequestId, :voterId, NOW())',
+            . 'VALUES (:id, :featureRequestId, :voterId, ' . TestClock::SQL_NOW . ')',
             [
                 'id' => Uuid::uuid7()->toString(),
                 'featureRequestId' => FeatureRequestFixture::FEATURE_REQUEST_POPULAR,
@@ -204,7 +205,7 @@ final class NotifyWhenFeatureRequestStatusChangedTest extends KernelTestCase
         // for the same feature request. They must still receive exactly one email.
         $this->connection->executeStatement(
             'INSERT INTO feature_request_vote (id, feature_request_id, voter_id, voted_at) '
-            . 'VALUES (:id, :featureRequestId, :voterId, NOW())',
+            . 'VALUES (:id, :featureRequestId, :voterId, ' . TestClock::SQL_NOW . ')',
             [
                 'id' => Uuid::uuid7()->toString(),
                 'featureRequestId' => FeatureRequestFixture::FEATURE_REQUEST_POPULAR,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\GuestLinkNotPossible;
@@ -139,7 +140,7 @@ final class GuestLinkTest extends KernelTestCase
     public function testPlayerWhoBlocksTheAskerIsNeverAsked(): void
     {
         $this->database->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => self::ASKED, 'blocked' => self::ASKER],
         );
         $this->addTime(['Michael']);
@@ -244,7 +245,7 @@ final class GuestLinkTest extends KernelTestCase
         $id = Uuid::uuid7()->toString();
 
         $this->database->executeStatement(
-            'INSERT INTO comparison_subject (id, player_id, subject_team_id, added_at) VALUES (:id, :owner, :team, NOW())',
+            'INSERT INTO comparison_subject (id, player_id, subject_team_id, added_at) VALUES (:id, :owner, :team, ' . TestClock::SQL_NOW . ')',
             ['id' => $id, 'owner' => $ownerId, 'team' => $teamId],
         );
 

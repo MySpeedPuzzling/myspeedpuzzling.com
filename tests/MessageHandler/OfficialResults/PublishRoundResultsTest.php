@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler\OfficialResults;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -223,7 +224,7 @@ final class PublishRoundResultsTest extends KernelTestCase
     public function testTheMarkerIsClaimedOnceOnly(): void
     {
         $repository = self::getContainer()->get(OfficialResultNoticeRepository::class);
-        $now = new \DateTimeImmutable();
+        $now = TestClock::now();
 
         self::assertTrue($repository->claim(PlayerFixture::PLAYER_REGULAR, OfficialResultsFixture::ROUND_GROUP_B, $now));
         self::assertFalse($repository->claim(PlayerFixture::PLAYER_REGULAR, OfficialResultsFixture::ROUND_GROUP_B, $now));

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler\ParticipantsSheet;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -145,7 +146,7 @@ final class ApplyParticipantSheetChangesHandlerTest extends KernelTestCase
         // Managed and full: one spot, taken already
         $this->database->executeStatement('UPDATE competition SET registration_managed = true, capacity = 1 WHERE id = :id', ['id' => Cup::COMPETITION_RESULTS_CUP]);
 
-        $before = new DateTimeImmutable('-1 minute');
+        $before = TestClock::now()->modify('-1 minute');
         $managed = Uuid::uuid7()->toString();
         $applied = $this->applySheetChanges([self::sheetGroup(['op' => 'newParticipant', 'id' => $managed, 'name' => 'Kim Managed'])]);
 
@@ -324,7 +325,7 @@ final class ApplyParticipantSheetChangesHandlerTest extends KernelTestCase
      */
     public function testAPairWithAResultKeepsSomebodyWhoIsNotOnTheWaitlist(): void
     {
-        $this->database->executeStatement("UPDATE competition_participant SET registration_status = 'waitlisted', registered_at = NOW() WHERE id = :id", ['id' => Cup::PARTICIPANT_DAN]);
+        $this->database->executeStatement("UPDATE competition_participant SET registration_status = 'waitlisted', registered_at = " . TestClock::SQL_NOW . " WHERE id = :id", ['id' => Cup::PARTICIPANT_DAN]);
         $caraLeaves = self::sheetGroup(self::placeChange(Cup::PARTICIPANT_CARA, Cup::ROUND_PAIRS, 'team:' . Cup::TEAM_CORNERS, 'in'));
 
         $this->database->executeStatement('UPDATE competition SET registration_managed = true WHERE id = :id', ['id' => Cup::COMPETITION_RESULTS_CUP]);
@@ -852,7 +853,7 @@ final class ApplyParticipantSheetChangesHandlerTest extends KernelTestCase
      */
     public function testTheReceiptKeepsWhoSentWhat(): void
     {
-        $organiser = new Player(Uuid::uuid7(), 'TR' . bin2hex(random_bytes(3)), 'trail|' . bin2hex(random_bytes(4)), null, new DateTimeImmutable());
+        $organiser = new Player(Uuid::uuid7(), 'TR' . bin2hex(random_bytes(3)), 'trail|' . bin2hex(random_bytes(4)), null, TestClock::now());
         $this->entityManager->persist($organiser);
         $this->entityManager->flush();
 
@@ -974,15 +975,15 @@ final class ApplyParticipantSheetChangesHandlerTest extends KernelTestCase
         if ($player !== null) {
             $playerEntity = $this->entityManager->find(Player::class, $player);
             assert($playerEntity !== null);
-            $participant->connect($playerEntity, new DateTimeImmutable('-1 day'));
+            $participant->connect($playerEntity, TestClock::now()->modify('-1 day'));
         }
 
         if ($status !== null) {
-            $participant->register($status, new DateTimeImmutable('-2 days'));
+            $participant->register($status, TestClock::now()->modify('-2 days'));
         }
 
         if ($removed) {
-            $participant->softDelete(new DateTimeImmutable('-1 day'));
+            $participant->softDelete(TestClock::now()->modify('-1 day'));
         }
 
         $this->entityManager->persist($participant);
@@ -1001,7 +1002,7 @@ final class ApplyParticipantSheetChangesHandlerTest extends KernelTestCase
             competition: $competition,
             name: 'Teams',
             minutesLimit: 120,
-            startsAt: new DateTimeImmutable('-9 days'),
+            startsAt: TestClock::now()->modify('-9 days'),
             category: RoundCategory::Team,
             slug: 'teams',
             timezone: 'Europe/Prague',

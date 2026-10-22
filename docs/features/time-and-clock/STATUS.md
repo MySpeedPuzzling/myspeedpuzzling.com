@@ -8,7 +8,7 @@ Living record. Every phase appends: what it did, what it found, what the next ph
 | 1 - pin UTC, UTC on write | done 2026-10-22 | this commit |
 | 2 - one clock in `src/` | done 2026-10-22 | c00bf8343, e16908c18, 3a15ef3b0 + this commit |
 | 3 - frozen clock in tests | done 2026-10-22 - **branch red until Phase 4 ends** (157 tests) | fe580bfa0 |
-| 4 - tests on the frozen clock | batches 1-8 done 2026-10-22 (157 → 103 → 92 → 72 → 65 → 62 → 53 → 32 → 5 failing); batch 9 open | batch 1: f2483f7d3; batch 2: dc3fb4867; batch 3: d4f31c268; batch 4: 0364e10e9; batch 5: f9424402a; batch 6: 040672b3a; batch 7: 10e501bd7; batch 8: 1c93b850e |
+| 4 - tests on the frozen clock | **done 2026-10-22** - batches 1-9 (157 → 103 → 92 → 72 → 65 → 62 → 53 → 32 → 5 → **0** failing; CI green, run 39831494288) | batch 1: f2483f7d3; batch 2: dc3fb4867; batch 3: d4f31c268; batch 4: 0364e10e9; batch 5: f9424402a; batch 6: 040672b3a; batch 7: 10e501bd7; batch 8: 1c93b850e; batch 9: 6767e1c8b |
 | 5 - proof, docs, PR | not started | |
 
 ## Jan's answers (2026-10-22) - binding for every later phase
@@ -987,6 +987,82 @@ For batch 9:
 - `InternalApi/RoundsInternalApiTest` sends `'startsAt' => 'tomorrow'` as an API input - a `'tomorrow'` string the guard may
   match; allowlist it with that reason or match only constructor/`modify` arguments.
 
+## Phase 4 batch 9 (2026-10-22) - `Controller` top level P-Z, root tests, `Panther`, the guards over `tests/`
+
+Converted (54 files): `Controller` top level P-Z (41, incl. the 5 tests still failing on CI), root-level tests and helpers
+(`BlocklistCanaryTest`, `DraftCanaryTest`, `ImageEstimateSecretPuzzleCanaryTest`, `PlayersPageCanaryTest`,
+`PrivateProfileCanaryTest`, `SentryAccessDenialsTest`, `SentryMonologHandlersTest`, the helper trait `ClonesSolvingTimes`
+(`"-{$value} days"` on the real date - used by 5 test files)), `Panther/CoPuzzlerPicker/CoPuzzlerPickerTestCase` (the
+Panther server runs the test env, so the frozen clock), and leftovers the extended guards found in finished batches'
+directories: `Component/FirstTriesForPairsAndTeamsTest` + `MessageHandler/SuspiciousTimeGroupChangeTest` (`gmdate()` of a
+duration → `'@'` parse), `Query/GetPlayerSolvedPuzzlesTest` (`TestClock::now()->modify('now')`), `Twig/EventDateRangeTemplateTest`
+(below). A fresh token-based rewrite (batch 2's recipe, case-insensitive) did the mechanical part; by hand: the interpolated
+SQL in `DraftCanaryTest::inThePast()` (`CURRENT_DATE - 40` → `{$today}` = `SQL_TODAY`) and `ImageEstimateSecretPuzzleCanaryTest`
+(`{$now}`), `"-{$daysAgo} days"` in `PlayersThisWeekTest`, `'now'` with a zone in `SeriesPageUiTest` (2), `strtotime()` of a
+response value in `RoundStopwatchActionsTest` → `new DateTimeImmutable(…)->getTimestamp()`, and the `->start(new …('-20 minutes'))`
+artefact. Checked and left as is: helpers already on the container clock (`ScheduledRoundStopwatchReadersTest::scheduleStart()`,
+the private `now()` helpers), `SpotlightSeeding` callers with `sprintf('-%d days', …)` (applied to `TestClock`), parses of
+stored/response values, absolute dates fed to `SeriesEditionScenario` / `SeriesPickCanaryTest::add()`,
+`EventDayRoundTripTest`'s `sprintf('first monday of october %d', $year)` (names a day).
+
+**Kept on real time** (with a comment): `RegisterControllerTest`'s REMEMBERME expiry assertion (`time() + 86400` - the rewrite
+turned it into `TestClock`, reverted: remember-me mints the cookie with `time()`).
+
+Fixed on CI (5 tests, no assertion weakened): `RoundResultsControllerTest` 2 (round `starts_at = NOW() - …`),
+`RoundResultsSecretPuzzleTest` (qualification started `'-1 hour'` before the real now), `RoundRevealDelayFormTest` (round start
+`time() - 30 min`), `VerifyEmailControllerTest` (expired link minted before the real now).
+
+**Passed by luck of the real date:** `Twig/EventDateRangeTemplateTest` - the template takes "this year" from the frozen clock
+(`now()`, Phase 2) while the test took it from `date('Y')`; green only while the real year is 2026 (it would have failed from
+1 Jan 2027, and under Phase 5's +400-day faketime run). Now `TestClock::now()->format('Y')`.
+
+### The guards over `tests/`
+
+- **`DatabaseClockCoverageTest`** - new `testTestSqlReadsTheTimeFromTheFrozenClock`: the same case-insensitive patterns over
+  every PHP file under `tests/` (fixtures and helpers included). Allowlist `ALLOWED_IN_TESTS` = **3 files**, all guards whose
+  patterns are data: `DatabaseClockCoverageTest`, `SystemClockCoverageTest`, `RoundRevealMomentComputedOnlyHereTest`. Stale
+  entries fail. `src/` still has no exception.
+- **`SystemClockCoverageTest`** - new `testTestsReadTheTimeFromTheFrozenClock`: the `src/` patterns plus two test-only ones
+  (`new MockClock()` / `new MockClock('<relative>')`; `new MockClock|DateTime(Immutable)(sprintf('<relative>…', …))` - the
+  `NewsletterSignupControllerTest` shape). **Narrowed per kind of read**: `ALLOWED_IN_TESTS` = `path => [allowed hits, reason]`,
+  so a listed file still fails on any other read, and a listed hit that no longer occurs fails as stale. **27 files**:
+  - 3 guards whose patterns are data (all hits): the two clock guards + `RoundRevealMomentComputedOnlyHereTest`;
+  - 9 durations (`hrtime(` / `microtime(`): `CompetitionNameTagsTest`, `InsightsBuilderTest`, `InsightsFramesBudgetTest`,
+    `InsightsLazyPartsBudgetTest`, `PostgresSessionHandlerTest`, `MigrationLockTest`, `StudioSpectatorsTest`,
+    `ObjectStorageHttpClientFactoryTest`, `RedisSlidingWindowLimiterTest` (+ `new NativeClock(` - forked processes, the limiter
+    on real time);
+  - 4 cookie expiries the browser judges: `RememberMeTest`, `RegisterControllerTest`, `NativeAuthPageLocaleTest`,
+    `BotTrustCookieSubscriberTest` (the sidecar's issued-at, `microtime(`);
+  - 3 `msp-rendered-at` (real on both sides): `AssetLoadFailureControllerTest`, `StaleDocumentControllerTest`,
+    `AssetLoadFailureClassifierTest`;
+  - 2 Apple tokens checked by php-jwt's `time()`: `TestDouble/AppleIdTokenFactory`, `AppleSignInNotificationControllerTest`;
+  - `OAuth2TestHelper` (`new DateTimeImmutable()` + `'+1 hour'` - league/oauth2-server's own clock),
+    `TestDouble/InMemoryStudioInviteSignal` (a Redis TTL), `TestClockTest` (instant before the real date),
+    `TestingDatabaseCaching` (cache file age), `PantherDatabaseManager` (`microtime(` as entropy), `RelativeTimeParityTest`
+    (the label text `'now'`).
+- `RoundsInternalApiTest`'s `'startsAt' => 'tomorrow'` (an API input the server refuses) matches no pattern - nothing listed.
+- What the guards cannot see: a relative string reaching `new DateTimeImmutable($var)` / `modify()` on a real-now object
+  through a variable, a constant or a helper argument (batches 2-8 found such cases by hand). Phase 5's faketime runs are the
+  proof for those.
+
+Gates: PHPCS clean (cs-fix removed 20 unused imports in 19 files). Tests and PHPStan in CI only (Jan).
+
+**CI (draft PR #284, run 39831494288 on 6767e1c8b): all green** - phpstan, coding standards, migrations, tests 3 shards
+4021 + 3788 + 3718 = **11527 tests, 0 failures** (11525 + the 2 new guard tests; 5 skipped). Phase 4 is done.
+
+### For Phase 5
+
+- Nothing in `tests/` reads the real clock except the 27 listed files (by kind of read); Panther was not run in this batch
+  (the CI job is skipped) - its only clock read (`CoPuzzlerPickerTestCase`) is converted; run Panther once with the
+  faketime proof if convenient (Phase 3's recipe).
+- Faketime +400 days / +5 years: expect the listed real-time reads to keep working (both sides real). Watch the duration
+  budgets (`CompetitionNameTagsTest` 1500 ms, the Insights budgets) - libfaketime slows nothing, but an emulated amd64 run does.
+- `docs/TODO.md` candidates: `AppleServerNotificationVerifier` / the Apple provider decode with php-jwt's `time()` (no
+  `JWT::$timestamp` from the clock, unlike the Microsoft/LiveKit verifiers); `ExpireMutesCommand` runs SQL itself (Phase 0
+  note); the expired WJPC live strip in `base.html.twig` (Phase 2 note).
+- `CLAUDE.md` test section: mention `TestClock` (`now()`, `SQL_NOW`/`SQL_TODAY`, `sqlParameter()`, `timestamp()`,
+  `milliseconds()`) and that both guards scan `tests/`.
+
 ## Log
 
 - 2026-10-22: plan written (README.md, implementation-plan.md). Branch `time-and-clock` from `8447c607d`.
@@ -1019,3 +1095,6 @@ For batch 9:
   red; from here on the suite runs in CI only (draft PR #284).
 - 2026-10-22: Phase 4 batch 8 - the other `Controller` subdirectories + `Controller` F-O on the frozen clock (57 files), a relative
   date behind `sprintf` in `NewsletterSignupControllerTest`; CI 32 → 5 failing (all batch 9), nothing new red.
+- 2026-10-22: Phase 4 batch 9 - `Controller` P-Z, root tests, Panther on the frozen clock (54 files), `EventDateRangeTemplateTest`
+  passed by luck of the real year; `DatabaseClockCoverageTest` (3 listed) and `SystemClockCoverageTest` (27 listed, per kind of
+  read) scan `tests/`; CI 5 → 0 failing (run 39831494288). **Phase 4 done.**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -223,7 +224,7 @@ final class PartnerListingHandlersTest extends KernelTestCase
         // Michael (an open team listing) asked John - a candidate; Stripe asked John too, but her listing is closed;
         // the admin never exchanged anything with John
         $this->database->executeStatement(
-            "INSERT INTO partner_request (id, listing_id, from_player_id, kind, created_at) VALUES (:id, :listing, :from, 'pair', NOW())",
+            "INSERT INTO partner_request (id, listing_id, from_player_id, kind, created_at) VALUES (:id, :listing, :from, 'pair', " . TestClock::SQL_NOW . ")",
             ['id' => Uuid::uuid7()->toString(), 'listing' => PartnerFinderFixture::LISTING_REGULAR_PAIR, 'from' => PlayerFixture::PLAYER_WITH_FAVORITES],
         );
 
@@ -243,11 +244,11 @@ final class PartnerListingHandlersTest extends KernelTestCase
     public function testNobodyIsAskedWhenTheListingIsRemovedOrBlockedEitherWay(): void
     {
         $this->database->executeStatement(
-            "INSERT INTO partner_request (id, listing_id, from_player_id, kind, created_at) VALUES (:id, :listing, :from, 'pair', NOW())",
+            "INSERT INTO partner_request (id, listing_id, from_player_id, kind, created_at) VALUES (:id, :listing, :from, 'pair', " . TestClock::SQL_NOW . ")",
             ['id' => Uuid::uuid7()->toString(), 'listing' => PartnerFinderFixture::LISTING_REGULAR_PAIR, 'from' => PlayerFixture::PLAYER_WITH_FAVORITES],
         );
         $this->database->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_WITH_FAVORITES, 'blocked' => PlayerFixture::PLAYER_REGULAR],
         );
 
@@ -265,7 +266,7 @@ final class PartnerListingHandlersTest extends KernelTestCase
     {
         // Michael's group needs 2 more; John (still listed) asked Michael
         $this->database->executeStatement(
-            "INSERT INTO partner_request (id, listing_id, from_player_id, kind, created_at) VALUES (:id, :listing, :from, 'team', NOW())",
+            "INSERT INTO partner_request (id, listing_id, from_player_id, kind, created_at) VALUES (:id, :listing, :from, 'team', " . TestClock::SQL_NOW . ")",
             ['id' => Uuid::uuid7()->toString(), 'listing' => PartnerFinderFixture::LISTING_FAVORITES_TEAM, 'from' => PlayerFixture::PLAYER_REGULAR],
         );
 
@@ -286,7 +287,7 @@ final class PartnerListingHandlersTest extends KernelTestCase
     {
         // The fixture team listing names the admin; the admin blocks Michael afterwards
         $this->database->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_ADMIN, 'blocked' => PlayerFixture::PLAYER_WITH_FAVORITES],
         );
 
@@ -311,7 +312,7 @@ final class PartnerListingHandlersTest extends KernelTestCase
 
         // Naming somebody new who is not allowed is still refused
         $this->database->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_REGULAR, 'blocked' => PlayerFixture::PLAYER_WITH_FAVORITES],
         );
         $refused = $this->refused(new EditPartnerListing(

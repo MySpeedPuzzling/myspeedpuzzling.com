@@ -128,8 +128,11 @@ readonly final class PrepareDigestEmailForPlayerHandler
         };
 
         $count = $this->connection->fetchOne(
-            "SELECT COUNT(*) FROM digest_email_log WHERE player_id = :playerId AND sent_at > NOW() - INTERVAL '{$frequencyInterval}'",
-            ['playerId' => $playerId],
+            'SELECT COUNT(*) FROM digest_email_log WHERE player_id = :playerId AND sent_at > CAST(:since AS timestamp)',
+            [
+                'playerId' => $playerId,
+                'since' => $this->clock->now()->modify('-' . $frequencyInterval)->format('Y-m-d H:i:s'),
+            ],
         );
         assert(is_int($count));
 

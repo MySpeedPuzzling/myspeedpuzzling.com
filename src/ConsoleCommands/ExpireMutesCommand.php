@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\ConsoleCommands;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -16,6 +17,7 @@ final class ExpireMutesCommand extends Command
 {
     public function __construct(
         readonly private Connection $connection,
+        readonly private ClockInterface $clock,
     ) {
         parent::__construct();
     }
@@ -27,8 +29,10 @@ final class ExpireMutesCommand extends Command
         $affected = $this->connection->executeStatement("
             UPDATE player
             SET messaging_muted = false, messaging_muted_until = NULL
-            WHERE messaging_muted = true AND messaging_muted_until < NOW()
-        ");
+            WHERE messaging_muted = true AND messaging_muted_until < CAST(:now AS timestamp)
+        ", [
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+        ]);
 
         $io->success("Expired {$affected} mutes.");
 

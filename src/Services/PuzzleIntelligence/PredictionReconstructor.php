@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 use DateTimeImmutable;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\TimePredictionResult;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\PriorContext;
 use SpeedPuzzling\Web\Value\ImagePriorInput;
@@ -71,6 +72,7 @@ final class PredictionReconstructor implements ResetInterface
         private readonly TimePredictionCalculator $calculator,
         private readonly CacheInterface $globalImprovementRatioSnapshotCache,
         private readonly PredictionModelParametersProvider $parametersProvider,
+        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -389,7 +391,12 @@ final class PredictionReconstructor implements ResetInterface
                 LEFT JOIN difficulty_prior_group g ON g.manufacturer_id = p.manufacturer_id AND g.pieces_count = p.pieces_count AND ' . StatisticalInputsSql::NOT_SECRET . '
                 ' . StatisticalInputsSql::imageEstimateJoins(outOfFoldOnly: true) . '
                 WHERE p.id IN (:puzzleIds)
-            ', ['puzzleIds' => $chunk], ['puzzleIds' => ArrayParameterType::STRING]);
+            ', [
+                'puzzleIds' => $chunk,
+                // Secret at the real present, never as of the solve: a puzzle secret today must not leak into a
+                // reconstruction made today, whenever it was solved
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+            ], ['puzzleIds' => ArrayParameterType::STRING]);
 
             foreach ($rows as $row) {
                 $estimate = ImagePriorInput::fromRow($row);

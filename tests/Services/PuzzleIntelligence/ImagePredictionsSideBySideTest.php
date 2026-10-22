@@ -342,7 +342,7 @@ final class ImagePredictionsSideBySideTest extends KernelTestCase
             LEFT JOIN difficulty_prior_group g ON g.manufacturer_id = p.manufacturer_id AND g.pieces_count = p.pieces_count AND ' . StatisticalInputsSql::NOT_SECRET . '
             LEFT JOIN difficulty_prior_puzzle dpp ON dpp.puzzle_id = p.id
             ' . StatisticalInputsSql::imageEstimateJoins(outOfFoldOnly: false) . '
-        ');
+        ', ['now' => self::clockNow(self::getContainer())]);
         $withImage = 0;
 
         foreach ($rows as $row) {

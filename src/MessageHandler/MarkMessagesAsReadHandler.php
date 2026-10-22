@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\ConversationNotFound;
 use SpeedPuzzling\Web\Message\MarkMessagesAsRead;
 use SpeedPuzzling\Web\Query\GetConversations;
@@ -22,6 +23,7 @@ readonly final class MarkMessagesAsReadHandler
         private MercureNotifier $mercureNotifier,
         private GetConversations $getConversations,
         private LoggerInterface $logger,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -51,10 +53,11 @@ readonly final class MarkMessagesAsReadHandler
         // Bulk update: set readAt = now() on all messages where sender is NOT the current player and readAt IS NULL
         // Note: (sender_id IS NULL OR sender_id != :playerId) handles system messages which have NULL sender_id
         $affectedRows = $this->database->executeStatement(
-            'UPDATE chat_message SET read_at = NOW() WHERE conversation_id = :conversationId AND (sender_id IS NULL OR sender_id != :playerId) AND read_at IS NULL',
+            'UPDATE chat_message SET read_at = CAST(:now AS timestamp) WHERE conversation_id = :conversationId AND (sender_id IS NULL OR sender_id != :playerId) AND read_at IS NULL',
             [
                 'conversationId' => $message->conversationId,
                 'playerId' => $message->playerId,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ],
         );
 

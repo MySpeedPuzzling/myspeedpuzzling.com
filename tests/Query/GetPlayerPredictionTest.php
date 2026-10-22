@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
@@ -169,20 +170,20 @@ final class GetPlayerPredictionTest extends KernelTestCase
         $times = array_map(static fn (array $solve): int => (int) $solve['seconds_to_solve'], $solves);
         $transition = TimePredictionCalculator::transitionFor(count($times));
         $gapBucket = TimePredictionCalculator::classifyGap(
-            TimePredictionCalculator::gapDays(new DateTimeImmutable(), new DateTimeImmutable($solves[2]['solved_at'])),
+            TimePredictionCalculator::gapDays(TestClock::now(), new DateTimeImmutable($solves[2]['solved_at'])),
         );
 
         $globalRatios = ['lt30d' => 0.91, '1_3m' => 0.93, '3_12m' => 0.95, 'gt12m' => 0.97, 'all' => 0.9];
         $connection->executeStatement('DELETE FROM global_improvement_ratio WHERE pieces_count = 500 AND from_attempt = :transition', ['transition' => $transition]);
         foreach ($globalRatios as $bucket => $ratio) {
             $connection->executeStatement(
-                'INSERT INTO global_improvement_ratio (id, pieces_count, from_attempt, gap_bucket, median_ratio, sample_size, computed_at) VALUES (:id, 500, :transition, :bucket, :ratio, 50, NOW())',
+                'INSERT INTO global_improvement_ratio (id, pieces_count, from_attempt, gap_bucket, median_ratio, sample_size, computed_at) VALUES (:id, 500, :transition, :bucket, :ratio, 50, ' . TestClock::SQL_NOW . ')',
                 ['id' => Uuid::uuid7()->toString(), 'transition' => $transition, 'bucket' => $bucket, 'ratio' => $ratio],
             );
         }
         $connection->executeStatement('DELETE FROM player_improvement_ratio WHERE player_id = :playerId AND from_attempt = :transition', ['playerId' => PlayerFixture::PLAYER_REGULAR, 'transition' => $transition]);
         $connection->executeStatement(
-            'INSERT INTO player_improvement_ratio (id, player_id, from_attempt, median_ratio, sample_size, computed_at) VALUES (:id, :playerId, :transition, 0.85, 10, NOW())',
+            'INSERT INTO player_improvement_ratio (id, player_id, from_attempt, median_ratio, sample_size, computed_at) VALUES (:id, :playerId, :transition, 0.85, 10, ' . TestClock::SQL_NOW . ')',
             ['id' => Uuid::uuid7()->toString(), 'playerId' => PlayerFixture::PLAYER_REGULAR, 'transition' => $transition],
         );
 
@@ -212,7 +213,7 @@ final class GetPlayerPredictionTest extends KernelTestCase
 
         // Player ratio but no "all" bucket: the player ratio as is
         $connection->executeStatement(
-            'INSERT INTO player_improvement_ratio (id, player_id, from_attempt, median_ratio, sample_size, computed_at) VALUES (:id, :playerId, :transition, 0.85, 10, NOW())',
+            'INSERT INTO player_improvement_ratio (id, player_id, from_attempt, median_ratio, sample_size, computed_at) VALUES (:id, :playerId, :transition, 0.85, 10, ' . TestClock::SQL_NOW . ')',
             ['id' => Uuid::uuid7()->toString(), 'playerId' => PlayerFixture::PLAYER_REGULAR, 'transition' => $transition],
         );
         $connection->executeStatement("DELETE FROM global_improvement_ratio WHERE pieces_count = 500 AND from_attempt = :transition AND gap_bucket = 'all'", ['transition' => $transition]);

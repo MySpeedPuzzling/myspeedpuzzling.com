@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetPlayerPredictions;
 use SpeedPuzzling\Web\Query\GetPuzzlePickerSuggestions;
@@ -288,7 +289,7 @@ final class GetPuzzlePickerSuggestionsTest extends KernelTestCase
         self::assertSame(2200, $suggestion->myFirstSeconds);
         self::assertSame(1700, $suggestion->myLatestSeconds);
         self::assertNotNull($suggestion->myLastSolvedAt);
-        self::assertEqualsWithDelta(10, (new \DateTimeImmutable())->diff($suggestion->myLastSolvedAt)->days, 1);
+        self::assertEqualsWithDelta(10, TestClock::now()->diff($suggestion->myLastSolvedAt)->days, 1);
         self::assertTrue($suggestion->inMyCollection);
         self::assertSame(PuzzleFixture::PUZZLE_500_02, $suggestion->puzzleId);
         self::assertSame(500, $suggestion->piecesCount);
@@ -309,7 +310,7 @@ final class GetPuzzlePickerSuggestionsTest extends KernelTestCase
         self::assertSame(3950, $suggestion->myFirstSeconds);
         self::assertSame(4500, $suggestion->myLatestSeconds);
         self::assertNotNull($suggestion->myLastSolvedAt);
-        self::assertEqualsWithDelta(3, (new \DateTimeImmutable())->diff($suggestion->myLastSolvedAt)->days, 1);
+        self::assertEqualsWithDelta(3, TestClock::now()->diff($suggestion->myLastSolvedAt)->days, 1);
     }
 
     public function testNeverSolvedPuzzleHasNoPersonalData(): void
@@ -554,7 +555,7 @@ final class GetPuzzlePickerSuggestionsTest extends KernelTestCase
         /** @var list<string> $olderThanAMonth */
         $olderThanAMonth = $this->database->fetchFirstColumn(
             'SELECT puzzle_id FROM puzzle_solving_time WHERE player_id = :playerId GROUP BY puzzle_id HAVING max(COALESCE(finished_at, tracked_at)) < :threshold',
-            ['playerId' => $playerId, 'threshold' => (new \DateTimeImmutable())->modify('-1 months')->format('Y-m-d H:i:s')],
+            ['playerId' => $playerId, 'threshold' => TestClock::now()->modify('-1 months')->format('Y-m-d H:i:s')],
         );
         self::assertNotSame([], $olderThanAMonth);
         self::assertEqualsCanonicalizing($olderThanAMonth, self::ids($this->pickAll(['source' => 'any', 'lent' => '1', 'since' => '1', 'since_unit' => 'm', 'since_require_solved' => '1'], $playerId)));

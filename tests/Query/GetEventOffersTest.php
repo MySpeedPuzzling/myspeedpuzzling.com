@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
@@ -157,7 +158,7 @@ final class GetEventOffersTest extends KernelTestCase
 
         foreach ([self::BUYER_C, PlayerFixture::PLAYER_PRIVATE, PlayerFixture::PLAYER_WITH_FAVORITES] as $playerId) {
             $this->database->executeStatement(
-                "INSERT INTO sell_swap_list_item (id, player_id, puzzle_id, listing_type, condition, added_at) VALUES (:id, :player, :puzzle, 'sell', 'normal', NOW())",
+                "INSERT INTO sell_swap_list_item (id, player_id, puzzle_id, listing_type, condition, added_at) VALUES (:id, :player, :puzzle, 'sell', 'normal', " . TestClock::SQL_NOW . ")",
                 ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'puzzle' => PuzzleFixture::PUZZLE_2000],
             );
         }
@@ -174,7 +175,7 @@ final class GetEventOffersTest extends KernelTestCase
     public function testFacesLeaveOutAPlayerTheViewerBlocksButTheCountsStay(): void
     {
         $this->database->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BUYER_C, 'blocked' => self::SELLER_A],
         );
 
@@ -317,7 +318,7 @@ final class GetEventOffersTest extends KernelTestCase
     private function goToFair(string $playerId): void
     {
         $this->database->executeStatement(
-            "INSERT INTO competition_participant (id, name, country, source, player_id, competition_id, connected_at) VALUES (:id, 'Fair goer', 'cz', 'self_joined', :player, :competition, NOW())",
+            "INSERT INTO competition_participant (id, name, country, source, player_id, competition_id, connected_at) VALUES (:id, 'Fair goer', 'cz', 'self_joined', :player, :competition, " . TestClock::SQL_NOW . ")",
             ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'competition' => self::FAIR],
         );
     }
@@ -325,7 +326,7 @@ final class GetEventOffersTest extends KernelTestCase
     private function markForFair(string $listItemId): void
     {
         $this->database->executeStatement(
-            'INSERT INTO sell_swap_list_item_event (sell_swap_list_item_id, competition_id, added_at) VALUES (:item, :competition, NOW())',
+            'INSERT INTO sell_swap_list_item_event (sell_swap_list_item_id, competition_id, added_at) VALUES (:item, :competition, ' . TestClock::SQL_NOW . ')',
             ['item' => $listItemId, 'competition' => self::FAIR],
         );
     }

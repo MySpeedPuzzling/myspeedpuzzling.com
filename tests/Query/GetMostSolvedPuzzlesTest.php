@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetMostSolvedPuzzles;
 use SpeedPuzzling\Web\Results\MostSolvedPuzzle;
@@ -110,7 +111,7 @@ final class GetMostSolvedPuzzlesTest extends KernelTestCase
     public function testTopInMonthFiltersByMonth(): void
     {
         // Get current month
-        $now = new \DateTimeImmutable();
+        $now = TestClock::now();
         $month = (int) $now->format('n');
         $year = (int) $now->format('Y');
 
@@ -125,7 +126,7 @@ final class GetMostSolvedPuzzlesTest extends KernelTestCase
 
     public function testTopInMonthNeitherCountsNorTimesASuspiciousResult(): void
     {
-        $now = new \DateTimeImmutable();
+        $now = TestClock::now();
         $month = (int) $now->format('n');
         $year = (int) $now->format('Y');
         $monthStart = $now->format('Y-m-01');

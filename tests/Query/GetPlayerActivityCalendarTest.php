@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerActivityCalendar;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -41,7 +42,7 @@ final class GetPlayerActivityCalendarTest extends KernelTestCase
 
     public function testActiveDaysInMonthRestrictsToThatMonth(): void
     {
-        $now = new \DateTimeImmutable();
+        $now = TestClock::now();
         $year = (int) $now->format('Y');
         $month = (int) $now->format('m');
 
@@ -74,7 +75,7 @@ final class GetPlayerActivityCalendarTest extends KernelTestCase
 
     public function testDayOfWeekBucketsInMonthAlwaysReturnsSevenKeys(): void
     {
-        $now = new \DateTimeImmutable();
+        $now = TestClock::now();
         $buckets = $this->query->dayOfWeekBucketsInMonth(
             PlayerFixture::PLAYER_REGULAR,
             (int) $now->format('Y'),
@@ -98,7 +99,7 @@ final class GetPlayerActivityCalendarTest extends KernelTestCase
 
     public function testHourOfDayBucketsInMonthAlwaysReturnsTwentyFourKeys(): void
     {
-        $now = new \DateTimeImmutable();
+        $now = TestClock::now();
         $buckets = $this->query->hourOfDayBucketsInMonth(
             PlayerFixture::PLAYER_REGULAR,
             (int) $now->format('Y'),
@@ -120,7 +121,7 @@ final class GetPlayerActivityCalendarTest extends KernelTestCase
         // For a wide window, hour total should be >= dow total.
         $dowTotal = 0;
         $hourTotal = 0;
-        $now = new \DateTimeImmutable();
+        $now = TestClock::now();
 
         for ($offset = 0; $offset <= 3; $offset++) {
             $m = $now->modify("-{$offset} months");
@@ -141,7 +142,7 @@ final class GetPlayerActivityCalendarTest extends KernelTestCase
 
     public function testPerDayInMonthReturnsOnlyRequestedMonth(): void
     {
-        $now = new \DateTimeImmutable();
+        $now = TestClock::now();
         $year = (int) $now->format('Y');
         $month = (int) $now->format('m');
 
@@ -168,7 +169,7 @@ final class GetPlayerActivityCalendarTest extends KernelTestCase
 
     public function testPerDayInMonthSplitsCountsByType(): void
     {
-        $now = new \DateTimeImmutable();
+        $now = TestClock::now();
 
         $allDays = [];
         for ($offset = 0; $offset <= 3; $offset++) {
@@ -209,7 +210,7 @@ final class GetPlayerActivityCalendarTest extends KernelTestCase
     private function scanYearsOfMonths(string $playerId, callable $queryForMonth): array
     {
         unset($playerId); // callable closes over it
-        $now = new \DateTimeImmutable();
+        $now = TestClock::now();
         $all = [];
 
         for ($offset = 0; $offset <= 6; $offset++) {

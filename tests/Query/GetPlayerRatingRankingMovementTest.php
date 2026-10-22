@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
@@ -56,7 +57,7 @@ final class GetPlayerRatingRankingMovementTest extends KernelTestCase
             PlayerFixture::PLAYER_WITH_STRIPE => 1.2,
             ] as $playerId => $rating
         ) {
-            $em->persist(new PlayerElo(id: Uuid::uuid7(), player: $players->get($playerId), piecesCount: self::PIECES_COUNT, computedAt: new DateTimeImmutable(), eloRating: $rating));
+            $em->persist(new PlayerElo(id: Uuid::uuid7(), player: $players->get($playerId), piecesCount: self::PIECES_COUNT, computedAt: TestClock::now(), eloRating: $rating));
         }
 
         $em->flush();
@@ -132,7 +133,7 @@ final class GetPlayerRatingRankingMovementTest extends KernelTestCase
     public function testThePlayersTheViewerHidesCloseUpOnTheStoredDayToo(): void
     {
         $this->connection->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_REGULAR, 'blocked' => PlayerFixture::PLAYER_WITH_STRIPE],
         );
         TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_REGULAR);
@@ -220,7 +221,7 @@ final class GetPlayerRatingRankingMovementTest extends KernelTestCase
     {
         foreach ($ratings as $playerId => $rating) {
             $this->connection->executeStatement(
-                'INSERT INTO player_rating_snapshot (id, player_id, pieces_count, snapshot_date, elo_rating, computed_at) VALUES (gen_random_uuid(), :player, :pieces, :day, :rating, NOW())',
+                'INSERT INTO player_rating_snapshot (id, player_id, pieces_count, snapshot_date, elo_rating, computed_at) VALUES (gen_random_uuid(), :player, :pieces, :day, :rating, ' . TestClock::SQL_NOW . ')',
                 ['player' => $playerId, 'pieces' => self::PIECES_COUNT, 'day' => $day, 'rating' => $rating],
             );
         }

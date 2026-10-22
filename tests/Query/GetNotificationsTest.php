@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetNotifications;
@@ -149,7 +150,7 @@ final class GetNotificationsTest extends KernelTestCase
 
         self::assertSame($before + 1, $this->query->countUnreadForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES));
 
-        $this->database->executeStatement('UPDATE notification SET read_at = NOW() WHERE player_id = :player', ['player' => PlayerFixture::PLAYER_WITH_FAVORITES]);
+        $this->database->executeStatement('UPDATE notification SET read_at = ' . TestClock::SQL_NOW . ' WHERE player_id = :player', ['player' => PlayerFixture::PLAYER_WITH_FAVORITES]);
 
         self::assertSame(0, $this->query->countUnreadForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES));
     }
@@ -237,10 +238,11 @@ final class GetNotificationsTest extends KernelTestCase
 
     private function notify(string $playerId, string $type, string $targetColumn, string $targetId, bool $read = false): void
     {
-        $readAt = $read ? 'NOW()' : 'NULL';
+        $readAt = $read ? TestClock::SQL_NOW : 'NULL';
+        $now = TestClock::SQL_NOW;
 
         $this->database->executeStatement(
-            "INSERT INTO notification (id, player_id, type, notified_at, read_at, {$targetColumn}) VALUES (:id, :player, :type, NOW(), {$readAt}, :target)",
+            "INSERT INTO notification (id, player_id, type, notified_at, read_at, {$targetColumn}) VALUES (:id, :player, :type, {$now}, {$readAt}, :target)",
             ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'type' => $type, 'target' => $targetId],
         );
     }
@@ -248,7 +250,7 @@ final class GetNotificationsTest extends KernelTestCase
     private function block(string $blockerId, string $blockedId): void
     {
         $this->database->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => $blockerId, 'blocked' => $blockedId],
         );
     }

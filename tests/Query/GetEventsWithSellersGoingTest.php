@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetEventsWithSellersGoing;
 use SpeedPuzzling\Web\Results\EventWithSellersGoing;
@@ -39,7 +40,7 @@ final class GetEventsWithSellersGoingTest extends KernelTestCase
     public function testOnlyPublishedListingsOfSellersStillGoingCount(): void
     {
         $this->database->executeStatement(
-            'UPDATE competition_participant SET deleted_at = NOW() WHERE id = :id',
+            'UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => MarketplaceEventFixture::PARTICIPANT_FAIR_SELLER_B],
         );
         $this->database->executeStatement(
@@ -58,7 +59,7 @@ final class GetEventsWithSellersGoingTest extends KernelTestCase
         $cached = self::rows($this->query->all());
 
         $this->database->executeStatement(
-            'UPDATE competition_participant SET deleted_at = NOW() WHERE competition_id = :id',
+            'UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW . ' WHERE competition_id = :id',
             ['id' => MarketplaceEventFixture::COMPETITION_SWAP_FAIR],
         );
 

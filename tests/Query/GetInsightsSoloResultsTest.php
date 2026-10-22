@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetInsightsSoloResults;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -69,7 +70,7 @@ final class GetInsightsSoloResultsTest extends KernelTestCase
         $onPuzzle = count(array_filter($afterSuspicious, static fn ($result) => $result->puzzleId === PuzzleFixture::PUZZLE_500_01));
         self::assertGreaterThan(0, $onPuzzle);
 
-        $this->connection->executeStatement("UPDATE puzzle SET hide_image_until = NOW() + INTERVAL '30 days' WHERE id = :id", ['id' => PuzzleFixture::PUZZLE_500_01]);
+        $this->connection->executeStatement("UPDATE puzzle SET hide_image_until = " . TestClock::SQL_NOW . " + INTERVAL '30 days' WHERE id = :id", ['id' => PuzzleFixture::PUZZLE_500_01]);
 
         $afterSecret = $this->query->forPlayer(PlayerFixture::PLAYER_REGULAR);
         self::assertCount(count($afterSuspicious) - $onPuzzle, $afterSecret);
@@ -101,7 +102,7 @@ final class GetInsightsSoloResultsTest extends KernelTestCase
         $shelf = $this->connection->fetchFirstColumn('SELECT DISTINCT puzzle_id::text FROM collection_item WHERE player_id = :player', ['player' => PlayerFixture::PLAYER_REGULAR]);
 
         $this->connection->executeStatement(
-            "INSERT INTO puzzle_tag (puzzle_id, tag_key, score, uncertain, source, updated_at) VALUES (:puzzle, 'trait.dark', 0.9, false, 'analysis', NOW()), (:puzzle, 'theme.animals', 0.9, false, 'analysis', NOW()), (:puzzle, 'style.photo', 0.7, false, 'analysis', NOW())",
+            "INSERT INTO puzzle_tag (puzzle_id, tag_key, score, uncertain, source, updated_at) VALUES (:puzzle, 'trait.dark', 0.9, false, 'analysis', " . TestClock::SQL_NOW . "), (:puzzle, 'theme.animals', 0.9, false, 'analysis', " . TestClock::SQL_NOW . "), (:puzzle, 'style.photo', 0.7, false, 'analysis', " . TestClock::SQL_NOW . ")",
             ['puzzle' => PuzzleFixture::PUZZLE_500_01],
         );
 
@@ -123,7 +124,7 @@ final class GetInsightsSoloResultsTest extends KernelTestCase
         $count = $this->connection->fetchOne(
             "SELECT COUNT(*) FROM puzzle_solving_time pst JOIN puzzle p ON p.id = pst.puzzle_id
              WHERE pst.player_id = :player AND pst.puzzling_type = 'solo' AND pst.suspicious = false AND pst.seconds_to_solve > 0
-                AND (p.hide_until IS NULL OR p.hide_until <= NOW()) AND (p.hide_image_until IS NULL OR p.hide_image_until <= NOW())",
+                AND (p.hide_until IS NULL OR p.hide_until <= " . TestClock::SQL_NOW . ") AND (p.hide_image_until IS NULL OR p.hide_image_until <= " . TestClock::SQL_NOW . ")",
             ['player' => $playerId],
         );
         self::assertIsNumeric($count);

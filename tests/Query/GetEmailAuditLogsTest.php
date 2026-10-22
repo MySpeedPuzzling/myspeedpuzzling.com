@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\EmailAuditLogNotFound;
@@ -194,7 +195,7 @@ final class GetEmailAuditLogsTest extends KernelTestCase
     ): void {
         $this->connection->insert('email_audit_log', [
             'id' => $id,
-            'sent_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+            'sent_at' => TestClock::now()->format('Y-m-d H:i:s'),
             'recipient_email' => $recipientEmail,
             'subject' => $subject,
             'transport_name' => 'smtp://mailer:1025',

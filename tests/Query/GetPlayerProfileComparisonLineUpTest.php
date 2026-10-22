@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddComparisonSubject;
@@ -95,7 +96,7 @@ final class GetPlayerProfileComparisonLineUpTest extends KernelTestCase
         self::assertNull($newest->countryCode);
 
         $this->database->executeStatement(
-            'INSERT INTO private_profile_viewer (id, owner_id, viewer_id, added_at) VALUES (:id, :owner, :viewer, NOW())',
+            'INSERT INTO private_profile_viewer (id, owner_id, viewer_id, added_at) VALUES (:id, :owner, :viewer, ' . TestClock::SQL_NOW . ')',
             ['id' => Uuid::uuid7()->toString(), 'owner' => PlayerFixture::PLAYER_PRIVATE, 'viewer' => PlayerFixture::PLAYER_WITH_STRIPE],
         );
 
@@ -158,7 +159,7 @@ final class GetPlayerProfileComparisonLineUpTest extends KernelTestCase
     private function insertRow(string $ownerId, string $subjectPlayerId): void
     {
         $this->database->executeStatement(
-            'INSERT INTO comparison_subject (id, player_id, subject_player_id, added_at) VALUES (:id, :owner, :subject, NOW())',
+            'INSERT INTO comparison_subject (id, player_id, subject_player_id, added_at) VALUES (:id, :owner, :subject, ' . TestClock::SQL_NOW . ')',
             ['id' => Uuid::uuid7()->toString(), 'owner' => $ownerId, 'subject' => $subjectPlayerId],
         );
     }
@@ -166,7 +167,7 @@ final class GetPlayerProfileComparisonLineUpTest extends KernelTestCase
     private function block(string $blockerId, string $blockedId): void
     {
         $this->database->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => $blockerId, 'blocked' => $blockedId],
         );
     }

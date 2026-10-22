@@ -8,14 +8,19 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Types\Exception\InvalidType;
-use PHPUnit\Framework\TestCase;
-use SpeedPuzzling\Web\Doctrine\UtcDateTimeImmutableDoctrineType;
+use Doctrine\DBAL\Types\Type;
+use Doctrine\DBAL\Types\Types;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-final class UtcDateTimeImmutableDoctrineTypeTest extends TestCase
+/**
+ * What the registered `datetime_immutable` does since it is DBAL's datetime_utc_immutable (config/packages/doctrine.php,
+ * docs/features/time-and-clock/README.md R3) - pinned here so a config change cannot quietly drop the UTC conversion
+ */
+final class DatetimeImmutableStoredAsUtcTest extends KernelTestCase
 {
     public function testAZonedValueIsStoredAsUtcWallTimeAndReadBackAsTheSameInstant(): void
     {
-        $type = new UtcDateTimeImmutableDoctrineType();
+        $type = self::type();
         $platform = new PostgreSQLPlatform();
         $prague = new DateTimeImmutable('2026-10-20 00:30:00', new DateTimeZone('Europe/Prague'));
 
@@ -23,13 +28,14 @@ final class UtcDateTimeImmutableDoctrineTypeTest extends TestCase
         self::assertSame('2026-10-19 22:30:00', $stored);
 
         $read = $type->convertToPHPValue($stored, $platform);
+        self::assertInstanceOf(DateTimeImmutable::class, $read);
         self::assertSame($prague->getTimestamp(), $read->getTimestamp());
         self::assertSame('UTC', $read->getTimezone()->getName());
     }
 
     public function testAnOffsetValueKeepsItsInstant(): void
     {
-        $type = new UtcDateTimeImmutableDoctrineType();
+        $type = self::type();
 
         self::assertSame(
             '2026-01-01 05:00:00',
@@ -39,7 +45,7 @@ final class UtcDateTimeImmutableDoctrineTypeTest extends TestCase
 
     public function testAUtcValueIsStoredUnchanged(): void
     {
-        $type = new UtcDateTimeImmutableDoctrineType();
+        $type = self::type();
         $utc = new DateTimeImmutable('2026-10-14 12:00:00', new DateTimeZone('UTC'));
 
         self::assertSame('2026-10-14 12:00:00', $type->convertToDatabaseValue($utc, new PostgreSQLPlatform()));
@@ -47,7 +53,7 @@ final class UtcDateTimeImmutableDoctrineTypeTest extends TestCase
 
     public function testTheValuePassedInIsNotChanged(): void
     {
-        $type = new UtcDateTimeImmutableDoctrineType();
+        $type = self::type();
         $prague = new DateTimeImmutable('2026-10-20 00:30:00', new DateTimeZone('Europe/Prague'));
 
         $type->convertToDatabaseValue($prague, new PostgreSQLPlatform());
@@ -57,7 +63,7 @@ final class UtcDateTimeImmutableDoctrineTypeTest extends TestCase
 
     public function testNullStaysNull(): void
     {
-        $type = new UtcDateTimeImmutableDoctrineType();
+        $type = self::type();
         $platform = new PostgreSQLPlatform();
 
         self::assertNull($type->convertToDatabaseValue(self::nullFromDatabase(), $platform));
@@ -66,7 +72,8 @@ final class UtcDateTimeImmutableDoctrineTypeTest extends TestCase
 
     public function testAStoredValueWithFractionsIsReadAsUtc(): void
     {
-        $read = new UtcDateTimeImmutableDoctrineType()->convertToPHPValue('2026-10-14 12:00:00.123456', new PostgreSQLPlatform());
+        $read = self::type()->convertToPHPValue('2026-10-14 12:00:00.123456', new PostgreSQLPlatform());
+        self::assertInstanceOf(DateTimeImmutable::class, $read);
 
         self::assertSame('2026-10-14T12:00:00.123456+00:00', $read->format('Y-m-d\TH:i:s.uP'));
     }
@@ -75,7 +82,15 @@ final class UtcDateTimeImmutableDoctrineTypeTest extends TestCase
     {
         $this->expectException(InvalidType::class);
 
-        new UtcDateTimeImmutableDoctrineType()->convertToDatabaseValue('2026-10-14 12:00:00', new PostgreSQLPlatform());
+        self::type()->convertToDatabaseValue('2026-10-14 12:00:00', new PostgreSQLPlatform());
+    }
+
+    private static function type(): Type
+    {
+        // The kernel registers the configured types
+        self::bootKernel();
+
+        return Type::getType(Types::DATETIME_IMMUTABLE);
     }
 
     /**

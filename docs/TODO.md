@@ -20,7 +20,7 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] `SystemClockCoverageTest`'s `src/` allowlist is per file (36 files) - narrow it per kind of read like the
       `tests/` one, so a listed file cannot hide a new read
 - [ ] `LapsArrayDoctrineType` formats laps in the object's own zone (JSON) - fine while laps come from the UTC clock;
-      give it the UTC conversion of `UtcDateTimeImmutableDoctrineType` if a non-UTC moment can ever reach it
+      give it the UTC conversion of DBAL's `DateTimeUtcImmutableType` if a non-UTC moment can ever reach it
 - [ ] Panther is skipped in CI (`panther-tests` disabled since #147) - it ran green on the frozen clock locally in
       Phase 3 (22 tests) but not under faketime; run it once when the job is rebuilt
 - [ ] `TestClock::FROZEN_NOW` (2026-10-14) sits before `MspRatingTimeline::FORMULA_CHANGES`' 2026-10-18 change and

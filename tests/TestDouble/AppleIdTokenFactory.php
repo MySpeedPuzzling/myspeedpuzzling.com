@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\TestDouble;
 
 use Firebase\JWT\JWT;
 use GuzzleHttp\Psr7\Response;
+use SpeedPuzzling\Web\Tests\TestClock;
 
 /**
  * Real RS256-signed Apple id_tokens + the matching JWKS, so tests exercise the
@@ -27,9 +28,9 @@ final class AppleIdTokenFactory
         [$jwks, $idToken] = self::signedIdToken($claims + [
             'iss' => 'https://appleid.apple.com',
             'aud' => self::CLIENT_ID,
-            // Real time on purpose: Apple mints on its own clock and the provider library checks with php-jwt's time()
-            'iat' => time(),
-            'exp' => time() + 600,
+            // The provider judges iat/exp on the app's (frozen) clock
+            'iat' => TestClock::timestamp(),
+            'exp' => TestClock::timestamp() + 600,
         ]);
 
         SocialLoginHttpMock::queue(

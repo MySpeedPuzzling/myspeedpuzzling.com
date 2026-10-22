@@ -30,7 +30,6 @@ final class SystemClockCoverageTest extends TestCase
     private const string DURATION = 'Measures a duration (microtime(true) / hrtime()) - no date is read.';
     private const string PROBE = 'Health probe - answers with the server\'s real time.';
     private const string RENDERED_AT = 'msp-rendered-at is real time (the browser compares it with the server\'s Date header), so is its reader.';
-    private const string PHP_JWT = 'Apple\'s tokens are checked with php-jwt, which judges iat/exp by time() - the app sets no JWT::$timestamp there.';
     private const string PATTERN_DATA = 'A guard - the clock reads it must recognise are data.';
 
     /** PHP files under src/ allowed to read the system clock, with the reason */
@@ -85,7 +84,6 @@ final class SystemClockCoverageTest extends TestCase
      * @var array<string, array{0: list<string>|null, 1: string}>
      */
     private const array ALLOWED_IN_TESTS = [
-        'Controller/AppleSignInNotificationControllerTest.php' => [['time('], self::PHP_JWT],
         'Controller/AssetLoadFailureControllerTest.php' => [['time('], self::RENDERED_AT],
         'Controller/LiveResults/CompetitionNameTagsTest.php' => [['hrtime('], self::DURATION],
         'Controller/RegisterControllerTest.php' => [['time('], 'The REMEMBERME cookie\'s expiry - remember-me mints it with time(), the browser judges it on its own clock.'],
@@ -109,7 +107,6 @@ final class SystemClockCoverageTest extends TestCase
         'Services/Storage/ObjectStorageHttpClientFactoryTest.php' => [['microtime('], self::DURATION],
         'SystemClockCoverageTest.php' => [null, self::PATTERN_DATA],
         'TestClockTest.php' => [['time('], 'Checks that the frozen instant lies before the real date of the run (TestClock\'s rule).'],
-        'TestDouble/AppleIdTokenFactory.php' => [['time('], self::PHP_JWT],
         'TestDouble/InMemoryStudioInviteSignal.php' => [['time('], 'Stands in for a Redis TTL, which Redis counts on its own clock.'],
         'TestingDatabaseCaching.php' => [['time('], 'The age of the test database cache file - a file system time.'],
     ];

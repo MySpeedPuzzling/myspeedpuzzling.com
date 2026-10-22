@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\SocialLogin;
 
+use Firebase\JWT\ExpiredException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialProfileFetcher;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestDouble\AppleIdTokenFactory;
 use SpeedPuzzling\Web\Tests\TestDouble\SocialLoginHttpMock;
 use SpeedPuzzling\Web\Value\OauthProvider;
@@ -135,6 +137,21 @@ final class SocialProfileFetcherAppleTest extends KernelTestCase
         ]);
 
         $this->expectException(\UnexpectedValueException::class);
+        $this->fetch();
+    }
+
+    public function testIdTokenExpiredOnTheAppClockIsRejected(): void
+    {
+        // Expired a second before the app's now (the other tests' tokens are valid only around the frozen instant)
+        AppleIdTokenFactory::queueTokenExchange([
+            'sub' => 'apple-sub-6',
+            'email' => 'real@example.com',
+            'email_verified' => true,
+            'iat' => TestClock::timestamp() - 600,
+            'exp' => TestClock::timestamp() - 1,
+        ]);
+
+        $this->expectException(ExpiredException::class);
         $this->fetch();
     }
 

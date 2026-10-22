@@ -168,6 +168,23 @@ final class AppleSignInNotificationControllerTest extends WebTestCase
         self::assertSame(1, $this->identityCount($sub));
     }
 
+    public function testTokenExpiredOnTheAppClockIsRejected(): void
+    {
+        $sub = 'apple-expired-' . bin2hex(random_bytes(4));
+        $this->seedIdentity($this->seedAccount(password: 'hash'), $sub);
+
+        // Expired a second before the app's now (the other tests' tokens are valid only around the frozen instant)
+        $claims = ['iat' => TestClock::timestamp() - 600, 'exp' => TestClock::timestamp() - 1]
+            + self::claims(['type' => 'consent-revoked', 'sub' => $sub], self::APP_ID, true);
+        [$jwks, $token] = AppleIdTokenFactory::signedIdToken($claims);
+        SocialLoginHttpMock::queue(new HttpResponse(200, ['Content-Type' => 'application/json'], $jwks));
+
+        $this->postToken($token);
+
+        self::assertResponseStatusCodeSame(400);
+        self::assertSame(1, $this->identityCount($sub));
+    }
+
     public function testTokenSignedByAnotherKeyIsRejected(): void
     {
         $sub = 'apple-forged-' . bin2hex(random_bytes(4));
@@ -227,9 +244,9 @@ final class AppleSignInNotificationControllerTest extends WebTestCase
         return [
             'iss' => 'https://appleid.apple.com',
             'aud' => $audience,
-            // Real time on purpose: AppleServerNotificationVerifier decodes with php-jwt, which judges iat/exp by time()
-            'iat' => time(),
-            'exp' => time() + 600,
+            // AppleServerNotificationVerifier judges iat/exp on the app's (frozen) clock
+            'iat' => TestClock::timestamp(),
+            'exp' => TestClock::timestamp() + 600,
             'jti' => bin2hex(random_bytes(8)),
             'events' => $eventsAsString ? json_encode($event, JSON_THROW_ON_ERROR) : $event,
         ];

@@ -61,7 +61,7 @@ readonly final class ReplyToPartnerRequestHandler
             return;
         }
 
-        if ($replier->isMessagingMuted()) {
+        if ($replier->isMessagingMuted($this->clock->now())) {
             throw new MessagingMuted();
         }
 

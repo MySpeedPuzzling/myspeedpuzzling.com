@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
@@ -98,7 +99,7 @@ final class PartnerFinderCardTest extends WebTestCase
         /** @var Connection $connection */
         $connection = $browser->getContainer()->get(Connection::class);
         $connection->executeStatement(
-            'INSERT INTO dismissed_hint (id, player_id, type, dismissed_at) VALUES (:id, :player, :type, NOW())',
+            'INSERT INTO dismissed_hint (id, player_id, type, dismissed_at) VALUES (:id, :player, :type, ' . TestClock::SQL_NOW . ')',
             ['id' => Uuid::uuid7()->toString(), 'player' => PlayerFixture::PLAYER_PRIVATE, 'type' => HintType::PartnerFinderCard->value],
         );
 

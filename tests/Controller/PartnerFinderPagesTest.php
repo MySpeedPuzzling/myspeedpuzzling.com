@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -84,7 +85,7 @@ final class PartnerFinderPagesTest extends WebTestCase
         $browser = self::createClient();
 
         self::getContainer()->get(Connection::class)->executeStatement(
-            'UPDATE competition SET date_from = CURRENT_DATE - 10, date_to = CURRENT_DATE - 10 WHERE id = :id',
+            'UPDATE competition SET date_from = ' . TestClock::SQL_TODAY . ' - 10, date_to = ' . TestClock::SQL_TODAY . ' - 10 WHERE id = :id',
             ['id' => PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN],
         );
 

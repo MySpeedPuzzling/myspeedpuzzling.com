@@ -1926,27 +1926,9 @@ header {
     overflow-wrap: break-word;
 }
 
-// Live-event strip at the top of the sticky header - the whole strip is one link
-.competition-panel-info {
-    display: block;
-    background: $primary;
-    color: #fff;
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 1.5;
-    padding: 4px 15px;
-    text-align: center;
-
-    &:hover,
-    &:focus {
-        color: #fff;
-        background: darken($primary, 6%);
-        text-decoration: underline;
-    }
-}
-
-// A pulsing "live" dot, always aria-hidden next to a text that says it: red on the events page's "Live", white on the
-// live event strip (`.live-dot-light`). A static dot under prefers-reduced-motion.
+// A pulsing "live" dot, always aria-hidden next to a text that says it: red on the events page's "Live", white on a
+// dark background (`.live-dot-light` - the online round watch page; the live-event strip was one, see
+// docs/features/live-event-strip.md). A static dot under prefers-reduced-motion.
 $live-dot-red: #e0262d;
 
 .live-dot {

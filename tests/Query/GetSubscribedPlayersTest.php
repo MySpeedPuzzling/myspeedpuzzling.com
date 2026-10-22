@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -187,7 +187,7 @@ SQL,
                 code: 'sub' . substr(str_replace('-', '', $id->toString()), -12),
                 userId: null,
                 name: 'Subscriber test ' . $i,
-                registeredAt: new DateTimeImmutable(),
+                registeredAt: TestClock::now(),
             ));
             $ids[] = $id->toString();
         }

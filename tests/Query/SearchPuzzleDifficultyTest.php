@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
@@ -72,9 +73,11 @@ final class SearchPuzzleDifficultyTest extends KernelTestCase
      */
     private function expectedIds(string $condition): array
     {
+        $now = TestClock::SQL_NOW;
+
         /** @var list<string> $ids */
         $ids = $this->connection->fetchFirstColumn(
-            "SELECT p.id FROM puzzle p LEFT JOIN puzzle_difficulty pd ON pd.puzzle_id = p.id WHERE (p.hide_until IS NULL OR p.hide_until <= NOW()) AND ({$condition}) ORDER BY p.id",
+            "SELECT p.id FROM puzzle p LEFT JOIN puzzle_difficulty pd ON pd.puzzle_id = p.id WHERE (p.hide_until IS NULL OR p.hide_until <= {$now}) AND ({$condition}) ORDER BY p.id",
         );
 
         return $ids;

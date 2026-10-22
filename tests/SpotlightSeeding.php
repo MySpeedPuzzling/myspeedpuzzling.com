@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests;
 
-use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Ramsey\Uuid\Uuid;
@@ -55,7 +54,7 @@ trait SpotlightSeeding
         if ($registeredAt !== null) {
             $database->executeStatement(
                 'UPDATE player SET registered_at = :registeredAt WHERE id = :id',
-                ['registeredAt' => (new DateTimeImmutable($registeredAt))->format('Y-m-d H:i:s'), 'id' => $playerId],
+                ['registeredAt' => TestClock::now()->modify($registeredAt)->format('Y-m-d H:i:s'), 'id' => $playerId],
             );
         }
     }
@@ -86,7 +85,7 @@ trait SpotlightSeeding
                 'name' => $name,
                 'country' => $country,
                 'private' => $private,
-                'registeredAt' => (new DateTimeImmutable($registeredAt))->format('Y-m-d H:i:s'),
+                'registeredAt' => TestClock::now()->modify($registeredAt)->format('Y-m-d H:i:s'),
             ],
             ['private' => ParameterType::BOOLEAN],
         );

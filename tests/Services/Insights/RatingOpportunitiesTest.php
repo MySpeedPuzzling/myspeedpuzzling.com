@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\Insights;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
@@ -47,7 +48,7 @@ final class RatingOpportunitiesTest extends KernelTestCase
     {
         self::bootKernel();
 
-        $this->now = new DateTimeImmutable('today 12:00:00');
+        $this->now = TestClock::now()->modify('today 12:00:00');
         self::getContainer()->set(ClockInterface::class, new MockClock($this->now));
 
         /** @var Connection $connection */
@@ -76,7 +77,7 @@ final class RatingOpportunitiesTest extends KernelTestCase
 
         foreach ([56, 58, 59] as $puzzle) {
             $this->connection->executeStatement(
-                'INSERT INTO collection_item (id, collection_id, player_id, puzzle_id, comment, added_at) VALUES (:id, NULL, :player, :puzzle, NULL, NOW())',
+                'INSERT INTO collection_item (id, collection_id, player_id, puzzle_id, comment, added_at) VALUES (:id, NULL, :player, :puzzle, NULL, ' . TestClock::SQL_NOW . ')',
                 ['id' => Uuid::uuid7()->toString(), 'player' => self::ladderPlayer(self::PLAYER), 'puzzle' => self::ladderPuzzle($puzzle)],
             );
         }
@@ -290,7 +291,7 @@ final class RatingOpportunitiesTest extends KernelTestCase
     {
         $playerId = Uuid::uuid7()->toString();
         $this->connection->executeStatement(
-            "INSERT INTO player (id, code, name, registered_at, is_private) VALUES (:id, 'insprivate', 'Private, no solves', NOW(), true)",
+            "INSERT INTO player (id, code, name, registered_at, is_private) VALUES (:id, 'insprivate', 'Private, no solves', " . TestClock::SQL_NOW . ", true)",
             ['id' => $playerId],
         );
 

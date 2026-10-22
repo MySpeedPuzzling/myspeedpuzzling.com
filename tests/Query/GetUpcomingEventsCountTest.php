@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetUpcomingEventsCount;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
@@ -30,7 +30,7 @@ final class GetUpcomingEventsCountTest extends KernelTestCase
 
         $this->database->executeStatement(
             'UPDATE competition SET date_from = :past, date_to = :past',
-            ['past' => (new DateTimeImmutable('-100 days'))->format('Y-m-d H:i:s')],
+            ['past' => TestClock::now()->modify('-100 days')->format('Y-m-d H:i:s')],
         );
     }
 
@@ -51,7 +51,7 @@ final class GetUpcomingEventsCountTest extends KernelTestCase
         // cz, approved but rejected afterwards
         $this->startIn(CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024, '+20 days');
         $this->database->executeStatement(
-            'UPDATE competition SET rejected_at = NOW() WHERE id = :id',
+            'UPDATE competition SET rejected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024],
         );
 
@@ -76,7 +76,7 @@ final class GetUpcomingEventsCountTest extends KernelTestCase
     {
         $this->database->executeStatement(
             'UPDATE competition SET date_from = :dateFrom, date_to = :dateFrom WHERE id = :id',
-            ['dateFrom' => (new DateTimeImmutable($when))->format('Y-m-d H:i:s'), 'id' => $competitionId],
+            ['dateFrom' => TestClock::now()->modify($when)->format('Y-m-d H:i:s'), 'id' => $competitionId],
         );
     }
 }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
@@ -104,7 +104,7 @@ final class PuzzleAlternativeNamesReadTest extends KernelTestCase
         $puzzle = $entityManager->find(Puzzle::class, $puzzleId);
         self::assertNotNull($puzzle);
 
-        $puzzle->changeNames($puzzle->name, $puzzle->nameLanguage, $alternativeNames, new DateTimeImmutable());
+        $puzzle->changeNames($puzzle->name, $puzzle->nameLanguage, $alternativeNames, TestClock::now());
         $entityManager->flush();
         $entityManager->clear();
     }

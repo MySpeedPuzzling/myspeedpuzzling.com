@@ -8,7 +8,7 @@ Living record. Every phase appends: what it did, what it found, what the next ph
 | 1 - pin UTC, UTC on write | done 2026-10-22 | this commit |
 | 2 - one clock in `src/` | done 2026-10-22 | c00bf8343, e16908c18, 3a15ef3b0 + this commit |
 | 3 - frozen clock in tests | done 2026-10-22 - **branch red until Phase 4 ends** (157 tests) | fe580bfa0 |
-| 4 - tests on the frozen clock | batches 1-4 done 2026-10-22 (157 → 103 → 92 → 72 → 65 failing); batches 5-9 open | batch 1: f2483f7d3; batch 2: dc3fb4867; batch 3: d4f31c268; batch 4: this commit |
+| 4 - tests on the frozen clock | batches 1-5 done 2026-10-22 (157 → 103 → 92 → 72 → 65 → 62 failing); batches 6-9 open | batch 1: f2483f7d3; batch 2: dc3fb4867; batch 3: d4f31c268; batch 4: 0364e10e9; batch 5: this commit |
 | 5 - proof, docs, PR | not started | |
 
 ## Jan's answers (2026-10-22) - binding for every later phase
@@ -757,6 +757,60 @@ For batches 5-9:
   with no clock read of its own, look at the fixture's offset against the query's comparison before anything else.
 - The rewrite script also turns `(new DateTimeImmutable())->…` into `(TestClock::now())->…` - unwrap it.
 
+## Phase 4 batch 5 (2026-10-22) - `Query` rest, `Services/Insights`, `Services/PuzzleIntelligence`
+
+Converted (61 files):
+
+- **The batch (51):** of the 104 files (`Query` outside `GetA*`-`GetP*`, `Services/Insights`, `Services/PuzzleIntelligence`),
+  47 match the plan's grep and all 47 had a clock read; 4 more had a **lowercase** SQL `now()` the case-sensitive grep of
+  batches 1-4 never saw (`IsCompetitionPubliclyVisibleTest`, `IsOrganizationPubliclyVisibleTest`,
+  `IsSeriesPubliclyVisibleTest`, `GetRelatedPuzzlesTest`). Batch 2's token-based rewrite did the mechanical part (a
+  case-insensitive copy of it for `now()`). By hand: heredocs / interpolated strings (`GetResultReviewEmailCandidatesTest`
+  data provider, `GetSelectableCompetitionsTest`, `GetSuggestedPlayersTest`, `SearchPuzzleDifficultyTest` -
+  `$now = TestClock::SQL_NOW;` + `{$now}`), relative strings behind a variable - `GetSuggestedPlayersTest::queryAt($time)`
+  / `daysAgo()`, `GetUpcomingEventsCountTest::startIn($when)` - and the `(TestClock::now())->` artefact. Checked and left
+  as is: helpers already on the container clock (`FindSimilarSpeedPuzzlerTest`, `SearchComparisonTeamsTest`,
+  `GetSeriesEditionChoicesTest`, `PlayerPaceHistoryTest`, the private `now()` helpers), `InsightsTestResults::NOW`
+  (absolute), `MockClock($x)` fed from those, parses of stored values, `LegacyMspRatingCalculator` (takes a clock).
+  The Insights tests' `'today 12:00:00'` became `TestClock::now()->modify('today 12:00:00')` (= the instant).
+- **Shared helper (1), batch 1's:** `tests/SpotlightSeeding.php` still parsed its `$registeredAt` relative strings
+  (`'-20 days'`, default `'-1 year'`) with `new DateTimeImmutable($registeredAt)` on the real date - the hidden relative
+  date behind a variable that batch 2 warned about. Now `TestClock::now()->modify($registeredAt)`.
+- **Handed over from finished batches (9):** lowercase `now()` in `Query/GetAdminQueueCountsTest`, `GetCataloguePuzzlesTest`,
+  `GetEventOffersTest`, `GetMarketplaceEventsTest`, `GetOrganizationsTest`, `GetPuzzlePickerSuggestionsTest` (4 ×
+  `hide_until < now()`), `MessageHandler/LeaveCompetitionHandlerTest`, `RefreshPuzzleTagsHandlerTest` (heredoc),
+  `Component/FirstTriesForPairsAndTeamsTest` (`finished_at = now() - make_interval(…)`). All were green already; converted
+  for R4.
+
+No real-time exception in this batch.
+
+Fixed (3 tests, no assertion weakened, none passed by luck): `GetSpotlightPeopleTest::testNewFacesJoinedInTheLastTwoWeeks…`
+and `Controller/PlayersSpotlightTest::testShowMoreRevealsRowsAlreadyInThePage` (both through `SpotlightSeeding`: "registered
+20 days ago" on the real date was 12 days before the instant, inside the 14-day window), `GetUpcomingEventsCountTest`
+(`'today'` on the real date was after the instant's today, so it counted as upcoming).
+
+Gates: PHPStan clean, PHPCS clean (cs-fix removed 8 unused `DateTimeImmutable` imports). `tests/Query` alone (ParaTest):
+1208 tests green; `Services/Insights` 93, `Services/PuzzleIntelligence` 142 green. Full suite (ParaTest,
+`speedpuzzling_clock_test`): **11525 tests, 58 failures + 4 errors = 62 tests** (batch 4: 65). Compared per test, with and
+without data-set names: the 3 above fixed, nothing green turned red. `Query` has no failure left.
+
+Remaining (files / tests): `Controller` top level 17 / 38, `Controller/Api/V1` 4 / 5, `Controller/Compete` 3 / 3,
+`DuplicateResults` 1 / 5, `OfficialResults` 1 / 1, `OnlineRounds` 1 / 1, `ReviewResults` 1 / 1, `Seating` 1 / 1,
+`SuspiciousTimes` 1 / 1, `Services` 2 / 4, `Services/SeriesEditions` 1 / 1, `Services/Storage` 1 / 1.
+
+For batches 6-9:
+
+- **Grep case-insensitively** (`grep -niE`, `now\(\)|current_date|current_timestamp`): lowercase SQL `now()` is common.
+  Still open outside this batch: `Controller/PlayerHeaderTest`, `PuzzleDetailControllerTest`, `BrandPiecesPuzzlesControllerTest`,
+  `Admin/BoxTextMismatchesControllerTest`, `Api/V1/CompetitionDetailEndpointTest`, `InternalApi/PuzzleTagsInternalApiTest`
+  (heredoc), `Services/CompetitionParticipantImporterTest`, `CompetitionChoicesBuilderTest`,
+  `ParticipantImport/ParticipantImportPlannerTest`. Batch 9's guard over `tests/` must match case-insensitively (the `src/`
+  guard already does).
+- The root helpers are not all clean: grep `new DateTimeImmutable(\$` in `tests/*.php` and follow where the argument comes
+  from. Left after this batch: `SeriesPickCanaryTest::add($finishedAt)` and `SeriesEditionScenario::edition()/addTime($day)`
+  take dates their callers format - check the callers (`CompetitionSeriesDetailControllerTest` builds them with
+  `new DateTimeImmutable('-2 days')->format(…)`, batch 6).
+
 ## Log
 
 - 2026-10-22: plan written (README.md, implementation-plan.md). Branch `time-and-clock` from `8447c607d`.
@@ -779,3 +833,5 @@ For batches 5-9:
 - 2026-10-22: Phase 4 batch 3 - `MessageHandler` P-Z on the frozen clock (45 files); suite 92 → 72 failing, nothing new red.
 - 2026-10-22: Phase 4 batch 4 - `Query/GetA*`-`GetP*` on the frozen clock (45 files) + `ChatMessageFixture::MESSAGE_04` off the
   24-hour boundary (passed by luck of the real date); suite 72 → 65 failing, nothing new red.
+- 2026-10-22: Phase 4 batch 5 - `Query` rest + `Services/Insights` + `Services/PuzzleIntelligence` on the frozen clock (51 files),
+  `SpotlightSeeding`'s relative strings, lowercase SQL `now()` in 9 files of finished batches; suite 65 → 62 failing, nothing new red.

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Message\GrantModeratorRole;
 use SpeedPuzzling\Web\Query\GetAdminQueueCounts;
@@ -52,7 +53,7 @@ final class GetAdminQueueCountsTest extends WebTestCase
         self::assertNotNull($before);
 
         // The Maple organization and its series wait for approval; Cedar and Willow are drafts
-        $database->executeStatement('UPDATE organization SET approved_at = now() WHERE id = :id', ['id' => OrganizationFixture::ORGANIZATION_MAPLE_PENDING]);
+        $database->executeStatement('UPDATE organization SET approved_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => OrganizationFixture::ORGANIZATION_MAPLE_PENDING]);
         self::assertSame($before - 1, $query->forViewer(isAdmin: true)->competitionApprovals);
 
         $database->executeStatement('UPDATE organization SET is_draft = false WHERE id = :id', ['id' => OrganizationFixture::ORGANIZATION_CEDAR_PENDING_DRAFT]);

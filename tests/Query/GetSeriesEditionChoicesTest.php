@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
@@ -96,7 +97,7 @@ final class GetSeriesEditionChoicesTest extends KernelTestCase
         $this->scenario->edition($draftSeries, 'Jam No. 158', $this->day(-1));
 
         $rejected = $this->scenario->edition($seriesId, 'Jam No. 159', $this->day(-3));
-        $this->database->executeStatement('UPDATE competition SET rejected_at = NOW() WHERE id = :id', ['id' => $rejected]);
+        $this->database->executeStatement('UPDATE competition SET rejected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => $rejected]);
 
         self::assertSame([$public], $this->ids($this->query->search('lantern jam')));
     }
@@ -150,7 +151,7 @@ final class GetSeriesEditionChoicesTest extends KernelTestCase
         $this->scenario->round($editionId, RoundCategory::Duo, $this->day(-2) . ' 21:00', puzzleIds: [$secret], secret: true);
         $this->scenario->round($editionId, RoundCategory::Team, $this->day(-2) . ' 22:00', puzzleIds: [$hidden]);
         // Hidden by hand after it was put in the round (no round takes a puzzle hidden by hand)
-        $this->database->executeStatement("UPDATE puzzle SET hide_until = NOW() + INTERVAL '30 days' WHERE id = :id", ['id' => $hidden]);
+        $this->database->executeStatement("UPDATE puzzle SET hide_until = " . TestClock::SQL_NOW . " + INTERVAL '30 days' WHERE id = :id", ['id' => $hidden]);
 
         $choice = $this->onlyChoice($this->query->closest($seriesId, $this->today));
 

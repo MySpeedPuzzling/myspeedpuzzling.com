@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\IsOrganizationPubliclyVisible;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
@@ -48,7 +49,7 @@ final class IsOrganizationPubliclyVisibleTest extends KernelTestCase
     public function testARejectedOrganizationIsNotVisibleEvenWhenApproved(): void
     {
         $this->database->executeStatement(
-            'UPDATE organization SET rejected_at = now() WHERE id = :id',
+            'UPDATE organization SET rejected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => OrganizationFixture::ORGANIZATION_RIVERBEND],
         );
 

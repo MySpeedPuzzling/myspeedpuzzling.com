@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Query\GetSolvingTimePrediction;
@@ -84,7 +85,7 @@ final class GetSolvingTimePredictionTest extends KernelTestCase
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $time = $entityManager->find(PuzzleSolvingTime::class, $timeId);
         self::assertNotNull($time);
-        $time->recordPrediction($prediction, new \DateTimeImmutable());
+        $time->recordPrediction($prediction, TestClock::now());
         $entityManager->flush();
         $entityManager->clear();
     }

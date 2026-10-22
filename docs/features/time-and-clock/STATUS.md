@@ -7,8 +7,8 @@ Living record. Every phase appends: what it did, what it found, what the next ph
 | 0 - verify decisions | done 2026-10-22, answered | this commit |
 | 1 - pin UTC, UTC on write | done 2026-10-22 | this commit |
 | 2 - one clock in `src/` | done 2026-10-22 | c00bf8343, e16908c18, 3a15ef3b0 + this commit |
-| 3 - frozen clock in tests | not started | |
-| 4 - tests on the frozen clock | not started | |
+| 3 - frozen clock in tests | done 2026-10-22 - **branch red until Phase 4 ends** (157 tests) | this commit |
+| 4 - tests on the frozen clock | not started (9 batches, re-planned in Phase 3) | |
 | 5 - proof, docs, PR | not started | |
 
 ## Jan's answers (2026-10-22) - binding for every later phase
@@ -482,6 +482,122 @@ For Phase 3:
 - TODO for Jan / Phase 5: the expired WJPC live strip in `base.html.twig` (date 2026-09-21) is dead code - remove it
   together with `live_event_strip` and `.competition-panel-info` when convenient (not done here: not a clock question).
 
+## Phase 3 (2026-10-22) - the frozen clock in tests
+
+**The branch is red from here until Phase 4 ends** (157 failing tests, all test data on the real clock). Do not merge.
+
+What changed:
+
+- `tests/TestClock.php`: `FROZEN_NOW` (`2026-10-14 12:00:00`, UTC), `now()`, `SQL_NOW` (`TIMESTAMP '…'`, built from
+  `FROZEN_NOW`), `SQL_TODAY` (`DATE '2026-10-14'`), `sqlParameter()` (for a bound `:now`, `'Y-m-d H:i:s'` like the app),
+  `timestamp()` (for `time()`), `milliseconds()` (for `microtime(true) * 1000`). `tests/TestClockTest.php` pins it: the
+  container clock is at the instant in UTC, a test moving it (`sleep()`) does not move the next kernel's clock, the SQL
+  literals name the instant, and the instant lies before the real date of the run (D1's constraint).
+- `config/services_test.php`: `$services->set('clock', MockClock::class)->args([TestClock::FROZEN_NOW, 'UTC'])` - a
+  service of each container, never `Clock::set()`. `Psr\Clock\ClockInterface` / Symfony's `ClockInterface` alias it, so
+  the app, the framework consumers (Phase 0's list) and the fixtures all see the instant. A test moving it in a
+  `WebTestCase` loses the move on the browser's kernel reboot - the 12 files setting their own
+  `set(ClockInterface::class, new MockClock(…))` keep doing that (all of them set a different moment on purpose; none
+  duplicated the frozen instant, so none was removed).
+- Fixtures: nothing to change. All 53 take dates from the injected clock (45) or absolute literals (8:
+  `DismissedHintFixture`, `OAuth2ClientRequestFixture`, `XpSettingsFixture`, `XpLaunchRevealSeenFixture`, and four
+  without dates); none reads the system clock (grep for `new DateTime…()`, relative strings, `time()`, `date(`,
+  `strtotime`, `microtime`, `Clock::get`, `NativeClock`: 0 hits). Verified on the rebuilt DB: latest
+  `puzzle_solving_time.tracked_at` 2026-10-13 12:00, latest `player.registered_at` 2026-10-14 12:00. The bootstrap's
+  pace-history backfill and incremental recalculation run on the same frozen clock.
+- `tests/bootstrap.php`: the DB cache hash ends with `-now-<FROZEN_NOW>` - a moved instant rebuilds the fixtures.
+- `XpChainRecomputerTest::testWeeklyBoostStopsAfterFiveSolvesAndResetsNextWeek`: back to the fixed week
+  `fullFormulaFrom() + 28 days` (24-30 Aug 2026; `8447c607d`'s `+2 years` reverted). `EventDetailFixture::TIME_SPRINT_1`
+  is now always 16 Aug. Passes.
+
+Gates: PHPStan clean (the test reads the clock through Symfony's `ClockInterface` - PHPStan sees the dev container's
+`Clock`, so no `instanceof MockClock`), PHPCS clean. Full suite (ParaTest, `speedpuzzling_clock_test`): **11525 tests,
+128 failures + 29 errors = 157 tests in 75 files**, 4 min 16 s. Full list with the first message line of each:
+`phase3-frozen-clock-failures.txt`.
+
+Failing files by directory (files / tests):
+
+| Directory | Files | Tests |
+|---|---|---|
+| `Controller` (top level) | 20 | 44 |
+| `Controller/OnlineRounds` | 7 | 21 |
+| `Controller/Api` | 4 | 5 |
+| `Controller/Compete` | 4 | 6 |
+| `Controller/DuplicateResults`, `OfficialResults`, `ReviewResults`, `Seating`, `SuspiciousTimes` | 5 | 9 |
+| `MessageHandler` (+ `ParticipantsSheet` 1/1) | 20 | 43 |
+| `Query` | 7 | 9 |
+| `Security` | 3 | 11 |
+| `Services` (top level 2/4, `SeriesEditions` 1/1, `SocialLogin` 1/3, `Storage` 1/1) | 5 | 9 |
+| **Total** | **75** | **157** |
+
+Classification - **every failure is test data on the real clock (Phase 4); no framework mismatch, no bug in `src/`:**
+
+- Against Phase 0's experiment (160 / 77): the same files minus 3 that Phase 2 fixed -
+  `EventSubscriber/StaleLiveComponentPageSubscriberTest` (the framework mismatch: the reload-guard cookie now expires on
+  real time), `Controller/AssetLoadFailureControllerTest` (`msp-rendered-at` on real time),
+  `MessageHandler/PrepareDigestEmailForPlayerHandlerTest` (its `NOW()` became a bound `:since`) - plus 1 new:
+  `MessageHandler/MuteUserHandlerTest::testMutingSetsCorrectFieldsOnPlayer` - Phase 2 made it pass
+  `new DateTimeImmutable()` (real) to `isMessagingMuted($now)`; the mute ends at frozen + 7 days = 21 Oct, before the
+  real date. Test data.
+- Shapes (as Phase 0 described): SQL `NOW()` in a test's setup (hidden/embargoed puzzles, `deleted_at`, expiries);
+  `new DateTimeImmutable('-…')` / `time()` / `microtime()` in tests (expired codes/links built before the *real* now,
+  `>= microtime(true)*1000` assertions in the Compete API tests, prune/GC seeds); token doubles minting with `time()`
+  (`MicrosoftIdTokenFactory`, `AppleIdTokenFactory` → 11 Security + 3 `SocialProfileFetcherMicrosoftTest`); helpers
+  decoding the app's JWTs on php-jwt's real clock (`LiveVideoTesting`, `LiveUpdatesSubscriptionTest` →
+  `ExpiredException`); fixtures 8 days "older" than real-clock expectations (free trial 7-day age, "joined yesterday",
+  online rounds started at the real now while their fixture start is frozen → `round_not_started`).
+- 13 failing files have no clock read of their own - it is in a shared helper (`LiveVideoTesting`,
+  `FreeTrialConditions`, `SpotlightSeeding`, the token doubles, …). Phase 4 batch 1 does the helpers first.
+- The sign-in link/code failures (`SignInLinkTest` 2, `SignInCodeTest` 1) are the tests' own `'-20 seconds'` /
+  `'-2 minutes'` / `'-1 minute'` timestamps against the frozen clock - Symfony's link `expires` (minted and checked with
+  `time()`) is self-consistent.
+
+Panther (own FrankenPHP test server on the worktree + own Selenium chromium, frozen clock, instant 8 days old):
+**22 tests in 5 files green** - `SmokeTest` (2), `AddTimeRequiredFieldsTest` (2), `PuzzleLibrary/SolvedListTest` (10),
+`WishListTest` (4), `LendBorrowListTest` (4); the signed-in ones stay signed in (the session cookie expires on real time
+since Phase 2). Recipe: `docker run -d --name clock-panther-web --network speedpuzzlingcz_default` the base image with
+`W` at `/app` (+ vendor/node_modules/public/build read-only, `.docker/on-startup.sh` at
+`/docker-entrypoint.d/on-startup.sh`, `--tmpfs /app/var/cache`, `APP_ENV=test`, `SKIP_DATABASE_MIGRATIONS=true`, the
+clock test `DATABASE_URL`) + `seleniarm/standalone-chromium` as `clock-panther-chrome`; run phpunit with
+`PANTHER_SELENIUM_HOST=http://clock-panther-chrome:4444` and `PANTHER_EXTERNAL_BASE_URI=http://clock-panther-web:8080`
+(`--colors=never` to grep the summary). Containers removed afterwards. Three `speedpuzzling_panther_*` databases exist on
+the dev Postgres (origin unknown - possibly another session's; left alone).
+
+### Phase 4 - batches re-planned from the real list
+
+Scope = 447 test files: the 434 that still read the real clock somewhere (grep: SQL `NOW()`/`CURRENT_DATE|TIMESTAMP`,
+`new DateTime(Immutable)()`, relative strings, `time()`, `microtime(`, `new MockClock()` / `new MockClock('±…')`) + the 13
+failing files whose read is in a helper. Every batch fixes its failing tests **and** rewrites the rest of its files for R4
+(Phase 0's recipe: `TestClock::now()->modify(…)`, `TestClock::SQL_NOW` / `SQL_TODAY`, `TestClock::timestamp()`,
+`new MockClock()` → `new MockClock(TestClock::now())`, container clock where a test moves time). Batch-local gate:
+the batch's files with phpunit; full suite at the end of each batch - the failure count must only go down.
+
+| # | Files | Failing (files / tests) | Contents |
+|---|---|---|---|
+| 1 | 56 | 3 / 11 | **shared helpers first** (root-level non-`*Test.php`: `*Seeding`, `FreeTrialConditions`, `LiveVideoTesting`, `OnlineCvTesting`, `OAuth2TestHelper`, `PatTestHelper`, `TestingLogin`, `TestingViewer`, `ChangesPuzzleRecords`, …), `TestDouble` (`MicrosoftIdTokenFactory`, `AppleIdTokenFactory`, `InMemoryStudioInviteSignal`), `Security`, `Entity`, `Component`, `ConsoleCommands`, `EventSubscriber`, `Value`, `Results` |
+| 2 | 46 | 7 / 21 | `MessageHandler` A-O + `MessageHandler/OfficialResults` + `MessageHandler/ParticipantsSheet` |
+| 3 | 46 | 13 / 22 | `MessageHandler` P-Z |
+| 4 | 46 | 5 / 7 | `Query/GetA*`-`Query/GetP*` |
+| 5 | 48 | 2 / 2 | `Query` rest (`GetR*`-`GetX*`, non-`Get` files) + `Services/Insights` + `Services/PuzzleIntelligence` |
+| 6 | 51 | 6 / 10 | `Services` rest + `Controller` top level A-B |
+| 7 | 47 | 20 / 47 | `Controller/Compete`, `OnlineRounds`, `OfficialResults`, `LiveResults`, `ParticipantsSheet`, `Seating` + `Controller` top level C-E (most errors: online-round start vs frozen fixture start, JWTs) |
+| 8 | 54 | 13 / 27 | `Controller/Admin`, `Api`, `InternalApi`, `Marketplace`, `Messaging`, `SellSwap`, `ReviewResults`, `DuplicateResults`, `SuspiciousTimes` + `Controller` top level F-O |
+| 9 | 53 | 6 / 10 | `Controller` top level P-Z + root-level `*Test.php` + `Panther` + **extend `DatabaseClockCoverageTest` / `SystemClockCoverageTest` to `tests/`** (allowlist with reasons: `TestClockTest`'s "instant in the past" check, `TestingDatabaseCaching`'s file-age `time()`, `PantherDatabaseManager`'s `microtime()` entropy, the cookie/real-time tests) |
+
+Batch 1 must run first (helpers used everywhere); 2-8 are independent of each other after it (separate worktrees
+possible, but they share `tests/.database.cache` per worktree - one DB name per worktree); 9 last (the guards need
+everything converted).
+
+For Phase 4:
+
+- `TestClock::SQL_NOW` is a `timestamp` literal: comparing it with a `datetimetz` column goes through the session zone
+  (UTC - README's assumption), like the app's `CAST(:now AS timestamp)`.
+- A test that needs the clock to move inside one request flow: `self::getContainer()->get(ClockInterface::class)`
+  (Symfony's interface - `sleep()`/`modify()` work on the `MockClock`), before the request; a `KernelBrowser` reboot
+  between requests resets it to the instant (`$browser->disableReboot()` if a test needs it to stay moved).
+- `new MockClock()` without an argument is the *real* now - every one of them becomes `new MockClock(TestClock::now())`
+  (or a fixed literal).
+
 ## Log
 
 - 2026-10-22: plan written (README.md, implementation-plan.md). Branch `time-and-clock` from `8447c607d`.
@@ -493,3 +609,6 @@ For Phase 3:
 - 2026-10-22: Phase 2 - SQL :now from the clock (7 sites + NOT_SECRET in 11 statements), class-(a) PHP + Twig on the
   clock (`now()`), browser-judged times on real time, `DatabaseClockCoverageTest` + `SystemClockCoverageTest`; suite
   green (11521).
+- 2026-10-22: Phase 3 - `clock` frozen at `TestClock::FROZEN_NOW` in the test container, `TestClock` helpers + test, DB
+  cache keyed by the instant, fixtures already clock-derived, XP weekly-boost test back on a fixed week; suite red by
+  design (157 tests / 75 files, all test data on the real clock), Panther green (22); Phase 4 re-planned in 9 batches.

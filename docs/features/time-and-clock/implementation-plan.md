@@ -112,9 +112,8 @@ questions. Commit + push. **Then stop** - the orchestrator reads it before Phase
 
 ## Phase 4 - tests on the frozen clock (mechanical, in batches)
 
-Batches by directory, one batch per agent run, in this order (re-measure in Phase 0/3):
-`tests/MessageHandler`, `tests/Query`, `tests/Controller`, `tests/Services`, everything else (root-level `*Test.php`,
-`*Seeding.php`, `Component`, `Api`, `ConsoleCommands`, `Panther`).
+Batches: the 9 of `STATUS.md` → "Phase 3" → "Phase 4 - batches re-planned from the real list" (shared helpers and
+token doubles first, the guard extension last), one batch per agent run.
 
 Per batch: replace `new DateTimeImmutable()` and relative strings with `TestClock::now()->modify(…)` (or the container
 clock where a test moves time), SQL `NOW()`/`CURRENT_*` with a bound frozen value, `time()` with

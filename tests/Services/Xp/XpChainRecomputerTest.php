@@ -109,9 +109,10 @@ final class XpChainRecomputerTest extends KernelTestCase
 
     public function testWeeklyBoostStopsAfterFiveSolvesAndResetsNextWeek(): void
     {
-        // A week no fixture reaches: fixtures date their solves relative to now (EventDetailFixture::TIME_SPRINT_1 drifted
-        // into a fixed week after fullFormulaFrom() on 2026-10-22 and took one of its five boosted slots)
-        $base = new \DateTimeImmutable('+2 years');
+        // A fixed week without fixture solves of the player. The fixtures are dated from the frozen clock
+        // (tests/TestClock.php), so none of them drifts into it any more (EventDetailFixture::TIME_SPRINT_1 did on the
+        // real clock, 2026-10-22)
+        $base = XpSettingsFixture::fullFormulaFrom()->modify('+28 days');
         $monday = $base->setISODate((int) $base->format('o'), (int) $base->format('W'))->setTime(12, 0);
 
         $puzzles = [

@@ -1,0 +1,234 @@
+# Phase 3: frozen 2026-10-14 12:00:00 UTC (config/services_test.php), real date 2026-10-22: 157 tests in 75 files
+
+Controller/AnnouncementModalTest.php (1)
+    testEstablishedPlayerWithoutMembershipSeesItExactlyOnce: Failed asserting that actual size 0 matches expected size 1.
+Controller/Api/V1/CurrentUserEndpointTest.php (1)
+    testExpiredMembershipHasNullMembershipEnd: Failed asserting that true is false.
+Controller/Api/V1/PuzzleDetailEndpointTest.php (2)
+    testEmbargoedImageIsNull: Failed asserting that null is identical to 'puzzles/test/box.jpg'.
+    testHiddenPuzzleIsNotFound: Failed asserting that the Response is successful.
+Controller/Api/V1/PuzzleSearchEndpointTest.php (1)
+    testHiddenPuzzleIsNeverReturned: Failed asserting that two arrays are identical.
+Controller/Api/V1/UnsolvedPuzzlesEndpointTest.php (1)
+    testEmbargoedImageIsNull: Failed asserting that null is identical to 'puzzles/test/visible.jpg'.
+Controller/Compete/ApiEventsControllerTest.php (1)
+    testThePhonesFirstContactCreatesItsEntryAndStoresTheEvents: Failed asserting that 1791979200000 is equal to 1792685130814 or is greater than 1792685130814.
+Controller/Compete/ApiHeartbeatControllerTest.php (1)
+    testABeatIsThePresenceOfTheParticipantInTheirRound: Failed asserting that 1791979200000 is equal to 1792685131304 or is greater than 1792685131304.
+Controller/Compete/ApiStateControllerTest.php (1)
+    testTheStateOfAConnectedParticipantsLink: Failed asserting that 1791979200000 is equal to 1792685132648 or is greater than 1792685132648.
+Controller/Compete/ApiVideoTokenControllerTest.php (3)
+    testTheDeviceHoldingTheEntryPublishesItsCameraToTheHall: Firebase\JWT\ExpiredException: Expired token
+    testAnotherDeviceOnlyWatches: Firebase\JWT\ExpiredException: Expired token
+    testTheStudioOnlyWithAJoinedInvitation: Firebase\JWT\ExpiredException: Expired token
+Controller/CompetitionSeriesDetailControllerTest.php (2)
+    testASeriesWithTwoHundredEditionsGetsTheFilterBarAndMonthSections: Failed asserting that actual size 199 matches expected size 201.
+    testAddMyTimeUnlessEveryDatedEditionIsStillToCome: InvalidArgumentException: The current node list is empty.
+Controller/ConfirmAccountDeletionControllerTest.php (1)
+    testAnExpiredLinkSaysSoAndDeletesNothing: Failed asserting that '× Loading Hold the barcode about 20 cm away. Tap the picture to refocus. Sorry to see you go This is the last step. We hope you enjoyed your time with MySpeedPuzzling — and if y
+Controller/DuplicateResults/DuplicateCheckFormTest.php (5)
+    testTheSameTimeFromTheSameDayIsSavedOnlyAfterAConfirmation: Failed asserting that the Response status code is 422.
+    testATeammatesCopyOfThePairIsExplained: Failed asserting that the Response status code is 422.
+    testACopyOfAFirstTryIsAskedAboutTheCopyFirst: Failed asserting that 'The same time from another day You have 05:00:00 on this puzzle from 14.10.2026 · View it You already have a first try for this puzzle A puzzle can be your first try only once. 
+    testAnEditTypingTheTimeOfAnotherResultIsAskedAbout: Failed asserting that the Response status code is 422.
+    testTheEditModalAsksToo: Failed asserting that the Response status code is 422.
+Controller/EditTimePuzzleChangeTest.php (1)
+    testTheSameTimeOnThePickedPuzzleIsAskedAbout: Failed asserting that the Response status code is 422.
+Controller/EmailUnverifiedBannerTest.php (3)
+    testAnAddressStillUnverifiedAfterTwoDaysGetsTheBanner: Failed asserting that actual size 0 matches expected size 1.
+    testSendingTheLinkAgainFromTheBannerReturnsToThePage: InvalidArgumentException: The current node list is empty.
+    testAForeignReturnAddressFallsBackToEditProfile: InvalidArgumentException: The current node list is empty.
+Controller/EventDetailControllerTest.php (9)
+    testPastEventTitleIsLocalized with data set "en": Failed asserting that two strings are identical.
+    testPastEventTitleIsLocalized with data set "cs": Failed asserting that two strings are identical.
+    testPastEventTitleIsLocalized with data set "de": Failed asserting that two strings are identical.
+    testPastEventTitleIsLocalized with data set "es": Failed asserting that two strings are identical.
+    testPastEventTitleIsLocalized with data set "fr": Failed asserting that two strings are identical.
+    testPastEventTitleIsLocalized with data set "ja": Failed asserting that two strings are identical.
+    testPastEventTitleSaysResults: Failed asserting that two strings are identical.
+    testPastEventWithoutYearInNameGetsTheYearAndResults: Failed asserting that two strings are identical.
+    testPastEventMetaDescriptionSaysHowManyResultsThereAre: Failed asserting that 'WJPC 2024 — speed puzzling competition on October 12, 2026 in Prague. Puzzles, participants and results on MySpeedPuzzling.' starts with "WJPC 2024 results: ".
+Controller/EventsListUiTest.php (1)
+    testTheArchivePreviewShowsTheNewestYearsLatestLinesAndShowAll: Failed asserting that actual size 0 matches expected size 1.
+Controller/EventsPageHighFrequencySeriesTest.php (1)
+    testAPastEditionIsFoundByItsPuzzleButNeverBySecretOne: Failed asserting that an array contains 'Lantern Weekly Jam · Jam No. 3'.
+Controller/LiveKitWebhookControllerTest.php (6)
+    testTheGuestsTimeOnAir: Failed asserting that the Response is successful.
+    testEverythingElseIsAcknowledgedAndLeftAlone: Failed asserting that the Response is successful.
+    testAGuestOnAirStaysInTheStudio: Failed asserting that the Response is successful.
+    testAParticipantInTheStudioWithoutAJoinedInvitationIsRemovedAtOnce: Failed asserting that the Response is successful.
+    testLeavingTheHallOrTheStudioOrJoiningTheHallRemovesNobody: Failed asserting that the Response is successful.
+    testARemovalLiveKitRefusesIsAWarning: Failed asserting that the Response is successful.
+Controller/ManageCompetitionRoundsControllerTest.php (1)
+    testARoundUnderWayShowsNoReadiness: Failed asserting that actual size 1 matches expected size 0.
+Controller/ManageRoundPuzzleRevealTest.php (1)
+    testAnotherEventsMaintainerCannotTouchTheReveal: Failed asserting that false is true.
+Controller/MyActivityControllerTest.php (2)
+    testTheOwnerSeesTheResultsOfThePeriod: Failed asserting that '<!DOCTYPE html>\n
+    testEveryPeriodLengthRenders: 2026-W42
+Controller/NewsletterSignupControllerTest.php (4)
+    testSendingAfterTheChecksSendsTheConfirmation: Failed asserting that Symfony\Component\HttpFoundation\Response Object #31779 (
+    testFailedTurnstileShowsTheStepAgain: Failed asserting that Symfony\Component\DomCrawler\Crawler Object #22649 (
+    testTurnstileNotAnsweringSendsNothing: Failed asserting that Symfony\Component\DomCrawler\Crawler Object #28648 (
+    testOneAddressGetsAtMostTwoConfirmationsADay: Failed asserting that Symfony\Component\HttpFoundation\Response Object #27649 (
+Controller/OfficialResults/LiveUpdatesSubscriptionTest.php (1)
+    testTheRoundStateCarriesATokenForTheRoundAndItsStopwatchOnly: Failed asserting that 1791982800 is equal to 1792688797 or is greater than 1792688797.
+Controller/OnlineRounds/OnlineAccuracyControllerTest.php (5)
+    testTheReportShowsEachAdjustmentAndTheirSpread: SpeedPuzzling\Web\Exceptions\OnlineResultRefused: The online result was not confirmed (round_not_started). Nothing was changed.
+    testTheCsvIsFormulaSafeAndItsNumbersStayNumbers: SpeedPuzzling\Web\Exceptions\OnlineResultRefused: The online result was not confirmed (round_not_started). Nothing was changed.
+    testWithDetectionTheReportMeasuresTheDetectionByPhoneAndView: SpeedPuzzling\Web\Exceptions\OnlineResultRefused: The online result was not confirmed (round_not_started). Nothing was changed.
+    testARoundWithDetectionOffShowsThePhaseOneReport: SpeedPuzzling\Web\Exceptions\OnlineResultRefused: The online result was not confirmed (round_not_started). Nothing was changed.
+    testAnUnfinishedConfirmationNamesNoSource: SpeedPuzzling\Web\Exceptions\OnlineResultRefused: The online result was not confirmed (round_not_started). Nothing was changed.
+Controller/OnlineRounds/OnlineCompletenessCheckPagesTest.php (4)
+    testTheListCarriesTheCheckOfThePhotoTheReviewOpensOn: Failed asserting that null is identical to 'gaps'.
+    testAShadowRoundNeverShowsACandidatesVerdict: Failed asserting that null is identical to 'complete'.
+    testTheAccuracyReportComparesTheCheckWithTheReviewer: SpeedPuzzling\Web\Exceptions\OnlineResultRefused: The online result was not confirmed (round_not_started). Nothing was changed.
+    testWhileTheCheckIsOffTheAccuracyReportHasNoneOfIt: SpeedPuzzling\Web\Exceptions\OnlineResultRefused: The online result was not confirmed (round_not_started). Nothing was changed.
+Controller/OnlineRounds/OnlineControlRoomControllerTest.php (1)
+    testTheLiveStateHasTheClockAndEveryParticipant: Failed asserting that two arrays are identical.
+Controller/OnlineRounds/OnlineReviewControllerTest.php (8)
+    testTheListSaysWhatToLookAt: Failed asserting that two strings are identical.
+    testOneParticipantsEvidence: Failed asserting that two arrays are identical.
+    testWithDetectionOnTheReviewerConfirmsRaisedHands: Failed asserting that two arrays are identical.
+    testInAShadowRoundTheReviewerSeesTheTapsOnly: Failed asserting that two arrays are identical.
+    testGMarksTheMomentAndTheDetailListsTheMarks: Failed asserting that null is identical to '01a1645d-71ce-7170-b35e-19e03c41c939'.
+    testAConfirmationWritesTheOfficialResultAndTellsTheOtherPages: Failed asserting that the Response is successful.
+    testAResultEnteredMeanwhileComesBackAsAConflict: Failed asserting that the Response status code is 409.
+    testARefusalIsAnsweredWithItsReason: Failed asserting that two strings are identical.
+Controller/OnlineRounds/OnlineStudioPageTest.php (1)
+    testTheJsonHasEveryParticipantsLatestInvitation: Failed asserting that two strings are identical.
+Controller/OnlineRounds/OnlineVideoTokenControllerTest.php (1)
+    testAModeratorGetsTheHallAndTheStudio: Firebase\JWT\ExpiredException: Expired token
+Controller/OnlineRounds/OnlineWatchTokenControllerTest.php (1)
+    testASpectatorGetsAWatchOnlyTokenToTheStudio: Firebase\JWT\ExpiredException: Expired token
+Controller/OnlineTimeControllerTest.php (1)
+    testTheServersTimeInMilliseconds: Failed asserting that 1791979200000 is equal to 1792685209084 or is greater than 1792685209084.
+Controller/PlayersSpotlightTest.php (1)
+    testShowMoreRevealsRowsAlreadyInThePage: Failed asserting that 'Busy puzzler 1joined 7 days ago1 puzzle' [ASCII](length: 39) contains "joined yesterday" [ASCII](length: 16).
+Controller/ReviewResults/AwaitingVerificationTest.php (1)
+    testTheModeratorsAnswers: Failed asserting that actual size 1 matches expected size 0.
+Controller/RoundResultsControllerTest.php (2)
+    testStartedRoundRanksItsResults: Failed asserting that actual size 0 matches expected size 2.
+    testAddMyTimeOnlyForSignedInPlayersOnceTheRoundStarted: Failed asserting that the Crawler matches selector "a[href$="/018d0003-0000-0000-0000-000000000001?competition=018d0004-0000-0000-0000-000000000001"]".
+Controller/RoundResultsSecretPuzzleTest.php (1)
+    testParticipantsAreToldWhenTheyCanLogTheirTimes: InvalidArgumentException: The current node list is empty.
+Controller/RoundRevealDelayFormTest.php (1)
+    testASecretPuzzleFromAStaleAddPageIsAskedAgain: Failed asserting that 'Add Puzzle - Stale add page – MySpeedPuzzling (function () { var MAX_HEALS = 2; var MAX_REPORTS = 3; function read(key) { try { return window.sessionStorage.getItem(key); } catc
+Controller/Seating/StopwatchSeatingReadinessTest.php (1)
+    testNothingWhenTheRoundDoesWithoutTableNumbersIsOnlineStartedOrOver: Failed asserting that actual size 1 matches expected size 0.
+Controller/StartFreeTrialControllerTest.php (4)
+    testMembershipPageOffersTheTrialAndStartingItLandsOnTheWelcomePage: Failed asserting that actual size 0 matches expected size 1.
+    testFromAModalThePlayerComesBackToThePageTheyWereOn: The members modal offers the trial to whoever can start it
+    testReturnUrlIsNeverTrustedToLeaveTheSite: Failed asserting that Symfony\Component\HttpFoundation\RedirectResponse Object #16959 (
+    testSecondClickDoesNotStartASecondTrial: SpeedPuzzling\Web\Exceptions\MembershipNotFound:
+Controller/SuspiciousTimes/TimeVerificationFormTest.php (1)
+    testTheTeammatesHintNeverRestsOnSomebodyTheTrackerBlocked: Failed asserting that '<div class="pace-notice" data-pace-checked="1">\n
+Controller/VerifyEmailControllerTest.php (1)
+    testAnExpiredLinkSaysSoRatherThanLookingBroken: Failed asserting that '<!DOCTYPE html>\n
+MessageHandler/ConfirmAccountDeletionHandlerTest.php (1)
+    testAnExpiredTokenDeletesNothing: Expected the expired token to be refused
+MessageHandler/ConfirmOnlineResultHandlerTest.php (10)
+    testATapBecomesTheOfficialTimeAndTheDecisionIsStoredWithIt: SpeedPuzzling\Web\Exceptions\OnlineResultRefused: The online result was not confirmed (round_not_started). Nothing was changed.
+    testAFrameOfTheBurstIsTheReviewersMoment: SpeedPuzzling\Web\Exceptions\OnlineResultRefused: The online result was not confirmed (round_not_started). Nothing was changed.
+    testAnUnfinishedPuzzleGetsItsPiecesPlaced: SpeedPuzzling\Web\Exceptions\OnlineResultRefused: The online result was not confirmed (round_not_started). Nothing was changed.
+    testConfirmingTheSameAgainChangesNothing: SpeedPuzzling\Web\Exceptions\OnlineResultRefused: The online result was not confirmed (round_not_started). Nothing was changed.
+    testAnotherDecisionReplacesThePreviousOne: SpeedPuzzling\Web\Exceptions\OnlineResultRefused: The online result was not confirmed (round_not_started). Nothing was changed.
+    testAResultEnteredMeanwhileIsAConflictNeverOverwritten: Failed asserting that 422 is identical to 409.
+    testTheResultTheReviewerSawIsReplaced: SpeedPuzzling\Web\Exceptions\OnlineResultRefused: The online result was not confirmed (round_not_started). Nothing was changed.
+    testARefusedResultRollsEverythingBack: Failed asserting that two strings are identical.
+    testAMomentThePhoneDidNotRecordIsRefused: Failed asserting that two strings are identical.
+    testADetectedMomentIsRefusedInARoundWhoseDetectionOnlyWatches: SpeedPuzzling\Web\Exceptions\OnlineResultRefused: The online result was not confirmed (round_not_started). Nothing was changed.
+MessageHandler/EditCompetitionRoundRevealDelayTest.php (2)
+    testAShorterDelayIntoThePastIsRightAway: Right away
+    testARevealedPuzzleStaysPinnedWhenTheDelayGrows: Failed asserting that two variables reference the same object.
+MessageHandler/MarkAbandonedOnlineMediaHandlerTest.php (5)
+    testAnUploadThatNeverArrivedIsMarkedAbandoned: Failed asserting that 0 is identical to 1.
+    testALateReportWinsOverTheMark: Failed asserting that null is not null.
+    testABacklogGoesPageByPage: Failed asserting that 0 is identical to 50.
+    testAStoreThatDoesNotAnswerMarksNothing: Failed asserting that false is true.
+    testARowOfASecondStoreThatIsNotConfiguredIsSkipped: Failed asserting that 0 is identical to 1.
+MessageHandler/MuteUserHandlerTest.php (1)
+    testMutingSetsCorrectFieldsOnPlayer: Failed asserting that false is true.
+MessageHandler/NotifyWhenPuzzleSolvedTest.php (1)
+    testEveryFollowerGetsExactlyOneNotificationWithTheSameFieldsAsBefore: Failed asserting that 1791979200 is equal to 1792685279 or is greater than 1792685279.
+MessageHandler/ParticipantsSheet/ApplyParticipantSheetChangesHandlerTest.php (1)
+    testANewParticipantOfAnEventManagingRegistrationHoldsASpot: Failed asserting that DateTimeImmutable Object #3074 (
+MessageHandler/PruneOnlineMediaHandlerTest.php (1)
+    testPeriodicPhotosGoAfterAMonthTheRestAfterAYear: Failed asserting that 0 is identical to 1.
+MessageHandler/PruneRoundResultChangeReceiptsHandlerTest.php (2)
+    testDeletesOldReceiptsAndKeepsRecentOnes: Failed asserting that 0 is identical to 1.
+    testDeletesOldParticipantsSheetReceiptsToo: Failed asserting that 0 is identical to 1.
+MessageHandler/RequestAccountDeletionHandlerTest.php (1)
+    testGarbageCollectsLongExpiredRequests: Failed asserting that an instance of class SpeedPuzzling\Web\Entity\AccountDeletionRequest is null.
+MessageHandler/RequestPasswordResetHandlerTest.php (1)
+    testGarbageCollectsLongExpiredRequests: Failed asserting that an instance of class SpeedPuzzling\Web\Entity\ResetPasswordRequest is null.
+MessageHandler/ResetPasswordHandlerTest.php (1)
+    testExpiredTokenIsRejected: Expected SpeedPuzzling\Web\Exceptions\PasswordResetTokenExpired was not thrown
+MessageHandler/ResultReviewEmailsTest.php (2)
+    testAfterTheFirstEmailOnlyRemovalsAreToldAndEachCaseOnlyOnce: Failed asserting that 0 is identical to 1.
+    testAnEmailWithRemovalsOnlyTellsWhatWasRemoved: Failed asserting that actual size 1 matches expected size 2.
+MessageHandler/ResultReviewVerificationEmailsTest.php (2)
+    testMarkIsToldEvenToAPlayerWhoIgnoredTheLastEmail: Failed asserting that 0 is identical to 1.
+    testAModeratorsAnswerIsToldOnceInItsOwnEmail: Failed asserting that 0 is identical to 1.
+MessageHandler/RoundPuzzleRevealTest.php (2)
+    testScheduledRevealInThePastIsRefused: A reveal in the past must be refused - that is "Reveal now"
+    testBackfillLeavesRevealedPuzzlesAlone: Failed asserting that two arrays are identical.
+MessageHandler/SecretPuzzleSafeguardsTest.php (4)
+    testSwitchingToAutomaticWhenTheRoundHasStartedIsRefused: Failed asserting that exception of type "SpeedPuzzling\Web\Exceptions\RevealMomentAlreadyPassed" is thrown.
+    testAMovedRoundNeverHidesAPuzzleItAlreadyRevealed: Failed asserting that two variables reference the same object.
+    testARowShownOnTheEventPageTurnsSecretOnlyBeforeTheRoundAndWhileNoOtherRoundShowsIt: Failed asserting that exception of type "SpeedPuzzling\Web\Exceptions\RoundPuzzleAlreadyShown" is thrown.
+    testKeepHiddenEverywhereNeverStartsAHideItOnlyExtendsOne: A puzzle out in public is never hidden again
+MessageHandler/StartFreeTrialHandlerTest.php (2)
+    testPlayerWithoutMembershipGetsTenDaysOfMembership: Symfony\Component\Messenger\Exception\HandlerFailedException: Handling "SpeedPuzzling\Web\Message\StartFreeTrial" failed:
+    testTrialCannotBeStartedTwice: Symfony\Component\Messenger\Exception\HandlerFailedException: Handling "SpeedPuzzling\Web\Message\StartFreeTrial" failed:
+MessageHandler/StudioInviteHandlersTest.php (1)
+    testAnInvitationWaitsForTheParticipantsAnswer: Failed asserting that '2026-10-14 12:00:00' is equal to '2026-10-22 16:08:04' or is greater than '2026-10-22 16:08:04'.
+MessageHandler/SweepOnlineMediaOrphansHandlerTest.php (2)
+    testOldObjectsWithoutARowAreDeleted: Failed asserting that 0 is identical to 1.
+    testABigStoreIsSweptPageByPage: Failed asserting that 0 is identical to 1000.
+MessageHandler/VerifyEmailHandlerTest.php (1)
+    testExpiredTokenIsRejected: Expected SpeedPuzzling\Web\Exceptions\EmailVerificationTokenExpired was not thrown
+Query/GetDifficultyRankingsTest.php (1)
+    testOnlyApprovedVisiblePuzzlesWithMediumOrHighConfidenceAreRanked: Failed asserting that two arrays are identical.
+Query/GetPlayersOnARollTest.php (1)
+    testChipsAreTheMostNotableMomentsOfTheLastSevenDays: Failed asserting that two arrays are identical.
+Query/GetPlayersWithUnreadMessagesTest.php (1)
+    testReturnsCorrectUnreadCount: Failed asserting that 1 is identical to 2.
+Query/GetPuzzleDifficultyEstimatesTest.php (1)
+    testOnlyTheCurrentPictureAndNeverASecretPuzzle: Failed asserting that two arrays are identical.
+Query/GetPuzzlePickerSuggestionsTest.php (3)
+    testMyStatsOnARepeatedlySolvedPuzzle: Failed asserting that 18 matches expected 10.
+    testUntimedRowsCountAsSolvedButNotAsSoloTimes: Failed asserting that 11 matches expected 3.
+    testNotSolvedSinceKeepsNeverSolvedPuzzlesUnlessAskedNotTo: Failed asserting that two arrays are equal.
+Query/GetSpotlightPeopleTest.php (1)
+    testNewFacesJoinedInTheLastTwoWeeksAndLoggedAResult: Failed asserting that two arrays are identical.
+Query/GetUpcomingEventsCountTest.php (1)
+    testPubliclyVisibleEventsStartingAfterTodayPerCountry: Failed asserting that 4 is identical to 3.
+Security/MicrosoftLoginFlowTest.php (8)
+    testRule2ExternalAddressAutoLinksAndQueuesTheNotice with data set "gmail": Linking must queue exactly one security notice for the owner
+    testRule2ExternalAddressAutoLinksAndQueuesTheNotice with data set "icloud": Linking must queue exactly one security notice for the owner
+    testRule1KnownOidLogsInEvenWithADifferentSub: Failed asserting that '/login' [ASCII](length: 6) contains "my-profile" [ASCII](length: 10).
+    testRule2OutlookAddressAutoLinksAndQueuesTheNotice: Linking must queue exactly one security notice for the owner
+    testRule4ConsumerMailboxCreatesAVerifiedAccount: Failed asserting that '/login' [ASCII](length: 6) contains "/register/social?token=" [ASCII](length: 23).
+    testRule4ExternalAddressCreatesAVerifiedAccountWithoutVerificationMail: Failed asserting that '/login' [ASCII](length: 6) contains "/register/social?token=" [ASCII](length: 23).
+    testMissingEmailClaimIsRefused: Failed asserting that 'Sign in – MySpeedPuzzling (function () { var MAX_HEALS = 2; var MAX_REPORTS = 3; function read(key) { try { return window.sessionStorage.getItem(key); } catch (e) { return undef
+    testConnectFromSettingsLinksAnyAddress: Failed asserting that the Response status code is 303.
+Security/SignInCodeTest.php (1)
+    testAnExpiredCodeSaysSo: Failed asserting that the Response status code is 422.
+Security/SignInLinkTest.php (2)
+    testLinkConsumedBeforeTheGraceWindowIsRejected: Failed asserting that Symfony\Component\HttpFoundation\RedirectResponse Object #22391 (
+    testTheSameLinkCannotBeUsedTwice: Failed asserting that Symfony\Component\HttpFoundation\RedirectResponse Object #29984 (
+Services/SecretRevealPreviewTest.php (3)
+    testARevealInThePastIsRightAway: Right away
+    testAPublicPuzzleSecretOnThisEventOnlyComesOutOnThisEventOnly: Failed asserting that an instance of class DateTimeImmutable is null.
+    testRemovalsAreRightAwayAndSayHowFarTheyGo: Nothing hides it any more
+Services/SeriesEditions/SeriesEditionReconcilerTest.php (1)
+    testScenario4RevealedPuzzlesUpgradeDateMatches: Failed asserting that two arrays are identical.
+Services/SocialLogin/SocialProfileFetcherMicrosoftTest.php (3)
+    testMapsOidEmailAndName: SpeedPuzzling\Web\Exceptions\InvalidMicrosoftIdToken: Microsoft id_token verification failed.
+    testExternalMailboxOfPersonalAccountIsVerified: SpeedPuzzling\Web\Exceptions\InvalidMicrosoftIdToken: Microsoft id_token verification failed.
+    testMissingEmailIsUnverified: SpeedPuzzling\Web\Exceptions\InvalidMicrosoftIdToken: Microsoft id_token verification failed.
+Services/SolveTimeDistributionProviderTest.php (1)
+    testSnapshotRemembersWhenItWasComputed: Failed asserting that Symfony\Component\Clock\DatePoint Object #24713 (
+Services/Storage/OrphanedAvatarFinderTest.php (1)
+    testFindsOnlyOldUnreferencedAvatars: Failed asserting that two arrays are identical.

@@ -206,3 +206,63 @@ right below your own line. Foundation keys: `strength.*`, `goal.*`, `kind.*` (Pa
 
 **Styles**: `assets/styles/_partner-finder.scss` (part A), `_partner-finder-card.scss` (part B), imported after the
 event-detail partials in `app.scss`.
+
+## Part C as built (2026-10-22)
+
+**Send** - `partner_request_send` (POST, stateless CSRF `partner_request`, fields `_token`, `kind`, `note`, `return`) →
+`SendPartnerRequest` (SerializedByLock on the event's participants lock) → `SendPartnerRequestHandler`. Checked before
+anything changes: the lock key is the listing's event, not the sender's own listing, listing open, kind in the listing's
+`lookingFor()` **and** offered by the event (`PartnerFinderEligibility::qualifyingOffer()` - null = no finder any more)
+→ `Exceptions\PartnerRequestNotPossible` (422). Asked already (unique listing + sender) = done, nothing changes. Then the
+rate limiter `partner_request` (10 per sliding day per sender, consumed in the handler so every way in counts; test
+override 100000) → `Exceptions\PartnerRequestLimitReached` (429) - counted before the block check, so a blocked sender
+hits the limit like anybody else. A block either way (`GetUserBlocks::isBlocked()` both directions) = nothing saved, no
+notification, no e-mail, no exception. Otherwise: `PartnerFinderAttendance::ensureGoing()`, the `PartnerRequest`, the
+`Notification` (`PartnerRequest`, `targetPartnerRequest`, actor = sender) and `SendPartnerRequestEmail(requestId)` with
+`DispatchAfterCurrentBusStamp` (after the commit). The controller answers every outcome with the same 303 to `return`;
+flashes: `partner_finder.request.flash.sent` (also for a block), `.limit_reached`, `.not_possible` - the last two are
+about the sender himself. Part A's row shows "Sent" from its `EXISTS` on `partner_request`, so a blocked sender's row
+keeps its button after the redirect (only the flash says "Sent") - accepted, nothing is stored for a block.
+
+**E-mail** - `SendPartnerRequestEmail` is routed to `async` (`config/packages/messenger.php`, like the digest).
+`SendPartnerRequestEmailHandler` reads fresh and skips a gone request/listing, a closed listing, `partner_finder_emails`
+off, no account e-mail. `templates/emails/partner_request.html.twig` (`emails` → `partner_request.*`), the receiver's
+locale, from `notify@notify.myspeedpuzzling.com`, `X-Transport: notifications` (MailStreamRouting drops a hard-bounced
+address on that stream), RFC 8058 `List-Unsubscribe` + `-Post` and a visible "Stop these e-mails". Content: who asks
+(name + country always - sending is consent; best 500 else best 1000 + puzzles solved from `GetPlayerCard` only when the
+sender's profile is public; languages of the sender's own open listing at the event), the note, "Reply to …" →
+`partner_request_reply` (GET page), "Close your listing" → the finder page. Nobody's e-mail address.
+
+**Unsubscribe + settings** - `Services\PartnerFinder\PartnerFinderEmailsUnsubscribeUrl` (signed, never expires) →
+`partner_finder_emails_unsubscribe` `/{_locale}/partner-finder-emails/unsubscribe/{playerId}` (GET page, POST switches
+off; one-click POST = plain 200) → `ChangePartnerFinderEmails(playerId, enabled)`. The edit-profile "Messaging &
+Notifications" form has the `partnerFinderEmails` checkbox (`partner_finder.settings.*`); the controller dispatches
+`ChangePartnerFinderEmails` only when it changed. `PlayerProfile::$partnerFinderEmails` rides on `GetPlayerProfile`.
+
+**Notification** - `GetNotifications` has a `PartnerRequest` branch (+7 NULL columns on every other branch): who asks as
+`targetPlayer*` (`PrivateProfileAccess::sqlIsPrivate('actor')` decides only the profile link - the name is always shown),
+`HiddenPlayers` on the actor (also in the unread count), kind, note, replied, event name + slugs.
+`PlayerNotification::isPartnerRequestNotification()`; `notifications.html.twig` row: text, note, "See the listings"
+(Twig `partner_finder_url(slug, seriesSlug)`), a Reply / Open chat POST button.
+
+**Reply** - `partner_request_reply` `/{_locale}/partners/request/{requestId}/reply`: GET = the request page for the
+listing's owner (404 for anybody else - the e-mail lands here, mail scanners never reply), POST (CSRF `partner_request`)
+→ `ReplyToPartnerRequest(requestId, playerId, locale)` → handler: owner only (`PartnerRequestNotFound` otherwise),
+`markReplied()`, nested `StartConversation(..., partnerRequestId:)` with `partner_finder.request.reply_message` in the
+replier's page language; replying again after the chat exists does nothing → redirect to `conversation_detail`.
+**The bypass**: `StartConversation::$partnerRequestId` (new, last named argument). `StartConversationHandler` loads the
+request and throws `PartnerRequestNotFound` unless initiator = listing owner and recipient = request sender; only then
+the `allowDirectMessages` check is skipped. The chat is **accepted from the start** (the asker asked first): an existing
+accepted conversation is reused (as before), a pending one in either direction is accepted and gets the message,
+otherwise a new accepted conversation (Mercure notices, no "conversation request" notification).
+
+**Lifecycle** - `LeaveCompetitionHandler` closes the leaver's open listing of that event (`not_going`, through the
+entity, same transaction). Cron `myspeedpuzzling:close-partner-listings` → `CloseFinishedPartnerListings` →
+two set-based UPDATEs (genuine bulk, commented): `event_over` = `COALESCE(date_to, date_from)::date < today` (the
+`SQL_QUALIFIES` date rule), then `entered` = `PartnerFinderEligibility::sqlPlayerEntered()`. Lily cron line (daily, add
+on deploy): `17 3 * * * docker compose exec web php bin/console myspeedpuzzling:close-partner-listings`.
+
+**After merging part A (orchestrator)**: `Services\PartnerFinder\PartnerFinderUrls` catches `RouteNotFoundException` for
+`event_partners` / `edition_partners` (not in part C's branch) and falls back to the event page - drop the fallback. The
+part C texts exist in English only (`messages` `partner_finder.request|notification|settings.*`, `emails`
+`partner_request.*`) - translate to the other 5 locales.

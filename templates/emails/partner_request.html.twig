@@ -1,0 +1,70 @@
+{% trans_default_domain 'emails' %}
+{# "I'd like to puzzle with you" to the listed puzzler (SendPartnerRequestEmailHandler, docs/features/partner-finder.md
+   D6). Names who asks, never anybody's e-mail address: the receiver answers inside MySpeedPuzzling. #}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
+    <wrapper>
+        <container>
+            {{ include('emails/_header.html.twig', {preheader: 'partner_request.preheader'|trans}) }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="24"></spacer>
+                    <h3>{{ 'partner_request.title'|trans({'%sender%': senderName}) }}</h3>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <p>{{ 'partner_request.greeting'|trans({'%name%': receiverName}) }}</p>
+                    <p>{{ ('partner_request.intro_' ~ kind.value)|trans({'%sender%': senderName, '%event%': eventName}) }}</p>
+
+                    {# Who asks - inline styles, e-mail clients drop <style> #}
+                    <table role="presentation" width="100%" style="width: 100%; margin: 16px 0; background: #f6f9fc; border-left: 4px solid #d63c42; border-radius: 6px;">
+                        <tr>
+                            <td style="padding: 14px 16px;">
+                                <p style="margin: 0 0 4px; font-weight: bold;">
+                                    {{ senderName }}{% if senderCountry is not null %}<span style="font-weight: normal; color: #6b7488;"> · {{ senderCountry }}</span>{% endif %}
+                                </p>
+
+                                {% set facts = [] %}
+                                {% if senderBest500Seconds is not null %}
+                                    {% set facts = facts|merge(['partner_request.best_500'|trans({'%time%': senderBest500Seconds|puzzlingTime})]) %}
+                                {% elseif senderBest1000Seconds is not null %}
+                                    {% set facts = facts|merge(['partner_request.best_1000'|trans({'%time%': senderBest1000Seconds|puzzlingTime})]) %}
+                                {% endif %}
+                                {% if senderSolvedTotal is not null and senderSolvedTotal > 0 %}
+                                    {% set facts = facts|merge(['partner_request.solved'|trans({'%count%': senderSolvedTotal})]) %}
+                                {% endif %}
+                                {% if senderLanguages is not empty %}
+                                    {% set facts = facts|merge(['partner_request.speaks'|trans({'%languages%': senderLanguages|join(', ')})]) %}
+                                {% endif %}
+                                {% if facts is not empty %}
+                                    <p style="margin: 0 0 4px; font-size: 14px; color: #4b566b;">{{ facts|join(' · ') }}</p>
+                                {% endif %}
+
+                                {% if note is not null %}
+                                    <p style="margin: 8px 0 0; font-style: italic;">“{{ note }}”</p>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+
+                    <center>
+                        <button href="{{ replyUrl }}">{{ 'partner_request.reply'|trans({'%sender%': senderName}) }}</button>
+                    </center>
+
+                    <spacer size-sm="10"></spacer>
+
+                    <p class="small-print">{{ 'partner_request.no_addresses'|trans }}</p>
+                    {% if closeListingUrl is not null %}
+                        <p class="small-print">{{ 'partner_request.found_partner'|trans({'%url%': closeListingUrl})|raw }}</p>
+                    {% endif %}
+                    <p class="small-print">{{ 'partner_request.opt_out'|trans({'%settingsUrl%': settingsUrl, '%unsubscribeUrl%': unsubscribeUrl})|raw }}</p>
+                </columns>
+            </row>
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

@@ -11106,6 +11106,32 @@ partner_finder:
     # Part B: card.*, events_tag.*
 
     # Part C: request.*, notification.*, settings.*
+    request:
+        flash:
+            sent: "Sent. If they would like to puzzle with you too, they reply in a chat."
+            limit_reached: "You have asked quite a few puzzlers today - try again tomorrow."
+            not_possible: "This listing cannot be asked any more - it may have been closed meanwhile."
+            reply_failed: "The chat could not be opened. Please try again later."
+        reply_message: "Hi %name%, thanks for getting in touch about %event% - let's talk!"
+        reply_page:
+            title: "%name% would like to puzzle with you"
+            explain: "Reply opens a chat with %name%. They asked first, so it works even when they don't take direct messages. Not interested? Just leave it - they are never told."
+            button: "Reply to %name%"
+    notification:
+        text_pair: "%player% would like to puzzle with you as a pair at %event%."
+        text_team: "%player% would like to puzzle with you as a team at %event%."
+        see_listings: "See the listings"
+        reply: "Reply"
+        open_chat: "Open chat"
+    settings:
+        emails_label: "Partner finder e-mails"
+        emails_help: "An e-mail when somebody would like to puzzle with you through your partner finder listing. You always see it in your notifications."
+        unsubscribe:
+            headline: "Partner finder e-mails"
+            text: "Don't want e-mails when somebody would like to puzzle with you any more? You still see their requests in your notifications, and your other e-mails stay as they are."
+            confirm_button: "Stop these e-mails"
+            done: "Done - you won't get partner finder e-mails any more. Requests still arrive in your notifications."
+            settings_hint: "You can switch them on again any time in your profile settings under \"Messaging & Notifications\"."
 
     # Foundation: strength.*, goal.*, kind.*, invalid.*
     strength:

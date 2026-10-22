@@ -188,6 +188,8 @@ final class WishListTest extends AbstractPantherTestCase
 
         // Wait for modal to open
         $client->waitForVisibility('#modal-frame');
+        // The frame is visible before its form arrived - wait for the form's own input
+        $client->waitForVisibility('#modal-frame input[name*="ownerCode"]');
 
         // Fill in the form with owner player code (PLAYER_REGULAR - John Doe, code: player1)
         $client->getCrawler()

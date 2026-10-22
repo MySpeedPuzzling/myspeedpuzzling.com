@@ -108,6 +108,8 @@ final class SellSwapListTest extends AbstractPantherTestCase
 
         // Wait for modal to open
         $client->waitForVisibility('#modal-frame');
+        // The frame is visible before its form arrived - wait for the form's own input
+        $client->waitForVisibility('#modal-frame input[name*="buyerInput"]');
 
         // Screenshot with modal open
         $client->takeScreenshot(__DIR__ . '/../../../var/sellswap_02_modal.png');

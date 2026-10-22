@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetPartnerListings;
@@ -77,7 +78,7 @@ final class GetPartnerListingsTest extends KernelTestCase
     public function testBlocksHideBothWays(): void
     {
         $this->database->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_WITH_FAVORITES, 'blocked' => PlayerFixture::PLAYER_REGULAR],
         );
 
@@ -89,7 +90,7 @@ final class GetPartnerListingsTest extends KernelTestCase
 
         // A co-member blocking the viewer is left out of the group
         $this->database->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_ADMIN, 'blocked' => PlayerFixture::PLAYER_WITH_STRIPE],
         );
         self::assertSame([], $this->row($this->listingsFor(PlayerFixture::PLAYER_WITH_STRIPE, member: true), PartnerFinderFixture::LISTING_FAVORITES_TEAM)->coMembers);
@@ -136,11 +137,11 @@ final class GetPartnerListingsTest extends KernelTestCase
     {
         $this->addStats(PlayerFixture::PLAYER_REGULAR, median500: 2700, solved: 120);
         $this->database->executeStatement(
-            'INSERT INTO player_elo (id, player_id, pieces_count, elo_rating, computed_at) VALUES (:id, :player, 500, 1.482, NOW())',
+            'INSERT INTO player_elo (id, player_id, pieces_count, elo_rating, computed_at) VALUES (:id, :player, 500, 1.482, ' . TestClock::SQL_NOW . ')',
             ['id' => Uuid::uuid7()->toString(), 'player' => PlayerFixture::PLAYER_REGULAR],
         );
         $this->database->executeStatement(
-            "INSERT INTO player_skill (id, player_id, pieces_count, skill_score, skill_tier, skill_percentile, confidence, qualifying_puzzles_count, computed_at) VALUES (:id, :player, 500, 1.0, 5, 90.0, 'high', 10, NOW())",
+            "INSERT INTO player_skill (id, player_id, pieces_count, skill_score, skill_tier, skill_percentile, confidence, qualifying_puzzles_count, computed_at) VALUES (:id, :player, 500, 1.0, 5, 90.0, 'high', 10, " . TestClock::SQL_NOW . ")",
             ['id' => Uuid::uuid7()->toString(), 'player' => PlayerFixture::PLAYER_REGULAR],
         );
         $this->addStats(PlayerFixture::PLAYER_ADMIN, median500: 2800, solved: 10);
@@ -197,7 +198,7 @@ final class GetPartnerListingsTest extends KernelTestCase
 
     public function testAnEventWithoutListingsStillHasItsFinder(): void
     {
-        $this->database->executeStatement('UPDATE partner_listing SET closed_at = NOW() WHERE competition_id = :id', ['id' => self::EVENT]);
+        $this->database->executeStatement('UPDATE partner_listing SET closed_at = ' . TestClock::SQL_NOW . ' WHERE competition_id = :id', ['id' => self::EVENT]);
 
         $listings = $this->listingsFor(PlayerFixture::PLAYER_ADMIN, member: true);
         self::assertSame([], $listings->rows);
@@ -277,7 +278,7 @@ final class GetPartnerListingsTest extends KernelTestCase
         $id = Uuid::uuid7()->toString();
         $this->database->executeStatement(
             "INSERT INTO partner_listing (id, competition_id, player_id, group_size, looking_for, co_member_ids, strengths, custom_strengths, languages, created_at, updated_at)
-             VALUES (:id, :competition, :player, 1, '[\"pair\"]', '[]', :strengths, :custom, '[\"en\"]', NOW(), NOW())",
+             VALUES (:id, :competition, :player, 1, '[\"pair\"]', '[]', :strengths, :custom, '[\"en\"]', " . TestClock::SQL_NOW . ", " . TestClock::SQL_NOW . ")",
             ['id' => $id, 'competition' => self::EVENT, 'player' => $playerId, 'strengths' => $strengths, 'custom' => $custom],
         );
 
@@ -288,7 +289,7 @@ final class GetPartnerListingsTest extends KernelTestCase
     {
         $this->database->executeStatement(
             "INSERT INTO community_player_stats (player_id, solved_total, pieces_total, solves7d, pieces7d, solves30d, solves_prev30d, solves_this_month, pieces_this_month, solves_last_month, pieces_last_month, best500_seconds, best1000_seconds, median500_seconds, median1000_seconds, monthly_solves, favorites_count, computed_at)
-             VALUES (:player, :solved, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, :median500, NULL, '[]', 0, NOW())",
+             VALUES (:player, :solved, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, :median500, NULL, '[]', 0, " . TestClock::SQL_NOW . ")",
             ['player' => $playerId, 'solved' => $solved, 'median500' => $median500],
         );
     }

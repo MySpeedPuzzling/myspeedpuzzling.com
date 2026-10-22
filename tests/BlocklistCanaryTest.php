@@ -177,11 +177,11 @@ final class BlocklistCanaryTest extends WebTestCase
             ['id' => PartnerFinderFixture::LISTING_STRIPE_CLOSED],
         );
         $database->executeStatement(
-            "UPDATE partner_listing SET closed_at = NOW(), closed_reason = 'withdrawn' WHERE id = :id",
+            "UPDATE partner_listing SET closed_at = " . TestClock::SQL_NOW . ", closed_reason = 'withdrawn' WHERE id = :id",
             ['id' => PartnerFinderFixture::LISTING_FAVORITES_TEAM],
         );
         $database->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
         );
 
@@ -214,7 +214,7 @@ final class BlocklistCanaryTest extends WebTestCase
         $blockersListing = 'partner-listing-row-' . PartnerFinderFixture::LISTING_FAVORITES_TEAM;
 
         self::getContainer()->get(Connection::class)->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
         );
 
@@ -337,11 +337,11 @@ final class BlocklistCanaryTest extends WebTestCase
 
         $connection->executeStatement(
             "INSERT INTO partner_listing (id, competition_id, player_id, group_size, looking_for, co_member_ids, strengths, custom_strengths, languages, created_at, updated_at)
-             VALUES (:id, :competition, :player, 1, '[\"pair\"]', '[]', '[]', '[]', '[\"en\"]', NOW(), NOW())",
+             VALUES (:id, :competition, :player, 1, '[\"pair\"]', '[]', '[]', '[]', '[\"en\"]', " . TestClock::SQL_NOW . ", " . TestClock::SQL_NOW . ")",
             ['id' => Uuid::uuid7()->toString(), 'competition' => PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN, 'player' => self::BLOCKED],
         );
         $connection->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
         );
         $blockersListing = 'partner-listing-row-' . PartnerFinderFixture::LISTING_FAVORITES_TEAM;

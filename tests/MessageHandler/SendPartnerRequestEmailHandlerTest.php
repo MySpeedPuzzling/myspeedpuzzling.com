@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Message\SendPartnerRequestEmail;
 use SpeedPuzzling\Web\MessageHandler\SendPartnerRequestEmailHandler;
@@ -97,7 +98,7 @@ final class SendPartnerRequestEmailHandlerTest extends KernelTestCase
         // Canary: as a public player the sender has numbers the e-mail would show
         self::getContainer()->get(EntityManagerInterface::class)->getConnection()->executeStatement(
             "INSERT INTO community_player_stats (player_id, solved_total, pieces_total, solves7d, pieces7d, solves30d, solves_prev30d, solves_this_month, pieces_this_month, solves_last_month, pieces_last_month, best500_seconds, best1000_seconds, monthly_solves, favorites_count, computed_at)
-             VALUES (:player, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2400, 5400, '[]', 0, NOW())
+             VALUES (:player, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2400, 5400, '[]', 0, " . TestClock::SQL_NOW . ")
              ON CONFLICT (player_id) DO UPDATE SET solved_total = 50, best500_seconds = 2400, best1000_seconds = 5400",
             ['player' => PlayerFixture::PLAYER_WITH_STRIPE],
         );
@@ -141,7 +142,7 @@ final class SendPartnerRequestEmailHandlerTest extends KernelTestCase
     {
         self::getContainer()->get(PartnerListingRepository::class)
             ->get(PartnerFinderFixture::LISTING_REGULAR_PAIR)
-            ->close(PartnerListingClosedReason::Found, new \DateTimeImmutable());
+            ->close(PartnerListingClosedReason::Found, TestClock::now());
 
         ($this->handler)(new SendPartnerRequestEmail(PartnerFinderFixture::REQUEST_STRIPE_TO_REGULAR));
 

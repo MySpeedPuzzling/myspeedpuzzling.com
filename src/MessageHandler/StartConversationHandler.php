@@ -234,7 +234,7 @@ readonly final class StartConversationHandler
             ?? $this->conversationRepository->findPendingBetween($recipient, $initiator);
 
         if ($pending !== null) {
-            $pending->accept();
+            $pending->accept($this->clock->now());
 
             $this->messageBus->dispatch(new SendMessage(
                 conversationId: $pending->id->toString(),

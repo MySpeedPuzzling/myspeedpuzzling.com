@@ -10,6 +10,7 @@ Living record. Every phase appends: what it did, what it found, what the next ph
 | 3 - frozen clock in tests | done 2026-10-22 - **branch red until Phase 4 ends** (157 tests) | fe580bfa0 |
 | 4 - tests on the frozen clock | **done 2026-10-22** - batches 1-9 (157 → 103 → 92 → 72 → 65 → 62 → 53 → 32 → 5 → **0** failing; CI green, run 39831494288) | batch 1: f2483f7d3; batch 2: dc3fb4867; batch 3: d4f31c268; batch 4: 0364e10e9; batch 5: f9424402a; batch 6: 040672b3a; batch 7: 10e501bd7; batch 8: 1c93b850e; batch 9: 6767e1c8b |
 | 5 - proof, docs, PR | **done 2026-10-22** - faketime +400 days (run 39832423327) and +5 years (run 39833021765) green; docs; PR #284 description (draft) | 69df00ef2, efd2a27bf (temporary, reverted) + this commit |
+| Follow-ups resolved in the PR | **done 2026-10-23** - merge of main converted, every former `docs/TODO.md` item resolved, Panther local frozen + faketime +400 days green (63 tests each) | 7cd3c10a6, fc4298ec5, f5f7e53ee, 7c0eda59b, 359c1b892, 2e0e1a7af, 8b72fabe0, 6b498cf97, f351155d1 + this commit |
 
 ## Jan's answers (2026-10-22) - binding for every later phase
 
@@ -1108,6 +1109,48 @@ for the time any more). Each step printed `date -u` and PHP's `date()` first, so
 - **Drift (tests whose data was on the real clock):** the 157 tests of Phase 3's list, fixed batch by batch, none
   weakened; several assertions are stronger (exact "now" instead of a real-clock bracket).
 
+## Follow-ups resolved in the PR (2026-10-23)
+
+Jan's rule: the PR adds no TODO - every follow-up Phase 5 had put in `docs/TODO.md` → "Time and the clock" is resolved
+here, and `docs/TODO.md` has no section for this feature (it is `main`'s version).
+
+| # | What | Commit |
+|---|---|---|
+| 1 | **Merge of `origin/main` (partner finder) on the one clock.** CI on the merge commit (run 39862140045) was red: PHPStan - `ReplyToPartnerRequestHandler` called `isMessagingMuted()` and `StartConversationHandler` `accept()` without the moment (both take `$now` since Phase 2; 3 errors + 1 failure in `ReplyToPartnerRequestHandlerTest`, 2 in `PartnerRequestControllersTest`); the guards flagged 15 test files with SQL `NOW()`/`CURRENT_DATE` and 4 with `new DateTimeImmutable()` / `'+7 days'` (data on the real clock: `CloseFinishedPartnerListingsHandlerTest` 2 and `SendPartnerRequestHandlerTest` 1 failed). `src/` guards were clean. Converted with batch 2's token-based rewrite. | 7cd3c10a6 |
+| 2 | **Apple tokens on the app clock.** `AppleServerNotificationVerifier` and the Apple provider set `JWT::$timestamp` from the injected clock for the one decode and restore it in `finally` (the `MicrosoftIdTokenVerifier` / `LiveKitWebhookVerifier` pattern). The provider library decodes inside `AppleAccessToken`'s constructor, called from `Apple::createAccessToken()` - our `AppleProviderWithInlineKey` overrides that method (it gets the clock from `SocialLoginProviders`), so no library code is copied. Its leeway stays php-jwt's default 0 (unchanged). The client secret `Apple::getAccessToken()` mints with `new DateTimeImmutable()` stays real time on purpose: Apple judges it on its own clock. `AppleIdTokenFactory` and `AppleSignInNotificationControllerTest` mint on `TestClock` (their allowlist entries and the `PHP_JWT` reason are gone); new tests: an id_token / notification expired on the app clock is refused. | fc4298ec5 |
+| 3 | **`ExpireMutesCommand` → `ExpireMessagingMutes` + handler.** Entity-based, not a bulk UPDATE: mutes are moderators' actions, a run finds a handful (`PlayerRepository::findWithMessagingMuteEndedBefore()` + `Player::unmuteMessaging()`). Same rows change as before, nothing else written (no `ModerationAction` - a mute running out is nobody's decision). The command dispatches and prints the handler's count. Tested on the handler (`ExpireMessagingMutesHandlerTest`). | f5f7e53ee |
+| 4 | **Expired WJPC live strip removed** from `base.html.twig`, with `live_event_strip` (6 locales) and `.competition-panel-info`; `.live-dot-light` stays (the online round watch page uses it). Recipe kept in `docs/features/live-event-strip.md` (markup, SCSS, texts, gating, how to bring one back); one line in `CLAUDE.md`. | 7c0eda59b |
+| 5 | **Guard for relative moments in tests.** `SystemClockCoverageTest::testRelativeMomentsInTestsAreAppliedToTheFrozenClock`: a relative-moment literal under `tests/` (`'-3 days'`, `'+1 hour'`, `'today 08:00'`, `'tomorrow'`, `'next monday'`, `'-%d days'`, `"-{$n} days"` …, lower case) must be the argument of `->modify()` (also via `sprintf()`), the argument or default of a helper whose parameter goes straight into `->modify()` (the file's own helper first, else every `tests/` helper of that name must do so), or an array key - else it is listed with its reason (12 files: API/user inputs the code refuses, expected texts, flatpickr's browser-side `maxDate`, league/oauth2-server's clock, two inline stopwatch tables). A self-test pins what it catches. It found nothing on the real clock; rewritten instead of listed: a ternary inside `modify()`, a closure in `OnlineRoundSettingsControllerTest::setStopwatch()`, `GetPartnerCardDataTest::openListing()` (age now applied in PHP). The inherent limit (moments computed at runtime, the object `modify()` is called on) is documented in `README.md` → "What the guards cannot see". | 359c1b892 |
+| 6 | **`src/` allowlist per kind of read** (36 files, each with the reads it may make; `src/` and `tests/` share `compareWithAllowed()`). Checked: listing the wrong kind makes the real one offending and the listed one stale. | 2e0e1a7af |
+| 7 | **`LapsArrayDoctrineType` in UTC:** converts each moment to UTC before formatting, reads back with an explicit UTC zone. Stored JSON for UTC values unchanged (the existing format cases pass as they were); new tests: a Prague lap keeps its instant, reads are UTC under another PHP default zone. | 8b72fabe0 |
+| 8 | **Moving the frozen instant** - the note is a `README.md` section now (never into the future of a run, rebuilds the cached DB, `FORMULA_CHANGES` 2026-10-18 / `MissYouRun::FIRST_DAY` 2026-10-27). | 6b498cf97 |
+| 9 | **Panther locally** (Jan's one exception to "no local tests") - below. | f351155d1 |
+
+### Panther (local, 2026-10-23)
+
+Recipe (Phase 3's, with a vendor of the branch's own: the shared checkout's `vendor` has `doctrine/dbal` 4.4.4, the
+branch needs 4.5's `datetime_utc_immutable`): `composer install --no-scripts` into a scratch directory; `clock-panther-chrome`
+(`seleniarm/standalone-chromium`, `--shm-size 2g`) and `clock-panther-web` (the base image, worktree at `/app`, scratch
+vendor + the shared `node_modules` / `public/build` read-only - `main`'s build, the branch changes no JS -
+`.docker/on-startup.sh`, `--tmpfs /app/var/cache`, `APP_ENV=test`, `SKIP_DATABASE_MIGRATIONS=true`, own
+`speedpuzzling_clockpanther_test`) on `speedpuzzlingcz_default`; phpunit `--testsuite "Panther Test Suite"` with
+`PANTHER_SELENIUM_HOST` / `PANTHER_EXTERNAL_BASE_URI`. Faketime: the web server **and** the phpunit process on
+`msp-faketime:local` with `LD_PRELOAD=/usr/lib/aarch64-linux-gnu/faketime/libfaketime.so.1`, `FAKETIME=+400d`,
+`FAKETIME_DONT_FAKE_MONOTONIC=1` (server `Date:` header and PHP both 2027-11-26; Chrome and Postgres real).
+
+| Run | Result |
+|---|---|
+| Frozen clock, first | 62 / 63 - `WishListTest::testOwnerCanBorrowPuzzleViaTurboStream` "The current node list is empty" |
+| `WishListTest` alone ×3 | fail, fail, pass - a race: the input was read right after `waitForVisibility('#modal-frame')`, before the frame's form arrived. Fixed (wait for the input, like every other modal test); 4 / 4 green after |
+| Faketime +400 days | **63 / 63 green** (378 assertions) |
+| Frozen clock, again | 62 / 63 - the same race in `SellSwapListTest::testOwnerCanMarkItemAsSoldViaTurboStream`, fixed the same way (every other `#modal-frame` wait already waits for its content) |
+| Frozen clock, final | **63 / 63 green** (378 assertions, 4:04) |
+| Faketime +400 days, final | **63 / 63 green** (378 assertions, 4:08) |
+
+No date dependency found - both failures were the same wait race (unrelated to the clock). Cleaned up: the two
+containers, `speedpuzzling_clockpanther_test(_template)`; the three older `speedpuzzling_panther_*` databases (Phase 3's
+note, not created here) left alone.
+
 ## Log
 
 - 2026-10-22: plan written (README.md, implementation-plan.md). Branch `time-and-clock` from `8447c607d`.
@@ -1151,3 +1194,7 @@ for the time any more). Each step printed `date -u` and PHP's `date()` first, so
   behaviour as our copy, fallback included); `src/Doctrine/UtcDateTimeImmutableDoctrineType.php` removed, its unit test
   kept as `tests/Doctrine/DatetimeImmutableStoredAsUtcTest.php` against the registered type. The Phase 1 section above
   describes the original hand-written type.
+- 2026-10-23: merged `origin/main`; follow-ups resolved in the PR (no TODO left): partner finder on the clock, Apple
+  tokens on the app clock, mutes expired through a message, WJPC strip removed (recipe doc), relative-moment guard,
+  `src/` allowlist per kind, laps in UTC, "Moving the frozen instant" in README, Panther frozen + faketime +400 days
+  green locally (two modal wait races fixed).

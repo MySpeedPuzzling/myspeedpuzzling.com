@@ -1,8 +1,8 @@
 # Time and the clock: one clock, UTC everywhere, frozen in tests
 
-Status: **built 2026-10-22, phases 0-5 done** - draft PR #284 (branch `time-and-clock`), not merged. Plan of record
-2026-10-22 (Jan: "time is now, carefully prepare plan"). Progress and findings: `STATUS.md`. Phases: `implementation-plan.md`.
-Follow-ups: `docs/TODO.md` → "Time and the clock".
+Status: **built 2026-10-22, phases 0-5 done, every follow-up resolved in the PR (2026-10-23)** - draft PR #284 (branch
+`time-and-clock`), not merged. Plan of record 2026-10-22 (Jan: "time is now, carefully prepare plan"). Progress and
+findings: `STATUS.md`. Phases: `implementation-plan.md`. No open follow-ups (nothing in `docs/TODO.md`).
 
 ## Why
 
@@ -87,8 +87,19 @@ Three sources of "now" exist today, and they can disagree:
   run - a real date before the instant is not a situation CI meets - and no weekly job; the guards catch new
   violations). Results in `STATUS.md` → "Phase 5".
 - **R5 guards:** `DatabaseClockCoverageTest` (SQL clock, `src/` + `tests/`, case-insensitive) and
-  `SystemClockCoverageTest` (PHP/Twig clock reads, `src/` + `templates/` + `tests/`; relative-moment literals in
-  `tests/` must go straight into `->modify()` - see "What the guards cannot see"). Object storage doubles stamp Last-Modified from the clock (`ClockedInMemoryFilesystemAdapter`).
+  `SystemClockCoverageTest` (PHP/Twig clock reads, `src/` + `templates/` + `tests/`). Both allowlists of the latter
+  (`src/` and `tests/`) are **per kind of read** - a listed file still fails on any other read, a gone read is stale;
+  relative-moment literals in `tests/` must go straight into `->modify()` (see "What the guards cannot see"). Object
+  storage doubles stamp Last-Modified from the clock (`ClockedInMemoryFilesystemAdapter`).
+- **Follow-ups resolved in the PR (2026-10-23):** Apple tokens (`AppleServerNotificationVerifier`, the Apple provider's
+  id_token via `AppleProviderWithInlineKey::createAccessToken()`) are judged on the app clock (`JWT::$timestamp` set for
+  the one decode, restored after - the Microsoft/LiveKit pattern; the client secret the library mints for Apple stays
+  real time - Apple judges it); `ExpireMutesCommand` dispatches `ExpireMessagingMutes` (handler lifts mutes through
+  `Player::unmuteMessaging()`); `LapsArrayDoctrineType` converts laps to UTC on write and reads them as UTC (stored
+  JSON unchanged for UTC values); the expired WJPC live strip is removed (recipe in `docs/features/live-event-strip.md`);
+  main's partner finder converted to the clock after the merge. **Panther** (63 tests, run locally - its CI job is
+  disabled): green on the frozen clock and under libfaketime at +400 days; the only failures were two modal wait races,
+  fixed (`STATUS.md` → "Follow-ups resolved in the PR").
 
 ## Moving the frozen instant
 

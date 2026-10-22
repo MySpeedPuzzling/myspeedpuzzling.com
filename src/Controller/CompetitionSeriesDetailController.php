@@ -76,13 +76,17 @@ final class CompetitionSeriesDetailController extends AbstractController
         );
         $occurrences = $this->getEventOccurrences->forSeries($series->id, includeDrafts: $canManage);
 
+        // "N going" + "N looking for a partner" of the coming editions, one statement
+        $counts = $this->getEventGoingCounts->forCompetitions(SeriesPageBuilder::comingCompetitionIds($occurrences, $now));
+
         $page = $this->seriesPageBuilder->build(
             series: $series,
             occurrences: $occurrences,
-            goingCounts: $this->getEventGoingCounts->forCompetitions(SeriesPageBuilder::comingCompetitionIds($occurrences, $now)),
+            goingCounts: $counts->going,
             viewer: $viewer,
             now: $now,
             locale: $request->getLocale(),
+            partnerListingCounts: $counts->partnerListings,
         );
 
         return $this->render('competition_series_detail.html.twig', [

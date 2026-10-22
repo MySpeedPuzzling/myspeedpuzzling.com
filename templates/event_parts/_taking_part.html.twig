@@ -6,6 +6,9 @@
     a draft, pending or rejected event offers nobody "I'm going". Variables: the page's event, attendance, can_add_time,
     event_title, timeline, is_publicly_visible; series (edition page only)
 
+    Partner finder (docs/features/partner-finder.md "Part B"): "Find a partner (N)" in the row, the partner card under
+    it - both only while the event has a finder (partner_finder, PartnerFinderCardResolver - null everywhere else).
+
     A participant of an online event with online timing (docs/features/online-competitions/README.md §5.4) also gets
     "Open my competition page" - their personal link (attendance.onlineToken, GetEventAttendance), opened as a full page
     load: the participant page lives without Turbo.
@@ -20,6 +23,7 @@
             </a>
         {% endif %}
         {{ include('_event_attendance.html.twig', {competition_id: event.id, attendance: attendance}) }}
+        {{ include('event_parts/_partner_finder_button.html.twig', {partner_finder: partner_finder|default(null)}) }}
         {#- Once: the header has it when the event is over or has no rounds (_event_header_actions.html.twig) -#}
         {% if can_add_time and (series ?? null) is null and not (event_title.isPast or not timeline.hasRounds) %}
             <a href="{{ path('puzzle_add', {competition: event.id}) }}" class="btn btn-sm btn-outline-primary text-wrap">
@@ -27,5 +31,6 @@
             </a>
         {% endif %}
     </div>
+    {{ include('event_parts/_partner_card.html.twig', {partner_finder: partner_finder|default(null)}) }}
 </section>
 {% endif %}

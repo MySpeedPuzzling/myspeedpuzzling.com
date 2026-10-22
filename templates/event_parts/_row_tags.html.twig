@@ -11,6 +11,9 @@
                     {{ tag.type.translationKey|trans({'%date%': tag.date|events_date('yMMMd')}) }}
                 {%- elseif tag.type.value == 'going_count' -%}
                     {{ tag.type.translationKey|trans({'%count%': tag.count}) }}
+                {%- elseif tag.type.value == 'partner_listings' -%}
+                    {#- docs/features/partner-finder.md: open partner listings, coming in-person events only -#}
+                    <i class="bi bi-people" aria-hidden="true"></i> {{ tag.type.translationKey|trans({'%count%': tag.count}) }}
                 {%- elseif tag.type.value == 'event_type' and tag.eventType -%}
                     {{ tag.eventType.translationKey|trans }}
                 {%- elseif tag.type.value == 'eligibility' -%}

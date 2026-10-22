@@ -206,3 +206,53 @@ right below your own line. Foundation keys: `strength.*`, `goal.*`, `kind.*` (Pa
 
 **Styles**: `assets/styles/_partner-finder.scss` (part A), `_partner-finder-card.scss` (part B), imported after the
 event-detail partials in `app.scss`.
+
+## Part B as built (2026-10-22)
+
+**Agenda.** `GetEventGoingCounts::forCompetitions()` now returns `Results\EventsPage\EventCounts` (`going`,
+`partnerListings`, lower-case competition id => count, only non-zero) from the same one statement (two grouped counts
+`FULL JOIN … USING (competition_id)`; the listings side reads only open rows of the asked events). The events page, the
+series page and the organization page pass `partnerListingCounts` through their builders to `EventRowFactory`, which adds
+`RowTagType::PartnerListings` after `GoingCount` on coming in-person rows with a count > 0 ("6 looking for a partner",
+key `partner_finder.events_tag.looking`, style `.ev-tag-partner_listings`). Statement counts unchanged
+(`EventsPageQueryBudgetTest` untouched and green).
+
+**Event / edition page.** `Services\PartnerFinder\PartnerFinderCardResolver::forEventPage()` (both detail controllers,
+template variable `partner_finder`: `null|Results\PartnerFinderCard`):
+- not public or `PartnerFinderEligibility::mightQualify()` false → null, no query, no button, no card;
+- guest → card object without data: the plain "Find a partner" link, no count, no query;
+- signed in → `Query\GetPartnerCardData::forViewer()` - ONE statement: open listings count (unfiltered aggregate), up to
+  4 faces newest first (viewer's hidden players out via `HiddenPlayers::sqlExclude()` inside the limited subquery,
+  private players hidden from the viewer out via `PrivateProfileAccess::sqlIsPrivate()`, never the viewer), the viewer's
+  own open listing (kinds, group size, needed, requests received minus hidden senders), `sqlPlayerEntered()`, and the
+  closed card (`EXISTS` on `dismissed_hint` for `HintType::PartnerFinderCard` - the pages had no `IsHintDismissed` call
+  to share). `SQL_QUALIFIES` in the `WHERE`: null = no finder at all.
+- `PartnerFinderCardResolver::stateFor()` → `Value\PartnerCardState`: `Listed` (own open listing, status line, not
+  closable, also after closing the card) · `Invite` (going, or any state of a managed registration; highlighted =
+  `EventJustJoined` flash) · `Browse` (not going, somebody listed) · null (guest, in a pair/team entry, card closed, not
+  going and nobody listed).
+- Templates: `event_parts/_partner_finder_button.html.twig` (in Taking part, right after "I'm going"; badge with the count
+  when > 0) and `event_parts/_partner_card.html.twig` (at the end of the Taking part section, i.e. directly under the
+  button and above the marketplace card: the card continues "I'm going", the marketplace card is about what to buy there).
+  Close × = `dismiss_hint_controller.js` with `partner_finder_card`. "List me" opens `partner_listing_form` in
+  `modal-frame`; "See who's looking" and "Manage" go to the finder page.
+- The `EventJustJoined` flash is taken once per page (`$justJoined`) and passed to both cards; `afterJoin()` unchanged
+  (every finder event is a marketplace event, so the flash is set; the picker redirect keeps priority). Both cards can be
+  highlighted after "I'm going" - the marketplace card's own behaviour was left as is (its tests pin it).
+
+**Budgets (measured, pinned in `DetailPagesQueryBudgetTest`).** Hilltop (in person, a pairs round = a finder): guest 12
+(unchanged), player / organiser / creator 19 → **20**. Season One (online) unchanged 12 / 19. New
+`testThePartnerFinderCostsOneStatementForAPlayerOnly`: Partner Finder Open costs a player exactly one statement more than
+the same page with solo rounds only, a guest the same.
+
+**Guards to remove after merging part A** (search `TODO(partner finder merge)`):
+`PartnerFinderCardResolver::url()` catches `RouteNotFoundException` and returns null for `event_partners`,
+`edition_partners` and `partner_listing_form` (templates then leave the link out); `PartnerFinderCardTest::hasFinderRoutes()`
+skips the link assertions while the routes are missing. Remove both once the routes exist.
+
+**Tests.** `GetPartnerCardDataTest`, `PartnerFinderCardResolverTest` (states, wording keys), `PartnerFinderCardTest`
+(guest link, browse, listed, group, highlighted after "I'm going", closed card), `GetEventGoingCountsTest` (listing
+counts), `EventsPageBuilderTest::testPartnerListingsTagFollowsTheGoingCountOnInPersonEvents`,
+`BlocklistCanaryTest::testBlockedPlayerIsNoFaceOnThePartnerCard`. `DraftVisibilityCoverageTest` accepts
+`PartnerFinderEligibility::SQL_QUALIFIES` as a decision (it embeds the marketplace rule) - part A's listings query
+benefits too. English copy only (`partner_finder.card.*`, `partner_finder.events_tag.*`).

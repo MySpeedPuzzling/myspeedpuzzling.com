@@ -11104,6 +11104,41 @@ partner_finder:
     # Part A: page.*, form.*, listing.*
 
     # Part B: card.*, events_tag.*
+    card:
+        button: "Find a partner"
+        # read after the button's name by screen readers, the badge shows the number
+        button_count: "%count% looking|%count% looking"
+        close: "Don't show this again"
+        see_who: "See who's looking"
+        list_me: "List me"
+        # %what% in invite.body and browse.title - what the event's rounds offer
+        what:
+            pair: "a pair partner"
+            team: "a team"
+            both: "a pair or a team"
+        invite:
+            title:
+                pair: "Going without a pair partner yet?"
+                team: "Going without a team yet?"
+                both: "Going without a partner yet?"
+            # right after "I'm going"
+            title_just_joined:
+                pair: "Need a pair partner for this one?"
+                team: "Need a team for this one?"
+                both: "Need a pair or a team for this one?"
+            body: "{0}Nobody is listed yet. Say what you need, and others going can find you.|{1}One puzzler is looking for %what% here. Say what you need, and they can find you too.|]1,Inf[%count% puzzlers are looking for %what% here. Say what you need, and they can find you too."
+        browse:
+            title: "{1}One puzzler is looking for %what% here|]1,Inf[%count% puzzlers are looking for %what% here"
+        listed:
+            pair: "You're listed as looking for a pair partner"
+            team: "You're listed as looking for a team"
+            both: "You're listed as looking for a pair or a team"
+            # %size% = the group, %count% = how many more it needs
+            group: "{1}Your group of %size% is listed, looking for one more|]1,Inf[Your group of %size% is listed, looking for %count% more"
+            requests: "{0}nobody got in touch yet|{1}one puzzler got in touch|]1,Inf[%count% puzzlers got in touch"
+            manage: "Manage"
+    events_tag:
+        looking: "{1}1 looking for a partner|]1,Inf[%count% looking for a partner"
 
     # Part C: request.*, notification.*, settings.*
 

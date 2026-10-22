@@ -12,6 +12,7 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\MarketplaceEventFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
@@ -157,6 +158,46 @@ final class BlocklistCanaryTest extends WebTestCase
         }
 
         self::assertSelectorExists('[data-testid="comparison-chip-unavailable"]');
+    }
+
+    /**
+     * The partner card's faces on an event page (docs/features/partner-finder.md "Part B"): the blocked player's open
+     * listing still counts, but they are no face for the blocker
+     */
+    public function testBlockedPlayerIsNoFaceOnThePartnerCard(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/events/' . PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN_SLUG;
+        $database = self::getContainer()->get(Connection::class);
+
+        // The blocked player's listing open again; the blocker (going) not listed, so the card shows them faces
+        $database->executeStatement(
+            'UPDATE partner_listing SET closed_at = NULL, closed_reason = NULL WHERE id = :id',
+            ['id' => PartnerFinderFixture::LISTING_STRIPE_CLOSED],
+        );
+        $database->executeStatement(
+            "UPDATE partner_listing SET closed_at = NOW(), closed_reason = 'withdrawn' WHERE id = :id",
+            ['id' => PartnerFinderFixture::LISTING_FAVORITES_TEAM],
+        );
+        $database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+
+        TestingLogin::asPlayer($browser, self::BYSTANDER);
+        $crawler = $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(self::BLOCKED_NAME, $crawler->filter('[data-testid="partner-card"]')->html(), 'No canary: no face on the card.');
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $crawler = $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $card = $crawler->filter('[data-testid="partner-card"]');
+        self::assertCount(1, $card);
+        self::assertCount(1, $card->filter('.pf-card-face'), 'only the other listed puzzler');
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString(self::BLOCKED_NAME, $content, 'The blocker is shown a player they blocked.');
     }
 
     /**

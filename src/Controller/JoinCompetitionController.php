@@ -306,6 +306,8 @@ final class JoinCompetitionController extends AbstractController
 
         $this->addFlash('success', $this->translator->trans($successFlash));
 
+        // Highlights the marketplace card and - every event with a partner finder is a marketplace event - the partner
+        // card (docs/features/partner-finder.md D9; the picker above keeps priority)
         if ($followUp['qualifies']) {
             $this->addFlash(EventJustJoined::FLASH, $competition->id);
         }

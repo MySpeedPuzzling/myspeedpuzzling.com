@@ -59,6 +59,7 @@ readonly final class SeriesPageBuilder
     /**
      * @param list<EventOccurrence> $occurrences ordered by start (undated last), then name
      * @param array<string, int> $goingCounts competition id (lower case) => spots taken
+     * @param array<string, int> $partnerListingCounts competition id (lower case) => open partner listings
      */
     public function build(
         CompetitionSeriesOverview $series,
@@ -67,6 +68,7 @@ readonly final class SeriesPageBuilder
         null|EventsViewerData $viewer,
         DateTimeImmutable $now,
         string $locale,
+        array $partnerListingCounts = [],
     ): SeriesPage {
         $day = OccurrenceDates::today($now);
         $scope = EventsScope::everywhere();
@@ -79,9 +81,9 @@ readonly final class SeriesPageBuilder
             $items[] = ['occurrence' => $occurrence, 'status' => $occurrence->status($now), 'id' => count($items)];
         }
 
-        $rowOf = function (array $item) use ($goingCounts, $viewer, $scope, $now, $day, $locale): AgendaRow {
+        $rowOf = function (array $item) use ($goingCounts, $partnerListingCounts, $viewer, $scope, $now, $day, $locale): AgendaRow {
             /** @var SeriesItem $item */
-            return $this->row($item, $goingCounts, $viewer, $scope, $now, $day, $locale);
+            return $this->row($item, $goingCounts, $partnerListingCounts, $viewer, $scope, $now, $day, $locale);
         };
 
         $live = array_values(array_filter($items, static fn (array $item): bool => $item['status'] === EventOccurrenceStatus::Live));
@@ -463,10 +465,12 @@ readonly final class SeriesPageBuilder
     /**
      * @param SeriesItem $item
      * @param array<string, int> $goingCounts
+     * @param array<string, int> $partnerListingCounts
      */
     private function row(
         array $item,
         array $goingCounts,
+        array $partnerListingCounts,
         null|EventsViewerData $viewer,
         EventsScope $scope,
         DateTimeImmutable $now,
@@ -485,6 +489,7 @@ readonly final class SeriesPageBuilder
             $locale,
             $item['occurrence']->logo,
             RowContext::SeriesPage,
+            $partnerListingCounts,
         );
     }
 

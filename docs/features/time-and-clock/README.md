@@ -90,6 +90,21 @@ Three sources of "now" exist today, and they can disagree:
   `SystemClockCoverageTest` (PHP/Twig clock reads, `src/` + `templates/` + `tests/`; relative-moment literals in
   `tests/` must go straight into `->modify()` - see "What the guards cannot see"). Object storage doubles stamp Last-Modified from the clock (`ClockedInMemoryFilesystemAdapter`).
 
+## Moving the frozen instant
+
+`TestClock::FROZEN_NOW` (`2026-10-14 12:00:00` UTC) can move, deliberately and with these rules:
+
+- **Never into the future of a run.** Symfony mints sign-in links (and remember-me cookies) with `time()` and the app
+  checks some of them with the clock; cookies minted from the clock are judged by the browser's real time. Both hold
+  only while the instant lies before the real date - `TestClockTest` fails otherwise.
+- **It rebuilds the cached test DB:** the fixtures are built from the clock, and `tests/bootstrap.php` keys the DB cache
+  by the instant, so the first run after a move rebuilds it.
+- **Date constants it sits before** (at the time of writing): `MspRatingTimeline::FORMULA_CHANGES`' 2026-10-18 change
+  and `MissYouRun::FIRST_DAY` (2026-10-27) are "not yet" at the instant. Their tests pin their own clock, so nothing
+  depends on it - but moving the instant past one of them changes what the rest of the suite sees (e.g. the rating
+  formula in force), so check their tests and the pages built on them when you do. Pick a mid-week, mid-month midday
+  away from a DST switch, as the current instant is (D1).
+
 ## What the guards cannot see (a documented limit)
 
 The guards read source text, so they see a clock read only where it is written. Since PR #284's last round,

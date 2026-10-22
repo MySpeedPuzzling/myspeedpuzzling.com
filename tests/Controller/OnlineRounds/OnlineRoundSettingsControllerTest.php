@@ -414,11 +414,14 @@ final class OnlineRoundSettingsControllerTest extends WebTestCase
      */
     private static function setStopwatch(Connection $connection, null|string $status, null|string $startedAt, null|string $stoppedAt = null): void
     {
-        $moment = static fn (null|string $relative): null|string => $relative === null ? null : TestClock::now()->modify($relative)->format('Y-m-d H:i:s');
-
         $connection->executeStatement(
             'UPDATE competition_round SET stopwatch_status = :status, stopwatch_started_at = :startedAt, stopwatch_stopped_at = :stoppedAt WHERE id = :id',
-            ['status' => $status, 'startedAt' => $moment($startedAt), 'stoppedAt' => $moment($stoppedAt), 'id' => self::ROUND],
+            [
+                'status' => $status,
+                'startedAt' => $startedAt === null ? null : TestClock::now()->modify($startedAt)->format('Y-m-d H:i:s'),
+                'stoppedAt' => $stoppedAt === null ? null : TestClock::now()->modify($stoppedAt)->format('Y-m-d H:i:s'),
+                'id' => self::ROUND,
+            ],
         );
     }
 

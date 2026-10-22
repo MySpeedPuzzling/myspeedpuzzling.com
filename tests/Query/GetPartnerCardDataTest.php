@@ -214,8 +214,8 @@ final class GetPartnerCardDataTest extends KernelTestCase
     {
         $this->database->executeStatement(
             "INSERT INTO partner_listing (id, competition_id, player_id, group_size, looking_for, created_at, updated_at)
-             VALUES (:id, :competition, :player, 1, '[\"pair\"]', " . TestClock::SQL_NOW . " + CAST(:age AS interval), " . TestClock::SQL_NOW . ")",
-            ['id' => Uuid::uuid7()->toString(), 'competition' => self::EVENT, 'player' => $playerId, 'age' => $age],
+             VALUES (:id, :competition, :player, 1, '[\"pair\"]', :createdAt, " . TestClock::SQL_NOW . ")",
+            ['id' => Uuid::uuid7()->toString(), 'competition' => self::EVENT, 'player' => $playerId, 'createdAt' => TestClock::now()->modify($age)->format('Y-m-d H:i:s')],
         );
     }
 

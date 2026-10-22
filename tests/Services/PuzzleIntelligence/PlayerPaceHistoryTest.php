@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
@@ -42,7 +43,7 @@ final class PlayerPaceHistoryTest extends KernelTestCase
         $this->today = $clock->now()->setTime(0, 0);
 
         $this->connection->executeStatement(
-            "INSERT INTO player (id, code, name, registered_at) SELECT CAST('019a00a0-0000-7000-8000-' || lpad(n::text, 12, '0') AS uuid), 'pace' || n, 'Pace Solver ' || n, NOW() - INTERVAL '3 years' FROM generate_series(1, 9) AS n",
+            "INSERT INTO player (id, code, name, registered_at) SELECT CAST('019a00a0-0000-7000-8000-' || lpad(n::text, 12, '0') AS uuid), 'pace' || n, 'Pace Solver ' || n, " . TestClock::SQL_NOW . " - INTERVAL '3 years' FROM generate_series(1, 9) AS n",
         );
         // 1-30: 500 pieces, 31-33: 1000 pieces
         $this->connection->executeStatement(

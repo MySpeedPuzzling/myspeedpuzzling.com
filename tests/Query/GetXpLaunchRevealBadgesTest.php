@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetXpLaunchRevealBadges;
@@ -170,7 +171,7 @@ final class GetXpLaunchRevealBadgesTest extends KernelTestCase
         $id = Uuid::uuid7()->toString();
 
         $this->connection->executeStatement(
-            'INSERT INTO badge (id, player_id, type, earned_at, tier, revealed_at) VALUES (:id, :player, :type, NOW(), :tier, :revealed)',
+            'INSERT INTO badge (id, player_id, type, earned_at, tier, revealed_at) VALUES (:id, :player, :type, ' . TestClock::SQL_NOW . ', :tier, :revealed)',
             [
                 'id' => $id,
                 'player' => PlayerFixture::PLAYER_REGULAR,

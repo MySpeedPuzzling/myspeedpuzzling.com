@@ -109,7 +109,7 @@ final class GetEventOffersTest extends KernelTestCase
     {
         // A's rows stay (decision: kept) but A is no longer going
         $this->database->executeStatement(
-            'UPDATE competition_participant SET deleted_at = now() WHERE id = :id',
+            'UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => MarketplaceEventFixture::PARTICIPANT_FAIR_SELLER_A],
         );
 

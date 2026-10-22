@@ -156,7 +156,7 @@ final class GetPuzzlePickerSuggestionsTest extends KernelTestCase
         $any = $this->pickAll(['source' => 'any'], PlayerFixture::PLAYER_WITH_FAVORITES);
 
         $approvedCount = $this->database->fetchOne(
-            'SELECT count(*) FROM puzzle WHERE approved = true AND (hide_until IS NULL OR hide_until < now())',
+            'SELECT count(*) FROM puzzle WHERE approved = true AND (hide_until IS NULL OR hide_until < ' . TestClock::SQL_NOW . ')',
         );
         assert(is_int($approvedCount));
 
@@ -419,7 +419,7 @@ final class GetPuzzlePickerSuggestionsTest extends KernelTestCase
     {
         $guest = $this->pickAll(['source' => 'mine', 'solved' => 'never', 'lent' => '1'], null, isAuthenticated: false);
         $approvedCount = $this->database->fetchOne(
-            'SELECT count(*) FROM puzzle WHERE approved = true AND (hide_until IS NULL OR hide_until < now())',
+            'SELECT count(*) FROM puzzle WHERE approved = true AND (hide_until IS NULL OR hide_until < ' . TestClock::SQL_NOW . ')',
         );
         assert(is_int($approvedCount));
 
@@ -642,7 +642,7 @@ final class GetPuzzlePickerSuggestionsTest extends KernelTestCase
     {
         /** @var list<string> $expectedFew */
         $expectedFew = $this->database->fetchFirstColumn(
-            'SELECT p.id FROM puzzle p LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = p.id WHERE p.approved = true AND (p.hide_until IS NULL OR p.hide_until < now()) AND COALESCE(ps.solved_times_solo_count, 0) <= 5',
+            'SELECT p.id FROM puzzle p LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = p.id WHERE p.approved = true AND (p.hide_until IS NULL OR p.hide_until < ' . TestClock::SQL_NOW . ') AND COALESCE(ps.solved_times_solo_count, 0) <= 5',
         );
         $few = $this->pickAll(['community' => 'few'], null);
 
@@ -1056,7 +1056,7 @@ final class GetPuzzlePickerSuggestionsTest extends KernelTestCase
         $this->recalculator->recalculate();
         $guest = $this->pickAll(['gap' => 'slower', 'order' => 'gap_slower', 'difficulty' => ['3']], null, isAuthenticated: false);
         $approvedCount = $this->database->fetchOne(
-            'SELECT count(*) FROM puzzle WHERE approved = true AND (hide_until IS NULL OR hide_until < now())',
+            'SELECT count(*) FROM puzzle WHERE approved = true AND (hide_until IS NULL OR hide_until < ' . TestClock::SQL_NOW . ')',
         );
 
         self::assertSame($approvedCount, $guest->totalMatching);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
@@ -131,7 +132,7 @@ final class PredictionModelRecalculatorTest extends KernelTestCase
         $secretShares = $this->database->fetchOne('
             SELECT COUNT(*) FROM difficulty_prior_puzzle dpp
             JOIN puzzle p ON p.id = dpp.puzzle_id
-            WHERE p.hide_until > NOW() OR p.hide_image_until > NOW()
+            WHERE p.hide_until > ' . TestClock::SQL_NOW . ' OR p.hide_image_until > ' . TestClock::SQL_NOW . '
         ');
         self::assertSame(0, (int) $secretShares);
 

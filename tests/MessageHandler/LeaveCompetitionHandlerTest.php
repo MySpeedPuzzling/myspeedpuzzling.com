@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Message\LeaveCompetition;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
@@ -67,7 +68,7 @@ final class LeaveCompetitionHandlerTest extends KernelTestCase
         // A duplicate from before joining was idempotent
         $database->executeStatement(
             "INSERT INTO competition_participant (id, name, country, competition_id, player_id, connected_at, source)
-             VALUES (:id, 'Michael Johnson', 'de', :cid, :pid, now(), 'self_joined')",
+             VALUES (:id, 'Michael Johnson', 'de', :cid, :pid, " . TestClock::SQL_NOW . ", 'self_joined')",
             [
                 'id' => '018d0006-0000-0000-0000-0000000000ff',
                 'cid' => CompetitionFixture::COMPETITION_WJPC_2024,

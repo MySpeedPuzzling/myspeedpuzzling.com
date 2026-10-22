@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Message\FitPredictionModel;
@@ -38,7 +39,7 @@ trait FitsThePredictionModel
         $connection = $container->get(Connection::class);
         $connection->executeStatement("
             INSERT INTO difficulty_prior_group (manufacturer_id, pieces_count, index_count, sum_log_indices, computed_at)
-            SELECT DISTINCT p.manufacturer_id, p.pieces_count, 40, 2.0, NOW()
+            SELECT DISTINCT p.manufacturer_id, p.pieces_count, 40, 2.0, " . TestClock::SQL_NOW . "
             FROM puzzle p
             WHERE p.manufacturer_id IS NOT NULL
             ON CONFLICT (manufacturer_id, pieces_count) DO UPDATE SET
@@ -73,7 +74,7 @@ trait FitsThePredictionModel
             }
 
             $connection->executeStatement(
-                'INSERT INTO difficulty_prior_puzzle (puzzle_id, index_count, sum_log_indices, prior_log, computed_at) VALUES (:id, 0, 0, CAST(:prior AS double precision), NOW())
+                'INSERT INTO difficulty_prior_puzzle (puzzle_id, index_count, sum_log_indices, prior_log, computed_at) VALUES (:id, 0, 0, CAST(:prior AS double precision), ' . TestClock::SQL_NOW . ')
                 ON CONFLICT (puzzle_id) DO UPDATE SET prior_log = EXCLUDED.prior_log',
                 // The exact double, like the fit's array literal (a plain string cast rounds to 14 digits)
                 ['id' => $row['id'], 'prior' => $prior !== null ? var_export($prior, true) : null],

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
@@ -130,7 +131,7 @@ final class PuzzleIntelligenceRecalculatorWritesTest extends KernelTestCase
         /** @var Connection $connection */
         $connection = self::getContainer()->get(Connection::class);
         $this->connection = $connection;
-        $this->now = new DateTimeImmutable('today 12:00:00');
+        $this->now = TestClock::now()->modify('today 12:00:00');
 
         $this->seedLadder();
     }
@@ -469,8 +470,8 @@ final class PuzzleIntelligenceRecalculatorWritesTest extends KernelTestCase
 
     public function testTheFirstRunOfAMonthStillRecordsEveryBaseline(): void
     {
-        $lastEvening = new DateTimeImmutable('last day of this month 23:50:00');
-        $nextMonth = new DateTimeImmutable('first day of next month 00:05:00');
+        $lastEvening = TestClock::now()->modify('last day of this month 23:50:00');
+        $nextMonth = TestClock::now()->modify('first day of next month 00:05:00');
 
         $this->recalculate($lastEvening);
         $this->recalculate($nextMonth);

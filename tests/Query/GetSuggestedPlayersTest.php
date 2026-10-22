@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -439,7 +440,7 @@ final class GetSuggestedPlayersTest extends KernelTestCase
     {
         return new GetSuggestedPlayers(
             $this->database,
-            new MockClock(new DateTimeImmutable($time)),
+            new MockClock(TestClock::now()->modify($time)),
             self::getContainer()->get(HiddenPlayers::class),
         );
     }
@@ -485,22 +486,24 @@ final class GetSuggestedPlayersTest extends KernelTestCase
 
     private function seedParticipant(string $competitionId, string $playerId, bool $deleted = false): void
     {
+        $now = TestClock::SQL_NOW;
+
         $this->database->executeStatement(
             <<<SQL
 INSERT INTO competition_participant (id, name, competition_id, player_id, connected_at, deleted_at, source)
-VALUES (:id, 'Participant', :competitionId, :playerId, NOW(), :deletedAt, 'imported')
+VALUES (:id, 'Participant', :competitionId, :playerId, {$now}, :deletedAt, 'imported')
 SQL,
             [
                 'id' => Uuid::uuid7()->toString(),
                 'competitionId' => $competitionId,
                 'playerId' => $playerId,
-                'deletedAt' => $deleted ? (new DateTimeImmutable())->format('Y-m-d H:i:s') : null,
+                'deletedAt' => $deleted ? TestClock::now()->format('Y-m-d H:i:s') : null,
             ],
         );
     }
 
     private function daysAgo(int $days): DateTimeImmutable
     {
-        return new DateTimeImmutable("-{$days} days");
+        return TestClock::now()->modify("-{$days} days");
     }
 }

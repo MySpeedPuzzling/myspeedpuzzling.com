@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\ImprovementRatioCalculator;
@@ -25,7 +26,7 @@ final class ImprovementRatioCalculatorTest extends KernelTestCase
      */
     public function testGlobalRatiosBeforeTheFutureEqualTheBatchRatios(): void
     {
-        $snapshot = $this->calculator->globalRatiosBefore(new DateTimeImmutable('+1 year'));
+        $snapshot = $this->calculator->globalRatiosBefore(TestClock::now()->modify('+1 year'));
         self::assertNotSame([], $snapshot, 'fixtures have repeat solves');
 
         /** @var Connection $connection */
@@ -57,8 +58,8 @@ final class ImprovementRatioCalculatorTest extends KernelTestCase
      */
     public function testATransitionCountsFromItsLaterAttempt(): void
     {
-        $all = $this->calculator->globalRatiosBefore(new DateTimeImmutable('+1 year'));
-        $monthAgo = $this->calculator->globalRatiosBefore(new DateTimeImmutable('-30 days'));
+        $all = $this->calculator->globalRatiosBefore(TestClock::now()->modify('+1 year'));
+        $monthAgo = $this->calculator->globalRatiosBefore(TestClock::now()->modify('-30 days'));
 
         self::assertNotEquals($all, $monthAgo, 'fixtures have repeat solves within the last 30 days');
     }

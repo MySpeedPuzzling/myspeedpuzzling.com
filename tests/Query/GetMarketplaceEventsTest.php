@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotEligibleForMarketplace;
@@ -82,7 +83,7 @@ final class GetMarketplaceEventsTest extends KernelTestCase
         self::assertFalse($this->query->qualifies(CompetitionFixture::COMPETITION_UNAPPROVED));
 
         $this->database->executeStatement(
-            'UPDATE competition SET rejected_at = now() WHERE id = :id',
+            'UPDATE competition SET rejected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => MarketplaceEventFixture::COMPETITION_SWAP_FAIR],
         );
         self::assertFalse($this->query->qualifies(MarketplaceEventFixture::COMPETITION_SWAP_FAIR));
@@ -118,7 +119,7 @@ final class GetMarketplaceEventsTest extends KernelTestCase
     public function testSoftDeletedParticipantIsNotGoing(): void
     {
         $this->database->executeStatement(
-            'UPDATE competition_participant SET deleted_at = now() WHERE id = :id',
+            'UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => MarketplaceEventFixture::PARTICIPANT_FAIR_SELLER_B],
         );
 

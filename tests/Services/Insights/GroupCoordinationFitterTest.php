@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\Insights;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
@@ -31,7 +32,7 @@ final class GroupCoordinationFitterTest extends KernelTestCase
         /** @var Connection $connection */
         $connection = self::getContainer()->get(Connection::class);
         $this->connection = $connection;
-        $this->now = new DateTimeImmutable('today 12:00:00');
+        $this->now = TestClock::now()->modify('today 12:00:00');
 
         // The fixtures' own pair/team results stay out of the fit
         $this->connection->executeStatement("UPDATE puzzle_solving_time SET suspicious = true WHERE puzzling_type <> 'solo'");
@@ -132,7 +133,7 @@ final class GroupCoordinationFitterTest extends KernelTestCase
     {
         $id = Uuid::uuid7()->toString();
         $this->connection->executeStatement(
-            'INSERT INTO player (id, code, name, registered_at) VALUES (:id, :code, :name, NOW())',
+            'INSERT INTO player (id, code, name, registered_at) VALUES (:id, :code, :name, ' . TestClock::SQL_NOW . ')',
             ['id' => $id, 'code' => 'coord' . $name, 'name' => 'Coordination ' . $name],
         );
 
@@ -145,7 +146,7 @@ final class GroupCoordinationFitterTest extends KernelTestCase
             // Today's baseline says nothing about the past solves
             $this->connection->executeStatement(
                 "INSERT INTO player_baseline (id, player_id, pieces_count, baseline_seconds, qualifying_solves_count, baseline_type, computed_at)
-                VALUES (gen_random_uuid(), :id, 500, :baseline, 10, 'direct', NOW())",
+                VALUES (gen_random_uuid(), :id, 500, :baseline, 10, 'direct', " . TestClock::SQL_NOW . ")",
                 ['id' => $id, 'baseline' => intdiv($baseline500, 2)],
             );
         }
@@ -161,7 +162,7 @@ final class GroupCoordinationFitterTest extends KernelTestCase
             ['id' => $id, 'hideUntil' => $hidden ? $this->now->modify('+1 month')->format('Y-m-d H:i:s') : null],
         );
         $this->connection->executeStatement(
-            'INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, difficulty_tier, confidence, sample_size, computed_at) VALUES (:id, :score, 4, :confidence, 30, NOW())',
+            'INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, difficulty_tier, confidence, sample_size, computed_at) VALUES (:id, :score, 4, :confidence, 30, ' . TestClock::SQL_NOW . ')',
             ['id' => $id, 'score' => $difficulty, 'confidence' => $confidence],
         );
 
@@ -176,7 +177,7 @@ final class GroupCoordinationFitterTest extends KernelTestCase
     {
         $id = Uuid::uuid7()->toString();
         $this->connection->executeStatement(
-            'INSERT INTO puzzling_team (id, composition_key, size, created_at) VALUES (:id, :key, :size, NOW())',
+            'INSERT INTO puzzling_team (id, composition_key, size, created_at) VALUES (:id, :key, :size, ' . TestClock::SQL_NOW . ')',
             ['id' => $id, 'key' => sha1($id), 'size' => count($players) + count($guests)],
         );
 

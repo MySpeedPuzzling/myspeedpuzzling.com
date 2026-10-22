@@ -47,6 +47,7 @@ readonly final class EventRowFactory
 
     /**
      * @param array<string, int> $goingCounts competition id (lower case) => spots taken
+     * @param array<string, int> $partnerListingCounts competition id (lower case) => open partner listings
      */
     public function row(
         EventOccurrence $occurrence,
@@ -60,6 +61,7 @@ readonly final class EventRowFactory
         string $locale,
         null|string $logo,
         RowContext $context = RowContext::EventsPage,
+        array $partnerListingCounts = [],
     ): AgendaRow {
         $isEdition = $occurrence->isEdition();
         $longRunning = $occurrence->isLongRunning();
@@ -100,7 +102,15 @@ readonly final class EventRowFactory
                 tone: self::tone($occurrence->isOnline, $status),
             ),
             place: self::place($occurrence->isOnline, $occurrence->location, $occurrence->countryCode, $locale),
-            tags: $this->tags($occurrence, $status, $going, $goingCounts[strtolower($occurrence->competitionId)] ?? 0, $now, $context),
+            tags: $this->tags(
+                $occurrence,
+                $status,
+                $going,
+                $goingCounts[strtolower($occurrence->competitionId)] ?? 0,
+                $now,
+                $context,
+                $partnerListingCounts[strtolower($occurrence->competitionId)] ?? 0,
+            ),
             when: self::when($status, $occurrence->startDate, $day),
             sessions: [],
             status: $status,
@@ -166,8 +176,8 @@ readonly final class EventRowFactory
     }
 
     /**
-     * WaitingForApproval or Draft, Going, Recurring, EventType (one per kind shown), Eligibility, registration, Results, RunsUntil, GoingCount - in this
-     * order. The series page leaves out WaitingForApproval and Recurring. A draft (only its team gets its row) says Draft
+     * WaitingForApproval or Draft, Going, Recurring, EventType (one per kind shown), Eligibility, registration, Results, RunsUntil, GoingCount,
+     * PartnerListings - in this order. The series page leaves out WaitingForApproval and Recurring. A draft (only its team gets its row) says Draft
      * everywhere and never "Waiting for approval" - it is submitted by publishing it.
      *
      * @return list<RowTag>
@@ -179,6 +189,7 @@ readonly final class EventRowFactory
         int $goingCount,
         DateTimeImmutable $now,
         RowContext $context = RowContext::EventsPage,
+        int $partnerListingCount = 0,
     ): array {
         $isPast = $status === EventOccurrenceStatus::Past;
         $onSeriesPage = $context === RowContext::SeriesPage;
@@ -224,6 +235,12 @@ readonly final class EventRowFactory
 
         if ($isPast === false && $goingCount > 0) {
             $tags[] = new RowTag(RowTagType::GoingCount, count: $goingCount);
+        }
+
+        // "6 looking for a partner" (docs/features/partner-finder.md): coming in-person events only - listings exist only
+        // on events with a partner finder, which are never online and close when the event is over
+        if ($isPast === false && $occurrence->isOnline === false && $partnerListingCount > 0) {
+            $tags[] = new RowTag(RowTagType::PartnerListings, count: $partnerListingCount);
         }
 
         return $tags;

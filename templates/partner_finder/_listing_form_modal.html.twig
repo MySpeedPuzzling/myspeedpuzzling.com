@@ -1,0 +1,25 @@
+{# "List me" / "Edit listing" in the page's modal (PartnerListingFormController, Turbo-Frame: modal-frame) #}
+<turbo-frame id="modal-frame">
+    <div data-modal-size="modal-lg" data-modal-scrollable data-modal-sheet>
+        <div class="modal-header">
+            <h5 class="modal-title">
+                {{- (editing ? 'partner_finder.form.title_edit' : 'partner_finder.form.title')|trans -}}
+                <small class="pf-form-event">{{ event_name }}</small>
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+        </div>
+
+        {{ form_start(form, {
+            action: form_action,
+            attr: {'data-turbo-frame': 'modal-frame', class: 'pf-form-wrap', novalidate: 'novalidate'},
+        }) }}
+            <div class="modal-body">
+                {{ include('partner_finder/_listing_form.html.twig') }}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ 'forms.cancel'|trans }}</button>
+                <button type="submit" class="btn btn-primary">{{ (editing ? 'partner_finder.form.submit_edit' : 'partner_finder.form.submit')|trans }}</button>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</turbo-frame>

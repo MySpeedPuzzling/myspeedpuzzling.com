@@ -165,12 +165,32 @@ Sellers bringing listings to in-person events (`docs/features/marketplace/11-eve
 | `PARTICIPANT_EDITION_SELLER_A` | A going to `EDITION_OFFLINE_1` (in person, +14 days, series `SERIES_OFFLINE` approved) - **qualifies**, nothing marked |
 
 Marketplace events overall (`GetMarketplaceEvents::SQL_QUALIFIES`): `EDITION_OFFLINE_1` (+14), `COMPETITION_SWAP_FAIR` (+21),
-`COMPETITION_WJPC_2024` (+30), `COMPETITION_CZECH_NATIONALS_2024` (+60). Not: everything online, `COMPETITION_UNAPPROVED`,
-the unapproved series' edition, the past editions. `forPlayer()`: A = [EDITION_OFFLINE_1, SWAP_FAIR], B = [SWAP_FAIR],
-C = [SWAP_FAIR, WJPC_2024] (C is also `PARTICIPANT_CONNECTED` of WJPC), PLAYER_WITH_FAVORITES = [WJPC_2024],
+`COMPETITION_WJPC_2024` (+30), `PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN` (+35), `COMPETITION_CZECH_NATIONALS_2024`
+(+60). Not: everything online, `COMPETITION_UNAPPROVED`, the unapproved series' edition, the past editions. `forPlayer()`:
+A = [EDITION_OFFLINE_1, SWAP_FAIR], B = [SWAP_FAIR], C = [SWAP_FAIR, WJPC_2024, PARTNER_FINDER_OPEN]
+(C is also `PARTICIPANT_CONNECTED` of WJPC), PLAYER_WITH_FAVORITES = [WJPC_2024, PARTNER_FINDER_OPEN],
 PLAYER_PRIVATE = [WJPC_2024]. Nobody but the players above goes to the fair.
 
 `CompetitionSeriesFixture` registers `EDITION_EJJ_69`, `EDITION_OFFLINE_1` and `EDITION_PAST_ONLY_1` as references for this.
+
+## Partner finder (`PartnerFinderFixture`)
+
+Pair and team partners at in-person events (`docs/features/partner-finder.md`), ids `018d0070-…`.
+
+| Const | What |
+|-------|------|
+| `COMPETITION_PARTNER_FINDER_OPEN` | "Partner Finder Open" - one-time, in person, approved, Pardubice (cz), +35 days 09:00-18:00, slug `COMPETITION_PARTNER_FINDER_OPEN_SLUG` = `partner-finder-open`, plain registration ("I'm going"). **Has a partner finder** (`PartnerFinderEligibility`: pair + team, team size 4) and is a marketplace event |
+| `ROUND_PAIRS` | "Pairs" (duo, slug `pairs`), 10:00 Europe/Prague on the event day, no entries |
+| `ROUND_TEAMS` | "Teams" (team, `team_size` 4, slug `teams`), 14:00, no entries |
+| `PARTICIPANT_REGULAR` / `PARTICIPANT_WITH_FAVORITES` | PLAYER_REGULAR and PLAYER_WITH_FAVORITES going (self-joined, connected -5 days); nobody else - PLAYER_WITH_STRIPE (seller A of the marketplace fixtures) deliberately not, despite her listing and request |
+| `LISTING_REGULAR_PAIR` | **open** - PLAYER_REGULAR on his own, looking for a pair; strengths Edges + Sky, custom chip "Dark puzzles", goal `top_result`, languages cs + en, a note; created -4 days |
+| `LISTING_FAVORITES_TEAM` | **open** - PLAYER_WITH_FAVORITES, a group of 2 (co-member PLAYER_ADMIN) looking for a team, needs 2 more; strength Splitting the work, goal `fun_first`, languages de + en; created -3 days |
+| `LISTING_STRIPE_CLOSED` | **closed** (`withdrawn`, -2 days) - PLAYER_WITH_STRIPE's own pair listing |
+| `REQUEST_STRIPE_TO_REGULAR` | PLAYER_WITH_STRIPE → `LISTING_REGULAR_PAIR`, kind pair, with a note, -1 day, not replied (no notification row) |
+
+Nobody is in a pair/team entry of the event (`PartnerFinderEligibility::sqlPlayerEntered()`); for an entered player use
+`OfficialResultsFixture` (PLAYER_REGULAR = Hugo of "Edge Hunters", PLAYER_ADMIN = Anna of "Puzzle Sharks" - a past event).
+PLAYER_REGULAR blocks PLAYER_PRIVATE (`UserBlockFixture`).
 
 ## Wishlists
 

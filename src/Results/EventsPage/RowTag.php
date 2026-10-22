@@ -13,7 +13,7 @@ readonly final class RowTag
         public RowTagType $type,
         // RegistrationOpens: the day it opens (in the registration's zone); RunsUntil: the last day
         public null|DateTimeImmutable $date = null,
-        // GoingCount
+        // GoingCount, PartnerListings
         public null|int $count = null,
         // Eligibility: the "Who can enter" text
         public null|string $text = null,

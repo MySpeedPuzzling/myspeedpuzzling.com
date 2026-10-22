@@ -486,3 +486,18 @@ feature_request_emails:
         author: "Tento e-mail dostáváte, protože jste tuto funkci navrhli. <a href=\"%settingsUrl%\">Nastavení e-mailů</a> · <a href=\"%unsubscribeUrl%\">Už mi nepište o návrzích funkcí</a>"
         upvoter: "Tento e-mail dostáváte, protože jste tuto funkci podpořili. <a href=\"%settingsUrl%\">Nastavení e-mailů</a> (tam můžete sledovat i všechny návrhy) · <a href=\"%unsubscribeUrl%\">Už mi nepište o návrzích funkcí</a>"
         follower: "Tento e-mail dostáváte, protože sledujete všechny návrhy funkcí. <a href=\"%settingsUrl%\">Nastavení e-mailů</a> · <a href=\"%unsubscribeUrl%\">Už mi nepište o návrzích funkcí</a>"
+partner_request:
+    subject: "%sender% s vámi chce skládat na %event%"
+    preheader: "Někdo viděl váš inzerát v hledání parťáků - odpovězte na MySpeedPuzzling."
+    title: "%sender% s vámi chce skládat"
+    greeting: "Ahoj %name%,"
+    intro_pair: "%sender% reaguje na váš inzerát v hledání parťáků a chce s vámi skládat ve dvojici na %event%."
+    intro_team: "%sender% reaguje na váš inzerát v hledání parťáků a chce s vámi skládat v týmu na %event%."
+    best_500: "Nejlepší čas na 500 dílků: %time%"
+    best_1000: "Nejlepší čas na 1000 dílků: %time%"
+    solved: "{1}1 složené puzzle|[2,4]%count% složená puzzle|[0,Inf[%count% složených puzzlí"
+    speaks: "Domluví se: %languages%"
+    reply: "Odpovědět uživateli %sender%"
+    no_addresses: "E-mailové adresy nikdy nesdílíme: odpovídáte přímo na MySpeedPuzzling a odpověď otevře chat."
+    found_partner: 'Parťáka už máte? <a href="%url%">Uzavřete inzerát</a>'
+    opt_out: 'Tento e-mail dostáváte, protože jste přidali inzerát do hledání parťáků. <a href="%settingsUrl%">Nastavení e-mailů</a> · <a href="%unsubscribeUrl%">Vypnout tyto e-maily</a>'

@@ -1,0 +1,104 @@
+{#
+    The partner card of an event or edition page (docs/features/partner-finder.md "Part B", D8/D9), at the end of
+    Taking part - right under "Find a partner (N)", the step after "I'm going" - and above the marketplace card.
+    Signed-in players only; the state comes from PartnerFinderCardResolver::stateFor():
+
+    - invite: going (or managed registration, registered or not), not listed, not in a pair/team entry, not closed -
+      "Going without a partner yet?", soft coral gradient; highlighted right after "I'm going" (EventJustJoined)
+    - listed: the player's own open listing - one status line, never closable
+    - browse: not going, somebody listed, not closed - "N puzzlers are looking for a partner here", plain
+    Closing (×) hides the card for good (HintType::PartnerFinderCard, fire-and-forget) - the button above stays.
+
+    - partner_finder: null|SpeedPuzzling\Web\Results\PartnerFinderCard
+#}
+{%- set card_state = partner_finder is not null and partner_finder.state is not null ? partner_finder.state.value : null -%}
+{%- if card_state is not null -%}
+    {%- set data = partner_finder.data -%}
+    {%- set what = ('partner_finder.card.what.' ~ partner_finder.offeredKey)|trans -%}
+    {%- set finder_url = partner_finder.finderUrl -%}
+    {%- set form_url = partner_finder.listingFormUrl -%}
+
+    {%- if card_state == 'listed' -%}
+        <section class="pf-card pf-card-listed" aria-labelledby="partner-card-title" data-testid="partner-card" data-partner-card-state="listed">
+            <p class="pf-card-line" id="partner-card-title">
+                <i class="bi bi-check2-circle pf-card-line-icon" aria-hidden="true"></i>
+                <span class="pf-card-line-what">
+                    {%- if data.ownGroup -%}
+                        {{ 'partner_finder.card.listed.group'|trans({'%size%': data.ownGroupSize, '%count%': data.ownNeeded ?? 1}) }}
+                    {%- else -%}
+                        {{ ('partner_finder.card.listed.' ~ partner_finder.ownKey)|trans }}
+                    {%- endif -%}
+                </span>
+                <span class="pf-card-line-sep" aria-hidden="true">·</span>
+                <span>{{ 'partner_finder.card.listed.requests'|trans({'%count%': data.ownRequestsCount}) }}</span>
+                {%- if finder_url is not null %}
+                    <span class="pf-card-line-sep" aria-hidden="true">·</span>
+                    <a href="{{ finder_url }}" class="pf-card-link">{{ 'partner_finder.card.listed.manage'|trans }}</a>
+                {%- endif %}
+            </p>
+        </section>
+    {%- else -%}
+        {%- set invite = card_state == 'invite' -%}
+        {%- set highlighted = partner_finder.highlighted -%}
+        {%- set count = data.listingCount -%}
+        <section class="pf-card{{ invite ? ' pf-card-accent' }}{{ highlighted ? ' pf-card-highlighted' }}"
+                 aria-labelledby="partner-card-title"
+                 data-testid="partner-card"
+                 data-partner-card-state="{{ card_state }}"
+                 {{ stimulus_controller('dismiss-hint', {url: path('dismiss_hint'), type: 'partner_finder_card'}) }}>
+            <button type="button" class="pf-card-close" aria-label="{{ 'partner_finder.card.close'|trans }}" title="{{ 'partner_finder.card.close'|trans }}" {{ stimulus_action('dismiss-hint', 'dismiss') }}>
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+            <div class="pf-card-main">
+                {#- Two puzzlers, the second dashed: the one still to find -#}
+                <span class="pf-card-icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="17" cy="9" r="2.6" stroke-dasharray="2.2 2"/><path d="M16 14.2c2.3.2 4 1.8 4.5 4.8" stroke-dasharray="2.2 2"/></svg>
+                </span>
+                <div class="pf-card-content">
+                    <h3 class="pf-card-title" id="partner-card-title">
+                        {%- if not invite -%}
+                            {{ 'partner_finder.card.browse.title'|trans({'%count%': count, '%what%': what}) }}
+                        {%- elseif highlighted -%}
+                            {{ ('partner_finder.card.invite.title_just_joined.' ~ partner_finder.offeredKey)|trans }}
+                        {%- else -%}
+                            {{ ('partner_finder.card.invite.title.' ~ partner_finder.offeredKey)|trans }}
+                        {%- endif -%}
+                    </h3>
+                    {%- if invite %}
+                        <p class="pf-card-text">{{ 'partner_finder.card.invite.body'|trans({'%count%': count, '%what%': what}) }}</p>
+                    {%- endif %}
+                    {%- set see_who = count > 0 and finder_url is not null -%}
+                    {%- set list_me = invite and form_url is not null -%}
+                    {% if data.faces is not empty or see_who or list_me %}
+                        <div class="pf-card-actions">
+                            {% if data.faces is not empty %}
+                                {# The text says how many - the faces are decoration, names on hover #}
+                                <span class="pf-card-faces" aria-hidden="true">
+                                    {%- for face in data.faces -%}
+                                        <span class="pf-card-face" title="{{ face.displayName }}">
+                                            {{- include('_player_avatar.html.twig', {
+                                                player_id: face.playerId,
+                                                name: face.displayName,
+                                                avatar: face.avatar,
+                                                country_code: face.avatar is null and face.country is not null ? face.country.name : null,
+                                            }) -}}
+                                        </span>
+                                    {%- endfor -%}
+                                </span>
+                            {% endif %}
+                            {% if see_who %}
+                                <a href="{{ finder_url }}" class="btn btn-sm btn-primary">{{ 'partner_finder.card.see_who'|trans }}</a>
+                            {% endif %}
+                            {% if list_me %}
+                                {#- Nobody listed yet: listing is the one thing to do here -#}
+                                <a href="{{ form_url }}" data-turbo-frame="modal-frame" class="{{ see_who ? 'pf-card-link' : 'btn btn-sm btn-primary' }}">
+                                    {{- 'partner_finder.card.list_me'|trans -}}
+                                </a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+    {%- endif -%}
+{%- endif -%}

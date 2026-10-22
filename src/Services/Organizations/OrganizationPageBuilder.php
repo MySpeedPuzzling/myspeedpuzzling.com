@@ -51,6 +51,7 @@ readonly final class OrganizationPageBuilder
      * @param list<EventOccurrence> $occurrences ordered by start (undated last), then name
      * @param list<EventSeriesRow> $series
      * @param array<string, int> $goingCounts competition id (lower case) => spots taken
+     * @param array<string, int> $partnerListingCounts competition id (lower case) => open partner listings
      */
     public function build(
         OrganizationDetail $organization,
@@ -60,6 +61,7 @@ readonly final class OrganizationPageBuilder
         null|EventsViewerData $viewer,
         DateTimeImmutable $now,
         string $locale,
+        array $partnerListingCounts = [],
     ): OrganizationPage {
         $day = OccurrenceDates::today($now);
         $scope = EventsScope::everywhere();
@@ -72,7 +74,7 @@ readonly final class OrganizationPageBuilder
             $items[] = ['occurrence' => $occurrence, 'status' => $occurrence->status($now), 'id' => count($items)];
         }
 
-        $rowOf = function (array $item) use ($goingCounts, $viewer, $scope, $now, $day, $locale): AgendaRow {
+        $rowOf = function (array $item) use ($goingCounts, $partnerListingCounts, $viewer, $scope, $now, $day, $locale): AgendaRow {
             /** @var Item $item */
             return $this->rows->row(
                 $item['occurrence'],
@@ -86,6 +88,7 @@ readonly final class OrganizationPageBuilder
                 $locale,
                 $item['occurrence']->logo,
                 RowContext::OrganizationPage,
+                $partnerListingCounts,
             );
         };
 

@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+
+{# The listed puzzler's view of one "I'd like to puzzle with you" (ReplyToPartnerRequestController) - the e-mail's
+   "Reply to …" lands here. The asker is named (sending was their consent); their profile is linked only when public. #}
+{% set sender_name = sender.name ?? sender.code %}
+
+{% block title %}{{ 'partner_finder.request.reply_page.title'|trans({'%name%': sender_name}) }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="row pb-4">
+        <div class="col-lg-7 col-md-9">
+            <h1 class="h3 mb-3">{{ 'partner_finder.request.reply_page.title'|trans({'%name%': sender_name}) }}</h1>
+
+            <div class="card card-body shadow-sm mb-3">
+                <p class="mb-2">
+                    {{ ('partner_finder.notification.text_' ~ partner_request.kind.value)|trans({
+                        '%player%': '<strong>' ~ (sender.isPrivate ? sender_name|e : '<a class="text-decoration-underline" href="' ~ path('player_profile', {playerId: sender.id.toString}) ~ '">' ~ sender_name|e ~ '</a>') ~ '</strong>',
+                        '%event%': event_name|e,
+                    })|raw }}
+                </p>
+
+                {% if partner_request.note is not null %}
+                    <blockquote class="mb-2 fst-italic">“{{ partner_request.note }}”</blockquote>
+                {% endif %}
+
+                <p class="fs-sm text-muted mb-0">{{ partner_request.createdAt|ago }}</p>
+            </div>
+
+            <p class="fs-sm text-muted">{{ 'partner_finder.request.reply_page.explain'|trans({'%name%': sender_name}) }}</p>
+
+            <form method="post" action="{{ path('partner_request_reply', {requestId: partner_request.id.toString}) }}" class="d-inline-block me-2 mb-2" data-testid="partner-request-reply-form">
+                <input type="hidden" name="_token" value="{{ csrf_token('partner_request') }}">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-chat-dots me-1"></i>{{ 'partner_finder.request.reply_page.button'|trans({'%name%': sender_name}) }}
+                </button>
+            </form>
+
+            {% if finder_url is not null %}
+                <a href="{{ finder_url }}" class="btn btn-outline-secondary mb-2">
+                    {{ 'partner_finder.notification.see_listings'|trans }}
+                </a>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

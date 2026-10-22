@@ -75,6 +75,7 @@ readonly final class EventsPageBuilder
      * @param list<EventOccurrence> $occurrences ordered by start (undated last), then name - GetEventOccurrences::all()
      * @param list<EventSeriesRow> $series
      * @param array<string, int> $goingCounts competition id => spots taken
+     * @param array<string, int> $partnerListingCounts competition id => open partner listings (GetEventGoingCounts)
      * @param DateTimeImmutable $today the request's "now": its UTC date is today, the instant decides registration windows
      */
     public function build(
@@ -86,6 +87,7 @@ readonly final class EventsPageBuilder
         DateTimeImmutable $today,
         string $locale,
         null|CountryCode $homeCountry,
+        array $partnerListingCounts = [],
     ): EventsPage {
         $now = $today;
         $day = OccurrenceDates::today($today);
@@ -180,9 +182,21 @@ readonly final class EventsPageBuilder
         usort($tba, self::compareByTitle(...));
         usort($ongoing, self::compareByTitle(...));
 
-        $rowOf = function (array $item, null|string $logo = null) use ($goingCounts, $viewer, $scope, $now, $day, $locale): AgendaRow {
+        $rowOf = function (array $item, null|string $logo = null) use ($goingCounts, $partnerListingCounts, $viewer, $scope, $now, $day, $locale): AgendaRow {
             /** @var ListedOccurrence $item */
-            return $this->rows->row($item['occurrence'], $item['status'], $item['id'], $goingCounts, $viewer, $scope, $now, $day, $locale, $logo);
+            return $this->rows->row(
+                $item['occurrence'],
+                $item['status'],
+                $item['id'],
+                $goingCounts,
+                $viewer,
+                $scope,
+                $now,
+                $day,
+                $locale,
+                $logo,
+                partnerListingCounts: $partnerListingCounts,
+            );
         };
 
         $publicPast = array_values(array_filter($past, static fn (array $item): bool => $item['occurrence']->isPublic));

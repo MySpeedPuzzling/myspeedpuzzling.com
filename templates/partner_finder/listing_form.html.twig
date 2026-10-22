@@ -1,0 +1,24 @@
+{% extends 'base.html.twig' %}
+
+{# "List me" / "Edit listing" as a page - the modal's fallback (opened in a new tab, without JavaScript) #}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block title %}{{ (editing ? 'partner_finder.form.title_edit' : 'partner_finder.form.title')|trans }} · {{ event_name }}{% endblock %}
+
+{% block content %}
+    <div class="pf-page pf-form-page">
+        {{ include('event_parts/_crumbs.html.twig', {items: [{label: 'partner_finder.page.heading'|trans ~ ' · ' ~ event_name, url: finder_url}]}) }}
+
+        <h1 class="pf-title">{{ (editing ? 'partner_finder.form.title_edit' : 'partner_finder.form.title')|trans }}</h1>
+        <p class="pf-lead">{{ event_name }}</p>
+
+        {{ form_start(form, {action: form_action, attr: {novalidate: 'novalidate'}}) }}
+            {{ include('partner_finder/_listing_form.html.twig') }}
+            <div class="pf-form-actions">
+                <button type="submit" class="btn btn-primary">{{ (editing ? 'partner_finder.form.submit_edit' : 'partner_finder.form.submit')|trans }}</button>
+                <a class="btn btn-outline-secondary" href="{{ finder_url }}">{{ 'forms.cancel'|trans }}</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}

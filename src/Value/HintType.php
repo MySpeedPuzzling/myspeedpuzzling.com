@@ -17,6 +17,9 @@ enum HintType: string
     case AchievementsExplainer = 'achievements_explainer';
     // "Complete your profile" on the player's own profile - missing details with links to their fields (docs/features/player-timezone.md)
     case ProfileCompletion = 'profile_completion';
+    // The partner finder card on an event page (docs/features/partner-finder.md D8) - dismissed once for good, the
+    // "Find a partner" button stays
+    case PartnerFinderCard = 'partner_finder_card';
 
     // Not banners: "the player opened this from the Getting started guide", stored the same
     // way so the guide can tick steps that leave no other trace (docs/features/getting-started-guide.md)

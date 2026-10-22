@@ -10,7 +10,8 @@ use PHPUnit\Framework\TestCase;
  * A draft appears on no public surface (docs/features/organizations/README.md "Drafts") - and the read side has no
  * chokepoint: every query is hand-written SQL. So every file whose code (comments aside) reads the competition,
  * competition_series or organization table either embeds the visibility rule (IsCompetitionPubliclyVisible,
- * IsSeriesPubliclyVisible, IsOrganizationPubliclyVisible, GetMarketplaceEvents::SQL_QUALIFIES - which embeds the first)
+ * IsSeriesPubliclyVisible, IsOrganizationPubliclyVisible, GetMarketplaceEvents::SQL_QUALIFIES - which embeds the first -,
+ * PartnerFinderEligibility::SQL_QUALIFIES - which embeds that one)
  * or says what it does with drafts (`is_draft`), or is listed here with the reason it does not need to - or fails this
  * test until its author has made that decision.
  *
@@ -34,6 +35,7 @@ final class DraftVisibilityCoverageTest extends TestCase
         'ConsoleCommands/WarmupImgproxyCacheConsoleCommand.php' => self::URL_ONLY,
         'MessageHandler/AddCompetitionSeriesHandler.php' => self::WRITE,
         'MessageHandler/AddEditionHandler.php' => self::WRITE,
+        'MessageHandler/CloseFinishedPartnerListingsHandler.php' => self::WRITE,
         'MessageHandler/ConvertCompetitionToSeriesHandler.php' => self::WRITE,
         'MessageHandler/DeleteCompetitionSeriesHandler.php' => self::WRITE,
         'Query/GetCompetitionPageSections.php' => 'The detail pages ask for sections only while the event or series is publicly visible; the editors are organiser tooling.',
@@ -46,7 +48,7 @@ final class DraftVisibilityCoverageTest extends TestCase
         'Query/GetFastestGroups.php' => self::VIA_SOLVING_TIMES,
         'Query/GetFastestPairs.php' => self::VIA_SOLVING_TIMES,
         'Query/GetFastestPlayers.php' => self::VIA_SOLVING_TIMES,
-        'Query/GetNotifications.php' => self::NOTIFICATION,
+        'Query/GetNotifications.php' => self::NOTIFICATION . ' Partner requests are sent only to events PartnerFinderEligibility qualifies (publicly visible, drafts never).',
         'Query/GetParticipantsSheetState.php' => self::ORGANISER,
         'Query/GetParticipantsSheetVersion.php' => self::ORGANISER,
         'Query/GetPlayerDuplicateCases.php' => self::VIA_SOLVING_TIMES,
@@ -69,7 +71,7 @@ final class DraftVisibilityCoverageTest extends TestCase
     ];
 
     private const string READS_EVENT_TABLES = '/\b(FROM|JOIN)\s+(competition|competition_series|organization)\b(?![_a-z])/i';
-    private const string DECIDES = '/Is(Competition|Series|Organization)PubliclyVisible|\bis_draft\b|GetMarketplaceEvents::SQL_QUALIFIES/';
+    private const string DECIDES = '/Is(Competition|Series|Organization)PubliclyVisible|\bis_draft\b|(GetMarketplaceEvents|PartnerFinderEligibility)::SQL_QUALIFIES/';
     private const string DECIDES_DRAFTS = '/SQL_CONDITION|SQL_NOT_DRAFT|SQL_JOIN_OF_COMPETITION|\bis_draft\b|->check\(|SQL_QUALIFIES/';
 
     public function testEveryReadOfEventRowsIsADecision(): void
@@ -123,6 +125,8 @@ final class DraftVisibilityCoverageTest extends TestCase
         self::assertTrue(self::decides('$visible = IsCompetitionPubliclyVisible::SQL_CONDITION; $sql = "SELECT 1 FROM competition c WHERE {$visible}";'));
         self::assertTrue(self::decides('$sql = "SELECT 1 FROM competition_series cs WHERE cs.is_draft = false";'));
         self::assertTrue(self::decides('$qualifies = GetMarketplaceEvents::SQL_QUALIFIES;'));
+        // The partner finder's rule embeds the marketplace one (docs/features/partner-finder.md)
+        self::assertTrue(self::decides('$qualifies = PartnerFinderEligibility::SQL_QUALIFIES;'));
         self::assertFalse(self::decides('$sql = "SELECT 1 FROM competition WHERE approved_at IS NOT NULL";'));
     }
 

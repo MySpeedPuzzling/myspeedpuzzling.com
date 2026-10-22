@@ -38,6 +38,8 @@ final class ConvertCompetitionForeignKeyCoverageTest extends KernelTestCase
         'followed_competition.competition_id' => self::MOVED,
         // The participant sheet's change trail goes with its participants
         'participant_sheet_change_receipt.competition_id' => self::DELETED,
+        // Partner finder listings (and their requests) are going-intent like the participants the conversion drops
+        'partner_listing.competition_id' => self::CASCADES,
         // Every time becomes a series-level pick of the series (one bulk UPDATE)
         'puzzle_solving_time.competition_id' => self::MOVED,
         // SeriesConversionBlocker::MarketplaceMarks

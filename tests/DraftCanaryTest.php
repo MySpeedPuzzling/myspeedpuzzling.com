@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Query\GetMarketplaceEvents;
 use SpeedPuzzling\Web\Query\GetUpcomingEventsCount;
 use SpeedPuzzling\Web\Tests\DataFixtures\OAuth2ClientFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Value\CommunityScope;
@@ -47,6 +48,7 @@ final class DraftCanaryTest extends WebTestCase
     private const string PICKER_EDITIONS = '/en/competition-picker/editions?q=';
     private const string PICKER_PREVIEW = '/en/competition-picker/series-preview?people=0&series=';
     private const string SITEMAP = '/sitemap-events.xml';
+    private const string PARTNER_FINDER_GATE = '/en/partner-finder';
     // Replaced by last year (the clock's) - the past draft is dated in it
     private const string ARCHIVE = '/en/events/archive/{lastYear}';
     private const string QUIET_PINES_UNDER_RIVERBEND = "UPDATE competition_series SET organization_id = :riverbend WHERE id = '" . OrganizationFixture::SERIES_QUIET_PINES_DRAFT . "'";
@@ -122,6 +124,13 @@ final class DraftCanaryTest extends WebTestCase
 
             // The events page's search index finds a series by its organization's name - never by a draft's
             yield "events page ({$who}) - search index: draft organization's name" => [...$harborClub, self::EVENTS, $viewer, mb_strtolower(OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT_NAME), 'script[data-events-index]'];
+        }
+
+        // The partner finder's gate (docs/features/partner-finder.md "Part D as built"): its picker lists every event with a
+        // finder - PartnerFinderEligibility::SQL_QUALIFIES, drafts never (Draft Night has solo rounds only - no finder anyway)
+        foreach (['guest' => null, 'player' => PlayerFixture::PLAYER_REGULAR] as $who => $viewer) {
+            yield "partner finder gate ({$who}) - draft edition of a published series" => [...$lanternDraft, self::PARTNER_FINDER_GATE, $viewer, OrganizationFixture::EDITION_LANTERN_DRAFT_NAME, '#pfg-event'];
+            yield "partner finder gate ({$who}) - edition of a draft series" => [...$quietPines, self::PARTNER_FINDER_GATE, $viewer, OrganizationFixture::EDITION_QUIET_PINES_1_NAME, '#pfg-event'];
         }
 
         // The puzzle of the draft event's round: "used at" (GetPuzzleSummary) - in the guests' part of the page
@@ -366,6 +375,31 @@ final class DraftCanaryTest extends WebTestCase
 
             // A guest again for the next item
             $browser->getCookieJar()->clear();
+        }
+    }
+
+    /**
+     * The partner finder of a draft is not there - for its team neither (PartnerFinderEligibility leaves drafts out).
+     */
+    public function testThePartnerFinderOfADraftIsNotThere(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/events/' . PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN_SLUG . '/partners';
+
+        foreach ([null, PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_ADMIN] as $viewer) {
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($browser, $viewer);
+            }
+
+            $this->setDraft(self::COMPETITION, PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN, false);
+            $browser->request('GET', $url);
+            self::assertResponseIsSuccessful('published - or the test proves nothing');
+
+            $this->setDraft(self::COMPETITION, PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN, true);
+            $browser->request('GET', $url);
+            self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+            $browser->request('GET', '/en/partners/' . PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN . '/list-me');
+            self::assertResponseStatusCodeSame($viewer === null ? Response::HTTP_FOUND : Response::HTTP_NOT_FOUND);
         }
     }
 

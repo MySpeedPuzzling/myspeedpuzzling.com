@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\EventDetailFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
@@ -25,7 +26,9 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  * Series: the series (sections flag inside), its occurrences in one statement, the going counts of the coming ones
  * (none without any); signed in + the viewer's going/follow rows + permissions.
  * Edition and event: the event, rounds with their puzzles, visibility, puzzles outside the rounds, difficulty, statuses,
- * results per round (public, a slugged round), attendance with the follow flag, offers, participants.
+ * results per round (public, a slugged round), attendance with the follow flag, offers, participants. An event with a
+ * partner finder (docs/features/partner-finder.md "Part B") adds GetPartnerCardData for a signed-in player - one
+ * statement, the closed-card flag included - and nothing for a guest (a plain link) or where it cannot have one.
  */
 final class DetailPagesQueryBudgetTest extends WebTestCase
 {
@@ -35,6 +38,7 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
     private const string SUMMIT = '/en/series/summit-puzzle-league';
     private const string SEASON_ONE = '/en/series/moonlight-sprint-league/season-one';
     private const string HILLTOP = '/en/events/hilltop-puzzle-weekend';
+    private const string PARTNER_FINDER_OPEN = '/en/events/' . PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN_SLUG;
 
     /**
      * @return iterable<string, array{string, null|string, int}>
@@ -55,10 +59,11 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
         // + the signed-in overhead (4), statuses, attendance and the permissions statement
         yield 'edition, player' => [self::SEASON_ONE, PlayerFixture::PLAYER_REGULAR, 19];
         yield 'edition, organiser' => [self::SEASON_ONE, PlayerFixture::PLAYER_ADMIN, 19];
-        // Below the old wjpc-2024 page (16): round puzzles are no longer read a second time; the marketplace card's one
+        // Below the old wjpc-2024 page (16): round puzzles are no longer read a second time; the marketplace card's one.
+        // Hilltop has a pairs round in person: a partner finder - its card's one statement for a signed-in player only
         yield 'event, guest' => [self::HILLTOP, null, 12];
-        yield 'event, player' => [self::HILLTOP, PlayerFixture::PLAYER_REGULAR, 19];
-        yield 'event, organiser' => [self::HILLTOP, PlayerFixture::PLAYER_ADMIN, 19];
+        yield 'event, player' => [self::HILLTOP, PlayerFixture::PLAYER_REGULAR, 20];
+        yield 'event, organiser' => [self::HILLTOP, PlayerFixture::PLAYER_ADMIN, 20];
     }
 
     #[DataProvider('providePages')]
@@ -82,7 +87,7 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
         // one-time event - the same statements as an admin, the permissions statement answers both
         yield 'series, maintainer' => [self::HARBOR, 9];
         yield 'edition, series maintainer' => [self::SEASON_ONE, 19];
-        yield 'event, creator' => [self::HILLTOP, 19];
+        yield 'event, creator' => [self::HILLTOP, 20];
     }
 
     #[DataProvider('provideMaintainerPages')]
@@ -110,6 +115,36 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
 
         self::assertSame($statements, $this->measure($browser, $url), 'maintainer ' . $url);
         self::assertCount(1, $browser->getCrawler()->filter('.ev-detail-actions .ev-manage'), 'the organiser gets the header menu');
+    }
+
+    /**
+     * The partner finder (docs/features/partner-finder.md "Part B"): the card costs a signed-in player exactly one
+     * statement, a guest none; an event that cannot have a finder (all rounds solo - the PHP pre-check) none for anybody
+     */
+    public function testThePartnerFinderCostsOneStatementForAPlayerOnly(): void
+    {
+        $browser = self::createClient();
+
+        $guest = $this->measure($browser, self::PARTNER_FINDER_OPEN);
+        self::assertCount(0, $browser->getCrawler()->filter('[data-testid="partner-card"]'), 'no card for a guest');
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $player = $this->measure($browser, self::PARTNER_FINDER_OPEN);
+        self::assertCount(1, $browser->getCrawler()->filter('[data-testid="partner-card"]'));
+
+        /** @var Connection $connection */
+        $connection = $browser->getContainer()->get(Connection::class);
+        $connection->executeStatement(
+            "UPDATE competition_round SET category = 'solo' WHERE competition_id = :id",
+            ['id' => PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN],
+        );
+
+        $playerWithoutFinder = $this->measure($browser, self::PARTNER_FINDER_OPEN);
+        self::assertCount(0, $browser->getCrawler()->filter('[data-testid="partner-card"], [data-partner-finder-button]'));
+        self::assertSame($player - 1, $playerWithoutFinder, 'the card is the one statement');
+
+        $browser->getCookieJar()->clear();
+        self::assertSame($guest, $this->measure($browser, self::PARTNER_FINDER_OPEN), 'a guest pays nothing for the link');
     }
 
     public function testTenMoreEditionsAddNoStatementToTheSeriesPage(): void

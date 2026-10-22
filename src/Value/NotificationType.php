@@ -47,4 +47,7 @@ enum NotificationType: string
 
     // A round's official results were published for the first time and the player has a finished result in it
     case OfficialResultPublished = 'OfficialResultPublished';
+
+    // "I'd like to puzzle with you" on the player's partner finder listing (PartnerRequest), actor = the sender
+    case PartnerRequest = 'PartnerRequest';
 }

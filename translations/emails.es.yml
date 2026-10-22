@@ -486,3 +486,18 @@ feature_request_emails:
         author: "Recibes este correo porque propusiste esta función. <a href=\"%settingsUrl%\">Ajustes de correo</a> · <a href=\"%unsubscribeUrl%\">No más correos sobre propuestas de funciones</a>"
         upvoter: "Recibes este correo porque votaste esta función. <a href=\"%settingsUrl%\">Ajustes de correo</a> (ahí también puedes seguir todas las propuestas) · <a href=\"%unsubscribeUrl%\">No más correos sobre propuestas de funciones</a>"
         follower: "Recibes este correo porque sigues todas las propuestas de funciones. <a href=\"%settingsUrl%\">Ajustes de correo</a> · <a href=\"%unsubscribeUrl%\">No más correos sobre propuestas de funciones</a>"
+partner_request:
+    subject: "A %sender% le gustaría armar contigo en %event%"
+    preheader: "Alguien vio tu anuncio en el buscador de compañeros: respóndele en MySpeedPuzzling."
+    title: "A %sender% le gustaría armar contigo"
+    greeting: "Hola %name%,"
+    intro_pair: "%sender% vio tu anuncio en el buscador de compañeros y le gustaría armar contigo en pareja en %event%."
+    intro_team: "%sender% vio tu anuncio en el buscador de compañeros y le gustaría armar contigo en equipo en %event%."
+    best_500: "Mejor tiempo en 500 piezas: %time%"
+    best_1000: "Mejor tiempo en 1000 piezas: %time%"
+    solved: "{1}1 puzzle resuelto|[0,Inf[%count% puzzles resueltos"
+    speaks: "Habla %languages%"
+    reply: "Responder a %sender%"
+    no_addresses: "Nunca compartimos direcciones de correo: respondes dentro de MySpeedPuzzling y la respuesta abre un chat."
+    found_partner: '¿Ya tienes compañero? <a href="%url%">Cierra tu anuncio</a>'
+    opt_out: 'Recibes este correo porque te apuntaste en el buscador de compañeros. <a href="%settingsUrl%">Ajustes de correo</a> · <a href="%unsubscribeUrl%">Dejar de recibir estos correos</a>'

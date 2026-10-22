@@ -37,7 +37,7 @@ final class PlayersSuggestionsTest extends WebTestCase
 
         $card = $this->cardOf($browser->getCrawler(), PlayerFixture::PLAYER_WITH_FAVORITES);
         self::assertStringContainsString('Michael Johnson', $card->text());
-        self::assertStringContainsString('Also at WJPC 2024', $card->filter('.players-suggestion-reason')->text());
+        self::assertStringContainsString('Also at Partner Finder Open', $card->filter('.players-suggestion-reason')->text());
 
         // The person opens the player card, the buttons are the player header's own endpoints and come back here
         self::assertCount(1, $card->filter('a.players-person[data-action="players-card#open"]'));

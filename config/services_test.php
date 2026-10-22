@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestDouble\NullMercureHub;
+use Symfony\Component\Clock\MockClock;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\PasswordHasher\Hasher\NativePasswordHasher;
@@ -17,6 +19,13 @@ return static function (ContainerConfigurator $configurator): void {
         ->autoconfigure()
         ->autowire()
         ->public();
+
+    // The suite runs at one frozen instant (docs/features/time-and-clock/README.md, R4): the app, the framework services
+    // reading `clock` and the fixtures all see TestClock::FROZEN_NOW. A service of the container, not Clock::set() - a
+    // static would carry a test's modify() into the next test of the same ParaTest worker; every kernel builds its own.
+    // Strings as arguments: the container cannot dump a DateTimeImmutable
+    $services->set('clock', MockClock::class)
+        ->args([TestClock::FROZEN_NOW, 'UTC']);
 
     // Data fixtures
     $services->load('SpeedPuzzling\\Web\\Tests\\DataFixtures\\', __DIR__ . '/../tests/DataFixtures/{*.php}');

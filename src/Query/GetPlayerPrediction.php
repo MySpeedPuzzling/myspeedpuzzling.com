@@ -266,6 +266,7 @@ SQL;
             'playerId' => $playerId,
             'puzzleId' => $puzzleId,
             'modelVersion' => TimePredictionCalculator::MODEL_VERSION,
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
         ])->fetchAssociative();
 
         return $row !== false ? $row : null;

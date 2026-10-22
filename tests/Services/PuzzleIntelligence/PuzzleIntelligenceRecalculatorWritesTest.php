@@ -493,7 +493,7 @@ final class PuzzleIntelligenceRecalculatorWritesTest extends KernelTestCase
     {
         $clock = new MockClock($now);
         $baselineCalculator = new PlayerBaselineCalculator($this->connection, $clock);
-        $paceHistoryReadiness = new PaceHistoryReadiness($this->connection);
+        $paceHistoryReadiness = new PaceHistoryReadiness($this->connection, $clock);
         $paceTimelineLoader = new PaceTimelineLoader($this->connection, $baselineCalculator);
 
         $paceHistoryWriter = new PlayerPaceHistoryWriter($this->connection, $baselineCalculator, new PlayerPaceHistoryCalculator($baselineCalculator), $paceHistoryReadiness);
@@ -518,6 +518,7 @@ final class PuzzleIntelligenceRecalculatorWritesTest extends KernelTestCase
                 $paceTimelineLoader,
                 $baselineCalculator,
                 $paceHistoryWriter,
+                $clock,
             ),
             new RatingInsightsWriter($this->connection, new ChangedRowsSync($this->connection)),
             new InsightsGeneration($this->connection, $clock),

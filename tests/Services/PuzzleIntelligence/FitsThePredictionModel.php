@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Message\FitPredictionModel;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\PredictionModelFitter;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionModelParametersProvider;
@@ -53,7 +54,7 @@ trait FitsThePredictionModel
             FROM puzzle p
             LEFT JOIN difficulty_prior_group g ON g.manufacturer_id = p.manufacturer_id AND g.pieces_count = p.pieces_count AND ' . StatisticalInputsSql::NOT_SECRET . '
             LEFT JOIN difficulty_prior_puzzle dpp ON dpp.puzzle_id = p.id
-        ');
+        ', ['now' => self::clockNow($container)]);
 
         foreach ($rows as $row) {
             /** @var array{id: string, pieces_count: int|string, manufacturer_id: null|string, group_sum: null|float|string, group_count: null|int|string, own_sum: null|float|string, own_count: null|int|string} $row */
@@ -106,5 +107,16 @@ trait FitsThePredictionModel
             'UPDATE prediction_model_fit SET parameters = CAST(:parameters AS jsonb) WHERE model_version = :version',
             ['version' => TimePredictionCalculator::MODEL_VERSION, 'parameters' => json_encode($parameters->toArray(), JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION)],
         );
+    }
+
+    /**
+     * :now of StatisticalInputsSql::NOT_SECRET - the app's clock
+     */
+    private static function clockNow(\Symfony\Component\DependencyInjection\ContainerInterface $container): string
+    {
+        /** @var ClockInterface $clock */
+        $clock = $container->get(ClockInterface::class);
+
+        return $clock->now()->format('Y-m-d H:i:s');
     }
 }

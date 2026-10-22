@@ -16,9 +16,9 @@ use SpeedPuzzling\Web\Value\StatisticalPredictionInputs;
  * mirrors TimePredictionCalculator::statistical()'s centre in SQL (centreSql(), pinned equal by
  * GetPuzzlePickerSuggestionsTest). Rows are hydrated by hydrate().
  *
- * Expects `p` = puzzle and the parameter :playerId; the pair's latest pace-history row (drift, spread) comes from
- * `own` and the 500-piece one from `five`, which the statement joins itself (a LATERAL for one puzzle, a DISTINCT ON
- * relation for many: lateralPaceJoins() / ownPaceCte()).
+ * Expects `p` = puzzle and the parameters :playerId and :now (the clock's present as 'Y-m-d H:i:s', NOT_SECRET); the
+ * pair's latest pace-history row (drift, spread) comes from `own` and the 500-piece one from `five`, which the
+ * statement joins itself (a LATERAL for one puzzle, a DISTINCT ON relation for many: lateralPaceJoins() / ownPaceCte()).
  */
 final class StatisticalInputsSql
 {
@@ -53,9 +53,11 @@ final class StatisticalInputsSql
 
     /**
      * A secret puzzle (hide_until / hide_image_until in the future) has no prior and is no training row of one
-     * (Insights plan principle: never leak secret puzzles) - the condition on `p` every prior join carries.
+     * (Insights plan principle: never leak secret puzzles) - the condition on `p` every prior join carries. Expects
+     * :now = the clock's present ('Y-m-d H:i:s') - the real present also for a reconstruction as of an earlier solve:
+     * a puzzle secret today must not leak into any prediction computed today.
      */
-    public const string NOT_SECRET = '(p.hide_until IS NULL OR p.hide_until <= NOW()) AND (p.hide_image_until IS NULL OR p.hide_image_until <= NOW())';
+    public const string NOT_SECRET = '(p.hide_until IS NULL OR p.hide_until <= CAST(:now AS timestamp)) AND (p.hide_image_until IS NULL OR p.hide_image_until <= CAST(:now AS timestamp))';
 
     /**
      * The puzzle's image estimate for the side-by-side `image` / `blend` predictors (ImagePriorInput::fromRow()) -
@@ -76,7 +78,7 @@ final class StatisticalInputsSql
      * pipeline pushes `outOfFold: false` only for a puzzle that had no label when the model was trained (the full model,
      * which never saw it either - image-pipeline.md §7), so it holds none of the puzzle's solves; the filter is the
      * conservative choice all the same - the flag is the only evidence the app has of what the model saw, and the next
-     * derive re-pushes the puzzle out of fold once it is labelled. Expects `p`.
+     * derive re-pushes the puzzle out of fold once it is labelled. Expects `p` and :now.
      */
     public static function imageEstimateJoins(bool $outOfFoldOnly): string
     {

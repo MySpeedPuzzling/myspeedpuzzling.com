@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\StatisticalInputsSql;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
@@ -26,11 +27,12 @@ readonly final class GetTimesAwaitingImagePredictions
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
     /**
-     * The condition on a solving time `pst` (expects the parameter :modelVersion).
+     * The condition on a solving time `pst` (expects the parameters :modelVersion and :now - the clock's present, 'Y-m-d H:i:s').
      */
     public static function condition(bool $recomputeImage = false): string
     {
@@ -79,6 +81,7 @@ readonly final class GetTimesAwaitingImagePredictions
         ", [
             'playerId' => $playerId,
             'modelVersion' => TimePredictionCalculator::MODEL_VERSION,
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
         ]);
     }
 }

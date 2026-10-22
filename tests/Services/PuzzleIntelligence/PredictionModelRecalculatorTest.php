@@ -76,7 +76,7 @@ final class PredictionModelRecalculatorTest extends KernelTestCase
             FROM puzzle p
             LEFT JOIN difficulty_prior_group g ON g.manufacturer_id = p.manufacturer_id AND g.pieces_count = p.pieces_count AND ' . StatisticalInputsSql::NOT_SECRET . '
             LEFT JOIN difficulty_prior_puzzle dpp ON dpp.puzzle_id = p.id
-        ');
+        ', ['now' => self::clockNow(self::getContainer())]);
         $withoutIndices = 0;
 
         foreach ($rows as $row) {
@@ -176,5 +176,16 @@ final class PredictionModelRecalculatorTest extends KernelTestCase
         self::assertSame(1.0, $result['parameters']['tau'], 'Too few samples: the default');
         self::assertNotSame([], $result['first_try']);
         self::assertSame('attempts after the cut-off', $result['first_try'][0]['group']);
+    }
+
+    /**
+     * :now of StatisticalInputsSql::NOT_SECRET - the app's clock
+     */
+    private static function clockNow(\Symfony\Component\DependencyInjection\ContainerInterface $container): string
+    {
+        /** @var ClockInterface $clock */
+        $clock = $container->get(ClockInterface::class);
+
+        return $clock->now()->format('Y-m-d H:i:s');
     }
 }

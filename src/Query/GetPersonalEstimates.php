@@ -184,6 +184,7 @@ readonly final class GetPersonalEstimates
             'puzzleId' => $puzzleId,
             'piecesCount' => $piecesCount,
             'difficulty' => $difficulty,
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
         ]);
 
         return new CollectionDifficultyRank(
@@ -195,7 +196,7 @@ readonly final class GetPersonalEstimates
     }
 
     /**
-     * The statement (expects :playerId, :puzzleIds as a uuid[] literal and :modelVersion) - public for EXPLAIN on a
+     * The statement (expects :playerId, :puzzleIds as a uuid[] literal, :modelVersion and :now) - public for EXPLAIN on a
      * production copy (docs/features/insights/estimates.md "Measured").
      */
     public static function statement(): string
@@ -294,6 +295,7 @@ SQL;
             'playerId' => $playerId,
             'puzzleIds' => '{' . implode(',', $puzzleIds) . '}',
             'modelVersion' => TimePredictionCalculator::MODEL_VERSION,
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
         ])->fetchAllAssociative();
 
         return $rows;

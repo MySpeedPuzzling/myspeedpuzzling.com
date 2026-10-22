@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence\Model;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PaceTimelineLoader;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerBaselineCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionModelRecalculator;
@@ -28,6 +29,7 @@ final readonly class PredictionEvaluator
         private PlayerBaselineCalculator $baselineCalculator,
         private TimePredictionCalculator $calculator,
         private PredictionModelFitter $fitter,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -46,7 +48,11 @@ final readonly class PredictionEvaluator
         $engine->computeAsOfDifficulty();
 
         /** @var array<string, null|string> $manufacturers */
-        $manufacturers = $this->connection->fetchAllKeyValue('SELECT id, CASE WHEN ' . StatisticalInputsSql::NOT_SECRET . ' THEN manufacturer_id END FROM puzzle p');
+        $manufacturers = $this->connection->fetchAllKeyValue(
+            'SELECT id, CASE WHEN ' . StatisticalInputsSql::NOT_SECRET . ' THEN manufacturer_id END FROM puzzle p',
+            // Secret at the real present, not as of $fitBefore: a puzzle secret today stays out of every fit made today
+            ['now' => $this->clock->now()->format('Y-m-d H:i:s')],
+        );
         $priors = PriorLookup::fit($set, $manufacturers, $cut);
         $from = (float) $fitBefore->modify('-' . PredictionModelRecalculator::FIT_WINDOW_MONTHS . ' months')->getTimestamp();
         $repeats = RepeatHistory::load($this->connection, $from);

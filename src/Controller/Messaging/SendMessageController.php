@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Messaging;
 
-use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\ConversationNotFound;
 use SpeedPuzzling\Web\Message\SendMessage;
@@ -24,6 +24,7 @@ final class SendMessageController extends AbstractController
         readonly private MessageBusInterface $messageBus,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
+        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -64,7 +65,7 @@ final class SendMessageController extends AbstractController
                 senderName: $loggedPlayer->playerName,
                 senderAvatar: $loggedPlayer->avatar,
                 content: $content,
-                sentAt: new DateTimeImmutable(),
+                sentAt: $this->clock->now(),
                 readAt: null,
                 isOwnMessage: true,
             );

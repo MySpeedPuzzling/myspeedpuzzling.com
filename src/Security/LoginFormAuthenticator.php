@@ -140,6 +140,7 @@ final class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
 
         foreach ([$emailIpLimit, $ipLimit] as $limit) {
             if (!$limit->isAccepted()) {
+                // Real time: the limiter counts on the system clock
                 $retryAfter = $limit->getRetryAfter();
 
                 throw new TooManyLoginAttemptsAuthenticationException(

@@ -2,7 +2,7 @@
     {% set dowMax = this.dowMax %}
     {% set monthFirstDay = date(this.year ~ '-' ~ ('%02d'|format(this.month)) ~ '-01') %}
     {% set currentMonthLabel = monthFirstDay|format_datetime(pattern='LLLL yyyy') %}
-    {% set canGoForward = (this.year < ('now'|date('Y'))) or (this.year == ('now'|date('Y')) and this.month < ('now'|date('n'))) %}
+    {% set canGoForward = (this.year < (now()|date('Y'))) or (this.year == (now()|date('Y')) and this.month < (now()|date('n'))) %}
     {% set categoryColors = {
         'solo': '#fe4042',
         'duo':  '#2ab8c4',

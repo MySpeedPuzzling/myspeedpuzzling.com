@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Test;
 
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
@@ -31,6 +31,7 @@ final class TestLoginController extends AbstractController
         readonly private Security $security,
         readonly private UserAccountRepository $userAccountRepository,
         readonly private EntityManagerInterface $entityManager,
+        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -48,13 +49,13 @@ final class TestLoginController extends AbstractController
                 Uuid::uuid7(),
                 $userId,
                 $email,
-                new DateTimeImmutable(),
+                $this->clock->now(),
             );
 
             if (str_starts_with($userId, 'auth0|')) {
                 // auth0|... fixture players stand for accounts imported from Auth0 -
                 // mirror the state the import left behind
-                $userAccount->applyAuth0Import($email, null, true, new DateTimeImmutable());
+                $userAccount->applyAuth0Import($email, null, true, $this->clock->now());
             }
 
             $this->entityManager->persist($userAccount);

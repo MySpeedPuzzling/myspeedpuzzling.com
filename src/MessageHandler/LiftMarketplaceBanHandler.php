@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\ModerationAction;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
@@ -20,6 +20,7 @@ readonly final class LiftMarketplaceBanHandler
     public function __construct(
         private PlayerRepository $playerRepository,
         private ModerationActionRepository $moderationActionRepository,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -38,7 +39,7 @@ readonly final class LiftMarketplaceBanHandler
             targetPlayer: $targetPlayer,
             admin: $admin,
             actionType: ModerationActionType::BanLifted,
-            performedAt: new DateTimeImmutable(),
+            performedAt: $this->clock->now(),
         );
 
         $this->moderationActionRepository->save($action);

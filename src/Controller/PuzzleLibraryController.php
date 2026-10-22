@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetBorrowedPuzzles;
 use SpeedPuzzling\Web\Query\GetLentPuzzles;
@@ -37,6 +37,7 @@ final class PuzzleLibraryController extends AbstractController
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
+        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -82,7 +83,7 @@ final class PuzzleLibraryController extends AbstractController
                 name: $this->translator->trans('collections.system_name'),
                 description: null,
                 visibility: $player->puzzleCollectionVisibility,
-                createdAt: new DateTimeImmutable(),
+                createdAt: $this->clock->now(),
                 itemCount: $systemCollectionPuzzleCount,
                 isSystemCollection: true,
             ));
@@ -95,7 +96,7 @@ final class PuzzleLibraryController extends AbstractController
                 name: $this->translator->trans('unsolved_puzzles.name'),
                 description: $this->translator->trans('unsolved_puzzles.description'),
                 visibility: $player->unsolvedPuzzlesVisibility,
-                createdAt: new DateTimeImmutable(),
+                createdAt: $this->clock->now(),
                 itemCount: $unsolvedPuzzlesCount,
                 isSystemCollection: false,
                 isUnsolvedPuzzles: true,
@@ -110,7 +111,7 @@ final class PuzzleLibraryController extends AbstractController
                 name: $this->translator->trans('solved_puzzles.name'),
                 description: $this->translator->trans('solved_puzzles.description'),
                 visibility: $player->solvedPuzzlesVisibility,
-                createdAt: new DateTimeImmutable(),
+                createdAt: $this->clock->now(),
                 itemCount: $solvedPuzzlesCount,
                 isSystemCollection: false,
                 isUnsolvedPuzzles: false,
@@ -128,7 +129,7 @@ final class PuzzleLibraryController extends AbstractController
                 name: $this->translator->trans('wish_list.name'),
                 description: $this->translator->trans('wish_list.description'),
                 visibility: $player->wishListVisibility,
-                createdAt: new DateTimeImmutable(),
+                createdAt: $this->clock->now(),
                 itemCount: $wishListCount,
                 isSystemCollection: false,
                 isUnsolvedPuzzles: false,
@@ -142,7 +143,7 @@ final class PuzzleLibraryController extends AbstractController
             name: $this->translator->trans('sell_swap_list.name'),
             description: $this->translator->trans('sell_swap_list.description'),
             visibility: CollectionVisibility::Public,
-            createdAt: new DateTimeImmutable(),
+            createdAt: $this->clock->now(),
             itemCount: $sellSwapListCount,
             isSystemCollection: false,
             isUnsolvedPuzzles: false,
@@ -170,7 +171,7 @@ final class PuzzleLibraryController extends AbstractController
                 name: $this->translator->trans('lend_borrow.name'),
                 description: $this->translator->trans('lend_borrow.description'),
                 visibility: $player->lendBorrowListVisibility,
-                createdAt: new DateTimeImmutable(),
+                createdAt: $this->clock->now(),
                 itemCount: $totalLendBorrowCount,
                 isSystemCollection: false,
                 isUnsolvedPuzzles: false,

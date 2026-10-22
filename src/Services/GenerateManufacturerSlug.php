@@ -28,6 +28,7 @@ readonly final class GenerateManufacturerSlug
         $base = strtolower((string) $this->slugger->slug($name));
 
         if ($base === '') {
+            // microtime() as entropy, not as a time
             $base = 'brand-' . substr(md5($name . microtime()), 0, 8);
         }
 

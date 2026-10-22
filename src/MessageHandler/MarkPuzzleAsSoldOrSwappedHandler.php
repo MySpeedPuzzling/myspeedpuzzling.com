@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\SellSwapListItem;
@@ -31,6 +31,7 @@ readonly final class MarkPuzzleAsSoldOrSwappedHandler
         private WishListItemRepository $wishListItemRepository,
         private PlayerRepository $playerRepository,
         private SystemMessageSender $systemMessageSender,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -76,7 +77,7 @@ readonly final class MarkPuzzleAsSoldOrSwappedHandler
             $buyerName,
             $item->listingType,
             $item->price,
-            new DateTimeImmutable(),
+            $this->clock->now(),
         );
 
         $this->soldSwappedItemRepository->save($soldSwappedItem);

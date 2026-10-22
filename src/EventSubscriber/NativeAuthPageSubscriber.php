@@ -110,6 +110,7 @@ final readonly class NativeAuthPageSubscriber implements EventSubscriberInterfac
             $response->headers->setCookie(Cookie::create(
                 self::LOCALE_COOKIE,
                 $rememberLocale,
+                // Real time: the browser expires the cookie on its own clock
                 expire: time() + 365 * 24 * 60 * 60,
                 path: '/',
                 secure: $request->isSecure(),

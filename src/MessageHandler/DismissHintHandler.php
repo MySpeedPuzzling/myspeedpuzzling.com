@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\DismissedHint;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
@@ -19,6 +19,7 @@ readonly final class DismissHintHandler
     public function __construct(
         private PlayerRepository $playerRepository,
         private DismissedHintRepository $dismissedHintRepository,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -38,7 +39,7 @@ readonly final class DismissHintHandler
             id: Uuid::uuid7(),
             player: $player,
             type: $message->type,
-            dismissedAt: new DateTimeImmutable(),
+            dismissedAt: $this->clock->now(),
         );
 
         $this->dismissedHintRepository->save($dismissedHint);

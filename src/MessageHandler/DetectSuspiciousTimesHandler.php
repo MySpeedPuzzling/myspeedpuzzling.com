@@ -335,7 +335,7 @@ readonly final class DetectSuspiciousTimesHandler
                     timeId: $item[0]->timeId,
                     playerId: $item[0]->playerId,
                     puzzleId: $item[0]->puzzleId,
-                    solvedDay: gmdate('Y-m-d', $item[0]->solvedAt),
+                    solvedDay: new DateTimeImmutable('@' . $item[0]->solvedAt)->format('Y-m-d'),
                 ),
                 $chunk,
             ));

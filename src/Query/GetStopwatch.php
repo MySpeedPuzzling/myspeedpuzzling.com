@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\StopwatchNotFound;
 use SpeedPuzzling\Web\Results\StopwatchDetail;
@@ -14,6 +15,7 @@ readonly final class GetStopwatch
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -68,7 +70,7 @@ SQL;
             throw new StopwatchNotFound();
         }
 
-        return StopwatchDetail::fromDatabaseRow($row);
+        return StopwatchDetail::fromDatabaseRow($row, $this->clock->now());
     }
 
     /**
@@ -106,7 +108,9 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function (array $row): StopwatchDetail {
+        $now = $this->clock->now();
+
+        return array_map(static function (array $row) use ($now): StopwatchDetail {
             /**
              * @var array{
              *     stopwatch_id: string,
@@ -120,7 +124,7 @@ SQL;
              * } $row
              */
 
-            return StopwatchDetail::fromDatabaseRow($row);
+            return StopwatchDetail::fromDatabaseRow($row, $now);
         }, $data);
     }
 }

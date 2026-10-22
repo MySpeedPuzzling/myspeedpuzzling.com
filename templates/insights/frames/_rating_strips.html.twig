@@ -12,7 +12,7 @@
     {key: 'best_time', entries: opportunities.bestTimeEntries},
 ] %}
 {% set max_points = max((opportunities.firstAttemptEntries|merge(opportunities.bestTimeEntries))|map(e => e.points)|merge([1])) %}
-{% set now = date().timestamp %}
+{% set now = now().timestamp %}
 {% set width = 330 %}
 {% set height = 64 %}
 <div class="ins-strips" data-testid="insights-rating-strips">

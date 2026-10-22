@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\LentPuzzleTransfer;
 use SpeedPuzzling\Web\Events\LendingTransferCompleted;
@@ -26,6 +26,7 @@ readonly final class ReturnLentPuzzleHandler
         private LentPuzzleRepository $lentPuzzleRepository,
         private LentPuzzleTransferRepository $lentPuzzleTransferRepository,
         private MessageBusInterface $messageBus,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -58,7 +59,7 @@ readonly final class ReturnLentPuzzleHandler
             $lentPuzzle->currentHolderName,
             $lentPuzzle->ownerPlayer,
             $lentPuzzle->ownerName,
-            new DateTimeImmutable(),
+            $this->clock->now(),
             TransferType::Return,
             $lentPuzzle->puzzle,
             $lentPuzzle->ownerPlayer,

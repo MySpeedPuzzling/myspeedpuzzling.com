@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\ModerationAction;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
@@ -22,6 +22,7 @@ readonly final class WarnUserHandler
         private PlayerRepository $playerRepository,
         private ModerationActionRepository $moderationActionRepository,
         private ConversationReportRepository $conversationReportRepository,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -43,7 +44,7 @@ readonly final class WarnUserHandler
             targetPlayer: $targetPlayer,
             admin: $admin,
             actionType: ModerationActionType::Warning,
-            performedAt: new DateTimeImmutable(),
+            performedAt: $this->clock->now(),
             report: $report,
             reason: $message->reason,
         );

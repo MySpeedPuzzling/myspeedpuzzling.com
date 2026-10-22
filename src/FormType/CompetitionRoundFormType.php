@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormType;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\Value\RoundCategory;
@@ -28,12 +29,19 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 final class CompetitionRoundFormType extends AbstractType
 {
+    public function __construct(
+        readonly private ClockInterface $clock,
+    ) {
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         // A one-day event asks only for the time (CompetitionEvent::singleDay())
         $isSingleDay = $options['single_day'] === true;
         /** @var null|\DateTimeImmutable $offsetAt */
         $offsetAt = $options['timezone_offset_at'];
+        // A round without a date yet shows today's offset
+        $offsetAt ??= $this->clock->now();
 
         $builder->add('name', TextType::class, [
             'label' => 'competition.round.form.name',
@@ -83,7 +91,7 @@ final class CompetitionRoundFormType extends AbstractType
             // The offset on the round's own date - in October, Chicago is UTC-5, not the UTC-6 of a January form
             'choice_label' => static function (string $timezone) use ($offsetAt): string {
                 $tz = new \DateTimeZone($timezone);
-                $offset = $tz->getOffset($offsetAt ?? new \DateTimeImmutable('now', $tz));
+                $offset = $tz->getOffset($offsetAt);
                 $hours = intdiv($offset, 3600);
                 $minutes = abs(intdiv($offset % 3600, 60));
                 $utcOffset = sprintf('UTC%+d', $hours) . ($minutes > 0 ? sprintf(':%02d', $minutes) : '');

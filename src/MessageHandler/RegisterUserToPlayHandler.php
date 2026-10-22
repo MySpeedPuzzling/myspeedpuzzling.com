@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
@@ -18,6 +19,7 @@ readonly final class RegisterUserToPlayHandler
     public function __construct(
         private EntityManagerInterface $entityManager,
         private GenerateUniquePlayerCode $generateUniquePlayerCode,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -31,7 +33,7 @@ readonly final class RegisterUserToPlayHandler
             $this->generateUniquePlayerCode->generate(),
             $message->userId,
             $message->name,
-            new \DateTimeImmutable(),
+            $this->clock->now(),
         );
         // Nobody was asked about the newsletter on this path, so no consent
         $player->changeNewsletterEnabled(false);

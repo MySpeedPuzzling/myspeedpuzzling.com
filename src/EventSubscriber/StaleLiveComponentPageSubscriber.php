@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\EventSubscriber;
 
-use Psr\Clock\ClockInterface;
+use DateTimeImmutable;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -74,7 +74,6 @@ final readonly class StaleLiveComponentPageSubscriber implements EventSubscriber
 
     public function __construct(
         private LoggerInterface $logger,
-        private ClockInterface $clock,
     ) {
     }
 
@@ -142,7 +141,8 @@ final readonly class StaleLiveComponentPageSubscriber implements EventSubscriber
         $response->headers->setCookie(
             Cookie::create(self::RELOAD_COOKIE)
                 ->withValue($pagePath)
-                ->withExpires($this->clock->now()->modify('+' . self::RELOAD_GUARD_SECONDS . ' seconds'))
+                // Real time, never the app's clock: the browser expires the cookie on its own clock
+                ->withExpires(new DateTimeImmutable('+' . self::RELOAD_GUARD_SECONDS . ' seconds'))
                 ->withPath('/')
                 ->withSecure($request->isSecure())
                 ->withHttpOnly(true)

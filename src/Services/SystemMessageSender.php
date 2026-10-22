@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
@@ -23,6 +23,7 @@ readonly final class SystemMessageSender
         private MercureNotifier $mercureNotifier,
         private GetConversations $getConversations,
         private LoggerInterface $logger,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -33,7 +34,7 @@ readonly final class SystemMessageSender
     ): void {
         $conversations = $this->conversationRepository->findAllByListItem($sellSwapListItem);
 
-        $now = new DateTimeImmutable();
+        $now = $this->clock->now();
         $affectedPlayerIds = [];
 
         foreach ($conversations as $conversation) {

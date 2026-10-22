@@ -132,7 +132,6 @@ pieces_filter:
 "new_badge": "Nové"
 "secret_puzzler_name": "Utajený Puzzler"
 "right_now": "Právě teď"
-"live_event_strip": "Živě: %event% – přidejte čas a sledujte výsledky"
 
 live_refresh:
     pause: "Pozastavit automatické aktualizace"

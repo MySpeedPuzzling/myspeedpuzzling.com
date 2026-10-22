@@ -445,9 +445,9 @@ Guard tests:
   (`'now'`, `'today'`, `'+…'`, `'first day of…'` …), the call of `time() date() gmdate() strtotime() mktime()
   microtime() hrtime() date_create()` … (lower case, `(` right after the name, not after `->`/`::`/`$`, declarations
   ignored), `Clock::get(`, `new NativeClock/DatePoint`, a bare `'now'` (except as a `:now` parameter name). Templates:
-  `'now'|date`, `date()`, `date('<relative>')`. Allowlist `path => reason`, **38 PHP files**: 19 durations
+  `'now'|date`, `date()`, `date('<relative>')`. Allowlist `path => reason`, **36 PHP files**: 18 durations
   (`microtime(true)`/`hrtime()` in 13 console commands, `ApiUsageSubscriber`, `PredictionEvaluator`,
-  `PredictionModelRecalculator`, `PuzzleIntelligenceRecalculator`, `StudioSpectators` lock deadline), 6 cookie expiries,
+  `PredictionModelRecalculator`, `PuzzleIntelligenceRecalculator`, `StudioSpectators` lock deadline), 5 cookie expiries,
   4 rate-limiter retry-afters, 2 bot-blocker (subscriber + signer), 2 health probes, `AssetLoadFailureClassifier`,
   `GenerateManufacturerSlug` (entropy), `ImprovementRatioCalculator` (parses stored values), `SecretRevealPreview`
   (`'now'` as a hash token), `ClockTwigExtension` (registers `now`). **1 template**: `base.html.twig`

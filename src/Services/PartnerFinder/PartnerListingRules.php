@@ -63,6 +63,34 @@ readonly final class PartnerListingRules
     }
 
     /**
+     * An edit's co-members: the ones the listing had stay while they are still allowed (one who blocked the lister or
+     * went private since drops out quietly - the edit must not get stuck on them), the newly named ones are checked
+     * like coMembers()
+     *
+     * @param list<string> $before the listing's co-member ids
+     * @param list<string> $coMemberIds what the edit names
+     *
+     * @return list<string>
+     *
+     * @throws PartnerListingInvalid
+     */
+    public function editedCoMembers(string $listerId, array $before, array $coMemberIds): array
+    {
+        $before = array_map(strtolower(...), $before);
+        $named = array_values(array_unique(array_filter(
+            array_map(static fn (string $id): string => strtolower(trim($id)), $coMemberIds),
+            static fn (string $id): bool => $id !== '' && $id !== strtolower($listerId),
+        )));
+
+        $kept = array_values(array_intersect($named, $before));
+        $stillAllowed = $kept === [] ? [] : $this->getAllowedPartnerCoMembers->of($listerId, $kept);
+        $added = $this->coMembers($listerId, array_values(array_diff($named, $before)));
+
+        // In the order named
+        return array_values(array_filter($named, static fn (string $id): bool => in_array($id, $stillAllowed, true) || in_array($id, $added, true)));
+    }
+
+    /**
      * Lower case, each once, the lister himself left out - every one must be a player the lister may name.
      *
      * @param list<string> $coMemberIds

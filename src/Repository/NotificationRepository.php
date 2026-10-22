@@ -12,6 +12,7 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\Notification;
+use SpeedPuzzling\Web\Entity\PartnerListing;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\PuzzlingTeam;
@@ -90,6 +91,26 @@ readonly final class NotificationRepository
             ->setParameter('solvingTime', $solvingTime->id)
             ->setParameter('editedBy', $editedBy->id)
             ->setParameter('type', NotificationType::GroupSolvingTimeEdited)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return (int) $count > 0;
+    }
+
+    /**
+     * Told already that this listing named them (PartnerTeamedUp / PartnerGroupMember) - read or not, a person is told once
+     */
+    public function hasPartnerListingNotification(Player $player, PartnerListing $listing, NotificationType $type): bool
+    {
+        $count = $this->entityManager->createQueryBuilder()
+            ->select('COUNT(n.id)')
+            ->from(Notification::class, 'n')
+            ->where('n.player = :player')
+            ->andWhere('n.targetPartnerListing = :listing')
+            ->andWhere('n.type = :type')
+            ->setParameter('player', $player->id)
+            ->setParameter('listing', $listing->id)
+            ->setParameter('type', $type)
             ->getQuery()
             ->getSingleScalarResult();
 

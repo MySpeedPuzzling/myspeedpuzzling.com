@@ -261,6 +261,75 @@ final class PartnerListingHandlersTest extends KernelTestCase
         self::assertSame([], $this->notified(NotificationType::PartnerTeamedUp, PlayerFixture::PLAYER_REGULAR));
     }
 
+    public function testAGroupCountingDownTellsTheSamePartnerOnce(): void
+    {
+        // Michael's group needs 2 more; John (still listed) asked Michael
+        $this->database->executeStatement(
+            "INSERT INTO partner_request (id, listing_id, from_player_id, kind, created_at) VALUES (:id, :listing, :from, 'team', NOW())",
+            ['id' => Uuid::uuid7()->toString(), 'listing' => PartnerFinderFixture::LISTING_FAVORITES_TEAM, 'from' => PlayerFixture::PLAYER_REGULAR],
+        );
+
+        foreach ([1, 2] as $click) {
+            $this->messageBus->dispatch(new ClosePartnerListing(
+                PartnerFinderFixture::LISTING_FAVORITES_TEAM,
+                PlayerFixture::PLAYER_WITH_FAVORITES,
+                PartnerListingClosedReason::Found,
+                teamedUpWith: [PlayerFixture::PLAYER_REGULAR],
+            ));
+        }
+
+        self::assertFalse($this->listingRepository->get(PartnerFinderFixture::LISTING_FAVORITES_TEAM)->isOpen());
+        self::assertSame([PlayerFixture::PLAYER_REGULAR], $this->notified(NotificationType::PartnerTeamedUp, PlayerFixture::PLAYER_WITH_FAVORITES));
+    }
+
+    public function testAnEditDropsACoMemberWhoBlockedTheListerSinceInsteadOfFailing(): void
+    {
+        // The fixture team listing names the admin; the admin blocks Michael afterwards
+        $this->database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_ADMIN, 'blocked' => PlayerFixture::PLAYER_WITH_FAVORITES],
+        );
+
+        $edit = new EditPartnerListing(
+            listingId: PartnerFinderFixture::LISTING_FAVORITES_TEAM,
+            playerId: PlayerFixture::PLAYER_WITH_FAVORITES,
+            groupSize: 2,
+            lookingFor: [PartnerKind::Team],
+            needed: 2,
+            coMemberIds: [PlayerFixture::PLAYER_ADMIN],
+            goal: null,
+            strengths: [],
+            customStrengths: [],
+            languages: ['de'],
+            note: 'Only the note changed',
+        );
+        $this->messageBus->dispatch($edit);
+
+        $listing = $this->listingRepository->get(PartnerFinderFixture::LISTING_FAVORITES_TEAM);
+        self::assertSame('Only the note changed', $listing->note);
+        self::assertSame([], $listing->coMemberIds());
+
+        // Naming somebody new who is not allowed is still refused
+        $this->database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_REGULAR, 'blocked' => PlayerFixture::PLAYER_WITH_FAVORITES],
+        );
+        $refused = $this->refused(new EditPartnerListing(
+            listingId: PartnerFinderFixture::LISTING_FAVORITES_TEAM,
+            playerId: PlayerFixture::PLAYER_WITH_FAVORITES,
+            groupSize: 2,
+            lookingFor: [PartnerKind::Team],
+            needed: 2,
+            coMemberIds: [PlayerFixture::PLAYER_REGULAR],
+            goal: null,
+            strengths: [],
+            customStrengths: [],
+            languages: ['de'],
+            note: null,
+        ));
+        self::assertInstanceOf(PartnerListingInvalid::class, $refused);
+    }
+
     public function testAddedCoMembersAreToldOnce(): void
     {
         $listingId = Uuid::uuid7()->toString();

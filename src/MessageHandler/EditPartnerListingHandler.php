@@ -47,7 +47,7 @@ readonly final class EditPartnerListingHandler
         $strengths = $this->rules->strengths($message->strengths, $message->customStrengths);
         $coMemberIds = $message->coMemberIds === null
             ? $listing->coMemberIds()
-            : $this->rules->coMembers($message->playerId, $message->coMemberIds);
+            : $this->rules->editedCoMembers($message->playerId, $listing->coMemberIds(), $message->coMemberIds);
         $languages = $this->rules->languages($message->languages);
         $newMembers = $this->groupMemberNotifier->newMembers($listing->coMemberIds(), $coMemberIds);
         $now = $this->clock->now();

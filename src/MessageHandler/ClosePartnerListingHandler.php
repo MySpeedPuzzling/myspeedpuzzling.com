@@ -60,9 +60,14 @@ readonly final class ClosePartnerListingHandler
                 static fn (string $candidateId): bool => in_array($candidateId, $named, true),
             );
 
-            // Loaded before anything changes - a handler validates first
+            // Loaded before anything changes - a handler validates first; told once per listing (a group counting down
+            // names the same people again, a resent form too)
             foreach ($candidates as $candidateId) {
-                $teamedUpWith[] = $this->playerRepository->get($candidateId);
+                $candidate = $this->playerRepository->get($candidateId);
+
+                if ($this->notificationRepository->hasPartnerListingNotification($candidate, $listing, NotificationType::PartnerTeamedUp) === false) {
+                    $teamedUpWith[] = $candidate;
+                }
             }
         }
 

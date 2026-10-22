@@ -62,6 +62,8 @@ export default class extends Controller {
                 { field: '$score', direction: 'desc' },
                 { field: '$order', direction: 'asc' },
             ],
+            // TomSelect picks single/multi once, from maxItems - a group of 2 starts with room for 1, so say it
+            mode: 'multi',
             maxItems: this.maxItems(),
             maxOptions: 20,
             create: false,

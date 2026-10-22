@@ -444,7 +444,8 @@ row (`GetPartnerListings`, `PartnerListingRow::$teamUpCandidates`, same statemen
 masked) and the handler's check. The step is a `<details>` panel like the contact one (`_listing_action.html.twig`);
 with no candidate the button closes at once as before. `ClosePartnerListing::$teamedUpWith` - each named candidate gets
 a `PartnerTeamedUp` notification (actor = the owner, `notification.target_partner_listing_id` = the owner's listing);
-anybody else is ignored. **Never closed for them** (Jan asked whether it could be automatic): one click by the other
+anybody else is ignored; each person is told once per listing (a group counting down names the same people again -
+`NotificationRepository::hasPartnerListingNotification()`). **Never closed for them** (Jan asked whether it could be automatic): one click by the other
 person would silently take somebody's listing down - a mistaken pick, a pair partner who still looks for a team. The
 notification says "still listed there? close yours" only while the reader has an open listing at the event
 (`partner_reader_listed`, computed in `GetNotifications`) and links to the finder.
@@ -453,7 +454,9 @@ notification says "still listed there? close yours" only while the reader has an
 `partner_co_members_controller.js` - TomSelect over the add form's suggestions (`my_co_puzzlers`: favorites first, then
 co-puzzlers) and the player search (`player_search_autocomplete?format=co-puzzler`), registered players only, never the
 viewer, at most "group size - 1" (shrinking the group drops the last picks). Without JavaScript the field keeps what the
-listing has. Prefill = `GetAllowedPartnerCoMembers::choices()` (the same rule as the check, no query without ids). Each
+listing has. The picker is always TomSelect's multi mode (it fixes the mode from `maxItems` once - a group of 2 would
+start single). An edit checks only newly named co-members (`PartnerListingRules::editedCoMembers()`); one already on
+the listing who blocked the lister or went private since drops out quietly instead of making every edit fail. Prefill = `GetAllowedPartnerCoMembers::choices()` (the same rule as the check, no query without ids). Each
 newly added co-member gets a `PartnerGroupMember` notification - once, an edit that keeps them tells nobody
 (`PartnerGroupMemberNotifier`, players loaded before anything changes).
 

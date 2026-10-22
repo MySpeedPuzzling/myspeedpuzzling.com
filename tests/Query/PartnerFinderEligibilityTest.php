@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetMarketplaceEvents;
 use SpeedPuzzling\Web\Query\PartnerFinderEligibility;
+use SpeedPuzzling\Web\Results\PartnerFinderOffer;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\MarketplaceEventFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
@@ -31,16 +32,22 @@ final class PartnerFinderEligibilityTest extends KernelTestCase
 
     public function testTheFixtureEventOffersPairsAndTeamsOfFour(): void
     {
-        self::assertTrue($this->eligibility->qualifies(PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN));
-
         $offer = $this->eligibility->qualifyingOffer(PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN);
         self::assertNotNull($offer);
         self::assertSame([PartnerKind::Pair, PartnerKind::Team], $offer->kinds);
         self::assertSame(4, $offer->teamSize);
+    }
 
-        $kinds = $this->eligibility->offeredKinds(PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN);
-        self::assertSame([PartnerKind::Pair, PartnerKind::Team], $kinds->kinds);
-        self::assertSame(4, $kinds->teamSize);
+    public function testAnEventWithoutASlugHasNoFinder(): void
+    {
+        // The finder pages live under the slug (PartnerFinderUrls) - an old event without one never gets a finder
+        $this->database->executeStatement('UPDATE competition SET slug = NULL WHERE id = :id', ['id' => PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN]);
+
+        self::assertNull($this->eligibility->qualifyingOffer(PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN));
+
+        $event = self::getContainer()->get(GetCompetitionEvents::class)->byId(PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN);
+        self::assertNull($event->slug);
+        self::assertFalse($this->eligibility->mightQualify($event, [RoundCategory::Duo]));
     }
 
     public function testAnEventWithoutRoundsOffersBoth(): void
@@ -52,18 +59,15 @@ final class PartnerFinderEligibilityTest extends KernelTestCase
         self::assertNull($offer->teamSize);
     }
 
-    public function testAPastEventHasNoFinderButItsRoundsStillTell(): void
+    public function testAPastEventHasNoFinder(): void
     {
         // Results Cup: past, solo rounds and pair rounds
-        self::assertFalse($this->eligibility->qualifies(OfficialResultsFixture::COMPETITION_RESULTS_CUP));
         self::assertNull($this->eligibility->qualifyingOffer(OfficialResultsFixture::COMPETITION_RESULTS_CUP));
-        self::assertSame([PartnerKind::Pair], $this->eligibility->offeredKinds(OfficialResultsFixture::COMPETITION_RESULTS_CUP)->kinds);
     }
 
     public function testInvalidIdsQualifyForNothing(): void
     {
-        self::assertFalse($this->eligibility->qualifies('not-a-uuid'));
-        self::assertSame([], $this->eligibility->offeredKinds('not-a-uuid')->kinds);
+        self::assertNull($this->eligibility->qualifyingOffer('not-a-uuid'));
     }
 
     public function testThePlayerInAPairEntryIsEntered(): void
@@ -83,7 +87,7 @@ final class PartnerFinderEligibilityTest extends KernelTestCase
 
     /**
      * The PHP pre-check never says "no" to an event the SQL rule takes, and the rule is the marketplace rule plus
-     * "offers a pair or a team" - over every fixture event.
+     * "has a slug" plus "offers a pair or a team" - over every fixture event.
      */
     public function testThePreCheckNeverMissesAQualifyingEvent(): void
     {
@@ -102,13 +106,16 @@ final class PartnerFinderEligibilityTest extends KernelTestCase
                 ->fetchFirstColumn();
             $roundCategories = array_map(RoundCategory::from(...), $categories);
 
-            $qualifies = $this->eligibility->qualifies($id);
-            $mightQualify = $this->eligibility->mightQualify($getCompetitionEvents->byId($id), $roundCategories);
+            $event = $getCompetitionEvents->byId($id);
+            $qualifies = $this->eligibility->qualifyingOffer($id) !== null;
+            $mightQualify = $this->eligibility->mightQualify($event, $roundCategories);
 
             self::assertSame(
-                $getMarketplaceEvents->qualifies($id) && $this->eligibility->offeredKinds($id)->offersAny(),
+                $getMarketplaceEvents->qualifies($id)
+                    && $event->slug !== null
+                    && PartnerFinderOffer::fromRoundCategories($roundCategories)->offersAny(),
                 $qualifies,
-                'SQL_QUALIFIES = marketplace event offering a pair or a team: ' . $id,
+                'SQL_QUALIFIES = marketplace event with a slug offering a pair or a team: ' . $id,
             );
 
             if ($qualifies) {

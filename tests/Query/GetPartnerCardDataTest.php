@@ -84,7 +84,7 @@ final class GetPartnerCardDataTest extends KernelTestCase
         self::assertSame([PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_REGULAR], self::faceIds($data));
     }
 
-    public function testAPlayerTheViewerBlocksHasNoFaceButIsCountedAndTheirRequestIsNotCounted(): void
+    public function testAPlayerTheViewerBlocksIsNeitherAFaceNorCountedAndTheirRequestIsNotCounted(): void
     {
         $this->block(PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_WITH_FAVORITES);
 
@@ -92,8 +92,8 @@ final class GetPartnerCardDataTest extends KernelTestCase
         $data = $this->forViewer(PlayerFixture::PLAYER_ADMIN);
 
         self::assertSame([PlayerFixture::PLAYER_REGULAR], self::faceIds($data));
-        // Aggregates are deliberately unfiltered (docs/features/player-blocklist.md)
-        self::assertSame(2, $data->listingCount);
+        // The count agrees with the finder page's rows, which hide listers both ways
+        self::assertSame(1, $data->listingCount);
 
         $this->block(PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_STRIPE);
         TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_REGULAR);
@@ -101,6 +101,22 @@ final class GetPartnerCardDataTest extends KernelTestCase
         self::assertSame(0, $this->forViewer(PlayerFixture::PLAYER_REGULAR)->ownRequestsCount, 'a request of a hidden sender');
 
         TestingViewer::signOut(self::getContainer());
+    }
+
+    public function testAListerWhoBlocksTheViewerIsNeitherAFaceNorCounted(): void
+    {
+        // Without this the blocked viewer would see the blocker's face and a count one higher than the finder page's rows
+        $this->block(PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_ADMIN);
+
+        $data = $this->forViewer(PlayerFixture::PLAYER_ADMIN);
+
+        self::assertSame([PlayerFixture::PLAYER_REGULAR], self::faceIds($data));
+        self::assertSame(1, $data->listingCount);
+
+        // Everybody else still sees them
+        $other = $this->forViewer(PlayerFixture::PLAYER_WITH_STRIPE);
+        self::assertSame([PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_REGULAR], self::faceIds($other));
+        self::assertSame(2, $other->listingCount);
     }
 
     public function testAPrivatePlayerHiddenFromTheViewerHasNoFaceUnlessTheAllowListRevealsThem(): void

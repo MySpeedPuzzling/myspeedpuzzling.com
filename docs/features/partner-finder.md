@@ -59,9 +59,10 @@ closed_at IS NULL`; `custom_partner_listing_open_by_event` `(competition_id) WHE
 
 - Values: `PartnerKind`, `PartnerGoal`, `PartnerStrength`, `PartnerListingClosedReason`.
 - Eligibility: `Query\PartnerFinderEligibility` - `SQL_QUALIFIES` (in person, dated, not over, publicly visible incl.
-  drafts rule - built on `GetMarketplaceEvents::SQL_QUALIFIES`) + "offers pair or team" (`EXISTS` duo/team round, or no
-  rounds at all); `offeredKinds(competitionId)`; PHP pre-check `mightQualify(...)` that needs no query (like
-  `JoinCompetitionController::mightBeMarketplaceEvent`), pinned by a test against the SQL.
+  drafts rule - built on `GetMarketplaceEvents::SQL_QUALIFIES`) + has a slug (the finder pages live under it) + "offers
+  pair or team" (`EXISTS` duo/team round, or no rounds at all); `qualifyingOffer(competitionId)`; PHP pre-check
+  `mightQualify(...)` that needs no query (like `JoinCompetitionController::mightBeMarketplaceEvent`), pinned by a test
+  against the SQL.
 - Going: `Services\PartnerFinder\PartnerFinderAttendance::ensureGoing(Competition, Player)` - plain events: the same
   effect as `JoinCompetitionHandler` self-join (shared code, no nested dispatch); managed registration: nothing. Callers
   are `SerializedByLock` on `CompetitionParticipantsLock`.
@@ -169,17 +170,17 @@ What the parts can rely on. Migration `Version20261022172651`; fixtures in `.cla
 `trans(TranslatorInterface)`. Attach it to the form field named by `$field`.
 
 **`Query\PartnerFinderEligibility`**
-- `SQL_QUALIFIES` = `GetMarketplaceEvents::SQL_QUALIFIES` AND `SQL_OFFERS_PAIR_OR_TEAM` (aliases `c` + `cs` LEFT JOINed on
-  `cs.id = c.series_id`; binds `:marketplace_today` - pass `todayParameter()`).
+- `SQL_QUALIFIES` = `GetMarketplaceEvents::SQL_QUALIFIES` AND `SQL_HAS_SLUG` (`c.slug IS NOT NULL` - an old event without a
+  slug has no finder, so `PartnerFinderUrls::finder()/event()` never meet a null slug) AND `SQL_OFFERS_PAIR_OR_TEAM`
+  (aliases `c` + `cs` LEFT JOINed on `cs.id = c.series_id`; binds `:marketplace_today` - pass `todayParameter()`).
 - `todayParameter(): array{marketplace_today: string}`
 - `static sqlPlayerEntered(string $competitionIdSql, string $playerIdSql): string` - `EXISTS` a not deleted
   `competition_participant` of the player with a `competition_participant_round.team_id IS NOT NULL`.
 - `mightQualify(CompetitionEvent $competition, list<RoundCategory> $roundCategories): bool` - no query; false = never a
-  finder (online, undated, over, draft, rejected, unapproved one-time event, all rounds solo). The event pages already
+  finder (online, undated, slugless, over, draft, rejected, unapproved one-time event, all rounds solo). The event pages already
   load their rounds (`EditionRoundDetail::$category`). Pinned against the SQL by `PartnerFinderEligibilityTest`.
-- `qualifies(string $competitionId): bool`
-- `offeredKinds(string $competitionId): Results\PartnerFinderOffer` - by the rounds alone, qualifying or not.
-- `qualifyingOffer(string $competitionId): ?Results\PartnerFinderOffer` - both in one statement, null = no finder.
+- `qualifyingOffer(string $competitionId): ?Results\PartnerFinderOffer` - what the rounds offer, null = no finder (the
+  foundation's `qualifies()` / `offeredKinds()` had no caller and were removed).
 - `Results\PartnerFinderOffer`: `list<PartnerKind> $kinds` (PartnerKind order), `?int $teamSize` (largest `team_size` of the
   team rounds, null when none set or no team kind), `offersAny()`, `offers(PartnerKind)`, static
   `fromRoundCategories(list<RoundCategory>, ?int $teamSize = null)` ([] = no rounds = both kinds).
@@ -221,9 +222,12 @@ key `partner_finder.events_tag.looking`, style `.ev-tag-partner_listings`). Stat
 template variable `partner_finder`: `null|Results\PartnerFinderCard`):
 - not public or `PartnerFinderEligibility::mightQualify()` false → null, no query, no button, no card;
 - guest → card object without data: the plain "Find a partner" link, no count, no query;
-- signed in → `Query\GetPartnerCardData::forViewer()` - ONE statement: open listings count (unfiltered aggregate), up to
-  4 faces newest first (viewer's hidden players out via `HiddenPlayers::sqlExclude()` inside the limited subquery,
-  private players hidden from the viewer out via `PrivateProfileAccess::sqlIsPrivate()`, never the viewer), the viewer's
+- signed in → `Query\GetPartnerCardData::forViewer()` - ONE statement: open listings count and up to 4 faces newest first,
+  both **agreeing with the finder page**: listers hidden both ways (`HiddenPlayers::sqlExclude()` + "the lister blocks
+  the viewer", inside the limited subquery) - otherwise a blocked viewer would see the blocker's face and a count one
+  higher than the page's rows; private players hidden from the viewer are counted but get no face
+  (`PrivateProfileAccess::sqlIsPrivate()`), never the viewer. Only the agenda tag on `/en/events`
+  (`GetEventGoingCounts`) stays an unfiltered aggregate, like "N going"; the viewer's
   own open listing (kinds, group size, needed, requests received minus hidden senders), `sqlPlayerEntered()`, and the
   closed card (`EXISTS` on `dismissed_hint` for `HintType::PartnerFinderCard` - the pages had no `IsHintDismissed` call
   to share). `SQL_QUALIFIES` in the `WHERE`: null = no finder at all.
@@ -278,14 +282,16 @@ shared in `Services\PartnerFinder\PartnerListingRules`: the event qualifies (`qu
 the lister on their allow list - else `FIELD_CO_MEMBERS`), languages (`Symfony\Component\Intl\Languages::exists()`, two
 letters). **Decisions**: the same listing id again = no-op (a resent form); "List me" with another id while an open
 listing exists **edits the open one** (two tabs, an old form - the newest values win) instead of failing on the unique
-index. Both throw `PartnerListingInvalid` (unwrapped by `UnwrapHttpExceptionMiddleware`) - catch it directly.
+index; the id of the player's own listing **closed meanwhile** (an edit form posted after "Found my partner" in another
+tab or an auto-close) lists them afresh with a **new id** - the old one stays closed with its reason, and "You're
+listed" is true. Both throw `PartnerListingInvalid` (unwrapped by `UnwrapHttpExceptionMiddleware`) - catch it directly.
 
 **Read model** `Query\GetPartnerListings` (statement counts pinned by `PartnerFinderQueryBudgetTest`: guest 2 = the event
 by slug + the teaser; signed in 6 = the event + the listings + the 4 statements of every signed-in request):
 - `forEvent(string $competitionId, string $viewerId, bool $viewerIsMember): ?Results\PartnerListings` - ONE statement:
   `event` CTE (`PartnerFinderEligibility::SQL_QUALIFIES` + the rounds' categories/team size) → `listing` CTE (open,
   `HiddenPlayers::sqlExclude()` + "the lister blocks the viewer", `PrivateProfileAccess::sqlIsPrivate()` as
-  `private_to_viewer`, own first then newest, `LIMIT 100`, `COUNT(*) OVER ()` = `totalOpen`) → joins
+  `private_to_viewer` - never for the viewer's own row nor the viewer as a co-member -, own first then newest, `LIMIT 100`, `COUNT(*) OVER ()` = `totalOpen`) → joins
   `community_player_stats` (best 500/1000, solved - NULL for a masked private player), `player_elo` 500 (NULL when opted
   out), `player_skill` 500 **only for members** (else `NULL` and the table is not joined), registered (the going rule,
   managed registration only), `sent` (EXISTS), `requests_count` (own row only), co-members as JSON (masked/blocked left
@@ -349,21 +355,28 @@ sender's profile is public; languages of the sender's own open listing at the ev
 
 **Unsubscribe + settings** - `Services\PartnerFinder\PartnerFinderEmailsUnsubscribeUrl` (signed, never expires) →
 `partner_finder_emails_unsubscribe` `/{_locale}/partner-finder-emails/unsubscribe/{playerId}` (GET page, POST switches
-off; one-click POST = plain 200) → `ChangePartnerFinderEmails(playerId, enabled)`. The edit-profile "Messaging &
-Notifications" form has the `partnerFinderEmails` checkbox (`partner_finder.settings.*`); the controller dispatches
-`ChangePartnerFinderEmails` only when it changed. `PlayerProfile::$partnerFinderEmails` rides on `GetPlayerProfile`.
+off; one-click POST = plain 200) → `ChangePartnerFinderEmails(playerId, enabled)` (its only sender). The edit-profile
+"Messaging & Notifications" form has the `partnerFinderEmails` checkbox (`partner_finder.settings.*`), saved by the
+form's one message `EditMessagingSettings::$partnerFinderEmails` (null = keep). `PlayerProfile::$partnerFinderEmails` rides on `GetPlayerProfile`.
 
 **Notification** - `GetNotifications` has a `PartnerRequest` branch (+7 NULL columns on every other branch): who asks as
 `targetPlayer*` (`PrivateProfileAccess::sqlIsPrivate('actor')` decides only the profile link - the name is always shown),
-`HiddenPlayers` on the actor (also in the unread count), kind, note, replied, event name + slugs.
+`HiddenPlayers` on the actor (also in the unread count), kind, note, replied, event name + slugs. Requests received are
+bilateral history, filtered by the owner's own blocks only - the same rule on the card's and the finder row's "N got in
+touch" and in this list; a sender who blocks the owner later stays there (removing it would be the tell), Reply refuses
+neutrally.
 `PlayerNotification::isPartnerRequestNotification()`; `notifications.html.twig` row: text, note, "See the listings"
 (Twig `partner_finder_url(slug, seriesSlug)`), a Reply / Open chat POST button.
 
 **Reply** - `partner_request_reply` `/{_locale}/partners/request/{requestId}/reply`: GET = the request page for the
 listing's owner (404 for anybody else - the e-mail lands here, mail scanners never reply), POST (CSRF `partner_request`)
-→ `ReplyToPartnerRequest(requestId, playerId, locale)` → handler: owner only (`PartnerRequestNotFound` otherwise),
-`markReplied()`, nested `StartConversation(..., partnerRequestId:)` with `partner_finder.request.reply_message` in the
-replier's page language; replying again after the chat exists does nothing → redirect to `conversation_detail`.
+→ `ReplyToPartnerRequest(requestId, playerId, locale)` → handler: owner only (`PartnerRequestNotFound` otherwise);
+checked before anything changes: the replier's messaging muted → `MessagingMuted` (flash `.reply_muted`), a block either
+way since the request → `Exceptions\PartnerReplyNotPossible` (no chat; neutral flash `.reply_unavailable`, never why);
+then the nested `StartConversation(..., partnerRequestId:)` with `partner_finder.request.reply_message` in the replier's
+page language, and only after it `markReplied()`; replying again after the chat exists does nothing → redirect to
+`conversation_detail`. Any other failure bubbles (500, Sentry). A failed CSRF check on send / close / reply changes
+nothing and says `partner_finder.listing.flash_expired`.
 **The bypass**: `StartConversation::$partnerRequestId` (new, last named argument). `StartConversationHandler` loads the
 request and throws `PartnerRequestNotFound` unless initiator = listing owner and recipient = request sender; only then
 the `allowDirectMessages` check is skipped. The chat is **accepted from the start** (the asker asked first): an existing

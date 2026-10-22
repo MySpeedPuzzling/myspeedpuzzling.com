@@ -20,9 +20,12 @@ use SpeedPuzzling\Web\Value\PartnerKind;
  * the card (HintType::PartnerFinderCard). Null when the event has no partner finder (PartnerFinderEligibility, drafts
  * and every other non-public event included). Guests never run it - they get a plain link.
  *
- * Privacy: the count is an aggregate (like "N going") and stays unfiltered. The faces leave out the players the viewer
- * has hidden (HiddenPlayers, inside the ranked subquery, before the LIMIT) and private players hidden from the viewer
- * (PrivateProfileAccess) - their listing is counted, they get no face. The requests count leaves out hidden senders.
+ * Privacy: the card agrees with the finder page (GetPartnerListings) - blocks hide listers both ways, so the count and
+ * the faces leave out the listers the viewer has hidden (HiddenPlayers) and the listers who block the viewer (a blocked
+ * viewer must not see a count one higher than the page's rows). Private players hidden from the viewer
+ * (PrivateProfileAccess) are counted - the page lists them masked - but get no face. The requests count leaves out the
+ * senders the viewer has hidden, like the page's "N got in touch" and the notification list. Only the agenda tag on
+ * /en/events (GetEventGoingCounts) stays an unfiltered aggregate, like "N going".
  *
  * @phpstan-import-type PartnerCardFaceJsonRow from PartnerCardFace
  */
@@ -46,6 +49,7 @@ readonly final class GetPartnerCardData
 
         $qualifies = PartnerFinderEligibility::SQL_QUALIFIES;
         $entered = PartnerFinderEligibility::sqlPlayerEntered('c.id', ':viewerId');
+        $hiddenListers = $this->hiddenPlayers->sqlExclude('open_listing.player_id');
         $hiddenFaces = $this->hiddenPlayers->sqlExclude('face_player.id');
         $hiddenSenders = $this->hiddenPlayers->sqlExclude('own_request.from_player_id');
         $privateFace = $this->privateProfileAccess->sqlIsPrivate('face_player');
@@ -59,7 +63,8 @@ SELECT
         SELECT COUNT(*)
         FROM partner_listing open_listing
         WHERE open_listing.competition_id = c.id
-            AND open_listing.closed_at IS NULL
+            AND open_listing.closed_at IS NULL{$hiddenListers}
+            AND NOT EXISTS (SELECT 1 FROM user_block lister_block WHERE lister_block.blocker_id = open_listing.player_id AND lister_block.blocked_id = :viewerId)
     ) AS listing_count,
     (
         SELECT json_agg(json_build_object(
@@ -83,6 +88,7 @@ SELECT
                 AND face_listing.closed_at IS NULL
                 AND face_listing.player_id <> :viewerId
                 AND NOT {$privateFace}{$hiddenFaces}
+                AND NOT EXISTS (SELECT 1 FROM user_block face_block WHERE face_block.blocker_id = face_listing.player_id AND face_block.blocked_id = :viewerId)
             ORDER BY face_listing.created_at DESC, face_listing.id DESC
             LIMIT {$faces}
         ) face

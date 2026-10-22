@@ -49,7 +49,7 @@ final class ClosePartnerListingController extends AbstractController
         $viewer = $this->retrieveLoggedUserProfile->getProfile();
 
         if ($viewer === null) {
-            return $this->redirectToRoute('my_profile');
+            return $this->redirectToRoute('login');
         }
 
         $listing = $this->partnerListingRepository->get($listingId);

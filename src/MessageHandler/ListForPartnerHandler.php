@@ -25,7 +25,10 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * the listing is saved and the player marked going on a plain event (D2) - in the same transaction, under the event's
  * participants lock.
  *
- * - The same listing id again (a resent form) changes nothing.
+ * - The same listing id again (a resent form) changes nothing while that listing is open.
+ * - The id of the player's own listing that was closed meanwhile (an edit form posted after "Found my partner" in
+ *   another tab, the event's or the player's auto-close): a fresh open listing with a new id - the old one stays closed
+ *   with its reason, which the player may not know about; the values just posted are what they want listed.
  * - One open listing per player and event: a second "List me" with another id (two tabs, an old form) edits the open
  *   listing instead of failing on custom_partner_listing_one_open - the newest values win, like a second Save would.
  */
@@ -51,7 +54,9 @@ readonly final class ListForPartnerHandler
      */
     public function __invoke(ListForPartner $message): void
     {
-        if ($this->savedAlready($message)) {
+        $sameId = $this->ownListingWithTheId($message);
+
+        if ($sameId !== null && $sameId->isOpen()) {
             return;
         }
 
@@ -82,7 +87,7 @@ readonly final class ListForPartnerHandler
             );
         } else {
             $this->listingRepository->save(new PartnerListing(
-                id: Uuid::fromString($message->listingId),
+                id: $sameId === null ? Uuid::fromString($message->listingId) : Uuid::uuid7(),
                 competition: $competition,
                 player: $player,
                 groupSize: $message->groupSize,
@@ -101,9 +106,11 @@ readonly final class ListForPartnerHandler
     }
 
     /**
+     * The player's own listing that already has the message's id - null when the id is new
+     *
      * @throws PartnerListingNotFound an id of somebody else's listing
      */
-    private function savedAlready(ListForPartner $message): bool
+    private function ownListingWithTheId(ListForPartner $message): null|PartnerListing
     {
         if (Uuid::isValid($message->listingId) === false) {
             throw new PartnerListingNotFound();
@@ -112,13 +119,13 @@ readonly final class ListForPartnerHandler
         try {
             $listing = $this->listingRepository->get($message->listingId);
         } catch (PartnerListingNotFound) {
-            return false;
+            return null;
         }
 
         if ($listing->player->id->toString() !== strtolower($message->playerId)) {
             throw new PartnerListingNotFound();
         }
 
-        return true;
+        return $listing;
     }
 }

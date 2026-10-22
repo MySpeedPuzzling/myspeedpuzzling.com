@@ -30,6 +30,7 @@ use Symfony\Component\DomCrawler\Crawler;
 final class BlocklistCanaryTest extends WebTestCase
 {
     private const string BLOCKER = PlayerFixture::PLAYER_WITH_FAVORITES;
+    private const string BLOCKER_NAME = PlayerFixture::PLAYER_WITH_FAVORITES_NAME;
     private const string BLOCKED = PlayerFixture::PLAYER_WITH_STRIPE;
     private const string BLOCKED_NAME = PlayerFixture::PLAYER_WITH_STRIPE_NAME;
     private const string BYSTANDER = PlayerFixture::PLAYER_ADMIN;
@@ -198,6 +199,46 @@ final class BlocklistCanaryTest extends WebTestCase
         $content = (string) $browser->getResponse()->getContent();
         self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is shown a player they blocked.');
         self::assertStringNotContainsString(self::BLOCKED_NAME, $content, 'The blocker is shown a player they blocked.');
+    }
+
+    /**
+     * The other direction on the event page (docs/features/partner-finder.md D5): the card agrees with the finder page,
+     * which hides the listing of whoever blocks the viewer - so the blocked viewer gets neither the blocker's face nor a
+     * count one higher than the rows they can see there
+     */
+    public function testBlockedViewerSeesNeitherFaceNorCountOfTheBlockerOnThePartnerCard(): void
+    {
+        $browser = self::createClient();
+        $eventUrl = '/en/events/' . PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN_SLUG;
+        $finderUrl = $eventUrl . '/partners';
+        $blockersListing = 'partner-listing-row-' . PartnerFinderFixture::LISTING_FAVORITES_TEAM;
+
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+
+        // Two open listings: PLAYER_REGULAR's pair and the blocker's team
+        TestingLogin::asPlayer($browser, self::BYSTANDER);
+        $crawler = $browser->request('GET', $eventUrl);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(self::BLOCKER_NAME, $crawler->filter('[data-testid="partner-card"]')->html(), 'No canary: the blocker is no face on the card.');
+        self::assertSame('2', trim($crawler->filter('.pf-find-count')->text()), 'No canary: the count is not shown.');
+
+        TestingLogin::asPlayer($browser, self::BLOCKED);
+        $crawler = $browser->request('GET', $eventUrl);
+        self::assertResponseIsSuccessful();
+        $card = $crawler->filter('[data-testid="partner-card"]');
+        self::assertCount(1, $card);
+        self::assertStringNotContainsString(self::BLOCKER_NAME, $card->html(), 'The blocked viewer is shown the face of who blocks them.');
+        self::assertCount(1, $card->filter('.pf-card-face'), 'only the other listed puzzler');
+        self::assertSame('1', trim($crawler->filter('.pf-find-count')->text()), 'The count tells the blocked viewer about a listing they cannot see.');
+
+        $browser->request('GET', $finderUrl);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString($blockersListing, $content, 'The blocked viewer is shown the listing of who blocks them.');
+        self::assertStringContainsString('partner-listing-row-' . PartnerFinderFixture::LISTING_REGULAR_PAIR, $content);
     }
 
     /**

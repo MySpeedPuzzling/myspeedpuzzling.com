@@ -121,6 +121,42 @@ final class SendPartnerRequestHandlerTest extends KernelTestCase
         $this->send(PlayerFixture::PLAYER_ADMIN, PartnerFinderFixture::LISTING_REGULAR_PAIR, PartnerKind::Team);
     }
 
+    public function testAnEventThatStoppedQualifyingRefusesTheRequest(): void
+    {
+        // The listing is still open, but the event is over now (the daily cron has not closed it yet)
+        $this->connection->executeStatement(
+            "UPDATE competition SET date_from = CURRENT_DATE - 3, date_to = CURRENT_DATE - 2 WHERE id = :id",
+            ['id' => PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN],
+        );
+
+        try {
+            $this->send(PlayerFixture::PLAYER_ADMIN, PartnerFinderFixture::LISTING_REGULAR_PAIR, PartnerKind::Pair);
+            self::fail('An event without a finder any more must refuse the request');
+        } catch (PartnerRequestNotPossible) {
+        }
+
+        self::assertSame(0, $this->requestCount(PlayerFixture::PLAYER_ADMIN));
+        self::assertSame(0, $this->notificationCount());
+        self::assertSame([], $this->connections(PlayerFixture::PLAYER_ADMIN));
+    }
+
+    public function testOnAManagedRegistrationEventTheSenderIsNotJoinedButTheRequestIsSaved(): void
+    {
+        // Pairs often cannot register without a partner (D2) - asking takes no spot and joins nobody
+        $this->connection->executeStatement(
+            'UPDATE competition SET registration_managed = true WHERE id = :id',
+            ['id' => PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN],
+        );
+        $requestId = Uuid::uuid7()->toString();
+
+        $this->send(PlayerFixture::PLAYER_ADMIN, PartnerFinderFixture::LISTING_REGULAR_PAIR, PartnerKind::Pair, null, $requestId);
+
+        self::assertSame(1, $this->requestCount(PlayerFixture::PLAYER_ADMIN));
+        self::assertSame(1, $this->notificationCount());
+        self::assertSame([$requestId], $this->queuedEmails());
+        self::assertSame([], $this->connections(PlayerFixture::PLAYER_ADMIN), 'No participant row on a managed registration');
+    }
+
     public function testListedPuzzlerBlockingTheSenderMeansNothingIsSentAndNothingIsSaid(): void
     {
         // PLAYER_REGULAR blocks PLAYER_PRIVATE (UserBlockFixture)

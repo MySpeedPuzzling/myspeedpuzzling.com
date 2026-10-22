@@ -19,7 +19,6 @@ use SpeedPuzzling\Web\FormType\MessagingSettingsFormType;
 use SpeedPuzzling\Web\FormType\PlayerCodeFormType;
 use SpeedPuzzling\Web\FormType\PlayerVisibilityFormType;
 use SpeedPuzzling\Web\Message\EditFeaturesOptions;
-use SpeedPuzzling\Web\Message\ChangePartnerFinderEmails;
 use SpeedPuzzling\Web\Message\EditMessagingSettings;
 use SpeedPuzzling\Web\Message\EditPlayerCode;
 use SpeedPuzzling\Web\Message\EditPlayerVisibility;
@@ -184,12 +183,9 @@ final class EditProfileController extends AbstractController
                     $messagingSettingsFormData->resultEmailsEnabled,
                     $xpSurfacesVisible ? $messagingSettingsFormData->contentDigestFrequency : null,
                     $messagingSettingsFormData->featureRequestEmails,
+                    $messagingSettingsFormData->partnerFinderEmails,
                 )
             );
-
-            if ($messagingSettingsFormData->partnerFinderEmails !== $player->partnerFinderEmails) {
-                $this->messageBus->dispatch(new ChangePartnerFinderEmails($player->playerId, $messagingSettingsFormData->partnerFinderEmails));
-            }
 
             $this->addFlash('success', $this->translator->trans('flashes.profile_saved'));
 

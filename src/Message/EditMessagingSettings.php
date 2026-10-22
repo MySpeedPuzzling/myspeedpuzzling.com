@@ -21,6 +21,8 @@ readonly final class EditMessagingSettings
         public null|ContentDigestFrequency $contentDigestFrequency = null,
         /** Null = not on the form, keep the stored preference */
         public null|FeatureRequestEmails $featureRequestEmails = null,
+        /** Null = not on the form, keep the stored preference (docs/features/partner-finder.md D6) */
+        public null|bool $partnerFinderEmails = null,
     ) {
     }
 }

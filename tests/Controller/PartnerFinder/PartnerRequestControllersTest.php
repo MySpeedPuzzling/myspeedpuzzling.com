@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller\PartnerFinder;
 
 use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\ConversationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -78,6 +79,65 @@ final class PartnerRequestControllersTest extends WebTestCase
         );
 
         $this->assertResponseRedirects('/en/messages/' . ConversationFixture::CONVERSATION_PENDING, 303);
+    }
+
+    public function testAReplyToAnAskerWhoBlocksTheOwnerSinceOpensNoChatAndSaysNothingMore(): void
+    {
+        $browser = self::createClient();
+        $connection = $browser->getContainer()->get(Connection::class);
+
+        // PLAYER_WITH_STRIPE asked, then blocked the listed puzzler
+        $connection->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_WITH_STRIPE, 'blocked' => PlayerFixture::PLAYER_REGULAR],
+        );
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $url = '/en/partners/request/' . PartnerFinderFixture::REQUEST_STRIPE_TO_REGULAR . '/reply';
+        $browser->request('POST', $url, ['_token' => 'csrf-token'], server: ['HTTP_ORIGIN' => self::SAME_ORIGIN]);
+
+        $this->assertResponseRedirects($url, 303);
+        self::assertSame(['warning' => ["This request can't be answered with a chat any more."]], $this->flashes($browser));
+        self::assertSame('pending', $connection->fetchOne('SELECT status FROM conversation WHERE id = :id', ['id' => ConversationFixture::CONVERSATION_PENDING]));
+        self::assertNull($connection->fetchOne('SELECT replied_at FROM partner_request WHERE id = :id', ['id' => PartnerFinderFixture::REQUEST_STRIPE_TO_REGULAR]));
+    }
+
+    public function testAFailedCsrfCheckChangesNothing(): void
+    {
+        $browser = self::createClient();
+        $connection = $browser->getContainer()->get(Connection::class);
+        // Sec-Fetch-Site decides alone - an Origin header would lose to the Referer the test browser sends along
+        $crossOrigin = ['HTTP_SEC_FETCH_SITE' => 'cross-site', 'HTTP_ORIGIN' => 'https://evil.example'];
+
+        // Send
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $browser->request('POST', '/en/partners/listing/' . PartnerFinderFixture::LISTING_REGULAR_PAIR . '/request', [
+            '_token' => 'csrf-token',
+            'kind' => 'pair',
+            'return' => self::RETURN_PATH,
+        ], server: $crossOrigin);
+        $this->assertResponseRedirects(self::RETURN_PATH, 303);
+        self::assertSame(0, $connection->fetchOne('SELECT COUNT(*) FROM partner_request WHERE from_player_id = :id', ['id' => PlayerFixture::PLAYER_ADMIN]));
+        self::assertSame(0, $connection->fetchOne(
+            'SELECT COUNT(*) FROM competition_participant WHERE competition_id = :competition AND player_id = :player',
+            ['competition' => PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN, 'player' => PlayerFixture::PLAYER_ADMIN],
+        ));
+
+        // Close
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $browser->request('POST', '/en/partners/listing/' . PartnerFinderFixture::LISTING_REGULAR_PAIR . '/close', [
+            '_token' => 'csrf-token',
+            'reason' => 'found',
+            'return' => self::RETURN_PATH,
+        ], server: $crossOrigin);
+        $this->assertResponseRedirects(self::RETURN_PATH, 303);
+        self::assertNull($connection->fetchOne('SELECT closed_at FROM partner_listing WHERE id = :id', ['id' => PartnerFinderFixture::LISTING_REGULAR_PAIR]));
+
+        // Reply
+        $browser->request('POST', '/en/partners/request/' . PartnerFinderFixture::REQUEST_STRIPE_TO_REGULAR . '/reply', ['_token' => 'csrf-token'], server: $crossOrigin);
+        $this->assertResponseRedirects('/en/partners/request/' . PartnerFinderFixture::REQUEST_STRIPE_TO_REGULAR . '/reply', 303);
+        self::assertSame('pending', $connection->fetchOne('SELECT status FROM conversation WHERE id = :id', ['id' => ConversationFixture::CONVERSATION_PENDING]));
+        self::assertNull($connection->fetchOne('SELECT replied_at FROM partner_request WHERE id = :id', ['id' => PartnerFinderFixture::REQUEST_STRIPE_TO_REGULAR]));
     }
 
     public function testTheNotificationsListOffersReply(): void

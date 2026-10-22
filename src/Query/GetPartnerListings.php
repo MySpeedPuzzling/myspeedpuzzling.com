@@ -61,6 +61,7 @@ readonly final class GetPartnerListings
         $notHidden = $this->hiddenPlayers->sqlExclude('pl.player_id');
         $notHiddenSender = $this->hiddenPlayers->sqlExclude('got.from_player_id');
         $notHiddenCoMember = $this->hiddenPlayers->sqlExclude('cm.id');
+        // The viewer's own row (and the viewer as somebody's co-member) is never masked, private or not - see the SQL
         $privateToViewer = $this->privateProfileAccess->sqlIsPrivate('p');
         $coMemberPrivate = $this->privateProfileAccess->sqlIsPrivate('cm');
         $registered = GetMarketplaceEvents::sqlPlayerGoing('event.id', 'l.player_id');
@@ -95,7 +96,7 @@ listing AS (
         p.country AS player_country,
         p.avatar AS player_avatar,
         p.ranking_opted_out,
-        {$privateToViewer} AS private_to_viewer,
+        (pl.player_id <> :viewerId AND {$privateToViewer}) AS private_to_viewer,
         pl.player_id = :viewerId AS is_own,
         COUNT(*) OVER () AS total_open
     FROM partner_listing pl
@@ -146,7 +147,7 @@ SELECT
             'code', cm.code,
             'country', cm.country,
             'avatar', cm.avatar,
-            'masked', {$coMemberPrivate}
+            'masked', (cm.id <> :viewerId AND {$coMemberPrivate})
         ) ORDER BY member.position)
         FROM jsonb_array_elements_text(l.co_member_ids) WITH ORDINALITY AS member(id, position)
         INNER JOIN player cm ON cm.id = member.id::uuid

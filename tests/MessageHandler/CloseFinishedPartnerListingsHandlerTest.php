@@ -64,7 +64,48 @@ final class CloseFinishedPartnerListingsHandlerTest extends KernelTestCase
 
     public function testAListingOfAPlayerEnteredInAPairOrTeamOfTheEventCloses(): void
     {
-        // The organiser put PLAYER_REGULAR into a pair of the Pairs round
+        $this->enterRegularInAPair();
+
+        self::assertSame(['eventOver' => 0, 'entered' => 1], $this->closeListings());
+
+        self::assertSame([
+            PartnerFinderFixture::LISTING_REGULAR_PAIR => 'entered',
+            PartnerFinderFixture::LISTING_FAVORITES_TEAM => null,
+            PartnerFinderFixture::LISTING_STRIPE_CLOSED => 'withdrawn',
+        ], $this->reasons());
+    }
+
+    public function testAnAlreadyClosedListingKeepsItsFirstReasonAndMoment(): void
+    {
+        // PLAYER_REGULAR found a partner a week ago, then the organiser entered him in a pair - and the event is over
+        $this->connection->executeStatement(
+            "UPDATE partner_listing SET closed_at = '2026-01-01 10:00:00', closed_reason = 'found' WHERE id = :id",
+            ['id' => PartnerFinderFixture::LISTING_REGULAR_PAIR],
+        );
+        $this->enterRegularInAPair();
+        $this->connection->executeStatement(
+            "UPDATE competition SET date_from = NOW() - INTERVAL '2 days', date_to = NOW() - INTERVAL '1 day' WHERE id = :id",
+            ['id' => PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN],
+        );
+
+        self::assertSame(['eventOver' => 1, 'entered' => 0], $this->closeListings());
+
+        self::assertSame([
+            PartnerFinderFixture::LISTING_REGULAR_PAIR => 'found',
+            PartnerFinderFixture::LISTING_FAVORITES_TEAM => 'event_over',
+            PartnerFinderFixture::LISTING_STRIPE_CLOSED => 'withdrawn',
+        ], $this->reasons());
+        self::assertSame('2026-01-01 10:00:00', $this->connection->fetchOne(
+            'SELECT closed_at FROM partner_listing WHERE id = :id',
+            ['id' => PartnerFinderFixture::LISTING_REGULAR_PAIR],
+        ));
+    }
+
+    /**
+     * The organiser put PLAYER_REGULAR into a pair of the Pairs round
+     */
+    private function enterRegularInAPair(): void
+    {
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $round = self::getContainer()->get(CompetitionRoundRepository::class)->get(PartnerFinderFixture::ROUND_PAIRS);
         $team = new CompetitionTeam(Uuid::uuid7(), $round, 'Edge Lords');
@@ -76,14 +117,6 @@ final class CloseFinishedPartnerListingsHandlerTest extends KernelTestCase
             $team,
         ));
         $entityManager->flush();
-
-        self::assertSame(['eventOver' => 0, 'entered' => 1], $this->closeListings());
-
-        self::assertSame([
-            PartnerFinderFixture::LISTING_REGULAR_PAIR => 'entered',
-            PartnerFinderFixture::LISTING_FAVORITES_TEAM => null,
-            PartnerFinderFixture::LISTING_STRIPE_CLOSED => 'withdrawn',
-        ], $this->reasons());
     }
 
     /**

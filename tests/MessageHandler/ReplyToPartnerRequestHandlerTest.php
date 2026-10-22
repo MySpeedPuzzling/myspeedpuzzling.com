@@ -8,6 +8,8 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\DirectMessagesDisabled;
+use SpeedPuzzling\Web\Exceptions\MessagingMuted;
+use SpeedPuzzling\Web\Exceptions\PartnerReplyNotPossible;
 use SpeedPuzzling\Web\Exceptions\PartnerRequestNotFound;
 use SpeedPuzzling\Web\Message\ReplyToPartnerRequest;
 use SpeedPuzzling\Web\Message\SendPartnerRequest;
@@ -87,6 +89,40 @@ final class ReplyToPartnerRequestHandlerTest extends KernelTestCase
         );
     }
 
+    public function testAMutedReplierChangesNothing(): void
+    {
+        self::getContainer()->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_REGULAR)->muteMessaging(new \DateTimeImmutable('+7 days'));
+
+        try {
+            $this->messageBus->dispatch(new ReplyToPartnerRequest(PartnerFinderFixture::REQUEST_STRIPE_TO_REGULAR, PlayerFixture::PLAYER_REGULAR, 'en'));
+            self::fail('MessagingMuted expected');
+        } catch (HandlerFailedException $exception) {
+            self::assertNotSame([], $exception->getWrappedExceptions(MessagingMuted::class, true));
+        }
+
+        $this->assertNothingChanged();
+    }
+
+    public function testAnAskerWhoBlockedTheOwnerSinceGetsNoChat(): void
+    {
+        $this->connection->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_WITH_STRIPE, 'blocked' => PlayerFixture::PLAYER_REGULAR],
+        );
+
+        try {
+            $this->messageBus->dispatch(new ReplyToPartnerRequest(PartnerFinderFixture::REQUEST_STRIPE_TO_REGULAR, PlayerFixture::PLAYER_REGULAR, 'en'));
+            self::fail('PartnerReplyNotPossible expected');
+        } catch (PartnerReplyNotPossible) {
+        }
+
+        $this->assertNothingChanged();
+        self::assertSame(0, $this->connection->fetchOne(
+            'SELECT COUNT(*) FROM conversation WHERE initiator_id = :owner AND recipient_id = :asker',
+            ['owner' => PlayerFixture::PLAYER_REGULAR, 'asker' => PlayerFixture::PLAYER_WITH_STRIPE],
+        ));
+    }
+
     public function testSomebodyElseCannotReply(): void
     {
         $this->expectException(PartnerRequestNotFound::class);
@@ -123,5 +159,24 @@ final class ReplyToPartnerRequestHandlerTest extends KernelTestCase
         } catch (HandlerFailedException $exception) {
             self::assertInstanceOf(DirectMessagesDisabled::class, $exception->getPrevious());
         }
+    }
+
+    /**
+     * The fixture request is not marked replied and her pending conversation request (CONVERSATION_PENDING) stays as it was
+     */
+    private function assertNothingChanged(): void
+    {
+        // In memory too: a rolled-back transaction does not clear the entity manager, so nothing may be marked first
+        $requests = self::getContainer()->get(PartnerRequestRepository::class);
+        self::assertFalse($requests->get(PartnerFinderFixture::REQUEST_STRIPE_TO_REGULAR)->isReplied(), 'marked replied in memory');
+
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+
+        self::assertFalse(self::getContainer()->get(PartnerRequestRepository::class)->get(PartnerFinderFixture::REQUEST_STRIPE_TO_REGULAR)->isReplied());
+        self::assertSame('pending', $this->connection->fetchOne('SELECT status FROM conversation WHERE id = :id', ['id' => ConversationFixture::CONVERSATION_PENDING]));
+        self::assertSame(0, $this->connection->fetchOne(
+            'SELECT COUNT(*) FROM chat_message WHERE conversation_id = :id AND sender_id = :owner',
+            ['id' => ConversationFixture::CONVERSATION_PENDING, 'owner' => PlayerFixture::PLAYER_REGULAR],
+        ));
     }
 }

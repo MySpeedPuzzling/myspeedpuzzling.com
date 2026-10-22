@@ -80,6 +80,38 @@ final class PartnerListingHandlersTest extends KernelTestCase
         self::assertSame('From another tab', $this->listingRepository->get(PartnerFinderFixture::LISTING_REGULAR_PAIR)->note);
     }
 
+    public function testAnEditPostedForAListingClosedMeanwhileListsThePlayerAfreshWithANewId(): void
+    {
+        // PLAYER_WITH_STRIPE's listing was closed (in another tab, by an auto-close) while her edit form was open
+        $this->messageBus->dispatch($this->listMe(PartnerFinderFixture::LISTING_STRIPE_CLOSED, PlayerFixture::PLAYER_WITH_STRIPE, note: 'Still looking'));
+        $this->entityManager->clear();
+
+        $closed = $this->listingRepository->get(PartnerFinderFixture::LISTING_STRIPE_CLOSED);
+        self::assertFalse($closed->isOpen(), 'the closed listing stays closed');
+        self::assertNotSame('Still looking', $closed->note);
+
+        $open = $this->listingRepository->findOpenFor(self::EVENT, PlayerFixture::PLAYER_WITH_STRIPE);
+        self::assertNotNull($open, 'the player is listed - as the page tells them');
+        self::assertNotSame(PartnerFinderFixture::LISTING_STRIPE_CLOSED, $open->id->toString());
+        self::assertSame('Still looking', $open->note);
+
+        // The same form sent again edits that open listing - still one
+        $this->messageBus->dispatch($this->listMe(PartnerFinderFixture::LISTING_STRIPE_CLOSED, PlayerFixture::PLAYER_WITH_STRIPE, note: 'Resent'));
+        $this->entityManager->clear();
+        self::assertSame(1, $this->openListings(PlayerFixture::PLAYER_WITH_STRIPE));
+    }
+
+    public function testAGroupCannotLookForAPair(): void
+    {
+        // A group of two or more is a pair already (D1)
+        $exception = $this->refused($this->listMe(Uuid::uuid7()->toString(), PlayerFixture::PLAYER_ADMIN, kinds: [PartnerKind::Pair], groupSize: 2, needed: 1));
+
+        self::assertInstanceOf(PartnerListingInvalid::class, $exception);
+        self::assertSame(PartnerListingInvalid::FIELD_LOOKING_FOR, $exception->field);
+        self::assertSame(0, $this->openListings(PlayerFixture::PLAYER_ADMIN));
+        self::assertSame(0, $this->goingRows(PlayerFixture::PLAYER_ADMIN), 'nothing changed');
+    }
+
     public function testAKindTheEventDoesNotOfferIsRefused(): void
     {
         $this->database->executeStatement('DELETE FROM competition_round WHERE id = :id', ['id' => PartnerFinderFixture::ROUND_TEAMS]);

@@ -65,6 +65,8 @@ final class SendPartnerRequestController extends AbstractController
             : $this->redirectToRoute('events', status: Response::HTTP_SEE_OTHER);
 
         if ($this->isCsrfTokenValid(self::CSRF_TOKEN_ID, $request->request->getString('_token')) === false) {
+            $this->addFlash('danger', $this->translator->trans('partner_finder.listing.flash_expired'));
+
             return $back;
         }
 

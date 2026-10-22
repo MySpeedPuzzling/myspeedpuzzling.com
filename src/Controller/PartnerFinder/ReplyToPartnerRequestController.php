@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\PartnerFinder;
 
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
+use SpeedPuzzling\Web\Exceptions\MessagingMuted;
+use SpeedPuzzling\Web\Exceptions\PartnerReplyNotPossible;
 use SpeedPuzzling\Web\Exceptions\PartnerRequestNotFound;
 use SpeedPuzzling\Web\Message\ReplyToPartnerRequest;
 use SpeedPuzzling\Web\Repository\ConversationRepository;
@@ -62,14 +64,25 @@ final class ReplyToPartnerRequestController extends AbstractController
 
         if ($request->isMethod('POST')) {
             if ($this->isCsrfTokenValid(SendPartnerRequestController::CSRF_TOKEN_ID, $request->request->getString('_token')) === false) {
+                $this->addFlash('danger', $this->translator->trans('partner_finder.listing.flash_expired'));
+
                 return $this->redirectToRoute('partner_request_reply', ['requestId' => $requestId], Response::HTTP_SEE_OTHER);
             }
 
             try {
                 $this->messageBus->dispatch(new ReplyToPartnerRequest($requestId, $viewer->playerId, $request->getLocale()));
-            } catch (HandlerFailedException) {
-                // Messaging muted, mostly - the page says it could not open the chat
-                $this->addFlash('danger', $this->translator->trans('partner_finder.request.flash.reply_failed'));
+            } catch (PartnerReplyNotPossible) {
+                // A block either way since the request was sent - a neutral line, never why
+                $this->addFlash('warning', $this->translator->trans('partner_finder.request.flash.reply_unavailable'));
+
+                return $this->redirectToRoute('partner_request_reply', ['requestId' => $requestId], Response::HTTP_SEE_OTHER);
+            } catch (HandlerFailedException $exception) {
+                // Only the expected refusal is answered here - anything else is a bug and bubbles up (500, Sentry)
+                if ($exception->getWrappedExceptions(MessagingMuted::class, true) === []) {
+                    throw $exception;
+                }
+
+                $this->addFlash('danger', $this->translator->trans('partner_finder.request.flash.reply_muted'));
 
                 return $this->redirectToRoute('partner_request_reply', ['requestId' => $requestId], Response::HTTP_SEE_OTHER);
             }

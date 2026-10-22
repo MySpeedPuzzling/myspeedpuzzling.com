@@ -152,4 +152,34 @@ final class EditMessagingSettingsHandlerTest extends KernelTestCase
 
         self::assertSame(FeatureRequestEmails::All, $this->playerRepository->get(PlayerFixture::PLAYER_REGULAR)->featureRequestEmails);
     }
+
+    public function testPartnerFinderEmailsAreSavedAndNullKeepsThem(): void
+    {
+        $this->messageBus->dispatch(
+            new EditMessagingSettings(
+                playerId: PlayerFixture::PLAYER_REGULAR,
+                allowDirectMessages: true,
+                emailNotificationsEnabled: true,
+                emailNotificationFrequency: EmailNotificationFrequency::TwentyFourHours,
+                newsletterEnabled: true,
+                resultEmailsEnabled: true,
+                partnerFinderEmails: false,
+            ),
+        );
+
+        self::assertFalse($this->playerRepository->get(PlayerFixture::PLAYER_REGULAR)->partnerFinderEmails);
+
+        $this->messageBus->dispatch(
+            new EditMessagingSettings(
+                playerId: PlayerFixture::PLAYER_REGULAR,
+                allowDirectMessages: true,
+                emailNotificationsEnabled: true,
+                emailNotificationFrequency: EmailNotificationFrequency::TwentyFourHours,
+                newsletterEnabled: true,
+                resultEmailsEnabled: true,
+            ),
+        );
+
+        self::assertFalse($this->playerRepository->get(PlayerFixture::PLAYER_REGULAR)->partnerFinderEmails);
+    }
 }

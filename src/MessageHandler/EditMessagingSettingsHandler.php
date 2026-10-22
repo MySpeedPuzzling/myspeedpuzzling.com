@@ -45,6 +45,10 @@ readonly final class EditMessagingSettingsHandler
             $player->changeFeatureRequestEmails($message->featureRequestEmails);
         }
 
+        if ($message->partnerFinderEmails !== null) {
+            $player->changePartnerFinderEmails($message->partnerFinderEmails);
+        }
+
         $playerEmail = $newsletterChanged ? $this->playerAccountEmail->ofPlayer($player) : null;
 
         if ($playerEmail !== null) {

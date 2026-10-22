@@ -118,6 +118,20 @@ final class GetPartnerListingsTest extends KernelTestCase
         self::assertNotContains($listingId, $this->ids($this->listingsFor(PlayerFixture::PLAYER_REGULAR, member: false)));
     }
 
+    public function testAPrivatePlayerSeesTheirOwnRowUnmasked(): void
+    {
+        $listingId = $this->addListing(PlayerFixture::PLAYER_PRIVATE);
+        $this->addStats(PlayerFixture::PLAYER_PRIVATE, best500: 2400, solved: 50);
+
+        $own = $this->listingsFor(PlayerFixture::PLAYER_PRIVATE, member: true)->ownRow();
+
+        self::assertNotNull($own);
+        self::assertSame($listingId, $own->listingId);
+        self::assertFalse($own->private, 'nobody is private to themselves');
+        self::assertSame(2400, $own->best500Seconds);
+        self::assertSame(50, $own->solvedTotal);
+    }
+
     public function testTheTierIsForMembersAndNothingRankedForAPlayerWhoOptedOut(): void
     {
         $this->addStats(PlayerFixture::PLAYER_REGULAR, best500: 2700, solved: 120);

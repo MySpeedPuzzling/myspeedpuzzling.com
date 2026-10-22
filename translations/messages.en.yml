@@ -11249,7 +11249,8 @@ partner_finder:
             sent: "Sent. If they would like to puzzle with you too, they reply in a chat."
             limit_reached: "You have asked quite a few puzzlers today - try again tomorrow."
             not_possible: "This listing cannot be asked any more - it may have been closed meanwhile."
-            reply_failed: "The chat could not be opened. Please try again later."
+            reply_muted: "You can't start new chats at the moment, so the chat could not be opened."
+            reply_unavailable: "This request can't be answered with a chat any more."
         reply_message: "Hi %name%, thanks for getting in touch about %event% - let's talk!"
         reply_page:
             title: "%name% would like to puzzle with you"

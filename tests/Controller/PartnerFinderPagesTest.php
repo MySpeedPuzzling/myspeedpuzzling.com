@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 use Symfony\Component\DomCrawler\Field\FormField;
 use Symfony\Component\DomCrawler\Form;
@@ -153,6 +154,59 @@ final class PartnerFinderPagesTest extends WebTestCase
         self::assertSame($listingId, self::field($crawler->selectButton('Save')->form(), 'partner_listing_form[listingId]')->getValue());
     }
 
+    public function testAGroupLookingForAPairIsRefusedOnTheLookingForField(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $form = $browser->request('GET', self::FORM)->selectButton('List me')->form();
+        $form['partner_listing_form[iAm]'] = 'group';
+        $form['partner_listing_form[groupSize]'] = '2';
+        $form['partner_listing_form[needed]'] = '1';
+        $pair = self::field($form, 'partner_listing_form[lookingFor][0]');
+        self::assertInstanceOf(ChoiceFormField::class, $pair);
+        $pair->tick();
+        $crawler = $browser->submit($form);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('A group of two is a pair already', self::lookingForFieldset($crawler)->text());
+        self::assertSame(0, self::getContainer()->get(Connection::class)->fetchOne(
+            'SELECT COUNT(*) FROM partner_listing WHERE player_id = :player',
+            ['player' => PlayerFixture::PLAYER_ADMIN],
+        ));
+    }
+
+    public function testAKindTheEventNoLongerOffersIsRefusedOnTheLookingForField(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $form = $browser->request('GET', self::FORM)->selectButton('List me')->form();
+
+        // The organiser removed the team round while the form was open: only pairs are offered now
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'DELETE FROM competition_round WHERE id = :id',
+            ['id' => PartnerFinderFixture::ROUND_TEAMS],
+        );
+
+        // Without a team round the form has no "I am" fields any more
+        $form->remove('partner_listing_form[iAm]');
+        $form->remove('partner_listing_form[groupSize]');
+        $form->remove('partner_listing_form[needed]');
+        $team = self::field($form, 'partner_listing_form[lookingFor][1]');
+        self::assertInstanceOf(ChoiceFormField::class, $team);
+        $team->tick();
+        self::assertSame('team', $team->getValue());
+        $crawler = $browser->submit($form);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertGreaterThan(0, self::lookingForFieldset($crawler)->filter('.invalid-feedback, .form-error-message')->count(), 'the error is on the "Looking for" field');
+        self::assertSame(0, self::getContainer()->get(Connection::class)->fetchOne(
+            'SELECT COUNT(*) FROM partner_listing WHERE player_id = :player',
+            ['player' => PlayerFixture::PLAYER_ADMIN],
+        ));
+    }
+
     public function testFoundMyPartnerClosesTheListing(): void
     {
         $browser = self::createClient();
@@ -176,6 +230,14 @@ final class PartnerFinderPagesTest extends WebTestCase
             'reason' => 'withdrawn',
         ], server: ['HTTP_ORIGIN' => 'http://localhost']);
         self::assertResponseStatusCodeSame(404);
+    }
+
+    private static function lookingForFieldset(Crawler $crawler): Crawler
+    {
+        $fieldset = $crawler->filterXPath('//fieldset[.//input[starts-with(@name, "partner_listing_form[lookingFor]")]]');
+        self::assertCount(1, $fieldset);
+
+        return $fieldset;
     }
 
     private static function field(Form $form, string $name): FormField

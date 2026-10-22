@@ -38,7 +38,7 @@ Three sources of "now" exist today, and they can disagree:
 - **R5 - guarded.** Guard tests (like the repo's other `*CoverageTest`s) fail on a new violation of R1/R2/R4, each
   exception listed with its reason; one test pins R3 (PHP + DB session zone).
 
-## Decisions (proposed - Phase 0 verifies, Jan's call where marked)
+## Decisions (proposed - Phase 0 verified them; Jan's answers of 2026-10-22 in `STATUS.md` override anything below)
 
 - **D1 - frozen instant:** `2026-10-14 12:00:00 UTC` (a Wednesday: mid-week, mid-month, midday, so no week/month/day
   boundary in any zone ±12 h; no DST switch in Europe/Prague (Oct 25) or the US (Nov 1) within ±10 days; after every
@@ -93,6 +93,13 @@ grep -rlE "clock->now\(\)|daysAgo|modify\('[+-]" tests/DataFixtures | wc -l     
 
 Schema: 178 `DATETIME_IMMUTABLE`, 23 `DATETIMETZ_IMMUTABLE`, 7 `DATE_IMMUTABLE` columns. No `DEFAULT NOW()` in
 migrations' current schema (verify in Phase 0).
+
+## Assumption: the database server's zone is UTC
+
+No application code pins the DB session's zone (Jan, 2026-10-22). The app stores UTC from PHP and never reads the
+database's clock, so the zone matters only where SQL casts between `timestamp` and `timestamptz` - those rely on the
+PostgreSQL server default being UTC (dev, CI and production are `Etc/UTC`, verified 2026-10-22). Changing the server's
+zone would need an audit of such casts first.
 
 ## Out of scope
 

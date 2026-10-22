@@ -4,14 +4,31 @@ Living record. Every phase appends: what it did, what it found, what the next ph
 
 | Phase | State | Commit(s) |
 |---|---|---|
-| 0 - verify decisions | done 2026-10-22 (waiting for Jan's answers below) | this commit |
+| 0 - verify decisions | done 2026-10-22, answered | this commit |
 | 1 - pin UTC, UTC on write | not started | |
 | 2 - one clock in `src/` | not started | |
 | 3 - frozen clock in tests | not started | |
 | 4 - tests on the frozen clock | not started | |
 | 5 - proof, docs, PR | not started | |
 
-## Open questions for Jan
+## Jan's answers (2026-10-22) - binding for every later phase
+
+1. **Cookies / real clock:** no second clock service. A cookie's expiry (and anything else the browser or another
+   process judges by its own clock: `msp-rendered-at` + its readers, rate-limiter retry-after, health checks) is real
+   time by nature, so those few places read real time on purpose - each listed with that reason in
+   `SystemClockCoverageTest`. No special test session. (Jan asked why tests need cookies at all: signing in is a session
+   cookie - KernelBrowser carries it between requests, Panther is a real browser.)
+2. **API v1 `finishedAt` with an offset:** convert to UTC keeping the same instant (`2026-10-20T00:30:00+02:00` →
+   `2026-10-19 22:30:00`). The UTC-on-write `datetime_immutable` type does exactly that; no API-specific day logic.
+   `date_immutable` columns are NOT converted (Phase 0: a day would move).
+3. **Proof runs:** left to us - libfaketime at real date +400 days and +5 years, once in Phase 5; no "-30 days" run,
+   no weekly CI job (the guard tests catch new violations).
+4. **DB session zone:** no application code for it - no DBAL middleware, no `PGTZ`. What matters is that the app stores
+   UTC and never reads the database's clock. Stated assumption (README): the PostgreSQL server's default zone is UTC
+   (dev, CI, prod verified 2026-10-22); SQL that casts between `timestamp` and `timestamptz` relies on it.
+   PHP's zone is already pinned by the base image's ini (`date.timezone=UTC`) - a test may assert it, no code change.
+
+## Open questions for Jan (answered above)
 
 1. **A second, real clock for what the browser (or another process) judges by its own time.** The experiments show a
    frozen clock breaks cookies: a cookie whose expiry comes from the frozen clock is already expired in the browser

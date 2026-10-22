@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -55,7 +55,7 @@ final class GetAccountDeletionSummaryTest extends KernelTestCase
             'player_id' => $playerId,
             'name' => 'Favourites',
             'visibility' => 'private',
-            'created_at' => new DateTimeImmutable()->format('Y-m-d H:i:s'),
+            'created_at' => TestClock::now()->format('Y-m-d H:i:s'),
         ]);
         $this->insertCollectionItem($playerId, PuzzleFixture::PUZZLE_500_01, null);
         $this->insertCollectionItem($playerId, PuzzleFixture::PUZZLE_500_01, $customCollectionId);
@@ -84,7 +84,7 @@ final class GetAccountDeletionSummaryTest extends KernelTestCase
     private function seedPlayer(): Player
     {
         $userId = 'msp|' . bin2hex(random_bytes(4));
-        $player = new Player(Uuid::uuid7(), 'SUM' . bin2hex(random_bytes(2)), $userId, 'Summary Tester', new DateTimeImmutable());
+        $player = new Player(Uuid::uuid7(), 'SUM' . bin2hex(random_bytes(2)), $userId, 'Summary Tester', TestClock::now());
 
         $this->entityManager->persist($player);
         $this->entityManager->flush();
@@ -99,8 +99,8 @@ final class GetAccountDeletionSummaryTest extends KernelTestCase
             'player_id' => $playerId,
             'puzzle_id' => $puzzleId,
             'seconds_to_solve' => $seconds,
-            'tracked_at' => new DateTimeImmutable()->format('Y-m-d H:i:s'),
-            'finished_at' => new DateTimeImmutable()->format('Y-m-d H:i:s'),
+            'tracked_at' => TestClock::now()->format('Y-m-d H:i:s'),
+            'finished_at' => TestClock::now()->format('Y-m-d H:i:s'),
             'verified' => 'true',
             'first_attempt' => 'false',
             'unboxed' => 'false',
@@ -115,7 +115,7 @@ final class GetAccountDeletionSummaryTest extends KernelTestCase
             'player_id' => $playerId,
             'puzzle_id' => $puzzleId,
             'collection_id' => $collectionId,
-            'added_at' => new DateTimeImmutable()->format('Y-m-d H:i:s'),
+            'added_at' => TestClock::now()->format('Y-m-d H:i:s'),
         ]);
     }
 }

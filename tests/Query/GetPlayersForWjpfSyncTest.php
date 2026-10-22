@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
@@ -94,10 +94,10 @@ final class GetPlayersForWjpfSyncTest extends KernelTestCase
     {
         $userId = 'msp|' . bin2hex(random_bytes(4));
         $accountEmail = sprintf('account+%s@example.com', bin2hex(random_bytes(4)));
-        $player = new Player(Uuid::uuid7(), 'WJ' . bin2hex(random_bytes(3)), $userId, 'Drifted', new DateTimeImmutable());
+        $player = new Player(Uuid::uuid7(), 'WJ' . bin2hex(random_bytes(3)), $userId, 'Drifted', TestClock::now());
 
         $this->entityManager->persist($player);
-        $this->entityManager->persist(new UserAccount(Uuid::uuid7(), $userId, strtoupper($accountEmail), new DateTimeImmutable()));
+        $this->entityManager->persist(new UserAccount(Uuid::uuid7(), $userId, strtoupper($accountEmail), TestClock::now()));
         $this->entityManager->flush();
 
         $candidates = array_filter(
@@ -112,7 +112,7 @@ final class GetPlayersForWjpfSyncTest extends KernelTestCase
     /** A player without an account row has no e-mail, whatever the mirror column says. */
     public function testAPlayerWithoutAnAccountIsNotACandidate(): void
     {
-        $player = new Player(Uuid::uuid7(), 'WJ' . bin2hex(random_bytes(3)), 'auth0|' . bin2hex(random_bytes(4)), 'Orphan', new DateTimeImmutable());
+        $player = new Player(Uuid::uuid7(), 'WJ' . bin2hex(random_bytes(3)), 'auth0|' . bin2hex(random_bytes(4)), 'Orphan', TestClock::now());
 
         $this->entityManager->persist($player);
         $this->entityManager->flush();
@@ -128,7 +128,7 @@ final class GetPlayersForWjpfSyncTest extends KernelTestCase
     {
         $player = $this->playerRepository->get(PlayerFixture::PLAYER_REGULAR);
         $email = PlayerFixture::PLAYER_REGULAR_EMAIL;
-        $now = new DateTimeImmutable();
+        $now = TestClock::now();
 
         $identity = new WjpfIdentity(
             id: Uuid::uuid7(),

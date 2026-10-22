@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\SellSwapListItemNotFound;
@@ -200,7 +201,7 @@ final class GetMarketplaceListingsTest extends KernelTestCase
         $connection = self::getContainer()->get(Connection::class);
         $connection->executeStatement('DELETE FROM puzzle_difficulty');
         $connection->executeStatement(
-            "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_tier, difficulty_score, confidence, sample_size, computed_at) VALUES (:puzzleId, 5, 1.3, 'high', 10, NOW())",
+            "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_tier, difficulty_score, confidence, sample_size, computed_at) VALUES (:puzzleId, 5, 1.3, 'high', 10, " . TestClock::SQL_NOW . ")",
             ['puzzleId' => $puzzleIds[0]],
         );
 
@@ -233,7 +234,7 @@ final class GetMarketplaceListingsTest extends KernelTestCase
 
         foreach ($scores as $puzzleId => $score) {
             $connection->executeStatement(
-                "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_tier, difficulty_score, confidence, sample_size, computed_at) VALUES (:puzzleId, :tier, :score, 'high', 10, NOW())",
+                "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_tier, difficulty_score, confidence, sample_size, computed_at) VALUES (:puzzleId, :tier, :score, 'high', 10, " . TestClock::SQL_NOW . ")",
                 ['puzzleId' => $puzzleId, 'tier' => DifficultyTier::fromScore($score)->value, 'score' => $score],
             );
         }
@@ -569,7 +570,7 @@ final class GetMarketplaceListingsTest extends KernelTestCase
     private function block(string $blockerId, string $blockedId): void
     {
         self::getContainer()->get(Connection::class)->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => $blockerId, 'blocked' => $blockedId],
         );
     }

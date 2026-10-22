@@ -8,7 +8,7 @@ Living record. Every phase appends: what it did, what it found, what the next ph
 | 1 - pin UTC, UTC on write | done 2026-10-22 | this commit |
 | 2 - one clock in `src/` | done 2026-10-22 | c00bf8343, e16908c18, 3a15ef3b0 + this commit |
 | 3 - frozen clock in tests | done 2026-10-22 - **branch red until Phase 4 ends** (157 tests) | fe580bfa0 |
-| 4 - tests on the frozen clock | batches 1-3 done 2026-10-22 (157 → 103 → 92 → 72 failing); batches 4-9 open | batch 1: f2483f7d3; batch 2: dc3fb4867; batch 3: this commit |
+| 4 - tests on the frozen clock | batches 1-4 done 2026-10-22 (157 → 103 → 92 → 72 → 65 failing); batches 5-9 open | batch 1: f2483f7d3; batch 2: dc3fb4867; batch 3: d4f31c268; batch 4: this commit |
 | 5 - proof, docs, PR | not started | |
 
 ## Jan's answers (2026-10-22) - binding for every later phase
@@ -717,6 +717,46 @@ For batches 4-9:
 - Comparing failure lists: ParaTest prints data-provider tests as `…@name with data (…)`; strip ` with data …` before
   comparing with an earlier list.
 
+## Phase 4 batch 4 (2026-10-22) - `Query/GetA*`-`Query/GetP*`
+
+Converted (45 test files + 1 fixture): of the 115 `Query/GetA*`-`GetP*` tests, 50 match the grep; 45 had a clock read, the other 5
+hold only absolute literals or parse given values (`GetApiUsageTest`, `GetCompetitionPermissionsTest`,
+`GetDuplicateCandidatesTest`, `GetPlayerStatsSnapshotTest`, `GetPuzzleStatisticsTest`). Batch 2's token-based rewrite did the
+mechanical part. By hand: the heredoc in `GetCompetitionEventsTest` and the interpolated insert in `GetNotificationsTest`
+(`$now = TestClock::SQL_NOW;` + `{$now}`), and relative strings behind a variable - `GetAuthAuditEventsTest` (`"-{$i} hours"`),
+`GetPlayersOnARollTest::moment()` (`"-{$daysAgo} days"`). `(TestClock::now())->` from the rewrite of
+`(new DateTimeImmutable())->` was unwrapped. Checked and left as is: helpers taking relative strings that already apply
+them to the container clock (`setDates()` in `GetEventOffersTest` / `GetMarketplaceEventsTest`,
+`GetPuzzleSummaryTest::moveRoundStart()`), `$now`/`$this->now` read from the container clock, `utc()` /
+`new DateTimeImmutable($row[…])` parses. No real-time exception in this batch; nothing was handed over from batches 1-3.
+
+Fixed (7 tests in 5 files, no assertion weakened): `GetDifficultyRankings`, `GetPlayersOnARoll`,
+`GetPuzzleDifficultyEstimates`, `GetPuzzlePickerSuggestions` (3) - test data on the real clock (SQL `NOW()` for
+`hide_until` and the like, real-now moments). **One passed by luck of the real date:**
+`GetPlayersWithUnreadMessagesTest::testReturnsCorrectUnreadCount` - `ChatMessageFixture::MESSAGE_04` was sent exactly
+`-1 day` and the query wants `sent_at < now - 24 hours` (strict): on the real clock the seconds between the fixture build
+and the query pushed it over, at the frozen instant it sits on the boundary. Data fixed: the fixture sends it
+`-1 day -1 hour` (comment in the fixture); only this test depends on that boundary (`MESSAGE_04` is otherwise used only
+by id).
+
+Gates: PHPStan clean, PHPCS clean (cs-fix removed 10 unused `DateTimeImmutable` imports). `tests/Query` alone (ParaTest):
+1208 tests, 3 failing before the fixture fix - the unread-messages one + 2 of batch 5 (`GetSpotlightPeople`,
+`GetUpcomingEventsCount`). Full suite (ParaTest, `speedpuzzling_clock_test`, DB rebuilt for the fixture change): **11525
+tests, 61 failures + 4 errors = 65 tests** (batch 3: 72). Compared per test (data-set names stripped): the 7 batch tests
+fixed, nothing green turned red.
+
+Remaining (files / tests): `Controller` top level 18 / 39, `Controller/Api/V1` 4 / 5, `Controller/Compete` 3 / 3,
+`DuplicateResults` 1 / 5, `OfficialResults` 1 / 1, `OnlineRounds` 1 / 1, `ReviewResults` 1 / 1, `Seating` 1 / 1,
+`SuspiciousTimes` 1 / 1, `Query` (batch 5: `GetSpotlightPeople`, `GetUpcomingEventsCount`) 2 / 2, `Services` 2 / 4,
+`Services/SeriesEditions` 1 / 1, `Services/Storage` 1 / 1.
+
+For batches 5-9:
+
+- Watch fixture moments that sit **exactly** on a query's threshold (`-1 day` against `< now - 24 hours`, `-7 days`
+  against a 7-day window): the real clock hid them by the seconds between fixture build and test. If such a test fails
+  with no clock read of its own, look at the fixture's offset against the query's comparison before anything else.
+- The rewrite script also turns `(new DateTimeImmutable())->…` into `(TestClock::now())->…` - unwrap it.
+
 ## Log
 
 - 2026-10-22: plan written (README.md, implementation-plan.md). Branch `time-and-clock` from `8447c607d`.
@@ -737,3 +777,5 @@ For batches 4-9:
 - 2026-10-22: Phase 4 batch 2 - `MessageHandler` A-O + `OfficialResults` + `ParticipantsSheet` on the frozen clock (47 files);
   suite 103 → 92 failing, nothing new red.
 - 2026-10-22: Phase 4 batch 3 - `MessageHandler` P-Z on the frozen clock (45 files); suite 92 → 72 failing, nothing new red.
+- 2026-10-22: Phase 4 batch 4 - `Query/GetA*`-`GetP*` on the frozen clock (45 files) + `ChatMessageFixture::MESSAGE_04` off the
+  24-hour boundary (passed by luck of the real date); suite 72 → 65 failing, nothing new red.

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
@@ -167,7 +167,7 @@ final class GetPlayerPuzzleSolvesTest extends KernelTestCase
             );
         }
 
-        $now = new DateTimeImmutable('-1 day');
+        $now = TestClock::now()->modify('-1 day');
 
         $this->entityManager->persist(new PuzzleSolvingTime(
             id: Uuid::uuid7(),

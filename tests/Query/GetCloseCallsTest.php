@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
@@ -132,7 +133,7 @@ final class GetCloseCallsTest extends KernelTestCase
 
         /** @var list<string> $secret */
         $secret = $container->get(Connection::class)->fetchFirstColumn(
-            'SELECT id::text FROM puzzle WHERE hide_until > NOW() OR hide_image_until > NOW()',
+            'SELECT id::text FROM puzzle WHERE hide_until > ' . TestClock::SQL_NOW . ' OR hide_image_until > ' . TestClock::SQL_NOW,
         );
 
         $expected = [];
@@ -165,7 +166,7 @@ final class GetCloseCallsTest extends KernelTestCase
     private function block(string $blockerId, string $blockedId): void
     {
         self::getContainer()->get(Connection::class)->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => $blockerId, 'blocked' => $blockedId],
         );
     }

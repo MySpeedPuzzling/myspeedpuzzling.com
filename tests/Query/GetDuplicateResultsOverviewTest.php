@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetDuplicateResultsOverview;
@@ -95,7 +96,7 @@ final class GetDuplicateResultsOverviewTest extends KernelTestCase
     private function setStatus(string $timeAId, string $status): void
     {
         $this->database->executeStatement(
-            'UPDATE result_duplicate_case SET status = :status, resolved_at = NOW() WHERE time_a_id = :id',
+            'UPDATE result_duplicate_case SET status = :status, resolved_at = ' . TestClock::SQL_NOW . ' WHERE time_a_id = :id',
             ['status' => $status, 'id' => $timeAId],
         );
     }

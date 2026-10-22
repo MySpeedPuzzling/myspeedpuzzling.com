@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetMarketplaceEventsHintState;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
@@ -41,7 +42,7 @@ final class GetMarketplaceEventsHintStateTest extends KernelTestCase
 
         // Once they mark something there, no banner
         $this->database->executeStatement(
-            'INSERT INTO sell_swap_list_item_event (sell_swap_list_item_id, competition_id, added_at) VALUES (:item, :competition, NOW())',
+            'INSERT INTO sell_swap_list_item_event (sell_swap_list_item_id, competition_id, added_at) VALUES (:item, :competition, ' . TestClock::SQL_NOW . ')',
             ['item' => SellSwapListItemFixture::SELLSWAP_03, 'competition' => CompetitionSeriesFixture::EDITION_OFFLINE_1],
         );
 
@@ -59,7 +60,7 @@ final class GetMarketplaceEventsHintStateTest extends KernelTestCase
         self::assertSame(MarketplaceEventsBanner::Going, $state->banner(true));
 
         $this->database->executeStatement(
-            'UPDATE competition_participant SET deleted_at = NOW() WHERE id = :id',
+            'UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => MarketplaceEventFixture::PARTICIPANT_FAIR_SELLER_A],
         );
 
@@ -90,7 +91,7 @@ final class GetMarketplaceEventsHintStateTest extends KernelTestCase
     public function testASellerGoingNowhereIsShownTheEvents(): void
     {
         $this->database->executeStatement(
-            'UPDATE competition_participant SET deleted_at = NOW() WHERE id = :id',
+            'UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => MarketplaceEventFixture::PARTICIPANT_FAIR_SELLER_B],
         );
 

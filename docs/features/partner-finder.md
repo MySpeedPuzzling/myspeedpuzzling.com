@@ -81,7 +81,7 @@ closed_at IS NULL`; `custom_partner_listing_open_by_event` `(competition_id) WHE
 - CSRF: stateless tokens `partner_listing`, `partner_request`.
 - Translations: `messages` → `partner_finder.page.*`, `partner_finder.form.*`, `partner_finder.listing.*` (part A),
   `partner_finder.card.*`, `partner_finder.events_tag.*` (part B), `partner_finder.request.*`,
-  `partner_finder.notification.*`, `partner_finder.settings.*` (part C), `partner_finder.strength.*`,
+  `partner_finder.notification.*`, `partner_finder.settings.*` (part C), `partner_finder.gate.*` (part D), `partner_finder.strength.*`,
   `partner_finder.goal.*`, `partner_finder.kind.*` (foundation); `emails` → `partner_request.*` (part C). Build in
   English; all 6 locales at the end.
 - Styles: `assets/styles/_partner-finder.scss` (page + listing, part A), `assets/styles/_partner-finder-card.scss`
@@ -95,6 +95,7 @@ closed_at IS NULL`; `custom_partner_listing_open_by_event` `(competition_id) WHE
 | event / edition page, cannot qualify (PHP pre-check) | +0 | +0 |
 | event / edition page, qualifying | +0 (plain "Find a partner" link, no count) | ≤ +1 (`GetPartnerCardData`: count, faces, own listing, entered) - hint dismissed rides on `IsHintDismissed::dismissedAmong` |
 | finder page | 1 teaser statement + the event load | exactly 1 listings statement + the event load |
+| gate page `/en/partner-finder` (+ its `?event=` redirect) | exactly 1 | 1 + what every signed-in request loads |
 
 The listings statement: CTE of open listings for the event with `HiddenPlayers::sqlExclude()` and
 `PrivateProfileAccess::sqlIsPrivate()` inside, `LIMIT 100` newest first, then primary-key joins to
@@ -378,3 +379,41 @@ on deploy): `17 3 * * * docker compose exec web php bin/console myspeedpuzzling:
 
 **URLs**: `Services\PartnerFinder\PartnerFinderUrls` (shared with part A): `finder()`, `event()`, and `forCompetition()` /
 `forSlugs()` for another locale or an absolute URL (e-mails).
+
+## Part D as built (2026-10-22): the gate page
+
+The page marketing links to: route `partner_finder` (`Controller\PartnerFinder\PartnerFinderGateController`, GET) in all 6
+locales - en `/en/partner-finder`, cs `/hledani-partnera`, de `/de/partnersuche`, es `/es/buscar-companero`, fr
+`/fr/trouver-un-partenaire`, ja `/ja/パートナー探し`. Indexable (`index, follow` on the bare URL, `noindex, follow` with any
+query string), canonical + hreflang from `base.html.twig`, listed in `sitemap-static.xml`. Footer: "Partner finder" with
+the New badge in Discover, right after Events.
+
+**One statement for everybody**: `Query\GetPartnerFinderEvents::all()` → `Results\PartnerFinderGate` (`list<
+Results\PartnerFinderEvent>` = `MarketplaceEvent` + `listingCount`) - every event with `PartnerFinderEligibility::
+SQL_QUALIFIES` that has a page (one-time event: its slug; edition: its own and its series' slug), nearest first, the open
+listings counted by a correlated `COUNT(*)` on `custom_partner_listing_open_by_event` (an aggregate - nobody's identity,
+so no blocklist / private filtering). The controller reads nothing of the viewer, so guest HTML is the same for every
+guest and a signed-in player gets the same page (only the layout's own statements on top). Pinned by
+`PartnerFinderGateControllerTest::testTheGuestPageCostsOneStatement` (page and redirect = 1).
+
+**Page** (`templates/partner_finder/gate.html.twig`, styles `assets/styles/_partner-finder-gate.scss`): a soft coral hero
+(eyebrow, title, lead, "Free for everyone" + "Your e-mail address stays private"), "How it works" in 3 numbered steps,
+the picker card, then "Events with people looking" = `PartnerFinderGate::mostLooking(6)` (only events with an open
+listing, most first, nearest first on a tie; date, name, place + flag, "N looking for a partner", "See who's looking"),
+else an empty-state line inviting to be the first.
+
+**Picker**: a plain `<select name="event">` in a GET form to the same route; each option's text is "Name · date · place"
+(the native select without JavaScript) and its `data-data` JSON the row (`name` = `CompetitionReference::displayName()`,
+so an edition reads "Series · Edition", `series`, `dates` = `event_dates()`, `place`, `flag` `fi fi-xx`, `looking` "N
+looking" when > 0, `url` = `partner_finder_url()`). `assets/controllers/partner_finder_gate_controller.js` turns it into
+a TomSelect (`dataAttr: 'data-data'`, search over name + series + place - typing a series name finds its editions, so a
+series needs no entry of its own; all options, no cap) and opens the picked finder with Turbo `visit()`; it hides the
+submit button only once it runs. Without JavaScript `?event=<competition id>` → 302 to that event's finder
+(`PartnerFinderUrls::forSlugs()`), an id without a finder (passed meanwhile, a draft, nonsense) renders the page again.
+
+**Tests**: `GetPartnerFinderEventsTest` (qualifying only: drafts, a draft edition, online, past and solo-only events out;
+closed listings not counted; nearest first; editions named with their series; `mostLooking()` order),
+`PartnerFinderGateControllerTest` (guest page with the fixture event `partner-finder-open` in the picker and the cards,
+redirect, no redirect for a draft / nonsense, empty state, signed-in, budget, static sitemap), `DraftCanaryTest` (the
+picker never lists a draft edition or an edition of a draft series - Draft Night has solo rounds only, no canary),
+`SiteFooterTest` (9 New badges). English copy only (`partner_finder.gate.*`, footer label `partner_finder.gate.footer_link`).

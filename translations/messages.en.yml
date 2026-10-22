@@ -11271,6 +11271,43 @@ partner_finder:
             done: "Done - you won't get partner finder e-mails any more. Requests still arrive in your notifications."
             settings_hint: "You can switch them on again any time in your profile settings under \"Messaging & Notifications\"."
 
+
+    # Part D: gate.*
+    gate:
+        meta_title: "Partner finder - find a pair or a team for a puzzle event"
+        meta_description: "Going to a jigsaw puzzle competition without a partner? Find a pair partner or a team among the puzzlers going to the same event. Free for everyone."
+        footer_link: "Partner finder"
+        eyebrow: "Partner finder"
+        title: "Find a pair or a team for your next puzzle event"
+        lead: "Many puzzle events have pair and team rounds. Going without a partner? Say what you need and see who else at the same event is looking."
+        free: "Free for everyone"
+        private: "Your e-mail address stays private"
+        how_title: "How it works"
+        step:
+            going:
+                title: "Say you're going and what you need"
+                text: "A pair partner, a team or more people for your group - and, if you like, what you're good at and how seriously you take it."
+            browse:
+                title: "Browse who's looking"
+                text: "See the puzzlers going to the same event, filter them by country and see how fast they puzzle."
+            contact:
+                title: "Get in touch"
+                text: "Send \"I'd like to puzzle with you\". We tell them who you are and they can reply in a chat - nobody's e-mail address is ever shared."
+        picker:
+            title: "Pick your event"
+            label: "Event"
+            placeholder: "Search for an event or a series"
+            submit: "Open the partner finder"
+            no_results: "No coming event with pair or team rounds matches."
+            help: "{1}One coming in-person event with pair or team rounds. Type a series name to find its dates.|]1,Inf[%count% coming in-person events with pair or team rounds. Type a series name to find its dates."
+            empty: "No coming event has a partner finder right now - one opens for every in-person event with pair or team rounds."
+            all_events: "See all events"
+        # in the picker's options, next to the date and the place
+        looking: "{1}1 looking|]1,Inf[%count% looking"
+        popular:
+            title: "Events with people looking"
+            empty: "Nobody is listed anywhere yet. Pick your event above and be the first - the next puzzler looking for a partner there will find you."
+
     # Foundation: strength.*, goal.*, kind.*, invalid.*
     strength:
         sorting: "Sorting"

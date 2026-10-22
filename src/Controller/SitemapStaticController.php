@@ -52,6 +52,8 @@ final class SitemapStaticController extends AbstractController
         'terms_of_service',
         // 'hub' is deliberately missing: it is `noindex, follow` (a dashboard, not a landing page)
         'events',
+        // The partner finder's gate (docs/features/partner-finder.md "Part D as built") - the per-event finders are noindex
+        'partner_finder',
         'marketplace',
         'puzzle_tracker_app',
         'feature_requests',

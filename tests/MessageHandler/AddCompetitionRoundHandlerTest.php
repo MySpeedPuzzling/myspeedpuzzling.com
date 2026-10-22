@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
@@ -41,7 +41,7 @@ final class AddCompetitionRoundHandlerTest extends KernelTestCase
             competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
             name: 'Default Delay Round',
             minutesLimit: 60,
-            startsAt: new DateTimeImmutable('+20 days'),
+            startsAt: TestClock::now()->modify('+20 days'),
             timezone: 'Europe/Prague',
             badgeBackgroundColor: null,
             badgeTextColor: null,
@@ -55,7 +55,7 @@ final class AddCompetitionRoundHandlerTest extends KernelTestCase
         // An older release inserting a round during a blue-green deploy does not know the column
         $roundId = Uuid::uuid7();
         $this->connection()->executeStatement(
-            "INSERT INTO competition_round (id, competition_id, name, minutes_limit, starts_at, category) VALUES (:id, :competitionId, 'Old Release Round', 60, NOW(), 'solo')",
+            "INSERT INTO competition_round (id, competition_id, name, minutes_limit, starts_at, category) VALUES (:id, :competitionId, 'Old Release Round', 60, " . TestClock::SQL_NOW . ", 'solo')",
             ['id' => $roundId->toString(), 'competitionId' => CompetitionFixture::COMPETITION_WJPC_2024],
         );
 
@@ -91,7 +91,7 @@ final class AddCompetitionRoundHandlerTest extends KernelTestCase
             competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
             name: 'Delay Round ' . $roundId->toString(),
             minutesLimit: 60,
-            startsAt: new DateTimeImmutable('+20 days'),
+            startsAt: TestClock::now()->modify('+20 days'),
             timezone: 'Europe/Prague',
             badgeBackgroundColor: null,
             badgeTextColor: null,

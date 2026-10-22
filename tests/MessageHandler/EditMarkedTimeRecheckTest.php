@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -231,7 +232,7 @@ final class EditMarkedTimeRecheckTest extends KernelTestCase
         $case = self::getContainer()->get(SuspiciousTimeCaseRepository::class)->findByTime(SuspiciousTimesFixture::TIME_STEADY_FAST);
         self::assertNotNull($case);
         $time = $case->time;
-        $markedAt = new DateTimeImmutable('-1 day');
+        $markedAt = TestClock::now()->modify('-1 day');
 
         $time->markSuspicious();
         $case->mark($withReasons ? $case->reasons() : [], null, Uuid::fromString(PlayerFixture::PLAYER_ADMIN), SuspicionFingerprint::ofTime($time), $markedAt);

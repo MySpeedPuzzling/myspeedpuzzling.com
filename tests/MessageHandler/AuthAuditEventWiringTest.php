@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -112,7 +112,7 @@ final class AuthAuditEventWiringTest extends KernelTestCase
     {
         $account = $this->createAccount('msp|audit-wire-6');
         $tokenSigner = self::getContainer()->get(EmailVerificationTokenSigner::class);
-        $token = $tokenSigner->generate($account, new DateTimeImmutable(EmailVerificationTokenSigner::LIFETIME));
+        $token = $tokenSigner->generate($account, TestClock::now()->modify(EmailVerificationTokenSigner::LIFETIME));
 
         $this->messageBus->dispatch(new VerifyEmail($token));
 
@@ -122,7 +122,7 @@ final class AuthAuditEventWiringTest extends KernelTestCase
     private function createAccount(string $userId): UserAccount
     {
         $email = sprintf('wire+%s@example.com', bin2hex(random_bytes(4)));
-        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now());
 
         $this->entityManager->persist($userAccount);
         $this->entityManager->flush();

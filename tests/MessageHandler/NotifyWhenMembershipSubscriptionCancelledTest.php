@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Membership;
@@ -64,15 +64,15 @@ final class NotifyWhenMembershipSubscriptionCancelledTest extends TestCase
             code: 'testplayer',
             userId: 'auth0|test',
             name: 'Test Player',
-            registeredAt: new DateTimeImmutable(),
+            registeredAt: TestClock::now(),
         );
 
         return new Membership(
             id: Uuid::uuid7(),
             player: $player,
-            createdAt: new DateTimeImmutable('-30 days'),
+            createdAt: TestClock::now()->modify('-30 days'),
             stripeSubscriptionId: 'sub_test_cancelled',
-            endsAt: new DateTimeImmutable('+20 days'),
+            endsAt: TestClock::now()->modify('+20 days'),
         );
     }
 }

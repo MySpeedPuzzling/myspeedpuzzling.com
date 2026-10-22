@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Entity\Voucher;
 use SpeedPuzzling\Web\Message\GenerateVouchers;
@@ -29,7 +30,7 @@ final class GenerateVouchersHandlerTest extends KernelTestCase
             new GenerateVouchers(
                 count: 1,
                 monthsValue: 3,
-                validUntil: new DateTimeImmutable('+90 days'),
+                validUntil: TestClock::now()->modify('+90 days'),
                 codeLength: 12,
                 internalNote: 'Test single voucher',
             ),
@@ -56,7 +57,7 @@ final class GenerateVouchersHandlerTest extends KernelTestCase
             new GenerateVouchers(
                 count: 5,
                 monthsValue: 1,
-                validUntil: new DateTimeImmutable('+30 days'),
+                validUntil: TestClock::now()->modify('+30 days'),
                 codeLength: 16,
                 internalNote: 'Batch test',
             ),
@@ -89,7 +90,7 @@ final class GenerateVouchersHandlerTest extends KernelTestCase
             new GenerateVouchers(
                 count: 10,
                 monthsValue: 1,
-                validUntil: new DateTimeImmutable('+30 days'),
+                validUntil: TestClock::now()->modify('+30 days'),
                 codeLength: 20,
             ),
         );
@@ -143,7 +144,7 @@ final class GenerateVouchersHandlerTest extends KernelTestCase
             new GenerateVouchers(
                 count: 1,
                 monthsValue: null,
-                validUntil: new DateTimeImmutable('+90 days'),
+                validUntil: TestClock::now()->modify('+90 days'),
                 codeLength: 12,
                 internalNote: 'Test percentage voucher',
                 voucherType: VoucherType::PercentageDiscount,
@@ -176,7 +177,7 @@ final class GenerateVouchersHandlerTest extends KernelTestCase
             new GenerateVouchers(
                 count: 3,
                 monthsValue: null,
-                validUntil: new DateTimeImmutable('+30 days'),
+                validUntil: TestClock::now()->modify('+30 days'),
                 codeLength: 16,
                 internalNote: 'Batch percentage test',
                 voucherType: VoucherType::PercentageDiscount,
@@ -205,7 +206,7 @@ final class GenerateVouchersHandlerTest extends KernelTestCase
         $envelope = $this->messageBus->dispatch(
             new GenerateVouchers(
                 count: 2,
-                validUntil: new DateTimeImmutable('+90 days'),
+                validUntil: TestClock::now()->modify('+90 days'),
                 voucherType: VoucherType::Lifetime,
                 internalNote: 'Lifetime batch',
             ),
@@ -234,7 +235,7 @@ final class GenerateVouchersHandlerTest extends KernelTestCase
             new GenerateVouchers(
                 count: 1,
                 monthsValue: 2,
-                validUntil: new DateTimeImmutable('+30 days'),
+                validUntil: TestClock::now()->modify('+30 days'),
             ),
         );
 

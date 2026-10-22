@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -91,14 +92,14 @@ final class EvaluateImageEstimatesHandlerTest extends KernelTestCase
      */
     public function testLeavesOutWhatTheGatesDoNotMeasure(): void
     {
-        $this->database->executeStatement("UPDATE puzzle SET added_at = NOW() - INTERVAL '2 years' WHERE id = :id", ['id' => PuzzleFixture::PUZZLE_500_04]);
+        $this->database->executeStatement("UPDATE puzzle SET added_at = " . TestClock::SQL_NOW . " - INTERVAL '2 years' WHERE id = :id", ['id' => PuzzleFixture::PUZZLE_500_04]);
         self::assertSame(1, $this->evaluate()->overall['rows'], 'An older puzzle is out');
         self::assertSame(2, $this->evaluate(newerThanMonths: 36)->overall['rows']);
 
         $this->database->executeStatement("UPDATE puzzle_solving_time SET suspicious = true WHERE puzzle_id = :id AND player_id = :player", ['id' => PuzzleFixture::PUZZLE_500_05, 'player' => PlayerFixture::PLAYER_REGULAR]);
         self::assertSame(1, $this->evaluate(newerThanMonths: 36)->overall['rows'], 'A suspicious time is out');
 
-        $this->database->executeStatement("UPDATE puzzle SET hide_image_until = NOW() + INTERVAL '30 days' WHERE id = :id", ['id' => PuzzleFixture::PUZZLE_500_04]);
+        $this->database->executeStatement("UPDATE puzzle SET hide_image_until = " . TestClock::SQL_NOW . " + INTERVAL '30 days' WHERE id = :id", ['id' => PuzzleFixture::PUZZLE_500_04]);
         self::assertSame(0, $this->evaluate(newerThanMonths: 36)->overall['rows'], 'A secret puzzle is out, whatever rows it has');
         self::assertSame([], $this->evaluate(newerThanMonths: 36)->groups);
     }
@@ -168,7 +169,7 @@ final class EvaluateImageEstimatesHandlerTest extends KernelTestCase
         // A second later than anything stored before: the latest record
         $this->database->executeStatement(
             "INSERT INTO image_estimate_evaluation (id, evaluated_at, model_version, newer_than, measured_min_indices, groups, overall, by_k)
-            VALUES (:id, (SELECT COALESCE(MAX(evaluated_at), NOW()) FROM image_estimate_evaluation) + INTERVAL '1 second', :version, NOW() - INTERVAL '1 year', 10, CAST(:groups AS jsonb), '{}', '[]')",
+            VALUES (:id, (SELECT COALESCE(MAX(evaluated_at), " . TestClock::SQL_NOW . ") FROM image_estimate_evaluation) + INTERVAL '1 second', :version, " . TestClock::SQL_NOW . " - INTERVAL '1 year', 10, CAST(:groups AS jsonb), '{}', '[]')",
             ['id' => Uuid::uuid7()->toString(), 'version' => $modelVersion, 'groups' => json_encode($groups, JSON_THROW_ON_ERROR)],
         );
     }

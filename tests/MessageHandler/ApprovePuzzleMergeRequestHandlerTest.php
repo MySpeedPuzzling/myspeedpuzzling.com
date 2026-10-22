@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
@@ -408,7 +408,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
     public function testApprovedMergeIsRecordedInAuditTrailWithBeforeAndAfterSnapshots(): void
     {
         $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
-        $duplicatePuzzle->changeNames('Doomed Duplicate', null, new PuzzleNames([new PuzzleName('Odsouzený duplikát', 'cs')]), new DateTimeImmutable());
+        $duplicatePuzzle->changeNames('Doomed Duplicate', null, new PuzzleNames([new PuzzleName('Odsouzený duplikát', 'cs')]), TestClock::now());
         $duplicatePuzzle->updateProductIdentifiers(EanList::fromStored('1111111111111'), BrandCodeList::fromStored('DUP-001'));
         $this->entityManager->flush();
 
@@ -487,7 +487,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
 
         $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
         $duplicatePuzzle->updateProductIdentifiers(EanList::fromStored('5900511374414'), BrandCodeList::fromStored('37441'));
-        $duplicatePuzzle->changeNames('Puzzle 5', null, new PuzzleNames([new PuzzleName('Americké koblihy', 'cs')]), new DateTimeImmutable());
+        $duplicatePuzzle->changeNames('Puzzle 5', null, new PuzzleNames([new PuzzleName('Americké koblihy', 'cs')]), TestClock::now());
         $duplicatePuzzle->image = 'puzzles/duplicate-cover.jpg';
         $duplicatePuzzle->imageRatio = 1.4;
         $this->entityManager->flush();
@@ -569,7 +569,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
     {
         $survivorPuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_04);
         $survivorPuzzle->updateProductIdentifiers(EanList::fromStored('1234567890123'), BrandCodeList::fromStored('KEEP-ME'));
-        $survivorPuzzle->changeNames('Puzzle 4', null, new PuzzleNames([new PuzzleName('Survivor Alternative', null)]), new DateTimeImmutable());
+        $survivorPuzzle->changeNames('Puzzle 4', null, new PuzzleNames([new PuzzleName('Survivor Alternative', null)]), TestClock::now());
         $survivorPuzzle->image = 'puzzles/survivor-cover.jpg';
 
         $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
@@ -578,7 +578,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
             new PuzzleName('Duplicate Alternative', null),
             // The survivor's name again, accented and in Czech: one name, the tagged variant kept
             new PuzzleName('Survivor Alternativé', 'cs'),
-        ]), new DateTimeImmutable());
+        ]), TestClock::now());
         $duplicatePuzzle->image = 'puzzles/duplicate-cover.jpg';
         $this->entityManager->flush();
 
@@ -627,7 +627,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
     {
         // A duplicate added under the English title with the Czech box name, merged into a survivor without names
         $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
-        $duplicatePuzzle->changeNames('Magic Morning 1000', null, new PuzzleNames([new PuzzleName('Kouzelné ráno', null)]), new DateTimeImmutable());
+        $duplicatePuzzle->changeNames('Magic Morning 1000', null, new PuzzleNames([new PuzzleName('Kouzelné ráno', null)]), TestClock::now());
         $this->entityManager->flush();
 
         $this->approveMerge($this->submitMergeRequest(), mergedName: 'Puzzle 4');
@@ -643,7 +643,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
     public function testAMainTitlePickedFromTheOtherNamesKeepsItsLanguage(): void
     {
         $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
-        $duplicatePuzzle->changeNames('Puzzle 5', null, new PuzzleNames([new PuzzleName('Kouzelné ráno', 'cs')]), new DateTimeImmutable());
+        $duplicatePuzzle->changeNames('Puzzle 5', null, new PuzzleNames([new PuzzleName('Kouzelné ráno', 'cs')]), TestClock::now());
         $this->entityManager->flush();
 
         $this->approveMerge($this->submitMergeRequest(), mergedName: 'Kouzelné ráno');
@@ -710,7 +710,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
     public function testMergeTakesTheReviewersNamesAsTheyAre(): void
     {
         $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
-        $duplicatePuzzle->changeNames('Kouzelné ráno', null, new PuzzleNames([new PuzzleName('Magischer Morgen', 'de')]), new DateTimeImmutable());
+        $duplicatePuzzle->changeNames('Kouzelné ráno', null, new PuzzleNames([new PuzzleName('Magischer Morgen', 'de')]), TestClock::now());
         $this->entityManager->flush();
 
         $mergeRequestId = $this->submitMergeRequest();
@@ -752,7 +752,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
     public function testMergeWithoutTheReviewersNamesTagsTheMainTitlesInTheReportersLanguages(): void
     {
         $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
-        $duplicatePuzzle->changeNames('Kouzelné ráno', null, new PuzzleNames(), new DateTimeImmutable());
+        $duplicatePuzzle->changeNames('Kouzelné ráno', null, new PuzzleNames(), TestClock::now());
         $this->entityManager->flush();
 
         $mergeRequestId = $this->submitMergeRequest([PuzzleFixture::PUZZLE_500_05 => 'cs']);
@@ -771,7 +771,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
     public function testTheReportersLanguageTagsTheMainTitleTheReviewerKeeps(): void
     {
         $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
-        $duplicatePuzzle->changeNames('Kouzelné ráno', null, new PuzzleNames(), new DateTimeImmutable());
+        $duplicatePuzzle->changeNames('Kouzelné ráno', null, new PuzzleNames(), TestClock::now());
         $this->entityManager->flush();
 
         $this->approveMerge($this->submitMergeRequest([PuzzleFixture::PUZZLE_500_05 => 'cs']), mergedName: 'Kouzelné ráno');
@@ -785,7 +785,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
     public function testWithTheReviewersNamesButNoLanguageTheMainTitleKeepsTheLanguageThePuzzlesKnow(): void
     {
         $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
-        $duplicatePuzzle->changeNames('Kouzelné ráno', null, new PuzzleNames(), new DateTimeImmutable());
+        $duplicatePuzzle->changeNames('Kouzelné ráno', null, new PuzzleNames(), TestClock::now());
         $this->entityManager->flush();
 
         // The internal API without mergedNameLanguage
@@ -810,7 +810,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
     public function testAnExplicitlyEmptyLanguageIsHonouredWithoutTheReviewersNames(): void
     {
         $duplicatePuzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_05);
-        $duplicatePuzzle->changeNames('Kouzelné ráno', null, new PuzzleNames(), new DateTimeImmutable());
+        $duplicatePuzzle->changeNames('Kouzelné ráno', null, new PuzzleNames(), TestClock::now());
         $this->entityManager->flush();
 
         // The reporter said Czech - the reviewer says the main title is English (or not known)
@@ -841,7 +841,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
         $mergeRequestId = $this->submitMergeRequest();
 
         // Somebody saves the duplicate while the review is open
-        $duplicatePuzzle->changeNames('Puzzle 5', null, new PuzzleNames([new PuzzleName('Saved meanwhile', 'de')]), new DateTimeImmutable());
+        $duplicatePuzzle->changeNames('Puzzle 5', null, new PuzzleNames([new PuzzleName('Saved meanwhile', 'de')]), TestClock::now());
         $this->entityManager->flush();
 
         try {
@@ -1189,7 +1189,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
             fromPlayerName: 'Borrower',
             toPlayer: $owner,
             toPlayerName: null,
-            transferredAt: new DateTimeImmutable('-10 days'),
+            transferredAt: TestClock::now()->modify('-10 days'),
             transferType: TransferType::Return,
             puzzle: $duplicatePuzzle,
             ownerPlayer: $owner,

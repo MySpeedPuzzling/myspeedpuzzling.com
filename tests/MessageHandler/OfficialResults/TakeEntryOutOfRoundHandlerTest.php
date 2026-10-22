@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler\OfficialResults;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Exceptions\OfficialResultsProtected;
@@ -58,7 +59,7 @@ final class TakeEntryOutOfRoundHandlerTest extends KernelTestCase
         }
 
         // A qualified mark alone protects too
-        $this->database->executeStatement('UPDATE competition_participant_round SET qualified_at = NOW() WHERE id = :id', ['id' => OfficialResultsFixture::ENTRY_FINAL_ANNA]);
+        $this->database->executeStatement('UPDATE competition_participant_round SET qualified_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => OfficialResultsFixture::ENTRY_FINAL_ANNA]);
 
         $this->expectException(OfficialResultsProtected::class);
         $this->takeOut(OfficialResultsFixture::ROUND_FINAL, 'participant_round:' . OfficialResultsFixture::ENTRY_FINAL_ANNA);

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Ramsey\Uuid\Uuid;
@@ -61,16 +61,16 @@ final class CreateAffiliatePayoutHandlerTest extends TestCase
             code: 'affiliate1',
             userId: 'auth0|affiliate',
             name: 'Affiliate',
-            registeredAt: new DateTimeImmutable('-100 days'),
+            registeredAt: TestClock::now()->modify('-100 days'),
         );
-        $affiliatePlayer->joinReferralProgram(new DateTimeImmutable('-50 days'));
+        $affiliatePlayer->joinReferralProgram(TestClock::now()->modify('-50 days'));
 
         $subscriber = new Player(
             id: Uuid::uuid7(),
             code: 'subscriber1',
             userId: 'auth0|subscriber',
             name: 'Subscriber',
-            registeredAt: new DateTimeImmutable('-30 days'),
+            registeredAt: TestClock::now()->modify('-30 days'),
         );
 
         $referral = new Referral(
@@ -78,7 +78,7 @@ final class CreateAffiliatePayoutHandlerTest extends TestCase
             subscriber: $subscriber,
             affiliatePlayer: $affiliatePlayer,
             source: ReferralSource::Link,
-            createdAt: new DateTimeImmutable('-10 days'),
+            createdAt: TestClock::now()->modify('-10 days'),
         );
 
         $stripeClient = $this->buildStripeClient(
@@ -140,7 +140,7 @@ final class CreateAffiliatePayoutHandlerTest extends TestCase
             code: 'affiliate2',
             userId: 'auth0|affiliate2',
             name: 'Affiliate Two',
-            registeredAt: new DateTimeImmutable('-100 days'),
+            registeredAt: TestClock::now()->modify('-100 days'),
         );
         // Not joined to referral program
 
@@ -149,7 +149,7 @@ final class CreateAffiliatePayoutHandlerTest extends TestCase
             code: 'subscriber2',
             userId: 'auth0|subscriber2',
             name: 'Subscriber Two',
-            registeredAt: new DateTimeImmutable('-30 days'),
+            registeredAt: TestClock::now()->modify('-30 days'),
         );
 
         $referral = new Referral(
@@ -157,7 +157,7 @@ final class CreateAffiliatePayoutHandlerTest extends TestCase
             subscriber: $subscriber,
             affiliatePlayer: $affiliatePlayer,
             source: ReferralSource::Link,
-            createdAt: new DateTimeImmutable('-10 days'),
+            createdAt: TestClock::now()->modify('-10 days'),
         );
 
         $stripeClient = $this->buildStripeClient(
@@ -185,16 +185,16 @@ final class CreateAffiliatePayoutHandlerTest extends TestCase
             code: 'affiliate3',
             userId: 'auth0|affiliate3',
             name: 'Affiliate Three',
-            registeredAt: new DateTimeImmutable('-100 days'),
+            registeredAt: TestClock::now()->modify('-100 days'),
         );
-        $affiliatePlayer->joinReferralProgram(new DateTimeImmutable('-50 days'));
+        $affiliatePlayer->joinReferralProgram(TestClock::now()->modify('-50 days'));
 
         $subscriber = new Player(
             id: $playerId,
             code: 'subscriber3',
             userId: 'auth0|subscriber3',
             name: 'Subscriber Three',
-            registeredAt: new DateTimeImmutable('-30 days'),
+            registeredAt: TestClock::now()->modify('-30 days'),
         );
 
         $referral = new Referral(
@@ -202,7 +202,7 @@ final class CreateAffiliatePayoutHandlerTest extends TestCase
             subscriber: $subscriber,
             affiliatePlayer: $affiliatePlayer,
             source: ReferralSource::Link,
-            createdAt: new DateTimeImmutable('-10 days'),
+            createdAt: TestClock::now()->modify('-10 days'),
         );
 
         $stripeClient = $this->buildStripeClient(
@@ -235,16 +235,16 @@ final class CreateAffiliatePayoutHandlerTest extends TestCase
             code: 'affiliate4',
             userId: 'auth0|affiliate4',
             name: 'Affiliate Four',
-            registeredAt: new DateTimeImmutable('-100 days'),
+            registeredAt: TestClock::now()->modify('-100 days'),
         );
-        $affiliatePlayer->joinReferralProgram(new DateTimeImmutable('-50 days'));
+        $affiliatePlayer->joinReferralProgram(TestClock::now()->modify('-50 days'));
 
         $subscriber = new Player(
             id: $playerId,
             code: 'subscriber4',
             userId: 'auth0|subscriber4',
             name: 'Subscriber Four',
-            registeredAt: new DateTimeImmutable('-30 days'),
+            registeredAt: TestClock::now()->modify('-30 days'),
         );
 
         $referral = new Referral(
@@ -252,7 +252,7 @@ final class CreateAffiliatePayoutHandlerTest extends TestCase
             subscriber: $subscriber,
             affiliatePlayer: $affiliatePlayer,
             source: ReferralSource::Link,
-            createdAt: new DateTimeImmutable('-10 days'),
+            createdAt: TestClock::now()->modify('-10 days'),
         );
 
         $stripeClient = $this->buildStripeClient(
@@ -294,7 +294,7 @@ final class CreateAffiliatePayoutHandlerTest extends TestCase
             stripeClient: $stripeClient,
             referralRepository: $referralRepository,
             affiliatePayoutRepository: $payoutRepository,
-            clock: new MockClock(),
+            clock: new MockClock(TestClock::now()),
             logger: new NullLogger(),
         );
     }

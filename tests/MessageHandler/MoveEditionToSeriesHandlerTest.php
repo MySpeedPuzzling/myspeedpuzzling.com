@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CompetitionSlugTaken;
@@ -53,7 +53,7 @@ final class MoveEditionToSeriesHandlerTest extends KernelTestCase
             competitionId: OrganizationFixture::EDITION_LANTERN_1,
             name: 'Night Round',
             minutesLimit: 60,
-            startsAt: new DateTimeImmutable('+22 days 23:00'),
+            startsAt: TestClock::now()->modify('+22 days 23:00'),
             timezone: 'America/New_York',
             badgeBackgroundColor: null,
             badgeTextColor: null,

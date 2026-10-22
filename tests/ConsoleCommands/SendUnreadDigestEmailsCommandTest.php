@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\ConsoleCommands;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -68,7 +69,7 @@ final class SendUnreadDigestEmailsCommandTest extends KernelTestCase
                 'code' => 'duplicate_player',
                 'user_id' => 'auth0|duplicate_' . substr($duplicatePlayerId, 0, 8),
                 'name' => 'Duplicate Player',
-                'registered_at' => (new \DateTimeImmutable('-30 days'))->format('Y-m-d H:i:s'),
+                'registered_at' => TestClock::now()->modify('-30 days')->format('Y-m-d H:i:s'),
             ],
         );
 
@@ -79,8 +80,8 @@ final class SendUnreadDigestEmailsCommandTest extends KernelTestCase
             'initiator_id' => PlayerFixture::PLAYER_ADMIN,
             'recipient_id' => $duplicatePlayerId,
             'status' => 'pending',
-            'created_at' => (new \DateTimeImmutable('-3 days'))->format('Y-m-d H:i:s'),
-            'last_message_at' => (new \DateTimeImmutable('-3 days'))->format('Y-m-d H:i:s'),
+            'created_at' => TestClock::now()->modify('-3 days')->format('Y-m-d H:i:s'),
+            'last_message_at' => TestClock::now()->modify('-3 days')->format('Y-m-d H:i:s'),
         ]);
 
         // Create message in the pending conversation
@@ -89,7 +90,7 @@ final class SendUnreadDigestEmailsCommandTest extends KernelTestCase
             'conversation_id' => $conversationId,
             'sender_id' => PlayerFixture::PLAYER_ADMIN,
             'content' => 'Hello duplicate!',
-            'sent_at' => (new \DateTimeImmutable('-3 days'))->format('Y-m-d H:i:s'),
+            'sent_at' => TestClock::now()->modify('-3 days')->format('Y-m-d H:i:s'),
         ]);
 
         $this->commandTester->execute([]);
@@ -133,7 +134,7 @@ final class SendUnreadDigestEmailsCommandTest extends KernelTestCase
             'conversation_id' => '018d000e-0000-0000-0000-000000000001', // CONVERSATION_ACCEPTED
             'sender_id' => PlayerFixture::PLAYER_ADMIN,
             'content' => 'New message after notification',
-            'sent_at' => (new \DateTimeImmutable('-37 hours'))->format('Y-m-d H:i:s'),
+            'sent_at' => TestClock::now()->modify('-37 hours')->format('Y-m-d H:i:s'),
         ]);
 
         // Second run should still not notify due to 24h cooldown

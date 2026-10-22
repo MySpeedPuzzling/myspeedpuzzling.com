@@ -8,7 +8,7 @@ Living record. Every phase appends: what it did, what it found, what the next ph
 | 1 - pin UTC, UTC on write | done 2026-10-22 | this commit |
 | 2 - one clock in `src/` | done 2026-10-22 | c00bf8343, e16908c18, 3a15ef3b0 + this commit |
 | 3 - frozen clock in tests | done 2026-10-22 - **branch red until Phase 4 ends** (157 tests) | fe580bfa0 |
-| 4 - tests on the frozen clock | not started (9 batches, re-planned in Phase 3) | |
+| 4 - tests on the frozen clock | batch 1 done 2026-10-22 (157 → 103 failing); batches 2-9 open | batch 1: this commit |
 | 5 - proof, docs, PR | not started | |
 
 ## Jan's answers (2026-10-22) - binding for every later phase
@@ -598,6 +598,52 @@ For Phase 4:
 - `new MockClock()` without an argument is the *real* now - every one of them becomes `new MockClock(TestClock::now())`
   (or a fixed literal).
 
+## Phase 4 batch 1 (2026-10-22) - shared helpers, token doubles, Security, Entity, Component, small directories
+
+Converted (55 files): root helpers `ComparisonSeeding`, `DifficultyRankingSeeding`, `FreeTrialConditions`,
+`ChangesPuzzleRecords`, `InsightsPaceSeeding`, `LeaderboardSeeding`, `LiveVideoTesting`, `OnlineReviewSeeding`,
+`PatTestHelper`, `ProfileInsightsSeeding`, `SpotlightSeeding`, `TestingLogin`, `TestingViewer`; `TestDouble/MicrosoftIdTokenFactory`;
+every clock read in `Security` (9), `Entity` (11), `Component` (8), `ConsoleCommands` (2), `EventSubscriber` (4), `Value` (2),
+`Results` (1); plus `Services/SocialLogin/MicrosoftIdTokenVerifierTest` (batch 6's directory, but it pairs the factory with its
+own `new MockClock()` - converting the factory alone turned it red). Mechanical: `new DateTimeImmutable()` →
+`TestClock::now()`, relative strings → `TestClock::now()->modify(…)`, SQL `NOW()` → `TestClock::SQL_NOW` (concatenated into
+quoted strings; heredocs get `$now = TestClock::SQL_NOW;` at the top of the method and `{$now}` in the SQL), `time()` →
+`TestClock::timestamp()`. `LiveVideoTesting::liveKitClaims()` decodes with `JWT::$timestamp = TestClock::timestamp()` (restored
+in `finally`), like the app's verifiers. `OnlineReviewSeeding` starts/stops the round at `TestClock::now()->modify("-N seconds")`.
+No assertion was weakened; no test needed its data fixed for passing by luck.
+
+**Real time on purpose (left as is, each with a comment; batch 9 lists them in `SystemClockCoverageTest`'s allowlist):**
+
+- `tests/OAuth2TestHelper.php` - token expiry and `iat`/`nbf`: league/oauth2-server judges its access tokens on its own clock
+  (lcobucci `SystemClock`, `new DateTimeImmutable()`), not the app's. Converting it turned 25 API v1 files red (401) - reverted.
+- `tests/TestDouble/AppleIdTokenFactory.php` - `iat`/`exp`: the Apple provider library and
+  `AppleServerNotificationVerifier` decode with php-jwt's `time()` (the app sets no `JWT::$timestamp` there - unlike
+  `MicrosoftIdTokenVerifier`/`LiveKitWebhookVerifier`; harmless, a candidate for `docs/TODO.md` in Phase 5).
+- `tests/TestDouble/InMemoryStudioInviteSignal.php` - stands in for a Redis TTL, which Redis counts on its own clock.
+- Cookie expiries the browser judges (Jan's answer 1): `Security/RememberMeTest` (4 × `time()`),
+  `EventSubscriber/NativeAuthPageLocaleTest` (locale cookie), `EventSubscriber/BotTrustCookieSubscriberTest` (`microtime()`,
+  the sidecar's clock).
+- `tests/TestingDatabaseCaching.php` (file age) and `tests/TestClock.php` itself - untouched.
+- `Entity/PuzzleSolvingTimeSeriesPickTest` matches the grep only through its own `$this->time()` helper (no clock).
+
+Gates: PHPStan clean, PHPCS clean (cs-fix removed the unused `DateTimeImmutable` imports). Full suite (ParaTest,
+`speedpuzzling_clock_test`): **11525 tests, 99 failures + 4 errors = 103 tests** (Phase 3: 157). Every remaining failure was
+already on Phase 3's list (compared per test); nothing green turned red. Fixed by this batch: all of `Security` (3 files / 11),
+`SocialProfileFetcherMicrosoftTest` (3), and through the helpers `AnnouncementModalTest`, `StartFreeTrialControllerTest`,
+`StartFreeTrialHandlerTest`, `ApiVideoTokenControllerTest`, `ConfirmOnlineResultHandlerTest` and 6 of the 7 `OnlineRounds` files.
+
+Remaining (files / tests): `Controller` top level 18 / 39, `Controller/Api` 4 / 5, `Controller/Compete` 3 / 3,
+`Controller/DuplicateResults` 1 / 5, `OfficialResults` 1 / 1, `OnlineRounds` 1 / 1, `ReviewResults` 1 / 1, `Seating` 1 / 1,
+`SuspiciousTimes` 1 / 1, `MessageHandler` 18 / 31, `Query` 7 / 9, `Services` 4 / 6.
+
+For batches 2-9:
+
+- No new helper in `TestClock`; the heredoc pattern above (`$now = TestClock::SQL_NOW;` + `{$now}`) is the one to copy.
+- A test minting an OAuth2 access token keeps real time (see above); PAT tokens (`PatTestHelper`) are on the frozen clock.
+- Any test that builds a Microsoft id_token and checks it with its own verifier needs `new MockClock(TestClock::now())`.
+- Watch double-quoted multi-line SQL: a `NOW()` on a continuation line must be spliced with `" . TestClock::SQL_NOW . "`,
+  not single quotes (a naive "first quote on the line" rewrite gets it wrong when the line contains `'high'` etc.).
+
 ## Log
 
 - 2026-10-22: plan written (README.md, implementation-plan.md). Branch `time-and-clock` from `8447c607d`.
@@ -612,3 +658,6 @@ For Phase 4:
 - 2026-10-22: Phase 3 - `clock` frozen at `TestClock::FROZEN_NOW` in the test container, `TestClock` helpers + test, DB
   cache keyed by the instant, fixtures already clock-derived, XP weekly-boost test back on a fixed week; suite red by
   design (157 tests / 75 files, all test data on the real clock), Panther green (22); Phase 4 re-planned in 9 batches.
+- 2026-10-22: Phase 4 batch 1 - shared helpers, Microsoft token double, Security/Entity/Component/ConsoleCommands/
+  EventSubscriber/Value/Results on the frozen clock (55 files); OAuth2/Apple/Redis-TTL doubles and cookie assertions stay on
+  real time with reasons; suite 157 → 103 failing, nothing new red.

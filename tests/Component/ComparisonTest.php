@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Component\Comparison;
 use SpeedPuzzling\Web\Tests\DataFixtures\ComparisonSubjectFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\LiveComponentBrowserRequests;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -187,7 +188,7 @@ final class ComparisonTest extends WebTestCase
 
         // Even when called directly: a preview writes nothing
         self::getContainer()->get(Connection::class)->executeStatement(
-            'INSERT INTO comparison_subject (id, player_id, subject_player_id, added_at) VALUES (gen_random_uuid(), :owner, :owner, NOW()), (gen_random_uuid(), :owner, :other, NOW())',
+            'INSERT INTO comparison_subject (id, player_id, subject_player_id, added_at) VALUES (gen_random_uuid(), :owner, :owner, ' . TestClock::SQL_NOW . '), (gen_random_uuid(), :owner, :other, ' . TestClock::SQL_NOW . ')',
             ['owner' => PlayerFixture::PLAYER_ADMIN, 'other' => PlayerFixture::PLAYER_REGULAR],
         );
         $component->call('clear');
@@ -271,11 +272,11 @@ final class ComparisonTest extends WebTestCase
         for ($i = 1; $i <= 7; $i++) {
             $playerId = sprintf('018d00ff-0000-0000-0000-%012d', $i);
             $database->executeStatement(
-                "INSERT INTO player (id, code, name, registered_at, is_private) VALUES (:id, :code, :name, NOW(), false)",
+                "INSERT INTO player (id, code, name, registered_at, is_private) VALUES (:id, :code, :name, " . TestClock::SQL_NOW . ", false)",
                 ['id' => $playerId, 'code' => 'capfill' . $i, 'name' => 'Cap filler ' . $i],
             );
             $database->executeStatement(
-                'INSERT INTO comparison_subject (id, player_id, subject_player_id, added_at) VALUES (:id, :owner, :subject, NOW())',
+                'INSERT INTO comparison_subject (id, player_id, subject_player_id, added_at) VALUES (:id, :owner, :subject, ' . TestClock::SQL_NOW . ')',
                 ['id' => sprintf('018d00fe-0000-0000-0000-%012d', $i), 'owner' => PlayerFixture::PLAYER_WITH_STRIPE, 'subject' => $playerId],
             );
         }
@@ -472,6 +473,8 @@ final class ComparisonTest extends WebTestCase
      */
     private function seedSharedPuzzles(string $playerA, string $playerB, int $count): void
     {
+        $now = TestClock::SQL_NOW;
+
         self::getContainer()->get(Connection::class)->executeStatement(
             <<<SQL
 WITH puzzles AS (
@@ -481,7 +484,7 @@ WITH puzzles AS (
 ),
 solvers (player_id, seconds) AS (VALUES (CAST(:a AS UUID), 1800), (CAST(:b AS UUID), 1900))
 INSERT INTO puzzle_solving_time (id, player_id, puzzle_id, seconds_to_solve, tracked_at, finished_at, verified, first_attempt, suspicious, puzzling_type, puzzlers_count)
-SELECT gen_random_uuid(), solvers.player_id, puzzles.id, solvers.seconds, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day', true, true, false, 'solo', 1
+SELECT gen_random_uuid(), solvers.player_id, puzzles.id, solvers.seconds, {$now} - INTERVAL '1 day', {$now} - INTERVAL '1 day', true, true, false, 'solo', 1
 FROM puzzles CROSS JOIN solvers
 SQL,
             ['count' => $count, 'a' => $playerA, 'b' => $playerB],

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Security;
 
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Security\LoginFormAuthenticator;
 use SpeedPuzzling\Web\Security\LoginFormIncomplete;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Exception\UserNotFoundException;
@@ -129,10 +129,10 @@ final class LoginFormAuthenticatorTest extends KernelTestCase
         bool $legacyAuth0 = false,
     ): UserAccount {
         $email = sprintf('%s+%s@example.com', $emailPrefix, bin2hex(random_bytes(4)));
-        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now());
 
         if ($legacyAuth0) {
-            $userAccount->applyAuth0Import($email, $bcryptHash, false, new DateTimeImmutable());
+            $userAccount->applyAuth0Import($email, $bcryptHash, false, TestClock::now());
         } elseif ($bcryptHash !== null) {
             $userAccount->changePassword($bcryptHash);
         }

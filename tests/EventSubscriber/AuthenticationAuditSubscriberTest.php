@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\EventSubscriber;
 
-use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\EventSubscriber\AuthenticationAuditSubscriber;
 use SpeedPuzzling\Web\Security\LoginFormAuthenticator;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\Session;
@@ -179,7 +179,7 @@ final class AuthenticationAuditSubscriberTest extends KernelTestCase
     private function createAccount(string $userId): UserAccount
     {
         $email = sprintf('subscriber+%s@example.com', bin2hex(random_bytes(4)));
-        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now());
 
         $this->entityManager->persist($userAccount);
         $this->entityManager->flush();

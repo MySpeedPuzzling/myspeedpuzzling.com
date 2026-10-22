@@ -79,7 +79,17 @@ trait LiveVideoTesting
      */
     private static function liveKitClaims(string $jwt): array
     {
-        $claims = json_decode((string) json_encode(JWT::decode($jwt, new Key(self::LIVEKIT_TEST_SECRET, 'HS256'))), true, flags: JSON_THROW_ON_ERROR);
+        // Judged at the frozen instant the app minted it on, like the app's own verifiers (php-jwt reads time() otherwise)
+        $previousTimestamp = JWT::$timestamp;
+        JWT::$timestamp = TestClock::timestamp();
+
+        try {
+            $decoded = JWT::decode($jwt, new Key(self::LIVEKIT_TEST_SECRET, 'HS256'));
+        } finally {
+            JWT::$timestamp = $previousTimestamp;
+        }
+
+        $claims = json_decode((string) json_encode($decoded), true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($claims);
 
         /** @var array<string, mixed> $claims */

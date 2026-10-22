@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\LeaderboardSeeding;
 use SpeedPuzzling\Web\Tests\LiveComponentBrowserRequests;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -154,7 +155,7 @@ final class MspRatingLadderWindowTest extends WebTestCase
     private function rate(Connection $database, string $playerId, float $rating): void
     {
         $database->executeStatement(
-            'INSERT INTO player_elo (id, player_id, pieces_count, elo_rating, computed_at) VALUES (:id, :playerId, 500, :rating, NOW())
+            'INSERT INTO player_elo (id, player_id, pieces_count, elo_rating, computed_at) VALUES (:id, :playerId, 500, :rating, ' . TestClock::SQL_NOW . ')
              ON CONFLICT (player_id, pieces_count) DO UPDATE SET elo_rating = EXCLUDED.elo_rating',
             ['id' => Uuid::uuid7()->toString(), 'playerId' => $playerId, 'rating' => $rating],
             ['rating' => ParameterType::STRING],

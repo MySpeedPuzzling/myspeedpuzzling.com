@@ -31,13 +31,15 @@ trait ComparisonSeeding
         // Needed to sign the player in (TestingViewer)
         null|string $userId = null,
     ): string {
+        $now = TestClock::SQL_NOW;
+
         $id = Uuid::uuid7()->toString();
         $code ??= 'cmp' . (++$this->seededCodes) . substr(str_replace('-', '', $id), -6);
 
         $this->comparisonDatabase()->executeStatement(
             <<<SQL
 INSERT INTO player (id, code, name, country, avatar, user_id, registered_at, is_private, ranking_opted_out)
-VALUES (:id, :code, :name, :country, :avatar, :userId, NOW() - INTERVAL '2 years', :private, :rankingOptedOut)
+VALUES (:id, :code, :name, :country, :avatar, :userId, {$now} - INTERVAL '2 years', :private, :rankingOptedOut)
 SQL,
             [
                 'id' => $id,
@@ -106,10 +108,12 @@ SQL,
 
     protected function seedDifficulty(string $puzzleId, null|int $tier): void
     {
+        $now = TestClock::SQL_NOW;
+
         $this->comparisonDatabase()->executeStatement(
             <<<SQL
 INSERT INTO puzzle_difficulty (puzzle_id, difficulty_tier, difficulty_score, confidence, sample_size, computed_at)
-VALUES (:puzzleId, :tier, 1.0, 'high', 10, NOW())
+VALUES (:puzzleId, :tier, 1.0, 'high', 10, {$now})
 SQL,
             ['puzzleId' => $puzzleId, 'tier' => $tier],
         );
@@ -123,13 +127,15 @@ SQL,
      */
     protected function seedTeam(array $playerIds, array $guestNames = [], null|string $name = null): string
     {
+        $now = TestClock::SQL_NOW;
+
         $id = Uuid::uuid7()->toString();
         $database = $this->comparisonDatabase();
 
         $database->executeStatement(
             <<<SQL
 INSERT INTO puzzling_team (id, composition_key, size, created_at, name)
-VALUES (:id, :compositionKey, :size, NOW(), :name)
+VALUES (:id, :compositionKey, :size, {$now}, :name)
 SQL,
             [
                 'id' => $id,
@@ -232,7 +238,7 @@ SQL,
     protected function seedBlock(string $blockerId, string $blockedId): void
     {
         $this->comparisonDatabase()->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => $blockerId, 'blocked' => $blockedId],
         );
     }
@@ -240,17 +246,19 @@ SQL,
     protected function seedAllowList(string $ownerId, string $viewerId): void
     {
         $this->comparisonDatabase()->executeStatement(
-            'INSERT INTO private_profile_viewer (id, owner_id, viewer_id, added_at) VALUES (:id, :owner, :viewer, NOW())',
+            'INSERT INTO private_profile_viewer (id, owner_id, viewer_id, added_at) VALUES (:id, :owner, :viewer, ' . TestClock::SQL_NOW . ')',
             ['id' => Uuid::uuid7()->toString(), 'owner' => $ownerId, 'viewer' => $viewerId],
         );
     }
 
     protected function seedSkill(string $playerId, float $percentile, int $tier, int $pieces = 500): void
     {
+        $now = TestClock::SQL_NOW;
+
         $this->comparisonDatabase()->executeStatement(
             <<<SQL
 INSERT INTO player_skill (id, player_id, pieces_count, skill_score, skill_tier, skill_percentile, confidence, qualifying_puzzles_count, computed_at)
-VALUES (:id, :playerId, :pieces, 1.0, :tier, :percentile, 'high', 10, NOW())
+VALUES (:id, :playerId, :pieces, 1.0, :tier, :percentile, 'high', 10, {$now})
 SQL,
             ['id' => Uuid::uuid7()->toString(), 'playerId' => $playerId, 'pieces' => $pieces, 'tier' => $tier, 'percentile' => $percentile],
             ['pieces' => ParameterType::INTEGER, 'tier' => ParameterType::INTEGER],
@@ -259,10 +267,12 @@ SQL,
 
     protected function seedBaseline(string $playerId, int $pieces, int $seconds, int $qualifyingSolves = 10): void
     {
+        $now = TestClock::SQL_NOW;
+
         $this->comparisonDatabase()->executeStatement(
             <<<SQL
 INSERT INTO player_baseline (id, player_id, pieces_count, baseline_seconds, qualifying_solves_count, computed_at)
-VALUES (:id, :playerId, :pieces, :seconds, :solves, NOW())
+VALUES (:id, :playerId, :pieces, :seconds, :solves, {$now})
 SQL,
             ['id' => Uuid::uuid7()->toString(), 'playerId' => $playerId, 'pieces' => $pieces, 'seconds' => $seconds, 'solves' => $qualifyingSolves],
             ['pieces' => ParameterType::INTEGER, 'seconds' => ParameterType::INTEGER, 'solves' => ParameterType::INTEGER],

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Security;
 
-use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\LoginLinkRequest;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Services\SignInCodeHasher;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -308,7 +308,7 @@ final class SignInCodeTest extends WebTestCase
             ->update(LoginLinkRequest::class, 'l')
             ->set('l.expiresAt', ':expiresAt')
             ->where('l.id = :id')
-            ->setParameter('expiresAt', new DateTimeImmutable('-1 minute'))
+            ->setParameter('expiresAt', TestClock::now()->modify('-1 minute'))
             ->setParameter('id', $row->id)
             ->getQuery()
             ->execute();
@@ -526,7 +526,7 @@ final class SignInCodeTest extends WebTestCase
         $email = sprintf('%s+%s@example.com', $emailPrefix, bin2hex(random_bytes(4)));
 
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
-        $entityManager->persist(new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable()));
+        $entityManager->persist(new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now()));
         $entityManager->flush();
 
         return $email;

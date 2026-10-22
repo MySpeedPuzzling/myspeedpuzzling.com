@@ -32,6 +32,7 @@ final class NativeAuthPageLocaleTest extends WebTestCase
         self::assertSame('cs', $cookie->getValue());
         self::assertSame('/', $cookie->getPath());
         self::assertSame(Cookie::SAMESITE_LAX, $cookie->getSameSite());
+        // Real time: the browser expires the cookie on its own clock
         self::assertGreaterThan(time() + 300 * 24 * 3600, $cookie->getExpiresTime());
 
         $vary = $browser->getResponse()->getVary();

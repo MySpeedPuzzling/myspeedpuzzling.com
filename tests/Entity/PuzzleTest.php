@@ -10,6 +10,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\PuzzleName;
@@ -109,15 +110,15 @@ final class PuzzleTest extends TestCase
         self::assertNull($puzzle->nameLanguage);
 
         foreach (['en', 'EN-gb', 'en-US', 'en_AU'] as $english) {
-            $puzzle->changeNames('Seashells', 'cs', new PuzzleNames(), new DateTimeImmutable());
+            $puzzle->changeNames('Seashells', 'cs', new PuzzleNames(), TestClock::now());
             self::assertSame('cs', $puzzle->nameLanguage);
 
-            $puzzle->changeNames('Seashells', $english, new PuzzleNames(), new DateTimeImmutable());
+            $puzzle->changeNames('Seashells', $english, new PuzzleNames(), TestClock::now());
             self::assertNull($puzzle->nameLanguage, $english . ' is English: null');
         }
 
         // An other name keeps its English tag
-        $puzzle->changeNames('Kruh barev', 'cs', new PuzzleNames([new PuzzleName('Circle of Colors', 'en-GB')]), new DateTimeImmutable());
+        $puzzle->changeNames('Kruh barev', 'cs', new PuzzleNames([new PuzzleName('Circle of Colors', 'en-GB')]), TestClock::now());
         self::assertSame([['name' => 'Circle of Colors', 'language' => 'en-GB']], $puzzle->alternativeNames);
     }
 
@@ -155,7 +156,7 @@ final class PuzzleTest extends TestCase
         $puzzle = new Puzzle(id: Uuid::uuid7(), piecesCount: 500, name: 'Seashells', approved: true);
 
         try {
-            $puzzle->changeNames(" \u{200B} ", null, new PuzzleNames([new PuzzleName('Mušle', 'cs')]), new DateTimeImmutable());
+            $puzzle->changeNames(" \u{200B} ", null, new PuzzleNames([new PuzzleName('Mušle', 'cs')]), TestClock::now());
             self::fail('An empty name must be refused');
         } catch (InvalidPuzzleValues) {
         }

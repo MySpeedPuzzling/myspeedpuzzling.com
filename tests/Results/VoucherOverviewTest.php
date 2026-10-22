@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Results\VoucherOverview;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Value\VoucherType;
 
 final class VoucherOverviewTest extends TestCase
@@ -19,8 +20,8 @@ final class VoucherOverviewTest extends TestCase
             id: '00000000-0000-0000-0000-000000000001',
             code: $code,
             monthsValue: 1,
-            validUntil: new DateTimeImmutable('+30 days'),
-            createdAt: new DateTimeImmutable(),
+            validUntil: TestClock::now()->modify('+30 days'),
+            createdAt: TestClock::now(),
             usedAt: null,
             usedById: null,
             usedByName: null,
@@ -55,9 +56,9 @@ final class VoucherOverviewTest extends TestCase
             id: '00000000-0000-0000-0000-000000000001',
             code: 'TESTCODE12345678',
             monthsValue: 1,
-            validUntil: new DateTimeImmutable('+30 days'),
-            createdAt: new DateTimeImmutable('-10 days'),
-            usedAt: new DateTimeImmutable('-2 days'),
+            validUntil: TestClock::now()->modify('+30 days'),
+            createdAt: TestClock::now()->modify('-10 days'),
+            usedAt: TestClock::now()->modify('-2 days'),
             usedById: '00000000-0000-0000-0000-000000000002',
             usedByName: 'John Doe',
             internalNote: null,
@@ -76,8 +77,8 @@ final class VoucherOverviewTest extends TestCase
             id: '00000000-0000-0000-0000-000000000001',
             code: 'TESTCODE12345678',
             monthsValue: 1,
-            validUntil: new DateTimeImmutable('+30 days'),
-            createdAt: new DateTimeImmutable('-10 days'),
+            validUntil: TestClock::now()->modify('+30 days'),
+            createdAt: TestClock::now()->modify('-10 days'),
             usedAt: null,
             usedById: null,
             usedByName: null,
@@ -97,8 +98,8 @@ final class VoucherOverviewTest extends TestCase
             id: '00000000-0000-0000-0000-000000000001',
             code: 'TESTCODE12345678',
             monthsValue: 1,
-            validUntil: new DateTimeImmutable('-5 days'),
-            createdAt: new DateTimeImmutable('-30 days'),
+            validUntil: TestClock::now()->modify('-5 days'),
+            createdAt: TestClock::now()->modify('-30 days'),
             usedAt: null,
             usedById: null,
             usedByName: null,
@@ -109,7 +110,7 @@ final class VoucherOverviewTest extends TestCase
             usageCount: 0,
         );
 
-        self::assertTrue($voucher->isExpired(new DateTimeImmutable()));
+        self::assertTrue($voucher->isExpired(TestClock::now()));
     }
 
     public function testIsExpiredReturnsFalseWhenValidUntilIsFuture(): void
@@ -118,8 +119,8 @@ final class VoucherOverviewTest extends TestCase
             id: '00000000-0000-0000-0000-000000000001',
             code: 'TESTCODE12345678',
             monthsValue: 1,
-            validUntil: new DateTimeImmutable('+30 days'),
-            createdAt: new DateTimeImmutable('-10 days'),
+            validUntil: TestClock::now()->modify('+30 days'),
+            createdAt: TestClock::now()->modify('-10 days'),
             usedAt: null,
             usedById: null,
             usedByName: null,
@@ -130,7 +131,7 @@ final class VoucherOverviewTest extends TestCase
             usageCount: 0,
         );
 
-        self::assertFalse($voucher->isExpired(new DateTimeImmutable()));
+        self::assertFalse($voucher->isExpired(TestClock::now()));
     }
 
     public function testIsAvailableReturnsTrueWhenNotUsedAndNotExpired(): void
@@ -139,8 +140,8 @@ final class VoucherOverviewTest extends TestCase
             id: '00000000-0000-0000-0000-000000000001',
             code: 'TESTCODE12345678',
             monthsValue: 1,
-            validUntil: new DateTimeImmutable('+30 days'),
-            createdAt: new DateTimeImmutable('-10 days'),
+            validUntil: TestClock::now()->modify('+30 days'),
+            createdAt: TestClock::now()->modify('-10 days'),
             usedAt: null,
             usedById: null,
             usedByName: null,
@@ -151,7 +152,7 @@ final class VoucherOverviewTest extends TestCase
             usageCount: 0,
         );
 
-        self::assertTrue($voucher->isAvailable(new DateTimeImmutable()));
+        self::assertTrue($voucher->isAvailable(TestClock::now()));
     }
 
     public function testIsAvailableReturnsFalseWhenUsed(): void
@@ -160,9 +161,9 @@ final class VoucherOverviewTest extends TestCase
             id: '00000000-0000-0000-0000-000000000001',
             code: 'TESTCODE12345678',
             monthsValue: 1,
-            validUntil: new DateTimeImmutable('+30 days'),
-            createdAt: new DateTimeImmutable('-10 days'),
-            usedAt: new DateTimeImmutable('-2 days'),
+            validUntil: TestClock::now()->modify('+30 days'),
+            createdAt: TestClock::now()->modify('-10 days'),
+            usedAt: TestClock::now()->modify('-2 days'),
             usedById: '00000000-0000-0000-0000-000000000002',
             usedByName: 'John Doe',
             internalNote: null,
@@ -172,7 +173,7 @@ final class VoucherOverviewTest extends TestCase
             usageCount: 0,
         );
 
-        self::assertFalse($voucher->isAvailable(new DateTimeImmutable()));
+        self::assertFalse($voucher->isAvailable(TestClock::now()));
     }
 
     public function testIsAvailableReturnsFalseWhenExpired(): void
@@ -181,8 +182,8 @@ final class VoucherOverviewTest extends TestCase
             id: '00000000-0000-0000-0000-000000000001',
             code: 'TESTCODE12345678',
             monthsValue: 1,
-            validUntil: new DateTimeImmutable('-5 days'),
-            createdAt: new DateTimeImmutable('-30 days'),
+            validUntil: TestClock::now()->modify('-5 days'),
+            createdAt: TestClock::now()->modify('-30 days'),
             usedAt: null,
             usedById: null,
             usedByName: null,
@@ -193,7 +194,7 @@ final class VoucherOverviewTest extends TestCase
             usageCount: 0,
         );
 
-        self::assertFalse($voucher->isAvailable(new DateTimeImmutable()));
+        self::assertFalse($voucher->isAvailable(TestClock::now()));
     }
 
     public function testFromDatabaseRow(): void
@@ -294,8 +295,8 @@ final class VoucherOverviewTest extends TestCase
             id: '00000000-0000-0000-0000-000000000001',
             code: 'DISCOUNT20PRCT12',
             monthsValue: null,
-            validUntil: new DateTimeImmutable('+30 days'),
-            createdAt: new DateTimeImmutable('-10 days'),
+            validUntil: TestClock::now()->modify('+30 days'),
+            createdAt: TestClock::now()->modify('-10 days'),
             usedAt: null,
             usedById: null,
             usedByName: null,
@@ -315,8 +316,8 @@ final class VoucherOverviewTest extends TestCase
             id: '00000000-0000-0000-0000-000000000001',
             code: 'TESTCODE12345678',
             monthsValue: 1,
-            validUntil: new DateTimeImmutable('+30 days'),
-            createdAt: new DateTimeImmutable(),
+            validUntil: TestClock::now()->modify('+30 days'),
+            createdAt: TestClock::now(),
             usedAt: null,
             usedById: null,
             usedByName: null,
@@ -331,8 +332,8 @@ final class VoucherOverviewTest extends TestCase
             id: '00000000-0000-0000-0000-000000000002',
             code: 'TESTCODE87654321',
             monthsValue: 3,
-            validUntil: new DateTimeImmutable('+30 days'),
-            createdAt: new DateTimeImmutable(),
+            validUntil: TestClock::now()->modify('+30 days'),
+            createdAt: TestClock::now(),
             usedAt: null,
             usedById: null,
             usedByName: null,
@@ -350,7 +351,7 @@ final class VoucherOverviewTest extends TestCase
     public function testLifetimeVoucherIsSingleUse(): void
     {
         $availableVoucher = $this->createLifetimeOverview(usedAt: null);
-        $usedVoucher = $this->createLifetimeOverview(usedAt: new DateTimeImmutable('-1 day'));
+        $usedVoucher = $this->createLifetimeOverview(usedAt: TestClock::now()->modify('-1 day'));
 
         self::assertSame('Lifetime', $availableVoucher->getValue());
         self::assertFalse($availableVoucher->isUsed());
@@ -388,8 +389,8 @@ final class VoucherOverviewTest extends TestCase
             id: '00000000-0000-0000-0000-000000000001',
             code: 'TESTCODE12345678',
             monthsValue: 1,
-            validUntil: new DateTimeImmutable('+30 days'),
-            createdAt: new DateTimeImmutable(),
+            validUntil: TestClock::now()->modify('+30 days'),
+            createdAt: TestClock::now(),
             usedAt: null,
             usedById: null,
             usedByName: null,
@@ -404,9 +405,9 @@ final class VoucherOverviewTest extends TestCase
             id: '00000000-0000-0000-0000-000000000002',
             code: 'TESTCODE87654321',
             monthsValue: 1,
-            validUntil: new DateTimeImmutable('+30 days'),
-            createdAt: new DateTimeImmutable(),
-            usedAt: new DateTimeImmutable('-1 day'),
+            validUntil: TestClock::now()->modify('+30 days'),
+            createdAt: TestClock::now(),
+            usedAt: TestClock::now()->modify('-1 day'),
             usedById: '00000000-0000-0000-0000-000000000003',
             usedByName: 'John Doe',
             internalNote: null,
@@ -426,8 +427,8 @@ final class VoucherOverviewTest extends TestCase
             id: '00000000-0000-0000-0000-000000000001',
             code: 'LIFETIMEMEMBER01',
             monthsValue: null,
-            validUntil: new DateTimeImmutable('+30 days'),
-            createdAt: new DateTimeImmutable(),
+            validUntil: TestClock::now()->modify('+30 days'),
+            createdAt: TestClock::now(),
             usedAt: $usedAt,
             usedById: null,
             usedByName: null,

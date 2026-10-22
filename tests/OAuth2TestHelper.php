@@ -49,6 +49,8 @@ final readonly class OAuth2TestHelper
 
         /** @var non-empty-string $identifier */
         $identifier = Uuid::uuid7()->toString();
+        // Real time on purpose: league/oauth2-server judges its tokens on its own clock (lcobucci SystemClock), never the
+        // app's frozen one
         $expiry = new DateTimeImmutable('+1 hour');
 
         /** @var list<Scope> $scopeObjects */
@@ -90,6 +92,7 @@ final readonly class OAuth2TestHelper
             InMemory::plainText($privateKey), // Public key not needed for signing
         );
 
+        // Real time on purpose, like the expiry above
         $now = new DateTimeImmutable();
 
         /** @var non-empty-string $subject */

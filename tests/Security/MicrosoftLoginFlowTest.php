@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Security;
 
-use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -15,6 +14,7 @@ use SpeedPuzzling\Web\Events\OauthIdentityLinked;
 use SpeedPuzzling\Web\Services\SocialLogin\MicrosoftIdTokenVerifier;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginProviders;
 use SpeedPuzzling\Web\Tests\ConfiguresSocialLoginProviders;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestDouble\MicrosoftIdTokenFactory;
 use SpeedPuzzling\Web\Tests\TestDouble\SocialLoginHttpMock;
 use SpeedPuzzling\Web\Value\OauthProvider;
@@ -398,11 +398,11 @@ final class MicrosoftLoginFlowTest extends WebTestCase
     {
         $userId = 'msp|' . Uuid::uuid7()->toString();
 
-        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
-        $userAccount->markEmailVerified(new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now());
+        $userAccount->markEmailVerified(TestClock::now());
         $userAccount->changePassword('hash');
 
-        $player = new Player(Uuid::uuid7(), 'MS' . bin2hex(random_bytes(3)), $userId, null, new DateTimeImmutable());
+        $player = new Player(Uuid::uuid7(), 'MS' . bin2hex(random_bytes(3)), $userId, null, TestClock::now());
 
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
         $entityManager->persist($userAccount);
@@ -421,7 +421,7 @@ final class MicrosoftLoginFlowTest extends WebTestCase
             provider: OauthProvider::Microsoft,
             providerUserId: $oid,
             emailAtLink: $userAccount->email,
-            linkedAt: new DateTimeImmutable(),
+            linkedAt: TestClock::now(),
         ));
         $entityManager->flush();
     }

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Security;
 
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
@@ -215,14 +215,14 @@ final class PasswordLoginTest extends WebTestCase
         null|string $argon2idHashOf = null,
     ): string {
         $email = sprintf('%s+%s@example.com', $emailPrefix, bin2hex(random_bytes(4)));
-        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now());
 
         if (str_starts_with($userId, 'auth0|')) {
             $userAccount->applyAuth0Import(
                 $email,
                 $bcryptHashOf !== null ? password_hash($bcryptHashOf, PASSWORD_BCRYPT, ['cost' => 4]) : null,
                 true,
-                new DateTimeImmutable(),
+                TestClock::now(),
             );
         } elseif ($argon2idHashOf !== null) {
             $userAccount->changePassword(password_hash($argon2idHashOf, PASSWORD_ARGON2ID));

@@ -73,6 +73,8 @@ trait SpotlightSeeding
         string $registeredAt = '-1 year',
         bool $private = false,
     ): string {
+        $now = TestClock::SQL_NOW;
+
         $database = self::getContainer()->get(Connection::class);
         $id = Uuid::uuid7()->toString();
 
@@ -99,7 +101,7 @@ INSERT INTO community_player_stats (
 VALUES (
     :id, :solvedTotal, 0, 0, 0, 0, 0,
     :solvesThisMonth, :piecesThisMonth, 0, 0,
-    NULL, NULL, NULL, NULL, '[0,0,0,0,0,0,0,0,0,0,0,0]', :favoritesCount, NOW()
+    NULL, NULL, NULL, NULL, '[0,0,0,0,0,0,0,0,0,0,0,0]', :favoritesCount, {$now}
 )
 SQL,
             [

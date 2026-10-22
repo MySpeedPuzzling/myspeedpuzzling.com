@@ -189,6 +189,16 @@ final class GetNotificationsTest extends KernelTestCase
         self::assertSame(PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN_SLUG, $notification->partnerCompetitionSlug);
         self::assertTrue($notification->partnerReaderListed);
 
+        // A private actor is named but never shown by their picture
+        $this->database->executeStatement("UPDATE player SET avatar = 'avatars/john.jpg' WHERE id = :id", ['id' => PlayerFixture::PLAYER_REGULAR]);
+        self::assertSame('avatars/john.jpg', $this->partnerNotification(PlayerFixture::PLAYER_WITH_FAVORITES)->targetPlayerAvatar);
+        $this->database->executeStatement('UPDATE player SET is_private = true WHERE id = :id', ['id' => PlayerFixture::PLAYER_REGULAR]);
+        $private = $this->partnerNotification(PlayerFixture::PLAYER_WITH_FAVORITES);
+        self::assertNull($private->targetPlayerAvatar);
+        self::assertTrue($private->targetPlayerIsPrivate);
+        self::assertSame(PlayerFixture::PLAYER_REGULAR_NAME, $private->targetPlayerName);
+        $this->database->executeStatement('UPDATE player SET is_private = false WHERE id = :id', ['id' => PlayerFixture::PLAYER_REGULAR]);
+
         $this->database->executeStatement('UPDATE partner_listing SET closed_at = NOW() WHERE id = :id', ['id' => PartnerFinderFixture::LISTING_FAVORITES_TEAM]);
         self::assertFalse($this->partnerNotification(PlayerFixture::PLAYER_WITH_FAVORITES)->partnerReaderListed);
 

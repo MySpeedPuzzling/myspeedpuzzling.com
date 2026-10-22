@@ -1053,7 +1053,8 @@ SELECT * FROM (
         actor.name AS target_player_name,
         actor.code AS target_player_code,
         actor.country AS target_player_country,
-        actor.avatar AS target_player_avatar,
+        -- A private player is named (they asked / named the reader), never shown by their picture
+        CASE WHEN {$actorIsPrivate} THEN NULL ELSE actor.avatar END AS target_player_avatar,
         {$actorIsPrivate} AS target_player_is_private,
         NULL::uuid AS puzzle_id,
         NULL::varchar AS puzzle_name,
@@ -1151,7 +1152,8 @@ SELECT * FROM (
         actor.name AS target_player_name,
         actor.code AS target_player_code,
         actor.country AS target_player_country,
-        actor.avatar AS target_player_avatar,
+        -- A private player is named (they asked / named the reader), never shown by their picture
+        CASE WHEN {$actorIsPrivate} THEN NULL ELSE actor.avatar END AS target_player_avatar,
         {$actorIsPrivate} AS target_player_is_private,
         NULL::uuid AS puzzle_id,
         NULL::varchar AS puzzle_name,

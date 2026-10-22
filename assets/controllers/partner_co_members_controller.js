@@ -122,7 +122,7 @@ export default class extends Controller {
     loadSuggestions() {
         return fetch(this.suggestionsUrlValue, { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
             .then(response => (response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`))))
-            .then(data => (data.people || []).filter(person => this.pickable(person)))
+            .then(data => (data.people || []).filter(person => this.pickable(person) && !person.hidden))
             // The search by name and code still works without them
             .catch(() => []);
     }

@@ -8,8 +8,10 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Message\LeaveCompetition;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
+use SpeedPuzzling\Web\Repository\PartnerListingRepository;
 use SpeedPuzzling\Web\Services\OfficialResultsGuard;
 use SpeedPuzzling\Web\Value\ParticipantSource;
+use SpeedPuzzling\Web\Value\PartnerListingClosedReason;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -20,6 +22,7 @@ readonly final class LeaveCompetitionHandler
         private GetCompetitionParticipants $getCompetitionParticipants,
         private ClockInterface $clock,
         private OfficialResultsGuard $officialResultsGuard,
+        private PartnerListingRepository $partnerListingRepository,
     ) {
     }
 
@@ -38,5 +41,10 @@ readonly final class LeaveCompetitionHandler
                 $participant->disconnect();
             }
         }
+
+        // Not going any more = not looking for a partner there either (docs/features/partner-finder.md D7)
+        $this->partnerListingRepository
+            ->findOpenFor($message->competitionId, $message->playerId)
+            ?->close(PartnerListingClosedReason::NotGoing, $this->clock->now());
     }
 }

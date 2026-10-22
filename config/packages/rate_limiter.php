@@ -123,6 +123,14 @@ return App::config([
                 'limit' => 10,
                 'interval' => '1 hour',
             ],
+            // "I'd like to puzzle with you" in the partner finder (SendPartnerRequestHandler, docs/features/partner-finder.md
+            // D6): every request is a notification and an e-mail to somebody else. Per sender, counted in the handler so
+            // it holds for every way in - enough to ask everybody worth asking at an event, no inbox cannon.
+            'partner_request' => [
+                'policy' => 'sliding_window',
+                'limit' => 10,
+                'interval' => '1 day',
+            ],
             // Background photo uploads straight to object storage (PhotoUploadStartController,
             // docs/features/photo-uploads/README.md): every new place is a photo in our bucket for a day. Only an abuse
             // ceiling, never a real player's: a player adding photos to their old results did ~270 in 2 h (2026-10-19).

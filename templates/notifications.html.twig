@@ -174,6 +174,43 @@
                                         <i class="bi bi-arrow-right"></i>
                                     </a>
                                 </td>
+                            {% elseif notification.isPartnerRequestNotification %}
+                                {# "I'd like to puzzle with you" on the player's partner finder listing (docs/features/partner-finder.md D6) -
+                                   who asks is named (their consent), their profile linked only when the reader may see it #}
+                                {% set partner_finder_link = partner_finder_url(notification.partnerCompetitionSlug, notification.partnerSeriesSlug) %}
+                                {% set asker_name = notification.targetPlayerName ?? notification.targetPlayerId %}
+                                <td class="text-center" style="width: 60px;">
+                                    {% if notification.targetPlayerAvatar is not null %}
+                                        <img class="rounded-circle" style="max-width: 50px;max-height: 50px;" alt="Avatar" src="{{ notification.targetPlayerAvatar|thumbnail('puzzle_small') }}">
+                                    {% else %}
+                                        <span class="avatar-name rounded-circle">{{ asker_name|slice(0, 1)|upper }}</span>
+                                    {% endif %}
+                                </td>
+
+                                <td class="align-middle fs-sm text-muted" id="partner-request-{{ notification.partnerRequestId }}">
+                                    <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
+                                    {{ ('partner_finder.notification.text_' ~ (notification.partnerRequestKind.value ?? 'pair'))|trans({
+                                        '%player%': notification.targetPlayerIsPrivate
+                                            ? '<b>' ~ asker_name|e ~ '</b>'
+                                            : '<a class="text-decoration-underline" href="' ~ path('player_profile', {playerId: notification.targetPlayerId}) ~ '">' ~ asker_name|e ~ '</a>',
+                                        '%event%': notification.partnerCompetitionName|e,
+                                    })|raw }}
+                                    {% if notification.partnerRequestNote is not null %}
+                                        <br><span class="fst-italic">“{{ notification.partnerRequestNote }}”</span>
+                                    {% endif %}
+                                    {% if partner_finder_link is not null %}
+                                        <br><a class="text-decoration-underline" href="{{ partner_finder_link }}">{{ 'partner_finder.notification.see_listings'|trans }}</a>
+                                    {% endif %}
+                                </td>
+
+                                <td class="" style="width: 80px;">
+                                    <form method="post" action="{{ path('partner_request_reply', {requestId: notification.partnerRequestId}) }}" class="m-0">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('partner_request') }}">
+                                        <button type="submit" class="btn btn-sm {{ notification.partnerRequestReplied ? 'btn-outline-primary' : 'btn-primary' }} text-nowrap">
+                                            <i class="bi bi-chat-dots"></i> {{ (notification.partnerRequestReplied ? 'partner_finder.notification.open_chat' : 'partner_finder.notification.reply')|trans }}
+                                        </button>
+                                    </form>
+                                </td>
                             {% elseif notification.isOfficialResultNotification %}
                                 {# The official results of a round the player has a result in were published #}
                                 {% if notification.roundCompetitionSlug is null %}

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Clock\ClockInterface;
@@ -45,13 +45,13 @@ final class SweepOnlineMediaOrphansHandlerTest extends KernelTestCase
 
     public function testOldObjectsWithoutARowAreDeleted(): void
     {
-        $old = new DateTimeImmutable('-2 days');
+        $old = TestClock::now()->modify('-2 days');
         $orphan = self::key();
         $youngOrphan = self::key();
         $fixtureKey = sprintf('online/%s/%s/%s/%s.jpg', OnlineRoundsFixture::COMPETITION_ONLINE_TEST_CUP, OnlineRoundsFixture::ROUND_ONLINE_SOLO, OnlineRoundsFixture::PARTICIPANT_CONNECTED, OnlineRoundsFixture::MEDIA_EMPTY_MAT_CONNECTED);
 
         $this->storage->put(OnlineMediaStore::Primary, $orphan, 35_000, modifiedAt: $old);
-        $this->storage->put(OnlineMediaStore::Primary, $youngOrphan, 35_000, modifiedAt: new DateTimeImmutable('-2 hours'));
+        $this->storage->put(OnlineMediaStore::Primary, $youngOrphan, 35_000, modifiedAt: TestClock::now()->modify('-2 hours'));
         // The fixture's empty mat photo has its row
         $this->storage->put(OnlineMediaStore::Primary, $fixtureKey, 182_000, modifiedAt: $old);
         // Not evidence at all
@@ -72,7 +72,7 @@ final class SweepOnlineMediaOrphansHandlerTest extends KernelTestCase
      */
     public function testAReferenceImageIsKeptWhileARoundHoldsIt(): void
     {
-        $old = new DateTimeImmutable('-400 days');
+        $old = TestClock::now()->modify('-400 days');
         $held = OnlineReferenceImages::objectKey(OnlineRoundsFixture::COMPETITION_ONLINE_TEST_CUP, OnlineRoundsFixture::ROUND_ONLINE_SOLO, Uuid::uuid7()->toString());
         $replacedLongAgo = OnlineReferenceImages::objectKey(OnlineRoundsFixture::COMPETITION_ONLINE_TEST_CUP, OnlineRoundsFixture::ROUND_ONLINE_SOLO, Uuid::uuid7()->toString());
         $ofADeletedRound = OnlineReferenceImages::objectKey(Uuid::uuid7()->toString(), Uuid::uuid7()->toString(), Uuid::uuid7()->toString());
@@ -86,7 +86,7 @@ final class SweepOnlineMediaOrphansHandlerTest extends KernelTestCase
         $this->storage->put(OnlineMediaStore::Primary, $replacedLongAgo, 2_000_000, modifiedAt: $old);
         $this->storage->put(OnlineMediaStore::Primary, $ofADeletedRound, 2_000_000, modifiedAt: $old);
         // Its save may still be committing - a day keeps far away from it
-        $this->storage->put(OnlineMediaStore::Primary, $justUploaded, 2_000_000, modifiedAt: new DateTimeImmutable('-2 hours'));
+        $this->storage->put(OnlineMediaStore::Primary, $justUploaded, 2_000_000, modifiedAt: TestClock::now()->modify('-2 hours'));
 
         $swept = $this->sweep(OnlineMediaStore::Primary);
 
@@ -97,7 +97,7 @@ final class SweepOnlineMediaOrphansHandlerTest extends KernelTestCase
 
     public function testABigStoreIsSweptPageByPage(): void
     {
-        $old = new DateTimeImmutable('-3 days');
+        $old = TestClock::now()->modify('-3 days');
 
         foreach (range(0, SweepOnlineMediaOrphansHandler::PAGE_SIZE) as $ignored) {
             $this->storage->put(OnlineMediaStore::Primary, self::key(), 1_000, modifiedAt: $old);
@@ -138,7 +138,7 @@ final class SweepOnlineMediaOrphansHandlerTest extends KernelTestCase
 
     public function testASecondStoreThatIsNotConfiguredIsNotSwept(): void
     {
-        $this->storage->put(OnlineMediaStore::Secondary, self::key(), 1_000, modifiedAt: new DateTimeImmutable('-3 days'));
+        $this->storage->put(OnlineMediaStore::Secondary, self::key(), 1_000, modifiedAt: TestClock::now()->modify('-3 days'));
 
         $swept = $this->sweep(OnlineMediaStore::Secondary);
 

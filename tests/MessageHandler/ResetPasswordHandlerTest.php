@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -85,7 +86,7 @@ final class ResetPasswordHandlerTest extends KernelTestCase
         $tokenA = $this->requestPasswordReset('pwreset.three@example.com');
         // A second open request cannot exist via the throttled handler - insert it directly
         $tokenB = PasswordResetToken::generate();
-        $this->createRequest($userAccount, $tokenB, expiresAt: new DateTimeImmutable('+1 hour'));
+        $this->createRequest($userAccount, $tokenB, expiresAt: TestClock::now()->modify('+1 hour'));
 
         // An unrelated account's in-flight request must survive the DQL DELETE untouched
         $this->createUserAccount('auth0|pwreset3b', 'pwreset.three.b@example.com', self::BCRYPT_HASH);
@@ -124,7 +125,7 @@ final class ResetPasswordHandlerTest extends KernelTestCase
     {
         $userAccount = $this->createUserAccount('auth0|pwreset5', 'pwreset.five@example.com', self::BCRYPT_HASH);
         $expiredToken = PasswordResetToken::generate();
-        $this->createRequest($userAccount, $expiredToken, expiresAt: new DateTimeImmutable('-1 minute'));
+        $this->createRequest($userAccount, $expiredToken, expiresAt: TestClock::now()->modify('-1 minute'));
 
         $this->expectHandlerException(
             new ResetPassword($expiredToken->toString(), 'whatever-password-123'),
@@ -160,7 +161,7 @@ final class ResetPasswordHandlerTest extends KernelTestCase
 
     private function createUserAccount(string $userId, string $email, string $password): UserAccount
     {
-        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now());
         $userAccount->changePassword($password);
 
         $this->entityManager->persist($userAccount);

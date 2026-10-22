@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\SuspiciousTimePuzzleConfirmation;
@@ -100,7 +101,7 @@ final class SetPuzzleSlowThresholdHandlerTest extends KernelTestCase
 
     public function testAPuzzleACompetitionKeepsSecretIsRefused(): void
     {
-        $this->database->executeStatement("UPDATE puzzle SET hide_until = NOW() + INTERVAL '1 day' WHERE id = :puzzleId", ['puzzleId' => SuspiciousTimesFixture::PUZZLE_HARBOUR]);
+        $this->database->executeStatement("UPDATE puzzle SET hide_until = " . TestClock::SQL_NOW . " + INTERVAL '1 day' WHERE id = :puzzleId", ['puzzleId' => SuspiciousTimesFixture::PUZZLE_HARBOUR]);
 
         try {
             $this->set(PlayerFixture::PLAYER_ADMIN, 4000, 12.0);

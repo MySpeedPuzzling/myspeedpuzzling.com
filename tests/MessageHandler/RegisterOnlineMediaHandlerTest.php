@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -89,9 +89,9 @@ final class RegisterOnlineMediaHandlerTest extends KernelTestCase
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $competition = $entityManager->find(Competition::class, OnlineRoundsFixture::COMPETITION_ONLINE_TEST_CUP);
         self::assertNotNull($competition);
-        $round = new CompetitionRound(id: Uuid::uuid7(), competition: $competition, name: 'Online Final', minutesLimit: 45, startsAt: new DateTimeImmutable('+30 days'), category: RoundCategory::Solo);
+        $round = new CompetitionRound(id: Uuid::uuid7(), competition: $competition, name: 'Online Final', minutesLimit: 45, startsAt: TestClock::now()->modify('+30 days'), category: RoundCategory::Solo);
         $entityManager->persist($round);
-        $entityManager->persist(new OnlineRound(Uuid::uuid7(), $round, new DateTimeImmutable(), null));
+        $entityManager->persist(new OnlineRound(Uuid::uuid7(), $round, TestClock::now(), null));
         $entityManager->flush();
 
         $this->expectException(OnlineParticipantNotEntered::class);

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\OnlineEntry;
@@ -68,7 +68,7 @@ final class ResetRoundStopwatchHandlerTest extends KernelTestCase
         $onlineEntry->reportedMeasure = OnlineUnfinishedMeasure::PiecesLeft;
         $onlineEntry->reportedPieces = 12;
         // Confirmed, and its official result cleared at the results desk afterwards
-        $onlineEntry->confirm(1_792_002_832_345, OnlineConfirmedSource::Button, $this->reviewer(), new DateTimeImmutable());
+        $onlineEntry->confirm(1_792_002_832_345, OnlineConfirmedSource::Button, $this->reviewer(), TestClock::now());
         $this->entityManager->flush();
         $events = $this->eventCount();
 
@@ -174,7 +174,7 @@ final class ResetRoundStopwatchHandlerTest extends KernelTestCase
     private function startOnlineRound(): void
     {
         $round = $this->competitionRoundRepository->get(OnlineRoundsFixture::ROUND_ONLINE_SOLO);
-        $round->startStopwatch(new DateTimeImmutable('-30 minutes'));
+        $round->startStopwatch(TestClock::now()->modify('-30 minutes'));
         $this->entityManager->flush();
     }
 

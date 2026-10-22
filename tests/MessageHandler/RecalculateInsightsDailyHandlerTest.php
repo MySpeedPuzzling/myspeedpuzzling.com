@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Message\RecalculateInsightsDaily;
 use SpeedPuzzling\Web\Services\Insights\InsightsGeneration;
@@ -33,7 +33,7 @@ final class RecalculateInsightsDailyHandlerTest extends KernelTestCase
         $connection = self::getContainer()->get(Connection::class);
         $this->connection = $connection;
 
-        $now = new DateTimeImmutable('today 12:00:00');
+        $now = TestClock::now()->modify('today 12:00:00');
         $this->seedLadder($this->connection, $now);
 
         // Solves were inserted as SQL: give the ladder puzzles their median solo time, as PuzzleStatisticsCalculator would

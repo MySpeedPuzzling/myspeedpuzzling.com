@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
@@ -40,7 +40,7 @@ final class VerifyEmailHandlerTest extends KernelTestCase
     public function testValidTokenMarksEmailVerified(): void
     {
         $userAccount = $this->createUserAccount('msp|verify1', 'verify.one@example.com');
-        $token = $this->tokenSigner->generate($userAccount, new DateTimeImmutable(EmailVerificationTokenSigner::LIFETIME));
+        $token = $this->tokenSigner->generate($userAccount, TestClock::now()->modify(EmailVerificationTokenSigner::LIFETIME));
 
         $this->messageBus->dispatch(new VerifyEmail($token));
 
@@ -52,7 +52,7 @@ final class VerifyEmailHandlerTest extends KernelTestCase
     public function testVerificationIsIdempotent(): void
     {
         $userAccount = $this->createUserAccount('msp|verify2', 'verify.two@example.com');
-        $token = $this->tokenSigner->generate($userAccount, new DateTimeImmutable(EmailVerificationTokenSigner::LIFETIME));
+        $token = $this->tokenSigner->generate($userAccount, TestClock::now()->modify(EmailVerificationTokenSigner::LIFETIME));
 
         $this->messageBus->dispatch(new VerifyEmail($token));
         $verifiedAccount = $this->userAccountRepository->findByUserId('msp|verify2');
@@ -70,7 +70,7 @@ final class VerifyEmailHandlerTest extends KernelTestCase
     {
         // Unverified addresses are no newsletter recipients, so verifying is what brings a subscribed player in
         $userAccount = $this->createUserAccount('msp|verify6', 'verify.six@example.com');
-        $token = $this->tokenSigner->generate($userAccount, new DateTimeImmutable(EmailVerificationTokenSigner::LIFETIME));
+        $token = $this->tokenSigner->generate($userAccount, TestClock::now()->modify(EmailVerificationTokenSigner::LIFETIME));
 
         $this->messageBus->dispatch(new VerifyEmail($token));
         $this->messageBus->dispatch(new VerifyEmail($token));
@@ -85,7 +85,7 @@ final class VerifyEmailHandlerTest extends KernelTestCase
     public function testTamperedTokenIsRejected(): void
     {
         $userAccount = $this->createUserAccount('msp|verify3', 'verify.three@example.com');
-        $token = $this->tokenSigner->generate($userAccount, new DateTimeImmutable(EmailVerificationTokenSigner::LIFETIME));
+        $token = $this->tokenSigner->generate($userAccount, TestClock::now()->modify(EmailVerificationTokenSigner::LIFETIME));
 
         $tamperedToken = $token[5] === 'A'
             ? substr_replace($token, 'B', 5, 1)
@@ -102,7 +102,7 @@ final class VerifyEmailHandlerTest extends KernelTestCase
     public function testExpiredTokenIsRejected(): void
     {
         $userAccount = $this->createUserAccount('msp|verify4', 'verify.four@example.com');
-        $token = $this->tokenSigner->generate($userAccount, new DateTimeImmutable('-1 minute'));
+        $token = $this->tokenSigner->generate($userAccount, TestClock::now()->modify('-1 minute'));
 
         $this->expectHandlerException(new VerifyEmail($token), EmailVerificationTokenExpired::class);
     }
@@ -110,8 +110,8 @@ final class VerifyEmailHandlerTest extends KernelTestCase
     public function testTokenForPreviousEmailIsRejectedAfterEmailChange(): void
     {
         $userAccount = $this->createUserAccount('msp|verify5', 'verify.five@example.com');
-        $userAccount->markEmailVerified(new DateTimeImmutable());
-        $token = $this->tokenSigner->generate($userAccount, new DateTimeImmutable(EmailVerificationTokenSigner::LIFETIME));
+        $userAccount->markEmailVerified(TestClock::now());
+        $token = $this->tokenSigner->generate($userAccount, TestClock::now()->modify(EmailVerificationTokenSigner::LIFETIME));
 
         $userAccount->changeEmail('Verify.Five.New@Example.com');
         $this->entityManager->flush();
@@ -132,8 +132,8 @@ final class VerifyEmailHandlerTest extends KernelTestCase
     public function testTokenForUnknownAccountIsRejected(): void
     {
         // Never persisted - simulates an account deleted between send and click
-        $ghostAccount = new UserAccount(Uuid::uuid7(), 'msp|verify-ghost', 'verify.ghost@example.com', new DateTimeImmutable());
-        $token = $this->tokenSigner->generate($ghostAccount, new DateTimeImmutable(EmailVerificationTokenSigner::LIFETIME));
+        $ghostAccount = new UserAccount(Uuid::uuid7(), 'msp|verify-ghost', 'verify.ghost@example.com', TestClock::now());
+        $token = $this->tokenSigner->generate($ghostAccount, TestClock::now()->modify(EmailVerificationTokenSigner::LIFETIME));
 
         $this->expectHandlerException(new VerifyEmail($token), InvalidEmailVerificationToken::class);
     }
@@ -167,7 +167,7 @@ final class VerifyEmailHandlerTest extends KernelTestCase
 
     private function createUserAccount(string $userId, string $email): UserAccount
     {
-        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now());
 
         $this->entityManager->persist($userAccount);
         $this->entityManager->flush();

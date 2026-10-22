@@ -8,7 +8,7 @@ Living record. Every phase appends: what it did, what it found, what the next ph
 | 1 - pin UTC, UTC on write | done 2026-10-22 | this commit |
 | 2 - one clock in `src/` | done 2026-10-22 | c00bf8343, e16908c18, 3a15ef3b0 + this commit |
 | 3 - frozen clock in tests | done 2026-10-22 - **branch red until Phase 4 ends** (157 tests) | fe580bfa0 |
-| 4 - tests on the frozen clock | batches 1-2 done 2026-10-22 (157 → 103 → 92 failing); batches 3-9 open | batch 1: f2483f7d3; batch 2: this commit |
+| 4 - tests on the frozen clock | batches 1-3 done 2026-10-22 (157 → 103 → 92 → 72 failing); batches 4-9 open | batch 1: f2483f7d3; batch 2: dc3fb4867; batch 3: this commit |
 | 5 - proof, docs, PR | not started | |
 
 ## Jan's answers (2026-10-22) - binding for every later phase
@@ -680,6 +680,43 @@ For batches 3-9:
   by hand - a relative string can hide behind a variable or a class constant.
 - Import placement: inserting `use SpeedPuzzling\Web\Tests\TestClock;` right after the namespace passes PHPCS as is.
 
+## Phase 4 batch 3 (2026-10-22) - `MessageHandler` P-Z
+
+Converted (45 files - every top-level `MessageHandler` P-Z test with a clock read; 54 match the grep, the other 9 hold only
+absolute literals or parse stored values: `ProcessSesEventHandlerTest`, `ProgressionPathIndependenceTest`,
+`RecalculateBadgesForPlayerHandlerTest`, `RecordPuzzleImageAnalysisHandlerTest`, `ResultSavedOnceTest`,
+`SeriesPickTriggersTest`, `SolvingTimePredictionRecordingTest`, `StartRoundStopwatchHandlerTest`,
+`StopRoundStopwatchHandlerTest`). Batch 2's token-based rewrite did the mechanical part; by hand: the heredoc in
+`PrivateProfileViewerHandlersTest` (`$now = TestClock::SQL_NOW;` + `{$now}`), relative strings behind a variable or
+constant - `PruneOnlineMediaHandlerTest::media($age)`, `ResultReviewVerificationEmailsTest` (`"-{$days} days"`),
+`VerifyEmailHandlerTest` (`EmailVerificationTokenSigner::LIFETIME`) - and `RecordOnlineEntryEventsHandlerTest::nowMs()`
+(`microtime(true) * 1000` → `TestClock::milliseconds()`; the handler judges client times with the clock). Left as is:
+`new DateTimeImmutable(CompetitionRoundPuzzle::HIDDEN_UNTIL_REVEALED)` (an absolute constant, 9999-12-31), parses of
+stored columns, tests pinning their own `MockClock` at an absolute moment (digest, dispute, result-review e-mails). No
+real-time exception in this batch; nothing was handed over from batches 1-2.
+
+Fixed (20 tests in 12 files, all test data on the real clock, none passed by luck, no assertion weakened): prune/GC
+seeds dated from the real now (`PruneOnlineMedia`, `PruneRoundResultChangeReceipts` 2, `RequestAccountDeletion`,
+`RequestPasswordReset`, `SweepOnlineMediaOrphans` 2), expired tokens built before the real now (`ResetPassword`,
+`VerifyEmail`), `sent_at = NOW() - INTERVAL …` in the result-review e-mail tests (4), round starts / reveal moments from
+the real now (`RoundPuzzleReveal` 2, `SecretPuzzleSafeguards` 4), `StudioInviteHandlersTest` (`'-1 second'` lower bound).
+
+Gates: PHPStan clean, PHPCS clean (cs-fix removed the now unused `DateTimeImmutable` imports). `tests/MessageHandler`
+alone (ParaTest): 1690 tests green. Full suite (ParaTest, `speedpuzzling_clock_test`): **11525 tests, 68 failures + 4
+errors = 72 tests** (batch 2: 92). Every remaining failure was on batch 2's list (compared per test, data-set names
+normalised); nothing green turned red. `MessageHandler` has no failure left.
+
+Remaining (files / tests): `Controller` top level 18 / 39, `Controller/Api/V1` 4 / 5, `Controller/Compete` 3 / 3,
+`DuplicateResults` 1 / 5, `OfficialResults` 1 / 1, `OnlineRounds` 1 / 1, `ReviewResults` 1 / 1, `Seating` 1 / 1,
+`SuspiciousTimes` 1 / 1, `Query` 7 / 9, `Services` 2 / 4, `Services/SeriesEditions` 1 / 1, `Services/Storage` 1 / 1.
+
+For batches 4-9:
+
+- The rewrite script runs fine on the host's PHP 8.3 tokenizer (test files use no 8.5-only syntax so far) - but check
+  PHPStan afterwards anyway.
+- Comparing failure lists: ParaTest prints data-provider tests as `…@name with data (…)`; strip ` with data …` before
+  comparing with an earlier list.
+
 ## Log
 
 - 2026-10-22: plan written (README.md, implementation-plan.md). Branch `time-and-clock` from `8447c607d`.
@@ -699,3 +736,4 @@ For batches 3-9:
   real time with reasons; suite 157 → 103 failing, nothing new red.
 - 2026-10-22: Phase 4 batch 2 - `MessageHandler` A-O + `OfficialResults` + `ParticipantsSheet` on the frozen clock (47 files);
   suite 103 → 92 failing, nothing new red.
+- 2026-10-22: Phase 4 batch 3 - `MessageHandler` P-Z on the frozen clock (45 files); suite 92 → 72 failing, nothing new red.

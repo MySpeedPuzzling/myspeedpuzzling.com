@@ -5,7 +5,7 @@ Living record. Every phase appends: what it did, what it found, what the next ph
 | Phase | State | Commit(s) |
 |---|---|---|
 | 0 - verify decisions | done 2026-10-22, answered | this commit |
-| 1 - pin UTC, UTC on write | not started | |
+| 1 - pin UTC, UTC on write | done 2026-10-22 | this commit |
 | 2 - one clock in `src/` | not started | |
 | 3 - frozen clock in tests | not started | |
 | 4 - tests on the frozen clock | not started | |
@@ -27,6 +27,9 @@ Living record. Every phase appends: what it did, what it found, what the next ph
    UTC and never reads the database's clock. Stated assumption (README): the PostgreSQL server's default zone is UTC
    (dev, CI, prod verified 2026-10-22); SQL that casts between `timestamp` and `timestamptz` relies on it.
    PHP's zone is already pinned by the base image's ini (`date.timezone=UTC`) - a test may assert it, no code change.
+5. **(2026-10-22, after Phase 1 was paused on it) Keep both:** the UTC-on-write `datetime_immutable` type as the
+   production safety net for any future path (Doctrine cookbook pattern) **and** the call-site fix in the two API v1
+   processors. A test-only Doctrine listener asserting that every persisted value is UTC was rejected.
 
 ## Open questions for Jan (answered above)
 
@@ -355,9 +358,50 @@ Batch 4 holds most of the experiment's errors (online rounds: fixture start vs r
 - Scratch databases left on the dev Postgres (all ending in `_test`, safe to drop): `speedpuzzling_clock_test(_N)`,
   `speedpuzzling_clockexp_test(_N)`, `speedpuzzling_clockold_test(_template)`. Local image `msp-faketime:local`.
 
+## Phase 1 (2026-10-22) - UTC on write
+
+What changed:
+
+- `src/Doctrine/UtcDateTimeImmutableDoctrineType.php` overrides DBAL's `datetime_immutable` (registered in
+  `config/packages/doctrine.php` under the same name): it converts to UTC before formatting and reads back explicitly as
+  UTC. A value that is already UTC is stored byte-for-byte the same as before. The SQL declaration is unchanged, so there
+  is no schema change. `date_immutable` and `datetimetz_immutable` are untouched, and no entity uses the mutable `datetime`.
+- `src/Api/V1/CreateSolvingTimeProcessor.php` / `UpdateSolvingTimeProcessor.php` convert `finishedAt` to UTC right after
+  parsing. **The type alone was not enough** (verified by removing the processor change: the test fails). The handler
+  compares days in memory before anything is stored (`PuzzleSolvingTime::isSameEntryAs()`, the day check in `modify()`),
+  and the response echoed the input's `+02:00`. With the input kept local, a retry with the same Idempotency-Key at
+  00:30+02:00 would not count as the same entry.
+- Nothing else in `src/` hands a non-UTC object to a `datetime_immutable` column (the Phase 0 audit). Since the API path
+  is fixed at the call site, the type changes no current behaviour.
+- No DB session zone code and no Dockerfile change (Jan's answers 1 and 4).
+
+Tests: `tests/Doctrine/UtcDateTimeImmutableDoctrineTypeTest.php` (a Prague object stored as UTC wall time with the same
+instant, an offset input, UTC unchanged, the input object not mutated, null, fractions read as UTC, non-dates refused);
+`tests/TimezoneConfigurationTest.php` (PHP default zone UTC, the registered type is ours); one
+`testFinishedAtWithAnOffsetIsStoredAsTheSameInstantInUtc` each in `CreateSolvingTimeEndpointTest` (response, stored row,
+the retry answered as the same result) and `UpdateSolvingTimeEndpointTest` (response, stored row). Reads (`/me/results`,
+player results) format the stored UTC value with `format('c')`, so they show `+00:00`.
+
+Gates: PHPStan clean (4 findings in the new test fixed: assertions that PHPStan already knew to be true), PHPCS clean.
+`doctrine:schema:validate` (dev env) is in sync, and `doctrine:schema:update --dump-sql` reports nothing to update. Both
+were run against a scratch DB built from the committed migrations (`speedpuzzling_clockschema_test`, safe to drop).
+`cache:warmup` (dev) is OK. In this one-off container it needed `-d memory_limit=-1`: at the default 512 MB it ran out of
+memory in the container-lint warmer. That is environmental (the dev web container sets its own limit) and was not
+caused by this change. Full suite (ParaTest, `speedpuzzling_clock_test`): **11516 tests green** (5 skipped, 27 PHPUnit notices - none from the
+changed files, checked with `--display-phpunit-notices`; Phase 0's baseline was 11505 + the 11 new tests), 4 min 22 s. Drift: none. Regressions: none.
+
+For Phase 2:
+
+- Hand-formatted SQL parameters (`->format('Y-m-d H:i:s')`, the common style in `src/Query`) never pass through the
+  type. They are UTC only because the clock is UTC. Phase 2's `:now` bindings keep that style.
+- `LapsArrayDoctrineType` also formats its laps in the object's own zone (JSON, not a timestamp column). The laps come
+  from the clock (UTC), so this is not a problem today. If it ever matters, give it the same UTC conversion.
+
 ## Log
 
 - 2026-10-22: plan written (README.md, implementation-plan.md). Branch `time-and-clock` from `8447c607d`.
 - 2026-10-22: Phase 0 - baseline green; frozen-clock experiment (160 failures / 77 files, 1 framework mismatch),
   +400 days under libfaketime (41 more, 1 framework mismatch), Panther with an 8-day-old and a year-old instant; UTC
   audit incl. read-only prod check; SQL and PHP clock lists; test recipe. Experiment reverted. Four questions for Jan.
+- 2026-10-22: Phase 1 - UTC-on-write `datetime_immutable` type + API v1 `finishedAt` converted at the call site;
+  type and configuration tests; Jan's answer 5 (keep both, no test-only listener).

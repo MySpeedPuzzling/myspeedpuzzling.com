@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Api\V1;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use DateTimeImmutable;
+use DateTimeZone;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
@@ -70,7 +71,12 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
         // publicly visible surfaces as 404 and ids that disagree as 422 - before anything is saved
         $eventLink = $this->eventLinkResolver->forCreate($data->roundId, $data->competitionId, $data->seriesId);
 
-        $finishedAt = $data->finishedAt !== null ? new DateTimeImmutable($data->finishedAt) : null;
+        // An offset in the input keeps its instant, in UTC (2026-10-20T00:30:00+02:00 = 2026-10-19 22:30:00) - what
+        // the datetime_immutable type stores anyway; converted here already so the handler's day comparisons and
+        // this response see the value that is stored (docs/features/time-and-clock/STATUS.md, Jan's answer 2)
+        $finishedAt = $data->finishedAt !== null
+            ? new DateTimeImmutable($data->finishedAt)->setTimezone(new DateTimeZone('UTC'))
+            : null;
 
         try {
             $this->messageBus->dispatch(

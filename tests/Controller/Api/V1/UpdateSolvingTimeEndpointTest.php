@@ -56,6 +56,38 @@ final class UpdateSolvingTimeEndpointTest extends WebTestCase
         self::assertSame('Updated via API', $row['comment']);
     }
 
+    public function testFinishedAtWithAnOffsetIsStoredAsTheSameInstantInUtc(): void
+    {
+        $browser = self::createClient();
+
+        $token = PatTestHelper::createToken($browser, PlayerFixture::PLAYER_REGULAR);
+        PatTestHelper::addBearerToken($browser, $token);
+
+        $browser->request(
+            'PUT',
+            '/api/v1/me/solving-times/' . PuzzleSolvingTimeFixture::TIME_01,
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: (string) json_encode([
+                'time' => '00:25:00',
+                'finished_at' => '2026-10-20T00:30:00+02:00',
+            ]),
+        );
+
+        $this->assertResponseIsSuccessful();
+
+        /** @var array{finished_at: null|string} $response */
+        $response = json_decode((string) $browser->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        // Same instant, in UTC - Jan's answer 2 (docs/features/time-and-clock/STATUS.md)
+        self::assertSame('2026-10-19T22:30:00+00:00', $response['finished_at']);
+
+        /** @var Connection $database */
+        $database = self::getContainer()->get(Connection::class);
+        self::assertSame('2026-10-19 22:30:00', $database->fetchOne(
+            'SELECT finished_at::text FROM puzzle_solving_time WHERE id = :id',
+            ['id' => PuzzleSolvingTimeFixture::TIME_01],
+        ));
+    }
+
     public function testUpdateKeepsCompetitionAndRoundLink(): void
     {
         // The PUT payload carries no event information; the processor must carry the time's current

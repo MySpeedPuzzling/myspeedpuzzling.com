@@ -263,7 +263,7 @@ benefits too. English copy only (`partner_finder.card.*`, `partner_finder.events
 ## Part A as built (2026-10-22)
 
 **Routes** (`src/Controller/PartnerFinder/`): `event_partners` (`EventPartnersController`; an edition's slug 301s to
-`edition_partners`) and `edition_partners` (`EditionPartnersController`) in all 6 locales (cs `…/partneri`, es
+`edition_partners`) and `edition_partners` (`EditionPartnersController`) in all 6 locales (cs `…/partaci`, es
 `…/companeros`, fr `…/partenaires`, de `…/partner`, en/ja `…/partners`), GET only, sharing
 `AbstractPartnerFinderPageController::renderFinder()`; a draft is a `DraftNotVisible` 404 for everybody (its team too -
 it has no finder), an event without a finder `PartnerFinderNotAvailable` (404); `X-Robots-Tag: noindex` + `noindex,
@@ -396,7 +396,7 @@ on deploy): `17 3 * * * docker compose exec web php bin/console myspeedpuzzling:
 ## Part D as built (2026-10-22): the gate page
 
 The page marketing links to: route `partner_finder` (`Controller\PartnerFinder\PartnerFinderGateController`, GET) in all 6
-locales - en `/en/partner-finder`, cs `/hledani-partnera`, de `/de/partnersuche`, es `/es/buscar-companero`, fr
+locales - en `/en/partner-finder`, cs `/hledani-partaku`, de `/de/partnersuche`, es `/es/buscar-companero`, fr
 `/fr/trouver-un-partenaire`, ja `/ja/パートナー探し`. Indexable (`index, follow` on the bare URL, `noindex, follow` with any
 query string), canonical + hreflang from `base.html.twig`, listed in `sitemap-static.xml`. Footer: "Partner finder" with
 the New badge in Discover, right after Events.

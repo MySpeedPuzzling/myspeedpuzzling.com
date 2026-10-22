@@ -10829,10 +10829,212 @@ puzzles_needing_improvement:
 partner_finder:
     # docs/features/partner-finder.md "Shared names": each part adds its own subtrees below its line
     # Part A: page.*, form.*, listing.*
+    page:
+        title: "Busca compañero - %event%"
+        meta_description: "Puzzleros que van a %event% y buscan pareja o equipo."
+        heading: "Busca compañero"
+        lead: "Puzzleros que van a %event% y buscan pareja, equipo o más gente para su grupo."
+        list_me: "Apúntame"
+        your_listing: "Tu anuncio"
+        others: "Buscan compañero"
+        empty_title: "Aún no se ha apuntado nadie"
+        empty_text: "Apúntate: el próximo puzzlero que busque compañero aquí te verá a ti primero."
+        empty_text_listed: "Tu anuncio es el primero aquí. Los puzzleros que busquen compañero lo verán."
+        no_match: "Nadie coincide con estos filtros."
+        reset_filters: "Mostrar a todos"
+        capped: "Se muestran los %count% anuncios más recientes de %total%."
+        privacy: "No se comparte la dirección de correo de nadie: os ponéis en contacto dentro de MySpeedPuzzling."
+        filters: "Filtrar los anuncios"
+        filter_kind: "Tipo de anuncio"
+        filter_country: "País"
+        filter_strengths: "Puntos fuertes"
+        kind_all: "Todos"
+        kind_groups: "Grupos que buscan gente"
+        all_countries: "Todos los países"
+        countries: "Países"
+        sort: "Ordenar"
+        sort_newest: "Más recientes primero"
+        sort_fastest: "Más rápidos primero"
+        sort_closest: "Más cerca de mi velocidad"
+        members: "Miembros"
+        closest_locked: "Los miembros pueden ordenar según lo cerca que esté un puzzlero de su propia velocidad"
+        good_at: "Puntos fuertes"
+        teaser_count: "%count% puzzlero busca compañero aquí|%count% puzzleros buscan compañero aquí"
+        teaser_empty: "Busca compañero aquí antes que nadie"
+        teaser_text: "Inicia sesión para ver quiénes son, lo rápido que arman y para ponerte en contacto. Es gratis."
+        sign_in: "Inicia sesión para verlos y contactar"
+    form:
+        title: "Apúntame"
+        title_edit: "Editar tu anuncio"
+        submit: "Apúntame"
+        submit_edit: "Guardar"
+        optional: "opcional"
+        i_am: "Voy"
+        i_am_alone: "Por mi cuenta"
+        i_am_group: "Ya somos un grupo"
+        group_size: "Personas en el grupo"
+        needed: "Nos faltan"
+        team_size_help: "En este evento los equipos son de %size%."
+        looking_for: "Busco"
+        looking_for_pair: "Pareja"
+        looking_for_team: "Un equipo al que unirme"
+        teams_of: "equipos de %size%"
+        group_pair_hint: "Un grupo busca un equipo: dos ya sois pareja."
+        goal: "Mi objetivo"
+        strengths: "Se me da bien"
+        strengths_limit: "hasta %max%"
+        custom_strengths: "Con tus palabras"
+        custom_strengths_placeholder: "p. ej., Wasgij, cielos nocturnos"
+        custom_add_placeholder: "Añade el tuyo"
+        custom_add: "+ añadir"
+        custom_strengths_help: "Hasta %max%, cada uno de hasta %length% caracteres, tal como los escribas. Si uno coincide con una opción de arriba, se convierte en esa opción."
+        languages: "Idiomas que hablo"
+        languages_help: "Hasta %max%. Importa en los eventos internacionales."
+        note: "Unas palabras"
+        note_placeholder: "Cómo armas, qué te gustaría... lo que ayude"
+        consent_going: "Te marcaremos con «¡Voy!»."
+        consent_managed: "Apuntarte aquí no te inscribe: tu inscripción sigue como está."
+        consent_visible: "Los puzzleros con sesión iniciada verán tu nombre, tu país, tus mejores tiempos y este anuncio. Nadie ve tu dirección de correo."
+        flash_listed: "¡Listo, tu anuncio está publicado! Suerte buscando compañero."
+        flash_saved: "Tu anuncio se ha guardado."
+    listing:
+        kind_pair: "Busca pareja"
+        kind_team: "Busca equipo"
+        kind_both: "Pareja o equipo"
+        kind_group: "Grupo de %size% · falta %count%|Grupo de %size% · faltan %count%"
+        with: "Con"
+        private_member: "un perfil privado"
+        best500: "Mejor 500"
+        best1000: "Mejor 1000"
+        solved: "resuelto|resueltos"
+        msp_rating: "MSP"
+        speed_similar: "A tu ritmo"
+        speed_faster: "Más rápido"
+        speed_slower: "Más lento"
+        status_going: "Va"
+        status_registered: "Inscripción hecha"
+        status_not_registered: "Aún sin inscripción"
+        sent: "Enviado"
+        contact: "Me gustaría armar contigo"
+        contact_as: "Como"
+        contact_as_pair: "pareja"
+        contact_as_team: "equipo"
+        contact_note: "Una nota (opcional)"
+        contact_note_placeholder: "Saluda o cuenta qué se te da bien"
+        contact_help: "Le diremos quién eres, en la app y por correo. Tu dirección de correo sigue siendo privada."
+        contact_send: "Enviar"
+        got_in_touch: "{0}Nadie te ha escrito aún|{1}%count% persona te ha escrito|]1,Inf[%count% personas te han escrito"
+        edit: "Editar"
+        found: "Ya tengo compañero"
+        found_one: "Ya tengo uno más"
+        remove: "Quitar"
+        flash_found: "¡Enhorabuena! Tu anuncio se ha cerrado."
+        flash_counted_down: "Genial, uno menos que encontrar. Tu anuncio sigue abierto."
+        flash_removed: "Tu anuncio se ha quitado."
+        flash_expired: "La página estuvo abierta demasiado tiempo. Vuelve a intentarlo."
 
     # Part B: card.*, events_tag.*
+    card:
+        button: "Buscar compañero"
+        # read after the button's name by screen readers, the badge shows the number
+        button_count: "%count% busca|%count% buscan"
+        close: "No volver a mostrar"
+        see_who: "Ver quién busca"
+        list_me: "Apúntame"
+        # %what% in invite.body and browse.title - what the event's rounds offer
+        what:
+            pair: "pareja"
+            team: "equipo"
+            both: "pareja o equipo"
+        invite:
+            title:
+                pair: "¿Aún no tienes pareja?"
+                team: "¿Aún no tienes equipo?"
+                both: "¿Aún no tienes pareja ni equipo?"
+            # right after "I'm going"
+            title_just_joined:
+                pair: "¿Necesitas pareja para este evento?"
+                team: "¿Necesitas equipo para este evento?"
+                both: "¿Necesitas pareja o equipo para este evento?"
+            body: "{0}Aún no se ha apuntado nadie. Di qué necesitas y los demás que van podrán encontrarte.|{1}Un puzzlero busca %what% aquí. Di qué necesitas y también podrá encontrarte.|]1,Inf[%count% puzzleros buscan %what% aquí. Di qué necesitas y también podrán encontrarte."
+        browse:
+            title: "{1}Un puzzlero busca %what% aquí|[0,Inf[%count% puzzleros buscan %what% aquí"
+        listed:
+            pair: "Tu anuncio está publicado: buscas pareja"
+            team: "Tu anuncio está publicado: buscas equipo"
+            both: "Tu anuncio está publicado: buscas pareja o equipo"
+            # %size% = the group, %count% = how many more it needs
+            group: "{1}Tu grupo de %size% está apuntado y busca una persona más|[0,Inf[Tu grupo de %size% está apuntado y busca %count% personas más"
+            requests: "{0}nadie te ha escrito aún|{1}un puzzlero te ha escrito|]1,Inf[%count% puzzleros te han escrito"
+            manage: "Gestionar"
+    events_tag:
+        looking: "{1}1 busca compañero|[0,Inf[%count% buscan compañero"
 
     # Part C: request.*, notification.*, settings.*
+    request:
+        flash:
+            sent: "Enviado. Si también quiere armar contigo, te responderá en un chat."
+            limit_reached: "Hoy ya has escrito a bastantes puzzleros: vuelve a intentarlo mañana."
+            not_possible: "Ya no se puede escribir a este anuncio: puede que se haya cerrado mientras tanto."
+            reply_muted: "Ahora mismo no puedes iniciar chats nuevos, así que no se pudo abrir el chat."
+            reply_unavailable: "Esta solicitud ya no se puede responder con un chat."
+        reply_message: "¡Hola, %name%! Gracias por escribirme sobre %event%. ¡Hablemos!"
+        reply_page:
+            title: "A %name% le gustaría armar contigo"
+            explain: "Responder abre un chat con %name%. Como te escribió primero, funciona aunque no acepte mensajes directos. ¿No te interesa? Déjalo sin más: nunca se le avisa."
+            button: "Responder a %name%"
+    notification:
+        text_pair: "A %player% le gustaría armar contigo en pareja en %event%."
+        text_team: "A %player% le gustaría armar contigo en equipo en %event%."
+        see_listings: "Ver los anuncios"
+        reply: "Responder"
+        open_chat: "Abrir chat"
+    settings:
+        emails_label: "Correos del buscador de compañeros"
+        emails_help: "Un correo cuando a alguien le gustaría armar contigo a través de tu anuncio en el buscador de compañeros. Siempre lo verás también en tus notificaciones."
+        unsubscribe:
+            headline: "Correos del buscador de compañeros"
+            text: "¿Ya no quieres correos cuando a alguien le gustaría armar contigo? Seguirás viendo sus solicitudes en tus notificaciones, y tus demás correos siguen igual."
+            confirm_button: "Dejar de recibir estos correos"
+            done: "Listo: ya no recibirás correos del buscador de compañeros. Las solicitudes siguen llegando a tus notificaciones."
+            settings_hint: "Puedes volver a activarlos cuando quieras en los ajustes de tu perfil, en «Mensajes y notificaciones»."
+
+
+    # Part D: gate.*
+    gate:
+        meta_title: "Buscador de compañeros: encuentra pareja o equipo para un evento de puzzles"
+        meta_description: "¿Vas a una competición de puzzles sin compañero? Encuentra pareja o equipo entre los puzzleros que van al mismo evento. Gratis para todos."
+        footer_link: "Buscador de compañeros"
+        eyebrow: "Buscador de compañeros"
+        title: "Encuentra pareja o equipo para tu próximo evento de puzzles"
+        lead: "Muchos eventos de puzzles tienen rondas por parejas y por equipos. ¿Vas sin compañero? Di qué necesitas y mira quién más busca en el mismo evento."
+        free: "Gratis para todos"
+        private: "Tu dirección de correo sigue siendo privada"
+        how_title: "Cómo funciona"
+        step:
+            going:
+                title: "Di que vas y qué necesitas"
+                text: "Pareja, equipo o más gente para tu grupo y, si quieres, qué se te da bien y cuánto te lo tomas en serio."
+            browse:
+                title: "Mira quién busca"
+                text: "Ve a los puzzleros que van al mismo evento, fíltralos por país y mira lo rápido que arman."
+            contact:
+                title: "Ponte en contacto"
+                text: "Envía «Me gustaría armar contigo». Le diremos quién eres y podrá responderte en un chat: nunca se comparte la dirección de correo de nadie."
+        picker:
+            title: "Elige tu evento"
+            label: "Evento"
+            placeholder: "Busca un evento o una serie"
+            submit: "Abrir el buscador de compañeros"
+            no_results: "Ningún próximo evento con rondas por parejas o equipos coincide."
+            help: "{1}Un próximo evento presencial con rondas por parejas o equipos. Escribe el nombre de una serie para encontrar sus fechas.|[0,Inf[%count% próximos eventos presenciales con rondas por parejas o equipos. Escribe el nombre de una serie para encontrar sus fechas."
+            empty: "Ahora mismo ningún próximo evento tiene buscador de compañeros: se abre uno para cada evento presencial con rondas por parejas o equipos."
+            all_events: "Ver todos los eventos"
+        # in the picker's options, next to the date and the place
+        looking: "{1}1 busca|[0,Inf[%count% buscan"
+        popular:
+            title: "Eventos con gente buscando"
+            empty: "Aún no se ha apuntado nadie en ningún evento. Elige tu evento arriba y apúntate antes que nadie: el próximo puzzlero que busque compañero allí te encontrará."
 
     # Foundation: strength.*, goal.*, kind.*, invalid.*
     strength:

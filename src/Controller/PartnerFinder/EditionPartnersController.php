@@ -22,7 +22,7 @@ final class EditionPartnersController extends AbstractPartnerFinderPageControlle
 
     #[Route(
         path: [
-            'cs' => '/serie/{seriesSlug}/{editionSlug}/partneri',
+            'cs' => '/serie/{seriesSlug}/{editionSlug}/partaci',
             'en' => '/en/series/{seriesSlug}/{editionSlug}/partners',
             'es' => '/es/series/{seriesSlug}/{editionSlug}/companeros',
             'ja' => '/ja/series/{seriesSlug}/{editionSlug}/partners',

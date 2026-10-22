@@ -18,7 +18,7 @@ final class EventPartnersController extends AbstractPartnerFinderPageController
 {
     #[Route(
         path: [
-            'cs' => '/eventy/{slug}/partneri',
+            'cs' => '/eventy/{slug}/partaci',
             'en' => '/en/events/{slug}/partners',
             'es' => '/es/eventos/{slug}/companeros',
             'ja' => '/ja/イベント/{slug}/partners',

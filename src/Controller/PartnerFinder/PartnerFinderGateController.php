@@ -32,7 +32,7 @@ final class PartnerFinderGateController extends AbstractController
 
     #[Route(
         path: [
-            'cs' => '/hledani-partnera',
+            'cs' => '/hledani-partaku',
             'en' => '/en/partner-finder',
             'es' => '/es/buscar-companero',
             'ja' => '/ja/パートナー探し',

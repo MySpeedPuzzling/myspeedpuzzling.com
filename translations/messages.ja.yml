@@ -10818,10 +10818,212 @@ puzzles_needing_improvement:
 partner_finder:
     # docs/features/partner-finder.md "Shared names": each part adds its own subtrees below its line
     # Part A: page.*, form.*, listing.*
+    page:
+        title: "パートナーを探す - %event%"
+        meta_description: "%event%に参加し、ペアのパートナーやチームを探しているパズラーたち。"
+        heading: "パートナーを探す"
+        lead: "%event%に参加するパズラーのうち、ペアのパートナー、チーム、またはグループのメンバーを探している人たちです。"
+        list_me: "募集を出す"
+        your_listing: "あなたの募集"
+        others: "パートナー募集中"
+        empty_title: "まだ誰も募集していません"
+        empty_text: "募集を出しましょう。次にここでパートナーを探すパズラーが、真っ先にあなたを見つけます。"
+        empty_text_listed: "ここでの最初の募集です。パートナーを探しているパズラーに、あなたの募集が表示されます。"
+        no_match: "この条件に一致する人はいません。"
+        reset_filters: "全員を表示"
+        capped: "全%total%件のうち、新しい%count%件を表示しています。"
+        privacy: "メールアドレスは誰にも共有されません。連絡はMySpeedPuzzlingの中で行います。"
+        filters: "募集を絞り込む"
+        filter_kind: "募集の種類"
+        filter_country: "国"
+        filter_strengths: "得意なこと"
+        kind_all: "すべて"
+        kind_groups: "メンバー募集中のグループ"
+        all_countries: "すべての国"
+        countries: "国"
+        sort: "並べ替え"
+        sort_newest: "新しい順"
+        sort_fastest: "速い順"
+        sort_closest: "自分の速さに近い順"
+        members: "メンバー限定"
+        closest_locked: "メンバーは、自分の速さに近いパズラーから順に並べ替えられます"
+        good_at: "得意なこと"
+        teaser_count: "%count%人のパズラーがここでパートナーを探しています"
+        teaser_empty: "ここで最初にパートナーを探しましょう"
+        teaser_text: "サインインすると、誰がどのくらいの速さでパズルをするのかを確認し、連絡できます。無料です。"
+        sign_in: "サインインして相手を確認・連絡する"
+    form:
+        title: "募集を出す"
+        title_edit: "募集を編集"
+        submit: "募集を出す"
+        submit_edit: "保存"
+        optional: "任意"
+        i_am: "今の状況"
+        i_am_alone: "1人で参加"
+        i_am_group: "すでにグループがある"
+        group_size: "グループの人数"
+        needed: "あと必要な人数"
+        team_size_help: "このイベントのチームは%size%人です。"
+        looking_for: "探しているもの"
+        looking_for_pair: "ペアのパートナー"
+        looking_for_team: "参加できるチーム"
+        teams_of: "%size%人チーム"
+        group_pair_hint: "グループはチームを探します。2人のグループはすでにペアです。"
+        goal: "目標"
+        strengths: "得意なこと"
+        strengths_limit: "%max%個まで"
+        custom_strengths: "自分の言葉で"
+        custom_strengths_placeholder: "例：Wasgij、夜空"
+        custom_add_placeholder: "自分で追加"
+        custom_add: "+ 追加"
+        custom_strengths_help: "%max%個まで、各%length%文字まで。書いたとおりに表示されます。上のチップと同じものは、そのチップになります。"
+        languages: "パズル中に使える言語"
+        languages_help: "%max%個まで。国際イベントで役立ちます。"
+        note: "ひとこと"
+        note_placeholder: "パズルの進め方や希望など、役に立ちそうなことを何でも"
+        consent_going: "あなたは「参加予定」になります。"
+        consent_managed: "募集を出してもイベントへの登録にはなりません。登録状況はそのままです。"
+        consent_visible: "サインインしているパズラーには、あなたの名前、国、ベストタイム、この募集が表示されます。メールアドレスは誰にも表示されません。"
+        flash_listed: "募集を出しました。パートナーが見つかりますように！"
+        flash_saved: "募集を保存しました。"
+    listing:
+        kind_pair: "ペアを探しています"
+        kind_team: "チームを探しています"
+        kind_both: "ペアまたはチーム"
+        kind_group: "%size%人のグループ · あと%count%人"
+        with: "メンバー"
+        private_member: "非公開のパズラー"
+        best500: "500ピースのベスト"
+        best1000: "1000ピースのベスト"
+        solved: "個完成"
+        msp_rating: "MSP"
+        speed_similar: "あなたと同じくらい"
+        speed_faster: "あなたより速い"
+        speed_slower: "あなたよりゆっくり"
+        status_going: "参加予定"
+        status_registered: "登録済み"
+        status_not_registered: "まだ未登録"
+        sent: "送信済み"
+        contact: "一緒にパズルをしたいです"
+        contact_as: "組み方"
+        contact_as_pair: "ペアとして"
+        contact_as_team: "チームとして"
+        contact_note: "ひとこと（任意）"
+        contact_note_placeholder: "あいさつや、得意なことなど"
+        contact_help: "あなたが誰なのか、アプリ内とメールで相手に伝わります。あなたのメールアドレスは公開されません。"
+        contact_send: "送信"
+        got_in_touch: "{0}まだ連絡はありません|{1}%count%人から連絡がありました|]1,Inf[%count%人から連絡がありました"
+        edit: "編集"
+        found: "パートナーが見つかりました"
+        found_one: "1人見つかりました"
+        remove: "削除"
+        flash_found: "おめでとうございます！募集を締め切りました。"
+        flash_counted_down: "よかったですね。探す人数が1人減りました。募集は引き続き公開されます。"
+        flash_removed: "募集を削除しました。"
+        flash_expired: "ページを開いてから時間が経ちすぎました。もう一度お試しください。"
 
     # Part B: card.*, events_tag.*
+    card:
+        button: "パートナーを探す"
+        # read after the button's name by screen readers, the badge shows the number
+        button_count: "%count%人が募集中"
+        close: "今後表示しない"
+        see_who: "募集中の人を見る"
+        list_me: "募集を出す"
+        # %what% in invite.body and browse.title - what the event's rounds offer
+        what:
+            pair: "ペアのパートナー"
+            team: "チーム"
+            both: "ペアかチーム"
+        invite:
+            title:
+                pair: "まだペアのパートナーがいませんか？"
+                team: "まだチームがありませんか？"
+                both: "まだパートナーがいませんか？"
+            # right after "I'm going"
+            title_just_joined:
+                pair: "このイベントでペアのパートナーが必要ですか？"
+                team: "このイベントでチームが必要ですか？"
+                both: "このイベントでペアかチームが必要ですか？"
+            body: "{0}まだ誰も募集していません。募集を出せば、参加するほかのパズラーがあなたを見つけられます。|{1}ここで1人のパズラーが%what%を探しています。募集を出せば、相手もあなたを見つけられます。|]1,Inf[ここで%count%人のパズラーが%what%を探しています。募集を出せば、相手もあなたを見つけられます。"
+        browse:
+            title: "{1}ここで1人のパズラーが%what%を探しています|[0,Inf[ここで%count%人のパズラーが%what%を探しています"
+        listed:
+            pair: "ペアのパートナーを探す募集を出しています"
+            team: "チームを探す募集を出しています"
+            both: "ペアかチームを探す募集を出しています"
+            # %size% = the group, %count% = how many more it needs
+            group: "{1}%size%人のグループで、あと1人を募集しています|[0,Inf[%size%人のグループで、あと%count%人を募集しています"
+            requests: "{0}まだ誰からも連絡はありません|{1}1人のパズラーから連絡がありました|]1,Inf[%count%人のパズラーから連絡がありました"
+            manage: "管理"
+    events_tag:
+        looking: "{1}1人がパートナーを募集中|[0,Inf[%count%人がパートナーを募集中"
 
     # Part C: request.*, notification.*, settings.*
+    request:
+        flash:
+            sent: "送信しました。相手もあなたと一緒にパズルをしたい場合は、チャットで返信が届きます。"
+            limit_reached: "今日はすでに多くのパズラーに声をかけています。また明日お試しください。"
+            not_possible: "この募集にはもう連絡できません。すでに締め切られた可能性があります。"
+            reply_muted: "現在、新しいチャットを始められないため、チャットを開けませんでした。"
+            reply_unavailable: "このリクエストにはもうチャットで返信できません。"
+        reply_message: "%name%さん、こんにちは。%event%の件でご連絡ありがとうございます。ぜひお話ししましょう！"
+        reply_page:
+            title: "%name%さんがあなたと一緒にパズルをしたいそうです"
+            explain: "返信すると、%name%さんとのチャットが開きます。相手から先に連絡があったので、相手がダイレクトメッセージを受け付けていなくても使えます。興味がなければ、そのままにしておいてください。相手に知らされることはありません。"
+            button: "%name%さんに返信"
+    notification:
+        text_pair: "%player%さんが%event%であなたとペアを組みたいそうです。"
+        text_team: "%player%さんが%event%であなたとチームを組みたいそうです。"
+        see_listings: "募集を見る"
+        reply: "返信"
+        open_chat: "チャットを開く"
+    settings:
+        emails_label: "パートナー探しのメール"
+        emails_help: "パートナー探しの募集を見た人が、あなたと一緒にパズルをしたいと連絡してきたときにメールが届きます。通知にはいつでも表示されます。"
+        unsubscribe:
+            headline: "パートナー探しのメール"
+            text: "誰かがあなたと一緒にパズルをしたいときのメールを止めますか？リクエストは引き続き通知に表示され、ほかのメールはそのままです。"
+            confirm_button: "このメールを停止する"
+            done: "完了しました。パートナー探しのメールは今後お送りしません。リクエストは引き続き通知に届きます。"
+            settings_hint: "プロフィール設定の「メッセージと通知」から、いつでも再びオンにできます。"
+
+
+    # Part D: gate.*
+    gate:
+        meta_title: "パートナー探し - パズルイベントのペアやチームを見つけよう"
+        meta_description: "パートナーなしでジグソーパズルの大会に参加しますか？同じイベントに参加するパズラーの中から、ペアのパートナーやチームを見つけましょう。誰でも無料です。"
+        footer_link: "パートナー探し"
+        eyebrow: "パートナー探し"
+        title: "次のパズルイベントでペアやチームを見つけよう"
+        lead: "多くのパズルイベントには、ペアやチームのラウンドがあります。パートナーがいませんか？募集を出して、同じイベントでほかに誰がパートナーを探しているか見てみましょう。"
+        free: "誰でも無料"
+        private: "メールアドレスは公開されません"
+        how_title: "使い方"
+        step:
+            going:
+                title: "参加することと、探しているものを伝える"
+                text: "ペアのパートナー、チーム、またはグループのメンバー。お好みで、得意なことや本気度も伝えられます。"
+            browse:
+                title: "募集中の人を見る"
+                text: "同じイベントに参加するパズラーを国で絞り込み、パズルの速さを確認できます。"
+            contact:
+                title: "連絡する"
+                text: "「一緒にパズルをしたいです」を送りましょう。あなたが誰なのかを相手に伝え、相手はチャットで返信できます。メールアドレスが共有されることはありません。"
+        picker:
+            title: "イベントを選ぶ"
+            label: "イベント"
+            placeholder: "イベントやシリーズを検索"
+            submit: "パートナー探しを開く"
+            no_results: "ペアやチームのラウンドがある今後のイベントで、一致するものはありません。"
+            help: "{1}ペアやチームのラウンドがある今後の対面イベントは1件です。シリーズ名を入力すると、その日程が見つかります。|[0,Inf[ペアやチームのラウンドがある今後の対面イベントは%count%件です。シリーズ名を入力すると、その日程が見つかります。"
+            empty: "現在、パートナー探しのある今後のイベントはありません。パートナー探しは、ペアやチームのラウンドがある対面イベントごとに開かれます。"
+            all_events: "すべてのイベントを見る"
+        # in the picker's options, next to the date and the place
+        looking: "{1}1人が募集中|[0,Inf[%count%人が募集中"
+        popular:
+            title: "募集中の人がいるイベント"
+            empty: "まだどこにも募集はありません。上でイベントを選んで、最初の募集を出しましょう。次にそこでパートナーを探すパズラーが、あなたを見つけます。"
 
     # Foundation: strength.*, goal.*, kind.*, invalid.*
     strength:

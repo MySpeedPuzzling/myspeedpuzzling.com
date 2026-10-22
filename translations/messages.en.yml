@@ -11231,17 +11231,17 @@ partner_finder:
                 both: "Need a pair or a team for this one?"
             body: "{0}Nobody is listed yet. Say what you need, and others going can find you.|{1}One puzzler is looking for %what% here. Say what you need, and they can find you too.|]1,Inf[%count% puzzlers are looking for %what% here. Say what you need, and they can find you too."
         browse:
-            title: "{1}One puzzler is looking for %what% here|]1,Inf[%count% puzzlers are looking for %what% here"
+            title: "{1}One puzzler is looking for %what% here|[0,Inf[%count% puzzlers are looking for %what% here"
         listed:
             pair: "You're listed as looking for a pair partner"
             team: "You're listed as looking for a team"
             both: "You're listed as looking for a pair or a team"
             # %size% = the group, %count% = how many more it needs
-            group: "{1}Your group of %size% is listed, looking for one more|]1,Inf[Your group of %size% is listed, looking for %count% more"
+            group: "{1}Your group of %size% is listed, looking for one more|[0,Inf[Your group of %size% is listed, looking for %count% more"
             requests: "{0}nobody got in touch yet|{1}one puzzler got in touch|]1,Inf[%count% puzzlers got in touch"
             manage: "Manage"
     events_tag:
-        looking: "{1}1 looking for a partner|]1,Inf[%count% looking for a partner"
+        looking: "{1}1 looking for a partner|[0,Inf[%count% looking for a partner"
 
     # Part C: request.*, notification.*, settings.*
     request:
@@ -11300,11 +11300,11 @@ partner_finder:
             placeholder: "Search for an event or a series"
             submit: "Open the partner finder"
             no_results: "No coming event with pair or team rounds matches."
-            help: "{1}One coming in-person event with pair or team rounds. Type a series name to find its dates.|]1,Inf[%count% coming in-person events with pair or team rounds. Type a series name to find its dates."
+            help: "{1}One coming in-person event with pair or team rounds. Type a series name to find its dates.|[0,Inf[%count% coming in-person events with pair or team rounds. Type a series name to find its dates."
             empty: "No coming event has a partner finder right now - one opens for every in-person event with pair or team rounds."
             all_events: "See all events"
         # in the picker's options, next to the date and the place
-        looking: "{1}1 looking|]1,Inf[%count% looking"
+        looking: "{1}1 looking|[0,Inf[%count% looking"
         popular:
             title: "Events with people looking"
             empty: "Nobody is listed anywhere yet. Pick your event above and be the first - the next puzzler looking for a partner there will find you."

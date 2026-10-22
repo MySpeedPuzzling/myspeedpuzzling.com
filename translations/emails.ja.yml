@@ -486,3 +486,18 @@ feature_request_emails:
         author: "この機能を提案されたため、このメールをお送りしています。<a href=\"%settingsUrl%\">メール設定</a> · <a href=\"%unsubscribeUrl%\">機能リクエストのメールを停止</a>"
         upvoter: "この機能に投票されたため、このメールをお送りしています。<a href=\"%settingsUrl%\">メール設定</a>（すべてのリクエストのフォローも設定できます） · <a href=\"%unsubscribeUrl%\">機能リクエストのメールを停止</a>"
         follower: "すべての機能リクエストをフォローしているため、このメールをお送りしています。<a href=\"%settingsUrl%\">メール設定</a> · <a href=\"%unsubscribeUrl%\">機能リクエストのメールを停止</a>"
+partner_request:
+    subject: "%sender%さんが%event%であなたと一緒にパズルをしたいそうです"
+    preheader: "あなたのパートナー募集を見た人がいます。MySpeedPuzzlingで返信しましょう。"
+    title: "%sender%さんがあなたと一緒にパズルをしたいそうです"
+    greeting: "%name%さん、こんにちは"
+    intro_pair: "%sender%さんがあなたのパートナー募集を見て、%event%であなたとペアを組みたいそうです。"
+    intro_team: "%sender%さんがあなたのパートナー募集を見て、%event%であなたとチームを組みたいそうです。"
+    best_500: "500ピースのベスト %time%"
+    best_1000: "1000ピースのベスト %time%"
+    solved: "{1}パズル1個完成|[0,Inf[パズル%count%個完成"
+    speaks: "話せる言語：%languages%"
+    reply: "%sender%さんに返信"
+    no_addresses: "メールアドレスが共有されることはありません。返信はMySpeedPuzzlingの中で行い、返信するとチャットが開きます。"
+    found_partner: 'もうパートナーが見つかりましたか？<a href="%url%">募集を締め切る</a>'
+    opt_out: 'パートナー探しに募集を出しているため、このメールをお送りしています。<a href="%settingsUrl%">メール設定</a> · <a href="%unsubscribeUrl%">このメールを停止する</a>'

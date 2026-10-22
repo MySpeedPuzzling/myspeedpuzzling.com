@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CollectionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -227,7 +228,7 @@ final class MultiscanTrayTest extends WebTestCase
         /** @var Connection $database */
         $database = self::getContainer()->get(Connection::class);
         $database->executeStatement(
-            'INSERT INTO collection_item (id, collection_id, player_id, puzzle_id, comment, added_at) VALUES (gen_random_uuid(), NULL, :player, :puzzle, NULL, NOW())',
+            'INSERT INTO collection_item (id, collection_id, player_id, puzzle_id, comment, added_at) VALUES (gen_random_uuid(), NULL, :player, :puzzle, NULL, ' . TestClock::SQL_NOW . ')',
             ['player' => PlayerFixture::PLAYER_WITH_STRIPE, 'puzzle' => PuzzleFixture::PUZZLE_4000],
         );
 
@@ -703,7 +704,7 @@ final class MultiscanTrayTest extends WebTestCase
         /** @var Connection $database */
         $database = self::getContainer()->get(Connection::class);
         $database->executeStatement(
-            "UPDATE puzzle SET approved = false, hide_until = NOW() + INTERVAL '30 days' WHERE id = :id",
+            "UPDATE puzzle SET approved = false, hide_until = " . TestClock::SQL_NOW . " + INTERVAL '30 days' WHERE id = :id",
             ['id' => PuzzleFixture::PUZZLE_300],
         );
 
@@ -796,7 +797,7 @@ final class MultiscanTrayTest extends WebTestCase
         $database = self::getContainer()->get(Connection::class);
         $database->executeStatement('DELETE FROM puzzle WHERE id = :id', ['id' => $puzzleId]);
         $database->executeStatement(
-            'INSERT INTO puzzle_redirect (id, old_puzzle_id, survivor_puzzle_id, created_at) VALUES (:id, :old, :survivor, NOW())',
+            'INSERT INTO puzzle_redirect (id, old_puzzle_id, survivor_puzzle_id, created_at) VALUES (:id, :old, :survivor, ' . TestClock::SQL_NOW . ')',
             ['id' => Uuid::uuid7()->toString(), 'old' => $puzzleId, 'survivor' => $survivorId],
         );
     }

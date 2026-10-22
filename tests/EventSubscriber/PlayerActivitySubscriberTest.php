@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\EventSubscriber;
 
-use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\UserAccount;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -60,8 +60,8 @@ final class PlayerActivitySubscriberTest extends WebTestCase
         $email = sprintf('activity-sub+%s@example.com', bin2hex(random_bytes(4)));
         $userId = 'msp|' . bin2hex(random_bytes(8));
 
-        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
-        $player = new Player(Uuid::uuid7(), 'PASU' . bin2hex(random_bytes(2)), $userId, null, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now());
+        $player = new Player(Uuid::uuid7(), 'PASU' . bin2hex(random_bytes(2)), $userId, null, TestClock::now());
 
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
         $entityManager->persist($userAccount);

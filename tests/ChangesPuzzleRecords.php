@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests;
 
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Value\BrandCodeList;
@@ -23,7 +22,7 @@ trait ChangesPuzzleRecords
     protected static function renamePuzzle(string $puzzleId, string $name, null|PuzzleNames $alternativeNames = null): void
     {
         self::changePuzzle($puzzleId, static function (Puzzle $puzzle) use ($name, $alternativeNames): void {
-            $puzzle->changeNames($name, $puzzle->nameLanguage, $alternativeNames ?? $puzzle->alternativeNames(), new DateTimeImmutable());
+            $puzzle->changeNames($name, $puzzle->nameLanguage, $alternativeNames ?? $puzzle->alternativeNames(), TestClock::now());
         });
     }
 

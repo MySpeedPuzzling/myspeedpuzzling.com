@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Entity;
 
-use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Value\ParticipantSource;
 
 final class CompetitionParticipantTest extends TestCase
@@ -30,7 +30,7 @@ final class CompetitionParticipantTest extends TestCase
 
     public function testSoftDeleteSetsDeletedAt(): void
     {
-        $now = new DateTimeImmutable();
+        $now = TestClock::now();
         $this->participant->softDelete($now);
 
         self::assertTrue($this->participant->isDeleted());
@@ -39,7 +39,7 @@ final class CompetitionParticipantTest extends TestCase
 
     public function testRestoreClearsDeletedAt(): void
     {
-        $this->participant->softDelete(new DateTimeImmutable());
+        $this->participant->softDelete(TestClock::now());
         self::assertTrue($this->participant->isDeleted());
 
         $this->participant->restore();

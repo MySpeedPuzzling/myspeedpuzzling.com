@@ -27,6 +27,7 @@ final class AppleIdTokenFactory
         [$jwks, $idToken] = self::signedIdToken($claims + [
             'iss' => 'https://appleid.apple.com',
             'aud' => self::CLIENT_ID,
+            // Real time on purpose: Apple mints on its own clock and the provider library checks with php-jwt's time()
             'iat' => time(),
             'exp' => time() + 600,
         ]);

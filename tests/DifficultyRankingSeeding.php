@@ -148,8 +148,8 @@ trait DifficultyRankingSeeding
         );
         $entityManager->persist($puzzle);
 
-        $difficulty = new PuzzleDifficulty($puzzle, new DateTimeImmutable());
-        $difficulty->updateDifficulty($score, $confidence, $sampleSize, new DateTimeImmutable());
+        $difficulty = new PuzzleDifficulty($puzzle, TestClock::now());
+        $difficulty->updateDifficulty($score, $confidence, $sampleSize, TestClock::now());
         $entityManager->persist($difficulty);
 
         if ($statistics !== null) {

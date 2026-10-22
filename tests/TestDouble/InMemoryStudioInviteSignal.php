@@ -20,6 +20,7 @@ final class InMemoryStudioInviteSignal implements StudioInviteSignal
     {
         self::$signals[self::key($roundId, $participantId)] = [
             'inviteId' => strtolower($inviteId),
+            // Real time on purpose: it stands in for a Redis TTL, which Redis counts on its own clock
             'expiresAt' => time() + max(1, $ttlSeconds),
         ];
     }

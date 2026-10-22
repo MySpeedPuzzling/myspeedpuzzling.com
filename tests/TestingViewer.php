@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests;
 
-use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -35,7 +34,7 @@ readonly final class TestingViewer
                 Uuid::uuid7(),
                 $player->userId,
                 $player->code . '@test.local',
-                new DateTimeImmutable(),
+                TestClock::now(),
             );
 
             $entityManager = $container->get('doctrine')->getManager();

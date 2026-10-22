@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Component;
 
-use DateTimeImmutable;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
@@ -21,8 +21,8 @@ final class PlayerStatisticsTest extends WebTestCase
 
         $testComponent = $this->createLiveComponent('PlayerStatistics', [
             'playerId' => PlayerFixture::PLAYER_REGULAR,
-            'dateFrom' => new DateTimeImmutable('-60 days'),
-            'dateTo' => new DateTimeImmutable('+1 day'),
+            'dateFrom' => TestClock::now()->modify('-60 days'),
+            'dateTo' => TestClock::now()->modify('+1 day'),
             'streakOptedOut' => false,
         ], $client);
 

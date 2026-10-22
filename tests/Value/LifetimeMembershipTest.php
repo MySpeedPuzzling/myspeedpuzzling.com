@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Value;
 
-use DateTimeImmutable;
 use DateTimeZone;
 use PHPUnit\Framework\TestCase;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Value\LifetimeMembership;
 
 final class LifetimeMembershipTest extends TestCase
@@ -26,6 +26,6 @@ final class LifetimeMembershipTest extends TestCase
     public function testRegularGrantIsNotLifetime(): void
     {
         self::assertFalse(LifetimeMembership::isLifetime(null));
-        self::assertFalse(LifetimeMembership::isLifetime(new DateTimeImmutable('+10 years')));
+        self::assertFalse(LifetimeMembership::isLifetime(TestClock::now()->modify('+10 years')));
     }
 }

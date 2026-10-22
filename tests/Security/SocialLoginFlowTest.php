@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Security;
 
-use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
@@ -16,6 +15,7 @@ use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Events\OauthIdentityLinked;
 use SpeedPuzzling\Web\Security\SocialLoginFailed;
 use SpeedPuzzling\Web\Tests\ConfiguresSocialLoginProviders;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestDouble\AppleIdTokenFactory;
 use SpeedPuzzling\Web\Tests\TestDouble\SocialLoginHttpMock;
 use SpeedPuzzling\Web\Value\OauthProvider;
@@ -1307,17 +1307,17 @@ final class SocialLoginFlowTest extends WebTestCase
     {
         $userId = 'msp|' . Uuid::uuid7()->toString();
 
-        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now());
 
         if ($emailVerified) {
-            $userAccount->markEmailVerified(new DateTimeImmutable());
+            $userAccount->markEmailVerified(TestClock::now());
         }
 
         if ($password !== null) {
             $userAccount->changePassword($password);
         }
 
-        $player = new Player(Uuid::uuid7(), 'SL' . bin2hex(random_bytes(3)), $userId, null, new DateTimeImmutable());
+        $player = new Player(Uuid::uuid7(), 'SL' . bin2hex(random_bytes(3)), $userId, null, TestClock::now());
 
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
         $entityManager->persist($userAccount);
@@ -1336,7 +1336,7 @@ final class SocialLoginFlowTest extends WebTestCase
             provider: $provider,
             providerUserId: $providerUserId,
             emailAtLink: $userAccount->email,
-            linkedAt: new DateTimeImmutable(),
+            linkedAt: TestClock::now(),
         ));
         $entityManager->flush();
     }

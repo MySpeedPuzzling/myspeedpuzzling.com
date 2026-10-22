@@ -29,12 +29,14 @@ trait LeaderboardSeeding
         int $secondsBetween = 1,
         null|string $country = null,
     ): array {
+        $now = TestClock::SQL_NOW;
+
         $database = self::getContainer()->get(Connection::class);
 
         $database->executeStatement(
             <<<SQL
 INSERT INTO player (id, code, name, registered_at, country)
-SELECT gen_random_uuid(), 'leaderboard' || n, 'Leaderboard Solver ' || n, NOW() - INTERVAL '1 year', :country
+SELECT gen_random_uuid(), 'leaderboard' || n, 'Leaderboard Solver ' || n, {$now} - INTERVAL '1 year', :country
 FROM generate_series(1, :count) AS n
 SQL,
             ['count' => $count, 'country' => $country],
@@ -44,7 +46,7 @@ SQL,
         $database->executeStatement(
             <<<SQL
 INSERT INTO puzzle_solving_time (id, player_id, puzzle_id, seconds_to_solve, tracked_at, finished_at, verified, first_attempt)
-SELECT gen_random_uuid(), player.id, :puzzleId, :firstSeconds + n * :secondsBetween, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day', true, :firstAttempt
+SELECT gen_random_uuid(), player.id, :puzzleId, :firstSeconds + n * :secondsBetween, {$now} - INTERVAL '1 day', {$now} - INTERVAL '1 day', true, :firstAttempt
 FROM generate_series(1, :count) AS n
 INNER JOIN player ON player.code = 'leaderboard' || n
 SQL,
@@ -83,10 +85,12 @@ SQL,
      */
     protected function seedSoloTime(string $puzzleId, string $playerId, int $seconds, bool $firstAttempt = false): void
     {
+        $now = TestClock::SQL_NOW;
+
         self::getContainer()->get(Connection::class)->executeStatement(
             <<<SQL
 INSERT INTO puzzle_solving_time (id, player_id, puzzle_id, seconds_to_solve, tracked_at, finished_at, verified, first_attempt)
-VALUES (gen_random_uuid(), :playerId, :puzzleId, :seconds, NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days', true, :firstAttempt)
+VALUES (gen_random_uuid(), :playerId, :puzzleId, :seconds, {$now} - INTERVAL '2 days', {$now} - INTERVAL '2 days', true, :firstAttempt)
 SQL,
             ['playerId' => $playerId, 'puzzleId' => $puzzleId, 'seconds' => $seconds, 'firstAttempt' => $firstAttempt],
             ['seconds' => ParameterType::INTEGER, 'firstAttempt' => ParameterType::BOOLEAN],

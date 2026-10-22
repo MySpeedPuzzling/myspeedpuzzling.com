@@ -1,0 +1,162 @@
+{#
+    The listing form's fields (docs/features/partner-finder.md, "Listing yourself") - shared by the modal and the full
+    page. Choices render as chips / a segmented control on real radio and checkbox inputs, so the form works without
+    JavaScript; partner_listing_form_controller.js shows the group fields only for a group, keeps "a pair partner" off for
+    a group and counts the note; partner_strengths_controller.js turns "your own" into chips.
+    Inputs: form, offer (PartnerFinderOffer), editing (bool), registration_managed (bool), custom_suggestions (list<string>)
+#}
+{%- set has_group = form.iAm is defined -%}
+{%- set team_size = offer.teamSize -%}
+
+{{ form_errors(form) }}
+{{ form_widget(form.listingId) }}
+
+<div class="pf-form" data-controller="partner-listing-form">
+    {% if has_group %}
+        <fieldset class="pf-form-field">
+            <legend class="pf-form-label">{{ 'partner_finder.form.i_am'|trans }}</legend>
+            <div class="pf-seg pf-seg-form">
+                {% for child in form.iAm %}
+                    <label class="pf-seg-option">
+                        <input type="radio" class="pf-choice-input" id="{{ child.vars.id }}" name="{{ child.vars.full_name }}" value="{{ child.vars.value }}"{{ child.vars.checked ? ' checked' }}
+                            data-partner-listing-form-target="iAm" data-action="partner-listing-form#update">
+                        <span>{{ child.vars.label|trans }}</span>
+                    </label>
+                    {% do child.setRendered %}
+                {% endfor %}
+            </div>
+            {% do form.iAm.setRendered %}
+
+            <div class="pf-form-group-fields" data-partner-listing-form-target="groupFields">
+                <label class="pf-form-inline">
+                    <span>{{ 'partner_finder.form.group_size'|trans }}</span>
+                    {{ form_widget(form.groupSize, {attr: {class: 'form-control form-control-sm pf-number'}}) }}
+                </label>
+                <label class="pf-form-inline">
+                    <span>{{ 'partner_finder.form.needed'|trans }}</span>
+                    {{ form_widget(form.needed, {attr: {class: 'form-control form-control-sm pf-number'}}) }}
+                </label>
+                {% if team_size %}
+                    <p class="pf-form-help">{{ 'partner_finder.form.team_size_help'|trans({'%size%': team_size}) }}</p>
+                {% endif %}
+                {{ form_errors(form.groupSize) }}
+                {{ form_errors(form.needed) }}
+            </div>
+        </fieldset>
+    {% endif %}
+
+    <fieldset class="pf-form-field">
+        <legend class="pf-form-label">{{ 'partner_finder.form.looking_for'|trans }}</legend>
+        <div class="pf-choices">
+            {% for child in form.lookingFor %}
+                <label class="pf-choice">
+                    <input type="checkbox" class="pf-choice-input" id="{{ child.vars.id }}" name="{{ child.vars.full_name }}" value="{{ child.vars.value }}"{{ child.vars.checked ? ' checked' }}
+                        data-partner-listing-form-target="kind" data-kind="{{ child.vars.value }}">
+                    <span>
+                        {{- child.vars.label|trans -}}
+                        {%- if child.vars.value == 'team' and team_size %} <small>· {{ 'partner_finder.form.teams_of'|trans({'%size%': team_size}) }}</small>{% endif -%}
+                    </span>
+                </label>
+                {% do child.setRendered %}
+            {% endfor %}
+        </div>
+        {% do form.lookingFor.setRendered %}
+        {% if has_group %}
+            <p class="pf-form-help" data-partner-listing-form-target="pairHint" hidden>{{ 'partner_finder.form.group_pair_hint'|trans }}</p>
+        {% endif %}
+        {{ form_errors(form.lookingFor) }}
+    </fieldset>
+
+    <fieldset class="pf-form-field">
+        <legend class="pf-form-label">{{ 'partner_finder.form.goal'|trans }} <span class="pf-form-optional">{{ 'partner_finder.form.optional'|trans }}</span></legend>
+        <div class="pf-choices">
+            {% for child in form.goal %}
+                <label class="pf-choice">
+                    <input type="radio" class="pf-choice-input" id="{{ child.vars.id }}" name="{{ child.vars.full_name }}" value="{{ child.vars.value }}"{{ child.vars.checked ? ' checked' }}>
+                    <span>{{ child.vars.label|trans }}</span>
+                </label>
+                {% do child.setRendered %}
+            {% endfor %}
+        </div>
+        {% do form.goal.setRendered %}
+        {{ form_errors(form.goal) }}
+    </fieldset>
+
+    <fieldset class="pf-form-field" data-controller="partner-strengths"
+        data-partner-strengths-max-presets-value="{{ constant('SpeedPuzzling\\Web\\Results\\PartnerStrengthsNormalized::MAX_PRESETS') }}"
+        data-partner-strengths-max-custom-value="{{ constant('SpeedPuzzling\\Web\\Results\\PartnerStrengthsNormalized::MAX_CUSTOM') }}"
+        data-partner-strengths-max-length-value="{{ constant('SpeedPuzzling\\Web\\Results\\PartnerStrengthsNormalized::MAX_CUSTOM_LENGTH') }}"
+        data-partner-strengths-suggestions-value="{{ custom_suggestions|json_encode }}">
+        <legend class="pf-form-label">
+            {{ 'partner_finder.form.strengths'|trans }}
+            <span class="pf-form-optional">{{ 'partner_finder.form.strengths_limit'|trans({'%max%': constant('SpeedPuzzling\\Web\\Results\\PartnerStrengthsNormalized::MAX_PRESETS')}) }}</span>
+        </legend>
+        <div class="pf-choices">
+            {% for child in form.strengths %}
+                <label class="pf-choice">
+                    <input type="checkbox" class="pf-choice-input" id="{{ child.vars.id }}" name="{{ child.vars.full_name }}" value="{{ child.vars.value }}"{{ child.vars.checked ? ' checked' }}
+                        data-partner-strengths-target="preset" data-label="{{ child.vars.label|trans }}" data-action="partner-strengths#limitPresets">
+                    <span>{{ child.vars.label|trans }}</span>
+                </label>
+                {% do child.setRendered %}
+            {% endfor %}
+        </div>
+        {% do form.strengths.setRendered %}
+        {{ form_errors(form.strengths) }}
+
+        <div class="pf-custom">
+            <label class="pf-form-sublabel" for="{{ form.customStrengths.vars.id }}">{{ 'partner_finder.form.custom_strengths'|trans }}</label>
+            {# Without JavaScript: comma-separated. With it: chips + an input that adds one at a time #}
+            {{ form_widget(form.customStrengths, {attr: {
+                class: 'form-control form-control-sm',
+                placeholder: 'partner_finder.form.custom_strengths_placeholder'|trans,
+                'data-partner-strengths-target': 'field',
+            }}) }}
+            <div class="pf-custom-chips" data-partner-strengths-target="chips" hidden></div>
+            <div class="pf-custom-entry" data-partner-strengths-target="entryRow" hidden>
+                <input type="text" class="form-control form-control-sm" list="pf-custom-suggestions" maxlength="{{ constant('SpeedPuzzling\\Web\\Results\\PartnerStrengthsNormalized::MAX_CUSTOM_LENGTH') }}"
+                    aria-label="{{ 'partner_finder.form.custom_strengths'|trans }}"
+                    placeholder="{{ 'partner_finder.form.custom_add_placeholder'|trans }}"
+                    data-partner-strengths-target="entry" data-action="keydown->partner-strengths#keydown">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-action="partner-strengths#add">{{ 'partner_finder.form.custom_add'|trans }}</button>
+                <datalist id="pf-custom-suggestions" data-partner-strengths-target="suggestions"></datalist>
+            </div>
+            <p class="pf-form-help">{{ 'partner_finder.form.custom_strengths_help'|trans({'%max%': constant('SpeedPuzzling\\Web\\Results\\PartnerStrengthsNormalized::MAX_CUSTOM'), '%length%': constant('SpeedPuzzling\\Web\\Results\\PartnerStrengthsNormalized::MAX_CUSTOM_LENGTH')}) }}</p>
+            {{ form_errors(form.customStrengths) }}
+        </div>
+    </fieldset>
+
+    <div class="pf-form-field">
+        {{ form_label(form.languages, null, {label_attr: {class: 'pf-form-label'}}) }}
+        {{ form_widget(form.languages) }}
+        <p class="pf-form-help">{{ 'partner_finder.form.languages_help'|trans({'%max%': constant('SpeedPuzzling\\Web\\Entity\\PartnerListing::MAX_LANGUAGES')}) }}</p>
+        {{ form_errors(form.languages) }}
+    </div>
+
+    <div class="pf-form-field">
+        <label class="pf-form-label d-flex justify-content-between" for="{{ form.note.vars.id }}">
+            <span>{{ 'partner_finder.form.note'|trans }} <span class="pf-form-optional">{{ 'partner_finder.form.optional'|trans }}</span></span>
+            <span class="pf-counter" data-partner-listing-form-target="counter" aria-hidden="true"></span>
+        </label>
+        {{ form_widget(form.note, {attr: {
+            class: 'form-control',
+            placeholder: 'partner_finder.form.note_placeholder'|trans,
+            'data-partner-listing-form-target': 'note',
+            'data-action': 'input->partner-listing-form#count',
+        }}) }}
+        {{ form_errors(form.note) }}
+    </div>
+
+    <p class="pf-consent">
+        <i class="bi bi-shield-check" aria-hidden="true"></i>
+        <span>
+            {%- if editing -%}
+                {{ 'partner_finder.form.consent_visible'|trans }}
+            {%- elseif registration_managed -%}
+                {{ 'partner_finder.form.consent_managed'|trans }} {{ 'partner_finder.form.consent_visible'|trans }}
+            {%- else -%}
+                {{ 'partner_finder.form.consent_going'|trans }} {{ 'partner_finder.form.consent_visible'|trans }}
+            {%- endif -%}
+        </span>
+    </p>
+</div>

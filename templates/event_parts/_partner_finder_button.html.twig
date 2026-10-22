@@ -1,0 +1,17 @@
+{#
+    "Find a partner (N)" (docs/features/partner-finder.md "Part B", D8): in Taking part, next to "I'm going" - always
+    there while the event has a partner finder, also after the card was closed. Guests get the plain link (no count, no
+    query), signed-in players the number of open listings once there is one.
+
+    - partner_finder: null|SpeedPuzzling\Web\Results\PartnerFinderCard (PartnerFinderCardResolver)
+#}
+{%- if partner_finder is not null and partner_finder.finderUrl is not null -%}
+    {%- set partner_count = partner_finder.count ?? 0 -%}
+    <a href="{{ partner_finder.finderUrl }}" class="btn btn-sm btn-outline-primary text-wrap pf-find-button" data-partner-finder-button>
+        <i class="bi bi-people me-1" aria-hidden="true"></i>{{ 'partner_finder.card.button'|trans }}
+        {%- if partner_count > 0 -%}
+            <span class="pf-find-count" aria-hidden="true">{{ partner_count }}</span>
+            <span class="visually-hidden">({{ 'partner_finder.card.button_count'|trans({'%count%': partner_count}) }})</span>
+        {%- endif -%}
+    </a>
+{%- endif -%}

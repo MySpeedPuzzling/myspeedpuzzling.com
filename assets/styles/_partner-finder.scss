@@ -1,0 +1,882 @@
+// Partner finder page and its listings (docs/features/partner-finder.md, part A): templates/partner_finder/.
+// Mobile first. A list of compact rows rather than tiles - who, from where, how fast, what they want - readable at 100.
+// Rows: avatar | main | side (action) from 640 px; below, the side moves under the main column as one line.
+
+$pf-border: #e3e6ec;
+$pf-soft: #f3f5f9;
+$pf-muted: #7d879c;
+$pf-ink: #373f50;
+$pf-coral-soft: mix($primary, $white, 10%);
+$pf-coral-ink: #d63c42;
+$pf-team-soft: #eef1fd;
+$pf-team-ink: #4459b8;
+$pf-group-soft: #e9f6ef;
+$pf-group-ink: #2f8f5b;
+$pf-goal-soft: #fff6e3;
+$pf-goal-ink: #8a5a00;
+
+.pf-page {
+    max-width: 52rem;
+}
+
+// Header: title + lead, "List me" on the right from 576 px
+.pf-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: .75rem 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.pf-head-text {
+    flex: 1 1 18rem;
+    min-width: 0;
+}
+
+.pf-title {
+    margin: 0 0 .25rem;
+    color: $pf-ink;
+    font-size: 1.5rem;
+    font-weight: 500;
+}
+
+.pf-lead {
+    margin: 0;
+    color: $gray-700;
+    font-size: $font-size-sm;
+}
+
+.pf-list-me {
+    flex-shrink: 0;
+}
+
+.pf-section-title {
+    margin: 1.25rem 0 .5rem;
+    color: $pf-muted;
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+// Kind chips (rows, teaser)
+.pf-kind {
+    display: inline-flex;
+    align-items: center;
+    padding: .125rem .5rem;
+    border-radius: 999px;
+    background: $pf-coral-soft;
+    color: $pf-coral-ink;
+    font-size: .75rem;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.pf-kind-team {
+    background: $pf-team-soft;
+    color: $pf-team-ink;
+}
+
+.pf-kind-group {
+    background: $pf-group-soft;
+    color: $pf-group-ink;
+}
+
+.pf-kind-both {
+    background: linear-gradient(90deg, $pf-coral-soft 0%, $pf-team-soft 100%);
+    color: $pf-ink;
+}
+
+// Filter bar
+.pf-filters {
+    margin-bottom: .875rem;
+}
+
+.pf-filters-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .625rem;
+    padding: .625rem;
+    border-radius: .625rem;
+    background: #f6f7fa;
+}
+
+.pf-seg {
+    display: inline-flex;
+    flex-wrap: wrap;
+    padding: 2px;
+    border: 1px solid $pf-border;
+    border-radius: .5rem;
+    background: $white;
+}
+
+.pf-seg-option {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    min-height: 36px;
+    margin: 0;
+    padding: .375rem .625rem;
+    border: 0;
+    border-radius: .375rem;
+    background: transparent;
+    color: $gray-700;
+    font-size: .8125rem;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+
+    &[aria-pressed="true"],
+    &:has(input:checked) {
+        background: $primary;
+        color: $white;
+    }
+
+    &:focus-visible,
+    &:has(input:focus-visible) {
+        outline: 2px solid $primary;
+        outline-offset: 2px;
+    }
+}
+
+.pf-seg-count {
+    margin-left: .125rem;
+    font-size: .75rem;
+    font-weight: 400;
+    opacity: .75;
+    font-variant-numeric: tabular-nums;
+}
+
+.pf-country {
+    flex: 1 1 100%;
+}
+
+.pf-sort {
+    display: flex;
+    flex: 1 1 100%;
+    align-items: center;
+    gap: .375rem;
+    min-width: 0;
+
+    .form-select {
+        flex: 1 1 auto;
+        width: auto;
+        min-width: 0;
+    }
+}
+
+.pf-sort-label {
+    margin: 0;
+    color: $gray-700;
+    font-size: .8125rem;
+}
+
+.pf-members-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    padding: .125rem .5rem;
+    border: 0;
+    border-radius: 999px;
+    background: $pf-goal-soft;
+    color: $pf-goal-ink;
+    font-size: .6875rem;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.pf-chip-filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .375rem;
+    margin-top: .625rem;
+}
+
+.pf-chip-filter-label {
+    margin-right: .25rem;
+    color: $pf-muted;
+    font-size: .75rem;
+}
+
+// Chips: "Good at", languages, goal; buttons in the filter row and the form
+.pf-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    padding: .1875rem .5625rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: $pf-soft;
+    color: $gray-700;
+    font-size: .75rem;
+    line-height: 1.35;
+}
+
+button.pf-chip {
+    min-height: 32px;
+    cursor: pointer;
+
+    &[aria-pressed="true"] {
+        border-color: $primary;
+        background: $pf-coral-soft;
+        color: $pf-coral-ink;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $primary;
+        outline-offset: 2px;
+    }
+}
+
+.pf-chip-custom {
+    border: 1px dashed #c3c9d6;
+    background: $white;
+}
+
+.pf-chip-lang {
+    border-color: $pf-border;
+    background: $white;
+    font-family: $font-family-monospace;
+    font-size: .6875rem;
+    letter-spacing: .02em;
+}
+
+.pf-chip-goal {
+    background: $pf-goal-soft;
+    color: $pf-goal-ink;
+}
+
+.pf-chip-remove {
+    margin: 0 -.25rem 0 .125rem;
+    padding: 0 .25rem;
+    border: 0;
+    background: transparent;
+    color: $pf-muted;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+
+    &:hover {
+        color: $pf-coral-ink;
+    }
+}
+
+// A listing row
+.pf-list {
+    display: grid;
+    gap: .625rem;
+}
+
+.pf-listing {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: .25rem .75rem;
+    padding: .75rem;
+    border: 1px solid $pf-border;
+    border-radius: .75rem;
+    background: $white;
+    // A slight lift (Jan, 2026-10-22): a long list reads as separate cards
+    box-shadow: 0 1px 2px rgba($gray-900, .04), 0 4px 12px -4px rgba($gray-900, .08);
+
+    &[hidden] {
+        display: none;
+    }
+
+    &.is-own {
+        border-color: mix($primary, $white, 35%);
+        background: mix($primary, $white, 4%);
+    }
+}
+
+.pf-listing-avatar {
+    align-self: start;
+
+    // The avatar partial is an inline span sized by its parent row elsewhere - here it stands on its own
+    .lb-avatar {
+        display: block;
+        width: 40px;
+        height: 40px;
+        margin: 0;
+    }
+}
+
+.pf-listing-main {
+    min-width: 0;
+}
+
+.pf-listing-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .125rem .5rem;
+}
+
+.pf-listing-name {
+    color: $pf-ink;
+    font-size: .9375rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+a.pf-listing-name {
+    text-decoration: none;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+.pf-listing-code {
+    color: #9aa3b5;
+    font-family: $font-family-monospace;
+    font-size: .6875rem;
+}
+
+.pf-listing-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem .625rem;
+    margin: .25rem 0 0;
+    color: $gray-700;
+    font-size: .8125rem;
+}
+
+.pf-listing-group-label {
+    color: $pf-muted;
+}
+
+.pf-listing-member {
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+
+    a {
+        color: $gray-700;
+    }
+}
+
+.pf-listing-speed {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem .875rem;
+    margin-top: .25rem;
+    color: #5b6478;
+    font-size: .8125rem;
+    font-variant-numeric: tabular-nums;
+
+    b {
+        color: $pf-ink;
+        font-weight: 600;
+    }
+}
+
+.pf-speed {
+    padding: .0625rem .5rem;
+    border-radius: 999px;
+    background: $pf-group-soft;
+    color: $pf-group-ink;
+    font-size: .75rem;
+    font-weight: 600;
+}
+
+.pf-speed-faster,
+.pf-speed-slower {
+    background: $pf-soft;
+    color: $pf-muted;
+    font-weight: 500;
+}
+
+.pf-listing-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .3125rem;
+    margin: .4375rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.pf-listing-note {
+    display: -webkit-box;
+    margin: .4375rem 0 0;
+    overflow: hidden;
+    color: $gray-700;
+    font-size: .875rem;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+
+    &::before {
+        content: "\201C";
+        color: #c3c9d6;
+    }
+
+    &::after {
+        content: "\201D";
+        color: #c3c9d6;
+    }
+}
+
+// The side: status + action - one line under the content on phones
+.pf-listing-side {
+    grid-column: 1 / -1;
+    min-width: 0;
+}
+
+.pf-action {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    margin-top: .375rem;
+}
+
+.pf-status {
+    margin: 0;
+    color: $pf-muted;
+    font-size: .75rem;
+    white-space: nowrap;
+
+    &.is-registered {
+        color: $pf-group-ink;
+    }
+}
+
+.pf-status-own {
+    color: $gray-700;
+}
+
+.pf-sent {
+    margin: 0;
+    color: $pf-group-ink;
+    font-size: .8125rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.pf-own-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .375rem;
+
+    form {
+        margin: 0;
+    }
+}
+
+.pf-remove {
+    color: $pf-muted;
+}
+
+// "I'd like to puzzle with you": a details/summary - the panel opens under the button
+.pf-contact {
+    position: relative;
+
+    > summary {
+        list-style: none;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+    }
+
+    &[open] > summary {
+        box-shadow: 0 0 0 .2rem mix($primary, $white, 30%);
+    }
+}
+
+.pf-contact-panel {
+    display: grid;
+    gap: .375rem;
+    width: min(20rem, calc(100vw - 3rem));
+    margin-top: .5rem;
+    padding: .75rem;
+    border: 1px solid $pf-border;
+    border-radius: .625rem;
+    background: $white;
+    box-shadow: 0 .375rem 1.125rem rgba(40, 50, 70, .1);
+}
+
+.pf-contact-kinds {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem .75rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+
+    legend {
+        width: 100%;
+    }
+}
+
+.pf-contact-kind {
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+    min-height: 32px;
+    font-size: .8125rem;
+}
+
+.pf-contact-label {
+    margin: 0;
+    color: $pf-ink;
+    font-size: .75rem;
+    font-weight: 600;
+}
+
+.pf-contact-help {
+    margin: 0;
+    color: $pf-muted;
+    font-size: .6875rem;
+}
+
+// Empty / no match / capped / privacy
+.pf-empty {
+    padding: 2rem 1rem;
+    border: 1px dashed $pf-border;
+    border-radius: .75rem;
+    text-align: center;
+}
+
+.pf-empty-icon {
+    color: $primary;
+    font-size: 1.75rem;
+}
+
+.pf-empty-title {
+    margin: .5rem 0 .25rem;
+    color: $pf-ink;
+    font-weight: 600;
+}
+
+.pf-empty-text {
+    margin: 0 0 .75rem;
+    color: $gray-700;
+    font-size: $font-size-sm;
+}
+
+.pf-no-match {
+    padding: 1.25rem;
+    color: $pf-muted;
+    font-size: $font-size-sm;
+    text-align: center;
+}
+
+.pf-capped,
+// Guest teaser
+.pf-teaser {
+    padding: 1.25rem 1rem;
+    border: 1px solid $pf-border;
+    border-radius: .75rem;
+    background: linear-gradient(135deg, #fff3f2 0%, #fffafa 45%, #fdfcff 100%);
+    text-align: center;
+}
+
+.pf-teaser-faces {
+    display: inline-flex;
+    justify-content: center;
+    margin-bottom: .75rem;
+
+    .pf-face + .pf-face {
+        margin-left: -8px;
+    }
+
+    .lb-avatar {
+        margin: 0;
+        border-radius: 50%;
+        box-shadow: 0 0 0 2px $white;
+    }
+}
+
+.pf-teaser-title {
+    margin: 0 0 .5rem;
+    color: $pf-ink;
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+.pf-teaser-kinds,
+.pf-teaser-countries {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: .375rem .875rem;
+    margin: 0 0 .625rem;
+    padding: 0;
+    color: $gray-700;
+    font-size: .8125rem;
+    list-style: none;
+    font-variant-numeric: tabular-nums;
+}
+
+.pf-teaser-text {
+    margin: .25rem auto .875rem;
+    max-width: 30rem;
+    color: $gray-700;
+    font-size: $font-size-sm;
+}
+
+// The listing form
+.pf-form {
+    display: grid;
+    gap: 1.125rem;
+}
+
+.pf-form-wrap {
+    // Lets Bootstrap's scrollable modal reach header / body / footer through the form
+    display: contents;
+}
+
+.pf-form-event {
+    display: block;
+    color: $pf-muted;
+    font-size: .8125rem;
+    font-weight: 400;
+}
+
+.pf-form-field {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.pf-form-label {
+    display: block;
+    width: 100%;
+    margin-bottom: .375rem;
+    color: $pf-ink;
+    font-size: .875rem;
+    font-weight: 500;
+}
+
+.pf-form-sublabel {
+    display: block;
+    margin: .625rem 0 .25rem;
+    color: $gray-700;
+    font-size: .8125rem;
+}
+
+.pf-form-optional {
+    color: #9aa3b5;
+    font-size: .75rem;
+    font-weight: 400;
+}
+
+.pf-form-help {
+    margin: .25rem 0 0;
+    color: $pf-muted;
+    font-size: .75rem;
+}
+
+.pf-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem;
+}
+
+// A checkbox / radio shown as a chip: the input stays focusable and screen-reader visible
+.pf-choice {
+    position: relative;
+    display: inline-flex;
+    margin: 0;
+    cursor: pointer;
+
+    > span {
+        display: inline-flex;
+        align-items: center;
+        gap: .25rem;
+        min-height: 36px;
+        padding: .375rem .75rem;
+        border: 1px solid $pf-border;
+        border-radius: 999px;
+        background: $white;
+        color: $gray-700;
+        font-size: .8125rem;
+    }
+
+    small {
+        opacity: .75;
+    }
+
+    .pf-choice-input:checked + span {
+        border-color: $primary;
+        background: $pf-coral-soft;
+        color: $pf-coral-ink;
+    }
+
+    .pf-choice-input:focus-visible + span {
+        outline: 2px solid $primary;
+        outline-offset: 2px;
+    }
+
+    .pf-choice-input:disabled + span {
+        opacity: .45;
+        cursor: not-allowed;
+    }
+}
+
+.pf-choice-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+.pf-seg-form .pf-seg-option {
+    position: relative;
+}
+
+.pf-form-group-fields {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem 1rem;
+    margin-top: .625rem;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.pf-form-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    margin: 0;
+    color: $gray-700;
+    font-size: .8125rem;
+}
+
+.pf-number {
+    width: 4.5rem;
+}
+
+.pf-custom-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .375rem;
+    margin-bottom: .375rem;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.pf-custom-entry {
+    display: flex;
+    gap: .375rem;
+
+    &[hidden] {
+        display: none;
+    }
+
+    .form-control {
+        flex: 1 1 10rem;
+        min-width: 0;
+    }
+}
+
+.pf-counter {
+    color: #9aa3b5;
+    font-size: .75rem;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+}
+
+// What others will see once listed - the only place that says e-mail addresses stay private, so it stands out a bit
+.pf-consent {
+    display: flex;
+    gap: .625rem;
+    align-items: flex-start;
+    margin: 0;
+    padding: .75rem .875rem;
+    border: 1px solid mix($primary, $white, 28%);
+    border-radius: .5rem;
+    background: mix($primary, $white, 7%);
+    color: $gray-800;
+    font-size: .875rem;
+
+    .bi {
+        flex: none;
+        color: $primary;
+        font-size: 1.125rem;
+        line-height: 1.2;
+    }
+}
+
+.pf-form-actions {
+    display: flex;
+    gap: .5rem;
+    margin-top: 1.25rem;
+}
+
+@media (min-width: 576px) {
+    .pf-country {
+        flex: 1 1 11rem;
+        max-width: 16rem;
+    }
+
+    .pf-sort {
+        flex: 0 1 auto;
+        margin-left: auto;
+    }
+}
+
+@media (min-width: 640px) {
+    .pf-listing {
+        grid-template-columns: 44px minmax(0, 1fr) auto;
+        gap: .25rem .875rem;
+        padding: .875rem .875rem .875rem .75rem;
+    }
+
+    .pf-listing-avatar .lb-avatar {
+        width: 44px;
+        height: 44px;
+    }
+
+    .pf-listing-side {
+        grid-column: auto;
+    }
+
+    .pf-action {
+        flex-direction: column;
+        align-items: flex-end;
+        justify-content: flex-start;
+        margin-top: 0;
+    }
+
+    .pf-own-actions {
+        justify-content: flex-end;
+    }
+
+    // The panel floats under the button, right-aligned, over the rows below
+    .pf-contact-panel {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        z-index: 5;
+    }
+
+    .pf-teaser {
+        padding: 1.75rem 1.5rem;
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .pf-seg-option,
+    button.pf-chip,
+    .pf-choice > span {
+        transition: background-color .15s, color .15s, border-color .15s;
+    }
+}

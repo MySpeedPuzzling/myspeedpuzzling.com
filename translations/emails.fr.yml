@@ -486,3 +486,18 @@ feature_request_emails:
         author: "Vous recevez cet e-mail parce que vous avez proposé cette fonctionnalité. <a href=\"%settingsUrl%\">Paramètres des e-mails</a> · <a href=\"%unsubscribeUrl%\">Ne plus recevoir d’e-mails sur les suggestions</a>"
         upvoter: "Vous recevez cet e-mail parce que vous avez soutenu cette fonctionnalité. <a href=\"%settingsUrl%\">Paramètres des e-mails</a> (vous pouvez y suivre toutes les suggestions) · <a href=\"%unsubscribeUrl%\">Ne plus recevoir d’e-mails sur les suggestions</a>"
         follower: "Vous recevez cet e-mail parce que vous suivez toutes les suggestions de fonctionnalités. <a href=\"%settingsUrl%\">Paramètres des e-mails</a> · <a href=\"%unsubscribeUrl%\">Ne plus recevoir d’e-mails sur les suggestions</a>"
+partner_request:
+    subject: "%sender% aimerait puzzler avec vous à %event%"
+    preheader: "Quelqu’un a vu votre annonce de partenaire – répondez-lui sur MySpeedPuzzling."
+    title: "%sender% aimerait puzzler avec vous"
+    greeting: "Bonjour %name%,"
+    intro_pair: "%sender% a vu votre annonce dans la recherche de partenaire et aimerait puzzler avec vous en duo à %event%."
+    intro_team: "%sender% a vu votre annonce dans la recherche de partenaire et aimerait puzzler avec vous en équipe à %event%."
+    best_500: "Meilleur temps en 500 pièces : %time%"
+    best_1000: "Meilleur temps en 1000 pièces : %time%"
+    solved: "[0,1]%count% puzzle résolu|]1,Inf[%count% puzzles résolus"
+    speaks: "Parle %languages%"
+    reply: "Répondre à %sender%"
+    no_addresses: "Nous ne partageons jamais les adresses e-mail : vous répondez sur MySpeedPuzzling, et une réponse ouvre une conversation."
+    found_partner: 'Vous avez déjà trouvé votre partenaire ? <a href="%url%">Fermez votre annonce</a>'
+    opt_out: 'Vous recevez cet e-mail parce que vous avez publié une annonce dans la recherche de partenaire. <a href="%settingsUrl%">Paramètres des e-mails</a> · <a href="%unsubscribeUrl%">Ne plus recevoir ces e-mails</a>'

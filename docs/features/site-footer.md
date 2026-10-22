@@ -23,7 +23,7 @@ Redesigned on 2026-10-02. Before, it was one wrap of 26 links on the same pale g
 
 ### Popular searches
 
-- **What it links:** real catalogue pages only, never `?brand=` / `?pieces=` / `?tag=` filter URLs (see the SEO docs). Leaderboard, Players and Latest puzzle times sit in the Discover column, so each page is linked from the footer once (`SiteFooterTest`).
+- **What it links:** real catalogue pages only, never `?brand=` / `?pieces=` / `?tag=` filter URLs (see the SEO docs). Leaderboard, Players and Latest puzzle times sit in the Discover column, so each page is linked from the footer once (`SiteFooterTest`). The partner finder's gate page (`partner_finder`, docs/features/partner-finder.md "Part D as built") sits in Discover right after Events, with the New badge.
 - **How the groups open:** on phones the groups are folded. From `md` up they show open without JS via `::details-content { content-visibility: visible }`. A browser without that pseudo-element keeps them folded and clickable.
 
 ### Newsletter states

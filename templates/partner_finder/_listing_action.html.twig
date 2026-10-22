@@ -1,0 +1,74 @@
+{#
+    The row's action, in its own Turbo Frame: "I'd like to puzzle with you" posts to partner_request_send, whose redirect
+    back to this page re-renders only this frame - now "Sent" (GetPartnerListings reads it). The own row: how many got in
+    touch, Edit, Found my partner, Remove. Never a button on the own listing; a lister who blocks the viewer is not on the
+    page at all. Inputs: row (PartnerListingRow), finder_url, registration_managed
+#}
+<turbo-frame id="partner-listing-{{ row.listingId }}" class="pf-action">
+    {% if row.own %}
+        <p class="pf-status pf-status-own">
+            {{- 'partner_finder.listing.got_in_touch'|trans({'%count%': row.requestsCount}) -}}
+        </p>
+        <div class="pf-own-actions">
+            <a class="btn btn-outline-secondary btn-sm" href="{{ path('partner_listing_form', {competitionId: competition_id}) }}" data-turbo-frame="modal-frame" rel="nofollow">
+                <i class="bi bi-pencil me-1" aria-hidden="true"></i>{{ 'partner_finder.listing.edit'|trans }}
+            </a>
+            <form method="post" action="{{ path('partner_listing_close', {listingId: row.listingId}) }}" data-turbo-frame="_top">
+                <input type="hidden" name="_token" value="{{ csrf_token('partner_listing') }}">
+                <input type="hidden" name="reason" value="found">
+                <input type="hidden" name="return" value="{{ finder_url }}">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    {{- (row.needed is not null and row.needed > 1 ? 'partner_finder.listing.found_one' : 'partner_finder.listing.found')|trans -}}
+                </button>
+            </form>
+            <form method="post" action="{{ path('partner_listing_close', {listingId: row.listingId}) }}" data-turbo-frame="_top">
+                <input type="hidden" name="_token" value="{{ csrf_token('partner_listing') }}">
+                <input type="hidden" name="reason" value="withdrawn">
+                <input type="hidden" name="return" value="{{ finder_url }}">
+                <button type="submit" class="btn btn-link btn-sm pf-remove">{{ 'partner_finder.listing.remove'|trans }}</button>
+            </form>
+        </div>
+    {% else %}
+        <p class="pf-status{{ registration_managed and row.registered ? ' is-registered' }}">
+            {%- if not registration_managed -%}
+                <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>{{ 'partner_finder.listing.status_going'|trans }}
+            {%- elseif row.registered -%}
+                <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>{{ 'partner_finder.listing.status_registered'|trans }}
+            {%- else -%}
+                {{ 'partner_finder.listing.status_not_registered'|trans }}
+            {%- endif -%}
+        </p>
+
+        {% if row.sent %}
+            <p class="pf-sent" role="status"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ 'partner_finder.listing.sent'|trans }}</p>
+        {% else %}
+            <details class="pf-contact">
+                <summary class="btn btn-primary btn-sm pf-contact-toggle">{{ 'partner_finder.listing.contact'|trans }}</summary>
+                <form class="pf-contact-panel" method="post" action="{{ path('partner_request_send', {listingId: row.listingId}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('partner_request') }}">
+                    <input type="hidden" name="return" value="{{ finder_url }}">
+
+                    {% if row.lookingFor|length > 1 %}
+                        <fieldset class="pf-contact-kinds">
+                            <legend class="pf-contact-label">{{ 'partner_finder.listing.contact_as'|trans }}</legend>
+                            {% for kind in row.lookingFor %}
+                                <label class="pf-contact-kind">
+                                    <input type="radio" name="kind" value="{{ kind.value }}"{{ loop.first ? ' checked' }}>
+                                    <span>{{ ('partner_finder.listing.contact_as_' ~ kind.value)|trans }}</span>
+                                </label>
+                            {% endfor %}
+                        </fieldset>
+                    {% else %}
+                        <input type="hidden" name="kind" value="{{ (row.lookingFor|first).value }}">
+                    {% endif %}
+
+                    <label class="pf-contact-label" for="pf-note-{{ row.listingId }}">{{ 'partner_finder.listing.contact_note'|trans }}</label>
+                    <textarea class="form-control form-control-sm" id="pf-note-{{ row.listingId }}" name="note" rows="2" maxlength="200" placeholder="{{ 'partner_finder.listing.contact_note_placeholder'|trans }}"></textarea>
+
+                    <p class="pf-contact-help">{{ 'partner_finder.listing.contact_help'|trans }}</p>
+                    <button type="submit" class="btn btn-primary btn-sm w-100">{{ 'partner_finder.listing.contact_send'|trans }}</button>
+                </form>
+            </details>
+        {% endif %}
+    {% endif %}
+</turbo-frame>

@@ -32,13 +32,14 @@ final class SiteFooterTest extends WebTestCase
         self::assertCount(1, $footer->filter('.footer-newsletter form[action="/en/newsletter/subscribe"]'));
         self::assertCount(4, $footer->filter('.footer-popular details.footer-popular-group'));
         self::assertSame(['Discover', 'Track', 'Learn', 'MySpeedPuzzling'], $footer->filter('.footer-columns h2')->each(static fn (Crawler $heading): string => $heading->text()));
-        self::assertCount(8, $footer->filter('.footer-columns .badge'), 'The "New" badges stay');
+        self::assertCount(9, $footer->filter('.footer-columns .badge'), 'The "New" badges stay');
         self::assertCount(1, $footer->filter('.footer-columns a[href="/en/achievements"] .badge'), 'Achievements are new');
         self::assertCount(1, $footer->filter('.footer-columns a[href="/en/how-progress-works"] .badge'), 'How progress works is new');
         self::assertCount(0, $footer->filter('.footer-columns a[href="/en/getting-started"] .badge'), 'Getting started is no longer new');
         self::assertCount(1, $footer->filter('.footer-columns a[href="/en/compare"] .badge'), 'Compare is new');
         self::assertCount(1, $footer->filter('.footer-columns a[href="/en/puzzlers"] .badge'), 'The Players page is new');
         self::assertCount(1, $footer->filter('.footer-columns a[href="/en/events"] .badge'), 'The events page is new');
+        self::assertCount(1, $footer->filter('.footer-columns a[href="/en/partner-finder"] .badge'), 'The partner finder is new');
         self::assertCount(0, $footer->filter('.footer-newsletter-off'));
     }
 

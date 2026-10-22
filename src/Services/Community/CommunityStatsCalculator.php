@@ -105,7 +105,7 @@ SQL;
         $columns = [
             'solved_total', 'pieces_total', 'solves7d', 'pieces7d', 'solves30d', 'solves_prev30d',
             'solves_this_month', 'pieces_this_month', 'solves_last_month', 'pieces_last_month',
-            'best500_seconds', 'best1000_seconds', 'first_solved_at', 'last_solved_at', 'monthly_solves', 'favorites_count',
+            'best500_seconds', 'best1000_seconds', 'median500_seconds', 'median1000_seconds', 'first_solved_at', 'last_solved_at', 'monthly_solves', 'favorites_count',
         ];
         $updates = implode(', ', array_map(static fn (string $c): string => "{$c} = EXCLUDED.{$c}", $columns));
         $current = implode(', ', array_map(static fn (string $c): string => "community_player_stats.{$c}", $columns));
@@ -115,7 +115,8 @@ SQL;
 INSERT INTO community_player_stats (
     player_id, solved_total, pieces_total, solves7d, pieces7d, solves30d, solves_prev30d,
     solves_this_month, pieces_this_month, solves_last_month, pieces_last_month,
-    best500_seconds, best1000_seconds, first_solved_at, last_solved_at, monthly_solves, favorites_count, computed_at
+    best500_seconds, best1000_seconds, median500_seconds, median1000_seconds, first_solved_at, last_solved_at,
+    monthly_solves, favorites_count, computed_at
 )
 WITH results AS ({$results}),
 per_player AS (
@@ -133,6 +134,8 @@ per_player AS (
         COALESCE(SUM(z.pieces_count) FILTER (WHERE r.solved_at >= :lastMonth AND r.solved_at < :thisMonth), 0) AS pieces_last_month,
         MIN(r.seconds_to_solve) FILTER (WHERE r.puzzling_type = 'solo' AND z.pieces_count = 500) AS best500_seconds,
         MIN(r.seconds_to_solve) FILTER (WHERE r.puzzling_type = 'solo' AND z.pieces_count = 1000) AS best1000_seconds,
+        ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY r.seconds_to_solve) FILTER (WHERE r.puzzling_type = 'solo' AND z.pieces_count = 500))::int AS median500_seconds,
+        ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY r.seconds_to_solve) FILTER (WHERE r.puzzling_type = 'solo' AND z.pieces_count = 1000))::int AS median1000_seconds,
         MIN(r.solved_at) AS first_solved_at,
         MAX(r.solved_at) AS last_solved_at,
         {$monthlySql} AS monthly_solves
@@ -161,6 +164,8 @@ SELECT
     COALESCE(pp.pieces_last_month, 0),
     pp.best500_seconds,
     pp.best1000_seconds,
+    pp.median500_seconds,
+    pp.median1000_seconds,
     pp.first_solved_at,
     pp.last_solved_at,
     COALESCE(pp.monthly_solves, {$emptyMonths}),

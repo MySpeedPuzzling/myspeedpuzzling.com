@@ -25,6 +25,7 @@ use SpeedPuzzling\Web\Services\EventDetail\EventPagePuzzles;
 use SpeedPuzzling\Web\Services\EventDetail\RoundsTimelineBuilder;
 use SpeedPuzzling\Web\Services\EventJustJoinedFlash;
 use SpeedPuzzling\Web\Services\EventsPage\EventRowFactory;
+use SpeedPuzzling\Web\Services\PartnerFinder\PartnerFinderCardResolver;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\EventTitle;
 use SpeedPuzzling\Web\Value\EventTypes;
@@ -54,6 +55,7 @@ final class EventDetailController extends AbstractController
         readonly private ClockInterface $clock,
         readonly private EventPagePuzzles $eventPagePuzzles,
         readonly private RoundsTimelineBuilder $roundsTimelineBuilder,
+        readonly private PartnerFinderCardResolver $partnerFinderCardResolver,
     ) {
     }
 
@@ -135,6 +137,21 @@ final class EventDetailController extends AbstractController
 
         // Marketplace card: one query on a marketplace event, none anywhere else (docs/features/marketplace/11-events.md)
         $eventOffers = $this->getEventOffers->forEventPage($competitionEvent, $isPubliclyVisible, $loggedPlayer?->playerId);
+        // Right after "I'm going" - JoinCompetitionController::afterJoin() sets the flash on marketplace events only, and
+        // every event with a partner finder is one: taken once, for both cards
+        $justJoined = $eventOffers !== null && EventJustJoinedFlash::take($request, $competitionId);
+
+        // Partner finder (docs/features/partner-finder.md "Part B"): no query where the event cannot have one, none for a
+        // guest (a plain link), one for a signed-in player
+        $partnerFinder = $this->partnerFinderCardResolver->forEventPage(
+            event: $competitionEvent,
+            rounds: $rounds,
+            isPubliclyVisible: $isPubliclyVisible,
+            viewerPlayerId: $loggedPlayer?->playerId,
+            attendance: $attendance,
+            justJoined: $justJoined,
+            seriesSlug: null,
+        );
 
         return $this->render('event_detail.html.twig', [
             'event' => $competitionEvent,
@@ -159,7 +176,8 @@ final class EventDetailController extends AbstractController
             // Deleting the event from its ⋯ returns to the events page
             'delete_return' => $this->generateUrl('events'),
             'event_offers' => $eventOffers,
-            'event_offers_just_joined' => $eventOffers !== null && EventJustJoinedFlash::take($request, $competitionId),
+            'event_offers_just_joined' => $justJoined,
+            'partner_finder' => $partnerFinder,
             // Organiser-written sections: queried only when one shows - a page without them runs what it ran before. Only
             // on a publicly visible event: nothing an organiser writes is published before the event is approved
             'page_sections' => $competitionEvent->hasPageSections && $isPubliclyVisible

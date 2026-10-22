@@ -181,6 +181,12 @@ class Player
     #[Column(type: Types::STRING, enumType: FeatureRequestEmails::class, options: ['default' => 'upvoted'])]
     public FeatureRequestEmails $featureRequestEmails = FeatureRequestEmails::Upvoted;
 
+    // The e-mail naming who sent "I'd like to puzzle with you" (docs/features/partner-finder.md) - the in-app
+    // notification is sent either way
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BOOLEAN, options: ['default' => true])]
+    public bool $partnerFinderEmails = true;
+
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::STRING, enumType: ContentDigestFrequency::class, options: ['default' => 'weekly'])]
     public ContentDigestFrequency $contentDigestFrequency = ContentDigestFrequency::Weekly;
@@ -535,6 +541,11 @@ class Player
     public function changeFeatureRequestEmails(FeatureRequestEmails $featureRequestEmails): void
     {
         $this->featureRequestEmails = $featureRequestEmails;
+    }
+
+    public function changePartnerFinderEmails(bool $enabled): void
+    {
+        $this->partnerFinderEmails = $enabled;
     }
 
     public function changeContentDigestFrequency(ContentDigestFrequency $frequency): void

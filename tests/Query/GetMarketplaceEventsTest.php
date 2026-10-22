@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\MarketplaceEventFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Value\CountryCode;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -148,15 +149,15 @@ final class GetMarketplaceEventsTest extends KernelTestCase
             self::ids($this->query->forPlayer(PlayerFixture::PLAYER_ADMIN)),
         );
 
-        // Buyer C: also on the WJPC list (+30 days)
+        // Buyer C: also on the WJPC list (+30 days), and going to the partner finder's event (+35 days)
         self::assertSame(
-            [MarketplaceEventFixture::COMPETITION_SWAP_FAIR, CompetitionFixture::COMPETITION_WJPC_2024],
+            [MarketplaceEventFixture::COMPETITION_SWAP_FAIR, CompetitionFixture::COMPETITION_WJPC_2024, PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN],
             self::ids($this->query->forPlayer(PlayerFixture::PLAYER_REGULAR)),
         );
 
-        // Riverside Puzzle Open (EventsPageFixture, +20 days) before WJPC (+30 days)
+        // Riverside Puzzle Open (EventsPageFixture, +20 days) before WJPC (+30 days) before the partner finder's event (+35 days)
         self::assertSame(
-            [EventsPageFixture::COMPETITION_RIVERSIDE_OPEN, CompetitionFixture::COMPETITION_WJPC_2024],
+            [EventsPageFixture::COMPETITION_RIVERSIDE_OPEN, CompetitionFixture::COMPETITION_WJPC_2024, PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN],
             self::ids($this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES)),
         );
 

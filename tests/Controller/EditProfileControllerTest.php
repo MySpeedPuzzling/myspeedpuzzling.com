@@ -143,6 +143,28 @@ final class EditProfileControllerTest extends WebTestCase
         self::assertTrue($player->emailNotificationsEnabled);
     }
 
+    public function testPartnerFinderEmailsSwitchIsSavedWithTheMessagingSettings(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/edit-profile');
+
+        $form = $crawler->filter('form[name="messaging_settings_form"]')->form();
+        $field = $form['messaging_settings_form[partnerFinderEmails]'];
+        assert($field instanceof ChoiceFormField);
+        self::assertSame('1', $field->getValue(), 'On by default');
+        $field->untick();
+        $browser->submit($form);
+
+        self::assertResponseRedirects();
+
+        $player = $browser->getContainer()->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_REGULAR);
+        self::assertFalse($player->partnerFinderEmails);
+        self::assertTrue($player->resultEmailsEnabled);
+        self::assertTrue($player->emailNotificationsEnabled);
+    }
+
     private function seedNativeAccount(KernelBrowser $browser): UserAccount
     {
         $email = sprintf('editprofile+%s@example.com', bin2hex(random_bytes(4)));

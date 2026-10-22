@@ -1,0 +1,133 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The partner finder's gate (docs/features/partner-finder.md "Part D as built"): the page marketing links to. What it
+    is, how it works in three steps, a picker of every event with a finder - logo, dates, place, nearest first (typing a
+    series name finds its editions) - and the events with the most people looking. The same HTML for everybody - nothing of the viewer is rendered.
+
+    Inputs (PartnerFinderGateController): gate (PartnerFinderGate), most_looking (list<PartnerFinderEvent>)
+#}
+
+{% block title %}{{ 'partner_finder.gate.meta_title'|trans }}{% endblock %}
+
+{% block meta_description %}{{ 'partner_finder.gate.meta_description'|trans }}{% endblock %}
+
+{% block robots %}
+    {% if app.request.query.count > 0 %}
+        <meta name="robots" content="noindex, follow">
+    {% else %}
+        <meta name="robots" content="index, follow">
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    <div class="pfg">
+        <header class="pfg-hero">
+            <p class="pfg-eyebrow"><i class="bi bi-people-fill" aria-hidden="true"></i> {{ 'partner_finder.gate.eyebrow'|trans }}</p>
+            <h1 class="pfg-title">{{ 'partner_finder.gate.title'|trans }}</h1>
+            <p class="pfg-lead">{{ 'partner_finder.gate.lead'|trans }}</p>
+            <ul class="pfg-trust">
+                <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i> {{ 'partner_finder.gate.free'|trans }}</li>
+                <li><i class="bi bi-shield-lock-fill" aria-hidden="true"></i> {{ 'partner_finder.gate.private'|trans }}</li>
+            </ul>
+        </header>
+
+        <section class="pfg-how" aria-labelledby="pfg-how-title">
+            <h2 class="pfg-section-title" id="pfg-how-title">{{ 'partner_finder.gate.how_title'|trans }}</h2>
+            <ol class="pfg-steps">
+                {% for step in ['going', 'browse', 'contact'] %}
+                    <li class="pfg-step">
+                        <span class="pfg-step-number" aria-hidden="true">{{ loop.index }}</span>
+                        <div>
+                            <h3 class="pfg-step-title">{{ ('partner_finder.gate.step.' ~ step ~ '.title')|trans }}</h3>
+                            <p class="pfg-step-text">{{ ('partner_finder.gate.step.' ~ step ~ '.text')|trans }}</p>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ol>
+        </section>
+
+        <section class="pfg-picker" id="pick-event" aria-labelledby="pfg-picker-title">
+            <h2 class="pfg-picker-title" id="pfg-picker-title">{{ 'partner_finder.gate.picker.title'|trans }}</h2>
+
+            {% if gate.events is empty %}
+                <p class="pfg-picker-empty">{{ 'partner_finder.gate.picker.empty'|trans }}</p>
+                <a class="btn btn-outline-primary btn-sm" href="{{ path('events') }}">{{ 'partner_finder.gate.picker.all_events'|trans }}</a>
+            {% else %}
+                <form class="pfg-picker-form" action="{{ path('partner_finder') }}" method="get"
+                    data-controller="partner-finder-gate"
+                    data-no-results="{{ 'partner_finder.gate.picker.no_results'|trans }}">
+                    <label class="visually-hidden" for="pfg-event">{{ 'partner_finder.gate.picker.label'|trans }}</label>
+                    <div class="pfg-picker-row">
+                        <select id="pfg-event" name="event" class="form-select" required
+                            data-partner-finder-gate-target="select"
+                            data-placeholder="{{ 'partner_finder.gate.picker.placeholder'|trans }}">
+                            <option value="">{{ 'partner_finder.gate.picker.placeholder'|trans }}</option>
+                            {% for row in gate.events %}
+                                {%- set event = row.event -%}
+                                {%- set name = event.reference.displayName -%}
+                                {%- set dates = event_dates(event.dateFrom, event.dateTo) -%}
+                                {%- set country = event.countryCode ? event.countryCode.localizedName(app.request.locale) : null -%}
+                                {%- set place = [event.location, country]|filter(part => part is not null and part != '')|join(', ') -%}
+                                <option value="{{ event.competitionId }}" data-data="{{ {
+                                    name: name,
+                                    series: event.reference.seriesName,
+                                    dates: dates,
+                                    place: place,
+                                    flag: event.countryCode ? 'fi fi-' ~ event.countryCode.name : null,
+                                    logo: row.logo ? row.logo|thumbnail('puzzle_small') : null,
+                                    looking: row.listingCount > 0 ? 'partner_finder.gate.looking'|trans({'%count%': row.listingCount}) : null,
+                                    url: partner_finder_url(event.reference.slug, event.reference.seriesSlug),
+                                }|json_encode }}">{{ name }} · {{ dates }}{% if place != '' %} · {{ place }}{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-primary pfg-picker-submit">{{ 'partner_finder.gate.picker.submit'|trans }}</button>
+                    </div>
+                    <p class="pfg-picker-help">{{ 'partner_finder.gate.picker.help'|trans({'%count%': gate.events|length}) }}</p>
+                </form>
+            {% endif %}
+        </section>
+
+        <section class="pfg-popular" aria-labelledby="pfg-popular-title">
+            <h2 class="pfg-section-title" id="pfg-popular-title">{{ 'partner_finder.gate.popular.title'|trans }}</h2>
+
+            {% if most_looking is empty %}
+                <p class="pfg-popular-empty">{{ 'partner_finder.gate.popular.empty'|trans }}</p>
+            {% else %}
+                <ul class="pfg-cards">
+                    {% for row in most_looking %}
+                        {%- set event = row.event -%}
+                        {%- set country = event.countryCode ? event.countryCode.localizedName(app.request.locale) : null -%}
+                        {%- set place = [event.location, country]|filter(part => part is not null and part != '')|join(', ') -%}
+                        {%- set url = partner_finder_url(event.reference.slug, event.reference.seriesSlug) -%}
+                        <li class="pfg-card">
+                            <div class="pfg-card-head">
+                                {% if row.logo %}
+                                    <img class="pfg-logo" src="{{ row.logo|thumbnail('puzzle_small') }}" alt="" width="44" height="44" loading="lazy">
+                                {% else %}
+                                    <span class="pfg-logo pfg-logo-none" aria-hidden="true"><i class="bi bi-calendar-event"></i></span>
+                                {% endif %}
+                                <div class="pfg-card-title">
+                                    <p class="pfg-card-date">{{ event_dates(event.dateFrom, event.dateTo) }}</p>
+                                    <h3 class="pfg-card-name">{{ event.reference.displayName }}</h3>
+                                </div>
+                            </div>
+                            {% if place != '' %}
+                                <p class="pfg-card-place">
+                                    {%- if event.countryCode %}<span class="fi fi-{{ event.countryCode.name }} pfg-flag" aria-hidden="true"></span>{% endif -%}
+                                    <span class="pfg-card-place-text">{{ place }}</span>
+                                </p>
+                            {% endif %}
+                            <div class="pfg-card-foot">
+                                <span class="pfg-card-count"><i class="bi bi-people-fill" aria-hidden="true"></i> {{ 'partner_finder.events_tag.looking'|trans({'%count%': row.listingCount}) }}</span>
+                                {% if url %}
+                                    <a class="btn btn-sm btn-outline-primary pfg-card-link" href="{{ url }}">{{ 'partner_finder.card.see_who'|trans }}<span class="visually-hidden"> - {{ event.reference.displayName }}</span></a>
+                                {% endif %}
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </section>
+    </div>
+{% endblock %}

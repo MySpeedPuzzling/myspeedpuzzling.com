@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Results;
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\NotificationType;
+use SpeedPuzzling\Web\Value\PartnerKind;
 use SpeedPuzzling\Web\Value\Puzzler;
 use SpeedPuzzling\Web\Value\TransferType;
 
@@ -89,6 +90,15 @@ readonly final class PlayerNotification
         public null|string $roundCompetitionName = null,
         public null|string $roundCompetitionSlug = null,
         public null|string $roundSeriesSlug = null,
+        // PartnerRequest: the "I'd like to puzzle with you" on the player's listing (who asks = targetPlayer*) and the
+        // event it is about, its finder page URL built from the slugs
+        public null|string $partnerRequestId = null,
+        public null|PartnerKind $partnerRequestKind = null,
+        public null|string $partnerRequestNote = null,
+        public bool $partnerRequestReplied = false,
+        public null|string $partnerCompetitionName = null,
+        public null|string $partnerCompetitionSlug = null,
+        public null|string $partnerSeriesSlug = null,
     ) {
     }
 
@@ -211,6 +221,13 @@ readonly final class PlayerNotification
             roundCompetitionName: is_string($row['round_competition_name'] ?? null) ? $row['round_competition_name'] : null,
             roundCompetitionSlug: is_string($row['round_competition_slug'] ?? null) ? $row['round_competition_slug'] : null,
             roundSeriesSlug: is_string($row['round_series_slug'] ?? null) ? $row['round_series_slug'] : null,
+            partnerRequestId: is_string($row['partner_request_id'] ?? null) ? $row['partner_request_id'] : null,
+            partnerRequestKind: is_string($row['partner_request_kind'] ?? null) ? PartnerKind::tryFrom($row['partner_request_kind']) : null,
+            partnerRequestNote: is_string($row['partner_request_note'] ?? null) ? $row['partner_request_note'] : null,
+            partnerRequestReplied: ($row['partner_request_replied'] ?? false) === true,
+            partnerCompetitionName: is_string($row['partner_competition_name'] ?? null) ? $row['partner_competition_name'] : null,
+            partnerCompetitionSlug: is_string($row['partner_competition_slug'] ?? null) ? $row['partner_competition_slug'] : null,
+            partnerSeriesSlug: is_string($row['partner_series_slug'] ?? null) ? $row['partner_series_slug'] : null,
         );
     }
 
@@ -265,6 +282,11 @@ readonly final class PlayerNotification
     public function isOfficialResultNotification(): bool
     {
         return $this->notificationType === NotificationType::OfficialResultPublished && $this->roundId !== null;
+    }
+
+    public function isPartnerRequestNotification(): bool
+    {
+        return $this->notificationType === NotificationType::PartnerRequest && $this->partnerRequestId !== null;
     }
 
     public function isConversationRequestNotification(): bool

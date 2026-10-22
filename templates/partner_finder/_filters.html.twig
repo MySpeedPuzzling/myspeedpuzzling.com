@@ -1,0 +1,75 @@
+{#
+    The finder's filter bar: kind (segmented, with counts), country (the site's country picker, only countries present),
+    sort (closest to my speed for members), then the "Good at" chips. All of it runs in the browser over the rendered
+    rows (partner_finder_controller.js); without JavaScript every row stays shown, newest first.
+    Inputs: listings (PartnerListings), countries (list<{code, name, count}>), viewer_is_member
+#}
+{%- set counts = listings.kindCounts -%}
+{%- set kinds = [{key: 'all', label: 'partner_finder.page.kind_all'|trans, count: counts.all}] -%}
+{%- if listings.offers(enum('SpeedPuzzling\\Web\\Value\\PartnerKind').Pair) -%}
+    {%- set kinds = kinds|merge([{key: 'pair', label: 'partner_finder.kind.pair'|trans, count: counts.pair}]) -%}
+{%- endif -%}
+{%- if listings.offers(enum('SpeedPuzzling\\Web\\Value\\PartnerKind').Team) -%}
+    {%- set kinds = kinds|merge([
+        {key: 'team', label: 'partner_finder.kind.team'|trans, count: counts.team},
+        {key: 'group', label: 'partner_finder.page.kind_groups'|trans, count: counts.group},
+    ]) -%}
+{%- endif -%}
+{%- set strength_filters = listings.strengthFilters -%}
+
+<div class="pf-filters" role="search" aria-label="{{ 'partner_finder.page.filters'|trans }}">
+    <div class="pf-filters-bar">
+        {% if kinds|length > 2 %}
+            <div class="pf-seg" role="group" aria-label="{{ 'partner_finder.page.filter_kind'|trans }}">
+                {% for kind in kinds %}
+                    <button type="button" class="pf-seg-option" aria-pressed="{{ loop.first ? 'true' : 'false' }}"
+                        data-partner-finder-target="kind" data-kind="{{ kind.key }}" data-action="partner-finder#pickKind">
+                        {{- kind.label -}}<small class="pf-seg-count">{{ kind.count|plain_number }}</small>
+                    </button>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if countries|length > 1 %}
+            <div class="pf-country country-select-wrapper">
+                <label class="visually-hidden" for="pf-country">{{ 'partner_finder.page.filter_country'|trans }}</label>
+                <select id="pf-country" class="form-select form-select-sm" data-controller="country-select"
+                    data-partner-finder-target="country" data-action="change->partner-finder#filter">
+                    <option value="">{{ 'partner_finder.page.all_countries'|trans }}</option>
+                    {% for country in countries %}
+                        <option value="{{ country.code }}" data-icon="fi fi-{{ country.code }}" data-count="{{ country.count }}">{{ country.name }} ({{ country.count|plain_number }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+        {% endif %}
+
+        <div class="pf-sort">
+            <label class="pf-sort-label" for="pf-sort">{{ 'partner_finder.page.sort'|trans }}</label>
+            <select id="pf-sort" class="form-select form-select-sm" data-partner-finder-target="sort" data-action="change->partner-finder#sort">
+                <option value="newest">{{ 'partner_finder.page.sort_newest'|trans }}</option>
+                <option value="fastest">{{ 'partner_finder.page.sort_fastest'|trans }}</option>
+                <option value="closest"{{ viewer_is_member and listings.viewerMedian500Seconds is not null ? '' : ' disabled' }}>
+                    {{- 'partner_finder.page.sort_closest'|trans -}}
+                    {%- if not viewer_is_member %} · {{ 'partner_finder.page.members'|trans }}{% endif -%}
+                </option>
+            </select>
+            {% if not viewer_is_member %}
+                <button type="button" class="pf-members-badge" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" title="{{ 'partner_finder.page.closest_locked'|trans }}">
+                    <i class="ci-locked" aria-hidden="true"></i> {{ 'partner_finder.page.members'|trans }}
+                </button>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if strength_filters is not empty %}
+        <div class="pf-chip-filter" role="group" aria-label="{{ 'partner_finder.page.filter_strengths'|trans }}">
+            <span class="pf-chip-filter-label" aria-hidden="true">{{ 'partner_finder.page.good_at'|trans }}</span>
+            {% for filter in strength_filters %}
+                <button type="button" class="pf-chip{{ filter.preset is null ? ' pf-chip-custom' }}" aria-pressed="false"
+                    data-partner-finder-target="strength" data-strength="{{ filter.key }}" data-action="partner-finder#pickStrength">
+                    {{- filter.preset is not null ? filter.preset.translationKey|trans : filter.label -}}
+                </button>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>

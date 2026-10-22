@@ -404,6 +404,34 @@ final class EventsPageBuilderTest extends TestCase
         self::assertSame([RowTagType::FullWaitlist, RowTagType::GoingCount], $this->tagTypes($rows['Full Relay']));
     }
 
+    /**
+     * docs/features/partner-finder.md: "6 looking for a partner" after "N going", coming in-person events only
+     */
+    public function testPartnerListingsTagFollowsTheGoingCountOnInPersonEvents(): void
+    {
+        $cup = $this->event('Pairs Cup', '2026-11-08');
+        $quiet = $this->event('Quiet Cup', '2026-11-09');
+        $relay = $this->event('Online Relay', null, online: true);
+
+        $page = $this->build(
+            [$cup, $quiet, $relay],
+            [],
+            goingCounts: [$cup->competitionId => 9],
+            partnerListingCounts: [$cup->competitionId => 6, $relay->competitionId => 2],
+        );
+
+        $rows = $this->rowsByTitle($page);
+
+        self::assertSame([RowTagType::GoingCount, RowTagType::PartnerListings], $this->tagTypes($rows['Pairs Cup']));
+        self::assertSame(6, $rows['Pairs Cup']->tags[1]->count);
+        self::assertSame('partner_finder.events_tag.looking', RowTagType::PartnerListings->translationKey());
+        self::assertSame([], $this->tagTypes($rows['Quiet Cup']), 'nobody listed - no tag');
+
+        foreach ($page->ongoing as $row) {
+            self::assertNotContains(RowTagType::PartnerListings, $this->tagTypes($row), 'never on an online event');
+        }
+    }
+
     public function testYourEvents(): void
     {
         $going = $this->event('Going Cup', '2026-11-20');
@@ -790,6 +818,7 @@ final class EventsPageBuilderTest extends TestCase
      * @param list<EventOccurrence> $occurrences
      * @param list<EventSeriesRow> $series
      * @param array<string, int> $goingCounts
+     * @param array<string, int> $partnerListingCounts
      */
     private function build(
         array $occurrences,
@@ -799,6 +828,7 @@ final class EventsPageBuilderTest extends TestCase
         null|EventsScope $scope = null,
         null|CountryCode $homeCountry = null,
         string $today = self::TODAY,
+        array $partnerListingCounts = [],
     ): EventsPage {
         usort($occurrences, static fn (EventOccurrence $a, EventOccurrence $b): int => [$a->startDate === null, $a->startDate, $a->name] <=> [$b->startDate === null, $b->startDate, $b->name]);
 
@@ -811,6 +841,7 @@ final class EventsPageBuilderTest extends TestCase
             new DateTimeImmutable($today, new DateTimeZone('UTC')),
             'en',
             $homeCountry,
+            $partnerListingCounts,
         );
     }
 

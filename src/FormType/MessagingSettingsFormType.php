@@ -59,6 +59,13 @@ final class MessagingSettingsFormType extends AbstractType
             'required' => false,
         ]);
 
+        // docs/features/partner-finder.md D6 - e-mails about "I'd like to puzzle with you" on the player's listings
+        $builder->add('partnerFinderEmails', CheckboxType::class, [
+            'label' => 'partner_finder.settings.emails_label',
+            'help' => 'partner_finder.settings.emails_help',
+            'required' => false,
+        ]);
+
         $builder->add('featureRequestEmails', EnumType::class, [
             'class' => FeatureRequestEmails::class,
             'label' => 'edit_profile.feature_request_emails',

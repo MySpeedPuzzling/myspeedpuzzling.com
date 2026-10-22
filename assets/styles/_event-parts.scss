@@ -155,7 +155,8 @@ $ev-sticky-top: calc(var(--header-height, 101px) + var(--ev-toolbar-height, 0px)
         border-radius: 6px;
     }
 
-    .fi {
+    // Inline flags only - a flag that is a player's avatar stays round (.lb-avatar-img), e.g. the faces on the cards
+    .fi:not(.lb-avatar-flag) {
         border-radius: 2px;
         flex: none;
     }

@@ -81,18 +81,20 @@ final class EventsController extends AbstractController
             }
         }
 
-        $goingCounts = $this->getEventGoingCounts->forCompetitions($comingIds);
+        // "N going" + "N looking for a partner" (docs/features/partner-finder.md) - one statement
+        $counts = $this->getEventGoingCounts->forCompetitions($comingIds);
         $viewer = $profile !== null ? $this->getEventsViewerData->forPlayer($profile->playerId) : null;
 
         $page = $this->eventsPageBuilder->build(
             occurrences: $occurrences,
             series: $series,
-            goingCounts: $goingCounts,
+            goingCounts: $counts->going,
             viewer: $viewer,
             scope: EventsScope::fromQuery($request->query->all()['country'] ?? null, $request->query->all()['onlineOnly'] ?? null),
             today: $now,
             locale: $request->getLocale(),
             homeCountry: $profile?->countryCode,
+            partnerListingCounts: $counts->partnerListings,
         );
 
         $view = EventsView::fromQuery($request->query->all()['view'] ?? null);

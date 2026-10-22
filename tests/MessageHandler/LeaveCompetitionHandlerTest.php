@@ -8,9 +8,12 @@ use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Message\LeaveCompetition;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
+use SpeedPuzzling\Web\Repository\PartnerListingRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionParticipantFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Value\PartnerListingClosedReason;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -87,5 +90,25 @@ final class LeaveCompetitionHandlerTest extends KernelTestCase
         );
 
         self::assertSame(0, $activeCount);
+    }
+
+    /**
+     * Not going any more = not looking for a partner there either (docs/features/partner-finder.md D7)
+     */
+    public function testLeavingClosesTheOwnPartnerListingOfThatEventOnly(): void
+    {
+        $this->messageBus->dispatch(new LeaveCompetition(
+            competitionId: PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN,
+            playerId: PlayerFixture::PLAYER_REGULAR,
+        ));
+
+        self::getContainer()->get('doctrine.orm.entity_manager')->clear();
+        $listings = self::getContainer()->get(PartnerListingRepository::class);
+
+        $own = $listings->get(PartnerFinderFixture::LISTING_REGULAR_PAIR);
+        self::assertFalse($own->isOpen());
+        self::assertSame(PartnerListingClosedReason::NotGoing, $own->closedReason);
+
+        self::assertTrue($listings->get(PartnerFinderFixture::LISTING_FAVORITES_TEAM)->isOpen());
     }
 }

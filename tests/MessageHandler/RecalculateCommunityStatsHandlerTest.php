@@ -70,6 +70,20 @@ final class RecalculateCommunityStatsHandlerTest extends KernelTestCase
         self::assertSame(self::int($expected), self::int($this->statsOf(PlayerFixture::PLAYER_REGULAR)['best500_seconds']));
     }
 
+    public function testMediansAreSoloOnExactlyThatPieceCount(): void
+    {
+        ($this->handler)(new RecalculateCommunityStats());
+
+        $expected = $this->database->fetchOne(
+            "SELECT ROUND(percentile_cont(0.5) WITHIN GROUP (ORDER BY t.seconds_to_solve))::int FROM puzzle_solving_time t JOIN puzzle z ON z.id = t.puzzle_id
+             WHERE t.player_id = :id AND t.puzzling_type = 'solo' AND z.pieces_count = 500 AND t.suspicious = false",
+            ['id' => PlayerFixture::PLAYER_REGULAR],
+        );
+
+        self::assertNotNull($expected, 'the fixture player has solo 500-piece times');
+        self::assertSame(self::int($expected), self::int($this->statsOf(PlayerFixture::PLAYER_REGULAR)['median500_seconds']));
+    }
+
     public function testFavoritesAreCountedNotListed(): void
     {
         ($this->handler)(new RecalculateCommunityStats());

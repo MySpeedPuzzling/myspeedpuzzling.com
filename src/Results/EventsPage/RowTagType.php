@@ -27,9 +27,14 @@ enum RowTagType: string
     case Results = 'results';
     case RunsUntil = 'runs_until';
     case GoingCount = 'going_count';
+    // "6 looking for a partner" - open partner listings (docs/features/partner-finder.md), RowTag::$count
+    case PartnerListings = 'partner_listings';
 
     public function translationKey(): string
     {
-        return 'events_page.tag.' . $this->value;
+        return match ($this) {
+            self::PartnerListings => 'partner_finder.events_tag.looking',
+            default => 'events_page.tag.' . $this->value,
+        };
     }
 }

@@ -78,6 +78,11 @@ class Notification
         #[JoinColumn(onDelete: 'CASCADE')]
         #[Immutable]
         public null|CompetitionRound $targetCompetitionRound = null,
+        // PartnerRequest: the "I'd like to puzzle with you" request on the player's listing
+        #[ManyToOne]
+        #[JoinColumn(onDelete: 'CASCADE')]
+        #[Immutable]
+        public null|PartnerRequest $targetPartnerRequest = null,
     ) {
     }
 }

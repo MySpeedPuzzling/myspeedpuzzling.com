@@ -26,6 +26,12 @@ return App::config([
                 'limit' => 100000,
                 'interval' => '1 hour',
             ],
+            // Per sender, and the test players are the same in every run - a test of the limit uses it up and resets it
+            'partner_request' => [
+                'policy' => 'sliding_window',
+                'limit' => 100000,
+                'interval' => '1 day',
+            ],
             'newsletter_subscribe_ip' => [
                 'policy' => 'sliding_window',
                 'limit' => 100000,

@@ -9,15 +9,18 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\ChatMessage;
 use SpeedPuzzling\Web\Entity\Conversation;
 use SpeedPuzzling\Web\Entity\Notification;
+use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\ConversationRequestAlreadyPending;
 use SpeedPuzzling\Web\Exceptions\DirectMessagesDisabled;
 use SpeedPuzzling\Web\Exceptions\MessagingMuted;
+use SpeedPuzzling\Web\Exceptions\PartnerRequestNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\SendMessage;
 use SpeedPuzzling\Web\Message\StartConversation;
 use SpeedPuzzling\Web\Repository\ChatMessageRepository;
 use SpeedPuzzling\Web\Repository\ConversationRepository;
 use SpeedPuzzling\Web\Repository\NotificationRepository;
+use SpeedPuzzling\Web\Repository\PartnerRequestRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
 use SpeedPuzzling\Web\Repository\UserBlockRepository;
@@ -38,6 +41,7 @@ readonly final class StartConversationHandler
         private UserBlockRepository $userBlockRepository,
         private SellSwapListItemRepository $sellSwapListItemRepository,
         private NotificationRepository $notificationRepository,
+        private PartnerRequestRepository $partnerRequestRepository,
         private MercureNotifier $mercureNotifier,
         private MessageBusInterface $messageBus,
         private LoggerInterface $logger,
@@ -50,6 +54,7 @@ readonly final class StartConversationHandler
      * @throws DirectMessagesDisabled
      * @throws ConversationRequestAlreadyPending
      * @throws MessagingMuted
+     * @throws PartnerRequestNotFound the request is not the recipient's to the initiator's listing
      */
     public function __invoke(StartConversation $message): void
     {
@@ -75,8 +80,26 @@ readonly final class StartConversationHandler
             // Puzzle provided without listing (shouldn't normally happen, but handle gracefully)
         }
 
-        // For general conversations, check if recipient allows direct messages
-        if (!$isMarketplace && !$recipient->allowDirectMessages) {
+        // A reply to a partner finder request: only the listing's owner to whoever asked - never a way around
+        // "direct messages off" for anybody else
+        $isPartnerReply = false;
+
+        if ($message->partnerRequestId !== null) {
+            $partnerRequest = $this->partnerRequestRepository->get($message->partnerRequestId);
+
+            if (
+                $partnerRequest->listing->player->id->equals($initiator->id) === false
+                || $partnerRequest->fromPlayer->id->equals($recipient->id) === false
+            ) {
+                throw new PartnerRequestNotFound();
+            }
+
+            $isPartnerReply = true;
+        }
+
+        // For general conversations, check if recipient allows direct messages - the recipient of a partner finder
+        // reply asked first, so their setting does not apply
+        if (!$isMarketplace && !$isPartnerReply && !$recipient->allowDirectMessages) {
             throw new DirectMessagesDisabled();
         }
 
@@ -136,6 +159,12 @@ readonly final class StartConversationHandler
             return;
         }
 
+        if ($isPartnerReply) {
+            $this->startPartnerReply($initiator, $recipient, $message->initialMessage, $isBlocked);
+
+            return;
+        }
+
         // Check if a pending request already exists (from initiator to recipient)
         $existingPending = $this->conversationRepository->findPendingBetween($initiator, $recipient);
         if ($existingPending !== null) {
@@ -191,6 +220,65 @@ readonly final class StartConversationHandler
                     'exception' => $e,
                 ]);
             }
+        }
+    }
+
+    /**
+     * The recipient asked to puzzle together, so the chat is open from the start: a request either of them sent
+     * earlier is accepted, otherwise a new accepted conversation begins - no "conversation request" step for the person
+     * who asked first. The accepted conversation between them is reused by the caller before this.
+     */
+    private function startPartnerReply(Player $initiator, Player $recipient, string $initialMessage, bool $isBlocked): void
+    {
+        $pending = $this->conversationRepository->findPendingBetween($initiator, $recipient)
+            ?? $this->conversationRepository->findPendingBetween($recipient, $initiator);
+
+        if ($pending !== null) {
+            $pending->accept();
+
+            $this->messageBus->dispatch(new SendMessage(
+                conversationId: $pending->id->toString(),
+                senderId: $initiator->id->toString(),
+                content: $initialMessage,
+            ));
+
+            return;
+        }
+
+        $now = $this->clock->now();
+
+        $conversation = new Conversation(
+            id: Uuid::uuid7(),
+            initiator: $initiator,
+            recipient: $recipient,
+            status: ConversationStatus::Accepted,
+            createdAt: $now,
+            respondedAt: $now,
+            lastMessageAt: $now,
+        );
+        $this->conversationRepository->save($conversation);
+
+        $chatMessage = new ChatMessage(
+            id: Uuid::uuid7(),
+            conversation: $conversation,
+            sender: $initiator,
+            content: $initialMessage,
+            sentAt: $now,
+        );
+        $this->chatMessageRepository->save($chatMessage);
+
+        if ($isBlocked) {
+            return;
+        }
+
+        try {
+            $this->mercureNotifier->notifyNewMessage($chatMessage);
+            $this->mercureNotifier->notifyNewConversationRequest($conversation);
+        } catch (\Throwable $e) {
+            $this->logger->error('Failed to send Mercure notification for a partner finder reply', [
+                'conversationId' => $conversation->id->toString(),
+                'exception' => $e,
+            ]);
         }
     }
 }

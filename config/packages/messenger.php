@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Message\RecalculateKarma;
 use SpeedPuzzling\Web\Message\RecalculateXpChainForSolve;
 use SpeedPuzzling\Web\Message\RecalculateXpForPlayer;
 use SpeedPuzzling\Web\Message\RemoveNewsletterSubscriberFromListmonk;
+use SpeedPuzzling\Web\Message\SendPartnerRequestEmail;
 use SpeedPuzzling\Web\Message\SendPlayerContentDigest;
 use SpeedPuzzling\Web\Message\SettleXpBonuses;
 use SpeedPuzzling\Web\Message\VerifyOnlineMedia;
@@ -81,6 +82,9 @@ return App::config([
             'routing' => [
                 SendEmailMessage::class => 'async',
                 PrepareDigestEmailForPlayer::class => 'async',
+                // The partner finder's "I'd like to puzzle with you" e-mail - never in the sender's request
+                // (docs/features/partner-finder.md D6)
+                SendPartnerRequestEmail::class => 'async',
                 RecalculateDerivedMetricsForPuzzle::class => 'async',
                 // Listmonk API calls must not block or fail the user-facing request
                 PushNewsletterSubscriberToListmonk::class => 'async',

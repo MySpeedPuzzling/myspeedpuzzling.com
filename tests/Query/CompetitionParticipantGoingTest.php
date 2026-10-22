@@ -21,6 +21,7 @@ use SpeedPuzzling\Web\Results\SeriesEdition;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\MarketplaceEventFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -96,12 +97,12 @@ final class CompetitionParticipantGoingTest extends KernelTestCase
         // The admin sees everybody (no blocks of their own)
         self::assertCount($notDeleted, $connected);
 
-        // .claude/fixtures.md "Marketplace at events": C = [SWAP_FAIR, WJPC_2024]
+        // .claude/fixtures.md "Marketplace at events": C = [SWAP_FAIR, WJPC_2024], plus "Partner finder"'s event
         $events = array_map(
             static fn (MarketplaceEvent $event): string => $event->competitionId,
             self::getContainer()->get(GetMarketplaceEvents::class)->forPlayer(PlayerFixture::PLAYER_REGULAR),
         );
-        self::assertEqualsCanonicalizing([MarketplaceEventFixture::COMPETITION_SWAP_FAIR, CompetitionFixture::COMPETITION_WJPC_2024], $events);
+        self::assertEqualsCanonicalizing([MarketplaceEventFixture::COMPETITION_SWAP_FAIR, CompetitionFixture::COMPETITION_WJPC_2024, PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN], $events);
     }
 
     private function assertGoing(bool $going, string $playerId): void

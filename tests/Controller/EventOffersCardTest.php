@@ -355,7 +355,8 @@ final class EventOffersCardTest extends WebTestCase
             self::assertSame(1, $this->summaryStatementRuns($browser));
             $qualifying = $this->queryCount($browser);
 
-            // The very same event moved online: no card, one query less
+            // The very same event moved online: no card, one query less - and for a signed-in viewer the partner finder
+            // card's statement goes too (docs/features/partner-finder.md: the fair has no rounds yet, so it offers both)
             self::getContainer()->get(Connection::class)->executeStatement(
                 'UPDATE competition SET is_online = true WHERE id = :id',
                 ['id' => self::FAIR],
@@ -365,7 +366,7 @@ final class EventOffersCardTest extends WebTestCase
             $browser->request('GET', self::FAIR_URL);
             self::assertSelectorNotExists(self::CARD);
             self::assertSame(0, $this->summaryStatementRuns($browser));
-            self::assertSame($qualifying - 1, $this->queryCount($browser), $viewer === null ? 'guest' : 'signed-in seller');
+            self::assertSame($qualifying - ($viewer === null ? 1 : 2), $this->queryCount($browser), $viewer === null ? 'guest' : 'signed-in seller');
 
             self::ensureKernelShutdown();
         }

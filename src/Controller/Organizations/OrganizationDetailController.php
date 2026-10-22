@@ -73,14 +73,18 @@ final class OrganizationDetailController extends AbstractController
         $occurrences = $this->getEventOccurrences->forOrganization($organization->id, includeDrafts: $canManage);
         $series = $this->getEventSeriesDirectory->forOrganization($organization->id, includeDrafts: $canManage);
 
+        // "N going" + "N looking for a partner" of the coming items, one statement
+        $counts = $this->getEventGoingCounts->forCompetitions(SeriesPageBuilder::comingCompetitionIds($occurrences, $now));
+
         $page = $this->organizationPageBuilder->build(
             organization: $organization,
             occurrences: $occurrences,
             series: $series,
-            goingCounts: $this->getEventGoingCounts->forCompetitions(SeriesPageBuilder::comingCompetitionIds($occurrences, $now)),
+            goingCounts: $counts->going,
             viewer: $viewer,
             now: $now,
             locale: $request->getLocale(),
+            partnerListingCounts: $counts->partnerListings,
         );
 
         return $this->render('organization_detail.html.twig', [

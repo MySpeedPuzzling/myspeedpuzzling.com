@@ -16,6 +16,7 @@ final class MessagingSettingsFormData
     public EmailNotificationFrequency $emailNotificationFrequency = EmailNotificationFrequency::TwentyFourHours;
     public bool $newsletterEnabled = true;
     public bool $resultEmailsEnabled = true;
+    public bool $partnerFinderEmails = true;
     public FeatureRequestEmails $featureRequestEmails = FeatureRequestEmails::Upvoted;
     public ContentDigestFrequency $contentDigestFrequency = ContentDigestFrequency::Weekly;
 
@@ -27,6 +28,7 @@ final class MessagingSettingsFormData
         $data->emailNotificationFrequency = $playerProfile->emailNotificationFrequency;
         $data->newsletterEnabled = $playerProfile->newsletterEnabled;
         $data->resultEmailsEnabled = $playerProfile->resultEmailsEnabled;
+        $data->partnerFinderEmails = $playerProfile->partnerFinderEmails;
         $data->featureRequestEmails = $playerProfile->featureRequestEmails;
         $data->contentDigestFrequency = $playerProfile->contentDigestFrequency;
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\OnlineRounds;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
@@ -192,7 +192,7 @@ final class OnlineReviewControllerTest extends WebTestCase
         $this->evidence($olivia, OnlineMediaKind::Periodic, $startMs + 30_000);
         $pending = $this->evidence($olivia, OnlineMediaKind::Periodic, $startMs + 60_000, uploaded: false);
         $neverArrived = $this->evidence($olivia, OnlineMediaKind::Periodic, $startMs + 90_000, uploaded: false);
-        $neverArrived->markAbandoned(new DateTimeImmutable());
+        $neverArrived->markAbandoned(TestClock::now());
         $this->entityManager()->flush();
 
         $browser->request('GET', self::ENTRY, server: ['HTTP_ACCEPT' => 'application/json']);

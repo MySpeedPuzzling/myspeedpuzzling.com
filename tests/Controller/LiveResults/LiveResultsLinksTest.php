@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\LiveResults;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Services\CompetitionDetailUrl;
 use SpeedPuzzling\Web\Services\NameTagQrCode;
@@ -129,7 +130,7 @@ final class LiveResultsLinksTest extends WebTestCase
         self::assertStringContainsString('not a participant of this event', (string) $crawler->filter('[data-controller="live-results"]')->attr('data-live-results-notice-value'));
 
         // Removed from the event
-        self::getContainer()->get(Connection::class)->executeStatement('UPDATE competition_participant SET deleted_at = NOW() WHERE id = :id', ['id' => OfficialResultsFixture::PARTICIPANT_IVAN]);
+        self::getContainer()->get(Connection::class)->executeStatement('UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => OfficialResultsFixture::PARTICIPANT_IVAN]);
         $this->browser->request('GET', $this->scanUrl(OfficialResultsFixture::PARTICIPANT_IVAN));
         self::assertResponseRedirects($current);
     }

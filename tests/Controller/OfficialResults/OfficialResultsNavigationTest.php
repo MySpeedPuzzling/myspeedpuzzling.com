@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\OfficialResults;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -112,7 +112,7 @@ final class OfficialResultsNavigationTest extends WebTestCase
             $player = self::getContainer()->get(PlayerRepository::class)->get($playerId);
             assert($player->userId !== null);
             $account = self::getContainer()->get(UserAccountRepository::class)->findByUserId($player->userId)
-                ?? new UserAccount(Uuid::uuid7(), $player->userId, $player->code . '@test.local', new DateTimeImmutable());
+                ?? new UserAccount(Uuid::uuid7(), $player->userId, $player->code . '@test.local', TestClock::now());
             self::getContainer()->get(TokenStorageInterface::class)->setToken(new UsernamePasswordToken($account, 'main', $account->getRoles()));
         }
 

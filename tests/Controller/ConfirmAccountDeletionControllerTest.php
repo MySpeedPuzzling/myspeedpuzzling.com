@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -62,7 +63,7 @@ final class ConfirmAccountDeletionControllerTest extends WebTestCase
         $token = $this->issueToken($browser, $userAccount);
 
         $connection = $browser->getContainer()->get(EntityManagerInterface::class)->getConnection();
-        $now = new DateTimeImmutable()->format('Y-m-d H:i:s');
+        $now = TestClock::now()->format('Y-m-d H:i:s');
         // 3 results (2 puzzles, 3 x 500 pieces, 1h + 30m + 15m), 2 puzzles catalogued
         foreach ([[PuzzleFixture::PUZZLE_500_01, 3600], [PuzzleFixture::PUZZLE_500_02, 1800], [PuzzleFixture::PUZZLE_500_02, 900]] as [$puzzleId, $seconds]) {
             $connection->insert('puzzle_solving_time', [
@@ -200,7 +201,7 @@ final class ConfirmAccountDeletionControllerTest extends WebTestCase
     {
         $browser = self::createClient();
         [$userAccount] = $this->seedAccountWithPlayer($browser);
-        $token = $this->issueToken($browser, $userAccount, expiresAt: new DateTimeImmutable('-1 minute'));
+        $token = $this->issueToken($browser, $userAccount, expiresAt: TestClock::now()->modify('-1 minute'));
 
         $crawler = $browser->request('GET', '/delete-account/' . $token, server: ['HTTP_ACCEPT_LANGUAGE' => 'en']);
 
@@ -273,7 +274,7 @@ final class ConfirmAccountDeletionControllerTest extends WebTestCase
 
     private function issueToken(KernelBrowser $browser, UserAccount $userAccount, null|DateTimeImmutable $expiresAt = null): string
     {
-        $expiresAt ??= new DateTimeImmutable('+30 minutes');
+        $expiresAt ??= TestClock::now()->modify('+30 minutes');
         $token = AccountDeletionToken::generate();
 
         $browser->getContainer()->get(AccountDeletionRequestRepository::class)->save(new AccountDeletionRequest(
@@ -313,9 +314,9 @@ final class ConfirmAccountDeletionControllerTest extends WebTestCase
         $userId = 'msp|' . bin2hex(random_bytes(4));
         $email = sprintf('confirm.page+%s@example.com', bin2hex(random_bytes(4)));
 
-        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now());
         $userAccount->changePassword(password_hash('a-properly-long-passphrase', PASSWORD_ARGON2ID));
-        $player = new Player(Uuid::uuid7(), 'CP' . bin2hex(random_bytes(2)), $userId, 'Leaving Soon', new DateTimeImmutable());
+        $player = new Player(Uuid::uuid7(), 'CP' . bin2hex(random_bytes(2)), $userId, 'Leaving Soon', TestClock::now());
 
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
         $entityManager->persist($userAccount);

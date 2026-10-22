@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\ComparisonSeeding;
@@ -31,7 +31,7 @@ final class ComparisonAddSheetTest extends WebTestCase
         $browser = self::createClient();
         $viewer = PlayerFixture::PLAYER_WITH_STRIPE;
         $puzzle = $this->seedPuzzle(500);
-        $day = new DateTimeImmutable('-3 days');
+        $day = TestClock::now()->modify('-3 days');
 
         $favorites = [];
 
@@ -65,7 +65,7 @@ final class ComparisonAddSheetTest extends WebTestCase
         $archivedTeam = $this->seedTeam([$viewer, $archived]);
         $this->seedTime($viewer, $puzzle, 3600, $day, teamId: $archivedTeam);
         self::getContainer()->get(Connection::class)->executeStatement(
-            'INSERT INTO puzzling_team_archive (id, team_id, player_id, archived_at) VALUES (:id, :team, :player, NOW())',
+            'INSERT INTO puzzling_team_archive (id, team_id, player_id, archived_at) VALUES (:id, :team, :player, ' . TestClock::SQL_NOW . ')',
             ['id' => Uuid::uuid7()->toString(), 'team' => $archivedTeam, 'player' => $viewer],
         );
 

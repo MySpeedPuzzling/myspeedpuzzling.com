@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Component\ActivityCalendar;
@@ -111,7 +112,7 @@ final class DifficultyOnThumbnailsTest extends WebTestCase
             $browser = $this->browser($viewer);
             $connection = self::getContainer()->get(Connection::class);
             $connection->executeStatement(
-                "UPDATE competition_round SET starts_at = NOW() - INTERVAL '2 days' WHERE id = :id",
+                "UPDATE competition_round SET starts_at = " . TestClock::SQL_NOW . " - INTERVAL '2 days' WHERE id = :id",
                 ['id' => CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION],
             );
             // Of the round's two puzzles only one has a picture

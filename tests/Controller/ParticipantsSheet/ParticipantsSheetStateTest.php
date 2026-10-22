@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\ParticipantsSheet;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetParticipantsSheetState;
@@ -212,7 +213,7 @@ final class ParticipantsSheetStateTest extends WebTestCase
     public function testAPrivatePlayerWhoLetsTheViewerSeeThemIsShown(): void
     {
         $this->database()->executeStatement(
-            'INSERT INTO private_profile_viewer (id, owner_id, viewer_id, added_at) VALUES (:id, :owner, :viewer, NOW())',
+            'INSERT INTO private_profile_viewer (id, owner_id, viewer_id, added_at) VALUES (:id, :owner, :viewer, ' . TestClock::SQL_NOW . ')',
             ['id' => Uuid::uuid7()->toString(), 'owner' => PlayerFixture::PLAYER_PRIVATE, 'viewer' => self::ORGANISER],
         );
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
@@ -273,7 +274,7 @@ final class ParticipantsSheetStateTest extends WebTestCase
         self::assertIsString($puzzleId);
         $this->database()->executeStatement(
             'INSERT INTO puzzle_solving_time (id, player_id, puzzle_id, seconds_to_solve, tracked_at, verified, competition_id, competition_round_id)
-             VALUES (:id, :player, :puzzle, 4000, NOW(), false, :competition, :round)',
+             VALUES (:id, :player, :puzzle, 4000, ' . TestClock::SQL_NOW . ', false, :competition, :round)',
             ['id' => Uuid::uuid7()->toString(), 'player' => PlayerFixture::PLAYER_REGULAR, 'puzzle' => $puzzleId, 'competition' => OfficialResultsFixture::COMPETITION_RESULTS_CUP, 'round' => OfficialResultsFixture::ROUND_GROUP_B],
         );
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
@@ -284,7 +285,7 @@ final class ParticipantsSheetStateTest extends WebTestCase
 
     public function testRemovedPeopleAndTheirPlacesAreListed(): void
     {
-        $this->database()->executeStatement('UPDATE competition_participant SET deleted_at = NOW() WHERE id = :id', ['id' => OfficialResultsFixture::PARTICIPANT_FILIP]);
+        $this->database()->executeStatement('UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => OfficialResultsFixture::PARTICIPANT_FILIP]);
         TestingLogin::asPlayer($this->browser, self::ORGANISER);
 
         $filip = $this->person(OfficialResultsFixture::PARTICIPANT_FILIP);
@@ -330,7 +331,7 @@ final class ParticipantsSheetStateTest extends WebTestCase
         $waitlist = static fn (string $participantId, null|string $registeredAt, bool $removed = false): string => sprintf(
             "UPDATE competition_participant SET registration_status = 'waitlisted', registered_at = %s, deleted_at = %s WHERE id = '%s'",
             $registeredAt !== null ? "'" . $registeredAt . "'" : 'NULL',
-            $removed ? 'NOW()' : 'NULL',
+            $removed ? TestClock::SQL_NOW : 'NULL',
             $participantId,
         );
         $this->database()->executeStatement($waitlist(OfficialResultsFixture::PARTICIPANT_IVAN, '2026-09-01 10:00:00'));
@@ -419,7 +420,7 @@ final class ParticipantsSheetStateTest extends WebTestCase
     private function block(string $blocker, string $blocked): void
     {
         $this->database()->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => $blocker, 'blocked' => $blocked],
         );
     }

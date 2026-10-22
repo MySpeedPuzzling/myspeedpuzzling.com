@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
@@ -160,7 +161,7 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
             $editionId = Uuid::uuid7()->toString();
             $connection->executeStatement(
                 "INSERT INTO competition (id, name, slug, series_id, is_online, created_at)
-                 VALUES (:id, :name, :slug, :series, true, NOW())",
+                 VALUES (:id, :name, :slug, :series, true, " . TestClock::SQL_NOW . ")",
                 ['id' => $editionId, 'name' => 'Budget session ' . $i, 'slug' => 'budget-session-' . $i, 'series' => EventsPageFixture::SERIES_HARBOR_NIGHTS],
             );
 
@@ -168,7 +169,7 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
             foreach ([20, 50] as $days) {
                 $connection->executeStatement(
                     "INSERT INTO competition_round (id, competition_id, name, minutes_limit, starts_at, slug)
-                     VALUES (:id, :competition, :name, 60, NOW() + make_interval(days => :days), :slug)",
+                     VALUES (:id, :competition, :name, 60, " . TestClock::SQL_NOW . " + make_interval(days => :days), :slug)",
                     ['id' => Uuid::uuid7()->toString(), 'competition' => $editionId, 'name' => 'Round ' . $days, 'days' => $days + $i, 'slug' => 'round-' . $days],
                 );
             }
@@ -213,7 +214,7 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
             $roundId = Uuid::uuid7()->toString();
             $connection->executeStatement(
                 "INSERT INTO competition_round (id, competition_id, name, minutes_limit, starts_at, slug, timezone)
-                 VALUES (:id, :competition, :name, 60, NOW() + make_interval(days => :days), :slug, 'America/New_York')",
+                 VALUES (:id, :competition, :name, 60, " . TestClock::SQL_NOW . " + make_interval(days => :days), :slug, 'America/New_York')",
                 ['id' => $roundId, 'competition' => EventsPageFixture::EDITION_SPRINT_SEASON, 'name' => 'Extra ' . $i, 'days' => 80 + 30 * $i, 'slug' => 'extra-' . $i],
             );
             $connection->executeStatement(

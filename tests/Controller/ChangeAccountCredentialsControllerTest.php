@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
@@ -163,14 +163,14 @@ final class ChangeAccountCredentialsControllerTest extends WebTestCase
         $email = sprintf('credentials+%s@example.com', bin2hex(random_bytes(4)));
         $userId = 'msp|' . bin2hex(random_bytes(4));
 
-        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now());
         $userAccount->changePassword(password_hash(self::CURRENT_PASSWORD, PASSWORD_ARGON2ID));
-        $userAccount->markEmailVerified(new DateTimeImmutable());
+        $userAccount->markEmailVerified(TestClock::now());
 
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
         $entityManager->persist($userAccount);
         $entityManager->persist(
-            new Player(Uuid::uuid7(), 'CRED' . bin2hex(random_bytes(2)), $userId, null, new DateTimeImmutable()),
+            new Player(Uuid::uuid7(), 'CRED' . bin2hex(random_bytes(2)), $userId, null, TestClock::now()),
         );
         $entityManager->flush();
 

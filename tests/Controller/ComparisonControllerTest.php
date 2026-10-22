@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
@@ -347,7 +348,7 @@ final class ComparisonControllerTest extends WebTestCase
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-        $day = new DateTimeImmutable('-1 day');
+        $day = TestClock::now()->modify('-1 day');
 
         foreach (['Tie one', 'Tie two'] as $name) {
             $puzzle = $this->seedPuzzle(500, $name);
@@ -400,7 +401,7 @@ final class ComparisonControllerTest extends WebTestCase
 
         foreach ($others as $playerId) {
             $database->executeStatement(
-                'INSERT INTO comparison_subject (id, player_id, subject_player_id, added_at) VALUES (:id, :owner, :subject, NOW())',
+                'INSERT INTO comparison_subject (id, player_id, subject_player_id, added_at) VALUES (:id, :owner, :subject, ' . TestClock::SQL_NOW . ')',
                 ['id' => Uuid::uuid7()->toString(), 'owner' => PlayerFixture::PLAYER_WITH_STRIPE, 'subject' => $playerId],
             );
         }

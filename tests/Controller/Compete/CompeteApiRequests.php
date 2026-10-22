@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Compete;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineAccessLight;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -89,6 +90,6 @@ trait CompeteApiRequests
 
     private static function nowMs(): int
     {
-        return (int) floor(microtime(true) * 1000);
+        return TestClock::milliseconds();
     }
 }

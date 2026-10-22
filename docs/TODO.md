@@ -4,6 +4,29 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Time and the clock (`docs/features/time-and-clock/README.md`, PR #284, 2026-10-22)
+
+- [ ] Apple tokens are not checked on the app clock: the Apple provider library and `AppleServerNotificationVerifier`
+      decode with php-jwt's `time()` (no `JWT::$timestamp` from the clock, unlike `MicrosoftIdTokenVerifier` /
+      `LiveKitWebhookVerifier`) - their test doubles stay on real time (`AppleIdTokenFactory`,
+      `AppleSignInNotificationControllerTest`, listed in `SystemClockCoverageTest`)
+- [ ] `ExpireMutesCommand` runs its SQL itself (now with a bound `:now`) - move it into a message + handler like every
+      other state change
+- [ ] The expired WJPC live strip in `base.html.twig` (`now() < date('2026-09-21…')`) is dead code - Jan to decide on
+      removing it together with `live_event_strip` and `.competition-panel-info`
+- [ ] The guards cannot see a relative date reaching `new DateTimeImmutable($var)` / `modify()` through a variable, a
+      constant or a helper argument (Phase 4 found several by hand) - a reviewer's eye, or another faketime run
+      (`STATUS.md` "Phase 5") when in doubt
+- [ ] `SystemClockCoverageTest`'s `src/` allowlist is per file (36 files) - narrow it per kind of read like the
+      `tests/` one, so a listed file cannot hide a new read
+- [ ] `LapsArrayDoctrineType` formats laps in the object's own zone (JSON) - fine while laps come from the UTC clock;
+      give it the UTC conversion of `UtcDateTimeImmutableDoctrineType` if a non-UTC moment can ever reach it
+- [ ] Panther is skipped in CI (`panther-tests` disabled since #147) - it ran green on the frozen clock locally in
+      Phase 3 (22 tests) but not under faketime; run it once when the job is rebuilt
+- [ ] `TestClock::FROZEN_NOW` (2026-10-14) sits before `MspRatingTimeline::FORMULA_CHANGES`' 2026-10-18 change and
+      `MissYouRun::FIRST_DAY` (2026-10-27): tests of those pin their own clock. Moving the instant is a deliberate
+      change (never into the future of a run - `TestClockTest`), and it rebuilds the cached test DB
+
 ## Wasgij, multipacks and reverting merges (`docs/features/wasgij-and-multipacks.md`, 2026-10-22)
 
 - [ ] Decide the two separate concepts (they can meet in one box): multipack (one box, several puzzles sharing name/EAN/brand code) and Wasgij (the image is

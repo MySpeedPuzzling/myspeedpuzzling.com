@@ -9,7 +9,7 @@ Living record. Every phase appends: what it did, what it found, what the next ph
 | 2 - one clock in `src/` | done 2026-10-22 | c00bf8343, e16908c18, 3a15ef3b0 + this commit |
 | 3 - frozen clock in tests | done 2026-10-22 - **branch red until Phase 4 ends** (157 tests) | fe580bfa0 |
 | 4 - tests on the frozen clock | **done 2026-10-22** - batches 1-9 (157 → 103 → 92 → 72 → 65 → 62 → 53 → 32 → 5 → **0** failing; CI green, run 39831494288) | batch 1: f2483f7d3; batch 2: dc3fb4867; batch 3: d4f31c268; batch 4: 0364e10e9; batch 5: f9424402a; batch 6: 040672b3a; batch 7: 10e501bd7; batch 8: 1c93b850e; batch 9: 6767e1c8b |
-| 5 - proof, docs, PR | not started | |
+| 5 - proof, docs, PR | **done 2026-10-22** - faketime +400 days (run 39832423327) and +5 years (run 39833021765) green; docs; PR #284 description (draft) | 69df00ef2, efd2a27bf (temporary, reverted) + this commit |
 
 ## Jan's answers (2026-10-22) - binding for every later phase
 
@@ -1063,6 +1063,51 @@ Gates: PHPCS clean (cs-fix removed 20 unused imports in 19 files). Tests and PHP
 - `CLAUDE.md` test section: mention `TestClock` (`now()`, `SQL_NOW`/`SQL_TODAY`, `sqlParameter()`, `timestamp()`,
   `milliseconds()`) and that both guards scan `tests/`.
 
+## Phase 5 (2026-10-22) - faketime proof, docs, PR
+
+### The faketime proof (in CI, Jan's answer 3)
+
+Two temporary commits made the three test shards run under libfaketime (`apt-get install faketime` in the job
+container, `LD_PRELOAD=/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1`, `FAKETIME_DONT_FAKE_MONOTONIC=1`, set on
+the ParaTest step only - Postgres is a service container and kept the real date, which is the point: nothing asks it
+for the time any more). Each step printed `date -u` and PHP's `date()` first, so the shift is in the log.
+
+| Shift | Commit | Run | Date seen by PHP | Result |
+|---|---|---|---|---|
+| +400 days (`FAKETIME=+400d`) | 69df00ef2 | 39832423327 | 2027-11-26 | **green** - 4021 + 3788 + 3718 = 11527 tests, 0 failures, 5 skipped |
+| +5 years (`FAKETIME=+1826d`) | efd2a27bf | 39833021765 | 2031-10-22 | **green** - 11527 tests, 0 failures, 5 skipped |
+
+- **No failure under either shift** - nothing to classify: no real-date dependency left (Phase 0's A+400 experiment had
+  41 extra failures; all were fixed by Phases 2-4), and no duration budget tripped (shards took 1:21-1:56, as usual).
+- The listed real-time reads (cookie expiries, `msp-rendered-at`, Apple/OAuth2 tokens, durations) kept working - both
+  sides of each are on the shifted real clock.
+- The log has one `ld.so: object … cannot be preloaded` line per shard, printed before `date` by a process outside the
+  container's libc (the runner's own exec wrapper); `date`, `php` and every ParaTest worker were shifted.
+- Shard 1 reported 899782 assertions at +5 years against 899781 at +400 days (same tests, all green) - a test whose
+  assertion count follows its data, not a failure.
+- **Panther was not part of the proof**: the `panther-tests` CI job is disabled (`if: false`, issue #147). Panther ran
+  green on the frozen clock locally in Phase 3 (22 tests); its one clock read is converted (batch 9). `docs/TODO.md`.
+- The workflow file is back to `main`'s version (`git diff origin/main -- .github/` is empty). No weekly CI job (Jan).
+
+### Docs
+
+- `CLAUDE.md`: the "Use `ClockInterface`" bullet is now the rules (one clock, `:now` in SQL, UTC stored, the real-time
+  exceptions) with a link to `README.md`; the testing section explains `TestClock` and the two guards.
+- `docs/TODO.md` → "Time and the clock": Apple tokens not on the app clock, `ExpireMutesCommand` SQL in a command, the
+  expired WJPC strip (Jan), what the guards cannot see, the per-file `src/` allowlist, `LapsArrayDoctrineType`, Panther
+  under the frozen clock in CI, the instant vs the 2026-10-18 formula change / `MissYouRun::FIRST_DAY`.
+- `README.md`: status line, "What shipped, against the decisions above".
+
+### Drift vs regression (the whole branch)
+
+- **Regressions in `src/`: none.** No production code path failed because of the frozen or shifted clock.
+- **Passed by luck of the real date (data fixed):** `GetPlayersWithUnreadMessagesTest::testReturnsCorrectUnreadCount`
+  (`ChatMessageFixture::MESSAGE_04` exactly on the 24-hour boundary - batch 4) and `Twig/EventDateRangeTemplateTest`
+  (green only while the real year was 2026 - batch 9); plus the incident itself, `XpChainRecomputerTest`'s weekly boost
+  (Phase 3, back on a fixed week).
+- **Drift (tests whose data was on the real clock):** the 157 tests of Phase 3's list, fixed batch by batch, none
+  weakened; several assertions are stronger (exact "now" instead of a real-clock bracket).
+
 ## Log
 
 - 2026-10-22: plan written (README.md, implementation-plan.md). Branch `time-and-clock` from `8447c607d`.
@@ -1098,3 +1143,6 @@ Gates: PHPCS clean (cs-fix removed 20 unused imports in 19 files). Tests and PHP
 - 2026-10-22: Phase 4 batch 9 - `Controller` P-Z, root tests, Panther on the frozen clock (54 files), `EventDateRangeTemplateTest`
   passed by luck of the real year; `DatabaseClockCoverageTest` (3 listed) and `SystemClockCoverageTest` (27 listed, per kind of
   read) scan `tests/`; CI 5 → 0 failing (run 39831494288). **Phase 4 done.**
+- 2026-10-22: Phase 5 - suite under libfaketime in CI at real date +400 days (run 39832423327) and +5 years (run
+  39833021765): both green, 11527 tests, nothing to classify; workflow reverted to `main`'s; CLAUDE.md, docs/TODO.md,
+  README.md; PR #284 description. **All phases done** - the PR stays a draft for Jan.

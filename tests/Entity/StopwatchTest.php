@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Stopwatch;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Value\StopwatchStatus;
 
 final class StopwatchTest extends TestCase
@@ -48,7 +49,7 @@ final class StopwatchTest extends TestCase
     {
         $stopwatch = $this->createStopwatch();
 
-        $stopwatch->start(new DateTimeImmutable());
+        $stopwatch->start(TestClock::now());
         self::assertSame(StopwatchStatus::Running, $stopwatch->status);
     }
 
@@ -75,7 +76,7 @@ final class StopwatchTest extends TestCase
     {
         $stopwatch = $this->createStopwatch();
 
-        $stopwatch->start(new DateTimeImmutable());
+        $stopwatch->start(TestClock::now());
         self::assertCount(1, $stopwatch->laps);
     }
 
@@ -151,7 +152,7 @@ final class StopwatchTest extends TestCase
             code: 'test',
             userId: 'auth0|test',
             name: 'Test Player',
-            registeredAt: new DateTimeImmutable(),
+            registeredAt: TestClock::now(),
         );
 
         return new Stopwatch(

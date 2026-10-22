@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -46,7 +47,7 @@ final class CloseFinishedPartnerListingsHandlerTest extends KernelTestCase
     {
         // The event ended yesterday
         $this->connection->executeStatement(
-            "UPDATE competition SET date_from = NOW() - INTERVAL '2 days', date_to = NOW() - INTERVAL '1 day' WHERE id = :id",
+            "UPDATE competition SET date_from = " . TestClock::SQL_NOW . " - INTERVAL '2 days', date_to = " . TestClock::SQL_NOW . " - INTERVAL '1 day' WHERE id = :id",
             ['id' => PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN],
         );
 
@@ -84,7 +85,7 @@ final class CloseFinishedPartnerListingsHandlerTest extends KernelTestCase
         );
         $this->enterRegularInAPair();
         $this->connection->executeStatement(
-            "UPDATE competition SET date_from = NOW() - INTERVAL '2 days', date_to = NOW() - INTERVAL '1 day' WHERE id = :id",
+            "UPDATE competition SET date_from = " . TestClock::SQL_NOW . " - INTERVAL '2 days', date_to = " . TestClock::SQL_NOW . " - INTERVAL '1 day' WHERE id = :id",
             ['id' => PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN],
         );
 

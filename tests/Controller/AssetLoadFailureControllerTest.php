@@ -12,6 +12,9 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class AssetLoadFailureControllerTest extends WebTestCase
 {
+    // Real time on purpose: 'rendered' is the page's msp-rendered-at, which the browser reports and the classifier
+    // judges on real time (docs/features/time-and-clock/STATUS.md, Jan's answer 1)
+
     private const string BROWSER = 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36';
 
     public function testValidBeaconIsAcceptedWithoutSession(): void

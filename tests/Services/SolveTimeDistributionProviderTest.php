@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Services\SolveTimeDistributionProvider;
 use SpeedPuzzling\Web\Value\PuzzlingType;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -22,12 +22,9 @@ final class SolveTimeDistributionProviderTest extends KernelTestCase
 
     public function testSnapshotRemembersWhenItWasComputed(): void
     {
-        $before = new DateTimeImmutable('-1 second');
         $snapshot = $this->provider->snapshot();
-        $after = new DateTimeImmutable('+1 second');
 
-        self::assertGreaterThanOrEqual($before, $snapshot->computedAt);
-        self::assertLessThanOrEqual($after, $snapshot->computedAt);
+        self::assertEquals(TestClock::now(), $snapshot->computedAt);
 
         // Served from the cache afterwards - same moment, same numbers
         self::assertEquals($snapshot, $this->provider->snapshot());

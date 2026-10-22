@@ -319,7 +319,7 @@ final class PrivateProfileCanaryTest extends WebTestCase
 
         // The owner blocks the friend (as an admin would impose it by SQL - no handler clean-up)
         $database->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (gen_random_uuid(), :owner, :friend, NOW(), 'admin')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (gen_random_uuid(), :owner, :friend, " . TestClock::SQL_NOW . ", 'admin')",
             ['owner' => self::OWNER, 'friend' => self::FRIEND],
         );
 
@@ -338,7 +338,7 @@ final class PrivateProfileCanaryTest extends WebTestCase
         $url = '/en/events/results-cup/results/group-b';
         $profileLink = 'href="/en/player-profile/' . self::OWNER . '"';
         self::getContainer()->get(Connection::class)->executeStatement(
-            'UPDATE competition_round SET results_published_at = NOW() WHERE id = :id',
+            'UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => OfficialResultsFixture::ROUND_GROUP_B],
         );
 
@@ -374,12 +374,12 @@ final class PrivateProfileCanaryTest extends WebTestCase
 
         $connection->executeStatement(
             "INSERT INTO partner_listing (id, competition_id, player_id, group_size, looking_for, co_member_ids, strengths, custom_strengths, languages, created_at, updated_at)
-             VALUES (:id, :competition, :player, 1, '[\"pair\"]', '[]', '[]', '[]', '[\"en\"]', NOW(), NOW())",
+             VALUES (:id, :competition, :player, 1, '[\"pair\"]', '[]', '[]', '[]', '[\"en\"]', " . TestClock::SQL_NOW . ", " . TestClock::SQL_NOW . ")",
             ['id' => Uuid::uuid7()->toString(), 'competition' => PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN, 'player' => self::OWNER],
         );
         $connection->executeStatement(
             "INSERT INTO community_player_stats (player_id, solved_total, pieces_total, solves7d, pieces7d, solves30d, solves_prev30d, solves_this_month, pieces_this_month, solves_last_month, pieces_last_month, best500_seconds, best1000_seconds, median500_seconds, monthly_solves, favorites_count, computed_at)
-             VALUES (:player, 77, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2345, NULL, 2345, '[]', 0, NOW())",
+             VALUES (:player, 77, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2345, NULL, 2345, '[]', 0, " . TestClock::SQL_NOW . ")",
             ['player' => self::OWNER],
         );
         $bestTime = 'data-median500="2345"';

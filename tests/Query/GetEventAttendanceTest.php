@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetEventAttendance;
@@ -46,7 +47,7 @@ final class GetEventAttendanceTest extends KernelTestCase
     public function testConnectedPlayerCannotChangeWhenNobodyIsLeftOnTheList(): void
     {
         $this->database->executeStatement(
-            'UPDATE competition_participant SET deleted_at = NOW() WHERE id = :id',
+            'UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => CompetitionParticipantFixture::PARTICIPANT_UNCONNECTED],
         );
 
@@ -74,7 +75,7 @@ final class GetEventAttendanceTest extends KernelTestCase
     public function testPlayerWhoLeftIsNotGoing(): void
     {
         $this->database->executeStatement(
-            'UPDATE competition_participant SET deleted_at = NOW() WHERE id = :id',
+            'UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => CompetitionParticipantFixture::PARTICIPANT_SELF_JOINED],
         );
 
@@ -105,7 +106,7 @@ final class GetEventAttendanceTest extends KernelTestCase
     {
         // The edition page's star acts on the series: an old follow of the edition alone leaves it unpressed
         $this->database->executeStatement(
-            "INSERT INTO followed_competition (id, created_at, player_id, competition_id, series_id) VALUES ('018d0040-0000-0000-0000-0000000000f1', NOW(), :player, :edition, NULL)",
+            "INSERT INTO followed_competition (id, created_at, player_id, competition_id, series_id) VALUES ('018d0040-0000-0000-0000-0000000000f1', " . TestClock::SQL_NOW . ", :player, :edition, NULL)",
             ['player' => PlayerFixture::PLAYER_WITH_FAVORITES, 'edition' => EventsPageFixture::EDITION_HARBOR_1],
         );
 

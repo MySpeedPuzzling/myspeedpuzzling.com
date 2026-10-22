@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
@@ -70,7 +71,7 @@ final class MyActivityControllerTest extends WebTestCase
         TestingLogin::asPlayer($browser, self::OWNER);
 
         foreach ([DigestPeriodLength::Week, DigestPeriodLength::TwoWeeks, DigestPeriodLength::Month] as $length) {
-            $period = DigestPeriod::containing($length, new DateTimeImmutable())->previous();
+            $period = DigestPeriod::containing($length, TestClock::now())->previous();
             $crawler = $browser->request('GET', '/en/my/activity/' . $period->key);
 
             self::assertResponseIsSuccessful($period->key);
@@ -106,7 +107,7 @@ final class MyActivityControllerTest extends WebTestCase
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, self::OWNER);
-        $period = DigestPeriod::containing(DigestPeriodLength::Week, new DateTimeImmutable())->previous();
+        $period = DigestPeriod::containing(DigestPeriodLength::Week, TestClock::now())->previous();
         $url = '/en/my/activity/' . $period->key;
         $moment = $period->start->modify('+2 days 10 hours');
 
@@ -136,7 +137,7 @@ final class MyActivityControllerTest extends WebTestCase
 
     private function momentInCurrentWeek(): DateTimeImmutable
     {
-        $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+        $now = TestClock::now();
         $weekStart = DigestPeriod::containing(DigestPeriodLength::Week, $now)->start;
 
         // A minute ago, unless the week started less than a minute ago

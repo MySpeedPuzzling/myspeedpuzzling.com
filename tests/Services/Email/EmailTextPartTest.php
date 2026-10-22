@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\Email;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Dom\HTMLDocument;
 use Ramsey\Uuid\Uuid;
@@ -71,7 +71,7 @@ final class EmailTextPartTest extends KernelTestCase
     public function testVerifyEmailTextHasTheVerificationLink(): void
     {
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
-        $entityManager->persist(new UserAccount(Uuid::uuid7(), 'msp|text-part-verify', 'text.part.verify@example.test', new DateTimeImmutable()));
+        $entityManager->persist(new UserAccount(Uuid::uuid7(), 'msp|text-part-verify', 'text.part.verify@example.test', TestClock::now()));
         $entityManager->flush();
 
         $this->messageBus->dispatch(new SendEmailVerificationLink('msp|text-part-verify', 'de'));

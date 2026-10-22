@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Collection;
 use SpeedPuzzling\Web\Exceptions\CollectionAlreadyExists;
@@ -20,6 +20,7 @@ readonly final class CreateCollectionHandler
     public function __construct(
         private CollectionRepository $collectionRepository,
         private PlayerRepository $playerRepository,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -43,7 +44,7 @@ readonly final class CreateCollectionHandler
             name: $message->name,
             description: $message->description,
             visibility: $message->visibility,
-            createdAt: new DateTimeImmutable(),
+            createdAt: $this->clock->now(),
         );
 
         $this->collectionRepository->save($collection);

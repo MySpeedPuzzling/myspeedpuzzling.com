@@ -7,12 +7,12 @@ namespace SpeedPuzzling\Web\Tests\TestDouble;
 use League\Flysystem\Config;
 use League\Flysystem\FileAttributes;
 use League\Flysystem\FilesystemAdapter;
-use League\Flysystem\InMemory\InMemoryFilesystemAdapter;
 use League\Flysystem\UnableToCopyFile;
 use League\Flysystem\UnableToDeleteFile;
 use League\Flysystem\UnableToReadFile;
 use League\Flysystem\UnableToRetrieveMetadata;
 use League\Flysystem\UnableToWriteFile;
+use Psr\Clock\ClockInterface;
 
 /**
  * Stands in for the raw S3 adapter (app.storage.s3_adapter) in tests. Default
@@ -22,13 +22,13 @@ use League\Flysystem\UnableToWriteFile;
  */
 final class ToggleableFailingFilesystemAdapter implements FilesystemAdapter
 {
-    private InMemoryFilesystemAdapter $inner;
+    private ClockedInMemoryFilesystemAdapter $inner;
 
     private bool $failing = false;
 
-    public function __construct()
+    public function __construct(ClockInterface $clock)
     {
-        $this->inner = new InMemoryFilesystemAdapter();
+        $this->inner = new ClockedInMemoryFilesystemAdapter($clock);
     }
 
     public function setFailing(bool $failing): void

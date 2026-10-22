@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -120,7 +121,7 @@ final class EmailUnverifiedBannerTest extends WebTestCase
         );
         $database->executeStatement(
             'UPDATE player SET registered_at = :registeredAt WHERE id = :id',
-            ['id' => PlayerFixture::PLAYER_REGULAR, 'registeredAt' => new DateTimeImmutable("-{$registeredDaysAgo} days")->format('Y-m-d H:i:s')],
+            ['id' => PlayerFixture::PLAYER_REGULAR, 'registeredAt' => TestClock::now()->modify("-{$registeredDaysAgo} days")->format('Y-m-d H:i:s')],
         );
     }
 }

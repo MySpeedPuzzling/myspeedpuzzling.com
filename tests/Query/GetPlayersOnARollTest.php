@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\RecalculateCommunityStats;
@@ -247,7 +247,7 @@ final class GetPlayersOnARollTest extends KernelTestCase
                 'player' => $playerId,
                 'type' => $type->value,
                 'key' => $dedupeKey,
-                'occurred' => (new DateTimeImmutable("-{$daysAgo} days"))->format('Y-m-d H:i:s'),
+                'occurred' => TestClock::now()->modify("-{$daysAgo} days")->format('Y-m-d H:i:s'),
                 'pieces' => $piecesCount,
                 'value' => $value,
             ],

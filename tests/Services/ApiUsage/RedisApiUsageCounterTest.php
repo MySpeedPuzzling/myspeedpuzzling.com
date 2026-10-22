@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\ApiUsage;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
@@ -116,7 +117,7 @@ final class RedisApiUsageCounterTest extends TestCase
     public function testEveryKeyExpires(): void
     {
         $caller = ApiCaller::oauth2Client('some-app');
-        $this->counter->record(new ApiRequestRecord($caller, 'GET /api/v1/puzzles', ApiStatusClass::Success, 1, new DateTimeImmutable()));
+        $this->counter->record(new ApiRequestRecord($caller, 'GET /api/v1/puzzles', ApiStatusClass::Success, 1, TestClock::now()));
 
         $iterator = null;
         $keys = [];

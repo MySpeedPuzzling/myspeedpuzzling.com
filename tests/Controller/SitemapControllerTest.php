@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -130,7 +131,7 @@ final class SitemapControllerTest extends WebTestCase
         $browser = self::createClient();
         // Results Cup's Final is published, but nobody in it has a ranked result yet
         self::getContainer()->get(Connection::class)->executeStatement(
-            "UPDATE competition_round SET results_published_at = NOW() WHERE slug = 'final' AND competition_id = :id",
+            "UPDATE competition_round SET results_published_at = " . TestClock::SQL_NOW . " WHERE slug = 'final' AND competition_id = :id",
             ['id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP],
         );
 

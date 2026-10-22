@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
@@ -177,7 +178,7 @@ final class GetPublishedRoundResultsTest extends KernelTestCase
     public function testPeopleRemovedFromTheEventAreLeftOut(): void
     {
         $this->database->executeStatement(
-            'UPDATE competition_participant SET deleted_at = NOW() WHERE id = :id',
+            'UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => OfficialResultsFixture::PARTICIPANT_BEN],
         );
 
@@ -375,7 +376,7 @@ final class GetPublishedRoundResultsTest extends KernelTestCase
     public function testAPuzzleWhosePictureIsStillHiddenOffersNothing(): void
     {
         $this->database->executeStatement(
-            "UPDATE puzzle SET hide_image_until = NOW() + INTERVAL '1 day' WHERE id = :id",
+            "UPDATE puzzle SET hide_image_until = " . TestClock::SQL_NOW . " + INTERVAL '1 day' WHERE id = :id",
             ['id' => PuzzleFixture::PUZZLE_1000_05],
         );
         $this->viewAs(PlayerFixture::PLAYER_ADMIN);
@@ -426,7 +427,7 @@ final class GetPublishedRoundResultsTest extends KernelTestCase
     private function publish(string $roundId): void
     {
         $this->database->executeStatement(
-            'UPDATE competition_round SET results_published_at = NOW(), results_first_published_at = NOW() WHERE id = :id',
+            'UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ', results_first_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => $roundId],
         );
     }
@@ -450,7 +451,7 @@ final class GetPublishedRoundResultsTest extends KernelTestCase
     private function block(string $blockerId, string $blockedId): void
     {
         $this->database->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => $blockerId, 'blocked' => $blockedId],
         );
     }

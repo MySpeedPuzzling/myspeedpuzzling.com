@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\SeriesEditions;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
@@ -252,7 +253,7 @@ final class SeriesEditionReconcilerTest extends KernelTestCase
 
         // Its scheduled moment passed - no event, nothing changes until the cron
         $this->database->executeStatement(
-            "UPDATE competition_round_puzzle SET reveal_mode = 'scheduled', reveal_at = NOW() - INTERVAL '1 hour' WHERE id = :id",
+            "UPDATE competition_round_puzzle SET reveal_mode = 'scheduled', reveal_at = " . TestClock::SQL_NOW . " - INTERVAL '1 hour' WHERE id = :id",
             ['id' => $this->scenario->roundPuzzleId($round, $timed)],
         );
         self::assertSame([$edition, 'date'], $this->editionOf($revealedByTime));

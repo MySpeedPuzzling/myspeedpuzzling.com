@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\OnlineResultRefused;
@@ -298,7 +299,7 @@ final class ConfirmOnlineResultHandlerTest extends KernelTestCase
     public function testNothingToConfirmBeforeTheStart(): void
     {
         $onlineEntry = $this->onlineEntryOf(OnlineRoundsFixture::ENTRY_CONNECTED);
-        $tapMs = (time() - 60) * 1000;
+        $tapMs = (TestClock::timestamp() - 60) * 1000;
         $this->finishTap($onlineEntry, $tapMs);
 
         $this->assertRefused(OnlineResultRefused::ROUND_NOT_STARTED, 422, fn () => $this->confirm($tapMs, OnlineConfirmedSource::Button));

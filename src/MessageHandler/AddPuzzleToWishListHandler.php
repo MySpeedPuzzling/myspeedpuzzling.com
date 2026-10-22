@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
-use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\WishListItem;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
@@ -25,6 +25,7 @@ readonly final class AddPuzzleToWishListHandler
         private PuzzleRepository $puzzleRepository,
         private WishListItemRepository $wishListItemRepository,
         private SecretPuzzleAccess $secretPuzzleAccess,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -52,7 +53,7 @@ readonly final class AddPuzzleToWishListHandler
             $player,
             $puzzle,
             $message->removeOnCollectionAdd,
-            new DateTimeImmutable(),
+            $this->clock->now(),
         );
 
         $this->wishListItemRepository->save($wishListItem);

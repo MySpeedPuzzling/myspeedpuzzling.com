@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -55,7 +56,7 @@ final class RoundPuzzleRevealTest extends KernelTestCase
     public function testScheduledRevealMovesThePuzzlesHideDates(): void
     {
         $roundPuzzleId = $this->secretRoundPuzzle(PuzzleFixture::PUZZLE_500_03, hidesEverywhere: true);
-        $moment = new DateTimeImmutable('+3 days')->setTime(13, 15);
+        $moment = TestClock::now()->modify('+3 days')->setTime(13, 15);
 
         $this->changeReveal($roundPuzzleId, PuzzleHideMode::Entirely, RoundPuzzleReveal::Scheduled, $moment);
 
@@ -72,7 +73,7 @@ final class RoundPuzzleRevealTest extends KernelTestCase
         $hiddenUntil = $this->roundPuzzle($roundPuzzleId)->puzzle->hideUntil;
 
         try {
-            $this->changeReveal($roundPuzzleId, PuzzleHideMode::Entirely, RoundPuzzleReveal::Scheduled, new DateTimeImmutable('-1 minute'));
+            $this->changeReveal($roundPuzzleId, PuzzleHideMode::Entirely, RoundPuzzleReveal::Scheduled, TestClock::now()->modify('-1 minute'));
             self::fail('A reveal in the past must be refused - that is "Reveal now"');
         } catch (RevealMomentAlreadyPassed) {
         }
@@ -100,14 +101,14 @@ final class RoundPuzzleRevealTest extends KernelTestCase
         $roundPuzzle = $this->roundPuzzle($roundPuzzleId);
         self::assertNull($roundPuzzle->revealsAt());
         // No automatic reveal ever - not even long after the round
-        self::assertTrue($roundPuzzle->isHiddenAt(new DateTimeImmutable('+5 years')));
+        self::assertTrue($roundPuzzle->isHiddenAt(TestClock::now()->modify('+5 years')));
         self::assertEquals(new DateTimeImmutable(CompetitionRoundPuzzle::HIDDEN_UNTIL_REVEALED), $roundPuzzle->puzzle->hideUntil);
 
         $this->messageBus->dispatch(new RevealRoundPuzzleNow($roundPuzzleId));
         $this->entityManager->clear();
 
         $roundPuzzle = $this->roundPuzzle($roundPuzzleId);
-        $now = new DateTimeImmutable();
+        $now = TestClock::now();
         self::assertFalse($roundPuzzle->isHiddenAt($now));
         self::assertNotNull($roundPuzzle->puzzle->hideUntil);
         self::assertLessThanOrEqual($now, $roundPuzzle->puzzle->hideUntil);
@@ -175,7 +176,7 @@ final class RoundPuzzleRevealTest extends KernelTestCase
         $this->entityManager->clear();
         $roundPuzzle = $this->roundPuzzle($roundPuzzleId);
         self::assertNotSame(PuzzleHideMode::ImageOnly, $roundPuzzle->hideMode);
-        self::assertTrue($roundPuzzle->puzzle->isHiddenAt(new DateTimeImmutable()));
+        self::assertTrue($roundPuzzle->puzzle->isHiddenAt(TestClock::now()));
     }
 
     public function testCataloguePuzzleIsNeverHiddenBeyondTheEventPages(): void
@@ -185,7 +186,7 @@ final class RoundPuzzleRevealTest extends KernelTestCase
         $this->changeReveal($roundPuzzleId, PuzzleHideMode::Entirely, RoundPuzzleReveal::Manual, null);
 
         $roundPuzzle = $this->roundPuzzle($roundPuzzleId);
-        self::assertTrue($roundPuzzle->isHiddenAt(new DateTimeImmutable()));
+        self::assertTrue($roundPuzzle->isHiddenAt(TestClock::now()));
         self::assertNull($roundPuzzle->puzzle->hideUntil);
         self::assertNull($roundPuzzle->puzzle->hideImageUntil);
     }
@@ -274,7 +275,7 @@ final class RoundPuzzleRevealTest extends KernelTestCase
 
         // A second round added the same puzzle a day later (its id says so)
         $second = new CompetitionRoundPuzzle(
-            id: Uuid::uuid7(new DateTimeImmutable('+1 day')),
+            id: Uuid::uuid7(TestClock::now()->modify('+1 day')),
             round: $this->round(CompetitionRoundFixture::ROUND_WJPC_FINAL),
             puzzle: $this->puzzle($puzzleId),
             hideUntilRoundStarts: true,
@@ -322,7 +323,7 @@ final class RoundPuzzleRevealTest extends KernelTestCase
         $puzzleId = $this->newSecretPuzzle(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, PuzzleHideMode::Entirely);
         $creating = $this->roundPuzzleOf(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, $puzzleId);
         $this->roundPuzzle($creating)->hidesEverywhere = false;
-        $this->round(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION)->startsAt = new DateTimeImmutable('-2 days');
+        $this->round(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION)->startsAt = TestClock::now()->modify('-2 days');
         $this->entityManager->flush();
         $this->entityManager->clear();
 

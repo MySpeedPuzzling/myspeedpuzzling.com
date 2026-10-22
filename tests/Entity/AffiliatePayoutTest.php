@@ -10,6 +10,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\AffiliatePayout;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Referral;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Value\PayoutStatus;
 
 final class AffiliatePayoutTest extends TestCase
@@ -24,7 +25,7 @@ final class AffiliatePayoutTest extends TestCase
             paymentAmountCents: 600,
             payoutAmountCents: 60,
             currency: 'EUR',
-            createdAt: new DateTimeImmutable(),
+            createdAt: TestClock::now(),
         );
 
         self::assertSame(PayoutStatus::Pending, $payout->status);
@@ -41,7 +42,7 @@ final class AffiliatePayoutTest extends TestCase
             paymentAmountCents: 600,
             payoutAmountCents: 60,
             currency: 'EUR',
-            createdAt: new DateTimeImmutable(),
+            createdAt: TestClock::now(),
         );
 
         $paidAt = new DateTimeImmutable('2026-03-15');
@@ -61,7 +62,7 @@ final class AffiliatePayoutTest extends TestCase
             paymentAmountCents: 15000,
             payoutAmountCents: 1500,
             currency: 'CZK',
-            createdAt: new DateTimeImmutable(),
+            createdAt: TestClock::now(),
         );
 
         self::assertSame(15000, $payout->paymentAmountCents);

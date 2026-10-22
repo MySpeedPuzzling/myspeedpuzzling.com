@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
@@ -220,7 +221,7 @@ final class PlanContentDigestRunsHandlerTest extends KernelTestCase
     private function seenOn(string $playerId, string $day): void
     {
         $this->database->executeStatement(
-            'INSERT INTO player_activity_day (id, player_id, day, first_seen_at) VALUES (:id, :playerId, :day, NOW()) ON CONFLICT DO NOTHING',
+            'INSERT INTO player_activity_day (id, player_id, day, first_seen_at) VALUES (:id, :playerId, :day, ' . TestClock::SQL_NOW . ') ON CONFLICT DO NOTHING',
             ['id' => Uuid::uuid7()->toString(), 'playerId' => $playerId, 'day' => $day],
         );
     }

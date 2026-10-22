@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Tests\ClonesSolvingTimes;
@@ -199,7 +200,7 @@ final class InsightsControllerTest extends WebTestCase
                 hard_puzzles_score, hard_puzzles_sample_size, hard_puzzles_percentile,
                 big_puzzles_score, big_puzzles_sample_size, big_puzzles_percentile,
                 events_score, events_sample_size, events_percentile)
-             VALUES (:player, NOW(), 0.9, 40, 81.4, 0.05, 12, 62.0, 1.15, 30, 47.0, 0.12, 6, 55.5, NULL, 2, NULL, 1.02, 8, 23.6, NULL, 0, NULL)",
+             VALUES (:player, " . TestClock::SQL_NOW . ", 0.9, 40, 81.4, 0.05, 12, 62.0, 1.15, 30, 47.0, 0.12, 6, 55.5, NULL, 2, NULL, 1.02, 8, 23.6, NULL, 0, NULL)",
             ['player' => self::FREE],
         );
 
@@ -269,7 +270,7 @@ final class InsightsControllerTest extends WebTestCase
             "SELECT COUNT(*) FROM puzzle_solving_time WHERE player_id = :id AND puzzle_id = :puzzle AND puzzling_type = 'solo' AND suspicious = false AND seconds_to_solve > 0",
             ['id' => self::MEMBER, 'puzzle' => $secret['puzzle_id']],
         );
-        $connection->executeStatement("UPDATE puzzle SET name = 'Secret canary puzzle', hide_until = NOW() + INTERVAL '1 year' WHERE id = :id", ['id' => $secret['puzzle_id']]);
+        $connection->executeStatement("UPDATE puzzle SET name = 'Secret canary puzzle', hide_until = " . TestClock::SQL_NOW . " + INTERVAL '1 year' WHERE id = :id", ['id' => $secret['puzzle_id']]);
         $connection->executeStatement(
             "UPDATE puzzle_solving_time SET suspicious = true WHERE id = (
                 SELECT id FROM puzzle_solving_time WHERE player_id = :id AND puzzle_id <> :puzzle AND puzzling_type = 'solo' AND suspicious = false AND seconds_to_solve > 0 ORDER BY id LIMIT 1

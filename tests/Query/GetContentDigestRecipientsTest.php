@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetContentDigestRecipients;
@@ -256,7 +257,7 @@ final class GetContentDigestRecipientsTest extends KernelTestCase
         $teamId = Uuid::uuid7()->toString();
         sort($memberIds);
         $this->database->executeStatement(
-            'INSERT INTO puzzling_team (id, composition_key, size, created_at, name) VALUES (:id, :key, :size, NOW(), NULL)',
+            'INSERT INTO puzzling_team (id, composition_key, size, created_at, name) VALUES (:id, :key, :size, ' . TestClock::SQL_NOW . ', NULL)',
             ['id' => $teamId, 'key' => sha1($teamId), 'size' => count($memberIds)],
         );
 

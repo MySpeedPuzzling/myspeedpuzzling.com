@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
@@ -210,7 +210,7 @@ final class GetMarketplaceListingsAtEventsTest extends KernelTestCase
     public function testASellerWhoLeftTheEventLosesTheLabelsAndTheEventList(): void
     {
         $this->database->executeStatement(
-            'UPDATE competition_participant SET deleted_at = NOW() WHERE id = :id',
+            'UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => MarketplaceEventFixture::PARTICIPANT_FAIR_SELLER_A],
         );
 
@@ -233,7 +233,7 @@ final class GetMarketplaceListingsAtEventsTest extends KernelTestCase
     public function testABlockedSellerStaysHiddenUnderTheEvent(): void
     {
         $this->database->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_REGULAR, 'blocked' => PlayerFixture::PLAYER_ADMIN],
         );
         TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_REGULAR);
@@ -266,7 +266,7 @@ final class GetMarketplaceListingsAtEventsTest extends KernelTestCase
     {
         $this->database->executeStatement(
             'INSERT INTO sell_swap_list_item_event (sell_swap_list_item_id, competition_id, added_at) VALUES (:item, :competition, :at)',
-            ['item' => $listItemId, 'competition' => $competitionId, 'at' => (new DateTimeImmutable())->format('Y-m-d H:i:s')],
+            ['item' => $listItemId, 'competition' => $competitionId, 'at' => TestClock::now()->format('Y-m-d H:i:s')],
         );
     }
 

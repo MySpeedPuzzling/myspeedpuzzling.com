@@ -5,11 +5,17 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Doctrine;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\Exception\InvalidType;
 use Doctrine\DBAL\Types\JsonType;
 use SpeedPuzzling\Web\Value\Lap;
 
+/**
+ * Laps as JSON moments in UTC - converted on write and read back as UTC, like the `datetime_immutable` columns
+ * (DBAL's DateTimeUtcImmutableType, docs/features/time-and-clock/README.md R3): a lap given in another zone keeps its
+ * instant, and nothing depends on PHP's default zone. A UTC value is stored exactly as before.
+ */
 final class LapsArrayDoctrineType extends JsonType
 {
     public const string NAME = 'laps[]';
@@ -61,18 +67,24 @@ final class LapsArrayDoctrineType extends JsonType
 
         foreach ($value as $lap) {
             $data[] = [
-                'start' => $lap->start->format(self::FORMAT),
-                'end' => $lap->end?->format(self::FORMAT),
+                'start' => self::utc($lap->start)->format(self::FORMAT),
+                'end' => $lap->end === null ? null : self::utc($lap->end)->format(self::FORMAT),
             ];
         }
 
         return parent::convertToDatabaseValue($data, $platform);
     }
 
+    private static function utc(DateTimeImmutable $moment): DateTimeImmutable
+    {
+        return $moment->getTimezone()->getName() === 'UTC' ? $moment : $moment->setTimezone(new DateTimeZone('UTC'));
+    }
+
     private static function parse(string $value): DateTimeImmutable
     {
-        $date = DateTimeImmutable::createFromFormat('!' . self::FORMAT, $value)
-            ?: DateTimeImmutable::createFromFormat('!' . self::LEGACY_FORMAT, $value);
+        $utc = new DateTimeZone('UTC');
+        $date = DateTimeImmutable::createFromFormat('!' . self::FORMAT, $value, $utc)
+            ?: DateTimeImmutable::createFromFormat('!' . self::LEGACY_FORMAT, $value, $utc);
         assert($date instanceof DateTimeImmutable);
 
         return $date;

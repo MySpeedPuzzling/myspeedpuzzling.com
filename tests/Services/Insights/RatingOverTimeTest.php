@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\Insights;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Services\Insights\RatingOverTime;
@@ -52,7 +53,7 @@ final class RatingOverTimeTest extends KernelTestCase
 
         foreach (['2026-09-01' => 0.7, '2026-09-02' => 0.71] as $date => $rating) {
             $connection->executeStatement(
-                'INSERT INTO player_rating_snapshot (id, player_id, pieces_count, snapshot_date, elo_rating, elo_rank, computed_at) VALUES (gen_random_uuid(), :player, 500, :date, :rating, 3, NOW())',
+                'INSERT INTO player_rating_snapshot (id, player_id, pieces_count, snapshot_date, elo_rating, elo_rank, computed_at) VALUES (gen_random_uuid(), :player, 500, :date, :rating, 3, ' . TestClock::SQL_NOW . ')',
                 ['player' => PlayerFixture::PLAYER_WITH_STRIPE, 'date' => $date, 'rating' => $rating],
             );
         }

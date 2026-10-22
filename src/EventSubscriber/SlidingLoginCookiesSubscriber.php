@@ -164,7 +164,8 @@ final readonly class SlidingLoginCookiesSubscriber implements EventSubscriberInt
 
         $lifetime = $options['cookie_lifetime'] ?? null;
         $expires = is_numeric($lifetime) && (int) $lifetime > 0
-            ? $this->clock->now()->getTimestamp() + (int) $lifetime
+            // Real time, never the app's clock: the browser expires the cookie on its own clock
+            ? time() + (int) $lifetime
             // A zero lifetime means "until the browser closes"; re-sending it with
             // expiry 0 keeps that promise instead of quietly upgrading it.
             : 0;

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests;
 
-use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 
@@ -25,7 +24,7 @@ trait ClonesSolvingTimes
 
         foreach ($changes as $column => $value) {
             if ($column === 'days_ago') {
-                $date = (new DateTimeImmutable("-{$value} days"))->format('Y-m-d H:i:s');
+                $date = TestClock::now()->modify("-{$value} days")->format('Y-m-d H:i:s');
                 $columns['finished_at'] = $date;
                 $columns['tracked_at'] = $date;
                 continue;

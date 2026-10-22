@@ -8,6 +8,7 @@ use GuzzleHttp\ClientInterface;
 use League\OAuth2\Client\Provider\AbstractProvider;
 use League\OAuth2\Client\Provider\Facebook;
 use League\OAuth2\Client\Provider\GenericProvider;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Value\OauthProvider;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -46,6 +47,7 @@ final readonly class SocialLoginProviders
         private string $applePrivateKey,
         private string $microsoftClientId,
         private string $microsoftClientSecret,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -133,7 +135,7 @@ final readonly class SocialLoginProviders
                 'keyFileId' => $this->appleKeyId,
                 'keyContents' => $this->applePrivateKey,
                 'redirectUri' => $redirectUri,
-            ], $collaborators),
+            ], $collaborators, $this->clock),
         };
     }
 }

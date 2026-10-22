@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Component;
 
-use DateTimeImmutable;
 use SpeedPuzzling\Web\Results\ComparisonResult;
 use SpeedPuzzling\Web\Results\ComparisonSubject;
 use SpeedPuzzling\Web\Results\ComparisonTimeRow;
 use SpeedPuzzling\Web\Services\ComparisonBuilder;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Value\ComparisonCriteria;
 use SpeedPuzzling\Web\Value\ComparisonKind;
 use SpeedPuzzling\Web\Value\ComparisonSubjectRef;
@@ -166,8 +166,8 @@ final class ComparisonChartsTest extends KernelTestCase
     private function comparison(array $playerIds, int $puzzles, bool $tiers): array
     {
         $names = [self::ME => 'Me Myself', self::ANNA => 'Anna Novak', self::BEN => 'Ben Berger'];
-        $earlier = (new DateTimeImmutable('first day of this month'))->modify('-2 months')->setTime(12, 0);
-        $recent = (new DateTimeImmutable('first day of this month'))->setTime(12, 0);
+        $earlier = TestClock::now()->modify('first day of this month')->modify('-2 months')->setTime(12, 0);
+        $recent = TestClock::now()->modify('first day of this month')->setTime(12, 0);
         $times = [
             ['p1', 500, $earlier, 2, [self::ME => 900, self::ANNA => 1000, self::BEN => 1100]],
             ['p2', 500, $earlier, 2, [self::ME => 1000, self::ANNA => 900, self::BEN => 950]],

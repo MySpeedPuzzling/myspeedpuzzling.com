@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
@@ -49,7 +49,7 @@ final class RoundResultsSecretPuzzleTest extends WebTestCase
         // ... also secret in the WJPC Qualification Round, which started an hour ago - so revealed there already
         $qualification = $entityManager->find(CompetitionRound::class, CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION);
         self::assertNotNull($qualification);
-        $qualification->startsAt = new DateTimeImmutable('-1 hour');
+        $qualification->startsAt = TestClock::now()->modify('-1 hour');
         $entityManager->flush();
         $qualificationRow = Uuid::uuid7();
         $bus->dispatch($this->add($qualificationRow->toString(), CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, $puzzleId, null));

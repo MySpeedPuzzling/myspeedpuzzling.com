@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Message\RecordPuzzleDifficultyEstimates;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficultyEstimates;
@@ -85,10 +86,10 @@ final class GetPuzzleDifficultyEstimatesTest extends KernelTestCase
         // A new picture - the estimate of the old one no longer counts
         $database->executeStatement("UPDATE puzzle SET image = 'box-500-01-new.jpg' WHERE id = :id", ['id' => PuzzleFixture::PUZZLE_500_01]);
         // Secret since the push: the picture, or the whole puzzle
-        $database->executeStatement("UPDATE puzzle SET hide_image_until = NOW() + INTERVAL '30 days' WHERE id = :id", ['id' => PuzzleFixture::PUZZLE_500_02]);
-        $database->executeStatement("UPDATE puzzle SET hide_until = NOW() + INTERVAL '30 days' WHERE id = :id", ['id' => PuzzleFixture::PUZZLE_500_03]);
+        $database->executeStatement("UPDATE puzzle SET hide_image_until = " . TestClock::SQL_NOW . " + INTERVAL '30 days' WHERE id = :id", ['id' => PuzzleFixture::PUZZLE_500_02]);
+        $database->executeStatement("UPDATE puzzle SET hide_until = " . TestClock::SQL_NOW . " + INTERVAL '30 days' WHERE id = :id", ['id' => PuzzleFixture::PUZZLE_500_03]);
         // A reveal in the past hides nothing
-        $database->executeStatement("UPDATE puzzle SET hide_image_until = NOW() - INTERVAL '1 day' WHERE id = :id", ['id' => PuzzleFixture::PUZZLE_1000_01]);
+        $database->executeStatement("UPDATE puzzle SET hide_image_until = " . TestClock::SQL_NOW . " - INTERVAL '1 day' WHERE id = :id", ['id' => PuzzleFixture::PUZZLE_1000_01]);
 
         $estimates = self::getContainer()->get(GetPuzzleDifficultyEstimates::class)->forPuzzles(array_keys(self::IMAGES));
 

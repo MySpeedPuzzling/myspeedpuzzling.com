@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\UserBlockNotFound;
@@ -59,7 +60,7 @@ final class UnblockUserHandlerTest extends KernelTestCase
     public function testAdminImposedBlockCannotBeLiftedAndLooksLikeNoBlock(): void
     {
         self::getContainer()->get(Connection::class)->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source, note) VALUES (:id, :blocker, :blocked, NOW(), 'admin', 'test')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source, note) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'admin', 'test')",
             [
                 'id' => Uuid::uuid7()->toString(),
                 'blocker' => PlayerFixture::PLAYER_ADMIN,

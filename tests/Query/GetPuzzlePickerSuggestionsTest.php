@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetPlayerPredictions;
 use SpeedPuzzling\Web\Query\GetPuzzlePickerSuggestions;
@@ -155,7 +156,7 @@ final class GetPuzzlePickerSuggestionsTest extends KernelTestCase
         $any = $this->pickAll(['source' => 'any'], PlayerFixture::PLAYER_WITH_FAVORITES);
 
         $approvedCount = $this->database->fetchOne(
-            'SELECT count(*) FROM puzzle WHERE approved = true AND (hide_until IS NULL OR hide_until < now())',
+            'SELECT count(*) FROM puzzle WHERE approved = true AND (hide_until IS NULL OR hide_until < ' . TestClock::SQL_NOW . ')',
         );
         assert(is_int($approvedCount));
 
@@ -288,7 +289,7 @@ final class GetPuzzlePickerSuggestionsTest extends KernelTestCase
         self::assertSame(2200, $suggestion->myFirstSeconds);
         self::assertSame(1700, $suggestion->myLatestSeconds);
         self::assertNotNull($suggestion->myLastSolvedAt);
-        self::assertEqualsWithDelta(10, (new \DateTimeImmutable())->diff($suggestion->myLastSolvedAt)->days, 1);
+        self::assertEqualsWithDelta(10, TestClock::now()->diff($suggestion->myLastSolvedAt)->days, 1);
         self::assertTrue($suggestion->inMyCollection);
         self::assertSame(PuzzleFixture::PUZZLE_500_02, $suggestion->puzzleId);
         self::assertSame(500, $suggestion->piecesCount);
@@ -309,7 +310,7 @@ final class GetPuzzlePickerSuggestionsTest extends KernelTestCase
         self::assertSame(3950, $suggestion->myFirstSeconds);
         self::assertSame(4500, $suggestion->myLatestSeconds);
         self::assertNotNull($suggestion->myLastSolvedAt);
-        self::assertEqualsWithDelta(3, (new \DateTimeImmutable())->diff($suggestion->myLastSolvedAt)->days, 1);
+        self::assertEqualsWithDelta(3, TestClock::now()->diff($suggestion->myLastSolvedAt)->days, 1);
     }
 
     public function testNeverSolvedPuzzleHasNoPersonalData(): void
@@ -418,7 +419,7 @@ final class GetPuzzlePickerSuggestionsTest extends KernelTestCase
     {
         $guest = $this->pickAll(['source' => 'mine', 'solved' => 'never', 'lent' => '1'], null, isAuthenticated: false);
         $approvedCount = $this->database->fetchOne(
-            'SELECT count(*) FROM puzzle WHERE approved = true AND (hide_until IS NULL OR hide_until < now())',
+            'SELECT count(*) FROM puzzle WHERE approved = true AND (hide_until IS NULL OR hide_until < ' . TestClock::SQL_NOW . ')',
         );
         assert(is_int($approvedCount));
 
@@ -554,7 +555,7 @@ final class GetPuzzlePickerSuggestionsTest extends KernelTestCase
         /** @var list<string> $olderThanAMonth */
         $olderThanAMonth = $this->database->fetchFirstColumn(
             'SELECT puzzle_id FROM puzzle_solving_time WHERE player_id = :playerId GROUP BY puzzle_id HAVING max(COALESCE(finished_at, tracked_at)) < :threshold',
-            ['playerId' => $playerId, 'threshold' => (new \DateTimeImmutable())->modify('-1 months')->format('Y-m-d H:i:s')],
+            ['playerId' => $playerId, 'threshold' => TestClock::now()->modify('-1 months')->format('Y-m-d H:i:s')],
         );
         self::assertNotSame([], $olderThanAMonth);
         self::assertEqualsCanonicalizing($olderThanAMonth, self::ids($this->pickAll(['source' => 'any', 'lent' => '1', 'since' => '1', 'since_unit' => 'm', 'since_require_solved' => '1'], $playerId)));
@@ -641,7 +642,7 @@ final class GetPuzzlePickerSuggestionsTest extends KernelTestCase
     {
         /** @var list<string> $expectedFew */
         $expectedFew = $this->database->fetchFirstColumn(
-            'SELECT p.id FROM puzzle p LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = p.id WHERE p.approved = true AND (p.hide_until IS NULL OR p.hide_until < now()) AND COALESCE(ps.solved_times_solo_count, 0) <= 5',
+            'SELECT p.id FROM puzzle p LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = p.id WHERE p.approved = true AND (p.hide_until IS NULL OR p.hide_until < ' . TestClock::SQL_NOW . ') AND COALESCE(ps.solved_times_solo_count, 0) <= 5',
         );
         $few = $this->pickAll(['community' => 'few'], null);
 
@@ -1055,7 +1056,7 @@ final class GetPuzzlePickerSuggestionsTest extends KernelTestCase
         $this->recalculator->recalculate();
         $guest = $this->pickAll(['gap' => 'slower', 'order' => 'gap_slower', 'difficulty' => ['3']], null, isAuthenticated: false);
         $approvedCount = $this->database->fetchOne(
-            'SELECT count(*) FROM puzzle WHERE approved = true AND (hide_until IS NULL OR hide_until < now())',
+            'SELECT count(*) FROM puzzle WHERE approved = true AND (hide_until IS NULL OR hide_until < ' . TestClock::SQL_NOW . ')',
         );
 
         self::assertSame($approvedCount, $guest->totalMatching);

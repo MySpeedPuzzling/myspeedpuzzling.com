@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Security;
 
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\BrowserKit\Cookie;
@@ -115,7 +115,7 @@ final class LeftoverAuth0SessionTest extends WebTestCase
                 'email_verified' => true,
             ],
             'accessToken' => 'legacy-auth0-access-token',
-            'accessTokenExpiration' => time() + 3600,
+            'accessTokenExpiration' => TestClock::timestamp() + 3600,
         ]);
 
         if ($withSecurityToken) {
@@ -149,12 +149,12 @@ final class LeftoverAuth0SessionTest extends WebTestCase
     {
         // Randomized: the login rate limiter's cache survives across tests and runs
         $email = sprintf('leftover.auth0+%s@example.com', bin2hex(random_bytes(4)));
-        $userAccount = new UserAccount(Uuid::uuid7(), 'auth0|' . bin2hex(random_bytes(4)), $email, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), 'auth0|' . bin2hex(random_bytes(4)), $email, TestClock::now());
         $userAccount->applyAuth0Import(
             $email,
             password_hash('leftover-auth0-session-password', PASSWORD_BCRYPT, ['cost' => 4]),
             true,
-            new DateTimeImmutable(),
+            TestClock::now(),
         );
 
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);

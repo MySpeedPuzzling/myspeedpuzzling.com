@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Value;
 
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
@@ -14,6 +13,7 @@ use SpeedPuzzling\Web\Query\GetPuzzleRecord;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleReportFixture;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Value\PuzzleName;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
@@ -37,7 +37,7 @@ final class PuzzleRecordVersionTest extends KernelTestCase
                 new PuzzleName('Muscheln', 'de'),
                 new PuzzleName('Conchas', 'pt-BR'),
                 new PuzzleName('Untagged', null),
-            ]), new DateTimeImmutable());
+            ]), TestClock::now());
         });
 
         $puzzle = $container->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_500_01);

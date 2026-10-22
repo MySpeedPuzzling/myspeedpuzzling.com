@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -106,7 +107,7 @@ final class PrivateProfileViewersControllerTest extends WebTestCase
         // TIME_44: a solo time of the private player
         foreach ([PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_WITH_STRIPE] as $recipient) {
             $database->executeStatement(
-                "INSERT INTO notification (id, player_id, type, notified_at, target_solving_time_id) VALUES (:id, :player, 'subscribed_player_added_time', NOW(), :time)",
+                "INSERT INTO notification (id, player_id, type, notified_at, target_solving_time_id) VALUES (:id, :player, 'subscribed_player_added_time', " . TestClock::SQL_NOW . ", :time)",
                 ['id' => Uuid::uuid7()->toString(), 'player' => $recipient, 'time' => PuzzleSolvingTimeFixture::TIME_44],
             );
         }
@@ -143,7 +144,7 @@ final class PrivateProfileViewersControllerTest extends WebTestCase
     private function makeMember(Connection $database, string $playerId): void
     {
         $database->executeStatement(
-            "INSERT INTO membership (id, player_id, created_at, granted_until) VALUES (:id, :player, NOW(), NOW() + INTERVAL '1 year')",
+            "INSERT INTO membership (id, player_id, created_at, granted_until) VALUES (:id, :player, " . TestClock::SQL_NOW . ", " . TestClock::SQL_NOW . " + INTERVAL '1 year')",
             ['id' => Uuid::uuid7()->toString(), 'player' => $playerId],
         );
     }

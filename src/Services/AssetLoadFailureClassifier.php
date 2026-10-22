@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
-use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Value\AssetLoadFailureReport;
 use SpeedPuzzling\Web\Value\AssetLoadFailureVerdict;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -39,7 +38,6 @@ final readonly class AssetLoadFailureClassifier
     public function __construct(
         #[Autowire('%kernel.project_dir%/public/build')]
         private string $buildDirectory,
-        private ClockInterface $clock,
     ) {
     }
 
@@ -113,7 +111,9 @@ final readonly class AssetLoadFailureClassifier
             return null;
         }
 
-        $age = $this->clock->now()->getTimestamp() - $report->renderedAt;
+        // Real time on purpose, never the app's clock: renderedAt is the page's msp-rendered-at, which is real time
+        // too (the browser judges it against the server's Date header - docs/features/time-and-clock)
+        $age = time() - $report->renderedAt;
 
         return $age >= 0 ? $age : null;
     }

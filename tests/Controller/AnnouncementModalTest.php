@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Services\AnnouncementModals\ResolveAnnouncementModal;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
@@ -180,7 +181,7 @@ final class AnnouncementModalTest extends WebTestCase
         $this->launchRevealNotSeenYet($browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $database = $browser->getContainer()->get(Connection::class);
         $database->executeStatement(
-            "INSERT INTO badge (id, player_id, type, earned_at, tier) VALUES (gen_random_uuid(), :player, 'puzzles_solved', NOW(), 1)",
+            "INSERT INTO badge (id, player_id, type, earned_at, tier) VALUES (gen_random_uuid(), :player, 'puzzles_solved', " . TestClock::SQL_NOW . ", 1)",
             ['player' => PlayerFixture::PLAYER_WITH_STRIPE],
         );
 
@@ -242,7 +243,7 @@ final class AnnouncementModalTest extends WebTestCase
         $browser = $this->signedIn(PlayerFixture::PLAYER_REGULAR, registeredDaysAgo: 40);
         $this->launchRevealNotSeenYet($browser, PlayerFixture::PLAYER_REGULAR);
         $browser->getContainer()->get(Connection::class)->executeStatement(
-            "INSERT INTO player_modal_impression (id, player_id, modal, displayed_at) VALUES (gen_random_uuid(), :player, 'free_trial_offer', NOW() - INTERVAL '1 day')",
+            "INSERT INTO player_modal_impression (id, player_id, modal, displayed_at) VALUES (gen_random_uuid(), :player, 'free_trial_offer', " . TestClock::SQL_NOW . " - INTERVAL '1 day')",
             ['player' => PlayerFixture::PLAYER_REGULAR],
         );
 

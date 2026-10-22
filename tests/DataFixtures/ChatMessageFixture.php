@@ -78,13 +78,14 @@ final class ChatMessageFixture extends Fixture implements DependentFixtureInterf
         );
         $manager->persist($msg03);
 
-        // Last message from ADMIN - unread by REGULAR
+        // Last message from ADMIN - unread by REGULAR. An hour past a day, so it is past the default 24-hour unread
+        // e-mail threshold (`sent_at < now - 24 hours`); exactly one day sat on the boundary at the frozen clock.
         $msg04 = $this->createMessage(
             id: self::MESSAGE_04,
             conversation: $acceptedConversation,
             sender: $playerAdmin,
             content: 'I recommend sorting all edge pieces first, then grouping by color patterns.',
-            sentAt: $now->modify('-1 day'),
+            sentAt: $now->modify('-1 day -1 hour'),
         );
         $manager->persist($msg04);
 

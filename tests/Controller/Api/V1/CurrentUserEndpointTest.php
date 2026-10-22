@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Api\V1;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\Membership;
@@ -235,7 +236,7 @@ final class CurrentUserEndpointTest extends WebTestCase
             (new DateTimeImmutable($response['membership_ends_at']))->format('c'),
             'membership_ends_at must be ISO-8601 (DateTimeInterface::ATOM)',
         );
-        $this->assertGreaterThan(new DateTimeImmutable(), new DateTimeImmutable($response['membership_ends_at']));
+        $this->assertGreaterThan(TestClock::now(), new DateTimeImmutable($response['membership_ends_at']));
         $this->assertFalse($response['time_predictions_opted_out']);
         $this->assertFalse($response['ranking_opted_out']);
         $this->assertFalse($response['streak_opted_out']);
@@ -254,7 +255,7 @@ final class CurrentUserEndpointTest extends WebTestCase
         $this->assertSame(PlayerFixture::PLAYER_WITH_STRIPE, $response['id']);
         $this->assertTrue($response['has_active_membership']);
         $this->assertIsString($response['membership_ends_at']);
-        $this->assertGreaterThan(new DateTimeImmutable(), new DateTimeImmutable($response['membership_ends_at']));
+        $this->assertGreaterThan(TestClock::now(), new DateTimeImmutable($response['membership_ends_at']));
         $this->assertFalse($response['time_predictions_opted_out']);
         $this->assertFalse($response['ranking_opted_out']);
         $this->assertFalse($response['streak_opted_out']);
@@ -595,7 +596,7 @@ final class CurrentUserEndpointTest extends WebTestCase
         $membership = $entityManager->getRepository(Membership::class)->findOneBy(['player' => $playerId]);
         $this->assertNotNull($membership);
 
-        $membership->cancel(new DateTimeImmutable('-1 day'));
+        $membership->cancel(TestClock::now()->modify('-1 day'));
         $entityManager->flush();
         $entityManager->clear();
     }

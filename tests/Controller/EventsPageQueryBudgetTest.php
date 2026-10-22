@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Clock\ClockInterface;
@@ -115,14 +116,14 @@ final class EventsPageQueryBudgetTest extends WebTestCase
 
             $connection->executeStatement(
                 "INSERT INTO competition (id, name, location, location_country_code, date_from, date_to, is_online, approved_at, created_at)
-                 VALUES (:id, :name, 'Prague', 'cz', NOW() + make_interval(days => :days), NOW() + make_interval(days => :days), false, NOW(), NOW())",
+                 VALUES (:id, :name, 'Prague', 'cz', " . TestClock::SQL_NOW . " + make_interval(days => :days), " . TestClock::SQL_NOW . " + make_interval(days => :days), false, " . TestClock::SQL_NOW . ", " . TestClock::SQL_NOW . ")",
                 ['id' => $eventId, 'name' => 'Query budget event ' . $i, 'days' => 40 + $i],
             );
         }
 
         for ($i = 1; $i <= $series; $i++) {
             $connection->executeStatement(
-                'INSERT INTO competition_series (id, name, is_online, approved_at, added_by_player_id) VALUES (:id, :name, false, NOW(), :owner)',
+                'INSERT INTO competition_series (id, name, is_online, approved_at, added_by_player_id) VALUES (:id, :name, false, ' . TestClock::SQL_NOW . ', :owner)',
                 ['id' => Uuid::uuid7()->toString(), 'name' => 'Query budget series ' . $i, 'owner' => PlayerFixture::PLAYER_ADMIN],
             );
         }

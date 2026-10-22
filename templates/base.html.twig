@@ -284,7 +284,11 @@
            worker ignores it) and only happens for a document that looks old.
 
            Fail open, like the asset script above: anything unexpected does
-           nothing, and healing is capped at once per session. #}
+           nothing, and healing is capped at once per session.
+
+           Real time on purpose, never now(): the browser compares it with the
+           server's Date header, which no frozen test clock moves
+           (docs/features/time-and-clock, SystemClockCoverageTest). #}
         <meta name="msp-rendered-at" content="{{ 'now'|date('U') }}">
         <script>
         (function () {
@@ -484,16 +488,6 @@
         {% block header %}
         {% if is_web() %}
         <header class="sticky-top shadow-sm" data-controller="header-height">
-            {# Live-event strip: first child of the sticky header, so it takes its own space
-               and --header-height follows it. Gone once the event's last day is over -
-               the offset is explicit because Twig parses date strings in UTC. Never shown
-               on the event page it links to. #}
-            {% set live_event_slug = 'world-jigsaw-puzzle-championship-2026' %}
-            {% if date() < date('2026-09-21T00:00:00+02:00') and not (currentRoute == 'event_detail' and currentRouteParams.slug is defined and currentRouteParams.slug == live_event_slug) %}
-                <a class="competition-panel-info" href="{{ path('event_detail', {slug: live_event_slug}) }}">
-                    <span class="live-dot live-dot-light" aria-hidden="true"></span>{{ 'live_event_strip'|trans({'%event%': 'WJPC 2026'}) }}
-                </a>
-            {% endif %}
             <div class="topbar topbar-light">
                 <div class="container">
                     <div class="topbar-text text-nowrap">

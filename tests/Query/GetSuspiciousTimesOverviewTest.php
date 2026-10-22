@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Message\MarkSolvingTimeSuspicious;
 use SpeedPuzzling\Web\Query\GetSuspiciousTimesOverview;
@@ -78,7 +79,7 @@ final class GetSuspiciousTimesOverviewTest extends KernelTestCase
 
         // Harbour Lights becomes a competition's secret puzzle: the log keeps the decision, not what would give it away
         self::getContainer()->get(Connection::class)->executeStatement(
-            "UPDATE puzzle SET hide_until = NOW() + INTERVAL '30 days' WHERE id = :id",
+            "UPDATE puzzle SET hide_until = " . TestClock::SQL_NOW . " + INTERVAL '30 days' WHERE id = :id",
             ['id' => SuspiciousTimesFixture::PUZZLE_HARBOUR],
         );
 

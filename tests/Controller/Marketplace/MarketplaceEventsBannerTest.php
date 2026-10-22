@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Marketplace;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\MarketplaceEventFixture;
@@ -61,7 +62,7 @@ final class MarketplaceEventsBannerTest extends WebTestCase
     {
         $browser = $this->signedIn(PlayerFixture::PLAYER_ADMIN);
         $this->database($browser)->executeStatement(
-            'UPDATE competition_participant SET deleted_at = NOW() WHERE player_id = :player',
+            'UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW . ' WHERE player_id = :player',
             ['player' => PlayerFixture::PLAYER_ADMIN],
         );
 

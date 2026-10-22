@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use League\Flysystem\Filesystem;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -23,7 +24,7 @@ final class ResultImageControllerTest extends WebTestCase
     {
         yield 'puzzle without any image' => ['UPDATE puzzle SET image = NULL, hide_image_until = NULL WHERE id = :puzzleId'];
         yield 'photo known to the database, gone from storage' => ["UPDATE puzzle SET image = 'gone-from-storage.jpg', hide_image_until = NULL WHERE id = :puzzleId"];
-        yield 'image hidden until a round starts' => ["UPDATE puzzle SET image = 'hidden.jpg', hide_image_until = NOW() + INTERVAL '1 day' WHERE id = :puzzleId"];
+        yield 'image hidden until a round starts' => ["UPDATE puzzle SET image = 'hidden.jpg', hide_image_until = " . TestClock::SQL_NOW . " + INTERVAL '1 day' WHERE id = :puzzleId"];
     }
 
     public function testTheShareImageCarriesNoneOfThePhotosMetadata(): void

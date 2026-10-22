@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -143,7 +143,7 @@ final class VerifyOnlineMediaHandlerTest extends KernelTestCase
             objectKey: 'online/test/' . $id->toString() . '.jpg',
             contentType: 'image/jpeg',
             declaredBytes: 182_000,
-            createdAt: new DateTimeImmutable(),
+            createdAt: TestClock::now(),
         );
         $media->markUploaded(1_792_002_833_000);
         $this->entityManager->persist($media);

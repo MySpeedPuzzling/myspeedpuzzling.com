@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -46,7 +46,7 @@ final class ResultReviewVerificationEmailsTest extends KernelTestCase
         $this->database = self::getContainer()->get(Connection::class);
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
 
-        $this->entityManager->persist(new UserAccount(Uuid::uuid7(), 'auth0|marked1', self::MIA_EMAIL, new DateTimeImmutable()));
+        $this->entityManager->persist(new UserAccount(Uuid::uuid7(), 'auth0|marked1', self::MIA_EMAIL, TestClock::now()));
         $this->entityManager->flush();
     }
 
@@ -83,7 +83,7 @@ final class ResultReviewVerificationEmailsTest extends KernelTestCase
 
         // Told once - also to an active player a week later
         $this->activeDaysAgo(self::MIA, 1);
-        $this->database->executeStatement("UPDATE result_review_contact SET sent_at = NOW() - INTERVAL '10 days'");
+        $this->database->executeStatement("UPDATE result_review_contact SET sent_at = " . TestClock::SQL_NOW . " - INTERVAL '10 days'");
         self::assertSame(0, $this->plan());
     }
 
@@ -108,7 +108,7 @@ final class ResultReviewVerificationEmailsTest extends KernelTestCase
 
         // Active, but the last e-mail is not a week old yet
         $this->activeDaysAgo(self::MIA, 1);
-        $this->database->executeStatement("UPDATE result_review_contact SET sent_at = NOW() - INTERVAL '3 days'");
+        $this->database->executeStatement("UPDATE result_review_contact SET sent_at = " . TestClock::SQL_NOW . " - INTERVAL '3 days'");
         self::assertSame(0, $this->plan());
     }
 
@@ -138,7 +138,7 @@ final class ResultReviewVerificationEmailsTest extends KernelTestCase
     {
         yield 'a moderator trusted the time' => ["UPDATE suspicious_time_case SET status = 'trusted' WHERE id = '" . SuspiciousTimesFixture::CASE_MARKED . "'; UPDATE puzzle_solving_time SET suspicious = false WHERE id = '" . SuspiciousTimesFixture::TIME_MARKED . "'"];
         yield 'the flag was cleared by SQL' => ["UPDATE puzzle_solving_time SET suspicious = false WHERE id = '" . SuspiciousTimesFixture::TIME_MARKED . "'"];
-        yield 'the player left it as it is' => ["UPDATE suspicious_time_notice SET response = 'left_as_is', responded_at = NOW() WHERE id = '" . SuspiciousTimesFixture::NOTICE_MARKED . "'"];
+        yield 'the player left it as it is' => ["UPDATE suspicious_time_notice SET response = 'left_as_is', responded_at = " . TestClock::SQL_NOW . " WHERE id = '" . SuspiciousTimesFixture::NOTICE_MARKED . "'"];
         yield 'the player fixed it and the case was corrected' => ["UPDATE suspicious_time_case SET status = 'corrected' WHERE id = '" . SuspiciousTimesFixture::CASE_MARKED . "'"];
         yield 'unmarked and marked again - a new mark with its own notice' => ["UPDATE suspicious_time_case SET marked_at = marked_at + INTERVAL '1 hour' WHERE id = '" . SuspiciousTimesFixture::CASE_MARKED . "'"];
         yield 'another e-mail told it meanwhile' => ["UPDATE suspicious_time_notice SET contact_id = '" . Uuid::uuid7()->toString() . "' WHERE id = '" . SuspiciousTimesFixture::NOTICE_MARKED . "'"];
@@ -170,7 +170,7 @@ final class ResultReviewVerificationEmailsTest extends KernelTestCase
         // The mark went out 10 days ago; Mia said the time is correct, a moderator kept it marked with a note
         $markContactId = $this->sentContactDaysAgo(10, [self::NOTICE]);
         $this->database->executeStatement(
-            "UPDATE suspicious_time_notice SET contact_id = :contactId, response = 'says_correct', responded_at = NOW() - INTERVAL '5 days', answer = 'kept', answer_note = 'The box in your photo is the 500-piece edition.', answered_at = NOW() - INTERVAL '1 day' WHERE id = :id",
+            "UPDATE suspicious_time_notice SET contact_id = :contactId, response = 'says_correct', responded_at = " . TestClock::SQL_NOW . " - INTERVAL '5 days', answer = 'kept', answer_note = 'The box in your photo is the 500-piece edition.', answered_at = " . TestClock::SQL_NOW . " - INTERVAL '1 day' WHERE id = :id",
             ['contactId' => $markContactId, 'id' => self::NOTICE],
         );
         $this->entityManager->clear();
@@ -193,14 +193,14 @@ final class ResultReviewVerificationEmailsTest extends KernelTestCase
         self::assertNoWordSuspicious($email);
 
         // Told once
-        $this->database->executeStatement("UPDATE result_review_contact SET sent_at = NOW() - INTERVAL '10 days'");
+        $this->database->executeStatement("UPDATE result_review_contact SET sent_at = " . TestClock::SQL_NOW . " - INTERVAL '10 days'");
         self::assertSame(0, $this->plan());
     }
 
     public function testAnAnswerToldMeanwhileIsDroppedAtSendTime(): void
     {
         $this->database->executeStatement(
-            "UPDATE suspicious_time_notice SET contact_id = :contactId, response = 'says_correct', responded_at = NOW(), answer = 'trusted', answered_at = NOW() WHERE id = :id",
+            "UPDATE suspicious_time_notice SET contact_id = :contactId, response = 'says_correct', responded_at = " . TestClock::SQL_NOW . ", answer = 'trusted', answered_at = " . TestClock::SQL_NOW . " WHERE id = :id",
             ['contactId' => Uuid::uuid7()->toString(), 'id' => self::NOTICE],
         );
         $this->database->executeStatement("UPDATE suspicious_time_case SET status = 'trusted' WHERE id = :id", ['id' => SuspiciousTimesFixture::CASE_MARKED]);
@@ -251,10 +251,10 @@ final class ResultReviewVerificationEmailsTest extends KernelTestCase
             lastActiveOn: null,
             caseIds: [],
             removalIds: [],
-            plannedAt: new DateTimeImmutable("-{$days} days"),
+            plannedAt: TestClock::now()->modify("-{$days} days"),
             suspiciousNoticeIds: $suspiciousNoticeIds,
         );
-        $contact->sent([], [], new DateTimeImmutable("-{$days} days"), $suspiciousNoticeIds);
+        $contact->sent([], [], TestClock::now()->modify("-{$days} days"), $suspiciousNoticeIds);
         $this->entityManager->persist($contact);
         $this->entityManager->flush();
 
@@ -271,7 +271,7 @@ final class ResultReviewVerificationEmailsTest extends KernelTestCase
             lastActiveOn: null,
             caseIds: [],
             removalIds: [],
-            plannedAt: new DateTimeImmutable(),
+            plannedAt: TestClock::now(),
             suspiciousNoticeIds: [self::NOTICE],
         ));
         $this->entityManager->flush();
@@ -281,7 +281,7 @@ final class ResultReviewVerificationEmailsTest extends KernelTestCase
     private function activeDaysAgo(string $playerId, int $days): void
     {
         $this->database->executeStatement(
-            "INSERT INTO player_activity_day (id, player_id, day, first_seen_at) VALUES (:id, :playerId, CURRENT_DATE - :days * INTERVAL '1 day', NOW())",
+            "INSERT INTO player_activity_day (id, player_id, day, first_seen_at) VALUES (:id, :playerId, " . TestClock::SQL_TODAY . " - :days * INTERVAL '1 day', " . TestClock::SQL_NOW . ")",
             ['id' => Uuid::uuid7()->toString(), 'playerId' => $playerId, 'days' => $days],
         );
     }

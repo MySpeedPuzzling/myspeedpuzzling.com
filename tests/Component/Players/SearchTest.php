@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Message\RecalculateCommunityStats;
 use SpeedPuzzling\Web\MessageHandler\RecalculateCommunityStatsHandler;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -100,7 +101,7 @@ final class SearchTest extends WebTestCase
     {
         $browser = $this->browser();
         self::getContainer()->get(Connection::class)->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_WITH_FAVORITES, 'blocked' => PlayerFixture::PLAYER_WITH_STRIPE],
         );
 
@@ -118,7 +119,7 @@ final class SearchTest extends WebTestCase
         $browser = $this->browser();
         self::getContainer()->get(Connection::class)->executeStatement(
             "INSERT INTO player (id, code, name, registered_at)
-             SELECT gen_random_uuid(), 'quokka' || n, 'Quokka Puzzler ' || n, NOW() FROM generate_series(1, :count) AS n",
+             SELECT gen_random_uuid(), 'quokka' || n, 'Quokka Puzzler ' || n, " . TestClock::SQL_NOW . " FROM generate_series(1, :count) AS n",
             ['count' => 12],
             ['count' => ParameterType::INTEGER],
         );

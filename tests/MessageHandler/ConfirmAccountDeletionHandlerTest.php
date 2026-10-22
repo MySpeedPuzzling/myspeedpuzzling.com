@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -42,7 +43,7 @@ final class ConfirmAccountDeletionHandlerTest extends KernelTestCase
     public function testALiveTokenDeletesThePlayerTheAccountAndTheRequest(): void
     {
         [$userAccount, $player] = $this->seedAccountWithPlayer();
-        $token = $this->issueToken($userAccount, expiresAt: new DateTimeImmutable('+30 minutes'));
+        $token = $this->issueToken($userAccount, expiresAt: TestClock::now()->modify('+30 minutes'));
 
         $this->messageBus->dispatch(new ConfirmAccountDeletion($token->toString()));
         $this->entityManager->clear();
@@ -55,7 +56,7 @@ final class ConfirmAccountDeletionHandlerTest extends KernelTestCase
     public function testAnAccountWithoutAPlayerRowIsRemovedToo(): void
     {
         $userAccount = $this->seedAccount();
-        $token = $this->issueToken($userAccount, expiresAt: new DateTimeImmutable('+30 minutes'));
+        $token = $this->issueToken($userAccount, expiresAt: TestClock::now()->modify('+30 minutes'));
 
         $this->messageBus->dispatch(new ConfirmAccountDeletion($token->toString()));
         $this->entityManager->clear();
@@ -66,7 +67,7 @@ final class ConfirmAccountDeletionHandlerTest extends KernelTestCase
     public function testAnExpiredTokenDeletesNothing(): void
     {
         [$userAccount, $player] = $this->seedAccountWithPlayer();
-        $token = $this->issueToken($userAccount, expiresAt: new DateTimeImmutable('-1 minute'));
+        $token = $this->issueToken($userAccount, expiresAt: TestClock::now()->modify('-1 minute'));
 
         try {
             $this->messageBus->dispatch(new ConfirmAccountDeletion($token->toString()));
@@ -83,7 +84,7 @@ final class ConfirmAccountDeletionHandlerTest extends KernelTestCase
     public function testAForgedVerifierDeletesNothing(): void
     {
         [$userAccount, $player] = $this->seedAccountWithPlayer();
-        $token = $this->issueToken($userAccount, expiresAt: new DateTimeImmutable('+30 minutes'));
+        $token = $this->issueToken($userAccount, expiresAt: TestClock::now()->modify('+30 minutes'));
         $forged = $token->selector . strrev($token->verifier);
 
         try {
@@ -111,7 +112,7 @@ final class ConfirmAccountDeletionHandlerTest extends KernelTestCase
     public function testATokenCanOnlyBeUsedOnce(): void
     {
         [$userAccount] = $this->seedAccountWithPlayer();
-        $token = $this->issueToken($userAccount, expiresAt: new DateTimeImmutable('+30 minutes'));
+        $token = $this->issueToken($userAccount, expiresAt: TestClock::now()->modify('+30 minutes'));
 
         $this->messageBus->dispatch(new ConfirmAccountDeletion($token->toString()));
 
@@ -127,8 +128,8 @@ final class ConfirmAccountDeletionHandlerTest extends KernelTestCase
     {
         [$leaving] = $this->seedAccountWithPlayer();
         [$staying, $stayingPlayer] = $this->seedAccountWithPlayer();
-        $stayingToken = $this->issueToken($staying, expiresAt: new DateTimeImmutable('+30 minutes'));
-        $token = $this->issueToken($leaving, expiresAt: new DateTimeImmutable('+30 minutes'));
+        $stayingToken = $this->issueToken($staying, expiresAt: TestClock::now()->modify('+30 minutes'));
+        $token = $this->issueToken($leaving, expiresAt: TestClock::now()->modify('+30 minutes'));
 
         $this->messageBus->dispatch(new ConfirmAccountDeletion($token->toString()));
         $this->entityManager->clear();
@@ -161,7 +162,7 @@ final class ConfirmAccountDeletionHandlerTest extends KernelTestCase
             Uuid::uuid7(),
             'msp|' . bin2hex(random_bytes(4)),
             sprintf('confirm.delete+%s@example.com', bin2hex(random_bytes(4))),
-            new DateTimeImmutable(),
+            TestClock::now(),
         );
 
         $this->entityManager->persist($userAccount);
@@ -176,7 +177,7 @@ final class ConfirmAccountDeletionHandlerTest extends KernelTestCase
     private function seedAccountWithPlayer(): array
     {
         $userAccount = $this->seedAccount();
-        $player = new Player(Uuid::uuid7(), 'CDL' . bin2hex(random_bytes(2)), $userAccount->userId, 'Leaving Soon', new DateTimeImmutable());
+        $player = new Player(Uuid::uuid7(), 'CDL' . bin2hex(random_bytes(2)), $userAccount->userId, 'Leaving Soon', TestClock::now());
 
         $this->entityManager->persist($player);
         $this->entityManager->flush();

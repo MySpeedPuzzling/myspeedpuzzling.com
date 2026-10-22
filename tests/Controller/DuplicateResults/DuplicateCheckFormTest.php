@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\DuplicateResults;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
@@ -148,7 +148,7 @@ final class DuplicateCheckFormTest extends WebTestCase
             comment: 'typed in by hand',
             finishedPuzzlesPhoto: null,
             groupPlayers: [],
-            finishedAt: new DateTimeImmutable(),
+            finishedAt: TestClock::now(),
             firstAttempt: false,
             unboxed: false,
         ));
@@ -343,7 +343,7 @@ final class DuplicateCheckFormTest extends WebTestCase
 
     private function today(): string
     {
-        return new DateTimeImmutable()->format('d.m.Y');
+        return TestClock::now()->format('d.m.Y');
     }
 
     /**

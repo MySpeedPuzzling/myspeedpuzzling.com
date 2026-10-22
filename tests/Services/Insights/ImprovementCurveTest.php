@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\Insights;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
@@ -96,13 +97,13 @@ final class ImprovementCurveTest extends KernelTestCase
     public function testOneStatementFromThePaceHistory(): void
     {
         self::bootKernel();
-        $now = new DateTimeImmutable('today 12:00:00');
+        $now = TestClock::now()->modify('today 12:00:00');
         self::getContainer()->set(ClockInterface::class, new MockClock($now));
 
         /** @var Connection $connection */
         $connection = self::getContainer()->get(Connection::class);
         $player = Uuid::uuid7()->toString();
-        $connection->executeStatement("INSERT INTO player (id, code, name, registered_at) VALUES (:id, 'curve', 'Curve', NOW())", ['id' => $player]);
+        $connection->executeStatement("INSERT INTO player (id, code, name, registered_at) VALUES (:id, 'curve', 'Curve', " . TestClock::SQL_NOW . ")", ['id' => $player]);
 
         $this->paceRow($connection, $player, 500, $now->modify('-100 days'), 4000, 5);
         $this->paceRow($connection, $player, 500, $now->modify('-90 days'), 3800, 6, log(0.95));

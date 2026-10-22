@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -74,7 +75,7 @@ final class RequestPasswordResetHandlerTest extends KernelTestCase
     public function testAllowsNewRequestAfterPreviousExpired(): void
     {
         $userAccount = $this->createUserAccount('msp|reset3', 'reset.three@example.com');
-        $this->createRequest($userAccount, PasswordResetToken::generate(), expiresAt: new DateTimeImmutable('-1 minute'));
+        $this->createRequest($userAccount, PasswordResetToken::generate(), expiresAt: TestClock::now()->modify('-1 minute'));
 
         self::assertNotNull($this->requestPasswordReset('reset.three@example.com'));
     }
@@ -83,7 +84,7 @@ final class RequestPasswordResetHandlerTest extends KernelTestCase
     {
         $userAccount = $this->createUserAccount('msp|reset4', 'reset.four@example.com');
         $longExpiredToken = PasswordResetToken::generate();
-        $this->createRequest($userAccount, $longExpiredToken, expiresAt: new DateTimeImmutable('-8 days'));
+        $this->createRequest($userAccount, $longExpiredToken, expiresAt: TestClock::now()->modify('-8 days'));
 
         self::assertNotNull($this->requestPasswordReset('reset.four@example.com'));
         self::assertNull($this->resetPasswordRequestRepository->findBySelector($longExpiredToken->selector));
@@ -104,7 +105,7 @@ final class RequestPasswordResetHandlerTest extends KernelTestCase
 
     private function createUserAccount(string $userId, string $email): UserAccount
     {
-        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now());
 
         $this->entityManager->persist($userAccount);
         $this->entityManager->flush();

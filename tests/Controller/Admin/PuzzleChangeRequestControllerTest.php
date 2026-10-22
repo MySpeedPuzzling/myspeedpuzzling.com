@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Admin;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
@@ -366,7 +366,7 @@ final class PuzzleChangeRequestControllerTest extends WebTestCase
             id: Uuid::uuid7(),
             puzzle: $puzzle,
             reporter: $container->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_REGULAR),
-            submittedAt: new DateTimeImmutable(),
+            submittedAt: TestClock::now(),
             proposedPiecesCount: $puzzle->piecesCount,
             originalName: $puzzle->name,
             originalPiecesCount: $puzzle->piecesCount - 1,
@@ -401,7 +401,7 @@ final class PuzzleChangeRequestControllerTest extends WebTestCase
             id: Uuid::uuid7(),
             puzzle: $puzzle,
             reporter: $container->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_ADMIN),
-            submittedAt: new DateTimeImmutable(),
+            submittedAt: TestClock::now(),
             proposedName: $puzzle->name,
             proposedPiecesCount: $puzzle->piecesCount,
             proposedImage: $proposal,

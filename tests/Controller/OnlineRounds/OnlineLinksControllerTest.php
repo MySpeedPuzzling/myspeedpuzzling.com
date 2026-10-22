@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\OnlineRounds;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineAccessLight;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
@@ -96,7 +97,7 @@ final class OnlineLinksControllerTest extends WebTestCase
 
         // The viewer blocks Olivia's player: the row stays, the profile's identity does not
         $this->connection($browser)->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES ('018d0050-0000-0000-0000-0000000009c1', :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES ('018d0050-0000-0000-0000-0000000009c1', :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['blocker' => PlayerFixture::PLAYER_ADMIN, 'blocked' => PlayerFixture::PLAYER_REGULAR],
         );
 
@@ -375,11 +376,11 @@ final class OnlineLinksControllerTest extends WebTestCase
     private function addPeopleWhoDoNotCompete(KernelBrowser $browser): void
     {
         $this->connection($browser)->executeStatement(
-            "INSERT INTO competition_participant (id, name, competition_id, source, deleted_at) VALUES (:id, 'Rita Removed', :competition, 'imported', NOW())",
+            "INSERT INTO competition_participant (id, name, competition_id, source, deleted_at) VALUES (:id, 'Rita Removed', :competition, 'imported', " . TestClock::SQL_NOW . ")",
             ['id' => self::REMOVED, 'competition' => self::COMPETITION],
         );
         $this->connection($browser)->executeStatement(
-            "INSERT INTO competition_participant (id, name, competition_id, source, registration_status, registered_at) VALUES (:id, 'Walter Waiting', :competition, 'self_joined', 'waitlisted', NOW())",
+            "INSERT INTO competition_participant (id, name, competition_id, source, registration_status, registered_at) VALUES (:id, 'Walter Waiting', :competition, 'self_joined', 'waitlisted', " . TestClock::SQL_NOW . ")",
             ['id' => self::WAITLISTED, 'competition' => self::COMPETITION],
         );
     }

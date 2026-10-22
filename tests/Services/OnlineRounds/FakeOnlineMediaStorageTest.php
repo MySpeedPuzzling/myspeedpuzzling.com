@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\OnlineRounds;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\ORM\EntityManagerInterface;
@@ -29,7 +30,7 @@ final class FakeOnlineMediaStorageTest extends KernelTestCase
 
     public function testAStoreAnswersItsProbeUntilTakenDown(): void
     {
-        $storage = new FakeOnlineMediaStorage(new MockClock());
+        $storage = new FakeOnlineMediaStorage(new MockClock(TestClock::now()));
 
         self::assertTrue($storage->probe(OnlineMediaStore::Primary));
         $storage->takeDown(OnlineMediaStore::Primary);
@@ -60,7 +61,7 @@ final class FakeOnlineMediaStorageTest extends KernelTestCase
 
     public function testAnObjectIsThereOnlyAfterItsUploadUntilItIsDeleted(): void
     {
-        $storage = new FakeOnlineMediaStorage(new MockClock());
+        $storage = new FakeOnlineMediaStorage(new MockClock(TestClock::now()));
         $media = $this->media();
 
         self::assertNull($storage->head($media));

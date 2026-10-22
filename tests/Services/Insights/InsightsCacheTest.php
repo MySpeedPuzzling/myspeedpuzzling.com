@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\Insights;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Services\Insights\InsightsCache;
@@ -70,7 +71,7 @@ final class InsightsCacheTest extends KernelTestCase
 
         // The collection
         $this->connection->executeStatement(
-            'INSERT INTO collection_item (id, collection_id, player_id, puzzle_id, comment, added_at) VALUES (:id, NULL, :player, :puzzle, NULL, NOW())',
+            'INSERT INTO collection_item (id, collection_id, player_id, puzzle_id, comment, added_at) VALUES (:id, NULL, :player, :puzzle, NULL, ' . TestClock::SQL_NOW . ')',
             ['id' => Uuid::uuid7()->toString(), 'player' => $player, 'puzzle' => PuzzleFixture::PUZZLE_500_04],
         );
         self::assertSame(7, $this->part($player));

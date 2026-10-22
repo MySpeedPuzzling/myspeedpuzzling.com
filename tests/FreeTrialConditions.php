@@ -15,7 +15,7 @@ trait FreeTrialConditions
     private function registeredDaysAgo(Connection $database, string $playerId, int $days, int $hours = 0): void
     {
         $database->executeStatement(
-            'UPDATE player SET registered_at = NOW() - make_interval(days => :days, hours => :hours) WHERE id = :id',
+            'UPDATE player SET registered_at = ' . TestClock::SQL_NOW . ' - make_interval(days => :days, hours => :hours) WHERE id = :id',
             ['days' => $days, 'hours' => $hours, 'id' => $playerId],
         );
     }

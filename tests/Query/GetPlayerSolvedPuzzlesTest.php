@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
@@ -164,8 +164,8 @@ final class GetPlayerSolvedPuzzlesTest extends KernelTestCase
         // TIME_46_RELAX_NO_FINISHED_AT has finished_at=null, tracked_at=3 days ago
         // It belongs to PLAYER_REGULAR, PUZZLE_1000_02
         // When filtering by date range (monthly statistics), entries without finished_at should be excluded
-        $dateFrom = new DateTimeImmutable('-60 days');
-        $dateTo = new DateTimeImmutable('now');
+        $dateFrom = TestClock::now()->modify('-60 days');
+        $dateTo = TestClock::now();
 
         $results = $this->query->soloByPlayerId(PlayerFixture::PLAYER_REGULAR, $dateFrom, $dateTo);
 
@@ -361,7 +361,7 @@ final class GetPlayerSolvedPuzzlesTest extends KernelTestCase
     private function block(string $blockerId, string $blockedId): void
     {
         $this->database->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => $blockerId, 'blocked' => $blockedId],
         );
     }

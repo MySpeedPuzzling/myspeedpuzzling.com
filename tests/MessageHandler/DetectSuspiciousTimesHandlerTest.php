@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -101,11 +102,11 @@ final class DetectSuspiciousTimesHandlerTest extends KernelTestCase
     public static function editionsNobodyMayRead(): iterable
     {
         // A puzzle created for a round: unapproved and hidden until the round starts
-        yield 'kept secret by a competition' => ["UPDATE puzzle SET approved = false, hide_until = NOW() + INTERVAL '30 days' WHERE id = :id"];
+        yield 'kept secret by a competition' => ["UPDATE puzzle SET approved = false, hide_until = " . TestClock::SQL_NOW . " + INTERVAL '30 days' WHERE id = :id"];
         // ... its picture hidden is enough - the strict reading of PuzzleSecrecy
-        yield 'a competition puzzle with its picture hidden' => ["UPDATE puzzle SET approved = false, hide_image_until = NOW() + INTERVAL '30 days' WHERE id = :id"];
+        yield 'a competition puzzle with its picture hidden' => ["UPDATE puzzle SET approved = false, hide_image_until = " . TestClock::SQL_NOW . " + INTERVAL '30 days' WHERE id = :id"];
         // An approved placeholder hidden by hand (Ravensburger Puzzle Month)
-        yield 'hidden' => ["UPDATE puzzle SET hide_until = NOW() + INTERVAL '30 days' WHERE id = :id"];
+        yield 'hidden' => ["UPDATE puzzle SET hide_until = " . TestClock::SQL_NOW . " + INTERVAL '30 days' WHERE id = :id"];
     }
 
     #[DataProvider('editionsNobodyMayRead')]
@@ -153,7 +154,7 @@ final class DetectSuspiciousTimesHandlerTest extends KernelTestCase
     {
         // Gina blocked Fay - the pair Pat saved with Fay that day must not end up in a reason Gina reads
         $this->database->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (gen_random_uuid(), :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (gen_random_uuid(), :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['blocker' => SuspiciousTimesFixture::PLAYER_GROUP, 'blocked' => SuspiciousTimesFixture::PLAYER_FLAGGED],
         );
 
@@ -394,7 +395,7 @@ final class DetectSuspiciousTimesHandlerTest extends KernelTestCase
 
         $case = self::getContainer()->get(SuspiciousTimeCaseRepository::class)->findByTime(SuspiciousTimesFixture::TIME_EDITION_FAST);
         self::assertNotNull($case);
-        $case->trust(null, SuspicionFingerprint::ofTime($case->time), new \DateTimeImmutable());
+        $case->trust(null, SuspicionFingerprint::ofTime($case->time), TestClock::now());
         $this->entityManager->flush();
 
         // A new detector version: every check is old
@@ -474,7 +475,7 @@ final class DetectSuspiciousTimesHandlerTest extends KernelTestCase
         $case = self::getContainer()->get(SuspiciousTimeCaseRepository::class)->findByTime(SuspiciousTimesFixture::TIME_STEADY_FAST);
         self::assertNotNull($case);
         $case->time->markSuspicious();
-        $case->mark($case->reasons(), null, Uuid::fromString(PlayerFixture::PLAYER_ADMIN), SuspicionFingerprint::ofTime($case->time), new \DateTimeImmutable('-1 day'));
+        $case->mark($case->reasons(), null, Uuid::fromString(PlayerFixture::PLAYER_ADMIN), SuspicionFingerprint::ofTime($case->time), TestClock::now()->modify('-1 day'));
         self::getContainer()->get(SuspiciousTimeDecisionRecorder::class)->recordAboutTime(SuspiciousTimeDecisionKind::Marked, $case->time, $case, null);
         $this->entityManager->flush();
         $this->clearEntityManager();

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Entity;
 
-use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Tests\TestClock;
 
 final class AffiliateTest extends TestCase
 {
@@ -18,7 +18,7 @@ final class AffiliateTest extends TestCase
             code: 'test1',
             userId: null,
             name: null,
-            registeredAt: new DateTimeImmutable(),
+            registeredAt: TestClock::now(),
         );
 
         self::assertFalse($player->isInReferralProgram());
@@ -32,10 +32,10 @@ final class AffiliateTest extends TestCase
             code: 'test1',
             userId: null,
             name: null,
-            registeredAt: new DateTimeImmutable(),
+            registeredAt: TestClock::now(),
         );
 
-        $now = new DateTimeImmutable();
+        $now = TestClock::now();
         $player->joinReferralProgram($now);
 
         self::assertTrue($player->isInReferralProgram());
@@ -50,10 +50,10 @@ final class AffiliateTest extends TestCase
             code: 'test1',
             userId: null,
             name: null,
-            registeredAt: new DateTimeImmutable(),
+            registeredAt: TestClock::now(),
         );
 
-        $player->joinReferralProgram(new DateTimeImmutable());
+        $player->joinReferralProgram(TestClock::now());
         $player->suspendFromReferralProgram();
 
         self::assertFalse($player->isInReferralProgram());
@@ -68,10 +68,10 @@ final class AffiliateTest extends TestCase
             code: 'test1',
             userId: null,
             name: null,
-            registeredAt: new DateTimeImmutable(),
+            registeredAt: TestClock::now(),
         );
 
-        $player->joinReferralProgram(new DateTimeImmutable());
+        $player->joinReferralProgram(TestClock::now());
         $player->suspendFromReferralProgram();
         $player->unsuspendFromReferralProgram();
 

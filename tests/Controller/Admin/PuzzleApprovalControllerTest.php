@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Admin;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
@@ -93,7 +93,7 @@ final class PuzzleApprovalControllerTest extends WebTestCase
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
         $puzzle = $entityManager->find(Puzzle::class, PuzzleFixture::PUZZLE_UNAPPROVED);
         self::assertNotNull($puzzle);
-        $puzzle->changeNames($puzzle->name, $puzzle->nameLanguage, PuzzleNames::fromArray($names), new DateTimeImmutable());
+        $puzzle->changeNames($puzzle->name, $puzzle->nameLanguage, PuzzleNames::fromArray($names), TestClock::now());
         $entityManager->flush();
         $entityManager->clear();
 

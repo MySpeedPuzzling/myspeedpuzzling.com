@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
@@ -72,7 +73,7 @@ final class GetSuspiciousTimeCaseDetailTest extends KernelTestCase
     public function testThePlayersNumbersAndOtherResultsOfThatDay(): void
     {
         $this->database->executeStatement(
-            "INSERT INTO player_baseline (id, player_id, pieces_count, baseline_seconds, qualifying_solves_count, computed_at, baseline_type) VALUES (:id, :playerId, 4000, 34200, 5, NOW(), 'direct')
+            "INSERT INTO player_baseline (id, player_id, pieces_count, baseline_seconds, qualifying_solves_count, computed_at, baseline_type) VALUES (:id, :playerId, 4000, 34200, 5, " . TestClock::SQL_NOW . ", 'direct')
              ON CONFLICT (player_id, pieces_count) DO UPDATE SET baseline_seconds = 34200, qualifying_solves_count = 5, baseline_type = 'direct'",
             ['id' => Uuid::uuid7()->toString(), 'playerId' => SuspiciousTimesFixture::PLAYER_STEADY],
         );
@@ -93,7 +94,7 @@ final class GetSuspiciousTimeCaseDetailTest extends KernelTestCase
         self::assertSame(2, $card->leaderboardPlace);
 
         // A puzzle a competition keeps secret is never listed - like in every moderator queue
-        $this->database->executeStatement("UPDATE puzzle SET hide_until = NOW() + INTERVAL '30 days' WHERE id = :id", ['id' => SuspiciousTimesFixture::PUZZLE_ORCHARD]);
+        $this->database->executeStatement("UPDATE puzzle SET hide_until = " . TestClock::SQL_NOW . " + INTERVAL '30 days' WHERE id = :id", ['id' => SuspiciousTimesFixture::PUZZLE_ORCHARD]);
         self::assertSame([], $this->detail->cards([SuspiciousTimesFixture::CASE_PENDING_FAST])[0]->sameDay);
     }
 
@@ -109,7 +110,7 @@ final class GetSuspiciousTimeCaseDetailTest extends KernelTestCase
         self::assertCount(2, $this->detail->cards([SuspiciousTimesFixture::CASE_MARKED])[0]->reasons);
 
         // A competition hides the 1600-piece puzzle after the scan named it
-        $this->database->executeStatement("UPDATE puzzle SET hide_until = NOW() + INTERVAL '30 days' WHERE id = :id", ['id' => SuspiciousTimesFixture::PUZZLE_LIGHTHOUSE_1600]);
+        $this->database->executeStatement("UPDATE puzzle SET hide_until = " . TestClock::SQL_NOW . " + INTERVAL '30 days' WHERE id = :id", ['id' => SuspiciousTimesFixture::PUZZLE_LIGHTHOUSE_1600]);
 
         $card = $this->detail->cards([SuspiciousTimesFixture::CASE_MARKED])[0];
         self::assertSame([SuspiciousTimeReasonCode::FasterThanUsual], array_map(static fn ($reason) => $reason->code, $card->reasons));

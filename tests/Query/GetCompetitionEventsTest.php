@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Message\RejectCompetition;
@@ -64,12 +65,14 @@ final class GetCompetitionEventsTest extends KernelTestCase
 
     public function testSearchCountryFilterIsCaseInsensitive(): void
     {
+        $now = TestClock::SQL_NOW;
+
         // Legacy/imported rows carry uppercase ISO codes ('CH'), while the UI
         // filter submits lowercase enum names ('ch') — both must match.
         $this->database->executeStatement(
             <<<SQL
             INSERT INTO competition (id, name, location, location_country_code, date_from, date_to, is_online, approved_at)
-            VALUES ('018d0004-0000-0000-0000-00000000ffff', 'Swiss Uppercase Championship', 'Zurich', 'CH', NOW() + INTERVAL '20 days', NOW() + INTERVAL '21 days', false, NOW())
+            VALUES ('018d0004-0000-0000-0000-00000000ffff', 'Swiss Uppercase Championship', 'Zurich', 'CH', {$now} + INTERVAL '20 days', {$now} + INTERVAL '21 days', false, {$now})
             SQL,
         );
 

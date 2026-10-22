@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -75,7 +76,7 @@ final class StudioInviteHandlersTest extends KernelTestCase
     public function testAnInvitationWaitsForTheParticipantsAnswer(): void
     {
         self::turnRoundVideoOn($this->connection);
-        $before = new DateTimeImmutable('-1 second');
+        $before = TestClock::now()->modify('-1 second');
 
         $invite = $this->invite(self::OLIVIA);
 

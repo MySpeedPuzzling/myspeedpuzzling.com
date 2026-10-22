@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\ModerationAction;
@@ -64,7 +65,7 @@ final class DeletePlayerHandlerTest extends KernelTestCase
             'user_account_id' => $userAccount->id->toString(),
             'email' => $userAccount->email,
             'event_type' => 'login_success',
-            'occurred_at' => new \DateTimeImmutable()->format('Y-m-d H:i:sP'),
+            'occurred_at' => TestClock::now()->format('Y-m-d H:i:sP'),
         ]);
 
         $this->messageBus->dispatch(new DeletePlayer(PlayerFixture::PLAYER_REGULAR));
@@ -373,7 +374,7 @@ final class DeletePlayerHandlerTest extends KernelTestCase
         $id = Uuid::uuid7()->toString();
 
         $this->entityManager->getConnection()->executeStatement(
-            'INSERT INTO comparison_subject (id, player_id, subject_team_id, added_at) VALUES (:id, :owner, :team, NOW())',
+            'INSERT INTO comparison_subject (id, player_id, subject_team_id, added_at) VALUES (:id, :owner, :team, ' . TestClock::SQL_NOW . ')',
             ['id' => $id, 'owner' => $ownerId, 'team' => $teamId],
         );
 

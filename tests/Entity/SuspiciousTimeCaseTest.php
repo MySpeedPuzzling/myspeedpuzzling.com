@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Events\PuzzleSolvingTimeModified;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeSuspicionChanged;
 use SpeedPuzzling\Web\Services\SuspiciousTimes\SuspicionFingerprint;
 use SpeedPuzzling\Web\Tests\DataFixtures\SuspiciousTimesFixture;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Value\SuspicionAssessment;
 use SpeedPuzzling\Web\Value\SuspicionCheckOutcome;
 use SpeedPuzzling\Web\Value\SuspicionDirection;
@@ -43,7 +44,7 @@ final class SuspiciousTimeCaseTest extends KernelTestCase
     public function testMarkIsStoredToTheSecondAndEndsAnEdit(): void
     {
         $case = $this->case(SuspiciousTimesFixture::CASE_PENDING_FAST);
-        $case->playerEdited(null, $case->fingerprint, 1, new DateTimeImmutable());
+        $case->playerEdited(null, $case->fingerprint, 1, TestClock::now());
 
         $case->mark($case->reasons(), '  Please check  ', Uuid::uuid7(), $case->fingerprint, new DateTimeImmutable('2026-10-07 10:00:00.654321'));
 
@@ -57,36 +58,36 @@ final class SuspiciousTimeCaseTest extends KernelTestCase
     public function testOnlyAPendingCaseIsRefreshedOrGone(): void
     {
         $marked = $this->case(SuspiciousTimesFixture::CASE_MARKED);
-        $marked->markGone(new DateTimeImmutable());
-        $marked->refreshDetection($this->slowAssessment(), 'other', 2, new DateTimeImmutable());
+        $marked->markGone(TestClock::now());
+        $marked->refreshDetection($this->slowAssessment(), 'other', 2, TestClock::now());
 
         self::assertSame(SuspiciousTimeCaseStatus::Marked, $marked->status);
         self::assertSame(SuspicionDirection::Fast, $marked->direction);
 
         $pending = $this->case(SuspiciousTimesFixture::CASE_PENDING_FAST);
-        $pending->refreshDetection($this->slowAssessment(), 'other', 2, new DateTimeImmutable());
+        $pending->refreshDetection($this->slowAssessment(), 'other', 2, TestClock::now());
 
         self::assertSame(SuspicionDirection::Slow, $pending->direction);
         self::assertSame(['other', 2], [$pending->fingerprint, $pending->detectorVersion]);
 
-        $pending->markGone(new DateTimeImmutable());
+        $pending->markGone(TestClock::now());
         self::assertSame(SuspiciousTimeCaseStatus::Gone, $pending->status);
     }
 
     public function testTrustBelongsToTheEntry(): void
     {
         $case = $this->case(SuspiciousTimesFixture::CASE_PENDING_FAST);
-        $case->trust(Uuid::uuid7(), 'entry-a', new DateTimeImmutable());
+        $case->trust(Uuid::uuid7(), 'entry-a', TestClock::now());
 
         self::assertTrue($case->isDecidedFor('entry-a'));
         self::assertFalse($case->isDecidedFor('entry-b'));
 
         // The same entry raised again stays trusted
-        $case->reopen($this->slowAssessment(), 'entry-a', 1, new DateTimeImmutable());
+        $case->reopen($this->slowAssessment(), 'entry-a', 1, TestClock::now());
         self::assertSame(SuspiciousTimeCaseStatus::Trusted, $case->status);
 
         // Another entry: pending again, nothing of the decision carries over
-        $case->reopen($this->slowAssessment(), 'entry-b', 1, new DateTimeImmutable());
+        $case->reopen($this->slowAssessment(), 'entry-b', 1, TestClock::now());
         self::assertSame(SuspiciousTimeCaseStatus::Pending, $case->status);
         self::assertSame(SuspiciousTimeCaseOrigin::Detector, $case->origin);
         self::assertNull($case->decidedById);
@@ -98,10 +99,10 @@ final class SuspiciousTimeCaseTest extends KernelTestCase
     {
         $case = $this->case(SuspiciousTimesFixture::CASE_MARKED);
 
-        $case->reopen($this->slowAssessment(), 'entry-b', 1, new DateTimeImmutable());
+        $case->reopen($this->slowAssessment(), 'entry-b', 1, TestClock::now());
         self::assertSame(SuspiciousTimeCaseStatus::Marked, $case->status);
 
-        $case->markCorrected('entry-b', new DateTimeImmutable());
+        $case->markCorrected('entry-b', TestClock::now());
         self::assertSame(SuspiciousTimeCaseStatus::Corrected, $case->status);
         self::assertNull($case->decidedById);
     }
@@ -111,7 +112,7 @@ final class SuspiciousTimeCaseTest extends KernelTestCase
         $time = $this->entityManager->find(PuzzleSolvingTime::class, SuspiciousTimesFixture::TIME_SQL_FLAGGED);
         self::assertNotNull($time);
 
-        $case = SuspiciousTimeCase::flaggedOutsideTheApp(Uuid::uuid7(), $time, SuspicionFingerprint::ofTime($time), new DateTimeImmutable());
+        $case = SuspiciousTimeCase::flaggedOutsideTheApp(Uuid::uuid7(), $time, SuspicionFingerprint::ofTime($time), TestClock::now());
 
         self::assertSame([SuspiciousTimeCaseStatus::Marked, SuspiciousTimeCaseOrigin::Manual, [], null, null], [$case->status, $case->origin, $case->reasonsShown, $case->decidedById, $case->direction]);
         self::assertNotNull($case->markedAt);
@@ -123,14 +124,14 @@ final class SuspiciousTimeCaseTest extends KernelTestCase
         self::assertNotNull($notice);
         self::assertTrue($notice->isAbout($notice->case));
 
-        $notice->respond(SuspiciousTimeResponse::LeftAsIs, 'ignored', new DateTimeImmutable());
+        $notice->respond(SuspiciousTimeResponse::LeftAsIs, 'ignored', TestClock::now());
         self::assertSame([SuspiciousTimeResponse::LeftAsIs, null], [$notice->response, $notice->responseText]);
 
-        $notice->respond(SuspiciousTimeResponse::SaysCorrect, ' I really am that fast ', new DateTimeImmutable());
-        $notice->respond(SuspiciousTimeResponse::SaysCorrect, 'Second message', new DateTimeImmutable());
+        $notice->respond(SuspiciousTimeResponse::SaysCorrect, ' I really am that fast ', TestClock::now());
+        $notice->respond(SuspiciousTimeResponse::SaysCorrect, 'Second message', TestClock::now());
         self::assertSame([SuspiciousTimeResponse::SaysCorrect, 'I really am that fast'], [$notice->response, $notice->responseText]);
 
-        $notice->answer(SuspiciousTimeReplyAnswer::Kept, 'The video shows 1:15:00', new DateTimeImmutable());
+        $notice->answer(SuspiciousTimeReplyAnswer::Kept, 'The video shows 1:15:00', TestClock::now());
         $contact = Uuid::uuid7();
         $notice->answerSentInContact($contact);
         $notice->answerSentInContact(Uuid::uuid7());

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -49,7 +50,7 @@ final class SuspiciousTimeGroupChangeTest extends KernelTestCase
 
         // Addresses for the "Your results" e-mail
         foreach (['auth0|flagged1' => 'fay@example.com', 'auth0|partner1' => 'pat@example.com', 'auth0|steady1' => 'sam@example.com'] as $userId => $email) {
-            $this->entityManager->persist(new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable()));
+            $this->entityManager->persist(new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now()));
         }
 
         $this->entityManager->flush();
@@ -72,7 +73,7 @@ final class SuspiciousTimeGroupChangeTest extends KernelTestCase
 
         // A moderator's answer to a reply Pat sent while he was in it is not his to receive any more either
         $this->database->executeStatement(
-            "UPDATE suspicious_time_notice SET response = 'says_correct', responded_at = NOW(), answer = 'kept', answer_note = 'Stays', answered_at = NOW() WHERE player_id = :playerId",
+            "UPDATE suspicious_time_notice SET response = 'says_correct', responded_at = " . TestClock::SQL_NOW . ", answer = 'kept', answer_note = 'Stays', answered_at = " . TestClock::SQL_NOW . " WHERE player_id = :playerId",
             ['playerId' => SuspiciousTimesFixture::PLAYER_PARTNER],
         );
         self::assertNull($this->candidateOf(SuspiciousTimesFixture::PLAYER_PARTNER));
@@ -168,7 +169,7 @@ final class SuspiciousTimeGroupChangeTest extends KernelTestCase
             currentUserId: self::FAY_USER_ID,
             puzzleSolvingTimeId: SuspiciousTimesFixture::TIME_SQL_FLAGGED,
             competitionId: null,
-            time: gmdate('H:i:s', $time['seconds_to_solve']),
+            time: new DateTimeImmutable('@' . $time['seconds_to_solve'])->format('H:i:s'),
             comment: null,
             groupPlayers: $groupPlayers,
             finishedAt: new DateTimeImmutable($time['finished_at']),

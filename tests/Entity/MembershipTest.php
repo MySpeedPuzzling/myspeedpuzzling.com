@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Entity\Membership;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Events\MembershipSubscriptionCancelled;
 use SpeedPuzzling\Web\Events\MembershipSubscriptionRenewed;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Stripe\Subscription;
 
 final class MembershipTest extends TestCase
@@ -22,7 +23,7 @@ final class MembershipTest extends TestCase
             code: 'testplayer',
             userId: 'auth0|test',
             name: 'Test Player',
-            registeredAt: new DateTimeImmutable(),
+            registeredAt: TestClock::now(),
         );
     }
 
@@ -35,7 +36,7 @@ final class MembershipTest extends TestCase
         $membership = new Membership(
             id: Uuid::uuid7(),
             player: $this->createPlayer(),
-            createdAt: new DateTimeImmutable('-30 days'),
+            createdAt: TestClock::now()->modify('-30 days'),
             stripeSubscriptionId: $stripeSubscriptionId,
             billingPeriodEndsAt: $billingPeriodEndsAt,
             endsAt: $endsAt,

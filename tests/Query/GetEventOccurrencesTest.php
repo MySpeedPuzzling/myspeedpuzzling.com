@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
@@ -147,7 +148,7 @@ final class GetEventOccurrencesTest extends KernelTestCase
         $pairsRound = $scenario->round($edition, RoundCategory::Duo, $day . ' 21:00', puzzleIds: [$secret], secret: true);
         // A puzzle created for a round stays hidden on the whole site until its reveal (puzzle.hide_until)
         self::getContainer()->get(Connection::class)->executeStatement(
-            "UPDATE puzzle SET hide_until = NOW() + INTERVAL '3 days' WHERE id = :id",
+            "UPDATE puzzle SET hide_until = " . TestClock::SQL_NOW . " + INTERVAL '3 days' WHERE id = :id",
             ['id' => $hiddenEverywhere],
         );
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
@@ -345,7 +345,7 @@ final class AddComparisonSubjectHandlerTest extends KernelTestCase
         $ids = [];
 
         for ($i = 1; $i <= $count; $i++) {
-            $player = new Player(Uuid::uuid7(), 'compare' . $i, null, 'Compared ' . $i, new DateTimeImmutable());
+            $player = new Player(Uuid::uuid7(), 'compare' . $i, null, 'Compared ' . $i, TestClock::now());
             $entityManager->persist($player);
             $ids[] = $player->id->toString();
         }

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
-use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CollectionItem;
 use SpeedPuzzling\Web\Exceptions\CollectionNotFound;
@@ -28,6 +28,7 @@ readonly final class AddPuzzleToCollectionHandler
         private PlayerRepository $playerRepository,
         private PuzzleRepository $puzzleRepository,
         private SecretPuzzleAccess $secretPuzzleAccess,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -71,7 +72,7 @@ readonly final class AddPuzzleToCollectionHandler
             player: $player,
             puzzle: $puzzle,
             comment: $message->comment,
-            addedAt: new DateTimeImmutable(),
+            addedAt: $this->clock->now(),
         );
 
         $this->collectionItemRepository->save($collectionItem);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -43,7 +44,7 @@ final class PuzzleSearchItemsControllerTest extends WebTestCase
         // Make the wishlist longer than one page, but not longer than two
         $connection = self::getContainer()->get(Connection::class);
         $puzzleIds = $connection->fetchFirstColumn(
-            'SELECT id FROM puzzle WHERE (hide_until IS NULL OR hide_until <= NOW()) AND id NOT IN (SELECT puzzle_id FROM wish_list_item WHERE player_id = ?) ORDER BY id LIMIT 30',
+            'SELECT id FROM puzzle WHERE (hide_until IS NULL OR hide_until <= ' . TestClock::SQL_NOW . ') AND id NOT IN (SELECT puzzle_id FROM wish_list_item WHERE player_id = ?) ORDER BY id LIMIT 30',
             [PlayerFixture::PLAYER_WITH_STRIPE],
         );
         foreach ($puzzleIds as $puzzleId) {

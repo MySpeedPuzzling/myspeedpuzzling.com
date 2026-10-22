@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\OnlineRounds;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Controller\OnlineRounds\OnlineWatchController;
@@ -139,7 +140,7 @@ final class OnlineWatchControllerTest extends WebTestCase
     {
         yield 'a draft' => ['UPDATE competition SET is_draft = true WHERE id = :id'];
         yield 'waiting for approval' => ['UPDATE competition SET is_draft = false, approved_at = NULL, approved_by_player_id = NULL WHERE id = :id'];
-        yield 'rejected' => ['UPDATE competition SET is_draft = false, rejected_at = NOW() WHERE id = :id'];
+        yield 'rejected' => ['UPDATE competition SET is_draft = false, rejected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id'];
     }
 
     #[DataProvider('provideHiddenEvents')]

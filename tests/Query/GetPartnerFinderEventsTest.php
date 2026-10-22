@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetPartnerFinderEvents;
 use SpeedPuzzling\Web\Results\PartnerFinderEvent;
@@ -106,7 +107,7 @@ final class GetPartnerFinderEventsTest extends KernelTestCase
         foreach ([PlayerFixture::PLAYER_WITH_STRIPE, PlayerFixture::PLAYER_PRIVATE, PlayerFixture::PLAYER_ADMIN] as $playerId) {
             $this->database->executeStatement(
                 "INSERT INTO partner_listing (id, competition_id, player_id, group_size, looking_for, co_member_ids, strengths, custom_strengths, languages, created_at, updated_at)
-                 VALUES (gen_random_uuid(), :competition, :player, 1, '[\"pair\"]', '[]', '[]', '[]', '[]', NOW(), NOW())",
+                 VALUES (gen_random_uuid(), :competition, :player, 1, '[\"pair\"]', '[]', '[]', '[]', '[]', " . TestClock::SQL_NOW . ", " . TestClock::SQL_NOW . ")",
                 ['competition' => MarketplaceEventFixture::COMPETITION_SWAP_FAIR, 'player' => $playerId],
             );
         }

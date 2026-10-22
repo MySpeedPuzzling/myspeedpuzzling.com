@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Entity;
 
-use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Competition;
@@ -13,6 +12,7 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\RoundTable;
 use SpeedPuzzling\Web\Entity\TableRow;
 use SpeedPuzzling\Web\Entity\TableSpot;
+use SpeedPuzzling\Web\Tests\TestClock;
 
 final class TableSpotTest extends TestCase
 {
@@ -78,7 +78,7 @@ final class TableSpotTest extends TestCase
             competition: $competition,
             name: 'Test Round',
             minutesLimit: 60,
-            startsAt: new DateTimeImmutable(),
+            startsAt: TestClock::now(),
         );
 
         $row = new TableRow(
@@ -108,7 +108,7 @@ final class TableSpotTest extends TestCase
             code: 'test',
             userId: 'auth0|test',
             name: 'Test Player',
-            registeredAt: new DateTimeImmutable(),
+            registeredAt: TestClock::now(),
         );
     }
 }

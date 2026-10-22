@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -125,13 +126,13 @@ final class GetAchievementPointsTest extends KernelTestCase
         $playerId = Uuid::uuid7()->toString();
 
         $this->database->executeStatement(
-            "INSERT INTO player (id, code, name, registered_at) VALUES (:id, :code, 'AP Tester', NOW())",
+            "INSERT INTO player (id, code, name, registered_at) VALUES (:id, :code, 'AP Tester', " . TestClock::SQL_NOW . ")",
             ['id' => $playerId, 'code' => 'ap-' . substr($playerId, -8)],
         );
 
         if ($member) {
             $this->database->executeStatement(
-                "INSERT INTO membership (id, player_id, created_at, granted_until) VALUES (:id, :playerId, NOW(), NOW() + INTERVAL '30 days')",
+                "INSERT INTO membership (id, player_id, created_at, granted_until) VALUES (:id, :playerId, " . TestClock::SQL_NOW . ", " . TestClock::SQL_NOW . " + INTERVAL '30 days')",
                 ['id' => Uuid::uuid7()->toString(), 'playerId' => $playerId],
             );
         }
@@ -172,7 +173,7 @@ final class GetAchievementPointsTest extends KernelTestCase
     private function insertBadge(string $playerId, string $type, null|int $tier): void
     {
         $this->database->executeStatement(
-            'INSERT INTO badge (id, player_id, type, earned_at, tier) VALUES (:id, :playerId, :type, NOW(), :tier)',
+            'INSERT INTO badge (id, player_id, type, earned_at, tier) VALUES (:id, :playerId, :type, ' . TestClock::SQL_NOW . ', :tier)',
             ['id' => Uuid::uuid7()->toString(), 'playerId' => $playerId, 'type' => $type, 'tier' => $tier],
         );
     }

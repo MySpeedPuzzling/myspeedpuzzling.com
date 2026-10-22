@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetMostSolvedPuzzles as GetMostSolvedPuzzlesQuery;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Results\MostSolvedPuzzle;
@@ -43,6 +44,7 @@ final class MostSolvedPuzzles
         readonly private GetRanking $getRanking,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private ResolveDifficultyTiers $resolveDifficultyTiers,
+        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -118,12 +120,12 @@ final class MostSolvedPuzzles
 
     private function getCurrentMonth(): int
     {
-        return (int) date('m');
+        return (int) $this->clock->now()->format('m');
     }
 
     private function getCurrentYear(): int
     {
-        return (int) date('Y');
+        return (int) $this->clock->now()->format('Y');
     }
 
     private function getLastMonth(): int

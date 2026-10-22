@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetCompetitionSlugsForSitemap;
@@ -45,11 +46,11 @@ final class SitemapEventsControllerTest extends WebTestCase
         $browser = self::createClient();
         $connection = self::getContainer()->get(Connection::class);
         $connection->executeStatement(
-            'UPDATE competition_series SET rejected_at = NOW() WHERE id = :id',
+            'UPDATE competition_series SET rejected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => CompetitionSeriesFixture::SERIES_PAST_ONLY],
         );
         $connection->executeStatement(
-            'UPDATE competition SET rejected_at = NOW() WHERE id = :id',
+            'UPDATE competition SET rejected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => CompetitionSeriesFixture::EDITION_EJJ_69],
         );
 

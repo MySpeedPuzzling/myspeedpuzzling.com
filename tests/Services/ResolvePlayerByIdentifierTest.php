@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
@@ -62,12 +62,12 @@ final class ResolvePlayerByIdentifierTest extends KernelTestCase
         $loginEmail = sprintf('login+%s@example.com', bin2hex(random_bytes(4)));
         $userId = 'msp|' . bin2hex(random_bytes(4));
 
-        $owner = new Player(Uuid::uuid7(), 'OWN' . bin2hex(random_bytes(2)), $userId, 'Owner', new DateTimeImmutable());
-        $impostor = new Player(Uuid::uuid7(), 'IMP' . bin2hex(random_bytes(2)), 'msp|' . bin2hex(random_bytes(4)), 'Impostor', new DateTimeImmutable());
+        $owner = new Player(Uuid::uuid7(), 'OWN' . bin2hex(random_bytes(2)), $userId, 'Owner', TestClock::now());
+        $impostor = new Player(Uuid::uuid7(), 'IMP' . bin2hex(random_bytes(2)), 'msp|' . bin2hex(random_bytes(4)), 'Impostor', TestClock::now());
 
         $this->entityManager->persist($owner);
         $this->entityManager->persist($impostor);
-        $this->entityManager->persist(new UserAccount(Uuid::uuid7(), $userId, $loginEmail, new DateTimeImmutable()));
+        $this->entityManager->persist(new UserAccount(Uuid::uuid7(), $userId, $loginEmail, TestClock::now()));
         $this->entityManager->flush();
 
         self::assertSame($owner->id->toString(), $this->resolver->resolve(strtoupper($loginEmail))->id->toString());
@@ -76,7 +76,7 @@ final class ResolvePlayerByIdentifierTest extends KernelTestCase
     public function testAPlayerWithoutAnAccountHasNoEmailToBeFoundBy(): void
     {
         $email = sprintf('orphan+%s@example.com', bin2hex(random_bytes(4)));
-        $orphan = new Player(Uuid::uuid7(), 'ORP' . bin2hex(random_bytes(2)), 'auth0|' . bin2hex(random_bytes(4)), 'Orphan', new DateTimeImmutable());
+        $orphan = new Player(Uuid::uuid7(), 'ORP' . bin2hex(random_bytes(2)), 'auth0|' . bin2hex(random_bytes(4)), 'Orphan', TestClock::now());
 
         $this->entityManager->persist($orphan);
         $this->entityManager->flush();

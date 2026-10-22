@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\OfficialResults;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
@@ -137,7 +138,7 @@ final class ResultsDeskControllerTest extends WebTestCase
     public function testARoundAboutToStartShowsTheSeatingStep(): void
     {
         $database = self::getContainer()->get(Connection::class);
-        $database->executeStatement("UPDATE competition_round SET starts_at = NOW() + INTERVAL '3 hours' WHERE id = :id", ['id' => OfficialResultsFixture::ROUND_GROUP_A]);
+        $database->executeStatement("UPDATE competition_round SET starts_at = " . TestClock::SQL_NOW . " + INTERVAL '3 hours' WHERE id = :id", ['id' => OfficialResultsFixture::ROUND_GROUP_A]);
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
         $crawler = $this->browser->request('GET', self::GROUP_A);

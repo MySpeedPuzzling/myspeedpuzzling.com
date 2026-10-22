@@ -340,7 +340,7 @@ final class DraftCanaryTest extends WebTestCase
         // An edition of the draft series gets a round of its own
         $quietPinesRound = Uuid::uuid7()->toString();
         $connection->executeStatement(
-            "INSERT INTO competition_round (id, competition_id, name, minutes_limit, starts_at, slug) VALUES (:id, :edition, 'Quiet Pines Round', 60, NOW() + INTERVAL '10 days', 'quiet-pines-round')",
+            "INSERT INTO competition_round (id, competition_id, name, minutes_limit, starts_at, slug) VALUES (:id, :edition, 'Quiet Pines Round', 60, " . TestClock::SQL_NOW . " + INTERVAL '10 days', 'quiet-pines-round')",
             ['id' => $quietPinesRound, 'edition' => OrganizationFixture::EDITION_QUIET_PINES_1],
         );
         $quietPines = [self::SERIES, OrganizationFixture::SERIES_QUIET_PINES_DRAFT, $quietPinesRound, OrganizationFixture::EDITION_QUIET_PINES_1_NAME];
@@ -348,7 +348,7 @@ final class DraftCanaryTest extends WebTestCase
         foreach ([$draftNight, $quietPines] as [$table, $id, $roundId, $name]) {
             $connection->executeStatement(
                 "INSERT INTO online_round (id, round_id, enabled_at, detection_mode, video_enabled, participants_see_each_other, studio_enabled, recording_enabled, unfinished_measure, missing_piece_rule)
-                 VALUES (:id, :round, NOW(), 'off', true, false, false, false, 'left', 'complete_required')",
+                 VALUES (:id, :round, " . TestClock::SQL_NOW . ", 'off', true, false, false, false, 'left', 'complete_required')",
                 ['id' => Uuid::uuid7()->toString(), 'round' => $roundId],
             );
             $page = '/en/online-rounds/' . $roundId . '/watch';
@@ -405,7 +405,9 @@ final class DraftCanaryTest extends WebTestCase
 
     private static function inThePast(string $competitionId): string
     {
-        return "UPDATE competition SET date_from = CURRENT_DATE - 40, date_to = CURRENT_DATE - 40 WHERE id = '{$competitionId}'";
+        $today = TestClock::SQL_TODAY;
+
+        return "UPDATE competition SET date_from = {$today} - 40, date_to = {$today} - 40 WHERE id = '{$competitionId}'";
     }
 
     /**

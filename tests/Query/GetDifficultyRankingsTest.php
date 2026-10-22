@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Query\GetDifficultyRankings;
 use SpeedPuzzling\Web\Results\DifficultyRankingBrand;
 use SpeedPuzzling\Web\Results\DifficultyRankingEntry;
@@ -37,11 +37,11 @@ final class GetDifficultyRankingsTest extends KernelTestCase
 
         $medium = $this->seedRatedPuzzle($container, self::RAVENSBURGER, 750, 'Medium confidence', 1.3);
         $high = $this->seedRatedPuzzle($container, self::RAVENSBURGER, 750, 'High confidence', 1.2, MetricConfidence::High, 25);
-        $revealed = $this->seedRatedPuzzle($container, self::RAVENSBURGER, 750, 'Revealed yesterday', 1.1, hideUntil: new DateTimeImmutable('-1 day'));
+        $revealed = $this->seedRatedPuzzle($container, self::RAVENSBURGER, 750, 'Revealed yesterday', 1.1, hideUntil: TestClock::now()->modify('-1 day'));
         $this->seedRatedPuzzle($container, self::RAVENSBURGER, 750, 'Low confidence', 1.9, MetricConfidence::Low, 7);
         $this->seedRatedPuzzle($container, self::RAVENSBURGER, 750, 'Not rated yet', null, MetricConfidence::Insufficient, 3);
         $this->seedRatedPuzzle($container, self::RAVENSBURGER, 750, 'Waiting for approval', 1.8, approved: false);
-        $this->seedRatedPuzzle($container, self::RAVENSBURGER, 750, 'Hidden until next year', 1.7, hideUntil: new DateTimeImmutable('+1 year'));
+        $this->seedRatedPuzzle($container, self::RAVENSBURGER, 750, 'Hidden until next year', 1.7, hideUntil: TestClock::now()->modify('+1 year'));
         $this->seedRatedPuzzle($container, self::RAVENSBURGER, 1000, 'Other piece count', 1.6);
 
         self::assertSame([$medium, $high, $revealed], self::ids($this->query->byPieces(750, DifficultyRankingDirection::Hardest, 100)));
@@ -125,7 +125,7 @@ final class GetDifficultyRankingsTest extends KernelTestCase
             750,
             'With statistics',
             1.4,
-            hideImageUntil: new DateTimeImmutable('+1 year'),
+            hideImageUntil: TestClock::now()->modify('+1 year'),
             statistics: new PuzzleStatisticsData(totalCount: 60, soloCount: 57, medianTimeSolo: 3723),
         );
         $this->seedRatedPuzzle($container, self::RAVENSBURGER, 750, 'Without statistics', 1.2);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -91,7 +92,7 @@ final class ReplyToPartnerRequestHandlerTest extends KernelTestCase
 
     public function testAMutedReplierChangesNothing(): void
     {
-        self::getContainer()->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_REGULAR)->muteMessaging(new \DateTimeImmutable('+7 days'));
+        self::getContainer()->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_REGULAR)->muteMessaging(TestClock::now()->modify('+7 days'));
 
         try {
             $this->messageBus->dispatch(new ReplyToPartnerRequest(PartnerFinderFixture::REQUEST_STRIPE_TO_REGULAR, PlayerFixture::PLAYER_REGULAR, 'en'));
@@ -106,7 +107,7 @@ final class ReplyToPartnerRequestHandlerTest extends KernelTestCase
     public function testAnAskerWhoBlockedTheOwnerSinceGetsNoChat(): void
     {
         $this->connection->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_WITH_STRIPE, 'blocked' => PlayerFixture::PLAYER_REGULAR],
         );
 

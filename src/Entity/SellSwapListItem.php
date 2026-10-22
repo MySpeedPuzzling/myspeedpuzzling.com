@@ -90,10 +90,10 @@ class SellSwapListItem
         $this->publishedOnMarketplace = $publishedOnMarketplace;
     }
 
-    public function markAsReserved(null|UuidInterface $reservedForPlayerId = null): void
+    public function markAsReserved(DateTimeImmutable $now, null|UuidInterface $reservedForPlayerId = null): void
     {
         $this->reserved = true;
-        $this->reservedAt = new DateTimeImmutable();
+        $this->reservedAt = $now;
         $this->reservedForPlayerId = $reservedForPlayerId;
     }
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -264,7 +264,7 @@ final class PlayersCountriesTest extends WebTestCase
             'puzzlers_with500' => 0,
             'monthly_solves' => '[0,0,0,0,0,0,0,0,0,0,0,0]',
             'new_faces14d' => 0,
-            'computed_at' => (new DateTimeImmutable())->format('Y-m-d H:i:s'),
+            'computed_at' => TestClock::now()->format('Y-m-d H:i:s'),
         ]);
     }
 }

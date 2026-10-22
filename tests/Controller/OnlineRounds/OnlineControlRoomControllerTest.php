@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\OnlineRounds;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Services\OnlineRounds\FakeOnlineMediaStorage;
 use SpeedPuzzling\Web\Services\OnlineRounds\InMemoryOnlinePresence;
@@ -164,7 +165,7 @@ final class OnlineControlRoomControllerTest extends WebTestCase
         $latest = $this->evidence($onlineEntry, OnlineMediaKind::Periodic, $startMs + 60_000);
         // Registered, never reported uploaded - not shown
         $this->evidence($onlineEntry, OnlineMediaKind::Periodic, $startMs + 90_000, uploaded: false);
-        $nowMs = (int) floor(microtime(true) * 1000);
+        $nowMs = TestClock::milliseconds();
         $this->presence()->beat(self::ROUND, OnlineRoundsFixture::PARTICIPANT_CONNECTED, [
             'deviceId' => OnlineRoundsFixture::DEVICE_CONNECTED,
             'visible' => true,
@@ -299,7 +300,7 @@ final class OnlineControlRoomControllerTest extends WebTestCase
         $this->finishCandidate($onlineEntry, $startMs - 60_000);
         $this->finishCandidate($onlineEntry, $startMs + 900_000);
         $latestId = $this->finishCandidate($onlineEntry, $startMs + 1_000_000, receivedAtMs: $startMs + 1_000_800);
-        $nowMs = (int) floor(microtime(true) * 1000);
+        $nowMs = TestClock::milliseconds();
         $this->presence()->beat(self::ROUND, OnlineRoundsFixture::PARTICIPANT_CONNECTED, [
             'deviceId' => OnlineRoundsFixture::DEVICE_CONNECTED,
             'visible' => true,
@@ -374,7 +375,7 @@ final class OnlineControlRoomControllerTest extends WebTestCase
 
         $this->connection($browser)->executeStatement(
             "INSERT INTO competition_round (id, competition_id, name, minutes_limit, starts_at, slug)
-             VALUES (:id, :competition, 'Round Without', 30, NOW() + INTERVAL '25 days', 'round-without')",
+             VALUES (:id, :competition, 'Round Without', 30, " . TestClock::SQL_NOW . " + INTERVAL '25 days', 'round-without')",
             ['id' => self::ROUND_WITHOUT, 'competition' => self::COMPETITION],
         );
 

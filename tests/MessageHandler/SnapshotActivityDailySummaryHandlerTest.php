@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
@@ -49,7 +50,7 @@ final class SnapshotActivityDailySummaryHandlerTest extends KernelTestCase
         // no locale: registered on the day but NOT active - registrations only
         $this->createPlayer(null, $registeredOnDay);
 
-        $now = new DateTimeImmutable();
+        $now = TestClock::now();
         $this->entityManager->persist(new Membership(
             id: Uuid::uuid7(),
             player: $csActiveMember,

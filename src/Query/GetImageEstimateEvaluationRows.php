@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Generator;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\StatisticalInputsSql;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Value\ImageEstimateEvaluationRow;
@@ -28,6 +29,7 @@ readonly final class GetImageEstimateEvaluationRows
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -85,6 +87,7 @@ readonly final class GetImageEstimateEvaluationRows
             'modelVersion' => TimePredictionCalculator::MODEL_VERSION,
             'maxK' => $maxK,
             'newerThan' => $newerThan->format('Y-m-d H:i:s'),
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
         ]);
 
         foreach ($rows as $row) {

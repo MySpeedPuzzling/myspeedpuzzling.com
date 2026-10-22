@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -125,7 +126,7 @@ final class SendPartnerRequestHandlerTest extends KernelTestCase
     {
         // The listing is still open, but the event is over now (the daily cron has not closed it yet)
         $this->connection->executeStatement(
-            "UPDATE competition SET date_from = CURRENT_DATE - 3, date_to = CURRENT_DATE - 2 WHERE id = :id",
+            "UPDATE competition SET date_from = " . TestClock::SQL_TODAY . " - 3, date_to = " . TestClock::SQL_TODAY . " - 2 WHERE id = :id",
             ['id' => PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN],
         );
 
@@ -176,7 +177,7 @@ final class SendPartnerRequestHandlerTest extends KernelTestCase
             Uuid::uuid7(),
             $players->get(PlayerFixture::PLAYER_ADMIN),
             $players->get(PlayerFixture::PLAYER_REGULAR),
-            new \DateTimeImmutable(),
+            TestClock::now(),
         ));
         $entityManager->flush();
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
@@ -489,7 +490,7 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
 
         $this->database->executeStatement(
             "INSERT INTO content_digest_run (id, kind, frequency, period_key, recipients, started_at, spacing_seconds, sent, failed_permanently, deferred)
-             VALUES (:id, 'activity', 'weekly', :periodKey, 1000, NOW(), 4, :sent, 0, :deferred)",
+             VALUES (:id, 'activity', 'weekly', :periodKey, 1000, " . TestClock::SQL_NOW . ", 4, :sent, 0, :deferred)",
             ['id' => $id, 'periodKey' => self::PERIOD, 'sent' => $sent, 'deferred' => $deferred],
         );
 

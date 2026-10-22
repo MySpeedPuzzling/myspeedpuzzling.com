@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\SeriesEditionScenario;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -33,9 +34,9 @@ final class WeeklySeriesSeed
 
         $connection->executeStatement(
             "INSERT INTO competition (id, name, slug, series_id, is_online, created_at, date_from, date_to)
-             SELECT gen_random_uuid(), 'Jam No. ' || n, 'jam-no-' || n, CAST(:series AS UUID), true, NOW(), day, day
+             SELECT gen_random_uuid(), 'Jam No. ' || n, 'jam-no-' || n, CAST(:series AS UUID), true, " . TestClock::SQL_NOW . ", day, day
              FROM (
-                 SELECT n, CASE WHEN n <= :past THEN CURRENT_DATE - ((:past - n) * 3 + 7) ELSE CURRENT_DATE + 2 + (n - :past) * :every END AS day
+                 SELECT n, CASE WHEN n <= :past THEN " . TestClock::SQL_TODAY . " - ((:past - n) * 3 + 7) ELSE " . TestClock::SQL_TODAY . " + 2 + (n - :past) * :every END AS day
                  FROM generate_series(1, :total) n
              ) days",
             $parameters,

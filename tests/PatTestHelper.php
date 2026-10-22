@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests;
 
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PersonalAccessToken;
@@ -28,7 +27,7 @@ final readonly class PatTestHelper
         $plainToken = 'msp_pat_' . bin2hex(random_bytes(24));
         $tokenHash = hash('sha256', $plainToken);
         $tokenPrefix = substr($plainToken, 0, 16);
-        $now = new DateTimeImmutable();
+        $now = TestClock::now();
 
         $pat = new PersonalAccessToken(
             id: Uuid::uuid7(),

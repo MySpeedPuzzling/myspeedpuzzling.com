@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Firebase\JWT\JWT;
 use Monolog\Handler\TestHandler;
@@ -55,7 +56,7 @@ final class LiveKitWebhookControllerTest extends WebTestCase
     public function testTheGuestsTimeOnAir(): void
     {
         $inviteId = $this->joinedInvite();
-        $joinedAt = time() - 30;
+        $joinedAt = TestClock::timestamp() - 30;
 
         $this->deliver(self::event('participant_joined', 'studio-' . self::ROUND, 'p:' . self::OLIVIA, $joinedAt));
 
@@ -64,11 +65,11 @@ final class LiveKitWebhookControllerTest extends WebTestCase
         self::assertSame([], $this->browser->getResponse()->headers->getCookies());
         $row = $this->row($inviteId);
         self::assertSame('joined', $row['status']);
-        self::assertSame(date('Y-m-d H:i:s', $joinedAt), $row['on_air_from']);
+        self::assertSame(TestClock::now()->setTimestamp($joinedAt)->format('Y-m-d H:i:s'), $row['on_air_from']);
 
         // Delivered again: the first time counts
         $this->deliver(self::event('participant_joined', 'studio-' . self::ROUND, 'p:' . self::OLIVIA, $joinedAt + 20));
-        self::assertSame(date('Y-m-d H:i:s', $joinedAt), $this->row($inviteId)['on_air_from']);
+        self::assertSame(TestClock::now()->setTimestamp($joinedAt)->format('Y-m-d H:i:s'), $this->row($inviteId)['on_air_from']);
 
         // Back over a new connection: no leave
         $this->deliver(self::event('participant_left', 'studio-' . self::ROUND, 'p:' . self::OLIVIA, $joinedAt + 25, 'DUPLICATE_IDENTITY'));
@@ -78,7 +79,7 @@ final class LiveKitWebhookControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $row = $this->row($inviteId);
         self::assertSame('ended', $row['status']);
-        self::assertSame(date('Y-m-d H:i:s', $joinedAt + 28), $row['on_air_to']);
+        self::assertSame(TestClock::now()->setTimestamp($joinedAt + 28)->format('Y-m-d H:i:s'), $row['on_air_to']);
     }
 
     public function testEverythingElseIsAcknowledgedAndLeftAlone(): void
@@ -281,7 +282,7 @@ final class LiveKitWebhookControllerTest extends WebTestCase
             'participant' => $participant,
             'id' => 'EV_' . bin2hex(random_bytes(4)),
             // The protocol's JSON has 64-bit numbers as strings
-            'createdAt' => (string) ($createdAt ?? time()),
+            'createdAt' => (string) ($createdAt ?? TestClock::timestamp()),
         ];
     }
 
@@ -302,8 +303,8 @@ final class LiveKitWebhookControllerTest extends WebTestCase
     {
         return JWT::encode([
             'iss' => self::LIVEKIT_TEST_KEY,
-            'nbf' => time(),
-            'exp' => time() + 300,
+            'nbf' => TestClock::timestamp(),
+            'exp' => TestClock::timestamp() + 300,
             'sha256' => base64_encode(hash('sha256', $body, true)),
         ], $secret, 'HS256');
     }

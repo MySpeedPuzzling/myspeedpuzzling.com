@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\ParticipantImport;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use League\Flysystem\Filesystem;
-use League\Flysystem\InMemory\InMemoryFilesystemAdapter;
 use Monolog\Handler\TestHandler;
 use Monolog\Logger;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Exceptions\ParticipantFileUnreadable;
 use SpeedPuzzling\Web\Exceptions\StashedParticipantImportNotFound;
 use SpeedPuzzling\Web\Services\ParticipantImport\ParticipantFileReader;
 use SpeedPuzzling\Web\Services\ParticipantImport\ParticipantImportStash;
+use SpeedPuzzling\Web\Tests\TestDouble\ClockedInMemoryFilesystemAdapter;
 use SpeedPuzzling\Web\Value\ParticipantFileFormat;
 use SpeedPuzzling\Web\Value\ParticipantFileOptions;
 use Symfony\Component\Clock\MockClock;
@@ -36,8 +37,8 @@ final class ParticipantImportStashTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->filesystem = new Filesystem(new InMemoryFilesystemAdapter());
-        $this->clock = new MockClock(date('Y-m-d H:i:s'));
+        $this->clock = new MockClock(TestClock::now());
+        $this->filesystem = new Filesystem(new ClockedInMemoryFilesystemAdapter($this->clock));
         $this->stash = $this->newStash();
     }
 
@@ -215,7 +216,7 @@ final class ParticipantImportStashTest extends TestCase
 
     public function testAFailedUploadNeverCostsAnOlderOne(): void
     {
-        $adapter = new RefusingFilesystemAdapter();
+        $adapter = new RefusingFilesystemAdapter($this->clock);
         $this->filesystem = new Filesystem($adapter);
         $this->stash = $this->newStash();
 
@@ -237,7 +238,7 @@ final class ParticipantImportStashTest extends TestCase
 
     public function testPruneGoesOnPastAFileItCannotRemove(): void
     {
-        $adapter = new RefusingFilesystemAdapter();
+        $adapter = new RefusingFilesystemAdapter($this->clock);
         $this->filesystem = new Filesystem($adapter);
         $logs = new TestHandler();
         $this->stash = new ParticipantImportStash($this->filesystem, $this->clock, new Logger('test', [$logs]), new ParticipantFileReader());

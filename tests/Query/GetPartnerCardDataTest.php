@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetPartnerCardData;
@@ -130,7 +131,7 @@ final class GetPartnerCardDataTest extends KernelTestCase
         self::assertSame([PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_REGULAR], self::faceIds($data));
 
         $this->database->executeStatement(
-            'INSERT INTO private_profile_viewer (id, owner_id, viewer_id, added_at) VALUES (:id, :owner, :viewer, NOW())',
+            'INSERT INTO private_profile_viewer (id, owner_id, viewer_id, added_at) VALUES (:id, :owner, :viewer, ' . TestClock::SQL_NOW . ')',
             ['id' => Uuid::uuid7()->toString(), 'owner' => PlayerFixture::PLAYER_PRIVATE, 'viewer' => PlayerFixture::PLAYER_ADMIN],
         );
         TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_ADMIN);
@@ -164,7 +165,7 @@ final class GetPartnerCardDataTest extends KernelTestCase
     public function testTheClosedCard(): void
     {
         $this->database->executeStatement(
-            'INSERT INTO dismissed_hint (id, player_id, type, dismissed_at) VALUES (:id, :player, :type, NOW())',
+            'INSERT INTO dismissed_hint (id, player_id, type, dismissed_at) VALUES (:id, :player, :type, ' . TestClock::SQL_NOW . ')',
             ['id' => Uuid::uuid7()->toString(), 'player' => PlayerFixture::PLAYER_ADMIN, 'type' => HintType::PartnerFinderCard->value],
         );
 
@@ -176,7 +177,7 @@ final class GetPartnerCardDataTest extends KernelTestCase
     {
         // The Results Cup (pairs rounds, PLAYER_REGULAR = Hugo of "Edge Hunters") moved into the future
         $this->database->executeStatement(
-            "UPDATE competition SET date_from = NOW() + INTERVAL '20 days', date_to = NOW() + INTERVAL '20 days' WHERE id = :id",
+            "UPDATE competition SET date_from = " . TestClock::SQL_NOW . " + INTERVAL '20 days', date_to = " . TestClock::SQL_NOW . " + INTERVAL '20 days' WHERE id = :id",
             ['id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP],
         );
 
@@ -213,15 +214,15 @@ final class GetPartnerCardDataTest extends KernelTestCase
     {
         $this->database->executeStatement(
             "INSERT INTO partner_listing (id, competition_id, player_id, group_size, looking_for, created_at, updated_at)
-             VALUES (:id, :competition, :player, 1, '[\"pair\"]', NOW() + CAST(:age AS interval), NOW())",
-            ['id' => Uuid::uuid7()->toString(), 'competition' => self::EVENT, 'player' => $playerId, 'age' => $age],
+             VALUES (:id, :competition, :player, 1, '[\"pair\"]', :createdAt, " . TestClock::SQL_NOW . ")",
+            ['id' => Uuid::uuid7()->toString(), 'competition' => self::EVENT, 'player' => $playerId, 'createdAt' => TestClock::now()->modify($age)->format('Y-m-d H:i:s')],
         );
     }
 
     private function block(string $blockerId, string $blockedId): void
     {
         $this->database->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => $blockerId, 'blocked' => $blockedId],
         );
     }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Competition;
@@ -331,7 +331,7 @@ final class SecretPuzzleRoutesTest extends WebTestCase
             id: $id,
             puzzle: $puzzle,
             reporter: $reporter,
-            submittedAt: new DateTimeImmutable(),
+            submittedAt: TestClock::now(),
             proposedName: $puzzle->name,
             proposedManufacturer: $puzzle->manufacturer,
             proposedPiecesCount: $puzzle->piecesCount,
@@ -364,7 +364,7 @@ final class SecretPuzzleRoutesTest extends WebTestCase
         self::assertNotNull($maintainer);
         self::assertNotNull($moderator);
         $competition->maintainers->add($maintainer);
-        $moderator->moderatorSince = new DateTimeImmutable('-1 year');
+        $moderator->moderatorSince = TestClock::now()->modify('-1 year');
         $entityManager->flush();
 
         $roundPuzzleId = Uuid::uuid7();

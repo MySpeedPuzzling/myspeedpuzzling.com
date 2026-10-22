@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
@@ -114,6 +114,7 @@ final class RegisterControllerTest extends WebTestCase
 
         self::assertNotNull($rememberMe, 'A new account must be remembered like any other sign-in');
         self::assertNotSame('', (string) $rememberMe->getValue());
+        // Real time: remember-me mints its expiry with time() and the browser judges it on its own clock
         self::assertGreaterThan(time() + 86400, $rememberMe->getExpiresTime());
     }
 
@@ -170,7 +171,7 @@ final class RegisterControllerTest extends WebTestCase
 
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
         $entityManager->persist(
-            new UserAccount(Uuid::uuid7(), 'msp|' . bin2hex(random_bytes(4)), $email, new DateTimeImmutable()),
+            new UserAccount(Uuid::uuid7(), 'msp|' . bin2hex(random_bytes(4)), $email, TestClock::now()),
         );
         $entityManager->flush();
 
@@ -237,7 +238,7 @@ final class RegisterControllerTest extends WebTestCase
             'RGST' . bin2hex(random_bytes(2)),
             'auth0|' . bin2hex(random_bytes(4)),
             null,
-            new DateTimeImmutable(),
+            TestClock::now(),
         );
         $entityManager->persist($legacyPlayer);
         $entityManager->flush();

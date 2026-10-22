@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Exceptions\PlayerAlreadyClaimedVoucher;
 use SpeedPuzzling\Web\Exceptions\PlayerAlreadyHasLifetimeMembership;
 use SpeedPuzzling\Web\Exceptions\VoucherAlreadyUsed;
@@ -121,7 +122,7 @@ final class ClaimVoucherHandlerTest extends KernelTestCase
 
     public function testFreeMonthsAfterCancelledSubscriptionStartWhenThePaidPeriodEnds(): void
     {
-        $paidUntil = new \DateTimeImmutable('+20 days 12:00:00');
+        $paidUntil = TestClock::now()->modify('+20 days 12:00:00');
 
         $membership = $this->membershipRepository->get(MembershipFixture::MEMBERSHIP_ACTIVE);
         $membership->cancel($paidUntil);

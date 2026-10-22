@@ -55,7 +55,7 @@ final class ConversationReportFixture extends Fixture implements DependentFixtur
             status: ReportStatus::Resolved,
             reportedAt: $now->modify('-5 days'),
         );
-        $resolvedReport->resolve($playerAdmin, ReportStatus::Resolved, 'Warning issued');
+        $resolvedReport->resolve($playerAdmin, ReportStatus::Resolved, 'Warning issued', $now);
         $manager->persist($resolvedReport);
         $this->addReference(self::REPORT_RESOLVED, $resolvedReport);
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetWjpcEvents;
 use SpeedPuzzling\Web\Results\CompetitionEvent;
@@ -45,7 +46,7 @@ final class GetWjpcEventsTest extends KernelTestCase
     public function testLeavesOutARejectedOne(): void
     {
         $this->database->executeStatement(
-            'UPDATE competition SET rejected_at = NOW() WHERE id = :id',
+            'UPDATE competition SET rejected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => CompetitionFixture::COMPETITION_WJPC_2024],
         );
 

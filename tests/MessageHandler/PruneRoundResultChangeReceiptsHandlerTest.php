@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\PruneRoundResultChangeReceipts;
@@ -19,8 +20,8 @@ final class PruneRoundResultChangeReceiptsHandlerTest extends KernelTestCase
         $container = self::getContainer();
         $connection = $container->get(Connection::class);
 
-        $old = $this->insert($connection, new \DateTimeImmutable('-91 days'));
-        $recent = $this->insert($connection, new \DateTimeImmutable('-2 days'));
+        $old = $this->insert($connection, TestClock::now()->modify('-91 days'));
+        $recent = $this->insert($connection, TestClock::now()->modify('-2 days'));
 
         $pruned = $container->get(PruneRoundResultChangeReceiptsHandler::class)(new PruneRoundResultChangeReceipts(90));
 
@@ -38,8 +39,8 @@ final class PruneRoundResultChangeReceiptsHandlerTest extends KernelTestCase
         $container = self::getContainer();
         $connection = $container->get(Connection::class);
 
-        $old = $this->insertSheetReceipt($connection, new \DateTimeImmutable('-91 days'));
-        $recent = $this->insertSheetReceipt($connection, new \DateTimeImmutable('-2 days'));
+        $old = $this->insertSheetReceipt($connection, TestClock::now()->modify('-91 days'));
+        $recent = $this->insertSheetReceipt($connection, TestClock::now()->modify('-2 days'));
 
         $pruned = $container->get(PruneRoundResultChangeReceiptsHandler::class)(new PruneRoundResultChangeReceipts(90));
 

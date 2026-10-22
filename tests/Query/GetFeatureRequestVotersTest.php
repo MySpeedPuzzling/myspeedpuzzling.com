@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetFeatureRequestVoters;
@@ -126,7 +127,7 @@ final class GetFeatureRequestVotersTest extends KernelTestCase
         // The query must collapse them so that recipient lists never contain duplicates.
         $this->connection->executeStatement(
             'INSERT INTO feature_request_vote (id, feature_request_id, voter_id, voted_at) '
-            . 'VALUES (:id, :featureRequestId, :voterId, NOW())',
+            . 'VALUES (:id, :featureRequestId, :voterId, ' . TestClock::SQL_NOW . ')',
             [
                 'id' => Uuid::uuid7()->toString(),
                 'featureRequestId' => FeatureRequestFixture::FEATURE_REQUEST_POPULAR,

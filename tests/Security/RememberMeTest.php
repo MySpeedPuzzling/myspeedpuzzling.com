@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Security;
 
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Cookie;
@@ -50,7 +50,8 @@ final class RememberMeTest extends WebTestCase
         self::assertSame(Cookie::SAMESITE_LAX, $cookie->getSameSite());
         self::assertSame('/', $cookie->getPath());
 
-        // 30 days out, give or take the second the request took
+        // 30 days out in real time (a cookie expires on the browser's clock, never the frozen one), give or take the
+        // second the request took
         self::assertEqualsWithDelta(time() + self::LIFETIME, $cookie->getExpiresTime(), 30);
     }
 
@@ -447,7 +448,7 @@ final class RememberMeTest extends WebTestCase
     private function seedAccount(KernelBrowser $browser, string $userId, string $emailPrefix): string
     {
         $email = sprintf('%s+%s@example.com', $emailPrefix, bin2hex(random_bytes(4)));
-        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now());
         $userAccount->changePassword(password_hash(self::PASSWORD, PASSWORD_ARGON2ID));
 
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
@@ -69,13 +70,13 @@ final class GetSuspiciousTimeQueueTest extends KernelTestCase
         self::assertSame([], $this->queue->decidedCaseIds(SuspiciousTimeQueueTab::Replied, 1));
 
         // An edit of a marked time that still needs a person
-        $this->database->executeStatement('UPDATE suspicious_time_case SET player_edited_at = NOW() WHERE id = :id', ['id' => SuspiciousTimesFixture::CASE_MARKED]);
+        $this->database->executeStatement('UPDATE suspicious_time_case SET player_edited_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => SuspiciousTimesFixture::CASE_MARKED]);
         self::assertSame([SuspiciousTimesFixture::CASE_MARKED], $this->queue->decidedCaseIds(SuspiciousTimeQueueTab::Replied, 1));
     }
 
     public function testTrustedCasesAreVerifiedFine(): void
     {
-        $this->database->executeStatement("UPDATE suspicious_time_case SET status = 'trusted', decided_at = NOW() WHERE id = :id", ['id' => SuspiciousTimesFixture::CASE_PENDING_SLOW]);
+        $this->database->executeStatement("UPDATE suspicious_time_case SET status = 'trusted', decided_at = " . TestClock::SQL_NOW . " WHERE id = :id", ['id' => SuspiciousTimesFixture::CASE_PENDING_SLOW]);
 
         self::assertSame([SuspiciousTimesFixture::CASE_PENDING_SLOW], $this->queue->decidedCaseIds(SuspiciousTimeQueueTab::Trusted, 1));
         self::assertSame([], $this->queue->pending(SuspicionDirection::Slow, 1)->caseIds);
@@ -235,7 +236,7 @@ final class GetSuspiciousTimeQueueTest extends KernelTestCase
     private function setDifficulty(string $puzzleId, float $score): void
     {
         $this->database->executeStatement(
-            "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, confidence, sample_size, computed_at) VALUES (:puzzleId, :score, 'high', 30, NOW())
+            "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, confidence, sample_size, computed_at) VALUES (:puzzleId, :score, 'high', 30, " . TestClock::SQL_NOW . ")
              ON CONFLICT (puzzle_id) DO UPDATE SET difficulty_score = EXCLUDED.difficulty_score",
             ['puzzleId' => $puzzleId, 'score' => $score],
         );

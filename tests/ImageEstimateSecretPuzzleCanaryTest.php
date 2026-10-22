@@ -70,8 +70,10 @@ final class ImageEstimateSecretPuzzleCanaryTest extends KernelTestCase
         $imageRows = $this->database->fetchOne("SELECT COUNT(*) FROM solving_time_prediction WHERE predictor = 'image' AND image_model IS NOT NULL");
         self::assertSame(1, (int) $imageRows);
 
+        $now = TestClock::SQL_NOW;
+
         foreach (self::SECRET as $puzzleId => $column) {
-            $this->database->executeStatement("UPDATE puzzle SET {$column} = NOW() + INTERVAL '30 days' WHERE id = :id", ['id' => $puzzleId]);
+            $this->database->executeStatement("UPDATE puzzle SET {$column} = {$now} + INTERVAL '30 days' WHERE id = :id", ['id' => $puzzleId]);
         }
 
         self::getContainer()->get(EntityManagerInterface::class)->clear();
@@ -130,7 +132,7 @@ final class ImageEstimateSecretPuzzleCanaryTest extends KernelTestCase
         self::assertSame(0, (int) $copiedPriors);
 
         // The evaluation: the rows from before it was hidden stay out
-        self::assertSame([], iterator_to_array($container->get(GetImageEstimateEvaluationRows::class)->rows(new DateTimeImmutable('-10 years'), 4), false));
+        self::assertSame([], iterator_to_array($container->get(GetImageEstimateEvaluationRows::class)->rows(TestClock::now()->modify('-10 years'), 4), false));
         $evaluation = $this->messageBus->dispatch(new EvaluateImageEstimates(120))->last(HandledStamp::class)?->getResult();
         self::assertInstanceOf(ImageEstimateEvaluation::class, $evaluation);
         self::assertSame(0, $evaluation->overall['rows']);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\OnlineRounds;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\ORM\EntityManagerInterface;
@@ -186,7 +187,7 @@ final class OnlineRoundStateTest extends KernelTestCase
         self::assertNotNull($onlineEntry);
         self::assertNotNull($reviewer);
 
-        $onlineEntry->confirm(1_792_002_832_345, OnlineConfirmedSource::Button, $reviewer, new DateTimeImmutable());
+        $onlineEntry->confirm(1_792_002_832_345, OnlineConfirmedSource::Button, $reviewer, TestClock::now());
         $this->entityManager->flush();
 
         $entry = $this->state(OnlineRoundsFixture::TOKEN_CONNECTED)['entry'];
@@ -202,7 +203,7 @@ final class OnlineRoundStateTest extends KernelTestCase
     {
         $participant = $this->entityManager->find(CompetitionParticipant::class, OnlineRoundsFixture::PARTICIPANT_WITHOUT_TOKEN);
         self::assertNotNull($participant);
-        $participant->assignOnlineToken('NoraHasALinkNow2222222', new DateTimeImmutable());
+        $participant->assignOnlineToken('NoraHasALinkNow2222222', TestClock::now());
         $this->entityManager->flush();
 
         $state = $this->state('NoraHasALinkNow2222222');
@@ -216,7 +217,7 @@ final class OnlineRoundStateTest extends KernelTestCase
     {
         $participant = $this->entityManager->find(CompetitionParticipant::class, OfficialResultsFixture::PARTICIPANT_BEN);
         self::assertNotNull($participant);
-        $participant->assignOnlineToken('BenWithoutAnyRound2222', new DateTimeImmutable());
+        $participant->assignOnlineToken('BenWithoutAnyRound2222', TestClock::now());
         $this->entityManager->flush();
 
         $state = $this->state('BenWithoutAnyRound2222');

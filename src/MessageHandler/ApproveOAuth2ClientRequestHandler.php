@@ -10,6 +10,7 @@ use League\Bundle\OAuth2ServerBundle\Model\Client;
 use League\Bundle\OAuth2ServerBundle\ValueObject\Grant;
 use League\Bundle\OAuth2ServerBundle\ValueObject\RedirectUri;
 use League\Bundle\OAuth2ServerBundle\ValueObject\Scope;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Message\ApproveOAuth2ClientRequest;
 use SpeedPuzzling\Web\Repository\OAuth2ClientRequestRepository;
@@ -32,6 +33,7 @@ final readonly class ApproveOAuth2ClientRequestHandler
         private UrlGeneratorInterface $urlGenerator,
         private TranslatorInterface $translator,
         private PlayerAccountEmail $playerAccountEmail,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -74,7 +76,7 @@ final readonly class ApproveOAuth2ClientRequestHandler
         $this->clientManager->save($client);
 
         $claimToken = bin2hex(random_bytes(32));
-        $request->approve($admin, $identifier, $secret, $claimToken);
+        $request->approve($admin, $identifier, $secret, $claimToken, $this->clock->now());
 
         $this->entityManager->flush();
 

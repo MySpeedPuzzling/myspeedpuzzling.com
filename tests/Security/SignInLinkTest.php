@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Entity\LoginLinkRequest;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Security\SignInLinkPasswordPrompt;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -101,7 +102,7 @@ final class SignInLinkTest extends WebTestCase
         $signInUrl = $this->lastSignInLinkUrl();
 
         // A scanner that did submit the form got there 20 seconds ago
-        $firstUse = new DateTimeImmutable('-20 seconds');
+        $firstUse = TestClock::now()->modify('-20 seconds');
         $this->markConsumed($browser, $signInUrl, $firstUse);
 
         $this->followSignInLink($browser, $signInUrl);
@@ -124,7 +125,7 @@ final class SignInLinkTest extends WebTestCase
         $this->requestSignInLink($browser, $email);
         $signInUrl = $this->lastSignInLinkUrl();
 
-        $this->markConsumed($browser, $signInUrl, new DateTimeImmutable('-2 minutes'));
+        $this->markConsumed($browser, $signInUrl, TestClock::now()->modify('-2 minutes'));
 
         $this->followSignInLink($browser, $signInUrl);
 
@@ -161,7 +162,7 @@ final class SignInLinkTest extends WebTestCase
 
         // Somebody replaying the link later (forwarded mail, shared device, proxy log)
         // - later than the scanner grace window, which is the only tolerated re-use
-        $this->markConsumed($browser, $signInUrl, new DateTimeImmutable('-2 minutes'));
+        $this->markConsumed($browser, $signInUrl, TestClock::now()->modify('-2 minutes'));
         $browser->getCookieJar()->clear();
         $this->followSignInLink($browser, $signInUrl);
 
@@ -513,12 +514,12 @@ final class SignInLinkTest extends WebTestCase
         bool $legacyAuth0 = false,
     ): string {
         $email = sprintf('%s+%s@example.com', $emailPrefix, bin2hex(random_bytes(4)));
-        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now());
 
         if ($legacyAuth0) {
             // Imported account whose hash never made it into the export: exactly the
             // cohort the sign-in link exists for
-            $userAccount->applyAuth0Import($email, null, true, new DateTimeImmutable());
+            $userAccount->applyAuth0Import($email, null, true, TestClock::now());
         }
 
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);

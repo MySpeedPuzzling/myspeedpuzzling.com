@@ -40,7 +40,7 @@ trait OnlineReviewSeeding
     private function startOnlineRound(int $secondsAgo = 1800): int
     {
         $round = $this->onlineRound();
-        $round->startStopwatch(new DateTimeImmutable('@' . (time() - $secondsAgo)));
+        $round->startStopwatch(TestClock::now()->modify("-{$secondsAgo} seconds"));
         $this->entityManager()->flush();
 
         $startedAt = $round->stopwatchStartedAt;
@@ -54,7 +54,7 @@ trait OnlineReviewSeeding
      */
     private function endOnlineRound(int $secondsAgo = 0): void
     {
-        $this->onlineRound()->stopStopwatch(new DateTimeImmutable('@' . (time() - $secondsAgo)));
+        $this->onlineRound()->stopStopwatch(TestClock::now()->modify("-{$secondsAgo} seconds"));
         $this->entityManager()->flush();
     }
 
@@ -80,7 +80,7 @@ trait OnlineReviewSeeding
         $entry = $this->entityManager()->find(CompetitionParticipantRound::class, $entryId);
         assert($entry instanceof CompetitionParticipantRound);
 
-        $onlineEntry = new OnlineEntry(Uuid::uuid7(), $entry, new DateTimeImmutable('-1 hour'));
+        $onlineEntry = new OnlineEntry(Uuid::uuid7(), $entry, TestClock::now()->modify('-1 hour'));
         $this->entityManager()->persist($onlineEntry);
         $this->entityManager()->flush();
 

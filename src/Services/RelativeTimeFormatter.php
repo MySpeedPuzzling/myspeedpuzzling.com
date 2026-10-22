@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
+use DateTimeImmutable;
 use DateTimeInterface;
 use LogicException;
+use Psr\Clock\ClockInterface;
 use Symfony\Component\Translation\TranslatorBagInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -13,6 +15,7 @@ final readonly class RelativeTimeFormatter
 {
     public function __construct(
         private TranslatorInterface $translator,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -21,8 +24,9 @@ final readonly class RelativeTimeFormatter
         null|int|string|DateTimeInterface $to = null,
         null|string $locale = null,
     ): string {
-        $from = self::formatDateTime($from);
-        $to = self::formatDateTime($to);
+        $from = $this->formatDateTime($from);
+        // No $to = until now - the clock's, like every "now" of the app
+        $to = $to === null ? $this->clock->now() : $this->formatDateTime($to);
 
         /** @var array<string, string> $units */
         $units = [
@@ -72,20 +76,16 @@ final readonly class RelativeTimeFormatter
         ];
     }
 
-    private static function formatDateTime(null|int|string|DateTimeInterface $value): DateTimeInterface
+    private function formatDateTime(int|string|DateTimeInterface $value): DateTimeInterface
     {
         if ($value instanceof DateTimeInterface) {
             return $value;
         }
 
         if (is_int($value)) {
-            $value = date('Y-m-d H:i:s', $value);
+            return new DateTimeImmutable('@' . $value);
         }
 
-        if (null === $value) {
-            $value = 'now';
-        }
-
-        return new \DateTime($value);
+        return new DateTimeImmutable($value);
     }
 }

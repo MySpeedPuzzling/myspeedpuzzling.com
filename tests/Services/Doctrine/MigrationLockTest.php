@@ -65,6 +65,7 @@ final class MigrationLockTest extends KernelTestCase
         $holder = $this->anotherSession();
         $holder->executeQuery('SELECT pg_advisory_lock(:key)', ['key' => MigrationLock::LOCK_KEY]);
 
+        // Real time on purpose: measures how long the call takes, not a moment of the app
         $startedAt = microtime(true);
         $locked = (new MigrationLock())->runExclusively($this->databaseUrl, 0.3, static fn(bool $locked): bool => $locked);
 

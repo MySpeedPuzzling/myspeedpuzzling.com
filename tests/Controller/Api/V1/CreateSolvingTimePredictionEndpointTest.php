@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Api\V1;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -400,7 +400,7 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
         $puzzle = $entityManager->find(Puzzle::class, $puzzleId);
         $this->assertNotNull($puzzle);
 
-        $solvedAt = new DateTimeImmutable("-{$daysAgo} days");
+        $solvedAt = TestClock::now()->modify("-{$daysAgo} days");
 
         $entityManager->persist(new PuzzleSolvingTime(
             id: Uuid::uuid7(),
@@ -426,7 +426,7 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
     private function seedPlayerWith500PiecePace(KernelBrowser $browser, int $paceSeconds): string
     {
         $entityManager = $this->entityManager($browser);
-        $player = new Player(Uuid::uuid7(), 'pred' . bin2hex(random_bytes(3)), null, null, new DateTimeImmutable());
+        $player = new Player(Uuid::uuid7(), 'pred' . bin2hex(random_bytes(3)), null, null, TestClock::now());
         $entityManager->persist($player);
         $entityManager->flush();
         $entityManager->clear();

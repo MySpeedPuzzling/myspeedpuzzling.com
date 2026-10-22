@@ -184,6 +184,7 @@ final readonly class PuzzleSearchResponseProvider implements ProviderInterface
             return;
         }
 
+        // Real time: the limiter counts on the system clock
         $retryAfterSeconds = max(1, $limit->getRetryAfter()->getTimestamp() - time());
 
         throw new TooManyRequestsHttpException(

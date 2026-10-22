@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -35,7 +35,7 @@ final class GetResultReviewEmailCandidatesTest extends KernelTestCase
         $this->database = self::getContainer()->get(Connection::class);
 
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
-        $entityManager->persist(new UserAccount(Uuid::uuid7(), 'auth0|marked1', 'mia@example.com', new DateTimeImmutable()));
+        $entityManager->persist(new UserAccount(Uuid::uuid7(), 'auth0|marked1', 'mia@example.com', TestClock::now()));
         $entityManager->flush();
     }
 
@@ -58,20 +58,21 @@ final class GetResultReviewEmailCandidatesTest extends KernelTestCase
     {
         $notice = "UPDATE suspicious_time_notice SET %s WHERE id = '" . self::NOTICE . "'";
         $otherContact = Uuid::uuid7()->toString();
+        $now = TestClock::SQL_NOW;
 
         yield 'e-mailed by hand' => [[sprintf($notice, "via = 'manual_email'")], false];
         yield 'the mark was e-mailed' => [[sprintf($notice, "contact_id = '{$otherContact}'")], false];
-        yield 'the player left it as it is' => [[sprintf($notice, "response = 'left_as_is', responded_at = NOW()")], false];
-        yield 'the player says the time is correct' => [[sprintf($notice, "response = 'says_correct', responded_at = NOW()")], false];
+        yield 'the player left it as it is' => [[sprintf($notice, "response = 'left_as_is', responded_at = " . TestClock::SQL_NOW)], false];
+        yield 'the player says the time is correct' => [[sprintf($notice, "response = 'says_correct', responded_at = " . TestClock::SQL_NOW)], false];
         yield 'trusted meanwhile' => [["UPDATE suspicious_time_case SET status = 'trusted' WHERE id = '" . self::CASE . "'", "UPDATE puzzle_solving_time SET suspicious = false WHERE id = '" . self::TIME . "'"], false];
         yield 'the flag was cleared by SQL' => [["UPDATE puzzle_solving_time SET suspicious = false WHERE id = '" . self::TIME . "'"], false];
         yield 'a newer mark of the time' => [["UPDATE suspicious_time_case SET marked_at = marked_at + INTERVAL '1 hour' WHERE id = '" . self::CASE . "'"], false];
-        yield 'a moderator answered, not e-mailed' => [[sprintf($notice, "contact_id = '{$otherContact}', response = 'says_correct', responded_at = NOW(), answer = 'kept', answer_note = 'Hmm', answered_at = NOW()")], true];
-        yield 'a moderator answered an unsent mark' => [[sprintf($notice, "response = 'says_correct', responded_at = NOW(), answer = 'trusted', answered_at = NOW()")], true];
-        yield 'the answer was e-mailed' => [[sprintf($notice, "contact_id = '{$otherContact}', response = 'says_correct', responded_at = NOW(), answer = 'trusted', answered_at = NOW(), answer_contact_id = '{$otherContact}'")], false];
+        yield 'a moderator answered, not e-mailed' => [[sprintf($notice, "contact_id = '{$otherContact}', response = 'says_correct', responded_at = {$now}, answer = 'kept', answer_note = 'Hmm', answered_at = {$now}")], true];
+        yield 'a moderator answered an unsent mark' => [[sprintf($notice, "response = 'says_correct', responded_at = " . TestClock::SQL_NOW . ", answer = 'trusted', answered_at = " . TestClock::SQL_NOW)], true];
+        yield 'the answer was e-mailed' => [[sprintf($notice, "contact_id = '{$otherContact}', response = 'says_correct', responded_at = {$now}, answer = 'trusted', answered_at = {$now}, answer_contact_id = '{$otherContact}'")], false];
         // The mark was told by hand, the moderator's answer to the player's reply is new: told like any other
-        yield 'an answer to a time e-mailed by hand' => [[sprintf($notice, "via = 'manual_email', response = 'says_correct', responded_at = NOW(), answer = 'trusted', answered_at = NOW()")], true];
-        yield 'the answer to a time e-mailed by hand was e-mailed' => [[sprintf($notice, "via = 'manual_email', response = 'says_correct', responded_at = NOW(), answer = 'trusted', answered_at = NOW(), answer_contact_id = '{$otherContact}'")], false];
+        yield 'an answer to a time e-mailed by hand' => [[sprintf($notice, "via = 'manual_email', response = 'says_correct', responded_at = " . TestClock::SQL_NOW . ", answer = 'trusted', answered_at = " . TestClock::SQL_NOW)], true];
+        yield 'the answer to a time e-mailed by hand was e-mailed' => [[sprintf($notice, "via = 'manual_email', response = 'says_correct', responded_at = {$now}, answer = 'trusted', answered_at = {$now}, answer_contact_id = '{$otherContact}'")], false];
         yield 'the player is not in the result any more' => [["UPDATE puzzle_solving_time SET player_id = '" . SuspiciousTimesFixture::PLAYER_STEADY . "' WHERE id = '" . self::TIME . "'"], false];
         yield 'the e-mails are switched off' => [["UPDATE player SET result_emails_enabled = false WHERE id = '" . self::MIA . "'"], false];
     }
@@ -99,7 +100,7 @@ final class GetResultReviewEmailCandidatesTest extends KernelTestCase
     public function testAPlayerWithAnEmailWaitingIsNoCandidate(): void
     {
         $this->database->executeStatement(
-            "INSERT INTO result_review_contact (id, player_id, type, priority, case_ids, removal_ids, suspicious_notice_ids, planned_at, status) VALUES (:id, :playerId, 'first', 2, '[]', '[]', :notices, NOW(), 'planned')",
+            "INSERT INTO result_review_contact (id, player_id, type, priority, case_ids, removal_ids, suspicious_notice_ids, planned_at, status) VALUES (:id, :playerId, 'first', 2, '[]', '[]', :notices, " . TestClock::SQL_NOW . ", 'planned')",
             ['id' => Uuid::uuid7()->toString(), 'playerId' => self::MIA, 'notices' => json_encode([self::NOTICE])],
         );
 

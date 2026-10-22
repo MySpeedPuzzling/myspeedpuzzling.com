@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotEligibleForMarketplace;
 use SpeedPuzzling\Web\Exceptions\MarketplaceBanned;
@@ -99,7 +100,7 @@ final class BringListingToEventHandlerTest extends KernelTestCase
     {
         // Reserved for PLAYER_ADMIN in another tab after the menu was rendered
         $this->database->executeStatement(
-            'UPDATE sell_swap_list_item SET reserved = true, reserved_at = NOW(), reserved_for_player_id = :admin WHERE id = :id',
+            'UPDATE sell_swap_list_item SET reserved = true, reserved_at = ' . TestClock::SQL_NOW . ', reserved_for_player_id = :admin WHERE id = :id',
             ['admin' => PlayerFixture::PLAYER_ADMIN, 'id' => SellSwapListItemFixture::SELLSWAP_01],
         );
 

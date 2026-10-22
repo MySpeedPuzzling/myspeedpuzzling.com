@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\OAuth2;
 
+use Psr\Clock\ClockInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Repository\OAuth2ClientRequestRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -22,6 +22,7 @@ final class ClaimOAuth2CredentialsController extends AbstractController
         private readonly OAuth2ClientRequestRepository $requestRepository,
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly EntityManagerInterface $entityManager,
+        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -59,7 +60,7 @@ final class ClaimOAuth2CredentialsController extends AbstractController
             return $this->redirectToRoute('edit_profile');
         }
 
-        if ($request->credentialClaimExpiresAt !== null && $request->credentialClaimExpiresAt < new DateTimeImmutable()) {
+        if ($request->credentialClaimExpiresAt !== null && $request->credentialClaimExpiresAt < $this->clock->now()) {
             $this->addFlash('danger', 'This claim link has expired.');
 
             return $this->redirectToRoute('edit_profile');

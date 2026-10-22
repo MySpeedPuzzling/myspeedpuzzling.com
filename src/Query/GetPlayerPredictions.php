@@ -268,7 +268,7 @@ SQL;
         /** @var list<array<string, mixed>> $rows */
         $rows = $this->database->executeQuery(
             "WITH {$cte} SELECT {$columns} FROM puzzle p {$joins} WHERE p.id IN (:puzzleIds)",
-            ['playerId' => $playerId, 'puzzleIds' => $puzzleIds],
+            ['playerId' => $playerId, 'puzzleIds' => $puzzleIds, 'now' => $this->clock->now()->format('Y-m-d H:i:s')],
             ['puzzleIds' => ArrayParameterType::STRING],
         )->fetchAllAssociative();
 

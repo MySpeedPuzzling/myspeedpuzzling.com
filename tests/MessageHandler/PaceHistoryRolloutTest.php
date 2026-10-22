@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
@@ -48,7 +49,7 @@ final class PaceHistoryRolloutTest extends KernelTestCase
         $this->database->executeStatement('DELETE FROM pace_history_build');
         $this->database->executeStatement(
             "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, difficulty_tier, confidence, sample_size, indices_p25, indices_p75, computed_at)
-            VALUES (:puzzle, 1.1, 3, 'medium', 12, 1.0, 1.2, NOW())
+            VALUES (:puzzle, 1.1, 3, 'medium', 12, 1.0, 1.2, " . TestClock::SQL_NOW . ")
             ON CONFLICT (puzzle_id) DO UPDATE SET difficulty_score = 1.1, difficulty_tier = 3, confidence = 'medium', sample_size = 12, indices_p25 = 1.0, indices_p75 = 1.2, sum_log_indices = NULL",
             ['puzzle' => PuzzleFixture::PUZZLE_500_04],
         );

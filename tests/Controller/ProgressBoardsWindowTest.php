@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -175,7 +176,7 @@ final class ProgressBoardsWindowTest extends WebTestCase
 
         foreach (['puzzles_solved', 'supporter'] as $type) {
             $database->executeStatement(
-                'INSERT INTO badge (id, player_id, type, earned_at, tier) VALUES (:id, :player, :type, NOW(), NULL)',
+                'INSERT INTO badge (id, player_id, type, earned_at, tier) VALUES (:id, :player, :type, ' . TestClock::SQL_NOW . ', NULL)',
                 ['id' => Uuid::uuid7()->toString(), 'player' => self::VIEWER, 'type' => $type],
             );
         }
@@ -321,7 +322,7 @@ final class ProgressBoardsWindowTest extends WebTestCase
         for ($i = 0; $i < self::SEEDED; $i++) {
             $id = Uuid::uuid7()->toString();
             $database->executeStatement(
-                "INSERT INTO player (id, code, name, registered_at, xp_total, level, country) VALUES (:id, :code, :name, NOW(), :xp, 10, :country)",
+                "INSERT INTO player (id, code, name, registered_at, xp_total, level, country) VALUES (:id, :code, :name, " . TestClock::SQL_NOW . ", :xp, 10, :country)",
                 [
                     'id' => $id,
                     'code' => 'lw' . $i . substr($id, -6),

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\InternalApi;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
@@ -389,10 +390,11 @@ final class PuzzleDifficultyEstimatesInternalApiTest extends WebTestCase
 
     private function difficulty(string $puzzleId, int $sampleSize, null|float $sumLogIndices, null|float $median): void
     {
+        $now = TestClock::SQL_NOW;
         $this->database()->executeStatement(
             <<<SQL
 INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, confidence, sample_size, sum_log_indices, computed_at)
-VALUES (:puzzleId, :median, 'high', :sampleSize, :sumLogIndices, NOW())
+VALUES (:puzzleId, :median, 'high', :sampleSize, :sumLogIndices, {$now})
 SQL,
             ['puzzleId' => $puzzleId, 'median' => $median, 'sampleSize' => $sampleSize, 'sumLogIndices' => $sumLogIndices],
         );

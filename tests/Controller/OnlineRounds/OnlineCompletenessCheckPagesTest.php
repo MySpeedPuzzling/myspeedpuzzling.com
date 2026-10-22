@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\OnlineRounds;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Controller\OnlineRounds\OnlineAccuracyController;
 use SpeedPuzzling\Web\Entity\OnlineEntryMedia;
@@ -313,7 +313,7 @@ final class OnlineCompletenessCheckPagesTest extends WebTestCase
             media: $photo,
             workerVersion: $failed ? OnlineMediaCheck::NO_VERSION : 'w1-c1',
             verdict: $verdict,
-            checkedAt: new DateTimeImmutable(),
+            checkedAt: TestClock::now(),
             confidence: $failed ? null : 0.8,
             gaps: $gaps,
             reason: $failed ? null : 'Looks clean',

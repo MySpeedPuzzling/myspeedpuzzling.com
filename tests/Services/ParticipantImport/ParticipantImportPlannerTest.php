@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\ParticipantImport;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -169,7 +170,7 @@ final class ParticipantImportPlannerTest extends KernelTestCase
     public function testRemovedSelfJoinedRowIsNeverMatchedNorCreatedAgain(): void
     {
         $this->database->executeStatement(
-            'UPDATE competition_participant SET deleted_at = now() WHERE id = :id',
+            'UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => MarketplaceEventFixture::PARTICIPANT_EDITION_SELLER_A],
         );
 
@@ -355,7 +356,7 @@ final class ParticipantImportPlannerTest extends KernelTestCase
         $this->participant('Result Teammate', [self::TEAM], [self::TEAM => $withResults]);
         $player = $this->entityManager->find(Player::class, PlayerFixture::PLAYER_REGULAR);
         self::assertInstanceOf(Player::class, $player);
-        $resulter->connect($player, new DateTimeImmutable());
+        $resulter->connect($player, TestClock::now());
         $this->entityManager->flush();
 
         // The Result Holder has a result in the Team Round
@@ -673,7 +674,7 @@ final class ParticipantImportPlannerTest extends KernelTestCase
         $competition = $this->entityManager->find(Competition::class, self::EVENT);
         assert($competition instanceof Competition);
 
-        $round = new CompetitionRound(Uuid::uuid7(), $competition, $name, 60, new DateTimeImmutable('+40 days'), category: $category);
+        $round = new CompetitionRound(Uuid::uuid7(), $competition, $name, 60, TestClock::now()->modify('+40 days'), category: $category);
         $this->entityManager->persist($round);
         $this->entityManager->flush();
 

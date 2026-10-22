@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Component;
 
+use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Component\PlayerSolvedPuzzles;
@@ -206,7 +208,7 @@ final class FirstTriesForPairsAndTeamsTest extends WebTestCase
             puzzleId: $puzzleId,
             competitionId: null,
             // A distinct time each: the handler takes an identical copy within seconds for a resent form
-            time: gmdate('H:i:s', $seconds),
+            time: new DateTimeImmutable('@' . $seconds)->format('H:i:s'),
             comment: null,
             finishedPuzzlesPhoto: null,
             groupPlayers: $groupPlayers,
@@ -216,7 +218,7 @@ final class FirstTriesForPairsAndTeamsTest extends WebTestCase
         ));
 
         self::getContainer()->get(Connection::class)->executeStatement(
-            "UPDATE puzzle_solving_time SET seconds_to_solve = :seconds, first_attempt = :firstAttempt, unboxed = :unboxed, finished_at = now() - make_interval(days => :daysAgo) WHERE id = :id",
+            "UPDATE puzzle_solving_time SET seconds_to_solve = :seconds, first_attempt = :firstAttempt, unboxed = :unboxed, finished_at = " . TestClock::SQL_NOW . " - make_interval(days => :daysAgo) WHERE id = :id",
             ['seconds' => $seconds, 'firstAttempt' => $firstAttempt ? 'true' : 'false', 'unboxed' => $unboxed ? 'true' : 'false', 'daysAgo' => $daysAgo, 'id' => $timeId->toString()],
         );
 

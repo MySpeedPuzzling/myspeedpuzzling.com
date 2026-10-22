@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\EventSubscriber;
 
-use DateTimeImmutable;
 use SpeedPuzzling\Web\EventSubscriber\SecretPuzzleWriteRefusedSubscriber;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -82,7 +82,7 @@ final class SecretPuzzleWriteRefusedSubscriberTest extends KernelTestCase
                 self::$kernel ?? self::bootKernel(),
                 $request,
                 HttpKernelInterface::MAIN_REQUEST,
-                new PuzzleNotRevealedYet(self::PUZZLE_ID, new DateTimeImmutable('+5 days'), 'America/Chicago'),
+                new PuzzleNotRevealedYet(self::PUZZLE_ID, TestClock::now()->modify('+5 days'), 'America/Chicago'),
             );
             self::getContainer()->get(SecretPuzzleWriteRefusedSubscriber::class)->onKernelException($event);
 

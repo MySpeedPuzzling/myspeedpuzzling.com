@@ -32,9 +32,9 @@ class PlayerElo
         #[Column]
         public int $piecesCount,
         #[Column]
-        public float $eloRating = 0.0,
+        public DateTimeImmutable $computedAt,
         #[Column]
-        public DateTimeImmutable $computedAt = new DateTimeImmutable(),
+        public float $eloRating = 0.0,
     ) {
     }
 

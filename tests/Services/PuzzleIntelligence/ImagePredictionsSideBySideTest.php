@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -342,7 +343,7 @@ final class ImagePredictionsSideBySideTest extends KernelTestCase
             LEFT JOIN difficulty_prior_group g ON g.manufacturer_id = p.manufacturer_id AND g.pieces_count = p.pieces_count AND ' . StatisticalInputsSql::NOT_SECRET . '
             LEFT JOIN difficulty_prior_puzzle dpp ON dpp.puzzle_id = p.id
             ' . StatisticalInputsSql::imageEstimateJoins(outOfFoldOnly: false) . '
-        ');
+        ', ['now' => self::clockNow(self::getContainer())]);
         $withImage = 0;
 
         foreach ($rows as $row) {
@@ -410,7 +411,7 @@ final class ImagePredictionsSideBySideTest extends KernelTestCase
 
         $this->database->executeStatement(
             "INSERT INTO puzzle_image_analysis (id, puzzle_id, analyzer, analyzer_version, image_fingerprint, result, analyzed_at, received_at)
-            VALUES (:id, :puzzle, 'artwork', '1.0.0', :fingerprint, CAST(:result AS jsonb), NULL, NOW())",
+            VALUES (:id, :puzzle, 'artwork', '1.0.0', :fingerprint, CAST(:result AS jsonb), NULL, " . TestClock::SQL_NOW . ")",
             [
                 'id' => Uuid::uuid7()->toString(),
                 'puzzle' => $puzzleId,

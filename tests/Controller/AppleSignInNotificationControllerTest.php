@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use GuzzleHttp\Psr7\Response as HttpResponse;
@@ -69,7 +69,7 @@ final class AppleSignInNotificationControllerTest extends WebTestCase
         $userAccount = $this->seedAccount(password: 'hash');
         $this->seedIdentity($userAccount, $sub);
 
-        $this->postNotification(['type' => 'consent-revoked', 'sub' => $sub, 'event_time' => time() * 1000]);
+        $this->postNotification(['type' => 'consent-revoked', 'sub' => $sub, 'event_time' => TestClock::milliseconds()]);
 
         self::assertResponseStatusCodeSame(200);
         self::assertSame(0, $this->identityCount($sub));
@@ -87,7 +87,7 @@ final class AppleSignInNotificationControllerTest extends WebTestCase
         $sub = 'apple-revoke-last-' . bin2hex(random_bytes(4));
         $this->seedIdentity($this->seedAccount(password: null), $sub);
 
-        $this->postNotification(['type' => 'consent-revoked', 'sub' => $sub, 'event_time' => time() * 1000]);
+        $this->postNotification(['type' => 'consent-revoked', 'sub' => $sub, 'event_time' => TestClock::milliseconds()]);
 
         self::assertResponseStatusCodeSame(200);
         self::assertSame(1, $this->identityCount($sub), 'Re-consenting gives back the same sub - rule 1 must still find the account');
@@ -102,7 +102,7 @@ final class AppleSignInNotificationControllerTest extends WebTestCase
         $sub = 'apple-delete-' . bin2hex(random_bytes(4));
         $this->seedIdentity($this->seedAccount(password: null), $sub);
 
-        $this->postNotification(['type' => 'account-delete', 'sub' => $sub, 'event_time' => time() * 1000], eventsAsString: false);
+        $this->postNotification(['type' => 'account-delete', 'sub' => $sub, 'event_time' => TestClock::milliseconds()], eventsAsString: false);
 
         self::assertResponseStatusCodeSame(200);
         self::assertSame(0, $this->identityCount($sub));
@@ -113,7 +113,7 @@ final class AppleSignInNotificationControllerTest extends WebTestCase
         $sub = 'apple-deleted-' . bin2hex(random_bytes(4));
         $this->seedIdentity($this->seedAccount(password: 'hash'), $sub);
 
-        $token = $this->postNotification(['type' => 'account-deleted', 'sub' => $sub, 'event_time' => time() * 1000]);
+        $token = $this->postNotification(['type' => 'account-deleted', 'sub' => $sub, 'event_time' => TestClock::milliseconds()]);
         self::assertResponseStatusCodeSame(200);
 
         // Apple may deliver twice - the keys are cached now (nothing queued for a second fetch)
@@ -132,7 +132,7 @@ final class AppleSignInNotificationControllerTest extends WebTestCase
             'sub' => $sub,
             'email' => 'abc@privaterelay.appleid.com',
             'is_private_email' => 'true',
-            'event_time' => time() * 1000,
+            'event_time' => TestClock::milliseconds(),
         ]);
 
         self::assertResponseStatusCodeSame(200);
@@ -163,6 +163,23 @@ final class AppleSignInNotificationControllerTest extends WebTestCase
         $this->seedIdentity($this->seedAccount(password: 'hash'), $sub);
 
         $this->postNotification(['type' => 'consent-revoked', 'sub' => $sub], audience: 'com.somebody.else', queueJwks: false);
+
+        self::assertResponseStatusCodeSame(400);
+        self::assertSame(1, $this->identityCount($sub));
+    }
+
+    public function testTokenExpiredOnTheAppClockIsRejected(): void
+    {
+        $sub = 'apple-expired-' . bin2hex(random_bytes(4));
+        $this->seedIdentity($this->seedAccount(password: 'hash'), $sub);
+
+        // Expired a second before the app's now (the other tests' tokens are valid only around the frozen instant)
+        $claims = ['iat' => TestClock::timestamp() - 600, 'exp' => TestClock::timestamp() - 1]
+            + self::claims(['type' => 'consent-revoked', 'sub' => $sub], self::APP_ID, true);
+        [$jwks, $token] = AppleIdTokenFactory::signedIdToken($claims);
+        SocialLoginHttpMock::queue(new HttpResponse(200, ['Content-Type' => 'application/json'], $jwks));
+
+        $this->postToken($token);
 
         self::assertResponseStatusCodeSame(400);
         self::assertSame(1, $this->identityCount($sub));
@@ -227,8 +244,9 @@ final class AppleSignInNotificationControllerTest extends WebTestCase
         return [
             'iss' => 'https://appleid.apple.com',
             'aud' => $audience,
-            'iat' => time(),
-            'exp' => time() + 600,
+            // AppleServerNotificationVerifier judges iat/exp on the app's (frozen) clock
+            'iat' => TestClock::timestamp(),
+            'exp' => TestClock::timestamp() + 600,
             'jti' => bin2hex(random_bytes(8)),
             'events' => $eventsAsString ? json_encode($event, JSON_THROW_ON_ERROR) : $event,
         ];
@@ -240,7 +258,7 @@ final class AppleSignInNotificationControllerTest extends WebTestCase
             Uuid::uuid7(),
             'msp|' . Uuid::uuid7()->toString(),
             'apple-s2s+' . bin2hex(random_bytes(4)) . '@example.com',
-            new DateTimeImmutable(),
+            TestClock::now(),
         );
 
         if ($password !== null) {
@@ -263,7 +281,7 @@ final class AppleSignInNotificationControllerTest extends WebTestCase
             provider: OauthProvider::Apple,
             providerUserId: $sub,
             emailAtLink: $userAccount->email,
-            linkedAt: new DateTimeImmutable(),
+            linkedAt: TestClock::now(),
         ));
         $entityManager->flush();
     }

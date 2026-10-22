@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -281,7 +282,7 @@ final class EditionDetailControllerTest extends WebTestCase
     {
         $browser = self::createClient();
         self::getContainer()->get(Connection::class)->executeStatement(
-            'UPDATE competition_series SET rejected_at = NOW() WHERE id = :id',
+            'UPDATE competition_series SET rejected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => CompetitionSeriesFixture::SERIES_EJJ],
         );
 
@@ -297,7 +298,7 @@ final class EditionDetailControllerTest extends WebTestCase
     {
         $browser = self::createClient();
         self::getContainer()->get(Connection::class)->executeStatement(
-            'UPDATE competition SET rejected_at = NOW() WHERE id = :id',
+            'UPDATE competition SET rejected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => CompetitionSeriesFixture::EDITION_EJJ_68],
         );
 

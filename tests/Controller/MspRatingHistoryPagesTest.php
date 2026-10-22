@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
@@ -110,7 +111,7 @@ final class MspRatingHistoryPagesTest extends WebTestCase
 
         foreach ([PlayerFixture::PLAYER_ADMIN => 1.6, PlayerFixture::PLAYER_WITH_STRIPE => 1.5, PlayerFixture::PLAYER_REGULAR => 1.4, PlayerFixture::PLAYER_WITH_FAVORITES => 1.0] as $playerId => $rating) {
             $connection->executeStatement(
-                'INSERT INTO player_elo (id, player_id, pieces_count, elo_rating, computed_at) VALUES (:id, :player, 500, :rating, NOW())',
+                'INSERT INTO player_elo (id, player_id, pieces_count, elo_rating, computed_at) VALUES (:id, :player, 500, :rating, ' . TestClock::SQL_NOW . ')',
                 ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'rating' => $rating],
             );
         }
@@ -118,7 +119,7 @@ final class MspRatingHistoryPagesTest extends WebTestCase
         for ($day = 7; $day <= 20; $day++) {
             foreach ([PlayerFixture::PLAYER_WITH_STRIPE => [1.55, 1], PlayerFixture::PLAYER_REGULAR => [1.45, 2], PlayerFixture::PLAYER_ADMIN => [1.3, 3]] as $playerId => [$rating, $place]) {
                 $connection->executeStatement(
-                    'INSERT INTO player_rating_snapshot (id, player_id, pieces_count, snapshot_date, elo_rating, elo_rank, computed_at) VALUES (gen_random_uuid(), :player, 500, :day, :rating, :place, NOW())',
+                    'INSERT INTO player_rating_snapshot (id, player_id, pieces_count, snapshot_date, elo_rating, elo_rank, computed_at) VALUES (gen_random_uuid(), :player, 500, :day, :rating, :place, ' . TestClock::SQL_NOW . ')',
                     ['player' => $playerId, 'day' => sprintf('2026-06-%02d', $day), 'rating' => $rating, 'place' => $place],
                 );
             }
@@ -126,7 +127,7 @@ final class MspRatingHistoryPagesTest extends WebTestCase
 
         $connection->executeStatement(
             "INSERT INTO player_rating_entry (player_id, pieces_count, puzzle_id, portfolio, seconds, solved_at, percentile, difficulty_weight, decay, points, in_top, computed_at)
-             VALUES (:player, 500, :puzzle, 'first_attempt', 3000, '2026-06-18', 90.0, 1.0, 1.0, 0.9, true, NOW())",
+             VALUES (:player, 500, :puzzle, 'first_attempt', 3000, '2026-06-18', 90.0, 1.0, 1.0, 0.9, true, " . TestClock::SQL_NOW . ")",
             ['player' => PlayerFixture::PLAYER_ADMIN, 'puzzle' => PuzzleFixture::PUZZLE_500_01],
         );
     }

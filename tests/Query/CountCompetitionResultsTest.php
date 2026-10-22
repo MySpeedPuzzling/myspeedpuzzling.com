@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\CountCompetitionResults;
@@ -83,7 +84,7 @@ final class CountCompetitionResultsTest extends KernelTestCase
         self::assertSame([OfficialResultsFixture::ROUND_GROUP_A => 4], $this->query->perRound($cup, withOfficialResults: true));
 
         $this->database->executeStatement(
-            'UPDATE competition_round SET results_published_at = NOW() WHERE id IN (:pairs, :final)',
+            'UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id IN (:pairs, :final)',
             ['pairs' => OfficialResultsFixture::ROUND_PAIRS, 'final' => OfficialResultsFixture::ROUND_FINAL],
         );
 
@@ -98,7 +99,7 @@ final class CountCompetitionResultsTest extends KernelTestCase
     public function testPlayerTimesAndOfficialResultsAddUp(): void
     {
         $this->database->executeStatement(
-            'UPDATE competition_round SET results_published_at = NOW() WHERE id = :id',
+            'UPDATE competition_round SET results_published_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => CompetitionRoundFixture::ROUND_WJPC_FINAL],
         );
         $participantId = Uuid::uuid7()->toString();

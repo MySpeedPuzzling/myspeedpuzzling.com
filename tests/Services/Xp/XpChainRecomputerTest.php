@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\Xp;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -67,7 +68,7 @@ final class XpChainRecomputerTest extends KernelTestCase
         self::assertNotNull($player);
         $this->database->executeStatement(
             "INSERT INTO xp_entry (id, player_id, amount, reason, in_weekly_delta, earned_at, created_at, solving_time_id)
-             VALUES (:id, :playerId, 1000, 'solve_base', true, NOW(), NOW(), :solveId)",
+             VALUES (:id, :playerId, 1000, 'solve_base', true, " . TestClock::SQL_NOW . ", " . TestClock::SQL_NOW . ", :solveId)",
             ['id' => Uuid::uuid7()->toString(), 'playerId' => PlayerFixture::PLAYER_REGULAR, 'solveId' => Uuid::uuid7()->toString()],
         );
         $this->database->executeStatement('UPDATE player SET xp_total = xp_total + 1000 WHERE id = :id', ['id' => PlayerFixture::PLAYER_REGULAR]);
@@ -107,9 +108,10 @@ final class XpChainRecomputerTest extends KernelTestCase
 
     public function testWeeklyBoostStopsAfterFiveSolvesAndResetsNextWeek(): void
     {
-        // A week no fixture reaches: fixtures date their solves relative to now (EventDetailFixture::TIME_SPRINT_1 drifted
-        // into a fixed week after fullFormulaFrom() on 2026-10-22 and took one of its five boosted slots)
-        $base = new \DateTimeImmutable('+2 years');
+        // A fixed week without fixture solves of the player. The fixtures are dated from the frozen clock
+        // (tests/TestClock.php), so none of them drifts into it any more (EventDetailFixture::TIME_SPRINT_1 did on the
+        // real clock, 2026-10-22)
+        $base = XpSettingsFixture::fullFormulaFrom()->modify('+28 days');
         $monday = $base->setISODate((int) $base->format('o'), (int) $base->format('W'))->setTime(12, 0);
 
         $puzzles = [
@@ -412,7 +414,7 @@ final class XpChainRecomputerTest extends KernelTestCase
     {
         $this->database->executeStatement(
             "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_tier, difficulty_score, confidence, sample_size, computed_at)
-             VALUES (:puzzleId, :tier, 50, 'high', 10, NOW())",
+             VALUES (:puzzleId, :tier, 50, 'high', 10, " . TestClock::SQL_NOW . ")",
             ['puzzleId' => $puzzleId, 'tier' => $tier],
         );
     }

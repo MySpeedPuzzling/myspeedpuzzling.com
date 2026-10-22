@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerBaselineCalculator;
@@ -23,7 +24,7 @@ final class PlayerPaceHistoryCalculatorTest extends TestCase
             $solves[] = ['id' => 'time-' . $index, 'seconds' => $seconds, 'solve_date' => sprintf('2026-01-%02d 00:00:00', $index + 1), 'tracked_at' => sprintf('2026-01-%02d 12:00:00', $index + 1)];
         }
 
-        $calculator = new PlayerPaceHistoryCalculator(new PlayerBaselineCalculator($this->createStub(Connection::class), new MockClock()));
+        $calculator = new PlayerPaceHistoryCalculator(new PlayerBaselineCalculator($this->createStub(Connection::class), new MockClock(TestClock::now())));
         $rows = $calculator->rows($solves, PlayerPaceHistoryCalculator::checksums($solves), 5);
 
         self::assertSame(0, $rows[0]['baseline_seconds']);

@@ -9,6 +9,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\ConsoleCommands\ReportPredictionCalibrationConsoleCommand;
 use SpeedPuzzling\Web\Query\GetPredictionCalibration;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestDouble\InMemoryLogger;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -49,7 +50,7 @@ final class ReportPredictionCalibrationConsoleCommandTest extends KernelTestCase
                 INSERT INTO solving_time_prediction (id, time_id, predictor, model_version, source, predictable, method, predicted_seconds,
                     range50_low, range50_high, range80_low, range80_high, window_bucket, computed_at)
                 VALUES (gen_random_uuid(), :time, 'statistical', :version, 'live', true, 'statistical', :seconds,
-                    :low50, :high50, :low80, :high80, :bucket, NOW())
+                    :low50, :high50, :low80, :high80, :bucket, " . TestClock::SQL_NOW . ")
             ", [
                 'time' => $time['id'],
                 'version' => TimePredictionCalculator::MODEL_VERSION,

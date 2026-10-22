@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Api\V1;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
@@ -260,7 +261,7 @@ final class SellSwapEndpointTest extends WebTestCase
     public function testEmbargoedImageIsNull(): void
     {
         $browser = self::createClient();
-        $this->setImage($browser, PuzzleFixture::PUZZLE_1000_03, 'puzzles/test/box.jpg', hideUntil: new DateTimeImmutable('+30 days'));
+        $this->setImage($browser, PuzzleFixture::PUZZLE_1000_03, 'puzzles/test/box.jpg', hideUntil: TestClock::now()->modify('+30 days'));
         $this->setImage($browser, PuzzleFixture::PUZZLE_500_01, 'puzzles/test/other.jpg', hideUntil: null);
         $this->authenticateClientCredentials($browser, ['collections:read']);
 
@@ -403,7 +404,7 @@ final class SellSwapEndpointTest extends WebTestCase
                 price: 10.0,
                 condition: PuzzleCondition::Normal,
                 comment: null,
-                addedAt: new DateTimeImmutable(),
+                addedAt: TestClock::now(),
             ));
         }
 

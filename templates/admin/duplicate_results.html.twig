@@ -280,7 +280,7 @@
                             </thead>
                             <tbody>
                                 {% for month in trend|reverse %}
-                                    {% set is_current = month.month == 'now'|date('Y-m') %}
+                                    {% set is_current = month.month == now()|date('Y-m') %}
                                     <tr>
                                         <th scope="row" class="fw-normal text-nowrap">
                                             {{ (month.month ~ '-01')|date('M Y') }}

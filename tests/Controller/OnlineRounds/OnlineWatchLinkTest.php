@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\OnlineRounds;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
@@ -159,7 +160,7 @@ final class OnlineWatchLinkTest extends WebTestCase
     {
         $connection->executeStatement(
             "INSERT INTO online_round (id, round_id, enabled_at, detection_mode, video_enabled, participants_see_each_other, studio_enabled, recording_enabled, unfinished_measure, missing_piece_rule)
-             VALUES (:id, :round, NOW(), 'off', true, false, false, false, 'left', 'complete_required')",
+             VALUES (:id, :round, " . TestClock::SQL_NOW . ", 'off', true, false, false, false, 'left', 'complete_required')",
             ['id' => Uuid::uuid7()->toString(), 'round' => $roundId],
         );
     }

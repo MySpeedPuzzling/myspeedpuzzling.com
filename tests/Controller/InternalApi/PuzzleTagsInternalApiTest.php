@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\InternalApi;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -128,10 +129,11 @@ final class PuzzleTagsInternalApiTest extends WebTestCase
     {
         $database = self::getContainer()->get(Connection::class);
         $database->executeStatement('UPDATE puzzle SET image = :image WHERE id = :id', ['image' => self::IMAGE, 'id' => PuzzleFixture::PUZZLE_500_01]);
+        $now = TestClock::SQL_NOW;
         $database->executeStatement(
             <<<SQL
 INSERT INTO puzzle_image_analysis (id, puzzle_id, analyzer, analyzer_version, image_fingerprint, result, analyzed_at, received_at)
-VALUES (:id, :puzzleId, 'tags', '1.0.0+rules@tax1.0.0', :fingerprint, CAST(:result AS jsonb), NULL, now())
+VALUES (:id, :puzzleId, 'tags', '1.0.0+rules@tax1.0.0', :fingerprint, CAST(:result AS jsonb), NULL, {$now})
 SQL,
             [
                 'id' => Uuid::uuid7()->toString(),

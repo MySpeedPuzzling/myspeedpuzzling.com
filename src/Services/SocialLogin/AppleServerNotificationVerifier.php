@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Services\SocialLogin;
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\InvalidAppleServerNotification;
 use SpeedPuzzling\Web\Exceptions\JwksUnavailable;
 use SpeedPuzzling\Web\Value\AppleSignInEvent;
@@ -22,6 +23,10 @@ use SpeedPuzzling\Web\Value\AppleSignInEventType;
  * fetched, and the JWKS is cached (CachedJwks): refetched only for a key id we
  * have not seen, and then at most once per CachedJwks::REFETCH_INTERVAL_SECONDS
  * - a flood of forged tokens can never turn into a flood of requests to Apple.
+ *
+ * iat/exp are judged on the app's clock: firebase/php-jwt reads its clock from
+ * a static, set for the one decode() only (FrankenPHP worker mode - a static
+ * must not outlive the call).
  */
 final readonly class AppleServerNotificationVerifier
 {
@@ -31,6 +36,7 @@ final readonly class AppleServerNotificationVerifier
 
     public function __construct(
         private CachedJwks $jwks,
+        private ClockInterface $clock,
         private string $appleClientId,
         private string $appleAppId,
     ) {
@@ -50,11 +56,17 @@ final readonly class AppleServerNotificationVerifier
 
         $this->assertIssuedToUs($unverifiedClaims);
 
+        $keys = $this->appleKeys($header['kid']);
+        $previousTimestamp = JWT::$timestamp;
+        JWT::$timestamp = $this->clock->now()->getTimestamp();
+
         try {
-            $verified = JWT::decode($jwt, $this->appleKeys($header['kid']));
+            $verified = JWT::decode($jwt, $keys);
         } catch (\Throwable $exception) {
             // Bad signature, expired, not yet valid, ... - all mean "not Apple's"
             throw new InvalidAppleServerNotification('Token verification failed.', previous: $exception);
+        } finally {
+            JWT::$timestamp = $previousTimestamp;
         }
 
         /** @var array<string, mixed> $claims */

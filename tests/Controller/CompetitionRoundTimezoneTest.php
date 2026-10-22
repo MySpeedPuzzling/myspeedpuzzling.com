@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\ORM\EntityManagerInterface;
@@ -226,7 +227,7 @@ final class CompetitionRoundTimezoneTest extends WebTestCase
             shownAutomaticRevealAt: self::automaticRevealOf($roundId),
         ));
 
-        $yesterday = new DateTimeImmutable('-1 day', new DateTimeZone('America/Chicago'))->format('d.m.Y H:i');
+        $yesterday = TestClock::now()->setTimezone(new DateTimeZone('America/Chicago'))->modify('-1 day')->format('d.m.Y H:i');
 
         $browser->request('GET', '/en/edit-event-round/' . $roundId);
         $browser->submitForm('Save Changes', ['competition_round_form[startsAt]' => $yesterday]);

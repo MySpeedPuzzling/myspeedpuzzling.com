@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Entity;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
@@ -152,7 +153,7 @@ final class PartnerListingTest extends KernelTestCase
     public function testANoteOfARequestIsTrimmed(): void
     {
         $listing = self::getContainer()->get(PartnerListingRepository::class)->get(PartnerFinderFixture::LISTING_REGULAR_PAIR);
-        $request = new PartnerRequest(Uuid::uuid7(), $listing, self::getContainer()->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_ADMIN), PartnerKind::Pair, '  ', new DateTimeImmutable());
+        $request = new PartnerRequest(Uuid::uuid7(), $listing, self::getContainer()->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_ADMIN), PartnerKind::Pair, '  ', TestClock::now());
 
         self::assertNull($request->note);
     }
@@ -176,7 +177,7 @@ final class PartnerListingTest extends KernelTestCase
             strengths: new PartnerStrengthsNormalized(),
             languages: $languages,
             note: $note,
-            createdAt: new DateTimeImmutable(),
+            createdAt: TestClock::now(),
         );
     }
 }

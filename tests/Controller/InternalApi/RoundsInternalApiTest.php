@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\InternalApi;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
-use DateTimeZone;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -176,12 +176,12 @@ final class RoundsInternalApiTest extends WebTestCase
         // Nothing changed
         $round = self::round($browser, $roundId);
         self::assertSame([$puzzleId], array_column(self::list($round['puzzles']), 'puzzleId'));
-        self::assertTrue($this->puzzle($puzzleId)->isHiddenAt(new DateTimeImmutable()));
+        self::assertTrue($this->puzzle($puzzleId)->isHiddenAt(TestClock::now()));
 
         // With the yes it goes ahead
         self::callInternalApi($browser, 'DELETE', '/internal-api/rounds/' . $roundId, ['confirmReveal' => true]);
         self::assertResponseStatusCodeSame(204);
-        self::assertFalse($this->puzzle($puzzleId)->isHiddenAt(new DateTimeImmutable()));
+        self::assertFalse($this->puzzle($puzzleId)->isHiddenAt(TestClock::now()));
     }
 
     public function testARemovalConfirmedRevealsThePuzzle(): void
@@ -193,13 +193,13 @@ final class RoundsInternalApiTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSame([], $round['puzzles']);
-        self::assertFalse($this->puzzle($puzzleId)->isHiddenAt(new DateTimeImmutable()));
+        self::assertFalse($this->puzzle($puzzleId)->isHiddenAt(TestClock::now()));
     }
 
     public function testAHiddenPuzzleIsNeverAttachedUnhidden(): void
     {
         $browser = self::createClient();
-        $secretRound = $this->createRound($browser, ['name' => 'Secret Round', 'startsAt' => (new DateTimeImmutable('+30 days'))->format(DATE_ATOM)]);
+        $secretRound = $this->createRound($browser, ['name' => 'Secret Round', 'startsAt' => TestClock::now()->modify('+30 days')->format(DATE_ATOM)]);
         $puzzleId = $this->secretPuzzleIn(self::string($secretRound['roundId']));
         $otherRound = $this->createRound($browser, ['name' => 'Open Round', 'category' => 'duo']);
 
@@ -553,7 +553,7 @@ final class RoundsInternalApiTest extends WebTestCase
     public function testAPublicPuzzleSecretOnTheEventPageOnlyIsRevealedOnThisEventOnly(): void
     {
         $browser = self::createClient();
-        $start = (new DateTimeImmutable('+30 days', new DateTimeZone('UTC')))->setTime(10, 0)->getTimestamp();
+        $start = TestClock::now()->modify('+30 days')->setTime(10, 0)->getTimestamp();
         $roundId = self::string($this->createRound($browser, ['name' => 'Public Secret Round', 'startsAt' => self::iso($start)])['roundId']);
         $this->addSecretly($roundId, PuzzleFixture::PUZZLE_500_03);
         self::assertSame([null, null], $this->hideDates(PuzzleFixture::PUZZLE_500_03));
@@ -596,7 +596,7 @@ final class RoundsInternalApiTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $this->connection()->executeStatement(
             'UPDATE puzzle SET hide_until = :tenMinutes, hide_image_until = :tenMinutes WHERE id = :id',
-            ['tenMinutes' => gmdate('Y-m-d H:i:s', $start + 10 * 60), 'id' => $puzzleId],
+            ['tenMinutes' => new DateTimeImmutable('@' . ($start + 10 * 60))->format('Y-m-d H:i:s'), 'id' => $puzzleId],
         );
         self::assertSame([$start + 10 * 60, $start + 10 * 60], $this->hideDates($puzzleId));
 
@@ -656,7 +656,7 @@ final class RoundsInternalApiTest extends WebTestCase
      */
     private function secretPuzzleRevealedElsewhere(KernelBrowser $browser): array
     {
-        $secretRound = $this->createRound($browser, ['name' => 'Secret Round', 'startsAt' => (new DateTimeImmutable('+30 days'))->format(DATE_ATOM)]);
+        $secretRound = $this->createRound($browser, ['name' => 'Secret Round', 'startsAt' => TestClock::now()->modify('+30 days')->format(DATE_ATOM)]);
         $secretRoundId = self::string($secretRound['roundId']);
         $puzzleId = $this->secretPuzzleIn($secretRoundId);
 
@@ -708,7 +708,7 @@ final class RoundsInternalApiTest extends WebTestCase
      */
     private function roundWithASecretPuzzle(KernelBrowser $browser): array
     {
-        $start = (new DateTimeImmutable('+30 days', new DateTimeZone('UTC')))->setTime(10, 0)->getTimestamp();
+        $start = TestClock::now()->modify('+30 days')->setTime(10, 0)->getTimestamp();
         $round = $this->createRound($browser, ['name' => 'Secret Round', 'startsAt' => self::iso($start)]);
         $roundId = self::string($round['roundId']);
         self::assertSame($start, self::timestamp($round['startsAt']));

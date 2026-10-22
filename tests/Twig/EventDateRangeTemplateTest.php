@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Twig;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Twig\Environment;
@@ -28,7 +29,7 @@ final class EventDateRangeTemplateTest extends KernelTestCase
 
     public function testSameMonthRangeShowsDayOnlyForStart(): void
     {
-        $year = (int) date('Y');
+        $year = (int) TestClock::now()->format('Y');
 
         self::assertSame('09.-11.10.', $this->render(
             new DateTimeImmutable("{$year}-10-09"),
@@ -38,7 +39,7 @@ final class EventDateRangeTemplateTest extends KernelTestCase
 
     public function testCrossMonthRangeShowsMonthForBothDates(): void
     {
-        $year = (int) date('Y');
+        $year = (int) TestClock::now()->format('Y');
 
         self::assertSame('01.01.-31.12.', $this->render(
             new DateTimeImmutable("{$year}-01-01"),
@@ -48,7 +49,7 @@ final class EventDateRangeTemplateTest extends KernelTestCase
 
     public function testSingleDayShowsDayAndMonth(): void
     {
-        $year = (int) date('Y');
+        $year = (int) TestClock::now()->format('Y');
 
         self::assertSame('23.05.', $this->render(
             new DateTimeImmutable("{$year}-05-23"),
@@ -58,7 +59,7 @@ final class EventDateRangeTemplateTest extends KernelTestCase
 
     public function testDifferentYearAppendsYear(): void
     {
-        $year = (int) date('Y') + 1;
+        $year = (int) TestClock::now()->format('Y') + 1;
 
         self::assertSame("02.-03.07.{$year}", $this->render(
             new DateTimeImmutable("{$year}-07-02"),
@@ -68,7 +69,7 @@ final class EventDateRangeTemplateTest extends KernelTestCase
 
     public function testMissingEndDateFallsBackToStartDate(): void
     {
-        $year = (int) date('Y');
+        $year = (int) TestClock::now()->format('Y');
 
         self::assertSame('23.05.', $this->render(new DateTimeImmutable("{$year}-05-23"), null));
     }

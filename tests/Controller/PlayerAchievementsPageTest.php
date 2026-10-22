@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -357,7 +358,7 @@ final class PlayerAchievementsPageTest extends WebTestCase
     private function insertBadge(string $playerId, string $type, null|int $tier, bool $revealed): void
     {
         self::getContainer()->get(Connection::class)->executeStatement(
-            'INSERT INTO badge (id, player_id, type, earned_at, tier, revealed_at) VALUES (:id, :playerId, :type, NOW(), :tier, :revealedAt)',
+            'INSERT INTO badge (id, player_id, type, earned_at, tier, revealed_at) VALUES (:id, :playerId, :type, ' . TestClock::SQL_NOW . ', :tier, :revealedAt)',
             ['id' => Uuid::uuid7()->toString(), 'playerId' => $playerId, 'type' => $type, 'tier' => $tier, 'revealedAt' => $revealed ? '2026-10-01 10:00:00' : null],
         );
     }

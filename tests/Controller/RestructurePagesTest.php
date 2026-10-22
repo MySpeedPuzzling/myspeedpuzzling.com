@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddCompetitionRound;
@@ -134,7 +134,7 @@ final class RestructurePagesTest extends WebTestCase
             competitionId: OrganizationFixture::COMPETITION_RIVERBEND_OPEN,
             name: 'Spring Open Final',
             minutesLimit: 90,
-            startsAt: new DateTimeImmutable('+60 days'),
+            startsAt: TestClock::now()->modify('+60 days'),
             timezone: 'America/New_York',
             badgeBackgroundColor: null,
             badgeTextColor: null,

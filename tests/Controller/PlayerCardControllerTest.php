@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\RecalculateCommunityStats;
@@ -156,7 +157,7 @@ final class PlayerCardControllerTest extends WebTestCase
     {
         $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
         $this->database()->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_WITH_FAVORITES, 'blocked' => PlayerFixture::PLAYER_WITH_STRIPE],
         );
 
@@ -313,12 +314,12 @@ final class PlayerCardControllerTest extends WebTestCase
     {
         $database = $this->database();
         $database->executeStatement(
-            'INSERT INTO player_elo (id, player_id, pieces_count, elo_rating, computed_at) VALUES (:id, :player, 500, 0.8734, NOW())',
+            'INSERT INTO player_elo (id, player_id, pieces_count, elo_rating, computed_at) VALUES (:id, :player, 500, 0.8734, ' . TestClock::SQL_NOW . ')',
             ['id' => Uuid::uuid7()->toString(), 'player' => $playerId],
         );
         $database->executeStatement(
             "INSERT INTO player_skill (id, player_id, pieces_count, skill_score, skill_tier, skill_percentile, confidence, qualifying_puzzles_count, computed_at)
-             VALUES (:id, :player, 500, 0.9, :tier, 90.0, 'high', 12, NOW())",
+             VALUES (:id, :player, 500, 0.9, :tier, 90.0, 'high', 12, " . TestClock::SQL_NOW . ")",
             ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'tier' => SkillTier::Expert->value],
         );
     }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
@@ -72,7 +72,7 @@ final class RoundResultsControllerTest extends WebTestCase
     {
         $browser = self::createClient();
         self::getContainer()->get(Connection::class)->executeStatement(
-            "INSERT INTO competition_round (id, competition_id, name, minutes_limit, starts_at, category, slug) VALUES (:id, :competition, 'Hidden', 60, NOW() - INTERVAL '1 day', 'solo', 'hidden')",
+            "INSERT INTO competition_round (id, competition_id, name, minutes_limit, starts_at, category, slug) VALUES (:id, :competition, 'Hidden', 60, " . TestClock::SQL_NOW . " - INTERVAL '1 day', 'solo', 'hidden')",
             ['id' => Uuid::uuid7()->toString(), 'competition' => CompetitionFixture::COMPETITION_UNAPPROVED],
         );
 
@@ -199,7 +199,7 @@ final class RoundResultsControllerTest extends WebTestCase
         /** @var Connection $connection */
         $connection = self::getContainer()->get(Connection::class);
         $scenario = new SeriesEditionScenario(self::getContainer());
-        $day = new DateTimeImmutable('-3 days')->format('Y-m-d');
+        $day = TestClock::now()->modify('-3 days')->format('Y-m-d');
         $seriesId = $scenario->series();
         $editionId = $scenario->edition($seriesId, 'Jam No. 153', $day);
         $roundId = $scenario->round($editionId, RoundCategory::Solo, $day . ' 19:00', puzzleIds: [$scenario->puzzle()]);
@@ -239,7 +239,7 @@ final class RoundResultsControllerTest extends WebTestCase
     private function startQualificationRound(KernelBrowser $browser): void
     {
         self::getContainer()->get(Connection::class)->executeStatement(
-            "UPDATE competition_round SET starts_at = NOW() - INTERVAL '2 days' WHERE id = :id",
+            "UPDATE competition_round SET starts_at = " . TestClock::SQL_NOW . " - INTERVAL '2 days' WHERE id = :id",
             ['id' => CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION],
         );
     }

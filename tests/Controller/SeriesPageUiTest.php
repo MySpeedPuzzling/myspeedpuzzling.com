@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
-use DateTimeZone;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
@@ -106,7 +105,7 @@ final class SeriesPageUiTest extends WebTestCase
         self::assertCount(0, $crawler->filter('[data-series-upcoming] .ev-sessions'));
 
         // Last year's two editions under that year
-        $lastYear = (int) new DateTimeImmutable('now', new DateTimeZone('UTC'))->format('Y') - 1;
+        $lastYear = (int) TestClock::now()->format('Y') - 1;
         $year = $crawler->filter(sprintf('[data-series-past] section[data-year="%d"]', $lastYear));
         self::assertCount(1, $year);
         self::assertSame((string) $lastYear, trim($year->filter('h3 span')->first()->text()));
@@ -270,14 +269,14 @@ final class SeriesPageUiTest extends WebTestCase
         $browser = self::createClient();
         /** @var Connection $connection */
         $connection = $browser->getContainer()->get(Connection::class);
-        $twoYearsAgo = (int) new DateTimeImmutable('now', new DateTimeZone('UTC'))->format('Y') - 2;
+        $twoYearsAgo = (int) TestClock::now()->format('Y') - 2;
 
         // Six editions two years ago: a second year, with more lines than the preview shows
         for ($i = 1; $i <= 6; $i++) {
             $date = sprintf('%d-%02d-10', $twoYearsAgo, $i);
             $connection->executeStatement(
                 "INSERT INTO competition (id, name, slug, series_id, is_online, created_at, date_from, date_to)
-                 VALUES (:id, :name, :slug, :series, true, NOW(), :date, :date)",
+                 VALUES (:id, :name, :slug, :series, true, " . TestClock::SQL_NOW . ", :date, :date)",
                 ['id' => Uuid::uuid7()->toString(), 'name' => 'Old Session ' . $i, 'slug' => 'old-session-' . $i, 'series' => EventsPageFixture::SERIES_HARBOR_NIGHTS, 'date' => $date],
             );
         }

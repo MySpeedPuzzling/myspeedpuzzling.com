@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -200,7 +201,7 @@ final class RoundRevealDelayFormTest extends WebTestCase
             competitionId: self::COMPETITION,
             name: 'kept',
             minutesLimit: 1,
-            startsAt: new DateTimeImmutable(),
+            startsAt: TestClock::now(),
             timezone: 'UTC',
             badgeBackgroundColor: null,
             badgeTextColor: null,
@@ -461,13 +462,13 @@ final class RoundRevealDelayFormTest extends WebTestCase
         // The kept photo lives in the kernel's storage - one kernel for every request
         $browser->disableReboot();
         $roundId = $this->addRound($browser, 'Stale add page', '60');
-        $startsAt = new DateTimeImmutable('@' . (time() - 30 * 60));
+        $startsAt = new DateTimeImmutable('@' . (TestClock::timestamp() - 30 * 60));
         $this->editRoundBehindThePage($roundId, 60, $startsAt);
 
         $crawler = $browser->request('GET', $this->addPuzzleUrl($roundId));
         $this->assertResponseIsSuccessful();
         $shownMoment = self::automaticRevealOf($roundId);
-        self::assertGreaterThan(time(), $shownMoment->getTimestamp());
+        self::assertGreaterThan(TestClock::timestamp(), $shownMoment->getTimestamp());
         self::assertSame((string) $shownMoment->getTimestamp(), $crawler->filter('input[name="automatic_reveal_at"]')->attr('value'));
         self::assertStringContainsString('– 60 minutes after the round starts.', $crawler->text());
         $form = $this->secretPuzzleForm($crawler->filter('form[name="round_puzzle_form"]')->form(), 'Stale Add Page Secret');
@@ -513,7 +514,7 @@ final class RoundRevealDelayFormTest extends WebTestCase
     {
         $browser = $this->organiser();
         $roundId = $this->addRound($browser, 'Stale add page with a typo', '60');
-        $startsAt = new DateTimeImmutable('@' . (time() - 30 * 60));
+        $startsAt = new DateTimeImmutable('@' . (TestClock::timestamp() - 30 * 60));
         $this->editRoundBehindThePage($roundId, 60, $startsAt);
 
         $crawler = $browser->request('GET', $this->addPuzzleUrl($roundId));
@@ -607,7 +608,7 @@ final class RoundRevealDelayFormTest extends WebTestCase
             competitionId: self::COMPETITION,
             name: 'kept',
             minutesLimit: 1,
-            startsAt: new DateTimeImmutable(),
+            startsAt: TestClock::now(),
             timezone: 'UTC',
             badgeBackgroundColor: null,
             badgeTextColor: null,
@@ -757,7 +758,7 @@ final class RoundRevealDelayFormTest extends WebTestCase
             competitionId: self::COMPETITION,
             name: 'kept',
             minutesLimit: 1,
-            startsAt: $startsAt ?? new DateTimeImmutable(),
+            startsAt: $startsAt ?? TestClock::now(),
             timezone: 'UTC',
             badgeBackgroundColor: null,
             badgeTextColor: null,

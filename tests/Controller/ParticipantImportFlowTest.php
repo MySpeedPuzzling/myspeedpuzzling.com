@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -409,7 +410,7 @@ final class ParticipantImportFlowTest extends WebTestCase
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
         $competition = $entityManager->find(Competition::class, self::COMPETITION);
         self::assertNotNull($competition);
-        $entityManager->persist(new CompetitionRound(Uuid::uuid7(), $competition, 'Pair Round', 60, new \DateTimeImmutable('+40 days'), category: RoundCategory::Duo));
+        $entityManager->persist(new CompetitionRound(Uuid::uuid7(), $competition, 'Pair Round', 60, TestClock::now()->modify('+40 days'), category: RoundCategory::Duo));
         $entityManager->flush();
 
         $token = $this->stash(self::COMPETITION, "Name,Rounds,Team: Pair Round\nAlex Example,Pair Round,Corner Crew\n");

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Competition;
@@ -62,7 +62,7 @@ final class SecretPuzzleAccessTest extends WebTestCase
         // A community moderator (no admin)
         $moderator = $entityManager->find(Player::class, PlayerFixture::PLAYER_WITH_STRIPE);
         self::assertNotNull($moderator);
-        $moderator->moderatorSince = new DateTimeImmutable('-1 year');
+        $moderator->moderatorSince = TestClock::now()->modify('-1 year');
         $entityManager->flush();
 
         $this->browser->request('GET', $page);
@@ -156,7 +156,7 @@ final class SecretPuzzleAccessTest extends WebTestCase
                 id: Uuid::fromString($mergeRequestId),
                 sourcePuzzle: $entityManager->find(\SpeedPuzzling\Web\Entity\Puzzle::class, $survivor),
                 reporter: $entityManager->find(Player::class, PlayerFixture::PLAYER_REGULAR),
-                submittedAt: new DateTimeImmutable('-1 day'),
+                submittedAt: TestClock::now()->modify('-1 day'),
                 reportedDuplicatePuzzleIds: [$survivor, $merged],
             ));
             $entityManager->flush();

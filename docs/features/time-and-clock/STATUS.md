@@ -7,7 +7,7 @@ Living record. Every phase appends: what it did, what it found, what the next ph
 | 0 - verify decisions | done 2026-10-22, answered | this commit |
 | 1 - pin UTC, UTC on write | done 2026-10-22 | this commit |
 | 2 - one clock in `src/` | done 2026-10-22 | c00bf8343, e16908c18, 3a15ef3b0 + this commit |
-| 3 - frozen clock in tests | done 2026-10-22 - **branch red until Phase 4 ends** (157 tests) | this commit |
+| 3 - frozen clock in tests | done 2026-10-22 - **branch red until Phase 4 ends** (157 tests) | fe580bfa0 |
 | 4 - tests on the frozen clock | not started (9 batches, re-planned in Phase 3) | |
 | 5 - proof, docs, PR | not started | |
 

@@ -258,7 +258,7 @@ the same page with solo rounds only, a guest the same.
 counts), `EventsPageBuilderTest::testPartnerListingsTagFollowsTheGoingCountOnInPersonEvents`,
 `BlocklistCanaryTest::testBlockedPlayerIsNoFaceOnThePartnerCard`. `DraftVisibilityCoverageTest` accepts
 `PartnerFinderEligibility::SQL_QUALIFIES` as a decision (it embeds the marketplace rule) - part A's listings query
-benefits too. English copy only (`partner_finder.card.*`, `partner_finder.events_tag.*`).
+benefits too. Copy in all 6 locales (`partner_finder.card.*`, `partner_finder.events_tag.*`).
 
 ## Part A as built (2026-10-22)
 
@@ -429,4 +429,4 @@ closed listings not counted; nearest first; editions named with their series; `m
 `PartnerFinderGateControllerTest` (guest page with the fixture event `partner-finder-open` in the picker and the cards,
 redirect, no redirect for a draft / nonsense, empty state, signed-in, budget, static sitemap), `DraftCanaryTest` (the
 picker never lists a draft edition or an edition of a draft series - Draft Night has solo rounds only, no canary),
-`SiteFooterTest` (9 New badges). English copy only (`partner_finder.gate.*`, footer label `partner_finder.gate.footer_link`).
+`SiteFooterTest` (9 New badges). Copy in all 6 locales (`partner_finder.gate.*`, footer label `partner_finder.gate.footer_link`).

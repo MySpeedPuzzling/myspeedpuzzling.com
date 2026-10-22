@@ -77,7 +77,8 @@ final class PageSectionsOnPagesTest extends WebTestCase
         yield 'online edition' => ['/en/series/euro-jigsaw-jam-series/ejj-68-february-2026', false, 12];
         yield 'series' => [self::SERIES_URL, false, 3];
         yield 'event, signed in' => [self::EVENT_URL, true, 19];
-        yield 'edition, signed in' => [self::EDITION_URL, true, 19];
+        // + the partner finder card (docs/features/partner-finder.md): the meetup edition has no rounds, so it offers pairs and teams
+        yield 'edition, signed in' => [self::EDITION_URL, true, 20];
         yield 'series, signed in' => [self::SERIES_URL, true, 9];
     }
 

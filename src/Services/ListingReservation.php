@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\SellSwapListItem;
 use SpeedPuzzling\Web\Value\SystemMessageType;
@@ -17,12 +18,13 @@ readonly final class ListingReservation
 {
     public function __construct(
         private SystemMessageSender $systemMessageSender,
+        private ClockInterface $clock,
     ) {
     }
 
     public function reserve(SellSwapListItem $item, null|UuidInterface $reservedForPlayerId): void
     {
-        $item->markAsReserved($reservedForPlayerId);
+        $item->markAsReserved($this->clock->now(), $reservedForPlayerId);
 
         $this->systemMessageSender->sendToAllConversations(
             $item,

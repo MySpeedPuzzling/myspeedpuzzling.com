@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\ConversationReportNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\ResolveReport;
@@ -18,6 +19,7 @@ readonly final class ResolveReportHandler
     public function __construct(
         private ConversationReportRepository $conversationReportRepository,
         private PlayerRepository $playerRepository,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -31,9 +33,9 @@ readonly final class ResolveReportHandler
         $admin = $this->playerRepository->get($message->adminId);
 
         if ($message->status === ReportStatus::Dismissed) {
-            $report->dismiss($admin, $message->adminNote);
+            $report->dismiss($admin, $message->adminNote, $this->clock->now());
         } else {
-            $report->resolve($admin, $message->status, $message->adminNote);
+            $report->resolve($admin, $message->status, $message->adminNote, $this->clock->now());
         }
     }
 }

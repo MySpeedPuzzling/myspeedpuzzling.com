@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\ChatMessage;
@@ -56,7 +55,7 @@ readonly final class StartConversationHandler
     {
         $initiator = $this->playerRepository->get($message->initiatorId);
 
-        if ($initiator->isMessagingMuted()) {
+        if ($initiator->isMessagingMuted($this->clock->now())) {
             throw new MessagingMuted();
         }
 
@@ -87,7 +86,7 @@ readonly final class StartConversationHandler
         if ($existingAccepted !== null) {
             if ($isMarketplace) {
                 // Auto-accept new marketplace conversations when already accepted
-                $now = new DateTimeImmutable();
+                $now = $this->clock->now();
                 $conversation = new Conversation(
                     id: Uuid::uuid7(),
                     initiator: $initiator,
@@ -149,7 +148,7 @@ readonly final class StartConversationHandler
             throw new ConversationRequestAlreadyPending();
         }
 
-        $now = new DateTimeImmutable();
+        $now = $this->clock->now();
 
         $conversation = new Conversation(
             id: Uuid::uuid7(),

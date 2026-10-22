@@ -115,7 +115,8 @@ class PlayerInsightsProfile
         #[OneToOne]
         #[JoinColumn(onDelete: 'CASCADE')]
         public Player $player,
+        DateTimeImmutable $computedAt,
     ) {
-        $this->computedAt = new DateTimeImmutable();
+        $this->computedAt = $computedAt;
     }
 }

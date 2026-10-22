@@ -470,7 +470,7 @@ final class PlayerCollectionItemsEndpointTest extends WebTestCase
         $puzzle = $entityManager->find(Puzzle::class, $puzzleId);
         $this->assertNotNull($puzzle);
 
-        $difficulty = $entityManager->find(PuzzleDifficulty::class, $puzzleId) ?? new PuzzleDifficulty($puzzle);
+        $difficulty = $entityManager->find(PuzzleDifficulty::class, $puzzleId) ?? new PuzzleDifficulty($puzzle, new DateTimeImmutable());
         $difficulty->updateDifficulty($score, $confidence, 20, new DateTimeImmutable());
 
         $entityManager->persist($difficulty);

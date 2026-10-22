@@ -256,7 +256,7 @@ final class PredictedTimeEndpointTest extends WebTestCase
 
         // The incremental recalculation may already have left a row behind - reuse it,
         // the puzzle id is the primary key.
-        $difficulty = $entityManager->find(PuzzleDifficulty::class, $puzzleId) ?? new PuzzleDifficulty($puzzle);
+        $difficulty = $entityManager->find(PuzzleDifficulty::class, $puzzleId) ?? new PuzzleDifficulty($puzzle, new DateTimeImmutable());
         $difficulty->updateDifficulty($score, $confidence, 20, new DateTimeImmutable());
 
         $entityManager->persist($difficulty);

@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Bundle\OAuth2ServerBundle\Manager\ClientManagerInterface;
 use League\Bundle\OAuth2ServerBundle\Model\Client;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Message\ResetOAuth2ClientCredentials;
 use SpeedPuzzling\Web\Repository\OAuth2ClientRequestRepository;
 use SpeedPuzzling\Web\Value\OAuth2ApplicationType;
@@ -21,6 +22,7 @@ final readonly class ResetOAuth2ClientCredentialsHandler
         private OAuth2ClientRequestRepository $requestRepository,
         private ClientManagerInterface $clientManager,
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -47,7 +49,7 @@ final readonly class ResetOAuth2ClientCredentialsHandler
         }
 
         $claimToken = bin2hex(random_bytes(32));
-        $request->resetCredentials($newSecret ?? '', $claimToken);
+        $request->resetCredentials($newSecret ?? '', $claimToken, $this->clock->now());
 
         // Revoke all existing tokens for this client via raw SQL
         $this->database->executeStatement(

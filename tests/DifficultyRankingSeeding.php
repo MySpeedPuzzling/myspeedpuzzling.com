@@ -148,7 +148,7 @@ trait DifficultyRankingSeeding
         );
         $entityManager->persist($puzzle);
 
-        $difficulty = new PuzzleDifficulty($puzzle);
+        $difficulty = new PuzzleDifficulty($puzzle, new DateTimeImmutable());
         $difficulty->updateDifficulty($score, $confidence, $sampleSize, new DateTimeImmutable());
         $entityManager->persist($difficulty);
 

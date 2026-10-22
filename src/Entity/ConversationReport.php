@@ -59,18 +59,18 @@ class ConversationReport
     ) {
     }
 
-    public function resolve(Player $admin, ReportStatus $status, null|string $note): void
+    public function resolve(Player $admin, ReportStatus $status, null|string $note, DateTimeImmutable $now): void
     {
         $this->status = $status;
-        $this->resolvedAt = new DateTimeImmutable();
+        $this->resolvedAt = $now;
         $this->resolvedBy = $admin;
         $this->adminNote = $note;
     }
 
-    public function dismiss(Player $admin, null|string $note): void
+    public function dismiss(Player $admin, null|string $note, DateTimeImmutable $now): void
     {
         $this->status = ReportStatus::Dismissed;
-        $this->resolvedAt = new DateTimeImmutable();
+        $this->resolvedAt = $now;
         $this->resolvedBy = $admin;
         $this->adminNote = $note;
     }

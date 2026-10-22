@@ -54,9 +54,9 @@ class PersonalAccessToken
     ) {
     }
 
-    public function revoke(): void
+    public function revoke(DateTimeImmutable $now): void
     {
-        $this->revokedAt = new DateTimeImmutable();
+        $this->revokedAt = $now;
     }
 
     /**

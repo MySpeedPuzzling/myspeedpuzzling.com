@@ -6,7 +6,7 @@ Living record. Every phase appends: what it did, what it found, what the next ph
 |---|---|---|
 | 0 - verify decisions | done 2026-10-22, answered | this commit |
 | 1 - pin UTC, UTC on write | done 2026-10-22 | this commit |
-| 2 - one clock in `src/` | not started | |
+| 2 - one clock in `src/` | done 2026-10-22 | c00bf8343, e16908c18, 3a15ef3b0 + this commit |
 | 3 - frozen clock in tests | not started | |
 | 4 - tests on the frozen clock | not started | |
 | 5 - proof, docs, PR | not started | |
@@ -397,6 +397,91 @@ For Phase 2:
 - `LapsArrayDoctrineType` also formats its laps in the object's own zone (JSON, not a timestamp column). The laps come
   from the clock (UTC), so this is not a problem today. If it ever matters, give it the same UTC conversion.
 
+## Phase 2 (2026-10-22) - one clock in `src/` and templates
+
+What changed (behaviour-neutral: in production the clock is the real time):
+
+- **SQL (R2), 7 sites + the shared fragment.** `NOW()` → `CAST(:now AS timestamp)` with
+  `'now' => $this->clock->now()->format('Y-m-d H:i:s')` in `ExpireMutesCommand`, `MarkMessagesAsReadHandler`
+  (`read_at`), `PrepareDigestEmailForPlayerHandler` (`:since` computed in PHP), `GetAchievementHolders` (3 statements),
+  `GetXpLeaderboard` (AP board only), `PaceHistoryReadiness`. `StatisticalInputsSql::NOT_SECRET` now expects `:now`;
+  every statement using it (directly, via `JOINS`, `imageEstimateJoins()`, `centreSql()`) binds it:
+  `GetPersonalEstimates` (2), `GetTimesAwaitingImagePredictions` + `GetPlayersWithPendingPredictions` (its
+  `condition()`, bound only when used), `GetImageEstimateEvaluationRows`, `GetPlayerPrediction`, `GetPlayerPredictions`,
+  `PredictionModelRecalculator` (2, `$now` passed into the private methods), `PredictionEvaluator`,
+  `PredictionReconstructor`; the Picker bound `now` already. **Reconstructor/evaluator judge secrecy at the real
+  present** (the clock's now), never as of the solve or `$fitBefore` - commented at both call sites.
+- **PHP (R1).** Every class-(a) read of Phase 0 goes through the injected clock (102 src files changed in total across
+  the three commits). Entities take the moment from the caller (`accept($now)`, `ignore($now)`, `resolve(…, $now)`,
+  `dismiss(…, $now)`, `revoke($now)`, OAuth2 `approve/reject/resetCredentials(…, $now)`, `markAsReserved($now, …)`,
+  `markAsRead($now)`, `acceptFairUsePolicy($now)`, `isMessagingMuted($now)`; `computedAt` is a required argument of
+  `PuzzleDifficulty`, `PlayerInsightsProfile`, `PlayerElo`, `PlayerRatingSnapshot`, `GlobalImprovementRatio`,
+  `PlayerImprovementRatio` - reordered before the optional ones, nothing in `src/` constructs them positionally).
+  `PuzzleAddFormData` / `EditPuzzleSolvingTimeFormData` take the default day in their constructor; `StopwatchDetail`
+  gets `$now` from `GetStopwatch`; `GetPuzzleHistory::decisionEntry()` is no longer static. The `|ago` filter
+  (`RelativeTimeFormatter`) counts to the clock's now.
+- **Twig.** New `now()` function (`ClockTwigExtension`). Converted: `_footer` (year), `stopwatch` (server-now),
+  `components/RecentActivity` (server-now for relative labels), `_event_date_range` (current year),
+  `insights/frames/_rating_strips`, `admin/duplicate_results`, `components/ActivityCalendar`, and the expired WJPC
+  live strip in `base.html.twig` (kept, `now() < date(…)` - Phase 0 suggested removing it; left for Jan, see TODO
+  below).
+- **Real time on purpose (Jan's answer 1), each with a short comment:** cookie expiries - `SlidingLoginCookiesSubscriber`
+  (the session cookie; its refresh throttle stays on the clock), `BotTrustCookieSubscriber` + `BotTrustCookieSigner`
+  (the sidecar judges the issued-at; the signer lost its clock argument), `StaleLiveComponentPageSubscriber` - these
+  three used the clock before and moved to real time; `SocialRegisterSignInController`, `NativeAuthPageSubscriber`,
+  `ReferralCookieSubscriber` were real already. `msp-rendered-at` in `base.html.twig` and its reader
+  `AssetLoadFailureClassifier` (lost its clock argument). Rate-limiter retry-after (4), health probes (2).
+- **(b) parsing** rewritten so no system-clock function is involved: `ClaimVoucherHandler` (`'@' . $stripeTs`),
+  `DetectSuspiciousTimesHandler` (`gmdate` → `'@'`), `PredictionModelFitter` (`date()` → `'@'`); `RelativeTimeFormatter`
+  ints via `'@'`. `ImprovementRatioCalculator`'s `strtotime()` of stored values stays (hot loop) and is allowlisted.
+
+Guard tests:
+
+- `tests/DatabaseClockCoverageTest.php` (R2, `src/`): `NOW()`/`clock_timestamp()`/… without arguments,
+  `CURRENT_DATE|TIME|TIMESTAMP`, `LOCALTIME(STAMP)`, `'now'::…` casts, one-argument `age()`; comments stripped, PHP
+  `->now()` / `function now()` excluded. **No allowlist - no exception exists** (an empty allowlist only made PHPStan
+  complain; add one when the first exception appears). Plus a pattern self-test.
+- `tests/SystemClockCoverageTest.php` (R1, `src/` + `templates/`): `new DateTime(Immutable)()`, relative strings
+  (`'now'`, `'today'`, `'+…'`, `'first day of…'` …), the call of `time() date() gmdate() strtotime() mktime()
+  microtime() hrtime() date_create()` … (lower case, `(` right after the name, not after `->`/`::`/`$`, declarations
+  ignored), `Clock::get(`, `new NativeClock/DatePoint`, a bare `'now'` (except as a `:now` parameter name). Templates:
+  `'now'|date`, `date()`, `date('<relative>')`. Allowlist `path => reason`, **38 PHP files**: 19 durations
+  (`microtime(true)`/`hrtime()` in 13 console commands, `ApiUsageSubscriber`, `PredictionEvaluator`,
+  `PredictionModelRecalculator`, `PuzzleIntelligenceRecalculator`, `StudioSpectators` lock deadline), 6 cookie expiries,
+  4 rate-limiter retry-afters, 2 bot-blocker (subscriber + signer), 2 health probes, `AssetLoadFailureClassifier`,
+  `GenerateManufacturerSlug` (entropy), `ImprovementRatioCalculator` (parses stored values), `SecretRevealPreview`
+  (`'now'` as a hash token), `ClockTwigExtension` (registers `now`). **1 template**: `base.html.twig`
+  (`msp-rendered-at`). File-level, like the repo's other coverage tests - an allowlisted file can hide a new read;
+  Phase 4 may tighten it.
+
+Gates: PHPStan clean; PHPCS clean (cs-fix fixed whitespace in the new test only); full suite (ParaTest,
+`speedpuzzling_clock_test`) **11521 tests green** (5 skipped, 27 PHPUnit notices as in Phase 1; 11516 + 5 new guard
+tests), 3 min 52 s; `doctrine:schema:validate` (dev, scratch DB from the committed migrations) in sync - the entity
+parameter reorder changes no mapping; `cache:warmup` (dev) OK (`-d memory_limit=-1` in the one-off container, as in
+Phase 1).
+
+Drift (tests changed because they pinned the old wiring, none weakened): the 3 test helpers splicing `NOT_SECRET`
+(`FitsThePredictionModel`, `ImagePredictionsSideBySideTest`, `PredictionModelRecalculatorTest`) now bind `:now` from
+the container clock - they caused all 35 errors of the first run; tests constructing services by hand get the new
+arguments (`PaceHistoryReadiness`, `PredictionModelRecalculator` in 2 batch tests, `BotTrustCookieSigner/Subscriber`
+without a clock, `AssetLoadFailureClassifier` without a clock - its page-age assertion is
+`assertEqualsWithDelta(90, …, 1)` now: both sides are real time); entity constructors/methods called by tests and
+fixtures pass a moment (fixtures their `$this->clock`, tests `new DateTimeImmutable()` - Phase 4 turns those into
+`TestClock`). Regressions: none.
+
+For Phase 3:
+
+- Everything the frozen clock must reach is on `ClockInterface` / `now()`; what stays real is exactly the allowlist.
+  With the clock frozen, cookies now expire on real time (the Phase 0 jar/Panther failures should be gone), and
+  `AssetLoadFailureControllerTest` (sends `time()`-based `rendered`) keeps working.
+- `DateTimeImmutable::createFromFormat()` without `!`/`|` fills missing fields from the system clock; all current uses
+  in `src/` either give the full format or `setTime()` right after - the guard does not look for it.
+- Tests still read the real clock in many places (Phase 4), including the ones Phase 2 touched.
+- `tests/.database.cache` is not keyed by DB name (Phase 0 note) - the parallel helpers of this phase hit it with a
+  fresh DB name; delete it when switching DB names.
+- TODO for Jan / Phase 5: the expired WJPC live strip in `base.html.twig` (date 2026-09-21) is dead code - remove it
+  together with `live_event_strip` and `.competition-panel-info` when convenient (not done here: not a clock question).
+
 ## Log
 
 - 2026-10-22: plan written (README.md, implementation-plan.md). Branch `time-and-clock` from `8447c607d`.
@@ -405,3 +490,6 @@ For Phase 2:
   audit incl. read-only prod check; SQL and PHP clock lists; test recipe. Experiment reverted. Four questions for Jan.
 - 2026-10-22: Phase 1 - UTC-on-write `datetime_immutable` type + API v1 `finishedAt` converted at the call site;
   type and configuration tests; Jan's answer 5 (keep both, no test-only listener).
+- 2026-10-22: Phase 2 - SQL :now from the clock (7 sites + NOT_SECRET in 11 statements), class-(a) PHP + Twig on the
+  clock (`now()`), browser-judged times on real time, `DatabaseClockCoverageTest` + `SystemClockCoverageTest`; suite
+  green (11521).

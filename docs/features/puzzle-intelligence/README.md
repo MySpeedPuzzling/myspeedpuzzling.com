@@ -610,8 +610,12 @@ centre = pace × exp(log_difficulty + drift)
     on every surface - keeps shrinking toward brand × pieces until the estimates have passed their gates
     (`docs/features/insights/image-estimate-gates.md`). It fades like any prior: weight τ ÷ (k + τ), with τ ≈ 0.5 about
     14 % at k = 3, nothing from 5 indices on (the median). A prediction resting on it alone (k = 0) has the difficulty
-    source `image` and takes the estimate's own interval as the puzzle term of its window: σ_img² = ((p90 − p10) ÷
-    2.563)², in place of b ÷ (k + 1) (`ImagePriorInput::variance()`, `PredictionModelParameters::firstTrySigma()`).
+    source `image` and takes the estimate's own interval as the puzzle term of its window: s × σ_img², σ_img² =
+    ((p90 − p10) ÷ 2.563)², in place of b ÷ (k + 1) (`ImagePriorInput::variance()`,
+    `PredictionModelParameters::firstTrySigma()`). The scale s (`imageVarianceScale`, 1.0 before a fit with estimates)
+    is fitted daily (`PredictionModelFitter` step 6) on the first tries of the window at puzzles with 0-4 indices: the
+    one at which the picture-only windows hold 50 / 80 %. The interval is built against well measured puzzles, a first
+    try at a new one scatters more - the first gate record (2026-10-23) had 42 / 71 % with s = 1.
   - The fit stores every puzzle's finished priors as the chain gives them then: `difficulty_prior_puzzle.prior_log` =
     the statistical predictor's (no estimate in the context: brand × pieces) and `blend_prior_log` = the blend
     predictor's (with the estimate of the current picture, any - in-sample too, like a live prediction; equal to

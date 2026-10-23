@@ -83,6 +83,7 @@ not shown either; what members will see is the estimate and its window, which ru
 - After the deploy: nothing to evaluate until image rows exist (the prediction backfill writes them as the derive pushes
   out-of-fold estimates - `prediction-history.md` "Production run for the image rows").
 - Before the launch decision (`implementation-plan.md` §8): final derive on the complete data →
+  `fit-prediction-model` (fits the picture-only window's scale on the new estimates - README "Step 8") →
   `backfill-solving-time-predictions --recompute-image` → `evaluate-image-estimates`. Expect 500 pc flat / box to be the
   first to pass.
 - Daily afterwards (a cron row after the 4×-daily backfill, e.g. `5 8 * * *`) so the gate follows the live rows; the

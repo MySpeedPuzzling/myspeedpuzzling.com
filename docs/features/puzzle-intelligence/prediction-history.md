@@ -372,7 +372,7 @@ not use the puzzle's difficulty - no rows), from the puzzle's picture-based diff
 (`puzzle_difficulty_estimate`, pushed by the image pipeline - `docs/features/insights/image-pipeline.md` §7):
 
 - `image` - pace × drift × exp(estimate): the picture and the pieces alone, whatever the solves say. Window: the
-  k = 0 bucket with the estimate's own interval as the puzzle term. `difficulty_source = image`, `prior_log` = the
+  k = 0 bucket with the estimate's own interval × the fitted `imageVarianceScale` as the puzzle term. `difficulty_source = image`, `prior_log` = the
   estimate, `k_indices` = the puzzle's index count then (what the evaluation groups by).
 - `blend` - the statistical model shrunk toward the estimate (`ImageEstimatePrior` in front of brand × pieces): the
   estimate alone at k = 0 (= the image prediction), `shrunk` toward it at 1-4, the solves' median from 5 indices on.

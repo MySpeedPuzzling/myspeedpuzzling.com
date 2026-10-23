@@ -23,7 +23,8 @@ use SpeedPuzzling\Web\Value\PredictionModelParameters;
  *   written (~1 s);
  * - the daily fit (fit(), `myspeedpuzzling:fit-prediction-model`): BrandPiecesPrior's groups and every puzzle's share
  *   in them, every puzzle's finished priors (the statistical chain's and the blend's, with the image estimate in front),
- *   the rest of the model (PredictionModelFitter, the last FIT_WINDOW_MONTHS) into prediction_model_fit, then the drift
+ *   the rest of the model (PredictionModelFitter, the last FIT_WINDOW_MONTHS; with the image estimates for the scale of
+ *   the picture-only window) into prediction_model_fit, then the drift
  *   and spread with the new fit (~3-4 s - kept out of the 15-minute batch).
  */
 readonly final class PredictionModelRecalculator
@@ -73,13 +74,14 @@ readonly final class PredictionModelRecalculator
 
         $priorsStartedAt = microtime(true);
         $priors = PriorLookup::fit($set, $this->manufacturerByPuzzle());
-        $priorRows = $this->puzzlePriors($priors, $this->imageEstimates());
+        $imageEstimates = $this->imageEstimates();
+        $priorRows = $this->puzzlePriors($priors, $imageEstimates);
         $this->writePriors($priors, $priorRows, $now);
         $priorsSeconds = microtime(true) - $priorsStartedAt;
 
         $from = (float) $now->modify('-' . self::FIT_WINDOW_MONTHS . ' months')->getTimestamp();
         // Fitting tau computes the drift with it (PredictionModelFitter step 2)
-        $parameters = $this->fitter->fit($engine, $priors, RepeatHistory::load($this->connection, $from), $from, (float) $now->getTimestamp(), $now);
+        $parameters = $this->fitter->fit($engine, $priors, RepeatHistory::load($this->connection, $from), $from, (float) $now->getTimestamp(), $now, $imageEstimates);
         $this->storeParameters($parameters, $now);
 
         return [

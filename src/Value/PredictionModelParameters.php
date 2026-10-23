@@ -15,7 +15,9 @@ use DateTimeImmutable;
  * - tau: pseudo-count of the prior in the shrunk difficulty of puzzles with 1-4 indices;
  * - thinSizes: per piece-count group, the size exponent and the number of own qualifying first attempts below which
  *   the player's 500-piece pace scaled by it replaces their own baseline (absent = the own baseline always wins);
- * - first tries: sigma² = playerSpreadWeight × spread² + puzzleWeight ÷ (k + 1) + sizeTerm(group);
+ * - first tries: sigma² = playerSpreadWeight × spread² + puzzleWeight ÷ (k + 1) + sizeTerm(group); a prediction resting
+ *   on the picture alone takes imageVarianceScale × the estimate's own variance as its puzzle term instead (the scale
+ *   fitted on first tries at puzzles with 0-4 indices, so its windows hold what they say - 1.0 = the interval as is);
  * - repeats: sigma² = repeatSpreadWeight × spread² + repeatConstant;
  * - consistency edges: the quartile edges of the player spread (first tries / repeats);
  * - quantiles: standardised-residual quantiles 10 / 25 / 75 / 90 % per WindowBucket key (with fallbacks).
@@ -51,6 +53,7 @@ readonly final class PredictionModelParameters
         public array $quantiles,
         public null|DateTimeImmutable $fittedAt = null,
         public array $summary = [],
+        public float $imageVarianceScale = 1.0,
     ) {
     }
 
@@ -102,6 +105,7 @@ readonly final class PredictionModelParameters
         null|array $quantiles = null,
         null|DateTimeImmutable $fittedAt = null,
         null|array $summary = null,
+        null|float $imageVarianceScale = null,
     ): self {
         return new self(
             tau: $tau ?? $this->tau,
@@ -116,17 +120,19 @@ readonly final class PredictionModelParameters
             quantiles: $quantiles ?? $this->quantiles,
             fittedAt: $fittedAt ?? $this->fittedAt,
             summary: $summary ?? $this->summary,
+            imageVarianceScale: $imageVarianceScale ?? $this->imageVarianceScale,
         );
     }
 
     /**
      * @param null|float $puzzleVariance the puzzle term when the difficulty's own uncertainty is known (a prediction
-     *                                   resting on the image estimate alone: its interval) instead of b ÷ (k + 1)
+     *                                   resting on the image estimate alone: its interval, × imageVarianceScale)
+     *                                   instead of b ÷ (k + 1)
      */
     public function firstTrySigma(float $playerSpread, int $k, PiecesGroup $group, null|float $puzzleVariance = null): float
     {
         $variance = $this->firstTryPlayerSpreadWeight * $playerSpread ** 2
-            + ($puzzleVariance ?? $this->firstTryPuzzleWeight / (max(0, $k) + 1))
+            + ($puzzleVariance !== null ? $this->imageVarianceScale * $puzzleVariance : $this->firstTryPuzzleWeight / (max(0, $k) + 1))
             + ($this->firstTrySizeTerms[$group->value] ?? 0.0);
 
         return max(sqrt(max($variance, 0.0)), self::MINIMUM_SIGMA);
@@ -174,6 +180,7 @@ readonly final class PredictionModelParameters
                 'puzzle_weight' => $this->firstTryPuzzleWeight,
                 'size_terms' => $this->firstTrySizeTerms,
                 'consistency_edges' => $this->firstTryConsistencyEdges,
+                'image_variance_scale' => $this->imageVarianceScale,
             ],
             'repeat' => [
                 'spread_weight' => $this->repeatSpreadWeight,
@@ -246,6 +253,7 @@ readonly final class PredictionModelParameters
             quantiles: $quantiles !== [] ? $quantiles : $defaults->quantiles,
             fittedAt: is_string($data['fitted_at'] ?? null) ? new DateTimeImmutable($data['fitted_at']) : null,
             summary: $summary,
+            imageVarianceScale: self::number($firstTry['image_variance_scale'] ?? null, $defaults->imageVarianceScale),
         );
     }
 

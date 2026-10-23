@@ -500,6 +500,10 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
 - [ ] Report / suggest a change on event, edition and series pages (e.g. 'this is a duplicate of …', wrong date or
       details) so players can flag event listings without the feedback form - today there is no way to report or propose
       edits to an event they don't manage. Promised to SickHippie (MSP #342, follow-up F161).
+- [ ] XP: logging a back-dated result must not lower other results' XP - XpChainRecomputer::rebuildScope() re-derives
+      week-mates and the puzzle chain with today's difficulty tier (rewrite only the weekly-boost line for week-mates,
+      keep the tier a solve was awarded with), then repair affected players' lost difficulty bonus (Oct 16 ledger saved
+      on lily /root/backups/xp_entry-2026-10-16-163001.sql.gz). Promised to Feifei (MSP #355, follow-up F165).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

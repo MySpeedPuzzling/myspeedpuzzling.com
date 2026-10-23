@@ -317,12 +317,23 @@ def grid16(lab: np.ndarray, gmag: np.ndarray) -> dict[str, list[int]]:
 
 def text_regions(rgb: np.ndarray, cpu_only: bool = True) -> tuple[float, int] | None:
     """Apple Vision fast text recognition on the crop: (share of area in text boxes, characters). CPU-only by default:
-    it runs next to GPU stages, and Apple Vision stalls when it shares the GPU (image-taxonomy.md §19)."""
+    it runs next to GPU stages, and Apple Vision stalls when it shares the GPU (image-taxonomy.md §19).
+
+    In an autorelease pool of its own, like the Apple Vision stages: a pool worker lives for the whole stage, and without
+    one every image's Vision objects stayed until it exited - free memory fell ~1 % a minute until the watchdog stopped
+    `traits` (2026-10-23, twice)."""
     try:
         import Vision  # type: ignore[import-not-found]
         from Foundation import NSData  # type: ignore[import-not-found]
     except Exception:  # noqa: BLE001 - not on a Mac / ml extra not installed
         return None
+    from .apple_vision import _autorelease_pool
+
+    with _autorelease_pool():
+        return _text_regions(Vision, NSData, rgb, cpu_only)
+
+
+def _text_regions(Vision: Any, NSData: Any, rgb: np.ndarray, cpu_only: bool) -> tuple[float, int]:  # noqa: N803
     from ..imaging import to_png_bytes
 
     b = to_png_bytes(rgb)

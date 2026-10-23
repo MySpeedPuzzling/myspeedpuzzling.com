@@ -325,6 +325,28 @@ final class ImagePredictionsSideBySideTest extends KernelTestCase
     }
 
     /**
+     * `--recompute-image` after a new fit: a reconstruction made before it (its window - the picture-only scale - may
+     * have changed) is listed again, and only when asked.
+     */
+    public function testRecomputeImageListsReconstructionsOlderThanTheFit(): void
+    {
+        $timeId = $this->addSoloTime(PuzzleFixture::PUZZLE_500_05, '00:45:00', $this->now()->modify('-5 days')->setTime(0, 0));
+        $this->backfill();
+        $computedAt = $this->sideRows($timeId)['image']['computed_at'];
+        $refit = fn (string $interval) => $this->database->executeStatement(
+            "UPDATE prediction_model_fit SET fitted_at = CAST(:computedAt AS timestamp) + CAST(:interval AS interval)",
+            ['computedAt' => $computedAt, 'interval' => $interval],
+        );
+
+        $refit('-1 hour');
+        self::assertSame([], $this->awaiting()->ofPlayer(PlayerFixture::PLAYER_REGULAR, recomputeImage: true), 'Made after the fit');
+
+        $refit('1 hour');
+        self::assertSame([], $this->awaiting()->ofPlayer(PlayerFixture::PLAYER_REGULAR));
+        self::assertSame([$timeId], $this->awaiting()->ofPlayer(PlayerFixture::PLAYER_REGULAR, recomputeImage: true));
+    }
+
+    /**
      * The fit stores every puzzle's blend prior next to the statistical one - equal to the last bit to the chain the
      * readers build from the stored sums and the current estimate - and its copy on the difficulty row.
      */

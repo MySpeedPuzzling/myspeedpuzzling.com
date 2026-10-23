@@ -16,7 +16,8 @@ use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
  * of its current picture (never a secret puzzle), and no image row yet, or only a live one written while the puzzle had
  * no estimate (image_model NULL - a puzzle added together with its first time). With $recomputeImage also those whose
  * reconstructed image row is older than the estimate it would rest on now (a new derive pushed it after the row was
- * made) - the one-off before an evaluation, not the cron.
+ * made) or than the current model fit (its windows - the picture-only scale - changed after the row was made) - the
+ * one-off before an evaluation, not the cron.
  *
  * Times on puzzles without an out-of-fold estimate are not listed: they wait, and a missing estimate never becomes
  * "not predictable" in a reconstruction.
@@ -35,7 +36,10 @@ readonly final class GetTimesAwaitingImagePredictions
     {
         $fingerprint = PuzzleImageFingerprint::sql('p.image');
         $notSecret = StatisticalInputsSql::NOT_SECRET;
-        $stale = $recomputeImage ? "AND NOT (image_row.source = 'reconstructed' AND image_row.computed_at < img.received_at)" : '';
+        $stale = $recomputeImage
+            ? "AND NOT (image_row.source = 'reconstructed' AND image_row.computed_at < GREATEST(img.received_at,
+                (SELECT fit.fitted_at FROM prediction_model_fit fit WHERE fit.model_version = :modelVersion)))"
+            : '';
 
         return "EXISTS (
             SELECT 1

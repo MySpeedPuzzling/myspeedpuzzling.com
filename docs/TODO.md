@@ -500,10 +500,10 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
 - [ ] Report / suggest a change on event, edition and series pages (e.g. 'this is a duplicate of …', wrong date or
       details) so players can flag event listings without the feedback form - today there is no way to report or propose
       edits to an event they don't manage. Promised to SickHippie (MSP #342, follow-up F161).
-- [ ] XP: logging a back-dated result must not lower other results' XP - XpChainRecomputer::rebuildScope() re-derives
-      week-mates and the puzzle chain with today's difficulty tier (rewrite only the weekly-boost line for week-mates,
-      keep the tier a solve was awarded with), then repair affected players' lost difficulty bonus (Oct 16 ledger saved
-      on lily /root/backups/xp_entry-2026-10-16-163001.sql.gz). Promised to Feifei (MSP #355, follow-up F165).
+- [ ] XP: solves of the same puzzle are still replayed with today's difficulty tier when their chain changes (an add,
+      edit or delete on that puzzle) - week-mates keep what they earned since b5ec6bc6c (2026-10-23, 648 players' lost
+      difficulty bonus restored from the Oct 16 backup). Small (a few XP per chain); a full fix stores the tier a solve
+      was awarded with. Also `myspeedpuzzling:recalculate-xp` / `verify-progression --repair` rebuild with today's tiers.
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

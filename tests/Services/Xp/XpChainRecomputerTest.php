@@ -141,6 +141,72 @@ final class XpChainRecomputerTest extends KernelTestCase
         self::assertArrayHasKey('solve_weekly_boost', $this->entriesFor($nextWeek, PlayerFixture::PLAYER_REGULAR));
     }
 
+    public function testLoggingAnOlderSolveKeepsTheDifficultyBonusOfTheSolvesOfItsWeek(): void
+    {
+        $monday = $this->mondayNoFixtureReaches();
+        $this->ratePuzzle(PuzzleFixture::PUZZLE_1000_04, tier: 4);
+
+        $solveId = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_1000_04, 7200, $monday->modify('+2 days'), 1000);
+        $this->award($solveId);
+        $earned = $this->entriesFor($solveId, PlayerFixture::PLAYER_REGULAR);
+        self::assertSame(3, $earned['solve_difficulty_bonus']);
+
+        // The community rates the puzzle easier later - what the solve earned stays
+        $this->ratePuzzle(PuzzleFixture::PUZZLE_1000_04, tier: 2);
+
+        // A puzzle from the backlog, logged into the same week before it
+        $olderSolveId = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 3600, $monday, 500);
+        $this->award($olderSolveId);
+
+        self::assertSame($earned, $this->entriesFor($solveId, PlayerFixture::PLAYER_REGULAR));
+        $this->assertTotalsMatchLedger(PlayerFixture::PLAYER_REGULAR);
+    }
+
+    public function testAnOlderSolveTakesTheWeeklyBoostButNotTheOtherLinesOfTheSixthSolve(): void
+    {
+        $monday = $this->mondayNoFixtureReaches();
+        $this->ratePuzzle(PuzzleFixture::PUZZLE_1000_04, tier: 4);
+
+        $puzzles = [
+            PuzzleFixture::PUZZLE_1000_05,
+            PuzzleFixture::PUZZLE_3000,
+            PuzzleFixture::PUZZLE_4000,
+            PuzzleFixture::PUZZLE_5000,
+            PuzzleFixture::PUZZLE_1000_04,
+        ];
+
+        $solveIds = [];
+        foreach ($puzzles as $day => $puzzleId) {
+            $solveId = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, $puzzleId, 7200, $monday->modify('+' . ($day + 1) . ' days'), 1000);
+            $this->award($solveId);
+            $solveIds[] = $solveId;
+        }
+
+        $fifth = $this->entriesFor($solveIds[4], PlayerFixture::PLAYER_REGULAR);
+        self::assertArrayHasKey('solve_weekly_boost', $fifth);
+
+        $this->ratePuzzle(PuzzleFixture::PUZZLE_1000_04, tier: 2);
+
+        $olderSolveId = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 3600, $monday, 500);
+        $this->award($olderSolveId);
+
+        // The older solve is one of the week's first five now, the fifth one became the sixth: only its boost goes
+        self::assertArrayHasKey('solve_weekly_boost', $this->entriesFor($olderSolveId, PlayerFixture::PLAYER_REGULAR));
+        unset($fifth['solve_weekly_boost']);
+        self::assertSame($fifth, $this->entriesFor($solveIds[4], PlayerFixture::PLAYER_REGULAR));
+        $this->assertTotalsMatchLedger(PlayerFixture::PLAYER_REGULAR);
+
+        // Deleting the older solve gives the boost back, the difficulty bonus never moved
+        $this->database->executeStatement('DELETE FROM puzzle_solving_time WHERE id = :id', ['id' => $olderSolveId]);
+        $this->chainRecomputer->compensateAndRebuildAfterDeletion($olderSolveId, PuzzleFixture::PUZZLE_500_04);
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+
+        self::assertSame(3, $this->entriesFor($solveIds[4], PlayerFixture::PLAYER_REGULAR)['solve_difficulty_bonus']);
+        self::assertArrayHasKey('solve_weekly_boost', $this->entriesFor($solveIds[4], PlayerFixture::PLAYER_REGULAR));
+        $this->assertTotalsMatchLedger(PlayerFixture::PLAYER_REGULAR);
+    }
+
     public function testEditRebuildsOccurrenceChainInBothDirections(): void
     {
         $at = XpSettingsFixture::fullFormulaFrom()->modify('+10 days');
@@ -408,11 +474,22 @@ final class XpChainRecomputerTest extends KernelTestCase
         self::assertSame(LevelTable::levelForXp($totals['xp_total']), $totals['level']);
     }
 
+    /**
+     * A week no fixture reaches (fixtures date their solves relative to now)
+     */
+    private function mondayNoFixtureReaches(): \DateTimeImmutable
+    {
+        $base = new \DateTimeImmutable('+2 years');
+
+        return $base->setISODate((int) $base->format('o'), (int) $base->format('W'))->setTime(12, 0);
+    }
+
     private function ratePuzzle(string $puzzleId, int $tier): void
     {
         $this->database->executeStatement(
             "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_tier, difficulty_score, confidence, sample_size, computed_at)
-             VALUES (:puzzleId, :tier, 50, 'high', 10, NOW())",
+             VALUES (:puzzleId, :tier, 50, 'high', 10, NOW())
+             ON CONFLICT (puzzle_id) DO UPDATE SET difficulty_tier = EXCLUDED.difficulty_tier",
             ['puzzleId' => $puzzleId, 'tier' => $tier],
         );
     }

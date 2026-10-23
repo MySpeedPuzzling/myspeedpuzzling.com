@@ -72,7 +72,10 @@ relax repeats zero. Suspicious solves earn nothing. All of it lives in the pure
 Each of them rebuilds the **scope** a change can reach, from the one replay (`XpHistoryReplay`) the full rebuild uses
 too: the player's whole chain on the puzzle plus every solve of the ISO weeks the touched solves are in now or were in
 (their old entries' `earned_at`) - the weekly boost goes to the first solves of the week. Only
-solves whose entries differ from the replay are rewritten, so the XP history of the others keeps its dates.
+solves whose entries differ from the replay are rewritten, so the XP history of the others keeps its dates. A solve of
+another puzzle that is in the scope only for its week keeps every line it earned and only gains or loses its weekly
+boost - the replay reads today's difficulty tiers, so before 2026-10-23 a puzzle logged from the backlog took the
+difficulty bonus of every solve of its week whose puzzle had been rated easier since (one player lost 238 XP).
 
 Full deterministic rebuild: `RecalculateXpForPlayer` / `myspeedpuzzling:recalculate-xp`
 (`src/Services/Xp/XpRecomputer.php`) — wipes the ledger, replays history. Proven idempotent by integration test;

@@ -400,9 +400,12 @@ SQL;
      *    group): their entries go.
      *
      * Only solves whose entries differ from the replay are rewritten (a settlement counts as the bonus it settled),
-     * so the XP history of untouched solves keeps its dates. A solve that exists drops all its old entries - also the
-     * compensation of an earlier deletion when its id came back (Undo, a resent form) - and a deleted solve keeps its
-     * entries and their compensation as the audit history.
+     * so the XP history of untouched solves keeps its dates. A solve of another puzzle that is in the scope only for its
+     * week (same time, same base line) keeps every line it earned and only gains or loses its weekly boost: the replay
+     * reads today's difficulty tiers and speed medians, and a puzzle logged from the backlog took the difficulty
+     * bonus of every solve of its week after the tiers moved (found 2026-10-23). A solve that exists drops all its
+     * old entries - also the compensation of an earlier deletion when its id came back (Undo, a resent form) - and a
+     * deleted solve keeps its entries and their compensation as the audit history.
      *
      * The caller holds PlayerProgressionLock for the player.
      *
@@ -439,9 +442,15 @@ SQL;
         /** @var array<string, true> $scope */
         $scope = [];
 
+        /** @var array<string, true> $weekMates solves in the scope only for their week's boost */
+        $weekMates = [];
+
         foreach ($history as $solve) {
-            if (isset($puzzleSet[$solve['puzzle_id']]) || isset($weeks[XpHistoryReplay::weekKey(new DateTimeImmutable($solve['earned_at']))])) {
+            if (isset($puzzleSet[$solve['puzzle_id']])) {
                 $scope[$solve['id']] = true;
+            } elseif (isset($weeks[XpHistoryReplay::weekKey(new DateTimeImmutable($solve['earned_at']))])) {
+                $scope[$solve['id']] = true;
+                $weekMates[$solve['id']] = true;
             }
         }
 
@@ -467,6 +476,25 @@ SQL;
 
             $target = $targets[$solveId] ?? [];
             $current = $currentEntries[$solveId] ?? [];
+
+            if (isset($weekMates[$solveId]) && self::earnedInTheSamePlace($current, $target)) {
+                // A solve of another puzzle keeps what it earned - difficulty tiers and speed medians drift with the
+                // community, and logging a puzzle from the backlog must never take XP from the solves of its week.
+                // Only the weekly boost can go from one of them to another.
+                $current = array_values(array_filter(
+                    $current,
+                    static fn (array $entry): bool => $entry['reason'] === XpReason::SolveWeeklyBoost->value,
+                ));
+                $target = array_values(array_filter(
+                    $target,
+                    static fn (XpEntryDraft $draft): bool => $draft->reason === XpReason::SolveWeeklyBoost,
+                ));
+
+                if ($current !== [] && $target !== []) {
+                    // Still one of the week's first solves - the boost it got stays too
+                    continue;
+                }
+            }
 
             if (self::matches($current, $target)) {
                 continue;
@@ -570,6 +598,44 @@ SQL;
         }
 
         return $bySolve;
+    }
+
+    /**
+     * Whether a solve still sits where its entries were written: the same time, the same base line (occurrence, mode
+     * and pieces unchanged) and no compensation - then its difficulty, unboxed and speed lines stay as they were.
+     *
+     * @param list<array{id: string, reason: string, amount: int, earned_at: string}> $current
+     * @param list<XpEntryDraft> $target
+     */
+    private static function earnedInTheSamePlace(array $current, array $target): bool
+    {
+        $targetBase = null;
+
+        foreach ($target as $draft) {
+            if ($draft->reason === XpReason::SolveBase) {
+                $targetBase = $draft;
+            }
+        }
+
+        if ($targetBase === null) {
+            return false;
+        }
+
+        $currentBase = null;
+
+        foreach ($current as $entry) {
+            if ($entry['reason'] === XpReason::SolveCompensation->value) {
+                return false;
+            }
+
+            if ($entry['reason'] === XpReason::SolveBase->value) {
+                $currentBase = $entry;
+            }
+        }
+
+        return $currentBase !== null
+            && $currentBase['amount'] === $targetBase->amount
+            && $currentBase['earned_at'] === $targetBase->earnedAt->format('Y-m-d H:i:s');
     }
 
     /**

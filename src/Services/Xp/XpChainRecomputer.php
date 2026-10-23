@@ -185,6 +185,8 @@ SQL;
 
         /** @var array<string, list<XpEntryDraft>> $draftsByPlayer */
         $draftsByPlayer = [];
+        /** @var array<string, list<array{solvingTimeId: string, puzzleId: string, difficultyTier: null|int}>> $settledTiersByPlayer */
+        $settledTiersByPlayer = [];
 
         foreach ($this->loadPendingDifficultySettlements() as $row) {
             $amount = $this->settlementAmount($row, XpReason::SolveDifficultyBonus);
@@ -192,6 +194,12 @@ SQL;
             if ($amount <= 0) {
                 continue;
             }
+
+            $settledTiersByPlayer[$row['player_id']][] = [
+                'solvingTimeId' => $row['id'],
+                'puzzleId' => $row['puzzle_id'],
+                'difficultyTier' => $row['difficulty_tier'],
+            ];
 
             $draftsByPlayer[$row['player_id']][] = new XpEntryDraft(
                 reason: XpReason::DifficultySettlement,
@@ -228,6 +236,7 @@ SQL;
             }
 
             $this->xpLedger->append($player, $drafts);
+            $this->xpLedger->recordAwardedTiers($playerId, $settledTiersByPlayer[$playerId] ?? []);
         }
 
         return $created;
@@ -276,7 +285,8 @@ SQL;
 
     /**
      * Awarded (player, solve) pairs on go-forward solves whose puzzle now has a bonus-worthy
-     * difficulty tier but which have neither a live difficulty bonus nor a settlement yet.
+     * difficulty tier but which have neither a live difficulty bonus nor a settlement yet - and no frozen tier: a solve
+     * that earned with a rated puzzle keeps that tier, settling is for puzzles unrated at the award.
      *
      * @phpstan-return list<SolveRow>
      */
@@ -288,6 +298,10 @@ WHERE e.reason = :solveBase
   AND pst.suspicious = false
   AND pst.tracked_at >= CAST(:cutoff AS TIMESTAMP)
   AND pd.difficulty_tier >= 3
+  AND NOT EXISTS (
+    SELECT 1 FROM xp_solve_tier xst
+    WHERE xst.player_id = e.player_id AND xst.solving_time_id = e.solving_time_id AND xst.puzzle_id = pst.puzzle_id
+  )
   AND NOT EXISTS (
     SELECT 1 FROM xp_entry d
     WHERE d.player_id = e.player_id
@@ -467,6 +481,9 @@ SQL;
 
         $entryIdsToRemove = [];
         $drafts = [];
+        /** @var list<array{solvingTimeId: string, puzzleId: string, difficultyTier: null|int}> $earnedWithTier */
+        $earnedWithTier = [];
+        $historyById = array_column($history, null, 'id');
 
         foreach ($candidateIds as $solveId) {
             if (isset($scope[$solveId]) === false && isset($stillExisting[$solveId]) === false) {
@@ -494,6 +511,13 @@ SQL;
                     // Still one of the week's first solves - the boost it got stays too
                     continue;
                 }
+            } elseif ($target !== [] && isset($historyById[$solveId])) {
+                // Replayed in full: from now on it keeps the tier it earned with
+                $earnedWithTier[] = [
+                    'solvingTimeId' => $solveId,
+                    'puzzleId' => $historyById[$solveId]['puzzle_id'],
+                    'difficultyTier' => $historyById[$solveId]['difficulty_tier'],
+                ];
             }
 
             if (self::matches($current, $target)) {
@@ -508,6 +532,8 @@ SQL;
                 $drafts[] = $draft;
             }
         }
+
+        $this->xpLedger->recordAwardedTiers($playerId, $earnedWithTier);
 
         if ($entryIdsToRemove === [] && $drafts === []) {
             return;

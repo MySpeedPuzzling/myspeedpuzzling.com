@@ -15,7 +15,8 @@ use SpeedPuzzling\Web\Value\XpEntryDraft;
 use SpeedPuzzling\Web\Value\XpLevelChange;
 
 /**
- * The only writer of the XP ledger (`xp_entry`) and of the denormalized Player.xpTotal / Player.level.
+ * The only writer of the XP ledger (`xp_entry`), of the tiers solves earned it with (`xp_solve_tier`) and of the
+ * denormalized Player.xpTotal / Player.level.
  *
  * Invariant: Player.xpTotal always equals SUM(xp_entry.amount) of that player, Player.level equals
  * LevelTable::levelForXp(xpTotal). Every write ends by reading that sum back - the total is never carried forward
@@ -76,6 +77,48 @@ readonly final class XpLedger
             'DELETE FROM xp_entry WHERE player_id = :playerId',
             ['playerId' => $player->id->toString()],
         );
+    }
+
+    /**
+     * Freezes the difficulty tier each solve earned its XP with (XpSolveTier). A solve that already has one on the same
+     * puzzle keeps it; a solve moved to another puzzle takes the new one. Unrated puzzles (null) freeze nothing - their
+     * difficulty settlement does, once they are rated.
+     *
+     * @param list<array{solvingTimeId: string, puzzleId: string, difficultyTier: null|int}> $solves
+     */
+    public function recordAwardedTiers(string $playerId, array $solves): void
+    {
+        $bySolve = [];
+
+        foreach ($solves as $solve) {
+            // One row per solve and statement - ON CONFLICT DO UPDATE refuses to touch a row twice
+            if ($solve['difficultyTier'] !== null) {
+                $bySolve[$solve['solvingTimeId']] = $solve;
+            }
+        }
+
+        $solves = array_values($bySolve);
+
+        foreach (array_chunk($solves, self::INSERT_CHUNK) as $chunk) {
+            $values = [];
+            $parameters = ['playerId' => $playerId];
+
+            foreach ($chunk as $index => $solve) {
+                $values[] = sprintf('(:playerId, :solvingTimeId%1$d, :puzzleId%1$d, :tier%1$d)', $index);
+                $parameters['solvingTimeId' . $index] = $solve['solvingTimeId'];
+                $parameters['puzzleId' . $index] = $solve['puzzleId'];
+                $parameters['tier' . $index] = $solve['difficultyTier'];
+            }
+
+            $this->database->executeStatement(
+                'INSERT INTO xp_solve_tier (player_id, solving_time_id, puzzle_id, difficulty_tier) VALUES '
+                . implode(', ', $values)
+                . ' ON CONFLICT (player_id, solving_time_id) DO UPDATE
+                    SET puzzle_id = EXCLUDED.puzzle_id, difficulty_tier = EXCLUDED.difficulty_tier
+                    WHERE xp_solve_tier.puzzle_id <> EXCLUDED.puzzle_id',
+                $parameters,
+            );
+        }
     }
 
     /**

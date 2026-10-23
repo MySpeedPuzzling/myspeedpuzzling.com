@@ -500,10 +500,6 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
 - [ ] Report / suggest a change on event, edition and series pages (e.g. 'this is a duplicate of …', wrong date or
       details) so players can flag event listings without the feedback form - today there is no way to report or propose
       edits to an event they don't manage. Promised to SickHippie (MSP #342, follow-up F161).
-- [ ] XP: solves of the same puzzle are still replayed with today's difficulty tier when their chain changes (an add,
-      edit or delete on that puzzle) - week-mates keep what they earned since b5ec6bc6c (2026-10-23, 648 players' lost
-      difficulty bonus restored from the Oct 16 backup). Small (a few XP per chain); a full fix stores the tier a solve
-      was awarded with. Also `myspeedpuzzling:recalculate-xp` / `verify-progression --repair` rebuild with today's tiers.
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

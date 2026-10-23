@@ -10,6 +10,8 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Services\Badges\BadgeEvaluator;
 use SpeedPuzzling\Web\Services\Xp\XpChainRecomputer;
+use SpeedPuzzling\Web\Services\Xp\XpRecomputer;
+use SpeedPuzzling\Web\Services\Xp\XpTierFreezer;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\XpSettingsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
@@ -207,6 +209,73 @@ final class XpChainRecomputerTest extends KernelTestCase
         $this->assertTotalsMatchLedger(PlayerFixture::PLAYER_REGULAR);
     }
 
+    public function testARepeatAndAFullRebuildKeepTheTierTheFirstSolveEarnedWith(): void
+    {
+        $monday = $this->mondayNoFixtureReaches();
+        $this->ratePuzzle(PuzzleFixture::PUZZLE_1000_04, tier: 4);
+
+        $first = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_1000_04, 7200, $monday, 1000);
+        $this->award($first);
+        self::assertSame(3, $this->entriesFor($first, PlayerFixture::PLAYER_REGULAR)['solve_difficulty_bonus']);
+
+        $this->ratePuzzle(PuzzleFixture::PUZZLE_1000_04, tier: 2);
+
+        // A repeat replays the whole chain - the first solve keeps tier 4, the repeat earns at today's tier
+        $repeat = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_1000_04, 7000, $monday->modify('+8 days'), 1000);
+        $this->award($repeat);
+
+        self::assertSame(3, $this->entriesFor($first, PlayerFixture::PLAYER_REGULAR)['solve_difficulty_bonus']);
+        self::assertArrayNotHasKey('solve_difficulty_bonus', $this->entriesFor($repeat, PlayerFixture::PLAYER_REGULAR));
+
+        $earned = [$this->entriesFor($first, PlayerFixture::PLAYER_REGULAR), $this->entriesFor($repeat, PlayerFixture::PLAYER_REGULAR)];
+        $this->recomputeFully(PlayerFixture::PLAYER_REGULAR);
+
+        self::assertSame($earned, [$this->entriesFor($first, PlayerFixture::PLAYER_REGULAR), $this->entriesFor($repeat, PlayerFixture::PLAYER_REGULAR)]);
+        $this->assertTotalsMatchLedger(PlayerFixture::PLAYER_REGULAR);
+    }
+
+    public function testASettledTierStaysWhenThePuzzleIsRatedAgain(): void
+    {
+        $monday = $this->mondayNoFixtureReaches();
+        $first = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_1000_05, 7200, $monday, 1000);
+        $this->award($first);
+
+        $this->ratePuzzle(PuzzleFixture::PUZZLE_1000_05, tier: 5);
+        $this->settle();
+        self::assertSame(4, $this->entriesFor($first, PlayerFixture::PLAYER_REGULAR)['difficulty_settlement']);
+
+        $this->ratePuzzle(PuzzleFixture::PUZZLE_1000_05, tier: 3);
+        $this->award($this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_1000_05, 7000, $monday->modify('+8 days'), 1000));
+
+        $entries = $this->entriesFor($first, PlayerFixture::PLAYER_REGULAR);
+        self::assertSame(4, ($entries['difficulty_settlement'] ?? 0) + ($entries['solve_difficulty_bonus'] ?? 0));
+        self::assertSame(0, $this->settle());
+    }
+
+    public function testTheFreezerReadsTheEarnedTierBackFromTheLedger(): void
+    {
+        $monday = $this->mondayNoFixtureReaches();
+        $this->ratePuzzle(PuzzleFixture::PUZZLE_1000_04, tier: 4);
+
+        $first = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_1000_04, 7200, $monday, 1000);
+        $this->award($first);
+
+        // A ledger written before tiers were frozen, the puzzle rated easier since
+        $this->database->executeStatement('DELETE FROM xp_solve_tier WHERE player_id = :playerId', ['playerId' => PlayerFixture::PLAYER_REGULAR]);
+        $this->ratePuzzle(PuzzleFixture::PUZZLE_1000_04, tier: 2);
+
+        self::getContainer()->get(XpTierFreezer::class)->freezeForPlayer(PlayerFixture::PLAYER_REGULAR);
+        self::getContainer()->get(XpTierFreezer::class)->freezeForPlayer(PlayerFixture::PLAYER_REGULAR);
+
+        self::assertSame(4, $this->database->fetchOne(
+            'SELECT difficulty_tier FROM xp_solve_tier WHERE player_id = :playerId AND solving_time_id = :id',
+            ['playerId' => PlayerFixture::PLAYER_REGULAR, 'id' => $first],
+        ));
+
+        $this->award($this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_1000_04, 7000, $monday->modify('+8 days'), 1000));
+        self::assertSame(3, $this->entriesFor($first, PlayerFixture::PLAYER_REGULAR)['solve_difficulty_bonus']);
+    }
+
     public function testEditRebuildsOccurrenceChainInBothDirections(): void
     {
         $at = XpSettingsFixture::fullFormulaFrom()->modify('+10 days');
@@ -362,6 +431,13 @@ final class XpChainRecomputerTest extends KernelTestCase
     private function award(string $solvingTimeId): void
     {
         $this->chainRecomputer->awardForNewSolve($solvingTimeId);
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+    }
+
+    private function recomputeFully(string $playerId): void
+    {
+        self::getContainer()->get(XpRecomputer::class)->recomputeForPlayer($playerId);
         $this->entityManager->flush();
         $this->entityManager->clear();
     }

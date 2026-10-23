@@ -40,6 +40,13 @@ the bonuses (`src/Value/LevelTable.php`, curve v5, Jan 2026-10-11; why and how i
   `custom_xp_entry_weekly_delta (earned_at, player_id, amount) WHERE in_weekly_delta`
   (mirrored in `tests/bootstrap.php`). `xp_entry.solving_time_id` is indexed for the
   receipt/delete/edit lookups.
+- `xp_solve_tier` — the difficulty tier each (player, solve) earned its XP with, frozen at the first award with a
+  rated puzzle or at its difficulty settlement (since 2026-10-23). Every replay - scope rebuild and full rebuild - reads
+  it instead of today's tier while the solve is on the same puzzle (a move to another puzzle takes the new tier), so
+  a puzzle rated easier later never re-prices XP already earned. Kept apart from `xp_entry` because a full rebuild
+  wipes the ledger. Written only by `XpLedger::recordAwardedTiers()`. Solves from before it existed were frozen by
+  `myspeedpuzzling:freeze-xp-difficulty-tiers --all` (`XpTierFreezer`: the tier whose difficulty line equals the one
+  the solve holds, today's when it does, else the closest - idempotent, changes no XP).
 
 ### Formula (§1.2, v5 2026-10-11)
 
@@ -182,9 +189,10 @@ Where it is enforced:
 Tests: `ProgressionPathIndependenceTest` (every loop through the real handlers ends equal to a fresh recomputation
 and to the nightly checks), `KarmaPathIndependenceTest`, `ProgressionSafetyNetTest`.
 
-What "equal" cannot mean: difficulty tiers and speed percentiles move with the community. A live award reads them at
-the time, a settlement settles once, and a rebuild reads them as of the rebuild - so XP of an untouched solve may
-differ from a fresh rebuild after the puzzle's tier changed. That is not farming and the nightly check ignores it.
+What "equal" cannot mean: speed percentiles move with the community. A live award reads them at the time, a
+settlement settles once, and a rebuild reads them as of the rebuild - so a speed bonus may differ from a fresh rebuild.
+Difficulty does not: a solve keeps the tier it earned with (`xp_solve_tier`). That is not farming and the nightly
+check ignores it.
 
 ### Nightly safety net
 

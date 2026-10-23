@@ -15,8 +15,9 @@ use SpeedPuzzling\Web\Value\XpEntryDraft;
  * uses) and restores Player totals. Every entry comes from a solve - achievements grant no XP, so a rebuild also drops
  * achievement entries written before that decision.
  *
- * Running it twice in a row yields an identical ledger — difficulty tiers and speed medians
- * are read as of the run ("tier at backfill run time, settled immediately, frozen forever").
+ * Running it twice in a row yields an identical ledger — a solve keeps the difficulty tier it earned with
+ * (XpSolveTier, which the wipe leaves alone), only solves without one read today's tier; speed medians are read as of
+ * the run.
  * Suspicious solves earn no XP, mirroring every other derived system (badges, statistics,
  * intelligence).
  */
@@ -44,14 +45,26 @@ readonly final class XpRecomputer
         $this->xpLedger->wipe($player);
 
         $drafts = [];
+        $earnedWithTier = [];
+        $history = $this->xpHistoryReplay->loadHistory($playerId);
+        $historyById = array_column($history, null, 'id');
 
-        foreach ($this->xpHistoryReplay->replay($playerId, $this->xpHistoryReplay->loadHistory($playerId)) as $solveDrafts) {
+        foreach ($this->xpHistoryReplay->replay($playerId, $history) as $solveId => $solveDrafts) {
             foreach ($solveDrafts as $draft) {
                 $drafts[] = $draft;
+            }
+
+            if ($solveDrafts !== [] && isset($historyById[$solveId])) {
+                $earnedWithTier[] = [
+                    'solvingTimeId' => $solveId,
+                    'puzzleId' => $historyById[$solveId]['puzzle_id'],
+                    'difficultyTier' => $historyById[$solveId]['difficulty_tier'],
+                ];
             }
         }
 
         /** @var list<XpEntryDraft> $drafts */
         $this->xpLedger->append($player, $drafts);
+        $this->xpLedger->recordAwardedTiers($playerId, $earnedWithTier);
     }
 }

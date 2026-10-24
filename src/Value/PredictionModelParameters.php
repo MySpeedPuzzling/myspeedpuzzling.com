@@ -16,8 +16,9 @@ use DateTimeImmutable;
  * - thinSizes: per piece-count group, the size exponent and the number of own qualifying first attempts below which
  *   the player's 500-piece pace scaled by it replaces their own baseline (absent = the own baseline always wins);
  * - first tries: sigma² = playerSpreadWeight × spread² + puzzleWeight ÷ (k + 1) + sizeTerm(group); a prediction resting
- *   on the picture alone takes imageVarianceScale × the estimate's own variance as its puzzle term instead (the scale
- *   fitted on first tries at puzzles with 0-4 indices, so its windows hold what they say - 1.0 = the interval as is);
+ *   on the picture alone takes a scale × the estimate's own variance as its puzzle term instead (fitted on first tries
+ *   at puzzles with 0-4 indices, so its windows hold what they say: per size group × image kind, else per size group,
+ *   else the global imageVarianceScale - 1.0 = the interval as is);
  * - repeats: sigma² = repeatSpreadWeight × spread² + repeatConstant;
  * - consistency edges: the quartile edges of the player spread (first tries / repeats);
  * - quantiles: standardised-residual quantiles 10 / 25 / 75 / 90 % per WindowBucket key (with fallbacks).
@@ -54,6 +55,8 @@ readonly final class PredictionModelParameters
         public null|DateTimeImmutable $fittedAt = null,
         public array $summary = [],
         public float $imageVarianceScale = 1.0,
+        /** @var array<string, float> keyed "<PiecesGroup>|<ImageKind>" and "<PiecesGroup>" (imageVarianceScaleFor()) */
+        public array $imageVarianceScales = [],
     ) {
     }
 
@@ -91,6 +94,7 @@ readonly final class PredictionModelParameters
      * @param null|list<float> $repeatConsistencyEdges
      * @param null|array<string, array{0: float, 1: float, 2: float, 3: float}> $quantiles
      * @param null|array<string, int|float|string> $summary
+     * @param null|array<string, float> $imageVarianceScales
      */
     public function with(
         null|float $tau = null,
@@ -106,6 +110,7 @@ readonly final class PredictionModelParameters
         null|DateTimeImmutable $fittedAt = null,
         null|array $summary = null,
         null|float $imageVarianceScale = null,
+        null|array $imageVarianceScales = null,
     ): self {
         return new self(
             tau: $tau ?? $this->tau,
@@ -121,18 +126,35 @@ readonly final class PredictionModelParameters
             fittedAt: $fittedAt ?? $this->fittedAt,
             summary: $summary ?? $this->summary,
             imageVarianceScale: $imageVarianceScale ?? $this->imageVarianceScale,
+            imageVarianceScales: $imageVarianceScales ?? $this->imageVarianceScales,
         );
     }
 
     /**
-     * @param null|float $puzzleVariance the puzzle term when the difficulty's own uncertainty is known (a prediction
-     *                                   resting on the image estimate alone: its interval, × imageVarianceScale)
-     *                                   instead of b ÷ (k + 1)
+     * The picture-only window's scale for a size group and image kind: its own fit, else the size group's, else the
+     * global one.
      */
-    public function firstTrySigma(float $playerSpread, int $k, PiecesGroup $group, null|float $puzzleVariance = null): float
+    public function imageVarianceScaleFor(PiecesGroup $group, null|ImageKind $kind): float
+    {
+        return $this->imageVarianceScales[self::imageScaleKey($group, $kind)]
+            ?? $this->imageVarianceScales[self::imageScaleKey($group)]
+            ?? $this->imageVarianceScale;
+    }
+
+    public static function imageScaleKey(PiecesGroup $group, null|ImageKind $kind = null): string
+    {
+        return $kind === null ? $group->value : $group->value . '|' . $kind->value;
+    }
+
+    /**
+     * @param null|float $puzzleVariance the puzzle term when the difficulty's own uncertainty is known (a prediction
+     *                                   resting on the image estimate alone: its interval, × the scale of
+     *                                   imageVarianceScaleFor($group, $imageKind)) instead of b ÷ (k + 1)
+     */
+    public function firstTrySigma(float $playerSpread, int $k, PiecesGroup $group, null|float $puzzleVariance = null, null|ImageKind $imageKind = null): float
     {
         $variance = $this->firstTryPlayerSpreadWeight * $playerSpread ** 2
-            + ($puzzleVariance !== null ? $this->imageVarianceScale * $puzzleVariance : $this->firstTryPuzzleWeight / (max(0, $k) + 1))
+            + ($puzzleVariance !== null ? $this->imageVarianceScaleFor($group, $imageKind) * $puzzleVariance : $this->firstTryPuzzleWeight / (max(0, $k) + 1))
             + ($this->firstTrySizeTerms[$group->value] ?? 0.0);
 
         return max(sqrt(max($variance, 0.0)), self::MINIMUM_SIGMA);
@@ -181,6 +203,7 @@ readonly final class PredictionModelParameters
                 'size_terms' => $this->firstTrySizeTerms,
                 'consistency_edges' => $this->firstTryConsistencyEdges,
                 'image_variance_scale' => $this->imageVarianceScale,
+                'image_variance_scales' => $this->imageVarianceScales,
             ],
             'repeat' => [
                 'spread_weight' => $this->repeatSpreadWeight,
@@ -232,6 +255,14 @@ readonly final class PredictionModelParameters
             }
         }
 
+        $imageScales = [];
+
+        foreach (is_array($firstTry['image_variance_scales'] ?? null) ? $firstTry['image_variance_scales'] : [] as $key => $scale) {
+            if (is_string($key) && is_numeric($scale)) {
+                $imageScales[$key] = (float) $scale;
+            }
+        }
+
         $summary = [];
 
         foreach (is_array($data['summary'] ?? null) ? $data['summary'] : [] as $key => $value) {
@@ -254,6 +285,7 @@ readonly final class PredictionModelParameters
             fittedAt: is_string($data['fitted_at'] ?? null) ? new DateTimeImmutable($data['fitted_at']) : null,
             summary: $summary,
             imageVarianceScale: self::number($firstTry['image_variance_scale'] ?? null, $defaults->imageVarianceScale),
+            imageVarianceScales: $imageScales,
         );
     }
 

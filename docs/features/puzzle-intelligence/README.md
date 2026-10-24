@@ -614,7 +614,9 @@ centre = pace × exp(log_difficulty + drift)
     ((p90 − p10) ÷ 2.563)², in place of b ÷ (k + 1) (`ImagePriorInput::variance()`,
     `PredictionModelParameters::firstTrySigma()`). The scale s (`imageVarianceScale`, 1.0 before a fit with estimates)
     is fitted daily (`PredictionModelFitter` step 6) on the first tries of the window at puzzles with 0-4 indices: the
-    one at which the picture-only windows hold 50 / 80 %. The interval is built against well measured puzzles, a first
+    one at which the picture-only windows hold 50 / 80 % - per size group × image kind and per size group from 1,000
+    first tries (`imageVarianceScales`, `imageVarianceScaleFor()`), else the global one (one global scale left 300 flat
+    at 45 / 75 % while 500 box held 52 / 81 %, 2026-10-24). The interval is built against well measured puzzles, a first
     try at a new one scatters more - the first gate record (2026-10-23) had 42 / 71 % with s = 1.
   - The fit stores every puzzle's finished priors as the chain gives them then: `difficulty_prior_puzzle.prior_log` =
     the statistical predictor's (no estimate in the context: brand × pieces) and `blend_prior_log` = the blend

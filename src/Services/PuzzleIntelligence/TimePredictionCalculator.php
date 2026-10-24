@@ -228,7 +228,7 @@ final readonly class TimePredictionCalculator
         $bucket = WindowBucket::firstTry($spread, $parameters->firstTryConsistencyEdges, $inputs->kIndices, $group);
         // Resting on the picture alone: the estimate's own interval is the puzzle's uncertainty (ImagePriorInput::variance())
         $puzzleVariance = $source === DifficultySource::Image ? $prior?->variance : null;
-        $window = self::window($centre, $parameters->firstTrySigma($spread, $inputs->kIndices, $group, $puzzleVariance), $parameters->quantilesFor($bucket));
+        $window = self::window($centre, $parameters->firstTrySigma($spread, $inputs->kIndices, $group, $puzzleVariance, $inputs->prior->imageEstimate?->kind), $parameters->quantilesFor($bucket));
 
         return new TimePredictionResult(
             predictedSeconds: self::seconds($centre),

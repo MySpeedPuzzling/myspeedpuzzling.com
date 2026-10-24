@@ -72,41 +72,72 @@ final class ImageWindowScaleFitTest extends TestCase
         self::assertGreaterThan($parameters->firstTrySigma(0.13, 0, PiecesGroup::FiveHundred, 0.01), $scaled->firstTrySigma(0.13, 0, PiecesGroup::FiveHundred, 0.01));
     }
 
+    /**
+     * 300-piece first tries scatter three times the interval, 500-piece ones 1.5 times: one global scale would leave
+     * both off, each size group gets its own (and its kind), and a group without enough first tries the global one.
+     */
+    public function testEachSizeGroupAndKindGetsItsOwnScale(): void
+    {
+        $parameters = $this->fit(trueScale: [300 => 3.0, 500 => 1.5]);
+        $summary = $parameters->summary;
+        $small = PredictionModelParameters::imageScaleKey(PiecesGroup::UpTo300, ImageKind::Flat);
+        $five = PredictionModelParameters::imageScaleKey(PiecesGroup::FiveHundred, ImageKind::Flat);
+
+        self::assertGreaterThan($parameters->imageVarianceScales[$five] * 1.4, $parameters->imageVarianceScales[$small]);
+        self::assertSame($parameters->imageVarianceScales[$small], $parameters->imageVarianceScaleFor(PiecesGroup::UpTo300, ImageKind::Flat));
+        self::assertSame($parameters->imageVarianceScales[PiecesGroup::UpTo300->value], $parameters->imageVarianceScaleFor(PiecesGroup::UpTo300, ImageKind::Box), 'Kind without its own fit: the size group');
+        self::assertSame($parameters->imageVarianceScale, $parameters->imageVarianceScaleFor(PiecesGroup::Thousand, ImageKind::Flat), 'Group without first tries: the global one');
+        self::assertSame(1500, $summary['image_scale_samples_' . $small]);
+    }
+
     public function testTheScaleIsStoredAndAnOlderFitLoadsWithOne(): void
     {
-        $stored = PredictionModelParameters::defaults()->with(imageVarianceScale: 1.85)->toArray();
+        $stored = PredictionModelParameters::defaults()->with(imageVarianceScale: 1.85, imageVarianceScales: ['up_to_300|flat' => 2.5])->toArray();
 
         self::assertSame(1.85, PredictionModelParameters::fromArray($stored)->imageVarianceScale);
+        self::assertSame(['up_to_300|flat' => 2.5], PredictionModelParameters::fromArray($stored)->imageVarianceScales);
 
         $firstTry = $stored['first_try'];
         self::assertIsArray($firstTry);
-        unset($firstTry['image_variance_scale']);
+        unset($firstTry['image_variance_scale'], $firstTry['image_variance_scales']);
         $stored['first_try'] = $firstTry;
 
         self::assertSame(1.0, PredictionModelParameters::fromArray($stored)->imageVarianceScale);
+        self::assertSame([], PredictionModelParameters::fromArray($stored)->imageVarianceScales);
     }
 
-    private function fit(float $trueScale, bool $withEstimates = true): PredictionModelParameters
+    /**
+     * @param float|array<int, float> $trueScale one scale, or per piece count (the players split evenly between them)
+     */
+    private function fit(float|array $trueScale, bool $withEstimates = true): PredictionModelParameters
     {
+        $scales = is_array($trueScale) ? $trueScale : [500 => $trueScale];
+        $sizes = array_keys($scales);
         mt_srand(20261023);
         $timeline = new PaceTimeline(new PlayerBaselineCalculator($this->createStub(Connection::class), new MockClock()), 1.3);
         $estimate = new ImagePriorInput(0.0, -0.15, 0.15, 'm', ImageKind::Flat);
         $defaults = PredictionModelParameters::defaults();
         // Spread and size terms of the window as the fit leaves them here (too few samples for its own first-try fit)
-        $sigma = sqrt($defaults->firstTryPlayerSpreadWeight * PredictionModelParameters::GLOBAL_SPREAD ** 2
-            + $trueScale * $estimate->variance()
-            + $defaults->firstTrySizeTerms[PiecesGroup::FiveHundred->value]);
+        $sigmas = [];
+
+        foreach ($scales as $pieces => $scale) {
+            $sigmas[$pieces] = sqrt($defaults->firstTryPlayerSpreadWeight * PredictionModelParameters::GLOBAL_SPREAD ** 2
+                + $scale * $estimate->variance()
+                + $defaults->firstTrySizeTerms[PiecesGroup::fromPiecesCount($pieces)->value]);
+        }
+
         $rows = [];
         $estimates = [];
 
         // Three first tries each (the spread stays the global one before a 5th), every puzzle new
         for ($player = 0; $player < 1000; $player++) {
-            $timeline->add("p{$player}", 500, 1 * self::DAY, 1 * self::DAY, self::BASELINE);
+            $pieces = $sizes[$player % count($sizes)];
+            $timeline->add("p{$player}", $pieces, 1 * self::DAY, 1 * self::DAY, self::BASELINE);
 
             for ($attempt = 0; $attempt < 3; $attempt++) {
                 $puzzle = "puzzle-{$player}-{$attempt}";
-                $seconds = (int) round(self::BASELINE * exp($sigma * self::normal()));
-                $rows[] = ['id' => "t-{$player}-{$attempt}", 'player_id' => "p{$player}", 'puzzle_id' => $puzzle, 'pieces_count' => 500,
+                $seconds = (int) round(self::BASELINE * exp($sigmas[$pieces] * self::normal()));
+                $rows[] = ['id' => "t-{$player}-{$attempt}", 'player_id' => "p{$player}", 'puzzle_id' => $puzzle, 'pieces_count' => $pieces,
                     'seconds_to_solve' => $seconds, 'solved_ts' => (10 + $attempt) * self::DAY, 'tracked_ts' => (10 + $attempt) * self::DAY];
                 $estimates[$puzzle] = $estimate;
             }

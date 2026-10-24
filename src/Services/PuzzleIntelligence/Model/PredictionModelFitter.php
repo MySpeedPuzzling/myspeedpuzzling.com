@@ -28,7 +28,9 @@ use SpeedPuzzling\Web\Value\WindowBucket;
  * 6. picture-only window: the scale of the estimate's own variance (its puzzle term) at which the windows of the
  *    predictions resting on the picture alone hold 50 / 80 % of the first tries at puzzles with 0-4 indices - the
  *    estimate's interval is built against well measured puzzles, a first try at a new one scatters more (gate record
- *    2026-10-23: 42 / 71 % with the interval as is). Without estimates (or too few samples) the scale stays 1.0.
+ *    2026-10-23: 42 / 71 % with the interval as is). Globally, and per size group × image kind and per size group
+ *    from MINIMUM_IMAGE_SCALE_SAMPLES first tries (one global scale left 300 flat at 45 / 75 % while 500 box held
+ *    52 / 81 %, gate record 2026-10-24). Without estimates (or too few samples) the scale stays 1.0.
  */
 final readonly class PredictionModelFitter
 {
@@ -52,6 +54,7 @@ final readonly class PredictionModelFitter
      */
     public const int MINIMUM_SIZE_TERM_SAMPLES = 200;
     private const float RESIDUAL_CLIP = 1.0;
+    public const int MINIMUM_IMAGE_SCALE_SAMPLES = 1000;
     private const float IMAGE_SCALE_MIN = 0.25;
     private const float IMAGE_SCALE_MAX = 10.0;
     /** An error no scale brings inside the window - finite, so the interpolating quantile() never meets INF - INF */
@@ -105,6 +108,7 @@ final readonly class PredictionModelFitter
                 ...$image['summary'],
             ],
             imageVarianceScale: $image['scale'] ?? null,
+            imageVarianceScales: $image['scales'] ?? null,
         );
     }
 
@@ -392,13 +396,15 @@ final readonly class PredictionModelFitter
      *
      * @param list<int> $window
      * @param array<string, ImagePriorInput> $imageEstimates
-     * @return array{scale?: float, summary: array<string, int|float>}
+     * @return array{scale?: float, scales?: array<string, float>, summary: array<string, int|float>}
      */
     private function fitImageVarianceScale(PredictionEngine $engine, PriorLookup $priors, array $window, PredictionModelParameters $parameters, array $imageEstimates): array
     {
-        $unscaled = $parameters->with(imageVarianceScale: 0.0);
+        $unscaled = $parameters->with(imageVarianceScale: 0.0, imageVarianceScales: []);
         $needed50 = [];
         $needed80 = [];
+        /** @var array<string, array{0: list<float>, 1: list<float>}> $byKey */
+        $byKey = [];
 
         foreach ($window as $i) {
             $estimate = $imageEstimates[(string) $engine->set->puzzle[$i]] ?? null;
@@ -423,8 +429,15 @@ final readonly class PredictionModelFitter
             $error = log($engine->set->seconds[$i] / $prediction->predictedSeconds);
             $base = $unscaled->firstTrySigma($spread, 0, $group, $variance) ** 2;
 
-            $needed50[] = self::neededScale($error, $quantiles[1], $quantiles[2], $base, $variance);
-            $needed80[] = self::neededScale($error, $quantiles[0], $quantiles[3], $base, $variance);
+            $at50 = self::neededScale($error, $quantiles[1], $quantiles[2], $base, $variance);
+            $at80 = self::neededScale($error, $quantiles[0], $quantiles[3], $base, $variance);
+            $needed50[] = $at50;
+            $needed80[] = $at80;
+
+            foreach ([PredictionModelParameters::imageScaleKey($group, $estimate->kind), PredictionModelParameters::imageScaleKey($group)] as $key) {
+                $byKey[$key][0][] = $at50;
+                $byKey[$key][1][] = $at80;
+            }
         }
 
         $count = count($needed50);
@@ -433,6 +446,32 @@ final readonly class PredictionModelFitter
             return ['summary' => ['image_scale_samples' => $count]];
         }
 
+        [$scale, $summary] = self::solveImageScale($needed50, $needed80);
+        $scales = [];
+
+        ksort($byKey);
+
+        foreach ($byKey as $key => [$at50, $at80]) {
+            if (count($at50) >= self::MINIMUM_IMAGE_SCALE_SAMPLES) {
+                [$scales[$key], $keySummary] = self::solveImageScale($at50, $at80);
+                $summary['image_scale_' . $key] = $scales[$key];
+                $summary['image_scale_samples_' . $key] = $keySummary['image_scale_samples'];
+            }
+        }
+
+        return ['scale' => $scale, 'scales' => $scales, 'summary' => $summary];
+    }
+
+    /**
+     * The scale between the two quantiles (50 % / 80 %) that misses both shares least, and what it holds.
+     *
+     * @param list<float> $needed50
+     * @param list<float> $needed80
+     * @return array{0: float, 1: array<string, int|float>}
+     */
+    private static function solveImageScale(array $needed50, array $needed80): array
+    {
+        $count = count($needed50);
         sort($needed50);
         sort($needed80);
         $low = min(self::quantile($needed50, 0.50), self::quantile($needed80, 0.80));
@@ -450,16 +489,13 @@ final readonly class PredictionModelFitter
 
         $scale = round($best[0], 4);
 
-        return [
-            'scale' => $scale,
-            'summary' => [
-                'image_scale_samples' => $count,
-                'image_window50_hit_unscaled' => round(self::countAtMost($needed50, 1.0) / $count, 4),
-                'image_window80_hit_unscaled' => round(self::countAtMost($needed80, 1.0) / $count, 4),
-                'image_window50_hit' => round(self::countAtMost($needed50, $scale) / $count, 4),
-                'image_window80_hit' => round(self::countAtMost($needed80, $scale) / $count, 4),
-            ],
-        ];
+        return [$scale, [
+            'image_scale_samples' => $count,
+            'image_window50_hit_unscaled' => round(self::countAtMost($needed50, 1.0) / $count, 4),
+            'image_window80_hit_unscaled' => round(self::countAtMost($needed80, 1.0) / $count, 4),
+            'image_window50_hit' => round(self::countAtMost($needed50, $scale) / $count, 4),
+            'image_window80_hit' => round(self::countAtMost($needed80, $scale) / $count, 4),
+        ]];
     }
 
     /**

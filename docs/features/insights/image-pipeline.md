@@ -241,7 +241,7 @@ fine-tuning, no language model, nothing downloaded. Code and every decision in d
 `tools/puzzle-vision/puzzle_vision/derive/difficulty_prior.py`. A crash in it is logged (`log.exception`, `error` in
 the summary) and never ends the nightly run - the crop proposals still follow.
 
-- **Version** `1.0.0+ridge-siglip2-dinov2` = `model` `ridge-siglip2-dinov2`, `modelVersion` `1.0.0` (constants in the
+- **Version** `1.1.0+ridge-siglip2-dinov2` = `model` `ridge-siglip2-dinov2`, `modelVersion` `1.1.0` (constants in the
   module, not in the profiles - it is not an `ImageAnalyzer`). Bump `MODEL_VERSION` whenever the numbers change
   (features, folds, thresholds); fixed seeds make two runs on the same data identical.
 - **Inputs**: joined on (puzzleId, imageFingerprint) - the label's and every embedding row's fingerprint must be the
@@ -250,7 +250,12 @@ the summary) and never ends the nightly run - the crop proposals still follow.
   left out is counted under `dropped`; the versions used are in `evaluation.inputVersions`.
 - **Two models, each with its own record, guard and estimates.** `ridge-siglip2-dinov2` (the model of record): SigLIP 2
   crop + DINOv2 crop + ln pieces, ln pieces², size group one-hot (≤300 / 500 / 1000 / 1500+ / odd), standardised - it
-  estimates every puzzle with both crop embeddings. `ridge-siglip2-full` (fallback): the whole-image SigLIP 2 vector +
+  estimates every puzzle with both crop embeddings. **Since 1.1.0 also the crop's extras**: the Apple Vision feature
+  print (`vision_labels`), the DINOv2 patch mean (`embed_dinov2_patches`) and 45 numbers of `traits` / `colors` /
+  `segmentation` / `vision_labels` (`EXTRA_NAMES`), that block repeated 3× (a smaller ridge penalty); a puzzle missing
+  an extra gets its corpus mean (`extrasImputed` in the summary). Measured offline on the 2026-10-24 data (10,406
+  training puzzles): out of fold Spearman 0.704 → 0.762, MAE 0.092 → 0.082, tier exact 0.535 → 0.575 ("Average"
+  0.454); newer from older 0.644 → 0.704, tier exact 0.508 → 0.550; 500 box newer exact 0.39 → 0.57. `ridge-siglip2-full` (fallback): the whole-image SigLIP 2 vector +
   pieces, trained on the whole-image vectors of the labelled puzzles - it estimates the puzzles without crop
   embeddings (no `artwork`, or the M1 has not embedded the crop yet) and, **while the model of record has fewer than
   200 training puzzles (phase A of the backfill), every puzzle it can**. A puzzle without any SigLIP 2 vector gets no

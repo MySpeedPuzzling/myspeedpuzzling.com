@@ -372,7 +372,7 @@ Goal: every number the page shows, computed and tested, within the performance b
 - Plus `POST /internal-api/puzzle-difficulty-estimates/model` with the model's evaluation (gates below) - stored as the current model record.
 
 ### 5.3 Mac derive step `difficulty_prior` (in `tools/puzzle-vision/derive/`)
-- Ridge regression on SigLIP 2 crop + DINOv2 + log pieces; label = as-of log difficulty.
+- Ridge regression on SigLIP 2 crop + DINOv2 + log pieces (since 1.1.0 + the Apple feature print, the DINOv2 patch mean and 45 traits / colors / segmentation numbers - `image-pipeline.md` §7); label = as-of log difficulty.
 - Train on puzzles with ≥ 3 solves, weighted n/(n+10); test on puzzles with ≥ 20 solves.
 - 5-fold **cross-fitted out-of-fold** estimates for labelled puzzles, the full model for unlabelled ones. Intervals from residual quantiles per (piece-count group × image kind).
 - Validation per run:

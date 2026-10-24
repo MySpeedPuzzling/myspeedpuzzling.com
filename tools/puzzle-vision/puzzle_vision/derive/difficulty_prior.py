@@ -18,7 +18,13 @@ Data
 
 Two models, each with its own model record, push guard and estimates (`model` field):
 1. `ridge-siglip2-dinov2` (the model of record): SigLIP 2 crop (`embed_siglip2`) + DINOv2 crop (`embed_dinov2`) +
-   pieces. Estimates every puzzle with both crop embeddings.
+   pieces, and since 1.1.0 the crop's **extras**: the Apple Vision feature print (`vision_labels`), the DINOv2 patch
+   mean (`embed_dinov2_patches`) and 45 numbers of `traits` / `colors` / `segmentation` / `vision_labels` (EXTRA_NAMES:
+   flat and uniform shares, the grids' spread, palette, sky / water / foliage shares, aesthetics, ...), that block
+   repeated EXTRA_WEIGHT times (= a smaller ridge penalty on it - measured best offline, 2026-10-24: out of fold
+   Spearman 0.704 → 0.762, tier exact 0.535 → 0.575; newer from older 0.644 → 0.704). A puzzle without an extra gets
+   the corpus mean of it (counted under `extrasImputed`), so no puzzle loses its estimate to a missing analyzer.
+   Estimates every puzzle with both crop embeddings.
 2. `ridge-siglip2-full` (fallback): the SigLIP 2 whole-image embedding (`embed_siglip2_full`, else the crop's) +
    pieces. It learns from the whole-image vectors because those are what it is applied to. It estimates the puzzles
    the model of record does not: those without crop embeddings (no `artwork` yet, or the M1 has not embedded the crop)
@@ -73,6 +79,7 @@ import json
 import logging
 import re
 import time
+import warnings
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -93,7 +100,7 @@ REPORT_FILE = "difficulty_prior-last-run.json"
 MODEL = "ridge-siglip2-dinov2"
 FALLBACK_MODEL = "ridge-siglip2-full"
 MODELS = (MODEL, FALLBACK_MODEL)
-MODEL_VERSION = "1.0.0"
+MODEL_VERSION = "1.1.0"
 VERSION = f"{MODEL_VERSION}+{MODEL}"  # "difficulty_prior 1.0.0+ridge-siglip2-dinov2" - bump on any change of numbers
 
 MIN_TRAIN_INDICES = 3
@@ -122,6 +129,17 @@ AVERAGE_TIER = 3
 SIZE_GROUPS = ("<=300", "500", "1000", "1500+", "odd")
 KINDS = {"flat": "flat", "box_front": "box", "box_angled": "box", "assembled": "assembled", "other": "other"}
 EMBEDDINGS = ("embed_siglip2", "embed_dinov2", "embed_siglip2_full")
+EXTRA_WEIGHT = 3  # the numbers block is repeated this many times in the model of record's input
+SEGMENTATION_SHARES = {"sky": ("sky",), "water": ("sea", "river", "water"), "foliage": ("tree", "grass", "plant", "flower"),
+                       "building": ("building", "house", "roof", "bridge"), "person": ("person",)}
+EXTRA_NAMES = tuple(sorted(
+    [f"t.{k}" for k in ("detail", "symmetry", "flatShare", "textShare", "borderUniform", "interiorUniform", "lowGradientCells")]
+    + [f"t.grid.{k}.{i}" for k in ("flat", "chroma", "gradient", "lightness") for i in range(4)]
+    + [f"c.{k}" for k in ("darkShare", "chromaMean", "lightShare", "mutedShare", "colorfulness", "lightnessStd",
+                          "paletteEntropy", "paletteTop", "familyEntropy", "familyCount")]
+    + [f"s.{k}" for k in (*SEGMENTATION_SHARES, "top", "entropy", "classes", "instances")]
+    + ["v.aesthetics", "v.saliency", "v.faces"]
+))
 
 
 class NotAvailableYet(RuntimeError):
@@ -186,6 +204,65 @@ def version_key(version: str, received: str) -> tuple[Any, ...]:
     return nums, received or ""
 
 
+def _entropy(shares: Iterable[Any]) -> float:
+    s = np.array([float(x) for x in shares if isinstance(x, (int, float)) and x > 0])
+    if s.size == 0:
+        return 0.0
+    s = s / s.sum()
+    return float(-(s * np.log(s)).sum())
+
+
+def _grid_stats(values: Any) -> list[float]:
+    a = np.asarray(values if isinstance(values, list) else [], dtype=float)
+    if a.size == 0:
+        return [np.nan] * 4
+    return [float(a.mean()), float(a.std()), float(np.percentile(a, 10)), float(np.percentile(a, 90))]
+
+
+def extra_numbers(traits: Any, colors: Any, segmentation: Any, labels: Any) -> np.ndarray:
+    """The 45 numbers of the extras (EXTRA_NAMES order) from the four analyses of one picture; NaN where one is missing."""
+    t, c, s, v = as_map(traits), as_map(colors), as_map(segmentation), as_map(labels)
+    f: dict[str, float] = {}
+
+    def num(x: Any) -> float:
+        return float(x) if isinstance(x, (int, float)) and not isinstance(x, bool) else 0.0
+
+    if t:
+        for k in ("detail", "symmetry", "flatShare", "textShare"):
+            f[f"t.{k}"] = num(t.get(k))
+        border = as_map(t.get("borderBand"))
+        f["t.borderUniform"] = num(border.get("uniformShare"))
+        f["t.interiorUniform"] = num(border.get("interiorUniformShare"))
+        grid = as_map(t.get("grid16"))
+        for k in ("flat", "chroma", "gradient", "lightness"):
+            for i, x in enumerate(_grid_stats(grid.get(k))):
+                f[f"t.grid.{k}.{i}"] = x
+        gradient = np.asarray(grid.get("gradient") if isinstance(grid.get("gradient"), list) else [], dtype=float)
+        f["t.lowGradientCells"] = float((gradient < 20).mean()) if gradient.size else np.nan
+    if c:
+        for k in ("darkShare", "chromaMean", "lightShare", "mutedShare", "colorfulness", "lightnessStd"):
+            f[f"c.{k}"] = num(c.get(k))
+        palette = [as_map(x).get("share", 0) for x in (c.get("palette") if isinstance(c.get("palette"), list) else [])]
+        f["c.paletteEntropy"] = _entropy(palette)
+        f["c.paletteTop"] = max((num(x) for x in palette), default=0.0)
+        families = as_map(c.get("families"))
+        f["c.familyEntropy"] = _entropy(families.values())
+        f["c.familyCount"] = float(len(families))
+    if s:
+        classes = {k: num(x) for k, x in as_map(s.get("classes")).items()}
+        for name, prefixes in SEGMENTATION_SHARES.items():
+            f[f"s.{name}"] = sum(x for k, x in classes.items() if k.startswith(prefixes))
+        f["s.top"] = max(classes.values(), default=0.0)
+        f["s.entropy"] = _entropy(classes.values())
+        f["s.classes"] = float(len(classes))
+        f["s.instances"] = sum(num(x) for x in as_map(s.get("instances")).values())
+    if v:
+        f["v.aesthetics"] = num(as_map(v.get("aesthetics")).get("overall"))
+        f["v.saliency"] = num(as_map(v.get("saliency")).get("areaShare"))
+        f["v.faces"] = float(len(v.get("faces") if isinstance(v.get("faces"), list) else []))
+    return np.array([f.get(k, np.nan) for k in EXTRA_NAMES], dtype=np.float32)
+
+
 # the corpus ---------------------------------------------------------------------------------------------------------
 @dataclass
 class Puzzle:
@@ -206,6 +283,11 @@ class Corpus:
     siglip: dict[str, np.ndarray] = field(default_factory=dict)  # crop
     dino: dict[str, np.ndarray] = field(default_factory=dict)  # crop
     full: dict[str, np.ndarray] = field(default_factory=dict)  # whole image - kept only where the fallback needs it
+    # the model of record's extras (1.1.0): feature print, DINOv2 patch mean, the 45 numbers - each with its corpus mean
+    feature_print: dict[str, np.ndarray] = field(default_factory=dict)
+    patches: dict[str, np.ndarray] = field(default_factory=dict)
+    numbers: dict[str, np.ndarray] = field(default_factory=dict)
+    extra_means: dict[str, np.ndarray] = field(default_factory=dict)
     versions: dict[str, str] = field(default_factory=dict)  # the analyzer version each input was read in
     dropped: Counter = field(default_factory=Counter)
 
@@ -218,9 +300,29 @@ class Corpus:
     def _pieces(self, pids: list[str]) -> np.ndarray:
         return piece_features(np.array([self.puzzles[p].pieces for p in pids]))
 
+    def _extra(self, name: str, values: dict[str, np.ndarray], pids: list[str]) -> list[np.ndarray]:
+        mean = self.extra_means.get(name)
+        if mean is None:
+            return []
+        out = []
+        for p in pids:
+            x = values.get(p)
+            if x is None:
+                out.append(mean)
+            else:
+                bad = ~np.isfinite(x)
+                out.append(np.where(bad, mean, x) if bad.any() else x)
+        return [np.vstack(out).astype(np.float32)]
+
     def primary_x(self, pids: list[str]) -> np.ndarray:
         emb = np.vstack([np.concatenate([self.siglip[p], self.dino[p]]) for p in pids]).astype(np.float32)
-        return np.c_[emb, self._pieces(pids)]
+        numbers = self._extra("numbers", self.numbers, pids)
+        parts = [emb, *self._extra("feature_print", self.feature_print, pids), *self._extra("patches", self.patches, pids),
+                 *(numbers * EXTRA_WEIGHT), self._pieces(pids)]
+        return np.hstack(parts).astype(np.float32)
+
+    def extras_imputed(self, pids: list[str]) -> int:
+        return sum(1 for p in pids if self.extra_means and (p not in self.numbers or p not in self.feature_print or p not in self.patches))
 
     def primary_vectors(self, pids: list[str]) -> np.ndarray:
         return np.vstack([self.siglip[p] for p in pids]).astype(np.float32)
@@ -310,7 +412,49 @@ def build_corpus(labels: Iterable[DifficultyLabel], pictures: dict[str, tuple[st
     if corpus.full and corpus.siglip and len(next(iter(corpus.full.values()))) != len(next(iter(corpus.siglip.values()))):
         corpus.dropped["embed_siglip2_fullOtherDimension"] += len(corpus.full)
         corpus.full = {}  # the fallback mixes crop and whole-image vectors of one model - never two dimensions
+    _read_extras(corpus, rows)
     return corpus
+
+
+def _read_extras(corpus: Corpus, rows: Callable[[str], Iterable[dict[str, Any]]]) -> None:
+    """The model of record's extras (1.1.0), each of its analyzer's newest version on the current picture, and the corpus
+    mean of each (what a puzzle without it gets). An extra no puzzle has is left out of the input altogether."""
+    def result(row: dict[str, Any], p: Puzzle) -> Any:
+        return as_map(row.get("result")) or None
+
+    def keep(vectors: dict[str, np.ndarray], name: str) -> dict[str, np.ndarray]:
+        sizes = Counter(v.size for v in vectors.values())
+        if not sizes:
+            return {}
+        dim = max(sizes, key=lambda d: (sizes[d], d))
+        kept = {pid: v for pid, v in vectors.items() if v.size == dim and np.all(np.isfinite(v))}
+        corpus.dropped[f"{name}OtherDimension"] += len(vectors) - len(kept)
+        return kept
+
+    labels = _newest("vision_labels", rows("vision_labels"), corpus, result)
+    prints = {}
+    for pid, r in labels.items():
+        vec = _decode(as_map(r.get("featurePrint")).get("vector"))
+        if vec is not None and vec.size:
+            prints[pid] = vec
+    corpus.feature_print = keep(prints, "featurePrint")
+    patches = {}
+    for pid, r in _newest("embed_dinov2_patches", rows("embed_dinov2_patches"), corpus, result).items():
+        vec = _decode(r.get("mean"))
+        if vec is not None and vec.size:
+            patches[pid] = vec
+    corpus.patches = keep(patches, "dinov2Patches")
+    traits = _newest("traits", rows("traits"), corpus, result)
+    colors = _newest("colors", rows("colors"), corpus, result)
+    segmentation = _newest("segmentation", rows("segmentation"), corpus, result)
+    for pid in set(traits) | set(colors) | set(segmentation) | set(labels):
+        corpus.numbers[pid] = extra_numbers(traits.get(pid), colors.get(pid), segmentation.get(pid), labels.get(pid))
+    for name, values in (("feature_print", corpus.feature_print), ("patches", corpus.patches), ("numbers", corpus.numbers)):
+        if values:
+            M = np.vstack(list(values.values())).astype(np.float64)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)  # a column no puzzle has a number in: its mean is 0
+                corpus.extra_means[name] = np.nan_to_num(np.nanmean(M, axis=0)).astype(np.float32)
 
 
 # folds --------------------------------------------------------------------------------------------------------------
@@ -797,11 +941,13 @@ def run(api: Any, *, meta: dict[str, Any] | None = None, rows: Callable[[str], I
         "puzzles": len(ids), "withPrimaryFeatures": sum(corpus.has_primary(p) for p in ids),
         "withFallbackOnly": sum(corpus.has_fallback(p) and not corpus.has_primary(p) for p in ids),
         "trainingSize": len(primary_train), "fallback": len(fallback_domain), "dropped": dict(corpus.dropped),
+        "extrasImputed": corpus.extras_imputed(primary_domain),
         "inputVersions": dict(corpus.versions),
     }
     plans = [
         (MODEL, primary_train, primary_domain, corpus.primary_x, corpus.primary_vectors,
-         "siglip2 crop + dinov2 crop + ln pieces, ln pieces^2, size group one-hot; standardised"),
+         "siglip2 crop + dinov2 crop + apple feature print + dinov2 patch mean + 45 traits/colors/segmentation/vision_labels "
+         f"numbers (x{EXTRA_WEIGHT}; corpus mean where missing) + ln pieces, ln pieces^2, size group one-hot; standardised"),
         (FALLBACK_MODEL, fallback_train, fallback_domain, corpus.fallback_x, corpus.fallback_vectors,
          "siglip2 whole image (else crop) + ln pieces, ln pieces^2, size group one-hot; standardised"),
     ]

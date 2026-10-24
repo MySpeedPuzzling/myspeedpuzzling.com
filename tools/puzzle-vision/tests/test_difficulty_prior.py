@@ -88,7 +88,7 @@ def test_ridge_recovers_a_planted_signal_and_pushes_every_embedded_puzzle(api, b
     assert summary[dp.FALLBACK_MODEL] == {"skipped": "no puzzle for this model tonight"}
     assert len(big.estimates) == 600 and len(big.models) == 1
     model = big.models[0]
-    assert (model["model"], model["modelVersion"]) == (dp.MODEL, dp.MODEL_VERSION) and dp.VERSION == "1.0.0+ridge-siglip2-dinov2"
+    assert (model["model"], model["modelVersion"]) == (dp.MODEL, dp.MODEL_VERSION) and dp.VERSION == "1.1.0+ridge-siglip2-dinov2"
     ev = model["evaluation"]
     assert ev["holdoutSource"] == "newer_from_older" and model["holdoutSpearman"] == pytest.approx(ev["holdoutSpearman"])
     assert ev["holdoutCount"] >= dp.MIN_HOLDOUT_TEST and ev["holdoutTestMinIndices"] == 20
@@ -334,7 +334,7 @@ def test_fingerprint_join_leaves_out_rows_and_labels_of_another_picture():
                          {"puzzleId": "b", "imageFingerprint": "fb", "result": {"vector": v}}],
         "embed_siglip2_full": [{"puzzleId": "zz", "imageFingerprint": "x", "result": {"vector": v}}],
     }
-    corpus = dp.build_corpus([lab("a", "fa"), lab("b", "older"), lab("c", "fc"), lab("hidden", "fh")], pictures, lambda a: rows[a])
+    corpus = dp.build_corpus([lab("a", "fa"), lab("b", "older"), lab("c", "fc"), lab("hidden", "fh")], pictures, lambda a: rows.get(a, []))
     assert corpus.puzzles["a"].label is not None and corpus.puzzles["a"].kind == "box"
     assert corpus.puzzles["b"].label is None and corpus.puzzles["b"].kind == "unknown"
     assert corpus.puzzles["c"].pieces == 500 and corpus.puzzles["c"].label is not None  # pieces from the label
@@ -352,7 +352,7 @@ def test_only_the_newest_analyzer_version_is_used():
         {"puzzleId": "c", "imageFingerprint": "fc", "analyzerVersion": "1.10.0+new", "receivedAt": "2026-10-03", "result": {"vector": new}},
         {"puzzleId": "d", "imageFingerprint": "fd", "analyzerVersion": "1.9.0+mid", "receivedAt": "2026-10-04", "result": {"vector": old}},
     ]}
-    corpus = dp.build_corpus([], pictures, lambda a: rows[a])
+    corpus = dp.build_corpus([], pictures, lambda a: rows.get(a, []))
     assert sorted(corpus.siglip) == ["b", "c"] and corpus.versions["embed_siglip2"] == "1.10.0+new"
     assert corpus.dropped["embed_siglip2OlderVersion"] == 2
 
@@ -364,7 +364,7 @@ def test_the_most_common_dimension_wins_within_a_version():
         {"puzzleId": "b", "imageFingerprint": "fb", "analyzerVersion": "1", "result": {"vector": vector_to_b64(np.ones(4))}},
         {"puzzleId": "c", "imageFingerprint": "fc", "analyzerVersion": "1", "result": {"vector": vector_to_b64(np.ones(4))}},
     ]}
-    corpus = dp.build_corpus([], pictures, lambda a: rows[a])
+    corpus = dp.build_corpus([], pictures, lambda a: rows.get(a, []))
     assert sorted(corpus.siglip) == ["b", "c"] and corpus.dropped["embed_siglip2OtherDimension"] == 1
 
 
@@ -412,3 +412,43 @@ def test_a_crash_in_difficulty_prior_does_not_end_the_derive_run(api, big, tmp_p
     summary = Deriver(api, {"box_text": "1.0.0+rules"}, tmp_path).run(only=["box_text", "difficulty_prior"])
     assert summary["difficulty_prior"] == {"error": "ValueError: synthetic failure"} and "box_text" in summary
     assert any(r.levelname == "ERROR" and "difficulty_prior failed" in r.message for r in caplog.records)
+
+
+def test_the_extras_numbers_come_from_the_four_analyses_and_missing_ones_are_nan():
+    x = dp.extra_numbers(
+        {"detail": 1.4, "flatShare": 0.3, "grid16": {"gradient": [10] * 128 + [40] * 128}},
+        {"darkShare": 0.2, "palette": [{"share": 0.5}, {"share": 0.5}], "families": {"blue": 0.7, "white": 0.3}},
+        {"classes": {"sky": 0.4, "sea": 0.1, "person": 0.05}, "instances": {"person": 2}},
+        None,
+    )
+    named = dict(zip(dp.EXTRA_NAMES, x.tolist()))
+    assert len(dp.EXTRA_NAMES) == 45 and len(x) == 45
+    assert named["t.flatShare"] == pytest.approx(0.3) and named["t.lowGradientCells"] == pytest.approx(0.5)
+    assert named["c.paletteEntropy"] == pytest.approx(np.log(2)) and named["c.familyCount"] == 2
+    assert named["s.sky"] == pytest.approx(0.4) and named["s.water"] == pytest.approx(0.1) and named["s.instances"] == 2
+    assert np.isnan(named["v.aesthetics"]) and np.isnan(named["t.grid.flat.0"])
+
+
+def test_a_signal_only_the_extras_carry_is_learned_and_a_puzzle_without_extras_keeps_its_estimate(api, server):
+    planted(server, noise=0.02)
+    rng = np.random.default_rng(3)
+    for i in range(600):
+        p = pid(i)
+        flat = float(rng.uniform(0, 1))
+        if p in server.labels:
+            server.labels[p]["logDifficulty"] += 0.6 * flat  # part of the difficulty only the flat share shows
+        if i != 7:
+            put(server, "traits", p, {"flatShare": flat, "detail": 1.0})
+            put(server, "colors", p, {"darkShare": 0.1})
+            put(server, "segmentation", p, {"classes": {"sky": 0.2}})
+            put(server, "vision_labels", p, {"aesthetics": {"overall": 0.5}, "featurePrint": {"vector": vector_to_b64(unit(rng.normal(size=8)))}})
+            put(server, "embed_dinov2_patches", p, {"mean": vector_to_b64(unit(rng.normal(size=6)))})
+
+    with_extras = run(api)
+    assert with_extras["extrasImputed"] == 1 and pid(7) in server.estimates
+    with_flat = with_extras[dp.MODEL]["overall"]["spearman"]
+
+    for key in [k for k in server.analyses if k[0] in ("traits", "colors", "segmentation", "vision_labels", "embed_dinov2_patches")]:
+        del server.analyses[key]
+    without = run(api, force_model=True)[dp.MODEL]["overall"]["spearman"]
+    assert with_flat > without + 0.02

@@ -9,9 +9,11 @@ that would otherwise be forgotten. Newest section on top.
 Measured on production 2026-10-26 (`log_min_duration_statement = 500`) and a local copy; what was left as it is:
 
 - [ ] `puzzle_solving_time` autovacuums every ~20 % of changed rows: last vacuum 2026-10-19, 73.5 % of the heap
-  all-visible on 2026-10-26, so every index-only scan of it (the new index above, `custom_pst_solo_board` of the Times
-  boards) still reads a quarter of its rows from the heap. A per-table setting like notification's
-  (`Version20261026235000`) would keep it near 100 % - measure the boards before / after
+  pages all-visible on 2026-10-26 - but the new index's scan fetched 307,796 of 465,662 rows (66 %) from the heap on
+  production right after the deploy (the active players' pages are the ones changed), so it gained ~14 % there instead
+  of ~35-50 % on a vacuumed copy; `custom_pst_solo_board` of the Times boards is in the same position. Now: a manual
+  `VACUUM (ANALYZE) puzzle_solving_time` (no blocking, ~228 MB heap). Lasting: a per-table setting like notification's
+  (`Version20261026235000`) - ~58k row updates a day, so e.g. 2 % - measure the boards and the batch before / after
 - [ ] `recalculate-community-stats` (~3 s a run on production): the `community_player_stats` upsert (1.2-1.45 s) and
   the moments' running totals (1.4 s) aggregate every result of every (candidate) player, pairs and teams expanded from
   JSON - no index helps a full aggregate. Splitting the moments' windows at `:since` (results before it only counted)

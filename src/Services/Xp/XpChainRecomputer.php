@@ -15,6 +15,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPuzzleSpeedPercentiles;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Results\PuzzleSpeedPercentiles;
 use SpeedPuzzling\Web\Services\Progression\PlayerProgressionLock;
 use SpeedPuzzling\Web\Value\SolveXpContext;
 use SpeedPuzzling\Web\Value\SpeedPercentile;
@@ -169,26 +170,64 @@ SQL;
      * solves only; settlements never count toward the weekly delta and carry the settlement
      * run time as earned_at.
      *
+     * Two steps (SettleXpBonusesHandler): this one, without any lock or transaction, finds who gets something paid;
+     * then settlePendingBonusesOf() settles each of them in a transaction of its own. Most pending rows settle nothing
+     * (a solve slower than the median stays pending forever - 9,665 rows of 1,933 players, none of them payable,
+     * 2026-10-26); locking all of their players in one transaction kept every insert referencing them waiting ~15 s.
+     * A player whose bonus becomes payable only after this read is settled by the next run.
+     *
+     * @return list<string>
+     */
+    public function playersWithPendingSettlements(): array
+    {
+        return array_keys($this->pendingSettlements($this->clock->now(), null));
+    }
+
+    /**
+     * Settles the player's pending bonuses - in the caller's transaction, which commits them (one per player: a run
+     * that stops midway leaves the rest pending for the next run, nothing half-written). The player is locked first
+     * and the pending rows read only then: a rebuild that committed meanwhile may have written the bonus itself, and
+     * settling it on top would pay it twice.
+     *
      * Returns the number of settlement entries created.
      */
-    public function settlePendingBonuses(): int
+    public function settlePendingBonusesOf(string $playerId): int
     {
-        $now = $this->clock->now();
-        $created = 0;
+        $this->playerProgressionLock->lock([$playerId]);
 
-        // Lock everybody with something to settle, then read again: a rebuild that committed meanwhile may have
-        // written the bonus itself, and settling it on top would pay it twice
-        $this->playerProgressionLock->lock(array_values(array_unique(array_column(
-            [...$this->loadPendingDifficultySettlements(), ...$this->loadPendingSpeedSettlements()],
-            'player_id',
-        ))));
+        $settlement = $this->pendingSettlements($this->clock->now(), [$playerId])[$playerId] ?? null;
 
+        if ($settlement === null) {
+            return 0;
+        }
+
+        try {
+            $player = $this->playerRepository->get($playerId);
+        } catch (PlayerNotFound) {
+            return 0;
+        }
+
+        $this->xpLedger->append($player, $settlement['drafts']);
+        $this->xpLedger->recordAwardedTiers($playerId, $settlement['tiers']);
+
+        return count($settlement['drafts']);
+    }
+
+    /**
+     * The settlement entries pending now, of every player or of $playerIds only - players with nothing to be paid are
+     * left out. Reads only, locks nothing.
+     *
+     * @param null|list<string> $playerIds
+     * @return array<string, array{drafts: non-empty-list<XpEntryDraft>, tiers: list<array{solvingTimeId: string, puzzleId: string, difficultyTier: null|int}>}>
+     */
+    private function pendingSettlements(DateTimeImmutable $now, null|array $playerIds): array
+    {
         /** @var array<string, list<XpEntryDraft>> $draftsByPlayer */
         $draftsByPlayer = [];
         /** @var array<string, list<array{solvingTimeId: string, puzzleId: string, difficultyTier: null|int}>> $settledTiersByPlayer */
         $settledTiersByPlayer = [];
 
-        foreach ($this->loadPendingDifficultySettlements() as $row) {
+        foreach ($this->loadPendingDifficultySettlements($playerIds) as $row) {
             $amount = $this->settlementAmount($row, XpReason::SolveDifficultyBonus);
 
             if ($amount <= 0) {
@@ -208,11 +247,29 @@ SQL;
                 inWeeklyDelta: false,
                 solvingTimeId: Uuid::fromString($row['id']),
             );
-            $created++;
         }
 
-        foreach ($this->loadPendingSpeedSettlements() as $row) {
-            $amount = $this->settlementAmount($row, XpReason::SolveSpeedBonus);
+        $speedRows = $this->loadPendingSpeedSettlements($playerIds);
+        $percentilesByPuzzle = [];
+
+        // One query per 1,000 puzzles instead of two per pending row (~15 s for the 9,665 rows of 2026-10-26)
+        foreach (array_chunk(array_values(array_unique(array_column($speedRows, 'puzzle_id'))), 1000) as $puzzleIds) {
+            $percentilesByPuzzle += $this->getPuzzleSpeedPercentiles->forPuzzles($puzzleIds);
+        }
+
+        foreach ($speedRows as $row) {
+            $speedPercentile = $this->resolveSpeedPercentile(
+                $row,
+                $row['player_id'],
+                $percentilesByPuzzle[$row['puzzle_id']] ?? PuzzleSpeedPercentiles::empty(),
+            );
+
+            // No speed bonus at this percentile, whatever the rest of the receipt - skips the occurrence query
+            if ($speedPercentile->bonusRate() <= 0.0) {
+                continue;
+            }
+
+            $amount = $this->settlementAmount($row, XpReason::SolveSpeedBonus, $speedPercentile);
 
             if ($amount <= 0) {
                 continue;
@@ -225,21 +282,18 @@ SQL;
                 inWeeklyDelta: false,
                 solvingTimeId: Uuid::fromString($row['id']),
             );
-            $created++;
         }
+
+        $settlements = [];
 
         foreach ($draftsByPlayer as $playerId => $drafts) {
-            try {
-                $player = $this->playerRepository->get($playerId);
-            } catch (PlayerNotFound) {
-                continue;
-            }
-
-            $this->xpLedger->append($player, $drafts);
-            $this->xpLedger->recordAwardedTiers($playerId, $settledTiersByPlayer[$playerId] ?? []);
+            $settlements[$playerId] = [
+                'drafts' => $drafts,
+                'tiers' => $settledTiersByPlayer[$playerId] ?? [],
+            ];
         }
 
-        return $created;
+        return $settlements;
     }
 
     /**
@@ -249,17 +303,12 @@ SQL;
      *
      * @phpstan-param SolveRow $row
      */
-    private function settlementAmount(array $row, XpReason $wantedReason): int
+    private function settlementAmount(array $row, XpReason $wantedReason, SpeedPercentile $speedPercentile = SpeedPercentile::None): int
     {
         $earnedAt = new DateTimeImmutable($row['earned_at']);
         $occurrence = $this->occurrenceIndex($row['player_id'], $row['puzzle_id'], $earnedAt, $row['id']);
 
         $isTeamOrDuo = $row['puzzling_type'] !== 'solo';
-        $speedPercentile = SpeedPercentile::None;
-
-        if ($wantedReason === XpReason::SolveSpeedBonus && $isTeamOrDuo === false && $row['seconds_to_solve'] !== null) {
-            $speedPercentile = $this->resolveSpeedPercentile($row, $row['player_id']);
-        }
 
         $awards = $this->xpCalculator->calculate(new SolveXpContext(
             piecesCount: $row['pieces'],
@@ -288,9 +337,10 @@ SQL;
      * difficulty tier but which have neither a live difficulty bonus nor a settlement yet - and no frozen tier: a solve
      * that earned with a rated puzzle keeps that tier, settling is for puzzles unrated at the award.
      *
+     * @param null|list<string> $playerIds null = every player
      * @phpstan-return list<SolveRow>
      */
-    private function loadPendingDifficultySettlements(): array
+    private function loadPendingDifficultySettlements(null|array $playerIds): array
     {
         $sql = self::SOLVE_SELECT_FROM_ENTRIES . <<<SQL
 
@@ -310,6 +360,15 @@ WHERE e.reason = :solveBase
   )
 SQL;
 
+        $parameters = [];
+        $types = ['difficultyReasons' => ArrayParameterType::STRING];
+
+        if ($playerIds !== null) {
+            $sql .= ' AND e.player_id IN (:playerIds)';
+            $parameters['playerIds'] = $playerIds;
+            $types['playerIds'] = ArrayParameterType::STRING;
+        }
+
         /** @phpstan-var list<SolveRow> $rows */
         $rows = $this->database->executeQuery(
             $sql,
@@ -317,17 +376,19 @@ SQL;
                 'solveBase' => XpReason::SolveBase->value,
                 'cutoff' => $this->xpFormulaCutoff->fullFormulaFrom()->format('Y-m-d H:i:s'),
                 'difficultyReasons' => [XpReason::SolveDifficultyBonus->value, XpReason::DifficultySettlement->value],
+                ...$parameters,
             ],
-            ['difficultyReasons' => ArrayParameterType::STRING],
+            $types,
         )->fetchAllAssociative();
 
         return $rows;
     }
 
     /**
+     * @param null|list<string> $playerIds null = every player
      * @phpstan-return list<SolveRow>
      */
-    private function loadPendingSpeedSettlements(): array
+    private function loadPendingSpeedSettlements(null|array $playerIds): array
     {
         $sql = self::SOLVE_SELECT_FROM_ENTRIES . <<<SQL
 
@@ -344,6 +405,15 @@ WHERE e.reason = :solveBase
   )
 SQL;
 
+        $parameters = [];
+        $types = ['speedReasons' => ArrayParameterType::STRING];
+
+        if ($playerIds !== null) {
+            $sql .= ' AND e.player_id IN (:playerIds)';
+            $parameters['playerIds'] = $playerIds;
+            $types['playerIds'] = ArrayParameterType::STRING;
+        }
+
         /** @phpstan-var list<SolveRow> $rows */
         $rows = $this->database->executeQuery(
             $sql,
@@ -351,8 +421,9 @@ SQL;
                 'solveBase' => XpReason::SolveBase->value,
                 'cutoff' => $this->xpFormulaCutoff->fullFormulaFrom()->format('Y-m-d H:i:s'),
                 'speedReasons' => [XpReason::SolveSpeedBonus->value, XpReason::SpeedSettlement->value],
+                ...$parameters,
             ],
-            ['speedReasons' => ArrayParameterType::STRING],
+            $types,
         )->fetchAllAssociative();
 
         return $rows;
@@ -714,7 +785,7 @@ SQL;
     /**
      * @phpstan-param SolveRow $solve
      */
-    private function resolveSpeedPercentile(array $solve, string $participantId): SpeedPercentile
+    private function resolveSpeedPercentile(array $solve, string $participantId, PuzzleSpeedPercentiles $puzzlePercentiles): SpeedPercentile
     {
         $seconds = $solve['seconds_to_solve'];
 
@@ -735,9 +806,7 @@ SQL;
             return SpeedPercentile::None;
         }
 
-        return $this->getPuzzleSpeedPercentiles
-            ->forPuzzle($solve['puzzle_id'])
-            ->percentileFor($seconds);
+        return $puzzlePercentiles->percentileFor($seconds);
     }
 
     /**

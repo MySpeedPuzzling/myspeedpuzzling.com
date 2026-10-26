@@ -13,6 +13,10 @@ namespace SpeedPuzzling\Web\Services\MessengerMiddleware;
  * The handler reads, calls, and dispatches a message of its own for the write - not routed, so it is handled at once,
  * in a transaction of its own (CheckOnlineFinishPhoto → RecordOnlineMediaCheck). It changes nothing on an entity it
  * loaded: no transaction of its own would flush it.
+ *
+ * The same shape serves a batch that must commit piece by piece: the handler reads what is to be done and dispatches
+ * one message per piece, each committed on its own (SettleXpBonuses → SettleXpBonusesOfPlayer) - no lock is held for
+ * the whole batch, and a run that stops midway keeps what it committed.
  */
 interface HandledOutsideTransaction
 {

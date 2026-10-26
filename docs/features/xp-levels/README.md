@@ -74,7 +74,10 @@ relax repeats zero. Suspicious solves earn nothing. All of it lives in the pure
 - delete → `CompensateXpForDeletedSolve` (per-entry negative mirrors, then the rebuild; + its members)
 - suspicious mark set or cleared (moderator, the player's fix, SQL reconciled by the scan) →
   `PuzzleSolvingTimeSuspicionChanged` → `RecalculateProgressionOnSuspicionChange` (XP + achievements)
-- 15-min cron → `SettleXpBonuses` (ex-post difficulty/speed settlements)
+- 15-min cron → `SettleXpBonuses` (ex-post difficulty/speed settlements): outside a transaction it reads who gets
+  something paid (most pending rows never pay - a solve slower than the median stays pending), then
+  `SettleXpBonusesOfPlayer` per payee, each in a transaction of its own (lock the player, read its pending rows again,
+  write) - a run that stops midway is finished by the next one, nothing paid twice
 
 Each of them rebuilds the **scope** a change can reach, from the one replay (`XpHistoryReplay`) the full rebuild uses
 too: the player's whole chain on the puzzle plus every solve of the ISO weeks the touched solves are in now or were in
@@ -183,7 +186,7 @@ Where it is enforced:
 | XP ledger | One replay for everything (`XpHistoryReplay`): live wiring rebuilds the reachable scope with it (§Live wiring), the full rebuild all of it. Back-dating a solve into the past never makes a repeat a first solve, nor hands out a 6th weekly boost: the slots belong to the first XP-earning solves by solve time. An id that comes back after deletion drops its compensated history and earns once. Solves logged before the formula cutoff earn the history formula however they are replayed (cutoff by `tracked_at`). |
 | Suspicious marks | A mark after the award takes the XP and the tiers it was needed for away, clearing gives them back (event `PuzzleSolvingTimeSuspicionChanged`, recorded by every flag change incl. `suspicionChangedOutsideTheApp()`). |
 | Achievements | Follow the current records: `BadgeEvaluator` removes tiers the records no longer qualify for (silently - no e-mail, no notice; the removed row takes its reveal state along, earned again it is new and unrevealed), AP re-anchored. Every write path that removes results queues the evaluation for every registered member (delete, automatic duplicate removal, "keep this copy", suspicion). Never removed: an achievement without a condition (Early Adopter, `supporter`, admin-granted). |
-| Concurrency | `PlayerProgressionLock` (`SELECT … FOR UPDATE` on the player rows, in id order) at the start of every XP / achievement write - award, rebuild, compensation, settlement, full rebuild, evaluation - so two consumers never read the same total or hand out the same slot; the totals are written from the ledger / tiers read under the lock. Karma's recalculation is one set-based `UPDATE … FROM (aggregate)`; two concurrent runs can at worst write the older aggregate, which the daily `recalculate-karma` heals. |
+| Concurrency | `PlayerProgressionLock` (a transaction-scoped advisory lock per player, `pg_advisory_xact_lock(KEY_SPACE, crc32(id))`, in key order - not a row lock: `FOR UPDATE` on the player row made every insert referencing the player wait for the foreign key check, 10 s saves behind the settlement cron on 2026-10-26) at the start of every XP / achievement write - award, rebuild, compensation, settlement, full rebuild, evaluation - so two consumers never read the same total or hand out the same slot; the totals are written from the ledger / tiers read under the lock. Karma's recalculation is one set-based `UPDATE … FROM (aggregate)`; two concurrent runs can at worst write the older aggregate, which the daily `recalculate-karma` heals. |
 | Karma | Derived from the records (`docs/features/karma.md`) - path independent by construction, proven by `KarmaPathIndependenceTest`. |
 
 Tests: `ProgressionPathIndependenceTest` (every loop through the real handlers ends equal to a fresh recomputation

@@ -42,6 +42,16 @@ A new branch reads `FROM page notification` like the others - never `FROM notifi
 A page can come back shorter than asked when a branch drops one of its rows (its target vanished between the two,
 or a hidden player in a group). "Show more" is decided by asking one row more than the page.
 
+## The bell's count
+
+`countUnreadForPlayer()` runs on every page a signed-in player opens (~720k times a day). It counts up to
+`GetNotifications::BADGE_CAP` (100) only, and the bell shows "99+" from there. 1,028 players hold more than 100 unread
+notifications, 273 more than 1,000, and one 18,201. Counting all of them took that player 31 ms on every page; the
+first 100 take 0.08 ms (production, 2026-10-26). An index-only scan of `custom_notification_unread` answers it, as long
+as the table's visibility map is current. So `notification` is vacuumed and analyzed every ~1 % of changed rows
+(`Version20261026235000`) instead of the server's 20 % / 10 %: at the defaults it went unvacuumed from 2026-09-11 and
+the count read every row from the table anyway (Heap Fetches = rows).
+
 ## Retention (`myspeedpuzzling:prune-read-notifications`)
 
 Daily cron. It deletes **read** "a puzzler you follow added a time" (`SubscribedPlayerAddedTime`) notifications older

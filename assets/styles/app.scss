@@ -602,6 +602,15 @@ td.rank {
     top: 1.6rem;
     right: -0.1rem;
 
+    // "99+" (the bell counts up to 100 only)
+    &.navbar-tool-label-wide {
+        width: auto;
+        min-width: 1.25rem;
+        padding: 0 .3rem;
+        border-radius: .625rem;
+        right: -.6rem;
+    }
+
     &.bg-secondary {
         background: #e2e6ea !important;
     }

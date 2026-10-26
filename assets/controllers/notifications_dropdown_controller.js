@@ -41,6 +41,7 @@ export default class extends Controller {
     loaded() {
         this.countTarget.textContent = '0';
         this.countTarget.classList.add('bg-secondary', 'text-dark');
+        this.countTarget.classList.remove('navbar-tool-label-wide');
         this.boxTarget.classList.remove('bg-secondary');
     }
 

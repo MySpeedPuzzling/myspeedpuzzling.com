@@ -802,9 +802,10 @@
                         {% if logged_user.profile is not null %}
                             {# The bell opens the newest notifications (notifications_dropdown_controller.js loads them on the first open); the link still leads to the page for a middle click #}
                             <div class="navbar-tool dropdown ms-1 ms-lg-0 me-1 me-lg-2" data-controller="notifications-dropdown" data-notifications-dropdown-src-value="{{ path('notifications_dropdown') }}">
-                                <a class="navbar-tool {% if app.request.pathInfo == path('notifications') %}active{% endif %}" rel="nofollow" href="{{ path('notifications') }}" role="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" data-turbo-prefetch="false" aria-label="{{ 'accessibility.notifications_count'|trans({'%count%': notifications_count}) }}">
+                                <a class="navbar-tool {% if app.request.pathInfo == path('notifications') %}active{% endif %}" rel="nofollow" href="{{ path('notifications') }}" role="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" data-turbo-prefetch="false" aria-label="{{ 'accessibility.notifications_count'|trans({'%count%': notifications_count > 99 ? '99+' : notifications_count}) }}">
                                     <div class="navbar-tool-icon-box {{ notifications_count > 0 ? 'bg-secondary' }}" data-notifications-dropdown-target="box">
-                                        <span class="navbar-tool-label {{ notifications_count == 0 ? 'bg-secondary text-dark' }}" aria-hidden="true" data-notifications-dropdown-target="count">{{ notifications_count }}</span>
+                                        {# Counted up to GetNotifications::BADGE_CAP (100) only #}
+                                        <span class="navbar-tool-label {{ notifications_count == 0 ? 'bg-secondary text-dark' }} {{ notifications_count > 99 ? 'navbar-tool-label-wide' }}" aria-hidden="true" data-notifications-dropdown-target="count">{{ notifications_count > 99 ? '99+' : notifications_count }}</span>
                                         <i class="navbar-tool-icon ci-bell" aria-hidden="true"></i>
                                     </div>
                                 </a>

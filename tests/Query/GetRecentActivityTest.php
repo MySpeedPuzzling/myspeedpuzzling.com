@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use DateTimeImmutable;
 use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
@@ -11,6 +12,7 @@ use Nette\Utils\Json;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetRecentActivity;
 use SpeedPuzzling\Web\Results\RecentActivityItem;
+use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
@@ -77,6 +79,91 @@ final class GetRecentActivityTest extends KernelTestCase
         self::assertSame('Euro Jigsaw Jam', $edition->competitionSeriesName);
         self::assertSame('euro-jigsaw-jam-series', $edition->competitionSeriesSlug);
         self::assertSame('ejj-68-february-2026', $edition->competitionSlug);
+    }
+
+    /**
+     * forPlayer() read the player's times with one `player_id = … OR team @> …` condition, which walked the
+     * tracked_at index through the whole table for players with few times; it now reads the own times and the group
+     * times apart, the newest `limit` of each. Every player, limit and viewer must get the same times in the same
+     * order as with the single condition.
+     */
+    public function testForPlayerListsTheSameTimesAsTheSingleConditionQuery(): void
+    {
+        /** @var list<string> $playerIds */
+        $playerIds = $this->database->fetchFirstColumn('SELECT id FROM player ORDER BY id');
+
+        $groupTimeOfOthersSeen = false;
+        $limitCutBothWays = false;
+
+        // Anonymous, then a viewer hiding a group partner (the fixture block: PLAYER_REGULAR hides PLAYER_PRIVATE),
+        // then one hiding a player that tracked group times (PLAYER_ADMIN hides PLAYER_REGULAR)
+        $this->block(PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_REGULAR);
+
+        foreach ([null, PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_ADMIN] as $viewerId) {
+            if ($viewerId === null) {
+                TestingViewer::signOut(self::getContainer());
+            } else {
+                TestingViewer::signIn(self::getContainer(), $viewerId);
+            }
+
+            $hiddenPlayers = self::getContainer()->get(HiddenPlayers::class);
+            $notHidden = $hiddenPlayers->sqlExclude('(CASE WHEN pst.team IS NULL THEN pst.player_id END)')
+                . $hiddenPlayers->sqlExcludeTeam('pst.team');
+
+            foreach ($playerIds as $playerId) {
+                foreach ([1, 2, 3, 500] as $limit) {
+                    /** @var list<array{id: string, tracked_at: string, player_id: string}> $expected */
+                    $expected = $this->database->fetchAllAssociative(
+                        <<<SQL
+SELECT pst.id, pst.tracked_at, pst.player_id
+FROM puzzle_solving_time pst
+WHERE
+    (pst.player_id = :playerId OR (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID))))
+    {$notHidden}
+ORDER BY pst.tracked_at DESC
+LIMIT :limit
+SQL,
+                        ['playerId' => $playerId, 'limit' => $limit],
+                    );
+
+                    $actual = $this->query->forPlayer($playerId, $limit);
+                    $context = sprintf('player %s, limit %d, viewer %s', $playerId, $limit, $viewerId ?? 'anonymous');
+
+                    // The tracked_at order is fixed; times tracked at the same moment may come in any order
+                    self::assertSame(
+                        array_map(static fn (array $row): string => (new DateTimeImmutable($row['tracked_at']))->format('Y-m-d H:i:s.u'), $expected),
+                        array_map(static fn (RecentActivityItem $item): string => $item->trackedAt->format('Y-m-d H:i:s.u'), $actual),
+                        $context,
+                    );
+
+                    if ($limit === 500) {
+                        $expectedIds = array_column($expected, 'id');
+                        $actualIds = $this->ids($actual);
+                        sort($expectedIds);
+                        sort($actualIds);
+                        self::assertSame($expectedIds, $actualIds, $context);
+
+                        $groupTimeOfOthersSeen = $groupTimeOfOthersSeen || in_array(
+                            true,
+                            array_map(static fn (array $row): bool => $row['player_id'] !== $playerId, $expected),
+                            true,
+                        );
+                    }
+
+                    if ($limit === 2) {
+                        $own = (int) $this->database->fetchOne('SELECT COUNT(*) FROM puzzle_solving_time WHERE player_id = :playerId', ['playerId' => $playerId]);
+                        $limitCutBothWays = $limitCutBothWays || ($own > $limit && count($expected) === $limit && in_array(
+                            true,
+                            array_map(static fn (array $row): bool => $row['player_id'] !== $playerId, $expected),
+                            true,
+                        ));
+                    }
+                }
+            }
+        }
+
+        self::assertTrue($groupTimeOfOthersSeen, 'Fixtures must contain a group time tracked by somebody else');
+        self::assertTrue($limitCutBothWays, 'Fixtures must contain a player whose newest times mix own and group times beyond the limit');
     }
 
     /**

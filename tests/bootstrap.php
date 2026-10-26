@@ -286,6 +286,9 @@ function createCustomIndexes(): void
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_pst_type_time_valid ON puzzle_solving_time (puzzling_type, seconds_to_solve) WHERE seconds_to_solve IS NOT NULL AND suspicious = false');
     $pdo->exec("CREATE INDEX IF NOT EXISTS custom_pst_team_puzzlers_gin ON puzzle_solving_time USING GIN ((team::jsonb->'puzzlers') jsonb_path_ops) WHERE team IS NOT NULL");
 
+    // A player's newest times, the profile's Recent activity (Version20261027003000)
+    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_pst_player_tracked_at ON puzzle_solving_time (player_id, tracked_at)');
+
     // Hub "Most active solo players" by month (Version20261003173349)
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_pst_finished_at_solo ON puzzle_solving_time (finished_at) WHERE puzzling_type = \'solo\'');
 

@@ -142,6 +142,7 @@ final readonly class StaleLiveComponentPageSubscriber implements EventSubscriber
             Cookie::create(self::RELOAD_COOKIE)
                 ->withValue($pagePath)
                 // Real time, never the app's clock: the browser expires the cookie on its own clock
+                // @phpstan-ignore clock.systemTime (cookie expiry: the browser judges it on its own real clock)
                 ->withExpires(new DateTimeImmutable('+' . self::RELOAD_GUARD_SECONDS . ' seconds'))
                 ->withPath('/')
                 ->withSecure($request->isSecure())

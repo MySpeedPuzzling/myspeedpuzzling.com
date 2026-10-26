@@ -7,6 +7,10 @@ includes:
     - vendor/phpstan/phpstan-doctrine/rules.neon
     - phar://phpstan.phar/conf/bleedingEdge.neon
 
+rules:
+    # One clock: no system-clock reads (docs/features/time-and-clock/README.md)
+    - SpeedPuzzling\Web\Tests\PHPStan\SystemClockRule
+
 parameters:
     tmpDir: var/phpstan
     level: max
@@ -21,6 +25,7 @@ parameters:
         - tests/bootstrap.php
         - tests/object-manager.php
         - tests/Panther
+        - tests/PHPStan/data
         - config/reference.php
         - config/packages
     symfony:

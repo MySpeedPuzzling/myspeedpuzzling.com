@@ -144,6 +144,7 @@ final class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
                 $retryAfter = $limit->getRetryAfter();
 
                 throw new TooManyLoginAttemptsAuthenticationException(
+                    // @phpstan-ignore clock.systemTime (rate-limiter retry-after: the limiter counts on the system clock)
                     (int) ceil(($retryAfter->getTimestamp() - time()) / 60),
                 );
             }

@@ -113,6 +113,7 @@ final readonly class AssetLoadFailureClassifier
 
         // Real time on purpose, never the app's clock: renderedAt is the page's msp-rendered-at, which is real time
         // too (the browser judges it against the server's Date header - docs/features/time-and-clock)
+        // @phpstan-ignore clock.systemTime (page age against msp-rendered-at, which is real time: the browser compares it with the server's Date header)
         $age = time() - $report->renderedAt;
 
         return $age >= 0 ? $age : null;

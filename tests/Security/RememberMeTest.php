@@ -52,6 +52,7 @@ final class RememberMeTest extends WebTestCase
 
         // 30 days out in real time (a cookie expires on the browser's clock, never the frozen one), give or take the
         // second the request took
+        // @phpstan-ignore clock.systemTime (cookie expiry: the browser judges it on its own real clock)
         self::assertEqualsWithDelta(time() + self::LIFETIME, $cookie->getExpiresTime(), 30);
     }
 
@@ -101,6 +102,7 @@ final class RememberMeTest extends WebTestCase
 
         if ($onResponse !== null) {
             self::assertNotSame('', (string) $onResponse->getValue(), 'A renewal must not be a deletion cookie');
+            // @phpstan-ignore clock.systemTime (cookie expiry: the browser judges it on its own real clock)
             self::assertGreaterThan(time(), $onResponse->getExpiresTime());
         }
 
@@ -132,6 +134,7 @@ final class RememberMeTest extends WebTestCase
         // never signed out
         $reissued = $this->responseCookie($browser);
         self::assertNotNull($reissued, 'Consuming the cookie must re-issue it');
+        // @phpstan-ignore clock.systemTime (cookie expiry: the browser judges it on its own real clock)
         self::assertEqualsWithDelta(time() + self::LIFETIME, $reissued->getExpiresTime(), 30);
     }
 
@@ -359,6 +362,7 @@ final class RememberMeTest extends WebTestCase
 
         $rememberMe = $this->responseCookie($browser);
         self::assertNotNull($rememberMe, 'The remember-me cookie must be renewed on a later page view');
+        // @phpstan-ignore clock.systemTime (cookie expiry: the browser judges it on its own real clock)
         self::assertEqualsWithDelta(time() + self::LIFETIME, $rememberMe->getExpiresTime(), 30);
 
         $sessionCookie = $this->responseCookieNamed($browser, $this->sessionName($browser));

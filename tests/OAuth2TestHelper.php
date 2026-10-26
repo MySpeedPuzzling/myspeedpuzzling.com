@@ -51,6 +51,7 @@ final readonly class OAuth2TestHelper
         $identifier = Uuid::uuid7()->toString();
         // Real time on purpose: league/oauth2-server judges its tokens on its own clock (lcobucci SystemClock), never the
         // app's frozen one
+        // @phpstan-ignore clock.systemTime (league/oauth2-server judges its tokens on its own clock, lcobucci SystemClock, never the app's)
         $expiry = new DateTimeImmutable('+1 hour');
 
         /** @var list<Scope> $scopeObjects */
@@ -93,6 +94,7 @@ final readonly class OAuth2TestHelper
         );
 
         // Real time on purpose, like the expiry above
+        // @phpstan-ignore clock.systemTime (league/oauth2-server judges its tokens on its own clock, lcobucci SystemClock, never the app's)
         $now = new DateTimeImmutable();
 
         /** @var non-empty-string $subject */

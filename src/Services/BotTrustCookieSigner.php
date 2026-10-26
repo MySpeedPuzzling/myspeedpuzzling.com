@@ -64,6 +64,7 @@ readonly final class BotTrustCookieSigner
      */
     public function build(string $uid): string
     {
+        // @phpstan-ignore clock.systemTime (the bot-blocker sidecar validates the issued-at on its own clock)
         return $this->buildAt($uid, (int) new DateTimeImmutable()->format('Uv'));
     }
 

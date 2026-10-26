@@ -111,6 +111,7 @@ final readonly class NativeAuthPageSubscriber implements EventSubscriberInterfac
                 self::LOCALE_COOKIE,
                 $rememberLocale,
                 // Real time: the browser expires the cookie on its own clock
+                // @phpstan-ignore clock.systemTime (cookie expiry: the browser judges it on its own real clock)
                 expire: time() + 365 * 24 * 60 * 60,
                 path: '/',
                 secure: $request->isSecure(),

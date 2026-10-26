@@ -176,6 +176,7 @@ final class RedisSlidingWindowLimiterTest extends TestCase
 
             if ($pid === 0) {
                 // A connection of its own - never the parent's socket
+                // @phpstan-ignore clock.systemTime (forked processes start together at a real moment and the limiter counts on real time)
                 $limiter = new RedisSlidingWindowLimiterFactory(self::connect(), 'online', $limit, 60, new NativeClock(), new NullLogger(), $this->prefix)->create('one-link');
                 time_sleep_until($startAt);
                 $accepted = 0;

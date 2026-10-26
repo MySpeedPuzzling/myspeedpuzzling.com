@@ -38,6 +38,7 @@ final class TestingDatabaseCaching
 
         $cachedDatabaseHash = file_get_contents($cacheFilePath);
         $lastModificationTimestamp = filemtime($cacheFilePath);
+        // @phpstan-ignore clock.systemTime (the age of the test database cache file is a file system time)
         $cacheValidUntil = time() + self::CACHE_VALID_FOR_SECONDS;
 
         if ($cacheValidUntil < $lastModificationTimestamp) {

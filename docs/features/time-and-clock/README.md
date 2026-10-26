@@ -74,8 +74,8 @@ Three sources of "now" exist today, and they can disagree:
   them with the clock) - pinned by `TestClockTest`. Never move it into the future; moving it rebuilds the cached test DB.
 - **D2:** the `clock` service is a `MockClock` per test container (`config/services_test.php`). No second, real clock
   service (Jan): what another clock judges - cookie expiries, `msp-rendered-at` and its reader, rate-limiter
-  retry-after, health probes, durations - reads real time on purpose, each listed with its reason in
-  `SystemClockCoverageTest`. Twig got `now()` on the clock; `|ago` counts to the clock.
+  retry-after, health probes, durations - reads real time on purpose, each marked with its reason where it is read
+  (`@phpstan-ignore clock.systemTime (reason)`, durations in `SystemClockCoverageTest`). Twig got `now()` on the clock; `|ago` counts to the clock.
 - **D3:** no code pins a zone. PHP's `date.timezone=UTC` comes from the base image's ini (asserted by
   `TimezoneConfigurationTest`); the DB session zone is the server default (see the assumption below), no middleware,
   no `PGTZ` (Jan).
@@ -86,11 +86,22 @@ Three sources of "now" exist today, and they can disagree:
 - **D5:** proof = the suite under libfaketime at real date **+400 days and +5 years**, once, in CI (Jan: no "-30 days"
   run - a real date before the instant is not a situation CI meets - and no weekly job; the guards catch new
   violations). Results in `STATUS.md` → "Phase 5".
-- **R5 guards:** `DatabaseClockCoverageTest` (SQL clock, `src/` + `tests/`, case-insensitive) and
-  `SystemClockCoverageTest` (PHP/Twig clock reads, `src/` + `templates/` + `tests/`). Both allowlists of the latter
-  (`src/` and `tests/`) are **per kind of read** - a listed file still fails on any other read, a gone read is stale;
-  relative-moment literals in `tests/` must go straight into `->modify()` (see "What the guards cannot see"). Object
-  storage doubles stamp Last-Modified from the clock (`ClockedInMemoryFilesystemAdapter`).
+- **R5 guards:** one owner per kind of check.
+  - **PHPStan rule `clock.systemTime`** (`tests/PHPStan/SystemClockRule.php`, registered in `phpstan.neon`, tested by
+    `SystemClockRuleTest` on `tests/PHPStan/data/`) - every PHP call that reads the clock in `src/`, `bin/`, `tests/`:
+    `new DateTime(Immutable)()` / `DatePoint` / `MockClock` without a moment or with a constant relative one (`'now'`,
+    `'-3 days'`, `'12:00'`, `'next monday'` - a string counted from now, judged by parsing it against two midnights),
+    `time()`, `date()`/`gmdate()`/`idate()` without a timestamp, `getdate()`/`localtime()` without one,
+    `mktime()`/`gmmktime()` missing a part, `strtotime()` without a base unless its value is an absolute date,
+    `date_create(_immutable)()` without a moment or with a relative one, `gettimeofday()`, `new NativeClock()`,
+    `Clock::get()`. Not `microtime()`/`hrtime()` (durations) nor `createFromFormat()`. A deliberate real-time read carries
+    `// @phpstan-ignore clock.systemTime (reason)` on its line (PHPStan reports an ignore that no longer matches).
+  - **`SystemClockCoverageTest`** - what PHPStan cannot see: templates (`'now'|date`, Twig `date()`), `microtime()` /
+    `hrtime()` per file (a duration is fine, a timestamp is not), a loose `'now'` (a default, `?? 'now'`), relative
+    moments in `tests/` that do not go straight into `->modify()` (see "What the guards cannot see"), and `tests/Panther`
+    (outside PHPStan's paths) with the rule's calls as patterns. Its allowlists are per kind of read, a gone read is stale.
+  - **`DatabaseClockCoverageTest`** - the SQL clock (`src/` + `tests/`, case-insensitive). Object storage doubles stamp
+    Last-Modified from the clock (`ClockedInMemoryFilesystemAdapter`).
 - **Follow-ups resolved in the PR (2026-10-23):** Apple tokens (`AppleServerNotificationVerifier`, the Apple provider's
   id_token via `AppleProviderWithInlineKey::createAccessToken()`) are judged on the app clock (`JWT::$timestamp` set for
   the one decode, restored after - the Microsoft/LiveKit pattern; the client secret the library mints for Apple stays
@@ -118,7 +129,7 @@ Three sources of "now" exist today, and they can disagree:
 
 ## What the guards cannot see (a documented limit)
 
-The guards read source text, so they see a clock read only where it is written. Since PR #284's last round,
+The guards see a clock read only where it is written (PHPStan follows constants, not runtime values). Since PR #284's last round,
 `SystemClockCoverageTest` also refuses every relative-moment literal under `tests/` (`'-3 days'`, `'+1 hour'`,
 `'today 08:00'`, `'tomorrow'`, `'next monday'`, `'-%d days'` …) unless it goes straight into `->modify()` - directly,
 through `sprintf()`, or as the argument (or default) of a helper whose parameter goes straight into `->modify()` - or is

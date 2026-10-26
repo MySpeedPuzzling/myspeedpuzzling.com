@@ -330,6 +330,7 @@ final class AssetLoadFailureClassifierTest extends TestCase
     {
         // Real time on purpose: the page's msp-rendered-at and the classifier that judges its age are on real time
         // (docs/features/time-and-clock/STATUS.md, Jan's answer 1)
+        // @phpstan-ignore clock.systemTime (msp-rendered-at is real time: the browser compares it with the server's Date header)
         return time() - $seconds;
     }
 }

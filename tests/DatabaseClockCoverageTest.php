@@ -33,6 +33,8 @@ final class DatabaseClockCoverageTest extends TestCase
      */
     private const array ALLOWED_IN_TESTS = [
         'DatabaseClockCoverageTest.php' => 'This guard - the patterns and their self-test are data.',
+        'PHPStan/SystemClockRule.php' => 'The PHPStan rule clock.systemTime - PHP\'s localtime() is a name it knows, no SQL.',
+        'PHPStan/data/system-clock.php' => 'The fixture of the PHPStan rule clock.systemTime - PHP\'s localtime() calls, no SQL.',
         'RoundRevealMomentComputedOnlyHereTest.php' => 'A guard of its own - SQL snippets it must recognise are data.',
         'SystemClockCoverageTest.php' => 'A guard of its own - the patterns and their self-test are data.',
     ];
@@ -45,7 +47,7 @@ final class DatabaseClockCoverageTest extends TestCase
             $offending[] = $relative . ': ' . implode(', ', $hits);
         }
 
-        self::assertSame([], $offending, 'These files read the database\'s clock. Bind :now from the injected ClockInterface instead.');
+        self::assertSame([], $offending, 'These files read the database\'s clock. Bind :now from the injected ClockInterface instead (CAST(:now AS timestamp)). See docs/features/time-and-clock/README.md.');
     }
 
     public function testTestSqlReadsTheTimeFromTheFrozenClock(): void
@@ -61,7 +63,7 @@ final class DatabaseClockCoverageTest extends TestCase
             }
         }
 
-        self::assertSame([], $offending, 'These tests read the database\'s clock, which is not frozen. Use TestClock::SQL_NOW / TestClock::SQL_TODAY (or bind TestClock::sqlParameter()) instead.');
+        self::assertSame([], $offending, 'These tests read the database\'s clock, which is not frozen. Use TestClock::SQL_NOW / TestClock::SQL_TODAY (or bind TestClock::sqlParameter()) instead. See docs/features/time-and-clock/README.md.');
         self::assertSame([], array_keys($stale), 'These files no longer read the database\'s clock - remove them from the list.');
     }
 

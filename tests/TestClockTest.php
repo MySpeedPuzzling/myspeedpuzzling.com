@@ -47,6 +47,7 @@ final class TestClockTest extends KernelTestCase
     {
         // Symfony mints sign-in links with time() and the app checks them on the clock: the instant must never be ahead
         // of the real date (docs/features/time-and-clock/STATUS.md, D1)
+        // @phpstan-ignore clock.systemTime (checks that the frozen instant lies before the real date of the run, TestClock's rule)
         self::assertLessThan(time(), TestClock::timestamp());
     }
 }

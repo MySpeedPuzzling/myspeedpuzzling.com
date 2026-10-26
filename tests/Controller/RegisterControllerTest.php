@@ -115,6 +115,7 @@ final class RegisterControllerTest extends WebTestCase
         self::assertNotNull($rememberMe, 'A new account must be remembered like any other sign-in');
         self::assertNotSame('', (string) $rememberMe->getValue());
         // Real time: remember-me mints its expiry with time() and the browser judges it on its own clock
+        // @phpstan-ignore clock.systemTime (the REMEMBERME cookie's expiry: remember-me mints it with time, the browser judges it on its own clock)
         self::assertGreaterThan(time() + 86400, $rememberMe->getExpiresTime());
     }
 

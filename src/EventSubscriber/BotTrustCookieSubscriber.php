@@ -62,6 +62,7 @@ final readonly class BotTrustCookieSubscriber implements EventSubscriberInterfac
         $uid = BotTrustCookieSigner::uidFor($user->getUserIdentifier());
         // Real time, never the app's clock: the issued-at and the expiry are judged by the sidecar and the browser on
         // their own clocks (docs/features/time-and-clock)
+        // @phpstan-ignore clock.systemTime (the bot-blocker sidecar validates the issued-at on its own clock, the browser its expiry)
         $now = new DateTimeImmutable();
         $nowMs = (int) $now->format('Uv');
 

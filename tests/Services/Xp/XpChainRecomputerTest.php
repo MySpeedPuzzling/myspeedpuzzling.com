@@ -6,9 +6,14 @@ namespace SpeedPuzzling\Web\Tests\Services\Xp;
 
 use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\DriverManager;
+use Doctrine\DBAL\Tools\DsnParser;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Message\SettleXpBonuses;
+use SpeedPuzzling\Web\MessageHandler\SettleXpBonusesHandler;
+use SpeedPuzzling\Web\Services\Progression\PlayerProgressionLock;
 use SpeedPuzzling\Web\Services\Badges\BadgeEvaluator;
 use SpeedPuzzling\Web\Services\Xp\XpChainRecomputer;
 use SpeedPuzzling\Web\Services\Xp\XpRecomputer;
@@ -411,6 +416,70 @@ final class XpChainRecomputerTest extends KernelTestCase
         self::assertSame(1, $this->countEntries($solveId, 'speed_settlement'));
     }
 
+    public function testSettlementLocksOnlyThePlayersItPays(): void
+    {
+        $at = XpSettingsFixture::fullFormulaFrom()->modify('+10 days');
+        $fastSolveId = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 1000, $at, 500);
+        $this->award($fastSolveId);
+
+        // Earned its base without a speed bonus and slower than the median: pending for good, payable never. Its base
+        // line is written directly - an award would lock the player in the test's transaction itself
+        $slowSolveId = $this->insertSolve(PlayerFixture::PLAYER_PRIVATE, PuzzleFixture::PUZZLE_500_04, 5000, $at->modify('+1 day'), 500);
+        $this->insertBaseEntry(PlayerFixture::PLAYER_PRIVATE, $slowSolveId, $at->modify('+1 day'));
+        $this->insertSolve(PlayerFixture::PLAYER_ADMIN, PuzzleFixture::PUZZLE_500_04, 6000, $at->modify('+2 days'), 500);
+
+        self::assertSame([PlayerFixture::PLAYER_REGULAR], $this->chainRecomputer->playersWithPendingSettlements());
+        self::assertSame(1, $this->settle());
+        self::assertSame(1, $this->entriesFor($fastSolveId, PlayerFixture::PLAYER_REGULAR)['speed_settlement']);
+        self::assertArrayNotHasKey('speed_settlement', $this->entriesFor($slowSolveId, PlayerFixture::PLAYER_PRIVATE));
+        self::assertSame([], $this->chainRecomputer->playersWithPendingSettlements());
+
+        // The settlement's transaction is still open (the test's one): the player with nothing to be paid is free,
+        // the paid one is locked for other progression writes - and a save of the paid one does not wait
+        $otherSession = $this->anotherSession();
+        self::assertTrue($this->canLockProgression($otherSession, PlayerFixture::PLAYER_PRIVATE));
+        self::assertFalse($this->canLockProgression($otherSession, PlayerFixture::PLAYER_REGULAR));
+
+        $otherSession->beginTransaction();
+        $otherSession->executeStatement("SET LOCAL lock_timeout = '2s'");
+        $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 2000, $at->modify('+3 days'), 500, session: $otherSession);
+        $otherSession->rollBack();
+        $otherSession->close();
+    }
+
+    public function testASettlementRunThatStopsMidwayIsFinishedByTheNextOneWithoutPayingTwice(): void
+    {
+        $at = XpSettingsFixture::fullFormulaFrom()->modify('+10 days');
+        $solveId = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 1000, $at, 500);
+        $this->award($solveId);
+        $this->insertSolve(PlayerFixture::PLAYER_PRIVATE, PuzzleFixture::PUZZLE_500_04, 5000, $at->modify('+1 day'), 500);
+        $this->insertSolve(PlayerFixture::PLAYER_ADMIN, PuzzleFixture::PUZZLE_500_04, 6000, $at->modify('+2 days'), 500);
+
+        // A run read the payees and died before settling anybody; a second one settles, a third finds nothing
+        self::assertSame([PlayerFixture::PLAYER_REGULAR], $this->chainRecomputer->playersWithPendingSettlements());
+        self::assertSame(1, $this->settle());
+        self::assertSame(0, $this->settle());
+
+        // A stale payee list (a player settled meanwhile) settles nothing on top
+        self::assertSame(0, $this->chainRecomputer->settlePendingBonusesOf(PlayerFixture::PLAYER_REGULAR));
+        self::assertSame(1, $this->countEntries($solveId, 'speed_settlement'));
+        $this->assertTotalsMatchLedger(PlayerFixture::PLAYER_REGULAR);
+    }
+
+    public function testTheSettlementCronSettlesThroughTheMessageOfEachPlayer(): void
+    {
+        $at = XpSettingsFixture::fullFormulaFrom()->modify('+10 days');
+        $solveId = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 3600, $at, 500);
+        $this->award($solveId);
+        $this->ratePuzzle(PuzzleFixture::PUZZLE_500_04, tier: 5);
+
+        self::getContainer()->get(SettleXpBonusesHandler::class)(new SettleXpBonuses());
+        $this->entityManager->clear();
+
+        self::assertSame(2, $this->entriesFor($solveId, PlayerFixture::PLAYER_REGULAR)['difficulty_settlement']);
+        $this->assertTotalsMatchLedger(PlayerFixture::PLAYER_REGULAR);
+    }
+
     public function testBadgeEvaluatorGrantsNoXp(): void
     {
         $evaluator = self::getContainer()->get(BadgeEvaluator::class);
@@ -444,10 +513,18 @@ final class XpChainRecomputerTest extends KernelTestCase
         $this->entityManager->clear();
     }
 
+    /**
+     * What SettleXpBonusesHandler does, minus the transaction per player (the test's one wraps everything)
+     */
     private function settle(): int
     {
-        $settled = $this->chainRecomputer->settlePendingBonuses();
-        $this->entityManager->flush();
+        $settled = 0;
+
+        foreach ($this->chainRecomputer->playersWithPendingSettlements() as $playerId) {
+            $settled += $this->chainRecomputer->settlePendingBonusesOf($playerId);
+            $this->entityManager->flush();
+        }
+
         $this->entityManager->clear();
 
         return $settled;
@@ -563,6 +640,43 @@ final class XpChainRecomputerTest extends KernelTestCase
         return $base->setISODate((int) $base->format('o'), (int) $base->format('W'))->setTime(12, 0);
     }
 
+    private function insertBaseEntry(string $playerId, string $solvingTimeId, \DateTimeImmutable $earnedAt): void
+    {
+        $this->database->executeStatement(
+            "INSERT INTO xp_entry (id, player_id, amount, reason, in_weekly_delta, earned_at, created_at, solving_time_id)
+             VALUES (:id, :playerId, 5, 'solve_base', true, :earnedAt, :earnedAt, :solvingTimeId)",
+            [
+                'id' => Uuid::uuid7()->toString(),
+                'playerId' => $playerId,
+                'earnedAt' => $earnedAt->format('Y-m-d H:i:s'),
+                'solvingTimeId' => $solvingTimeId,
+            ],
+        );
+    }
+
+    private function anotherSession(): Connection
+    {
+        $databaseUrl = $_SERVER['DATABASE_URL'] ?? null;
+        self::assertIsString($databaseUrl);
+
+        return DriverManager::getConnection((new DsnParser([
+            'postgres' => 'pdo_pgsql',
+            'postgresql' => 'pdo_pgsql',
+            'pgsql' => 'pdo_pgsql',
+        ]))->parse($databaseUrl));
+    }
+
+    /**
+     * Would another progression write of the player (PlayerProgressionLock) go on, or wait?
+     */
+    private function canLockProgression(Connection $session, string $playerId): bool
+    {
+        return (bool) $session->fetchOne(
+            'SELECT pg_try_advisory_xact_lock(CAST(:keySpace AS INTEGER), CAST(:key AS INTEGER))',
+            ['keySpace' => PlayerProgressionLock::KEY_SPACE, 'key' => PlayerProgressionLock::keyOf($playerId)],
+        );
+    }
+
     private function ratePuzzle(string $puzzleId, int $tier): void
     {
         $this->database->executeStatement(
@@ -583,6 +697,7 @@ final class XpChainRecomputerTest extends KernelTestCase
         \DateTimeImmutable $at,
         int $piecesSnapshot,
         null|array $team = null,
+        null|Connection $session = null,
     ): string {
         $solveId = Uuid::uuid7()->toString();
 
@@ -606,7 +721,7 @@ final class XpChainRecomputerTest extends KernelTestCase
             $puzzlingType = $puzzlersCount === 2 ? 'duo' : 'team';
         }
 
-        $this->database->executeStatement(
+        ($session ?? $this->database)->executeStatement(
             'INSERT INTO puzzle_solving_time
                 (id, seconds_to_solve, player_id, puzzle_id, tracked_at, verified, team, finished_at,
                  comment, finished_puzzle_photo, first_attempt, unboxed, puzzlers_count, puzzling_type,

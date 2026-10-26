@@ -13,7 +13,7 @@ use PHPStan\Testing\RuleTestCase;
  */
 final class SystemClockRuleTest extends RuleTestCase
 {
-    private const string FIXTURE = __DIR__ . '/data/system-clock.php';
+    private const string FIXTURE = __DIR__ . '/Fixture/SystemClockReads.php';
 
     protected function getRule(): Rule
     {

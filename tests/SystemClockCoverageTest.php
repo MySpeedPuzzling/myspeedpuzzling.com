@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
  *
  * The PHPStan rule clock.systemTime (tests/PHPStan/SystemClockRule.php) owns every PHP call that reads the clock -
  * `new DateTimeImmutable()` / a relative moment, time(), date(), strtotime(), mktime(), date_create(), MockClock(),
- * NativeClock, Clock::get(); a deliberate read carries `@phpstan-ignore clock.systemTime (reason)` on its line. This
+ * NativeClock, Clock::get(); a deliberate read carries an ignore comment of that identifier with its reason on its line. This
  * test keeps what PHPStan cannot see: templates (`'now'|date`, `date()`), tests/Panther (outside PHPStan's paths - the
  * rule's reads as patterns), microtime()/hrtime() (a duration is fine, a timestamp is not - listed per file),
  * 'now' outside a constructor (`?? 'now'`, a default), and relative moments in tests that do not go straight into
@@ -92,7 +92,7 @@ final class SystemClockCoverageTest extends TestCase
     private const array PATTERN_DATA = [
         'DatabaseClockCoverageTest.php',
         'PHPStan/SystemClockRuleTest.php',
-        'PHPStan/data/system-clock.php',
+        'PHPStan/Fixture/SystemClockReads.php',
         'RoundRevealMomentComputedOnlyHereTest.php',
         'SystemClockCoverageTest.php',
     ];
@@ -117,6 +117,7 @@ final class SystemClockCoverageTest extends TestCase
         'Services/Insights/InsightsCriteriaTest.php' => [["'yesterday'"], self::INPUT],
         'Value/ComparisonCriteriaTest.php' => [["'yesterday'"], self::INPUT],
         'Value/PuzzleImageAnalysisInputTest.php' => [["'yesterday'"], self::INPUT],
+        'Services/PuzzleIntelligence/ImagePredictionsSideBySideTest.php' => [["'-1 hour'"], 'An SQL interval added to a stored moment (fitted_at = computed_at + interval) - no moment of its own.'],
         'Value/PuzzlePickerCriteriaTest.php' => [["'-6 months'", "'-2 weeks'", "'-30 days'"], 'What PuzzlePickerSinceUnit::modifier() returns - expected values; the code under test applies them to the app\'s clock.'],
     ];
 
@@ -344,7 +345,7 @@ final class SystemClockCoverageTest extends TestCase
         sort($offending);
         sort($stale);
 
-        self::assertSame([], $offending, 'A relative moment (\'-3 days\', \'tomorrow\', …) that is not handed straight to ->modify() - or to a helper passing its parameter straight to ->modify() - may end up counted from the real now (a constant, a variable, new DateTimeImmutable($relative)). Write TestClock::now()->modify(…) where it is defined, or list it here with the reason.');
+        self::assertSame([], $offending, 'A relative moment (\'-3 days\', \'tomorrow\', …) that is not handed straight to ->modify() - or to a helper passing its parameter straight to ->modify() - may end up counted from the real now (a constant, a variable, new DateTimeImmutable($relative)). Write TestClock::now()->modify(…) where it is defined, or list it here with the reason. See docs/features/time-and-clock/README.md.');
         self::assertSame([], $stale, 'These listed relative moments no longer occur - remove them from the list.');
     }
 

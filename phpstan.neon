@@ -25,7 +25,7 @@ parameters:
         - tests/bootstrap.php
         - tests/object-manager.php
         - tests/Panther
-        - tests/PHPStan/data
+        - tests/PHPStan/Fixture
         - config/reference.php
         - config/packages
     symfony:

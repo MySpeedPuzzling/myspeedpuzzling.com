@@ -34,7 +34,7 @@ final class DatabaseClockCoverageTest extends TestCase
     private const array ALLOWED_IN_TESTS = [
         'DatabaseClockCoverageTest.php' => 'This guard - the patterns and their self-test are data.',
         'PHPStan/SystemClockRule.php' => 'The PHPStan rule clock.systemTime - PHP\'s localtime() is a name it knows, no SQL.',
-        'PHPStan/data/system-clock.php' => 'The fixture of the PHPStan rule clock.systemTime - PHP\'s localtime() calls, no SQL.',
+        'PHPStan/Fixture/SystemClockReads.php' => 'The fixture of the PHPStan rule clock.systemTime - PHP\'s localtime() calls, no SQL.',
         'RoundRevealMomentComputedOnlyHereTest.php' => 'A guard of its own - SQL snippets it must recognise are data.',
         'SystemClockCoverageTest.php' => 'A guard of its own - the patterns and their self-test are data.',
     ];

@@ -88,7 +88,7 @@ Three sources of "now" exist today, and they can disagree:
   violations). Results in `STATUS.md` → "Phase 5".
 - **R5 guards:** one owner per kind of check.
   - **PHPStan rule `clock.systemTime`** (`tests/PHPStan/SystemClockRule.php`, registered in `phpstan.neon`, tested by
-    `SystemClockRuleTest` on `tests/PHPStan/data/`) - every PHP call that reads the clock in `src/`, `bin/`, `tests/`:
+    `SystemClockRuleTest` on `tests/PHPStan/Fixture/`) - every PHP call that reads the clock in `src/`, `bin/`, `tests/`:
     `new DateTime(Immutable)()` / `DatePoint` / `MockClock` without a moment or with a constant relative one (`'now'`,
     `'-3 days'`, `'12:00'`, `'next monday'` - a string counted from now, judged by parsing it against two midnights),
     `time()`, `date()`/`gmdate()`/`idate()` without a timestamp, `getdate()`/`localtime()` without one,

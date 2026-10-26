@@ -212,7 +212,8 @@ final readonly class SystemClockRule implements Rule
             return null;
         }
 
-        $parameters = $constructor->getOnlyVariant()->getParameters();
+        $variants = $constructor->getVariants();
+        $parameters = isset($variants[0]) ? $variants[0]->getParameters() : [];
 
         return isset($parameters[0]) ? $parameters[0]->getName() : null;
     }

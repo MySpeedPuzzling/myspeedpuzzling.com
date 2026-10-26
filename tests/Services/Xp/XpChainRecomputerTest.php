@@ -553,11 +553,12 @@ final class XpChainRecomputerTest extends KernelTestCase
     }
 
     /**
-     * A week no fixture reaches (fixtures date their solves relative to now)
+     * A fixed week without fixture solves of the player - the fixtures are dated from the frozen clock
+     * (tests/TestClock.php), so none of them drifts into it (the same week as the weekly boost test)
      */
     private function mondayNoFixtureReaches(): \DateTimeImmutable
     {
-        $base = new \DateTimeImmutable('+2 years');
+        $base = XpSettingsFixture::fullFormulaFrom()->modify('+28 days');
 
         return $base->setISODate((int) $base->format('o'), (int) $base->format('W'))->setTime(12, 0);
     }

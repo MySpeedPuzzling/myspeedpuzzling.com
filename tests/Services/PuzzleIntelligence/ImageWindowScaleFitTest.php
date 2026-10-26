@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Value\ImageKind;
 use SpeedPuzzling\Web\Value\ImagePriorInput;
 use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Symfony\Component\Clock\MockClock;
 
 /**
@@ -114,7 +115,7 @@ final class ImageWindowScaleFitTest extends TestCase
         $scales = is_array($trueScale) ? $trueScale : [500 => $trueScale];
         $sizes = array_keys($scales);
         mt_srand(20261023);
-        $timeline = new PaceTimeline(new PlayerBaselineCalculator($this->createStub(Connection::class), new MockClock()), 1.3);
+        $timeline = new PaceTimeline(new PlayerBaselineCalculator($this->createStub(Connection::class), new MockClock(TestClock::now())), 1.3);
         $estimate = new ImagePriorInput(0.0, -0.15, 0.15, 'm', ImageKind::Flat);
         $defaults = PredictionModelParameters::defaults();
         // Spread and size terms of the window as the fit leaves them here (too few samples for its own first-try fit)

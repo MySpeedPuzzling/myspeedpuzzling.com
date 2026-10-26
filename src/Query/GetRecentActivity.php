@@ -26,6 +26,14 @@ readonly final class GetRecentActivity
     }
 
     /**
+     * The player's newest times, tracked by them or as a group member.
+     *
+     * The two ways in are read apart - the newest of their own times from custom_pst_player_tracked_at, the newest
+     * group times from custom_pst_team_puzzlers_gin - and only those (at most 2 x limit) are joined and sorted. With one
+     * `player_id = … OR team @> …` condition no index answers the OR in tracked_at order, so the planner walked the
+     * tracked_at index backwards filtering every time: the whole table (565k rows, 0.5-0.9 s on production 2026-10-26)
+     * for a player with fewer than limit times, and far back for one who has not tracked lately.
+     *
      * @throws PlayerNotFound
      * @return array<RecentActivityItem>
      */
@@ -38,6 +46,26 @@ readonly final class GetRecentActivity
         $notHidden = $this->notHidden('puzzle_solving_time');
 
         $query = <<<SQL
+WITH matched AS MATERIALIZED (
+    (
+        SELECT puzzle_solving_time.id
+        FROM puzzle_solving_time
+        WHERE puzzle_solving_time.player_id = :playerId
+            {$notHidden}
+        ORDER BY puzzle_solving_time.tracked_at DESC
+        LIMIT :limit
+    )
+    UNION
+    (
+        SELECT puzzle_solving_time.id
+        FROM puzzle_solving_time
+        WHERE puzzle_solving_time.team IS NOT NULL
+            AND (puzzle_solving_time.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
+            {$notHidden}
+        ORDER BY puzzle_solving_time.tracked_at DESC
+        LIMIT :limit
+    )
+)
 SELECT
     puzzle_solving_time.id as time_id,
     puzzle.id AS puzzle_id,
@@ -86,16 +114,14 @@ SELECT
         LEFT JOIN player p ON p.id = (elem.player ->> 'player_id')::UUID
         LEFT JOIN player_skill ps_m ON ps_m.player_id = p.id)
     ELSE NULL END AS players
-FROM puzzle_solving_time
+FROM matched
+INNER JOIN puzzle_solving_time ON puzzle_solving_time.id = matched.id
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON puzzle_solving_time.competition_id = competition.id
 LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, puzzle_solving_time.competition_series_id)
 LEFT JOIN player_skill ps ON ps.player_id = player.id
-WHERE
-    (puzzle_solving_time.player_id = :playerId OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID))))
-    {$notHidden}
 ORDER BY puzzle_solving_time.tracked_at DESC
 LIMIT :limit
 SQL;

@@ -27,11 +27,11 @@ statement either way). The prediction is a column of the existing solo query - n
 
 **Measured on production 2026-10-26** (heaviest profiles, warm, `EXPLAIN ANALYZE`):
 
-| Profile | One aggregate over all boards (before) | Per puzzle (LATERAL), old index |
-|---|---|---|
-| 2,159 puzzles, 87k board entries | 240-300 ms | 140-155 ms |
-| 1,218 puzzles | 108-131 ms | 67-71 ms |
-| 970 puzzles, popular ones | 360-430 ms | 222-268 ms |
+| Profile | One aggregate over all boards (before) | Per puzzle (LATERAL), old index | Per puzzle, index keyed by player (shipped, 2026-10-27) |
+|---|---|---|---|
+| 2,159 puzzles, 87k board entries | 240-300 ms | 140-155 ms | 95-125 ms |
+| 1,218 puzzles | 108-131 ms | 67-71 ms | 39-47 ms |
+| 970 puzzles, popular ones | 360-430 ms | 222-268 ms | 147-178 ms |
 
 The cost follows the size of the boards, not the number of puzzles. On top of the LATERAL rewrite:
 

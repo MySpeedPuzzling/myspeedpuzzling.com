@@ -6,7 +6,7 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Wishlist availability and ask to borrow (`docs/features/wishlist-availability.md`, 2026-10-26)
 
-- [ ] lily.srv cron: `myspeedpuzzling:expire-borrow-requests` daily (after the deploy)
+- [x] lily.srv cron: `myspeedpuzzling:expire-borrow-requests` daily, 05:41 (lily.srv 2c1c5b5, installed 2026-10-26)
 - [ ] Look at the numbers after a few weeks (requests sent, answered, lent) - widen "who can be asked" beyond favorites?
 - [ ] Found while testing (older bug, not this feature): merging two puzzles that are both on one player's wishlist fails
   on `wish_list_item`'s unique key - `ApprovePuzzleMergeRequestHandler` checks for a duplicate with `findOneBy()`, which

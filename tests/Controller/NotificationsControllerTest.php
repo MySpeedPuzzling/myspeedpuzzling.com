@@ -175,6 +175,18 @@ final class NotificationsControllerTest extends WebTestCase
         self::assertSame(0, $this->unreadCount($browser->getContainer()->get(Connection::class)));
     }
 
+    public function testTheBellShows99PlusFromTheCapOn(): void
+    {
+        $browser = self::createClient();
+        $this->addNotifications($browser, PlayerFixture::PLAYER_WITH_FAVORITES, 120);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        $crawler = $browser->request('GET', '/en/marketplace');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('99+', $crawler->filter(self::BADGE)->text());
+    }
+
     public function testTheDropdownOutsideItsFrameGoesToThePage(): void
     {
         $browser = self::createClient();

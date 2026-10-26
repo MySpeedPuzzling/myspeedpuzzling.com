@@ -156,6 +156,17 @@ final class GetNotificationsTest extends KernelTestCase
         self::assertSame(0, $this->query->countUnreadForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES));
     }
 
+    public function testUnreadCountStopsAtTheBadgeCap(): void
+    {
+        $this->database->executeStatement(
+            "INSERT INTO notification (id, player_id, type, notified_at, target_solving_time_id)
+             SELECT gen_random_uuid(), :player, 'SubscribedPlayerAddedTime', " . TestClock::SQL_NOW . ", :time FROM generate_series(1, :n)",
+            ['player' => PlayerFixture::PLAYER_WITH_FAVORITES, 'time' => PuzzleSolvingTimeFixture::TIME_01, 'n' => GetNotifications::BADGE_CAP + 5],
+        );
+
+        self::assertSame(GetNotifications::BADGE_CAP, $this->query->countUnreadForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES));
+    }
+
     public function testUnreadCountCanUseTheUnreadIndex(): void
     {
         /** @var DebugDataHolder $debugDataHolder */

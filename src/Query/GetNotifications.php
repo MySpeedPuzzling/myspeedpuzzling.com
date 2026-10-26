@@ -21,20 +21,30 @@ readonly final class GetNotifications
     }
 
     /**
-     * The bell on every page. custom_notification_unread (player_id WHERE read_at IS NULL) answers it
-     * with an index-only scan - COUNT(*), not COUNT(id): the id is not in that index.
+     * The bell shows "99+" from this many on: counting stops there.
+     */
+    public const int BADGE_CAP = 100;
+
+    /**
+     * The bell on every page, counted up to BADGE_CAP only: 1,028 players hold more than 100 unread notifications and
+     * one 18k - counting them all took up to 31 ms on every page they open, the first 100 take 0.08 ms (production,
+     * 2026-10-26). custom_notification_unread (player_id WHERE read_at IS NULL) answers it with an index-only scan -
+     * `SELECT 1`, not the id: the id is not in that index.
      */
     public function countUnreadForPlayer(string $playerId): int
     {
         $notHidden = $this->notHidden();
+        $cap = self::BADGE_CAP;
 
         $query = <<<SQL
-SELECT
-    COUNT(*)
-FROM notification
-WHERE player_id = :playerId
-    AND read_at IS NULL
-    {$notHidden}
+SELECT COUNT(*) FROM (
+    SELECT 1
+    FROM notification
+    WHERE player_id = :playerId
+        AND read_at IS NULL
+        {$notHidden}
+    LIMIT {$cap}
+) unread
 SQL;
 
         $count = $this->database

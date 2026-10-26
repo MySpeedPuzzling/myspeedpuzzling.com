@@ -148,9 +148,9 @@ final class PlayerSolvedPuzzlesPlacingTest extends WebTestCase
      */
     private function ranks(Crawler $crawler): array
     {
-        return array_values(array_map(
+        return array_map(
             static fn (string $text): int => (int) preg_replace('/\D/', '', explode(' ', trim($text))[0]),
             $crawler->filter('.ps-table [data-testid="rank-chip"] .pr-chip-rank-place')->each(static fn (Crawler $place): string => $place->text()),
-        ));
+        );
     }
 }

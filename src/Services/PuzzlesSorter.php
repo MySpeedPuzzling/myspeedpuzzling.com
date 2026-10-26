@@ -1049,11 +1049,16 @@ readonly final class PuzzlesSorter
                 $comparison = $aheadFirst ? $ratioA <=> $ratioB : $ratioB <=> $ratioA;
             }
 
-            $a = $groupedSolvedPuzzles[$keyA][array_key_first($groupedSolvedPuzzles[$keyA])];
-            $b = $groupedSolvedPuzzles[$keyB][array_key_first($groupedSolvedPuzzles[$keyB])];
+            $groupA = $groupedSolvedPuzzles[$keyA];
+            $groupB = $groupedSolvedPuzzles[$keyB];
+            $a = reset($groupA);
+            $b = reset($groupB);
 
-            return $comparison
-                ?: self::compareTimesAscending($a->time, $b->time)
+            if ($comparison !== 0 || $a === false || $b === false) {
+                return $comparison;
+            }
+
+            return self::compareTimesAscending($a->time, $b->time)
                 ?: self::getEffectiveFinishedAt($a) <=> self::getEffectiveFinishedAt($b);
         });
 

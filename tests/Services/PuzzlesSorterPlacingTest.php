@@ -129,7 +129,15 @@ final class PuzzlesSorterPlacingTest extends TestCase
      */
     private static function puzzleIds(array $groups): array
     {
-        return array_values(array_map(static fn (array $group): string => $group[array_key_first($group)]->puzzleId, $groups));
+        $puzzleIds = [];
+
+        foreach ($groups as $group) {
+            $first = reset($group);
+            self::assertNotFalse($first);
+            $puzzleIds[] = $first->puzzleId;
+        }
+
+        return $puzzleIds;
     }
 
     private static function solved(string $timeId, string $puzzleId, int $time, null|int $predicted, string $finishedAt, null|string $trackedAt = null, bool $suspicious = false): SolvedPuzzle

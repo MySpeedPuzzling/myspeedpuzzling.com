@@ -450,7 +450,8 @@ final class PlayerSolvedPuzzles
         $rankings = [];
 
         foreach ($this->soloSolvedPuzzles as $group) {
-            $ranking = $this->allRanks[$group[array_key_first($group)]->puzzleId] ?? null;
+            $first = reset($group);
+            $ranking = $first !== false ? ($this->allRanks[$first->puzzleId] ?? null) : null;
 
             if ($ranking !== null) {
                 $rankings[] = $ranking;

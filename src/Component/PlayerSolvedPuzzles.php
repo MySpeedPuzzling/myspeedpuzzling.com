@@ -14,6 +14,8 @@ use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Value\DifficultyFilter;
 use SpeedPuzzling\Web\Value\DifficultyTier;
 use SpeedPuzzling\Web\Value\PiecesRange;
+use SpeedPuzzling\Web\Value\PlacingFilter;
+use SpeedPuzzling\Web\Value\PlacingSummary;
 use SpeedPuzzling\Web\Value\PuzzleSearchCriteria;
 use SpeedPuzzling\Web\Value\PuzzleSearchKeys;
 use SpeedPuzzling\Web\Value\Puzzler;
@@ -36,8 +38,14 @@ final class PlayerSolvedPuzzles
 
     private const array SORTS = ['fastest', 'slowest', 'newest', 'oldest', 'fastest_ppm', 'slowest_ppm'];
 
+    // The player's rank on each puzzle's leaderboard - solo results only, free like the rank chips (feature request #292)
+    public const array PLACING_SORTS = ['best_rank', 'worst_rank', 'best_share', 'worst_share'];
+
     // Members only, like the difficulty filter
     private const array DIFFICULTY_SORTS = ['easiest', 'hardest'];
+
+    // Members only (Insights), and only while the player shows predictions: the latest attempt against its prediction
+    public const array PREDICTION_SORTS = ['ahead_of_prediction', 'behind_prediction'];
 
     /**
      * Rows rendered at first and added by every "Show more". Filters and sorts still run over the whole history in PHP;
@@ -78,6 +86,14 @@ final class PlayerSolvedPuzzles
 
     #[LiveProp(writable: true)]
     public string $sortBy = 'fastest';
+
+    // The profile's player turned time predictions off (docs/features/opt-out.md): no prediction sorts on their profile
+    #[LiveProp]
+    public bool $predictionsOptedOut = false;
+
+    // A PlacingFilter value - solo results only
+    #[LiveProp(writable: true)]
+    public null|string $placing = null;
 
     #[LiveProp(writable: true)]
     public null|string $manufacturer = null;
@@ -150,6 +166,14 @@ final class PlayerSolvedPuzzles
     public bool $withDifficulty = false;
 
     /**
+     * Every rank of the player, by puzzle id - loaded only for a placing sort or the placing filter on the solo tab,
+     * null otherwise (the shown rows' ranks are then all $ranking has)
+     *
+     * @var null|array<string, PlayerRanking>
+     */
+    private null|array $allRanks = null;
+
+    /**
      * Tier of every rated puzzle in the player's results (members only); a puzzle missing here is not rated yet
      *
      * @var array<string, DifficultyTier>
@@ -211,9 +235,19 @@ final class PlayerSolvedPuzzles
     #[LiveAction]
     public function changeSortBy(#[LiveArg] string $sort): void
     {
-        if (in_array($sort, self::SORTS, true) || (in_array($sort, self::DIFFICULTY_SORTS, true) && $this->hasMembership())) {
+        if (
+            in_array($sort, self::SORTS, true)
+            || in_array($sort, self::PLACING_SORTS, true)
+            || (in_array($sort, self::DIFFICULTY_SORTS, true) && $this->hasMembership())
+            || (in_array($sort, self::PREDICTION_SORTS, true) && $this->canSortByPrediction())
+        ) {
             $this->sortBy = $sort;
         }
+    }
+
+    public function canSortByPrediction(): bool
+    {
+        return $this->predictionsOptedOut === false && $this->hasMembership();
     }
 
     #[LiveAction]
@@ -234,6 +268,7 @@ final class PlayerSolvedPuzzles
         $this->speedComparison = 'faster';
         $this->speedUnit = 'ppm';
         $this->difficulty = [];
+        $this->placing = null;
     }
 
     #[PostMount]
@@ -242,6 +277,7 @@ final class PlayerSolvedPuzzles
     {
         $playerId = $this->playerId;
         assert($playerId !== null);
+        $this->allRanks = null;
 
         if (in_array($this->category, ['solo', 'duo', 'group'], true) === false) {
             $this->category = 'solo';
@@ -264,6 +300,8 @@ final class PlayerSolvedPuzzles
         }
 
         $this->difficulty = DifficultyFilter::normalize($this->difficulty);
+        $placing = PlacingFilter::tryFrom($this->placing ?? '');
+        $this->placing = $placing?->value;
 
         // Fetch all puzzles (unfiltered)
         $this->allSoloPuzzles = $this->getPlayerSolvedPuzzles->soloByPlayerId($playerId);
@@ -288,6 +326,14 @@ final class PlayerSolvedPuzzles
             $this->sortBy = 'fastest';
         }
 
+        // The same for a prediction sort - and every sort nobody offers, sortBy being writable
+        $knownSort = in_array($this->sortBy, [...self::SORTS, ...self::PLACING_SORTS, ...self::DIFFICULTY_SORTS], true)
+            || (in_array($this->sortBy, self::PREDICTION_SORTS, true) && $this->canSortByPrediction());
+
+        if ($knownSort === false) {
+            $this->sortBy = 'fastest';
+        }
+
         // Apply filters - the pair/team filter narrows only the pair and team lists, solo results belong to none
         $soloSolvedPuzzles = $this->applyFilters($this->allSoloPuzzles, withTeamFilter: false);
         $duoSolvedPuzzles = $this->applyFilters($this->allDuoPuzzles, withTeamFilter: true);
@@ -296,6 +342,21 @@ final class PlayerSolvedPuzzles
         // Group solo puzzles; first tries / unboxed keep the puzzles with such an attempt, and it leads the row
         $soloSolvedPuzzlesGrouped = $this->puzzlesSorter->groupPuzzles($soloSolvedPuzzles, withReordering: false);
         $soloSolvedPuzzlesGrouped = $this->puzzlesSorter->filterGroupedByAttempt($soloSolvedPuzzlesGrouped, $this->onlyFirstTries, $this->onlyUnboxed);
+
+        // Every rank only when the placings decide the list: the placing filter (it narrows the solo list, whose count is on
+        // its tab whichever tab is open) or a placing sort while the solo tab is shown - pairs and teams have no ranks.
+        // One statement, kept for two minutes: each chip and "Show more" re-renders the whole list
+        if ($placing !== null || ($this->category === 'solo' && in_array($this->sortBy, self::PLACING_SORTS, true))) {
+            $this->allRanks = $this->getRanking->allForPlayerCached($playerId, self::resultsFingerprint($this->allSoloPuzzles));
+        }
+
+        if ($placing !== null && $this->allRanks !== null) {
+            $allRanks = $this->allRanks;
+            $soloSolvedPuzzlesGrouped = array_filter(
+                $soloSolvedPuzzlesGrouped,
+                static fn (array $group): bool => $placing->matches($allRanks[$group[array_key_first($group)]->puzzleId] ?? null),
+            );
+        }
 
         // Apply sorting
         $soloSolvedPuzzlesGrouped = $this->applySortingGrouped($soloSolvedPuzzlesGrouped);
@@ -353,6 +414,7 @@ final class PlayerSolvedPuzzles
             $isMember ? ($this->dateTo ?? '') : '',
             $isMember && $this->speedValue !== null ? $this->speedComparison . $this->speedValue . $this->speedUnit : '',
             $isMember ? implode(',', $difficulty) : '',
+            $this->placing ?? '',
         ]);
 
         if ($this->pagedList !== '' && $this->pagedList !== $listKey) {
@@ -374,6 +436,62 @@ final class PlayerSolvedPuzzles
             'group' => $this->teamSolvedPuzzles,
             default => $this->soloSolvedPuzzles,
         };
+    }
+
+    /**
+     * "Median placing: top 23 % across 412 puzzles" over the whole filtered list - while every rank is loaded
+     */
+    public function getPlacingSummary(): null|PlacingSummary
+    {
+        if ($this->allRanks === null || $this->category !== 'solo') {
+            return null;
+        }
+
+        $rankings = [];
+
+        foreach ($this->soloSolvedPuzzles as $group) {
+            $ranking = $this->allRanks[$group[array_key_first($group)]->puzzleId] ?? null;
+
+            if ($ranking !== null) {
+                $rankings[] = $ranking;
+            }
+        }
+
+        return PlacingSummary::of($rankings);
+    }
+
+    public function isPredictionSort(): bool
+    {
+        return in_array($this->sortBy, self::PREDICTION_SORTS, true);
+    }
+
+    /**
+     * How the puzzle's latest attempt went against its prediction, in whole percent: -12 = 12 % faster than predicted;
+     * null when it was not predicted
+     *
+     * @param array<SolvedPuzzle> $group
+     */
+    public function getLatestAttemptPredictionPercent(array $group): null|int
+    {
+        $ratio = PuzzlesSorter::predictionRatio(PuzzlesSorter::latestAttempt($group));
+
+        return $ratio === null ? null : (int) round(($ratio - 1) * 100);
+    }
+
+    /**
+     * Changes whenever one of the player's own solo results is added, removed or changed in a way that moves a rank
+     *
+     * @param array<SolvedPuzzle> $soloPuzzles
+     */
+    private static function resultsFingerprint(array $soloPuzzles): string
+    {
+        $lines = array_map(
+            static fn (SolvedPuzzle $puzzle): string => $puzzle->timeId . ':' . $puzzle->puzzleId . ':' . ($puzzle->time ?? '') . ':' . ($puzzle->suspicious ? 1 : 0),
+            $soloPuzzles,
+        );
+        sort($lines);
+
+        return sha1(implode("\n", $lines));
     }
 
     /**
@@ -551,7 +669,8 @@ final class PlayerSolvedPuzzles
             'slowest_ppm' => $this->puzzlesSorter->sortBySlowestPpm($puzzles),
             'easiest' => $this->puzzlesSorter->sortByDifficulty($puzzles, $this->difficultyScores, hardestFirst: false),
             'hardest' => $this->puzzlesSorter->sortByDifficulty($puzzles, $this->difficultyScores, hardestFirst: true),
-            default => $puzzles,
+            // Pairs and teams have no ranks nor predictions: their placing and prediction sorts are the fastest first
+            default => $this->puzzlesSorter->sortByFastest($puzzles),
         };
     }
 
@@ -570,6 +689,12 @@ final class PlayerSolvedPuzzles
             'slowest_ppm' => $this->puzzlesSorter->sortGroupedBySlowestPpm($groupedPuzzles, $this->onlyFirstTries, $this->onlyUnboxed),
             'easiest' => $this->puzzlesSorter->sortGroupedByDifficulty($groupedPuzzles, $this->difficultyScores, false, $this->onlyFirstTries, $this->onlyUnboxed),
             'hardest' => $this->puzzlesSorter->sortGroupedByDifficulty($groupedPuzzles, $this->difficultyScores, true, $this->onlyFirstTries, $this->onlyUnboxed),
+            'best_rank' => $this->puzzlesSorter->sortGroupedByPlacing($groupedPuzzles, $this->allRanks ?? [], byShare: false, worstFirst: false, onlyFirstTries: $this->onlyFirstTries, onlyUnboxed: $this->onlyUnboxed),
+            'worst_rank' => $this->puzzlesSorter->sortGroupedByPlacing($groupedPuzzles, $this->allRanks ?? [], byShare: false, worstFirst: true, onlyFirstTries: $this->onlyFirstTries, onlyUnboxed: $this->onlyUnboxed),
+            'best_share' => $this->puzzlesSorter->sortGroupedByPlacing($groupedPuzzles, $this->allRanks ?? [], byShare: true, worstFirst: false, onlyFirstTries: $this->onlyFirstTries, onlyUnboxed: $this->onlyUnboxed),
+            'worst_share' => $this->puzzlesSorter->sortGroupedByPlacing($groupedPuzzles, $this->allRanks ?? [], byShare: true, worstFirst: true, onlyFirstTries: $this->onlyFirstTries, onlyUnboxed: $this->onlyUnboxed),
+            'ahead_of_prediction' => $this->puzzlesSorter->sortGroupedByPrediction($groupedPuzzles, aheadFirst: true, onlyFirstTries: $this->onlyFirstTries, onlyUnboxed: $this->onlyUnboxed),
+            'behind_prediction' => $this->puzzlesSorter->sortGroupedByPrediction($groupedPuzzles, aheadFirst: false, onlyFirstTries: $this->onlyFirstTries, onlyUnboxed: $this->onlyUnboxed),
             default => $groupedPuzzles,
         };
     }
@@ -690,6 +815,10 @@ final class PlayerSolvedPuzzles
 
         // FREE FILTERS - count for everyone
         if ($this->manufacturer !== null && $this->manufacturer !== '') {
+            $count++;
+        }
+
+        if ($this->placing !== null) {
             $count++;
         }
 

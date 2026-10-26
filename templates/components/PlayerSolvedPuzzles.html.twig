@@ -73,6 +73,27 @@
                     }) }}
                 </div>
 
+                {# Placing on each puzzle's solo leaderboard - one chip at a time, "Any placing" clears it #}
+                <div class="mb-3">
+                    <small class="text-muted d-block mb-1">{{ 'filters.placing.label'|trans }}</small>
+                    <div class="d-flex flex-wrap align-items-center gap-1">
+                        {% for option in ['top3', 'top10', 'top10_percent', 'top25_percent', 'bottom_half'] %}
+                            <div class="form-check form-option form-check-inline mb-0">
+                                <input type="radio" class="form-check-input" id="profile-placing-{{ option }}" name="profile-placing"
+                                       data-model="placing" value="{{ option }}"
+                                       {{ this.placing == option ? 'checked' }}>
+                                <label for="profile-placing-{{ option }}" class="form-option-label">{{ ('filters.placing.' ~ option)|trans }}</label>
+                            </div>
+                        {% endfor %}
+                        {% if this.placing is not null %}
+                            <button type="button" class="btn btn-link btn-sm p-0 ms-1" data-action="live#update" data-model="placing" value="">
+                                {{ 'filters.placing.any'|trans }}
+                            </button>
+                        {% endif %}
+                    </div>
+                    <small class="text-muted d-block mt-1">{{ 'filters.placing.solo_only'|trans }}</small>
+                </div>
+
                 {# Text search #}
                 <div class="mb-3">
                     <input
@@ -253,6 +274,8 @@
                 {% if this.sortBy == 'slowest_ppm' %}{{ 'sorting.slowest_ppm'|trans }}{% endif %}
                 {% if this.sortBy == 'easiest' %}{{ 'sorting.easiest'|trans }}{% endif %}
                 {% if this.sortBy == 'hardest' %}{{ 'sorting.hardest'|trans }}{% endif %}
+                {# Pairs and teams have no placings nor predictions: those sorts list them fastest first #}
+                {% if this.sortBy in constant('SpeedPuzzling\\Web\\Component\\PlayerSolvedPuzzles::PLACING_SORTS') or this.predictionSort %}{{ (this.category == 'solo' ? 'sorting.' ~ this.sortBy : 'sorting.fastest_times')|trans }}{% endif %}
             </button>
 
             <div class="dropdown-menu dropdown-menu-end" aria-labelledby="sortingDropdown">
@@ -293,6 +316,17 @@
                         data-live-sort-param="slowest_ppm">
                     {{ 'sorting.slowest_ppm'|trans }}
                 </button>
+                {% if this.category == 'solo' %}
+                    <div class="dropdown-divider"></div>
+                    {% for sort in constant('SpeedPuzzling\\Web\\Component\\PlayerSolvedPuzzles::PLACING_SORTS') %}
+                        <button type="button" class="dropdown-item {% if this.sortBy == sort %}active{% endif %}"
+                                data-action="live#action"
+                                data-live-action-param="changeSortBy"
+                                data-live-sort-param="{{ sort }}">
+                            {{ ('sorting.' ~ sort)|trans }}
+                        </button>
+                    {% endfor %}
+                {% endif %}
                 <div class="dropdown-divider"></div>
                 {% for sort in ['easiest', 'hardest'] %}
                     {% if isMember %}
@@ -309,6 +343,25 @@
                         </button>
                     {% endif %}
                 {% endfor %}
+                {# The latest attempt against its prediction - solo only, and not on the profile of a player who turned
+                   predictions off #}
+                {% if this.category == 'solo' and not this.predictionsOptedOut %}
+                    {% for sort in constant('SpeedPuzzling\\Web\\Component\\PlayerSolvedPuzzles::PREDICTION_SORTS') %}
+                        {% if isMember %}
+                            <button type="button" class="dropdown-item {% if this.sortBy == sort %}active{% endif %}"
+                                    data-action="live#action"
+                                    data-live-action-param="changeSortBy"
+                                    data-live-sort-param="{{ sort }}">
+                                {{ ('sorting.' ~ sort)|trans }}
+                            </button>
+                        {% else %}
+                            <button type="button" class="dropdown-item d-flex align-items-center gap-2 text-muted" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                                <i class="ci-locked"></i>{{ ('sorting.' ~ sort)|trans }}
+                                <span class="badge bg-primary ms-auto">{{ 'membership.members_exclusive_short'|trans }}</span>
+                            </button>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
             </div>
         </div>
     </div>
@@ -353,6 +406,16 @@
        the next ones - filters and sorts run over the whole history on the server #}
     {% set rows_count = this.rowsCount %}
     {% set shown_rows = this.shownRows %}
+    {% set placing_summary = this.placingSummary %}
+    {% if placing_summary is not null %}
+        <p class="text-body-secondary fs-sm mb-2" data-testid="placing-summary">
+            {{ 'profile.placing_summary'|trans({
+                '%share%': 'leaderboards.position.top_share'|trans({'%percent%': placing_summary.median.fraction|format_percent_number({min_fraction_digit: placing_summary.median.fractionDigits, max_fraction_digit: placing_summary.median.fractionDigits})}),
+                '%count%': placing_summary.count,
+            }) }}
+        </p>
+    {% endif %}
+
     <div class="tab-content mt-3">
         {{ include('_player_solvings.html.twig', {solved_puzzles: shown_rows, category: this.category == 'group' ? 'team' : this.category}) }}
     </div>

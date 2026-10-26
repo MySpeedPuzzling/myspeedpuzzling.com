@@ -317,6 +317,15 @@ filters:
     all_manufacturers: "All manufacturers"
     all_pairs_and_teams: "All pairs and teams"
     all_pieces: "All pieces"
+    placing:
+      label: "Placing"
+      top3: "Top 3"
+      top10: "Top 10"
+      top10_percent: "Top 10%"
+      top25_percent: "Top 25%"
+      bottom_half: "Bottom half"
+      any: "Any placing"
+      solo_only: "Your rank on each puzzle's leaderboard - solo results only"
 
 sorting:
     sort_by: "Sort by"
@@ -334,6 +343,12 @@ sorting:
     default_order: "Default order"
     fastest_ppm: "Fastest PPM"
     slowest_ppm: "Slowest PPM"
+    best_rank: "Best placing first"
+    worst_rank: "Worst placing first"
+    best_share: "Best top % first"
+    worst_share: "Lowest top % first"
+    ahead_of_prediction: "Most ahead of prediction"
+    behind_prediction: "Most behind prediction"
 puzzle_overview:
     meta:
         title: "Jigsaw Puzzle Database & Solve Times"
@@ -1535,6 +1550,11 @@ profile:
     personal_info: "Personal<br>info"
     private_profile_info_1: "This puzzler has decided not to share their times. But we insist there are no slow or fast times—only pieces waiting to click together."
     private_profile_info_2: "Want to know more? Meet them in person and try to convince them to reveal their times. That's all we can tell you here."
+    placing_summary: "Median placing: %share% across %count% puzzle|Median placing: %share% across %count% puzzles"
+    latest_attempt_prediction:
+      faster: "Latest: %percent%% faster than predicted"
+      slower: "Latest: %percent%% slower than predicted"
+      on_target: "Latest: as predicted"
 
 my_profile:
     meta:

@@ -297,6 +297,15 @@ live_refresh:
   "all_manufacturers": "Všichni výrobci"
   "all_pairs_and_teams": "Všechny dvojice a týmy"
   "all_pieces": "Všechny dílky"
+  "placing":
+    label: "Umístění"
+    top3: "Top 3"
+    top10: "Top 10"
+    top10_percent: "Top 10 %"
+    top25_percent: "Top 25 %"
+    bottom_half: "Spodní polovina"
+    any: "Jakékoli umístění"
+    solo_only: "Pořadí v žebříčku každého puzzle – jen sólo výsledky"
 "sorting":
   "sort_by": "Řadit podle"
   "best_match": "Nejlepší shoda"
@@ -313,6 +322,12 @@ live_refresh:
   "easiest": "Nejsnazší"
   "hardest": "Nejtěžší"
   "default_order": "Výchozí řazení"
+  "best_rank": "Nejlepší umístění"
+  "worst_rank": "Nejhorší umístění"
+  "best_share": "Nejlepší top %"
+  "worst_share": "Nejslabší top %"
+  "ahead_of_prediction": "Nejvíc rychleji než předpověď"
+  "behind_prediction": "Nejvíc pomaleji než předpověď"
 "puzzle_overview":
   "meta":
     "title": "Databáze puzzle a časy skládání"
@@ -1094,6 +1109,11 @@ competition_referees:
   "personal_info": "Osobní<br>info"
   "private_profile_info_1": "Rozhodl se nesdílet své časy. My však tvrdíme, že neexistují pomalé ani rychlé časy - jen dílky, které je třeba složit."
   "private_profile_info_2": "Chceš vědět víc? Potkej ho osobně a zkus ho přesvědčit, aby se podělil. Tady ti nic dalšího prozradit nemůžeme."
+  "placing_summary": "Medián umístění: %share% (%count% puzzle)"
+  "latest_attempt_prediction":
+    faster: "Naposledy: o %percent% % rychleji než předpověď"
+    slower: "Naposledy: o %percent% % pomaleji než předpověď"
+    on_target: "Naposledy: přesně podle předpovědi"
 "my_profile":
   "meta":
     "title": "Můj profil"

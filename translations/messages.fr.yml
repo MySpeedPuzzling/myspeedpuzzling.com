@@ -295,6 +295,15 @@
   "all_manufacturers": "Tous les fabricants"
   "all_pairs_and_teams": "Tous les duos et équipes"
   "all_pieces": "Toutes les pièces"
+  "placing":
+    label: "Classement"
+    top3: "Top 3"
+    top10: "Top 10"
+    top10_percent: "Top 10 %"
+    top25_percent: "Top 25 %"
+    bottom_half: "Moitié inférieure"
+    any: "Tout classement"
+    solo_only: "Votre rang au classement de chaque puzzle – résultats solo uniquement"
 "sorting":
   "sort_by": "Trier par"
   "best_match": "Meilleure correspondance"
@@ -311,6 +320,12 @@
   "easiest": "Plus faciles d'abord"
   "hardest": "Plus difficiles d'abord"
   "default_order": "Ordre par défaut"
+  "best_rank": "Meilleur classement d'abord"
+  "worst_rank": "Moins bon classement d'abord"
+  "best_share": "Meilleur top % d'abord"
+  "worst_share": "Top % le plus bas d'abord"
+  "ahead_of_prediction": "Le plus en avance sur la prédiction"
+  "behind_prediction": "Le plus en retard sur la prédiction"
 "puzzle_overview":
   "meta":
     "title": "Base de données de puzzles et temps"
@@ -1077,6 +1092,11 @@ competition_referees:
   "personal_info": "Info<br>personnelles"
   "private_profile_info_1": "Ce puzzleur a décidé de ne pas partager ses temps. Mais nous insistons qu'il n'y a pas de temps lents ou rapides—seulement des pièces qui attendent de s'emboîter."
   "private_profile_info_2": "Vous voulez en savoir plus ? Rencontrez-le en personne et essayez de le convaincre de révéler ses temps. C'est tout ce que nous pouvons vous dire ici."
+  "placing_summary": "Classement médian : %share% sur %count% puzzle|Classement médian : %share% sur %count% puzzles"
+  "latest_attempt_prediction":
+    faster: "Dernier : %percent% % plus rapide que prévu"
+    slower: "Dernier : %percent% % plus lent que prévu"
+    on_target: "Dernier : comme prévu"
 "my_profile":
   "meta":
     "title": "Mon profil"

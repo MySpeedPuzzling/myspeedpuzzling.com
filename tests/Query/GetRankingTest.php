@@ -164,6 +164,34 @@ final class GetRankingTest extends KernelTestCase
         self::assertSame([], $this->query->forPuzzles(PlayerFixture::PLAYER_REGULAR, []));
     }
 
+    public function testCachedRanksAreAllForPlayer(): void
+    {
+        $all = $this->query->allForPlayer(PlayerFixture::PLAYER_REGULAR);
+        $this->query->reset();
+
+        self::assertEquals($all, $this->query->allForPlayerCached(PlayerFixture::PLAYER_REGULAR, Uuid::uuid7()->toString()));
+        // The request's copy serves the shown rows' ranks too
+        self::assertEquals(
+            array_intersect_key($all, [PuzzleFixture::PUZZLE_500_01 => true]),
+            $this->query->forPuzzles(PlayerFixture::PLAYER_REGULAR, [PuzzleFixture::PUZZLE_500_01]),
+        );
+    }
+
+    public function testCachedRanksMoveWithTheFingerprintOfThePlayersOwnResults(): void
+    {
+        $fingerprint = Uuid::uuid7()->toString();
+        self::assertSame(2, $this->query->allForPlayerCached(PlayerFixture::PLAYER_REGULAR, $fingerprint)[PuzzleFixture::PUZZLE_500_01]->rank);
+
+        // Somebody else's time changes: the next request keeps the cached ranks for CACHE_TTL_SECONDS
+        $this->markSuspicious(PuzzleSolvingTimeFixture::TIME_32);
+        $this->query->reset();
+        self::assertSame(2, $this->query->allForPlayerCached(PlayerFixture::PLAYER_REGULAR, $fingerprint)[PuzzleFixture::PUZZLE_500_01]->rank);
+
+        // Another fingerprint (the player's own results changed) counts again
+        $this->query->reset();
+        self::assertSame(1, $this->query->allForPlayerCached(PlayerFixture::PLAYER_REGULAR, Uuid::uuid7()->toString())[PuzzleFixture::PUZZLE_500_01]->rank);
+    }
+
     public function testEqualBestTimesShareARank(): void
     {
         // PUZZLE_500_01, public pool: PLAYER_ADMIN 1200, PLAYER_REGULAR 1750, PLAYER_WITH_STRIPE 2100, PLAYER_WITH_FAVORITES 3000 -> 1750

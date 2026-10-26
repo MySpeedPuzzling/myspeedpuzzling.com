@@ -328,6 +328,7 @@
                 playerId="{{ player.playerId }}"
                 team="{{ team_filter }}"
                 category="{{ team_filter ? (app.request.query.get('category') == 'group' ? 'group' : 'duo') : 'solo' }}"
+                :predictionsOptedOut="player.timePredictionsOptedOut"
             />
         </div>
     {% endif %}

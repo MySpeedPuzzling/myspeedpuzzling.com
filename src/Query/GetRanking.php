@@ -13,6 +13,8 @@ use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Results\PlayerRanking;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Service\ResetInterface;
 
 /**
@@ -22,6 +24,12 @@ use Symfony\Contracts\Service\ResetInterface;
  */
 final class GetRanking implements ResetInterface
 {
+    /**
+     * How long allForPlayerCached() keeps a player's ranks: other players' new times show up within it, the player's own
+     * changes at once (they change the fingerprint)
+     */
+    public const int CACHE_TTL_SECONDS = 120;
+
     /** @var array<string, array<string, PlayerRanking>> */
     private array $allForPlayerCache = [];
 
@@ -33,6 +41,7 @@ final class GetRanking implements ResetInterface
         private readonly ClockInterface $clock,
         private readonly HiddenPlayers $hiddenPlayers,
         private readonly PrivateProfileAccess $privateProfileAccess,
+        private readonly CacheInterface $playerRankingsCache,
     ) {
     }
 
@@ -47,6 +56,47 @@ final class GetRanking implements ResetInterface
         }
 
         return $this->allForPlayerCache[$playerId] ??= $this->rankings($playerId, null);
+    }
+
+    /**
+     * allForPlayer() kept for CACHE_TTL_SECONDS: the profile's placing sorts and filter need every rank, and each Live
+     * re-render (a chip, "Show more") would recount every board - ~100-300 ms on the heaviest profiles. Keyed by the
+     * viewer's pool (blocks, allow list) and a fingerprint of the player's own solo results, which the caller has loaded
+     * anyway. Fills the request's copy too, so forPuzzles() reads from it.
+     *
+     * @throws PlayerNotFound
+     * @return array<string, PlayerRanking>
+     */
+    public function allForPlayerCached(string $playerId, string $ownResultsFingerprint): array
+    {
+        if (Uuid::isValid($playerId) === false) {
+            throw new PlayerNotFound();
+        }
+
+        if (isset($this->allForPlayerCache[$playerId])) {
+            return $this->allForPlayerCache[$playerId];
+        }
+
+        $hidden = $this->hiddenPlayers->ids();
+        $revealed = $this->privateProfileAccess->revealedIds();
+        sort($hidden);
+        sort($revealed);
+
+        $key = 'ranks_' . sha1(implode('|', [
+            strtolower($playerId),
+            $ownResultsFingerprint,
+            implode(',', $hidden),
+            implode(',', $revealed),
+        ]));
+
+        /** @var array<string, PlayerRanking> $ranking */
+        $ranking = $this->playerRankingsCache->get($key, function (ItemInterface $item) use ($playerId): array {
+            $item->expiresAfter(self::CACHE_TTL_SECONDS);
+
+            return $this->rankings($playerId, null);
+        });
+
+        return $this->allForPlayerCache[$playerId] = $ranking;
     }
 
     /**
@@ -81,20 +131,20 @@ final class GetRanking implements ResetInterface
     private function rankings(string $playerId, null|array $puzzleIds): array
     {
         $onlyPuzzles = $puzzleIds === null ? '' : 'AND pst.puzzle_id IN (:puzzleIds)';
-        $notHidden = $this->hiddenPlayers->sqlExclude('pl.id');
         $playerNotHidden = $this->hiddenPlayers->sqlExclude('pst.player_id');
         $isPublic = $this->privateProfileAccess->sqlIsPublic('pl');
 
-        // RANK() without a window over everybody: a rank is 1 + the players whose best time is faster, ties share it.
-        // Every other player's best per puzzle comes from custom_pst_solo_board (index only, docs/database-indexes.md);
-        // that index holds times above 0 s - a 0 s time is no time (the web form stores it as none, the Times boards
-        // leave it out too; only the API could store one, and none exists). Heaviest profile (2,159 puzzles, a third of
-        // all solo results): 200-300 -> 89 ms; a 100-puzzle profile: 60 -> 15 ms.
+        // A rank is 1 + the players with a time faster than the ranked player's best (= whose best is faster), ties
+        // share it; the board's size is its distinct players. Counted per puzzle from custom_pst_solo_board, keyed
+        // (puzzle_id, player_id): each board comes sorted by player, so no aggregate over every board at once and no
+        // sort (docs/database-indexes.md). That index holds times above 0 s - a 0 s time is no time (the web form stores
+        // it as none, the Times boards leave it out too). Private players the viewer may not see are a short NOT IN list
+        // (hashed once), the ranked player always counts. Heaviest profile (2,159 puzzles, 87k board entries) on production
+        // 2026-10-26: 240-300 ms as one aggregate over all the boards, 140-155 ms per puzzle on the old index.
         $query = <<<SQL
 WITH PlayerBest AS MATERIALIZED (
     -- The ranked player's own best time per puzzle; a player the viewer hides ranks nowhere
     SELECT
-        pst.player_id,
         pst.puzzle_id,
         MIN(pst.seconds_to_solve) AS best_time
     FROM
@@ -107,42 +157,37 @@ WITH PlayerBest AS MATERIALIZED (
         {$onlyPuzzles}
         {$playerNotHidden}
     GROUP BY
-        pst.player_id, pst.puzzle_id
-),
-BestTimes AS (
-    -- Everybody's best time on those puzzles: the puzzle page's pool
-    SELECT
-        pst.puzzle_id,
-        pst.player_id,
-        MIN(pst.seconds_to_solve) AS best_time
-    FROM
-        PlayerBest pb
-        INNER JOIN puzzle_solving_time pst ON pst.puzzle_id = pb.puzzle_id
-        INNER JOIN player pl ON pl.id = pst.player_id
-    WHERE
-        pst.puzzling_type = 'solo'
-        AND pst.seconds_to_solve > 0
-        AND pst.suspicious = false
-        AND ({$isPublic} OR pl.id = :playerId)
-        {$notHidden}
-    GROUP BY
-        pst.puzzle_id, pst.player_id
+        pst.puzzle_id
 ),
 Ranks AS (
+    -- Everybody on each of those puzzles' boards: the puzzle page's pool
     SELECT
-        pb.player_id,
         pb.puzzle_id,
         pb.best_time,
-        1 + COUNT(*) FILTER (WHERE bt.best_time < pb.best_time) AS rank,
-        COUNT(*) AS total_players
+        board.rank,
+        board.total_players
     FROM
         PlayerBest pb
-        INNER JOIN BestTimes bt ON bt.puzzle_id = pb.puzzle_id
-    GROUP BY
-        pb.player_id, pb.puzzle_id, pb.best_time
+        CROSS JOIN LATERAL (
+            SELECT
+                1 + COUNT(DISTINCT pst.player_id) FILTER (WHERE pst.seconds_to_solve < pb.best_time) AS rank,
+                COUNT(DISTINCT pst.player_id) AS total_players
+            FROM
+                puzzle_solving_time pst
+            WHERE
+                pst.puzzle_id = pb.puzzle_id
+                AND pst.puzzling_type = 'solo'
+                AND pst.seconds_to_solve > 0
+                AND pst.suspicious = false
+                AND pst.player_id NOT IN (SELECT pl.id FROM player pl WHERE NOT ({$isPublic}) AND pl.id <> :playerId)
+                {$playerNotHidden}
+        ) board
+    WHERE
+        -- Only a 0 s best of the ranked player leaves the board empty: such a puzzle ranks nowhere, as before
+        board.total_players > 0
 )
 SELECT
-    r.player_id,
+    CAST(:playerId AS UUID) AS player_id,
     r.rank,
     r.total_players,
     r.best_time AS time,

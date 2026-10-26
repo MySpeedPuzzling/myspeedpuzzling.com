@@ -72,6 +72,10 @@ return App::config([
                 'insights_cache' => [
                     'adapters' => ['cache.adapter.array'],
                 ],
+                // The same: ranks counted from rows a test seeds (GetRanking::allForPlayerCached())
+                'player_rankings_cache' => [
+                    'adapters' => ['cache.adapter.array'],
+                ],
                 // Every test run signs with a fresh key under the same certificate URL
                 'sns_certificate_cache' => [
                     'adapters' => ['cache.adapter.array'],

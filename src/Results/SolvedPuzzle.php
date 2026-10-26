@@ -50,6 +50,9 @@ readonly final class SolvedPuzzle
         // Name of the pair/team ($teamId), when its members gave it one
         public null|string $teamName = null,
         public null|string $playerAvatar = null,
+        // What was predicted for this solo time when it was solved (docs/features/puzzle-intelligence/prediction-history.md),
+        // null when it was not predicted - solo lists only
+        public null|int $predictedSeconds = null,
     ) {
     }
 
@@ -91,6 +94,7 @@ readonly final class SolvedPuzzle
      *     suspicious?: bool,
      *     skill_tier_name?: null|string,
      *     ranking_opted_out?: bool,
+     *     predicted_seconds?: null|int,
      *     ...
      * } $row
      */
@@ -143,6 +147,7 @@ readonly final class SolvedPuzzle
             rankingOptedOut: $row['ranking_opted_out'] ?? false,
             teamName: $row['team_name'] ?? null,
             playerAvatar: $row['player_avatar'] ?? null,
+            predictedSeconds: $row['predicted_seconds'] ?? null,
         );
     }
 

@@ -63,4 +63,16 @@ final class RankShareTest extends TestCase
         self::assertNull(RankShare::of(0, 100));
         self::assertNull(RankShare::of(101, 100));
     }
+
+    public function testAFractionIsRoundedUpLikeARank(): void
+    {
+        $share = RankShare::ofFraction(204 / 1391);
+        self::assertSame(0.147, $share->fraction);
+        self::assertSame(1, $share->fractionDigits);
+        self::assertFalse($share->isFastest());
+
+        self::assertSame(0.3, RankShare::ofFraction(0.3)->fraction, 'A whole tenth stays as it is');
+        self::assertSame(0.0022, RankShare::ofFraction(3 / 1391)->fraction);
+        self::assertSame(2, RankShare::ofFraction(3 / 1391)->fractionDigits);
+    }
 }

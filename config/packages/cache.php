@@ -100,6 +100,11 @@ return App::config([
                 'insights_cache' => [
                     'adapters' => ['cache.app'],
                 ],
+                // Every rank of one player on their puzzles for one viewer's pool (GetRanking::allForPlayerCached()):
+                // the profile's placing sorts and filter, two minutes, keyed by a fingerprint of the player's own results
+                'player_rankings_cache' => [
+                    'adapters' => ['cache.app'],
+                ],
                 // Amazon SNS signing certificates (SnsMessageVerifier), keyed by their URL
                 'sns_certificate_cache' => [
                     'adapters' => ['cache.app'],

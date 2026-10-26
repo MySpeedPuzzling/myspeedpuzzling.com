@@ -46,6 +46,33 @@ final class GetPlayerSolvedPuzzlesTest extends KernelTestCase
         }
     }
 
+    public function testSoloResultsCarryThePredictionMadeForThem(): void
+    {
+        $results = $this->query->soloByPlayerId(PlayerFixture::PLAYER_REGULAR);
+        self::assertGreaterThan(1, count($results));
+        [$predicted, $notPredicted] = [$results[0]->timeId, $results[1]->timeId];
+
+        $this->database->executeStatement(
+            'UPDATE puzzle_solving_time SET predictable = true, predicted_seconds = 1234 WHERE id = :id',
+            ['id' => $predicted],
+        );
+        // A prediction stored without being one (not predictable) is not read
+        $this->database->executeStatement(
+            'UPDATE puzzle_solving_time SET predictable = false, predicted_seconds = 999 WHERE id = :id',
+            ['id' => $notPredicted],
+        );
+        $this->query->reset();
+
+        $byTime = [];
+
+        foreach ($this->query->soloByPlayerId(PlayerFixture::PLAYER_REGULAR) as $solvedPuzzle) {
+            $byTime[$solvedPuzzle->timeId] = $solvedPuzzle->predictedSeconds;
+        }
+
+        self::assertSame(1234, $byTime[$predicted]);
+        self::assertNull($byTime[$notPredicted]);
+    }
+
     public function testSoloByPlayerIdExcludesTeamSolves(): void
     {
         // PLAYER_REGULAR has both solo and team solves

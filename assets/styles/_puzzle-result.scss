@@ -177,6 +177,13 @@ a.pr-team-link {
     white-space: nowrap;
 }
 
+// The latest attempt against its prediction, under the profile's prediction sorts (feature request #292): a faster one
+// lightly green, a slower one the plain chip - never discouraging
+.pr-chip-prediction-ahead {
+    background: #e3f4ec;
+    color: #146c43;
+}
+
 // The share next to a rank on a puzzle (_rank_share.html.twig): a short bar filled with the share of the others behind
 .rank-share {
     display: inline-flex;

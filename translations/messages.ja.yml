@@ -277,6 +277,15 @@
   "all_manufacturers": "すべてのメーカー"
   "all_pairs_and_teams": "すべてのペアとチーム"
   "all_pieces": "すべてのピース数"
+  "placing":
+    label: "順位"
+    top3: "トップ3"
+    top10: "トップ10"
+    top10_percent: "上位10%"
+    top25_percent: "上位25%"
+    bottom_half: "下位半分"
+    any: "すべての順位"
+    solo_only: "各パズルのランキングでの順位（ソロの結果のみ）"
 "sorting":
   "sort_by": "並び順"
   "best_match": "関連度順"
@@ -293,6 +302,12 @@
   "easiest": "簡単な順"
   "hardest": "難しい順"
   "default_order": "標準の並び順"
+  "best_rank": "順位が高い順"
+  "worst_rank": "順位が低い順"
+  "best_share": "上位%が高い順"
+  "worst_share": "上位%が低い順"
+  "ahead_of_prediction": "予測より速い順"
+  "behind_prediction": "予測より遅い順"
 "puzzle_overview":
   "meta":
     "title": "ジグソーパズルデータベースと完成タイム"
@@ -1215,6 +1230,11 @@ competition_referees:
   "personal_info": "個人<br>情報"
   "private_profile_info_1": "このパズラーはタイムを共有しないことに決めました。しかし、私たちは遅いタイムや速いタイムはなく、一緒にクリックするのを待っているピースだけがあると主張します。"
   "private_profile_info_2": "もっと知りたいですか？直接会って、タイムを明かすよう説得してみてください。ここでお伝えできるのはそれだけです。"
+  "placing_summary": "順位の中央値：%count%個のパズルで%share%"
+  "latest_attempt_prediction":
+    faster: "最新：予測より%percent%%速い"
+    slower: "最新：予測より%percent%%遅い"
+    on_target: "最新：予測どおり"
 "edit_profile":
   "meta":
     "title": "プロフィール編集"

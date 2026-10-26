@@ -277,6 +277,15 @@
   "all_manufacturers": "Todos los fabricantes"
   "all_pairs_and_teams": "Todas las parejas y equipos"
   "all_pieces": "Todas las piezas"
+  "placing":
+    label: "Puesto"
+    top3: "Top 3"
+    top10: "Top 10"
+    top10_percent: "Top 10 %"
+    top25_percent: "Top 25 %"
+    bottom_half: "Mitad inferior"
+    any: "Cualquier puesto"
+    solo_only: "Tu puesto en la clasificación de cada puzzle – solo resultados individuales"
 "sorting":
   "sort_by": "Ordenar por"
   "best_match": "Mejor coincidencia"
@@ -293,6 +302,12 @@
   "easiest": "Más fáciles primero"
   "hardest": "Más difíciles primero"
   "default_order": "Orden predeterminado"
+  "best_rank": "Mejor puesto primero"
+  "worst_rank": "Peor puesto primero"
+  "best_share": "Mejor top % primero"
+  "worst_share": "Peor top % primero"
+  "ahead_of_prediction": "Más por delante de la predicción"
+  "behind_prediction": "Más por detrás de la predicción"
 "puzzle_overview":
   "meta":
     "title": "Base de datos de puzzles y tiempos"
@@ -764,6 +779,11 @@
   "personal_info": "Información<br>personal"
   "private_profile_info_1": "Este puzzlero ha decidido no compartir sus tiempos. Pero insistimos en que no hay tiempos lentos o rápidos—solo piezas esperando a encajar juntas."
   "private_profile_info_2": "¿Quieres saber más? Encuéntralos en persona e intenta convencerlos de revelar sus tiempos. Eso es todo lo que podemos decirte aquí."
+  "placing_summary": "Puesto mediano: %share% en %count% puzzle|Puesto mediano: %share% en %count% puzzles"
+  "latest_attempt_prediction":
+    faster: "Último: un %percent% % más rápido de lo previsto"
+    slower: "Último: un %percent% % más lento de lo previsto"
+    on_target: "Último: según lo previsto"
 "my_profile":
   "meta":
     "title": "Mi Perfil"

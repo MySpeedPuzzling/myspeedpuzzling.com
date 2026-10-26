@@ -62,6 +62,22 @@
                                 {{ include('_rank_chip.html.twig', {rank: this.ranking[puzzle.puzzleId].rank, total: this.ranking[puzzle.puzzleId].totalPlayers}) }}
                             {% endif %}
 
+                            {# Under a prediction sort: what the sort reads - the latest attempt against its prediction #}
+                            {% if puzzle.players is null and this.predictionSort %}
+                                {% set prediction_percent = this.latestAttemptPredictionPercent(solved_puzzle) %}
+                                {% if prediction_percent is not null %}
+                                    <span class="pr-chip pr-chip-prediction{{ prediction_percent < 0 ? ' pr-chip-prediction-ahead' }}" data-testid="prediction-chip">
+                                        {%- if prediction_percent < 0 -%}
+                                            {{ 'profile.latest_attempt_prediction.faster'|trans({'%percent%': -prediction_percent}) }}
+                                        {%- elseif prediction_percent > 0 -%}
+                                            {{ 'profile.latest_attempt_prediction.slower'|trans({'%percent%': prediction_percent}) }}
+                                        {%- else -%}
+                                            {{ 'profile.latest_attempt_prediction.on_target'|trans }}
+                                        {%- endif -%}
+                                    </span>
+                                {% endif %}
+                            {% endif %}
+
                             {{ include('_leaderboard_time_badges.html.twig', {
                                 time: puzzle,
                                 attempts: solved_puzzle|length,

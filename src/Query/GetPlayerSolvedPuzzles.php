@@ -234,7 +234,9 @@ SELECT
     cs.name AS competition_series_name,
     cs.shortcut AS competition_series_shortcut,
     cs.slug AS competition_series_slug,
-    puzzle_solving_time.suspicious
+    puzzle_solving_time.suspicious,
+    -- The prediction made for this time, only where one was made (the profile's prediction sorts)
+    CASE WHEN puzzle_solving_time.predictable = true THEN puzzle_solving_time.predicted_seconds END AS predicted_seconds
 FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
     INNER JOIN player ON puzzle_solving_time.player_id = player.id
@@ -317,6 +319,7 @@ SQL;
              *     competition_series_shortcut: null|string,
              *     competition_series_slug: null|string,
              *     suspicious: bool,
+             *     predicted_seconds: null|int,
              * } $row
              */
 

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
+use SpeedPuzzling\Web\Results\PlayerRanking;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\RankShare;
 
 readonly final class PuzzlesSorter
 {
@@ -960,6 +962,161 @@ readonly final class PuzzlesSorter
 
             return self::getEffectiveFinishedAt($a) <=> self::getEffectiveFinishedAt($b);
         });
+
+        return $groupedSolvedPuzzles;
+    }
+
+    /**
+     * The player's placing on each puzzle's solo leaderboard (feature request #292). By place: #1 first (or last), the
+     * bigger board first on a tie. By share (rank / puzzlers, the "top 14.7 %" of the rank chip): boards a share is
+     * shown for (RankShare::MIN_TOTAL) first, the smaller ones after them by place. A puzzle without a rank (relax only,
+     * every time waiting for verification) goes last either way.
+     *
+     * @param array<array<SolvedPuzzle>> $groupedSolvedPuzzles
+     * @param array<string, PlayerRanking> $ranking by puzzle id
+     * @return array<array<SolvedPuzzle>>
+     */
+    public function sortGroupedByPlacing(array $groupedSolvedPuzzles, array $ranking, bool $byShare, bool $worstFirst, bool $onlyFirstTries, bool $onlyUnboxed = false): array
+    {
+        $groupedSolvedPuzzles = $this->sortWithinGroups($groupedSolvedPuzzles, $onlyFirstTries, $onlyUnboxed);
+
+        usort($groupedSolvedPuzzles, static function (array $groupedA, array $groupedB) use ($ranking, $byShare, $worstFirst): int {
+            /** @var non-empty-array<SolvedPuzzle> $groupedA */
+            /** @var non-empty-array<SolvedPuzzle> $groupedB */
+
+            $a = $groupedA[array_key_first($groupedA)];
+            $b = $groupedB[array_key_first($groupedB)];
+            $rankingA = $ranking[$a->puzzleId] ?? null;
+            $rankingB = $ranking[$b->puzzleId] ?? null;
+
+            if ($rankingA === null || $rankingB === null) {
+                return ($rankingA === null) <=> ($rankingB === null)
+                    ?: self::compareTimesAscending($a->time, $b->time);
+            }
+
+            $comparison = 0;
+
+            if ($byShare) {
+                $shownA = $rankingA->totalPlayers >= RankShare::MIN_TOTAL;
+                $shownB = $rankingB->totalPlayers >= RankShare::MIN_TOTAL;
+
+                if ($shownA !== $shownB) {
+                    return $shownA ? -1 : 1;
+                }
+
+                if ($shownA) {
+                    // rankA / totalA <=> rankB / totalB, in integers
+                    $comparison = ($rankingA->rank * $rankingB->totalPlayers) <=> ($rankingB->rank * $rankingA->totalPlayers);
+                }
+            }
+
+            if ($comparison === 0) {
+                $comparison = $rankingA->rank <=> $rankingB->rank;
+            }
+
+            if ($worstFirst) {
+                $comparison = -$comparison;
+            }
+
+            return $comparison
+                ?: $rankingB->totalPlayers <=> $rankingA->totalPlayers
+                ?: self::compareTimesAscending($a->time, $b->time)
+                ?: self::getEffectiveFinishedAt($a) <=> self::getEffectiveFinishedAt($b);
+        });
+
+        return $groupedSolvedPuzzles;
+    }
+
+    /**
+     * How the puzzle's latest attempt went against what was predicted for it (feature request #292): the most ahead of
+     * its prediction first, or the most behind. A puzzle whose latest attempt was not predicted goes last either way.
+     *
+     * @param array<array<SolvedPuzzle>> $groupedSolvedPuzzles
+     * @return array<array<SolvedPuzzle>>
+     */
+    public function sortGroupedByPrediction(array $groupedSolvedPuzzles, bool $aheadFirst, bool $onlyFirstTries, bool $onlyUnboxed = false): array
+    {
+        $groupedSolvedPuzzles = $this->sortWithinGroups($groupedSolvedPuzzles, $onlyFirstTries, $onlyUnboxed);
+        $ratios = array_map(static fn (array $group): null|float => self::predictionRatio(self::latestAttempt($group)), $groupedSolvedPuzzles);
+
+        uksort($groupedSolvedPuzzles, static function (int|string $keyA, int|string $keyB) use ($ratios, $aheadFirst, $groupedSolvedPuzzles): int {
+            $ratioA = $ratios[$keyA];
+            $ratioB = $ratios[$keyB];
+
+            if ($ratioA === null || $ratioB === null) {
+                $comparison = ($ratioA === null) <=> ($ratioB === null);
+            } else {
+                $comparison = $aheadFirst ? $ratioA <=> $ratioB : $ratioB <=> $ratioA;
+            }
+
+            $a = $groupedSolvedPuzzles[$keyA][array_key_first($groupedSolvedPuzzles[$keyA])];
+            $b = $groupedSolvedPuzzles[$keyB][array_key_first($groupedSolvedPuzzles[$keyB])];
+
+            return $comparison
+                ?: self::compareTimesAscending($a->time, $b->time)
+                ?: self::getEffectiveFinishedAt($a) <=> self::getEffectiveFinishedAt($b);
+        });
+
+        return array_values($groupedSolvedPuzzles);
+    }
+
+    /**
+     * The most recent attempt of one puzzle's results (finished date, else the day it was added). A time waiting for
+     * verification is no attempt here - it is neither counted nor timed (docs/features/suspicious-times.md)
+     *
+     * @param array<SolvedPuzzle> $group
+     */
+    public static function latestAttempt(array $group): null|SolvedPuzzle
+    {
+        $latest = null;
+
+        foreach ($group as $solvedPuzzle) {
+            if ($solvedPuzzle->suspicious) {
+                continue;
+            }
+
+            // Two attempts finished on the same day: the one added later
+            $isLater = $latest === null
+                || (self::getEffectiveFinishedAt($solvedPuzzle) <=> self::getEffectiveFinishedAt($latest) ?: $solvedPuzzle->trackedAt <=> $latest->trackedAt) > 0;
+
+            if ($isLater) {
+                $latest = $solvedPuzzle;
+            }
+        }
+
+        return $latest;
+    }
+
+    /**
+     * Time / prediction: 0.88 = 12 % faster than predicted. Null when the attempt was not predicted
+     */
+    public static function predictionRatio(null|SolvedPuzzle $solvedPuzzle): null|float
+    {
+        if ($solvedPuzzle === null || $solvedPuzzle->time === null || $solvedPuzzle->predictedSeconds === null || $solvedPuzzle->predictedSeconds <= 0) {
+            return null;
+        }
+
+        return $solvedPuzzle->time / $solvedPuzzle->predictedSeconds;
+    }
+
+    /**
+     * Times within each puzzle's group the way every grouped sort keeps them: fastest first, the first try / unboxed
+     * attempt leading while that filter is on
+     *
+     * @param array<array<SolvedPuzzle>> $groupedSolvedPuzzles
+     * @return array<array<SolvedPuzzle>>
+     */
+    private function sortWithinGroups(array $groupedSolvedPuzzles, bool $onlyFirstTries, bool $onlyUnboxed): array
+    {
+        foreach ($groupedSolvedPuzzles as $index => $solvedPuzzle) {
+            $groupedSolvedPuzzles[$index] = $this->sortByFastest($solvedPuzzle);
+
+            if ($onlyFirstTries === true) {
+                $groupedSolvedPuzzles[$index] = $this->makeFirstAttemptFirst($groupedSolvedPuzzles[$index]);
+            } elseif ($onlyUnboxed === true) {
+                $groupedSolvedPuzzles[$index] = $this->makeUnboxedFirst($groupedSolvedPuzzles[$index]);
+            }
+        }
 
         return $groupedSolvedPuzzles;
     }

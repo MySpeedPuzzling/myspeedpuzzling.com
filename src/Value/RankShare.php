@@ -49,6 +49,22 @@ final readonly class RankShare
         return new self($perMille / 1_000, 1, $aheadFraction);
     }
 
+    /**
+     * A share that is no single rank - a median of shares: rounded up like of(), never "fastest"
+     */
+    public static function ofFraction(float $fraction): self
+    {
+        $fraction = max(0.0, min(1.0, $fraction));
+        // Rounded first, so 0.147 stored as 0.14700000001 never rounds up to 14.8
+        $perTenThousand = (int) ceil(round($fraction * 10_000, 6));
+
+        if ($perTenThousand < 100) {
+            return new self(max(1, $perTenThousand) / 10_000, 2, 1 - $fraction);
+        }
+
+        return new self(((int) ceil(round($fraction * 1_000, 6))) / 1_000, 1, 1 - $fraction);
+    }
+
     public function isFastest(): bool
     {
         return $this->fraction === null;

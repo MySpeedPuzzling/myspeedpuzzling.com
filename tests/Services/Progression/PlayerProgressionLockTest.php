@@ -10,6 +10,7 @@ use Doctrine\DBAL\Tools\DsnParser;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Services\Progression\PlayerProgressionLock;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -60,19 +61,20 @@ final class PlayerProgressionLockTest extends KernelTestCase
         // A save: its foreign key check takes FOR KEY SHARE on the player row - with the former row lock
         // (FOR UPDATE) it waited until the lock was released (10 s saves, 2026-10-26)
         $this->otherSession->executeStatement(
-            'INSERT INTO player_activity_day (id, day, first_seen_at, player_id) VALUES (:id, CURRENT_DATE, NOW(), :playerId)
+            'INSERT INTO player_activity_day (id, day, first_seen_at, player_id)
+             VALUES (:id, ' . TestClock::SQL_TODAY . ', ' . TestClock::SQL_NOW . ', :playerId)
              ON CONFLICT (player_id, day) DO NOTHING',
             ['id' => Uuid::uuid7()->toString(), 'playerId' => PlayerFixture::PLAYER_REGULAR],
         );
 
         // Even a write of the player row itself (a profile edit) does not wait
-        $this->otherSession->executeQuery(
+        $lockedId = $this->otherSession->fetchOne(
             'SELECT id FROM player WHERE id = :playerId FOR UPDATE',
             ['playerId' => PlayerFixture::PLAYER_REGULAR],
         );
 
         $this->otherSession->rollBack();
-        $this->addToAssertionCount(1);
+        self::assertSame(PlayerFixture::PLAYER_REGULAR, $lockedId);
     }
 
     public function testLockKeysAreSignedIntegersThatDoNotDependOnTheCase(): void

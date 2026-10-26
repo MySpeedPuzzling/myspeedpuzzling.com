@@ -222,7 +222,7 @@ SQL;
      */
     private function pendingSettlements(DateTimeImmutable $now, null|array $playerIds): array
     {
-        /** @var array<string, list<XpEntryDraft>> $draftsByPlayer */
+        /** @var array<string, non-empty-list<XpEntryDraft>> $draftsByPlayer */
         $draftsByPlayer = [];
         /** @var array<string, list<array{solvingTimeId: string, puzzleId: string, difficultyTier: null|int}>> $settledTiersByPlayer */
         $settledTiersByPlayer = [];

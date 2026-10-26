@@ -481,9 +481,11 @@ newly added co-member gets a `PartnerGroupMember` notification - once, an edit t
 from 1. No extra statement (budget tests unchanged).
 
 **"Still looking?" reminder**: daily `myspeedpuzzling:remind-partner-listings` (lily.srv cron) → `RemindPartnerListings`
-picks every open listing not reminded yet whose event still has a finder and starts within 14 days
-(`RemindPartnerListingsHandler::REMIND_DAYS_BEFORE`), made before that window opened (a listing from the last two weeks
-gets none - its player has just looked); marks `partner_listing.reminded_at` (once per listing, whatever the e-mail
+picks every open listing not reminded yet whose event still has a finder and starts in 2-14 days and that is at least
+5 days old (`RemindPartnerListingsHandler::LAST_DAYS_BEFORE` / `REMIND_DAYS_BEFORE` / `MIN_LISTING_AGE_DAYS` - Jan,
+2026-10-26: never "the next day", never in the last two days; a listing made 6 days or less before the event gets none,
+7 days before = reminded 2 days before; edits do not restart the 5 days; the first version reminded one listing a day
+after it was made); marks `partner_listing.reminded_at` (once per listing, whatever the e-mail
 does) and queues `SendPartnerListingReminder` (async). The e-mail (`emails/partner_reminder.html.twig`): event + dates,
 "N puzzlers have listed since you did" (`CountNewPartnerListings`, blocks either way left out) or "nobody new", "See
 who's looking", "Found your partner already? Close your listing", the partner finder e-mails opt-out

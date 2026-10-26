@@ -15,15 +15,19 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 
 /**
- * "Still looking?" two weeks before the event (docs/features/partner-finder.md "Phase 2 as built"): every open listing
- * not reminded yet whose event (one with a finder - PartnerFinderEligibility) starts within REMIND_DAYS_BEFORE days and
- * that was made before that window opened - a listing made in the last two weeks before the event gets none, its player
- * has just looked. Each one is marked first (once per listing, whatever the e-mail does), then its e-mail goes async.
+ * "Still looking?" before the event (docs/features/partner-finder.md "Phase 2 as built"), Jan's rule (2026-10-26): every
+ * open listing not reminded yet whose event (one with a finder - PartnerFinderEligibility) starts in
+ * LAST_DAYS_BEFORE..REMIND_DAYS_BEFORE days (2-14) and that is at least MIN_LISTING_AGE_DAYS (5) days old - never "the
+ * next day", never in the last two days. The first daily run that finds it so reminds it: a listing made 30 days before
+ * the event at 14 days, made 10 days before at 5 days, made 6 days before or later never. Each one is marked first (once
+ * per listing, whatever the e-mail does), then its e-mail goes async.
  */
 #[AsMessageHandler]
 readonly final class RemindPartnerListingsHandler
 {
     public const int REMIND_DAYS_BEFORE = 14;
+    public const int LAST_DAYS_BEFORE = 2;
+    public const int MIN_LISTING_AGE_DAYS = 5;
 
     public function __construct(
         private Connection $database,
@@ -41,6 +45,8 @@ readonly final class RemindPartnerListingsHandler
     {
         $qualifies = PartnerFinderEligibility::SQL_QUALIFIES;
         $days = self::REMIND_DAYS_BEFORE;
+        $lastDays = self::LAST_DAYS_BEFORE;
+        $minimumAge = self::MIN_LISTING_AGE_DAYS;
 
         /** @var list<string> $listingIds */
         $listingIds = $this->database->executeQuery(
@@ -52,9 +58,9 @@ LEFT JOIN competition_series cs ON cs.id = c.series_id
 WHERE pl.closed_at IS NULL
     AND pl.reminded_at IS NULL
     AND {$qualifies}
-    AND c.date_from::date > CAST(:marketplace_today AS date)
+    AND c.date_from::date >= CAST(:marketplace_today AS date) + {$lastDays}
     AND c.date_from::date <= CAST(:marketplace_today AS date) + {$days}
-    AND pl.created_at < c.date_from::date - {$days}
+    AND pl.created_at::date <= CAST(:marketplace_today AS date) - {$minimumAge}
 ORDER BY pl.created_at, pl.id
 SQL,
             $this->partnerFinderEligibility->todayParameter(),

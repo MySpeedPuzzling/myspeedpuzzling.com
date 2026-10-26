@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\RemindPartnerListings;
@@ -29,8 +30,8 @@ use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * "Still looking?" two weeks before the event (docs/features/partner-finder.md "Phase 2 as built"): once per open
- * listing made before the two weeks started, the e-mail counting who listed since.
+ * "Still looking?" before the event (docs/features/partner-finder.md "Phase 2 as built"): once per open listing, the event
+ * in 2-14 days and the listing at least 5 days old, the e-mail counting who listed since.
  */
 final class RemindPartnerListingsTest extends KernelTestCase
 {
@@ -44,31 +45,52 @@ final class RemindPartnerListingsTest extends KernelTestCase
         $this->messageBus = self::getContainer()->get(MessageBusInterface::class);
     }
 
-    public function testListingsMadeBeforeTheTwoWeeksAreRemindedOnce(): void
+    /**
+     * Jan's rule (2026-10-26): the event in 2-14 days, the listing at least 5 days old - never "the next day", never in
+     * the last two days before the event
+     *
+     * @return iterable<string, array{int, int, bool}> event in days, listed days ago, reminded
+     */
+    public static function window(): iterable
+    {
+        yield 'listed long ago, event in 14 days' => [14, 30, true];
+        yield 'listed long ago, event in 15 days - not yet' => [15, 30, false];
+        yield 'listed 4 days ago - not yet' => [10, 4, false];
+        yield 'listed 5 days ago' => [10, 5, true];
+        yield 'listed 7 days before the event - reminded 2 days before' => [2, 5, true];
+        yield 'listed 6 days before the event - never: 5 days later it is the day before' => [2, 4, false];
+        yield 'listed 6 days before the event, the day before - never' => [1, 5, false];
+        yield 'event today - never' => [0, 30, false];
+    }
+
+    #[DataProvider('window')]
+    public function testTheReminderWindow(int $eventInDays, int $listedDaysAgo, bool $reminded): void
     {
         $today = $this->today();
-        // The event in 10 days, so the two weeks started 4 days ago: John listed before, Michael 2 days ago - he has just looked
+        $this->database->executeStatement('UPDATE competition SET date_from = :from, date_to = NULL WHERE id = :id', [
+            'from' => $today->modify(sprintf('+%d days', $eventInDays))->format('Y-m-d 09:00:00'),
+            'id' => PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN,
+        ]);
+        $this->setCreatedAt(PartnerFinderFixture::LISTING_REGULAR_PAIR, $today->modify(sprintf('-%d days', $listedDaysAgo))->setTime(18, 0));
+        // Michael has just listed - never part of the answer
+        $this->setCreatedAt(PartnerFinderFixture::LISTING_FAVORITES_TEAM, $today->setTime(8, 0));
+
+        self::assertSame($reminded ? 1 : 0, $this->remind());
+        self::assertSame($reminded, $this->remindedAt(PartnerFinderFixture::LISTING_REGULAR_PAIR) !== null);
+        self::assertSame($reminded ? [PartnerFinderFixture::LISTING_REGULAR_PAIR] : [], $this->queuedReminders());
+    }
+
+    public function testOncePerListing(): void
+    {
+        $today = $this->today();
         $this->database->executeStatement('UPDATE competition SET date_from = :from, date_to = NULL WHERE id = :id', [
             'from' => $today->modify('+10 days')->format('Y-m-d 09:00:00'),
             'id' => PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN,
         ]);
         $this->setCreatedAt(PartnerFinderFixture::LISTING_REGULAR_PAIR, $today->modify('-20 days'));
-        $this->setCreatedAt(PartnerFinderFixture::LISTING_FAVORITES_TEAM, $today->modify('-2 days'));
+        $this->setCreatedAt(PartnerFinderFixture::LISTING_FAVORITES_TEAM, $today->modify('-20 days'));
 
-        self::assertSame(1, $this->remind());
-        self::assertNotNull($this->remindedAt(PartnerFinderFixture::LISTING_REGULAR_PAIR));
-        self::assertNull($this->remindedAt(PartnerFinderFixture::LISTING_FAVORITES_TEAM));
-        self::assertSame([PartnerFinderFixture::LISTING_REGULAR_PAIR], $this->queuedReminders());
-
-        // Once per listing
-        self::assertSame(0, $this->remind());
-    }
-
-    public function testNothingWhileTheEventIsMoreThanTwoWeeksAway(): void
-    {
-        // The fixture event is 35 days away
-        $this->setCreatedAt(PartnerFinderFixture::LISTING_REGULAR_PAIR, $this->today()->modify('-60 days'));
-
+        self::assertSame(2, $this->remind());
         self::assertSame(0, $this->remind());
     }
 

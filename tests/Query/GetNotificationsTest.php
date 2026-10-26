@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Results\PlayerNotification;
 use SpeedPuzzling\Web\Tests\DataFixtures\LentPuzzleTransferFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\TestingViewer;
 use SpeedPuzzling\Web\Value\Puzzler;
@@ -213,6 +214,55 @@ final class GetNotificationsTest extends KernelTestCase
         self::assertSame([], $left);
     }
 
+    public function testABorrowRequestNotificationNamesTheAskerAndCountsTheAnswers(): void
+    {
+        // John asks Michael for two puzzles, Michael said yes to one; Michael's notification only
+        $requestId = $this->borrowRequest(PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_FAVORITES, ['yes', 'waiting']);
+        $this->notifyAbout(PlayerFixture::PLAYER_WITH_FAVORITES, 'BorrowRequested', PlayerFixture::PLAYER_REGULAR, $requestId);
+        $this->notifyAbout(PlayerFixture::PLAYER_ADMIN, 'BorrowRequested', PlayerFixture::PLAYER_REGULAR, $this->borrowRequest(PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_ADMIN, ['waiting']));
+
+        $borrow = array_values(array_filter(
+            $this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, 100),
+            static fn (PlayerNotification $notification): bool => $notification->isBorrowRequestNotification(),
+        ));
+
+        self::assertCount(1, $borrow);
+        self::assertSame($requestId, $borrow[0]->borrowRequestId);
+        self::assertSame(PlayerFixture::PLAYER_REGULAR, $borrow[0]->targetPlayerId);
+        self::assertSame(PlayerFixture::PLAYER_REGULAR_NAME, $borrow[0]->targetPlayerName);
+        self::assertSame(2, $borrow[0]->borrowItemsTotal);
+        self::assertSame(1, $borrow[0]->borrowItemsYes);
+
+        // Blocked by the reader: left out
+        $this->block(PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_REGULAR);
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_FAVORITES);
+        $left = array_filter(
+            $this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, 100),
+            static fn (PlayerNotification $notification): bool => $notification->isBorrowRequestNotification(),
+        );
+        self::assertSame([], $left);
+    }
+
+    public function testTheBorrowRequestBranchCanUseItsIndex(): void
+    {
+        /** @var DebugDataHolder $debugDataHolder */
+        $debugDataHolder = self::getContainer()->get('doctrine.debug_data_holder');
+        $debugDataHolder->reset();
+
+        $this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, 20);
+
+        /** @var list<array{sql: string, params: array<mixed>}> $executed */
+        $executed = $debugDataHolder->getData()['default'] ?? [];
+        self::assertCount(1, $executed);
+
+        // The test database is tiny, so the planner would scan it anyway - only prove the index is usable
+        $this->database->executeStatement('SET LOCAL enable_seqscan = off');
+        /** @var list<string> $plan */
+        $plan = $this->database->fetchFirstColumn('EXPLAIN ' . $executed[0]['sql'], array_values($executed[0]['params']));
+
+        self::assertStringContainsString('custom_notification_borrow_request', implode("\n", $plan));
+    }
+
     private function partnerNotification(string $playerId): PlayerNotification
     {
         foreach ($this->query->forPlayer($playerId, 100) as $notification) {
@@ -244,6 +294,38 @@ final class GetNotificationsTest extends KernelTestCase
         $this->database->executeStatement(
             "INSERT INTO notification (id, player_id, type, notified_at, read_at, {$targetColumn}) VALUES (:id, :player, :type, {$now}, {$readAt}, :target)",
             ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'type' => $type, 'target' => $targetId],
+        );
+    }
+
+    /**
+     * @param list<string> $itemStatuses
+     */
+    private function borrowRequest(string $askerId, string $ownerId, array $itemStatuses): string
+    {
+        $requestId = Uuid::uuid7()->toString();
+        $now = TestClock::SQL_NOW;
+
+        $this->database->executeStatement(
+            "INSERT INTO borrow_request (id, send_id, asker_id, owner_id, created_at, expires_at) VALUES (:id, :send, :asker, :owner, {$now}, {$now} + INTERVAL '30 days')",
+            ['id' => $requestId, 'send' => Uuid::uuid7()->toString(), 'asker' => $askerId, 'owner' => $ownerId],
+        );
+
+        $puzzles = [PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_500_03];
+        foreach ($itemStatuses as $index => $status) {
+            $this->database->executeStatement(
+                'INSERT INTO borrow_request_item (id, request_id, asker_id, owner_id, puzzle_id, status) VALUES (:id, :request, :asker, :owner, :puzzle, :status)',
+                ['id' => Uuid::uuid7()->toString(), 'request' => $requestId, 'asker' => $askerId, 'owner' => $ownerId, 'puzzle' => $puzzles[$index], 'status' => $status],
+            );
+        }
+
+        return $requestId;
+    }
+
+    private function notifyAbout(string $playerId, string $type, string $actorId, string $borrowRequestId): void
+    {
+        $this->database->executeStatement(
+            "INSERT INTO notification (id, player_id, type, notified_at, actor_player_id, target_borrow_request_id) VALUES (:id, :player, :type, " . TestClock::SQL_NOW . ", :actor, :request)",
+            ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'type' => $type, 'actor' => $actorId, 'request' => $borrowRequestId],
         );
     }
 

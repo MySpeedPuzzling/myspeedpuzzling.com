@@ -87,7 +87,15 @@ SQL;
         $actorNotHidden = $this->hiddenPlayers->sqlExclude('actor.id');
         $actorIsPrivate = $this->privateProfileAccess->sqlIsPrivate('actor');
 
+        // The reader's borrow request notifications are picked first, on their own: the planner must not start that branch
+        // from another index of notification (docs/database-indexes.md, custom_notification_borrow_request)
         $query = <<<SQL
+WITH borrow_notification AS MATERIALIZED (
+    SELECT *
+    FROM notification
+    WHERE notification.player_id = :playerId
+        AND notification.target_borrow_request_id IS NOT NULL
+)
 SELECT * FROM (
     -- Puzzle solving notifications
     SELECT
@@ -1380,11 +1388,10 @@ SELECT * FROM (
         borrow_request.id AS borrow_request_id,
         (SELECT COUNT(item.id) FROM borrow_request_item item WHERE item.request_id = borrow_request.id)::int AS borrow_items_total,
         (SELECT COUNT(item.id) FROM borrow_request_item item WHERE item.request_id = borrow_request.id AND item.status IN ('yes', 'lent'))::int AS borrow_items_yes
-    FROM notification
+    FROM borrow_notification notification
     INNER JOIN borrow_request ON borrow_request.id = notification.target_borrow_request_id
     INNER JOIN player actor ON actor.id = notification.actor_player_id
-    WHERE notification.player_id = :playerId
-        AND notification.target_borrow_request_id IS NOT NULL
+    WHERE TRUE
         {$actorNotHidden}
 ) AS combined_notifications
 ORDER BY notified_at DESC

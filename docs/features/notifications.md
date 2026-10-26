@@ -24,7 +24,7 @@ One UNION branch per kind of notification (solving time, lending, change/merge r
 moderator role, official result, pair/team, guest link, partner finder ×2, borrow request). **The page is picked
 first**: a `MATERIALIZED` CTE `page` takes the reader's notifications from `notification` alone - with the branches'
 hidden-player rule for that table (`notHidden()`, also used by the badge) - ordered by `notified_at DESC, id DESC`,
-`LIMIT`/`OFFSET`; every branch then joins only those rows.
+`LIMIT`/`OFFSET`; every branch then joins only those rows, and the union is put back in the same order (`notified_at DESC, notification_id DESC` - `notified_at` alone ties within a second, and a tie must not push a row past the one extra row "Show more" asks for).
 
 Why, measured on production on 2026-10-26 (4.55M notifications, a player holds up to 22k):
 

@@ -105,6 +105,7 @@ WITH page AS MATERIALIZED (
 SELECT * FROM (
     -- Puzzle solving notifications
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -217,6 +218,7 @@ SELECT * FROM (
 
     -- Lending notifications
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -317,6 +319,7 @@ SELECT * FROM (
 
     -- Puzzle change request notifications
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -412,6 +415,7 @@ SELECT * FROM (
 
     -- Puzzle merge request notifications
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -507,6 +511,7 @@ SELECT * FROM (
 
     -- Transaction rating notifications
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -610,6 +615,7 @@ SELECT * FROM (
 
     -- Conversation request notifications
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -707,6 +713,7 @@ SELECT * FROM (
 
     -- Community moderator role notifications (no target entity)
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -800,6 +807,7 @@ SELECT * FROM (
 
     -- Official results of a round the player has a result in were published: the target is the round
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -896,6 +904,7 @@ SELECT * FROM (
 
     -- A pair/team was named or renamed: the target is the team, the player shown is whoever did it
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -992,6 +1001,7 @@ SELECT * FROM (
 
     -- "This guest of mine is you": asked (shown to whoever was asked) and agreed to (shown to whoever asked)
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -1089,6 +1099,7 @@ SELECT * FROM (
     -- "I'd like to puzzle with you" on the player's partner finder listing: the player shown is who asks - named even
     -- when private (sending was their consent, docs/features/partner-finder.md D6), linked only when the reader may see them
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -1191,6 +1202,7 @@ SELECT * FROM (
     -- finder listing names the reader - the player shown is the actor, linked only when the reader may see them;
     -- partner_reader_listed = the reader still has an open listing at the event (then the text offers closing it)
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -1297,6 +1309,7 @@ SELECT * FROM (
     -- even when private, asking was their consent), answered or expired for the reader (actor = the owner, shown like
     -- anybody else); the player shown is the actor, linked only when the reader may see them
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -1388,7 +1401,9 @@ SELECT * FROM (
     WHERE notification.target_borrow_request_id IS NOT NULL
         {$actorNotHidden}
 ) AS combined_notifications
-ORDER BY notified_at DESC
+-- The page's own order: notified_at alone ties (a burst of notifications in one second), and a tie must not move a row
+-- past the one more asked for "Show more"
+ORDER BY notified_at DESC, notification_id DESC
 SQL;
 
         $data = $this->database

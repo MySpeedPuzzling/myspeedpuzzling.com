@@ -259,6 +259,25 @@ final class GetNotificationsTest extends KernelTestCase
         self::assertEqualsCanonicalizing($this->fingerprints($all), $this->fingerprints($paged));
     }
 
+    public function testTiesInOneSecondKeepThePageOrderSoTheExtraRowIsTheNextOne(): void
+    {
+        // A burst in one second: asking one row more (for "Show more") must not move a row past the page's end
+        $times = $this->database->fetchFirstColumn('SELECT id FROM puzzle_solving_time WHERE team IS NULL ORDER BY seconds_to_solve LIMIT 6');
+        foreach ($times as $time) {
+            $this->database->executeStatement(
+                "INSERT INTO notification (id, player_id, type, notified_at, target_solving_time_id) VALUES (:id, :player, 'SubscribedPlayerAddedTime', " . TestClock::SQL_NOW . " + INTERVAL '1 day', :time)",
+                ['id' => Uuid::uuid7()->toString(), 'player' => PlayerFixture::PLAYER_WITH_FAVORITES, 'time' => $time],
+            );
+        }
+
+        for ($size = 1; $size <= 6; $size++) {
+            self::assertSame(
+                $this->fingerprints($this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, $size)),
+                array_slice($this->fingerprints($this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, $size + 1)), 0, $size),
+            );
+        }
+    }
+
     public function testAPageIsPickedWithoutTheNotificationsTheReaderDoesNotSee(): void
     {
         // The newest notification is about a player the reader blocks: the first page of one is the next one
@@ -348,7 +367,7 @@ final class GetNotificationsTest extends KernelTestCase
     private function fingerprints(array $notifications): array
     {
         return array_values(array_map(
-            static fn (PlayerNotification $notification): string => ($notification->notificationType->value ?? '') . '|' . $notification->notifiedAt->format(DATE_ATOM) . '|' . ($notification->targetPlayerId ?? '') . '|' . ($notification->puzzleId ?? ''),
+            static fn (PlayerNotification $notification): string => ($notification->notificationType->value ?? '') . '|' . $notification->notifiedAt->format(DATE_ATOM) . '|' . ($notification->targetPlayerId ?? '') . '|' . ($notification->puzzleId ?? '') . '|' . $notification->time,
             $notifications,
         ));
     }

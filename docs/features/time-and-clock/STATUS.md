@@ -1200,7 +1200,7 @@ note, not created here) left alone.
   `src/` allowlist per kind, laps in UTC, "Moving the frozen instant" in README, Panther frozen + faketime +400 days
   green locally (two modal wait races fixed).
 - 2026-10-26: PHPStan rule `clock.systemTime` (`tests/PHPStan/SystemClockRule.php`, Jan: "should be forbidden, maybe with a
-  phpstan rule") owns every PHP clock call in `src/`/`bin/`/`tests/`; the deliberate reads (32 lines) moved from the guard's
+  phpstan rule") owns every PHP clock call in `src/`/`bin/`/`tests/`; the deliberate reads (33 lines) moved from the guard's
   allowlist to `@phpstan-ignore clock.systemTime (reason)` on their lines, `ImprovementRatioCalculator` parses with an explicit
   base instead. `SystemClockCoverageTest` keeps templates, `microtime()`/`hrtime()`, a loose `'now'`, relative literals in
   tests and `tests/Panther` (outside PHPStan). CLAUDE.md has no clock rule any more (Jan) - the rule's message says what to use.

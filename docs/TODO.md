@@ -4,6 +4,24 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Background batch queries (`docs/database-indexes.md` `custom_pst_qualifying_first_attempt`, 2026-10-27)
+
+Measured on production 2026-10-26 (`log_min_duration_statement = 500`) and a local copy; what was left as it is:
+
+- [ ] `puzzle_solving_time` autovacuums every ~20 % of changed rows: last vacuum 2026-10-19, 73.5 % of the heap
+  all-visible on 2026-10-26, so every index-only scan of it (the new index above, `custom_pst_solo_board` of the Times
+  boards) still reads a quarter of its rows from the heap. A per-table setting like notification's
+  (`Version20261026235000`) would keep it near 100 % - measure the boards before / after
+- [ ] `recalculate-community-stats` (~3 s a run on production): the `community_player_stats` upsert (1.2-1.45 s) and
+  the moments' running totals (1.4 s) aggregate every result of every (candidate) player, pairs and teams expanded from
+  JSON - no index helps a full aggregate. Splitting the moments' windows at `:since` (results before it only counted)
+  gives identical moments but only ~15 % locally, as reading and expanding the results is the cost. The real fix is
+  incremental stats (only players whose results changed, plus the rolling 7 / 30 day and month windows) - a redesign,
+  only if the run time ever matters
+- [ ] `reconcile-round-results`' series pick statement (0.4-0.55 s): one lateral answer per pick over every edition
+  (6,552 picks x 349 editions on 2026-10-26, ~0.06 ms each) - it grows with picks x editions. Fine for now; if it
+  passes a few seconds, evaluate the rule per (series, puzzle, category, day) once instead of per pick
+
 ## Notifications (`docs/features/notifications.md`, 2026-10-26)
 
 - [ ] lily.srv cron: `myspeedpuzzling:prune-read-notifications` daily. Run it once by hand after the deploy (~2.95M

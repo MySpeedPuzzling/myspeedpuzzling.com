@@ -295,6 +295,8 @@ function createCustomIndexes(): void
     // Puzzle intelligence recalculation optimization (Version20260331200000)
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_pst_intelligence ON puzzle_solving_time (player_id, puzzle_id) WHERE puzzling_type = \'solo\' AND suspicious = false AND seconds_to_solve IS NOT NULL');
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_pst_intelligence_first_attempt ON puzzle_solving_time (puzzle_id, player_id) WHERE first_attempt = true AND puzzling_type = \'solo\' AND suspicious = false AND seconds_to_solve IS NOT NULL');
+    // The insights batch's qualifying first attempts, read in their ranking order (Version20261027010000)
+    $pdo->exec("CREATE INDEX IF NOT EXISTS custom_pst_qualifying_first_attempt ON puzzle_solving_time (player_id, puzzle_id, first_attempt DESC, (COALESCE(finished_at, tracked_at)), tracked_at, id) INCLUDE (seconds_to_solve, finished_at) WHERE puzzling_type = 'solo' AND suspicious = false AND seconds_to_solve IS NOT NULL AND unboxed = false");
 
     // Chat message unread optimization (Version20260212002500)
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_chat_message_unread ON chat_message (conversation_id, sender_id) WHERE read_at IS NULL');

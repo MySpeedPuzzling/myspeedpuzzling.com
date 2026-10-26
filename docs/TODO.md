@@ -8,9 +8,6 @@ that would otherwise be forgotten. Newest section on top.
 
 - [x] lily.srv cron: `myspeedpuzzling:expire-borrow-requests` daily, 05:41 (lily.srv 2c1c5b5, installed 2026-10-26)
 - [ ] Look at the numbers after a few weeks (requests sent, answered, lent) - widen "who can be asked" beyond favorites?
-- [ ] Found while testing (older bug, not this feature): merging two puzzles that are both on one player's wishlist fails
-  on `wish_list_item`'s unique key - `ApprovePuzzleMergeRequestHandler` checks for a duplicate with `findOneBy()`, which
-  does not see the row it moved a moment earlier (the borrow items track that in memory, the other tables do not)
 
 ## Partner finder (`docs/features/partner-finder.md`, 2026-10-22)
 

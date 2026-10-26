@@ -52,9 +52,6 @@ final class BorrowRequestPuzzleMergeTest extends KernelTestCase
         $bus->dispatch(new AskToBorrowPuzzles(Uuid::uuid7()->toString(), $asker, [$owner => [$duplicateA, $duplicateB]]));
         $bus->dispatch(new AskToBorrowPuzzles(Uuid::uuid7()->toString(), $otherAsker, [$owner => [$duplicateB]]));
 
-        // The wishlist rows are not what this test is about (two merged puzzles on one wishlist are docs/TODO.md)
-        $connection->executeStatement('DELETE FROM wish_list_item WHERE player_id IN (:asker, :other)', ['asker' => $asker, 'other' => $otherAsker]);
-
         $mergeRequestId = Uuid::uuid7()->toString();
         $bus->dispatch(new SubmitPuzzleMergeRequest(
             mergeRequestId: $mergeRequestId,

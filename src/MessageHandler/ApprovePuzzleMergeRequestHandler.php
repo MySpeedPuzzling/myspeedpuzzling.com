@@ -411,9 +411,10 @@ readonly final class ApprovePuzzleMergeRequestHandler
             'borrowRequestItems' => ['moved' => [], 'droppedAsDuplicate' => []],
             'tags' => [],
         ];
-        // Borrow asks already moved onto the survivor in this merge: request id / "asker|owner" of a waiting one
-        $movedBorrowRequests = [];
-        $movedWaiting = [];
+        // What this merge already moved onto the survivor, by the key of each unique constraint: with several merged
+        // puzzles the second one's lookup goes to the database, which does not hold the first one's moves before the
+        // flush - two rows would land on the survivor and the flush would fail
+        $onSurvivor = [];
 
         foreach ($puzzlesToMerge as $puzzleToMerge) {
             // Migrate solving times (records PuzzleSolvingTimeModified event which triggers statistics recalculation)
@@ -427,16 +428,18 @@ readonly final class ApprovePuzzleMergeRequestHandler
             $collectionItems = $this->entityManager->getRepository(CollectionItem::class)->findBy(['puzzle' => $puzzleToMerge]);
             foreach ($collectionItems as $item) {
                 // Check if player already has survivor puzzle in the same collection
-                $existingItem = $this->entityManager->getRepository(CollectionItem::class)->findOneBy([
+                $key = 'collection|' . ($item->collection?->id->toString() ?? 'system') . '|' . $item->player->id->toString();
+                $existing = isset($onSurvivor[$key]) || $this->entityManager->getRepository(CollectionItem::class)->findOneBy([
                     'collection' => $item->collection,
                     'player' => $item->player,
                     'puzzle' => $survivorPuzzle,
-                ]);
-                if ($existingItem !== null) {
+                ]) !== null;
+                if ($existing) {
                     $this->entityManager->remove($item);
                     $inventory['collectionItems']['droppedAsDuplicate'][] = $item->id->toString();
                 } else {
                     $item->puzzle = $survivorPuzzle;
+                    $onSurvivor[$key] = true;
                     $inventory['collectionItems']['moved'][] = $item->id->toString();
                 }
             }
@@ -445,15 +448,17 @@ readonly final class ApprovePuzzleMergeRequestHandler
             $wishListItems = $this->entityManager->getRepository(WishListItem::class)->findBy(['puzzle' => $puzzleToMerge]);
             foreach ($wishListItems as $item) {
                 // Check if player already has survivor puzzle in their wish list
-                $existingItem = $this->entityManager->getRepository(WishListItem::class)->findOneBy([
+                $key = 'wishlist|' . $item->player->id->toString();
+                $existing = isset($onSurvivor[$key]) || $this->entityManager->getRepository(WishListItem::class)->findOneBy([
                     'player' => $item->player,
                     'puzzle' => $survivorPuzzle,
-                ]);
-                if ($existingItem !== null) {
+                ]) !== null;
+                if ($existing) {
                     $this->entityManager->remove($item);
                     $inventory['wishListItems']['droppedAsDuplicate'][] = $item->id->toString();
                 } else {
                     $item->puzzle = $survivorPuzzle;
+                    $onSurvivor[$key] = true;
                     $inventory['wishListItems']['moved'][] = $item->id->toString();
                 }
             }
@@ -462,15 +467,17 @@ readonly final class ApprovePuzzleMergeRequestHandler
             $sellSwapItems = $this->entityManager->getRepository(SellSwapListItem::class)->findBy(['puzzle' => $puzzleToMerge]);
             foreach ($sellSwapItems as $item) {
                 // Check if player already has survivor puzzle in their sell/swap list
-                $existingItem = $this->entityManager->getRepository(SellSwapListItem::class)->findOneBy([
+                $key = 'sellswap|' . $item->player->id->toString();
+                $existing = isset($onSurvivor[$key]) || $this->entityManager->getRepository(SellSwapListItem::class)->findOneBy([
                     'player' => $item->player,
                     'puzzle' => $survivorPuzzle,
-                ]);
-                if ($existingItem !== null) {
+                ]) !== null;
+                if ($existing) {
                     $this->entityManager->remove($item);
                     $inventory['sellSwapListItems']['droppedAsDuplicate'][] = $item->id->toString();
                 } else {
                     $item->puzzle = $survivorPuzzle;
+                    $onSurvivor[$key] = true;
                     $inventory['sellSwapListItems']['moved'][] = $item->id->toString();
                 }
             }
@@ -478,16 +485,23 @@ readonly final class ApprovePuzzleMergeRequestHandler
             // Migrate lent puzzles (unique on owner_player_id + puzzle_id)
             $lentPuzzles = $this->entityManager->getRepository(LentPuzzle::class)->findBy(['puzzle' => $puzzleToMerge]);
             foreach ($lentPuzzles as $item) {
-                // Check if owner already has survivor puzzle in lent puzzles
-                $existingItem = $this->entityManager->getRepository(LentPuzzle::class)->findOneBy([
+                // Check if owner already has survivor puzzle in lent puzzles - a lending without a registered owner has
+                // no unique key to clash on (NULLs are distinct)
+                $key = $item->ownerPlayer !== null ? 'lent|' . $item->ownerPlayer->id->toString() : null;
+                $existing = ($key !== null && isset($onSurvivor[$key])) || $this->entityManager->getRepository(LentPuzzle::class)->findOneBy([
                     'ownerPlayer' => $item->ownerPlayer,
                     'puzzle' => $survivorPuzzle,
-                ]);
-                if ($existingItem !== null) {
+                ]) !== null;
+                if ($existing) {
                     $this->entityManager->remove($item);
                     $inventory['lentPuzzles']['droppedAsDuplicate'][] = $item->id->toString();
                 } else {
                     $item->puzzle = $survivorPuzzle;
+
+                    if ($key !== null) {
+                        $onSurvivor[$key] = true;
+                    }
+
                     $inventory['lentPuzzles']['moved'][] = $item->id->toString();
                 }
             }
@@ -523,16 +537,18 @@ readonly final class ApprovePuzzleMergeRequestHandler
             // round already uses it.
             $roundPuzzles = $this->entityManager->getRepository(CompetitionRoundPuzzle::class)->findBy(['puzzle' => $puzzleToMerge]);
             foreach ($roundPuzzles as $roundPuzzle) {
-                $existing = $this->entityManager->getRepository(CompetitionRoundPuzzle::class)->findOneBy([
+                $key = 'round|' . $roundPuzzle->round->id->toString();
+                $existing = isset($onSurvivor[$key]) || $this->entityManager->getRepository(CompetitionRoundPuzzle::class)->findOneBy([
                     'round' => $roundPuzzle->round,
                     'puzzle' => $survivorPuzzle,
-                ]);
+                ]) !== null;
 
-                if ($existing !== null) {
+                if ($existing) {
                     $this->entityManager->remove($roundPuzzle);
                     $inventory['competitionRoundPuzzles']['droppedAsDuplicate'][] = $roundPuzzle->id->toString();
                 } else {
                     $roundPuzzle->moveToPuzzle($survivorPuzzle);
+                    $onSurvivor[$key] = true;
                     $inventory['competitionRoundPuzzles']['moved'][] = $roundPuzzle->id->toString();
                 }
             }
@@ -562,34 +578,32 @@ readonly final class ApprovePuzzleMergeRequestHandler
             // Borrow asks are about the same box - the survivor now. Dropped when the same request already holds the
             // survivor, or the same asker is already waiting for it at the same owner (custom_borrow_item_one_waiting)
             foreach ($this->entityManager->getRepository(BorrowRequestItem::class)->findBy(['puzzle' => $puzzleToMerge]) as $borrowItem) {
-                // Items moved earlier in this loop are not in the database yet - findOneBy() does not see them
-                $requestKey = $borrowItem->request->id->toString();
-                $waitingKey = $borrowItem->asker->id->toString() . '|' . $borrowItem->owner->id->toString();
-                $sameRequest = isset($movedBorrowRequests[$requestKey]) ? true : $this->entityManager->getRepository(BorrowRequestItem::class)->findOneBy([
+                $requestKey = 'borrow-request|' . $borrowItem->request->id->toString();
+                $waitingKey = 'borrow-waiting|' . $borrowItem->asker->id->toString() . '|' . $borrowItem->owner->id->toString();
+                $isWaiting = $borrowItem->status === BorrowRequestItemStatus::Waiting;
+                $sameRequest = isset($onSurvivor[$requestKey]) || $this->entityManager->getRepository(BorrowRequestItem::class)->findOneBy([
                     'request' => $borrowItem->request,
                     'puzzle' => $survivorPuzzle,
-                ]);
-                $isWaiting = $borrowItem->status === BorrowRequestItemStatus::Waiting;
-                $sameWaiting = $isWaiting && isset($movedWaiting[$waitingKey]) ? true : ($isWaiting
-                    ? $this->entityManager->getRepository(BorrowRequestItem::class)->findOneBy([
-                        'asker' => $borrowItem->asker,
-                        'owner' => $borrowItem->owner,
-                        'puzzle' => $survivorPuzzle,
-                        'status' => BorrowRequestItemStatus::Waiting,
-                    ])
-                    : null);
+                ]) !== null;
+                $sameWaiting = $isWaiting && (isset($onSurvivor[$waitingKey]) || $this->entityManager->getRepository(BorrowRequestItem::class)->findOneBy([
+                    'asker' => $borrowItem->asker,
+                    'owner' => $borrowItem->owner,
+                    'puzzle' => $survivorPuzzle,
+                    'status' => BorrowRequestItemStatus::Waiting,
+                ]) !== null);
 
-                if ($sameRequest !== null || $sameWaiting !== null) {
+                if ($sameRequest || $sameWaiting) {
                     $this->entityManager->remove($borrowItem);
                     $inventory['borrowRequestItems']['droppedAsDuplicate'][] = $borrowItem->id->toString();
                 } else {
                     $borrowItem->puzzleMergedInto($survivorPuzzle);
-                    $inventory['borrowRequestItems']['moved'][] = $borrowItem->id->toString();
-                    $movedBorrowRequests[$requestKey] = true;
+                    $onSurvivor[$requestKey] = true;
 
                     if ($isWaiting) {
-                        $movedWaiting[$waitingKey] = true;
+                        $onSurvivor[$waitingKey] = true;
                     }
+
+                    $inventory['borrowRequestItems']['moved'][] = $borrowItem->id->toString();
                 }
             }
 

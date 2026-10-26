@@ -8,11 +8,14 @@ use Doctrine\Bundle\DoctrineBundle\DataCollector\DoctrineDataCollector;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Controller\NotificationsController;
+use SpeedPuzzling\Web\Controller\NotificationsDropdownController;
 use SpeedPuzzling\Web\Events\GroupSolvingTimeEdited;
 use SpeedPuzzling\Web\MessageHandler\NotifyWhenGroupSolvingTimeEdited;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -134,5 +137,76 @@ final class NotificationsControllerTest extends WebTestCase
         $content = (string) $browser->getResponse()->getContent();
         self::assertStringContainsString('edited your shared result for', $content);
         self::assertStringContainsString('Jane Smith', $content);
+    }
+
+    public function testThePageShowsOnePageAndShowMoreLoadsTheNextIntoItsFrame(): void
+    {
+        $browser = self::createClient();
+        $this->addNotifications($browser, PlayerFixture::PLAYER_WITH_FAVORITES, NotificationsController::PAGE_SIZE + 5);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        $crawler = $browser->request('GET', '/en/notifications');
+        self::assertResponseIsSuccessful();
+        self::assertCount(NotificationsController::PAGE_SIZE, $crawler->filter('.custom-table tbody tr'));
+        $frameId = 'notifications-from-' . NotificationsController::PAGE_SIZE;
+        self::assertCount(1, $crawler->filter("turbo-frame#{$frameId}"));
+        self::assertSame(0, $this->unreadCount($browser->getContainer()->get(Connection::class)));
+
+        $crawler = $browser->request('GET', '/en/notifications?offset=' . NotificationsController::PAGE_SIZE, server: ['HTTP_TURBO_FRAME' => $frameId]);
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter("turbo-frame#{$frameId}"));
+        self::assertGreaterThanOrEqual(5, $crawler->filter('tbody tr')->count());
+        self::assertStringNotContainsString('<html', (string) $browser->getResponse()->getContent());
+    }
+
+    public function testTheDropdownShowsTheNewestAndMarksThemRead(): void
+    {
+        $browser = self::createClient();
+        $this->addNotifications($browser, PlayerFixture::PLAYER_WITH_FAVORITES, NotificationsDropdownController::SIZE + 3);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+        self::assertGreaterThan(0, $this->unreadCount($browser->getContainer()->get(Connection::class)));
+
+        $crawler = $browser->request('GET', '/en/notifications-dropdown', server: ['HTTP_TURBO_FRAME' => 'notifications-dropdown']);
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('turbo-frame#notifications-dropdown'));
+        self::assertCount(NotificationsDropdownController::SIZE, $crawler->filter('tbody tr'));
+        self::assertCount(NotificationsDropdownController::SIZE, $crawler->filter('tr.table-active-player'));
+        self::assertSame(0, $this->unreadCount($browser->getContainer()->get(Connection::class)));
+    }
+
+    public function testTheDropdownOutsideItsFrameGoesToThePage(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        $browser->request('GET', '/en/notifications-dropdown');
+
+        self::assertResponseRedirects('/en/notifications');
+    }
+
+    public function testTheBellOpensTheDropdown(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        $crawler = $browser->request('GET', '/en/hub');
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('[data-controller="notifications-dropdown"] turbo-frame#notifications-dropdown'));
+        self::assertCount(1, $crawler->filter('.notifications-dropdown a[href="/en/notifications"]'));
+    }
+
+    private function addNotifications(KernelBrowser $browser, string $playerId, int $count): void
+    {
+        $database = $browser->getContainer()->get(Connection::class);
+        $solvingTimeIds = $database->fetchFirstColumn('SELECT id FROM puzzle_solving_time WHERE team IS NULL ORDER BY id LIMIT 5');
+
+        for ($i = 0; $i < $count; $i++) {
+            $database->executeStatement(
+                "INSERT INTO notification (id, player_id, type, notified_at, target_solving_time_id) VALUES (:id, :player, 'SubscribedPlayerAddedTime', " . TestClock::SQL_NOW . " + make_interval(mins => :minutes), :time)",
+                ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'minutes' => $i + 1, 'time' => $solvingTimeIds[$i % count($solvingTimeIds)]],
+            );
+        }
     }
 }

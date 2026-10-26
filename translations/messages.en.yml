@@ -2055,6 +2055,8 @@ notifications:
     group_time_edited: "edited your shared result for"
     group_time_edited_now: "the time is now"
     no_notifications: "You have no notifications so far. Subscribe to some players by adding them to favorites."
+    show_all: "Show all"
+    show_more: "Show more"
     mark_all_as_read: "Mark all as read"
     mark_as_read: "Mark as read"
     new_notification: "New notification"

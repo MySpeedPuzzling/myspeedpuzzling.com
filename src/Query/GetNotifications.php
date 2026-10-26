@@ -26,7 +26,7 @@ readonly final class GetNotifications
      */
     public function countUnreadForPlayer(string $playerId): int
     {
-        $notHidden = $this->unreadNotHidden();
+        $notHidden = $this->notHidden();
 
         $query = <<<SQL
 SELECT
@@ -49,7 +49,7 @@ SQL;
 
     public function getOldestUnreadNotifiedAtForPlayer(string $playerId): null|\DateTimeImmutable
     {
-        $notHidden = $this->unreadNotHidden();
+        $notHidden = $this->notHidden();
 
         $query = <<<SQL
 SELECT MIN(notified_at)
@@ -87,18 +87,25 @@ SQL;
         $actorNotHidden = $this->hiddenPlayers->sqlExclude('actor.id');
         $actorIsPrivate = $this->privateProfileAccess->sqlIsPrivate('actor');
 
-        // The reader's borrow request notifications are picked first, on their own: the planner must not start that branch
-        // from another index of notification (docs/database-indexes.md, custom_notification_borrow_request)
+        $notHidden = $this->notHidden();
+
+        // The page is picked from the reader's notifications alone, then only its rows are joined: a branch never reads
+        // the reader's whole history (up to 22k rows), and the planner never starts a branch from another index of the
+        // 4.5M-row table - a new target_* column has no statistics for weeks (docs/features/notifications.md)
         $query = <<<SQL
-WITH borrow_notification AS MATERIALIZED (
+WITH page AS MATERIALIZED (
     SELECT *
     FROM notification
     WHERE notification.player_id = :playerId
-        AND notification.target_borrow_request_id IS NOT NULL
+        {$notHidden}
+    ORDER BY notification.notified_at DESC, notification.id DESC
+    LIMIT :limit
+    OFFSET :offset
 )
 SELECT * FROM (
     -- Puzzle solving notifications
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -194,7 +201,7 @@ SELECT * FROM (
         NULL::uuid AS borrow_request_id,
         NULL::int AS borrow_items_total,
         NULL::int AS borrow_items_yes
-    FROM notification
+    FROM page notification
     LEFT JOIN puzzle_solving_time ON notification.target_solving_time_id = puzzle_solving_time.id
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
     -- The "target player" is who the notification is about: the group member who edited the time
@@ -203,15 +210,15 @@ SELECT * FROM (
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
     LEFT JOIN LATERAL json_array_elements(puzzle_solving_time.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality) ON true
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
-    WHERE notification.player_id = :playerId
-        AND notification.target_solving_time_id IS NOT NULL
+    WHERE notification.target_solving_time_id IS NOT NULL
         {$solvingTimeNotHidden}
-    GROUP BY notification.id, puzzle_solving_time.id, puzzle.id, manufacturer.id, player.id
+    GROUP BY notification.id, notification.notified_at, notification.read_at, notification.type, notification.actor_player_id, puzzle_solving_time.id, puzzle.id, manufacturer.id, player.id
 
     UNION ALL
 
     -- Lending notifications
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -298,7 +305,7 @@ SELECT * FROM (
         NULL::uuid AS borrow_request_id,
         NULL::int AS borrow_items_total,
         NULL::int AS borrow_items_yes
-    FROM notification
+    FROM page notification
     INNER JOIN lent_puzzle_transfer lpt ON notification.target_transfer_id = lpt.id
     LEFT JOIN lent_puzzle lp ON lpt.lent_puzzle_id = lp.id
     LEFT JOIN puzzle ON COALESCE(lpt.puzzle_id, lp.puzzle_id) = puzzle.id
@@ -306,13 +313,13 @@ SELECT * FROM (
     LEFT JOIN player from_player ON lpt.from_player_id = from_player.id
     LEFT JOIN player to_player ON lpt.to_player_id = to_player.id
     LEFT JOIN player owner_player ON COALESCE(lpt.owner_player_id, lp.owner_player_id) = owner_player.id
-    WHERE notification.player_id = :playerId
-        AND notification.target_transfer_id IS NOT NULL
+    WHERE notification.target_transfer_id IS NOT NULL
 
     UNION ALL
 
     -- Puzzle change request notifications
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -399,16 +406,16 @@ SELECT * FROM (
         NULL::uuid AS borrow_request_id,
         NULL::int AS borrow_items_total,
         NULL::int AS borrow_items_yes
-    FROM notification
+    FROM page notification
     INNER JOIN puzzle_change_request pcr ON notification.target_change_request_id = pcr.id
     INNER JOIN puzzle ON pcr.puzzle_id = puzzle.id
-    WHERE notification.player_id = :playerId
-        AND notification.target_change_request_id IS NOT NULL
+    WHERE notification.target_change_request_id IS NOT NULL
 
     UNION ALL
 
     -- Puzzle merge request notifications
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -495,16 +502,16 @@ SELECT * FROM (
         NULL::uuid AS borrow_request_id,
         NULL::int AS borrow_items_total,
         NULL::int AS borrow_items_yes
-    FROM notification
+    FROM page notification
     INNER JOIN puzzle_merge_request pmr ON notification.target_merge_request_id = pmr.id
     INNER JOIN puzzle source_puzzle ON pmr.source_puzzle_id = source_puzzle.id
-    WHERE notification.player_id = :playerId
-        AND notification.target_merge_request_id IS NOT NULL
+    WHERE notification.target_merge_request_id IS NOT NULL
 
     UNION ALL
 
     -- Transaction rating notifications
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -597,18 +604,18 @@ SELECT * FROM (
         NULL::uuid AS borrow_request_id,
         NULL::int AS borrow_items_total,
         NULL::int AS borrow_items_yes
-    FROM notification
+    FROM page notification
     INNER JOIN sold_swapped_item ssi ON notification.target_sold_swapped_item_id = ssi.id
     INNER JOIN puzzle ON ssi.puzzle_id = puzzle.id
     INNER JOIN player seller ON ssi.seller_id = seller.id
     LEFT JOIN player buyer ON ssi.buyer_player_id = buyer.id
-    WHERE notification.player_id = :playerId
-        AND notification.target_sold_swapped_item_id IS NOT NULL
+    WHERE notification.target_sold_swapped_item_id IS NOT NULL
 
     UNION ALL
 
     -- Conversation request notifications
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -695,18 +702,18 @@ SELECT * FROM (
         NULL::uuid AS borrow_request_id,
         NULL::int AS borrow_items_total,
         NULL::int AS borrow_items_yes
-    FROM notification
+    FROM page notification
     INNER JOIN conversation conv ON notification.target_conversation_id = conv.id
     INNER JOIN player initiator ON conv.initiator_id = initiator.id
     LEFT JOIN puzzle conv_puzzle ON conv.puzzle_id = conv_puzzle.id
-    WHERE notification.player_id = :playerId
-        AND notification.target_conversation_id IS NOT NULL
+    WHERE notification.target_conversation_id IS NOT NULL
         {$initiatorNotHidden}
 
     UNION ALL
 
     -- Community moderator role notifications (no target entity)
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -793,14 +800,14 @@ SELECT * FROM (
         NULL::uuid AS borrow_request_id,
         NULL::int AS borrow_items_total,
         NULL::int AS borrow_items_yes
-    FROM notification
-    WHERE notification.player_id = :playerId
-        AND notification.type IN ('ModeratorRoleGranted', 'ModeratorRoleRevoked', 'ModeratorInvitationReceived')
+    FROM page notification
+    WHERE notification.type IN ('ModeratorRoleGranted', 'ModeratorRoleRevoked', 'ModeratorInvitationReceived')
 
     UNION ALL
 
     -- Official results of a round the player has a result in were published: the target is the round
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -887,17 +894,17 @@ SELECT * FROM (
         NULL::uuid AS borrow_request_id,
         NULL::int AS borrow_items_total,
         NULL::int AS borrow_items_yes
-    FROM notification
+    FROM page notification
     INNER JOIN competition_round ON competition_round.id = notification.target_competition_round_id
     INNER JOIN competition ON competition.id = competition_round.competition_id
     LEFT JOIN competition_series ON competition_series.id = competition.series_id
-    WHERE notification.player_id = :playerId
-        AND notification.target_competition_round_id IS NOT NULL
+    WHERE notification.target_competition_round_id IS NOT NULL
 
     UNION ALL
 
     -- A pair/team was named or renamed: the target is the team, the player shown is whoever did it
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -984,17 +991,17 @@ SELECT * FROM (
         NULL::uuid AS borrow_request_id,
         NULL::int AS borrow_items_total,
         NULL::int AS borrow_items_yes
-    FROM notification
+    FROM page notification
     INNER JOIN puzzling_team ON puzzling_team.id = notification.target_puzzling_team_id
     INNER JOIN player actor ON actor.id = notification.actor_player_id
-    WHERE notification.player_id = :playerId
-        AND notification.target_puzzling_team_id IS NOT NULL
+    WHERE notification.target_puzzling_team_id IS NOT NULL
         {$actorNotHidden}
 
     UNION ALL
 
     -- "This guest of mine is you": asked (shown to whoever was asked) and agreed to (shown to whoever asked)
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -1081,11 +1088,10 @@ SELECT * FROM (
         NULL::uuid AS borrow_request_id,
         NULL::int AS borrow_items_total,
         NULL::int AS borrow_items_yes
-    FROM notification
+    FROM page notification
     INNER JOIN guest_link_request ON guest_link_request.id = notification.target_guest_link_request_id
     INNER JOIN player actor ON actor.id = notification.actor_player_id
-    WHERE notification.player_id = :playerId
-        AND notification.target_guest_link_request_id IS NOT NULL
+    WHERE notification.target_guest_link_request_id IS NOT NULL
         {$actorNotHidden}
 
     UNION ALL
@@ -1093,6 +1099,7 @@ SELECT * FROM (
     -- "I'd like to puzzle with you" on the player's partner finder listing: the player shown is who asks - named even
     -- when private (sending was their consent, docs/features/partner-finder.md D6), linked only when the reader may see them
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -1180,14 +1187,13 @@ SELECT * FROM (
         NULL::uuid AS borrow_request_id,
         NULL::int AS borrow_items_total,
         NULL::int AS borrow_items_yes
-    FROM notification
+    FROM page notification
     INNER JOIN partner_request ON partner_request.id = notification.target_partner_request_id
     INNER JOIN partner_listing ON partner_listing.id = partner_request.listing_id
     INNER JOIN competition ON competition.id = partner_listing.competition_id
     LEFT JOIN competition_series ON competition_series.id = competition.series_id
     INNER JOIN player actor ON actor.id = notification.actor_player_id
-    WHERE notification.player_id = :playerId
-        AND notification.target_partner_request_id IS NOT NULL
+    WHERE notification.target_partner_request_id IS NOT NULL
         {$actorNotHidden}
 
     UNION ALL
@@ -1196,6 +1202,7 @@ SELECT * FROM (
     -- finder listing names the reader - the player shown is the actor, linked only when the reader may see them;
     -- partner_reader_listed = the reader still has an open listing at the event (then the text offers closing it)
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -1288,13 +1295,12 @@ SELECT * FROM (
         NULL::uuid AS borrow_request_id,
         NULL::int AS borrow_items_total,
         NULL::int AS borrow_items_yes
-    FROM notification
+    FROM page notification
     INNER JOIN partner_listing ON partner_listing.id = notification.target_partner_listing_id
     INNER JOIN competition ON competition.id = partner_listing.competition_id
     LEFT JOIN competition_series ON competition_series.id = competition.series_id
     INNER JOIN player actor ON actor.id = notification.actor_player_id
-    WHERE notification.player_id = :playerId
-        AND notification.target_partner_listing_id IS NOT NULL
+    WHERE notification.target_partner_listing_id IS NOT NULL
         {$actorNotHidden}
 
     UNION ALL
@@ -1303,6 +1309,7 @@ SELECT * FROM (
     -- even when private, asking was their consent), answered or expired for the reader (actor = the owner, shown like
     -- anybody else); the player shown is the actor, linked only when the reader may see them
     SELECT
+        notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
@@ -1388,15 +1395,15 @@ SELECT * FROM (
         borrow_request.id AS borrow_request_id,
         (SELECT COUNT(item.id) FROM borrow_request_item item WHERE item.request_id = borrow_request.id)::int AS borrow_items_total,
         (SELECT COUNT(item.id) FROM borrow_request_item item WHERE item.request_id = borrow_request.id AND item.status IN ('yes', 'lent'))::int AS borrow_items_yes
-    FROM borrow_notification notification
+    FROM page notification
     INNER JOIN borrow_request ON borrow_request.id = notification.target_borrow_request_id
     INNER JOIN player actor ON actor.id = notification.actor_player_id
-    WHERE TRUE
+    WHERE notification.target_borrow_request_id IS NOT NULL
         {$actorNotHidden}
 ) AS combined_notifications
-ORDER BY notified_at DESC
-LIMIT :limit
-OFFSET :offset
+-- The page's own order: notified_at alone ties (a burst of notifications in one second), and a tie must not move a row
+-- past the one more asked for "Show more"
+ORDER BY notified_at DESC, notification_id DESC
 SQL;
 
         $data = $this->database
@@ -1414,10 +1421,10 @@ SQL;
     }
 
     /**
-     * The same rule as the solving time and conversation branches of forPlayer(), for the queries
-     * that read the notification table alone - the badge must not count what the list leaves out.
+     * The branches' rule about hidden players for the notification table alone: the page of forPlayer() is picked
+     * with it, and the badge must not count what the list leaves out.
      */
-    private function unreadNotHidden(): string
+    private function notHidden(): string
     {
         if ($this->hiddenPlayers->ids() === []) {
             return '';
@@ -1438,6 +1445,8 @@ SQL;
     AND (notification.target_partner_request_id IS NULL OR (TRUE{$partnerRequestNotHidden}))
     AND (notification.target_partner_listing_id IS NULL OR (TRUE{$partnerRequestNotHidden}))
     AND (notification.target_borrow_request_id IS NULL OR (TRUE{$partnerRequestNotHidden}))
+    AND (notification.target_puzzling_team_id IS NULL OR (TRUE{$partnerRequestNotHidden}))
+    AND (notification.target_guest_link_request_id IS NULL OR (TRUE{$partnerRequestNotHidden}))
 SQL;
     }
 }

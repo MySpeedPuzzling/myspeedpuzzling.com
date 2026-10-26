@@ -333,9 +333,6 @@ function createCustomIndexes(): void
     // Ask to borrow: one waiting ask per asker, owner and puzzle; the asker's open asks on their wishlist (Version20261026154954)
     $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS custom_borrow_item_one_waiting ON borrow_request_item (asker_id, owner_id, puzzle_id) WHERE status = 'waiting'");
     $pdo->exec("CREATE INDEX IF NOT EXISTS custom_borrow_item_asker_open ON borrow_request_item (asker_id, puzzle_id) WHERE status IN ('waiting', 'yes')");
-
-    // The reader's borrow request notifications (Version20261026210000)
-    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_notification_borrow_request ON notification (player_id) WHERE target_borrow_request_id IS NOT NULL');
 }
 
 /**

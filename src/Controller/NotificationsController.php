@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Message\MarkNotificationsAsRead;
 use SpeedPuzzling\Web\Query\GetNotifications;
@@ -18,6 +19,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class NotificationsController extends AbstractController
 {
+    public const int PAGE_SIZE = 30;
+
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetNotifications $getNotifications,
@@ -36,7 +39,7 @@ final class NotificationsController extends AbstractController
         ],
         name: 'notifications',
     )]
-    public function __invoke(#[CurrentUser] UserInterface $user): Response
+    public function __invoke(#[CurrentUser] UserInterface $user, Request $request): Response
     {
         $player = $this->retrieveLoggedUserProfile->getProfile();
 
@@ -44,20 +47,34 @@ final class NotificationsController extends AbstractController
             return $this->redirectToRoute('homepage');
         }
 
-        $notifications = $this->getNotifications->forPlayer($player->playerId, 200);
-        $notificationsCount = $this->getNotifications->countUnreadForPlayer($player->playerId);
+        $offset = max(0, $request->query->getInt('offset'));
+        // One row more than the page tells whether "Show more" has anything to show
+        $notifications = $this->getNotifications->forPlayer($player->playerId, self::PAGE_SIZE + 1, $offset);
+        $nextOffset = count($notifications) > self::PAGE_SIZE ? $offset + self::PAGE_SIZE : null;
+        $parameters = [
+            'notifications' => array_slice($notifications, 0, self::PAGE_SIZE),
+            'position_offset' => $offset,
+            'next_offset' => $nextOffset,
+        ];
 
-        if ($notificationsCount > 0) {
-            $this->bus->dispatch(
-                new MarkNotificationsAsRead($player->playerId),
-            );
+        // "Show more": the next page into its frame - the first page has marked everything read already
+        if ($offset > 0 && $request->headers->get('Turbo-Frame') === "notifications-from-{$offset}") {
+            return $this->render('notifications/_more.html.twig', $parameters);
         }
 
-        return $this->render('notifications.html.twig', [
-            'notifications' => $notifications,
+        $this->markAllRead($player->playerId);
+
+        return $this->render('notifications.html.twig', $parameters + [
             // Everything unread was just marked read (handled synchronously), so the layout's
             // bell shows 0 - without counting the player's notifications a second time
             'notifications_count' => 0,
         ]);
+    }
+
+    private function markAllRead(string $playerId): void
+    {
+        if ($this->getNotifications->countUnreadForPlayer($playerId) > 0) {
+            $this->bus->dispatch(new MarkNotificationsAsRead($playerId));
+        }
     }
 }

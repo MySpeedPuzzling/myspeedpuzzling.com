@@ -1,0 +1,23 @@
+{#
+    One page of the notifications list and the "Show more" frame that loads the next one into its place - the frame's
+    answer is this partial again inside the same frame (notifications/_more.html.twig).
+      - notifications, position_offset (int), next_offset (null|int: null = nothing more)
+#}
+<div class="table-responsive custom-table-wrapper {{ position_offset == 0 ? 'mt-4' }} mb-4">
+    <table class="table table-striped custom-table table-hover mb-0">
+        <tbody>
+            {{ include('notifications/_rows.html.twig') }}
+        </tbody>
+    </table>
+</div>
+
+{% if next_offset is not null %}
+    {# target _top: the rows' links open their pages, only "Show more" loads into the frame #}
+    <turbo-frame id="notifications-from-{{ next_offset }}" target="_top">
+        <div class="text-center mb-4">
+            <a class="btn btn-outline-primary btn-sm" href="{{ path('notifications', {offset: next_offset}) }}" rel="nofollow" data-turbo-frame="notifications-from-{{ next_offset }}">
+                {{ 'notifications.show_more'|trans }}
+            </a>
+        </div>
+    </turbo-frame>
+{% endif %}

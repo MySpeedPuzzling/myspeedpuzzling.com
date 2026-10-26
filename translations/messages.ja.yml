@@ -539,6 +539,8 @@
   "mark_as_read": "既読にする"
   "mark_all_as_read": "すべて既読にする"
   "no_notifications": "通知がありません"
+  "show_all": "すべて表示"
+  "show_more": "さらに表示"
   "new_notification": "新しい通知"
   "solved_puzzle": "パズルを解きました"
   "group_time_edited": "が共有の記録を編集しました："

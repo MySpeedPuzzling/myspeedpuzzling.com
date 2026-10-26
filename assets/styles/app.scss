@@ -607,6 +607,53 @@ td.rank {
     }
 }
 
+// The bell's dropdown (templates/notifications/_dropdown.html.twig): the newest notifications, scrolling inside.
+// Opened by a click only - the theme opens navbar dropdowns on hover from lg up and hides `.show` there, and the click
+// is what loads it (notifications_dropdown_controller.js)
+.navbar .navbar-tool.dropdown {
+    &:hover > .notifications-dropdown:not(.show) {
+        display: none;
+    }
+
+    > .notifications-dropdown.show {
+        display: block;
+    }
+}
+
+.notifications-dropdown {
+    width: 26rem;
+
+    // Bootstrap places navbar dropdowns by CSS, not Popper: on a phone the bell is too far left for a right-aligned
+    // menu, so it spans the screen under the header
+    @include media-breakpoint-down(sm) {
+        position: fixed !important;
+        top: calc(var(--header-height, 97px) - .5rem) !important;
+        right: .75rem !important;
+        left: .75rem !important;
+        width: auto;
+    }
+
+    .notifications-dropdown-body {
+        max-height: min(28rem, 65vh);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+    .notifications-dropdown-table {
+        td {
+            white-space: normal;
+        }
+
+        tr:last-child td {
+            border-bottom: 0;
+        }
+    }
+
+    .notifications-dropdown-footer:hover {
+        background: $gray-100;
+    }
+}
+
 .dropdown-toggle.navbar-tool::after {
     color: #4b566b !important;
     margin-left: -7px;

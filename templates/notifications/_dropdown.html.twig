@@ -1,0 +1,15 @@
+{#
+    The bell's dropdown: the newest notifications, loaded when it opens (notifications_dropdown_controller.js).
+      - notifications (the newest ones)
+#}
+<turbo-frame id="notifications-dropdown" target="_top">
+    {% if notifications is empty %}
+        <p class="text-muted fs-sm text-center px-3 py-4 mb-0">{{ 'notifications.no_notifications'|trans }}</p>
+    {% else %}
+        <table class="table custom-table table-hover notifications-dropdown-table mb-0">
+            <tbody>
+                {{ include('notifications/_rows.html.twig', {position_offset: 0}) }}
+            </tbody>
+        </table>
+    {% endif %}
+</turbo-frame>

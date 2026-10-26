@@ -799,12 +799,38 @@
                         {# The notifications page passes its count (0 - it has just marked everything read) #}
                         {% set notifications_count = notifications_count is defined ? notifications_count : (logged_user.profile is not null ? get_notifications.countUnreadForPlayer(logged_user.profile.playerId) : 0) %}
 
-                        <a class="navbar-tool ms-1 ms-lg-0 me-1 me-lg-2 {% if app.request.pathInfo == path('notifications') %}active{% endif %}" rel="nofollow" href="{{ path('notifications') }}" data-turbo-prefetch="false" aria-label="{{ 'accessibility.notifications_count'|trans({'%count%': notifications_count}) }}">
-                            <div class="navbar-tool-icon-box {{ notifications_count > 0 ? 'bg-secondary' }}">
-                                <span class="navbar-tool-label {{ notifications_count == 0 ? 'bg-secondary text-dark' }}" aria-hidden="true">{{ notifications_count }}</span>
-                                <i class="navbar-tool-icon ci-bell" aria-hidden="true"></i>
+                        {% if logged_user.profile is not null %}
+                            {# The bell opens the newest notifications (notifications_dropdown_controller.js loads them on the first open); the link still leads to the page for a middle click #}
+                            <div class="navbar-tool dropdown ms-1 ms-lg-0 me-1 me-lg-2" data-controller="notifications-dropdown" data-notifications-dropdown-src-value="{{ path('notifications_dropdown') }}">
+                                <a class="navbar-tool {% if app.request.pathInfo == path('notifications') %}active{% endif %}" rel="nofollow" href="{{ path('notifications') }}" role="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" data-turbo-prefetch="false" aria-label="{{ 'accessibility.notifications_count'|trans({'%count%': notifications_count}) }}">
+                                    <div class="navbar-tool-icon-box {{ notifications_count > 0 ? 'bg-secondary' }}" data-notifications-dropdown-target="box">
+                                        <span class="navbar-tool-label {{ notifications_count == 0 ? 'bg-secondary text-dark' }}" aria-hidden="true" data-notifications-dropdown-target="count">{{ notifications_count }}</span>
+                                        <i class="navbar-tool-icon ci-bell" aria-hidden="true"></i>
+                                    </div>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end notifications-dropdown p-0">
+                                    <div class="notifications-dropdown-header d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
+                                        <span class="fw-medium">{{ 'notifications.title'|trans }}</span>
+                                    </div>
+                                    <div class="notifications-dropdown-body">
+                                        <turbo-frame id="notifications-dropdown" target="_top" data-notifications-dropdown-target="frame">
+                                            <div class="text-center text-muted py-4">
+                                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                                <span class="visually-hidden">{{ 'loading'|trans }}</span>
+                                            </div>
+                                        </turbo-frame>
+                                    </div>
+                                    <a class="notifications-dropdown-footer d-block text-center fs-sm fw-medium px-3 py-2 border-top" href="{{ path('notifications') }}">{{ 'notifications.show_all'|trans }}</a>
+                                </div>
                             </div>
-                        </a>
+                        {% else %}
+                            <a class="navbar-tool ms-1 ms-lg-0 me-1 me-lg-2" rel="nofollow" href="{{ path('notifications') }}" data-turbo-prefetch="false" aria-label="{{ 'accessibility.notifications_count'|trans({'%count%': 0}) }}">
+                                <div class="navbar-tool-icon-box">
+                                    <span class="navbar-tool-label bg-secondary text-dark" aria-hidden="true">0</span>
+                                    <i class="navbar-tool-icon ci-bell" aria-hidden="true"></i>
+                                </div>
+                            </a>
+                        {% endif %}
 
                         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-expanded="false" aria-controls="navbarCollapse" aria-label="{{ 'accessibility.toggle_navigation'|trans }}">
                             <span class="toggler-bar"></span>

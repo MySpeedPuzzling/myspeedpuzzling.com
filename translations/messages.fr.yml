@@ -1581,6 +1581,8 @@ competition_referees:
   "group_time_edited": "a modifié votre résultat commun pour"
   "group_time_edited_now": "le temps est désormais"
   "no_notifications": "Vous n'avez aucune notification pour l'instant. Abonnez-vous à quelques joueurs en les ajoutant aux favoris."
+  "show_all": "Tout afficher"
+  "show_more": "Afficher plus"
   "mark_all_as_read": "Tout marquer comme lu"
   "mark_as_read": "Marquer comme lu"
   "new_notification": "Nouvelle notification"

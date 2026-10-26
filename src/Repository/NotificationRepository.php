@@ -156,4 +156,25 @@ readonly final class NotificationRepository
             ->getQuery()
             ->execute();
     }
+
+    /**
+     * A bulk DELETE on purpose (prune cron): millions of rows on the first run, loading them is not an option. Native
+     * SQL for the batch LIMIT, which DQL has not - one batch per call, so every batch commits on its own and no
+     * transaction holds a million row locks.
+     */
+    public function deleteReadOlderThan(NotificationType $type, DateTimeImmutable $before, int $batchSize): int
+    {
+        return (int) $this->entityManager->getConnection()->executeStatement(
+            'DELETE FROM notification WHERE id IN (
+                SELECT id FROM notification
+                WHERE type = :type AND read_at IS NOT NULL AND notified_at < :before
+                LIMIT :batchSize
+            )',
+            [
+                'type' => $type->value,
+                'before' => $before->format('Y-m-d H:i:s'),
+                'batchSize' => $batchSize,
+            ],
+        );
+    }
 }

@@ -243,24 +243,36 @@ final class GetNotificationsTest extends KernelTestCase
         self::assertSame([], $left);
     }
 
-    public function testTheBorrowRequestBranchCanUseItsIndex(): void
+    public function testPagesTogetherAreTheWholeListOnceEach(): void
     {
-        /** @var DebugDataHolder $debugDataHolder */
-        $debugDataHolder = self::getContainer()->get('doctrine.debug_data_holder');
-        $debugDataHolder->reset();
+        $all = $this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, 100);
+        self::assertGreaterThan(2, count($all));
 
-        $this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, 20);
+        $paged = [];
+        for ($offset = 0; $offset < count($all) + 2; $offset += 2) {
+            $page = $this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, 2, $offset);
+            self::assertLessThanOrEqual(2, count($page));
+            array_push($paged, ...$page);
+        }
 
-        /** @var list<array{sql: string, params: array<mixed>}> $executed */
-        $executed = $debugDataHolder->getData()['default'] ?? [];
-        self::assertCount(1, $executed);
+        self::assertCount(count($all), $paged);
+        self::assertEqualsCanonicalizing($this->fingerprints($all), $this->fingerprints($paged));
+    }
 
-        // The test database is tiny, so the planner would scan it anyway - only prove the index is usable
-        $this->database->executeStatement('SET LOCAL enable_seqscan = off');
-        /** @var list<string> $plan */
-        $plan = $this->database->fetchFirstColumn('EXPLAIN ' . $executed[0]['sql'], array_values($executed[0]['params']));
+    public function testAPageIsPickedWithoutTheNotificationsTheReaderDoesNotSee(): void
+    {
+        // The newest notification is about a player the reader blocks: the first page of one is the next one
+        $this->database->executeStatement(
+            "INSERT INTO notification (id, player_id, type, notified_at, target_solving_time_id) VALUES (:id, :player, 'SubscribedPlayerAddedTime', " . TestClock::SQL_NOW . " + INTERVAL '1 hour', :time)",
+            ['id' => Uuid::uuid7()->toString(), 'player' => PlayerFixture::PLAYER_WITH_FAVORITES, 'time' => $this->solvingTimeOf(PlayerFixture::PLAYER_REGULAR)],
+        );
+        $this->block(PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_REGULAR);
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_FAVORITES);
 
-        self::assertStringContainsString('custom_notification_borrow_request', implode("\n", $plan));
+        $page = $this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, 1);
+
+        self::assertCount(1, $page);
+        self::assertNotSame(PlayerFixture::PLAYER_REGULAR, $page[0]->targetPlayerId);
     }
 
     private function partnerNotification(string $playerId): PlayerNotification
@@ -327,6 +339,26 @@ final class GetNotificationsTest extends KernelTestCase
             "INSERT INTO notification (id, player_id, type, notified_at, actor_player_id, target_borrow_request_id) VALUES (:id, :player, :type, " . TestClock::SQL_NOW . ", :actor, :request)",
             ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'type' => $type, 'actor' => $actorId, 'request' => $borrowRequestId],
         );
+    }
+
+    /**
+     * @param array<PlayerNotification> $notifications
+     * @return list<string>
+     */
+    private function fingerprints(array $notifications): array
+    {
+        return array_values(array_map(
+            static fn (PlayerNotification $notification): string => ($notification->notificationType->value ?? '') . '|' . $notification->notifiedAt->format(DATE_ATOM) . '|' . ($notification->targetPlayerId ?? '') . '|' . ($notification->puzzleId ?? ''),
+            $notifications,
+        ));
+    }
+
+    private function solvingTimeOf(string $playerId): string
+    {
+        $id = $this->database->fetchOne("SELECT id FROM puzzle_solving_time WHERE player_id = :player AND team IS NULL LIMIT 1", ['player' => $playerId]);
+        assert(is_string($id));
+
+        return $id;
     }
 
     private function block(string $blockerId, string $blockedId): void

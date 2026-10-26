@@ -4,13 +4,13 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
-## Notifications page query (`src/Query/GetNotifications.php`, `docs/database-indexes.md`, 2026-10-26)
+## Notifications (`docs/features/notifications.md`, 2026-10-26)
 
-- [ ] The heaviest readers (20-30k notifications) still take ~0.5 s: the solving-time branch aggregates every one of
-  their notifications before the outer `LIMIT`, and the moderator branch (`type IN (...)`) reads all their rows.
-  Measured on a local copy with 4.55M notifications - the same before #288. Limit each branch to its newest rows first?
-- [ ] Every new `notification.target_*` column: read its branch the way the borrow branch does (`MATERIALIZED` CTE +
-  partial index `(player_id) WHERE target_… IS NOT NULL`) - the column has no statistics for weeks
+- [ ] lily.srv cron: `myspeedpuzzling:prune-read-notifications` daily. Run it once by hand after the deploy (~2.95M
+  rows, 1–3 min), then `VACUUM (ANALYZE) notification` from the infra session
+- [ ] Unread notifications of players not seen for a long time (488k rows, 1,097 players): prune them too?
+- [ ] Index `(player_id, notified_at DESC)` if the heaviest readers' 40 ms (a top-N sort of their rows) still matters
+  after the prune
 
 ## Wishlist availability and ask to borrow (`docs/features/wishlist-availability.md`, 2026-10-26)
 

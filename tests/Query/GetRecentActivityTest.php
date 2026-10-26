@@ -151,7 +151,8 @@ SQL,
                     }
 
                     if ($limit === 2) {
-                        $own = (int) $this->database->fetchOne('SELECT COUNT(*) FROM puzzle_solving_time WHERE player_id = :playerId', ['playerId' => $playerId]);
+                        $own = $this->database->fetchOne('SELECT COUNT(*) FROM puzzle_solving_time WHERE player_id = :playerId', ['playerId' => $playerId]);
+                        assert(is_int($own));
                         $limitCutBothWays = $limitCutBothWays || ($own > $limit && count($expected) === $limit && in_array(
                             true,
                             array_map(static fn (array $row): bool => $row['player_id'] !== $playerId, $expected),

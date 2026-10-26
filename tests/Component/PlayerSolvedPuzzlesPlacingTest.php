@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Component;
 
+use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Component\PlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -41,7 +43,13 @@ final class PlayerSolvedPuzzlesPlacingTest extends WebTestCase
 
     public function testThePlacingChipNarrowsTheListAndCountsAsAFilter(): void
     {
-        $component = $this->results(self::createClient());
+        $client = self::createClient();
+        // PUZZLE_500_01: the slowest of the 4 on its board (ADMIN 1200, STRIPE 2100, FAVORITES 3000; PRIVATE is not in it)
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE puzzle_solving_time SET seconds_to_solve = 5000 WHERE player_id = :player AND puzzle_id = :puzzle AND puzzling_type = 'solo'",
+            ['player' => PlayerFixture::PLAYER_REGULAR, 'puzzle' => PuzzleFixture::PUZZLE_500_01],
+        );
+        $component = $this->results($client);
         $all = $this->ranks($component->render()->crawler());
         self::assertContains(1, $all);
         self::assertNotSame([], array_filter($all, static fn (int $rank): bool => $rank > 3), 'Some puzzles are placed below 3rd');
@@ -81,13 +89,16 @@ final class PlayerSolvedPuzzlesPlacingTest extends WebTestCase
         self::assertCount(0, $crawler->filter('[data-testid="placing-summary"]'));
     }
 
-    public function testPredictionSortsAreForMembersOnly(): void
+    public function testPredictionSortsAreLockedForGuests(): void
     {
         $guest = $this->results(self::createClient());
         $guest->call('changeSortBy', ['sort' => 'ahead_of_prediction']);
         self::assertSame('fastest', $this->component($guest)->sortBy);
         self::assertCount(0, $guest->render()->crawler()->filter('[data-live-sort-param="ahead_of_prediction"]'), 'Locked for guests');
+    }
 
+    public function testMembersSortByPrediction(): void
+    {
         $member = $this->results($this->signedIn(PlayerFixture::PLAYER_WITH_STRIPE));
         $member->call('changeSortBy', ['sort' => 'ahead_of_prediction']);
         self::assertSame('ahead_of_prediction', $this->component($member)->sortBy);

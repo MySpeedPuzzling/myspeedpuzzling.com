@@ -162,7 +162,8 @@ final class PlayerSolvedPuzzlesDifficultyTest extends WebTestCase
             $fastest = $this->rows($crawler)->each(static fn (Crawler $row): string => $row->html());
 
             self::assertCount(0, $crawler->filter('[data-live-sort-param="easiest"], [data-live-sort-param="hardest"]'));
-            self::assertCount(2, $crawler->filter('#sortingDropdown + .dropdown-menu [data-bs-target="#membersExclusiveModal"]'));
+            // Locked: the two difficulty sorts and the two prediction sorts (docs/features/profile-results-placing.md)
+            self::assertCount(4, $crawler->filter('#sortingDropdown + .dropdown-menu [data-bs-target="#membersExclusiveModal"]'));
 
             $component->call('changeSortBy', ['sort' => 'hardest']);
             self::assertSame('fastest', $this->component($component)->sortBy);

@@ -66,6 +66,13 @@ final class MessagingSettingsFormType extends AbstractType
             'required' => false,
         ]);
 
+        // docs/features/wishlist-availability.md - e-mails about somebody asking to borrow puzzles from the player
+        $builder->add('borrowRequestEmails', CheckboxType::class, [
+            'label' => 'borrow_request.settings.emails_label',
+            'help' => 'borrow_request.settings.emails_help',
+            'required' => false,
+        ]);
+
         $builder->add('featureRequestEmails', EnumType::class, [
             'class' => FeatureRequestEmails::class,
             'label' => 'edit_profile.feature_request_emails',

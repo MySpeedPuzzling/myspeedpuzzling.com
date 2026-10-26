@@ -57,4 +57,10 @@ enum NotificationType: string
 
     // The actor named the player as a member of their group in their partner finder listing; target = that listing
     case PartnerGroupMember = 'PartnerGroupMember';
+
+    // "Could I borrow these?" (docs/features/wishlist-availability.md): asked of the player (actor = who asks), answered
+    // for the player (actor = the owner), or the player's request ran out unanswered (actor = the owner); target = the request
+    case BorrowRequested = 'BorrowRequested';
+    case BorrowRequestAnswered = 'BorrowRequestAnswered';
+    case BorrowRequestExpired = 'BorrowRequestExpired';
 }

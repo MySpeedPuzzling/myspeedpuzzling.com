@@ -23,6 +23,8 @@ readonly final class EditMessagingSettings
         public null|FeatureRequestEmails $featureRequestEmails = null,
         /** Null = not on the form, keep the stored preference (docs/features/partner-finder.md D6) */
         public null|bool $partnerFinderEmails = null,
+        /** Null = not on the form, keep the stored preference (docs/features/wishlist-availability.md) */
+        public null|bool $borrowRequestEmails = null,
     ) {
     }
 }

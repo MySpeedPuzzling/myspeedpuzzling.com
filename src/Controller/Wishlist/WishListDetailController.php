@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Query\GetWishListItems;
 use SpeedPuzzling\Web\Results\CollectionOverview;
 use SpeedPuzzling\Web\Services\Insights\ResolvePersonalEstimates;
 use SpeedPuzzling\Web\Services\ResolvePuzzleListInsights;
+use SpeedPuzzling\Web\Services\ResolveWishlistAvailability;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -30,6 +31,7 @@ final class WishListDetailController extends AbstractController
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private ResolvePuzzleListInsights $resolvePuzzleListInsights,
         readonly private ResolvePersonalEstimates $resolvePersonalEstimates,
+        readonly private ResolveWishlistAvailability $resolveWishlistAvailability,
     ) {
     }
 
@@ -69,6 +71,8 @@ final class WishListDetailController extends AbstractController
         }
 
         $items = $this->getWishListItems->byPlayerId($player->playerId);
+        $puzzleIds = array_column($items, 'puzzleId');
+        $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayerProfile?->playerId);
 
         $collectionOverview = new CollectionOverview(
             playerId: $playerId,
@@ -82,10 +86,12 @@ final class WishListDetailController extends AbstractController
             'collection' => $collectionOverview,
             'items' => $items,
             'player' => $player,
-            'puzzle_statuses' => $this->getUserPuzzleStatuses->byPlayerId($loggedPlayerProfile?->playerId),
-            ...$this->resolvePuzzleListInsights->forViewer($loggedPlayerProfile, array_column($items, 'puzzleId'))->templateParameters(),
+            'puzzle_statuses' => $puzzleStatuses,
+            ...$this->resolvePuzzleListInsights->forViewer($loggedPlayerProfile, $puzzleIds)->templateParameters(),
             // The viewer's own time on each puzzle - null while Insights are hidden from them (docs/features/insights/estimates.md)
-            'estimates' => $this->resolvePersonalEstimates->forViewer($loggedPlayerProfile, array_column($items, 'puzzleId')),
+            'estimates' => $this->resolvePersonalEstimates->forViewer($loggedPlayerProfile, $puzzleIds),
+            // Marketplace offers for everybody, favorites who could lend them for the owner (docs/features/wishlist-availability.md)
+            'wishlist_availability' => $this->resolveWishlistAvailability->forViewer($loggedPlayerProfile, $player->playerId, $puzzleIds, $puzzleStatuses),
         ]);
     }
 }

@@ -6,8 +6,12 @@
     <twig:PlayerHeader player="{{ player }}" tab="library" />
 
 {% set can_select = logged_user.profile is not null and logged_user.profile.playerId == collection.playerId and logged_user.profile.activeMembership %}
-<div data-controller="collection-items collection-filter{{ can_select ? ' collection-selection' }}"
-     {% if can_select %}
+{# Asking favorites to lend is free: the owner of the list selects puzzles even without a membership, with "Ask to borrow"
+   as the only action then (docs/features/wishlist-availability.md) #}
+{% set can_ask = wishlist_availability.isOwnList and wishlist_availability.owners is not empty %}
+{% set can_tick = can_select or can_ask %}
+<div data-controller="collection-items collection-filter{{ can_tick ? ' collection-selection' }}"
+     {% if can_tick %}
      data-collection-selection-count-text-value="{{ browser_translation('collection_selection.selected_count')|json_encode }}"
      data-action="click->collection-selection#cardClick keydown.esc@document->collection-selection#escape turbo:submit-end@document->collection-selection#submitted"
      {% endif %}>
@@ -54,6 +58,8 @@
         </div>
     </div>
 
+    {{ include('wishlist/_availability_banner.html.twig') }}
+
     {% if items|length > 3 %}
         <div class="filters mb-3">
             <div class="row gx-2 align-items-center">
@@ -76,6 +82,7 @@
                     {{ include('_pieces_filter_client.html.twig') }}
                 </div>
 
+                {{ include('wishlist/_availability_filter_chips.html.twig') }}
                 {{ include('_difficulty_filter_chips.html.twig') }}
                 {{ include('_difficulty_sort.html.twig') }}
             </div>
@@ -98,7 +105,7 @@
                 {{ include('_puzzle_library_item.html.twig', {
                     item: item,
                     page_context: 'wishlist',
-                    selectable: can_select,
+                    selectable: can_tick,
                     collection: collection,
                     puzzle_statuses: puzzle_statuses,
                     logged_user: logged_user,
@@ -115,11 +122,13 @@
     {% endif %}
     </div>
 
-    {% if can_select %}
-        {{ include('_puzzle_selection_bar.html.twig', {actions: [
+    {% if can_tick %}
+        {% set ask_action = can_ask ? [{label: 'borrow_request.ask_action'|trans, short: 'borrow_request.ask_action_short'|trans, icon: 'bi bi-box-arrow-in-down', url: path('borrow_ask_sheet')}] : [] %}
+        {% set member_actions = can_select ? [
             {label: 'puzzle_selection.add_to_collection'|trans, short: 'puzzle_selection.add_to_collection_short'|trans, icon: 'bi bi-collection', url: path('puzzle_list_selected_add_to_collection', {list: 'wishlist'})},
             {label: 'collection_selection.remove'|trans, icon: 'ci-trash', url: path('puzzle_list_selected_action', {list: 'wishlist', action: 'remove'}), danger: true},
-        ]}) }}
+        ] : [] %}
+        {{ include('_puzzle_selection_bar.html.twig', {actions: ask_action|merge(member_actions)}) }}
     {% endif %}
 </div>
 {% endblock %}

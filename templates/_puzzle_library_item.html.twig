@@ -101,6 +101,12 @@
      data-search="{{ item.searchNames ~ item.searchCodes }}"
      {% endif %}
      data-manufacturer="{{ item.manufacturerName ?? '' }}"
+     {% if page_context == 'wishlist' and wishlist_availability is defined %}
+     {% set wishlist_offers = wishlist_availability.offersFor(item.puzzleId) %}
+     data-offers="{{ wishlist_offers is not null ? wishlist_offers.offers : 0 }}"
+     data-ships-to-me="{{ wishlist_offers is not null ? (wishlist_offers.shipsToViewer ?? 0) : 0 }}"
+     data-favorites="{{ wishlist_availability.lendableOwnersCount(item.puzzleId) }}"
+     {% endif %}
      {% if page_context == 'sell-swap' %}
      data-listing-type="{{ item.listingType.value }}"
      data-price="{{ item.price ?? '' }}"
@@ -268,6 +274,9 @@
                         {% elseif page_context == 'wishlist' %}
                             {% if item.removeOnCollectionAdd %}
                                 <small class="text-muted"><i class="bi bi-check me-1"></i>{{ 'wish_list.auto_remove_enabled'|trans }}</small>
+                            {% endif %}
+                            {% if wishlist_availability is defined %}
+                                {{ include('wishlist/_availability_chips.html.twig') }}
                             {% endif %}
                         {% endif %}
 

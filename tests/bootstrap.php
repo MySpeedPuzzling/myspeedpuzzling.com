@@ -329,6 +329,10 @@ function createCustomIndexes(): void
     // Partner finder: one open listing per player and event, the open listings of an event (Version20261022172651)
     $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS custom_partner_listing_one_open ON partner_listing (competition_id, player_id) WHERE closed_at IS NULL');
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_partner_listing_open_by_event ON partner_listing (competition_id) WHERE closed_at IS NULL');
+
+    // Ask to borrow: one waiting ask per asker, owner and puzzle; the asker's open asks on their wishlist (Version20261026154954)
+    $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS custom_borrow_item_one_waiting ON borrow_request_item (asker_id, owner_id, puzzle_id) WHERE status = 'waiting'");
+    $pdo->exec("CREATE INDEX IF NOT EXISTS custom_borrow_item_asker_open ON borrow_request_item (asker_id, puzzle_id) WHERE status IN ('waiting', 'yes')");
 }
 
 /**

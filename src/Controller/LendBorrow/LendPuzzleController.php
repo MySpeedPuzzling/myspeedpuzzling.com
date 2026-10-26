@@ -72,6 +72,11 @@ final class LendPuzzleController extends AbstractController
         $isAlreadyLent = $this->getLentPuzzles->isPuzzleLentByOwner($loggedPlayer->playerId, $puzzleId);
 
         $formData = new LendPuzzleFormData();
+        // "Lend to …" on an answered borrow request names who asked (docs/features/wishlist-availability.md)
+        $borrowerCode = $request->query->getString('borrower');
+        if ($request->isMethod('GET') && preg_match('/^#?[a-z0-9_-]{1,64}$/i', $borrowerCode) === 1) {
+            $formData->borrowerCode = '#' . ltrim($borrowerCode, '#');
+        }
         $form = $this->createForm(LendPuzzleFormType::class, $formData);
         $form->handleRequest($request);
 

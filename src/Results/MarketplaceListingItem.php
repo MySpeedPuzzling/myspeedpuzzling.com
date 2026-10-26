@@ -42,6 +42,8 @@ readonly final class MarketplaceListingItem
         public bool $bringing = false,
         public null|MarketplaceEvent $bringingTo = null,
         public null|MarketplaceEvent $sellerGoesTo = null,
+        // The puzzle is on the viewer's wishlist (docs/features/wishlist-availability.md)
+        public bool $onViewerWishlist = false,
     ) {
     }
 }

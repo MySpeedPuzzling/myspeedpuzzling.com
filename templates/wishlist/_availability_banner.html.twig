@@ -1,0 +1,42 @@
+{#
+    The owner's summary above the wishlist (docs/features/wishlist-availability.md): how many puzzles are on the
+    marketplace (link to the marketplace filtered to the wishlist), and the favorites who could lend some - with the
+    one-tap suggested selection ("Ask the fewest people for the most puzzles").
+#}
+{% if wishlist_availability.isOwnList and (wishlist_availability.puzzlesOnMarketplace > 0 or wishlist_availability.canAskSomebody) %}
+    <div class="d-flex flex-column gap-2 mb-3">
+        {% if wishlist_availability.puzzlesOnMarketplace > 0 %}
+            {% set shipped = wishlist_availability.puzzlesShippedToViewer %}
+            <div class="alert alert-light border d-flex flex-wrap align-items-center justify-content-between gap-2 mb-0 py-2">
+                <span class="fs-sm">
+                    <i class="bi bi-shop me-1 text-primary"></i>
+                    {{ 'wishlist_availability.banner.marketplace'|trans({'%count%': wishlist_availability.puzzlesOnMarketplace, '%total%': items|length})|raw }}
+                    {% if wishlist_availability.viewerHasCountry %}
+                        {{ 'wishlist_availability.banner.shipped'|trans({'%count%': shipped}) }}
+                    {% endif %}
+                </span>
+                <a class="btn btn-sm btn-outline-primary text-nowrap"
+                   href="{{ path('marketplace', {onMyWishlist: 1, shipToMyCountry: shipped > 0 ? 1 : null}) }}">
+                    {{ 'wishlist_availability.banner.see_on_marketplace'|trans }}
+                </a>
+            </div>
+        {% endif %}
+
+        {% if wishlist_availability.canAskSomebody %}
+            <div class="alert alert-light border d-flex flex-wrap align-items-center justify-content-between gap-2 mb-0 py-2">
+                <span class="fs-sm">
+                    <i class="bi bi-people me-1 text-primary"></i>
+                    {{ 'wishlist_availability.banner.borrow'|trans({'%count%': wishlist_availability.suggestedPuzzleIds|length, '%people%': wishlist_availability.suggestedPeople})|raw }}
+                </span>
+                <span class="d-flex flex-wrap gap-2">
+                    <a class="btn btn-sm btn-link px-1" href="{{ path('borrow_requests') }}">{{ 'borrow_request.my_requests'|trans }}</a>
+                    <button type="button" class="btn btn-sm btn-primary text-nowrap"
+                            data-action="collection-selection#selectSuggested"
+                            data-collection-selection-puzzles-param="{{ wishlist_availability.suggestedPuzzleIds|json_encode }}">
+                        <i class="bi bi-magic me-1"></i>{{ 'wishlist_availability.banner.ask_fewest'|trans }}
+                    </button>
+                </span>
+            </div>
+        {% endif %}
+    </div>
+{% endif %}

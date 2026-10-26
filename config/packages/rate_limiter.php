@@ -131,6 +131,13 @@ return App::config([
                 'limit' => 10,
                 'interval' => '1 day',
             ],
+            // "Ask to borrow" (AskToBorrowPuzzles, docs/features/wishlist-availability.md): every send is a notification and
+            // an e-mail to up to 10 people. Per asker and send, counted in the handler.
+            'borrow_request' => [
+                'policy' => 'sliding_window',
+                'limit' => 10,
+                'interval' => '1 hour',
+            ],
             // Background photo uploads straight to object storage (PhotoUploadStartController,
             // docs/features/photo-uploads/README.md): every new place is a photo in our bucket for a day. Only an abuse
             // ceiling, never a real player's: a player adding photos to their old results did ~270 in 2 h (2026-10-19).

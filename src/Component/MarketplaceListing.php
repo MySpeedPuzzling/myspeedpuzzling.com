@@ -88,6 +88,10 @@ final class MarketplaceListing
     #[LiveProp(writable: true, url: true)]
     public bool $myOffers = false;
 
+    /** Only puzzles on the signed-in player's wishlist (docs/features/wishlist-availability.md) - ignored for guests */
+    #[LiveProp(writable: true, url: true)]
+    public bool $onMyWishlist = false;
+
     /**
      * Difficulty chips (members): tier values as strings, "0" = not rated yet (Value\DifficultyFilter)
      *
@@ -241,6 +245,7 @@ final class MarketplaceListing
             sellerCountry: $this->getSellerCountry(),
             sellerId: $this->getMyOffersSellerId(),
             puzzleId: $this->visiblePuzzleId(),
+            wishlistPlayerId: $this->getMyWishlistPlayerId(),
             sort: $this->sort,
             limit: $this->page * self::PER_PAGE,
             offset: 0,
@@ -280,6 +285,7 @@ final class MarketplaceListing
             sellerCountry: $this->getSellerCountry(),
             sellerId: $this->getMyOffersSellerId(),
             puzzleId: $this->visiblePuzzleId(),
+            wishlistPlayerId: $this->getMyWishlistPlayerId(),
             difficultyTiers: $this->getDifficultyFilter(),
             event: $this->getChosenEvent()?->competitionId,
             onlyBringing: $this->onlyBringing,
@@ -533,6 +539,15 @@ final class MarketplaceListing
         return $this->sellerCountry;
     }
 
+    private function getMyWishlistPlayerId(): null|string
+    {
+        if ($this->onMyWishlist === false) {
+            return null;
+        }
+
+        return $this->retrieveLoggedUserProfile->getProfile()?->playerId;
+    }
+
     private function getMyOffersSellerId(): null|string
     {
         if ($this->myOffers === false) {
@@ -600,6 +615,10 @@ final class MarketplaceListing
             $params['myOffers'] = '1';
         }
 
+        if ($this->onMyWishlist) {
+            $params['onMyWishlist'] = '1';
+        }
+
         if ($this->difficulty !== []) {
             $params['difficulty'] = $this->difficulty;
         }
@@ -642,7 +661,7 @@ final class MarketplaceListing
         return md5(serialize([
             $this->search, $this->manufacturer, $this->piecesMin, $this->piecesMax,
             $this->listingType, $this->priceMin, $this->priceMax, $this->condition,
-            $this->shipToMyCountry, $this->sellerCountry, $this->sort, $this->myOffers, $this->puzzleId,
+            $this->shipToMyCountry, $this->sellerCountry, $this->sort, $this->myOffers, $this->onMyWishlist, $this->puzzleId,
             $this->difficulty, $this->event, $this->onlyBringing,
         ]));
     }

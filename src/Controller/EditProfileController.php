@@ -184,6 +184,7 @@ final class EditProfileController extends AbstractController
                     $xpSurfacesVisible ? $messagingSettingsFormData->contentDigestFrequency : null,
                     $messagingSettingsFormData->featureRequestEmails,
                     $messagingSettingsFormData->partnerFinderEmails,
+                    $messagingSettingsFormData->borrowRequestEmails,
                 )
             );
 

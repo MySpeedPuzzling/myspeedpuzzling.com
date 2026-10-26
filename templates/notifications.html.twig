@@ -246,6 +246,38 @@
                                         </a>
                                     {% endif %}
                                 </td>
+                            {% elseif notification.isBorrowRequestNotification %}
+                                {# "Could I borrow these?" (docs/features/wishlist-availability.md): asked of the reader, answered or
+                                   expired for the reader - the player shown is who asked / was asked #}
+                                {% set borrow_person = notification.targetPlayerName ?? ('#' ~ notification.targetPlayerCode|upper) %}
+                                {% set borrow_type = notification.notificationType.value %}
+                                <td class="text-center" style="width: 60px;">
+                                    {% if notification.targetPlayerAvatar is not null %}
+                                        <img class="rounded-circle" style="max-width: 50px;max-height: 50px;" alt="Avatar" src="{{ notification.targetPlayerAvatar|thumbnail('puzzle_small') }}">
+                                    {% else %}
+                                        <span class="avatar-name rounded-circle">{{ borrow_person|trim('#')|slice(0, 1)|upper }}</span>
+                                    {% endif %}
+                                </td>
+
+                                <td class="align-middle fs-sm text-muted">
+                                    <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
+                                    {% set borrow_player = notification.targetPlayerIsPrivate
+                                        ? '<b>' ~ borrow_person|e ~ '</b>'
+                                        : '<a class="text-decoration-underline" href="' ~ path('player_profile', {playerId: notification.targetPlayerId}) ~ '">' ~ borrow_person|e ~ '</a>' %}
+                                    {% if borrow_type == 'BorrowRequested' %}
+                                        {{ 'borrow_request.notification.requested'|trans({'%player%': borrow_player, '%count%': notification.borrowItemsTotal})|raw }}
+                                    {% elseif borrow_type == 'BorrowRequestAnswered' %}
+                                        {{ 'borrow_request.notification.answered'|trans({'%player%': borrow_player, '%count%': notification.borrowItemsYes, '%total%': notification.borrowItemsTotal})|raw }}
+                                    {% else %}
+                                        {{ 'borrow_request.notification.expired'|trans({'%player%': borrow_player, '%count%': notification.borrowItemsTotal})|raw }}
+                                    {% endif %}
+                                </td>
+
+                                <td class="" style="width: 80px;">
+                                    <a href="{{ path('borrow_request_detail', {requestId: notification.borrowRequestId}) }}" class="btn btn-sm {{ borrow_type == 'BorrowRequested' ? 'btn-primary' : 'btn-outline-primary' }} text-nowrap">
+                                        {{- (borrow_type == 'BorrowRequested' ? 'borrow_request.notification.answer' : 'borrow_request.notification.open')|trans -}}
+                                    </a>
+                                </td>
                             {% elseif notification.isOfficialResultNotification %}
                                 {# The official results of a round the player has a result in were published #}
                                 {% if notification.roundCompetitionSlug is null %}

@@ -1,0 +1,28 @@
+{# One puzzle on the ask sheet, asked of `owner_id` (ask_sheet_modal.html.twig) #}
+{% set puzzle = sheet.puzzles[puzzle_id] %}
+{% set other_owners = (sheet.ownersByPuzzle[puzzle_id] ?? [])|filter(id => id != owner_id) %}
+<span class="badge rounded-pill bg-light text-body border d-inline-flex align-items-center gap-1 fw-normal py-1"
+      data-borrow-ask-sheet-target="chip" data-puzzle-id="{{ puzzle_id }}">
+    <input type="hidden" name="assignments[{{ owner_id }}][]" value="{{ puzzle_id }}">
+    <span>{{ puzzle.puzzleName }} <span class="text-muted">· {{ puzzle.piecesCount }}</span></span>
+    {% if other_owners is not empty %}
+        <span class="dropdown d-inline-block">
+            <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" data-bs-toggle="dropdown" data-bs-strategy="fixed"
+                    title="{{ 'borrow_request.sheet.move'|trans }}" aria-label="{{ 'borrow_request.sheet.move'|trans }}">
+                <i class="bi bi-arrow-left-right"></i>
+            </button>
+            <span class="dropdown-menu">
+                {% for other_id in other_owners %}
+                    <button type="button" class="dropdown-item fs-sm" data-action="borrow-ask-sheet#move"
+                            data-borrow-ask-sheet-puzzle-param="{{ puzzle_id }}" data-borrow-ask-sheet-owner-param="{{ other_id }}">
+                        {{ 'borrow_request.sheet.ask_instead'|trans({'%name%': sheet.owners[other_id].ownerDisplayName}) }}
+                    </button>
+                {% endfor %}
+            </span>
+        </span>
+    {% endif %}
+    <button type="button" class="btn btn-link btn-sm p-0 text-muted text-decoration-none" data-action="borrow-ask-sheet#remove"
+            title="{{ 'borrow_request.sheet.leave_out'|trans }}" aria-label="{{ 'borrow_request.sheet.leave_out'|trans }}">
+        <i class="bi bi-x-lg"></i>
+    </button>
+</span>

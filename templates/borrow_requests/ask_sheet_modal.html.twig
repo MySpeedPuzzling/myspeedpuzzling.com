@@ -1,0 +1,90 @@
+{#
+    The ask-to-borrow sheet (BorrowAskSheetController, docs/features/wishlist-availability.md): one group per person,
+    the puzzles asked of them as chips with hidden `assignments[<ownerId>][]` inputs - the only thing Send reads.
+    ✕ leaves a puzzle out, "Ask … instead" moves it to another owner (borrow_ask_sheet_controller.js, nothing is sent
+    before Send). A group left empty is hidden and sends nothing.
+#}
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h5 class="modal-title">{{ 'borrow_request.sheet.title'|trans }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+    </div>
+
+    <div class="modal-body">
+        {% if sheet.askedPuzzleCount == 0 %}
+            <div class="alert alert-info mb-3">{{ 'borrow_request.sheet.nothing_to_ask'|trans }}</div>
+        {% else %}
+            <form method="post" action="{{ path('borrow_ask_send') }}" data-turbo-frame="modal-frame"
+                  data-collection-selection-form
+                  data-controller="borrow-ask-sheet"
+                  data-borrow-ask-sheet-send-text-value="{{ browser_translation('borrow_request.sheet.send')|json_encode }}">
+                <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
+                <input type="hidden" name="sendId" value="{{ send_id }}">
+
+                <p class="fs-sm text-muted">{{ 'borrow_request.sheet.intro'|trans }}</p>
+
+                {% for owner_id, puzzle_ids in sheet.puzzlesByOwner %}
+                    {% set owner = sheet.owners[owner_id] %}
+                    <div class="border rounded p-2 mb-2 {{ puzzle_ids is empty ? 'd-none' }}"
+                         data-borrow-ask-sheet-target="group" data-owner-id="{{ owner_id }}">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            {% if owner.ownerAvatar is not null %}
+                                <img class="rounded-circle" width="28" height="28" alt="" src="{{ owner.ownerAvatar|thumbnail('puzzle_small') }}">
+                            {% else %}
+                                <span class="avatar-name rounded-circle" style="width: 28px; height: 28px; line-height: 28px;">{{ owner.ownerDisplayName|trim('#')|slice(0, 1)|upper }}</span>
+                            {% endif %}
+                            <strong>{{ owner.ownerDisplayName }}</strong>
+                            <span class="fs-sm text-muted" data-borrow-ask-sheet-target="groupCount"></span>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-1 mb-2" data-borrow-ask-sheet-target="chips">
+                            {% for puzzle_id in puzzle_ids %}
+                                {{ include('borrow_requests/_ask_sheet_chip.html.twig') }}
+                            {% endfor %}
+                        </div>
+
+                        <label class="visually-hidden" for="borrow-note-{{ owner_id }}">{{ 'borrow_request.sheet.note_label'|trans({'%name%': owner.ownerDisplayName}) }}</label>
+                        <input type="text" class="form-control form-control-sm" id="borrow-note-{{ owner_id }}" name="notes[{{ owner_id }}]"
+                               maxlength="200" placeholder="{{ 'borrow_request.sheet.note_placeholder'|trans }}">
+                    </div>
+                {% endfor %}
+
+                {# Templates of every movable puzzle, one per owner it could go to - "Ask … instead" clones the right one #}
+                {% for puzzle_id, owner_ids in sheet.ownersByPuzzle %}
+                    {% for owner_id in owner_ids %}
+                        <template data-borrow-ask-sheet-target="chipTemplate" data-puzzle-id="{{ puzzle_id }}" data-owner-id="{{ owner_id }}">
+                            {{ include('borrow_requests/_ask_sheet_chip.html.twig') }}
+                        </template>
+                    {% endfor %}
+                {% endfor %}
+
+                {% if sheet.truncated %}
+                    <p class="fs-sm text-warning mb-2">{{ 'borrow_request.sheet.truncated'|trans({'%count%': constant('SpeedPuzzling\\Web\\Message\\AskToBorrowPuzzles::MAX_PUZZLES')}) }}</p>
+                {% endif %}
+
+                <p class="fs-sm text-muted">{{ 'borrow_request.sheet.what_happens'|trans }}</p>
+
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="submit" class="btn btn-primary" data-borrow-ask-sheet-target="submit" data-loading-text="{{ 'forms.saving'|trans }}">
+                        {{ 'borrow_request.sheet.send'|trans({'%count%': sheet.askedPeopleCount}) }}
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'forms.cancel'|trans }}</button>
+                </div>
+            </form>
+        {% endif %}
+
+        {% if sheet.notAskable is not empty %}
+            <div class="mt-3 fs-sm">
+                <p class="text-muted mb-1">{{ 'borrow_request.sheet.not_askable'|trans }}</p>
+                <ul class="mb-0 ps-3">
+                    {% for puzzle_id, reason in sheet.notAskable %}
+                        <li>
+                            {{ sheet.puzzles[puzzle_id].puzzleName ?? '' }}
+                            <span class="text-muted">· {{ ('borrow_request.skip.' ~ reason.value)|trans }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+    </div>
+</turbo-frame>

@@ -37,6 +37,7 @@ readonly final class GetPuzzleHistory
         'conversations' => 'conversations',
         'stopwatches' => 'stopwatches',
         'changeRequests' => 'change requests',
+        'borrowRequestItems' => 'borrow requests',
         'tags' => 'tags',
     ];
 

@@ -95,6 +95,18 @@ export default class extends Controller {
         this.update();
     }
 
+    // "Ask the fewest people for the most puzzles" (docs/features/wishlist-availability.md): ticks exactly the puzzles
+    // of the suggested plan - data-collection-selection-puzzles-param holds their ids
+    selectSuggested(event) {
+        const suggested = new Set(event.params.puzzles ?? []);
+
+        this.checkboxTargets.forEach((checkbox) => {
+            checkbox.checked = suggested.has(checkbox.value);
+        });
+
+        this.update();
+    }
+
     escape() {
         // Esc in an open modal closes the modal, not the selection
         if (document.querySelector('.modal.show') === null) {

@@ -1,0 +1,135 @@
+{% extends 'base.html.twig' %}
+
+{# One borrow request (BorrowRequestDetailController, docs/features/wishlist-availability.md): the owner answers per
+   puzzle, the asker sees where it stands, withdraws, and records the hand-over. #}
+{% set name = request_overview.counterpartDisplayName %}
+{% set has_membership = logged_user.profile is not null and logged_user.profile.activeMembership %}
+
+{% block title %}{{ (is_owner ? 'borrow_request.detail.title_owner' : 'borrow_request.detail.title_asker')|trans({'%name%': name}) }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="row pb-4">
+        <div class="col-lg-8 col-md-10">
+            <a href="{{ path('borrow_requests', is_owner ? {tab: 'received'} : {}) }}" class="fs-sm d-inline-block mb-2">
+                <i class="bi bi-arrow-left me-1"></i>{{ 'borrow_request.list.title'|trans }}
+            </a>
+
+            <h1 class="h3 mb-2">{{ (is_owner ? 'borrow_request.detail.title_owner' : 'borrow_request.detail.title_asker')|trans({'%name%': name}) }}</h1>
+            <p class="fs-sm text-muted mb-3">
+                {{ request_overview.createdAt|ago }}
+                {% if request_overview.isOpen %}
+                    · {{ 'borrow_request.detail.expires'|trans({'%date%': request_overview.expiresAt|date('j. n. Y')}) }}
+                {% endif %}
+            </p>
+
+            {% if request_overview.note is not null %}
+                <blockquote class="border-start ps-3 fst-italic mb-3">“{{ request_overview.note }}”</blockquote>
+            {% endif %}
+
+            {% if is_owner %}
+                <p class="fs-sm">{{ 'borrow_request.detail.owner_explain'|trans({'%name%': name}) }}</p>
+
+                <form method="post" action="{{ path('borrow_request_detail', {requestId: request_overview.requestId}) }}" data-testid="borrow-request-answer-form">
+                    <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
+
+                    <div class="d-flex flex-column gap-2 mb-3">
+                        {% for item in request_overview.items %}
+                            <div class="card card-body p-2 shadow-sm">
+                                <div class="d-flex gap-2 align-items-center">
+                                    {{ lazy_puzzle_image(item.image, 'puzzle_small', item.puzzleName, 999, 56, 'rounded', 56) }}
+                                    <div class="flex-grow-1 min-width-0">
+                                        <div class="fw-medium">{{ item.puzzleName }}</div>
+                                        <div class="fs-sm text-muted">{{ item.piecesCount }} {{ 'marketplace.pcs'|trans }}{% if item.manufacturerName %} · {{ item.manufacturerName }}{% endif %}</div>
+
+                                        {% if item.status.value == 'waiting' %}
+                                            <div class="d-flex flex-wrap gap-1 mt-1" role="radiogroup">
+                                                {% for answer in ['yes', 'not_owned', 'declined'] %}
+                                                    <div class="form-check form-option form-check-inline mb-0">
+                                                        <input type="radio" class="form-check-input" id="answer-{{ item.itemId }}-{{ answer }}"
+                                                               name="answers[{{ item.itemId }}]" value="{{ answer }}">
+                                                        <label class="form-option-label fs-sm" for="answer-{{ item.itemId }}-{{ answer }}">{{ ('borrow_request.answer.' ~ answer)|trans }}</label>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                            <div class="form-check mt-1">
+                                                <input type="checkbox" class="form-check-input" id="remove-{{ item.itemId }}" name="removeFromCollection[]" value="{{ item.itemId }}" checked>
+                                                <label class="form-check-label fs-xs text-muted" for="remove-{{ item.itemId }}">{{ 'borrow_request.answer.remove_from_collection'|trans }}</label>
+                                            </div>
+                                        {% else %}
+                                            <div class="mt-1 d-flex flex-wrap align-items-center gap-2">
+                                                {{ include('borrow_requests/_status_badge.html.twig', {status: item.status}) }}
+                                                {% if item.status.value == 'yes' %}
+                                                    {% if has_membership %}
+                                                        <a class="fs-sm text-decoration-underline" data-turbo-frame="modal-frame"
+                                                           href="{{ path('lend_puzzle', {puzzleId: item.puzzleId, borrower: request_overview.counterpartCode}) }}">{{ 'borrow_request.detail.lend_to'|trans({'%name%': name}) }}</a>
+                                                    {% else %}
+                                                        <a class="fs-sm text-decoration-underline" href="#" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">{{ 'borrow_request.detail.lend_to'|trans({'%name%': name}) }}</a>
+                                                    {% endif %}
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2">
+                        {% if request_overview.isWaiting %}
+                            <button type="submit" class="btn btn-primary">{{ 'borrow_request.detail.send_answers'|trans }}</button>
+                        {% endif %}
+                        <button type="submit" name="chat" value="1" class="btn btn-outline-primary">
+                            <i class="bi bi-chat-dots me-1"></i>{{ (request_overview.replied ? 'borrow_request.detail.open_chat' : 'borrow_request.detail.reply_in_chat')|trans }}
+                        </button>
+                    </div>
+                    <p class="fs-xs text-muted mt-2 mb-0">{{ 'borrow_request.detail.owner_hint'|trans({'%name%': name}) }}</p>
+                </form>
+            {% else %}
+                <div class="d-flex flex-column gap-2 mb-3">
+                    {% for item in request_overview.items %}
+                        <div class="card card-body p-2 shadow-sm">
+                            <div class="d-flex gap-2 align-items-center">
+                                {{ lazy_puzzle_image(item.image, 'puzzle_small', item.puzzleName, 999, 56, 'rounded', 56) }}
+                                <div class="flex-grow-1 min-width-0">
+                                    <div class="fw-medium">{{ item.puzzleName }}</div>
+                                    <div class="mt-1 d-flex flex-wrap align-items-center gap-2">
+                                        {{ include('borrow_requests/_status_badge.html.twig', {status: item.status}) }}
+                                        {% if item.status.value == 'yes' %}
+                                            {% if has_membership %}
+                                                <a class="fs-sm text-decoration-underline" data-turbo-frame="modal-frame"
+                                                   href="{{ path('borrow_puzzle', {puzzleId: item.puzzleId, owner: request_overview.counterpartCode}) }}">{{ 'wishlist_availability.got_it'|trans }}</a>
+                                            {% else %}
+                                                <a class="fs-sm text-decoration-underline" href="#" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">{{ 'wishlist_availability.got_it'|trans }}</a>
+                                            {% endif %}
+                                        {% endif %}
+                                        {% if item.status.isOpen %}
+                                            <form method="post" action="{{ path('borrow_request_withdraw', {requestId: request_overview.requestId}) }}" class="d-inline">
+                                                <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
+                                                <input type="hidden" name="itemId" value="{{ item.itemId }}">
+                                                <button type="submit" class="btn btn-link btn-sm p-0 fs-sm text-muted">{{ 'borrow_request.detail.withdraw_one'|trans }}</button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="d-flex flex-wrap gap-2">
+                    {% if request_overview.replied %}
+                        <a href="{{ path('conversations_list') }}" class="btn btn-outline-primary"><i class="bi bi-chat-dots me-1"></i>{{ 'borrow_request.detail.open_chat'|trans }}</a>
+                    {% endif %}
+                    {% if request_overview.isOpen %}
+                        <form method="post" action="{{ path('borrow_request_withdraw', {requestId: request_overview.requestId}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
+                            <button type="submit" class="btn btn-outline-secondary">{{ 'borrow_request.detail.withdraw_all'|trans }}</button>
+                        </form>
+                    {% endif %}
+                </div>
+                <p class="fs-xs text-muted mt-2 mb-0">{{ 'borrow_request.detail.asker_hint'|trans({'%name%': name}) }}</p>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

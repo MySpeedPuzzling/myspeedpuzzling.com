@@ -17,6 +17,7 @@ final class MessagingSettingsFormData
     public bool $newsletterEnabled = true;
     public bool $resultEmailsEnabled = true;
     public bool $partnerFinderEmails = true;
+    public bool $borrowRequestEmails = true;
     public FeatureRequestEmails $featureRequestEmails = FeatureRequestEmails::Upvoted;
     public ContentDigestFrequency $contentDigestFrequency = ContentDigestFrequency::Weekly;
 
@@ -29,6 +30,7 @@ final class MessagingSettingsFormData
         $data->newsletterEnabled = $playerProfile->newsletterEnabled;
         $data->resultEmailsEnabled = $playerProfile->resultEmailsEnabled;
         $data->partnerFinderEmails = $playerProfile->partnerFinderEmails;
+        $data->borrowRequestEmails = $playerProfile->borrowRequestEmails;
         $data->featureRequestEmails = $playerProfile->featureRequestEmails;
         $data->contentDigestFrequency = $playerProfile->contentDigestFrequency;
 

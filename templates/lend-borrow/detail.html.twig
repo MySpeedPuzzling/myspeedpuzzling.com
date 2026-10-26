@@ -43,6 +43,9 @@
                 {{ include('multiscan/_entry_button.html.twig', {params: {action: 'return'}, label: 'multiscan.entry.returned', title: 'multiscan.entry.returned_title'}) }}
             {% endif %}
             {% if isOwnProfile %}
+                <a href="{{ path('borrow_requests') }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-box-arrow-in-down me-1"></i> {{ 'borrow_request.list.title'|trans }}
+                </a>
                 <a href="{{ path('lend_borrow_history', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-secondary">
                     <i class="bi-clock-history me-1"></i> {{ 'lend_borrow.history.button'|trans }}
                 </a>

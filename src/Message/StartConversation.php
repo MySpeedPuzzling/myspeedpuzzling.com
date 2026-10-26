@@ -15,6 +15,9 @@ readonly final class StartConversation
         // The listed puzzler answers an "I'd like to puzzle with you" (docs/features/partner-finder.md D6): the
         // recipient asked first, so their "direct messages off" does not apply - the handler checks the request
         public null|string $partnerRequestId = null,
+        // The owner answers an "ask to borrow" (docs/features/wishlist-availability.md): the recipient asked first, so
+        // their "direct messages off" does not apply either - the handler checks the request
+        public null|string $borrowRequestId = null,
     ) {
     }
 }

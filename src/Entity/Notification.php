@@ -88,6 +88,11 @@ class Notification
         #[JoinColumn(onDelete: 'CASCADE')]
         #[Immutable]
         public null|PartnerListing $targetPartnerListing = null,
+        // BorrowRequested / BorrowRequestAnswered / BorrowRequestExpired: the "ask to borrow" it is about
+        #[ManyToOne]
+        #[JoinColumn(onDelete: 'CASCADE')]
+        #[Immutable]
+        public null|BorrowRequest $targetBorrowRequest = null,
     ) {
     }
 }

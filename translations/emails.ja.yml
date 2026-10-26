@@ -520,3 +520,15 @@ partner_teamed_up:
     ask: "あなた自身の募集はまだ掲載中なので、引き続き連絡が来るかもしれません。パートナーが見つかったら締め切り、まだメンバーが必要なら更新してください。"
     update: "自分の募集を更新する"
     not_right: "違う場合は、募集をそのままにしておいてください。あなたが変更しない限り、何も変わりません。"
+
+borrow_request:
+    subject: "%asker%さんがあなたのパズル%count%個を借りたいそうです"
+    preheader: "MySpeedPuzzlingでパズルごとにワンタップで返事できます。"
+    title: "%asker%さんがあなたのパズル%count%個を借りたいそうです"
+    greeting: "%name%さん、こんにちは。"
+    intro: "%asker%さんが、あなたのコレクションにある次のパズルを借りられないか尋ねています："
+    pieces: "%count%ピース"
+    how_to_answer: "パズルごとに返事をしてください：OK、もう持っていない、または今回は見送り。OKするとチャットが開き、受け渡しを決められます。"
+    answer: "返事する"
+    no_addresses: "メールアドレスは決して共有しません。返事はMySpeedPuzzlingの中で行います。"
+    opt_out: "パズルコレクションを公開しているため、このメールが届いています。<a href=\"%settingsUrl%\">メール設定</a> · <a href=\"%unsubscribeUrl%\">このメールを停止</a>"

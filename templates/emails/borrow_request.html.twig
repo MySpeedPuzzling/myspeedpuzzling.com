@@ -1,0 +1,56 @@
+{% trans_default_domain 'emails' %}
+{# "Could I borrow these?" to the owner (SendBorrowRequestEmailHandler, docs/features/wishlist-availability.md). Names who
+   asks and which puzzles, never anybody's e-mail address: the owner answers inside MySpeedPuzzling. #}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
+    <wrapper>
+        <container>
+            {{ include('emails/_header.html.twig', {preheader: 'borrow_request.preheader'|trans}) }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="24"></spacer>
+                    <h3>{{ 'borrow_request.title'|trans({'%asker%': askerName, '%count%': puzzles|length}) }}</h3>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <p>{{ 'borrow_request.greeting'|trans({'%name%': ownerName}) }}</p>
+                    <p>{{ 'borrow_request.intro'|trans({'%asker%': askerName, '%count%': puzzles|length}) }}</p>
+
+                    {# The puzzles - inline styles, e-mail clients drop <style> #}
+                    <table role="presentation" width="100%" style="width: 100%; margin: 16px 0; background: #f6f9fc; border-left: 4px solid #d63c42; border-radius: 6px;">
+                        <tr>
+                            <td style="padding: 14px 16px;">
+                                {% for puzzle in puzzles %}
+                                    <p style="margin: 0 0 4px;">
+                                        <strong>{{ puzzle.name }}</strong>
+                                        <span style="color: #6b7488;"> · {{ 'borrow_request.pieces'|trans({'%count%': puzzle.pieces}) }}{% if puzzle.brand is not null %} · {{ puzzle.brand }}{% endif %}</span>
+                                    </p>
+                                {% endfor %}
+
+                                {% if note is not null %}
+                                    <p style="margin: 8px 0 0; font-style: italic;">“{{ note }}”</p>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+
+                    <p>{{ 'borrow_request.how_to_answer'|trans }}</p>
+
+                    <center>
+                        <button href="{{ answerUrl }}">{{ 'borrow_request.answer'|trans }}</button>
+                    </center>
+
+                    <spacer size-sm="10"></spacer>
+
+                    <p class="small-print">{{ 'borrow_request.no_addresses'|trans }}</p>
+                    <p class="small-print">{{ 'borrow_request.opt_out'|trans({'%settingsUrl%': settingsUrl, '%unsubscribeUrl%': unsubscribeUrl})|raw }}</p>
+                </columns>
+            </row>
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

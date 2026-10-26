@@ -1,0 +1,28 @@
+{#
+    Wishlist availability filters for the client-side collection-filter controller (docs/features/wishlist-availability.md):
+    cards carry data-offers / data-ships-to-me / data-favorites. "A favorite has it" only on the owner's own list.
+#}
+{% set chips = [{value: 'offers', label: 'wishlist_availability.filter.offers', count: wishlist_availability.puzzlesOnMarketplace}] %}
+{% if wishlist_availability.viewerHasCountry %}
+    {% set chips = chips|merge([{value: 'shipsToMe', label: 'wishlist_availability.filter.ships_to_me', count: wishlist_availability.puzzlesShippedToViewer}]) %}
+{% endif %}
+{% if wishlist_availability.isOwnList %}
+    {% set chips = chips|merge([{value: 'favorites', label: 'wishlist_availability.filter.favorites', count: items|filter(item => wishlist_availability.lendableOwnersCount(item.puzzleId) > 0)|length}]) %}
+{% endif %}
+
+<div class="col-12 mb-2">
+    <div class="d-flex flex-wrap align-items-center gap-1">
+        {% for chip in chips %}
+            <div class="form-check form-option form-check-inline mb-0">
+                <input type="checkbox" class="form-check-input" id="wishlist-availability-{{ chip.value }}"
+                       value="{{ chip.value }}"
+                       data-collection-filter-target="availability"
+                       data-action="change->collection-filter#filter"
+                       {{ chip.count == 0 ? 'disabled' }}>
+                <label for="wishlist-availability-{{ chip.value }}" class="form-option-label">
+                    {{ chip.label|trans }} ({{ chip.count }})
+                </label>
+            </div>
+        {% endfor %}
+    </div>
+</div>

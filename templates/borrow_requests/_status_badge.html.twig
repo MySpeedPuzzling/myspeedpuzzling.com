@@ -1,0 +1,11 @@
+{# Where one puzzle of a borrow request stands - `status` (BorrowRequestItemStatus) #}
+{% set status_class = {
+    waiting: 'bg-light text-body border',
+    yes: 'bg-success text-white',
+    not_owned: 'bg-secondary text-white',
+    declined: 'bg-secondary text-white',
+    withdrawn: 'bg-light text-muted border',
+    expired: 'bg-light text-muted border',
+    lent: 'bg-primary text-white',
+} %}
+<span class="badge rounded-pill {{ status_class[status.value] }}">{{ ('borrow_request.status.' ~ status.value)|trans }}</span>

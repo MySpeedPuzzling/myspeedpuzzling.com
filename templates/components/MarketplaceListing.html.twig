@@ -225,6 +225,12 @@
                             <input type="checkbox" data-model="myOffers" class="form-check-input" id="myOffersFilter" {{ this.myOffers ? 'checked' }}>
                             <label class="form-check-label" for="myOffersFilter"><small>{{ 'marketplace.my_offers'|trans }}</small></label>
                         </div>
+
+                        {# On my wishlist (docs/features/wishlist-availability.md) #}
+                        <div class="form-check" data-testid="marketplace-on-my-wishlist">
+                            <input type="checkbox" data-model="onMyWishlist" class="form-check-input" id="onMyWishlistFilter" {{ this.onMyWishlist ? 'checked' }}>
+                            <label class="form-check-label" for="onMyWishlistFilter"><small>{{ 'marketplace.filter.on_my_wishlist'|trans }}</small></label>
+                        </div>
                     {% endif %}
                 </div>
             </div>
@@ -325,7 +331,12 @@
     {% if items is empty %}
         <div class="text-center py-5">
             <i class="bi bi-shop fs-1 text-muted"></i>
-            <p class="text-muted mt-2">{{ 'marketplace.no_results'|trans }}</p>
+            {% if this.onMyWishlist and logged_user.profile is not null %}
+                <p class="text-muted mt-2">{{ 'marketplace.no_wishlist_results'|trans }}</p>
+                <a href="{{ path('wish_list_detail', {playerId: logged_user.profile.playerId}) }}" class="btn btn-sm btn-outline-primary">{{ 'marketplace.go_to_wishlist'|trans }}</a>
+            {% else %}
+                <p class="text-muted mt-2">{{ 'marketplace.no_results'|trans }}</p>
+            {% endif %}
         </div>
     {% else %}
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">

@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Entity\ChatMessage;
 use SpeedPuzzling\Web\Entity\Conversation;
 use SpeedPuzzling\Web\Entity\Notification;
 use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Exceptions\BorrowRequestNotFound;
 use SpeedPuzzling\Web\Exceptions\ConversationRequestAlreadyPending;
 use SpeedPuzzling\Web\Exceptions\DirectMessagesDisabled;
 use SpeedPuzzling\Web\Exceptions\MessagingMuted;
@@ -17,6 +18,7 @@ use SpeedPuzzling\Web\Exceptions\PartnerRequestNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\SendMessage;
 use SpeedPuzzling\Web\Message\StartConversation;
+use SpeedPuzzling\Web\Repository\BorrowRequestRepository;
 use SpeedPuzzling\Web\Repository\ChatMessageRepository;
 use SpeedPuzzling\Web\Repository\ConversationRepository;
 use SpeedPuzzling\Web\Repository\NotificationRepository;
@@ -42,6 +44,7 @@ readonly final class StartConversationHandler
         private SellSwapListItemRepository $sellSwapListItemRepository,
         private NotificationRepository $notificationRepository,
         private PartnerRequestRepository $partnerRequestRepository,
+        private BorrowRequestRepository $borrowRequestRepository,
         private MercureNotifier $mercureNotifier,
         private MessageBusInterface $messageBus,
         private LoggerInterface $logger,
@@ -55,6 +58,7 @@ readonly final class StartConversationHandler
      * @throws ConversationRequestAlreadyPending
      * @throws MessagingMuted
      * @throws PartnerRequestNotFound the request is not the recipient's to the initiator's listing
+     * @throws BorrowRequestNotFound the borrow request is not the recipient's to the initiator
      */
     public function __invoke(StartConversation $message): void
     {
@@ -80,9 +84,9 @@ readonly final class StartConversationHandler
             // Puzzle provided without listing (shouldn't normally happen, but handle gracefully)
         }
 
-        // A reply to a partner finder request: only the listing's owner to whoever asked - never a way around
+        // A reply to a partner finder or borrow request: only to whoever asked - never a way around
         // "direct messages off" for anybody else
-        $isPartnerReply = false;
+        $isRequestReply = false;
 
         if ($message->partnerRequestId !== null) {
             $partnerRequest = $this->partnerRequestRepository->get($message->partnerRequestId);
@@ -94,12 +98,26 @@ readonly final class StartConversationHandler
                 throw new PartnerRequestNotFound();
             }
 
-            $isPartnerReply = true;
+            $isRequestReply = true;
+        }
+
+        // The owner answering an "ask to borrow": only to whoever asked them
+        if ($message->borrowRequestId !== null) {
+            $borrowRequest = $this->borrowRequestRepository->get($message->borrowRequestId);
+
+            if (
+                $borrowRequest->owner->id->equals($initiator->id) === false
+                || $borrowRequest->asker->id->equals($recipient->id) === false
+            ) {
+                throw new BorrowRequestNotFound();
+            }
+
+            $isRequestReply = true;
         }
 
         // For general conversations, check if recipient allows direct messages - the recipient of a partner finder
-        // reply asked first, so their setting does not apply
-        if (!$isMarketplace && !$isPartnerReply && !$recipient->allowDirectMessages) {
+        // reply or of a borrow answer asked first, so their setting does not apply
+        if (!$isMarketplace && !$isRequestReply && !$recipient->allowDirectMessages) {
             throw new DirectMessagesDisabled();
         }
 
@@ -159,8 +177,8 @@ readonly final class StartConversationHandler
             return;
         }
 
-        if ($isPartnerReply) {
-            $this->startPartnerReply($initiator, $recipient, $message->initialMessage, $isBlocked);
+        if ($isRequestReply) {
+            $this->startRequestReply($initiator, $recipient, $message->initialMessage, $isBlocked);
 
             return;
         }
@@ -224,11 +242,11 @@ readonly final class StartConversationHandler
     }
 
     /**
-     * The recipient asked to puzzle together, so the chat is open from the start: a request either of them sent
+     * The recipient asked first (to puzzle together, or to borrow puzzles), so the chat is open from the start: a request either of them sent
      * earlier is accepted, otherwise a new accepted conversation begins - no "conversation request" step for the person
      * who asked first. The accepted conversation between them is reused by the caller before this.
      */
-    private function startPartnerReply(Player $initiator, Player $recipient, string $initialMessage, bool $isBlocked): void
+    private function startRequestReply(Player $initiator, Player $recipient, string $initialMessage, bool $isBlocked): void
     {
         $pending = $this->conversationRepository->findPendingBetween($initiator, $recipient)
             ?? $this->conversationRepository->findPendingBetween($recipient, $initiator);
@@ -275,7 +293,7 @@ readonly final class StartConversationHandler
             $this->mercureNotifier->notifyNewMessage($chatMessage);
             $this->mercureNotifier->notifyNewConversationRequest($conversation);
         } catch (\Throwable $e) {
-            $this->logger->error('Failed to send Mercure notification for a partner finder reply', [
+            $this->logger->error('Failed to send Mercure notification for a partner finder or borrow request reply', [
                 'conversationId' => $conversation->id->toString(),
                 'exception' => $e,
             ]);

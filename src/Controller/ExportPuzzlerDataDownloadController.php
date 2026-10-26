@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use Psr\Clock\ClockInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Query\GetExportableSolvingTimes;
 use SpeedPuzzling\Web\Services\PuzzlerDataExporter;
@@ -22,6 +23,7 @@ final class ExportPuzzlerDataDownloadController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetExportableSolvingTimes $getExportableSolvingTimes,
         readonly private PuzzlerDataExporter $exporter,
+        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -58,7 +60,7 @@ final class ExportPuzzlerDataDownloadController extends AbstractController
 
         $filename = sprintf(
             'speedpuzzling-export-%s.%s',
-            date('Y-m-d'),
+            $this->clock->now()->format('Y-m-d'),
             $exportFormat->fileExtension(),
         );
 

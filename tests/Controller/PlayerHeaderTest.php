@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\CollectionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -254,7 +255,7 @@ final class PlayerHeaderTest extends WebTestCase
         $browser = self::createClient();
         $browser->getContainer()->get(Connection::class)->executeStatement(
             "INSERT INTO player_skill (id, player_id, pieces_count, skill_score, skill_tier, skill_percentile, confidence, qualifying_puzzles_count, computed_at)
-             VALUES (gen_random_uuid(), :player, 500, 0.8, 5, 87.6, 'high', 12, now())",
+             VALUES (gen_random_uuid(), :player, 500, 0.8, 5, 87.6, 'high', 12, " . TestClock::SQL_NOW . ")",
             ['player' => PlayerFixture::PLAYER_WITH_STRIPE],
         );
 

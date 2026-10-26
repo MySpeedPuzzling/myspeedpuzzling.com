@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -51,7 +52,7 @@ final class EditCompetitionRoundHandlerTest extends KernelTestCase
         $categoryBefore = $round->category;
 
         // Another change committed between the read and the save: the round moved
-        $movedTo = new DateTimeImmutable('+45 days')->setTime(9, 30);
+        $movedTo = TestClock::now()->modify('+45 days')->setTime(9, 30);
         $round->startsAt = $movedTo;
         $this->entityManager->flush();
         $this->entityManager->clear();
@@ -90,7 +91,7 @@ final class EditCompetitionRoundHandlerTest extends KernelTestCase
     public function testMovingTheRoundMovesOnlyAutomaticReveals(): void
     {
         $round = $this->round();
-        $ownMoment = new DateTimeImmutable('+40 days')->setTime(18, 0);
+        $ownMoment = TestClock::now()->modify('+40 days')->setTime(18, 0);
 
         $this->secretPuzzle($round, PuzzleFixture::PUZZLE_500_03, hidesEverywhere: true);
         $this->secretPuzzle($round, PuzzleFixture::PUZZLE_500_04, hidesEverywhere: true)

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
@@ -91,14 +91,14 @@ final class MarkAbandonedOnlineMediaHandlerTest extends KernelTestCase
         $media->markUploaded(1_792_002_840_000);
 
         self::assertNull($media->abandonedAt);
-        self::assertFalse($media->markAbandoned(new DateTimeImmutable()), 'an uploaded one is never marked');
+        self::assertFalse($media->markAbandoned(TestClock::now()), 'an uploaded one is never marked');
     }
 
     public function testABacklogGoesPageByPage(): void
     {
         $this->entityManager->getConnection()->executeStatement(
             "INSERT INTO online_entry_media (id, online_entry_id, kind, taken_ms, store, object_key, content_type, declared_bytes, created_at)
-             SELECT gen_random_uuid(), :onlineEntry, 'periodic', 1792000000000, 'primary', 'online/never/' || n || '.jpg', 'image/jpeg', 35000, NOW() - INTERVAL '3 hours'
+             SELECT gen_random_uuid(), :onlineEntry, 'periodic', 1792000000000, 'primary', 'online/never/' || n || '.jpg', 'image/jpeg', 35000, " . TestClock::SQL_NOW . " - INTERVAL '3 hours'
              FROM generate_series(1, :count) AS n",
             ['onlineEntry' => OnlineRoundsFixture::ONLINE_ENTRY_CONNECTED, 'count' => MarkAbandonedOnlineMediaHandler::PAGE_SIZE + 1],
         );
@@ -247,7 +247,7 @@ final class MarkAbandonedOnlineMediaHandlerTest extends KernelTestCase
             objectKey: 'online/test/' . $id->toString() . '.jpg',
             contentType: 'image/jpeg',
             declaredBytes: 35_000,
-            createdAt: new DateTimeImmutable($age),
+            createdAt: TestClock::now()->modify($age),
         );
         $this->entityManager->persist($media);
         $this->entityManager->flush();

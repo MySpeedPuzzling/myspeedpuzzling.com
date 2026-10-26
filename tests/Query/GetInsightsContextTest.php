@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetInsightsContext;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -31,9 +32,9 @@ final class GetInsightsContextTest extends KernelTestCase
         self::bootKernel();
         $connection = self::getContainer()->get(Connection::class);
         $connection->executeStatement('DELETE FROM player_insights_profile');
-        $connection->executeStatement("INSERT INTO insights_generation (id, generation, advanced_at) VALUES (1, 41, NOW()) ON CONFLICT (id) DO UPDATE SET generation = 41");
+        $connection->executeStatement("INSERT INTO insights_generation (id, generation, advanced_at) VALUES (1, 41, " . TestClock::SQL_NOW . ") ON CONFLICT (id) DO UPDATE SET generation = 41");
         $connection->executeStatement(
-            'INSERT INTO player_insights_profile (player_id, speed_score, speed_sample_size, speed_percentile, computed_at) VALUES (:player, 0.91, 17, 64.5, NOW())',
+            'INSERT INTO player_insights_profile (player_id, speed_score, speed_sample_size, speed_percentile, computed_at) VALUES (:player, 0.91, 17, 64.5, ' . TestClock::SQL_NOW . ')',
             ['player' => PlayerFixture::PLAYER_REGULAR],
         );
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetCataloguePuzzles;
 use SpeedPuzzling\Web\Tests\CatalogueTestData;
@@ -147,7 +148,7 @@ final class BrandPiecesPuzzlesControllerTest extends WebTestCase
 
         $browser->getContainer()->get(Connection::class)->executeStatement(
             "INSERT INTO puzzle (id, pieces_count, name, approved, manufacturer_id, is_available, hide_until)
-             VALUES (gen_random_uuid(), 750, 'Secret competition puzzle', true, :brandId, true, now() + interval '30 days')",
+             VALUES (gen_random_uuid(), 750, 'Secret competition puzzle', true, :brandId, true, " . TestClock::SQL_NOW . " + interval '30 days')",
             ['brandId' => ManufacturerFixture::MANUFACTURER_RAVENSBURGER],
         );
 

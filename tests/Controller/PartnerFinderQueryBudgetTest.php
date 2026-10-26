@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Tests\DataFixtures\PartnerFinderFixture;
@@ -65,7 +66,7 @@ final class PartnerFinderQueryBudgetTest extends WebTestCase
         foreach ([PlayerFixture::PLAYER_WITH_STRIPE, PlayerFixture::PLAYER_PRIVATE] as $playerId) {
             $connection->executeStatement(
                 "INSERT INTO partner_listing (id, competition_id, player_id, group_size, looking_for, co_member_ids, strengths, custom_strengths, languages, created_at, updated_at)
-                 VALUES (gen_random_uuid(), :competition, :player, 1, '[\"team\"]', '[]', '[\"sky\"]', '[\"Wasgij\"]', '[\"en\"]', NOW(), NOW())",
+                 VALUES (gen_random_uuid(), :competition, :player, 1, '[\"team\"]', '[]', '[\"sky\"]', '[\"Wasgij\"]', '[\"en\"]', " . TestClock::SQL_NOW . ", " . TestClock::SQL_NOW . ")",
                 ['competition' => PartnerFinderFixture::COMPETITION_PARTNER_FINDER_OPEN, 'player' => $playerId],
             );
         }

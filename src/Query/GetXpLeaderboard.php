@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Results\ProgressBoard;
 use SpeedPuzzling\Web\Results\ProgressBoardRow;
@@ -44,13 +45,14 @@ SQL;
     OR GREATEST(
         COALESCE(m.ends_at, m.billing_period_ends_at, '1970-01-01'::timestamp),
         COALESCE(m.granted_until, '1970-01-01'::timestamp)
-    ) > NOW()
+    ) > CAST(:now AS timestamp)
   )
 SQL;
 
     public function __construct(
         private Connection $database,
         private HiddenPlayers $hiddenPlayers,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -117,6 +119,7 @@ SQL;
 
             if ($tab === ProgressLeaderboardTab::AchievementPoints) {
                 $membership = self::ACTIVE_MEMBERSHIP;
+                $params['now'] = $this->clock->now()->format('Y-m-d H:i:s');
                 $value = 'p.achievement_points';
                 $from = <<<SQL
 FROM player p

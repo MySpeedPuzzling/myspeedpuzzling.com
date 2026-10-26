@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PaceTimeline;
@@ -161,6 +162,6 @@ final class PaceTimelineTest extends TestCase
 
     private function baselineCalculator(): PlayerBaselineCalculator
     {
-        return new PlayerBaselineCalculator($this->createStub(Connection::class), new MockClock());
+        return new PlayerBaselineCalculator($this->createStub(Connection::class), new MockClock(TestClock::now()));
     }
 }

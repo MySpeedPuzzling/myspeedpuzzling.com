@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -267,7 +267,7 @@ final class RequestPasswordResetControllerTest extends WebTestCase
     private function seedAccount(KernelBrowser $browser): string
     {
         $email = sprintf('reset.page+%s@example.com', bin2hex(random_bytes(4)));
-        $userAccount = new UserAccount(Uuid::uuid7(), 'msp|' . bin2hex(random_bytes(4)), $email, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), 'msp|' . bin2hex(random_bytes(4)), $email, TestClock::now());
         $userAccount->changePassword(password_hash('the-real-password', PASSWORD_ARGON2ID));
 
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);

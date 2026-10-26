@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Exceptions\OnlineTimingInUse;
@@ -233,7 +234,7 @@ final class OnlineTimingGuardsTest extends KernelTestCase
     {
         $this->database->executeStatement(
             "INSERT INTO competition_round (id, competition_id, name, minutes_limit, starts_at, slug, category)
-             VALUES (:id, :competition, 'Second Round', 45, NOW() + INTERVAL '30 days', 'second-round', 'solo')",
+             VALUES (:id, :competition, 'Second Round', 45, " . TestClock::SQL_NOW . " + INTERVAL '30 days', 'second-round', 'solo')",
             ['id' => $roundId, 'competition' => self::COMPETITION],
         );
     }
@@ -245,7 +246,7 @@ final class OnlineTimingGuardsTest extends KernelTestCase
     {
         $this->database->executeStatement(
             "INSERT INTO online_round (id, round_id, enabled_at, enabled_by_id, detection_mode, video_enabled, participants_see_each_other, studio_enabled, recording_enabled, unfinished_measure, missing_piece_rule)
-             VALUES ('018d0050-0000-0000-0000-0000000001f1', :round, NOW(), NULL, 'off', false, false, false, false, 'left', 'complete_required')",
+             VALUES ('018d0050-0000-0000-0000-0000000001f1', :round, " . TestClock::SQL_NOW . ", NULL, 'off', false, false, false, false, 'left', 'complete_required')",
             ['round' => $roundId],
         );
     }

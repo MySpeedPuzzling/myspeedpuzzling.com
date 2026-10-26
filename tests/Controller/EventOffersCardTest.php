@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
@@ -120,10 +121,10 @@ final class EventOffersCardTest extends WebTestCase
         $browser = self::createClient();
         // B stays home, A packs everything
         $database = self::getContainer()->get(Connection::class);
-        $database->executeStatement('UPDATE competition_participant SET deleted_at = NOW() WHERE id = :id', ['id' => MarketplaceEventFixture::PARTICIPANT_FAIR_SELLER_B]);
+        $database->executeStatement('UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => MarketplaceEventFixture::PARTICIPANT_FAIR_SELLER_B]);
         $database->executeStatement(
             "INSERT INTO sell_swap_list_item_event (sell_swap_list_item_id, competition_id, added_at)
-             SELECT id, :competition, NOW() FROM sell_swap_list_item WHERE player_id = :player AND id NOT IN (SELECT sell_swap_list_item_id FROM sell_swap_list_item_event WHERE competition_id = :competition)",
+             SELECT id, :competition, " . TestClock::SQL_NOW . " FROM sell_swap_list_item WHERE player_id = :player AND id NOT IN (SELECT sell_swap_list_item_id FROM sell_swap_list_item_event WHERE competition_id = :competition)",
             ['competition' => self::FAIR, 'player' => PlayerFixture::PLAYER_WITH_STRIPE],
         );
 
@@ -180,7 +181,7 @@ final class EventOffersCardTest extends WebTestCase
         // B joins WJPC 2024, where nothing was coming: B's own offers are on the way now - the empty card is for
         // events where nothing at all is
         self::getContainer()->get(Connection::class)->executeStatement(
-            "INSERT INTO competition_participant (id, name, country, source, player_id, competition_id, connected_at) VALUES ('018d0014-0000-0000-0000-0000000000f1', 'Admin User', 'cz', 'self_joined', :player, :competition, NOW())",
+            "INSERT INTO competition_participant (id, name, country, source, player_id, competition_id, connected_at) VALUES ('018d0014-0000-0000-0000-0000000000f1', 'Admin User', 'cz', 'self_joined', :player, :competition, " . TestClock::SQL_NOW . ")",
             ['player' => PlayerFixture::PLAYER_ADMIN, 'competition' => CompetitionFixture::COMPETITION_WJPC_2024],
         );
 

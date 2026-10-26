@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Message\MuteUser;
 use SpeedPuzzling\Web\Query\GetModerationActions;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -41,7 +42,7 @@ final class MuteUserHandlerTest extends KernelTestCase
         $player = $this->playerRepository->get(PlayerFixture::PLAYER_REGULAR);
         self::assertTrue($player->messagingMuted);
         self::assertNotNull($player->messagingMutedUntil);
-        self::assertTrue($player->isMessagingMuted());
+        self::assertTrue($player->isMessagingMuted(TestClock::now()));
     }
 
     public function testMuteCreatesModerationAction(): void

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
@@ -203,15 +204,15 @@ final class TerminateMembershipDueToDisputeHandlerTest extends TestCase
             code: 'testplayer',
             userId: 'auth0|test',
             name: 'Test Player',
-            registeredAt: new DateTimeImmutable(),
+            registeredAt: TestClock::now(),
         );
 
         $membership = new Membership(
             id: Uuid::uuid7(),
             player: $player,
-            createdAt: new DateTimeImmutable('-30 days'),
+            createdAt: TestClock::now()->modify('-30 days'),
             stripeSubscriptionId: self::SUBSCRIPTION_ID,
-            billingPeriodEndsAt: new DateTimeImmutable('+19 days'),
+            billingPeriodEndsAt: TestClock::now()->modify('+19 days'),
         );
 
         $membership->popEvents();

@@ -140,9 +140,11 @@ final class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
 
         foreach ([$emailIpLimit, $ipLimit] as $limit) {
             if (!$limit->isAccepted()) {
+                // Real time: the limiter counts on the system clock
                 $retryAfter = $limit->getRetryAfter();
 
                 throw new TooManyLoginAttemptsAuthenticationException(
+                    // @phpstan-ignore clock.systemTime (rate-limiter retry-after: the limiter counts on the system clock)
                     (int) ceil(($retryAfter->getTimestamp() - time()) / 60),
                 );
             }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Message\RecalculateCommunityStats;
 use SpeedPuzzling\Web\MessageHandler\RecalculateCommunityStatsHandler;
@@ -31,7 +32,7 @@ final class GetCommunityScopeStatsCountriesTest extends KernelTestCase
 
         $container->get(Connection::class)->executeStatement(
             "INSERT INTO community_scope_stats (scope, registered_players, active30d, solves30d, solves_prev30d, active_this_month, pieces_this_month, active_last_month, pieces_last_month, median_best500_seconds, puzzlers_with500, monthly_solves, new_faces14d, computed_at)
-            VALUES ('fj', 1, 0, 0, 0, 0, 0, 0, 0, NULL, 0, '[0,0,0,0,0,0,0,0,0,0,0,0]', 0, NOW())",
+            VALUES ('fj', 1, 0, 0, 0, 0, 0, 0, 0, NULL, 0, '[0,0,0,0,0,0,0,0,0,0,0,0]', 0, " . TestClock::SQL_NOW . ")",
         );
 
         self::assertSame($countries, $query->countries());

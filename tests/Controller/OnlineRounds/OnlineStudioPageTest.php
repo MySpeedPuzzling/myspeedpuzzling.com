@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\OnlineRounds;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\StudioInvite;
@@ -201,7 +201,7 @@ final class OnlineStudioPageTest extends WebTestCase
         // Olivia: invited, joined, on air
         $olivia = $this->invite($bus, self::OLIVIA);
         $bus->dispatch(new AnswerStudioInvite($olivia, self::OLIVIA, StudioInviteAnswer::Join));
-        $onAirFrom = new DateTimeImmutable('-30 seconds');
+        $onAirFrom = TestClock::now()->modify('-30 seconds');
         $bus->dispatch(new RecordStudioGuestPresence(self::ROUND, self::OLIVIA, true, $onAirFrom));
 
         // Arthur: invited three minutes ago, never answered - expired as of now, whatever is stored
@@ -211,7 +211,7 @@ final class OnlineStudioPageTest extends WebTestCase
             'round_id' => self::ROUND,
             'participant_id' => OnlineRoundsFixture::PARTICIPANT_ANONYMOUS,
             'invited_by_id' => PlayerFixture::PLAYER_ADMIN,
-            'invited_at' => (new DateTimeImmutable('-3 minutes'))->format('Y-m-d H:i:s'),
+            'invited_at' => TestClock::now()->modify('-3 minutes')->format('Y-m-d H:i:s'),
             'status' => 'invited',
         ]);
 

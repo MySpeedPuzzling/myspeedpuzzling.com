@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\ParticipantsSheet;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
@@ -33,7 +34,7 @@ final class ParticipantsSheetPersonalLinkTest extends WebTestCase
     {
         $this->connection()->executeStatement(
             "INSERT INTO competition_participant (id, name, competition_id, source, deleted_at, online_token, online_token_created_at)
-             VALUES ('018d0050-0000-0000-0000-0000000002e1', 'Rita Removed', :competition, 'imported', NOW(), 'RemovedTestCupToken234', NOW())",
+             VALUES ('018d0050-0000-0000-0000-0000000002e1', 'Rita Removed', :competition, 'imported', " . TestClock::SQL_NOW . ", 'RemovedTestCupToken234', " . TestClock::SQL_NOW . ")",
             ['competition' => self::COMPETITION],
         );
 

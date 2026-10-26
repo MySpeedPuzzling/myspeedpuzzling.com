@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\FeatureRequestCommentReport;
 use SpeedPuzzling\Web\Exceptions\FeatureRequestCommentNotFound;
@@ -23,6 +23,7 @@ readonly final class ReportFeatureRequestCommentHandler
         private PlayerRepository $playerRepository,
         private FeatureRequestCommentRepository $featureRequestCommentRepository,
         private FeatureRequestCommentReportRepository $featureRequestCommentReportRepository,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -41,7 +42,7 @@ readonly final class ReportFeatureRequestCommentHandler
             reporter: $reporter,
             reason: 'Reported by community member',
             status: ReportStatus::Pending,
-            reportedAt: new DateTimeImmutable(),
+            reportedAt: $this->clock->now(),
         );
 
         $this->featureRequestCommentReportRepository->save($report);

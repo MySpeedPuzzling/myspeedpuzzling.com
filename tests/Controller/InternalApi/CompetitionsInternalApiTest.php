@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\InternalApi;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Monolog\Handler\TestHandler;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
@@ -802,7 +803,7 @@ final class CompetitionsInternalApiTest extends WebTestCase
         self::assertSame('pending', self::callInternalApi($browser, 'GET', '/internal-api/competitions/' . OrganizationFixture::EDITION_MAPLE_PENDING_1)['status']);
 
         self::getContainer()->get(Connection::class)->executeStatement(
-            "UPDATE competition_series SET rejected_at = NOW(), rejection_reason = 'A duplicate.' WHERE id = :id",
+            "UPDATE competition_series SET rejected_at = " . TestClock::SQL_NOW . ", rejection_reason = 'A duplicate.' WHERE id = :id",
             ['id' => OrganizationFixture::SERIES_MAPLE_PENDING],
         );
 

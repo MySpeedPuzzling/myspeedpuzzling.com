@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 
 /**
  * Whether player_pace_history holds every player's history yet. The migration creates the table
@@ -17,6 +18,7 @@ readonly final class PaceHistoryReadiness
 {
     public function __construct(
         private Connection $connection,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -43,10 +45,14 @@ readonly final class PaceHistoryReadiness
     public function markBuilt(float $scalingExponent): void
     {
         $this->connection->executeStatement(
-            'INSERT INTO pace_history_build (id, version, built_at, scaling_exponent) VALUES (1, :version, NOW(), :exponent)
+            'INSERT INTO pace_history_build (id, version, built_at, scaling_exponent) VALUES (1, :version, CAST(:now AS timestamp), :exponent)
             ON CONFLICT (id) DO UPDATE SET scaling_exponent = EXCLUDED.scaling_exponent
             WHERE pace_history_build.scaling_exponent IS DISTINCT FROM EXCLUDED.scaling_exponent',
-            ['version' => PlayerPaceHistoryCalculator::VERSION, 'exponent' => $scalingExponent],
+            [
+                'version' => PlayerPaceHistoryCalculator::VERSION,
+                'exponent' => $scalingExponent,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+            ],
         );
     }
 }

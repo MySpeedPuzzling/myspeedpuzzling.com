@@ -104,21 +104,21 @@ class OAuth2ClientRequest
     ) {
     }
 
-    public function approve(Player $admin, string $clientIdentifier, null|string $clientSecret, string $claimToken): void
+    public function approve(Player $admin, string $clientIdentifier, null|string $clientSecret, string $claimToken, DateTimeImmutable $now): void
     {
         $this->status = OAuth2ClientRequestStatus::Approved;
-        $this->reviewedAt = new DateTimeImmutable();
+        $this->reviewedAt = $now;
         $this->reviewedBy = $admin;
         $this->clientIdentifier = $clientIdentifier;
         $this->clientSecret = $clientSecret;
         $this->credentialClaimToken = hash('sha256', $claimToken);
-        $this->credentialClaimExpiresAt = new DateTimeImmutable('+7 days');
+        $this->credentialClaimExpiresAt = $now->modify('+7 days');
     }
 
-    public function reject(Player $admin, string $reason): void
+    public function reject(Player $admin, string $reason, DateTimeImmutable $now): void
     {
         $this->status = OAuth2ClientRequestStatus::Rejected;
-        $this->reviewedAt = new DateTimeImmutable();
+        $this->reviewedAt = $now;
         $this->reviewedBy = $admin;
         $this->rejectionReason = $reason;
     }
@@ -129,11 +129,11 @@ class OAuth2ClientRequest
         $this->clientSecret = null;
     }
 
-    public function resetCredentials(string $newSecret, string $claimToken): void
+    public function resetCredentials(string $newSecret, string $claimToken, DateTimeImmutable $now): void
     {
         $this->clientSecret = $newSecret;
         $this->credentialClaimToken = hash('sha256', $claimToken);
-        $this->credentialClaimExpiresAt = new DateTimeImmutable('+7 days');
+        $this->credentialClaimExpiresAt = $now->modify('+7 days');
         $this->credentialsClaimed = false;
     }
 }

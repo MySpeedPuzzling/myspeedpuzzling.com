@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestDouble\NullMercureHub;
+use Symfony\Component\Clock\MockClock;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\PasswordHasher\Hasher\NativePasswordHasher;
@@ -17,6 +19,13 @@ return static function (ContainerConfigurator $configurator): void {
         ->autoconfigure()
         ->autowire()
         ->public();
+
+    // The suite runs at one frozen instant (docs/features/time-and-clock/README.md, R4): the app, the framework services
+    // reading `clock` and the fixtures all see TestClock::FROZEN_NOW. A service of the container, not Clock::set() - a
+    // static would carry a test's modify() into the next test of the same ParaTest worker; every kernel builds its own.
+    // Strings as arguments: the container cannot dump a DateTimeImmutable
+    $services->set('clock', MockClock::class)
+        ->args([TestClock::FROZEN_NOW, 'UTC']);
 
     // Data fixtures
     $services->load('SpeedPuzzling\\Web\\Tests\\DataFixtures\\', __DIR__ . '/../tests/DataFixtures/{*.php}');
@@ -125,8 +134,9 @@ return static function (ContainerConfigurator $configurator): void {
     // S3 failover: the real FailoverS3Adapter stays wired (see
     // config/packages/test/oneup_flysystem.php), only the raw S3 adapter and
     // the local spool are swapped for in-memory doubles. setFailing(true) on
-    // the toggleable double simulates an object storage outage.
+    // the toggleable double simulates an object storage outage. Both stamp Last-Modified from the (frozen) clock, as a
+    // real store's clock agrees with the app's (ClockedInMemoryFilesystemAdapter).
     $services->set('app.storage.s3_adapter', \SpeedPuzzling\Web\Tests\TestDouble\ToggleableFailingFilesystemAdapter::class);
-    $services->set('app.storage.spool_adapter', \League\Flysystem\InMemory\InMemoryFilesystemAdapter::class);
-    $services->set('app.storage.result_images_adapter', \League\Flysystem\InMemory\InMemoryFilesystemAdapter::class);
+    $services->set('app.storage.spool_adapter', \SpeedPuzzling\Web\Tests\TestDouble\ClockedInMemoryFilesystemAdapter::class);
+    $services->set('app.storage.result_images_adapter', \SpeedPuzzling\Web\Tests\TestDouble\ClockedInMemoryFilesystemAdapter::class);
 };

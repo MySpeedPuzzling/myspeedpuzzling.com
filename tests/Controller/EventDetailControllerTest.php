@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -123,7 +124,7 @@ final class EventDetailControllerTest extends WebTestCase
         );
         $connection->executeStatement(
             "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, difficulty_tier, confidence, sample_size, computed_at)
-             VALUES (:puzzleId, 1.4, :tier, 'high', 30, NOW())
+             VALUES (:puzzleId, 1.4, :tier, 'high', 30, " . TestClock::SQL_NOW . ")
              ON CONFLICT (puzzle_id) DO UPDATE SET difficulty_tier = EXCLUDED.difficulty_tier",
             ['puzzleId' => PuzzleFixture::PUZZLE_500_01, 'tier' => DifficultyTier::Hard->value],
         );
@@ -441,7 +442,7 @@ final class EventDetailControllerTest extends WebTestCase
     private static function moveToThePast(string $competitionId): void
     {
         self::getContainer()->get(Connection::class)->executeStatement(
-            "UPDATE competition SET date_from = NOW() - INTERVAL '10 days', date_to = NOW() - INTERVAL '8 days' WHERE id = :id",
+            "UPDATE competition SET date_from = " . TestClock::SQL_NOW . " - INTERVAL '10 days', date_to = " . TestClock::SQL_NOW . " - INTERVAL '8 days' WHERE id = :id",
             ['id' => $competitionId],
         );
     }

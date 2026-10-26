@@ -10,6 +10,7 @@ use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Exceptions\InvalidMicrosoftIdToken;
 use SpeedPuzzling\Web\Services\SocialLogin\CachedJwks;
 use SpeedPuzzling\Web\Services\SocialLogin\MicrosoftIdTokenVerifier;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestDouble\MicrosoftIdTokenFactory;
 use SpeedPuzzling\Web\Tests\TestDouble\SocialLoginHttpMock;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
@@ -28,7 +29,7 @@ final class MicrosoftIdTokenVerifierTest extends TestCase
     protected function setUp(): void
     {
         SocialLoginHttpMock::reset();
-        $this->clock = new MockClock();
+        $this->clock = new MockClock(TestClock::now());
         $this->cache = new ArrayAdapter();
     }
 
@@ -66,8 +67,8 @@ final class MicrosoftIdTokenVerifierTest extends TestCase
         yield 'work tenant issuer' => [['iss' => 'https://login.microsoftonline.com/72f988bf-86f1-41af-91ab-2d7cd011db47/v2.0']];
         yield 'v1 issuer' => [['iss' => 'https://sts.windows.net/' . MicrosoftIdTokenVerifier::CONSUMERS_TENANT_ID . '/']];
         yield 'work tenant id' => [['tid' => '72f988bf-86f1-41af-91ab-2d7cd011db47']];
-        yield 'expired' => [['exp' => time() - 3600, 'iat' => time() - 7200, 'nbf' => time() - 7200]];
-        yield 'not yet valid' => [['nbf' => time() + 3600, 'iat' => time() + 3600]];
+        yield 'expired' => [['exp' => TestClock::timestamp() - 3600, 'iat' => TestClock::timestamp() - 7200, 'nbf' => TestClock::timestamp() - 7200]];
+        yield 'not yet valid' => [['nbf' => TestClock::timestamp() + 3600, 'iat' => TestClock::timestamp() + 3600]];
         yield 'no expiry' => [['exp' => null]];
         yield 'no oid' => [['oid' => null]];
         yield 'empty oid' => [['oid' => '']];
@@ -91,7 +92,7 @@ final class MicrosoftIdTokenVerifierTest extends TestCase
     {
         SocialLoginHttpMock::queue(MicrosoftIdTokenFactory::jwksResponse());
 
-        $claims = $this->verifier()->verify($this->token(['exp' => time() - 30]));
+        $claims = $this->verifier()->verify($this->token(['exp' => TestClock::timestamp() - 30]));
 
         self::assertNotSame('', $claims['oid']);
     }
@@ -216,7 +217,7 @@ final class MicrosoftIdTokenVerifierTest extends TestCase
      */
     private function token(array $claims, string $keyId = MicrosoftIdTokenFactory::KEY_ID): string
     {
-        // The mock clock starts at the real "now", the factory's defaults too
+        // The mock clock starts at the frozen instant (TestClock), the factory's defaults too
         return MicrosoftIdTokenFactory::idToken($claims, $keyId);
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler\OfficialResults;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -120,7 +121,7 @@ final class AdvanceQualifiedHandlerTest extends KernelTestCase
         $semifinalTwo = $this->newRound('Semifinal 2');
 
         // Cara qualifies too - tied with Ben: seeds Anna 1, Gina 2, Hugo 3, Ben 4, Cara 5
-        $this->database->executeStatement('UPDATE competition_participant_round SET qualified_at = NOW() WHERE id = :id', ['id' => OfficialResultsFixture::ENTRY_A_CARA]);
+        $this->database->executeStatement('UPDATE competition_participant_round SET qualified_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => OfficialResultsFixture::ENTRY_A_CARA]);
 
         $plan = $this->advance(
             [OfficialResultsFixture::ROUND_GROUP_A, OfficialResultsFixture::ROUND_GROUP_B],
@@ -416,12 +417,12 @@ SQL,
         $competition = $entityManager->find(Competition::class, OfficialResultsFixture::COMPETITION_RESULTS_CUP);
         assert($competition !== null);
 
-        $round = new CompetitionRound(id: Uuid::uuid7(), competition: $competition, name: 'Pairs B', minutesLimit: 60, startsAt: new \DateTimeImmutable('-9 days'), category: RoundCategory::Duo);
+        $round = new CompetitionRound(id: Uuid::uuid7(), competition: $competition, name: 'Pairs B', minutesLimit: 60, startsAt: TestClock::now()->modify('-9 days'), category: RoundCategory::Duo);
         $entityManager->persist($round);
 
         $team = new CompetitionTeam(Uuid::uuid7(), $round, 'Anna and Cara');
-        $team->recordResult(RoundEntryResult::finished(5000), null, new \DateTimeImmutable());
-        $team->markQualified(new \DateTimeImmutable());
+        $team->recordResult(RoundEntryResult::finished(5000), null, TestClock::now());
+        $team->markQualified(TestClock::now());
         $entityManager->persist($team);
 
         foreach ([OfficialResultsFixture::PARTICIPANT_ANNA, OfficialResultsFixture::PARTICIPANT_CARA] as $participantId) {
@@ -447,7 +448,7 @@ SQL,
             competition: $competition,
             name: $name,
             minutesLimit: 60,
-            startsAt: new \DateTimeImmutable('-9 days'),
+            startsAt: TestClock::now()->modify('-9 days'),
             category: $category,
         );
         $entityManager->persist($round);

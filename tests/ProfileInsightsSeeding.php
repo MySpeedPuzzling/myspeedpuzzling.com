@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests;
 
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Badge;
@@ -39,7 +38,7 @@ trait ProfileInsightsSeeding
             player: $player,
             piecesCount: $piecesCount,
             eloRating: $eloRating,
-            computedAt: new DateTimeImmutable(),
+            computedAt: TestClock::now(),
         ));
         $entityManager->flush();
         $entityManager->clear();
@@ -68,7 +67,7 @@ trait ProfileInsightsSeeding
             skillPercentile: $percentile,
             confidence: $confidence->value,
             qualifyingPuzzlesCount: $qualifyingPuzzlesCount,
-            computedAt: new DateTimeImmutable(),
+            computedAt: TestClock::now(),
         ));
         $entityManager->flush();
         $entityManager->clear();
@@ -85,7 +84,7 @@ trait ProfileInsightsSeeding
             id: Uuid::uuid7(),
             player: $player,
             type: $type,
-            earnedAt: new DateTimeImmutable(),
+            earnedAt: TestClock::now(),
         ));
         $entityManager->flush();
         $entityManager->clear();

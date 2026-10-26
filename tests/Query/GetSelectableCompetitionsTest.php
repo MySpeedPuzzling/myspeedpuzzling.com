@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
@@ -257,11 +258,12 @@ final class GetSelectableCompetitionsTest extends KernelTestCase
     private function insertOneTimeEvent(string $name, null|int $dayOffset): string
     {
         $id = Uuid::uuid7()->toString();
+        $now = TestClock::SQL_NOW;
 
         $this->database->executeStatement(
             <<<SQL
             INSERT INTO competition (id, name, is_online, approved_at, date_from, date_to)
-            VALUES (:id, :name, true, NOW(), :day, :day)
+            VALUES (:id, :name, true, {$now}, :day, :day)
             SQL,
             ['id' => $id, 'name' => $name, 'day' => $dayOffset !== null ? $this->day($dayOffset) : null],
         );

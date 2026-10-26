@@ -33,6 +33,8 @@ class PlayerRatingSnapshot
         public int $piecesCount,
         #[Column]
         public DateTimeImmutable $snapshotDate,
+        #[Column]
+        public DateTimeImmutable $computedAt,
         #[Column(nullable: true)]
         public null|float $skillScore = null,
         #[Column(nullable: true)]
@@ -47,8 +49,6 @@ class PlayerRatingSnapshot
         public null|int $baselineSeconds = null,
         #[Column(nullable: true)]
         public null|string $baselineType = null,
-        #[Column]
-        public DateTimeImmutable $computedAt = new DateTimeImmutable(),
     ) {
     }
 }

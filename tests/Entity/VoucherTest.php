@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Voucher;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Value\VoucherType;
 
 final class VoucherTest extends TestCase
@@ -41,11 +42,11 @@ final class VoucherTest extends TestCase
             id: Uuid::uuid7(),
             code: 'TESTCODE12345678',
             monthsValue: 1,
-            validUntil: new DateTimeImmutable('-5 days'),
-            createdAt: new DateTimeImmutable('-30 days'),
+            validUntil: TestClock::now()->modify('-5 days'),
+            createdAt: TestClock::now()->modify('-30 days'),
         );
 
-        self::assertTrue($voucher->isExpired(new DateTimeImmutable()));
+        self::assertTrue($voucher->isExpired(TestClock::now()));
     }
 
     public function testIsExpiredReturnsFalseWhenValidUntilIsFuture(): void
@@ -54,11 +55,11 @@ final class VoucherTest extends TestCase
             id: Uuid::uuid7(),
             code: 'TESTCODE12345678',
             monthsValue: 1,
-            validUntil: new DateTimeImmutable('+30 days'),
-            createdAt: new DateTimeImmutable('-5 days'),
+            validUntil: TestClock::now()->modify('+30 days'),
+            createdAt: TestClock::now()->modify('-5 days'),
         );
 
-        self::assertFalse($voucher->isExpired(new DateTimeImmutable()));
+        self::assertFalse($voucher->isExpired(TestClock::now()));
     }
 
     public function testIsAvailableWhenNotUsedAndNotExpired(): void
@@ -67,20 +68,20 @@ final class VoucherTest extends TestCase
             id: Uuid::uuid7(),
             code: 'TESTCODE12345678',
             monthsValue: 1,
-            validUntil: new DateTimeImmutable('+30 days'),
-            createdAt: new DateTimeImmutable('-5 days'),
+            validUntil: TestClock::now()->modify('+30 days'),
+            createdAt: TestClock::now()->modify('-5 days'),
         );
 
-        self::assertTrue($voucher->isAvailable(new DateTimeImmutable()));
+        self::assertTrue($voucher->isAvailable(TestClock::now()));
     }
 
     public function testIsNotAvailableWhenUsed(): void
     {
         $voucher = $this->createVoucher();
         $player = $this->createPlayer();
-        $voucher->markAsUsed($player, new DateTimeImmutable());
+        $voucher->markAsUsed($player, TestClock::now());
 
-        self::assertFalse($voucher->isAvailable(new DateTimeImmutable()));
+        self::assertFalse($voucher->isAvailable(TestClock::now()));
     }
 
     public function testIsNotAvailableWhenExpired(): void
@@ -89,11 +90,11 @@ final class VoucherTest extends TestCase
             id: Uuid::uuid7(),
             code: 'TESTCODE12345678',
             monthsValue: 1,
-            validUntil: new DateTimeImmutable('-5 days'),
-            createdAt: new DateTimeImmutable('-30 days'),
+            validUntil: TestClock::now()->modify('-5 days'),
+            createdAt: TestClock::now()->modify('-30 days'),
         );
 
-        self::assertFalse($voucher->isAvailable(new DateTimeImmutable()));
+        self::assertFalse($voucher->isAvailable(TestClock::now()));
     }
 
     public function testIsFreeMonthsReturnsTrueForFreeMonthsVoucher(): void
@@ -118,8 +119,8 @@ final class VoucherTest extends TestCase
             id: Uuid::uuid7(),
             code: 'TESTCODE12345678',
             monthsValue: null,
-            validUntil: new DateTimeImmutable('+30 days'),
-            createdAt: new DateTimeImmutable(),
+            validUntil: TestClock::now()->modify('+30 days'),
+            createdAt: TestClock::now(),
             voucherType: VoucherType::Lifetime,
         );
 
@@ -135,8 +136,8 @@ final class VoucherTest extends TestCase
             id: Uuid::uuid7(),
             code: 'TESTCODE12345678',
             monthsValue: null,
-            validUntil: new DateTimeImmutable('+30 days'),
-            createdAt: new DateTimeImmutable(),
+            validUntil: TestClock::now()->modify('+30 days'),
+            createdAt: TestClock::now(),
             voucherType: VoucherType::PercentageDiscount,
             percentageDiscount: 20,
             maxUses: 100,
@@ -153,8 +154,8 @@ final class VoucherTest extends TestCase
             id: Uuid::uuid7(),
             code: 'TESTCODE12345678',
             monthsValue: null,
-            validUntil: new DateTimeImmutable('+30 days'),
-            createdAt: new DateTimeImmutable(),
+            validUntil: TestClock::now()->modify('+30 days'),
+            createdAt: TestClock::now(),
             voucherType: VoucherType::PercentageDiscount,
             percentageDiscount: 20,
             maxUses: 5,
@@ -189,8 +190,8 @@ final class VoucherTest extends TestCase
             id: Uuid::uuid7(),
             code: 'TESTCODE12345678',
             monthsValue: 1,
-            validUntil: new DateTimeImmutable('+30 days'),
-            createdAt: new DateTimeImmutable(),
+            validUntil: TestClock::now()->modify('+30 days'),
+            createdAt: TestClock::now(),
             internalNote: 'Test voucher',
         );
     }
@@ -201,8 +202,8 @@ final class VoucherTest extends TestCase
             id: Uuid::uuid7(),
             code: 'DISCOUNT20PRCT12',
             monthsValue: null,
-            validUntil: new DateTimeImmutable('+30 days'),
-            createdAt: new DateTimeImmutable(),
+            validUntil: TestClock::now()->modify('+30 days'),
+            createdAt: TestClock::now(),
             internalNote: 'Test percentage voucher',
             voucherType: VoucherType::PercentageDiscount,
             percentageDiscount: 20,
@@ -217,7 +218,7 @@ final class VoucherTest extends TestCase
             code: 'testuser',
             userId: 'auth0|test123',
             name: 'Test User',
-            registeredAt: new DateTimeImmutable(),
+            registeredAt: TestClock::now(),
         );
     }
 }

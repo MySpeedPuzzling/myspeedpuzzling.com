@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddEdition;
@@ -46,7 +46,7 @@ final class CompetitionSeriesDetailControllerTest extends WebTestCase
         $browser = self::createClient();
         // approve() and reject() do not clear each other - a rejection vetoes a stale approval
         self::getContainer()->get(Connection::class)->executeStatement(
-            'UPDATE competition_series SET rejected_at = NOW() WHERE id = :id',
+            'UPDATE competition_series SET rejected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => CompetitionSeriesFixture::SERIES_EJJ],
         );
 
@@ -207,8 +207,8 @@ final class CompetitionSeriesDetailControllerTest extends WebTestCase
         $browser = self::createClient();
         $seed = WeeklySeriesSeed::create(self::getContainer());
         $scenario = new SeriesEditionScenario(self::getContainer());
-        $secretEdition = $scenario->edition($seed['seriesId'], 'Secret Jam', new DateTimeImmutable('-2 days')->format('Y-m-d'));
-        $scenario->round($secretEdition, RoundCategory::Team, new DateTimeImmutable('-2 days')->format('Y-m-d') . ' 19:00', puzzleIds: [$scenario->puzzle('Velvet Comet')], secret: true);
+        $secretEdition = $scenario->edition($seed['seriesId'], 'Secret Jam', TestClock::now()->modify('-2 days')->format('Y-m-d'));
+        $scenario->round($secretEdition, RoundCategory::Team, TestClock::now()->modify('-2 days')->format('Y-m-d') . ' 19:00', puzzleIds: [$scenario->puzzle('Velvet Comet')], secret: true);
 
         $crawler = $browser->request('GET', '/en/series/' . $seed['slug']);
 
@@ -290,14 +290,14 @@ final class CompetitionSeriesDetailControllerTest extends WebTestCase
         $browser = self::createClient();
         $scenario = new SeriesEditionScenario(self::getContainer());
         $started = $scenario->series('Lantern Weekly Jam');
-        $scenario->edition($started, 'Jam No. 1', new DateTimeImmutable('-3 days')->format('Y-m-d'));
+        $scenario->edition($started, 'Jam No. 1', TestClock::now()->modify('-3 days')->format('Y-m-d'));
         $coming = $scenario->series('Moonlit Sprint Cup');
-        $scenario->edition($coming, 'Round One', new DateTimeImmutable('+3 days')->format('Y-m-d'));
+        $scenario->edition($coming, 'Round One', TestClock::now()->modify('+3 days')->format('Y-m-d'));
         $undated = $scenario->series('Moonlit Pier Puzzle Club');
         $scenario->edition($undated, 'Pier Meet 1', null);
         $empty = $scenario->series('Copper Kettle Puzzle Circle');
         $pending = $scenario->series('Harbor Puzzle Evenings', public: false);
-        $scenario->edition($pending, 'Evening 1', new DateTimeImmutable('-3 days')->format('Y-m-d'));
+        $scenario->edition($pending, 'Evening 1', TestClock::now()->modify('-3 days')->format('Y-m-d'));
 
         foreach ([$started, $undated, $empty] as $seriesId) {
             $guest = $browser->request('GET', $this->seriesUrl($seriesId));

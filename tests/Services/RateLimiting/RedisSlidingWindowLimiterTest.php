@@ -166,6 +166,7 @@ final class RedisSlidingWindowLimiterTest extends TestCase
         $limit = 100;
         $results = sys_get_temp_dir() . '/rate-limit-test-' . Uuid::uuid7()->toString();
         mkdir($results);
+        // Real time on purpose: the forked processes start together at a real instant and race on a real clock
         $startAt = microtime(true) + 0.5;
         $children = [];
 
@@ -175,6 +176,7 @@ final class RedisSlidingWindowLimiterTest extends TestCase
 
             if ($pid === 0) {
                 // A connection of its own - never the parent's socket
+                // @phpstan-ignore clock.systemTime (forked processes start together at a real moment and the limiter counts on real time)
                 $limiter = new RedisSlidingWindowLimiterFactory(self::connect(), 'online', $limit, 60, new NativeClock(), new NullLogger(), $this->prefix)->create('one-link');
                 time_sleep_until($startAt);
                 $accepted = 0;

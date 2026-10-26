@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -74,7 +75,7 @@ final class SecretRevealPreviewTest extends KernelTestCase
         $this->secretRow(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, PuzzleFixture::PUZZLE_500_03);
         $round = $this->round(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION);
 
-        $revealed = $this->preview->byChangingRound($round, new DateTimeImmutable('-1 hour'), RoundPuzzleReveal::DEFAULT_DELAY_MINUTES);
+        $revealed = $this->preview->byChangingRound($round, TestClock::now()->modify('-1 hour'), RoundPuzzleReveal::DEFAULT_DELAY_MINUTES);
 
         self::assertCount(1, $revealed);
         self::assertNull($revealed[0]['revealsAt'], 'Right away');
@@ -131,7 +132,7 @@ final class SecretRevealPreviewTest extends KernelTestCase
         }
 
         $atTheNewMoment = $this->preview->byChangingRound($round, $round->startsAt, 5);
-        $rightAway = $this->preview->byChangingRound($round, new DateTimeImmutable('-1 hour'), RoundPuzzleReveal::DEFAULT_DELAY_MINUTES);
+        $rightAway = $this->preview->byChangingRound($round, TestClock::now()->modify('-1 hour'), RoundPuzzleReveal::DEFAULT_DELAY_MINUTES);
 
         foreach ([$atTheNewMoment, $rightAway] as $revealed) {
             self::assertCount(2, $revealed);
@@ -183,7 +184,7 @@ final class SecretRevealPreviewTest extends KernelTestCase
         $round = $this->round(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION);
 
         self::assertSame([], $this->preview->byChangingRound($round, $round->startsAt, 0));
-        self::assertSame([], $this->preview->byChangingRound($round, new DateTimeImmutable('-1 day'), 0));
+        self::assertSame([], $this->preview->byChangingRound($round, TestClock::now()->modify('-1 day'), 0));
     }
 
     public function testTheHashCoversTheNewMoment(): void
@@ -194,7 +195,7 @@ final class SecretRevealPreviewTest extends KernelTestCase
 
         $fiveMinutes = $this->preview->byChangingRound($round, $round->startsAt, 5);
         $sixMinutes = $this->preview->byChangingRound($round, $round->startsAt, 6);
-        $rightAway = $this->preview->byChangingRound($round, new DateTimeImmutable('-1 hour'), 5);
+        $rightAway = $this->preview->byChangingRound($round, TestClock::now()->modify('-1 hour'), 5);
 
         self::assertCount(2, $fiveMinutes);
         self::assertNotSame(SecretRevealPreview::hash($fiveMinutes), SecretRevealPreview::hash($sixMinutes));
@@ -239,9 +240,9 @@ final class SecretRevealPreviewTest extends KernelTestCase
 
         // Right away too: from where it moves is part of the yes
         $round->changeRevealDelay(25);
-        $rightAwayFrom25 = $this->preview->byChangingRound($round, new DateTimeImmutable('-1 hour'), 5);
+        $rightAwayFrom25 = $this->preview->byChangingRound($round, TestClock::now()->modify('-1 hour'), 5);
         $round->changeRevealDelay(60);
-        $rightAwayFrom60 = $this->preview->byChangingRound($round, new DateTimeImmutable('-1 hour'), 5);
+        $rightAwayFrom60 = $this->preview->byChangingRound($round, TestClock::now()->modify('-1 hour'), 5);
         self::assertTrue(SecretRevealPreview::refuses($rightAwayFrom60, false, SecretRevealPreview::hash($rightAwayFrom25)));
 
         $this->entityManager->clear();
@@ -269,7 +270,7 @@ final class SecretRevealPreviewTest extends KernelTestCase
     {
         $this->secretRow(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, PuzzleFixture::PUZZLE_500_03);
         $round = $this->round(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION);
-        $revealed = $this->preview->byChangingRound($round, new DateTimeImmutable('-1 hour'), RoundPuzzleReveal::DEFAULT_DELAY_MINUTES);
+        $revealed = $this->preview->byChangingRound($round, TestClock::now()->modify('-1 hour'), RoundPuzzleReveal::DEFAULT_DELAY_MINUTES);
 
         // A page rendered by the previous release (id | everywhere | until) - asks again, never confirms
         $oldHash = hash('sha256', implode(',', [PuzzleFixture::PUZZLE_500_03 . '|everywhere|']));
@@ -286,7 +287,7 @@ final class SecretRevealPreviewTest extends KernelTestCase
         $finalStart = $this->round(CompetitionRoundFixture::ROUND_WJPC_FINAL)->startsAt;
         $final = $this->entityManager->find(CompetitionRoundPuzzle::class, $final);
         self::assertNotNull($final);
-        $final->round->startsAt = new DateTimeImmutable('-1 hour');
+        $final->round->startsAt = TestClock::now()->modify('-1 hour');
         $this->sync(PuzzleFixture::PUZZLE_500_03);
 
         $row = $this->entityManager->find(CompetitionRoundPuzzle::class, $qualification);

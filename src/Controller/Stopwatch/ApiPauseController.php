@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Stopwatch;
 
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\StopwatchCouldNotBePaused;
 use SpeedPuzzling\Web\Message\StopStopwatch;
@@ -24,6 +25,7 @@ final class ApiPauseController extends AbstractController
     public function __construct(
         private readonly MessageBusInterface $messageBus,
         private readonly GetStopwatch $getStopwatch,
+        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -59,7 +61,7 @@ final class ApiPauseController extends AbstractController
         return new JsonResponse([
             'ok' => true,
             'totalSeconds' => $stopwatch->totalSeconds,
-            'serverTime' => (new \DateTimeImmutable())->format('c'),
+            'serverTime' => $this->clock->now()->format('c'),
         ]);
     }
 }

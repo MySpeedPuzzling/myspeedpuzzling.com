@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -61,8 +62,8 @@ final class ResultReviewEmailsTest extends KernelTestCase
         $this->database = self::getContainer()->get(Connection::class);
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
 
-        $this->entityManager->persist(new UserAccount(Uuid::uuid7(), 'auth0|twins001', 'dana@example.com', new DateTimeImmutable()));
-        $this->entityManager->persist(new UserAccount(Uuid::uuid7(), 'auth0|twins002', 'tom@example.com', new DateTimeImmutable()));
+        $this->entityManager->persist(new UserAccount(Uuid::uuid7(), 'auth0|twins001', 'dana@example.com', TestClock::now()));
+        $this->entityManager->persist(new UserAccount(Uuid::uuid7(), 'auth0|twins002', 'tom@example.com', TestClock::now()));
         $this->entityManager->flush();
     }
 
@@ -125,7 +126,7 @@ final class ResultReviewEmailsTest extends KernelTestCase
         $this->plan();
         $this->send();
         // The first e-mail went out 10 days ago and Dana did not react
-        $this->database->executeStatement("UPDATE result_review_contact SET sent_at = NOW() - INTERVAL '10 days'");
+        $this->database->executeStatement("UPDATE result_review_contact SET sent_at = " . TestClock::SQL_NOW . " - INTERVAL '10 days'");
 
         // Nothing new: every case was in the first e-mail already
         self::assertSame(0, $this->plan());
@@ -144,7 +145,7 @@ final class ResultReviewEmailsTest extends KernelTestCase
         self::assertNotNull($this->database->fetchOne('SELECT reported_at FROM result_auto_removal WHERE player_id = :id', ['id' => self::DANA]));
 
         // Told once: no further e-mail about it
-        $this->database->executeStatement("UPDATE result_review_contact SET sent_at = NOW() - INTERVAL '10 days'");
+        $this->database->executeStatement("UPDATE result_review_contact SET sent_at = " . TestClock::SQL_NOW . " - INTERVAL '10 days'");
         self::assertSame(0, $this->plan());
     }
 
@@ -152,7 +153,7 @@ final class ResultReviewEmailsTest extends KernelTestCase
     {
         $this->plan();
         $this->send();
-        $this->database->executeStatement("UPDATE result_review_contact SET sent_at = NOW() - INTERVAL '10 days'");
+        $this->database->executeStatement("UPDATE result_review_contact SET sent_at = " . TestClock::SQL_NOW . " - INTERVAL '10 days'");
 
         self::getContainer()->get(DailyDuplicateDetection::class)->run(DuplicateDetectedBy::Cron);
 
@@ -166,7 +167,7 @@ final class ResultReviewEmailsTest extends KernelTestCase
         $this->plan();
         $this->send();
         $this->database->executeStatement(
-            "UPDATE result_review_contact SET sent_at = NOW() - INTERVAL '40 days', reacted_at = NOW() - INTERVAL '39 days' WHERE player_id = :id",
+            "UPDATE result_review_contact SET sent_at = " . TestClock::SQL_NOW . " - INTERVAL '40 days', reacted_at = " . TestClock::SQL_NOW . " - INTERVAL '39 days' WHERE player_id = :id",
             ['id' => self::DANA],
         );
         // A case nobody told her about yet
@@ -264,7 +265,7 @@ final class ResultReviewEmailsTest extends KernelTestCase
         $this->activeDaysAgo(self::DANA, 1);
         $this->plan();
         $this->send();
-        $this->database->executeStatement("UPDATE result_review_contact SET sent_at = NOW() - INTERVAL '10 days'");
+        $this->database->executeStatement("UPDATE result_review_contact SET sent_at = " . TestClock::SQL_NOW . " - INTERVAL '10 days'");
         self::getContainer()->get(DailyDuplicateDetection::class)->run(DuplicateDetectedBy::Cron);
         $this->plan();
 
@@ -324,7 +325,7 @@ final class ResultReviewEmailsTest extends KernelTestCase
         $dana = self::getContainer()->get(PlayerRepository::class)->get(self::DANA);
         $this->planForDana(4);
         // Sent at 23:00 Prague time the day before - not today's
-        $this->entityManager->persist($yesterday = new ResultReviewContact(Uuid::uuid7(), $dana, ResultReviewContactType::First, 1, null, [], [], new DateTimeImmutable()));
+        $this->entityManager->persist($yesterday = new ResultReviewContact(Uuid::uuid7(), $dana, ResultReviewContactType::First, 1, null, [], [], TestClock::now()));
         $yesterday->sent([], [], new DateTimeImmutable('2026-10-01 21:00:00'));
         $this->entityManager->flush();
 
@@ -490,7 +491,7 @@ final class ResultReviewEmailsTest extends KernelTestCase
                 lastActiveOn: null,
                 caseIds: [$caseId],
                 removalIds: [],
-                plannedAt: new DateTimeImmutable(),
+                plannedAt: TestClock::now(),
             ));
         }
 
@@ -500,7 +501,7 @@ final class ResultReviewEmailsTest extends KernelTestCase
     private function activeDaysAgo(string $playerId, int $days): void
     {
         $this->database->executeStatement(
-            "INSERT INTO player_activity_day (id, player_id, day, first_seen_at) VALUES (:id, :playerId, CURRENT_DATE - :days * INTERVAL '1 day', NOW())",
+            "INSERT INTO player_activity_day (id, player_id, day, first_seen_at) VALUES (:id, :playerId, " . TestClock::SQL_TODAY . " - :days * INTERVAL '1 day', " . TestClock::SQL_NOW . ")",
             ['id' => Uuid::uuid7()->toString(), 'playerId' => $playerId, 'days' => $days],
         );
     }

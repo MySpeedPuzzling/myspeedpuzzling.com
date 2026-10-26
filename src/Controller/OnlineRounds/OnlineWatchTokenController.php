@@ -120,6 +120,7 @@ final class OnlineWatchTokenController extends AbstractController
 
         // The limiter counts on the system clock
         $response = OfficialResultsApi::error('rate_limited', JsonResponse::HTTP_TOO_MANY_REQUESTS);
+        // @phpstan-ignore clock.systemTime (rate-limiter retry-after: the limiter counts on the system clock)
         $response->headers->set('Retry-After', (string) max(1, $limit->getRetryAfter()->getTimestamp() - time()));
 
         return $response;

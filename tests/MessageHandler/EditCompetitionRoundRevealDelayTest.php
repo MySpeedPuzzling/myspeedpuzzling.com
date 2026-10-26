@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -151,7 +152,7 @@ final class EditCompetitionRoundRevealDelayTest extends KernelTestCase
     {
         $this->secretRow(self::ROUND, PuzzleFixture::PUZZLE_500_03);
         // The round started 7 minutes ago: the puzzle comes out in 3 minutes
-        $start = self::wholeMinute(new DateTimeImmutable('-7 minutes'));
+        $start = self::wholeMinute(TestClock::now()->modify('-7 minutes'));
         $this->moveRoundStart(self::ROUND, $start);
         $before = $this->snapshot();
 
@@ -170,7 +171,7 @@ final class EditCompetitionRoundRevealDelayTest extends KernelTestCase
 
         $puzzle = $this->puzzle(PuzzleFixture::PUZZLE_500_03);
         self::assertSame($start->modify('+5 minutes')->getTimestamp(), $puzzle->hideUntil?->getTimestamp());
-        self::assertFalse($puzzle->isImageHiddenAt(new DateTimeImmutable()));
+        self::assertFalse($puzzle->isImageHiddenAt(TestClock::now()));
     }
 
     public function testAnEarlierStartStillInTheFutureNeedsAYes(): void
@@ -237,7 +238,7 @@ final class EditCompetitionRoundRevealDelayTest extends KernelTestCase
     {
         $this->secretRow(self::ROUND, PuzzleFixture::PUZZLE_500_03);
         // The round started 30 minutes ago: revealed 20 minutes ago
-        $start = self::wholeMinute(new DateTimeImmutable('-30 minutes'));
+        $start = self::wholeMinute(TestClock::now()->modify('-30 minutes'));
         $this->moveRoundStart(self::ROUND, $start);
         $revealedAt = $start->modify('+10 minutes');
         self::assertSame($revealedAt->getTimestamp(), $this->puzzle(PuzzleFixture::PUZZLE_500_03)->hideUntil?->getTimestamp());
@@ -250,7 +251,7 @@ final class EditCompetitionRoundRevealDelayTest extends KernelTestCase
         self::assertSame(RoundPuzzleReveal::Scheduled, $row->revealMode);
         self::assertSame($revealedAt->getTimestamp(), $row->revealsAt()?->getTimestamp());
         self::assertSame($revealedAt->getTimestamp(), $this->puzzle(PuzzleFixture::PUZZLE_500_03)->hideUntil?->getTimestamp());
-        self::assertFalse($this->puzzle(PuzzleFixture::PUZZLE_500_03)->isImageHiddenAt(new DateTimeImmutable()));
+        self::assertFalse($this->puzzle(PuzzleFixture::PUZZLE_500_03)->isImageHiddenAt(TestClock::now()));
     }
 
     public function testANullDelayKeepsTheRoundsValue(): void
@@ -407,7 +408,7 @@ final class EditCompetitionRoundRevealDelayTest extends KernelTestCase
             competitionId: $this->round($roundId)->competition->id->toString(),
             name: 'kept',
             minutesLimit: 1,
-            startsAt: new DateTimeImmutable(),
+            startsAt: TestClock::now(),
             timezone: 'UTC',
             badgeBackgroundColor: null,
             badgeTextColor: null,

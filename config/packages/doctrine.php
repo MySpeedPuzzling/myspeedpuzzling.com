@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use Doctrine\DBAL\Types\DateTimeUtcImmutableType;
+use Doctrine\DBAL\Types\Types;
 use Ramsey\Uuid\Doctrine\UuidType;
 use SpeedPuzzling\Web\Services\Doctrine\CustomIndexFilteringSchemaManagerFactory;
 use SpeedPuzzling\Web\Doctrine\JsonbObjectArrayDoctrineType;
@@ -23,6 +25,10 @@ return App::config([
                 LapsArrayDoctrineType::NAME => LapsArrayDoctrineType::class,
                 PuzzlersGroupDoctrineType::NAME => PuzzlersGroupDoctrineType::class,
                 SellSwapListSettingsDoctrineType::NAME => SellSwapListSettingsDoctrineType::class,
+                // datetime_immutable behaves as DBAL's datetime_utc_immutable: every timestamp is stored as UTC wall time,
+                // whatever zone the object had, and read back as UTC (docs/features/time-and-clock/README.md, R3). Same SQL
+                // type - no schema change, no entity mapping touched
+                Types::DATETIME_IMMUTABLE => DateTimeUtcImmutableType::class,
             ],
             // Note: schema_filter removed - using custom RegexSchemaAssetFilter service instead
             // to avoid DBAL deprecation warning (see src/Doctrine/RegexSchemaAssetFilter.php)

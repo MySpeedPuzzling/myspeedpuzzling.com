@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
@@ -31,6 +32,7 @@ final class PlayerStatisticsController extends AbstractController
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
         readonly private TranslatorInterface $translator,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -111,7 +113,7 @@ final class PlayerStatisticsController extends AbstractController
         $activeYear = $year > 0 ? $year : null;
 
         if ($month === 0 && $year === 0 && $activeShowAll === false) {
-            $now = new DateTimeImmutable();
+            $now = $this->clock->now();
             $month = (int) $now->format('m');
             $year = (int) $now->format('Y');
         }
@@ -167,7 +169,7 @@ final class PlayerStatisticsController extends AbstractController
      */
     private function getMonthsSinceDate(DateTimeImmutable $sinceDate): array
     {
-        $currentDate = new DateTimeImmutable('first day of this month');
+        $currentDate = $this->clock->now()->modify('first day of this month');
         $months = [];
 
         $iteratorDate = $currentDate;
@@ -185,7 +187,7 @@ final class PlayerStatisticsController extends AbstractController
      */
     private function getYearsSinceDate(DateTimeImmutable $sinceDate): array
     {
-        $currentYear = (int) (new DateTimeImmutable())->format('Y');
+        $currentYear = (int) $this->clock->now()->format('Y');
         $sinceYear = (int) $sinceDate->format('Y');
 
         $years = [];
@@ -209,7 +211,7 @@ final class PlayerStatisticsController extends AbstractController
             return false;
         }
 
-        $currentYear = (int) (new DateTimeImmutable())->format('Y');
+        $currentYear = (int) $this->clock->now()->format('Y');
 
         return $year >= self::MINIMUM_YEAR && $year <= $currentYear;
     }
@@ -219,7 +221,7 @@ final class PlayerStatisticsController extends AbstractController
      */
     private function calculateDates(int $month, int $year): array
     {
-        $currentDate = new DateTimeImmutable();
+        $currentDate = $this->clock->now();
         $currentYear = (int) $currentDate->format('Y');
         $currentMonth = (int) $currentDate->format('m');
 

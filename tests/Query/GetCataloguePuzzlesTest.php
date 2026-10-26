@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetCataloguePuzzles;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
@@ -38,7 +39,7 @@ final class GetCataloguePuzzlesTest extends KernelTestCase
         // A secret competition puzzle (hide_until in the future) is not part of any list
         self::getContainer()->get(Connection::class)->executeStatement(
             "INSERT INTO puzzle (id, pieces_count, name, approved, manufacturer_id, is_available, hide_until)
-             VALUES (gen_random_uuid(), 500, 'Secret competition puzzle', true, :brandId, true, now() + interval '30 days')",
+             VALUES (gen_random_uuid(), 500, 'Secret competition puzzle', true, :brandId, true, " . TestClock::SQL_NOW . " + interval '30 days')",
             ['brandId' => $brand],
         );
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Stopwatch;
 
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\StopwatchCouldNotBeResumed;
 use SpeedPuzzling\Web\Message\ResumeStopwatch;
@@ -25,6 +26,7 @@ final class ApiResumeController extends AbstractController
 
     public function __construct(
         private readonly MessageBusInterface $messageBus,
+        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -57,7 +59,7 @@ final class ApiResumeController extends AbstractController
 
         return new JsonResponse([
             'ok' => true,
-            'serverTime' => (new \DateTimeImmutable())->format('c'),
+            'serverTime' => $this->clock->now()->format('c'),
         ]);
     }
 }

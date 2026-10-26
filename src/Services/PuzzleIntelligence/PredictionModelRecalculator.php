@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\FirstAttemptSet;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\PredictionEngine;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\PredictionModelFitter;
@@ -41,6 +42,7 @@ readonly final class PredictionModelRecalculator
         private PaceTimelineLoader $paceTimelineLoader,
         private PlayerBaselineCalculator $baselineCalculator,
         private PlayerPaceHistoryWriter $paceHistoryWriter,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -55,7 +57,7 @@ readonly final class PredictionModelRecalculator
         $parameters = $this->parametersProvider->current();
         $engine = new PredictionEngine($set, $timeline, $this->calculator);
         $engine->computeAsOfDifficulty();
-        $engine->computeDrift($this->storedPriors($this->manufacturerByPuzzle()), $parameters->tau);
+        $engine->computeDrift($this->storedPriors($this->manufacturerByPuzzle($this->clock->now())), $parameters->tau);
 
         return ['drift_rows_written' => $this->writeDrift($engine)];
     }
@@ -73,8 +75,8 @@ readonly final class PredictionModelRecalculator
         $engine->computeAsOfDifficulty();
 
         $priorsStartedAt = microtime(true);
-        $priors = PriorLookup::fit($set, $this->manufacturerByPuzzle());
-        $imageEstimates = $this->imageEstimates();
+        $priors = PriorLookup::fit($set, $this->manufacturerByPuzzle($now));
+        $imageEstimates = $this->imageEstimates($now);
         $priorRows = $this->puzzlePriors($priors, $imageEstimates);
         $this->writePriors($priors, $priorRows, $now);
         $priorsSeconds = microtime(true) - $priorsStartedAt;
@@ -96,10 +98,13 @@ readonly final class PredictionModelRecalculator
     /**
      * @return array<string, null|string>
      */
-    private function manufacturerByPuzzle(): array
+    private function manufacturerByPuzzle(DateTimeImmutable $now): array
     {
         /** @var array<string, null|string> */
-        return $this->connection->fetchAllKeyValue('SELECT id, CASE WHEN ' . StatisticalInputsSql::NOT_SECRET . ' THEN manufacturer_id END FROM puzzle p');
+        return $this->connection->fetchAllKeyValue(
+            'SELECT id, CASE WHEN ' . StatisticalInputsSql::NOT_SECRET . ' THEN manufacturer_id END FROM puzzle p',
+            ['now' => $now->format('Y-m-d H:i:s')],
+        );
     }
 
     /**
@@ -163,7 +168,7 @@ readonly final class PredictionModelRecalculator
      *
      * @return array<string, ImagePriorInput>
      */
-    private function imageEstimates(): array
+    private function imageEstimates(DateTimeImmutable $now): array
     {
         $estimates = [];
         $rows = $this->connection->iterateAssociative('
@@ -171,7 +176,7 @@ readonly final class PredictionModelRecalculator
             FROM puzzle p
             ' . StatisticalInputsSql::imageEstimateJoins(outOfFoldOnly: false) . '
             WHERE img.puzzle_id IS NOT NULL
-        ');
+        ', ['now' => $now->format('Y-m-d H:i:s')]);
 
         foreach ($rows as $row) {
             /** @var array<string, mixed> $row */

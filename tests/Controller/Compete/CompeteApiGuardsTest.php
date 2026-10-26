@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Compete;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
@@ -75,7 +75,7 @@ final class CompeteApiGuardsTest extends WebTestCase
         $entityManager = $this->browser->getContainer()->get(EntityManagerInterface::class);
         $participant = $entityManager->find(CompetitionParticipant::class, OnlineRoundsFixture::PARTICIPANT_CONNECTED);
         self::assertNotNull($participant);
-        $participant->softDelete(new DateTimeImmutable());
+        $participant->softDelete(TestClock::now());
         $entityManager->flush();
 
         $token = OnlineRoundsFixture::TOKEN_CONNECTED;
@@ -186,7 +186,7 @@ final class CompeteApiGuardsTest extends WebTestCase
         $entityManager = $this->browser->getContainer()->get(EntityManagerInterface::class);
         $participant = $entityManager->find(CompetitionParticipant::class, OnlineRoundsFixture::PARTICIPANT_WITHOUT_TOKEN);
         self::assertNotNull($participant);
-        $participant->assignOnlineToken($token, new DateTimeImmutable());
+        $participant->assignOnlineToken($token, TestClock::now());
         $entityManager->flush();
 
         return $token;

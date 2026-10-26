@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\ClosePartnerListing;
@@ -91,7 +92,7 @@ final class SendPartnerTeamedUpEmailHandlerTest extends KernelTestCase
         $send = fn () => $this->handler($mailer)(new SendPartnerTeamedUpEmail(PartnerFinderFixture::LISTING_REGULAR_PAIR, PlayerFixture::PLAYER_WITH_FAVORITES));
 
         $this->database->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_WITH_FAVORITES, 'blocked' => PlayerFixture::PLAYER_REGULAR],
         );
         $send();
@@ -101,7 +102,7 @@ final class SendPartnerTeamedUpEmailHandlerTest extends KernelTestCase
         $send();
         self::getContainer()->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_WITH_FAVORITES)->changePartnerFinderEmails(true);
 
-        $this->database->executeStatement('UPDATE partner_listing SET closed_at = NOW() WHERE id = :id', ['id' => PartnerFinderFixture::LISTING_FAVORITES_TEAM]);
+        $this->database->executeStatement('UPDATE partner_listing SET closed_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => PartnerFinderFixture::LISTING_FAVORITES_TEAM]);
         $send();
 
         self::assertCount(0, $mailer->sent);
@@ -127,7 +128,7 @@ final class SendPartnerTeamedUpEmailHandlerTest extends KernelTestCase
     private function requestFromMichaelToJohn(): void
     {
         $this->database->executeStatement(
-            "INSERT INTO partner_request (id, listing_id, from_player_id, kind, created_at) VALUES (:id, :listing, :from, 'pair', NOW())",
+            "INSERT INTO partner_request (id, listing_id, from_player_id, kind, created_at) VALUES (:id, :listing, :from, 'pair', " . TestClock::SQL_NOW . ")",
             ['id' => Uuid::uuid7()->toString(), 'listing' => PartnerFinderFixture::LISTING_REGULAR_PAIR, 'from' => PlayerFixture::PLAYER_WITH_FAVORITES],
         );
     }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\ConversationReport;
 use SpeedPuzzling\Web\Exceptions\ConversationNotFound;
@@ -23,6 +23,7 @@ readonly final class ReportConversationHandler
         private ConversationRepository $conversationRepository,
         private PlayerRepository $playerRepository,
         private ConversationReportRepository $conversationReportRepository,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -49,7 +50,7 @@ readonly final class ReportConversationHandler
             reporter: $reporter,
             reason: $message->reason,
             status: ReportStatus::Pending,
-            reportedAt: new DateTimeImmutable(),
+            reportedAt: $this->clock->now(),
         );
 
         $this->conversationReportRepository->save($report);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\IsSeriesPubliclyVisible;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
@@ -53,7 +54,7 @@ final class IsSeriesPubliclyVisibleTest extends KernelTestCase
     public function testARejectedSeriesIsNotVisibleEvenWhenApproved(): void
     {
         $this->database->executeStatement(
-            'UPDATE competition_series SET rejected_at = now() WHERE id = :id',
+            'UPDATE competition_series SET rejected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => OrganizationFixture::SERIES_LANTERN_NIGHTS],
         );
 

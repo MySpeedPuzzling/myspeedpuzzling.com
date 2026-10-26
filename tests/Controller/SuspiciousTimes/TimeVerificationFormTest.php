@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\SuspiciousTimes;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Imagick;
 use Psr\Clock\ClockInterface;
@@ -66,7 +66,7 @@ final class TimeVerificationFormTest extends WebTestCase
 
         // "Yes, it's right" chosen - the button carries the key of exactly these values
         $key = self::paceKeyIn(new Crawler($html));
-        self::assertSame(SuspiciousTimeFormCheck::confirmationKey(self::STEADY_FIELDS, 9000, new DateTimeImmutable('today'), 1), $key);
+        self::assertSame(SuspiciousTimeFormCheck::confirmationKey(self::STEADY_FIELDS, 9000, TestClock::now()->modify('today'), 1), $key);
         $html = $this->liveCheck($browser, ['puzzle' => self::STEADY_FIELDS, 'seconds' => 9000, 'pace_confirmed' => $key]);
         self::assertStringContainsString('Thank you for checking', $html);
         self::assertStringContainsString('first-try-check#undoPace', $html);
@@ -82,7 +82,7 @@ final class TimeVerificationFormTest extends WebTestCase
         foreach (
             [
             ['seconds' => 8400, 'pace_confirmed' => $key],
-            ['seconds' => 9000, 'pace_confirmed' => $key, 'date' => new DateTimeImmutable('-1 day')->format('d.m.Y')],
+            ['seconds' => 9000, 'pace_confirmed' => $key, 'date' => TestClock::now()->modify('-1 day')->format('d.m.Y')],
             ['seconds' => 9000, 'pace_confirmed' => $key, 'puzzle' => self::STEADY_FIELDS_2],
             ['seconds' => 9000, 'pace_confirmed' => '1'],
             ] as $parameters
@@ -102,7 +102,7 @@ final class TimeVerificationFormTest extends WebTestCase
         self::assertNotSame($key, self::paceKeyIn($crawler));
 
         // ... and so does the edit
-        $staleKey = SuspiciousTimeFormCheck::confirmationKey(SuspiciousTimesFixture::PUZZLE_HARBOUR, 2 * 3600 + 30 * 60 + 5, new DateTimeImmutable('-12 days'), 1);
+        $staleKey = SuspiciousTimeFormCheck::confirmationKey(SuspiciousTimesFixture::PUZZLE_HARBOUR, 2 * 3600 + 30 * 60 + 5, TestClock::now()->modify('-12 days'), 1);
         $this->submitEdit($browser, SuspiciousTimesFixture::TIME_STEADY_FAST, 2, 30, 6, paceConfirmed: $staleKey);
         $this->assertResponseStatusCodeSame(422);
         self::assertSame(SuspiciousTimesFixture::STEADY_FAST_SECONDS, $this->secondsOf($browser, SuspiciousTimesFixture::TIME_STEADY_FAST));
@@ -183,12 +183,12 @@ final class TimeVerificationFormTest extends WebTestCase
     {
         $browser = $this->browser(SuspiciousTimesFixture::PLAYER_GROUP);
         // Gina edits her 25:00 on Mountain Meadow, saved the day Pat and Fay saved their pair of it
-        $entry = ['time' => SuspiciousTimesFixture::TIME_GROUP_SOLO, 'seconds' => 1490, 'date' => new DateTimeImmutable('-8 days')->format('d.m.Y')];
+        $entry = ['time' => SuspiciousTimesFixture::TIME_GROUP_SOLO, 'seconds' => 1490, 'date' => TestClock::now()->modify('-8 days')->format('d.m.Y')];
 
         self::assertStringContainsString('Someone saved this puzzle as a pair or team result that day.', $this->liveCheck($browser, $entry));
 
         $browser->getContainer()->get(Connection::class)->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (gen_random_uuid(), :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (gen_random_uuid(), :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['blocker' => SuspiciousTimesFixture::PLAYER_GROUP, 'blocked' => SuspiciousTimesFixture::PLAYER_PARTNER],
         );
 
@@ -306,7 +306,7 @@ final class TimeVerificationFormTest extends WebTestCase
         $browser = $this->browser(SuspiciousTimesFixture::PLAYER_STEADY);
 
         [$fields, $timeId] = $this->addForm($browser, self::STEADY_FIELDS, 9, 10, 0);
-        $this->submitAdd($browser, $fields, $timeId, paceConfirmed: SuspiciousTimeFormCheck::confirmationKey(self::STEADY_FIELDS, 33000, new DateTimeImmutable('today'), 1));
+        $this->submitAdd($browser, $fields, $timeId, paceConfirmed: SuspiciousTimeFormCheck::confirmationKey(self::STEADY_FIELDS, 33000, TestClock::now()->modify('today'), 1));
 
         $this->assertResponseRedirects('/en/time-added/' . $timeId);
         self::assertSame([], $this->confirmations($browser, $timeId));
@@ -439,7 +439,7 @@ final class TimeVerificationFormTest extends WebTestCase
 
     private function today(): string
     {
-        return new DateTimeImmutable()->format('d.m.Y');
+        return TestClock::now()->format('d.m.Y');
     }
 
     /**
@@ -525,7 +525,7 @@ final class TimeVerificationFormTest extends WebTestCase
                 'timeHours' => (string) $hours,
                 'timeMinutes' => (string) $minutes,
                 'timeSeconds' => (string) $seconds,
-                'finishedAt' => new DateTimeImmutable('-12 days')->format('d.m.Y'),
+                'finishedAt' => TestClock::now()->modify('-12 days')->format('d.m.Y'),
                 'comment' => $comment,
                 'firstAttempt' => '1',
             ],
@@ -552,8 +552,8 @@ final class TimeVerificationFormTest extends WebTestCase
         assert($player instanceof Player && $puzzle instanceof Puzzle);
 
         $stopwatch = new Stopwatch(Uuid::uuid7(), $player, $puzzle);
-        $stopwatch->start(new DateTimeImmutable('-3 hours'));
-        $stopwatch->pause(new DateTimeImmutable('-30 minutes'));
+        $stopwatch->start(TestClock::now()->modify('-3 hours'));
+        $stopwatch->pause(TestClock::now()->modify('-30 minutes'));
         $entityManager->persist($stopwatch);
         $entityManager->flush();
 

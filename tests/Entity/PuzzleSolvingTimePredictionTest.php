@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Results\TimePredictionResult;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Value\Puzzler;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
@@ -71,7 +72,7 @@ final class PuzzleSolvingTimePredictionTest extends KernelTestCase
             rangeLowSeconds: 1700,
             rangeHighSeconds: 2300,
             difficultyForPlayer: 1.05,
-        ), TimePredictionSource::Reconstructed), new DateTimeImmutable());
+        ), TimePredictionSource::Reconstructed), TestClock::now());
 
         self::assertTrue($time->predictable);
         self::assertSame(TimePredictionMethod::Statistical, $time->predictionMethod);
@@ -85,7 +86,7 @@ final class PuzzleSolvingTimePredictionTest extends KernelTestCase
     {
         $time = $this->soloTime();
 
-        $time->recordPrediction(SolvingTimePrediction::notPredictable(TimePredictionSource::Reconstructed), new DateTimeImmutable());
+        $time->recordPrediction(SolvingTimePrediction::notPredictable(TimePredictionSource::Reconstructed), TestClock::now());
 
         self::assertFalse($time->predictable);
         self::assertNull($time->predictionMethod);
@@ -136,7 +137,7 @@ final class PuzzleSolvingTimePredictionTest extends KernelTestCase
         $time->recordPrediction(SolvingTimePrediction::predicted(
             new TimePredictionResult(1600, 1500, 1700, 1.0),
             TimePredictionSource::Live,
-        ), new DateTimeImmutable());
+        ), TestClock::now());
 
         $this->modify($time, finishedAt: new DateTimeImmutable('2026-09-30 00:00:00'));
 
@@ -206,7 +207,7 @@ final class PuzzleSolvingTimePredictionTest extends KernelTestCase
         $time->recordPrediction(SolvingTimePrediction::predicted(
             new TimePredictionResult(1600, 1500, 1700, 1.0),
             TimePredictionSource::Live,
-        ), new DateTimeImmutable());
+        ), TestClock::now());
 
         return $time;
     }

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\TestDouble;
 use Firebase\JWT\JWT;
 use GuzzleHttp\Psr7\Response;
 use SpeedPuzzling\Web\Services\SocialLogin\MicrosoftIdTokenVerifier;
+use SpeedPuzzling\Web\Tests\TestClock;
 
 /**
  * Real RS256-signed Microsoft id_tokens + the matching JWKS, so tests exercise
@@ -80,9 +81,10 @@ final class MicrosoftIdTokenFactory
             'iss' => MicrosoftIdTokenVerifier::ISSUER,
             'tid' => MicrosoftIdTokenVerifier::CONSUMERS_TENANT_ID,
             'aud' => self::CLIENT_ID,
-            'iat' => time(),
-            'nbf' => time(),
-            'exp' => time() + 3600,
+            // MicrosoftIdTokenVerifier judges the token on the app's clock - the frozen instant in tests
+            'iat' => TestClock::timestamp(),
+            'nbf' => TestClock::timestamp(),
+            'exp' => TestClock::timestamp() + 3600,
             'oid' => '00000000-0000-0000-aaaa-' . bin2hex(random_bytes(6)),
             'sub' => 'pairwise-' . bin2hex(random_bytes(8)),
             'name' => 'Microsoft User',

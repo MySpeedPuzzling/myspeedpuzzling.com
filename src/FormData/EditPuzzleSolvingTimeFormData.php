@@ -78,9 +78,12 @@ final class EditPuzzleSolvingTimeFormData
 
     public bool $unboxed = false;
 
-    public function __construct()
+    /**
+     * @param DateTimeImmutable $finishedAt the default day - the clock's now, passed in (a form data object reads no clock)
+     */
+    public function __construct(DateTimeImmutable $finishedAt)
     {
-        $this->finishedAt = new DateTimeImmutable();
+        $this->finishedAt = $finishedAt;
     }
 
     #[Callback]

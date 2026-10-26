@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\Insights;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
@@ -41,7 +42,7 @@ final class PairsTeamsSynergyTest extends KernelTestCase
     {
         self::bootKernel();
 
-        $this->now = new DateTimeImmutable('today 12:00:00');
+        $this->now = TestClock::now()->modify('today 12:00:00');
         self::getContainer()->set(ClockInterface::class, new MockClock($this->now));
 
         /** @var Connection $connection */
@@ -134,7 +135,7 @@ final class PairsTeamsSynergyTest extends KernelTestCase
         // Anna got much faster 5 days ago, and today's baseline says faster still - the result 10 days ago is
         // compared with her pace then
         $this->connection->executeStatement(
-            "INSERT INTO player_baseline (id, player_id, pieces_count, baseline_seconds, qualifying_solves_count, baseline_type, computed_at) VALUES (gen_random_uuid(), :player, 500, 100, 10, 'direct', NOW())",
+            "INSERT INTO player_baseline (id, player_id, pieces_count, baseline_seconds, qualifying_solves_count, baseline_type, computed_at) VALUES (gen_random_uuid(), :player, 500, 100, 10, 'direct', " . TestClock::SQL_NOW . ")",
             ['player' => $this->anna],
         );
         $this->paceRow($this->connection, $this->anna, 500, $this->now->modify('-5 days'), 900, 6);
@@ -202,7 +203,7 @@ final class PairsTeamsSynergyTest extends KernelTestCase
     {
         $id = Uuid::uuid7()->toString();
         $this->connection->executeStatement(
-            'INSERT INTO player (id, code, name, registered_at) VALUES (:id, :code, :name, NOW())',
+            'INSERT INTO player (id, code, name, registered_at) VALUES (:id, :code, :name, ' . TestClock::SQL_NOW . ')',
             ['id' => $id, 'code' => 'synergy' . $name, 'name' => 'Synergy ' . $name],
         );
         $this->paceRow($this->connection, $id, 500, $this->now->modify('-400 days'), $pace500, 5);
@@ -218,7 +219,7 @@ final class PairsTeamsSynergyTest extends KernelTestCase
             ['id' => $id, 'hideUntil' => $hidden ? $this->now->modify('+1 month')->format('Y-m-d H:i:s') : null],
         );
         $this->connection->executeStatement(
-            "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, difficulty_tier, confidence, sample_size, computed_at) VALUES (:id, :score, 3, 'high', 30, NOW())",
+            "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, difficulty_tier, confidence, sample_size, computed_at) VALUES (:id, :score, 3, 'high', 30, " . TestClock::SQL_NOW . ")",
             ['id' => $id, 'score' => $difficulty],
         );
 
@@ -233,7 +234,7 @@ final class PairsTeamsSynergyTest extends KernelTestCase
     {
         $id = Uuid::uuid7()->toString();
         $this->connection->executeStatement(
-            'INSERT INTO puzzling_team (id, composition_key, size, created_at) VALUES (:id, :key, :size, NOW())',
+            'INSERT INTO puzzling_team (id, composition_key, size, created_at) VALUES (:id, :key, :size, ' . TestClock::SQL_NOW . ')',
             ['id' => $id, 'key' => sha1($id), 'size' => count($players) + count($guests)],
         );
 

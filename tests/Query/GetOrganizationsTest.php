@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetOrganizations;
 use SpeedPuzzling\Web\Results\OrganizationChoice;
@@ -99,7 +100,7 @@ final class GetOrganizationsTest extends KernelTestCase
 
     public function testARejectedOrganizationIsNoChoice(): void
     {
-        $this->database->executeStatement('UPDATE organization SET rejected_at = now() WHERE id = :id', ['id' => OrganizationFixture::ORGANIZATION_MAPLE_PENDING]);
+        $this->database->executeStatement('UPDATE organization SET rejected_at = ' . TestClock::SQL_NOW . ' WHERE id = :id', ['id' => OrganizationFixture::ORGANIZATION_MAPLE_PENDING]);
 
         self::assertSame(
             [OrganizationFixture::ORGANIZATION_CEDAR_PENDING_DRAFT, OrganizationFixture::ORGANIZATION_RIVERBEND],

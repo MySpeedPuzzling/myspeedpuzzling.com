@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
@@ -149,17 +150,17 @@ final class GetPlayerCardTest extends KernelTestCase
     private function rate(string $playerId, float $elo, SkillTier $tier): void
     {
         $this->database->executeStatement(
-            'INSERT INTO player_elo (id, player_id, pieces_count, elo_rating, computed_at) VALUES (:id, :player, 500, :elo, NOW())',
+            'INSERT INTO player_elo (id, player_id, pieces_count, elo_rating, computed_at) VALUES (:id, :player, 500, :elo, ' . TestClock::SQL_NOW . ')',
             ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'elo' => $elo],
         );
         // A 1000-piece rating must not be the card's
         $this->database->executeStatement(
-            'INSERT INTO player_elo (id, player_id, pieces_count, elo_rating, computed_at) VALUES (:id, :player, 1000, 0.1, NOW())',
+            'INSERT INTO player_elo (id, player_id, pieces_count, elo_rating, computed_at) VALUES (:id, :player, 1000, 0.1, ' . TestClock::SQL_NOW . ')',
             ['id' => Uuid::uuid7()->toString(), 'player' => $playerId],
         );
         $this->database->executeStatement(
             "INSERT INTO player_skill (id, player_id, pieces_count, skill_score, skill_tier, skill_percentile, confidence, qualifying_puzzles_count, computed_at)
-             VALUES (:id, :player, 500, 0.9, :tier, 90.0, 'high', 12, NOW())",
+             VALUES (:id, :player, 500, 0.9, :tier, 90.0, 'high', 12, " . TestClock::SQL_NOW . ")",
             ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'tier' => $tier->value],
         );
     }

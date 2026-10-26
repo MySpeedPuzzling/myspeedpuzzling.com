@@ -21,13 +21,15 @@ readonly final class StopwatchDetail
         public null|string $puzzleId,
         public null|string $puzzleName,
         public null|string $name,
+        // The clock's now, from the query - a result reads no clock; a running lap counts up to it
+        DateTimeInterface $now,
         // Finished laps to the millisecond, so the stopwatch page goes on from exactly what it showed
         public int $totalMilliseconds = 0,
     ) {
         $interval = $totalSeconds;
 
         if ($lastEnd === null) {
-            $interval += (new \DateTimeImmutable())->getTimestamp() - $lastStart->getTimestamp();
+            $interval += $now->getTimestamp() - $lastStart->getTimestamp();
         }
 
         $this->interval = $interval;
@@ -45,9 +47,9 @@ readonly final class StopwatchDetail
      *     stopwatch_name: null|string,
      * } $row
      */
-    public static function fromDatabaseRow(array $row): self
+    public static function fromDatabaseRow(array $row, DateTimeImmutable $now): self
     {
-        $lastStart = new DateTimeImmutable();
+        $lastStart = $now;
         if ($row['last_start_time'] !== null) {
             // Postgres prints the milliseconds of a lap (stored since 2026-10-12) only when there are some
             $lastStart = new DateTimeImmutable($row['last_start_time']);
@@ -73,6 +75,7 @@ readonly final class StopwatchDetail
             puzzleId: $row['puzzle_id'],
             puzzleName: $row['puzzle_name'],
             name: $row['stopwatch_name'],
+            now: $now,
             totalMilliseconds: $totalMilliseconds,
         );
     }

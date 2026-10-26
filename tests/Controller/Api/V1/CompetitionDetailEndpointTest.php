@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Api\V1;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
@@ -201,7 +202,7 @@ final class CompetitionDetailEndpointTest extends WebTestCase
         /** @var Connection $database */
         $database = self::getContainer()->get(Connection::class);
         $database->executeStatement(
-            'UPDATE competition_series SET rejected_at = now() WHERE id = :seriesId',
+            'UPDATE competition_series SET rejected_at = ' . TestClock::SQL_NOW . ' WHERE id = :seriesId',
             ['seriesId' => CompetitionSeriesFixture::SERIES_EJJ],
         );
 

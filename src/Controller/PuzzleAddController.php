@@ -136,7 +136,7 @@ final class PuzzleAddController extends AbstractController
 
         $activePuzzle = null;
         $activeStopwatch = null;
-        $data = new PuzzleAddFormData();
+        $data = new PuzzleAddFormData($this->clock->now());
 
         // The new result's id and a new puzzle's id travel in the form - rendered on GET, kept through a refused
         // submit - so the same form sent twice saves once (docs/features/duplicate-results.md, Layer 1)

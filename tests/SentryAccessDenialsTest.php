@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests;
 
 use ArrayObject;
-use DateTimeImmutable;
 use Monolog\Level;
 use Monolog\LogRecord;
 use Sentry\ClientBuilder;
@@ -116,7 +115,7 @@ final class SentryAccessDenialsTest extends KernelTestCase
     {
         // What Symfony's ErrorListener logs for an uncaught 4xx HttpException
         $this->handler->handle(new LogRecord(
-            datetime: new DateTimeImmutable(),
+            datetime: TestClock::now(),
             channel: 'request',
             level: Level::Error,
             message: sprintf('Uncaught PHP Exception %s: "%s"', $exception::class, $exception->getMessage()),

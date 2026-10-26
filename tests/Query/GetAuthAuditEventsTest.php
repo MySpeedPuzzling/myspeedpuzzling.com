@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -32,12 +33,12 @@ final class GetAuthAuditEventsTest extends KernelTestCase
     {
         $account = $this->createAccount();
 
-        $this->insertEvent($account, 'login_success', new DateTimeImmutable('-3 hours'));
-        $this->insertEvent($account, 'login_failure', new DateTimeImmutable('-2 hours'));
-        $this->insertEvent($account, 'password_changed', new DateTimeImmutable('-1 hour'));
+        $this->insertEvent($account, 'login_success', TestClock::now()->modify('-3 hours'));
+        $this->insertEvent($account, 'login_failure', TestClock::now()->modify('-2 hours'));
+        $this->insertEvent($account, 'password_changed', TestClock::now()->modify('-1 hour'));
         // Not user-meaningful - filtered out
-        $this->insertEvent($account, 'logout', new DateTimeImmutable('-30 minutes'));
-        $this->insertEvent($account, 'sign_in_link_requested', new DateTimeImmutable('-15 minutes'));
+        $this->insertEvent($account, 'logout', TestClock::now()->modify('-30 minutes'));
+        $this->insertEvent($account, 'sign_in_link_requested', TestClock::now()->modify('-15 minutes'));
 
         $events = $this->query->recentForUserAccount($account->id->toString());
 
@@ -55,7 +56,7 @@ final class GetAuthAuditEventsTest extends KernelTestCase
         $account = $this->createAccount();
 
         for ($i = 0; $i < 5; $i++) {
-            $this->insertEvent($account, 'login_success', new DateTimeImmutable("-{$i} hours"));
+            $this->insertEvent($account, 'login_success', TestClock::now()->modify("-{$i} hours"));
         }
 
         self::assertCount(2, $this->query->recentForUserAccount($account->id->toString(), limit: 2));
@@ -64,7 +65,7 @@ final class GetAuthAuditEventsTest extends KernelTestCase
     private function createAccount(): UserAccount
     {
         $email = sprintf('query+%s@example.com', bin2hex(random_bytes(4)));
-        $userAccount = new UserAccount(Uuid::uuid7(), 'msp|' . bin2hex(random_bytes(4)), $email, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), 'msp|' . bin2hex(random_bytes(4)), $email, TestClock::now());
 
         $this->entityManager->persist($userAccount);
         $this->entityManager->flush();

@@ -18,6 +18,8 @@ final readonly class HealthCheckContainerController
     #[Route(path: '/-/health-check/container')]
     public function __invoke(): Response
     {
+        // Real time: a probe reads the server's real clock, never the app's
+        // @phpstan-ignore clock.systemTime (health probe: answers with the server's real time)
         return new JsonResponse(['status' => 'ok', 'time' => time()], headers: ['Cache-Control' => 'no-store']);
     }
 }

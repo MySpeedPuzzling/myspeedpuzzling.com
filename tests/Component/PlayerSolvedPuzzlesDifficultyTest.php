@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Component\PlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\DifficultyTier;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -189,7 +190,7 @@ final class PlayerSolvedPuzzlesDifficultyTest extends WebTestCase
             $score = $scores[$index % count($scores)];
             $connection->executeStatement(
                 "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_tier, difficulty_score, confidence, sample_size, computed_at)
-                VALUES (:puzzleId, :tier, :score, 'high', 10, NOW())
+                VALUES (:puzzleId, :tier, :score, 'high', 10, " . TestClock::SQL_NOW . ")
                 ON CONFLICT (puzzle_id) DO UPDATE SET difficulty_tier = EXCLUDED.difficulty_tier, difficulty_score = EXCLUDED.difficulty_score",
                 ['puzzleId' => $puzzleId, 'tier' => DifficultyTier::fromScore($score)->value, 'score' => $score],
             );

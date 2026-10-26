@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -123,7 +124,7 @@ final class OrganizationPageTest extends WebTestCase
         $line = $past->filter('a[href="/en/series/' . OrganizationFixture::SERIES_RIVERBEND_VIRTUAL_SLUG . '/virtual-contest-1"]');
         self::assertCount(1, $line);
         self::assertStringContainsString('Virtual Contest 1', $line->text());
-        self::assertCount(1, $past->filter('.ev-series-year[data-year="' . ((int) date('Y') - 1) . '"]'));
+        self::assertCount(1, $past->filter('.ev-series-year[data-year="' . ((int) TestClock::now()->format('Y') - 1) . '"]'));
     }
 
     public function testItsTeamSeesTheDraftEditionTaggedAndTheMenu(): void
@@ -289,7 +290,7 @@ final class OrganizationPageTest extends WebTestCase
 
         foreach ([OrganizationFixture::EDITION_LANTERN_DRAFT, OrganizationFixture::EDITION_MAPLE_PENDING_1] as $competitionId) {
             $connection->executeStatement(
-                'UPDATE competition SET date_from = CURRENT_DATE - 40, date_to = CURRENT_DATE - 40 WHERE id = :id',
+                'UPDATE competition SET date_from = ' . TestClock::SQL_TODAY . ' - 40, date_to = ' . TestClock::SQL_TODAY . ' - 40 WHERE id = :id',
                 ['id' => $competitionId],
             );
         }

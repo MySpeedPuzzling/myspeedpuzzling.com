@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Dom\HTMLDocument;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Tests\ChangesPuzzleRecords;
@@ -144,7 +144,7 @@ final class PuzzleDetailNamesTest extends WebTestCase
     {
         $browser = self::createClient();
         self::changePuzzle(PuzzleFixture::PUZZLE_500_01, static function (Puzzle $puzzle): void {
-            $puzzle->changeNames('Pohádkový les', 'cs', $puzzle->alternativeNames(), new DateTimeImmutable());
+            $puzzle->changeNames('Pohádkový les', 'cs', $puzzle->alternativeNames(), TestClock::now());
         });
 
         $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_01);

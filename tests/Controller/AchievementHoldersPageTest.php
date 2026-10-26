@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Ramsey\Uuid\Uuid;
@@ -187,7 +188,7 @@ final class AchievementHoldersPageTest extends WebTestCase
         $this->earn(PlayerFixture::PLAYER_ADMIN, '2026-09-01 10:00:00');
         $this->earn(PlayerFixture::PLAYER_WITH_STRIPE, '2026-09-02 10:00:00');
         self::getContainer()->get(Connection::class)->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_WITH_STRIPE, 'blocked' => PlayerFixture::PLAYER_ADMIN],
         );
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
@@ -320,11 +321,12 @@ final class AchievementHoldersPageTest extends WebTestCase
     private function seedListedHolders(int $count, string $from = '2026-09-15 10:00:00'): void
     {
         $database = self::getContainer()->get(Connection::class);
+        $now = TestClock::SQL_NOW;
 
         $database->executeStatement(
             <<<SQL
 INSERT INTO player (id, code, name, registered_at)
-SELECT gen_random_uuid(), 'zenholder' || n, 'Zen Holder ' || n, NOW() - INTERVAL '1 year'
+SELECT gen_random_uuid(), 'zenholder' || n, 'Zen Holder ' || n, {$now} - INTERVAL '1 year'
 FROM generate_series(1, :count) AS n
 SQL,
             ['count' => $count],
@@ -334,7 +336,7 @@ SQL,
         $database->executeStatement(
             <<<SQL
 INSERT INTO membership (id, player_id, created_at, granted_until)
-SELECT gen_random_uuid(), player.id, NOW(), NOW() + INTERVAL '30 days'
+SELECT gen_random_uuid(), player.id, {$now}, {$now} + INTERVAL '30 days'
 FROM generate_series(1, :count) AS n
 INNER JOIN player ON player.code = 'zenholder' || n
 SQL,
@@ -345,7 +347,7 @@ SQL,
         $database->executeStatement(
             <<<SQL
 INSERT INTO badge (id, player_id, type, earned_at, tier, revealed_at)
-SELECT gen_random_uuid(), player.id, 'zen_puzzler', CAST(:from AS TIMESTAMP) + (n - 1) * INTERVAL '1 hour', 1, NOW()
+SELECT gen_random_uuid(), player.id, 'zen_puzzler', CAST(:from AS TIMESTAMP) + (n - 1) * INTERVAL '1 hour', 1, {$now}
 FROM generate_series(1, :count) AS n
 INNER JOIN player ON player.code = 'zenholder' || n
 SQL,

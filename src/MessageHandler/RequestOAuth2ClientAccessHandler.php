@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\OAuth2\OAuth2ClientRequest;
 use SpeedPuzzling\Web\Entity\Player;
@@ -24,6 +24,7 @@ final readonly class RequestOAuth2ClientAccessHandler
         private MailerInterface $mailer,
         private UrlGeneratorInterface $urlGenerator,
         private TranslatorInterface $translator,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -32,7 +33,7 @@ final readonly class RequestOAuth2ClientAccessHandler
         $player = $this->entityManager->find(Player::class, $message->playerId);
         assert($player !== null);
 
-        $now = new DateTimeImmutable();
+        $now = $this->clock->now();
 
         $request = new OAuth2ClientRequest(
             id: Uuid::fromString($message->requestId),

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use DOMElement;
 use Ramsey\Uuid\Uuid;
@@ -352,7 +353,7 @@ final class LastPieceRevealPagesTest extends WebTestCase
     private function levelRevealedInTheModal(): void
     {
         self::getContainer()->get(Connection::class)->executeStatement(
-            "UPDATE player_modal_impression SET seen_at = NOW() WHERE player_id = :player AND modal = 'xp_launch_reveal'",
+            "UPDATE player_modal_impression SET seen_at = " . TestClock::SQL_NOW . " WHERE player_id = :player AND modal = 'xp_launch_reveal'",
             ['player' => PlayerFixture::PLAYER_ADMIN],
         );
     }
@@ -380,13 +381,13 @@ final class LastPieceRevealPagesTest extends WebTestCase
         $id = Uuid::uuid7()->toString();
 
         self::getContainer()->get(Connection::class)->executeStatement(
-            'INSERT INTO badge (id, player_id, type, earned_at, tier, revealed_at) VALUES (:id, :player, :type, NOW(), :tier, :revealed)',
+            'INSERT INTO badge (id, player_id, type, earned_at, tier, revealed_at) VALUES (:id, :player, :type, ' . TestClock::SQL_NOW . ', :tier, :revealed)',
             [
                 'id' => $id,
                 'player' => PlayerFixture::PLAYER_ADMIN,
                 'type' => $type,
                 'tier' => $tier,
-                'revealed' => $revealed ? date('Y-m-d H:i:s') : null,
+                'revealed' => $revealed ? TestClock::sqlParameter() : null,
             ],
         );
 

@@ -20,6 +20,8 @@ final class InMemoryStudioInviteSignal implements StudioInviteSignal
     {
         self::$signals[self::key($roundId, $participantId)] = [
             'inviteId' => strtolower($inviteId),
+            // Real time on purpose: it stands in for a Redis TTL, which Redis counts on its own clock
+            // @phpstan-ignore clock.systemTime (stands in for a Redis TTL, which Redis counts on its own clock)
             'expiresAt' => time() + max(1, $ttlSeconds),
         ];
     }
@@ -28,6 +30,7 @@ final class InMemoryStudioInviteSignal implements StudioInviteSignal
     {
         $signal = self::$signals[self::key($roundId, $participantId)] ?? null;
 
+        // @phpstan-ignore clock.systemTime (stands in for a Redis TTL, which Redis counts on its own clock)
         return $signal === null || $signal['expiresAt'] <= time() ? null : $signal['inviteId'];
     }
 

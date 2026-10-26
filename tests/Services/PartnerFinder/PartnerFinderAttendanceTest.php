@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\PartnerFinder;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
@@ -64,7 +65,7 @@ final class PartnerFinderAttendanceTest extends KernelTestCase
     public function testALeftEventIsJoinedAgainOnTheSameRow(): void
     {
         $this->database->executeStatement(
-            'UPDATE competition_participant SET deleted_at = NOW() WHERE id = :id',
+            'UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => PartnerFinderFixture::PARTICIPANT_REGULAR],
         );
 

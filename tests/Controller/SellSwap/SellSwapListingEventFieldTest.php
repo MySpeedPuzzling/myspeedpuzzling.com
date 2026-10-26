@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\SellSwap;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetMarketplaceEvents;
 use SpeedPuzzling\Web\Services\EventDateFormatter;
@@ -72,7 +73,7 @@ final class SellSwapListingEventFieldTest extends WebTestCase
     {
         $browser = $this->signedInAsSellerA();
         self::getContainer()->get(Connection::class)->executeStatement(
-            'UPDATE competition_participant SET deleted_at = NOW() WHERE player_id = :player',
+            'UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW . ' WHERE player_id = :player',
             ['player' => PlayerFixture::PLAYER_WITH_STRIPE],
         );
 

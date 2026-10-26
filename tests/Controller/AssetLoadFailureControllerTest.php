@@ -12,6 +12,9 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class AssetLoadFailureControllerTest extends WebTestCase
 {
+    // Real time on purpose: 'rendered' is the page's msp-rendered-at, which the browser reports and the classifier
+    // judges on real time (docs/features/time-and-clock/STATUS.md, Jan's answer 1)
+
     private const string BROWSER = 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36';
 
     public function testValidBeaconIsAcceptedWithoutSession(): void
@@ -54,6 +57,7 @@ final class AssetLoadFailureControllerTest extends WebTestCase
             'url' => 'https://myspeedpuzzling.com/build/entrypoints.json',
             'healing' => false,
             'refetch' => 'unreachable',
+            // @phpstan-ignore clock.systemTime (msp-rendered-at is real time: the browser compares it with the server's Date header)
             'rendered' => time(),
         ], 'Mozilla/5.0 (compatible; YandexRenderResourcesBot/1.0; +http://yandex.com/bots) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.268');
 
@@ -68,6 +72,7 @@ final class AssetLoadFailureControllerTest extends WebTestCase
             'url' => 'https://myspeedpuzzling.com/build/app.0000dead.js',
             'healing' => true,
             'refetch' => 'http-404',
+            // @phpstan-ignore clock.systemTime (msp-rendered-at is real time: the browser compares it with the server's Date header)
             'rendered' => time() - 3600,
         ]);
 
@@ -85,6 +90,7 @@ final class AssetLoadFailureControllerTest extends WebTestCase
             'retry' => true,
             'healing' => false,
             'refetch' => 'intact',
+            // @phpstan-ignore clock.systemTime (msp-rendered-at is real time: the browser compares it with the server's Date header)
             'rendered' => time(),
         ]);
 

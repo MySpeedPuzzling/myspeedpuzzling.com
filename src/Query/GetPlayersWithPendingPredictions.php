@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 
 /**
@@ -20,6 +21,7 @@ readonly final class GetPlayersWithPendingPredictions
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -37,6 +39,11 @@ readonly final class GetPlayersWithPendingPredictions
             )
             OR " . GetTimesAwaitingImagePredictions::condition($recomputeImage)
             : '';
+
+        if ($withSideRows) {
+            $params['now'] = $this->clock->now()->format('Y-m-d H:i:s');
+        }
+
         $reconstructed = '';
 
         if ($recomputeReconstructed !== null) {

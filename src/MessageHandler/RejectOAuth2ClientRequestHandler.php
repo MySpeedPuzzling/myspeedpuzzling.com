@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Message\RejectOAuth2ClientRequest;
 use SpeedPuzzling\Web\Repository\OAuth2ClientRequestRepository;
@@ -23,6 +24,7 @@ final readonly class RejectOAuth2ClientRequestHandler
         private MailerInterface $mailer,
         private TranslatorInterface $translator,
         private PlayerAccountEmail $playerAccountEmail,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -32,7 +34,7 @@ final readonly class RejectOAuth2ClientRequestHandler
         $admin = $this->entityManager->find(Player::class, $message->adminPlayerId);
         assert($admin !== null);
 
-        $request->reject($admin, $message->reason);
+        $request->reject($admin, $message->reason, $this->clock->now());
         $this->entityManager->flush();
 
         $playerEmail = $this->playerAccountEmail->ofPlayer($request->player);

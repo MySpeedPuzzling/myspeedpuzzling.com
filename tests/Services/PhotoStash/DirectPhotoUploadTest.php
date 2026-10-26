@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Services\PhotoStash;
 
 use AsyncAws\S3\S3Client;
+use DateTimeImmutable;
 use League\Flysystem\Filesystem;
-use League\Flysystem\InMemory\InMemoryFilesystemAdapter;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use SpeedPuzzling\Web\Exceptions\PhotoUploadRefused;
@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Services\OnlineRounds\OnlineMediaStores;
 use SpeedPuzzling\Web\Services\OnlineRounds\S3QueryPresigner;
 use SpeedPuzzling\Web\Services\PhotoStash\DirectPhotoUpload;
 use SpeedPuzzling\Web\Services\PhotoStash\PhotoStash;
+use SpeedPuzzling\Web\Tests\TestDouble\ClockedInMemoryFilesystemAdapter;
 use SpeedPuzzling\Web\Value\PhotoUploadLimits;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\HttpClient\MockHttpClient;
@@ -33,7 +34,7 @@ final class DirectPhotoUploadTest extends TestCase
     protected function setUp(): void
     {
         $clock = new MockClock('2026-10-18 12:00:00');
-        $this->filesystem = new Filesystem(new InMemoryFilesystemAdapter());
+        $this->filesystem = new Filesystem(new ClockedInMemoryFilesystemAdapter($clock));
         $this->stash = new PhotoStash($this->filesystem, $clock, new NullLogger());
 
         $stores = new OnlineMediaStores(
@@ -71,7 +72,7 @@ final class DirectPhotoUploadTest extends TestCase
         parse_str($url['query'] ?? '', $query);
         self::assertSame('content-length;content-type;host', $query['X-Amz-SignedHeaders'] ?? null, 'Type and exact length are signed - the store refuses any other upload');
         self::assertSame((string) DirectPhotoUpload::PUT_LIFETIME_SECONDS, $query['X-Amz-Expires'] ?? null);
-        self::assertSame((strtotime('2026-10-18 12:00:00') + DirectPhotoUpload::PUT_LIFETIME_SECONDS) * 1000, $presigned->expiresAtMs);
+        self::assertSame((new DateTimeImmutable('2026-10-18 12:00:00')->getTimestamp() + DirectPhotoUpload::PUT_LIFETIME_SECONDS) * 1000, $presigned->expiresAtMs);
 
         self::assertSame(812_345, $this->stash->reservedBytes($presigned->token, self::PLAYER));
         self::assertNull($this->stash->reservedBytes($presigned->token, self::OTHER_PLAYER));

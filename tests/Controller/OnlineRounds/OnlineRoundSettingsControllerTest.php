@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\OnlineRounds;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
 use SpeedPuzzling\Web\Services\OfficialResultsSubscription;
@@ -414,11 +414,14 @@ final class OnlineRoundSettingsControllerTest extends WebTestCase
      */
     private static function setStopwatch(Connection $connection, null|string $status, null|string $startedAt, null|string $stoppedAt = null): void
     {
-        $moment = static fn (null|string $relative): null|string => $relative === null ? null : (new DateTimeImmutable($relative))->format('Y-m-d H:i:s');
-
         $connection->executeStatement(
             'UPDATE competition_round SET stopwatch_status = :status, stopwatch_started_at = :startedAt, stopwatch_stopped_at = :stoppedAt WHERE id = :id',
-            ['status' => $status, 'startedAt' => $moment($startedAt), 'stoppedAt' => $moment($stoppedAt), 'id' => self::ROUND],
+            [
+                'status' => $status,
+                'startedAt' => $startedAt === null ? null : TestClock::now()->modify($startedAt)->format('Y-m-d H:i:s'),
+                'stoppedAt' => $stoppedAt === null ? null : TestClock::now()->modify($stoppedAt)->format('Y-m-d H:i:s'),
+                'id' => self::ROUND,
+            ],
         );
     }
 
@@ -447,7 +450,7 @@ final class OnlineRoundSettingsControllerTest extends WebTestCase
     {
         $this->connection($browser)->executeStatement(
             "INSERT INTO competition_round (id, competition_id, name, minutes_limit, starts_at, slug, category)
-             VALUES (:id, :competition, :name, 45, NOW() + INTERVAL '30 days', :slug, :category)",
+             VALUES (:id, :competition, :name, 45, " . TestClock::SQL_NOW . " + INTERVAL '30 days', :slug, :category)",
             ['id' => $roundId, 'competition' => self::COMPETITION, 'name' => $name, 'slug' => strtolower(str_replace(' ', '-', $name)), 'category' => $category],
         );
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Services\ComputeStatistics;
@@ -60,7 +61,7 @@ final class ComputeStatisticsTest extends KernelTestCase
         [, $solo] = $computeStatistics->forPlayer(
             PlayerFixture::PLAYER_REGULAR,
             new DateTimeImmutable('2000-01-01'),
-            new DateTimeImmutable('+1 day'),
+            TestClock::now()->modify('+1 day'),
             false,
         );
 

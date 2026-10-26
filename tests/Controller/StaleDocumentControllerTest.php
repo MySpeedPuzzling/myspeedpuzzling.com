@@ -43,8 +43,10 @@ final class StaleDocumentControllerTest extends WebTestCase
     {
         $browser = self::createClient();
 
+        // @phpstan-ignore clock.systemTime (msp-rendered-at is real time: the browser compares it with the server's Date header)
         $before = time();
         $crawler = $browser->request('GET', '/en/hub');
+        // @phpstan-ignore clock.systemTime (msp-rendered-at is real time: the browser compares it with the server's Date header)
         $after = time();
 
         $this->assertResponseIsSuccessful();

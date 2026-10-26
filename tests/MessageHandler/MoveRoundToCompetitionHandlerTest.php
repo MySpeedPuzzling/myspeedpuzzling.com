@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -165,7 +166,7 @@ final class MoveRoundToCompetitionHandlerTest extends KernelTestCase
         $roundId = $this->createRound($source, 'Sprint', []);
         $this->database->executeStatement(
             "UPDATE competition_round SET stopwatch_status = 'scheduled', stopwatch_started_at = :startsAt WHERE id = :id",
-            ['startsAt' => new DateTimeImmutable('+1 hour')->format('Y-m-d H:i:s'), 'id' => $roundId],
+            ['startsAt' => TestClock::now()->modify('+1 hour')->format('Y-m-d H:i:s'), 'id' => $roundId],
         );
         // Written behind the entity manager's back - the handler reads the round again
         self::getContainer()->get(EntityManagerInterface::class)->clear();

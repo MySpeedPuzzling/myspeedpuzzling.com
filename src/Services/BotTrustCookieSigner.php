@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
-use Psr\Clock\ClockInterface;
+use DateTimeImmutable;
 use SensitiveParameter;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
@@ -40,7 +40,6 @@ readonly final class BotTrustCookieSigner
         #[Autowire(env: 'CHALLENGE_COOKIE_SECRET')]
         #[SensitiveParameter]
         private string $secret,
-        private ClockInterface $clock,
     ) {
     }
 
@@ -59,9 +58,14 @@ readonly final class BotTrustCookieSigner
         return substr(hash('sha256', $userIdentifier), 0, 16);
     }
 
+    /**
+     * Issued now in real time, never the app's clock: the sidecar validates the issued-at against its own clock
+     * (docs/features/time-and-clock).
+     */
     public function build(string $uid): string
     {
-        return $this->buildAt($uid, (int) $this->clock->now()->format('Uv'));
+        // @phpstan-ignore clock.systemTime (the bot-blocker sidecar validates the issued-at on its own clock)
+        return $this->buildAt($uid, (int) new DateTimeImmutable()->format('Uv'));
     }
 
     public function buildAt(string $uid, int $issuedAtMs): string

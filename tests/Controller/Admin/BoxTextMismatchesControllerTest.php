@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Admin;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\DetectBoxTextMismatches;
@@ -136,10 +137,11 @@ final class BoxTextMismatchesControllerTest extends WebTestCase
     {
         $database = $this->database($browser);
         $database->executeStatement('UPDATE puzzle SET image = :image WHERE id = :id', ['image' => $image, 'id' => $puzzleId]);
+        $now = TestClock::SQL_NOW;
         $database->executeStatement(
             <<<SQL
 INSERT INTO puzzle_image_analysis (id, puzzle_id, analyzer, analyzer_version, image_fingerprint, result, analyzed_at, received_at)
-VALUES (:id, :puzzleId, 'box_text', '1.0.0+rules', :fingerprint, CAST(:result AS jsonb), NULL, now())
+VALUES (:id, :puzzleId, 'box_text', '1.0.0+rules', :fingerprint, CAST(:result AS jsonb), NULL, {$now})
 ON CONFLICT (analyzer, puzzle_id) DO UPDATE SET image_fingerprint = EXCLUDED.image_fingerprint, result = EXCLUDED.result
 SQL,
             [

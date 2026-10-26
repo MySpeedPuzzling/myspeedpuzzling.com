@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Notification;
@@ -223,7 +223,7 @@ final class OutdatedPuzzleRequestsTest extends KernelTestCase
         $mergedLongAgo = Uuid::uuid7()->toString();
 
         // A puzzle deleted without a merge, and one merged before redirects reached this request
-        $this->entityManager->persist(new PuzzleRedirect(Uuid::uuid7(), Uuid::fromString($mergedLongAgo), Uuid::fromString(PuzzleFixture::PUZZLE_1000_04), new DateTimeImmutable()));
+        $this->entityManager->persist(new PuzzleRedirect(Uuid::uuid7(), Uuid::fromString($mergedLongAgo), Uuid::fromString(PuzzleFixture::PUZZLE_1000_04), TestClock::now()));
         $gone = $this->persistedReport([PuzzleFixture::PUZZLE_1000_03, $deletedBySql], $reporter);
         $alreadyMerged = $this->persistedReport([$mergedLongAgo, PuzzleFixture::PUZZLE_1000_04], $reporter);
         $stillToMerge = $this->persistedReport([$mergedLongAgo, PuzzleFixture::PUZZLE_1000_03], $reporter);
@@ -297,7 +297,7 @@ final class OutdatedPuzzleRequestsTest extends KernelTestCase
             id: $id,
             sourcePuzzle: null,
             reporter: $reporter,
-            submittedAt: new DateTimeImmutable(),
+            submittedAt: TestClock::now(),
             reportedDuplicatePuzzleIds: $puzzleIds,
         ));
 
@@ -329,7 +329,7 @@ final class OutdatedPuzzleRequestsTest extends KernelTestCase
             id: Uuid::uuid7(),
             puzzle: $puzzle,
             reporter: $players->get(PlayerFixture::PLAYER_REGULAR),
-            submittedAt: new DateTimeImmutable(),
+            submittedAt: TestClock::now(),
             proposedName: $proposedName,
             proposedPiecesCount: $proposedPiecesCount,
             originalName: $puzzle->name,
@@ -337,7 +337,7 @@ final class OutdatedPuzzleRequestsTest extends KernelTestCase
         );
 
         if ($reject) {
-            $request->reject($players->get(PlayerFixture::PLAYER_ADMIN), new DateTimeImmutable(), 'Not on the box');
+            $request->reject($players->get(PlayerFixture::PLAYER_ADMIN), TestClock::now(), 'Not on the box');
         }
 
         $this->entityManager->persist($request);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\OnlineRounds;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Services\OnlineRounds\InMemoryOnlinePresence;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -116,7 +117,7 @@ final class OnlineLiveQueryBudgetTest extends WebTestCase
         $this->phoneEvent($onlineEntry, OnlineEventType::CameraLost, $startMs + 100_000);
         $this->phoneEvent($onlineEntry, OnlineEventType::CameraBack, $startMs + 104_000);
 
-        self::getContainer()->get(InMemoryOnlinePresence::class)->beat(self::ROUND, $participantId, ['deviceId' => OnlineRoundsFixture::DEVICE_CONNECTED, 'visible' => true], (int) floor(microtime(true) * 1000));
+        self::getContainer()->get(InMemoryOnlinePresence::class)->beat(self::ROUND, $participantId, ['deviceId' => OnlineRoundsFixture::DEVICE_CONNECTED, 'visible' => true], TestClock::milliseconds());
     }
 
     private function statementsOf(KernelBrowser $browser, string $url): int

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
@@ -51,7 +52,7 @@ final class RoundStopwatchActionsTest extends WebTestCase
         self::assertSame(60, $payload['minutesLimit']);
         self::assertIsString($payload['startedAt']);
         self::assertIsInt($payload['startedAtMs']);
-        self::assertSame(strtotime($payload['startedAt']) * 1000, $payload['startedAtMs']);
+        self::assertSame(new DateTimeImmutable($payload['startedAt'])->getTimestamp() * 1000, $payload['startedAtMs']);
         self::assertNull($payload['stoppedAt']);
         self::assertNull($payload['stoppedAtMs']);
         self::assertIsInt($payload['asOfMs']);

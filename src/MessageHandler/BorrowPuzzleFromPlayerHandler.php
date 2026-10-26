@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
-use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\LentPuzzle;
 use SpeedPuzzling\Web\Entity\LentPuzzleTransfer;
@@ -33,6 +33,7 @@ readonly final class BorrowPuzzleFromPlayerHandler
         private LentPuzzleTransferRepository $lentPuzzleTransferRepository,
         private MessageBusInterface $messageBus,
         private SecretPuzzleAccess $secretPuzzleAccess,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -80,7 +81,7 @@ readonly final class BorrowPuzzleFromPlayerHandler
                 $previousHolderName,
                 $borrower,
                 null, // borrower is always registered, no name needed
-                new DateTimeImmutable(),
+                $this->clock->now(),
                 TransferType::Pass,
                 $puzzle,
                 $owner,
@@ -107,7 +108,7 @@ readonly final class BorrowPuzzleFromPlayerHandler
             return;
         }
 
-        $now = new DateTimeImmutable();
+        $now = $this->clock->now();
 
         // Create new lent puzzle record with owner as owner and borrower as current holder
         $lentPuzzle = new LentPuzzle(

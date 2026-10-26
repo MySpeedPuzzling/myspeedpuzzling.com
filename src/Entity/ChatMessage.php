@@ -71,9 +71,9 @@ class ChatMessage implements EntityWithEvents
         }
     }
 
-    public function markAsRead(): void
+    public function markAsRead(DateTimeImmutable $now): void
     {
-        $this->readAt = new DateTimeImmutable();
+        $this->readAt = $now;
     }
 
     public function anonymizeSender(string $name): void

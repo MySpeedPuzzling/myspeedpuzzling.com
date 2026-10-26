@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\BrowserKit\Cookie;
 
@@ -16,9 +17,7 @@ final class OnlineTimeControllerTest extends WebTestCase
     {
         $browser = self::createClient();
 
-        $before = (int) floor(microtime(true) * 1000);
         $browser->request('GET', '/-/time');
-        $after = (int) ceil(microtime(true) * 1000);
 
         self::assertResponseIsSuccessful();
         $response = $browser->getResponse();
@@ -28,8 +27,8 @@ final class OnlineTimeControllerTest extends WebTestCase
         self::assertIsArray($json);
         self::assertSame(['serverNowMs'], array_keys($json));
         self::assertIsInt($json['serverNowMs']);
-        self::assertGreaterThanOrEqual($before, $json['serverNowMs']);
-        self::assertLessThanOrEqual($after, $json['serverNowMs']);
+        // The app's clock, frozen in tests - exact
+        self::assertSame(TestClock::milliseconds(), $json['serverNowMs']);
 
         $cacheControl = (string) $response->headers->get('Cache-Control');
         self::assertStringContainsString('no-store', $cacheControl);

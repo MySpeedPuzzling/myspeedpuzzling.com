@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests;
 
-use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -33,7 +32,7 @@ readonly final class TestingLogin
                 Uuid::uuid7(),
                 $player->userId,
                 $player->code . '@test.local',
-                new DateTimeImmutable(),
+                TestClock::now(),
             );
 
             if (str_starts_with($player->userId, 'auth0|')) {
@@ -43,7 +42,7 @@ readonly final class TestingLogin
                     $userAccount->email,
                     null,
                     true,
-                    new DateTimeImmutable(),
+                    TestClock::now(),
                 );
             }
 

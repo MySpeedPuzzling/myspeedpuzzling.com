@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -53,9 +54,9 @@ final class NotifyWhenPuzzleSolvedTest extends KernelTestCase
         // The fixture player already follows the regular player (and admin)
         $followers[] = PlayerFixture::PLAYER_WITH_FAVORITES;
 
-        $before = new DateTimeImmutable('-1 second');
+        $before = TestClock::now()->modify('-1 second');
         $timeId = $this->addTime(PlayerFixture::PLAYER_REGULAR_USER_ID, PuzzleFixture::PUZZLE_1500_01);
-        $after = new DateTimeImmutable('+1 second');
+        $after = TestClock::now()->modify('+1 second');
 
         $notifications = $this->notificationsOf($timeId);
 
@@ -211,7 +212,7 @@ final class NotifyWhenPuzzleSolvedTest extends KernelTestCase
     private function allow(string $ownerId, string $viewerId): void
     {
         $this->database->executeStatement(
-            'INSERT INTO private_profile_viewer (id, owner_id, viewer_id, added_at) VALUES (:id, :owner, :viewer, NOW())',
+            'INSERT INTO private_profile_viewer (id, owner_id, viewer_id, added_at) VALUES (:id, :owner, :viewer, ' . TestClock::SQL_NOW . ')',
             ['id' => Uuid::uuid7()->toString(), 'owner' => $ownerId, 'viewer' => $viewerId],
         );
     }
@@ -219,7 +220,7 @@ final class NotifyWhenPuzzleSolvedTest extends KernelTestCase
     private function block(string $blockerId, string $blockedId): void
     {
         $this->database->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => $blockerId, 'blocked' => $blockedId],
         );
     }
@@ -239,7 +240,7 @@ final class NotifyWhenPuzzleSolvedTest extends KernelTestCase
                 code: 'follower' . substr(str_replace('-', '', $id->toString()), -12),
                 userId: null,
                 name: 'Follower ' . $i,
-                registeredAt: new DateTimeImmutable(),
+                registeredAt: TestClock::now(),
             ));
             $followerIds[] = $id->toString();
         }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\RecordPuzzleDifficultyEstimates;
@@ -70,7 +71,7 @@ final class GetPersonalEstimatesTest extends KernelTestCase
     {
         $puzzleIds = $this->allPuzzleIds();
         /** @var list<string> $secret */
-        $secret = $this->database->fetchFirstColumn('SELECT id FROM puzzle WHERE hide_until > NOW() OR hide_image_until > NOW()');
+        $secret = $this->database->fetchFirstColumn('SELECT id FROM puzzle WHERE hide_until > ' . TestClock::SQL_NOW . ' OR hide_image_until > ' . TestClock::SQL_NOW);
         self::assertNotSame([], $secret, 'the fixtures hold a secret puzzle');
         $bases = [];
 
@@ -175,8 +176,8 @@ final class GetPersonalEstimatesTest extends KernelTestCase
         $listed = [PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_500_04, PuzzleFixture::PUZZLE_500_05];
         self::assertCount(4, $this->estimates->forPuzzles(PlayerFixture::PLAYER_REGULAR, $listed, static fn (): bool => true));
 
-        $this->database->executeStatement("UPDATE puzzle SET hide_until = NOW() + INTERVAL '3 days' WHERE id IN (:a, :b)", ['a' => PuzzleFixture::PUZZLE_500_02, 'b' => PuzzleFixture::PUZZLE_500_04]);
-        $this->database->executeStatement("UPDATE puzzle SET hide_image_until = NOW() + INTERVAL '3 days' WHERE id = :id", ['id' => PuzzleFixture::PUZZLE_500_05]);
+        $this->database->executeStatement("UPDATE puzzle SET hide_until = " . TestClock::SQL_NOW . " + INTERVAL '3 days' WHERE id IN (:a, :b)", ['a' => PuzzleFixture::PUZZLE_500_02, 'b' => PuzzleFixture::PUZZLE_500_04]);
+        $this->database->executeStatement("UPDATE puzzle SET hide_image_until = " . TestClock::SQL_NOW . " + INTERVAL '3 days' WHERE id = :id", ['id' => PuzzleFixture::PUZZLE_500_05]);
 
         $estimates = $this->estimates->forPuzzles(PlayerFixture::PLAYER_REGULAR, $listed, static fn (): bool => true);
 
@@ -187,15 +188,15 @@ final class GetPersonalEstimatesTest extends KernelTestCase
     public function testAPlayerWithoutAnyPaceGetsTheCommunityTimeByPieceCount(): void
     {
         $newcomer = Uuid::uuid7()->toString();
-        $this->database->executeStatement("INSERT INTO player (id, code, name, registered_at, is_private) VALUES (:id, 'newcomer6c', 'Newcomer', NOW(), false)", ['id' => $newcomer]);
+        $this->database->executeStatement("INSERT INTO player (id, code, name, registered_at, is_private) VALUES (:id, 'newcomer6c', 'Newcomer', " . TestClock::SQL_NOW . ", false)", ['id' => $newcomer]);
         // 20 puzzlers with a direct 500-piece pace (the fixtures have a handful): 3000 s … 3950 s, median 3475 s
         $this->database->executeStatement(
             "INSERT INTO player (id, code, name, registered_at, is_private)
-            SELECT CAST('019b0c00-0000-7000-8000-' || lpad(n::text, 12, '0') AS uuid), 'pace6c' || n, 'Pace ' || n, NOW(), false FROM generate_series(1, 20) AS n",
+            SELECT CAST('019b0c00-0000-7000-8000-' || lpad(n::text, 12, '0') AS uuid), 'pace6c' || n, 'Pace ' || n, " . TestClock::SQL_NOW . ", false FROM generate_series(1, 20) AS n",
         );
         $this->database->executeStatement(
             "INSERT INTO player_baseline (id, player_id, pieces_count, baseline_seconds, qualifying_solves_count, computed_at, baseline_type)
-            SELECT CAST('019b0c01-0000-7000-8000-' || lpad(n::text, 12, '0') AS uuid), CAST('019b0c00-0000-7000-8000-' || lpad(n::text, 12, '0') AS uuid), 500, 2950 + 50 * n, 5, NOW(), 'direct'
+            SELECT CAST('019b0c01-0000-7000-8000-' || lpad(n::text, 12, '0') AS uuid), CAST('019b0c00-0000-7000-8000-' || lpad(n::text, 12, '0') AS uuid), 500, 2950 + 50 * n, 5, " . TestClock::SQL_NOW . ", 'direct'
             FROM generate_series(1, 20) AS n",
         );
         /** @var list<int|string> $paces */
@@ -274,7 +275,7 @@ final class GetPersonalEstimatesTest extends KernelTestCase
 
         $this->database->executeStatement(
             "INSERT INTO puzzle_image_analysis (id, puzzle_id, analyzer, analyzer_version, image_fingerprint, result, analyzed_at, received_at)
-            VALUES (:id, :puzzle, 'artwork', '1.0.0', :fingerprint, CAST(:result AS jsonb), NULL, NOW())",
+            VALUES (:id, :puzzle, 'artwork', '1.0.0', :fingerprint, CAST(:result AS jsonb), NULL, " . TestClock::SQL_NOW . ")",
             [
                 'id' => Uuid::uuid7()->toString(),
                 'puzzle' => $puzzleId,

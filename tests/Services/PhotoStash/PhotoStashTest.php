@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\PhotoStash;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Imagick;
 use League\Flysystem\Filesystem;
-use League\Flysystem\InMemory\InMemoryFilesystemAdapter;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use SpeedPuzzling\Web\Services\PhotoStash\PhotoStash;
+use SpeedPuzzling\Web\Tests\TestDouble\ClockedInMemoryFilesystemAdapter;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -24,8 +25,8 @@ final class PhotoStashTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->filesystem = new Filesystem(new InMemoryFilesystemAdapter());
-        $this->clock = new MockClock();
+        $this->clock = new MockClock(TestClock::now());
+        $this->filesystem = new Filesystem(new ClockedInMemoryFilesystemAdapter($this->clock));
         $this->stash = new PhotoStash($this->filesystem, $this->clock, new NullLogger());
     }
 

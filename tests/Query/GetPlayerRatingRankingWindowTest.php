@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PlayerElo;
@@ -46,7 +47,7 @@ final class GetPlayerRatingRankingWindowTest extends KernelTestCase
         ];
 
         foreach ($ratings as $playerId => $rating) {
-            $em->persist(new PlayerElo(id: Uuid::uuid7(), player: $players->get($playerId), piecesCount: self::PIECES_COUNT, eloRating: $rating));
+            $em->persist(new PlayerElo(id: Uuid::uuid7(), player: $players->get($playerId), piecesCount: self::PIECES_COUNT, computedAt: TestClock::now(), eloRating: $rating));
         }
 
         $em->flush();

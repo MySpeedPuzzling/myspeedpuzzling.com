@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\PartnerFinder;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\MarketplaceEventFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
@@ -86,7 +87,7 @@ final class PartnerFinderGateControllerTest extends WebTestCase
     public function testNobodyListedAnywhere(): void
     {
         $browser = self::createClient();
-        self::getContainer()->get(Connection::class)->executeStatement('UPDATE partner_listing SET closed_at = NOW() WHERE closed_at IS NULL');
+        self::getContainer()->get(Connection::class)->executeStatement('UPDATE partner_listing SET closed_at = ' . TestClock::SQL_NOW . ' WHERE closed_at IS NULL');
 
         $crawler = $browser->request('GET', self::GATE);
 

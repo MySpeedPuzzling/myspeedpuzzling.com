@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Panther\CoPuzzlerPicker;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Facebook\WebDriver\WebDriverBy;
 use Facebook\WebDriver\WebDriverDimension;
 use PDO;
@@ -72,7 +72,7 @@ abstract class CoPuzzlerPickerTestCase extends AbstractPantherTestCase
 
         $database = self::testDatabase();
         $teamId = Uuid::uuid7()->toString();
-        $at = (new DateTimeImmutable())->modify("-{$daysAgo} days")->format('Y-m-d H:i:s');
+        $at = TestClock::now()->modify("-{$daysAgo} days")->format('Y-m-d H:i:s');
 
         $database->prepare('INSERT INTO puzzling_team (id, composition_key, size, created_at, name) VALUES (?, ?, ?, ?, ?)')
             ->execute([$teamId, $composition->key, $composition->size(), $at, $name]);

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\Logging;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Monolog\Handler\TestHandler;
 use Monolog\Level;
 use Monolog\Logger;
@@ -62,7 +62,7 @@ final class DowngradeRoutineWarningsProcessorTest extends KernelTestCase
     private function record(Level $level, string $message): LogRecord
     {
         return new LogRecord(
-            datetime: new DateTimeImmutable(),
+            datetime: TestClock::now(),
             channel: 'request',
             level: $level,
             message: $message,

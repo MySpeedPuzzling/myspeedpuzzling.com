@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Stopwatch;
 
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\StartStopwatch;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -20,6 +21,7 @@ final class ApiStartController extends AbstractController
 {
     public function __construct(
         private readonly MessageBusInterface $messageBus,
+        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -47,7 +49,7 @@ final class ApiStartController extends AbstractController
         return new JsonResponse([
             'stopwatchId' => $stopwatchId->toString(),
             'status' => 'running',
-            'serverTime' => (new \DateTimeImmutable())->format('c'),
+            'serverTime' => $this->clock->now()->format('c'),
         ]);
     }
 }

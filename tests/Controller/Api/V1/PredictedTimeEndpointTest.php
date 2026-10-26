@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Api\V1;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Puzzle;
@@ -256,8 +256,8 @@ final class PredictedTimeEndpointTest extends WebTestCase
 
         // The incremental recalculation may already have left a row behind - reuse it,
         // the puzzle id is the primary key.
-        $difficulty = $entityManager->find(PuzzleDifficulty::class, $puzzleId) ?? new PuzzleDifficulty($puzzle);
-        $difficulty->updateDifficulty($score, $confidence, 20, new DateTimeImmutable());
+        $difficulty = $entityManager->find(PuzzleDifficulty::class, $puzzleId) ?? new PuzzleDifficulty($puzzle, TestClock::now());
+        $difficulty->updateDifficulty($score, $confidence, 20, TestClock::now());
 
         $entityManager->persist($difficulty);
         $entityManager->flush();

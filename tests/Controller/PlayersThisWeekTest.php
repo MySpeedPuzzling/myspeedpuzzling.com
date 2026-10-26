@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\RecalculateCommunityStats;
@@ -183,7 +183,7 @@ final class PlayersThisWeekTest extends WebTestCase
         $database->executeStatement('DELETE FROM player_moment WHERE player_id = :id', ['id' => $playerId]);
 
         foreach ($moments as [$type, $dedupeKey, $piecesCount, $value, $daysAgo]) {
-            $occurredAt = (new DateTimeImmutable("-{$daysAgo} days"))->format('Y-m-d H:i:s');
+            $occurredAt = TestClock::now()->modify("-{$daysAgo} days")->format('Y-m-d H:i:s');
             $database->executeStatement(
                 'INSERT INTO player_moment (id, player_id, type, dedupe_key, occurred_at, solving_time_id, pieces_count, value, previous_value, detected_at)
                  VALUES (:id, :player, :type, :key, :occurred, NULL, :pieces, :value, NULL, :occurred)',

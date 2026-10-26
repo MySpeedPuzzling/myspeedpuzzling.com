@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -81,7 +82,7 @@ final class DeleteManufacturerHandlerTest extends KernelTestCase
 
         $brand = $this->entityManager->find(Manufacturer::class, $brandId);
         self::assertNotNull($brand);
-        $this->entityManager->persist(new ManufacturerSlugRedirect('merged-away', $brand, new DateTimeImmutable()));
+        $this->entityManager->persist(new ManufacturerSlugRedirect('merged-away', $brand, TestClock::now()));
         $this->entityManager->flush();
         $this->entityManager->clear();
 

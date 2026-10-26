@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
@@ -56,7 +57,7 @@ final class RatingInsightsBatchTest extends KernelTestCase
         /** @var Connection $connection */
         $connection = self::getContainer()->get(Connection::class);
         $this->connection = $connection;
-        $this->now = new DateTimeImmutable('today 12:00:00');
+        $this->now = TestClock::now()->modify('today 12:00:00');
 
         $this->seedLadder($this->connection, $this->now);
     }
@@ -414,7 +415,7 @@ final class RatingInsightsBatchTest extends KernelTestCase
     {
         $clock = new MockClock($now);
         $baselineCalculator = new PlayerBaselineCalculator($this->connection, $clock);
-        $paceHistoryReadiness = new PaceHistoryReadiness($this->connection);
+        $paceHistoryReadiness = new PaceHistoryReadiness($this->connection, $clock);
         $paceTimelineLoader = new PaceTimelineLoader($this->connection, $baselineCalculator);
 
         $paceHistoryWriter = new PlayerPaceHistoryWriter($this->connection, $baselineCalculator, new PlayerPaceHistoryCalculator($baselineCalculator), $paceHistoryReadiness);
@@ -439,6 +440,7 @@ final class RatingInsightsBatchTest extends KernelTestCase
                 $paceTimelineLoader,
                 $baselineCalculator,
                 $paceHistoryWriter,
+                $clock,
             ),
             new RatingInsightsWriter($this->connection, new ChangedRowsSync($this->connection)),
             new InsightsGeneration($this->connection, $clock),

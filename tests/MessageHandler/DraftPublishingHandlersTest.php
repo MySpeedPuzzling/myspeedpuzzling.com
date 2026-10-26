@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Exceptions\CannotUnpublish;
 use SpeedPuzzling\Web\Message\PublishCompetition;
@@ -178,7 +179,7 @@ final class DraftPublishingHandlersTest extends KernelTestCase
     public function testAParticipantWhoLeftDoesNotCount(): void
     {
         $this->connection->executeStatement(
-            'UPDATE competition_participant SET deleted_at = NOW() WHERE competition_id = :id',
+            'UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW . ' WHERE competition_id = :id',
             ['id' => EventsPageFixture::COMPETITION_RIVERSIDE_OPEN],
         );
 
@@ -191,7 +192,7 @@ final class DraftPublishingHandlersTest extends KernelTestCase
     {
         // Only the official results stay: nobody joined any more, no solving time is linked
         $cup = OfficialResultsFixture::COMPETITION_RESULTS_CUP;
-        $this->connection->executeStatement('UPDATE competition_participant SET deleted_at = NOW() WHERE competition_id = :id', ['id' => $cup]);
+        $this->connection->executeStatement('UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW . ' WHERE competition_id = :id', ['id' => $cup]);
         $this->connection->executeStatement(
             'UPDATE puzzle_solving_time SET competition_id = NULL, competition_round_id = NULL
              WHERE competition_id = :id OR competition_round_id IN (SELECT id FROM competition_round WHERE competition_id = :id)',

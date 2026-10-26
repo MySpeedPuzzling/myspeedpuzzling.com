@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\Insights;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
@@ -39,7 +40,7 @@ final class ResolveRadarAndShelfPicksTest extends KernelTestCase
     {
         self::bootKernel();
 
-        $this->now = new DateTimeImmutable('today 12:00:00');
+        $this->now = TestClock::now()->modify('today 12:00:00');
         self::getContainer()->set(ClockInterface::class, new MockClock($this->now));
 
         /** @var Connection $connection */
@@ -47,7 +48,7 @@ final class ResolveRadarAndShelfPicksTest extends KernelTestCase
         $this->connection = $connection;
         $this->player = $this->newPlayer('radar');
         $this->connection->executeStatement(
-            "INSERT INTO player_baseline (id, player_id, pieces_count, baseline_seconds, qualifying_solves_count, baseline_type, computed_at) VALUES (gen_random_uuid(), :player, :pieces, 3000, 10, 'direct', NOW())",
+            "INSERT INTO player_baseline (id, player_id, pieces_count, baseline_seconds, qualifying_solves_count, baseline_type, computed_at) VALUES (gen_random_uuid(), :player, :pieces, 3000, 10, 'direct', " . TestClock::SQL_NOW . ")",
             ['player' => $this->player, 'pieces' => self::PIECES],
         );
     }
@@ -77,7 +78,7 @@ final class ResolveRadarAndShelfPicksTest extends KernelTestCase
         );
         $partner = $this->newPlayer('partner');
         $team = Uuid::uuid7()->toString();
-        $this->connection->executeStatement('INSERT INTO puzzling_team (id, composition_key, size, created_at) VALUES (:id, :key, 2, NOW())', ['id' => $team, 'key' => sha1($team)]);
+        $this->connection->executeStatement('INSERT INTO puzzling_team (id, composition_key, size, created_at) VALUES (:id, :key, 2, ' . TestClock::SQL_NOW . ')', ['id' => $team, 'key' => sha1($team)]);
 
         foreach ([$this->player, $partner] as $position => $member) {
             $this->connection->executeStatement(
@@ -145,11 +146,11 @@ final class ResolveRadarAndShelfPicksTest extends KernelTestCase
 
         $this->solve($this->player, $done, 3000, 30);
         $this->connection->executeStatement(
-            'INSERT INTO lent_puzzle (id, puzzle_id, owner_player_id, current_holder_player_id, lent_at) VALUES (:id, :puzzle, :owner, :holder, NOW())',
+            'INSERT INTO lent_puzzle (id, puzzle_id, owner_player_id, current_holder_player_id, lent_at) VALUES (:id, :puzzle, :owner, :holder, ' . TestClock::SQL_NOW . ')',
             ['id' => Uuid::uuid7()->toString(), 'puzzle' => $lentOut, 'owner' => $this->player, 'holder' => $others[1]],
         );
         $this->connection->executeStatement(
-            'INSERT INTO lent_puzzle (id, puzzle_id, owner_player_id, current_holder_player_id, lent_at) VALUES (:id, :puzzle, :owner, :holder, NOW())',
+            'INSERT INTO lent_puzzle (id, puzzle_id, owner_player_id, current_holder_player_id, lent_at) VALUES (:id, :puzzle, :owner, :holder, ' . TestClock::SQL_NOW . ')',
             ['id' => Uuid::uuid7()->toString(), 'puzzle' => $borrowed, 'owner' => $others[2], 'holder' => $this->player],
         );
 
@@ -187,12 +188,12 @@ final class ResolveRadarAndShelfPicksTest extends KernelTestCase
         $this->connection->executeStatement('UPDATE puzzle SET image = :image WHERE id = :id', ['image' => $image, 'id' => $unrated]);
         $this->connection->executeStatement(
             "INSERT INTO puzzle_difficulty_estimate (puzzle_id, model, model_version, log_difficulty, log_p10, log_p90, out_of_fold, training_size, image_fingerprint, computed_at, received_at)
-            VALUES (:puzzle, 'ridge-siglip2-dinov2', '1.0.0', 0.1, -0.1, 0.35, true, 4979, :fingerprint, NOW(), NOW())",
+            VALUES (:puzzle, 'ridge-siglip2-dinov2', '1.0.0', 0.1, -0.1, 0.35, true, 4979, :fingerprint, " . TestClock::SQL_NOW . ", " . TestClock::SQL_NOW . ")",
             ['puzzle' => $unrated, 'fingerprint' => $fingerprint],
         );
         $this->connection->executeStatement(
             "INSERT INTO puzzle_image_analysis (id, puzzle_id, analyzer, analyzer_version, image_fingerprint, result, analyzed_at, received_at)
-            VALUES (:id, :puzzle, 'artwork', '1.0.0', :fingerprint, '{\"kind\": \"flat\"}', NULL, NOW())",
+            VALUES (:id, :puzzle, 'artwork', '1.0.0', :fingerprint, '{\"kind\": \"flat\"}', NULL, " . TestClock::SQL_NOW . ")",
             ['id' => Uuid::uuid7()->toString(), 'puzzle' => $unrated, 'fingerprint' => $fingerprint],
         );
 
@@ -202,7 +203,7 @@ final class ResolveRadarAndShelfPicksTest extends KernelTestCase
 
         $this->connection->executeStatement(
             "INSERT INTO image_estimate_evaluation (id, evaluated_at, model_version, newer_than, measured_min_indices, groups, overall, by_k)
-            VALUES (:id, NOW(), :version, NOW() - INTERVAL '1 year', 10, CAST(:groups AS jsonb), '{}', '[]')",
+            VALUES (:id, " . TestClock::SQL_NOW . ", :version, " . TestClock::SQL_NOW . " - INTERVAL '1 year', 10, CAST(:groups AS jsonb), '{}', '[]')",
             ['id' => Uuid::uuid7()->toString(), 'version' => TimePredictionCalculator::MODEL_VERSION, 'groups' => json_encode([[
                 'sizeGroup' => PiecesGroup::Odd->value,
                 'imageKind' => ImageKind::Flat->value,
@@ -270,7 +271,7 @@ final class ResolveRadarAndShelfPicksTest extends KernelTestCase
     {
         $id = Uuid::uuid7()->toString();
         $this->connection->executeStatement(
-            'INSERT INTO player (id, code, name, registered_at) VALUES (:id, :code, :name, NOW())',
+            'INSERT INTO player (id, code, name, registered_at) VALUES (:id, :code, :name, ' . TestClock::SQL_NOW . ')',
             ['id' => $id, 'code' => 'shelf' . $code, 'name' => 'Shelf ' . $code],
         );
 
@@ -287,7 +288,7 @@ final class ResolveRadarAndShelfPicksTest extends KernelTestCase
 
         if ($difficulty !== null) {
             $this->connection->executeStatement(
-                "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, difficulty_tier, confidence, sample_size, computed_at) VALUES (:id, :score, 3, 'high', 30, NOW())",
+                "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, difficulty_tier, confidence, sample_size, computed_at) VALUES (:id, :score, 3, 'high', 30, " . TestClock::SQL_NOW . ")",
                 ['id' => $id, 'score' => $difficulty],
             );
         }
@@ -314,7 +315,7 @@ final class ResolveRadarAndShelfPicksTest extends KernelTestCase
     private function shelve(string $player, string $puzzle): void
     {
         $this->connection->executeStatement(
-            'INSERT INTO collection_item (id, collection_id, player_id, puzzle_id, comment, added_at) VALUES (:id, NULL, :player, :puzzle, NULL, NOW())',
+            'INSERT INTO collection_item (id, collection_id, player_id, puzzle_id, comment, added_at) VALUES (:id, NULL, :player, :puzzle, NULL, ' . TestClock::SQL_NOW . ')',
             ['id' => Uuid::uuid7()->toString(), 'player' => $player, 'puzzle' => $puzzle],
         );
     }

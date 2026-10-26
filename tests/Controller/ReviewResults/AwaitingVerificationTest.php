@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\ReviewResults;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\DetectSuspiciousTimes;
@@ -219,7 +220,7 @@ final class AwaitingVerificationTest extends WebTestCase
         );
         // A competition takes the puzzle into a round and keeps it secret until then
         $this->database($browser)->executeStatement(
-            "UPDATE puzzle SET approved = false, hide_until = NOW() + INTERVAL '30 days' WHERE id = :id",
+            "UPDATE puzzle SET approved = false, hide_until = " . TestClock::SQL_NOW . " + INTERVAL '30 days' WHERE id = :id",
             ['id' => SuspiciousTimesFixture::PUZZLE_ORCHARD],
         );
         TestingLogin::asPlayer($browser, self::MIA);
@@ -339,7 +340,7 @@ final class AwaitingVerificationTest extends WebTestCase
         $browser = self::createClient();
         // "The time is correct", the moderator keeps the mark with a note: on the open card, nothing to send again
         $this->database($browser)->executeStatement(
-            "UPDATE suspicious_time_notice SET response = 'says_correct', responded_at = NOW(), answer = 'kept', answer_note = 'The puzzle has 520 pieces, not 52.', answered_at = NOW() WHERE id = :id",
+            "UPDATE suspicious_time_notice SET response = 'says_correct', responded_at = " . TestClock::SQL_NOW . ", answer = 'kept', answer_note = 'The puzzle has 520 pieces, not 52.', answered_at = " . TestClock::SQL_NOW . " WHERE id = :id",
             ['id' => SuspiciousTimesFixture::NOTICE_MARKED],
         );
         TestingLogin::asPlayer($browser, self::MIA);
@@ -366,7 +367,7 @@ final class AwaitingVerificationTest extends WebTestCase
         self::assertStringContainsString('A moderator checked it: your time counts again.', $answered->text());
         self::assertCount(0, $crawler->filter('[data-testid="review-results-empty"]'));
 
-        $this->database($browser)->executeStatement("UPDATE suspicious_time_notice SET answered_at = NOW() - INTERVAL '31 days' WHERE id = :id", ['id' => SuspiciousTimesFixture::NOTICE_MARKED]);
+        $this->database($browser)->executeStatement("UPDATE suspicious_time_notice SET answered_at = " . TestClock::SQL_NOW . " - INTERVAL '31 days' WHERE id = :id", ['id' => SuspiciousTimesFixture::NOTICE_MARKED]);
         $crawler = $browser->request('GET', '/en/review-results');
         self::assertCount(0, $crawler->filter('#awaiting-verification'));
     }
@@ -423,7 +424,7 @@ final class AwaitingVerificationTest extends WebTestCase
         // Mia's usual time for 520 pieces is about 1:20:00 - the fixed time can be judged (without anything to judge it
         // by it would go back to the moderators)
         $this->database($browser)->executeStatement(
-            "INSERT INTO player_baseline (id, player_id, pieces_count, baseline_seconds, qualifying_solves_count, computed_at, baseline_type) VALUES (:id, :playerId, 520, 4800, 5, NOW(), 'direct')",
+            "INSERT INTO player_baseline (id, player_id, pieces_count, baseline_seconds, qualifying_solves_count, computed_at, baseline_type) VALUES (:id, :playerId, 520, 4800, 5, " . TestClock::SQL_NOW . ", 'direct')",
             ['id' => Uuid::uuid7()->toString(), 'playerId' => self::MIA],
         );
         TestingLogin::asPlayer($browser, self::MIA);

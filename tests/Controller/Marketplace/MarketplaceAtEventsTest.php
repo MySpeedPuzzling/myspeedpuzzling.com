@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Marketplace;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
@@ -48,7 +49,7 @@ final class MarketplaceAtEventsTest extends WebTestCase
     public function testTheSelectIsHiddenWhenNoSellerGoesAnywhere(): void
     {
         $browser = self::createClient();
-        $this->database($browser)->executeStatement('UPDATE competition_participant SET deleted_at = NOW()');
+        $this->database($browser)->executeStatement('UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW);
 
         $crawler = $browser->request('GET', '/en/marketplace');
 
@@ -176,7 +177,7 @@ final class MarketplaceAtEventsTest extends WebTestCase
         // SELLSWAP_04 is reserved for B; A marks it for the fair
         $browser = self::createClient();
         $this->database($browser)->executeStatement(
-            'INSERT INTO sell_swap_list_item_event (sell_swap_list_item_id, competition_id, added_at) VALUES (:item, :competition, NOW())',
+            'INSERT INTO sell_swap_list_item_event (sell_swap_list_item_id, competition_id, added_at) VALUES (:item, :competition, ' . TestClock::SQL_NOW . ')',
             ['item' => SellSwapListItemFixture::SELLSWAP_04, 'competition' => self::FAIR],
         );
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
@@ -196,7 +197,7 @@ final class MarketplaceAtEventsTest extends WebTestCase
     {
         $browser = self::createClient();
         $this->database($browser)->executeStatement(
-            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
             ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_REGULAR, 'blocked' => PlayerFixture::PLAYER_WITH_STRIPE],
         );
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);

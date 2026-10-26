@@ -18,7 +18,7 @@ trait InsightsPaceSeeding
     private function markPaceHistoryBuilt(Connection $connection, float $scalingExponent = 1.33): void
     {
         $connection->executeStatement(
-            'INSERT INTO pace_history_build (id, version, built_at, scaling_exponent) VALUES (1, 1, NOW(), :exponent)
+            'INSERT INTO pace_history_build (id, version, built_at, scaling_exponent) VALUES (1, 1, ' . TestClock::SQL_NOW . ', :exponent)
             ON CONFLICT (id) DO UPDATE SET scaling_exponent = EXCLUDED.scaling_exponent',
             ['exponent' => $scalingExponent],
         );

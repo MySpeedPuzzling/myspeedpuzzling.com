@@ -7,9 +7,10 @@ namespace SpeedPuzzling\Web\Tests\Services\ParticipantImport;
 use League\Flysystem\Config;
 use League\Flysystem\FileAttributes;
 use League\Flysystem\FilesystemAdapter;
-use League\Flysystem\InMemory\InMemoryFilesystemAdapter;
 use League\Flysystem\UnableToDeleteFile;
 use League\Flysystem\UnableToWriteFile;
+use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Tests\TestDouble\ClockedInMemoryFilesystemAdapter;
 
 /**
  * In-memory object storage that refuses writes, or deleting one file, when a test asks it to.
@@ -20,11 +21,11 @@ final class RefusingFilesystemAdapter implements FilesystemAdapter
 
     public null|string $refuseDeleteOf = null;
 
-    private readonly InMemoryFilesystemAdapter $inner;
+    private readonly ClockedInMemoryFilesystemAdapter $inner;
 
-    public function __construct()
+    public function __construct(ClockInterface $clock)
     {
-        $this->inner = new InMemoryFilesystemAdapter();
+        $this->inner = new ClockedInMemoryFilesystemAdapter($clock);
     }
 
     public function fileExists(string $path): bool

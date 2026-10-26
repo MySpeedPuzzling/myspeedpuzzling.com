@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Entity;
 
-use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Entity\Puzzle;
@@ -15,6 +14,7 @@ use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Value\PuzzleName;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -135,7 +135,7 @@ final class PuzzleChangeRequestTest extends KernelTestCase
             id: Uuid::uuid7(),
             puzzle: $this->puzzle,
             reporter: self::getContainer()->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_REGULAR),
-            submittedAt: new DateTimeImmutable(),
+            submittedAt: TestClock::now(),
             proposedName: $proposedName,
             proposedManufacturer: $proposedManufacturer,
             proposedPiecesCount: $proposedPiecesCount,

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\AchievementHolder;
 use SpeedPuzzling\Web\Results\AchievementTierHolders;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
@@ -35,13 +36,14 @@ readonly class GetAchievementHolders
     OR GREATEST(
         COALESCE(m.ends_at, m.billing_period_ends_at, '1970-01-01'::timestamp),
         COALESCE(m.granted_until, '1970-01-01'::timestamp)
-    ) > NOW()
+    ) > CAST(:now AS timestamp)
   )
 SQL;
 
     public function __construct(
         private Connection $database,
         private HiddenPlayers $hiddenPlayers,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -118,6 +120,7 @@ SQL;
             'limit' => self::LISTED_PER_TIER,
             'expandedTier' => $expandedTier->value ?? 0,
             'expandedLimit' => max(self::LISTED_PER_TIER, $expandedLimit),
+            'now' => $this->now(),
         ])->fetchAllAssociative();
 
         $countsSql = <<<SQL
@@ -142,6 +145,7 @@ SQL;
         $countRows = $this->database->executeQuery($countsSql, [
             'type' => $type->value,
             'country' => $country,
+            'now' => $this->now(),
         ])->fetchAllAssociative();
 
         $countsByTier = [];
@@ -207,7 +211,7 @@ ORDER BY p.country
 SQL;
 
         /** @var list<string> $countries */
-        $countries = $this->database->executeQuery($sql, ['type' => $type->value])->fetchFirstColumn();
+        $countries = $this->database->executeQuery($sql, ['type' => $type->value, 'now' => $this->now()])->fetchFirstColumn();
 
         return $countries;
     }
@@ -216,6 +220,11 @@ SQL;
      * Players the viewer blocks are left out of every list (docs/features/player-blocklist.md) - inside the ranked
      * subquery, so the positions close up. The counts are aggregates and keep everybody.
      */
+    private function now(): string
+    {
+        return $this->clock->now()->format('Y-m-d H:i:s');
+    }
+
     private function listedEligibility(): string
     {
         return self::LISTED_ELIGIBILITY . $this->hiddenPlayers->sqlExclude('p.id');

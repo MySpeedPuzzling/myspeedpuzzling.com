@@ -93,8 +93,9 @@ class PuzzleDifficulty
         #[OneToOne]
         #[JoinColumn(onDelete: 'CASCADE')]
         public Puzzle $puzzle,
+        DateTimeImmutable $computedAt,
     ) {
-        $this->computedAt = new DateTimeImmutable();
+        $this->computedAt = $computedAt;
     }
 
     public function updateDifficulty(

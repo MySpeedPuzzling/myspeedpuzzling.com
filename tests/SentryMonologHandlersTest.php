@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests;
 
 use ArrayObject;
-use DateTimeImmutable;
 use LogicException;
 use Monolog\Handler\AbstractHandler;
 use Monolog\Handler\HandlerInterface;
@@ -110,7 +109,7 @@ final class SentryMonologHandlersTest extends KernelTestCase
         $wrapper = new HandlerFailedException(new Envelope(new UpdateMembershipSubscription('sub_test')), [$cause]);
 
         $record = (new UnwrapMessengerExceptionProcessor())(new LogRecord(
-            datetime: new DateTimeImmutable(),
+            datetime: TestClock::now(),
             channel: 'request',
             level: Level::Critical,
             message: 'Uncaught PHP Exception ' . HandlerFailedException::class,
@@ -174,7 +173,7 @@ final class SentryMonologHandlersTest extends KernelTestCase
     private function handle(Level $level, string $message, string $channel = 'app', null|RuntimeException $exception = null): void
     {
         $record = new LogRecord(
-            datetime: new DateTimeImmutable(),
+            datetime: TestClock::now(),
             channel: $channel,
             level: $level,
             message: $message,

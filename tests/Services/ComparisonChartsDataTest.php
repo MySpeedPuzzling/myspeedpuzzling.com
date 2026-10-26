@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Results\ComparisonResult;
@@ -234,7 +235,7 @@ final class ComparisonChartsDataTest extends TestCase
 
     public function testEverythingAtOnce(): void
     {
-        $all = $this->charts->all($this->comparison([$this->time(self::ME, 'p1', 900), $this->time(self::ANNA, 'p1', 1000)], [self::ME, self::ANNA]), new DateTimeImmutable());
+        $all = $this->charts->all($this->comparison([$this->time(self::ME, 'p1', 900), $this->time(self::ANNA, 'p1', 1000)], [self::ME, self::ANNA]), TestClock::now());
 
         self::assertSame('a', $all['roles']['p-' . self::ME]);
         self::assertCount(1, $all['scatter']['points']);

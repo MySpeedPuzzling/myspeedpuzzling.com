@@ -4,18 +4,15 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services;
 
-use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Services\AssetLoadFailureClassifier;
 use SpeedPuzzling\Web\Value\AssetLoadFailureReport;
 use SpeedPuzzling\Web\Value\AssetLoadFailureVerdict;
-use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Filesystem\Filesystem;
 
 final class AssetLoadFailureClassifierTest extends TestCase
 {
-    private const string NOW = '2026-09-18 12:00:00 UTC';
     private const string BROWSER = 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36';
     private const string SERVED = 'https://myspeedpuzzling.com/build/app.62cb6fb9.js';
     private const string GONE = 'https://myspeedpuzzling.com/build/app.9f6605dc.css';
@@ -30,7 +27,7 @@ final class AssetLoadFailureClassifierTest extends TestCase
         $filesystem->dumpFile($this->buildDirectory . '/app.62cb6fb9.js', 'console.log(1);');
         $filesystem->dumpFile($this->buildDirectory . '/fonts/cartzilla-icons.woff', 'font');
 
-        $this->classifier = new AssetLoadFailureClassifier($this->buildDirectory, new MockClock(self::NOW));
+        $this->classifier = new AssetLoadFailureClassifier($this->buildDirectory);
     }
 
     protected function tearDown(): void
@@ -252,9 +249,10 @@ final class AssetLoadFailureClassifierTest extends TestCase
         self::assertSame(AssetLoadFailureVerdict::HealFailed, $this->classifier->classify($repeat));
     }
 
-    public function testPageAgeIsMeasuredOnTheServerClock(): void
+    public function testPageAgeIsMeasuredOnTheServersRealTime(): void
     {
-        self::assertSame(90, $this->classifier->pageAgeSeconds($this->report(self::SERVED, renderedAt: $this->secondsAgo(90))));
+        // Real time on both sides (msp-rendered-at is real time) - a second may tick between the two reads
+        self::assertEqualsWithDelta(90, $this->classifier->pageAgeSeconds($this->report(self::SERVED, renderedAt: $this->secondsAgo(90))), 1);
         self::assertNull($this->classifier->pageAgeSeconds($this->report(self::SERVED)));
         self::assertNull($this->classifier->pageAgeSeconds($this->report(self::SERVED, renderedAt: $this->secondsAgo(-60))));
     }
@@ -330,6 +328,9 @@ final class AssetLoadFailureClassifierTest extends TestCase
 
     private function secondsAgo(int $seconds): int
     {
-        return new DateTimeImmutable(self::NOW)->getTimestamp() - $seconds;
+        // Real time on purpose: the page's msp-rendered-at and the classifier that judges its age are on real time
+        // (docs/features/time-and-clock/STATUS.md, Jan's answer 1)
+        // @phpstan-ignore clock.systemTime (msp-rendered-at is real time: the browser compares it with the server's Date header)
+        return time() - $seconds;
     }
 }

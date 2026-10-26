@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -142,7 +143,7 @@ final class SecretPuzzleQueriesTest extends KernelTestCase
         $this->entityManager->clear();
         $roundPuzzle = $this->roundPuzzle($roundPuzzleId->toString());
         self::assertFalse($roundPuzzle->hidesEverywhere);
-        self::assertFalse($roundPuzzle->puzzle->isImageHiddenAt(new DateTimeImmutable()));
+        self::assertFalse($roundPuzzle->puzzle->isImageHiddenAt(TestClock::now()));
         $revealAt = $roundPuzzle->revealsAt();
         self::assertNotNull($revealAt);
 
@@ -319,7 +320,7 @@ final class SecretPuzzleQueriesTest extends KernelTestCase
             id: $mergeRequestId,
             sourcePuzzle: $source,
             reporter: $reporter,
-            submittedAt: new DateTimeImmutable('-1 day'),
+            submittedAt: TestClock::now()->modify('-1 day'),
             reportedDuplicatePuzzleIds: [$sourcePuzzleId, $duplicateId],
         ));
         $this->entityManager->flush();
@@ -360,7 +361,7 @@ final class SecretPuzzleQueriesTest extends KernelTestCase
         $puzzle = $this->entityManager->find(Puzzle::class, $puzzleId);
         self::assertNotNull($puzzle);
         $puzzle->approved = false;
-        $puzzle->keepSecretUntil(new DateTimeImmutable('+5 days'), new DateTimeImmutable('+5 days'));
+        $puzzle->keepSecretUntil(TestClock::now()->modify('+5 days'), TestClock::now()->modify('+5 days'));
         $this->entityManager->flush();
         $this->entityManager->clear();
     }

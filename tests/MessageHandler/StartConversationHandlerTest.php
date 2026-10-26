@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Exceptions\ConversationRequestAlreadyPending;
 use SpeedPuzzling\Web\Exceptions\DirectMessagesDisabled;
 use SpeedPuzzling\Web\Exceptions\MessagingMuted;
@@ -200,7 +200,7 @@ final class StartConversationHandlerTest extends KernelTestCase
     {
         // Mute the player first
         $player = $this->playerRepository->get(PlayerFixture::PLAYER_ADMIN);
-        $player->muteMessaging(new DateTimeImmutable('+7 days'));
+        $player->muteMessaging(TestClock::now()->modify('+7 days'));
 
         try {
             $this->messageBus->dispatch(

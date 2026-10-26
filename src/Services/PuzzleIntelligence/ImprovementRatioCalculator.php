@@ -77,7 +77,8 @@ final class ImprovementRatioCalculator implements ResetInterface
                 $prevSeconds,
                 $seconds,
                 $attemptNum - 1,
-                (strtotime($solvedAt) - strtotime($prevSolvedAt)) / 86400.0,
+                // Two stored solve moments parsed in the batch's hot loop - the base timestamp 0 says no clock is read
+                (strtotime($solvedAt, 0) - strtotime($prevSolvedAt, 0)) / 86400.0,
             );
 
             if ($transition !== null) {

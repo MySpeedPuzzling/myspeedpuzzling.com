@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -171,9 +171,9 @@ final class SuspiciousTimeRepliesTest extends KernelTestCase
             lastActiveOn: null,
             caseIds: [],
             removalIds: [],
-            plannedAt: new DateTimeImmutable('-1 day'),
+            plannedAt: TestClock::now()->modify('-1 day'),
         );
-        $contact->sent([], [], new DateTimeImmutable('-1 day'));
+        $contact->sent([], [], TestClock::now()->modify('-1 day'));
         $this->entityManager->persist($contact);
         $this->entityManager->flush();
 

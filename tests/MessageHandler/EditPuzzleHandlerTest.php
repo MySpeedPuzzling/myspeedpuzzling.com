@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PuzzleModerationDecision;
@@ -192,7 +192,7 @@ final class EditPuzzleHandlerTest extends KernelTestCase
         $puzzle->changeNames('Puzzle 3', null, new PuzzleNames(array_map(
             static fn (int $i): PuzzleName => new PuzzleName('Merged name ' . $i, null),
             range(1, PuzzleNames::FORM_MAX_NAMES + 5),
-        )), new DateTimeImmutable());
+        )), TestClock::now());
         $this->entityManager->flush();
 
         $this->messageBus->dispatch(new EditPuzzle(

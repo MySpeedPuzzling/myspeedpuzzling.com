@@ -34,6 +34,8 @@ final readonly class HealthCheckLivenessController
             return new JsonResponse(['status' => 'draining'], Response::HTTP_SERVICE_UNAVAILABLE, ['Cache-Control' => 'no-store']);
         }
 
+        // Real time: a probe reads the server's real clock, never the app's
+        // @phpstan-ignore clock.systemTime (health probe: answers with the server's real time)
         return new JsonResponse(['status' => 'ok', 'time' => time()], headers: ['Cache-Control' => 'no-store']);
     }
 }

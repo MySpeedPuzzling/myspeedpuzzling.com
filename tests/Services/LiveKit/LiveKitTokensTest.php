@@ -56,9 +56,9 @@ final class LiveKitTokensTest extends KernelTestCase
         self::assertSame(self::KEY, $claims['iss']);
         self::assertSame($token->identity, $claims['sub']);
         self::assertSame('Olivia Online', $claims['name']);
-        self::assertSame(strtotime(self::NOW), $claims['nbf']);
-        self::assertSame(strtotime(self::NOW) + 6 * 3600, $claims['exp']);
-        self::assertSame((strtotime(self::NOW) + 6 * 3600) * 1000, $token->expiresAtMs);
+        self::assertSame(new DateTimeImmutable(self::NOW)->getTimestamp(), $claims['nbf']);
+        self::assertSame(new DateTimeImmutable(self::NOW)->getTimestamp() + 6 * 3600, $claims['exp']);
+        self::assertSame((new DateTimeImmutable(self::NOW)->getTimestamp() + 6 * 3600) * 1000, $token->expiresAtMs);
         self::assertSame([
             'room' => 'round-' . self::ROUND,
             'roomJoin' => true,
@@ -90,13 +90,13 @@ final class LiveKitTokensTest extends KernelTestCase
             $token = $this->tokens->participant($this->olivia, 'phone-1', LiveKitRoomKind::Studio, $role);
             $claims = self::claims($token->token);
 
-            self::assertSame(strtotime(self::NOW), $claims['nbf'], $role->value);
-            self::assertSame(strtotime(self::NOW) + 120, $claims['exp'], $role->value);
-            self::assertSame((strtotime(self::NOW) + 120) * 1000, $token->expiresAtMs, $role->value);
+            self::assertSame(new DateTimeImmutable(self::NOW)->getTimestamp(), $claims['nbf'], $role->value);
+            self::assertSame(new DateTimeImmutable(self::NOW)->getTimestamp() + 120, $claims['exp'], $role->value);
+            self::assertSame((new DateTimeImmutable(self::NOW)->getTimestamp() + 120) * 1000, $token->expiresAtMs, $role->value);
         }
 
-        self::assertSame(strtotime(self::NOW) + 6 * 3600, self::claims($this->tokens->participant($this->olivia, 'phone-1', LiveKitRoomKind::Hall, LiveKitParticipantRole::Screen)->token)['exp']);
-        self::assertSame(strtotime(self::NOW) + 6 * 3600, self::claims($this->tokens->moderator(PlayerFixture::PLAYER_ADMIN, self::ROUND, LiveKitRoomKind::Studio)->token)['exp']);
+        self::assertSame(new DateTimeImmutable(self::NOW)->getTimestamp() + 6 * 3600, self::claims($this->tokens->participant($this->olivia, 'phone-1', LiveKitRoomKind::Hall, LiveKitParticipantRole::Screen)->token)['exp']);
+        self::assertSame(new DateTimeImmutable(self::NOW)->getTimestamp() + 6 * 3600, self::claims($this->tokens->moderator(PlayerFixture::PLAYER_ADMIN, self::ROUND, LiveKitRoomKind::Studio)->token)['exp']);
     }
 
     public function testASecondScreenOnlyWatches(): void
@@ -158,7 +158,7 @@ final class LiveKitTokensTest extends KernelTestCase
             'hidden' => true,
         ], $claims['video']);
         self::assertArrayNotHasKey('name', $claims);
-        self::assertSame(strtotime(self::NOW) + 6 * 3600, $claims['exp']);
+        self::assertSame(new DateTimeImmutable(self::NOW)->getTimestamp() + 6 * 3600, $claims['exp']);
     }
 
     public function testTheServersOwnTokensLiveAMinute(): void
@@ -167,7 +167,7 @@ final class LiveKitTokensTest extends KernelTestCase
 
         self::assertSame(self::KEY, $claims['iss']);
         self::assertArrayNotHasKey('sub', $claims);
-        self::assertSame(strtotime(self::NOW) + 60, $claims['exp']);
+        self::assertSame(new DateTimeImmutable(self::NOW)->getTimestamp() + 60, $claims['exp']);
         self::assertSame(['room' => 'studio-' . self::ROUND, 'roomAdmin' => true], $claims['video']);
     }
 
@@ -207,7 +207,7 @@ final class LiveKitTokensTest extends KernelTestCase
     private static function decode(string $jwt, string $secret): object
     {
         $previous = JWT::$timestamp;
-        JWT::$timestamp = strtotime(self::NOW);
+        JWT::$timestamp = new DateTimeImmutable(self::NOW)->getTimestamp();
 
         try {
             return JWT::decode($jwt, new Key($secret, 'HS256'));

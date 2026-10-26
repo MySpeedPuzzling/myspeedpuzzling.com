@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
@@ -350,8 +350,8 @@ final class OnlineRoundSetUpHandlersTest extends KernelTestCase
             'UPDATE competition_round SET stopwatch_status = :status, stopwatch_started_at = :startedAt, stopwatch_stopped_at = :stoppedAt WHERE id = :id',
             [
                 'status' => $status,
-                'startedAt' => (new DateTimeImmutable($startedAt))->format('Y-m-d H:i:s'),
-                'stoppedAt' => $stoppedAt === null ? null : (new DateTimeImmutable($stoppedAt))->format('Y-m-d H:i:s'),
+                'startedAt' => TestClock::now()->modify($startedAt)->format('Y-m-d H:i:s'),
+                'stoppedAt' => $stoppedAt === null ? null : TestClock::now()->modify($stoppedAt)->format('Y-m-d H:i:s'),
                 'id' => OnlineRoundsFixture::ROUND_ONLINE_SOLO,
             ],
         );
@@ -406,7 +406,7 @@ final class OnlineRoundSetUpHandlersTest extends KernelTestCase
     {
         $this->database->executeStatement(
             "INSERT INTO competition_round (id, competition_id, name, minutes_limit, starts_at, slug, category)
-             VALUES (:id, :competition, :name, 45, NOW() + INTERVAL '30 days', :slug, :category)",
+             VALUES (:id, :competition, :name, 45, " . TestClock::SQL_NOW . " + INTERVAL '30 days', :slug, :category)",
             ['id' => $roundId, 'competition' => self::COMPETITION, 'name' => $name, 'slug' => strtolower(str_replace(' ', '-', $name)), 'category' => $category],
         );
     }
@@ -417,11 +417,11 @@ final class OnlineRoundSetUpHandlersTest extends KernelTestCase
     private function addPeopleWhoDoNotCompete(): void
     {
         $this->database->executeStatement(
-            "INSERT INTO competition_participant (id, name, competition_id, source, deleted_at) VALUES (:id, 'Rita Removed', :competition, 'imported', NOW())",
+            "INSERT INTO competition_participant (id, name, competition_id, source, deleted_at) VALUES (:id, 'Rita Removed', :competition, 'imported', " . TestClock::SQL_NOW . ")",
             ['id' => self::REMOVED, 'competition' => self::COMPETITION],
         );
         $this->database->executeStatement(
-            "INSERT INTO competition_participant (id, name, competition_id, source, registration_status, registered_at) VALUES (:id, 'Walter Waiting', :competition, 'self_joined', 'waitlisted', NOW())",
+            "INSERT INTO competition_participant (id, name, competition_id, source, registration_status, registered_at) VALUES (:id, 'Walter Waiting', :competition, 'self_joined', 'waitlisted', " . TestClock::SQL_NOW . ")",
             ['id' => self::WAITLISTED, 'competition' => self::COMPETITION],
         );
     }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\SuspiciousTimes;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
@@ -93,7 +93,7 @@ final class SingleTimeSuspicionCheckTest extends KernelTestCase
         // The same 49:08:00 on a puzzle a moderator gave a threshold of 8× - for its current piece count only
         $database = self::getContainer()->get(Connection::class);
         $database->executeStatement(
-            'INSERT INTO suspicious_time_puzzle_confirmation (puzzle_id, pieces_count, confirmed_by_id, confirmed_at, slow_threshold) VALUES (:id, 4000, NULL, NOW(), 8.0)',
+            'INSERT INTO suspicious_time_puzzle_confirmation (puzzle_id, pieces_count, confirmed_by_id, confirmed_at, slow_threshold) VALUES (:id, 4000, NULL, ' . TestClock::SQL_NOW . ', 8.0)',
             ['id' => SuspiciousTimesFixture::PUZZLE_HARBOUR],
         );
         $entry = [SuspiciousTimesFixture::PLAYER_STEADY, SuspiciousTimesFixture::PUZZLE_HARBOUR, 176880, PuzzlingType::Solo, 1, SuspiciousTimesFixture::TIME_STEADY_FAST, self::moment()];
@@ -202,7 +202,7 @@ final class SingleTimeSuspicionCheckTest extends KernelTestCase
 
         // Never a puzzle a competition keeps secret or a hidden one
         self::getContainer()->get(Connection::class)->executeStatement(
-            "UPDATE puzzle SET hide_until = NOW() + INTERVAL '30 days' WHERE id = :id",
+            "UPDATE puzzle SET hide_until = " . TestClock::SQL_NOW . " + INTERVAL '30 days' WHERE id = :id",
             ['id' => SuspiciousTimesFixture::PUZZLE_LIGHTHOUSE_1600],
         );
         $hidden = $this->check()->forEntry(...$entry);
@@ -256,12 +256,12 @@ final class SingleTimeSuspicionCheckTest extends KernelTestCase
     private function storeSoloReferenceOf500To750(): void
     {
         $entityManager = self::getContainer()->get(EntityManagerInterface::class);
-        $entityManager->persist(SuspiciousTimeReference::of(new PaceReference(SuspicionPiecesRange::From500, PuzzlingType::Solo, 7.71, 21.08, 1000), new DateTimeImmutable()));
+        $entityManager->persist(SuspiciousTimeReference::of(new PaceReference(SuspicionPiecesRange::From500, PuzzlingType::Solo, 7.71, 21.08, 1000), TestClock::now()));
         $entityManager->flush();
     }
 
     private static function moment(): SolveMoment
     {
-        return SolveMoment::of(new DateTimeImmutable('-1 day midnight'), new DateTimeImmutable());
+        return SolveMoment::of(TestClock::now()->modify('-1 day midnight'), TestClock::now());
     }
 }

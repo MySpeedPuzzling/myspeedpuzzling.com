@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\CleanupEmailAuditLogs;
@@ -30,7 +31,7 @@ final class CleanupEmailAuditLogsHandlerTest extends KernelTestCase
 
         $this->connection->insert('email_audit_log', [
             'id' => $oldId,
-            'sent_at' => (new \DateTimeImmutable('-100 days'))->format('Y-m-d H:i:s'),
+            'sent_at' => (TestClock::now()->modify('-100 days'))->format('Y-m-d H:i:s'),
             'recipient_email' => 'old@example.com',
             'subject' => 'Old email',
             'transport_name' => 'smtp://mailer:1025',
@@ -39,7 +40,7 @@ final class CleanupEmailAuditLogsHandlerTest extends KernelTestCase
 
         $this->connection->insert('email_audit_log', [
             'id' => $recentId,
-            'sent_at' => (new \DateTimeImmutable('-10 days'))->format('Y-m-d H:i:s'),
+            'sent_at' => (TestClock::now()->modify('-10 days'))->format('Y-m-d H:i:s'),
             'recipient_email' => 'recent@example.com',
             'subject' => 'Recent email',
             'transport_name' => 'smtp://mailer:1025',
@@ -70,7 +71,7 @@ final class CleanupEmailAuditLogsHandlerTest extends KernelTestCase
         $id = Uuid::uuid7()->toString();
         $this->connection->insert('email_audit_log', [
             'id' => $id,
-            'sent_at' => (new \DateTimeImmutable('-40 days'))->format('Y-m-d H:i:s'),
+            'sent_at' => (TestClock::now()->modify('-40 days'))->format('Y-m-d H:i:s'),
             'recipient_email' => 'test@example.com',
             'subject' => 'Test',
             'transport_name' => 'smtp://mailer:1025',

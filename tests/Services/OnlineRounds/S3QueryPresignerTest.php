@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\OnlineRounds;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;
@@ -108,7 +109,7 @@ final class S3QueryPresignerTest extends TestCase
             'GET',
             'key',
             [],
-            new DateTimeImmutable(),
+            TestClock::now(),
             S3QueryPresigner::MAX_LIFETIME_SECONDS + 1,
         );
     }

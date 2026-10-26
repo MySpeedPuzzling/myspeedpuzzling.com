@@ -166,6 +166,7 @@ final readonly class OnlineParticipantApi
         }
 
         // The limiter counts on the system clock
+        // @phpstan-ignore clock.systemTime (rate-limiter retry-after: the limiter counts on the system clock)
         $retryAfterSeconds = max(1, $limit->getRetryAfter()->getTimestamp() - time());
 
         return $this->error('rate_limited', JsonResponse::HTTP_TOO_MANY_REQUESTS, ['Retry-After' => (string) $retryAfterSeconds]);

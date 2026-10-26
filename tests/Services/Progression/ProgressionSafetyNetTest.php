@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\Progression;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetProgressionDrift;
@@ -108,7 +109,7 @@ final class ProgressionSafetyNetTest extends KernelTestCase
     {
         $this->database->executeStatement(
             'INSERT INTO xp_entry (id, player_id, amount, reason, in_weekly_delta, earned_at, created_at, solving_time_id)
-             VALUES (:id, :playerId, :amount, :reason, true, NOW(), NOW(), :solveId)',
+             VALUES (:id, :playerId, :amount, :reason, true, ' . TestClock::SQL_NOW . ', ' . TestClock::SQL_NOW . ', :solveId)',
             ['id' => Uuid::uuid7()->toString(), 'playerId' => $playerId, 'amount' => $amount, 'reason' => $reason, 'solveId' => $solveId],
         );
         $this->database->executeStatement('UPDATE player SET xp_total = xp_total + :amount WHERE id = :id', ['amount' => $amount, 'id' => $playerId]);

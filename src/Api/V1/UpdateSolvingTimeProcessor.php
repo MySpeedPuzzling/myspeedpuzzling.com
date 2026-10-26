@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Api\V1;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use DateTimeImmutable;
+use DateTimeZone;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
@@ -59,7 +60,12 @@ final readonly class UpdateSolvingTimeProcessor implements ProcessorInterface
             throw new AccessDeniedHttpException('Player account has no linked user login.');
         }
 
-        $finishedAt = $data->finishedAt !== null ? new DateTimeImmutable($data->finishedAt) : null;
+        // An offset in the input keeps its instant, in UTC (2026-10-20T00:30:00+02:00 = 2026-10-19 22:30:00) - what
+        // the datetime_immutable type stores anyway; converted here already so the handler's day comparisons and
+        // this response see the value that is stored (docs/features/time-and-clock/STATUS.md, Jan's answer 2)
+        $finishedAt = $data->finishedAt !== null
+            ? new DateTimeImmutable($data->finishedAt)->setTimezone(new DateTimeZone('UTC'))
+            : null;
 
         // The handler passes the message's link straight to PuzzleSolvingTime::modify(), which assigns it
         // unconditionally - so without competition_id and series_id the current link is carried through exactly:

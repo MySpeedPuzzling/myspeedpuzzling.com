@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\OnlineRounds;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Message\ConnectCompetitionParticipant;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
@@ -189,7 +190,7 @@ final class OpenMyCompetitionPageTest extends WebTestCase
     {
         $browser = self::createClient();
         $this->connection($browser)->executeStatement(
-            'UPDATE competition_participant SET deleted_at = NOW() WHERE id = :id',
+            'UPDATE competition_participant SET deleted_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => OnlineRoundsFixture::PARTICIPANT_CONNECTED],
         );
 

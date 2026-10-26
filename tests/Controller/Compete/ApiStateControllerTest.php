@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Compete;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
@@ -58,7 +58,7 @@ final class ApiStateControllerTest extends WebTestCase
         $state = self::json($this->browser);
         self::assertSame(['serverNowMs', 'asOfMs', 'participant', 'competition', 'round', 'entry', 'mercure', 'studio'], array_keys($state));
         self::assertIsInt($state['serverNowMs']);
-        self::assertGreaterThanOrEqual($before, $state['serverNowMs']);
+        self::assertSame($before, $state['serverNowMs']);
         self::assertIsInt($state['asOfMs']);
         self::assertLessThanOrEqual($state['serverNowMs'], $state['asOfMs']);
 
@@ -164,7 +164,7 @@ final class ApiStateControllerTest extends WebTestCase
         $entityManager = $this->browser->getContainer()->get(EntityManagerInterface::class);
         $participant = $entityManager->find(CompetitionParticipant::class, OnlineRoundsFixture::PARTICIPANT_ANONYMOUS);
         self::assertNotNull($participant);
-        $participant->softDelete(new DateTimeImmutable());
+        $participant->softDelete(TestClock::now());
         $entityManager->flush();
 
         $this->browser->request('GET', self::api(OnlineRoundsFixture::TOKEN_ANONYMOUS, 'state'));

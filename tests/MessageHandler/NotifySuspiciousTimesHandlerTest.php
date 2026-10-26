@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Message\DetectSuspiciousTimes;
@@ -149,11 +149,11 @@ final class NotifySuspiciousTimesHandlerTest extends KernelTestCase
         $fingerprint = SuspicionFingerprint::ofTime($time);
 
         $time->clearSuspicion();
-        $case->trust(null, $fingerprint, new DateTimeImmutable('-1 hour'));
+        $case->trust(null, $fingerprint, TestClock::now()->modify('-1 hour'));
         $this->entityManager->flush();
 
         $time->markSuspicious();
-        $case->mark($case->reasons(), null, null, $fingerprint, new DateTimeImmutable('+1 minute'));
+        $case->mark($case->reasons(), null, null, $fingerprint, TestClock::now()->modify('+1 minute'));
         $this->entityManager->flush();
         $this->entityManager->clear();
     }

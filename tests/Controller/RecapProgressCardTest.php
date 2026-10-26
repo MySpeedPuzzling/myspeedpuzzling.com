@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
@@ -326,7 +327,7 @@ final class RecapProgressCardTest extends WebTestCase
         foreach ($amounts as $index => $amount) {
             $connection->executeStatement(
                 "INSERT INTO xp_entry (id, player_id, amount, reason, in_weekly_delta, earned_at, created_at, solving_time_id)
-                 VALUES (:id, :player, :amount, :reason, true, NOW(), NOW(), :time)",
+                 VALUES (:id, :player, :amount, :reason, true, " . TestClock::SQL_NOW . ", " . TestClock::SQL_NOW . ", :time)",
                 [
                     'id' => Uuid::uuid7()->toString(),
                     'player' => $playerId,
@@ -346,7 +347,7 @@ final class RecapProgressCardTest extends WebTestCase
     private function saveNow(string $timeId): void
     {
         self::getContainer()->get(Connection::class)->executeStatement(
-            "UPDATE puzzle_solving_time SET tracked_at = NOW() - INTERVAL '1 minute' WHERE id = :time",
+            "UPDATE puzzle_solving_time SET tracked_at = " . TestClock::SQL_NOW . " - INTERVAL '1 minute' WHERE id = :time",
             ['time' => $timeId],
         );
     }

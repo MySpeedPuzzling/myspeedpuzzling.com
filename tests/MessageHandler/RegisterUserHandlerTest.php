@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
@@ -184,7 +184,7 @@ final class RegisterUserHandlerTest extends KernelTestCase
 
     private function createUserAccount(string $userId, string $email): UserAccount
     {
-        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
+        $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, TestClock::now());
 
         $this->entityManager->persist($userAccount);
         $this->entityManager->flush();
@@ -199,7 +199,7 @@ final class RegisterUserHandlerTest extends KernelTestCase
             $code,
             $userId,
             null,
-            new DateTimeImmutable(),
+            TestClock::now(),
         );
 
         if ($locale !== null) {

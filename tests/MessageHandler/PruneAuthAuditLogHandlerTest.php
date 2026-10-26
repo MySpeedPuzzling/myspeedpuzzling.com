@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\PruneAuthAuditLog;
@@ -25,8 +26,8 @@ final class PruneAuthAuditLogHandlerTest extends KernelTestCase
 
     public function testDeletesOldEntriesAndKeepsRecentOnes(): void
     {
-        $oldId = $this->insertEvent(occurredAt: new \DateTimeImmutable('-25 months'));
-        $recentId = $this->insertEvent(occurredAt: new \DateTimeImmutable('-1 month'));
+        $oldId = $this->insertEvent(occurredAt: TestClock::now()->modify('-25 months'));
+        $recentId = $this->insertEvent(occurredAt: TestClock::now()->modify('-1 month'));
 
         $deleted = ($this->handler)(new PruneAuthAuditLog(retentionMonths: 24));
 
@@ -37,7 +38,7 @@ final class PruneAuthAuditLogHandlerTest extends KernelTestCase
 
     public function testCustomRetentionMonths(): void
     {
-        $id = $this->insertEvent(occurredAt: new \DateTimeImmutable('-7 months'));
+        $id = $this->insertEvent(occurredAt: TestClock::now()->modify('-7 months'));
 
         ($this->handler)(new PruneAuthAuditLog(retentionMonths: 6));
 

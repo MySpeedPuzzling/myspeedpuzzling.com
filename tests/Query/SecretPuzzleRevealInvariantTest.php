@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use ApiPlatform\Metadata\Get;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
@@ -63,7 +64,7 @@ final class SecretPuzzleRevealInvariantTest extends WebTestCase
 
     public function testNoSurfaceShowsTheSecretPuzzleBeforeItsRevealMoment(): void
     {
-        $revealAt = new DateTimeImmutable('@' . (intdiv(time(), 60) * 60 + 7200));
+        $revealAt = new DateTimeImmutable('@' . (intdiv(TestClock::timestamp(), 60) * 60 + 7200));
         $roundPuzzle = $this->addSecretPuzzle(PuzzleHideMode::Entirely);
         $this->dispatch(new ChangeRoundPuzzleReveal($roundPuzzle->id->toString(), PuzzleHideMode::Entirely, RoundPuzzleReveal::Scheduled, $revealAt));
 
@@ -309,7 +310,7 @@ final class SecretPuzzleRevealInvariantTest extends WebTestCase
         $this->dispatch(new ChangeRoundPuzzleReveal($roundPuzzle->id->toString(), PuzzleHideMode::Entirely, RoundPuzzleReveal::Manual, null));
         $puzzleId = $roundPuzzle->puzzle->id->toString();
 
-        $longAfterTheRound = new MockClock(new DateTimeImmutable('+3 years'));
+        $longAfterTheRound = new MockClock(TestClock::now()->modify('+3 years'));
         self::assertFalse($this->foundBySearch($longAfterTheRound));
         self::assertFalse($this->foundByBrandPicker($longAfterTheRound, $puzzleId));
         self::assertFalse($this->onEventPage($longAfterTheRound, $puzzleId));
@@ -327,7 +328,7 @@ final class SecretPuzzleRevealInvariantTest extends WebTestCase
             competitionId: CompetitionApiFixture::COMPETITION_API,
             name: 'ignored',
             minutesLimit: 1,
-            startsAt: new DateTimeImmutable(),
+            startsAt: TestClock::now(),
             timezone: 'UTC',
             badgeBackgroundColor: null,
             badgeTextColor: null,

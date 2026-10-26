@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Component;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Component\MarketplaceListing;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -148,7 +149,7 @@ final class MarketplaceListingDifficultyFilterTest extends WebTestCase
         self::assertIsString($puzzleId);
 
         $connection->executeStatement(
-            "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_tier, difficulty_score, confidence, sample_size, computed_at) VALUES (:puzzleId, 2, 0.8, 'high', 10, NOW())",
+            "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_tier, difficulty_score, confidence, sample_size, computed_at) VALUES (:puzzleId, 2, 0.8, 'high', 10, " . TestClock::SQL_NOW . ")",
             ['puzzleId' => $puzzleId],
         );
     }
@@ -191,7 +192,7 @@ final class MarketplaceListingDifficultyFilterTest extends WebTestCase
 
         $connection->executeStatement('DELETE FROM puzzle_difficulty');
         $connection->executeStatement(
-            "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_tier, difficulty_score, confidence, sample_size, computed_at) VALUES (:puzzleId, 5, 1.3, 'high', 10, NOW())",
+            "INSERT INTO puzzle_difficulty (puzzle_id, difficulty_tier, difficulty_score, confidence, sample_size, computed_at) VALUES (:puzzleId, 5, 1.3, 'high', 10, " . TestClock::SQL_NOW . ")",
             ['puzzleId' => $puzzleId],
         );
 

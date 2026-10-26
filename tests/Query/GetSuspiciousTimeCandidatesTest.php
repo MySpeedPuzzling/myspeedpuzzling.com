@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetSuspiciousTimeCandidates;
@@ -33,12 +34,12 @@ final class GetSuspiciousTimeCandidatesTest extends KernelTestCase
         $timeId = PuzzleSolvingTimeFixture::TIME_06;
         $this->database->executeStatement(
             "UPDATE puzzle_solving_time SET predictable = true, prediction_method = 'statistical', predicted_seconds = 1234,
-                prediction_source = 'reconstructed', prediction_model_version = :version, prediction_computed_at = NOW() WHERE id = :id",
+                prediction_source = 'reconstructed', prediction_model_version = :version, prediction_computed_at = " . TestClock::SQL_NOW . " WHERE id = :id",
             ['id' => $timeId, 'version' => TimePredictionCalculator::MODEL_VERSION],
         );
         $this->database->executeStatement(
             "INSERT INTO solving_time_prediction (id, time_id, predictor, model_version, source, predictable, method, predicted_seconds, difficulty_source, pace_source, computed_at)
-            VALUES (gen_random_uuid(), :id, 'statistical', :version, 'reconstructed', true, 'statistical', 1234, 'solves', 'own', NOW())",
+            VALUES (gen_random_uuid(), :id, 'statistical', :version, 'reconstructed', true, 'statistical', 1234, 'solves', 'own', " . TestClock::SQL_NOW . ")",
             ['id' => $timeId, 'version' => TimePredictionCalculator::MODEL_VERSION],
         );
 

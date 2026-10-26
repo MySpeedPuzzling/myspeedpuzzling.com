@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
@@ -76,7 +76,7 @@ final class ApiUsageControllerTest extends WebTestCase
         $tokenId = $this->createTokenWithUsage($browser, PlayerFixture::PLAYER_REGULAR, 'Spreadsheet', 7);
         // Tokens are listed once the fair use policy is accepted
         $browser->getContainer()->get(Connection::class)->executeStatement(
-            'UPDATE player SET fair_use_policy_accepted_at = NOW() WHERE id = :id',
+            'UPDATE player SET fair_use_policy_accepted_at = ' . TestClock::SQL_NOW . ' WHERE id = :id',
             ['id' => PlayerFixture::PLAYER_REGULAR],
         );
 
@@ -176,7 +176,7 @@ final class ApiUsageControllerTest extends WebTestCase
             'personal_access_token_id' => $caller->personalAccessTokenId,
             'oauth2_client_identifier' => $caller->oauth2ClientIdentifier,
             'peak_requests_per_minute' => 2,
-            'last_request_at' => (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d H:i:sP'),
+            'last_request_at' => TestClock::now()->format('Y-m-d H:i:sP'),
         ]);
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
@@ -76,7 +77,7 @@ final class PredictionModelRecalculatorTest extends KernelTestCase
             FROM puzzle p
             LEFT JOIN difficulty_prior_group g ON g.manufacturer_id = p.manufacturer_id AND g.pieces_count = p.pieces_count AND ' . StatisticalInputsSql::NOT_SECRET . '
             LEFT JOIN difficulty_prior_puzzle dpp ON dpp.puzzle_id = p.id
-        ');
+        ', ['now' => self::clockNow(self::getContainer())]);
         $withoutIndices = 0;
 
         foreach ($rows as $row) {
@@ -131,7 +132,7 @@ final class PredictionModelRecalculatorTest extends KernelTestCase
         $secretShares = $this->database->fetchOne('
             SELECT COUNT(*) FROM difficulty_prior_puzzle dpp
             JOIN puzzle p ON p.id = dpp.puzzle_id
-            WHERE p.hide_until > NOW() OR p.hide_image_until > NOW()
+            WHERE p.hide_until > ' . TestClock::SQL_NOW . ' OR p.hide_image_until > ' . TestClock::SQL_NOW . '
         ');
         self::assertSame(0, (int) $secretShares);
 
@@ -176,5 +177,16 @@ final class PredictionModelRecalculatorTest extends KernelTestCase
         self::assertSame(1.0, $result['parameters']['tau'], 'Too few samples: the default');
         self::assertNotSame([], $result['first_try']);
         self::assertSame('attempts after the cut-off', $result['first_try'][0]['group']);
+    }
+
+    /**
+     * :now of StatisticalInputsSql::NOT_SECRET - the app's clock
+     */
+    private static function clockNow(\Symfony\Component\DependencyInjection\ContainerInterface $container): string
+    {
+        /** @var ClockInterface $clock */
+        $clock = $container->get(ClockInterface::class);
+
+        return $clock->now()->format('Y-m-d H:i:s');
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
@@ -249,7 +250,7 @@ final class EventsListUiTest extends WebTestCase
         for ($i = 1; $i <= 6; $i++) {
             $connection->executeStatement(
                 "INSERT INTO competition (id, name, location, location_country_code, date_from, date_to, is_online, approved_at, created_at)
-                 VALUES (:id, :name, 'Prague', 'cz', CURRENT_DATE - make_interval(days => :days), CURRENT_DATE - make_interval(days => :days), false, NOW(), NOW())",
+                 VALUES (:id, :name, 'Prague', 'cz', " . TestClock::SQL_TODAY . " - make_interval(days => :days), " . TestClock::SQL_TODAY . " - make_interval(days => :days), false, " . TestClock::SQL_NOW . ", " . TestClock::SQL_NOW . ")",
                 ['id' => Uuid::uuid7()->toString(), 'name' => 'Archive preview event ' . $i, 'days' => 1],
             );
         }

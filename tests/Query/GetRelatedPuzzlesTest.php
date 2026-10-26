@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetRelatedPuzzles;
@@ -129,7 +130,7 @@ final class GetRelatedPuzzlesTest extends KernelTestCase
 
         $database->executeStatement(
             "INSERT INTO puzzle (id, pieces_count, name, approved, manufacturer_id, is_available, hide_until)
-             VALUES (:id, :piecesCount, :name, :approved, :manufacturerId, true, CASE WHEN :hidden THEN now() + interval '30 days' END)",
+             VALUES (:id, :piecesCount, :name, :approved, :manufacturerId, true, CASE WHEN :hidden THEN " . TestClock::SQL_NOW . " + interval '30 days' END)",
             [
                 'id' => $puzzleId,
                 'piecesCount' => $piecesCount,

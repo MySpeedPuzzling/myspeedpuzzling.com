@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\Email;
 
-use DateTimeImmutable;
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Dom\HTMLDocument;
 use Ramsey\Uuid\Uuid;
@@ -95,7 +95,7 @@ final class CompetitionRegistrationEmailTest extends KernelTestCase
             country: 'cz',
             competition: $competition,
         );
-        $participant->connect(self::getContainer()->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_REGULAR), new DateTimeImmutable());
+        $participant->connect(self::getContainer()->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_REGULAR), TestClock::now());
         $mailer = self::getContainer()->get(CompetitionRegistrationMailer::class);
 
         $mailer->send($participant, RegistrationEmail::Reserved);

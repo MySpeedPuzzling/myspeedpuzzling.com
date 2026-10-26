@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\PrunePlayerActivity;
@@ -26,8 +27,8 @@ final class PrunePlayerActivityHandlerTest extends KernelTestCase
 
     public function testDeletesOldRowsAndKeepsRecentOnes(): void
     {
-        $oldId = $this->insertRow(new \DateTimeImmutable('-25 months'));
-        $recentId = $this->insertRow(new \DateTimeImmutable('-1 month'));
+        $oldId = $this->insertRow(TestClock::now()->modify('-25 months'));
+        $recentId = $this->insertRow(TestClock::now()->modify('-1 month'));
 
         $deleted = ($this->handler)(new PrunePlayerActivity(retentionMonths: 24));
 

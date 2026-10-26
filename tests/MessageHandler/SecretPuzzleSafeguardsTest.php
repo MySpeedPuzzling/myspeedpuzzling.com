@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use DateTimeImmutable;
 use Doctrine\DBAL\Exception\DriverException;
@@ -128,7 +129,7 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
     {
         $roundPuzzleId = $this->newSecretPuzzle(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION);
         $this->messageBus->dispatch(new ChangeRoundPuzzleReveal($roundPuzzleId, PuzzleHideMode::Entirely, RoundPuzzleReveal::Manual, null));
-        $this->round(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION)->startsAt = new DateTimeImmutable('-1 hour');
+        $this->round(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION)->startsAt = TestClock::now()->modify('-1 hour');
         $this->entityManager->flush();
         $this->entityManager->clear();
 
@@ -146,11 +147,11 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
         $puzzleId = $this->roundPuzzle($roundPuzzleId)->puzzle->id->toString();
 
         // The round started 2 hours ago: its automatic reveal is over, the puzzle is public (the organiser said yes)
-        $start = new DateTimeImmutable('-2 hours')->setTime((int) new DateTimeImmutable('-2 hours')->format('H'), 0);
+        $start = TestClock::now()->modify('-2 hours')->setTime((int) TestClock::now()->modify('-2 hours')->format('H'), 0);
         $this->editRound($start, revealConfirmed: true);
         $revealed = $this->puzzle($puzzleId)->hideUntil;
         self::assertNotNull($revealed);
-        self::assertLessThan(new DateTimeImmutable(), $revealed);
+        self::assertLessThan(TestClock::now(), $revealed);
 
         // Moved a week later: the puzzle stays out, its reveal pinned to the moment it came out
         $this->editRound($start->modify('+7 days'));
@@ -185,7 +186,7 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
     public function testARowShownOnTheEventPageTurnsSecretOnlyBeforeTheRoundAndWhileNoOtherRoundShowsIt(): void
     {
         $final = $this->round(CompetitionRoundFixture::ROUND_WJPC_FINAL);
-        $final->startsAt = new DateTimeImmutable('+20 days');
+        $final->startsAt = TestClock::now()->modify('+20 days');
         $this->entityManager->flush();
         $this->entityManager->clear();
 
@@ -205,7 +206,7 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
         // The round has started
         $this->addToRound(CompetitionRoundFixture::ROUND_WJPC_FINAL, PuzzleFixture::PUZZLE_1500_02, hide: false);
         $final = $this->round(CompetitionRoundFixture::ROUND_WJPC_FINAL);
-        $final->startsAt = new DateTimeImmutable('-1 hour');
+        $final->startsAt = TestClock::now()->modify('-1 hour');
         $this->entityManager->flush();
         $this->entityManager->clear();
 
@@ -218,7 +219,7 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
         // Kept secret on the whole site with its picture only - its name is out
         $roundPuzzleId = $this->newSecretPuzzle(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, hideMode: PuzzleHideMode::ImageOnly);
         $puzzleId = $this->roundPuzzle($roundPuzzleId)->puzzle->id->toString();
-        self::assertFalse($this->puzzle($puzzleId)->isHiddenAt(new DateTimeImmutable()));
+        self::assertFalse($this->puzzle($puzzleId)->isHiddenAt(TestClock::now()));
         $this->entityManager->clear();
 
         // Switching its round to "entirely"
@@ -249,11 +250,11 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
         }
 
         $this->entityManager->clear();
-        self::assertFalse($this->puzzle($puzzleId)->isHiddenAt(new DateTimeImmutable()));
+        self::assertFalse($this->puzzle($puzzleId)->isHiddenAt(TestClock::now()));
 
         // Its picture may stay secret in another round
         $this->addToRound(CompetitionRoundFixture::ROUND_CZECH_FINAL, $puzzleId, hide: true, hideMode: PuzzleHideMode::ImageOnly);
-        self::assertFalse($this->puzzle($puzzleId)->isHiddenAt(new DateTimeImmutable()));
+        self::assertFalse($this->puzzle($puzzleId)->isHiddenAt(TestClock::now()));
     }
 
     public function testKeepHiddenEverywhereNeverStartsAHideItOnlyExtendsOne(): void
@@ -266,7 +267,7 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
 
         // The site no longer hides the puzzle: its name and picture are out - nothing to extend
         $roundPuzzle->hidesEverywhere = false;
-        $roundPuzzle->puzzle->keepSecretUntil(new DateTimeImmutable('-1 hour'), new DateTimeImmutable('-1 hour'));
+        $roundPuzzle->puzzle->keepSecretUntil(TestClock::now()->modify('-1 hour'), TestClock::now()->modify('-1 hour'));
         $this->entityManager->flush();
         $this->entityManager->clear();
 
@@ -306,7 +307,7 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
 
         $moderator = $this->entityManager->find(Player::class, PlayerFixture::PLAYER_WITH_STRIPE);
         self::assertNotNull($moderator);
-        $moderator->moderatorSince = new DateTimeImmutable('-1 year');
+        $moderator->moderatorSince = TestClock::now()->modify('-1 year');
         $this->entityManager->flush();
 
         try {

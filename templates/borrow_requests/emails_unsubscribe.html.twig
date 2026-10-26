@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'borrow_request.settings.unsubscribe.headline'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="row gy-3 pb-4">
+        <div class="col-lg-6 col-md-8">
+            <h1 class="h2">{{ 'borrow_request.settings.unsubscribe.headline'|trans }}</h1>
+
+            {% if subscribed %}
+                <p>{{ 'borrow_request.settings.unsubscribe.text'|trans }}</p>
+
+                <form action="{{ action_url }}" method="post" class="mb-3" data-testid="borrow-request-emails-unsubscribe-form">
+                    <button type="submit" class="btn btn-primary">
+                        {{ 'borrow_request.settings.unsubscribe.confirm_button'|trans }}
+                    </button>
+                </form>
+            {% else %}
+                <div class="alert alert-info" role="alert" data-testid="borrow-request-emails-unsubscribed">
+                    <i class="ci-check-circle me-2"></i>
+                    {{ 'borrow_request.settings.unsubscribe.done'|trans }}
+                </div>
+            {% endif %}
+
+            <p class="fs-sm text-muted">{{ 'borrow_request.settings.unsubscribe.settings_hint'|trans }}</p>
+        </div>
+
+        <div class="col-lg-5 offset-lg-1 col-md-4 text-center d-none d-md-block">
+            <img class="img-fluid" src="{{ asset('img/puzzlie-1.png') }}" alt="" width="1000" height="949">
+        </div>
+    </div>
+{% endblock %}

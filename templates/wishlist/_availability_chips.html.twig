@@ -1,0 +1,63 @@
+{#
+    Under a wishlist card (docs/features/wishlist-availability.md): marketplace offers for everybody; for the list's owner
+    also the favorites who could lend it and where their own ask stands. Expects `item`, `wishlist_availability`.
+#}
+{% set offers = wishlist_availability.offersFor(item.puzzleId) %}
+{% set owners = wishlist_availability.ownersFor(item.puzzleId) %}
+{% set asked = wishlist_availability.askedFor(item.puzzleId) %}
+
+{% if offers is not null or owners is not empty or asked is not empty %}
+    <div class="wishlist-availability d-flex flex-column gap-1 mt-1 fs-sm">
+        {% if offers is not null %}
+            <div class="d-flex flex-wrap align-items-center gap-1">
+                {% set list_url = path('wish_list_detail', {playerId: collection.playerId}) %}
+                <a href="{{ path('marketplace_puzzle', {puzzleId: item.puzzleId, return: list_url, return_title: collection.name}) }}"
+                   class="badge rounded-pill bg-danger text-white text-decoration-none">
+                    <i class="bi bi-shop me-1"></i>{{ 'wishlist_availability.offers'|trans({'%count%': offers.offers}) }}
+                </a>
+                {% if offers.shipsToViewer is not null %}
+                    {% if offers.shipsToViewer > 0 %}
+                        <span class="badge rounded-pill bg-success-subtle text-success-emphasis">{{ 'wishlist_availability.ships_to_you'|trans }}</span>
+                    {% else %}
+                        <span class="text-muted fs-xs">{{ 'wishlist_availability.not_shipped_to_you'|trans }}</span>
+                    {% endif %}
+                {% endif %}
+            </div>
+        {% endif %}
+
+        {% if asked is not empty %}
+            {% for ask in asked %}
+                <div class="d-flex flex-wrap align-items-center gap-1">
+                    <a href="{{ path('borrow_request_detail', {requestId: ask.requestId}) }}"
+                       class="badge rounded-pill text-decoration-none {{ ask.status.value == 'yes' ? 'bg-success text-white' : 'bg-light text-body border' }}">
+                        {% if ask.status.value == 'yes' %}
+                            <i class="bi bi-check2 me-1"></i>{{ 'wishlist_availability.asked_yes'|trans({'%name%': ask.ownerDisplayName}) }}
+                        {% else %}
+                            <i class="bi bi-hourglass-split me-1"></i>{{ 'wishlist_availability.asked_waiting'|trans({'%name%': ask.ownerDisplayName}) }}
+                        {% endif %}
+                    </a>
+                    {% if ask.status.value == 'yes' %}
+                        {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+                            <a href="{{ path('borrow_puzzle', {puzzleId: item.puzzleId, owner: ask.ownerCode, context: 'list'}) }}"
+                               data-turbo-frame="modal-frame" class="fs-xs text-decoration-underline">{{ 'wishlist_availability.got_it'|trans }}</a>
+                        {% else %}
+                            <a href="#" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" class="fs-xs text-decoration-underline">{{ 'wishlist_availability.got_it'|trans }}</a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% elseif owners is not empty %}
+            {% set names = owners|map(owner => owner.ownerDisplayName) %}
+            <div class="text-muted fs-xs" title="{{ names|join(', ') }}">
+                <i class="bi bi-people me-1"></i>
+                {% if wishlist_availability.lendableOwnersCount(item.puzzleId) == 0 %}
+                    {{ 'wishlist_availability.favorites_lent_out'|trans({'%names%': names|slice(0, 2)|join(', '), '%count%': names|length}) }}
+                {% elseif names|length <= 2 %}
+                    {{ 'wishlist_availability.favorites_have_it'|trans({'%names%': names|join(', '), '%count%': names|length}) }}
+                {% else %}
+                    {{ 'wishlist_availability.favorites_have_it_more'|trans({'%names%': names|slice(0, 2)|join(', '), '%count%': names|length - 2}) }}
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+{% endif %}

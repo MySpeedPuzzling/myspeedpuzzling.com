@@ -520,3 +520,15 @@ partner_teamed_up:
     ask: "Dein eigener Eintrag dort ist noch aktiv, also können dich weiter Leute anfragen. Partner gefunden? Schließe ihn. Braucht ihr noch mehr Leute? Aktualisiere ihn."
     update: "Meinen Eintrag aktualisieren"
     not_right: "Stimmt nicht? Lass deinen Eintrag, wie er ist - es ändert sich nichts, solange du nichts änderst."
+
+borrow_request:
+    subject: "{1}%asker% möchte ein Puzzle von dir ausleihen|[0,Inf[%asker% möchte %count% Puzzles von dir ausleihen"
+    preheader: "Antworte mit einem Tippen pro Puzzle auf MySpeedPuzzling."
+    title: "{1}%asker% möchte ein Puzzle von dir ausleihen|[0,Inf[%asker% möchte %count% Puzzles von dir ausleihen"
+    greeting: "Hallo %name%,"
+    intro: "{1}%asker% fragt, ob du dieses Puzzle aus deiner Sammlung verleihen würdest:|[0,Inf[%asker% fragt, ob du diese Puzzles aus deiner Sammlung verleihen würdest:"
+    pieces: "%count% Teile"
+    how_to_answer: "Antworte für jedes Puzzle: Ja, du hast es nicht mehr, oder diesmal nicht. Ein Ja öffnet einen Chat, in dem ihr die Übergabe vereinbart."
+    answer: "Antworten"
+    no_addresses: "Wir geben niemals E-Mail-Adressen weiter: Du antwortest direkt in MySpeedPuzzling."
+    opt_out: "Du bekommst diese E-Mail, weil deine Puzzlesammlung öffentlich ist. <a href=\"%settingsUrl%\">E-Mail-Einstellungen</a> · <a href=\"%unsubscribeUrl%\">Diese E-Mails abbestellen</a>"

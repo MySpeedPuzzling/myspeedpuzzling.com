@@ -187,6 +187,12 @@ class Player
     #[Column(type: Types::BOOLEAN, options: ['default' => true])]
     public bool $partnerFinderEmails = true;
 
+    // The e-mail naming who asks to borrow puzzles from the player's collection (docs/features/wishlist-availability.md)
+    // - the in-app notification is sent either way
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BOOLEAN, options: ['default' => true])]
+    public bool $borrowRequestEmails = true;
+
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::STRING, enumType: ContentDigestFrequency::class, options: ['default' => 'weekly'])]
     public ContentDigestFrequency $contentDigestFrequency = ContentDigestFrequency::Weekly;
@@ -546,6 +552,11 @@ class Player
     public function changePartnerFinderEmails(bool $enabled): void
     {
         $this->partnerFinderEmails = $enabled;
+    }
+
+    public function changeBorrowRequestEmails(bool $enabled): void
+    {
+        $this->borrowRequestEmails = $enabled;
     }
 
     public function changeContentDigestFrequency(ContentDigestFrequency $frequency): void

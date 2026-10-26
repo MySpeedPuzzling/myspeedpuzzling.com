@@ -19,6 +19,7 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 final class PuzzleMergeForeignKeyCoverageTest extends KernelTestCase
 {
     private const array WHAT_A_MERGE_DOES = [
+        'borrow_request_item.puzzle_id' => 'moved onto the survivor (BorrowRequestItem::puzzleMergedInto()), one already in the same request or waiting at the same owner dropped',
         'box_text_mismatch.puzzle_id' => 'deleted with the puzzle - the next detection run compares the survivor\'s box with its merged record',
         'box_text_mismatch_decision.puzzle_id' => 'deleted with the puzzle - a dismissal is about that box; the survivor keeps its own',
         'collection_item.puzzle_id' => 'moved onto the survivor, one already there for the same collection dropped',

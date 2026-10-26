@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Services\OutdatedPuzzleRequests;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Entity\BorrowRequestItem;
 use SpeedPuzzling\Web\Entity\CollectionItem;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Entity\Conversation;
@@ -40,6 +41,7 @@ use SpeedPuzzling\Web\Message\RecalculateXpChainForSolve;
 use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
+use SpeedPuzzling\Web\Value\BorrowRequestItemStatus;
 use SpeedPuzzling\Web\Repository\PuzzleMergeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\PuzzleImageStorage;
@@ -406,8 +408,12 @@ readonly final class ApprovePuzzleMergeRequestHandler
             'conversations' => [],
             'stopwatches' => [],
             'changeRequests' => [],
+            'borrowRequestItems' => ['moved' => [], 'droppedAsDuplicate' => []],
             'tags' => [],
         ];
+        // Borrow asks already moved onto the survivor in this merge: request id / "asker|owner" of a waiting one
+        $movedBorrowRequests = [];
+        $movedWaiting = [];
 
         foreach ($puzzlesToMerge as $puzzleToMerge) {
             // Migrate solving times (records PuzzleSolvingTimeModified event which triggers statistics recalculation)
@@ -551,6 +557,40 @@ readonly final class ApprovePuzzleMergeRequestHandler
             foreach ($this->puzzleChangeRequestRepository->findByPuzzle($puzzleToMerge) as $changeRequest) {
                 $changeRequest->puzzleMergedInto($survivorPuzzle);
                 $inventory['changeRequests'][] = $changeRequest->id->toString();
+            }
+
+            // Borrow asks are about the same box - the survivor now. Dropped when the same request already holds the
+            // survivor, or the same asker is already waiting for it at the same owner (custom_borrow_item_one_waiting)
+            foreach ($this->entityManager->getRepository(BorrowRequestItem::class)->findBy(['puzzle' => $puzzleToMerge]) as $borrowItem) {
+                // Items moved earlier in this loop are not in the database yet - findOneBy() does not see them
+                $requestKey = $borrowItem->request->id->toString();
+                $waitingKey = $borrowItem->asker->id->toString() . '|' . $borrowItem->owner->id->toString();
+                $sameRequest = isset($movedBorrowRequests[$requestKey]) ? true : $this->entityManager->getRepository(BorrowRequestItem::class)->findOneBy([
+                    'request' => $borrowItem->request,
+                    'puzzle' => $survivorPuzzle,
+                ]);
+                $isWaiting = $borrowItem->status === BorrowRequestItemStatus::Waiting;
+                $sameWaiting = $isWaiting && isset($movedWaiting[$waitingKey]) ? true : ($isWaiting
+                    ? $this->entityManager->getRepository(BorrowRequestItem::class)->findOneBy([
+                        'asker' => $borrowItem->asker,
+                        'owner' => $borrowItem->owner,
+                        'puzzle' => $survivorPuzzle,
+                        'status' => BorrowRequestItemStatus::Waiting,
+                    ])
+                    : null);
+
+                if ($sameRequest !== null || $sameWaiting !== null) {
+                    $this->entityManager->remove($borrowItem);
+                    $inventory['borrowRequestItems']['droppedAsDuplicate'][] = $borrowItem->id->toString();
+                } else {
+                    $borrowItem->puzzleMergedInto($survivorPuzzle);
+                    $inventory['borrowRequestItems']['moved'][] = $borrowItem->id->toString();
+                    $movedBorrowRequests[$requestKey] = true;
+
+                    if ($isWaiting) {
+                        $movedWaiting[$waitingKey] = true;
+                    }
+                }
             }
 
             // Tags also cascade-delete through the join table

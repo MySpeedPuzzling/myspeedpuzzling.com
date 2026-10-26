@@ -82,6 +82,9 @@ return App::config([
                 // with you" sit on every row of a finder page and on the event pages
                 'partner_listing',
                 'partner_request',
+                // "Ask to borrow" (docs/features/wishlist-availability.md): the wishlist's selection bar, the ask sheet, the
+                // answer page and the withdraw buttons
+                'borrow_request',
                 // Background photo uploads (PhotoUploadStartController): the add-time form's photos, sent as the
                 // X-CSRF-Token header - the form is rendered on every add/edit page and kept open while it is filled in
                 'photo_upload',

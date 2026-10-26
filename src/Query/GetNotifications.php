@@ -181,7 +181,11 @@ SELECT * FROM (
         NULL::varchar AS partner_competition_name,
         NULL::varchar AS partner_competition_slug,
         NULL::varchar AS partner_series_slug,
-        NULL::boolean AS partner_reader_listed
+        NULL::boolean AS partner_reader_listed,
+        -- Borrow request fields (NULL)
+        NULL::uuid AS borrow_request_id,
+        NULL::int AS borrow_items_total,
+        NULL::int AS borrow_items_yes
     FROM notification
     LEFT JOIN puzzle_solving_time ON notification.target_solving_time_id = puzzle_solving_time.id
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
@@ -281,7 +285,11 @@ SELECT * FROM (
         NULL::varchar AS partner_competition_name,
         NULL::varchar AS partner_competition_slug,
         NULL::varchar AS partner_series_slug,
-        NULL::boolean AS partner_reader_listed
+        NULL::boolean AS partner_reader_listed,
+        -- Borrow request fields (NULL)
+        NULL::uuid AS borrow_request_id,
+        NULL::int AS borrow_items_total,
+        NULL::int AS borrow_items_yes
     FROM notification
     INNER JOIN lent_puzzle_transfer lpt ON notification.target_transfer_id = lpt.id
     LEFT JOIN lent_puzzle lp ON lpt.lent_puzzle_id = lp.id
@@ -378,7 +386,11 @@ SELECT * FROM (
         NULL::varchar AS partner_competition_name,
         NULL::varchar AS partner_competition_slug,
         NULL::varchar AS partner_series_slug,
-        NULL::boolean AS partner_reader_listed
+        NULL::boolean AS partner_reader_listed,
+        -- Borrow request fields (NULL)
+        NULL::uuid AS borrow_request_id,
+        NULL::int AS borrow_items_total,
+        NULL::int AS borrow_items_yes
     FROM notification
     INNER JOIN puzzle_change_request pcr ON notification.target_change_request_id = pcr.id
     INNER JOIN puzzle ON pcr.puzzle_id = puzzle.id
@@ -470,7 +482,11 @@ SELECT * FROM (
         NULL::varchar AS partner_competition_name,
         NULL::varchar AS partner_competition_slug,
         NULL::varchar AS partner_series_slug,
-        NULL::boolean AS partner_reader_listed
+        NULL::boolean AS partner_reader_listed,
+        -- Borrow request fields (NULL)
+        NULL::uuid AS borrow_request_id,
+        NULL::int AS borrow_items_total,
+        NULL::int AS borrow_items_yes
     FROM notification
     INNER JOIN puzzle_merge_request pmr ON notification.target_merge_request_id = pmr.id
     INNER JOIN puzzle source_puzzle ON pmr.source_puzzle_id = source_puzzle.id
@@ -568,7 +584,11 @@ SELECT * FROM (
         NULL::varchar AS partner_competition_name,
         NULL::varchar AS partner_competition_slug,
         NULL::varchar AS partner_series_slug,
-        NULL::boolean AS partner_reader_listed
+        NULL::boolean AS partner_reader_listed,
+        -- Borrow request fields (NULL)
+        NULL::uuid AS borrow_request_id,
+        NULL::int AS borrow_items_total,
+        NULL::int AS borrow_items_yes
     FROM notification
     INNER JOIN sold_swapped_item ssi ON notification.target_sold_swapped_item_id = ssi.id
     INNER JOIN puzzle ON ssi.puzzle_id = puzzle.id
@@ -662,7 +682,11 @@ SELECT * FROM (
         NULL::varchar AS partner_competition_name,
         NULL::varchar AS partner_competition_slug,
         NULL::varchar AS partner_series_slug,
-        NULL::boolean AS partner_reader_listed
+        NULL::boolean AS partner_reader_listed,
+        -- Borrow request fields (NULL)
+        NULL::uuid AS borrow_request_id,
+        NULL::int AS borrow_items_total,
+        NULL::int AS borrow_items_yes
     FROM notification
     INNER JOIN conversation conv ON notification.target_conversation_id = conv.id
     INNER JOIN player initiator ON conv.initiator_id = initiator.id
@@ -756,7 +780,11 @@ SELECT * FROM (
         NULL::varchar AS partner_competition_name,
         NULL::varchar AS partner_competition_slug,
         NULL::varchar AS partner_series_slug,
-        NULL::boolean AS partner_reader_listed
+        NULL::boolean AS partner_reader_listed,
+        -- Borrow request fields (NULL)
+        NULL::uuid AS borrow_request_id,
+        NULL::int AS borrow_items_total,
+        NULL::int AS borrow_items_yes
     FROM notification
     WHERE notification.player_id = :playerId
         AND notification.type IN ('ModeratorRoleGranted', 'ModeratorRoleRevoked', 'ModeratorInvitationReceived')
@@ -846,7 +874,11 @@ SELECT * FROM (
         NULL::varchar AS partner_competition_name,
         NULL::varchar AS partner_competition_slug,
         NULL::varchar AS partner_series_slug,
-        NULL::boolean AS partner_reader_listed
+        NULL::boolean AS partner_reader_listed,
+        -- Borrow request fields (NULL)
+        NULL::uuid AS borrow_request_id,
+        NULL::int AS borrow_items_total,
+        NULL::int AS borrow_items_yes
     FROM notification
     INNER JOIN competition_round ON competition_round.id = notification.target_competition_round_id
     INNER JOIN competition ON competition.id = competition_round.competition_id
@@ -939,7 +971,11 @@ SELECT * FROM (
         NULL::varchar AS partner_competition_name,
         NULL::varchar AS partner_competition_slug,
         NULL::varchar AS partner_series_slug,
-        NULL::boolean AS partner_reader_listed
+        NULL::boolean AS partner_reader_listed,
+        -- Borrow request fields (NULL)
+        NULL::uuid AS borrow_request_id,
+        NULL::int AS borrow_items_total,
+        NULL::int AS borrow_items_yes
     FROM notification
     INNER JOIN puzzling_team ON puzzling_team.id = notification.target_puzzling_team_id
     INNER JOIN player actor ON actor.id = notification.actor_player_id
@@ -1032,7 +1068,11 @@ SELECT * FROM (
         NULL::varchar AS partner_competition_name,
         NULL::varchar AS partner_competition_slug,
         NULL::varchar AS partner_series_slug,
-        NULL::boolean AS partner_reader_listed
+        NULL::boolean AS partner_reader_listed,
+        -- Borrow request fields (NULL)
+        NULL::uuid AS borrow_request_id,
+        NULL::int AS borrow_items_total,
+        NULL::int AS borrow_items_yes
     FROM notification
     INNER JOIN guest_link_request ON guest_link_request.id = notification.target_guest_link_request_id
     INNER JOIN player actor ON actor.id = notification.actor_player_id
@@ -1127,7 +1167,11 @@ SELECT * FROM (
         competition.name AS partner_competition_name,
         competition.slug AS partner_competition_slug,
         competition_series.slug AS partner_series_slug,
-        NULL::boolean AS partner_reader_listed
+        NULL::boolean AS partner_reader_listed,
+        -- Borrow request fields (NULL)
+        NULL::uuid AS borrow_request_id,
+        NULL::int AS borrow_items_total,
+        NULL::int AS borrow_items_yes
     FROM notification
     INNER JOIN partner_request ON partner_request.id = notification.target_partner_request_id
     INNER JOIN partner_listing ON partner_listing.id = partner_request.listing_id
@@ -1231,7 +1275,11 @@ SELECT * FROM (
             WHERE reader_listing.competition_id = partner_listing.competition_id
                 AND reader_listing.player_id = notification.player_id
                 AND reader_listing.closed_at IS NULL
-        ) AS partner_reader_listed
+        ) AS partner_reader_listed,
+        -- Borrow request fields (NULL)
+        NULL::uuid AS borrow_request_id,
+        NULL::int AS borrow_items_total,
+        NULL::int AS borrow_items_yes
     FROM notification
     INNER JOIN partner_listing ON partner_listing.id = notification.target_partner_listing_id
     INNER JOIN competition ON competition.id = partner_listing.competition_id
@@ -1239,6 +1287,104 @@ SELECT * FROM (
     INNER JOIN player actor ON actor.id = notification.actor_player_id
     WHERE notification.player_id = :playerId
         AND notification.target_partner_listing_id IS NOT NULL
+        {$actorNotHidden}
+
+    UNION ALL
+
+    -- "Could I borrow these?" (docs/features/wishlist-availability.md): asked of the reader (actor = who asks - named
+    -- even when private, asking was their consent), answered or expired for the reader (actor = the owner, shown like
+    -- anybody else); the player shown is the actor, linked only when the reader may see them
+    SELECT
+        notification.notified_at,
+        notification.read_at,
+        notification.type AS notification_type,
+        actor.id AS target_player_id,
+        CASE WHEN notification.type <> 'BorrowRequested' AND {$actorIsPrivate} THEN NULL ELSE actor.name END AS target_player_name,
+        actor.code AS target_player_code,
+        actor.country AS target_player_country,
+        CASE WHEN {$actorIsPrivate} THEN NULL ELSE actor.avatar END AS target_player_avatar,
+        {$actorIsPrivate} AS target_player_is_private,
+        NULL::uuid AS puzzle_id,
+        NULL::varchar AS puzzle_name,
+        NULL::varchar AS manufacturer_name,
+        NULL::int AS pieces_count,
+        NULL::int AS time,
+        NULL::boolean AS first_attempt,
+        NULL::boolean AS unboxed,
+        NULL::varchar AS puzzle_image,
+        NULL::numeric AS puzzle_image_ratio,
+        NULL::varchar AS team_id,
+        NULL::varchar AS team_name,
+        NULL::uuid AS guest_link_request_id,
+        NULL::varchar AS guest_link_guest_name,
+        NULL::json AS players,
+        -- Lending fields (NULL)
+        NULL::uuid AS transfer_id,
+        NULL::varchar AS transfer_type,
+        NULL::uuid AS from_player_id,
+        NULL::varchar AS from_player_name,
+        NULL::varchar AS from_player_avatar,
+        NULL::uuid AS to_player_id,
+        NULL::varchar AS to_player_name,
+        NULL::varchar AS to_player_avatar,
+        NULL::uuid AS owner_player_id,
+        NULL::varchar AS owner_player_name,
+        NULL::uuid AS lending_puzzle_id,
+        NULL::varchar AS lending_puzzle_name,
+        NULL::varchar AS lending_puzzle_image,
+        NULL::numeric AS lending_puzzle_image_ratio,
+        NULL::varchar AS lending_manufacturer_name,
+        NULL::int AS lending_pieces_count,
+        -- Puzzle report fields (NULL)
+        NULL::uuid AS change_request_id,
+        NULL::uuid AS change_request_puzzle_id,
+        NULL::varchar AS change_request_puzzle_name,
+        NULL::varchar AS change_request_puzzle_image,
+        NULL::varchar AS change_request_rejection_reason,
+        NULL::uuid AS merge_request_id,
+        NULL::uuid AS merge_request_puzzle_id,
+        NULL::varchar AS merge_request_puzzle_name,
+        NULL::varchar AS merge_request_puzzle_image,
+        NULL::varchar AS merge_request_rejection_reason,
+        -- Rating notification fields (NULL)
+        NULL::uuid AS sold_swapped_item_id,
+        NULL::varchar AS rating_puzzle_name,
+        NULL::varchar AS rating_puzzle_image,
+        NULL::varchar AS rating_other_player_name,
+        NULL::uuid AS rating_other_player_id,
+        -- Conversation request fields (NULL)
+        NULL::uuid AS conversation_id,
+        NULL::uuid AS conversation_initiator_id,
+        NULL::varchar AS conversation_initiator_name,
+        NULL::varchar AS conversation_initiator_avatar,
+        NULL::boolean AS conversation_is_marketplace,
+        NULL::varchar AS conversation_puzzle_name,
+        NULL::varchar AS conversation_puzzle_image,
+        -- Official results fields (NULL)
+        NULL::uuid AS round_id,
+        NULL::varchar AS round_name,
+        NULL::varchar AS round_slug,
+        NULL::varchar AS round_competition_name,
+        NULL::varchar AS round_competition_slug,
+        NULL::varchar AS round_series_slug,
+        -- Partner finder request fields (NULL)
+        NULL::uuid AS partner_request_id,
+        NULL::varchar AS partner_request_kind,
+        NULL::varchar AS partner_request_note,
+        NULL::boolean AS partner_request_replied,
+        NULL::varchar AS partner_competition_name,
+        NULL::varchar AS partner_competition_slug,
+        NULL::varchar AS partner_series_slug,
+        NULL::boolean AS partner_reader_listed,
+        -- Borrow request fields
+        borrow_request.id AS borrow_request_id,
+        (SELECT COUNT(item.id) FROM borrow_request_item item WHERE item.request_id = borrow_request.id)::int AS borrow_items_total,
+        (SELECT COUNT(item.id) FROM borrow_request_item item WHERE item.request_id = borrow_request.id AND item.status IN ('yes', 'lent'))::int AS borrow_items_yes
+    FROM notification
+    INNER JOIN borrow_request ON borrow_request.id = notification.target_borrow_request_id
+    INNER JOIN player actor ON actor.id = notification.actor_player_id
+    WHERE notification.player_id = :playerId
+        AND notification.target_borrow_request_id IS NOT NULL
         {$actorNotHidden}
 ) AS combined_notifications
 ORDER BY notified_at DESC
@@ -1284,6 +1430,7 @@ SQL;
     ))
     AND (notification.target_partner_request_id IS NULL OR (TRUE{$partnerRequestNotHidden}))
     AND (notification.target_partner_listing_id IS NULL OR (TRUE{$partnerRequestNotHidden}))
+    AND (notification.target_borrow_request_id IS NULL OR (TRUE{$partnerRequestNotHidden}))
 SQL;
     }
 }

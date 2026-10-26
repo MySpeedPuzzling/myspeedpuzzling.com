@@ -55,6 +55,7 @@ use SpeedPuzzling\Web\Value\SkillTier;
  *     newsletter_enabled: bool,
  *     result_emails_enabled: bool,
  *     partner_finder_emails?: bool,
+ *     borrow_request_emails?: bool,
  *     feature_request_emails: string,
  *     rating_count: int|string,
  *     average_rating: null|string,
@@ -248,6 +249,8 @@ readonly final class PlayerProfile
         public null|string $timezone = null,
         // "Partner finder e-mails" (player.partner_finder_emails, docs/features/partner-finder.md D6)
         public bool $partnerFinderEmails = true,
+        // "Borrow request e-mails" (player.borrow_request_emails, docs/features/wishlist-availability.md)
+        public bool $borrowRequestEmails = true,
     ) {
     }
 
@@ -431,6 +434,7 @@ readonly final class PlayerProfile
             newsletterEnabled: (bool) $row['newsletter_enabled'],
             resultEmailsEnabled: (bool) $row['result_emails_enabled'],
             partnerFinderEmails: (bool) ($row['partner_finder_emails'] ?? true),
+            borrowRequestEmails: (bool) ($row['borrow_request_emails'] ?? true),
             featureRequestEmails: FeatureRequestEmails::from($row['feature_request_emails']),
             ratingCount: (int) $row['rating_count'],
             averageRating: $row['average_rating'] !== null ? (float) $row['average_rating'] : null,

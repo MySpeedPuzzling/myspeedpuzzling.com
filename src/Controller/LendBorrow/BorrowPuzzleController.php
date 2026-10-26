@@ -74,6 +74,11 @@ final class BorrowPuzzleController extends AbstractController
         $isAlreadyBorrowed = $this->getBorrowedPuzzles->isPuzzleBorrowedByHolder($loggedPlayer->playerId, $puzzleId);
 
         $formData = new BorrowPuzzleFormData();
+        // "I've got it" on an answered borrow request names who lent it (docs/features/wishlist-availability.md)
+        $ownerCode = $request->query->getString('owner');
+        if ($request->isMethod('GET') && preg_match('/^#?[a-z0-9_-]{1,64}$/i', $ownerCode) === 1) {
+            $formData->ownerCode = '#' . ltrim($ownerCode, '#');
+        }
         $form = $this->createForm(BorrowPuzzleFormType::class, $formData);
         $form->handleRequest($request);
 

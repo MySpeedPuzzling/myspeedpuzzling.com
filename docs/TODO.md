@@ -4,6 +4,14 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Wishlist availability and ask to borrow (`docs/features/wishlist-availability.md`, 2026-10-26)
+
+- [ ] lily.srv cron: `myspeedpuzzling:expire-borrow-requests` daily (after the deploy)
+- [ ] Look at the numbers after a few weeks (requests sent, answered, lent) - widen "who can be asked" beyond favorites?
+- [ ] Found while testing (older bug, not this feature): merging two puzzles that are both on one player's wishlist fails
+  on `wish_list_item`'s unique key - `ApprovePuzzleMergeRequestHandler` checks for a duplicate with `findOneBy()`, which
+  does not see the row it moved a moment earlier (the borrow items track that in memory, the other tables do not)
+
 ## Partner finder (`docs/features/partner-finder.md`, 2026-10-22)
 
 - [ ] Look at the page with ~100 real listings on a phone once there are some (filter bar wrapping, details panel)

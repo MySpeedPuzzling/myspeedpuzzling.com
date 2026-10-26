@@ -21,6 +21,8 @@ export default class extends Controller {
         "piecesMax",         // Custom piece-count "to" input
         "difficultyTier",    // Difficulty tier checkboxes (members) - items carry data-difficulty-tier
         "sortSelect",        // Difficulty sort (members) - items carry data-difficulty-score, empty = not rated yet
+        "availability",      // Wishlist availability checkboxes - value "offers" / "shipsToMe" / "favorites" keeps items whose
+                             // data-offers / data-ships-to-me / data-favorites is above 0 (docs/features/wishlist-availability.md)
         "listingTypeSelect", // Listing type select dropdown (sell-swap)
         "priceMin",          // Price min input (sell-swap)
         "priceMax",          // Price max input (sell-swap)
@@ -160,6 +162,7 @@ export default class extends Controller {
         const difficultyTiers = this.getSelectedDifficultyTiers();
         const listingType = this.getSelectedListingType();
         const priceRange = this.getPriceRange();
+        this.availability = this.availabilityTargets.filter(checkbox => checkbox.checked).map(checkbox => checkbox.value);
 
         let visibleCount = 0;
 
@@ -193,6 +196,13 @@ export default class extends Controller {
         // An item without the attribute (re-rendered by a turbo stream) is never hidden by it.
         if (difficultyTiers.size > 0 && item.dataset.difficultyTier !== undefined && !difficultyTiers.has(item.dataset.difficultyTier)) {
             return false;
+        }
+
+        // Wishlist availability: every ticked one must hold. An item without the attribute is never hidden by it.
+        for (const key of this.availability ?? []) {
+            if (item.dataset[key] !== undefined && !(parseInt(item.dataset[key], 10) > 0)) {
+                return false;
+            }
         }
 
         // Listing type filter (sell-swap)

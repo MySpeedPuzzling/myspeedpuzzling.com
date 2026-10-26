@@ -120,6 +120,46 @@ final class BlocklistCanaryTest extends WebTestCase
     }
 
     /**
+     * The wishlist's "… has it" line and the ask-to-borrow candidates (docs/features/wishlist-availability.md) are only
+     * on the list owner's own page, so the canary is the owner before and after blocking a favorite who owns a puzzle.
+     */
+    public function testFavoriteTheOwnerBlocksIsNoLenderOnTheirWishlist(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/wish-list/' . self::BLOCKER;
+        $database = self::getContainer()->get(Connection::class);
+        $now = TestClock::SQL_NOW;
+
+        $database->executeStatement(
+            "UPDATE player SET favorite_players = (favorite_players::jsonb || jsonb_build_array(:blocked::text))::json WHERE id = :blocker",
+            ['blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+        $database->executeStatement("UPDATE player SET puzzle_collection_visibility = 'public' WHERE id = :id", ['id' => self::BLOCKED]);
+        $database->executeStatement(
+            "INSERT INTO collection_item (id, added_at, collection_id, player_id, puzzle_id) VALUES (:id, {$now}, NULL, :owner, :puzzle)",
+            ['id' => Uuid::uuid7()->toString(), 'owner' => self::BLOCKED, 'puzzle' => PuzzleFixture::PUZZLE_9000],
+        );
+        $database->executeStatement(
+            "INSERT INTO wish_list_item (id, added_at, player_id, puzzle_id) VALUES (:id, {$now}, :player, :puzzle) ON CONFLICT DO NOTHING",
+            ['id' => Uuid::uuid7()->toString(), 'player' => self::BLOCKER, 'puzzle' => PuzzleFixture::PUZZLE_9000],
+        );
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(self::BLOCKED_NAME . ' has it', (string) $browser->getResponse()->getContent(), 'No canary: the favorite is not shown before the block.');
+
+        $database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, {$now}, 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+
+        $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        self::assertStringNotContainsString(self::BLOCKED_NAME, (string) $browser->getResponse()->getContent(), 'The blocker is offered a player they blocked to borrow from.');
+    }
+
+    /**
      * The compare page (docs/features/player-comparison.md) checks visibility on every read: a shared comparison never
      * shows the blocker the player they blocked, and one who was in their line-up before the block turns into a neutral
      * "No longer available" chip - no name, no id.

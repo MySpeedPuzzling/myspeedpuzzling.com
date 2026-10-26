@@ -520,3 +520,15 @@ partner_teamed_up:
     ask: "Tu propio anuncio allí sigue activo, así que te pueden seguir escribiendo. ¿Ya tienes compañero? Ciérralo. ¿Aún os falta gente? Actualízalo."
     update: "Actualizar mi anuncio"
     not_right: "¿No es así? Deja tu anuncio como está: nada cambia a menos que tú lo cambies."
+
+borrow_request:
+    subject: "{1}%asker% quiere pedirte prestado un puzzle|[0,Inf[%asker% quiere pedirte prestados %count% puzzles"
+    preheader: "Responde con un toque por puzzle en MySpeedPuzzling."
+    title: "{1}%asker% quiere pedirte prestado un puzzle|[0,Inf[%asker% quiere pedirte prestados %count% puzzles"
+    greeting: "Hola %name%:"
+    intro: "{1}%asker% pregunta si le prestarías este puzzle de tu colección:|[0,Inf[%asker% pregunta si le prestarías estos puzzles de tu colección:"
+    pieces: "%count% piezas"
+    how_to_answer: "Responde por cada puzzle: sí, ya no lo tienes o esta vez no. Un sí abre un chat para acordar la entrega."
+    answer: "Responder"
+    no_addresses: "Nunca compartimos direcciones de correo: respondes dentro de MySpeedPuzzling."
+    opt_out: "Recibes este correo porque tu colección de puzzles es pública. <a href=\"%settingsUrl%\">Configuración de correo</a> · <a href=\"%unsubscribeUrl%\">Dejar de recibir estos correos</a>"

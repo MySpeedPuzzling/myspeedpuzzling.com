@@ -101,6 +101,11 @@ readonly final class PlayerNotification
         public null|string $partnerSeriesSlug = null,
         // PartnerTeamedUp / PartnerGroupMember: the reader still has an open listing at that event
         public bool $partnerReaderListed = false,
+        // BorrowRequested / BorrowRequestAnswered / BorrowRequestExpired: the request (who = targetPlayer*), how many
+        // puzzles it holds and how many the owner said yes to
+        public null|string $borrowRequestId = null,
+        public int $borrowItemsTotal = 0,
+        public int $borrowItemsYes = 0,
     ) {
     }
 
@@ -231,6 +236,9 @@ readonly final class PlayerNotification
             partnerCompetitionSlug: is_string($row['partner_competition_slug'] ?? null) ? $row['partner_competition_slug'] : null,
             partnerSeriesSlug: is_string($row['partner_series_slug'] ?? null) ? $row['partner_series_slug'] : null,
             partnerReaderListed: ($row['partner_reader_listed'] ?? false) === true,
+            borrowRequestId: is_string($row['borrow_request_id'] ?? null) ? $row['borrow_request_id'] : null,
+            borrowItemsTotal: is_int($row['borrow_items_total'] ?? null) ? $row['borrow_items_total'] : 0,
+            borrowItemsYes: is_int($row['borrow_items_yes'] ?? null) ? $row['borrow_items_yes'] : 0,
         );
     }
 
@@ -305,5 +313,14 @@ readonly final class PlayerNotification
     public function isConversationRequestNotification(): bool
     {
         return $this->conversationId !== null;
+    }
+
+    public function isBorrowRequestNotification(): bool
+    {
+        return $this->borrowRequestId !== null && in_array($this->notificationType, [
+            NotificationType::BorrowRequested,
+            NotificationType::BorrowRequestAnswered,
+            NotificationType::BorrowRequestExpired,
+        ], true);
     }
 }

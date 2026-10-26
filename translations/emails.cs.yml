@@ -520,3 +520,15 @@ partner_teamed_up:
     ask: "Váš vlastní inzerát tam je pořád aktivní, takže vás můžou další lidé dál oslovovat. Parťáka už máte? Uzavřete ho. Potřebujete ještě další lidi? Upravte ho."
     update: "Upravit můj inzerát"
     not_right: "Nesedí to? Nechte inzerát, jak je - nic se nezmění, dokud ho sami nezměníte."
+
+borrow_request:
+    subject: "{1}%asker% si od vás chce půjčit puzzle|[2,4]%asker% si od vás chce půjčit %count% puzzle|[0,Inf[%asker% si od vás chce půjčit %count% puzzlí"
+    preheader: "Odpovězte jedním klepnutím u každého puzzle na MySpeedPuzzling."
+    title: "{1}%asker% si od vás chce půjčit puzzle|[2,4]%asker% si od vás chce půjčit %count% puzzle|[0,Inf[%asker% si od vás chce půjčit %count% puzzlí"
+    greeting: "Ahoj %name%,"
+    intro: "{1}%asker% se ptá, jestli si může půjčit tohle puzzle z vaší sbírky:|[0,Inf[%asker% se ptá, jestli si může půjčit tato puzzle z vaší sbírky:"
+    pieces: "%count% dílků"
+    how_to_answer: "Odpovězte u každého puzzle: ano, už ho nemáte, nebo tentokrát ne. Po odpovědi ano se otevře chat, ve kterém se domluvíte na předání."
+    answer: "Odpovědět"
+    no_addresses: "E-mailové adresy nikdy nesdílíme: odpovídáte přímo v MySpeedPuzzling."
+    opt_out: "Tento e-mail dostáváte, protože je vaše sbírka puzzlí veřejná. <a href=\"%settingsUrl%\">Nastavení e-mailů</a> · <a href=\"%unsubscribeUrl%\">Už neposílat</a>"

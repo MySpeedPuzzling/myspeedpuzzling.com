@@ -55,6 +55,7 @@ use SpeedPuzzling\Web\Value\PuzzleSearchCriteria;
  *     reserved_for_player_id: string|null,
  *     reserved_for_player_name: string|null,
  *     bringing?: bool,
+ *     on_viewer_wishlist?: bool,
  * }
  */
 readonly final class GetMarketplaceListings
@@ -142,6 +143,7 @@ JOIN player pl ON ssli.player_id = pl.id';
         null|string $sellerCountry = null,
         null|string $sellerId = null,
         null|string $puzzleId = null,
+        null|string $wishlistPlayerId = null,
         string $sort = 'newest',
         int $limit = 24,
         int $offset = 0,
@@ -170,6 +172,7 @@ JOIN player pl ON ssli.player_id = pl.id';
             puzzleId: $puzzleId,
             difficultyTiers: $difficultyTiers,
             event: $event,
+            wishlistPlayerId: self::validUuid($wishlistPlayerId),
         );
 
         $bringing = $event !== null ? self::sqlBringing() : 'false';
@@ -221,8 +224,14 @@ SQL;
             ? $this->labels($viewerId)
             : ['', '', '', []];
 
+        // "On your wishlist" on the page's rows (docs/features/wishlist-availability.md) - with an event too
+        $wishlistColumn = $viewerId !== null
+            ? ",
+    EXISTS (SELECT 1 FROM wish_list_item wli WHERE wli.player_id = :viewerWishlistId AND wli.puzzle_id = page.puzzle_id) AS on_viewer_wishlist"
+            : '';
+
         $query = <<<SQL
-{$with}SELECT page.*{$labelColumns}
+{$with}SELECT page.*{$labelColumns}{$wishlistColumn}
 FROM (
 {$page}
 ) page{$labelJoins}
@@ -232,6 +241,7 @@ SQL;
         $params = [
             ...$params,
             ...$labelParams,
+            ...($viewerId !== null ? ['viewerWishlistId' => $viewerId] : []),
             'limit' => $limit,
             'offset' => $offset,
             'now' => $this->clock->now()->format('Y-m-d H:i:s'),
@@ -337,6 +347,7 @@ SQL;
         array $difficultyTiers = [],
         null|string $event = null,
         bool $onlyBringing = false,
+        null|string $wishlistPlayerId = null,
     ): MarketplaceListingsCount {
         $event = self::validUuid($event);
 
@@ -355,6 +366,7 @@ SQL;
             puzzleId: $puzzleId,
             difficultyTiers: $difficultyTiers,
             event: $event,
+            wishlistPlayerId: self::validUuid($wishlistPlayerId),
         );
 
         // Both parts are counted even when only the bringing ones are listed - the header shows them
@@ -435,6 +447,7 @@ SQL;
         null|string $puzzleId,
         array $difficultyTiers,
         null|string $event,
+        null|string $wishlistPlayerId = null,
     ): array {
         [$difficultyJoin, $difficultyCondition, $ratedTiers] = self::difficultyFilter($difficultyTiers);
 
@@ -532,6 +545,13 @@ SQL;
             $conditions .= '
     AND p.id = :puzzleId';
             $params['puzzleId'] = $puzzleId;
+        }
+
+        // "On my wishlist" (docs/features/wishlist-availability.md)
+        if ($wishlistPlayerId !== null) {
+            $conditions .= '
+    AND EXISTS (SELECT 1 FROM wish_list_item wli WHERE wli.player_id = :wishlistPlayerId AND wli.puzzle_id = ssli.puzzle_id)';
+            $params['wishlistPlayerId'] = $wishlistPlayerId;
         }
 
         if ($ratedTiers !== []) {
@@ -720,6 +740,7 @@ SQL;
             sellerRatingCount: (int) $row['seller_rating_count'],
             sellerAverageRating: $row['seller_average_rating'] !== null ? (float) $row['seller_average_rating'] : null,
             bringing: (bool) ($row['bringing'] ?? false),
+            onViewerWishlist: (bool) ($row['on_viewer_wishlist'] ?? false),
             bringingTo: self::eventLabel($row, 'bringing_to'),
             sellerGoesTo: self::eventLabel($row, 'seller_goes_to'),
         );

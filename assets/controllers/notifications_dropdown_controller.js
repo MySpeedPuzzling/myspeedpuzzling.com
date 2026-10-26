@@ -6,7 +6,7 @@ import { Controller } from '@hotwired/stimulus';
  * notifications page. A failed load is tried again on the next open.
  */
 export default class extends Controller {
-    static targets = ['frame', 'count', 'box'];
+    static targets = ['frame', 'count', 'box', 'toggle'];
 
     static values = {
         src: String,
@@ -43,6 +43,10 @@ export default class extends Controller {
         this.countTarget.classList.add('bg-secondary', 'text-dark');
         this.countTarget.classList.remove('navbar-tool-label-wide');
         this.boxTarget.classList.remove('bg-secondary');
+    }
+
+    close() {
+        window.bootstrap?.Dropdown.getInstance(this.toggleTarget)?.hide();
     }
 
     failed(event) {

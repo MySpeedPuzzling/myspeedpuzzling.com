@@ -624,13 +624,25 @@ td.rank {
         display: none;
     }
 
+    // The theme's hover rule also sets `animation: slide-up`, so entering or leaving the bell replayed it on the open
+    // menu (a blink on every hover): the open menu carries the animation itself, played once when it opens
     > .notifications-dropdown.show {
         display: block;
+        animation: slide-up .25s ease-in-out;
     }
 }
 
 .notifications-dropdown {
     width: 26rem;
+    overflow: hidden;
+    border: 1px solid rgba($gray-900, .08);
+    border-radius: .75rem;
+    // Lifted off the page: a wide soft shadow plus a tight one for the edge (the theme's dropdown shadow is barely there)
+    box-shadow: 0 1rem 2.5rem -.5rem rgba($gray-900, .22), 0 .125rem .375rem rgba($gray-900, .08) !important;
+
+    .notifications-dropdown-header .btn-close {
+        font-size: .75rem;
+    }
 
     // Bootstrap places navbar dropdowns by CSS, not Popper: on a phone the bell is too far left for a right-aligned
     // menu, so it spans the screen under the header

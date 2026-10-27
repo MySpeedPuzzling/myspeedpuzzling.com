@@ -28,6 +28,8 @@ final class TasteRows
     public SplFixedArray $residual;
     /** @var SplFixedArray<bool> */
     public SplFixedArray $competition;
+    /** @var SplFixedArray<null|float> v7: the puzzle's posterior log difficulty as of the first try (the player's slope) */
+    public SplFixedArray $logDifficulty;
     private int $count = 0;
 
     /**
@@ -44,9 +46,10 @@ final class TasteRows
         $this->tracked = new SplFixedArray($capacity);
         $this->residual = new SplFixedArray($capacity);
         $this->competition = new SplFixedArray($capacity);
+        $this->logDifficulty = new SplFixedArray($capacity);
     }
 
-    public function add(int $player, int $puzzle, int $pieces, float $solved, float $tracked, float $residual, bool $competition): void
+    public function add(int $player, int $puzzle, int $pieces, float $solved, float $tracked, float $residual, bool $competition, null|float $logDifficulty = null): void
     {
         $r = $this->count++;
         $this->player[$r] = $player;
@@ -56,6 +59,7 @@ final class TasteRows
         $this->tracked[$r] = $tracked;
         $this->residual[$r] = $residual;
         $this->competition[$r] = $competition;
+        $this->logDifficulty[$r] = $logDifficulty;
     }
 
     public function count(): int

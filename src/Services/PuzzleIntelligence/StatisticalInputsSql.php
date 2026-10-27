@@ -132,7 +132,8 @@ final class StatisticalInputsSql
     ';
 
     /**
-     * The size curve's inputs (SizeCurve::pace()), live: the player's latest direct pace row at every piece count, and -
+     * The size curve's inputs (SizeCurve::pace()), live: the player's latest direct pace row at every piece count (v7: with
+     * the latest difficulty-adjusted offset of the pair - candidate_pace_offset, one primary-key step per row), and -
      * only while they have no pace row at the puzzle's piece count (with one the curve never reads them) - their first
      * tries there, at most 5 (hydrateCandidatePace() uses them below 5), with what each puzzle's difficulty is now (its
      * candidate evidence, brand prior and current picture's estimate): two JSON arrays, both by the player's own index
@@ -145,7 +146,14 @@ final class StatisticalInputsSql
 
         return "
             (
-                SELECT json_agg(json_build_array(latest.pieces_count, latest.baseline_seconds, latest.drift, latest.spread, latest.qualifying_count))
+                SELECT json_agg(json_build_array(latest.pieces_count, latest.baseline_seconds, latest.drift, latest.spread, latest.qualifying_count,
+                    (
+                        SELECT o.pace_offset
+                        FROM candidate_pace_offset o
+                        WHERE o.player_id = :playerId AND o.pieces_count = latest.pieces_count
+                        ORDER BY o.valid_from DESC, o.valid_from_tracked_at DESC
+                        LIMIT 1
+                    )))
                 FROM (
                     SELECT DISTINCT ON (h.pieces_count) h.pieces_count, h.baseline_seconds, h.drift, h.spread, h.qualifying_count
                     FROM player_pace_history h
@@ -188,12 +196,15 @@ final class StatisticalInputsSql
     {
         $rows = [];
 
+        $adjusted = $parameters->features()->on('adjusted_pace');
+
         foreach (self::jsonList($row['candidate_pace_rows'] ?? null) as $paceRow) {
-            if (is_array($paceRow) && count($paceRow) === 5 && is_numeric($paceRow[0]) && is_numeric($paceRow[1]) && is_numeric($paceRow[4])) {
+            if (is_array($paceRow) && count($paceRow) >= 5 && is_numeric($paceRow[0]) && is_numeric($paceRow[1]) && is_numeric($paceRow[4])) {
                 $rows[] = [
                     (int) $paceRow[0],
                     (int) $paceRow[1],
-                    is_numeric($paceRow[2]) ? (float) $paceRow[2] : 0.0,
+                    // v7: the difficulty-adjusted pace's offset rides on the drift (candidate_pace_offset, AdjustedPace)
+                    (is_numeric($paceRow[2]) ? (float) $paceRow[2] : 0.0) + ($adjusted && is_numeric($paceRow[5] ?? null) ? (float) $paceRow[5] : 0.0),
                     is_numeric($paceRow[3]) ? (float) $paceRow[3] : PredictionModelParameters::GLOBAL_SPREAD,
                     (int) $paceRow[4],
                 ];

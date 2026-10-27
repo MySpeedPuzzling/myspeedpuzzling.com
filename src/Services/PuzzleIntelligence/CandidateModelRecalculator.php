@@ -6,9 +6,11 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\AdjustedPace;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\AttemptFlags;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidateEngine;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidateModelFitter;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidatePaceOffsets;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidatePredictionCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\FirstAttemptSet;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\PredictionEngine;
@@ -58,7 +60,7 @@ readonly final class CandidateModelRecalculator
      * samples' evidence (then the attempt set and the engines are released), the rest on the samples alone. The priors
      * and the evidence rest only on the pseudo-count and the noise, which nothing later changes.
      *
-     * @return array{candidate: CandidateModelParameters, priors_written: int, evidence_written: int, taste_states_written: int}
+     * @return array{candidate: CandidateModelParameters, priors_written: int, evidence_written: int, taste_states_written: int, pace_offsets_written: int}
      */
     public function fit(DateTimeImmutable $now): array
     {
@@ -84,10 +86,13 @@ readonly final class CandidateModelRecalculator
             $progress->lap('shown_released');
 
             $this->fitter->fitNoise($progress, $candidate);
+            $this->fitter->addEvidence($progress, $candidate);
+            // v7: the difficulty-adjusted pace (every puzzle's difficulty now, the paces from it, the indices again) -
+            // the evidence is written from the adjusted indices, the offsets for the live and reconstructed paths
+            $this->fitter->adjustPace($progress, $candidate);
+            $offsetsWritten = $this->writePaceOffsets($candidate, $now);
             $evidenceWritten = $this->writeEvidence($candidate, $progress->parameters, $now);
             $progress->lap('evidence_written');
-
-            $this->fitter->addEvidence($progress, $candidate);
 
             $this->fitter->fitSizeCurve($progress, $candidate);
 
@@ -124,8 +129,78 @@ readonly final class CandidateModelRecalculator
                 'parameters' => json_encode($parameters->toArray(), JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION),
             ]);
 
-            return ['candidate' => $parameters, 'priors_written' => $priorsWritten, 'evidence_written' => $evidenceWritten, 'taste_states_written' => $tasteWritten];
+            return ['candidate' => $parameters, 'priors_written' => $priorsWritten, 'evidence_written' => $evidenceWritten, 'taste_states_written' => $tasteWritten, 'pace_offsets_written' => $offsetsWritten];
         });
+    }
+
+    /**
+     * v7: every pace row's difficulty-adjusted offset (AdjustedPace, quantised) into candidate_pace_offset, rewritten - a
+     * row only where the pair's offset moved (AdjustedPace::STEP; the readers take the latest row before a moment). None
+     * while the fit has the adjusted pace off.
+     */
+    private function writePaceOffsets(CandidateEngine $candidate, DateTimeImmutable $now): int
+    {
+        $this->connection->executeStatement('DELETE FROM candidate_pace_offset');
+        $adjusted = $candidate->adjustedPace;
+
+        if ($adjusted === null) {
+            return 0;
+        }
+
+        $set = $candidate->engine->set;
+        $rows = [];
+        $written = 0;
+        $lastPair = null;
+        $lastOffset = null;
+
+        foreach ($adjusted->rows() as [$i, $offset]) {
+            $pairKey = $set->player[$i] . '|' . $set->pieces[$i];
+
+            // Quantised by AdjustedPace already: a row only where the pair's offset moved
+            if ($pairKey === $lastPair && $offset === $lastOffset) {
+                continue;
+            }
+
+            $lastPair = $pairKey;
+            $lastOffset = $offset;
+            // Two first tries of the pair in one second: the row after both (the later one overwrites)
+            $rows[$pairKey . '|' . $set->solved[$i] . '|' . $set->tracked[$i]] = [$set->player[$i], $set->pieces[$i], $set->solved[$i], $set->tracked[$i], $offset];
+
+            if (count($rows) >= self::CHUNK) {
+                $written += $this->insertPaceOffsets($rows, $now);
+                $rows = [];
+            }
+        }
+
+        return $written + $this->insertPaceOffsets($rows, $now);
+    }
+
+    /**
+     * @param array<string, array{0: string, 1: int, 2: float, 3: float, 4: float}> $rows
+     */
+    private function insertPaceOffsets(array $rows, DateTimeImmutable $now): int
+    {
+        if ($rows === []) {
+            return 0;
+        }
+
+        $rows = array_values($rows);
+        $this->connection->executeStatement('
+            INSERT INTO candidate_pace_offset (player_id, pieces_count, valid_from, valid_from_tracked_at, pace_offset, computed_at)
+            SELECT fresh.player_id, fresh.pieces_count, fresh.valid_from, fresh.valid_from_tracked_at, fresh.pace_offset, CAST(:now AS timestamp)
+            FROM unnest(CAST(:players AS uuid[]), CAST(:pieces AS int[]), CAST(:solved AS timestamp[]), CAST(:tracked AS timestamp[]), CAST(:offsets AS double precision[]))
+                AS fresh (player_id, pieces_count, valid_from, valid_from_tracked_at, pace_offset)
+            ON CONFLICT (player_id, pieces_count, valid_from, valid_from_tracked_at) DO UPDATE SET pace_offset = EXCLUDED.pace_offset, computed_at = EXCLUDED.computed_at
+        ', [
+            'now' => $now->format('Y-m-d H:i:s'),
+            'players' => self::arrayLiteral(array_map(static fn (array $row): string => $row[0], $rows)),
+            'pieces' => self::arrayLiteral(array_map(static fn (array $row): int => $row[1], $rows)),
+            'solved' => self::arrayLiteral(array_map(static fn (array $row): string => gmdate('Y-m-d H:i:s', (int) $row[2]), $rows)),
+            'tracked' => self::arrayLiteral(array_map(static fn (array $row): string => gmdate('Y-m-d H:i:s', (int) $row[3]), $rows)),
+            'offsets' => self::arrayLiteral(array_map(static fn (array $row): float => $row[4], $rows)),
+        ]);
+
+        return count($rows);
     }
 
     /**
@@ -176,7 +251,14 @@ readonly final class CandidateModelRecalculator
             ? AttemptFlags::load($this->connection, $this->baselineCalculator, $engine->set)
             : AttemptFlags::fromList([]);
 
-        return ['evidence_written' => $this->writeEvidence(new CandidateEngine($engine, $flags), $parameters, $now), 'fitted' => true];
+        $candidate = new CandidateEngine($engine, $flags);
+
+        // v7: the indices read the solvers' adjusted paces as the daily fit stored them (a pace row since: the latest)
+        if ($parameters->features()->on('adjusted_pace')) {
+            $candidate->adjustedPace = AdjustedPace::fromStored($engine->set, CandidatePaceOffsets::load($this->connection));
+        }
+
+        return ['evidence_written' => $this->writeEvidence($candidate, $parameters, $now), 'fitted' => true];
     }
 
     /**

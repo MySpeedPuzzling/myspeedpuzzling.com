@@ -11,6 +11,9 @@ namespace SpeedPuzzling\Web\Value;
  * the count of their first tries at events (the event offset). Coefficients = A⁻¹ g, closed form: a player with nothing
  * known has every term 0, a few first tries move it little (shrunk toward 0), many settle it. Stored as of every first
  * try (candidate_player_taste), so a reconstruction reads exactly the state before its solve.
+ *
+ * v7: the player's own difficulty slope (slopeTerm()) from five more sums over the same first tries - the puzzle's log
+ * difficulty d and the residual left after the taste term s: n, Σ d, Σ d², Σ s, Σ d s.
  */
 readonly final class TasteState
 {
@@ -30,6 +33,8 @@ readonly final class TasteState
         public array $g,
         public float $competitionSum = 0.0,
         public int $competitionCount = 0,
+        /** @var array{0: int, 1: float, 2: float, 3: float, 4: float} v7: n, Σ d, Σ d², Σ s, Σ d s (slopeTerm()) */
+        public array $slope = [0, 0.0, 0.0, 0.0, 0.0],
     ) {
         $this->cholesky = self::choleskyOf($a, count($g));
         $this->coefficients = $this->solve($g);
@@ -100,12 +105,32 @@ readonly final class TasteState
     }
 
     /**
+     * v7: the player's own difficulty slope on a puzzle of log difficulty d - γ (d - their mean d), γ = Σ (d - mean)
+     * s ÷ (Σ (d - mean)² + lambda): some players lose relatively more on hard puzzles than others (data-mining F7; held
+     * on both time splits). 0 below $minimum first tries with a difficulty.
+     */
+    public function slopeTerm(float $logDifficulty, float $lambda, int $minimum): float
+    {
+        [$n, $sum, $squares, $residuals, $products] = $this->slope;
+
+        if ($n < $minimum || $n === 0) {
+            return 0.0;
+        }
+
+        $mean = $sum / $n;
+        $gamma = ($products - $mean * $residuals) / (max($squares - $n * $mean * $mean, 0.0) + $lambda);
+
+        return $gamma * ($logDifficulty - $mean);
+    }
+
+    /**
      * The state after one more first try: its vector, its residual (clipped by the caller) and whether it was at an
-     * event (its residual less the term known before it counts toward the event offset).
+     * event (its residual less the term known before it counts toward the event offset); with the puzzle's log
+     * difficulty (v7) the slope's sums too, from the residual less the taste term known before it.
      *
      * @param list<float> $vector
      */
-    public function with(array $vector, float $residual, bool $competition): self
+    public function with(array $vector, float $residual, bool $competition, null|float $logDifficulty = null): self
     {
         $a = $this->a;
         $g = $this->g;
@@ -120,21 +145,35 @@ readonly final class TasteState
             $g[$i] += $vector[$i] * $residual;
         }
 
+        $slope = $this->slope;
+
+        if ($logDifficulty !== null) {
+            $left = $residual - $this->term($vector);
+            $slope = [$slope[0] + 1, $slope[1] + $logDifficulty, $slope[2] + $logDifficulty ** 2, $slope[3] + $left, $slope[4] + $logDifficulty * $left];
+        }
+
         return new self(
             $this->firstTries + 1,
             array_values($a),
             array_values($g),
             $this->competitionSum + ($competition ? $residual - $this->term($vector) : 0.0),
             $this->competitionCount + ($competition ? 1 : 0),
+            $slope,
         );
     }
 
     /**
-     * @return array{n: int, a: list<float>, g: list<float>, cs: float, cn: int}
+     * @return array{n: int, a: list<float>, g: list<float>, cs: float, cn: int, s?: array{0: int, 1: float, 2: float, 3: float, 4: float}}
      */
     public function toArray(): array
     {
-        return ['n' => $this->firstTries, 'a' => $this->a, 'g' => $this->g, 'cs' => $this->competitionSum, 'cn' => $this->competitionCount];
+        $data = ['n' => $this->firstTries, 'a' => $this->a, 'g' => $this->g, 'cs' => $this->competitionSum, 'cn' => $this->competitionCount];
+
+        if ($this->slope[0] > 0) {
+            $data['s'] = $this->slope;
+        }
+
+        return $data;
     }
 
     /**
@@ -160,7 +199,22 @@ readonly final class TasteState
             $floats($data['g']),
             is_numeric($data['cs'] ?? null) ? (float) $data['cs'] : 0.0,
             is_numeric($data['cn'] ?? null) ? (int) $data['cn'] : 0,
+            self::slopeOf($data['s'] ?? null),
         );
+    }
+
+    /**
+     * @return array{0: int, 1: float, 2: float, 3: float, 4: float}
+     */
+    private static function slopeOf(mixed $stored): array
+    {
+        if (!is_array($stored) || count($stored) !== 5) {
+            return [0, 0.0, 0.0, 0.0, 0.0];
+        }
+
+        $values = array_values(array_map(static fn (mixed $value): float => is_numeric($value) ? (float) $value : 0.0, $stored));
+
+        return [(int) $values[0], $values[1], $values[2], $values[3], $values[4]];
     }
 
     /**

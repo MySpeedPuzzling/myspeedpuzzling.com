@@ -13,6 +13,7 @@ use Throwable;
 use SpeedPuzzling\Web\Results\TimePredictionResult;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\AttemptFlags;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidateEngine;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidatePaceOffsets;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidatePredictionCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\PictureFactorsLookup;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\FirstAttemptSet;
@@ -276,6 +277,22 @@ final class PredictionReconstructor implements ResetInterface
             ? PictureFactorsLookup::load($this->connection, $this->clock->now(), array_values(array_unique(array_map(static fn (PredictionInputSolve $target): string => $target->puzzleId, $firstTryTargets))))
             : [];
 
+        // v7: the difficulty-adjusted paces of the player and of every solver of the targets' puzzles, as the daily fit
+        // stored them (one statement, only with the adjusted pace and a first try to predict)
+        $paceOffsets = new CandidatePaceOffsets();
+
+        if ($candidate->features()->on('adjusted_pace') && $firstTryTargets !== []) {
+            $players = [$playerId => true];
+
+            foreach ($firstTryTargets as $target) {
+                foreach (array_keys($puzzleCandidates[$target->puzzleId] ?? []) as $solverId) {
+                    $players[(string) $solverId] = true;
+                }
+            }
+
+            $paceOffsets = CandidatePaceOffsets::load($this->connection, array_map('strval', array_keys($players)));
+        }
+
         foreach ($targets as $target) {
             $shown = $predictions[$target->id] ?? null;
 
@@ -309,7 +326,7 @@ final class PredictionReconstructor implements ResetInterface
                 continue;
             }
 
-            $evidence = $this->candidateEvidence($target, $puzzleCandidates[$target->puzzleId] ?? [], $solverPaces, $flags, $candidate);
+            $evidence = $this->candidateEvidence($target, $puzzleCandidates[$target->puzzleId] ?? [], $solverPaces, $flags, $candidate, $paceOffsets);
             $predictions[$target->id] = $shown->withCandidate(true, $this->candidateCalculator->firstTry(
                 $this->withCandidatePace(
                     $inputs->withImageEstimate($imageEstimates[$target->puzzleId] ?? null)->withCandidate($evidence, $brandPriors[$target->puzzleId] ?? null, self::firstTriesBefore($qualifyingByPuzzle, $target)),
@@ -318,6 +335,7 @@ final class PredictionReconstructor implements ResetInterface
                     $solverPaces,
                     $firstAttemptCandidates[$target->piecesCount] ?? [],
                     $candidate,
+                    $paceOffsets,
                 )->withCandidateTaste(self::tasteStateBefore($tasteStates, $target), $pictures[$target->puzzleId] ?? null),
                 $candidate,
                 $conditions[$target->id] ?? new SolveConditions(),
@@ -328,13 +346,33 @@ final class PredictionReconstructor implements ResetInterface
     }
 
     /**
+     * v7: the difficulty-adjusted offset a solver's index reads (CandidateEngine::solverInputs()): with their own pace row
+     * before the attempt, that pair's offset before it; else (a pace of their other sizes, their first pace) the mean
+     * offset of their rows at the moment the index is known from.
+     */
+    private function paceOffsetOf(string $solverId, PredictionInputSolve $attempt, bool $direct, PaceTimeline $solverPaces, CandidatePaceOffsets $paceOffsets): float
+    {
+        if ($paceOffsets->isEmpty()) {
+            return 0.0;
+        }
+
+        if ($direct) {
+            return $paceOffsets->at($solverId, $attempt->piecesCount, $attempt->solved, $attempt->tracked) ?? 0.0;
+        }
+
+        $known = $solverPaces->paceWithKnownFrom($solverId, $attempt->piecesCount, $attempt->solved, $attempt->tracked);
+
+        return $known !== null ? $paceOffsets->meanAt($solverId, $solverPaces->piecesCountsOf($solverId), $known[1][0], $known[1][1]) : 0.0;
+    }
+
+    /**
      * The candidate's evidence of the target's puzzle as of the target: every solver's first attempt before it, read as
      * the candidate reads an index (CandidateEngine::term()), the index ceiling of the shown difficulty.
      *
      * @param array<string, list<PredictionInputSolve>> $puzzleCandidates player => candidates
      * @param array<string, int> $flags time id => AttemptFlags
      */
-    private function candidateEvidence(PredictionInputSolve $target, array $puzzleCandidates, PaceTimeline $solverPaces, array $flags, CandidateModelParameters $candidate): CandidateEvidence
+    private function candidateEvidence(PredictionInputSolve $target, array $puzzleCandidates, PaceTimeline $solverPaces, array $flags, CandidateModelParameters $candidate, CandidatePaceOffsets $paceOffsets = new CandidatePaceOffsets()): CandidateEvidence
     {
         $evidence = CandidateEvidence::none();
 
@@ -354,7 +392,7 @@ final class PredictionReconstructor implements ResetInterface
 
             $row = $solverPaces->directRowBefore((string) $solverId, $firstAttempt->piecesCount, $firstAttempt->solved, $firstAttempt->tracked, knownBefore: [$target->solved, $target->tracked]);
             $term = CandidateEngine::term(
-                log($index),
+                log($index) - $this->paceOffsetOf((string) $solverId, $firstAttempt, $row !== null, $solverPaces, $paceOffsets),
                 $row !== null ? ($row['drift'] ?? 0.0) : 0.0,
                 $row !== null ? ($row['spread'] ?? PredictionModelParameters::GLOBAL_SPREAD) : PredictionModelParameters::GLOBAL_SPREAD,
                 // The pair's rows start at its 5th qualifying first attempt
@@ -376,7 +414,7 @@ final class PredictionReconstructor implements ResetInterface
      *
      * @param array<string, list<PredictionInputSolve>> $candidatesAtSize the player's candidates at the target's piece count, by puzzle
      */
-    private function withCandidatePace(StatisticalPredictionInputs $inputs, string $playerId, PredictionInputSolve $target, PaceTimeline $solverPaces, array $candidatesAtSize, CandidateModelParameters $candidate): StatisticalPredictionInputs
+    private function withCandidatePace(StatisticalPredictionInputs $inputs, string $playerId, PredictionInputSolve $target, PaceTimeline $solverPaces, array $candidatesAtSize, CandidateModelParameters $candidate, CandidatePaceOffsets $paceOffsets = new CandidatePaceOffsets()): StatisticalPredictionInputs
     {
         if ($candidate->sizeCurve === null || $candidate->features()->on('size_curve') === false) {
             return $inputs;
@@ -388,7 +426,9 @@ final class PredictionReconstructor implements ResetInterface
             $row = $solverPaces->directRowBefore($playerId, $piecesCount, $target->solved, $target->tracked);
 
             if ($row !== null && $row['baseline'] > 0) {
-                $rows[] = [$piecesCount, $row['baseline'], $row['drift'] ?? 0.0, $row['spread'] ?? PredictionModelParameters::GLOBAL_SPREAD, $row['position'] + PlayerBaselineCalculator::MINIMUM_SOLVE_COUNT];
+                // v7: the pair's difficulty-adjusted offset before the solve rides on the drift
+                $offset = $paceOffsets->at($playerId, $piecesCount, $target->solved, $target->tracked) ?? 0.0;
+                $rows[] = [$piecesCount, $row['baseline'], ($row['drift'] ?? 0.0) + $offset, $row['spread'] ?? PredictionModelParameters::GLOBAL_SPREAD, $row['position'] + PlayerBaselineCalculator::MINIMUM_SOLVE_COUNT];
             }
         }
 

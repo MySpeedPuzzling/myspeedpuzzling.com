@@ -37,6 +37,8 @@ final class CandidateFitProgress
     public array $pictures = [];
     /** @var null|\Closure(string, float, float, TasteState): void every player's taste state after each of their window's first tries, in time order (CandidateModelRecalculator stores them) */
     public null|\Closure $tasteStates = null;
+    /** The evaluation's selection deciles: what every player picks, from the raw indices, also with adjusted_pace off (CandidateEngine::$selection) */
+    public bool $selectionLabels = false;
     private float $clock;
 
     public function __construct(

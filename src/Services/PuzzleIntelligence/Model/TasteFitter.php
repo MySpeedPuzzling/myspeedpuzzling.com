@@ -44,7 +44,7 @@ final readonly class TasteFitter
      * @param null|\Closure(int, float, float, TasteState): void $states every row's player, moment and state after it, in time order
      * @param list<array{0: null|int, 1: float, 2: float}> $queries [player, solved, tracked] whose state as of that moment (the rows strictly before it) the fit returns (TasteFit::$queryStates) - the unboxed first tries, which are no rows
      */
-    public function fit(TasteRows $rows, string $factorsVersion, bool $competition, null|\Closure $states = null, array $queries = []): TasteFit
+    public function fit(TasteRows $rows, string $factorsVersion, bool $competition, null|\Closure $states = null, array $queries = [], bool $slope = false): TasteFit
     {
         $count = $rows->count();
         $players = [];
@@ -111,9 +111,11 @@ final readonly class TasteFitter
             $vector = $foldModel->vector($rows->picture($r), (int) $rows->pieces[$r]);
             $before = $crossState[$player] ?? $foldModel->initialState();
             $atEvent = $rows->competition[$r] === true;
-            $terms[$r] = $before->term($vector) + ($competition && $atEvent ? $before->competitionOffset($foldModel->competitionShrink) : 0.0);
+            $logDifficulty = $slope ? $rows->logDifficulty[$r] : null;
+            $terms[$r] = $before->term($vector) + ($competition && $atEvent ? $before->competitionOffset($foldModel->competitionShrink) : 0.0)
+                + ($logDifficulty !== null ? $before->slopeTerm($logDifficulty, TasteModel::SLOPE_LAMBDA, TasteModel::SLOPE_MINIMUM) : 0.0);
             $variances[$r] = $before->variance($vector);
-            $crossState[$player] = $before->with($vector, (float) $rows->residual[$r], $atEvent);
+            $crossState[$player] = $before->with($vector, (float) $rows->residual[$r], $atEvent, $logDifficulty);
         }
 
         unset($crossState, $folds);
@@ -142,7 +144,7 @@ final readonly class TasteFitter
             $answer((float) $rows->solved[$r], (float) $rows->tracked[$r]);
             $player = (int) $rows->player[$r];
             $vector = $model->vector($rows->picture($r), (int) $rows->pieces[$r]);
-            $state[$player] = ($state[$player] ?? $model->initialState())->with($vector, (float) $rows->residual[$r], $rows->competition[$r] === true);
+            $state[$player] = ($state[$player] ?? $model->initialState())->with($vector, (float) $rows->residual[$r], $rows->competition[$r] === true, $rows->logDifficulty[$r]);
 
             if ($states !== null) {
                 $states($player, (float) $rows->solved[$r], (float) $rows->tracked[$r], $state[$player]);

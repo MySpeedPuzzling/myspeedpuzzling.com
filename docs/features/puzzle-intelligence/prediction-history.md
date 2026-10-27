@@ -442,8 +442,9 @@ three predictors written from scratch, 36,224 + 1,637 image rows) in 275 s; the 
 The prediction model review's proposals (README "Step 8", "The candidate model (v4)") built as a **candidate**: computed
 for every solo time next to the shown model and **never shown**. One more predictor in `solving_time_prediction`:
 
-- `predictor = candidate`, `model_version = CandidatePredictionCalculator::MODEL_VERSION` (6 since "Candidate v6",
-  5 with the taste factor, 4 before - "The taste factor (v5)", "Candidate v6" below; all 2026-10-27) - its own model version,
+- `predictor = candidate`, `model_version = CandidatePredictionCalculator::MODEL_VERSION` (7 since "Candidate v7", 6 since
+  "Candidate v6", 5 with the taste factor, 4 before - "The taste factor (v5)", "Candidate v6", "Candidate v7" below; all
+  2026-10-27) - its own model version,
   so no reader of the v3 rows (calibration report, image evaluation, time verification, Insights) ever sees it;
 - first tries and repeats alike (a repeat: the shown centre with the candidate's gap-aware window, `method =
   personal`); `image_model` names the estimate a first try rested on;
@@ -577,6 +578,41 @@ term of the window and the unboxed window as a variance of its own (README "Step
    `nohup docker compose exec -T -e SENTRY_DSN= web php -d memory_limit=1G bin/console myspeedpuzzling:backfill-solving-time-predictions --candidate > /tmp/backfill-candidate-v6.log 2>&1 &`
 3. Proof stays the time split (`evaluate-predictions --fit-before=<date> --candidate`, and
    `--candidate-off=image_interval,picture_dispersion,unboxed_variance` for v5 on the same code).
+
+### Candidate v7 (2026-10-27)
+
+The candidate's model version 7 = v6 + the difficulty-adjusted pace (estimated jointly with the puzzles' difficulty)
+and the player's own difficulty slope (README "Step 8", "Candidate v7"). For the rows:
+
+- a v7 row is written exactly where a v6 row was (live behind `PREDICTION_CANDIDATE_ROWS`, the backfill with
+  `--candidate`); the v4-v6 rows stay under their model versions (`evaluate-prediction-candidate --candidate=candidate:7
+  --reference=candidate:6` on the times both predicted);
+- its inputs: what v6 reads, plus the players' difficulty-adjusted pace offsets in the new table `candidate_pace_offset`
+  (one row per player × piece count where the offset moved, valid from the first try after which it holds - rewritten
+  by every candidate fit, ~223k rows / 31 MB on the production copy) and five more numbers in each taste state (the
+  slope's sums, inside the existing `candidate_player_taste.state` jsonb). Live: one more value per pace row on the
+  candidate's own statement (the pair's latest offset, a primary-key step), no more statements. Reconstructed: one more
+  statement in the candidate's pass (the offsets of the player and of the solvers of the target puzzles, as of each
+  solve). The 15-minute evidence refresh reads every stored offset once (its peak 272 MB). The shown tables, columns
+  and statements are untouched;
+- before the first v7 fit nothing is written (no fit = no rows), like v4-v6.
+
+### Production run for v7
+
+1. The migration (on boot) only **creates one table** (`candidate_pace_offset`) - nothing waits for it.
+2. No new cron: the daily `fit-candidate-prediction-model` (04:41) fits v7 and writes the offsets. Run it once by hand
+   after the deploy (its peak resident memory ~310 MB, ~4-5 minutes - README "Candidate v7"):
+   `docker compose run --rm --no-deps messenger-consumer php -d memory_limit=1G bin/console myspeedpuzzling:fit-candidate-prediction-model`
+   - the summary shows `adjusted_pace_rows_2` (every pace row), `adjusted_pace_mean_2` / `_sd_2` / `_p10_2` / `_p90_2`
+   (production copy: +0.035 / 0.052 / -0.014 / +0.086), `adjusted_pace_change_2` (how much the second round moved the
+   offsets, ~0.018) and "adjusted pace offsets written". Until it runs the candidate writes no rows (its v7 fit does not
+   exist yet); the v6 rows stay. The next `refresh-candidate-prediction-evidence` after it writes nothing (the fit wrote
+   the evidence from the very offsets it stored).
+3. The v7 rows of every past solo time (resumable, detached, never next to another backfill run):
+   `nohup docker compose exec -T -e SENTRY_DSN= web php -d memory_limit=1G bin/console myspeedpuzzling:backfill-solving-time-predictions --candidate > /tmp/backfill-candidate-v7.log 2>&1 &`
+4. Proof stays the time split (`evaluate-predictions --fit-before=<date> --candidate`, and
+   `--candidate-off=adjusted_pace,player_slope` for v6 on the same code; the output's `selection decile …` groups are
+   the players by what they pick, `size … · k …` the size × k cells).
 
 ## Pair and team predictions (2026-10-27)
 

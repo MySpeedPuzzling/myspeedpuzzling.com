@@ -147,6 +147,8 @@ final readonly class PredictionEvaluator
         [$candidateParameters, $tasteStates] = $this->fitCandidate($context, $features ?? CandidateFeatures::kept());
         [$cut, $end] = [(float) $fitBefore->getTimestamp(), $until !== null ? (float) $until->getTimestamp() : INF];
         $candidateEngine = $context->candidateEngine();
+        $events = self::afterTheCut($context, $cut, $end);
+        $selectionEdges = self::selectionEdges($context, $events);
 
         $groups = ['statistical' => new EvaluationGroups(), 'blend' => new EvaluationGroups(), 'candidate' => new EvaluationGroups()];
         // Unboxed first tries (outside the qualifying set): the shown model as it predicts them, the candidate with its offset
@@ -155,7 +157,7 @@ final readonly class PredictionEvaluator
 
         // In the order of the solves: the players' taste states move on with every first try after the cut, as the
         // daily fit's would (the unboxed first tries read them and add nothing, like in the fit)
-        foreach (self::afterTheCut($context, $cut, $end) as [$unboxedTry, $i]) {
+        foreach ($events as [$unboxedTry, $i]) {
             if ($unboxedTry) {
                 $u = $i;
                 $inputs = CandidateModelFitter::unboxedInputs($context->candidateEngine(), $unboxed, $u, $context->priors, $context->imageEstimates, $candidateParameters)
@@ -184,7 +186,9 @@ final readonly class PredictionEvaluator
 
             [$statistical, $blend, $candidate, $labels] = $predictions;
             $labels[] = 'experience ' . EvaluationGroups::experienceBucket($candidateEngine->experienceOf($i));
+            $labels[] = self::selectionLabel($context, $i, $selectionEdges);
             $seconds = (int) $context->set->seconds[$i];
+
 
             foreach (['statistical' => $statistical, 'blend' => $blend, 'candidate' => $candidate] as $name => $prediction) {
                 foreach ($labels as $label) {
@@ -352,6 +356,7 @@ final readonly class PredictionEvaluator
             static function (string $player, float $solved, float $tracked, TasteState $state) use (&$states): void {
                 $states[$player] = $state;
             },
+            selectionLabels: true,
         );
 
         return [$parameters, $states];
@@ -413,12 +418,13 @@ final readonly class PredictionEvaluator
         $taste = $candidateParameters->taste;
 
         if ($candidate !== null && $taste !== null && $candidateParameters->features()->on('taste')) {
-            [$term] = CandidatePredictionCalculator::taste($candidateInputs, $candidateParameters, $conditions->competition);
+            [$term] = CandidatePredictionCalculator::taste($candidateInputs, $candidateParameters, $conditions->competition, $candidate->logDifficulty);
             $residual = log((int) $context->set->seconds[$i] / $candidate->predictedSeconds) + $term;
             $tasteStates[$player] = ($tasteStates[$player] ?? $taste->initialState())->with(
                 $taste->vector($picture, (int) $context->set->pieces[$i]),
                 max(-TasteFitter::RESIDUAL_CLIP, min(TasteFitter::RESIDUAL_CLIP, $residual)),
                 $conditions->competition,
+                $candidate->logDifficulty,
             );
         }
 
@@ -468,6 +474,17 @@ final readonly class PredictionEvaluator
             $labels[] = 'size pieces_1000 · pace ' . ($candidate->paceSource->value ?? '-');
         }
 
+        $labels[] = sprintf('size %s · k %s', $group->value, match (true) {
+            $k === 0 => '0',
+            $k <= 4 => '1-4',
+            default => '5+',
+        });
+        $labels[] = 'k ' . match (true) {
+            $k === 0 => '0',
+            $k <= 4 => '1-4',
+            default => '5+',
+        } . ' (all)';
+
         foreach ([AttemptFlags::UNFLAGGED => 'unflagged', AttemptFlags::AFTER_GROUP => 'after own pair/team solve', AttemptFlags::COMMENTED => 'with a comment', AttemptFlags::COMPETITION => 'competition'] as $flag => $name) {
             if (($flags & $flag) !== 0) {
                 $labels[] = 'flag ' . $name;
@@ -475,6 +492,69 @@ final readonly class PredictionEvaluator
         }
 
         return [$statistical, $blend, $candidate, $labels];
+    }
+
+    /**
+     * The deciles of what the players pick (the decay-weighted mean log difficulty of their first tries at the size before
+     * the predicted one - CandidateEngine::$selection, from the raw indices, the same with adjusted_pace on or off) over
+     * the first tries after the cut that have one: 9 edges.
+     *
+     * @param list<array{0: bool, 1: int}> $events
+     * @return list<float>
+     */
+    private static function selectionEdges(EvaluationContext $context, array $events): array
+    {
+        $values = [];
+
+        foreach ($events as [$unboxed, $i]) {
+            $selection = $unboxed ? null : self::selectionOf($context, $i);
+
+            if ($selection !== null) {
+                $values[] = $selection;
+            }
+        }
+
+        if (count($values) < 10) {
+            return [];
+        }
+
+        sort($values);
+        $edges = [];
+
+        for ($decile = 1; $decile <= 9; $decile++) {
+            $edges[] = PredictionModelFitter::quantile($values, $decile / 10);
+        }
+
+        return $edges;
+    }
+
+    private static function selectionOf(EvaluationContext $context, int $i): null|float
+    {
+        $set = $context->set;
+
+        return $context->candidateEngine()->selection?->selectionAt($set->player[$i] . '|' . $set->pieces[$i], $set->solved[$i], $set->tracked[$i]);
+    }
+
+    /**
+     * @param list<float> $edges
+     */
+    private static function selectionLabel(EvaluationContext $context, int $i, array $edges): string
+    {
+        $selection = self::selectionOf($context, $i);
+
+        if ($selection === null || $edges === []) {
+            return 'selection: no pace at the size';
+        }
+
+        $decile = 1;
+
+        foreach ($edges as $edge) {
+            if ($selection > $edge) {
+                $decile++;
+            }
+        }
+
+        return sprintf('selection decile %02d (1 = easiest picks)', $decile);
     }
 
     /**

@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Value\PredictionModelParameters;
 use SpeedPuzzling\Web\Value\SizeCurve;
 use SpeedPuzzling\Web\Value\SolveConditions;
 use SpeedPuzzling\Web\Value\StatisticalPredictionInputs;
+use SpeedPuzzling\Web\Value\TasteModel;
 use SpeedPuzzling\Web\Value\WindowBucket;
 
 /**
@@ -36,11 +37,15 @@ use SpeedPuzzling\Web\Value\WindowBucket;
  *
  * Repeat: the shown model's centre (TimePredictionCalculator::personal()) × e^(gap offset), the window with the gap
  * since the last solve.
+ *
+ * v7: the pace rows carry the difficulty-adjusted offset on their drift (AdjustedPace - the player's level on the
+ * average puzzle, CandidateEngine / candidate_pace_offset), and the taste term the player's own difficulty slope
+ * (TasteState::slopeTerm()).
  */
 final readonly class CandidatePredictionCalculator
 {
-    /** The model version of the candidate's rows (solving_time_prediction, prediction_model_fit) - 5 = v4 + the taste factor, 6 = v5 + the image interval, the k = 0 picture term and the unboxed window */
-    public const int MODEL_VERSION = 6;
+    /** The model version of the candidate's rows (solving_time_prediction, prediction_model_fit) - 5 = v4 + the taste factor, 6 = v5 + the image interval, the k = 0 picture term and the unboxed window, 7 = v6 + the difficulty-adjusted pace and the player's difficulty slope */
+    public const int MODEL_VERSION = 7;
 
     public function __construct(
         private TimePredictionCalculator $shown = new TimePredictionCalculator(),
@@ -78,7 +83,7 @@ final readonly class CandidatePredictionCalculator
             ? $parameters->centreOffset(self::offsetKeys($group, $paceSource->value, $kBucket, $priorType)) + $parameters->experienceOffset($inputs->candidateFirstTries)
             : 0.0;
         $unboxed = $features->on('unboxed') && $conditions->unboxed;
-        [$taste, $tasteVariance] = self::taste($inputs, $parameters, $conditions->competition);
+        [$taste, $tasteVariance] = self::taste($inputs, $parameters, $conditions->competition, $logDifficulty);
         $centre = exp($logPace + $logDifficulty + $offset + $taste + ($unboxed ? $parameters->unboxedOffset : 0.0));
 
         $dispersion = $features->on('dispersion') ? $evidence->dispersion($parameters->dispersionShrink) : 0.0;
@@ -169,11 +174,12 @@ final readonly class CandidatePredictionCalculator
     /**
      * The player's taste term on the log centre and its variance (vᵀ A⁻¹ v) - [0, 0] while the fit has no taste model;
      * with one, a player without a state gets the prior's variance and a 0 term. At an event their own event offset
-     * joins it (switch competition_player).
+     * joins it (switch competition_player); with the puzzle's log difficulty their own difficulty slope (v7, switch
+     * player_slope - TasteState::slopeTerm()).
      *
      * @return array{0: float, 1: float}
      */
-    public static function taste(StatisticalPredictionInputs $inputs, CandidateModelParameters $parameters, bool $competition): array
+    public static function taste(StatisticalPredictionInputs $inputs, CandidateModelParameters $parameters, bool $competition, null|float $logDifficulty = null): array
     {
         $model = $parameters->taste;
 
@@ -187,6 +193,10 @@ final readonly class CandidatePredictionCalculator
 
         if ($competition && $parameters->features()->on('competition_player')) {
             $term += $state->competitionOffset($model->competitionShrink);
+        }
+
+        if ($logDifficulty !== null && $parameters->features()->on('player_slope')) {
+            $term += $state->slopeTerm($logDifficulty, TasteModel::SLOPE_LAMBDA, TasteModel::SLOPE_MINIMUM);
         }
 
         return [$term, $state->variance($vector)];

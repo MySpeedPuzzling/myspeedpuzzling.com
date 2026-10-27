@@ -36,6 +36,8 @@ readonly final class CandidateFeatures
         'image_interval' => 'v6: the image prior\'s own variance from the estimate\'s 80 % interval (else one variance for every estimate)',
         'picture_dispersion' => 'v6 (F8): the k = 0 window from how alike the picture\'s pieces look (traits + piece_scale)',
         'unboxed_variance' => 'v6: the unboxed window as a variance of its own (else a scale of the boxed one)',
+        'adjusted_pace' => 'v7 (P9): the pace and drift on the average puzzle - the median of ln seconds - log difficulty, estimated jointly with the puzzles\' difficulty (AdjustedPace)',
+        'player_slope' => 'v7 (F7): the player\'s own difficulty slope - γ (d - their mean d) from their residuals after the taste (TasteState::slopeTerm())',
     ];
 
     /** Index-noise terms of the flags (CandidateModelParameters::indexVariance()) and the feature that switches each */

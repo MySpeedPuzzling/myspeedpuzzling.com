@@ -1229,6 +1229,18 @@ First delivery = store + backfill; the UI comes after it.
 - [ ] Player-level accuracy: how often inside the range, average beat, trend over time (Insights section)
 - [ ] Ideas for later: "beat the prediction" streaks/badges, API fields on result rows (additive: `prediction`, `faster_than_predicted_percent`)
 
+## Pair/team predictions (`features/puzzle-intelligence/README.md` "Pair and team predictions")
+
+- [ ] After the deploy: cron row `56 4 * * *` for `myspeedpuzzling:fit-group-prediction-model`, first fill with
+      `--rows`, then `PREDICTION_GROUP_ROWS=1` (prediction-history.md "Production run for the pair/team rows")
+- [ ] Once a few thousand live rows exist: `evaluate-prediction-candidate --candidate=group:1 --reference=group_baseline:1`
+      and read the live slice
+- [ ] Windows still too narrow out of period for picture-only difficulty (44-45 / 74-76 %, bias +2 %) and at events
+      (45 / 74-75 %); puzzles with no difficulty at all are now scaled like picture-only ones - re-measure on a split
+- [ ] The difficulty is the shown rule as of the solve; try the candidate v4 posterior when v4 is shown (expected small:
+      a few thousandths against a pair's/team's 0.11-0.18 error)
+- [ ] Whether pair/team predictions are ever shown (add-time recap, pair/team page) - Jan's decision; nothing reads them now
+
 ## Image estimates in the predictions (Insights 5d, `features/insights/image-estimate-gates.md`)
 
 - [ ] lily.srv: a daily cron row for `myspeedpuzzling:evaluate-image-estimates` (after the 4×-daily prediction backfill,

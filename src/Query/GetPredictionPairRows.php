@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Generator;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Group\GroupPredictionModel;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\StatisticalInputsSql;
 use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\PredictionPairRow;
@@ -22,7 +23,8 @@ use SpeedPuzzling\Web\Value\TimePredictionSource;
  * when given), with the reference predictor's row of the same time beside it.
  *
  * Like the calibration report and the image evaluation: solo, not suspicious, not unboxed, a real time, never a secret
- * puzzle. One statement, streamed.
+ * puzzle - pair/team results instead for the pair/team predictors (PredictorKind::isGroup(), sliced by their window
+ * bucket: size, experience, unknown members). One statement, streamed.
  */
 readonly final class GetPredictionPairRows
 {
@@ -45,12 +47,14 @@ readonly final class GetPredictionPairRows
     ): Generator {
         $notSecret = StatisticalInputsSql::NOT_SECRET;
         $newer = $newerThan !== null ? 'AND p.added_at >= :newerThan' : '';
+        $puzzlingTypes = $candidate->isGroup() ? "pst.puzzling_type IN ('duo', 'team')" : "pst.puzzling_type = 'solo'";
 
         $rows = $this->database->iterateAssociative("
             SELECT
                 p.pieces_count,
                 c.k_indices,
                 c.source,
+                c.window_bucket,
                 pst.seconds_to_solve,
                 EXTRACT(EPOCH FROM COALESCE(pst.finished_at, pst.tracked_at)) AS solved_ts,
                 c.predicted_seconds AS c_seconds,
@@ -76,7 +80,7 @@ readonly final class GetPredictionPairRows
                 AND c.range80_low IS NOT NULL
                 AND c.range80_high IS NOT NULL
                 AND c.source IN ('live', 'reconstructed')
-                AND pst.puzzling_type = 'solo'
+                AND {$puzzlingTypes}
                 AND pst.suspicious = false
                 AND pst.unboxed = false
                 AND pst.seconds_to_solve > 0
@@ -93,7 +97,7 @@ readonly final class GetPredictionPairRows
         ] + ($newerThan !== null ? ['newerThan' => $newerThan->format('Y-m-d H:i:s')] : []));
 
         foreach ($rows as $row) {
-            /** @var array{pieces_count: int|string, k_indices: null|int|string, source: string, seconds_to_solve: int|string, solved_ts: float|string, c_seconds: int|string, c_r80_low: int|string, c_r50_low: int|string, c_r50_high: int|string, c_r80_high: int|string, r_seconds: null|int|string, r_r80_low: null|int|string, r_r50_low: null|int|string, r_r50_high: null|int|string, r_r80_high: null|int|string} $row */
+            /** @var array{pieces_count: int|string, k_indices: null|int|string, source: string, window_bucket: null|string, seconds_to_solve: int|string, solved_ts: float|string, c_seconds: int|string, c_r80_low: int|string, c_r50_low: int|string, c_r50_high: int|string, c_r80_high: int|string, r_seconds: null|int|string, r_r80_low: null|int|string, r_r50_low: null|int|string, r_r50_high: null|int|string, r_r80_high: null|int|string} $row */
             yield new PredictionPairRow(
                 sizeGroup: PiecesGroup::fromPiecesCount((int) $row['pieces_count']),
                 kIndices: $row['k_indices'] !== null ? (int) $row['k_indices'] : null,
@@ -102,6 +106,7 @@ readonly final class GetPredictionPairRows
                 live: $row['source'] === TimePredictionSource::Live->value,
                 candidate: new StoredPredictionWindows((int) $row['c_seconds'], (int) $row['c_r80_low'], (int) $row['c_r50_low'], (int) $row['c_r50_high'], (int) $row['c_r80_high']),
                 reference: StoredPredictionWindows::tryOf(self::intOrNull($row['r_seconds']), self::intOrNull($row['r_r80_low']), self::intOrNull($row['r_r50_low']), self::intOrNull($row['r_r50_high']), self::intOrNull($row['r_r80_high'])),
+                slices: $candidate->isGroup() && $row['window_bucket'] !== null ? GroupPredictionModel::slicesOfBucket($row['window_bucket']) : [],
             );
         }
     }

@@ -516,6 +516,53 @@ for every solo time next to the shown model and **never shown**. One more predic
    a consistency check only; as evidence count only its **live** slice (the gate prints live and reconstructed apart -
    rows predicted at the add, after the fit that made them), once there are a few thousand of them.
 
+## Pair and team predictions (2026-10-27)
+
+The pair/team model (README "Pair and team predictions") - **never shown**; pair/team times keep `predictable = false`
+on `puzzle_solving_time`. Two more predictors in `solving_time_prediction`, both of model version
+`Group\GroupPredictionModel::MODEL_VERSION` (1):
+
+- `group` - the model: first tries and repeats (`method = personal` for a repeat that starts from the same pair's/team's
+  own earlier time on the puzzle, else `statistical`); `k_indices` = the puzzle's index count for a first try, null for
+  a repeat (the gate's "repeat" bucket); `difficulty_used` / `difficulty_source` (solves / shrunk / image), `prior_log`
+  = the picture estimate the difficulty rested on, `window_bucket` = `kind|e<experience>|u<unknown members>|source|size`
+  (the gate slices by it);
+- `group_baseline` - the reference it is gated against: GroupExpectation's coordination rule as of the solve, only where
+  that rule can predict (every member registered with a pace before the solve, a rated puzzle) - `predictable = false`
+  elsewhere.
+
+**Written only by the daily command** `myspeedpuzzling:fit-group-prediction-model` (message `FitGroupPredictionModel`,
+`Group\GroupModelRecalculator`), its own process: nothing on the add-time or edit path - adding a pair/team time costs
+no statement, switched on or off - and nothing of the shown model's jobs. While `PREDICTION_GROUP_ROWS=1` (or with
+`--rows`) one run:
+1. predicts every time without rows, or whose **fingerprint** changed (`group_prediction_input`: pair/team, puzzle, solve
+   moment, first-try flag, unboxed, a secret puzzle revealed - an edit moving a time to another pair/team, a guest
+   merge), with **yesterday's fit** - a time tracked after that fit is written `live`: the fit has not seen it, its
+   inputs are as of the solve, so it is out of sample (no row is made on the add itself; "live" here means "the first
+   daily run after the add, with the fit made before it"); everything else `reconstructed`;
+2. refits the model on everything (`group_prediction_fit`, one row per model version);
+3. on the first fill or with `--recompute`: makes every reconstructed row again with the new fit (live rows stay);
+4. drops the rows of times that are no pair/team result to predict any more (now solo, suspicious, no seconds).
+
+Writes are multi-row upserts of 500 times (`Group\GroupPredictionRowsWriter` - a documented bulk operation, the times
+are never loaded as entities); the rows go with their time (cascade), like every side-by-side row. Readers of the other
+predictors filter by predictor and never see these rows; the candidate gate reads them on pair/team results only
+(`GetPredictionPairRows`, `PredictorKind::isGroup()`).
+
+### Production run for the pair/team rows (after the deploy)
+
+1. The migration (on boot) only creates two new tables (`group_prediction_fit`, `group_prediction_input`).
+2. A cron row on lily.srv, its own process, after the shown fit (it reads the shown model's τ):
+   ```
+   56 4 * * *    docker compose run --rm --no-deps messenger-consumer php -d memory_limit=1G bin/console myspeedpuzzling:fit-group-prediction-model
+   ```
+3. The first fill, once, by hand (measured on the production copy: 68 s, 74,354 times = 148,708 rows, 293 MB peak
+   resident with prod settings; the daily runs after it the same load and fit, ~1 min, writing only new times): `docker compose exec -T -e SENTRY_DSN= web php -d memory_limit=1G bin/console myspeedpuzzling:fit-group-prediction-model --rows`,
+   then `PREDICTION_GROUP_ROWS=1` - from the next day on the cron writes the new times live.
+4. Proof is the time split (`myspeedpuzzling:evaluate-group-predictions --fit-before=<date>`, read only); the stored
+   rows: `myspeedpuzzling:evaluate-prediction-candidate --candidate=group:1 --reference=group_baseline:1` - like the
+   candidate model, count only its **live** slice as evidence once there are a few thousand rows.
+
 ## Rollout
 
 1. ✅ Migration `Version20260930130108` + entity + value objects + invalidation.

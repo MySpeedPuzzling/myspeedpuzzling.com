@@ -10,6 +10,9 @@ namespace SpeedPuzzling\Web\Value;
  */
 readonly final class PredictionPairRow
 {
+    /**
+     * @param list<string> $slices
+     */
     public function __construct(
         public PiecesGroup $sizeGroup,
         // The puzzle's difficulty index count when predicted; null = a repeat (the player's own times)
@@ -22,6 +25,8 @@ readonly final class PredictionPairRow
         public StoredPredictionWindows $candidate,
         // Null when the reference had nothing for the time
         public null|StoredPredictionWindows $reference,
+        // More slices the solve belongs to beside live / reconstructed (pair/team rows: size, experience, unknown members)
+        public array $slices = [],
     ) {
     }
 }

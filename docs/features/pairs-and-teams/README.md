@@ -235,6 +235,32 @@ the card opens instantly with skeleton chips. Edit form, 422 re-render and `?tea
   older than a day. Manual; nothing depends on it.
 - **API**: result rows carry `team_id` + `team_name` (nullable, read-only, appended). Nothing renamed.
 
+## Predictions for pair and team results (side by side, never shown - 2026-10-27)
+
+Pair/team results get no shown prediction (`puzzle_solving_time.predictable = false`). A model of their own is stored
+next to them, never shown: predictors `group` and `group_baseline` of `solving_time_prediction`
+([`docs/features/puzzle-intelligence/README.md`](../puzzle-intelligence/README.md) "Pair and team predictions",
+storage: [`prediction-history.md`](../puzzle-intelligence/prediction-history.md) "Pair and team predictions"). What it
+takes from this feature:
+
+- **The pair/team is the `puzzling_team`** (D1, the exact set of people): its synergy - how much faster or slower these
+  people are together than their solo paces combined - is learned from that team's earlier results only, as of each
+  result. Another set of people (one more guest, one fewer member) is another team with its own synergy; what the
+  registered members showed in their other pairs/teams (results where everybody is known) is the new team's starting
+  point.
+- **Guests have no pace**: a guest - and a registered member without a pace at the puzzle's size before the solve - is
+  "unknown" and counts with the known members' mean rate; a pair/team with unknown members has its own coordination
+  constant and a lighter shrinkage of its synergy, which then carries the unknown member's pace (measured as of each
+  solve: the synergy of pairs/teams with an unknown member spreads twice as wide - SD 0.17 vs 0.08 log - and is more
+  reliable, split-half 0.89 vs 0.78). A result whose members are all unknown is not predicted.
+- **Merges and renames** (guest rename/link, player deletion): a time that moves to another team is predicted again
+  (the stored rows carry what they were made for - `group_prediction_input`), and the replay learns the merged
+  team's synergy from all its results.
+- **Repeats** after the same pair/team's own earlier time on the puzzle start from that time.
+- Nothing of it is shown, no page reads it, and adding or editing a pair/team time costs no statement: the rows are
+  written by a daily command of their own (`myspeedpuzzling:fit-group-prediction-model`, switch
+  `PREDICTION_GROUP_ROWS`).
+
 ## Rules that touch existing features
 
 - **Blocklist**: every new query returning other players embeds `HiddenPlayers::sqlExclude()` /

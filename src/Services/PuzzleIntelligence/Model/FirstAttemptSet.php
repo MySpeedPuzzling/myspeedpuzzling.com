@@ -117,20 +117,15 @@ final class FirstAttemptSet
 
             $position[] = ++$set->pairCount[$key];
 
-            $pace = $timeline->paceWithKnownFrom($player, $pieces, $solved, $tracked);
+            $known = self::indexOf($timeline, $player, $pieces, $seconds, $solved, $tracked);
             $index = null;
 
-            // PuzzleDifficultyCalculator::computeDifficultyIndices(): no index from a zero pace, a 0-second time or above the ceiling
-            if ($pace !== null && $pace[0] > 0) {
-                $candidate = $seconds / $pace[0];
+            if ($known !== null) {
+                $index = $known[0];
 
-                if ($candidate > 0.0 && $candidate <= self::INDEX_CEILING) {
-                    $index = $candidate;
-
-                    if ($pace[1] !== [$solved, $tracked]) {
-                        $set->knownSolved[$i] = $pace[1][0];
-                        $set->knownTracked[$i] = $pace[1][1];
-                    }
+                if ([$known[1], $known[2]] !== [$solved, $tracked]) {
+                    $set->knownSolved[$i] = $known[1];
+                    $set->knownTracked[$i] = $known[2];
                 }
             }
 
@@ -171,6 +166,31 @@ final class FirstAttemptSet
         $set->puzzleOrder = array_values($order);
 
         return $set;
+    }
+
+    /**
+     * A qualifying first attempt's difficulty index and the moment it is known from - the one rule of build() and of
+     * the pair/team model's as-of difficulty (Group\GroupDifficultyTimeline). PuzzleDifficultyCalculator::computeDifficultyIndices():
+     * no index from a zero pace, a 0-second time or above the ceiling; known from the solve itself, or from the solver's
+     * first pace row for a solve before it (PaceTimeline::paceWithKnownFrom()).
+     *
+     * @return null|array{0: float, 1: float, 2: float} index, known from (solved, tracked)
+     */
+    public static function indexOf(PaceTimeline $timeline, string $player, int $pieces, int $seconds, float $solved, float $tracked): null|array
+    {
+        $pace = $timeline->paceWithKnownFrom($player, $pieces, $solved, $tracked);
+
+        if ($pace === null || $pace[0] <= 0) {
+            return null;
+        }
+
+        $index = (float) ($seconds / $pace[0]);
+
+        if ($index <= 0.0 || $index > self::INDEX_CEILING) {
+            return null;
+        }
+
+        return [$index, $pace[1][0], $pace[1][1]];
     }
 
     private function sortIntoThePaceOrder(): void

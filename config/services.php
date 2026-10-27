@@ -135,6 +135,9 @@ return static function (ContainerConfigurator $configurator): void {
     // The candidate prediction model's rows (docs/features/feature_flags.md): live and by the backfill cron only while 1.
     $parameters->set('predictionCandidateRows', '%env(bool:PREDICTION_CANDIDATE_ROWS)%');
 
+    // The pair/team prediction model's rows (docs/features/feature_flags.md): written by its daily command only while 1.
+    $parameters->set('predictionGroupRows', '%env(bool:PREDICTION_GROUP_ROWS)%');
+
     // Online competitions (docs/features/feature_flags.md): organisers may set up online timing only while 1, admins always.
     $parameters->set('onlineRoundsForOrganisers', '%env(bool:ONLINE_ROUNDS_FOR_ORGANISERS)%');
 

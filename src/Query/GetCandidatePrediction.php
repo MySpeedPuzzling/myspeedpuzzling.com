@@ -22,12 +22,13 @@ use SpeedPuzzling\Web\Value\SolvingTimePrediction;
 use SpeedPuzzling\Web\Value\TimePredictionSource;
 
 /**
- * The candidate model's (v4, never shown) prediction of a solve being added now - asked by SolvingTimePredictor only
+ * The candidate model's (v5, never shown) prediction of a solve being added now - asked by SolvingTimePredictor only
  * after the shown predictions are made, in a savepoint of its own: one statement, never part of a shown reader's (the
  * shown path's statements are exactly what they are without the candidate). Null when the candidate was never fitted.
  *
  * A first try: the statistical inputs once more with the candidate's columns (StatisticalInputsSql::CANDIDATE_COLUMNS),
- * the size curve's (candidatePaceColumns() - by the player's own index) and its fit. A repeat: the shown centre with the candidate's window (the player's repeat spread and the days since the
+ * the size curve's (candidatePaceColumns() - by the player's own index), the taste factor's (CANDIDATE_TASTE_COLUMNS: the
+ * player's latest taste state, the picture's factors) and its fit. A repeat: the shown centre with the candidate's window (the player's repeat spread and the days since the
  * last solve).
  */
 readonly final class GetCandidatePrediction
@@ -57,7 +58,7 @@ readonly final class GetCandidatePrediction
 
         /** @var array<string, mixed>|false $row */
         $row = $this->database->executeQuery('
-            SELECT ' . StatisticalInputsSql::COLUMNS . ', ' . StatisticalInputsSql::IMAGE_ESTIMATE_COLUMNS . ', ' . StatisticalInputsSql::CANDIDATE_COLUMNS . ',
+            SELECT ' . StatisticalInputsSql::COLUMNS . ', ' . StatisticalInputsSql::IMAGE_ESTIMATE_COLUMNS . ', ' . StatisticalInputsSql::CANDIDATE_COLUMNS . ', ' . StatisticalInputsSql::CANDIDATE_TASTE_COLUMNS . ',
                 ' . StatisticalInputsSql::candidatePaceColumns() . ',
                 (' . PredictionModelParametersProvider::CANDIDATE_SQL . ') AS candidate_parameters
             FROM puzzle p
@@ -77,6 +78,7 @@ readonly final class GetCandidatePrediction
         }
 
         $inputs = StatisticalInputsSql::hydrateCandidatePace($row, StatisticalInputsSql::hydrateCandidate($row, StatisticalInputsSql::hydrate($row)->withImageEstimate(ImagePriorInput::fromRow($row))), $parameters);
+        $inputs = StatisticalInputsSql::hydrateCandidateTaste($row, $inputs, $parameters);
         $prediction = $this->calculator->firstTry($inputs, $parameters, $conditions);
 
         return $prediction !== null

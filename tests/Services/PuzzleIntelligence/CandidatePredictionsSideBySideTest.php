@@ -52,14 +52,17 @@ use SpeedPuzzling\Web\Value\PuzzleDifficultyEstimateInput;
 use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
 use SpeedPuzzling\Web\Value\SolveConditions;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
+use SpeedPuzzling\Web\Value\PictureFactors;
+use SpeedPuzzling\Web\Value\TasteModel;
+use SpeedPuzzling\Web\Value\TasteState;
 use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 
 /**
- * The candidate prediction model (v4, never shown - docs/features/puzzle-intelligence/prediction-history.md "The
- * candidate model (v4)") side by side with the shown one: fitted with it, written live in the add-time INSERT and by
+ * The candidate prediction model (v5, never shown - docs/features/puzzle-intelligence/prediction-history.md "The
+ * candidate model (v4)", "The taste factor (v5)") side by side with the shown one: fitted with it, written live in the add-time INSERT and by
  * the backfill, equal live and reconstructed as of now - and the shown predictions are the same with or without it.
  *
  * PLAYER_REGULAR has a 500-piece pace and has never solved PUZZLE_500_05 (2 difficulty indices) nor PUZZLE_500_04
@@ -126,12 +129,25 @@ final class CandidatePredictionsSideBySideTest extends KernelTestCase
      */
     public function testTheShownPredictionsAreTheSameWithAndWithoutTheCandidate(): void
     {
+        // With the taste factor too: a model, a picture's factors and a state of the player
+        $model = new TasteModel('1.0.0', array_fill(0, TasteModel::RANK, array_replace(array_fill(0, TasteModel::FEATURES, 0.0), [0 => 1.0])), 100.0, 30.0, 10.0);
+        /** @var string $stored */
+        $stored = $this->database->fetchOne('SELECT parameters FROM prediction_model_fit WHERE model_version = :version', ['version' => CandidatePredictionCalculator::MODEL_VERSION]);
+        $this->database->executeStatement('UPDATE prediction_model_fit SET parameters = CAST(:parameters AS jsonb) WHERE model_version = :version', [
+            'parameters' => json_encode(CandidateModelParameters::fromArray((array) json_decode($stored, true))->with(taste: $model)->toArray(), JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION),
+            'version' => CandidatePredictionCalculator::MODEL_VERSION,
+        ]);
+        $this->database->executeStatement("UPDATE puzzle_difficulty_estimate SET picture_factors = CAST(:factors AS jsonb), picture_factors_version = '1.0.0'", ['factors' => json_encode(array_fill(0, 16, 0.7), JSON_THROW_ON_ERROR)]);
+        $this->storeTasteState('2020-01-01 10:00:00', $model->initialState()->with($model->vector(new PictureFactors(array_fill(0, 16, 0.7), '1.0.0'), 500), 0.3, true));
+
         $withCandidate = $this->shownPredictions();
         self::assertNotNull($this->liveCandidate(PuzzleFixture::PUZZLE_500_05)?->result, 'Fitted: the candidate predicts');
 
         $this->database->executeStatement('DELETE FROM prediction_model_fit WHERE model_version = :version', ['version' => CandidatePredictionCalculator::MODEL_VERSION]);
         $this->database->executeStatement('DELETE FROM candidate_puzzle_evidence');
         $this->database->executeStatement('DELETE FROM candidate_puzzle_prior');
+        $this->database->executeStatement('DELETE FROM candidate_player_taste');
+        $this->database->executeStatement('UPDATE puzzle_difficulty_estimate SET picture_factors = NULL, picture_factors_version = NULL');
 
         self::assertNull($this->liveCandidate(PuzzleFixture::PUZZLE_500_05), 'Not fitted: no candidate row');
         self::assertEquals($withCandidate, $this->shownPredictions());
@@ -368,6 +384,54 @@ final class CandidatePredictionsSideBySideTest extends KernelTestCase
         }
     }
 
+    /**
+     * The taste factor (v5): live, the player's latest stored state and the picture's factors on the candidate's own
+     * statement; reconstructed, the latest state before the solve - the same prediction as of now, and a state stored
+     * after the solve is never read by its reconstruction.
+     */
+    public function testTheTasteMovesLiveAndReconstructedPredictionsAlike(): void
+    {
+        $puzzleId = PuzzleFixture::PUZZLE_500_05;
+        $withoutTaste = $this->liveCandidate($puzzleId)?->result;
+        self::assertNotNull($withoutTaste);
+
+        // A taste model whose first direction is the first picture factor, the picture high on it
+        $model = new TasteModel('1.0.0', array_fill(0, TasteModel::RANK, array_replace(array_fill(0, TasteModel::FEATURES, 0.0), [0 => 1.0])), 100.0, 30.0, 10.0);
+        /** @var string $stored */
+        $stored = $this->database->fetchOne('SELECT parameters FROM prediction_model_fit WHERE model_version = :version', ['version' => CandidatePredictionCalculator::MODEL_VERSION]);
+        $parameters = CandidateModelParameters::fromArray((array) json_decode($stored, true))->with(taste: $model, tasteVarianceWeight: 0.01);
+        $this->database->executeStatement('UPDATE prediction_model_fit SET parameters = CAST(:parameters AS jsonb) WHERE model_version = :version', [
+            'parameters' => json_encode($parameters->toArray(), JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION),
+            'version' => CandidatePredictionCalculator::MODEL_VERSION,
+        ]);
+        $factors = array_replace(array_fill(0, 16, 0.0), [0 => 1.2]);
+        $this->database->executeStatement("UPDATE puzzle_difficulty_estimate SET picture_factors = CAST(:factors AS jsonb), picture_factors_version = '1.0.0' WHERE puzzle_id = :id", [
+            'factors' => json_encode($factors, JSON_THROW_ON_ERROR),
+            'id' => $puzzleId,
+        ]);
+
+        // The player solved such pictures slower than predicted
+        $vector = $model->vector(new PictureFactors($factors, '1.0.0'), 500);
+        $state = $model->initialState();
+
+        for ($i = 0; $i < 30; $i++) {
+            $state = $state->with($vector, 0.15, false);
+        }
+
+        $this->storeTasteState('2020-01-01 10:00:00', $state);
+        $live = $this->liveCandidate($puzzleId)?->result;
+        self::assertNotNull($live);
+        $term = $state->term($vector);
+        self::assertGreaterThan(0.05, $term);
+        self::assertEqualsWithDelta($withoutTaste->predictedSeconds * exp($term), $live->predictedSeconds, 1.0);
+
+        // Stored after the solve below: the live path reads the latest state, its reconstruction the one before it
+        $this->storeTasteState('2099-01-01 10:00:00', $model->initialState()->with($vector, -0.5, false));
+        $timeId = $this->persistSoloTime($puzzleId, 2600, $this->now());
+        $reconstructed = $this->reconstructor()->reconstructSideBySide(PlayerFixture::PLAYER_REGULAR, [$timeId])[$timeId];
+        self::assertEquals($live, $reconstructed->candidate?->result);
+    }
+
     public function testTheBackfillWritesCandidateRowsOnlyOnceTheCandidateIsFitted(): void
     {
         $this->database->executeStatement('DELETE FROM solving_time_prediction WHERE predictor = :candidate', ['candidate' => 'candidate']);
@@ -413,6 +477,19 @@ final class CandidatePredictionsSideBySideTest extends KernelTestCase
         }
 
         return $shown;
+    }
+
+    private function storeTasteState(string $validFrom, TasteState $state): void
+    {
+        $this->database->executeStatement('
+            INSERT INTO candidate_player_taste (player_id, valid_from, valid_from_tracked_at, first_tries, state, computed_at)
+            VALUES (:player, :validFrom, :validFrom, :firstTries, CAST(:state AS jsonb), :validFrom)
+        ', [
+            'player' => PlayerFixture::PLAYER_REGULAR,
+            'validFrom' => $validFrom,
+            'firstTries' => $state->firstTries,
+            'state' => json_encode($state->toArray(), JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION),
+        ]);
     }
 
     private function storeEstimate(string $puzzleId, float $logDifficulty): void

@@ -10,11 +10,13 @@ use SpeedPuzzling\Web\Value\CandidateFeatures;
 use SpeedPuzzling\Web\Value\CandidateModelParameters;
 use SpeedPuzzling\Web\Value\ImagePriorInput;
 use SpeedPuzzling\Web\Value\PaceSource;
+use SpeedPuzzling\Web\Value\PictureFactors;
 use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\SizeCurve;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
 use SpeedPuzzling\Web\Value\SolveConditions;
 use SpeedPuzzling\Web\Value\StatisticalPredictionInputs;
+use SpeedPuzzling\Web\Value\TasteState;
 use SpeedPuzzling\Web\Value\WindowBucket;
 
 /**
@@ -26,8 +28,10 @@ use SpeedPuzzling\Web\Value\WindowBucket;
  *    indirect pace, the flags];
  * 2. the puzzle-weighted brand prior's pseudo-count (grid, first tries at puzzles without indices);
  * 3. a variance per prior type (grid, first tries at puzzles with 0-9 indices): the posterior's mean error is least;
- * 4. centre offsets: the median residual per key (CandidatePredictionCalculator::offsetKeys()), shrunk;
- * 5. first-try window: sigma² regressed on [spread², posterior variance, size groups, pace sources, dispersion]; the
+ * 4. centre offsets: the median residual per key (CandidatePredictionCalculator::offsetKeys()), shrunk; then the
+ *    taste factor on what they leave (TasteFitter, v5);
+ * 5. first-try window: sigma² regressed on [spread², posterior variance, size groups, pace sources, dispersion, the
+ *    taste term's variance] around the centre with the taste term as of each first try; the
  *    competition scale; standardised-residual quantiles per key;
  * 6. repeats: sigma² on [spread², 1, gap buckets], a median offset per gap bucket, quantiles per key with the gap.
  */
@@ -50,6 +54,7 @@ final readonly class CandidateModelFitter
     public function __construct(
         private CandidatePredictionCalculator $calculator = new CandidatePredictionCalculator(),
         private SizeCurveFitter $sizeCurveFitter = new SizeCurveFitter(),
+        private TasteFitter $tasteFitter = new TasteFitter(),
     ) {
     }
 
@@ -121,6 +126,8 @@ final readonly class CandidateModelFitter
      *
      * @param RepeatHistory|\Closure(): RepeatHistory $repeats the repeats, or how to load them when their step comes
      * @param array<string, ImagePriorInput> $imageEstimates by puzzle id
+     * @param array<string, PictureFactors> $pictures by puzzle id - the taste factor's
+     * @param null|\Closure(string, float, float, TasteState): void $tasteStates every taste state after a window's first try (CandidateFitProgress::$tasteStates)
      */
     public function fit(
         CandidateEngine $candidate,
@@ -133,8 +140,12 @@ final readonly class CandidateModelFitter
         PredictionModelParameters $shown,
         CandidateFeatures $features,
         UnboxedFirstTries $unboxed = new UnboxedFirstTries(),
+        array $pictures = [],
+        null|\Closure $tasteStates = null,
     ): CandidateModelParameters {
         $progress = $this->begin($candidate, $priors, $from, $to, $shown, $features);
+        $progress->pictures = $pictures;
+        $progress->tasteStates = $tasteStates;
         $this->sample($progress, $candidate, $priors, $imageEstimates, $unboxed);
         $this->fitNoise($progress, $candidate);
         $this->addEvidence($progress, $candidate);
@@ -361,6 +372,10 @@ final readonly class CandidateModelFitter
                 pieces: $set->pieces[$i],
                 paceVariance: $pooled[1],
                 slot: $candidate->slotOf($i) ?? -1,
+                player: $set->player[$i],
+                puzzle: $set->puzzle[$i],
+                solved: $set->solved[$i],
+                tracked: $set->tracked[$i],
             );
         }
     }
@@ -386,7 +401,9 @@ final readonly class CandidateModelFitter
         }
 
         $progress->lap('priors_offsets');
-        [$parameters, $windowSummary] = $this->fitFirstTryWindow($samples, $parameters, $features);
+        [$parameters, $taste] = $this->fitTaste($progress, $samples, $parameters);
+        $progress->lap('taste');
+        [$parameters, $windowSummary] = $this->fitFirstTryWindow($samples, $parameters, $features, $taste);
         $progress->add($windowSummary);
         $progress->samples = null;
         unset($samples);
@@ -405,6 +422,81 @@ final readonly class CandidateModelFitter
         $progress->add(['memory_peak_mb' => round(memory_get_peak_usage(true) / 1048576)]);
 
         return $parameters->with(fittedAt: $now, summary: $progress->summary);
+    }
+
+    /**
+     * Step 4b, the taste factor (switch taste): every sample's residual after the centre offsets, its player, puzzle,
+     * picture and moment into TasteFitter; the model into the parameters, each sample's term and variance as of its
+     * moment for the window's fit, every state after a first try to the progress's sink (stored), and the unboxed first
+     * tries' inputs with the player's state as of them.
+     *
+     * @return array{0: CandidateModelParameters, 1: null|TasteFit}
+     */
+    private function fitTaste(CandidateFitProgress $progress, CandidateSamples $samples, CandidateModelParameters $parameters): array
+    {
+        $features = $progress->features;
+
+        if ($features->on('taste') === false) {
+            return [$parameters, null];
+        }
+
+        $pictures = [];
+        $versions = [];
+
+        foreach ($samples->puzzleInts() as $puzzleId => $puzzle) {
+            $picture = $progress->pictures[$puzzleId] ?? null;
+
+            if ($picture !== null) {
+                $pictures[$puzzle] = $picture;
+
+                if ($picture->version !== null) {
+                    $versions[$picture->version] = ($versions[$picture->version] ?? 0) + 1;
+                }
+            }
+        }
+
+        // W is fitted on one basis: the version most pictures have (one at a time in practice)
+        arsort($versions);
+        $version = (string) (array_key_first($versions) ?? '');
+        $rows = new TasteRows($samples->count(), $pictures);
+
+        for ($s = 0, $count = $samples->count(); $s < $count; $s++) {
+            $offset = $features->on('centre_offsets')
+                ? $parameters->centreOffset(CandidatePredictionCalculator::offsetKeys($samples->group($s), $samples->paceSource($s)->value, WindowBucket::kBucket($samples->k($s)), $samples->priorType($s)))
+                    + $parameters->experienceOffset($samples->firstTries($s))
+                : 0.0;
+            $residual = $samples->target($s) - $this->logDifficulty($samples, $s, $parameters)[0] - $offset;
+            $rows->add($samples->player($s), $samples->puzzle($s), $samples->pieces($s), $samples->solved($s), $samples->tracked($s), max(-self::RESIDUAL_CLIP, min(self::RESIDUAL_CLIP, $residual)), $samples->competition($s));
+        }
+
+        $playerIds = $samples->playerIds();
+        $sink = $progress->tasteStates;
+        $queries = [];
+
+        foreach ($progress->unboxed as [, , , [$player, , $solved, $tracked]]) {
+            $queries[] = [$samples->playerInt($player), $solved, $tracked];
+        }
+
+        $fit = $this->tasteFitter->fit(
+            $rows,
+            $version,
+            $features->on('competition_player'),
+            $sink !== null ? static function (int $player, float $solved, float $tracked, TasteState $state) use ($sink, $playerIds): void {
+                $sink($playerIds[$player], $solved, $tracked, $state);
+            } : null,
+            $queries,
+        );
+        $progress->add($fit->summary);
+
+        if ($fit->model === null) {
+            return [$parameters, null];
+        }
+
+        foreach ($progress->unboxed as $u => [$inputs, , , [, $puzzle]]) {
+            $progress->unboxed[$u][0] = $inputs->withCandidateTaste($fit->queryStates[$u] ?? null, $progress->pictures[$puzzle] ?? null);
+        }
+
+        return [$parameters->with(taste: $fit->model), $fit];
     }
 
     /**
@@ -716,6 +808,10 @@ final readonly class CandidateModelFitter
                 competition: ($candidate->flags->of($i) & AttemptFlags::COMPETITION) !== 0,
                 pieces: $set->pieces[$i],
                 paceVariance: $pace[1],
+                player: $set->player[$i],
+                puzzle: $puzzle,
+                solved: $set->solved[$i],
+                tracked: $set->tracked[$i],
             );
         }
 
@@ -871,8 +967,10 @@ final readonly class CandidateModelFitter
     /**
      * @return array{0: CandidateModelParameters, 1: array<string, int|float|string>}
      */
-    private function fitFirstTryWindow(CandidateSamples $samples, CandidateModelParameters $parameters, CandidateFeatures $features): array
+    private function fitFirstTryWindow(CandidateSamples $samples, CandidateModelParameters $parameters, CandidateFeatures $features, null|TasteFit $taste = null): array
     {
+        $tasteTerms = $taste?->terms;
+        $tasteVariances = $taste?->variances;
         $count = $samples->count();
 
         if ($count < self::MINIMUM_SAMPLES) {
@@ -889,7 +987,7 @@ final readonly class CandidateModelFitter
                 ? $parameters->centreOffset(CandidatePredictionCalculator::offsetKeys($samples->group($s), $samples->paceSource($s)->value, WindowBucket::kBucket($samples->k($s)), $samples->priorType($s)))
                     + $parameters->experienceOffset($samples->firstTries($s))
                 : 0.0;
-            $errors[$s] = $samples->target($s) - $logDifficulty - $offset;
+            $errors[$s] = $samples->target($s) - $logDifficulty - $offset - ($tasteTerms !== null ? (float) $tasteTerms[$s] : 0.0);
             $posteriorVariances[$s] = $posteriorVariance;
             $dispersions[$s] = $features->on('dispersion') ? $samples->evidence($s)->dispersion($parameters->dispersionShrink) : 0.0;
         }
@@ -910,7 +1008,8 @@ final readonly class CandidateModelFitter
 
         // New players scatter more (their pace rests on few first tries) - a term of their own, with the offsets
         $experiences = $features->on('centre_offsets') ? ['lt10', 'lt30'] : [];
-        $columns = 2 + count($groups) + count($paceSources) + count($experiences) + ($features->on('dispersion') ? 1 : 0) + ($curve ? 1 : 0);
+        $columns = 2 + count($groups) + count($paceSources) + count($experiences) + ($features->on('dispersion') ? 1 : 0) + ($curve ? 1 : 0) + ($tasteVariances !== null ? 1 : 0);
+        $tasteVarianceOf = static fn (int $s): float => $tasteVariances !== null ? (float) $tasteVariances[$s] : 0.0;
         $normal = new NormalEquations($columns);
 
         foreach ($errors as $s => $error) {
@@ -934,6 +1033,10 @@ final readonly class CandidateModelFitter
 
             if ($curve) {
                 $row[] = $samples->paceVariance($s);
+            }
+
+            if ($tasteVariances !== null) {
+                $row[] = $tasteVarianceOf($s);
             }
 
             $normal->add($row, min(abs($error), self::RESIDUAL_CLIP) ** 2);
@@ -965,7 +1068,8 @@ final readonly class CandidateModelFitter
             paceTerms: $paceTerms,
             dispersionWeight: $features->on('dispersion') ? round($coefficients[$column], 6) : 0.0,
             consistencyEdges: PredictionModelFitter::quartileEdges($spreads),
-            paceVarianceWeight: $curve ? round($coefficients[$columns - 1], 6) : 0.0,
+            paceVarianceWeight: $curve ? round($coefficients[$columns - 1 - ($tasteVariances !== null ? 1 : 0)], 6) : 0.0,
+            tasteVarianceWeight: $tasteVariances !== null ? round($coefficients[$columns - 1], 6) : 0.0,
         );
 
         $summary = ['window_samples' => $count];
@@ -977,7 +1081,7 @@ final readonly class CandidateModelFitter
             foreach ($errors as $s => $error) {
                 if ($samples->competition($s)) {
                     $ratio[0] += min(abs($error), self::RESIDUAL_CLIP) ** 2;
-                    $ratio[1] += $parameters->firstTrySigma($samples->spread($s), $posteriorVariances[$s], $samples->group($s), $samples->paceSource($s), $dispersions[$s], 1.0, $samples->firstTries($s), $samples->paceVariance($s)) ** 2;
+                    $ratio[1] += $parameters->firstTrySigma($samples->spread($s), $posteriorVariances[$s], $samples->group($s), $samples->paceSource($s), $dispersions[$s], 1.0, $samples->firstTries($s), $samples->paceVariance($s), $tasteVarianceOf($s)) ** 2;
                     $ratio[2]++;
                 }
             }
@@ -993,7 +1097,7 @@ final readonly class CandidateModelFitter
 
         foreach ($errors as $s => $error) {
             $competition = $features->on('competition') && $samples->competition($s);
-            $standardised[$s] = $error / $parameters->firstTrySigma($samples->spread($s), $posteriorVariances[$s], $samples->group($s), $samples->paceSource($s), $dispersions[$s], $parameters->contextScale($competition, false), $features->on('centre_offsets') ? $samples->firstTries($s) : null, $samples->paceVariance($s));
+            $standardised[$s] = $error / $parameters->firstTrySigma($samples->spread($s), $posteriorVariances[$s], $samples->group($s), $samples->paceSource($s), $dispersions[$s], $parameters->contextScale($competition, false), $features->on('centre_offsets') ? $samples->firstTries($s) : null, $samples->paceVariance($s), $tasteVarianceOf($s));
         }
 
         unset($errors, $posteriorVariances, $dispersions);

@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidateModelFitter;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidatePredictionCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\FirstAttemptSet;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\PredictionEngine;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\PictureFactorsLookup;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\PriorLookup;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\RepeatHistory;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\UnboxedFirstTries;
@@ -19,6 +20,7 @@ use SpeedPuzzling\Web\Value\CandidateEvidence;
 use SpeedPuzzling\Web\Value\CandidateFeatures;
 use SpeedPuzzling\Web\Value\CandidateModelParameters;
 use SpeedPuzzling\Web\Value\ImagePriorInput;
+use SpeedPuzzling\Web\Value\TasteState;
 
 /**
  * The candidate prediction model's (v4, never shown - README "Step 8", "The candidate model (v4)") two jobs, each its
@@ -28,7 +30,8 @@ use SpeedPuzzling\Web\Value\ImagePriorInput;
  * - fit() (`myspeedpuzzling:fit-candidate-prediction-model`, daily after the shown fit): every qualifying first attempt
  *   replayed like the shown fit does (its drift with its fitted tau), the candidate fitted on the last 12 months
  *   (CandidateModelFitter) into prediction_model_fit row CandidatePredictionCalculator::MODEL_VERSION, the candidate's
- *   brand prior of every puzzle (candidate_puzzle_prior) and every puzzle's evidence (candidate_puzzle_evidence);
+ *   brand prior of every puzzle (candidate_puzzle_prior), every puzzle's evidence (candidate_puzzle_evidence) and every
+ *   player's taste state after each of their window's first tries (candidate_player_taste, rewritten);
  * - refreshEvidence() (`myspeedpuzzling:refresh-candidate-prediction-evidence`, every 15 minutes after the batch): every
  *   puzzle's evidence with the stored candidate fit and the drift the batch has just written - only the rows that
  *   changed. Nothing without a candidate fit.
@@ -55,7 +58,7 @@ readonly final class CandidateModelRecalculator
      * samples' evidence (then the attempt set and the engines are released), the rest on the samples alone. The priors
      * and the evidence rest only on the pseudo-count and the noise, which nothing later changes.
      *
-     * @return array{candidate: CandidateModelParameters, priors_written: int, evidence_written: int}
+     * @return array{candidate: CandidateModelParameters, priors_written: int, evidence_written: int, taste_states_written: int}
      */
     public function fit(DateTimeImmutable $now): array
     {
@@ -91,8 +94,26 @@ readonly final class CandidateModelRecalculator
             unset($candidate);
             $progress->lap('released');
 
+            // The taste factor (finish()): the pictures' factors, and every player's state after each of their window's
+            // first tries stored as it comes (candidate_player_taste is rewritten: W changes every day)
+            $progress->pictures = PictureFactorsLookup::load($this->connection, $now);
+            $this->connection->executeStatement('DELETE FROM candidate_player_taste');
+            $tasteStates = [];
+            $tasteWritten = 0;
+            $progress->tasteStates = function (string $player, float $solved, float $tracked, TasteState $state) use (&$tasteStates, &$tasteWritten, $now): void {
+                // The same player at the same moment twice (two times saved in one second): the state after both
+                $tasteStates[$player . '|' . $solved . '|' . $tracked] = [$player, $solved, $tracked, $state];
+
+                if (count($tasteStates) >= self::CHUNK) {
+                    $tasteWritten += $this->writeTasteStates($tasteStates, $now);
+                    $tasteStates = [];
+                }
+            };
+
             // Loaded only for the repeats' step, after the first tries' samples are gone
             $parameters = $this->fitter->finish($progress, fn (): RepeatHistory => RepeatHistory::load($this->connection, $from), $now);
+            $tasteWritten += $this->writeTasteStates($tasteStates, $now);
+            unset($tasteStates);
 
             $this->connection->executeStatement('
                 INSERT INTO prediction_model_fit (model_version, fitted_at, parameters) VALUES (:version, :now, CAST(:parameters AS jsonb))
@@ -103,8 +124,39 @@ readonly final class CandidateModelRecalculator
                 'parameters' => json_encode($parameters->toArray(), JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION),
             ]);
 
-            return ['candidate' => $parameters, 'priors_written' => $priorsWritten, 'evidence_written' => $evidenceWritten];
+            return ['candidate' => $parameters, 'priors_written' => $priorsWritten, 'evidence_written' => $evidenceWritten, 'taste_states_written' => $tasteWritten];
         });
+    }
+
+    /**
+     * Players' taste states (TasteState) as of each first try - inserted in one statement; a key already written (two
+     * first tries in one second, split by a chunk) takes the later state.
+     *
+     * @param array<string, array{0: string, 1: float, 2: float, 3: TasteState}> $states
+     */
+    private function writeTasteStates(array $states, DateTimeImmutable $now): int
+    {
+        if ($states === []) {
+            return 0;
+        }
+
+        $states = array_values($states);
+        $this->connection->executeStatement('
+            INSERT INTO candidate_player_taste (player_id, valid_from, valid_from_tracked_at, first_tries, state, computed_at)
+            SELECT fresh.player_id, fresh.valid_from, fresh.valid_from_tracked_at, fresh.first_tries, fresh.state, CAST(:now AS timestamp)
+            FROM unnest(CAST(:players AS uuid[]), CAST(:solved AS timestamp[]), CAST(:tracked AS timestamp[]), CAST(:firstTries AS int[]), CAST(:states AS jsonb[]))
+                AS fresh (player_id, valid_from, valid_from_tracked_at, first_tries, state)
+            ON CONFLICT (player_id, valid_from, valid_from_tracked_at) DO UPDATE SET first_tries = EXCLUDED.first_tries, state = EXCLUDED.state, computed_at = EXCLUDED.computed_at
+        ', [
+            'now' => $now->format('Y-m-d H:i:s'),
+            'players' => self::arrayLiteral(array_map(static fn (array $state): string => $state[0], $states)),
+            'solved' => self::arrayLiteral(array_map(static fn (array $state): string => gmdate('Y-m-d H:i:s', (int) $state[1]), $states)),
+            'tracked' => self::arrayLiteral(array_map(static fn (array $state): string => gmdate('Y-m-d H:i:s', (int) $state[2]), $states)),
+            'firstTries' => self::arrayLiteral(array_map(static fn (array $state): int => $state[3]->firstTries, $states)),
+            'states' => self::arrayLiteral(array_map(static fn (array $state): string => json_encode($state[3]->toArray(), JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION), $states)),
+        ]);
+
+        return count($states);
     }
 
     /**
@@ -356,7 +408,8 @@ readonly final class CandidateModelRecalculator
             static fn (null|int|float|string $value): string => match (true) {
                 $value === null => 'NULL',
                 is_float($value) => var_export($value, true),
-                default => '"' . $value . '"',
+                is_int($value) => (string) $value,
+                default => '"' . addcslashes((string) $value, '"\\') . '"',
             },
             $values,
         )) . '}';

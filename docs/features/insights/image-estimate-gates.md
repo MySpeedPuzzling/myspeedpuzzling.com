@@ -301,7 +301,9 @@ fails only without the margin (k = 10-19 +0.0003 ± 0.0001) and passes with it; 
 reconstructed rows are predicted with a fit that has already seen those solves - in-sample, and the candidate has many
 more fitted parameters than v3 (offsets, terms, quantile tables), so the reconstructed slice flatters it. Out-of-sample
 evidence is the time split, `evaluate-predictions --fit-before=<date> --candidate` (fitted before the date, scored after
-it - README "The candidate model (v4)"), and the live rows written after its fit once there are a few thousand.
+it - README "The candidate model (v4)"), and the live rows written after its fit once there are a few thousand. The
+candidate's version 5 (v4 + the taste factor) against v4: `--candidate=candidate:5 --reference=candidate:4` on the
+times both versions predicted - the same live-slice caveat.
 
 **Pair/team predictions (`--candidate=group:1 --reference=group_baseline:1`).** The same machinery on pair/team
 results (`GetPredictionPairRows` reads duo/team times for the group predictors, solo times for every other): the

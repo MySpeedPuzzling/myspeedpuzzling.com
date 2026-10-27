@@ -19,10 +19,13 @@ use SpeedPuzzling\Web\Value\CandidateModelParameters;
 use SpeedPuzzling\Web\Value\DifficultySource;
 use SpeedPuzzling\Web\Value\ImageKind;
 use SpeedPuzzling\Web\Value\ImagePriorInput;
+use SpeedPuzzling\Web\Value\PictureFactors;
 use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
 use SpeedPuzzling\Web\Value\SolveConditions;
 use SpeedPuzzling\Web\Value\StatisticalPredictionInputs;
+use SpeedPuzzling\Web\Value\TasteModel;
+use SpeedPuzzling\Web\Value\TasteState;
 
 /**
  * The candidate prediction model (v4, never shown) - its formulas pinned to hand-computed numbers, and the guard that
@@ -188,15 +191,18 @@ final class CandidateModelTest extends TestCase
         $calculator = new TimePredictionCalculator();
         $parameters = PredictionModelParameters::defaults();
         $plain = self::inputs(null, null);
-        $withCandidate = $plain->withCandidate(self::evidence([0.4, 0.5], 0.01), 0.3, 500);
+        $withCandidate = $plain->withCandidate(self::evidence([0.4, 0.5], 0.01), 0.3, 500)
+            ->withCandidateTaste(TasteState::initial(30.0, 100.0, TasteModel::RANK)->with([1.0, 0.2, -0.1, 0.3, 0.0], 0.2, true), new PictureFactors(array_fill(0, 16, 0.5), '1.0.0', ImageKind::Box));
 
         self::assertEquals($calculator->statistical($plain, $parameters, allowPriorOnly: true), $calculator->statistical($withCandidate, $parameters, allowPriorOnly: true));
         self::assertEquals($calculator->sideBySide($plain, null, $parameters), $calculator->sideBySide($withCandidate, null, $parameters));
 
-        foreach ([StatisticalInputsSql::COLUMNS, StatisticalInputsSql::JOINS, StatisticalInputsSql::lateralPaceJoins(), StatisticalInputsSql::ownPaceCte(), StatisticalInputsSql::centreSql($parameters)[0], StatisticalInputsSql::centreSql($parameters)[1], StatisticalInputsSql::centreSql($parameters)[2]] as $sql) {
+        foreach ([StatisticalInputsSql::COLUMNS, StatisticalInputsSql::JOINS, StatisticalInputsSql::IMAGE_ESTIMATE_COLUMNS, StatisticalInputsSql::imageEstimateJoins(false), StatisticalInputsSql::lateralPaceJoins(), StatisticalInputsSql::ownPaceCte(), StatisticalInputsSql::centreSql($parameters)[0], StatisticalInputsSql::centreSql($parameters)[1], StatisticalInputsSql::centreSql($parameters)[2]] as $sql) {
             // ("candidate" alone is the Picker's word for a listed puzzle)
             self::assertStringNotContainsString('candidate_', $sql);
             self::assertStringNotContainsString('candidate_puzzle_evidence', $sql);
+            // The taste factor's inputs ride only on the candidate's own statement
+            self::assertStringNotContainsString('picture_factors', $sql);
         }
 
         self::assertArrayNotHasKey('index_noise', $parameters->toArray(), 'the shown fit stores none of the candidate');

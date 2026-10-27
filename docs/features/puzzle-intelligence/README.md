@@ -756,7 +756,7 @@ pictured puzzle (41,266): the daily fit 5.6 → 6.0 s (the estimates' read and t
 batch unchanged (18.6 s - only the copy's sync compares one more column). The add-time path costs no statement: the
 estimate rides on the statistical read (two LEFT JOINs) and the three side rows go in one INSERT.
 
-### The candidate model (v4) - side by side, never shown
+### The candidate model (v4, v5 with the taste factor) - side by side, never shown
 
 A second model computed next to the shown one (v3), to be launched as one `MODEL_VERSION` bump once Jan decides
 (prediction model review 2026-10-26, proposals P1-P8 and data-mining F6/F8). **Nothing a player sees changes**: the
@@ -764,7 +764,7 @@ columns on `puzzle_solving_time`, `GetPlayerPrediction(s)`, the Picker, the reca
 `CandidateModelTest::testTheShownModelIgnoresEveryCandidateInput` and
 `CandidatePredictionsSideBySideTest::testTheShownPredictionsAreTheSameWithAndWithoutTheCandidate` guard it. Its rows
 are the `candidate` predictor of `solving_time_prediction`, model version `CandidatePredictionCalculator::MODEL_VERSION`
-(4) - first tries and repeats; storage and backfill: [prediction-history.md](prediction-history.md) "The candidate
+(5 since the taste factor, 4 before - "The taste factor (v5)") - first tries and repeats; storage and backfill: [prediction-history.md](prediction-history.md) "The candidate
 model (v4)".
 
 **First try** (`Model\CandidatePredictionCalculator::firstTry()`): the shown model's pace × e^drift (same
@@ -912,9 +912,9 @@ the same rows; MAE fit < 2026-06-01 / < 2026-04-01, all parts 0.0883 / 0.0885):
 | repeat gap (P4) | > 12 m 39.0 / 67.8 | yes (→ 49.9 / 77.8) |
 
 `CandidateFeatures::NOT_KEPT` lists the parts left off; `--candidate-off=…` and `--ablation` still measure them. Not
-built (measured elsewhere or left for later): the per-player competition offset (F6 - only the competition window
-scale is in), the k = 0 dispersion from the picture's look-alike numbers (F8 - traits are not on the prediction's
-statements) and the taste factor (P7).
+built (measured elsewhere or left for later): the k = 0 dispersion from the picture's look-alike numbers (F8 - traits
+are not on the prediction's statements). The taste factor (P7) and the per-player event offset (data-mining F7) came
+with v5 - "The taste factor (v5)" below.
 
 **Isolation and cost.** Nothing of the candidate runs inside the shown model's jobs: `fit-prediction-model` and the
 15-minute batch are exactly main's. The candidate has two commands of its own (`CandidateModelRecalculator`), each its
@@ -931,6 +931,7 @@ Peak resident memory (VmHWM) on the production copy (306,796 qualifying first at
 | shown fit alone (`fit-prediction-model`, unchanged) | 434 MB | 18 s |
 | candidate fit (`fit-candidate-prediction-model`) | 334 MB | 32 s |
 | candidate fit with the size curve (below) | ~360 MB | 42 s |
+| candidate fit v5 with the taste factor (below, `APP_DEBUG=0`) | 273-333 MB (at the size curve) | + 36-83 s (loaded laptop) |
 | candidate evidence refresh (every 15 min) | 312 MB | 14 s |
 | 15-minute batch | +0 (the candidate is not in it) | - |
 
@@ -943,6 +944,92 @@ result in the client library next to the arrays built from it) with the attempt 
 map), and by fixed-size columns for the samples and the evidence (`SplFixedArray`). The fitted parameters, the evidence
 and the brand priors are identical to the single-process version (compared on the copy). The fit's summary records
 `memory_*` and `resident_peak_*` per step.
+
+#### The taste factor (v5, 2026-10-27)
+
+Every puzzle is different and every player's taste is different (Jan): some players are relatively quicker at photos,
+others at cartoons or at 1000 pieces than their pace and the puzzle's difficulty say. The candidate's model version 5
+(`CandidatePredictionCalculator::MODEL_VERSION`) is v4 plus a term per player × puzzle on the log centre (switch
+`taste`; prediction model review P7, time-model report §4):
+
+    ln t += b_i + u_i · W x_j   (+ c_i at an event, switch competition_player)
+
+- **x_j** (`TasteModel::features()`): the puzzle's 16 picture factors (`puzzle_difficulty_estimate.picture_factors`, a
+  frozen PCA of the current picture's SigLIP 2 crop vector - unsupervised, no solve went into them; zeros without them
+  or from another basis version than W was fitted on), its kind (box, assembled) and its size group (≤ 300, 1000, other
+  than 500). It exists for a brand-new puzzle.
+- **W** (rank 4 × 21): fitted once a day in the candidate's fit (`Model\TasteFitter`, after the centre offsets) on every
+  player's residual against the candidate's centre without the taste (clipped at ±1) - by alternating ridge regressions
+  over per-player sufficient statistics (so an iteration costs per player, not per first try; ridge 10 on W). The
+  players' data never leaves the server.
+- **[b_i, u_i]** = A⁻¹ g, closed form (`Value\TasteState`): A = diag(λ_b, λ_u, …) + Σ v vᵀ, g = Σ v r over the
+  player's own first tries **before** the predicted one, v = [1, W x]; λ_b = 30 (the intercept), λ_u from {30, 100, 300}
+  by a held-out time split inside the fit window (W on its oldest 75 %, each λ scored on the newest 25 % as of every
+  first try - how it is served; prod copy: 100 on both splits). Nothing known = every term 0; a few first tries move it
+  little.
+- **c_i** (data-mining F7, reliability 0.51): the player's residuals at events less their taste term, shrunk:
+  Σ ÷ (n + 10).
+- **Window**: + w × vᵀ A⁻¹ v (the term's own uncertainty; w fitted with the other variance terms, prod copy 0.045). The
+  window's calibration reads every first try's term from a W fitted **without that player** (two folds by player): with
+  the W that saw the row, the window came out ~1 point too narrow after the cut (50 % hits 48.8 → 49.4 with the
+  cross-fitted terms, v4 49.7).
+
+**As of, stored** (`candidate_player_taste`, entity `CandidatePlayerTaste`): the daily fit writes every player's state
+(A, g, the event sums - jsonb) after each of their first tries of the fit window, keyed by player + the first try's
+moment (solve, then tracking - the models' as-of order); the table is rewritten with every fit (W changes daily). Live
+(`GetCandidatePrediction`, the candidate's own statement - `StatisticalInputsSql::CANDIDATE_TASTE_COLUMNS`): the
+player's latest state (one primary-key index step) and the picture's factors - **no extra statement**, and nothing on
+any shown statement (`CandidateModelTest::testTheShownModelIgnoresEveryCandidateInput` pins it). Reconstructed
+(`PredictionReconstructor`, in the candidate's own try/catch pass): the latest state valid strictly before the solve -
+one statement for the player's states, one for the target puzzles' factors
+(`CandidatePredictionsSideBySideTest::testTheTasteMovesLiveAndReconstructedPredictionsAlike`). A first try added after
+the last fit joins the player's state with the next daily fit (live lags ≤ 1 day; as-of honest). Serving cost: one
+5 × 5 Cholesky and a dot product - microseconds.
+
+**Measured** (`evaluate-predictions --fit-before=… --candidate`, the same rows; v4 = `--candidate-off=taste,competition_player`
+on the same code; the evaluation moves every player's state on with each first try after the cut in time order, as the
+daily fits would; read-only production copy of 2026-10-27, picture factors of 43,378 pictures):
+
+| group | n (June) | v3 shown | v4 candidate | **v5 candidate** | v4 → v5 | 50 / 80 % hits v4 → v5 |
+|---|---|---|---|---|---|---|
+| all first tries | 68,240 | 0.0928 | 0.0872 | **0.0846** | **−3.0 %** | 49.7 / 79.4 → 49.4 / 79.3 |
+| players with 0-9 first tries | 2,304 | 0.1395 | 0.1323 | 0.1306 | −1.3 % | 45.5 / 73.6 → 46.1 / 76.3 |
+| 10-29 | 9,418 | 0.1161 | 0.1084 | 0.1063 | −1.9 % | 49.9 / 79.8 → 50.4 / 80.4 |
+| 30-99 | 20,971 | 0.0952 | 0.0902 | 0.0875 | −3.0 % | 47.6 / 77.4 → 48.4 / 78.1 |
+| 100-299 | 24,269 | 0.0819 | 0.0770 | 0.0743 | −3.5 % | 50.5 / 80.3 → 49.5 / 79.6 |
+| 300+ | 11,278 | 0.0828 | 0.0766 | 0.0736 | −3.9 % | 52.7 / 81.9 → 50.8 / 80.4 |
+| k = 0 (picture only) | 3,737 | 0.1845 | 0.1441 | 0.1420 | −1.5 % | 52.8 / 83.3 → 52.6 / 84.1 |
+| k = 1-2 | 4,758 | 0.1328 | 0.1166 | 0.1143 | −2.0 % | 50.5 / 81.3 → 51.1 / 81.3 |
+| k = 3-4 | 2,954 | 0.1079 | 0.0976 | 0.0966 | −1.0 % | 49.0 / 78.7 → 47.6 / 78.3 |
+| k = 5-9 | 4,874 | 0.0990 | 0.0921 | 0.0905 | −1.7 % | 49.2 / 79.2 → 49.0 / 79.1 |
+| k = 10-19 | 5,940 | 0.0890 | 0.0852 | 0.0823 | −3.4 % | 49.7 / 78.0 → 49.2 / 78.0 |
+| k = 20+ | 45,977 | 0.0801 | 0.0786 | 0.0757 | −3.7 % | 49.4 / 79.1 → 49.1 / 78.9 |
+| 500 pieces | 53,030 | 0.0841 | 0.0806 | 0.0777 | −3.6 % | 49.8 / 79.3 → 49.5 / 79.2 |
+| 1000 pieces | 3,410 | 0.1429 | 0.1191 | 0.1158 | −2.8 % | 51.3 / 81.6 → 51.9 / 82.1 |
+| ≤ 300 pieces | 11,342 | 0.1160 | 0.1071 | 0.1062 | −0.8 % | 48.5 / 79.1 → 47.9 / 78.8 |
+| at an event | 4,111 | 0.0759 | 0.0719 | 0.0673 | −6.4 % | 50.0 / 78.5 → 51.3 / 79.6 |
+
+The second split (fit before 2026-04-01, 97,101 first tries) agrees: 0.0871 → 0.0845 (**−3.0 %**), 0-9 first tries
+−1.1 %, 10-29 −2.3 %, 30-99 −2.8 %, 100-299 −3.8 %, 300+ −3.3 %, k = 0 −1.6 %, at an event −5.2 %; hits 49.8 / 79.3 →
+49.5 / 79.5. **No experience bucket, k bucket or size group got worse on either split** (the review's bar: ≥ 1.5 %
+overall, ≥ 3 % for 100+ first tries). Unboxed first tries: MAE unchanged, hits 50.2 / 77.9 → 51.4 / 79.5 (June),
+49.5 / 78.3 → 48.1 / 75.9 (April - their state is read from the served W, not cross-fitted; 2,628 rows).
+
+What the gain is made of (an offline prototype on the same as-of residuals of v4, June split): the player's intercept
+alone −1.0 %, the picture factors alone −2.1 %, both in one rank-4 factor −2.5 %, with the kind and size and a separate
+intercept (λ_b 30) −2.6 %, the ridge λ_u = 100 instead of 30 −3.2 % (April the same: −3.2 %); rank 8 or a weaker
+ridge over-fitted (−1.2 to −1.9 %), λ_u 300 or 1000 shrank the gain away.
+The event offset (switch `competition_player`, `--candidate-off=competition_player`): at events 0.0693 → 0.0673
+(−2.9 %) June, 0.0697 → 0.0680 (−2.4 %) April, overall −0.1 / −0.2 %, no group worse by more than 0.0001 - kept.
+
+Cost: the taste step of the daily fit took 36-83 s on the copy (3 grid fits on the inner split, the full window warm
+started, 2 cross-fit folds; 160k first tries of 4,650 players; measured on a laptop shared with other jobs, load 15-40 -
+the whole fit 197 s there, v4's was 42 s on a quiet machine) and **does not raise the fit's peak** - production settings
+(`APP_DEBUG=0`, `memory_limit=1G`): peak resident 273 / 333 MB in two runs, both reached at the size curve; after the
+taste step 155 MB in use (+25 MB: the pictures' factors, the rows, the fit). `candidate_player_taste` holds one row per first try of the fit window
+(~160k rows, ~25 MB), rewritten in chunks of 5,000 in the fit's transaction. The 15-minute evidence refresh and the
+batch are untouched. (Measured with `APP_DEBUG=1` the step looked 180 MB heavier - the debug query logger keeps the
+inserts' parameters; production runs without debug.)
 
 ### Pair and team predictions - side by side, never shown (2026-10-27)
 

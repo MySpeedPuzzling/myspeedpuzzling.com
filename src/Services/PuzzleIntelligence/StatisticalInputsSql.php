@@ -8,10 +8,12 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\PriorContext;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidatePredictionCalculator;
 use SpeedPuzzling\Web\Value\CandidateEvidence;
 use SpeedPuzzling\Web\Value\CandidateModelParameters;
+use SpeedPuzzling\Web\Value\PictureFactors;
 use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
 use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
 use SpeedPuzzling\Web\Value\StatisticalPredictionInputs;
+use SpeedPuzzling\Web\Value\TasteState;
 
 /**
  * The live tables' side of a statistical prediction, written once for every statement that reads it -
@@ -103,6 +105,23 @@ final class StatisticalInputsSql
                 AND own_first.seconds_to_solve IS NOT NULL
         ) AS candidate_first_tries
     ";
+
+    /**
+     * The taste factor's inputs (v5), only on the candidate's own statement with imageEstimateJoins(): the player's latest
+     * taste state (candidate_player_taste - the primary key's order, one index step) and the picture factors of the
+     * puzzle's current picture (its kind is IMAGE_ESTIMATE_COLUMNS' image_artwork_kind). hydrateCandidateTaste() reads them.
+     */
+    public const string CANDIDATE_TASTE_COLUMNS = '
+        CAST(img.picture_factors AS text) AS candidate_picture_factors,
+        img.picture_factors_version AS candidate_picture_factors_version,
+        (
+            SELECT CAST(taste.state AS text)
+            FROM candidate_player_taste taste
+            WHERE taste.player_id = :playerId
+            ORDER BY taste.valid_from DESC, taste.valid_from_tracked_at DESC
+            LIMIT 1
+        ) AS candidate_taste_state
+    ';
 
     public const string CANDIDATE_JOINS = '
         LEFT JOIN candidate_puzzle_evidence ce ON ce.puzzle_id = p.id
@@ -220,6 +239,24 @@ final class StatisticalInputsSql
         $decoded = json_decode($json, true);
 
         return is_array($decoded) ? array_values($decoded) : [];
+    }
+
+    /**
+     * The inputs with the taste factor's columns of the row (CANDIDATE_TASTE_COLUMNS) - none while the fit has no taste
+     * model (a state of another rank than the model's is not read).
+     *
+     * @param array<string, mixed> $row
+     */
+    public static function hydrateCandidateTaste(array $row, StatisticalPredictionInputs $inputs, CandidateModelParameters $parameters): StatisticalPredictionInputs
+    {
+        if ($parameters->taste === null) {
+            return $inputs;
+        }
+
+        return $inputs->withCandidateTaste(
+            TasteState::fromJson($row['candidate_taste_state'] ?? null, count($parameters->taste->weights)),
+            PictureFactors::fromColumns($row['candidate_picture_factors'] ?? null, $row['candidate_picture_factors_version'] ?? null, $row['image_artwork_kind'] ?? null),
+        );
     }
 
     /**

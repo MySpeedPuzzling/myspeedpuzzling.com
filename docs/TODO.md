@@ -7,6 +7,17 @@ that would otherwise be forgotten. Newest section on top.
 ## Profile results by placing (`docs/features/profile-results-placing.md`, 2026-10-27)
 - [ ] Placing on the pairs and teams tabs: rank of the exact pair/team (`puzzling_team_id`) on the puzzle's pair/team board, then the same sorts, chips and median line as solo. Pair/team rows show no rank today, so the rank chip comes first; the solo LATERAL count in `GetRanking::rankings()` is the pattern (feature request #292 asked for solo only)
 
+## Candidate prediction model v5 - the taste factor (`docs/features/puzzle-intelligence/README.md` "The taste factor (v5)", 2026-10-27)
+
+- [ ] After the deploy: the candidate fit once by hand (writes the v5 fit and `candidate_player_taste`), then the
+  backfill with `--candidate` for the v5 rows (prediction-history.md "Production run for the taste factor (v5)")
+- [ ] Unboxed first tries read their taste state from the served W (not cross-fitted): their 80 % window held 75.9 %
+  on the April split (v4 78.3 %) - refit the unboxed scale on cross-fitted states if it holds on live rows
+- [ ] A first try enters the player's taste state only with the next daily fit - fold new first tries in between (the
+  15-minute refresh) if the live rows show the lag matters
+- [ ] Launch (Jan): taste explanations ("you are quicker at photos") only for players with ≥ 30 first tries and a
+  split-half stable sign (time-model review §4.5 step 4); the Picker's `centreSql()` twin needs the state + factors
+
 ## Candidate prediction model v4 (`docs/features/puzzle-intelligence/README.md` "The candidate model (v4)", 2026-10-27)
 
 - [ ] After the deploy: the two cron rows (`fit-candidate-prediction-model` 04:41, `refresh-candidate-prediction-evidence`
@@ -17,8 +28,8 @@ that would otherwise be forgotten. Newest section on top.
   a change to the shown path, so its own PR with the fit compared before / after
 - [ ] Puzzles players disagree about most (dispersion ≥ 0.02): the weighted mean is 2.9 % worse than the shown median
   there - try a robust index weight (Huber on the as-of mean) before launch
-- [ ] Not built: per-player competition offset (data-mining F6 - only the competition window scale is in); k = 0
-  dispersion from the picture's look-alike numbers (F8 - traits are not on the prediction statements)
+- [ ] Not built: k = 0 dispersion from the picture's look-alike numbers (F8 - traits are not on the prediction
+  statements). The per-player event offset came with v5 (below)
 - [ ] Launch (Jan): one `MODEL_VERSION` bump making v4 the shown model - shown difficulty / tiers stay the median until
   decided; the Picker's `centreSql()` twin then needs the candidate's evidence columns
 

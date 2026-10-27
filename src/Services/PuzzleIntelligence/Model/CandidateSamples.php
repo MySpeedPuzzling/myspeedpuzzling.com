@@ -46,6 +46,18 @@ final class CandidateSamples
     private SplFixedArray $firstTries;
     /** @var SplFixedArray<bool> */
     private SplFixedArray $competition;
+    /** @var SplFixedArray<int> the player (int of $players) - the taste factor */
+    private SplFixedArray $player;
+    /** @var SplFixedArray<int> the puzzle (int of $puzzles) - the taste factor */
+    private SplFixedArray $puzzle;
+    /** @var SplFixedArray<float> */
+    private SplFixedArray $solved;
+    /** @var SplFixedArray<float> */
+    private SplFixedArray $tracked;
+    /** @var array<string, int> player id => int */
+    private array $players = [];
+    /** @var array<string, int> puzzle id => int */
+    private array $puzzles = [];
 
     private int $count = 0;
 
@@ -67,6 +79,10 @@ final class CandidateSamples
         $this->median = new SplFixedArray($capacity);
         $this->firstTries = new SplFixedArray($capacity);
         $this->competition = new SplFixedArray($capacity);
+        $this->player = new SplFixedArray($capacity);
+        $this->puzzle = new SplFixedArray($capacity);
+        $this->solved = new SplFixedArray($capacity);
+        $this->tracked = new SplFixedArray($capacity);
     }
 
     public function add(
@@ -83,8 +99,16 @@ final class CandidateSamples
         int $pieces,
         float $paceVariance = 0.0,
         int $slot = -1,
+        string $player = '',
+        string $puzzle = '',
+        float $solved = 0.0,
+        float $tracked = 0.0,
     ): void {
         $s = $this->count++;
+        $this->player[$s] = $this->players[$player] ??= count($this->players);
+        $this->puzzle[$s] = $this->puzzles[$puzzle] ??= count($this->puzzles);
+        $this->solved[$s] = $solved;
+        $this->tracked[$s] = $tracked;
         $this->attempt[$s] = $attempt;
         $this->slot[$s] = $slot;
         $this->pieces[$s] = $pieces;
@@ -105,7 +129,7 @@ final class CandidateSamples
      */
     public function finish(): void
     {
-        foreach ([$this->attempt, $this->slot, $this->pieces, $this->paceVariance, $this->target, $this->priorType, $this->priorLog, $this->group, $this->paceSource, $this->spread, $this->median, $this->firstTries, $this->competition] as $column) {
+        foreach ([$this->attempt, $this->slot, $this->pieces, $this->paceVariance, $this->target, $this->priorType, $this->priorLog, $this->group, $this->paceSource, $this->spread, $this->median, $this->firstTries, $this->competition, $this->player, $this->puzzle, $this->solved, $this->tracked] as $column) {
             $column->setSize($this->count);
         }
     }
@@ -135,7 +159,7 @@ final class CandidateSamples
             return;
         }
 
-        foreach ([$this->attempt, $this->slot, $this->pieces, $this->paceVariance, $this->target, $this->priorType, $this->priorLog, $this->group, $this->paceSource, $this->spread, $this->median, $this->firstTries, $this->competition] as $column) {
+        foreach ([$this->attempt, $this->slot, $this->pieces, $this->paceVariance, $this->target, $this->priorType, $this->priorLog, $this->group, $this->paceSource, $this->spread, $this->median, $this->firstTries, $this->competition, $this->player, $this->puzzle, $this->solved, $this->tracked] as $column) {
             $column->setSize($this->count + $by);
         }
     }
@@ -237,6 +261,50 @@ final class CandidateSamples
     public function firstTries(int $s): int
     {
         return (int) $this->firstTries[$s];
+    }
+
+    public function player(int $s): int
+    {
+        return (int) $this->player[$s];
+    }
+
+    public function puzzle(int $s): int
+    {
+        return (int) $this->puzzle[$s];
+    }
+
+    public function solved(int $s): float
+    {
+        return (float) $this->solved[$s];
+    }
+
+    public function tracked(int $s): float
+    {
+        return (float) $this->tracked[$s];
+    }
+
+    /**
+     * @return array<int, string> int => player id
+     */
+    public function playerIds(): array
+    {
+        return array_flip($this->players);
+    }
+
+    /**
+     * @return array<string, int> puzzle id => int
+     */
+    public function puzzleInts(): array
+    {
+        return $this->puzzles;
+    }
+
+    /**
+     * The int of a player id (null = no sample of theirs).
+     */
+    public function playerInt(string $player): null|int
+    {
+        return $this->players[$player] ?? null;
     }
 
     /**

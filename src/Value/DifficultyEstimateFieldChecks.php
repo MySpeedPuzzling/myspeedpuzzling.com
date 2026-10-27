@@ -83,6 +83,29 @@ trait DifficultyEstimateFieldChecks
     }
 
     /**
+     * Like requiredNumber(), but absent or null is fine (null then).
+     *
+     * @param array<mixed> $fields
+     * @param array<string, string> $errors
+     */
+    private static function optionalNumber(array $fields, string $field, float $minimum, float $maximum, array &$errors): null|float
+    {
+        if (($fields[$field] ?? null) === null) {
+            return null;
+        }
+
+        $value = $fields[$field];
+
+        if ((is_int($value) || is_float($value)) === false || $value < $minimum || $value > $maximum) {
+            $errors[$field] = sprintf('must be a number from %s to %s, or null.', $minimum, $maximum);
+
+            return null;
+        }
+
+        return (float) $value;
+    }
+
+    /**
      * @param array<mixed> $fields
      * @param array<string, string> $errors
      */

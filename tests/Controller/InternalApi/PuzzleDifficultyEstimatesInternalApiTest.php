@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Controller\InternalApi;
 
 use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Query\GetPuzzleDifficultyEstimates;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
@@ -290,6 +291,88 @@ final class PuzzleDifficultyEstimatesInternalApiTest extends WebTestCase
         self::assertIsArray($answer['items'][3]);
         self::assertIsArray($answer['items'][3]['errors']);
         self::assertSame(['logP90'], self::sortedKeys($answer['items'][3]['errors']), 'An interval wider than 1.5');
+        self::assertSame(0, $this->database()->fetchOne('SELECT COUNT(*) FROM puzzle_difficulty_estimate'));
+    }
+
+    public function testThe120ValuesAreStoredReadBackAndClearedByAPushWithoutThem(): void
+    {
+        $browser = self::createClient();
+        $this->giveImages();
+        $factors = [0.5, -1.25, 2.0, 0.0, 1, -3, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, -99.5];
+
+        $answer = self::callInternalApi($browser, 'PUT', '/internal-api/puzzle-difficulty-estimates', ['items' => [
+            self::estimate(PuzzleFixture::PUZZLE_500_01) + [
+                'logP25' => 0.0,
+                'logP75' => 0.25,
+                'pixelsPerPiece' => 41.37,
+                'cropTrust' => 0.83,
+                'pictureFactors' => $factors,
+                'pictureFactorsVersion' => '1.0.0',
+            ],
+            self::estimate(PuzzleFixture::PUZZLE_500_02) + ['logP25' => null, 'logP75' => null, 'cropTrust' => null, 'pictureFactors' => null],
+        ]]);
+        self::assertResponseIsSuccessful();
+        self::assertIsArray($answer['counts']);
+        self::assertSame(2, $answer['counts']['stored']);
+
+        $estimates = self::getContainer()->get(GetPuzzleDifficultyEstimates::class)->forPuzzles([PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_500_02]);
+        $first = $estimates[PuzzleFixture::PUZZLE_500_01];
+        self::assertSame(0.0, $first->logP25);
+        self::assertSame(0.25, $first->logP75);
+        self::assertSame(41.37, $first->pixelsPerPiece);
+        self::assertSame(0.83, $first->cropTrust);
+        self::assertSame(array_map(floatval(...), $factors), $first->pictureFactors);
+        self::assertSame('1.0.0', $first->pictureFactorsVersion);
+        $second = $estimates[PuzzleFixture::PUZZLE_500_02];
+        self::assertNull($second->logP25);
+        self::assertNull($second->pixelsPerPiece);
+        self::assertNull($second->pictureFactors);
+        self::assertNull($second->pictureFactorsVersion);
+
+        // A push replaces the row whole: an older client (or another model) without the values leaves them empty
+        self::callInternalApi($browser, 'PUT', '/internal-api/puzzle-difficulty-estimates', ['items' => [self::estimate(PuzzleFixture::PUZZLE_500_01)]]);
+        self::assertResponseIsSuccessful();
+        $row = $this->database()->fetchAssociative('SELECT log_p25, log_p75, pixels_per_piece, crop_trust, picture_factors, picture_factors_version FROM puzzle_difficulty_estimate WHERE puzzle_id = :id', ['id' => PuzzleFixture::PUZZLE_500_01]);
+        self::assertSame(['log_p25' => null, 'log_p75' => null, 'pixels_per_piece' => null, 'crop_trust' => null, 'picture_factors' => null, 'picture_factors_version' => null], $row);
+    }
+
+    public function testInvalid120ValuesAreNamedField(): void
+    {
+        $browser = self::createClient();
+        $this->giveImages();
+        $sixteen = array_fill(0, 16, 0.5);
+
+        $answer = self::callInternalApi($browser, 'PUT', '/internal-api/puzzle-difficulty-estimates', ['items' => [
+            self::estimate(PuzzleFixture::PUZZLE_500_01) + ['logP25' => 0.0],
+            self::estimate(PuzzleFixture::PUZZLE_500_01) + ['logP25' => 0.2, 'logP75' => 0.5],
+            self::estimate(PuzzleFixture::PUZZLE_500_01) + ['pixelsPerPiece' => 0, 'cropTrust' => 1.5],
+            self::estimate(PuzzleFixture::PUZZLE_500_01) + ['pictureFactors' => array_fill(0, 15, 0.5), 'pictureFactorsVersion' => '1.0.0'],
+            self::estimate(PuzzleFixture::PUZZLE_500_01) + ['pictureFactors' => $sixteen],
+            self::estimate(PuzzleFixture::PUZZLE_500_01) + ['pictureFactorsVersion' => '1.0.0'],
+            self::estimate(PuzzleFixture::PUZZLE_500_01) + ['pictureFactors' => [...array_fill(0, 15, 0.5), 'x'], 'pictureFactorsVersion' => '1.0.0'],
+        ]]);
+        self::assertResponseIsSuccessful();
+        self::assertIsArray($answer['counts']);
+        self::assertSame(7, $answer['counts']['invalid']);
+        self::assertIsArray($answer['items']);
+
+        $expected = [
+            ['logP75'],
+            ['logP25', 'logP75'],
+            ['cropTrust', 'pixelsPerPiece'],
+            ['pictureFactors'],
+            ['pictureFactorsVersion'],
+            ['pictureFactorsVersion'],
+            ['pictureFactors'],
+        ];
+
+        foreach ($expected as $index => $fields) {
+            $item = $answer['items'][$index];
+            self::assertIsArray($item);
+            self::assertIsArray($item['errors']);
+            self::assertSame($fields, self::sortedKeys($item['errors']), "item $index");
+        }
+
         self::assertSame(0, $this->database()->fetchOne('SELECT COUNT(*) FROM puzzle_difficulty_estimate'));
     }
 

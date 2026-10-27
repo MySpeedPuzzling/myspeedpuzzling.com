@@ -83,6 +83,12 @@ readonly final class RecordPuzzleDifficultyEstimatesHandler
                     imageFingerprint: $input->imageFingerprint,
                     computedAt: $input->computedAt ?? $now,
                     receivedAt: $now,
+                    logP25: $input->logP25,
+                    logP75: $input->logP75,
+                    pixelsPerPiece: $input->pixelsPerPiece,
+                    cropTrust: $input->cropTrust,
+                    pictureFactors: $input->pictureFactors,
+                    pictureFactorsVersion: $input->pictureFactorsVersion,
                 );
             } else {
                 $estimate = new PuzzleDifficultyEstimate(
@@ -97,6 +103,12 @@ readonly final class RecordPuzzleDifficultyEstimatesHandler
                     imageFingerprint: $input->imageFingerprint,
                     computedAt: $input->computedAt ?? $now,
                     receivedAt: $now,
+                    logP25: $input->logP25,
+                    logP75: $input->logP75,
+                    pixelsPerPiece: $input->pixelsPerPiece,
+                    cropTrust: $input->cropTrust,
+                    pictureFactors: $input->pictureFactors,
+                    pictureFactorsVersion: $input->pictureFactorsVersion,
                 );
                 $this->estimateRepository->save($estimate);
                 $stored[$input->puzzleId] = $estimate;

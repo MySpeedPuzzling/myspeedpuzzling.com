@@ -25,6 +25,12 @@ use JetBrains\PhpStorm\Immutable;
  * the picture it was made from (`imageFingerprint`, PuzzleImageFingerprint) - readers take only the current one
  * (GetPuzzleDifficultyEstimates). Deleted with the puzzle - a merge drops the merged puzzle's estimate, the survivor
  * keeps its own.
+ *
+ * Since `difficulty_prior` 1.2.0 (all nullable - older pushes and other models leave them empty; nothing shown reads
+ * them yet): `logP25` / `logP75` the 50 % interval (the pipeline's own, not a symmetric guess from the 80 %),
+ * `pixelsPerPiece` the side of one piece in pixels of the original picture (resolution adequacy), `cropTrust` the
+ * `crop_trust` analyzer's trust in the artwork crop (0-1), `pictureFactors` 16 picture factors (a frozen PCA basis of
+ * the SigLIP 2 crop vector, whitened) with the basis version `pictureFactorsVersion` - the future taste model's input.
  */
 #[Entity]
 class PuzzleDifficultyEstimate
@@ -68,11 +74,32 @@ class PuzzleDifficultyEstimate
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $receivedAt,
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(nullable: true)]
+        public null|float $logP25 = null,
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(nullable: true)]
+        public null|float $logP75 = null,
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(nullable: true)]
+        public null|float $pixelsPerPiece = null,
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(nullable: true)]
+        public null|float $cropTrust = null,
+        /** @var null|list<float> */
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(type: Types::JSONB, nullable: true)]
+        public null|array $pictureFactors = null,
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(length: 50, nullable: true)]
+        public null|string $pictureFactorsVersion = null,
     ) {
     }
 
     /**
-     * A newer push for the same puzzle - it replaces this one whole.
+     * A newer push for the same puzzle - it replaces this one whole (an optional field it leaves out becomes null).
+     *
+     * @param null|list<float> $pictureFactors
      */
     public function replace(
         string $model,
@@ -85,6 +112,12 @@ class PuzzleDifficultyEstimate
         string $imageFingerprint,
         DateTimeImmutable $computedAt,
         DateTimeImmutable $receivedAt,
+        null|float $logP25 = null,
+        null|float $logP75 = null,
+        null|float $pixelsPerPiece = null,
+        null|float $cropTrust = null,
+        null|array $pictureFactors = null,
+        null|string $pictureFactorsVersion = null,
     ): void {
         $this->model = $model;
         $this->modelVersion = $modelVersion;
@@ -96,5 +129,11 @@ class PuzzleDifficultyEstimate
         $this->imageFingerprint = $imageFingerprint;
         $this->computedAt = $computedAt;
         $this->receivedAt = $receivedAt;
+        $this->logP25 = $logP25;
+        $this->logP75 = $logP75;
+        $this->pixelsPerPiece = $pixelsPerPiece;
+        $this->cropTrust = $cropTrust;
+        $this->pictureFactors = $pictureFactors;
+        $this->pictureFactorsVersion = $pictureFactorsVersion;
     }
 }

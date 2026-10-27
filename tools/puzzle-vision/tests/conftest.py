@@ -328,8 +328,25 @@ class FakeServer:
     def _estimate_errors(it: Any) -> dict[str, str]:
         if not isinstance(it, dict):
             return {"item": "must be a JSON object."}
-        known = {"puzzleId", "model", "modelVersion", "logDifficulty", "logP10", "logP90", "outOfFold", "trainingSize", "imageFingerprint", "computedAt"}
+        known = {"puzzleId", "model", "modelVersion", "logDifficulty", "logP10", "logP90", "outOfFold", "trainingSize", "imageFingerprint", "computedAt",
+                 "logP25", "logP75", "pixelsPerPiece", "cropTrust", "pictureFactors", "pictureFactorsVersion"}
         errors = {k: "is not a field of this endpoint" for k in it if k not in known}
+        # the optional 1.2.0 fields (PuzzleDifficultyEstimateInput): both quartiles or neither, inside the 80 % interval
+        if ("logP25" in it) != ("logP75" in it):
+            errors["logP25"] = "logP25 and logP75 come together."
+        elif "logP25" in it:
+            q = [it.get(k) for k in ("logP10", "logP25", "logDifficulty", "logP75", "logP90")]
+            if all(isinstance(x, (int, float)) and not isinstance(x, bool) for x in q) and any(a > b + 1e-6 for a, b in zip(q, q[1:])):
+                errors["logP25"] = "must be logP10 <= logP25 <= logDifficulty <= logP75 <= logP90."
+        if "pixelsPerPiece" in it and not (isinstance(it["pixelsPerPiece"], (int, float)) and 0 < it["pixelsPerPiece"] <= 100000):
+            errors["pixelsPerPiece"] = "must be a number above 0."
+        if "cropTrust" in it and not (isinstance(it["cropTrust"], (int, float)) and 0 <= it["cropTrust"] <= 1):
+            errors["cropTrust"] = "must be a number from 0 to 1."
+        factors = it.get("pictureFactors")
+        if factors is not None and not (isinstance(factors, list) and len(factors) == 16 and all(isinstance(x, (int, float)) and abs(x) <= 100 for x in factors)):
+            errors["pictureFactors"] = "must be 16 numbers from -100 to 100."
+        if (factors is None) != (it.get("pictureFactorsVersion") is None):
+            errors["pictureFactorsVersion"] = "comes with pictureFactors."
         for k in ("model", "modelVersion", "imageFingerprint", "puzzleId"):
             if not isinstance(it.get(k), str) or not it[k].strip():
                 errors[k] = "is required"

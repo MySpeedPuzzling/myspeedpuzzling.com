@@ -22,6 +22,12 @@ readonly final class ImagePriorInput
         public ImageKind $kind,
         // The estimate's model version (the derive's MODEL_VERSION) - which estimate generation a prediction rested on
         public null|string $modelVersion = null,
+        // Since difficulty_prior 1.2.0, null before: the pipeline's own 50 % interval, the side of one piece in pixels
+        // and the crop trust. Carried for later models - no prediction uses them (variance() reads the 80 % interval).
+        public null|float $logP25 = null,
+        public null|float $logP75 = null,
+        public null|float $pixelsPerPiece = null,
+        public null|float $cropTrust = null,
     ) {
     }
 
@@ -55,6 +61,7 @@ readonly final class ImagePriorInput
 
     /**
      * @param array<string, mixed> $row image_log, image_log_p10, image_log_p90, image_model, image_model_version, image_artwork_kind
+     *                                  (+ optional image_log_p25, image_log_p75, image_pixels_per_piece, image_crop_trust)
      */
     public static function fromRow(array $row): null|self
     {
@@ -68,7 +75,19 @@ readonly final class ImagePriorInput
         }
 
         $version = $row['image_model_version'] ?? null;
+        $optional = static fn (string $key): null|float => is_numeric($row[$key] ?? null) ? (float) $row[$key] : null;
 
-        return new self((float) $log, (float) $p10, (float) $p90, $model, ImageKind::fromArtworkKind($row['image_artwork_kind'] ?? null), is_string($version) ? $version : null);
+        return new self(
+            (float) $log,
+            (float) $p10,
+            (float) $p90,
+            $model,
+            ImageKind::fromArtworkKind($row['image_artwork_kind'] ?? null),
+            is_string($version) ? $version : null,
+            $optional('image_log_p25'),
+            $optional('image_log_p75'),
+            $optional('image_pixels_per_piece'),
+            $optional('image_crop_trust'),
+        );
     }
 }

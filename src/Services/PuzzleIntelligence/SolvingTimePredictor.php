@@ -77,7 +77,7 @@ readonly final class SolvingTimePredictor
                 $time->puzzle->id->toString(),
                 excludeTimeId: $time->id->toString(),
                 before: SolveMoment::of($time->finishedAt, $time->trackedAt),
-                conditions: new SolveConditions(unboxed: $time->unboxed, competition: $time->competition !== null),
+                conditions: new SolveConditions(unboxed: $time->unboxed, competition: $time->competition !== null || $time->competitionSeries !== null),
             );
 
             $this->connection->commit();

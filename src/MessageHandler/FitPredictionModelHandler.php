@@ -8,6 +8,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Message\FitPredictionModel;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerPaceHistoryWriter;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionModelRecalculator;
+use SpeedPuzzling\Web\Value\CandidateModelParameters;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -22,7 +23,7 @@ readonly final class FitPredictionModelHandler
     }
 
     /**
-     * @return array{prior_groups: int, prior_puzzles: int, priors_seconds: float, drift_rows_written: int, parameters: PredictionModelParameters}
+     * @return array{prior_groups: int, prior_puzzles: int, priors_seconds: float, drift_rows_written: int, parameters: PredictionModelParameters, candidate: CandidateModelParameters, candidate_evidence_written: int}
      */
     public function __invoke(FitPredictionModel $message): array
     {

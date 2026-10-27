@@ -726,7 +726,8 @@ final class PredictionReconstructor implements ResetInterface
                 pst.first_attempt,
                 pst.suspicious,
                 pst.unboxed,
-                pst.competition_id IS NOT NULL AS competition,
+                -- At an event: an edition / one-time event, or a series pick still at series level (competition_series_id)
+                (pst.competition_id IS NOT NULL OR pst.competition_series_id IS NOT NULL) AS competition,
                 CASE WHEN pst.predictable = true AND pst.prediction_method = 'personal' THEN pst.predicted_seconds END AS stored_personal,
                 EXTRACT(EPOCH FROM COALESCE(pst.finished_at, pst.tracked_at)) AS solved_ts,
                 EXTRACT(EPOCH FROM pst.tracked_at) AS tracked_ts

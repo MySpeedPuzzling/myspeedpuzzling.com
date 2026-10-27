@@ -16,7 +16,8 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerBaselineCalculator;
  *   biased fast: some are not first tries);
  * - AFTER_GROUP: the player had solved the puzzle in a pair or team before (4.4 %, biased fast - they know it);
  * - COMMENTED: the result carries a comment (an interruption, missing pieces - residual SD 0.17 vs 0.13);
- * - COMPETITION: linked to an event (steadier: SD 0.10).
+ * - COMPETITION: linked to an event - an edition or one-time event (competition_id), or a series pick still at series
+ *   level (competition_series_id) - steadier: SD 0.10.
  */
 final readonly class AttemptFlags
 {
@@ -33,7 +34,7 @@ final readonly class AttemptFlags
     public const string FLAG_COLUMNS = "
         pst.first_attempt,
         (pst.comment IS NOT NULL AND btrim(pst.comment) <> '') AS commented,
-        pst.competition_id IS NOT NULL AS competition,
+        (pst.competition_id IS NOT NULL OR pst.competition_series_id IS NOT NULL) AS competition,
         COALESCE(first_group.solved_at < COALESCE(pst.finished_at, pst.tracked_at), false) AS after_group
     ";
 

@@ -34,7 +34,7 @@ final class UnboxedFirstTries
         $tries = new self();
 
         $rows = $connection->executeQuery("
-            SELECT pst.player_id, pst.puzzle_id, p.pieces_count, pst.seconds_to_solve, pst.competition_id IS NOT NULL AS competition,
+            SELECT pst.player_id, pst.puzzle_id, p.pieces_count, pst.seconds_to_solve, (pst.competition_id IS NOT NULL OR pst.competition_series_id IS NOT NULL) AS competition,
                 EXTRACT(EPOCH FROM COALESCE(pst.finished_at, pst.tracked_at)) AS solved_ts,
                 EXTRACT(EPOCH FROM pst.tracked_at) AS tracked_ts
             FROM puzzle_solving_time pst

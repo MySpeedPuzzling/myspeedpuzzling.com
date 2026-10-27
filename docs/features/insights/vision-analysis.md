@@ -102,6 +102,86 @@ Findings:
 - Measured once under GPU contention (another agent's model on the GPU): the 8B ran 3× slower (10 tok/s instead of
   34). The pipeline must hold the GPU alone (§8.6).
 
+### 4.1 Artwork 1.2 (2026-10-27) - fewer cuts, the hypotheses stored
+
+From the 2026-10-26 model review (artwork report F2, proposals 5-9). Code: `stages/artwork_refine.py`
+(`NO_EDGE_FALLBACK`, `PriorAnswers`, `SAM_*`), `stages/artwork_sam.py`, `stages/artwork.py` (`rules_from`,
+`flat_probe`). **The rules switch on with the profile's version**: a profile still on `1.1.x` stores exactly what 1.1
+stored (`ArtworkStage.v12`), so the code can be deployed before the version is bumped.
+
+All numbers below come from one harness: `artwork_eval --candidate memo` = the current code on the stored first pass with
+the VLM's answers of earlier eval runs (no model; it reproduces 1.1 on all 453 labelled pictures without one missing
+answer). Counts on the sets; "weighted" = catalogue rates (`artwork_eval` weighting). `tuning` is the only stratified
+random sample, so its weighted rates are the best estimate of the catalogue until Jan's random test set is marked.
+
+| Version | validation (`reference`, 238): cut / big cut / print / within 5 % / mIoU | tuning + feedback (215): cut / big / print / mIoU | catalogue (tuning-weighted): cut / big / print / within 5 % |
+|---|---|---|---|
+| 1.1 | 45 / 22 / 58 / 179 / 0.914 | 34 / 16 / 55 / 0.933 | 14.2 % / 6.8 % / 18.5 % / 82.8 % |
+| fallback on upright faces only (the review's measurement) | 35 / 16 / 61 / 181 / 0.919 | 31 / 15 / 63 / 0.928 | 13.0 % / 6.7 % / 21.4 % / 80.4 % |
+| **1.2** (fallback on every face) | **22 / 6 / 69 / 175 / 0.911** | **23 / 7 / 71 / 0.921** | **8.4 % / 3.4 % / 24.4 % / 81.2 %** |
+
+(validation-weighted: cut 17.6 → 8.8 %, big cut 9.1 → 2.6 %, print 22.1 → 26.4 %.)
+
+- **No-edge fallback (proposal 6, in).** A face-pass side taken on the VLM's line with no colour step under it (cut
+  13 % of the time in 1.1) goes no deeper than the first pass's crop on that side (`trims_in_face`: the first pass's
+  box mapped into the straightened face, its outer corner per side). Applied to tilted faces too: the review measured
+  upright faces only (cuts 45 → 35, the trade Jan approved); on every face cuts halve and big cuts fall by 3-4× for
+  more print (58 → 69 on validation). Side midpoints instead of outer corners: cuts 29, big 10, print 69 - worse.
+  Jan's call to make: the upright-only rule is the approved trade; 1.2 as built goes further.
+- **Hypotheses stored (proposal 5, in).** `signals.decidedBy` (per side: trim / quad / fit / tilt / VLM box / widened
+  (no edge) / edge / VLM line / first pass / SAM + step + VLM line / photo border), `signals.conservative` (per side the
+  outer of the first pass's crop and the final one), `firstPass.vlmQuad` (the VLM's own corners - only for pictures
+  whose first pass runs now, the stored first passes never kept them), `signals.face.beforeGrow` (the face question
+  before a grow, so a later re-run asks neither again).
+- **Re-used VLM answers.** A 1.2 run on a picture with a stored 1.1 result re-uses the stored kind check and face
+  answer when it asks the same question of the same pixels (same face outline) - `signals.vlmReused`. With the
+  fallback alone no outline changes, so the 1.2 re-run of `artwork` needs the VLM only for grown faces (~350) and new
+  pictures.
+- **Skewed outlines only when two hypotheses agree (proposal 8, out).** Measured on top of the fallback: keeping a
+  tilt / fit outline only when the box-edge fit and the straight-line angles (or the 1.0 snap) agree within 1-3° keeps
+  3-7 of ~50 skewed boxes and is neutral to worse (validation big cuts 4 → 5-6, print 55 → 58-59 on the box photos;
+  tuning + feedback cuts 18 → 20-22). Turning tilt / fit off altogether: validation cuts 22 → 23-28. Once the
+  fallback holds the no-edge sides, the skewed paths are no longer where the cuts come from.
+- **SAM 2.1 (proposal 7, built, off: `SAM_SIDES = False`).** `facebook/sam2.1-hiera-small` (Apache-2.0) via
+  transformers, asked once per face and only when a side would be held; the VLM's line is kept where SAM's mask edge, a
+  colour step (≥ 0.35 of the line) and the line agree within 1 % of the face. Prompted with the VLM's own box, the mask
+  echoes that box: on a CPU sample it agreed with the VLM on a picture inside the picture and cut 41 %. Prompted with
+  the first pass's box (`SAM_PROMPT = "held"`, independent of the VLM's line) it never added a cut but it barely
+  matters: tuning print 49 → 48, mIoU +0.0018; feedback no change; validation 12 sides agreed, no count changed, mIoU
+  +0.0003 (CPU, the 47 / 68 pictures with a held side). SAM costs ~3 s a face on the CPU (MPS faster) - not worth a
+  model in the run; switch it on only if a later measurement on the random test set says otherwise.
+- **Whole-image probe (proposal 9, a signal only).** `signals.flatProbe` = a logistic probe on the stored
+  `embed_siglip2_full` vector (`artwork_flat_probe.json`, trained on production outside the labelled sets). As a
+  decision it cannot be validated: above a confident 2 it flips no tuning / feedback picture and one validation
+  picture; at 0-1 it flips 7 of 20 missed flats with 1 wrong on tuning + feedback, 2 of 3 right on validation. 153
+  production photos score > 2, 61 > 3 - a list for Jan to look at, never the kind.
+- **The difficulty estimate does not improve (measured 2026-10-27, so 1.2 stays dormant).** 1,196 crops 1.2 moves (puzzles
+  with ≥ 3 measured first tries) + 150 unchanged controls were re-cropped and re-embedded exactly like the pipeline
+  (SigLIP 2, DINOv2 cls + patches, segmentation, vision labels, colors, traits) and the picture estimate's model of
+  record compared paired, same folds, old vs new crop inputs:
+
+  | moved crops | n | MAE old → new | Δ (95 % CI) | Spearman old → new | tier exact old → new |
+  |---|---|---|---|---|---|
+  | ≥ 5 indices, today's model, inputs swapped | 471 | 0.1005 → 0.1019 | +0.0014 (−0.0017, +0.0045) | 0.668 → 0.666 | 0.501 → 0.507 |
+  | ≥ 5, refit on the new inputs | 471 | 0.1005 → 0.1019 | +0.0014 (−0.0017, +0.0045) | 0.668 → 0.666 | 0.501 → 0.516 |
+  | ≥ 5, older 70 % → newer 30 % | 237 | 0.0973 → 0.0983 | +0.0009 (−0.0029, +0.0047) | 0.623 → 0.613 | 0.498 → 0.523 |
+  | ≥ 10, inputs swapped / refit / time split | 147 / 147 / 85 | | +0.0007 / +0.0013 / +0.0014 (CIs ±0.006) | | |
+
+  Controls (stored crop re-embedded, inputs swapped): Δ 0.0000 - the re-embedding reproduces the stored vectors.
+  Whole model after the refit: MAE 0.0887 → 0.0888 on 6,601 rows. No gain, if anything a hair worse. This is the
+  review's F6 again: the crop's exact edges barely move the estimate (an embedding of the whole picture with a sliver
+  of box print carries the same difficulty signal). **So 1.2 is better crops for marking, display and crop proposals,
+  not for the estimate.** It stays dormant (profiles on 1.1.x): switching it on costs the artwork re-run (~4-6 h, mostly
+  CPU) plus re-embedding the moved crops (image-pipeline.md §4), for no measured estimate gain. Do it when the crops
+  themselves are the point (crop proposals, the review queue, Jan's display), ideally together with another reason to
+  re-embed. Scripts and rows: `~/puzzle-vision-review/model-review-2026-10-26/artwork-1-2/` (`recrop_embed.py`,
+  `difficulty_compare.py`, `out/difficulty_compare.log`).
+- **What changes in the catalogue.** 10,634 of the 43,481 current crops (24.5 %) move (IoU of old vs new crop < 0.995
+  or a side > 0.5 % of the image; median IoU 0.934, a side moves a median 4.2 %), all of them face-pass crops
+  (vlm+widen+face 7,268, vlm+fit+face 1,392, vlm+face 1,159, vlm+quad+face 419, kind+face 235, grown 161). Computed from
+  the stored face-pass signals and checked against a full image replay (`artwork_replay`) on 1,043 pictures: 1,036
+  agree, 7 boxes differ slightly, 3 (grown faces) need the VLM.
+
 ## 5. Colour + structure features
 
 Computed on the artwork crop (box crop, or perspective warp for skewed quads, inset 1 %), resized to a longer side of

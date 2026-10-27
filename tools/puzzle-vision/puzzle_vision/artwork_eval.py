@@ -20,6 +20,10 @@ The labelled sets (reference/):
 - `random` - the **test set**: a uniform random sample of current pictures, stratified by the first pass with a
   weight per picture (`python -m puzzle_vision.artwork_testset`), marked by Jan; never tune on it.
 
+Candidates: `stored` (the stored result), `v11` (the current code with the VLM - a model, under the model lock),
+`v11-cpu` / `v11-geometry` (its CPU parts), `memo` (the current code with the VLM's answers of earlier runs only - no
+model, runs next to a GPU job; a question never asked before skips the picture and is reported). `--sam`: SAM 2.1 too.
+
 Rates are printed twice: as counted on the set, and **weighted to the catalogue** - each picture stands for its
 first-pass stratum (`stratum()`) in proportion to the catalogue (reference/population-strata.json), or by its own
 `weight` when the set was drawn with one (the random test set).
@@ -319,8 +323,13 @@ def v11_geometry_candidate(item: dict[str, Any]) -> Candidate | None:
                      {"method": g["method"], **{k: v for k, v in g["signals"].items() if k in ("quad", "widened")}})
 
 
-def v11_candidate(item: dict[str, Any], ask_kind: Any = None, ask_face: Any = None, ask_strip: Any = None) -> Candidate | None:
-    """The whole 1.1 pass on the stored first pass; without the VLM callables only its CPU part."""
+SAM: list[bool] = [False]  # --sam: the face pass asks SAM 2.1 too (artwork_refine.SAM_SIDES for this run)
+
+
+def v11_candidate(item: dict[str, Any], ask_kind: Any = None, ask_face: Any = None, ask_strip: Any = None,
+                  ask_mask: Any = None) -> Candidate | None:
+    """The current pass (1.1 and later: the code as it is now) on the stored first pass; without the model callables
+    only its CPU part."""
     from .imaging import bbox_to_xyxy, load_rgb
     from .stages.artwork_refine import first_pass_from, refine
 
@@ -329,11 +338,13 @@ def v11_candidate(item: dict[str, Any], ask_kind: Any = None, ask_face: Any = No
         return None
     rgb = load_rgb(item["path"])
     a = load_rgb(item["path"], 1024)
-    out = refine(rgb, a, fp, (item["width"], item["height"]), (item["originalWidth"], item["originalHeight"]), ask_kind, ask_face, ask_strip)
+    out = refine(rgb, a, fp, (item["width"], item["height"]), (item["originalWidth"], item["originalHeight"]), ask_kind, ask_face, ask_strip,
+                 ask_mask=ask_mask)
     return Candidate(out["kind"], bbox_to_xyxy(out["bbox"]), out["corners"],
                      {"method": out["method"], "confidence": out["confidence"], "quality": out["quality"]["reasons"],
                       "sharpness": out["quality"]["sharpness"], "view": out["geometry"]["view"],
-                      **{k: out["signals"][k] for k in ("quad", "widened", "kindCheck", "face", "tilt", "bands") if k in out["signals"]}})
+                      **{k: out["signals"][k] for k in ("quad", "widened", "kindCheck", "face", "tilt", "bands", "decidedBy")
+                         if k in out["signals"]}})
 
 
 _STAGE: list[Any] = []
@@ -363,7 +374,39 @@ def v11_vlm_candidate(item: dict[str, Any]) -> Candidate | None:
             return memo[key]
         return ask
 
-    return v11_candidate(item, cached("kind", stage.ask_kind), cached("face", stage.ask_face), cached("strip", stage.ask_strip))
+    return v11_candidate(item, cached("kind", stage.ask_kind), cached("face", stage.ask_face), cached("strip", stage.ask_strip),
+                         cached("sam", stage.ask_mask) if SAM[0] else None)
+
+
+class MemoMiss(LookupError):
+    """A VLM question no earlier eval run asked (`--candidate *-memo` never loads a model)."""
+
+
+MEMO_MISSES: list[str] = []
+
+
+def _memo_ask(item: dict[str, Any], kind: str) -> Any:
+    def ask(im: np.ndarray, *args: Any) -> Any:
+        import hashlib
+
+        key = f"{item['id']}:{kind}:{args}:{hashlib.md5(np.ascontiguousarray(im).tobytes()).hexdigest()}"
+        memo = _memo()
+        if key not in memo:
+            raise MemoMiss(key)
+        return memo[key]
+    return ask
+
+
+def memo_candidate(item: dict[str, Any]) -> Candidate | None:
+    """The current pass with the VLM's answers of earlier eval runs only - no model, no model lock, so it runs next
+    to a GPU job. A question never asked before (the face changed) skips the picture and is counted in MEMO_MISSES:
+    scores are comparable only while that list stays empty (else run `--candidate v11` when the GPU is free)."""
+    try:
+        return v11_candidate(item, _memo_ask(item, "kind"), _memo_ask(item, "face"), _memo_ask(item, "strip"),
+                             _memo_ask(item, "sam") if SAM[0] else None)
+    except MemoMiss as e:
+        MEMO_MISSES.append(str(e))
+        return None
 
 
 _MEMO_PATH = Path.home() / "Library/Caches/puzzle-vision/artwork-reference/vlm-answers.json"
@@ -381,6 +424,7 @@ def _memo() -> dict[str, Any]:
 CANDIDATES: dict[str, Callable[[dict[str, Any]], Candidate | None]] = {
     "v11": v11_vlm_candidate,
     "v11-cpu": v11_candidate,
+    "memo": memo_candidate,
     "stored": lambda item: stored_candidate(item["stored"]) if item.get("stored") else None,
     "v11-geometry": v11_geometry_candidate,
 }
@@ -421,7 +465,13 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--candidate", default="stored", choices=sorted(CANDIDATES))
     p.add_argument("--rows", help="write per-picture rows (JSON lines) here")
     p.add_argument("--json", action="store_true")
+    p.add_argument("--sam", action="store_true", help="with SAM 2.1 in the face pass (artwork_refine.SAM_SIDES; a model - GPU)")
     a = p.parse_args(argv)
+    if a.sam:
+        from .stages import artwork_refine
+
+        artwork_refine.SAM_SIDES = True
+        SAM[0] = True
     items: dict[str, dict[str, Any]] = {}
     truth: dict[str, dict[str, Any]] = {}
     for name in a.set or ([] if a.dir else ["reference"]):
@@ -436,6 +486,8 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         if _STAGE:
             _STAGE[1].release()
+    if MEMO_MISSES:
+        print(f"{len(MEMO_MISSES)} picture(s) skipped: a VLM question no earlier run asked (not comparable - run it with the model)")
     if a.rows:
         Path(a.rows).write_text("".join(json.dumps(r) + "\n" for r in rows))
     if a.json:

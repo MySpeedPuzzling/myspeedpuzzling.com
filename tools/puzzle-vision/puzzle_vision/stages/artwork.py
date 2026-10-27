@@ -14,6 +14,7 @@ Payload (the server validates `bbox` / `corners`): kind, bbox {x,y,w,h}, corners
 
 from __future__ import annotations
 
+import base64
 import json
 import logging
 import os
@@ -21,6 +22,7 @@ import re
 import tempfile
 import threading
 import time
+from pathlib import Path
 from typing import Any, Callable
 
 import cv2
@@ -29,6 +31,8 @@ from PIL import Image
 
 from ..analyzers import QWEN3_VL_4B, SIGLIP2
 from ..imaging import iou, is_skewed, load_rgb, quad_to_box, xyxy_to_bbox
+from ..payload import b64_to_vector
+from . import artwork_refine
 from .artwork_refine import first_pass_from, refine
 from .base import Defer, Prepared, Stage
 
@@ -341,6 +345,38 @@ def trim_payload(a: np.ndarray, gate_scores: dict[str, float], gate_margin: floa
     return payload("flat", [x0 / w, y0 / h, x1 / w, y1 / h], None, "trim", gate_scores, gate_margin, source)
 
 
+def rules_from(version: str) -> tuple[int, int]:
+    """`1.2.0+siglip2-q3vl4b` -> (1, 2); anything unparsable (an eval run's "eval") = the newest rules."""
+    try:
+        major, minor = version.split("+", 1)[0].split(".")[:2]
+        return int(major), int(minor)
+    except ValueError:
+        return (99, 0)
+
+
+FLAT_PROBE_PATH = Path(__file__).with_name("artwork_flat_probe.json")
+_FLAT_PROBE: list[tuple[np.ndarray, float]] = []
+
+
+def flat_probe(full: dict[str, Any] | None) -> float | None:
+    """The whole-image probe's decision value (> 0 = looks like a flat digital picture) from the picture's stored
+    `embed_siglip2_full` vector, or None without one. Review proposal 9 asked for a flat second opinion; on the labelled
+    sets it cannot be validated as a decision (a confident value > 2 flips no tuning picture and one validation
+    picture; lower values flip wrong ones too), so 1.2 stores it as a signal - a review list, never the kind."""
+    vec = (full or {}).get("vector") if isinstance(full, dict) else None
+    if not vec:
+        return None
+    if not _FLAT_PROBE:
+        doc = json.loads(FLAT_PROBE_PATH.read_text())
+        _FLAT_PROBE.append((np.frombuffer(base64.b64decode(doc["coef"]), dtype="<f4").astype(np.float32), float(doc["intercept"])))
+    coef, intercept = _FLAT_PROBE[0]
+    v = b64_to_vector(vec)
+    if v.size != coef.size:
+        return None
+    n = float(np.linalg.norm(v))
+    return round(float(v @ coef / n + intercept), 3) if n > 0 else None
+
+
 class ArtworkStage(Stage):
     """1.1: the first pass (gate -> trim, else Qwen3-VL-4B + quad snap) - re-used from the picture's stored result when
     there is one - then the 1.1 pass (artwork_refine.py): quad check, widening, the kind's second opinion, the box face
@@ -348,13 +384,21 @@ class ArtworkStage(Stage):
 
     analyzer = "artwork"
     batch_size = 1
-    optional_upstream = ("artwork",)
-    fetch_optional = ("artwork",)  # this picture's stored result (1.0 or later): its first pass is re-used
+    # this picture's stored result (1.0 or later): its first pass and (1.2) its VLM answers are re-used;
+    # embed_siglip2_full (when there): the whole-image probe `signals.flatProbe` (1.2, a signal only)
+    optional_upstream = ("artwork", "embed_siglip2_full")
+    fetch_optional = ("artwork", "embed_siglip2_full")
 
     def __init__(self, version: str, workers: int = 1, workstate: Any = None) -> None:
         super().__init__(version, workers)
         self.workstate = workstate
+        # the 1.2 rules only from version 1.2 on: a profile still on 1.1.x stores exactly what 1.1 stored, so the code
+        # can be deployed before the version is switched (the switch is the profile's `version`)
+        self.v12 = rules_from(version) >= (1, 2)
+        if not self.v12:
+            self.fetch_optional = ("artwork",)
         self._vlm = None
+        self._sam: Any = None
         self._logits: dict[str, Any] = {}
 
     @property
@@ -410,6 +454,14 @@ class ArtworkStage(Stage):
             v = None
         return v if v in ("artwork", "packaging") else None
 
+    def ask_mask(self, face_rgb: np.ndarray, rect: Any) -> dict[str, Any] | None:
+        """SAM 2.1's mask edges for the VLM's box on a face (artwork_sam; loaded on the first face that needs it)."""
+        if self._sam is None:
+            from .artwork_sam import SamMasker
+
+            self._sam = SamMasker()
+        return self._sam.edges(face_rgb, rect)
+
     def ask_kind(self, rgb: np.ndarray) -> str | None:
         kind = parse_vlm(self._generate(KIND_PROMPT, rgb, kind_json_schema(), "kind", max_tokens=20))["kind"]
         return kind
@@ -442,7 +494,9 @@ class ArtworkStage(Stage):
         return {"kind": hy["kind"], "method": hy["method"], "bbox": [round(v, 5) for v in hy["box"]],
                 "quad": [[round(x, 5), round(y, 5)] for x, y in hy["quad"]] if hy["quad"] is not None else None,
                 "gateScores": gate["scores"], "gateMargin": margin, "vlmKind": vlm["kind"],
-                "vlmBbox": [round(v, 5) for v in vlm["box"]], "quadIou": hy["quadIou"]}
+                "vlmBbox": [round(v, 5) for v in vlm["box"]], "quadIou": hy["quadIou"],
+                # 1.2: the VLM's own corners, kept even when the quad snap is refused (review proposal 5)
+                "vlmQuad": [[round(x, 5), round(y, 5)] for x, y in vlm["quad"]] if vlm.get("quad") else None}
 
     def analyse(self, p: Prepared) -> dict[str, Any]:
         a = p.rgb
@@ -456,10 +510,17 @@ class ArtworkStage(Stage):
             fp = self.first_pass(p, a)
         out = refine(p.rgb, a, fp, (p.image.width, p.image.height),
                      (p.image.original_width or p.image.width, p.image.original_height or p.image.height),
-                     ask_kind=self.ask_kind, ask_face=self.ask_face, ask_strip=self.ask_strip)
+                     ask_kind=self.ask_kind, ask_face=self.ask_face, ask_strip=self.ask_strip,
+                     prior=p.upstream.get("artwork") if reused else None,
+                     ask_mask=self.ask_mask if artwork_refine.SAM_SIDES else None, v12=self.v12)
         out["signals"]["firstPassReused"] = reused
+        if self.v12:
+            out["signals"]["flatProbe"] = flat_probe(p.upstream.get("embed_siglip2_full"))
+        else:
+            out["firstPass"].pop("vlmQuad", None)
         return out
 
     def close(self) -> None:
         self._vlm = None
+        self._sam = None
         self._logits = {}

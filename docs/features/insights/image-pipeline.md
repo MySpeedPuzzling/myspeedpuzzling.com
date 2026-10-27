@@ -355,7 +355,10 @@ the summary) and never ends the nightly run - the crop proposals still follow.
   module, not in the profiles - it is not an `ImageAnalyzer`). Bump `MODEL_VERSION` whenever the numbers change
   (features, folds, thresholds); fixed seeds make two runs on the same data identical. `1.2.1` is the same code once
   the optional `piece_scale` analyzer covers ≥ 90 % of the training puzzles (its 20 numbers then join the extras) - a
-  new estimate generation, so the app's gates close until it is evaluated. What 1.2.0 changed and why, with the
+  new estimate generation, so the app's gates close until it is evaluated. `1.3.0` adds the **second view** - the
+  players' finished photos (`finished_photo`, §7 above) as extra inputs of the same model - once ≥ 2,000 training
+  puzzles have one (`PHOTO_VIEW_MIN_TRAINING`; offline 7,849 of 10,406 after a full `finished-photos` run): measured in
+  [`finished-photos.md`](./finished-photos.md) §5. What 1.2.0 changed and why, with the
   measurements: [`estimates.md`](./estimates.md) "Picture estimate 1.2.0".
 - **1.2.0 in short**: the model of record is **0.5 × the 1.1.0 ridge + 0.5 × an RBF kernel ridge** on the same inputs
   (bandwidth 2, alpha 0.1, fixed and recorded under `evaluation.learners`; exact Cholesky up to 20,000 training rows, a

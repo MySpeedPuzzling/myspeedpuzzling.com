@@ -686,3 +686,67 @@ def test_the_committed_basis_is_the_siglip2_so400m_crop_basis():
     assert basis is not None and basis["version"] == dp.PICTURE_FACTORS_VERSION and basis["model"] == "so400m-14-384"
     assert basis["components"].shape == (16, int(basis["dim"])) == (16, 1152) and basis["scale"].shape == (16,)
     assert np.allclose(basis["components"] @ basis["components"].T, np.eye(16), atol=1e-4)
+
+
+def photo_views(server, share=1.0, seed=21):
+    """Box puzzles get a finished photo whose view carries a part of the difficulty the catalogue picture cannot see
+    (added to their label) - what the second view is for."""
+    rng = np.random.default_rng(seed)
+    direction = unit(rng.normal(size=S_DIM))
+    for i in range(600):
+        p = pid(i)
+        if i % 2 or rng.uniform() > share:  # flat puzzles (odd) have none
+            continue
+        h, d = unit(rng.normal(size=S_DIM)), unit(rng.normal(size=D_DIM))
+        if p in server.labels:
+            server.labels[p]["logDifficulty"] += 0.5 * float(h @ direction) * np.sqrt(S_DIM) / 3
+        fp = f"{i:016x}"
+        server.add_finished_photo(p, fp, b"")
+        server.finished_analyses[(p, fp)] = {
+            "puzzleId": p, "photoFingerprint": fp, "imageFingerprint": server.puzzles[p]["imageFingerprint"],
+            "analyzer": "finished_photo", "analyzerVersion": "1.0.0+test", "current": True,
+            "result": {"locate": {"method": "register"}, "rectified": {"visibleShare": 1.0, "pixelsPerPiece": 30},
+                       "quality": {"printCorrelation": 0.9},
+                       "embeddings": {"siglip2": {"vector": vector_to_b64(h)}, "dinov2": {"cls": vector_to_b64(d)}}},
+        }
+
+
+def test_the_finished_photos_join_as_a_second_view_once_enough_training_puzzles_have_one(api, server, monkeypatch):
+    planted(server)
+    photo_views(server)
+    monkeypatch.setattr(dp, "PHOTO_VIEW_MIN_TRAINING", 10_000)
+    without = run(api)
+    assert without["photoViews"]["inModel"] is False and server.models[-1]["modelVersion"] == dp.MODEL_VERSION
+    monkeypatch.setattr(dp, "PHOTO_VIEW_MIN_TRAINING", 100)
+    summary = run(api)
+    assert summary["photoViews"]["inModel"] is True and summary["photoViews"]["puzzles"] > 250
+    assert server.models[-1]["modelVersion"] == dp.PHOTO_VIEW_MODEL_VERSION == server.estimates[pid(2)]["modelVersion"]
+    assert "finished photos" in server.models[-1]["evaluation"]["features"]
+    second = server.models[-1]["evaluation"]["holdouts"]["newerFromOlder"]["secondView"]
+    assert second["testWithView"] > 20
+    # the view's signal is learned: better on the puzzles with a view
+    assert second["withView"]["withPhotoView"]["mae"] < second["withView"]["withoutPhotoView"]["mae"]
+    assert second["withViewBoxOrAssembled"]["withPhotoView"]["spearman"] > second["withViewBoxOrAssembled"]["withoutPhotoView"]["spearman"]
+    # every puzzle keeps its estimate, a view or not
+    assert summary[dp.MODEL]["pushed"]["stored"] == 600
+
+
+def test_a_puzzle_without_a_view_gets_the_views_mean_and_no_indicator():
+    from puzzle_vision.derive.finished_photos import NUMBER_NAMES, PhotoView
+
+    corpus = dp.Corpus(puzzles={p: dp.Puzzle(p, "f", 500) for p in ("a", "b")})
+    corpus.siglip = {p: unit(np.ones(S_DIM)) for p in ("a", "b")}
+    corpus.dino = {p: unit(np.ones(D_DIM)) for p in ("a", "b")}
+    numbers = np.full(len(NUMBER_NAMES), np.nan)
+    numbers[0] = 2.0
+    dp.set_photo_views(corpus, {"a": PhotoView(1, unit(np.arange(S_DIM) + 1.0), unit(np.ones(D_DIM)), numbers, 1.0)})
+    corpus.use_photo_views = True
+    D = corpus.primary_x(["a", "b"])
+    k = len(NUMBER_NAMES)
+    assert D.N[0, -1] == 1.0 and D.N[1, -1] == 0.0  # the has-view indicator
+    assert D.N[0, -1 - k] == 2.0 and D.N[1, -1 - k] == 2.0  # a missing number = the views' mean
+    photo_siglip = D.X[:, -(1 + k + D_DIM + S_DIM):-(1 + k + D_DIM)]
+    assert np.allclose(photo_siglip[1], corpus.extra_means["photo_siglip"])
+    assert np.allclose(photo_siglip[0], unit(np.arange(S_DIM) + 1.0))
+    corpus.use_photo_views = False
+    assert corpus.primary_x(["a", "b"]).X.shape[1] == D.X.shape[1] - S_DIM - D_DIM - k - 1

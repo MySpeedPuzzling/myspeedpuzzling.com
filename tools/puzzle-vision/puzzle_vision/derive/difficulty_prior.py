@@ -39,6 +39,14 @@ Two models, each with its own model record, push guard and estimates (`model` fi
    An optional `piece_scale` block (PIECE_SCALE_NAMES of its `real` block, another CPU analyzer) joins the numbers
    once PIECE_SCALE_MIN_COVERAGE of the training rows have it - the estimates then say `modelVersion`
    PIECE_SCALE_MODEL_VERSION (a new estimate generation: the app's gates close until it is evaluated).
+   **The second view (1.3.0)**: players' photos of the finished puzzle (`finished_photo` analyses, read through their
+   own endpoints, aggregated per puzzle by derive/finished_photos.py) join the same model once PHOTO_VIEW_MIN_TRAINING
+   training puzzles have one: the photo crop's SigLIP 2 + DINOv2 vectors, 30 numbers (piece-scale of the real print,
+   glare, seam grid, quality) and a has-view indicator, next to the catalogue inputs (a puzzle without a view gets the
+   views' mean) - `joint` in docs/features/insights/finished-photos.md §5: newer-from-older on puzzles with a view
+   MAE −3 to −4 %, tier exact +3 points, box photos +9 points; a photo-only model or a per-kind blend measured worse.
+   The record's `holdouts.newerFromOlder.secondView` refits the same older model without the photo blocks and scores
+   both on the same newer puzzles. Estimates then say `modelVersion` PHOTO_VIEW_MODEL_VERSION.
 2. `ridge-siglip2-full` (fallback, ridge only): the SigLIP 2 whole-image embedding (`embed_siglip2_full`, else the
    crop's) + pieces. It learns from the whole-image vectors because those are what it is applied to. It estimates the
    puzzles the model of record does not: those without crop embeddings and, while the model of record has fewer than
@@ -147,6 +155,8 @@ FALLBACK_MODEL = "ridge-siglip2-full"
 MODELS = (MODEL, FALLBACK_MODEL)
 MODEL_VERSION = "1.2.0"
 PIECE_SCALE_MODEL_VERSION = "1.2.1"  # the same learners with the `piece_scale` block in the numbers
+PHOTO_VIEW_MODEL_VERSION = "1.3.0"  # + the finished photos' second view (photo blocks next to the catalogue inputs)
+PHOTO_VIEW_MIN_TRAINING = 2000  # training puzzles with a view before the photo blocks join (offline: 7,849 of 10,406)
 VERSION = f"{MODEL_VERSION}+{MODEL}"  # bump MODEL_VERSION on any change of numbers
 
 MIN_TRAIN_INDICES = 3
@@ -464,6 +474,7 @@ class Corpus:
     extra_means: dict[str, np.ndarray] = field(default_factory=dict)
     crop_trust: dict[str, float] = field(default_factory=dict)
     photo_views: dict[str, Any] = field(default_factory=dict)  # puzzleId -> finished_photos.PhotoView (the second view)
+    use_photo_views: bool = False
     use_piece_scale: bool = False
     versions: dict[str, str] = field(default_factory=dict)  # the analyzer version each input was read in
     dropped: Counter = field(default_factory=Counter)
@@ -507,7 +518,29 @@ class Corpus:
         X = np.hstack([siglip, dino, *fprint, *patches, *(numbers * EXTRA_WEIGHT), pieces]).astype(np.float32)
         E = np.hstack([unit_rows(b) / 2 for b in (siglip, dino, *fprint, *patches)]).astype(np.float32)
         N = numbers[0] if numbers else np.zeros((len(pids), 0), np.float32)
+        if self.use_photo_views:
+            return self._with_photo_view(pids, X, E, N, pieces.astype(np.float32))
         return Design(X, E, N, pieces.astype(np.float32))
+
+    def _with_photo_view(self, pids: list[str], X: np.ndarray, E: np.ndarray, N: np.ndarray, P: np.ndarray) -> Design:
+        """The second view (1.3.0): the finished photos' SigLIP 2 + DINOv2 crop vectors and NUMBER_NAMES of
+        derive/finished_photos.py, plus a has-a-view indicator; a puzzle without a view gets the views' mean (like every
+        extra). The ridge sees them next to the catalogue inputs (standardised like every column, once each); the kernel
+        gives the catalogue embeddings and the two photo embeddings half of its embedding distance each (√0.5 scaling).
+        Measured as "joint" in docs/features/insights/finished-photos.md §5 (it beat a per-kind blend of a photo-only
+        model with the catalogue estimate on the gate's population)."""
+        views = [self.photo_views.get(p) for p in pids]
+        ms, md, mn = self.extra_means["photo_siglip"], self.extra_means["photo_dino"], self.extra_means["photo_numbers"]
+        s = np.vstack([v.siglip if v is not None else ms for v in views]).astype(np.float32)
+        d = np.vstack([v.dino if v is not None else md for v in views]).astype(np.float32)
+        raw = np.vstack([v.numbers if v is not None else mn for v in views])
+        nums = np.where(np.isfinite(raw), raw, mn).astype(np.float32)
+        ind = np.array([[v is not None] for v in views], dtype=np.float32)
+        half = math.sqrt(0.5)
+        X = np.hstack([X, s, d, nums, ind]).astype(np.float32)
+        E = np.hstack([E * half, unit_rows(s) / 2 * half, unit_rows(d) / 2 * half]).astype(np.float32)
+        N = np.hstack([N, nums, ind]).astype(np.float32)
+        return Design(X, E, N, P)
 
     def extras_imputed(self, pids: list[str]) -> int:
         def missing(p: str) -> bool:
@@ -676,7 +709,7 @@ def _read_extras(corpus: Corpus, rows: Callable[[str], Iterable[dict[str, Any]]]
     if photo_rows:
         from . import finished_photos
 
-        corpus.photo_views = finished_photos.views(photo_rows, {p: z.fingerprint for p, z in corpus.puzzles.items()}, corpus.siglip)
+        set_photo_views(corpus, finished_photos.views(photo_rows, {p: z.fingerprint for p, z in corpus.puzzles.items()}, corpus.siglip))
 
     for name, values in (("feature_print", corpus.feature_print), ("patches", corpus.patches), ("numbers", corpus.numbers),
                          ("piece_scale", corpus.piece_scale)):
@@ -685,6 +718,26 @@ def _read_extras(corpus: Corpus, rows: Callable[[str], Iterable[dict[str, Any]]]
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", RuntimeWarning)  # a column no puzzle has a number in: its mean is 0
                 corpus.extra_means[name] = np.nan_to_num(np.nanmean(M, axis=0)).astype(np.float32)
+
+
+def set_photo_views(corpus: Corpus, views: dict[str, Any]) -> None:
+    """The puzzles' second views (finished_photos.views()) and what a puzzle without one gets: the mean SigLIP 2 / DINOv2
+    vector and the mean of each number over the views (0 for a number no view has). Views of another vector dimension
+    than the catalogue's are left out (another model)."""
+    dim_s = next((len(v) for v in corpus.siglip.values()), None)
+    views = {p: v for p, v in views.items() if p in corpus.puzzles and (dim_s is None or len(v.siglip) == dim_s)}
+    corpus.photo_views = views
+    if not views:
+        return
+    corpus.extra_means["photo_siglip"] = np.vstack([v.siglip for v in views.values()]).mean(0).astype(np.float32)
+    corpus.extra_means["photo_dino"] = np.vstack([v.dino for v in views.values()]).mean(0).astype(np.float32)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        corpus.extra_means["photo_numbers"] = np.nan_to_num(np.nanmean(np.vstack([v.numbers for v in views.values()]), axis=0)).astype(np.float32)
+
+
+def photo_view_coverage(corpus: Corpus, train_ids: list[str]) -> int:
+    return sum(p in corpus.photo_views for p in train_ids)
 
 
 def piece_scale_coverage(corpus: Corpus, train_ids: list[str]) -> float:
@@ -1435,6 +1488,8 @@ def validate(fitted: Fitted, X: Design, V: np.ndarray, corpus: Corpus) -> tuple[
                 newer["components"] = {"ridge": _ranking(metrics(y[test], ridge_pred, tb)),
                                        "kernelRidge": _ranking(metrics(y[test], kernel_pred, tb)),
                                        "ensembleWithoutBrandSizeOffset": _ranking(metrics(y[test], base, base_b))}
+            if corpus.use_photo_views and X.kernel:
+                newer["secondView"] = second_view(fitted, corpus, old_idx, test, base)
             holdout, holdout_count, holdout_t = newer["overall"].get("spearman"), int(len(test)), tn
             held = Holdout(older, older_intervals, [fitted.train_ids[i] for i in old_idx], test, pred, tb, older_offsets)
     holdouts["newerFromOlder"] = newer
@@ -1447,6 +1502,30 @@ def validate(fitted: Fitted, X: Design, V: np.ndarray, corpus: Corpus) -> tuple[
     out["holdoutSpearman"] = round(float(holdout), 4)
     out["folds"] = fitted.folds_info | {"count": int(len(set(fitted.fold.tolist())))}
     return out, held
+
+
+def second_view(fitted: Fitted, corpus: Corpus, old_idx: np.ndarray, test: np.ndarray, with_view: np.ndarray) -> dict[str, Any]:
+    """The finished photos' share of the newer-from-older result (1.3.0): the same ensemble on the same older puzzles
+    without the photo blocks, scored on the same newer puzzles - all, those with a view, and those with a view whose
+    catalogue picture is a box / assembled photo. Both without the brand × size offset (like with like)."""
+    ids = fitted.train_ids
+    corpus.use_photo_views = False
+    try:
+        X0 = corpus.primary_x(ids)
+    finally:
+        corpus.use_photo_views = True
+    older = fit(X0[old_idx], fitted.y[old_idx], weights(fitted.n[old_idx]))
+    without = older.predict(X0[test])
+    del X0, older
+    has = np.array([ids[i] in corpus.photo_views for i in test])
+    boxy = np.array([fitted.kinds[i] in ("box", "assembled") for i in test])
+    y = fitted.y[test]
+    out: dict[str, Any] = {"viewsInTraining": photo_view_coverage(corpus, ids), "test": int(len(test)), "testWithView": int(has.sum())}
+    for label, rows in (("all", np.ones(len(test), bool)), ("withView", has), ("withViewBoxOrAssembled", has & boxy)):
+        if rows.sum():
+            out[label] = {"withoutPhotoView": _ranking(metrics(y[rows], without[rows], np.zeros((int(rows.sum()), 4)))),
+                          "withPhotoView": _ranking(metrics(y[rows], with_view[rows], np.zeros((int(rows.sum()), 4))))}
+    return out
 
 
 def _windows(m: dict[str, Any]) -> dict[str, Any]:
@@ -1807,6 +1886,10 @@ def run(api: Any, *, meta: dict[str, Any] | None = None, rows: Callable[[str], I
     coverage = piece_scale_coverage(corpus, primary_train)
     corpus.use_piece_scale = bool(corpus.piece_scale) and coverage >= PIECE_SCALE_MIN_COVERAGE
     primary_version = PIECE_SCALE_MODEL_VERSION if corpus.use_piece_scale else MODEL_VERSION
+    views_in_training = photo_view_coverage(corpus, primary_train)
+    corpus.use_photo_views = views_in_training >= PHOTO_VIEW_MIN_TRAINING
+    if corpus.use_photo_views:
+        primary_version = PHOTO_VIEW_MODEL_VERSION
     basis = load_picture_factor_basis()
     factors, factors_skipped = picture_factors(basis, corpus, [*primary_domain, *fallback_domain])
     summary: dict[str, Any] = {
@@ -1819,6 +1902,8 @@ def run(api: Any, *, meta: dict[str, Any] | None = None, rows: Callable[[str], I
         "pieceScale": {"puzzles": len(corpus.piece_scale), "trainingCoverage": round(coverage, 4), "inModel": corpus.use_piece_scale,
                        "minCoverage": PIECE_SCALE_MIN_COVERAGE},
         "cropTrust": {"puzzles": len(corpus.crop_trust)},
+        "photoViews": {"puzzles": len(corpus.photo_views), "training": views_in_training, "inModel": corpus.use_photo_views,
+                       "minTraining": PHOTO_VIEW_MIN_TRAINING},
         "pictureFactors": {"version": PICTURE_FACTORS_VERSION, "puzzles": len(factors), "skipped": factors_skipped},
     }
     numbers = f"45 traits/colors/segmentation/vision_labels numbers{' + ' + str(len(PIECE_SCALE_NAMES)) + ' piece_scale numbers' if corpus.use_piece_scale else ''}"
@@ -1826,7 +1911,8 @@ def run(api: Any, *, meta: dict[str, Any] | None = None, rows: Callable[[str], I
         (MODEL, primary_train, primary_domain, corpus.primary_x, corpus.primary_vectors, primary_version,
          f"ensemble {1 - KERNEL_SHARE:g} ridge + {KERNEL_SHARE:g} rbf kernel ridge on siglip2 crop + dinov2 crop + apple feature "
          f"print + dinov2 patch mean + {numbers} (ridge: x{EXTRA_WEIGHT}; corpus mean where missing) + ln pieces, ln pieces^2, "
-         f"size group one-hot{'; + shrunk brand x size offset (k ' + format(BRAND_SIZE_PSEUDO_COUNT, 'g') + ')' if BRAND_SIZE_PSEUDO_COUNT is not None else ''}"),
+         f"size group one-hot{'; + the finished photos (second view): photo siglip2 + dinov2 crop + 30 numbers + has-view (views mean where missing)' if corpus.use_photo_views else ''}"
+         f"{'; + shrunk brand x size offset (k ' + format(BRAND_SIZE_PSEUDO_COUNT, 'g') + ')' if BRAND_SIZE_PSEUDO_COUNT is not None else ''}"),
         (FALLBACK_MODEL, fallback_train, fallback_domain, corpus.fallback_x, corpus.fallback_vectors, MODEL_VERSION,
          "ridge on siglip2 whole image (else crop) + ln pieces, ln pieces^2, size group one-hot; standardised"),
     ]

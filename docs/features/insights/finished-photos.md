@@ -123,7 +123,41 @@ CI of the difference):
 Reading it: the real print's piece-scale numbers help box puzzles where the box photo's do not (500 box: photo −2 %
 vs catalogue piece-scale +0.7 %; photo better than the catalogue's own, CI [−0.0054, −0.0002]), and the gain over
 everything is ~2 %, at the edge of significance. The numbers alone are not worth a model version; the embeddings of
-the straightened crop (the bigger part of the second view) follow below.
+the straightened crop are the bigger part of the second view.
+
+**The second view with the embeddings - four ways to use it** (16,833 crops embedded with SigLIP 2 + DINOv2 on the
+M3, 0.26 s a crop; 7,845 puzzles with a view; difficulty_prior's own learners - 0.5 ridge + 0.5 RBF kernel ridge -,
+folds and the 1.2.1 inputs incl. piece_scale, no brand × size offset in any arm; newer puzzles with a near-duplicate
+among the older left out; every test prediction is picture-only = the k = 0 situation):
+- `base` the catalogue inputs; `photo` a model on the photo view alone (+ pieces); `fusion` base + w × (photo − base)
+  with w per catalogue kind from the older puzzles' out-of-fold predictions (flat 0.27, box 0.44, assembled 0.61);
+  `joint` the catalogue inputs + the photo blocks in one model (a puzzle without a view: the views' mean + a has-view
+  indicator).
+
+| Newer puzzles (MAE / Spearman / tier exact) | n | base | photo alone | fusion | joint | joint − base, 95 % CI |
+|---|---|---|---|---|---|---|
+| ≥ 20 indices, with a view (the push guard's population) | 416 | 0.0799 / 0.756 / 0.579 | 0.0877 / 0.716 / 0.529 | 0.0795 / 0.767 / 0.575 | **0.0769 / 0.770 / 0.608** | [−0.0052, −0.0006] |
+| ≥ 20, box with a view | 53 | 0.0830 / 0.664 / 0.509 | 0.0834 | 0.0807 | **0.0762 / 0.710 / 0.604** | [−0.0141, −0.0000] |
+| ≥ 10, all newer (view or not) | 759 | 0.0838 / 0.740 / 0.581 | - | 0.0822 / 0.753 / 0.582 | 0.0824 / 0.751 / **0.594** | [−0.0031, +0.0004] |
+| ≥ 10, with a view | 686 | 0.0809 / 0.743 / 0.579 | 0.0853 / 0.719 / 0.541 | 0.0791 / 0.758 / 0.580 | **0.0785 / 0.758 / 0.605** | [−0.0041, −0.0006] |
+| ≥ 10, box with a view | 137 | 0.0862 / 0.646 / 0.533 | 0.0843 | **0.0820** / 0.672 / 0.577 | 0.0825 / 0.673 / **0.628** | [−0.0082, +0.0003] |
+| ≥ 10, 500 box with a view | 94 | 0.0917 / 0.594 / 0.479 | 0.0861 | 0.0861 / 0.617 / 0.521 | 0.0872 / 0.624 / **0.585** | [−0.0094, +0.0007] |
+| ≥ 10, ≤ 300 with a view | 134 | 0.0789 / 0.746 / 0.649 | 0.0812 | 0.0768 | **0.0743 / 0.764 / 0.687** | [−0.0090, −0.0004] |
+| ≥ 10, 1000 with a view | 27 | 0.0771 / 0.789 / 0.556 | 0.0779 | 0.0752 | 0.0770 | [−0.0077, +0.0074] |
+| ≥ 5, with a view | 1,237 | 0.0887 / 0.702 / 0.551 | 0.0930 | 0.0871 / 0.718 / 0.554 | **0.0867 / 0.718 / 0.569** | [−0.0034, −0.0006] |
+| ≥ 5, 500 box with a view | 207 | 0.0895 / 0.675 / 0.536 | 0.0899 | **0.0854** / 0.696 / 0.560 | 0.0863 / 0.691 / **0.599** | [−0.0066, −0.0001] |
+| ≥ 5, 1000 with a view | 73 | 0.0818 / 0.642 / 0.562 | 0.0816 | **0.0782** | 0.0807 / 0.668 / 0.575 | [−0.0055, +0.0035] |
+
+- **The photo alone is worse than the catalogue picture** (flat: 0.0848 vs 0.0783) and only about even on box photos -
+  a player's photo is a second, noisier view, not a better first one. Replacing the catalogue crop's embedding with the
+  photo's would lose.
+- **Joint wins** where the push guard and the gate look (≥ 20 / ≥ 10 indices, with a view: MAE −3.8 % / −3.0 %, both
+  CIs below 0; tier exact +2.9 / +2.6 points) and on box photos for the tier (+9.5 points at ≥ 20 and ≥ 10); `fusion`
+  has a slightly lower MAE on box photos at ≥ 5 / ≥ 10 but loses everywhere else and needs per-kind weights. Built:
+  joint (`difficulty_prior` 1.3.0, below).
+- **A puzzle's first photo only** (what it has after its first solves, the k = 1-4 situation, 654 puzzles ≥ 10): joint
+  0.0815 → 0.0792 (CI [−0.0042, −0.0003]), 500 box 0.0917 → 0.0860, exact 0.479 → 0.585 - one photo is enough.
+- **1000 pieces**: too few newer puzzles with a view (27 / 73) to say; no harm measured.
 
 ## 6. Runbook
 

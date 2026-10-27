@@ -642,6 +642,42 @@ def test_picture_factors_come_from_a_frozen_basis_of_the_same_embedding_model(ap
     assert "is not the basis' model" in skipped["pictureFactors"]["skipped"] and "pictureFactors" not in big.estimates[pid(9)]
 
 
+def test_a_brand_x_size_effect_the_picture_cannot_see_is_learned_as_an_offset(api, server, monkeypatch):
+    planted(server, n=900, labelled=850, seed=5, noise=0.03)
+    for i in range(900):  # brand 3 cuts its 500s harder than the picture says
+        if i % 12 == 3 and server.puzzles[pid(i)]["piecesCount"] == 500 and pid(i) in server.labels:
+            server.labels[pid(i)]["logDifficulty"] += 0.25
+    run(api)
+    ev = server.models[-1]["evaluation"]
+    assert ev["brandSizeOffset"]["pseudoCount"] == dp.BRAND_SIZE_PSEUDO_COUNT and ev["brandSizeOffset"]["groups"] >= 20
+    assert "ensembleWithoutBrandSizeOffset" in ev["holdouts"]["newerFromOlder"]["components"]
+    unlabelled = [pid(i) for i in range(850, 900) if i % 12 == 3 and server.puzzles[pid(i)]["piecesCount"] == 500]
+    lifted = [server.estimates[p]["logDifficulty"] for p in unlabelled]
+    monkeypatch.setattr(dp, "BRAND_SIZE_PSEUDO_COUNT", None)
+    run(api, force_model=True)
+    off = server.models[-1]["evaluation"]
+    assert off["brandSizeOffset"] == "off"
+    assert ev["holdouts"]["newerFromOlder"]["overall"]["mae"] < 0.9 * off["holdouts"]["newerFromOlder"]["overall"]["mae"]
+    assert ev["overall"]["mae"] < 0.9 * off["overall"]["mae"]
+    assert np.mean(lifted) > np.mean([server.estimates[p]["logDifficulty"] for p in unlabelled]) + 0.1
+
+
+def test_nested_offsets_never_use_the_labels_of_the_rows_they_are_for():
+    rng = np.random.default_rng(15)
+    n_rows = 300
+    X = rng.normal(size=(n_rows, 5))
+    keys = [f"b{i % 6}|500" for i in range(n_rows)]
+    y = X @ rng.normal(size=5) + np.array([0.3 if k == "b1|500" else 0.0 for k in keys]) + rng.normal(scale=0.05, size=n_rows)
+    w = np.ones(n_rows)
+    fold = np.arange(n_rows) % 5
+    before = dp.nested_offsets(dp.Design(X), y, w, fold, keys, 10.0)
+    y2 = y.copy()
+    y2[fold == 2] += 5.0
+    after = dp.nested_offsets(dp.Design(X), y2, w, fold, keys, 10.0)
+    assert np.allclose(before[fold == 2], after[fold == 2]) and not np.allclose(before[fold != 2], after[fold != 2])
+    assert np.mean(before[np.array(keys) == "b1|500"]) > 0.15 and dp.BrandSizeOffsets(keys, y * 0, w, 10.0)(["new|500", None]).tolist() == [0.0, 0.0]
+
+
 def test_the_committed_basis_is_the_siglip2_so400m_crop_basis():
     basis = dp.load_picture_factor_basis()
     assert basis is not None and basis["version"] == dp.PICTURE_FACTORS_VERSION and basis["model"] == "so400m-14-384"

@@ -30,6 +30,12 @@ Two models, each with its own model record, push guard and estimates (`model` fi
    NYSTROM_ABOVE training rows, a seeded Nyström approximation with NYSTROM_LANDMARKS landmarks above. Measured
    (prediction-model review 2026-10-26, image-model P1; again in this module's own validate, docs/features/insights/
    estimates.md "Picture estimate 1.2.0"): newer from older Spearman +0.02 at three time cuts, MAE -4 %.
+   On top, a shrunk **brand × size offset** (BRAND_SIZE_PSEUDO_COUNT): Σ w r / (Σ w + 10) of the ensemble's
+   out-of-fold residuals of the same manufacturer at the same piece count (the brand from the work list, else the
+   label) - cut, print and finish the picture cannot show (data-mining review F1/F3; measured in validate: newer from
+   older MAE -3 %, estimates.md). A new brand or size gets 0. For an out-of-fold estimate the residuals come from
+   "pair models" trained without its fold and without the residual's own fold (nested_offsets) - its own label never
+   reaches it, not even through other puzzles' residuals. The fallback model gets no offset.
    An optional `piece_scale` block (PIECE_SCALE_NAMES of its `real` block, another CPU analyzer) joins the numbers
    once PIECE_SCALE_MIN_COVERAGE of the training rows have it - the estimates then say `modelVersion`
    PIECE_SCALE_MODEL_VERSION (a new estimate generation: the app's gates close until it is evaluated).
@@ -59,7 +65,9 @@ Intervals (1.2.0, image-model review P4): log_p10 / log_p25 / log_p75 / log_p90 
 regression of |residual| (out-of-fold residuals of well measured puzzles, >= 10 indices) on SIGMA_FEATURES - the
 estimate itself, how close and how alike its 10 nearest training pictures are (SigLIP 2 cosine; for a training row
 only pictures of the other folds), the crop's flags (uncertain crop, box-face pass, trim, artwork share), ln
-pixels-per-piece, size group and image kind - floored at SIGMA_FLOOR; q = quantiles of the **normalised** residuals
+pixels-per-piece, size group and image kind - shrunk toward its mean (SIGMA_SHRINK) and floored at SIGMA_FLOOR; the
+interval model describes the ensemble's residuals, the brand × size offset moves the whole window; q = quantiles of
+the **normalised** residuals
 r / σ̂ (σ̂ cross-fitted, never its own) per size group, falling back to all of them below 50 (normalised split-
 conformal). Below MIN_SIGMA_ROWS well measured residuals: the 1.1.0 table (residual quantiles per size group × image
 kind, then size group, then all). **A training puzzle's interval never contains its own residual**: rows of fold k
@@ -194,6 +202,12 @@ NYSTROM_LANDMARKS = 6_000
 
 # heteroscedastic intervals (image-model review P4)
 SIGMA_FLOOR = 0.02
+# σ̂' = mean + SIGMA_SHRINK × (σ̂ - mean): the fitted σ̂ over-corrects on newer puzzles (80 % coverage by doubt tercile
+# 0.75 / 0.78 / 0.85 at shrink 1); 0.75 evens it (0.78 / 0.76 / 0.82) at an equal or better Winkler score at 60/70/80 %
+SIGMA_SHRINK = 0.75
+# brand × size offset on top of the ensemble (data-mining review F1/F3): Σ w r / (Σ w + k) of the out-of-fold residuals
+# of the same brand at the same piece count; None = off
+BRAND_SIZE_PSEUDO_COUNT: float | None = 10.0
 MIN_SIGMA_ROWS = 200  # well measured residuals the σ̂ model needs, else the size × kind table
 KNN_K = 10
 KNN_CANDIDATES = 64  # neighbours kept per training row; enough after leaving out up to two folds
@@ -395,10 +409,15 @@ class Puzzle:
     kind: str = "unknown"
     label: DifficultyLabel | None = None
     crop: Crop = field(default_factory=Crop)
+    brand: str | None = None  # the manufacturer id
 
     @property
     def size_group(self) -> str:
         return size_group(self.pieces)
+
+    @property
+    def brand_size(self) -> str | None:
+        return f"{self.brand}|{self.pieces}" if self.brand else None
 
     @property
     def pixels_per_piece(self) -> float | None:
@@ -549,9 +568,10 @@ def _optional_rows(rows: Callable[[str], Iterable[dict[str, Any]]], analyzer: st
 
 
 def build_corpus(labels: Iterable[DifficultyLabel], pictures: dict[str, tuple[str, int | None]],
-                 rows: Callable[[str], Iterable[dict[str, Any]]]) -> Corpus:
+                 rows: Callable[[str], Iterable[dict[str, Any]]], brands: dict[str, str] | None = None) -> Corpus:
     """`pictures`: puzzleId -> (current fingerprint, pieces) of every listed (= not secret) puzzle with a picture.
-    `rows(analyzer)`: the current rows of one analyzer (bulk endpoint). Joins on (puzzleId, imageFingerprint)."""
+    `rows(analyzer)`: the current rows of one analyzer (bulk endpoint). Joins on (puzzleId, imageFingerprint).
+    `brands`: puzzleId -> manufacturer id from the work list (a label's `manufacturerId` where it has none)."""
     labels = list(labels)
     by_label = {lb.puzzle_id: lb for lb in labels}
     corpus = Corpus(puzzles={})
@@ -571,6 +591,8 @@ def build_corpus(labels: Iterable[DifficultyLabel], pictures: dict[str, tuple[st
             corpus.dropped["labelOfAnotherPicture"] += 1
         else:
             p.label = lb
+    for pid, p in corpus.puzzles.items():
+        p.brand = (brands or {}).get(pid) or (p.label.manufacturer_id if p.label is not None else None) or None
 
     for pid, result in _newest("artwork", rows("artwork"), corpus, lambda row, p: as_map(row.get("result"))).items():
         corpus.puzzles[pid].kind = image_kind(result)
@@ -877,6 +899,60 @@ def chosen_alpha(model: Ensemble) -> float:
     return model.alpha
 
 
+class BrandSizeOffsets:
+    """A shrunk offset per brand × piece count from out-of-fold residuals: Σ w r / (Σ w + BRAND_SIZE_PSEUDO_COUNT) -
+    a brand × size the residuals never saw (a new brand, a size new to it, no brand) gets 0."""
+
+    def __init__(self, keys: list[str | None], residuals: np.ndarray, w: np.ndarray, k: float) -> None:
+        sums: dict[str, float] = {}
+        weights_: dict[str, float] = {}
+        for key, r, ww in zip(keys, np.asarray(residuals, dtype=float), np.asarray(w, dtype=float)):
+            if key is not None and np.isfinite(r):
+                sums[key] = sums.get(key, 0.0) + ww * r
+                weights_[key] = weights_.get(key, 0.0) + ww
+        self.k = k
+        self.table = {key: sums[key] / (weights_[key] + k) for key in sums}
+        self.weights = weights_
+
+    def __call__(self, keys: list[str | None]) -> np.ndarray:
+        return np.array([self.table.get(key, 0.0) if key is not None else 0.0 for key in keys])
+
+    def describe(self) -> dict[str, Any]:
+        values = np.array(list(self.table.values())) if self.table else np.zeros(1)
+        return {"pseudoCount": self.k, "groups": len(self.table), "groupsWith10Weight": int(sum(w >= 10 for w in self.weights.values())),
+                "p10": round(float(np.percentile(values, 10)), 4), "p90": round(float(np.percentile(values, 90)), 4)}
+
+
+def nested_offsets(D: Design, y: np.ndarray, w: np.ndarray, fold: np.ndarray, keys: list[str | None], k: float) -> np.ndarray:
+    """The brand × size offset of every training row from residuals no model of its fold's labels shaped: for fold a,
+    the residual of a row of fold b comes from a model trained without folds a and b ("pair model", one per pair of
+    folds - the same model serves both folds). So an out-of-fold estimate never depends on its own label, not even
+    through the residuals of other puzzles."""
+    folds = sorted(set(fold.tolist()))
+    out = np.zeros(len(y))
+    if len(folds) < 3:
+        return out
+    pair: dict[tuple[int, int], np.ndarray] = {}
+    for i, a in enumerate(folds):
+        for b in folds[i + 1:]:
+            tr = (fold != a) & (fold != b)
+            te = np.where((fold == a) | (fold == b))[0]
+            pred = np.full(len(y), np.nan)
+            pred[te] = fit(D[np.where(tr)[0]], y[tr], w[tr]).predict(D[te])
+            pair[(a, b)] = pred
+    for a in folds:
+        residuals = np.full(len(y), np.nan)
+        for b in folds:
+            if b != a:
+                rows = fold == b
+                residuals[rows] = y[rows] - pair[(min(a, b), max(a, b))][rows]
+        inside = np.where(fold == a)[0]
+        others = np.where(fold != a)[0]
+        table = BrandSizeOffsets([keys[j] for j in others], residuals[others], w[others], k)
+        out[inside] = table([keys[j] for j in inside])
+    return out
+
+
 # intervals ----------------------------------------------------------------------------------------------------------
 QUANTILES = (0.10, 0.25, 0.75, 0.90)
 
@@ -1050,7 +1126,9 @@ class IntervalModel:
             if tr.sum() < 20 or te.sum() == 0:
                 tr = well
             sigma_cf[te] = self._huber(Z[tr], target[tr]).predict(Z[te])
-        sigma_cf = np.maximum(sigma_cf, SIGMA_FLOOR)
+        self.shrink = SIGMA_SHRINK
+        self.sigma_mean = float(np.mean(sigma_cf[well]))
+        sigma_cf = self._shrunk(sigma_cf)
         self.model = self._huber(Z[well], target[well])
         z = residuals[well] / sigma_cf[well]
         s = np.array(sizes)[well]
@@ -1076,8 +1154,11 @@ class IntervalModel:
             F[bad] = np.broadcast_to(self.fill, F.shape)[bad]
         return F
 
+    def _shrunk(self, sigma: np.ndarray) -> np.ndarray:
+        return np.maximum(self.sigma_mean + self.shrink * (np.asarray(sigma) - self.sigma_mean), SIGMA_FLOOR)
+
     def sigma(self, raw: np.ndarray) -> np.ndarray:
-        return np.maximum(self.model.predict((self._filled(raw) - self.mu) / self.sd), SIGMA_FLOOR)
+        return self._shrunk(self.model.predict((self._filled(raw) - self.mu) / self.sd))
 
     def bounds(self, pred: np.ndarray, sizes: list[str], kinds: list[str], raw: np.ndarray | None = None) -> np.ndarray:
         assert raw is not None, "the heteroscedastic intervals need the σ̂ features"
@@ -1090,7 +1171,7 @@ class IntervalModel:
             return {"sizeGroup": size, "count": n, **{f"z{int(p * 100)}": round(x, 4) for p, x in zip(QUANTILES, q)}}
 
         return {"method": self.method, "source": f"out-of-fold residuals of puzzles with >= {INTERVAL_MIN_INDICES} indices",
-                "count": self.count, "sigmaFloor": SIGMA_FLOOR, "knn": KNN_K,
+                "count": self.count, "sigmaFloor": SIGMA_FLOOR, "sigmaShrink": self.shrink, "sigmaMean": round(self.sigma_mean, 4), "knn": KNN_K,
                 "sigmaSpearman": None if self.sigma_spearman is None else round(self.sigma_spearman, 4),
                 "sigmaCoefficients": {name: round(float(c / s), 5) for name, c, s in zip(SIGMA_FEATURES, self.model.coef_, self.sd)},
                 "pooled": entry(self.pooled, self.count, "all"),
@@ -1222,12 +1303,15 @@ class Fitted:
     context: Context
     oof_ridge: np.ndarray | None = None
     oof_kernel: np.ndarray | None = None
+    keys: list[str | None] = field(default_factory=list)  # brand × size of every training row
+    oof_base: np.ndarray | None = None  # the ensemble's out-of-fold estimate before the brand × size offset
+    offsets: BrandSizeOffsets | None = None  # for every puzzle the full model estimates; None = off
 
 
 @dataclass
 class Holdout:
-    """The newer-from-older part of a run: the model fitted on the older puzzles, its interval model, the newer test rows
-    (indices into the training rows) - the paired push guard's material."""
+    """The newer-from-older part of a run: the model fitted on the older puzzles, its interval model and brand × size
+    offsets, the newer test rows (indices into the training rows) - the paired push guard's material."""
 
     model: Ensemble
     intervals: Any
@@ -1235,6 +1319,15 @@ class Holdout:
     test: np.ndarray
     pred: np.ndarray
     bounds: np.ndarray
+    offsets: BrandSizeOffsets | None = None
+
+
+def with_offset(pred: np.ndarray, bounds: np.ndarray, offset: np.ndarray | None) -> tuple[np.ndarray, np.ndarray]:
+    """The estimate and its bounds moved by the brand × size offset (the interval model describes the ensemble's
+    residuals; the offset shifts the whole window)."""
+    if offset is None:
+        return pred, bounds
+    return pred + offset, bounds + offset[:, None]
 
 
 def train(name: str, corpus: Corpus, ids: list[str], build_x: Callable[[list[str]], Design],
@@ -1254,8 +1347,14 @@ def train(name: str, corpus: Corpus, ids: list[str], build_x: Callable[[list[str
     table = IntervalTable(y - oof, n, sizes, kinds)
     intervals = fit_intervals(ctx, np.arange(len(ids)), oof, y - oof, fold)
     ob = oof_bounds(ctx, oof, fold)
+    keys = [corpus.puzzles[p].brand_size for p in ids]
+    offsets = None
+    base = oof
+    if BRAND_SIZE_PSEUDO_COUNT is not None and D.kernel:  # the model of record only (measured there)
+        offsets = BrandSizeOffsets(keys, y - oof, w, BRAND_SIZE_PSEUDO_COUNT)
+        oof, ob = with_offset(oof, ob, nested_offsets(D, y, w, fold, keys, BRAND_SIZE_PSEUDO_COUNT))
     fitted = Fitted(name, ids, y, n, oof, oof_sizes, ob, fold, groups, info, full, table, intervals, sizes, kinds, ctx,
-                    oof_ridge if D.kernel else None, oof_kernel if D.kernel else None)
+                    oof_ridge if D.kernel else None, oof_kernel if D.kernel else None, keys, base, offsets)
     return fitted, D, V
 
 
@@ -1310,9 +1409,14 @@ def validate(fitted: Fitted, X: Design, V: np.ndarray, corpus: Corpus) -> tuple[
             older_intervals = fit_intervals(ctx, old_idx, old_oof, y[old_idx] - old_oof, old_fold)
             older = fit(X[old_idx], y[old_idx], w[old_idx])
             ridge_pred, kernel_pred = older.parts(X[test])
-            pred = older.predict(X[test])
+            base = older.predict(X[test])
             ts, tk = [sizes[i] for i in test], [kinds[i] for i in test]
-            tb = interval_bounds_inside(older_intervals, ctx, old_idx, test, pred)
+            base_b = interval_bounds_inside(older_intervals, ctx, old_idx, test, base)
+            older_offsets = None
+            if fitted.offsets is not None:  # the older puzzles' own residuals - nothing of the newer
+                older_offsets = BrandSizeOffsets([fitted.keys[i] for i in old_idx], y[old_idx] - old_oof, w[old_idx], fitted.offsets.k)
+            offset = older_offsets([fitted.keys[i] for i in test]) if older_offsets is not None else None
+            pred, tb = with_offset(base, base_b, offset)
             table_b = older_table.bounds(pred, ts, tk)
             newer |= {"trainSize": int(len(old_idx)), "trainAddedUntil": dated[cut - 1][0],
                       "overall": metrics(y[test], pred, tb), "groups": grouped(y[test], pred, tb, ts, tk),
@@ -1321,9 +1425,10 @@ def validate(fitted: Fitted, X: Design, V: np.ndarray, corpus: Corpus) -> tuple[
                                                    for g in grouped(y[test], pred, table_b, ts, tk)]}}
             if kernel_pred is not None:
                 newer["components"] = {"ridge": _ranking(metrics(y[test], ridge_pred, tb)),
-                                       "kernelRidge": _ranking(metrics(y[test], kernel_pred, tb))}
+                                       "kernelRidge": _ranking(metrics(y[test], kernel_pred, tb)),
+                                       "ensembleWithoutBrandSizeOffset": _ranking(metrics(y[test], base, base_b))}
             holdout, holdout_count, holdout_t = newer["overall"].get("spearman"), int(len(test)), tn
-            held = Holdout(older, older_intervals, [fitted.train_ids[i] for i in old_idx], test, pred, tb)
+            held = Holdout(older, older_intervals, [fitted.train_ids[i] for i in old_idx], test, pred, tb, older_offsets)
     holdouts["newerFromOlder"] = newer
     out["holdouts"] = holdouts
     if holdout is None:  # too few dated puzzles: the cross-fitted Spearman stands in (said so in the record)
@@ -1388,7 +1493,8 @@ def save_holdout(report_dir: Path | None, model: str, model_version: str, held: 
         tmp = path.with_suffix(".tmp")
         with open(tmp, "wb") as f:
             pickle.dump({"format": HOLDOUT_FORMAT, "model": model, "modelVersion": model_version, "computedAt": at,
-                         "trainIds": held.train_ids, "ensemble": held.model, "intervals": held.intervals}, f, protocol=5)
+                         "trainIds": held.train_ids, "ensemble": held.model, "intervals": held.intervals,
+                         "offsets": held.offsets}, f, protocol=5)
         os.replace(tmp, path)
     except OSError as e:
         log.warning("[difficulty_prior] could not keep the holdout model for the paired guard: %s", e)
@@ -1435,10 +1541,12 @@ def paired_guard(stored: dict[str, Any] | None, fitted: Fitted, held: Holdout | 
         return base | {"compared": False, "skipped": f"only {len(rows)} shared holdout test puzzles (< {GUARD_MIN_TEST})"}
     y = fitted.y[rows]
     s, k = [fitted.sizes[i] for i in rows], [fitted.kinds[i] for i in rows]
-    old_pred = old_model.predict(X[rows])
-    old_bounds = interval_bounds_outside(stored["intervals"], old_pred, fitted.context.vectors[rows].astype(np.float32),
+    old_base = old_model.predict(X[rows])
+    old_bounds = interval_bounds_outside(stored["intervals"], old_base, fitted.context.vectors[rows].astype(np.float32),
                                          fitted.context.crops[rows], s, k)
-    old = metrics(y, old_pred, old_bounds)
+    stored_offsets = stored.get("offsets")
+    offset = stored_offsets([fitted.keys[i] for i in rows]) if stored_offsets is not None and fitted.keys else None
+    old = metrics(y, *with_offset(old_base, old_bounds, offset))
     new = metrics(y, held.pred[keep], held.bounds[keep])
     regression = paired_verdict(old, new)
     return base | {"compared": True, "stored": old, "tonight": new, "regression": regression,
@@ -1533,9 +1641,11 @@ def estimates_for(fitted: Fitted, corpus: Corpus, domain: list[str], build_x: Ca
     others = [p for p in domain if p not in training]
     for start in range(0, len(others), PREDICT_CHUNK):
         chunk = others[start:start + PREDICT_CHUNK]
-        pred = fitted.full.predict(build_x(chunk))
+        base = fitted.full.predict(build_x(chunk))
         sizes, kinds = [corpus.puzzles[p].size_group for p in chunk], [corpus.puzzles[p].kind for p in chunk]
-        ob = interval_bounds_outside(fitted.intervals, pred, vectors(chunk), corpus.crops(chunk), sizes, kinds)
+        base_b = interval_bounds_outside(fitted.intervals, base, vectors(chunk), corpus.crops(chunk), sizes, kinds)
+        offset = fitted.offsets([corpus.puzzles[p].brand_size for p in chunk]) if fitted.offsets is not None else None
+        pred, ob = with_offset(base, base_b, offset)
         for i, pid in enumerate(chunk):
             out.append(make(pid, pred[i], ob[i], corpus.puzzles[pid].label is not None, len(fitted.train_ids)))
     kept = [e for e in out if e is not None]
@@ -1604,6 +1714,7 @@ def _run_model(api: Any, name: str, corpus: Corpus, train_ids: list[str], domain
             "inputs": "siglip2, dinov2, feature print, patch mean each unit-normed / 2; numbers and pieces standardised "
                       f"x {KERNEL_NUMBERS_WEIGHT} / sqrt(dim), x {KERNEL_PIECES_WEIGHT} / sqrt(dim)",
             "nystrom": kernel.nystrom, "nystromAbove": NYSTROM_ABOVE, "nystromLandmarks": NYSTROM_LANDMARKS}} if kernel else {}),
+        "brandSizeOffset": fitted.offsets.describe() if fitted.offsets is not None else "off",
         **evaluation, "intervals": fitted.table.describe(), "intervalModel": fitted.intervals.describe() | {"method": fitted.intervals.method},
         "estimates": {"total": len(estimates), "outOfFold": sum(e.out_of_fold for e in estimates), "nonFinite": non_finite,
                       "withCropTrust": sum(e.crop_trust is not None for e in estimates),
@@ -1666,7 +1777,8 @@ def run(api: Any, *, meta: dict[str, Any] | None = None, rows: Callable[[str], I
     pictures = {pid: (m.fingerprint, m.pieces_count) for pid, m in meta.items()}
     if rows is None:
         rows = lambda a: api.iter_analyses(a, only_current=True, limit=1000)  # noqa: E731
-    corpus = build_corpus(labels, pictures, rows)
+    brands = {pid: str(as_map(getattr(m, "manufacturer", None)).get("id") or "") for pid, m in meta.items()}
+    corpus = build_corpus(labels, pictures, rows, {pid: b for pid, b in brands.items() if b})
     previous_report = read_report(report_dir)
 
     ids = sorted(corpus.puzzles)
@@ -1698,7 +1810,7 @@ def run(api: Any, *, meta: dict[str, Any] | None = None, rows: Callable[[str], I
         (MODEL, primary_train, primary_domain, corpus.primary_x, corpus.primary_vectors, primary_version,
          f"ensemble {1 - KERNEL_SHARE:g} ridge + {KERNEL_SHARE:g} rbf kernel ridge on siglip2 crop + dinov2 crop + apple feature "
          f"print + dinov2 patch mean + {numbers} (ridge: x{EXTRA_WEIGHT}; corpus mean where missing) + ln pieces, ln pieces^2, "
-         "size group one-hot"),
+         f"size group one-hot{'; + shrunk brand x size offset (k ' + format(BRAND_SIZE_PSEUDO_COUNT, 'g') + ')' if BRAND_SIZE_PSEUDO_COUNT is not None else ''}"),
         (FALLBACK_MODEL, fallback_train, fallback_domain, corpus.fallback_x, corpus.fallback_vectors, MODEL_VERSION,
          "ridge on siglip2 whole image (else crop) + ln pieces, ln pieces^2, size group one-hot; standardised"),
     ]

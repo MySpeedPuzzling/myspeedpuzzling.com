@@ -11215,8 +11215,8 @@ listing_request:
     bar:
         label: "Puzzles elegidos"
         ask: "Pedir estos"
-        count: "{1}1 puzzle|]1,Inf[%count% puzzles"
-        sellers: "{1}de 1 vendedor|]1,Inf[de %count% vendedores"
+        count: "{1}1 puzzle|[0,Inf[%count% puzzles"
+        sellers: "{1}de 1 vendedor|[0,Inf[de %count% vendedores"
         full: "Puedes elegir hasta %count% puzzles a la vez."
     settings:
         emails_label: "Envíame un e-mail cuando alguien pida puzzles de mi lista de venta/intercambio"
@@ -11228,14 +11228,14 @@ listing_request:
             done: "Hecho. Ya no te enviaremos e-mails sobre solicitudes de venta/intercambio."
             settings_hint: "Puedes volver a activarlos en la configuración de tu perfil."
     notification:
-        requested: "{1}%player% pide un puzzle de tu lista de venta/intercambio.|]1,Inf[%player% pide %count% puzzles de tu lista de venta/intercambio."
+        requested: "{1}%player% pide un puzzle de tu lista de venta/intercambio.|[0,Inf[%player% pide %count% puzzles de tu lista de venta/intercambio."
         answered: "{0}%player% respondió a tu solicitud: esta vez no.|]0,Inf[%player% respondió a tu solicitud: sí a %count% de %total%."
-        unavailable: "{1}Un puzzle que pediste a %player% ya no está disponible.|]1,Inf[%count% puzzles que pediste a %player% ya no están disponibles."
+        unavailable: "{1}Un puzzle que pediste a %player% ya no está disponible.|[0,Inf[%count% puzzles que pediste a %player% ya no están disponibles."
         expired: "Tu solicitud a %player% ha caducado sin respuesta."
         answer: "Responder"
         open: "Abrir"
     chat:
-        yes: "{1}Hola %name%, sí: %puzzles% puede ser tuyo. Te lo he reservado. ¿Cómo hacemos el pago y el envío? Tu solicitud: %url%|]1,Inf[Hola %name%, sí: %puzzles% pueden ser tuyos. Te los he reservado. ¿Cómo hacemos el pago y el envío? Tu solicitud: %url%"
+        yes: "{1}Hola %name%, sí: %puzzles% puede ser tuyo. Te lo he reservado. ¿Cómo hacemos el pago y el envío? Tu solicitud: %url%|[0,Inf[Hola %name%, sí: %puzzles% pueden ser tuyos. Te los he reservado. ¿Cómo hacemos el pago y el envío? Tu solicitud: %url%"
         reply: "Hola %name%, sobre los puzzles que pediste (%url%):"
     sheet:
         title: "Pedir estos puzzles"
@@ -11253,17 +11253,17 @@ listing_request:
         note_placeholder: "Añade una nota, p. ej. una pregunta sobre el envío (opcional)"
         truncated: "Puedes pedir hasta %count% puzzles a la vez: aquí solo están los primeros %count%."
         what_happens: "Los vendedores reciben una notificación y un e-mail y responden por cada puzzle. Un sí te reserva el puzzle y abre un chat."
-        send: "{0}Enviar solicitudes|{1}Enviar 1 solicitud|]1,Inf[Enviar %count% solicitudes"
+        send: "{0}Enviar solicitudes|{1}Enviar 1 solicitud|[0,Inf[Enviar %count% solicitudes"
         not_askable: "No incluidos:"
-        unavailable_count: "{1}1 puzzle ya no está disponible|]1,Inf[%count% puzzles ya no están disponibles"
+        unavailable_count: "{1}1 puzzle ya no está disponible|[0,Inf[%count% puzzles ya no están disponibles"
     skip:
         unavailable: "ya no está disponible"
         already_asked: "ya lo pediste"
         reserved: "reservado para otra persona"
         own: "es tu propia oferta"
     flash:
-        sent: "{0}No se envió nada.|{1}Tu solicitud está en camino.|]1,Inf[%count% solicitudes están en camino."
-        skipped: "{1}Se quitó 1 puzzle.|]1,Inf[Se quitaron %count% puzzles."
+        sent: "{0}No se envió nada.|{1}Tu solicitud está en camino.|[0,Inf[%count% solicitudes están en camino."
+        skipped: "{1}Se quitó 1 puzzle.|[0,Inf[Se quitaron %count% puzzles."
         open: "Ver mis solicitudes"
         limit_reached: "Has enviado muchas solicitudes en la última hora. Inténtalo de nuevo más tarde."
         too_large: "Son demasiados a la vez: pide a un máximo de %sellers% vendedores hasta %listings% puzzles."
@@ -11272,7 +11272,7 @@ listing_request:
         chat_muted: "Tus mensajes están en pausa, así que no se puede abrir el chat."
         answered: "Gracias, tus respuestas se han enviado."
         answered_chat: "Gracias, tus respuestas se han enviado. Acordad aquí el pago y el envío."
-        reserved_for_somebody_else: "{1}1 puzzle está reservado para otra persona: quita primero esa reserva para decir que sí.|]1,Inf[%count% puzzles están reservados para otra persona: quita primero esas reservas para decir que sí."
+        reserved_for_somebody_else: "{1}1 puzzle está reservado para otra persona: quita primero esa reserva para decir que sí.|[0,Inf[%count% puzzles están reservados para otra persona: quita primero esas reservas para decir que sí."
         withdrawn: "Solicitud retirada."
     status:
         waiting: "Esperando"

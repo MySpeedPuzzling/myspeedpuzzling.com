@@ -533,11 +533,11 @@ borrow_request:
     no_addresses: "Nunca compartimos direcciones de correo: respondes dentro de MySpeedPuzzling."
     opt_out: "Recibes este correo porque tu colección de puzzles es pública. <a href=\"%settingsUrl%\">Configuración de correo</a> · <a href=\"%unsubscribeUrl%\">Dejar de recibir estos correos</a>"
 listing_request:
-    subject: "{1}%buyer% pide un puzzle de tu lista de venta/intercambio|]1,Inf[%buyer% pide %count% puzzles de tu lista de venta/intercambio"
+    subject: "{1}%buyer% pide un puzzle de tu lista de venta/intercambio|[0,Inf[%buyer% pide %count% puzzles de tu lista de venta/intercambio"
     preheader: "Responde con un toque por puzzle en MySpeedPuzzling."
-    title: "{1}%buyer% pide un puzzle de tu lista de venta/intercambio|]1,Inf[%buyer% pide %count% puzzles de tu lista de venta/intercambio"
+    title: "{1}%buyer% pide un puzzle de tu lista de venta/intercambio|[0,Inf[%buyer% pide %count% puzzles de tu lista de venta/intercambio"
     greeting: "Hola %name%:"
-    intro: "{1}A %buyer% le gustaría este puzzle de tu lista de venta/intercambio:|]1,Inf[A %buyer% le gustarían estos puzzles de tu lista de venta/intercambio:"
+    intro: "{1}A %buyer% le gustaría este puzzle de tu lista de venta/intercambio:|[0,Inf[A %buyer% le gustarían estos puzzles de tu lista de venta/intercambio:"
     pieces: "%count% piezas"
     type:
         sell: "en venta"

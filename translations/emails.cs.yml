@@ -533,11 +533,11 @@ borrow_request:
     no_addresses: "E-mailové adresy nikdy nesdílíme: odpovídáte přímo v MySpeedPuzzling."
     opt_out: "Tento e-mail dostáváte, protože je vaše sbírka puzzlí veřejná. <a href=\"%settingsUrl%\">Nastavení e-mailů</a> · <a href=\"%unsubscribeUrl%\">Už neposílat</a>"
 listing_request:
-    subject: "{1}%buyer% si říká o puzzle z tvého seznamu na prodej/výměnu|]1,Inf[%buyer% si říká o %count% puzzle z tvého seznamu na prodej/výměnu"
+    subject: "{1}%buyer% si říká o puzzle z tvého seznamu na prodej/výměnu|[0,Inf[%buyer% si říká o %count% puzzle z tvého seznamu na prodej/výměnu"
     preheader: "Odpověz jedním klepnutím u každého puzzle na MySpeedPuzzling."
-    title: "{1}%buyer% si říká o puzzle z tvého seznamu na prodej/výměnu|]1,Inf[%buyer% si říká o %count% puzzle z tvého seznamu na prodej/výměnu"
+    title: "{1}%buyer% si říká o puzzle z tvého seznamu na prodej/výměnu|[0,Inf[%buyer% si říká o %count% puzzle z tvého seznamu na prodej/výměnu"
     greeting: "Ahoj %name%,"
-    intro: "{1}%buyer% by rád(a) toto puzzle z tvého seznamu na prodej/výměnu:|]1,Inf[%buyer% by rád(a) tato puzzle z tvého seznamu na prodej/výměnu:"
+    intro: "{1}%buyer% by rád(a) toto puzzle z tvého seznamu na prodej/výměnu:|[0,Inf[%buyer% by rád(a) tato puzzle z tvého seznamu na prodej/výměnu:"
     pieces: "%count% dílků"
     type:
         sell: "na prodej"

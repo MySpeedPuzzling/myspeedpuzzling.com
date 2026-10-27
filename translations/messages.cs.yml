@@ -11241,8 +11241,8 @@ listing_request:
     bar:
         label: "Vybrané puzzle"
         ask: "Požádat o tyto"
-        count: "{1}1 puzzle|]1,Inf[%count% puzzle"
-        sellers: "{1}od 1 prodejce|]1,Inf[od %count% prodejců"
+        count: "{1}1 puzzle|[0,Inf[%count% puzzle"
+        sellers: "{1}od 1 prodejce|[0,Inf[od %count% prodejců"
         full: "Najednou můžeš vybrat nejvýše %count% puzzle."
     settings:
         emails_label: "Pošli mi e-mail, když si někdo řekne o puzzle z mého seznamu na prodej/výměnu"
@@ -11254,14 +11254,14 @@ listing_request:
             done: "Hotovo. O žádostech o puzzle na prodej/výměnu ti už e-maily posílat nebudeme."
             settings_hint: "Znovu je zapneš v nastavení profilu."
     notification:
-        requested: "{1}%player% si říká o puzzle z tvého seznamu na prodej/výměnu.|]1,Inf[%player% si říká o %count% puzzle z tvého seznamu na prodej/výměnu."
+        requested: "{1}%player% si říká o puzzle z tvého seznamu na prodej/výměnu.|[0,Inf[%player% si říká o %count% puzzle z tvého seznamu na prodej/výměnu."
         answered: "{0}%player% odpověděl(a) na tvou žádost - tentokrát ne.|]0,Inf[%player% odpověděl(a) na tvou žádost: ano u %count% z %total%."
-        unavailable: "{1}Puzzle, o které sis řekl(a) u %player%, už není k dispozici.|]1,Inf[%count% puzzle, o které sis řekl(a) u %player%, už nejsou k dispozici."
+        unavailable: "{1}Puzzle, o které sis řekl(a) u %player%, už není k dispozici.|[0,Inf[%count% puzzle, o které sis řekl(a) u %player%, už nejsou k dispozici."
         expired: "Tvé žádosti u %player% vypršela platnost bez odpovědi."
         answer: "Odpovědět"
         open: "Otevřít"
     chat:
-        yes: "{1}Ahoj %name%, ano - %puzzles% může být tvoje. Zarezervoval(a) jsem ti ho. Jak to uděláme s platbou a doručením? Tvoje žádost: %url%|]1,Inf[Ahoj %name%, ano - %puzzles% můžou být tvoje. Zarezervoval(a) jsem ti je. Jak to uděláme s platbou a doručením? Tvoje žádost: %url%"
+        yes: "{1}Ahoj %name%, ano - %puzzles% může být tvoje. Zarezervoval(a) jsem ti ho. Jak to uděláme s platbou a doručením? Tvoje žádost: %url%|[0,Inf[Ahoj %name%, ano - %puzzles% můžou být tvoje. Zarezervoval(a) jsem ti je. Jak to uděláme s platbou a doručením? Tvoje žádost: %url%"
         reply: "Ahoj %name%, k puzzle, o která sis řekl(a) (%url%):"
     sheet:
         title: "Požádat o tyto puzzle"
@@ -11281,7 +11281,7 @@ listing_request:
         what_happens: "Prodejci dostanou upozornění a e-mail a odpoví u každého puzzle. Ano puzzle zarezervuje pro tebe a otevře chat."
         send: "{0}Odeslat žádosti|{1}Odeslat 1 žádost|[2,4]Odeslat %count% žádosti|[5,Inf[Odeslat %count% žádostí"
         not_askable: "Není v přehledu:"
-        unavailable_count: "{1}1 puzzle už není k dispozici|]1,Inf[%count% puzzle už nejsou k dispozici"
+        unavailable_count: "{1}1 puzzle už není k dispozici|[0,Inf[%count% puzzle už nejsou k dispozici"
     skip:
         unavailable: "už není k dispozici"
         already_asked: "už sis o něj řekl(a)"
@@ -11289,7 +11289,7 @@ listing_request:
         own: "tvá vlastní nabídka"
     flash:
         sent: "{0}Nic se neodeslalo.|{1}Tvoje žádost je na cestě.|[2,4]%count% žádosti jsou na cestě.|[5,Inf[%count% žádostí je na cestě."
-        skipped: "{1}1 puzzle bylo vynecháno.|]1,Inf[Vynecháno puzzle: %count%."
+        skipped: "{1}1 puzzle bylo vynecháno.|[0,Inf[Vynecháno puzzle: %count%."
         open: "Moje žádosti"
         limit_reached: "Za poslední hodinu jsi poslal(a) hodně žádostí. Zkus to prosím později."
         too_large: "To je najednou moc - požádej nejvýše %sellers% prodejců o nejvýše %listings% puzzle."
@@ -11298,7 +11298,7 @@ listing_request:
         chat_muted: "Tvé zprávy jsou pozastavené, chat nejde otevřít."
         answered: "Díky - odpovědi jsou odeslané."
         answered_chat: "Díky - odpovědi jsou odeslané. Domluvte se tady na platbě a doručení."
-        reserved_for_somebody_else: "{1}1 puzzle je rezervované pro někoho jiného - pro odpověď ano nejdřív zruš tu rezervaci.|]1,Inf[%count% puzzle jsou rezervovaná pro někoho jiného - pro odpověď ano nejdřív zruš ty rezervace."
+        reserved_for_somebody_else: "{1}1 puzzle je rezervované pro někoho jiného - pro odpověď ano nejdřív zruš tu rezervaci.|[0,Inf[%count% puzzle jsou rezervovaná pro někoho jiného - pro odpověď ano nejdřív zruš ty rezervace."
         withdrawn: "Žádost stažena."
     status:
         waiting: "Čeká"

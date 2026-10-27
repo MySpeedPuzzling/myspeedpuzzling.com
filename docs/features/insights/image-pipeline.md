@@ -241,9 +241,23 @@ fine-tuning, no language model, nothing downloaded. Code and every decision in d
 `tools/puzzle-vision/puzzle_vision/derive/difficulty_prior.py`. A crash in it is logged (`log.exception`, `error` in
 the summary) and never ends the nightly run - the crop proposals still follow.
 
-- **Version** `1.1.0+ridge-siglip2-dinov2` = `model` `ridge-siglip2-dinov2`, `modelVersion` `1.1.0` (constants in the
+- **Version** `1.2.0+ridge-siglip2-dinov2` = `model` `ridge-siglip2-dinov2`, `modelVersion` `1.2.0` (constants in the
   module, not in the profiles - it is not an `ImageAnalyzer`). Bump `MODEL_VERSION` whenever the numbers change
-  (features, folds, thresholds); fixed seeds make two runs on the same data identical.
+  (features, folds, thresholds); fixed seeds make two runs on the same data identical. `1.2.1` is the same code once
+  the optional `piece_scale` analyzer covers ≥ 90 % of the training puzzles (its 20 numbers then join the extras) - a
+  new estimate generation, so the app's gates close until it is evaluated. What 1.2.0 changed and why, with the
+  measurements: [`estimates.md`](./estimates.md) "Picture estimate 1.2.0".
+- **1.2.0 in short**: the model of record is **0.5 × the 1.1.0 ridge + 0.5 × an RBF kernel ridge** on the same inputs
+  (bandwidth 2, alpha 0.1, fixed and recorded under `evaluation.learners`; exact Cholesky up to 20,000 training rows, a
+  seeded Nyström approximation with 6,000 landmarks above); **heteroscedastic intervals** (σ̂ from the estimate, its
+  10 nearest training pictures, the crop flags, pixels per piece, size and kind × normalised split-conformal quantiles
+  per size group; `evaluation.intervalModel`) and the **50 % window pushed** (`logP25` / `logP75`); every estimate also
+  carries `pixelsPerPiece`, `cropTrust` (when a `crop_trust` analysis exists) and 16 **picture factors** on the frozen
+  basis `puzzle_vision/derive/picture_factors/siglip2-crop-1.0.0.npz` (fitted once on 43,481 catalogue pictures,
+  2026-10-24 data; 35.6 % of the SigLIP 2 variance; a SigLIP 2 vector of another model gets none - a new basis = a new
+  file and version, never refitted nightly); a **paired push guard** next to the record check (below); the record
+  gains `newest30` (out of fold on the newest 30 %, ≥ 10 indices, per size × kind - the gate's population). The
+  fallback model stays a plain ridge.
 - **Inputs**: joined on (puzzleId, imageFingerprint) - the label's and every embedding row's fingerprint must be the
   puzzle's current picture (the work list). Of each analyzer only its **newest `analyzerVersion`** is read (a version
   bump re-runs over days; vectors of two models are never mixed), within it the most common dimension. Everything
@@ -268,10 +282,11 @@ the summary) and never ends the nightly run - the crop proposals still follow.
   `off: …` (plain puzzles as groups).
 - **Estimates**: training puzzles get **out-of-fold** estimates (`outOfFold: true`); labelled puzzles with 1-2 indices
   get the full model, which was not trained on them (`outOfFold: true` as well); unlabelled puzzles the full model
-  (`outOfFold: false`). Intervals `logP10` / `logP90` = estimate + residual quantiles of out-of-fold residuals of
-  puzzles with ≥ 10 indices per (size group × image kind), falling back to the size group and then to all of them
-  below 50 residuals; **a training puzzle's interval comes from the other folds' residuals only** (never its own);
-  always `logP10 ≤ logDifficulty ≤ logP90`; a non-finite number is never pushed (`estimates.nonFinite`).
+  (`outOfFold: false`). Intervals `logP10` / `logP25` / `logP75` / `logP90` = estimate + q × σ̂ (1.2.0, above);
+  below 200 well measured residuals the 1.1.0 table (residual quantiles of puzzles with ≥ 10 indices per size group ×
+  image kind, then size group, then all, below 50 residuals); **a training puzzle's interval comes from the other
+  folds only** (their residuals, their labels as kNN neighbours - never its own); always `logP10 ≤ logP25 ≤
+  logDifficulty ≤ logP75 ≤ logP90`; a non-finite number is never pushed (`estimates.nonFinite`).
 - **Validation** (in the record's `evaluation`): `overall` + `groups` (out-of-fold on puzzles with ≥ 20 indices -
   `testMinIndices` drops to 10 / 5 / 3 only while fewer than 30 reach it), `holdouts.brands` (GroupKFold over brand ∪
   near-duplicate components), `holdouts.newerFromOlder` (oldest 70 % by `addedAt` → the rest, newer puzzles with a
@@ -282,7 +297,16 @@ the summary) and never ends the nightly run - the crop proposals still follow.
   next to `averageTierExact` / `averageTierWithinOne` (always "Average"), `window50Hit` / `window80Hit` (interval
   coverage, never circular) and `window80Width` (median, log). `groups` lists every `sizeGroup` × `imageKind` (flat /
   box / assembled / other / unknown = no `artwork`) plus `all` marginals.
-- **Push guard** (per model): it reads the model's current record and compares **only like with like** - the same
+- **Paired push guard** (1.2.0, per model): every recorded run keeps its newer-from-older model (the ensemble fitted on
+  the older 70 %, its interval model, the ids it trained on) as `difficulty_prior-<model>-holdout.pkl` next to the run
+  report (~150 MB; written only for a recorded run, never for a blocked or dry one). The next run scores that stored
+  model and its own on tonight's newer test puzzles the stored one never trained on - same puzzles, same labels:
+  **blocked when Spearman falls more than 0.02 or the MAE rises more than 3 %** (≈ 3 SE of a paired difference;
+  window coverage of both is recorded in `guard.paired`). Skipped with the reason without a stored model (first run,
+  another Mac), when the inputs changed shape (a new extra block) or below 100 shared test puzzles. It catches the
+  0.03 regressions the record check below cannot see (its SE is ~0.025); the record check stays for what the paired
+  one cannot see - broken labels score both models badly.
+- **Push guard against the record** (per model): it reads the model's current record and compares **only like with like** - the same
   `holdoutSource` and `holdoutTestMinIndices`, ≥ 100 holdout test puzzles tonight and in the previous record, and a
   training size within 25 % of the previous one. Otherwise the run is recorded with `guard.skipped` naming why (during
   the backfill most nights - a lucky early run on 31 test puzzles has an SD of ~0.08 and must not lock the model).
@@ -324,7 +348,7 @@ client methods are in `puzzle_vision/api.py`, the fake server for tests in `test
 | 2. Features | `api.iter_analyses("embed_siglip2" / "embed_siglip2_full" / "embed_dinov2")` | bulk read, `onlyCurrent=1` | join on (puzzleId, imageFingerprint): a label whose fingerprint differs from the embedding's (or is null) has no usable picture |
 | 3. Guard | `api.current_difficulty_model(model)` | `GET /internal-api/puzzle-difficulty-estimates/model` | `None` = first run; block the push when the new holdout Spearman is > 0.05 below `current["holdoutSpearman"]` |
 | 4. Record the run | `api.record_difficulty_model(DifficultyModelRecord(…))` | `POST …/puzzle-difficulty-estimates/model` | `holdoutSpearman` + `evaluation` (overall, groups per size group × image kind, holdouts) - append-only, latest = current |
-| 5. Estimates | `api.store_difficulty_estimates([DifficultyEstimate(…)])` | `PUT /internal-api/puzzle-difficulty-estimates` (≤ 500 a call, chunked) | log values within ±5, `logP10 ≤ logDifficulty ≤ logP90`, `logP90 - logP10 ≤ 1.5`, `outOfFold` for cross-fitted labelled puzzles; outcomes `stored` / `stale_fingerprint` / `hidden` / `unknown_puzzle` (skip, nothing stored) / `invalid` (our bug); idempotent upsert of the current value |
+| 5. Estimates | `api.store_difficulty_estimates([DifficultyEstimate(…)])` | `PUT /internal-api/puzzle-difficulty-estimates` (≤ 500 a call, chunked) | log values within ±5, `logP10 ≤ logDifficulty ≤ logP90`, `logP90 - logP10 ≤ 1.5`, `outOfFold` for cross-fitted labelled puzzles; optional since 1.2.0: `logP25` + `logP75`, `pixelsPerPiece`, `cropTrust`, `pictureFactors` (16) + `pictureFactorsVersion`; outcomes `stored` / `stale_fingerprint` / `hidden` / `unknown_puzzle` (skip, nothing stored) / `invalid` (our bug); idempotent upsert of the current value |
 
 **On the server**, two daily crons turn the pushed derived results into app data: `myspeedpuzzling:refresh-puzzle-tags`
 writes `puzzle_tag` from `tags` (+ the moderators' corrections) - [`tags.md`](./tags.md) - and

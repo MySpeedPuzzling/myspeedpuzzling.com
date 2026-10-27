@@ -565,12 +565,22 @@ No reviewer needed.
   puzzle has none), `hidden` (a secret puzzle or picture - it never gets an estimate), `unknown_puzzle` or `invalid`
   (`errors` by field, unknown fields too). **Idempotent**: the same batch again stores the same values. The same
   puzzle twice in one batch: the later item wins. The audit log gets the counts, never the values.
+  **Optional since `difficulty_prior` 1.2.0** (absent or null = not known; stored in nullable columns, a push without
+  them leaves them null - the row is replaced whole; nothing shown reads them yet): `logP25` + `logP75` the
+  pipeline's own 50 % interval (both or neither, `logP10 ≤ logP25 ≤ logDifficulty ≤ logP75 ≤ logP90`);
+  `pixelsPerPiece` (> 0, ≤ 100,000) the side of one piece in pixels of the original picture, √(artwork width × height ÷
+  pieces); `cropTrust` (0-1) the `crop_trust` analyzer's trust in the artwork crop of the same picture;
+  `pictureFactors` exactly 16 numbers within ±100 (the SigLIP 2 crop vector on a frozen, whitened PCA basis - unit
+  variance over the catalogue) with `pictureFactorsVersion` (≤ 50 characters, the basis version; one without the other
+  is invalid). Read back by `GetPuzzleDifficultyEstimates` / `PuzzleDifficultyEstimateResult`; `ImagePriorInput`
+  carries the quartiles, pixels per piece and crop trust (its `variance()` still reads the 80 % interval only).
 - **Model record** `POST` `{model, modelVersion, trainingSize, holdoutSpearman, evaluation, createdAt?}` → `201`
   with the record (`id`, …, `receivedAt`); invalid fields `422` with `errors`. Append-only
   (`puzzle_difficulty_estimate_model`): **the current record = the latest received** (`GET`, `?model=<name>` for one
   model name), the older rows are its history. `holdoutSpearman` (-1..1) is the number of the **push guard**: the
   Mac reads the current record first and pushes nothing when its new holdout Spearman (newer puzzles predicted from
-  older ones) is more than 0.05 below it. `evaluation` = the run's other numbers as the pipeline sends them, a JSON
+  older ones) is more than 0.05 below it (since 1.2.0 next to a paired check on the Mac itself -
+  [`insights/image-pipeline.md`](./insights/image-pipeline.md) §7). `evaluation` = the run's other numbers as the pipeline sends them, a JSON
   object ≤ 256 KB stored as it came - recommended shape `overall` `{spearman, mae, tierExact, tierWithinOne,
   window50Hit, window80Hit, count}`, `groups` `[{sizeGroup, imageKind, …the same numbers}]`, `holdouts`
   `{brands, newerFromOlder}`. Push order: record the model, then its estimates. It is not the **gate record** - that
@@ -599,9 +609,12 @@ curl -s -X POST -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type:
                       "groups": [{"sizeGroup": "500", "imageKind": "flat", "spearman": 0.76, "count": 310}]}}' \
   https://myspeedpuzzling.com/internal-api/puzzle-difficulty-estimates/model
 curl -s -X PUT -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
-  -d '{"items": [{"puzzleId": "<puzzleId>", "model": "ridge-siglip2-dinov2", "modelVersion": "1.1.0",
+  -d '{"items": [{"puzzleId": "<puzzleId>", "model": "ridge-siglip2-dinov2", "modelVersion": "1.2.0",
                   "logDifficulty": 0.12, "logP10": -0.15, "logP90": 0.4, "outOfFold": true, "trainingSize": 5120,
-                  "imageFingerprint": "3f2a9c0d4b1e7a65", "computedAt": "2026-10-19T03:00:00Z"}]}' \
+                  "imageFingerprint": "3f2a9c0d4b1e7a65", "computedAt": "2026-10-19T03:00:00Z",
+                  "logP25": 0.02, "logP75": 0.24, "pixelsPerPiece": 41.4, "cropTrust": null,
+                  "pictureFactors": [0.31, -1.2, 0.05, 0.8, -0.4, 1.1, 0.0, -0.3, 0.6, 0.2, -0.9, 0.4, 0.1, -0.2, 0.7, -0.5],
+                  "pictureFactorsVersion": "1.0.0"}]}' \
   https://myspeedpuzzling.com/internal-api/puzzle-difficulty-estimates
 # → {"counts": {"stored": 1, "stale_fingerprint": 0, "hidden": 0, "unknown_puzzle": 0, "invalid": 0},
 #    "items": [{"index": 0, "puzzleId": "…", "status": "stored"}]}

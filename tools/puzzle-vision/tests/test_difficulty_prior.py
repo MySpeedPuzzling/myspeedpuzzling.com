@@ -387,6 +387,9 @@ def test_a_non_finite_number_is_never_an_estimate():
     assert dp._estimate("a", p, dp.MODEL, float("nan"), np.zeros(4), True, 10, "t") is None
     assert dp._estimate("a", p, dp.MODEL, 0.1, np.array([np.nan, 0, 0, 0.2]), True, 10, "t") is None
     assert dp._estimate("a", p, dp.MODEL, 0.1, np.array([-0.1, 0, 0.1, 0.2]), True, 10, "t").log_p90 == 0.2
+    wide = dp._estimate("a", p, dp.MODEL, 0.1, np.array([-1.9, -0.9, 0.6, 1.1]), True, 10, "t")  # 3.0 wide: the API refuses > 1.5
+    assert wide.log_p90 - wide.log_p10 == pytest.approx(dp.MAX_INTERVAL_WIDTH, abs=1e-4)
+    assert wide.log_p10 < wide.log_p25 < wide.log_difficulty < wide.log_p75 < wide.log_p90 and wide.log_p10 == pytest.approx(0.1 - 2.0 / 3 * 1.49, abs=1e-4)
 
 
 def test_tiers_match_difficulty_tier_from_score():

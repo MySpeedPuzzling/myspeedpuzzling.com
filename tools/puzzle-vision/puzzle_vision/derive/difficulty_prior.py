@@ -171,6 +171,7 @@ ALPHAS = np.logspace(-2, 6, 33)  # GCV picks one per fit; the record says when i
 PREDICT_CHUNK = 4096
 SIMILARITY_BLOCK = 1024
 LOG_LIMIT = 4.99
+MAX_INTERVAL_WIDTH = 1.49  # PuzzleDifficultyEstimateInput::MAX_INTERVAL_WIDTH (1.5) refuses a wider 80 % interval
 # src/Value/DifficultyTier.php fromScore(): `score < edge` is the easier tier. 1e-6 below the edge: a score exactly on
 # a cut point whose ln was rounded to 6 decimals still lands in the harder tier, as the app's score does.
 TIER_EDGES = np.log([0.75, 0.90, 1.10, 1.25, 1.45]) - 1e-6
@@ -1608,10 +1609,15 @@ def _estimate(pid: str, puzzle: Puzzle, model: str, value: float, bounds: np.nda
     if not np.isfinite(value) or not np.all(np.isfinite(np.asarray(bounds, dtype=float))):
         return None
     ld = _clip(value)
-    p25 = min(ld, _clip(bounds[1]))
-    p75 = max(ld, _clip(bounds[2]))
-    p10 = min(p25, _clip(bounds[0]))
-    p90 = max(p75, _clip(bounds[3]))
+    lo = np.minimum(np.asarray(bounds, dtype=float)[[0, 1]] - value, 0.0)
+    hi = np.maximum(np.asarray(bounds, dtype=float)[[2, 3]] - value, 0.0)
+    width = hi[1] - lo[0]
+    if width > MAX_INTERVAL_WIDTH:  # the API refuses a wider 80 % interval: narrow the window about the estimate
+        lo, hi = lo * MAX_INTERVAL_WIDTH / width, hi * MAX_INTERVAL_WIDTH / width
+    p25 = min(ld, _clip(ld + lo[1]))
+    p75 = max(ld, _clip(ld + hi[0]))
+    p10 = min(p25, _clip(ld + lo[0]))
+    p90 = max(p75, _clip(ld + hi[1]))
     ppp = puzzle.pixels_per_piece
     return DifficultyEstimate(puzzle_id=pid, model=model, model_version=model_version, log_difficulty=round(ld, 5),
                               log_p10=round(p10, 5), log_p90=round(p90, 5), out_of_fold=oof, training_size=int(max(1, size)),

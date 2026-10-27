@@ -166,6 +166,13 @@ final class FinishedPhotosInternalApiTest extends WebTestCase
             self::assertResponseStatusCodeSame(404, "$puzzleId $photo");
         }
 
+        // A secret puzzle's photo (hide_until ahead): 404 like an unknown one, the proxy never asked
+        $this->database()->executeStatement("UPDATE puzzle SET hide_until = '2099-01-01' WHERE id = ?", [self::PUZZLE]);
+        self::callInternalApi($browser, 'GET', self::photoUri(self::PUZZLE, $fingerprint));
+        self::assertResponseStatusCodeSame(404);
+        self::assertCount(1, FinishedPhotoHttpMock::urls());
+        $this->database()->executeStatement('UPDATE puzzle SET hide_until = NULL WHERE id = ?', [self::PUZZLE]);
+
         // The proxy has it not: 404; the proxy fails: 503 for a retry
         $this->setPhoto($this->photos[0]['id'], 'players/x/' . FinishedPhotoHttpMock::MISSING . '.jpg');
         self::callInternalApi($browser, 'GET', self::photoUri(self::PUZZLE, PuzzleImageFingerprint::of('players/x/' . FinishedPhotoHttpMock::MISSING . '.jpg')));

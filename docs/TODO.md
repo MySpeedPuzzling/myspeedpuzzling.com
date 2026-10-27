@@ -1200,6 +1200,13 @@ First delivery = store + backfill; the UI comes after it.
 - [ ] The image predictor's window = the estimate's interval as the puzzle term with the statistical k = 0 quantiles; if
       the window gate fails on the real backfill, fit a calibration table of the image rows' own (like
       `PredictionModelFitter`'s first-try buckets) rather than loosening the gate
+- [ ] Gate v2 (2026-10-27): honesty is the binding rule on production (500 flat 50 % window 0.478 out of period, 500 box
+      80 % 0.837) - the picture-only window's hit rate drifts ± 5 points between periods. Levers, side by side first:
+      a recency-weighted image scale fit, heteroscedastic estimate intervals (image review P4)
+- [ ] Jan (plan B1): show the tier as a range? The 80 % interval's tier range holds the measured tier 93 % but spans
+      2.55 tiers on average - a coverage rule joins the gate only if the range is what members see
+- [ ] Gate a candidate time model with `myspeedpuzzling:evaluate-prediction-candidate --candidate=statistical:4
+      --reference=statistical:3` once its side rows exist (the launch `MODEL_VERSION` bump's proof)
 - [ ] No estimate history: a reconstruction uses the out-of-fold estimate current when it runs (the derive re-pushes
       nightly). Store estimate history only if a gate decision ever needs "the estimate as of the solve"
 - [ ] `puzzle_difficulty.blend_prior_log` / `difficulty_prior_puzzle.blend_prior_log` have no reader yet - the Picker and

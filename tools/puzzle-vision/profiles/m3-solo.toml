@@ -76,6 +76,16 @@ claim_limit = 200
 seconds_per_image = 0.35
 workers = 3
 
+# CPU only, no model lock: its own phase `cpu`, which may run while `describe` holds the GPU
+# (`run --profile m3-solo --phase cpu` beside the describe run - pid file run-m3-solo-cpu.pid); 0.67 CPU-s an image
+# measured (2.3 piece counts an image), ~2 h for 44k pictures on 4 workers
+[analyzers.piece_scale]
+version = "1.0.0+cv-piecegrid"
+requires = ["artwork"]
+claim_limit = 200
+seconds_per_image = 0.75
+workers = 4
+
 [analyzers.describe]
 version = "1.1.0+qwen35-9b-4bit"
 requires = ["artwork", "ocr"]
@@ -113,7 +123,12 @@ name = "features"
 stages = ["segmentation", "vision_labels"]
 sidecar = ["colors", "traits"]
 
-# 5. describe (Qwen3.5-9B 4-bit, ~10.75 s an image) - last, nothing of the launch waits on it
+# 5. piece-scale numbers (CPU workers only, no model lock) - a phase of its own so it can also run beside `describe`
+[[phases]]
+name = "cpu"
+stages = ["piece_scale"]
+
+# 6. describe (Qwen3.5-9B 4-bit, ~10.75 s an image) - last, nothing of the launch waits on it
 [[phases]]
 name = "describe"
 stages = ["describe"]
@@ -123,10 +138,11 @@ box_text = "1.0.0+rules"
 zeroshot = "1.0.0+so400m@tax1.0.0"
 neighbours = "1.0.0+siglip2-dinov2l"
 tags = "1.0.0+fusion@tax1.0.0"
+crop_trust = "1.0.0+logit8-flatprobe"
 
 [daily]
 # new / stale images (~60 a day: ~20 min with the model loads, describe ~11 of them), then derive and a few crop proposals
-phases = ["artwork", "embed", "apple", "features", "describe"]
+phases = ["artwork", "embed", "apple", "features", "cpu", "describe"]
 derive = true
 propose_crops = 50
 

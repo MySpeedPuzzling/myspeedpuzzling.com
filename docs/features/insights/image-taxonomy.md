@@ -509,6 +509,34 @@ generated token counts.
 
 `segmentation` and the embeddings above are sent exactly as described.
 
+`piece_scale` (crop, CPU only, no model - added 2026-10-27, `stages/piece_scale.py`): how ambiguous the artwork is at
+the size of **one piece**, on the cached crop (long side ≤ 1600 px; `traits.pieceLevel` measures similar numbers on a
+768 px crop, where a 1000-piece cell is ~20 px and the texture inside a piece is gone). The crop is cut into a grid
+matching the real piece layout (`cols = round(√(pieces × w / h))`, `rows = round(pieces / cols)`); each cell is
+described by its mean OKLab colour, the colour of its four quarters, the OKLab SD, the fine Laplacian texture and a
+6-bin gradient orientation histogram; the nearest other cell is the piece a puzzler could confuse it with. One block
+per piece count - `real` (the puzzle's own; 500 when unknown, `pieceCountKnown: false`), `p500`, `p1000` (the same
+block when the real count is 500 / 1000; null when a cell would be < 8 px):
+```json
+{"cropSize":[1600,1143],"pieceCountKnown":true,
+ "real":{"pieces":1000,"grid":[37,27],"tilePx":42.9,"nnMedian":0.071,"nnP25":0.049,"nnShareBelow003":0.06,
+  "nnShareBelow006":0.34,"nnShareBelow010":0.77,"logCandidates006":0.48,"logCandidates010":1.6,"lowDetailShare":0.01,
+  "fineTextureMedian":0.03,"fineTextureP25":0.019,"pileHhi16":0.078,"pileEntropy16":2.65,"pileHhi32":0.042,
+  "colourNnMedian":0.054,"textureNnMedian":0.022,"largestPileShare16":0.13,"boundaryEdgeShare":0.33,
+  "logCandidatesColour006":0.92,"hueEntropy":1.77,
+  "nnHistogram":[16 shares, bins of 0.01 from 0, the last = 0.15 and up],"pileShares16":[≤ 16 shares, largest first],
+  "uniformShare":0.08,"lookalike3Share":0.12,"largestUniformRegion":0.03},
+ "p500":{…},"p1000":{…}}
+```
+The 20 numbers from `tilePx` to `hueEntropy` are the prototype of the 2026-10-26 model review (data-mining F2:
+newer-from-older MAE 0.0884 → 0.0856 as a correction of difficulty_prior 1.1.0, the strongest single number
+`hueEntropy`), reproduced exactly (300 catalogue crops: every number equal up to the payload's 5-decimal rounding;
+`logCandidates*` differ by ≤ 0.0012 on one crop - a float32 tie at the radius). Stored now for later models (review §3,
+image-model §4.1): `nnHistogram`, `pileShares16`, `uniformShare` (cells of one flat colour: L SD and chroma SD
+< 0.02), `lookalike3Share` (cells with ≥ 3 near-identical cells, < 0.03, elsewhere), `largestUniformRegion` (the
+largest 4-connected area of uniform cells of one colour pile, share of all cells). ~2.7 KB; 0.56 CPU-s an image
+(2.3 piece counts an image) on one core. Not used by any estimate yet - `difficulty_prior` takes it in a later version.
+
 ### 11.2 Derived analyzers
 
 `box_text` (from `ocr` + `barcode`, rules, versioned): `{"pieces":[{"v":1000,"evidence":"1000 Teile"}],
@@ -529,7 +557,30 @@ puzzles daily (and the new puzzle inserted into the lists of its neighbours, so 
 "traits":{"trait.large_uniform_areas":0.34,…},"entities":{"subjects":[…],"place":…,"characters":[…],"artist":…}}`
 (`assigned` entries may carry `"uncertain": true` when the VLM and zero-shot disagree on a style / scene).
 
-The `ImageAnalyzer` enum therefore has 15 cases (`embed_siglip2_full` added 2026-10-18); every payload stays under 64 KB.
+`crop_trust` (from `artwork` + `embed_siglip2`, added 2026-10-27, `derive/crop_trust.py`): how far to trust the
+artwork crop, and the quality marks split so a queue can pick what it needs - the `artwork` payload's `confidence`
+describes the crop *path* (the worst path, VLM + widen + face pass, scores 0.97) and `needsBetterImage` is set on 70 %
+of the catalogue:
+```json
+{"trust":0.42,"cropNeedsLook":true,"pictureKind":"photo","kind":"box_front","resolution":["low_resolution_artwork"],
+ "notThePicture":false,"estimateLowConfidence":false,"priority":6,
+ "signals":{"iouFirstPass":0.91,"iouVlm":0.88,"meanSupportInner":0.31,"maxSimilarityInner":0.86,"trim":0.0,
+  "boxKind":1.0,"assembled":0.0,"flatlike":-1.2},
+ "artworkVersion":"1.1.0+siglip2-q3vl4b","model":"1.0.0"}
+```
+`trust` = calibrated probability that the crop is within 5 % of the true artwork on every side (`artwork_eval` cut and
+extra ≤ 0.05): a standardised logistic regression on the 8 `signals` (the stored first-pass and VLM boxes against the
+final one, colour-step support and picture continuity across the inner sides, the path and kind, and `flatlike` - a
+linear probe on the stored SigLIP 2 crop vector, "does it look like clean digital artwork"), coefficients frozen in
+`derive/crop_trust_model.json`, trained on the tuning + feedback outlines and measured on the validation set (numbers in
+the JSON's `evaluation` and image-pipeline.md §7). `cropNeedsLook` = trust < 0.5; `pictureKind` `digital` (kind flat)
+or `photo`; `resolution` = the `artwork` quality reasons `low_resolution_artwork` / `small_original` (null when none);
+`notThePicture` = the `not_the_picture` reason; `estimateLowConfidence` = not the picture, or trust < 0.3 with the
+artwork under 30 % of the photo; `priority` = ⌊log2(1 + solvedCount)⌋ (most-solved first; the log keeps the row from
+changing with every result). A new model = a new `crop_trust` version in every profile.
+
+The `ImageAnalyzer` enum therefore has 18 cases (`embed_siglip2_full` added 2026-10-18, `embed_dinov2_patches`
+2026-10-21, `piece_scale` and `crop_trust` 2026-10-27); every payload stays under 64 KB.
 
 ## 12. Run order and budget
 

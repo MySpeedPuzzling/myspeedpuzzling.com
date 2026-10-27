@@ -23,7 +23,7 @@ Claude Code skills wrap everything here: `/image-pipeline-setup`, `/image-pipeli
 |---|---|---|---|
 | MacBook Pro **M3 Max** 36 GB | `m3-max` | phase `artwork` (SigLIP 2 gate, then Qwen3-VL-4B on the non-flat pictures + OpenCV quad snap), then phase `describe` (Qwen3.5-9B 4-bit) | artwork ~24 h, describe ~123 h (10.75 s/img idle; 20-50 % slower with other GPU work) |
 | MacBook Air **M1** 16 GB, fanless, nonstop | `m1-air` | phase `A`: `ocr`, `barcode`, `embed_siglip2_full`; phase `B` (needs artwork): `embed_siglip2`, `embed_dinov2`, `segmentation`, `vision_labels` + `colors`/`traits` in CPU workers alongside; then helps with `describe` after the parity check | A + B ≈ 2.4 days |
-| MacBook Pro **M3 Max** 36 GB **alone** | `m3-solo` | `artwork` → `embed` (`embed_siglip2_full`, `embed_siglip2`, `embed_dinov2`) → `apple` (`ocr`, `barcode`) → `features` (`segmentation`, `vision_labels` + `colors`/`traits` in CPU workers alongside) → `describe` | ≈ 7 days for 43k (below) |
+| MacBook Pro **M3 Max** 36 GB **alone** | `m3-solo` | `artwork` → `embed` (`embed_siglip2_full`, `embed_siglip2`, `embed_dinov2`) → `apple` (`ocr`, `barcode`) → `features` (`segmentation`, `vision_labels` + `colors`/`traits` in CPU workers alongside) → `cpu` (`piece_scale`, CPU workers, no model lock) → `describe` | ≈ 7 days for 43k (below) |
 
 ### One Mac (`m3-solo`, since 2026-10-19)
 
@@ -39,6 +39,19 @@ filled). Apple Vision stays out of the GPU phases: next to a GPU-saturating mode
 `run --profile m3-solo --phase embed` runs one phase; the nightly launchd window and `--daily` run every phase, then
 `derive` and the crop proposals, like `m3-max`.
 
+**Phase `cpu` (`piece_scale`, since 2026-10-27)** is CPU work only: 4 single-threaded worker processes, no model, no
+model lock, the cached images. So it may run **beside** a GPU phase of the same profile - started while `describe`
+holds the GPU, it does not wait for it and does not slow it noticeably (0.56 CPU-s an image, ~1.7 h for 44k pictures
+on 4 workers):
+
+```sh
+nohup nice -n 10 uv run puzzle-vision run --profile m3-solo --phase cpu > ~/Library/Logs/puzzle-vision/run-cpu-$(date +%Y%m%d-%H%M).log 2>&1 &
+```
+
+A one-phase run writes its pid to `run-<profile>-<phase>.pid` (here `run-m3-solo-cpu.pid`), so it never overwrites or
+deletes the pid file of the run beside it; stop it with `kill $(cat "…/run-m3-solo-cpu.pid")`. (A run started before
+2026-10-27 with `--phase` still wrote `run-<profile>.pid`.)
+
 Total ≈ **5.5 days** wall clock with both machines (≈ 6.1 without the Air on describe). Why this way round
 (§19): `describe` is ~80 % of all compute and must be one model for the whole catalogue - on the Air it is ~57 s/img,
 so the M3 owns it. `artwork` gates both `describe` and the Air's phase B, so the M3 does it first while the Air runs its
@@ -53,10 +66,11 @@ did), so all Apple Vision work is on the Air, and there in its own stage, never 
 | `embed_siglip2_full` | - | M1 (phase A) | GPU |
 | `artwork` | - | M3 | GPU |
 | `colors`, `traits` | `artwork` | M1 (phase B, CPU sidecar) | CPU, single-threaded workers |
+| `piece_scale` | `artwork` | M1 (phase C) / m3-solo (phase `cpu`) | CPU, single-threaded workers, no model lock |
 | `segmentation`, `embed_dinov2`, `embed_siglip2` | `artwork` | M1 (phase B) | GPU |
 | `vision_labels` | `artwork` | M1 (phase B, last) | Apple Vision |
 | `describe` | `artwork`, `ocr` | M3 (+ M1 after parity) | GPU |
-| `box_text`, `zeroshot`, `neighbours`, `tags` (derived) | their raw inputs, no image | M3 (`derive`) | CPU (+ SigLIP text encoder once) |
+| `box_text`, `zeroshot`, `neighbours`, `tags`, `crop_trust` (derived) | their raw inputs, no image | M3 (`derive`) | CPU (+ SigLIP text encoder once) |
 
 `vision_labels` looks at the artwork crop, so it needs `artwork` and runs in phase B (§11 / plan §1.2), not in phase A
 as the first sketch of §2.3 had it. `ocr` runs on the full image before `artwork` exists; its lines' `inArtwork` is then
@@ -148,7 +162,8 @@ uv run --extra ml puzzle-vision run --profile m3-max --daily         # one pass 
   nobody can analyse.
 - Exit codes: 0 = done / the daily pass completed; 143 = stopped (SIGTERM / Ctrl-C); 124 = `--hours` ran out. After an
   early end, `--daily` runs no derive and no crop proposals. The run writes its own pid (the python process, not
-  `uv`) to `~/Library/Application Support/puzzle-vision/run-<profile>.pid` - `kill $(cat …)` stops it cleanly.
+  `uv`) to `~/Library/Application Support/puzzle-vision/run-<profile>.pid` (`run-<profile>-<phase>.pid` with
+  `--phase`) - `kill $(cat …)` stops it cleanly.
 - Progress lines go to the terminal and `~/Library/Logs/puzzle-vision/<profile>.log`.
 
 ### Daily mode and launchd
@@ -189,6 +204,30 @@ command again: production is the truth, the local work state is only a cache.
 - A **new picture** always gets a new fingerprint (`PuzzleImageNamer`), so it is to-do for every analyzer at once.
 - A picture that failed 3 times for a version is skipped until the next version bump (work state `failures`).
 
+### Measuring an `artwork` version (before any re-run)
+
+```sh
+uv run python -m puzzle_vision.artwork_eval --candidate stored                # the validation set (reference/)
+uv run python -m puzzle_vision.artwork_eval --set random --candidate stored   # the test set, once Jan has marked it
+```
+
+- **`reference` is a validation set, not a test set** (renamed 2026-10-26 after the model review): artwork 1.1 was
+  tuned on it (three keep/drop rules were chosen on its numbers, the gate margin on the lab's pictures), and it is
+  enriched with hard cases. Use it to compare versions; never quote it as the catalogue's error rate. `tuning` and
+  `feedback` are tuned on too.
+- **`random` is the test set**: ~200 current pictures drawn uniformly at random within the six first-pass strata
+  (`artwork_eval.stratum()`: flat / other / assembled or box × quad snap or not), more from the strata where crops go
+  wrong, each with its `weight` = pictures of the stratum in the catalogue / pictures drawn. Drawn and rendered by
+  `python -m puzzle_vision.artwork_testset select|sheets --out DIR` (read-only against production), marked by Jan in
+  `DIR/index.html` (the production outline pre-filled per corner; "on the edge" or the corrected corners in % read off
+  the 1 % corner zooms), then `artwork_testset import --out DIR` validates his `truth.jsonl` and writes
+  `reference/artwork-*-random.*`. Never tune on it; draw a new one (another `--seed`) once a version was changed
+  because of it. The first one: `~/puzzle-vision-review/random-test-2026-10-27/` (seed 20261027, 200 pictures).
+- Every run prints the counted rates **and** the catalogue rates (`weighted …`): each labelled picture stands for its
+  first-pass stratum in proportion to the catalogue (`reference/population-strata.json`, refreshed with
+  `artwork_testset strata --write`), or for its own selection weight (the random set); `effectiveN` says how many
+  pictures the weighted rate is worth, `coverage` how much of the catalogue the set's strata hold.
+
 ## 5. Disk and memory rules
 
 - **Model lock** `/tmp/msp-model-lock` (`mkdir` lease shared with ComfyUI, the labs and every local model user):
@@ -222,7 +261,7 @@ against production (real backfill work) and reports what each stored.
 ## 7. Derived analyzers
 
 ```sh
-uv run --extra ml puzzle-vision derive --profile m3-max                      # box_text, zeroshot, neighbours, tags, difficulty_prior
+uv run --extra ml puzzle-vision derive --profile m3-max                      # box_text, zeroshot, neighbours, tags, crop_trust, difficulty_prior
 uv run --extra ml puzzle-vision derive --profile m3-max --only tags --dry-run
 uv run puzzle-vision derive --profile m3-max --only difficulty_prior          # no model involved - the light set is enough
 ```
@@ -231,6 +270,36 @@ Reads the stored raw results (bulk endpoint, `onlyCurrent=1`), recomputes, and p
 version, picture or content). `zeroshot` loads the SigLIP 2 text encoder once under the model lock (prompt features
 cached per prompt bank). A new taxonomy or prompt bank = bump `zeroshot` / `tags` and run `derive` - no image is
 touched. `difficulty_prior` runs last (below); the nightly `--daily` run of the M3 runs all of them.
+
+### `crop_trust` - how far to trust a crop, and the quality marks (since 2026-10-27)
+
+`uv run puzzle-vision derive --profile m3-solo --only crop_trust [--dry-run]` - from the stored `artwork` and
+`embed_siglip2` rows (no image, no model, seconds), payload in image-taxonomy.md §11.2. Why: the `artwork` payload's
+`confidence` describes the crop path (trim never < 0.85; the VLM + widen + face path, 34 % cut on the validation
+outlines, scores 0.97 - AUC 0.65 for "crop within 5 %"), and `needsBetterImage` is set on 70 % of the catalogue
+(mostly "a photo, not digital artwork"), so neither can rank a queue (model review 2026-10-26, artwork F1/F5).
+
+- **trust** = calibrated P(crop within 5 % of the artwork on every side): logistic regression (standardised, C 0.3)
+  on 8 stored signals, frozen in `puzzle_vision/derive/crop_trust_model.json` with its training record. Trained on the
+  tuning + feedback outlines (213), measured on the validation set (`reference`, 264 - not a clean test set, see §4):
+  **AUC 0.898** (the stored confidence 0.65), **Brier 0.109** vs 0.184 for the base rate; calibration (trust band →
+  share within 5 %): < 0.3 → 0.15, 0.3-0.5 → 0.36, 0.5-0.7 → 0.50, 0.7-0.85 → 0.68, 0.85-0.95 → 0.95, ≥ 0.95 → 0.98.
+  Strongest inputs (standardised coefficients): the SigLIP "looks like flat artwork" probe +0.66, colour-step support
+  under the inner sides +0.57, the picture continuing across a side −0.45, assembled −0.41, box photo −0.39.
+- **The marks** (separate fields, so each queue picks its own): `cropNeedsLook` (trust < 0.5: 6,766 crops of 43,481 on
+  the 2026-10-24 data, 74 % of the flagged validation crops were off by > 5 %, catching 31 of 64), `notThePicture`
+  (159), `resolution` (`low_resolution_artwork` / `small_original`, 5,208 - the one quality fact measured to move the
+  estimate), `pictureKind` `photo` (27,757 - the long-term "replace with the digital artwork" list),
+  `estimateLowConfidence` (479: not the picture, or trust < 0.3 with the artwork under 30 % of the photo), and
+  `priority` = ⌊log2(1 + solvedCount)⌋ for ordering a review queue by how many players a picture reaches.
+- **Not used for the difficulty interval** - measured: crop trust does not improve the 80 % interval (time split,
+  pinball 0.02409 → 0.02422), the predicted level does. Perfect crops would move the estimate's error by ≤ ~0.005.
+- Crop proposals (§8) use `trust` as their crop signal.
+- **Refit** when the labelled sets or the `artwork` version change: `uv run python -m puzzle_vision.derive.crop_trust
+  --profile m3-solo --version <x.y.z>` (read-only bulk reads; prints the validation numbers), review them, commit the
+  JSON and bump `crop_trust` in every profile. The first fit (1.0.0) reproduces the review's model (AUC 0.896, the
+  same coefficients to two decimals); its probe was drawn excluding every labelled picture, so per-crop values differ a
+  little from the review's (correlation 0.97 over the catalogue).
 
 ### `difficulty_prior` - picture-based difficulty estimates (plan §5.3)
 
@@ -347,7 +416,10 @@ uv run puzzle-vision crop-review-approve --profile m3-max <id> …  # middle-ban
   original**. Confidence = weighted geometric mean of **agreement signals**, never a raw model score: VLM box vs
   snapped quad IoU, the flat-art gate on the crop, edge straightness (a strong edge exactly where the crop ends, all
   four sides), a plausible puzzle aspect ratio, and how much of the photo the artwork fills (and enough pixels,
-  ≥ 600 px). Below 0.6 nothing is proposed. Each proposal is a change request with the image, `source:
+  ≥ 600 px). Below 0.6 nothing is proposed. Since crop model 1.1.0 (2026-10-27) the first signal is the crop's
+  `crop_trust` (§7) when derive has stored one for the current picture - before, it was the VLM box vs snapped quad
+  IoU, which scored every artwork 1.1 face-pass crop a flat 0.4 (or the disagreeing quad's IoU × 0.8); the IoU stays
+  the fallback for a picture without a `crop_trust` row. A new crop model version earns its auto band anew (below). Each proposal is a change request with the image, `source:
   image_pipeline`, `tags: ["artwork_crop"]`, `confidence`, `modelVersion`, `sourceImageFingerprint` (the JPEG as plain base64). Refusals are
   skipped, never retried: `409` with `code` `already_proposed` (any status - a rejected crop is remembered),
   `image_changed` (the picture changed - the next artwork run proposes the new one), `pending_proposal` (the puzzle has
@@ -385,6 +457,9 @@ pushed. Specifics beyond image-taxonomy.md §11:
   `chroma` ×500, `gradient` ×500 - 4 × 256 small integers), `borderBand` (`uniformShare` of the outer ring of piece
   cells vs `interiorUniformShare`), `pieceLevel` `{real, p500, p1000}` (string keys - numeric keys would come back as a
   list), `regularity`, `symmetry`, `lineStrength`. `textShare` / `textChars` from Apple Vision fast text, CPU only.
+- `piece_scale`: `real`, `p500`, `p1000` blocks (image-taxonomy.md §11.1) on the cached crop at its full ≤ 1600 px -
+  the piece grid follows the real piece count, so a block is null only when its cells would be < 8 px. KMeans seed 0,
+  single-threaded workers: the same picture gives the same numbers.
 - `embed_siglip2` (crop) and `embed_siglip2_full` (whole image): the vector under `vector` (fixed 384 squash);
   `embed_dinov2`: `cls`.
 - `describe`: the §18 schema (`none` in `time` / `weather`, `characters` a list, `extraTags`, no `specialHints`),

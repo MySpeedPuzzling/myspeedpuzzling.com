@@ -28,10 +28,12 @@ final class ImageAnalyzerTest extends TestCase
             'embed_dinov2_patches',
             'segmentation',
             'describe',
+            'piece_scale',
             'box_text',
             'zeroshot',
             'neighbours',
             'tags',
+            'crop_trust',
         ], ImageAnalyzer::values());
     }
 

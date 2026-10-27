@@ -33,6 +33,7 @@ box_text = "1.0.0+rules"
 zeroshot = "1.0.0+so400m@tax1.0.0"
 neighbours = "1.0.0+siglip2-dinov2l"
 tags = "1.0.0+fusion@tax1.0.0"
+crop_trust = "1.0.0+logit8-flatprobe"
 
 [daily]
 # new / stale images (~60 a day, ~15-20 min), then derive and a few crop proposals

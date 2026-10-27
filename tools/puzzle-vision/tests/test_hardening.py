@@ -136,6 +136,13 @@ def test_a_run_ended_early_runs_no_derive(monkeypatch, tmp_path, api):
     assert not cli.pid_file(ctx).exists()
 
 
+def test_a_one_phase_run_has_its_own_pid_file(monkeypatch, tmp_path):
+    """`--phase cpu` beside a running describe run of the same profile must not overwrite (or delete) its pid file."""
+    monkeypatch.setenv("PUZZLE_VISION_HOME", str(tmp_path))
+    ctx = cli.Context(cli.parser().parse_args(["run", "--profile", "m3-solo", "--phase", "cpu"]))
+    assert cli.pid_file(ctx).name == "run-m3-solo.pid" and cli.pid_file(ctx, "cpu").name == "run-m3-solo-cpu.pid"
+
+
 def test_plist_lets_a_stop_finish():
     from puzzle_vision import launchd
 

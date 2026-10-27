@@ -57,7 +57,9 @@ def test_one_mac_runs_everything_with_the_launch_path_first():
     solo = profiles.load("m3-solo")
     runs = [a for ph in solo.phases for a in ph.stages + ph.sidecar]
     assert sorted(runs) == sorted(A.RAW) and len(runs) == len(set(runs))
-    assert [ph.name for ph in solo.phases] == ["artwork", "embed", "apple", "features", "describe"]
+    assert [ph.name for ph in solo.phases] == ["artwork", "embed", "apple", "features", "cpu", "describe"]
+    # CPU only, no model lock: `run --phase cpu` may run beside the describe run
+    assert solo.phase("cpu").stages == ("piece_scale",) and all(A.INFO[s].unit == "cpu" for s in solo.phase("cpu").stages)
     # what derive/difficulty_prior.py reads is done before anything else after the crops
     assert solo.phase("artwork").stages == ("artwork",)
     assert set(solo.phase("embed").stages) == {"embed_siglip2_full", "embed_siglip2", "embed_dinov2", "embed_dinov2_patches"}

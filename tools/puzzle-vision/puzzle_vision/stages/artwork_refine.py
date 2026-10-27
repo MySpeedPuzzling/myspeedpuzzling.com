@@ -302,7 +302,11 @@ def crop_geometry(a: np.ndarray, fp: dict[str, Any]) -> dict[str, Any]:
 
 def confidence(method: str, confirmed: int, fp: dict[str, Any], final_box: Sequence[float]) -> float:
     """One number from the agreement signals (0..1): sides confirmed as real edges, VLM box vs final crop, and the
-    gate agreeing with a flat picture. Calibrated on the tuning set's labels."""
+    gate agreeing with a flat picture. Calibrated on the tuning set's labels.
+
+    It describes the crop *path* more than the crop (2026-10-26 review: the trim path never scores < 0.85, photo-border
+    and edge-less face-pass sides count as confirmed - the worst path scores 0.97; AUC for a bad crop 0.61). Kept as it
+    is (changing it would re-run every crop); to rank or gate crops read the derived `crop_trust`."""
     if method == "trim":
         m = fp.get("gateMargin") or 0.0
         return round(min(1.0, 0.85 + 2.0 * max(0.0, m)), 4)
@@ -843,7 +847,7 @@ def refine(rgb: np.ndarray, a: np.ndarray, fp: dict[str, Any], source: tuple[int
         "bbox": _bbox(box),
         "corners": corners,
         "method": method,
-        "confidence": confidence(method.split("+")[0] if method == "trim" else method, confirmed, fp, box),
+        "confidence": confidence(method, confirmed, fp, box),
         "kindScores": gs,
         "source": {"width": int(source[0]), "height": int(source[1])},
         "geometry": geometry(outline, source),

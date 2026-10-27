@@ -73,7 +73,7 @@ flow. One PR, maybe two (claims + analyzer; change requests).
 | Analyzer | requires |
 |---|---|
 | `ocr`, `barcode`, `embed_siglip2_full`, `artwork` | - |
-| `colors`, `traits`, `segmentation`, `embed_dinov2`, `embed_siglip2`, `vision_labels` | `artwork` |
+| `colors`, `traits`, `piece_scale`, `segmentation`, `embed_dinov2`, `embed_dinov2_patches`, `embed_siglip2`, `vision_labels` | `artwork` |
 | `describe` | `artwork`, `ocr` |
 
 - Tests: claims respect `requires`, stale fingerprints don't count, concurrency unchanged (`SerializedByLock`). The existing claim tests are the template.

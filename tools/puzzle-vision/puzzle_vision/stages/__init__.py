@@ -10,6 +10,7 @@ from .base import Stage
 from .colors_traits import ColorsStage, TraitsStage
 from .describe import DescribeStage
 from .embeddings import Dinov2PatchesStage, Dinov2Stage, Siglip2FullStage, Siglip2Stage
+from .piece_scale import PieceScaleStage
 from .segmentation import SegmentationStage
 
 STAGES: dict[str, type[Stage]] = {
@@ -24,6 +25,7 @@ STAGES: dict[str, type[Stage]] = {
     "segmentation": SegmentationStage,
     "colors": ColorsStage,
     "traits": TraitsStage,
+    "piece_scale": PieceScaleStage,
     "describe": DescribeStage,
 }
 

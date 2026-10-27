@@ -16,6 +16,26 @@ The free trial (`docs/features/free-trial/README.md`) shipped dark behind it for
 
 Meta App Review approved + app published (2026-09-30), so Facebook lost its flag and follows the credentials rule like Google, Microsoft and Apple: available and shown iff `FACEBOOK_APP_ID` + `FACEBOOK_APP_SECRET` are configured (`SocialLoginSettings::isAvailable()`; templates ask `social_login.isProviderAvailable('facebook')`). `isShown()` / `isProviderShown()` / `isAnyShown()` collapsed into `isAvailable()` / `isProviderAvailable()` / `isAnyAvailable()`. The review preview (`?facebook_preview=1`, the `msp_fb_preview` cookie set by `NativeAuthPageSubscriber`, `FacebookReviewPreviewTest`) is gone too - a leftover cookie in a browser is harmless, nothing reads it; so is a box `.env` / Infisical that still sets the flag. Kill switch = empty the credentials.
 
+## Candidate prediction model rows (`PREDICTION_CANDIDATE_ROWS`)
+
+- **Feature:** the candidate prediction model's (v4, never shown) rows of `solving_time_prediction` -
+  `docs/features/puzzle-intelligence/prediction-history.md` "The candidate model (v4)"
+- **Flag:** env var `PREDICTION_CANDIDATE_ROWS` → parameter `predictionCandidateRows` (`config/services.php`), read by
+  `#[Autowire(param:)]`. Not a Twig global
+- **Default:** `0` (`.env`, `.env.test` - every query budget test measures the production default;
+  `CandidatePredictionsSideBySideTest` switches it on before its kernel boots). Turned on by hand after the first manual
+  fill (`backfill-solving-time-predictions --candidate`), so the 4×-daily backfill cron does not start listing every solo
+  time by itself
+- **Gated files:**
+  - `src/Services/PuzzleIntelligence/SolvingTimePredictor.php` — the live candidate row of an added time
+  - `src/MessageHandler/BackfillSolvingTimePredictionsHandler.php` — candidate rows of the backfill (also when the
+    message asks: `BackfillSolvingTimePredictions::$candidateRows`)
+  - `src/ConsoleCommands/BackfillSolvingTimePredictionsConsoleCommand.php` — the work list's candidate condition;
+    `--candidate` forces it
+- **Not gated:** the candidate's own commands (`fit-candidate-prediction-model`, `refresh-candidate-prediction-evidence`) -
+  their tables are read only by the candidate
+- **Remove when:** the candidate becomes the shown model (a `MODEL_VERSION` bump) or is dropped
+
 ## Insights (`INSIGHTS_PUBLIC`)
 
 - **Feature:** the player's own Insights page and everything new it brings (`docs/features/insights/README.md`,

@@ -28,6 +28,9 @@ readonly final class BackfillSolvingTimePredictions
         // Also replace every reconstructed image / blend row older than the out-of-fold estimate its puzzle has now (a
         // newer derive) - the one-off before an evaluation of the estimates; only once the model is fitted
         public bool $recomputeImage = false,
+        // Also the candidate model's (v4) rows while PREDICTION_CANDIDATE_ROWS is off - the first manual backfill
+        // (`--candidate`); with the flag on they come anyway
+        public bool $candidateRows = false,
     ) {
     }
 }

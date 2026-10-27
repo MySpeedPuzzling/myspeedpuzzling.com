@@ -752,6 +752,129 @@ pictured puzzle (41,266): the daily fit 5.6 → 6.0 s (the estimates' read and t
 batch unchanged (18.6 s - only the copy's sync compares one more column). The add-time path costs no statement: the
 estimate rides on the statistical read (two LEFT JOINs) and the three side rows go in one INSERT.
 
+### The candidate model (v4) - side by side, never shown
+
+A second model computed next to the shown one (v3), to be launched as one `MODEL_VERSION` bump once Jan decides
+(prediction model review 2026-10-26, proposals P1-P8 and data-mining F6/F8). **Nothing a player sees changes**: the
+columns on `puzzle_solving_time`, `GetPlayerPrediction(s)`, the Picker, the recap and API v1 stay on v3;
+`CandidateModelTest::testTheShownModelIgnoresEveryCandidateInput` and
+`CandidatePredictionsSideBySideTest::testTheShownPredictionsAreTheSameWithAndWithoutTheCandidate` guard it. Its rows
+are the `candidate` predictor of `solving_time_prediction`, model version `CandidatePredictionCalculator::MODEL_VERSION`
+(4) - first tries and repeats; storage and backfill: [prediction-history.md](prediction-history.md) "The candidate
+model (v4)".
+
+**First try** (`Model\CandidatePredictionCalculator::firstTry()`): the shown model's pace × e^drift (same
+`baselineFor()`, same thin-size rules) × e^(posterior log difficulty) × e^(centre offset) [× e^(unboxed offset)]:
+
+- **Index (P6).** Every difficulty index once more: ln(time ÷ pace) minus the solver's drift before the solve, clipped
+  at ±1, with its own noise variance s² = a·spread² + c ÷ q + e₀ (+ a term for a pace that was not the solver's own
+  direct one) - `Model\CandidateEngine`, fitted daily by non-negative least squares of each index's squared deviation
+  from the mean of the puzzle's other indices (puzzles with 10+ indices). Prod copy 2026-10-27: a 0.43, c 0.087,
+  e₀ 0.0013, indirect +0.020 (a 5-10-first-try solver's index is ~1.8× as noisy as a 50+ one's).
+- **One posterior for every k (P6, P1).** (Σ w l + m ÷ v) ÷ (Σ w + 1 ÷ v), w = 1 ÷ s², variance 1 ÷ (Σ w + 1 ÷ v) -
+  no switch to the median at 5 indices; the prior keeps its weight. Prior m: the image estimate
+  (`ImageEstimatePrior`'s estimate), else the **puzzle-weighted brand × pieces prior (P8)** (`PuzzleWeightedBrandPrior`
+  - every puzzle of the group counts once, fitted pseudo-count of puzzles; the shown one averages indices, so popular
+  easy puzzles dominate it), else the average puzzle. Each prior type its own variance v (grid on first tries at puzzles
+  with 0-9 indices; prod copy: image 0.015 ≈ τ 1-1.5 in index units, brand / none stay at their defaults - nearly
+  every puzzle has an estimate).
+- **Centre offsets (P3).** The median residual per size group × pace source × k bucket (× prior type at k = 0),
+  **less the fit window's overall median** (a level shared by the whole window is a period effect: a plain median offset
+  left +0.8 % bias out of period), shrunk (n ÷ (n + 200)); then the same per player experience (first tries before:
+  < 10 / < 30 / < 100 / more) - new players come 4-5 % slower than predicted in both models.
+- **Window.** sigma² = w₁·spread² + w₂·posterior variance + size term + pace-source term (interpolated, 500-scaled - P3)
+  + experience term (< 10, < 30) + w₃·dispersion (F8: the puzzle's excess disagreement - the plain variance of its
+  indices less their own noise, shrunk with (k - 1) ÷ (k - 1 + 10)), × a context scale (competition, unboxed - F6),
+  then standardised-residual quantiles per consistency × k bucket × size group.
+- **Unboxed first tries (F6).** Left out of indices and paces like before (the qualifying rule); predicted with a fitted
+  offset (+11 %) and window scale (1.75), fitted on the unboxed first tries of the window (`Model\UnboxedFirstTries`).
+
+**Repeat** (`repeatWindow()`): the shown centre (Holt / ratio) × e^(gap offset), the window with a variance term and
+quantiles per gap bucket since the last solve (P4: < 30 d, 1-3 m, 3-12 m, > 12 m).
+
+**Measured** (`evaluate-predictions --fit-before=2026-06-01 --candidate` on a read-only copy of production taken
+2026-10-27; everything fitted before the cut, every first try after it predicted as of its moment, the same 68,240
+rows for all three; error = mean |ln(actual ÷ predicted)|, "blend" = v3 shrunk toward the out-of-fold image estimate):
+
+| group | n | shown v3 | blend v3 | candidate | 50 / 80 % hits shown → candidate |
+|---|---|---|---|---|---|
+| all first tries | 68,240 | 0.0928 | 0.0903 (−2.6 %) | **0.0884 (−4.8 %)** | 50.6 / 80.1 → 50.3 / 79.9 |
+| k = 0 (not shown today) | 3,737 | 0.1845 | 0.1508 | 0.1497 (−18.9 %) | 50.4 / 80.5 → 51.9 / 83.2 |
+| k = 1-2 | 4,758 | 0.1328 | 0.1259 | 0.1212 (−8.7 %) | 50.8 / 80.3 → 50.3 / 79.8 |
+| k = 3-4 | 2,954 | 0.1079 | 0.1048 | 0.1017 (−5.8 %) | 48.8 / 79.5 → 48.0 / 77.7 |
+| k = 5-9 | 4,874 | 0.0990 | 0.0990 | 0.0940 (−5.1 %) | 51.6 / 79.9 → 50.0 / 80.2 |
+| k = 10-19 | 5,940 | 0.0890 | 0.0890 | 0.0862 (−3.1 %) | 51.0 / 79.1 → 49.3 / 78.1 |
+| k = 20+ | 45,977 | 0.0801 | 0.0801 | 0.0788 (−1.6 %) | 50.5 / 80.2 → 50.4 / 79.9 |
+| 1000 pieces | 3,410 | 0.1429 (bias −2.3 %) | 0.1317 | 0.1236 (−13.5 %, bias +0.9 %) | 52.0 / 81.9 → 52.1 / 80.8 |
+| pace interpolated | 564 | 0.1708 | 0.1643 | 0.1677 (−1.8 %) | 39.2 / 66.8 → 47.3 / 75.9 |
+| pace 500-scaled | 11,888 | 0.1259 | 0.1208 | 0.1179 (−6.4 %) | 48.7 / 78.4 → 50.0 / 80.5 |
+| players with 0-9 first tries | 2,304 | 0.1395 (bias +4.8 %) | 0.1386 | 0.1317 (−5.6 %, bias +0.9 %) | 38.5 / 65.4 → 52.2 / 82.2 |
+| players with 300+ first tries | 11,278 | 0.0828 | 0.0801 | 0.0774 (−6.5 %) | 54.3 / 83.6 → 52.9 / 82.3 |
+| competition | 3,721 | 0.0760 | 0.0755 | 0.0723 (−4.9 %) | 53.5 / 82.6 → 51.0 / 78.7 |
+| dispersion ≥ 0.02 (k ≥ 5) | 419 | 0.1412 | 0.1412 | 0.1452 (**+2.9 %**) | 34.6 / 59.3 → 53.7 / 82.1 |
+| unboxed first tries | 1,401 | 0.1582 (bias +10.5 %) | - | 0.1307 (−17.4 %, bias −0.4 %) | 31.7 / 58.0 → 49.1 / 77.2 |
+| repeats > 12 months | 3,370 | 0.0996 | - | 0.0995 | 39.0 / 67.8 → 49.9 / 77.8 |
+| repeats 3-12 months | 9,748 | 0.0812 | - | 0.0808 | 47.1 / 76.9 → 50.7 / 80.5 |
+| all repeats | 42,728 | 0.0771 | - | 0.0768 (−0.3 %) | 50.1 / 79.8 → 50.2 / 79.9 |
+
+A second split (fit before 2026-04-01, 97,101 first tries) agrees: 0.0927 → 0.0885 (−4.6 %), k = 0 −18.1 %, 1-2 −8.2 %,
+3-4 −5.3 %, 5-9 −5.0 %, 10-19 −3.4 %, 20+ −1.6 %, unboxed −21 %. The one loss: puzzles players disagree about most
+(dispersion ≥ 0.02, 0.6 % of first tries) - the weighted mean follows their slow outliers where the shown median does
+not; their windows go from 35 / 59 to 54 / 82.
+
+**Each part kept only if the time split confirmed it** (`--ablation`: the candidate refitted without one part at a time,
+the same rows; MAE fit < 2026-06-01 / < 2026-04-01, all parts 0.0883 / 0.0885):
+
+| part (review) | without it | kept |
+|---|---|---|
+| drift-adjusted index (P6) | 0.0889 / 0.0890 | yes |
+| precision weights (P6) | 0.0889 / 0.0891 | yes |
+| one posterior for every k (P6) | 0.0894 / 0.0895 | yes (k = 5-9: 0.0987 → 0.0939) |
+| image estimate as the prior (P1) | 0.0905 / 0.0906 | yes |
+| a variance per prior type (P1) | 0.0884 / 0.0885 | yes (nearly every puzzle has an estimate - little to separate) |
+| relative centre offsets + experience (P3) | 0.0888 / 0.0889 | yes |
+| puzzle-weighted brand prior (P8) | k = 0: 0.1499 / 0.1528 vs 0.1496 / 0.1525 | yes |
+| first-try hygiene as index weights (P5) | 0.0884 / 0.0885 | **no** - no gain on either split |
+| comment as an index outlier weight (F6) | 0.0884 / 0.0885 | **no** - no gain on either split |
+| prior type in the window keys (F4) | k = 0 image hits 51.7 / 82.9 vs 51.5 / 82.8 | **no** - no change |
+| pace-source window terms (P3) | interpolated 42.2 / 69.0, 500-scaled 48.4 / 78.6 | yes (→ 47.3 / 75.9, 50.0 / 80.5) |
+| dispersion term (F8) | top bucket 34.4 / 58.9, 0.008-0.02 41.1 / 68.8 | yes (→ 53.7 / 82.1, 51.5 / 80.6) |
+| competition window scale (F6) | 52.9 / 80.6 | yes (→ 51.0 / 78.7, ~8 % narrower) |
+| unboxed offset + scale (F6) | 29.6 / 54.5, MAE 0.1605 | yes (→ 49.1 / 77.2, 0.1307) |
+| repeat gap (P4) | > 12 m 39.0 / 67.8 | yes (→ 49.9 / 77.8) |
+
+`CandidateFeatures::NOT_KEPT` lists the parts left off; `--candidate-off=…` and `--ablation` still measure them. Not
+built (measured elsewhere or left for later): the per-player competition offset (F6 - only the competition window
+scale is in), the k = 0 dispersion from the picture's look-alike numbers (F8 - traits are not on the prediction's
+statements), the taste factor (P7) and the size curve (a separate change).
+
+**Isolation and cost.** Nothing of the candidate runs inside the shown model's jobs: `fit-prediction-model` and the
+15-minute batch are exactly main's. The candidate has two commands of its own (`CandidateModelRecalculator`), each its
+own process and transaction - `myspeedpuzzling:fit-candidate-prediction-model` (daily, after the shown fit: reads its
+committed drift and tau) and `myspeedpuzzling:refresh-candidate-prediction-evidence` (every 15 minutes, after the
+batch) - so a failing or killed candidate costs only the candidate's own rows. The add-time row is its own statement in
+its own savepoint, after the shown predictions, and only while `PREDICTION_CANDIDATE_ROWS=1` (prediction-history.md).
+
+Peak resident memory (VmHWM) on the production copy (306,796 qualifying first attempts), production settings
+(`APP_ENV=prod`, `memory_limit=1G`; the container's limit is 512 MB):
+
+| job | peak resident | time |
+|---|---|---|
+| shown fit alone (`fit-prediction-model`, unchanged) | 434 MB | 18 s |
+| candidate fit (`fit-candidate-prediction-model`) | 334 MB | 32 s |
+| candidate evidence refresh (every 15 min) | 312 MB | 14 s |
+| 15-minute batch | +0 (the candidate is not in it) | - |
+
+The candidate fit got there (from 437 MB when it ran inside the shown fit) by releasing what no later step reads
+(`CandidateModelFitter::begin()` / `sample()` / `fitNoise()` / `addEvidence()` / `finish()`; the recalculator drops
+the shown as-of difficulty, the priors and the image estimates after the samples - `PredictionEngine::releaseAsOfDifficulty()`
+- and the attempt set and engines after the evidence; the window, unboxed and repeat steps run on the samples alone at
+~120 MB), by reading the two 300k-row statements through a cursor (`CursorRows`: pdo_pgsql otherwise holds the whole
+result in the client library next to the arrays built from it) with the attempt flags merged positionally (no id
+map), and by fixed-size columns for the samples and the evidence (`SplFixedArray`). The fitted parameters, the evidence
+and the brand priors are identical to the single-process version (compared on the copy). The fit's summary records
+`memory_*` and `resident_peak_*` per step.
+
 ### Requirements
 
 - Personal: At least 1 prior solo solve on the same puzzle

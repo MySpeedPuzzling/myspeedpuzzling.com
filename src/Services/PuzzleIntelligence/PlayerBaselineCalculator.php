@@ -63,17 +63,30 @@ final class PlayerBaselineCalculator implements ResetInterface
             return [];
         }
 
+        [$sql, $params, $types] = $this->qualifyingFirstAttemptsStatement($playerIds, $puzzleId, $piecesCount, $paceOrder);
+
+        /** @var iterable<array{id: string, player_id: string, puzzle_id: string, pieces_count: int|string, seconds_to_solve: int|string, solve_date: string, tracked_at: string, solved_ts: float|int|string, tracked_ts: float|int|string}> */
+        return $this->connection->executeQuery($sql, $params, $types)->iterateAssociative();
+    }
+
+    /**
+     * The statement iterateQualifyingFirstAttempts() runs - for a caller fetching it in chunks (a cursor).
+     *
+     * @param null|non-empty-list<string> $playerIds
+     * @return array{0: string, 1: array<string, mixed>, 2: array<string, ArrayParameterType>}
+     */
+    public function qualifyingFirstAttemptsStatement(null|array $playerIds = null, null|string $puzzleId = null, null|int $piecesCount = null, bool $paceOrder = false): array
+    {
         [$sql, $params, $types] = $this->qualifyingFirstAttemptsQuery($playerIds, $puzzleId, $piecesCount);
         $order = $paceOrder ? 'ORDER BY player_id, pieces_count, solve_date, tracked_at, id' : '';
 
-        /** @var iterable<array{id: string, player_id: string, puzzle_id: string, pieces_count: int|string, seconds_to_solve: int|string, solve_date: string, tracked_at: string, solved_ts: float|int|string, tracked_ts: float|int|string}> */
-        return $this->connection->executeQuery("
+        return ["
             SELECT id, player_id, puzzle_id, pieces_count, seconds_to_solve, solve_date, tracked_at,
                 EXTRACT(EPOCH FROM solve_date) AS solved_ts,
                 EXTRACT(EPOCH FROM tracked_at) AS tracked_ts
             FROM ({$sql}) first_attempts
             {$order}
-        ", $params, $types)->iterateAssociative();
+        ", $params, $types];
     }
 
     /**

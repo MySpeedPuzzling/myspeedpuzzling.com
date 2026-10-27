@@ -1,0 +1,231 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SpeedPuzzling\Web\Services\PuzzleIntelligence\Model;
+
+use SpeedPuzzling\Web\Results\TimePredictionResult;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\BrandPiecesPrior;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\ImageEstimatePrior;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
+use SpeedPuzzling\Web\Value\CandidateEvidence;
+use SpeedPuzzling\Web\Value\CandidateModelParameters;
+use SpeedPuzzling\Web\Value\DifficultySource;
+use SpeedPuzzling\Web\Value\PiecesGroup;
+use SpeedPuzzling\Web\Value\PredictionModelParameters;
+use SpeedPuzzling\Web\Value\SolveConditions;
+use SpeedPuzzling\Web\Value\StatisticalPredictionInputs;
+use SpeedPuzzling\Web\Value\WindowBucket;
+
+/**
+ * The candidate prediction model (v4, README "Step 8", "The candidate model (v4)") - computed side by side with the
+ * shown model (TimePredictionCalculator, v3), stored as the `candidate` predictor's rows of solving_time_prediction,
+ * never shown. Pure math, no database: the live statement, the reconstructor and the evaluation feed it the same way.
+ *
+ * First try: pace × e^drift (the shown model's pace, TimePredictionCalculator::baselineFor()) × e^(posterior log
+ * difficulty) × e^(centre offset) [× e^(unboxed offset)]. The posterior is one formula for every k:
+ * (Σ w l + m ÷ v) ÷ (Σ w + 1 ÷ v) over the puzzle's drift-adjusted, precision-weighted indices (CandidateEvidence) and
+ * the first prior there is - the image estimate, else the puzzle-weighted brand × pieces prior, else the average
+ * puzzle - each prior type with its own fitted variance v. The window: sigma² from the player's spread, the posterior
+ * variance, the size group, the pace source and the puzzle's dispersion, × a context scale; quantiles per key with the
+ * prior type.
+ *
+ * Repeat: the shown model's centre (TimePredictionCalculator::personal()) × e^(gap offset), the window with the gap
+ * since the last solve.
+ */
+final readonly class CandidatePredictionCalculator
+{
+    /** The model version of the candidate's rows (solving_time_prediction, prediction_model_fit) */
+    public const int MODEL_VERSION = 4;
+
+    public function __construct(
+        private TimePredictionCalculator $shown = new TimePredictionCalculator(),
+    ) {
+    }
+
+    public function firstTry(
+        StatisticalPredictionInputs $inputs,
+        CandidateModelParameters $parameters,
+        SolveConditions $conditions = new SolveConditions(),
+    ): null|TimePredictionResult {
+        $features = $parameters->features();
+        $baseline = TimePredictionCalculator::baselineFor($inputs, $parameters->paceParameters);
+
+        if ($baseline === null) {
+            return null;
+        }
+
+        [$baselineSeconds, $drift, $spread, $paceSource] = $baseline;
+        $evidence = $inputs->candidateEvidence ?? CandidateEvidence::none();
+        $k = $evidence->k;
+        [$priorType, $priorLog] = $this->prior($inputs, $features->on('image_prior'), $features->on('puzzle_weighted_brand'));
+        $priorVariance = $parameters->priorVariance($features->on('prior_types') ? $priorType : 'pooled');
+
+        if ($features->on('posterior_all_k') === false && $k >= TimePredictionCalculator::RATED_INDICES && $inputs->difficultyScore !== null && $inputs->difficultyScore > 0.0 && $evidence->weightSum > 0.0) {
+            // Switched off: the shown model's median from 5 indices on
+            [$logDifficulty, $posteriorVariance] = [log($inputs->difficultyScore), 1.0 / $evidence->weightSum];
+        } else {
+            [$logDifficulty, $posteriorVariance] = $evidence->posterior($priorLog ?? 0.0, $priorVariance);
+        }
+
+        $group = PiecesGroup::fromPiecesCount($inputs->piecesCount);
+        $kBucket = WindowBucket::kBucket($k);
+        $offset = $features->on('centre_offsets')
+            ? $parameters->centreOffset(self::offsetKeys($group, $paceSource->value, $kBucket, $priorType)) + $parameters->experienceOffset($inputs->candidateFirstTries)
+            : 0.0;
+        $unboxed = $features->on('unboxed') && $conditions->unboxed;
+        $centre = $baselineSeconds * exp($drift + $logDifficulty + $offset + ($unboxed ? $parameters->unboxedOffset : 0.0));
+
+        $spread ??= PredictionModelParameters::GLOBAL_SPREAD;
+        $dispersion = $features->on('dispersion') ? $evidence->dispersion($parameters->dispersionShrink) : 0.0;
+        $contextScale = $parameters->contextScale($features->on('competition') && $conditions->competition, $unboxed);
+        $sigma = $parameters->firstTrySigma($spread, $posteriorVariance, $group, $paceSource, $dispersion, $contextScale, $features->on('centre_offsets') ? $inputs->candidateFirstTries : null);
+        $keys = self::firstTryKeys(WindowBucket::quartile($spread, $parameters->consistencyEdges), $kBucket, $group, $features->on('source_quantiles') ? $priorType : null);
+        $window = TimePredictionCalculator::window($centre, $sigma, $parameters->quantilesFor($keys));
+
+        return new TimePredictionResult(
+            predictedSeconds: TimePredictionCalculator::seconds($centre),
+            rangeLowSeconds: $window[1],
+            rangeHighSeconds: $window[2],
+            difficultyForPlayer: round(exp($logDifficulty), 4),
+            range80LowSeconds: $window[0],
+            range80HighSeconds: $window[3],
+            difficultySource: match (true) {
+                $k >= TimePredictionCalculator::RATED_INDICES => DifficultySource::Solves,
+                $k === 0 && $priorType === ImageEstimatePrior::NAME => DifficultySource::Image,
+                default => DifficultySource::Shrunk,
+            },
+            kIndices: $k,
+            priorLog: $priorLog,
+            logDifficulty: round($logDifficulty, 6),
+            windowBucket: $keys[0],
+            paceSource: $paceSource,
+        );
+    }
+
+    /**
+     * A repeat: the shown model's centre × e^(gap offset), the candidate's window with the gap bucket.
+     *
+     * @param non-empty-list<int> $times
+     */
+    public function repeat(
+        array $times,
+        float $improvementRatio,
+        null|float $repeatSpread,
+        int $piecesCount,
+        int $gapDays,
+        CandidateModelParameters $parameters,
+        PredictionModelParameters $shownParameters,
+    ): TimePredictionResult {
+        $shown = $this->shown->personal($times, $improvementRatio, $repeatSpread, $piecesCount, $shownParameters);
+
+        return $this->repeatWindow($shown, $repeatSpread ?? PredictionModelParameters::GLOBAL_SPREAD, PiecesGroup::fromPiecesCount($piecesCount), $gapDays, $parameters);
+    }
+
+    /**
+     * The candidate's window (and gap offset) around a repeat centre of the shown model.
+     */
+    public function repeatWindow(TimePredictionResult $shown, float $spread, PiecesGroup $group, int $gapDays, CandidateModelParameters $parameters): TimePredictionResult
+    {
+        $useGap = $parameters->features()->on('repeat_gap');
+        $gap = $useGap ? TimePredictionCalculator::classifyGap($gapDays) : 'any';
+        $centre = $shown->predictedSeconds * exp($parameters->repeatGapOffsets[$gap] ?? 0.0);
+        $keys = self::repeatKeys(WindowBucket::quartile($spread, $parameters->repeatConsistencyEdges), $group, $gap);
+        $window = TimePredictionCalculator::window($centre, $parameters->repeatSigma($spread, $gap), $parameters->quantilesFor($keys));
+
+        return new TimePredictionResult(
+            predictedSeconds: TimePredictionCalculator::seconds($centre),
+            rangeLowSeconds: $window[1],
+            rangeHighSeconds: $window[2],
+            difficultyForPlayer: 0.0,
+            isPersonalized: true,
+            personalSolveCount: $shown->personalSolveCount,
+            predictedAttemptNumber: $shown->predictedAttemptNumber,
+            lastTimeSeconds: $shown->lastTimeSeconds,
+            range80LowSeconds: $window[0],
+            range80HighSeconds: $window[3],
+            windowBucket: $keys[0],
+        );
+    }
+
+    /**
+     * The prior a first try's difficulty is shrunk toward: [type, log] - the image estimate, else brand × pieces
+     * (puzzle-weighted, or the shown model's index-weighted one), else none (the average puzzle, 0.0).
+     *
+     * @return array{0: string, 1: null|float}
+     */
+    public function prior(StatisticalPredictionInputs $inputs, bool $imagePrior, bool $puzzleWeightedBrand): array
+    {
+        $estimate = $inputs->prior->imageEstimate;
+
+        if ($imagePrior && $estimate !== null) {
+            return [ImageEstimatePrior::NAME, $estimate->logDifficulty];
+        }
+
+        $brand = $puzzleWeightedBrand
+            ? $inputs->candidateBrandPriorLog
+            : new BrandPiecesPrior()->priorFor($inputs->prior)?->logDifficulty;
+
+        return $brand !== null ? [BrandPiecesPrior::NAME, $brand] : ['none', null];
+    }
+
+    /**
+     * Centre-offset keys, the most specific first: size group × pace source × k bucket (× prior type at k = 0), then
+     * size group × pace source, then the size group.
+     *
+     * @return list<string>
+     */
+    public static function offsetKeys(PiecesGroup $group, string $paceSource, int $kBucket, string $priorType): array
+    {
+        $keys = [];
+
+        if ($kBucket === 0) {
+            $keys[] = sprintf('%s|%s|k0|%s', $group->value, $paceSource, $priorType);
+        }
+
+        $keys[] = sprintf('%s|%s|k%d', $group->value, $paceSource, $kBucket);
+        $keys[] = sprintf('%s|%s', $group->value, $paceSource);
+        $keys[] = $group->value;
+
+        return $keys;
+    }
+
+    /**
+     * First-try window keys, the most specific first ("v" = the candidate's first tries): consistency × k bucket ×
+     * size group × prior type (when the source is in the keys), then without the prior type, without the size, the k
+     * bucket alone, all.
+     *
+     * @return list<string>
+     */
+    public static function firstTryKeys(int $consistency, int $kBucket, PiecesGroup $group, null|string $priorType): array
+    {
+        $keys = [];
+
+        if ($priorType !== null && $kBucket <= 1) {
+            $keys[] = sprintf('v|c%d|k%d|%s|%s', $consistency, $kBucket, $group->value, $priorType);
+            $keys[] = sprintf('v|k%d|%s', $kBucket, $priorType);
+        }
+
+        $keys[] = sprintf('v|c%d|k%d|%s', $consistency, $kBucket, $group->value);
+        $keys[] = sprintf('v|c%d|k%d', $consistency, $kBucket);
+        $keys[] = sprintf('v|k%d', $kBucket);
+        $keys[] = 'v';
+
+        return $keys;
+    }
+
+    /**
+     * Repeat window keys ("w"), the most specific first: consistency × size × gap, consistency × gap, gap, all.
+     *
+     * @return list<string>
+     */
+    public static function repeatKeys(int $consistency, PiecesGroup $group, string $gap): array
+    {
+        return [
+            sprintf('w|c%d|%s|g%s', $consistency, $group->value, $gap),
+            sprintf('w|c%d|g%s', $consistency, $gap),
+            sprintf('w|g%s', $gap),
+            'w',
+        ];
+    }
+}

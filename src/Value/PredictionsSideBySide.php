@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Value;
 
 use SpeedPuzzling\Web\Results\TimePredictionResult;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidatePredictionCalculator;
 
 /**
  * What the predictors said about one solve (solving_time_prediction, Insights plan §5.4): the statistical model's
@@ -21,12 +22,40 @@ readonly final class PredictionsSideBySide
         public null|ImagePriorInput $imageEstimate = null,
         public null|SolvingTimePrediction $image = null,
         public null|SolvingTimePrediction $blend = null,
+        // The candidate model's (v4, never shown) prediction - null when the candidate was never fitted (no row then)
+        public null|SolvingTimePrediction $candidate = null,
     ) {
     }
 
-    public static function repeat(TimePredictionResult $personal, TimePredictionSource $source): self
+    public static function repeat(TimePredictionResult $personal, TimePredictionSource $source, null|TimePredictionResult $candidate = null): self
     {
-        return new self(SolvingTimePrediction::predicted($personal, $source), firstTry: false);
+        return new self(
+            SolvingTimePrediction::predicted($personal, $source),
+            firstTry: false,
+            candidate: $candidate !== null ? SolvingTimePrediction::predicted($candidate, $source, CandidatePredictionCalculator::MODEL_VERSION) : null,
+        );
+    }
+
+    /**
+     * The same predictions with the candidate's: $fitted = the candidate has a fit (a first try it cannot predict then
+     * gets a "not predictable" row of its model version).
+     */
+    public function withCandidate(bool $fitted, null|TimePredictionResult $candidate, TimePredictionSource $source): self
+    {
+        if ($fitted === false) {
+            return $this;
+        }
+
+        return new self(
+            $this->statistical,
+            $this->firstTry,
+            $this->imageEstimate,
+            $this->image,
+            $this->blend,
+            $candidate !== null
+                ? SolvingTimePrediction::predicted($candidate, $source, CandidatePredictionCalculator::MODEL_VERSION)
+                : SolvingTimePrediction::notPredictable($source, CandidatePredictionCalculator::MODEL_VERSION),
+        );
     }
 
     /**

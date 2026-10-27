@@ -8,14 +8,24 @@ use DateTimeImmutable;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
+use Throwable;
 use SpeedPuzzling\Web\Results\TimePredictionResult;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\AttemptFlags;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidateEngine;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidatePredictionCalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\FirstAttemptSet;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\PriorContext;
+use SpeedPuzzling\Web\Value\CandidateEvidence;
+use SpeedPuzzling\Web\Value\CandidateModelParameters;
 use SpeedPuzzling\Web\Value\ImagePriorInput;
 use SpeedPuzzling\Web\Value\MetricConfidence;
+use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\PredictionInputSolve;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
 use SpeedPuzzling\Web\Value\PredictionsSideBySide;
 use SpeedPuzzling\Web\Value\StatisticalPredictionInputs;
+use SpeedPuzzling\Web\Value\SolveConditions;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
 use SpeedPuzzling\Web\Value\TimePredictionSource;
 use Symfony\Contracts\Cache\CacheInterface;
@@ -73,6 +83,8 @@ final class PredictionReconstructor implements ResetInterface
         private readonly CacheInterface $globalImprovementRatioSnapshotCache,
         private readonly PredictionModelParametersProvider $parametersProvider,
         private readonly ClockInterface $clock,
+        private readonly LoggerInterface $logger,
+        private readonly CandidatePredictionCalculator $candidateCalculator = new CandidatePredictionCalculator(),
     ) {
     }
 
@@ -103,10 +115,12 @@ final class PredictionReconstructor implements ResetInterface
      * out-of-fold estimate of its current picture, the image and blend ones (TimePredictionCalculator::sideBySide()).
      *
      * @param list<string> $timeIds solo times with seconds of this player
+     * @param bool $withCandidate also the candidate model's (v4) predictions - after every shown one, a failure there
+     *                            costing only them
      * @return array<string, PredictionsSideBySide> keyed by time id; ids that are not a solo time with seconds of the
      *                                              player are left out
      */
-    public function reconstructSideBySide(string $playerId, array $timeIds): array
+    public function reconstructSideBySide(string $playerId, array $timeIds, bool $withCandidate = true): array
     {
         $targetIds = array_flip($timeIds);
 
@@ -163,6 +177,8 @@ final class PredictionReconstructor implements ResetInterface
         [$priorContexts, $imageEstimates] = $this->priorContexts(array_keys($statisticalPuzzleIds));
 
         $predictions = [];
+        // The first tries' statistical inputs, kept for the candidate's pass after this loop
+        $inputsOfTargets = [];
 
         foreach ($targets as $target) {
             $prior = $priorAttemptsOfTargets[$target->id];
@@ -185,11 +201,256 @@ final class PredictionReconstructor implements ResetInterface
                 continue;
             }
 
+            $inputsOfTargets[$target->id] = $inputs;
             [$statistical, $image, $blend] = $this->calculator->sideBySide($inputs, $estimate, $parameters);
             $predictions[$target->id] = PredictionsSideBySide::firstTry(TimePredictionSource::Reconstructed, $statistical, $estimate, $image, $blend);
         }
 
+        if ($withCandidate === false) {
+            return $predictions;
+        }
+
+        // The candidate model (v4, never shown) after every shown prediction is made, with statements of its own - a
+        // failure there costs only the candidate's rows of this run, never the shown ones
+        try {
+            return $this->withCandidatePredictions($predictions, $targets, $priorAttemptsOfTargets, $inputsOfTargets, $imageEstimates, $puzzleFirstAttemptCandidates, $solverPaces, $qualifyingByPuzzle, $repeatResiduals);
+        } catch (Throwable $e) {
+            $this->logger->warning('Could not reconstruct the candidate predictions of a player - left for the next backfill', [
+                'playerId' => $playerId,
+                'exception' => $e,
+            ]);
+
+            return $predictions;
+        }
+    }
+
+    /**
+     * The candidate's prediction of every target (once the candidate is fitted): a repeat = the shown centre with the
+     * candidate's window; a first try = the shown inputs with the candidate's evidence from the same solvers' first
+     * attempts before it (their pace-history row's drift, spread and place in the pair + 5 as the qualifying count),
+     * the current candidate brand prior (like the shown prior's sums) and the player's first tries before it.
+     *
+     * @param array<string, PredictionsSideBySide> $predictions
+     * @param array<int, PredictionInputSolve> $targets
+     * @param array<string, list<PredictionInputSolve>> $priorAttemptsOfTargets
+     * @param array<string, StatisticalPredictionInputs> $inputsOfTargets
+     * @param array<string, ImagePriorInput> $imageEstimates
+     * @param array<string, array<string, list<PredictionInputSolve>>> $puzzleCandidates puzzle => player => candidates
+     * @param array<string, list<PredictionInputSolve>> $qualifyingByPuzzle
+     * @param array<string, list<float>> $repeatResiduals
+     * @return array<string, PredictionsSideBySide>
+     */
+    private function withCandidatePredictions(
+        array $predictions,
+        array $targets,
+        array $priorAttemptsOfTargets,
+        array $inputsOfTargets,
+        array $imageEstimates,
+        array $puzzleCandidates,
+        PaceTimeline $solverPaces,
+        array $qualifyingByPuzzle,
+        array $repeatResiduals,
+    ): array {
+        $candidate = $this->parametersProvider->candidate();
+
+        if ($candidate === null) {
+            return $predictions;
+        }
+
+        $firstTryTargets = array_values(array_filter($targets, static fn (PredictionInputSolve $target): bool => isset($inputsOfTargets[$target->id])));
+        $brandPriors = $this->candidateBrandPriors(array_values(array_unique(array_map(static fn (PredictionInputSolve $target): string => $target->puzzleId, $firstTryTargets))));
+        $conditions = $this->conditionsOf(array_map(static fn (PredictionInputSolve $target): string => $target->id, $firstTryTargets));
+        $flags = $candidate->features()->flagMask() !== 0
+            ? $this->attemptFlags(array_values(array_unique(array_map(static fn (PredictionInputSolve $target): string => $target->puzzleId, $firstTryTargets))))
+            : [];
+
+        foreach ($targets as $target) {
+            $shown = $predictions[$target->id] ?? null;
+
+            if ($shown === null) {
+                continue;
+            }
+
+            $prior = $priorAttemptsOfTargets[$target->id] ?? [];
+
+            if ($prior !== []) {
+                $personal = $shown->statistical->result;
+
+                if ($personal !== null) {
+                    $predictions[$target->id] = $shown->withCandidate(true, $this->candidateCalculator->repeatWindow(
+                        $personal,
+                        TimePredictionCalculator::playerSpread($repeatResiduals[$target->id] ?? []),
+                        PiecesGroup::fromPiecesCount($target->piecesCount),
+                        TimePredictionCalculator::gapDays($target->solvedAt(), $prior[count($prior) - 1]->solvedAt()),
+                        $candidate,
+                    ), TimePredictionSource::Reconstructed);
+                }
+
+                continue;
+            }
+
+            $inputs = $inputsOfTargets[$target->id] ?? null;
+
+            if ($inputs === null) {
+                $predictions[$target->id] = $shown->withCandidate(true, null, TimePredictionSource::Reconstructed);
+
+                continue;
+            }
+
+            $evidence = $this->candidateEvidence($target, $puzzleCandidates[$target->puzzleId] ?? [], $solverPaces, $flags, $candidate);
+            $predictions[$target->id] = $shown->withCandidate(true, $this->candidateCalculator->firstTry(
+                $inputs->withImageEstimate($imageEstimates[$target->puzzleId] ?? null)->withCandidate($evidence, $brandPriors[$target->puzzleId] ?? null, self::firstTriesBefore($qualifyingByPuzzle, $target)),
+                $candidate,
+                $conditions[$target->id] ?? new SolveConditions(),
+            ), TimePredictionSource::Reconstructed);
+        }
+
         return $predictions;
+    }
+
+    /**
+     * The candidate's evidence of the target's puzzle as of the target: every solver's first attempt before it, read as
+     * the candidate reads an index (CandidateEngine::term()), the index ceiling of the shown difficulty.
+     *
+     * @param array<string, list<PredictionInputSolve>> $puzzleCandidates player => candidates
+     * @param array<string, int> $flags time id => AttemptFlags
+     */
+    private function candidateEvidence(PredictionInputSolve $target, array $puzzleCandidates, PaceTimeline $solverPaces, array $flags, CandidateModelParameters $candidate): CandidateEvidence
+    {
+        $evidence = CandidateEvidence::none();
+
+        foreach ($puzzleCandidates as $solverId => $candidates) {
+            $firstAttempt = self::firstBefore($candidates, $target);
+
+            if ($firstAttempt === null) {
+                continue;
+            }
+
+            $pace = $solverPaces->paceAt((string) $solverId, $firstAttempt->piecesCount, $firstAttempt->solved, $firstAttempt->tracked, knownBefore: [$target->solved, $target->tracked]);
+            $index = $pace !== null && $pace > 0 ? $firstAttempt->seconds / $pace : 0.0;
+
+            if ($index <= 0.0 || $index > FirstAttemptSet::INDEX_CEILING) {
+                continue;
+            }
+
+            $row = $solverPaces->directRowBefore((string) $solverId, $firstAttempt->piecesCount, $firstAttempt->solved, $firstAttempt->tracked, knownBefore: [$target->solved, $target->tracked]);
+            $term = CandidateEngine::term(
+                log($index),
+                $row !== null ? ($row['drift'] ?? 0.0) : 0.0,
+                $row !== null ? ($row['spread'] ?? PredictionModelParameters::GLOBAL_SPREAD) : PredictionModelParameters::GLOBAL_SPREAD,
+                // The pair's rows start at its 5th qualifying first attempt
+                $row !== null ? $row['position'] + PlayerBaselineCalculator::MINIMUM_SOLVE_COUNT : 0,
+                ($flags[$firstAttempt->id] ?? 0) | ($firstAttempt->firstAttempt ? 0 : AttemptFlags::UNFLAGGED),
+                $candidate,
+            );
+            $evidence = $evidence->with($term[0], $term[1], $term[2]);
+        }
+
+        return $evidence;
+    }
+
+    /**
+     * The candidate's brand prior of puzzles (candidate_puzzle_prior) - none for a secret puzzle.
+     *
+     * @param list<string> $puzzleIds
+     * @return array<string, float>
+     */
+    private function candidateBrandPriors(array $puzzleIds): array
+    {
+        $priors = [];
+
+        foreach (array_chunk($puzzleIds, self::PUZZLE_CHUNK_SIZE) as $chunk) {
+            /** @var array<string, float|string> $rows */
+            $rows = $this->connection->fetchAllKeyValue('
+                SELECT p.id, cpp.brand_prior_log
+                FROM puzzle p
+                JOIN candidate_puzzle_prior cpp ON cpp.puzzle_id = p.id
+                WHERE p.id IN (:puzzleIds) AND ' . StatisticalInputsSql::NOT_SECRET . '
+            ', ['puzzleIds' => $chunk, 'now' => $this->clock->now()->format('Y-m-d H:i:s')], ['puzzleIds' => ArrayParameterType::STRING]);
+
+            foreach ($rows as $puzzleId => $prior) {
+                $priors[$puzzleId] = (float) $prior;
+            }
+        }
+
+        return $priors;
+    }
+
+    /**
+     * The conditions each time was solved in: unboxed, at an event (linked to an edition or one-time event, or a series
+     * pick still at series level - competition_series_id).
+     *
+     * @param list<string> $timeIds
+     * @return array<string, SolveConditions>
+     */
+    private function conditionsOf(array $timeIds): array
+    {
+        $conditions = [];
+
+        foreach (array_chunk($timeIds, self::PUZZLE_CHUNK_SIZE) as $chunk) {
+            /** @var list<array{id: string, unboxed: bool, competition: bool}> $rows */
+            $rows = $this->connection->fetchAllAssociative(
+                'SELECT pst.id, pst.unboxed, (pst.competition_id IS NOT NULL OR pst.competition_series_id IS NOT NULL) AS competition FROM puzzle_solving_time pst WHERE pst.id IN (:timeIds)',
+                ['timeIds' => $chunk],
+                ['timeIds' => ArrayParameterType::STRING],
+            );
+
+            foreach ($rows as $row) {
+                $conditions[$row['id']] = new SolveConditions(unboxed: (bool) $row['unboxed'], competition: (bool) $row['competition']);
+            }
+        }
+
+        return $conditions;
+    }
+
+    /**
+     * AttemptFlags of every solo time on the puzzles - only when the candidate's fit weighs indices by them.
+     *
+     * @param list<string> $puzzleIds
+     * @return array<string, int> time id => flags
+     */
+    private function attemptFlags(array $puzzleIds): array
+    {
+        $flags = [];
+
+        foreach (array_chunk($puzzleIds, self::PUZZLE_CHUNK_SIZE) as $chunk) {
+            /** @var list<array{id: string, first_attempt: bool, commented: bool, competition: bool, after_group: bool}> $rows */
+            $rows = $this->connection->fetchAllAssociative('
+                SELECT pst.id, ' . AttemptFlags::FLAG_COLUMNS . '
+                FROM puzzle_solving_time pst
+                ' . AttemptFlags::flagJoin('g.puzzle_id IN (:puzzleIds)') . "
+                WHERE pst.puzzle_id IN (:puzzleIds) AND pst.puzzling_type = 'solo' AND pst.suspicious = false
+            ", ['puzzleIds' => $chunk], ['puzzleIds' => ArrayParameterType::STRING]);
+
+            foreach ($rows as $row) {
+                $flags[$row['id']] = AttemptFlags::mask((bool) $row['first_attempt'], (bool) $row['after_group'], (bool) $row['commented'], (bool) $row['competition']);
+            }
+        }
+
+        return $flags;
+    }
+
+    /**
+     * The player's qualifying first attempts (one per puzzle, every size) before the target - the candidate's
+     * experience.
+     *
+     * @param array<string, list<PredictionInputSolve>> $qualifyingByPuzzle
+     */
+    private static function firstTriesBefore(array $qualifyingByPuzzle, PredictionInputSolve $target): int
+    {
+        $count = 0;
+
+        foreach ($qualifyingByPuzzle as $solves) {
+            foreach ($solves as $solve) {
+                if ($solve->isBefore($target)) {
+                    $count++;
+
+                    break;
+                }
+            }
+        }
+
+        return $count;
     }
 
     /**

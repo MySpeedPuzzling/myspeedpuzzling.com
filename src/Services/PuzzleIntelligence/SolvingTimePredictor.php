@@ -11,11 +11,15 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\SolvingTimePredictionRecord;
 use SpeedPuzzling\Web\Message\BackfillSolvingTimePredictions;
+use SpeedPuzzling\Web\Query\GetCandidatePrediction;
 use SpeedPuzzling\Web\Query\GetPlayerPrediction;
 use SpeedPuzzling\Web\Value\PredictorKind;
+use SpeedPuzzling\Web\Value\PredictionsSideBySide;
+use SpeedPuzzling\Web\Value\SolveConditions;
 use SpeedPuzzling\Web\Value\SolveMoment;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
 use SpeedPuzzling\Web\Value\TimePredictionSource;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 use Symfony\Component\Messenger\Stamp\TransportNamesStamp;
@@ -36,7 +40,9 @@ use Throwable;
  * (Insights plan §5.4) - not predictable when the puzzle has no estimate of its current picture (a puzzle added
  * together with its first time never has one; the backfill reconstructs those rows once an out-of-fold estimate
  * exists). All of them go in one multi-row INSERT right after the handler's flush (LivePredictionRowsWriter): plain
- * values computed here - the reads that could fail ran inside the savepoint.
+ * values computed here - the reads that could fail ran inside the savepoint. Once the candidate model (v4, never shown)
+ * is fitted, its row joins them - computed afterwards by its own statement in a savepoint of its own
+ * (GetCandidatePrediction), so a failure there costs only that row.
  */
 readonly final class SolvingTimePredictor
 {
@@ -47,6 +53,10 @@ readonly final class SolvingTimePredictor
         private MessageBusInterface $messageBus,
         private LoggerInterface $logger,
         private LivePredictionRowsWriter $liveRows,
+        private GetCandidatePrediction $getCandidatePrediction,
+        // PREDICTION_CANDIDATE_ROWS: the candidate's live row only while on
+        #[Autowire(param: 'predictionCandidateRows')]
+        private bool $candidateRows = false,
     ) {
     }
 
@@ -108,7 +118,44 @@ readonly final class SolvingTimePredictor
             $records[] = new SolvingTimePredictionRecord(Uuid::uuid7(), $time, PredictorKind::Blend, $prediction->modelVersion, $predictions->blend ?? $notPredictable, $now, $estimate);
         }
 
+        // The candidate model (v4, never shown): after the shown predictions, in a savepoint of its own - whatever happens
+        // there costs neither the time nor its shown prediction, only the candidate's row (the backfill writes it later)
+        $candidate = $this->candidateRows ? $this->candidatePrediction($time, $predictions) : null;
+
+        if ($candidate !== null) {
+            $records[] = new SolvingTimePredictionRecord(Uuid::uuid7(), $time, PredictorKind::Candidate, $candidate->modelVersion, $candidate, $now, $predictions->firstTry ? $predictions->imageEstimate : null);
+        }
+
         $this->liveRows->add(...$records);
+    }
+
+    private function candidatePrediction(PuzzleSolvingTime $time, PredictionsSideBySide $predictions): null|SolvingTimePrediction
+    {
+        $this->connection->beginTransaction();
+
+        try {
+            $candidate = $this->getCandidatePrediction->forAddedTime(
+                $time->player->id->toString(),
+                $time->puzzle->id->toString(),
+                $predictions,
+                new SolveConditions(unboxed: $time->unboxed, competition: $time->competition !== null || $time->competitionSeries !== null),
+                excludeTimeId: $time->id->toString(),
+                before: SolveMoment::of($time->finishedAt, $time->trackedAt),
+            );
+
+            $this->connection->commit();
+
+            return $candidate;
+        } catch (Throwable $e) {
+            $this->connection->rollBack();
+
+            $this->logger->warning('Could not compute the candidate prediction of an added solving time - left for the backfill', [
+                'timeId' => $time->id->toString(),
+                'exception' => $e,
+            ]);
+
+            return null;
+        }
     }
 
     /**

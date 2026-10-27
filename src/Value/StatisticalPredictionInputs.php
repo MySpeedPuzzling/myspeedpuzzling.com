@@ -32,7 +32,38 @@ readonly final class StatisticalPredictionInputs
         public null|float $sumLogIndices,
         public null|float $difficultyScore,
         public PriorContext $prior,
+        // The candidate model (v4) only - never read by the shown one: the puzzle's precision-weighted evidence and
+        // its puzzle-weighted brand × pieces prior (PuzzleWeightedBrandPrior); null = not loaded
+        public null|CandidateEvidence $candidateEvidence = null,
+        public null|float $candidateBrandPriorLog = null,
+        // The player's qualifying first attempts (every size) before the prediction - the candidate's experience offset
+        public null|int $candidateFirstTries = null,
     ) {
+    }
+
+    /**
+     * The same inputs with the candidate model's puzzle evidence and brand prior.
+     */
+    public function withCandidate(null|CandidateEvidence $evidence, null|float $brandPriorLog, null|int $firstTries = null): self
+    {
+        return new self(
+            piecesCount: $this->piecesCount,
+            ownBaselineSeconds: $this->ownBaselineSeconds,
+            ownBaselineDirect: $this->ownBaselineDirect,
+            ownQualifyingCount: $this->ownQualifyingCount,
+            ownDrift: $this->ownDrift,
+            ownSpread: $this->ownSpread,
+            pace500Seconds: $this->pace500Seconds,
+            drift500: $this->drift500,
+            spread500: $this->spread500,
+            kIndices: $this->kIndices,
+            sumLogIndices: $this->sumLogIndices,
+            difficultyScore: $this->difficultyScore,
+            prior: $this->prior,
+            candidateEvidence: $evidence,
+            candidateBrandPriorLog: $brandPriorLog,
+            candidateFirstTries: $firstTries,
+        );
     }
 
     /**
@@ -75,6 +106,9 @@ readonly final class StatisticalPredictionInputs
             sumLogIndices: $solvesChanged ? $sumLogIndices : $this->sumLogIndices,
             difficultyScore: $solvesChanged ? $difficultyScore : $this->difficultyScore,
             prior: $prior ?? $this->prior,
+            candidateEvidence: $solvesChanged ? null : $this->candidateEvidence,
+            candidateBrandPriorLog: $this->candidateBrandPriorLog,
+            candidateFirstTries: $this->candidateFirstTries,
         );
     }
 }

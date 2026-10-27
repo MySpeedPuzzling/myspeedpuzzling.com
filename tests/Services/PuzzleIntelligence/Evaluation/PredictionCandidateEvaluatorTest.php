@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence\Evaluation;
 
 use PHPUnit\Framework\TestCase;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Evaluation\OutOfPeriodCalibration;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Evaluation\PredictionCandidateEvaluator;
+use SpeedPuzzling\Web\Value\WindowRefit;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Evaluation\PredictionGroupAccumulator;
 use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\PredictionPairRow;
@@ -95,6 +97,60 @@ final class PredictionCandidateEvaluatorTest extends TestCase
 
         self::assertContains('10 paired solves, at least 30 needed', $failures);
         self::assertSame([], PredictionGroupAccumulator::skillBucket('not a list', '0'));
+    }
+
+    /**
+     * The candidate's honesty test refits like the candidate's own window fit - equal weight, one scale per window -
+     * and stays exactly what it was before the picture-only window got its own refit (2026-10-27): the numbers below
+     * were computed by the code before that change on these drifting rows (the spread grows over time, first solvers
+     * scatter less and their share falls). The image refit would judge the same rows otherwise.
+     */
+    public function testTheCandidateHonestyTestIsUnchangedByThePictureOnlyRefit(): void
+    {
+        $rows = $this->driftingRows();
+
+        self::assertSame([
+            'fitRows' => 900,
+            'testRows' => 900,
+            'blocks' => 3,
+            'scale50' => 1.1974,
+            'hit50' => 0.4,
+            'hit50Low' => 0.3735,
+            'hit50High' => 0.4271,
+            'inSample50' => 0.4611,
+            'scale80' => 1.66,
+            'hit80' => 0.7756,
+            'hit80Low' => 0.7519,
+            'hit80High' => 0.7976,
+            'inSample80' => 0.6022,
+            'previouslyOpen' => false,
+        ], PredictionCandidateEvaluator::evaluate($rows)['groups'][0]['calibration']);
+
+        $image = new OutOfPeriodCalibration(WindowRefit::imageWindow());
+
+        foreach ($rows as $row) {
+            $image->add($row->solvedAt, $row->actualSeconds, $row->candidate, $row->kIndices);
+        }
+
+        self::assertNotSame(0.4, $image->metrics(90.5 * self::DAY)['hit50']);
+    }
+
+    /**
+     * @return list<PredictionPairRow>
+     */
+    private function driftingRows(): array
+    {
+        $rows = [];
+
+        for ($day = 0; $day < 180; $day++) {
+            foreach (self::OFFSETS as $i => $offset) {
+                $k = ($day * 10 + $i) % 10 < 6 - intdiv($day, 45) ? 0 : 1 + ($i % 4);
+                $spread = (1.0 + $day / 360) * ($k === 0 ? 0.8 : 1.2) * (1 + (($day * 7 + $i * 3) % 5 - 2) / 20);
+                $rows[] = new PredictionPairRow(PiecesGroup::FiveHundred, $k, (int) round(1000 * exp($offset * $spread)), ($day + 0.5) * self::DAY, $i % 5 === 0, self::around(1000.0), self::around(1000 * exp(0.05)));
+            }
+        }
+
+        return $rows;
     }
 
     /**

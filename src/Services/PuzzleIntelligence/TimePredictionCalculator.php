@@ -192,11 +192,16 @@ final readonly class TimePredictionCalculator
      * calibrated window (README "Step 8: Time Prediction"). Null when the inputs do not carry a prediction: no pace
      * for the piece count, or no difficulty - a puzzle without indices counts only with a prior and $allowPriorOnly
      * (surfaces do not show those yet, Insights plan Phase 6).
+     *
+     * @param null|int $imageWindowK the puzzle's index count when predicted, for the window of a prediction resting on
+     *                               the picture alone (its scales are keyed k = 0 / 1-4); default the inputs' own k -
+     *                               the `image` predictor passes it, its inputs are those without the solves
      */
     public function statistical(
         StatisticalPredictionInputs $inputs,
         null|PredictionModelParameters $parameters = null,
         bool $allowPriorOnly = false,
+        null|int $imageWindowK = null,
     ): null|TimePredictionResult {
         $parameters ??= PredictionModelParameters::defaults();
         $prior = $this->priors->priorFor($inputs->prior);
@@ -226,9 +231,17 @@ final readonly class TimePredictionCalculator
         $group = PiecesGroup::fromPiecesCount($inputs->piecesCount);
         $spread ??= PredictionModelParameters::GLOBAL_SPREAD;
         $bucket = WindowBucket::firstTry($spread, $parameters->firstTryConsistencyEdges, $inputs->kIndices, $group);
-        // Resting on the picture alone: the estimate's own interval is the puzzle's uncertainty (ImagePriorInput::variance())
-        $puzzleVariance = $source === DifficultySource::Image ? $prior?->variance : null;
-        $window = self::window($centre, $parameters->firstTrySigma($spread, $inputs->kIndices, $group, $puzzleVariance, $inputs->prior->imageEstimate?->kind), $parameters->quantilesFor($bucket));
+        $imageEstimate = $source === DifficultySource::Image ? $inputs->prior->imageEstimate : null;
+        $imageScales = $imageEstimate !== null ? $parameters->imageWindowScalesFor($group, $imageEstimate->kind, $imageWindowK ?? $inputs->kIndices) : null;
+
+        if ($imageEstimate !== null && $imageScales !== null) {
+            // Resting on the picture alone: the estimate's own quantiles on each side (imageWindow())
+            $window = self::imageWindow($centre, $parameters->firstTryPlayerVariance($spread, $group), $imageEstimate, $imageScales);
+        } else {
+            // A fit from before the image window scales: the estimate's interval as a symmetric variance (ImagePriorInput::variance())
+            $puzzleVariance = $source === DifficultySource::Image ? $prior?->variance : null;
+            $window = self::window($centre, $parameters->firstTrySigma($spread, $inputs->kIndices, $group, $puzzleVariance, $inputs->prior->imageEstimate?->kind), $parameters->quantilesFor($bucket));
+        }
 
         return new TimePredictionResult(
             predictedSeconds: self::seconds($centre),
@@ -272,11 +285,12 @@ final readonly class TimePredictionCalculator
         }
 
         $withImage = $inputs->withImageEstimate($imageEstimate);
-        $image = $this->statistical($withImage->withoutSolves(), $parameters, allowPriorOnly: true);
+        $image = $this->statistical($withImage->withoutSolves(), $parameters, allowPriorOnly: true, imageWindowK: $inputs->kIndices);
 
         return [
             $statistical,
-            // The puzzle's index count then stays on the row (what the evaluation groups by); the window used k = 0
+            // The puzzle's index count then stays on the row (what the evaluation groups by); the centre rests on the
+            // picture alone, the window's scale is the one fitted for that count (k = 0 / 1-4 - its solvers differ)
             $image !== null ? $image->withKIndices($inputs->kIndices) : null,
             $this->statistical($withImage, $parameters, allowPriorOnly: true),
         ];
@@ -348,6 +362,38 @@ final readonly class TimePredictionCalculator
             static fn (float $quantile): int => self::seconds($centre * exp($quantile * $sigma)),
             $quantiles,
         );
+
+        return [
+            min($bounds[0], $bounds[1]),
+            $bounds[1],
+            $bounds[2],
+            max($bounds[2], $bounds[3]),
+        ];
+    }
+
+    /**
+     * The window of a prediction resting on the picture alone (docs/features/insights/image-estimate-gates.md, "The
+     * picture-only window"): each end lies at centre × exp(± √((z × σ_player)² + s × e²)) - the player's part at the
+     * normal quantile z (the player variance of the fitted first-try model, no puzzle term), the picture's part at the
+     * estimate's own quantile offset e (ImagePriorInput::quantileOffsets(): its asymmetric 80 % interval for the 80 %
+     * ends, its own 50 % interval for the 50 % ends), scaled by s (the 50 % or the 80 % window's fitted scale - a
+     * stretch of the picture's part only). Two independent errors added on each side; never narrower than z × the
+     * minimum sigma.
+     *
+     * @param array{0: float, 1: float} $scales the 50 % and the 80 % window's scale (imageWindowScalesFor())
+     * @return array{0: int, 1: int, 2: int, 3: int} 80 % low, 50 % low, 50 % high, 80 % high
+     */
+    public static function imageWindow(float $centre, float $playerVariance, ImagePriorInput $estimate, array $scales): array
+    {
+        $offsets = $estimate->quantileOffsets();
+        $bounds = [];
+
+        foreach (PredictionModelParameters::NORMAL_QUANTILES as $i => $z) {
+            $scale = $i === 1 || $i === 2 ? $scales[0] : $scales[1];
+            $half = sqrt($z * $z * max(0.0, $playerVariance) + max(0.0, $scale) * $offsets[$i] ** 2);
+            $half = max($half, abs($z) * PredictionModelParameters::MINIMUM_SIGMA);
+            $bounds[] = self::seconds($centre * exp(($z < 0 ? -1 : 1) * $half));
+        }
 
         return [
             min($bounds[0], $bounds[1]),

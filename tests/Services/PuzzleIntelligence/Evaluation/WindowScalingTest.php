@@ -61,6 +61,29 @@ final class WindowScalingTest extends TestCase
         self::assertSame(1, WindowScaling::hitsAt([0.2, 0.2], [0.4, INF], 0.5));
     }
 
+    /**
+     * The weighted fit: with equal weights the same scale as fitScale(); a heavier recent half pulls it toward that
+     * half's need; solves no scale holds count in the total weight only.
+     */
+    public function testTheWeightedFitIsTheSmallestScaleReachingTheTargetWeight(): void
+    {
+        $from = [0.2, 0.5, 0.9, 1.4, 2.0, 3.1];
+        $to = [INF, INF, INF, INF, INF, INF];
+
+        foreach ([0.5, 0.8] as $target) {
+            self::assertSame(WindowScaling::fitScale($from, $to, 7, $target), WindowScaling::fitWeightedScale($from, $to, array_fill(0, 6, 1.0), 7.0, $target));
+        }
+
+        // The last three weigh 4 each: half of the weight (6.5 of 13) is first held at 1.4
+        self::assertSame(1.4, WindowScaling::fitWeightedScale($from, $to, [1.0, 1.0, 1.0, 4.0, 4.0, 4.0], 13.0, 0.5));
+        // The first three weigh 4 each: already at 0.5 (8 of 13)
+        self::assertSame(0.5, WindowScaling::fitWeightedScale($from, $to, [4.0, 4.0, 4.0, 1.0, 1.0, 1.0], 13.0, 0.5));
+        // A solve that leaves the window again (to = 0.6) no longer counts beyond it
+        self::assertSame(1.4, WindowScaling::fitWeightedScale([0.2, 0.5, 0.9, 1.4], [0.6, INF, INF, INF], [1.0, 1.0, 1.0, 1.0], 4.0, 0.75));
+        self::assertNull(WindowScaling::fitWeightedScale([0.2], [INF], [1.0], 3.0, 0.5), 'Never enough weight held');
+        self::assertNull(WindowScaling::fitWeightedScale([], [], [], 0.0, 0.5));
+    }
+
     public function testWilsonBounds(): void
     {
         $bounds = Wilson::bounds(50, 100);

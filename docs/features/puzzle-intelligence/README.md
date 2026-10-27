@@ -610,14 +610,18 @@ centre = pace × exp(log_difficulty + drift)
     on every surface - keeps shrinking toward brand × pieces until the estimates have passed their gates
     (`docs/features/insights/image-estimate-gates.md`). It fades like any prior: weight τ ÷ (k + τ), with τ ≈ 0.5 about
     14 % at k = 3, nothing from 5 indices on (the median). A prediction resting on it alone (k = 0) has the difficulty
-    source `image` and takes the estimate's own interval as the puzzle term of its window: s × σ_img², σ_img² =
-    ((p90 − p10) ÷ 2.563)², in place of b ÷ (k + 1) (`ImagePriorInput::variance()`,
-    `PredictionModelParameters::firstTrySigma()`). The scale s (`imageVarianceScale`, 1.0 before a fit with estimates)
-    is fitted daily (`PredictionModelFitter` step 6) on the first tries of the window at puzzles with 0-4 indices: the
-    one at which the picture-only windows hold 50 / 80 % - per size group × image kind and per size group from 1,000
-    first tries (`imageVarianceScales`, `imageVarianceScaleFor()`), else the global one (one global scale left 300 flat
-    at 45 / 75 % while 500 box held 52 / 81 %, 2026-10-24). The interval is built against well measured puzzles, a first
-    try at a new one scatters more - the first gate record (2026-10-23) had 42 / 71 % with s = 1.
+    source `image` and its own window (`TimePredictionCalculator::imageWindow()`, since 2026-10-27): each end at
+    centre × exp(± √((z × σ_player)² + s × e²)) - the player's part at the normal quantile z (spread and size terms of
+    the first-try model, no puzzle term), the picture's part at the estimate's own asymmetric quantile offset e (p10 / p90
+    for the 80 % ends, p25 / p75 for the 50 % ends - `ImagePriorInput::quantileOffsets()`), no brand-prior quantile
+    table. The scales s, one per window (`imageWindowScales` = [s50, s80]), are fitted daily (`PredictionModelFitter`
+    step 6) on the first tries of the window at puzzles with 0-4 indices, recency-weighted (half-life 45 days), so the
+    picture-only windows hold 50 / 80 % - per size group × image kind × k = 0 / 1-4 and coarser keys from 600
+    effective first tries (`imageWindowKeys()`). The interval is built against well measured puzzles, a first try at a
+    new one scatters more - the first gate record (2026-10-23) had 42 / 71 % with the interval as is. Measurements:
+    `docs/features/insights/image-estimate-gates.md`, "The picture-only window". (Before it, and for a stored fit
+    without `image_window_scales`: s × σ_img² as the symmetric puzzle term, σ_img² = ((p90 − p10) ÷ 2.563)², inside the
+    k = 0 quantile table - `ImagePriorInput::variance()`, `imageVarianceScale(s)`.)
   - The fit stores every puzzle's finished priors as the chain gives them then: `difficulty_prior_puzzle.prior_log` =
     the statistical predictor's (no estimate in the context: brand × pieces) and `blend_prior_log` = the blend
     predictor's (with the estimate of the current picture, any - in-sample too, like a live prediction; equal to

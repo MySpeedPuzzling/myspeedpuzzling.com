@@ -95,6 +95,53 @@ final class WindowScaling
     }
 
     /**
+     * fitScale() with weights: the smallest scale whose windows hold at least $target of the total weight (solves no
+     * scale holds count in $totalWeight only); null when no scale reaches it.
+     *
+     * @param list<float> $from scaleInterval()[0] of every solve held at some scale
+     * @param list<float> $to scaleInterval()[1] of the same solves
+     * @param list<float> $weights the same solves' weights
+     * @param float $totalWeight every solve's weight, also of those no scale holds
+     */
+    public static function fitWeightedScale(array $from, array $to, array $weights, float $totalWeight, float $target): null|float
+    {
+        if ($totalWeight <= 0.0) {
+            return null;
+        }
+
+        $byStart = array_keys($from);
+        usort($byStart, static fn (int $a, int $b): int => $from[$a] <=> $from[$b]);
+        $byEnd = array_keys($to);
+        usort($byEnd, static fn (int $a, int $b): int => $to[$a] <=> $to[$b]);
+        $needed = $target * $totalWeight - 1e-9;
+        $started = 0.0;
+        $ended = 0.0;
+        $endPosition = 0;
+        $starts = count($byStart);
+
+        // Coverage only grows at an interval's start: the smallest scale reaching the target is one of them
+        foreach ($byStart as $position => $i) {
+            $scale = $from[$i];
+            $started += $weights[$i];
+
+            if ($position + 1 < $starts && $from[$byStart[$position + 1]] <= $scale) {
+                continue;
+            }
+
+            while ($endPosition < $starts && $to[$byEnd[$endPosition]] < $scale) {
+                $ended += $weights[$byEnd[$endPosition]];
+                $endPosition++;
+            }
+
+            if ($started - $ended >= $needed) {
+                return $scale;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * How many of the solves the windows scaled by $scale hold
      *
      * @param list<float> $from

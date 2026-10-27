@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Query\GetLatestImageEstimateEvaluation;
 use SpeedPuzzling\Web\Results\ImageEstimateEvaluationResult;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Evaluation\OutOfPeriodCalibration;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Evaluation\PredictionGroupAccumulator;
+use SpeedPuzzling\Web\Value\WindowRefit;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Value\ImageKind;
 use SpeedPuzzling\Web\Value\PiecesGroup;
@@ -228,7 +229,8 @@ final class ImageEstimateGate implements ResetInterface
     /**
      * The groups whose honesty a stored record opened (with its own hysteresis), and the estimate generations it
      * measured there - what the next record's hysteresis carries (ImageEstimateEvaluator::evaluate() $openBefore).
-     * Only a gate v2 record of the current model version counts.
+     * Only a gate v2 record of the current model version counts, and only groups its honesty test judged with today's
+     * refit (WindowRefit::imageWindow() - a record of another refit earns the opening again).
      *
      * @return array<string, list<string>>
      */
@@ -241,7 +243,9 @@ final class ImageEstimateGate implements ResetInterface
         $open = [];
 
         foreach ($record->groups as $group) {
-            if (self::honestyFailures($group) !== [] || !is_string($group['sizeGroup'] ?? null) || !is_string($group['imageKind'] ?? null)) {
+            $calibration = is_array($group['calibration'] ?? null) ? $group['calibration'] : [];
+
+            if (!WindowRefit::imageWindow()->judged($calibration) || self::honestyFailures($group) !== [] || !is_string($group['sizeGroup'] ?? null) || !is_string($group['imageKind'] ?? null)) {
                 continue;
             }
 

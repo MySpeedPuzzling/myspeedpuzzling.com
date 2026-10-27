@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\PuzzleIntelligence\ImageEstimates;
 
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Evaluation\OutOfPeriodCalibration;
+use SpeedPuzzling\Web\Value\WindowRefit;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Evaluation\PredictionGroupAccumulator;
 use SpeedPuzzling\Web\Value\StoredPredictionWindows;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Evaluation\TierScores;
@@ -28,7 +29,8 @@ use SpeedPuzzling\Web\Value\ImageEstimateEvaluationRow;
  *
  * Gate v2 (the record's `gateVersion` 2 - image-estimate-gates.md "Gate v2") adds, per group and pooled:
  * - `calibration`: the picture-only windows' honesty out of period (OutOfPeriodCalibration: scales fitted on the solves
- *   before the record's split moment, hits counted after it, Wilson bounds) and `previouslyOpen` - whether the
+ *   before the record's split moment the way step 6 fits them - WindowRefit::imageWindow(), recency-weighted, k = 0 and
+ *   1-4 apart - hits counted after it, Wilson bounds) and `previouslyOpen` - whether the
  *   previous record's numbers opened it for the same estimate generations (the hysteresis, judged on read);
  * - `skill` per k bucket (PairedSkill): at k = 0 the picture-only prediction against the statistical (brand × pieces
  *   prior) one with the 80 % window width at equal coverage, at k = 1-4 the blend against the statistical;
@@ -71,7 +73,8 @@ final class ImageEstimateEvaluator
         /** @var array<string, RowAccumulator> $byK */
         $byK = [];
         $overall = new RowAccumulator();
-        $overallV2 = new PredictionGroupAccumulator();
+        // The honesty test refits the picture-only windows the way step 6 fits them (recency, k = 0 / 1-4)
+        $overallV2 = new PredictionGroupAccumulator(WindowRefit::imageWindow());
         // Per puzzle, from its latest row: [estimate (log), that row's time, measured log difficulty or null, group,
         // k bucket, measured indices, the estimate interval's p10 and p90 offsets]
         /** @var array<string, array{0: float, 1: float, 2: null|float, 3: string, 4: string, 5: int, 6: null|float, 7: null|float}> $puzzles */
@@ -101,7 +104,7 @@ final class ImageEstimateEvaluator
                 }
             }
 
-            ($groupsV2[$groupKey] ??= new PredictionGroupAccumulator())->add($row->kIndices, $row->solvedAt, $row->actualSeconds, $image, $candidate, $reference, $slices);
+            ($groupsV2[$groupKey] ??= new PredictionGroupAccumulator(WindowRefit::imageWindow()))->add($row->kIndices, $row->solvedAt, $row->actualSeconds, $image, $candidate, $reference, $slices);
             $overallV2->add($row->kIndices, $row->solvedAt, $row->actualSeconds, $image, $candidate, $reference, $slices);
 
             $known = $puzzles[$row->puzzleId] ?? null;

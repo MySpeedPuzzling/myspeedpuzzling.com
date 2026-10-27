@@ -103,6 +103,12 @@ final class ImageEstimateGateRulesTest extends TestCase
         self::assertSame([], ImageEstimateGate::honestyOpenGroups($record(1, TimePredictionCalculator::MODEL_VERSION)), 'A gate v1 record');
         self::assertSame([], ImageEstimateGate::honestyOpenGroups($record(2, TimePredictionCalculator::MODEL_VERSION + 1)), 'Another model version');
         self::assertSame([], ImageEstimateGate::honestyOpenGroups(null));
+
+        // Judged by another refit (a record from before the picture-only window's own refit): earns the opening again
+        $equalWeight = ['calibration' => array_diff_key(self::calibration([]), array_flip(['refitHalfLifeDays', 'refitByFirstSolver', 'refitMinimumEffective']))] + $open;
+        $olderRecord = new ImageEstimateEvaluationResult('id', TestClock::now(), TimePredictionCalculator::MODEL_VERSION, null, 10, [$equalWeight], [], [], 2);
+        self::assertSame([], ImageEstimateGate::honestyOpenGroups($olderRecord));
+        self::assertSame([], ImageEstimateGate::failures(['calibration' => $equalWeight['calibration']] + $open), 'Its own verdict does not depend on the refit');
     }
 
     /**

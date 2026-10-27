@@ -155,6 +155,27 @@ random sample, so its weighted rates are the best estimate of the catalogue unti
   decision it cannot be validated: above a confident 2 it flips no tuning / feedback picture and one validation
   picture; at 0-1 it flips 7 of 20 missed flats with 1 wrong on tuning + feedback, 2 of 3 right on validation. 153
   production photos score > 2, 61 > 3 - a list for Jan to look at, never the kind.
+- **The difficulty estimate does not improve (measured 2026-10-27, so 1.2 stays dormant).** 1,196 crops 1.2 moves (puzzles
+  with ≥ 3 measured first tries) + 150 unchanged controls were re-cropped and re-embedded exactly like the pipeline
+  (SigLIP 2, DINOv2 cls + patches, segmentation, vision labels, colors, traits) and the picture estimate's model of
+  record compared paired, same folds, old vs new crop inputs:
+
+  | moved crops | n | MAE old → new | Δ (95 % CI) | Spearman old → new | tier exact old → new |
+  |---|---|---|---|---|---|
+  | ≥ 5 indices, today's model, inputs swapped | 471 | 0.1005 → 0.1019 | +0.0014 (−0.0017, +0.0045) | 0.668 → 0.666 | 0.501 → 0.507 |
+  | ≥ 5, refit on the new inputs | 471 | 0.1005 → 0.1019 | +0.0014 (−0.0017, +0.0045) | 0.668 → 0.666 | 0.501 → 0.516 |
+  | ≥ 5, older 70 % → newer 30 % | 237 | 0.0973 → 0.0983 | +0.0009 (−0.0029, +0.0047) | 0.623 → 0.613 | 0.498 → 0.523 |
+  | ≥ 10, inputs swapped / refit / time split | 147 / 147 / 85 | | +0.0007 / +0.0013 / +0.0014 (CIs ±0.006) | | |
+
+  Controls (stored crop re-embedded, inputs swapped): Δ 0.0000 - the re-embedding reproduces the stored vectors.
+  Whole model after the refit: MAE 0.0887 → 0.0888 on 6,601 rows. No gain, if anything a hair worse. This is the
+  review's F6 again: the crop's exact edges barely move the estimate (an embedding of the whole picture with a sliver
+  of box print carries the same difficulty signal). **So 1.2 is better crops for marking, display and crop proposals,
+  not for the estimate.** It stays dormant (profiles on 1.1.x): switching it on costs the artwork re-run (~4-6 h, mostly
+  CPU) plus re-embedding the moved crops (image-pipeline.md §4), for no measured estimate gain. Do it when the crops
+  themselves are the point (crop proposals, the review queue, Jan's display), ideally together with another reason to
+  re-embed. Scripts and rows: `~/puzzle-vision-review/model-review-2026-10-26/artwork-1-2/` (`recrop_embed.py`,
+  `difficulty_compare.py`, `out/difficulty_compare.log`).
 - **What changes in the catalogue.** 10,634 of the 43,481 current crops (24.5 %) move (IoU of old vs new crop < 0.995
   or a side > 0.5 % of the image; median IoU 0.934, a side moves a median 4.2 %), all of them face-pass crops
   (vlm+widen+face 7,268, vlm+fit+face 1,392, vlm+face 1,159, vlm+quad+face 419, kind+face 235, grown 161). Computed from

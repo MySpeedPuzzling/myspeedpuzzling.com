@@ -240,7 +240,10 @@ uv run python -m puzzle_vision.artwork_eval --set random --candidate stored   # 
 ### Artwork 1.2 - switching it on (orchestrator)
 
 Measurements: vision-analysis.md §4.1. The code ships inert: the 1.2 rules run only when the profile's `artwork`
-version is `1.2.x` (`ArtworkStage.v12`). Switching on = `version = "1.2.0+siglip2-q3vl4b"` in both profiles (one
+version is `1.2.x` (`ArtworkStage.v12`). **Dormant on purpose (2026-10-27):** 1.2 halves the cut crops but does not
+improve the difficulty estimate (moved crops re-embedded and compared paired: MAE +0.0014, CI −0.0017..+0.0045; time
+split +0.0009), so the profiles stay on `1.1.x` - 1.2 is for marking, display and crop proposals, and switching it
+on is a cost (below) with no estimate gain. Switching on = `version = "1.2.0+siglip2-q3vl4b"` in both profiles (one
 commit, `git pull` on both Macs), after `describe` is done:
 
 - **`artwork` re-run**: every picture is stale for 1.2, but the first pass and the VLM's answers are re-used from the

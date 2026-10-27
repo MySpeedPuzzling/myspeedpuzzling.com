@@ -159,6 +159,41 @@ among the older left out; every test prediction is picture-only = the k = 0 situ
   0.0815 → 0.0792 (CI [−0.0042, −0.0003]), 500 box 0.0917 → 0.0860, exact 0.479 → 0.585 - one photo is enough.
 - **1000 pieces**: too few newer puzzles with a view (27 / 73) to say; no harm measured.
 
+**`difficulty_prior` 1.3.0 in the module's own train + validate** (`derive/difficulty_prior.py`, joint as above, the
+brand × size offset on top as always; the same 10,406 training puzzles, 7,845 of them with a view; 1.2.1 = 1.2.0 +
+the piece_scale block, what main runs once piece_scale covers 90 %; every number out of the run's evaluation record):
+
+| Slice | n | Spearman | MAE (log) | Tier exact | 50 % window | 80 % window | 80 % width |
+|---|---|---|---|---|---|---|---|
+| **Newer from older** (n ≥ 20, `holdoutSpearman`) | 433 | 0.745 → **0.758** | 0.0823 → **0.0797** | 0.575 → **0.601** (Avg 0.416) | 0.510 → 0.513 | 0.790 → 0.815 | 0.246 → 0.242 |
+| newer 500 flat | 284 | 0.759 → 0.762 | 0.0811 → 0.0800 | 0.574 → 0.585 | 0.507 → 0.482 | 0.764 → 0.789 | 0.235 → 0.233 |
+| newer 500 box | 49 | 0.712 → **0.766** | 0.0816 → **0.0743** | 0.490 → **0.592** | 0.551 → 0.571 | 0.816 → 0.878 | 0.278 → 0.270 |
+| newer 500 assembled | 23 | 0.889 → 0.910 | 0.0982 → 0.0913 | 0.478 → 0.565 | 0.478 → 0.522 | 0.739 → 0.783 | 0.282 → 0.281 |
+| newer ≤300 flat | 34 | 0.782 → 0.771 | 0.0706 → **0.0641** | 0.647 → 0.706 | 0.500 → 0.647 | 0.882 → 0.882 | 0.251 → 0.235 |
+| **Newest 30 %, n ≥ 10** (the gate's population) | 759 | 0.745 → **0.761** | 0.0802 → **0.0785** | 0.590 → **0.614** (Avg 0.435) | 0.503 → 0.507 | 0.793 → 0.800 | 0.234 → 0.233 |
+| newest 500 box | 117 | 0.697 → 0.720 | 0.0873 → 0.0851 | 0.590 → 0.598 | 0.521 → 0.513 | 0.778 → 0.812 | 0.241 → 0.248 |
+| newest 500 assembled | 47 | 0.865 → 0.891 | 0.0797 → 0.0777 | 0.574 → **0.681** | 0.532 → 0.553 | 0.830 → 0.830 | 0.262 → 0.259 |
+| newest 500 flat | 394 | 0.758 → 0.769 | 0.0783 → 0.0777 | 0.589 → 0.581 | 0.500 → 0.492 | 0.777 → 0.784 | 0.224 → 0.224 |
+| newest ≤300 (all kinds) | 145 | 0.733 → 0.752 | 0.0754 → **0.0707** | 0.648 → 0.703 | 0.510 → 0.545 | 0.821 → 0.814 | 0.241 → 0.235 |
+| newest 1000 (all kinds) | 30 | 0.807 → 0.801 | 0.0804 → 0.0791 | 0.467 → 0.600 | 0.367 → 0.400 | 0.800 → 0.800 | 0.227 → 0.213 |
+| Out of fold, n ≥ 20 (all ages) | 2,142 | 0.799 → 0.806 | 0.0748 → 0.0733 | 0.600 → 0.620 | 0.509 → 0.506 | 0.812 → 0.817 | 0.227 → 0.224 |
+| Brands held out, n ≥ 20 | 2,142 | 0.724 → 0.733 | 0.0886 → 0.0869 | 0.558 → 0.561 | 0.490 → 0.517 | 0.826 → 0.815 | 0.272 → 0.261 |
+
+The record's `secondView` block (the same older model refitted without the photo blocks, the same 433 newer puzzles,
+no offset): all 0.0823 → 0.0797; the 416 with a view 0.0799 → 0.0770, Spearman 0.756 → 0.770, exact 0.579 → 0.608;
+the 82 box / assembled ones with a view 0.0871 → 0.0809, Spearman 0.751 → 0.779, exact 0.524 → 0.610.
+
+Reading it: MAE −3 % overall, −9 % on 500 box photos (exact +10 points), Spearman +0.013 at the guard's population;
+no slice worse beyond its noise (≤300 flat Spearman −0.01 on 34 puzzles while its MAE falls 9 %). The 80 % window
+covers a little more (0.79 → 0.82) at the same width - the app refits its window scales daily anyway. Cost: the
+nightly run 2,100 s train + 1,700 s validate on a loaded M3 (1.2.1: 1,444 + 1,000 s), peak memory 5.3 GB (the extra
+~2,200 columns of the design and the second-view refit).
+
+**Not verified offline**: the production view will hold up to 4 photos per puzzle (offline ≤ 3) and every puzzle with
+photos, not only the training ones; the app's gate record (`evaluate-image-estimates`) on the new generation; how the
+k = 1-4 blend uses it (the estimate is its shrinkage target there - the first-photo-only numbers above say one photo is
+enough).
+
 ## 6. Runbook
 
 - First run (after the deploy, on the M3 when `describe` is done or paused): `uv run --extra ml puzzle-vision
@@ -166,4 +201,9 @@ among the older left out; every test prediction is picture-only = the k = 0 situ
   ~34k photos at `per_puzzle = 4`: ~1.2 s a photo on 3 CPU workers + GPU → ~12-15 h; resumable (the work list is the
   state).
 - Daily: new photos arrive with new results (~150 a day) - run it after `describe` in the nightly window, or by hand.
+- The estimate: the nightly `derive` reads the stored analyses itself; once ≥ 2,000 training puzzles have a view it
+  records and pushes `difficulty_prior` **1.3.0** - a new estimate generation, so the app's image gates close until
+  `myspeedpuzzling:evaluate-image-estimates` has measured it (image-estimate-gates.md). The paired push guard skips that
+  first run (the inputs changed shape - by design); the record guard compares like with like (holdoutSpearman 0.745 →
+  0.758 offline).
 - Production cron (lily.srv): `0 4 * * * docker compose exec web php bin/console myspeedpuzzling:prune-finished-photo-analyses`.

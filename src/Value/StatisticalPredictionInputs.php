@@ -38,7 +38,44 @@ readonly final class StatisticalPredictionInputs
         public null|float $candidateBrandPriorLog = null,
         // The player's qualifying first attempts (every size) before the prediction - the candidate's experience offset
         public null|int $candidateFirstTries = null,
+        // The size curve's inputs (SizeCurve::pace()): the player's direct pace rows at every size before the prediction
+        // [pieces, baseline, drift, spread, qualifying] and their 1-4 first tries at the size [n, Σ (ln seconds - log
+        // difficulty)]; null = not loaded
+        /** @var null|list<array{0: int, 1: int, 2: float, 3: float, 4: int}> */
+        public null|array $candidatePaceRows = null,
+        /** @var null|array{0: int, 1: float} */
+        public null|array $candidateFew = null,
     ) {
+    }
+
+    /**
+     * The same inputs with the size curve's inputs.
+     *
+     * @param list<array{0: int, 1: int, 2: float, 3: float, 4: int}> $rows
+     * @param null|array{0: int, 1: float} $few
+     */
+    public function withCandidatePace(array $rows, null|array $few): self
+    {
+        return new self(
+            piecesCount: $this->piecesCount,
+            ownBaselineSeconds: $this->ownBaselineSeconds,
+            ownBaselineDirect: $this->ownBaselineDirect,
+            ownQualifyingCount: $this->ownQualifyingCount,
+            ownDrift: $this->ownDrift,
+            ownSpread: $this->ownSpread,
+            pace500Seconds: $this->pace500Seconds,
+            drift500: $this->drift500,
+            spread500: $this->spread500,
+            kIndices: $this->kIndices,
+            sumLogIndices: $this->sumLogIndices,
+            difficultyScore: $this->difficultyScore,
+            prior: $this->prior,
+            candidateEvidence: $this->candidateEvidence,
+            candidateBrandPriorLog: $this->candidateBrandPriorLog,
+            candidateFirstTries: $this->candidateFirstTries,
+            candidatePaceRows: $rows,
+            candidateFew: $few,
+        );
     }
 
     /**
@@ -63,6 +100,8 @@ readonly final class StatisticalPredictionInputs
             candidateEvidence: $evidence,
             candidateBrandPriorLog: $brandPriorLog,
             candidateFirstTries: $firstTries,
+            candidatePaceRows: $this->candidatePaceRows,
+            candidateFew: $this->candidateFew,
         );
     }
 
@@ -109,6 +148,8 @@ readonly final class StatisticalPredictionInputs
             candidateEvidence: $solvesChanged ? null : $this->candidateEvidence,
             candidateBrandPriorLog: $this->candidateBrandPriorLog,
             candidateFirstTries: $this->candidateFirstTries,
+            candidatePaceRows: $this->candidatePaceRows,
+            candidateFew: $this->candidateFew,
         );
     }
 }

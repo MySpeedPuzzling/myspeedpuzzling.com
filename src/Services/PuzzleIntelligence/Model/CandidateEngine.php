@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\PuzzleIntelligence\Model;
 
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerBaselineCalculator;
 use SpeedPuzzling\Web\Value\CandidateEvidence;
 use SpeedPuzzling\Web\Value\CandidateModelParameters;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
@@ -20,6 +21,10 @@ use SplFixedArray;
  */
 final class CandidateEngine
 {
+    /** The moment the size curve's own first tries read their puzzles' difficulty at (fewAsOf()), null = each first try's own */
+    public null|float $fewMoment = null;
+    /** @var array<string, float> puzzle => its log difficulty at $fewMoment (CandidateModelFitter::logDifficultyAt()) */
+    public array $fewDifficulty = [];
     /** @var null|array<string, list<string>> player => their pair keys (experienceOf(), experienceAt()) */
     private null|array $pairsByPlayer = null;
 
@@ -228,6 +233,77 @@ final class CandidateEngine
         }
 
         return $before;
+    }
+
+    /**
+     * The player's direct pace rows at every piece count valid before a moment (SizeCurve::pace()): [pieces, baseline,
+     * drift, spread, qualifying first attempts] - the drift and spread as of the moment (PredictionEngine::stateAt()).
+     *
+     * @return list<array{0: int, 1: int, 2: float, 3: float, 4: int}>
+     */
+    public function paceRowsAt(string $player, float $solved, float $tracked): array
+    {
+        $rows = [];
+
+        foreach ($this->pairsOf($player) as $pairKey) {
+            $pieces = (int) explode('|', $pairKey)[1];
+            $row = $this->engine->timeline->directRowBefore($player, $pieces, $solved, $tracked);
+
+            if ($row === null || $row['baseline'] <= 0) {
+                continue;
+            }
+
+            [$drift, $spread] = $this->engine->stateAt($pairKey, $solved, $tracked);
+            $rows[] = [$pieces, $row['baseline'], $drift ?? 0.0, $spread ?? PredictionModelParameters::GLOBAL_SPREAD, $this->engine->countBefore($pairKey, $solved, $tracked)];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * The size curve's own first tries read their puzzles' difficulty as of this one moment (the fit's / evaluation's
+     * cut-off), cached per puzzle.
+     */
+    public function fewAsOf(float $moment): void
+    {
+        if ($this->fewMoment !== $moment) {
+            $this->fewMoment = $moment;
+            $this->fewDifficulty = [];
+        }
+    }
+
+    /**
+     * The player's 1-4 qualifying first attempts at a piece count before a moment while they have no direct pace there:
+     * [n, Σ (ln seconds - log difficulty)], the difficulty of each puzzle as known at the moment ($logDifficultyOf);
+     * null with none (or a direct pace).
+     *
+     * @param callable(string, int): ?float $logDifficultyOf puzzle, pieces => log difficulty as of the moment
+     * @return null|array{0: int, 1: float}
+     */
+    public function fewAt(string $player, int $pieces, float $solved, float $tracked, callable $logDifficultyOf): null|array
+    {
+        $pairKey = $player . '|' . $pieces;
+        $pair = $this->engine->set->pair($pairKey);
+
+        if ($pair === null || $this->engine->timeline->directRowBefore($player, $pieces, $solved, $tracked) !== null) {
+            return null;
+        }
+
+        $before = $this->engine->countBefore($pairKey, $solved, $tracked);
+        $set = $this->engine->set;
+        $count = 0;
+        $sum = 0.0;
+
+        for ($i = $pair[0], $end = $pair[0] + min($before, PlayerBaselineCalculator::MINIMUM_SOLVE_COUNT - 1); $i < $end; $i++) {
+            $logDifficulty = $set->seconds[$i] > 0 ? $logDifficultyOf($set->puzzle[$i], $pieces) : null;
+
+            if ($logDifficulty !== null) {
+                $sum += log($set->seconds[$i]) - $logDifficulty;
+                $count++;
+            }
+        }
+
+        return $count > 0 ? [$count, $sum] : null;
     }
 
     /**

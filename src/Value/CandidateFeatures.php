@@ -30,6 +30,7 @@ readonly final class CandidateFeatures
         'dispersion' => 'F8: the puzzle\'s dispersion in the window',
         'source_quantiles' => 'F4: the prior type in the window quantile keys',
         'repeat_gap' => 'P4: the gap since the last solve in the repeat window',
+        'size_curve' => 'Size curve: the pace from every size the player has, pooled through the population curve',
     ];
 
     /** Index-noise terms of the flags (CandidateModelParameters::indexVariance()) and the feature that switches each */

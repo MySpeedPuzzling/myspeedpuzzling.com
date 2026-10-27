@@ -19,8 +19,14 @@ use SplFixedArray;
  */
 final class CandidateSamples
 {
-    /** @var SplFixedArray<int> the attempt, then (useEvidenceOf()) its slot in the evidence columns (-1 = none) */
+    /** @var SplFixedArray<int> the attempt of the set */
+    private SplFixedArray $attempt;
+    /** @var SplFixedArray<int> the attempt's slot in the evidence columns (-1 = none) - useEvidenceOf() */
     private SplFixedArray $slot;
+    /** @var SplFixedArray<int> */
+    private SplFixedArray $pieces;
+    /** @var SplFixedArray<float> the pace's own variance (the size curve's posterior, 0 for the shown pace rules) */
+    private SplFixedArray $paceVariance;
     private null|CandidateEvidenceColumns $evidence = null;
     /** @var SplFixedArray<float> */
     private SplFixedArray $target;
@@ -48,7 +54,10 @@ final class CandidateSamples
      */
     public function __construct(int $capacity)
     {
+        $this->attempt = new SplFixedArray($capacity);
         $this->slot = new SplFixedArray($capacity);
+        $this->pieces = new SplFixedArray($capacity);
+        $this->paceVariance = new SplFixedArray($capacity);
         $this->target = new SplFixedArray($capacity);
         $this->priorType = new SplFixedArray($capacity);
         $this->priorLog = new SplFixedArray($capacity);
@@ -71,9 +80,15 @@ final class CandidateSamples
         null|float $median,
         int $firstTries,
         bool $competition,
+        int $pieces,
+        float $paceVariance = 0.0,
+        int $slot = -1,
     ): void {
         $s = $this->count++;
-        $this->slot[$s] = $attempt;
+        $this->attempt[$s] = $attempt;
+        $this->slot[$s] = $slot;
+        $this->pieces[$s] = $pieces;
+        $this->paceVariance[$s] = $paceVariance;
         $this->target[$s] = $target;
         $this->priorType[$s] = $priorType;
         $this->priorLog[$s] = $priorLog;
@@ -90,7 +105,7 @@ final class CandidateSamples
      */
     public function finish(): void
     {
-        foreach ([$this->slot, $this->target, $this->priorType, $this->priorLog, $this->group, $this->paceSource, $this->spread, $this->median, $this->firstTries, $this->competition] as $column) {
+        foreach ([$this->attempt, $this->slot, $this->pieces, $this->paceVariance, $this->target, $this->priorType, $this->priorLog, $this->group, $this->paceSource, $this->spread, $this->median, $this->firstTries, $this->competition] as $column) {
             $column->setSize($this->count);
         }
     }
@@ -101,16 +116,61 @@ final class CandidateSamples
     }
 
     /**
+     * A sample paced anew (the size curve): its target, pace source, spread and the pace's variance.
+     */
+    public function repace(int $s, float $target, PaceSource $paceSource, float $spread, float $paceVariance): void
+    {
+        $this->target[$s] = $target;
+        $this->paceSource[$s] = $paceSource;
+        $this->spread[$s] = $spread;
+        $this->paceVariance[$s] = $paceVariance;
+    }
+
+    /**
+     * Room for this many more add()s after finish().
+     */
+    public function grow(int $by): void
+    {
+        if ($by <= 0) {
+            return;
+        }
+
+        foreach ([$this->attempt, $this->slot, $this->pieces, $this->paceVariance, $this->target, $this->priorType, $this->priorLog, $this->group, $this->paceSource, $this->spread, $this->median, $this->firstTries, $this->competition] as $column) {
+            $column->setSize($this->count + $by);
+        }
+    }
+
+    /**
      * The samples' evidence from now on: each attempt's slot in the engine's evidence columns (CandidateEngine::compute()
      * first) - the samples keep the columns, not the engine.
      */
     public function useEvidenceOf(CandidateEngine $candidate): void
     {
         for ($s = 0; $s < $this->count; $s++) {
-            $this->slot[$s] = $candidate->slotOf((int) $this->slot[$s]) ?? -1;
+            $this->slot[$s] = $candidate->slotOf((int) $this->attempt[$s]) ?? -1;
         }
 
         $this->evidence = $candidate->evidence;
+    }
+
+    public function attempt(int $s): int
+    {
+        return (int) $this->attempt[$s];
+    }
+
+    public function slot(int $s): int
+    {
+        return (int) $this->slot[$s];
+    }
+
+    public function pieces(int $s): int
+    {
+        return (int) $this->pieces[$s];
+    }
+
+    public function paceVariance(int $s): float
+    {
+        return (float) $this->paceVariance[$s];
     }
 
     public function target(int $s): float

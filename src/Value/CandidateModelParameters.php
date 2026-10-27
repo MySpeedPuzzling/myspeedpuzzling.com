@@ -84,6 +84,9 @@ readonly final class CandidateModelParameters
         public array $summary = [],
         // The shown model's thin-size rules the candidate's pace shares (TimePredictionCalculator::baselineFor())
         public array $thinSizes = [],
+        // The size curve's pace (SizeCurve) - null = the shown model's pace rules; its posterior variance's window weight
+        public null|SizeCurve $sizeCurve = null,
+        public float $paceVarianceWeight = 0.0,
     ) {
         $this->switches = CandidateFeatures::fromArray($features);
         $this->paceParameters = PredictionModelParameters::defaults()->with(thinSizes: $thinSizes);
@@ -132,6 +135,8 @@ readonly final class CandidateModelParameters
         null|DateTimeImmutable $fittedAt = null,
         null|array $summary = null,
         null|array $thinSizes = null,
+        null|SizeCurve $sizeCurve = null,
+        null|float $paceVarianceWeight = null,
     ): self {
         return new self(
             indexNoise: $indexNoise ?? $this->indexNoise,
@@ -158,6 +163,8 @@ readonly final class CandidateModelParameters
             fittedAt: $fittedAt ?? $this->fittedAt,
             summary: $summary ?? $this->summary,
             thinSizes: $thinSizes ?? $this->thinSizes,
+            sizeCurve: $sizeCurve ?? $this->sizeCurve,
+            paceVarianceWeight: $paceVarianceWeight ?? $this->paceVarianceWeight,
         );
     }
 
@@ -256,10 +263,11 @@ readonly final class CandidateModelParameters
         return 0.0;
     }
 
-    public function firstTrySigma(float $spread, float $posteriorVariance, PiecesGroup $group, PaceSource $paceSource, float $dispersion, float $contextScale, null|int $firstTries = null): float
+    public function firstTrySigma(float $spread, float $posteriorVariance, PiecesGroup $group, PaceSource $paceSource, float $dispersion, float $contextScale, null|int $firstTries = null, float $paceVariance = 0.0): float
     {
         $experience = self::experienceBucket($firstTries);
         $variance = $this->spreadWeight * $spread ** 2
+            + $this->paceVarianceWeight * $paceVariance
             + $this->posteriorWeight * $posteriorVariance
             + ($this->sizeTerms[$group->value] ?? 0.0)
             + ($this->paceTerms[$paceSource->value] ?? 0.0)
@@ -334,6 +342,8 @@ readonly final class CandidateModelParameters
             'quantiles' => $this->quantiles,
             'features' => $this->features,
             'thin_sizes' => $this->thinSizes,
+            'size_curve' => $this->sizeCurve?->toArray(),
+            'pace_variance_weight' => $this->paceVarianceWeight,
             'fitted_at' => $this->fittedAt?->format(DATE_ATOM),
             'summary' => $this->summary,
         ];
@@ -408,6 +418,8 @@ readonly final class CandidateModelParameters
             fittedAt: is_string($data['fitted_at'] ?? null) ? new DateTimeImmutable($data['fitted_at']) : null,
             summary: $summary,
             thinSizes: $thinSizes,
+            sizeCurve: is_array($data['size_curve'] ?? null) ? SizeCurve::fromArray($data['size_curve']) : null,
+            paceVarianceWeight: self::number($data['pace_variance_weight'] ?? null, 0.0),
         );
     }
 

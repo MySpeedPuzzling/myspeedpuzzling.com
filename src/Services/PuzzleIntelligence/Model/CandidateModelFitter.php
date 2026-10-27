@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Value\CandidateModelParameters;
 use SpeedPuzzling\Web\Value\ImagePriorInput;
 use SpeedPuzzling\Web\Value\PaceSource;
 use SpeedPuzzling\Web\Value\PiecesGroup;
+use SpeedPuzzling\Web\Value\SizeCurve;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
 use SpeedPuzzling\Web\Value\SolveConditions;
 use SpeedPuzzling\Web\Value\StatisticalPredictionInputs;
@@ -48,11 +49,74 @@ final readonly class CandidateModelFitter
 
     public function __construct(
         private CandidatePredictionCalculator $calculator = new CandidatePredictionCalculator(),
+        private SizeCurveFitter $sizeCurveFitter = new SizeCurveFitter(),
     ) {
     }
 
     /**
-     * The whole fit in one call (the time-split evaluation): begin(), sample(), fitNoise(), addEvidence(), finish() - the daily
+     * Per first try of the samples: its piece count, ln t - its posterior log difficulty, the solver's direct rows at
+     * every size and their 1-4 first tries at the size (SizeCurveFitter).
+     *
+     * @param \Closure(string, int): array{0: null|float, 1: null|float} $priorsOf
+     * @return iterable<array{0: int, 1: float, 2: list<array{0: int, 1: int, 2: float, 3: float, 4: int}>, 3: null|array{0: int, 1: float}, 4: int}>
+     */
+    private function sizeCurveInputs(CandidateSamples $samples, CandidateEngine $candidate, \Closure $priorsOf, CandidateModelParameters $parameters): iterable
+    {
+        $set = $candidate->engine->set;
+
+        for ($s = 0, $count = $samples->count(); $s < $count; $s++) {
+            $i = $samples->attempt($s);
+            [$player, $pieces, $solved, $tracked] = [$set->player[$i], $set->pieces[$i], $set->solved[$i], $set->tracked[$i]];
+            yield [
+                $pieces,
+                log($set->seconds[$i]) - $this->logDifficulty($samples, $s, $parameters)[0],
+                $candidate->paceRowsAt($player, $solved, $tracked),
+                $candidate->fewAt($player, $pieces, $solved, $tracked, self::logDifficultyAt($candidate, $solved, $tracked, $priorsOf, $parameters)),
+                SizeCurveFitter::foldOf($player),
+            ];
+        }
+    }
+
+    /**
+     * A puzzle's candidate log difficulty as known at a moment (the evidence before it, its prior) - the own first tries
+     * of the size curve. One moment for every first try (the fit's / the evaluation's cut-off: no index after it is
+     * read; the live path uses the current one), cached per puzzle in the engine.
+     *
+     * @param \Closure(string, int): array{0: null|float, 1: null|float} $priorsOf puzzle, pieces => [image estimate, brand prior] (priorsOf())
+     * @return callable(string, int): ?float
+     */
+    public static function logDifficultyAt(CandidateEngine $candidate, float $solved, float $tracked, \Closure $priorsOf, CandidateModelParameters $parameters): callable
+    {
+        $solved = $candidate->fewMoment ?? $solved;
+        $tracked = $candidate->fewMoment ?? $tracked;
+
+        return static function (string $puzzle, int $pieces) use ($candidate, $solved, $tracked, $priorsOf, $parameters): float {
+            if (!isset($candidate->fewDifficulty[$puzzle])) {
+                [$imageLog, $brandLog] = $priorsOf($puzzle, $pieces);
+                $candidate->fewDifficulty[$puzzle] = CandidatePredictionCalculator::puzzleLogDifficulty($candidate->evidenceAt($puzzle, $solved, $tracked, $parameters), $imageLog, $brandLog, $parameters);
+            }
+
+            return $candidate->fewDifficulty[$puzzle];
+        };
+    }
+
+    /**
+     * A puzzle's priors for the size curve's own first tries: [its image estimate, its candidate brand prior].
+     *
+     * @param array<string, ImagePriorInput> $imageEstimates
+     * @return \Closure(string, int): array{0: null|float, 1: null|float}
+     */
+    public static function priorsOf(PriorLookup $priors, array $imageEstimates, CandidateModelParameters $parameters): \Closure
+    {
+        return static fn (string $puzzle, int $pieces): array => [
+            ($imageEstimates[$puzzle] ?? null)?->logDifficulty,
+            $priors->puzzleWeightedBrandPrior($puzzle, $pieces, $parameters->brandPseudoPuzzles),
+        ];
+    }
+
+    /**
+     * The whole fit in one call (the time-split evaluation): begin(), sample(), fitNoise(), addEvidence(), fitSizeCurve(),
+     * finish() - the daily
      * fit (CandidateModelRecalculator) calls them one by one and releases what the next ones no longer read.
      *
      * @param RepeatHistory|\Closure(): RepeatHistory $repeats the repeats, or how to load them when their step comes
@@ -74,6 +138,7 @@ final readonly class CandidateModelFitter
         $this->sample($progress, $candidate, $priors, $imageEstimates, $unboxed);
         $this->fitNoise($progress, $candidate);
         $this->addEvidence($progress, $candidate);
+        $this->fitSizeCurve($progress, $candidate);
 
         return $this->finish($progress, $repeats, $now);
     }
@@ -112,7 +177,29 @@ final readonly class CandidateModelFitter
     {
         $engine = $candidate->engine;
         [$from, $to, $features] = [$progress->from, $progress->to, $progress->features];
-        $progress->samples = $this->samples($candidate, $priors, $this->window($engine->set, $from, $to), $imageEstimates, $progress->parameters);
+        [$progress->samples, $progress->paceless] = $this->samples($candidate, $priors, $this->window($engine->set, $from, $to), $imageEstimates, $progress->parameters);
+
+        // The size curve's own first tries read their puzzles' priors after the lookups are released: two small maps
+        if ($features->on('size_curve')) {
+            $priorsOf = self::priorsOf($priors, $imageEstimates, $progress->parameters);
+            $set = $engine->set;
+
+            foreach ($set->puzzles() as $puzzle) {
+                $first = $set->attemptsOfPuzzle($puzzle)[0] ?? null;
+
+                if ($first !== null) {
+                    [$imageLog, $brandLog] = $priorsOf($puzzle, $set->pieces[$first]);
+
+                    if ($imageLog !== null) {
+                        $progress->fewImageLog[$puzzle] = $imageLog;
+                    }
+
+                    if ($brandLog !== null) {
+                        $progress->fewBrandLog[$puzzle] = $brandLog;
+                    }
+                }
+            }
+        }
 
         if ($features->on('unboxed')) {
             for ($u = 0, $count = $unboxed->count(); $u < $count; $u++) {
@@ -123,7 +210,7 @@ final readonly class CandidateModelFitter
                             ->withImageEstimate($imageEstimates[$puzzle] ?? null),
                         $unboxed->seconds[$u],
                         $unboxed->competition[$u],
-                        [$unboxed->player[$u], $puzzle, $unboxed->solved[$u], $unboxed->tracked[$u], $priors->puzzleWeightedBrandPrior($puzzle, $unboxed->pieces[$u], $progress->parameters->brandPseudoPuzzles)],
+                        [$unboxed->player[$u], $puzzle, $unboxed->solved[$u], $unboxed->tracked[$u], $priors->puzzleWeightedBrandPrior($puzzle, $unboxed->pieces[$u], $progress->parameters->brandPseudoPuzzles), $unboxed->pieces[$u]],
                     ];
                 }
             }
@@ -153,15 +240,129 @@ final readonly class CandidateModelFitter
         $candidate->compute($progress->parameters, $progress->from);
         $samples->useEvidenceOf($candidate);
 
-        foreach ($progress->unboxed as $u => [$inputs, , , $pending]) {
-            if ($pending !== null) {
-                [$player, $puzzle, $solved, $tracked, $prior] = $pending;
-                $progress->unboxed[$u][0] = $inputs->withCandidate($candidate->evidenceAt($puzzle, $solved, $tracked, $progress->parameters), $prior, $candidate->experienceAt($player, $solved, $tracked));
-                $progress->unboxed[$u][3] = null;
-            }
+        foreach ($progress->unboxed as $u => [$inputs, , , [$player, $puzzle, $solved, $tracked, $prior]]) {
+            $progress->unboxed[$u][0] = $inputs->withCandidate($candidate->evidenceAt($puzzle, $solved, $tracked, $progress->parameters), $prior, $candidate->experienceAt($player, $solved, $tracked));
         }
 
         $progress->lap('evidence');
+    }
+
+    /**
+     * The size curve (switch size_curve): the prior variances on the samples as they are, the curve on their posterior
+     * difficulty (SizeCurveFitter), then every window first try paced once more - by the curve where it has a pace, else
+     * as before (a first try without the shown model's pace joins, at the end, when the curve has one) - and the unboxed
+     * first tries' curve inputs. Reads the attempt set and the drift states; the puzzles' priors from the maps sample()
+     * kept - not the shown as-of difficulty, the prior lookup or the image estimates.
+     */
+    public function fitSizeCurve(CandidateFitProgress $progress, CandidateEngine $candidate): void
+    {
+        if ($progress->features->on('size_curve') === false) {
+            $progress->paceless = [];
+
+            return;
+        }
+
+        $samples = $progress->samples ?? throw new \LogicException('begin() first');
+        $parameters = $progress->parameters;
+        [$imageLogs, $brandLogs] = [$progress->fewImageLog, $progress->fewBrandLog];
+        $priorsOf = static fn (string $puzzle, int $pieces): array => [$imageLogs[$puzzle] ?? null, $brandLogs[$puzzle] ?? null];
+        [$variances, $varianceSummary] = $this->fitPriorVariances($samples, $progress->features->on('prior_types'));
+        $parameters = $parameters->with(priorVariances: [...$parameters->priorVariances, ...$variances]);
+        $progress->add($varianceSummary);
+
+        // The difficulty of the own first tries' puzzles as of the end of the window, once per puzzle
+        $candidate->fewAsOf($progress->to);
+
+        try {
+            $curve = $this->sizeCurveFitter->fit($this->sizeCurveInputs($samples, $candidate, $priorsOf, $parameters), $samples->count());
+        } catch (NotIdentifiable $e) {
+            // Not identifiable from this window: the curve the candidate has (its last fit's), else the review's
+            $kept = $progress->previousSizeCurve ?? new SizeCurve();
+            $curve = new SizeCurve($kept->knots, $kept->values, $kept->beta, $kept->tau2, $kept->cPace, $kept->qCap, $kept->sigma1Squared, [
+                'size_curve_not_identifiable' => $e->getMessage(),
+                'size_curve_kept' => $progress->previousSizeCurve !== null ? 'previous' : 'default',
+            ]);
+        }
+
+        $parameters = $parameters->with(sizeCurve: $curve);
+        $progress->parameters = $parameters;
+        $progress->add($curve->summary);
+        $progress->lap('size_curve');
+
+        $this->pace($samples, $progress->paceless, $candidate, $priorsOf, $parameters);
+        $progress->paceless = [];
+        $progress->fewImageLog = $progress->fewBrandLog = [];
+        unset($samples);
+
+        foreach ($progress->unboxed as $u => [$inputs, , , [$player, , $solved, $tracked, , $pieces]]) {
+            $progress->unboxed[$u][0] = $inputs->withCandidatePace(
+                $candidate->paceRowsAt($player, $solved, $tracked),
+                $candidate->fewAt($player, $pieces, $solved, $tracked, self::logDifficultyAt($candidate, $solved, $tracked, $priorsOf, $parameters)),
+            );
+        }
+
+        $progress->lap('samples_with_curve');
+    }
+
+    /**
+     * The samples paced by the fitted curve where it has a pace (in place - a second copy of the samples would be the
+     * fit's peak), then the first tries without the shown model's pace that the curve paces, appended.
+     *
+     * @param list<array{0: int, 1: string, 2: float, 3: null|float, 4: int, 5: bool}> $paceless [attempt, prior type, prior, median, first tries, at an event]
+     * @param \Closure(string, int): array{0: null|float, 1: null|float} $priorsOf
+     */
+    private function pace(CandidateSamples $samples, array $paceless, CandidateEngine $candidate, \Closure $priorsOf, CandidateModelParameters $parameters): void
+    {
+        $curve = $parameters->sizeCurve ?? throw new \LogicException('No size curve');
+        $set = $candidate->engine->set;
+        $pooledOf = static function (int $i) use ($curve, $set, $candidate, $priorsOf, $parameters): null|array {
+            [$player, $pieces, $solved, $tracked] = [$set->player[$i], $set->pieces[$i], $set->solved[$i], $set->tracked[$i]];
+
+            return $curve->pace(
+                $pieces,
+                $candidate->paceRowsAt($player, $solved, $tracked),
+                $candidate->fewAt($player, $pieces, $solved, $tracked, self::logDifficultyAt($candidate, $solved, $tracked, $priorsOf, $parameters)),
+            );
+        };
+
+        for ($s = 0, $count = $samples->count(); $s < $count; $s++) {
+            $i = $samples->attempt($s);
+            $pooled = $pooledOf($i);
+
+            if ($pooled !== null) {
+                $samples->repace($s, log($set->seconds[$i]) - $pooled[0], $pooled[2], $pooled[3], $pooled[1]);
+            }
+        }
+
+        $added = [];
+
+        foreach ($paceless as [$i, $priorType, $priorLog, $median, $firstTries, $competition]) {
+            $pooled = $pooledOf($i);
+
+            if ($pooled !== null) {
+                $added[] = [$i, $priorType, $priorLog, $median, $firstTries, $competition, $pooled];
+            }
+        }
+
+        $samples->grow(count($added));
+
+        foreach ($added as [$i, $priorType, $priorLog, $median, $firstTries, $competition, $pooled]) {
+            $samples->add(
+                attempt: $i,
+                target: log($set->seconds[$i]) - $pooled[0],
+                priorType: $priorType,
+                priorLog: $priorLog,
+                group: PiecesGroup::fromPiecesCount($set->pieces[$i]),
+                paceSource: $pooled[2],
+                spread: $pooled[3],
+                median: $median,
+                firstTries: $firstTries,
+                competition: $competition,
+                pieces: $set->pieces[$i],
+                paceVariance: $pooled[1],
+                slot: $candidate->slotOf($i) ?? -1,
+            );
+        }
     }
 
     /**
@@ -235,9 +436,28 @@ final readonly class CandidateModelFitter
         $set = $candidate->engine->set;
         $puzzle = $set->puzzle[$i];
 
-        return $candidate->engine->inputsFor($i, $priors)
+        $inputs = $candidate->engine->inputsFor($i, $priors)
             ->withImageEstimate($imageEstimates[$puzzle] ?? null)
             ->withCandidate($candidate->evidenceFor($i), $priors->puzzleWeightedBrandPrior($puzzle, $set->pieces[$i], $parameters->brandPseudoPuzzles), $candidate->experienceOf($i));
+
+        return self::withPaceInputs($inputs, $candidate, $set->player[$i], $set->pieces[$i], $set->solved[$i], $set->tracked[$i], $priors, $imageEstimates, $parameters);
+    }
+
+    /**
+     * The size curve's inputs when the fit has a curve (else none - nothing reads them).
+     *
+     * @param array<string, ImagePriorInput> $imageEstimates
+     */
+    private static function withPaceInputs(StatisticalPredictionInputs $inputs, CandidateEngine $candidate, string $player, int $pieces, float $solved, float $tracked, PriorLookup $priors, array $imageEstimates, CandidateModelParameters $parameters): StatisticalPredictionInputs
+    {
+        if ($parameters->sizeCurve === null || $parameters->features()->on('size_curve') === false) {
+            return $inputs;
+        }
+
+        return $inputs->withCandidatePace(
+            $candidate->paceRowsAt($player, $solved, $tracked),
+            $candidate->fewAt($player, $pieces, $solved, $tracked, self::logDifficultyAt($candidate, $solved, $tracked, self::priorsOf($priors, $imageEstimates, $parameters), $parameters)),
+        );
     }
 
     /**
@@ -249,13 +469,15 @@ final readonly class CandidateModelFitter
     {
         $puzzle = $unboxed->puzzle[$u];
 
-        return $candidate->engine->inputsAt($unboxed->player[$u], $puzzle, $unboxed->pieces[$u], $unboxed->solved[$u], $unboxed->tracked[$u], $priors)
+        $inputs = $candidate->engine->inputsAt($unboxed->player[$u], $puzzle, $unboxed->pieces[$u], $unboxed->solved[$u], $unboxed->tracked[$u], $priors)
             ->withImageEstimate($imageEstimates[$puzzle] ?? null)
             ->withCandidate(
                 $candidate->evidenceAt($puzzle, $unboxed->solved[$u], $unboxed->tracked[$u], $parameters),
                 $priors->puzzleWeightedBrandPrior($puzzle, $unboxed->pieces[$u], $parameters->brandPseudoPuzzles),
                 $candidate->experienceAt($unboxed->player[$u], $unboxed->solved[$u], $unboxed->tracked[$u]),
             );
+
+        return self::withPaceInputs($inputs, $candidate, $unboxed->player[$u], $unboxed->pieces[$u], $unboxed->solved[$u], $unboxed->tracked[$u], $priors, $imageEstimates, $parameters);
     }
 
     /**
@@ -446,15 +668,18 @@ final readonly class CandidateModelFitter
 
     /**
      * Every first try of the window the candidate predicts, column by column: its target (ln seconds - ln pace - drift),
-     * the prior and what the window keys need - its evidence is added by addEvidence().
+     * the prior and what the window keys need - its evidence is added by addEvidence(); and the first tries without a
+     * pace of the shown rules, which the size curve may pace (fitSizeCurve()).
      *
      * @param list<int> $window
      * @param array<string, ImagePriorInput> $imageEstimates
+     * @return array{0: CandidateSamples, 1: list<array{0: int, 1: string, 2: float, 3: null|float, 4: int, 5: bool}>}
      */
-    private function samples(CandidateEngine $candidate, PriorLookup $priors, array $window, array $imageEstimates, CandidateModelParameters $parameters): CandidateSamples
+    private function samples(CandidateEngine $candidate, PriorLookup $priors, array $window, array $imageEstimates, CandidateModelParameters $parameters): array
     {
         $features = $parameters->features();
         $samples = new CandidateSamples(count($window));
+        $paceless = [];
         $engine = $candidate->engine;
         $set = $engine->set;
 
@@ -464,33 +689,39 @@ final readonly class CandidateModelFitter
             $inputs = $engine->inputsFor($i, $priors)
                 ->withImageEstimate($imageEstimates[$puzzle] ?? null)
                 ->withCandidate(null, $priors->puzzleWeightedBrandPrior($puzzle, $set->pieces[$i], $parameters->brandPseudoPuzzles));
-            $baseline = TimePredictionCalculator::baselineFor($inputs, $parameters->paceParameters);
+            $pace = CandidatePredictionCalculator::pace($inputs, $parameters);
+            [$type, $prior] = $this->calculator->prior($inputs, $features->on('image_prior'), $features->on('puzzle_weighted_brand'));
+            $score = $engine->score[$i] ?? null;
+            $median = $engine->k[$i] >= TimePredictionCalculator::RATED_INDICES && $score !== null && $score > 0.0 ? log($score) : null;
 
-            if ($baseline === null || $baseline[0] <= 0) {
+            if ($pace === null) {
+                // The size curve may pace it from the player's other sizes (fitSizeCurve())
+                if ($features->on('size_curve')) {
+                    $paceless[] = [$i, $type, $prior ?? 0.0, $median, $candidate->experienceOf($i), ($candidate->flags->of($i) & AttemptFlags::COMPETITION) !== 0];
+                }
+
                 continue;
             }
 
-            [$type, $prior] = $this->calculator->prior($inputs, $features->on('image_prior'), $features->on('puzzle_weighted_brand'));
-
-            $score = $engine->score[$i] ?? null;
-
             $samples->add(
                 attempt: $i,
-                target: log($set->seconds[$i] / $baseline[0]) - $baseline[1],
+                target: log($set->seconds[$i]) - $pace[0],
                 priorType: $type,
                 priorLog: $prior ?? 0.0,
                 group: PiecesGroup::fromPiecesCount($inputs->piecesCount),
-                paceSource: $baseline[3],
-                spread: $baseline[2] ?? PredictionModelParameters::GLOBAL_SPREAD,
-                median: $engine->k[$i] >= TimePredictionCalculator::RATED_INDICES && $score !== null && $score > 0.0 ? log($score) : null,
+                paceSource: $pace[3],
+                spread: $pace[2],
+                median: $median,
                 firstTries: $candidate->experienceOf($i),
                 competition: ($candidate->flags->of($i) & AttemptFlags::COMPETITION) !== 0,
+                pieces: $set->pieces[$i],
+                paceVariance: $pace[1],
             );
         }
 
         $samples->finish();
 
-        return $samples;
+        return [$samples, $paceless];
     }
 
     /**
@@ -670,10 +901,16 @@ final readonly class CandidateModelFitter
             $perGroup[$group->value] = ($perGroup[$group->value] ?? 0) + 1;
         }
         $groups = array_values(array_filter(PiecesGroup::cases(), static fn (PiecesGroup $group): bool => ($perGroup[$group->value] ?? 0) >= self::MINIMUM_SIZE_TERM_SAMPLES));
+        $curve = $parameters->sizeCurve !== null && $features->on('size_curve');
         $paceSources = $features->on('pace_terms') ? [PaceSource::Interpolated, PaceSource::Scaled500] : [];
+
+        if ($curve) {
+            $paceSources = [...$paceSources, PaceSource::Pooled, PaceSource::PooledFew, PaceSource::PooledOwn];
+        }
+
         // New players scatter more (their pace rests on few first tries) - a term of their own, with the offsets
         $experiences = $features->on('centre_offsets') ? ['lt10', 'lt30'] : [];
-        $columns = 2 + count($groups) + count($paceSources) + count($experiences) + ($features->on('dispersion') ? 1 : 0);
+        $columns = 2 + count($groups) + count($paceSources) + count($experiences) + ($features->on('dispersion') ? 1 : 0) + ($curve ? 1 : 0);
         $normal = new NormalEquations($columns);
 
         foreach ($errors as $s => $error) {
@@ -693,6 +930,10 @@ final readonly class CandidateModelFitter
 
             if ($features->on('dispersion')) {
                 $row[] = $dispersions[$s];
+            }
+
+            if ($curve) {
+                $row[] = $samples->paceVariance($s);
             }
 
             $normal->add($row, min(abs($error), self::RESIDUAL_CLIP) ** 2);
@@ -724,6 +965,7 @@ final readonly class CandidateModelFitter
             paceTerms: $paceTerms,
             dispersionWeight: $features->on('dispersion') ? round($coefficients[$column], 6) : 0.0,
             consistencyEdges: PredictionModelFitter::quartileEdges($spreads),
+            paceVarianceWeight: $curve ? round($coefficients[$columns - 1], 6) : 0.0,
         );
 
         $summary = ['window_samples' => $count];
@@ -735,7 +977,7 @@ final readonly class CandidateModelFitter
             foreach ($errors as $s => $error) {
                 if ($samples->competition($s)) {
                     $ratio[0] += min(abs($error), self::RESIDUAL_CLIP) ** 2;
-                    $ratio[1] += $parameters->firstTrySigma($samples->spread($s), $posteriorVariances[$s], $samples->group($s), $samples->paceSource($s), $dispersions[$s], 1.0, $samples->firstTries($s)) ** 2;
+                    $ratio[1] += $parameters->firstTrySigma($samples->spread($s), $posteriorVariances[$s], $samples->group($s), $samples->paceSource($s), $dispersions[$s], 1.0, $samples->firstTries($s), $samples->paceVariance($s)) ** 2;
                     $ratio[2]++;
                 }
             }
@@ -751,7 +993,7 @@ final readonly class CandidateModelFitter
 
         foreach ($errors as $s => $error) {
             $competition = $features->on('competition') && $samples->competition($s);
-            $standardised[$s] = $error / $parameters->firstTrySigma($samples->spread($s), $posteriorVariances[$s], $samples->group($s), $samples->paceSource($s), $dispersions[$s], $parameters->contextScale($competition, false), $features->on('centre_offsets') ? $samples->firstTries($s) : null);
+            $standardised[$s] = $error / $parameters->firstTrySigma($samples->spread($s), $posteriorVariances[$s], $samples->group($s), $samples->paceSource($s), $dispersions[$s], $parameters->contextScale($competition, false), $features->on('centre_offsets') ? $samples->firstTries($s) : null, $samples->paceVariance($s));
         }
 
         unset($errors, $posteriorVariances, $dispersions);
@@ -760,6 +1002,7 @@ final readonly class CandidateModelFitter
             WindowBucket::kBucket($samples->k($s)),
             $samples->group($s),
             $features->on('source_quantiles') ? $samples->priorType($s) : null,
+            CandidatePredictionCalculator::paceKey($samples->paceSource($s), $samples->pieces($s)),
         );
         $quantiles = $parameters->quantiles;
 

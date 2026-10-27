@@ -469,6 +469,12 @@ for every solo time next to the shown model and **never shown**. One more predic
   statements per added time (the savepoint, the read, its release) and its row in the same INSERT; switched off,
   nothing (the query budget tests run with it off, like production until the fill). The time's own conditions go with it
   (`SolveConditions`: unboxed, at an event).
+- The size curve's inputs (README "The candidate's pace: the size curve"): live, two more columns on the candidate's
+  own statement (`StatisticalInputsSql::candidatePaceColumns()` - the player's latest pace-history row at every piece
+  count, and, only while they have no pace-history row at the puzzle's size, their at most 5 first tries there with each
+  puzzle's current candidate difficulty); reconstructed, the player's rows before the solve from the timeline it loads
+  anyway, and one more statement only for a first try at a size without an own pace (the few puzzles' stored evidence,
+  brand prior and out-of-fold estimate).
 - Reconstructed (`PredictionReconstructor::reconstructSideBySide()`): the shown and side-by-side rows exactly as on
   main, then the candidate in a pass of its own wrapped in a try/catch - a failing candidate leaves the shown rows as
   they are (`testAFailingCandidateReconstructionKeepsTheShownPredictions`). Its inputs are the same as live, as of the solve - the evidence

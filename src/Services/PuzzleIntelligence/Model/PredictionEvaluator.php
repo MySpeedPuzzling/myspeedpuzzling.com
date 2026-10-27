@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Value\CandidateFeatures;
 use SpeedPuzzling\Web\Value\ImagePriorInput;
 use SpeedPuzzling\Web\Value\PiecesGroup;
+use SpeedPuzzling\Web\Value\SizeCurve;
 use SpeedPuzzling\Web\Value\SolveConditions;
 use SpeedPuzzling\Web\Value\WindowBucket;
 
@@ -377,6 +378,24 @@ final readonly class PredictionEvaluator
                 $dispersion < 0.02 => '0.008-0.02',
                 default => '>= 0.02',
             } . ' (k >= 5)';
+        }
+
+        // The size curve's groups: what the shown pace rests on, the player's first tries at the size before, and for a
+        // size without an own pace the distance from 500
+        $own = (int) $context->set->position[$i] - 1;
+        $labels[] = 'shown pace ' . ($statistical->paceSource->value ?? '-');
+        $labels[] = 'own first tries at the size ' . match (true) {
+            $own === 0 => '0',
+            $own <= 2 => '1-2',
+            $own <= 4 => '3-4',
+            $own <= 9 => '5-9',
+            $own <= 19 => '10-19',
+            $own <= 49 => '20-49',
+            default => '50+',
+        };
+
+        if ($own < 5) {
+            $labels[] = sprintf('no own pace · distance band %d · %s', SizeCurve::distanceBand((int) $context->set->pieces[$i]), $own === 0 ? 'never solved the size' : '1-4 own first tries');
         }
 
         if ($group === PiecesGroup::Thousand) {

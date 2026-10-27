@@ -60,7 +60,7 @@ Gate v2 adds (the shared parts live in `src/Services/PuzzleIntelligence/Evaluati
 
 | Number | How |
 |---|---|
-| `calibration` | **Honesty out of period** (`OutOfPeriodCalibration`) of the picture-only windows (every image row, k = 0..4 - all use the k = 0 window): the record's split moment T = the median solve; the solves from T on are tested in 30-day blocks, each with window scales fitted on every solve before the block (`WindowScaling`: a window is centre × exp(q × σ), so a fitted scale stretches its log offsets; the scale whose windows hold exactly 50 % / 80 % of the earlier solves); `hit50` / `hit80` pooled over the blocks with their 90 % **Wilson** interval (`hit50Low`…), `inSample50/80` = the stored windows' own hits, `scale50/80` = the last block's fit, `previouslyOpen` = the hysteresis state (below) |
+| `calibration` | **Honesty out of period** (`OutOfPeriodCalibration`) of the picture-only windows (every image row, k = 0..4 - all use the k = 0 window): the record's split moment T = the median solve; the solves from T on are tested in 30-day blocks, each with window scales fitted on every solve before the block (`WindowScaling`: a window is centre × exp(q × σ), so a fitted scale stretches its log offsets; the scale whose windows hold exactly 50 % / 80 % of the earlier solves) - **weighted and keyed like the subject's own fit** (`WindowRefit`: for the picture-only windows recency-weighted, k = 0 and 1-4 apart, "The honesty test refits like the subject's own fit"); `hit50` / `hit80` pooled over the blocks with their 90 % **Wilson** interval (`hit50Low`…), `inSample50/80` = the stored windows' own hits, `scale50/80` = the last block's fit, `previouslyOpen` = the hysteresis state (below) |
 | `skill` | a list of k buckets (`PairedSkill`): at **k = 0** the picture-only prediction (= the blend there) against the statistical one, which at k = 0 is the brand × pieces prior: `maeCandidate` / `maeReference`, `errorRatio`, and the **80 % window width at equal coverage** (`width80Candidate` / `width80Reference`: each predictor's windows scaled to hold exactly 80 % of these solves, then the median log width - a narrower window that holds fewer solves is not sharper); at **k = 1-2 / 3-4** the blend against the statistical: `meanDifference` of the paired errors and its standard error `differenceSe` |
 | `slices` | `k0` = every k = 0 row (all newer puzzles), `k0Measured` = only those of puzzles measured from 10 indices (the population the puzzle-level numbers see), `live` / `reconstructed` - each with the picture-only windows' hits and the paired errors (image or blend vs statistical) |
 | `tierExactSe`, `tierExactCeiling`, `tierExactOfCeiling` | (`TierScores`) the exact tier's standard error √(p(1−p)/n), and its **label-noise ceiling**: the share a perfect estimator would get, each label's noise 0.054 ÷ n indices (review image F5: E[r²] = 0.0107 + 0.054 ÷ n), plugged in at the measured value |
@@ -84,7 +84,8 @@ Reads the current record once per request (`ResetInterface`) and applies, to tha
    the same estimate generations, stays open while both shares themselves stay within **± 5 points**
    (`OutOfPeriodCalibration::CLOSE_TOLERANCE`) - a daily re-run does not flap on noise. The state rides on the record
    (`calibration.previouslyOpen`, set by the handler from the previous record's numbers judged with today's rules,
-   `ImageEstimateGate::honestyOpenGroups()`); a new estimate generation or model version earns the opening again.
+   `ImageEstimateGate::honestyOpenGroups()`); a new estimate generation, model version or refit (`WindowRefit`) earns
+   the opening again.
 2. **Skill** (`skillFailures()`): at **k = 0** the picture-only error ≤ **0.90 ×** the brand × pieces prior's on the
    same solves (`K0_ERROR_RATIO`) **and** a narrower 80 % window at equal coverage; at **k = 1-2 and 3-4** the blend
    never **measurably** worse than the statistical prediction - per bucket of at least 30 paired solves
@@ -179,8 +180,8 @@ residuals, not for the picture's). Since this change (`TimePredictionCalculator:
 **Measured** on a read-only production extract (52,385 image rows of model 3, k = 0-4, estimates 1.2.1; the record's
 19,791 gate rows reproduced to the last digit from the stored windows), with an offline twin of the window and of
 step 6 (`~/puzzle-vision-review/model-review-2026-10-26/image-window-honesty/`). Two protocols:
-- **the gate's own** (`OutOfPeriodCalibration`, T = 2026-05-17, 30-day blocks): windows of one fit over the trailing
-  12 months - what the record will show after the fit + `--recompute-image` + evaluation;
+- **the gate's own as it was** (`OutOfPeriodCalibration` with its equal-weight refit, T = 2026-05-17, 30-day blocks):
+  windows of one fit over the trailing 12 months (the refit now mirrors step 6 - its numbers in the next section);
 - **what members meet**: every 30-day block from T predicted with a fit on the 12 months before it, raw hits, nothing
   rescaled (the gate's protocol rescales the stored windows with an equal-weight refit of its own, so it sees the
   window's shape, never its fitted level).
@@ -206,21 +207,13 @@ step 6 (`~/puzzle-vision-review/model-review-2026-10-26/image-window-honesty/`).
 - **Sharper at equal coverage** (the skill rule): the k = 0 80 % window 5.5 % narrower on the geometric mean, 500 flat
   −12 %, 1000 box −8 %, 500 box −8 % - most of it from dropping the brand-prior table (symmetric normal quantiles alone:
   500 flat 0.374). The centre is unchanged, so the error ratio is too.
-- **Still not enough to open groups by itself.** The equivalence test asks the 90 % Wilson interval inside target ± 3
-  points; at 596-671 test rows its half-width alone is 3.3 points at 50 % (it needs ≥ ~750 rows at 50 %, ≥ ~480 at
-  80 %), so the 1000 groups and the assembled ones cannot pass yet whatever the window - they wait for rows. Of the
-  four groups with enough rows, 500 box passes with room (0.509 / 0.809), ≤300 box and ≤300 flat miss by less than
-  0.004 on one bound, 500 flat stays short at 50 % (0.477, lower bound 0.457): its errors grew from May on (newer
-  puzzles' median error in units of the 80 % half-width 0.44-0.55 Nov-Apr, 0.54-0.60 May-Oct), a shift no window
-  shape absorbs; the recency weighting
-  follows it in production (members meet 0.487 / 0.789) but the gate cannot see that (next point).
-- **The gate's refit and production's now differ in weighting.** The gate rescales the stored windows with an
-  equal-weight refit on everything before each block - the production fit used to be equal-weight; now it is
-  recency-weighted, so the gate measures a slightly different (older) fit than the one members meet. With the gate's
-  refit weighted the same (half-life 45 days, offline): mean miss 0.0083 (today's windows under that refit 0.0117),
-  ≤300 flat 0.500 / 0.794 and ≤300 box 0.501 / 0.801 pass, 500 flat 0.484 / 0.796 and 500 box 0.513 / 0.802 miss by
-  0.001-0.002. Aligning `OutOfPeriodCalibration`'s refit with `IMAGE_WINDOW_HALF_LIFE_DAYS` for the image subject is a
-  gate change left to a separate decision (it also serves the candidate gate) - not made here.
+- **Under the gate's own protocol alone (equal-weight refit, before the refit change below)** the new windows would
+  open only 500 box: the equivalence test asks the 90 % Wilson interval inside target ± 3 points; at 596-671 test rows
+  its half-width alone is 3.3 points at 50 % (it needs ≥ ~750 rows at 50 %, ≥ ~480 at 80 %), so the 1000 groups and
+  the assembled ones cannot pass yet whatever the window - they wait for rows. 500 flat stayed short at 50 % there
+  (0.477): its errors grew from May on (newer puzzles' median error in units of the 80 % half-width 0.44-0.55 Nov-Apr,
+  0.54-0.60 May-Oct) and an equal-weight refit lags behind that - the recency-weighted production fit follows it
+  (members meet 0.487 / 0.789), which is why the gate's refit now mirrors the subject's own fit (next section).
 - **Recency, chosen out of period** (members meet, every puzzle age, 30-day blocks Jan-Oct 2026, mean |hit − target|
   over both windows): the shipped form 0.0066 equal-weight → 0.0048 at 45 days, k = 0 rows 0.0120 → 0.0106. The
   half-life scan (same form, a key's own scales from 1,000 first tries instead of 600 effective): none 0.0074, 30 days
@@ -232,6 +225,49 @@ step 6 (`~/puzzle-vision-review/model-review-2026-10-26/image-window-honesty/`).
   the pipeline's own 50 % one (sharpness equal, gate 500 flat 0.475 vs 0.476). And not an excuse for failing: solves of
   one puzzle share its estimate error, but the design effect is only 1.05-2.0 (puzzle-clustered vs binomial variance of
   the out-of-period hit), so if anything the rows' Wilson interval is a little too narrow.
+
+### The honesty test refits like the subject's own fit (2026-10-27)
+
+The honesty test must judge the procedure production actually runs (Jan / the coordinator, 2026-10-27). Its rolling
+refit (`OutOfPeriodCalibration`, one refit per 30-day block on every solve before it) now takes the subject's own
+weighting and keys (`WindowRefit`, `src/Value/`):
+- **picture-only windows** (`ImageEstimateEvaluator` → `WindowRefit::imageWindow()`): each solve before the block weighs
+  0.5^(age at the block's first day ÷ `PredictionModelFitter::IMAGE_WINDOW_HALF_LIFE_DAYS`), and first solvers (k = 0)
+  and later solvers (k = 1-4) get their own scale once their solves reach `IMAGE_WINDOW_MINIMUM_EFFECTIVE` effective
+  (Kish) solves, else the group's - the same constants as step 6 (one source of truth). Inside a gate group (size ×
+  kind) the k bucket's fallback is the group itself, where step 6 falls back to size × k across kinds - the closest
+  the per-group test can mirror. The record's `calibration` says which refit judged it (`refitHalfLifeDays`,
+  `refitByFirstSolver`, `refitMinimumEffective`); the hysteresis carries an opening only between records of the same
+  refit (`WindowRefit::judged()` in `ImageEstimateGate::honestyOpenGroups()`).
+- **candidate time models** (`PredictionCandidateEvaluator`): equal weight, one scale per window - what the candidate's
+  own window fit does (`CandidateModelFitter` weighs no solve by age); their records are byte-for-byte what they were
+  (`PredictionCandidateEvaluatorTest::testTheCandidateHonestyTestIsUnchangedByThePictureOnlyRefit` pins the numbers
+  of the code before the change on drifting, k-mixed rows), no refit keys in them.
+
+**The gate, offline** - this branch's `ImageEstimateEvaluator` + `ImageEstimateGate` (PHP, unchanged rules) on the
+19,793 gate rows of a fresh read-only extract (2026-10-27 evening, the record's newer-than cut and split T =
+2026-05-17), windows as stored today vs the twin of the new windows; groups with ≥ 300 rows:
+
+| Group | test rows | Today's record (stored windows, equal-weight refit) 50 / 80 % | New windows, mirrored refit 50 % (Wilson) | 80 % (Wilson) | Gate |
+|---|---|---|---|---|---|
+| 500 flat | 1,636 | 0.471 / 0.785 - fails honesty | 0.498 (0.478-0.518) | 0.799 (0.783-0.815) | **passes** |
+| 500 box | 2,042 | 0.509 / 0.821 (upper 0.834) - fails honesty | 0.508 (0.490-0.526) | 0.803 (0.788-0.817) | **passes** |
+| ≤300 flat | 971 | 0.517 / 0.808 - fails honesty | 0.510 (0.483-0.536) | 0.796 (0.774-0.817) | fails honesty (50 % upper 0.536) |
+| ≤300 box | 1,946 | 0.513 / 0.815 - fails honesty, ranking (32 measured) | 0.486 (0.467-0.504) | 0.802 (0.786-0.816) | fails honesty (50 % lower 0.467), ranking |
+| 500 assembled | 654 | 0.474 / 0.818 | 0.486 (0.454-0.518) | 0.777 (0.749-0.802) | fails honesty (rows), ranking (33 measured) |
+| ≤300 assembled | 683 | 0.508 / 0.808 | 0.488 (0.456-0.519) | 0.808 (0.782-0.832) | fails honesty (rows), ranking |
+| 1000 flat | 604 | 0.505 / 0.811 | 0.482 (0.449-0.515) | 0.785 (0.756-0.811) | fails honesty (rows), ranking |
+| 1000 box | 621 | 0.546 / 0.850 | 0.501 (0.468-0.534) | 0.821 (0.795-0.845) | fails honesty (rows), ranking (0 measured) |
+| 1000 assembled | 229 | 0.511 / 0.821 | 0.485 (0.431-0.539) | 0.812 (0.766-0.851) | fails honesty (rows), ranking |
+| overall | 9,923 | 0.503 / 0.812 | 0.495 (0.487-0.503) | 0.799 (0.793-0.806) | (not gated) |
+
+**500 flat and 500 box open** - the two groups that also pass ranking and skill; today's record opens none. The
+others fail on rows the ±3-point test cannot resolve yet or on too few measured puzzles for the ranking rule; ≤300
+flat and ≤300 box miss by 0.003-0.006 on one bound. The two changes contribute separately: the new windows judged
+by the old equal-weight refit open 500 box only, today's stored windows judged by the mirrored refit open 500 flat
+only - both together open both. "New windows" = the offline twin of step 6 and `imageWindow()` (Python, the player's
+variance backed out of the stored windows), so the record after the production run will differ in the third
+decimal.
 
 After the merge, on production: `myspeedpuzzling:fit-prediction-model` (the new scales; its summary lists
 `image_window_<key>` = "s50 / s80 (effective first tries)" and the in-sample `image_window50_hit` / `80_hit`), then
@@ -321,10 +357,11 @@ shown prediction unchanged, an older fit's symmetric form) and `ImageWindowScale
 tries: the scales reach what the scatter needs, per size group × kind × k bucket, recent first tries weigh more).
 
 Every rule on synthetic numbers or rows: `WindowScalingTest` (scale intervals incl. a window off its centre, the fitted
-scale, Wilson), `OutOfPeriodCalibrationTest` (calibrated windows pass, a later spread fails, rolling blocks, hysteresis),
+scale and its weighted twin, Wilson), `OutOfPeriodCalibrationTest` (calibrated windows pass, a later spread fails,
+rolling blocks, hysteresis, the picture-only refit's recency and its own scales for first and later solvers),
 `PairedSkillTest` (errors, paired difference, width at equal coverage), `TierScoresTest` (boundaries = `DifficultyTier`,
 label-noise ceiling, tier range, RPSS), `ImageEstimateGateRulesTest` (each v2 rule fails on its own, the exact tier
-never gates, hysteresis, the open groups a record carries), `ImageEstimateEvaluatorTest` (v2 numbers, slices,
-hysteresis per estimate generation), `PredictionCandidateEvaluatorTest`, and on the database
+never gates, hysteresis, the open groups a record carries - only from a record of the same refit), `ImageEstimateEvaluatorTest` (v2 numbers, slices,
+hysteresis per estimate generation), `PredictionCandidateEvaluatorTest` (incl. its honesty numbers pinned against the code before the refit change), and on the database
 `EvaluateImageEstimatesHandlerTest` (v1 records fail closed, another subject is not the record, the hysteresis carried
 by the handler) and `EvaluatePredictionCandidateHandlerTest` (any predictor / model version, its own subject).

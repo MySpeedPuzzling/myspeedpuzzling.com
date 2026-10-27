@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence\ImageEstimates;
 
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\PredictionModelFitter;
+
 /**
  * One size group × image kind of a gate v2 record whose numbers pass every rule of ImageEstimateGate - for tests that
  * store a record by hand (the evaluation itself: ImageEstimateEvaluatorTest).
@@ -50,6 +52,10 @@ final class GateV2Numbers
             'hit80Low' => 0.785,
             'hit80High' => 0.814,
             'previouslyOpen' => false,
+            // Judged with the picture-only window's refit (WindowRefit::imageWindow())
+            'refitHalfLifeDays' => PredictionModelFitter::IMAGE_WINDOW_HALF_LIFE_DAYS,
+            'refitByFirstSolver' => true,
+            'refitMinimumEffective' => PredictionModelFitter::IMAGE_WINDOW_MINIMUM_EFFECTIVE,
             ...$change,
         ];
     }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\PuzzleIntelligence\Evaluation;
 
 use SpeedPuzzling\Web\Value\StoredPredictionWindows;
+use SpeedPuzzling\Web\Value\WindowRefit;
 
 /**
  * The gate v2 numbers of one group of stored predictions, whatever predictor and model version made them
@@ -25,9 +26,12 @@ final class PredictionGroupAccumulator
     /** @var array<string, array{0: PairedSkill, 1: int, 2: int, 3: int}> per slice: paired errors, rows, 50 % hits, 80 % hits */
     private array $slices = [];
 
-    public function __construct()
+    /**
+     * @param null|WindowRefit $refit how the honesty test refits the windows - the subject's own fit (default: equal weight)
+     */
+    public function __construct(null|WindowRefit $refit = null)
     {
-        $this->calibration = new OutOfPeriodCalibration();
+        $this->calibration = new OutOfPeriodCalibration($refit);
     }
 
     /**
@@ -44,7 +48,7 @@ final class PredictionGroupAccumulator
         null|StoredPredictionWindows $reference,
         array $slices = [],
     ): void {
-        $this->calibration->add($solvedAt, $actualSeconds, $shown);
+        $this->calibration->add($solvedAt, $actualSeconds, $shown, $kIndices);
 
         $paired = $candidate !== null && $reference !== null;
 

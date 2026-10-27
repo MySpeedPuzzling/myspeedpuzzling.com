@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\PuzzleIntelligence\Evaluation;
 
 use SpeedPuzzling\Web\Value\StoredPredictionWindows;
+use SpeedPuzzling\Web\Value\WindowRefit;
 
 /**
  * Honesty of the windows out of period (docs/features/insights/image-estimate-gates.md, "Honesty"): the window scales
@@ -16,7 +17,11 @@ use SpeedPuzzling\Web\Value\StoredPredictionWindows;
  * ± TOLERANCE of 50 % / 80 %, and keeps a group that passed open until its share leaves ± CLOSE_TOLERANCE (hysteresis:
  * a daily re-run does not flap on noise).
  *
- * The accumulator keeps five floats per solve.
+ * The refit mirrors the subject's own production fit (WindowRefit): equal weight and one scale per window for the
+ * candidate time models, recency-weighted with its own scales for k = 0 and k = 1-4 for the picture-only window - the
+ * test judges the procedure members meet.
+ *
+ * The accumulator keeps five floats and a key per solve.
  */
 final class OutOfPeriodCalibration
 {
@@ -38,9 +43,24 @@ final class OutOfPeriodCalibration
     /** @var array<int, list<float>> per level: to of the scale interval (-INF = never held) */
     private array $to = [50 => [], 80 => []];
 
-    public function add(float $solvedAt, int $actualSeconds, StoredPredictionWindows $windows): void
+    /** @var list<string> per solve: the key its scale is refitted under (WindowRefit::keyOf()) */
+    private array $keys = [];
+
+    private readonly WindowRefit $refit;
+
+    public function __construct(null|WindowRefit $refit = null)
+    {
+        $this->refit = $refit ?? WindowRefit::equalWeight();
+    }
+
+    /**
+     * @param null|int $kIndices the puzzle's index count when predicted (null = a repeat) - keys the refit when the
+     *                           subject's fit keys its scales by it
+     */
+    public function add(float $solvedAt, int $actualSeconds, StoredPredictionWindows $windows, null|int $kIndices = null): void
     {
         $this->solvedAt[] = $solvedAt;
+        $this->keys[] = $this->refit->keyOf($kIndices);
 
         foreach ([50, 80] as $level) {
             [$low, $high] = $windows->ends($level);
@@ -85,7 +105,7 @@ final class OutOfPeriodCalibration
      * would overstate the drift a member meets). The hits of all blocks are pooled; a block whose fit has no solve, or
      * reaches no scale, counts as solves never held.
      *
-     * @return array{fitRows: int, testRows: int, blocks: int, scale50: null|float, scale80: null|float, hit50: null|float, hit50Low: null|float, hit50High: null|float, hit80: null|float, hit80Low: null|float, hit80High: null|float, inSample50: null|float, inSample80: null|float}
+     * @return array{fitRows: int, testRows: int, blocks: int, scale50: null|float, scale80: null|float, hit50: null|float, hit50Low: null|float, hit50High: null|float, hit80: null|float, hit80Low: null|float, hit80High: null|float, inSample50: null|float, inSample80: null|float, refitHalfLifeDays?: null|float, refitByFirstSolver?: bool, refitMinimumEffective?: int}
      */
     public function metrics(float $splitAt): array
     {
@@ -126,20 +146,26 @@ final class OutOfPeriodCalibration
                     $end++;
                 }
 
-                $fitFrom = [];
-                $fitTo = [];
+                if ($this->refit->isEqualWeight()) {
+                    $fitFrom = [];
+                    $fitTo = [];
 
-                for ($j = 0; $j < $position; $j++) {
-                    if ($from[$j] <= $to[$j]) {
-                        $fitFrom[] = $from[$j];
-                        $fitTo[] = $to[$j];
+                    for ($j = 0; $j < $position; $j++) {
+                        if ($from[$j] <= $to[$j]) {
+                            $fitFrom[] = $from[$j];
+                            $fitTo[] = $to[$j];
+                        }
                     }
-                }
 
-                $scale = WindowScaling::fitScale($fitFrom, $fitTo, $position, self::TARGETS[$level]);
+                    $scale = WindowScaling::fitScale($fitFrom, $fitTo, $position, self::TARGETS[$level]);
 
-                if ($scale !== null) {
-                    $hits += WindowScaling::hitsAt(array_slice($from, $position, $end - $position), array_slice($to, $position, $end - $position), $scale);
+                    if ($scale !== null) {
+                        $hits += WindowScaling::hitsAt(array_slice($from, $position, $end - $position), array_slice($to, $position, $end - $position), $scale);
+                    }
+                } else {
+                    // What the subject's production fit would have stored on the block's first day
+                    [$scale, $blockHits] = $this->refitBlock($order, $from, $to, $position, $end, $blockEnd - $block, self::TARGETS[$level]);
+                    $hits += $blockHits;
                 }
 
                 $blocks++;
@@ -158,8 +184,72 @@ final class OutOfPeriodCalibration
             $metrics['inSample' . $level] = $all > 0 ? round($inSample / $all, self::DECIMALS) : null;
         }
 
-        /** @var array{fitRows: int, testRows: int, blocks: int, scale50: null|float, scale80: null|float, hit50: null|float, hit50Low: null|float, hit50High: null|float, hit80: null|float, hit80Low: null|float, hit80High: null|float, inSample50: null|float, inSample80: null|float} $metrics */
+        if (!$this->refit->isEqualWeight()) {
+            // Which refit judged it - an equal-weight record stays exactly as it was
+            $metrics['refitHalfLifeDays'] = $this->refit->halfLifeDays;
+            $metrics['refitByFirstSolver'] = $this->refit->byFirstSolver;
+            $metrics['refitMinimumEffective'] = $this->refit->minimumEffective;
+        }
+
+        /** @var array{fitRows: int, testRows: int, blocks: int, scale50: null|float, scale80: null|float, hit50: null|float, hit50Low: null|float, hit50High: null|float, hit80: null|float, hit80Low: null|float, hit80High: null|float, inSample50: null|float, inSample80: null|float, refitHalfLifeDays?: null|float, refitByFirstSolver?: bool, refitMinimumEffective?: int} $metrics */
         return $metrics;
+    }
+
+    /**
+     * One block refitted the way a recency-weighted, keyed production fit would have been on the block's first day:
+     * every solve before the block weighs WindowRefit::weight() at $fitAt; the group's scale from all of them, a key's
+     * own from its solves once they reach the minimum effective count (Kish: (Σ w)² ÷ Σ w²), else the group's.
+     *
+     * @param list<int> $order solve indexes by time
+     * @param list<float> $from per position in $order
+     * @param list<float> $to per position in $order
+     * @return array{0: null|float, 1: int} the group's scale, the block's hits
+     */
+    private function refitBlock(array $order, array $from, array $to, int $position, int $end, float $fitAt, float $target): array
+    {
+        /** @var array<string, array{0: list<float>, 1: list<float>, 2: list<float>, 3: float, 4: float}> $byKey held from, to and weights; total weight, Σ w² */
+        $byKey = [];
+
+        for ($j = 0; $j < $position; $j++) {
+            $weight = $this->refit->weight($this->solvedAt[$order[$j]], $fitAt);
+            $key = $this->keys[$order[$j]];
+
+            foreach ($key === '' ? [''] : ['', $key] as $fitKey) {
+                $byKey[$fitKey] ??= [[], [], [], 0.0, 0.0];
+                $byKey[$fitKey][3] += $weight;
+                $byKey[$fitKey][4] += $weight ** 2;
+
+                if ($from[$j] <= $to[$j]) {
+                    $byKey[$fitKey][0][] = $from[$j];
+                    $byKey[$fitKey][1][] = $to[$j];
+                    $byKey[$fitKey][2][] = $weight;
+                }
+            }
+        }
+
+        $scales = [];
+
+        foreach ($byKey as $fitKey => [$heldFrom, $heldTo, $weights, $total, $squares]) {
+            if ($fitKey !== '' && ($squares <= 0.0 || $total ** 2 / $squares < $this->refit->minimumEffective)) {
+                continue;
+            }
+
+            $scales[$fitKey] = WindowScaling::fitWeightedScale($heldFrom, $heldTo, $weights, $total, $target);
+        }
+
+        $groupScale = $scales[''] ?? null;
+        $hits = 0;
+
+        for ($i = $position; $i < $end; $i++) {
+            $key = $this->keys[$order[$i]];
+            $scale = array_key_exists($key, $scales) ? $scales[$key] : $groupScale;
+
+            if ($scale !== null && $from[$i] <= $scale && $scale <= $to[$i]) {
+                $hits++;
+            }
+        }
+
+        return [$groupScale, $hits];
     }
 
     /**

@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence\Evaluation;
 
 use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Evaluation\OutOfPeriodCalibration;
+use SpeedPuzzling\Web\Value\WindowRefit;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\PredictionModelFitter;
 use SpeedPuzzling\Web\Value\StoredPredictionWindows;
 
 /**
@@ -77,6 +79,70 @@ final class OutOfPeriodCalibrationTest extends TestCase
         self::assertGreaterThan(1.05, $metrics['scale50']);
     }
 
+    /**
+     * The picture-only window's refit (WindowRefit::imageWindow()) weighs recent solves more, like step 6: after a
+     * drift it is closer to honest on the later blocks than the equal-weight refit, which still remembers the old
+     * spread - and the record says which refit judged it.
+     */
+    public function testTheImageRefitWeighsRecentSolvesLikeItsProductionFit(): void
+    {
+        $equal = new OutOfPeriodCalibration();
+        $recent = new OutOfPeriodCalibration(WindowRefit::imageWindow());
+
+        foreach ([$equal, $recent] as $calibration) {
+            $sequence = 0;
+
+            for ($day = 0; $day < 300; $day++) {
+                for ($i = 0; $i < 20; $i++) {
+                    $calibration->add(($day + 0.5) * self::DAY, self::actual($sequence++, $day < 150 ? 1.0 : 1.4), self::windows(), 0);
+                }
+            }
+        }
+
+        $equalMetrics = $equal->metrics(150.0 * self::DAY);
+        $recentMetrics = $recent->metrics(150.0 * self::DAY);
+
+        self::assertNotNull($equalMetrics['hit50']);
+        self::assertNotNull($recentMetrics['hit50']);
+        self::assertLessThan(abs($equalMetrics['hit50'] - 0.5), abs($recentMetrics['hit50'] - 0.5));
+        self::assertArrayNotHasKey('refitHalfLifeDays', $equalMetrics);
+        self::assertSame(PredictionModelFitter::IMAGE_WINDOW_HALF_LIFE_DAYS, $recentMetrics['refitHalfLifeDays'] ?? null);
+        self::assertTrue($recentMetrics['refitByFirstSolver'] ?? null);
+        self::assertSame(PredictionModelFitter::IMAGE_WINDOW_MINIMUM_EFFECTIVE, $recentMetrics['refitMinimumEffective'] ?? null);
+    }
+
+    /**
+     * First solvers (k = 0) scatter less than later ones and their share falls over time: one pooled scale refitted on
+     * the earlier mix is off for the later one, the image refit's own scales per k bucket are not.
+     */
+    public function testTheImageRefitGivesFirstAndLaterSolversTheirOwnScales(): void
+    {
+        $pooled = new OutOfPeriodCalibration(WindowRefit::imageWindow());
+        $keyed = new OutOfPeriodCalibration(WindowRefit::imageWindow());
+        $windows = self::windows();
+        $sequence = [0, 0];
+
+        for ($day = 0; $day < 300; $day++) {
+            // 80 % first solvers at the start, 20 % at the end
+            $firstShare = 0.8 - 0.6 * $day / 300;
+
+            for ($i = 0; $i < 40; $i++) {
+                $first = ($i + 0.5) / 40 < $firstShare;
+                $actual = self::actual($sequence[$first ? 0 : 1]++, $first ? 0.8 : 1.4);
+                $pooled->add(($day + 0.5) * self::DAY, $actual, $windows);
+                $keyed->add(($day + 0.5) * self::DAY, $actual, $windows, $first ? 0 : 3);
+            }
+        }
+
+        $pooledMetrics = $pooled->metrics(150.0 * self::DAY);
+        $keyedMetrics = $keyed->metrics(150.0 * self::DAY);
+
+        self::assertNotNull($pooledMetrics['hit80']);
+        self::assertNotNull($keyedMetrics['hit80']);
+        self::assertLessThan(abs($pooledMetrics['hit80'] - 0.8), abs($keyedMetrics['hit80'] - 0.8));
+        self::assertEqualsWithDelta(0.8, $keyedMetrics['hit80'], 0.02);
+    }
+
     public function testHysteresis(): void
     {
         $numbers = ['hit50' => 0.535, 'hit50Low' => 0.52, 'hit50High' => 0.55, 'hit80' => 0.80, 'hit80Low' => 0.79, 'hit80High' => 0.81];
@@ -93,15 +159,30 @@ final class OutOfPeriodCalibrationTest extends TestCase
         self::assertNull(OutOfPeriodCalibration::medianMoment([]));
     }
 
-    private function addSolves(OutOfPeriodCalibration $calibration, int $fromDay, int $days, int $perDay, float $spread): void
+    /**
+     * A continuous scatter: the n-th point of the golden-ratio sequence through a logistic quantile, × $spread
+     */
+    private static function actual(int $n, float $spread): int
     {
-        $windows = new StoredPredictionWindows(
+        $u = fmod(($n + 0.5) * 0.6180339887498949, 1.0);
+
+        return (int) round(1000 * exp($spread * 0.1 * log($u / (1 - $u))));
+    }
+
+    private static function windows(): StoredPredictionWindows
+    {
+        return new StoredPredictionWindows(
             1000,
             (int) round(1000 * exp(-0.2)),
             (int) round(1000 * exp(-0.1)),
             (int) round(1000 * exp(0.1)),
             (int) round(1000 * exp(0.2)),
         );
+    }
+
+    private function addSolves(OutOfPeriodCalibration $calibration, int $fromDay, int $days, int $perDay, float $spread): void
+    {
+        $windows = self::windows();
 
         for ($day = $fromDay; $day < $fromDay + $days; $day++) {
             for ($i = 0; $i < $perDay; $i++) {

@@ -228,6 +228,14 @@ expect ~20-25 min on a quiet M3. The paired-guard file is 135 MB. Not verified o
 per-solve picture predictions and the gate record (needs the push and `evaluate-image-estimates` on production -
 the orchestrator's step after merge).
 
+## Picture estimate 1.3.0 - the finished photos as a second view (2026-10-27)
+
+Players' photos of the finished puzzle join the same model (`difficulty_prior` 1.3.0, once ≥ 2,000 training puzzles
+have one): newer from older MAE 0.0823 → 0.0797, Spearman 0.745 → 0.758, tier exact 0.575 → 0.601; newer 500 box MAE
+0.0816 → 0.0743, exact 0.490 → 0.592; newest 30 % 0.0802 → 0.0785, exact 0.590 → 0.614 (vs 1.2.1, the same training
+puzzles). Side by side only, like every estimate generation. Design, privacy rules and every number:
+[`finished-photos.md`](./finished-photos.md).
+
 ## Not built / follow-ups
 
 (Also in `docs/TODO.md`, "Insights page".)

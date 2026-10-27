@@ -38,6 +38,7 @@ final class SecretPuzzleRouteCanaryTest extends KernelTestCase
         'speedpuzzling_web_internalapi_deletepuzzletagcorrection__invoke' => 'internal API (admin token); a hidden image answers 404 - PuzzleTagsInternalApiTest',
         'speedpuzzling_web_internalapi_getpuzzleimageanalyses__invoke' => 'internal API (admin token); a hidden image (hide_until / hide_image_until ahead) answers 404 - PuzzleImageAnalysisInternalApiTest',
         'speedpuzzling_web_internalapi_putpuzzleimageanalysis__invoke' => 'internal API (admin token); a hidden image (hide_until / hide_image_until ahead) is refused with 404, nothing stored - PuzzleImageAnalysisInternalApiTest',
+        'internal_api_finished_photo' => 'internal API (admin token); a hidden puzzle\'s finished photo answers 404 (GetFinishedPhotosForAnalysis::photoPath) - FinishedPhotosInternalApiTest',
     ];
 
     public function testEveryPuzzleRouteIsGuardedOrExplained(): void

@@ -65,6 +65,12 @@ enum ImageAnalyzer: string
     // `embed_siglip2`
     case CropTrust = 'crop_trust';
 
+    // Not about the box image: a player's photo of the finished puzzle, found in the photo, straightened and measured
+    // (crop embeddings, piece-scale numbers, glare, how regular the cut is) - one analysis per photo, stored in
+    // finished_photo_analysis, never in puzzle_image_analysis (docs/features/insights/finished-photos.md). The
+    // catalogue endpoints refuse it (catalogue()); /internal-api/finished-photo* take it
+    case FinishedPhoto = 'finished_photo';
+
     // The default size limit of a result, JSON-encoded
     public const int DEFAULT_MAX_RESULT_BYTES = 65536;
 
@@ -79,10 +85,55 @@ enum ImageAnalyzer: string
     }
 
     /**
+     * Whether it analyses the puzzle's catalogue picture (puzzle_image_analysis) - every analyzer but the finished-photo
+     * one, which analyses players' photos of the finished puzzle (finished_photo_analysis).
+     */
+    public function describesCataloguePicture(): bool
+    {
+        return $this !== self::FinishedPhoto;
+    }
+
+    /**
+     * The analyzer of a catalogue-picture endpoint - null for an unknown value and for the finished-photo analyzer.
+     */
+    public static function catalogue(string $value): null|self
+    {
+        $analyzer = self::tryFrom($value);
+
+        return $analyzer !== null && $analyzer->describesCataloguePicture() ? $analyzer : null;
+    }
+
+    /**
      * @return list<string>
      */
     public static function values(): array
     {
         return array_map(static fn (self $analyzer): string => $analyzer->value, self::cases());
+    }
+
+    /**
+     * The values a catalogue-picture endpoint takes (catalogue()).
+     *
+     * @return list<string>
+     */
+    public static function catalogueValues(): array
+    {
+        return array_values(array_map(
+            static fn (self $analyzer): string => $analyzer->value,
+            array_filter(self::cases(), static fn (self $analyzer): bool => $analyzer->describesCataloguePicture()),
+        ));
+    }
+
+    /**
+     * The analyzers of players' finished-puzzle photos (finished_photo_analysis).
+     *
+     * @return list<string>
+     */
+    public static function finishedPhotoValues(): array
+    {
+        return array_values(array_map(
+            static fn (self $analyzer): string => $analyzer->value,
+            array_filter(self::cases(), static fn (self $analyzer): bool => $analyzer->describesCataloguePicture() === false),
+        ));
     }
 }

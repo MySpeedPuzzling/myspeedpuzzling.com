@@ -4,6 +4,7 @@
   run                run the profile (backfill until done / --follow nonstop / --daily), --hours N, --phase X
   status             coverage per analyzer and version, throughput, failures, ETA
   derive             recompute box_text, zeroshot, neighbours, tags, then difficulty_prior - no image touched
+  finished-photos    the finished_photo analyzer over players' photos of the finished puzzle (GPU machine)
   propose-crops      file artwork crop change requests (source image_pipeline, tag artwork_crop)
   crop-review-plan   the /image-crop-review arithmetic (earned threshold, Wilson bound, audit, auto-stop); --apply
   crop-review-approve  approve middle-band crops Claude Code checked by eye
@@ -230,6 +231,35 @@ def cmd_derive(a: argparse.Namespace, ctx: Context) -> int:
     _print(summary, True)
     # a blocked difficulty_prior push is not a crash, but a manual run should not look like a clean success
     return 3 if isinstance(summary.get("difficulty_prior"), dict) and summary["difficulty_prior"].get("blocked") else 0
+
+
+def cmd_finished_photos(a: argparse.Namespace, ctx: Context) -> int:
+    from .finished_photo_stage import ModelEmbedder, PhotoCache, run
+    from .lock import ModelLock
+
+    cfg = ctx.profile.finished_photo
+    if not cfg:
+        print(f"profile {ctx.profile.name} has no [finished_photo] section (a GPU machine runs it)")
+        return 1
+    if a.no_embed and not a.dry_run:
+        print("--no-embed only with --dry-run: a stored analysis without the crop embeddings is of no use to the estimate")
+        return 1
+    with StopOnSignals() as stop:
+        summary = run(
+            ctx.api,
+            lambda puzzle_id, fingerprint, url: ctx.downloader.get(puzzle_id, fingerprint, url).path,
+            PhotoCache(ctx.settings.cache_dir / "finished-photos"),
+            cfg["version"],
+            embedder=None if a.no_embed else ModelEmbedder(),
+            per_puzzle=cfg["per_puzzle"],
+            workers=a.workers or cfg["workers"],
+            max_photos=a.limit,
+            dry_run=a.dry_run,
+            stop=stop,
+            lock=ModelLock("finished-photo"),
+        )
+    _print(summary, True)
+    return 143 if summary.get("stopped") else 0
 
 
 def _gate_margin_fn() -> Any:
@@ -517,6 +547,13 @@ def parser() -> argparse.ArgumentParser:
                    help="difficulty_prior: record + push although the holdout Spearman dropped > 0.05 (a human's decision)")
     s.add_argument("--json", action="store_true")
     s.set_defaults(fn=cmd_derive)
+
+    s = sub.add_parser("finished-photos", parents=[common])
+    s.add_argument("--limit", type=int, help="at most N photos this run")
+    s.add_argument("--workers", type=int, help="CPU processes (default: the profile's)")
+    s.add_argument("--dry-run", action="store_true", help="compute, store nothing")
+    s.add_argument("--no-embed", action="store_true", help="no GPU model (with --dry-run only)")
+    s.set_defaults(fn=cmd_finished_photos)
 
     s = sub.add_parser("propose-crops", parents=[common])
     s.add_argument("--limit", type=int, required=True)

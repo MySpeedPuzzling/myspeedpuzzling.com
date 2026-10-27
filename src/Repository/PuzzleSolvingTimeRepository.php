@@ -83,6 +83,39 @@ readonly final class PuzzleSolvingTimeRepository
     }
 
     /**
+     * The listed puzzles' results that carry a finished-puzzle photo of a public player - the photos the image pipeline
+     * may analyse (docs/features/insights/finished-photos.md; a private player's photo never leaves the app). One
+     * statement.
+     *
+     * @param list<string> $puzzleIds
+     *
+     * @return list<PuzzleSolvingTime>
+     */
+    public function findWithFinishedPhotoOfPuzzles(array $puzzleIds): array
+    {
+        $puzzleIds = array_values(array_unique(array_map(strtolower(...), array_filter($puzzleIds, Uuid::isValid(...)))));
+
+        if ($puzzleIds === []) {
+            return [];
+        }
+
+        /** @var list<PuzzleSolvingTime> $times */
+        $times = $this->entityManager->createQueryBuilder()
+            ->select('time', 'player', 'puzzle')
+            ->from(PuzzleSolvingTime::class, 'time')
+            ->join('time.player', 'player')
+            ->join('time.puzzle', 'puzzle')
+            ->where('time.puzzle IN (:puzzleIds)')
+            ->andWhere('time.finishedPuzzlePhoto IS NOT NULL')
+            ->andWhere('player.isPrivate = false')
+            ->setParameter('puzzleIds', $puzzleIds)
+            ->getQuery()
+            ->getResult();
+
+        return $times;
+    }
+
+    /**
      * Results of the pairs/teams with a guest written as several people ("Anna, Ben, Clara") - see SplitCombinedGuests
      *
      * @return list<PuzzleSolvingTime>

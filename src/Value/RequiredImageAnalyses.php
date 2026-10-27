@@ -54,7 +54,7 @@ readonly final class RequiredImageAnalyses
         $unknown = [];
 
         foreach ($values as $value) {
-            $analyzer = ImageAnalyzer::tryFrom($value);
+            $analyzer = ImageAnalyzer::catalogue($value);
 
             if ($analyzer === null) {
                 $unknown[] = $value;
@@ -69,7 +69,7 @@ readonly final class RequiredImageAnalyses
             return sprintf(
                 'names an unknown analyzer (%s) - each must be one of: %s.',
                 implode(', ', $unknown),
-                implode(', ', ImageAnalyzer::values()),
+                implode(', ', ImageAnalyzer::catalogueValues()),
             );
         }
 

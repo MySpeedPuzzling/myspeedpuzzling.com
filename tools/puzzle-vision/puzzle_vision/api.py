@@ -146,6 +146,60 @@ class StoreOutcome:
 
 
 @dataclass
+class FinishedPhoto:
+    """One photo of the finished-photo work list - known only by its fingerprint (no player, no solving time)."""
+
+    photo_fingerprint: str
+    photo_url: str
+    analysis: dict[str, Any] | None = None
+
+
+@dataclass
+class FinishedPhotoPuzzle:
+    """A puzzle of the finished-photo work list: its catalogue picture (what a photo is matched against) and photos."""
+
+    puzzle_id: str
+    pieces: int | None
+    image_url: str
+    fingerprint: str
+    photos: list[FinishedPhoto] = field(default_factory=list)
+
+    @classmethod
+    def from_api(cls, d: dict[str, Any]) -> "FinishedPhotoPuzzle":
+        return cls(
+            puzzle_id=d["puzzleId"],
+            pieces=d.get("piecesCount"),
+            image_url=d["imageUrl"],
+            fingerprint=d["imageFingerprint"],
+            photos=[FinishedPhoto(p["photoFingerprint"], p["photoUrl"], p.get("analysis")) for p in d.get("photos") or []],
+        )
+
+
+@dataclass
+class FinishedPhotoResult:
+    puzzle_id: str
+    photo_fingerprint: str
+    fingerprint: str  # the catalogue picture the photo was matched against
+    analyzer_version: str
+    result: dict[str, Any]
+    analyzer: str = "finished_photo"
+    analyzed_at: str | None = None
+
+    def to_api(self) -> dict[str, Any]:
+        d = {
+            "puzzleId": self.puzzle_id,
+            "analyzer": self.analyzer,
+            "analyzerVersion": self.analyzer_version,
+            "photoFingerprint": self.photo_fingerprint,
+            "imageFingerprint": self.fingerprint,
+            "result": self.result,
+        }
+        if self.analyzed_at:
+            d["analyzedAt"] = self.analyzed_at
+        return d
+
+
+@dataclass
 class DifficultyLabel:
     """A training label (`GET /internal-api/puzzle-difficulty-labels`) - aggregates of one puzzle, nothing of a player.
 
@@ -521,6 +575,70 @@ class InternalApi:
             raise ApiError(200, "GET /internal-api/puzzle-difficulty-estimates/model: no `current` in the answer", data)
         current = data["current"]
         return current if isinstance(current, dict) else None
+
+    # players' finished-puzzle photos (docs/features/insights/finished-photos.md) -----------------------------------------
+    def finished_photos_page(self, version: str | None = None, status: str = "all", limit: int = 200, per_puzzle: int = 4,
+                             after: str | None = None, analyzer: str = "finished_photo") -> dict[str, Any]:
+        """A page of the work list: puzzles (catalogue picture + photos by fingerprint, never a player). A page may hold
+        fewer puzzles than `limit`, even none - follow nextCursor."""
+        params: dict[str, Any] = {"analyzer": analyzer, "status": status, "limit": limit, "perPuzzle": per_puzzle}
+        if version:
+            params["version"] = version
+        if after:
+            params["after"] = after
+        data = self._request("GET", "/internal-api/finished-photos", params=params).json()
+        return {"puzzles": [FinishedPhotoPuzzle.from_api(p) for p in data.get("puzzles", [])], "nextCursor": data.get("nextCursor")}
+
+    def iter_finished_photos(self, **kwargs: Any) -> Iterator["FinishedPhotoPuzzle"]:
+        after = kwargs.pop("after", None)
+        while True:
+            page = self.finished_photos_page(after=after, **kwargs)
+            yield from page["puzzles"]
+            after = page["nextCursor"]
+            if not after:
+                return
+
+    def finished_photo_bytes(self, photo_url: str) -> bytes:
+        """The photo (the image proxy's 1200 px JPEG) through the internal API. The token goes only to this API's own
+        host: a `photoUrl` naming another host is refused, never fetched."""
+        parsed, base = httpx.URL(photo_url), httpx.URL(self.base_url)
+        if parsed.is_absolute_url and (parsed.host, parsed.port) != (base.host, base.port):
+            raise ApiError(0, "the photo URL names another host than the internal API - not fetched", None)
+        path = parsed.raw_path.decode("ascii")
+        if not path.startswith("/internal-api/puzzles/") or "/finished-photos/" not in path:
+            raise ApiError(0, "not a finished-photo URL of the internal API - not fetched", None)
+        return self._request("GET", path).content
+
+    def store_finished_photo_analyses(self, results: list["FinishedPhotoResult"]) -> list[StoreOutcome]:
+        """Batch store in chunks of <= 200 (one transaction each - a refused item never fails the others)."""
+        outcomes: list[StoreOutcome] = []
+        for start in range(0, len(results), STORE_BATCH_MAX):
+            chunk = results[start:start + STORE_BATCH_MAX]
+            data = self._request("POST", "/internal-api/finished-photo-analyses", json={"items": [r.to_api() for r in chunk]}).json()
+            by_index = {int(i.get("index", n)): i for n, i in enumerate(data.get("items", []))}
+            for n, r in enumerate(chunk):
+                item = by_index.get(n, {})
+                outcomes.append(StoreOutcome(
+                    puzzle_id=r.puzzle_id, analyzer=r.analyzer, status=item.get("status", "invalid"),
+                    message=item.get("message"), current_fingerprint=item.get("currentFingerprint"), errors=item.get("errors"),
+                ))
+        return outcomes
+
+    def iter_finished_photo_analyses(self, only_current: bool = True, limit: int = 500,
+                                     analyzer: str = "finished_photo") -> Iterator[dict[str, Any]]:
+        """Every stored analysis (payload included), following nextCursor until it is null."""
+        after = None
+        while True:
+            params: dict[str, Any] = {"analyzer": analyzer, "limit": limit}
+            if only_current:
+                params["onlyCurrent"] = 1
+            if after:
+                params["after"] = after
+            page = self._request("GET", "/internal-api/finished-photo-analyses", params=params).json()
+            yield from page.get("items", [])
+            after = page.get("nextCursor")
+            if not after:
+                return
 
     def endpoint_exists(self, path: str) -> bool:
         try:

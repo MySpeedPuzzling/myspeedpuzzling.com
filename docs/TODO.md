@@ -4,6 +4,14 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Finished-puzzle photos as a second view (`docs/features/insights/finished-photos.md`, 2026-10-27)
+
+- [ ] lily.srv cron `0 4 * * * … myspeedpuzzling:prune-finished-photo-analyses`
+- [ ] First production `puzzle-vision finished-photos --profile m3-solo` run after the deploy (~34k photos, ~12-15 h,
+  GPU - when `describe` is done); then the nightly derive records difficulty_prior 1.3.0 and the gates re-measure it
+- [ ] Re-measure on the gate record: 500 box / assembled with a view, and the k = 1-4 blend with the new shrinkage target
+- [ ] The seam-grid (cut) numbers for new brands without a brand × size offset, and as a taste-model input
+
 ## Sell/swap requests (`docs/features/marketplace/12-listing-requests.md`, 2026-10-27)
 
 - [ ] Bulk *add* to the own sell/swap list (feature request 019d1fda, Mathew N's comment): an "Add to sell/swap list…" action in the collection pages' selection bar - one type and condition for all, a price per puzzle. Bulk remove shipped in 26e7f64bd

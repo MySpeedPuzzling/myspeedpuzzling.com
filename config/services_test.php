@@ -127,6 +127,13 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set('ses_events.http_client', \Symfony\Component\HttpClient\MockHttpClient::class)
         ->factory([\SpeedPuzzling\Web\Tests\TestDouble\SnsHttpMock::class, 'client']);
 
+    // The finished-photo renditions of the internal image proxy (FinishedPhotoRendition) never leave the process
+    $services->set('finished_photo.test_http_client', \Symfony\Component\HttpClient\MockHttpClient::class)
+        ->factory([\SpeedPuzzling\Web\Tests\TestDouble\FinishedPhotoHttpMock::class, 'client']);
+    $services->set(\SpeedPuzzling\Web\Services\FinishedPhotoRendition::class)
+        ->arg('$httpClient', service('finished_photo.test_http_client'))
+        ->arg('$nginxProxyInternalUrl', '%nginxProxyInternalUrl%');
+
     // Cloudflare's siteverify for the Turnstile check never leaves the process (static, like the SNS mock)
     $services->set('turnstile.http_client', \Symfony\Component\HttpClient\MockHttpClient::class)
         ->factory([\SpeedPuzzling\Web\Tests\TestDouble\TurnstileHttpMock::class, 'client']);

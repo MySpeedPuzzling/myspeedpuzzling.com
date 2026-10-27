@@ -67,6 +67,8 @@ class Profile:
     propose_crops_daily: int = 0
     launchd: dict = field(default_factory=dict)
     derived_versions: dict[str, str] = field(default_factory=dict)
+    # `puzzle-vision finished-photos` (finished_photo_stage.py): version, per_puzzle, workers - GPU machines only
+    finished_photo: dict = field(default_factory=dict)
 
     def phase(self, name: str) -> Phase:
         for p in self.phases:
@@ -142,7 +144,22 @@ def parse(data: dict) -> Profile:
         propose_crops_daily=int(daily.get("propose_crops", 0)),
         launchd=dict(data.get("launchd", {})),
         derived_versions=derived_versions,
+        finished_photo=_finished_photo(name, data.get("finished_photo", {})),
     )
+
+
+def _finished_photo(name: str, cfg: dict) -> dict:
+    """The optional `[finished_photo]` table: `version` (required when the table exists, <= 50 characters, the same on
+    every profile that has it - tests pin it), `per_puzzle` (photos per puzzle, 1-20) and `workers` (CPU processes)."""
+    if not cfg:
+        return {}
+    version = str(cfg.get("version") or "")
+    if not version or len(version) > 50:
+        raise ProfileError(f"{name}: [finished_photo] needs a version of at most 50 characters")
+    per_puzzle = int(cfg.get("per_puzzle", 4))
+    if not 1 <= per_puzzle <= 20:
+        raise ProfileError(f"{name}: [finished_photo] per_puzzle must be 1-20")
+    return {"version": version, "per_puzzle": per_puzzle, "workers": max(1, int(cfg.get("workers", 3)))}
 
 
 def available() -> list[str]:

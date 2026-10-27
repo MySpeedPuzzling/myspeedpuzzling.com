@@ -332,6 +332,16 @@ outlines, scores 0.97 - AUC 0.65 for "crop within 5 %"), and `needsBetterImage` 
   same coefficients to two decimals); its probe was drawn excluding every labelled picture, so per-crop values differ a
   little from the review's (correlation 0.97 over the catalogue).
 
+### `finished_photo` - players' photos of the finished puzzle (since 2026-10-27)
+
+`uv run --extra ml puzzle-vision finished-photos --profile m3-solo [--limit N] [--dry-run]` - not a derived analyzer
+and not a phase: it analyses **players' photos** of the assembled puzzle (found by registering the catalogue artwork
+in the photo, straightened, measured, embedded with SigLIP 2 + DINOv2) through its own endpoints
+(`/internal-api/finished-photo*`, storage `finished_photo_analysis`). The photos come through the internal API by
+fingerprint only - never a player, never a path - and a private player's photo never leaves the app. Design, privacy
+rules, measurements: [`finished-photos.md`](./finished-photos.md). Needs the GPU (model lock) for the embeddings: run it
+when `describe` is done or paused.
+
 ### `difficulty_prior` - picture-based difficulty estimates (plan §5.3)
 
 Not an image analyzer: it trains ridge and (since 1.2.0) kernel ridge regressions (scikit-learn / SciPy, CPU only;
@@ -345,7 +355,10 @@ the summary) and never ends the nightly run - the crop proposals still follow.
   module, not in the profiles - it is not an `ImageAnalyzer`). Bump `MODEL_VERSION` whenever the numbers change
   (features, folds, thresholds); fixed seeds make two runs on the same data identical. `1.2.1` is the same code once
   the optional `piece_scale` analyzer covers ≥ 90 % of the training puzzles (its 20 numbers then join the extras) - a
-  new estimate generation, so the app's gates close until it is evaluated. What 1.2.0 changed and why, with the
+  new estimate generation, so the app's gates close until it is evaluated. `1.3.0` adds the **second view** - the
+  players' finished photos (`finished_photo`, §7 above) as extra inputs of the same model - once ≥ 2,000 training
+  puzzles have one (`PHOTO_VIEW_MIN_TRAINING`; offline 7,849 of 10,406 after a full `finished-photos` run): measured in
+  [`finished-photos.md`](./finished-photos.md) §5. What 1.2.0 changed and why, with the
   measurements: [`estimates.md`](./estimates.md) "Picture estimate 1.2.0".
 - **1.2.0 in short**: the model of record is **0.5 × the 1.1.0 ridge + 0.5 × an RBF kernel ridge** on the same inputs
   (bandwidth 2, alpha 0.1, fixed and recorded under `evaluation.learners`; exact Cholesky up to 20,000 training rows, a

@@ -351,8 +351,8 @@
                         <span>{{ 'marketplace_events.marketplace.divider'|trans({'%count%': this.counts.toAsk}) }}</span>
                     </div>
                 {% endif %}
-                <div class="col" id="marketplace-listing-{{ item.itemId }}">
-                    {% include 'marketplace/_listing_card.html.twig' with {item: item, marketplaceReturnUrl: marketplaceReturnUrl, difficulty_tiers: difficulty_tiers, event: chosen_event, estimates: this.estimates} only %}
+                <div class="col" id="marketplace-listing-{{ item.itemId }}" data-listing-selection-card>
+                    {% include 'marketplace/_listing_card.html.twig' with {item: item, marketplaceReturnUrl: marketplaceReturnUrl, difficulty_tiers: difficulty_tiers, event: chosen_event, estimates: this.estimates, buyer_select: true} only %}
                 </div>
             {% endfor %}
         </div>

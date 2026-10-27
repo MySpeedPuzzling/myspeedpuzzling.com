@@ -22,6 +22,7 @@ use SpeedPuzzling\Web\Message\RecalculateXpForPlayer;
 use SpeedPuzzling\Web\Message\RemoveNewsletterSubscriberFromListmonk;
 use SpeedPuzzling\Web\Message\SendPartnerListingReminder;
 use SpeedPuzzling\Web\Message\SendBorrowRequestEmail;
+use SpeedPuzzling\Web\Message\SendListingRequestEmail;
 use SpeedPuzzling\Web\Message\SendPartnerRequestEmail;
 use SpeedPuzzling\Web\Message\SendPartnerTeamedUpEmail;
 use SpeedPuzzling\Web\Message\SendPlayerContentDigest;
@@ -89,6 +90,7 @@ return App::config([
                 // (docs/features/partner-finder.md D6)
                 SendPartnerRequestEmail::class => 'async',
                 SendBorrowRequestEmail::class => 'async',
+                SendListingRequestEmail::class => 'async',
                 // Its "Still looking?" reminder, planned by the daily myspeedpuzzling:remind-partner-listings
                 SendPartnerListingReminder::class => 'async',
                 // "<name> says you teamed up" beside the PartnerTeamedUp notification

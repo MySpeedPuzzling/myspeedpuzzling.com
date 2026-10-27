@@ -93,6 +93,12 @@ class Notification
         #[JoinColumn(onDelete: 'CASCADE')]
         #[Immutable]
         public null|BorrowRequest $targetBorrowRequest = null,
+        // ListingRequested / ListingRequestAnswered / ListingRequestExpired / ListingRequestUnavailable: the "could I have
+        // these?" request it is about (docs/features/marketplace/12-listing-requests.md)
+        #[ManyToOne]
+        #[JoinColumn(onDelete: 'CASCADE')]
+        #[Immutable]
+        public null|ListingRequest $targetListingRequest = null,
     ) {
     }
 }

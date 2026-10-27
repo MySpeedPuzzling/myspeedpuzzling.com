@@ -1,0 +1,11 @@
+{# The buyer's checkbox on a listing card's top left corner (listing_selection_controller.js). data-live-ignore keeps the
+   tick through a Live re-render of the same card on the marketplace; the stable id lets Live match it.
+   Expects listing_id, seller_id, puzzle_name. #}
+<label class="collection-select-check" id="listing-select-{{ listing_id }}" data-live-ignore>
+    <input type="checkbox" class="form-check-input" value="{{ listing_id }}"
+           aria-label="{{ 'collection_selection.select_puzzle'|trans({'%name%': puzzle_name}) }}"
+           data-seller-id="{{ seller_id }}"
+           data-testid="listing-select"
+           data-listing-selection-target="checkbox"
+           data-action="click->listing-selection#toggle">
+</label>

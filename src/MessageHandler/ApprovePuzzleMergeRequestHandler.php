@@ -22,6 +22,8 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleMergeAudit;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
+use SpeedPuzzling\Web\Entity\ListingRequestItem;
+use SpeedPuzzling\Web\Entity\ListingRequestOffer;
 use SpeedPuzzling\Web\Entity\SellSwapListItem;
 use SpeedPuzzling\Web\Entity\SoldSwappedItem;
 use SpeedPuzzling\Web\Entity\Stopwatch;
@@ -54,6 +56,7 @@ use SpeedPuzzling\Web\Value\NamedPuzzle;
 use SpeedPuzzling\Web\Value\PuzzleMergeNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
+use SpeedPuzzling\Web\Services\ListingRequest\ListingRequestCloser;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -62,6 +65,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 readonly final class ApprovePuzzleMergeRequestHandler
 {
     public function __construct(
+        private ListingRequestCloser $listingRequestCloser,
         private PuzzleMergeRequestRepository $puzzleMergeRequestRepository,
         private PuzzleRepository $puzzleRepository,
         private PlayerRepository $playerRepository,
@@ -409,6 +413,8 @@ readonly final class ApprovePuzzleMergeRequestHandler
             'stopwatches' => [],
             'changeRequests' => [],
             'borrowRequestItems' => ['moved' => [], 'droppedAsDuplicate' => []],
+            'listingRequestItems' => [],
+            'listingRequestOffers' => [],
             'tags' => [],
         ];
         // What this merge already moved onto the survivor, by the key of each unique constraint: with several merged
@@ -473,6 +479,8 @@ readonly final class ApprovePuzzleMergeRequestHandler
                     'puzzle' => $survivorPuzzle,
                 ]) !== null;
                 if ($existing) {
+                    // Asks for the dropped duplicate close as unavailable - the buyer asks again for the one that stays
+                    $this->listingRequestCloser->listingsGoing([$item]);
                     $this->entityManager->remove($item);
                     $inventory['sellSwapListItems']['droppedAsDuplicate'][] = $item->id->toString();
                 } else {
@@ -605,6 +613,18 @@ readonly final class ApprovePuzzleMergeRequestHandler
 
                     $inventory['borrowRequestItems']['moved'][] = $borrowItem->id->toString();
                 }
+            }
+
+            // Listing requests and the puzzles offered in them are about the same box - the survivor now. No unique key
+            // to clash on: an ask is one per listing, and the listing moved above
+            foreach ($this->entityManager->getRepository(ListingRequestItem::class)->findBy(['puzzle' => $puzzleToMerge]) as $listingRequestItem) {
+                $listingRequestItem->puzzleMergedInto($survivorPuzzle);
+                $inventory['listingRequestItems'][] = $listingRequestItem->id->toString();
+            }
+
+            foreach ($this->entityManager->getRepository(ListingRequestOffer::class)->findBy(['puzzle' => $puzzleToMerge]) as $listingRequestOffer) {
+                $listingRequestOffer->puzzleMergedInto($survivorPuzzle);
+                $inventory['listingRequestOffers'][] = $listingRequestOffer->id->toString();
             }
 
             // Tags also cascade-delete through the join table

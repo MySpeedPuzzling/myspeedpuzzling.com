@@ -8,8 +8,11 @@
                    data-action="click->collection-selection#toggle">
         </label>
     {% endif %}
+    {% if buyer_selectable|default(false) %}
+        {{ include('listing_requests/_select_check.html.twig', {listing_id: item.sellSwapListItemId, seller_id: seller_id, puzzle_name: item.puzzleName}) }}
+    {% endif %}
     {% if item.reserved %}
-        <div class="position-absolute start-0 top-0" style="z-index: 2;{{ selectable|default(false) ? ' margin-left: 1.25rem;' }}">
+        <div class="position-absolute start-0 top-0" style="z-index: 2;{{ selectable|default(false) or buyer_selectable|default(false) ? ' margin-left: 1.25rem;' }}">
             {% if isOwnProfile and item.reservedForPlayerName is not null %}
                 <a href="{{ path('start_marketplace_conversation', {sellSwapListItemId: item.sellSwapListItemId}) }}"
                    class="badge bg-dark text-light px-2 py-1 mt-2 text-decoration-none"

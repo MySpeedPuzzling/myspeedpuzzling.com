@@ -12,12 +12,14 @@ use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
 use SpeedPuzzling\Web\Services\SystemMessageSender;
 use SpeedPuzzling\Web\Value\SystemMessageType;
+use SpeedPuzzling\Web\Services\ListingRequest\ListingRequestCloser;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
 readonly final class RemovePuzzleFromSellSwapListHandler
 {
     public function __construct(
+        private ListingRequestCloser $listingRequestCloser,
         private PlayerRepository $playerRepository,
         private PuzzleRepository $puzzleRepository,
         private SellSwapListItemRepository $sellSwapListItemRepository,
@@ -37,6 +39,8 @@ readonly final class RemovePuzzleFromSellSwapListHandler
         $item = $this->sellSwapListItemRepository->findByPlayerAndPuzzle($player, $puzzle);
 
         if ($item !== null) {
+            $this->listingRequestCloser->listingsGoing([$item]);
+
             // Send system messages BEFORE deleting (deletion nullifies FK on conversations)
             $this->systemMessageSender->sendToAllConversations(
                 $item,

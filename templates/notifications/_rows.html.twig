@@ -265,6 +265,40 @@
                     {{- (borrow_type == 'BorrowRequested' ? 'borrow_request.notification.answer' : 'borrow_request.notification.open')|trans -}}
                 </a>
             </td>
+        {% elseif notification.isListingRequestNotification %}
+            {# "Could I have these?" (docs/features/marketplace/12-listing-requests.md): asked of the reader (the seller),
+               answered, expired or gone for the reader (the buyer) - the player shown is who asked / was asked #}
+            {% set listing_person = notification.targetPlayerName ?? ('#' ~ notification.targetPlayerCode|upper) %}
+            {% set listing_type = notification.notificationType.value %}
+            <td class="text-center" style="width: 60px;">
+                {% if notification.targetPlayerAvatar is not null %}
+                    <img class="rounded-circle" style="max-width: 50px;max-height: 50px;" alt="Avatar" src="{{ notification.targetPlayerAvatar|thumbnail('puzzle_small') }}">
+                {% else %}
+                    <span class="avatar-name rounded-circle">{{ listing_person|trim('#')|slice(0, 1)|upper }}</span>
+                {% endif %}
+            </td>
+
+            <td class="align-middle fs-sm text-muted">
+                <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
+                {% set listing_player = notification.targetPlayerIsPrivate
+                    ? '<b>' ~ listing_person|e ~ '</b>'
+                    : '<a class="text-decoration-underline" href="' ~ path('player_profile', {playerId: notification.targetPlayerId}) ~ '">' ~ listing_person|e ~ '</a>' %}
+                {% if listing_type == 'ListingRequested' %}
+                    {{ 'listing_request.notification.requested'|trans({'%player%': listing_player, '%count%': notification.listingItemsTotal})|raw }}
+                {% elseif listing_type == 'ListingRequestAnswered' %}
+                    {{ 'listing_request.notification.answered'|trans({'%player%': listing_player, '%count%': notification.listingItemsYes, '%total%': notification.listingItemsTotal})|raw }}
+                {% elseif listing_type == 'ListingRequestUnavailable' %}
+                    {{ 'listing_request.notification.unavailable'|trans({'%player%': listing_player, '%count%': notification.listingItemsYes})|raw }}
+                {% else %}
+                    {{ 'listing_request.notification.expired'|trans({'%player%': listing_player, '%count%': notification.listingItemsTotal})|raw }}
+                {% endif %}
+            </td>
+
+            <td class="" style="width: 80px;">
+                <a href="{{ path('listing_request_detail', {requestId: notification.listingRequestId}) }}" class="btn btn-sm {{ listing_type == 'ListingRequested' ? 'btn-primary' : 'btn-outline-primary' }} text-nowrap">
+                    {{- (listing_type == 'ListingRequested' ? 'listing_request.notification.answer' : 'listing_request.notification.open')|trans -}}
+                </a>
+            </td>
         {% elseif notification.isOfficialResultNotification %}
             {# The official results of a round the player has a result in were published #}
             {% if notification.roundCompetitionSlug is null %}

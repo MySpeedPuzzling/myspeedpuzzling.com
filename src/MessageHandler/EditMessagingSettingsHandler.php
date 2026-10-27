@@ -53,6 +53,10 @@ readonly final class EditMessagingSettingsHandler
             $player->changeBorrowRequestEmails($message->borrowRequestEmails);
         }
 
+        if ($message->listingRequestEmails !== null) {
+            $player->changeListingRequestEmails($message->listingRequestEmails);
+        }
+
         $playerEmail = $newsletterChanged ? $this->playerAccountEmail->ofPlayer($player) : null;
 
         if ($playerEmail !== null) {

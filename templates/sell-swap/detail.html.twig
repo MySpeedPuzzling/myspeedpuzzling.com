@@ -4,11 +4,14 @@
 
 {% block content %}
 {% set can_select = isOwnProfile and logged_user.profile is not null and logged_user.profile.activeMembership %}
-<div data-controller="collection-items collection-filter{{ can_select ? ' collection-selection' }}"
+{# A signed-in visitor ticks listings and asks the seller for all of them (docs/features/marketplace/12-listing-requests.md) #}
+{% set can_ask = not isOwnProfile and logged_user.profile is not null %}
+<div data-controller="collection-items collection-filter{{ can_select ? ' collection-selection' }}{{ can_ask ? ' listing-selection' }}"
      {% if can_select %}
      data-collection-selection-count-text-value="{{ browser_translation('collection_selection.selected_count')|json_encode }}"
      data-action="click->collection-selection#cardClick keydown.esc@document->collection-selection#escape turbo:submit-end@document->collection-selection#submitted"
-     {% endif %}>
+     {% endif %}
+     {% if can_ask %}{{ include('listing_requests/_selection_attributes.html.twig') }}{% endif %}>
     <twig:PlayerHeader player="{{ player }}" tab="library" />
 
     {% include '_return_back_button.html.twig' with {fallbackUrl: path('puzzle_library', {playerId: player.playerId}), fallbackTitle: 'collections.back_to_library'|trans} %}
@@ -30,6 +33,11 @@
             <p class="text-muted mb-0 small">
                 {% if not isOwnProfile %}
                     {{ profile_name(player) }}
+                    <span class="text-muted px-2">•</span>
+                {% endif %}
+                {% if isOwnProfile %}
+                    <a href="{{ path('listing_requests', {tab: 'received'}) }}" class="text-decoration-underline" data-testid="listing-requests-link">
+                        <i class="bi bi-chat-dots me-1"></i>{{ 'listing_request.list.link'|trans({'%count%': waiting_listing_requests}) }}</a>
                     <span class="text-muted px-2">•</span>
                 {% endif %}
                 <i class="bi bi-puzzle me-1"></i>
@@ -195,6 +203,7 @@
                     logged_user: logged_user,
                     sellSwapReturnUrl: path('sell_swap_list_detail', {playerId: player.playerId, return: app.request.query.get('return'), return_title: app.request.query.get('return_title')}),
                     sellSwapReturnTitle: 'sell_swap_list.title'|trans,
+                    seller_id: player.playerId,
                 }) }}
             {% endfor %}
         </div>
@@ -206,6 +215,10 @@
         </div>
     {% endif %}
     </div>
+
+    {% if can_ask %}
+        {{ include('listing_requests/_selection_bar.html.twig') }}
+    {% endif %}
 
     {% if can_select %}
         {{ include('_puzzle_selection_bar.html.twig', {actions: [

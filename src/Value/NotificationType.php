@@ -63,4 +63,12 @@ enum NotificationType: string
     case BorrowRequested = 'BorrowRequested';
     case BorrowRequestAnswered = 'BorrowRequestAnswered';
     case BorrowRequestExpired = 'BorrowRequestExpired';
+
+    // "Could I have these?" (docs/features/marketplace/12-listing-requests.md): asked of the seller (actor = the buyer),
+    // answered for the buyer (actor = the seller), the buyer's waiting listings ran out unanswered, or listings the buyer
+    // asked for were sold to somebody else or left the list (actor = the seller); target = the request
+    case ListingRequested = 'ListingRequested';
+    case ListingRequestAnswered = 'ListingRequestAnswered';
+    case ListingRequestExpired = 'ListingRequestExpired';
+    case ListingRequestUnavailable = 'ListingRequestUnavailable';
 }

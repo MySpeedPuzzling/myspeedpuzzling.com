@@ -19,12 +19,14 @@ use SpeedPuzzling\Web\Repository\SoldSwappedItemRepository;
 use SpeedPuzzling\Web\Repository\WishListItemRepository;
 use SpeedPuzzling\Web\Services\SystemMessageSender;
 use SpeedPuzzling\Web\Value\SystemMessageType;
+use SpeedPuzzling\Web\Services\ListingRequest\ListingRequestCloser;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
 readonly final class MarkPuzzleAsSoldOrSwappedHandler
 {
     public function __construct(
+        private ListingRequestCloser $listingRequestCloser,
         private SellSwapListItemRepository $sellSwapListItemRepository,
         private SoldSwappedItemRepository $soldSwappedItemRepository,
         private CollectionItemRepository $collectionItemRepository,
@@ -57,6 +59,9 @@ readonly final class MarkPuzzleAsSoldOrSwappedHandler
             $buyerName = $buyerData['name'];
         }
 
+        // Asks for the listing close before it goes: sold to the buyer who asked (named, or nobody named while it was
+        // reserved for them), unavailable for everybody else - a name typed by hand is somebody else
+        $this->listingRequestCloser->listingsGoing([$item], isSale: $buyerName === null, soldTo: $buyerPlayer);
         $this->recordSale($item, $buyerPlayer, $buyerName);
         $this->removeEverywhere($item);
     }

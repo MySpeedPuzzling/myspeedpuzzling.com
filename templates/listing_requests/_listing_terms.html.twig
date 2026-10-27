@@ -1,0 +1,7 @@
+{# What a listing is offered as - type, price with the seller's currency, condition (listing_requests pages and sheet).
+   Expects listing_type (ListingType), price, currency, condition (PuzzleCondition). #}
+<span class="text-muted">
+    {{ ('sell_swap_list.listing_type.' ~ listing_type.value)|trans }}
+    {%- if price is not null and price > 0 and listing_type.value in ['sell', 'both'] %} · <span class="text-body fw-medium">{{ price }} {{ currency }}</span>{% endif %}
+    · {{ ('sell_swap_list.condition.' ~ condition.value)|trans }}
+</span>

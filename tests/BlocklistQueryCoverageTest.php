@@ -22,6 +22,7 @@ final class BlocklistQueryCoverageTest extends TestCase
 
     private const array NOT_FILTERED = [
         'FindPlayerByNameAndCountry' => self::BACKGROUND,
+        'GetRequestableListings' => 'What the buyer may ask a seller for - shared by the request sheet and the AskForListings handler, so it filters on user_block itself, in both directions, for the buyer id it is given (docs/features/marketplace/12-listing-requests.md).',
         'GetBorrowCandidates' => 'Who the asker may ask to borrow from - shared by the wishlist page and the AskToBorrowPuzzles handler, so it filters on user_block itself, in both directions, for the asker id it is given (docs/features/wishlist-availability.md).',
         'FindSimilarSpeedPuzzler' => 'Filters on user_block itself, in both directions, for the viewer id it is given - a random suggestion must not depend on a security token.',
         'GetAchievementPoints' => self::OWN_DATA,

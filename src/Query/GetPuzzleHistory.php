@@ -38,6 +38,8 @@ readonly final class GetPuzzleHistory
         'stopwatches' => 'stopwatches',
         'changeRequests' => 'change requests',
         'borrowRequestItems' => 'borrow requests',
+        'listingRequestItems' => 'sell/swap requests',
+        'listingRequestOffers' => 'puzzles offered in sell/swap requests',
         'tags' => 'tags',
     ];
 

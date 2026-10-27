@@ -193,6 +193,12 @@ class Player
     #[Column(type: Types::BOOLEAN, options: ['default' => true])]
     public bool $borrowRequestEmails = true;
 
+    // The e-mail naming who asks for puzzles of the player's sell/swap list (docs/features/marketplace/12-listing-requests.md)
+    // - the in-app notification is sent either way
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BOOLEAN, options: ['default' => true])]
+    public bool $listingRequestEmails = true;
+
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::STRING, enumType: ContentDigestFrequency::class, options: ['default' => 'weekly'])]
     public ContentDigestFrequency $contentDigestFrequency = ContentDigestFrequency::Weekly;
@@ -557,6 +563,11 @@ class Player
     public function changeBorrowRequestEmails(bool $enabled): void
     {
         $this->borrowRequestEmails = $enabled;
+    }
+
+    public function changeListingRequestEmails(bool $enabled): void
+    {
+        $this->listingRequestEmails = $enabled;
     }
 
     public function changeContentDigestFrequency(ContentDigestFrequency $frequency): void

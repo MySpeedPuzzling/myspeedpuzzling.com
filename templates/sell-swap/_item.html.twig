@@ -10,11 +10,17 @@
 {% set insight = show_insights ? (puzzle_insights[item.puzzleId] ?? null) : null %}
 {# Members select several listings at once (docs/features/collections/bulk-actions.md "Other lists") #}
 {% set selectable = isOwnProfile and logged_user.profile is not null and logged_user.profile.activeMembership %}
+{# A signed-in visitor asks for several listings at once (docs/features/marketplace/12-listing-requests.md) - not one
+   reserved for somebody else #}
+{% set viewer_profile = logged_user is defined and logged_user is not null ? logged_user.profile : null %}
+{% set buyer_selectable = not isOwnProfile and viewer_profile is not null
+    and (not item.reserved or (item.reservedForPlayerId is not null and item.reservedForPlayerId == viewer_profile.playerId)) %}
 <div class="col"
      id="library-sell-swap-{{ item.puzzleId }}"
      data-collection-items-target="item"
      data-puzzle-id="{{ item.puzzleId }}"
      data-collection-filter-target="item"
+     {% if buyer_selectable %}data-listing-selection-card{% endif %}
      data-pieces-count="{{ item.piecesCount }}"
      {% if with_difficulty %}
      data-difficulty-tier="{{ insight is not null and insight.difficultyTier is not null ? insight.difficultyTier.value : 0 }}"
@@ -35,5 +41,7 @@
         with_difficulty: with_difficulty,
         insight: insight,
         selectable: selectable,
+        buyer_selectable: buyer_selectable,
+        seller_id: seller_id|default(null),
     } only %}
 </div>

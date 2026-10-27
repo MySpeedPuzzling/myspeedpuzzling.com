@@ -17,6 +17,7 @@ A fully-featured puzzle marketplace where users can browse, search, and filter a
 - [09-puzzle-detail-integration.md](09-puzzle-detail-integration.md) - Puzzle detail page and list integration
 - [10-implementation-plan.md](10-implementation-plan.md) - Step-by-step implementation guide
 - [11-events.md](11-events.md) - Marketplace at events: what sellers bring to in-person events, "ask to bring it", event card, filter, banner
+- [12-listing-requests.md](12-listing-requests.md) - Sell/swap requests: tick several listings (a seller's list or the marketplace), one request per seller, answered per puzzle, a yes reserves
 
 ## Key Decisions
 

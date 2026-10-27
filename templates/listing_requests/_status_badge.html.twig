@@ -1,0 +1,19 @@
+{# Where one listing of a sell/swap request stands - `status` (ListingRequestItemStatus); `buyer_name` (optional) = the
+   seller is looking: "Sold to Jana" instead of the buyer's "Sold to you" #}
+{% set status_class = {
+    waiting: 'bg-light text-body border',
+    yes: 'bg-success text-white',
+    gone: 'bg-secondary text-white',
+    declined: 'bg-secondary text-white',
+    withdrawn: 'bg-light text-muted border',
+    expired: 'bg-light text-muted border',
+    sold: 'bg-primary text-white',
+    unavailable: 'bg-light text-muted border',
+} %}
+<span class="badge rounded-pill {{ status_class[status.value] }}">
+    {%- if status.value == 'sold' and buyer_name|default(null) is not null -%}
+        {{ 'listing_request.status.sold_to'|trans({'%name%': buyer_name}) }}
+    {%- else -%}
+        {{ ('listing_request.status.' ~ status.value)|trans }}
+    {%- endif -%}
+</span>

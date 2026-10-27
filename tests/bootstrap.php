@@ -338,6 +338,9 @@ function createCustomIndexes(): void
     // Ask to borrow: one waiting ask per asker, owner and puzzle; the asker's open asks on their wishlist (Version20261026154954)
     $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS custom_borrow_item_one_waiting ON borrow_request_item (asker_id, owner_id, puzzle_id) WHERE status = 'waiting'");
     $pdo->exec("CREATE INDEX IF NOT EXISTS custom_borrow_item_asker_open ON borrow_request_item (asker_id, puzzle_id) WHERE status IN ('waiting', 'yes')");
+
+    // Sell/swap requests: one open ask per buyer and listing (Version20261027093158)
+    $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS custom_listing_request_item_one_open ON listing_request_item (buyer_id, listing_id) WHERE status IN ('waiting', 'yes')");
 }
 
 /**

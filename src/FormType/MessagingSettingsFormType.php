@@ -73,6 +73,13 @@ final class MessagingSettingsFormType extends AbstractType
             'required' => false,
         ]);
 
+        // docs/features/marketplace/12-listing-requests.md - e-mails about somebody asking for puzzles of the player's sell/swap list
+        $builder->add('listingRequestEmails', CheckboxType::class, [
+            'label' => 'listing_request.settings.emails_label',
+            'help' => 'listing_request.settings.emails_help',
+            'required' => false,
+        ]);
+
         $builder->add('featureRequestEmails', EnumType::class, [
             'class' => FeatureRequestEmails::class,
             'label' => 'edit_profile.feature_request_emails',

@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Entity\SolvingTimePredictionRecord;
 use SpeedPuzzling\Web\Message\BackfillSolvingTimePredictions;
 use SpeedPuzzling\Web\Query\GetPlayerPrediction;
 use SpeedPuzzling\Web\Value\PredictorKind;
+use SpeedPuzzling\Web\Value\SolveConditions;
 use SpeedPuzzling\Web\Value\SolveMoment;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
 use SpeedPuzzling\Web\Value\TimePredictionSource;
@@ -35,8 +36,9 @@ use Throwable;
  * current model version (solving_time_prediction). A first try also gets the `image` and `blend` predictors' rows
  * (Insights plan §5.4) - not predictable when the puzzle has no estimate of its current picture (a puzzle added
  * together with its first time never has one; the backfill reconstructs those rows once an out-of-fold estimate
- * exists). All of them go in one multi-row INSERT right after the handler's flush (LivePredictionRowsWriter): plain
- * values computed here - the reads that could fail ran inside the savepoint.
+ * exists) and, once the candidate model (v4) is fitted, its `candidate` row - never shown. All of them go in one
+ * multi-row INSERT right after the handler's flush (LivePredictionRowsWriter): plain values computed here - the reads
+ * that could fail ran inside the savepoint.
  */
 readonly final class SolvingTimePredictor
 {
@@ -75,6 +77,7 @@ readonly final class SolvingTimePredictor
                 $time->puzzle->id->toString(),
                 excludeTimeId: $time->id->toString(),
                 before: SolveMoment::of($time->finishedAt, $time->trackedAt),
+                conditions: new SolveConditions(unboxed: $time->unboxed, competition: $time->competition !== null),
             );
 
             $this->connection->commit();
@@ -106,6 +109,11 @@ readonly final class SolvingTimePredictor
 
             $records[] = new SolvingTimePredictionRecord(Uuid::uuid7(), $time, PredictorKind::Image, $prediction->modelVersion, $predictions->image ?? $notPredictable, $now, $estimate);
             $records[] = new SolvingTimePredictionRecord(Uuid::uuid7(), $time, PredictorKind::Blend, $prediction->modelVersion, $predictions->blend ?? $notPredictable, $now, $estimate);
+        }
+
+        // The candidate model (v4, never shown) once it is fitted - first tries and repeats, its own model version
+        if ($predictions->candidate !== null) {
+            $records[] = new SolvingTimePredictionRecord(Uuid::uuid7(), $time, PredictorKind::Candidate, $predictions->candidate->modelVersion, $predictions->candidate, $now, $predictions->firstTry ? $predictions->imageEstimate : null);
         }
 
         $this->liveRows->add(...$records);

@@ -184,7 +184,9 @@ final class PaceTimeline
      * direct baseline and the drift of a prediction come from.
      *
      * @param null|array{0: float, 1: float} $knownBefore only rows before this moment count (the reconstructor)
-     * @return null|array{baseline: int, drift: null|float, spread: null|float}
+     * @return null|array{baseline: int, drift: null|float, spread: null|float, position: int} position = the row's place in
+     *                                                                                     the pair (0 = its first row, the
+     *                                                                                     5th qualifying first attempt)
      */
     public function directRowBefore(string $playerId, int $piecesCount, float $solved, float $tracked, null|array $knownBefore = null): null|array
     {
@@ -205,7 +207,7 @@ final class PaceTimeline
             return null;
         }
 
-        return ['baseline' => $pair['baseline'][$index], 'drift' => $pair['drift'][$index] ?? null, 'spread' => $pair['spread'][$index] ?? null];
+        return ['baseline' => $pair['baseline'][$index], 'drift' => $pair['drift'][$index] ?? null, 'spread' => $pair['spread'][$index] ?? null, 'position' => $index];
     }
 
     private function lookup(string $playerId, int $piecesCount, float $solved, float $tracked, bool $inclusive): null|int

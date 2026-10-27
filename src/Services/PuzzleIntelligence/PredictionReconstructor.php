@@ -9,13 +9,21 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\TimePredictionResult;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\AttemptFlags;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidateEngine;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidatePredictionCalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\FirstAttemptSet;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\PriorContext;
+use SpeedPuzzling\Web\Value\CandidateEvidence;
+use SpeedPuzzling\Web\Value\CandidateModelParameters;
 use SpeedPuzzling\Web\Value\ImagePriorInput;
 use SpeedPuzzling\Web\Value\MetricConfidence;
+use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\PredictionInputSolve;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
 use SpeedPuzzling\Web\Value\PredictionsSideBySide;
 use SpeedPuzzling\Web\Value\StatisticalPredictionInputs;
+use SpeedPuzzling\Web\Value\SolveConditions;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
 use SpeedPuzzling\Web\Value\TimePredictionSource;
 use Symfony\Contracts\Cache\CacheInterface;
@@ -49,6 +57,11 @@ use Symfony\Contracts\Service\ResetInterface;
  * then the time has no image prediction.
  * There is no estimate history - the reconstruction takes the out-of-fold estimate current when it runs (documented
  * approximation, like the fit). Secret puzzles have none (StatisticalInputsSql::imageEstimateJoins()).
+ *
+ * The candidate model (v4, never shown) once it is fitted: its evidence from the same solvers' first attempts as of the
+ * solve (CandidateEngine::term() - the qualifying count of a solver's row is its place in the pair + 5, which a merged
+ * same-moment row can make one less), the current fit's candidate brand prior (like the shown prior's sums) and the
+ * player's first tries before the solve; a repeat gets the candidate's window around the shown centre.
  */
 final class PredictionReconstructor implements ResetInterface
 {
@@ -73,6 +86,7 @@ final class PredictionReconstructor implements ResetInterface
         private readonly CacheInterface $globalImprovementRatioSnapshotCache,
         private readonly PredictionModelParametersProvider $parametersProvider,
         private readonly ClockInterface $clock,
+        private readonly CandidatePredictionCalculator $candidateCalculator = new CandidatePredictionCalculator(),
     ) {
     }
 
@@ -155,12 +169,13 @@ final class PredictionReconstructor implements ResetInterface
         }
 
         $parameters = $this->parametersProvider->current();
+        $candidate = $this->parametersProvider->candidate();
         $repeatResiduals = RepeatResiduals::beforeEverySolve($playerSolves);
         $playerTransitions = $this->playerTransitions($qualifyingByPuzzle);
         $firstAttemptCandidates = $this->firstAttemptCandidatesByPiecesCount($qualifyingByPuzzle);
         $puzzleFirstAttemptCandidates = $this->puzzleFirstAttemptCandidates(array_keys($statisticalPuzzleIds));
         $solverPaces = $this->solverPaces($puzzleFirstAttemptCandidates, $playerId);
-        [$priorContexts, $imageEstimates] = $this->priorContexts(array_keys($statisticalPuzzleIds));
+        [$priorContexts, $imageEstimates, $candidatePriors] = $this->priorContexts(array_keys($statisticalPuzzleIds));
 
         $predictions = [];
 
@@ -168,25 +183,42 @@ final class PredictionReconstructor implements ResetInterface
             $prior = $priorAttemptsOfTargets[$target->id];
 
             if ($prior !== []) {
+                $personal = $this->personalPrediction($prior, $target, $playerTransitions, $repeatResiduals[$target->id] ?? [], $parameters);
                 $predictions[$target->id] = PredictionsSideBySide::repeat(
-                    $this->personalPrediction($prior, $target, $playerTransitions, $repeatResiduals[$target->id] ?? [], $parameters),
+                    $personal,
                     TimePredictionSource::Reconstructed,
+                    $candidate !== null ? $this->candidateCalculator->repeatWindow(
+                        $personal,
+                        TimePredictionCalculator::playerSpread($repeatResiduals[$target->id] ?? []),
+                        PiecesGroup::fromPiecesCount($target->piecesCount),
+                        TimePredictionCalculator::gapDays($target->solvedAt(), $prior[count($prior) - 1]->solvedAt()),
+                        $candidate,
+                    ) : null,
                 );
 
                 continue;
             }
 
             $estimate = $imageEstimates[$target->puzzleId] ?? null;
-            $inputs = $this->statisticalInputs($playerId, $target, $firstAttemptCandidates, $puzzleFirstAttemptCandidates[$target->puzzleId] ?? [], $solverPaces, $priorContexts[$target->puzzleId] ?? null, $parameters);
+            $inputs = $this->statisticalInputs($playerId, $target, $firstAttemptCandidates, $puzzleFirstAttemptCandidates[$target->puzzleId] ?? [], $solverPaces, $priorContexts[$target->puzzleId] ?? null, $parameters, $candidate);
 
             if ($inputs === null) {
-                $predictions[$target->id] = PredictionsSideBySide::firstTry(TimePredictionSource::Reconstructed, null, $estimate);
+                $predictions[$target->id] = PredictionsSideBySide::firstTry(TimePredictionSource::Reconstructed, null, $estimate)
+                    ->withCandidate($candidate !== null, null, TimePredictionSource::Reconstructed);
 
                 continue;
             }
 
             [$statistical, $image, $blend] = $this->calculator->sideBySide($inputs, $estimate, $parameters);
-            $predictions[$target->id] = PredictionsSideBySide::firstTry(TimePredictionSource::Reconstructed, $statistical, $estimate, $image, $blend);
+            $candidatePrediction = $candidate !== null
+                ? $this->candidateCalculator->firstTry(
+                    $inputs->withImageEstimate($estimate)->withCandidate($inputs->candidateEvidence, $candidatePriors[$target->puzzleId] ?? null, self::firstTriesBefore($qualifyingByPuzzle, $target)),
+                    $candidate,
+                    new SolveConditions(unboxed: $target->unboxed, competition: $target->competition),
+                )
+                : null;
+            $predictions[$target->id] = PredictionsSideBySide::firstTry(TimePredictionSource::Reconstructed, $statistical, $estimate, $image, $blend)
+                ->withCandidate($candidate !== null, $candidatePrediction, TimePredictionSource::Reconstructed);
         }
 
         return $predictions;
@@ -256,6 +288,7 @@ final class PredictionReconstructor implements ResetInterface
         PaceTimeline $solverPaces,
         null|PriorContext $priorContext,
         PredictionModelParameters $parameters,
+        null|CandidateModelParameters $candidate = null,
     ): null|StatisticalPredictionInputs {
         [$ownBaseline, $ownDirect, $ownCount] = $this->baselineBefore($target, $firstAttemptCandidates);
         $pace500 = $target->piecesCount !== 500 ? $this->directBaselineBefore($target, $firstAttemptCandidates[500] ?? []) : null;
@@ -269,6 +302,7 @@ final class PredictionReconstructor implements ResetInterface
         }
 
         $firstAttempts = [];
+        $evidence = CandidateEvidence::none();
 
         foreach ($puzzleCandidates as $solverId => $candidates) {
             $firstAttempt = self::firstBefore($candidates, $target);
@@ -288,6 +322,10 @@ final class PredictionReconstructor implements ResetInterface
 
             if ($pace !== null) {
                 $firstAttempts[] = ['seconds_to_solve' => $firstAttempt->seconds, 'baseline_seconds' => $pace];
+
+                if ($candidate !== null) {
+                    $evidence = self::withCandidateIndex($evidence, (string) $solverId, $firstAttempt, $pace, $target, $solverPaces, $candidate);
+                }
             }
         }
 
@@ -309,7 +347,58 @@ final class PredictionReconstructor implements ResetInterface
             sumLogIndices: $difficulty['sum_log_indices'],
             difficultyScore: $difficulty['confidence'] !== MetricConfidence::Insufficient ? $difficulty['difficulty_score'] : null,
             prior: $prior,
+            candidateEvidence: $candidate !== null ? $evidence : null,
         );
+    }
+
+    /**
+     * The evidence with one more index as the candidate model reads it (CandidateEngine::term()): the solver's drift,
+     * spread and qualifying first attempts of their pace-history row before the solve (rows existing before the
+     * target), none for a pace that was not their own direct one; the index ceiling of the shown difficulty.
+     */
+    private static function withCandidateIndex(CandidateEvidence $evidence, string $solverId, PredictionInputSolve $firstAttempt, int $pace, PredictionInputSolve $target, PaceTimeline $solverPaces, CandidateModelParameters $candidate): CandidateEvidence
+    {
+        $index = $pace > 0 ? $firstAttempt->seconds / $pace : 0.0;
+
+        if ($index <= 0.0 || $index > FirstAttemptSet::INDEX_CEILING) {
+            return $evidence;
+        }
+
+        $row = $solverPaces->directRowBefore($solverId, $firstAttempt->piecesCount, $firstAttempt->solved, $firstAttempt->tracked, knownBefore: [$target->solved, $target->tracked]);
+        $term = CandidateEngine::term(
+            log($index),
+            $row !== null ? ($row['drift'] ?? 0.0) : 0.0,
+            $row !== null ? ($row['spread'] ?? PredictionModelParameters::GLOBAL_SPREAD) : PredictionModelParameters::GLOBAL_SPREAD,
+            // The pair's rows start at its 5th qualifying first attempt
+            $row !== null ? $row['position'] + PlayerBaselineCalculator::MINIMUM_SOLVE_COUNT : 0,
+            $firstAttempt->flags,
+            $candidate,
+        );
+
+        return $evidence->with($term[0], $term[1], $term[2]);
+    }
+
+    /**
+     * The player's qualifying first attempts (one per puzzle, every size) before the target - the candidate's
+     * experience.
+     *
+     * @param array<string, list<PredictionInputSolve>> $qualifyingByPuzzle
+     */
+    private static function firstTriesBefore(array $qualifyingByPuzzle, PredictionInputSolve $target): int
+    {
+        $count = 0;
+
+        foreach ($qualifyingByPuzzle as $solves) {
+            foreach ($solves as $solve) {
+                if ($solve->isBefore($target)) {
+                    $count++;
+
+                    break;
+                }
+            }
+        }
+
+        return $count;
     }
 
     /**
@@ -373,17 +462,19 @@ final class PredictionReconstructor implements ResetInterface
      * out-of-fold image estimates (the same statement - the image / blend reconstructions cost no query of their own).
      *
      * @param list<string> $puzzleIds
-     * @return array{0: array<string, PriorContext>, 1: array<string, ImagePriorInput>}
+     * @return array{0: array<string, PriorContext>, 1: array<string, ImagePriorInput>, 2: array<string, float>} contexts, estimates, the candidate's brand priors
      */
     private function priorContexts(array $puzzleIds): array
     {
         $contexts = [];
         $estimates = [];
+        $candidatePriors = [];
 
         foreach (array_chunk($puzzleIds, self::PUZZLE_CHUNK_SIZE) as $chunk) {
-            /** @var list<array{id: string, pieces_count: int|string, manufacturer_id: null|string, prior_fit_sum_log: null|float|string, prior_fit_count: null|int|string, group_sum_log: null|float|string, group_index_count: null|int|string}> $rows */
+            /** @var list<array{id: string, pieces_count: int|string, manufacturer_id: null|string, prior_fit_sum_log: null|float|string, prior_fit_count: null|int|string, candidate_prior_log: null|float|string, group_sum_log: null|float|string, group_index_count: null|int|string}> $rows */
             $rows = $this->connection->fetchAllAssociative('
                 SELECT p.id, p.pieces_count, p.manufacturer_id, dpp.sum_log_indices AS prior_fit_sum_log, dpp.index_count AS prior_fit_count,
+                    CASE WHEN ' . StatisticalInputsSql::NOT_SECRET . ' THEN dpp.candidate_prior_log END AS candidate_prior_log,
                     g.sum_log_indices AS group_sum_log, g.index_count AS group_index_count,
                     ' . StatisticalInputsSql::IMAGE_ESTIMATE_COLUMNS . '
                 FROM puzzle p
@@ -405,6 +496,10 @@ final class PredictionReconstructor implements ResetInterface
                     $estimates[$row['id']] = $estimate;
                 }
 
+                if ($row['candidate_prior_log'] !== null) {
+                    $candidatePriors[$row['id']] = (float) $row['candidate_prior_log'];
+                }
+
                 $contexts[$row['id']] = new PriorContext(
                     puzzleId: $row['id'],
                     piecesCount: (int) $row['pieces_count'],
@@ -417,7 +512,7 @@ final class PredictionReconstructor implements ResetInterface
             }
         }
 
-        return [$contexts, $estimates];
+        return [$contexts, $estimates, $candidatePriors];
     }
 
     /**
@@ -525,26 +620,28 @@ final class PredictionReconstructor implements ResetInterface
         $byPuzzleAndPlayer = [];
 
         foreach (array_chunk($puzzleIds, self::PUZZLE_CHUNK_SIZE) as $chunk) {
-            /** @var list<array{id: string, puzzle_id: string, player_id: string, pieces_count: int|string, seconds_to_solve: int|string, first_attempt: bool, solved_ts: float|string, tracked_ts: float|string}> $rows */
+            // The candidate model's flags of every solve ride along (AttemptFlags) - the shown model reads none of them
+            /** @var list<array{id: string, puzzle_id: string, player_id: string, pieces_count: int|string, seconds_to_solve: int|string, first_attempt: bool, commented: bool, competition: bool, after_group: bool, solved_ts: float|string, tracked_ts: float|string}> $rows */
             $rows = $this->connection->fetchAllAssociative(
-                <<<'SQL'
+                '
                 SELECT
                     pst.id,
                     pst.puzzle_id,
                     pst.player_id,
                     p.pieces_count,
                     pst.seconds_to_solve,
-                    pst.first_attempt,
+                    ' . AttemptFlags::FLAG_COLUMNS . ',
                     EXTRACT(EPOCH FROM COALESCE(pst.finished_at, pst.tracked_at)) AS solved_ts,
                     EXTRACT(EPOCH FROM pst.tracked_at) AS tracked_ts
                 FROM puzzle_solving_time pst
                 JOIN puzzle p ON p.id = pst.puzzle_id
+                ' . AttemptFlags::flagJoin('g.puzzle_id IN (:puzzleIds)') . "
                 WHERE pst.puzzle_id IN (:puzzleIds)
                     AND pst.puzzling_type = 'solo'
                     AND pst.suspicious = false
                     AND pst.seconds_to_solve IS NOT NULL
                     AND pst.unboxed = false
-                SQL,
+                ",
                 ['puzzleIds' => $chunk],
                 ['puzzleIds' => ArrayParameterType::STRING],
             );
@@ -559,6 +656,7 @@ final class PredictionReconstructor implements ResetInterface
                     qualifying: true,
                     solved: (float) $row['solved_ts'],
                     tracked: (float) $row['tracked_ts'],
+                    flags: AttemptFlags::mask((bool) $row['first_attempt'], (bool) $row['after_group'], (bool) $row['commented'], (bool) $row['competition']),
                 );
             }
         }
@@ -617,7 +715,7 @@ final class PredictionReconstructor implements ResetInterface
      */
     private function fetchPlayerSolves(string $playerId): array
     {
-        /** @var list<array{id: string, puzzle_id: string, pieces_count: int|string, seconds_to_solve: int|string, first_attempt: bool, suspicious: bool, unboxed: bool, stored_personal: null|int|string, solved_ts: float|string, tracked_ts: float|string}> $rows */
+        /** @var list<array{id: string, puzzle_id: string, pieces_count: int|string, seconds_to_solve: int|string, first_attempt: bool, suspicious: bool, unboxed: bool, competition: bool, stored_personal: null|int|string, solved_ts: float|string, tracked_ts: float|string}> $rows */
         $rows = $this->connection->fetchAllAssociative(
             <<<'SQL'
             SELECT
@@ -628,6 +726,7 @@ final class PredictionReconstructor implements ResetInterface
                 pst.first_attempt,
                 pst.suspicious,
                 pst.unboxed,
+                pst.competition_id IS NOT NULL AS competition,
                 CASE WHEN pst.predictable = true AND pst.prediction_method = 'personal' THEN pst.predicted_seconds END AS stored_personal,
                 EXTRACT(EPOCH FROM COALESCE(pst.finished_at, pst.tracked_at)) AS solved_ts,
                 EXTRACT(EPOCH FROM pst.tracked_at) AS tracked_ts
@@ -651,6 +750,8 @@ final class PredictionReconstructor implements ResetInterface
             solved: (float) $row['solved_ts'],
             tracked: (float) $row['tracked_ts'],
             storedPersonalPredictionSeconds: $row['stored_personal'] !== null ? (int) $row['stored_personal'] : null,
+            unboxed: (bool) $row['unboxed'],
+            competition: (bool) $row['competition'],
         ), $rows);
     }
 

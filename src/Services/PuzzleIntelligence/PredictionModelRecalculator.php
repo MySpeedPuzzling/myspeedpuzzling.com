@@ -7,11 +7,19 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\AttemptFlags;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidateEngine;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidateModelFitter;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidatePredictionCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\FirstAttemptSet;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\PredictionEngine;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\PredictionModelFitter;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\PriorLookup;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\RepeatHistory;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\UnboxedFirstTries;
+use SpeedPuzzling\Web\Value\CandidateEvidence;
+use SpeedPuzzling\Web\Value\CandidateFeatures;
+use SpeedPuzzling\Web\Value\CandidateModelParameters;
 use SpeedPuzzling\Web\Value\ImagePriorInput;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
 
@@ -27,6 +35,12 @@ use SpeedPuzzling\Web\Value\PredictionModelParameters;
  *   the rest of the model (PredictionModelFitter, the last FIT_WINDOW_MONTHS; with the image estimates for the scale of
  *   the picture-only window) into prediction_model_fit, then the drift
  *   and spread with the new fit (~3-4 s - kept out of the 15-minute batch).
+ *
+ * The candidate model (v4, never shown - README "Step 8", "The candidate model (v4)") rides on both: the daily fit fits
+ * it after the shown model (CandidateModelFitter, prediction_model_fit row CandidatePredictionCalculator::MODEL_VERSION)
+ * and stores every puzzle's candidate brand prior (difficulty_prior_puzzle.candidate_prior_log); both write every
+ * puzzle's candidate evidence (candidate_puzzle_evidence) - the batch only once a candidate fit exists. Nothing of the
+ * shown model changes with it.
  */
 readonly final class PredictionModelRecalculator
 {
@@ -43,6 +57,7 @@ readonly final class PredictionModelRecalculator
         private PlayerBaselineCalculator $baselineCalculator,
         private PlayerPaceHistoryWriter $paceHistoryWriter,
         private ClockInterface $clock,
+        private CandidateModelFitter $candidateFitter = new CandidateModelFitter(),
     ) {
     }
 
@@ -50,7 +65,7 @@ readonly final class PredictionModelRecalculator
      * The batch's step: drift and spread with the stored fit (defaults and no priors before the first fit). The timeline
      * comes with the rows' stored drift and spread (PaceTimelineLoader::all(withStoredStates: true)).
      *
-     * @return array{drift_rows_written: int}
+     * @return array{drift_rows_written: int, candidate_evidence_written: int, candidate_seconds: float}
      */
     public function recalculate(FirstAttemptSet $set, PaceTimeline $timeline): array
     {
@@ -58,14 +73,22 @@ readonly final class PredictionModelRecalculator
         $engine = new PredictionEngine($set, $timeline, $this->calculator);
         $engine->computeAsOfDifficulty();
         $engine->computeDrift($this->storedPriors($this->manufacturerByPuzzle($this->clock->now())), $parameters->tau);
+        $driftWritten = $this->writeDrift($engine);
 
-        return ['drift_rows_written' => $this->writeDrift($engine)];
+        $startedAt = microtime(true);
+        $candidate = $this->parametersProvider->candidate();
+        // The flags weigh indices only through parts the fit may have switched off - no statement for them then
+        $evidenceWritten = $candidate !== null
+            ? $this->writeCandidateEvidence($this->candidateEngine($engine, withFlags: $candidate->features()->flagMask() !== 0), $candidate, $this->clock->now())
+            : 0;
+
+        return ['drift_rows_written' => $driftWritten, 'candidate_evidence_written' => $evidenceWritten, 'candidate_seconds' => round(microtime(true) - $startedAt, 2)];
     }
 
     /**
      * The daily fit on everything as it is now, then the drift and spread with it.
      *
-     * @return array{prior_groups: int, prior_puzzles: int, priors_seconds: float, drift_rows_written: int, parameters: PredictionModelParameters}
+     * @return array{prior_groups: int, prior_puzzles: int, priors_seconds: float, drift_rows_written: int, parameters: PredictionModelParameters, candidate: CandidateModelParameters, candidate_evidence_written: int}
      */
     public function fit(DateTimeImmutable $now): array
     {
@@ -77,22 +100,126 @@ readonly final class PredictionModelRecalculator
         $priorsStartedAt = microtime(true);
         $priors = PriorLookup::fit($set, $this->manufacturerByPuzzle($now));
         $imageEstimates = $this->imageEstimates($now);
-        $priorRows = $this->puzzlePriors($priors, $imageEstimates);
-        $this->writePriors($priors, $priorRows, $now);
         $priorsSeconds = microtime(true) - $priorsStartedAt;
 
         $from = (float) $now->modify('-' . self::FIT_WINDOW_MONTHS . ' months')->getTimestamp();
+        $to = (float) $now->getTimestamp();
+        $repeats = RepeatHistory::load($this->connection, $from);
         // Fitting tau computes the drift with it (PredictionModelFitter step 2)
-        $parameters = $this->fitter->fit($engine, $priors, RepeatHistory::load($this->connection, $from), $from, (float) $now->getTimestamp(), $now, $imageEstimates);
-        $this->storeParameters($parameters, $now);
+        $parameters = $this->fitter->fit($engine, $priors, $repeats, $from, $to, $now, $imageEstimates);
+        $this->storeParameters(TimePredictionCalculator::MODEL_VERSION, $parameters->toArray(), $now);
+
+        // The drift written first: that frees the timeline's stored states before the candidate needs its memory
+        $driftWritten = $this->writeDrift($engine);
+        gc_collect_cycles();
+        gc_mem_caches();
+
+        // The candidate after the shown model: it shares its drift, spread and thin-size rules
+        $memoryBeforeCandidate = round(memory_get_peak_usage(true) / 1048576);
+        $candidateStartedAt = microtime(true);
+        $candidateEngine = $this->candidateEngine($engine);
+        $candidate = $this->candidateFitter->fit($candidateEngine, $priors, $repeats, $from, $to, $now, $imageEstimates, $parameters, CandidateFeatures::kept(), UnboxedFirstTries::load($this->connection));
+        $candidate = $candidate->with(summary: [
+            ...$candidate->summary,
+            'seconds_total' => round(microtime(true) - $candidateStartedAt, 1),
+            'memory_peak_before_mb' => $memoryBeforeCandidate,
+        ]);
+        $this->storeParameters(CandidatePredictionCalculator::MODEL_VERSION, $candidate->toArray(), $now);
+
+        $priorsStartedAt = microtime(true);
+        $priorRows = $this->puzzlePriors($priors, $imageEstimates, $candidate);
+        $this->writePriors($priors, $priorRows, $now);
+        $priorsSeconds += microtime(true) - $priorsStartedAt;
 
         return [
             'prior_groups' => count($priors->groupSums),
             'prior_puzzles' => count($priorRows),
             'priors_seconds' => round($priorsSeconds, 2),
-            'drift_rows_written' => $this->writeDrift($engine),
+            'drift_rows_written' => $driftWritten,
             'parameters' => $parameters,
+            'candidate' => $candidate,
+            'candidate_evidence_written' => $this->writeCandidateEvidence($candidateEngine, $candidate, $now),
         ];
+    }
+
+    private function candidateEngine(PredictionEngine $engine, bool $withFlags = true): CandidateEngine
+    {
+        return new CandidateEngine($engine, $withFlags ? AttemptFlags::load($this->connection, $this->baselineCalculator, $engine->set) : AttemptFlags::fromList([]));
+    }
+
+    /**
+     * Every puzzle's candidate evidence as of now (every index), written where it changed; rows of puzzles without an
+     * index any more are removed. A genuine bulk operation like the drift: set-based SQL.
+     *
+     * @return int rows written or removed
+     */
+    private function writeCandidateEvidence(CandidateEngine $candidate, CandidateModelParameters $parameters, DateTimeImmutable $now): int
+    {
+        $stored = [];
+
+        foreach ($this->connection->iterateNumeric('SELECT puzzle_id, index_count, weight_sum, weighted_log_sum, log_sum, log_square_sum, noise_sum FROM candidate_puzzle_evidence') as $row) {
+            /** @var array{0: string, 1: int|string, 2: float|string, 3: float|string, 4: float|string, 5: float|string, 6: float|string} $row */
+            $stored[$row[0]] = new CandidateEvidence((int) $row[1], (float) $row[2], (float) $row[3], (float) $row[4], (float) $row[5], (float) $row[6]);
+        }
+
+        $changed = [];
+        $present = [];
+
+        foreach ($candidate->engine->set->puzzles() as $puzzle) {
+            $evidence = $candidate->evidenceNow($puzzle, $parameters);
+
+            if ($evidence->k === 0) {
+                continue;
+            }
+
+            $present[$puzzle] = true;
+            $old = $stored[$puzzle] ?? null;
+
+            if (
+                $old === null || $old->k !== $evidence->k || self::differs($old->weightSum, $evidence->weightSum) || self::differs($old->weightedLogSum, $evidence->weightedLogSum)
+                || self::differs($old->logSum, $evidence->logSum) || self::differs($old->logSquareSum, $evidence->logSquareSum) || self::differs($old->noiseSum, $evidence->noiseSum)
+            ) {
+                $changed[$puzzle] = $evidence;
+            }
+        }
+
+        $removed = array_values(array_filter(array_keys($stored), static fn (string $puzzle): bool => !isset($present[$puzzle])));
+
+        foreach (array_chunk(array_keys($changed), self::CHUNK) as $chunk) {
+            $this->connection->executeStatement('
+                INSERT INTO candidate_puzzle_evidence (puzzle_id, index_count, weight_sum, weighted_log_sum, log_sum, log_square_sum, noise_sum, computed_at)
+                SELECT fresh.puzzle_id, fresh.index_count, fresh.weight_sum, fresh.weighted_log_sum, fresh.log_sum, fresh.log_square_sum, fresh.noise_sum, CAST(:now AS timestamp)
+                FROM unnest(CAST(:puzzles AS uuid[]), CAST(:counts AS int[]), CAST(:weights AS double precision[]), CAST(:weightedLogs AS double precision[]),
+                    CAST(:logs AS double precision[]), CAST(:squares AS double precision[]), CAST(:noises AS double precision[]))
+                    AS fresh (puzzle_id, index_count, weight_sum, weighted_log_sum, log_sum, log_square_sum, noise_sum)
+                ON CONFLICT (puzzle_id) DO UPDATE SET
+                    index_count = EXCLUDED.index_count,
+                    weight_sum = EXCLUDED.weight_sum,
+                    weighted_log_sum = EXCLUDED.weighted_log_sum,
+                    log_sum = EXCLUDED.log_sum,
+                    log_square_sum = EXCLUDED.log_square_sum,
+                    noise_sum = EXCLUDED.noise_sum,
+                    computed_at = EXCLUDED.computed_at
+            ', [
+                'now' => $now->format('Y-m-d H:i:s'),
+                'puzzles' => self::arrayLiteral($chunk),
+                'counts' => self::arrayLiteral(array_map(static fn (string $puzzle): int => $changed[$puzzle]->k, $chunk)),
+                'weights' => self::arrayLiteral(array_map(static fn (string $puzzle): float => $changed[$puzzle]->weightSum, $chunk)),
+                'weightedLogs' => self::arrayLiteral(array_map(static fn (string $puzzle): float => $changed[$puzzle]->weightedLogSum, $chunk)),
+                'logs' => self::arrayLiteral(array_map(static fn (string $puzzle): float => $changed[$puzzle]->logSum, $chunk)),
+                'squares' => self::arrayLiteral(array_map(static fn (string $puzzle): float => $changed[$puzzle]->logSquareSum, $chunk)),
+                'noises' => self::arrayLiteral(array_map(static fn (string $puzzle): float => $changed[$puzzle]->noiseSum, $chunk)),
+            ]);
+        }
+
+        foreach (array_chunk($removed, self::CHUNK) as $chunk) {
+            $this->connection->executeStatement(
+                'DELETE FROM candidate_puzzle_evidence WHERE puzzle_id = ANY (CAST(:puzzles AS uuid[]))',
+                ['puzzles' => self::arrayLiteral($chunk)],
+            );
+        }
+
+        return count($changed) + count($removed);
     }
 
     /**
@@ -138,10 +265,12 @@ readonly final class PredictionModelRecalculator
      *   estimates are shown, Phase 6).
      * Secret puzzles have no brand in the lookup and no estimate: neither.
      *
+     * - candidate_prior_log - the candidate model's puzzle-weighted brand × pieces prior (PuzzleWeightedBrandPrior).
+     *
      * @param array<string, ImagePriorInput> $imageEstimates imageEstimates()
-     * @return array<string, array{0: float, 1: int, 2: null|float, 3: null|float}> puzzle => [share sum, share count, prior log, blend prior log]
+     * @return array<string, array{0: float, 1: int, 2: null|float, 3: null|float, 4: null|float}> puzzle => [share sum, share count, prior log, blend prior log, candidate prior log]
      */
-    private function puzzlePriors(PriorLookup $priors, array $imageEstimates): array
+    private function puzzlePriors(PriorLookup $priors, array $imageEstimates, CandidateModelParameters $candidate): array
     {
         $rows = [];
 
@@ -153,9 +282,10 @@ readonly final class PredictionModelRecalculator
             $prior = $this->calculator->prior($context)?->logDifficulty;
             $estimate = $imageEstimates[$puzzleId] ?? null;
             $blendPrior = $estimate !== null ? $this->calculator->prior($context->withImageEstimate($estimate))?->logDifficulty : $prior;
+            $candidatePrior = $priors->puzzleWeightedBrandPrior($puzzleId, (int) $piecesCount, $candidate->brandPseudoPuzzles);
 
-            if ($share !== null || $prior !== null || $blendPrior !== null) {
-                $rows[$puzzleId] = [$share[0] ?? 0.0, $share[1] ?? 0, $prior, $blendPrior];
+            if ($share !== null || $prior !== null || $blendPrior !== null || $candidatePrior !== null) {
+                $rows[$puzzleId] = [$share[0] ?? 0.0, $share[1] ?? 0, $prior, $blendPrior, $candidatePrior];
             }
         }
 
@@ -194,7 +324,7 @@ readonly final class PredictionModelRecalculator
      * Groups, shares and the finished priors change together (one transaction): a prediction never sees new sums with
      * old shares, nor a prior of another fit than its sums.
      *
-     * @param array<string, array{0: float, 1: int, 2: null|float, 3: null|float}> $puzzleRows puzzlePriors()
+     * @param array<string, array{0: float, 1: int, 2: null|float, 3: null|float, 4: null|float}> $puzzleRows puzzlePriors()
      */
     private function writePriors(PriorLookup $priors, array $puzzleRows, DateTimeImmutable $now): void
     {
@@ -250,18 +380,19 @@ readonly final class PredictionModelRecalculator
 
             foreach (array_chunk($puzzles, self::CHUNK) as $chunk) {
                 $connection->executeStatement('
-                    INSERT INTO difficulty_prior_puzzle (puzzle_id, sum_log_indices, index_count, prior_log, blend_prior_log, computed_at)
-                    SELECT fresh.puzzle_id, fresh.sum_log_indices, fresh.index_count, fresh.prior_log, fresh.blend_prior_log, CAST(:now AS timestamp)
-                    FROM unnest(CAST(:puzzles AS uuid[]), CAST(:sums AS double precision[]), CAST(:counts AS int[]), CAST(:priors AS double precision[]), CAST(:blendPriors AS double precision[]))
-                        AS fresh (puzzle_id, sum_log_indices, index_count, prior_log, blend_prior_log)
+                    INSERT INTO difficulty_prior_puzzle (puzzle_id, sum_log_indices, index_count, prior_log, blend_prior_log, candidate_prior_log, computed_at)
+                    SELECT fresh.puzzle_id, fresh.sum_log_indices, fresh.index_count, fresh.prior_log, fresh.blend_prior_log, fresh.candidate_prior_log, CAST(:now AS timestamp)
+                    FROM unnest(CAST(:puzzles AS uuid[]), CAST(:sums AS double precision[]), CAST(:counts AS int[]), CAST(:priors AS double precision[]), CAST(:blendPriors AS double precision[]), CAST(:candidatePriors AS double precision[]))
+                        AS fresh (puzzle_id, sum_log_indices, index_count, prior_log, blend_prior_log, candidate_prior_log)
                     ON CONFLICT (puzzle_id) DO UPDATE SET
                         sum_log_indices = EXCLUDED.sum_log_indices,
                         index_count = EXCLUDED.index_count,
                         prior_log = EXCLUDED.prior_log,
                         blend_prior_log = EXCLUDED.blend_prior_log,
+                        candidate_prior_log = EXCLUDED.candidate_prior_log,
                         computed_at = EXCLUDED.computed_at
-                    WHERE (difficulty_prior_puzzle.sum_log_indices, difficulty_prior_puzzle.index_count, difficulty_prior_puzzle.prior_log, difficulty_prior_puzzle.blend_prior_log)
-                        IS DISTINCT FROM (EXCLUDED.sum_log_indices, EXCLUDED.index_count, EXCLUDED.prior_log, EXCLUDED.blend_prior_log)
+                    WHERE (difficulty_prior_puzzle.sum_log_indices, difficulty_prior_puzzle.index_count, difficulty_prior_puzzle.prior_log, difficulty_prior_puzzle.blend_prior_log, difficulty_prior_puzzle.candidate_prior_log)
+                        IS DISTINCT FROM (EXCLUDED.sum_log_indices, EXCLUDED.index_count, EXCLUDED.prior_log, EXCLUDED.blend_prior_log, EXCLUDED.candidate_prior_log)
                 ', [
                     'now' => $now->format('Y-m-d H:i:s'),
                     'puzzles' => self::arrayLiteral($chunk),
@@ -269,6 +400,7 @@ readonly final class PredictionModelRecalculator
                     'counts' => self::arrayLiteral(array_map(static fn (string $puzzle): int => $puzzleRows[$puzzle][1], $chunk)),
                     'priors' => self::arrayLiteral(array_map(static fn (string $puzzle): null|float => $puzzleRows[$puzzle][2], $chunk)),
                     'blendPriors' => self::arrayLiteral(array_map(static fn (string $puzzle): null|float => $puzzleRows[$puzzle][3], $chunk)),
+                    'candidatePriors' => self::arrayLiteral(array_map(static fn (string $puzzle): null|float => $puzzleRows[$puzzle][4], $chunk)),
                 ]);
             }
 
@@ -308,15 +440,18 @@ readonly final class PredictionModelRecalculator
         ');
     }
 
-    private function storeParameters(PredictionModelParameters $parameters, DateTimeImmutable $now): void
+    /**
+     * @param array<string, mixed> $data the fit as stored (PredictionModelParameters / CandidateModelParameters::toArray())
+     */
+    private function storeParameters(int $modelVersion, array $data, DateTimeImmutable $now): void
     {
         $this->connection->executeStatement('
             INSERT INTO prediction_model_fit (model_version, fitted_at, parameters) VALUES (:version, :now, CAST(:parameters AS jsonb))
             ON CONFLICT (model_version) DO UPDATE SET fitted_at = EXCLUDED.fitted_at, parameters = EXCLUDED.parameters
         ', [
-            'version' => TimePredictionCalculator::MODEL_VERSION,
+            'version' => $modelVersion,
             'now' => $now->format('Y-m-d H:i:s'),
-            'parameters' => json_encode($parameters->toArray(), JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION),
+            'parameters' => json_encode($data, JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION),
         ]);
     }
 

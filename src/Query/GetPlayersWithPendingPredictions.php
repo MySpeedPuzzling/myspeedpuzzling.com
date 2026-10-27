@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidatePredictionCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 
 /**
@@ -28,9 +29,34 @@ readonly final class GetPlayersWithPendingPredictions
     /**
      * @return list<string>
      */
-    public function all(null|DateTimeImmutable $recomputeReconstructed = null, bool $withSideRows = true, bool $recomputeImage = false): array
-    {
+    public function all(
+        null|DateTimeImmutable $recomputeReconstructed = null,
+        bool $withSideRows = true,
+        bool $recomputeImage = false,
+        // The candidate model (v4): its row missing (once it is fitted), and with a time - its fit - the reconstructed
+        // rows from before it
+        bool $withCandidateRows = false,
+        null|DateTimeImmutable $recomputeCandidateBefore = null,
+    ): array {
         $params = ['modelVersion' => TimePredictionCalculator::MODEL_VERSION];
+        $candidate = '';
+
+        if ($withCandidateRows) {
+            $candidate = "OR NOT EXISTS (
+                SELECT 1 FROM solving_time_prediction c
+                WHERE c.time_id = pst.id AND c.predictor = 'candidate' AND c.model_version = :candidateModelVersion
+            )";
+            $params['candidateModelVersion'] = CandidatePredictionCalculator::MODEL_VERSION;
+
+            if ($recomputeCandidateBefore !== null) {
+                $candidate .= " OR EXISTS (
+                    SELECT 1 FROM solving_time_prediction c
+                    WHERE c.time_id = pst.id AND c.predictor = 'candidate' AND c.model_version = :candidateModelVersion
+                        AND c.source = 'reconstructed' AND c.computed_at <= :candidateFittedAt
+                )";
+                $params['candidateFittedAt'] = $recomputeCandidateBefore->format('Y-m-d H:i:s');
+            }
+        }
 
         $missingSideRow = $withSideRows
             ? "OR NOT EXISTS (
@@ -66,6 +92,7 @@ readonly final class GetPlayersWithPendingPredictions
                     pst.predictable IS NULL
                     {$missingSideRow}
                     {$reconstructed}
+                    {$candidate}
                 )
             ORDER BY pst.player_id
         ", $params);

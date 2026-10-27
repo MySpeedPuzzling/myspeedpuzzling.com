@@ -436,6 +436,53 @@ three predictors written from scratch, 36,224 + 1,637 image rows) in 275 s; the 
    image / blend row is made again from the final estimates; on prod expect the length of the v3 fill, ~1 h), then
    `myspeedpuzzling:evaluate-image-estimates` (a few seconds) stores the gate record.
 
+## The candidate model (v4, 2026-10)
+
+The prediction model review's proposals (README "Step 8", "The candidate model (v4)") built as a **candidate**: computed
+for every solo time next to the shown model and **never shown**. One more predictor in `solving_time_prediction`:
+
+- `predictor = candidate`, `model_version = CandidatePredictionCalculator::MODEL_VERSION` (4) - its own model version,
+  so no reader of the v3 rows (calibration report, image evaluation, time verification, Insights) ever sees it;
+- first tries and repeats alike (a repeat: the shown centre with the candidate's gap-aware window, `method =
+  personal`); `image_model` names the estimate a first try rested on;
+- its fit: the `prediction_model_fit` row of model version 4 (`CandidateModelParameters`), written by the daily
+  `myspeedpuzzling:fit-prediction-model` right after the shown fit (which is unchanged); the puzzles' candidate evidence
+  in `candidate_puzzle_evidence` (the batch keeps it current - only changed rows), the candidate brand prior in
+  `difficulty_prior_puzzle.candidate_prior_log`. Nothing of v3's tables or columns changes; `puzzle_difficulty`
+  (scores, tiers) is untouched.
+
+**Writing it**:
+- Live (`GetPlayerPrediction::sideBySide()` → `SolvingTimePredictor`): once the candidate is fitted, the add-time
+  INSERT of the side rows carries a fourth row - no statement of its own: the candidate's inputs ride on the statistical
+  statement (`StatisticalInputsSql::CANDIDATE_COLUMNS` + `CANDIDATE_JOINS`: the evidence, the brand prior, the player's
+  first tries so far) and its fit on the statement that reads the shown fit (`CANDIDATE_SQL`). The time's own
+  conditions go with it (`SolveConditions`: unboxed, at an event). Only the side-by-side path reads them - the shown
+  readers' statements are byte for byte what they were (guarded by `CandidateModelTest`).
+- Reconstructed (`PredictionReconstructor::reconstructSideBySide()`): the same inputs as of the solve - the evidence
+  from the puzzle's solvers' first attempts before it (their pace-history row's drift and spread, its place in the
+  pair + 5 as the qualifying count), the current fit's brand prior (like the shown prior's sums), the out-of-fold
+  estimate only. Live == reconstructed as of now for first tries
+  (`CandidatePredictionsSideBySideTest::testLiveAndReconstructedCandidatePredictionsAgreeAsOfNow`); a repeat's candidate
+  equals the shown repeat with the candidate's window on both sides (the shown repeat itself differs by its documented
+  month-snapshot approximation).
+- Backfill: once the candidate is fitted, the work lists add every solo time without a candidate row of model version 4
+  (`GetPlayersWithPendingPredictions::all(withCandidateRows:)`, `findForPredictionOfPlayer(withCandidateRows:)`); the
+  handler writes it where missing and replaces it on a re-evaluated time; `--recompute-reconstructed` also replaces
+  candidate rows reconstructed before the candidate's fit. Before the first candidate fit nothing is written.
+
+### Production run for the candidate (after the deploy)
+
+1. The migration (on boot) creates `candidate_puzzle_evidence` and `difficulty_prior_puzzle.candidate_prior_log`.
+2. `docker compose exec -T web php bin/console myspeedpuzzling:fit-prediction-model` - fits the shown model as every
+   day (unchanged) and, new, the candidate (row 4), its brand priors and every puzzle's evidence. Without this run the
+   candidate does nothing (no rows, the batch skips it); the daily cron does it from the next night on anyway.
+3. The candidate rows of every past solo time, detached, resumable (~the length of the v3 fill; never next to another
+   backfill run - both lock a player's times):
+   `nohup docker compose exec -T -e SENTRY_DSN= web php -d memory_limit=1G bin/console myspeedpuzzling:backfill-solving-time-predictions > /tmp/backfill-candidate.log 2>&1 &`
+   The 4×-daily cron would get there too, a player at a time.
+4. Measure on production whenever wanted (read only, ~1-2 GB, a few minutes - run it on a copy or off-peak):
+   `myspeedpuzzling:evaluate-predictions --fit-before=<date> --candidate` and `--ablation`.
+
 ## Rollout
 
 1. ✅ Migration `Version20260930130108` + entity + value objects + invalidation.

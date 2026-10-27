@@ -22,7 +22,7 @@ use Throwable;
 
 #[AsCommand(
     'myspeedpuzzling:backfill-solving-time-predictions',
-    'Reconstructs the prediction of every solo time that has none yet (shown, and side by side for the current model - the image / blend rows of first tries once their puzzle has an out-of-fold estimate), one player at a time. Safe to interrupt and to run again; daily it heals whatever the live recording missed.',
+    'Reconstructs the prediction of every solo time that has none yet (shown, and side by side for the current model - the image / blend rows of first tries once their puzzle has an out-of-fold estimate, the candidate model\'s rows once it is fitted), one player at a time. Safe to interrupt and to run again; daily it heals whatever the live recording missed.',
 )]
 final class BackfillSolvingTimePredictionsConsoleCommand extends Command
 {
@@ -56,6 +56,8 @@ final class BackfillSolvingTimePredictionsConsoleCommand extends Command
         $limitOption = $input->getOption('limit');
 
         $fittedAt = $this->parametersProvider->fittedAt();
+        // The candidate model's rows (v4, never shown) once it is fitted - with the shown model's
+        $candidateFittedAt = $fittedAt !== null ? $this->parametersProvider->candidateFittedAt() : null;
         $recompute = (bool) $input->getOption('recompute-reconstructed');
         $recomputeImage = (bool) $input->getOption('recompute-image');
 
@@ -68,7 +70,13 @@ final class BackfillSolvingTimePredictionsConsoleCommand extends Command
 
         $playerIds = $playerOption !== null
             ? [$playerOption]
-            : $this->getPlayersWithPendingPredictions->all($recompute ? $fittedAt : null, withSideRows: $fittedAt !== null, recomputeImage: $recomputeImage);
+            : $this->getPlayersWithPendingPredictions->all(
+                $recompute ? $fittedAt : null,
+                withSideRows: $fittedAt !== null,
+                recomputeImage: $recomputeImage,
+                withCandidateRows: $candidateFittedAt !== null,
+                recomputeCandidateBefore: $recompute ? $candidateFittedAt : null,
+            );
 
         if ($limitOption !== null) {
             $playerIds = array_slice($playerIds, 0, max(1, (int) $limitOption));

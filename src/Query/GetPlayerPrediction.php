@@ -8,13 +8,17 @@ use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\TimePredictionResult;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidatePredictionCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionModelParametersProvider;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\RepeatResiduals;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\StatisticalInputsSql;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
+use SpeedPuzzling\Web\Value\CandidateModelParameters;
 use SpeedPuzzling\Web\Value\ImagePriorInput;
+use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
 use SpeedPuzzling\Web\Value\PredictionsSideBySide;
+use SpeedPuzzling\Web\Value\SolveConditions;
 use SpeedPuzzling\Web\Value\SolveMoment;
 use SpeedPuzzling\Web\Value\TimePredictionSource;
 
@@ -36,6 +40,7 @@ readonly final class GetPlayerPrediction
         private Connection $database,
         private ClockInterface $clock,
         private TimePredictionCalculator $calculator,
+        private CandidatePredictionCalculator $candidateCalculator = new CandidatePredictionCalculator(),
     ) {
     }
 
@@ -63,36 +68,62 @@ readonly final class GetPlayerPrediction
      * Every predictor's prediction of a solve being added now (SolvingTimePredictor, the live side-by-side rows): the
      * statistical model's (prior-only allowed) and, for a first try, the image / blend ones from the estimate of the
      * puzzle's current picture - read by the statistical statement itself (two LEFT JOINs), no statement of its own.
+     * The candidate model's (v4, never shown) too, once it is fitted: its inputs and fit ride on the same statements
+     * (StatisticalInputsSql::CANDIDATE_COLUMNS, PredictionModelParametersProvider::CANDIDATE_SQL) - the shown predictions
+     * are computed exactly as before.
      */
     public function sideBySide(
         string $playerId,
         string $puzzleId,
         null|string $excludeTimeId = null,
         null|SolveMoment $before = null,
+        SolveConditions $conditions = new SolveConditions(),
     ): PredictionsSideBySide {
-        $personalPrediction = $this->personalPrediction($playerId, $puzzleId, $excludeTimeId, $before);
+        $personal = $this->personalPredictionParts($playerId, $puzzleId, $excludeTimeId, $before, withCandidate: true);
 
-        if ($personalPrediction !== null) {
-            return PredictionsSideBySide::repeat($personalPrediction, TimePredictionSource::Live);
+        if ($personal !== null) {
+            [$personalPrediction, $gapDays, $repeatSpread, $piecesCount, $candidateParameters] = $personal;
+            $candidate = $candidateParameters !== null
+                ? $this->candidateCalculator->repeatWindow($personalPrediction, $repeatSpread, PiecesGroup::fromPiecesCount($piecesCount), $gapDays, $candidateParameters)
+                : null;
+
+            return PredictionsSideBySide::repeat($personalPrediction, TimePredictionSource::Live, $candidate);
         }
 
-        $row = $this->statisticalRow($playerId, $puzzleId, withImageEstimate: true);
+        $row = $this->statisticalRow($playerId, $puzzleId, withImageEstimate: true, withCandidate: true);
 
         if ($row === null) {
             return PredictionsSideBySide::firstTry(TimePredictionSource::Live, null);
         }
 
         $estimate = ImagePriorInput::fromRow($row);
+        $inputs = StatisticalInputsSql::hydrate($row);
         [$statistical, $image, $blend] = $this->calculator->sideBySide(
-            StatisticalInputsSql::hydrate($row),
+            $inputs,
             $estimate,
             PredictionModelParametersProvider::fromJson(is_string($row['model_parameters']) ? $row['model_parameters'] : null),
         );
+        $candidateParameters = PredictionModelParametersProvider::candidateFromJson(is_string($row['candidate_parameters'] ?? null) ? $row['candidate_parameters'] : null);
+        $candidate = $candidateParameters !== null
+            ? $this->candidateCalculator->firstTry(StatisticalInputsSql::hydrateCandidate($row, $inputs->withImageEstimate($estimate)), $candidateParameters, $conditions)
+            : null;
 
-        return PredictionsSideBySide::firstTry(TimePredictionSource::Live, $statistical, $estimate, $image, $blend);
+        return PredictionsSideBySide::firstTry(TimePredictionSource::Live, $statistical, $estimate, $image, $blend)
+            ->withCandidate($candidateParameters !== null, $candidate, TimePredictionSource::Live);
     }
 
     private function personalPrediction(string $playerId, string $puzzleId, null|string $excludeTimeId, null|SolveMoment $before): null|TimePredictionResult
+    {
+        return $this->personalPredictionParts($playerId, $puzzleId, $excludeTimeId, $before, withCandidate: false)[0] ?? null;
+    }
+
+    /**
+     * The personal prediction and what the candidate's repeat window needs besides it: the days since the last solve,
+     * the player's repeat spread, the piece count and (with $withCandidate) the candidate's fit.
+     *
+     * @return null|array{0: TimePredictionResult, 1: int, 2: float, 3: int, 4: null|CandidateModelParameters}
+     */
+    private function personalPredictionParts(string $playerId, string $puzzleId, null|string $excludeTimeId, null|SolveMoment $before, bool $withCandidate): null|array
     {
         $excludeFilter = $excludeTimeId !== null ? 'AND pst.id != :excludeTimeId' : '';
         $beforeFilter = $before !== null
@@ -154,37 +185,50 @@ SQL;
         $piecesCount = (int) $piecesCount;
 
         $transition = TimePredictionCalculator::transitionFor($count);
-        $gapBucket = TimePredictionCalculator::classifyGap(
-            TimePredictionCalculator::gapDays($before->solvedAt ?? $this->clock->now(), $lastSolvedAt),
-        );
+        $gapDays = TimePredictionCalculator::gapDays($before->solvedAt ?? $this->clock->now(), $lastSolvedAt);
+        $gapBucket = TimePredictionCalculator::classifyGap($gapDays);
 
-        [$playerRatio, $repeatResiduals, $parameters] = $this->playerRatioAndRepeats($playerId, $transition, $excludeTimeId, $before);
+        [$playerRatio, $repeatResiduals, $parameters, $candidateParameters] = $this->playerRatioAndRepeats($playerId, $transition, $excludeTimeId, $before, $withCandidate);
         $globalRatios = $this->getGlobalRatios($piecesCount, $transition, $gapBucket);
         $globalRatioForGap = $globalRatios[$gapBucket] ?? null;
         // The "all" bucket is only needed to gap-correct a player ratio
         $globalRatioAll = $playerRatio !== null ? ($globalRatios['all'] ?? null) : null;
 
-        return $this->calculator->personal(
-            $times,
-            TimePredictionCalculator::resolveRatio($playerRatio, $globalRatioForGap, $globalRatioAll),
-            TimePredictionCalculator::playerSpread($repeatResiduals),
+        $repeatSpread = TimePredictionCalculator::playerSpread($repeatResiduals);
+
+        return [
+            $this->calculator->personal(
+                $times,
+                TimePredictionCalculator::resolveRatio($playerRatio, $globalRatioForGap, $globalRatioAll),
+                $repeatSpread,
+                $piecesCount,
+                $parameters,
+            ),
+            $gapDays,
+            $repeatSpread,
             $piecesCount,
-            $parameters,
-        );
+            $candidateParameters,
+        ];
     }
 
     /**
      * The player's improvement ratio for the transition, the residuals of their stored repeat predictions before the
      * solve (the window's spread, RepeatResiduals) and the fitted model parameters - one statement.
      *
-     * @return array{0: null|float, 1: list<float>, 2: PredictionModelParameters}
+     * @return array{0: null|float, 1: list<float>, 2: PredictionModelParameters, 3: null|CandidateModelParameters}
      */
-    private function playerRatioAndRepeats(string $playerId, int $transition, null|string $excludeTimeId, null|SolveMoment $before): array
+    private function playerRatioAndRepeats(string $playerId, int $transition, null|string $excludeTimeId, null|SolveMoment $before, bool $withCandidate = false): array
     {
         $repeats = RepeatResiduals::sql($excludeTimeId !== null, $before !== null);
         $parameters = PredictionModelParametersProvider::SQL;
+        // Only on the live side-by-side path - a shown reader's statement stays as it was
+        $candidate = $withCandidate ? ', (' . PredictionModelParametersProvider::CANDIDATE_SQL . ') AS candidate_parameters' : '';
 
         $params = ['playerId' => $playerId, 'transition' => $transition, 'modelVersion' => TimePredictionCalculator::MODEL_VERSION];
+
+        if ($withCandidate) {
+            $params['candidateModelVersion'] = CandidatePredictionCalculator::MODEL_VERSION;
+        }
 
         if ($excludeTimeId !== null) {
             $params['excludeTimeId'] = $excludeTimeId;
@@ -195,18 +239,20 @@ SQL;
             $params['trackedAt'] = $before->trackedAt->format('Y-m-d H:i:s');
         }
 
-        /** @var array{median_ratio: null|float|string, repeats: null|string, parameters: null|string} $row */
+        /** @var array{median_ratio: null|float|string, repeats: null|string, parameters: null|string, candidate_parameters?: null|string} $row */
         $row = $this->database->fetchAssociative("
             SELECT
                 (SELECT median_ratio FROM player_improvement_ratio WHERE player_id = :playerId AND from_attempt = :transition) AS median_ratio,
                 ({$repeats}) AS repeats,
                 ({$parameters}) AS parameters
+                {$candidate}
         ", $params);
 
         return [
             $row['median_ratio'] !== null ? (float) $row['median_ratio'] : null,
             RepeatResiduals::fromJson($row['repeats']),
             PredictionModelParametersProvider::fromJson($row['parameters']),
+            PredictionModelParametersProvider::candidateFromJson(is_string($row['candidate_parameters'] ?? null) ? $row['candidate_parameters'] : null),
         ];
     }
 
@@ -250,11 +296,24 @@ SQL;
     /**
      * @return null|array<string, mixed>
      */
-    private function statisticalRow(string $playerId, string $puzzleId, bool $withImageEstimate): null|array
+    private function statisticalRow(string $playerId, string $puzzleId, bool $withImageEstimate, bool $withCandidate = false): null|array
     {
         $columns = StatisticalInputsSql::COLUMNS . ($withImageEstimate ? ', ' . StatisticalInputsSql::IMAGE_ESTIMATE_COLUMNS : '');
         $joins = StatisticalInputsSql::JOINS . StatisticalInputsSql::lateralPaceJoins() . ($withImageEstimate ? StatisticalInputsSql::imageEstimateJoins(outOfFoldOnly: false) : '');
         $parameters = PredictionModelParametersProvider::SQL;
+        $params = [
+            'playerId' => $playerId,
+            'puzzleId' => $puzzleId,
+            'modelVersion' => TimePredictionCalculator::MODEL_VERSION,
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+        ];
+
+        // The candidate (v4) only on the live side-by-side path - a shown reader's statement stays as it was
+        if ($withCandidate) {
+            $columns .= ', ' . StatisticalInputsSql::CANDIDATE_COLUMNS . ', (' . PredictionModelParametersProvider::CANDIDATE_SQL . ') AS candidate_parameters';
+            $joins .= StatisticalInputsSql::CANDIDATE_JOINS;
+            $params['candidateModelVersion'] = CandidatePredictionCalculator::MODEL_VERSION;
+        }
 
         /** @var array<string, mixed>|false $row */
         $row = $this->database->executeQuery("
@@ -262,12 +321,7 @@ SQL;
             FROM puzzle p
             {$joins}
             WHERE p.id = :puzzleId
-        ", [
-            'playerId' => $playerId,
-            'puzzleId' => $puzzleId,
-            'modelVersion' => TimePredictionCalculator::MODEL_VERSION,
-            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
-        ])->fetchAssociative();
+        ", $params)->fetchAssociative();
 
         return $row !== false ? $row : null;
     }

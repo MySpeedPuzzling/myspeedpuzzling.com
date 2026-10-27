@@ -79,6 +79,98 @@ final class EvaluationGroups
     }
 
     /**
+     * The experience bucket of a player by their qualifying first attempts before the solve (every size) - the review's
+     * buckets: the candidate's parts help the most experienced players most, and must never hurt the new ones.
+     */
+    public static function experienceBucket(int $firstTries): string
+    {
+        return match (true) {
+            $firstTries < 10 => '0-9 first tries',
+            $firstTries < 30 => '10-29 first tries',
+            $firstTries < 100 => '30-99 first tries',
+            $firstTries < 300 => '100-299 first tries',
+            default => '300+ first tries',
+        };
+    }
+
+    /**
+     * One line per measured group: n, MAE, 50 / 80 % hits - the ablation's compact form, the overall group ("all") and
+     * the k buckets ("k …") as columns.
+     *
+     * @return array<string, int|float|string>
+     */
+    public function compact(): array
+    {
+        $row = [];
+
+        foreach ($this->groups as $label => $group) {
+            $n = count($group['errors']);
+            $row[$label === 'all' ? 'mae' : 'mae ' . $label] = round(array_sum(array_map(abs(...), $group['errors'])) / $n, 4);
+
+            if ($label === 'all') {
+                $row['n'] = $n;
+                $row['hit50'] = round(100 * $group['hit50'] / $n, 1);
+                $row['hit80'] = round(100 * $group['hit80'] / $n, 1);
+                $row['width50'] = round(100 * self::median($group['widths50']), 1);
+            }
+        }
+
+        ksort($row);
+
+        return $row;
+    }
+
+    /**
+     * Several predictors measured on the same rows, one line per group: n, then each predictor's MAE, median bias and
+     * 50 / 80 % hits, and the change of each predictor's MAE against the first one.
+     *
+     * @param array<string, self> $byPredictor the first one is the reference
+     * @return list<array<string, int|float|string>>
+     */
+    public static function sideBySide(array $byPredictor): array
+    {
+        $reference = array_key_first($byPredictor);
+        $rows = [];
+
+        if ($reference === null) {
+            return [];
+        }
+
+        $labels = array_keys($byPredictor[$reference]->groups);
+        sort($labels);
+
+        foreach ($labels as $label) {
+            $referenceErrors = $byPredictor[$reference]->groups[$label]['errors'];
+            $referenceMae = array_sum(array_map(abs(...), $referenceErrors)) / count($referenceErrors);
+            $row = ['group' => $label, 'n' => count($referenceErrors)];
+
+            foreach ($byPredictor as $name => $groups) {
+                $group = $groups->groups[$label] ?? null;
+
+                if ($group === null) {
+                    continue;
+                }
+
+                $n = count($group['errors']);
+                $mae = array_sum(array_map(abs(...), $group['errors'])) / $n;
+                $row[$name . ' mae'] = round($mae, 4);
+
+                if ($name !== $reference) {
+                    $row[$name . ' Δmae'] = round(100 * ($mae / $referenceMae - 1), 1) . ' %';
+                }
+
+                $row[$name . ' bias'] = round(100 * (exp(self::median($group['errors'])) - 1), 1) . ' %';
+                $row[$name . ' hit50'] = round(100 * $group['hit50'] / $n, 1);
+                $row[$name . ' hit80'] = round(100 * $group['hit80'] / $n, 1);
+            }
+
+            $rows[] = $row;
+        }
+
+        return $rows;
+    }
+
+    /**
      * @param list<float> $values
      */
     private static function median(array $values): float

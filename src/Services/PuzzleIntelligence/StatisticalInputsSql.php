@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\PriorContext;
+use SpeedPuzzling\Web\Value\CandidateEvidence;
 use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
 use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
@@ -75,6 +76,57 @@ final class StatisticalInputsSql
         img.crop_trust AS image_crop_trust,
         art.result->>'kind' AS image_artwork_kind
     ";
+
+    /**
+     * The candidate model's (v4, never shown) inputs of the puzzle and the player - only on the live side-by-side
+     * statement (GetPlayerPrediction::sideBySide()), never on a shown reader: its evidence (candidate_puzzle_evidence),
+     * its brand prior (none for a secret puzzle) and the player's qualifying first attempts so far (one per puzzle -
+     * custom_pst_intelligence). With CANDIDATE_JOINS; hydrateCandidate() reads them.
+     */
+    public const string CANDIDATE_COLUMNS = "
+        ce.index_count AS candidate_index_count,
+        ce.weight_sum AS candidate_weight_sum,
+        ce.weighted_log_sum AS candidate_weighted_log_sum,
+        ce.log_sum AS candidate_log_sum,
+        ce.log_square_sum AS candidate_log_square_sum,
+        ce.noise_sum AS candidate_noise_sum,
+        CASE WHEN " . self::NOT_SECRET . " THEN dpp.candidate_prior_log END AS candidate_prior_log,
+        (
+            SELECT count(DISTINCT own_first.puzzle_id)
+            FROM puzzle_solving_time own_first
+            WHERE own_first.player_id = :playerId
+                AND own_first.puzzling_type = 'solo'
+                AND own_first.suspicious = false
+                AND own_first.unboxed = false
+                AND own_first.seconds_to_solve IS NOT NULL
+        ) AS candidate_first_tries
+    ";
+
+    public const string CANDIDATE_JOINS = '
+        LEFT JOIN candidate_puzzle_evidence ce ON ce.puzzle_id = p.id
+    ';
+
+    /**
+     * The inputs with the candidate's columns of the row (CANDIDATE_COLUMNS).
+     *
+     * @param array<string, mixed> $row
+     */
+    public static function hydrateCandidate(array $row, StatisticalPredictionInputs $inputs): StatisticalPredictionInputs
+    {
+        $count = self::int($row['candidate_index_count'] ?? null) ?? 0;
+        $evidence = $count > 0
+            ? new CandidateEvidence(
+                $count,
+                self::float($row['candidate_weight_sum'] ?? null) ?? 0.0,
+                self::float($row['candidate_weighted_log_sum'] ?? null) ?? 0.0,
+                self::float($row['candidate_log_sum'] ?? null) ?? 0.0,
+                self::float($row['candidate_log_square_sum'] ?? null) ?? 0.0,
+                self::float($row['candidate_noise_sum'] ?? null) ?? 0.0,
+            )
+            : CandidateEvidence::none();
+
+        return $inputs->withCandidate($evidence, self::float($row['candidate_prior_log'] ?? null), self::int($row['candidate_first_tries'] ?? null));
+    }
 
     /**
      * The estimate of the puzzle's current picture (its fingerprint) and the `artwork` kind of that picture - none for

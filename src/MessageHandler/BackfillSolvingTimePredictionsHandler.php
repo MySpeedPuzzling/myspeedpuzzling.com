@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Message\BackfillSolvingTimePredictions;
 use SpeedPuzzling\Web\Query\GetTimesAwaitingImagePredictions;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Repository\SolvingTimePredictionRecordRepository;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidatePredictionCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionModelParametersProvider;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionReconstructor;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
@@ -48,6 +49,9 @@ readonly final class BackfillSolvingTimePredictionsHandler
      * as a first try that reconstructs as a repeat (its stored statistical row is older than a merge or a back-dated
      * earlier solve) gets reconstructed "not predictable" rows without an estimate - done, never listed again.
      *
+     * The candidate model's (v4, never shown) row of every solo time once it is fitted: written where missing, replaced
+     * when the time was re-evaluated or, asked for, when it is a reconstruction from before the candidate's fit.
+     *
      * Before the model's first fit (prediction_model_fit) no side-by-side rows at all: they would hold the defaults'
      * predictions without priors under the current model version, as if fitted - the shown prediction of a pending
      * time is still written (and replaced by the post-deploy `--recompute-reconstructed` run).
@@ -58,12 +62,23 @@ readonly final class BackfillSolvingTimePredictionsHandler
     {
         $fittedAt = $this->parametersProvider->fittedAt();
         $fitted = $fittedAt !== null;
+        // The candidate model (v4, never shown): its rows once it is fitted, with the shown model's
+        $candidateFittedAt = $fitted ? $this->parametersProvider->candidateFittedAt() : null;
+        $recomputeCandidateBefore = $message->recomputeReconstructed ? $candidateFittedAt : null;
         // Only reconstructions from before the current fit: a run that stopped continues where it was
         $recomputeBefore = $message->recomputeReconstructed ? $fittedAt : null;
         $imageTimeIds = $fitted ? $this->getTimesAwaitingImagePredictions->ofPlayer($message->playerId, $message->recomputeImage) : [];
 
         // Locked before anything is read, so the reconstruction sees every edit committed before it
-        $times = $this->puzzleSolvingTimeRepository->findForPredictionOfPlayer($message->playerId, $message->reevaluateTimeIds, $recomputeBefore, withSideRows: $fitted, imageTimeIds: $imageTimeIds);
+        $times = $this->puzzleSolvingTimeRepository->findForPredictionOfPlayer(
+            $message->playerId,
+            $message->reevaluateTimeIds,
+            $recomputeBefore,
+            withSideRows: $fitted,
+            imageTimeIds: $imageTimeIds,
+            withCandidateRows: $candidateFittedAt !== null,
+            recomputeCandidateBefore: $recomputeCandidateBefore,
+        );
 
         if ($times === []) {
             return 0;
@@ -73,6 +88,9 @@ readonly final class BackfillSolvingTimePredictionsHandler
         $predictions = $this->predictionReconstructor->reconstructSideBySide($message->playerId, $timeIds);
         $records = $fitted
             ? $this->recordRepository->forTimesByPredictor($timeIds, [PredictorKind::Statistical, PredictorKind::Image, PredictorKind::Blend], TimePredictionCalculator::MODEL_VERSION)
+            : [];
+        $candidateRecords = $candidateFittedAt !== null
+            ? $this->recordRepository->forTimesByPredictor($timeIds, [PredictorKind::Candidate], CandidatePredictionCalculator::MODEL_VERSION)[PredictorKind::Candidate->value] ?? []
             : [];
         $reevaluate = array_flip($message->reevaluateTimeIds);
         $awaitingImage = array_flip($imageTimeIds);
@@ -109,6 +127,21 @@ readonly final class BackfillSolvingTimePredictionsHandler
                 }
 
                 $written = $this->recordImageRows($time, $sideBySide, $records, $reevaluated, isset($awaitingImage[$timeId]), $recomputeBefore, $now) || $written;
+            }
+
+            // The candidate's row: written where missing, replaced like the statistical one (re-evaluated, or a
+            // reconstruction from before the candidate's fit when recomputing)
+            if ($candidateFittedAt !== null && $sideBySide->candidate !== null) {
+                $record = $candidateRecords[$timeId] ?? null;
+                $estimate = $sideBySide->firstTry ? $sideBySide->imageEstimate : null;
+
+                if ($record === null) {
+                    $this->recordRepository->save(new SolvingTimePredictionRecord(Uuid::uuid7(), $time, PredictorKind::Candidate, CandidatePredictionCalculator::MODEL_VERSION, $sideBySide->candidate, $now, $estimate));
+                    $written = true;
+                } elseif ($reevaluated || self::isReconstructionBefore($record->source, $record->computedAt, $recomputeCandidateBefore)) {
+                    $record->record($sideBySide->candidate, $now, $estimate);
+                    $written = true;
+                }
             }
 
             if ($written) {

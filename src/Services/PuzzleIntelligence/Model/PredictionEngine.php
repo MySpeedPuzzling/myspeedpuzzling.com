@@ -210,6 +210,79 @@ final class PredictionEngine
         );
     }
 
+    /**
+     * The inputs of a prediction for a solve that is no qualifying first attempt (the candidate's unboxed first tries)
+     * at a moment: the same rules as inputsFor(), the puzzle's difficulty from the indices known before the moment.
+     */
+    public function inputsAt(string $player, string $puzzle, int $pieces, float $solved, float $tracked, PriorLookup $priors): StatisticalPredictionInputs
+    {
+        $pairKey = $player . '|' . $pieces;
+        $own = $this->timeline->directRowBefore($player, $pieces, $solved, $tracked);
+        $ownState = $this->stateAt($pairKey, $solved, $tracked);
+        $before = $this->countBefore($pairKey, $solved, $tracked);
+        $ownBaseline = $own['baseline'] ?? null;
+
+        if ($ownBaseline === null && $before >= 1) {
+            $ownBaseline = $this->timeline->paceBefore($player, $pieces, $solved, $tracked);
+        }
+
+        $five = $pieces !== 500 ? $this->timeline->directRowBefore($player, 500, $solved, $tracked) : null;
+        $fiveState = $five !== null ? $this->stateAt($player . '|500', $solved, $tracked) : null;
+        [$k, $sumLog, $score] = $this->difficultyAt($puzzle, $solved, $tracked);
+
+        return new StatisticalPredictionInputs(
+            piecesCount: $pieces,
+            ownBaselineSeconds: $ownBaseline,
+            ownBaselineDirect: $own !== null,
+            ownQualifyingCount: $own !== null ? $before : 0,
+            ownDrift: $own !== null ? $ownState[0] : null,
+            ownSpread: $own !== null ? $ownState[1] : null,
+            pace500Seconds: $five['baseline'] ?? null,
+            drift500: $fiveState[0] ?? null,
+            spread500: $fiveState[1] ?? null,
+            kIndices: $k,
+            sumLogIndices: $sumLog,
+            difficultyScore: $score,
+            prior: $priors->contextFor($puzzle, $pieces),
+        );
+    }
+
+    /**
+     * The puzzle's index count, sum of log indices and median score (k >= 5) from the indices known before a moment.
+     *
+     * @return array{0: int, 1: float, 2: null|float}
+     */
+    public function difficultyAt(string $puzzle, float $solved, float $tracked): array
+    {
+        $indices = [];
+
+        foreach ($this->set->attemptsOfPuzzle($puzzle) as $i) {
+            $index = $this->set->index[$i];
+
+            if ($index === null) {
+                continue;
+            }
+
+            [$knownSolved, $knownTracked] = $this->set->knownFrom($i);
+
+            if (($knownSolved <=> $solved ?: $knownTracked <=> $tracked) < 0) {
+                $indices[] = $index;
+            }
+        }
+
+        $k = count($indices);
+        $sum = array_sum(array_map('log', $indices));
+
+        if ($k < TimePredictionCalculator::RATED_INDICES) {
+            return [$k, $sum, null];
+        }
+
+        sort($indices);
+        $middle = intdiv($k, 2);
+
+        return [$k, $sum, round($k % 2 === 0 ? ($indices[$middle - 1] + $indices[$middle]) / 2.0 : $indices[$middle], 4)];
+    }
+
     public function predict(int $i, PriorLookup $priors, PredictionModelParameters $parameters, bool $allowPriorOnly = true): null|TimePredictionResult
     {
         return $this->calculator->statistical($this->inputsFor($i, $priors), $parameters, $allowPriorOnly);
@@ -220,7 +293,45 @@ final class PredictionEngine
      *
      * @return array{0: null|float, 1: null|float}
      */
-    private function stateBefore(string $pairKey, int $i): array
+    public function stateBefore(string $pairKey, int $i): array
+    {
+        return $this->stateAt($pairKey, $this->set->solved[$i], $this->set->tracked[$i]);
+    }
+
+    /**
+     * The pair's attempts strictly before a moment.
+     */
+    public function countBefore(string $pairKey, float $solved, float $tracked): int
+    {
+        $pair = $this->set->pair($pairKey);
+
+        if ($pair === null) {
+            return 0;
+        }
+
+        [$low, $pairCount] = $pair;
+        $start = $low;
+        $high = $low + $pairCount;
+
+        while ($low < $high) {
+            $middle = intdiv($low + $high, 2);
+
+            if (($this->set->solved[$middle] <=> $solved ?: $this->set->tracked[$middle] <=> $tracked) < 0) {
+                $low = $middle + 1;
+            } else {
+                $high = $middle;
+            }
+        }
+
+        return $low - $start;
+    }
+
+    /**
+     * Drift and spread of a pair right before a moment: after its last attempt before it.
+     *
+     * @return array{0: null|float, 1: null|float}
+     */
+    public function stateAt(string $pairKey, float $solved, float $tracked): array
     {
         $pair = $this->set->pair($pairKey);
 
@@ -231,8 +342,6 @@ final class PredictionEngine
         [$low, $pairCount] = $pair;
         $high = $low + $pairCount;
         $start = $low;
-        $solved = $this->set->solved[$i];
-        $tracked = $this->set->tracked[$i];
 
         while ($low < $high) {
             $middle = intdiv($low + $high, 2);

@@ -4,6 +4,17 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Candidate prediction model v4 (`docs/features/puzzle-intelligence/README.md` "The candidate model (v4)", 2026-10-27)
+
+- [ ] After the deploy: `myspeedpuzzling:fit-prediction-model` once, then the candidate backfill (prediction-history.md
+  "Production run for the candidate")
+- [ ] Puzzles players disagree about most (dispersion ≥ 0.02): the weighted mean is 2.9 % worse than the shown median
+  there - try a robust index weight (Huber on the as-of mean) before launch
+- [ ] Not built: per-player competition offset (data-mining F6 - only the competition window scale is in); k = 0
+  dispersion from the picture's look-alike numbers (F8 - traits are not on the prediction statements)
+- [ ] Launch (Jan): one `MODEL_VERSION` bump making v4 the shown model - shown difficulty / tiers stay the median until
+  decided; the Picker's `centreSql()` twin then needs the candidate's evidence columns
+
 ## Background batch queries (`docs/database-indexes.md` `custom_pst_qualifying_first_attempt`, 2026-10-27)
 
 Measured on production 2026-10-26 (`log_min_duration_statement = 500`) and a local copy; what was left as it is:

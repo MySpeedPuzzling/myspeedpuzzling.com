@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\PuzzleIntelligence\Model;
 
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\PriorContext;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\PuzzleWeightedBrandPrior;
 
 /**
  * BrandPiecesPrior's fit in memory: the groups' sums and every puzzle's share in them - fitted from a FirstAttemptSet
@@ -13,6 +14,9 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\PriorContext;
  */
 final class PriorLookup
 {
+    /** @var null|array<string, array{0: float, 1: int}> "manufacturer|pieces" => [Σ puzzle mean log index, puzzles] (candidate) */
+    private null|array $groupPuzzleMeans = null;
+
     /**
      * @param array<string, null|string> $manufacturerByPuzzle
      * @param array<string, array{0: float, 1: int}> $groupSums "manufacturer|pieces" => [sum of log indices, count]
@@ -22,6 +26,8 @@ final class PriorLookup
         public readonly array $manufacturerByPuzzle,
         public readonly array $groupSums,
         public readonly array $puzzleShares,
+        /** @var array<string, int> puzzle => pieces count of the puzzles with a share (the candidate's puzzle-weighted prior) */
+        public readonly array $piecesByPuzzle = [],
     ) {
     }
 
@@ -52,15 +58,60 @@ final class PriorLookup
         }
 
         $groupSums = [];
+        $pieces = [];
 
         foreach ($puzzleSums as $puzzle => [$sum, $count]) {
-            $key = $manufacturerByPuzzle[$puzzle] . '|' . $set->pieces[$set->attemptsOfPuzzle($puzzle)[0]];
+            $pieces[$puzzle] = $set->pieces[$set->attemptsOfPuzzle($puzzle)[0]];
+            $key = $manufacturerByPuzzle[$puzzle] . '|' . $pieces[$puzzle];
             $groupSums[$key] ??= [0.0, 0];
             $groupSums[$key][0] += $sum;
             $groupSums[$key][1] += $count;
         }
 
-        return new self($manufacturerByPuzzle, $groupSums, $puzzleSums);
+        return new self($manufacturerByPuzzle, $groupSums, $puzzleSums, $pieces);
+    }
+
+    /**
+     * The candidate model's puzzle-weighted brand × pieces prior of a puzzle (PuzzleWeightedBrandPrior) from the same
+     * sums - the puzzle's own share left out; null without a brand or with too few other puzzles.
+     */
+    public function puzzleWeightedBrandPrior(string $puzzleId, int $piecesCount, float $pseudoPuzzles): null|float
+    {
+        $manufacturer = $this->manufacturerByPuzzle[$puzzleId] ?? null;
+
+        if ($manufacturer === null) {
+            return null;
+        }
+
+        if ($this->groupPuzzleMeans === null) {
+            $this->groupPuzzleMeans = [];
+            $piecesOf = $this->piecesByPuzzle;
+
+            foreach ($this->puzzleShares as $puzzle => [$sum, $count]) {
+                $puzzleManufacturer = $this->manufacturerByPuzzle[$puzzle] ?? null;
+                $pieces = $piecesOf[$puzzle] ?? null;
+
+                if ($puzzleManufacturer === null || $pieces === null || $count <= 0) {
+                    continue;
+                }
+
+                $key = $puzzleManufacturer . '|' . $pieces;
+                $this->groupPuzzleMeans[$key] ??= [0.0, 0];
+                $this->groupPuzzleMeans[$key][0] += $sum / $count;
+                $this->groupPuzzleMeans[$key][1]++;
+            }
+        }
+
+        $group = $this->groupPuzzleMeans[$manufacturer . '|' . $piecesCount] ?? null;
+
+        if ($group === null) {
+            return null;
+        }
+
+        $own = $this->puzzleShares[$puzzleId] ?? null;
+        $ownMean = $own !== null && $own[1] > 0 && ($this->piecesByPuzzle[$puzzleId] ?? null) === $piecesCount ? $own[0] / $own[1] : null;
+
+        return PuzzleWeightedBrandPrior::fromSums($group[0], $group[1], $ownMean, $pseudoPuzzles);
     }
 
     public function contextFor(string $puzzleId, int $piecesCount): PriorContext

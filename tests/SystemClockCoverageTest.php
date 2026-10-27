@@ -54,6 +54,7 @@ final class SystemClockCoverageTest extends TestCase
         'EventSubscriber/ApiUsageSubscriber.php' => [['hrtime('], self::DURATION],
         'Services/GenerateManufacturerSlug.php' => [['microtime('], 'microtime() as entropy for a slug, not as a time.'],
         'Services/LiveKit/StudioSpectators.php' => [['microtime('], 'A lock-wait deadline in microtime(true) - a duration, no date is read.'],
+        'Services/PuzzleIntelligence/Model/CandidateModelFitter.php' => [['microtime('], self::DURATION],
         'Services/PuzzleIntelligence/Model/PredictionEvaluator.php' => [['microtime('], self::DURATION],
         'Services/PuzzleIntelligence/PredictionModelRecalculator.php' => [['microtime('], self::DURATION],
         'Services/PuzzleIntelligence/PuzzleIntelligenceRecalculator.php' => [['microtime('], self::DURATION],

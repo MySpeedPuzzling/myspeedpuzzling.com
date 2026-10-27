@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Entity\PuzzlingTeamMember;
 use SpeedPuzzling\Web\Entity\SolvingTimePredictionRecord;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidatePredictionCalculator;
 use SpeedPuzzling\Web\Value\PredictorKind;
 use SpeedPuzzling\Web\Value\PuzzlingType;
 use SpeedPuzzling\Web\Value\TimePredictionSource;
@@ -119,8 +120,16 @@ readonly final class PuzzleSolvingTimeRepository
      * @param list<string> $imageTimeIds
      * @return list<PuzzleSolvingTime>
      */
-    public function findForPredictionOfPlayer(string $playerId, array $alsoTimeIds = [], null|DateTimeImmutable $recomputeReconstructed = null, bool $withSideRows = true, array $imageTimeIds = []): array
-    {
+    public function findForPredictionOfPlayer(
+        string $playerId,
+        array $alsoTimeIds = [],
+        null|DateTimeImmutable $recomputeReconstructed = null,
+        bool $withSideRows = true,
+        array $imageTimeIds = [],
+        // The candidate model (v4): its row missing (once it is fitted), and with its fit time the reconstructed rows from before it
+        bool $withCandidateRows = false,
+        null|DateTimeImmutable $recomputeCandidateBefore = null,
+    ): array {
         $queryBuilder = $this->entityManager->createQueryBuilder()
             ->select('time')
             ->from(PuzzleSolvingTime::class, 'time')
@@ -145,6 +154,20 @@ readonly final class PuzzleSolvingTimeRepository
         if ($imageTimeIds !== []) {
             $conditions[] = 'time.id IN (:imageTimeIds)';
             $queryBuilder->setParameter('imageTimeIds', $imageTimeIds);
+        }
+
+        if ($withCandidateRows) {
+            $conditions[] = 'NOT EXISTS (SELECT 1 FROM ' . SolvingTimePredictionRecord::class . ' candidateRecord WHERE candidateRecord.time = time AND candidateRecord.predictor = :candidate AND candidateRecord.modelVersion = :candidateModelVersion)';
+            $queryBuilder
+                ->setParameter('candidate', PredictorKind::Candidate)
+                ->setParameter('candidateModelVersion', CandidatePredictionCalculator::MODEL_VERSION);
+
+            if ($recomputeCandidateBefore !== null) {
+                $conditions[] = 'EXISTS (SELECT 1 FROM ' . SolvingTimePredictionRecord::class . ' staleCandidate WHERE staleCandidate.time = time AND staleCandidate.predictor = :candidate AND staleCandidate.modelVersion = :candidateModelVersion AND staleCandidate.source = :candidateReconstructed AND staleCandidate.computedAt <= :candidateFittedAt)';
+                $queryBuilder
+                    ->setParameter('candidateReconstructed', TimePredictionSource::Reconstructed)
+                    ->setParameter('candidateFittedAt', $recomputeCandidateBefore);
+            }
         }
 
         // Every reconstruction again - shown (of any model version) and the current model's side-by-side row; live

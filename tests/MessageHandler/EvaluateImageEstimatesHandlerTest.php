@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Message\RecordPuzzleDifficultyEstimates;
 use SpeedPuzzling\Web\Query\GetLatestImageEstimateEvaluation;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\ImageEstimates\ImageEstimateEvaluator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\ImageEstimates\ImageEstimateGate;
+use SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence\Evaluation\RecordPath;
 use SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence\ImageEstimates\GateV2Numbers;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
@@ -161,15 +162,15 @@ final class EvaluateImageEstimatesHandlerTest extends KernelTestCase
         self::assertSame(ImageEstimateEvaluator::GATE_VERSION, $first->gateVersion);
         self::assertSame(ImageEstimateEvaluation::SUBJECT_IMAGE, $first->subject);
         self::assertNotNull($first->splitAt);
-        self::assertFalse($first->groups[0]['calibration']['previouslyOpen'], 'Two solves never open it');
+        self::assertFalse(RecordPath::at($first->groups, 0, 'calibration', 'previouslyOpen'), 'Two solves never open it');
 
         // The previous record opened 500 / unknown for the generation measured here
         $this->storeRecord(TimePredictionCalculator::MODEL_VERSION, [GateV2Numbers::passing(PiecesGroup::FiveHundred->value, ImageKind::Unknown->value, self::GENERATION)]);
-        self::assertTrue($this->evaluate()->groups[0]['calibration']['previouslyOpen']);
+        self::assertTrue(RecordPath::at($this->evaluate()->groups, 0, 'calibration', 'previouslyOpen'));
 
         // ... for another generation: the opening is earned again
         $this->storeRecord(TimePredictionCalculator::MODEL_VERSION, [GateV2Numbers::passing(PiecesGroup::FiveHundred->value, ImageKind::Unknown->value, 'ridge-siglip2-full 2.0.0')]);
-        self::assertFalse($this->evaluate()->groups[0]['calibration']['previouslyOpen']);
+        self::assertFalse(RecordPath::at($this->evaluate()->groups, 0, 'calibration', 'previouslyOpen'));
     }
 
     private function evaluate(int $newerThanMonths = 12): ImageEstimateEvaluation

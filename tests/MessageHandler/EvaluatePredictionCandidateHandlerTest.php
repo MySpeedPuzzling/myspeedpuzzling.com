@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence\Evaluation\RecordPath;
 use SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence\FitsThePredictionModel;
 use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\PredictorKind;
@@ -76,11 +77,11 @@ final class EvaluatePredictionCandidateHandlerTest extends KernelTestCase
         self::assertArrayHasKey(PiecesGroup::FiveHundred->value, $groups);
         self::assertSame('any', $groups[PiecesGroup::FiveHundred->value]['imageKind']);
         self::assertGreaterThanOrEqual(1, $evaluation->overall['rows']);
-        self::assertSame(['live'], array_keys($groups[PiecesGroup::FiveHundred->value]['slices']));
+        self::assertSame(['live'], array_keys(RecordPath::array($groups, PiecesGroup::FiveHundred->value, 'slices')));
 
         // Against itself: no error difference at all
-        foreach ($groups[PiecesGroup::FiveHundred->value]['skill'] as $bucket) {
-            self::assertSame(0.0, $bucket['meanDifference']);
+        foreach (RecordPath::array($groups, PiecesGroup::FiveHundred->value, 'skill') as $bucket) {
+            self::assertSame(0.0, RecordPath::at($bucket, 'meanDifference'));
         }
 
         /** @var GetLatestImageEstimateEvaluation $latest */

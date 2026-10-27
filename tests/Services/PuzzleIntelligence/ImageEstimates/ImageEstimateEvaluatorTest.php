@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence\ImageEstimates;
 
 use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\ImageEstimates\ImageEstimateEvaluator;
+use SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence\Evaluation\RecordPath;
 use SpeedPuzzling\Web\Value\ImageEstimateEvaluationRow;
 use SpeedPuzzling\Web\Value\ImageKind;
 use SpeedPuzzling\Web\Value\PiecesGroup;
@@ -137,26 +138,27 @@ final class ImageEstimateEvaluatorTest extends TestCase
 
         $result = ImageEstimateEvaluator::evaluate($rows);
         $group = $result['groups'][0];
-        $skill = array_column($group['skill'], null, 'k');
+        $k0 = RecordPath::skill($group, '0');
+        $k12 = RecordPath::skill($group, '1-2');
 
         self::assertSame(20.0, $result['splitAt'], 'The median solve moment');
-        self::assertSame(['0', '1-2'], array_column($group['skill'], 'k'));
-        self::assertSame(2, $skill['0']['rows']);
-        self::assertEqualsWithDelta(round(log(1.1) / 2, 4), $skill['0']['maeCandidate'], 1e-9);
-        self::assertEqualsWithDelta(round(log(1.2) / 2, 4), $skill['0']['maeReference'], 1e-9);
-        self::assertArrayHasKey('width80Candidate', $skill['0']);
-        self::assertEqualsWithDelta(round(log(1.05), 4), $skill['1-2']['maeCandidate'], 1e-9, 'The blend, not the image row');
-        self::assertSame(0.0, $skill['1-2']['maeReference']);
+        self::assertSame(['0', '1-2'], array_column(RecordPath::array($group, 'skill'), 'k'));
+        self::assertSame(2, $k0['rows']);
+        self::assertEqualsWithDelta(round(log(1.1) / 2, 4), $k0['maeCandidate'], 1e-9);
+        self::assertEqualsWithDelta(round(log(1.2) / 2, 4), $k0['maeReference'], 1e-9);
+        self::assertArrayHasKey('width80Candidate', $k0);
+        self::assertEqualsWithDelta(round(log(1.05), 4), $k12['maeCandidate'], 1e-9, 'The blend, not the image row');
+        self::assertSame(0.0, $k12['maeReference']);
 
-        self::assertSame(2, $group['slices']['k0']['rows'], 'Every newer puzzle at k = 0');
-        self::assertSame(1, $group['slices']['k0Measured']['rows'], 'Only the measured one');
-        self::assertSame(1, $group['slices']['live']['rows']);
-        self::assertSame(2, $group['slices']['reconstructed']['rows']);
+        self::assertSame(2, RecordPath::at($group, 'slices', 'k0', 'rows'), 'Every newer puzzle at k = 0');
+        self::assertSame(1, RecordPath::at($group, 'slices', 'k0Measured', 'rows'), 'Only the measured one');
+        self::assertSame(1, RecordPath::at($group, 'slices', 'live', 'rows'));
+        self::assertSame(2, RecordPath::at($group, 'slices', 'reconstructed', 'rows'));
 
         // The honesty numbers rest on the picture-only windows of every row; one row before the split
-        self::assertSame(1, $group['calibration']['fitRows']);
-        self::assertSame(2, $group['calibration']['testRows']);
-        self::assertFalse($group['calibration']['previouslyOpen']);
+        self::assertSame(1, RecordPath::at($group, 'calibration', 'fitRows'));
+        self::assertSame(2, RecordPath::at($group, 'calibration', 'testRows'));
+        self::assertFalse(RecordPath::at($group, 'calibration', 'previouslyOpen'));
 
         // Tier numbers on the one measured puzzle (its latest estimate 0.0 vs measured 1.0: Average both)
         self::assertSame(1.0, $group['tierExact']);
@@ -175,13 +177,13 @@ final class ImageEstimateEvaluatorTest extends TestCase
         $rows = [$this->row('a', k: 0, actual: 1000, image: 1000, imageLog: 0.0, computedAt: 1.0, blend: 1000, statistical: 1000, measuredIndices: 1, measuredScore: null)];
 
         $same = ImageEstimateEvaluator::evaluate($rows, openBefore: ['pieces_500|flat' => ['ridge-siglip2-dinov2 1.0.0']]);
-        self::assertTrue($same['groups'][0]['calibration']['previouslyOpen']);
+        self::assertTrue(RecordPath::at($same['groups'], 0, 'calibration', 'previouslyOpen'));
 
         $other = ImageEstimateEvaluator::evaluate($rows, openBefore: ['pieces_500|flat' => ['ridge-siglip2-dinov2 1.1.0']]);
-        self::assertFalse($other['groups'][0]['calibration']['previouslyOpen'], 'A new estimate generation earns the opening again');
+        self::assertFalse(RecordPath::at($other['groups'], 0, 'calibration', 'previouslyOpen'), 'A new estimate generation earns the opening again');
 
         $elsewhere = ImageEstimateEvaluator::evaluate($rows, openBefore: ['pieces_500|box' => ['ridge-siglip2-dinov2 1.0.0']]);
-        self::assertFalse($elsewhere['groups'][0]['calibration']['previouslyOpen']);
+        self::assertFalse(RecordPath::at($elsewhere['groups'], 0, 'calibration', 'previouslyOpen'));
     }
 
     private function row(

@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Results\ImageEstimateEvaluationResult;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\ImageEstimates\ImageEstimateGate;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
+use SpeedPuzzling\Web\Tests\TestClock;
 
 /**
  * Gate v2's rules on one group's numbers (ImageEstimateGate::failures()) - honesty out of period with hysteresis, skill
@@ -96,7 +97,7 @@ final class ImageEstimateGateRulesTest extends TestCase
     {
         $open = GateV2Numbers::passing('pieces_500', 'flat', self::GENERATION);
         $closed = ['calibration' => self::calibration(['hit50Low' => 0.40])] + GateV2Numbers::passing('pieces_500', 'box', self::GENERATION);
-        $record = static fn (int $gateVersion, int $modelVersion): ImageEstimateEvaluationResult => new ImageEstimateEvaluationResult('id', new \DateTimeImmutable(), $modelVersion, null, 10, [$open, $closed], [], [], $gateVersion);
+        $record = static fn (int $gateVersion, int $modelVersion): ImageEstimateEvaluationResult => new ImageEstimateEvaluationResult('id', TestClock::now(), $modelVersion, null, 10, [$open, $closed], [], [], $gateVersion);
 
         self::assertSame(['pieces_500|flat' => [self::GENERATION]], ImageEstimateGate::honestyOpenGroups($record(2, TimePredictionCalculator::MODEL_VERSION)));
         self::assertSame([], ImageEstimateGate::honestyOpenGroups($record(1, TimePredictionCalculator::MODEL_VERSION)), 'A gate v1 record');
@@ -119,10 +120,7 @@ final class ImageEstimateGateRulesTest extends TestCase
      */
     private static function calibration(array $change): array
     {
-        $calibration = GateV2Numbers::passing('pieces_500', 'flat', self::GENERATION)['calibration'];
-        assert(is_array($calibration));
-
-        return [...$calibration, ...$change];
+        return GateV2Numbers::calibration($change);
     }
 
     /**
@@ -131,12 +129,6 @@ final class ImageEstimateGateRulesTest extends TestCase
      */
     private static function skill(string $bucket, array $change): array
     {
-        $skill = GateV2Numbers::passing('pieces_500', 'flat', self::GENERATION)['skill'];
-        assert(is_array($skill));
-
-        return array_values(array_map(
-            static fn (array $entry): array => $entry['k'] === $bucket ? [...$entry, ...$change] : $entry,
-            $skill,
-        ));
+        return GateV2Numbers::skill($bucket, $change);
     }
 }

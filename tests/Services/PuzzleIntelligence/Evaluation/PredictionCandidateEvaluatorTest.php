@@ -43,9 +43,9 @@ final class PredictionCandidateEvaluatorTest extends TestCase
         self::assertSame(PredictionCandidateEvaluator::ANY_KIND, $group['imageKind']);
         self::assertSame(1800, $group['rows']);
         self::assertSame(90.5 * self::DAY, $result['splitAt'], 'The median solve');
-        self::assertSame(['0', '1-2', '20+', 'repeat'], array_column($group['skill'], 'k'));
-        self::assertSame(['live', 'reconstructed'], array_keys($group['slices']));
-        self::assertFalse($group['calibration']['previouslyOpen']);
+        self::assertSame(['0', '1-2', '20+', 'repeat'], array_column(RecordPath::array($group, 'skill'), 'k'));
+        self::assertSame(['live', 'reconstructed'], array_keys(RecordPath::array($group, 'slices')));
+        self::assertFalse(RecordPath::at($group, 'calibration', 'previouslyOpen'));
         self::assertSame([], PredictionCandidateEvaluator::failures($group));
     }
 
@@ -68,7 +68,7 @@ final class PredictionCandidateEvaluatorTest extends TestCase
         self::assertSame(['pieces_500|any' => []], $open);
 
         $next = PredictionCandidateEvaluator::evaluate($this->rows(0.0, 0.1), $open)['groups'][0];
-        self::assertTrue($next['calibration']['previouslyOpen']);
+        self::assertTrue(RecordPath::at($next, 'calibration', 'previouslyOpen'));
         self::assertSame([], PredictionCandidateEvaluator::honestyOpenGroups([]));
     }
 
@@ -80,9 +80,11 @@ final class PredictionCandidateEvaluatorTest extends TestCase
         $group = PredictionCandidateEvaluator::evaluate($this->rows(0.0, 0.1))['groups'][0];
         $bucket = static fn (float $difference): array => ['k' => '10-19', 'rows' => 900, 'maeCandidate' => 0.0888, 'maeReference' => 0.0888, 'meanDifference' => $difference, 'differenceSe' => 0.0001];
 
-        self::assertSame([], PredictionCandidateEvaluator::failures(['skill' => [...$group['skill'], $bucket(0.0003)]] + $group));
+        $skill = RecordPath::array($group, 'skill');
 
-        $failures = PredictionCandidateEvaluator::failures(['skill' => [...$group['skill'], $bucket(0.0025)]] + $group);
+        self::assertSame([], PredictionCandidateEvaluator::failures(['skill' => [...$skill, $bucket(0.0003)]] + $group));
+
+        $failures = PredictionCandidateEvaluator::failures(['skill' => [...$skill, $bucket(0.0025)]] + $group);
         self::assertCount(1, $failures);
         self::assertStringContainsString('k = 10-19', $failures[0]);
     }

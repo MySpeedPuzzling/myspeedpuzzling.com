@@ -16,7 +16,9 @@ final class WindowScalingTest extends TestCase
     public function testTheScalesAtWhichAWindowHoldsASolve(): void
     {
         // A window 1000 × e^±0.2 holds 1100 (y = ln 1.1 = 0.0953) from the scale 0.0953 / 0.2 on, however wide
-        [$from, $to] = WindowScaling::scaleInterval(1100, 1000, (int) round(1000 * exp(-0.2)), (int) round(1000 * exp(0.2)));
+        $held = WindowScaling::scaleInterval(1100, 1000, (int) round(1000 * exp(-0.2)), (int) round(1000 * exp(0.2)));
+        self::assertNotNull($held);
+        [$from, $to] = $held;
         self::assertEqualsWithDelta(log(1.1) / log(1221 / 1000), $from, 1e-9);
         self::assertSame(INF, $to);
 

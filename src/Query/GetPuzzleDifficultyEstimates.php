@@ -59,6 +59,12 @@ SELECT
     e.image_fingerprint,
     e.computed_at,
     e.received_at,
+    e.log_p25,
+    e.log_p75,
+    e.pixels_per_piece,
+    e.crop_trust,
+    e.picture_factors,
+    e.picture_factors_version,
     art.result->>'kind' AS artwork_kind
 FROM puzzle_difficulty_estimate e
 JOIN puzzle p ON p.id = e.puzzle_id

@@ -180,6 +180,30 @@ final class ImageEstimatePriorTest extends TestCase
         self::assertSame(1, TimePredictionCalculator::seconds(0.2));
     }
 
+    /**
+     * difficulty_prior 1.2.0 stores its own 50 % interval, pixels per piece and the crop trust with an estimate: read and
+     * carried, but no prediction uses them yet - the image and blend predictions stay exactly what they were.
+     */
+    public function testThe120ValuesAreReadButChangeNoPrediction(): void
+    {
+        $row = ['image_log' => '0.3', 'image_log_p10' => '0.05', 'image_log_p90' => '0.6', 'image_model' => 'ridge-siglip2-dinov2', 'image_model_version' => '1.1.0', 'image_artwork_kind' => 'flat'];
+        $old = ImagePriorInput::fromRow($row);
+        $new = ImagePriorInput::fromRow($row + ['image_log_p25' => '0.1', 'image_log_p75' => 0.45, 'image_pixels_per_piece' => '38.5', 'image_crop_trust' => null]);
+
+        self::assertNotNull($old);
+        self::assertNotNull($new);
+        self::assertNull($old->logP25);
+        self::assertSame(0.1, $new->logP25);
+        self::assertSame(0.45, $new->logP75);
+        self::assertSame(38.5, $new->pixelsPerPiece);
+        self::assertNull($new->cropTrust);
+        self::assertSame($old->variance(), $new->variance());
+
+        $calculator = new TimePredictionCalculator();
+        $inputs = $this->inputs(k: 2, sumLogIndices: 0.2);
+        self::assertEquals($calculator->sideBySide($inputs, $old, $this->parameters()), $calculator->sideBySide($inputs, $new, $this->parameters()));
+    }
+
     public function testNoPaceNoImagePrediction(): void
     {
         $inputs = new StatisticalPredictionInputs(500, null, false, 0, null, null, null, null, null, 0, null, null, $this->context(withBrandPrior: true));

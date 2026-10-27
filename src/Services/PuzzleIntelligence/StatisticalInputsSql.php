@@ -69,6 +69,10 @@ final class StatisticalInputsSql
         img.log_p90 AS image_log_p90,
         img.model AS image_model,
         img.model_version AS image_model_version,
+        img.log_p25 AS image_log_p25,
+        img.log_p75 AS image_log_p75,
+        img.pixels_per_piece AS image_pixels_per_piece,
+        img.crop_trust AS image_crop_trust,
         art.result->>'kind' AS image_artwork_kind
     ";
 

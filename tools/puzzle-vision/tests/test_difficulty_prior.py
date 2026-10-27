@@ -1,6 +1,7 @@
 """difficulty_prior (plan §5.3) on synthetic data with a planted signal, against the fake internal API."""
 
 import argparse
+import base64
 from datetime import datetime, timezone
 
 import numpy as np
@@ -88,7 +89,7 @@ def test_ridge_recovers_a_planted_signal_and_pushes_every_embedded_puzzle(api, b
     assert summary[dp.FALLBACK_MODEL] == {"skipped": "no puzzle for this model tonight"}
     assert len(big.estimates) == 600 and len(big.models) == 1
     model = big.models[0]
-    assert (model["model"], model["modelVersion"]) == (dp.MODEL, dp.MODEL_VERSION) and dp.VERSION == "1.1.0+ridge-siglip2-dinov2"
+    assert (model["model"], model["modelVersion"]) == (dp.MODEL, dp.MODEL_VERSION) and dp.VERSION == "1.2.0+ridge-siglip2-dinov2"
     ev = model["evaluation"]
     assert ev["holdoutSource"] == "newer_from_older" and model["holdoutSpearman"] == pytest.approx(ev["holdoutSpearman"])
     assert ev["holdoutCount"] >= dp.MIN_HOLDOUT_TEST and ev["holdoutTestMinIndices"] == 20
@@ -386,6 +387,9 @@ def test_a_non_finite_number_is_never_an_estimate():
     assert dp._estimate("a", p, dp.MODEL, float("nan"), np.zeros(4), True, 10, "t") is None
     assert dp._estimate("a", p, dp.MODEL, 0.1, np.array([np.nan, 0, 0, 0.2]), True, 10, "t") is None
     assert dp._estimate("a", p, dp.MODEL, 0.1, np.array([-0.1, 0, 0.1, 0.2]), True, 10, "t").log_p90 == 0.2
+    wide = dp._estimate("a", p, dp.MODEL, 0.1, np.array([-1.9, -0.9, 0.6, 1.1]), True, 10, "t")  # 3.0 wide: the API refuses > 1.5
+    assert wide.log_p90 - wide.log_p10 == pytest.approx(dp.MAX_INTERVAL_WIDTH, abs=1e-4)
+    assert wide.log_p10 < wide.log_p25 < wide.log_difficulty < wide.log_p75 < wide.log_p90 and wide.log_p10 == pytest.approx(0.1 - 2.0 / 3 * 1.49, abs=1e-4)
 
 
 def test_tiers_match_difficulty_tier_from_score():
@@ -452,3 +456,233 @@ def test_a_signal_only_the_extras_carry_is_learned_and_a_puzzle_without_extras_k
         del server.analyses[key]
     without = run(api, force_model=True)[dp.MODEL]["overall"]["spearman"]
     assert with_flat > without + 0.02
+
+
+# 1.2.0 -------------------------------------------------------------------------------------------------------------
+def test_the_model_of_record_is_ridge_plus_kernel_ridge_and_records_both_parts(api, big):
+    m = run(api)[dp.MODEL]
+    ev = big.models[0]["evaluation"]
+    kernel = ev["learners"]["kernelRidge"]
+    assert (kernel["share"], kernel["bandwidth"], kernel["alpha"], kernel["nystrom"]) == (0.5, dp.KERNEL_BANDWIDTH, dp.KERNEL_ALPHA, False)
+    parts = ev["holdouts"]["newerFromOlder"]["components"]
+    assert parts["ridge"]["spearman"] > 0.8 and parts["kernelRidge"]["spearman"] > 0.5 and m["holdoutSpearman"] > 0.85
+    assert ev["newest30"]["testMinIndices"] == 10 and ev["newest30"]["overall"]["count"] > 30
+    assert {(g["sizeGroup"], g["imageKind"]) for g in ev["newest30"]["groups"]} >= {("500", "flat"), ("all", "box")}
+    assert ev["holdouts"]["newerFromOlder"]["intervalTable"]["overall"]["window80Hit"] is not None
+
+
+def test_kernel_ridge_learns_what_a_line_cannot():
+    rng = np.random.default_rng(11)
+    n = 500
+    E = np.c_[rng.normal(size=(n, 3)), np.zeros((n, 5))].astype(np.float32) / 2
+    y = np.sin(3 * E[:, 0]) + np.cos(3 * E[:, 1]) + rng.normal(scale=0.05, size=n)
+    D = dp.Design(E.copy(), E, np.zeros((n, 0), np.float32), np.ones((n, 1), np.float32))
+    w = np.ones(n)
+    tr, te = np.arange(400), np.arange(400, 500)
+    kernel = dp.KernelRidge(bandwidth=0.5, alpha=0.01).fit(D[tr], y[tr], w[tr]).predict(D[te])
+    line = dp.fit(D.X[tr], y[tr], w[tr]).predict(dp.Design(D.X[te]))
+    assert np.mean((kernel - y[te]) ** 2) < 0.5 * np.mean((line - y[te]) ** 2)
+
+
+def test_the_nystrom_fallback_approximates_the_exact_kernel(monkeypatch):
+    rng = np.random.default_rng(12)
+    n = 600
+    E = (rng.normal(size=(n, 6)) / 4).astype(np.float32)
+    y = E @ rng.normal(size=6) + np.sin(4 * E[:, 0])
+    D = dp.Design(E.copy(), E, rng.normal(size=(n, 3)).astype(np.float32), np.ones((n, 2), np.float32))
+    w = rng.uniform(0.3, 1.0, size=n)
+    exact = dp.KernelRidge().fit(D[:500], y[:500], w[:500])
+    monkeypatch.setattr(dp, "NYSTROM_ABOVE", 100)
+    monkeypatch.setattr(dp, "NYSTROM_LANDMARKS", 300)
+    approx = dp.KernelRidge().fit(D[:500], y[:500], w[:500])
+    assert approx.nystrom and not exact.nystrom and len(approx.basis) == 300
+    a, b = exact.predict(D[500:]), approx.predict(D[500:])
+    assert np.corrcoef(a, b)[0, 1] > 0.98 and np.mean(np.abs(a - b)) < 0.05
+
+
+def test_intervals_follow_the_doubt_and_the_50_percent_window_is_pushed(api, server):
+    planted(server, n=900, labelled=850, seed=5)
+    run(api)
+    ev = server.models[0]["evaluation"]
+    assert ev["intervalModel"]["method"].startswith("heteroscedastic") and ev["intervalModel"]["count"] >= dp.MIN_SIGMA_ROWS
+    assert 0.72 <= ev["holdouts"]["newerFromOlder"]["overall"]["window80Hit"] <= 0.92
+    assert 0.38 <= ev["holdouts"]["newerFromOlder"]["overall"]["window50Hit"] <= 0.65
+    width = {"flat": [], "box": []}
+    for i in range(900):
+        e = server.estimates[pid(i)]
+        assert e["logP10"] <= e["logP25"] <= e["logDifficulty"] <= e["logP75"] <= e["logP90"]
+        width["flat" if i % 2 else "box"].append(e["logP90"] - e["logP10"])
+    assert np.median(width["box"]) > 1.5 * np.median(width["flat"])  # box photos carry more hidden noise (planted)
+    labelled = [p for p in server.labels if server.labels[p]["indexCount"] >= 3]
+    assert 0.38 <= np.mean([server.estimates[p]["logP25"] <= server.labels[p]["logDifficulty"] <= server.estimates[p]["logP75"] for p in labelled]) <= 0.62
+
+
+def test_a_heteroscedastic_interval_never_uses_its_own_label_or_residual():
+    """The analogue of test_an_interval_never_contains_its_own_residual for the σ̂ model: fold 2's labels (its own
+    residuals and the kNN labels) never reach fold 2's intervals - only the other folds do."""
+    rng = np.random.default_rng(14)
+    n_rows = 600
+    vectors = rng.normal(size=(n_rows, 12)).astype(np.float32)
+    pred = rng.normal(scale=0.2, size=n_rows)
+    kinds = ["flat" if i % 2 else "box" for i in range(n_rows)]
+    y = pred + rng.normal(size=n_rows) * np.where(np.array(kinds) == "box", 0.15, 0.05)
+    fold = np.arange(n_rows) % 5
+    crops = np.c_[np.zeros((n_rows, 3)), np.ones(n_rows), np.full(n_rows, 3.5)]
+
+    def bounds(labels):
+        ctx = dp.Context(labels, np.full(n_rows, 30), ["500"] * n_rows, kinds, crops, dp.unit_rows(vectors).astype(np.float16), dp.Neighbours(vectors))
+        return dp.oof_bounds(ctx, pred, fold)
+
+    before = bounds(y)
+    y2 = y.copy()
+    y2[fold == 2] += 3.0  # every label of fold 2 absurd: fold 2's own intervals must not move
+    after = bounds(y2)
+    assert np.allclose(before[fold == 2], after[fold == 2]) and not np.allclose(before[fold != 2], after[fold != 2])
+    width = before[:, 3] - before[:, 0]
+    assert np.median(width[np.array(kinds) == "box"]) > 2 * np.median(width[np.array(kinds) == "flat"])
+
+
+def test_the_paired_guard_scores_the_stored_model_on_tonights_newer_puzzles(api, server, tmp_path):
+    planted(server, n=900, labelled=850, seed=5)
+    first = run(api, report_dir=tmp_path)[dp.MODEL]
+    assert first["pairedGuard"]["compared"] is False and "no stored holdout model" in first["pairedGuard"]["skipped"]
+    assert (tmp_path / "difficulty_prior-ridge-siglip2-dinov2-holdout.pkl").exists()
+    second = run(api, report_dir=tmp_path)[dp.MODEL]
+    paired = server.models[-1]["evaluation"]["guard"]["paired"]
+    assert second["pairedGuard"] == {"compared": True, "skipped": None, "regression": None}
+    assert paired["count"] >= dp.GUARD_MIN_TEST and paired["stored"]["spearman"] == pytest.approx(paired["tonight"]["spearman"], abs=1e-9)
+    assert paired["stored"]["window80Hit"] == pytest.approx(paired["tonight"]["window80Hit"])
+
+
+def test_the_paired_guard_blocks_a_model_regression_the_record_check_lets_through(api, server, tmp_path, monkeypatch):
+    planted(server, n=900, labelled=850, seed=5)
+    run(api, report_dir=tmp_path)
+    before = {p: dict(e) for p, e in server.estimates.items()}
+    monkeypatch.setattr(dp, "GUARD_DROP", 1.0)  # the record check would let anything through
+    monkeypatch.setattr(dp, "ALPHAS", np.array([1e7]))  # a ridge that has forgotten how to learn
+    monkeypatch.setattr(dp, "KERNEL_ALPHA", 1e4)
+    summary = run(api, report_dir=tmp_path)
+    m = summary[dp.MODEL]
+    assert "blocked" in m and "paired holdout" in m["blocked"] and m["pairedGuard"]["compared"] is True
+    assert len(server.models) == 1 and server.estimates == before
+    assert "paired holdout" in dp.blocked_lines(tmp_path)[0]
+
+
+def test_the_paired_verdict():
+    old = {"spearman": 0.72, "mae": 0.085}
+    assert dp.paired_verdict(old, {"spearman": 0.71, "mae": 0.086}) is None
+    assert "Spearman" in dp.paired_verdict(old, {"spearman": 0.69, "mae": 0.085})
+    assert "MAE" in dp.paired_verdict(old, {"spearman": 0.72, "mae": 0.090})
+
+
+def test_the_paired_guard_is_skipped_when_the_inputs_changed_shape(api, server, tmp_path):
+    planted(server, n=900, labelled=850, seed=5)
+    run(api, report_dir=tmp_path)
+    for i in range(900):
+        put(server, "traits", pid(i), {"flatShare": 0.1 * (i % 7), "detail": 1.0})
+    m = run(api, report_dir=tmp_path)[dp.MODEL]
+    assert m["pairedGuard"]["compared"] is False and "inputs changed shape" in m["pairedGuard"]["skipped"] and m["pushed"]["stored"] == 900
+
+
+def test_pixels_per_piece_crop_flags_and_crop_trust_go_with_the_estimate(api, big):
+    put(big, "artwork", pid(3), {"kind": "flat", "method": "trim", "quality": {"reasons": [], "artworkShare": 1, "artworkPixels": {"width": 2000, "height": 1000}}})
+    put(big, "artwork", pid(4), {"kind": "box_front", "method": "vlm+widen+face", "quality": {"reasons": ["not_digital_artwork"], "artworkShare": 0.7, "artworkPixels": {"width": 900, "height": 600}}})
+    put(big, dp.CROP_TRUST, pid(3), {"trust": 0.91})
+    summary = run(api)
+    assert big.estimates[pid(3)]["pixelsPerPiece"] == pytest.approx(np.sqrt(2000 * 1000 / big.puzzles[pid(3)]["piecesCount"]), abs=0.01)
+    assert big.estimates[pid(3)]["cropTrust"] == 0.91 and "cropTrust" not in big.estimates[pid(4)]
+    assert "pixelsPerPiece" not in big.estimates[pid(5)] and summary["cropTrust"] == {"puzzles": 1}
+    crop = dp.crop_of({"kind": "box_front", "method": "vlm+widen+face", "quality": {"reasons": ["not_digital_artwork"], "artworkShare": 0.7}})
+    assert (crop.uncertain, crop.face, crop.trim, crop.share) == (1.0, 1.0, 0.0, 0.7)
+    assert dp.crop_of({"kind": "flat", "method": "trim", "quality": {"reasons": ["not_digital_artwork"], "artworkShare": 0.95}}).uncertain == 0.0
+
+
+def test_an_optional_analyzer_the_api_does_not_know_is_left_out(api, big):
+    from puzzle_vision.api import BadRequest
+
+    def rows(analyzer):
+        if analyzer in (dp.CROP_TRUST, dp.PIECE_SCALE):
+            raise BadRequest(400, f"unknown analyzer {analyzer}")
+        return api.iter_analyses(analyzer, only_current=True, limit=1000)
+
+    summary = run(api, rows=rows)
+    assert summary[dp.MODEL]["pushed"]["stored"] == 600 and summary["dropped"]["crop_trustUnavailable"] == 1
+    assert summary["pieceScale"]["inModel"] is False
+
+
+def piece_scale(server, share):
+    rng = np.random.default_rng(13)
+    for i in range(600):
+        if i < share * 600:
+            put(server, dp.PIECE_SCALE, pid(i), {"real": {k: float(rng.uniform()) for k in dp.PIECE_SCALE_NAMES}}, version="1.0.0+cpu")
+
+
+def test_piece_scale_joins_the_numbers_once_it_covers_the_training_rows(api, server):
+    planted(server)
+    piece_scale(server, 0.5)
+    half = run(api)
+    assert half["pieceScale"]["inModel"] is False and server.models[-1]["modelVersion"] == dp.MODEL_VERSION
+    piece_scale(server, 1.0)
+    full = run(api)
+    assert full["pieceScale"] == {"puzzles": 600, "trainingCoverage": 1.0, "inModel": True, "minCoverage": dp.PIECE_SCALE_MIN_COVERAGE}
+    assert server.models[-1]["modelVersion"] == dp.PIECE_SCALE_MODEL_VERSION == server.estimates[pid(1)]["modelVersion"]
+    assert "piece_scale" in server.models[-1]["evaluation"]["features"] and full["inputVersions"]["piece_scale"] == "1.0.0+cpu"
+
+
+def test_picture_factors_come_from_a_frozen_basis_of_the_same_embedding_model(api, big, monkeypatch):
+    rows = [big.analyses[("embed_siglip2", pid(i))] for i in range(600)]
+    vectors = np.vstack([np.frombuffer(base64.b64decode(r["result"]["vector"]), dtype="<f2") for r in rows]).astype(np.float32)
+    basis = dp.fit_picture_factor_basis(vectors, "test", "1.0.0+test")
+    F = (dp.unit_rows(vectors) - basis["mean"]) @ basis["components"].T / basis["scale"]
+    assert F.shape == (600, 16) and np.allclose(F.mean(0), 0, atol=1e-4) and np.allclose(F.std(0, ddof=1), 1, atol=1e-3)
+    monkeypatch.setattr(dp, "load_picture_factor_basis", lambda version=dp.PICTURE_FACTORS_VERSION: basis)
+    summary = run(api)
+    e = big.estimates[pid(9)]
+    assert e["pictureFactorsVersion"] == dp.PICTURE_FACTORS_VERSION and len(e["pictureFactors"]) == 16
+    assert e["pictureFactors"] == pytest.approx(F[9].tolist(), abs=1e-3) and summary["pictureFactors"]["puzzles"] == 600
+    monkeypatch.setattr(dp, "load_picture_factor_basis", lambda version=dp.PICTURE_FACTORS_VERSION: basis | {"model": "another-model"})
+    skipped = run(api)
+    assert "is not the basis' model" in skipped["pictureFactors"]["skipped"] and "pictureFactors" not in big.estimates[pid(9)]
+
+
+def test_a_brand_x_size_effect_the_picture_cannot_see_is_learned_as_an_offset(api, server, monkeypatch):
+    planted(server, n=900, labelled=850, seed=5, noise=0.03)
+    for i in range(900):  # brand 3 cuts its 500s harder than the picture says
+        if i % 12 == 3 and server.puzzles[pid(i)]["piecesCount"] == 500 and pid(i) in server.labels:
+            server.labels[pid(i)]["logDifficulty"] += 0.25
+    run(api)
+    ev = server.models[-1]["evaluation"]
+    assert ev["brandSizeOffset"]["pseudoCount"] == dp.BRAND_SIZE_PSEUDO_COUNT and ev["brandSizeOffset"]["groups"] >= 20
+    assert "ensembleWithoutBrandSizeOffset" in ev["holdouts"]["newerFromOlder"]["components"]
+    unlabelled = [pid(i) for i in range(850, 900) if i % 12 == 3 and server.puzzles[pid(i)]["piecesCount"] == 500]
+    lifted = [server.estimates[p]["logDifficulty"] for p in unlabelled]
+    monkeypatch.setattr(dp, "BRAND_SIZE_PSEUDO_COUNT", None)
+    run(api, force_model=True)
+    off = server.models[-1]["evaluation"]
+    assert off["brandSizeOffset"] == "off"
+    assert ev["holdouts"]["newerFromOlder"]["overall"]["mae"] < 0.9 * off["holdouts"]["newerFromOlder"]["overall"]["mae"]
+    assert ev["overall"]["mae"] < 0.9 * off["overall"]["mae"]
+    assert np.mean(lifted) > np.mean([server.estimates[p]["logDifficulty"] for p in unlabelled]) + 0.1
+
+
+def test_nested_offsets_never_use_the_labels_of_the_rows_they_are_for():
+    rng = np.random.default_rng(15)
+    n_rows = 300
+    X = rng.normal(size=(n_rows, 5))
+    keys = [f"b{i % 6}|500" for i in range(n_rows)]
+    y = X @ rng.normal(size=5) + np.array([0.3 if k == "b1|500" else 0.0 for k in keys]) + rng.normal(scale=0.05, size=n_rows)
+    w = np.ones(n_rows)
+    fold = np.arange(n_rows) % 5
+    before = dp.nested_offsets(dp.Design(X), y, w, fold, keys, 10.0)
+    y2 = y.copy()
+    y2[fold == 2] += 5.0
+    after = dp.nested_offsets(dp.Design(X), y2, w, fold, keys, 10.0)
+    assert np.allclose(before[fold == 2], after[fold == 2]) and not np.allclose(before[fold != 2], after[fold != 2])
+    assert np.mean(before[np.array(keys) == "b1|500"]) > 0.15 and dp.BrandSizeOffsets(keys, y * 0, w, 10.0)(["new|500", None]).tolist() == [0.0, 0.0]
+
+
+def test_the_committed_basis_is_the_siglip2_so400m_crop_basis():
+    basis = dp.load_picture_factor_basis()
+    assert basis is not None and basis["version"] == dp.PICTURE_FACTORS_VERSION and basis["model"] == "so400m-14-384"
+    assert basis["components"].shape == (16, int(basis["dim"])) == (16, 1152) and basis["scale"].shape == (16,)
+    assert np.allclose(basis["components"] @ basis["components"].T, np.eye(16), atol=1e-4)

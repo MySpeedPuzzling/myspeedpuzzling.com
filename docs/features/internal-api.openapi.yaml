@@ -4120,6 +4120,36 @@ components:
           type: [string, "null"]
           format: date-time
           description: The pipeline's clock (UTC without an offset); absent = the moment of the push
+        logP25:
+          type: [number, "null"]
+          minimum: -5
+          maximum: 5
+          description: "Since difficulty_prior 1.2.0, with logP75 (both or neither): logP10 <= logP25 <= logDifficulty"
+        logP75:
+          type: [number, "null"]
+          minimum: -5
+          maximum: 5
+          description: "With logP25: logDifficulty <= logP75 <= logP90 - the pipeline's own 50 % interval"
+        pixelsPerPiece:
+          type: [number, "null"]
+          exclusiveMinimum: 0
+          maximum: 100000
+          description: The side of one piece in pixels of the original picture - sqrt(artwork width x height / pieces)
+        cropTrust:
+          type: [number, "null"]
+          minimum: 0
+          maximum: 1
+          description: The crop_trust analyzer's trust in the artwork crop of the same picture; null = no such analysis
+        pictureFactors:
+          type: [array, "null"]
+          minItems: 16
+          maxItems: 16
+          items: { type: number, minimum: -100, maximum: 100 }
+          description: The SigLIP 2 crop vector on a frozen, whitened PCA basis (unit variance over the catalogue) - needs pictureFactorsVersion
+        pictureFactorsVersion:
+          type: [string, "null"]
+          maxLength: 50
+          description: The version of the picture-factor basis - required with pictureFactors, refused without them
     PuzzleDifficultyEstimateModelBody:
       type: object
       additionalProperties: false

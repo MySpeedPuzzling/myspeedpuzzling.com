@@ -183,8 +183,9 @@ class DifficultyLabel:
 
 @dataclass
 class DifficultyEstimate:
-    """One item of `PUT /internal-api/puzzle-difficulty-estimates` - log space like the label; log_p10 <= log_difficulty
-    <= log_p90 (|value| <= 5); `out_of_fold` = a labelled puzzle estimated by a model that did not see it."""
+    """One item of `PUT /internal-api/puzzle-difficulty-estimates` - log space like the label; log_p10 <= log_p25 <=
+    log_difficulty <= log_p75 <= log_p90 (|value| <= 5); `out_of_fold` = a labelled puzzle estimated by a model that did
+    not see it."""
 
     puzzle_id: str
     model: str
@@ -196,6 +197,14 @@ class DifficultyEstimate:
     training_size: int
     fingerprint: str
     computed_at: str | None = None
+    # since difficulty_prior 1.2.0, all optional (None = not known, not sent): the 50 % window, the side of one piece in
+    # pixels of the original picture, the `crop_trust` analyzer's trust, the 16 picture factors + their basis version
+    log_p25: float | None = None
+    log_p75: float | None = None
+    pixels_per_piece: float | None = None
+    crop_trust: float | None = None
+    picture_factors: list[float] | None = None
+    picture_factors_version: str | None = None
 
     def to_api(self) -> dict[str, Any]:
         d: dict[str, Any] = {
@@ -211,6 +220,10 @@ class DifficultyEstimate:
         }
         if self.computed_at:
             d["computedAt"] = self.computed_at
+        optional = {"logP25": self.log_p25, "logP75": self.log_p75, "pixelsPerPiece": self.pixels_per_piece,
+                    "cropTrust": self.crop_trust, "pictureFactors": self.picture_factors,
+                    "pictureFactorsVersion": self.picture_factors_version}
+        d |= {k: ([float(x) for x in v] if isinstance(v, list) else v) for k, v in optional.items() if v is not None}
         return d
 
 

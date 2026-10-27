@@ -737,8 +737,64 @@ code; in the suite `ShownModelParityTest` (synthetic players, puzzles, estimates
 fitted: the batch, the fit, the batch with that fit, and five players' predictions of every puzzle, against what main
 recorded - `ShownModelParity.json`).
 
-The 15-minute batch's own peak is not the prediction model: its derived metrics step reaches ~420 MB resident on the
-copy (one array per solo solve and the whole statement in the client library) - docs/TODO.md.
+#### Memory of the 15-minute batch (2026-10-27)
+
+`recalculate-puzzle-intelligence` runs every 15 minutes the same way (`docker compose run --rm --no-deps
+messenger-consumer ...`, killed at 512 MB resident). Five of its steps held a whole large statement twice - in the
+client library (pdo_pgsql buffers every result) and as one PHP array per row: the improvement ratios, derived metrics
+and skills peaked at 407-429 MB, the ratings at ~350, the baselines at ~310 - far above the prediction model's ~230 MB,
+and 80-100 MB from the kill. Cut without changing a single output, with the same levers as the daily fit's:
+
+- every large statement through a server-side cursor (`CursorRows`): the baselines' qualifying first attempts, the
+  improvement ratios' solves, the derived metrics' solves, the skills' two first-attempt statements, the ratings'
+  first-attempt, best-time and per-player statements;
+- computed while the rows stream by instead of kept: the derived metrics of a puzzle once its solves are complete
+  (`DerivedMetricsCalculator` holds one puzzle's solves, then its five numbers), a player's improvement ratios once
+  the stream is past the player and the global ratios' groups directly (`ImprovementRatioCalculator`, no transition
+  arrays), the ratings' first-attempt pool deduplicated by the row order (no map per player);
+- packed what is kept for a later loop: a player's qualifying first attempts per size (`PlayerBaselineCalculator`, 23
+  bytes an attempt), a player's first attempts on the skill's comparison puzzles only (`PlayerSkillCalculator`, 28
+  bytes), a player's 24-month solves of the rating (`MspRatingCalculator`, 83 bytes) - unpacked per player, in the
+  same order;
+- where the order is part of the result (a weighted median sums its weights in the given order), the statement says
+  the order it always had: the window of the baselines' and the skills' first attempts sorts by player and puzzle,
+  `ORDER BY player_id, puzzle_id` now pins it.
+
+Each step's own resident peak is printed with `-v` (`PeakMemory::resetResidentPeak()` before each step: "5" to
+`/proc/self/clear_refs` starts VmHWM over, the step's peak is VmHWM after it).
+
+Each step's peak resident memory on the production copy (2026-10-26: 565,741 times, 6,662 puzzles with a difficulty,
+314,879 rating entries; the copy has no player rows, so 12,048 were added with production's `is_private` /
+`ranking_opted_out`), `APP_ENV=prod`, `APP_DEBUG=0`, `memory_limit=1G`, a 512 MB container without swap, the same
+frozen clock; VmRSS sampled every 50 ms between step markers, four runs each (the first run writing everything, one
+after the same moved / dropped rows and 300 new solves, two steady), old and new interleaved:
+
+| step | before (main) | after |
+|---|---|---|
+| baselines | 297-321 MB | 99-101 MB |
+| pace history | 94-95 MB | 92 MB |
+| improvement ratios | 407-429 MB | 95-98 MB |
+| difficulty | 231-232 MB | 228-229 MB |
+| prediction model | 222-224 MB | 220-223 MB |
+| derived metrics | 416-424 MB | 142 MB |
+| skills | 417-423 MB | 134-137 MB |
+| ratings | 343-352 MB | 145-155 MB |
+| **whole batch (VmHWM)** | **428-429 MB** (RssAnon 391-399) | **228-229 MB** (RssAnon 198-199) |
+| time (first / after moves / steady) | 30.2 / 22.7 / 19.7-20.7 s | 28.1 / 23.1 / 20.8-21.3 s |
+
+The batch's peak is now the difficulty step's (the pace timeline and the first attempts, "Memory of the daily fit");
+the in-process `-v` column (the true per-step VmHWM) is 0-6 MB above the 50 ms sampling. Times are within the
+laptop's noise; the ratings
+step reads its three statements through the cursor ~0.5 s slower in a steady run (4.5-5.6 vs 3.6-4.8 s).
+
+Every output is the same to the bit: on two copies of the production copy (main's code on one, this code on the
+other) every table the batch writes - `player_baseline`, `player_pace_history`, both improvement ratio tables,
+`puzzle_difficulty` with its derived metrics, `player_skill`, `player_elo`, `player_rating_entry`,
+`puzzle_rating_times`, `player_skill_history`, `player_rating_snapshot`, the prior tables, `prediction_model_fit` and
+the insights generation - compared by md5 of its full dump (without the generated ids) after each of the four runs;
+in the suite `InsightsBatchParityTest` (synthetic data with many solvers per puzzle, so every derived metric, skill and
+rating is computed: two runs, the second after moved and dropped rows, against what main recorded -
+`InsightsBatchParity.json`).
 
 ### Shared by every read path
 

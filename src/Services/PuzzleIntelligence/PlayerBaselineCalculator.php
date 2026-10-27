@@ -17,7 +17,21 @@ final class PlayerBaselineCalculator implements ResetInterface
     private const int SCALING_EXPONENT_MIN_PLAYERS = 50;
     public const float SCALING_EXPONENT_DEFAULT = 1.3;
 
-    /** @var array<string, array<int, list<array{seconds_to_solve: int|string, solve_date: string}>>>|null */
+    /**
+     * A qualifying first attempt packed into the preloaded cache: its seconds (32-bit signed) and its solve moment as
+     * Postgres prints a timestamp(0) - 'YYYY-MM-DD HH:MM:SS'
+     */
+    private const string PACKED_SECONDS = 'l';
+    private const int PACKED_DATE_LENGTH = 19;
+    private const int PACKED_LENGTH = 4 + self::PACKED_DATE_LENGTH;
+
+    /**
+     * player => pieces count => the player's qualifying first attempts of that size, packed (PACKED_LENGTH bytes each)
+     * in the statement's order - 23 bytes an attempt instead of a PHP array of two strings (with the cursor the step
+     * went from 297-321 to ~100 MB resident on the production copy, ~300k attempts, 2026-10-27)
+     *
+     * @var array<string, array<int, string>>|null
+     */
     private null|array $firstAttemptsCache = null;
 
     public function __construct(
@@ -27,21 +41,56 @@ final class PlayerBaselineCalculator implements ResetInterface
     }
 
     /**
-     * Bulk-load all first-attempt solves in one query.
+     * Bulk-load all first-attempt solves in one statement, read through a server-side cursor (CursorRows).
      * Call before the per-player loop for O(1) lookups instead of O(players × pieceCounts) queries.
+     *
+     * In the order the statement has always given them (its window sorts by player and puzzle; the order says so
+     * now): a player's attempts of a size in puzzle order - the weighted median sums their weights in that order.
      */
     public function preloadAllFirstAttempts(): void
     {
+        [$sql, $params, $types] = $this->qualifyingFirstAttemptsQuery();
         $cache = [];
 
-        foreach ($this->iterateQualifyingFirstAttempts() as $row) {
-            $cache[$row['player_id']][(int) $row['pieces_count']][] = [
-                'seconds_to_solve' => $row['seconds_to_solve'],
-                'solve_date' => $row['solve_date'],
-            ];
+        $rows = CursorRows::iterate($this->connection, "
+            SELECT player_id, pieces_count, seconds_to_solve, solve_date
+            FROM ({$sql}) first_attempts
+            ORDER BY player_id, puzzle_id
+        ", $params, $types);
+
+        foreach ($rows as $row) {
+            /** @var array{player_id: string, pieces_count: int|string, seconds_to_solve: int|string, solve_date: string} $row */
+            $playerId = $row['player_id'];
+            $piecesCount = (int) $row['pieces_count'];
+
+            if (strlen($row['solve_date']) !== self::PACKED_DATE_LENGTH) {
+                throw new \LogicException(sprintf('A solve moment of %d characters: %s', strlen($row['solve_date']), $row['solve_date']));
+            }
+
+            $cache[$playerId][$piecesCount] ??= '';
+            $cache[$playerId][$piecesCount] .= pack(self::PACKED_SECONDS, (int) $row['seconds_to_solve']) . $row['solve_date'];
         }
 
         $this->firstAttemptsCache = $cache;
+    }
+
+    /**
+     * @return list<array{seconds_to_solve: int, solve_date: string}>
+     */
+    private static function unpackFirstAttempts(string $packed): array
+    {
+        $solves = [];
+
+        for ($offset = 0, $length = strlen($packed); $offset < $length; $offset += self::PACKED_LENGTH) {
+            /** @var array{1: int} $seconds */
+            $seconds = unpack(self::PACKED_SECONDS, $packed, $offset);
+            $solves[] = [
+                'seconds_to_solve' => $seconds[1],
+                'solve_date' => substr($packed, $offset + 4, self::PACKED_DATE_LENGTH),
+            ];
+        }
+
+        return $solves;
     }
 
     /**
@@ -178,7 +227,7 @@ final class PlayerBaselineCalculator implements ResetInterface
     public function calculateForPlayer(string $playerId, int $piecesCount): null|array
     {
         $solves = $this->firstAttemptsCache !== null
-            ? ($this->firstAttemptsCache[$playerId][$piecesCount] ?? [])
+            ? self::unpackFirstAttempts($this->firstAttemptsCache[$playerId][$piecesCount] ?? '')
             : $this->fetchFirstAttemptSolves($playerId, $piecesCount);
 
         if (count($solves) < self::MINIMUM_SOLVE_COUNT) {

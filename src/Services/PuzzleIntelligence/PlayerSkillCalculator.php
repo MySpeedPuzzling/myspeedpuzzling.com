@@ -19,6 +19,12 @@ final class PlayerSkillCalculator implements ResetInterface
     private const float DECAY_PLATEAU_MONTHS = 6.0;
     private const float DECAY_RATE_MONTHS = 24.0;
 
+    /** A player's puzzle packed in the preloaded cache: number, time, flagged first attempt (9 bytes), solve moment */
+    private const string PACKED_HEAD = 'Npuzzle/ltime/Cfirst';
+    private const string PACKED_HEAD_FORMAT = 'NlC';
+    private const int PACKED_DATE_LENGTH = 19;
+    private const int PACKED_LENGTH = 9 + self::PACKED_DATE_LENGTH;
+
     /**
      * Pre-computed puzzle data: sorted first-attempt times + difficulty info.
      *
@@ -27,12 +33,20 @@ final class PlayerSkillCalculator implements ResetInterface
     private null|array $puzzleCache = null;
 
     /**
-     * Per-player first-attempt times per puzzle with solve dates.
-     * Uses "eldest as proxy" rule: prefers first_attempt=true, falls back to earliest solve.
+     * Per-player first-attempt times per puzzle with solve dates, of the puzzles in $puzzleCache only (the others never
+     * count). Uses "eldest as proxy" rule: prefers first_attempt=true, falls back to earliest solve.
      *
-     * @var array<string, array<string, array{time: int, solve_date: string, is_first_attempt: bool}>>|null player_id => puzzle_id => data
+     * Packed, in puzzle order: per puzzle its number in $puzzleIds, the time, whether it is a flagged first attempt and
+     * the solve moment as Postgres prints a timestamp(0) (PACKED_LENGTH bytes) - instead of an array per player and
+     * puzzle keyed by the puzzle's id (with the cursors the step went from 417-423 to ~135 MB resident on the production
+     * copy, 2026-10-27).
+     *
+     * @var array<string, string>|null player_id => packed puzzles
      */
     private null|array $playerPuzzleTimesCache = null;
+
+    /** @var list<string> puzzle number => puzzle id, of the packed records */
+    private array $puzzleIds = [];
 
     public function __construct(
         private readonly Connection $connection,
@@ -66,9 +80,10 @@ final class PlayerSkillCalculator implements ResetInterface
             ];
         }
 
-        // Load strict first-attempt times per puzzle (for comparison pool / sorted_times)
-        /** @var list<array{puzzle_id: string, seconds_to_solve: int|string}> $strictFirstAttempts */
-        $strictFirstAttempts = $this->connection->fetchAllAssociative("
+        // Load strict first-attempt times per puzzle (for comparison pool / sorted_times) - every large statement here
+        // through a server-side cursor (CursorRows): never the whole result in the client library at once
+        /** @var iterable<array{puzzle_id: string, seconds_to_solve: int|string}> $strictFirstAttempts */
+        $strictFirstAttempts = CursorRows::iterate($this->connection, "
             SELECT pst.puzzle_id, pst.seconds_to_solve
             FROM puzzle_solving_time pst
             JOIN puzzle p ON p.id = pst.puzzle_id
@@ -84,41 +99,6 @@ final class PlayerSkillCalculator implements ResetInterface
 
         foreach ($strictFirstAttempts as $row) {
             $puzzleTimesMap[$row['puzzle_id']][] = (int) $row['seconds_to_solve'];
-        }
-
-        // Load player times using "eldest as proxy" rule: prefer first_attempt=true, fall back to earliest solve
-        /** @var list<array{puzzle_id: string, player_id: string, seconds_to_solve: int|string, solve_date: string, is_first_attempt: string}> $playerFirstAttempts */
-        $playerFirstAttempts = $this->connection->fetchAllAssociative("
-            SELECT puzzle_id, player_id, seconds_to_solve, solve_date, is_first_attempt
-            FROM (
-                SELECT
-                    pst.puzzle_id,
-                    pst.player_id,
-                    pst.seconds_to_solve,
-                    COALESCE(pst.finished_at, pst.tracked_at) AS solve_date,
-                    pst.first_attempt AS is_first_attempt,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY pst.player_id, pst.puzzle_id
-                        ORDER BY pst.first_attempt DESC, COALESCE(pst.finished_at, pst.tracked_at) ASC
-                    ) AS rn
-                FROM puzzle_solving_time pst
-                JOIN puzzle p ON p.id = pst.puzzle_id
-                WHERE p.pieces_count = :piecesCount
-                    AND pst.puzzling_type = 'solo'
-                    AND pst.suspicious = false
-                    AND pst.seconds_to_solve IS NOT NULL
-            ) sub
-            WHERE rn = 1
-        ", ['piecesCount' => $piecesCount]);
-
-        $playerTimes = [];
-
-        foreach ($playerFirstAttempts as $row) {
-            $playerTimes[$row['player_id']][$row['puzzle_id']] = [
-                'time' => (int) $row['seconds_to_solve'],
-                'solve_date' => $row['solve_date'],
-                'is_first_attempt' => (bool) $row['is_first_attempt'],
-            ];
         }
 
         // Build final puzzle cache (sorted times + difficulty, filtered by min solvers)
@@ -141,20 +121,94 @@ final class PlayerSkillCalculator implements ResetInterface
             ];
         }
 
+        unset($puzzleTimesMap);
+        $puzzleNumbers = array_flip(array_map(strval(...), array_keys($puzzleCache)));
+
+        // Load player times using "eldest as proxy" rule: prefer first_attempt=true, fall back to earliest solve.
+        // In the order the statement has always given them (its window sorts by player and puzzle; the ORDER BY says
+        // so now): the weighted median sums a player's weights in that order.
+        /** @var iterable<array{puzzle_id: string, player_id: string, seconds_to_solve: int|string, solve_date: string, is_first_attempt: bool|string}> $playerFirstAttempts */
+        $playerFirstAttempts = CursorRows::iterate($this->connection, "
+            SELECT puzzle_id, player_id, seconds_to_solve, solve_date, is_first_attempt
+            FROM (
+                SELECT
+                    pst.puzzle_id,
+                    pst.player_id,
+                    pst.seconds_to_solve,
+                    COALESCE(pst.finished_at, pst.tracked_at) AS solve_date,
+                    pst.first_attempt AS is_first_attempt,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY pst.player_id, pst.puzzle_id
+                        ORDER BY pst.first_attempt DESC, COALESCE(pst.finished_at, pst.tracked_at) ASC
+                    ) AS rn
+                FROM puzzle_solving_time pst
+                JOIN puzzle p ON p.id = pst.puzzle_id
+                WHERE p.pieces_count = :piecesCount
+                    AND pst.puzzling_type = 'solo'
+                    AND pst.suspicious = false
+                    AND pst.seconds_to_solve IS NOT NULL
+            ) sub
+            WHERE rn = 1
+            ORDER BY player_id, puzzle_id
+        ", ['piecesCount' => $piecesCount]);
+
+        $playerTimes = [];
+
+        foreach ($playerFirstAttempts as $row) {
+            $puzzleNumber = $puzzleNumbers[$row['puzzle_id']] ?? null;
+
+            // A puzzle outside the comparison pool never counts (computeEntriesFromCache() skips it)
+            if ($puzzleNumber === null) {
+                continue;
+            }
+
+            if (strlen($row['solve_date']) !== self::PACKED_DATE_LENGTH) {
+                throw new \LogicException(sprintf('A solve moment of %d characters: %s', strlen($row['solve_date']), $row['solve_date']));
+            }
+
+            $playerTimes[$row['player_id']] ??= '';
+            $playerTimes[$row['player_id']] .= pack(self::PACKED_HEAD_FORMAT, $puzzleNumber, (int) $row['seconds_to_solve'], (bool) $row['is_first_attempt'] ? 1 : 0)
+                . $row['solve_date'];
+        }
+
         $this->puzzleCache = $puzzleCache;
+        $this->puzzleIds = array_keys($puzzleNumbers);
         $this->playerPuzzleTimesCache = $playerTimes;
     }
 
     public function clearPreloadedData(): void
     {
         $this->puzzleCache = null;
+        $this->puzzleIds = [];
         $this->playerPuzzleTimesCache = null;
     }
 
     public function reset(): void
     {
-        $this->puzzleCache = null;
-        $this->playerPuzzleTimesCache = null;
+        $this->clearPreloadedData();
+    }
+
+    /**
+     * A player's packed puzzles (preloadPuzzleData()) as puzzle id => time, solve moment and first-attempt flag, in
+     * the order they were loaded
+     *
+     * @return array<string, array{time: int, solve_date: string, is_first_attempt: bool}>
+     */
+    private function unpackPlayerTimes(string $packed): array
+    {
+        $times = [];
+
+        for ($offset = 0, $length = strlen($packed); $offset < $length; $offset += self::PACKED_LENGTH) {
+            /** @var array{puzzle: int, time: int, first: int} $head */
+            $head = unpack(self::PACKED_HEAD, $packed, $offset);
+            $times[$this->puzzleIds[$head['puzzle']]] = [
+                'time' => $head['time'],
+                'solve_date' => substr($packed, $offset + 9, self::PACKED_DATE_LENGTH),
+                'is_first_attempt' => $head['first'] === 1,
+            ];
+        }
+
+        return $times;
     }
 
     /**
@@ -242,7 +296,7 @@ final class PlayerSkillCalculator implements ResetInterface
     {
         assert($this->puzzleCache !== null && $this->playerPuzzleTimesCache !== null);
 
-        $playerTimes = $this->playerPuzzleTimesCache[$playerId] ?? [];
+        $playerTimes = $this->unpackPlayerTimes($this->playerPuzzleTimesCache[$playerId] ?? '');
         $entries = [];
         $now = $this->clock->now();
 

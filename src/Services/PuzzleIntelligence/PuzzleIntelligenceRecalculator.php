@@ -50,7 +50,7 @@ readonly final class PuzzleIntelligenceRecalculator
     }
 
     /**
-     * @return array{baselines_direct: int, baselines_interpolated: int, scaling_exponent: float, pace_history_changed_pairs: int, pace_history_rows_written: int, difficulties: int, drift_rows_written: int, metrics: int, improvement_ratios: int, skills: int, rating: int, history: int, snapshots: int, durations: array<string, float>, peak_memory: array<string, int>, rating_entries: array{written: int, deleted: int}, rating_times: array{written: int, deleted: int}, generation: int}
+     * @return array{baselines_direct: int, baselines_interpolated: int, scaling_exponent: float, pace_history_changed_pairs: int, pace_history_rows_written: int, difficulties: int, drift_rows_written: int, metrics: int, improvement_ratios: int, skills: int, rating: int, history: int, snapshots: int, durations: array<string, float>, peak_memory: array<string, int>, resident_peak: array<string, null|int>, rating_entries: array{written: int, deleted: int}, rating_times: array{written: int, deleted: int}, generation: int}
      */
     public function recalculate(null|string $specificPlayer = null, null|string $specificPuzzle = null): array
     {
@@ -74,15 +74,19 @@ readonly final class PuzzleIntelligenceRecalculator
          * Level 7: Insights generation (after the last write: caches of batch data key on it)
          */
 
-        // Seconds and the peak memory (MB) up to each step, printed by the command with -v (the batch's budget:
-        // it runs under PHP's 512 MB)
+        // Seconds, PHP's peak memory up to each step and each step's own peak resident memory (MB), printed by the
+        // command with -v - the batch's budget: its container is killed at 512 MB resident (README "Memory of the
+        // 15-minute batch")
         $durations = [];
         $peakMemory = [];
-        $step = static function (string $name, callable $run) use (&$durations, &$peakMemory): mixed {
+        $residentPeak = [];
+        $step = static function (string $name, callable $run) use (&$durations, &$peakMemory, &$residentPeak): mixed {
+            PeakMemory::resetResidentPeak();
             $startedAt = microtime(true);
             $result = $run();
             $durations[$name] = round(microtime(true) - $startedAt, 2);
             $peakMemory[$name] = (int) round(memory_get_peak_usage(true) / 1048576);
+            $residentPeak[$name] = PeakMemory::residentMegabytes();
             // Hand the step's freed memory back before the next one builds its own (the container has 512 MB)
             gc_mem_caches();
 
@@ -146,6 +150,7 @@ readonly final class PuzzleIntelligenceRecalculator
             'snapshots' => $snapshots,
             'durations' => $durations,
             'peak_memory' => $peakMemory,
+            'resident_peak' => $residentPeak,
             'rating_entries' => $ratings['entries'],
             'rating_times' => $ratings['times'],
             'generation' => $generation,

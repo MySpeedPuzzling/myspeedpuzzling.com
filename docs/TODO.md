@@ -44,11 +44,14 @@ that would otherwise be forgotten. Newest section on top.
   a change to the shown path, so its own PR with the fit compared before / after. Done 2026-10-27 (branch
   `v3-fit-memory`): 348-386 → 265-268 MB VmHWM on the production copy, every output the same to the bit
   (README "Memory of the daily fit", `ShownModelParityTest`)
-- [ ] The 15-minute batch's peak is its derived metrics step, not the prediction model: ~420 MB resident on the
+- [x] The 15-minute batch's peak is its derived metrics step, not the prediction model: ~420 MB resident on the
   production copy (`DerivedMetricsCalculator::preloadAllData()` keeps one array per solo solve, ~200 MB in PHP, and
   reads the statement buffered, ~100 MB more in the client library) - a cursor plus columns would take it to the
   ~230 MB of the difficulty and prediction model steps; check the `web` container's limit first (README "Memory of
-  the daily fit")
+  the daily fit"). Done 2026-10-27 (branch `batch-derived-metrics-memory`): improvement ratios, derived metrics,
+  skills, ratings and baselines were at 300-429 MB too; the whole batch 428-429 → 228-229 MB VmHWM on the production
+  copy (its peak is now the difficulty step), every table the same to the bit (README "Memory of the 15-minute
+  batch", `InsightsBatchParityTest`)
 - [x] Puzzles players disagree about most (dispersion ≥ 0.02): the weighted mean is 2.9 % worse than the shown median
   there - a robust index weight measured with v6 and left out (README "Candidate v6": −2.4 % there, ±0 overall, odd
   sizes worse, O(k²) per as-of moment)

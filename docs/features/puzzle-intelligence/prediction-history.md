@@ -480,7 +480,9 @@ for every solo time next to the shown model and **never shown**. One more predic
    backfill run - both lock a player's times):
    `nohup docker compose exec -T -e SENTRY_DSN= web php -d memory_limit=1G bin/console myspeedpuzzling:backfill-solving-time-predictions > /tmp/backfill-candidate.log 2>&1 &`
    The 4×-daily cron would get there too, a player at a time.
-4. Measure on production whenever wanted (read only, ~1-2 GB, a few minutes - run it on a copy or off-peak):
+4. Gate it on the stored rows once the backfill has filled them (docs/features/insights/image-estimate-gates.md
+   "Candidate time models"): `myspeedpuzzling:evaluate-prediction-candidate --candidate=candidate:4 --reference=statistical:3`.
+   The time-split measurement (read only, ~1-2 GB, a few minutes - on a copy or off-peak):
    `myspeedpuzzling:evaluate-predictions --fit-before=<date> --candidate` and `--ablation`.
 
 ## Rollout

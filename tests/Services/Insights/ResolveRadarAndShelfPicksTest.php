@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\Insights;
 
+use SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence\ImageEstimates\GateV2Numbers;
 use SpeedPuzzling\Web\Tests\TestClock;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
@@ -202,20 +203,11 @@ final class ResolveRadarAndShelfPicksTest extends KernelTestCase
         self::assertSame(0, $closed->withExpectedTime);
 
         $this->connection->executeStatement(
-            "INSERT INTO image_estimate_evaluation (id, evaluated_at, model_version, newer_than, measured_min_indices, groups, overall, by_k)
-            VALUES (:id, " . TestClock::SQL_NOW . ", :version, " . TestClock::SQL_NOW . " - INTERVAL '1 year', 10, CAST(:groups AS jsonb), '{}', '[]')",
-            ['id' => Uuid::uuid7()->toString(), 'version' => TimePredictionCalculator::MODEL_VERSION, 'groups' => json_encode([[
-                'sizeGroup' => PiecesGroup::Odd->value,
-                'imageKind' => ImageKind::Flat->value,
-                'measuredPuzzles' => 80,
-                'spearman' => 0.7,
-                'tierWithinOne' => 0.9,
-                'tierExact' => 0.6,
-                'alwaysAverage' => 0.4,
-                'window50Hit' => 0.5,
-                'window80Hit' => 0.8,
-                'estimateModels' => ['ridge-siglip2-dinov2 1.0.0' => 80],
-            ]], JSON_THROW_ON_ERROR)],
+            "INSERT INTO image_estimate_evaluation (id, evaluated_at, model_version, newer_than, measured_min_indices, groups, overall, by_k, gate_version)
+            VALUES (:id, " . TestClock::SQL_NOW . ", :version, " . TestClock::SQL_NOW . " - INTERVAL '1 year', 10, CAST(:groups AS jsonb), '{}', '[]', 2)",
+            ['id' => Uuid::uuid7()->toString(), 'version' => TimePredictionCalculator::MODEL_VERSION, 'groups' => json_encode([
+                GateV2Numbers::passing(PiecesGroup::Odd->value, ImageKind::Flat->value, 'ridge-siglip2-dinov2 1.0.0', measuredPuzzles: 80),
+            ], JSON_THROW_ON_ERROR)],
         );
         self::getContainer()->get('services_resetter')->reset();
 

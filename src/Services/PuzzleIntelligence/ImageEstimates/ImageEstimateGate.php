@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence\ImageEstimates;
 
 use SpeedPuzzling\Web\Query\GetLatestImageEstimateEvaluation;
 use SpeedPuzzling\Web\Results\ImageEstimateEvaluationResult;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Evaluation\OutOfPeriodCalibration;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Evaluation\PredictionGroupAccumulator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Value\ImageKind;
 use SpeedPuzzling\Web\Value\PiecesGroup;
@@ -16,22 +18,20 @@ use Symfony\Contracts\Service\ResetInterface;
  * on once the out-of-sample gates pass", picture-only estimates show only where the gate passes, even after the
  * INSIGHTS_PUBLIC flag is gone). Reads the stored gate record (ImageEstimateEvaluation, the latest run of
  * `myspeedpuzzling:evaluate-image-estimates`) and applies the thresholds on read. **Fails closed**: no record, a record
- * of another model version, no numbers for the group, or a group with fewer than MIN_MEASURED_PUZZLES measured puzzles
- * = no.
+ * of the first gate rules (gate v1), a record of another model version, no numbers for the group, an estimate
+ * generation the record did not measure in the group = no.
  *
- * The gates (on newer puzzles, k = 0..4 - docs/features/insights/image-estimate-gates.md):
- * - Spearman of difficulty ≥ 0.6;
- * - tier within ±1 ≥ 80 % and exact tier ≥ max(46 %, always "Average" on the same puzzles) + 10 points;
- * - the 50 % and 80 % windows' hit rate within ± 3 points of 50 % / 80 %;
- * - at least 50 measured puzzles in the group.
- *
- * "Clearly above" = 10 points: at the minimum of 50 puzzles one standard error of a share near 50 % is 7 points
- * (√(0.25 ÷ 50)), so 10 points is ~1.4 of them there and ~3 at 250 puzzles - smaller gains are within the noise of
- * the groups that just pass the size rule; the image pilot cleared it on a random set (60 % vs 46 %,
- * prediction-research.md §2 Q3).
- *
- * The gate also fails closed for an estimate generation ("<model> <model version>") the record did not measure in the
- * group (`estimateModels`): a derive model change would otherwise show never-evaluated picture-only times.
+ * Gate v2 (docs/features/insights/image-estimate-gates.md "Gate v2" - the 2026-10-26 model review: exact tier is
+ * capped by label noise and judged a 0.4-SE miss, the window bars were in-sample and nothing had hysteresis):
+ * 1. **Honesty** - the picture-only windows out of period: scales fitted before the record's split moment, the later
+ *    solves' 50 % / 80 % hits within ± 3 points by their Wilson interval (OutOfPeriodCalibration); a group open in the
+ *    previous record for the same estimate generations stays open until a share leaves ± 5;
+ * 2. **Skill** - at k = 0 the picture-only error ≤ K0_ERROR_RATIO × the brand × pieces prior's (the statistical
+ *    predictor) on the same solves, with a narrower 80 % window at equal coverage; at k = 1-2 and 3-4 the blend never
+ *    measurably worse than the statistical prediction;
+ * 3. **Ranking** - Spearman ≥ 0.6 on ≥ 50 measured puzzles.
+ * The tier numbers (exact tier vs its label-noise ceiling, tier range coverage, ranked probability skill) are in the
+ * record for people, never a gate.
  *
  * The record is read once per request (ResetInterface - FrankenPHP worker mode).
  */
@@ -39,12 +39,15 @@ final class ImageEstimateGate implements ResetInterface
 {
     public const int MIN_MEASURED_PUZZLES = 50;
     public const float MIN_SPEARMAN = 0.6;
-    public const float MIN_TIER_WITHIN_ONE = 0.80;
-    public const float ALWAYS_AVERAGE = 0.46;
-    public const float EXACT_TIER_MARGIN = 0.10;
-    public const float WINDOW50_TARGET = 0.50;
-    public const float WINDOW80_TARGET = 0.80;
-    public const float WINDOW_TOLERANCE = 0.03;
+
+    /** The picture-only error at k = 0 against the brand × pieces prior's on the same solves */
+    public const float K0_ERROR_RATIO = 0.90;
+
+    /** Paired solves a skill bucket needs to be judged */
+    public const int MIN_SKILL_ROWS = 30;
+
+    /** z of a one-sided 95 % bound: the blend is "measurably worse" when its excess error minus this × SE is still > 0 */
+    public const float ONE_SIDED_95_Z = 1.6448536269514722;
 
     private bool $loaded = false;
 
@@ -87,6 +90,10 @@ final class ImageEstimateGate implements ResetInterface
             return ['no gate record yet (myspeedpuzzling:evaluate-image-estimates)'];
         }
 
+        if ($this->record->gateVersion < ImageEstimateEvaluator::GATE_VERSION) {
+            return [sprintf('the gate record was made for gate v%d, the gate is v%d (myspeedpuzzling:evaluate-image-estimates)', $this->record->gateVersion, ImageEstimateEvaluator::GATE_VERSION)];
+        }
+
         if ($this->record->modelVersion !== TimePredictionCalculator::MODEL_VERSION) {
             return [sprintf('the gate record measured model %d, the current model is %d', $this->record->modelVersion, TimePredictionCalculator::MODEL_VERSION)];
         }
@@ -109,12 +116,23 @@ final class ImageEstimateGate implements ResetInterface
     }
 
     /**
-     * The gates on one group's numbers (ImageEstimateEvaluator) - a missing number fails.
+     * The gates on one group's numbers (ImageEstimateEvaluator, gate v2) - a missing number fails.
      *
      * @param array<string, mixed> $metrics
      * @return list<string>
      */
     public static function failures(array $metrics): array
+    {
+        return [...self::rankingFailures($metrics), ...self::honestyFailures($metrics), ...self::skillFailures($metrics)];
+    }
+
+    /**
+     * Rule 3: Spearman ≥ 0.6 on ≥ 50 measured puzzles.
+     *
+     * @param array<string, mixed> $metrics
+     * @return list<string>
+     */
+    public static function rankingFailures(array $metrics): array
     {
         $failures = [];
         $measured = self::number($metrics['measuredPuzzles'] ?? null) ?? 0.0;
@@ -129,29 +147,110 @@ final class ImageEstimateGate implements ResetInterface
             $failures[] = sprintf('Spearman %s < %.2f', self::show($spearman), self::MIN_SPEARMAN);
         }
 
-        $withinOne = self::number($metrics['tierWithinOne'] ?? null);
+        return $failures;
+    }
 
-        if ($withinOne === null || $withinOne < self::MIN_TIER_WITHIN_ONE) {
-            $failures[] = sprintf('tier within one %s < %.2f', self::show($withinOne), self::MIN_TIER_WITHIN_ONE);
+    /**
+     * Rule 1: the picture-only windows out of period, with the hysteresis the record carries.
+     *
+     * @param array<string, mixed> $metrics
+     * @return list<string>
+     */
+    public static function honestyFailures(array $metrics): array
+    {
+        $calibration = $metrics['calibration'] ?? null;
+
+        if (!is_array($calibration)) {
+            return ['no out-of-period window numbers'];
         }
 
-        $exact = self::number($metrics['tierExact'] ?? null);
-        $exactNeeded = max(self::ALWAYS_AVERAGE, self::number($metrics['alwaysAverage'] ?? null) ?? self::ALWAYS_AVERAGE) + self::EXACT_TIER_MARGIN;
+        /** @var array<string, mixed> $calibration */
+        return OutOfPeriodCalibration::failures($calibration, ($calibration['previouslyOpen'] ?? false) === true);
+    }
 
-        // A hair of tolerance: 0.46 + 0.10 is 0.56000000000000005 in floating point
-        if ($exact === null || $exact < $exactNeeded - 1e-9) {
-            $failures[] = sprintf('exact tier %s < %.2f (always "Average" + %.2f)', self::show($exact), $exactNeeded, self::EXACT_TIER_MARGIN);
+    /**
+     * Rule 2: k = 0 the picture beats the brand × pieces prior by 10 % with a sharper window; k = 1-4 the blend is
+     * never measurably worse than the statistical prediction (its mean excess error's one-sided 95 % bound ≤ 0, per
+     * bucket of at least MIN_SKILL_ROWS solves; the two buckets together need that many).
+     *
+     * @param array<string, mixed> $metrics
+     * @return list<string>
+     */
+    public static function skillFailures(array $metrics): array
+    {
+        $skill = $metrics['skill'] ?? null;
+        $failures = [];
+
+        $k0 = PredictionGroupAccumulator::skillBucket($skill, '0');
+        $rows = self::number($k0['rows'] ?? null) ?? 0.0;
+        $candidate = self::number($k0['maeCandidate'] ?? null);
+        $reference = self::number($k0['maeReference'] ?? null);
+
+        if ($rows < self::MIN_SKILL_ROWS) {
+            $failures[] = sprintf('%d paired solves at k = 0, at least %d needed', (int) $rows, self::MIN_SKILL_ROWS);
+        } elseif ($candidate === null || $reference === null || $candidate > self::K0_ERROR_RATIO * $reference + 1e-9) {
+            $failures[] = sprintf('k = 0 error %s > %.2f × the brand prior\'s %s', self::show($candidate), self::K0_ERROR_RATIO, self::show($reference));
         }
 
-        foreach ([['window50Hit', self::WINDOW50_TARGET], ['window80Hit', self::WINDOW80_TARGET]] as [$key, $target]) {
-            $hit = self::number($metrics[$key] ?? null);
+        $width = self::number($k0['width80Candidate'] ?? null);
+        $referenceWidth = self::number($k0['width80Reference'] ?? null);
 
-            if ($hit === null || abs($hit - $target) > self::WINDOW_TOLERANCE + 1e-9) {
-                $failures[] = sprintf('%s %s not within %.2f ± %.2f', $key, self::show($hit), $target, self::WINDOW_TOLERANCE);
+        if ($rows >= self::MIN_SKILL_ROWS && ($width === null || $referenceWidth === null || $width >= $referenceWidth)) {
+            $failures[] = sprintf('k = 0 80 %% window at equal coverage %s not narrower than the brand prior\'s %s', self::show($width), self::show($referenceWidth));
+        }
+
+        $judged = 0.0;
+
+        foreach (['1-2', '3-4'] as $bucket) {
+            $numbers = PredictionGroupAccumulator::skillBucket($skill, $bucket);
+            $bucketRows = self::number($numbers['rows'] ?? null) ?? 0.0;
+            $judged += $bucketRows;
+
+            if ($bucketRows < self::MIN_SKILL_ROWS) {
+                continue;
+            }
+
+            $difference = self::number($numbers['meanDifference'] ?? null);
+            $se = self::number($numbers['differenceSe'] ?? null);
+
+            if ($difference === null || $se === null || $difference - self::ONE_SIDED_95_Z * $se > 1e-9) {
+                $failures[] = sprintf('k = %s blend error %s above the statistical by %s (SE %s)', $bucket, self::show(self::number($numbers['maeCandidate'] ?? null)), self::show($difference), self::show($se));
             }
         }
 
+        if ($judged < self::MIN_SKILL_ROWS) {
+            $failures[] = sprintf('%d paired solves at k = 1-4, at least %d needed', (int) $judged, self::MIN_SKILL_ROWS);
+        }
+
         return $failures;
+    }
+
+    /**
+     * The groups whose honesty a stored record opened (with its own hysteresis), and the estimate generations it
+     * measured there - what the next record's hysteresis carries (ImageEstimateEvaluator::evaluate() $openBefore).
+     * Only a gate v2 record of the current model version counts.
+     *
+     * @return array<string, list<string>>
+     */
+    public static function honestyOpenGroups(null|ImageEstimateEvaluationResult $record): array
+    {
+        if ($record === null || $record->gateVersion < ImageEstimateEvaluator::GATE_VERSION || $record->modelVersion !== TimePredictionCalculator::MODEL_VERSION) {
+            return [];
+        }
+
+        $open = [];
+
+        foreach ($record->groups as $group) {
+            if (self::honestyFailures($group) !== [] || !is_string($group['sizeGroup'] ?? null) || !is_string($group['imageKind'] ?? null)) {
+                continue;
+            }
+
+            $generations = is_array($group['estimateModels'] ?? null) ? array_map('strval', array_keys($group['estimateModels'])) : [];
+            sort($generations);
+            $open[$group['sizeGroup'] . '|' . $group['imageKind']] = $generations;
+        }
+
+        return $open;
     }
 
     private static function number(mixed $value): null|float
@@ -161,6 +260,6 @@ final class ImageEstimateGate implements ResetInterface
 
     private static function show(null|float $value): string
     {
-        return $value !== null ? sprintf('%.3f', $value) : 'n/a';
+        return $value !== null ? sprintf('%.4f', $value) : 'n/a';
     }
 }

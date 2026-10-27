@@ -8,10 +8,13 @@ use DateTimeImmutable;
 use Nette\Utils\Json;
 
 /**
- * A stored gate record of the picture-based estimates (ImageEstimateEvaluation) as ImageEstimateGate reads it.
+ * A stored gate record (ImageEstimateEvaluation) as the gates read it - the picture estimates' (ImageEstimateGate) or a
+ * candidate time model's (PredictionCandidateGate). Records from before gate v2 read as gate version 1.
  */
 readonly final class ImageEstimateEvaluationResult
 {
+    public const string COLUMNS = 'id, evaluated_at, model_version, newer_than, measured_min_indices, groups, overall, by_k, gate_version, subject, split_at';
+
     /**
      * @param list<array<string, mixed>> $groups
      * @param array<string, mixed> $overall
@@ -21,11 +24,14 @@ readonly final class ImageEstimateEvaluationResult
         public string $id,
         public DateTimeImmutable $evaluatedAt,
         public int $modelVersion,
-        public DateTimeImmutable $newerThan,
+        public null|DateTimeImmutable $newerThan,
         public int $measuredMinIndices,
         public array $groups,
         public array $overall,
         public array $byK,
+        public int $gateVersion = 1,
+        public string $subject = 'image',
+        public null|DateTimeImmutable $splitAt = null,
     ) {
     }
 
@@ -44,14 +50,14 @@ readonly final class ImageEstimateEvaluationResult
     }
 
     /**
-     * @param array<string, mixed> $row id, evaluated_at, model_version, newer_than, measured_min_indices, groups, overall, by_k
+     * @param array<string, mixed> $row the COLUMNS (gate_version, subject, split_at may be missing: a gate v1 row)
      */
     public static function fromDatabaseRow(array $row): self
     {
         assert(is_string($row['id']));
         assert(is_string($row['evaluated_at']));
         assert(is_int($row['model_version']) || is_string($row['model_version']));
-        assert(is_string($row['newer_than']));
+        assert(is_string($row['newer_than']) || $row['newer_than'] === null);
         assert(is_int($row['measured_min_indices']) || is_string($row['measured_min_indices']));
         assert(is_string($row['groups']));
         assert(is_string($row['overall']));
@@ -63,16 +69,22 @@ readonly final class ImageEstimateEvaluationResult
         $overall = Json::decode($row['overall'], forceArrays: true);
         /** @var list<array<string, mixed>> $byK */
         $byK = Json::decode($row['by_k'], forceArrays: true);
+        $gateVersion = $row['gate_version'] ?? 1;
+        $subject = $row['subject'] ?? 'image';
+        $splitAt = $row['split_at'] ?? null;
 
         return new self(
             id: $row['id'],
             evaluatedAt: new DateTimeImmutable($row['evaluated_at']),
             modelVersion: (int) $row['model_version'],
-            newerThan: new DateTimeImmutable($row['newer_than']),
+            newerThan: $row['newer_than'] !== null ? new DateTimeImmutable($row['newer_than']) : null,
             measuredMinIndices: (int) $row['measured_min_indices'],
             groups: $groups,
             overall: $overall,
             byK: $byK,
+            gateVersion: is_int($gateVersion) || is_string($gateVersion) ? (int) $gateVersion : 1,
+            subject: is_string($subject) ? $subject : 'image',
+            splitAt: is_string($splitAt) ? new DateTimeImmutable($splitAt) : null,
         );
     }
 }

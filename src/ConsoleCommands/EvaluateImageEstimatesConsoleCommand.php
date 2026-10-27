@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\ConsoleCommands;
 
 use SpeedPuzzling\Web\Entity\ImageEstimateEvaluation;
 use SpeedPuzzling\Web\Message\EvaluateImageEstimates;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Evaluation\GateRecordPrinter;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\ImageEstimates\ImageEstimateGate;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -47,21 +48,17 @@ final class EvaluateImageEstimatesConsoleCommand extends Command
         assert($evaluation instanceof ImageEstimateEvaluation);
 
         if ($input->getOption('json') === true) {
-            $output->writeln(json_encode([
-                'id' => $evaluation->id->toString(),
-                'evaluatedAt' => $evaluation->evaluatedAt->format(DATE_ATOM),
-                'modelVersion' => $evaluation->modelVersion,
-                'newerThan' => $evaluation->newerThan->format(DATE_ATOM),
-                'measuredMinIndices' => $evaluation->measuredMinIndices,
-                'overall' => $evaluation->overall,
-                'byK' => $evaluation->byK,
-                'groups' => $evaluation->groups,
-            ], JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_PRESERVE_ZERO_FRACTION));
+            $output->writeln(GateRecordPrinter::json($evaluation));
 
             return self::SUCCESS;
         }
 
-        $io->title(sprintf('Image estimates - puzzles added since %s, k = 0..4', $evaluation->newerThan->format('Y-m-d')));
+        $io->title(sprintf(
+            'Image estimates - puzzles added since %s, k = 0..4, gate v%d, out-of-period split %s',
+            $evaluation->newerThan?->format('Y-m-d') ?? '-',
+            $evaluation->gateVersion,
+            $evaluation->splitAt?->format('Y-m-d') ?? '-',
+        ));
 
         $generations = $evaluation->overall['estimateModels'] ?? [];
 
@@ -73,47 +70,44 @@ final class EvaluateImageEstimatesConsoleCommand extends Command
             )));
         }
 
-        $rows = [];
+        $gate = [];
+        $report = [];
 
         foreach ([['all', 'all', $evaluation->overall], ...array_map(static fn (array $group): array => [$group['sizeGroup'], $group['imageKind'], $group], $evaluation->groups)] as [$size, $kind, $metrics]) {
             /** @var array<string, mixed> $metrics */
             $failures = $size === 'all' ? null : ImageEstimateGate::failures($metrics);
-            $rows[] = [
+            $gate[] = [
                 $size,
                 $kind,
-                self::show($metrics['rows'] ?? null),
-                self::show($metrics['measuredPuzzles'] ?? null),
-                self::show($metrics['spearman'] ?? null),
-                self::show($metrics['tierExact'] ?? null) . ' / ' . self::show($metrics['tierWithinOne'] ?? null) . ' (avg ' . self::show($metrics['alwaysAverage'] ?? null) . ')',
-                self::show($metrics['maeImage'] ?? null) . ' / ' . self::show($metrics['maeBlend'] ?? null) . ' / ' . self::show($metrics['maeStatistical'] ?? null),
-                self::show($metrics['window50Hit'] ?? null) . ' / ' . self::show($metrics['window50Width'] ?? null),
-                self::show($metrics['window80Hit'] ?? null) . ' / ' . self::show($metrics['window80Width'] ?? null),
+                GateRecordPrinter::show($metrics['rows'] ?? null),
+                GateRecordPrinter::show($metrics['measuredPuzzles'] ?? null),
+                GateRecordPrinter::show($metrics['spearman'] ?? null),
+                GateRecordPrinter::honesty($metrics),
+                GateRecordPrinter::k0Skill($metrics),
+                GateRecordPrinter::bucketSkill($metrics, '1-2') . ' / ' . GateRecordPrinter::bucketSkill($metrics, '3-4'),
                 $failures === null ? '' : ($failures === [] ? 'PASS' : 'fail: ' . implode('; ', $failures)),
+            ];
+            $report[] = [
+                $size,
+                $kind,
+                GateRecordPrinter::show($metrics['tierExact'] ?? null) . ' ± ' . GateRecordPrinter::show($metrics['tierExactSe'] ?? null) . ' (ceiling ' . GateRecordPrinter::show($metrics['tierExactCeiling'] ?? null) . ', avg ' . GateRecordPrinter::show($metrics['alwaysAverage'] ?? null) . ')',
+                GateRecordPrinter::show($metrics['tierRangeCoverage'] ?? null) . ' (' . GateRecordPrinter::show($metrics['tierRangeMeanTiers'] ?? null) . ' tiers)',
+                GateRecordPrinter::show($metrics['rpss'] ?? null),
+                GateRecordPrinter::slice($metrics, 'k0'),
+                GateRecordPrinter::slice($metrics, 'k0Measured'),
+                GateRecordPrinter::slice($metrics, 'live'),
+                GateRecordPrinter::slice($metrics, 'reconstructed'),
             ];
         }
 
-        $io->table(['size', 'kind', 'rows', 'measured', 'Spearman', 'tier exact / ±1', 'MAE image / blend / stat', '50 % hit / width', '80 % hit / width', 'gate'], $rows);
+        $io->section('Gate v2');
+        $io->table(['size', 'kind', 'rows', 'measured', 'Spearman', 'honesty 50 % / 80 % (Wilson)', 'k = 0 error ratio, 80 % width', 'k = 1-2 / 3-4 blend − stat', 'gate'], $gate);
 
-        $kRows = array_map(static fn (array $bucket): array => [
-            self::show($bucket['k'] ?? null),
-            self::show($bucket['rows'] ?? null),
-            self::show($bucket['maeImage'] ?? null) . ' / ' . self::show($bucket['maeBlend'] ?? null) . ' / ' . self::show($bucket['maeStatistical'] ?? null),
-            self::show($bucket['window50Hit'] ?? null),
-            self::show($bucket['blendWindow50Hit'] ?? null),
-        ], $evaluation->byK);
-        $io->table(['k', 'rows', 'MAE image / blend / stat', 'image 50 % hit', 'blend 50 % hit'], $kRows);
+        $io->section('Reported, never gating (picture-only rows: error image / stat, 50 % / 80 % hit)');
+        $io->table(['size', 'kind', 'tier exact ± SE', 'tier range', 'RPSS', 'k = 0 all', 'k = 0 measured', 'live', 'reconstructed'], $report);
 
         $io->success(sprintf('Gate record %s stored.', $evaluation->id->toString()));
 
         return self::SUCCESS;
-    }
-
-    private static function show(mixed $value): string
-    {
-        return match (true) {
-            is_float($value) => sprintf('%.3f', $value),
-            is_int($value), is_string($value) => (string) $value,
-            default => '-',
-        };
     }
 }

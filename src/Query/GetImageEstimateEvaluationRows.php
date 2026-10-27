@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Value\ImageEstimateEvaluationRow;
 use SpeedPuzzling\Web\Value\ImageKind;
 use SpeedPuzzling\Web\Value\ImagePriorInput;
 use SpeedPuzzling\Web\Value\PiecesGroup;
+use SpeedPuzzling\Web\Value\TimePredictionSource;
 
 /**
  * The rows the evaluation of the picture-based estimates measures (EvaluateImageEstimates, Insights plan §5.4): every
@@ -62,14 +63,23 @@ readonly final class GetImageEstimateEvaluationRows
                 CASE WHEN b.predictable THEN b.range80_low END AS blend_r80_low,
                 CASE WHEN b.predictable THEN b.range80_high END AS blend_r80_high,
                 CASE WHEN s.predictable THEN s.predicted_seconds END AS statistical_seconds,
+                CASE WHEN s.predictable THEN s.range50_low END AS statistical_r50_low,
+                CASE WHEN s.predictable THEN s.range50_high END AS statistical_r50_high,
+                CASE WHEN s.predictable THEN s.range80_low END AS statistical_r80_low,
+                CASE WHEN s.predictable THEN s.range80_high END AS statistical_r80_high,
                 COALESCE(pd.sample_size, 0) AS measured_indices,
-                pd.difficulty_score AS measured_score
+                pd.difficulty_score AS measured_score,
+                EXTRACT(EPOCH FROM COALESCE(pst.finished_at, pst.tracked_at)) AS solved_ts,
+                i.source,
+                e.log_p10 - e.log_difficulty AS estimate_p10_offset,
+                e.log_p90 - e.log_difficulty AS estimate_p90_offset
             FROM solving_time_prediction i
             JOIN puzzle_solving_time pst ON pst.id = i.time_id
             JOIN puzzle p ON p.id = pst.puzzle_id
             LEFT JOIN solving_time_prediction b ON b.time_id = i.time_id AND b.predictor = 'blend' AND b.model_version = i.model_version
             LEFT JOIN solving_time_prediction s ON s.time_id = i.time_id AND s.predictor = 'statistical' AND s.model_version = i.model_version
             LEFT JOIN puzzle_difficulty pd ON pd.puzzle_id = p.id
+            LEFT JOIN puzzle_difficulty_estimate e ON e.puzzle_id = p.id
             WHERE i.predictor = 'image'
                 AND i.model_version = :modelVersion
                 AND i.predictable = true
@@ -91,7 +101,7 @@ readonly final class GetImageEstimateEvaluationRows
         ]);
 
         foreach ($rows as $row) {
-            /** @var array{puzzle_id: string, pieces_count: int|string, image_kind: null|string, image_model: string, image_model_version: null|string, k_indices: int|string, seconds_to_solve: int|string, image_log: float|string, computed_ts: float|string, image_seconds: int|string, image_r50_low: int|string, image_r50_high: int|string, image_r80_low: int|string, image_r80_high: int|string, blend_seconds: null|int|string, blend_r50_low: null|int|string, blend_r50_high: null|int|string, blend_r80_low: null|int|string, blend_r80_high: null|int|string, statistical_seconds: null|int|string, measured_indices: int|string, measured_score: null|float|string} $row */
+            /** @var array{puzzle_id: string, pieces_count: int|string, image_kind: null|string, image_model: string, image_model_version: null|string, k_indices: int|string, seconds_to_solve: int|string, image_log: float|string, computed_ts: float|string, image_seconds: int|string, image_r50_low: int|string, image_r50_high: int|string, image_r80_low: int|string, image_r80_high: int|string, blend_seconds: null|int|string, blend_r50_low: null|int|string, blend_r50_high: null|int|string, blend_r80_low: null|int|string, blend_r80_high: null|int|string, statistical_seconds: null|int|string, statistical_r50_low: null|int|string, statistical_r50_high: null|int|string, statistical_r80_low: null|int|string, statistical_r80_high: null|int|string, measured_indices: int|string, measured_score: null|float|string, solved_ts: float|string, source: string, estimate_p10_offset: null|float|string, estimate_p90_offset: null|float|string} $row */
             yield new ImageEstimateEvaluationRow(
                 puzzleId: $row['puzzle_id'],
                 sizeGroup: PiecesGroup::fromPiecesCount((int) $row['pieces_count']),
@@ -114,6 +124,14 @@ readonly final class GetImageEstimateEvaluationRows
                 measuredIndices: (int) $row['measured_indices'],
                 measuredScore: $row['measured_score'] !== null ? (float) $row['measured_score'] : null,
                 estimateModel: ImagePriorInput::generationOf($row['image_model'], $row['image_model_version']),
+                solvedAt: (float) $row['solved_ts'],
+                live: $row['source'] === TimePredictionSource::Live->value,
+                statisticalRange80Low: self::intOrNull($row['statistical_r80_low']),
+                statisticalRange50Low: self::intOrNull($row['statistical_r50_low']),
+                statisticalRange50High: self::intOrNull($row['statistical_r50_high']),
+                statisticalRange80High: self::intOrNull($row['statistical_r80_high']),
+                estimateP10Offset: self::floatOrNull($row['estimate_p10_offset']),
+                estimateP90Offset: self::floatOrNull($row['estimate_p90_offset']),
             );
         }
     }
@@ -121,5 +139,10 @@ readonly final class GetImageEstimateEvaluationRows
     private static function intOrNull(null|int|string $value): null|int
     {
         return $value !== null ? (int) $value : null;
+    }
+
+    private static function floatOrNull(null|float|string $value): null|float
+    {
+        return $value !== null ? (float) $value : null;
     }
 }

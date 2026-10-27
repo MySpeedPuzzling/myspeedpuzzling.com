@@ -13,7 +13,9 @@ use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\EvaluateImageEstimates;
 use SpeedPuzzling\Web\Message\RecordPuzzleDifficultyEstimates;
 use SpeedPuzzling\Web\Query\GetLatestImageEstimateEvaluation;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\ImageEstimates\ImageEstimateEvaluator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\ImageEstimates\ImageEstimateGate;
+use SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence\ImageEstimates\GateV2Numbers;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -120,18 +122,19 @@ final class EvaluateImageEstimatesHandlerTest extends KernelTestCase
         self::assertFalse($gate->passesFor(PiecesGroup::FiveHundred, ImageKind::Unknown, self::GENERATION), 'Too few measured puzzles');
         self::assertFalse($gate->passesFor(PiecesGroup::FiveHundred, ImageKind::Flat, self::GENERATION), 'Not in the record');
 
-        $passing = [
-            'sizeGroup' => PiecesGroup::FiveHundred->value,
-            'imageKind' => ImageKind::Flat->value,
-            'measuredPuzzles' => 140,
-            'spearman' => 0.71,
-            'tierExact' => 0.6,
-            'tierWithinOne' => 0.9,
-            'alwaysAverage' => 0.46,
-            'window50Hit' => 0.5,
-            'window80Hit' => 0.8,
-            'estimateModels' => [self::GENERATION => 140],
-        ];
+        $passing = GateV2Numbers::passing(PiecesGroup::FiveHundred->value, ImageKind::Flat->value, self::GENERATION);
+
+        // A record of the first gate rules - however good its numbers - is never enough for gate v2
+        $this->storeRecord(TimePredictionCalculator::MODEL_VERSION, [$passing], gateVersion: 1);
+        $gate->reset();
+        self::assertFalse($gate->passesFor(PiecesGroup::FiveHundred, ImageKind::Flat, self::GENERATION), 'A gate v1 record');
+        self::assertStringContainsString('gate v1', $gate->failuresFor(PiecesGroup::FiveHundred, ImageKind::Flat, self::GENERATION)[0]);
+
+        // A candidate time model's record is another subject: never the picture estimates' record
+        $this->storeRecord(TimePredictionCalculator::MODEL_VERSION, [$passing], subject: 'blend@3 vs statistical@3');
+        $gate->reset();
+        self::assertFalse($gate->passesFor(PiecesGroup::FiveHundred, ImageKind::Flat, self::GENERATION), 'Another subject');
+
         $this->storeRecord(TimePredictionCalculator::MODEL_VERSION, [$passing]);
         $gate->reset();
         self::assertTrue($gate->passesFor(PiecesGroup::FiveHundred, ImageKind::Flat, self::GENERATION));
@@ -145,6 +148,28 @@ final class EvaluateImageEstimatesHandlerTest extends KernelTestCase
         $this->storeRecord(TimePredictionCalculator::MODEL_VERSION + 1, [$passing]);
         $gate->reset();
         self::assertFalse($gate->passesFor(PiecesGroup::FiveHundred, ImageKind::Flat, self::GENERATION), 'A record of another model version');
+    }
+
+    /**
+     * Gate v2: the record says so and carries the split moment; a group the previous record opened (for the same
+     * estimate generations) stays open by hysteresis in the next record.
+     */
+    public function testTheRecordCarriesTheHonestyHysteresis(): void
+    {
+        $first = $this->evaluate();
+
+        self::assertSame(ImageEstimateEvaluator::GATE_VERSION, $first->gateVersion);
+        self::assertSame(ImageEstimateEvaluation::SUBJECT_IMAGE, $first->subject);
+        self::assertNotNull($first->splitAt);
+        self::assertFalse($first->groups[0]['calibration']['previouslyOpen'], 'Two solves never open it');
+
+        // The previous record opened 500 / unknown for the generation measured here
+        $this->storeRecord(TimePredictionCalculator::MODEL_VERSION, [GateV2Numbers::passing(PiecesGroup::FiveHundred->value, ImageKind::Unknown->value, self::GENERATION)]);
+        self::assertTrue($this->evaluate()->groups[0]['calibration']['previouslyOpen']);
+
+        // ... for another generation: the opening is earned again
+        $this->storeRecord(TimePredictionCalculator::MODEL_VERSION, [GateV2Numbers::passing(PiecesGroup::FiveHundred->value, ImageKind::Unknown->value, 'ridge-siglip2-full 2.0.0')]);
+        self::assertFalse($this->evaluate()->groups[0]['calibration']['previouslyOpen']);
     }
 
     private function evaluate(int $newerThanMonths = 12): ImageEstimateEvaluation
@@ -164,13 +189,13 @@ final class EvaluateImageEstimatesHandlerTest extends KernelTestCase
     /**
      * @param list<array<string, mixed>> $groups
      */
-    private function storeRecord(int $modelVersion, array $groups): void
+    private function storeRecord(int $modelVersion, array $groups, int $gateVersion = ImageEstimateEvaluator::GATE_VERSION, string $subject = ImageEstimateEvaluation::SUBJECT_IMAGE): void
     {
         // A second later than anything stored before: the latest record
         $this->database->executeStatement(
-            "INSERT INTO image_estimate_evaluation (id, evaluated_at, model_version, newer_than, measured_min_indices, groups, overall, by_k)
-            VALUES (:id, (SELECT COALESCE(MAX(evaluated_at), " . TestClock::SQL_NOW . ") FROM image_estimate_evaluation) + INTERVAL '1 second', :version, " . TestClock::SQL_NOW . " - INTERVAL '1 year', 10, CAST(:groups AS jsonb), '{}', '[]')",
-            ['id' => Uuid::uuid7()->toString(), 'version' => $modelVersion, 'groups' => json_encode($groups, JSON_THROW_ON_ERROR)],
+            "INSERT INTO image_estimate_evaluation (id, evaluated_at, model_version, newer_than, measured_min_indices, groups, overall, by_k, gate_version, subject)
+            VALUES (:id, (SELECT COALESCE(MAX(evaluated_at), " . TestClock::SQL_NOW . ") FROM image_estimate_evaluation) + INTERVAL '1 second', :version, " . TestClock::SQL_NOW . " - INTERVAL '1 year', 10, CAST(:groups AS jsonb), '{}', '[]', :gateVersion, :subject)",
+            ['id' => Uuid::uuid7()->toString(), 'version' => $modelVersion, 'groups' => json_encode($groups, JSON_THROW_ON_ERROR), 'gateVersion' => $gateVersion, 'subject' => $subject],
         );
     }
 

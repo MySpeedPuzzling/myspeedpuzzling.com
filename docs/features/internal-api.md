@@ -331,8 +331,10 @@ needed.
   `traits`, `ocr`, `barcode`, `vision_labels`, `embed_siglip2` (SigLIP 2 of the artwork crop), `embed_siglip2_full`
   (SigLIP 2 of the whole image - its own analyzer since 2026-10-18, so it can run before `artwork` exists),
   `embed_dinov2` (embeddings as base64 float16 inside the JSON, ~3 KB a vector), `embed_dinov2_patches` (DINOv2 patch
-  tokens of the crop: mean + 2×2 grid, ~14 KB, for search by a photo of a part), `segmentation`, `describe`; derived on the Mac from those - `box_text`, `zeroshot`,
-  `neighbours`, `tags`. The largest expected payload (`ocr`, capped at 400 lines) is ~16 KB. What part of the image an analyzer looks at (the cropped artwork, the whole photo) is its own
+  tokens of the crop: mean + 2×2 grid, ~14 KB, for search by a photo of a part), `segmentation`, `describe`,
+  `piece_scale` (piece-sized ambiguity of the crop on a grid matching the real piece layout, CPU); derived on the Mac
+  from those - `box_text`, `zeroshot`, `neighbours`, `tags`, `crop_trust` (how far to trust the artwork crop + the
+  split quality marks). The largest expected payload (`ocr`, capped at 400 lines) is ~16 KB. What part of the image an analyzer looks at (the cropped artwork, the whole photo) is its own
   business - the fingerprint always names the source image.
 - **imageFingerprint** - which picture an analysis describes: the first 16 hex characters of `md5(puzzle.image)`
   (`PuzzleImageFingerprint`, computed the same in SQL). A new picture always gets a file name never written before
@@ -419,9 +421,9 @@ needed.
   | Analyzer | requires |
   |---|---|
   | `ocr`, `barcode`, `embed_siglip2_full`, `artwork` | - |
-  | `colors`, `traits`, `segmentation`, `embed_dinov2`, `embed_dinov2_patches`, `embed_siglip2`, `vision_labels` | `artwork` |
+  | `colors`, `traits`, `piece_scale`, `segmentation`, `embed_dinov2`, `embed_dinov2_patches`, `embed_siglip2`, `vision_labels` | `artwork` |
   | `describe` | `artwork`, `ocr` |
-  | `box_text`, `zeroshot`, `neighbours`, `tags` (derived on the Mac) | their raw inputs (no image needed) |
+  | `box_text`, `zeroshot`, `neighbours`, `tags`, `crop_trust` (derived on the Mac) | their raw inputs (no image needed) |
 
 - **Bulk read**: `GET /internal-api/puzzle-image-analyses?analyzer=<a>&limit=1..1000 (500)&after=<puzzleId>&onlyCurrent=1`
   - every stored analysis of one analyzer, in puzzle id order, hidden images left out: `{"analyzer", "items": [{puzzleId,

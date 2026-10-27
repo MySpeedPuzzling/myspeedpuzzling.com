@@ -1,5 +1,5 @@
 """Derived analyzers, recomputed from stored raw outputs only - no image touched (image-taxonomy.md §9.2, §11.2):
-`box_text`, `zeroshot`, `neighbours`, `tags`, then the `difficulty_prior` step (plan §5.3 - not an image analyzer:
+`box_text`, `zeroshot`, `neighbours`, `tags`, `crop_trust`, then the `difficulty_prior` step (plan §5.3 - not an image analyzer:
 it pushes difficulty estimates + a model record through its own endpoints, see `difficulty_prior.py`).
 
 Reads every input through the bulk endpoint (`onlyCurrent=1`), computes, and pushes only rows that changed (another
@@ -17,16 +17,17 @@ import numpy as np
 from ..analyzers import DERIVED_INPUTS, schema_major
 from ..api import AnalysisResult, InternalApi, WorkItem
 from ..payload import as_map, b64_to_vector, check_size, envelope, normalised
-from . import box_text, difficulty_prior, neighbours, tags, zeroshot
+from . import box_text, crop_trust, difficulty_prior, neighbours, tags, zeroshot
 
 log = logging.getLogger(__name__)
 
-ORDER = ("box_text", "zeroshot", "neighbours", "tags")
+ORDER = ("box_text", "zeroshot", "neighbours", "tags", "crop_trust")
 MODELS = {
     "box_text": "rules (regex over ocr + barcode)",
     "zeroshot": "google/siglip2-so400m-patch14-384 text prompts, corpus percentiles",
     "neighbours": "cosine top 30, siglip2 + dinov2-large",
     "tags": "fusion rules v1",
+    "crop_trust": "logistic regression on 8 stored signals + a siglip2 crop probe (derive/crop_trust_model.json)",
 }
 
 
@@ -140,6 +141,12 @@ class Deriver:
         corpus = tags.Corpus.build([tags.trait_values(p) for p in per.values()])
         return {pid: tags.fuse(p, corpus) for pid, p in per.items() if p.get("describe") or p.get("traits") or p.get("artwork")}
 
+    def compute_crop_trust(self) -> dict[str, dict[str, Any]]:
+        artwork, crop = self.load("artwork"), self.load("embed_siglip2")
+        vectors = {pid: b64_to_vector(r["result"]["vector"]) for pid, r in crop.items() if as_map(r.get("result")).get("vector")}
+        solved = {pid: m.raw.get("solvedCount") for pid, m in self.meta.items() if isinstance(m.raw.get("solvedCount"), int)}
+        return crop_trust.compute(artwork, vectors, solved)
+
     # pushing ---------------------------------------------------------------------------------------------------------
     def _sha(self, pid: str, analyzers: Iterable[str]) -> str | None:
         for a in analyzers:
@@ -188,6 +195,7 @@ class Deriver:
                 "zeroshot": self.compute_zeroshot,
                 "neighbours": self.compute_neighbours,
                 "tags": lambda: self.compute_tags(fresh),
+                "crop_trust": self.compute_crop_trust,
             }[analyzer]()
             fresh[analyzer] = results
             self.summary[analyzer] = self.push(analyzer, results, dry_run) | {"seconds": round(time.monotonic() - t, 1)}

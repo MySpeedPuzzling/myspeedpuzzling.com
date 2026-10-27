@@ -26,8 +26,11 @@ Run in the background so the session stays usable, with the log as the progress 
 cd tools/puzzle-vision
 nohup uv run --extra ml puzzle-vision run --profile <p> [--hours N] [--phase X] > ~/Library/Logs/puzzle-vision/run-$(date +%Y%m%d-%H%M).log 2>&1 &
 # the run writes its own (python) pid - `$!` would be uv's
-cat "$HOME/Library/Application Support/puzzle-vision/run-<p>.pid"
+cat "$HOME/Library/Application Support/puzzle-vision/run-<p>.pid"          # with --phase X: run-<p>-X.pid
 ```
+
+- `m3-solo --phase cpu` (`piece_scale`, CPU workers, no model lock) may run **beside** the `describe` run - start it
+  as a second run with `nice -n 10`; its pid file is `run-m3-solo-cpu.pid`, so it never touches the other run's.
 
 - Backfill (default): every phase until nothing is left; it sleeps and retries while it waits on the other Mac
   (`describe` on OCR, phase B on artwork). m3-max: `artwork` (~24 h) then `describe` (~5 days); m1-air: A + B (~2.4 days).
@@ -42,7 +45,8 @@ one stage: read the log; fix only a clear pipeline bug (on a branch with a PR, t
 
 ## Stop
 
-`kill $(cat "$HOME/Library/Application Support/puzzle-vision/run-<p>.pid")` (SIGTERM to the python run, not uv) -
+`kill $(cat "$HOME/Library/Application Support/puzzle-vision/run-<p>.pid")` (`run-<p>-<phase>.pid` for a run started
+with `--phase`; SIGTERM to the python run, not uv) -
 every stage stores what it finished and releases its claims; the run exits 143 (124 when `--hours` ran out) and a
 `--daily` run then skips derive and crop proposals. Confirm in the log ("released"). Resume = start again; production
 is the truth.

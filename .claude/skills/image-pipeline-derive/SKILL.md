@@ -1,6 +1,6 @@
 ---
 name: image-pipeline-derive
-description: Recompute the derived image analyses (box_text, zeroshot, neighbours, tags) from the stored raw results and push the changed rows, then train the difficulty_prior ridge model and push picture-based difficulty estimates - no image touched. Use when the user says "/image-pipeline-derive", "recompute the tags", "refresh neighbours", after a taxonomy / prompt bank change, or when the backfill is complete.
+description: Recompute the derived image analyses (box_text, zeroshot, neighbours, tags, crop_trust) from the stored raw results and push the changed rows, then train the difficulty_prior ridge model and push picture-based difficulty estimates - no image touched. Use when the user says "/image-pipeline-derive", "recompute the tags", "refresh neighbours", after a taxonomy / prompt bank change, or when the backfill is complete.
 argument-hint: "[--only box_text,zeroshot,neighbours,tags,difficulty_prior] [--dry-run] [--force-model]"
 allowed-tools: Bash, Read
 ---
@@ -11,7 +11,7 @@ Runbook §7. Runs on the M3 Max (`--profile m3-max`), from `tools/puzzle-vision/
 
 ```sh
 uv run --extra ml puzzle-vision derive --profile m3-max --dry-run     # counts: computed / changed - nothing pushed
-uv run --extra ml puzzle-vision derive --profile m3-max               # all five, pushes only changed rows
+uv run --extra ml puzzle-vision derive --profile m3-max               # all six, pushes only changed rows
 uv run --extra ml puzzle-vision derive --profile m3-max --only tags
 ```
 

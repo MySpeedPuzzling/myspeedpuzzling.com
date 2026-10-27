@@ -10,6 +10,19 @@ both with the 1 % inset) against the truth outline:
 - `wrongQuad`: a perspective crop that cuts artwork (a quad that locked onto lines inside the picture);
 - kind: exact (5 kinds) and grouped (flat / box / assembled / other).
 CUT_LIMIT sits above the crop's own 1 % inset plus labelling noise (~1 %), so a crop on the true edge never counts.
+
+The labelled sets (reference/):
+- `reference` - the **validation set** (265 outlines: the lab's pictures, reviewed samples, fresh boxes). Called
+  "held out" until 2026-10-26, but artwork 1.1 was tuned on it (BORDER_FIX, TILT_FIRST and BAND_CHECK were chosen on
+  its numbers, the gate margin on the lab's pictures) and it is enriched with hard cases - good for comparing
+  versions, not a clean estimate of the catalogue's error rates;
+- `tuning` - a stratified random sample of 1.0 results (tuned on); `feedback` - Jan's pilot review (tuned on);
+- `random` - the **test set**: a uniform random sample of current pictures, stratified by the first pass with a
+  weight per picture (`python -m puzzle_vision.artwork_testset`), marked by Jan; never tune on it.
+
+Rates are printed twice: as counted on the set, and **weighted to the catalogue** - each picture stands for its
+first-pass stratum (`stratum()`) in proportion to the catalogue (reference/population-strata.json), or by its own
+`weight` when the set was drawn with one (the random test set).
 """
 
 from __future__ import annotations
@@ -32,6 +45,71 @@ INSET = 0.01
 RASTER = 600
 EDGE_SAMPLES = 40
 KIND_GROUP = {"flat": "flat", "box_front": "box", "box_angled": "box", "assembled": "assembled", "other": "other"}
+STRATA = ("flat", "other", "asm_quad", "asm_vlm", "box_quad", "box_vlm")
+
+
+def stratum(result: dict[str, Any] | None) -> str:
+    """The first-pass stratum of a stored artwork result (1.1 keeps it in `firstPass`, 1.0 is its own first pass):
+    flat / other / asm_quad / asm_vlm / box_quad / box_vlm - the kind and whether the quad snap took it."""
+    r = result or {}
+    fp = r.get("firstPass") if isinstance(r.get("firstPass"), dict) else {}
+    kind = fp.get("kind") or r.get("kind")
+    method = fp.get("method") or r.get("method")
+    if kind == "flat":
+        return "flat"
+    if kind == "assembled":
+        return "asm_quad" if method == "vlm+quad" else "asm_vlm"
+    if kind in ("box_front", "box_angled"):
+        return "box_quad" if method == "vlm+quad" else "box_vlm"
+    return "other"
+
+
+def load_population(path: Path | None = None) -> dict[str, int]:
+    """Current pictures per first-pass stratum (reference/population-strata.json; {} when absent)."""
+    p = Path(path) if path else REFERENCE_DIR / "population-strata.json"
+    return {k: int(v) for k, v in json.loads(p.read_text())["counts"].items()} if p.exists() else {}
+
+
+def weigh(rows: list[dict[str, Any]], population: dict[str, int]) -> None:
+    """Gives every row a `weight` (summing to 1): its own selection weight when it has one (`selectionWeight`), else
+    its stratum's catalogue share split over the set's rows of that stratum. A stratum without a row in the set is
+    left out - `coverage` in `weighted()` says how much of the catalogue the weights cover."""
+    total = sum(population.values()) or 1
+    counts: dict[str, int] = {}
+    for r in rows:
+        counts[r["stratum"]] = counts.get(r["stratum"], 0) + 1
+    for r in rows:
+        own = r.get("selectionWeight")
+        r["weight"] = float(own) if own else population.get(r["stratum"], 0) / total / counts[r["stratum"]]
+    s = sum(r["weight"] for r in rows) or 1.0
+    for r in rows:
+        r["weight"] /= s
+
+
+def weighted(rows: list[dict[str, Any]], population: dict[str, int]) -> dict[str, Any]:
+    """Catalogue-weighted rates (`weigh` first): shares of pictures cut / big cut / print kept / within 5 % on every
+    side, mean IoU and kind accuracy, and the effective sample size."""
+    if not rows or not all("weight" in r for r in rows):
+        return {"n": 0}
+    w = np.array([r["weight"] for r in rows], float)
+
+    def rate(key: Callable[[dict[str, Any]], Any]) -> float:
+        return round(float(np.sum(w * np.array([float(key(r)) for r in rows]))), 4)
+
+    out: dict[str, Any] = {
+        "n": len(rows),
+        "effectiveN": round(float(w.sum() ** 2 / np.sum(w ** 2)), 1),
+        "artworkCut": rate(lambda r: r["artworkCut"]),
+        "bigCut": rate(lambda r: r["bigCut"]),
+        "printKept": rate(lambda r: r["printKept"]),
+        "within5": rate(lambda r: r["cut"] <= BIG_CUT and r["extra"] <= BIG_CUT),
+        "meanIou": rate(lambda r: r["iou"]),
+        "kindGroup": rate(lambda r: r["kindGroup"]),
+    }
+    total = sum(population.values())
+    present = {r["stratum"] for r in rows if not r.get("selectionWeight")}
+    out["coverage"] = round(sum(population.get(s, 0) for s in present) / total, 3) if present and total else 1.0
+    return out
 
 
 @dataclass
@@ -161,7 +239,7 @@ def stored_candidate(result: dict[str, Any]) -> Candidate:
     return Candidate(result.get("kind") or "other", [b["x"], b["y"], b["x"] + b["w"], b["y"] + b["h"]], result.get("corners"))
 
 
-def summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
+def summarise(rows: list[dict[str, Any]], population: dict[str, int] | None = None) -> dict[str, Any]:
     def block(rs: list[dict[str, Any]]) -> dict[str, Any]:
         n = len(rs)
         if not n:
@@ -185,6 +263,9 @@ def summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
         groups.setdefault(KIND_GROUP.get(r["truthKind"] or "", "other"), []).append(r)
     single = [r for r in rows if not r["noSinglePicture"]]
     out = {"all": block(rows), "single": block(single), **{g: block(rs) for g, rs in sorted(groups.items())}}
+    if population and rows and all("stratum" in r for r in rows):
+        weigh(rows, population)
+        out["weighted"] = weighted(rows, population)
     flagged = [r for r in rows if "quality" in (r.get("info") or {})]
     if flagged:
         nsp = [r for r in flagged if r["noSinglePicture"]]
@@ -200,9 +281,10 @@ def summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def evaluate(items: dict[str, dict[str, Any]], truth: dict[str, dict[str, Any]],
-             candidate_for: Callable[[dict[str, Any]], Candidate | None]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+             candidate_for: Callable[[dict[str, Any]], Candidate | None],
+             population: dict[str, int] | None = None) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """`items` = artwork_reference items (id -> path, width, height, fingerprint, stored); a truth row of another picture
-    is skipped. Answers per-picture rows and the summary per truth kind group."""
+    is skipped. Answers per-picture rows and the summary per truth kind group (+ `weighted` given a population)."""
     rows = []
     for pid, t in sorted(truth.items()):
         item = items.get(pid)
@@ -213,10 +295,13 @@ def evaluate(items: dict[str, dict[str, Any]], truth: dict[str, dict[str, Any]],
             continue
         r = score(c, t, item["width"] / item["height"])
         r["puzzleId"] = pid
+        r["stratum"] = item.get("stratum") or stratum(item.get("stored"))
+        if item.get("weight"):
+            r["selectionWeight"] = float(item["weight"])
         if c.info:
             r["info"] = c.info
         rows.append(r)
-    return rows, summarise(rows)
+    return rows, summarise(rows, population)
 
 
 # --- command line: python -m puzzle_vision.artwork_eval ---------------------------------------------------------------
@@ -302,7 +387,9 @@ CANDIDATES: dict[str, Callable[[dict[str, Any]], Candidate | None]] = {
 
 
 REFERENCE_DIR = Path(__file__).resolve().parent.parent / "reference"
-SETS = ("reference", "tuning", "feedback")  # reference = held out: measure only, never tune on it; feedback = Jan's pilot review (tuned on)
+# reference = the validation set (1.1 was tuned on it: compare versions on it, never quote it as the catalogue's rate);
+# tuning, feedback = tuned on; random = the test set (uniform random, weighted, marked by Jan - never tune on it)
+SETS = ("reference", "tuning", "feedback", "random")
 
 
 def load_set(name: str, cache_dir: Path) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
@@ -311,6 +398,9 @@ def load_set(name: str, cache_dir: Path) -> tuple[dict[str, dict[str, Any]], dic
     from .download import Downloader
     from .workstate import WorkState
 
+    if not (REFERENCE_DIR / f"artwork-items-{name}.json").exists():
+        raise SystemExit(f"no labelled set {name!r} in {REFERENCE_DIR} yet (the random test set arrives once Jan has marked it - "
+                         "python -m puzzle_vision.artwork_testset import)")
     cache_dir.mkdir(parents=True, exist_ok=True)
     dl = Downloader(cache_dir / "images", WorkState(cache_dir / "workstate.sqlite"))
     items = {}
@@ -325,7 +415,7 @@ def main(argv: list[str] | None = None) -> int:
 
     p = argparse.ArgumentParser(prog="python -m puzzle_vision.artwork_eval",
                                 description="Score an artwork version against the hand-marked outlines - run it first for every new version.")
-    p.add_argument("--set", action="append", choices=SETS, help="labelled set(s) from reference/ (default: reference)")
+    p.add_argument("--set", action="append", choices=SETS, help="labelled set(s) from reference/ (default: reference, the validation set)")
     p.add_argument("--dir", action="append", help="or a local labelled set (items.json with paths + truth/*.jsonl)")
     p.add_argument("--cache", default=str(Path.home() / "Library/Caches/puzzle-vision/artwork-reference"))
     p.add_argument("--candidate", default="stored", choices=sorted(CANDIDATES))
@@ -342,7 +432,7 @@ def main(argv: list[str] | None = None) -> int:
         items.update({i["id"]: i for i in json.loads((Path(d) / "items.json").read_text())})
         truth.update(load_truth(sorted((Path(d) / "truth").glob("*.jsonl"))))
     try:
-        rows, summary = evaluate(items, truth, CANDIDATES[a.candidate])
+        rows, summary = evaluate(items, truth, CANDIDATES[a.candidate], load_population())
     finally:
         if _STAGE:
             _STAGE[1].release()
@@ -354,6 +444,11 @@ def main(argv: list[str] | None = None) -> int:
         for g, b in summary.items():
             if g == "quality":
                 print("quality   ", b)
+            elif g == "weighted":
+                if b.get("n"):
+                    print(f"weighted   n={b['n']:4d} (effective {b['effectiveN']}, covers {b['coverage']:.0%} of the catalogue) "
+                          f"cut={b['artworkCut']:.1%} big={b['bigCut']:.1%} print={b['printKept']:.1%} within5={b['within5']:.1%} "
+                          f"mIoU={b['meanIou']:.3f} kindGroup={b['kindGroup']:.2f}  <- catalogue rates")
             elif b.get("n"):
                 print(f"{g:10s} n={b['n']:4d} cut={b['artworkCut']:3d} big={b['bigCut']:3d} subj={b['wrongSubject']:3d} wrongQuad={b['wrongQuad']:3d} print={b['printKept']:3d} "
                       f"mIoU={b['meanIou']:.3f} iou>=.8={b['iou80']:.2f} kind={b['kindExact']:.2f}/{b['kindGroup']:.2f} maxCut={b['maxCut']:.3f}")

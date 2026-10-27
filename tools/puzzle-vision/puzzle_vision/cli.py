@@ -97,8 +97,10 @@ def cmd_setup_check(a: argparse.Namespace, ctx: Context) -> int:
     return 0 if ok else 1
 
 
-def pid_file(ctx: Context) -> Path:
-    return ctx.settings.state_dir / f"run-{ctx.profile.name}.pid"
+def pid_file(ctx: Context, phase: str | None = None) -> Path:
+    """`run-<profile>.pid`; a one-phase run (`--phase X`) writes `run-<profile>-<X>.pid`, so a CPU phase started beside a
+    running GPU phase of the same profile never overwrites (or deletes) that run's pid file."""
+    return ctx.settings.state_dir / (f"run-{ctx.profile.name}-{phase}.pid" if phase else f"run-{ctx.profile.name}.pid")
 
 
 def cmd_run(a: argparse.Namespace, ctx: Context) -> int:
@@ -106,7 +108,7 @@ def cmd_run(a: argparse.Namespace, ctx: Context) -> int:
 
     opts = RunOptions(profile=ctx.profile, base_url=ctx.settings.base_url, hours=a.hours, phase=a.phase, follow=a.follow,
                       daily=a.daily, idle_minutes=a.idle_minutes, max_images=a.max_images)
-    pid = pid_file(ctx)
+    pid = pid_file(ctx, a.phase)
     pid.write_text(str(os.getpid()))  # this python process - `kill $(cat …)` stops the run cleanly (not uv's pid)
     try:
         rc = Runner(opts, ctx.api, ctx.workstate).run()

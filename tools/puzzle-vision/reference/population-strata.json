@@ -1,0 +1,13 @@
+{
+ "about": "How many current catalogue pictures each first-pass stratum holds (artwork_eval.stratum: the first pass's kind and method) - artwork_eval weights every labelled set by it to print catalogue (population-weighted) rates. Refresh with `python -m puzzle_vision.artwork_testset strata --profile m3-solo`.",
+ "date": "2026-10-24",
+ "source": "production artwork 1.1.0 rows of the current pictures",
+ "counts": {
+  "flat": 16130,
+  "other": 129,
+  "asm_quad": 3007,
+  "asm_vlm": 4638,
+  "box_quad": 5110,
+  "box_vlm": 14467
+ }
+}

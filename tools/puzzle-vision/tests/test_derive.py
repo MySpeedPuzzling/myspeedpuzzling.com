@@ -8,7 +8,8 @@ from puzzle_vision.payload import vector_to_b64
 from .conftest import pid
 from .test_payloads import MODEL_ANSWER
 
-VERSIONS = {"box_text": "1.0.0+rules", "zeroshot": "1.0.0+so400m@tax1.0.0", "neighbours": "1.0.0+siglip2-dinov2l", "tags": "1.0.0+fusion@tax1.0.0"}
+VERSIONS = {"box_text": "1.0.0+rules", "zeroshot": "1.0.0+so400m@tax1.0.0", "neighbours": "1.0.0+siglip2-dinov2l", "tags": "1.0.0+fusion@tax1.0.0",
+            "crop_trust": "1.0.0+logit8-flatprobe"}
 
 
 def put(server, analyzer, p, result, version="v1"):

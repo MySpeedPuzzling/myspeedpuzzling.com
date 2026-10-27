@@ -5,7 +5,9 @@ pipeline never changes a puzzle picture itself. The original stays (production a
    most-solved first (the work list's `solvedCount`), then puzzle id.
 2. The perspective-corrected crop is rendered from the **full-resolution original**.
 3. Confidence from **agreement signals**, never a raw model score:
-   - IoU of the VLM box vs the OpenCV-snapped quad,
+   - the crop's trust (`crop_trust`: calibrated probability the crop is within 5 % of the artwork on every side, from
+     8 stored signals) - when no `crop_trust` row of the current picture is stored yet, the old IoU of the VLM box vs
+     the OpenCV-snapped quad (artwork 1.0 semantics: every 1.1 face-pass crop scored a flat 0.4),
    - the flat-art gate's probability on the crop (a good crop looks like flat artwork),
    - edge straightness (a strong, straight edge right where the crop ends, on all four sides),
    - an aspect ratio plausible for a puzzle,
@@ -31,13 +33,13 @@ from ..imaging import bbox_to_xyxy, crop, decode, normalise, to_jpeg_bytes
 
 log = logging.getLogger(__name__)
 
-CROP_PROPOSAL_VERSION = "1.0.0"
+CROP_PROPOSAL_VERSION = "1.1.0"  # 1.1.0: the crop signal is crop_trust (a new band to earn)
 PROPOSE_THRESHOLD = 0.6
 TAG = "artwork_crop"
 MIN_CROP_SIDE = 600
 MAX_OUTPUT_SIDE = 4000
 MAX_IMAGE_BYTES = 15 * 1024 * 1024
-WEIGHTS = {"iou": 0.35, "gate": 0.25, "straight": 0.2, "aspect": 0.1, "fill": 0.1}
+WEIGHTS = {"crop": 0.35, "gate": 0.25, "straight": 0.2, "aspect": 0.1, "fill": 0.1}
 # width / height of common puzzles (500 49×36, 1000 70×50, 1500 80×60, 3000/5000 ~1.5), square ones, panoramas
 PLAUSIBLE_ASPECTS = ((1.0, 1.02), (1.22, 1.56), (2.6, 3.4))
 
@@ -47,6 +49,7 @@ def model_version(artwork_version: str) -> str:
 
 
 def iou_signal(artwork: dict[str, Any]) -> float:
+    """The fallback crop signal without a `crop_trust` row (artwork 1.0 semantics)."""
     s = artwork.get("signals") or {}
     if artwork.get("method") == "vlm+quad" and s.get("quadIou") is not None:
         return float(s["quadIou"])
@@ -148,7 +151,8 @@ def render(original: bytes, artwork: dict[str, Any]) -> tuple[np.ndarray, np.nda
     return rgb, out
 
 
-def build(item: WorkItem, artwork: dict[str, Any], original: bytes, gate_margin: Callable[[np.ndarray], float]) -> Proposal | None:
+def build(item: WorkItem, artwork: dict[str, Any], original: bytes, gate_margin: Callable[[np.ndarray], float],
+          trust: float | None = None) -> Proposal | None:
     rgb, out = render(original, artwork)
     h, w = out.shape[:2]
     if max(w, h) < MIN_CROP_SIDE:
@@ -162,7 +166,7 @@ def build(item: WorkItem, artwork: dict[str, Any], original: bytes, gate_margin:
     if corners and isinstance(corners[0], dict):
         corners = [[c["x"], c["y"]] for c in corners]
     signals = {
-        "iou": round(iou_signal(artwork), 4),
+        "crop": round(float(trust) if trust is not None else iou_signal(artwork), 4),
         "gate": round(gate_probability(gate_margin(out)), 4),
         "straight": edge_straightness(small, bbox_to_xyxy(artwork["bbox"]), corners),
         "aspect": round(aspect_plausibility(w, h), 4),
@@ -185,6 +189,17 @@ def solve_count(item: WorkItem) -> int:
     return int(value) if isinstance(value, int) else 0
 
 
+def crop_trusts(api: InternalApi, meta: dict[str, WorkItem]) -> dict[str, float]:
+    """`crop_trust` of each puzzle's current picture (derive writes it nightly); absent = not derived yet."""
+    out = {}
+    for row in api.iter_analyses("crop_trust", only_current=True, limit=1000):
+        item = meta.get(row.get("puzzleId", ""))
+        trust = (row.get("result") or {}).get("trust") if isinstance(row.get("result"), dict) else None
+        if item is not None and row.get("imageFingerprint") == item.fingerprint and isinstance(trust, (int, float)):
+            out[item.puzzle_id] = float(trust)
+    return out
+
+
 def already_proposed(api: InternalApi) -> set[tuple[str, str]]:
     out = set()
     for cr in api.iter_change_requests(source="image_pipeline", tag=TAG, status="all"):
@@ -203,6 +218,7 @@ def propose(api: InternalApi, fetch_original: Callable[[str], bytes], gate_margi
     version = model_version(artwork_version)
     done = already_proposed(api)
     meta = {i.puzzle_id: i for i in api.iter_images(status="all", limit=1000)}
+    trusts = crop_trusts(api, meta)
     candidates: list[tuple[WorkItem, dict[str, Any]]] = []
     for row in api.iter_analyses("artwork", only_current=True, limit=1000):
         item = meta.get(row["puzzleId"])
@@ -225,7 +241,7 @@ def propose(api: InternalApi, fetch_original: Callable[[str], bytes], gate_margi
             summary["remembered"] += 1
             continue
         try:
-            prop = build(item, artwork, fetch_original(item.image_url), gate_margin)
+            prop = build(item, artwork, fetch_original(item.image_url), gate_margin, trusts.get(item.puzzle_id))
         except Exception as e:  # noqa: BLE001 - one bad image never stops the run
             summary["failed"] += 1
             log.warning("[propose-crops] %s: %s", item.puzzle_id, e)

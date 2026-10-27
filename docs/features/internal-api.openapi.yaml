@@ -3963,7 +3963,7 @@ components:
 
     ImageAnalyzer:
       type: string
-      enum: [artwork, colors, traits, ocr, barcode, vision_labels, embed_siglip2, embed_siglip2_full, embed_dinov2, embed_dinov2_patches, segmentation, describe, box_text, zeroshot, neighbours, tags]
+      enum: [artwork, colors, traits, ocr, barcode, vision_labels, embed_siglip2, embed_siglip2_full, embed_dinov2, embed_dinov2_patches, segmentation, describe, piece_scale, box_text, zeroshot, neighbours, tags, crop_trust]
       description: What an image analysis is about (ImageAnalyzer - one new case per new kind of analysis; payload schemas in docs/features/insights/image-taxonomy.md section 11).
 
     PuzzleImageAnalysisBody:

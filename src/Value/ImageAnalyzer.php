@@ -45,6 +45,9 @@ enum ImageAnalyzer: string
     case Segmentation = 'segmentation';
     // A vision-language model's caption and structured description of the artwork
     case Describe = 'describe';
+    // How ambiguous the artwork is at the size of one piece (a grid matching the real piece layout): look-alike
+    // pieces, colour piles, hue entropy - for the real piece count, 500 and 1000 (CPU, no model; ~3 KB)
+    case PieceScale = 'piece_scale';
 
     // Derived (computed from the raw analyses above, not from the image). `neighbours` (and anything else naming other
     // puzzles) may name a puzzle that became secret after it was computed - a consumer re-checks every referenced id
@@ -57,6 +60,10 @@ enum ImageAnalyzer: string
     case Neighbours = 'neighbours';
     // Theme / style tags - the fusion of the analyses
     case Tags = 'tags';
+    // How far to trust the artwork crop (calibrated probability it is within 5 % of the artwork on every side) and the
+    // split quality marks (photo vs digital, resolution, not the picture, crop needs a look) - from `artwork` +
+    // `embed_siglip2`
+    case CropTrust = 'crop_trust';
 
     // The default size limit of a result, JSON-encoded
     public const int DEFAULT_MAX_RESULT_BYTES = 65536;

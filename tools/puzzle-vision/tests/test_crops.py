@@ -40,7 +40,7 @@ def test_aspect_fill_and_combine():
     assert crops.aspect_plausibility(1000, 1000) == 1.0 and crops.aspect_plausibility(1000, 600) < 0.2
     assert crops.fill_score({"w": 0.6, "h": 0.6}, 1300) > crops.fill_score({"w": 0.3, "h": 0.3}, 700)
     assert crops.combine({k: 1.0 for k in crops.WEIGHTS}) == 1.0
-    low = crops.combine({"iou": 0.95, "gate": 0.95, "straight": 0.05, "aspect": 1, "fill": 1})
+    low = crops.combine({"crop": 0.95, "gate": 0.95, "straight": 0.05, "aspect": 1, "fill": 1})
     assert low < 0.6  # one weak signal pulls it down
     assert crops.gate_probability(0.0) == 0.5 and crops.gate_probability(0.1) > 0.99
     assert crops.iou_signal({"method": "vlm+quad", "signals": {"quadIou": 0.93}}) == 0.93
@@ -73,7 +73,7 @@ def test_propose_files_change_requests_once(api, server):
     assert [i["puzzleId"] for i in out["items"]] == [pid(1), pid(0)]  # most solved first (solvedCount 3 > 0)
     cr = next(c for c in server.change_requests if c["puzzleId"] == pid(0))
     assert cr["source"] == "image_pipeline" and cr["tags"] == ["artwork_crop"] and cr["sourceImageFingerprint"] == server.puzzles[pid(0)]["imageFingerprint"]
-    assert cr["modelVersion"] == "artwork-crop 1.0.0 (1.0.0+siglip2-q3vl4b)" and 0.6 <= cr["confidence"] <= 1
+    assert cr["modelVersion"] == "artwork-crop 1.1.0 (1.0.0+siglip2-q3vl4b)" and 0.6 <= cr["confidence"] <= 1
     again = crops.propose(api, fetch, lambda rgb: 0.08, "1.0.0+siglip2-q3vl4b", limit=10)
     assert again["candidates"] == 0 and len(server.change_requests) == 2
 
@@ -85,3 +85,21 @@ def test_low_confidence_proposes_nothing(api, server):
                                        "analyzedAt": None, "receivedAt": "x", "result": artwork(conf_quad=0.2)}
     out = crops.propose(api, lambda url: server.images[url.rsplit("/", 1)[1]], lambda rgb: -0.1, "v", limit=5)
     assert out["low_confidence"] == 1 and not server.change_requests
+
+
+def test_a_stored_crop_trust_is_the_crop_signal(api, server):
+    """crop_trust replaces the 1.0-era IoU signal (every 1.1 face-pass crop scored a flat 0.4): a doubtful crop with a
+    perfect quad is not proposed, and only the trust of the current picture counts."""
+    p = pid(0)
+    server.images["img-0.png"] = jpeg(photo())
+    server.analyses[("artwork", p)] = {"puzzleId": p, "analyzer": "artwork", "analyzerVersion": "v", "imageFingerprint": server.puzzles[p]["imageFingerprint"],
+                                       "analyzedAt": None, "receivedAt": "x", "result": artwork()}
+    trust_row = {"puzzleId": p, "analyzer": "crop_trust", "analyzerVersion": "1.0.0+logit8-flatprobe", "analyzedAt": None, "receivedAt": "x",
+                 "imageFingerprint": "ffffffffffffffff", "result": {"trust": 0.02}}
+    server.analyses[("crop_trust", p)] = trust_row
+    fetch = lambda url: server.images[url.rsplit("/", 1)[1]]  # noqa: E731
+    first = crops.propose(api, fetch, lambda rgb: 0.08, "v", limit=5, dry_run=True)
+    assert first["proposed"] == 1, first  # another picture's trust: ignored
+    trust_row["imageFingerprint"] = server.puzzles[p]["imageFingerprint"]
+    out = crops.propose(api, fetch, lambda rgb: 0.08, "v", limit=5, dry_run=True)
+    assert out["low_confidence"] == 1 and out["proposed"] == 0

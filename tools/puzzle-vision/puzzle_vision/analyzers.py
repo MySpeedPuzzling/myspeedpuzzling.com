@@ -17,9 +17,10 @@ RAW = (
     "segmentation",
     "colors",
     "traits",
+    "piece_scale",
     "describe",
 )
-DERIVED = ("box_text", "zeroshot", "neighbours", "tags")
+DERIVED = ("box_text", "zeroshot", "neighbours", "tags", "crop_trust")
 ALL = RAW + DERIVED
 
 
@@ -48,6 +49,7 @@ INFO: dict[str, AnalyzerInfo] = {
     "embed_siglip2_full": AnalyzerInfo("embed_siglip2_full", (), "gpu", "full", (SIGLIP2,)),
     "colors": AnalyzerInfo("colors", ("artwork",), "cpu", "crop"),
     "traits": AnalyzerInfo("traits", ("artwork",), "cpu", "crop"),
+    "piece_scale": AnalyzerInfo("piece_scale", ("artwork",), "cpu", "crop"),
     "segmentation": AnalyzerInfo("segmentation", ("artwork",), "gpu", "crop", (EOMT_L,)),
     "embed_dinov2": AnalyzerInfo("embed_dinov2", ("artwork",), "gpu", "crop", (DINOV2_L,)),
     "embed_dinov2_patches": AnalyzerInfo("embed_dinov2_patches", ("artwork",), "gpu", "crop", (DINOV2_L,)),
@@ -65,6 +67,7 @@ DERIVED_INPUTS: dict[str, tuple[str, ...]] = {
     "zeroshot": ("embed_siglip2", "embed_siglip2_full"),
     "neighbours": ("embed_siglip2", "embed_siglip2_full", "embed_dinov2"),
     "tags": ("describe", "zeroshot", "vision_labels", "colors", "traits", "segmentation", "ocr", "box_text", "artwork"),
+    "crop_trust": ("artwork", "embed_siglip2"),
 }
 
 # Expected sustained seconds per image on the M3 Max (image-taxonomy.md §19) - `bench` compares against these (±30 %).
@@ -81,6 +84,7 @@ M3_SECONDS_PER_IMAGE: dict[str, float] = {
     "segmentation": 0.31,
     "colors": 0.078,
     "traits": 0.078,
+    "piece_scale": 0.17,  # 0.67 CPU-s an image (2.3 piece counts) on one core, 4 workers
     "describe": 10.75,
 }
 

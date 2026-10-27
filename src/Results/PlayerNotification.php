@@ -106,6 +106,11 @@ readonly final class PlayerNotification
         public null|string $borrowRequestId = null,
         public int $borrowItemsTotal = 0,
         public int $borrowItemsYes = 0,
+        // ListingRequested / ListingRequestAnswered / ListingRequestExpired / ListingRequestUnavailable: the request (who =
+        // targetPlayer*), how many listings it holds and how many the seller agreed to (for Unavailable: how many went)
+        public null|string $listingRequestId = null,
+        public int $listingItemsTotal = 0,
+        public int $listingItemsYes = 0,
     ) {
     }
 
@@ -239,6 +244,9 @@ readonly final class PlayerNotification
             borrowRequestId: is_string($row['borrow_request_id'] ?? null) ? $row['borrow_request_id'] : null,
             borrowItemsTotal: is_int($row['borrow_items_total'] ?? null) ? $row['borrow_items_total'] : 0,
             borrowItemsYes: is_int($row['borrow_items_yes'] ?? null) ? $row['borrow_items_yes'] : 0,
+            listingRequestId: is_string($row['listing_request_id'] ?? null) ? $row['listing_request_id'] : null,
+            listingItemsTotal: is_int($row['listing_items_total'] ?? null) ? $row['listing_items_total'] : 0,
+            listingItemsYes: is_int($row['listing_items_yes'] ?? null) ? $row['listing_items_yes'] : 0,
         );
     }
 
@@ -313,6 +321,16 @@ readonly final class PlayerNotification
     public function isConversationRequestNotification(): bool
     {
         return $this->conversationId !== null;
+    }
+
+    public function isListingRequestNotification(): bool
+    {
+        return $this->listingRequestId !== null && in_array($this->notificationType, [
+            NotificationType::ListingRequested,
+            NotificationType::ListingRequestAnswered,
+            NotificationType::ListingRequestExpired,
+            NotificationType::ListingRequestUnavailable,
+        ], true);
     }
 
     public function isBorrowRequestNotification(): bool

@@ -118,3 +118,20 @@ body:has(.collection-selecting) .comparison-launcher {
         animation: none;
     }
 }
+
+// A buyer ticking listings on somebody's sell/swap list or the marketplace (docs/features/marketplace/12-listing-requests.md)
+.listing-selecting {
+    [data-listing-selection-card] {
+        cursor: pointer;
+        user-select: none;
+
+        // One action at a time: the card menus step aside while selecting
+        .dropdown {
+            visibility: hidden;
+        }
+    }
+}
+
+body:has(.listing-selecting) .comparison-launcher {
+    display: none;
+}

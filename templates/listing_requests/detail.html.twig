@@ -1,0 +1,151 @@
+{% extends 'base.html.twig' %}
+
+{# One sell/swap request (ListingRequestDetailController, docs/features/marketplace/12-listing-requests.md): the seller
+   answers per listing and marks agreed ones sold, the buyer sees where it stands and withdraws. #}
+{% set name = request_overview.counterpartDisplayName %}
+
+{% block title %}{{ (is_seller ? 'listing_request.detail.title_seller' : 'listing_request.detail.title_buyer')|trans({'%name%': name}) }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="row pb-4">
+        <div class="col-lg-8 col-md-10">
+            <a href="{{ path('listing_requests', is_seller ? {tab: 'received'} : {}) }}" class="fs-sm d-inline-block mb-2">
+                <i class="bi bi-arrow-left me-1"></i>{{ 'listing_request.list.title'|trans }}
+            </a>
+
+            <h1 class="h3 mb-2">{{ (is_seller ? 'listing_request.detail.title_seller' : 'listing_request.detail.title_buyer')|trans({'%name%': name}) }}</h1>
+            <p class="fs-sm text-muted mb-3">
+                {{ request_overview.createdAt|ago }}
+                {% if request_overview.isWaiting %}
+                    · {{ 'listing_request.detail.expires'|trans({'%date%': request_overview.expiresAt|date('j. n. Y')}) }}
+                {% endif %}
+                {% if not is_seller and not request_overview.counterpartIsPrivate %}
+                    · <a href="{{ path('sell_swap_list_detail', {playerId: request_overview.sellerId}) }}">{{ 'listing_request.detail.seller_list'|trans({'%name%': name}) }}</a>
+                {% endif %}
+            </p>
+
+            {% if request_overview.note is not null %}
+                <blockquote class="border-start ps-3 fst-italic mb-3" style="white-space: pre-line;">“{{ request_overview.note }}”</blockquote>
+            {% endif %}
+
+            {% set totals = request_overview.openTotals %}
+            {% if totals is not empty %}
+                <p class="fs-sm mb-3">
+                    {{ 'listing_request.sheet.total'|trans }}
+                    {% for currency, sum in totals %}<strong>{{ sum }} {{ currency }}</strong>{% if not loop.last %} + {% endif %}{% endfor %}
+                    <span class="text-muted">{{ 'listing_request.sheet.plus_shipping'|trans }}</span>
+                </p>
+            {% endif %}
+
+            {% if is_seller %}
+                <p class="fs-sm">{{ 'listing_request.detail.seller_explain'|trans({'%name%': name}) }}</p>
+            {% endif %}
+
+            <form method="post" action="{{ path('listing_request_detail', {requestId: request_overview.requestId}) }}" id="listing-request-answer-form" data-testid="listing-request-answer-form">
+                <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
+            </form>
+
+            <div class="d-flex flex-column gap-2 mb-3">
+                {% for item in request_overview.items %}
+                    <div class="card card-body p-2 shadow-sm" data-testid="listing-request-item">
+                        <div class="d-flex gap-2 align-items-center">
+                            {{ lazy_puzzle_image(item.image, 'puzzle_small', item.puzzleName, 999, 56, 'rounded', 56) }}
+                            <div class="flex-grow-1 min-width-0">
+                                <div class="fw-medium">{{ item.puzzleName }}</div>
+                                <div class="fs-sm">
+                                    <span class="text-muted">{{ item.piecesCount }} {{ 'marketplace.pcs'|trans }}{% if item.manufacturerName %} · {{ item.manufacturerName }}{% endif %} ·</span>
+                                    {{ include('listing_requests/_listing_terms.html.twig', {listing_type: item.listingType, price: item.price, currency: item.currency, condition: item.condition}) }}
+                                    {% if item.status.isOpen and item.priceChanged and item.currentPrice is not null %}
+                                        <span class="badge bg-warning text-dark ms-1">{{ 'listing_request.detail.price_now'|trans({'%price%': item.currentPrice ~ ' ' ~ item.currency}) }}</span>
+                                    {% endif %}
+                                </div>
+
+                                {% if is_seller and item.status.value == 'waiting' %}
+                                    {% if item.reservedForSomebodyElse %}
+                                        <div class="fs-xs text-warning mt-1">{{ 'listing_request.detail.reserved_for_somebody_else'|trans }}</div>
+                                    {% endif %}
+                                    <div class="d-flex flex-wrap gap-1 mt-1" role="radiogroup">
+                                        {% for answer in ['yes', 'gone', 'declined'] %}
+                                            <div class="form-check form-option form-check-inline mb-0">
+                                                <input type="radio" class="form-check-input" id="answer-{{ item.itemId }}-{{ answer }}" form="listing-request-answer-form"
+                                                       name="answers[{{ item.itemId }}]" value="{{ answer }}"
+                                                       {{ answer == 'yes' and item.reservedForSomebodyElse ? 'disabled' }}>
+                                                <label class="form-option-label fs-sm" for="answer-{{ item.itemId }}-{{ answer }}">{{ ('listing_request.answer.' ~ answer)|trans }}</label>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% if item.listingId is not null %}
+                                        <div class="form-check mt-1">
+                                            <input type="checkbox" class="form-check-input" id="remove-{{ item.itemId }}" form="listing-request-answer-form" name="removeFromList[]" value="{{ item.itemId }}" checked>
+                                            <label class="form-check-label fs-xs text-muted" for="remove-{{ item.itemId }}">{{ 'listing_request.answer.remove_from_list'|trans }}</label>
+                                        </div>
+                                    {% endif %}
+                                {% else %}
+                                    <div class="mt-1 d-flex flex-wrap align-items-center gap-2">
+                                        {{ include('listing_requests/_status_badge.html.twig', {status: item.status, buyer_name: is_seller ? name : null}) }}
+                                        {% if item.status.value == 'yes' and not item.reservedForBuyer and item.listingId is not null %}
+                                            <span class="fs-xs text-muted">{{ 'listing_request.detail.not_reserved_any_more'|trans }}</span>
+                                        {% endif %}
+                                        {% if is_seller and item.status.value == 'yes' and item.listingId is not null %}
+                                            <form method="post" action="{{ path('sellswap_mark_sold_to_player', {itemId: item.listingId, buyerPlayerId: request_overview.buyerId}) }}" class="d-inline">
+                                                <button type="submit" class="btn btn-sm btn-outline-primary py-0">
+                                                    <i class="bi bi-check-circle me-1"></i>{{ 'listing_request.detail.mark_sold'|trans({'%name%': name}) }}
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                        {% if not is_seller and item.status.isOpen %}
+                                            <form method="post" action="{{ path('listing_request_withdraw', {requestId: request_overview.requestId}) }}" class="d-inline">
+                                                <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
+                                                <input type="hidden" name="itemId" value="{{ item.itemId }}">
+                                                <button type="submit" class="btn btn-link btn-sm p-0 fs-sm text-muted">{{ 'listing_request.detail.withdraw_one'|trans }}</button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            {% if request_overview.offers is not empty %}
+                <h2 class="h6 mb-2">{{ (is_seller ? 'listing_request.detail.offers_seller' : 'listing_request.detail.offers_buyer')|trans({'%name%': name}) }}</h2>
+                <ul class="list-unstyled mb-3">
+                    {% for offer in request_overview.offers %}
+                        <li class="d-flex align-items-center gap-2 py-1 border-top fs-sm">
+                            {{ lazy_puzzle_image(offer.image, 'puzzle_small', offer.puzzleName, 999, 40, 'rounded', 40) }}
+                            <div class="flex-grow-1 min-width-0">
+                                <a href="{{ path('puzzle_detail', {puzzleId: offer.puzzleId}) }}" class="fw-medium">{{ offer.puzzleName }}</a>
+                                <span class="text-muted">· {{ offer.piecesCount }} {{ 'marketplace.pcs'|trans }}{% if offer.manufacturerName %} · {{ offer.manufacturerName }}{% endif %} · {{ ('sell_swap_list.condition.' ~ offer.condition.value)|trans }}</span>
+                                {% if offer.listingId is null %}<span class="text-muted">· {{ 'listing_request.detail.offer_gone'|trans }}</span>{% endif %}
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            <div class="d-flex flex-wrap gap-2">
+                {% if is_seller %}
+                    {% if request_overview.isWaiting %}
+                        <button type="submit" form="listing-request-answer-form" class="btn btn-primary">{{ 'listing_request.detail.send_answers'|trans }}</button>
+                    {% endif %}
+                    <button type="submit" form="listing-request-answer-form" name="chat" value="1" class="btn btn-outline-primary">
+                        <i class="bi bi-chat-dots me-1"></i>{{ (request_overview.replied ? 'listing_request.detail.open_chat' : 'listing_request.detail.reply_in_chat')|trans }}
+                    </button>
+                {% else %}
+                    {% if request_overview.replied %}
+                        <a href="{{ path('conversations_list') }}" class="btn btn-outline-primary"><i class="bi bi-chat-dots me-1"></i>{{ 'listing_request.detail.open_chat'|trans }}</a>
+                    {% endif %}
+                    {% if request_overview.isOpen %}
+                        <form method="post" action="{{ path('listing_request_withdraw', {requestId: request_overview.requestId}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
+                            <button type="submit" class="btn btn-outline-secondary">{{ 'listing_request.detail.withdraw_all'|trans }}</button>
+                        </form>
+                    {% endif %}
+                {% endif %}
+            </div>
+            <p class="fs-xs text-muted mt-2 mb-0">{{ (is_seller ? 'listing_request.detail.seller_hint' : 'listing_request.detail.buyer_hint')|trans({'%name%': name}) }}</p>
+        </div>
+    </div>
+{% endblock %}

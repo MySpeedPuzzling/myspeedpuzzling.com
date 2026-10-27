@@ -1,0 +1,27 @@
+{#
+    The buyer's floating bar while listings are ticked on a sell/swap list or the marketplace (listing_selection_controller.js,
+    docs/features/marketplace/12-listing-requests.md): "5 puzzles from 2 sellers" + "Ask for these", which posts every
+    ticked listing into the modal frame - never in the URL. Same look as the owner's bar (_puzzle_selection_bar.html.twig).
+#}
+<form method="post" action="{{ path('listing_ask_sheet') }}" class="collection-selection-bar shadow-lg" hidden
+      data-listing-selection-target="bar"
+      data-turbo-frame="modal-frame"
+      data-testid="listing-selection-bar"
+      aria-label="{{ 'listing_request.bar.label'|trans }}">
+    <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Value\\ListingSelection::CSRF_TOKEN_ID')) }}">
+    <div data-listing-selection-target="inputs"></div>
+
+    <div class="collection-selection-bar-inner">
+        <button type="button" class="btn btn-sm btn-link text-body p-1" data-action="listing-selection#clear"
+                title="{{ 'collection_selection.clear'|trans }}" aria-label="{{ 'collection_selection.clear'|trans }}">
+            <i class="bi bi-x-lg"></i>
+        </button>
+        <span class="fw-semibold text-nowrap fs-sm" data-listing-selection-target="count" aria-live="polite"></span>
+
+        <div class="collection-selection-actions">
+            <button type="submit" class="btn btn-sm btn-primary text-nowrap">
+                <i class="bi bi-chat-dots me-1"></i>{{ 'listing_request.bar.ask'|trans }}
+            </button>
+        </div>
+    </div>
+</form>

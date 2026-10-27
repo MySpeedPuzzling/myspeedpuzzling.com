@@ -1,5 +1,6 @@
 {#
-    A marketplace listing. `event` (optional) = the event chosen in the marketplace's "Pick up at an event" filter:
+    A marketplace listing. `buyer_select` (optional) = the marketplace list, where a signed-in buyer ticks listings to
+    ask several sellers at once (listing_selection_controller.js). `event` (optional) = the event chosen in the marketplace's "Pick up at an event" filter:
     the card then says "Bringing" or offers "Ask to bring it" for that event, instead of the labels
     "Bringing to …" (everyone) and "Seller goes to …" (only the viewer it was computed for) -
     docs/features/marketplace/11-events.md. The reserve/unreserve streams render it without an event.
@@ -15,16 +16,22 @@
 {% if is_own_listing or (item.reserved and not reserved_for_viewer) %}
     {% set ask_event = null %}
 {% endif %}
+{# Ticked to ask several sellers at once (docs/features/marketplace/12-listing-requests.md) - never the viewer's own,
+   never one reserved for somebody else #}
+{% set buyer_selectable = buyer_select|default(false) and viewer is not null and not is_own_listing and (not item.reserved or reserved_for_viewer) %}
 <div class="card h-100 shadow position-relative">
+    {% if buyer_selectable %}
+        {{ include('listing_requests/_select_check.html.twig', {listing_id: item.itemId, seller_id: item.sellerId, puzzle_name: item.puzzleName}) }}
+    {% endif %}
     {% if reserved_at_event is not null %}
         {% set reserved_label = 'marketplace_events.label.reserved_for_you'|trans({'%event%': reserved_at_event.shortName, '%date%': event_dates(reserved_at_event.dateFrom, reserved_at_event.dateTo)}) %}
-        <div class="position-absolute start-0 top-0 mpe-reserved-for-you" style="z-index: 2;">
+        <div class="position-absolute start-0 top-0 mpe-reserved-for-you" style="z-index: 2;{{ buyer_selectable ? ' margin-left: 1.25rem;' }}">
             <span class="badge bg-dark text-light px-2 py-1 mt-2 mpe-badge" style="border-radius: 0 0 0.375rem 0; font-size: 0.8rem;" title="{{ reserved_label }}">
                 {{- 'marketplace_events.label.reserved_for_you'|trans({'%event%': '<span class="mpe-badge-event">' ~ reserved_at_event.shortName|e ~ '</span>', '%date%': event_dates(reserved_at_event.dateFrom, reserved_at_event.dateTo)|e})|raw -}}
             </span>
         </div>
     {% elseif item.reserved %}
-        <div class="position-absolute start-0 top-0" style="z-index: 2;">
+        <div class="position-absolute start-0 top-0" style="z-index: 2;{{ buyer_selectable ? ' margin-left: 1.25rem;' }}">
             {% if logged_user.profile is not null and logged_user.profile.playerId is same as item.sellerId and item.reservedForPlayerName is not null %}
                 <a href="{{ path('start_marketplace_conversation', {sellSwapListItemId: item.itemId}) }}"
                    class="badge bg-dark text-light px-2 py-1 mt-2 text-decoration-none"

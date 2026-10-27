@@ -24,6 +24,7 @@ final class PrivateProfileQueryCoverageTest extends TestCase
         'Query/GetAchievementHolders.php' => self::GLOBAL_RANKING,
         'Query/GetXpLeaderboard.php' => self::GLOBAL_RANKING,
         'Services/Community/CommunityStatsCalculator.php' => 'Counts public newcomers per scope (community_scope_stats.new_faces14d) - an aggregate without identity, the raw setting decides who is counted.',
+        'Query/GetRequestableListings.php' => 'What the buyer may ask a seller for, for the buyer id it is given (the request sheet and the AskForListings handler alike, no security token): a private seller is named only when the buyer is on their allow list - the rule PrivateProfileAccess applies, written out for that id.',
         'Query/GetBorrowCandidates.php' => 'Who the asker may ask to borrow from, for the asker id it is given (the wishlist page and the AskToBorrowPuzzles handler alike, no security token): a private owner only when the asker is on their allow list - the rule PrivateProfileAccess applies, written out for that id.',
         'Query/GetAllowedPartnerCoMembers.php' => 'Write-side check of a partner finder listing\'s co-members for the lister id the handler gives it (no security token): a private player may be named only by somebody on their allow list - the rule PrivateProfileAccess applies, written out for that id.',
         'Query/FindSimilarSpeedPuzzler.php' => 'A random suggestion of somebody at your speed offers public profiles only - the same pool for every viewer, like a global ranking.',

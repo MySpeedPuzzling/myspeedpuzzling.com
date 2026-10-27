@@ -15,12 +15,14 @@ use SpeedPuzzling\Web\Repository\ModerationActionRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
 use SpeedPuzzling\Web\Value\ModerationActionType;
+use SpeedPuzzling\Web\Services\ListingRequest\ListingRequestCloser;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
 readonly final class AdminRemoveListingHandler
 {
     public function __construct(
+        private ListingRequestCloser $listingRequestCloser,
         private SellSwapListItemRepository $sellSwapListItemRepository,
         private PlayerRepository $playerRepository,
         private ModerationActionRepository $moderationActionRepository,
@@ -54,6 +56,7 @@ readonly final class AdminRemoveListingHandler
         );
 
         $this->moderationActionRepository->save($action);
+        $this->listingRequestCloser->listingsGoing([$item]);
         $this->sellSwapListItemRepository->delete($item);
     }
 }

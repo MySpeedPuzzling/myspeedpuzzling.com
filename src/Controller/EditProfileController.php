@@ -185,6 +185,7 @@ final class EditProfileController extends AbstractController
                     $messagingSettingsFormData->featureRequestEmails,
                     $messagingSettingsFormData->partnerFinderEmails,
                     $messagingSettingsFormData->borrowRequestEmails,
+                    $messagingSettingsFormData->listingRequestEmails,
                 )
             );
 

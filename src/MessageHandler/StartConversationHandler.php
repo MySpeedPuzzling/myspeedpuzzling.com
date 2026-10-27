@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\BorrowRequestNotFound;
 use SpeedPuzzling\Web\Exceptions\ConversationRequestAlreadyPending;
 use SpeedPuzzling\Web\Exceptions\DirectMessagesDisabled;
+use SpeedPuzzling\Web\Exceptions\ListingRequestNotFound;
 use SpeedPuzzling\Web\Exceptions\MessagingMuted;
 use SpeedPuzzling\Web\Exceptions\PartnerRequestNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
@@ -21,6 +22,7 @@ use SpeedPuzzling\Web\Message\StartConversation;
 use SpeedPuzzling\Web\Repository\BorrowRequestRepository;
 use SpeedPuzzling\Web\Repository\ChatMessageRepository;
 use SpeedPuzzling\Web\Repository\ConversationRepository;
+use SpeedPuzzling\Web\Repository\ListingRequestRepository;
 use SpeedPuzzling\Web\Repository\NotificationRepository;
 use SpeedPuzzling\Web\Repository\PartnerRequestRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -45,6 +47,7 @@ readonly final class StartConversationHandler
         private NotificationRepository $notificationRepository,
         private PartnerRequestRepository $partnerRequestRepository,
         private BorrowRequestRepository $borrowRequestRepository,
+        private ListingRequestRepository $listingRequestRepository,
         private MercureNotifier $mercureNotifier,
         private MessageBusInterface $messageBus,
         private LoggerInterface $logger,
@@ -59,6 +62,7 @@ readonly final class StartConversationHandler
      * @throws MessagingMuted
      * @throws PartnerRequestNotFound the request is not the recipient's to the initiator's listing
      * @throws BorrowRequestNotFound the borrow request is not the recipient's to the initiator
+     * @throws ListingRequestNotFound the listing request is not the recipient's to the initiator
      */
     public function __invoke(StartConversation $message): void
     {
@@ -84,7 +88,7 @@ readonly final class StartConversationHandler
             // Puzzle provided without listing (shouldn't normally happen, but handle gracefully)
         }
 
-        // A reply to a partner finder or borrow request: only to whoever asked - never a way around
+        // A reply to a partner finder, borrow or listing request: only to whoever asked - never a way around
         // "direct messages off" for anybody else
         $isRequestReply = false;
 
@@ -110,6 +114,20 @@ readonly final class StartConversationHandler
                 || $borrowRequest->asker->id->equals($recipient->id) === false
             ) {
                 throw new BorrowRequestNotFound();
+            }
+
+            $isRequestReply = true;
+        }
+
+        // The seller answering a listing request: only to whoever asked them
+        if ($message->listingRequestId !== null) {
+            $listingRequest = $this->listingRequestRepository->get($message->listingRequestId);
+
+            if (
+                $listingRequest->seller->id->equals($initiator->id) === false
+                || $listingRequest->buyer->id->equals($recipient->id) === false
+            ) {
+                throw new ListingRequestNotFound();
             }
 
             $isRequestReply = true;
@@ -242,7 +260,7 @@ readonly final class StartConversationHandler
     }
 
     /**
-     * The recipient asked first (to puzzle together, or to borrow puzzles), so the chat is open from the start: a request either of them sent
+     * The recipient asked first (to puzzle together, to borrow puzzles, or for puzzles of a sell/swap list), so the chat is open from the start: a request either of them sent
      * earlier is accepted, otherwise a new accepted conversation begins - no "conversation request" step for the person
      * who asked first. The accepted conversation between them is reused by the caller before this.
      */
@@ -293,7 +311,7 @@ readonly final class StartConversationHandler
             $this->mercureNotifier->notifyNewMessage($chatMessage);
             $this->mercureNotifier->notifyNewConversationRequest($conversation);
         } catch (\Throwable $e) {
-            $this->logger->error('Failed to send Mercure notification for a partner finder or borrow request reply', [
+            $this->logger->error('Failed to send Mercure notification for a partner finder, borrow or listing request reply', [
                 'conversationId' => $conversation->id->toString(),
                 'exception' => $e,
             ]);

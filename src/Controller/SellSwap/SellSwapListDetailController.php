@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\SellSwap;
 
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Query\GetListingRequests;
 use SpeedPuzzling\Web\Query\GetMarketplaceEventsHintState;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
@@ -23,6 +24,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class SellSwapListDetailController extends AbstractController
 {
     public function __construct(
+        readonly private GetListingRequests $getListingRequests,
         readonly private GetPlayerProfile $getPlayerProfile,
         readonly private GetSellSwapListItems $getSellSwapListItems,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
@@ -77,6 +79,8 @@ final class SellSwapListDetailController extends AbstractController
             'settings' => $player->sellSwapListSettings,
             'events_banner' => $eventsBanner,
             'events_hint_state' => $eventsHintState,
+            // "Requests (2 waiting)" - only on the owner's own list (docs/features/marketplace/12-listing-requests.md)
+            'waiting_listing_requests' => $isOwnProfile ? $this->getListingRequests->waitingCountFor($loggedPlayerProfile->playerId) : 0,
             'puzzle_statuses' => $this->getUserPuzzleStatuses->byPlayerId($player->playerId),
             ...$this->resolvePuzzleListInsights->forViewer($loggedPlayerProfile, array_column($items, 'puzzleId'))->templateParameters(),
         ]);

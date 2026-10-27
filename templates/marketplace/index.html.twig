@@ -15,6 +15,11 @@
         <a href="{{ path('marketplace_how_it_works') }}" class="btn btn-outline-secondary btn-sm ms-2 py-0 px-2 fs-xs">
             <i class="bi bi-question-circle me-1"></i>{{ 'marketplace.how_it_works_button'|trans }}
         </a>
+        {% if logged_user.profile is not null %}
+            <a href="{{ path('listing_requests') }}" class="btn btn-outline-secondary btn-sm ms-2 py-0 px-2 fs-xs" data-testid="marketplace-requests-link">
+                <i class="bi bi-chat-dots me-1"></i>{{ 'listing_request.list.title'|trans }}
+            </a>
+        {% endif %}
     </div>
 
     {% if not disclaimer_dismissed %}
@@ -39,5 +44,15 @@
         {{ include('marketplace/_events_banner.html.twig', {banner: events_banner, state: events_hint_state}) }}
     {% endif %}
 
-    <twig:MarketplaceListing :puzzleId="puzzle_id" :puzzleOverview="puzzle_overview" />
+    {% if logged_user.profile is not null %}
+        {# Tick listings of several sellers and ask them all at once (docs/features/marketplace/12-listing-requests.md) - the
+           controller sits outside the Live component, so its re-renders never reset it; the selection is in sessionStorage #}
+        <div data-controller="listing-selection" {{ include('listing_requests/_selection_attributes.html.twig') }}>
+            <p class="fs-sm text-muted mb-2"><i class="bi bi-check2-square me-1"></i>{{ 'listing_request.marketplace_hint'|trans }}</p>
+            <twig:MarketplaceListing :puzzleId="puzzle_id" :puzzleOverview="puzzle_overview" />
+            {{ include('listing_requests/_selection_bar.html.twig') }}
+        </div>
+    {% else %}
+        <twig:MarketplaceListing :puzzleId="puzzle_id" :puzzleOverview="puzzle_overview" />
+    {% endif %}
 {% endblock %}

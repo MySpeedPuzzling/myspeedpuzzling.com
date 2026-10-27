@@ -1,0 +1,68 @@
+{% trans_default_domain 'emails' %}
+{# "Could I have these?" to the seller (SendListingRequestEmailHandler, docs/features/marketplace/12-listing-requests.md).
+   Names who asks, which listings at what price and what they offer in exchange, never anybody's e-mail address: the
+   seller answers inside MySpeedPuzzling. #}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
+    <wrapper>
+        <container>
+            {{ include('emails/_header.html.twig', {preheader: 'listing_request.preheader'|trans}) }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="24"></spacer>
+                    <h3>{{ 'listing_request.title'|trans({'%buyer%': buyerName, '%count%': listings|length}) }}</h3>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <p>{{ 'listing_request.greeting'|trans({'%name%': sellerName}) }}</p>
+                    <p>{{ 'listing_request.intro'|trans({'%buyer%': buyerName, '%count%': listings|length}) }}</p>
+
+                    {# The listings - inline styles, e-mail clients drop <style> #}
+                    <table role="presentation" width="100%" style="width: 100%; margin: 16px 0; background: #f6f9fc; border-left: 4px solid #d63c42; border-radius: 6px;">
+                        <tr>
+                            <td style="padding: 14px 16px;">
+                                {% for listing in listings %}
+                                    <p style="margin: 0 0 4px;">
+                                        <strong>{{ listing.name }}</strong>
+                                        <span style="color: #6b7488;"> · {{ 'listing_request.pieces'|trans({'%count%': listing.pieces}) }}{% if listing.brand is not null %} · {{ listing.brand }}{% endif %}
+                                            · {{ ('listing_request.type.' ~ listing.type)|trans }}{% if listing.price is not null and listing.price > 0 and listing.type in ['sell', 'both'] %} · {{ listing.price }} {{ listing.currency }}{% endif %}</span>
+                                    </p>
+                                {% endfor %}
+
+                                {% if offers is not empty %}
+                                    <p style="margin: 10px 0 4px;">{{ 'listing_request.offers'|trans({'%buyer%': buyerName}) }}</p>
+                                    {% for offer in offers %}
+                                        <p style="margin: 0 0 4px;">
+                                            {{ offer.name }}
+                                            <span style="color: #6b7488;"> · {{ 'listing_request.pieces'|trans({'%count%': offer.pieces}) }}{% if offer.brand is not null %} · {{ offer.brand }}{% endif %}</span>
+                                        </p>
+                                    {% endfor %}
+                                {% endif %}
+
+                                {% if note is not null %}
+                                    <p style="margin: 8px 0 0; font-style: italic;">“{{ note }}”</p>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+
+                    <p>{{ 'listing_request.how_to_answer'|trans }}</p>
+
+                    <center>
+                        <button href="{{ answerUrl }}">{{ 'listing_request.answer'|trans }}</button>
+                    </center>
+
+                    <spacer size-sm="10"></spacer>
+
+                    <p class="small-print">{{ 'listing_request.no_addresses'|trans }}</p>
+                    <p class="small-print">{{ 'listing_request.opt_out'|trans({'%settingsUrl%': settingsUrl, '%unsubscribeUrl%': unsubscribeUrl})|raw }}</p>
+                </columns>
+            </row>
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

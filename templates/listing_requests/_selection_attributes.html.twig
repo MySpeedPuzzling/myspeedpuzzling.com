@@ -1,0 +1,7 @@
+{# The buyer's selection controller on a page root (listing_selection_controller.js) - one storage key per signed-in
+   player, shared by sell/swap lists and the marketplace #}
+data-listing-selection-storage-key-value="msp:listing-selection:{{ logged_user.profile.playerId }}"
+data-listing-selection-count-text-value="{{ browser_translation('listing_request.bar.count')|json_encode }}"
+data-listing-selection-sellers-text-value="{{ browser_translation('listing_request.bar.sellers')|json_encode }}"
+data-listing-selection-full-text-value="{{ 'listing_request.bar.full'|trans({'%count%': constant('SpeedPuzzling\\Web\\Message\\AskForListings::MAX_LISTINGS')}) }}"
+data-action="click->listing-selection#cardClick keydown.esc@document->listing-selection#escape turbo:submit-end@document->listing-selection#submitted"

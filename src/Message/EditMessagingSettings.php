@@ -25,6 +25,8 @@ readonly final class EditMessagingSettings
         public null|bool $partnerFinderEmails = null,
         /** Null = not on the form, keep the stored preference (docs/features/wishlist-availability.md) */
         public null|bool $borrowRequestEmails = null,
+        /** Null = not on the form, keep the stored preference (docs/features/marketplace/12-listing-requests.md) */
+        public null|bool $listingRequestEmails = null,
     ) {
     }
 }

@@ -1,0 +1,138 @@
+{#
+    The sell/swap request sheet (ListingAskSheetController, docs/features/marketplace/12-listing-requests.md): one group
+    per seller, their listings as rows with hidden `listings[<sellerId>][]` inputs - the only thing Send reads. ✕ leaves a
+    listing out (listing_ask_sheet_controller.js, nothing is sent before Send); a group left empty is hidden and sends
+    nothing. A group with a swap among its listings may offer puzzles of the buyer's own sell/swap list.
+#}
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h5 class="modal-title">{{ 'listing_request.sheet.title'|trans }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+    </div>
+
+    <div class="modal-body">
+        {% if sheet.askedListingCount == 0 %}
+            <div class="alert alert-info mb-3">{{ 'listing_request.sheet.nothing_to_ask'|trans }}</div>
+        {% else %}
+            <form method="post" action="{{ path('listing_ask_send') }}" data-turbo-frame="modal-frame"
+                  data-listing-selection-form
+                  data-controller="listing-ask-sheet"
+                  data-listing-ask-sheet-send-text-value="{{ browser_translation('listing_request.sheet.send')|json_encode }}">
+                <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
+                <input type="hidden" name="sendId" value="{{ send_id }}">
+
+                <p class="fs-sm text-muted">{{ 'listing_request.sheet.intro'|trans }}</p>
+
+                {% for seller_id, listings in sheet.listingsBySeller %}
+                    {% set seller = sheet.seller(listings) %}
+                    {% set ships = sheet.shipsToBuyer(listings) %}
+                    <div class="border rounded p-2 mb-3" data-listing-ask-sheet-target="group" data-seller-id="{{ seller_id }}">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            {{ include('_player_avatar.html.twig', {
+                                player_id: seller.sellerId,
+                                name: seller.sellerDisplayName,
+                                avatar: seller.sellerAvatar,
+                                country_code: seller.sellerCountry,
+                                size: 'xs',
+                            }) }}
+                            <strong class="text-truncate">{{ seller.sellerDisplayName }}</strong>
+                        </div>
+                        <div class="fs-xs text-muted mb-2">
+                            {% if ships is same as(true) %}
+                                <span class="text-success"><i class="bi bi-truck me-1"></i>{{ 'listing_request.sheet.ships_to_you'|trans }}</span>
+                            {% elseif ships is same as(false) %}
+                                <span class="text-warning"><i class="bi bi-truck me-1"></i>{{ 'listing_request.sheet.not_shipped_to_you'|trans }}</span>
+                            {% endif %}
+                            {% if seller.shippingCost is not null and seller.shippingCost != '' %}
+                                {% if ships is not null %} · {% endif %}{{ 'listing_request.sheet.shipping_cost'|trans({'%cost%': seller.shippingCost}) }}
+                            {% endif %}
+                        </div>
+
+                        <ul class="list-unstyled mb-2">
+                            {% for listing in listings %}
+                                <li class="d-flex align-items-center gap-2 py-1 border-top" data-listing-ask-sheet-target="row"
+                                    data-price="{{ listing.hasPrice ? listing.price : '' }}" data-swap="{{ listing.acceptsSwap ? '1' : '0' }}">
+                                    <input type="hidden" name="listings[{{ seller_id }}][]" value="{{ listing.listingId }}">
+                                    {{ lazy_puzzle_image(listing.image, 'puzzle_small', listing.puzzleName, 999, 40, 'rounded', 40) }}
+                                    <div class="flex-grow-1 min-width-0 fs-sm">
+                                        <div class="fw-medium text-truncate">{{ listing.puzzleName }} <span class="text-muted fw-normal">· {{ listing.piecesCount }} {{ 'marketplace.pcs'|trans }}</span></div>
+                                        {{ include('listing_requests/_listing_terms.html.twig', {listing_type: listing.listingType, price: listing.price, currency: listing.currency, condition: listing.condition}) }}
+                                    </div>
+                                    <button type="button" class="btn btn-link btn-sm p-1 text-muted" data-action="listing-ask-sheet#remove"
+                                            title="{{ 'listing_request.sheet.leave_out'|trans }}" aria-label="{{ 'listing_request.sheet.leave_out'|trans }}">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </li>
+                            {% endfor %}
+                        </ul>
+
+                        {% set totals = sheet.totals(listings) %}
+                        {% if totals is not empty %}
+                            <p class="fs-sm mb-2" data-listing-ask-sheet-target="total" data-currency="{{ totals|keys|length == 1 ? totals|keys|first : '' }}">
+                                {{ 'listing_request.sheet.total'|trans }}
+                                {% for currency, sum in totals %}
+                                    <strong>{{ sum }} {{ currency }}</strong>{% if not loop.last %} + {% endif %}
+                                {% endfor %}
+                                <span class="text-muted">{{ 'listing_request.sheet.plus_shipping'|trans }}</span>
+                            </p>
+                        {% endif %}
+
+                        {% if sheet.acceptsSwap(listings) and sheet.ownListings is not empty %}
+                            <details class="mb-2" data-listing-ask-sheet-target="offers">
+                                <summary class="fs-sm">{{ 'listing_request.sheet.offer_in_exchange'|trans }}</summary>
+                                <p class="fs-xs text-muted mt-1 mb-1">{{ 'listing_request.sheet.offer_hint'|trans({'%count%': constant('SpeedPuzzling\\Web\\Message\\AskForListings::MAX_OFFERS_PER_SELLER')}) }}</p>
+                                <div class="d-flex flex-column gap-1" style="max-height: 12rem; overflow-y: auto;">
+                                    {% for own in sheet.ownListings %}
+                                        <div class="form-check fs-sm mb-0">
+                                            <input type="checkbox" class="form-check-input" id="offer-{{ seller_id }}-{{ own.sellSwapListItemId }}"
+                                                   name="offers[{{ seller_id }}][]" value="{{ own.sellSwapListItemId }}"
+                                                   data-action="listing-ask-sheet#offerChanged">
+                                            <label class="form-check-label" for="offer-{{ seller_id }}-{{ own.sellSwapListItemId }}">
+                                                {{ own.puzzleName }} <span class="text-muted">· {{ own.piecesCount }} {{ 'marketplace.pcs'|trans }}</span>
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </details>
+                        {% endif %}
+
+                        <label class="visually-hidden" for="listing-note-{{ seller_id }}">{{ 'listing_request.sheet.note_label'|trans({'%name%': seller.sellerDisplayName}) }}</label>
+                        <textarea class="form-control form-control-sm" id="listing-note-{{ seller_id }}" name="notes[{{ seller_id }}]" rows="2"
+                                  maxlength="{{ constant('SpeedPuzzling\\Web\\Entity\\ListingRequest::NOTE_MAX_LENGTH') }}"
+                                  placeholder="{{ 'listing_request.sheet.note_placeholder'|trans }}"></textarea>
+                    </div>
+                {% endfor %}
+
+                {% if sheet.truncated %}
+                    <p class="fs-sm text-warning mb-2">{{ 'listing_request.sheet.truncated'|trans({'%count%': constant('SpeedPuzzling\\Web\\Message\\AskForListings::MAX_LISTINGS')}) }}</p>
+                {% endif %}
+
+                <p class="fs-sm text-muted">{{ 'listing_request.sheet.what_happens'|trans }}</p>
+
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="submit" class="btn btn-primary" data-listing-ask-sheet-target="submit" data-loading-text="{{ 'forms.saving'|trans }}">
+                        {{ 'listing_request.sheet.send'|trans({'%count%': sheet.sellerCount}) }}
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'forms.cancel'|trans }}</button>
+                </div>
+            </form>
+        {% endif %}
+
+        {% if sheet.notAskable is not empty or sheet.unavailableCount > 0 %}
+            <div class="mt-3 fs-sm">
+                <p class="text-muted mb-1">{{ 'listing_request.sheet.not_askable'|trans }}</p>
+                <ul class="mb-0 ps-3">
+                    {% for listing_id, skipped in sheet.notAskable %}
+                        <li>
+                            {{ skipped.listing.puzzleName }}
+                            <span class="text-muted">· {{ ('listing_request.skip.' ~ skipped.reason.value)|trans }}</span>
+                        </li>
+                    {% endfor %}
+                    {% if sheet.unavailableCount > 0 %}
+                        <li class="text-muted">{{ 'listing_request.sheet.unavailable_count'|trans({'%count%': sheet.unavailableCount}) }}</li>
+                    {% endif %}
+                </ul>
+            </div>
+        {% endif %}
+    </div>
+</turbo-frame>

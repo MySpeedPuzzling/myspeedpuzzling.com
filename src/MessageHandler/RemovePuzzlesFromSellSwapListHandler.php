@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
 use SpeedPuzzling\Web\Services\SystemMessageSender;
 use SpeedPuzzling\Web\Value\SystemMessageType;
 use SpeedPuzzling\Web\Value\SelectedPuzzlesOutcome;
+use SpeedPuzzling\Web\Services\ListingRequest\ListingRequestCloser;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
@@ -20,6 +21,7 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 readonly final class RemovePuzzlesFromSellSwapListHandler
 {
     public function __construct(
+        private ListingRequestCloser $listingRequestCloser,
         private PlayerRepository $playerRepository,
         private SellSwapListItemRepository $sellSwapListItemRepository,
         private SystemMessageSender $systemMessageSender,
@@ -34,6 +36,8 @@ readonly final class RemovePuzzlesFromSellSwapListHandler
         $player = $this->playerRepository->get($message->playerId);
         $puzzleIds = array_values(array_unique($message->puzzleIds));
         $items = $this->sellSwapListItemRepository->findByPlayerAndPuzzles($player, $puzzleIds);
+
+        $this->listingRequestCloser->listingsGoing($items);
 
         // Every conversation is told before any listing is deleted: the sender flushes, and a flush must not meet a
         // conversation whose listing an earlier step already deleted

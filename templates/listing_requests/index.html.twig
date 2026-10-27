@@ -1,0 +1,56 @@
+{% extends 'base.html.twig' %}
+
+{# "Sell/swap requests" (ListingRequestsController, docs/features/marketplace/12-listing-requests.md) - Received / Sent #}
+
+{% block title %}{{ 'listing_request.list.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="pb-4">
+        <h1 class="h3 mb-2">{{ 'listing_request.list.title'|trans }}</h1>
+        <p class="text-muted fs-sm">{{ 'listing_request.list.intro'|trans }}</p>
+
+        <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link {{ tab == 'sent' ? 'active' }}" href="{{ path('listing_requests') }}" {{ tab == 'sent' ? 'aria-current="page"' }}>{{ 'listing_request.list.tab_sent'|trans }}</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ tab == 'received' ? 'active' }}" href="{{ path('listing_requests', {tab: 'received'}) }}" {{ tab == 'received' ? 'aria-current="page"' }}>
+                    {{ 'listing_request.list.tab_received'|trans }}
+                    {% if waiting_received > 0 %}<span class="badge rounded-pill bg-primary ms-1">{{ waiting_received }}</span>{% endif %}
+                </a>
+            </li>
+        </ul>
+
+        {% if requests is empty %}
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-shop fs-1"></i>
+                <p class="mt-2 mb-3">{{ (tab == 'received' ? 'listing_request.list.empty_received' : 'listing_request.list.empty_sent')|trans }}</p>
+                <a class="btn btn-sm btn-outline-primary" href="{{ path('marketplace') }}">{{ 'listing_request.list.go_to_marketplace'|trans }}</a>
+            </div>
+        {% else %}
+            <div class="d-flex flex-column gap-2">
+                {% for request_overview in requests %}
+                    <a href="{{ path('listing_request_detail', {requestId: request_overview.requestId}) }}"
+                       class="card card-body shadow-sm p-3 text-decoration-none text-body"
+                       data-testid="listing-request-row">
+                        <div class="d-flex flex-wrap justify-content-between gap-2 mb-1">
+                            <strong>
+                                {{ (tab == 'received' ? 'listing_request.list.from' : 'listing_request.list.to')|trans({'%name%': request_overview.counterpartDisplayName}) }}
+                            </strong>
+                            <span class="fs-sm text-muted">{{ request_overview.createdAt|ago }}</span>
+                        </div>
+                        <div class="d-flex flex-wrap gap-1">
+                            {% for item in request_overview.items %}
+                                <span class="d-inline-flex align-items-center gap-1 fs-sm me-2">
+                                    {{ item.puzzleName }}
+                                    {{ include('listing_requests/_status_badge.html.twig', {status: item.status, buyer_name: tab == 'received' ? request_overview.counterpartDisplayName : null}) }}
+                                </span>
+                            {% endfor %}
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

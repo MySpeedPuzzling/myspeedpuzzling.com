@@ -4,6 +4,12 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Sell/swap requests (`docs/features/marketplace/12-listing-requests.md`, 2026-10-27)
+
+- [ ] Bulk *add* to the own sell/swap list (feature request 019d1fda, Mathew N's comment): an "Add to sell/swap list…" action in the collection pages' selection bar - one type and condition for all, a price per puzzle. Bulk remove shipped in 26e7f64bd
+- [ ] lily.srv cron: `myspeedpuzzling:expire-listing-requests` daily (next to `expire-borrow-requests`)
+- [ ] "Mark all agreed as sold to {buyer}" on the request page, if sellers ask for it (today one button per listing)
+
 ## Profile results by placing (`docs/features/profile-results-placing.md`, 2026-10-27)
 - [ ] Placing on the pairs and teams tabs: rank of the exact pair/team (`puzzling_team_id`) on the puzzle's pair/team board, then the same sorts, chips and median line as solo. Pair/team rows show no rank today, so the rank chip comes first; the solo LATERAL count in `GetRanking::rankings()` is the pattern (feature request #292 asked for solo only)
 

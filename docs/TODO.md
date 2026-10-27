@@ -592,6 +592,9 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
 - [x] Profile results: with the 'first tries only' filter on, the rank chips (#X of Y, top %), placing sorts, placing
       chips and the median placing line should come from the first-try leaderboard (everyone's first attempts), not from
       the best-time board (GetRanking always ranks best times). Promised to Šárka (MSP #360, follow-up F169).
+- [ ] Practice tracking for partial puzzles: let a player log timed practice sessions on part of a puzzle (e.g. a
+      section of trees) and see their progress over time in one place, instead of 'relax time' notes scattered over the
+      activity calendar. Promised to MarieR (MSP #366, follow-up F172).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

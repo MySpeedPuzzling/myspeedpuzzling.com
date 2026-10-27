@@ -303,6 +303,17 @@ more fitted parameters than v3 (offsets, terms, quantile tables), so the reconst
 evidence is the time split, `evaluate-predictions --fit-before=<date> --candidate` (fitted before the date, scored after
 it - README "The candidate model (v4)"), and the live rows written after its fit once there are a few thousand.
 
+**Pair/team predictions (`--candidate=group:1 --reference=group_baseline:1`).** The same machinery on pair/team
+results (`GetPredictionPairRows` reads duo/team times for the group predictors, solo times for every other): the
+reference is the **existing coordination rule** (GroupExpectation: c(size, first try / repeat) × difficulty ÷ Σ 1/pace,
+as of the solve), stored as `group_baseline` where that rule can predict at all - every member registered with a pace
+before the solve and a rated puzzle (about a third of the first tries); elsewhere the reference has no row, so those
+results count for the honesty of the windows but not for the skill (`PairedSkill` pairs only). Extra slices per size
+group: `size 2/3/4`, `experience 0 / 1-2 / 3-9 / 10+` (the pair's/team's earlier results), `unknown members 0/1/2`,
+`own earlier time` (from the row's window bucket). As for the candidate model, the reconstructed rows come from a fit
+that has seen them - the evidence is the time split (`evaluate-group-predictions --fit-before=`) and the live slice
+(puzzle-intelligence/README.md "Pair and team predictions").
+
 ## When it runs
 
 - After the deploy: nothing to evaluate until image rows exist (the prediction backfill writes them as the derive pushes

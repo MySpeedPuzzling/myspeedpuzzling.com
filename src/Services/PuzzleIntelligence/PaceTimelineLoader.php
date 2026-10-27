@@ -60,6 +60,22 @@ readonly final class PaceTimelineLoader
     }
 
     /**
+     * Every row with its stored drift and spread in the lookups (directRowBefore()) - the pair/team model, which paces
+     * every member with the drift of their row as of the solve (Group\GroupResultSetLoader). Through a cursor: the whole
+     * result in the client library next to the timeline would cost ~40 MB of resident memory.
+     */
+    public function allWithRowStates(null|float $scalingExponent = null): PaceTimeline
+    {
+        $timeline = new PaceTimeline($this->baselineCalculator, $scalingExponent);
+        $this->addRows($timeline, CursorRows::iterate(
+            $this->connection,
+            'SELECT ' . self::COLUMNS . ' FROM player_pace_history h ORDER BY h.player_id, h.pieces_count, h.valid_from, h.valid_from_tracked_at, h.qualifying_count',
+        ));
+
+        return $timeline;
+    }
+
+    /**
      * @param list<string> $playerIds
      */
     public function forPlayers(array $playerIds, null|float $scalingExponent = null): PaceTimeline

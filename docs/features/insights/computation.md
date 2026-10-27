@@ -133,6 +133,9 @@ by that; `Services\Insights\GroupExpectation` is the one rule both use).
   Slightly more results can be compared (13,388 vs 12,534 pair first tries): the as-of lookup finds a pace wherever
   the difficulty's does.
 - Read: `GetGroupCoordinationConstants::all()` (seed for any bucket not stored).
+- The pair/team prediction model (never shown - puzzle-intelligence/README.md "Pair and team predictions") fits its own
+  constants with this rule as of the solve (paces strictly before it, no first pace from later rows) and stores the
+  rule's predictions as its reference `group_baseline`; nothing here reads them.
 
 ## 6. Puzzler profile cards (`player_insights_profile`)
 

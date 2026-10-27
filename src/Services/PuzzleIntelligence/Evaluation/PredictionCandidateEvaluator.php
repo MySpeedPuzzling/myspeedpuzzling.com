@@ -58,7 +58,7 @@ final class PredictionCandidateEvaluator
 
         foreach ($rows as $row) {
             $key = $row->sizeGroup->value . '|' . self::ANY_KIND;
-            $slices = [$row->live ? 'live' : 'reconstructed'];
+            $slices = [$row->live ? 'live' : 'reconstructed', ...$row->slices];
 
             ($groups[$key] ??= new PredictionGroupAccumulator())->add($row->kIndices, $row->solvedAt, $row->actualSeconds, $row->candidate, $row->candidate, $row->reference, $slices);
             $overall->add($row->kIndices, $row->solvedAt, $row->actualSeconds, $row->candidate, $row->candidate, $row->reference, $slices);

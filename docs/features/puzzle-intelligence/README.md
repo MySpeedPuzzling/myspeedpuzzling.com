@@ -944,6 +944,129 @@ map), and by fixed-size columns for the samples and the evidence (`SplFixedArray
 and the brand priors are identical to the single-process version (compared on the copy). The fit's summary records
 `memory_*` and `resident_peak_*` per step.
 
+### Pair and team predictions - side by side, never shown (2026-10-27)
+
+Pair/team results get no shown prediction (`predictable = false`; the shown model has only GroupCoordinationFitter's
+global constants, used by the Insights synergy page). A model of their own is computed next to everything and **never
+shown**: predictors `group` and `group_baseline` of `solving_time_prediction` (storage, the daily command, the switch:
+[prediction-history.md](prediction-history.md) "Pair and team predictions"; the pair/team = the exact set of people,
+[pairs-and-teams/README.md](../pairs-and-teams/README.md)). `Group\GroupPredictionModel` (pure), version 1:
+
+**ln t̂ = ln c(size, first try / repeat, unknown members) + ln D + ln 1/R + s + o**
+
+- **R - the members' paces as of the solve.** Σ 1 / (paceᵢ × e^driftᵢ) of every registered member with a pace at the
+  piece count **before** the solve (`PaceTimeline::paceBefore()` - rules 1 and 2; never the first pace that a player's
+  later rows give, which GroupExpectation's `paceAt()` uses) with the drift of their own row (an interpolated pace has
+  none). **Unknown members** - guests, and players without a pace there - count with the known members' mean rate
+  (R × members ÷ known); the coordination constant has a bucket per unknown count (0 / 1 / 2+) and the synergy carries
+  the rest (their pace is a constant of the pair/team). A result with nobody known, unboxed, or on a secret puzzle is
+  not predicted (~15 % of pair/team results: 11.4k of 74k on the copy have no member with a pace).
+- **D - the shown difficulty as of the solve** (`Group\GroupDifficultyTimeline`, pinned equal to
+  `PredictionEngine::difficultyAt()`): the median index from 5 indices on, 1-4 indices shrunk toward the picture estimate
+  with the shown fit's τ, none: the estimate alone (`image`), else the average puzzle (`none`). *Why not the candidate
+  v4's difficulty:* v4 gains ~0.003-0.005 of error on solo first tries at k ≥ 5, while a pair's/team's own error is
+  ~0.11-0.18 (synergy, unknown members); the v4 posterior needs the whole first-attempt set, the noise model and its
+  evidence in memory (334-360 MB) - the shown rule as of any moment costs ~10 MB (the puzzles with a pair/team result
+  only, streamed a puzzle at a time). Worth revisiting when v4 is shown.
+- **c** = the median of t ÷ (D ÷ R) per size (2 / 3 / 4+) × first try / repeat × unknown members on the fit window
+  (GroupExpectation's rule; ≥ 30 results, else the bucket without unknown members, else the seed). Copy, fit < 2026-06:
+  pairs 1.185 first / 1.074 repeat, with one guest 1.361 / 1.243; teams of 4+ 1.390 / 1.324, with 2+ unknown 1.641.
+- **s - the pair's/team's synergy, as of the result:** its earlier residuals (ln t - the rule), fading with a half-life
+  of 180 days, shrunk toward its **members' offsets** with a pseudo-count κ: (Σ fade·r + κ·m) ÷ (Σ fade + κ). m = the mean
+  over its registered members of their residual sums ÷ (count + 5) - like with like: over their other all-known
+  pairs/teams for an all-known one, over all their pairs/teams for one with an unknown member (the guests they bring are
+  part of it). κ by a grid on the fit window's last 91 days of first tries, one for all-known pairs/teams and one for
+  those with an unknown member: copy 12 / 1 (fit < 2026-06), 50 / 1 (fit < 2026-04) - for all-known ones the members'
+  pooled offset (which includes this pair's own results, shrunk with 5) is the stronger evidence, so the pair-specific
+  part is shrunk hard; with an unknown member it is the pair/team itself that has to learn the guest's pace.
+- **o - centre offsets** (median residual after s, shrunk n ÷ (n + 200)): per the pair's/team's experience (earlier
+  results 0 / 1-2 / 3-9 / 10+: a new pair/team +1.9 %), the difficulty's source (image +1.3 %, shrunk +1.1 %) and whether
+  it was at an event (-2.5 %).
+- **A repeat after the same pair's/team's own earlier time on the puzzle** = that time × 0.90 (fitted, 3.4k samples).
+- **Windows:** the residual's scale per factor level, fitted by raking (kind, difficulty source - no difficulty at all
+  counts as picture-only -, unknown members, experience, size: a new pair/team ×1.36, 2+ unknown ×1.24, rated puzzle
+  ×0.93), the 10/25/75/90 % quantiles of
+  the scaled residual per kind (first try / repeat / own earlier time) - all on the fit window's sequential, as-of
+  residuals.
+
+The reference `group_baseline` is **the existing global-constant rule** (GroupExpectation: c(size, first / repeat) ×
+difficulty ÷ Σ 1/pace, no drift) as of the solve - paces before it, constants fitted on the fit window - only where it
+can predict (every member registered with a pace, a rated puzzle: 33 % of first tries); its window = quantiles of its
+residual per size.
+
+**Measured - `myspeedpuzzling:evaluate-group-predictions --fit-before=` on a read-only copy of production (2026-10-27):**
+fitted on everything solved before the cut, every result after it predicted as of its moment. Error = mean |ln(actual ÷
+predicted)|; "rule" = the model's own coordination rule alone (c × D ÷ R with its buckets - no synergy, no offsets);
+"existing rule" = the reference on the results it can predict, with the model's error on the same results.
+
+| group (fit < 2026-06-01) | n | rule | **model** | 50 / 80 % hits | 50 % width | existing rule vs model (n) |
+|---|---|---|---|---|---|---|
+| first tries | 7,951 | 0.1523 | **0.1275 (−16.3 %)** | 49.8 / 79.4 | 20 % | 0.1037 vs **0.0885** (2,597) |
+| pairs | 5,781 | 0.1396 | 0.1181 | 50.1 / 79.9 | 18 % | 0.1015 vs 0.0866 |
+| teams of 3 | 302 | 0.1890 | 0.1646 | 49.3 / 77.1 | 27 % | 0.1200 vs 0.0976 (41) |
+| teams of 4+ | 1,868 | 0.1857 | 0.1505 | 48.8 / 78.3 | 25 % | 0.1242 vs 0.1063 |
+| experience 0 (a new pair/team) | 1,307 | 0.1979 | 0.1882 (−4.9 %) | 49.3 / 79.1 | 31 % | 0.1141 vs 0.1040 |
+| experience 1-2 | 1,188 | 0.1815 | 0.1395 (−23 %) | 47.9 / 79.8 | 22 % | 0.1143 vs 0.1038 |
+| experience 3-9 | 1,591 | 0.1583 | 0.1214 (−23 %) | 48.4 / 79.3 | 19 % | 0.1080 vs 0.0901 |
+| experience 10+ | 3,865 | 0.1255 | 0.1057 (−16 %) | 51.0 / 79.5 | 18 % | 0.1006 vs 0.0849 |
+| every member known | 3,973 | 0.1151 | 0.1080 | 50.0 / 79.2 | 16 % | 0.1037 vs 0.0885 |
+| one unknown member | 2,974 | 0.1763 | 0.1356 (−23 %) | 49.8 / 80.0 | 21 % | - |
+| 2+ unknown members | 1,004 | 0.2286 | 0.1805 (−21 %) | 48.4 / 78.8 | 31 % | - |
+| difficulty from 5+ solves | 4,953 | 0.1318 | 0.1081 | 51.5 / 81.3 | 18 % | |
+| 1-4 solves (shrunk) | 1,548 | 0.1710 | 0.1425 | 50.5 / 78.5 | 24 % | |
+| the picture alone | 1,327 | 0.1970 | 0.1735 (bias +2.1 %) | 44.2 / 74.7 | 26 % | |
+| no difficulty at all | 123 | 0.2629 | 0.2220 | 31.7 / 65.8 | 30 % | |
+| at an event | 1,585 | 0.1610 | 0.1366 | 47.8 / 77.2 | 22 % | 0.0966 vs 0.0860 |
+| repeats | 6,602 | 0.1361 | **0.1056 (−22 %)** | 50.8 / 80.5 | 16 % | 0.1118 vs 0.0920 (3,608) |
+| after the pair's/team's own time | 1,143 | 0.1481 | 0.0901 | 47.2 / 77.5 | 13 % | 0.1358 vs 0.0890 |
+
+A second split (fit < 2026-04-01, 11,726 first tries, 9,518 repeats) agrees: first tries rule 0.1500 → **0.1261
+(−15.9 %)**, hits 50.3 / 80.2; existing rule 0.1018 → 0.0871 on its 3,830; new pairs/teams 0.1944 → 0.1849; one
+unknown member 0.1737 → 0.1342; events 48.9 / 78.8; repeats 0.1350 → 0.1056, hits 51.2 / 80.2. Known misses (both
+splits): the picture alone is biased (+2 %) and a bit narrow (44-46 / 75-76), no difficulty at all 31-32 / 64-66
+(123-128 results, scaled like picture-only puzzles - too few for a level of their own).
+
+**Every part kept only if both splits confirmed it** (`--off=<part>`, first tries; the model 0.1275 / 0.1261):
+
+| part | without it | kept |
+|---|---|---|
+| synergy | 0.1516 / 0.1493 | yes - the whole gain |
+| members' drift on their paces | 0.1282 / 0.1268 | yes |
+| members' offsets as the synergy's prior | 0.1286 / 0.1272; new pairs/teams 0.1955 / 0.1920 (vs 0.1882 / 0.1849) | yes |
+| fading (half-life 180 days) | 0.1285 / 0.1274 | yes |
+| centre offsets (experience, difficulty source) | 0.1280 / 0.1266 | yes |
+| event offset | 0.1280 / 0.1266; events 0.1390 / 0.1353 (bias −3.2 % → −0.7 %) | yes |
+| event window scale | events' 80 % hits 76.8 → 74.1 / 78.1 → 75.4 (narrower where it was narrow already) | **no** |
+| a repeat from the own earlier time | repeats 0.1108 / 0.1107 (vs 0.1056 / 0.1056) | yes |
+
+(Before the "like with like" member prior the offsets came from every result alike: overall the same, all-known
+pairs/teams 0.1094 / 0.1066 vs 0.1080 / 0.1052; members' offsets from all-known results only: new pairs/teams 0.1915.)
+
+**The synergy, as of each solve** (F7 of the data-mining review measured it against current baselines: split-half 0.84,
+SD of pair means 0.14): split-half correlation of each pair's/team's odd vs even results' mean residual against the as-of
+rule, pairs/teams with 8+ results, whole history:
+
+| results | pairs/teams | split-half | Spearman-Brown | SD of the means |
+|---|---|---|---|---|
+| pairs, 500 pieces, first tries, every member known (F7's subset) | 325 | 0.69 | 0.82 | 0.066 |
+| every member known | 743 | 0.78 | 0.87 | 0.082 |
+| with unknown members | 880 | 0.89 | 0.94 | 0.169 |
+| all | 1,547 | 0.87 | 0.93 | 0.134 |
+
+So with as-of paces the pair effect of all-known pairs is about half F7's spread (0.066 vs 0.14 - a stale member pace
+inflated it) and still reliable (0.82); where a guest is in, the synergy also holds the guest's pace - twice the spread.
+
+**Isolation and cost.** Nothing of it runs in the shown model's jobs or on the add-time / edit path: an added pair/team
+time costs no statement whatever the switch says. One command of its own, `myspeedpuzzling:fit-group-prediction-model`
+(daily, its own process and transaction): loads every pair/team result (`Group\GroupResultSetLoader` - the pace
+history with its rows' drift through a cursor, the qualifying first attempts of the puzzles with a pair/team result a
+puzzle at a time, ~74k results as plain columns), predicts what has no row yet with yesterday's fit, refits, writes its
+own tables. Reads the shown fit's τ; writes nothing the shown model reads (`GroupPredictionRowsTest` snapshots the
+shown predictions, every other predictor's rows, the coordination constants, the fits, the difficulty and the pace
+history before and after). Peak resident (prod settings, production copy): the evaluation (one fit, three replays)
+251-296 MB, 37 s loading + 10 s fitting; the daily job's first fill 293 MB, 68 s (74,354 times, both predictors) -
+under the ~350 MB the 512 MB container leaves.
+
 ### Requirements
 
 - Personal: At least 1 prior solo solve on the same puzzle

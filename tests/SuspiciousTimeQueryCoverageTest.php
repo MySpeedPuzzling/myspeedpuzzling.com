@@ -45,6 +45,7 @@ final class SuspiciousTimeQueryCoverageTest extends TestCase
         'Query/GetDuplicatePuzzleSignalCandidates.php' => self::DUPLICATES,
         'Query/GetFirstTryTimes.php' => 'One first try per person per puzzle - a suspicious first try is still the first try.',
         'Query/GetGettingStartedProgress.php' => self::OWN,
+        'Query/GetGroupPuzzleFirstAttempts.php' => 'Which puzzles have a pair/team result - the first attempts it reads are PlayerBaselineCalculator\'s qualifying ones, which leave suspicious results out.',
         'Query/GetGuestLinkRequests.php' => 'Lists a guest\'s results to the player asked to become that guest - their own results.',
         'Query/GetNotifications.php' => 'A notification about one result - no figure.',
         'Query/GetParticipantsSheetState.php' => 'Organiser tooling: in which rounds a linked player has any time at all - the results guard of the participants spreadsheet (a person with a time in a round stays in it, like the import\'s rule); no figure.',

@@ -36,6 +36,21 @@ Meta App Review approved + app published (2026-09-30), so Facebook lost its flag
   their tables are read only by the candidate
 - **Remove when:** the candidate becomes the shown model (a `MODEL_VERSION` bump) or is dropped
 
+## Pair/team prediction rows (`PREDICTION_GROUP_ROWS`)
+
+- **Feature:** the pair/team prediction model's (never shown) rows of `solving_time_prediction` - predictors `group` and
+  `group_baseline` - `docs/features/puzzle-intelligence/README.md` "Pair and team predictions",
+  `prediction-history.md` "Pair and team predictions"
+- **Flag:** env var `PREDICTION_GROUP_ROWS` → parameter `predictionGroupRows` (`config/services.php`), read by
+  `#[Autowire(param:)]`. Not a Twig global
+- **Default:** `0` (`.env`, `.env.test`). Turned on by hand after the first fill (`fit-group-prediction-model --rows`)
+- **Gated files:**
+  - `src/MessageHandler/FitGroupPredictionModelHandler.php` — the daily job writes rows only while 1 (or with
+    `--rows`, `FitGroupPredictionModel::$writeRows`)
+- **Not gated:** the fit itself (`group_prediction_fit`, read only by the pair/team model); nothing on the add-time path
+  exists to gate - an added pair/team time costs no statement either way
+- **Remove when:** pair/team predictions are shown (a decision of their own) or dropped
+
 ## Insights (`INSIGHTS_PUBLIC`)
 
 - **Feature:** the player's own Insights page and everything new it brings (`docs/features/insights/README.md`,

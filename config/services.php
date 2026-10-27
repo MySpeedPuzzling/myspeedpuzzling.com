@@ -132,6 +132,9 @@ return static function (ContainerConfigurator $configurator): void {
     // Insights (docs/features/feature_flags.md): the page and its links only while 1, admins always.
     $parameters->set('insightsPublic', '%env(bool:INSIGHTS_PUBLIC)%');
 
+    // The candidate prediction model's rows (docs/features/feature_flags.md): live and by the backfill cron only while 1.
+    $parameters->set('predictionCandidateRows', '%env(bool:PREDICTION_CANDIDATE_ROWS)%');
+
     // Online competitions (docs/features/feature_flags.md): organisers may set up online timing only while 1, admins always.
     $parameters->set('onlineRoundsForOrganisers', '%env(bool:ONLINE_ROUNDS_FOR_ORGANISERS)%');
 
@@ -257,6 +260,8 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Services/PuzzleIntelligence/Model/AttemptFlags.php',
             __DIR__ . '/../src/Services/PuzzleIntelligence/Model/CandidateEngine.php',
             __DIR__ . '/../src/Services/PuzzleIntelligence/Model/CandidateSamples.php',
+            __DIR__ . '/../src/Services/PuzzleIntelligence/Model/CandidateEvidenceColumns.php',
+            __DIR__ . '/../src/Services/PuzzleIntelligence/Model/CandidateFitProgress.php',
             __DIR__ . '/../src/Services/PuzzleIntelligence/Model/EvaluationContext.php',
             __DIR__ . '/../src/Services/PuzzleIntelligence/Model/UnboxedFirstTries.php',
             __DIR__ . '/../src/Services/PuzzleIntelligence/Prior/PriorContext.php',

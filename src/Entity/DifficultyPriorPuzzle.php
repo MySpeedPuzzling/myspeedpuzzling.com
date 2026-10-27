@@ -46,11 +46,6 @@ class DifficultyPriorPuzzle
         #[Immutable]
         #[Column(nullable: true)]
         public null|float $blendPriorLog = null,
-        // The candidate model's (v4, never shown) brand × pieces prior: over the group's puzzles, not its indices
-        // (PuzzleWeightedBrandPrior); null = none
-        #[Immutable]
-        #[Column(nullable: true)]
-        public null|float $candidatePriorLog = null,
     ) {
     }
 }

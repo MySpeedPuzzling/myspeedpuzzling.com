@@ -25,10 +25,6 @@ final readonly class PredictionInputSolve
         public float $tracked,
         // The stored (shown) prediction when it was a personal one - the repeat residuals of RepeatResiduals
         public null|int $storedPersonalPredictionSeconds = null,
-        // The candidate model (v4) only: AttemptFlags of the solve, and its conditions
-        public int $flags = 0,
-        public bool $unboxed = false,
-        public bool $competition = false,
     ) {
     }
 

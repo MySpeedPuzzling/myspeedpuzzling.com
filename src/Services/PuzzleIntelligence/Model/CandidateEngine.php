@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence\Model;
 use SpeedPuzzling\Web\Value\CandidateEvidence;
 use SpeedPuzzling\Web\Value\CandidateModelParameters;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
+use SplFixedArray;
 
 /**
  * The candidate model's (v4) puzzle evidence replayed over every qualifying first attempt, like PredictionEngine does
@@ -19,63 +20,49 @@ use SpeedPuzzling\Web\Value\PredictionModelParameters;
  */
 final class CandidateEngine
 {
-    // Plain lists over every attempt (packed arrays - the batch runs in 512 MB), NAN = no index
-    /** @var array<int, float> ln(index) per attempt */
-    private array $rawLog;
-    /** @var array<int, float> the solver's drift before the solve (0 without a direct pace) */
-    private array $solverDrift;
-    /** @var array<int, float> */
-    private array $solverSpread;
-    /** @var array<int, int> qualifying first attempts of the solver at the size before the solve (0 = the pace was not their own direct one) */
-    private array $solverQualifying;
-
-    /** @var null|array<int, int> the player's qualifying first attempts (every size) before each attempt - experience() */
-    private null|array $experience = null;
-    /** @var null|array<string, list<string>> player => their pair keys (experienceAt()) */
+    /** @var null|array<string, list<string>> player => their pair keys (experienceOf(), experienceAt()) */
     private null|array $pairsByPlayer = null;
 
-    // As-of evidence of the attempts solved from compute()'s moment on, by slot (packed - the fit runs in 512 MB)
-    /** @var array<int, int> attempt => slot */
-    private array $slot = [];
-    /** @var array<int, int> */
-    private array $k = [];
-    /** @var array<int, float> */
-    private array $weightSum = [];
-    /** @var array<int, float> */
-    private array $weightedLogSum = [];
-    /** @var array<int, float> */
-    private array $logSum = [];
-    /** @var array<int, float> */
-    private array $logSquareSum = [];
-    /** @var array<int, float> */
-    private array $noiseSum = [];
+    // As-of evidence of the attempts solved from compute()'s moment on: attempt => slot (fixed size, null = before it)
+    /** @var SplFixedArray<null|int> */
+    private SplFixedArray $slot;
+    public private(set) CandidateEvidenceColumns $evidence;
 
     public function __construct(
         public readonly PredictionEngine $engine,
         public readonly AttemptFlags $flags,
     ) {
-        $set = $engine->set;
-        $count = $set->count();
-        $this->rawLog = array_fill(0, $count, NAN);
-        $this->solverDrift = array_fill(0, $count, 0.0);
-        $this->solverSpread = array_fill(0, $count, PredictionModelParameters::GLOBAL_SPREAD);
-        $this->solverQualifying = array_fill(0, $count, 0);
+        $this->slot = new SplFixedArray(0);
+        $this->evidence = new CandidateEvidenceColumns(0);
+    }
 
-        foreach ($set->index as $i => $index) {
-            if ($index === null) {
-                continue;
-            }
+    /**
+     * What the candidate reads of the attempt's index, from the engine on demand (four more columns over every attempt
+     * would cost ~32 MB of the fit's 512): [ln index, the solver's drift before the solve (0 without a direct pace), their
+     * spread, their qualifying first attempts at the size before it (0 = the pace was not their own direct one)] - null
+     * without an index.
+     *
+     * @return null|array{0: float, 1: float, 2: float, 3: int}
+     */
+    private function solverInputs(int $i): null|array
+    {
+        $set = $this->engine->set;
+        $index = $set->index[$i] ?? null;
 
-            $player = $set->player[$i];
-            $pieces = $set->pieces[$i];
-            $direct = $engine->timeline->directRowBefore($player, $pieces, $set->solved[$i], $set->tracked[$i]) !== null;
-            [$drift, $spread] = $direct ? $engine->stateBefore($player . '|' . $pieces, $i) : [null, null];
-
-            $this->rawLog[$i] = log($index);
-            $this->solverDrift[$i] = $drift ?? 0.0;
-            $this->solverSpread[$i] = $spread ?? PredictionModelParameters::GLOBAL_SPREAD;
-            $this->solverQualifying[$i] = $direct ? $set->position[$i] - 1 : 0;
+        if ($index === null) {
+            return null;
         }
+
+        $player = $set->player[$i];
+        $pieces = $set->pieces[$i];
+
+        if ($this->engine->timeline->directRowBefore($player, $pieces, $set->solved[$i], $set->tracked[$i]) === null) {
+            return [log($index), 0.0, PredictionModelParameters::GLOBAL_SPREAD, 0];
+        }
+
+        [$drift, $spread] = $this->engine->stateBefore($player . '|' . $pieces, $i);
+
+        return [log($index), $drift ?? 0.0, $spread ?? PredictionModelParameters::GLOBAL_SPREAD, $set->position[$i] - 1];
     }
 
     /**
@@ -85,11 +72,9 @@ final class CandidateEngine
      */
     public function indexTerms(int $i, CandidateModelParameters $parameters): null|array
     {
-        if (is_nan($this->rawLog[$i] ?? NAN)) {
-            return null;
-        }
+        $inputs = $this->solverInputs($i);
 
-        return self::term($this->rawLog[$i], $this->solverDrift[$i], $this->solverSpread[$i], $this->solverQualifying[$i], $this->flags->of($i), $parameters);
+        return $inputs !== null ? self::term($inputs[0], $inputs[1], $inputs[2], $inputs[3], $this->flags->of($i), $parameters) : null;
     }
 
     /**
@@ -125,15 +110,17 @@ final class CandidateEngine
      */
     public function noiseInputs(int $i, bool $driftAdjusted): null|array
     {
-        if (is_nan($this->rawLog[$i] ?? NAN)) {
+        $inputs = $this->solverInputs($i);
+
+        if ($inputs === null) {
             return null;
         }
 
-        $qualifying = $this->solverQualifying[$i];
+        [$rawLog, $drift, $spread, $qualifying] = $inputs;
 
         return [
-            $this->rawLog[$i] - ($driftAdjusted ? $this->solverDrift[$i] : 0.0),
-            $this->solverSpread[$i] ** 2,
+            $rawLog - ($driftAdjusted ? $drift : 0.0),
+            $spread ** 2,
             $qualifying > 0 ? 1.0 / $qualifying : 0.0,
             $qualifying === 0,
             $this->flags->of($i),
@@ -147,21 +134,16 @@ final class CandidateEngine
     public function compute(CandidateModelParameters $parameters, float $from = 0.0): void
     {
         $set = $this->engine->set;
-        $this->slot = [];
+        $this->slot = new SplFixedArray($set->count());
+        $count = 0;
 
         foreach ($set->solved as $i => $solved) {
             if ($solved >= $from) {
-                $this->slot[$i] = count($this->slot);
+                $this->slot[$i] = $count++;
             }
         }
 
-        $count = count($this->slot);
-        $this->k = array_fill(0, $count, 0);
-        $this->weightSum = array_fill(0, $count, 0.0);
-        $this->weightedLogSum = array_fill(0, $count, 0.0);
-        $this->logSum = array_fill(0, $count, 0.0);
-        $this->logSquareSum = array_fill(0, $count, 0.0);
-        $this->noiseSum = array_fill(0, $count, 0.0);
+        $this->evidence = new CandidateEvidenceColumns($count);
 
         foreach ($set->puzzles() as $puzzle) {
             $attempts = $set->attemptsOfPuzzle($puzzle);
@@ -204,64 +186,48 @@ final class CandidateEngine
                     $next++;
                 }
 
-                $slot = $this->slot[$i] ?? null;
+                $slot = $this->slot[$i];
 
                 if ($slot !== null) {
-                    [$this->k[$slot], $this->weightSum[$slot], $this->weightedLogSum[$slot], $this->logSum[$slot], $this->logSquareSum[$slot], $this->noiseSum[$slot]] = $evidence;
+                    $this->evidence->set($slot, $evidence);
                 }
             }
         }
+    }
+
+    /**
+     * The attempt's slot in $evidence - null before compute()'s moment.
+     */
+    public function slotOf(int $i): null|int
+    {
+        return $i < $this->slot->getSize() ? $this->slot[$i] : null;
     }
 
     public function evidenceFor(int $i): CandidateEvidence
     {
-        $slot = $this->slot[$i] ?? null;
+        $slot = $this->slotOf($i);
 
-        return $slot !== null
-            ? new CandidateEvidence($this->k[$slot], $this->weightSum[$slot], $this->weightedLogSum[$slot], $this->logSum[$slot], $this->logSquareSum[$slot], $this->noiseSum[$slot])
-            : CandidateEvidence::none();
-    }
-
-    public function kFor(int $i): int
-    {
-        $slot = $this->slot[$i] ?? null;
-
-        return $slot !== null ? $this->k[$slot] : 0;
+        return $slot !== null ? $this->evidence->at($slot) : CandidateEvidence::none();
     }
 
     /**
-     * The player's qualifying first attempts (every size) before each attempt.
-     *
-     * @return array<int, int>
+     * The player's qualifying first attempts (every size) before the attempt: its place in its pair and the player's other
+     * pairs' attempts before it (binary search) - on demand, no column over every attempt.
      */
-    public function experience(): array
+    public function experienceOf(int $i): int
     {
-        if ($this->experience === null) {
-            // Per attempt: its pair's attempts before it, and the player's other pairs' by binary search - no sort and no
-            // copy of the set (the fit runs in 512 MB)
-            $set = $this->engine->set;
-            $experience = array_fill(0, $set->count(), 0);
+        $set = $this->engine->set;
+        $player = $set->player[$i];
+        $pairKey = $player . '|' . $set->pieces[$i];
+        $before = $set->position[$i] - 1;
 
-            foreach ($set->pairs() as $pairKey => [$start, $pairCount]) {
-                $player = explode('|', $pairKey)[0];
-
-                for ($i = $start, $end = $start + $pairCount; $i < $end; $i++) {
-                    $before = $i - $start;
-
-                    foreach ($this->pairsOf($player) as $otherPair) {
-                        if ($otherPair !== $pairKey) {
-                            $before += $this->engine->countBefore($otherPair, $set->solved[$i], $set->tracked[$i]);
-                        }
-                    }
-
-                    $experience[$i] = $before;
-                }
+        foreach ($this->pairsOf($player) as $otherPair) {
+            if ($otherPair !== $pairKey) {
+                $before += $this->engine->countBefore($otherPair, $set->solved[$i], $set->tracked[$i]);
             }
-
-            $this->experience = $experience;
         }
 
-        return $this->experience;
+        return $before;
     }
 
     /**

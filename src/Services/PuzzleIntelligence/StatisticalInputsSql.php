@@ -78,9 +78,9 @@ final class StatisticalInputsSql
     ";
 
     /**
-     * The candidate model's (v4, never shown) inputs of the puzzle and the player - only on the live side-by-side
-     * statement (GetPlayerPrediction::sideBySide()), never on a shown reader: its evidence (candidate_puzzle_evidence),
-     * its brand prior (none for a secret puzzle) and the player's qualifying first attempts so far (one per puzzle -
+     * The candidate model's (v4, never shown) inputs of the puzzle and the player - only on the candidate's own statement
+     * (GetCandidatePrediction), never on a shown reader: its evidence (candidate_puzzle_evidence), its brand prior
+     * (candidate_puzzle_prior, none for a secret puzzle) and the player's qualifying first attempts so far (one per puzzle -
      * custom_pst_intelligence). With CANDIDATE_JOINS; hydrateCandidate() reads them.
      */
     public const string CANDIDATE_COLUMNS = "
@@ -90,7 +90,7 @@ final class StatisticalInputsSql
         ce.log_sum AS candidate_log_sum,
         ce.log_square_sum AS candidate_log_square_sum,
         ce.noise_sum AS candidate_noise_sum,
-        CASE WHEN " . self::NOT_SECRET . " THEN dpp.candidate_prior_log END AS candidate_prior_log,
+        CASE WHEN " . self::NOT_SECRET . " THEN cpp.brand_prior_log END AS candidate_prior_log,
         (
             SELECT count(DISTINCT own_first.puzzle_id)
             FROM puzzle_solving_time own_first
@@ -104,6 +104,7 @@ final class StatisticalInputsSql
 
     public const string CANDIDATE_JOINS = '
         LEFT JOIN candidate_puzzle_evidence ce ON ce.puzzle_id = p.id
+        LEFT JOIN candidate_puzzle_prior cpp ON cpp.puzzle_id = p.id
     ';
 
     /**

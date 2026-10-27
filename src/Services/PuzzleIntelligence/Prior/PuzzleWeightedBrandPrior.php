@@ -11,7 +11,7 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior;
  * dominate it: at k = 0 its predictions came 4.1 % too fast on average (time-model review F3).
  *
  * Not in the prior chain (DifficultyPriors) - the candidate calculator asks it directly; its value per puzzle is stored
- * by the daily fit (difficulty_prior_puzzle.candidate_prior_log) for the live path.
+ * by the candidate's daily fit (candidate_puzzle_prior) for the live path.
  */
 final readonly class PuzzleWeightedBrandPrior
 {

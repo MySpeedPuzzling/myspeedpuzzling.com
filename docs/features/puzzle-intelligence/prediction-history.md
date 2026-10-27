@@ -445,45 +445,68 @@ for every solo time next to the shown model and **never shown**. One more predic
   so no reader of the v3 rows (calibration report, image evaluation, time verification, Insights) ever sees it;
 - first tries and repeats alike (a repeat: the shown centre with the candidate's gap-aware window, `method =
   personal`); `image_model` names the estimate a first try rested on;
-- its fit: the `prediction_model_fit` row of model version 4 (`CandidateModelParameters`), written by the daily
-  `myspeedpuzzling:fit-prediction-model` right after the shown fit (which is unchanged); the puzzles' candidate evidence
-  in `candidate_puzzle_evidence` (the batch keeps it current - only changed rows), the candidate brand prior in
-  `difficulty_prior_puzzle.candidate_prior_log`. Nothing of v3's tables or columns changes; `puzzle_difficulty`
-  (scores, tiers) is untouched.
+- its fit: the `prediction_model_fit` row of model version 4 (`CandidateModelParameters`), written by its **own**
+  command `myspeedpuzzling:fit-candidate-prediction-model` (message `FitCandidatePredictionModel`,
+  `CandidateModelRecalculator::fit()`) - never by the shown fit, which is exactly main's: `fit-prediction-model` commits
+  v3's row, priors and drift without knowing the candidate exists, so a candidate that fails or runs out of memory
+  costs only its own row (`CandidatePredictionsSideBySideTest::testTheShownFitAndTheCandidateFitAreSeparate`). The
+  candidate keeps its own tables: the puzzles' evidence in `candidate_puzzle_evidence` (kept current every 15 minutes by
+  its own command `myspeedpuzzling:refresh-candidate-prediction-evidence` - only changed rows), its brand prior in
+  `candidate_puzzle_prior`. Nothing of v3's tables or columns changes; `puzzle_difficulty` (scores, tiers) is untouched.
+- **Switch** `PREDICTION_CANDIDATE_ROWS` (default `0`, docs/features/feature_flags.md): while off no candidate row is
+  written anywhere - not by the add form, not by the cron backfill; only an explicit
+  `backfill-solving-time-predictions --candidate` writes them. The fits and the evidence refresh run regardless (they
+  touch only the candidate's own tables).
 
 **Writing it**:
-- Live (`GetPlayerPrediction::sideBySide()` → `SolvingTimePredictor`): once the candidate is fitted, the add-time
-  INSERT of the side rows carries a fourth row - no statement of its own: the candidate's inputs ride on the statistical
-  statement (`StatisticalInputsSql::CANDIDATE_COLUMNS` + `CANDIDATE_JOINS`: the evidence, the brand prior, the player's
-  first tries so far) and its fit on the statement that reads the shown fit (`CANDIDATE_SQL`). The time's own
-  conditions go with it (`SolveConditions`: unboxed, at an event). Only the side-by-side path reads them - the shown
-  readers' statements are byte for byte what they were (guarded by `CandidateModelTest`).
-- Reconstructed (`PredictionReconstructor::reconstructSideBySide()`): the same inputs as of the solve - the evidence
+- Live (`SolvingTimePredictor`, only while `PREDICTION_CANDIDATE_ROWS=1`): after the shown and side-by-side
+  predictions are computed, **one statement of its own** (`GetCandidatePrediction::forAddedTime()`: the candidate's fit,
+  the puzzle's evidence and brand prior, the player's first tries so far - first tries; the fit and the gap - repeats)
+  in **a savepoint of its own** with its own try/catch: a failure there is a warning and a missing candidate row (the
+  backfill writes it later), never a lost time or a lost shown prediction
+  (`CandidatePredictionsSideBySideTest::testAFailingCandidateCostsNeitherTheTimeNorItsShownPrediction`). The shown
+  path's statements are exactly main's - `GetPlayerPrediction` is untouched. The time's own conditions go with it
+  (`SolveConditions`: unboxed, at an event).
+- Reconstructed (`PredictionReconstructor::reconstructSideBySide()`): the shown and side-by-side rows exactly as on
+  main, then the candidate in a pass of its own wrapped in a try/catch - a failing candidate leaves the shown rows as
+  they are (`testAFailingCandidateReconstructionKeepsTheShownPredictions`). Its inputs are the same as live, as of the solve - the evidence
   from the puzzle's solvers' first attempts before it (their pace-history row's drift and spread, its place in the
   pair + 5 as the qualifying count), the current fit's brand prior (like the shown prior's sums), the out-of-fold
   estimate only. Live == reconstructed as of now for first tries
   (`CandidatePredictionsSideBySideTest::testLiveAndReconstructedCandidatePredictionsAgreeAsOfNow`); a repeat's candidate
   equals the shown repeat with the candidate's window on both sides (the shown repeat itself differs by its documented
   month-snapshot approximation).
-- Backfill: once the candidate is fitted, the work lists add every solo time without a candidate row of model version 4
+- Backfill (while the switch is on, or with `--candidate`): once the candidate is fitted, the work lists add every solo
+  time without a candidate row of model version 4
   (`GetPlayersWithPendingPredictions::all(withCandidateRows:)`, `findForPredictionOfPlayer(withCandidateRows:)`); the
   handler writes it where missing and replaces it on a re-evaluated time; `--recompute-reconstructed` also replaces
   candidate rows reconstructed before the candidate's fit. Before the first candidate fit nothing is written.
 
 ### Production run for the candidate (after the deploy)
 
-1. The migration (on boot) creates `candidate_puzzle_evidence` and `difficulty_prior_puzzle.candidate_prior_log`.
-2. `docker compose exec -T web php bin/console myspeedpuzzling:fit-prediction-model` - fits the shown model as every
-   day (unchanged) and, new, the candidate (row 4), its brand priors and every puzzle's evidence. Without this run the
-   candidate does nothing (no rows, the batch skips it); the daily cron does it from the next night on anyway.
+1. The migration (on boot) only **creates two new tables** (`candidate_puzzle_evidence`, `candidate_puzzle_prior`) - no
+   `ALTER` of an existing table, so it takes no lock anything else waits for (the 04:11 fit included).
+2. Two new cron rows on lily.srv, each its own process, so neither can take the shown fit or the 15-minute batch down
+   with it (same container and memory limit as their neighbours):
+   ```
+   41 4 * * *    docker compose run --rm --no-deps messenger-consumer php -d memory_limit=1G bin/console myspeedpuzzling:fit-candidate-prediction-model
+   7-59/15 * * * *  docker compose run --rm --no-deps messenger-consumer php -d memory_limit=1G bin/console myspeedpuzzling:refresh-candidate-prediction-evidence
+   ```
+   The fit 30 minutes after the shown one (04:11, a few minutes long - it reads v3's committed drift); the refresh a few
+   minutes after each `recalculate-puzzle-intelligence` run. Then run the fit once by hand (the same command with
+   `exec -T web` works too) - without it the candidate does nothing (no fit = no rows, the refresh skips).
 3. The candidate rows of every past solo time, detached, resumable (~the length of the v3 fill; never next to another
    backfill run - both lock a player's times):
-   `nohup docker compose exec -T -e SENTRY_DSN= web php -d memory_limit=1G bin/console myspeedpuzzling:backfill-solving-time-predictions > /tmp/backfill-candidate.log 2>&1 &`
-   The 4×-daily cron would get there too, a player at a time.
-4. Gate it on the stored rows once the backfill has filled them (docs/features/insights/image-estimate-gates.md
-   "Candidate time models"): `myspeedpuzzling:evaluate-prediction-candidate --candidate=candidate:4 --reference=statistical:3`.
-   The time-split measurement (read only, ~1-2 GB, a few minutes - on a copy or off-peak):
-   `myspeedpuzzling:evaluate-predictions --fit-before=<date> --candidate` and `--ablation`.
+   `nohup docker compose exec -T -e SENTRY_DSN= web php -d memory_limit=1G bin/console myspeedpuzzling:backfill-solving-time-predictions --candidate > /tmp/backfill-candidate.log 2>&1 &`
+   Then `PREDICTION_CANDIDATE_ROWS=1` (new times get their candidate row live, the 4×-daily cron keeps the rest).
+4. **Proof is the time split, not the stored rows.** `myspeedpuzzling:evaluate-predictions --fit-before=<date>
+   --candidate` (and `--ablation`) fits both models on solves before the date and scores both on the solves after it -
+   read only, ~1-2 GB, a few minutes, on a copy or off-peak. `evaluate-prediction-candidate --candidate=candidate:4
+   --reference=statistical:3` (docs/features/insights/image-estimate-gates.md "Candidate time models") scores the
+   stored rows - and the **reconstructed** ones are in-sample: they come from a fit that has already seen those solves
+   (the shown v3 reconstructions are equally in-sample, but v4 has more fitted parameters to profit from it). Read it as
+   a consistency check only; as evidence count only its **live** slice (the gate prints live and reconstructed apart -
+   rows predicted at the add, after the fit that made them), once there are a few thousand of them.
 
 ## Rollout
 

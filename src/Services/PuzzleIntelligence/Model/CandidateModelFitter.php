@@ -52,12 +52,16 @@ final readonly class CandidateModelFitter
     }
 
     /**
+     * The whole fit in one call (the time-split evaluation): begin(), sample(), fitNoise(), addEvidence(), finish() - the daily
+     * fit (CandidateModelRecalculator) calls them one by one and releases what the next ones no longer read.
+     *
+     * @param RepeatHistory|\Closure(): RepeatHistory $repeats the repeats, or how to load them when their step comes
      * @param array<string, ImagePriorInput> $imageEstimates by puzzle id
      */
     public function fit(
         CandidateEngine $candidate,
         PriorLookup $priors,
-        RepeatHistory $repeats,
+        RepeatHistory|\Closure $repeats,
         float $from,
         float $to,
         DateTimeImmutable $now,
@@ -66,73 +70,158 @@ final readonly class CandidateModelFitter
         CandidateFeatures $features,
         UnboxedFirstTries $unboxed = new UnboxedFirstTries(),
     ): CandidateModelParameters {
+        $progress = $this->begin($candidate, $priors, $from, $to, $shown, $features);
+        $this->sample($progress, $candidate, $priors, $imageEstimates, $unboxed);
+        $this->fitNoise($progress, $candidate);
+        $this->addEvidence($progress, $candidate);
+
+        return $this->finish($progress, $repeats, $now);
+    }
+
+    /**
+     * Step 2, the brand prior's pseudo-count - what the candidate's brand priors rest on.
+     */
+    public function begin(CandidateEngine $candidate, PriorLookup $priors, float $from, float $to, PredictionModelParameters $shown, CandidateFeatures $features): CandidateFitProgress
+    {
+        $progress = new CandidateFitProgress(
+            CandidateModelParameters::defaults()->with(features: $features->toArray(), thinSizes: $shown->thinSizes),
+            $features,
+            $from,
+            $to,
+        );
+
+        if ($features->on('puzzle_weighted_brand')) {
+            [$pseudo, $pseudoSamples] = $this->fitBrandPseudo($candidate->engine, $priors, $this->window($candidate->engine->set, $from, $to), $progress->parameters);
+            $progress->parameters = $progress->parameters->with(brandPseudoPuzzles: $pseudo);
+            $progress->add(['brand_pseudo_samples' => $pseudoSamples]);
+        }
+
+        $progress->lap('brand_pseudo');
+
+        return $progress;
+    }
+
+    /**
+     * The window's first tries as the shown model sees them - each sample's target, prior, size group, pace source and
+     * spread - and the unboxed first tries' inputs: the last step that reads the shown model's as-of difficulty, the
+     * priors and the image estimates (PredictionEngine::releaseAsOfDifficulty() after it).
+     *
+     * @param array<string, ImagePriorInput> $imageEstimates by puzzle id
+     */
+    public function sample(CandidateFitProgress $progress, CandidateEngine $candidate, PriorLookup $priors, array $imageEstimates, UnboxedFirstTries $unboxed): void
+    {
         $engine = $candidate->engine;
-        $parameters = CandidateModelParameters::defaults()->with(features: $features->toArray(), thinSizes: $shown->thinSizes);
-        $summary = [
-            'window_from' => new DateTimeImmutable('@' . (int) $from)->format('Y-m-d'),
-            'window_to' => new DateTimeImmutable('@' . (int) $to)->format('Y-m-d'),
-        ];
-        $clock = microtime(true);
-        $lap = static function (string $step) use (&$clock, &$summary): void {
-            $summary['seconds_' . $step] = round(microtime(true) - $clock, 2);
-            $summary['memory_' . $step . '_mb'] = round(memory_get_usage() / 1048576);
-            $summary['memory_peak_' . $step . '_mb'] = round(memory_get_peak_usage() / 1048576);
-            memory_reset_peak_usage();
-            $clock = microtime(true);
-        };
-        $summary['memory_start_mb'] = round(memory_get_usage() / 1048576);
+        [$from, $to, $features] = [$progress->from, $progress->to, $progress->features];
+        $progress->samples = $this->samples($candidate, $priors, $this->window($engine->set, $from, $to), $imageEstimates, $progress->parameters);
 
-        [$noise, $noiseSamples] = $this->fitIndexNoise($candidate, $to, $features->on('drift_index'));
-        $parameters = $parameters->with(indexNoise: $noise);
-        $summary['noise_samples'] = $noiseSamples;
-        $lap('noise');
-
-        $window = [];
-
-        foreach ($engine->set->solved as $i => $solved) {
-            if ($solved >= $from && $solved < $to && $engine->set->seconds[$i] > 0) {
-                $window[] = $i;
+        if ($features->on('unboxed')) {
+            for ($u = 0, $count = $unboxed->count(); $u < $count; $u++) {
+                if ($unboxed->solved[$u] >= $from && $unboxed->solved[$u] < $to) {
+                    $puzzle = $unboxed->puzzle[$u];
+                    $progress->unboxed[] = [
+                        $engine->inputsAt($unboxed->player[$u], $puzzle, $unboxed->pieces[$u], $unboxed->solved[$u], $unboxed->tracked[$u], $priors)
+                            ->withImageEstimate($imageEstimates[$puzzle] ?? null),
+                        $unboxed->seconds[$u],
+                        $unboxed->competition[$u],
+                        [$unboxed->player[$u], $puzzle, $unboxed->solved[$u], $unboxed->tracked[$u], $priors->puzzleWeightedBrandPrior($puzzle, $unboxed->pieces[$u], $progress->parameters->brandPseudoPuzzles)],
+                    ];
+                }
             }
         }
 
-        if ($features->on('puzzle_weighted_brand')) {
-            [$pseudo, $pseudoSamples] = $this->fitBrandPseudo($engine, $priors, $window, $parameters);
-            $parameters = $parameters->with(brandPseudoPuzzles: $pseudo);
-            $summary['brand_pseudo_samples'] = $pseudoSamples;
+        $progress->lap('samples');
+    }
+
+    /**
+     * Step 1, the index noise - what the puzzles' evidence rests on.
+     */
+    public function fitNoise(CandidateFitProgress $progress, CandidateEngine $candidate): void
+    {
+        [$noise, $noiseSamples] = $this->fitIndexNoise($candidate, $progress->to, $progress->features->on('drift_index'));
+        $progress->parameters = $progress->parameters->with(indexNoise: $noise);
+        $progress->add(['noise_samples' => $noiseSamples]);
+        $progress->lap('noise');
+    }
+
+    /**
+     * Every window first try's evidence as of its moment (CandidateEngine::compute()) into the samples and the unboxed
+     * first tries' inputs: after this nothing of the fit reads the attempt set or the engines.
+     */
+    public function addEvidence(CandidateFitProgress $progress, CandidateEngine $candidate): void
+    {
+        $samples = $progress->samples ?? throw new \LogicException('begin() first');
+        $candidate->compute($progress->parameters, $progress->from);
+        $samples->useEvidenceOf($candidate);
+
+        foreach ($progress->unboxed as $u => [$inputs, , , $pending]) {
+            if ($pending !== null) {
+                [$player, $puzzle, $solved, $tracked, $prior] = $pending;
+                $progress->unboxed[$u][0] = $inputs->withCandidate($candidate->evidenceAt($puzzle, $solved, $tracked, $progress->parameters), $prior, $candidate->experienceAt($player, $solved, $tracked));
+                $progress->unboxed[$u][3] = null;
+            }
         }
 
-        $lap('brand_pseudo');
-        $candidate->compute($parameters, $from);
-        $lap('evidence');
+        $progress->lap('evidence');
+    }
 
-        $samples = $this->samples($candidate, $priors, $window, $imageEstimates, $parameters);
-        $lap('samples');
+    /**
+     * Steps 3-6 on what the earlier steps kept: the prior variances, the centre offsets, the first-try window, the
+     * unboxed offset and scale, the repeats.
+     *
+     * @param RepeatHistory|\Closure(): RepeatHistory $repeats the repeats, or how to load them when their step comes
+     */
+    public function finish(CandidateFitProgress $progress, RepeatHistory|\Closure $repeats, DateTimeImmutable $now): CandidateModelParameters
+    {
+        $samples = $progress->samples ?? throw new \LogicException('begin() first');
+        $features = $progress->features;
+        $parameters = $progress->parameters;
+
         [$variances, $varianceSummary] = $this->fitPriorVariances($samples, $features->on('prior_types'));
         $parameters = $parameters->with(priorVariances: [...$parameters->priorVariances, ...$variances]);
-        $summary = [...$summary, ...$varianceSummary];
+        $progress->add($varianceSummary);
 
         if ($features->on('centre_offsets')) {
             $parameters = $parameters->with(centreOffsets: $this->fitCentreOffsets($samples, $parameters));
         }
 
-        $lap('priors_offsets');
+        $progress->lap('priors_offsets');
         [$parameters, $windowSummary] = $this->fitFirstTryWindow($samples, $parameters, $features);
-        $summary = [...$summary, ...$windowSummary];
-        $lap('window');
+        $progress->add($windowSummary);
+        $progress->samples = null;
         unset($samples);
+        $progress->lap('window');
 
         if ($features->on('unboxed')) {
-            [$parameters, $unboxedSummary] = $this->fitUnboxed($candidate, $priors, $unboxed, $from, $to, $imageEstimates, $parameters);
-            $summary = [...$summary, ...$unboxedSummary];
-            $lap('unboxed');
+            [$parameters, $unboxedSummary] = $this->fitUnboxed(array_map(static fn (array $unboxed): array => [$unboxed[0], $unboxed[1], $unboxed[2]], $progress->unboxed), $parameters);
+            $progress->add($unboxedSummary);
+            $progress->unboxed = [];
+            $progress->lap('unboxed');
         }
 
-        [$parameters, $repeatSummary] = $this->fitRepeats($repeats, $from, $to, $parameters, $features->on('repeat_gap'));
-        $summary = [...$summary, ...$repeatSummary];
-        $lap('repeats');
-        $summary['memory_peak_mb'] = round(memory_get_peak_usage(true) / 1048576);
+        [$parameters, $repeatSummary] = $this->fitRepeats($repeats instanceof RepeatHistory ? $repeats : $repeats(), $progress->from, $progress->to, $parameters, $features->on('repeat_gap'));
+        $progress->add($repeatSummary);
+        $progress->lap('repeats');
+        $progress->add(['memory_peak_mb' => round(memory_get_peak_usage(true) / 1048576)]);
 
-        return $parameters->with(fittedAt: $now, summary: $summary);
+        return $parameters->with(fittedAt: $now, summary: $progress->summary);
+    }
+
+    /**
+     * The window's attempts with a time.
+     *
+     * @return list<int>
+     */
+    private function window(FirstAttemptSet $set, float $from, float $to): array
+    {
+        $window = [];
+
+        foreach ($set->solved as $i => $solved) {
+            if ($solved >= $from && $solved < $to && $set->seconds[$i] > 0) {
+                $window[] = $i;
+            }
+        }
+
+        return $window;
     }
 
     /**
@@ -148,7 +237,7 @@ final readonly class CandidateModelFitter
 
         return $candidate->engine->inputsFor($i, $priors)
             ->withImageEstimate($imageEstimates[$puzzle] ?? null)
-            ->withCandidate($candidate->evidenceFor($i), $priors->puzzleWeightedBrandPrior($puzzle, $set->pieces[$i], $parameters->brandPseudoPuzzles), $candidate->experience()[$i] ?? 0);
+            ->withCandidate($candidate->evidenceFor($i), $priors->puzzleWeightedBrandPrior($puzzle, $set->pieces[$i], $parameters->brandPseudoPuzzles), $candidate->experienceOf($i));
     }
 
     /**
@@ -173,26 +262,22 @@ final readonly class CandidateModelFitter
      * The unboxed offset (median residual against the boxed prediction, shrunk) and window scale (how much of the
      * fitted variance unboxed first tries use around the shifted centre).
      *
-     * @param array<string, ImagePriorInput> $imageEstimates
+     * @param list<array{0: StatisticalPredictionInputs, 1: int, 2: bool}> $unboxed the window's, from begin() and addEvidence()
      * @return array{0: CandidateModelParameters, 1: array<string, int|float|string>}
      */
-    private function fitUnboxed(CandidateEngine $candidate, PriorLookup $priors, UnboxedFirstTries $unboxed, float $from, float $to, array $imageEstimates, CandidateModelParameters $parameters): array
+    private function fitUnboxed(array $unboxed, CandidateModelParameters $parameters): array
     {
         $residuals = [];
         $boxedPredictions = [];
 
-        for ($u = 0, $count = $unboxed->count(); $u < $count; $u++) {
-            if ($unboxed->solved[$u] < $from || $unboxed->solved[$u] >= $to) {
-                continue;
-            }
-
-            $boxed = $this->calculator->firstTry(self::unboxedInputs($candidate, $unboxed, $u, $priors, $imageEstimates, $parameters), $parameters, new SolveConditions(competition: $unboxed->competition[$u]));
+        foreach ($unboxed as [$inputs, $seconds, $competition]) {
+            $boxed = $this->calculator->firstTry($inputs, $parameters, new SolveConditions(competition: $competition));
 
             if ($boxed === null) {
                 continue;
             }
 
-            $residuals[] = max(-self::RESIDUAL_CLIP, min(self::RESIDUAL_CLIP, log($unboxed->seconds[$u] / $boxed->predictedSeconds)));
+            $residuals[] = max(-self::RESIDUAL_CLIP, min(self::RESIDUAL_CLIP, log($seconds / $boxed->predictedSeconds)));
             $boxedPredictions[] = $boxed;
         }
 
@@ -361,7 +446,7 @@ final readonly class CandidateModelFitter
 
     /**
      * Every first try of the window the candidate predicts, column by column: its target (ln seconds - ln pace - drift),
-     * the posterior's inputs and what the window keys need.
+     * the prior and what the window keys need - its evidence is added by addEvidence().
      *
      * @param list<int> $window
      * @param array<string, ImagePriorInput> $imageEstimates
@@ -369,11 +454,16 @@ final readonly class CandidateModelFitter
     private function samples(CandidateEngine $candidate, PriorLookup $priors, array $window, array $imageEstimates, CandidateModelParameters $parameters): CandidateSamples
     {
         $features = $parameters->features();
-        $samples = new CandidateSamples($candidate, count($window));
-        $set = $candidate->engine->set;
+        $samples = new CandidateSamples(count($window));
+        $engine = $candidate->engine;
+        $set = $engine->set;
 
         foreach ($window as $i) {
-            $inputs = self::inputsFor($candidate, $i, $priors, $imageEstimates, $parameters);
+            // The shown model's inputs with the candidate's brand prior - its evidence comes later (addEvidence())
+            $puzzle = $set->puzzle[$i];
+            $inputs = $engine->inputsFor($i, $priors)
+                ->withImageEstimate($imageEstimates[$puzzle] ?? null)
+                ->withCandidate(null, $priors->puzzleWeightedBrandPrior($puzzle, $set->pieces[$i], $parameters->brandPseudoPuzzles));
             $baseline = TimePredictionCalculator::baselineFor($inputs, $parameters->paceParameters);
 
             if ($baseline === null || $baseline[0] <= 0) {
@@ -381,6 +471,8 @@ final readonly class CandidateModelFitter
             }
 
             [$type, $prior] = $this->calculator->prior($inputs, $features->on('image_prior'), $features->on('puzzle_weighted_brand'));
+
+            $score = $engine->score[$i] ?? null;
 
             $samples->add(
                 attempt: $i,
@@ -390,6 +482,9 @@ final readonly class CandidateModelFitter
                 group: PiecesGroup::fromPiecesCount($inputs->piecesCount),
                 paceSource: $baseline[3],
                 spread: $baseline[2] ?? PredictionModelParameters::GLOBAL_SPREAD,
+                median: $engine->k[$i] >= TimePredictionCalculator::RATED_INDICES && $score !== null && $score > 0.0 ? log($score) : null,
+                firstTries: $candidate->experienceOf($i),
+                competition: ($candidate->flags->of($i) & AttemptFlags::COMPETITION) !== 0,
             );
         }
 
@@ -405,12 +500,12 @@ final readonly class CandidateModelFitter
     {
         $byType = [];
 
-        foreach ($samples->attempt as $s => $i) {
+        for ($s = 0, $count = $samples->count(); $s < $count; $s++) {
             if ($samples->k($s) > self::PRIOR_MAX_K) {
                 continue;
             }
 
-            $byType[$perType ? $samples->priorType[$s] : 'pooled'][] = $s;
+            $byType[$perType ? $samples->priorType($s) : 'pooled'][] = $s;
         }
 
         $variances = [];
@@ -429,7 +524,7 @@ final readonly class CandidateModelFitter
                 $error = 0.0;
 
                 foreach ($members as $s) {
-                    $error += abs($samples->target[$s] - $samples->evidence($s)->posterior($samples->priorLog[$s], $variance)[0]);
+                    $error += abs($samples->target($s) - $samples->evidence($s)->posterior($samples->priorLog($s), $variance)[0]);
                 }
 
                 if ($best === null || $error < $best[1]) {
@@ -456,8 +551,8 @@ final readonly class CandidateModelFitter
     {
         $residuals = [];
 
-        foreach ($samples->attempt as $s => $i) {
-            $residuals[$s] = max(-self::RESIDUAL_CLIP, min(self::RESIDUAL_CLIP, $samples->target[$s] - $this->logDifficulty($samples, $s, $parameters)[0]));
+        for ($s = 0, $count = $samples->count(); $s < $count; $s++) {
+            $residuals[$s] = max(-self::RESIDUAL_CLIP, min(self::RESIDUAL_CLIP, $samples->target($s) - $this->logDifficulty($samples, $s, $parameters)[0]));
         }
 
         if ($residuals === []) {
@@ -466,7 +561,7 @@ final readonly class CandidateModelFitter
 
         $level = self::median($residuals);
         $offsets = [];
-        $keysOf = static fn (int $s): array => CandidatePredictionCalculator::offsetKeys($samples->group[$s], $samples->paceSource[$s]->value, WindowBucket::kBucket($samples->k($s)), $samples->priorType[$s]);
+        $keysOf = static fn (int $s): array => CandidatePredictionCalculator::offsetKeys($samples->group($s), $samples->paceSource($s)->value, WindowBucket::kBucket($samples->k($s)), $samples->priorType($s));
 
         foreach (self::perLevel(count($residuals), $keysOf, static fn (int $s): float => $residuals[$s]) as $byKey) {
             $offsets = [...$offsets, ...self::shrunkMedians($byKey, $level)];
@@ -479,7 +574,7 @@ final readonly class CandidateModelFitter
             $bucket = CandidateModelParameters::experienceBucket($samples->firstTries($s));
 
             if ($bucket !== null) {
-                $keys = CandidatePredictionCalculator::offsetKeys($samples->group[$s], $samples->paceSource[$s]->value, WindowBucket::kBucket($samples->k($s)), $samples->priorType[$s]);
+                $keys = CandidatePredictionCalculator::offsetKeys($samples->group($s), $samples->paceSource($s)->value, WindowBucket::kBucket($samples->k($s)), $samples->priorType($s));
                 $byExperience['experience|' . $bucket][] = $residual - $withOffsets->centreOffset($keys);
             }
         }
@@ -557,20 +652,21 @@ final readonly class CandidateModelFitter
         $posteriorVariances = [];
         $dispersions = [];
 
-        foreach ($samples->attempt as $s => $i) {
+        for ($s = 0, $count = $samples->count(); $s < $count; $s++) {
             [$logDifficulty, $posteriorVariance] = $this->logDifficulty($samples, $s, $parameters);
             $offset = $features->on('centre_offsets')
-                ? $parameters->centreOffset(CandidatePredictionCalculator::offsetKeys($samples->group[$s], $samples->paceSource[$s]->value, WindowBucket::kBucket($samples->k($s)), $samples->priorType[$s]))
+                ? $parameters->centreOffset(CandidatePredictionCalculator::offsetKeys($samples->group($s), $samples->paceSource($s)->value, WindowBucket::kBucket($samples->k($s)), $samples->priorType($s)))
                     + $parameters->experienceOffset($samples->firstTries($s))
                 : 0.0;
-            $errors[$s] = $samples->target[$s] - $logDifficulty - $offset;
+            $errors[$s] = $samples->target($s) - $logDifficulty - $offset;
             $posteriorVariances[$s] = $posteriorVariance;
             $dispersions[$s] = $features->on('dispersion') ? $samples->evidence($s)->dispersion($parameters->dispersionShrink) : 0.0;
         }
 
         $perGroup = [];
 
-        foreach ($samples->group as $group) {
+        for ($s = 0; $s < $count; $s++) {
+            $group = $samples->group($s);
             $perGroup[$group->value] = ($perGroup[$group->value] ?? 0) + 1;
         }
         $groups = array_values(array_filter(PiecesGroup::cases(), static fn (PiecesGroup $group): bool => ($perGroup[$group->value] ?? 0) >= self::MINIMUM_SIZE_TERM_SAMPLES));
@@ -581,14 +677,14 @@ final readonly class CandidateModelFitter
         $normal = new NormalEquations($columns);
 
         foreach ($errors as $s => $error) {
-            $row = [$samples->spread[$s] ** 2, $posteriorVariances[$s]];
+            $row = [$samples->spread($s) ** 2, $posteriorVariances[$s]];
 
             foreach ($groups as $group) {
-                $row[] = $samples->group[$s] === $group ? 1.0 : 0.0;
+                $row[] = $samples->group($s) === $group ? 1.0 : 0.0;
             }
 
             foreach ($paceSources as $paceSource) {
-                $row[] = $samples->paceSource[$s] === $paceSource ? 1.0 : 0.0;
+                $row[] = $samples->paceSource($s) === $paceSource ? 1.0 : 0.0;
             }
 
             foreach ($experiences as $experience) {
@@ -620,14 +716,14 @@ final readonly class CandidateModelFitter
             $paceTerms['experience|' . $experience] = round($coefficients[$column++], 6);
         }
 
-        $spreads = $samples->spread;
+        $spreads = $samples->spreads();
         $parameters = $parameters->with(
             spreadWeight: round($coefficients[0], 6),
             posteriorWeight: round($coefficients[1], 6),
             sizeTerms: $sizeTerms,
             paceTerms: $paceTerms,
             dispersionWeight: $features->on('dispersion') ? round($coefficients[$column], 6) : 0.0,
-            consistencyEdges: PredictionModelFitter::quartileEdges(array_values($spreads)),
+            consistencyEdges: PredictionModelFitter::quartileEdges($spreads),
         );
 
         $summary = ['window_samples' => $count];
@@ -639,7 +735,7 @@ final readonly class CandidateModelFitter
             foreach ($errors as $s => $error) {
                 if ($samples->competition($s)) {
                     $ratio[0] += min(abs($error), self::RESIDUAL_CLIP) ** 2;
-                    $ratio[1] += $parameters->firstTrySigma($samples->spread[$s], $posteriorVariances[$s], $samples->group[$s], $samples->paceSource[$s], $dispersions[$s], 1.0, $samples->firstTries($s)) ** 2;
+                    $ratio[1] += $parameters->firstTrySigma($samples->spread($s), $posteriorVariances[$s], $samples->group($s), $samples->paceSource($s), $dispersions[$s], 1.0, $samples->firstTries($s)) ** 2;
                     $ratio[2]++;
                 }
             }
@@ -655,19 +751,19 @@ final readonly class CandidateModelFitter
 
         foreach ($errors as $s => $error) {
             $competition = $features->on('competition') && $samples->competition($s);
-            $standardised[$s] = $error / $parameters->firstTrySigma($samples->spread[$s], $posteriorVariances[$s], $samples->group[$s], $samples->paceSource[$s], $dispersions[$s], $parameters->contextScale($competition, false), $features->on('centre_offsets') ? $samples->firstTries($s) : null);
+            $standardised[$s] = $error / $parameters->firstTrySigma($samples->spread($s), $posteriorVariances[$s], $samples->group($s), $samples->paceSource($s), $dispersions[$s], $parameters->contextScale($competition, false), $features->on('centre_offsets') ? $samples->firstTries($s) : null);
         }
 
         unset($errors, $posteriorVariances, $dispersions);
         $keysOf = static fn (int $s): array => CandidatePredictionCalculator::firstTryKeys(
-            WindowBucket::quartile($samples->spread[$s], $parameters->consistencyEdges),
+            WindowBucket::quartile($samples->spread($s), $parameters->consistencyEdges),
             WindowBucket::kBucket($samples->k($s)),
-            $samples->group[$s],
-            $features->on('source_quantiles') ? $samples->priorType[$s] : null,
+            $samples->group($s),
+            $features->on('source_quantiles') ? $samples->priorType($s) : null,
         );
         $quantiles = $parameters->quantiles;
 
-        foreach (self::perLevel(count($standardised), $keysOf, static fn (int $s): float => $standardised[$s]) as $byKey) {
+        foreach (self::perLevel($count, $keysOf, static fn (int $s): float => $standardised[$s]) as $byKey) {
             $quantiles = [...$quantiles, ...self::quantileTable($byKey)];
         }
 
@@ -773,7 +869,7 @@ final readonly class CandidateModelFitter
             return [$samples->median($s), 1.0 / $evidence->weightSum];
         }
 
-        return $evidence->posterior($samples->priorLog[$s], $parameters->priorVariance($features->on('prior_types') ? $samples->priorType[$s] : 'pooled'));
+        return $evidence->posterior($samples->priorLog($s), $parameters->priorVariance($features->on('prior_types') ? $samples->priorType($s) : 'pooled'));
     }
 
     /**

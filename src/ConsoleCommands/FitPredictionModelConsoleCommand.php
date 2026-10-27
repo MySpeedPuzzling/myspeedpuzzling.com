@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\ConsoleCommands;
 
 use SpeedPuzzling\Web\Message\FitPredictionModel;
-use SpeedPuzzling\Web\Value\CandidateModelParameters;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -32,7 +31,7 @@ final class FitPredictionModelConsoleCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $startedAt = microtime(true);
 
-        /** @var array{prior_groups: int, prior_puzzles: int, priors_seconds: float, drift_rows_written: int, parameters: PredictionModelParameters, candidate: CandidateModelParameters, candidate_evidence_written: int} $result */
+        /** @var array{prior_groups: int, prior_puzzles: int, priors_seconds: float, drift_rows_written: int, parameters: PredictionModelParameters} $result */
         $result = $this->messageBus->dispatch(new FitPredictionModel())->last(HandledStamp::class)?->getResult();
 
         $io->table(['Setting', 'Value'], [
@@ -43,10 +42,6 @@ final class FitPredictionModelConsoleCommand extends Command
             ['priors written in (s)', $result['priors_seconds']],
             ['drift rows written', $result['drift_rows_written']],
             ...array_map(static fn (string $key, int|float|string $value): array => [$key, $value], array_keys($result['parameters']->summary), $result['parameters']->summary),
-            // The candidate model (v4, never shown)
-            ['candidate evidence rows written', $result['candidate_evidence_written']],
-            ...array_map(static fn (string $key, int|float|string $value): array => ['candidate ' . $key, $value], array_keys($result['candidate']->summary), $result['candidate']->summary),
-            ['peak memory (MB)', round(memory_get_peak_usage(true) / 1048576)],
         ]);
         $io->success(sprintf('Prediction model fitted in %.1f s', microtime(true) - $startedAt));
 

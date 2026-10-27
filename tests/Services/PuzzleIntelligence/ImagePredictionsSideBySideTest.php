@@ -97,7 +97,8 @@ final class ImagePredictionsSideBySideTest extends KernelTestCase
         $executed = $debugDataHolder->getData()['default'] ?? [];
         $queries = array_column($executed, 'sql');
         $sideRowInserts = array_filter($queries, static fn (string $sql): bool => str_starts_with($sql, 'INSERT INTO solving_time_prediction'));
-        $estimateReads = array_filter($queries, static fn (string $sql): bool => str_contains($sql, 'puzzle_difficulty_estimate'));
+        // The candidate model's own statement (PREDICTION_CANDIDATE_ROWS, after the shown ones) is not part of it
+        $estimateReads = array_filter($queries, static fn (string $sql): bool => str_contains($sql, 'puzzle_difficulty_estimate') && !str_contains($sql, 'candidate_puzzle_evidence'));
 
         self::assertCount(1, $sideRowInserts, 'Three side rows, one INSERT');
         self::assertCount(1, $estimateReads, 'The estimate rides on the statistical read');

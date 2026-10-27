@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Message\BackfillSolvingTimePredictions;
 use SpeedPuzzling\Web\Query\GetPlayersWithPendingPredictions;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionModelParametersProvider;
 use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputInterface;
@@ -34,6 +35,8 @@ final class BackfillSolvingTimePredictionsConsoleCommand extends Command
         readonly private GetPlayersWithPendingPredictions $getPlayersWithPendingPredictions,
         readonly private EntityManagerInterface $entityManager,
         readonly private PredictionModelParametersProvider $parametersProvider,
+        #[Autowire(param: 'predictionCandidateRows')]
+        readonly private bool $candidateRows = false,
     ) {
         parent::__construct();
     }
@@ -43,6 +46,7 @@ final class BackfillSolvingTimePredictionsConsoleCommand extends Command
         $this->addOption('player', null, InputOption::VALUE_REQUIRED, 'Only this player (uuid)');
         $this->addOption('limit', null, InputOption::VALUE_REQUIRED, 'Stop after this many players');
         $this->addOption('recompute-reconstructed', null, InputOption::VALUE_NONE, 'Also replace every reconstructed prediction (shown and side by side) with the current fit - live ones stay; once the model is fitted');
+        $this->addOption('candidate', null, InputOption::VALUE_NONE, 'Also the candidate model\'s (v4, never shown) rows while PREDICTION_CANDIDATE_ROWS is off - the first manual fill before the flag goes on');
         $this->addOption('recompute-image', null, InputOption::VALUE_NONE, 'Also replace every reconstructed image / blend row older than the out-of-fold estimate its puzzle has now or than the current fit (after a new derive or fit, before myspeedpuzzling:evaluate-image-estimates); once the model is fitted');
     }
 
@@ -56,8 +60,10 @@ final class BackfillSolvingTimePredictionsConsoleCommand extends Command
         $limitOption = $input->getOption('limit');
 
         $fittedAt = $this->parametersProvider->fittedAt();
-        // The candidate model's rows (v4, never shown) once it is fitted - with the shown model's
-        $candidateFittedAt = $fittedAt !== null ? $this->parametersProvider->candidateFittedAt() : null;
+        // The candidate model's rows (v4, never shown) once it is fitted and switched on (PREDICTION_CANDIDATE_ROWS) or
+        // asked for (--candidate, the first manual backfill)
+        $candidateRequested = (bool) $input->getOption('candidate');
+        $candidateFittedAt = $fittedAt !== null && ($this->candidateRows || $candidateRequested) ? $this->parametersProvider->candidateFittedAt() : null;
         $recompute = (bool) $input->getOption('recompute-reconstructed');
         $recomputeImage = (bool) $input->getOption('recompute-image');
 
@@ -99,7 +105,7 @@ final class BackfillSolvingTimePredictionsConsoleCommand extends Command
 
         foreach ($playerIds as $index => $playerId) {
             try {
-                $envelope = $this->messageBus->dispatch(new BackfillSolvingTimePredictions($playerId, recomputeReconstructed: $recompute, recomputeImage: $recomputeImage));
+                $envelope = $this->messageBus->dispatch(new BackfillSolvingTimePredictions($playerId, recomputeReconstructed: $recompute, recomputeImage: $recomputeImage, candidateRows: $candidateRequested));
 
                 /** @var int $recorded */
                 $recorded = $envelope->last(HandledStamp::class)?->getResult() ?? 0;

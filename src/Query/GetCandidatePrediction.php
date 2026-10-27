@@ -1,0 +1,141 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SpeedPuzzling\Web\Query;
+
+use DateTimeImmutable;
+use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Results\TimePredictionResult;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidatePredictionCalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionModelParametersProvider;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\RepeatResiduals;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\StatisticalInputsSql;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
+use SpeedPuzzling\Web\Value\ImagePriorInput;
+use SpeedPuzzling\Web\Value\PiecesGroup;
+use SpeedPuzzling\Web\Value\PredictionsSideBySide;
+use SpeedPuzzling\Web\Value\SolveConditions;
+use SpeedPuzzling\Web\Value\SolveMoment;
+use SpeedPuzzling\Web\Value\SolvingTimePrediction;
+use SpeedPuzzling\Web\Value\TimePredictionSource;
+
+/**
+ * The candidate model's (v4, never shown) prediction of a solve being added now - asked by SolvingTimePredictor only
+ * after the shown predictions are made, in a savepoint of its own: one statement, never part of a shown reader's (the
+ * shown path's statements are exactly what they are without the candidate). Null when the candidate was never fitted.
+ *
+ * A first try: the statistical inputs once more with the candidate's columns (StatisticalInputsSql::CANDIDATE_COLUMNS)
+ * and fit. A repeat: the shown centre with the candidate's window (the player's repeat spread and the days since the
+ * last solve).
+ */
+readonly final class GetCandidatePrediction
+{
+    public function __construct(
+        private Connection $database,
+        private ClockInterface $clock,
+        private CandidatePredictionCalculator $calculator = new CandidatePredictionCalculator(),
+    ) {
+    }
+
+    public function forAddedTime(
+        string $playerId,
+        string $puzzleId,
+        PredictionsSideBySide $shown,
+        SolveConditions $conditions,
+        null|string $excludeTimeId = null,
+        null|SolveMoment $before = null,
+    ): null|SolvingTimePrediction {
+        if ($shown->firstTry === false) {
+            $personal = $shown->statistical->result;
+
+            return $personal !== null ? $this->repeat($playerId, $puzzleId, $personal, $excludeTimeId, $before) : null;
+        }
+
+        $joins = StatisticalInputsSql::JOINS . StatisticalInputsSql::lateralPaceJoins() . StatisticalInputsSql::imageEstimateJoins(outOfFoldOnly: false) . StatisticalInputsSql::CANDIDATE_JOINS;
+
+        /** @var array<string, mixed>|false $row */
+        $row = $this->database->executeQuery('
+            SELECT ' . StatisticalInputsSql::COLUMNS . ', ' . StatisticalInputsSql::IMAGE_ESTIMATE_COLUMNS . ', ' . StatisticalInputsSql::CANDIDATE_COLUMNS . ',
+                (' . PredictionModelParametersProvider::CANDIDATE_SQL . ') AS candidate_parameters
+            FROM puzzle p
+            ' . $joins . '
+            WHERE p.id = :puzzleId
+        ', [
+            'playerId' => $playerId,
+            'puzzleId' => $puzzleId,
+            'candidateModelVersion' => CandidatePredictionCalculator::MODEL_VERSION,
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+        ])->fetchAssociative();
+
+        $parameters = $row !== false ? PredictionModelParametersProvider::candidateFromJson(is_string($row['candidate_parameters'] ?? null) ? $row['candidate_parameters'] : null) : null;
+
+        if ($row === false || $parameters === null) {
+            return null;
+        }
+
+        $inputs = StatisticalInputsSql::hydrateCandidate($row, StatisticalInputsSql::hydrate($row)->withImageEstimate(ImagePriorInput::fromRow($row)));
+        $prediction = $this->calculator->firstTry($inputs, $parameters, $conditions);
+
+        return $prediction !== null
+            ? SolvingTimePrediction::predicted($prediction, TimePredictionSource::Live, CandidatePredictionCalculator::MODEL_VERSION)
+            : SolvingTimePrediction::notPredictable(TimePredictionSource::Live, CandidatePredictionCalculator::MODEL_VERSION);
+    }
+
+    private function repeat(string $playerId, string $puzzleId, TimePredictionResult $personal, null|string $excludeTimeId, null|SolveMoment $before): null|SolvingTimePrediction
+    {
+        $exclude = $excludeTimeId !== null ? 'AND pst.id != :excludeTimeId' : '';
+        $beforeCondition = $before !== null
+            ? 'AND (COALESCE(pst.finished_at, pst.tracked_at), pst.tracked_at) < (CAST(:solvedAt AS timestamp), CAST(:trackedAt AS timestamp))'
+            : '';
+        $params = ['playerId' => $playerId, 'puzzleId' => $puzzleId, 'candidateModelVersion' => CandidatePredictionCalculator::MODEL_VERSION];
+
+        if ($excludeTimeId !== null) {
+            $params['excludeTimeId'] = $excludeTimeId;
+        }
+
+        if ($before !== null) {
+            $params['solvedAt'] = $before->solvedAt->format('Y-m-d H:i:s');
+            $params['trackedAt'] = $before->trackedAt->format('Y-m-d H:i:s');
+        }
+
+        // The last solve: the personal prediction's rule (solo, not suspicious, not unboxed)
+        /** @var array{candidate_parameters: null|string, repeats: null|string, last_solved: null|string, pieces_count: null|int|string}|false $row */
+        $row = $this->database->fetchAssociative('
+            SELECT
+                (' . PredictionModelParametersProvider::CANDIDATE_SQL . ') AS candidate_parameters,
+                (' . RepeatResiduals::sql($excludeTimeId !== null, $before !== null) . ") AS repeats,
+                (
+                    SELECT max(COALESCE(pst.finished_at, pst.tracked_at))
+                    FROM puzzle_solving_time pst
+                    WHERE pst.player_id = :playerId
+                        AND pst.puzzle_id = :puzzleId
+                        AND pst.puzzling_type = 'solo'
+                        AND pst.suspicious = false
+                        AND pst.seconds_to_solve IS NOT NULL
+                        AND pst.unboxed = false
+                        {$exclude}
+                        {$beforeCondition}
+                ) AS last_solved,
+                (SELECT pieces_count FROM puzzle WHERE id = :puzzleId) AS pieces_count
+        ", $params);
+
+        $parameters = $row !== false ? PredictionModelParametersProvider::candidateFromJson($row['candidate_parameters']) : null;
+
+        if ($row === false || $parameters === null || $row['last_solved'] === null || $row['pieces_count'] === null) {
+            return null;
+        }
+
+        $gapDays = TimePredictionCalculator::gapDays($before->solvedAt ?? $this->clock->now(), new DateTimeImmutable($row['last_solved']));
+        $window = $this->calculator->repeatWindow(
+            $personal,
+            TimePredictionCalculator::playerSpread(RepeatResiduals::fromJson($row['repeats'])),
+            PiecesGroup::fromPiecesCount((int) $row['pieces_count']),
+            $gapDays,
+            $parameters,
+        );
+
+        return SolvingTimePrediction::predicted($window, TimePredictionSource::Live, CandidatePredictionCalculator::MODEL_VERSION);
+    }
+}

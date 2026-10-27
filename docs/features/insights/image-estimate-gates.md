@@ -166,6 +166,12 @@ Measured 2026-10-27 on production as a dry run with the only side-by-side pair t
 fails only without the margin (k = 10-19 +0.0003 ± 0.0001) and passes with it; 1500+ and odd fail honesty (168 and
 2,431 rows).
 
+**The candidate model v4 (`--candidate=candidate:4 --reference=statistical:3`): judge it on its live slice.** Its
+reconstructed rows are predicted with a fit that has already seen those solves - in-sample, and the candidate has many
+more fitted parameters than v3 (offsets, terms, quantile tables), so the reconstructed slice flatters it. Out-of-sample
+evidence is the time split, `evaluate-predictions --fit-before=<date> --candidate` (fitted before the date, scored after
+it - README "The candidate model (v4)"), and the live rows written after its fit once there are a few thousand.
+
 ## When it runs
 
 - After the deploy: nothing to evaluate until image rows exist (the prediction backfill writes them as the derive pushes

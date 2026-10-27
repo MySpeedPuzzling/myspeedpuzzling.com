@@ -848,11 +848,32 @@ built (measured elsewhere or left for later): the per-player competition offset 
 scale is in), the k = 0 dispersion from the picture's look-alike numbers (F8 - traits are not on the prediction's
 statements), the taste factor (P7) and the size curve (a separate change).
 
-**Cost.** Daily fit on the production copy: the candidate's part ~30 s on a loaded laptop (the attempt flags' statement
-~7 s, samples ~5 s, window ~5 s), peak memory 427 MB used vs 370 MB for the shown fit alone - within the batch
-container's 512 MB because the candidate keeps its columns packed, its as-of evidence only from the fit window on, and
-builds its tables one fallback level at a time (`memory_peak_*` in the fit's summary). 15-minute batch: +2.3 s for every
-puzzle's candidate evidence (no flags statement while the kept parts do not weigh by them).
+**Isolation and cost.** Nothing of the candidate runs inside the shown model's jobs: `fit-prediction-model` and the
+15-minute batch are exactly main's. The candidate has two commands of its own (`CandidateModelRecalculator`), each its
+own process and transaction - `myspeedpuzzling:fit-candidate-prediction-model` (daily, after the shown fit: reads its
+committed drift and tau) and `myspeedpuzzling:refresh-candidate-prediction-evidence` (every 15 minutes, after the
+batch) - so a failing or killed candidate costs only the candidate's own rows. The add-time row is its own statement in
+its own savepoint, after the shown predictions, and only while `PREDICTION_CANDIDATE_ROWS=1` (prediction-history.md).
+
+Peak resident memory (VmHWM) on the production copy (306,796 qualifying first attempts), production settings
+(`APP_ENV=prod`, `memory_limit=1G`; the container's limit is 512 MB):
+
+| job | peak resident | time |
+|---|---|---|
+| shown fit alone (`fit-prediction-model`, unchanged) | 434 MB | 18 s |
+| candidate fit (`fit-candidate-prediction-model`) | 334 MB | 32 s |
+| candidate evidence refresh (every 15 min) | 312 MB | 14 s |
+| 15-minute batch | +0 (the candidate is not in it) | - |
+
+The candidate fit got there (from 437 MB when it ran inside the shown fit) by releasing what no later step reads
+(`CandidateModelFitter::begin()` / `sample()` / `fitNoise()` / `addEvidence()` / `finish()`; the recalculator drops
+the shown as-of difficulty, the priors and the image estimates after the samples - `PredictionEngine::releaseAsOfDifficulty()`
+- and the attempt set and engines after the evidence; the window, unboxed and repeat steps run on the samples alone at
+~120 MB), by reading the two 300k-row statements through a cursor (`CursorRows`: pdo_pgsql otherwise holds the whole
+result in the client library next to the arrays built from it) with the attempt flags merged positionally (no id
+map), and by fixed-size columns for the samples and the evidence (`SplFixedArray`). The fitted parameters, the evidence
+and the brand priors are identical to the single-process version (compared on the copy). The fit's summary records
+`memory_*` and `resident_peak_*` per step.
 
 ### Requirements
 

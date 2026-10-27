@@ -190,7 +190,16 @@ final class FirstAttemptSet
 
     public function count(): int
     {
-        return count($this->id);
+        return count($this->puzzle);
+    }
+
+    /**
+     * Drops the attempts' ids (~30 MB of strings) once nothing reads them any more - the candidate's fit after its flags
+     * are loaded (CandidateModelRecalculator); every other column stays.
+     */
+    public function forgetIds(): void
+    {
+        $this->id = [];
     }
 
     /**

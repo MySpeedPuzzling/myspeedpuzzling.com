@@ -6,8 +6,12 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Candidate prediction model v4 (`docs/features/puzzle-intelligence/README.md` "The candidate model (v4)", 2026-10-27)
 
-- [ ] After the deploy: `myspeedpuzzling:fit-prediction-model` once, then the candidate backfill (prediction-history.md
-  "Production run for the candidate")
+- [ ] After the deploy: the two cron rows (`fit-candidate-prediction-model` 04:41, `refresh-candidate-prediction-evidence`
+  every 15 min), the candidate fit once, the backfill with `--candidate`, then `PREDICTION_CANDIDATE_ROWS=1`
+  (prediction-history.md "Production run for the candidate")
+- [ ] The shown fit (`fit-prediction-model`) peaks at 434 MB resident in the 512 MB container: the candidate's levers
+  (`CursorRows` for the qualifying first attempts, releasing what later steps do not read) would take it under 350 -
+  a change to the shown path, so its own PR with the fit compared before / after
 - [ ] Puzzles players disagree about most (dispersion ≥ 0.02): the weighted mean is 2.9 % worse than the shown median
   there - try a robust index weight (Huber on the as-of mean) before launch
 - [ ] Not built: per-player competition offset (data-mining F6 - only the competition window scale is in); k = 0

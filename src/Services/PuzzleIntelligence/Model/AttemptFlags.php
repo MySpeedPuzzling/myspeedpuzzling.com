@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\PuzzleIntelligence\Model;
 
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\CursorRows;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerBaselineCalculator;
 
 /**
@@ -65,29 +66,46 @@ final readonly class AttemptFlags
     ) {
     }
 
+    /**
+     * In the set's own order (the pace order: player, piece count, solve moment, id) and merged with it - no id map - and
+     * through a cursor (CursorRows), so the 300k rows never sit in memory at once. The two statements read at different
+     * moments: a row the set does not have (a time added meanwhile) is skipped, an attempt without a row (removed or
+     * changed meanwhile) gets no flags.
+     */
     public static function load(Connection $connection, PlayerBaselineCalculator $baselineCalculator, FirstAttemptSet $set): self
     {
         [$qualifying, $params, $types] = $baselineCalculator->qualifyingFirstAttemptsQuery();
-        $position = array_flip($set->id);
-        $flags = array_fill(0, $set->count(), 0);
+        $flags = [];
+        $count = $set->count();
 
-        $rows = $connection->executeQuery('
-            SELECT q.id, ' . self::FLAG_COLUMNS . '
+        $rows = CursorRows::iterate($connection, '
+            SELECT q.id, q.player_id, q.pieces_count, EXTRACT(EPOCH FROM q.solve_date) AS solved_ts, EXTRACT(EPOCH FROM q.tracked_at) AS tracked_ts,
+                ' . self::FLAG_COLUMNS . '
             FROM (' . $qualifying . ') q
             JOIN puzzle_solving_time pst ON pst.id = q.id
             ' . self::flagJoin() . '
-        ', $params, $types)->iterateAssociative();
+            ORDER BY q.player_id, q.pieces_count, q.solve_date, q.tracked_at, q.id
+        ', $params, $types);
 
         foreach ($rows as $row) {
-            /** @var array{id: string, first_attempt: bool, commented: bool, competition: bool, after_group: bool} $row */
-            $i = $position[$row['id']] ?? null;
+            /** @var array{id: string, player_id: string, pieces_count: int|string, solved_ts: float|int|string, tracked_ts: float|int|string, first_attempt: bool, commented: bool, competition: bool, after_group: bool} $row */
+            $key = [$row['player_id'], (int) $row['pieces_count'], (float) $row['solved_ts'], (float) $row['tracked_ts'], $row['id']];
 
-            if ($i !== null) {
-                $flags[$i] = self::mask((bool) $row['first_attempt'], (bool) $row['after_group'], (bool) $row['commented'], (bool) $row['competition']);
+            // The set's attempts ordered before this row have no row (any more)
+            while (($i = count($flags)) < $count && [$set->player[$i], $set->pieces[$i], $set->solved[$i], $set->tracked[$i], $set->id[$i]] < $key) {
+                $flags[] = 0;
+            }
+
+            if ($i < $count && $set->id[$i] === $row['id']) {
+                $flags[] = self::mask((bool) $row['first_attempt'], (bool) $row['after_group'], (bool) $row['commented'], (bool) $row['competition']);
             }
         }
 
-        return new self(array_values($flags));
+        while (count($flags) < $count) {
+            $flags[] = 0;
+        }
+
+        return new self($flags);
     }
 
     /**

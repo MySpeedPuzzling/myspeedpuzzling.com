@@ -144,7 +144,7 @@ final readonly class PredictionEvaluator
         $context = $this->prepare($fitBefore, withImageEstimates: true);
         $candidateParameters = $this->fitCandidate($context, $features ?? CandidateFeatures::kept());
         [$cut, $end] = [(float) $fitBefore->getTimestamp(), $until !== null ? (float) $until->getTimestamp() : INF];
-        $experience = $context->candidateEngine()->experience();
+        $candidateEngine = $context->candidateEngine();
 
         $groups = ['statistical' => new EvaluationGroups(), 'blend' => new EvaluationGroups(), 'candidate' => new EvaluationGroups()];
 
@@ -160,7 +160,7 @@ final readonly class PredictionEvaluator
             }
 
             [$statistical, $blend, $candidate, $labels] = $predictions;
-            $labels[] = 'experience ' . EvaluationGroups::experienceBucket($experience[$i]);
+            $labels[] = 'experience ' . EvaluationGroups::experienceBucket($candidateEngine->experienceOf($i));
             $seconds = (int) $context->set->seconds[$i];
 
             foreach (['statistical' => $statistical, 'blend' => $blend, 'candidate' => $candidate] as $name => $prediction) {

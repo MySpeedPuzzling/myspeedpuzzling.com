@@ -21,6 +21,7 @@ use SpeedPuzzling\Web\Value\PredictionsSideBySide;
 use SpeedPuzzling\Web\Value\PredictorKind;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
 use SpeedPuzzling\Web\Value\TimePredictionSource;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -33,6 +34,9 @@ readonly final class BackfillSolvingTimePredictionsHandler
         private ClockInterface $clock,
         private PredictionModelParametersProvider $parametersProvider,
         private GetTimesAwaitingImagePredictions $getTimesAwaitingImagePredictions,
+        // PREDICTION_CANDIDATE_ROWS: the candidate model's rows (v4, never shown) only while on, or asked for by the message
+        #[Autowire(param: 'predictionCandidateRows')]
+        private bool $candidateRows = false,
     ) {
     }
 
@@ -49,7 +53,8 @@ readonly final class BackfillSolvingTimePredictionsHandler
      * as a first try that reconstructs as a repeat (its stored statistical row is older than a merge or a back-dated
      * earlier solve) gets reconstructed "not predictable" rows without an estimate - done, never listed again.
      *
-     * The candidate model's (v4, never shown) row of every solo time once it is fitted: written where missing, replaced
+     * The candidate model's (v4, never shown) row of every solo time once it is fitted and its rows are switched on
+     * (PREDICTION_CANDIDATE_ROWS, or the message asks): written where missing, replaced
      * when the time was re-evaluated or, asked for, when it is a reconstruction from before the candidate's fit.
      *
      * Before the model's first fit (prediction_model_fit) no side-by-side rows at all: they would hold the defaults'
@@ -63,7 +68,7 @@ readonly final class BackfillSolvingTimePredictionsHandler
         $fittedAt = $this->parametersProvider->fittedAt();
         $fitted = $fittedAt !== null;
         // The candidate model (v4, never shown): its rows once it is fitted, with the shown model's
-        $candidateFittedAt = $fitted ? $this->parametersProvider->candidateFittedAt() : null;
+        $candidateFittedAt = $fitted && ($this->candidateRows || $message->candidateRows) ? $this->parametersProvider->candidateFittedAt() : null;
         $recomputeCandidateBefore = $message->recomputeReconstructed ? $candidateFittedAt : null;
         // Only reconstructions from before the current fit: a run that stopped continues where it was
         $recomputeBefore = $message->recomputeReconstructed ? $fittedAt : null;
@@ -85,7 +90,7 @@ readonly final class BackfillSolvingTimePredictionsHandler
         }
 
         $timeIds = array_map(static fn (PuzzleSolvingTime $time): string => $time->id->toString(), $times);
-        $predictions = $this->predictionReconstructor->reconstructSideBySide($message->playerId, $timeIds);
+        $predictions = $this->predictionReconstructor->reconstructSideBySide($message->playerId, $timeIds, withCandidate: $candidateFittedAt !== null);
         $records = $fitted
             ? $this->recordRepository->forTimesByPredictor($timeIds, [PredictorKind::Statistical, PredictorKind::Image, PredictorKind::Blend], TimePredictionCalculator::MODEL_VERSION)
             : [];

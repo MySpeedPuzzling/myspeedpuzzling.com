@@ -58,6 +58,20 @@ final class PredictionEngine
     }
 
     /**
+     * Drops the as-of difficulty (k, sums, scores) and the priors read with it - for the candidate model's daily fit
+     * (CandidateModelRecalculator), which needs only the drift states after its samples are taken and runs in a 512 MB
+     * container. Nothing of the shown model calls it; inputsFor() / inputsAt() are wrong afterwards.
+     */
+    public function releaseAsOfDifficulty(): void
+    {
+        $this->k = [];
+        $this->sumLog = [];
+        $this->score = [];
+        $this->priorLogs = [];
+        $this->priorsOf = null;
+    }
+
+    /**
      * The puzzles' difficulty as of every attempt: per puzzle, the indices in the order they became known and the
      * attempts in their order, merged.
      */

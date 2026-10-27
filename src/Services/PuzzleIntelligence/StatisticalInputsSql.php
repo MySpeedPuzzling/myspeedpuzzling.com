@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidatePredictionCalcu
 use SpeedPuzzling\Web\Value\CandidateEvidence;
 use SpeedPuzzling\Web\Value\CandidateModelParameters;
 use SpeedPuzzling\Web\Value\PictureFactors;
+use SpeedPuzzling\Web\Value\PictureLookalikes;
 use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
 use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
@@ -109,11 +110,13 @@ final class StatisticalInputsSql
     /**
      * The taste factor's inputs (v5), only on the candidate's own statement with imageEstimateJoins(): the player's latest
      * taste state (candidate_player_taste - the primary key's order, one index step) and the picture factors of the
-     * puzzle's current picture (its kind is IMAGE_ESTIMATE_COLUMNS' image_artwork_kind). hydrateCandidateTaste() reads them.
+     * puzzle's current picture (its kind is IMAGE_ESTIMATE_COLUMNS' image_artwork_kind); v6: the picture's look-alike
+     * numbers (needs PictureLookalikes::JOINS). hydrateCandidateTaste() reads them.
      */
     public const string CANDIDATE_TASTE_COLUMNS = '
         CAST(img.picture_factors AS text) AS candidate_picture_factors,
         img.picture_factors_version AS candidate_picture_factors_version,
+        ' . PictureLookalikes::COLUMNS . ',
         (
             SELECT CAST(taste.state AS text)
             FROM candidate_player_taste taste
@@ -249,13 +252,13 @@ final class StatisticalInputsSql
      */
     public static function hydrateCandidateTaste(array $row, StatisticalPredictionInputs $inputs, CandidateModelParameters $parameters): StatisticalPredictionInputs
     {
-        if ($parameters->taste === null) {
+        if ($parameters->taste === null && $parameters->pictureDispersion === null) {
             return $inputs;
         }
 
         return $inputs->withCandidateTaste(
-            TasteState::fromJson($row['candidate_taste_state'] ?? null, count($parameters->taste->weights)),
-            PictureFactors::fromColumns($row['candidate_picture_factors'] ?? null, $row['candidate_picture_factors_version'] ?? null, $row['image_artwork_kind'] ?? null),
+            $parameters->taste !== null ? TasteState::fromJson($row['candidate_taste_state'] ?? null, count($parameters->taste->weights)) : null,
+            PictureFactors::fromColumns($row['candidate_picture_factors'] ?? null, $row['candidate_picture_factors_version'] ?? null, $row['image_artwork_kind'] ?? null, PictureLookalikes::fromRow($row)),
         );
     }
 

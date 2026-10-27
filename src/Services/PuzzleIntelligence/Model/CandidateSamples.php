@@ -54,6 +54,8 @@ final class CandidateSamples
     private SplFixedArray $solved;
     /** @var SplFixedArray<float> */
     private SplFixedArray $tracked;
+    /** @var SplFixedArray<float> the image estimate's own variance (ImagePriorInput::variance(), 0 = none) - v6's image_interval */
+    private SplFixedArray $estimateVariance;
     /** @var array<string, int> player id => int */
     private array $players = [];
     /** @var array<string, int> puzzle id => int */
@@ -83,6 +85,7 @@ final class CandidateSamples
         $this->puzzle = new SplFixedArray($capacity);
         $this->solved = new SplFixedArray($capacity);
         $this->tracked = new SplFixedArray($capacity);
+        $this->estimateVariance = new SplFixedArray($capacity);
     }
 
     public function add(
@@ -103,12 +106,14 @@ final class CandidateSamples
         string $puzzle = '',
         float $solved = 0.0,
         float $tracked = 0.0,
+        float $estimateVariance = 0.0,
     ): void {
         $s = $this->count++;
         $this->player[$s] = $this->players[$player] ??= count($this->players);
         $this->puzzle[$s] = $this->puzzles[$puzzle] ??= count($this->puzzles);
         $this->solved[$s] = $solved;
         $this->tracked[$s] = $tracked;
+        $this->estimateVariance[$s] = $estimateVariance;
         $this->attempt[$s] = $attempt;
         $this->slot[$s] = $slot;
         $this->pieces[$s] = $pieces;
@@ -129,7 +134,7 @@ final class CandidateSamples
      */
     public function finish(): void
     {
-        foreach ([$this->attempt, $this->slot, $this->pieces, $this->paceVariance, $this->target, $this->priorType, $this->priorLog, $this->group, $this->paceSource, $this->spread, $this->median, $this->firstTries, $this->competition, $this->player, $this->puzzle, $this->solved, $this->tracked] as $column) {
+        foreach ([$this->attempt, $this->slot, $this->pieces, $this->paceVariance, $this->target, $this->priorType, $this->priorLog, $this->group, $this->paceSource, $this->spread, $this->median, $this->firstTries, $this->competition, $this->player, $this->puzzle, $this->solved, $this->tracked, $this->estimateVariance] as $column) {
             $column->setSize($this->count);
         }
     }
@@ -159,7 +164,7 @@ final class CandidateSamples
             return;
         }
 
-        foreach ([$this->attempt, $this->slot, $this->pieces, $this->paceVariance, $this->target, $this->priorType, $this->priorLog, $this->group, $this->paceSource, $this->spread, $this->median, $this->firstTries, $this->competition, $this->player, $this->puzzle, $this->solved, $this->tracked] as $column) {
+        foreach ([$this->attempt, $this->slot, $this->pieces, $this->paceVariance, $this->target, $this->priorType, $this->priorLog, $this->group, $this->paceSource, $this->spread, $this->median, $this->firstTries, $this->competition, $this->player, $this->puzzle, $this->solved, $this->tracked, $this->estimateVariance] as $column) {
             $column->setSize($this->count + $by);
         }
     }
@@ -281,6 +286,14 @@ final class CandidateSamples
     public function tracked(int $s): float
     {
         return (float) $this->tracked[$s];
+    }
+
+    /**
+     * The image estimate's own variance (0 = no estimate) - v6's image_interval.
+     */
+    public function estimateVariance(int $s): float
+    {
+        return (float) $this->estimateVariance[$s];
     }
 
     /**

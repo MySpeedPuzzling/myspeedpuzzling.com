@@ -203,7 +203,12 @@ final class CandidateModelTest extends TestCase
             self::assertStringNotContainsString('candidate_puzzle_evidence', $sql);
             // The taste factor's inputs ride only on the candidate's own statement
             self::assertStringNotContainsString('picture_factors', $sql);
+            // v6: nor the look-alike numbers of the k = 0 window
+            self::assertStringNotContainsString('pieceLookalikeShare', $sql);
+            self::assertStringNotContainsString('piece_scale', $sql);
         }
+
+        self::assertStringContainsString('pieceLookalikeShare', StatisticalInputsSql::CANDIDATE_TASTE_COLUMNS, 'only on the candidate\'s own statement');
 
         self::assertArrayNotHasKey('index_noise', $parameters->toArray(), 'the shown fit stores none of the candidate');
     }

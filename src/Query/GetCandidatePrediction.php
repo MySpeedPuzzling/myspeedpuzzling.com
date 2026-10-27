@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\RepeatResiduals;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\StatisticalInputsSql;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Value\ImagePriorInput;
+use SpeedPuzzling\Web\Value\PictureLookalikes;
 use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\PredictionsSideBySide;
 use SpeedPuzzling\Web\Value\SolveConditions;
@@ -28,7 +29,7 @@ use SpeedPuzzling\Web\Value\TimePredictionSource;
  *
  * A first try: the statistical inputs once more with the candidate's columns (StatisticalInputsSql::CANDIDATE_COLUMNS),
  * the size curve's (candidatePaceColumns() - by the player's own index), the taste factor's (CANDIDATE_TASTE_COLUMNS: the
- * player's latest taste state, the picture's factors) and its fit. A repeat: the shown centre with the candidate's window (the player's repeat spread and the days since the
+ * player's latest taste state, the picture's factors and look-alike numbers - PictureLookalikes::JOINS, v6) and its fit. A repeat: the shown centre with the candidate's window (the player's repeat spread and the days since the
  * last solve).
  */
 readonly final class GetCandidatePrediction
@@ -54,7 +55,7 @@ readonly final class GetCandidatePrediction
             return $personal !== null ? $this->repeat($playerId, $puzzleId, $personal, $excludeTimeId, $before) : null;
         }
 
-        $joins = StatisticalInputsSql::JOINS . StatisticalInputsSql::lateralPaceJoins() . StatisticalInputsSql::imageEstimateJoins(outOfFoldOnly: false) . StatisticalInputsSql::CANDIDATE_JOINS;
+        $joins = StatisticalInputsSql::JOINS . StatisticalInputsSql::lateralPaceJoins() . StatisticalInputsSql::imageEstimateJoins(outOfFoldOnly: false) . PictureLookalikes::JOINS . StatisticalInputsSql::CANDIDATE_JOINS;
 
         /** @var array<string, mixed>|false $row */
         $row = $this->database->executeQuery('

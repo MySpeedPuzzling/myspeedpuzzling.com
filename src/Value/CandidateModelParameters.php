@@ -92,6 +92,14 @@ readonly final class CandidateModelParameters
         // The taste factor (TasteModel) - null = not fitted; the window weight of its term's variance
         public null|TasteModel $taste = null,
         public float $tasteVarianceWeight = 0.0,
+        // v6: the variance an unboxed first try adds to the window (switch unboxed_variance) - with it the unboxed scale stays 1
+        public float $unboxedVariance = 0.0,
+        // v6: the image prior's own variance from the estimate's 80 % interval (switch image_interval) -
+        // priorVariance(image) × (its variance ÷ the reference)^exponent; exponent 0 = one variance for every estimate
+        public float $imageIntervalExponent = 0.0,
+        public float $imageIntervalReference = 0.0,
+        // v6: the k = 0 picture term of the window (switch picture_dispersion) - null = none
+        public null|PictureDispersionModel $pictureDispersion = null,
     ) {
         $this->switches = CandidateFeatures::fromArray($features);
         $this->paceParameters = PredictionModelParameters::defaults()->with(thinSizes: $thinSizes);
@@ -144,6 +152,10 @@ readonly final class CandidateModelParameters
         null|float $paceVarianceWeight = null,
         null|TasteModel $taste = null,
         null|float $tasteVarianceWeight = null,
+        null|float $unboxedVariance = null,
+        null|float $imageIntervalExponent = null,
+        null|float $imageIntervalReference = null,
+        null|PictureDispersionModel $pictureDispersion = null,
     ): self {
         return new self(
             indexNoise: $indexNoise ?? $this->indexNoise,
@@ -174,6 +186,10 @@ readonly final class CandidateModelParameters
             paceVarianceWeight: $paceVarianceWeight ?? $this->paceVarianceWeight,
             taste: $taste ?? $this->taste,
             tasteVarianceWeight: $tasteVarianceWeight ?? $this->tasteVarianceWeight,
+            unboxedVariance: $unboxedVariance ?? $this->unboxedVariance,
+            imageIntervalExponent: $imageIntervalExponent ?? $this->imageIntervalExponent,
+            imageIntervalReference: $imageIntervalReference ?? $this->imageIntervalReference,
+            pictureDispersion: $pictureDispersion ?? $this->pictureDispersion,
         );
     }
 
@@ -236,6 +252,23 @@ readonly final class CandidateModelParameters
     }
 
     /**
+     * The image prior's variance of one estimate (v6, switch image_interval): the fitted image variance × (the
+     * estimate's own variance from its 80 % interval ÷ the reference - the fit window's median)^exponent. An estimate
+     * the pipeline is less sure about weighs less against the puzzle's indices and widens its window at k = 0. Without
+     * an interval (or a fitted reference) the plain image variance.
+     */
+    public function imagePriorVariance(float $estimateVariance): float
+    {
+        $variance = $this->priorVariance('image_estimate');
+
+        if ($this->imageIntervalExponent === 0.0 || $this->imageIntervalReference <= 0.0 || $estimateVariance <= 0.0 || !$this->switches->on('image_interval')) {
+            return $variance;
+        }
+
+        return $variance * ($estimateVariance / $this->imageIntervalReference) ** $this->imageIntervalExponent;
+    }
+
+    /**
      * The experience bucket of a player's qualifying first attempts before a prediction (null = unknown, no offset)
      */
     public static function experienceBucket(null|int $firstTries): null|string
@@ -272,7 +305,7 @@ readonly final class CandidateModelParameters
         return 0.0;
     }
 
-    public function firstTrySigma(float $spread, float $posteriorVariance, PiecesGroup $group, PaceSource $paceSource, float $dispersion, float $contextScale, null|int $firstTries = null, float $paceVariance = 0.0, float $tasteVariance = 0.0): float
+    public function firstTrySigma(float $spread, float $posteriorVariance, PiecesGroup $group, PaceSource $paceSource, float $dispersion, float $contextScale, null|int $firstTries = null, float $paceVariance = 0.0, float $tasteVariance = 0.0, float $extraVariance = 0.0): float
     {
         $experience = self::experienceBucket($firstTries);
         $variance = $this->spreadWeight * $spread ** 2
@@ -282,7 +315,8 @@ readonly final class CandidateModelParameters
             + ($this->sizeTerms[$group->value] ?? 0.0)
             + ($this->paceTerms[$paceSource->value] ?? 0.0)
             + ($experience !== null ? ($this->paceTerms['experience|' . $experience] ?? 0.0) : 0.0)
-            + $this->dispersionWeight * $dispersion;
+            + $this->dispersionWeight * $dispersion
+            + $extraVariance;
 
         return max(sqrt(max($variance * $contextScale, 0.0)), PredictionModelParameters::MINIMUM_SIGMA);
     }
@@ -340,6 +374,7 @@ readonly final class CandidateModelParameters
                 'dispersion_shrink' => $this->dispersionShrink,
                 'context_scales' => $this->contextScales,
                 'unboxed_offset' => $this->unboxedOffset,
+                'unboxed_variance' => $this->unboxedVariance,
                 'consistency_edges' => $this->consistencyEdges,
             ],
             'repeat' => [
@@ -356,6 +391,9 @@ readonly final class CandidateModelParameters
             'pace_variance_weight' => $this->paceVarianceWeight,
             'taste' => $this->taste?->toArray(),
             'taste_variance_weight' => $this->tasteVarianceWeight,
+            'image_interval_exponent' => $this->imageIntervalExponent,
+            'image_interval_reference' => $this->imageIntervalReference,
+            'picture_dispersion' => $this->pictureDispersion?->toArray(),
             'fitted_at' => $this->fittedAt?->format(DATE_ATOM),
             'summary' => $this->summary,
         ];
@@ -434,6 +472,10 @@ readonly final class CandidateModelParameters
             paceVarianceWeight: self::number($data['pace_variance_weight'] ?? null, 0.0),
             taste: is_array($data['taste'] ?? null) ? TasteModel::fromArray($data['taste']) : null,
             tasteVarianceWeight: self::number($data['taste_variance_weight'] ?? null, 0.0),
+            unboxedVariance: self::number($firstTry['unboxed_variance'] ?? null, 0.0),
+            imageIntervalExponent: self::number($data['image_interval_exponent'] ?? null, 0.0),
+            imageIntervalReference: self::number($data['image_interval_reference'] ?? null, 0.0),
+            pictureDispersion: is_array($data['picture_dispersion'] ?? null) ? PictureDispersionModel::fromArray($data['picture_dispersion']) : null,
         );
     }
 

@@ -52,6 +52,7 @@ use SpeedPuzzling\Web\Value\PuzzleDifficultyEstimateInput;
 use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
 use SpeedPuzzling\Web\Value\SolveConditions;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
+use SpeedPuzzling\Web\Value\PictureDispersionModel;
 use SpeedPuzzling\Web\Value\PictureFactors;
 use SpeedPuzzling\Web\Value\TasteModel;
 use SpeedPuzzling\Web\Value\TasteState;
@@ -427,6 +428,61 @@ final class CandidatePredictionsSideBySideTest extends KernelTestCase
 
         // Stored after the solve below: the live path reads the latest state, its reconstruction the one before it
         $this->storeTasteState('2099-01-01 10:00:00', $model->initialState()->with($vector, -0.5, false));
+        $timeId = $this->persistSoloTime($puzzleId, 2600, $this->now());
+        $reconstructed = $this->reconstructor()->reconstructSideBySide(PlayerFixture::PLAYER_REGULAR, [$timeId])[$timeId];
+        self::assertEquals($live, $reconstructed->candidate?->result);
+    }
+
+    /**
+     * v6: a puzzle nobody has solved gets the picture term in its window from the look-alike numbers of its current
+     * picture (the `traits` and `piece_scale` analyses of the estimate's fingerprint) - live on the candidate's own
+     * statement, reconstructed from the same lookup: the same prediction, its window wider than without the numbers.
+     */
+    public function testThePictureMovesTheKZeroWindowLiveAndReconstructedAlike(): void
+    {
+        $puzzleId = PuzzleFixture::PUZZLE_500_04;
+        $this->database->executeStatement("UPDATE puzzle SET image = 'box-500-04.jpg' WHERE id = :id", ['id' => $puzzleId]);
+        $this->storeEstimate($puzzleId, 0.1);
+        $withoutNumbers = $this->liveCandidate($puzzleId)?->result;
+        self::assertNotNull($withoutNumbers);
+        self::assertSame(0, $withoutNumbers->kIndices);
+
+        // A picture term that widens the windows of puzzles with many look-alike pieces
+        /** @var string $stored */
+        $stored = $this->database->fetchOne('SELECT parameters FROM prediction_model_fit WHERE model_version = :version', ['version' => CandidatePredictionCalculator::MODEL_VERSION]);
+        $model = new PictureDispersionModel([0.1, 0.06, 5.0, 0.3, 0.5], [0.1, 0.02, 0.5, 0.2, 0.5], [0.01, 0.0, 0.0, 0.0, 0.0], 0.0, 0.0, 1.0);
+        $parameters = CandidateModelParameters::fromArray((array) json_decode($stored, true))->with(pictureDispersion: $model);
+        $this->database->executeStatement('UPDATE prediction_model_fit SET parameters = CAST(:parameters AS jsonb) WHERE model_version = :version', [
+            'parameters' => json_encode($parameters->toArray(), JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION),
+            'version' => CandidatePredictionCalculator::MODEL_VERSION,
+        ]);
+        $fingerprint = PuzzleImageFingerprint::of('box-500-04.jpg');
+
+        foreach (
+            [
+            'traits' => ['colorRegions' => 148, 'pieceLevel' => ['real' => ['pieceLookalikeShare' => 0.4, 'pieceDistinctiveness' => 0.06]]],
+            'piece_scale' => ['real' => ['nnShareBelow006' => 0.3, 'logCandidates006' => 0.5]],
+            ] as $analyzer => $result
+        ) {
+            $this->database->executeStatement('
+                INSERT INTO puzzle_image_analysis (id, puzzle_id, analyzer, analyzer_version, image_fingerprint, result, analyzed_at, received_at)
+                VALUES (:id, :puzzle, :analyzer, :version, :fingerprint, CAST(:result AS jsonb), :now, :now)
+            ', [
+                'id' => Uuid::uuid7()->toString(),
+                'puzzle' => $puzzleId,
+                'analyzer' => $analyzer,
+                'version' => '1.0.0',
+                'fingerprint' => $fingerprint,
+                'result' => json_encode($result, JSON_THROW_ON_ERROR),
+                'now' => $this->now()->format('Y-m-d H:i:s'),
+            ]);
+        }
+
+        $live = $this->liveCandidate($puzzleId)?->result;
+        self::assertNotNull($live);
+        self::assertSame($withoutNumbers->predictedSeconds, $live->predictedSeconds, 'the centre stays');
+        self::assertGreaterThan($withoutNumbers->range80HighSeconds, $live->range80HighSeconds);
+
         $timeId = $this->persistSoloTime($puzzleId, 2600, $this->now());
         $reconstructed = $this->reconstructor()->reconstructSideBySide(PlayerFixture::PLAYER_REGULAR, [$timeId])[$timeId];
         self::assertEquals($live, $reconstructed->candidate?->result);

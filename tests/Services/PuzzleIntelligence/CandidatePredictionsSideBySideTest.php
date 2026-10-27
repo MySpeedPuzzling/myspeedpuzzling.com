@@ -68,11 +68,15 @@ final class CandidatePredictionsSideBySideTest extends KernelTestCase
 {
     use FitsThePredictionModel;
 
+    private const string FLAG = 'PREDICTION_CANDIDATE_ROWS';
+
     private Connection $database;
     private MessageBusInterface $messageBus;
 
     protected function setUp(): void
     {
+        // PREDICTION_CANDIDATE_ROWS on for these tests (read when the container builds the service, at boot)
+        $_ENV[self::FLAG] = $_SERVER[self::FLAG] = '1';
         self::bootKernel();
         $container = self::getContainer();
 
@@ -88,6 +92,12 @@ final class CandidatePredictionsSideBySideTest extends KernelTestCase
 
         $this->database->executeStatement("UPDATE puzzle SET image = 'box-500-05.jpg' WHERE id = :id", ['id' => PuzzleFixture::PUZZLE_500_05]);
         $this->storeEstimate(PuzzleFixture::PUZZLE_500_05, 0.3);
+    }
+
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+        $_ENV[self::FLAG] = $_SERVER[self::FLAG] = '0';
     }
 
     public function testTheFitStoresTheCandidateWithoutTouchingTheShownModel(): void

@@ -22,7 +22,8 @@ Meta App Review approved + app published (2026-09-30), so Facebook lost its flag
   `docs/features/puzzle-intelligence/prediction-history.md` "The candidate model (v4)"
 - **Flag:** env var `PREDICTION_CANDIDATE_ROWS` → parameter `predictionCandidateRows` (`config/services.php`), read by
   `#[Autowire(param:)]`. Not a Twig global
-- **Default:** `0` (`.env`; `.env.test` = 1 for the tests that measure them). Turned on by hand after the first manual
+- **Default:** `0` (`.env`, `.env.test` - every query budget test measures the production default;
+  `CandidatePredictionsSideBySideTest` switches it on before its kernel boots). Turned on by hand after the first manual
   fill (`backfill-solving-time-predictions --candidate`), so the 4×-daily backfill cron does not start listing every solo
   time by itself
 - **Gated files:**

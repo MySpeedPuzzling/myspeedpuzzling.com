@@ -465,7 +465,9 @@ for every solo time next to the shown model and **never shown**. One more predic
   in **a savepoint of its own** with its own try/catch: a failure there is a warning and a missing candidate row (the
   backfill writes it later), never a lost time or a lost shown prediction
   (`CandidatePredictionsSideBySideTest::testAFailingCandidateCostsNeitherTheTimeNorItsShownPrediction`). The shown
-  path's statements are exactly main's - `GetPlayerPrediction` is untouched. The time's own conditions go with it
+  path's statements are exactly main's - `GetPlayerPrediction` is untouched. Its cost while switched on: three
+  statements per added time (the savepoint, the read, its release) and its row in the same INSERT; switched off,
+  nothing (the query budget tests run with it off, like production until the fill). The time's own conditions go with it
   (`SolveConditions`: unboxed, at an event).
 - Reconstructed (`PredictionReconstructor::reconstructSideBySide()`): the shown and side-by-side rows exactly as on
   main, then the candidate in a pass of its own wrapped in a try/catch - a failing candidate leaves the shown rows as

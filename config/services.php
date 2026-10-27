@@ -260,6 +260,7 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Services/PuzzleIntelligence/Model/RepeatHistory.php',
             __DIR__ . '/../src/Services/PuzzleIntelligence/Model/EvaluationGroups.php',
             __DIR__ . '/../src/Services/PuzzleIntelligence/Model/NormalEquations.php',
+            __DIR__ . '/../src/Services/PuzzleIntelligence/Model/SampleBuckets.php',
             __DIR__ . '/../src/Services/PuzzleIntelligence/Model/AttemptFlags.php',
             __DIR__ . '/../src/Services/PuzzleIntelligence/Model/CandidateEngine.php',
             __DIR__ . '/../src/Services/PuzzleIntelligence/Model/CandidateSamples.php',

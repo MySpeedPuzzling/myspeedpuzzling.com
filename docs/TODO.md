@@ -28,9 +28,16 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] After the deploy: the two cron rows (`fit-candidate-prediction-model` 04:41, `refresh-candidate-prediction-evidence`
   every 15 min), the candidate fit once, the backfill with `--candidate`, then `PREDICTION_CANDIDATE_ROWS=1`
   (prediction-history.md "Production run for the candidate")
-- [ ] The shown fit (`fit-prediction-model`) peaks at 434 MB resident in the 512 MB container: the candidate's levers
+- [x] The shown fit (`fit-prediction-model`) peaks at 434 MB resident in the 512 MB container: the candidate's levers
   (`CursorRows` for the qualifying first attempts, releasing what later steps do not read) would take it under 350 -
-  a change to the shown path, so its own PR with the fit compared before / after
+  a change to the shown path, so its own PR with the fit compared before / after. Done 2026-10-27 (branch
+  `v3-fit-memory`): 348-386 → 265-268 MB VmHWM on the production copy, every output the same to the bit
+  (README "Memory of the daily fit", `ShownModelParityTest`)
+- [ ] The 15-minute batch's peak is its derived metrics step, not the prediction model: ~420 MB resident on the
+  production copy (`DerivedMetricsCalculator::preloadAllData()` keeps one array per solo solve, ~200 MB in PHP, and
+  reads the statement buffered, ~100 MB more in the client library) - a cursor plus columns would take it to the
+  ~230 MB of the difficulty and prediction model steps; check the `web` container's limit first (README "Memory of
+  the daily fit")
 - [ ] Puzzles players disagree about most (dispersion ≥ 0.02): the weighted mean is 2.9 % worse than the shown median
   there - try a robust index weight (Huber on the as-of mean) before launch
 - [ ] Not built: k = 0 dispersion from the picture's look-alike numbers (F8 - traits are not on the prediction

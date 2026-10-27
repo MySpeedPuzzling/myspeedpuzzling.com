@@ -92,11 +92,11 @@ final readonly class AttemptFlags
             $key = [$row['player_id'], (int) $row['pieces_count'], (float) $row['solved_ts'], (float) $row['tracked_ts'], $row['id']];
 
             // The set's attempts ordered before this row have no row (any more)
-            while (($i = count($flags)) < $count && [$set->player[$i], $set->pieces[$i], $set->solved[$i], $set->tracked[$i], $set->id[$i]] < $key) {
+            while (($i = count($flags)) < $count && [$set->player[$i], $set->pieces[$i], $set->solved[$i], $set->tracked[$i], $set->idAt($i)] < $key) {
                 $flags[] = 0;
             }
 
-            if ($i < $count && $set->id[$i] === $row['id']) {
+            if ($i < $count && $set->idAt($i) === $row['id']) {
                 $flags[] = self::mask((bool) $row['first_attempt'], (bool) $row['after_group'], (bool) $row['commented'], (bool) $row['competition']);
             }
         }

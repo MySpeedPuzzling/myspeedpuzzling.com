@@ -15,7 +15,11 @@ use Doctrine\DBAL\Connection;
  */
 final readonly class CursorRows
 {
-    public const int CHUNK = 20000;
+    /**
+     * Rows a fetch: each fetch's rows become PHP arrays and are freed again, among what is built from them - 20,000 a
+     * fetch left the daily fit ~20 MB more resident than 5,000 (the freed rows fragment PHP's allocator), in the same time
+     */
+    public const int CHUNK = 5000;
 
     /**
      * @param array<string, mixed> $params

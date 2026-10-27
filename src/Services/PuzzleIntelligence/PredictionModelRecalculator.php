@@ -70,7 +70,9 @@ readonly final class PredictionModelRecalculator
     public function fit(DateTimeImmutable $now): array
     {
         $timeline = $this->paceTimelineLoader->all(withStoredStates: true);
-        $set = FirstAttemptSet::build($this->baselineCalculator->iterateQualifyingFirstAttempts(paceOrder: true), $timeline);
+        $set = FirstAttemptSet::build($this->baselineCalculator->streamQualifyingFirstAttemptsInPaceOrder(), $timeline);
+        // Hand the build's freed memory back before the next structures are built (the container has 512 MB)
+        gc_mem_caches();
         $engine = new PredictionEngine($set, $timeline, $this->calculator);
         $engine->computeAsOfDifficulty();
 
@@ -79,18 +81,27 @@ readonly final class PredictionModelRecalculator
         $imageEstimates = $this->imageEstimates($now);
         $priorRows = $this->puzzlePriors($priors, $imageEstimates);
         $this->writePriors($priors, $priorRows, $now);
+        $priorPuzzles = count($priorRows);
+        // Written - nothing reads them again
+        unset($priorRows);
+        gc_mem_caches();
         $priorsSeconds = microtime(true) - $priorsStartedAt;
 
         $from = (float) $now->modify('-' . self::FIT_WINDOW_MONTHS . ' months')->getTimestamp();
-        // Fitting tau computes the drift with it (PredictionModelFitter step 2)
+        // Fitting tau computes the drift with it (PredictionModelFitter step 2); the repeats are handed over, not kept here -
+        // the fitter releases them after their own step
         $parameters = $this->fitter->fit($engine, $priors, RepeatHistory::load($this->connection, $from), $from, (float) $now->getTimestamp(), $now, $imageEstimates);
+        $groups = count($priors->groupSums);
+        // The drift is written from the engine alone
+        unset($priors, $imageEstimates);
         $this->storeParameters($parameters, $now);
+        $drift = $this->writeDrift($engine);
 
         return [
-            'prior_groups' => count($priors->groupSums),
-            'prior_puzzles' => count($priorRows),
+            'prior_groups' => $groups,
+            'prior_puzzles' => $priorPuzzles,
             'priors_seconds' => round($priorsSeconds, 2),
-            'drift_rows_written' => $this->writeDrift($engine),
+            'drift_rows_written' => $drift,
             'parameters' => $parameters,
         ];
     }
@@ -171,7 +182,7 @@ readonly final class PredictionModelRecalculator
     private function imageEstimates(DateTimeImmutable $now): array
     {
         $estimates = [];
-        $rows = $this->connection->iterateAssociative('
+        $rows = CursorRows::iterate($this->connection, '
             SELECT p.id, ' . StatisticalInputsSql::IMAGE_ESTIMATE_COLUMNS . '
             FROM puzzle p
             ' . StatisticalInputsSql::imageEstimateJoins(outOfFoldOnly: false) . '
@@ -347,7 +358,7 @@ readonly final class PredictionModelRecalculator
                 $fresh = [$engine->driftAfter[$i], $engine->spreadAfter[$i]];
 
                 if (self::differs($drift, $fresh[0]) || self::differs($spread, $fresh[1])) {
-                    $changed[] = [$set->id[$i], $fresh[0], $fresh[1]];
+                    $changed[] = [$set->idAt($i), $fresh[0], $fresh[1]];
                 }
 
                 if (count($changed) >= self::CHUNK) {

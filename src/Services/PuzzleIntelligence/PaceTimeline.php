@@ -29,11 +29,19 @@ final class PaceTimeline
     /**
      * The drift and spread stored on every row, as loaded (PaceTimelineLoader::all() with them) - what the prediction
      * model's step compares its fresh values with, so it writes only changed rows without reading the table again.
-     * Kept apart from the lookup rows (those merge rows of one moment), as plain lists per pair.
+     * Kept apart from the lookup rows (those merge rows of one moment), one binary string of fixed-size records per
+     * pair (STORED_STATE): ~21 bytes a row instead of three zvals in three lists - the daily fit holds them from its
+     * first statement to its last write (~30 MB as lists on the production copy, ~7 MB packed). Doubles are packed
+     * with their every bit, so storedStates() yields exactly what was added.
      *
-     * @var array<string, array{qualifying: list<int>, drift: list<null|float>, spread: list<null|float>}> "player|pieces" => rows
+     * @var array<string, string> "player|pieces" => packed rows
      */
     private array $storedStates = [];
+
+    /** qualifying_count (int32), which of the two are null (bit 1 drift, bit 2 spread), drift, spread (IEEE doubles) */
+    private const string STORED_STATE_PACK = 'lCee';
+    private const string STORED_STATE_UNPACK = 'lqualifying/Cnulls/edrift/espread';
+    private const int STORED_STATE_BYTES = 21;
 
     public function __construct(
         private readonly PlayerBaselineCalculator $baselineCalculator,
@@ -88,10 +96,13 @@ final class PaceTimeline
     public function addStoredState(string $playerId, int $piecesCount, int $qualifyingCount, null|float $drift, null|float $spread): void
     {
         $key = $playerId . '|' . $piecesCount;
-        $this->storedStates[$key] ??= ['qualifying' => [], 'drift' => [], 'spread' => []];
-        $this->storedStates[$key]['qualifying'][] = $qualifyingCount;
-        $this->storedStates[$key]['drift'][] = $drift;
-        $this->storedStates[$key]['spread'][] = $spread;
+        $record = pack(self::STORED_STATE_PACK, $qualifyingCount, ($drift === null ? 1 : 0) | ($spread === null ? 2 : 0), $drift ?? 0.0, $spread ?? 0.0);
+
+        if (isset($this->storedStates[$key])) {
+            $this->storedStates[$key] .= $record;
+        } else {
+            $this->storedStates[$key] = $record;
+        }
     }
 
     /**
@@ -100,8 +111,11 @@ final class PaceTimeline
     public function storedStates(): iterable
     {
         foreach ($this->storedStates as $key => $rows) {
-            foreach ($rows['qualifying'] as $index => $qualifyingCount) {
-                yield [(string) $key, $qualifyingCount, $rows['drift'][$index], $rows['spread'][$index]];
+            for ($offset = 0, $length = strlen($rows); $offset < $length; $offset += self::STORED_STATE_BYTES) {
+                /** @var array{qualifying: int, nulls: int, drift: float, spread: float} $row */
+                $row = unpack(self::STORED_STATE_UNPACK, $rows, $offset);
+
+                yield [(string) $key, $row['qualifying'], ($row['nulls'] & 1) !== 0 ? null : $row['drift'], ($row['nulls'] & 2) !== 0 ? null : $row['spread']];
             }
         }
     }

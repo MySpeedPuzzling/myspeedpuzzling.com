@@ -56,7 +56,7 @@ final class PredictionEngineTest extends TestCase
         $engine->computeAsOfDifficulty();
 
         // The set keeps the pace order (player, pieces, moment): look the attempts up by their id
-        $at = static fn (string $id): int => (int) array_search($id, $set->id, true);
+        $at = static fn (string $id): int => (int) array_search($id, $set->ids(), true);
 
         self::assertSame(0, $engine->k[$at('t1')], 'Nobody before the first solver');
         self::assertSame(1, $engine->k[$at('t2')], 'a known');
@@ -137,7 +137,7 @@ final class PredictionEngineTest extends TestCase
 
         $with = $build(true);
         $without = $build(false);
-        $at = static fn (PredictionEngine $engine, string $id): int => (int) array_search($id, $engine->set->id, true);
+        $at = static fn (PredictionEngine $engine, string $id): int => (int) array_search($id, $engine->set->ids(), true);
 
         foreach (['t5', 't6', 't7', 't8'] as $id) {
             $drift = $with->driftAfter[$at($with, $id)];

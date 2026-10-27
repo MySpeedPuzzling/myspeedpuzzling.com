@@ -42,17 +42,19 @@ readonly final class PaceTimelineLoader
         $timeline = new PaceTimeline($this->baselineCalculator, $scalingExponent, withStates: false);
         $states = $withStoredStates ? 'h.qualifying_count, h.drift, h.spread' : 'NULL AS qualifying_count, NULL AS drift, NULL AS spread';
 
-        $rows = $this->connection->executeQuery(
+        // Through a cursor: the whole result in the client library next to the timeline cost ~60 MB of resident memory
+        $rows = CursorRows::iterate(
+            $this->connection,
             "SELECT h.player_id, h.pieces_count, EXTRACT(EPOCH FROM h.valid_from) AS solved_ts, EXTRACT(EPOCH FROM h.valid_from_tracked_at) AS tracked_ts, h.baseline_seconds, {$states}
             FROM player_pace_history h ORDER BY h.player_id, h.pieces_count, h.valid_from, h.valid_from_tracked_at, h.qualifying_count",
-        )->iterateNumeric();
+        );
 
         foreach ($rows as $row) {
-            /** @var array{0: string, 1: int|string, 2: float|int|string, 3: float|int|string, 4: int|string, 5: null|int|string, 6: null|float|string, 7: null|float|string} $row */
-            $timeline->add($row[0], (int) $row[1], (float) $row[2], (float) $row[3], (int) $row[4]);
+            /** @var array{player_id: string, pieces_count: int|string, solved_ts: float|int|string, tracked_ts: float|int|string, baseline_seconds: int|string, qualifying_count: null|int|string, drift: null|float|string, spread: null|float|string} $row */
+            $timeline->add($row['player_id'], (int) $row['pieces_count'], (float) $row['solved_ts'], (float) $row['tracked_ts'], (int) $row['baseline_seconds']);
 
             if ($withStoredStates) {
-                $timeline->addStoredState($row[0], (int) $row[1], (int) $row[5], $row[6] !== null ? (float) $row[6] : null, $row[7] !== null ? (float) $row[7] : null);
+                $timeline->addStoredState($row['player_id'], (int) $row['pieces_count'], (int) $row['qualifying_count'], $row['drift'] !== null ? (float) $row['drift'] : null, $row['spread'] !== null ? (float) $row['spread'] : null);
             }
         }
 

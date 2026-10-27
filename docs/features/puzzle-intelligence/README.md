@@ -694,6 +694,52 @@ sync), peak memory 362 MB (the run frees the allocator's caches between steps, `
 the deploy writes every row (~6.6 s). The daily fit takes ~4.4 s within 512 MB (~7-10 s the first time, when it
 rewrites every row).
 
+#### Memory of the daily fit (2026-10-27)
+
+On production the fit runs as `docker compose run --rm --no-deps messenger-consumer php -d memory_limit=1G bin/console
+myspeedpuzzling:fit-prediction-model` in a container killed at 512 MB resident, and the data grows every day. What it
+holds is cut without changing a single output (the levers of the candidate's fit, below):
+
+- every large statement through a server-side cursor (`CursorRows`, 5,000 rows a fetch): the pace history
+  (`PaceTimelineLoader::all()`), the qualifying first attempts (`PlayerBaselineCalculator::streamQualifyingFirstAttemptsInPaceOrder()`,
+  the batch's difficulty step too), the repeats (`RepeatHistory::load()`), the picture estimates - pdo_pgsql otherwise
+  holds a whole result in the client library next to what is built from it; 20,000 rows a fetch left ~20 MB more
+  resident (the freed rows fragment PHP's allocator);
+- the attempts' ids as 16 bytes each in one string (`FirstAttemptSet::idAt()`, ~31 → ~5 MB), the stored drift and
+  spread as packed records per pair (`PaceTimeline::storedStates()`, ~30 → ~7 MB);
+- released once written or read: the finished priors after their write, the repeats after their window step (fitted
+  first - it reads nothing else, PredictionModelFitter step 5), the priors and estimates before the drift's write;
+  `gc_mem_caches()` after the attempts' load and the priors' write;
+- each window calibration's errors kept once with their bucket (`Model\SampleBuckets`) instead of once per fallback
+  key (four lists per first try).
+
+PHP lists keep their power-of-two slack, but the slack is never written, so it is not resident: fixed-size arrays
+(`SplFixedArray`) for the set's and the engine's columns took PHP's own peak from 290 to 217 MB and left the resident
+peak where it was (265 vs 264 MB) - not done.
+
+Peak resident memory on the production copy (2026-10-26, 306,796 qualifying first attempts, 249,322 pace rows),
+`APP_ENV=prod`, `APP_DEBUG=0`, `memory_limit=1G`, no swap (`--memory-swap` = `--memory`), the same frozen clock;
+VmHWM and the peak of RssAnon sampled every 50 ms (the part a cgroup cannot reclaim):
+
+| job | before: VmHWM / RssAnon | after: VmHWM / RssAnon | time |
+|---|---|---|---|
+| daily fit, first run (29,969 drift rows written) | 348 / 314 MB | 267 / 232 MB | 15.4 / 15.6 s |
+| daily fit, steady state (2 runs each, interleaved) | 386 / 351-352 MB | 265-268 / 231 MB | ~11 s both |
+| batch: difficulty + prediction_model steps (VmHWM after them, 3 runs each) | 290-307 MB | 228-234 MB | 4.6-6.0 / 5.1-5.5 s (steady state) |
+
+Times are a laptop shared with other work - within its noise; the large statements read through the cursor as fast as
+buffered (qualifying first attempts 1.31-1.32 s vs 1.36-2.26 s, pace history 1.08-1.17 s vs 1.04-1.33 s).
+
+Every output is the same to the bit: on the production copy (with 10 % of the stored drift moved and some prior rows
+dropped / added first, so the fit writes) `prediction_model_fit`, `difficulty_prior_group`, `difficulty_prior_puzzle`,
+`player_pace_history` and the batch's `puzzle_difficulty` compared by md5 of their full dumps between main and this
+code; in the suite `ShownModelParityTest` (synthetic players, puzzles, estimates and repeats with every fitted part
+fitted: the batch, the fit, the batch with that fit, and five players' predictions of every puzzle, against what main
+recorded - `ShownModelParity.json`).
+
+The 15-minute batch's own peak is not the prediction model: its derived metrics step reaches ~420 MB resident on the
+copy (one array per solo solve and the whole statement in the client library) - docs/TODO.md.
+
 ### Shared by every read path
 
 `StatisticalInputsSql` is the one place of the live tables' inputs (`COLUMNS` + `JOINS`, hydrated into
@@ -928,7 +974,7 @@ Peak resident memory (VmHWM) on the production copy (306,796 qualifying first at
 
 | job | peak resident | time |
 |---|---|---|
-| shown fit alone (`fit-prediction-model`, unchanged) | 434 MB | 18 s |
+| shown fit alone (`fit-prediction-model`) | 434 MB; since 2026-10-27 265-268 MB (`APP_DEBUG=0`, "Memory of the daily fit") | 18 s; ~11-16 s |
 | candidate fit (`fit-candidate-prediction-model`) | 334 MB | 32 s |
 | candidate fit with the size curve (below) | ~360 MB | 42 s |
 | candidate fit v5 with the taste factor (below, `APP_DEBUG=0`) | 273-333 MB (at the size curve) | + 36-83 s (loaded laptop) |
@@ -943,7 +989,8 @@ the shown as-of difficulty, the priors and the image estimates after the samples
 result in the client library next to the arrays built from it) with the attempt flags merged positionally (no id
 map), and by fixed-size columns for the samples and the evidence (`SplFixedArray`). The fitted parameters, the evidence
 and the brand priors are identical to the single-process version (compared on the copy). The fit's summary records
-`memory_*` and `resident_peak_*` per step.
+`memory_*` and `resident_peak_*` per step. (The candidate's numbers above were measured before the shown fit's memory work, which the candidate shares: its
+attempt ids are packed, `CursorRows` fetches 5,000 rows instead of 20,000.)
 
 #### The taste factor (v5, 2026-10-27)
 

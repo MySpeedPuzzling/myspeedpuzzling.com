@@ -74,6 +74,11 @@ final readonly class PredictionModelFitter
     public function fit(PredictionEngine $engine, PriorLookup $priors, RepeatHistory $repeats, float $from, float $to, DateTimeImmutable $now, array $imageEstimates = []): PredictionModelParameters
     {
         $defaults = PredictionModelParameters::defaults();
+        // Step 5 first: it reads the repeats alone, which are released before the first tries' steps build their samples
+        // (the daily fit runs in a 512 MB container; the caller hands them over without keeping them)
+        $repeat = $this->fitRepeatWindows($repeats, $from, $to);
+        unset($repeats);
+        gc_mem_caches();
         $window = $this->window($engine->set, $from, $to);
 
         [$tau, $tauSamples] = $this->fitTau($engine, $priors, $window);
@@ -84,7 +89,6 @@ final readonly class PredictionModelFitter
         $withCentre = $defaults->with(tau: $tau, thinSizes: $thinSizes);
 
         $firstTry = $this->fitFirstTryWindows($engine, $priors, $window, $withCentre);
-        $repeat = $this->fitRepeatWindows($repeats, $from, $to);
 
         $withWindows = $withCentre->with(
             firstTryPlayerSpreadWeight: $firstTry['spread_weight'] ?? null,
@@ -374,22 +378,23 @@ final readonly class PredictionModelFitter
         );
 
         $edges = self::quartileEdges($spreads);
-        $byKey = [];
+        $buckets = new SampleBuckets();
 
         foreach ($errors as $sample => $error) {
-            $z = $error / $fitted->firstTrySigma($spreads[$sample], $ks[$sample], $sampleGroups[$sample]);
-
-            foreach (WindowBucket::firstTry($spreads[$sample], $edges, $ks[$sample], $sampleGroups[$sample])->fallbackKeys() as $key) {
-                $byKey[$key][] = $z;
-            }
+            $buckets->add(
+                $error / $fitted->firstTrySigma($spreads[$sample], $ks[$sample], $sampleGroups[$sample]),
+                WindowBucket::firstTry($spreads[$sample], $edges, $ks[$sample], $sampleGroups[$sample]),
+            );
         }
+
+        unset($errors, $spreads, $ks, $sampleGroups);
 
         return [
             'spread_weight' => $fitted->firstTryPlayerSpreadWeight,
             'puzzle_weight' => $fitted->firstTryPuzzleWeight,
             'size_terms' => $sizeTerms,
             'edges' => $edges,
-            'quantiles' => self::quantileTable($byKey),
+            'quantiles' => $buckets->quantileTable(self::quantileTable(...)),
             'samples' => $count,
         ];
     }
@@ -575,11 +580,9 @@ final readonly class PredictionModelFitter
         }
 
         $normal = new NormalEquations(2);
-        $errors = [];
 
         foreach ($window as $i) {
             $error = log($repeats->seconds[$i] / $repeats->predicted[$i]);
-            $errors[$i] = $error;
             $normal->add([$repeats->spread[$i] ** 2, 1.0], min(abs($error), self::RESIDUAL_CLIP) ** 2);
         }
 
@@ -591,21 +594,21 @@ final readonly class PredictionModelFitter
         );
 
         $edges = self::quartileEdges(array_map(static fn (int $i): float => $repeats->spread[$i], $window));
-        $byKey = [];
+        $buckets = new SampleBuckets();
 
-        foreach ($errors as $i => $error) {
-            $z = $error / $fitted->repeatSigma($repeats->spread[$i]);
-
-            foreach (WindowBucket::repeat($repeats->spread[$i], $edges, $repeats->group[$i])->fallbackKeys() as $key) {
-                $byKey[$key][] = $z;
-            }
+        foreach ($window as $i) {
+            // The same division as the sums above - its error again, not a kept copy
+            $buckets->add(
+                log($repeats->seconds[$i] / $repeats->predicted[$i]) / $fitted->repeatSigma($repeats->spread[$i]),
+                WindowBucket::repeat($repeats->spread[$i], $edges, $repeats->group[$i]),
+            );
         }
 
         return [
             'spread_weight' => $fitted->repeatSpreadWeight,
             'constant' => $fitted->repeatConstant,
             'edges' => $edges,
-            'quantiles' => self::quantileTable($byKey),
+            'quantiles' => $buckets->quantileTable(self::quantileTable(...)),
             'samples' => count($window),
         ];
     }

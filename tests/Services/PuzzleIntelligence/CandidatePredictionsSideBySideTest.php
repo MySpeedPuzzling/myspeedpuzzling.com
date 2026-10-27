@@ -270,10 +270,10 @@ final class CandidatePredictionsSideBySideTest extends KernelTestCase
 
         // A first attempt gone meanwhile - commented, so it has a flag to lose
         $gone = intdiv($set->count(), 2);
-        $this->database->executeStatement("UPDATE puzzle_solving_time SET comment = 'interrupted' WHERE id = :id", ['id' => $set->id[$gone]]);
+        $this->database->executeStatement("UPDATE puzzle_solving_time SET comment = 'interrupted' WHERE id = :id", ['id' => $set->idAt($gone)]);
         $commented = AttemptFlags::load($this->database, $baselineCalculator, $set)->flags;
         self::assertSame(AttemptFlags::COMMENTED, $commented[$gone] & AttemptFlags::COMMENTED);
-        $this->database->executeStatement('UPDATE puzzle_solving_time SET suspicious = true WHERE id = :id', ['id' => $set->id[$gone]]);
+        $this->database->executeStatement('UPDATE puzzle_solving_time SET suspicious = true WHERE id = :id', ['id' => $set->idAt($gone)]);
 
         $after = AttemptFlags::load($this->database, $baselineCalculator, $set)->flags;
         self::assertSame(0, $after[$gone]);

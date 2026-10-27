@@ -70,6 +70,21 @@ final class PlayerBaselineCalculator implements ResetInterface
     }
 
     /**
+     * Every qualifying first attempt in the pace order through a server-side cursor (CursorRows), a chunk at a time - the
+     * very rows of iterateQualifyingFirstAttempts(paceOrder: true) without the whole result in the client library next
+     * to what is built from it (~300k rows, ~80 MB of resident memory): the batch's difficulty step and the daily fit.
+     *
+     * @return iterable<array{id: string, player_id: string, puzzle_id: string, pieces_count: int|string, seconds_to_solve: int|string, solve_date: string, tracked_at: string, solved_ts: float|int|string, tracked_ts: float|int|string}>
+     */
+    public function streamQualifyingFirstAttemptsInPaceOrder(): iterable
+    {
+        [$sql, $params, $types] = $this->qualifyingFirstAttemptsStatement(paceOrder: true);
+
+        /** @var iterable<array{id: string, player_id: string, puzzle_id: string, pieces_count: int|string, seconds_to_solve: int|string, solve_date: string, tracked_at: string, solved_ts: float|int|string, tracked_ts: float|int|string}> */
+        return CursorRows::iterate($this->connection, $sql, $params, $types);
+    }
+
+    /**
      * The statement iterateQualifyingFirstAttempts() runs - for a caller fetching it in chunks (a cursor).
      *
      * @param null|non-empty-list<string> $playerIds

@@ -1,0 +1,375 @@
+{
+    "batch_before_fit": {
+        "drift_rows_written": 8683,
+        "difficulties": 1208,
+        "player_pace_history": "8683 rows, md5 fd0186ed908e361d69445091208a8d0e",
+        "puzzle_difficulty": "1496 rows, md5 f15f85662aa9f3ba38d6df8458c29117",
+        "difficulty_prior_group": "0 rows, md5 d41d8cd98f00b204e9800998ecf8427e",
+        "difficulty_prior_puzzle": "0 rows, md5 d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "fit": {
+        "parameters": {
+            "tau": 0.75,
+            "repeat": {
+                "constant": 0.005857,
+                "spread_weight": 0.007445,
+                "consistency_edges": [
+                    0.0901,
+                    0.0963,
+                    0.1048
+                ]
+            },
+            "summary": {
+                "window_to": "2026-10-14",
+                "tau_samples": 4076,
+                "window_from": "2025-10-14",
+                "repeat_samples": 4238,
+                "thin_alpha_odd": 1.3722,
+                "image_window_all": "0.5168 \/ 0.2538 (2176)",
+                "thin_own_mae_odd": 0.1616,
+                "thin_samples_odd": 333,
+                "first_try_samples": 9261,
+                "thin_best_mae_odd": 0.1477,
+                "image_window50_hit": 0.4972,
+                "image_window80_hit": 0.8018,
+                "thin_threshold_odd": 20,
+                "image_window_samples": 4306,
+                "thin_alpha_from_1500": 1.3761,
+                "thin_alpha_up_to_300": 1.3464,
+                "thin_alpha_pieces_1000": 1.3501,
+                "thin_own_mae_up_to_300": 0.168,
+                "thin_samples_from_1500": 177,
+                "thin_samples_up_to_300": 1022,
+                "image_window_pieces_500": "0.4586 \/ 0.2611 (1328)",
+                "thin_best_mae_up_to_300": 0.1543,
+                "thin_own_mae_pieces_1000": 0.16,
+                "thin_samples_pieces_1000": 1751,
+                "thin_threshold_up_to_300": 50,
+                "thin_best_mae_pieces_1000": 0.1541,
+                "thin_threshold_pieces_1000": 50,
+                "image_window_half_life_days": 45.0,
+                "image_window_pieces_500|k1-4": "0.4860 \/ 0.2611 (1140)"
+            },
+            "first_try": {
+                "size_terms": {
+                    "odd": 0.028286,
+                    "from_1500": 0.037078,
+                    "up_to_300": 0.026272,
+                    "pieces_500": 0.027154,
+                    "pieces_1000": 0.027209
+                },
+                "puzzle_weight": 0.04174,
+                "consistency_edges": [
+                    0.1586,
+                    0.1824,
+                    0.2019
+                ],
+                "image_window_scales": {
+                    "all": [
+                        0.5168,
+                        0.2538
+                    ],
+                    "pieces_500": [
+                        0.4586,
+                        0.2611
+                    ],
+                    "pieces_500|k1-4": [
+                        0.486,
+                        0.2611
+                    ]
+                },
+                "image_variance_scale": 1.0,
+                "player_spread_weight": 0.0,
+                "image_variance_scales": []
+            },
+            "fitted_at": "2026-10-14T12:00:00+00:00",
+            "quantiles": {
+                "f": [
+                    -1.3011,
+                    -0.7348,
+                    0.7138,
+                    1.3048
+                ],
+                "r": [
+                    -1.7268,
+                    -1.2268,
+                    0.3413,
+                    0.7469
+                ],
+                "f|k0": [
+                    -1.3026,
+                    -0.7511,
+                    0.6792,
+                    1.2948
+                ],
+                "f|k1": [
+                    -1.2986,
+                    -0.7362,
+                    0.6868,
+                    1.2898
+                ],
+                "f|k5": [
+                    -1.2987,
+                    -0.7254,
+                    0.7687,
+                    1.3302
+                ],
+                "r|c0": [
+                    -1.7151,
+                    -1.2274,
+                    0.3502,
+                    0.7449
+                ],
+                "r|c1": [
+                    -1.7549,
+                    -1.3136,
+                    0.2757,
+                    0.7205
+                ],
+                "r|c2": [
+                    -1.6755,
+                    -1.1393,
+                    0.3612,
+                    0.7043
+                ],
+                "r|c3": [
+                    -1.7564,
+                    -1.2174,
+                    0.3617,
+                    0.7852
+                ],
+                "f|c0|k0": [
+                    -1.2714,
+                    -0.706,
+                    0.6938,
+                    1.3326
+                ],
+                "f|c0|k1": [
+                    -1.3464,
+                    -0.7179,
+                    0.725,
+                    1.4307
+                ],
+                "f|c0|k5": [
+                    -1.3332,
+                    -0.7637,
+                    0.7451,
+                    1.3198
+                ],
+                "f|c1|k0": [
+                    -1.3068,
+                    -0.8363,
+                    0.6515,
+                    1.3172
+                ],
+                "f|c1|k1": [
+                    -1.2884,
+                    -0.716,
+                    0.6949,
+                    1.2844
+                ],
+                "f|c1|k5": [
+                    -1.3081,
+                    -0.6888,
+                    0.7964,
+                    1.3455
+                ],
+                "f|c2|k1": [
+                    -1.2294,
+                    -0.6589,
+                    0.6893,
+                    1.2573
+                ],
+                "f|c2|k5": [
+                    -1.2742,
+                    -0.7396,
+                    0.783,
+                    1.3153
+                ],
+                "f|c3|k0": [
+                    -1.4758,
+                    -0.7783,
+                    0.6465,
+                    1.1995
+                ],
+                "f|c3|k1": [
+                    -1.3373,
+                    -0.8435,
+                    0.6516,
+                    1.263
+                ],
+                "f|c3|k5": [
+                    -1.2894,
+                    -0.7167,
+                    0.7266,
+                    1.3118
+                ],
+                "r|c0|pieces_500": [
+                    -1.7218,
+                    -1.2153,
+                    0.3123,
+                    0.7422
+                ],
+                "r|c1|pieces_500": [
+                    -1.7551,
+                    -1.3168,
+                    0.2722,
+                    0.7113
+                ],
+                "r|c2|pieces_500": [
+                    -1.6744,
+                    -1.1531,
+                    0.3413,
+                    0.7411
+                ],
+                "r|c3|pieces_500": [
+                    -1.7515,
+                    -1.2159,
+                    0.3642,
+                    0.7894
+                ],
+                "r|c0|pieces_1000": [
+                    -1.6741,
+                    -1.2653,
+                    0.4345,
+                    0.7563
+                ],
+                "r|c1|pieces_1000": [
+                    -1.7368,
+                    -1.3054,
+                    0.2768,
+                    0.7328
+                ],
+                "r|c2|pieces_1000": [
+                    -1.672,
+                    -1.1178,
+                    0.3684,
+                    0.6543
+                ],
+                "r|c3|pieces_1000": [
+                    -1.774,
+                    -1.2164,
+                    0.3436,
+                    0.7468
+                ],
+                "f|c0|k0|pieces_500": [
+                    -1.2316,
+                    -0.7309,
+                    0.6626,
+                    1.1835
+                ],
+                "f|c0|k1|pieces_500": [
+                    -1.3664,
+                    -0.7458,
+                    0.7326,
+                    1.4443
+                ],
+                "f|c0|k5|pieces_500": [
+                    -1.434,
+                    -0.795,
+                    0.7548,
+                    1.3064
+                ],
+                "f|c1|k1|pieces_500": [
+                    -1.2729,
+                    -0.7041,
+                    0.71,
+                    1.2863
+                ],
+                "f|c1|k5|pieces_500": [
+                    -1.3352,
+                    -0.7017,
+                    0.8125,
+                    1.3525
+                ],
+                "f|c2|k1|pieces_500": [
+                    -1.2341,
+                    -0.6851,
+                    0.7298,
+                    1.2584
+                ],
+                "f|c2|k5|pieces_500": [
+                    -1.3097,
+                    -0.7478,
+                    0.8233,
+                    1.3929
+                ],
+                "f|c3|k1|pieces_500": [
+                    -1.3742,
+                    -0.8555,
+                    0.6109,
+                    1.2719
+                ],
+                "f|c3|k5|pieces_500": [
+                    -1.2702,
+                    -0.7121,
+                    0.7002,
+                    1.2945
+                ],
+                "f|c0|k1|pieces_1000": [
+                    -1.4907,
+                    -0.8587,
+                    0.7808,
+                    1.4308
+                ],
+                "f|c0|k5|pieces_1000": [
+                    -1.1349,
+                    -0.6787,
+                    0.7697,
+                    1.3562
+                ],
+                "f|c1|k5|pieces_1000": [
+                    -1.2402,
+                    -0.5853,
+                    0.8205,
+                    1.3845
+                ],
+                "f|c2|k5|pieces_1000": [
+                    -1.1054,
+                    -0.6166,
+                    0.8168,
+                    1.3396
+                ],
+                "f|c3|k5|pieces_1000": [
+                    -1.2608,
+                    -0.681,
+                    0.7286,
+                    1.454
+                ]
+            },
+            "thin_sizes": {
+                "odd": {
+                    "alpha": 1.3722,
+                    "max_own_solves": 20
+                },
+                "up_to_300": {
+                    "alpha": 1.3464,
+                    "max_own_solves": 50
+                },
+                "pieces_1000": {
+                    "alpha": 1.3501,
+                    "max_own_solves": 50
+                }
+            }
+        },
+        "player_pace_history": "8683 rows, md5 d5f6fc05ed4c016d053bec0bb9c730e0",
+        "puzzle_difficulty": "1496 rows, md5 628970029a0afcd257484ec32e13c0d4",
+        "difficulty_prior_group": "12 rows, md5 6d6e275497902386c09e827177bff63e",
+        "difficulty_prior_puzzle": "1500 rows, md5 748dfdc22d6f288ae32176c5d384e8b7"
+    },
+    "batch_after_fit": {
+        "drift_rows_written": 1825,
+        "difficulties": 1208,
+        "player_pace_history": "8683 rows, md5 d5f6fc05ed4c016d053bec0bb9c730e0",
+        "puzzle_difficulty": "1496 rows, md5 628970029a0afcd257484ec32e13c0d4",
+        "difficulty_prior_group": "12 rows, md5 6d6e275497902386c09e827177bff63e",
+        "difficulty_prior_puzzle": "1500 rows, md5 748dfdc22d6f288ae32176c5d384e8b7"
+    },
+    "predictions": {
+        "player_1": "1496 predictions, md5 65987657f29606ae8b5efd088f815ce2",
+        "player_7": "1496 predictions, md5 32e00b8fc24ffb0e5782a41c6a474eac",
+        "player_42": "1496 predictions, md5 ac55d9a0cdd8ab666335f7fdf776ca18",
+        "player_99": "1422 predictions, md5 5db4453f220124cbab6cf7b17a152129",
+        "player_150": "1422 predictions, md5 a746c13e6d0365b341462ce71d5968a0"
+    }
+}

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\PuzzleIntelligence\Model;
 
+use OutOfBoundsException;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PaceTimeline;
 
 /**
@@ -21,8 +22,16 @@ final class FirstAttemptSet
 {
     public const float INDEX_CEILING = 5.0;
 
-    /** @var list<string> */
-    public array $id = [];
+    private const string NO_PACKED_ID = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+
+    /**
+     * The attempts' ids (puzzle_solving_time.id), 16 bytes each, one string for all (idAt()) - as a list of strings they
+     * cost ~31 MB of the daily fit's 512 MB on the production copy, packed ~5 MB. Read only for a few attempts: the drift
+     * rows that changed, the candidate's flags.
+     */
+    private string $ids = '';
+    /** @var array<int, string> the ids that are no canonical uuid (synthetic sets of the tests), as given - 16 zero bytes in $ids */
+    private array $otherIds = [];
     /** @var list<string> */
     public array $player = [];
     /** @var list<string> */
@@ -82,7 +91,13 @@ final class FirstAttemptSet
             }
 
             $previous = $current;
-            $set->id[] = $row['id'];
+            $packed = self::packId($row['id']);
+
+            if ($packed === null) {
+                $set->otherIds[count($set->puzzle)] = $row['id'];
+            }
+
+            $set->ids .= $packed ?? self::NO_PACKED_ID;
             $set->player[] = $player;
             $set->puzzle[] = $puzzles[$row['puzzle_id']] ??= $row['puzzle_id'];
             $set->pieces[] = $pieces;
@@ -97,7 +112,7 @@ final class FirstAttemptSet
             $set->sortIntoThePaceOrder();
         }
 
-        $count = count($set->id);
+        $count = count($set->puzzle);
 
         $indices = [];
         $position = [];
@@ -195,11 +210,20 @@ final class FirstAttemptSet
 
     private function sortIntoThePaceOrder(): void
     {
-        $order = array_keys($this->id);
-        usort($order, fn (int $a, int $b): int => [$this->player[$a], $this->pieces[$a], $this->solved[$a], $this->tracked[$a], $this->id[$a]]
-            <=> [$this->player[$b], $this->pieces[$b], $this->solved[$b], $this->tracked[$b], $this->id[$b]]);
+        $order = array_keys($this->puzzle);
+        usort($order, fn (int $a, int $b): int => [$this->player[$a], $this->pieces[$a], $this->solved[$a], $this->tracked[$a], $this->idAt($a)]
+            <=> [$this->player[$b], $this->pieces[$b], $this->solved[$b], $this->tracked[$b], $this->idAt($b)]);
 
-        $this->id = array_map(fn (int $i): string => $this->id[$i], $order);
+        $this->ids = implode('', array_map(fn (int $i): string => substr($this->ids, $i * 16, 16), $order));
+        $otherIds = [];
+
+        foreach ($order as $position => $i) {
+            if (isset($this->otherIds[$i])) {
+                $otherIds[$position] = $this->otherIds[$i];
+            }
+        }
+
+        $this->otherIds = $otherIds;
         $this->player = array_map(fn (int $i): string => $this->player[$i], $order);
         $this->puzzle = array_map(fn (int $i): string => $this->puzzle[$i], $order);
         $this->pieces = array_map(fn (int $i): int => $this->pieces[$i], $order);
@@ -214,12 +238,68 @@ final class FirstAttemptSet
     }
 
     /**
-     * Drops the attempts' ids (~30 MB of strings) once nothing reads them any more - the candidate's fit after its flags
-     * are loaded (CandidateModelRecalculator); every other column stays.
+     * Drops the attempts' ids once nothing reads them any more - the candidate's fit after its flags are loaded
+     * (CandidateModelRecalculator); every other column stays. idAt() fails afterwards.
      */
     public function forgetIds(): void
     {
-        $this->id = [];
+        $this->ids = '';
+        $this->otherIds = [];
+    }
+
+    /**
+     * The attempt's id, exactly as build() read it.
+     */
+    public function idAt(int $i): string
+    {
+        if (isset($this->otherIds[$i])) {
+            return $this->otherIds[$i];
+        }
+
+        $packed = substr($this->ids, $i * 16, 16);
+
+        if (strlen($packed) !== 16) {
+            throw new OutOfBoundsException(sprintf('No id of attempt %d (forgotten, or no such attempt)', $i));
+        }
+
+        $hex = bin2hex($packed);
+
+        return substr($hex, 0, 8) . '-' . substr($hex, 8, 4) . '-' . substr($hex, 12, 4) . '-' . substr($hex, 16, 4) . '-' . substr($hex, 20);
+    }
+
+    /**
+     * Every attempt's id, in the set's order - a list as large as the set (tests, small sets).
+     *
+     * @return list<string>
+     */
+    public function ids(): array
+    {
+        $ids = [];
+
+        for ($i = 0, $count = $this->count(); $i < $count; $i++) {
+            $ids[] = $this->idAt($i);
+        }
+
+        return $ids;
+    }
+
+    /**
+     * 16 bytes of a uuid in its canonical text (what a uuid column gives), null for any other id - those are kept as
+     * given (otherIds), so idAt() always returns the very id build() read.
+     */
+    private static function packId(string $id): null|string
+    {
+        if (strlen($id) !== 36 || $id[8] . $id[13] . $id[18] . $id[23] !== '----' || $id !== strtolower($id)) {
+            return null;
+        }
+
+        $hex = str_replace('-', '', $id);
+
+        if (strlen($hex) !== 32 || !ctype_xdigit($hex)) {
+            return null;
+        }
+
+        return (string) hex2bin($hex);
     }
 
     /**

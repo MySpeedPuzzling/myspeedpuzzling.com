@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\PuzzleIntelligence\Model;
 
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\CursorRows;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\RepeatResiduals;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Value\PiecesGroup;
@@ -38,7 +39,8 @@ final class RepeatHistory
 
         // The previous solve comes from every solo time a personal prediction counts (not suspicious, not unboxed) - the
         // rows themselves are the same as without it
-        $rows = $connection->executeQuery("
+        // Through a cursor: every solo time with a personal prediction (the whole history), ~40 MB in the client library otherwise
+        $rows = CursorRows::iterate($connection, "
             SELECT player_id, pieces_count, seconds_to_solve, predicted_seconds, solved_ts, previous_solved_ts
             FROM (
                 SELECT pst.player_id, p.pieces_count, pst.seconds_to_solve, pst.predicted_seconds, pst.predictable, pst.prediction_method,
@@ -61,7 +63,7 @@ final class RepeatHistory
                 AND prediction_method = 'personal'
                 AND predicted_seconds > 0
             ORDER BY player_id, solve_moment, tracked_at, id
-        ")->iterateAssociative();
+        ");
 
         $player = null;
         $residuals = [];

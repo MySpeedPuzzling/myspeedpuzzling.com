@@ -269,10 +269,12 @@ final class PredictionReconstructor implements ResetInterface
         $flags = $candidate->features()->flagMask() !== 0
             ? $this->attemptFlags(array_values(array_unique(array_map(static fn (PredictionInputSolve $target): string => $target->puzzleId, $firstTryTargets))))
             : [];
-        // The taste factor (v5): the player's stored states and the targets' pictures - only with a taste model
-        [$tasteStates, $pictures] = $candidate->taste !== null && $firstTryTargets !== []
-            ? [$this->tasteStates($playerId, count($candidate->taste->weights)), PictureFactorsLookup::load($this->connection, $this->clock->now(), array_values(array_unique(array_map(static fn (PredictionInputSolve $target): string => $target->puzzleId, $firstTryTargets))))]
-            : [[], []];
+        // The taste factor (v5): the player's stored states and the targets' pictures (their factors, and the look-alike
+        // numbers of the k = 0 window - v6) - only with a taste model or a picture term
+        $tasteStates = $candidate->taste !== null && $firstTryTargets !== [] ? $this->tasteStates($playerId, count($candidate->taste->weights)) : [];
+        $pictures = ($candidate->taste !== null || $candidate->pictureDispersion !== null) && $firstTryTargets !== []
+            ? PictureFactorsLookup::load($this->connection, $this->clock->now(), array_values(array_unique(array_map(static fn (PredictionInputSolve $target): string => $target->puzzleId, $firstTryTargets))))
+            : [];
 
         foreach ($targets as $target) {
             $shown = $predictions[$target->id] ?? null;

@@ -802,7 +802,7 @@ pictured puzzle (41,266): the daily fit 5.6 → 6.0 s (the estimates' read and t
 batch unchanged (18.6 s - only the copy's sync compares one more column). The add-time path costs no statement: the
 estimate rides on the statistical read (two LEFT JOINs) and the three side rows go in one INSERT.
 
-### The candidate model (v4, v5 with the taste factor) - side by side, never shown
+### The candidate model (v4, v5 with the taste factor, v6) - side by side, never shown
 
 A second model computed next to the shown one (v3), to be launched as one `MODEL_VERSION` bump once Jan decides
 (prediction model review 2026-10-26, proposals P1-P8 and data-mining F6/F8). **Nothing a player sees changes**: the
@@ -810,7 +810,7 @@ columns on `puzzle_solving_time`, `GetPlayerPrediction(s)`, the Picker, the reca
 `CandidateModelTest::testTheShownModelIgnoresEveryCandidateInput` and
 `CandidatePredictionsSideBySideTest::testTheShownPredictionsAreTheSameWithAndWithoutTheCandidate` guard it. Its rows
 are the `candidate` predictor of `solving_time_prediction`, model version `CandidatePredictionCalculator::MODEL_VERSION`
-(5 since the taste factor, 4 before - "The taste factor (v5)") - first tries and repeats; storage and backfill: [prediction-history.md](prediction-history.md) "The candidate
+(6 since "Candidate v6", 5 with the taste factor, 4 before - "The taste factor (v5)") - first tries and repeats; storage and backfill: [prediction-history.md](prediction-history.md) "The candidate
 model (v4)".
 
 **First try** (`Model\CandidatePredictionCalculator::firstTry()`): the shown model's pace × e^drift (same
@@ -1077,6 +1077,80 @@ taste step 155 MB in use (+25 MB: the pictures' factors, the rows, the fit). `ca
 (~160k rows, ~25 MB), rewritten in chunks of 5,000 in the fit's transaction. The 15-minute evidence refresh and the
 batch are untouched. (Measured with `APP_DEBUG=1` the step looked 180 MB heavier - the debug query logger keeps the
 inserts' parameters; production runs without debug.)
+
+#### Candidate v6 (2026-10-27)
+
+Model version 6 (`CandidatePredictionCalculator::MODEL_VERSION`) = v5 + three parts, each a switch of
+`CandidateFeatures` and kept only because both time splits confirmed it; one proposal measured and left out.
+
+- **The image prior's own variance** (switch `image_interval`, time-model review F1 re-tested on the 1.2.1 estimates):
+  v = v_image × (the estimate's variance from its 80 % interval ÷ the window's median one)^0.5
+  (`CandidateModelParameters::imagePriorVariance()`, v_image by the existing grid, the reference stored with the fit as
+  `image_interval_reference`). An estimate the pipeline is less sure about gives way to the puzzle's first indices
+  sooner and widens its k = 0 window. The exponent is fixed at 0.5 (`CandidateModelFitter::IMAGE_INTERVAL_EXPONENT`):
+  the one the window picks (0.75 June, 1.0 April) made 1500+ pieces 0.5-1.1 % worse on June, 0.5 improved every k, size
+  and experience group on both splits. The 50 % interval (p25/p75) measured the same as the 80 % one.
+- **The k = 0 picture term** (switch `picture_dispersion`, data-mining F8): how alike the picture's pieces look -
+  `Value\PictureLookalikes`: `traits` pieceLevel.real pieceLookalikeShare / pieceDistinctiveness, log colorRegions,
+  `piece_scale` real nnShareBelow006 / logCandidates006 of the current picture - predicts where players will disagree
+  before anybody solved the puzzle. `Value\PictureDispersionModel`: a ridge regression (standardised numbers, ridge 100)
+  of the window's squared error less its other fitted terms over first tries at puzzles with 0-9 indices, centred on
+  the median puzzle, then its weight with the other terms (`CandidateModelFitter::fitPictureDispersion()`); a signed
+  variance term of a first try at k = 0 only (from the first index the puzzle's own dispersion speaks). Offline the
+  numbers rank the measured disagreement weakly (Spearman 0.17), the `traits` numbers alone gave ~90 % of the k = 0 gain of
+  the five together, `piece_scale` alone ~80 %; only k = 0 (with (1 - λ_k) for k = 1-4 the k = 1-4 windows got worse). The centre never moves.
+- **The unboxed window as a variance of its own** (switch `unboxed_variance`): σ² + u instead of σ² × a scale (v4/v5:
+  1.5-1.75), u by a grid against the window's unboxed first tries predicted by the real path. The unboxed noise does not
+  grow with the boxed window: v5 covered 93 / 88 % of the k = 0 unboxed first tries in the 80 % window and 76 / 72 % at
+  k = 20+ (June / April).
+
+Measured (`evaluate-predictions --fit-before=… --candidate` on the read-only production copy of 2026-10-27 with the
+production estimates 1.2.1 and the `traits` / `piece_scale` analyses of every current picture; every first try the
+candidate predicts after the cut - 74,079 June, 105,724 April -, each row v5 and v6 on the same code; IS80 = the 80 %
+window's interval score (width + 10 × the miss outside it, lower = better - a sharper window at the same coverage):
+
+| group | n (June) | MAE v5 → v6 June | April | IS80 v5 → v6 June | April |
+|---|---|---|---|---|---|
+| all first tries | 74,079 | 0.08951 → 0.08940 (−0.12 %) | −0.11 % | 0.4192 → 0.4170 (−0.55 %) | −0.48 % |
+| k = 0 (picture only) | 5,511 | 0.15500 → 0.15501 (centre unchanged) | 0.00 % | 0.7526 → 0.7346 (**−2.4 %**) | **−2.2 %** |
+| k = 1-2 | 5,148 | 0.11615 → 0.11533 (**−0.71 %**) | −0.59 % | −1.2 % | −0.9 % |
+| k = 3-4 | 3,179 | −0.17 % | −0.29 % | −0.6 % | −0.6 % |
+| k = 5-9 | 5,206 | −0.36 % | −0.28 % | −0.6 % | −0.6 % |
+| k = 10-19 / 20+ | 6,235 / 48,800 | −0.12 / −0.02 % | −0.10 / −0.02 % | −0.1 / −0.05 % | −0.2 / −0.05 % |
+| players with 0-9 / 10-29 / 30-99 / 100-299 / 300+ first tries | | −0.02 / −0.14 / −0.13 / −0.15 / −0.11 % | −0.03 / −0.13 / −0.12 / −0.13 / −0.11 % | −0.3 / −0.5 / −0.6 / −0.6 / −0.7 % | −0.3 / −0.5 / −0.5 / −0.5 / −0.6 % |
+| ≤ 300 / 500 / 1000 pieces | | −0.19 / −0.04 / −0.04 % | −0.16 / −0.04 / −0.10 % | −0.8 / −0.2 / −1.4 % | −0.7 / −0.2 / −1.2 % |
+| odd sizes | 989 | −2.27 % | −1.61 % | −5.4 % | −3.8 % |
+| 1500+ pieces | 173 | −0.17 % | −0.67 % | **+1.4 %** | −0.2 % |
+| k = 0 box / assembled / flat pictures | | | | −2.6 / −3.0 / −2.0 % | −2.3 / −2.3 / −2.1 % |
+
+No k, size or experience group got a worse MAE on either split; the one worse window is 1500+ pieces on June (173 rows,
+its windows wider - 78.0 → 82.1 % in the 80 % window). Hits stay at 49.4 / 79.3 % overall on both splits. The parts
+alone (v6 without the part → v6): the image interval MAE −0.12 / −0.11 %, k = 1-2 −0.71 / −0.59 %, IS80 −0.31 /
+−0.28 % (k = 0 −0.8 %); the picture term MAE ±0 (window only), IS80 −0.18 / −0.17 %, k = 0 −1.2 / −1.1 %, every group's
+IS80 better on both splits. The evaluator's own table (the 68,240 / 97,101 first tries all three models predict):
+0.0840 → 0.0839 June, 0.0841 → 0.0840 April.
+
+Unboxed first tries (1,401 June / 2,628 April after the cut): MAE 0.1263 → 0.1260 / 0.1206 → 0.1204, 80 % hits
+80.0 → 79.7 / 75.6 → 75.9; the mean miss of the 80 % window over the k buckets 4.6 → 2.8 / 7.6 → 5.6 points (50 %:
+6.0 → 3.0 / 5.7 → 3.9) - k = 0 93.1 → 89.6 / 87.8 → 85.2, k = 20+ 76.2 → 78.5 / 71.9 → 74.2. The April split's
+75.6 % (the v5 TODO) is **not** the served W: calibrating the unboxed window on cross-fitted taste states (a W fitted
+without the player, like the window's first tries) picked the same grid value on both splits and changed nothing - so
+it was left out. In the April window the unboxed first tries hit 80.1 % in-sample; after the cut 75.9 % - the unboxed
+first tries after April 2026 (twice as many as the window's 1,320) scatter more than the window's did.
+
+**Measured and left out - robust index weights** (the v4 known loss: puzzles players disagree about most, 0.6 % of
+first tries, the weighted mean 2.9 % worse than the shown median). A Huber weight (c = 2.5 noise s.d.) on each index's
+distance from the as-of posterior, iterated: overall −0.06 / −0.04 %, the high-dispersion group −2.4 / −2.1 % - but
+odd sizes +0.24 % on June, and it needs a re-weighting over all the puzzle's indices at every as-of moment (O(k²) in
+the fit, not a sum the stored evidence can carry). The causal variant that can be stored (each index weighed once
+against the posterior before it) did worse: at best −0.03 % overall (c = 3), odd sizes +0.6-1.7 % for c = 2-3.
+
+Cost: no statement more anywhere. Live, the look-alike numbers ride on the candidate's own statement (two unique-index
+steps on `puzzle_image_analysis`, `PictureLookalikes::JOINS`); reconstructed, on the targets' picture lookup the taste
+factor already makes (`PictureFactorsLookup`); the shown statements carry none of it (the guard test). The daily fit
+(production settings, `APP_DEBUG=0`, `memory_limit=1G`, on main's packed attempt set - "Memory of the daily fit"):
+**peak resident 307-314 MB** (337 before the packed set; v5: 273-333), reached at the taste step, 73-76 s on the copy - the
+fitted v6 parameters identical with and without the packed set; the picture term ~0.1 s of the window step, the unboxed grid 1.6 s.
 
 ### Pair and team predictions - side by side, never shown (2026-10-27)
 

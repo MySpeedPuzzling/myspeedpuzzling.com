@@ -25,7 +25,7 @@ final class CandidateFitProgress
     public null|CandidateSamples $samples = null;
     /** The candidate's current size curve (its last fit's) - kept when this window cannot identify one */
     public null|SizeCurve $previousSizeCurve = null;
-    /** @var list<array{0: int, 1: string, 2: float, 3: null|float, 4: int, 5: bool}> the window's first tries without the shown rules' pace, for the size curve: [attempt, prior type, prior, median, first tries, at an event] */
+    /** @var list<array{0: int, 1: string, 2: float, 3: null|float, 4: int, 5: bool, 6: float}> the window's first tries without the shown rules' pace, for the size curve: [attempt, prior type, prior, median, first tries, at an event, the image estimate's variance] */
     public array $paceless = [];
     /** @var array<string, float> puzzle => its image estimate, for the size curve's own first tries (sample()) */
     public array $fewImageLog = [];

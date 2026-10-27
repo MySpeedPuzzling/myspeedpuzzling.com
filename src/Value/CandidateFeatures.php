@@ -33,6 +33,9 @@ readonly final class CandidateFeatures
         'size_curve' => 'Size curve: the pace from every size the player has, pooled through the population curve',
         'taste' => 'P7: the player\'s taste - b_i + u_i · W x_j over the picture factors, kind and size (TasteModel)',
         'competition_player' => 'F7: the player\'s own shrunk offset at events (with the taste)',
+        'image_interval' => 'v6: the image prior\'s own variance from the estimate\'s 80 % interval (else one variance for every estimate)',
+        'picture_dispersion' => 'v6 (F8): the k = 0 window from how alike the picture\'s pieces look (traits + piece_scale)',
+        'unboxed_variance' => 'v6: the unboxed window as a variance of its own (else a scale of the boxed one)',
     ];
 
     /** Index-noise terms of the flags (CandidateModelParameters::indexVariance()) and the feature that switches each */

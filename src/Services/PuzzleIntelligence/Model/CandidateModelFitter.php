@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\PuzzleIntelligence\Model;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\ImageEstimatePrior;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Value\CandidateFeatures;
 use SpeedPuzzling\Web\Value\CandidateModelParameters;
 use SpeedPuzzling\Web\Value\ImagePriorInput;
 use SpeedPuzzling\Web\Value\PaceSource;
+use SpeedPuzzling\Web\Value\PictureDispersionModel;
 use SpeedPuzzling\Web\Value\PictureFactors;
+use SpeedPuzzling\Web\Value\PictureLookalikes;
 use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\SizeCurve;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
@@ -28,11 +31,13 @@ use SpeedPuzzling\Web\Value\WindowBucket;
  *    indirect pace, the flags];
  * 2. the puzzle-weighted brand prior's pseudo-count (grid, first tries at puzzles without indices);
  * 3. a variance per prior type (grid, first tries at puzzles with 0-9 indices): the posterior's mean error is least;
+ *    an image estimate's own variance from its 80 % interval (v6, IMAGE_INTERVAL_EXPONENT);
  * 4. centre offsets: the median residual per key (CandidatePredictionCalculator::offsetKeys()), shrunk; then the
  *    taste factor on what they leave (TasteFitter, v5);
  * 5. first-try window: sigma² regressed on [spread², posterior variance, size groups, pace sources, dispersion, the
  *    taste term's variance] around the centre with the taste term as of each first try; the
- *    competition scale; standardised-residual quantiles per key;
+ *    competition scale; standardised-residual quantiles per key; the k = 0 picture term (v6, fitPictureDispersion());
+ *    the unboxed offset and its own variance (v6, fitUnboxed());
  * 6. repeats: sigma² on [spread², 1, gap buckets], a median offset per gap bucket, quantiles per key with the gap.
  */
 final readonly class CandidateModelFitter
@@ -41,6 +46,10 @@ final readonly class CandidateModelFitter
     public const array PRIOR_VARIANCE_GRID = [0.002, 0.003, 0.004, 0.005, 0.006, 0.008, 0.01, 0.0125, 0.015, 0.02, 0.025, 0.03, 0.04, 0.05, 0.07, 0.1, 0.15];
     public const array BRAND_PSEUDO_GRID = [1.0, 2.0, 3.0, 5.0, 10.0];
     public const int PRIOR_MAX_K = 9;
+    /** v6: how much of the image estimate's own interval its prior variance follows (fitPriorVariances()) */
+    public const float IMAGE_INTERVAL_EXPONENT = 0.5;
+    /** v6: the ridge of the picture term's regression on standardised numbers (fitPictureDispersion()) */
+    public const float PICTURE_DISPERSION_RIDGE = 100.0;
 
     private const int MINIMUM_SAMPLES = 500;
     private const int MINIMUM_KEY_SAMPLES = 200;
@@ -50,6 +59,8 @@ final readonly class CandidateModelFitter
     private const float NOISE_CLIP = 1.0;
     private const int MINIMUM_UNBOXED_SAMPLES = 100;
     private const int UNBOXED_SHRINK = 50;
+    private const array UNBOXED_SCALE_GRID = [1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 4.0];
+    private const array UNBOXED_VARIANCE_GRID = [0.0, 0.0025, 0.005, 0.0075, 0.01, 0.0125, 0.015, 0.02, 0.025, 0.03, 0.04, 0.05, 0.065, 0.08];
 
     public function __construct(
         private CandidatePredictionCalculator $calculator = new CandidatePredictionCalculator(),
@@ -277,8 +288,7 @@ final readonly class CandidateModelFitter
         $parameters = $progress->parameters;
         [$imageLogs, $brandLogs] = [$progress->fewImageLog, $progress->fewBrandLog];
         $priorsOf = static fn (string $puzzle, int $pieces): array => [$imageLogs[$puzzle] ?? null, $brandLogs[$puzzle] ?? null];
-        [$variances, $varianceSummary] = $this->fitPriorVariances($samples, $progress->features->on('prior_types'));
-        $parameters = $parameters->with(priorVariances: [...$parameters->priorVariances, ...$variances]);
+        [$parameters, $varianceSummary] = $this->fitPriorVariances($samples, $parameters);
         $progress->add($varianceSummary);
 
         // The difficulty of the own first tries' puzzles as of the end of the window, once per puzzle
@@ -319,7 +329,7 @@ final readonly class CandidateModelFitter
      * The samples paced by the fitted curve where it has a pace (in place - a second copy of the samples would be the
      * fit's peak), then the first tries without the shown model's pace that the curve paces, appended.
      *
-     * @param list<array{0: int, 1: string, 2: float, 3: null|float, 4: int, 5: bool}> $paceless [attempt, prior type, prior, median, first tries, at an event]
+     * @param list<array{0: int, 1: string, 2: float, 3: null|float, 4: int, 5: bool, 6: float}> $paceless [attempt, prior type, prior, median, first tries, at an event, the image estimate's variance]
      * @param \Closure(string, int): array{0: null|float, 1: null|float} $priorsOf
      */
     private function pace(CandidateSamples $samples, array $paceless, CandidateEngine $candidate, \Closure $priorsOf, CandidateModelParameters $parameters): void
@@ -347,17 +357,17 @@ final readonly class CandidateModelFitter
 
         $added = [];
 
-        foreach ($paceless as [$i, $priorType, $priorLog, $median, $firstTries, $competition]) {
+        foreach ($paceless as [$i, $priorType, $priorLog, $median, $firstTries, $competition, $estimateVariance]) {
             $pooled = $pooledOf($i);
 
             if ($pooled !== null) {
-                $added[] = [$i, $priorType, $priorLog, $median, $firstTries, $competition, $pooled];
+                $added[] = [$i, $priorType, $priorLog, $median, $firstTries, $competition, $pooled, $estimateVariance];
             }
         }
 
         $samples->grow(count($added));
 
-        foreach ($added as [$i, $priorType, $priorLog, $median, $firstTries, $competition, $pooled]) {
+        foreach ($added as [$i, $priorType, $priorLog, $median, $firstTries, $competition, $pooled, $estimateVariance]) {
             $samples->add(
                 attempt: $i,
                 target: log($set->seconds[$i]) - $pooled[0],
@@ -376,6 +386,7 @@ final readonly class CandidateModelFitter
                 puzzle: $set->puzzle[$i],
                 solved: $set->solved[$i],
                 tracked: $set->tracked[$i],
+                estimateVariance: $estimateVariance,
             );
         }
     }
@@ -392,8 +403,7 @@ final readonly class CandidateModelFitter
         $features = $progress->features;
         $parameters = $progress->parameters;
 
-        [$variances, $varianceSummary] = $this->fitPriorVariances($samples, $features->on('prior_types'));
-        $parameters = $parameters->with(priorVariances: [...$parameters->priorVariances, ...$variances]);
+        [$parameters, $varianceSummary] = $this->fitPriorVariances($samples, $parameters);
         $progress->add($varianceSummary);
 
         if ($features->on('centre_offsets')) {
@@ -403,7 +413,20 @@ final readonly class CandidateModelFitter
         $progress->lap('priors_offsets');
         [$parameters, $taste] = $this->fitTaste($progress, $samples, $parameters);
         $progress->lap('taste');
-        [$parameters, $windowSummary] = $this->fitFirstTryWindow($samples, $parameters, $features, $taste);
+        $lookalikes = [];
+
+        if ($features->on('picture_dispersion')) {
+            foreach ($samples->puzzleInts() as $puzzleId => $puzzle) {
+                $numbers = ($progress->pictures[$puzzleId] ?? null)?->lookalikes;
+
+                if ($numbers !== null) {
+                    $lookalikes[$puzzle] = $numbers;
+                }
+            }
+        }
+
+        [$parameters, $windowSummary] = $this->fitFirstTryWindow($samples, $parameters, $features, $taste, $lookalikes);
+        unset($lookalikes);
         $progress->add($windowSummary);
         $progress->samples = null;
         unset($samples);
@@ -573,8 +596,12 @@ final readonly class CandidateModelFitter
     }
 
     /**
-     * The unboxed offset (median residual against the boxed prediction, shrunk) and window scale (how much of the
-     * fitted variance unboxed first tries use around the shifted centre).
+     * The unboxed offset (median residual against the boxed prediction, shrunk) and window: a scale of the fitted
+     * variance (v4) or, switch unboxed_variance (v6), a variance of its own added to it - the unboxed noise does not grow
+     * with the boxed window (v5 on the April split: 87.8 % of the k = 0 ones inside the 80 % window, 71.9 % at k = 20+).
+     * The grid value whose hits of the unboxed predictions (the real path, with the offset) are closest to 50 / 80 %.
+     * (Their taste terms from a W fitted without their player - the v5 TODO's suspicion for the April split's 75.6 % -
+     * measured no different on either split: the same grid value; the drop is the unboxed first tries after the cut.)
      *
      * @param list<array{0: StatisticalPredictionInputs, 1: int, 2: bool}> $unboxed the window's, from begin() and addEvidence()
      * @return array{0: CandidateModelParameters, 1: array<string, int|float|string>}
@@ -582,7 +609,7 @@ final readonly class CandidateModelFitter
     private function fitUnboxed(array $unboxed, CandidateModelParameters $parameters): array
     {
         $residuals = [];
-        $boxedPredictions = [];
+        $kept = [];
 
         foreach ($unboxed as [$inputs, $seconds, $competition]) {
             $boxed = $this->calculator->firstTry($inputs, $parameters, new SolveConditions(competition: $competition));
@@ -592,7 +619,7 @@ final readonly class CandidateModelFitter
             }
 
             $residuals[] = max(-self::RESIDUAL_CLIP, min(self::RESIDUAL_CLIP, log($seconds / $boxed->predictedSeconds)));
-            $boxedPredictions[] = $boxed;
+            $kept[] = [$inputs, $seconds, $competition];
         }
 
         $samples = count($residuals);
@@ -604,38 +631,44 @@ final readonly class CandidateModelFitter
         $sorted = $residuals;
         sort($sorted);
         $offset = round(PredictionModelFitter::quantile($sorted, 0.5) * $samples / ($samples + self::UNBOXED_SHRINK), 5);
-
-        // The scale: the share of unboxed first tries inside the boxed 50 / 80 % windows shifted by the offset, brought
-        // to 50 / 80 % by widening sigma - the smallest scale (grid) whose hits are closest to both
+        $additive = $parameters->features()->on('unboxed_variance');
+        $grid = $additive ? self::UNBOXED_VARIANCE_GRID : self::UNBOXED_SCALE_GRID;
         $best = null;
 
-        foreach ([1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0, 4.0] as $scale) {
+        foreach ($grid as $value) {
+            [$scale, $variance] = $additive ? [1.0, $value] : [$value, 0.0];
             $hit50 = 0;
             $hit80 = 0;
 
-            foreach ($boxedPredictions as $index => $boxed) {
-                // The window bounds in log units around the centre scale with sigma, so with sqrt(scale)
-                $centre = $boxed->predictedSeconds;
-                $actual = $residuals[$index] - $offset;
-                $width = sqrt($scale);
-                $low50 = log($boxed->rangeLowSeconds / $centre) * $width;
-                $high50 = log($boxed->rangeHighSeconds / $centre) * $width;
-                $low80 = log((int) $boxed->range80LowSeconds / $centre) * $width;
-                $high80 = log((int) $boxed->range80HighSeconds / $centre) * $width;
-                $hit50 += $actual >= $low50 && $actual <= $high50 ? 1 : 0;
-                $hit80 += $actual >= $low80 && $actual <= $high80 ? 1 : 0;
+            $trial = $parameters->with(unboxedOffset: $offset, contextScales: [...$parameters->contextScales, 'unboxed' => $scale], unboxedVariance: $variance);
+
+            foreach ($kept as [$inputs, $seconds, $competition]) {
+                $prediction = $this->calculator->firstTry(
+                    $inputs,
+                    $trial,
+                    new SolveConditions(unboxed: true, competition: $competition),
+                );
+
+                if ($prediction === null) {
+                    continue;
+                }
+
+                $hit50 += $seconds >= $prediction->rangeLowSeconds && $seconds <= $prediction->rangeHighSeconds ? 1 : 0;
+                $hit80 += $seconds >= (int) $prediction->range80LowSeconds && $seconds <= (int) $prediction->range80HighSeconds ? 1 : 0;
             }
 
             $miss = abs($hit50 / $samples - 0.5) + abs($hit80 / $samples - 0.8);
 
             if ($best === null || $miss < $best[1] - 1e-9) {
-                $best = [$scale, $miss, $hit50 / $samples, $hit80 / $samples];
+                $best = [$value, $miss, $hit50 / $samples, $hit80 / $samples];
             }
         }
 
+        [$scale, $variance] = $additive ? [1.0, $best[0]] : [$best[0], 0.0];
+
         return [
-            $parameters->with(unboxedOffset: $offset, contextScales: [...$parameters->contextScales, 'unboxed' => $best[0]]),
-            ['unboxed_samples' => $samples, 'unboxed_offset' => $offset, 'unboxed_scale' => $best[0], 'unboxed_hit50' => round($best[2], 3), 'unboxed_hit80' => round($best[3], 3)],
+            $parameters->with(unboxedOffset: $offset, contextScales: [...$parameters->contextScales, 'unboxed' => $scale], unboxedVariance: $variance),
+            ['unboxed_samples' => $samples, 'unboxed_offset' => $offset, 'unboxed_scale' => $scale, 'unboxed_variance' => $variance, 'unboxed_hit50' => round($best[2], 3), 'unboxed_hit80' => round($best[3], 3)],
         ];
     }
 
@@ -765,7 +798,7 @@ final readonly class CandidateModelFitter
      *
      * @param list<int> $window
      * @param array<string, ImagePriorInput> $imageEstimates
-     * @return array{0: CandidateSamples, 1: list<array{0: int, 1: string, 2: float, 3: null|float, 4: int, 5: bool}>}
+     * @return array{0: CandidateSamples, 1: list<array{0: int, 1: string, 2: float, 3: null|float, 4: int, 5: bool, 6: float}>}
      */
     private function samples(CandidateEngine $candidate, PriorLookup $priors, array $window, array $imageEstimates, CandidateModelParameters $parameters): array
     {
@@ -789,7 +822,7 @@ final readonly class CandidateModelFitter
             if ($pace === null) {
                 // The size curve may pace it from the player's other sizes (fitSizeCurve())
                 if ($features->on('size_curve')) {
-                    $paceless[] = [$i, $type, $prior ?? 0.0, $median, $candidate->experienceOf($i), ($candidate->flags->of($i) & AttemptFlags::COMPETITION) !== 0];
+                    $paceless[] = [$i, $type, $prior ?? 0.0, $median, $candidate->experienceOf($i), ($candidate->flags->of($i) & AttemptFlags::COMPETITION) !== 0, ($imageEstimates[$puzzle] ?? null)?->variance() ?? 0.0];
                 }
 
                 continue;
@@ -812,6 +845,7 @@ final readonly class CandidateModelFitter
                 puzzle: $puzzle,
                 solved: $set->solved[$i],
                 tracked: $set->tracked[$i],
+                estimateVariance: ($imageEstimates[$puzzle] ?? null)?->variance() ?? 0.0,
             );
         }
 
@@ -821,10 +855,17 @@ final readonly class CandidateModelFitter
     }
 
     /**
-     * @return array{0: array<string, float>, 1: array<string, int|float|string>}
+     * A variance per prior type (or one for all, switch prior_types): the grid value whose posterior means come
+     * closest to the first tries at puzzles with 0-PRIOR_MAX_K indices. With image_interval (v6) an image estimate's
+     * variance is the type's × (its own variance ÷ the window's median one)^IMAGE_INTERVAL_EXPONENT, the grid over the
+     * type's - measured on both time splits: the exponent the window picks (0.75-1) made 1500+ pieces worse on one,
+     * 0.5 improved every group on both (README "Candidate v6").
+     *
+     * @return array{0: CandidateModelParameters, 1: array<string, int|float|string>}
      */
-    private function fitPriorVariances(CandidateSamples $samples, bool $perType): array
+    private function fitPriorVariances(CandidateSamples $samples, CandidateModelParameters $parameters): array
     {
+        $perType = $parameters->features()->on('prior_types');
         $byType = [];
 
         for ($s = 0, $count = $samples->count(); $s < $count; $s++) {
@@ -835,8 +876,19 @@ final readonly class CandidateModelFitter
             $byType[$perType ? $samples->priorType($s) : 'pooled'][] = $s;
         }
 
+        $interval = $perType && $parameters->features()->on('image_interval');
+        $reference = 0.0;
+
+        if ($interval && isset($byType[ImageEstimatePrior::NAME])) {
+            $estimateVariances = array_values(array_filter(array_map($samples->estimateVariance(...), $byType[ImageEstimatePrior::NAME]), static fn (float $variance): bool => $variance > 0.0));
+            $reference = $estimateVariances !== [] ? self::median($estimateVariances) : 0.0;
+        }
+
+        $parameters = $interval && $reference > 0.0
+            ? $parameters->with(imageIntervalExponent: self::IMAGE_INTERVAL_EXPONENT, imageIntervalReference: round($reference, 8))
+            : $parameters->with(imageIntervalExponent: 0.0, imageIntervalReference: 0.0);
         $variances = [];
-        $summary = [];
+        $summary = $interval ? ['image_interval_reference' => round($reference, 6)] : [];
 
         foreach ($byType as $type => $members) {
             $summary['prior_samples_' . $type] = count($members);
@@ -848,10 +900,11 @@ final readonly class CandidateModelFitter
             $best = null;
 
             foreach (self::PRIOR_VARIANCE_GRID as $variance) {
+                $trial = $parameters->with(priorVariances: [...$parameters->priorVariances, $type => $variance]);
                 $error = 0.0;
 
                 foreach ($members as $s) {
-                    $error += abs($samples->target($s) - $samples->evidence($s)->posterior($samples->priorLog($s), $variance)[0]);
+                    $error += abs($samples->target($s) - $samples->evidence($s)->posterior($samples->priorLog($s), self::samplePriorVariance($samples, $s, $trial))[0]);
                 }
 
                 if ($best === null || $error < $best[1]) {
@@ -864,7 +917,17 @@ final readonly class CandidateModelFitter
             $summary['prior_mae_' . $type] = round($best[1] / count($members), 4);
         }
 
-        return [$variances, $summary];
+        return [$parameters->with(priorVariances: [...$parameters->priorVariances, ...$variances]), $summary];
+    }
+
+    /**
+     * The prior variance of a sample (its type's, an image estimate's from its own interval - v6).
+     */
+    private static function samplePriorVariance(CandidateSamples $samples, int $s, CandidateModelParameters $parameters): float
+    {
+        $estimateVariance = $samples->estimateVariance($s);
+
+        return CandidatePredictionCalculator::priorVarianceOf($parameters, $samples->priorType($s), $estimateVariance > 0.0 ? $estimateVariance : null);
     }
 
     /**
@@ -965,9 +1028,10 @@ final readonly class CandidateModelFitter
     }
 
     /**
+     * @param array<int, PictureLookalikes> $lookalikes by the samples' puzzle int - the picture term's (v6)
      * @return array{0: CandidateModelParameters, 1: array<string, int|float|string>}
      */
-    private function fitFirstTryWindow(CandidateSamples $samples, CandidateModelParameters $parameters, CandidateFeatures $features, null|TasteFit $taste = null): array
+    private function fitFirstTryWindow(CandidateSamples $samples, CandidateModelParameters $parameters, CandidateFeatures $features, null|TasteFit $taste = null, array $lookalikes = []): array
     {
         $tasteTerms = $taste?->terms;
         $tasteVariances = $taste?->variances;
@@ -1010,9 +1074,7 @@ final readonly class CandidateModelFitter
         $experiences = $features->on('centre_offsets') ? ['lt10', 'lt30'] : [];
         $columns = 2 + count($groups) + count($paceSources) + count($experiences) + ($features->on('dispersion') ? 1 : 0) + ($curve ? 1 : 0) + ($tasteVariances !== null ? 1 : 0);
         $tasteVarianceOf = static fn (int $s): float => $tasteVariances !== null ? (float) $tasteVariances[$s] : 0.0;
-        $normal = new NormalEquations($columns);
-
-        foreach ($errors as $s => $error) {
+        $rowOf = static function (int $s) use ($samples, $posteriorVariances, $groups, $paceSources, $experiences, $features, $dispersions, $curve, $tasteVariances, $tasteVarianceOf): array {
             $row = [$samples->spread($s) ** 2, $posteriorVariances[$s]];
 
             foreach ($groups as $group) {
@@ -1039,10 +1101,52 @@ final readonly class CandidateModelFitter
                 $row[] = $tasteVarianceOf($s);
             }
 
-            $normal->add($row, min(abs($error), self::RESIDUAL_CLIP) ** 2);
+            return $row;
+        };
+        $normal = new NormalEquations($columns);
+
+        foreach ($errors as $s => $error) {
+            $normal->add($rowOf($s), min(abs($error), self::RESIDUAL_CLIP) ** 2);
         }
 
         $coefficients = $normal->solveNonNegative();
+        unset($normal);
+
+        // v6 (switch picture_dispersion): the k = 0 picture term - fitted on what the other terms leave, then its weight
+        // with them (fitPictureDispersion())
+        $pictureTerms = [];
+        $pictureModel = null;
+
+        if ($features->on('picture_dispersion') && $lookalikes !== []) {
+            $pictureModel = $this->fitPictureDispersion($samples, $errors, $lookalikes, static function (int $s) use ($rowOf, $coefficients): float {
+                $variance = 0.0;
+
+                foreach ($rowOf($s) as $column => $value) {
+                    $variance += $coefficients[$column] * $value;
+                }
+
+                return $variance;
+            });
+
+            if ($pictureModel !== null) {
+                $normal = new NormalEquations($columns + 1);
+
+                foreach ($errors as $s => $error) {
+                    $pictureTerms[$s] = $samples->k($s) === 0 ? $pictureModel->relative($lookalikes[$samples->puzzle($s)] ?? null) : 0.0;
+                    $normal->add([...$rowOf($s), $pictureTerms[$s]], min(abs($error), self::RESIDUAL_CLIP) ** 2);
+                }
+
+                $coefficients = $normal->solveNonNegative();
+                unset($normal);
+                $pictureModel = $pictureModel->with(round($coefficients[$columns], 6));
+
+                foreach ($pictureTerms as $s => $relative) {
+                    $pictureTerms[$s] = $pictureModel->weight * $relative;
+                }
+            }
+        }
+
+        $pictureTermOf = static fn (int $s): float => $pictureTerms[$s] ?? 0.0;
         $sizeTerms = $parameters->sizeTerms;
         $column = 2;
 
@@ -1070,9 +1174,10 @@ final readonly class CandidateModelFitter
             consistencyEdges: PredictionModelFitter::quartileEdges($spreads),
             paceVarianceWeight: $curve ? round($coefficients[$columns - 1 - ($tasteVariances !== null ? 1 : 0)], 6) : 0.0,
             tasteVarianceWeight: $tasteVariances !== null ? round($coefficients[$columns - 1], 6) : 0.0,
+            pictureDispersion: $pictureModel,
         );
 
-        $summary = ['window_samples' => $count];
+        $summary = ['window_samples' => $count, ...($pictureModel !== null ? ['picture_dispersion_weight' => $pictureModel->weight, ...$pictureModel->summary] : [])];
 
         // The competition scale: how much of the fitted variance an event's first tries use
         if ($features->on('competition')) {
@@ -1081,7 +1186,7 @@ final readonly class CandidateModelFitter
             foreach ($errors as $s => $error) {
                 if ($samples->competition($s)) {
                     $ratio[0] += min(abs($error), self::RESIDUAL_CLIP) ** 2;
-                    $ratio[1] += $parameters->firstTrySigma($samples->spread($s), $posteriorVariances[$s], $samples->group($s), $samples->paceSource($s), $dispersions[$s], 1.0, $samples->firstTries($s), $samples->paceVariance($s), $tasteVarianceOf($s)) ** 2;
+                    $ratio[1] += $parameters->firstTrySigma($samples->spread($s), $posteriorVariances[$s], $samples->group($s), $samples->paceSource($s), $dispersions[$s], 1.0, $samples->firstTries($s), $samples->paceVariance($s), $tasteVarianceOf($s), $pictureTermOf($s)) ** 2;
                     $ratio[2]++;
                 }
             }
@@ -1097,10 +1202,10 @@ final readonly class CandidateModelFitter
 
         foreach ($errors as $s => $error) {
             $competition = $features->on('competition') && $samples->competition($s);
-            $standardised[$s] = $error / $parameters->firstTrySigma($samples->spread($s), $posteriorVariances[$s], $samples->group($s), $samples->paceSource($s), $dispersions[$s], $parameters->contextScale($competition, false), $features->on('centre_offsets') ? $samples->firstTries($s) : null, $samples->paceVariance($s), $tasteVarianceOf($s));
+            $standardised[$s] = $error / $parameters->firstTrySigma($samples->spread($s), $posteriorVariances[$s], $samples->group($s), $samples->paceSource($s), $dispersions[$s], $parameters->contextScale($competition, false), $features->on('centre_offsets') ? $samples->firstTries($s) : null, $samples->paceVariance($s), $tasteVarianceOf($s), $pictureTermOf($s));
         }
 
-        unset($errors, $posteriorVariances, $dispersions);
+        unset($errors, $posteriorVariances, $dispersions, $pictureTerms);
         $keysOf = static fn (int $s): array => CandidatePredictionCalculator::firstTryKeys(
             WindowBucket::quartile($samples->spread($s), $parameters->consistencyEdges),
             WindowBucket::kBucket($samples->k($s)),
@@ -1115,6 +1220,41 @@ final readonly class CandidateModelFitter
         }
 
         return [$parameters->with(quantiles: $quantiles), $summary];
+    }
+
+    /**
+     * The k = 0 picture term (v6, data-mining F8): a ridge regression of what the window's other terms leave of the
+     * squared error (clipped, less their fitted variance) on the standardised look-alike numbers, over first tries at
+     * puzzles with 0-PRIOR_MAX_K indices - the numbers say where players will disagree before anybody solved the puzzle;
+     * centred on the median puzzle of the window. Measured on the review's dumps (both splits): the k = 0 window's 80 %
+     * interval score -1.4 % (June) / -1.3 % (April), the fifth of puzzles it widens most 44.6 / 75.2 -> 47.3 / 78.5 % hits.
+     * Null with too few first tries.
+     *
+     * @param array<int, float> $errors by sample
+     * @param array<int, PictureLookalikes> $lookalikes by puzzle int
+     * @param \Closure(int): float $fitted the other terms' variance of a sample
+     */
+    private function fitPictureDispersion(CandidateSamples $samples, array $errors, array $lookalikes, \Closure $fitted): null|PictureDispersionModel
+    {
+        $rows = [];
+        $targets = [];
+
+        foreach ($errors as $s => $error) {
+            $numbers = $lookalikes[$samples->puzzle($s)] ?? null;
+
+            if ($numbers === null || $samples->k($s) > self::PRIOR_MAX_K) {
+                continue;
+            }
+
+            $rows[] = $numbers->values;
+            $targets[] = min(abs($error), self::RESIDUAL_CLIP) ** 2 - $fitted($s);
+        }
+
+        if (count($rows) < self::MINIMUM_SAMPLES) {
+            return null;
+        }
+
+        return PictureDispersionModel::fit($rows, $targets, array_values($lookalikes), self::PICTURE_DISPERSION_RIDGE);
     }
 
     /**
@@ -1216,7 +1356,7 @@ final readonly class CandidateModelFitter
             return [$samples->median($s), 1.0 / $evidence->weightSum];
         }
 
-        return $evidence->posterior($samples->priorLog($s), $parameters->priorVariance($features->on('prior_types') ? $samples->priorType($s) : 'pooled'));
+        return $evidence->posterior($samples->priorLog($s), self::samplePriorVariance($samples, $s, $parameters));
     }
 
     /**

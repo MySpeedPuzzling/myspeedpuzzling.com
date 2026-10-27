@@ -442,8 +442,8 @@ three predictors written from scratch, 36,224 + 1,637 image rows) in 275 s; the 
 The prediction model review's proposals (README "Step 8", "The candidate model (v4)") built as a **candidate**: computed
 for every solo time next to the shown model and **never shown**. One more predictor in `solving_time_prediction`:
 
-- `predictor = candidate`, `model_version = CandidatePredictionCalculator::MODEL_VERSION` (5 since the taste factor,
-  2026-10-27; 4 before - "The taste factor (v5)" below) - its own model version,
+- `predictor = candidate`, `model_version = CandidatePredictionCalculator::MODEL_VERSION` (6 since "Candidate v6",
+  5 with the taste factor, 4 before - "The taste factor (v5)", "Candidate v6" below; all 2026-10-27) - its own model version,
   so no reader of the v3 rows (calibration report, image evaluation, time verification, Insights) ever sees it;
 - first tries and repeats alike (a repeat: the shown centre with the candidate's gap-aware window, `method =
   personal`); `image_model` names the estimate a first try rested on;
@@ -548,6 +548,35 @@ The candidate's model version 5 = v4 + each player's taste (README "Step 8", "Th
    `nohup docker compose exec -T -e SENTRY_DSN= web php -d memory_limit=1G bin/console myspeedpuzzling:backfill-solving-time-predictions --candidate > /tmp/backfill-candidate-v5.log 2>&1 &`
 4. Proof stays the time split (`evaluate-predictions --fit-before=<date> --candidate`, and `--candidate-off=taste,competition_player`
    for v4 on the same code). The stored reconstructed rows are in-sample for the taste too (today's W).
+
+### Candidate v6 (2026-10-27)
+
+The candidate's model version 6 = v5 + the image prior's own variance from the estimate's interval, the k = 0 picture
+term of the window and the unboxed window as a variance of its own (README "Step 8", "Candidate v6"). For the rows:
+
+- a v6 row is written exactly where a v5 row was (live behind `PREDICTION_CANDIDATE_ROWS`, the backfill with
+  `--candidate`); the v4 / v5 rows stay under their model versions (`evaluate-prediction-candidate --candidate=candidate:6
+  --reference=candidate:5` on the times both predicted);
+- its inputs: what v5 reads, plus the estimate's interval (already on every candidate statement) and the look-alike
+  numbers of the puzzle's current picture - the `traits` and `piece_scale` analyses of the estimate's fingerprint
+  (`PictureLookalikes`; never for a secret puzzle - the estimate join's rule). Live: five more columns on the
+  candidate's own statement, no more statements. Reconstructed: the same lookup that carries the picture factors
+  (`PictureFactorsLookup`), no more statements. No table and no column changes - no migration;
+- before the first v6 fit nothing is written (no fit = no rows), like v4 / v5.
+
+### Production run for v6
+
+1. Nothing to migrate. No new cron: the daily `fit-candidate-prediction-model` (04:41) fits v6. Run it once by hand
+   after the deploy (its peak resident memory ~310 MB - README "Candidate v6"):
+   `docker compose run --rm --no-deps messenger-consumer php -d memory_limit=1G bin/console myspeedpuzzling:fit-candidate-prediction-model`
+   - the summary shows `image_interval_reference`, `picture_dispersion_weight` / `picture_dispersion_rows` and
+   `unboxed_variance` (`unboxed_scale` 1). Until it runs the candidate writes no rows (its v6 fit does not exist yet);
+   the v5 rows stay. The picture term needs the `traits` and `piece_scale` analyses of the current pictures (on prod
+   2026-10-27: 43,497 `traits` and 43,375 `piece_scale` rows of ~43,600 pictures); a puzzle without them gets no term.
+2. The v6 rows of every past solo time (resumable, detached, never next to another backfill run):
+   `nohup docker compose exec -T -e SENTRY_DSN= web php -d memory_limit=1G bin/console myspeedpuzzling:backfill-solving-time-predictions --candidate > /tmp/backfill-candidate-v6.log 2>&1 &`
+3. Proof stays the time split (`evaluate-predictions --fit-before=<date> --candidate`, and
+   `--candidate-off=image_interval,picture_dispersion,unboxed_variance` for v5 on the same code).
 
 ## Pair and team predictions (2026-10-27)
 

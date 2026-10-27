@@ -12,12 +12,23 @@ that would otherwise be forgotten. Newest section on top.
 ## Profile results by placing (`docs/features/profile-results-placing.md`, 2026-10-27)
 - [ ] Placing on the pairs and teams tabs: rank of the exact pair/team (`puzzling_team_id`) on the puzzle's pair/team board, then the same sorts, chips and median line as solo. Pair/team rows show no rank today, so the rank chip comes first; the solo LATERAL count in `GetRanking::rankings()` is the pattern (feature request #292 asked for solo only)
 
+## Candidate prediction model v6 (`docs/features/puzzle-intelligence/README.md` "Candidate v6", 2026-10-27)
+
+- [ ] After the deploy: the candidate fit once by hand (writes the v6 fit), then the backfill with `--candidate` for the
+  v6 rows (prediction-history.md "Production run for v6")
+- [ ] Unboxed first tries after April 2026 scatter more than the window's: the April split's unboxed 80 % window held
+  75.9 % (80.1 % in the window) - fit the unboxed variance on a longer lookback (all unboxed first tries of the last 24
+  months, their predictions as of each) once the live rows confirm the drift
+- [ ] 1500+ pieces at k = 0: the image interval widened their windows on the June split (173 rows, 78 → 82 % in the 80 %
+  window, interval score +1.4 %) - check on the live rows; a size-group reference for the interval if it holds
+
 ## Candidate prediction model v5 - the taste factor (`docs/features/puzzle-intelligence/README.md` "The taste factor (v5)", 2026-10-27)
 
 - [ ] After the deploy: the candidate fit once by hand (writes the v5 fit and `candidate_player_taste`), then the
   backfill with `--candidate` for the v5 rows (prediction-history.md "Production run for the taste factor (v5)")
-- [ ] Unboxed first tries read their taste state from the served W (not cross-fitted): their 80 % window held 75.9 %
-  on the April split (v4 78.3 %) - refit the unboxed scale on cross-fitted states if it holds on live rows
+- [x] Unboxed first tries read their taste state from the served W (not cross-fitted): their 80 % window held 75.9 %
+  on the April split (v4 78.3 %). Measured with v6: cross-fitted states pick the same window on both splits - not the
+  cause (README "Candidate v6"); the rest moved to the v6 section
 - [ ] A first try enters the player's taste state only with the next daily fit - fold new first tries in between (the
   15-minute refresh) if the live rows show the lag matters
 - [ ] Launch (Jan): taste explanations ("you are quicker at photos") only for players with ≥ 30 first tries and a
@@ -38,10 +49,10 @@ that would otherwise be forgotten. Newest section on top.
   reads the statement buffered, ~100 MB more in the client library) - a cursor plus columns would take it to the
   ~230 MB of the difficulty and prediction model steps; check the `web` container's limit first (README "Memory of
   the daily fit")
-- [ ] Puzzles players disagree about most (dispersion ≥ 0.02): the weighted mean is 2.9 % worse than the shown median
-  there - try a robust index weight (Huber on the as-of mean) before launch
-- [ ] Not built: k = 0 dispersion from the picture's look-alike numbers (F8 - traits are not on the prediction
-  statements). The per-player event offset came with v5 (below)
+- [x] Puzzles players disagree about most (dispersion ≥ 0.02): the weighted mean is 2.9 % worse than the shown median
+  there - a robust index weight measured with v6 and left out (README "Candidate v6": −2.4 % there, ±0 overall, odd
+  sizes worse, O(k²) per as-of moment)
+- [x] k = 0 dispersion from the picture's look-alike numbers (F8) - built in v6 (the picture term)
 - [ ] Launch (Jan): one `MODEL_VERSION` bump making v4 the shown model - shown difficulty / tiers stay the median until
   decided; the Picker's `centreSql()` twin then needs the candidate's evidence columns
 

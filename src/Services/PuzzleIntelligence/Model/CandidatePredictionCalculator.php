@@ -29,17 +29,18 @@ use SpeedPuzzling\Web\Value\WindowBucket;
  * difficulty) × e^(centre offset) × e^(the player's taste term) [× e^(unboxed offset)]. The posterior is one formula for every k:
  * (Σ w l + m ÷ v) ÷ (Σ w + 1 ÷ v) over the puzzle's drift-adjusted, precision-weighted indices (CandidateEvidence) and
  * the first prior there is - the image estimate, else the puzzle-weighted brand × pieces prior, else the average
- * puzzle - each prior type with its own fitted variance v. The window: sigma² from the player's spread, the posterior
- * variance, the size group, the pace source and the puzzle's dispersion, × a context scale; quantiles per key with the
- * prior type.
+ * puzzle - each prior type with its own fitted variance v (v6: an image estimate's from its own interval). The window:
+ * sigma² from the player's spread, the posterior variance, the size group, the pace source and the puzzle's dispersion
+ * (v6: at k = 0 how alike the picture's pieces look; an unboxed solve's own variance), × a context scale; quantiles per
+ * key with the prior type.
  *
  * Repeat: the shown model's centre (TimePredictionCalculator::personal()) × e^(gap offset), the window with the gap
  * since the last solve.
  */
 final readonly class CandidatePredictionCalculator
 {
-    /** The model version of the candidate's rows (solving_time_prediction, prediction_model_fit) - 5 = v4 + the taste factor */
-    public const int MODEL_VERSION = 5;
+    /** The model version of the candidate's rows (solving_time_prediction, prediction_model_fit) - 5 = v4 + the taste factor, 6 = v5 + the image interval, the k = 0 picture term and the unboxed window */
+    public const int MODEL_VERSION = 6;
 
     public function __construct(
         private TimePredictionCalculator $shown = new TimePredictionCalculator(),
@@ -62,7 +63,7 @@ final readonly class CandidatePredictionCalculator
         $evidence = $inputs->candidateEvidence ?? CandidateEvidence::none();
         $k = $evidence->k;
         [$priorType, $priorLog] = $this->prior($inputs, $features->on('image_prior'), $features->on('puzzle_weighted_brand'));
-        $priorVariance = $parameters->priorVariance($features->on('prior_types') ? $priorType : 'pooled');
+        $priorVariance = self::priorVarianceOf($parameters, $priorType, $priorType === ImageEstimatePrior::NAME ? $inputs->prior->imageEstimate?->variance() : null);
 
         if ($features->on('posterior_all_k') === false && $k >= TimePredictionCalculator::RATED_INDICES && $inputs->difficultyScore !== null && $inputs->difficultyScore > 0.0 && $evidence->weightSum > 0.0) {
             // Switched off: the shown model's median from 5 indices on
@@ -82,9 +83,11 @@ final readonly class CandidatePredictionCalculator
 
         $dispersion = $features->on('dispersion') ? $evidence->dispersion($parameters->dispersionShrink) : 0.0;
         $contextScale = $parameters->contextScale($features->on('competition') && $conditions->competition, $unboxed);
-        $sigma = $parameters->firstTrySigma($spread, $posteriorVariance, $group, $paceSource, $dispersion, $contextScale, $features->on('centre_offsets') ? $inputs->candidateFirstTries : null, $paceVariance, $tasteVariance);
+        $pictureTerm = $k === 0 ? self::pictureTerm($inputs, $parameters) : 0.0;
+        $sigma = $parameters->firstTrySigma($spread, $posteriorVariance, $group, $paceSource, $dispersion, $contextScale, $features->on('centre_offsets') ? $inputs->candidateFirstTries : null, $paceVariance, $tasteVariance, $pictureTerm + ($unboxed ? $parameters->unboxedVariance : 0.0));
         $keys = self::firstTryKeys(WindowBucket::quartile($spread, $parameters->consistencyEdges), $kBucket, $group, $features->on('source_quantiles') ? $priorType : null, self::paceKey($paceSource, $inputs->piecesCount));
         $window = TimePredictionCalculator::window($centre, $sigma, $parameters->quantilesFor($keys));
+
 
         return new TimePredictionResult(
             predictedSeconds: TimePredictionCalculator::seconds($centre),
@@ -104,6 +107,37 @@ final readonly class CandidatePredictionCalculator
             windowBucket: $keys[0],
             paceSource: $paceSource,
         );
+    }
+
+    /**
+     * The variance of a prior type around the puzzle's difficulty: the fitted one per type (or one for all, switch
+     * prior_types); an image estimate's from its own interval (v6, switch image_interval -
+     * CandidateModelParameters::imagePriorVariance()).
+     */
+    public static function priorVarianceOf(CandidateModelParameters $parameters, string $priorType, null|float $estimateVariance): float
+    {
+        if ($parameters->features()->on('prior_types') === false) {
+            return $parameters->priorVariance('pooled');
+        }
+
+        return $priorType === ImageEstimatePrior::NAME && $estimateVariance !== null
+            ? $parameters->imagePriorVariance($estimateVariance)
+            : $parameters->priorVariance($priorType);
+    }
+
+    /**
+     * The window's picture term of a puzzle without indices (v6, switch picture_dispersion): how alike its pieces look
+     * (PictureDispersionModel) - 0 without the model or the numbers.
+     */
+    public static function pictureTerm(StatisticalPredictionInputs $inputs, CandidateModelParameters $parameters): float
+    {
+        $model = $parameters->pictureDispersion;
+
+        if ($model === null || $parameters->features()->on('picture_dispersion') === false) {
+            return 0.0;
+        }
+
+        return $model->term($inputs->candidatePicture?->lookalikes);
     }
 
     /**

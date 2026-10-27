@@ -321,6 +321,26 @@ final class ComparisonTest extends WebTestCase
         self::assertSame(2, $this->lineUpSize(PlayerFixture::PLAYER_REGULAR));
     }
 
+    public function testAMemberWhoRemovedThemselvesCanAddThemselvesBack(): void
+    {
+        $client = self::createClient();
+        TestingLogin::asPlayer($client, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $component = $this->mount($client, ['kind' => 'solo']);
+        $crawler = $component->render()->crawler();
+        self::assertContains(self::STRIPE_REF, self::excludedRefs($crawler));
+
+        $crawler = $component->call('remove', ['rowId' => ComparisonSubjectFixture::STRIPE_SELF])->render()->crawler();
+
+        self::assertNotContains('You', self::chipNames($crawler));
+        self::assertNotContains(self::STRIPE_REF, self::excludedRefs($crawler), 'The add sheet offers yourself again, not "Added"');
+
+        $crawler = $component->call('add', ['ref' => self::STRIPE_REF])->render()->crawler();
+
+        self::assertContains('You', self::chipNames($crawler));
+        self::assertContains(self::STRIPE_REF, self::excludedRefs($crawler));
+    }
+
     public function testWithoutAMembershipYouStayInYourOwnLineUp(): void
     {
         $client = self::createClient();
@@ -526,6 +546,19 @@ SQL,
         return $crawler->filter('[data-testid="comparison-chip"] .cmp-chip__name')->each(
             static fn (Crawler $name): string => trim($name->text()),
         );
+    }
+
+    /**
+     * Who the add sheet marks "Added"
+     *
+     * @return list<string>
+     */
+    private static function excludedRefs(Crawler $crawler): array
+    {
+        $refs = json_decode((string) $crawler->filter('#comparison-add-sheet')->attr('data-comparison-add-excluded-value'), true);
+        self::assertIsArray($refs);
+
+        return array_values(array_filter($refs, 'is_string'));
     }
 
     private function lineUpSize(string $playerId): int

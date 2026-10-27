@@ -949,10 +949,6 @@ final class Comparison
         ));
         $this->lineUpCount = count($kindItems);
 
-        if ($kind === ComparisonKind::Solo && in_array($viewerRef->toString(), $this->lineUpRefs, true) === false) {
-            $this->lineUpRefs[] = $viewerRef->toString();
-        }
-
         foreach ($itemsByKind['solo'] as $item) {
             if ($this->subjectFor($item->ref, ComparisonKind::Solo)->isAvailable) {
                 $this->excludedPlayerIds[] = $item->ref->id;

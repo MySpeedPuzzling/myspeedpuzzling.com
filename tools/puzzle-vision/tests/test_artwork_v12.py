@@ -178,3 +178,14 @@ def test_the_replay_reports_a_changed_crop_without_any_model(tmp_path):
     assert rp.replay_one(dict(row, imageFingerprint="ffff"), str(tmp_path))["status"] == "no image"
     s = rp.summarise([{k: v for k, v in out.items() if k != "result"}], 10)
     assert s["changed"] == 1 and s["status"] == {"replayed": 1}
+
+
+def test_a_grown_face_keeps_both_questions_for_the_next_rerun():
+    rgb = scene()
+    fp = first_pass(kind="box_front", gate={"flat": 0.0, "box": 0.4, "assembled": 0.1, "other": 0.0})
+    asked = []
+    first = ar.refine(rgb, rgb, fp, (W, H), (2000, 1500), ask_face=lambda face, kind: asked.append(1) or [0.0, 0.2, 1.0, 1.0])
+    assert "+grow" in first["method"] and len(asked) == 2 and first["signals"]["face"]["beforeGrow"]["answer"] is not None
+    again = ar.refine(rgb, rgb, ar.first_pass_from(first), (W, H), (2000, 1500),
+                      ask_face=lambda face, kind: pytest.fail("both answers are stored"), prior=first)
+    assert again["signals"]["vlmReused"]["face"] == 2 and again["bbox"] == first["bbox"]

@@ -147,8 +147,9 @@ random sample, so its weighted rates are the best estimate of the catalogue unti
   colour step (≥ 0.35 of the line) and the line agree within 1 % of the face. Prompted with the VLM's own box, the mask
   echoes that box: on a CPU sample it agreed with the VLM on a picture inside the picture and cut 41 %. Prompted with
   the first pass's box (`SAM_PROMPT = "held"`, independent of the VLM's line) it never added a cut but it barely
-  matters: tuning print 49 → 48, mIoU +0.0018; feedback no change; validation see image-pipeline.md §4 "1.2". SAM costs
-  ~3 s a face on the CPU (MPS faster) - not worth a model in the run.
+  matters: tuning print 49 → 48, mIoU +0.0018; feedback no change; validation 12 sides agreed, no count changed, mIoU
+  +0.0003 (CPU, the 47 / 68 pictures with a held side). SAM costs ~3 s a face on the CPU (MPS faster) - not worth a
+  model in the run; switch it on only if a later measurement on the random test set says otherwise.
 - **Whole-image probe (proposal 9, a signal only).** `signals.flatProbe` = a logistic probe on the stored
   `embed_siglip2_full` vector (`artwork_flat_probe.json`, trained on production outside the labelled sets). As a
   decision it cannot be validated: above a confident 2 it flips no tuning / feedback picture and one validation

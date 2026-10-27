@@ -24,13 +24,13 @@ final class PuzzleDifficultyCalculator implements ResetInterface
 
     /**
      * Bulk-load every qualifying first attempt with its solver's pace as of the solve: one query for
-     * the solves, one for the whole pace history, the lookups in PHP. Returns the set, which the
+     * the solves (through a cursor), one for the whole pace history, the lookups in PHP. Returns the set, which the
      * batch's prediction model step works on too.
      */
     public function preloadAllData(null|PaceTimeline $timeline = null): FirstAttemptSet
     {
         return $this->preloaded = FirstAttemptSet::build(
-            $this->baselineCalculator->iterateQualifyingFirstAttempts(paceOrder: true),
+            $this->baselineCalculator->streamQualifyingFirstAttemptsInPaceOrder(),
             $timeline ?? $this->paceTimelineLoader->all(),
         );
     }

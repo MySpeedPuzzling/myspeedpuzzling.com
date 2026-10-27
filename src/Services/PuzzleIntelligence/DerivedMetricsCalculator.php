@@ -16,8 +16,14 @@ final class DerivedMetricsCalculator implements ResetInterface
     private const int MINIMUM_FOR_BOX_DEPENDENCE_BOXED = 5;
     private const int MINIMUM_FOR_IMPROVEMENT_CEILING = 20;
 
-    /** @var array<string, list<array{player_id: string, seconds_to_solve: int, first_attempt: bool, unboxed: bool, baseline_seconds: null|int}>>|null */
-    private null|array $solveDataCache = null;
+    /**
+     * Every puzzle's metrics, computed while the solves stream by (preloadAllData()) - one puzzle's solves in memory at
+     * a time instead of one array per solo solve of every puzzle (the step peaked at 416-424 MB resident on the
+     * production copy, 142 MB now, 2026-10-27).
+     *
+     * @var array<string, array{memorability_score: float|null, skill_sensitivity_score: float|null, predictability_score: float|null, box_dependence_score: float|null, improvement_ceiling_score: float|null}>|null
+     */
+    private null|array $metricsCache = null;
 
     public function __construct(
         private readonly Connection $connection,
@@ -27,47 +33,50 @@ final class DerivedMetricsCalculator implements ResetInterface
     }
 
     /**
-     * Bulk-load all solve data for puzzles with difficulty scores in one query. Every solve is divided by its
-     * solver's pace as of that solve (PaceTimeline::paceAt(), the difficulty indices' lookup) - the batch hands in
-     * the timeline it loaded for the difficulty; without one (the pace history is not built yet) by today's baseline.
+     * The metrics of every puzzle with a difficulty score, from one statement read through a server-side cursor
+     * (CursorRows) in puzzle order: a puzzle's metrics are computed as soon as its solves are complete, so only one
+     * puzzle's solves are held at a time. Every solve is divided by its solver's pace as of that solve
+     * (PaceTimeline::paceAt(), the difficulty indices' lookup) - the batch hands in the timeline it loaded for the
+     * difficulty; without one (the pace history is not built yet) by today's baseline.
      */
     public function preloadAllData(null|PaceTimeline $timeline = null): void
     {
         $condition = 'pst.puzzle_id IN (SELECT puzzle_id FROM puzzle_difficulty WHERE difficulty_score IS NOT NULL)';
-        $cache = [];
+        $metrics = [];
 
-        foreach ($this->loadSolves($condition, [], $timeline) as $puzzleId => $solves) {
-            $cache[$puzzleId] = $solves;
+        foreach ($this->solvesPerPuzzle($condition, [], $timeline, stream: true) as $puzzleId => $solves) {
+            $metrics[$puzzleId] = $this->metricsOf($solves);
         }
 
-        $this->solveDataCache = $cache;
+        $this->metricsCache = $metrics;
     }
 
     public function clearPreloadedData(): void
     {
-        $this->solveDataCache = null;
+        $this->metricsCache = null;
     }
 
     public function reset(): void
     {
-        $this->solveDataCache = null;
+        $this->metricsCache = null;
     }
 
     /**
-     * Solo, non-suspicious, timed solves per puzzle in the order of each player's attempts, each with its solver's
-     * pace as of the solve ($timeline) or today's baseline (no timeline).
+     * Solo, non-suspicious, timed solves of each puzzle in the order of each player's attempts - one puzzle at a time,
+     * each solve with its solver's pace as of the solve ($timeline) or today's baseline (no timeline). $stream reads
+     * the statement through a cursor (every puzzle); one puzzle's rows are read at once.
      *
      * @param array<string, string> $params
-     * @return array<string, list<array{player_id: string, seconds_to_solve: int, first_attempt: bool, unboxed: bool, baseline_seconds: null|int}>>
+     * @return \Generator<string, list<array{player_id: string, seconds_to_solve: int, first_attempt: bool, unboxed: bool, baseline_seconds: null|int}>>
      */
-    private function loadSolves(string $condition, array $params, null|PaceTimeline $timeline): array
+    private function solvesPerPuzzle(string $condition, array $params, null|PaceTimeline $timeline, bool $stream): \Generator
     {
         $baselineJoin = $timeline === null
             ? 'LEFT JOIN player_baseline pb ON pb.player_id = pst.player_id AND pb.pieces_count = p.pieces_count'
             : '';
         $baselineColumn = $timeline === null ? 'pb.baseline_seconds' : 'NULL AS baseline_seconds';
 
-        $rows = $this->connection->executeQuery("
+        $sql = "
             SELECT
                 pst.puzzle_id,
                 pst.player_id,
@@ -86,17 +95,30 @@ final class DerivedMetricsCalculator implements ResetInterface
                 AND pst.seconds_to_solve IS NOT NULL
                 AND {$condition}
             ORDER BY pst.puzzle_id, pst.player_id, COALESCE(pst.finished_at, pst.tracked_at) ASC, pst.tracked_at ASC
-        ", $params)->iterateAssociative();
+        ";
+        $rows = $stream
+            ? CursorRows::iterate($this->connection, $sql, $params)
+            : $this->connection->executeQuery($sql, $params)->iterateAssociative();
 
+        $puzzleId = null;
         $solves = [];
 
         foreach ($rows as $row) {
             /** @var array{puzzle_id: string, player_id: string, pieces_count: int|string, seconds_to_solve: int|string, first_attempt: bool, unboxed: bool, solved_ts: float|int|string, tracked_ts: float|int|string, baseline_seconds: null|int|string} $row */
+            if ($row['puzzle_id'] !== $puzzleId) {
+                if ($puzzleId !== null) {
+                    yield $puzzleId => $solves;
+                }
+
+                $puzzleId = $row['puzzle_id'];
+                $solves = [];
+            }
+
             $baseline = $timeline !== null
                 ? $timeline->paceAt($row['player_id'], (int) $row['pieces_count'], (float) $row['solved_ts'], (float) $row['tracked_ts'])
                 : ($row['baseline_seconds'] !== null ? (int) $row['baseline_seconds'] : null);
 
-            $solves[$row['puzzle_id']][] = [
+            $solves[] = [
                 'player_id' => $row['player_id'],
                 'seconds_to_solve' => (int) $row['seconds_to_solve'],
                 'first_attempt' => (bool) $row['first_attempt'],
@@ -105,7 +127,9 @@ final class DerivedMetricsCalculator implements ResetInterface
             ];
         }
 
-        return $solves;
+        if ($puzzleId !== null) {
+            yield $puzzleId => $solves;
+        }
     }
 
     /**
@@ -127,7 +151,11 @@ final class DerivedMetricsCalculator implements ResetInterface
             $timeline = $this->paceTimelineLoader->forPlayers($solvers, $exponent);
         }
 
-        return $this->loadSolves('pst.puzzle_id = :puzzleId', ['puzzleId' => $puzzleId], $timeline)[$puzzleId] ?? [];
+        foreach ($this->solvesPerPuzzle('pst.puzzle_id = :puzzleId', ['puzzleId' => $puzzleId], $timeline, stream: false) as $solves) {
+            return $solves;
+        }
+
+        return [];
     }
 
     /**
@@ -145,10 +173,19 @@ final class DerivedMetricsCalculator implements ResetInterface
      */
     public function calculateForPuzzle(string $puzzleId): array
     {
-        $solves = $this->solveDataCache !== null
-            ? ($this->solveDataCache[$puzzleId] ?? [])
-            : $this->solvesOfPuzzle($puzzleId);
+        if ($this->metricsCache !== null) {
+            return $this->metricsCache[$puzzleId] ?? $this->metricsOf([]);
+        }
 
+        return $this->metricsOf($this->solvesOfPuzzle($puzzleId));
+    }
+
+    /**
+     * @param list<array{player_id: string, seconds_to_solve: int, first_attempt: bool, unboxed: bool, baseline_seconds: null|int}> $solves ordered by player, solve date
+     * @return array{memorability_score: float|null, skill_sensitivity_score: float|null, predictability_score: float|null, box_dependence_score: float|null, improvement_ceiling_score: float|null}
+     */
+    private function metricsOf(array $solves): array
+    {
         $boxedIndices = self::indices($solves, boxedOnly: true);
         $unboxedIndices = self::indices($solves, unboxedOnly: true);
 

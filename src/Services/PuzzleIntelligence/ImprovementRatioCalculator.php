@@ -11,11 +11,21 @@ final class ImprovementRatioCalculator implements ResetInterface
 {
     private const int MINIMUM_PLAYER_SAMPLES = 3;
 
-    /** @var array<string, list<array{from_attempt: int, ratio: float, gap_days: float}>>|null */
-    private null|array $playerTransitionsCache = null;
+    /**
+     * Every player's ratios (playerRatiosFromTransitions() of their transitions), computed when the stream moves past
+     * the player - the transitions themselves are not kept
+     *
+     * @var array<string, list<array{from_attempt: int, median_ratio: float, sample_size: int}>>|null
+     */
+    private null|array $playerRatiosCache = null;
 
-    /** @var array<int, list<array{from_attempt: int, ratio: float, gap_days: float}>>|null */
-    private null|array $piecesCountTransitionsCache = null;
+    /**
+     * The ratios of every piece count's transitions grouped as computeGlobalRatios() groups them: from attempt => gap
+     * bucket => ratios, and from attempt => ratios ("all"), each in the order of the transitions
+     *
+     * @var array<int, array{bucketed: array<int, array<string, list<float>>>, all: array<int, list<float>>}>|null
+     */
+    private null|array $piecesCountRatiosCache = null;
 
     public function __construct(
         private readonly Connection $connection,
@@ -23,13 +33,14 @@ final class ImprovementRatioCalculator implements ResetInterface
     }
 
     /**
-     * Bulk-load all transition data in one query, compute transitions in PHP.
-     * Call once before the per-player/global loops for O(1) lookups.
+     * Every solve's transition from one statement read through a server-side cursor (CursorRows) in player order -
+     * the result is never held whole, nor the transitions (the step peaked at 407-429 MB resident on the production
+     * copy with both, ~95 MB without, 2026-10-27). Call once before the per-player/global loops for O(1) lookups.
      */
     public function preloadAllTransitions(): void
     {
-        /** @var list<array{player_id: string, puzzle_id: string, pieces_count: int|string, seconds_to_solve: int|string, solved_at: string}> $rows */
-        $rows = $this->connection->fetchAllAssociative("
+        /** @var iterable<array{player_id: string, puzzle_id: string, pieces_count: int|string, seconds_to_solve: int|string, solved_at: string}> $rows */
+        $rows = CursorRows::iterate($this->connection, "
             SELECT pst.player_id, pst.puzzle_id, p.pieces_count, pst.seconds_to_solve,
                    COALESCE(pst.finished_at, pst.tracked_at) AS solved_at
             FROM puzzle_solving_time pst
@@ -41,8 +52,10 @@ final class ImprovementRatioCalculator implements ResetInterface
             ORDER BY pst.player_id, pst.puzzle_id, COALESCE(pst.finished_at, pst.tracked_at), pst.tracked_at ASC
         ");
 
-        $playerCache = [];
-        $piecesCache = [];
+        $playerRatios = [];
+        $piecesRatios = [];
+        // The transitions of the player the stream is at (the rows come player by player)
+        $playerTransitions = [];
 
         // Iterate ordered rows, group by (player_id, puzzle_id) to compute transitions
         $prevPlayerId = null;
@@ -58,6 +71,11 @@ final class ImprovementRatioCalculator implements ResetInterface
             $seconds = (int) $row['seconds_to_solve'];
             $solvedAt = $row['solved_at'];
             $piecesCount = (int) $row['pieces_count'];
+
+            if ($playerId !== $prevPlayerId && $prevPlayerId !== null && $playerTransitions !== []) {
+                $playerRatios[$prevPlayerId] = $this->playerRatiosFromTransitions($playerTransitions);
+                $playerTransitions = [];
+            }
 
             if ($playerId !== $prevPlayerId || $puzzleId !== $prevPuzzleId) {
                 // New group — reset attempt counter
@@ -82,8 +100,11 @@ final class ImprovementRatioCalculator implements ResetInterface
             );
 
             if ($transition !== null) {
-                $playerCache[$playerId][] = $transition;
-                $piecesCache[$prevPiecesCount][] = $transition;
+                $playerTransitions[] = $transition;
+                $fromAttempt = $transition['from_attempt'];
+                $piecesRatios[$prevPiecesCount] ??= ['bucketed' => [], 'all' => []];
+                $piecesRatios[$prevPiecesCount]['bucketed'][$fromAttempt][self::classifyGapBucket($transition['gap_days'])][] = $transition['ratio'];
+                $piecesRatios[$prevPiecesCount]['all'][$fromAttempt][] = $transition['ratio'];
             }
 
             $prevSeconds = $seconds;
@@ -91,8 +112,12 @@ final class ImprovementRatioCalculator implements ResetInterface
             $prevPiecesCount = $piecesCount;
         }
 
-        $this->playerTransitionsCache = $playerCache;
-        $this->piecesCountTransitionsCache = $piecesCache;
+        if ($prevPlayerId !== null && $playerTransitions !== []) {
+            $playerRatios[$prevPlayerId] = $this->playerRatiosFromTransitions($playerTransitions);
+        }
+
+        $this->playerRatiosCache = $playerRatios;
+        $this->piecesCountRatiosCache = $piecesRatios;
     }
 
     /**
@@ -200,8 +225,8 @@ final class ImprovementRatioCalculator implements ResetInterface
 
     public function clearPreloadedData(): void
     {
-        $this->playerTransitionsCache = null;
-        $this->piecesCountTransitionsCache = null;
+        $this->playerRatiosCache = null;
+        $this->piecesCountRatiosCache = null;
     }
 
     public function reset(): void
@@ -217,7 +242,7 @@ final class ImprovementRatioCalculator implements ResetInterface
      */
     public function computeGlobalRatios(int $piecesCount): array
     {
-        if ($this->piecesCountTransitionsCache !== null) {
+        if ($this->piecesCountRatiosCache !== null) {
             return $this->computeGlobalRatiosFromCache($piecesCount);
         }
 
@@ -232,8 +257,8 @@ final class ImprovementRatioCalculator implements ResetInterface
      */
     public function calculateForPlayer(string $playerId): array
     {
-        if ($this->playerTransitionsCache !== null) {
-            return $this->calculateForPlayerFromCache($playerId);
+        if ($this->playerRatiosCache !== null) {
+            return $this->playerRatiosCache[$playerId] ?? [];
         }
 
         return $this->calculateForPlayerFromDb($playerId);
@@ -254,24 +279,15 @@ final class ImprovementRatioCalculator implements ResetInterface
      */
     private function computeGlobalRatiosFromCache(int $piecesCount): array
     {
-        $transitions = $this->piecesCountTransitionsCache[$piecesCount] ?? [];
+        // Grouped by (from_attempt, gap_bucket) while the transitions streamed by
+        $groups = $this->piecesCountRatiosCache[$piecesCount] ?? null;
 
-        if ($transitions === []) {
+        if ($groups === null) {
             return [];
         }
 
-        // Group by (from_attempt, gap_bucket)
-        $bucketedGroups = [];
-        $allGroups = [];
-
-        foreach ($transitions as $t) {
-            $fromAttempt = $t['from_attempt'];
-            $gapBucket = self::classifyGapBucket($t['gap_days']);
-
-            $bucketedGroups[$fromAttempt][$gapBucket][] = $t['ratio'];
-            $allGroups[$fromAttempt][] = $t['ratio'];
-        }
-
+        $bucketedGroups = $groups['bucketed'];
+        $allGroups = $groups['all'];
         $results = [];
 
         // Bucketed ratios
@@ -351,14 +367,6 @@ final class ImprovementRatioCalculator implements ResetInterface
         }
 
         return $results;
-    }
-
-    /**
-     * @return list<array{from_attempt: int, median_ratio: float, sample_size: int}>
-     */
-    private function calculateForPlayerFromCache(string $playerId): array
-    {
-        return $this->playerRatiosFromTransitions($this->playerTransitionsCache[$playerId] ?? []);
     }
 
     /**

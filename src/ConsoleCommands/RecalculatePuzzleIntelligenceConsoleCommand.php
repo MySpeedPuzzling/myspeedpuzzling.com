@@ -62,8 +62,8 @@ final class RecalculatePuzzleIntelligenceConsoleCommand extends Command
         ));
 
         if ($output->isVerbose()) {
-            $io->table(['Step', 'Seconds', 'Peak MB'], array_map(
-                static fn (string $step, float $seconds): array => [$step, $seconds, $result['peak_memory'][$step] ?? ''],
+            $io->table(['Step', 'Seconds', 'PHP peak MB', 'Resident peak MB (step)'], array_map(
+                static fn (string $step, float $seconds): array => [$step, $seconds, $result['peak_memory'][$step] ?? '', $result['resident_peak'][$step] ?? '-'],
                 array_keys($result['durations']),
                 $result['durations'],
             ));

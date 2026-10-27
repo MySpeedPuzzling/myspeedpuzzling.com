@@ -41,11 +41,18 @@ final class MspRatingCalculator implements ResetInterface
     private null|array $puzzleRankingCache = null;
 
     /**
-     * Pre-computed per-player solve data: puzzle_id => {first_attempt_time, first_attempt_date, best_time, latest_solve_date}.
+     * Pre-computed per-player solve data: puzzle_id, first_attempt_time, first_attempt_date, best_time, latest_solve_date
+     * per puzzle - packed (packSolve(), PACKED_LENGTH bytes a puzzle) instead of an array of five per player and puzzle
+     * (with the cursors the step went from 343-352 to 145-155 MB resident on the production copy, 2026-10-27).
      *
-     * @var array<string, list<array{puzzle_id: string, first_attempt_time: int|null, first_attempt_date: string|null, best_time: int, latest_solve_date: string}>>|null
+     * @var array<string, string>|null
      */
     private null|array $playerSolvesCache = null;
+
+    /** A player's puzzle packed in the preloaded cache (packSolve()): id, presence byte, two 32-bit times, two moments */
+    private const int PACKED_ID_LENGTH = 36;
+    private const int PACKED_DATE_LENGTH = 19;
+    private const int PACKED_LENGTH = self::PACKED_ID_LENGTH + 1 + 4 + self::PACKED_DATE_LENGTH + 4 + self::PACKED_DATE_LENGTH;
 
     /**
      * Pre-computed eligibility data per player.
@@ -98,10 +105,11 @@ final class MspRatingCalculator implements ResetInterface
 
         $puzzleIds = array_column($puzzles, 'puzzle_id');
 
-        // Bulk first-attempt times (public players only, one per player per puzzle)
+        // Bulk first-attempt times (public players only, one per player per puzzle), read through a server-side cursor
+        // (CursorRows) like the other large statements of the step: never the whole result in the client library.
         // Ordered by solved_at ASC so the dedup below keeps the earliest row per player — matches DISTINCT ON behavior
-        /** @var list<array{puzzle_id: string, player_id: string, seconds_to_solve: int|string}> $faRows */
-        $faRows = $this->connection->fetchAllAssociative("
+        /** @var iterable<array{puzzle_id: string, player_id: string, seconds_to_solve: int|string}> $faRows */
+        $faRows = CursorRows::iterate($this->connection, "
             SELECT pst.puzzle_id, pst.player_id, pst.seconds_to_solve
             FROM puzzle_solving_time pst
             JOIN player pl ON pl.id = pst.player_id
@@ -114,21 +122,24 @@ final class MspRatingCalculator implements ResetInterface
             ORDER BY pst.puzzle_id, pst.player_id, COALESCE(pst.finished_at, pst.tracked_at) ASC, pst.tracked_at ASC
         ", ['puzzleIds' => $puzzleIds], ['puzzleIds' => ArrayParameterType::STRING]);
 
-        // Deduplicate: keep first row per (puzzle_id, player_id) — matches DISTINCT ON behavior
+        // Deduplicate: keep first row per (puzzle_id, player_id) — matches DISTINCT ON behavior. The rows come puzzle by
+        // puzzle and player by player, so a player's first row is the one after another player's (or puzzle's)
         $faPerPuzzle = [];
+        $previous = null;
 
         foreach ($faRows as $row) {
             $puzzleId = $row['puzzle_id'];
-            $playerId = $row['player_id'];
+            $key = $puzzleId . $row['player_id'];
 
-            if (!isset($faPerPuzzle[$puzzleId][$playerId])) {
-                $faPerPuzzle[$puzzleId][$playerId] = (int) $row['seconds_to_solve'];
+            if ($key !== $previous) {
+                $faPerPuzzle[$puzzleId][] = (int) $row['seconds_to_solve'];
+                $previous = $key;
             }
         }
 
         // Bulk best times per player per puzzle (public players only)
-        /** @var list<array{puzzle_id: string, best_time: int|string}> $btRows */
-        $btRows = $this->connection->fetchAllAssociative("
+        /** @var iterable<array{puzzle_id: string, best_time: int|string}> $btRows */
+        $btRows = CursorRows::iterate($this->connection, "
             SELECT pst.puzzle_id, MIN(pst.seconds_to_solve) AS best_time
             FROM puzzle_solving_time pst
             JOIN player pl ON pl.id = pst.player_id
@@ -152,7 +163,7 @@ final class MspRatingCalculator implements ResetInterface
         foreach ($puzzles as $puzzle) {
             $puzzleId = $puzzle['puzzle_id'];
 
-            $faTimesSorted = array_values($faPerPuzzle[$puzzleId] ?? []);
+            $faTimesSorted = $faPerPuzzle[$puzzleId] ?? [];
             $btTimesSorted = $btPerPuzzle[$puzzleId] ?? [];
             sort($faTimesSorted);
             sort($btTimesSorted);
@@ -194,8 +205,8 @@ final class MspRatingCalculator implements ResetInterface
     {
         $cutoffDate = $this->getCutoffDate();
 
-        /** @var list<array{player_id: string, puzzle_id: string, first_attempt_time: int|string|null, first_attempt_date: string|null, best_time: int|string, latest_solve_date: string}> $rows */
-        $rows = $this->connection->fetchAllAssociative("
+        /** @var iterable<array{player_id: string, puzzle_id: string, first_attempt_time: int|string|null, first_attempt_date: string|null, best_time: int|string, latest_solve_date: string}> $rows */
+        $rows = CursorRows::iterate($this->connection, "
             SELECT
                 pst.player_id,
                 pst.puzzle_id,
@@ -226,13 +237,8 @@ final class MspRatingCalculator implements ResetInterface
             $faTime = $row['first_attempt_time'] !== null ? (int) $row['first_attempt_time'] : null;
             $faDate = $row['first_attempt_date'];
 
-            $solvesCache[$playerId][] = [
-                'puzzle_id' => $row['puzzle_id'],
-                'first_attempt_time' => $faTime,
-                'first_attempt_date' => $faDate,
-                'best_time' => (int) $row['best_time'],
-                'latest_solve_date' => $row['latest_solve_date'],
-            ];
+            $solvesCache[$playerId] ??= '';
+            $solvesCache[$playerId] .= self::packSolve($row['puzzle_id'], $faTime, $faDate, (int) $row['best_time'], $row['latest_solve_date']);
 
             // Compute progress
             if (!isset($progressCache[$playerId])) {
@@ -338,7 +344,7 @@ final class MspRatingCalculator implements ResetInterface
         $now = $this->clock->now();
 
         if ($this->playerSolvesCache !== null) {
-            $playerSolves = $this->playerSolvesCache[$playerId] ?? [];
+            $playerSolves = self::unpackSolves($this->playerSolvesCache[$playerId] ?? '');
         } else {
             /** @var list<array{puzzle_id: string, first_attempt_time: int|string|null, first_attempt_date: string|null, best_time: int|string, latest_solve_date: string}> $playerSolves */
             $playerSolves = $this->connection->fetchAllAssociative("
@@ -456,6 +462,54 @@ final class MspRatingCalculator implements ResetInterface
     private static function byPoints(array $a, array $b): int
     {
         return $b['points'] <=> $a['points'] ?: strcmp($a['puzzle_id'], $b['puzzle_id']);
+    }
+
+    /**
+     * One puzzle of a player in the preloaded cache: the id, a byte saying which first-attempt values exist, the
+     * first-attempt time and moment (zeros and spaces when there is none), the best time and the latest solve moment -
+     * moments as Postgres prints a timestamp(0) as text
+     */
+    private static function packSolve(string $puzzleId, null|int $firstAttemptTime, null|string $firstAttemptDate, int $bestTime, string $latestSolveDate): string
+    {
+        if (
+            strlen($puzzleId) !== self::PACKED_ID_LENGTH
+            || strlen($latestSolveDate) !== self::PACKED_DATE_LENGTH
+            || ($firstAttemptDate !== null && strlen($firstAttemptDate) !== self::PACKED_DATE_LENGTH)
+        ) {
+            throw new \LogicException(sprintf('Not packable: %s, %s, %s', $puzzleId, $firstAttemptDate ?? '-', $latestSolveDate));
+        }
+
+        return $puzzleId
+            . pack('C', ($firstAttemptTime !== null ? 1 : 0) | ($firstAttemptDate !== null ? 2 : 0))
+            . pack('l', $firstAttemptTime ?? 0)
+            . str_pad((string) $firstAttemptDate, self::PACKED_DATE_LENGTH)
+            . pack('l', $bestTime)
+            . $latestSolveDate;
+    }
+
+    /**
+     * @return list<array{puzzle_id: string, first_attempt_time: int|null, first_attempt_date: string|null, best_time: int, latest_solve_date: string}>
+     */
+    private static function unpackSolves(string $packed): array
+    {
+        $solves = [];
+
+        for ($offset = 0, $length = strlen($packed); $offset < $length; $offset += self::PACKED_LENGTH) {
+            $at = $offset + self::PACKED_ID_LENGTH;
+            /** @var array{present: int, firstAttemptTime: int} $head */
+            $head = unpack('Cpresent/lfirstAttemptTime', $packed, $at);
+            /** @var array{1: int} $best */
+            $best = unpack('l', $packed, $at + 5 + self::PACKED_DATE_LENGTH);
+            $solves[] = [
+                'puzzle_id' => substr($packed, $offset, self::PACKED_ID_LENGTH),
+                'first_attempt_time' => ($head['present'] & 1) === 1 ? $head['firstAttemptTime'] : null,
+                'first_attempt_date' => ($head['present'] & 2) === 2 ? substr($packed, $at + 5, self::PACKED_DATE_LENGTH) : null,
+                'best_time' => $best[1],
+                'latest_solve_date' => substr($packed, $at + 9 + self::PACKED_DATE_LENGTH, self::PACKED_DATE_LENGTH),
+            ];
+        }
+
+        return $solves;
     }
 
     private function getCutoffDate(): \DateTimeImmutable

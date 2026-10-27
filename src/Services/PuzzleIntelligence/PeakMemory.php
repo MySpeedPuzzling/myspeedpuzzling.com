@@ -20,4 +20,15 @@ final readonly class PeakMemory
 
         return (int) round((int) $match[1] / 1024);
     }
+
+    /**
+     * Starts the peak over at the current resident memory ("5" to /proc/self/clear_refs, Linux 4.0+), so the next
+     * residentMegabytes() is the peak since now - a batch step's own peak. Quietly nothing where that is not there.
+     */
+    public static function resetResidentPeak(): void
+    {
+        if (is_writable('/proc/self/clear_refs')) {
+            @file_put_contents('/proc/self/clear_refs', '5');
+        }
+    }
 }

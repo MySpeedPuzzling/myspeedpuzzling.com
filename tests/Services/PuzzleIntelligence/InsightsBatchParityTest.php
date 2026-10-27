@@ -99,7 +99,7 @@ final class InsightsBatchParityTest extends KernelTestCase
      */
     private static function counts(array $result): array
     {
-        unset($result['durations'], $result['peak_memory'], $result['generation']);
+        unset($result['durations'], $result['peak_memory'], $result['resident_peak'], $result['generation']);
 
         return $result;
     }

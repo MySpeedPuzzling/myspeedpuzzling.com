@@ -154,6 +154,77 @@ on the production copy with synthetic picture estimates; they are not in the rep
   on a card but never makes a puzzle match a budget filter. Decide at the launch whether the filter should read
   `blend_prior_log` for k = 0 (measure the Picker then).
 
+## Picture estimate 1.2.0 (`difficulty_prior`, 2026-10-27)
+
+The image pipeline's picture estimate behind the `picture` basis and the side-by-side `image` / `blend` predictors
+(runbook: [`image-pipeline.md`](./image-pipeline.md) §7, code `tools/puzzle-vision/puzzle_vision/derive/difficulty_prior.py`).
+Built from the prediction-model review of 2026-10-26 (image-model P1/P3/P4/P6, data-mining F1/F3, artwork proposal 3).
+**Nothing shown changes**: the estimates are side by side only; a new estimate generation closes every image gate
+(`image-estimate-gates.md`) until `myspeedpuzzling:evaluate-image-estimates` measured it.
+
+What changed and why (every number below: the module's own `validate` on the 2026-10-24 data, the same 10,406
+training puzzles for both versions; 1.1.0 = the committed module, which reproduces its production record exactly):
+
+- **Ridge + kernel ridge** (P1): 0.5 × the 1.1.0 ridge + 0.5 × an RBF kernel ridge on the unit-normed embedding blocks
+  and the standardised numbers / pieces (bandwidth 2, alpha 0.1 - chosen by the review on the older puzzles, fixed
+  and recorded). Newer from older alone: Spearman 0.704 → 0.721, MAE 0.0885 → 0.0854; paired bootstrap ρ +0.018
+  [+0.005, +0.030], MAE −0.003 [−0.005, −0.001]. Above 20,000 training puzzles a seeded Nyström kernel with 6,000
+  landmarks takes over (measured on the same split: correlation with the exact kernel 0.998, ensemble ρ 0.7215 vs
+  0.7209).
+- **Brand × size offset** (settles the two reviews' disagreement): a shrunk offset Σ w r / (Σ w + 10) of the
+  out-of-fold residuals per manufacturer × piece count, on top of the ensemble. It helps at every time cut, the
+  bootstrap CIs exclude zero: 60 % cut MAE −0.0029 [−0.0043, −0.0014], ρ +0.015; 70 % −0.0030 [−0.0047, −0.0014],
+  ρ +0.011; 80 % −0.0031 [−0.0050, −0.0013], ρ +0.016 (n ≥ 20; n ≥ 10 the same). Brand alone helps less (70 %: MAE
+  0.0830 vs 0.0824); a hierarchical brand → brand × size shrinkage did not beat it. The image-model reviewer's "no
+  signal" measured brand × pieces as a *feature or prior* (Spearman of the prior alone 0.04-0.15), not as a
+  correction of the picture's residual - both are right. Out-of-fold estimates take the offset from "pair models"
+  trained without their fold and without the residual's own fold: an out-of-fold estimate never depends on its own
+  label (test-pinned). A new brand or size gets no offset.
+- **Heteroscedastic intervals** (P4): σ̂ (Huber on |residual|: the estimate, the 10 nearest training pictures'
+  similarity and label spread, |estimate − their labels|, crop flags, ln pixels per piece, size, kind) × normalised
+  split-conformal quantiles per size group, σ̂ shrunk 0.75 toward its mean. Against the 1.1.0 table on the same
+  predictions (n ≥ 10 newer): Winkler-80 0.4038 → 0.3964 (60 % cut 0.4048 → 0.3966, 80 % 0.4264 → 0.4159), the 50 %
+  window 0.473 → 0.511 hit (it under-covered), 80 % coverage by doubt tercile 0.83 / 0.75 / 0.74 → 0.78 / 0.76 / 0.82
+  (the table is too wide where the picture is easy and too narrow where it is doubtful). Unshrunk σ̂ over-corrects
+  (0.75 / 0.78 / 0.85). The pipeline now pushes its own 50 % window (`logP25` / `logP75`) next to the 80 %.
+  Crop trust is deliberately **not** a σ̂ input (artwork review proposal 3: it did not improve the interval on a time
+  split); it is stored with the estimate for a re-test at ≥ 300 measured new photo puzzles.
+- **Paired push guard** (P3) and **`newest30`** in the record (P6) - runbook §7.
+- **Stored now for later models** (nullable columns of `puzzle_difficulty_estimate`, unused by any prediction):
+  `logP25` / `logP75`, `pixelsPerPiece`, `cropTrust` (the `crop_trust` analyzer's, null until it exists),
+  `pictureFactors` (16) + `pictureFactorsVersion` (frozen PCA basis 1.0.0 of the SigLIP 2 crop, 35.6 % of its variance -
+  the taste model's puzzle side). The optional `piece_scale` analyzer joins the numbers automatically once it covers
+  90 % of the training puzzles (estimate generation 1.2.1).
+
+| Slice | n | Spearman | MAE (log) | Tier exact | 50 % window | 80 % window | 80 % width |
+|---|---|---|---|---|---|---|---|
+| **Newer from older** (n ≥ 20, the guard's number) | 433 | 0.704 → **0.732** | 0.0885 → **0.0824** | 0.550 → **0.584** (Avg 0.416) | 0.492 → 0.533 | 0.787 → 0.801 | 0.256 → 0.257 |
+| newer 500 flat | 284 | 0.715 → **0.744** | 0.0882 → **0.0824** | 0.539 → **0.578** (Avg 0.408) | 0.465 → 0.496 | 0.768 → 0.778 | 0.256 → 0.245 |
+| newer 500 box | 49 | 0.701 → 0.696 | 0.0832 → **0.0778** | 0.571 → 0.531 (Avg 0.388) | 0.673 → 0.673 | 0.898 → 0.857 | 0.327 → 0.297 |
+| newer 500 assembled | 23 | 0.887 → 0.886 | 0.0924 → 0.0988 | 0.565 → 0.609 (Avg 0.261) | 0.478 → 0.522 | 0.783 → 0.826 | 0.293 → 0.294 |
+| newer ≤300 flat | 34 | 0.670 → **0.757** | 0.0841 → **0.0649** | 0.588 → **0.647** (Avg 0.471) | 0.471 → 0.618 | 0.794 → 0.853 | 0.262 → 0.245 |
+| **Newest 30 %, n ≥ 10** (out of fold - the gate's population) | 759 | 0.692 → **0.736** | 0.0886 → **0.0798** | 0.564 → **0.597** (Avg 0.435) | 0.505 → 0.524 | 0.785 → 0.802 | 0.255 → 0.247 |
+| newest 500 flat | 394 | 0.699 → **0.756** | 0.0867 → **0.0771** | 0.553 → **0.584** (Avg 0.416) | 0.502 → 0.520 | 0.756 → 0.789 | 0.255 → 0.237 |
+| newest 500 box | 117 | 0.651 → **0.697** | 0.0915 → **0.0860** | 0.573 → **0.598** (Avg 0.496) | 0.504 → 0.547 | 0.838 → 0.769 | 0.301 → 0.252 |
+| newest 500 assembled | 47 | 0.856 → 0.852 | 0.0884 → **0.0828** | 0.638 → 0.638 (Avg 0.404) | 0.532 → 0.532 | 0.830 → 0.872 | 0.270 → 0.273 |
+| newest ≤300 flat | 81 | 0.640 → **0.703** | 0.0899 → **0.0742** | 0.568 → **0.630** (Avg 0.432) | 0.481 → 0.543 | 0.765 → 0.827 | 0.271 → 0.245 |
+| newest 1000 flat | 24 | 0.756 → 0.813 | 0.0766 → 0.0825 | 0.542 → 0.542 (Avg 0.250) | 0.500 → 0.375 | 0.792 → 0.750 | 0.256 → 0.225 |
+| Out of fold, n ≥ 20 (all ages) | 2,142 | 0.762 → **0.791** | 0.0815 → **0.0752** | 0.575 → **0.606** (Avg 0.454) | 0.506 → 0.525 | 0.813 → 0.826 | 0.255 → 0.239 |
+| Brands held out, n ≥ 20 | 2,142 | 0.686 → **0.704** | 0.0935 → **0.0909** | 0.534 → **0.542** (Avg 0.454) | 0.528 → 0.504 | 0.814 → 0.821 | 0.281 → 0.280 |
+
+Reading it: the honest gain is the newer and newest rows - MAE −7 % / −10 %, which by the review's rule of thumb
+(+0.04 exact per 10 % less MAE) is the tier-exact gain seen (+0.03). The 500 flat gate group, the one 1.1.0 missed by
+0.4 SE (prod 0.547 vs the 0.56 bar), now reads 0.578 / 0.584 offline. Groups under ~50 puzzles move within their
+noise (500 box newer n = 49 exact −0.04, but the newest-30 % 500 box with 117 puzzles +0.025; 1000 flat n = 24). The
+newer 500 box 80 % window narrows from an over-covering 0.90 to 0.86 (newest: 0.84 → 0.77 - watch it in the gate
+record; the app's per size × kind window scale is refitted from the gate rows anyway).
+
+Cost: the nightly run is about 2.5 × 1.1.0's (12 more kernel fits and the 10 pair models of the offset): 50 min on the
+review machine under heavy load from other jobs (load average ~100; train 31 min, validate 19 min, estimates 25 s) -
+expect ~20-25 min on a quiet M3. The paired-guard file is 135 MB. Not verified offline: the effect on the app's
+per-solve picture predictions and the gate record (needs the push and `evaluate-image-estimates` on production -
+the orchestrator's step after merge).
+
 ## Not built / follow-ups
 
 (Also in `docs/TODO.md`, "Insights page".)

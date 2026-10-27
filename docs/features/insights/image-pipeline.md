@@ -234,8 +234,8 @@ touched. `difficulty_prior` runs last (below); the nightly `--daily` run of the 
 
 ### `difficulty_prior` - picture-based difficulty estimates (plan §5.3)
 
-Not an image analyzer: it trains ridge regressions (scikit-learn, CPU, ~4 minutes for the catalogue - about 17 fits of
-~6 s at 7.6k × 2.2k per model) from the picture embeddings + the piece count to the puzzles' measured as-of log
+Not an image analyzer: it trains ridge and (since 1.2.0) kernel ridge regressions (scikit-learn / SciPy, CPU only;
+1.1.0 took ~4 minutes at 7.6k training puzzles, 1.2.0 ~2.5 × 1.1.0 - see "1.2.0 in short") from the picture embeddings + the piece count to the puzzles' measured as-of log
 difficulty and pushes one **estimate** per puzzle plus a **model record** per model through the endpoints below. No
 fine-tuning, no language model, nothing downloaded. Code and every decision in detail:
 `tools/puzzle-vision/puzzle_vision/derive/difficulty_prior.py`. A crash in it is logged (`log.exception`, `error` in
@@ -255,9 +255,12 @@ the summary) and never ends the nightly run - the crop proposals still follow.
   carries `pixelsPerPiece`, `cropTrust` (when a `crop_trust` analysis exists) and 16 **picture factors** on the frozen
   basis `puzzle_vision/derive/picture_factors/siglip2-crop-1.0.0.npz` (fitted once on 43,481 catalogue pictures,
   2026-10-24 data; 35.6 % of the SigLIP 2 variance; a SigLIP 2 vector of another model gets none - a new basis = a new
-  file and version, never refitted nightly); a **paired push guard** next to the record check (below); the record
-  gains `newest30` (out of fold on the newest 30 %, ≥ 10 indices, per size × kind - the gate's population). The
-  fallback model stays a plain ridge.
+  file and version, never refitted nightly); a shrunk **brand × size offset** on the ensemble (`evaluation.brandSizeOffset`,
+  pseudo-count 10; out-of-fold rows from leak-free "pair models"); a **paired push guard** next to the record check
+  (below); the record gains `newest30` (out of fold on the newest 30 %, ≥ 10 indices, per size × kind - the gate's
+  population) and `holdouts.newerFromOlder.components` (ridge, kernel ridge, the ensemble without the offset). The
+  fallback model stays a plain ridge without offset. Runtime: ~2.5 × 1.1.0 (50 min on a heavily loaded machine for
+  10.4k training puzzles; the 80 % window is capped at 1.49 so the API's 1.5 limit never refuses an estimate).
 - **Inputs**: joined on (puzzleId, imageFingerprint) - the label's and every embedding row's fingerprint must be the
   puzzle's current picture (the work list). Of each analyzer only its **newest `analyzerVersion`** is read (a version
   bump re-runs over days; vectors of two models are never mixed), within it the most common dimension. Everything

@@ -43,6 +43,7 @@ use SpeedPuzzling\Web\Message\DeletePlayerStoredFiles;
 use SpeedPuzzling\Web\Message\RemoveNewsletterSubscriberFromListmonk;
 use SpeedPuzzling\Web\Repository\NewsletterSubscriberRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Repository\SolvingTimeGraveyardRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Services\PuzzlingTeamMemberConversion;
@@ -67,6 +68,7 @@ final class DeletePlayerHandler
         private readonly UserAccountRepository $userAccountRepository,
         private readonly PuzzlingTeamMemberConversion $puzzlingTeamMemberConversion,
         private readonly PlayerAccountEmail $playerAccountEmail,
+        private readonly SolvingTimeGraveyardRepository $solvingTimeGraveyardRepository,
     ) {
     }
 
@@ -84,6 +86,9 @@ final class DeletePlayerHandler
         $this->cancelStripeSubscription($playerId);
 
         $storedFiles = [...$storedFiles, ...$this->handlePuzzleSolvingTimes($player, $playerName)];
+        // Erasure: their times go without a grave, and the graves + tombstones of times deleted earlier go too
+        // (docs/features/api/solving-time-sync.md)
+        $this->solvingTimeGraveyardRepository->eraseOfPlayer($playerId);
         // Same anonymisation for the pairs/teams the times belong to - the member row would block the delete otherwise
         $this->puzzlingTeamMemberConversion->playerToGuest($playerId, $playerName);
         $this->scrubFavoritePlayers($playerId);
@@ -166,6 +171,7 @@ final class DeletePlayerHandler
                     $removedPhotos[] = $time->finishedPuzzlePhoto;
                 }
 
+                // Not PuzzleSolvingTimeRepository::delete() on purpose: an erased account leaves no grave
                 $this->entityManager->remove($time);
                 continue;
             }

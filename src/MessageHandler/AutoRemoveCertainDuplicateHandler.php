@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Value\DuplicateTier;
 use SpeedPuzzling\Web\Value\RemovedResultSnapshot;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
+use SpeedPuzzling\Web\Value\SolvingTimeDeletedVia;
 
 /**
  * Tier A - the same form sent again: the newer copy goes, the older one stays (docs/features/duplicate-results.md,
@@ -82,7 +83,7 @@ readonly final class AutoRemoveCertainDuplicateHandler
         $copyPuzzleId = $copy->puzzle->id->toString();
         $memberPlayerIds = $copy->memberPlayerIds();
 
-        $this->puzzleSolvingTimeRepository->delete($copy);
+        $this->puzzleSolvingTimeRepository->delete($copy, SolvingTimeDeletedVia::DuplicateAutoRemoval);
 
         // The copy earned XP like any result (docs/features/xp-levels/README.md) - its entries are compensated and
         // the kept copy's chain is rebuilt, the same way as deleting a result by hand

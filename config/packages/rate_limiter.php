@@ -163,6 +163,14 @@ return App::config([
                 'limit' => 60,
                 'interval' => '1 minute',
             ],
+            // Sync checks of an API client (POST /api/v1/me/solving-times/lookup, GET …/deleted -
+            // docs/features/api/solving-time-sync.md): one budget for both, keyed like the search; a user's "check all"
+            // is a handful of requests, a client looping on it is stopped. 429 with Retry-After
+            'api_solving_time_sync' => [
+                'policy' => 'sliding_window',
+                'limit' => 60,
+                'interval' => '1 minute',
+            ],
             // The participant API of online competitions (`/api/compete/{token}/…`, OnlineParticipantApi) is limited by
             // RedisSlidingWindowLimiterFactory (config/services.php) - one atomic Redis call per request, so the count
             // holds when a phone (or a flood) sends many requests at the same moment; the test environment stands in

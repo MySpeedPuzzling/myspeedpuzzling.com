@@ -7,24 +7,31 @@ namespace SpeedPuzzling\Web\Repository;
 use DateTimeImmutable;
 use Doctrine\DBAL\LockMode;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\PuzzlingTeamMember;
+use SpeedPuzzling\Web\Entity\SolvingTimeGrave;
+use SpeedPuzzling\Web\Entity\SolvingTimeTombstone;
 use SpeedPuzzling\Web\Entity\SolvingTimePredictionRecord;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidatePredictionCalculator;
 use SpeedPuzzling\Web\Value\PredictorKind;
 use SpeedPuzzling\Web\Value\PuzzlingType;
+use SpeedPuzzling\Web\Value\RemovedResultSnapshot;
+use SpeedPuzzling\Web\Value\SolvingTimeDeletedVia;
 use SpeedPuzzling\Web\Value\TimePredictionSource;
 
 readonly final class PuzzleSolvingTimeRepository
 {
     public function __construct(
         private EntityManagerInterface $entityManager,
+        private SolvingTimeGraveyardRepository $graveyardRepository,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -100,10 +107,32 @@ readonly final class PuzzleSolvingTimeRepository
     }
 
     /**
-     * The same path as deleting a result by hand: PuzzleSolvingTimeDeleted recalculates statistics and insights.
+     * The one way a solving time is deleted (only account deletion erases times without it): PuzzleSolvingTimeDeleted
+     * recalculates statistics and insights; the time is buried whole in the graveyard (disaster recovery, never read)
+     * and every registered member gets a tombstone for API clients (docs/features/api/solving-time-sync.md).
      */
-    public function delete(PuzzleSolvingTime $solvingTime): void
+    public function delete(PuzzleSolvingTime $solvingTime, SolvingTimeDeletedVia $via): void
     {
+        $now = $this->clock->now();
+
+        $this->graveyardRepository->bury(new SolvingTimeGrave(
+            id: Uuid::uuid7(),
+            solvingTimeId: $solvingTime->id,
+            playerId: $solvingTime->player->id,
+            deletedAt: $now,
+            deletedVia: $via,
+            snapshot: RemovedResultSnapshot::of($solvingTime)->toArray(),
+        ));
+
+        foreach ($solvingTime->memberPlayerIds() as $memberPlayerId) {
+            $this->graveyardRepository->addTombstone(new SolvingTimeTombstone(
+                id: Uuid::uuid7(),
+                solvingTimeId: $solvingTime->id,
+                playerId: Uuid::fromString($memberPlayerId),
+                deletedAt: $now,
+            ));
+        }
+
         $this->entityManager->remove($solvingTime);
     }
 

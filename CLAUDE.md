@@ -264,6 +264,7 @@ Active feature flags are documented in `docs/features/feature_flags.md`. **Alway
 - **`ApiUser` interface:** Shared by `PatUser` and `OAuth2User`, used by all providers
 - **Fair Use Policy:** Required acceptance for PAT generation and OAuth2 client registration
 - **Adding/removing an endpoint:** also update the endpoints table on the "For developers" page (`templates/for-developers.html.twig`, `endpoint_sections`, one row per method + path) - `ForDevelopersEndpointsTableTest` fails until every `/api/v1` route is listed there
+- **Deleting + sync:** `DELETE /api/v1/me/solving-times/{id}`, `POST …/lookup` (≤ 500 ids), `GET …/deleted` (tombstones) - `docs/features/api/solving-time-sync.md`. **Every solving time is deleted through `PuzzleSolvingTimeRepository::delete($time, $via)`**: it buries the whole time in `solving_time_graveyard` (disaster recovery, never read, 24 months, wiped on account deletion - which deletes times without a grave) and writes a `solving_time_tombstone` per registered member; `SolvingTimeDeletionCoverageTest` guards it
 - **Full docs:** `docs/features/api/README.md`
 
 ### Internal Admin API

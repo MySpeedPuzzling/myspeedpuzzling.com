@@ -60,6 +60,7 @@ final class SuspiciousTimeQueryCoverageTest extends TestCase
         'Query/GetPuzzleMergeReviewQueue.php' => self::ADMIN,
         'Query/GetRecentIdenticalSolvingTime.php' => self::DUPLICATES,
         'Query/GetSolvingTimePrediction.php' => self::OWN,
+        'Query/GetSolvingTimesLookup.php' => self::OWN,
         'Query/GetStoredFileReferences.php' => self::WRITE,
         'Query/GetSuggestedPlayers.php' => 'Who the viewer has puzzled with, met at events or shares puzzles with - existence only, no figure.',
         'Query/GetTeamPlayers.php' => 'The members of results already selected elsewhere - no figure.',

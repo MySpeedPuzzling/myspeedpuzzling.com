@@ -69,7 +69,30 @@ final class AutoRemovalTest extends KernelTestCase
         self::assertSame(DuplicateResultsFixture::TIME_CERTAIN_A, $removal['kept_time_id']);
         self::assertNull($removal['undone_at']);
 
+        // Buried (docs/features/api/solving-time-sync.md), and API clients are told
+        self::assertSame('duplicate_auto_removal', $this->database->fetchOne(
+            'SELECT deleted_via FROM solving_time_graveyard WHERE solving_time_id = :id',
+            ['id' => DuplicateResultsFixture::TIME_CERTAIN_B],
+        ));
+        self::assertSame(1, self::rowCount(
+            $this->database,
+            'SELECT COUNT(*) FROM solving_time_tombstone WHERE solving_time_id = :id',
+            ['id' => DuplicateResultsFixture::TIME_CERTAIN_B],
+        ));
+
         $this->messageBus->dispatch(new UndoAutoRemoval($removal['id'], DuplicateResultsFixture::PLAYER_TWINS));
+
+        // Back with the same id: not deleted after all, the grave stays as history
+        self::assertSame(0, self::rowCount(
+            $this->database,
+            'SELECT COUNT(*) FROM solving_time_tombstone WHERE solving_time_id = :id',
+            ['id' => DuplicateResultsFixture::TIME_CERTAIN_B],
+        ));
+        self::assertSame(1, self::rowCount(
+            $this->database,
+            'SELECT COUNT(*) FROM solving_time_graveyard WHERE solving_time_id = :id',
+            ['id' => DuplicateResultsFixture::TIME_CERTAIN_B],
+        ));
 
         self::assertSame($before, $this->row(DuplicateResultsFixture::TIME_CERTAIN_B), 'The row is back exactly as it was');
         self::assertSame($solvedBefore, $this->solvedTimesCount(), 'Statistics follow the undo');
@@ -291,5 +314,16 @@ final class AutoRemovalTest extends KernelTestCase
         assert(is_int($count));
 
         return $count;
+    }
+
+    /**
+     * @param array<string, string> $parameters
+     */
+    private static function rowCount(Connection $database, string $sql, array $parameters = []): int
+    {
+        $value = $database->fetchOne($sql, $parameters);
+        assert(is_int($value) || is_string($value));
+
+        return (int) $value;
     }
 }

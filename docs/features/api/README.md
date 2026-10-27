@@ -362,6 +362,15 @@ Response (`SolvingTimeResponse`, shared with `PUT …/solving-times/{timeId}`):
 - `prediction` - the time prediction that applied **before** this solve, the one the website shows on the added-time recap page (`AddedTimeRecapController`): the new time is excluded from the prediction query, so `personal_solve_count` is the count before it, `predicted_attempt_number` the attempt this time was, and `last_time_seconds` the previous solve - an app can show "12% faster than predicted" right after submitting. Same shape as the `prediction` object on puzzle cards (Puzzles above). Gates, exactly as on the recap page plus the API's own read rule: **solo** time (`group_players` empty), a time present, the token owner a **member** who has **not opted out** of time predictions, and PAT or `results:read` on the token (`solving-times:write` alone writes, it does not read insights) - `null` otherwise; a `client_credentials` token never reaches `/me/*` at all. When present, the object is always complete: the statistical (baseline × difficulty) estimate comes with `is_personalized: false` and the three `personal_*`/`last_*` fields `null`; every field `null` when there is nothing to predict from. Always `null` on `PUT` (the "before" prediction is a property of creating a time).
 - **Query cost** (asserted in `CreateSolvingTimePredictionEndpointTest`, request only, PAT): the create itself already runs the `PuzzleSolved` event's synchronous recalculations (statistics, intelligence, wishlist removal, notifications), so its count depends on the data - measured 2026-08-19 with the prediction switched off: 28-35 for a solo time, 21 for a duo time. On top of that the feature adds the owner profile (1, `ApiTokenOwner`, only when the time is solo and the token may read results) and `GetPlayerPrediction::forPuzzle` (≤ 5: personal - solves, pieces, player ratio, global ratio(s); statistical - solves + 1) only for an eligible request; a group time adds nothing.
 
+### Deleting, and keeping a local copy in sync
+
+`DELETE /api/v1/me/solving-times/{timeId}` (tracker only, 204 / 403 / 404), `POST /api/v1/me/solving-times/lookup`
+(which of ≤ 500 `time_ids` still exist: `found` / `deleted` / `missing`) and `GET /api/v1/me/solving-times/deleted`
+(tombstones since a moment, cursor pages of 1000) - design of record [solving-time-sync.md](solving-time-sync.md)
+(2026-10-27), together with the graveyard every deleted time goes to. Compare by `time_id` only: a time keeps its id
+when its puzzle is merged into another one (`puzzle_id` changes) and when a group edit moves it between the solo / duo /
+team lists of `GET /me/results` (that list is complete in one response - every attempt, no pagination).
+
 ### Linking a time to an event
 
 Design of record: [high-frequency-series.md](../events-page/high-frequency-series.md) "API v1" (2026-10). Three optional fields on `POST /api/v1/me/solving-times`; `competition_id` and `series_id` on `PUT …/{timeId}` too (`round_id` is POST only - on an edit the round always follows the competition):
@@ -488,7 +497,7 @@ Full policy page at `/en/fair-use-policy` with 10 sections: welcome, rate limits
 
 **Acceptance flow:** Users must read the full policy and click "I Accept the API Usage Policy" at the bottom. Acceptance is stored as `fairUsePolicyAcceptedAt` on the `Player` entity. Until accepted, PAT generation and OAuth2 client request forms are locked with a CTA to read and accept the policy.
 
-**Enforced limits:** `GET /api/v1/puzzles` - 60 requests per minute per token owner (`429` + `Retry-After`, see Puzzles above). Other endpoints are not rate-limited beyond the policy (yet).
+**Enforced limits:** `GET /api/v1/puzzles` - 60 requests per minute per token owner (`429` + `Retry-After`, see Puzzles above); `POST /api/v1/me/solving-times/lookup` + `GET /api/v1/me/solving-times/deleted` - 60 per minute per token owner together (`api_solving_time_sync`, same 429). Other endpoints are not rate-limited beyond the policy (yet).
 
 - Controller: `FairUsePolicyController` (GET), `AcceptFairUsePolicyController` (POST)
 - Message: `AcceptFairUsePolicy` → `AcceptFairUsePolicyHandler`

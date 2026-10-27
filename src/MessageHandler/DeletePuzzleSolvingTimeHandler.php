@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Message\CompensateXpForDeletedSolve;
@@ -19,7 +18,6 @@ use Symfony\Component\Messenger\MessageBusInterface;
 readonly final class DeletePuzzleSolvingTimeHandler
 {
     public function __construct(
-        private EntityManagerInterface $entityManager,
         private PlayerRepository $playerRepository,
         private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
         private MessageBusInterface $commandBus,
@@ -43,7 +41,7 @@ readonly final class DeletePuzzleSolvingTimeHandler
         $solvingTimeId = $solvingTime->id->toString();
         $memberPlayerIds = $solvingTime->memberPlayerIds();
 
-        $this->entityManager->remove($solvingTime);
+        $this->puzzleSolvingTimeRepository->delete($solvingTime, $message->via);
 
         // Achievements follow the current results (docs/features/badges.md) - a tier this result was needed for goes,
         // for every registered member of a pair/team result

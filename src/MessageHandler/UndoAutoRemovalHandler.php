@@ -22,6 +22,7 @@ use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Repository\ResultAutoRemovalRepository;
 use SpeedPuzzling\Web\Repository\ResultDuplicateCaseRepository;
+use SpeedPuzzling\Web\Repository\SolvingTimeGraveyardRepository;
 use SpeedPuzzling\Web\Services\DuplicateResults\ResultReviewReactions;
 use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
 use SpeedPuzzling\Web\Services\RoundResults\SolvingTimeRoundResolver;
@@ -60,6 +61,7 @@ readonly final class UndoAutoRemovalHandler
         private CompetitionSeriesRepository $competitionSeriesRepository,
         private SeriesEditionResolver $seriesEditionResolver,
         private MessageBusInterface $messageBus,
+        private SolvingTimeGraveyardRepository $solvingTimeGraveyardRepository,
     ) {
     }
 
@@ -133,6 +135,8 @@ readonly final class UndoAutoRemovalHandler
         $time->changeCompetitionRound($this->roundResolver->resolve($time));
 
         $this->puzzleSolvingTimeRepository->save($time);
+        // Not deleted after all - API clients must not be told it was (its grave stays, a history)
+        $this->solvingTimeGraveyardRepository->removeTombstonesOf($time->id->toString());
 
         $now = $this->clock->now();
         $removal->undo($now);

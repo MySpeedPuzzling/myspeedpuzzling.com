@@ -1,0 +1,76 @@
+{
+    "first_run": {
+        "counts": {
+            "baselines_direct": 375,
+            "baselines_interpolated": 216,
+            "scaling_exponent": 1.3212,
+            "pace_history_changed_pairs": 381,
+            "pace_history_rows_written": 8843,
+            "difficulties": 170,
+            "drift_rows_written": 8834,
+            "metrics": 170,
+            "improvement_ratios": 288,
+            "skills": 126,
+            "rating": 84,
+            "history": 597,
+            "snapshots": 597,
+            "rating_entries": {
+                "written": 13853,
+                "deleted": 0
+            },
+            "rating_times": {
+                "written": 109,
+                "deleted": 0
+            }
+        },
+        "player_baseline": "591 rows, md5 d761a1eff3a262df4d988c1d15667180",
+        "player_pace_history": "8834 rows, md5 bbb00c956bcd800a7e052c5b0efada6f",
+        "player_improvement_ratio": "245 rows, md5 ef30a2f0730ae961404329bc0203df58",
+        "global_improvement_ratio": "43 rows, md5 23b140303f0d3ec6308d6e623700fb13",
+        "puzzle_difficulty": "170 rows, md5 ed7cfeb9c6955d52fa7add8722101ac3",
+        "derived_metrics": "170 rows, md5 014625c57d7dbe61a758f2970b9df447",
+        "player_skill": "126 rows, md5 eada4b57b566c66ba5973d92ddd0c20e",
+        "player_elo": "84 rows, md5 fb800dd88ebcc43481cf3881219239ff",
+        "player_rating_entry": "13853 rows, md5 060ce8c85e8f3a392d0d79c5606b109f",
+        "puzzle_rating_times": "109 rows, md5 4ebe20e47174beced5bfbdab6609b626",
+        "player_skill_history": "591 rows, md5 e742c2ab741d6b53487c0a87ddaeae04",
+        "player_rating_snapshot": "591 rows, md5 da32ff05f7ded8345585c7ca0071f71b"
+    },
+    "second_run": {
+        "counts": {
+            "baselines_direct": 375,
+            "baselines_interpolated": 216,
+            "scaling_exponent": 1.3212,
+            "pace_history_changed_pairs": 0,
+            "pace_history_rows_written": 0,
+            "difficulties": 170,
+            "drift_rows_written": 0,
+            "metrics": 170,
+            "improvement_ratios": 288,
+            "skills": 126,
+            "rating": 84,
+            "history": 597,
+            "snapshots": 597,
+            "rating_entries": {
+                "written": 1419,
+                "deleted": 1
+            },
+            "rating_times": {
+                "written": 25,
+                "deleted": 0
+            }
+        },
+        "player_baseline": "591 rows, md5 d761a1eff3a262df4d988c1d15667180",
+        "player_pace_history": "8834 rows, md5 bbb00c956bcd800a7e052c5b0efada6f",
+        "player_improvement_ratio": "245 rows, md5 ef30a2f0730ae961404329bc0203df58",
+        "global_improvement_ratio": "43 rows, md5 23b140303f0d3ec6308d6e623700fb13",
+        "puzzle_difficulty": "170 rows, md5 ed7cfeb9c6955d52fa7add8722101ac3",
+        "derived_metrics": "170 rows, md5 014625c57d7dbe61a758f2970b9df447",
+        "player_skill": "126 rows, md5 eada4b57b566c66ba5973d92ddd0c20e",
+        "player_elo": "84 rows, md5 fb800dd88ebcc43481cf3881219239ff",
+        "player_rating_entry": "13853 rows, md5 060ce8c85e8f3a392d0d79c5606b109f",
+        "puzzle_rating_times": "109 rows, md5 4ebe20e47174beced5bfbdab6609b626",
+        "player_skill_history": "591 rows, md5 e742c2ab741d6b53487c0a87ddaeae04",
+        "player_rating_snapshot": "591 rows, md5 da32ff05f7ded8345585c7ca0071f71b"
+    }
+}

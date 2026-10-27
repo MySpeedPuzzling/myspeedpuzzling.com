@@ -7,7 +7,7 @@ namespace SpeedPuzzling\Web\Value;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\AttemptFlags;
 
 /**
- * The parts of the candidate model (v4) that can be switched off - each was kept only because a time-split
+ * The parts of the candidate model (v5) that can be switched off - each was kept only because a time-split
  * measurement confirmed it (README "Step 8", "The candidate model (v4)"); evaluate-predictions --candidate-off=…
  * measures the model without any of them. All on by default.
  */
@@ -31,6 +31,8 @@ readonly final class CandidateFeatures
         'source_quantiles' => 'F4: the prior type in the window quantile keys',
         'repeat_gap' => 'P4: the gap since the last solve in the repeat window',
         'size_curve' => 'Size curve: the pace from every size the player has, pooled through the population curve',
+        'taste' => 'P7: the player\'s taste - b_i + u_i · W x_j over the picture factors, kind and size (TasteModel)',
+        'competition_player' => 'F7: the player\'s own shrunk offset at events (with the taste)',
     ];
 
     /** Index-noise terms of the flags (CandidateModelParameters::indexVariance()) and the feature that switches each */

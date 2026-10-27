@@ -20,12 +20,13 @@ use SpeedPuzzling\Web\Value\StatisticalPredictionInputs;
 use SpeedPuzzling\Web\Value\WindowBucket;
 
 /**
- * The candidate prediction model (v4, README "Step 8", "The candidate model (v4)") - computed side by side with the
+ * The candidate prediction model (v5 = v4 + the taste factor, README "Step 8", "The candidate model (v4)", "The taste
+ * factor (v5)") - computed side by side with the
  * shown model (TimePredictionCalculator, v3), stored as the `candidate` predictor's rows of solving_time_prediction,
  * never shown. Pure math, no database: the live statement, the reconstructor and the evaluation feed it the same way.
  *
  * First try: pace × e^drift (the shown model's pace, TimePredictionCalculator::baselineFor()) × e^(posterior log
- * difficulty) × e^(centre offset) [× e^(unboxed offset)]. The posterior is one formula for every k:
+ * difficulty) × e^(centre offset) × e^(the player's taste term) [× e^(unboxed offset)]. The posterior is one formula for every k:
  * (Σ w l + m ÷ v) ÷ (Σ w + 1 ÷ v) over the puzzle's drift-adjusted, precision-weighted indices (CandidateEvidence) and
  * the first prior there is - the image estimate, else the puzzle-weighted brand × pieces prior, else the average
  * puzzle - each prior type with its own fitted variance v. The window: sigma² from the player's spread, the posterior
@@ -37,8 +38,8 @@ use SpeedPuzzling\Web\Value\WindowBucket;
  */
 final readonly class CandidatePredictionCalculator
 {
-    /** The model version of the candidate's rows (solving_time_prediction, prediction_model_fit) */
-    public const int MODEL_VERSION = 4;
+    /** The model version of the candidate's rows (solving_time_prediction, prediction_model_fit) - 5 = v4 + the taste factor */
+    public const int MODEL_VERSION = 5;
 
     public function __construct(
         private TimePredictionCalculator $shown = new TimePredictionCalculator(),
@@ -76,11 +77,12 @@ final readonly class CandidatePredictionCalculator
             ? $parameters->centreOffset(self::offsetKeys($group, $paceSource->value, $kBucket, $priorType)) + $parameters->experienceOffset($inputs->candidateFirstTries)
             : 0.0;
         $unboxed = $features->on('unboxed') && $conditions->unboxed;
-        $centre = exp($logPace + $logDifficulty + $offset + ($unboxed ? $parameters->unboxedOffset : 0.0));
+        [$taste, $tasteVariance] = self::taste($inputs, $parameters, $conditions->competition);
+        $centre = exp($logPace + $logDifficulty + $offset + $taste + ($unboxed ? $parameters->unboxedOffset : 0.0));
 
         $dispersion = $features->on('dispersion') ? $evidence->dispersion($parameters->dispersionShrink) : 0.0;
         $contextScale = $parameters->contextScale($features->on('competition') && $conditions->competition, $unboxed);
-        $sigma = $parameters->firstTrySigma($spread, $posteriorVariance, $group, $paceSource, $dispersion, $contextScale, $features->on('centre_offsets') ? $inputs->candidateFirstTries : null, $paceVariance);
+        $sigma = $parameters->firstTrySigma($spread, $posteriorVariance, $group, $paceSource, $dispersion, $contextScale, $features->on('centre_offsets') ? $inputs->candidateFirstTries : null, $paceVariance, $tasteVariance);
         $keys = self::firstTryKeys(WindowBucket::quartile($spread, $parameters->consistencyEdges), $kBucket, $group, $features->on('source_quantiles') ? $priorType : null, self::paceKey($paceSource, $inputs->piecesCount));
         $window = TimePredictionCalculator::window($centre, $sigma, $parameters->quantilesFor($keys));
 
@@ -128,6 +130,32 @@ final readonly class CandidatePredictionCalculator
         }
 
         return [log($baseline[0]) + $baseline[1], 0.0, $baseline[2] ?? PredictionModelParameters::GLOBAL_SPREAD, $baseline[3]];
+    }
+
+    /**
+     * The player's taste term on the log centre and its variance (vᵀ A⁻¹ v) - [0, 0] while the fit has no taste model;
+     * with one, a player without a state gets the prior's variance and a 0 term. At an event their own event offset
+     * joins it (switch competition_player).
+     *
+     * @return array{0: float, 1: float}
+     */
+    public static function taste(StatisticalPredictionInputs $inputs, CandidateModelParameters $parameters, bool $competition): array
+    {
+        $model = $parameters->taste;
+
+        if ($model === null || $parameters->features()->on('taste') === false) {
+            return [0.0, 0.0];
+        }
+
+        $state = $inputs->candidateTaste ?? $model->initialState();
+        $vector = $model->vector($inputs->candidatePicture, $inputs->piecesCount);
+        $term = $state->term($vector);
+
+        if ($competition && $parameters->features()->on('competition_player')) {
+            $term += $state->competitionOffset($model->competitionShrink);
+        }
+
+        return [$term, $state->variance($vector)];
     }
 
     /**

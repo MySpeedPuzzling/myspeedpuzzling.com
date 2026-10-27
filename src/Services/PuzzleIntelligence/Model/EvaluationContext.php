@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence\Model;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\ImagePriorInput;
+use SpeedPuzzling\Web\Value\PictureFactors;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
 
 /**
@@ -31,6 +32,8 @@ final class EvaluationContext
         public readonly DateTimeImmutable $fitBefore,
         public readonly AttemptFlags $flags,
         public readonly UnboxedFirstTries $unboxed,
+        /** @var array<string, PictureFactors> by puzzle id - the candidate's taste factor */
+        public readonly array $pictures = [],
     ) {
     }
 

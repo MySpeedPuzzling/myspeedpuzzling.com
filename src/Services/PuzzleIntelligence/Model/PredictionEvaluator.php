@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Value\ImagePriorInput;
 use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\SizeCurve;
 use SpeedPuzzling\Web\Value\SolveConditions;
+use SpeedPuzzling\Web\Value\TasteState;
 use SpeedPuzzling\Web\Value\WindowBucket;
 
 /**
@@ -143,18 +144,39 @@ final readonly class PredictionEvaluator
     {
         $startedAt = microtime(true);
         $context = $this->prepare($fitBefore, withImageEstimates: true);
-        $candidateParameters = $this->fitCandidate($context, $features ?? CandidateFeatures::kept());
+        [$candidateParameters, $tasteStates] = $this->fitCandidate($context, $features ?? CandidateFeatures::kept());
         [$cut, $end] = [(float) $fitBefore->getTimestamp(), $until !== null ? (float) $until->getTimestamp() : INF];
         $candidateEngine = $context->candidateEngine();
 
         $groups = ['statistical' => new EvaluationGroups(), 'blend' => new EvaluationGroups(), 'candidate' => new EvaluationGroups()];
+        // Unboxed first tries (outside the qualifying set): the shown model as it predicts them, the candidate with its offset
+        $unboxedGroups = ['statistical' => new EvaluationGroups(), 'candidate' => new EvaluationGroups()];
+        $unboxed = $context->unboxed;
 
-        foreach ($context->set->solved as $i => $solved) {
-            if ($solved < $cut || $solved >= $end || $context->set->seconds[$i] <= 0) {
+        // In the order of the solves: the players' taste states move on with every first try after the cut, as the
+        // daily fit's would (the unboxed first tries read them and add nothing, like in the fit)
+        foreach (self::afterTheCut($context, $cut, $end) as [$unboxedTry, $i]) {
+            if ($unboxedTry) {
+                $u = $i;
+                $inputs = CandidateModelFitter::unboxedInputs($context->candidateEngine(), $unboxed, $u, $context->priors, $context->imageEstimates, $candidateParameters)
+                    ->withCandidateTaste($tasteStates[$unboxed->player[$u]] ?? null, $context->pictures[$unboxed->puzzle[$u]] ?? null);
+                $statistical = $this->calculator->statistical($inputs->withImageEstimate(null), $context->parameters, allowPriorOnly: true);
+                $candidate = $this->candidateCalculator->firstTry($inputs, $candidateParameters, new SolveConditions(unboxed: true, competition: $unboxed->competition[$u]));
+
+                if ($statistical === null || $candidate === null) {
+                    continue;
+                }
+
+                foreach (['statistical' => $statistical, 'candidate' => $candidate] as $name => $prediction) {
+                    foreach (['unboxed first tries', 'unboxed · k ' . self::kLabel((int) $inputs->kIndices)] as $label) {
+                        $unboxedGroups[$name]->add($label, $unboxed->seconds[$u], $prediction->predictedSeconds, $prediction->rangeLowSeconds, $prediction->rangeHighSeconds, (int) $prediction->range80LowSeconds, (int) $prediction->range80HighSeconds);
+                    }
+                }
+
                 continue;
             }
 
-            $predictions = $this->predictAll($context, $candidateParameters, $i);
+            $predictions = $this->predictAll($context, $candidateParameters, $i, $tasteStates);
 
             if ($predictions === null) {
                 continue;
@@ -167,30 +189,6 @@ final readonly class PredictionEvaluator
             foreach (['statistical' => $statistical, 'blend' => $blend, 'candidate' => $candidate] as $name => $prediction) {
                 foreach ($labels as $label) {
                     $groups[$name]->add($label, $seconds, $prediction->predictedSeconds, $prediction->rangeLowSeconds, $prediction->rangeHighSeconds, (int) $prediction->range80LowSeconds, (int) $prediction->range80HighSeconds);
-                }
-            }
-        }
-
-        // Unboxed first tries (outside the qualifying set): the shown model as it predicts them, the candidate with its offset
-        $unboxedGroups = ['statistical' => new EvaluationGroups(), 'candidate' => new EvaluationGroups()];
-        $unboxed = $context->unboxed;
-
-        for ($u = 0, $count = $unboxed->count(); $u < $count; $u++) {
-            if ($unboxed->solved[$u] < $cut || $unboxed->solved[$u] >= $end) {
-                continue;
-            }
-
-            $inputs = CandidateModelFitter::unboxedInputs($context->candidateEngine(), $unboxed, $u, $context->priors, $context->imageEstimates, $candidateParameters);
-            $statistical = $this->calculator->statistical($inputs->withImageEstimate(null), $context->parameters, allowPriorOnly: true);
-            $candidate = $this->candidateCalculator->firstTry($inputs, $candidateParameters, new SolveConditions(unboxed: true, competition: $unboxed->competition[$u]));
-
-            if ($statistical === null || $candidate === null) {
-                continue;
-            }
-
-            foreach (['statistical' => $statistical, 'candidate' => $candidate] as $name => $prediction) {
-                foreach (['unboxed first tries', 'unboxed · k ' . self::kLabel((int) $inputs->kIndices)] as $label) {
-                    $unboxedGroups[$name]->add($label, $unboxed->seconds[$u], $prediction->predictedSeconds, $prediction->rangeLowSeconds, $prediction->rangeHighSeconds, (int) $prediction->range80LowSeconds, (int) $prediction->range80HighSeconds);
                 }
             }
         }
@@ -255,15 +253,11 @@ final readonly class PredictionEvaluator
         $baseRows = null;
 
         foreach ($variants as $variant => $features) {
-            $parameters = $this->fitCandidate($context, $features);
+            [$parameters, $tasteStates] = $this->fitCandidate($context, $features);
             $groups = ['statistical' => new EvaluationGroups(), 'blend' => new EvaluationGroups(), 'candidate' => new EvaluationGroups()];
 
-            foreach ($context->set->solved as $i => $solved) {
-                if ($solved < $cut || $solved >= $end || $context->set->seconds[$i] <= 0) {
-                    continue;
-                }
-
-                $predictions = $this->predictAll($context, $parameters, $i);
+            foreach (self::afterTheCut($context, $cut, $end, withUnboxed: false) as [, $i]) {
+                $predictions = $this->predictAll($context, $parameters, $i, $tasteStates);
 
                 if ($predictions === null) {
                     continue;
@@ -328,24 +322,79 @@ final readonly class PredictionEvaluator
             $cut,
             $fitBefore,
             $withImageEstimates ? AttemptFlags::load($this->connection, $this->baselineCalculator, $set) : AttemptFlags::fromList([]),
-            $withImageEstimates ? UnboxedFirstTries::load($this->connection) : UnboxedFirstTries::none()
+            $withImageEstimates ? UnboxedFirstTries::load($this->connection) : UnboxedFirstTries::none(),
+            $withImageEstimates ? PictureFactorsLookup::load($this->connection, $this->clock->now()) : [],
         );
     }
 
-    private function fitCandidate(EvaluationContext $context, CandidateFeatures $features): CandidateModelParameters
+    /**
+     * The candidate fitted before the cut-off, and every player's taste state at its end (what the stored states would
+     * be: the window's first tries).
+     *
+     * @return array{0: CandidateModelParameters, 1: array<string, TasteState>}
+     */
+    private function fitCandidate(EvaluationContext $context, CandidateFeatures $features): array
     {
         $candidate = $context->candidateEngine();
+        $states = [];
+        $parameters = $this->candidateFitter->fit(
+            $candidate,
+            $context->priors,
+            $context->repeats,
+            $context->from,
+            $context->cut,
+            $context->fitBefore,
+            $context->imageEstimates,
+            $context->parameters,
+            $features,
+            $context->unboxed,
+            $context->pictures,
+            static function (string $player, float $solved, float $tracked, TasteState $state) use (&$states): void {
+                $states[$player] = $state;
+            },
+        );
 
-        return $this->candidateFitter->fit($candidate, $context->priors, $context->repeats, $context->from, $context->cut, $context->fitBefore, $context->imageEstimates, $context->parameters, $features, $context->unboxed);
+        return [$parameters, $states];
+    }
+
+    /**
+     * The first tries (and unboxed first tries) solved from the cut-off on, in the order of their moments: [unboxed,
+     * index].
+     *
+     * @return list<array{0: bool, 1: int}>
+     */
+    private static function afterTheCut(EvaluationContext $context, float $cut, float $end, bool $withUnboxed = true): array
+    {
+        $set = $context->set;
+        $events = [];
+
+        foreach ($set->solved as $i => $solved) {
+            if ($solved >= $cut && $solved < $end && $set->seconds[$i] > 0) {
+                $events[] = [$solved, $set->tracked[$i], false, $i];
+            }
+        }
+
+        if ($withUnboxed) {
+            foreach ($context->unboxed->solved as $u => $solved) {
+                if ($solved >= $cut && $solved < $end) {
+                    $events[] = [$solved, $context->unboxed->tracked[$u], true, $u];
+                }
+            }
+        }
+
+        usort($events, static fn (array $a, array $b): int => $a[0] <=> $b[0] ?: $a[1] <=> $b[1] ?: $a[2] <=> $b[2] ?: $a[3] <=> $b[3]);
+
+        return array_map(static fn (array $event): array => [$event[2], $event[3]], $events);
     }
 
     /**
      * The shown model's, the blend's and the candidate's prediction of the attempt, and its labels - null when any of
      * them has none (the comparison is on the same rows).
      *
+     * @param array<string, TasteState> $tasteStates the players' taste states so far - moved on by this first try
      * @return null|array{0: TimePredictionResult, 1: TimePredictionResult, 2: TimePredictionResult, 3: list<string>}
      */
-    private function predictAll(EvaluationContext $context, CandidateModelParameters $candidateParameters, int $i): null|array
+    private function predictAll(EvaluationContext $context, CandidateModelParameters $candidateParameters, int $i, array &$tasteStates = []): null|array
     {
         $engine = $context->engine;
         $inputs = $engine->inputsFor($i, $context->priors);
@@ -353,8 +402,25 @@ final readonly class PredictionEvaluator
         [$statistical, , $blend] = $this->calculator->sideBySide($inputs, $estimate, $context->parameters);
         $blend ??= $statistical;
         $candidateEngine = $context->candidateEngine();
-        $candidateInputs = CandidateModelFitter::inputsFor($candidateEngine, $i, $context->priors, $context->imageEstimates, $candidateParameters);
-        $candidate = $this->candidateCalculator->firstTry($candidateInputs, $candidateParameters, CandidateModelFitter::conditionsFor($candidateEngine, $i));
+        $player = (string) $context->set->player[$i];
+        $picture = $context->pictures[(string) $context->set->puzzle[$i]] ?? null;
+        $conditions = CandidateModelFitter::conditionsFor($candidateEngine, $i);
+        $candidateInputs = CandidateModelFitter::inputsFor($candidateEngine, $i, $context->priors, $context->imageEstimates, $candidateParameters)
+            ->withCandidateTaste($tasteStates[$player] ?? null, $picture);
+        $candidate = $this->candidateCalculator->firstTry($candidateInputs, $candidateParameters, $conditions);
+
+        // The player's taste state moves on with this first try's residual against the centre without the taste
+        $taste = $candidateParameters->taste;
+
+        if ($candidate !== null && $taste !== null && $candidateParameters->features()->on('taste')) {
+            [$term] = CandidatePredictionCalculator::taste($candidateInputs, $candidateParameters, $conditions->competition);
+            $residual = log((int) $context->set->seconds[$i] / $candidate->predictedSeconds) + $term;
+            $tasteStates[$player] = ($tasteStates[$player] ?? $taste->initialState())->with(
+                $taste->vector($picture, (int) $context->set->pieces[$i]),
+                max(-TasteFitter::RESIDUAL_CLIP, min(TasteFitter::RESIDUAL_CLIP, $residual)),
+                $conditions->competition,
+            );
+        }
 
         if ($statistical === null || $blend === null || $candidate === null) {
             return null;

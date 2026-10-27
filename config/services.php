@@ -268,6 +268,9 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Services/PuzzleIntelligence/Model/NotIdentifiable.php',
             __DIR__ . '/../src/Services/PuzzleIntelligence/Model/EvaluationContext.php',
             __DIR__ . '/../src/Services/PuzzleIntelligence/Model/UnboxedFirstTries.php',
+            __DIR__ . '/../src/Services/PuzzleIntelligence/Model/TasteRows.php',
+            __DIR__ . '/../src/Services/PuzzleIntelligence/Model/TasteFit.php',
+            __DIR__ . '/../src/Services/PuzzleIntelligence/Model/PictureFactorsLookup.php',
             __DIR__ . '/../src/Services/PuzzleIntelligence/Prior/PriorContext.php',
             __DIR__ . '/../src/Services/PuzzleIntelligence/Prior/PriorEstimate.php',
             // one sync of ChangedRowsSync / of the rating entries, opened per batch step - not services

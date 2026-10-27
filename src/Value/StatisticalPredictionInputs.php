@@ -45,7 +45,40 @@ readonly final class StatisticalPredictionInputs
         public null|array $candidatePaceRows = null,
         /** @var null|array{0: int, 1: float} */
         public null|array $candidateFew = null,
+        // The taste factor's inputs (TasteModel, v5): the player's state before the prediction (null = nothing known) and
+        // the puzzle's picture factors and kind (null = none)
+        public null|TasteState $candidateTaste = null,
+        public null|PictureFactors $candidatePicture = null,
     ) {
+    }
+
+    /**
+     * The same inputs with the taste factor's inputs.
+     */
+    public function withCandidateTaste(null|TasteState $taste, null|PictureFactors $picture): self
+    {
+        return new self(
+            piecesCount: $this->piecesCount,
+            ownBaselineSeconds: $this->ownBaselineSeconds,
+            ownBaselineDirect: $this->ownBaselineDirect,
+            ownQualifyingCount: $this->ownQualifyingCount,
+            ownDrift: $this->ownDrift,
+            ownSpread: $this->ownSpread,
+            pace500Seconds: $this->pace500Seconds,
+            drift500: $this->drift500,
+            spread500: $this->spread500,
+            kIndices: $this->kIndices,
+            sumLogIndices: $this->sumLogIndices,
+            difficultyScore: $this->difficultyScore,
+            prior: $this->prior,
+            candidateEvidence: $this->candidateEvidence,
+            candidateBrandPriorLog: $this->candidateBrandPriorLog,
+            candidateFirstTries: $this->candidateFirstTries,
+            candidatePaceRows: $this->candidatePaceRows,
+            candidateFew: $this->candidateFew,
+            candidateTaste: $taste,
+            candidatePicture: $picture,
+        );
     }
 
     /**
@@ -75,6 +108,8 @@ readonly final class StatisticalPredictionInputs
             candidateFirstTries: $this->candidateFirstTries,
             candidatePaceRows: $rows,
             candidateFew: $few,
+            candidateTaste: $this->candidateTaste,
+            candidatePicture: $this->candidatePicture,
         );
     }
 
@@ -102,6 +137,8 @@ readonly final class StatisticalPredictionInputs
             candidateFirstTries: $firstTries,
             candidatePaceRows: $this->candidatePaceRows,
             candidateFew: $this->candidateFew,
+            candidateTaste: $this->candidateTaste,
+            candidatePicture: $this->candidatePicture,
         );
     }
 
@@ -150,6 +187,8 @@ readonly final class StatisticalPredictionInputs
             candidateFirstTries: $this->candidateFirstTries,
             candidatePaceRows: $this->candidatePaceRows,
             candidateFew: $this->candidateFew,
+            candidateTaste: $this->candidateTaste,
+            candidatePicture: $this->candidatePicture,
         );
     }
 }

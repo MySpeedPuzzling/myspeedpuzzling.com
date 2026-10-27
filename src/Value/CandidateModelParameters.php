@@ -24,7 +24,9 @@ use DateTimeImmutable;
  *   quantiles per CandidateWindowBucket key;
  * - unboxedOffset: the log offset of an unboxed solve;
  * - repeat window: sigma² = spreadWeight × spread² + constant + gapTerm(gap bucket), centre × exp(gapOffset), quantiles
- *   per repeat key with the gap bucket.
+ *   per repeat key with the gap bucket;
+ * - taste (v5): the taste factor (TasteModel) - the player's term on the log centre, tasteVarianceWeight × its variance
+ *   in the window.
  */
 readonly final class CandidateModelParameters
 {
@@ -87,6 +89,9 @@ readonly final class CandidateModelParameters
         // The size curve's pace (SizeCurve) - null = the shown model's pace rules; its posterior variance's window weight
         public null|SizeCurve $sizeCurve = null,
         public float $paceVarianceWeight = 0.0,
+        // The taste factor (TasteModel) - null = not fitted; the window weight of its term's variance
+        public null|TasteModel $taste = null,
+        public float $tasteVarianceWeight = 0.0,
     ) {
         $this->switches = CandidateFeatures::fromArray($features);
         $this->paceParameters = PredictionModelParameters::defaults()->with(thinSizes: $thinSizes);
@@ -137,6 +142,8 @@ readonly final class CandidateModelParameters
         null|array $thinSizes = null,
         null|SizeCurve $sizeCurve = null,
         null|float $paceVarianceWeight = null,
+        null|TasteModel $taste = null,
+        null|float $tasteVarianceWeight = null,
     ): self {
         return new self(
             indexNoise: $indexNoise ?? $this->indexNoise,
@@ -165,6 +172,8 @@ readonly final class CandidateModelParameters
             thinSizes: $thinSizes ?? $this->thinSizes,
             sizeCurve: $sizeCurve ?? $this->sizeCurve,
             paceVarianceWeight: $paceVarianceWeight ?? $this->paceVarianceWeight,
+            taste: $taste ?? $this->taste,
+            tasteVarianceWeight: $tasteVarianceWeight ?? $this->tasteVarianceWeight,
         );
     }
 
@@ -263,11 +272,12 @@ readonly final class CandidateModelParameters
         return 0.0;
     }
 
-    public function firstTrySigma(float $spread, float $posteriorVariance, PiecesGroup $group, PaceSource $paceSource, float $dispersion, float $contextScale, null|int $firstTries = null, float $paceVariance = 0.0): float
+    public function firstTrySigma(float $spread, float $posteriorVariance, PiecesGroup $group, PaceSource $paceSource, float $dispersion, float $contextScale, null|int $firstTries = null, float $paceVariance = 0.0, float $tasteVariance = 0.0): float
     {
         $experience = self::experienceBucket($firstTries);
         $variance = $this->spreadWeight * $spread ** 2
             + $this->paceVarianceWeight * $paceVariance
+            + $this->tasteVarianceWeight * $tasteVariance
             + $this->posteriorWeight * $posteriorVariance
             + ($this->sizeTerms[$group->value] ?? 0.0)
             + ($this->paceTerms[$paceSource->value] ?? 0.0)
@@ -344,6 +354,8 @@ readonly final class CandidateModelParameters
             'thin_sizes' => $this->thinSizes,
             'size_curve' => $this->sizeCurve?->toArray(),
             'pace_variance_weight' => $this->paceVarianceWeight,
+            'taste' => $this->taste?->toArray(),
+            'taste_variance_weight' => $this->tasteVarianceWeight,
             'fitted_at' => $this->fittedAt?->format(DATE_ATOM),
             'summary' => $this->summary,
         ];
@@ -420,6 +432,8 @@ readonly final class CandidateModelParameters
             thinSizes: $thinSizes,
             sizeCurve: is_array($data['size_curve'] ?? null) ? SizeCurve::fromArray($data['size_curve']) : null,
             paceVarianceWeight: self::number($data['pace_variance_weight'] ?? null, 0.0),
+            taste: is_array($data['taste'] ?? null) ? TasteModel::fromArray($data['taste']) : null,
+            tasteVarianceWeight: self::number($data['taste_variance_weight'] ?? null, 0.0),
         );
     }
 

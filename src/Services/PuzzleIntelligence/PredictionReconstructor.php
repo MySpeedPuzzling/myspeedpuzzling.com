@@ -14,10 +14,12 @@ use SpeedPuzzling\Web\Results\TimePredictionResult;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\AttemptFlags;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidateEngine;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidatePredictionCalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\PictureFactorsLookup;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\FirstAttemptSet;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\PriorContext;
 use SpeedPuzzling\Web\Value\CandidateEvidence;
 use SpeedPuzzling\Web\Value\CandidateModelParameters;
+use SpeedPuzzling\Web\Value\TasteState;
 use SpeedPuzzling\Web\Value\ImagePriorInput;
 use SpeedPuzzling\Web\Value\MetricConfidence;
 use SpeedPuzzling\Web\Value\PiecesGroup;
@@ -228,7 +230,8 @@ final class PredictionReconstructor implements ResetInterface
      * The candidate's prediction of every target (once the candidate is fitted): a repeat = the shown centre with the
      * candidate's window; a first try = the shown inputs with the candidate's evidence from the same solvers' first
      * attempts before it (their pace-history row's drift, spread and place in the pair + 5 as the qualifying count),
-     * the current candidate brand prior (like the shown prior's sums) and the player's first tries before it.
+     * the current candidate brand prior (like the shown prior's sums), the player's first tries before it and their stored
+     * taste state before it (v5) with the puzzle's picture factors.
      *
      * @param array<string, PredictionsSideBySide> $predictions
      * @param array<int, PredictionInputSolve> $targets
@@ -266,6 +269,10 @@ final class PredictionReconstructor implements ResetInterface
         $flags = $candidate->features()->flagMask() !== 0
             ? $this->attemptFlags(array_values(array_unique(array_map(static fn (PredictionInputSolve $target): string => $target->puzzleId, $firstTryTargets))))
             : [];
+        // The taste factor (v5): the player's stored states and the targets' pictures - only with a taste model
+        [$tasteStates, $pictures] = $candidate->taste !== null && $firstTryTargets !== []
+            ? [$this->tasteStates($playerId, count($candidate->taste->weights)), PictureFactorsLookup::load($this->connection, $this->clock->now(), array_values(array_unique(array_map(static fn (PredictionInputSolve $target): string => $target->puzzleId, $firstTryTargets))))]
+            : [[], []];
 
         foreach ($targets as $target) {
             $shown = $predictions[$target->id] ?? null;
@@ -309,7 +316,7 @@ final class PredictionReconstructor implements ResetInterface
                     $solverPaces,
                     $firstAttemptCandidates[$target->piecesCount] ?? [],
                     $candidate,
-                ),
+                )->withCandidateTaste(self::tasteStateBefore($tasteStates, $target), $pictures[$target->puzzleId] ?? null),
                 $candidate,
                 $conditions[$target->id] ?? new SolveConditions(),
             ), TimePredictionSource::Reconstructed);
@@ -449,6 +456,54 @@ final class PredictionReconstructor implements ResetInterface
         }
 
         return $difficulties;
+    }
+
+    /**
+     * The player's stored taste states (candidate_player_taste) in their order: [valid from (solved, tracked), state].
+     *
+     * @return list<array{0: float, 1: float, 2: TasteState}>
+     */
+    private function tasteStates(string $playerId, int $rank): array
+    {
+        $states = [];
+
+        /** @var list<array{solved: float|string, tracked: float|string, state: string}> $rows */
+        $rows = $this->connection->fetchAllAssociative('
+            SELECT EXTRACT(EPOCH FROM valid_from) AS solved, EXTRACT(EPOCH FROM valid_from_tracked_at) AS tracked, CAST(state AS text) AS state
+            FROM candidate_player_taste
+            WHERE player_id = :playerId
+            ORDER BY valid_from, valid_from_tracked_at
+        ', ['playerId' => $playerId]);
+
+        foreach ($rows as $row) {
+            $state = TasteState::fromJson($row['state'], $rank);
+
+            if ($state !== null) {
+                $states[] = [(float) $row['solved'], (float) $row['tracked'], $state];
+            }
+        }
+
+        return $states;
+    }
+
+    /**
+     * The latest state valid strictly before the target (its first tries before it, as of the candidate's last fit).
+     *
+     * @param list<array{0: float, 1: float, 2: TasteState}> $states in their order
+     */
+    private static function tasteStateBefore(array $states, PredictionInputSolve $target): null|TasteState
+    {
+        $before = null;
+
+        foreach ($states as [$solved, $tracked, $state]) {
+            if (($solved <=> $target->solved ?: $tracked <=> $target->tracked) >= 0) {
+                break;
+            }
+
+            $before = $state;
+        }
+
+        return $before;
     }
 
     /**

@@ -8,6 +8,8 @@ use DateTimeImmutable;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PeakMemory;
 use SpeedPuzzling\Web\Value\CandidateFeatures;
 use SpeedPuzzling\Web\Value\CandidateModelParameters;
+use SpeedPuzzling\Web\Value\PictureFactors;
+use SpeedPuzzling\Web\Value\TasteState;
 use SpeedPuzzling\Web\Value\SizeCurve;
 use SpeedPuzzling\Web\Value\StatisticalPredictionInputs;
 
@@ -31,6 +33,10 @@ final class CandidateFitProgress
     public array $fewBrandLog = [];
     /** @var list<array{0: StatisticalPredictionInputs, 1: int, 2: bool, 3: array{0: string, 1: string, 2: float, 3: float, 4: null|float, 5: int}}> the window's unboxed first tries: [inputs, seconds, at an event, [player, puzzle, solved, tracked, brand prior, pieces]] */
     public array $unboxed = [];
+    /** @var array<string, PictureFactors> puzzle => its current picture's factors and kind - the taste factor (finish()) */
+    public array $pictures = [];
+    /** @var null|\Closure(string, float, float, TasteState): void every player's taste state after each of their window's first tries, in time order (CandidateModelRecalculator stores them) */
+    public null|\Closure $tasteStates = null;
     private float $clock;
 
     public function __construct(

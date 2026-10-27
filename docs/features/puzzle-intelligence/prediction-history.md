@@ -442,11 +442,12 @@ three predictors written from scratch, 36,224 + 1,637 image rows) in 275 s; the 
 The prediction model review's proposals (README "Step 8", "The candidate model (v4)") built as a **candidate**: computed
 for every solo time next to the shown model and **never shown**. One more predictor in `solving_time_prediction`:
 
-- `predictor = candidate`, `model_version = CandidatePredictionCalculator::MODEL_VERSION` (4) - its own model version,
+- `predictor = candidate`, `model_version = CandidatePredictionCalculator::MODEL_VERSION` (5 since the taste factor,
+  2026-10-27; 4 before - "The taste factor (v5)" below) - its own model version,
   so no reader of the v3 rows (calibration report, image evaluation, time verification, Insights) ever sees it;
 - first tries and repeats alike (a repeat: the shown centre with the candidate's gap-aware window, `method =
   personal`); `image_model` names the estimate a first try rested on;
-- its fit: the `prediction_model_fit` row of model version 4 (`CandidateModelParameters`), written by its **own**
+- its fit: the `prediction_model_fit` row of its model version (`CandidateModelParameters`), written by its **own**
   command `myspeedpuzzling:fit-candidate-prediction-model` (message `FitCandidatePredictionModel`,
   `CandidateModelRecalculator::fit()`) - never by the shown fit, which is exactly main's: `fit-prediction-model` commits
   v3's row, priors and drift without knowing the candidate exists, so a candidate that fails or runs out of memory
@@ -486,7 +487,7 @@ for every solo time next to the shown model and **never shown**. One more predic
   equals the shown repeat with the candidate's window on both sides (the shown repeat itself differs by its documented
   month-snapshot approximation).
 - Backfill (while the switch is on, or with `--candidate`): once the candidate is fitted, the work lists add every solo
-  time without a candidate row of model version 4
+  time without a candidate row of the current model version
   (`GetPlayersWithPendingPredictions::all(withCandidateRows:)`, `findForPredictionOfPlayer(withCandidateRows:)`); the
   handler writes it where missing and replaces it on a re-evaluated time; `--recompute-reconstructed` also replaces
   candidate rows reconstructed before the candidate's fit. Before the first candidate fit nothing is written.
@@ -516,6 +517,37 @@ for every solo time next to the shown model and **never shown**. One more predic
    (the shown v3 reconstructions are equally in-sample, but v4 has more fitted parameters to profit from it). Read it as
    a consistency check only; as evidence count only its **live** slice (the gate prints live and reconstructed apart -
    rows predicted at the add, after the fit that made them), once there are a few thousand of them.
+
+### The taste factor (v5, 2026-10-27)
+
+The candidate's model version 5 = v4 + each player's taste (README "Step 8", "The taste factor (v5)"). For the rows:
+
+- a v5 row is written exactly where a v4 row was (live behind `PREDICTION_CANDIDATE_ROWS`, the backfill with
+  `--candidate`); the v4 rows already stored stay as they are, under model version 4 - nothing deletes them, so v4 and
+  v5 can be compared on the times both predicted (`evaluate-prediction-candidate --candidate=candidate:5
+  --reference=candidate:4`);
+- its inputs: the player's taste state in `candidate_player_taste` (rewritten by every candidate fit: the state after
+  each of the player's first tries of the fit window, valid from that first try's moment) and the picture factors of
+  the puzzle's current picture (`puzzle_difficulty_estimate.picture_factors` of its fingerprint; never for a secret
+  puzzle - the estimate join's rule). Live: two more columns on the candidate's own statement (the player's latest
+  state - one primary-key step - and the picture's factors), no more statements. Reconstructed: the latest state valid
+  **strictly before** the solve (two statements per run in the candidate's pass: the player's states, the target
+  puzzles' factors). A first try added after the last fit enters the player's state with the next fit;
+- before the first v5 fit nothing is written (no fit = no rows), like v4.
+
+### Production run for the taste factor (v5)
+
+1. The migration (on boot) only **creates one table** (`candidate_player_taste`) - nothing waits for it.
+2. No new cron: the daily `fit-candidate-prediction-model` (04:41) fits the taste with the rest (~1 more minute, its
+   peak resident memory unchanged - README "The taste factor (v5)"). Run it once by hand after the deploy:
+   `docker compose run --rm --no-deps messenger-consumer php -d memory_limit=1G bin/console myspeedpuzzling:fit-candidate-prediction-model`
+   - the summary shows `taste_rows`, `taste_players`, `taste_lambda_u` and `taste_inner_mae_*` (each λ against
+   `taste_inner_mae_none`: the taste must lower it), and `taste_states_written`. Until it runs the candidate writes no
+   rows (its v5 fit does not exist yet); the v4 rows stay.
+3. The v5 rows of every past solo time (resumable, detached, never next to another backfill run):
+   `nohup docker compose exec -T -e SENTRY_DSN= web php -d memory_limit=1G bin/console myspeedpuzzling:backfill-solving-time-predictions --candidate > /tmp/backfill-candidate-v5.log 2>&1 &`
+4. Proof stays the time split (`evaluate-predictions --fit-before=<date> --candidate`, and `--candidate-off=taste,competition_player`
+   for v4 on the same code). The stored reconstructed rows are in-sample for the taste too (today's W).
 
 ## Pair and team predictions (2026-10-27)
 

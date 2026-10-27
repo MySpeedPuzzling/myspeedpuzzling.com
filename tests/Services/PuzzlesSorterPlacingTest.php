@@ -105,6 +105,47 @@ final class PuzzlesSorterPlacingTest extends TestCase
     }
 
     /**
+     * "Slowest" by the row's time (the best one), never by the slowest attempt - that is usually the first try
+     */
+    public function testSlowestGoesByTheBestTimeOfEachPuzzle(): void
+    {
+        $sorter = new PuzzlesSorter();
+        $groups = [
+            'a' => [self::solved('a-first', 'a', time: 3000, predicted: null, finishedAt: '2026-01-01', firstAttempt: true), self::solved('a-best', 'a', time: 1000, predicted: null, finishedAt: '2026-02-01')],
+            'b' => [self::solved('b-first', 'b', time: 2000, predicted: null, finishedAt: '2026-01-01', firstAttempt: true)],
+        ];
+
+        $slowest = $sorter->sortGoupedBySlowest($groups, onlyFirstTries: false);
+        self::assertSame(['b', 'a'], self::puzzleIds($slowest));
+        self::assertSame('a-best', $slowest[1][0]->timeId);
+        self::assertSame(['b', 'a'], self::puzzleIds($sorter->sortGroupedBySlowestPpm($groups, onlyFirstTries: false)));
+
+        // Under "first tries only" the row shows the first try, and that time places it
+        $firstTries = $sorter->sortGoupedBySlowest($groups, onlyFirstTries: true);
+        self::assertSame(['a', 'b'], self::puzzleIds($firstTries));
+        self::assertSame('a-first', $firstTries[0][0]->timeId);
+    }
+
+    public function testSlowestPairResultsGoByTheBestTimeOfEachPair(): void
+    {
+        $sorter = new PuzzlesSorter();
+        $results = [
+            self::solved('a-first', 'a', time: 3000, predicted: null, finishedAt: '2026-01-01', firstAttempt: true, teamId: 'pair-1'),
+            self::solved('b-first', 'b', time: 2000, predicted: null, finishedAt: '2026-01-01', firstAttempt: true, teamId: 'pair-1'),
+            self::solved('a-best', 'a', time: 1000, predicted: null, finishedAt: '2026-02-01', teamId: 'pair-1'),
+        ];
+
+        $timeIds = static fn (array $sorted): array => array_map(
+            static fn (SolvedPuzzle $solved): string => $solved->timeId,
+            array_values(array_filter($sorted, static fn (mixed $solved): bool => $solved instanceof SolvedPuzzle)),
+        );
+
+        self::assertSame(['b-first', 'a-best', 'a-first'], $timeIds($sorter->sortTeamResultsBySlowest($results, byPpm: false, onlyFirstTries: false, onlyUnboxed: false)));
+        self::assertSame(['b-first', 'a-best', 'a-first'], $timeIds($sorter->sortTeamResultsBySlowest($results, byPpm: true, onlyFirstTries: false, onlyUnboxed: false)));
+        self::assertSame(['a-first', 'a-best', 'b-first'], $timeIds($sorter->sortTeamResultsBySlowest($results, byPpm: false, onlyFirstTries: true, onlyUnboxed: false)));
+    }
+
+    /**
      * @param list<string> $puzzleIds
      * @return array<string, list<SolvedPuzzle>>
      */
@@ -151,7 +192,7 @@ final class PuzzlesSorterPlacingTest extends TestCase
         return $puzzleIds;
     }
 
-    private static function solved(string $timeId, string $puzzleId, int $time, null|int $predicted, string $finishedAt, null|string $trackedAt = null, bool $suspicious = false): SolvedPuzzle
+    private static function solved(string $timeId, string $puzzleId, int $time, null|int $predicted, string $finishedAt, null|string $trackedAt = null, bool $suspicious = false, bool $firstAttempt = false, null|string $teamId = null): SolvedPuzzle
     {
         return new SolvedPuzzle(
             timeId: $timeId,
@@ -170,12 +211,12 @@ final class PuzzlesSorterPlacingTest extends TestCase
             comment: null,
             trackedAt: new DateTimeImmutable($trackedAt ?? $finishedAt),
             finishedPuzzlePhoto: null,
-            teamId: null,
+            teamId: $teamId,
             players: null,
             solvedTimes: 1,
             puzzleIdentificationNumber: null,
             finishedAt: new DateTimeImmutable($finishedAt),
-            firstAttempt: false,
+            firstAttempt: $firstAttempt,
             unboxed: false,
             isPrivate: false,
             competitionId: null,

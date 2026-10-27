@@ -258,6 +258,40 @@ final class GetRankingTest extends KernelTestCase
         self::assertSame(2, $this->query->forPuzzles(PlayerFixture::PLAYER_REGULAR, [PuzzleFixture::PUZZLE_500_01])[PuzzleFixture::PUZZLE_500_01]->rank);
     }
 
+    public function testTheUnboxedBoardRanksEverybodysUnboxedTimes(): void
+    {
+        // PUZZLE_500_01, public pool: first tries PLAYER_ADMIN 1780, PLAYER_REGULAR 1750, PLAYER_WITH_STRIPE 2100;
+        // unboxed PLAYER_ADMIN 1200, PLAYER_REGULAR 1750, PLAYER_WITH_STRIPE 2100
+        $this->setFirstTries(PuzzleFixture::PUZZLE_500_01, [
+            [PlayerFixture::PLAYER_ADMIN, 1780],
+            [PlayerFixture::PLAYER_REGULAR, 1750],
+            [PlayerFixture::PLAYER_WITH_STRIPE, 2100],
+        ]);
+        $this->setUnboxed(PuzzleFixture::PUZZLE_500_01, [
+            [PlayerFixture::PLAYER_ADMIN, 1200],
+            [PlayerFixture::PLAYER_REGULAR, 1750],
+            [PlayerFixture::PLAYER_WITH_STRIPE, 2100],
+        ]);
+
+        $unboxed = $this->query->allForPlayer(PlayerFixture::PLAYER_REGULAR, unboxed: true)[PuzzleFixture::PUZZLE_500_01];
+        self::assertSame([2, 3], [$unboxed->rank, $unboxed->totalPlayers]);
+
+        // Both filters: the first tries that were unboxed - PLAYER_ADMIN's first try was not
+        $both = $this->query->allForPlayer(PlayerFixture::PLAYER_REGULAR, firstTries: true, unboxed: true)[PuzzleFixture::PUZZLE_500_01];
+        self::assertSame([1, 2], [$both->rank, $both->totalPlayers]);
+
+        self::assertArrayNotHasKey(PuzzleFixture::PUZZLE_500_01, $this->query->allForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, unboxed: true));
+
+        // Every board side by side in one request and in the shared cache
+        $this->query->reset();
+        $fingerprint = Uuid::uuid7()->toString();
+        self::assertSame(3, $this->query->allForPlayerCached(PlayerFixture::PLAYER_REGULAR, $fingerprint, unboxed: true)[PuzzleFixture::PUZZLE_500_01]->totalPlayers);
+        self::assertSame(2, $this->query->allForPlayerCached(PlayerFixture::PLAYER_REGULAR, $fingerprint, firstTries: true, unboxed: true)[PuzzleFixture::PUZZLE_500_01]->totalPlayers);
+        self::assertSame(3, $this->query->allForPlayerCached(PlayerFixture::PLAYER_REGULAR, $fingerprint, unboxed: true)[PuzzleFixture::PUZZLE_500_01]->totalPlayers);
+        self::assertSame(4, $this->query->forPuzzles(PlayerFixture::PLAYER_REGULAR, [PuzzleFixture::PUZZLE_500_01])[PuzzleFixture::PUZZLE_500_01]->totalPlayers);
+        self::assertSame(3, $this->query->forPuzzles(PlayerFixture::PLAYER_REGULAR, [PuzzleFixture::PUZZLE_500_01], unboxed: true)[PuzzleFixture::PUZZLE_500_01]->totalPlayers);
+    }
+
     /**
      * The profile shows the rank the puzzle page shows: every row of the solo leaderboard, with a suspicious time in it
      */
@@ -328,6 +362,26 @@ final class GetRankingTest extends KernelTestCase
                 ['puzzleId' => $puzzleId, 'playerId' => $playerId, 'seconds' => $seconds],
             );
             self::assertSame(1, $updated, "First try of {$playerId}");
+        }
+    }
+
+    /**
+     * @param list<array{string, int}> $unboxed player id + seconds of each unboxed solo time, every other one boxed
+     */
+    private function setUnboxed(string $puzzleId, array $unboxed): void
+    {
+        $connection = self::getContainer()->get(Connection::class);
+        $connection->executeStatement(
+            "UPDATE puzzle_solving_time SET unboxed = false WHERE puzzle_id = :puzzleId AND puzzling_type = 'solo'",
+            ['puzzleId' => $puzzleId],
+        );
+
+        foreach ($unboxed as [$playerId, $seconds]) {
+            $updated = $connection->executeStatement(
+                "UPDATE puzzle_solving_time SET unboxed = true WHERE puzzle_id = :puzzleId AND player_id = :playerId AND puzzling_type = 'solo' AND seconds_to_solve = :seconds",
+                ['puzzleId' => $puzzleId, 'playerId' => $playerId, 'seconds' => $seconds],
+            );
+            self::assertSame(1, $updated, "Unboxed time of {$playerId}");
         }
     }
 

@@ -347,7 +347,7 @@ final class PlayerSolvedPuzzles
         // its tab whichever tab is open) or a placing sort while the solo tab is shown - pairs and teams have no ranks.
         // One statement, kept for two minutes: each chip and "Show more" re-renders the whole list
         if ($placing !== null || ($this->category === 'solo' && in_array($this->sortBy, self::PLACING_SORTS, true))) {
-            $this->allRanks = $this->getRanking->allForPlayerCached($playerId, self::resultsFingerprint($this->allSoloPuzzles), firstTries: $this->onlyFirstTries);
+            $this->allRanks = $this->getRanking->allForPlayerCached($playerId, self::resultsFingerprint($this->allSoloPuzzles), firstTries: $this->onlyFirstTries, unboxed: $this->onlyUnboxed);
         }
 
         if ($placing !== null && $this->allRanks !== null) {
@@ -385,8 +385,8 @@ final class PlayerSolvedPuzzles
             }
         }
 
-        // Under "first tries only" the rows show first tries, so they rank on the first tries board
-        $this->ranking = $this->getRanking->forPuzzles($playerId, $shownPuzzleIds, firstTries: $this->onlyFirstTries);
+        // Under "first tries only" / "unboxed only" the rows show those attempts, so they rank on that board
+        $this->ranking = $this->getRanking->forPuzzles($playerId, $shownPuzzleIds, firstTries: $this->onlyFirstTries, unboxed: $this->onlyUnboxed);
     }
 
     /**
@@ -488,7 +488,7 @@ final class PlayerSolvedPuzzles
     private static function resultsFingerprint(array $soloPuzzles): string
     {
         $lines = array_map(
-            static fn (SolvedPuzzle $puzzle): string => $puzzle->timeId . ':' . $puzzle->puzzleId . ':' . ($puzzle->time ?? '') . ':' . ($puzzle->suspicious ? 1 : 0) . ':' . ($puzzle->firstAttempt ? 1 : 0),
+            static fn (SolvedPuzzle $puzzle): string => $puzzle->timeId . ':' . $puzzle->puzzleId . ':' . ($puzzle->time ?? '') . ':' . ($puzzle->suspicious ? 1 : 0) . ':' . ($puzzle->firstAttempt ? 1 : 0) . ':' . ($puzzle->unboxed ? 1 : 0),
             $soloPuzzles,
         );
         sort($lines);
@@ -664,11 +664,11 @@ final class PlayerSolvedPuzzles
     {
         return match ($this->sortBy) {
             'fastest' => $this->puzzlesSorter->sortByFastest($puzzles),
-            'slowest' => $this->puzzlesSorter->sortBySlowest($puzzles),
+            'slowest' => $this->puzzlesSorter->sortTeamResultsBySlowest($puzzles, byPpm: false, onlyFirstTries: $this->onlyFirstTries, onlyUnboxed: $this->onlyUnboxed),
             'newest' => $this->puzzlesSorter->sortByNewest($puzzles),
             'oldest' => $this->puzzlesSorter->sortByOldest($puzzles),
             'fastest_ppm' => $this->puzzlesSorter->sortByFastestPpm($puzzles),
-            'slowest_ppm' => $this->puzzlesSorter->sortBySlowestPpm($puzzles),
+            'slowest_ppm' => $this->puzzlesSorter->sortTeamResultsBySlowest($puzzles, byPpm: true, onlyFirstTries: $this->onlyFirstTries, onlyUnboxed: $this->onlyUnboxed),
             'easiest' => $this->puzzlesSorter->sortByDifficulty($puzzles, $this->difficultyScores, hardestFirst: false),
             'hardest' => $this->puzzlesSorter->sortByDifficulty($puzzles, $this->difficultyScores, hardestFirst: true),
             // Pairs and teams have no ranks nor predictions: their placing and prediction sorts are the fastest first

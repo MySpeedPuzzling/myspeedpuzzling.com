@@ -522,8 +522,9 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
 - [ ] Rename the default ("system") collection - Allison asked in the same mail (MSP #107), answered "noted", not promised.
 - [x] Select several puzzles on the other lists too (wishlist, sell/swap, unsolved, lend/borrow) - shipped 2026-10-08,
       members only (`docs/features/collections/bulk-actions.md` "Other lists").
-- [ ] Profile results sort 'Slowest' should order puzzles by the player's best (fastest) time per puzzle, not by their
-      slowest attempt (usually the first try). Promised to Šárka (MSP #194, follow-up F60).
+- [x] Profile results sort 'Slowest' should order puzzles by the player's best (fastest) time per puzzle, not by their
+      slowest attempt (usually the first try). Promised to Šárka (MSP #194, follow-up F60). Shipped 2026-10-27 (also
+      pairs/teams and "Slowest PPM"; under first tries / unboxed the row's attempt decides), told in MSP #360.
 - [ ] A player setting to hide other puzzlers' skill tiers / rating shields across the site (ladder, leaderboards,
       profiles) - today ranking opt-out hides only your own. Promised to Martine (MSP #125, follow-up F66).
 - [ ] Brand doughnut chart on player statistics: with 7+ brands the legend overflows and the last line is cut off

@@ -21,7 +21,8 @@ matches a chip.
 comes from the puzzle's **first tries board**: everybody's first solo attempt (`first_attempt`, one per person - see
 first-try-integrity.md), ranked like the full board (`GetRanking::…(firstTries: true)`, cached separately; the
 fingerprint includes the first-try flag). Reported by a player: the rows showed first tries while the ranks were those of
-the best times. The unboxed filter still ranks on the full board. On the pairs / teams tabs the placing and prediction sorts are not offered; a sort left over from the
+the best times. **"Unboxed only"** likewise ranks on the **unboxed board** (everybody's best unboxed time,
+`unboxed: true`), both filters on = the first tries that were unboxed. On the pairs / teams tabs the placing and prediction sorts are not offered; a sort left over from the
 solo tab sorts them fastest first.
 
 ## Live, nothing precomputed

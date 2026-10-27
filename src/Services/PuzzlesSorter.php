@@ -125,6 +125,24 @@ readonly final class PuzzlesSorter
         return $led;
     }
 
+    /**
+     * Pair/team results for the "Slowest" sorts: each puzzle and pair/team placed by its row's attempt (the best one, or
+     * the first try / unboxed one), the slowest rows first - the same rule as the solo groups, flattened again for
+     * groupPuzzlesByTeam()
+     *
+     * @param array<SolvedPuzzle> $solvedPuzzles
+     * @return list<SolvedPuzzle>
+     */
+    public function sortTeamResultsBySlowest(array $solvedPuzzles, bool $byPpm, bool $onlyFirstTries, bool $onlyUnboxed): array
+    {
+        $grouped = array_values($this->groupPuzzlesByTeam($solvedPuzzles));
+        $sorted = $byPpm
+            ? $this->sortGroupedBySlowestPpm($grouped, $onlyFirstTries, $onlyUnboxed)
+            : $this->sortGoupedBySlowest($grouped, $onlyFirstTries, $onlyUnboxed);
+
+        return array_values(array_merge(...$sorted));
+    }
+
     private static function teamGroupKey(SolvedPuzzle $solvedPuzzle): string
     {
         return $solvedPuzzle->puzzleId . '|' . ($solvedPuzzle->teamId ?? $solvedPuzzle->timeId);
@@ -306,20 +324,6 @@ readonly final class PuzzlesSorter
      * @param array<SolvedPuzzle> $solvedPuzzles
      * @return array<SolvedPuzzle>
      */
-    public function sortBySlowest(array $solvedPuzzles): array
-    {
-        usort($solvedPuzzles, static function (SolvedPuzzle $a, SolvedPuzzle $b): int {
-            // Compare in descending order: highest time first, nulls at end.
-            return self::compareTimesDescending($a->time, $b->time);
-        });
-
-        return $solvedPuzzles;
-    }
-
-    /**
-     * @param array<SolvedPuzzle> $solvedPuzzles
-     * @return array<SolvedPuzzle>
-     */
     public function sortByNewest(array $solvedPuzzles): array
     {
         usort($solvedPuzzles, static function (SolvedPuzzle $a, SolvedPuzzle $b): int {
@@ -417,22 +421,6 @@ readonly final class PuzzlesSorter
     }
 
     /**
-     * @param array<SolvedPuzzle> $solvedPuzzles
-     * @return array<SolvedPuzzle>
-     */
-    public function sortBySlowestPpm(array $solvedPuzzles): array
-    {
-        usort($solvedPuzzles, static function (SolvedPuzzle $a, SolvedPuzzle $b): int {
-            $ppmA = self::calculatePpm($a);
-            $ppmB = self::calculatePpm($b);
-
-            return self::comparePpmAscending($ppmA, $ppmB);
-        });
-
-        return $solvedPuzzles;
-    }
-
-    /**
      * @param array<array<SolvedPuzzle>> $groupedSolvedPuzzles
      * @return array<array<SolvedPuzzle>>
      */
@@ -473,14 +461,16 @@ readonly final class PuzzlesSorter
     }
 
     /**
+     * Lowest pieces per minute first, by the row's attempt like sortGoupedBySlowest()
+     *
      * @param array<array<SolvedPuzzle>> $groupedSolvedPuzzles
      * @return array<array<SolvedPuzzle>>
      */
     public function sortGroupedBySlowestPpm(array $groupedSolvedPuzzles, bool $onlyFirstTries, bool $onlyUnboxed = false): array
     {
-        // 1) Sort times within groups by PPM (slowest first)
+        // 1) Sort times within groups by PPM (best first, the row shows it)
         foreach ($groupedSolvedPuzzles as $index => $solvedPuzzle) {
-            $groupedSolvedPuzzles[$index] = $this->sortBySlowestPpm($solvedPuzzle);
+            $groupedSolvedPuzzles[$index] = $this->sortByFastestPpm($solvedPuzzle);
 
             if ($onlyFirstTries === true) {
                 $groupedSolvedPuzzles[$index] = $this->makeFirstAttemptFirst($groupedSolvedPuzzles[$index]);
@@ -793,6 +783,9 @@ readonly final class PuzzlesSorter
     }
 
     /**
+     * The puzzles the player is slowest at first: by the row's time - the best one, or the first try / unboxed one under
+     * those filters - like "Fastest" in reverse, never by the slowest attempt (that is usually just the first try)
+     *
      * @param array<array<SolvedPuzzle>> $groupedSolvedPuzzles
      * @return array<array<SolvedPuzzle>>
      */
@@ -800,7 +793,7 @@ readonly final class PuzzlesSorter
     {
         // 1) Sort times within groups as they are supposed to be
         foreach ($groupedSolvedPuzzles as $index => $solvedPuzzle) {
-            $groupedSolvedPuzzles[$index] = $this->sortBySlowest($solvedPuzzle);
+            $groupedSolvedPuzzles[$index] = $this->sortByFastest($solvedPuzzle);
 
             if ($onlyFirstTries === true) {
                 $groupedSolvedPuzzles[$index] = $this->makeFirstAttemptFirst($groupedSolvedPuzzles[$index]);

@@ -56,3 +56,4 @@ addopts = "-q"
 
 [tool.setuptools.package-data]
 "puzzle_vision.derive" = ["*.json"]
+"puzzle_vision.stages" = ["*.json"]

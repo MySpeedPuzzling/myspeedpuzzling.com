@@ -461,15 +461,84 @@ def strip_measures(lab: np.ndarray, side: int, t: float, rect: Sequence[float]) 
 
 AGREE_TOL = 0.02    # the face pass and the first pass put a side within this share of the face of each other ...
 AGREE_PAD = 0.02    # ... = trusted without a visible edge, with this margin outward
+NO_EDGE_FALLBACK = True  # 1.2: a side taken on the VLM's line with no colour step under it goes no deeper than the
+                         # first pass's crop on that side (the outer of the two). 2026-10-26 review F2: those sides cut
+                         # 13 % of the time (5 % when snapped to an edge) - Jan's trade (2026-10-27): fewer cuts for
+                         # a little more print
+
+
+def trims_in_face(box: Sequence[float], h_face_to_img: np.ndarray, face_wh: tuple[int, int],
+                  img_wh: tuple[int, int]) -> dict[str, float]:
+    """An image box [x0, y0, x1, y1] (0..1) as a trim of each side of the face (0..1 of the face; negative = the box
+    lies outside the face there). Per side the box's outer corner counts - the box can only hold more."""
+    fw, fh = face_wh
+    corners = np.float32([[[x * img_wh[0], y * img_wh[1]]] for x, y in box_quad(box)])
+    f = cv2.perspectiveTransform(corners, np.linalg.inv(h_face_to_img).astype(np.float64)).reshape(4, 2) / [fw, fh]
+    tl, tr, br, bl = f
+    return {"left": float(min(tl[0], bl[0])), "top": float(min(tl[1], tr[1])),
+            "right": float(1.0 - max(tr[0], br[0])), "bottom": float(1.0 - max(bl[1], br[1]))}
+
+
+def _held(t: float, why: str, held: dict[str, float] | None, side: str, entry: dict[str, Any],
+          agreed: Any = None) -> tuple[float, str]:
+    """A trim `t` on the VLM's line without an edge, held at the first pass's side when that lies further out -
+    unless SAM's mask edge and a colour step agree with the VLM's line (`agreed(side, t)` = the trim, or None)."""
+    if held is None or side not in held or held[side] >= t:
+        return t, why
+    if agreed is not None:
+        at = agreed(side, t)
+        if at is not None:
+            entry["vlmTrim"] = round(t, 4)
+            return at, SAM_AGREED
+    entry["vlmTrim"] = round(t, 4)
+    return max(0.0, held[side]), HELD
+
+
+HELD = "the first pass's line (no edge on the VLM's)"
+SAM_AGREED = "SAM, a colour step and the VLM's line agree"
+SAM_SIDES = False         # 1.2: SAM 2.1 may keep a no-edge VLM line (proposal 7) - off until measured on the labelled
+                          # sets with the model (artwork_eval --candidate v11 --sam; GPU), see vision-analysis.md
+SAM_AGREE = 0.01          # mask edge, colour step and VLM line within this share of the face of each other
+SAM_STEP_SUPPORT = 0.35   # the colour step: this share of the line on a step (the snap needs 0.55 - this side had none)
+SAM_MIN_SCORE = 0.85      # SAM's own quality estimate of the mask
+SAM_MAX_SPREAD = 0.02     # the mask's edge along the side is this straight (interquartile range of its positions)
+SAM_PROMPT = "held"       # SAM's box prompt: "held" = the first pass's box on the face (independent of the VLM's line),
+                          # "vlm" = the VLM's box - its mask echoes the box it is given: on a CPU sample it agreed with
+                          # the VLM on a picture inside the picture and cut 41 %
+
+
+def sam_agreement(lab: np.ndarray, edges: dict[str, Any] | None, side: str, t: float) -> float | None:
+    """The trim where SAM's mask edge, a colour step and the VLM's line `t` agree within SAM_AGREE - the outermost of
+    the three (never deeper than any of them) - or None."""
+    if not edges or edges.get(side) is None or float(edges.get("score") or 0.0) < SAM_MIN_SCORE:
+        return None
+    if float((edges.get("spread") or {}).get(side, 1.0)) > SAM_MAX_SPREAD:
+        return None
+    m = float(edges[side])
+    if abs(m - t) > SAM_AGREE:
+        return None
+    prof = edge_profile(lab, ("left", "top", "right", "bottom").index(side))
+    n = len(prof)
+    lo, hi = max(1, int((t - SAM_AGREE) * n)), min(n - 1, int(np.ceil((t + SAM_AGREE) * n)))
+    steps = [y for y in range(lo, hi + 1) if prof[y] >= SAM_STEP_SUPPORT]
+    if not steps:
+        return None
+    step = min(steps, key=lambda y: abs(y / n - t)) / n
+    out = min(t, m, step)
+    return out if out >= FACE_MIN_TRIM else None
 
 
 def face_pass(rgb: np.ndarray, quad: Sequence[Sequence[float]], ask: Any,
               max_trim: dict[str, float] | None = None,
-              first_at: dict[str, float] | None = None) -> tuple[list[list[float]] | None, dict[str, Any]]:
+              first_at: dict[str, float] | None = None,
+              held_at: Sequence[float] | None = None,
+              ask_mask: Any = None) -> tuple[list[list[float]] | None, dict[str, Any]]:
     """The picture inside a box face. `ask(face_rgb)` = the VLM's [u0, v0, u1, v1] (0..1 of the face) or None.
     Each side moves in only when the VLM wants at least FACE_MIN_TRIM, at most FACE_MAX_TRIM, and its line sits on a
     real colour step on the face (art crossing the line = no step = veto: never cut artwork). Answers the new
-    outline (TL, TR, BR, BL of the image) or None when nothing moved, and what happened per side."""
+    outline (TL, TR, BR, BL of the image) or None when nothing moved, and what happened per side. `held_at` = the
+    first pass's crop (an image box): a side on the VLM's line without an edge goes no deeper (NO_EDGE_FALLBACK)
+    unless `ask_mask(face_rgb, rect)` (SAM 2.1's mask edges, artwork_sam) agrees with it (SAM_SIDES)."""
     face, h_f2i = straighten(rgb, quad)
     fh, fw = face.shape[:2]
     info: dict[str, Any] = {"face": {"width": fw, "height": fh}, "outline": [[round(float(x), 5), round(float(y), 5)] for x, y in quad]}
@@ -480,7 +549,23 @@ def face_pass(rgb: np.ndarray, quad: Sequence[Sequence[float]], ask: Any,
     u0, v0, u1, v1 = (float(v) for v in rect)
     info["answer"] = [round(u0, 4), round(v0, 4), round(u1, 4), round(v1, 4)]
     want = {"left": u0, "top": v0, "right": 1.0 - u1, "bottom": 1.0 - v1}
+    held = None
+    if NO_EDGE_FALLBACK and held_at is not None:
+        held = trims_in_face(held_at, h_f2i, (fw, fh), (rgb.shape[1], rgb.shape[0]))
+        info["heldAt"] = {k: round(v, 4) for k, v in held.items()}
     lab = lab_image(face)
+    sam: list[Any] = []
+
+    def agreed(side: str, t: float) -> float | None:
+        if not sam:  # SAM is asked once per face, and only when a side would be held
+            if SAM_PROMPT == "vlm" or held is None:
+                prompt = (u0, v0, u1, v1)
+            else:  # the first pass's box: SAM's edge is then a hypothesis of its own, not the VLM's box echoed back
+                prompt = (max(0.0, held["left"]), max(0.0, held["top"]), min(1.0, 1 - held["right"]), min(1.0, 1 - held["bottom"]))
+            sam.append(ask_mask(face, tuple(round(v, 4) for v in prompt)))
+            info["sam"] = sam[0]
+        return sam_agreement(lab, sam[0], side, t)
+    agree = agreed if SAM_SIDES and ask_mask is not None else None
     trims: dict[str, float] = {}
     sides: dict[str, Any] = {}
     for k, (side, t) in enumerate(want.items()):
@@ -508,19 +593,21 @@ def face_pass(rgb: np.ndarray, quad: Sequence[Sequence[float]], ask: Any,
                 tt = t - TRUST_BACKOFF
                 if NO_EDGE_MAX is not None and tt > NO_EDGE_MAX:
                     tt = NO_EDGE_MAX if NO_EDGE_DEEP == "cap" else 0.0
+                why = "the VLM's line" if tt == t - TRUST_BACKOFF else f"the VLM's line, too deep without an edge ({NO_EDGE_DEEP})"
+                tt, why = _held(tt, why, held, side, entry, agree)
                 if tt >= FACE_MIN_TRIM:
                     trims[side] = tt
                     entry["trim"] = round(tt, 4)
-                why = "the VLM's line" if tt == t - TRUST_BACKOFF else f"the VLM's line, too deep without an edge ({NO_EDGE_DEEP})"
             elif snapped is None and FACE_TRUST:
                 why = "the VLM's line at the face's own border"
             elif snapped is None:
                 why = "no edge on the line"
             elif BORDER_FIX and FACE_TRUST and snapped < FACE_MIN_TRIM and t >= FACE_MIN_TRIM:
                 # the edge nearest the line is the face's own outline: the VLM's line it is
-                trims[side] = t
-                entry["trim"] = round(t, 4)
-                why = "the VLM's line"
+                tt, why = _held(t, "the VLM's line", held, side, entry, agree)
+                if tt >= FACE_MIN_TRIM:
+                    trims[side] = tt
+                    entry["trim"] = round(tt, 4)
             elif snapped - (0.0 if (BORDER_FIX and FACE_TRUST) else FACE_BACKOFF) < FACE_MIN_TRIM:
                 why = "edge at the face's own border"
             else:
@@ -747,6 +834,40 @@ def decide_kind(fp: dict[str, Any], second: str | None) -> tuple[str, str]:
 
 
 # --- everything together ---------------------------------------------------------------------------------------------
+SIDES = ("left", "top", "right", "bottom")
+FACE_DECIDED = {"trimmed": "edge", "the VLM's line": "VLM line", HELD: "first pass", "both passes agree": "both passes agree", SAM_AGREED: "SAM + step + VLM line"}
+
+
+def initial_sides(fp: dict[str, Any], g: dict[str, Any]) -> dict[str, str]:
+    """Which hypothesis set each side of the crop geometry (before the face pass)."""
+    method, sig = g["method"], g["signals"]
+    if method == "trim":
+        return dict.fromkeys(SIDES, "trim")
+    if method == "vlm+fit":
+        return dict.fromkeys(SIDES, "fit")
+    if method == "vlm+quad":
+        if sig.get("quad") == "accepted":
+            return dict.fromkeys(SIDES, "quad")
+        ok = [quad_side_ok(m) for m in sig.get("quadSides") or []]
+        # quad sides run top, right, bottom, left
+        by = dict(zip(("top", "right", "bottom", "left"), ok))
+        return {s: "quad" if by.get(s) else "first pass box" for s in SIDES}
+    widened = sig.get("widened") or {}
+    return {s: "widened (no edge)" if s in widened else "VLM box" for s in SIDES}
+
+
+def _on_border(box: Sequence[float], side: str) -> bool:
+    i = SIDES.index(side)
+    return abs(box[i] - (0.0 if i < 2 else 1.0)) < 0.002
+
+
+def outer_box(box: Sequence[float], other: Sequence[float] | None) -> list[float]:
+    """Per side the outer of two boxes - the conservative crop (no side deeper than either hypothesis)."""
+    if not other:
+        return list(box)
+    return [min(box[0], other[0]), min(box[1], other[1]), max(box[2], other[2]), max(box[3], other[3])]
+
+
 def _crop_rgb(rgb: np.ndarray, box: Sequence[float], quad: Sequence[Sequence[float]] | None) -> np.ndarray:
     from ..imaging import crop
 
@@ -754,11 +875,61 @@ def _crop_rgb(rgb: np.ndarray, box: Sequence[float], quad: Sequence[Sequence[flo
     return out
 
 
+def _outline_key(q: Sequence[Sequence[float]]) -> tuple[float, ...]:
+    return tuple(round(float(v), 4) for p in q for v in p)
+
+
+class PriorAnswers:
+    """The VLM's answers stored with this picture's previous result (1.1 or later): the kind's second opinion and the
+    face pass's box, re-used when 1.2 asks the same question of the same pixels - same picture, prompt and face
+    outline = the same greedy answer - so a re-run asks the model only where the geometry changed."""
+
+    def __init__(self, prior: dict[str, Any] | None) -> None:
+        s = (prior or {}).get("signals") or {}
+        kc = s.get("kindCheck") if isinstance(s.get("kindCheck"), dict) else None
+        self.kind: tuple[bool, Any] = (True, kc.get("second")) if kc is not None and "second" in kc else (False, None)
+        face = s.get("face") if isinstance(s.get("face"), dict) else {}
+        self.face: dict[tuple[float, ...], Any] = {}
+        for asked in (face, face.get("beforeGrow") if isinstance(face.get("beforeGrow"), dict) else {}):
+            if asked.get("outline") and "answer" in asked:
+                self.face[_outline_key(asked["outline"])] = asked["answer"]
+        self.used: dict[str, int] = {"kind": 0, "face": 0}
+
+    def ask_kind(self, ask: Any) -> Any:
+        if ask is None:
+            return None
+
+        def fn(rgb: np.ndarray) -> Any:
+            if self.kind[0]:
+                self.used["kind"] += 1
+                return self.kind[1]
+            return ask(rgb)
+        return fn
+
+    def face_for(self, outline: Sequence[Sequence[float]], ask: Any) -> Any:
+        key = _outline_key(outline)
+
+        def fn(face: np.ndarray) -> Any:
+            if key in self.face:
+                self.used["face"] += 1
+                return self.face[key]
+            return ask(face)
+        return fn
+
+
 def refine(rgb: np.ndarray, a: np.ndarray, fp: dict[str, Any], source: tuple[int, int], original: tuple[int, int],
-           ask_kind: Any = None, ask_face: Any = None, ask_strip: Any = None) -> dict[str, Any]:
-    """The 1.1 payload from the first pass `fp`. `rgb` = the cached image (<= 1600 px), `a` = the <= 1024 px working
-    copy; `ask_kind(rgb)` / `ask_face(face_rgb)` = the VLM's second opinions (None = not asked)."""
+           ask_kind: Any = None, ask_face: Any = None, ask_strip: Any = None,
+           prior: dict[str, Any] | None = None, ask_mask: Any = None, v12: bool = True) -> dict[str, Any]:
+    """The payload from the first pass `fp`. `rgb` = the cached image (<= 1600 px), `a` = the <= 1024 px working
+    copy; `ask_kind(rgb)` / `ask_face(face_rgb)` = the VLM's second opinions (None = not asked); `prior` = this
+    picture's stored result of an earlier version, whose VLM answers are re-used for the same question. `v12` = the
+    1.2 rules (the no-edge fallback, SAM, the stored hypotheses); False = exactly 1.1 (a profile still on 1.1.x)."""
+    if not v12:
+        prior, ask_mask = None, None
+    answers = PriorAnswers(prior)
+    ask_kind = answers.ask_kind(ask_kind)
     g = crop_geometry(a, fp)
+    decided = initial_sides(fp, g)
     signals: dict[str, Any] = {
         "gateMargin": fp.get("gateMargin"),
         "vlmKind": fp.get("vlmKind"),
@@ -775,6 +946,7 @@ def refine(rgb: np.ndarray, a: np.ndarray, fp: dict[str, Any], source: tuple[int
             kind = second
             signals["kindCheck"]["result"] = "box photo"
             g = {**g, "bbox": [0.0, 0.0, 1.0, 1.0], "method": "kind", "quad": None}
+            decided = dict.fromkeys(SIDES, "photo border")
         else:
             signals["kindCheck"]["result"] = "kept"
     elif needs_kind_check(fp) and ask_kind is not None:
@@ -795,7 +967,8 @@ def refine(rgb: np.ndarray, a: np.ndarray, fp: dict[str, Any], source: tuple[int
                 outline = tilted_outline(a, outline, [v if v is not None and abs(v) >= TILT_MIN_DEG else 0.0 for v in angles])
                 caps, first_at = None, None
                 signals["tilt"]["outline"] = outline
-        new, info = face_pass(rgb, outline, lambda face: ask_face(face, kind), caps, first_at)
+                decided = {k: "tilt" if v != "photo border" else v for k, v in decided.items()}
+        new, info = face_pass(rgb, outline, answers.face_for(outline, lambda face: ask_face(face, kind)), caps, first_at, fp.get("bbox") if v12 else None, ask_mask)
         grow = grow_sides(box, g["signals"].get("widened") or {}, info) if quad is None and FACE_GROW else {}
         if grow:
             # the picture runs on past a widened side that stopped short of the photo's border (BOX_WIDEN_MAX) and
@@ -804,9 +977,13 @@ def refine(rgb: np.ndarray, a: np.ndarray, fp: dict[str, Any], source: tuple[int
             outline = box_quad(box)
             caps = face_caps(box, fp.get("vlmBbox"))
             first_at = first_pass_in_face(box, fp.get("vlmBbox"))
-            new, info = face_pass(rgb, outline, lambda face: ask_face(face, kind), caps, first_at)
+            before = {"outline": info.get("outline"), "answer": info.get("answer")}
+            new, info = face_pass(rgb, outline, answers.face_for(outline, lambda face: ask_face(face, kind)), caps, first_at, fp.get("bbox") if v12 else None, ask_mask)
             info["grown"] = sorted(grow)
+            if v12:
+                info["beforeGrow"] = before  # the first question too, so a later re-run asks neither again
             method = f"{method}+grow"
+            decided.update(dict.fromkeys(grow, "grown to the photo border"))
         signals["face"] = info
         if g["method"] == "kind" and (new is None or quad_area(new) > TRIM_BOX_MAX_SHARE * quad_area(box_quad(fp["bbox"]))):
             # the second opinion said "box" but no smaller picture was found in it: a digital picture after all (2 of
@@ -814,11 +991,15 @@ def refine(rgb: np.ndarray, a: np.ndarray, fp: dict[str, Any], source: tuple[int
             kind, new = "flat", None
             box, quad, method, outline = list(fp["bbox"]), None, "trim", box_quad(fp["bbox"])
             signals["kindCheck"]["result"] = "no picture inside, kept"
+            decided = dict.fromkeys(SIDES, "trim")
         if new is not None:
             outline = new
             quad = new if is_skewed(new) else None
             box = quad_to_box(new)
             method = f"{method}+face"
+            for side, entry in (info.get("sides") or {}).items():
+                if "trim" in entry:
+                    decided[side] = FACE_DECIDED.get(entry.get("result"), entry.get("result"))
     if BAND_CHECK and ask_strip is not None and kind in FACE_KINDS:
         bq, binfo = band_check(rgb, outline, ask_strip)
         signals["bands"] = binfo
@@ -832,11 +1013,20 @@ def refine(rgb: np.ndarray, a: np.ndarray, fp: dict[str, Any], source: tuple[int
     # a side the face pass put on an edge (then backed off it) or where both passes agree is confirmed too - the
     # back-off itself leaves no step on the final line
     by_face = {side for side, v in ((signals.get("face") or {}).get("sides") or {}).items()
-               if v.get("result") in ("trimmed", "both passes agree", "the VLM's line")} if "+face" in method else set()
+               if v.get("result") in ("trimmed", "both passes agree", "the VLM's line", SAM_AGREED)} if "+face" in method else set()
     widened = set(g["signals"].get("widened") or {})  # moved out for want of an edge: a photo border there proves nothing
     confirmed = sum(1 for m in final_sides
                     if m["side"] in by_face or (side_ok(m) and m["side"] not in widened))
     signals["finalSides"] = [{k: m[k] for k in ("side", "support", "similarity", "photoEdge")} for m in final_sides]
+    if v12:
+        # 1.2 (review proposal 5): the hypotheses behind the crop, stored now so a later version can choose without a
+        # re-run - which hypothesis set each side, and the conservative crop (per side the outer of the first pass's
+        # crop and this one); the VLM's own corners ride in `firstPass.vlmQuad` (pictures whose first pass runs now)
+        signals["decidedBy"] = {side: ("photo border" if _on_border(box, side) and decided.get(side) != "trim" else decided.get(side))
+                                for side in SIDES}
+        signals["conservative"] = _bbox(outer_box(box, fp.get("bbox")))
+        if answers.used["kind"] or answers.used["face"]:
+            signals["vlmReused"] = dict(answers.used)
     crop_rgb = _crop_rgb(rgb, box, quad)
     corners = None
     if quad is not None and is_skewed(quad):

@@ -227,6 +227,34 @@ uv run python -m puzzle_vision.artwork_eval --set random --candidate stored   # 
   first-pass stratum in proportion to the catalogue (`reference/population-strata.json`, refreshed with
   `artwork_testset strata --write`), or for its own selection weight (the random set); `effectiveN` says how many
   pictures the weighted rate is worth, `coverage` how much of the catalogue the set's strata hold.
+- **Without the GPU**: `--candidate memo` runs the current code with the VLM's answers of earlier eval runs only (the
+  memo `~/Library/Caches/puzzle-vision/artwork-reference/vlm-answers.json`, keyed by picture, question and pixels) - no
+  model, no model lock, so it runs next to `describe`. A question never asked before skips the picture and is counted
+  ("N picture(s) skipped") - the numbers are comparable only when that count is 0; otherwise `--candidate v11` (the
+  model, under the model lock) asks and fills the memo. `--sam` adds SAM 2.1 to the face pass (a model).
+- **What a version would change, before re-running anything**: `python -m puzzle_vision.artwork_replay --rows
+  artwork.jsonl --out replay.jsonl --only-photos` replays the current code on the stored results (bulk read, saved
+  read-only) and the local image cache, with the stored VLM answers and no model; per picture whether the crop moved
+  (IoU < 0.995 or a side > 0.5 %) and whether a re-run would need the VLM (`needs vlm`). ~0.5 CPU-s a photo.
+
+### Artwork 1.2 - switching it on (orchestrator)
+
+Measurements: vision-analysis.md §4.1. The code ships inert: the 1.2 rules run only when the profile's `artwork`
+version is `1.2.x` (`ArtworkStage.v12`). Switching on = `version = "1.2.0+siglip2-q3vl4b"` in both profiles (one
+commit, `git pull` on both Macs), after `describe` is done:
+
+- **`artwork` re-run**: every picture is stale for 1.2, but the first pass and the VLM's answers are re-used from the
+  stored 1.1 result - the VLM runs only for grown faces (~350) and new pictures. ~0.3-0.5 CPU-s a picture → ~4-6 h
+  for 43.5k (the stage holds the model lock meanwhile; it loads the VLM only for those few).
+- **The crops it moves**: 10,634 of 43,481 (24.5 %). Their crop-based analyzers are stale in meaning but not in the
+  API (it compares versions only, §4). Two ways:
+  1. bump every crop-based analyzer (`colors`, `traits`, `piece_scale`, `segmentation`, `embed_dinov2`,
+     `embed_dinov2_patches`, `embed_siglip2`, `vision_labels`, `describe`) - re-does all 43.5k: GPU ~6.8 h (embeddings
+     + segmentation, 0.56 s a picture) + Apple Vision ~1.6 h + **`describe` ~130 h** (10.75 s a picture);
+  2. re-run only the moved crops - GPU ~1.7 h + Apple Vision 0.4 h + `describe` ~32 h. Needs a "crop changed" rule the
+     pipeline does not have yet (each crop-based result stores the crop it was made from in its envelope `crop`; a
+     stage could carry an unchanged crop's result over to the new version instead of re-running it). Not built.
+- Then `crop_trust`, `difficulty_prior` (new estimates) and the crop proposals read the new rows as usual.
 
 ## 5. Disk and memory rules
 

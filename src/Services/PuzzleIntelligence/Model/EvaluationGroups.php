@@ -11,7 +11,7 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence\Model;
  */
 final class EvaluationGroups
 {
-    /** @var array<string, array{errors: list<float>, hit50: int, hit80: int, widths50: list<float>, widths80: list<float>}> */
+    /** @var array<string, array{errors: list<float>, hit50: int, hit80: int, widths50: list<float>, widths80: list<float>, score80: float}> */
     private array $groups = [];
 
     private int $attempts = 0;
@@ -32,8 +32,13 @@ final class EvaluationGroups
             return;
         }
 
-        $this->groups[$label] ??= ['errors' => [], 'hit50' => 0, 'hit80' => 0, 'widths50' => [], 'widths80' => []];
+        $this->groups[$label] ??= ['errors' => [], 'hit50' => 0, 'hit80' => 0, 'widths50' => [], 'widths80' => [], 'score80' => 0.0];
         $group = &$this->groups[$label];
+
+        // The 80 % window's interval score in logs: its width + 10 × how far outside it the time came (lower = better)
+        if ($low80 > 0 && $high80 >= $low80) {
+            $group['score80'] += log($high80 / $low80) + 10.0 * max(0.0, log($low80 / $seconds)) + 10.0 * max(0.0, log($seconds / $high80));
+        }
 
         $group['errors'][] = log($seconds / $predicted);
         $group['hit50'] += $seconds >= $low50 && $seconds <= $high50 ? 1 : 0;
@@ -154,6 +159,8 @@ final class EvaluationGroups
                 $n = count($group['errors']);
                 $mae = array_sum(array_map(abs(...), $group['errors'])) / $n;
                 $row[$name . ' mae'] = round($mae, 4);
+                $row[$name . ' mae6'] = round($mae, 6);
+                $row[$name . ' is80'] = round($group['score80'] / $n, 5);
 
                 if ($name !== $reference) {
                     $row[$name . ' Δmae'] = round(100 * ($mae / $referenceMae - 1), 1) . ' %';

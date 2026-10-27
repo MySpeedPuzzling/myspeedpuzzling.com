@@ -27,6 +27,10 @@ final class CandidateEngine
     public array $fewDifficulty = [];
     /** @var null|array<string, list<string>> player => their pair keys (experienceOf(), experienceAt()) */
     private null|array $pairsByPlayer = null;
+    /** v7: the difficulty-adjusted pace's offsets (switch adjusted_pace) - read with every solver's pace and drift; null = none */
+    public null|AdjustedPace $adjustedPace = null;
+    /** What every player picks (AdjustedPace::selectionAt()) from the raw indices - the evaluation's selection deciles */
+    public null|AdjustedPace $selection = null;
 
     // As-of evidence of the attempts solved from compute()'s moment on: attempt => slot (fixed size, null = before it)
     /** @var SplFixedArray<null|int> */
@@ -60,14 +64,51 @@ final class CandidateEngine
 
         $player = $set->player[$i];
         $pieces = $set->pieces[$i];
+        $pairKey = $player . '|' . $pieces;
 
         if ($this->engine->timeline->directRowBefore($player, $pieces, $set->solved[$i], $set->tracked[$i]) === null) {
-            return [log($index), 0.0, PredictionModelParameters::GLOBAL_SPREAD, 0];
+            // v7: an index from a pace of the solver's other sizes (or their first pace) - the mean offset of their rows
+            // at the moment the index is known from
+            $offset = $this->adjustedPace !== null ? $this->indirectOffset($i) : 0.0;
+
+            return [log($index) - $offset, 0.0, PredictionModelParameters::GLOBAL_SPREAD, 0];
         }
 
-        [$drift, $spread] = $this->engine->stateBefore($player . '|' . $pieces, $i);
+        [$drift, $spread] = $this->engine->stateBefore($pairKey, $i);
+        $offset = $this->adjustedPace?->offsetAt($pairKey, $set->solved[$i], $set->tracked[$i]) ?? 0.0;
 
-        return [log($index), $drift ?? 0.0, $spread ?? PredictionModelParameters::GLOBAL_SPREAD, $set->position[$i] - 1];
+        return [log($index) - $offset, $drift ?? 0.0, $spread ?? PredictionModelParameters::GLOBAL_SPREAD, $set->position[$i] - 1];
+    }
+
+    /**
+     * v7: the offset of an index whose pace was not the solver's own direct row before it (interpolated from their other
+     * sizes, or their first pace): the mean offset of the player's rows at the moment the index is known from.
+     */
+    private function indirectOffset(int $i): float
+    {
+        $adjusted = $this->adjustedPace;
+
+        if ($adjusted === null) {
+            return 0.0;
+        }
+
+        $set = $this->engine->set;
+        [$solved, $tracked] = $set->knownFrom($i);
+        // Inclusive of the known-from moment itself (a first pace is the row of that moment)
+        $tracked += 0.5;
+        $sum = 0.0;
+        $count = 0;
+
+        foreach ($this->pairsOf($set->player[$i]) as $pairKey) {
+            $offset = $adjusted->rowBefore($pairKey, $solved, $tracked);
+
+            if ($offset !== null) {
+                $sum += $offset;
+                $count++;
+            }
+        }
+
+        return $count > 0 ? $sum / $count : 0.0;
     }
 
     /**
@@ -254,7 +295,9 @@ final class CandidateEngine
             }
 
             [$drift, $spread] = $this->engine->stateAt($pairKey, $solved, $tracked);
-            $rows[] = [$pieces, $row['baseline'], $drift ?? 0.0, $spread ?? PredictionModelParameters::GLOBAL_SPREAD, $this->engine->countBefore($pairKey, $solved, $tracked)];
+            // v7: the adjusted pace rides on the drift (AdjustedPace - the level on the average puzzle)
+            $offset = $this->adjustedPace?->offsetAt($pairKey, $solved, $tracked) ?? 0.0;
+            $rows[] = [$pieces, $row['baseline'], ($drift ?? 0.0) + $offset, $spread ?? PredictionModelParameters::GLOBAL_SPREAD, $this->engine->countBefore($pairKey, $solved, $tracked)];
         }
 
         return $rows;

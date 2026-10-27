@@ -858,7 +858,7 @@ pictured puzzle (41,266): the daily fit 5.6 → 6.0 s (the estimates' read and t
 batch unchanged (18.6 s - only the copy's sync compares one more column). The add-time path costs no statement: the
 estimate rides on the statistical read (two LEFT JOINs) and the three side rows go in one INSERT.
 
-### The candidate model (v4, v5 with the taste factor, v6) - side by side, never shown
+### The candidate model (v4, v5 with the taste factor, v6, v7) - side by side, never shown
 
 A second model computed next to the shown one (v3), to be launched as one `MODEL_VERSION` bump once Jan decides
 (prediction model review 2026-10-26, proposals P1-P8 and data-mining F6/F8). **Nothing a player sees changes**: the
@@ -866,7 +866,7 @@ columns on `puzzle_solving_time`, `GetPlayerPrediction(s)`, the Picker, the reca
 `CandidateModelTest::testTheShownModelIgnoresEveryCandidateInput` and
 `CandidatePredictionsSideBySideTest::testTheShownPredictionsAreTheSameWithAndWithoutTheCandidate` guard it. Its rows
 are the `candidate` predictor of `solving_time_prediction`, model version `CandidatePredictionCalculator::MODEL_VERSION`
-(6 since "Candidate v6", 5 with the taste factor, 4 before - "The taste factor (v5)") - first tries and repeats; storage and backfill: [prediction-history.md](prediction-history.md) "The candidate
+(7 since "Candidate v7", 6 since "Candidate v6", 5 with the taste factor, 4 before - "The taste factor (v5)") - first tries and repeats; storage and backfill: [prediction-history.md](prediction-history.md) "The candidate
 model (v4)".
 
 **First try** (`Model\CandidatePredictionCalculator::firstTry()`): the shown model's pace × e^drift (same
@@ -1207,6 +1207,109 @@ factor already makes (`PictureFactorsLookup`); the shown statements carry none o
 (production settings, `APP_DEBUG=0`, `memory_limit=1G`, on main's packed attempt set - "Memory of the daily fit"):
 **peak resident 307-314 MB** (337 before the packed set; v5: 273-333), reached at the taste step, 73-76 s on the copy - the
 fitted v6 parameters identical with and without the packed set; the picture term ~0.1 s of the window step, the unboxed grid 1.6 s.
+
+#### Candidate v7 (2026-10-27): the difficulty-adjusted pace and the player's difficulty slope
+
+Model version 7 (`CandidatePredictionCalculator::MODEL_VERSION`) = v6 + two parts, each a switch of `CandidateFeatures`
+and kept because both time splits confirmed it (prediction model review F7 / P9 and data-mining F7).
+
+**Why.** The pace is the decay-weighted median of a player's **raw** seconds (Step 1), so it carries the difficulty of
+the puzzles they picked: a player who picks harder puzzles gets a slower pace and, multiplied by the puzzle's
+difficulty, a prediction that is too slow - and the puzzles such players solve look easier than they are (their
+indices are divided by an inflated pace). On v6 the players' bias still ran from +2.8 % (the tenth who pick the easiest
+puzzles: slower than predicted) to -1.5 / -1.8 % (the tenth who pick the hardest). The shown drift had taken part of it
+already: its residuals against the raw pace carry the selection, shrunk by n ÷ (n + 5) - so a pace corrected for the
+selection must not keep that drift, or the selection is taken back twice.
+
+- **The adjusted pace** (switch `adjusted_pace`, `Model\AdjustedPace`): per pace row (a pair's first try from the 5th
+  on, like `player_pace_history`) the weighted median of ln seconds - the puzzle's log difficulty over the pair's first
+  tries so far, with the baseline's weights (3-month plateau, 13.5-month half-life, ages to that first try), and the
+  drift once more against it (`TimePredictionCalculator::drift()` over the residuals ln t - adjusted pace before -
+  difficulty). One number per row, the **offset** = (ln adjusted pace + its drift) - (ln raw median + the shown drift)
+  (the raw median with the same weights, so their rounding cancels), which the candidate adds wherever it reads a
+  solver's pace and drift: the size curve's pace rows (`CandidateEngine::paceRowsAt()`) and every difficulty index
+  (`CandidateEngine::solverInputs()` - an index from a pace of the solver's other sizes or their first pace takes the
+  mean offset of their rows at the moment the index is known from).
+- **Jointly with the puzzles' difficulty** (`CandidateModelFitter::adjustPace()`): every puzzle's candidate posterior as
+  known at the end of the window (`difficultyWithoutOwnIndex()`: its indices known before that moment **less the
+  player's own index** - a player's own time must not move their own pace twice - and its prior), the paces from it,
+  the indices again with the offsets: `ADJUSTED_PACE_ITERATIONS` = 2 rounds of this alternating fixed point; then the
+  window's evidence once more from the adjusted indices. The puzzle side of the fixed point measured nothing on its own
+  (1 / 2 / 3 rounds -3.92 / -3.93 / -3.81 % June; 2 the best on April, -3.74 vs -3.64 %) - the gain is the players' side.
+- **The player's difficulty slope** (switch `player_slope`, `TasteState::slopeTerm()`): γ (d - the player's mean d),
+  γ = Σ (d - mean) s ÷ (Σ (d - mean)² + λ), s = the player's residual after their taste term, d = the puzzle's posterior
+  log difficulty; λ = 2 (`TasteModel::SLOPE_LAMBDA`, in Σ (d - mean)² units - ~90 first tries of an average spread),
+  from 5 first tries with a difficulty. Five more sums on the taste state (as of every first try, stored with it in
+  `candidate_player_taste`; absent = 0 for states written before v7); the window's calibration reads the term with the
+  taste's (cross-fitted by player). Split-half reliability of a player's slope on the v7 residuals 0.32 / 0.34 (players
+  with 40+ first tries after the cut; data-mining F7: 0.22 on v3); the common slope is ~0 (+0.02), so it is personal.
+  λ from a causal probe on both splits (each first try's slope from the player's earlier ones): 1 / 2 / 4 / 8 gave
+  -0.26 / -0.29 / -0.24 / -0.17 % June, the same order on April.
+- **Measured and left out**: centring the offsets on 0 (their mean is +0.035; the centre offsets absorb the level):
+  -3.97 / -3.78 % instead of -3.93 / -3.74 %, but 1000 pieces 0.2-0.3 points worse. The offset without the drift
+  recomputed (the shown drift kept): -1.90 % June (it takes the selection back twice); the drift recomputed against the
+  raw pace alone (no selection): -0.25 %; the mean difficulty instead of the adjusted median: -0.98 %. Indices from
+  other sizes' paces without an offset: -3.53 % instead of -3.93 %.
+
+**Storage and serving** (no statement more anywhere; the shown model reads none of it -
+`CandidatePredictionsSideBySideTest::testTheShownPredictionsAreTheSameWithAndWithoutTheCandidate` stores an offset and a
+slope state and compares): the daily fit writes every pace row's offset to `candidate_pace_offset` (entity
+`CandidatePaceOffset`, rewritten, a row only where the pair's offset moved: offsets are rounded to 4 decimals and kept
+while they move less than `AdjustedPace::STEP` = 0.001 - **the fit computes with exactly the stored values**, so the
+15-minute refresh right after it writes nothing, `testTheEvidenceRefreshRewritesWhatIsMissing`). Live: the latest
+offset of each of the player's piece counts rides on their pace row on the candidate's own statement (one primary-key
+step per row, `StatisticalInputsSql::candidatePaceColumns()`); a pace row written since the fit carries the pair's last
+stored offset. The 15-minute refresh reads every stored offset (`CandidatePaceOffsets`) for the indices of the evidence
+it writes. Reconstructed (`PredictionReconstructor`): one statement for the offsets of the player and of every solver
+of the targets' puzzles, the rows valid strictly before each solve - live == reconstructed as of now
+(`testTheAdjustedPaceMovesLiveAndReconstructedPredictionsAlike`). Like the priors' sums and the taste states,
+reconstructions read offsets computed with today's knowledge of the puzzles (in-sample; the time split is the proof).
+
+**Measured** (`evaluate-predictions --fit-before=… --candidate` vs `--candidate-off=adjusted_pace,player_slope` = v6 on
+the same code; the read-only production copy of 2026-10-27 with the 1.2.1 estimates; the same 68,240 June / 97,101
+April first tries, each v6 and v7 on the same row; error = mean |ln(actual ÷ predicted)|, IS80 = the 80 % window's
+interval score; in brackets a 90 % player-cluster bootstrap interval of the June change):
+
+| group | n (June) | v6 → v7 June | April | IS80 June / April |
+|---|---|---|---|---|
+| all first tries | 68,240 | 0.08394 → 0.08032 (**-4.32 %** [-4.62, -4.01]) | 0.08399 → 0.08054 (**-4.10 %**) | -3.75 / -3.67 % |
+| k = 0 | 3,737 | -1.07 % [-1.86, -0.28] | -2.03 % | -0.81 / -1.47 % |
+| k = 1-4 | 7,712 | -4.39 % | -4.35 % | -3.64 / -3.87 % |
+| k = 5+ | 56,791 | -4.69 % | -4.30 % | -4.12 / -3.90 % |
+| ≤ 300 pieces | 11,342 | -3.31 % | -3.96 % | -2.59 / -2.95 % |
+| 500 pieces | 53,030 | -4.51 % | -3.99 % | -3.98 / -3.71 % |
+| 1000 pieces | 3,410 | **-5.47 %** (bias +1.2 → +0.2 %) | -5.93 % | -4.85 / -5.59 % |
+| 1000 · k = 0 / 1-4 / 5+ | 868 / 1,157 / 1,385 | -1.26 / -7.01 / -7.86 % | -2.16 / -6.80 / -8.70 % | |
+| 1500+ pieces | 68 | -2.76 % [-9.4, +5.6] | -2.79 % (94) | +1.9 / -1.6 % |
+| 1500+ · k = 0 / 1-4 / 5+ | 37 / 24 / 7 | +2.56 / -6.60 / -15.5 % | -2.43 / -1.29 / -9.8 % (54 / 30 / 10) | |
+| odd sizes | 390 | -3.74 % | -2.91 % | -6.56 / -3.72 % |
+| players with 0-9 first tries | 2,304 | **-14.6 %** (bias +2.8 → -0.4 %) | -15.6 % | -12.0 / -13.8 % |
+| 10-29 / 30-99 | 9,418 / 20,971 | -7.54 / -3.69 % | -7.54 / -3.25 % | |
+| 100-299 / 300+ | 24,269 / 11,278 | -2.29 / -2.50 % | -1.88 / -2.02 % | |
+| own first tries at the size 0 / 1-4 | 1,788 / 4,574 | -4.85 / -3.87 % | -4.81 / -4.21 % | |
+| 5-19 / 20-49 / 50+ | 12,905 / 12,368 / 36,605 | -8.35 / -4.48 / -2.13 % | -8.83 / -4.21 / -1.33 % | |
+| selection decile 1 (easiest picks) | 6,188 | **-9.84 %**, bias +2.85 → +0.70 % | -10.15 %, +2.84 → +0.57 % | -8.65 / -9.91 % |
+| deciles 2-9 | 6,188 each | -2.07 … -4.43 % | -1.42 … -3.93 % | |
+| decile 10 (hardest picks) | 6,188 | **-5.78 %**, bias -1.48 → -0.45 % | -6.96 %, -1.82 → -0.57 % | -4.55 / -6.00 % |
+| no pace at the size yet | 6,362 | -4.18 % | -4.40 % | |
+
+The selection deciles: what the player picked at the size before the predicted first try (the decay-weighted mean log
+difficulty of their puzzles, from the raw indices - the same deciles for v6 and v7; the evaluator's `selection decile`
+groups). Hits stay at 49.3 / 79.1 % (June; v6 49.4 / 79.3) and 49.0 / 78.9 % (April; 49.5 / 79.3). The shown model's
+predictions are identical in both runs.
+
+**Every k, size, experience, own-count and selection group is better on both splits.** Not better: two cells under
+200 rows whose intervals hold 0 - 1500+ pieces at k = 0 (+2.6 % June on 37 rows, -2.4 % April on 54; its bias moved
+from -2.7 % to +2.2 %: the k = 0 centre offset of so few first tries falls back to the size group's) and odd sizes at
+k = 0 (+1.5 / +1.0 %, 133 / 173 rows). Where it comes from: the slope alone -0.46 / -0.36 %, the adjusted pace alone
+-3.93 / -3.74 %; the gain is largest where the pace rests on few first tries (players with 0-9: -15 %, own 5-19 at the
+size: -8.5 %) - a median of raw seconds over a handful of first tries carries their puzzles' difficulty as noise, the
+adjusted median does not.
+
+Cost (production settings, `APP_DEBUG=0`, `memory_limit=1G`, a copy of the production copy, a laptop at load 45-60):
+the daily fit's **peak resident 309-310 MB** (v6: 307-314), reached at the adjusted pace step (28 s, + 16 s for the
+evidence once more); 222,963 offset rows written (31 MB with the index); the 15-minute refresh 272 MB, 25 s, 0 rows
+right after the fit. No statement more on the live, the reconstructed or any shown path.
 
 ### Pair and team predictions - side by side, never shown (2026-10-27)
 

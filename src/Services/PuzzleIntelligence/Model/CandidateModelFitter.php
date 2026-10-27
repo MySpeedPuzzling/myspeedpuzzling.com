@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence\Model;
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\ImageEstimatePrior;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
+use SpeedPuzzling\Web\Value\CandidateEvidence;
 use SpeedPuzzling\Web\Value\CandidateFeatures;
 use SpeedPuzzling\Web\Value\CandidateModelParameters;
 use SpeedPuzzling\Web\Value\ImagePriorInput;
@@ -21,6 +22,7 @@ use SpeedPuzzling\Web\Value\SolveConditions;
 use SpeedPuzzling\Web\Value\StatisticalPredictionInputs;
 use SpeedPuzzling\Web\Value\TasteState;
 use SpeedPuzzling\Web\Value\WindowBucket;
+use SplFixedArray;
 
 /**
  * Fits the candidate model (v4, CandidateModelParameters) on the attempts solved in a window, each as of its own moment
@@ -29,6 +31,8 @@ use SpeedPuzzling\Web\Value\WindowBucket;
  * 1. index noise: the squared deviation of every index from the mean of the puzzle's other indices (puzzles with
  *    MINIMUM_NOISE_INDICES indices before the end of the window), non-negative least squares on [spread², 1 ÷ q, 1,
  *    indirect pace, the flags];
+ * 1b. v7, the difficulty-adjusted pace (adjustPace(), AdjustedPace): the paces on the average puzzle and the puzzles'
+ *    difficulty as a fixed point, the indices read against it from then on;
  * 2. the puzzle-weighted brand prior's pseudo-count (grid, first tries at puzzles without indices);
  * 3. a variance per prior type (grid, first tries at puzzles with 0-9 indices): the posterior's mean error is least;
  *    an image estimate's own variance from its 80 % interval (v6, IMAGE_INTERVAL_EXPONENT);
@@ -50,6 +54,8 @@ final readonly class CandidateModelFitter
     public const float IMAGE_INTERVAL_EXPONENT = 0.5;
     /** v6: the ridge of the picture term's regression on standardised numbers (fitPictureDispersion()) */
     public const float PICTURE_DISPERSION_RIDGE = 100.0;
+    /** v7: rounds of the adjusted pace's fixed point (adjustPace()) - 1, 2, 3 measured -3.92 / -3.93 / -3.81 % (June), 2 the best on April (README "Candidate v7") */
+    public const int ADJUSTED_PACE_ITERATIONS = 2;
 
     private const int MINIMUM_SAMPLES = 500;
     private const int MINIMUM_KEY_SAMPLES = 200;
@@ -153,13 +159,16 @@ final readonly class CandidateModelFitter
         UnboxedFirstTries $unboxed = new UnboxedFirstTries(),
         array $pictures = [],
         null|\Closure $tasteStates = null,
+        bool $selectionLabels = false,
     ): CandidateModelParameters {
         $progress = $this->begin($candidate, $priors, $from, $to, $shown, $features);
         $progress->pictures = $pictures;
         $progress->tasteStates = $tasteStates;
+        $progress->selectionLabels = $selectionLabels;
         $this->sample($progress, $candidate, $priors, $imageEstimates, $unboxed);
         $this->fitNoise($progress, $candidate);
         $this->addEvidence($progress, $candidate);
+        $this->adjustPace($progress, $candidate);
         $this->fitSizeCurve($progress, $candidate);
 
         return $this->finish($progress, $repeats, $now);
@@ -201,8 +210,9 @@ final readonly class CandidateModelFitter
         [$from, $to, $features] = [$progress->from, $progress->to, $progress->features];
         [$progress->samples, $progress->paceless] = $this->samples($candidate, $priors, $this->window($engine->set, $from, $to), $imageEstimates, $progress->parameters);
 
-        // The size curve's own first tries read their puzzles' priors after the lookups are released: two small maps
-        if ($features->on('size_curve')) {
+        // The size curve's own first tries (and v7's adjusted pace) read their puzzles' priors after the lookups are
+        // released: two small maps
+        if ($features->on('size_curve') || $features->on('adjusted_pace') || $progress->selectionLabels) {
             $priorsOf = self::priorsOf($priors, $imageEstimates, $progress->parameters);
             $set = $engine->set;
 
@@ -270,6 +280,166 @@ final readonly class CandidateModelFitter
     }
 
     /**
+     * v7, the difficulty-adjusted pace (switch adjusted_pace, AdjustedPace): an alternating fixed point - every puzzle's
+     * candidate difficulty as known at the end of the window (each attempt's without its own index), every pair's
+     * adjusted pace and drift from those, the indices once more against them - ADJUSTED_PACE_ITERATIONS times; then
+     * every window first try's evidence (and the unboxed first tries') from the adjusted indices. With the switch off
+     * and $selectionLabels (the evaluation) one pass for what the players pick, nothing applied.
+     */
+    public function adjustPace(CandidateFitProgress $progress, CandidateEngine $candidate): void
+    {
+        $features = $progress->features;
+        $candidate->adjustedPace = null;
+        $candidate->selection = null;
+        $on = $features->on('adjusted_pace');
+
+        if ($on === false && $progress->selectionLabels === false) {
+            return;
+        }
+
+        $samples = $progress->samples ?? throw new \LogicException('begin() first');
+        [$imageLogs, $brandLogs] = [$progress->fewImageLog, $progress->fewBrandLog];
+        // The posterior with the prior variances fitted on the samples as they are (refitted later on the adjusted ones)
+        [$parameters] = $this->fitPriorVariances($samples, $progress->parameters);
+        $set = $candidate->engine->set;
+        $driftAfter = $candidate->engine->driftAfter;
+        $iterations = $on ? self::ADJUSTED_PACE_ITERATIONS : 1;
+        $summary = [];
+
+        for ($iteration = 1; $iteration <= $iterations; $iteration++) {
+            $difficulty = self::difficultyWithoutOwnIndex($candidate, $progress->to, $parameters, $imageLogs, $brandLogs);
+            $adjusted = AdjustedPace::compute($set, $difficulty, $driftAfter);
+            unset($difficulty);
+
+            if ($iteration === 1 && $progress->selectionLabels) {
+                $candidate->selection = $adjusted;
+            } elseif ($iteration === $iterations) {
+                $adjusted->forgetSelection();
+            }
+
+            if ($on) {
+                $previous = $candidate->adjustedPace;
+                $candidate->adjustedPace = $adjusted;
+                $summary = [...$summary, ...self::offsetSummary($adjusted, $previous, $iteration)];
+            }
+        }
+
+        unset($driftAfter);
+
+        if ($on === false) {
+            $progress->lap('selection');
+
+            return;
+        }
+
+        $progress->add(['adjusted_pace_iterations' => $iterations, ...$summary]);
+        $progress->lap('adjusted_pace');
+
+        // The window's evidence from the adjusted indices (addEvidence() once more), the size curve's own first tries'
+        // difficulty with it
+        $candidate->fewMoment = null;
+        $candidate->fewDifficulty = [];
+        $candidate->compute($progress->parameters, $progress->from);
+        $samples->useEvidenceOf($candidate);
+
+        foreach ($progress->unboxed as $u => [$inputs, , , [$player, $puzzle, $solved, $tracked, $prior]]) {
+            $progress->unboxed[$u][0] = $inputs->withCandidate($candidate->evidenceAt($puzzle, $solved, $tracked, $progress->parameters), $prior, $candidate->experienceAt($player, $solved, $tracked));
+        }
+
+        $progress->lap('adjusted_evidence');
+    }
+
+    /**
+     * Every attempt's puzzle's candidate log difficulty as known at a moment - its indices known before it (with the
+     * engine's current offsets) less the attempt's own index, and its prior (the image estimate, else the brand prior).
+     *
+     * @param array<string, float> $imageLogs
+     * @param array<string, float> $brandLogs
+     * @return SplFixedArray<null|float>
+     */
+    public static function difficultyWithoutOwnIndex(CandidateEngine $candidate, float $moment, CandidateModelParameters $parameters, array $imageLogs, array $brandLogs): SplFixedArray
+    {
+        $set = $candidate->engine->set;
+        /** @var SplFixedArray<null|float> $difficulty */
+        $difficulty = new SplFixedArray($set->count());
+
+        foreach ($set->puzzles() as $puzzle) {
+            $attempts = $set->attemptsOfPuzzle($puzzle);
+            $terms = [];
+            [$k, $weightSum, $weightedLogSum] = [0, 0.0, 0.0];
+
+            foreach ($attempts as $i) {
+                [$knownSolved, $knownTracked] = $set->knownFrom($i);
+
+                if (($knownSolved <=> $moment ?: $knownTracked <=> $moment) >= 0) {
+                    continue;
+                }
+
+                $term = $candidate->indexTerms($i, $parameters);
+
+                if ($term !== null) {
+                    $terms[$i] = $term;
+                    $k++;
+                    $weightSum += $term[2];
+                    $weightedLogSum += $term[2] * $term[0];
+                }
+            }
+
+            $imageLog = $imageLogs[$puzzle] ?? null;
+            $brandLog = $brandLogs[$puzzle] ?? null;
+
+            foreach ($attempts as $i) {
+                $own = $terms[$i] ?? null;
+                $evidence = $own !== null
+                    ? new CandidateEvidence($k - 1, $weightSum - $own[2], $weightedLogSum - $own[2] * $own[0])
+                    : new CandidateEvidence($k, $weightSum, $weightedLogSum);
+                $difficulty[$i] = CandidatePredictionCalculator::puzzleLogDifficulty($evidence, $imageLog, $brandLog, $parameters);
+            }
+        }
+
+        return $difficulty;
+    }
+
+    /**
+     * @return array<string, int|float|string>
+     */
+    private static function offsetSummary(AdjustedPace $adjusted, null|AdjustedPace $previous, int $iteration): array
+    {
+        $offsets = [];
+        $change = 0.0;
+
+        foreach ($adjusted->rows() as [$i, $offset]) {
+            $offsets[] = $offset;
+
+            if ($previous !== null) {
+                $change += abs($offset - ($previous->offsetAfter($i) ?? 0.0));
+            }
+        }
+
+        if ($offsets === []) {
+            return ['adjusted_pace_rows_' . $iteration => 0];
+        }
+
+        sort($offsets);
+        $count = count($offsets);
+        $mean = array_sum($offsets) / $count;
+        $variance = 0.0;
+
+        foreach ($offsets as $offset) {
+            $variance += ($offset - $mean) ** 2;
+        }
+
+        return [
+            'adjusted_pace_rows_' . $iteration => $count,
+            'adjusted_pace_mean_' . $iteration => round($mean, 5),
+            'adjusted_pace_sd_' . $iteration => round(sqrt($variance / $count), 5),
+            'adjusted_pace_p10_' . $iteration => round(PredictionModelFitter::quantile($offsets, 0.1), 5),
+            'adjusted_pace_p90_' . $iteration => round(PredictionModelFitter::quantile($offsets, 0.9), 5),
+            'adjusted_pace_change_' . $iteration => $previous !== null ? round($change / $count, 6) : '-',
+        ];
+    }
+
+    /**
      * The size curve (switch size_curve): the prior variances on the samples as they are, the curve on their posterior
      * difficulty (SizeCurveFitter), then every window first try paced once more - by the curve where it has a pace, else
      * as before (a first try without the shown model's pace joins, at the end, when the curve has one) - and the unboxed
@@ -280,6 +450,7 @@ final readonly class CandidateModelFitter
     {
         if ($progress->features->on('size_curve') === false) {
             $progress->paceless = [];
+            $progress->fewImageLog = $progress->fewBrandLog = [];
 
             return;
         }
@@ -488,8 +659,9 @@ final readonly class CandidateModelFitter
                 ? $parameters->centreOffset(CandidatePredictionCalculator::offsetKeys($samples->group($s), $samples->paceSource($s)->value, WindowBucket::kBucket($samples->k($s)), $samples->priorType($s)))
                     + $parameters->experienceOffset($samples->firstTries($s))
                 : 0.0;
-            $residual = $samples->target($s) - $this->logDifficulty($samples, $s, $parameters)[0] - $offset;
-            $rows->add($samples->player($s), $samples->puzzle($s), $samples->pieces($s), $samples->solved($s), $samples->tracked($s), max(-self::RESIDUAL_CLIP, min(self::RESIDUAL_CLIP, $residual)), $samples->competition($s));
+            $logDifficulty = $this->logDifficulty($samples, $s, $parameters)[0];
+            $residual = $samples->target($s) - $logDifficulty - $offset;
+            $rows->add($samples->player($s), $samples->puzzle($s), $samples->pieces($s), $samples->solved($s), $samples->tracked($s), max(-self::RESIDUAL_CLIP, min(self::RESIDUAL_CLIP, $residual)), $samples->competition($s), $logDifficulty);
         }
 
         $playerIds = $samples->playerIds();
@@ -508,6 +680,7 @@ final readonly class CandidateModelFitter
                 $sink($playerIds[$player], $solved, $tracked, $state);
             } : null,
             $queries,
+            $features->on('player_slope'),
         );
         $progress->add($fit->summary);
 

@@ -20,7 +20,7 @@ readonly final class FitCandidatePredictionModelHandler
     }
 
     /**
-     * @return array{candidate: CandidateModelParameters, priors_written: int, evidence_written: int, taste_states_written: int}
+     * @return array{candidate: CandidateModelParameters, priors_written: int, evidence_written: int, taste_states_written: int, pace_offsets_written: int}
      */
     public function __invoke(FitCandidatePredictionModel $message): array
     {

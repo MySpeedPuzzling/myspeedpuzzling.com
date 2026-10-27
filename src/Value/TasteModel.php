@@ -18,6 +18,9 @@ namespace SpeedPuzzling\Web\Value;
 readonly final class TasteModel
 {
     public const int RANK = 4;
+    /** v7: the player's difficulty slope (TasteState::slopeTerm()) - its ridge (in Σ (d - mean)² units) and the first tries it needs; measured on both time splits (README "Candidate v7") */
+    public const float SLOPE_LAMBDA = 2.0;
+    public const int SLOPE_MINIMUM = 5;
     /** 16 picture factors, box, assembled, ≤ 300 pieces, 1000 pieces, other sizes than 500 */
     public const int FEATURES = PuzzleDifficultyEstimateInput::PICTURE_FACTORS + 5;
 

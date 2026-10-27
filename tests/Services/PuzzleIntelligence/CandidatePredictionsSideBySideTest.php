@@ -122,6 +122,11 @@ final class CandidatePredictionsSideBySideTest extends KernelTestCase
         );
         self::assertNotFalse($evidence);
         self::assertSame($evidence['sample_size'], $evidence['index_count'], 'The same indices the shown difficulty counts');
+
+        // v7: the difficulty-adjusted paces of every pair with a pace history
+        /** @var int|string $offsets */
+        $offsets = $this->database->fetchOne('SELECT count(*) FROM candidate_pace_offset WHERE player_id = :player', ['player' => PlayerFixture::PLAYER_REGULAR]);
+        self::assertGreaterThan(0, (int) $offsets);
     }
 
     /**
@@ -139,7 +144,9 @@ final class CandidatePredictionsSideBySideTest extends KernelTestCase
             'version' => CandidatePredictionCalculator::MODEL_VERSION,
         ]);
         $this->database->executeStatement("UPDATE puzzle_difficulty_estimate SET picture_factors = CAST(:factors AS jsonb), picture_factors_version = '1.0.0'", ['factors' => json_encode(array_fill(0, 16, 0.7), JSON_THROW_ON_ERROR)]);
-        $this->storeTasteState('2020-01-01 10:00:00', $model->initialState()->with($model->vector(new PictureFactors(array_fill(0, 16, 0.7), '1.0.0'), 500), 0.3, true));
+        $this->storeTasteState('2020-01-01 10:00:00', $model->initialState()->with($model->vector(new PictureFactors(array_fill(0, 16, 0.7), '1.0.0'), 500), 0.3, true, 0.2));
+        // v7: an adjusted pace far from the shown one
+        $this->storePaceOffset('2099-01-01 10:00:00', -0.3);
 
         $withCandidate = $this->shownPredictions();
         self::assertNotNull($this->liveCandidate(PuzzleFixture::PUZZLE_500_05)?->result, 'Fitted: the candidate predicts');
@@ -148,6 +155,7 @@ final class CandidatePredictionsSideBySideTest extends KernelTestCase
         $this->database->executeStatement('DELETE FROM candidate_puzzle_evidence');
         $this->database->executeStatement('DELETE FROM candidate_puzzle_prior');
         $this->database->executeStatement('DELETE FROM candidate_player_taste');
+        $this->database->executeStatement('DELETE FROM candidate_pace_offset');
         $this->database->executeStatement('UPDATE puzzle_difficulty_estimate SET picture_factors = NULL, picture_factors_version = NULL');
 
         self::assertNull($this->liveCandidate(PuzzleFixture::PUZZLE_500_05), 'Not fitted: no candidate row');
@@ -175,6 +183,10 @@ final class CandidatePredictionsSideBySideTest extends KernelTestCase
 
     public function testTheEvidenceRefreshRewritesWhatIsMissing(): void
     {
+        // Right after the fit the refresh reads the stored adjusted paces (v7) and finds the very evidence the fit wrote
+        $fresh = $this->messageBus->dispatch(new RefreshCandidatePredictionEvidence())->last(HandledStamp::class)?->getResult();
+        self::assertSame(['evidence_written' => 0, 'fitted' => true], $fresh);
+
         /** @var int|string $rows */
         $rows = $this->database->fetchOne('SELECT count(*) FROM candidate_puzzle_evidence');
         self::assertGreaterThan(0, (int) $rows);
@@ -434,6 +446,31 @@ final class CandidatePredictionsSideBySideTest extends KernelTestCase
     }
 
     /**
+     * v7, the difficulty-adjusted pace: live, the player's latest stored offset rides on their pace row on the candidate's
+     * own statement; reconstructed, the offset before the solve - the same prediction as of now, and an offset stored
+     * after the solve is never read by its reconstruction.
+     */
+    public function testTheAdjustedPaceMovesLiveAndReconstructedPredictionsAlike(): void
+    {
+        $puzzleId = PuzzleFixture::PUZZLE_500_05;
+        $this->database->executeStatement('DELETE FROM candidate_pace_offset WHERE player_id = :player', ['player' => PlayerFixture::PLAYER_REGULAR]);
+        $without = $this->liveCandidate($puzzleId)?->result;
+        self::assertNotNull($without);
+
+        // The player picks hard puzzles: on the average puzzle they are faster than their raw pace
+        $this->storePaceOffset('2020-01-01 10:00:00', -0.1);
+        $live = $this->liveCandidate($puzzleId)?->result;
+        self::assertNotNull($live);
+        self::assertLessThan($without->predictedSeconds, $live->predictedSeconds);
+
+        $this->storePaceOffset('2099-01-01 10:00:00', 0.4);
+        self::assertGreaterThan($without->predictedSeconds, $this->liveCandidate($puzzleId)?->result?->predictedSeconds, 'live: the latest offset');
+        $timeId = $this->persistSoloTime($puzzleId, 2600, $this->now());
+        $reconstructed = $this->reconstructor()->reconstructSideBySide(PlayerFixture::PLAYER_REGULAR, [$timeId])[$timeId];
+        self::assertEquals($live, $reconstructed->candidate?->result);
+    }
+
+    /**
      * v6: a puzzle nobody has solved gets the picture term in its window from the look-alike numbers of its current
      * picture (the `traits` and `piece_scale` analyses of the estimate's fingerprint) - live on the candidate's own
      * statement, reconstructed from the same lookup: the same prediction, its window wider than without the numbers.
@@ -545,6 +582,19 @@ final class CandidatePredictionsSideBySideTest extends KernelTestCase
             'validFrom' => $validFrom,
             'firstTries' => $state->firstTries,
             'state' => json_encode($state->toArray(), JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION),
+        ]);
+    }
+
+    private function storePaceOffset(string $validFrom, float $offset, int $piecesCount = 500): void
+    {
+        $this->database->executeStatement('
+            INSERT INTO candidate_pace_offset (player_id, pieces_count, valid_from, valid_from_tracked_at, pace_offset, computed_at)
+            VALUES (:player, :pieces, :validFrom, :validFrom, :offset, :validFrom)
+        ', [
+            'player' => PlayerFixture::PLAYER_REGULAR,
+            'pieces' => $piecesCount,
+            'validFrom' => $validFrom,
+            'offset' => $offset,
         ]);
     }
 

@@ -12,6 +12,17 @@ that would otherwise be forgotten. Newest section on top.
 ## Profile results by placing (`docs/features/profile-results-placing.md`, 2026-10-27)
 - [ ] Placing on the pairs and teams tabs: rank of the exact pair/team (`puzzling_team_id`) on the puzzle's pair/team board, then the same sorts, chips and median line as solo. Pair/team rows show no rank today, so the rank chip comes first; the solo LATERAL count in `GetRanking::rankings()` is the pattern (feature request #292 asked for solo only)
 
+## Candidate prediction model v7 (`docs/features/puzzle-intelligence/README.md` "Candidate v7", 2026-10-27)
+
+- [ ] After the deploy: the candidate fit once by hand (creates the v7 fit and `candidate_pace_offset`), then the
+  backfill with `--candidate` for the v7 rows (prediction-history.md "Production run for v7")
+- [ ] 1500+ pieces at k = 0: +2.6 % on the June split (37 rows), -2.4 % on April (54) - bias -2.7 → +2.2 %; the k = 0
+  centre offset falls back to the size group's below 200 first tries. Check on the live rows; a pooled k = 0 offset for
+  1500+ and odd sizes if it holds (odd sizes at k = 0: +1.5 / +1.0 % on 133 / 173 rows)
+- [ ] The image estimates are trained on the shown (raw-pace) indices; the candidate's adjusted indices sit 0.035 log
+  below them on average (the mean offset) (the centre offsets absorb it). When the labels move to the candidate's indices (review P6),
+  train them on the adjusted ones
+
 ## Candidate prediction model v6 (`docs/features/puzzle-intelligence/README.md` "Candidate v6", 2026-10-27)
 
 - [ ] After the deploy: the candidate fit once by hand (writes the v6 fit), then the backfill with `--candidate` for the

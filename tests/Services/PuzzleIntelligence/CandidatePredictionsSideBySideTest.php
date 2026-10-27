@@ -47,6 +47,7 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Value\CandidateFeatures;
+use SpeedPuzzling\Web\Value\CandidateModelParameters;
 use SpeedPuzzling\Web\Value\PuzzleDifficultyEstimateInput;
 use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
 use SpeedPuzzling\Web\Value\SolveConditions;
@@ -221,10 +222,17 @@ final class CandidatePredictionsSideBySideTest extends KernelTestCase
         $from = (float) $now->modify('-' . PredictionModelRecalculator::FIT_WINDOW_MONTHS . ' months')->getTimestamp();
         $oneCall = new CandidateModelFitter()->fit($candidate, $priors, RepeatHistory::load($this->database, $from), $from, (float) $now->getTimestamp(), $now, $images, $shown, CandidateFeatures::kept(), UnboxedFirstTries::load($this->database));
 
-        self::assertEquals(
-            array_diff_key($oneCall->toArray(), ['summary' => true]),
-            array_diff_key($daily->toArray(), ['summary' => true]),
-        );
+        // Everything but the summaries (the daily fit's times and memory; its size curve may be kept from its last fit)
+        $fitted = static function (CandidateModelParameters $parameters): array {
+            $values = array_diff_key($parameters->toArray(), ['summary' => true]);
+
+            if (is_array($values['size_curve'] ?? null)) {
+                $values['size_curve'] = array_diff_key($values['size_curve'], ['summary' => true]);
+            }
+
+            return $values;
+        };
+        self::assertEquals($fitted($oneCall), $fitted($daily));
     }
 
     /**

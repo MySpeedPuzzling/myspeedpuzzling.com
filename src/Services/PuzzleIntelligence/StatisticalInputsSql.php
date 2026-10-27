@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\PriorContext;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidatePredictionCalculator;
 use SpeedPuzzling\Web\Value\CandidateEvidence;
+use SpeedPuzzling\Web\Value\CandidateModelParameters;
 use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
 use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
@@ -106,6 +108,119 @@ final class StatisticalInputsSql
         LEFT JOIN candidate_puzzle_evidence ce ON ce.puzzle_id = p.id
         LEFT JOIN candidate_puzzle_prior cpp ON cpp.puzzle_id = p.id
     ';
+
+    /**
+     * The size curve's inputs (SizeCurve::pace()), live: the player's latest direct pace row at every piece count, and -
+     * only while they have no pace row at the puzzle's piece count (with one the curve never reads them) - their first
+     * tries there, at most 5 (hydrateCandidatePace() uses them below 5), with what each puzzle's difficulty is now (its
+     * candidate evidence, brand prior and current picture's estimate): two JSON arrays, both by the player's own index
+     * (a handful of rows). Expects `p`, :playerId and :now.
+     */
+    public static function candidatePaceColumns(): string
+    {
+        $notSecret = str_replace(['p.hide_until', 'p.hide_image_until'], ['few_puzzle.hide_until', 'few_puzzle.hide_image_until'], self::NOT_SECRET);
+        $fingerprint = PuzzleImageFingerprint::sql('few_puzzle.image');
+
+        return "
+            (
+                SELECT json_agg(json_build_array(latest.pieces_count, latest.baseline_seconds, latest.drift, latest.spread, latest.qualifying_count))
+                FROM (
+                    SELECT DISTINCT ON (h.pieces_count) h.pieces_count, h.baseline_seconds, h.drift, h.spread, h.qualifying_count
+                    FROM player_pace_history h
+                    WHERE h.player_id = :playerId
+                    ORDER BY h.pieces_count, h.valid_from DESC, h.valid_from_tracked_at DESC, h.qualifying_count DESC
+                ) latest
+            ) AS candidate_pace_rows,
+            (
+                SELECT json_agg(json_build_array(few.seconds_to_solve, few_evidence.index_count, few_evidence.weight_sum, few_evidence.weighted_log_sum,
+                    CASE WHEN {$notSecret} THEN few_prior.brand_prior_log END, few_estimate.log_difficulty))
+                FROM (
+                    SELECT DISTINCT ON (own_first.puzzle_id) own_first.puzzle_id, own_first.seconds_to_solve
+                    FROM puzzle_solving_time own_first
+                    JOIN puzzle own_puzzle ON own_puzzle.id = own_first.puzzle_id
+                    WHERE own_first.player_id = :playerId
+                        AND own_first.puzzling_type = 'solo'
+                        AND own_first.suspicious = false
+                        AND own_first.unboxed = false
+                        AND own_first.seconds_to_solve IS NOT NULL
+                        AND own_puzzle.pieces_count = p.pieces_count
+                        AND NOT EXISTS (SELECT 1 FROM player_pace_history own_row WHERE own_row.player_id = :playerId AND own_row.pieces_count = p.pieces_count)
+                    ORDER BY own_first.puzzle_id, own_first.first_attempt DESC, COALESCE(own_first.finished_at, own_first.tracked_at), own_first.tracked_at, own_first.id
+                    LIMIT " . PlayerBaselineCalculator::MINIMUM_SOLVE_COUNT . "
+                ) few
+                JOIN puzzle few_puzzle ON few_puzzle.id = few.puzzle_id
+                LEFT JOIN candidate_puzzle_evidence few_evidence ON few_evidence.puzzle_id = few.puzzle_id
+                LEFT JOIN candidate_puzzle_prior few_prior ON few_prior.puzzle_id = few.puzzle_id
+                LEFT JOIN puzzle_difficulty_estimate few_estimate ON few_estimate.puzzle_id = few.puzzle_id AND few_estimate.image_fingerprint = {$fingerprint} AND {$notSecret}
+            ) AS candidate_few
+        ";
+    }
+
+    /**
+     * The inputs with the size curve's inputs of the row (candidatePaceColumns()); the own first tries only while the
+     * player has fewer than 5 there, each puzzle's log difficulty its candidate posterior now.
+     *
+     * @param array<string, mixed> $row
+     */
+    public static function hydrateCandidatePace(array $row, StatisticalPredictionInputs $inputs, CandidateModelParameters $parameters): StatisticalPredictionInputs
+    {
+        $rows = [];
+
+        foreach (self::jsonList($row['candidate_pace_rows'] ?? null) as $paceRow) {
+            if (is_array($paceRow) && count($paceRow) === 5 && is_numeric($paceRow[0]) && is_numeric($paceRow[1]) && is_numeric($paceRow[4])) {
+                $rows[] = [
+                    (int) $paceRow[0],
+                    (int) $paceRow[1],
+                    is_numeric($paceRow[2]) ? (float) $paceRow[2] : 0.0,
+                    is_numeric($paceRow[3]) ? (float) $paceRow[3] : PredictionModelParameters::GLOBAL_SPREAD,
+                    (int) $paceRow[4],
+                ];
+            }
+        }
+
+        $own = self::jsonList($row['candidate_few'] ?? null);
+        $few = null;
+
+        if ($own !== [] && count($own) < PlayerBaselineCalculator::MINIMUM_SOLVE_COUNT) {
+            $count = 0;
+            $sum = 0.0;
+
+            foreach ($own as $first) {
+                if (!is_array($first) || count($first) !== 6 || !is_numeric($first[0]) || (int) $first[0] <= 0) {
+                    continue;
+                }
+
+                $evidence = is_numeric($first[1])
+                    ? new CandidateEvidence((int) $first[1], is_numeric($first[2]) ? (float) $first[2] : 0.0, is_numeric($first[3]) ? (float) $first[3] : 0.0)
+                    : CandidateEvidence::none();
+                $sum += log((int) $first[0]) - CandidatePredictionCalculator::puzzleLogDifficulty(
+                    $evidence,
+                    is_numeric($first[5]) ? (float) $first[5] : null,
+                    is_numeric($first[4]) ? (float) $first[4] : null,
+                    $parameters,
+                );
+                $count++;
+            }
+
+            $few = $count > 0 ? [$count, $sum] : null;
+        }
+
+        return $inputs->withCandidatePace($rows, $few);
+    }
+
+    /**
+     * @return list<mixed>
+     */
+    private static function jsonList(mixed $json): array
+    {
+        if (!is_string($json)) {
+            return [];
+        }
+
+        $decoded = json_decode($json, true);
+
+        return is_array($decoded) ? array_values($decoded) : [];
+    }
 
     /**
      * The inputs with the candidate's columns of the row (CANDIDATE_COLUMNS).

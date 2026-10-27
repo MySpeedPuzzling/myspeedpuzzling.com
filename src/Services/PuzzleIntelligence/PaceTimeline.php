@@ -180,6 +180,16 @@ final class PaceTimeline
     }
 
     /**
+     * The piece counts the player has rows at.
+     *
+     * @return list<int>
+     */
+    public function piecesCountsOf(string $playerId): array
+    {
+        return array_keys($this->rows[$playerId] ?? []);
+    }
+
+    /**
      * The pair's own row valid strictly before the moment (rule 1 only), with its drift and spread - the pace a
      * direct baseline and the drift of a prediction come from.
      *

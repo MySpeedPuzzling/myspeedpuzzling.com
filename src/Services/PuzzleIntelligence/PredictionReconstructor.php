@@ -213,7 +213,7 @@ final class PredictionReconstructor implements ResetInterface
         // The candidate model (v4, never shown) after every shown prediction is made, with statements of its own - a
         // failure there costs only the candidate's rows of this run, never the shown ones
         try {
-            return $this->withCandidatePredictions($predictions, $targets, $priorAttemptsOfTargets, $inputsOfTargets, $imageEstimates, $puzzleFirstAttemptCandidates, $solverPaces, $qualifyingByPuzzle, $repeatResiduals);
+            return $this->withCandidatePredictions($playerId, $predictions, $targets, $priorAttemptsOfTargets, $inputsOfTargets, $imageEstimates, $puzzleFirstAttemptCandidates, $firstAttemptCandidates, $solverPaces, $qualifyingByPuzzle, $repeatResiduals);
         } catch (Throwable $e) {
             $this->logger->warning('Could not reconstruct the candidate predictions of a player - left for the next backfill', [
                 'playerId' => $playerId,
@@ -236,17 +236,20 @@ final class PredictionReconstructor implements ResetInterface
      * @param array<string, StatisticalPredictionInputs> $inputsOfTargets
      * @param array<string, ImagePriorInput> $imageEstimates
      * @param array<string, array<string, list<PredictionInputSolve>>> $puzzleCandidates puzzle => player => candidates
+     * @param array<int, array<string, list<PredictionInputSolve>>> $firstAttemptCandidates the player's, pieces count => puzzle => candidates
      * @param array<string, list<PredictionInputSolve>> $qualifyingByPuzzle
      * @param array<string, list<float>> $repeatResiduals
      * @return array<string, PredictionsSideBySide>
      */
     private function withCandidatePredictions(
+        string $playerId,
         array $predictions,
         array $targets,
         array $priorAttemptsOfTargets,
         array $inputsOfTargets,
         array $imageEstimates,
         array $puzzleCandidates,
+        array $firstAttemptCandidates,
         PaceTimeline $solverPaces,
         array $qualifyingByPuzzle,
         array $repeatResiduals,
@@ -299,7 +302,14 @@ final class PredictionReconstructor implements ResetInterface
 
             $evidence = $this->candidateEvidence($target, $puzzleCandidates[$target->puzzleId] ?? [], $solverPaces, $flags, $candidate);
             $predictions[$target->id] = $shown->withCandidate(true, $this->candidateCalculator->firstTry(
-                $inputs->withImageEstimate($imageEstimates[$target->puzzleId] ?? null)->withCandidate($evidence, $brandPriors[$target->puzzleId] ?? null, self::firstTriesBefore($qualifyingByPuzzle, $target)),
+                $this->withCandidatePace(
+                    $inputs->withImageEstimate($imageEstimates[$target->puzzleId] ?? null)->withCandidate($evidence, $brandPriors[$target->puzzleId] ?? null, self::firstTriesBefore($qualifyingByPuzzle, $target)),
+                    $playerId,
+                    $target,
+                    $solverPaces,
+                    $firstAttemptCandidates[$target->piecesCount] ?? [],
+                    $candidate,
+                ),
                 $candidate,
                 $conditions[$target->id] ?? new SolveConditions(),
             ), TimePredictionSource::Reconstructed);
@@ -347,6 +357,98 @@ final class PredictionReconstructor implements ResetInterface
         }
 
         return $evidence;
+    }
+
+    /**
+     * The size curve's inputs as of the target (SizeCurve::pace()): the player's direct pace row before it at every piece
+     * count (drift and spread of the row, its place in the pair + 5 as the qualifying count) and, without a direct one at
+     * the target's size, their 1-4 first tries there with each puzzle's candidate difficulty now (the live path's rule -
+     * a documented approximation like the priors' sums).
+     *
+     * @param array<string, list<PredictionInputSolve>> $candidatesAtSize the player's candidates at the target's piece count, by puzzle
+     */
+    private function withCandidatePace(StatisticalPredictionInputs $inputs, string $playerId, PredictionInputSolve $target, PaceTimeline $solverPaces, array $candidatesAtSize, CandidateModelParameters $candidate): StatisticalPredictionInputs
+    {
+        if ($candidate->sizeCurve === null || $candidate->features()->on('size_curve') === false) {
+            return $inputs;
+        }
+
+        $rows = [];
+
+        foreach ($solverPaces->piecesCountsOf($playerId) as $piecesCount) {
+            $row = $solverPaces->directRowBefore($playerId, $piecesCount, $target->solved, $target->tracked);
+
+            if ($row !== null && $row['baseline'] > 0) {
+                $rows[] = [$piecesCount, $row['baseline'], $row['drift'] ?? 0.0, $row['spread'] ?? PredictionModelParameters::GLOBAL_SPREAD, $row['position'] + PlayerBaselineCalculator::MINIMUM_SOLVE_COUNT];
+            }
+        }
+
+        $few = null;
+
+        if ($solverPaces->directRowBefore($playerId, $target->piecesCount, $target->solved, $target->tracked) === null) {
+            $firstTries = [];
+
+            foreach ($candidatesAtSize as $candidates) {
+                $firstTry = self::firstBefore($candidates, $target);
+
+                if ($firstTry !== null && $firstTry->seconds > 0) {
+                    $firstTries[] = $firstTry;
+                }
+            }
+
+            if ($firstTries !== [] && count($firstTries) < PlayerBaselineCalculator::MINIMUM_SOLVE_COUNT) {
+                $difficulties = $this->currentCandidateDifficulties(array_map(static fn (PredictionInputSolve $solve): string => $solve->puzzleId, $firstTries), $candidate);
+                $sum = 0.0;
+
+                foreach ($firstTries as $firstTry) {
+                    $sum += log($firstTry->seconds) - ($difficulties[$firstTry->puzzleId] ?? 0.0);
+                }
+
+                $few = [count($firstTries), $sum];
+            }
+        }
+
+        return $inputs->withCandidatePace($rows, $few);
+    }
+
+    /**
+     * The candidate log difficulty of puzzles now (their stored candidate evidence, brand prior and out-of-fold estimate).
+     *
+     * @param list<string> $puzzleIds
+     * @return array<string, float>
+     */
+    private function currentCandidateDifficulties(array $puzzleIds, CandidateModelParameters $candidate): array
+    {
+        /** @var list<array{id: string, index_count: null|int|string, weight_sum: null|float|string, weighted_log_sum: null|float|string, brand_prior_log: null|float|string, image_log: null|float|string}> $rows */
+        $rows = $this->connection->fetchAllAssociative('
+            SELECT p.id, ce.index_count, ce.weight_sum, ce.weighted_log_sum,
+                CASE WHEN ' . StatisticalInputsSql::NOT_SECRET . ' THEN cpp.brand_prior_log END AS brand_prior_log,
+                img.log_difficulty AS image_log
+            FROM puzzle p
+            LEFT JOIN candidate_puzzle_evidence ce ON ce.puzzle_id = p.id
+            LEFT JOIN candidate_puzzle_prior cpp ON cpp.puzzle_id = p.id
+            ' . StatisticalInputsSql::imageEstimateJoins(outOfFoldOnly: true) . '
+            WHERE p.id IN (:puzzleIds)
+        ', [
+            'puzzleIds' => $puzzleIds,
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+        ], ['puzzleIds' => ArrayParameterType::STRING]);
+
+        $difficulties = [];
+
+        foreach ($rows as $row) {
+            $evidence = $row['index_count'] !== null
+                ? new CandidateEvidence((int) $row['index_count'], (float) $row['weight_sum'], (float) $row['weighted_log_sum'])
+                : CandidateEvidence::none();
+            $difficulties[$row['id']] = CandidatePredictionCalculator::puzzleLogDifficulty(
+                $evidence,
+                $row['image_log'] !== null ? (float) $row['image_log'] : null,
+                $row['brand_prior_log'] !== null ? (float) $row['brand_prior_log'] : null,
+                $candidate,
+            );
+        }
+
+        return $difficulties;
     }
 
     /**

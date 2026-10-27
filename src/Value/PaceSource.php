@@ -15,4 +15,9 @@ enum PaceSource: string
     case Own = 'own';
     case Interpolated = 'interpolated';
     case Scaled500 = 'scaled_500';
+    // The candidate model's (v4) size curve (SizeCurve::pace()) - never a shown prediction's: other sizes only, other
+    // sizes + 1-4 own first tries at the size, other sizes + the own direct pace
+    case Pooled = 'pooled';
+    case PooledFew = 'pooled_few';
+    case PooledOwn = 'pooled_own';
 }

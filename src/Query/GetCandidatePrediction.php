@@ -26,8 +26,8 @@ use SpeedPuzzling\Web\Value\TimePredictionSource;
  * after the shown predictions are made, in a savepoint of its own: one statement, never part of a shown reader's (the
  * shown path's statements are exactly what they are without the candidate). Null when the candidate was never fitted.
  *
- * A first try: the statistical inputs once more with the candidate's columns (StatisticalInputsSql::CANDIDATE_COLUMNS)
- * and fit. A repeat: the shown centre with the candidate's window (the player's repeat spread and the days since the
+ * A first try: the statistical inputs once more with the candidate's columns (StatisticalInputsSql::CANDIDATE_COLUMNS),
+ * the size curve's (candidatePaceColumns() - by the player's own index) and its fit. A repeat: the shown centre with the candidate's window (the player's repeat spread and the days since the
  * last solve).
  */
 readonly final class GetCandidatePrediction
@@ -58,6 +58,7 @@ readonly final class GetCandidatePrediction
         /** @var array<string, mixed>|false $row */
         $row = $this->database->executeQuery('
             SELECT ' . StatisticalInputsSql::COLUMNS . ', ' . StatisticalInputsSql::IMAGE_ESTIMATE_COLUMNS . ', ' . StatisticalInputsSql::CANDIDATE_COLUMNS . ',
+                ' . StatisticalInputsSql::candidatePaceColumns() . ',
                 (' . PredictionModelParametersProvider::CANDIDATE_SQL . ') AS candidate_parameters
             FROM puzzle p
             ' . $joins . '
@@ -75,7 +76,7 @@ readonly final class GetCandidatePrediction
             return null;
         }
 
-        $inputs = StatisticalInputsSql::hydrateCandidate($row, StatisticalInputsSql::hydrate($row)->withImageEstimate(ImagePriorInput::fromRow($row)));
+        $inputs = StatisticalInputsSql::hydrateCandidatePace($row, StatisticalInputsSql::hydrateCandidate($row, StatisticalInputsSql::hydrate($row)->withImageEstimate(ImagePriorInput::fromRow($row))), $parameters);
         $prediction = $this->calculator->firstTry($inputs, $parameters, $conditions);
 
         return $prediction !== null

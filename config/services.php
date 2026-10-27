@@ -262,6 +262,7 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Services/PuzzleIntelligence/Model/CandidateSamples.php',
             __DIR__ . '/../src/Services/PuzzleIntelligence/Model/CandidateEvidenceColumns.php',
             __DIR__ . '/../src/Services/PuzzleIntelligence/Model/CandidateFitProgress.php',
+            __DIR__ . '/../src/Services/PuzzleIntelligence/Model/NotIdentifiable.php',
             __DIR__ . '/../src/Services/PuzzleIntelligence/Model/EvaluationContext.php',
             __DIR__ . '/../src/Services/PuzzleIntelligence/Model/UnboxedFirstTries.php',
             __DIR__ . '/../src/Services/PuzzleIntelligence/Prior/PriorContext.php',

@@ -789,6 +789,70 @@ model (v4)".
 - **Unboxed first tries (F6).** Left out of indices and paces like before (the qualifying rule); predicted with a fitted
   offset (+11 %) and window scale (1.75), fitted on the unboxed first tries of the window (`Model\UnboxedFirstTries`).
 
+#### The candidate's pace: the size curve (review "Size curve", 2026-10-27)
+
+The shown model paces a first try from the player's own baseline at the piece count, an interpolation between their
+direct baselines (with the between-player exponent), or - under a thin-size rule - their 500 pace × (s ÷ 500)^α. The
+candidate replaces all three with one rule (`SizeCurve::pace()`, `CandidatePredictionCalculator::pace()`; switch
+`size_curve`):
+
+- **The curve.** Log time vs 500 as a piecewise-linear function of ln pieces through the knots 48 / 100 / 150 / 200 /
+  300 / **500 = 0** / 750 / 1000 / 1500 / 2000 / 3000 / 5000, plus β × (ln pace500 - ln 4200 s) × min(ln(s ÷ 500), 0) (slow
+  players are relatively quicker at small puzzles). Fitted daily (`Model\SizeCurveFitter`): every first try of the window
+  paired with every direct pace row of the solver at another size before it, y = ln t - log difficulty - ln baseline -
+  drift, robust (Huber 0.25, IRLS) with a ridge on the knot values' second differences. Prod copy: 100 pc -2.16, 300
+  -0.67, 1000 +0.98, 1500 +1.64, β 0.10 (274k pairs).
+- **Pooled level.** Every direct row r at another size gives θ_r = ln baseline_r + drift_r - F(s_r) with variance
+  1.57 × spread_r² ÷ min(q_r, 50) + τ² × ln(s_r ÷ 500)² + 1e-4; precision-pooled, + F(s) = the prior for the target size
+  with variance V_θ + τ² × ln(s ÷ 500)² (personal deviations grow with the distance and do not carry across 500).
+- **Own evidence** at the size updates it by precision: the own direct row (variance 1.57 × spread² ÷ min(q, 50)), else
+  the player's 1-4 first tries there (mean of ln t - the puzzle's log difficulty, variance σ₁² ÷ n). Each source keeps
+  its own drift. τ², σ₁² by grid **on held-out players**: one fold in five (`SizeCurveFitter::foldOf()`, by player id)
+  is left out of a first regression and the grid is scored on it with that curve; the curve itself is then fitted on
+  everybody (τ², σ₁² do not enter the regression). Prod copy: 0.005 / 0.03 on both splits (the in-sample grid had
+  picked 0.003 / 0.015 - over-confident; held-out error 0.0914 June, 0.0941 April).
+- **When the window cannot identify a curve** (fewer than 2,000 pairs, or a singular system - a knot or the speed term
+  without pairs the ridge cannot carry: `NotIdentifiable`, never a silent zero coefficient) the fit keeps the curve the
+  candidate has (its last fit's; the review's on a first fit) and says so in the summary (`size_curve_kept`).
+- **What it rests on** (`pace_source`): `pooled` (other sizes only), `pooled_few` (+ own 1-4), `pooled_own` (+ own
+  row), `own` (an own row and no other size - today's own pace). The window gets the pace's posterior variance
+  (weight fitted with the other terms) and quantile keys per pooled kind × distance band from 500.
+- **The own first tries' difficulty** is the puzzle's candidate difficulty **as of the fit's / evaluation's cut-off**
+  (honest), live and in reconstructions the current one (known at prediction time; a documented approximation for
+  reconstructions, like the priors' sums - the size-curve review measured as-of and current alike).
+
+Measured (`--candidate` vs `--candidate-off=size_curve`, same rows; fit < 2026-06-01 / < 2026-04-01; τ², σ₁² on
+held-out players):
+
+| group | n (June) | shown v3 | candidate without the curve | **with the curve** |
+|---|---|---|---|---|
+| all first tries | 68,240 | 0.0928 | 0.0884 (−4.8 %) | **0.0872 (−6.0 %)**; April: 0.0927 → 0.0885 → **0.0871 (−6.0 %)** |
+| shown pace interpolated | 564 | 0.1708 (hits 39/67) | 0.1677 | **0.1380 (−19.2 %)**, 40.6/72.2; April −22.1 % |
+| shown pace 500-scaled | 11,888 | 0.1259 | 0.1179 | **0.1131 (−10.1 %)** |
+| 1-2 own first tries at the size | 2,676 | 0.1330 | 0.1300 | **0.1210 (−9.0 %)** |
+| 3-4 own first tries at the size | 1,898 | 0.1250 | 0.1190 | **0.1071 (−14.3 %)** |
+| never solved the size | 1,788 | 0.1428 (46.5/77.9) | 0.1386 | **0.1363 (−4.6 %)**, 53.0/83.7 |
+| 50+ own first tries | 36,605 | 0.0765 | 0.0728 | 0.0728 (unchanged) |
+| 1000 pieces | 3,410 | 0.1429 | 0.1236 | **0.1191 (−16.7 %)** |
+| 1500+ pieces | 68 | 0.2192 | 0.2003 | **0.1582 (−27.8 %)** |
+| odd sizes | 390 | 0.1405 | 0.1362 | **0.1116 (−20.6 %)** |
+| ≤ 300 pieces | 11,342 | 0.1160 | 0.1118 | **0.1071 (−7.7 %)** |
+| k = 1-2 | 4,758 | 0.1328 | 0.1212 | **0.1166 (−12.2 %)** |
+
+The held-out grid cost 0.0001 overall against the in-sample one it replaced (0.0871 → 0.0872 June, April unchanged)
+and up to 1.4 points in the interpolated group - the price of a variance not fitted on the rows it is scored on.
+
+Known losses (both splits): a never-solved size at |ln(s ÷ 500)| 0.75-1.2 (402 / 573 rows) +3.6 % / +3.1 % against the
+candidate without the curve (still better than v3; biased −4.9 %); players new to 500 with 1-4 first tries there (214 /
+296 rows) hit 35 / 67 (36 / 67) instead of 43 / 72; players with < 10 first tries hit 48 / 77 instead of 52 / 82.
+
+Cost: the candidate fit with the curve takes 42 s on the copy (the curve ~10 s, pacing the samples with it ~3 s) at
+**~360 MB resident** (358-363 over runs; without the curve 334 MB). The curve step reads the attempt set and the drift
+states only: the puzzles' priors for its own first tries come from two small maps taken while sampling, so the prior
+lookup and the image estimates are released before it; its pairs are three fixed-size columns, and the samples are
+re-paced in place. Live, the curve's two columns ride on the candidate's own statement; the own-first-tries subquery
+runs only for a player without a pace row at the puzzle's size (the only case the curve reads it) and reads at most 5.
+
 **Repeat** (`repeatWindow()`): the shown centre (Holt / ratio) × e^(gap offset), the window with a variance term and
 quantiles per gap bucket since the last solve (P4: < 30 d, 1-3 m, 3-12 m, > 12 m).
 
@@ -846,7 +910,7 @@ the same rows; MAE fit < 2026-06-01 / < 2026-04-01, all parts 0.0883 / 0.0885):
 `CandidateFeatures::NOT_KEPT` lists the parts left off; `--candidate-off=…` and `--ablation` still measure them. Not
 built (measured elsewhere or left for later): the per-player competition offset (F6 - only the competition window
 scale is in), the k = 0 dispersion from the picture's look-alike numbers (F8 - traits are not on the prediction's
-statements), the taste factor (P7) and the size curve (a separate change).
+statements) and the taste factor (P7).
 
 **Isolation and cost.** Nothing of the candidate runs inside the shown model's jobs: `fit-prediction-model` and the
 15-minute batch are exactly main's. The candidate has two commands of its own (`CandidateModelRecalculator`), each its
@@ -862,6 +926,7 @@ Peak resident memory (VmHWM) on the production copy (306,796 qualifying first at
 |---|---|---|
 | shown fit alone (`fit-prediction-model`, unchanged) | 434 MB | 18 s |
 | candidate fit (`fit-candidate-prediction-model`) | 334 MB | 32 s |
+| candidate fit with the size curve (below) | ~360 MB | 42 s |
 | candidate evidence refresh (every 15 min) | 312 MB | 14 s |
 | 15-minute batch | +0 (the candidate is not in it) | - |
 

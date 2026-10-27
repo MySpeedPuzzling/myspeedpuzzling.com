@@ -11,8 +11,10 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Value\CandidateEvidence;
 use SpeedPuzzling\Web\Value\CandidateModelParameters;
 use SpeedPuzzling\Web\Value\DifficultySource;
+use SpeedPuzzling\Web\Value\PaceSource;
 use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
+use SpeedPuzzling\Web\Value\SizeCurve;
 use SpeedPuzzling\Web\Value\SolveConditions;
 use SpeedPuzzling\Web\Value\StatisticalPredictionInputs;
 use SpeedPuzzling\Web\Value\WindowBucket;
@@ -49,13 +51,13 @@ final readonly class CandidatePredictionCalculator
         SolveConditions $conditions = new SolveConditions(),
     ): null|TimePredictionResult {
         $features = $parameters->features();
-        $baseline = TimePredictionCalculator::baselineFor($inputs, $parameters->paceParameters);
+        $pace = self::pace($inputs, $parameters);
 
-        if ($baseline === null) {
+        if ($pace === null) {
             return null;
         }
 
-        [$baselineSeconds, $drift, $spread, $paceSource] = $baseline;
+        [$logPace, $paceVariance, $spread, $paceSource] = $pace;
         $evidence = $inputs->candidateEvidence ?? CandidateEvidence::none();
         $k = $evidence->k;
         [$priorType, $priorLog] = $this->prior($inputs, $features->on('image_prior'), $features->on('puzzle_weighted_brand'));
@@ -74,13 +76,12 @@ final readonly class CandidatePredictionCalculator
             ? $parameters->centreOffset(self::offsetKeys($group, $paceSource->value, $kBucket, $priorType)) + $parameters->experienceOffset($inputs->candidateFirstTries)
             : 0.0;
         $unboxed = $features->on('unboxed') && $conditions->unboxed;
-        $centre = $baselineSeconds * exp($drift + $logDifficulty + $offset + ($unboxed ? $parameters->unboxedOffset : 0.0));
+        $centre = exp($logPace + $logDifficulty + $offset + ($unboxed ? $parameters->unboxedOffset : 0.0));
 
-        $spread ??= PredictionModelParameters::GLOBAL_SPREAD;
         $dispersion = $features->on('dispersion') ? $evidence->dispersion($parameters->dispersionShrink) : 0.0;
         $contextScale = $parameters->contextScale($features->on('competition') && $conditions->competition, $unboxed);
-        $sigma = $parameters->firstTrySigma($spread, $posteriorVariance, $group, $paceSource, $dispersion, $contextScale, $features->on('centre_offsets') ? $inputs->candidateFirstTries : null);
-        $keys = self::firstTryKeys(WindowBucket::quartile($spread, $parameters->consistencyEdges), $kBucket, $group, $features->on('source_quantiles') ? $priorType : null);
+        $sigma = $parameters->firstTrySigma($spread, $posteriorVariance, $group, $paceSource, $dispersion, $contextScale, $features->on('centre_offsets') ? $inputs->candidateFirstTries : null, $paceVariance);
+        $keys = self::firstTryKeys(WindowBucket::quartile($spread, $parameters->consistencyEdges), $kBucket, $group, $features->on('source_quantiles') ? $priorType : null, self::paceKey($paceSource, $inputs->piecesCount));
         $window = TimePredictionCalculator::window($centre, $sigma, $parameters->quantilesFor($keys));
 
         return new TimePredictionResult(
@@ -101,6 +102,59 @@ final readonly class CandidatePredictionCalculator
             windowBucket: $keys[0],
             paceSource: $paceSource,
         );
+    }
+
+    /**
+     * The pace a first try is predicted from: [log pace with its drift, the pace's own variance, the spread of its row,
+     * what it rests on] - the size curve's pooled pace (SizeCurve::pace()) when the fit has one and the inputs carry the
+     * player's rows, else the shown model's (TimePredictionCalculator::baselineFor(), variance 0). Null = no pace.
+     *
+     * @return null|array{0: float, 1: float, 2: float, 3: PaceSource}
+     */
+    public static function pace(StatisticalPredictionInputs $inputs, CandidateModelParameters $parameters): null|array
+    {
+        if ($parameters->sizeCurve !== null && $parameters->features()->on('size_curve') && $inputs->candidatePaceRows !== null) {
+            $pooled = $parameters->sizeCurve->pace($inputs->piecesCount, $inputs->candidatePaceRows, $inputs->candidateFew);
+
+            if ($pooled !== null) {
+                return [$pooled[0], $pooled[1], $pooled[3], $pooled[2]];
+            }
+        }
+
+        $baseline = TimePredictionCalculator::baselineFor($inputs, $parameters->paceParameters);
+
+        if ($baseline === null || $baseline[0] <= 0) {
+            return null;
+        }
+
+        return [log($baseline[0]) + $baseline[1], 0.0, $baseline[2] ?? PredictionModelParameters::GLOBAL_SPREAD, $baseline[3]];
+    }
+
+    /**
+     * A puzzle's candidate log difficulty from its evidence and its priors - the image estimate first, else the
+     * puzzle-weighted brand prior, else the average puzzle (the size curve's own first tries).
+     */
+    public static function puzzleLogDifficulty(CandidateEvidence $evidence, null|float $imageLog, null|float $brandLog, CandidateModelParameters $parameters): float
+    {
+        $features = $parameters->features();
+        [$type, $prior] = match (true) {
+            $features->on('image_prior') && $imageLog !== null => [ImageEstimatePrior::NAME, $imageLog],
+            $features->on('puzzle_weighted_brand') && $brandLog !== null => [BrandPiecesPrior::NAME, $brandLog],
+            default => ['none', 0.0],
+        };
+
+        return $evidence->posterior($prior, $parameters->priorVariance($features->on('prior_types') ? $type : 'pooled'))[0];
+    }
+
+    /**
+     * The window's own key of a size-curve pace from other sizes: what it rests on × the distance band from 500 (the
+     * uncertainty of a pooled pace does not grow with the distance as the variance formula says - review "Size curve").
+     */
+    public static function paceKey(PaceSource $paceSource, int $piecesCount): null|string
+    {
+        return in_array($paceSource, [PaceSource::Pooled, PaceSource::PooledFew], true)
+            ? sprintf('%s|d%d', $paceSource->value, SizeCurve::distanceBand($piecesCount))
+            : null;
     }
 
     /**
@@ -197,9 +251,14 @@ final readonly class CandidatePredictionCalculator
      *
      * @return list<string>
      */
-    public static function firstTryKeys(int $consistency, int $kBucket, PiecesGroup $group, null|string $priorType): array
+    public static function firstTryKeys(int $consistency, int $kBucket, PiecesGroup $group, null|string $priorType, null|string $paceKey = null): array
     {
         $keys = [];
+
+        if ($paceKey !== null) {
+            $keys[] = sprintf('v|pk|%s', $paceKey);
+            $keys[] = sprintf('v|pk|%s', explode('|', $paceKey)[0]);
+        }
 
         if ($priorType !== null && $kBucket <= 1) {
             $keys[] = sprintf('v|c%d|k%d|%s|%s', $consistency, $kBucket, $group->value, $priorType);

@@ -51,7 +51,7 @@ readonly final class CandidateModelRecalculator
      * In one transaction (a savepoint inside the handler's), the fitter's steps one by one, each structure released
      * once no later step reads it (the container has 512 MB): the brand prior's pseudo-count (then the candidate's brand
      * priors are written), the samples as the shown model sees them (then the shown as-of difficulty, the priors and the
-     * image estimates are released), the index noise (then every puzzle's evidence is written), the
+     * image estimates are released), the index noise (then every puzzle's evidence is written), the size curve, the
      * samples' evidence (then the attempt set and the engines are released), the rest on the samples alone. The priors
      * and the evidence rest only on the pseudo-count and the noise, which nothing later changes.
      *
@@ -69,12 +69,15 @@ readonly final class CandidateModelRecalculator
             unset($engine);
 
             $progress = $this->fitter->begin($candidate, $priors, $from, (float) $now->getTimestamp(), $shown, CandidateFeatures::kept());
+            $progress->previousSizeCurve = $this->parametersProvider->candidate()?->sizeCurve;
             $priorsWritten = $this->writePriors($priors, $progress->parameters, $now);
             $progress->lap('priors_written');
 
-            $this->fitter->sample($progress, $candidate, $priors, $this->imageEstimates($now), UnboxedFirstTries::load($this->connection));
+            $imageEstimates = $this->imageEstimates($now);
+            $this->fitter->sample($progress, $candidate, $priors, $imageEstimates, UnboxedFirstTries::load($this->connection));
             $candidate->engine->releaseAsOfDifficulty();
-            unset($priors);
+            unset($priors, $imageEstimates);
+
             $progress->lap('shown_released');
 
             $this->fitter->fitNoise($progress, $candidate);
@@ -82,6 +85,9 @@ readonly final class CandidateModelRecalculator
             $progress->lap('evidence_written');
 
             $this->fitter->addEvidence($progress, $candidate);
+
+            $this->fitter->fitSizeCurve($progress, $candidate);
+
             unset($candidate);
             $progress->lap('released');
 

@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Component\PlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -22,6 +23,7 @@ use Symfony\UX\LiveComponent\Test\TestLiveComponent;
 final class PlayerSolvedPuzzlesPlacingTest extends WebTestCase
 {
     use InteractsWithLiveComponents;
+    use QueryCountAssertions;
 
     public function testPlacingSortsOrderTheRowsByRankForEverybody(): void
     {
@@ -114,6 +116,26 @@ final class PlayerSolvedPuzzlesPlacingTest extends WebTestCase
         self::assertCount(0, $component->render()->crawler()->filter('[data-live-sort-param="behind_prediction"]'));
     }
 
+    public function testEveryRankIsLoadedOnlyWhileAPlacingSortIsOn(): void
+    {
+        $client = self::createClient();
+        $component = $this->results($client);
+        $component->render();
+
+        $this->startCountingQueries($client);
+        $component->refresh();
+        $statements = $this->rankStatements($client);
+        self::assertCount(1, $statements, 'One rank statement by default');
+        self::assertStringContainsString('pst.puzzle_id IN', $statements[0], 'By default only the shown rows are ranked');
+
+        $component->call('changeSortBy', ['sort' => 'best_share']);
+        $this->startCountingQueries($client);
+        $component->refresh();
+        $statements = $this->rankStatements($client);
+        self::assertCount(1, $statements, 'Still one rank statement under a placing sort');
+        self::assertStringNotContainsString('pst.puzzle_id IN', $statements[0], 'A placing sort ranks every puzzle');
+    }
+
     private function signedIn(string $playerId): KernelBrowser
     {
         $client = self::createClient();
@@ -139,6 +161,14 @@ final class PlayerSolvedPuzzlesPlacingTest extends WebTestCase
         self::assertInstanceOf(PlayerSolvedPuzzles::class, $results);
 
         return $results;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function rankStatements(KernelBrowser $client): array
+    {
+        return array_values(array_filter($this->executedSql($client), static fn (string $sql): bool => str_contains($sql, 'PlayerBest')));
     }
 
     /**

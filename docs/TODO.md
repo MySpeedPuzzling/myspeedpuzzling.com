@@ -4,6 +4,9 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Profile results by placing (`docs/features/profile-results-placing.md`, 2026-10-27)
+- [ ] Placing on the pairs and teams tabs: rank of the exact pair/team (`puzzling_team_id`) on the puzzle's pair/team board, then the same sorts, chips and median line as solo. Pair/team rows show no rank today, so the rank chip comes first; the solo LATERAL count in `GetRanking::rankings()` is the pattern (feature request #292 asked for solo only)
+
 ## Candidate prediction model v4 (`docs/features/puzzle-intelligence/README.md` "The candidate model (v4)", 2026-10-27)
 
 - [ ] After the deploy: the two cron rows (`fit-candidate-prediction-model` 04:41, `refresh-candidate-prediction-evidence`

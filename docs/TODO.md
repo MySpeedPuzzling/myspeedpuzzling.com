@@ -7,7 +7,6 @@ that would otherwise be forgotten. Newest section on top.
 ## Sell/swap requests (`docs/features/marketplace/12-listing-requests.md`, 2026-10-27)
 
 - [ ] Bulk *add* to the own sell/swap list (feature request 019d1fda, Mathew N's comment): an "Add to sell/swap list…" action in the collection pages' selection bar - one type and condition for all, a price per puzzle. Bulk remove shipped in 26e7f64bd
-- [ ] lily.srv cron: `myspeedpuzzling:expire-listing-requests` daily (next to `expire-borrow-requests`)
 - [ ] "Mark all agreed as sold to {buyer}" on the request page, if sellers ask for it (today one button per listing)
 
 ## Profile results by placing (`docs/features/profile-results-placing.md`, 2026-10-27)

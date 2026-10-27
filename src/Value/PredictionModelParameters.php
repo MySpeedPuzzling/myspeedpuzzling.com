@@ -15,10 +15,13 @@ use DateTimeImmutable;
  * - tau: pseudo-count of the prior in the shrunk difficulty of puzzles with 1-4 indices;
  * - thinSizes: per piece-count group, the size exponent and the number of own qualifying first attempts below which
  *   the player's 500-piece pace scaled by it replaces their own baseline (absent = the own baseline always wins);
- * - first tries: sigma² = playerSpreadWeight × spread² + puzzleWeight ÷ (k + 1) + sizeTerm(group); a prediction resting
- *   on the picture alone takes a scale × the estimate's own variance as its puzzle term instead (fitted on first tries
- *   at puzzles with 0-4 indices, so its windows hold what they say: per size group × image kind, else per size group,
- *   else the global imageVarianceScale - 1.0 = the interval as is);
+ * - first tries: sigma² = playerSpreadWeight × spread² + puzzleWeight ÷ (k + 1) + sizeTerm(group);
+ * - a prediction resting on the picture alone (TimePredictionCalculator::imageWindow()): each window end combines the
+ *   player's part (z × the player variance above without the puzzle term) with the estimate's own quantile offset
+ *   × a scale fitted per window (50 / 80 %), size group × image kind × k = 0 / 1-4 (imageWindowScales, keyed
+ *   imageWindowKey(), fitted recency-weighted - PredictionModelFitter step 6). A stored fit from before them has none
+ *   and keeps its symmetric form: a scale × the estimate's variance as the puzzle term of sigma (imageVarianceScale(s),
+ *   read only for such a stored fit);
  * - repeats: sigma² = repeatSpreadWeight × spread² + repeatConstant;
  * - consistency edges: the quartile edges of the player spread (first tries / repeats);
  * - quantiles: standardised-residual quantiles 10 / 25 / 75 / 90 % per WindowBucket key (with fallbacks).
@@ -32,6 +35,12 @@ readonly final class PredictionModelParameters
     public const float MINIMUM_SIGMA = 0.045;
 
     private const array RESEARCH_QUANTILES = [-1.17, -0.62, 0.58, 1.21];
+
+    /** The standard normal's 10 / 25 / 75 / 90 % quantiles - the player's part of a picture-only window */
+    public const array NORMAL_QUANTILES = [-ImagePriorInput::Z90, -ImagePriorInput::Z75, ImagePriorInput::Z75, ImagePriorInput::Z90];
+
+    /** imageWindowKey() of the scale every picture-only window falls back to */
+    public const string IMAGE_WINDOW_ALL = 'all';
 
     /**
      * @param array<string, array{alpha: float, max_own_solves: int}> $thinSizes keyed by PiecesGroup value
@@ -57,6 +66,8 @@ readonly final class PredictionModelParameters
         public float $imageVarianceScale = 1.0,
         /** @var array<string, float> keyed "<PiecesGroup>|<ImageKind>" and "<PiecesGroup>" (imageVarianceScaleFor()) */
         public array $imageVarianceScales = [],
+        /** @var array<string, array{0: float, 1: float}> the 50 % and the 80 % window's scale, keyed imageWindowKey() */
+        public array $imageWindowScales = [],
     ) {
     }
 
@@ -95,6 +106,7 @@ readonly final class PredictionModelParameters
      * @param null|array<string, array{0: float, 1: float, 2: float, 3: float}> $quantiles
      * @param null|array<string, int|float|string> $summary
      * @param null|array<string, float> $imageVarianceScales
+     * @param null|array<string, array{0: float, 1: float}> $imageWindowScales
      */
     public function with(
         null|float $tau = null,
@@ -111,6 +123,7 @@ readonly final class PredictionModelParameters
         null|array $summary = null,
         null|float $imageVarianceScale = null,
         null|array $imageVarianceScales = null,
+        null|array $imageWindowScales = null,
     ): self {
         return new self(
             tau: $tau ?? $this->tau,
@@ -127,7 +140,76 @@ readonly final class PredictionModelParameters
             summary: $summary ?? $this->summary,
             imageVarianceScale: $imageVarianceScale ?? $this->imageVarianceScale,
             imageVarianceScales: $imageVarianceScales ?? $this->imageVarianceScales,
+            imageWindowScales: $imageWindowScales ?? $this->imageWindowScales,
         );
+    }
+
+    /**
+     * The picture-only window's scales [50 %, 80 %] for a size group, image kind and the puzzle's index count when
+     * predicted: from the most specific fit to the least - group × kind × k bucket, group × k bucket, group × kind,
+     * group, all. Null when the fit has none (a fit from before them, or too few first tries): the symmetric form
+     * (imageVarianceScaleFor()) then.
+     *
+     * @return null|array{0: float, 1: float}
+     */
+    public function imageWindowScalesFor(PiecesGroup $group, null|ImageKind $kind, int $k): null|array
+    {
+        if ($this->imageWindowScales === []) {
+            return null;
+        }
+
+        foreach (self::imageWindowKeys($group, $kind, $k) as $key) {
+            if (isset($this->imageWindowScales[$key])) {
+                return $this->imageWindowScales[$key];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Every key a picture-only first try counts in, the most specific first (imageWindowScalesFor() reads them in
+     * this order, the fit fills them all).
+     *
+     * @return list<string>
+     */
+    public static function imageWindowKeys(PiecesGroup $group, null|ImageKind $kind, int $k): array
+    {
+        $keys = [];
+
+        if ($kind !== null) {
+            $keys[] = self::imageWindowKey($group, $kind, $k);
+        }
+
+        $keys[] = self::imageWindowKey($group, null, $k);
+
+        if ($kind !== null) {
+            $keys[] = self::imageWindowKey($group, $kind);
+        }
+
+        $keys[] = self::imageWindowKey($group);
+        $keys[] = self::IMAGE_WINDOW_ALL;
+
+        return $keys;
+    }
+
+    /**
+     * "<PiecesGroup>[|<ImageKind>][|k0 or k1-4]" - k = 0: nobody had solved the puzzle (its first solvers, the
+     * predictions a picture-only estimate is shown for); 1-4: later solvers of a puzzle still without a difficulty.
+     */
+    public static function imageWindowKey(PiecesGroup $group, null|ImageKind $kind = null, null|int $k = null): string
+    {
+        return $group->value
+            . ($kind !== null ? '|' . $kind->value : '')
+            . ($k !== null ? ($k <= 0 ? '|k0' : '|k1-4') : '');
+    }
+
+    /**
+     * The player's part of a first try's variance: sigma² without the puzzle term (firstTrySigma()).
+     */
+    public function firstTryPlayerVariance(float $playerSpread, PiecesGroup $group): float
+    {
+        return max(0.0, $this->firstTryPlayerSpreadWeight * $playerSpread ** 2 + ($this->firstTrySizeTerms[$group->value] ?? 0.0));
     }
 
     /**
@@ -204,6 +286,7 @@ readonly final class PredictionModelParameters
                 'consistency_edges' => $this->firstTryConsistencyEdges,
                 'image_variance_scale' => $this->imageVarianceScale,
                 'image_variance_scales' => $this->imageVarianceScales,
+                'image_window_scales' => $this->imageWindowScales,
             ],
             'repeat' => [
                 'spread_weight' => $this->repeatSpreadWeight,
@@ -263,6 +346,18 @@ readonly final class PredictionModelParameters
             }
         }
 
+        $windowScales = [];
+
+        foreach (is_array($firstTry['image_window_scales'] ?? null) ? $firstTry['image_window_scales'] : [] as $key => $pair) {
+            if (is_string($key) && is_array($pair) && count($pair) === 2) {
+                $pair = array_values($pair);
+
+                if (is_numeric($pair[0]) && is_numeric($pair[1])) {
+                    $windowScales[$key] = [(float) $pair[0], (float) $pair[1]];
+                }
+            }
+        }
+
         $summary = [];
 
         foreach (is_array($data['summary'] ?? null) ? $data['summary'] : [] as $key => $value) {
@@ -286,6 +381,7 @@ readonly final class PredictionModelParameters
             summary: $summary,
             imageVarianceScale: self::number($firstTry['image_variance_scale'] ?? null, $defaults->imageVarianceScale),
             imageVarianceScales: $imageScales,
+            imageWindowScales: $windowScales,
         );
     }
 

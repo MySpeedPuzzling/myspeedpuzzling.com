@@ -47,7 +47,7 @@ collections prediction rows (while the flag hides the estimates), the recap's li
 | The player solved it before (solo, valid, boxed) | the personal (repeat) prediction | `your_solves` | no |
 | 5+ difficulty indices | the statistical prediction (pace × measured difficulty × drift) | `measured` | no |
 | 1-4 indices | the statistical prediction, difficulty shrunk toward brand × pieces | `first_solves` | yes |
-| 0 indices, a picture estimate of the current picture, **its gate passed** (size group × image kind × the estimate's generation - a record vouches only for the estimate generation it measured, `image-estimate-gates.md`) | pace × drift × exp(estimate) - the stored `image` side row's number, window from the estimate's interval | `picture` | yes |
+| 0 indices, a picture estimate of the current picture, **its gate passed** (size group × image kind × the estimate's generation - a record vouches only for the estimate generation it measured, `image-estimate-gates.md`) | pace × drift × exp(estimate) - the stored `image` side row's number, window from the estimate's own asymmetric 50 % / 80 % intervals (`image-estimate-gates.md`, "The picture-only window") | `picture` | yes |
 | 0 indices otherwise | nothing (the prior-only number is never shown) | - | - |
 | The player has no baseline at any piece count (and no repeat) | the community's median direct pace at the piece count (≥ 20 puzzlers), clearly labelled "Typically ≈ …", no window, no bar | `community` | no |
 | Secret puzzle (`hide_until` / `hide_image_until` ahead) | nothing, whatever it has | - | - |
@@ -186,12 +186,14 @@ training puzzles for both versions; 1.1.0 = the committed module, which reproduc
   predictions (n ≥ 10 newer): Winkler-80 0.4038 → 0.3964 (60 % cut 0.4048 → 0.3966, 80 % 0.4264 → 0.4159), the 50 %
   window 0.473 → 0.511 hit (it under-covered), 80 % coverage by doubt tercile 0.83 / 0.75 / 0.74 → 0.78 / 0.76 / 0.82
   (the table is too wide where the picture is easy and too narrow where it is doubtful). Unshrunk σ̂ over-corrects
-  (0.75 / 0.78 / 0.85). The pipeline now pushes its own 50 % window (`logP25` / `logP75`) next to the 80 %.
+  (0.75 / 0.78 / 0.85). The pipeline now pushes its own 50 % window (`logP25` / `logP75`) next to the 80 %, and
+  the app's picture-only window reads both, asymmetric as they are (`image-estimate-gates.md`, "The picture-only
+  window": the 50 % ends from p25 / p75, the 80 % ends from p10 / p90, each with its own fitted scale).
   Crop trust is deliberately **not** a σ̂ input (artwork review proposal 3: it did not improve the interval on a time
   split); it is stored with the estimate for a re-test at ≥ 300 measured new photo puzzles.
 - **Paired push guard** (P3) and **`newest30`** in the record (P6) - runbook §7.
-- **Stored now for later models** (nullable columns of `puzzle_difficulty_estimate`, unused by any prediction):
-  `logP25` / `logP75`, `pixelsPerPiece`, `cropTrust` (the `crop_trust` analyzer's, null until it exists),
+- **Stored now for later models** (nullable columns of `puzzle_difficulty_estimate`; `logP25` / `logP75` are read by
+  the picture-only window since 2026-10-27, the rest by no prediction): `logP25` / `logP75`, `pixelsPerPiece`, `cropTrust` (the `crop_trust` analyzer's, null until it exists),
   `pictureFactors` (16) + `pictureFactorsVersion` (frozen PCA basis 1.0.0 of the SigLIP 2 crop, 35.6 % of its variance -
   the taste model's puzzle side). The optional `piece_scale` analyzer joins the numbers automatically once it covers
   90 % of the training puzzles (estimate generation 1.2.1).
@@ -217,7 +219,8 @@ Reading it: the honest gain is the newer and newest rows - MAE −7 % / −10 %,
 0.4 SE (prod 0.547 vs the 0.56 bar), now reads 0.578 / 0.584 offline. Groups under ~50 puzzles move within their
 noise (500 box newer n = 49 exact −0.04, but the newest-30 % 500 box with 117 puzzles +0.025; 1000 flat n = 24). The
 newer 500 box 80 % window narrows from an over-covering 0.90 to 0.86 (newest: 0.84 → 0.77 - watch it in the gate
-record; the app's per size × kind window scale is refitted from the gate rows anyway).
+record; the app's picture-only window scales - per size group × kind × k = 0 / 1-4, per window, recency-weighted
+since 2026-10-27 - are refitted daily anyway).
 
 Cost: the nightly run is about 2.5 × 1.1.0's (12 more kernel fits and the 10 pair models of the offset): 50 min on the
 review machine under heavy load from other jobs (load average ~100; train 31 min, validate 19 min, estimates 25 s) -

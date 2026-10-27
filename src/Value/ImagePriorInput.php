@@ -12,7 +12,10 @@ namespace SpeedPuzzling\Web\Value;
 readonly final class ImagePriorInput
 {
     /** The standard normal's 90 % quantile - the half-width of an 80 % interval in standard deviations */
-    private const float Z90 = 1.2815515655446004;
+    public const float Z90 = 1.2815515655446004;
+
+    /** The standard normal's 75 % quantile - the half-width of a 50 % interval in standard deviations */
+    public const float Z75 = 0.6744897501960817;
 
     public function __construct(
         public float $logDifficulty,
@@ -22,8 +25,8 @@ readonly final class ImagePriorInput
         public ImageKind $kind,
         // The estimate's model version (the derive's MODEL_VERSION) - which estimate generation a prediction rested on
         public null|string $modelVersion = null,
-        // Since difficulty_prior 1.2.0, null before: the pipeline's own 50 % interval, the side of one piece in pixels
-        // and the crop trust. Carried for later models - no prediction uses them (variance() reads the 80 % interval).
+        // Since difficulty_prior 1.2.0, null before: the pipeline's own 50 % interval (the picture-only window's 50 %
+        // ends, quantileOffsets()), the side of one piece in pixels and the crop trust (carried for later models).
         public null|float $logP25 = null,
         public null|float $logP75 = null,
         public null|float $pixelsPerPiece = null,
@@ -40,6 +43,32 @@ readonly final class ImagePriorInput
     public function variance(): float
     {
         return (max(0.0, $this->logP90 - $this->logP10) / (2 * self::Z90)) ** 2;
+    }
+
+    /**
+     * The estimate's own interval as offsets from its log difficulty at the 10 / 25 / 75 / 90 % quantiles - asymmetric
+     * as the pipeline builds it (per-puzzle σ̂ × conformal quantiles per size group, estimates.md "Picture estimate
+     * 1.2.0"). The 50 % ends are the pipeline's own 50 % interval (logP25 / logP75); an estimate from before 1.2.0
+     * has none and takes its 80 % offsets × z75 ÷ z90 (a normal shape on each side). Lower offsets never above 0,
+     * upper ones never below.
+     *
+     * @return array{0: float, 1: float, 2: float, 3: float}
+     */
+    public function quantileOffsets(): array
+    {
+        $lower80 = min(0.0, $this->logP10 - $this->logDifficulty);
+        $upper80 = max(0.0, $this->logP90 - $this->logDifficulty);
+
+        if ($this->logP25 === null || $this->logP75 === null) {
+            return [$lower80, $lower80 * self::Z75 / self::Z90, $upper80 * self::Z75 / self::Z90, $upper80];
+        }
+
+        return [
+            $lower80,
+            min(0.0, $this->logP25 - $this->logDifficulty),
+            max(0.0, $this->logP75 - $this->logDifficulty),
+            $upper80,
+        ];
     }
 
     /**

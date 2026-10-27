@@ -182,7 +182,9 @@ final class ImageEstimatePriorTest extends TestCase
 
     /**
      * difficulty_prior 1.2.0 stores its own 50 % interval, pixels per piece and the crop trust with an estimate: read and
-     * carried, but no prediction uses them yet - the image and blend predictions stay exactly what they were.
+     * carried. With a fit from before the picture-only window scales (these defaults) no prediction uses them - the
+     * image and blend predictions stay exactly what they were (with the scales the 50 % window reads the 50 % interval,
+     * ImageWindowTest).
      */
     public function testThe120ValuesAreReadButChangeNoPrediction(): void
     {

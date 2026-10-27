@@ -179,6 +179,8 @@ class Deriver:
         """For difficulty_prior: what an earlier step loaded already (no second download), else a streaming read."""
         if analyzer in self.inputs:
             return self.inputs[analyzer].values()
+        if analyzer == difficulty_prior.FINISHED_PHOTO:  # players' photos have endpoints of their own
+            return self.api.iter_finished_photo_analyses(only_current=True, limit=500)
         return self.api.iter_analyses(analyzer, only_current=True, limit=1000)
 
     def run(self, only: Iterable[str] | None = None, dry_run: bool = False, force_model: bool = False) -> dict[str, Any]:

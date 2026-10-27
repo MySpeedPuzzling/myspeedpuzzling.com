@@ -218,6 +218,7 @@ SIGMA_FEATURES = ("estimate", "knnTop1", "knnMean", "absEstimateMinusKnn", "knnL
 
 # optional analyzers another workstream builds - read when they exist, never required
 CROP_TRUST = "crop_trust"
+FINISHED_PHOTO = "finished_photo"  # players' photos of the finished puzzle - the second view (derive/finished_photos.py)
 PIECE_SCALE = "piece_scale"
 PIECE_SCALE_NAMES = ("tilePx", "nnMedian", "nnP25", "nnShareBelow003", "nnShareBelow006", "nnShareBelow010",
                      "logCandidates006", "logCandidates010", "lowDetailShare", "fineTextureMedian", "fineTextureP25",
@@ -462,6 +463,7 @@ class Corpus:
     piece_scale: dict[str, np.ndarray] = field(default_factory=dict)
     extra_means: dict[str, np.ndarray] = field(default_factory=dict)
     crop_trust: dict[str, float] = field(default_factory=dict)
+    photo_views: dict[str, Any] = field(default_factory=dict)  # puzzleId -> finished_photos.PhotoView (the second view)
     use_piece_scale: bool = False
     versions: dict[str, str] = field(default_factory=dict)  # the analyzer version each input was read in
     dropped: Counter = field(default_factory=Counter)
@@ -670,6 +672,11 @@ def _read_extras(corpus: Corpus, rows: Callable[[str], Iterable[dict[str, Any]]]
     trust = _newest(CROP_TRUST, _optional_rows(rows, CROP_TRUST, corpus), corpus,
                     lambda row, p: _num(as_map(row.get("result")).get("trust")))
     corpus.crop_trust = {pid: min(1.0, max(0.0, v)) for pid, v in trust.items() if v is not None}
+    photo_rows = _optional_rows(rows, FINISHED_PHOTO, corpus)
+    if photo_rows:
+        from . import finished_photos
+
+        corpus.photo_views = finished_photos.views(photo_rows, {p: z.fingerprint for p, z in corpus.puzzles.items()}, corpus.siglip)
 
     for name, values in (("feature_print", corpus.feature_print), ("patches", corpus.patches), ("numbers", corpus.numbers),
                          ("piece_scale", corpus.piece_scale)):
@@ -1782,7 +1789,10 @@ def run(api: Any, *, meta: dict[str, Any] | None = None, rows: Callable[[str], I
         meta = {i.puzzle_id: i for i in api.iter_images(status="all", limit=1000)}
     pictures = {pid: (m.fingerprint, m.pieces_count) for pid, m in meta.items()}
     if rows is None:
-        rows = lambda a: api.iter_analyses(a, only_current=True, limit=1000)  # noqa: E731
+        def rows(a: str) -> Iterable[dict[str, Any]]:
+            if a == FINISHED_PHOTO:  # players' photos have endpoints of their own
+                return api.iter_finished_photo_analyses(only_current=True, limit=500)
+            return api.iter_analyses(a, only_current=True, limit=1000)
     brands = {pid: str(as_map(getattr(m, "manufacturer", None)).get("id") or "") for pid, m in meta.items()}
     corpus = build_corpus(labels, pictures, rows, {pid: b for pid, b in brands.items() if b})
     previous_report = read_report(report_dir)

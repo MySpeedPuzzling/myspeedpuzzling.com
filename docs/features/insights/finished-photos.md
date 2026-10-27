@@ -89,8 +89,41 @@ Payload: [`image-taxonomy.md`](./image-taxonomy.md) §11.1 `finished_photo`. API
 
 ## 5. Measurements
 
-(filled in below as the offline experiments finish - every number newer-from-older: fit on the oldest 70 % of the
-1.2.0 training puzzles by `addedAt`, test on the newer)
+Offline, 2026-10-27, on the 10,406 puzzles the 1.2.0 estimate trains on (labels and pictures of 2026-10-24): up to 3
+photos of each (the oldest results first, public players) = 17,653 photos on 8,122 puzzles, fetched as the 1200 px
+rendition the endpoint hands over, measured with this module. Every comparison is **newer-from-older**: fit on the
+oldest 70 % by `addedAt`, test on the newer puzzles.
+
+**Finding the puzzle** (17,597 photos with a current `artwork` crop): register 16,725 (95.0 %), quad 108 (0.6 %),
+none 764 (4.3 %). Usable for a second view (registered, ≥ 60 % of the puzzle in the frame, not the catalogue picture
+itself): 7,849 puzzles. ~1 s a photo on one core.
+
+**The cut measure is real** (no labels exist, so: does it behave like a property of the puzzle?):
+- two photos of the same puzzle agree: `gridX` r = 0.58, `gridY` r = 0.56, `gridX − artworkGridX` r = 0.61
+  (4,868 puzzles with two photos); the photo's grid barely follows the artwork's own periodicity (r = 0.21);
+- brands cut one way: 21 % of its variance lies between brands (500 pieces, 45 brands, 3,760 puzzles; 1000: 22 %,
+  13 brands) - brand means range from 0.95 to 2.94 (ln power ratio), as grid-cut and random-cut makers would.
+- But it barely tells the estimate something new: Spearman with the 1.2.0 residual +0.00 (500), +0.05 (1000) - the
+  1.2.0 brand × size offset already carries the cut of a known brand. Kept for new brands and for the taste model.
+
+**The CPU numbers as a correction** of the 1.2.0 estimate (ridge on the residual, fitted on the older puzzles with a
+usable photo; `photo` = the photo's piece-scale block + glare + seams + quality; `catalogue piece-scale` = the
+`piece_scale` analyzer's numbers of the catalogue crop, for comparison; MAE of log difficulty, paired bootstrap 95 %
+CI of the difference):
+
+| Newer puzzles with a usable photo | n | 1.2.0 | + photo numbers | + catalogue piece-scale | photo vs 1.2.0 |
+|---|---|---|---|---|---|
+| ≥ 10 indices, all | 704 | 0.0772 | 0.0758 | 0.0752 | −0.0014 [−0.0030, +0.0004] |
+| ≥ 10, box + assembled | 204 | 0.0805 | 0.0787 | 0.0806 | −0.0018 [−0.0049, +0.0015] |
+| ≥ 10, 500 box | 94 | 0.0817 | 0.0786 (exact 0.564 → 0.617) | 0.0823 | −0.0031 [−0.0074, +0.0013] |
+| ≥ 5, all | 1,273 | 0.0845 | 0.0831 | 0.0833 | −0.0014 [−0.0027, −0.0001] |
+| ≥ 5, box + assembled | 500 | 0.0899 | 0.0882 | 0.0890 | −0.0017 [−0.0035, +0.0003] |
+| ≥ 5, 500 box | 208 | 0.0836 | 0.0819 | 0.0847 | −0.0017 [−0.0047, +0.0010] |
+
+Reading it: the real print's piece-scale numbers help box puzzles where the box photo's do not (500 box: photo −2 %
+vs catalogue piece-scale +0.7 %; photo better than the catalogue's own, CI [−0.0054, −0.0002]), and the gain over
+everything is ~2 %, at the edge of significance. The numbers alone are not worth a model version; the embeddings of
+the straightened crop (the bigger part of the second view) follow below.
 
 ## 6. Runbook
 

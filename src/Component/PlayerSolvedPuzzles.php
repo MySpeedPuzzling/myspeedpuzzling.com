@@ -347,7 +347,7 @@ final class PlayerSolvedPuzzles
         // its tab whichever tab is open) or a placing sort while the solo tab is shown - pairs and teams have no ranks.
         // One statement, kept for two minutes: each chip and "Show more" re-renders the whole list
         if ($placing !== null || ($this->category === 'solo' && in_array($this->sortBy, self::PLACING_SORTS, true))) {
-            $this->allRanks = $this->getRanking->allForPlayerCached($playerId, self::resultsFingerprint($this->allSoloPuzzles));
+            $this->allRanks = $this->getRanking->allForPlayerCached($playerId, self::resultsFingerprint($this->allSoloPuzzles), firstTries: $this->onlyFirstTries);
         }
 
         if ($placing !== null && $this->allRanks !== null) {
@@ -385,7 +385,8 @@ final class PlayerSolvedPuzzles
             }
         }
 
-        $this->ranking = $this->getRanking->forPuzzles($playerId, $shownPuzzleIds);
+        // Under "first tries only" the rows show first tries, so they rank on the first tries board
+        $this->ranking = $this->getRanking->forPuzzles($playerId, $shownPuzzleIds, firstTries: $this->onlyFirstTries);
     }
 
     /**
@@ -487,7 +488,7 @@ final class PlayerSolvedPuzzles
     private static function resultsFingerprint(array $soloPuzzles): string
     {
         $lines = array_map(
-            static fn (SolvedPuzzle $puzzle): string => $puzzle->timeId . ':' . $puzzle->puzzleId . ':' . ($puzzle->time ?? '') . ':' . ($puzzle->suspicious ? 1 : 0),
+            static fn (SolvedPuzzle $puzzle): string => $puzzle->timeId . ':' . $puzzle->puzzleId . ':' . ($puzzle->time ?? '') . ':' . ($puzzle->suspicious ? 1 : 0) . ':' . ($puzzle->firstAttempt ? 1 : 0),
             $soloPuzzles,
         );
         sort($lines);

@@ -969,7 +969,8 @@ readonly final class PuzzlesSorter
     /**
      * The player's placing on each puzzle's solo leaderboard (feature request #292). By place: #1 first (or last), the
      * bigger board first on a tie. By share (rank / puzzlers, the "top 14.7 %" of the rank chip): boards a share is
-     * shown for (RankShare::MIN_TOTAL) first, the smaller ones after them by place. A puzzle without a rank (relax only,
+     * shown for (RankShare::MIN_TOTAL) first - their first places ahead of every share, the bigger board first - the
+     * smaller ones after them by place. A puzzle without a rank (relax only,
      * every time waiting for verification) goes last either way.
      *
      * @param array<array<SolvedPuzzle>> $groupedSolvedPuzzles
@@ -1005,8 +1006,10 @@ readonly final class PuzzlesSorter
                 }
 
                 if ($shownA) {
-                    // rankA / totalA <=> rankB / totalB, in integers
-                    $comparison = ($rankingA->rank * $rankingB->totalPlayers) <=> ($rankingB->rank * $rankingA->totalPlayers);
+                    // A first place is the best placing on any board, though #1 of 49 is "top 2 %" and #4 of 363 "top 1.1 %"
+                    $comparison = ($rankingB->rank === 1) <=> ($rankingA->rank === 1)
+                        // rankA / totalA <=> rankB / totalB, in integers
+                        ?: ($rankingA->rank * $rankingB->totalPlayers) <=> ($rankingB->rank * $rankingA->totalPlayers);
                 }
             }
 

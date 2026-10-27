@@ -9,13 +9,19 @@ relatively good at". Solo tab of the profile results (`PlayerSolvedPuzzles`) onl
 | Piece | Who | Rule |
 |---|---|---|
 | Sorts "Best / Worst placing first" (`best_rank`, `worst_rank`) | everyone | the rank on the puzzle's solo leaderboard (best non-suspicious time, the puzzle page's pool - `GetRanking`); a tie = the bigger board first, then the time |
-| Sorts "Best / Lowest top % first" (`best_share`, `worst_share`) | everyone | rank ÷ puzzlers on the board, the share of the rank chip (`RankShare`); boards under `RankShare::MIN_TOTAL` (10) come after the ones with a share, by place |
+| Sorts "Best / Lowest top % first" (`best_share`, `worst_share`) | everyone | rank ÷ puzzlers on the board, the share of the rank chip (`RankShare`), except that a first place comes before every share (#1 of 49 is "top 2 %", yet the best placing there is - reported by a player; bigger board first); boards under `RankShare::MIN_TOTAL` (10) come after the ones with a share, by place |
 | Placing chips (`placing`: `top3`, `top10`, `top10_percent`, `top25_percent`, `bottom_half`) | everyone | `Value\PlacingFilter`, one at a time; the share chips count only boards of 10+. Part of the "Show more" list key, reset with the other filters, counted on the Filters button |
 | Median line "Median placing: top 23% across 412 puzzles" | everyone | `Value\PlacingSummary` over the filtered list, boards of 10+ only; shown while every rank is loaded (a placing sort or chip) |
 | Sorts "Most ahead / behind prediction" (`ahead_of_prediction`, `behind_prediction`) | members | the puzzle's **latest attempt** (finished date, else tracked; same day = added later - `PuzzlesSorter::latestAttempt()`): its time ÷ the prediction stored for it (`predicted_seconds` where `predictable = true`). Not predicted = last either way. A chip on each row says it ("Latest: 12% faster than predicted"). Not offered on the profile of a player who turned predictions off (`predictionsOptedOut` prop from `player.timePredictionsOptedOut`, docs/features/opt-out.md) |
 
 A puzzle without a rank (relax only, every time waiting for verification) goes last in every placing sort and never
-matches a chip. On the pairs / teams tabs the placing and prediction sorts are not offered; a sort left over from the
+matches a chip.
+
+**Under "first tries only"** every rank - the chips on the rows, the placing sorts, the placing chips and the median line -
+comes from the puzzle's **first tries board**: everybody's first solo attempt (`first_attempt`, one per person - see
+first-try-integrity.md), ranked like the full board (`GetRanking::…(firstTries: true)`, cached separately; the
+fingerprint includes the first-try flag). Reported by a player: the rows showed first tries while the ranks were those of
+the best times. The unboxed filter still ranks on the full board. On the pairs / teams tabs the placing and prediction sorts are not offered; a sort left over from the
 solo tab sorts them fastest first.
 
 ## Live, nothing precomputed

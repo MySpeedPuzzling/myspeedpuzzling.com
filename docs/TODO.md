@@ -567,7 +567,7 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
 - [ ] Report / suggest a change on event, edition and series pages (e.g. 'this is a duplicate of …', wrong date or
       details) so players can flag event listings without the feedback form - today there is no way to report or propose
       edits to an event they don't manage. Promised to SickHippie (MSP #342, follow-up F161).
-- [ ] Profile results: with the 'first tries only' filter on, the rank chips (#X of Y, top %), placing sorts, placing
+- [x] Profile results: with the 'first tries only' filter on, the rank chips (#X of Y, top %), placing sorts, placing
       chips and the median placing line should come from the first-try leaderboard (everyone's first attempts), not from
       the best-time board (GetRanking always ranks best times). Promised to Šárka (MSP #360, follow-up F169).
 

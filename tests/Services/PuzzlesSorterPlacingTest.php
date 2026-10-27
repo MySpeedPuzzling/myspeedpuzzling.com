@@ -37,6 +37,17 @@ final class PuzzlesSorterPlacingTest extends TestCase
         self::assertSame(['e', 'b', 'a', 'd', 'c'], self::puzzleIds($sorter->sortGroupedByPlacing($groups, $ranking, byShare: true, worstFirst: true, onlyFirstTries: false)));
     }
 
+    public function testByShareAFirstPlaceComesBeforeEveryShare(): void
+    {
+        // a = top 1.1 % (#4 of 363), b = #1 of 49 (top 2.04 %), c = #1 of 200, d = top 2.0 % (#19 of 952)
+        $groups = self::puzzleGroups(['a', 'b', 'c', 'd']);
+        $ranking = self::ranking(['a' => [4, 363], 'b' => [1, 49], 'c' => [1, 200], 'd' => [19, 952]]);
+        $sorter = new PuzzlesSorter();
+
+        self::assertSame(['c', 'b', 'a', 'd'], self::puzzleIds($sorter->sortGroupedByPlacing($groups, $ranking, byShare: true, worstFirst: false, onlyFirstTries: false)));
+        self::assertSame(['d', 'a', 'b', 'c'], self::puzzleIds($sorter->sortGroupedByPlacing($groups, $ranking, byShare: true, worstFirst: true, onlyFirstTries: false)));
+    }
+
     public function testAPuzzleWithoutARankGoesLastEitherWay(): void
     {
         $groups = self::puzzleGroups(['unranked', 'a', 'b']);

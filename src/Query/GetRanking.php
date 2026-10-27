@@ -20,7 +20,8 @@ use Symfony\Contracts\Service\ResetInterface;
 /**
  * The player's rank on each puzzle's solo leaderboard - the same pool the puzzle page ranks (PuzzleTimes): best
  * non-suspicious time per player, hidden players left out, private players only when the viewer may see them
- * (and the ranked player themselves).
+ * (and the ranked player themselves). With $firstTries the board of first tries instead: everybody's first solo attempt,
+ * the ranked player's included - the profile's "first tries only" filter (docs/features/profile-results-placing.md).
  */
 final class GetRanking implements ResetInterface
 {
@@ -49,13 +50,13 @@ final class GetRanking implements ResetInterface
      * @throws PlayerNotFound
      * @return array<string, PlayerRanking>
      */
-    public function allForPlayer(string $playerId): array
+    public function allForPlayer(string $playerId, bool $firstTries = false): array
     {
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
         }
 
-        return $this->allForPlayerCache[$playerId] ??= $this->rankings($playerId, null);
+        return $this->allForPlayerCache[self::requestCacheKey($playerId, $firstTries)] ??= $this->rankings($playerId, null, $firstTries);
     }
 
     /**
@@ -67,14 +68,16 @@ final class GetRanking implements ResetInterface
      * @throws PlayerNotFound
      * @return array<string, PlayerRanking>
      */
-    public function allForPlayerCached(string $playerId, string $ownResultsFingerprint): array
+    public function allForPlayerCached(string $playerId, string $ownResultsFingerprint, bool $firstTries = false): array
     {
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
         }
 
-        if (isset($this->allForPlayerCache[$playerId])) {
-            return $this->allForPlayerCache[$playerId];
+        $requestCacheKey = self::requestCacheKey($playerId, $firstTries);
+
+        if (isset($this->allForPlayerCache[$requestCacheKey])) {
+            return $this->allForPlayerCache[$requestCacheKey];
         }
 
         $hidden = $this->hiddenPlayers->ids();
@@ -84,19 +87,20 @@ final class GetRanking implements ResetInterface
 
         $key = 'ranks_' . sha1(implode('|', [
             strtolower($playerId),
+            $firstTries ? 'first-tries' : 'all',
             $ownResultsFingerprint,
             implode(',', $hidden),
             implode(',', $revealed),
         ]));
 
         /** @var array<string, PlayerRanking> $ranking */
-        $ranking = $this->playerRankingsCache->get($key, function (ItemInterface $item) use ($playerId): array {
+        $ranking = $this->playerRankingsCache->get($key, function (ItemInterface $item) use ($playerId, $firstTries): array {
             $item->expiresAfter(self::CACHE_TTL_SECONDS);
 
-            return $this->rankings($playerId, null);
+            return $this->rankings($playerId, null, $firstTries);
         });
 
-        return $this->allForPlayerCache[$playerId] = $ranking;
+        return $this->allForPlayerCache[$requestCacheKey] = $ranking;
     }
 
     /**
@@ -107,7 +111,7 @@ final class GetRanking implements ResetInterface
      * @throws PlayerNotFound
      * @return array<string, PlayerRanking>
      */
-    public function forPuzzles(string $playerId, array $puzzleIds): array
+    public function forPuzzles(string $playerId, array $puzzleIds, bool $firstTries = false): array
     {
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
@@ -117,20 +121,29 @@ final class GetRanking implements ResetInterface
             return [];
         }
 
-        if (isset($this->allForPlayerCache[$playerId])) {
-            return array_intersect_key($this->allForPlayerCache[$playerId], array_flip($puzzleIds));
+        $requestCacheKey = self::requestCacheKey($playerId, $firstTries);
+
+        if (isset($this->allForPlayerCache[$requestCacheKey])) {
+            return array_intersect_key($this->allForPlayerCache[$requestCacheKey], array_flip($puzzleIds));
         }
 
-        return $this->rankings($playerId, array_values(array_unique($puzzleIds)));
+        return $this->rankings($playerId, array_values(array_unique($puzzleIds)), $firstTries);
+    }
+
+    private static function requestCacheKey(string $playerId, bool $firstTries): string
+    {
+        return $playerId . ($firstTries ? '_first_tries' : '');
     }
 
     /**
      * @param null|list<string> $puzzleIds null = every puzzle the player solved
      * @return array<string, PlayerRanking>
      */
-    private function rankings(string $playerId, null|array $puzzleIds): array
+    private function rankings(string $playerId, null|array $puzzleIds, bool $firstTries): array
     {
         $onlyPuzzles = $puzzleIds === null ? '' : 'AND pst.puzzle_id IN (:puzzleIds)';
+        // The first tries board: one attempt per player (first-try integrity), a subset of each full board
+        $onlyFirstTries = $firstTries ? 'AND pst.first_attempt = true' : '';
         $playerNotHidden = $this->hiddenPlayers->sqlExclude('pst.player_id');
         $isPublic = $this->privateProfileAccess->sqlIsPublic('pl');
 
@@ -154,6 +167,7 @@ WITH PlayerBest AS MATERIALIZED (
         AND pst.puzzling_type = 'solo'
         AND pst.seconds_to_solve IS NOT NULL
         AND pst.suspicious = false
+        {$onlyFirstTries}
         {$onlyPuzzles}
         {$playerNotHidden}
     GROUP BY
@@ -179,6 +193,7 @@ Ranks AS (
                 AND pst.puzzling_type = 'solo'
                 AND pst.seconds_to_solve > 0
                 AND pst.suspicious = false
+                {$onlyFirstTries}
                 AND pst.player_id NOT IN (SELECT pl.id FROM player pl WHERE NOT ({$isPublic}) AND pl.id <> :playerId)
                 {$playerNotHidden}
         ) board

@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\PuzzleIntelligence\ImageEstimates;
 
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Evaluation\OutOfPeriodCalibration;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Evaluation\PredictionGroupAccumulator;
+use SpeedPuzzling\Web\Value\StoredPredictionWindows;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Evaluation\TierScores;
 use SpeedPuzzling\Web\Value\DifficultyTier;
 use SpeedPuzzling\Web\Value\ImageEstimateEvaluationRow;
 
@@ -21,9 +25,24 @@ use SpeedPuzzling\Web\Value\ImageEstimateEvaluationRow;
  *   image predictor's alone; the 50 % / 80 % windows' hit rate and median relative width (high − low) ÷ predicted, of
  *   the image predictor and, for comparison, the blend; how many rows each estimate generation ("<model> <version>")
  *   made (`estimateModels`).
+ *
+ * Gate v2 (the record's `gateVersion` 2 - image-estimate-gates.md "Gate v2") adds, per group and pooled:
+ * - `calibration`: the picture-only windows' honesty out of period (OutOfPeriodCalibration: scales fitted on the solves
+ *   before the record's split moment, hits counted after it, Wilson bounds) and `previouslyOpen` - whether the
+ *   previous record's numbers opened it for the same estimate generations (the hysteresis, judged on read);
+ * - `skill` per k bucket (PairedSkill): at k = 0 the picture-only prediction against the statistical (brand × pieces
+ *   prior) one with the 80 % window width at equal coverage, at k = 1-4 the blend against the statistical;
+ * - `slices`: `k0` (every newer puzzle) and `k0Measured` (only those measured from MEASURED_MIN_INDICES on - the
+ *   population the puzzle-level numbers see), `live` and `reconstructed`, each with the picture-only windows' hits and
+ *   the paired errors;
+ * - the tier numbers TierScores reports (never gating): the exact tier's standard error and label-noise ceiling, the
+ *   tier range's coverage, the ranked probability skill score.
  */
 final class ImageEstimateEvaluator
 {
+    /** The gate rules this evaluator's records are for (ImageEstimateGate) - 1 = the first rules, numbers without the v2 keys */
+    public const int GATE_VERSION = 2;
+
     /**
      * A puzzle's difficulty counts as measured from 10 indices on: the research's reliability 0.96 there
      * (prediction-research.md §2 Q3), against noisy labels at 5 that would hide a good model's rank correlation
@@ -37,17 +56,25 @@ final class ImageEstimateEvaluator
 
     /**
      * @param iterable<ImageEstimateEvaluationRow> $rows
-     * @return array{groups: list<array<string, mixed>>, overall: array<string, mixed>, byK: list<array<string, mixed>>}
+     * @param array<string, list<string>> $openBefore the groups ("<size group>|<image kind>") whose honesty the previous
+     *                                                record's numbers opened, with the estimate generations it measured
+     *                                                there (sorted) - a group stays open by hysteresis for the same ones only
+     * @param null|float $splitAt the out-of-period split moment (epoch seconds); null = the median solve moment
+     * @return array{groups: list<array<string, mixed>>, overall: array<string, mixed>, byK: list<array<string, mixed>>, splitAt: null|float}
      */
-    public static function evaluate(iterable $rows, int $measuredMinIndices = self::MEASURED_MIN_INDICES): array
+    public static function evaluate(iterable $rows, int $measuredMinIndices = self::MEASURED_MIN_INDICES, array $openBefore = [], null|float $splitAt = null): array
     {
         /** @var array<string, RowAccumulator> $groups */
         $groups = [];
+        /** @var array<string, PredictionGroupAccumulator> $groupsV2 */
+        $groupsV2 = [];
         /** @var array<string, RowAccumulator> $byK */
         $byK = [];
         $overall = new RowAccumulator();
-        // Per puzzle, from its latest row: [estimate (log), that row's time, measured log difficulty or null, group, k bucket]
-        /** @var array<string, array{0: float, 1: float, 2: null|float, 3: string, 4: string}> $puzzles */
+        $overallV2 = new PredictionGroupAccumulator();
+        // Per puzzle, from its latest row: [estimate (log), that row's time, measured log difficulty or null, group,
+        // k bucket, measured indices, the estimate interval's p10 and p90 offsets]
+        /** @var array<string, array{0: float, 1: float, 2: null|float, 3: string, 4: string, 5: int, 6: null|float, 7: null|float}> $puzzles */
         $puzzles = [];
 
         foreach ($rows as $row) {
@@ -58,15 +85,36 @@ final class ImageEstimateEvaluator
             ($byK[$kKey] ??= new RowAccumulator())->add($row);
             $overall->add($row);
 
+            $image = new StoredPredictionWindows($row->imageSeconds, $row->imageRange80Low, $row->imageRange50Low, $row->imageRange50High, $row->imageRange80High);
+            // At k = 0 the blend is the picture alone (the same row); from 1 index on, what would be shown with the image prior
+            $candidate = $row->kIndices <= 0
+                ? $image
+                : StoredPredictionWindows::tryOf($row->blendSeconds, $row->blendRange80Low, $row->blendRange50Low, $row->blendRange50High, $row->blendRange80High);
+            $reference = StoredPredictionWindows::tryOf($row->statisticalSeconds, $row->statisticalRange80Low, $row->statisticalRange50Low, $row->statisticalRange50High, $row->statisticalRange80High);
+            $slices = [$row->live ? 'live' : 'reconstructed'];
+
+            if ($row->kIndices <= 0) {
+                $slices[] = 'k0';
+
+                if ($row->measuredIndices >= $measuredMinIndices) {
+                    $slices[] = 'k0Measured';
+                }
+            }
+
+            ($groupsV2[$groupKey] ??= new PredictionGroupAccumulator())->add($row->kIndices, $row->solvedAt, $row->actualSeconds, $image, $candidate, $reference, $slices);
+            $overallV2->add($row->kIndices, $row->solvedAt, $row->actualSeconds, $image, $candidate, $reference, $slices);
+
             $known = $puzzles[$row->puzzleId] ?? null;
 
             if ($known === null || $row->computedAt > $known[1]) {
                 $measured = $row->measuredIndices >= $measuredMinIndices && $row->measuredScore !== null && $row->measuredScore > 0.0
                     ? log($row->measuredScore)
                     : null;
-                $puzzles[$row->puzzleId] = [$row->imageLogDifficulty, $row->computedAt, $measured, $groupKey, $kKey];
+                $puzzles[$row->puzzleId] = [$row->imageLogDifficulty, $row->computedAt, $measured, $groupKey, $kKey, $row->measuredIndices, $row->estimateP10Offset, $row->estimateP90Offset];
             }
         }
+
+        $splitAt ??= OutOfPeriodCalibration::medianMoment($overallV2->calibration->solvedAt());
 
         ksort($groups);
         $groupMetrics = [];
@@ -74,7 +122,11 @@ final class ImageEstimateEvaluator
         foreach ($groups as $key => $accumulator) {
             [$sizeGroup, $imageKind] = explode('|', $key);
             $own = array_filter($puzzles, static fn (array $puzzle): bool => $puzzle[3] === $key);
-            $groupMetrics[] = ['sizeGroup' => $sizeGroup, 'imageKind' => $imageKind] + self::metrics($accumulator, $own);
+            $metrics = ['sizeGroup' => $sizeGroup, 'imageKind' => $imageKind] + self::metrics($accumulator, $own) + $groupsV2[$key]->metrics($splitAt);
+            $generations = array_map('strval', array_keys($accumulator->estimateModels));
+            sort($generations);
+            $metrics['calibration']['previouslyOpen'] = isset($openBefore[$key]) && $openBefore[$key] === $generations;
+            $groupMetrics[] = $metrics;
         }
 
         $kMetrics = [];
@@ -86,7 +138,12 @@ final class ImageEstimateEvaluator
             }
         }
 
-        return ['groups' => $groupMetrics, 'overall' => self::metrics($overall, $puzzles), 'byK' => $kMetrics];
+        return [
+            'groups' => $groupMetrics,
+            'overall' => self::metrics($overall, $puzzles) + $overallV2->metrics($splitAt),
+            'byK' => $kMetrics,
+            'splitAt' => $splitAt,
+        ];
     }
 
     /**
@@ -127,8 +184,8 @@ final class ImageEstimateEvaluator
     }
 
     /**
-     * @param array<string, array{0: float, 1: float, 2: null|float, 3: string, 4: string}> $puzzles the group's own (by their latest row)
-     * @return array<string, null|int|float|array<string, int>>
+     * @param array<string, array{0: float, 1: float, 2: null|float, 3: string, 4: string, 5: int, 6: null|float, 7: null|float}> $puzzles the group's own (by their latest row)
+     * @return array<string, mixed>
      */
     private static function metrics(RowAccumulator $accumulator, array $puzzles): array
     {
@@ -137,12 +194,14 @@ final class ImageEstimateEvaluator
         $exact = 0;
         $withinOne = 0;
         $average = 0;
+        $tiers = new TierScores();
 
-        foreach ($puzzles as [$estimate, , $truth]) {
+        foreach ($puzzles as [$estimate, , $truth, , , $indices, $p10Offset, $p90Offset]) {
             if ($truth === null) {
                 continue;
             }
 
+            $tiers->add($estimate, $truth, $indices, $p10Offset, $p90Offset);
             $estimates[] = $estimate;
             $measured[] = $truth;
             $estimatedTier = DifficultyTier::fromScore(exp($estimate))->value;
@@ -178,7 +237,7 @@ final class ImageEstimateEvaluator
             'blendWindow80Hit' => self::share($accumulator->blendHit80, $accumulator->blendRows),
             'blendWindow80Width' => self::round(self::median($accumulator->blendWidth80)),
             'estimateModels' => $accumulator->estimateModels,
-        ];
+        ] + $tiers->metrics();
     }
 
     private static function kBucket(int $k): string

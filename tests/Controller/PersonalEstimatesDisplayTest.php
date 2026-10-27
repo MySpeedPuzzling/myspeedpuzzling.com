@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
+use SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence\ImageEstimates\GateV2Numbers;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\ImageKind;
 use SpeedPuzzling\Web\Value\PiecesGroup;
@@ -429,21 +430,10 @@ final class PersonalEstimatesDisplayTest extends WebTestCase
     {
         /** @var Connection $connection */
         $connection = $browser->getContainer()->get(Connection::class);
-        $group = [
-            'sizeGroup' => PiecesGroup::FiveHundred->value,
-            'imageKind' => ImageKind::Box->value,
-            'measuredPuzzles' => 120,
-            'spearman' => $passing ? 0.72 : 0.41,
-            'tierWithinOne' => 0.9,
-            'tierExact' => 0.61,
-            'alwaysAverage' => 0.46,
-            'window50Hit' => 0.51,
-            'window80Hit' => 0.79,
-            'estimateModels' => [$generation => 120],
-        ];
+        $group = ['spearman' => $passing ? 0.72 : 0.41] + GateV2Numbers::passing(PiecesGroup::FiveHundred->value, ImageKind::Box->value, $generation);
         $connection->executeStatement(
-            "INSERT INTO image_estimate_evaluation (id, evaluated_at, model_version, newer_than, measured_min_indices, groups, overall, by_k)
-            VALUES (:id, " . TestClock::SQL_NOW . " + (:offset * INTERVAL '1 second'), :version, " . TestClock::SQL_NOW . " - INTERVAL '1 year', 10, CAST(:groups AS jsonb), '{}', '[]')",
+            "INSERT INTO image_estimate_evaluation (id, evaluated_at, model_version, newer_than, measured_min_indices, groups, overall, by_k, gate_version)
+            VALUES (:id, " . TestClock::SQL_NOW . " + (:offset * INTERVAL '1 second'), :version, " . TestClock::SQL_NOW . " - INTERVAL '1 year', 10, CAST(:groups AS jsonb), '{}', '[]', 2)",
             ['id' => Uuid::uuid7()->toString(), 'offset' => $passing ? 1 : 2, 'version' => TimePredictionCalculator::MODEL_VERSION, 'groups' => json_encode([$group], JSON_THROW_ON_ERROR)],
         );
     }

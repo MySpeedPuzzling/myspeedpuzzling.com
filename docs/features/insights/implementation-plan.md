@@ -400,6 +400,12 @@ Goal: every number the page shows, computed and tested, within the performance b
   - calibrated window hit within ±3 points of target.
 
   `ImageEstimateGate::passesFor(sizeGroup, imageKind)` reads the stored record. Picture-only estimates show only where the gate passes, even after the flag is gone.
+- **Gate v2 (2026-10-27, replaces the gates above - [`image-estimate-gates.md`](./image-estimate-gates.md)):** honesty
+  out of period (window scales fitted before each 30-day block, the later hits' Wilson interval within ± 3 points,
+  hysteresis ± 5), skill (k = 0 picture error ≤ 0.90 × the brand prior's with a narrower 80 % window at equal coverage;
+  k = 1-4 blend never measurably worse), ranking (Spearman ≥ 0.6 on ≥ 50 measured). The exact tier is reported against
+  its label-noise ceiling, never gated. The same machinery gates a candidate time model
+  (`myspeedpuzzling:evaluate-prediction-candidate`).
 
 ### 5.5 Tags for Insights
 - Taxonomy registry in the app: keys + 6-locale labels for what Insights shows first - the image-traits group: large single-colour areas, gradients, busy / collage, text, dark, photo vs illustration.

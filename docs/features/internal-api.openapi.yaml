@@ -2385,6 +2385,246 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /internal-api/finished-photos:
+    get:
+      summary: The finished-photo work list - players' photos of the finished puzzle, by fingerprint only
+      operationId: listFinishedPhotos
+      description: |
+        Puzzles with a shown image and at least one finished-puzzle photo of a public player, in
+        puzzle id order: the catalogue picture (what a photo is matched against) and up to
+        `perPuzzle` photos (the oldest results first), each known only by `photoFingerprint` -
+        never a player, a solving time or the stored path. `status` filters the photos; a
+        puzzle with none left is skipped but scanned, so a page may hold fewer puzzles than
+        `limit`, even none - follow `nextCursor` until it is null.
+      parameters:
+        - name: analyzer
+          in: query
+          required: false
+          schema: { type: string, enum: [finished_photo], default: finished_photo }
+        - name: version
+          in: query
+          required: false
+          description: For `stale` - an analysis of another version is to do as well.
+          schema: { type: string, maxLength: 50 }
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [missing, stale, all], default: all }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 1000, default: 200 }
+        - name: perPuzzle
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 20, default: 4 }
+        - name: after
+          in: query
+          required: false
+          description: The `nextCursor` of the previous page.
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: A page of puzzles with photos
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [analyzer, puzzles, nextCursor]
+                properties:
+                  analyzer: { type: string }
+                  puzzles:
+                    type: array
+                    items:
+                      type: object
+                      required: [puzzleId, piecesCount, imageUrl, imageFingerprint, photos]
+                      properties:
+                        puzzleId: { type: string, format: uuid }
+                        piecesCount: { type: integer }
+                        imageUrl: { type: string, description: The catalogue picture (full-size original) }
+                        imageFingerprint: { type: string }
+                        photos:
+                          type: array
+                          items:
+                            type: object
+                            required: [photoFingerprint, photoUrl, analysis]
+                            properties:
+                              photoFingerprint: { type: string }
+                              photoUrl: { type: string, description: "GET it with the same token (the endpoint below)" }
+                              analysis:
+                                type: [object, "null"]
+                                properties:
+                                  analyzerVersion: { type: string }
+                                  photoFingerprint: { type: string }
+                                  imageFingerprint: { type: string }
+                                  analyzedAt: { type: [string, "null"], format: date-time }
+                                  receivedAt: { type: string, format: date-time }
+                  nextCursor:
+                    type: [string, "null"]
+                    format: uuid
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /internal-api/puzzles/{puzzleId}/finished-photos/{photoFingerprint}:
+    get:
+      summary: One finished-puzzle photo - the image proxy's 1200 px JPEG, metadata stripped
+      operationId: getFinishedPhoto
+      description: |
+        Read through the app, so the stored path (it names the player) never leaves it. 404 when
+        the fingerprint is not one of the puzzle's current photos of a public player or the
+        puzzle is hidden; 503 (+ Retry-After) when the image proxy fails.
+      parameters:
+        - name: puzzleId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: photoFingerprint
+          in: path
+          required: true
+          schema: { type: string, pattern: "^[0-9a-f]{16}$" }
+      responses:
+        "200":
+          description: The photo
+          content:
+            image/jpeg:
+              schema: { type: string, format: binary }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          description: The image proxy failed - try again after Retry-After seconds
+
+  /internal-api/finished-photo-analyses:
+    get:
+      summary: The stored finished-photo analyses in bulk
+      operationId: listFinishedPhotoAnalyses
+      description: |
+        Payloads included, in analysis order; puzzles hidden now left out. Each item names the
+        puzzle and the photo's fingerprint, never a player or a solving time; `current` = still
+        one of the puzzle's photos of a public player, matched against its current catalogue
+        picture.
+      parameters:
+        - name: analyzer
+          in: query
+          required: false
+          schema: { type: string, enum: [finished_photo], default: finished_photo }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 1000, default: 500 }
+        - name: after
+          in: query
+          required: false
+          description: The `nextCursor` of the previous page.
+          schema: { type: string, format: uuid }
+        - name: onlyCurrent
+          in: query
+          required: false
+          schema: { type: string, enum: ["0", "1"], default: "0" }
+      responses:
+        "200":
+          description: A page of analyses
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [analyzer, items, nextCursor]
+                properties:
+                  analyzer: { type: string }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [puzzleId, analyzer, analyzerVersion, photoFingerprint, imageFingerprint, analyzedAt, receivedAt, current, result]
+                      properties:
+                        puzzleId: { type: string, format: uuid }
+                        analyzer: { type: string }
+                        analyzerVersion: { type: string }
+                        photoFingerprint: { type: string }
+                        imageFingerprint: { type: string }
+                        analyzedAt: { type: [string, "null"], format: date-time }
+                        receivedAt: { type: string, format: date-time }
+                        current: { type: boolean }
+                        result: { type: object }
+                  nextCursor:
+                    type: [string, "null"]
+                    format: uuid
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      summary: Store up to 200 finished-photo analyses at once
+      operationId: recordFinishedPhotoAnalyses
+      description: |
+        One transaction; a refused item never fails the others - every item gets its outcome,
+        in order. The same photo twice: the later item wins.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  maxItems: 200
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required: [puzzleId, analyzer, analyzerVersion, photoFingerprint, imageFingerprint, result]
+                    properties:
+                      puzzleId: { type: string, format: uuid }
+                      analyzer: { type: string, enum: [finished_photo] }
+                      analyzerVersion: { type: string, maxLength: 50 }
+                      photoFingerprint: { type: string, maxLength: 64 }
+                      imageFingerprint: { type: string, maxLength: 64, description: The catalogue picture the photo was matched against }
+                      analyzedAt: { type: [string, "null"], format: date-time }
+                      result: { type: object, description: "At most 64 KB of JSON (docs/features/insights/finished-photos.md)" }
+      responses:
+        "200":
+          description: Every item's outcome
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [counts, items]
+                properties:
+                  counts:
+                    type: object
+                    required: [stored, stale_fingerprint, not_found, invalid]
+                    additionalProperties:
+                      type: integer
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [index, status]
+                      properties:
+                        index: { type: integer }
+                        puzzleId: { type: string }
+                        photoFingerprint: { type: string }
+                        status:
+                          type: string
+                          enum: [stored, stale_fingerprint, not_found, invalid]
+                        message: { type: string }
+                        currentFingerprint: { type: string }
+                        errors:
+                          type: object
+                          additionalProperties: { type: string }
+        "400":
+          $ref: "#/components/responses/InvalidJson"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/InvalidImageAnalysis"
+
   /internal-api/puzzles/{puzzleId}/tags:
     parameters:
       - $ref: "#/components/parameters/PuzzleImageAnalysisPuzzleId"
@@ -3963,8 +4203,8 @@ components:
 
     ImageAnalyzer:
       type: string
-      enum: [artwork, colors, traits, ocr, barcode, vision_labels, embed_siglip2, embed_siglip2_full, embed_dinov2, embed_dinov2_patches, segmentation, describe, piece_scale, box_text, zeroshot, neighbours, tags, crop_trust]
-      description: What an image analysis is about (ImageAnalyzer - one new case per new kind of analysis; payload schemas in docs/features/insights/image-taxonomy.md section 11).
+      enum: [artwork, colors, traits, ocr, barcode, vision_labels, embed_siglip2, embed_siglip2_full, embed_dinov2, embed_dinov2_patches, segmentation, describe, piece_scale, box_text, zeroshot, neighbours, tags, crop_trust, finished_photo]
+      description: What an image analysis is about (ImageAnalyzer - one new case per new kind of analysis; payload schemas in docs/features/insights/image-taxonomy.md section 11). `finished_photo` analyses players' finished-puzzle photos (/internal-api/finished-photo*), every other one the catalogue picture - the catalogue endpoints refuse it.
 
     PuzzleImageAnalysisBody:
       type: object

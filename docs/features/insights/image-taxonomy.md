@@ -537,6 +537,29 @@ image-model §4.1): `nnHistogram`, `pileShares16`, `uniformShare` (cells of one 
 largest 4-connected area of uniform cells of one colour pile, share of all cells). ~2.7 KB; 0.56 CPU-s an image
 (2.3 piece counts an image) on one core. Not used by any estimate yet - `difficulty_prior` takes it in a later version.
 
+`finished_photo` (added 2026-10-27, `finished_photo.py` + `finished_photo_stage.py`, design and measurements in
+[`finished-photos.md`](./finished-photos.md)): **not about the catalogue picture** - one analysis per player's photo of
+the finished puzzle, stored in `finished_photo_analysis` through `/internal-api/finished-photo*` (internal-api.md
+"Finished-puzzle photos"), never in `puzzle_image_analysis`. The envelope as above (`sourceSha256` = of the 1200 px
+rendition the API handed over, `crop` null), then:
+```json
+{"photo":{"width":1200,"height":900},"pieces":1000,
+ "locate":{"method":"register","inliers":412,"matches":980,"aspectError":null,"reason":null,
+           "quad":[[0.12,0.08],[0.91,0.10],[0.89,0.93],[0.10,0.90]]},
+ "rectified":{"width":1032,"height":742,"visibleShare":1.0,"areaShare":0.71,"pixelsPerPiece":27.7},
+ "quality":{"sharpness":3.1,"printCorrelation":0.91},
+ "glare":{"share":0.004,"vsArtwork":0.003},
+ "seams":{"cols":37,"rows":27,"gridX":2.4,"gridY":1.9,"peakCols":37,"peakRows":27,"artworkGridX":0.6,"artworkGridY":0.8},
+ "pieceScale":{the piece_scale block for the real piece count, on the straightened photo crop},
+ "embeddings":{"siglip2":{embed_siglip2's payload of the crop},"dinov2":{embed_dinov2's payload of the crop}}}
+```
+`locate.method` `register` (SIFT homography of the catalogue crop into the photo - the quad is the artwork's outline in
+the photo, in the artwork's orientation), `quad` (an edge quadrilateral of the artwork's aspect - no identity check) or
+`none` (+ `reason`; nothing else measured, no embeddings). `seams`, `pieceScale` only when the whole puzzle is in the
+frame (`visibleShare` ≥ 0.97, else null); `artworkGrid*` and `printCorrelation` / `glare.vsArtwork` only for registered
+photos. `gridX` / `gridY` = ln(power at the piece frequency ÷ the median power around it) of the seam map projected on
+each axis - a grid cut lines its seams up, a random cut does not. ~9 KB.
+
 ### 11.2 Derived analyzers
 
 `box_text` (from `ocr` + `barcode`, rules, versioned): `{"pieces":[{"v":1000,"evidence":"1000 Teile"}],

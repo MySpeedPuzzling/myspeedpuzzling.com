@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Value;
 
 use DateTimeImmutable;
-use DateTimeZone;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleImageAnalysis;
 
@@ -36,8 +35,6 @@ final readonly class PuzzleImageAnalysisInput
     // Rounding of a float computed by a model (x + w = 1.0000000002) is not a box outside the image
     private const float TOLERANCE = 0.000001;
 
-    private const string DATE_TIME_PATTERN = '/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?$/';
-
     /**
      * @param array<string, mixed> $result
      */
@@ -61,11 +58,11 @@ final readonly class PuzzleImageAnalysisInput
      */
     public static function fromBody(string $puzzleId, string $analyzer, array $body): self
     {
-        $errors = self::unknownFields($body, self::BODY_FIELDS);
-        $analyzerCase = ImageAnalyzer::tryFrom($analyzer);
+        $errors = AnalysisPayloadFields::unknownFields($body, self::BODY_FIELDS);
+        $analyzerCase = ImageAnalyzer::catalogue($analyzer);
 
         if ($analyzerCase === null) {
-            $errors['analyzer'] = sprintf('must be one of: %s.', implode(', ', ImageAnalyzer::values()));
+            $errors['analyzer'] = sprintf('must be one of: %s.', implode(', ', ImageAnalyzer::catalogueValues()));
         }
 
         return self::build(strtolower($puzzleId), $analyzerCase, $body, $errors);
@@ -83,7 +80,7 @@ final readonly class PuzzleImageAnalysisInput
         }
 
         /** @var array<string, mixed> $item */
-        $errors = self::unknownFields($item, self::ITEM_FIELDS);
+        $errors = AnalysisPayloadFields::unknownFields($item, self::ITEM_FIELDS);
 
         $puzzleId = $item['puzzleId'] ?? null;
 
@@ -93,10 +90,10 @@ final readonly class PuzzleImageAnalysisInput
         }
 
         $analyzer = $item['analyzer'] ?? null;
-        $analyzerCase = is_string($analyzer) ? ImageAnalyzer::tryFrom($analyzer) : null;
+        $analyzerCase = is_string($analyzer) ? ImageAnalyzer::catalogue($analyzer) : null;
 
         if ($analyzerCase === null) {
-            $errors['analyzer'] = sprintf('must be one of: %s.', implode(', ', ImageAnalyzer::values()));
+            $errors['analyzer'] = sprintf('must be one of: %s.', implode(', ', ImageAnalyzer::catalogueValues()));
         }
 
         return self::build(strtolower($puzzleId), $analyzerCase, $item, $errors);
@@ -110,10 +107,10 @@ final readonly class PuzzleImageAnalysisInput
      */
     private static function build(string $puzzleId, null|ImageAnalyzer $analyzer, array $fields, array $errors): self
     {
-        $version = self::requiredString($fields, 'analyzerVersion', self::MAX_VERSION_LENGTH, $errors);
-        $fingerprint = self::requiredString($fields, 'imageFingerprint', self::MAX_FINGERPRINT_LENGTH, $errors);
-        $analyzedAt = self::analyzedAt($fields['analyzedAt'] ?? null, $errors);
-        $result = self::result($fields['result'] ?? null, $analyzer?->maxResultBytes() ?? ImageAnalyzer::DEFAULT_MAX_RESULT_BYTES, $errors);
+        $version = AnalysisPayloadFields::requiredString($fields, 'analyzerVersion', self::MAX_VERSION_LENGTH, $errors);
+        $fingerprint = AnalysisPayloadFields::requiredString($fields, 'imageFingerprint', self::MAX_FINGERPRINT_LENGTH, $errors);
+        $analyzedAt = AnalysisPayloadFields::analyzedAt($fields['analyzedAt'] ?? null, $errors);
+        $result = AnalysisPayloadFields::result($fields['result'] ?? null, $analyzer?->maxResultBytes() ?? ImageAnalyzer::DEFAULT_MAX_RESULT_BYTES, $errors);
 
         if ($analyzer === ImageAnalyzer::Artwork && $result !== null) {
             self::checkArtwork($result, $errors);
@@ -124,152 +121,6 @@ final readonly class PuzzleImageAnalysisInput
         }
 
         return new self($puzzleId, $analyzer, $version, $fingerprint, $analyzedAt, $result);
-    }
-
-    /**
-     * @param array<string, mixed> $fields
-     * @param list<string> $known
-     *
-     * @return array<string, string>
-     */
-    private static function unknownFields(array $fields, array $known): array
-    {
-        $errors = [];
-
-        foreach (array_keys($fields) as $field) {
-            if (in_array($field, $known, true) === false) {
-                $errors[(string) $field] = sprintf('is not a field of this endpoint (known: %s).', implode(', ', $known));
-            }
-        }
-
-        return $errors;
-    }
-
-    /**
-     * @param array<string, mixed> $fields
-     * @param array<string, string> $errors
-     */
-    private static function requiredString(array $fields, string $field, int $maxLength, array &$errors): null|string
-    {
-        $value = $fields[$field] ?? null;
-        $value = is_string($value) ? trim($value) : null;
-
-        if ($value === null || $value === '') {
-            $errors[$field] = 'is required - a non-empty string.';
-
-            return null;
-        }
-
-        if (mb_strlen($value) > $maxLength) {
-            $errors[$field] = sprintf('can be at most %d characters long.', $maxLength);
-
-            return null;
-        }
-
-        // Postgres text refuses NUL - found only at the flush, it would fail the whole batch with a 500
-        if (str_contains($value, "\0")) {
-            $errors[$field] = 'must not contain NUL characters.';
-
-            return null;
-        }
-
-        return $value;
-    }
-
-    /**
-     * @param array<string, string> $errors
-     */
-    private static function analyzedAt(mixed $value, array &$errors): null|DateTimeImmutable
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        if (is_string($value) === false || preg_match(self::DATE_TIME_PATTERN, $value) !== 1) {
-            $errors['analyzedAt'] = 'must be an ISO 8601 date-time, e.g. "2026-10-18T06:30:00Z", or null.';
-
-            return null;
-        }
-
-        try {
-            $moment = new DateTimeImmutable($value, new DateTimeZone('UTC'));
-        } catch (\Exception) {
-            $errors['analyzedAt'] = 'is not a real date-time.';
-
-            return null;
-        }
-
-        // A day that does not exist (2026-02-30) rolls over silently - parsed in its own offset, the day must stay
-        if ($moment->format('Y-m-d') !== substr($value, 0, 10)) {
-            $errors['analyzedAt'] = 'is not a real date-time.';
-
-            return null;
-        }
-
-        return $moment->setTimezone(new DateTimeZone('UTC'));
-    }
-
-    /**
-     * @param array<string, string> $errors
-     *
-     * @return null|array<string, mixed>
-     */
-    private static function result(mixed $value, int $maxBytes, array &$errors): null|array
-    {
-        // A JSON object decodes to an array with string keys; [] would be stored as a JSON list
-        if (is_array($value) === false || $value === [] || array_is_list($value)) {
-            $errors['result'] = 'is required - a JSON object with at least one field.';
-
-            return null;
-        }
-
-        // Postgres jsonb refuses \u0000 - found only at the flush, it would fail the whole batch with a 500
-        if (self::containsNul($value)) {
-            $errors['result'] = 'must not contain NUL characters.';
-
-            return null;
-        }
-
-        $encoded = json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION);
-
-        if ($encoded === false) {
-            $errors['result'] = 'cannot be stored as JSON.';
-
-            return null;
-        }
-
-        if (strlen($encoded) > $maxBytes) {
-            $errors['result'] = sprintf('can be at most %d bytes of JSON (it is %d).', $maxBytes, strlen($encoded));
-
-            return null;
-        }
-
-        /** @var array<string, mixed> $value */
-        return $value;
-    }
-
-    /**
-     * A NUL character in any key or string value, at any depth.
-     *
-     * @param array<mixed> $values
-     */
-    private static function containsNul(array $values): bool
-    {
-        foreach ($values as $key => $value) {
-            if (is_string($key) && str_contains($key, "\0")) {
-                return true;
-            }
-
-            if (is_string($value) && str_contains($value, "\0")) {
-                return true;
-            }
-
-            if (is_array($value) && self::containsNul($value)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**

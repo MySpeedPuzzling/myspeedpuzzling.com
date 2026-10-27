@@ -483,6 +483,60 @@ curl -s -X POST -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type:
 #    "items": [{"index": 0, "puzzleId": "…", "analyzer": "tags", "status": "stored"}]}
 ```
 
+### Finished-puzzle photos
+
+The same pipeline's `finished_photo` analyzer works on **players' photos of the finished puzzle** (the photo of a
+solving time): it finds the assembled puzzle in the photo, straightens it and measures it - a second view of the
+puzzle's picture for the picture-based difficulty estimate ([`insights/finished-photos.md`](./insights/finished-photos.md)).
+**A photo is known only by its puzzle and `photoFingerprint`** (the first 16 hex characters of md5 of its stored path,
+like `imageFingerprint` of a catalogue picture): no endpoint ever answers a player, a solving time or the stored path
+(it names the player). **A private player's photo never leaves the app**, a hidden puzzle's (hide_until /
+hide_image_until) neither. Nothing here is shown anywhere. Storage: `finished_photo_analysis`, one row per photo and
+analyzer (keyed internally to the solving time - cascade on its deletion), `photoFingerprint` + the catalogue
+`imageFingerprint` the photo was matched against; a new catalogue picture or another photo makes the row stale. The
+daily `myspeedpuzzling:prune-finished-photo-analyses` deletes rows of photos that were removed, replaced or whose player
+went private. The catalogue endpoints above refuse `finished_photo` (`ImageAnalyzer::catalogue()`).
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/internal-api/finished-photos` | The work list: puzzles with photos of public players, a page at a time |
+| `GET` | `/internal-api/puzzles/{puzzleId}/finished-photos/{photoFingerprint}` | One photo: the image proxy's 1200 px JPEG (metadata stripped) |
+| `POST` | `/internal-api/finished-photo-analyses` | Store up to 200 analyses → `200` with an outcome per item |
+| `GET` | `/internal-api/finished-photo-analyses` | The stored analyses in bulk, payloads included |
+
+- **Work list** `?analyzer=finished_photo&version=&status=missing|stale|all&limit=1..1000&perPuzzle=1..20&after=`
+  (defaults: `finished_photo`, `all`, 200, 4): puzzles in id order (keyset `after`), each with `piecesCount`, its
+  catalogue `imageUrl` + `imageFingerprint` (the photo is found by matching that picture) and up to `perPuzzle` photos
+  - the oldest results first, so the choice is stable - each with `photoFingerprint`, `photoUrl` (the endpoint below)
+  and what is stored for it (`analysis`, null = nothing). `status` filters the photos: `missing` = no analysis, `stale`
+  = none, or one of another photo, another catalogue picture or (with `version`) another version. A puzzle without a
+  photo left is skipped but scanned, so **a page may hold fewer puzzles than `limit`, even none - follow `nextCursor`
+  until it is null**. Two statements a page; an unknown parameter is a 400.
+- **One photo**: the image proxy's `puzzle_large` rendition (≤ 1200 px JPEG, EXIF orientation applied, all metadata -
+  GPS included - stripped; `FinishedPhotoRendition`), streamed through the app so the stored path never leaves it,
+  `Cache-Control: private, no-store`. `404` when the fingerprint is not one of the puzzle's current photos of a public
+  player or the puzzle is hidden; `503` + `Retry-After` when the proxy fails (try again later). The pipeline sends the
+  token only to this API's own host.
+- **Store** body `{"items": [{puzzleId, analyzer: "finished_photo", analyzerVersion, photoFingerprint,
+  imageFingerprint, analyzedAt?, result}]}`, one transaction, serialized (`RecordFinishedPhotoAnalyses`); outcome per
+  item like the image analyses: `stored`, `stale_fingerprint` (the catalogue picture changed - `currentFingerprint` - or
+  the photo is no longer one of the puzzle's), `not_found` (unknown puzzle, hidden image), `invalid` (with `errors`; the
+  `result` within 64 KB). The same photo twice in a batch: the later item wins.
+- **Bulk read** `?analyzer=finished_photo&limit=1..1000&after=&onlyCurrent=1`: `{puzzleId, analyzer, analyzerVersion,
+  photoFingerprint, imageFingerprint, analyzedAt, receivedAt, current, result}` in analysis order (keyset `after` = the
+  previous `nextCursor`); `current` = still one of the puzzle's photos of a public player, matched against its current
+  catalogue picture. Hidden puzzles left out.
+
+```sh
+# What is still to do for finished_photo 1.0.0, 200 puzzles at a time
+curl -s -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
+  'https://myspeedpuzzling.com/internal-api/finished-photos?status=stale&version=1.0.0%2Bsift-siglip2-dinov2'
+# → {"analyzer": "finished_photo", "puzzles": [{"puzzleId": "018d…", "piecesCount": 1000,
+#     "imageUrl": "https://img.myspeedpuzzling.com/original/….jpg", "imageFingerprint": "3f2a9c0d4b1e7a65",
+#     "photos": [{"photoFingerprint": "9c1d…", "photoUrl": "https://myspeedpuzzling.com/internal-api/puzzles/018d…/finished-photos/9c1d…",
+#                 "analysis": null}]}], "nextCursor": "018d…"}
+```
+
 ### Puzzle tags
 
 The tags of a puzzle's picture (`puzzle_tag`, [`insights/tags.md`](./insights/tags.md)) are derived by the app from the

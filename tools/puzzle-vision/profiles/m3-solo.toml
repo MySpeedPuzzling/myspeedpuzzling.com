@@ -153,3 +153,11 @@ start_hour = 1
 start_minute = 30
 hours = 6
 mode = "daily"
+
+[finished_photo]
+# `puzzle-vision finished-photos` (finished_photo_stage.py, docs/features/insights/finished-photos.md): players' photos of
+# the finished puzzle - SIFT/quad + measures on `workers` CPU processes, SigLIP 2 + DINOv2 of the straightened crop on
+# the GPU. Not a phase: run by hand (or after describe) - the same version on every profile that has the section.
+version = "1.0.0+sift-siglip2-dinov2"
+per_puzzle = 4
+workers = 3

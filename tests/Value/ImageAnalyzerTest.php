@@ -34,6 +34,7 @@ final class ImageAnalyzerTest extends TestCase
             'neighbours',
             'tags',
             'crop_trust',
+            'finished_photo',
         ], ImageAnalyzer::values());
     }
 
@@ -50,5 +51,16 @@ final class ImageAnalyzerTest extends TestCase
             // The largest expected payload (ocr, 400 lines) is ~16 KB, an embedding ~3 KB per vector
             self::assertGreaterThanOrEqual(32768, $analyzer->maxResultBytes());
         }
+    }
+
+    public function testTheFinishedPhotoAnalyzerIsNoCataloguePictureAnalyzer(): void
+    {
+        // finished_photo_analysis holds it; puzzle_image_analysis (the catalogue endpoints) must never take it
+        self::assertNull(ImageAnalyzer::catalogue('finished_photo'));
+        self::assertNull(ImageAnalyzer::catalogue('nonsense'));
+        self::assertSame(ImageAnalyzer::Artwork, ImageAnalyzer::catalogue('artwork'));
+        self::assertSame(['finished_photo'], ImageAnalyzer::finishedPhotoValues());
+        self::assertNotContains('finished_photo', ImageAnalyzer::catalogueValues());
+        self::assertSame(ImageAnalyzer::values(), [...ImageAnalyzer::catalogueValues(), ...ImageAnalyzer::finishedPhotoValues()]);
     }
 }

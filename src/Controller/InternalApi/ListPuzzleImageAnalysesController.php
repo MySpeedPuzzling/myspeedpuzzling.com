@@ -46,10 +46,10 @@ final class ListPuzzleImageAnalysesController extends AbstractController
         }
 
         $analyzerValue = is_string($query['analyzer'] ?? null) ? $query['analyzer'] : null;
-        $analyzer = $analyzerValue !== null ? ImageAnalyzer::tryFrom($analyzerValue) : null;
+        $analyzer = $analyzerValue !== null ? ImageAnalyzer::catalogue($analyzerValue) : null;
 
         if ($analyzer === null) {
-            $errors['analyzer'] = sprintf('is required - one of: %s.', implode(', ', ImageAnalyzer::values()));
+            $errors['analyzer'] = sprintf('is required - one of: %s.', implode(', ', ImageAnalyzer::catalogueValues()));
         }
 
         $limit = GetPuzzleImageAnalyses::DEFAULT_PAGE_LIMIT;

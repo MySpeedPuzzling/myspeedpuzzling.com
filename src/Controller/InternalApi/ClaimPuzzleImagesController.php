@@ -47,10 +47,10 @@ final class ClaimPuzzleImagesController extends AbstractController
     {
         $input = InternalApiInput::fromRequest($request, ['analyzer', 'version', 'worker', 'limit', 'leaseSeconds', 'requires']);
         $analyzerValue = $input->string('analyzer', required: true);
-        $analyzer = $analyzerValue !== null ? ImageAnalyzer::tryFrom($analyzerValue) : null;
+        $analyzer = $analyzerValue !== null ? ImageAnalyzer::catalogue($analyzerValue) : null;
 
         if ($analyzerValue !== null && $analyzer === null) {
-            $input->addError('analyzer', sprintf('must be one of: %s.', implode(', ', ImageAnalyzer::values())));
+            $input->addError('analyzer', sprintf('must be one of: %s.', implode(', ', ImageAnalyzer::catalogueValues())));
         }
 
         $version = $input->string('version', required: true, maxLength: PuzzleImageAnalysisInput::MAX_VERSION_LENGTH);

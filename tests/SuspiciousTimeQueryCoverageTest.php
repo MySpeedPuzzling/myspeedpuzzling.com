@@ -19,6 +19,7 @@ final class SuspiciousTimeQueryCoverageTest extends TestCase
     private const string WRITE = 'Write side or integrity - moves, deletes, links or keeps track of every result, suspicious or not.';
     private const string ADMIN = 'Admin / moderation tooling - sees every result.';
     private const string BACKGROUND = 'Background job or sitemap - shows no figure.';
+    private const string FINISHED_PHOTOS = 'The image pipeline\'s players\' photos of the finished puzzle - a photo of the assembled puzzle is one whatever its time; no figure (docs/features/insights/finished-photos.md).';
     private const string DUPLICATES = 'Finds a result saved twice - a suspicious copy is still a copy (docs/features/duplicate-results.md).';
 
     /** Files reading puzzle_solving_time without a word about suspicious results */
@@ -43,6 +44,8 @@ final class SuspiciousTimeQueryCoverageTest extends TestCase
         'Query/GetCoPuzzlers.php' => self::OWN,
         'Query/GetDuplicateCandidates.php' => self::DUPLICATES,
         'Query/GetDuplicatePuzzleSignalCandidates.php' => self::DUPLICATES,
+        'Query/GetFinishedPhotoAnalyses.php' => self::FINISHED_PHOTOS,
+        'Query/GetFinishedPhotosForAnalysis.php' => self::FINISHED_PHOTOS,
         'Query/GetFirstTryTimes.php' => 'One first try per person per puzzle - a suspicious first try is still the first try.',
         'Query/GetGettingStartedProgress.php' => self::OWN,
         'Query/GetGroupPuzzleFirstAttempts.php' => 'Which puzzles have a pair/team result - the first attempts it reads are PlayerBaselineCalculator\'s qualifying ones, which leave suspicious results out.',
@@ -69,6 +72,7 @@ final class SuspiciousTimeQueryCoverageTest extends TestCase
         'Query/GetUserSolvedPuzzles.php' => self::OWN,
         'Query/IsPuzzleInUse.php' => self::WRITE,
         'Query/SearchPuzzle.php' => self::OWN,
+        'Repository/FinishedPhotoAnalysisRepository.php' => self::WRITE,
         'Repository/PuzzlingTeamRepository.php' => self::WRITE,
         'Services/Drafts/UnpublishBlockers.php' => 'Whether an event can go back to draft - a suspicious time linked to it is still a linked time (docs/features/organizations/README.md "Drafts").',
         'Services/ParticipantImport/SiteSnapshotReader.php' => self::WRITE,

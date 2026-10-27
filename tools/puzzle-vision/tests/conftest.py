@@ -63,6 +63,9 @@ class FakeServer:
         self.labels: dict[str, dict[str, Any]] = {}
         self.estimates: dict[str, dict[str, Any]] = {}
         self.models: list[dict[str, Any]] = []
+        # players' finished photos (ListFinishedPhotosController & co.): puzzleId -> [{fingerprint, bytes}], stored analyses
+        self.finished_photos: dict[str, list[dict[str, Any]]] = {}
+        self.finished_analyses: dict[tuple[str, str], dict[str, Any]] = {}
         for i in range(n):
             self.add_puzzle(i)
 
@@ -151,6 +154,19 @@ class FakeServer:
         if path.startswith("/internal-api/puzzle-change-requests/") and request.method == "POST":
             _, _, _, cid, action = path.split("/")
             return self.decide(cid, action, body)
+        if path == "/internal-api/finished-photos" and request.method == "GET":
+            return self.list_finished_photos(q)
+        if path.startswith("/internal-api/puzzles/") and "/finished-photos/" in path and request.method == "GET":
+            parts = path.split("/")
+            for photo in self.finished_photos.get(parts[3], []):
+                if photo["fingerprint"] == parts[5]:
+                    return httpx.Response(200, content=photo["bytes"], headers={"Content-Type": "image/jpeg"})
+            return httpx.Response(404, json={"error": "No such finished photo of this puzzle."})
+        if path == "/internal-api/finished-photo-analyses" and request.method == "POST":
+            return self.store_finished(body)
+        if path == "/internal-api/finished-photo-analyses" and request.method == "GET":
+            rows = [dict(r, result=php(r["result"])) for _, r in sorted(self.finished_analyses.items())]
+            return httpx.Response(200, json={"analyzer": "finished_photo", "items": rows, "nextCursor": None})
         if self.phase5 and path == "/internal-api/puzzle-difficulty-labels" and request.method == "GET":
             return self.list_labels(q)
         if self.phase5 and path == "/internal-api/puzzle-difficulty-estimates" and request.method == "PUT":
@@ -256,6 +272,49 @@ class FakeServer:
             rows = [r for r in rows if r["current"]]
         page = rows[:limit]
         return httpx.Response(200, json={"analyzer": a, "items": page, "nextCursor": page[-1]["puzzleId"] if len(rows) > limit else None})
+
+    # finished photos (docs/features/internal-api.md "Finished-puzzle photos") -----------------------------------------
+    def add_finished_photo(self, p: str, fingerprint: str, data: bytes) -> None:
+        self.finished_photos.setdefault(p, []).append({"fingerprint": fingerprint, "bytes": data})
+
+    def list_finished_photos(self, q: dict[str, str]) -> httpx.Response:
+        status, version, per = q.get("status", "all"), q.get("version"), int(q.get("perPuzzle", 4))
+        out = []
+        for p in sorted(self.finished_photos):
+            if p in self.hidden or p not in self.puzzles:
+                continue
+            photos = []
+            for ph in self.finished_photos[p][:per]:
+                a = self.finished_analyses.get((p, ph["fingerprint"]))
+                todo = a is None or (status == "stale" and (a["imageFingerprint"] != self.puzzles[p]["imageFingerprint"]
+                                                             or (version and a["analyzerVersion"] != version)))
+                if status == "all" or todo:
+                    photos.append({"photoFingerprint": ph["fingerprint"], "photoUrl": f"{BASE}/internal-api/puzzles/{p}/finished-photos/{ph['fingerprint']}",
+                                   "analysis": a and {k: a[k] for k in ("analyzerVersion", "photoFingerprint", "imageFingerprint")}})
+            if photos:
+                out.append({"puzzleId": p, "piecesCount": self.puzzles[p]["piecesCount"], "imageUrl": self.puzzles[p]["imageUrl"],
+                            "imageFingerprint": self.puzzles[p]["imageFingerprint"], "photos": photos})
+        return httpx.Response(200, json={"analyzer": "finished_photo", "puzzles": out, "nextCursor": None})
+
+    def store_finished(self, b: dict[str, Any]) -> httpx.Response:
+        out = []
+        counts = {"stored": 0, "stale_fingerprint": 0, "not_found": 0, "invalid": 0}
+        for i, it in enumerate(b.get("items") or []):
+            p, fp = it["puzzleId"], it["photoFingerprint"]
+            if p not in self.puzzles:
+                r: dict[str, Any] = {"status": "not_found"}
+            elif it["imageFingerprint"] != self.puzzles[p]["imageFingerprint"] or fp not in [x["fingerprint"] for x in self.finished_photos.get(p, [])]:
+                r = {"status": "stale_fingerprint", "currentFingerprint": self.puzzles[p]["imageFingerprint"]}
+            elif it.get("analyzer") != "finished_photo" or len(json.dumps(it["result"], separators=(",", ":")).encode()) > 65536:
+                r = {"status": "invalid", "errors": {"result": "bad"}}
+            else:
+                self.finished_analyses[(p, fp)] = {"puzzleId": p, "photoFingerprint": fp, "imageFingerprint": it["imageFingerprint"],
+                                                   "analyzer": "finished_photo", "analyzerVersion": it["analyzerVersion"],
+                                                   "current": True, "result": it["result"]}
+                r = {"status": "stored"}
+            counts[r["status"]] += 1
+            out.append({"index": i, "puzzleId": p, "photoFingerprint": fp, **r})
+        return httpx.Response(200, json={"counts": counts, "items": out})
 
     def propose(self, b: dict[str, Any]) -> httpx.Response:
         """SubmitPuzzleChangeRequestController + ImagePipelineProposalRules (docs/features/internal-api.md)."""

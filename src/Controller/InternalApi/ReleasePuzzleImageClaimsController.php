@@ -40,10 +40,10 @@ final class ReleasePuzzleImageClaimsController extends AbstractController
         }
 
         $analyzerValue = $input->string('analyzer');
-        $analyzer = $analyzerValue !== null ? ImageAnalyzer::tryFrom($analyzerValue) : null;
+        $analyzer = $analyzerValue !== null ? ImageAnalyzer::catalogue($analyzerValue) : null;
 
         if ($analyzerValue !== null && $analyzer === null) {
-            $input->addError('analyzer', sprintf('must be one of: %s.', implode(', ', ImageAnalyzer::values())));
+            $input->addError('analyzer', sprintf('must be one of: %s.', implode(', ', ImageAnalyzer::catalogueValues())));
         }
 
         $puzzleIds = $input->idList('puzzleIds');

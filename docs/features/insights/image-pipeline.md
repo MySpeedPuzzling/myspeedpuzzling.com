@@ -332,6 +332,16 @@ outlines, scores 0.97 - AUC 0.65 for "crop within 5 %"), and `needsBetterImage` 
   same coefficients to two decimals); its probe was drawn excluding every labelled picture, so per-crop values differ a
   little from the review's (correlation 0.97 over the catalogue).
 
+### `finished_photo` - players' photos of the finished puzzle (since 2026-10-27)
+
+`uv run --extra ml puzzle-vision finished-photos --profile m3-solo [--limit N] [--dry-run]` - not a derived analyzer
+and not a phase: it analyses **players' photos** of the assembled puzzle (found by registering the catalogue artwork
+in the photo, straightened, measured, embedded with SigLIP 2 + DINOv2) through its own endpoints
+(`/internal-api/finished-photo*`, storage `finished_photo_analysis`). The photos come through the internal API by
+fingerprint only - never a player, never a path - and a private player's photo never leaves the app. Design, privacy
+rules, measurements: [`finished-photos.md`](./finished-photos.md). Needs the GPU (model lock) for the embeddings: run it
+when `describe` is done or paused.
+
 ### `difficulty_prior` - picture-based difficulty estimates (plan §5.3)
 
 Not an image analyzer: it trains ridge and (since 1.2.0) kernel ridge regressions (scikit-learn / SciPy, CPU only;

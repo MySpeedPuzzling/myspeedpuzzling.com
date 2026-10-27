@@ -52,10 +52,10 @@ final class ListPuzzleImagesController extends AbstractController
         }
 
         $analyzerValue = self::parameter($request, 'analyzer');
-        $analyzer = $analyzerValue !== null ? ImageAnalyzer::tryFrom($analyzerValue) : null;
+        $analyzer = $analyzerValue !== null ? ImageAnalyzer::catalogue($analyzerValue) : null;
 
         if ($analyzerValue !== null && $analyzer === null) {
-            $errors['analyzer'] = sprintf('must be one of: %s.', implode(', ', ImageAnalyzer::values()));
+            $errors['analyzer'] = sprintf('must be one of: %s.', implode(', ', ImageAnalyzer::catalogueValues()));
         }
 
         $statusValue = self::parameter($request, 'status') ?? PuzzleImageAnalysisStatus::All->value;

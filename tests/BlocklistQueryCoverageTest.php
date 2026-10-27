@@ -37,6 +37,8 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetApiUsageCallers' => self::ADMIN,
         'GetBorrowedPuzzles' => self::BILATERAL,
         'GetCollectionDisplayMode' => self::OWN_DATA,
+        'GetFinishedPhotoAnalyses' => 'The image pipeline\'s read of finished-photo analyses (internal API, no viewer) - joins the player only to leave private players\' photos out; returns no player identity.',
+        'GetFinishedPhotosForAnalysis' => 'The image pipeline\'s finished-photo work list (internal API, no viewer) - joins the player only to leave private players\' photos out; returns no player identity.',
         'GetCoPuzzlerChips' => 'Renders the co-puzzlers of a form the viewer is filling in: codes they typed themselves, or the members of a time they may edit.',
         'GetCompetitionEvents' => 'The organiser\'s name is part of a public event, not a player listing.',
         'GetCompetitionNameTags' => self::ORGANISER,

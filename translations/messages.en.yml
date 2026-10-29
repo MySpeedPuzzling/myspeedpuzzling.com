@@ -2413,6 +2413,13 @@ badges:
         explain_share: "The % counts everyone who has logged at least one puzzle."
         explain_step_back: "A tier can step back when a time is removed or waits for verification, and returns with it."
         explain_lapsed: "Your achievements are kept and come back with membership."
+    drop:
+        new: "New"
+        new_label: "added recently"
+        title: "{1}1 new achievement|[0,Inf[%count% new achievements"
+        held: "{0}You hold none of them yet - see what each one takes.|{1}You already hold 1 of them, from your past results.|[0,Inf[You already hold %count% of them, from your past results."
+        see_all: "See all achievements"
+        members_only: "Members collect achievements and find out which ones they already hold."
     reveals:
         meta_title: "Reveal your achievements"
         title: "Your achievements are here 🎉"

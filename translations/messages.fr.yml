@@ -1938,6 +1938,13 @@ competition_referees:
     "explain_share": "Le pourcentage compte tous ceux qui ont enregistré au moins un puzzle."
     "explain_step_back": "Un palier peut reculer quand un temps est supprimé ou en attente de vérification, et revient avec lui."
     "explain_lapsed": "Vos succès sont conservés et reviennent avec l'adhésion."
+  "drop":
+    "new": "Nouveau"
+    "new_label": "ajouté récemment"
+    "title": "{1}1 nouveau succès|[0,Inf[%count% nouveaux succès"
+    "held": "{0}Vous n’en avez encore aucun - découvrez ce que chacun demande.|{1}Vous en avez déjà 1, grâce à vos résultats passés.|[0,Inf[Vous en avez déjà %count%, grâce à vos résultats passés."
+    "see_all": "Voir tous les succès"
+    "members_only": "Les membres collectionnent les succès et découvrent ceux qu’ils ont déjà."
   "reveals":
     "meta_title": "Révélez vos succès"
     "title": "Vos succès sont là 🎉"

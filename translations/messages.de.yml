@@ -1852,6 +1852,13 @@ badges:
         explain_share: "Der Anteil zählt alle, die mindestens ein Puzzle eingetragen haben."
         explain_step_back: "Eine Stufe kann zurückgehen, wenn eine Zeit entfernt wird oder auf Überprüfung wartet, und kommt mit ihr zurück."
         explain_lapsed: "Deine Erfolge bleiben erhalten und kommen mit der Mitgliedschaft zurück."
+    drop:
+        new: "Neu"
+        new_label: "kürzlich hinzugefügt"
+        title: "{1}1 neuer Erfolg|[0,Inf[%count% neue Erfolge"
+        held: "{0}Du hast noch keinen davon - sieh dir an, was jeder verlangt.|{1}Einen davon hast du schon, aus deinen bisherigen Ergebnissen.|[0,Inf[%count% davon hast du schon, aus deinen bisherigen Ergebnissen."
+        see_all: "Alle Erfolge ansehen"
+        members_only: "Mitglieder sammeln Erfolge und sehen, welche sie schon haben."
     reveals:
         meta_title: "Deck deine Erfolge auf"
         title: "Deine Erfolge sind da 🎉"

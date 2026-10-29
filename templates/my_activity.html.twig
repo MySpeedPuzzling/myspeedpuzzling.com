@@ -144,6 +144,31 @@
             </section>
         {% endif %}
 
+        {# The e-mail's drop block and reveal line (emails/content_digest_activity.html.twig), the same numbers #}
+        {% set drop = activity.achievementDrop %}
+        {% if drop is not null or activity.unrevealedAchievements > 0 %}
+            <section id="achievement-news" class="card card-body mb-3">
+                {% if drop is not null %}
+                    <h2 class="h6 mb-2">{{ 'badges.drop.title'|trans({'%count%': drop.types|length}) }}</h2>
+                    <ul class="list-unstyled d-flex flex-wrap gap-2 mb-2">
+                        {% for type in drop.types %}
+                            <li><a href="{{ path('badges_overview') }}#{{ type.value }}">{{ badge_art(type, 1, 48) }}</a></li>
+                        {% endfor %}
+                    </ul>
+                    <p class="mb-2 fs-sm">
+                        {{ (activity.isMember ? 'badges.drop.held' : 'badges.drop.members_only')|trans({'%count%': activity.achievementDropHeld}) }}
+                        <a href="{{ path('badges_overview') }}">{{ 'badges.drop.see_all'|trans }}</a>
+                    </p>
+                {% endif %}
+                {% if activity.unrevealedAchievements > 0 %}
+                    <p class="mb-0 fs-sm" data-testid="my-activity-unrevealed">
+                        {{ 'badges.reveals.invite'|trans({'%count%': activity.unrevealedAchievements}) }}
+                        <a href="{{ path('badge_reveals') }}">{{ 'badges.reveals.invite_button'|trans({'%count%': activity.unrevealedAchievements}) }}</a>
+                    </p>
+                {% endif %}
+            </section>
+        {% endif %}
+
         {% if activity.rating is not null and (activity.rating.rank is not null or activity.rating.skillTierChanges is not empty) %}
             <section id="rating" class="card card-body mb-3">
                 {% if activity.rating.rank is not null %}

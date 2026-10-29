@@ -103,6 +103,31 @@ final class MyActivityControllerTest extends WebTestCase
         }
     }
 
+    public function testAMemberIsToldAboutAchievementsWaitingForTheirReveal(): void
+    {
+        $browser = self::createClient();
+        $connection = $browser->getContainer()->get(Connection::class);
+        // Awarded long ago (an achievement drop dates its tiers from history): news only because it is not revealed
+        $connection->executeStatement(
+            "INSERT INTO badge (id, player_id, type, earned_at, tier, revealed_at) VALUES (:id, :playerId, 'night_owl', '2025-03-01 23:00:00', 2, NULL)",
+            ['id' => Uuid::uuid7()->toString(), 'playerId' => self::OWNER],
+        );
+        // A lower tier left unrevealed under a revealed higher one is no news - the reveal page's rule
+        $connection->executeStatement(
+            "INSERT INTO badge (id, player_id, type, earned_at, tier, revealed_at) VALUES (:low, :playerId, 'competitor', '2025-03-01 10:00:00', 1, NULL), (:high, :playerId, 'competitor', '2025-04-01 10:00:00', 2, '2025-04-02 10:00:00')",
+            ['low' => Uuid::uuid7()->toString(), 'high' => Uuid::uuid7()->toString(), 'playerId' => self::OWNER],
+        );
+        TestingLogin::asPlayer($browser, self::OWNER);
+
+        $crawler = $browser->request('GET', '/en/my/activity');
+
+        self::assertResponseIsSuccessful();
+        $line = $crawler->filter('[data-testid="my-activity-unrevealed"]');
+        self::assertCount(1, $line);
+        self::assertStringContainsString('1 achievement is waiting for its reveal moment', $line->text());
+        self::assertCount(1, $line->filter('a[href="/en/my/achievement-reveals"]'));
+    }
+
     public function testThePageCostsTheSameWhateverThePeriodHolds(): void
     {
         $browser = self::createClient();

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use SpeedPuzzling\Web\Value\AchievementDrop;
 use SpeedPuzzling\Web\Value\BadgeTier;
 use SpeedPuzzling\Web\Value\BadgeType;
 use SpeedPuzzling\Web\Value\DigestPeriod;
@@ -53,6 +54,12 @@ readonly final class PlayerPeriodActivity
         /** The period before, counted the same way - the change under the numbers */
         public int $previousPuzzlesCount = 0,
         public int $previousPiecesCount = 0,
+        /** Members: achievements with a tier still waiting for its reveal, now - not only the period's */
+        public int $unrevealedAchievements = 0,
+        /** The achievement drop released in the period (AchievementDrops), announced to everybody */
+        public null|AchievementDrop $achievementDrop = null,
+        /** How many of that drop's achievements the player already holds (awarded from their history) */
+        public int $achievementDropHeld = 0,
     ) {
     }
 

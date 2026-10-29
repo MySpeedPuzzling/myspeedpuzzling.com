@@ -388,6 +388,11 @@ $shelf-press: scale(.97);
     line-height: 1.3;
     letter-spacing: .04em;
     text-transform: uppercase;
+
+    // An achievement of a recent drop (AchievementDrops) - the site's ink, so it never reads as "you earned it"
+    &.is-drop {
+        background: $shelf-ink;
+    }
 }
 
 // Tiers 4 and 5 shine once on load: a light sweep masked by the seal's own picture (same-origin art, which mask-image
@@ -754,6 +759,22 @@ $shelf-press: scale(.97);
             color: #c7393b;
         }
     }
+}
+
+// An achievement of a recent drop (AchievementDrops), next to its name in the catalogue
+.achievement-new-chip {
+    display: inline-block;
+    margin-left: .375rem;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: $shelf-ink;
+    color: #fff;
+    font-size: .625rem;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    vertical-align: middle;
 }
 
 .achievement-ref-description {

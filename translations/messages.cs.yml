@@ -1903,6 +1903,13 @@ badges:
         explain_share: "Procento se počítá z každého, kdo zapsal aspoň jedno puzzle."
         explain_step_back: "Stupeň může klesnout, když se čas odebere nebo čeká na ověření, a s ním se zase vrátí."
         explain_lapsed: "Tvoje úspěchy zůstávají uložené a s členstvím se vrátí."
+    drop:
+        new: "Nové"
+        new_label: "nově přidaný"
+        title: "{1}1 nový úspěch|[2,4]%count% nové úspěchy|[0,Inf[%count% nových úspěchů"
+        held: "{0}Zatím nemáš žádný z nich - podívej se, co který vyžaduje.|{1}Jeden z nich už máš, z dřívějších výsledků.|[2,4]%count% z nich už máš, z dřívějších výsledků.|[0,Inf[%count% z nich už máš, z dřívějších výsledků."
+        see_all: "Všechny úspěchy"
+        members_only: "Členové sbírají úspěchy a zjistí, které z nich už mají."
     reveals:
         meta_title: "Odhal své úspěchy"
         title: "Tvoje úspěchy jsou tady 🎉"

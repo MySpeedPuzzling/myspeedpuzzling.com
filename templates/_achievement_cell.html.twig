@@ -3,7 +3,8 @@
     §1, amended by §8): the seal at 92 px, the name, the tier name with 5 pips, a thin static bar to the next tier and
     its numbers. A complete type shows how many puzzlers hold Diamond; a non-member's catalogue shows the Bronze seal in
     colour and "5 tiers · Bronze held by N %". The owner's unrevealed tier is the "?" seal leading to the reveal page.
-    "New" = earned in the last 7 days and after launch, the owner's own achievements only (§8.1).
+    "New" = earned in the last 7 days and after launch, the owner's own achievements only (§8.1); otherwise "New" marks an
+    achievement of a drop in the last 30 days (AchievementDrops).
 
     The seal opens the detail sheet for the tier shown; `player` tells the sheet whose medal it is (a player's page) -
     on the catalogue it is left out and the sheet shows the viewer's own. The link's accessible name says everything
@@ -70,11 +71,18 @@
             {%- set label = label|merge(['badges.shelf.new_label'|trans]) -%}
         {%- endif -%}
     {%- endif -%}
+    {#- A recent drop's achievement (AchievementDrops) - on every shelf, unless the owner's own "New" already shows -#}
+    {%- set new_type = achievement_is_new(row.type) and not (personal and row.newlyEarned) -%}
+    {%- if new_type -%}
+        {%- set label = label|merge(['badges.drop.new_label'|trans]) -%}
+    {%- endif -%}
 
     <a href="{{ path('achievement_info', {type: row.type.value, tier: shown_tier ? shown_tier.value : null, player: player_id|default(null), from: 'shelf'}|merge(sheet_return|default({}))) }}"
        data-turbo-frame="modal-frame" class="achievement-cell-link" aria-label="{{ label|join(', ') }}">
         {% if personal and row.newlyEarned %}
             <span class="achievement-cell-new" aria-hidden="true">{{ 'badges.shelf.new'|trans }}</span>
+        {% elseif new_type %}
+            <span class="achievement-cell-new is-drop" aria-hidden="true">{{ 'badges.drop.new'|trans }}</span>
         {% endif %}
         {# Tiers 4 and 5 shine once on load: a light sweep masked by the seal's own picture (same file as the 2x src) #}
         <span class="achievement-cell-seal{{ row.shines ? ' achievement-shine' }}" aria-hidden="true"

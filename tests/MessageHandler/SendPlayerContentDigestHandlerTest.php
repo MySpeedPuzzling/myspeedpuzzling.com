@@ -168,6 +168,39 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
         self::assertStringContainsString(' AP', $html);
     }
 
+    public function testTheWeekOfAnAchievementDropAnnouncesItAndTheRevealWaitingForIt(): void
+    {
+        // 2026-W44 holds the drop of 29 October 2026 (AchievementDrops); its tiers are dated from history
+        $this->clock = new MockClock(new DateTimeImmutable('2026-11-02 08:00:00', new DateTimeZone('Europe/Prague')));
+        $this->insertSolve(self::MEMBER, '2026-10-28 18:00:00');
+        $this->insertBadge(self::MEMBER, '2025-02-01 23:30:00', 'night_owl');
+        $this->insertSolve(self::FREE_PLAYER, '2026-10-28 18:00:00');
+
+        $transport = new TransportSpy();
+        ($this->handler($transport))(new SendPlayerContentDigest(self::MEMBER, '2026-W44', ContentDigestKind::Activity, $this->insertRun()));
+        ($this->handler($transport))(new SendPlayerContentDigest(self::FREE_PLAYER, '2026-W44', ContentDigestKind::Activity, $this->insertRun()));
+
+        self::assertCount(2, $transport->sent);
+        [$member, $free] = $transport->sent;
+        self::assertInstanceOf(TemplatedEmail::class, $member);
+        self::assertInstanceOf(TemplatedEmail::class, $free);
+        $this->render($member);
+        $this->render($free);
+        $memberHtml = html_entity_decode((string) $member->getHtmlBody());
+        $freeHtml = html_entity_decode((string) $free->getHtmlBody());
+
+        self::assertStringContainsString('5 new achievements', $memberHtml);
+        self::assertStringContainsString('/img/badges/png/96/muscle_memory-t1.png', $memberHtml);
+        self::assertStringContainsString('You already hold 1 of them, from your past results.', $memberHtml);
+        self::assertStringContainsString('1 achievement is waiting for its reveal moment!', $memberHtml);
+        self::assertStringContainsString('/en/my/achievement-reveals', $memberHtml);
+        self::assertStringNotContainsString('New: Night Owl', $memberHtml, 'Earned long before the period: not in its list');
+
+        self::assertStringContainsString('5 new achievements', $freeHtml, 'A drop is news for everybody');
+        self::assertStringContainsString('Members collect achievements', $freeHtml);
+        self::assertStringNotContainsString('/en/my/achievement-reveals', $freeHtml);
+    }
+
     public function testAchievementsEarnedBeforeTheLaunchSwitchAreNotNews(): void
     {
         // The launch backfill stamped this achievement; the switch went on after it

@@ -24,6 +24,12 @@
         <div class="mt-3">{{ include('review_results/_banner.html.twig', {review_counts: review_counts}) }}</div>
     {% endif %}
 
+    {# Members: achievements waiting for their reveal - an achievement drop is awarded from history, so nothing else
+       tells them (docs/features/badges.md "Achievement drops"); one statement, members only #}
+    {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+        <twig:XpRevealInvite playerId="{{ logged_user.profile.playerId }}" />
+    {% endif %}
+
     {% if getting_started is not null %}
         {{ include('onboarding/_getting_started_card.html.twig', {progress: getting_started, folded: getting_started_folded}) }}
     {% endif %}

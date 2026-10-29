@@ -300,7 +300,56 @@ no-ops) gives each such tier the moment the player's records first met it:
    `manifest.json`; commit them with the code. There is no fallback picture - `BadgeArtCoverageTest` fails for a
    `BadgeType` case without art, and the templates throw in debug (see "Badge art" below).
 
-No other code changes needed.
+6. Add it to the history replay (`AchievementReplayState` + `AchievementFirstMetDates`) so its tiers can be dated -
+   the replay must end exactly at the snapshot (`AchievementFirstMetDatesTest`).
+7. Pick the ladder from production holder shares (rarity bands of the existing ones, "Calibration" below), texts in
+   all 6 locales.
+8. Put it in the month's drop (`AchievementDrops`, next section) and release it with the runbook there.
+
+Page tests count achievements through `tests/AchievementCounts.php` (from `BadgeType`), so a new one breaks none of them.
+
+## Achievement drops
+
+A few new achievements a month (Jan 2026-10-29), each batch released as one **drop**. The award is retroactive and
+dated from history, so by date nothing of a drop is news: the digest lists only tiers earned in its period, the shelf's
+"New" only tiers earned in the last 7 days. A drop therefore announces itself through `Value\AchievementDrops` (one
+entry per drop: the deploy moment in UTC + its types) and through the reveal state (a tier nobody revealed yet):
+
+| Where | What | Who |
+|---|---|---|
+| Catalogue cards + shelf cells | "New" tag on a drop's achievements for `AchievementDrops::NEW_FOR_DAYS` (30) - Twig `achievement_is_new(type)`; on a cell the owner's own "New" (earned in 7 days) wins | everybody |
+| Activity digest e-mail + "Your week" page | the period holding a drop: "N new achievements", their Bronze seals linked to the catalogue, and "You already hold N of them" (members) / "Members collect achievements…" (others) | everybody with activity in the period |
+| Activity digest e-mail + "Your week" page | "N achievements are waiting for their reveal moment" + Reveal them, whenever they were earned (the reveal page's rule: the highest tier of a type unrevealed) | members |
+| Hub | the same invite (`XpRevealInvite`, one statement) | members |
+
+No modal and no notification, on purpose: the progression design says celebrate inline, a modal only for rare
+milestones (xp-levels/ux-polish/design-spec.md P5) - a monthly modal would be the opposite. No e-mail of its own
+either: achievements reach players in the app and in the digest (launch-2026-10.md).
+
+### Runbook (one drop)
+
+1. Ship the achievements (section above) with their `AchievementDrops` entry - `releasedAt` = the planned deploy
+   moment; correct it to the real one in the same release or the next if it moved by days (it only decides the digest
+   week and the 30 "New" days).
+2. Wait for the deploy to finish: `run-queue: END … result=OK` (`journalctl -u lily-deploy-runner` on lily). Earlier,
+   a consumer of the previous release could take messages (2026-10-12 catch-up below).
+3. `bin/console myspeedpuzzling:recalculate-badges --sync` in the web container: every player evaluated in that
+   process, one after another (~8,400 players); it prints the dating command with its own start moment. One process
+   is slower than the queue's consumers (dev: ~3 players/s under load), so start it with `nohup … > /root/drop.log &`.
+4. Keep an undo file: `\copy (SELECT id, earned_at FROM badge WHERE earned_at >= '<start>') TO '/root/achievements-<drop>-undo.csv' CSV HEADER`.
+5. `bin/console myspeedpuzzling:date-achievements-from-history --earned-since="<start>" --dry-run`, then without
+   `--dry-run`. Expect every player matched and none failed; tiers of the drop only (check with a `GROUP BY type`).
+6. Holders per tier for the announcement (Instagram, newsletter): `SELECT type, tier, count(*) FROM badge WHERE type IN (…) GROUP BY 1, 2`.
+
+### The 2026-10-29 drop (production)
+
+Muscle Memory, Muscle Memory (unboxed), Night Owl, Competitor, Online Competitor - deployed 14:20 UTC, then
+`recalculate-badges` (async, 8,408 messages, drained in ~3 min) and `date-achievements-from-history
+--earned-since="2026-10-29 14:21"`: 9,217 tiers, all dated, every replay matched, none failed (undo CSV
+`/root/achievements-new-five-2026-10-29-undo.csv` on lily). Holders, Bronze → Diamond: Muscle Memory 2,631 / 563 /
+115 / 15 / 2; unboxed 187 / 48 / 9 / 3 / 1; Night Owl 434 / 242 / 84 / 28 / 8; Competitor 2,087 / 600 / 140 / 8 / 0;
+Online Competitor 981 / 548 / 329 / 135 / 43. Competitor's Bronze came out at ~25 % against the 20.5 % measured
+the day before. Its announcement (the surfaces above) was built the same day, after the award.
 
 ## Badge art
 

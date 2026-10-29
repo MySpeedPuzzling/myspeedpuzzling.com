@@ -193,6 +193,8 @@ e-mail, in order (`templates/emails/content_digest_activity.html.twig`):
 | puzzles · pieces (each with "+3 vs last week" against the period before, `previousPeriodTotals()`; nothing when that one was empty or equal) · time puzzling (`compactTime`, when > 0) · day streak | always (streak > 1, not opted out) | - |
 | Level block: "Level N → M" · "+X XP this week", a bar toward the next level (table cells) and "N XP to Level M+1" (no bar at Level 50) | XP visible | XP history (`xp_history`) |
 | New: achievement · tier · +N AP (members, the 3 with the most points, then "+N more achievements") / "You earned an achievement. Become a member to find out which." | earned in the period | the achievement page / the "Your week" page / membership |
+| "5 new achievements" + their Bronze seals · "You already hold N of them, from your past results." (members) / "Members collect achievements…" (others) | an achievement drop was released in the period (`AchievementDrops`, docs/features/badges.md "Achievement drops") | the catalogue |
+| "N achievements are waiting for their reveal moment!" · Reveal them (members) | a type's highest tier not revealed yet, whenever earned | the reveal page |
 | Next up: achievement · tier, "37 of 50" (or "your best 1:05:00, goal 59:59") · % (members) | an achievement with progress (closest to its next tier) | the achievement page |
 | MSP Rating: #rank of total · up/down N places | moved (snapshots before vs in the period, 500 pc) | the ladder |
 | New skill tier for N pieces (members) | tier changed | the ladder |

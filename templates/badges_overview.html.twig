@@ -69,6 +69,7 @@
                     <div class="achievement-ref-text">
                         <h2 class="achievement-ref-title" id="ref-{{ type.value }}-title">
                             <a href="{{ path('achievement_detail', {type: type.value}) }}">{{ name }}</a>
+                            {%- if achievement_is_new(type) %} <span class="achievement-new-chip">{{ 'badges.drop.new'|trans }}</span>{% endif %}
                         </h2>
                         <p class="achievement-ref-description">{{ ('badges.description.' ~ type.value)|trans }}</p>
                     </div>

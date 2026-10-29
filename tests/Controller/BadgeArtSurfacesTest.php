@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\AchievementCounts;
 use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
@@ -33,7 +34,7 @@ final class BadgeArtSurfacesTest extends WebTestCase
         // The row holds what is revealed; the owner's unrevealed one is the call-out above it
         self::assertCount(2, $items);
         // Two tiered achievements + the held Early Adopter, which counts for its holders (in the total too)
-        self::assertStringContainsString('3 of 22', $showcase->text());
+        self::assertStringContainsString('3 of ' . AchievementCounts::all(), $showcase->text());
 
         // The one-off Early Adopter first, then the highest tier (Jan 2026-10-12): the Gold streak
         self::assertCount(1, $items->eq(0)->filter('img.badge-art[src^="/img/badges/webp/144/supporter-single.webp"]'));

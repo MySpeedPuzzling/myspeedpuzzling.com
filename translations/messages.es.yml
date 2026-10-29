@@ -1868,6 +1868,13 @@ badges:
         explain_share: "El porcentaje cuenta a todos los que han registrado al menos un puzzle."
         explain_step_back: "Un rango puede retroceder cuando se elimina un tiempo o queda pendiente de verificación, y vuelve junto con él."
         explain_lapsed: "Tus logros se conservan y vuelven con la membresía."
+    drop:
+        new: "Nuevo"
+        new_label: "añadido hace poco"
+        title: "{1}1 logro nuevo|[0,Inf[%count% logros nuevos"
+        held: "{0}Aún no tienes ninguno - mira qué pide cada uno.|{1}Ya tienes 1 de ellos, gracias a tus resultados anteriores.|[0,Inf[Ya tienes %count% de ellos, gracias a tus resultados anteriores."
+        see_all: "Ver todos los logros"
+        members_only: "Los miembros coleccionan logros y descubren cuáles ya tienen."
     reveals:
         meta_title: "Revela tus logros"
         title: "Tus logros están aquí 🎉"

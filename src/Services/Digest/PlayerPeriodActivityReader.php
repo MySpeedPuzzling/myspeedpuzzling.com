@@ -22,6 +22,8 @@ use SpeedPuzzling\Web\Results\PlayerPeriodActivity;
 use SpeedPuzzling\Web\Services\ActivityCalendarStreakCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Services\Xp\XpLaunchReadiness;
+use SpeedPuzzling\Web\Value\AchievementDrop;
+use SpeedPuzzling\Web\Value\AchievementDrops;
 use SpeedPuzzling\Web\Value\BadgeTier;
 use SpeedPuzzling\Web\Value\BadgeType;
 use SpeedPuzzling\Web\Value\DigestPeriod;
@@ -76,7 +78,9 @@ readonly final class PlayerPeriodActivityReader
         $xpAtEnd = max(0, $player['xp_total'] - $player['xp_after']);
         // "Hide my achievements" (docs/features/opt-out.md): no achievement lines in the e-mail nor on the page
         $achievementsVisible = $player['achievements_opted_out'] === false;
-        $achievements = $achievementsVisible ? $this->achievementsEarned($playerId, $period) : [];
+        $tiers = $achievementsVisible ? $this->getBadges->allEarnedTiers($playerId) : [];
+        $achievements = $this->achievementsEarned($tiers, $period);
+        $drop = $achievementsVisible ? AchievementDrops::releasedBetween($period->start, $period->end) : null;
 
         return new PlayerPeriodActivity(
             period: $period,
@@ -104,6 +108,9 @@ readonly final class PlayerPeriodActivityReader
             karmaGained: $this->karmaGained(),
             previousPuzzlesCount: $previous['puzzles'],
             previousPiecesCount: $previous['pieces'],
+            unrevealedAchievements: $isMember ? self::unrevealedAchievements($tiers) : 0,
+            achievementDrop: $drop,
+            achievementDropHeld: $drop === null ? 0 : self::dropTypesHeld($tiers, $drop),
         );
     }
 
@@ -307,9 +314,10 @@ SQL;
      * The tiers earned in the period - never one earned before the XP launch switch went on: the launch backfill
      * stamped every achievement of the history with its run time, and those are the launch reveal's, not news.
      *
+     * @param list<BadgeResult> $tiers
      * @return list<BadgeResult>
      */
-    private function achievementsEarned(string $playerId, DigestPeriod $period): array
+    private function achievementsEarned(array $tiers, DigestPeriod $period): array
     {
         $launchedAt = $this->xpLaunchReadiness->readyAt();
 
@@ -320,9 +328,47 @@ SQL;
         $from = max($period->start, $launchedAt);
 
         return array_values(array_filter(
-            $this->getBadges->allEarnedTiers($playerId),
+            $tiers,
             static fn (BadgeResult $badge): bool => $badge->earnedAt >= $from && $badge->earnedAt < $period->end,
         ));
+    }
+
+    /**
+     * Achievements whose highest tier the player has not revealed yet - the reveal page's rule
+     * (GetBadges::unrevealedForPlayer()). A drop is awarded with past dates, so this, not the period, says it is new.
+     *
+     * @param list<BadgeResult> $tiers
+     */
+    private static function unrevealedAchievements(array $tiers): int
+    {
+        /** @var array<string, BadgeResult> $highest */
+        $highest = [];
+
+        foreach ($tiers as $tier) {
+            $held = $highest[$tier->type->value] ?? null;
+
+            if ($held === null || ($tier->tier === null ? 0 : $tier->tier->value) > ($held->tier === null ? 0 : $held->tier->value)) {
+                $highest[$tier->type->value] = $tier;
+            }
+        }
+
+        return count(array_filter($highest, static fn (BadgeResult $tier): bool => $tier->isRevealed() === false));
+    }
+
+    /**
+     * @param list<BadgeResult> $tiers
+     */
+    private static function dropTypesHeld(array $tiers, AchievementDrop $drop): int
+    {
+        $types = [];
+
+        foreach ($tiers as $tier) {
+            if ($drop->contains($tier->type)) {
+                $types[$tier->type->value] = true;
+            }
+        }
+
+        return count($types);
     }
 
     /**

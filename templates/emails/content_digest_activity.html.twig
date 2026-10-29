@@ -142,6 +142,38 @@
                         {% endif %}
                     {% endif %}
 
+                    {# An achievement drop released in the period (AchievementDrops) - awarded from history with past dates, so
+                       it is news here and not in the list above; members also hear how many they already hold #}
+                    {% set drop = activity.achievementDrop %}
+                    {% if drop is not null %}
+                        <p style="margin: 12px 0 4px 0;"><strong>{{ 'badges.drop.title'|trans({'%count%': drop.types|length}, 'messages') }}</strong></p>
+                        <table role="presentation" style="border-collapse: collapse;">
+                            <tr>
+                                {% for type in drop.types %}
+                                    <td width="48" style="width: 48px; padding: 4px 8px 4px 0;">
+                                        <a href="{{ url('badges_overview', {_locale: locale}) }}#{{ type.value }}"><img src="{{ badge_art_url(type, 1, 'png', 96, absolute = true) }}" alt="{{ type.translationKey()|trans({}, 'messages') }}" width="48" height="48" style="display: block; width: 48px; height: 48px; border: 0;"></a>
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                        </table>
+                        <p style="margin: 4px 0 12px 0;">
+                            {% if activity.isMember %}
+                                {{ 'badges.drop.held'|trans({'%count%': activity.achievementDropHeld}, 'messages') }}
+                            {% else %}
+                                {{ 'badges.drop.members_only'|trans({}, 'messages') }}
+                            {% endif %}
+                            <a href="{{ url('badges_overview', {_locale: locale}) }}">{{ 'badges.drop.see_all'|trans({}, 'messages') }}</a>
+                        </p>
+                    {% endif %}
+
+                    {# Members: achievements waiting for their reveal - whenever they were earned #}
+                    {% if activity.unrevealedAchievements > 0 %}
+                        <p style="margin: 0 0 12px 0;">
+                            {{ 'badges.reveals.invite'|trans({'%count%': activity.unrevealedAchievements}, 'messages') }}
+                            <a href="{{ url('badge_reveals', {_locale: locale}) }}">{{ 'badges.reveals.invite_button'|trans({'%count%': activity.unrevealedAchievements}, 'messages') }}</a>
+                        </p>
+                    {% endif %}
+
                     {# Members: the achievement closest to its next tier #}
                     {% set next = activity.nextAchievement() %}
                     {% if next is not null %}

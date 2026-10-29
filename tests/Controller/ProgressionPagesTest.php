@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use SpeedPuzzling\Web\Tests\AchievementCounts;
 use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\ArrayParameterType;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -91,7 +92,7 @@ final class ProgressionPagesTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/achievements');
 
         self::assertResponseIsSuccessful();
-        self::assertCount(22, $crawler->filter('article.achievement-ref'));
+        self::assertCount(AchievementCounts::all(), $crawler->filter('article.achievement-ref'));
         // Requirements are text, never a hover title
         self::assertStringContainsString('Solve 10 distinct puzzles', $crawler->filter('article#puzzles_solved')->text());
         self::assertCount(0, $crawler->filter('.achievement-refs [title]'));
@@ -124,10 +125,10 @@ final class ProgressionPagesTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/achievements');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('.achievements-summary', '1 of 21 achievements');
+        self::assertSelectorTextContains('.achievements-summary', '1 of ' . AchievementCounts::earnable() . ' achievements');
         self::assertSelectorExists('.achievements-summary .ap-chip');
         self::assertSelectorNotExists('.achievements-summary .xp-level-chip');
-        self::assertCount(22, $crawler->filter('article.achievement-ref'));
+        self::assertCount(AchievementCounts::all(), $crawler->filter('article.achievement-ref'));
         self::assertSelectorNotExists('.achievement-shelf');
     }
 

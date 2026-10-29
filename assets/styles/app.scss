@@ -658,6 +658,14 @@ td.rank {
         max-height: min(28rem, 65vh);
         overflow-y: auto;
         overscroll-behavior: contain;
+
+        // A phone's `vh` is the viewport without the browser's toolbars, so 65vh under the header pushed "Show all"
+        // below iOS Safari's bottom bar: the list gets what the visible screen (dvh) leaves after the header, the
+        // menu's own header and footer (~5rem) and a gap below
+        @include media-breakpoint-down(sm) {
+            max-height: calc(100vh - var(--header-height, 97px) - 6rem);
+            max-height: calc(100dvh - var(--header-height, 97px) - 6rem);
+        }
     }
 
     .notifications-dropdown-table {

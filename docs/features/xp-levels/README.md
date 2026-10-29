@@ -93,7 +93,7 @@ moves to another puzzle, guest links and the repair of the nightly check use it.
 
 ### Achievements
 
-16 tiered achievement types + admin-granted Early Adopter (DB value `supporter`).
+21 tiered achievement types (16 at launch, 5 added 2026-10-28 - docs/features/badges.md) + admin-granted Early Adopter (DB value `supporter`).
 Achievement Points are denormalized to `player.achievement_points` — BadgeEvaluator
 re-anchors the absolute total on every evaluation (badge writes happen nowhere else),
 so the daily recalc cron self-heals any drift (e.g. manually granted badges); the

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
+use DateTimeZone;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Services\ActivityCalendarStreakCalculator;
 use SpeedPuzzling\Web\Results\PlayerStatsSnapshot;
 
@@ -19,6 +21,7 @@ readonly class GetPlayerStatsSnapshot
     public function __construct(
         private Connection $database,
         private ActivityCalendarStreakCalculator $streakCalculator,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -44,6 +47,11 @@ readonly class GetPlayerStatsSnapshot
             best1000PieceSoloSeconds: $solveAggregates['best1000PieceSoloSeconds'],
             weekendSolves: $solveAggregates['weekendSolves'],
             catalogerApprovedPuzzles: $this->catalogerApprovedPuzzles($playerId),
+            muscleMemorySolves: $solveAggregates['muscleMemorySolves'],
+            muscleMemoryUnboxedSolves: $solveAggregates['muscleMemoryUnboxedSolves'],
+            nightOwlSolves: $solveAggregates['nightOwlSolves'],
+            competitorEvents: $this->competitorEvents($playerId),
+            onlineCompetitorResults: $solveAggregates['onlineCompetitorResults'],
         );
     }
 
@@ -56,6 +64,11 @@ readonly class GetPlayerStatsSnapshot
      * The `>= 2000-01-01` guard on the weekend counter is mandatory: the database
      * contains garbage rows dated year 0024 which would otherwise be counted.
      *
+     * Muscle Memory is the exception to the participation rule: only the player's own solo results count (relaxed
+     * ones too), per 500-piece puzzle - the most-solved puzzle is the value. The CTE keeps it in this one statement.
+     * Night Owl looks at the player's own results too, Online Competitor at every result like the rest
+     * (AchievementSqlRules).
+     *
      * @return array{
      *     zenPuzzlerSolves: int,
      *     firstTrySolves: int,
@@ -65,11 +78,31 @@ readonly class GetPlayerStatsSnapshot
      *     photographerSolves: int,
      *     weekendSolves: int,
      *     best1000PieceSoloSeconds: null|int,
+     *     muscleMemorySolves: int,
+     *     muscleMemoryUnboxedSolves: int,
+     *     nightOwlSolves: int,
+     *     onlineCompetitorResults: int,
      * }
      */
     private function solveAggregates(string $playerId): array
     {
+        $competitionJoins = AchievementSqlRules::RESULT_COMPETITION_JOINS;
+        $nightOwl = AchievementSqlRules::IS_NIGHT_OWL_RESULT;
+        $onlineCompetition = AchievementSqlRules::IS_ONLINE_COMPETITION_RESULT;
+
         $sql = <<<SQL
+WITH solo_500_per_puzzle AS (
+    SELECT
+        COUNT(*) AS solves,
+        COUNT(*) FILTER (WHERE solo.unboxed = true) AS unboxed_solves
+    FROM puzzle_solving_time solo
+    JOIN puzzle solo_puzzle ON solo_puzzle.id = solo.puzzle_id
+    WHERE solo.player_id = :playerId
+      AND solo.puzzling_type = 'solo'
+      AND solo.suspicious = false
+      AND solo_puzzle.pieces_count = 500
+    GROUP BY solo.puzzle_id
+)
 SELECT
     COUNT(*) FILTER (WHERE pst.seconds_to_solve IS NULL) AS zen_solves,
     COUNT(*) FILTER (WHERE pst.first_attempt = true) AS first_try_solves,
@@ -85,9 +118,15 @@ SELECT
         WHERE pst.puzzling_type = 'solo'
           AND pst.seconds_to_solve IS NOT NULL
           AND p.pieces_count = 1000
-    ) AS best_1000_solo_seconds
+    ) AS best_1000_solo_seconds,
+    (SELECT COALESCE(MAX(solves), 0) FROM solo_500_per_puzzle) AS muscle_memory_solves,
+    (SELECT COALESCE(MAX(unboxed_solves), 0) FROM solo_500_per_puzzle) AS muscle_memory_unboxed_solves,
+    COUNT(*) FILTER (WHERE {$nightOwl}) AS night_owl_solves,
+    COUNT(*) FILTER (WHERE {$onlineCompetition}) AS online_competition_results
 FROM puzzle_solving_time pst
 JOIN puzzle p ON p.id = pst.puzzle_id
+LEFT JOIN player owning_player ON owning_player.id = CAST(:playerId AS UUID)
+{$competitionJoins}
 WHERE pst.suspicious = false
   AND (
     pst.player_id = :playerId
@@ -104,6 +143,10 @@ SQL;
          *     photographer_solves: int|string,
          *     weekend_solves: int|string,
          *     best_1000_solo_seconds: null|int|string,
+         *     muscle_memory_solves: int|string,
+         *     muscle_memory_unboxed_solves: int|string,
+         *     night_owl_solves: int|string,
+         *     online_competition_results: int|string,
          * }|false $row
          */
         $row = $this->database->executeQuery($sql, ['playerId' => $playerId])->fetchAssociative();
@@ -118,6 +161,10 @@ SQL;
                 'photographerSolves' => 0,
                 'weekendSolves' => 0,
                 'best1000PieceSoloSeconds' => null,
+                'muscleMemorySolves' => 0,
+                'muscleMemoryUnboxedSolves' => 0,
+                'nightOwlSolves' => 0,
+                'onlineCompetitorResults' => 0,
             ];
         }
 
@@ -130,7 +177,29 @@ SQL;
             'photographerSolves' => is_numeric($row['photographer_solves']) ? (int) $row['photographer_solves'] : 0,
             'weekendSolves' => is_numeric($row['weekend_solves']) ? (int) $row['weekend_solves'] : 0,
             'best1000PieceSoloSeconds' => is_numeric($row['best_1000_solo_seconds']) ? (int) $row['best_1000_solo_seconds'] : null,
+            'muscleMemorySolves' => is_numeric($row['muscle_memory_solves']) ? (int) $row['muscle_memory_solves'] : 0,
+            'muscleMemoryUnboxedSolves' => is_numeric($row['muscle_memory_unboxed_solves']) ? (int) $row['muscle_memory_unboxed_solves'] : 0,
+            'nightOwlSolves' => is_numeric($row['night_owl_solves']) ? (int) $row['night_owl_solves'] : 0,
+            'onlineCompetitorResults' => is_numeric($row['online_competition_results']) ? (int) $row['online_competition_results'] : 0,
         ];
+    }
+
+    private function competitorEvents(string $playerId): int
+    {
+        $value = $this->database->executeQuery(
+            'SELECT COUNT(*) FROM (' . AchievementSqlRules::COMPETITOR_EVENTS . ') competitor_events',
+            ['playerId' => $playerId, 'today' => self::today($this->clock)],
+        )->fetchOne();
+
+        return is_numeric($value) ? (int) $value : 0;
+    }
+
+    /**
+     * The day Competitor counts up to (an event counts the day after it ended), in UTC like every stored date
+     */
+    public static function today(ClockInterface $clock): string
+    {
+        return $clock->now()->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d');
     }
 
     /**

@@ -83,10 +83,10 @@ final class BadgesOverviewControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/player-achievements/' . $member);
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('.achievements-summary', '4 of 16 achievements · 6 of 80 tiers');
+        self::assertSelectorTextContains('.achievements-summary', '4 of 21 achievements · 6 of 105 tiers');
 
         $cells = $crawler->filter('.achievement-shelf > .achievement-cell');
-        self::assertCount(16, $cells);
+        self::assertCount(21, $cells);
         // 1. the unrevealed tier - an action; 2. earned, highest tier first, rarer first within a tier
         self::assertCount(1, $cells->eq(0)->filter('a[href="/en/my/achievement-reveals"]'));
         self::assertStringContainsString('Team Spirit', $cells->eq(0)->text());
@@ -95,7 +95,7 @@ final class BadgesOverviewControllerTest extends WebTestCase
         self::assertStringStartsWith('/en/achievements/streak/info?tier=1&player=' . $member, (string) $cells->eq(3)->filter('a')->attr('href'));
         // 3. the rest by progress, highest first (cells without anything to measure last)
         $progress = [];
-        for ($i = 4; $i < 16; $i++) {
+        for ($i = 4; $i < 21; $i++) {
             $bar = $cells->eq($i)->filter('[role="progressbar"]');
             $progress[] = $bar->count() > 0 ? (int) $bar->attr('aria-valuenow') : -1;
         }
@@ -154,8 +154,8 @@ final class BadgesOverviewControllerTest extends WebTestCase
         self::assertSelectorNotExists('.achievement-shelf');
         self::assertSelectorNotExists('.achievements-next');
         // Every achievement with all its tiers - what each takes and how many hold it - plus Early Adopter
-        self::assertCount(17, $crawler->filter('article.achievement-ref'));
-        self::assertCount(80, $crawler->filter('.achievement-ref-tier'));
+        self::assertCount(22, $crawler->filter('article.achievement-ref'));
+        self::assertCount(105, $crawler->filter('.achievement-ref-tier'));
         $explorer = $crawler->filter('article#puzzles_solved');
         self::assertStringContainsString('Solve 10 distinct puzzles', $explorer->filter('.achievement-ref-tier')->first()->text());
         self::assertStringContainsString('1 puzzler', $explorer->filter('.achievement-ref-tier')->first()->text());
@@ -182,7 +182,7 @@ final class BadgesOverviewControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorNotExists('.achievement-shelf');
         self::assertSelectorNotExists('.achievements-tease');
-        self::assertCount(17, $crawler->filter('article.achievement-ref'));
+        self::assertCount(22, $crawler->filter('article.achievement-ref'));
         self::assertSelectorExists('.achievements-own-line a[href="/en/player-achievements/' . PlayerFixture::PLAYER_WITH_STRIPE . '"]');
     }
 
@@ -212,8 +212,8 @@ final class BadgesOverviewControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         // Early Adopter can no longer be earned: one more achievement for its holders, in the earned count and the total
-        self::assertSelectorTextContains('.achievements-own-line', '2 of 17 achievements');
-        self::assertSelectorTextContains('.achievements-own-line', '1 of 80 tiers');
+        self::assertSelectorTextContains('.achievements-own-line', '2 of 22 achievements');
+        self::assertSelectorTextContains('.achievements-own-line', '1 of 105 tiers');
         // Its card says what it means and that it can no longer be earned, with how many hold it
         $card = $crawler->filter('article#supporter');
         self::assertStringContainsString('believed in MySpeedPuzzling early', $card->text());
@@ -221,7 +221,7 @@ final class BadgesOverviewControllerTest extends WebTestCase
         self::assertStringContainsString('1 puzzler', $card->text());
     }
 
-    public function testWithoutEarlyAdopterTheTotalIsTheSixteenThatCanBeEarned(): void
+    public function testWithoutEarlyAdopterTheTotalIsTheTwentyOneThatCanBeEarned(): void
     {
         $browser = self::createClient();
         $this->insertBadge(PlayerFixture::PLAYER_WITH_STRIPE, 'puzzles_solved', 1, revealed: true);
@@ -230,7 +230,7 @@ final class BadgesOverviewControllerTest extends WebTestCase
         $browser->request('GET', '/en/achievements');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('.achievements-own-line', '1 of 16 achievements');
+        self::assertSelectorTextContains('.achievements-own-line', '1 of 21 achievements');
     }
 
     public function testHowAchievementsWorkIsOnTopUntilHiddenAndCanBeOpenedAgain(): void

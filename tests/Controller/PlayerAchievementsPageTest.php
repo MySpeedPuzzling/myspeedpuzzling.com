@@ -36,12 +36,12 @@ final class PlayerAchievementsPageTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('.player-tab.active', 'Achievements');
         // Types and tiers, counted from the catalogue the page already loaded
-        self::assertSelectorTextContains('.achievements-summary', '2 of 16 achievements · 2 of 80 tiers');
+        self::assertSelectorTextContains('.achievements-summary', '2 of 21 achievements · 2 of 105 tiers');
         self::assertSelectorExists('.achievements-summary .ap-chip');
         // Default = All: every type on the shelf, the unrevealed one (an empty puzzle) first (it is an action), then the earned one
-        self::assertSelectorTextContains('.achievements-filter a.active', 'All · 16');
+        self::assertSelectorTextContains('.achievements-filter a.active', 'All · 21');
         $cells = $crawler->filter('.achievement-shelf > .achievement-cell');
-        self::assertCount(16, $cells);
+        self::assertCount(21, $cells);
         self::assertCount(1, $cells->eq(0)->filter('a[href="/en/my/achievement-reveals"] .achievement-cell-tray'));
         self::assertStringContainsString('New tier · tap to reveal', $cells->eq(0)->text());
         self::assertSame(
@@ -72,7 +72,7 @@ final class PlayerAchievementsPageTest extends WebTestCase
         // A visitor gets one list, rarest first: what the player holds leads - no filter chips (?show is ignored)
         self::assertSelectorNotExists('.achievements-filter');
         $cells = $crawler->filter('.achievement-cell');
-        self::assertCount(16, $cells);
+        self::assertCount(21, $cells);
         self::assertSelectorNotExists('.achievement-cell-tray');
         // Not the visitor's own page: no "New" dot; the sheet opens on this player's medal
         self::assertSelectorNotExists('.achievement-cell-new');
@@ -88,7 +88,7 @@ final class PlayerAchievementsPageTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorNotExists('.achievements-filter');
-        self::assertGreaterThanOrEqual(16, $browser->getCrawler()->filter('.achievement-cell')->count());
+        self::assertGreaterThanOrEqual(21, $browser->getCrawler()->filter('.achievement-cell')->count());
     }
 
     public function testTheFiltersAreAllEarnedNextUpAndRarestWithAllAsTheDefault(): void
@@ -102,10 +102,10 @@ final class PlayerAchievementsPageTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $filters = $crawler->filter('.achievements-filter a')->each(static fn ($node): string => trim($node->text()));
         self::assertCount(4, $filters);
-        self::assertSame('All · 16', $filters[0]);
+        self::assertSame('All · 21', $filters[0]);
         self::assertSame('Earned · 1', $filters[1]);
         self::assertStringStartsWith('Next up', $filters[2]);
-        self::assertSame('Rarest first · 16', $filters[3]);
+        self::assertSame('Rarest first · 21', $filters[3]);
         self::assertSelectorTextContains('.achievements-filter a.active', 'All');
     }
 
@@ -264,17 +264,17 @@ final class PlayerAchievementsPageTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         // Early Adopter can no longer be earned: one more achievement for its holders, in the earned count and the total
-        self::assertSelectorTextContains('.achievements-summary', '2 of 17 achievements');
-        self::assertSelectorTextContains('.achievements-summary', '1 of 80 tiers');
+        self::assertSelectorTextContains('.achievements-summary', '2 of 22 achievements');
+        self::assertSelectorTextContains('.achievements-summary', '1 of 105 tiers');
         self::assertCount(1, $crawler->filter('.achievement-shelf a[href^="/en/achievements/supporter/info"]'));
         // What it means to its holder, not our word for it ("One-off")
         self::assertStringContainsString('believed in MySpeedPuzzling early', $crawler->filter('.achievement-shelf a[href^="/en/achievements/supporter/info"]')->text());
         $filters = $crawler->filter('.achievements-filter a')->each(static fn ($node): string => trim($node->text()));
-        self::assertSame('All · 17', $filters[0]);
+        self::assertSame('All · 22', $filters[0]);
         self::assertSame('Earned · 2', $filters[1]);
     }
 
-    public function testWithoutEarlyAdopterTheTotalIsTheSixteenThatCanBeEarned(): void
+    public function testWithoutEarlyAdopterTheTotalIsTheTwentyOneThatCanBeEarned(): void
     {
         $browser = self::createClient();
         $this->insertBadge(PlayerFixture::PLAYER_WITH_STRIPE, 'puzzles_solved', 1, revealed: true);
@@ -283,7 +283,7 @@ final class PlayerAchievementsPageTest extends WebTestCase
         $browser->request('GET', self::MEMBER_PAGE);
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('.achievements-summary', '1 of 16 achievements');
+        self::assertSelectorTextContains('.achievements-summary', '1 of 21 achievements');
     }
 
     public function testEveryCellSaysWhatToDoNext(): void
@@ -332,7 +332,7 @@ final class PlayerAchievementsPageTest extends WebTestCase
         self::assertStringStartsWith('/en/achievements/puzzles_solved/info', $links[1]);
         self::assertStringStartsWith('/en/achievements/first_try/info', $links[2]);
         self::assertStringStartsWith('/en/achievements/streak/info', $links[3]);
-        self::assertCount(17, $links);
+        self::assertCount(22, $links);
     }
 
     public function testTheProfileShowcaseHasTheSameOrderEarlyAdopterThenTheHighestTier(): void

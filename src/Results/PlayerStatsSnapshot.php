@@ -35,6 +35,16 @@ readonly final class PlayerStatsSnapshot
         public int $weekendSolves = 0,
         /** Approved puzzles added to the catalog by the player. */
         public int $catalogerApprovedPuzzles = 0,
+        /** Most solo solves of one 500-piece puzzle (relaxed solves included). */
+        public int $muscleMemorySolves = 0,
+        /** Most solo solves of one 500-piece puzzle without looking at the box. */
+        public int $muscleMemoryUnboxedSolves = 0,
+        /** Own results logged between 22:00 and 04:00 in the player's time zone on the day they were finished. */
+        public int $nightOwlSolves = 0,
+        /** Public in-person competitions that ended and the player took part in. */
+        public int $competitorEvents = 0,
+        /** Results linked to public online competitions. */
+        public int $onlineCompetitorResults = 0,
     ) {
     }
 }

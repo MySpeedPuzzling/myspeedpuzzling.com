@@ -23,6 +23,11 @@ enum BadgeType: string
     case SpeedDemon1000 = 'speed_1000_pieces';
     case WeekendPuzzler = 'weekend_puzzler';
     case Cataloger = 'cataloger';
+    case MuscleMemory = 'muscle_memory';
+    case MuscleMemoryUnboxed = 'muscle_memory_unboxed';
+    case NightOwl = 'night_owl';
+    case Competitor = 'competitor';
+    case OnlineCompetitor = 'online_competitor';
 
     public function isTiered(): bool
     {

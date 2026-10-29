@@ -29,6 +29,9 @@ use Symfony\Component\DependencyInjection\Attribute\Exclude;
  *     dow: int,
  *     dated: bool,
  *     quarter: int,
+ *     nightOwl: bool,
+ *     onlineCompetition: bool,
+ *     competition: string,
  * }
  */
 #[Exclude]
@@ -80,6 +83,23 @@ final class AchievementReplayState
 
     private int $cataloger = 0;
 
+    /** @var array<string, int> own solo solves per 500-piece puzzle */
+    private array $solo500Solves = [];
+
+    /** @var array<string, int> own unboxed solo solves per 500-piece puzzle */
+    private array $solo500UnboxedSolves = [];
+
+    private int $muscleMemory = 0;
+
+    private int $muscleMemoryUnboxed = 0;
+
+    private int $nightOwl = 0;
+
+    /** @var array<string, true> */
+    private array $competitions = [];
+
+    private int $onlineCompetition = 0;
+
     public function __construct(
         readonly private string $playerId,
     ) {
@@ -109,15 +129,19 @@ final class AchievementReplayState
             'dow' => self::int($row['iso_dow'] ?? null) ?? 0,
             'dated' => (bool) ($row['dated'] ?? false),
             'quarter' => (self::int($row['solve_year'] ?? null) ?? 0) * 4 + (self::int($row['solve_quarter'] ?? null) ?? 0),
+            'nightOwl' => (bool) ($row['night_owl'] ?? false),
+            'onlineCompetition' => (bool) ($row['online_competition'] ?? false),
+            'competition' => '',
         ];
     }
 
     /**
-     * An accepted proposal (librarian) or an approved puzzle (cataloger)
+     * An accepted proposal (librarian), an approved puzzle (cataloger) or a competition taken part in (competitor,
+     * with its id)
      *
      * @return ReplayEvent
      */
-    public static function other(string $kind, mixed $at): array
+    public static function other(string $kind, mixed $at, string $competition = ''): array
     {
         return [
             'kind' => $kind,
@@ -135,6 +159,9 @@ final class AchievementReplayState
             'dow' => 0,
             'dated' => false,
             'quarter' => 0,
+            'nightOwl' => false,
+            'onlineCompetition' => false,
+            'competition' => $competition,
         ];
     }
 
@@ -151,6 +178,12 @@ final class AchievementReplayState
 
         if ($event['kind'] === 'cataloger') {
             $this->cataloger++;
+
+            return;
+        }
+
+        if ($event['kind'] === 'competitor') {
+            $this->competitions[$event['competition']] = true;
 
             return;
         }
@@ -196,8 +229,28 @@ final class AchievementReplayState
             $this->photographer++;
         }
 
+        if ($event['nightOwl']) {
+            $this->nightOwl++;
+        }
+
+        if ($event['onlineCompetition']) {
+            $this->onlineCompetition++;
+        }
+
         if (($event['dow'] === 6 || $event['dow'] === 7) && $event['dated']) {
             $this->weekend++;
+        }
+
+        // Muscle Memory: the player's own solo results of one 500-piece puzzle, relaxed ones too
+        if ($event['own'] && $type === 'solo' && $pieces === 500) {
+            $puzzle = $event['puzzle'];
+            $this->solo500Solves[$puzzle] = ($this->solo500Solves[$puzzle] ?? 0) + 1;
+            $this->muscleMemory = max($this->muscleMemory, $this->solo500Solves[$puzzle]);
+
+            if ($event['unboxed']) {
+                $this->solo500UnboxedSolves[$puzzle] = ($this->solo500UnboxedSolves[$puzzle] ?? 0) + 1;
+                $this->muscleMemoryUnboxed = max($this->muscleMemoryUnboxed, $this->solo500UnboxedSolves[$puzzle]);
+            }
         }
 
         // Best solo times: the player's own solo results only
@@ -232,6 +285,11 @@ final class AchievementReplayState
             best1000PieceSoloSeconds: $this->best1000,
             weekendSolves: $this->weekend,
             catalogerApprovedPuzzles: $this->cataloger,
+            muscleMemorySolves: $this->muscleMemory,
+            muscleMemoryUnboxedSolves: $this->muscleMemoryUnboxed,
+            nightOwlSolves: $this->nightOwl,
+            competitorEvents: count($this->competitions),
+            onlineCompetitorResults: $this->onlineCompetition,
         );
     }
 

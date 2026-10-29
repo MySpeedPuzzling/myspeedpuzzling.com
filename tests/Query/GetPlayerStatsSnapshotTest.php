@@ -11,8 +11,13 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetPlayerStatsSnapshot;
 use SpeedPuzzling\Web\Services\ActivityCalendarStreakCalculator;
 use SpeedPuzzling\Web\Services\Badges\AchievementFirstMetDates;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Value\TimezoneIdentifier;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetPlayerStatsSnapshotTest extends KernelTestCase
@@ -29,6 +34,7 @@ final class GetPlayerStatsSnapshotTest extends KernelTestCase
         $this->query = new GetPlayerStatsSnapshot(
             $this->database,
             new ActivityCalendarStreakCalculator($container->get(ClockInterface::class)),
+            $container->get(ClockInterface::class),
         );
     }
 
@@ -65,6 +71,11 @@ final class GetPlayerStatsSnapshotTest extends KernelTestCase
         self::assertNull($snapshot->best1000PieceSoloSeconds);
         self::assertSame(0, $snapshot->weekendSolves);
         self::assertSame(0, $snapshot->catalogerApprovedPuzzles);
+        self::assertSame(0, $snapshot->muscleMemorySolves);
+        self::assertSame(0, $snapshot->muscleMemoryUnboxedSolves);
+        self::assertSame(0, $snapshot->nightOwlSolves);
+        self::assertSame(0, $snapshot->competitorEvents);
+        self::assertSame(0, $snapshot->onlineCompetitorResults);
     }
 
     public function testBest500PieceSoloSecondsIsSmallestValue(): void
@@ -314,6 +325,155 @@ SQL,
         self::assertSame($baseline->steadyHandsQuarters, $snapshot->steadyHandsQuarters);
     }
 
+    public function testMuscleMemoryCountsTheOwnSoloSolvesOfTheMostSolved500PiecePuzzle(): void
+    {
+        $player = PlayerFixture::PLAYER_WITH_FAVORITES;
+        $puzzle = PuzzleFixture::PUZZLE_500_04;
+        $existing = $this->soloSolvesOf($player, $puzzle);
+
+        // Counted: timed and relaxed solo solves, three of them unboxed
+        for ($i = 0; $i < 5; $i++) {
+            $this->insertSolve($player, $puzzle, trackedAt: new DateTimeImmutable('2020-03-0' . ($i + 1) . ' 12:00:00'));
+        }
+        $this->insertSolve($player, $puzzle, trackedAt: new DateTimeImmutable('2020-04-01 12:00:00'), seconds: null);
+        $this->insertSolve($player, $puzzle, trackedAt: new DateTimeImmutable('2020-04-02 12:00:00'), seconds: null, unboxed: true);
+        $this->insertSolve($player, $puzzle, trackedAt: new DateTimeImmutable('2020-04-03 12:00:00'), unboxed: true);
+        $this->insertSolve($player, $puzzle, trackedAt: new DateTimeImmutable('2020-04-04 12:00:00'), unboxed: true);
+        $this->insertSolve($player, $puzzle, trackedAt: new DateTimeImmutable('2020-04-05 12:00:00'));
+
+        // NOT counted: a suspicious solve, pair results (logged by the player or by a teammate) and another puzzle
+        $this->insertSolve($player, $puzzle, trackedAt: new DateTimeImmutable('2020-05-01 12:00:00'), unboxed: true, suspicious: true);
+        $this->insertSolve($player, $puzzle, trackedAt: new DateTimeImmutable('2020-05-02 12:00:00'), team: [$player, PlayerFixture::PLAYER_REGULAR], unboxed: true);
+        $this->insertSolve(PlayerFixture::PLAYER_REGULAR, $puzzle, trackedAt: new DateTimeImmutable('2020-05-03 12:00:00'), team: [PlayerFixture::PLAYER_REGULAR, $player], unboxed: true);
+        $this->insertSolve($player, PuzzleFixture::PUZZLE_1000_01, trackedAt: new DateTimeImmutable('2020-05-04 12:00:00'), unboxed: true);
+
+        $snapshot = $this->query->forPlayer($player);
+
+        self::assertSame($existing['solves'] + 10, $snapshot->muscleMemorySolves);
+        self::assertSame($existing['unboxed'] + 3, $snapshot->muscleMemoryUnboxedSolves);
+
+        // The history replay counts the same rows: it still ends at the snapshot, so the tiers can be dated
+        self::assertNotNull(self::getContainer()->get(AchievementFirstMetDates::class)->forPlayer($player));
+    }
+
+    public function testNightOwlCountsOwnResultsLoggedAtNightOnTheFinishDayInThePlayersTimeZone(): void
+    {
+        $player = PlayerFixture::PLAYER_WITH_FAVORITES;
+        $puzzle = PuzzleFixture::PUZZLE_500_04;
+
+        // Without a time zone nothing counts
+        $this->database->executeStatement('UPDATE player SET timezone = NULL WHERE id = :id', ['id' => $player]);
+        $this->insertSolve($player, $puzzle, trackedAt: new DateTimeImmutable('2020-06-01 21:30:00'), finishedAt: new DateTimeImmutable('2020-06-01'));
+        self::assertSame(0, $this->query->forPlayer($player)->nightOwlSolves);
+
+        $this->database->executeStatement("UPDATE player SET timezone = 'Europe/Prague' WHERE id = :id", ['id' => $player]);
+        $baseline = $this->query->forPlayer($player)->nightOwlSolves;
+
+        // Counted (Prague = UTC+2 in June): 03:30 on the finish day; the 23:30 one above counts now too
+        $this->insertSolve($player, $puzzle, trackedAt: new DateTimeImmutable('2020-06-03 01:30:00'), finishedAt: new DateTimeImmutable('2020-06-03'));
+
+        // NOT counted: 04:30, 21:30, logged the day after finishing, a pair result a teammate logged at night
+        $this->insertSolve($player, $puzzle, trackedAt: new DateTimeImmutable('2020-06-04 02:30:00'), finishedAt: new DateTimeImmutable('2020-06-04'));
+        $this->insertSolve($player, $puzzle, trackedAt: new DateTimeImmutable('2020-06-05 19:30:00'), finishedAt: new DateTimeImmutable('2020-06-05'));
+        $this->insertSolve($player, $puzzle, trackedAt: new DateTimeImmutable('2020-06-06 21:30:00'), finishedAt: new DateTimeImmutable('2020-06-05'));
+        $this->insertSolve(PlayerFixture::PLAYER_REGULAR, $puzzle, trackedAt: new DateTimeImmutable('2020-06-07 21:30:00'), finishedAt: new DateTimeImmutable('2020-06-07'), team: [PlayerFixture::PLAYER_REGULAR, $player]);
+
+        self::assertSame($baseline + 1, $this->query->forPlayer($player)->nightOwlSolves);
+        self::assertNotNull(self::getContainer()->get(AchievementFirstMetDates::class)->forPlayer($player));
+    }
+
+    public function testPostgresKnowsEveryTimeZoneAPlayerCanHave(): void
+    {
+        // Night Owl converts with AT TIME ZONE: a zone Postgres does not know would fail the whole snapshot
+        /** @var list<string> $unknown */
+        $unknown = $this->database->executeQuery(
+            'SELECT zone FROM unnest(CAST(:zones AS text[])) AS zone WHERE zone NOT IN (SELECT name FROM pg_timezone_names)',
+            ['zones' => '{' . implode(',', TimezoneIdentifier::all()) . '}'],
+        )->fetchFirstColumn();
+
+        self::assertSame([], $unknown);
+    }
+
+    public function testCompetitorCountsFinishedInPersonCompetitionsTakenPartInOnce(): void
+    {
+        $player = PlayerFixture::PLAYER_WITH_FAVORITES;
+        $baseline = $this->query->forPlayer($player)->competitorEvents;
+
+        // Connected participant of a past event
+        $this->insertParticipant(EventsPageFixture::COMPETITION_VALLEY_CUP_LAST_YEAR, $player);
+        // Only in a pair result a teammate linked to another past event
+        $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, trackedAt: new DateTimeImmutable('2020-06-01 12:00:00'), team: [PlayerFixture::PLAYER_REGULAR, $player], competitionId: EventsPageFixture::COMPETITION_VALLEY_CUP_TWO_YEARS_AGO);
+        // Both connected and with a result: one event
+        $this->insertParticipant(OfficialResultsFixture::COMPETITION_RESULTS_CUP, $player);
+        $this->insertSolve($player, PuzzleFixture::PUZZLE_500_04, trackedAt: new DateTimeImmutable('2020-06-02 12:00:00'), competitionId: OfficialResultsFixture::COMPETITION_RESULTS_CUP);
+
+        // NOT counted: an event still to come, a removed participant, a suspicious result, an online event
+        $this->insertParticipant(CompetitionFixture::COMPETITION_WJPC_2024, $player);
+        $this->insertParticipant(EventsPageFixture::COMPETITION_VALLEY_CUP_LAST_YEAR, $player, deleted: true);
+        $this->insertSolve($player, PuzzleFixture::PUZZLE_500_04, trackedAt: new DateTimeImmutable('2020-06-03 12:00:00'), suspicious: true, competitionId: EventsPageFixture::COMPETITION_VALLEY_CUP_TWO_YEARS_AGO);
+        $this->insertParticipant(OnlineRoundsFixture::COMPETITION_ONLINE_TEST_CUP, $player);
+
+        self::assertSame($baseline + 3, $this->query->forPlayer($player)->competitorEvents);
+        self::assertNotNull(self::getContainer()->get(AchievementFirstMetDates::class)->forPlayer($player));
+
+        // A puzzle swap is no competition
+        $this->database->executeStatement(
+            "UPDATE competition SET event_types = '[\"puzzle_swap\"]' WHERE id = :id",
+            ['id' => EventsPageFixture::COMPETITION_VALLEY_CUP_LAST_YEAR],
+        );
+
+        self::assertSame($baseline + 2, $this->query->forPlayer($player)->competitorEvents);
+    }
+
+    public function testOnlineCompetitorCountsEveryResultAtOnlineCompetitions(): void
+    {
+        $player = PlayerFixture::PLAYER_WITH_FAVORITES;
+        $baseline = $this->query->forPlayer($player)->onlineCompetitorResults;
+
+        // Counted: own results and a pair result a teammate linked, each one
+        $this->insertSolve($player, PuzzleFixture::PUZZLE_500_04, trackedAt: new DateTimeImmutable('2020-06-01 12:00:00'), competitionId: EventsPageFixture::COMPETITION_ENDLESS_RELAY);
+        $this->insertSolve($player, PuzzleFixture::PUZZLE_500_04, trackedAt: new DateTimeImmutable('2020-06-08 12:00:00'), competitionId: EventsPageFixture::COMPETITION_ENDLESS_RELAY);
+        $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, trackedAt: new DateTimeImmutable('2020-06-15 12:00:00'), team: [PlayerFixture::PLAYER_REGULAR, $player], competitionId: EventsPageFixture::COMPETITION_ENDLESS_RELAY);
+
+        // NOT counted: suspicious, an in-person competition, a draft (the Online Test Cup)
+        $this->insertSolve($player, PuzzleFixture::PUZZLE_500_04, trackedAt: new DateTimeImmutable('2020-06-30 12:00:00'), competitionId: OnlineRoundsFixture::COMPETITION_ONLINE_TEST_CUP);
+        $this->insertSolve($player, PuzzleFixture::PUZZLE_500_04, trackedAt: new DateTimeImmutable('2020-06-22 12:00:00'), suspicious: true, competitionId: EventsPageFixture::COMPETITION_ENDLESS_RELAY);
+        $this->insertSolve($player, PuzzleFixture::PUZZLE_500_04, trackedAt: new DateTimeImmutable('2020-06-29 12:00:00'), competitionId: EventsPageFixture::COMPETITION_VALLEY_CUP_LAST_YEAR);
+
+        self::assertSame($baseline + 3, $this->query->forPlayer($player)->onlineCompetitorResults);
+        self::assertNotNull(self::getContainer()->get(AchievementFirstMetDates::class)->forPlayer($player));
+    }
+
+    private function insertParticipant(string $competitionId, string $playerId, bool $deleted = false): void
+    {
+        $this->database->executeStatement(
+            "INSERT INTO competition_participant (id, name, country, competition_id, source, player_id, connected_at, deleted_at)
+             VALUES (:id, 'Test participant', NULL, :competitionId, 'self_joined', :playerId, '2020-01-01 10:00:00', :deletedAt)",
+            [
+                'id' => Uuid::uuid7()->toString(),
+                'competitionId' => $competitionId,
+                'playerId' => $playerId,
+                'deletedAt' => $deleted ? '2020-01-02 10:00:00' : null,
+            ],
+        );
+    }
+
+    /**
+     * @return array{solves: int, unboxed: int}
+     */
+    private function soloSolvesOf(string $playerId, string $puzzleId): array
+    {
+        /** @var array{solves: int|string, unboxed: int|string} $row */
+        $row = $this->database->executeQuery(
+            "SELECT COUNT(*) AS solves, COUNT(*) FILTER (WHERE unboxed = true) AS unboxed
+             FROM puzzle_solving_time
+             WHERE player_id = :playerId AND puzzle_id = :puzzleId AND puzzling_type = 'solo' AND suspicious = false",
+            ['playerId' => $playerId, 'puzzleId' => $puzzleId],
+        )->fetchAssociative();
+
+        return ['solves' => (int) $row['solves'], 'unboxed' => (int) $row['unboxed']];
+    }
+
     /**
      * Mirrors the puzzle_solving_time INSERT used by XpChainRecomputerTest — DAMA rolls the
      * row back after each test.
@@ -327,6 +487,9 @@ SQL,
         null|DateTimeImmutable|false $finishedAt = false,
         null|array $team = null,
         bool $suspicious = false,
+        null|int $seconds = 3600,
+        bool $unboxed = false,
+        null|string $competitionId = null,
     ): void {
         $teamJson = null;
         $puzzlingType = 'solo';
@@ -355,10 +518,10 @@ SQL,
             'INSERT INTO puzzle_solving_time
                 (id, seconds_to_solve, player_id, puzzle_id, tracked_at, verified, team, finished_at,
                  comment, finished_puzzle_photo, first_attempt, unboxed, puzzlers_count, puzzling_type,
-                 suspicious, pieces_count_snapshot)
+                 suspicious, pieces_count_snapshot, competition_id)
              VALUES
-                (:id, 3600, :playerId, :puzzleId, :trackedAt, true, :team, :finishedAt,
-                 NULL, NULL, true, false, :puzzlersCount, :puzzlingType, :suspicious, 500)',
+                (:id, :seconds, :playerId, :puzzleId, :trackedAt, true, :team, :finishedAt,
+                 NULL, NULL, true, :unboxed, :puzzlersCount, :puzzlingType, :suspicious, 500, :competitionId)',
             [
                 'id' => Uuid::uuid7()->toString(),
                 'playerId' => $playerId,
@@ -369,6 +532,9 @@ SQL,
                 'puzzlersCount' => $puzzlersCount,
                 'puzzlingType' => $puzzlingType,
                 'suspicious' => (int) $suspicious,
+                'seconds' => $seconds,
+                'unboxed' => (int) $unboxed,
+                'competitionId' => $competitionId,
             ],
         );
     }

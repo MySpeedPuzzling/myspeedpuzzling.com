@@ -67,6 +67,12 @@ BADGES = (
     Badge("librarian",            "librarian",       D.librarian,         TIERED,  "Librarian"),
     Badge("weekend_puzzler",      "weekend-puzzler", D.weekend_puzzler,   TIERED,  "Weekend Puzzler"),
     Badge("cataloger",            "cataloger",       D.cataloger,         TIERED,  "Cataloger"),
+    Badge("muscle_memory",        "muscle-memory",   D.muscle_memory,     TIERED,  "Muscle Memory"),
+    Badge("muscle_memory_unboxed", "muscle-memory-unboxed", D.muscle_memory_unboxed, TIERED,
+          "Muscle Memory (unboxed)"),
+    Badge("night_owl",            "night-owl",       D.night_owl,         TIERED,  "Night Owl"),
+    Badge("competitor",           "competitor",      D.competitor,        TIERED,  "Competitor"),
+    Badge("online_competitor",    "online-competitor", D.online_competitor, TIERED, "Online Competitor"),
     Badge("supporter",            "supporter",       D.supporter,         SINGLE,  "Supporter", set_colour="coral"),
 )
 

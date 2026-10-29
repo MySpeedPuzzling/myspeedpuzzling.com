@@ -1,6 +1,6 @@
 # Badge art generator (`tools/badge-art`)
 
-This tool draws every achievement badge image of MySpeedPuzzling: 17 badge types, 81 badge images, each as an
+This tool draws every achievement badge image of MySpeedPuzzling: 22 badge types, 106 badge images, each as an
 optimised SVG plus WebP and PNG rasters. Everything is generated from code in this directory and committed:
 - the art in `public/img/badges/`;
 - the icon sources in `icons/svg/`;
@@ -517,6 +517,31 @@ stay mirror-symmetric and checked.
 Every variant draws an icon named `unboxed`, so swapping is one word in `registry.py`. Previews:
 `badge-lab/review/unboxed-options.png` and `unboxed-final.png`.
 
+### Muscle Memory icons (2026-10-28, redrawn 2026-10-29)
+Two tiered badges added after v1: `muscle_memory` (the same 500-piece puzzle solved solo again and again) and
+`muscle_memory_unboxed` (the same, without looking at the box). Both are drawn by `repeat_arrow()` in `icons/draw.py`.
+- **Owner pick 2026-10-29: concept (d) of the repeat sheet.** One big replay arrow in the tier colour is the hero: a
+  ~295 deg band (centre lines r 24 and 38; thinned from 21 on 2026-10-29) opening at the top right, its head pointing clockwise at its own tail,
+  around an empty centre. No hub ring and no piece: the first version (a big 4-knob piece with arcs behind it) read as
+  Puzzle Explorer.
+- **The unboxed sibling** puts the set's unboxed mark, the crossed-out eye, in the centre: tier almond, white iris,
+  navy pupil, the slash in a white keyline. The slash stops well inside the band (owner 2026-10-29: a separate mark,
+  like on the unboxed badge). An unoutlined white card sits under the eye, its edge hidden under the band's inner
+  outline: invisible on the plate, but it joins the free-standing eye to the arrow for the no-detached-parts gate, and
+  the eye's thinner lines no longer border transparency (the outline-width gate would read them as the outer outline).
+- The centre eye is 34 units wide (28 before the band was thinned), its slash 31 long. Measured: all gates pass,
+  53.0 % of the badge, visible accent 0.46 / 0.37.
+
+### Night Owl, Competitor, Online Competitor icons (2026-10-28, revised 2026-10-29 after Jan's review)
+- **`night-owl`**: a fat crescent moon in the tier colour with three pale craters, nothing else (Jan dropped the star).
+  No owl: icons never draw animals with faces (rule 1). Not mirror-symmetric (`symmetric=False`).
+- **`competitor`**: `trophy()` - a plain cup in the tier colour (no print), two navy handles, a stem and a two-step
+  base. The handles start inside the cup and are clipped by it, so each ends exactly in the cup's outline (an earlier
+  version's handle caps poked past the cup edge).
+- **`online-competitor`**: the same trophy with a navy Wi-Fi sign on the cup (a dot and two 4.4-unit arcs): navy, not
+  a white print, so it keeps its contrast on every tier tint. Jan dropped the earlier monitor pedestal.
+- Measured: all gates pass; 53.0 / 49.8 / 49.8 % of the badge, visible accent 0.60 / 0.49 / 0.41.
+
 ## Last-piece reveal geometry (`reveal/geometry.py`)
 - **What it writes:** the badge reveal and the XP launch reveal use a 3 × 3 jigsaw cut. The script writes it as:
   - `assets/last_piece_reveal/geometry.json`: the piece outlines, bounding boxes, slots and centroids, the seams,
@@ -580,6 +605,11 @@ Every variant draws an icon named `unboxed`, so swapping is one word in `registr
 | `librarian` | `librarian` | tiered | open book with a bookmark |
 | `weekend_puzzler` | `weekend-puzzler` | tiered | sofa |
 | `cataloger` | `cataloger` | tiered | clipboard with a plus badge |
+| `muscle_memory` | `muscle-memory` | tiered | one big replay arrow |
+| `muscle_memory_unboxed` | `muscle-memory-unboxed` | tiered | the same, with unboxed's crossed-out eye in its centre |
+| `night_owl` | `night-owl` | tiered | crescent moon with craters |
+| `competitor` | `competitor` | tiered | trophy |
+| `online_competitor` | `online-competitor` | tiered | the competitor trophy with a Wi-Fi sign |
 | `supporter` | `supporter` | single (coral / coral) | heart |
 
 ## Origins and licence

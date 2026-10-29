@@ -22,7 +22,7 @@ Invariants:
 
 ## Achievements and their tiers
 
-16 tiered achievements (Bronze → Diamond) + the single-tier Early Adopter (`supporter`, admin-granted, no automation).
+21 tiered achievements (Bronze → Diamond) + the single-tier Early Adopter (`supporter`, admin-granted, no automation).
 The thresholds live in `src/BadgeConditions/*` (one class per type); the texts in `badges.requirement.<type>_<tier>`
 (6 locales). Achievement Points per tier: 5 / 10 / 25 / 50 / 100.
 
@@ -44,6 +44,11 @@ The thresholds live in `src/BadgeConditions/*` (one class per type); the texts i
 | Librarian | `librarian` | 5 / 15 / 30 / 50 / 100 | Accepted catalog change proposals |
 | Weekend Puzzler | `weekend_puzzler` | 10 / 50 / 150 / 300 / 600 | Solves on Saturdays and Sundays |
 | Cataloger | `cataloger` | 5 / 15 / 50 / 150 / 300 | Approved puzzles the player added to the catalog |
+| Muscle Memory | `muscle_memory` | 3 / 8 / 15 / 30 / 50 | Most solo solves of one 500-piece puzzle (relaxed ones too) |
+| Muscle Memory (unboxed) | `muscle_memory_unboxed` | 2 / 4 / 8 / 15 / 25 | The same, only solves without looking at the box |
+| Night Owl | `night_owl` | 10 / 30 / 75 / 150 / 250 | Own results logged 22:00-04:00 in the player's time zone on the finish day |
+| Competitor | `competitor` | 1 / 3 / 6 / 12 / 25 | Ended public in-person competitions taken part in |
+| Online Competitor | `online_competitor` | 2 / 6 / 12 / 25 / 50 | Results linked to public online competitions |
 
 **Every solve metric counts the player's own results and the pair/team results they were in, whoever logged them** -
 like the solved puzzles page (only the two Speed Demons look at the player's own solo times). Until 2026-10-12 seven of
@@ -69,6 +74,40 @@ and `/root/achievements-redate-2026-10-12-undo.csv` on lily):
    `/root/achievements-catchup-2026-10-12-undo.csv` on lily). **Start a recount only after the deploy has finished**
    (`run-queue: END` in `/var/log/lily/deploy.log`): the consumer is restarted at its end, and a message the old one
    takes is evaluated by the old rule.
+
+### The five added 2026-10-28
+
+Jan's calls (2026-10-28), each ladder chosen against the holder shares of the existing achievements on production
+(8,396 puzzlers = the rarity denominator). The SQL of the last three lives once in `Query\AchievementSqlRules`, read by
+`GetPlayerStatsSnapshot` and the history replay alike.
+
+- **Muscle Memory** - repeating the very same puzzle until the hands know it. Only exactly 500 pieces, so nobody gets an
+  edge from small puzzles (below 500 pieces people repeat puzzles four times as often; 81 % of all repeat solves are
+  500s anyway), and **solo only** - the player's own solo results, relaxed ones counted, never a suspicious one. The
+  value is the most-solved puzzle's count. Holders at launch: 31.2 / 6.7 / 1.4 / 0.17 / 0.02 % (Diamond: 2 players).
+- **Muscle Memory (unboxed)** - the same rule on the unboxed solo solves, the main ladder halved (Diamond 25 has one
+  holder; 50 had none - the best was 47). 2.2 / 0.57 / 0.11 / 0.04 / 0.01 %, about Marathoner's rarity.
+- **Night Owl** (GitHub #149) - only players with a time zone (`player.timezone`, docs/features/player-timezone.md)
+  can earn it. A result has no solve clock - `finished_at` is the day the player typed - so the moment is the logging
+  (`tracked_at`, UTC) converted to the player's zone, and it counts only when that local day is the finish day: logged
+  right after finishing = the solve moment. 22:00-04:00, own results only (a pair result a teammate logged carries the
+  teammate's moment). Shares of the 973 puzzlers with a time zone: 44 / 24.5 / 8.6 / 2.9 / 0.8 % - on the catalogue
+  (all puzzlers) it looks rarer until more players set one. **Every zone `TimezoneIdentifier` lists must be known to
+  Postgres** (`AT TIME ZONE` fails the whole snapshot otherwise): `testPostgresKnowsEveryTimeZoneAPlayerCanHave` guards
+  it - dev's pinned `postgres:16.0` lacks `America/Coyhaique` (tzdata 2025b), production (16.14) and CI (`postgres:16`)
+  have it.
+- **Competitor** (GitHub #148) - public in-person competitions (`IsCompetitionPubliclyVisible`, drafts never) that
+  **have ended** (the day after `COALESCE(date_to, date_from)`, UTC) and that the player took part in: connected as a
+  participant ("I'm going", an organiser's import or a manual entry) **or** in a result linked to it (own or pair/team)
+  - many past competitors were never connected and only linked their time. Only competitions: no kind set, or a kind
+  list with "competition" (an edition without its own kinds has its series'); swaps, workshops and casual meetups do
+  not count. Dated in the replay at the day after the end, or later when the connection/result came later.
+  10.4 % at Bronze connected-only, 20.5 / 5.6 / 1.3 / 0.06 / 0 % with linked results (Jan: count both; Diamond 25 is
+  a target, nobody has more than 11 events yet).
+- **Online Competitor** - online events are mostly one undated entry holding every session ("Speed Puzzling.com",
+  "Puzzle Rush"), and only 5 players were ever connected to one against 805 with results, so the unit is the
+  **result**: every result linked to a public online competition of the competition kind, or to an online series
+  without an edition. Twice the in-person ladder: 6.8 / 3.3 / 1.55 / 0.54 / 0.13 %.
 
 ### Calibration (2026-10-11)
 

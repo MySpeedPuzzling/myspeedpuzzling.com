@@ -7,6 +7,8 @@ namespace SpeedPuzzling\Web\Services\Badges;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Query\AchievementSqlRules;
 use SpeedPuzzling\Web\BadgeConditions\BadgeConditionInterface;
 use SpeedPuzzling\Web\Query\GetPlayerStatsSnapshot;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
@@ -35,6 +37,7 @@ readonly class AchievementFirstMetDates
         private iterable $conditions,
         private Connection $database,
         private GetPlayerStatsSnapshot $getPlayerStatsSnapshot,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -45,7 +48,12 @@ readonly class AchievementFirstMetDates
      */
     public function forPlayer(string $playerId): null|array
     {
-        $events = [...$this->solveEvents($playerId), ...$this->librarianEvents($playerId), ...$this->catalogerEvents($playerId)];
+        $events = [
+            ...$this->solveEvents($playerId),
+            ...$this->librarianEvents($playerId),
+            ...$this->catalogerEvents($playerId),
+            ...$this->competitorEvents($playerId),
+        ];
 
         // In time order; an event without a known moment last (a tier it completes gets no date)
         usort($events, static fn (array $a, array $b): int => [$a['at'] === null, $a['at']] <=> [$b['at'] === null, $b['at']]);
@@ -95,6 +103,10 @@ readonly class AchievementFirstMetDates
      */
     private function solveEvents(string $playerId): array
     {
+        $competitionJoins = AchievementSqlRules::RESULT_COMPETITION_JOINS;
+        $nightOwl = AchievementSqlRules::IS_NIGHT_OWL_RESULT;
+        $onlineCompetition = AchievementSqlRules::IS_ONLINE_COMPETITION_RESULT;
+
         $sql = <<<SQL
 SELECT
     'solve' AS kind,
@@ -112,6 +124,8 @@ SELECT
     COALESCE(pst.finished_at, pst.tracked_at) >= '2000-01-01' AS dated,
     CAST(EXTRACT(YEAR FROM COALESCE(pst.finished_at, pst.tracked_at)) AS INTEGER) AS solve_year,
     CAST(EXTRACT(QUARTER FROM COALESCE(pst.finished_at, pst.tracked_at)) AS INTEGER) AS solve_quarter,
+    {$nightOwl} AS night_owl,
+    {$onlineCompetition} AS online_competition,
     TO_CHAR(
         CASE
             WHEN pst.finished_at IS NOT NULL AND pst.finished_at <= pst.tracked_at AND pst.finished_at >= '2000-01-01'
@@ -122,6 +136,8 @@ SELECT
     ) AS at
 FROM puzzle_solving_time pst
 JOIN puzzle p ON p.id = pst.puzzle_id
+LEFT JOIN player owning_player ON owning_player.id = CAST(:playerId AS UUID)
+{$competitionJoins}
 WHERE pst.suspicious = false
   AND (
     pst.player_id = :playerId
@@ -171,6 +187,27 @@ SQL;
         return array_map(
             static fn (array $row): array => AchievementReplayState::other('cataloger', $row['at'] ?? null),
             $this->database->executeQuery($sql, ['playerId' => $playerId])->fetchAllAssociative(),
+        );
+    }
+
+    /**
+     * Competitor: a competition counts from the day after it ended, or from when the player was connected to it or
+     * linked a result there if that came later
+     *
+     * @return list<ReplayEvent>
+     */
+    private function competitorEvents(string $playerId): array
+    {
+        return array_map(
+            static fn (array $row): array => AchievementReplayState::other(
+                'competitor',
+                $row['at'] ?? null,
+                is_string($row['competition_id'] ?? null) ? $row['competition_id'] : '',
+            ),
+            $this->database->executeQuery(AchievementSqlRules::COMPETITOR_EVENTS, [
+                'playerId' => $playerId,
+                'today' => GetPlayerStatsSnapshot::today($this->clock),
+            ])->fetchAllAssociative(),
         );
     }
 }

@@ -848,3 +848,170 @@ def supporter():
     light(ic, "accent", heart, tl={"thresh": 0.35, "trim": 0.1}, br={"thresh": 0.45})
     ic.line(heart)
     return ic
+
+
+# =============================================================================================== 17 muscle-memory
+# Owner 2026-10-29: concept (d) of the repeat sheet - one big replay arrow is the hero, nothing in its open centre
+# (no hub ring, no piece: a big piece made the first version read as Puzzle Explorer). The unboxed sibling puts the
+# set's unboxed mark (the crossed-out eye) into the centre.
+MM_R_IN, MM_R_OUT = 24.0, 38.0          # the arrow band (centre lines of its two outlines)
+
+
+def replay_arrow(cx, cy, r_in, r_out, a0, a1, barb, tip_deg):
+    """A thick circular arrow: the annular band from clock angle a0 clockwise to a1, ending in an arrowhead whose barbs
+    stand `barb` beyond both edges and whose tip lies tip_deg further on the band's middle; corners softened."""
+    from shapely.geometry import Polygon
+    rm = (r_in + r_out) / 2
+    n = max(8, int(abs(a1 - a0) / 3))
+    pts = [clock(cx, cy, r_out, a0 + (a1 - a0) * i / n) for i in range(n + 1)]
+    pts += [clock(cx, cy, r_out + barb, a1), clock(cx, cy, rm, a1 + tip_deg), clock(cx, cy, r_in - barb, a1)]
+    pts += [clock(cx, cy, r_in, a1 - (a1 - a0) * i / n) for i in range(n + 1)]
+    return shapely_path(Polygon(pts).buffer(1.2, join_style="round").buffer(-1.2, join_style="round"))
+
+
+def repeat_arrow(ic, eye=False):
+    """The shared muscle-memory body: one big replay arrow in the tier colour (a ~295 deg band opening at the top
+    right, its head pointing clockwise at its own tail) around an empty centre - the same puzzle, again and again.
+    eye=True puts unboxed's crossed-out eye in the centre (see centre_eye)."""
+    cx = cy = 50.0
+    band = replay_arrow(cx, cy, MM_R_IN, MM_R_OUT, 70.0, 365.0, 5.0, 32.0)
+    ic.fill("accent", band, "acc", cls="asym")
+    light(ic, "accent", band, tl={"thresh": 0.4, "min_len": 5.0}, glint=False, br={"thresh": 0.45})
+    if eye:
+        # an unoutlined white card under the eye, its edge hidden under the band's inner outline: nothing shows on the
+        # white plate (no ring - owner), but it joins the free-standing eye to the arrow (no detached part) and the
+        # eye's thinner lines no longer border transparency, so the outline gate measures only the one 4.5 outline
+        ic.fill("face", circle(cx, cy, MM_R_IN + 0.5), "#ffffff")
+        centre_eye(ic, cx, cy)
+    ic.line(band, cls="asym")
+    if eye:
+        centre_eye_ink(ic, cx, cy)
+    return ic
+
+
+EYE_SLASH_HALF = 15.5                   # slash half-length: unboxed's ratio to the almond (0.91 x half-width); its
+                                        # round tips end ~4.5 units inside the band's inner outline
+EYE_W = 34.0                            # the centre eye: almond width (its tips stay 7 units off the band's inner line)
+
+
+def _centre_eye_shapes(cx, cy):
+    w, eh = EYE_W, EYE_W * 0.575
+    R = ((w / 2) ** 2 + (eh / 2) ** 2) / eh
+    almond = Path().M(cx - w / 2, cy).A(R, cx + w / 2, cy, 0, 1).A(R, cx - w / 2, cy, 0, 1).Z()
+    iris = circle(cx, cy, w * 0.25)
+    kw = 3.6 + 4.0
+    key = rrect(cx, cy, 2 * EYE_SLASH_HALF + kw, kw, kw / 2, 45.0)   # the keyline along the whole slash
+    return almond, iris, key
+
+
+def centre_eye(ic, cx, cy):
+    """unboxed's mark, small, in the open centre: the almond in the tier tint, a white iris, and the white keyline
+    band of the slash (accent layer)."""
+    almond, iris, key = _centre_eye_shapes(cx, cy)
+    ic.fill("accent", Path().extend(almond).extend(iris), "acc", rule="evenodd")
+    ic.fill("accent", iris, "#ffffff")
+    ic.fill("accent", key, "#ffffff", cls="asym")
+
+
+def centre_eye_ink(ic, cx, cy):
+    """The eye's navy parts: almond outline stopping at the keyline, iris ring, pupil and the slash. The slash stops
+    well inside the band (owner 2026-10-29: the eye is a separate mark, like on the unboxed badge); the white card
+    under the eye (repeat_arrow) joins it to the arrow for the no-detached-parts gate without showing on the plate."""
+    almond, iris, key = _centre_eye_shapes(cx, cy)
+    ic.clip_out("eye-key", key)
+    ic.line(almond, width=3.4, clip="eye-key", cls="asym")
+    ic.line(iris, width=2.6)
+    ic.ink(circle(cx, cy, EYE_W * 0.105))
+    u = math.cos(math.radians(45.0))
+    half = EYE_SLASH_HALF
+    ic.line(line(cx - u * half, cy - u * half, cx + u * half, cy + u * half), width=3.6, cls="asym")
+
+
+def muscle_memory():
+    ic = Icon("muscle-memory", "Muscle Memory - a replay arrow", symmetric=False,
+              notes="one big replay arrow in the tier colour around an empty centre, its head pointing clockwise at "
+                    "its own tail: the same puzzle solved again and again")
+    return repeat_arrow(ic)
+
+
+def muscle_memory_unboxed():
+    ic = Icon("muscle-memory-unboxed", "Muscle Memory (unboxed) - the replay arrow with unboxed's crossed-out eye",
+              symmetric=False,
+              notes="muscle-memory's replay arrow with unboxed's crossed-out eye in its centre (tier almond, white "
+                    "iris, navy pupil, navy slash in a white keyline, the slash running on to the arrow): the same "
+                    "puzzle again and again, without looking at the box")
+    return repeat_arrow(ic, eye=True)
+
+
+# =============================================================================================== 18 night-owl
+def night_owl():
+    ic = Icon("night-owl", "Night Owl - crescent moon", symmetric=False,
+              notes="a fat crescent moon in the tier colour (opening to the upper right) with three pale craters: "
+                    "puzzling late at night. No owl: the icons never draw animals with faces")
+    cx, cy, R = 50.0, 50.0, 40.0                # the moon's disc
+    ox, oy, r = 67.0, 35.0, 31.0                # the bite: a circle up and to the right
+    d = math.hypot(ox - cx, oy - cy)
+    a = (R * R - r * r + d * d) / (2 * d)       # circle-circle intersection
+    hgt = math.sqrt(R * R - a * a)
+    ux, uy = (ox - cx) / d, (oy - cy) / d
+    mx, my = cx + ux * a, cy + uy * a
+    p1 = (mx - uy * hgt, my + ux * hgt)         # lower-right horn
+    p2 = (mx + uy * hgt, my - ux * hgt)         # upper-left horn
+    moon = Path().M(*p2).A(R, *p1, 1, 0).A(r, *p2, 0, 1).Z()
+    ic.fill("accent", moon, "acc")
+    light(ic, "accent", moon, tl={"thresh": 0.4, "trim": 0.12}, br={"thresh": 0.45})
+    craters = [circle(31.0, 62.0, 5.4), circle(42.0, 77.0, 3.4), circle(24.0, 45.0, 3.0)]
+    for c in craters:
+        ic.fill("accent", c, "acc-pale", cls="asym")
+    ic.line(moon)
+    for c in craters:
+        ic.line(c, width=2.6, cls="asym")
+    return ic
+
+
+# =============================================================================================== 19 competitor
+def trophy(ic, mark=None):
+    """A plain trophy cup in the tier colour with two navy handles, a stem and a two-step base. The handles start
+    inside the cup and are clipped by it, so each one ends exactly in the cup's outline (no cap pokes into the cup or
+    out of the silhouette). mark="wifi" draws competitor's online sibling: a navy Wi-Fi sign (dot + two thick arcs)
+    on the cup - navy, not a white print, so it keeps its contrast on every tier tint (silver included)."""
+    cup = Path().M(25.0, 14.0).L(75.0, 14.0).C(75.0, 40.0, 64.0, 55.0, 50.0, 57.0).C(36.0, 55.0, 25.0, 40.0,
+                                                                                       25.0, 14.0).Z()
+    stem = round_poly([(45.0, 55.0), (55.0, 55.0), (57.0, 69.0), (43.0, 69.0)], [0, 0, 1.0, 1.0])
+    base = rrect(50.0, 76.0, 34.0, 10.0, 4.0)
+    plinth = rrect(50.0, 86.0, 46.0, 10.0, 5.0)
+    hy0, hy1 = 21.0, 40.0
+    right = Path().M(66.0, hy0).L(73.0, hy0).C(91.0, hy0 - 1.0, 91.0, hy1 + 1.0, 68.0, hy1)
+    left = right.mirrored(50.0)
+    for part in (plinth, base, stem):
+        ic.fill("accent", part, "acc")
+    ic.fill("accent", cup, "acc")
+    light(ic, "accent", cup, tl={"thresh": 0.35, "trim": 0.12}, br={"thresh": 0.45})
+    light(ic, "accent", plinth, tl={"thresh": 0.3}, glint=False, shade=False)
+    ic.clip_out("cup", cup)
+    ic.line(right, clip="cup")
+    ic.line(left, clip="cup")
+    ic.line(stem)
+    ic.line(base)
+    ic.line(plinth)
+    ic.line(cup)
+    if mark == "wifi":
+        wx, wy = 50.0, 43.0
+        ic.ink(circle(wx, wy, 3.6))
+        for rr in (11.0, 20.0):
+            ic.line(arc(wx, wy, rr, -44.0, 44.0), width=4.4)
+    return ic
+
+
+def competitor():
+    ic = Icon("competitor", "Competitor - trophy", symmetric=True,
+              notes="a plain trophy cup in the tier colour with two navy handles, a stem and a two-step base: "
+                    "puzzle competitions in person")
+    return trophy(ic)
+
+
+def online_competitor():
+    ic = Icon("online-competitor", "Online Competitor - the competitor trophy with a Wi-Fi sign", symmetric=True,
+              notes="competitor's trophy (same cup, handles, stem, base, tier colour) with a navy Wi-Fi sign on the "
+                    "cup - a dot and two thick arcs: the same competition, online")
+    return trophy(ic, mark="wifi")

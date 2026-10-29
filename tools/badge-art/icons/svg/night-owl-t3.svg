@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+<!-- MSP illustrated icon "night-owl" (Night Owl - crescent moon) - T3 Gold (butter gold). Own work (badge lab IK1), free to use. Layers: face (constant), accent (tier tint), outline (navy #2b3445, 4.5/100, round). a fat crescent moon in the tier colour (opening to the upper right) with three pale craters: puzzling late at night. No owl: the icons never draw animals with faces -->
+<defs><linearGradient id="night-owl-t3-acc" x1="0.12" y1="0.04" x2="0.88" y2="0.96"><stop offset="0" stop-color="#ffe6bc"/><stop offset="0.52" stop-color="#fcc84e"/><stop offset="1" stop-color="#ebb732"/></linearGradient><linearGradient id="night-owl-t3-acc-pale" x1="0.12" y1="0.04" x2="0.88" y2="0.96"><stop offset="0" stop-color="#fffaea"/><stop offset="1" stop-color="#fdebb5"/></linearGradient></defs>
+<g id="face">
+
+</g>
+<g id="accent">
+<path d="M48.95 12.25A37.76 37.76 0 1 0 87.52 55.96A29.26 29.26 0 0 1 48.95 12.25Z" fill="url(#night-owl-t3-acc)"/>
+<path d="M35.38 18.9C34.95 19.13 33.63 19.78 32.79 20.28C31.94 20.77 31.12 21.31 30.32 21.87C29.52 22.44 28.75 23.04 28 23.67C27.25 24.3 26.53 24.96 25.84 25.66C25.15 26.35 24.49 27.07 23.86 27.82C23.23 28.57 22.63 29.35 22.07 30.14C21.51 30.94 20.98 31.77 20.48 32.61C19.99 33.46 19.53 34.33 19.11 35.21C18.69 36.09 18.31 37 17.97 37.91C17.62 38.83 17.32 39.76 17.06 40.7C16.79 41.64 16.57 42.6 16.39 43.56C16.2 44.52 16.06 45.49 15.96 46.46C15.86 47.44 15.8 48.42 15.79 49.39C15.77 50.37 15.79 51.35 15.86 52.33C15.93 53.3 16.12 54.68 16.18 55.24C16.25 55.81 16.25 55.65 16.26 55.73" fill="none" stroke="#ffffff" stroke-opacity="0.85" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="37.96" cy="17.53" r="0.99" fill="#ffffff" fill-opacity="0.85"/>
+<path d="M45.44 84.11C45.93 84.16 47.39 84.34 48.36 84.39C49.34 84.45 50.32 84.46 51.3 84.43C52.27 84.4 53.25 84.33 54.22 84.21C55.19 84.1 56.16 83.95 57.12 83.75C58.08 83.56 59.03 83.32 59.97 83.04C60.91 82.77 61.84 82.45 62.75 82.1C63.66 81.74 64.56 81.35 65.43 80.91C66.31 80.48 67.17 80.01 68.01 79.51C68.85 79 69.67 78.46 70.46 77.89C71.25 77.32 72.02 76.71 72.76 76.07C73.5 75.43 74.21 74.76 74.9 74.06C75.58 73.36 76.23 72.63 76.86 71.87C77.48 71.12 78.15 70.19 78.62 69.53C79.09 68.86 79.51 68.16 79.68 67.88" fill="none" stroke="#e69c2c" stroke-opacity="0.4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M27.2 61.32A5.1 5.1 0 1 1 37.4 61.32A5.1 5.1 0 1 1 27.2 61.32Z" fill="url(#night-owl-t3-acc-pale)" class="asym"/>
+<path d="M39.48 75.48A3.21 3.21 0 1 1 45.9 75.48A3.21 3.21 0 1 1 39.48 75.48Z" fill="url(#night-owl-t3-acc-pale)" class="asym"/>
+<path d="M22.86 45.27A2.83 2.83 0 1 1 28.53 45.27A2.83 2.83 0 1 1 22.86 45.27Z" fill="url(#night-owl-t3-acc-pale)" class="asym"/>
+</g>
+<g id="outline" fill="none" stroke="#2b3445" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M48.95 12.25A37.76 37.76 0 1 0 87.52 55.96A29.26 29.26 0 0 1 48.95 12.25Z"/>
+<path d="M27.2 61.32A5.1 5.1 0 1 1 37.4 61.32A5.1 5.1 0 1 1 27.2 61.32Z" stroke-width="2.6" class="asym"/>
+<path d="M39.48 75.48A3.21 3.21 0 1 1 45.9 75.48A3.21 3.21 0 1 1 39.48 75.48Z" stroke-width="2.6" class="asym"/>
+<path d="M22.86 45.27A2.83 2.83 0 1 1 28.53 45.27A2.83 2.83 0 1 1 22.86 45.27Z" stroke-width="2.6" class="asym"/>
+</g>
+</svg>

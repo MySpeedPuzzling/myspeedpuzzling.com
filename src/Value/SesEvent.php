@@ -13,6 +13,9 @@ use DateTimeImmutable;
  */
 final readonly class SesEvent
 {
+    /** SES's own words for a domain it could not look up, and Postfix's */
+    public const string DOMAIN_NOT_FOUND_PATTERN = '/Unable to lookup DNS for|Host or domain name not found/i';
+
     /**
      * @param list<string> $recipients the addresses the event is about (bounced/complained ones, else all)
      */
@@ -83,6 +86,18 @@ final readonly class SesEvent
     public function isPermanentBounce(): bool
     {
         return $this->type === 'Bounce' && $this->bounceType === 'Permanent';
+    }
+
+    /**
+     * A transient bounce because the recipient's domain could not be looked up in DNS ("550 4.4.7 Message expired …
+     * <421 4.4.0 Unable to lookup DNS for googlemail.mail.com>") - a mistyped domain, or a DNS outage on their side
+     */
+    public function isDomainNotFoundBounce(): bool
+    {
+        return $this->type === 'Bounce'
+            && $this->bounceType !== 'Permanent'
+            && $this->diagnosticCode !== null
+            && preg_match(self::DOMAIN_NOT_FOUND_PATTERN, $this->diagnosticCode) === 1;
     }
 
     /**

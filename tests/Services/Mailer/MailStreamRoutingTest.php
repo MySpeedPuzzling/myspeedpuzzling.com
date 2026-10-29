@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\Tests\Services\Mailer;
 
 use SpeedPuzzling\Web\Tests\TestClock;
 use PHPUnit\Framework\TestCase;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\EmailSuppression;
 use Psr\Log\NullLogger;
 use SpeedPuzzling\Web\Repository\EmailSuppressionRepository;
 use SpeedPuzzling\Web\Services\Mailer\MailStreamRouting;
@@ -112,13 +114,31 @@ final class MailStreamRoutingTest extends TestCase
     {
         $transports = new ScriptedTransports();
         $suppressions = $this->createStub(EmailSuppressionRepository::class);
-        $suppressions->method('isSuppressed')->willReturnCallback(static fn (string $email): bool => $email === 'gone@example.com');
+        $suppressions->method('findByEmail')->willReturnCallback(static fn (string $email): null|EmailSuppression => $email === 'gone@example.com'
+            ? new EmailSuppression(Uuid::uuid7(), $email, TestClock::now(), 'NoEmail', null, null)
+            : null);
         $routing = new MailStreamRouting($transports, $suppressions, new NullLogger(), new MockClock(TestClock::now()));
 
         self::assertNull($routing->send($this->email('gone@example.com', 'notifications')));
         $routing->send($this->email('gone@example.com'));
 
         self::assertSame(['transactional'], $transports->streams);
+    }
+
+    public function testAnAddressBlockedByHandGetsNothingAtAllNotEvenASignInLink(): void
+    {
+        $transports = new ScriptedTransports();
+        $suppressions = $this->createStub(EmailSuppressionRepository::class);
+        $suppressions->method('findByEmail')->willReturnCallback(static fn (string $email): null|EmailSuppression => $email === 'typo@googlemail.mail.com'
+            ? EmailSuppression::blockedByHand(Uuid::uuid7(), $email, TestClock::now(), 'The domain does not exist.')
+            : null);
+        $routing = new MailStreamRouting($transports, $suppressions, new NullLogger(), new MockClock(TestClock::now()));
+
+        self::assertNull($routing->send($this->email('typo@googlemail.mail.com', 'notifications')));
+        self::assertNull($routing->send($this->email('typo@googlemail.mail.com')));
+        $routing->send($this->email('player@example.com'));
+
+        self::assertSame(['transactional'], $transports->streams, 'Only the other address got its mail');
     }
 
     public function testTheApiTransportIsRecognisedAsSesAndItsAccessKeyIdIsNeverStored(): void
@@ -134,7 +154,7 @@ final class MailStreamRoutingTest extends TestCase
     private function routing(ScriptedTransports $transports, null|MockClock $clock = null): MailStreamRouting
     {
         $suppressions = $this->createStub(EmailSuppressionRepository::class);
-        $suppressions->method('isSuppressed')->willReturn(false);
+        $suppressions->method('findByEmail')->willReturn(null);
 
         return new MailStreamRouting($transports, $suppressions, new NullLogger(), $clock ?? new MockClock(TestClock::now()));
     }

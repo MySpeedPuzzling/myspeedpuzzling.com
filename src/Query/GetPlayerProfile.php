@@ -217,10 +217,12 @@ SELECT
     player.xp_total,
     player.level,
     player.achievement_points,
-    -- The address hard-bounced (docs/features/mass-mailing/README.md): the banner asking for a working one
+    -- The address hard-bounced or is blocked by hand (docs/features/mass-mailing/README.md): the banner asking for a working one
     email_suppression.id IS NOT NULL AS email_undeliverable,
     email_suppression.bounce_sub_type AS email_undeliverable_sub_type,
     email_suppression.diagnostic_code AS email_undeliverable_diagnostic,
+    email_suppression.source AS email_undeliverable_source,
+    email_suppression.reason AS email_undeliverable_reason,
     -- The verification link was never clicked: after a few days a banner offers to send it again
     (user_account.id IS NOT NULL AND user_account.email_verified_at IS NULL) AS email_unverified,
     -- Private (docs/features/player-timezone.md): the owner's own row only, byId() never selects it

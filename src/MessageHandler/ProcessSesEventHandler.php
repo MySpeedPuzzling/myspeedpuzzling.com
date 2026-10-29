@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Value\BounceType;
 use SpeedPuzzling\Web\Value\ContentDigestFrequency;
+use SpeedPuzzling\Web\Value\EmailSuppressionSource;
 use SpeedPuzzling\Web\Value\MailStream;
 use SpeedPuzzling\Web\Value\SesEvent;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -30,6 +31,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
  *   found by the `audit_id` tag; a pruned row is simply skipped);
  * - hard bounce → the address is suppressed: no more notifications, the player sees a banner; transactional mail
  *   is still tried;
+ * - a transient bounce saying the recipient's domain is not in DNS, a second time at least a day after the first →
+ *   suppressed the same way (SES never calls a mistyped domain permanent; one DNS hiccup on their side is not enough);
  * - complaint → only the kind of e-mail complained about is switched off: newsletter, activity digest ("We miss
  *   you" included), unread-messages digest or "Your results". A complaint about a transactional e-mail changes nothing.
  *
@@ -44,6 +47,7 @@ readonly final class ProcessSesEventHandler
     private const array ACTIVITY_DIGEST_EMAIL_TYPES = ['content_digest_activity', 'content_digest_miss_you'];
     private const string UNREAD_DIGEST_EMAIL_TYPE = 'unread_digest';
     private const string RESULT_REVIEW_EMAIL_TYPE = 'result_review';
+    private const string DOMAIN_NOT_FOUND_AGAIN_AFTER = '-24 hours';
     private const string TOPIC_VALIDATION_MESSAGE = 'Successfully validated SNS topic for Amazon SES event publishing';
 
     public function __construct(
@@ -102,8 +106,12 @@ readonly final class ProcessSesEventHandler
                     trim(sprintf('%s/%s %s', $event->bounceType, $event->bounceSubType, $event->diagnosticCode ?? '')),
                 );
 
+                if ($event->isDomainNotFoundBounce()) {
+                    $this->suppressWhenDomainNotFoundBefore($event, $auditLog);
+                }
+
                 if ($event->isPermanentBounce()) {
-                    $this->suppress($event, $auditLog);
+                    $this->suppress($event, $auditLog, $event->recipients, EmailSuppressionSource::HardBounce);
                     $this->logger->warning('E-mail hard bounced', [
                         'stream' => $event->stream?->value,
                         'email_type' => $this->emailType($event, $auditLog),
@@ -145,11 +153,14 @@ readonly final class ProcessSesEventHandler
         return $event->stream === MailStream::Newsletter ? 'newsletter' : ($event->emailType ?? $auditLog?->emailType);
     }
 
-    private function suppress(SesEvent $event, null|EmailAuditLog $auditLog): void
+    /**
+     * @param list<string> $recipients
+     */
+    private function suppress(SesEvent $event, null|EmailAuditLog $auditLog, array $recipients, EmailSuppressionSource $source): void
     {
         $emailType = $this->emailType($event, $auditLog);
 
-        foreach ($event->recipients as $recipient) {
+        foreach ($recipients as $recipient) {
             $suppression = $this->emailSuppressionRepository->findByEmail($recipient);
 
             if ($suppression !== null) {
@@ -165,8 +176,29 @@ readonly final class ProcessSesEventHandler
                 $event->bounceSubType,
                 $event->diagnosticCode,
                 $emailType,
+                $source,
             ));
         }
+    }
+
+    private function suppressWhenDomainNotFoundBefore(SesEvent $event, null|EmailAuditLog $auditLog): void
+    {
+        $before = $event->occurredAt->modify(self::DOMAIN_NOT_FOUND_AGAIN_AFTER);
+        $recipients = array_values(array_filter(
+            $event->recipients,
+            fn (string $recipient): bool => $this->emailAuditLogRepository->hasDomainNotFoundBounce($recipient, $before),
+        ));
+
+        if ($recipients === []) {
+            return;
+        }
+
+        $this->suppress($event, $auditLog, $recipients, EmailSuppressionSource::DomainNotFound);
+        $this->logger->warning('E-mail domain not found again', [
+            'stream' => $event->stream?->value,
+            'email_type' => $this->emailType($event, $auditLog),
+            'audit_log_id' => $event->auditLogId,
+        ]);
     }
 
     private function applyComplaint(SesEvent $event, null|EmailAuditLog $auditLog): void

@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\EmailAuditLog;
+use SpeedPuzzling\Web\Entity\EmailSuppression;
 use SpeedPuzzling\Web\Entity\NewsletterSubscriber;
 use SpeedPuzzling\Web\Message\ProcessSesEvent;
 use SpeedPuzzling\Web\Message\PushNewsletterSubscriberToListmonk;
@@ -22,6 +23,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestDouble\InMemoryLogger;
 use SpeedPuzzling\Web\Value\BounceType;
 use SpeedPuzzling\Web\Value\ContentDigestFrequency;
+use SpeedPuzzling\Web\Value\EmailSuppressionSource;
 use SpeedPuzzling\Web\Value\NewsletterSubscriberStatus;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -116,6 +118,43 @@ final class ProcessSesEventHandlerTest extends KernelTestCase
         self::assertNotNull($this->reloadAuditLog($auditLog)->complainedAt);
         self::assertTrue($this->playerRepository->get(PlayerFixture::PLAYER_REGULAR)->newsletterEnabled);
         self::assertFalse(self::getContainer()->get(EmailSuppressionRepository::class)->isSuppressed(PlayerFixture::PLAYER_REGULAR_EMAIL));
+    }
+
+    public function testADomainThatIsNotFoundTwiceADayApartSuppressesTheAddressOnceIsNotEnough(): void
+    {
+        $this->domainNotFound('typo@googlemail.mail.com', '2026-10-12T08:00:00.000Z');
+        $this->domainNotFound('typo@googlemail.mail.com', '2026-10-12T20:00:00.000Z');
+
+        $suppressions = self::getContainer()->get(EmailSuppressionRepository::class);
+        self::assertFalse($suppressions->isSuppressed('typo@googlemail.mail.com'), 'Twelve hours apart can still be one DNS outage');
+
+        $this->domainNotFound('typo@googlemail.mail.com', '2026-10-13T09:00:00.000Z');
+
+        $suppression = $suppressions->findByEmail('typo@googlemail.mail.com');
+        self::assertNotNull($suppression);
+        self::assertSame(EmailSuppressionSource::DomainNotFound, $suppression->source);
+        self::assertFalse($suppression->blocksAllMail(), 'Like a hard bounce: sign-in links are still tried');
+    }
+
+    public function testABounceOnAnAddressBlockedByHandKeepsTheBlock(): void
+    {
+        $suppressions = self::getContainer()->get(EmailSuppressionRepository::class);
+        $suppressions->save(EmailSuppression::blockedByHand(Uuid::uuid7(), 'blocked@example.com', new DateTimeImmutable('2026-10-11'), 'Your address does not exist.'));
+        $this->entityManager->flush();
+
+        $auditLog = $this->auditLog('unread_digest', 'blocked@example.com');
+        $this->process($this->event('Bounce', $auditLog, ['bounce' => [
+            'bounceType' => 'Permanent',
+            'bounceSubType' => 'General',
+            'timestamp' => '2026-10-12T08:00:02.000Z',
+            'bouncedRecipients' => [['emailAddress' => 'blocked@example.com', 'diagnosticCode' => 'smtp; 550 no such domain']],
+        ]], recipients: ['blocked@example.com']));
+
+        $suppression = $suppressions->findByEmail('blocked@example.com');
+        self::assertNotNull($suppression);
+        self::assertTrue($suppression->blocksAllMail());
+        self::assertSame('Your address does not exist.', $suppression->reason);
+        self::assertEquals(new DateTimeImmutable('2026-10-11'), $suppression->suppressedAt);
     }
 
     public function testANewsletterComplaintSwitchesTheNewsletterOffForPlayersAndGuestsAndTellsListmonk(): void
@@ -223,6 +262,17 @@ final class ProcessSesEventHandlerTest extends KernelTestCase
         );
 
         return [$handler, $logger];
+    }
+
+    private function domainNotFound(string $recipient, string $at): void
+    {
+        $auditLog = $this->auditLog('unread_digest', $recipient);
+        $this->process($this->event('Bounce', $auditLog, ['bounce' => [
+            'bounceType' => 'Transient',
+            'bounceSubType' => 'General',
+            'timestamp' => $at,
+            'bouncedRecipients' => [['emailAddress' => $recipient, 'diagnosticCode' => 'smtp; 550 4.4.7 Message expired: unable to deliver in 840 minutes.<421 4.4.0 Unable to lookup DNS for googlemail.mail.com>']],
+        ]], recipients: [$recipient]));
     }
 
     private function complain(string $emailType): EmailAuditLog

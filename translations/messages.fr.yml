@@ -10048,12 +10048,15 @@ email_unverified:
     resend: "Renvoyer le lien"
     change_address: "Changer d'adresse"
 email_undeliverable:
+    blocked_title: "Nous avons cessé d'envoyer des e-mails à %email%."
+    blocked_check: "Vérifiez votre adresse et modifiez-la si elle est erronée."
     title: "Nous ne parvenons pas à délivrer d'e-mails à %email%."
     paused: "Nous avons suspendu les notifications vers cette adresse. Les e-mails importants, comme les liens de connexion, sont toujours envoyés."
     reason:
         no_email: "Le serveur de messagerie destinataire indique que cette adresse n'existe pas."
         suppressed: "Des e-mails vers cette adresse ont déjà été renvoyés auparavant."
         general: "Le serveur de messagerie destinataire a refusé nos e-mails."
+        domain_not_found: "Le domaine de cette adresse n'existe pas (aucun serveur de messagerie n'a été trouvé pour lui)."
     server_said: "Réponse du serveur : %answer%"
     change_address: "Modifier votre adresse e-mail"
 player_timezone:

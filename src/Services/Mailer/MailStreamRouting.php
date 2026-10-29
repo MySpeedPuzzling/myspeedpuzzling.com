@@ -27,7 +27,7 @@ use Symfony\Component\Mime\RawMessage;
  * - marks the stream on the message for the SES headers (SesMessageHeaders::STREAM_HEADER) and takes X-Transport off -
  *   there is one transport, MAILER_DSN (Amazon SES on production, SES only since 2026-10-19);
  * - drops notifications to an address that hard-bounced (email_suppression) - transactional mail is still tried,
- *   a sign-in link must never be held back by us;
+ *   a sign-in link must never be held back by us; an address blocked by hand (internal API) gets nothing at all;
  * - a failed attempt is tried once more right away (a fresh connection - SES replaces the machines behind its
  *   endpoint), after a second failure the transport is left alone for PAUSE_SECONDS (an outage costs one wait, not one
  *   per e-mail) and the failure goes back to Messenger: every e-mail is a message, its retry sends it again (30 s,
@@ -64,15 +64,28 @@ final class MailStreamRouting implements TransportInterface
         $headers->remove(SesMessageHeaders::STREAM_HEADER);
         $headers->addTextHeader(SesMessageHeaders::STREAM_HEADER, $stream->value);
 
-        if ($stream === MailStream::Notifications) {
-            foreach (self::recipients($message, $envelope) as $recipient) {
-                if ($this->emailSuppressionRepository->isSuppressed($recipient)) {
-                    $this->logger->info('Notification e-mail not sent: the address is suppressed after a hard bounce', [
-                        'recipient' => $recipient,
-                    ]);
+        foreach (self::recipients($message, $envelope) as $recipient) {
+            $suppression = $this->emailSuppressionRepository->findByEmail($recipient);
 
-                    return null;
-                }
+            if ($suppression === null) {
+                continue;
+            }
+
+            if ($suppression->blocksAllMail()) {
+                $this->logger->info('E-mail not sent: the address is blocked by hand', [
+                    'recipient' => $recipient,
+                    'stream' => $stream->value,
+                ]);
+
+                return null;
+            }
+
+            if ($stream === MailStream::Notifications) {
+                $this->logger->info('Notification e-mail not sent: the address is suppressed after a hard bounce', [
+                    'recipient' => $recipient,
+                ]);
+
+                return null;
             }
         }
 

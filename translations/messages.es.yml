@@ -10029,12 +10029,15 @@ email_unverified:
     resend: "Enviar el enlace de nuevo"
     change_address: "Cambiar la dirección"
 email_undeliverable:
+    blocked_title: "Hemos dejado de enviar correos a %email%."
+    blocked_check: "Revisa tu dirección y cámbiala si es incorrecta."
     title: "No podemos entregar correos a %email%."
     paused: "Hemos pausado las notificaciones a esta dirección. Los correos importantes, como los enlaces de inicio de sesión, se siguen enviando."
     reason:
         no_email: "El servidor de correo receptor indica que esta dirección no existe."
         suppressed: "Los correos a esta dirección ya fueron devueltos antes."
         general: "El servidor de correo receptor rechazó nuestros correos."
+        domain_not_found: "El dominio de esta dirección no existe (no se encontró ningún servidor de correo para él)."
     server_said: "Respuesta del servidor: %answer%"
     change_address: "Cambiar tu dirección de correo"
 player_timezone:

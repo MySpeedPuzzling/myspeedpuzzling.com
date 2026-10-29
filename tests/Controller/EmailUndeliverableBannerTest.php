@@ -43,6 +43,30 @@ final class EmailUndeliverableBannerTest extends WebTestCase
         self::assertCount(1, $banner->filter('a[href="/en/edit-profile/change-email"]'));
     }
 
+    public function testAnAddressBlockedByHandShowsTheTeamsReasonInASlimStripe(): void
+    {
+        $browser = self::createClient();
+        $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);
+        $entityManager->persist(EmailSuppression::blockedByHand(
+            Uuid::uuid7(),
+            PlayerFixture::PLAYER_REGULAR_EMAIL,
+            new DateTimeImmutable('2026-10-29'),
+            'The domain of your address does not exist.',
+        ));
+        $entityManager->flush();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $crawler = $browser->request('GET', '/en/hub');
+
+        self::assertResponseIsSuccessful();
+        $banner = $crawler->filter('[data-email-blocked]');
+        self::assertCount(1, $banner);
+        self::assertStringContainsString('We have stopped sending any e-mails to ' . PlayerFixture::PLAYER_REGULAR_EMAIL, $banner->text());
+        self::assertStringContainsString('The domain of your address does not exist.', $banner->text());
+        self::assertStringContainsString('Please check your address', $banner->text());
+        self::assertCount(1, $banner->filter('a[href="/en/edit-profile/change-email"]'));
+    }
+
     public function testNobodyElseSeesIt(): void
     {
         $browser = self::createClient();

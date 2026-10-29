@@ -10018,12 +10018,15 @@ email_unverified:
     resend: "リンクを再送信"
     change_address: "アドレスを変更"
 email_undeliverable:
+    blocked_title: "%email% へのメール送信をすべて停止しました。"
+    blocked_check: "メールアドレスを確認し、間違っている場合は変更してください。"
     title: "%email% にメールを配信できません。"
     paused: "このアドレスへの通知を一時停止しました。サインインリンクなどの重要なメールは引き続き送信されます。"
     reason:
         no_email: "受信側のメールサーバーによると、このアドレスは存在しません。"
         suppressed: "このアドレスへのメールは以前にも返送されています。"
         general: "受信側のメールサーバーがメールを拒否しました。"
+        domain_not_found: "このアドレスのドメインは存在しません（メールサーバーが見つかりませんでした）。"
     server_said: "サーバーの応答: %answer%"
     change_address: "メールアドレスを変更する"
 player_timezone:

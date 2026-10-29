@@ -29,4 +29,9 @@ readonly class EmailSuppressionRepository
     {
         $this->entityManager->persist($suppression);
     }
+
+    public function delete(EmailSuppression $suppression): void
+    {
+        $this->entityManager->remove($suppression);
+    }
 }

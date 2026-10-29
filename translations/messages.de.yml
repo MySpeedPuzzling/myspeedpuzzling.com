@@ -10028,12 +10028,15 @@ email_unverified:
     resend: "Link erneut senden"
     change_address: "Adresse ändern"
 email_undeliverable:
+    blocked_title: "Wir senden keine E-Mails mehr an %email%."
+    blocked_check: "Bitte prüfen Sie Ihre Adresse und ändern Sie sie, falls sie falsch ist."
     title: "Wir können keine E-Mails an %email% zustellen."
     paused: "Benachrichtigungen an diese Adresse haben wir pausiert. Wichtige E-Mails wie Anmeldelinks senden wir weiterhin."
     reason:
         no_email: "Der empfangende Mailserver meldet, dass diese Adresse nicht existiert."
         suppressed: "E-Mails an diese Adresse kamen schon früher als unzustellbar zurück."
         general: "Der empfangende Mailserver hat unsere E-Mails abgelehnt."
+        domain_not_found: "Die Domain dieser Adresse existiert nicht (es wurde kein Mailserver dafür gefunden)."
     server_said: "Antwort des Servers: %answer%"
     change_address: "E-Mail-Adresse ändern"
 player_timezone:

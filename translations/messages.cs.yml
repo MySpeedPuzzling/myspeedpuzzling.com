@@ -10055,12 +10055,15 @@ email_unverified:
     resend: "Poslat odkaz znovu"
     change_address: "Změnit adresu"
 email_undeliverable:
+    blocked_title: "Na adresu %email% jsme přestali posílat jakékoli e-maily."
+    blocked_check: "Zkontrolujte prosím svou adresu a pokud je chybná, změňte ji."
     title: "Na adresu %email% nelze doručit e-maily."
     paused: "Upozornění na tuto adresu jsme pozastavili. Důležité e-maily, jako odkazy pro přihlášení, posíláme dál."
     reason:
         no_email: "Přijímající poštovní server uvádí, že tato adresa neexistuje."
         suppressed: "E-maily na tuto adresu se už dříve vrátily jako nedoručitelné."
         general: "Přijímající poštovní server naše e-maily odmítl."
+        domain_not_found: "Doména této adresy neexistuje (nenašli jsme pro ni žádný poštovní server)."
     server_said: "Odpověď serveru: %answer%"
     change_address: "Změnit e-mailovou adresu"
 player_timezone:

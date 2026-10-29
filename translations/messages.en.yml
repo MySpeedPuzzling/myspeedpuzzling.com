@@ -10302,12 +10302,15 @@ email_unverified:
     resend: "Send the link again"
     change_address: "Change address"
 email_undeliverable:
+    blocked_title: "We have stopped sending any e-mails to %email%."
+    blocked_check: "Please check your address and change it if it is wrong."
     title: "We can't deliver e-mails to %email%."
     paused: "We have paused notifications to this address. Important e-mails, like sign-in links, are still sent."
     reason:
         no_email: "The receiving mail server says this address does not exist."
         suppressed: "E-mails to this address have bounced before."
         general: "The receiving mail server refused our e-mails."
+        domain_not_found: "The domain of this address does not exist (no mail server could be found for it)."
     server_said: "The server's answer: %answer%"
     change_address: "Change your e-mail address"
 player_timezone:

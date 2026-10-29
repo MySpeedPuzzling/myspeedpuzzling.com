@@ -2028,6 +2028,112 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
+  /internal-api/players/{playerId}/email-block:
+    parameters:
+      - $ref: "#/components/parameters/PlayerId"
+    get:
+      summary: Read whether a player's address is suppressed
+      operationId: getPlayerEmailBlock
+      description: |
+        Blocked by hand (`source: manual` - nothing at all is sent) or suppressed
+        after bounces (`hard_bounce`, `domain_not_found` - no notifications, sign-in
+        links still tried). 404 when nothing holds mail back.
+      responses:
+        "200":
+          description: The suppression of the player's current address
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailSuppression"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      summary: Block a player's address by hand
+      operationId: blockPlayerEmail
+      description: |
+        Nothing at all is sent to the player's current address any more (sign-in
+        links and codes, password resets, notifications, digests). The player reads
+        `reason` in a stripe on every page asking them to check and change the
+        address. Kept on the address: a changed address is free at once. Again with
+        another reason = the new reason.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  maxLength: 500
+                  description: Shown to the player as written (one language).
+      responses:
+        "200":
+          description: Blocked - the suppression now
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailSuppression"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      summary: Lift a block by hand
+      operationId: unblockPlayerEmail
+      description: |
+        Removes the address's suppression (bounces included). 404 when the address
+        is not blocked by hand - a bounce suppression alone is never lifted here.
+      responses:
+        "204":
+          description: Lifted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /internal-api/players/{playerId}/messages:
+    parameters:
+      - $ref: "#/components/parameters/PlayerId"
+    post:
+      summary: Send a chat message to a player from the team
+      operationId: sendTeamChatMessage
+      description: |
+        A chat message from `INTERNAL_API_REVIEWER_PLAYER_ID` - continues their
+        direct conversation (a pending or ignored one is accepted) or starts an
+        accepted one. The player's "direct messages off" does not apply; they can
+        answer.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [text]
+              properties:
+                text:
+                  type: string
+                  maxLength: 2000
+                  description: Plain text.
+      responses:
+        "204":
+          description: Sent
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /internal-api/puzzle-images:
     get:
       summary: The image analysis pipeline's work list
@@ -2970,6 +3076,26 @@ components:
         format: uuid
 
   schemas:
+    EmailSuppression:
+      type: object
+      required: [email, source, reason, suppressedAt, bounceSubType, diagnosticCode]
+      properties:
+        email:
+          type: string
+        source:
+          type: string
+          enum: [manual, hard_bounce, domain_not_found]
+        reason:
+          type: [string, "null"]
+          description: The reason the player reads (blocked by hand only).
+        suppressedAt:
+          type: string
+          format: date-time
+        bounceSubType:
+          type: [string, "null"]
+        diagnosticCode:
+          type: [string, "null"]
+          description: The receiving server's answer of the last bounce.
     PuzzleTags:
       type: object
       required: [puzzleId, taxonomyVersion, tags, corrections]

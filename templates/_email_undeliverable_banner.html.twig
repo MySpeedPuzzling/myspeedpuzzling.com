@@ -1,16 +1,30 @@
-{# E-mails to the player's address bounce for good (an SES permanent bounce, email_suppression): we stopped
-   notifications to it and ask for a working address. Not dismissable - it goes away with a changed address.
-   Neutral wording: it is about the address, never the player. #}
-<div class="container mt-3">
-    <div class="alert alert-warning mb-0" role="alert" data-email-undeliverable>
-        <p class="mb-1 fw-semibold">{{ 'email_undeliverable.title'|trans({'%email%': email}) }}</p>
-        <p class="mb-1">{{ 'email_undeliverable.paused'|trans }}</p>
-        {% if problem.reasonKey() is not null %}
-            <p class="mb-1">{{ problem.reasonKey()|trans }}</p>
-        {% endif %}
-        {% if problem.diagnosticCode is not null %}
-            <p class="mb-1 small text-body-secondary">{{ 'email_undeliverable.server_said'|trans({'%answer%': problem.diagnosticCode|slice(0, 200)}) }}</p>
-        {% endif %}
-        <a href="{{ path('change_account_email') }}" class="alert-link">{{ 'email_undeliverable.change_address'|trans }}</a>
+{# E-mails to the player's address bounce for good (an SES permanent bounce or a domain that does not exist,
+   email_suppression): we stopped notifications to it and ask for a working address. Blocked by hand (internal API):
+   nothing at all is sent, a slim stripe gives the team's reason. Not dismissable - it goes away with a changed
+   address. Neutral wording: it is about the address, never the player. #}
+{% if problem.blocksAllMail() %}
+    <div class="alert alert-warning mb-0 rounded-0 border-start-0 border-end-0 py-2 small" role="alert" data-email-undeliverable data-email-blocked>
+        <div class="container">
+            <span class="fw-semibold">{{ 'email_undeliverable.blocked_title'|trans({'%email%': email}) }}</span>
+            {% if problem.reason is not null %}
+                <span>{{ problem.reason }}</span>
+            {% endif %}
+            <span>{{ 'email_undeliverable.blocked_check'|trans }}</span>
+            <a href="{{ path('change_account_email') }}" class="alert-link">{{ 'email_undeliverable.change_address'|trans }}</a>
+        </div>
     </div>
-</div>
+{% else %}
+    <div class="container mt-3">
+        <div class="alert alert-warning mb-0" role="alert" data-email-undeliverable>
+            <p class="mb-1 fw-semibold">{{ 'email_undeliverable.title'|trans({'%email%': email}) }}</p>
+            <p class="mb-1">{{ 'email_undeliverable.paused'|trans }}</p>
+            {% if problem.reasonKey() is not null %}
+                <p class="mb-1">{{ problem.reasonKey()|trans }}</p>
+            {% endif %}
+            {% if problem.diagnosticCode is not null %}
+                <p class="mb-1 small text-body-secondary">{{ 'email_undeliverable.server_said'|trans({'%answer%': problem.diagnosticCode|slice(0, 200)}) }}</p>
+            {% endif %}
+            <a href="{{ path('change_account_email') }}" class="alert-link">{{ 'email_undeliverable.change_address'|trans }}</a>
+        </div>
+    </div>
+{% endif %}

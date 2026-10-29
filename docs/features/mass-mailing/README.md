@@ -162,7 +162,8 @@ but they need warm-up and steady volume we don't have. Every stream stays on SES
 |---|---|
 | Delivery / Open / Click | first time stamped on `email_audit_log.delivered_at` / `opened_at` / `clicked_at` |
 | Bounce, permanent | `email_audit_log` bounce columns + **`email_suppression`** row for the address: no more notifications, **banner** for the player (below). Transactional still tried |
-| Bounce, transient | bounce columns only (soft). Repeated soft bounces are left to SES |
+| Bounce, transient | bounce columns only (soft). Repeated soft bounces are left to SES - except a domain not found (below) |
+| Bounce, transient, the domain is not in DNS (`Unable to lookup DNS for …`) **a second time ≥ 24 h after the first** | `email_suppression` row with `source = domain_not_found`: like a hard bounce (no notifications, banner, transactional still tried). SES never calls a mistyped domain permanent and retries each mail for 14 h; one DNS outage on their side is not enough (2026-10-29: `googlemail.mail.com` got 6 notifications in 10 days, `jeffocschools.us` failed once) |
 | Complaint, newsletter | `player.newsletter_enabled = false` / guest unsubscribed + pushed to Listmonk (the sync never re-enables it) |
 | Complaint, `content_digest_activity` / `content_digest_miss_you` | `content_digest_frequency = off` |
 | Complaint, `unread_digest` | `email_notifications_enabled = false` |
@@ -178,6 +179,13 @@ bounce can arrive twice (configuration set event + `news.` identity feedback).
 Events can arrive twice or out of order, so every action is idempotent. An event for an audit row that was already
 pruned only applies the rules.
 
+**Suppressed addresses:** `email_suppression.source` says why - `hard_bounce`, `domain_not_found` (rules above) or
+`manual` = **blocked by hand** through the internal API (`PUT /internal-api/players/{playerId}/email-block` with a
+`reason`, docs/features/internal-api.md "E-mail blocks and messages to players"). A block by hand stops **everything**
+the app sends to the address, transactional mail included (Jan 2026-10-29: the address does not work, and a stripe in
+the app tells the player); a bounce on it keeps it a block. Paired with `POST /internal-api/players/{playerId}/messages`
+to reach the player in their messages.
+
 **Banner:** the signed-in player's profile row carries their suppression; a LEFT JOIN in `GetPlayerProfile::byUserId()`
 adds no extra query. Every page then shows "We can't deliver e-mails to {email}" (`_email_undeliverable_banner.html.twig`)
 with:
@@ -185,7 +193,9 @@ with:
 - the server's answer;
 - a link to change the address.
 
-A new address is not suppressed, so changing it clears the banner.
+A new address is not suppressed, so changing it clears the banner. Blocked by hand: a slim stripe instead -
+"We have stopped sending any e-mails to {email}." + the team's `reason` + "Please check your address and change it if
+it is wrong." + the link.
 
 ## Env
 

@@ -307,6 +307,42 @@ curl -s -X POST -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type:
   https://myspeedpuzzling.com/internal-api/solving-times/<timeId>/mark-suspicious
 ```
 
+### E-mail blocks and messages to players
+
+For a player whose e-mail does not arrive (a mistyped domain like `googlemail.mail.com`): stop every e-mail to the
+address, tell them in the app, and reach them in their messages. Keyed by the **player id**.
+
+| Method | Path | Purpose | Body |
+|---|---|---|---|
+| `GET` | `/internal-api/players/{playerId}/email-block` | Is the player's current address suppressed, why, since when (`404` = nothing holds mail back) | - |
+| `PUT` | `/internal-api/players/{playerId}/email-block` | Block the address by hand | `reason` (required, ≤ 500) |
+| `DELETE` | `/internal-api/players/{playerId}/email-block` | Lift a block by hand (`204`; `404` when not blocked by hand) | - |
+| `POST` | `/internal-api/players/{playerId}/messages` | A chat message from the team (`204`) | `text` (required, ≤ 2000, plain text) |
+
+- **A block by hand** is an `email_suppression` row with `source = manual` (mass-mailing README "Suppressed
+  addresses"): `MailStreamRouting` drops **every** e-mail to the address - sign-in links and codes, password resets,
+  notifications, digests (the newsletter is Listmonk's: it only goes to verified addresses and blocklists bounces on its
+  own). The player sees a slim stripe on every page: "We have stopped sending any e-mails to {email}." + `reason` as
+  written (one language - write it in the player's) + "Please check your address and change it if it is wrong." + the
+  link to change it. Kept on the address, so a changed address is free at once (the player does not need us); changing
+  back to the blocked one is blocked again. `PUT` again with another reason = the new reason; on an address that already
+  bounced it turns that row into a block by hand; a later bounce never turns it back. `DELETE` removes the whole row.
+  `409` when the player has no e-mail address.
+- **A message** comes from `INTERNAL_API_REVIEWER_PLAYER_ID` (required): their direct conversation with the player
+  continues (a pending or ignored request is accepted), otherwise an accepted one starts - no request step, the
+  player's "direct messages off" does not apply, and they can answer. It shows in `/messages` with the unread badge
+  (the unread e-mail digest is dropped by the block, as it should be).
+
+```bash
+# Susanne typed googlemail.mail.com - stop the mail, tell her why, write to her
+curl -s -X PUT -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"reason": "Your address ends with googlemail.mail.com, a domain that does not exist, so none of our e-mails reach you."}' \
+  https://myspeedpuzzling.com/internal-api/players/<playerId>/email-block | jq
+curl -s -X POST -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"text": "Hi Susanne, ..."}' \
+  https://myspeedpuzzling.com/internal-api/players/<playerId>/messages
+```
+
 ### Puzzle image analysis
 
 A pipeline outside the app (Jan's Mac, local open models) analyses every puzzle box image - finds and crops the

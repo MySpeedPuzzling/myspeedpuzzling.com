@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Value\ComparisonView;
 use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
+use SpeedPuzzling\Web\Value\EmailSuppressionSource;
 use SpeedPuzzling\Web\Value\FeatureRequestEmails;
 use SpeedPuzzling\Web\Value\FreeTrial;
 use SpeedPuzzling\Web\Value\LeaderboardChartView;
@@ -89,6 +90,8 @@ use SpeedPuzzling\Web\Value\SkillTier;
  *     email_undeliverable?: bool,
  *     email_undeliverable_sub_type?: null|string,
  *     email_undeliverable_diagnostic?: null|string,
+ *     email_undeliverable_source?: null|string,
+ *     email_undeliverable_reason?: null|string,
  *     email_unverified?: bool,
  *     timezone?: null|string,
  *  }
@@ -233,8 +236,8 @@ readonly final class PlayerProfile
          */
         public null|SkillTier $skillTier = null,
         /**
-         * The signed-in player's own profile only: their address hard-bounced (email_suppression) - the banner asks
-         * for a working one (docs/features/mass-mailing/README.md)
+         * The signed-in player's own profile only: their address hard-bounced or is blocked by hand (email_suppression)
+         * - the banner asks for a working one (docs/features/mass-mailing/README.md)
          */
         public null|EmailUndeliverable $emailUndeliverable = null,
         /**
@@ -367,7 +370,12 @@ readonly final class PlayerProfile
         }
 
         $emailUndeliverable = ($row['email_undeliverable'] ?? false) === true
-            ? new EmailUndeliverable($row['email_undeliverable_sub_type'] ?? null, $row['email_undeliverable_diagnostic'] ?? null)
+            ? new EmailUndeliverable(
+                $row['email_undeliverable_sub_type'] ?? null,
+                $row['email_undeliverable_diagnostic'] ?? null,
+                EmailSuppressionSource::tryFrom($row['email_undeliverable_source'] ?? '') ?? EmailSuppressionSource::HardBounce,
+                $row['email_undeliverable_reason'] ?? null,
+            )
             : null;
 
         $emailVerificationReminder = $emailUndeliverable === null

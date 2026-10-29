@@ -50,7 +50,7 @@ readonly class GetPlayerStatsSnapshot
             muscleMemorySolves: $solveAggregates['muscleMemorySolves'],
             muscleMemoryUnboxedSolves: $solveAggregates['muscleMemoryUnboxedSolves'],
             nightOwlSolves: $solveAggregates['nightOwlSolves'],
-            competitorEvents: $this->competitorEvents($playerId),
+            competitorEvents: $solveAggregates['competitorEvents'],
             onlineCompetitorResults: $solveAggregates['onlineCompetitorResults'],
         );
     }
@@ -66,8 +66,8 @@ readonly class GetPlayerStatsSnapshot
      *
      * Muscle Memory is the exception to the participation rule: only the player's own solo results count (relaxed
      * ones too), per 500-piece puzzle - the most-solved puzzle is the value. The CTE keeps it in this one statement.
-     * Night Owl looks at the player's own results too, Online Competitor at every result like the rest
-     * (AchievementSqlRules).
+     * Night Owl looks at the player's own results too, Online Competitor at every result like the rest, and the
+     * Competitor events ride along as a CTE (AchievementSqlRules).
      *
      * @return array{
      *     zenPuzzlerSolves: int,
@@ -82,6 +82,7 @@ readonly class GetPlayerStatsSnapshot
      *     muscleMemoryUnboxedSolves: int,
      *     nightOwlSolves: int,
      *     onlineCompetitorResults: int,
+     *     competitorEvents: int,
      * }
      */
     private function solveAggregates(string $playerId): array
@@ -89,9 +90,13 @@ readonly class GetPlayerStatsSnapshot
         $competitionJoins = AchievementSqlRules::RESULT_COMPETITION_JOINS;
         $nightOwl = AchievementSqlRules::IS_NIGHT_OWL_RESULT;
         $onlineCompetition = AchievementSqlRules::IS_ONLINE_COMPETITION_RESULT;
+        $competitorEvents = AchievementSqlRules::COMPETITOR_EVENTS;
 
         $sql = <<<SQL
-WITH solo_500_per_puzzle AS (
+WITH competitor_events AS (
+    {$competitorEvents}
+),
+solo_500_per_puzzle AS (
     SELECT
         COUNT(*) AS solves,
         COUNT(*) FILTER (WHERE solo.unboxed = true) AS unboxed_solves
@@ -122,7 +127,8 @@ SELECT
     (SELECT COALESCE(MAX(solves), 0) FROM solo_500_per_puzzle) AS muscle_memory_solves,
     (SELECT COALESCE(MAX(unboxed_solves), 0) FROM solo_500_per_puzzle) AS muscle_memory_unboxed_solves,
     COUNT(*) FILTER (WHERE {$nightOwl}) AS night_owl_solves,
-    COUNT(*) FILTER (WHERE {$onlineCompetition}) AS online_competition_results
+    COUNT(*) FILTER (WHERE {$onlineCompetition}) AS online_competition_results,
+    (SELECT COUNT(*) FROM competitor_events) AS competitor_events
 FROM puzzle_solving_time pst
 JOIN puzzle p ON p.id = pst.puzzle_id
 LEFT JOIN player owning_player ON owning_player.id = CAST(:playerId AS UUID)
@@ -147,9 +153,13 @@ SQL;
          *     muscle_memory_unboxed_solves: int|string,
          *     night_owl_solves: int|string,
          *     online_competition_results: int|string,
+         *     competitor_events: int|string,
          * }|false $row
          */
-        $row = $this->database->executeQuery($sql, ['playerId' => $playerId])->fetchAssociative();
+        $row = $this->database->executeQuery($sql, [
+            'playerId' => $playerId,
+            'today' => self::today($this->clock),
+        ])->fetchAssociative();
 
         if ($row === false) {
             return [
@@ -165,6 +175,7 @@ SQL;
                 'muscleMemoryUnboxedSolves' => 0,
                 'nightOwlSolves' => 0,
                 'onlineCompetitorResults' => 0,
+                'competitorEvents' => 0,
             ];
         }
 
@@ -181,17 +192,8 @@ SQL;
             'muscleMemoryUnboxedSolves' => is_numeric($row['muscle_memory_unboxed_solves']) ? (int) $row['muscle_memory_unboxed_solves'] : 0,
             'nightOwlSolves' => is_numeric($row['night_owl_solves']) ? (int) $row['night_owl_solves'] : 0,
             'onlineCompetitorResults' => is_numeric($row['online_competition_results']) ? (int) $row['online_competition_results'] : 0,
+            'competitorEvents' => is_numeric($row['competitor_events']) ? (int) $row['competitor_events'] : 0,
         ];
-    }
-
-    private function competitorEvents(string $playerId): int
-    {
-        $value = $this->database->executeQuery(
-            'SELECT COUNT(*) FROM (' . AchievementSqlRules::COMPETITOR_EVENTS . ') competitor_events',
-            ['playerId' => $playerId, 'today' => self::today($this->clock)],
-        )->fetchOne();
-
-        return is_numeric($value) ? (int) $value : 0;
     }
 
     /**

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Message\RemovePuzzleFromSellSwapList;
+use SpeedPuzzling\Web\Repository\ConversationRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
@@ -20,6 +21,7 @@ readonly final class RemovePuzzleFromSellSwapListHandler
 {
     public function __construct(
         private ListingRequestCloser $listingRequestCloser,
+        private ConversationRepository $conversationRepository,
         private PlayerRepository $playerRepository,
         private PuzzleRepository $puzzleRepository,
         private SellSwapListItemRepository $sellSwapListItemRepository,
@@ -46,6 +48,11 @@ readonly final class RemovePuzzleFromSellSwapListHandler
                 $item,
                 SystemMessageType::ListingRemoved,
             );
+
+            // The chats about it stay; their link goes before a later flush of this request meets the deleted listing
+            foreach ($this->conversationRepository->findAllByListItem($item) as $conversation) {
+                $conversation->listingLeft();
+            }
 
             $this->sellSwapListItemRepository->delete($item);
         }

@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\SellSwapListItemNotFound;
 use SpeedPuzzling\Web\Message\AdminRemoveListing;
 use SpeedPuzzling\Web\Repository\ConversationReportRepository;
+use SpeedPuzzling\Web\Repository\ConversationRepository;
 use SpeedPuzzling\Web\Repository\ModerationActionRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
@@ -23,6 +24,7 @@ readonly final class AdminRemoveListingHandler
 {
     public function __construct(
         private ListingRequestCloser $listingRequestCloser,
+        private ConversationRepository $conversationRepository,
         private SellSwapListItemRepository $sellSwapListItemRepository,
         private PlayerRepository $playerRepository,
         private ModerationActionRepository $moderationActionRepository,
@@ -57,6 +59,11 @@ readonly final class AdminRemoveListingHandler
 
         $this->moderationActionRepository->save($action);
         $this->listingRequestCloser->listingsGoing([$item]);
+        // The chats about it stay; their link goes before a later flush of this request meets the deleted listing
+        foreach ($this->conversationRepository->findAllByListItem($item) as $conversation) {
+            $conversation->listingLeft();
+        }
+
         $this->sellSwapListItemRepository->delete($item);
     }
 }

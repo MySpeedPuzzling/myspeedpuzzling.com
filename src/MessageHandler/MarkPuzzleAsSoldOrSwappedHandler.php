@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\SellSwapListItemNotFound;
 use SpeedPuzzling\Web\Message\MarkPuzzleAsSoldOrSwapped;
 use SpeedPuzzling\Web\Repository\CollectionItemRepository;
+use SpeedPuzzling\Web\Repository\ConversationRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
 use SpeedPuzzling\Web\Repository\SoldSwappedItemRepository;
@@ -27,6 +28,7 @@ readonly final class MarkPuzzleAsSoldOrSwappedHandler
 {
     public function __construct(
         private ListingRequestCloser $listingRequestCloser,
+        private ConversationRepository $conversationRepository,
         private SellSwapListItemRepository $sellSwapListItemRepository,
         private SoldSwappedItemRepository $soldSwappedItemRepository,
         private CollectionItemRepository $collectionItemRepository,
@@ -100,6 +102,11 @@ readonly final class MarkPuzzleAsSoldOrSwappedHandler
      */
     public function removeEverywhere(SellSwapListItem $item): void
     {
+        // The chats about it stay; their link goes before a later flush of this request meets the deleted listing
+        foreach ($this->conversationRepository->findAllByListItem($item) as $conversation) {
+            $conversation->listingLeft();
+        }
+
         $this->sellSwapListItemRepository->delete($item);
 
         $collectionItems = $this->collectionItemRepository->findByPlayerAndPuzzle(

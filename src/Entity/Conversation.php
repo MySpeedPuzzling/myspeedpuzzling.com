@@ -94,4 +94,14 @@ class Conversation
     {
         $this->lastMessageAt = $at;
     }
+
+    /**
+     * The listing this chat is about leaves the sell/swap list - the chat stays. The database sets the column NULL on
+     * the delete; this does the same in memory, so a later flush in the same request (a nested dispatch flushes on its
+     * own) never meets the deleted listing as a new entity.
+     */
+    public function listingLeft(): void
+    {
+        $this->sellSwapListItem = null;
+    }
 }

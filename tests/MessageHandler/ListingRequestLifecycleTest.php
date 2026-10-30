@@ -138,6 +138,29 @@ final class ListingRequestLifecycleTest extends KernelTestCase
         self::assertNull($this->connection->fetchOne('SELECT listing_id FROM listing_request_item WHERE id = :id', ['id' => $item]));
     }
 
+    public function testGoneTakesOffTheListAListingSomebodyAskedAboutInTheMarketplaceChat(): void
+    {
+        $this->bus->dispatch(new StartConversation(
+            initiatorId: $this->otherBuyer,
+            recipientId: $this->seller,
+            initialMessage: 'Is the Lighthouse still available?',
+            sellSwapListItemId: $this->lighthouse,
+        ));
+        $conversation = $this->connection->fetchOne('SELECT id FROM conversation WHERE sell_swap_list_item_id = :id', ['id' => $this->lighthouse]);
+        $item = $this->itemIdFor($this->requestId, $this->lighthouse);
+
+        $this->answerRequest($this->requestId, $this->seller, [$item => 'gone'], removeFromList: [$item], openChat: true);
+
+        self::assertSame('gone', $this->itemStatus($item));
+        self::assertSame(0, $this->connection->fetchOne('SELECT COUNT(*) FROM sell_swap_list_item WHERE id = :id', ['id' => $this->lighthouse]));
+        // The marketplace chat stays, told that the listing left
+        self::assertNull($this->connection->fetchOne('SELECT sell_swap_list_item_id FROM conversation WHERE id = :id', ['id' => $conversation]));
+        self::assertSame(1, $this->connection->fetchOne(
+            "SELECT COUNT(*) FROM chat_message WHERE conversation_id = :id AND system_message_type = 'listing_removed'",
+            ['id' => $conversation],
+        ));
+    }
+
     public function testSoldToTheBuyerClosesTheirAskAsSoldAndEverybodyElsesAsUnavailable(): void
     {
         $this->askFor($this->otherBuyer, [$this->seller => [$this->lighthouse]]);

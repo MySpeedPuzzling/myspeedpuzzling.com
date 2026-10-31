@@ -48,6 +48,7 @@ readonly final class CandidateModelRecalculator
         private PredictionModelParametersProvider $parametersProvider,
         private PaceTimelineLoader $paceTimelineLoader,
         private PlayerBaselineCalculator $baselineCalculator,
+        private CandidatePictureProjections $pictureProjections,
         private CandidateModelFitter $fitter = new CandidateModelFitter(),
     ) {
     }
@@ -60,7 +61,7 @@ readonly final class CandidateModelRecalculator
      * samples' evidence (then the attempt set and the engines are released), the rest on the samples alone. The priors
      * and the evidence rest only on the pseudo-count and the noise, which nothing later changes.
      *
-     * @return array{candidate: CandidateModelParameters, priors_written: int, evidence_written: int, taste_states_written: int, pace_offsets_written: int}
+     * @return array{candidate: CandidateModelParameters, priors_written: int, evidence_written: int, taste_states_written: int, pace_offsets_written: int, picture_projections_written: int}
      */
     public function fit(DateTimeImmutable $now): array
     {
@@ -129,7 +130,10 @@ readonly final class CandidateModelRecalculator
                 'parameters' => json_encode($parameters->toArray(), JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION),
             ]);
 
-            return ['candidate' => $parameters, 'priors_written' => $priorsWritten, 'evidence_written' => $evidenceWritten, 'taste_states_written' => $tasteWritten, 'pace_offsets_written' => $offsetsWritten];
+            // The pictures' taste projections with the new W (the shown v7 Picker's SQL - CandidatePictureProjections)
+            $projectionsWritten = $this->pictureProjections->sync($parameters, $now, $now);
+
+            return ['candidate' => $parameters, 'priors_written' => $priorsWritten, 'evidence_written' => $evidenceWritten, 'taste_states_written' => $tasteWritten, 'pace_offsets_written' => $offsetsWritten, 'picture_projections_written' => $projectionsWritten];
         });
     }
 
@@ -235,7 +239,7 @@ readonly final class CandidateModelRecalculator
     }
 
     /**
-     * @return array{evidence_written: int, fitted: bool}
+     * @return array{evidence_written: int, fitted: bool, picture_projections_written?: int}
      */
     public function refreshEvidence(DateTimeImmutable $now): array
     {
@@ -258,7 +262,16 @@ readonly final class CandidateModelRecalculator
             $candidate->adjustedPace = AdjustedPace::fromStored($engine->set, CandidatePaceOffsets::load($this->connection));
         }
 
-        return ['evidence_written' => $this->writeEvidence($candidate, $parameters, $now), 'fitted' => true];
+        $evidenceWritten = $this->writeEvidence($candidate, $parameters, $now);
+        unset($candidate, $engine);
+        $fittedAt = $this->parametersProvider->candidateFittedAt();
+
+        return [
+            'evidence_written' => $evidenceWritten,
+            'fitted' => true,
+            // Estimates pushed since the last run (the shown v7 Picker's SQL - CandidatePictureProjections)
+            'picture_projections_written' => $fittedAt !== null ? $this->pictureProjections->sync($parameters, $fittedAt, $now) : 0,
+        ];
     }
 
     /**

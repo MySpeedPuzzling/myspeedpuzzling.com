@@ -185,7 +185,7 @@ final class CandidatePredictionsSideBySideTest extends KernelTestCase
     {
         // Right after the fit the refresh reads the stored adjusted paces (v7) and finds the very evidence the fit wrote
         $fresh = $this->messageBus->dispatch(new RefreshCandidatePredictionEvidence())->last(HandledStamp::class)?->getResult();
-        self::assertSame(['evidence_written' => 0, 'fitted' => true], $fresh);
+        self::assertSame(['evidence_written' => 0, 'fitted' => true, 'picture_projections_written' => 0], $fresh);
 
         /** @var int|string $rows */
         $rows = $this->database->fetchOne('SELECT count(*) FROM candidate_puzzle_evidence');
@@ -193,9 +193,9 @@ final class CandidatePredictionsSideBySideTest extends KernelTestCase
         $this->database->executeStatement('DELETE FROM candidate_puzzle_evidence');
 
         $result = $this->messageBus->dispatch(new RefreshCandidatePredictionEvidence())->last(HandledStamp::class)?->getResult();
-        self::assertSame(['evidence_written' => (int) $rows, 'fitted' => true], $result);
+        self::assertSame(['evidence_written' => (int) $rows, 'fitted' => true, 'picture_projections_written' => 0], $result);
         $again = $this->messageBus->dispatch(new RefreshCandidatePredictionEvidence())->last(HandledStamp::class)?->getResult();
-        self::assertSame(['evidence_written' => 0, 'fitted' => true], $again, 'Nothing changed: nothing written');
+        self::assertSame(['evidence_written' => 0, 'fitted' => true, 'picture_projections_written' => 0], $again, 'Nothing changed: nothing written');
     }
 
     /**

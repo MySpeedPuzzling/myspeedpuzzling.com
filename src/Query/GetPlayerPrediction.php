@@ -8,15 +8,19 @@ use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\TimePredictionResult;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidatePredictionCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionModelParametersProvider;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\RepeatResiduals;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\StatisticalInputsSql;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
+use SpeedPuzzling\Web\Value\CandidateModelParameters;
 use SpeedPuzzling\Web\Value\ImagePriorInput;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
 use SpeedPuzzling\Web\Value\PredictionsSideBySide;
+use SpeedPuzzling\Web\Value\ShownPredictionModel;
 use SpeedPuzzling\Web\Value\SolveMoment;
 use SpeedPuzzling\Web\Value\TimePredictionSource;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * Time prediction of one player on one puzzle. Fetches the inputs and hands the
@@ -29,19 +33,38 @@ use SpeedPuzzling\Web\Value\TimePredictionSource;
  *
  * The fitted model parameters ride on a statement that runs anyway (PredictionModelParametersProvider::SQL),
  * so the model upgrade cost no query: a personal prediction runs 4 statements, a statistical one 2.
+ *
+ * forPuzzle() is the SHOWN prediction: the model PREDICTION_SHOWN_MODEL names (ShownPredictionModel) - with v7 the
+ * candidate's (GetCandidatePrediction's calculation on the same inputs: its one-puzzle statement in place of the
+ * statistical one, its fit on the ratio statement of a repeat - the same statement counts), the statistical model's
+ * while the candidate has no fit. sideBySide() is always the statistical model's (its side-by-side rows), and so is
+ * forPuzzle() asked with ShownPredictionModel::V3 (the time verification).
  */
 readonly final class GetPlayerPrediction
 {
+    private ShownPredictionModel $shownModel;
+
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
         private TimePredictionCalculator $calculator,
+        private GetCandidatePrediction $getCandidatePrediction,
+        // PREDICTION_SHOWN_MODEL: which model forPuzzle() shows (docs/features/feature_flags.md)
+        #[Autowire(param: 'predictionShownModel')]
+        string $shownModel = 'v3',
     ) {
+        $this->shownModel = ShownPredictionModel::fromSetting($shownModel);
+    }
+
+    public function shownModel(): ShownPredictionModel
+    {
+        return $this->shownModel;
     }
 
     /**
      * @param bool $allowPriorOnly also predict a first try of a puzzle without any difficulty index, from its prior
      *                             alone - stored side by side, not shown on surfaces yet (Insights plan Phase 6)
+     * @param null|ShownPredictionModel $model the model to predict with - null = the shown one (PREDICTION_SHOWN_MODEL)
      */
     public function forPuzzle(
         string $playerId,
@@ -49,14 +72,47 @@ readonly final class GetPlayerPrediction
         null|string $excludeTimeId = null,
         null|SolveMoment $before = null,
         bool $allowPriorOnly = false,
+        null|ShownPredictionModel $model = null,
     ): null|TimePredictionResult {
-        $personalPrediction = $this->personalPrediction($playerId, $puzzleId, $excludeTimeId, $before);
+        $candidate = ($model ?? $this->shownModel)->isCandidate();
+        $personalPrediction = $this->personalPrediction($playerId, $puzzleId, $excludeTimeId, $before, $candidate);
 
         if ($personalPrediction !== null) {
             return $personalPrediction;
         }
 
-        return $this->statisticalPrediction($playerId, $puzzleId, $allowPriorOnly);
+        return $candidate
+            ? $this->candidateFirstTry($playerId, $puzzleId, $allowPriorOnly)
+            : $this->statisticalPrediction($playerId, $puzzleId, $allowPriorOnly);
+    }
+
+    /**
+     * The candidate's first try (the shown v7): GetCandidatePrediction's statement and calculation - a first try of a
+     * puzzle without any candidate index (k = 0) only with $allowPriorOnly, like the statistical model's prior-only
+     * predictions (SolvingTimePrediction::forDisplay()); the statistical model's from the same row while the candidate
+     * has no fit.
+     */
+    private function candidateFirstTry(string $playerId, string $puzzleId, bool $allowPriorOnly): null|TimePredictionResult
+    {
+        $row = $this->getCandidatePrediction->firstTryRow($playerId, $puzzleId, withShownParameters: true);
+
+        if ($row === null) {
+            return null;
+        }
+
+        $parameters = GetCandidatePrediction::parametersOf($row);
+
+        if ($parameters === null) {
+            return $this->calculator->statistical(
+                StatisticalInputsSql::hydrate($row),
+                PredictionModelParametersProvider::fromJson(is_string($row['model_parameters'] ?? null) ? $row['model_parameters'] : null),
+                $allowPriorOnly,
+            );
+        }
+
+        $prediction = $this->getCandidatePrediction->firstTryOf($row, $parameters);
+
+        return $prediction !== null && ($allowPriorOnly || $prediction->kIndices !== 0) ? $prediction : null;
     }
 
     /**
@@ -70,7 +126,7 @@ readonly final class GetPlayerPrediction
         null|string $excludeTimeId = null,
         null|SolveMoment $before = null,
     ): PredictionsSideBySide {
-        $personalPrediction = $this->personalPrediction($playerId, $puzzleId, $excludeTimeId, $before);
+        $personalPrediction = $this->personalPrediction($playerId, $puzzleId, $excludeTimeId, $before, candidate: false);
 
         if ($personalPrediction !== null) {
             return PredictionsSideBySide::repeat($personalPrediction, TimePredictionSource::Live);
@@ -92,7 +148,12 @@ readonly final class GetPlayerPrediction
         return PredictionsSideBySide::firstTry(TimePredictionSource::Live, $statistical, $estimate, $image, $blend);
     }
 
-    private function personalPrediction(string $playerId, string $puzzleId, null|string $excludeTimeId, null|SolveMoment $before): null|TimePredictionResult
+    /**
+     * @param bool $candidate the candidate's repeat (the shown v7): the statistical model's centre with the candidate's
+     *                        gap offset and window (GetCandidatePrediction::repeatOf()), its fit read by the ratio
+     *                        statement - the statistical repeat while the candidate has no fit
+     */
+    private function personalPrediction(string $playerId, string $puzzleId, null|string $excludeTimeId, null|SolveMoment $before, bool $candidate): null|TimePredictionResult
     {
         $excludeFilter = $excludeTimeId !== null ? 'AND pst.id != :excludeTimeId' : '';
         $beforeFilter = $before !== null
@@ -154,37 +215,47 @@ SQL;
         $piecesCount = (int) $piecesCount;
 
         $transition = TimePredictionCalculator::transitionFor($count);
-        $gapBucket = TimePredictionCalculator::classifyGap(
-            TimePredictionCalculator::gapDays($before->solvedAt ?? $this->clock->now(), $lastSolvedAt),
-        );
+        $gapDays = TimePredictionCalculator::gapDays($before->solvedAt ?? $this->clock->now(), $lastSolvedAt);
+        $gapBucket = TimePredictionCalculator::classifyGap($gapDays);
 
-        [$playerRatio, $repeatResiduals, $parameters] = $this->playerRatioAndRepeats($playerId, $transition, $excludeTimeId, $before);
+        [$playerRatio, $repeatResiduals, $parameters, $candidateParameters] = $this->playerRatioAndRepeats($playerId, $transition, $excludeTimeId, $before, $candidate);
         $globalRatios = $this->getGlobalRatios($piecesCount, $transition, $gapBucket);
         $globalRatioForGap = $globalRatios[$gapBucket] ?? null;
         // The "all" bucket is only needed to gap-correct a player ratio
         $globalRatioAll = $playerRatio !== null ? ($globalRatios['all'] ?? null) : null;
+        $repeatSpread = TimePredictionCalculator::playerSpread($repeatResiduals);
 
-        return $this->calculator->personal(
+        $personal = $this->calculator->personal(
             $times,
             TimePredictionCalculator::resolveRatio($playerRatio, $globalRatioForGap, $globalRatioAll),
-            TimePredictionCalculator::playerSpread($repeatResiduals),
+            $repeatSpread,
             $piecesCount,
             $parameters,
         );
+
+        return $candidateParameters !== null
+            ? $this->getCandidatePrediction->repeatOf($personal, $repeatSpread, $piecesCount, $gapDays, $candidateParameters)
+            : $personal;
     }
 
     /**
      * The player's improvement ratio for the transition, the residuals of their stored repeat predictions before the
-     * solve (the window's spread, RepeatResiduals) and the fitted model parameters - one statement.
+     * solve (the window's spread, RepeatResiduals) and the fitted model parameters - one statement; with $candidate also
+     * the candidate's fit (null = not asked, or never fitted).
      *
-     * @return array{0: null|float, 1: list<float>, 2: PredictionModelParameters}
+     * @return array{0: null|float, 1: list<float>, 2: PredictionModelParameters, 3: null|CandidateModelParameters}
      */
-    private function playerRatioAndRepeats(string $playerId, int $transition, null|string $excludeTimeId, null|SolveMoment $before): array
+    private function playerRatioAndRepeats(string $playerId, int $transition, null|string $excludeTimeId, null|SolveMoment $before, bool $candidate = false): array
     {
         $repeats = RepeatResiduals::sql($excludeTimeId !== null, $before !== null);
         $parameters = PredictionModelParametersProvider::SQL;
+        $candidateColumn = $candidate ? ', (' . PredictionModelParametersProvider::CANDIDATE_SQL . ') AS candidate_parameters' : '';
 
         $params = ['playerId' => $playerId, 'transition' => $transition, 'modelVersion' => TimePredictionCalculator::MODEL_VERSION];
+
+        if ($candidate) {
+            $params['candidateModelVersion'] = CandidatePredictionCalculator::MODEL_VERSION;
+        }
 
         if ($excludeTimeId !== null) {
             $params['excludeTimeId'] = $excludeTimeId;
@@ -195,18 +266,19 @@ SQL;
             $params['trackedAt'] = $before->trackedAt->format('Y-m-d H:i:s');
         }
 
-        /** @var array{median_ratio: null|float|string, repeats: null|string, parameters: null|string} $row */
+        /** @var array{median_ratio: null|float|string, repeats: null|string, parameters: null|string, candidate_parameters?: null|string} $row */
         $row = $this->database->fetchAssociative("
             SELECT
                 (SELECT median_ratio FROM player_improvement_ratio WHERE player_id = :playerId AND from_attempt = :transition) AS median_ratio,
                 ({$repeats}) AS repeats,
-                ({$parameters}) AS parameters
+                ({$parameters}) AS parameters{$candidateColumn}
         ", $params);
 
         return [
             $row['median_ratio'] !== null ? (float) $row['median_ratio'] : null,
             RepeatResiduals::fromJson($row['repeats']),
             PredictionModelParametersProvider::fromJson($row['parameters']),
+            $candidate ? PredictionModelParametersProvider::candidateFromJson($row['candidate_parameters'] ?? null) : null,
         ];
     }
 

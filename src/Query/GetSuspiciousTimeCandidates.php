@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Results\SuspicionCandidate;
 use SpeedPuzzling\Web\Services\SuspiciousTimes\SuspicionFingerprint;
 use SpeedPuzzling\Web\Services\SuspiciousTimes\SuspiciousTimeClassifier;
 use SpeedPuzzling\Web\Value\PuzzlingType;
+use SpeedPuzzling\Web\Value\ShownPredictionModel;
 use SpeedPuzzling\Web\Value\SuspicionCheckOutcome;
 use SpeedPuzzling\Web\Value\SuspicionDirection;
 use SpeedPuzzling\Web\Value\SuspiciousTimeCaseStatus;
@@ -26,6 +27,9 @@ use SpeedPuzzling\Web\Value\SuspiciousTimeCaseStatus;
  * handles them. Results with a time only; pair/team results too (judged by the slow floor only).
  *
  * Each solo candidate carries what the classifier needs except the pace: the stored prediction (predictable = true)
+ * of the statistical model - the shown columns, or, where the shown prediction is the candidate model's
+ * (PREDICTION_SHOWN_MODEL = v7, prediction_model_version 7), the statistical side row written next to it, so the switch
+ * never changes what the scan expects (ShownPredictionModel::statisticalVersionSql()) -
  * with the attempt a personal one was built on, the player's baseline for the piece count and the puzzle's difficulty
  * when its confidence is not insufficient; every candidate carries the puzzle's slow threshold while it is for the
  * puzzle's current piece count. Only for a time far faster than a personal prediction: whether an earlier
@@ -124,6 +128,12 @@ SQL;
         $fastFrom = SuspiciousTimeClassifier::PREDICTION_RAISE_RATIO;
         // Inlined: a cursor declaration takes no bind parameters - an int and a formatted date, nothing a player typed
         $since = $this->database->quote($noDataSince->format('Y-m-d H:i:s'));
+        // The statistical model's prediction of the time: the shown columns, unless the shown one is the candidate's
+        // (then its statistical side row `stp`) - on every other row exactly the shown columns
+        $candidateShown = 'pst.prediction_model_version = ' . ShownPredictionModel::CANDIDATE_VERSION;
+        $predictable = "CASE WHEN {$candidateShown} THEN stp.predictable ELSE pst.predictable END";
+        $predicted = "CASE WHEN {$candidateShown} THEN stp.predicted_seconds ELSE pst.predicted_seconds END";
+        $statisticalVersion = ShownPredictionModel::statisticalVersionSql('pst');
         // One puzzle (a UUID, checked above): every time of it a person has not decided - its checks may be fresh
         $onlyPuzzle = $onlyPuzzleId !== null ? 'AND pst.puzzle_id = ' . $this->database->quote(strtolower($onlyPuzzleId)) : '';
         // The rest: a time without a current check. Checked in the very second the threshold was set counts as before
@@ -147,11 +157,11 @@ SELECT
     pst.seconds_to_solve,
     pst.puzzling_type,
     EXTRACT(EPOCH FROM COALESCE(pst.finished_at, pst.tracked_at))::bigint AS solved_at,
-    CASE WHEN pst.puzzling_type = 'solo' AND pst.predictable = true AND stp.difficulty_source IS DISTINCT FROM 'shrunk' AND stp.pace_source IS DISTINCT FROM 'scaled_500' THEN pst.predicted_seconds END AS predicted_seconds,
-    CASE WHEN pst.puzzling_type = 'solo' AND pst.predictable = true THEN pst.prediction_last_time_seconds END AS previous_attempt_seconds,
+    CASE WHEN pst.puzzling_type = 'solo' AND {$predictable} = true AND stp.difficulty_source IS DISTINCT FROM 'shrunk' AND stp.pace_source IS DISTINCT FROM 'scaled_500' THEN {$predicted} END AS predicted_seconds,
+    CASE WHEN pst.puzzling_type = 'solo' AND {$predictable} = true THEN pst.prediction_last_time_seconds END AS previous_attempt_seconds,
     CASE
-        WHEN pst.puzzling_type = 'solo' AND pst.predictable = true AND pst.prediction_last_time_seconds IS NOT NULL
-            AND pst.predicted_seconds >= {$fastFrom} * pst.seconds_to_solve
+        WHEN pst.puzzling_type = 'solo' AND {$predictable} = true AND pst.prediction_last_time_seconds IS NOT NULL
+            AND {$predicted} >= {$fastFrom} * pst.seconds_to_solve
         THEN EXISTS (
             SELECT 1
             FROM puzzle_solving_time earlier
@@ -182,7 +192,7 @@ LEFT JOIN suspicious_time_puzzle_confirmation conf ON conf.puzzle_id = pst.puzzl
 -- A first try's stored prediction counts only as v2 made them: on a rated puzzle and the player's own pace - one resting
 -- on a few indices shrunk toward a prior or on the 500-piece pace scaled to a thin size (prediction model v3,
 -- solving_time_prediction.difficulty_source / pace_source) is no expectation for the verification
-LEFT JOIN solving_time_prediction stp ON stp.time_id = pst.id AND stp.predictor = 'statistical' AND stp.model_version = pst.prediction_model_version
+LEFT JOIN solving_time_prediction stp ON stp.time_id = pst.id AND stp.predictor = 'statistical' AND stp.model_version = {$statisticalVersion}
 WHERE pst.seconds_to_solve > 0
     AND pst.suspicious = false
     AND p.pieces_count > 0

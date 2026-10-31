@@ -191,6 +191,10 @@ readonly final class PuzzleSolvingTimeRepository
         // The candidate model (v4): its row missing (once it is fitted), and with its fit time the reconstructed rows from before it
         bool $withCandidateRows = false,
         null|DateTimeImmutable $recomputeCandidateBefore = null,
+        // The shown prediction (PREDICTION_SHOWN_MODEL): with $recomputeReconstructed the reconstructed ones computed no
+        // later than the shown model's fit (default $recomputeReconstructed) or made by another model than the shown one
+        null|DateTimeImmutable $recomputeShownBefore = null,
+        int $shownModelVersion = TimePredictionCalculator::MODEL_VERSION,
     ): array {
         $queryBuilder = $this->entityManager->createQueryBuilder()
             ->select('time')
@@ -235,7 +239,10 @@ readonly final class PuzzleSolvingTimeRepository
         // Every reconstruction again - shown (of any model version) and the current model's side-by-side row; live
         // ones are history
         if ($recomputeReconstructed !== null) {
-            $conditions[] = '(time.predictionSource = :reconstructed AND time.predictionComputedAt <= :fittedAt)';
+            $conditions[] = '(time.predictionSource = :reconstructed AND (time.predictionComputedAt <= :shownFittedAt OR time.predictionModelVersion IS NULL OR time.predictionModelVersion <> :shownModelVersion))';
+            $queryBuilder
+                ->setParameter('shownFittedAt', $recomputeShownBefore ?? $recomputeReconstructed)
+                ->setParameter('shownModelVersion', $shownModelVersion);
             $conditions[] = 'EXISTS (SELECT 1 FROM ' . SolvingTimePredictionRecord::class . ' reconstructedRecord WHERE reconstructedRecord.time = time AND reconstructedRecord.predictor = :statistical AND reconstructedRecord.modelVersion = :modelVersion AND reconstructedRecord.source = :reconstructed AND reconstructedRecord.computedAt <= :fittedAt)';
             $queryBuilder
                 ->setParameter('reconstructed', TimePredictionSource::Reconstructed)

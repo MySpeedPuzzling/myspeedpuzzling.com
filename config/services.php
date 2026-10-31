@@ -135,6 +135,10 @@ return static function (ContainerConfigurator $configurator): void {
     // The candidate prediction model's rows (docs/features/feature_flags.md): live and by the backfill cron only while 1.
     $parameters->set('predictionCandidateRows', '%env(bool:PREDICTION_CANDIDATE_ROWS)%');
 
+    // Which model makes the shown prediction (docs/features/feature_flags.md): v3 (the statistical model, default) or v7
+    // (the candidate) - ShownPredictionModel::fromSetting(), an unknown value = v3.
+    $parameters->set('predictionShownModel', '%env(PREDICTION_SHOWN_MODEL)%');
+
     // The pair/team prediction model's rows (docs/features/feature_flags.md): written by its daily command only while 1.
     $parameters->set('predictionGroupRows', '%env(bool:PREDICTION_GROUP_ROWS)%');
 

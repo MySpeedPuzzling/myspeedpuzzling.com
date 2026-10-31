@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 
 use SpeedPuzzling\Web\Value\PredictionInputSolve;
+use SpeedPuzzling\Web\Value\ShownPredictionModel;
 
 /**
  * The residuals ln(actual ÷ predicted) of a player's last 20 repeats with a stored personal prediction - the spread a
@@ -26,11 +27,12 @@ final class RepeatResiduals
             ? 'AND (COALESCE(pst.finished_at, pst.tracked_at), pst.tracked_at) < (CAST(:solvedAt AS timestamp), CAST(:trackedAt AS timestamp))'
             : '';
         $window = self::WINDOW;
+        $stored = self::storedPersonalSql('pst');
 
         return "
             SELECT json_agg(json_build_array(r.seconds_to_solve, r.predicted_seconds) ORDER BY r.solved_at, r.tracked_at, r.id)
             FROM (
-                SELECT pst.id, pst.seconds_to_solve, pst.predicted_seconds, COALESCE(pst.finished_at, pst.tracked_at) AS solved_at, pst.tracked_at
+                SELECT pst.id, pst.seconds_to_solve, {$stored} AS predicted_seconds, COALESCE(pst.finished_at, pst.tracked_at) AS solved_at, pst.tracked_at
                 FROM puzzle_solving_time pst
                 WHERE pst.player_id = :playerId
                     AND pst.puzzling_type = 'solo'
@@ -39,13 +41,34 @@ final class RepeatResiduals
                     AND pst.seconds_to_solve > 0
                     AND pst.predictable = true
                     AND pst.prediction_method = 'personal'
-                    AND pst.predicted_seconds > 0
+                    AND {$stored} > 0
                     {$exclude}
                     {$beforeCondition}
                 ORDER BY COALESCE(pst.finished_at, pst.tracked_at) DESC, pst.tracked_at DESC, pst.id DESC
                 LIMIT {$window}
             ) r
         ";
+    }
+
+    /**
+     * SQL: the stored personal prediction a repeat's residual is measured against - the statistical model's centre
+     * (Holt / ratio, the same in every model version): the shown column, unless the shown prediction is the candidate
+     * model's (PREDICTION_SHOWN_MODEL = v7: Holt × its gap offset) - then the statistical side row written next to it
+     * (NULL without one). Every reader of a repeat's stored centre goes through it (the live readers, RepeatHistory,
+     * PredictionReconstructor), so the residuals - and the windows, the fits - do not depend on which model was shown;
+     * on rows with a statistical shown prediction it is the column itself.
+     */
+    public static function storedPersonalSql(string $timeAlias): string
+    {
+        return sprintf(
+            "CASE WHEN %1\$s.prediction_model_version = %2\$d THEN (
+                SELECT holt.predicted_seconds FROM solving_time_prediction holt
+                WHERE holt.time_id = %1\$s.id AND holt.predictor = 'statistical' AND holt.model_version = %3\$d AND holt.predictable = true AND holt.method = 'personal'
+            ) ELSE %1\$s.predicted_seconds END",
+            $timeAlias,
+            ShownPredictionModel::CANDIDATE_VERSION,
+            TimePredictionCalculator::MODEL_VERSION,
+        );
     }
 
     /**

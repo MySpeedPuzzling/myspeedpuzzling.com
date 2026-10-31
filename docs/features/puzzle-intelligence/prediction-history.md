@@ -614,6 +614,53 @@ and the player's own difficulty slope (README "Step 8", "Candidate v7"). For the
    `--candidate-off=adjusted_pace,player_slope` for v6 on the same code; the output's `selection decile …` groups are
    the players by what they pick, `size … · k …` the size × k cells).
 
+## The shown model switch v3 → v7 (2026-10-31)
+
+Jan's decision: the shown prediction becomes the candidate v7's (README "Step 8", "The shown model switch"; env
+`PREDICTION_SHOWN_MODEL`, feature_flags.md). For the stored predictions:
+
+- **The model is on every row.** `prediction_model_version` of a shown prediction = the model that made it: 3 (the
+  statistical model) or 7 (`ShownPredictionModel::CANDIDATE_VERSION` = `CandidatePredictionCalculator::MODEL_VERSION`,
+  pinned equal - a candidate bump must decide whether the switch follows; the statistical model's version must never take
+  the value 7). `TimePredictionCalculator::MODEL_VERSION` stays 3: it is the statistical model's (its side rows, its fit,
+  the image gates). Accuracy statistics keep the two apart by it, and `calibratedWindow` holds for both (≥ 3).
+- **Live** (`SolvingTimePredictor`): with `v7` the shown columns of an added time are the candidate's live prediction
+  (`forDisplay()` - a k = 0 first try stays "not predictable", like a prior-only statistical one); the statistical model's
+  side row is written next to it as always, and the candidate's row whatever `PREDICTION_CANDIDATE_ROWS` says. A failing
+  or unfitted candidate leaves the statistical model's prediction shown (version 3) - never a lost one. **Live
+  predictions are never rewritten**: the ones stored while v7 was on keep its numbers after a flip back, and the v3 ones
+  stored before stay v3's.
+- **Reconstructed** (`BackfillSolvingTimePredictionsHandler`): pending and edited times get the candidate's reconstruction
+  as their shown prediction (the statistical model's when the candidate's pass failed). `--recompute-reconstructed`
+  replaces every reconstructed shown prediction made by **another model than the shown one** (or before the shown model's
+  fit - the candidate's at v7), in both directions: after the flip to v7 it turns the ~450k reconstructed v3 predictions
+  into v7 ones, after a flip back into v3 ones (`GetPlayersWithPendingPredictions` / `findForPredictionOfPlayer()`
+  `recomputeShownBefore`, `shownModelVersion`). **Decision: run it once after the flip** (the orchestrator) - so a
+  player's history reads one model, like the reconstructed v3 predictions were made again with the v3 fit after its
+  launch; the reconstructions are in-sample either way (today's fit), the time split is the proof. Live ones stay.
+- **What reads stored predictions as a model input never follows the switch**: the repeats' residuals (the windows'
+  spread - `RepeatResiduals`, `RepeatHistory`, `PredictionReconstructor`) read a v7-labelled time's statistical side row
+  (`RepeatResiduals::storedPersonalSql()`), and so does the time verification's scan (`GetSuspiciousTimeCandidates`).
+  On production every solo time with a time has its statistical v3 and candidate v7 rows (478,054 of 478,054,
+  2026-10-31), so nothing falls back to an empty prediction.
+
+### Production run for the shown v7
+
+1. Deploy (the migration only creates `candidate_picture_projection` - nothing waits for it). Run the candidate fit once
+   by hand so the table fills (the 15-minute evidence refresh keeps it current after that; a missing or stale row only
+   makes the Picker compute the taste from the factors - slower, never another number):
+   `docker compose run --rm --no-deps messenger-consumer php -d memory_limit=1G bin/console myspeedpuzzling:fit-candidate-prediction-model`
+   (the summary shows "picture projections written").
+2. Flip `PREDICTION_SHOWN_MODEL=v7` in lily.srv's environment of every service of the image (web, messenger-consumer,
+   the cron containers) and recreate them. From that moment every surface shows v7 and every added time stores it.
+3. Once, detached, after a slot of the 4×-daily backfill cron (never two backfill runs at once):
+   `nohup docker compose exec -T -e SENTRY_DSN= web php -d memory_limit=1G bin/console myspeedpuzzling:backfill-solving-time-predictions --recompute-reconstructed > /tmp/backfill-shown-v7.log 2>&1 &`
+   (~the length of the v3 fill, ~1 h; resumable). It also replaces side rows reconstructed before their fits, as always.
+4. Watch the daily calibration report (it reads the candidate's live rows now) and the gate's live slice.
+
+**Rollback:** `PREDICTION_SHOWN_MODEL=v3` and recreate the services - instant for everything read live; then (optional,
+for the history) the same `--recompute-reconstructed` run turns the reconstructed v7 predictions back into v3 ones.
+
 ## Pair and team predictions (2026-10-27)
 
 The pair/team model (README "Pair and team predictions") - **never shown**; pair/team times keep `predictable = false`

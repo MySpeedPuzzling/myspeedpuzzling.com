@@ -381,6 +381,23 @@ indices, shrunk toward the brand prior for 1-4) × the player's drift, with the 
 statement (a DISTINCT ON relation) and the fitted parameters from `GetPlayerPredictions::modelParameters()` (taken with
 the personal pass, no query of its own). Puzzles with 1-4 solves now get a prediction; one without any index does not.
 Pinned equal to `GetPlayerPredictions` by `GetPuzzlePickerSuggestionsTest`, thin sizes included.
+
+**With the candidate model shown (`PREDICTION_SHOWN_MODEL=v7`, puzzle-intelligence README "The shown model switch")**
+the cards are the candidate's (`GetPlayerPredictions`, the same calculation as the puzzle page) and the pre-LIMIT centre
+is its SQL twin `CandidateCentreSql::centreSql()` - no table of its own (the "materialise" option was not needed: the
+centre can be mirrored exactly). What depends on the player and the piece count is computed in PHP by the calculator's
+own code and handed over as a `VALUES` list joined by piece count: the log pace with its drift at every catalogue piece
+count (`GetPlayerPredictions::candidatePaces()` - one statement: the skip scan of the piece counts, the player's
+baseline and pace row at each, their 1-4 first tries at sizes without a pace row) and the centre offset of each k bucket
+× prior type. What depends on the puzzle is SQL with the calculator's IEEE operations in its order, every constant a
+round-trip literal: the posterior over the candidate's evidence with the first prior there is (the estimate of the
+current picture with its own variance, else the puzzle-weighted brand prior, else the average puzzle), the player's
+taste term (their coefficients × [1, W x] of the picture's 16 factors, kind and size) and difficulty slope. k = 0 = no
+prediction (like v3). Pinned to the cards' numbers to the second by `ShownModelV7Test::testThePickerFiltersOnTheNumbersOfItsCards`
+(mutation-checked: dropping the slope, the picture factors or nudging the image variance by 0.01 each fails it), and a
+time budget keeps exactly the puzzles whose card fits. Cost: one statement more (the pace table) on a draw that predicts
+before the LIMIT; the candidate's player columns ride on the ratio statement - measured on the production copy in the
+puzzle-intelligence README.
 Collections use the same service for their visible items. Cache the per-player result for a few
 minutes (Symfony cache pool, keyed by player + latest solve id) so "5 more"/back navigation is free.
 

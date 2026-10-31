@@ -10,6 +10,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\CollectionDifficultyRank;
 use SpeedPuzzling\Web\Results\PersonalEstimate;
 use SpeedPuzzling\Web\Results\TimePredictionResult;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidatePredictionCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionModelParametersProvider;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\RepeatResiduals;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\StatisticalInputsSql;
@@ -19,9 +20,12 @@ use SpeedPuzzling\Web\Value\DifficultyTier;
 use SpeedPuzzling\Web\Value\EstimateBasis;
 use SpeedPuzzling\Web\Value\ImageKind;
 use SpeedPuzzling\Web\Value\ImagePriorInput;
+use SpeedPuzzling\Web\Value\PictureLookalikes;
 use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\PredictionModelParameters;
+use SpeedPuzzling\Web\Value\ShownPredictionModel;
 use SpeedPuzzling\Web\Value\StatisticalPredictionInputs;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * The personal time estimates of one player for a list of puzzles in ONE statement, however long the list
@@ -46,11 +50,18 @@ readonly final class GetPersonalEstimates
     /** A community median rests on at least this many puzzlers' paces */
     public const int COMMUNITY_MIN_PLAYERS = 20;
 
+    private ShownPredictionModel $shownModel;
+
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
         private TimePredictionCalculator $calculator,
+        private GetCandidatePrediction $getCandidatePrediction,
+        // PREDICTION_SHOWN_MODEL: v7 = the candidate's predictions (docs/features/insights/estimates.md "Which number")
+        #[Autowire(param: 'predictionShownModel')]
+        string $shownModel = 'v3',
     ) {
+        $this->shownModel = ShownPredictionModel::fromSetting($shownModel);
     }
 
     /**
@@ -85,6 +96,8 @@ readonly final class GetPersonalEstimates
         }
 
         $parameters = PredictionModelParametersProvider::fromJson(is_string($first['model_parameters'] ?? null) ? $first['model_parameters'] : null);
+        // The shown v7: the candidate's fit (null while it has none, or v3 is shown - then the statistical model's)
+        $candidate = $this->shownModel->isCandidate() ? GetCandidatePrediction::parametersOf($first) : null;
         $playerRatios = self::playerRatios($first['ratios'] ?? null);
         $repeatSpread = TimePredictionCalculator::playerSpread(RepeatResiduals::fromJson(is_string($first['repeats'] ?? null) ? $first['repeats'] : null));
         $globalRatios = self::globalRatios($first['global_ratios'] ?? null);
@@ -114,8 +127,29 @@ readonly final class GetPersonalEstimates
             $basis = null;
 
             if ($times !== [] && is_string($row['last_solved_at'] ?? null)) {
-                $prediction = $this->personal($times, new DateTimeImmutable($row['last_solved_at']), $inputs->piecesCount, $now, $playerRatios, $globalRatios, $repeatSpread, $parameters);
+                $lastSolvedAt = new DateTimeImmutable($row['last_solved_at']);
+                $prediction = $this->personal($times, $lastSolvedAt, $inputs->piecesCount, $now, $playerRatios, $globalRatios, $repeatSpread, $parameters);
+                $prediction = $candidate !== null
+                    ? $this->getCandidatePrediction->repeatOf($prediction, $repeatSpread, $inputs->piecesCount, TimePredictionCalculator::gapDays($now, $lastSolvedAt), $candidate)
+                    : $prediction;
                 $basis = EstimateBasis::YourSolves;
+            } elseif ($candidate !== null) {
+                // The candidate's first try (GetPlayerPredictions' rule): from its first index on measured / first solves; at
+                // k = 0 only the picture's own prediction (the estimate as its prior) where the picture's gate passed
+                $prediction = $this->getCandidatePrediction->firstTryOf(StatisticalInputsSql::withPlayerColumns($row, $first), $candidate);
+
+                if ($prediction !== null && $prediction->kIndices !== 0) {
+                    $basis = $prediction->difficultySource === DifficultySource::Solves ? EstimateBasis::Measured : EstimateBasis::FirstSolves;
+                } elseif (
+                    $prediction !== null
+                    && $prediction->difficultySource === DifficultySource::Image
+                    && $imageEstimate !== null
+                    && ($k === 0 ? $pictureOpen : $pictureShown($group, $imageEstimate->kind, $imageEstimate->generation()))
+                ) {
+                    $basis = EstimateBasis::Picture;
+                } else {
+                    $prediction = null;
+                }
             } else {
                 $prediction = $this->calculator->statistical($inputs, $parameters);
 
@@ -196,10 +230,10 @@ readonly final class GetPersonalEstimates
     }
 
     /**
-     * The statement (expects :playerId, :puzzleIds as a uuid[] literal, :modelVersion and :now) - public for EXPLAIN on a
-     * production copy (docs/features/insights/estimates.md "Measured").
+     * The statement (expects :playerId, :puzzleIds as a uuid[] literal, :modelVersion and :now; $candidate also
+     * :candidateModelVersion) - public for EXPLAIN on a production copy (docs/features/insights/estimates.md "Measured").
      */
-    public static function statement(): string
+    public static function statement(bool $candidate = false): string
     {
         $cte = StatisticalInputsSql::ownPaceCte();
         $columns = StatisticalInputsSql::COLUMNS . ', ' . StatisticalInputsSql::IMAGE_ESTIMATE_COLUMNS;
@@ -208,6 +242,21 @@ readonly final class GetPersonalEstimates
         $repeats = RepeatResiduals::sql(excludeTime: false, before: false);
         $parameters = PredictionModelParametersProvider::SQL;
         $minPlayers = self::COMMUNITY_MIN_PLAYERS;
+        // The shown v7 (PREDICTION_SHOWN_MODEL): the candidate's columns of each puzzle, its fit and the player's candidate
+        // columns once on the player row (:candidateModelVersion)
+        $candidatePlayer = '';
+        $candidateSelect = '';
+
+        if ($candidate) {
+            // The size curve's own first tries in one pass (few_by_size, not a subquery per puzzle), the estimate by a
+            // primary-key step per puzzle (the plain join was planned as a hash over every estimate)
+            $cte .= ',' . StatisticalInputsSql::candidateFewBySizeCte();
+            $columns .= ', ' . StatisticalInputsSql::CANDIDATE_PUZZLE_COLUMNS . ', ' . StatisticalInputsSql::CANDIDATE_PICTURE_COLUMNS . ', few_by_size.few AS candidate_few';
+            $joins = StatisticalInputsSql::JOINS . StatisticalInputsSql::ownPaceCteJoins() . StatisticalInputsSql::imageEstimateLateralJoins()
+                . PictureLookalikes::JOINS . StatisticalInputsSql::CANDIDATE_JOINS . ' LEFT JOIN few_by_size ON few_by_size.pieces_count = p.pieces_count';
+            $candidatePlayer = ",\n        (" . PredictionModelParametersProvider::CANDIDATE_SQL . ') AS candidate_parameters, ' . StatisticalInputsSql::candidatePlayerColumns();
+            $candidateSelect = ",\n    player.candidate_parameters, " . implode(', ', array_map(static fn (string $key): string => 'player.' . $key, StatisticalInputsSql::CANDIDATE_PLAYER_KEYS));
+        }
 
         // The player's part (`player`) and the community medians are uncorrelated - evaluated once for the statement;
         // the community scan runs only for a player without any baseline (a one-time filter). The listed ids drive the
@@ -260,7 +309,7 @@ player AS (
                 GROUP BY b.pieces_count
                 HAVING count(*) >= {$minPlayers}
             ) c
-        ) AS community
+        ) AS community{$candidatePlayer}
 )
 SELECT
     {$columns},
@@ -274,7 +323,7 @@ SELECT
     player.repeats,
     player.model_parameters,
     player.global_ratios,
-    player.community
+    player.community{$candidateSelect}
 FROM listed
 JOIN puzzle p ON p.id = listed.id
 {$joins}
@@ -290,13 +339,20 @@ SQL;
      */
     private function rows(string $playerId, array $puzzleIds): array
     {
-        /** @var list<array<string, mixed>> $rows */
-        $rows = $this->database->executeQuery(self::statement(), [
+        $candidate = $this->shownModel->isCandidate();
+        $params = [
             'playerId' => $playerId,
             'puzzleIds' => '{' . implode(',', $puzzleIds) . '}',
             'modelVersion' => TimePredictionCalculator::MODEL_VERSION,
             'now' => $this->clock->now()->format('Y-m-d H:i:s'),
-        ])->fetchAllAssociative();
+        ];
+
+        if ($candidate) {
+            $params['candidateModelVersion'] = CandidatePredictionCalculator::MODEL_VERSION;
+        }
+
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $this->database->executeQuery(self::statement($candidate), $params)->fetchAllAssociative();
 
         return $rows;
     }

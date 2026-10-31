@@ -16,6 +16,40 @@ The free trial (`docs/features/free-trial/README.md`) shipped dark behind it for
 
 Meta App Review approved + app published (2026-09-30), so Facebook lost its flag and follows the credentials rule like Google, Microsoft and Apple: available and shown iff `FACEBOOK_APP_ID` + `FACEBOOK_APP_SECRET` are configured (`SocialLoginSettings::isAvailable()`; templates ask `social_login.isProviderAvailable('facebook')`). `isShown()` / `isProviderShown()` / `isAnyShown()` collapsed into `isAvailable()` / `isProviderAvailable()` / `isAnyAvailable()`. The review preview (`?facebook_preview=1`, the `msp_fb_preview` cookie set by `NativeAuthPageSubscriber`, `FacebookReviewPreviewTest`) is gone too - a leftover cookie in a browser is harmless, nothing reads it; so is a box `.env` / Infisical that still sets the flag. Kill switch = empty the credentials.
 
+## Shown prediction model (`PREDICTION_SHOWN_MODEL`)
+
+- **Feature:** which model makes the prediction players see - `v3` (the statistical model, `TimePredictionCalculator`)
+  or `v7` (the candidate model v7, `CandidatePredictionCalculator` - Jan's decision 2026-10-31 after the live paired
+  comparison). `docs/features/puzzle-intelligence/README.md` "Step 8", "The shown model switch"
+- **Flag:** env var `PREDICTION_SHOWN_MODEL` (`v3` | `v7`) → parameter `predictionShownModel` (`config/services.php`),
+  read by `#[Autowire(param:)]` as a string and turned into `Value\ShownPredictionModel::fromSetting()` - **an unknown
+  value is `v3`**. Not a Twig global
+- **Default:** `v3` (`.env`, `.env.test` - every existing test and query budget measures v3; `ShownModelV7Test` boots
+  its kernel with `v7`)
+- **Rollback:** set it back to `v3` - every number computed on read (the puzzle page, collections, the Picker and its
+  filters, API v1, the Insights estimates) is v3's again at once, nothing is migrated: both models keep being computed
+  side by side (`solving_time_prediction`). Stored shown predictions made while v7 was on keep their numbers and say so
+  (`prediction_model_version = 7`) - live ones are history; `backfill-solving-time-predictions --recompute-reconstructed`
+  turns the reconstructed ones back into v3's. What reads stored predictions as a model input (the repeats' residuals,
+  the time verification) reads the statistical side row of a v7-labelled time, so it is v3's exactly either way
+- **Gated files:**
+  - `src/Query/GetPlayerPrediction.php` — `forPuzzle()` (the puzzle page, API v1 `me/predicted-time`, the recap's
+    fallback while a time is pending); `model: ShownPredictionModel::V3` for the time verification's form check
+  - `src/Query/GetPlayerPredictions.php` — collections, the Picker's cards, API v1 puzzles, Insights readers;
+    `candidatePaces()` for the Picker's SQL
+  - `src/Query/GetPuzzlePickerSuggestions.php` — the pre-LIMIT centre: `CandidateCentreSql` instead of
+    `StatisticalInputsSql::centreSql()`
+  - `src/Query/GetPersonalEstimates.php` — the Insights personal estimates (still behind `INSIGHTS_PUBLIC`)
+  - `src/Services/PuzzleIntelligence/SolvingTimePredictor.php` — the live shown prediction of an added time (and its
+    candidate row, whatever `PREDICTION_CANDIDATE_ROWS` says)
+  - `src/MessageHandler/BackfillSolvingTimePredictionsHandler.php`, `src/ConsoleCommands/BackfillSolvingTimePredictionsConsoleCommand.php`
+    — the reconstructed shown prediction and what `--recompute-reconstructed` replaces
+  - `src/Query/GetPredictionCalibration.php` — the calibration report reads the shown model's live rows
+- **Not gated (on purpose):** the time verification (`GetSuspiciousTimeCandidates`, `SingleTimeSuspicionCheck`) - it keeps
+  the statistical model's expectations; the fits, the batch and the side-by-side rows (both models always)
+- **Remove when:** v7 has been shown for the rollback window without a flip back (docs/TODO.md "Shown prediction model
+  switch v3 → v7")
+
 ## Candidate prediction model rows (`PREDICTION_CANDIDATE_ROWS`)
 
 - **Feature:** the candidate prediction model's (v4, never shown) rows of `solving_time_prediction` -

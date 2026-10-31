@@ -31,7 +31,7 @@ final class RefreshCandidatePredictionEvidenceConsoleCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $startedAt = microtime(true);
 
-        /** @var array{evidence_written: int, fitted: bool} $result */
+        /** @var array{evidence_written: int, fitted: bool, picture_projections_written?: int} $result */
         $result = $this->messageBus->dispatch(new RefreshCandidatePredictionEvidence())->last(HandledStamp::class)?->getResult();
 
         if ($result['fitted'] === false) {
@@ -42,8 +42,9 @@ final class RefreshCandidatePredictionEvidenceConsoleCommand extends Command
         }
 
         $io->writeln(sprintf(
-            'Candidate evidence: %d rows written in %.1f s, peak memory %d MB PHP / %s MB resident',
+            'Candidate evidence: %d rows written, %d picture projections, in %.1f s, peak memory %d MB PHP / %s MB resident',
             $result['evidence_written'],
+            $result['picture_projections_written'] ?? 0,
             microtime(true) - $startedAt,
             round(memory_get_peak_usage(true) / 1048576),
             PeakMemory::residentMegabytes() ?? '-',

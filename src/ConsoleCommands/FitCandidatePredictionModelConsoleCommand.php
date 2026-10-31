@@ -32,7 +32,7 @@ final class FitCandidatePredictionModelConsoleCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $startedAt = microtime(true);
 
-        /** @var array{candidate: CandidateModelParameters, priors_written: int, evidence_written: int, taste_states_written: int, pace_offsets_written: int} $result */
+        /** @var array{candidate: CandidateModelParameters, priors_written: int, evidence_written: int, taste_states_written: int, pace_offsets_written: int, picture_projections_written: int} $result */
         $result = $this->messageBus->dispatch(new FitCandidatePredictionModel())->last(HandledStamp::class)?->getResult();
 
         $io->table(['Setting', 'Value'], [
@@ -40,6 +40,7 @@ final class FitCandidatePredictionModelConsoleCommand extends Command
             ['evidence rows written', $result['evidence_written']],
             ['taste states written', $result['taste_states_written']],
             ['adjusted pace offsets written', $result['pace_offsets_written']],
+            ['picture projections written', $result['picture_projections_written']],
             ...array_map(static fn (string $key, int|float|string $value): array => [$key, $value], array_keys($result['candidate']->summary), $result['candidate']->summary),
             ['peak memory PHP (MB)', round(memory_get_peak_usage(true) / 1048576)],
             ['peak memory resident (MB)', PeakMemory::residentMegabytes() ?? '-'],

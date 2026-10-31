@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Query\GetCandidatePrediction;
 use SpeedPuzzling\Web\Query\GetPlayerPrediction;
 use SpeedPuzzling\Web\Value\PredictorKind;
 use SpeedPuzzling\Web\Value\PredictionsSideBySide;
+use SpeedPuzzling\Web\Value\ShownPredictionModel;
 use SpeedPuzzling\Web\Value\SolveConditions;
 use SpeedPuzzling\Web\Value\SolveMoment;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
@@ -57,6 +58,9 @@ readonly final class SolvingTimePredictor
         // PREDICTION_CANDIDATE_ROWS: the candidate's live row only while on
         #[Autowire(param: 'predictionCandidateRows')]
         private bool $candidateRows = false,
+        // PREDICTION_SHOWN_MODEL: v7 = the candidate's prediction is the shown one (and its live row is always written)
+        #[Autowire(param: 'predictionShownModel')]
+        private string $shownModel = 'v3',
     ) {
     }
 
@@ -103,8 +107,7 @@ readonly final class SolvingTimePredictor
 
         $prediction = $predictions->statistical;
         $now = $this->clock->now();
-
-        $time->recordPrediction($prediction->forDisplay(), $now);
+        $candidateShown = ShownPredictionModel::fromSetting($this->shownModel)->isCandidate();
 
         $records = [new SolvingTimePredictionRecord(Uuid::uuid7(), $time, PredictorKind::Statistical, $prediction->modelVersion, $prediction, $now)];
 
@@ -118,9 +121,13 @@ readonly final class SolvingTimePredictor
             $records[] = new SolvingTimePredictionRecord(Uuid::uuid7(), $time, PredictorKind::Blend, $prediction->modelVersion, $predictions->blend ?? $notPredictable, $now, $estimate);
         }
 
-        // The candidate model (v4, never shown): after the shown predictions, in a savepoint of its own - whatever happens
-        // there costs neither the time nor its shown prediction, only the candidate's row (the backfill writes it later)
-        $candidate = $this->candidateRows ? $this->candidatePrediction($time, $predictions) : null;
+        // The candidate model: after the statistical predictions, in a savepoint of its own - whatever happens there costs
+        // neither the time nor a shown prediction, only the candidate's row (the backfill writes it later). While it is the
+        // shown model (PREDICTION_SHOWN_MODEL = v7) its prediction is the shown one - the statistical model's (labelled
+        // with its own version) only when the candidate has no fit or failed
+        $candidate = $this->candidateRows || $candidateShown ? $this->candidatePrediction($time, $predictions) : null;
+
+        $time->recordPrediction(($candidateShown && $candidate !== null ? $candidate : $prediction)->forDisplay(), $now);
 
         if ($candidate !== null) {
             $records[] = new SolvingTimePredictionRecord(Uuid::uuid7(), $time, PredictorKind::Candidate, $candidate->modelVersion, $candidate, $now, $predictions->firstTry ? $predictions->imageEstimate : null);

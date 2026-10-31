@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Value\DifficultySource;
 use SpeedPuzzling\Web\Value\PaceRequest;
 use SpeedPuzzling\Web\Value\PaceSource;
 use SpeedPuzzling\Web\Value\PuzzlingType;
+use SpeedPuzzling\Web\Value\ShownPredictionModel;
 use SpeedPuzzling\Web\Value\SolveMoment;
 use SpeedPuzzling\Web\Value\SuspicionAssessment;
 use SpeedPuzzling\Web\Value\SuspicionEvidenceRequest;
@@ -105,7 +106,8 @@ readonly final class SingleTimeSuspicionCheck
         $paceFactor = null;
 
         if ($solo) {
-            $prediction = $this->getPlayerPrediction->forPuzzle($playerId, $puzzleId, $excludeTimeId, $moment);
+            // The statistical model whatever is shown (PREDICTION_SHOWN_MODEL): the verification keeps its own expectations
+            $prediction = $this->getPlayerPrediction->forPuzzle($playerId, $puzzleId, $excludeTimeId, $moment, model: ShownPredictionModel::V3);
 
             // Like the scan: a first try's prediction counts only as v2 made them, on a rated puzzle and the player's
             // own pace - one resting on a few indices shrunk toward a prior or on the 500-piece pace scaled to a thin

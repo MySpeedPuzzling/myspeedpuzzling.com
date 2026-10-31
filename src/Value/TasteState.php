@@ -111,16 +111,35 @@ readonly final class TasteState
      */
     public function slopeTerm(float $logDifficulty, float $lambda, int $minimum): float
     {
+        $slope = $this->slopeCoefficients($lambda, $minimum);
+
+        if ($slope === null) {
+            return 0.0;
+        }
+
+        [$gamma, $mean] = $slope;
+
+        return $gamma * ($logDifficulty - $mean);
+    }
+
+    /**
+     * slopeTerm()'s γ and the player's mean d - null below $minimum first tries with a difficulty (the term is 0 then).
+     * For a reader that applies the term to many puzzles at once (the Puzzle Picker's SQL, CandidateCentreSql).
+     *
+     * @return null|array{0: float, 1: float}
+     */
+    public function slopeCoefficients(float $lambda, int $minimum): null|array
+    {
         [$n, $sum, $squares, $residuals, $products] = $this->slope;
 
         if ($n < $minimum || $n === 0) {
-            return 0.0;
+            return null;
         }
 
         $mean = $sum / $n;
         $gamma = ($products - $mean * $residuals) / (max($squares - $n * $mean * $mean, 0.0) + $lambda);
 
-        return $gamma * ($logDifficulty - $mean);
+        return [$gamma, $mean];
     }
 
     /**

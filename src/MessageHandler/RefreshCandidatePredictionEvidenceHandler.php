@@ -19,7 +19,7 @@ readonly final class RefreshCandidatePredictionEvidenceHandler
     }
 
     /**
-     * @return array{evidence_written: int, fitted: bool}
+     * @return array{evidence_written: int, fitted: bool, picture_projections_written?: int}
      */
     public function __invoke(RefreshCandidatePredictionEvidence $message): array
     {

@@ -542,6 +542,47 @@ Personalized estimate for how long a puzzle will take a specific player, with **
 
 Storing the prediction on every solving time (history, backfill, the side-by-side table): [`prediction-history.md`](prediction-history.md).
 
+### The shown model switch (`PREDICTION_SHOWN_MODEL`, v3 → v7, 2026-10-31)
+
+**Decision (Jan, 2026-10-31):** the prediction players see switches from this model (v3, everything in Step 8 up to
+"The candidate model") to **candidate v7** ("The candidate model" … "Candidate v7" below): on 3,254 results predicted
+live before they happened (first tries and repeats, paired) its error is 0.0923 → 0.0852 (−7.7 %, CI ±0.0019), first
+tries −11 %, k = 1-4 −20 %, 1000 pieces −17 %, the windows as honest or more (49.2 / 79.2 % vs 48.9 / 78.7 %); no group
+significantly worse (k = 0 +1 % within noise - and k = 0 is not shown). Insights itself stays hidden (`INSIGHTS_PUBLIC`).
+
+**One switch, an instant rollback.** Env `PREDICTION_SHOWN_MODEL` = `v3` (default) | `v7` (`Value\ShownPredictionModel`,
+docs/features/feature_flags.md). Both models are computed side by side whatever it says (the side-by-side rows of
+`solving_time_prediction`, the fits, the evidence), so flipping it back makes every number read live v3's again at once,
+with no data migration. With `v7`:
+
+| Surface | What shows the candidate's numbers |
+|---|---|
+| Puzzle page, API v1 `me/predicted-time`, the recap while a time is pending | `GetPlayerPrediction::forPuzzle()`: a first try = `GetCandidatePrediction`'s one-puzzle statement + `firstTryOf()` (in place of the statistical statement - 2 statements as before), a repeat = the statistical centre with `repeatOf()` (the candidate's fit rides on the ratio statement - 4 as before) |
+| Collections (display mode), the Picker's cards, API v1 puzzles, Insights readers | `GetPlayerPredictions`: the same two calculations, the player's candidate columns once on the ratio statement, the puzzles' candidate columns on the puzzles' statement |
+| The Picker's filters and gap order (pre-LIMIT) | `CandidateCentreSql` - the candidate's centre in SQL with the calculator's operations (README of the Picker §6.4); the pace table by piece count from PHP (`GetPlayerPredictions::candidatePaces()`, one statement more on such a draw); the pictures' taste projections stored by the candidate's jobs (`candidate_picture_projection`, read only while current) |
+| Personal estimates (Insights, hidden) | `GetPersonalEstimates` - the same rule, the candidate's numbers (estimates.md "Which number") |
+| Stored shown prediction of an added time | `SolvingTimePredictor`: the candidate's live prediction (`forDisplay()`), `prediction_model_version` 7; its candidate row is written whatever `PREDICTION_CANDIDATE_ROWS` says |
+| Reconstructed shown predictions | `BackfillSolvingTimePredictionsHandler`: the candidate's reconstruction; `--recompute-reconstructed` replaces every reconstructed shown prediction made by the other model or before the shown model's fit (prediction-history.md "The shown model switch") |
+| Calibration report | `GetPredictionCalibration`: the candidate's live rows (model 7; repeats are its `w|` buckets) |
+
+Kept as they are: **k = 0 prior-only predictions stay unshown** (a candidate first try without any index - its k - is
+null on every surface; the personal estimates show the picture's k = 0 prediction only where its gate passed, as before),
+the members-only gates, opted-out players, the tiers (the puzzle's own, from the statistical model's indices). Before the
+candidate's first fit the statistical model stands in (and its rows say version 3).
+
+**What the time verification reads.** Nothing of it follows the switch: the form check asks `forPuzzle(model: V3)`, the
+scan reads, for a time whose shown prediction is a candidate one, the statistical side row written next to it
+(`ShownPredictionModel::statisticalVersionSql()`). Likewise every reader of a stored repeat's centre as a model input -
+the repeats' residuals (the windows' spread), `RepeatHistory` (both fits), `PredictionReconstructor` - reads the
+statistical model's centre through `RepeatResiduals::storedPersonalSql()`: on a row with a statistical shown prediction
+the column itself (their SQL results unchanged), on a v7 one the statistical side row - so the inputs of both models do
+not depend on what was shown, and a rollback is exact.
+
+The proof: `ShownModelV7Test` (every surface = the candidate's side-by-side calculation, the Picker's SQL = its cards to
+the second, mutation-checked; the verification and the residuals on the statistical model; the backfill and the
+recompute in both directions; the statement counts), `ShownModelParityTest` and every other test at the default `v3`
+(the v3 path unchanged); on a copy of production "Measured (the switch)" below.
+
 ### Prediction Hierarchy
 
 | Prior Solves (N) | Method |

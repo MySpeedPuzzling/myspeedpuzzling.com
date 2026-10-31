@@ -40,10 +40,12 @@ final class RepeatHistory
         // The previous solve comes from every solo time a personal prediction counts (not suspicious, not unboxed) - the
         // rows themselves are the same as without it
         // Through a cursor: every solo time with a personal prediction (the whole history), ~40 MB in the client library otherwise
+        // The stored centre of a repeat: the statistical model's, whichever model was shown (RepeatResiduals::storedPersonalSql())
+        $stored = RepeatResiduals::storedPersonalSql('pst');
         $rows = CursorRows::iterate($connection, "
             SELECT player_id, pieces_count, seconds_to_solve, predicted_seconds, solved_ts, previous_solved_ts
             FROM (
-                SELECT pst.player_id, p.pieces_count, pst.seconds_to_solve, pst.predicted_seconds, pst.predictable, pst.prediction_method,
+                SELECT pst.player_id, p.pieces_count, pst.seconds_to_solve, {$stored} AS predicted_seconds, pst.predictable, pst.prediction_method,
                     pst.tracked_at, pst.id,
                     COALESCE(pst.finished_at, pst.tracked_at) AS solve_moment,
                     EXTRACT(EPOCH FROM COALESCE(pst.finished_at, pst.tracked_at)) AS solved_ts,

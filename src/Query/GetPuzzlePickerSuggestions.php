@@ -10,10 +10,12 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PuzzlePickerPick;
 use SpeedPuzzling\Web\Results\PuzzlePickerSuggestion;
 use SpeedPuzzling\Web\Results\TimePredictionResult;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\CandidateCentreSql;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\StatisticalInputsSql;
 use SpeedPuzzling\Web\Value\PuzzlePickerCriteria;
 use SpeedPuzzling\Web\Value\PuzzlePickerGap;
 use SpeedPuzzling\Web\Value\PuzzlePickerOrder;
+use SpeedPuzzling\Web\Value\TasteState;
 
 /**
  * Read model of the puzzle picker ("What should I solve next?").
@@ -158,10 +160,27 @@ readonly final class GetPuzzlePickerSuggestions
 
         if ($playerId !== null && $needsPredictions) {
             $personalPredictions = self::predictionsJson($this->getPlayerPredictions->forAllSolvedPuzzles($playerId));
-            // The statistical fallback is TimePredictionCalculator::statistical()'s centre in SQL (pinned equal by the tests)
-            [$centreCte, $centreJoins, $centre, $centreParams] = StatisticalInputsSql::centreSql($this->getPlayerPredictions->modelParameters($playerId));
+            $candidate = $this->getPlayerPredictions->candidateOf($playerId);
+            $candidateCentre = $candidate !== null
+                ? CandidateCentreSql::centreSql(
+                    $candidate[0],
+                    $this->getPlayerPredictions->candidatePaces($playerId),
+                    is_numeric($candidate[1]['candidate_first_tries'] ?? null) ? (int) $candidate[1]['candidate_first_tries'] : null,
+                    $candidate[0]->taste !== null ? TasteState::fromJson($candidate[1]['candidate_taste_state'] ?? null, count($candidate[0]->taste->weights)) : null,
+                )
+                : null;
+
+            if ($candidate !== null) {
+                // The shown v7 (PREDICTION_SHOWN_MODEL): the candidate's centre in SQL, the paces by piece count from PHP
+                // (pinned equal to the cards by the tests); no prediction at all for a player without a pace anywhere
+                [$predictionCte, $centreJoins, $centre, $centreParams] = $candidateCentre ?? ['', '', 'NULL::int', []];
+            } else {
+                // The statistical fallback is TimePredictionCalculator::statistical()'s centre in SQL (pinned equal by the tests)
+                [$centreCte, $centreJoins, $centre, $centreParams] = StatisticalInputsSql::centreSql($this->getPlayerPredictions->modelParameters($playerId));
+                $predictionCte = StatisticalInputsSql::ownPaceCte() . ',' . $centreCte;
+            }
+
             $params = [...$params, ...$centreParams];
-            $predictionCte = StatisticalInputsSql::ownPaceCte() . ',' . $centreCte;
 
             $insightsJoins .= <<<SQL
 

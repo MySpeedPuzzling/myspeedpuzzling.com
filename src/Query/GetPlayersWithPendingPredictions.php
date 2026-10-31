@@ -37,6 +37,11 @@ readonly final class GetPlayersWithPendingPredictions
         // rows from before it
         bool $withCandidateRows = false,
         null|DateTimeImmutable $recomputeCandidateBefore = null,
+        // The shown prediction (PREDICTION_SHOWN_MODEL): with $recomputeReconstructed every reconstructed one computed no
+        // later than the shown model's fit ($recomputeShownBefore, default $recomputeReconstructed) or made by another
+        // model than the shown one - a switch of the shown model (or back) recomputes them
+        null|DateTimeImmutable $recomputeShownBefore = null,
+        int $shownModelVersion = TimePredictionCalculator::MODEL_VERSION,
     ): array {
         $params = ['modelVersion' => TimePredictionCalculator::MODEL_VERSION];
         $candidate = '';
@@ -73,13 +78,15 @@ readonly final class GetPlayersWithPendingPredictions
         $reconstructed = '';
 
         if ($recomputeReconstructed !== null) {
-            $reconstructed = "OR (pst.prediction_source = 'reconstructed' AND pst.prediction_computed_at <= :fittedAt)
+            $reconstructed = "OR (pst.prediction_source = 'reconstructed' AND (pst.prediction_computed_at <= :shownFittedAt OR pst.prediction_model_version IS DISTINCT FROM :shownModelVersion))
             OR EXISTS (
                 SELECT 1 FROM solving_time_prediction r
                 WHERE r.time_id = pst.id AND r.predictor = 'statistical' AND r.model_version = :modelVersion
                     AND r.source = 'reconstructed' AND r.computed_at <= :fittedAt
             )";
             $params['fittedAt'] = $recomputeReconstructed->format('Y-m-d H:i:s');
+            $params['shownFittedAt'] = ($recomputeShownBefore ?? $recomputeReconstructed)->format('Y-m-d H:i:s');
+            $params['shownModelVersion'] = $shownModelVersion;
         }
 
         /** @var list<string> */

@@ -53,7 +53,8 @@ final class ReportPredictionCalibrationConsoleCommand extends Command
         $totals = [];
 
         foreach ($rows as $row) {
-            $kind = str_starts_with($row['bucket'], 'r|') ? 'repeats' : 'first tries';
+            // Repeats: the statistical model's buckets 'r|…', the candidate's 'w|…' (PREDICTION_SHOWN_MODEL = v7)
+            $kind = str_starts_with($row['bucket'], 'r|') || str_starts_with($row['bucket'], 'w|') ? 'repeats' : 'first tries';
             $totals[$kind] ??= ['bucket' => 'all ' . $kind, 'n' => 0, 'hit50' => 0, 'hit80' => 0];
             $totals[$kind]['n'] += $row['n'];
             $totals[$kind]['hit50'] += $row['hit50'];

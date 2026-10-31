@@ -82,16 +82,45 @@ readonly final class TasteModel
         $vector = [1.0];
 
         foreach ($weights as $row) {
-            $sum = 0.0;
+            $sum = self::factorSum($row, $features);
 
-            foreach ($row as $j => $weight) {
-                $sum += $weight * $features[$j];
+            for ($j = PuzzleDifficultyEstimateInput::PICTURE_FACTORS; $j < count($row); $j++) {
+                $sum += $row[$j] * $features[$j];
             }
 
             $vector[] = $sum;
         }
 
         return $vector;
+    }
+
+    /**
+     * Each row's sum over the picture factors alone - the first PICTURE_FACTORS terms of project()'s sums, the very same
+     * operations (project() goes on from them): what the Puzzle Picker's SQL reads stored per picture
+     * (candidate_picture_projection, CandidatePictureProjections) instead of 64 multiply-adds per puzzle and request.
+     *
+     * @param list<list<float>> $weights
+     * @param list<float> $features
+     * @return list<float>
+     */
+    public static function factorSums(array $weights, array $features): array
+    {
+        return array_map(static fn (array $row): float => self::factorSum($row, $features), $weights);
+    }
+
+    /**
+     * @param list<float> $row
+     * @param list<float> $features
+     */
+    private static function factorSum(array $row, array $features): float
+    {
+        $sum = 0.0;
+
+        for ($j = 0; $j < PuzzleDifficultyEstimateInput::PICTURE_FACTORS; $j++) {
+            $sum += $row[$j] * $features[$j];
+        }
+
+        return $sum;
     }
 
     /**

@@ -84,6 +84,18 @@ For each solo time, the first available of:
    by the form check - the expectations stay what they were, so `SuspiciousTimeClassifier::VERSION` stays (docs/TODO.md,
    "Time verification on shrunk predictions"). v3's drift and calibrated windows do reach the verification: the
    centre of an own-pace prediction moves with the player's recent first tries.
+   **The verification never follows the shown model switch** (`PREDICTION_SHOWN_MODEL`, puzzle-intelligence README
+   "The shown model switch"): it keeps the statistical model's (v3) expectations whatever players see. The scan reads,
+   for a time whose shown prediction is the candidate model's (`prediction_model_version = 7`), the statistical side
+   row written next to it (`solving_time_prediction`, predictor `statistical`, model 3 -
+   `ShownPredictionModel::statisticalVersionSql()` in `GetSuspiciousTimeCandidates`); on every other row the shown
+   columns as before, so its SQL results do not change. The form check asks `GetPlayerPrediction::forPuzzle(model:
+   ShownPredictionModel::V3)`. Measured on a copy of production with every reconstructed shown prediction replaced by
+   the candidate v7 row (what the switch and `--recompute-reconstructed` do): the scan's input of 547,123 results differs
+   for 4 - shown predictions that already differed from their own statistical side row, at 0.79-0.99× of it, far from
+   any rule (README "The shown model switch", "Measured") - nobody is marked or cleared by the switch, and
+   `SuspiciousTimeClassifier::VERSION` stays. Moving the verification onto the candidate would be a decision of its own,
+   behind a classifier version bump and a dry run.
 2. **`baseline`** - the player's baseline for the piece count (`player_baseline`, direct or derived from other piece
    counts) × the puzzle's difficulty when it has one. These are first attempts without a prediction.
 3. **`pace`** - the player's pace on their other solo results within ±180 days of this one (≥ 5 results): each

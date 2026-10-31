@@ -1077,9 +1077,11 @@ final class PredictionReconstructor implements ResetInterface
      */
     private function fetchPlayerSolves(string $playerId): array
     {
+        // The stored centre of a repeat: the statistical model's, whichever model was shown (RepeatResiduals::storedPersonalSql())
+        $stored = RepeatResiduals::storedPersonalSql('pst');
         /** @var list<array{id: string, puzzle_id: string, pieces_count: int|string, seconds_to_solve: int|string, first_attempt: bool, suspicious: bool, unboxed: bool, stored_personal: null|int|string, solved_ts: float|string, tracked_ts: float|string}> $rows */
         $rows = $this->connection->fetchAllAssociative(
-            <<<'SQL'
+            <<<SQL
             SELECT
                 pst.id,
                 pst.puzzle_id,
@@ -1088,7 +1090,7 @@ final class PredictionReconstructor implements ResetInterface
                 pst.first_attempt,
                 pst.suspicious,
                 pst.unboxed,
-                CASE WHEN pst.predictable = true AND pst.prediction_method = 'personal' THEN pst.predicted_seconds END AS stored_personal,
+                CASE WHEN pst.predictable = true AND pst.prediction_method = 'personal' THEN {$stored} END AS stored_personal,
                 EXTRACT(EPOCH FROM COALESCE(pst.finished_at, pst.tracked_at)) AS solved_ts,
                 EXTRACT(EPOCH FROM pst.tracked_at) AS tracked_ts
             FROM puzzle_solving_time pst

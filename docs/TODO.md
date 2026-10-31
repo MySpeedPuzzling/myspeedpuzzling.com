@@ -4,6 +4,23 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Shown prediction model switch v3 → v7 (`docs/features/puzzle-intelligence/README.md` "The shown model switch", 2026-10-31)
+
+- [ ] Flip `PREDICTION_SHOWN_MODEL=v7` on lily.srv, then `backfill-solving-time-predictions --recompute-reconstructed`
+  (prediction-history.md "Production run for the shown v7"); watch the calibration report (it reads candidate:7 from
+  then on) and the next days' live slice
+- [ ] After the rollback window (proposed: 30 days without a flip back) remove the switch and the v3 shown path:
+  `ShownPredictionModel` (keep `statisticalVersionSql()` / `RepeatResiduals::storedPersonalSql()` while v7-labelled
+  shown rows exist - the time verification and the repeats' residuals read the statistical side row through them),
+  the v3 branches of `GetPlayerPrediction::forPuzzle()`, `GetPlayerPredictions`, `GetPersonalEstimates`,
+  `GetPuzzlePickerSuggestions` (`StatisticalInputsSql::centreSql()` then only for the time verification? - it has no
+  other reader), the `$shownModel` constructor arguments, `.env` / feature_flags.md, `ShownModelV7Test`'s v3 halves;
+  `PREDICTION_CANDIDATE_ROWS` then too (the candidate's rows are always written while it is shown)
+- [ ] Decide whether the time verification moves onto the candidate (a `SuspiciousTimeClassifier::VERSION` bump and a
+  dry run of its own - today it keeps the statistical model's expectations on purpose, suspicious-time-review.md)
+- [ ] Insights texts that describe the statistical model (methodology page, `puzzle_intelligence.methodology.*`) -
+  check them against the candidate before INSIGHTS_PUBLIC
+
 ## Finished-puzzle photos as a second view (`docs/features/insights/finished-photos.md`, 2026-10-27)
 
 - [ ] lily.srv cron `0 4 * * * … myspeedpuzzling:prune-finished-photo-analyses`

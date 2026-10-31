@@ -542,6 +542,98 @@ Personalized estimate for how long a puzzle will take a specific player, with **
 
 Storing the prediction on every solving time (history, backfill, the side-by-side table): [`prediction-history.md`](prediction-history.md).
 
+### The shown model switch (`PREDICTION_SHOWN_MODEL`, v3 → v7, 2026-10-31)
+
+**Decision (Jan, 2026-10-31):** the prediction players see switches from this model (v3, everything in Step 8 up to
+"The candidate model") to **candidate v7** ("The candidate model" … "Candidate v7" below): on 3,254 results predicted
+live before they happened (first tries and repeats, paired) its error is 0.0923 → 0.0852 (−7.7 %, CI ±0.0019), first
+tries −11 %, k = 1-4 −20 %, 1000 pieces −17 %, the windows as honest or more (49.2 / 79.2 % vs 48.9 / 78.7 %); no group
+significantly worse (k = 0 +1 % within noise - and k = 0 is not shown). Insights itself stays hidden (`INSIGHTS_PUBLIC`).
+
+**One switch, an instant rollback.** Env `PREDICTION_SHOWN_MODEL` = `v3` (default) | `v7` (`Value\ShownPredictionModel`,
+docs/features/feature_flags.md). Both models are computed side by side whatever it says (the side-by-side rows of
+`solving_time_prediction`, the fits, the evidence), so flipping it back makes every number read live v3's again at once,
+with no data migration. With `v7`:
+
+| Surface | What shows the candidate's numbers |
+|---|---|
+| Puzzle page, API v1 `me/predicted-time`, the recap while a time is pending | `GetPlayerPrediction::forPuzzle()`: a first try = `GetCandidatePrediction`'s one-puzzle statement + `firstTryOf()` (in place of the statistical statement - 2 statements as before), a repeat = the statistical centre with `repeatOf()` (the candidate's fit rides on the ratio statement - 4 as before) |
+| Collections (display mode), the Picker's cards, API v1 puzzles, Insights readers | `GetPlayerPredictions`: the same two calculations, the player's candidate columns once on the ratio statement, the puzzles' candidate columns on the puzzles' statement |
+| The Picker's filters and gap order (pre-LIMIT) | `CandidateCentreSql` - the candidate's centre in SQL with the calculator's operations (README of the Picker §6.4); the pace table by piece count from PHP (`GetPlayerPredictions::candidatePaces()`, one statement more on such a draw); the pictures' taste projections stored by the candidate's jobs (`candidate_picture_projection`, read only while current) |
+| Personal estimates (Insights, hidden) | `GetPersonalEstimates` - the same rule, the candidate's numbers (estimates.md "Which number") |
+| Stored shown prediction of an added time | `SolvingTimePredictor`: the candidate's live prediction (`forDisplay()`), `prediction_model_version` 7; its candidate row is written whatever `PREDICTION_CANDIDATE_ROWS` says |
+| Reconstructed shown predictions | `BackfillSolvingTimePredictionsHandler`: the candidate's reconstruction; `--recompute-reconstructed` replaces every reconstructed shown prediction made by the other model or before the shown model's fit (prediction-history.md "The shown model switch") |
+| Calibration report | `GetPredictionCalibration`: the candidate's live rows (model 7; repeats are its `w|` buckets) |
+
+Kept as they are: **k = 0 prior-only predictions stay unshown** (a candidate first try without any index - its k - is
+null on every surface; the personal estimates show the picture's k = 0 prediction only where its gate passed, as before),
+the members-only gates, opted-out players, the tiers (the puzzle's own, from the statistical model's indices). Before the
+candidate's first fit the statistical model stands in (and its rows say version 3).
+
+**What the time verification reads.** Nothing of it follows the switch: the form check asks `forPuzzle(model: V3)`, the
+scan reads, for a time whose shown prediction is a candidate one, the statistical side row written next to it
+(`ShownPredictionModel::statisticalVersionSql()`). Likewise every reader of a stored repeat's centre as a model input -
+the repeats' residuals (the windows' spread), `RepeatHistory` (both fits), `PredictionReconstructor` - reads the
+statistical model's centre through `RepeatResiduals::storedPersonalSql()`: on a row with a statistical shown prediction
+the column itself (their SQL results unchanged), on a v7 one the statistical side row - so the inputs of both models do
+not depend on what was shown, and a rollback is exact.
+
+The proof: `ShownModelV7Test` (every surface = the candidate's side-by-side calculation, the Picker's SQL = its cards to
+the second, mutation-checked; the verification and the residuals on the statistical model; the backfill and the
+recompute in both directions; the statement counts), `ShownModelParityTest` and every other test at the default `v3`
+(the v3 path unchanged); on a copy of production "Measured (the switch)" below.
+
+#### Measured (the switch, 2026-10-31)
+
+On a local copy of production (times of 2026-10-26; `puzzle_difficulty`, the estimates 1.3.0, the shown columns and
+the statistical v3 / candidate v7 side rows copied read-only from production on 2026-10-31; the candidate refitted on
+the copy - 90.6 s, peak 314 MB resident, 43,352 picture projections written; the 15-minute refresh after it 7.7 s,
+273 MB, 0 projections rewritten; PostgreSQL with `jit = off` like production):
+
+**What players would see change** (400 random players × their solved puzzles + 150 random unsolved ones each, the bulk
+reader `GetPlayerPredictions` v3 vs v7 on the same rows; change = v7 ÷ v3):
+
+| group | shown by both | only v3 | only v7 | mean change | median abs | p90 abs | > 10 % | 50 % window width v3 / v7 |
+|---|---|---|---|---|---|---|---|---|
+| all | 39,278 | 54 | 8,905 | +1.7 % | 1.2 % | 15.7 % | 19.4 % | 16.9 / 17.0 % |
+| repeats | 17,710 | 0 | 0 | +0.7 % | 0.5 % | 1.1 % | 0.0 % | 12.1 / 15.1 % |
+| first tries | 21,568 | 54 | 8,905 | +2.6 % | 7.0 % | 20.7 % | 35.4 % | 22.8 / 20.4 % |
+| first tries k 1-4 / 5-19 / 20+ | 16,676 / 3,405 / 1,487 | | | +3.2 / +0.2 / +0.5 % | 7.8 / 5.4 / 3.8 % | | 39 / 25 / 13 % | 23.7→21.4 / 17.9→16.9 / 15.6→14.4 % |
+| first tries 1000 pieces | 4,622 | 35 | 787 | +3.7 % | 8.2 % | 22.5 % | 41.8 % | 28.6 / 21.6 % |
+| first tries, v3 pace 500-scaled | 12,035 | 54 | 0 | +2.0 % | 8.0 % | 22.4 % | 40.5 % | 24.6 / 22.3 % |
+
+v7 shows a first try where v3 had none for 8,905 pairs (the size curve paces a size from the player's other sizes and
+their 1-4 first tries there: 7,814 of them `pooled_few`); 54 the other way (v3 500-scaled at 1000 pieces where the
+candidate's evidence on the copy is older than the copied `puzzle_difficulty` - an artefact of the mixed copy). Repeats
+move by the gap offset only, their windows widen where the gap is long (the candidate's gap-aware window); first-try
+windows get narrower, most at 1000 pieces. The accuracy behind it is the live paired comparison above and the time
+splits of "Candidate v7".
+
+**Cost** (laptop, warm, second runs):
+
+| reader | v3 | v7 |
+|---|---|---|
+| puzzle page (`forPuzzle()`, a repeat + a first try, 600 calls) | 1.3-1.7 ms | 2.7-3.6 ms a call (same statement count) |
+| bulk, ~195 puzzles a player (400 players) | 5.7 ms | 18.9 ms |
+| a 1,350-puzzle list: bulk predictions / personal estimates | 51 / 84 ms | 166 / 157 ms |
+| Picker "any puzzle, fits in 60 min", the 10 players with most solo times | 97-162 ms | 188-310 ms |
+
+The Picker's centre: the per-puzzle part once for the catalogue in a materialised CTE (hash joins; a join per candidate
+in the order-keeping plan cost 530-940 ms), the taste projections stored (with them computed in SQL each request:
++~60 ms more), the pace table 37-46 ms of it. The bulk statement over 200 puzzles: 23 ms (v3 4 ms) after reading the
+own first tries in one CTE and the estimate by its key (73 ms as a subquery per puzzle and a hash over every estimate).
+
+**Time verification** (`var`-script on the same copy, the scan's input of every result it lists - its checks deleted in
+a rolled-back transaction - with production's shown columns, then with every **reconstructed** shown prediction replaced
+by its candidate v7 row as `--recompute-reconstructed` will): 547,123 results, 345,646 with a prediction the scan reads;
+449,710 shown predictions replaced (401,800 with another number than v3's) - **the scan's input differs for 4 results**:
+production's 5 reconstructed shown predictions that already differ from their own statistical side row (2026-10-19
+rows; the scan reads the side row after the switch), at 0.79-0.99× of their prediction, nowhere near a rule (fast from
+2×, slow from 3×) - **no case opens or closes**. Replacing the live shown predictions too (which the switch never does)
+would change 9,797 inputs: live v1/v2 predictions from before the side rows existed, whose side rows are later
+reconstructions - left as they are. The classifier reads nothing else of a prediction, so the switch changes nobody's
+marks; `SuspiciousTimeClassifier::VERSION` stays.
+
 ### Prediction Hierarchy
 
 | Prior Solves (N) | Method |

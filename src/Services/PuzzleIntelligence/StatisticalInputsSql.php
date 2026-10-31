@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\Prior\PriorContext;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\CandidatePredictionCalculator;
 use SpeedPuzzling\Web\Value\CandidateEvidence;
 use SpeedPuzzling\Web\Value\CandidateModelParameters;
+use SpeedPuzzling\Web\Value\ImagePriorInput;
 use SpeedPuzzling\Web\Value\PictureFactors;
 use SpeedPuzzling\Web\Value\PictureLookalikes;
 use SpeedPuzzling\Web\Value\PiecesGroup;
@@ -88,14 +89,21 @@ final class StatisticalInputsSql
      * (candidate_puzzle_prior, none for a secret puzzle) and the player's qualifying first attempts so far (one per puzzle -
      * custom_pst_intelligence). With CANDIDATE_JOINS; hydrateCandidate() reads them.
      */
-    public const string CANDIDATE_COLUMNS = "
+    public const string CANDIDATE_COLUMNS = self::CANDIDATE_PUZZLE_COLUMNS . ',' . self::CANDIDATE_FIRST_TRIES_COLUMN;
+
+    /** The puzzle's part of CANDIDATE_COLUMNS (with CANDIDATE_JOINS) - a column set per puzzle on a bulk statement */
+    public const string CANDIDATE_PUZZLE_COLUMNS = "
         ce.index_count AS candidate_index_count,
         ce.weight_sum AS candidate_weight_sum,
         ce.weighted_log_sum AS candidate_weighted_log_sum,
         ce.log_sum AS candidate_log_sum,
         ce.log_square_sum AS candidate_log_square_sum,
         ce.noise_sum AS candidate_noise_sum,
-        CASE WHEN " . self::NOT_SECRET . " THEN cpp.brand_prior_log END AS candidate_prior_log,
+        CASE WHEN " . self::NOT_SECRET . " THEN cpp.brand_prior_log END AS candidate_prior_log
+    ";
+
+    /** The player's part of CANDIDATE_COLUMNS - no reference to the puzzle: once on a bulk statement's player row */
+    public const string CANDIDATE_FIRST_TRIES_COLUMN = "
         (
             SELECT count(DISTINCT own_first.puzzle_id)
             FROM puzzle_solving_time own_first
@@ -113,10 +121,17 @@ final class StatisticalInputsSql
      * puzzle's current picture (its kind is IMAGE_ESTIMATE_COLUMNS' image_artwork_kind); v6: the picture's look-alike
      * numbers (needs PictureLookalikes::JOINS). hydrateCandidateTaste() reads them.
      */
-    public const string CANDIDATE_TASTE_COLUMNS = '
+    public const string CANDIDATE_TASTE_COLUMNS = self::CANDIDATE_PICTURE_COLUMNS . ',' . self::CANDIDATE_TASTE_STATE_COLUMN;
+
+    /** The puzzle's part of CANDIDATE_TASTE_COLUMNS: its current picture's factors and look-alike numbers */
+    public const string CANDIDATE_PICTURE_COLUMNS = '
         CAST(img.picture_factors AS text) AS candidate_picture_factors,
         img.picture_factors_version AS candidate_picture_factors_version,
-        ' . PictureLookalikes::COLUMNS . ',
+        ' . PictureLookalikes::COLUMNS . '
+    ';
+
+    /** The player's part of CANDIDATE_TASTE_COLUMNS: their latest taste state - no reference to the puzzle */
+    public const string CANDIDATE_TASTE_STATE_COLUMN = '
         (
             SELECT CAST(taste.state AS text)
             FROM candidate_player_taste taste
@@ -125,6 +140,9 @@ final class StatisticalInputsSql
             LIMIT 1
         ) AS candidate_taste_state
     ';
+
+    /** The keys of candidatePlayerColumns() */
+    public const array CANDIDATE_PLAYER_KEYS = ['candidate_first_tries', 'candidate_taste_state', 'candidate_pace_rows'];
 
     public const string CANDIDATE_JOINS = '
         LEFT JOIN candidate_puzzle_evidence ce ON ce.puzzle_id = p.id
@@ -141,10 +159,16 @@ final class StatisticalInputsSql
      */
     public static function candidatePaceColumns(): string
     {
-        $notSecret = str_replace(['p.hide_until', 'p.hide_image_until'], ['few_puzzle.hide_until', 'few_puzzle.hide_image_until'], self::NOT_SECRET);
-        $fingerprint = PuzzleImageFingerprint::sql('few_puzzle.image');
+        return self::candidatePaceRowsColumn() . ',' . self::candidateFewColumn();
+    }
 
-        return "
+    /**
+     * The player's part of candidatePaceColumns(): their latest direct pace row at every piece count with its offset - no
+     * reference to the puzzle (once on a bulk statement's player row). Expects :playerId.
+     */
+    public static function candidatePaceRowsColumn(): string
+    {
+        return '
             (
                 SELECT json_agg(json_build_array(latest.pieces_count, latest.baseline_seconds, latest.drift, latest.spread, latest.qualifying_count,
                     (
@@ -160,10 +184,59 @@ final class StatisticalInputsSql
                     WHERE h.player_id = :playerId
                     ORDER BY h.pieces_count, h.valid_from DESC, h.valid_from_tracked_at DESC, h.qualifying_count DESC
                 ) latest
-            ) AS candidate_pace_rows,
+            ) AS candidate_pace_rows
+        ';
+    }
+
+    /**
+     * The player's columns of every candidate statement - first tries, taste state, pace rows: no reference to the
+     * puzzle, so a bulk statement carries them once (on its player row) and copies them onto each puzzle's row before
+     * the hydration (withPlayerColumns()). Expects :playerId.
+     */
+    public static function candidatePlayerColumns(): string
+    {
+        return self::CANDIDATE_FIRST_TRIES_COLUMN . ',' . self::CANDIDATE_TASTE_STATE_COLUMN . ',' . self::candidatePaceRowsColumn();
+    }
+
+    /**
+     * A puzzle's row of a bulk statement with the player's candidate columns (candidatePlayerColumns()) of its player row.
+     *
+     * @param array<string, mixed> $row
+     * @param array<string, mixed> $player
+     * @return array<string, mixed>
+     */
+    public static function withPlayerColumns(array $row, array $player): array
+    {
+        foreach (self::CANDIDATE_PLAYER_KEYS as $key) {
+            $row[$key] = $player[$key] ?? null;
+        }
+
+        return $row;
+    }
+
+    /**
+     * The candidate's inputs of a row carrying every candidate column (the one-puzzle statement, or a bulk row
+     * withPlayerColumns()): the statistical inputs, the image estimate, the evidence and brand prior, the size curve's
+     * pace rows and own first tries, the taste state and the picture - GetCandidatePrediction's hydration.
+     *
+     * @param array<string, mixed> $row
+     */
+    public static function hydrateCandidateInputs(array $row, CandidateModelParameters $parameters): StatisticalPredictionInputs
+    {
+        $inputs = self::hydrateCandidatePace($row, self::hydrateCandidate($row, self::hydrate($row)->withImageEstimate(ImagePriorInput::fromRow($row))), $parameters);
+
+        return self::hydrateCandidateTaste($row, $inputs, $parameters);
+    }
+
+    /**
+     * The size's part of candidatePaceColumns(): the player's first tries at `p.pieces_count` (at most 5), only while they
+     * have no pace row there. Expects `p` (with pieces_count), :playerId and :now.
+     */
+    public static function candidateFewColumn(): string
+    {
+        return "
             (
-                SELECT json_agg(json_build_array(few.seconds_to_solve, few_evidence.index_count, few_evidence.weight_sum, few_evidence.weighted_log_sum,
-                    CASE WHEN {$notSecret} THEN few_prior.brand_prior_log END, few_estimate.log_difficulty))
+                SELECT json_agg(" . self::fewElement() . " ORDER BY few.puzzle_id)
                 FROM (
                     SELECT DISTINCT ON (own_first.puzzle_id) own_first.puzzle_id, own_first.seconds_to_solve
                     FROM puzzle_solving_time own_first
@@ -178,11 +251,68 @@ final class StatisticalInputsSql
                     ORDER BY own_first.puzzle_id, own_first.first_attempt DESC, COALESCE(own_first.finished_at, own_first.tracked_at), own_first.tracked_at, own_first.id
                     LIMIT " . PlayerBaselineCalculator::MINIMUM_SOLVE_COUNT . "
                 ) few
+                " . self::fewJoins() . "
+            ) AS candidate_few
+        ";
+    }
+
+    /**
+     * candidateFewColumn() for every piece count at once (a CTE `few_by_size`: pieces_count, few) - the Puzzle Picker's
+     * pace table (GetPlayerPredictions::candidatePaces()): the same first tries in the same order, a piece count with 5 or
+     * more of them left out (the size curve reads them only below 5, hydrateCandidatePace()). Also the shown v7's bulk
+     * statements' (GetPlayerPredictions, GetPersonalEstimates): one pass over the player's solves instead of a subquery
+     * per listed puzzle. The puzzle's piece count by one primary-key step per solve (a LATERAL, not a join: joined, the
+     * planner hashed the whole catalogue for a player's few hundred solves - 17 ms vs ~2). Expects :playerId, :now.
+     */
+    public static function candidateFewBySizeCte(): string
+    {
+        return '
+            few_by_size AS (
+                SELECT few.pieces_count, json_agg(' . self::fewElement() . ' ORDER BY few.puzzle_id) AS few
+                FROM (
+                    SELECT DISTINCT ON (own_first.puzzle_id) own_first.puzzle_id, own_puzzle.pieces_count, own_first.seconds_to_solve
+                    FROM puzzle_solving_time own_first
+                    CROSS JOIN LATERAL (SELECT sized.pieces_count FROM puzzle sized WHERE sized.id = own_first.puzzle_id OFFSET 0) own_puzzle
+                    WHERE own_first.player_id = :playerId
+                        AND own_first.puzzling_type = \'solo\'
+                        AND own_first.suspicious = false
+                        AND own_first.unboxed = false
+                        AND own_first.seconds_to_solve IS NOT NULL
+                        AND NOT EXISTS (SELECT 1 FROM player_pace_history own_row WHERE own_row.player_id = :playerId AND own_row.pieces_count = own_puzzle.pieces_count)
+                    ORDER BY own_first.puzzle_id, own_first.first_attempt DESC, COALESCE(own_first.finished_at, own_first.tracked_at), own_first.tracked_at, own_first.id
+                ) few
+                ' . self::fewJoins() . '
+                GROUP BY few.pieces_count
+                HAVING count(*) < ' . PlayerBaselineCalculator::MINIMUM_SOLVE_COUNT . '
+            )
+        ';
+    }
+
+    /**
+     * One own first try of the size curve's (hydrateCandidatePace()): its seconds, its puzzle's evidence, brand prior (none
+     * for a secret puzzle) and estimate now.
+     */
+    private static function fewElement(): string
+    {
+        return 'json_build_array(few.seconds_to_solve, few_evidence.index_count, few_evidence.weight_sum, few_evidence.weighted_log_sum,
+                    CASE WHEN ' . self::fewNotSecret() . ' THEN few_prior.brand_prior_log END, few_estimate.log_difficulty)';
+    }
+
+    private static function fewNotSecret(): string
+    {
+        return str_replace(['p.hide_until', 'p.hide_image_until'], ['few_puzzle.hide_until', 'few_puzzle.hide_image_until'], self::NOT_SECRET);
+    }
+
+    private static function fewJoins(): string
+    {
+        $notSecret = self::fewNotSecret();
+        $fingerprint = PuzzleImageFingerprint::sql('few_puzzle.image');
+
+        return "
                 JOIN puzzle few_puzzle ON few_puzzle.id = few.puzzle_id
                 LEFT JOIN candidate_puzzle_evidence few_evidence ON few_evidence.puzzle_id = few.puzzle_id
                 LEFT JOIN candidate_puzzle_prior few_prior ON few_prior.puzzle_id = few.puzzle_id
                 LEFT JOIN puzzle_difficulty_estimate few_estimate ON few_estimate.puzzle_id = few.puzzle_id AND few_estimate.image_fingerprint = {$fingerprint} AND {$notSecret}
-            ) AS candidate_few
         ";
     }
 
@@ -312,6 +442,25 @@ final class StatisticalInputsSql
             LEFT JOIN puzzle_difficulty_estimate img ON img.puzzle_id = p.id AND img.image_fingerprint = {$fingerprint} {$outOfFold} AND " . self::NOT_SECRET . "
             LEFT JOIN puzzle_image_analysis art ON art.puzzle_id = img.puzzle_id AND art.analyzer = 'artwork' AND art.image_fingerprint = img.image_fingerprint
         ";
+    }
+
+    /**
+     * imageEstimateJoins() for a statement over many puzzles (the shown v7's bulk readers): the estimate by one
+     * primary-key step per puzzle (a LATERAL the planner cannot pull up - OFFSET 0), the same rows. Joined plainly, a list
+     * of 200 puzzles was planned as a hash join over every estimate (~25 ms of a 60 ms statement on the production copy).
+     */
+    public static function imageEstimateLateralJoins(): string
+    {
+        $fingerprint = PuzzleImageFingerprint::sql('p.image');
+
+        return "
+            LEFT JOIN LATERAL (
+                SELECT estimate.* FROM puzzle_difficulty_estimate estimate
+                WHERE estimate.puzzle_id = p.id AND estimate.image_fingerprint = {$fingerprint} AND " . self::NOT_SECRET . '
+                OFFSET 0
+            ) img ON true
+            LEFT JOIN puzzle_image_analysis art ON art.puzzle_id = img.puzzle_id AND art.analyzer = \'artwork\' AND art.image_fingerprint = img.image_fingerprint
+        ';
     }
 
     /**

@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionReconstructor;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Value\PredictionsSideBySide;
 use SpeedPuzzling\Web\Value\PredictorKind;
+use SpeedPuzzling\Web\Value\ShownPredictionModel;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
 use SpeedPuzzling\Web\Value\TimePredictionSource;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -37,6 +38,9 @@ readonly final class BackfillSolvingTimePredictionsHandler
         // PREDICTION_CANDIDATE_ROWS: the candidate model's rows (v4, never shown) only while on, or asked for by the message
         #[Autowire(param: 'predictionCandidateRows')]
         private bool $candidateRows = false,
+        // PREDICTION_SHOWN_MODEL: v7 = the shown prediction is the candidate's (its rows are then always written)
+        #[Autowire(param: 'predictionShownModel')]
+        private string $shownModel = 'v3',
     ) {
     }
 
@@ -67,11 +71,16 @@ readonly final class BackfillSolvingTimePredictionsHandler
     {
         $fittedAt = $this->parametersProvider->fittedAt();
         $fitted = $fittedAt !== null;
-        // The candidate model (v4, never shown): its rows once it is fitted, with the shown model's
-        $candidateFittedAt = $fitted && ($this->candidateRows || $message->candidateRows) ? $this->parametersProvider->candidateFittedAt() : null;
+        $candidateShown = ShownPredictionModel::fromSetting($this->shownModel)->isCandidate();
+        // The candidate model: its rows once it is fitted, with the statistical model's - always while it is the shown one
+        $candidateFittedAt = $fitted && ($this->candidateRows || $message->candidateRows || $candidateShown) ? $this->parametersProvider->candidateFittedAt() : null;
         $recomputeCandidateBefore = $message->recomputeReconstructed ? $candidateFittedAt : null;
         // Only reconstructions from before the current fit: a run that stopped continues where it was
         $recomputeBefore = $message->recomputeReconstructed ? $fittedAt : null;
+        // The shown prediction: the candidate's while it is the shown model and fitted, else the statistical model's - a
+        // recompute replaces a reconstructed one from before that model's fit or made by the other model
+        $shown = ShownPredictionModel::effective($candidateShown && $candidateFittedAt !== null);
+        $recomputeShownBefore = $message->recomputeReconstructed ? ($shown->isCandidate() ? $candidateFittedAt : $fittedAt) : null;
         $imageTimeIds = $fitted ? $this->getTimesAwaitingImagePredictions->ofPlayer($message->playerId, $message->recomputeImage) : [];
 
         // Locked before anything is read, so the reconstruction sees every edit committed before it
@@ -83,6 +92,8 @@ readonly final class BackfillSolvingTimePredictionsHandler
             imageTimeIds: $imageTimeIds,
             withCandidateRows: $candidateFittedAt !== null,
             recomputeCandidateBefore: $recomputeCandidateBefore,
+            recomputeShownBefore: $recomputeShownBefore,
+            shownModelVersion: $shown->modelVersion(),
         );
 
         if ($times === []) {
@@ -114,9 +125,16 @@ readonly final class BackfillSolvingTimePredictionsHandler
             $prediction = $sideBySide->statistical;
             $reevaluated = isset($reevaluate[$timeId]) || $time->isPredictionPending();
             $written = false;
+            // The shown one: the candidate's while it is shown (the statistical model's when its pass failed - it says so
+            // by its version, and the next recompute replaces it)
+            $shownPrediction = $shown->isCandidate() && $sideBySide->candidate !== null ? $sideBySide->candidate : $prediction;
 
-            if ($reevaluated || self::isReconstructionBefore($time->predictionSource, $time->predictionComputedAt, $recomputeBefore)) {
-                $time->recordPrediction($prediction->forDisplay(), $now);
+            if (
+                $reevaluated
+                || self::isReconstructionBefore($time->predictionSource, $time->predictionComputedAt, $recomputeShownBefore)
+                || ($recomputeShownBefore !== null && $time->predictionSource === TimePredictionSource::Reconstructed && $time->predictionModelVersion !== $shown->modelVersion())
+            ) {
+                $time->recordPrediction($shownPrediction->forDisplay(), $now);
                 $written = true;
             }
 

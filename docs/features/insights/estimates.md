@@ -52,6 +52,22 @@ collections prediction rows (while the flag hides the estimates), the recap's li
 | The player has no baseline at any piece count (and no repeat) | the community's median direct pace at the piece count (≥ 20 puzzlers), clearly labelled "Typically ≈ …", no window, no bar | `community` | no |
 | Secret puzzle (`hide_until` / `hide_image_until` ahead) | nothing, whatever it has | - | - |
 
+**With the candidate shown (`PREDICTION_SHOWN_MODEL=v7`, README "Step 8", "The shown model switch")** the same rule
+with the candidate model v7's numbers, so the estimates still equal every other surface (one statement, as before: the
+candidate's puzzle columns on each row, its fit and the player's candidate columns once on the player row,
+`GetPersonalEstimates::statement(candidate: true)`):
+
+| Case | Time | Basis |
+|---|---|---|
+| Solved before | the candidate's repeat: the statistical centre × its gap offset, its own window (`GetCandidatePrediction::repeatOf()`) | `your_solves` |
+| The candidate's index count k ≥ 5 / 1-4 | the candidate's first try (`GetCandidatePrediction::firstTryOf()` - posterior over the drift-adjusted indices with the picture estimate as the prior, size-curve pace, taste, slope) | `measured` / `first_solves` |
+| k = 0, its prior the picture estimate, **the gate passed** (the same `ImageEstimateGate::passesFor()` call) | the candidate's k = 0 prediction (the estimate as the prior, its own variance; the picture's look-alike term in the window) | `picture` |
+| k = 0 otherwise / no pace anywhere / secret | as above (nothing, or the community median) | - / `community` |
+
+The tier stays the puzzle's own (unchanged, the statistical model's indices). The candidate has no fit yet = v3's
+numbers. Pinned by `ShownModelV7Test::testEveryReaderShowsThePuzzlePagesNumbers` (every fixture puzzle: the estimate =
+`GetPlayerPrediction::forPuzzle()` = `GetPlayerPredictions`; at k = 0 the picture's prediction = the prior-only one).
+
 **Why not the blend for k = 1-4?** The shown prediction for a puzzle with solves stays the statistical one (shrunk
 toward brand × pieces) until the launch `MODEL_VERSION` bump lets the image prior into it (STATUS 5d, plan §8).
 Showing the blend here would put a second number next to the one the recap, the Insights page and the API v1

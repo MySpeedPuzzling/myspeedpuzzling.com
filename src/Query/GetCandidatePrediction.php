@@ -13,7 +13,7 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionModelParametersProvi
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\RepeatResiduals;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\StatisticalInputsSql;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
-use SpeedPuzzling\Web\Value\ImagePriorInput;
+use SpeedPuzzling\Web\Value\CandidateModelParameters;
 use SpeedPuzzling\Web\Value\PictureLookalikes;
 use SpeedPuzzling\Web\Value\PiecesGroup;
 use SpeedPuzzling\Web\Value\PredictionsSideBySide;
@@ -31,6 +31,10 @@ use SpeedPuzzling\Web\Value\TimePredictionSource;
  * the size curve's (candidatePaceColumns() - by the player's own index), the taste factor's (CANDIDATE_TASTE_COLUMNS: the
  * player's latest taste state, the picture's factors and look-alike numbers - PictureLookalikes::JOINS, v6) and its fit. A repeat: the shown centre with the candidate's window (the player's repeat spread and the days since the
  * last solve).
+ *
+ * While the candidate is the SHOWN model (PREDICTION_SHOWN_MODEL = v7, ShownPredictionModel) its statement and its two
+ * calculations - firstTryOf(), repeatOf() - are also what every shown reader computes with (GetPlayerPrediction,
+ * GetPlayerPredictions, GetPersonalEstimates): the shown numbers are exactly the side-by-side row's.
  */
 readonly final class GetCandidatePrediction
 {
@@ -55,36 +59,86 @@ readonly final class GetCandidatePrediction
             return $personal !== null ? $this->repeat($playerId, $puzzleId, $personal, $excludeTimeId, $before) : null;
         }
 
+        $row = $this->firstTryRow($playerId, $puzzleId);
+        $parameters = $row !== null ? self::parametersOf($row) : null;
+
+        if ($row === null || $parameters === null) {
+            return null;
+        }
+
+        $prediction = $this->firstTryOf($row, $parameters, $conditions);
+
+        return $prediction !== null
+            ? SolvingTimePrediction::predicted($prediction, TimePredictionSource::Live, CandidatePredictionCalculator::MODEL_VERSION)
+            : SolvingTimePrediction::notPredictable(TimePredictionSource::Live, CandidatePredictionCalculator::MODEL_VERSION);
+    }
+
+    /**
+     * The candidate's one-puzzle statement: every input of a first try of the player on the puzzle now and the candidate's
+     * fit (candidate_parameters); $withShownParameters also the statistical model's (model_parameters) - for a shown
+     * reader that falls back to the statistical model while the candidate has no fit. Null = no such puzzle.
+     *
+     * @return null|array<string, mixed>
+     */
+    public function firstTryRow(string $playerId, string $puzzleId, bool $withShownParameters = false): null|array
+    {
         $joins = StatisticalInputsSql::JOINS . StatisticalInputsSql::lateralPaceJoins() . StatisticalInputsSql::imageEstimateJoins(outOfFoldOnly: false) . PictureLookalikes::JOINS . StatisticalInputsSql::CANDIDATE_JOINS;
+        $params = [
+            'playerId' => $playerId,
+            'puzzleId' => $puzzleId,
+            'candidateModelVersion' => CandidatePredictionCalculator::MODEL_VERSION,
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+        ];
+        $shownParameters = '';
+
+        if ($withShownParameters) {
+            $shownParameters = ', (' . PredictionModelParametersProvider::SQL . ') AS model_parameters';
+            $params['modelVersion'] = TimePredictionCalculator::MODEL_VERSION;
+        }
 
         /** @var array<string, mixed>|false $row */
         $row = $this->database->executeQuery('
             SELECT ' . StatisticalInputsSql::COLUMNS . ', ' . StatisticalInputsSql::IMAGE_ESTIMATE_COLUMNS . ', ' . StatisticalInputsSql::CANDIDATE_COLUMNS . ', ' . StatisticalInputsSql::CANDIDATE_TASTE_COLUMNS . ',
                 ' . StatisticalInputsSql::candidatePaceColumns() . ',
-                (' . PredictionModelParametersProvider::CANDIDATE_SQL . ') AS candidate_parameters
+                (' . PredictionModelParametersProvider::CANDIDATE_SQL . ') AS candidate_parameters' . $shownParameters . '
             FROM puzzle p
             ' . $joins . '
             WHERE p.id = :puzzleId
-        ', [
-            'playerId' => $playerId,
-            'puzzleId' => $puzzleId,
-            'candidateModelVersion' => CandidatePredictionCalculator::MODEL_VERSION,
-            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
-        ])->fetchAssociative();
+        ', $params)->fetchAssociative();
 
-        $parameters = $row !== false ? PredictionModelParametersProvider::candidateFromJson(is_string($row['candidate_parameters'] ?? null) ? $row['candidate_parameters'] : null) : null;
+        return $row !== false ? $row : null;
+    }
 
-        if ($row === false || $parameters === null) {
-            return null;
-        }
+    /**
+     * The candidate's fit on a row (candidate_parameters) - null = never fitted.
+     *
+     * @param array<string, mixed> $row
+     */
+    public static function parametersOf(array $row): null|CandidateModelParameters
+    {
+        return PredictionModelParametersProvider::candidateFromJson(is_string($row['candidate_parameters'] ?? null) ? $row['candidate_parameters'] : null);
+    }
 
-        $inputs = StatisticalInputsSql::hydrateCandidatePace($row, StatisticalInputsSql::hydrateCandidate($row, StatisticalInputsSql::hydrate($row)->withImageEstimate(ImagePriorInput::fromRow($row))), $parameters);
-        $inputs = StatisticalInputsSql::hydrateCandidateTaste($row, $inputs, $parameters);
-        $prediction = $this->calculator->firstTry($inputs, $parameters, $conditions);
+    /**
+     * The candidate's first try from a row carrying every candidate column (firstTryRow(), or a bulk row with the player's
+     * columns - StatisticalInputsSql::withPlayerColumns()): the one calculation of every candidate first try read live,
+     * the side-by-side row's and the shown reader's alike.
+     *
+     * @param array<string, mixed> $row
+     */
+    public function firstTryOf(array $row, CandidateModelParameters $parameters, SolveConditions $conditions = new SolveConditions()): null|TimePredictionResult
+    {
+        return $this->calculator->firstTry(StatisticalInputsSql::hydrateCandidateInputs($row, $parameters), $parameters, $conditions);
+    }
 
-        return $prediction !== null
-            ? SolvingTimePrediction::predicted($prediction, TimePredictionSource::Live, CandidatePredictionCalculator::MODEL_VERSION)
-            : SolvingTimePrediction::notPredictable(TimePredictionSource::Live, CandidatePredictionCalculator::MODEL_VERSION);
+    /**
+     * The candidate's repeat: the statistical model's personal centre with the candidate's gap offset and window - the one
+     * calculation of every candidate repeat read live ($repeatSpread = TimePredictionCalculator::playerSpread() of the
+     * player's RepeatResiduals before the solve, $gapDays since their last solve of the puzzle).
+     */
+    public function repeatOf(TimePredictionResult $personal, float $repeatSpread, int $piecesCount, int $gapDays, CandidateModelParameters $parameters): TimePredictionResult
+    {
+        return $this->calculator->repeatWindow($personal, $repeatSpread, PiecesGroup::fromPiecesCount($piecesCount), $gapDays, $parameters);
     }
 
     private function repeat(string $playerId, string $puzzleId, TimePredictionResult $personal, null|string $excludeTimeId, null|SolveMoment $before): null|SolvingTimePrediction
@@ -132,13 +186,7 @@ readonly final class GetCandidatePrediction
         }
 
         $gapDays = TimePredictionCalculator::gapDays($before->solvedAt ?? $this->clock->now(), new DateTimeImmutable($row['last_solved']));
-        $window = $this->calculator->repeatWindow(
-            $personal,
-            TimePredictionCalculator::playerSpread(RepeatResiduals::fromJson($row['repeats'])),
-            PiecesGroup::fromPiecesCount((int) $row['pieces_count']),
-            $gapDays,
-            $parameters,
-        );
+        $window = $this->repeatOf($personal, TimePredictionCalculator::playerSpread(RepeatResiduals::fromJson($row['repeats'])), (int) $row['pieces_count'], $gapDays, $parameters);
 
         return SolvingTimePrediction::predicted($window, TimePredictionSource::Live, CandidatePredictionCalculator::MODEL_VERSION);
     }

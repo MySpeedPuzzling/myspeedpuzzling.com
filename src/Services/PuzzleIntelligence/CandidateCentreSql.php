@@ -19,7 +19,7 @@ use SpeedPuzzling\Web\Value\TasteState;
  * The candidate model's first-try centre (CandidatePredictionCalculator::firstTry(), rounded seconds) in SQL for a
  * candidate list - the Puzzle Picker's pre-LIMIT filter while the candidate is the shown model (PREDICTION_SHOWN_MODEL =
  * v7), the twin of StatisticalInputsSql::centreSql() for v3. Pinned equal to the cards' numbers (GetPlayerPredictions,
- * the same calculator) by GetPuzzlePickerSuggestionsShownV7Test.
+ * the same calculator) by ShownModelV7Test.
  *
  * What depends on the player and the piece count only is computed in PHP by the calculator's own code and handed over
  * as one row per catalogue piece count (a VALUES list joined by piece count): the log pace with its drift
@@ -32,10 +32,12 @@ use SpeedPuzzling\Web\Value\TasteState;
  * difficulty slope. A puzzle without any candidate index (k = 0) gets NULL - prior-only predictions are not shown on
  * surfaces, like v3's. The taste vector's sums over the 16 picture factors are read stored
  * (candidate_picture_projection - TasteModel::factorSums(), kept by the candidate's jobs) while they are current, and
- * computed from the factors otherwise: 64 multiply-adds and 16 JSON reads per puzzle cost ~4× the rest of the centre on
- * the production copy.
+ * computed from the factors otherwise. Everything that does not depend on the player (the posterior, the prior type, the
+ * taste vector) is computed once for the catalogue in a materialised CTE (cv7_puzzle - hash joins); the candidates join
+ * it and add the player's part: 188-310 ms for the heaviest players on the production copy (v3: 97-162 ms; row by row
+ * with a join per candidate 530-940 ms).
  *
- * Expects `p` = puzzle, `pd` = its puzzle_difficulty row (only read with the switches that need it) and :now.
+ * Expects `p` = puzzle and :now.
  */
 final class CandidateCentreSql
 {
@@ -48,7 +50,7 @@ final class CandidateCentreSql
      * @param array<int, array{0: float, 1: PaceSource}> $paces by piece count: the log pace with its drift and what it rests on (CandidatePredictionCalculator::pace())
      * @param null|int $firstTries the player's qualifying first attempts (the experience offset; StatisticalInputsSql::CANDIDATE_FIRST_TRIES_COLUMN)
      * @param null|TasteState $taste the player's latest taste state (null = none stored: the model's initial state)
-     * @return null|array{0: string, 1: string, 2: array<string, string>} the joins, the centre (rounded seconds, NULL = no prediction), the parameters - null without any pace
+     * @return null|array{0: string, 1: string, 2: string, 3: array<string, string>} the CTE (with a trailing comma - after a WITH), the joins, the centre (rounded seconds, NULL = no prediction), the parameters - null without any pace
      */
     public static function centreSql(CandidateModelParameters $parameters, array $paces, null|int $firstTries, null|TasteState $taste): null|array
     {
@@ -80,49 +82,67 @@ final class CandidateCentreSql
         $notSecret = StatisticalInputsSql::NOT_SECRET;
         $fingerprint = PuzzleImageFingerprint::sql('p.image');
 
+        $projections = '';
+
+        foreach (self::projectionsSql($parameters) as $r => $projection) {
+            $projections .= ",\n            {$projection} AS v" . ($r + 1);
+        }
+
+        // Every puzzle with a candidate index once (k = 0 gets no prediction): what does not depend on the player - its
+        // posterior log difficulty, prior type and taste vector - computed for the whole catalogue with hash joins, the
+        // same expressions as row by row (a join per candidate in the Picker's order-keeping plan cost ~3 µs each)
+        $cte = "
+            cv7_puzzle AS MATERIALIZED (
+                SELECT p.id AS puzzle_id, cv7_in.k, cv7_prior.prior_type, cv7_post.log_difficulty{$projections}
+                FROM puzzle p
+                JOIN candidate_puzzle_evidence cv7_ev ON cv7_ev.puzzle_id = p.id AND cv7_ev.index_count > 0
+                LEFT JOIN puzzle_difficulty pd ON pd.puzzle_id = p.id
+                LEFT JOIN candidate_puzzle_prior cv7_brand ON cv7_brand.puzzle_id = p.id
+                LEFT JOIN puzzle_difficulty_estimate cv7_img ON cv7_img.puzzle_id = p.id AND cv7_img.image_fingerprint = {$fingerprint} AND {$notSecret}
+                LEFT JOIN puzzle_image_analysis cv7_art ON cv7_art.puzzle_id = cv7_img.puzzle_id AND cv7_art.analyzer = 'artwork' AND cv7_art.image_fingerprint = cv7_img.image_fingerprint
+                LEFT JOIN candidate_picture_projection cv7_tp ON cv7_tp.puzzle_id = p.id
+                CROSS JOIN LATERAL (
+                    SELECT
+                        cv7_ev.index_count AS k,
+                        COALESCE(cv7_ev.weight_sum, 0::float8) AS weight_sum,
+                        COALESCE(cv7_ev.weighted_log_sum, 0::float8) AS weighted_log_sum,
+                        (cv7_img.log_difficulty IS NOT NULL AND cv7_img.log_p10 IS NOT NULL AND cv7_img.log_p90 IS NOT NULL AND cv7_img.model IS NOT NULL) AS has_estimate,
+                        " . self::brandSql($features->on('puzzle_weighted_brand')) . " AS brand_log
+                ) cv7_in
+                CROSS JOIN LATERAL (
+                    SELECT " . self::priorSql($parameters) . "
+                ) cv7_prior
+                CROSS JOIN LATERAL (
+                    SELECT " . self::posteriorSql($parameters) . " AS log_difficulty
+                ) cv7_post
+            ),
+        ";
+
         $joins = "
     LEFT JOIN (VALUES " . implode(', ', $rows) . ") AS cv7_pace (pieces_count, log_pace, {$offsetColumns}) ON cv7_pace.pieces_count = p.pieces_count
-    LEFT JOIN candidate_puzzle_evidence cv7_ev ON cv7_ev.puzzle_id = p.id
-    LEFT JOIN candidate_puzzle_prior cv7_brand ON cv7_brand.puzzle_id = p.id
-    LEFT JOIN puzzle_difficulty_estimate cv7_img ON cv7_img.puzzle_id = p.id AND cv7_img.image_fingerprint = {$fingerprint} AND {$notSecret}
-    LEFT JOIN puzzle_image_analysis cv7_art ON cv7_art.puzzle_id = cv7_img.puzzle_id AND cv7_art.analyzer = 'artwork' AND cv7_art.image_fingerprint = cv7_img.image_fingerprint
-    LEFT JOIN candidate_picture_projection cv7_tp ON cv7_tp.puzzle_id = p.id
-    CROSS JOIN LATERAL (
-        SELECT
-            CASE WHEN cv7_ev.index_count > 0 THEN cv7_ev.index_count ELSE 0 END AS k,
-            CASE WHEN cv7_ev.index_count > 0 THEN COALESCE(cv7_ev.weight_sum, 0::float8) ELSE 0::float8 END AS weight_sum,
-            CASE WHEN cv7_ev.index_count > 0 THEN COALESCE(cv7_ev.weighted_log_sum, 0::float8) ELSE 0::float8 END AS weighted_log_sum,
-            (cv7_img.log_difficulty IS NOT NULL AND cv7_img.log_p10 IS NOT NULL AND cv7_img.log_p90 IS NOT NULL AND cv7_img.model IS NOT NULL) AS has_estimate,
-            " . self::brandSql($features->on('puzzle_weighted_brand')) . " AS brand_log
-    ) cv7_in
-    CROSS JOIN LATERAL (
-        SELECT " . self::priorSql($parameters) . "
-    ) cv7_prior
-    CROSS JOIN LATERAL (
-        SELECT " . self::posteriorSql($parameters) . " AS log_difficulty
-    ) cv7_post
+    LEFT JOIN cv7_puzzle ON cv7_puzzle.puzzle_id = p.id
 ";
 
         [$tasteSql, $tasteParams] = self::tasteSql($parameters, $taste);
         $params = [...$params, ...$tasteParams];
 
-        $kIndex = 'CASE WHEN cv7_in.k <= 0 THEN 0 WHEN cv7_in.k < 5 THEN 1 WHEN cv7_in.k < 20 THEN 2 ELSE 3 END';
+        $kIndex = 'CASE WHEN cv7_puzzle.k <= 0 THEN 0 WHEN cv7_puzzle.k < 5 THEN 1 WHEN cv7_puzzle.k < 20 THEN 2 ELSE 3 END';
         $offsetCases = [];
 
         foreach (range(0, count(self::K_BUCKETS) * count(self::PRIOR_TYPES) - 1) as $index) {
             $offsetCases[] = "WHEN {$index} THEN cv7_pace.o{$index}";
         }
 
-        $offset = "(CASE ({$kIndex}) * 3 + cv7_prior.prior_type " . implode(' ', $offsetCases) . ' END)';
+        $offset = "(CASE ({$kIndex}) * 3 + cv7_puzzle.prior_type " . implode(' ', $offsetCases) . ' END)';
         // exp(logPace + logDifficulty + offset + taste + 0.0), left to right like the calculator; never above
         // MAX_SECONDS (exp() of PHP is INF there, of PostgreSQL an error)
-        $logCentre = "((((cv7_pace.log_pace + cv7_post.log_difficulty) + {$offset}) + {$tasteSql}) + 0::float8)";
+        $logCentre = "((((cv7_pace.log_pace + cv7_puzzle.log_difficulty) + {$offset}) + {$tasteSql}) + 0::float8)";
         $centre = "CASE
-            WHEN cv7_pace.log_pace IS NULL OR cv7_in.k <= 0 THEN NULL
+            WHEN cv7_pace.log_pace IS NULL OR cv7_puzzle.puzzle_id IS NULL THEN NULL
             ELSE GREATEST(LEAST(round(exp(LEAST({$logCentre}, 700::float8))), " . TimePredictionCalculator::MAX_SECONDS . "::float8)::bigint, 1)::int
         END";
 
-        return [$joins, $centre, $params];
+        return [$cte, $joins, $centre, $params];
     }
 
     /**
@@ -240,6 +260,35 @@ final class CandidateCentreSql
         }
 
         $state ??= $model->initialState();
+        $term = '0::float8';
+
+        foreach ($state->coefficients as $i => $coefficient) {
+            $term = "({$term} + " . self::literal($coefficient) . ' * ' . ($i === 0 ? '1::float8' : 'cv7_puzzle.v' . $i) . ')';
+        }
+
+        $slope = $parameters->features()->on('player_slope') ? $state->slopeCoefficients(TasteModel::SLOPE_LAMBDA, TasteModel::SLOPE_MINIMUM) : null;
+
+        if ($slope !== null) {
+            $term = "({$term} + " . self::literal($slope[0]) . ' * (cv7_puzzle.log_difficulty - ' . self::literal($slope[1]) . '))';
+        }
+
+        return [$term, ['cv7FactorsVersion' => $model->factorsVersion]];
+    }
+
+    /**
+     * The puzzle's taste vector after the intercept, [W x] (TasteModel::project()) - the same for every player, so the
+     * CTE computes it once per puzzle; with no taste model none.
+     *
+     * @return list<string> one expression per row of W
+     */
+    private static function projectionsSql(CandidateModelParameters $parameters): array
+    {
+        $model = $parameters->taste;
+
+        if ($model === null || $parameters->features()->on('taste') === false) {
+            return [];
+        }
+
         $factorsValid = "(cv7_img.picture_factors_version = :cv7FactorsVersion AND jsonb_typeof(cv7_img.picture_factors) = 'array' AND jsonb_array_length(cv7_img.picture_factors) = 16)";
         // The stored sums (candidate_picture_projection) while they are of this picture, this push, this basis and this
         // fit's W - TasteModel::factorSums(), the same doubles; else computed here from the factors (a push since the
@@ -270,19 +319,7 @@ final class CandidateCentreSql
             $projections[] = $projection;
         }
 
-        $term = '0::float8';
-
-        foreach ($state->coefficients as $i => $coefficient) {
-            $term = "({$term} + " . self::literal($coefficient) . ' * ' . ($i === 0 ? '1::float8' : $projections[$i - 1]) . ')';
-        }
-
-        $slope = $parameters->features()->on('player_slope') ? $state->slopeCoefficients(TasteModel::SLOPE_LAMBDA, TasteModel::SLOPE_MINIMUM) : null;
-
-        if ($slope !== null) {
-            $term = "({$term} + " . self::literal($slope[0]) . ' * (cv7_post.log_difficulty - ' . self::literal($slope[1]) . '))';
-        }
-
-        return [$term, ['cv7FactorsVersion' => $model->factorsVersion]];
+        return $projections;
     }
 
     /**

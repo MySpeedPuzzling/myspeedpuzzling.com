@@ -90,9 +90,10 @@ For each solo time, the first available of:
    row written next to it (`solving_time_prediction`, predictor `statistical`, model 3 -
    `ShownPredictionModel::statisticalVersionSql()` in `GetSuspiciousTimeCandidates`); on every other row the shown
    columns as before, so its SQL results do not change. The form check asks `GetPlayerPrediction::forPuzzle(model:
-   ShownPredictionModel::V3)`. Measured on a copy of production with every shown prediction replaced by the candidate
-   v7 row (a superset of what the switch and `--recompute-reconstructed` do): the scan's input of every result identical
-   (README "The shown model switch", "Time verification") - nobody is marked or cleared by the switch, and
+   ShownPredictionModel::V3)`. Measured on a copy of production with every reconstructed shown prediction replaced by
+   the candidate v7 row (what the switch and `--recompute-reconstructed` do): the scan's input of 547,123 results differs
+   for 4 - shown predictions that already differed from their own statistical side row, at 0.79-0.99× of it, far from
+   any rule (README "The shown model switch", "Measured") - nobody is marked or cleared by the switch, and
    `SuspiciousTimeClassifier::VERSION` stays. Moving the verification onto the candidate would be a decision of its own,
    behind a classifier version bump and a dry run.
 2. **`baseline`** - the player's baseline for the piece count (`player_baseline`, direct or derived from other piece

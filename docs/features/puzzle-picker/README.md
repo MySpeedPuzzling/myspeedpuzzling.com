@@ -395,9 +395,11 @@ current picture with its own variance, else the puzzle-weighted brand prior, els
 taste term (their coefficients × [1, W x] of the picture's 16 factors, kind and size) and difficulty slope. k = 0 = no
 prediction (like v3). Pinned to the cards' numbers to the second by `ShownModelV7Test::testThePickerFiltersOnTheNumbersOfItsCards`
 (mutation-checked: dropping the slope, the picture factors or nudging the image variance by 0.01 each fails it), and a
-time budget keeps exactly the puzzles whose card fits. Cost: one statement more (the pace table) on a draw that predicts
-before the LIMIT; the candidate's player columns ride on the ratio statement - measured on the production copy in the
-puzzle-intelligence README.
+time budget keeps exactly the puzzles whose card fits. What does not depend on the player (each puzzle's posterior,
+prior type and taste vector) is computed once for the catalogue in a materialised CTE (hash joins), the taste vector's
+factor sums read from `candidate_picture_projection` while current. Cost: one statement more (the pace table) on a draw
+that predicts before the LIMIT; on the production copy 188-310 ms for the ten heaviest players vs 97-162 ms with v3
+(puzzle-intelligence README "The shown model switch", "Measured").
 Collections use the same service for their visible items. Cache the per-player result for a few
 minutes (Symfony cache pool, keyed by player + latest solve id) so "5 more"/back navigation is free.
 

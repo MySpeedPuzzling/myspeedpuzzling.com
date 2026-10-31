@@ -173,7 +173,7 @@ readonly final class GetPuzzlePickerSuggestions
             if ($candidate !== null) {
                 // The shown v7 (PREDICTION_SHOWN_MODEL): the candidate's centre in SQL, the paces by piece count from PHP
                 // (pinned equal to the cards by the tests); no prediction at all for a player without a pace anywhere
-                [$centreJoins, $centre, $centreParams] = $candidateCentre ?? ['', 'NULL::int', []];
+                [$predictionCte, $centreJoins, $centre, $centreParams] = $candidateCentre ?? ['', '', 'NULL::int', []];
             } else {
                 // The statistical fallback is TimePredictionCalculator::statistical()'s centre in SQL (pinned equal by the tests)
                 [$centreCte, $centreJoins, $centre, $centreParams] = StatisticalInputsSql::centreSql($this->getPlayerPredictions->modelParameters($playerId));

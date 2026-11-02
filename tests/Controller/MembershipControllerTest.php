@@ -236,11 +236,12 @@ final class MembershipControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
 
-        // One picker, yearly picked, the button pointing at the yearly checkout
+        // One picker, monthly picked (steadier income - Jan's call), the button pointing at the monthly checkout
         self::assertCount(2, $crawler->filter('#membership-offer input[name="membership_plan"]'));
-        $this->assertSelectorExists('#membership-offer input[value="yearly"][checked]');
-        $this->assertSelectorExists('#membership-offer a[data-membership-plan-target="button"][href$="/en/buy-membership/yearly"]');
-        $this->assertSelectorExists('#membership-offer input[value="monthly"][data-url$="/en/buy-membership"]');
+        $this->assertSelectorExists('#membership-offer input[value="monthly"][checked]');
+        $this->assertSelectorNotExists('#membership-offer input[value="yearly"][checked]');
+        $this->assertSelectorExists('#membership-offer a[data-membership-plan-target="button"][href$="/en/buy-membership"]');
+        $this->assertSelectorExists('#membership-offer input[value="yearly"][data-url$="/en/buy-membership/yearly"]');
 
         // The four groups of the one benefits list, no links to features they cannot use yet
         self::assertCount(4, $crawler->filter('.membership-group'));

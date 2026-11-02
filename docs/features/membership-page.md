@@ -36,7 +36,7 @@ for members and trial players - on the membership page and on the free trial's w
 | Questions (`<details>`; referral code input `ReferralCodeInput` inside one) | everyone; trial and referral items only for non-members |
 | Sticky bottom bar on phones (`.membership-sticky`, `d-lg-none`) | not active, when there is something to click |
 
-**Plan picker:** two radio cards (yearly preselected, "2 months free", "Works out at …" = `yearlyPerMonthPrice`
+**Plan picker:** two radio cards (monthly first and preselected - Jan prefers the steadier monthly income; yearly keeps its "2 months free" badge, "Works out at …" = `yearlyPerMonthPrice`
 from the controller, discounted prices struck through) and one button; `membership_plan_controller.js` points the
 button at the picked plan (checkout URL on the web, store product in the apps).
 

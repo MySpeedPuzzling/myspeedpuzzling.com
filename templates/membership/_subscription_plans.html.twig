@@ -1,6 +1,6 @@
 {# The plan picker of the membership page - web (Stripe), iOS and Android. Shown to players without a
    membership and, so that a convinced player has somewhere to click, during the free trial too.
-   Two plan cards (yearly picked) and one button; membership_plan_controller.js points the button at the picked plan. #}
+   Two plan cards (monthly first and picked - Jan prefers the steadier monthly income) and one button; membership_plan_controller.js points the button at the picked plan. #}
 {% if discountedMonthlyPrice is not null %}
     <div class="alert alert-success mb-3">
         <i class="ci-check-circle me-2"></i>
@@ -16,18 +16,18 @@
 
 {% if is_web() %}
     {% set plans = [
-        {key: 'yearly', url: path('buy_membership', {period: 'yearly'}), label: yearly_label},
         {key: 'monthly', url: path('buy_membership'), label: monthly_label},
+        {key: 'yearly', url: path('buy_membership', {period: 'yearly'}), label: yearly_label},
     ] %}
 {% elseif is_ios() %}
     {% set plans = [
-        {key: 'yearly', product: 'com.myspeedpuzzling.premium.yearly', label: yearly_label},
         {key: 'monthly', product: 'com.myspeedpuzzling.premium.monthly', label: monthly_label},
+        {key: 'yearly', product: 'com.myspeedpuzzling.premium.yearly', label: yearly_label},
     ] %}
 {% elseif is_android() %}
     {% set plans = [
-        {key: 'yearly', product: 'premium_yearly', label: yearly_label},
         {key: 'monthly', product: 'premium_monthly', label: monthly_label},
+        {key: 'yearly', product: 'premium_yearly', label: yearly_label},
     ] %}
 {% endif %}
 

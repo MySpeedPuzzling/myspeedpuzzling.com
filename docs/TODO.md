@@ -1527,3 +1527,7 @@ Mirrored in [#212](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues
 - [ ] Re-run `myspeedpuzzling:xp-distribution` after the launch backfill: without achievement XP a local copy gave 112
       players at Level 50 and median level 10 (the curve was calibrated to a median of 13-14 with achievement XP) -
       decide whether the curve needs a touch
+
+## Membership plan switch ([docs/features/stripe.md](features/stripe.md) "Switching plans")
+
+- [ ] Let a member undo a booked switch to monthly themselves - Stripe's portal cannot (Continue disabled on the current price, a confirm deep link to it is refused); would be our own "Keep the yearly plan" releasing the schedule (release, never cancel). Until then support releases it in the Dashboard

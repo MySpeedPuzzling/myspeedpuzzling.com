@@ -1,0 +1,6 @@
+{# Three lines that sum up a membership - the membership page's hero and the members-only modal (docs/features/membership-page.md) #}
+<ul class="membership-checks">
+    {% for key in ['difficulty', 'progress', 'organise'] %}
+        <li><span class="membership-tick" aria-hidden="true"><i class="bi bi-check-lg"></i></span> {{ ('membership.highlights_list.' ~ key)|trans }}</li>
+    {% endfor %}
+</ul>

@@ -2286,8 +2286,6 @@ recap_progress:
     "title": "Členství"
     "description": ""
   "title": "Členství"
-  "intro_text": "Členství je způsob jak získat přístup k exkluzivním funkcím pro opravdové puzzle nadšence! Předplacením členství zároveň podpoříte vývoj platformy a tím i naši vizi tvořit tu nejlepší komunitní puzzle platformu na světě."
-  "redirect_to_stripe": "Budete přesměrování na platební bránu Stripe"
   "subscription_active": "Aktivní předplatné, děkujeme že jste součástí!"
   "membership_active": "Aktivní členství, děkujeme že jste součástí!"
   "membership_inactive": "Členství není aktivní"
@@ -2300,10 +2298,7 @@ recap_progress:
   "next_payment": "Příští platba"
   "membership_active_until": "Platnost členství do"
   "payment_portal_button": "Upravit předplatné (platební portál)"
-  "description_title": "Jaké jsou výhody členství?"
   "choose_your_subscription": "Vyber si předplatné"
-  "subscribe_for_monthly": "Měsíčně za"
-  "subscribe_for_yearly": "Ročně za"
   "price_per_month": "%price% Kč / měsíc"
   "price_per_year": "%price% Kč / rok"
   "billing_portal_info": "Na platebním portále můžete měnit platební své údaje, zrušit členství, stáhnout faktury nebo účtenky."
@@ -2331,7 +2326,7 @@ recap_progress:
     "title": "Exkluzivní funkce pro členy"
     "cta": "Stát se členem"
     "no_thanks": "Ne, děkuji!"
-    "text": "<p>Odemkněte přístup k této a dalším funkcím, které vylepší váš zážitek.</p>\n<p>Staňte se členem ještě dnes, podpořte vývoj platformy a užívejte si exkluzivní funkce, které udělají vaši speed puzzling cestu ještě zábavnější!</p>\n"
+    "text": "Tohle je jedna z funkcí pro členy. Členství ti dá také:"
   "have_voucher_code": "Máte slevový kód?"
   "redeem_voucher": "Uplatnit voucher"
   "discount_ready": "Sleva %discount% % je připravena!"
@@ -2353,33 +2348,177 @@ recap_progress:
     "next_payment_info_discounted": "Poté předplatné pokračuje se slevou %discount% %."
     "membership_ends": "Konec členství"
     "membership_ends_info": "Žádná automatická platba – členství prostě skončí."
-  "perks_description": |
-    <ul>
-        <li>Velké poděkování za podporu vývoje platformy</li>
-        <li>Vlastní osobní kód hráče (můžete si ho změnit v profilu)</li>
-        <li>Označení člena na vašem profilu</li>
-        <li>Filtrování podle prvních pokusů</li>
-        <li>Filtrování podle země</li>
-        <li>Grafy</li>
-        <li>Čtečka čárových kódů</li>
-        <li>Podrobné statistiky</li>
-    </ul>
-  "progression_perks": |
-    <h3 class="h4">Úspěchy</h3>
-    <ul>
-        <li>Sbírejte úspěchy od Bronzu po Diamant a získávejte body za úspěchy (AP)</li>
-        <li>Ukažte své úspěchy na profilu a zapojte se do žebříčku bodů za úspěchy</li>
-    </ul>
-    <p class="text-muted">XP a úrovně jsou zdarma pro všechny, členy i nečleny.</p>
-  "coming_soon_description": |
-    <h3 class="h4">Na co se můžete brzy těšit?</h3>
-    <ul>
-        <li>Měsíční a roční přehledy <small class="ms-1 text-muted">(brzy)</small></li>
-        <li>Veřejný profil na mypuzzler.com <small class="ms-1 text-muted">(brzy)</small></li>
-        <li class="mt-2">Speciální výzvy jen pro členy</li>
-        <li>Půjčování a prodej puzzlí mezi členy</li>
-        <li>&hellip; a mnohem víc, tohle je jen malá ochutnávka toho, co pro vás chystáme!</li>
-    </ul>
+  "hero":
+    "eyebrow": "Členství"
+    "title": "Vytěž víc z každého složeného puzzle"
+    "title_member": "Děkujeme, že jsi členem"
+    "lead": "Uvidíš, jak těžké každé puzzle doopravdy je, budeš sledovat, jak se zrychluješ, a své puzzle budeš mít v pořádku. Každé členství zároveň pomáhá, aby MySpeedPuzzling zůstal nezávislý a dál rostl."
+    "lead_member": "Tvoje členství platí servery a dává nám čas na budování MySpeedPuzzling. Všechno níže máš odemčené."
+  "highlights_list":
+    "difficulty": "Obtížnost a tvůj předpokládaný čas u každého puzzle"
+    "progress": "Podrobné statistiky, grafy a úspěchy"
+    "organise": "Vlastní kolekce, hromadné skenování, prodej a půjčování"
+  "highlights":
+    "eyebrow": "Co získáš"
+    "title": "Tři věci, které mají členové nejraději"
+    "difficulty":
+      "title": "Víš, jak těžké puzzle je"
+      "text": "Obtížnost u každého puzzle, tvoje výkonnostní úroveň a jak dlouho by ti puzzle mělo trvat, ještě než otevřeš krabici."
+      "predicted": "Tvůj předpokládaný čas: %time%"
+    "progress":
+      "title": "Sleduj, jak se zrychluješ"
+      "text": "Podrobné statistiky a grafy podle měsíců, počtu dílků a značek, tvoje série a úspěchy od bronzu po diamant."
+    "organise":
+      "title": "Měj své puzzle v pořádku"
+      "text": "Vlastní kolekce, naskenování celé hromádky krabic najednou a prodej, výměna i půjčování puzzle."
+  "benefits":
+    "title": "Všechno, co členství obsahuje"
+    "title_unlocked": "Všechno, co máš odemčené"
+    "lead": "Jedno členství, všechno v něm. Žádné úrovně, žádné příplatky."
+    "count": "{1}1 funkce|[2,4]%count% funkce|[5,Inf[%count% funkcí"
+    "new": "Novinka"
+    "open": "Otevřít"
+    "groups":
+      "understand": "Poznej své skládání"
+      "compete": "Soutěž a porovnávej"
+      "organise": "Uspořádej své puzzle"
+      "yours": "Přizpůsob si to"
+    "items":
+      "insights":
+        "title": "Postřehy"
+        "text": "Tvoje silné stránky, těsná umístění a co skládat dál, na vlastní stránce."
+        "short": "Silné stránky a další kroky"
+      "difficulty":
+        "title": "Obtížnost puzzle všude"
+        "text": "Ikona obtížnosti u každého puzzle, filtr podle obtížnosti a řazení od nejlehčích nebo nejtěžších."
+      "predictions":
+        "title": "Výkonnostní úroveň a předpokládané časy"
+        "text": "Jak dlouho by ti puzzle mělo trvat a jestli se ti to po přidání času povedlo překonat."
+      "statistics":
+        "title": "Podrobné statistiky a grafy"
+        "text": "Tvoje časy podle měsíců, počtu dílků a značek."
+        "short": "Podle měsíců, dílků a značek"
+      "leaderboard_chart":
+        "title": "Kde stojíš u každého puzzle"
+        "text": "Graf všech časů v žebříčku puzzle s vyznačeným tvým místem."
+      "streaks":
+        "title": "Statistiky sérií"
+        "text": "Tvoje aktuální a nejdelší série vedle kalendáře aktivity."
+      "achievements":
+        "title": "Úspěchy"
+        "text": "Sbírej je od bronzu po diamant, ukaž je na profilu a stoupej v žebříčku bodů za úspěchy."
+        "short": "Od bronzu po diamant"
+      "ladder_filters":
+        "title": "Filtry žebříčku"
+        "text": "Pořadí podle země a jen podle prvních pokusů."
+      "compare":
+        "title": "Porovnání až 10 lidí"
+        "text": "Místo 2, s grafy, dalšími filtry a tipy na skládače tvé rychlosti."
+        "short": "Až 10 lidí"
+      "partner_speed":
+        "title": "Parťák tvé rychlosti"
+        "text": "Hledání parťáků seřadí lidi podle toho, jak blízko je jejich rychlost té tvojí."
+      "team_stats":
+        "title": "Statistiky dvojic a týmů"
+        "text": "Uvidíš, jak se ti daří s lidmi, se kterými skládáš."
+      "collections":
+        "title": "Vlastní kolekce"
+        "text": "Kolik chceš, s tvými časy a předpovědmi u každého puzzle."
+        "short": "Kolik chceš"
+      "multiscan":
+        "title": "Hromadné skenování"
+        "text": "Naskenuj hromádku krabic a přidej je všechny najednou do kolekce."
+        "short": "Přidej hromádku krabic"
+      "search_scanner":
+        "title": "Skenování z vyhledávání"
+        "text": "Najdi jakékoli puzzle tím, že fotoaparát namíříš na jeho čárový kód."
+      "sell_swap":
+        "title": "Prodej a výměna"
+        "text": "Nabídni puzzle na tržišti a vezmi je s sebou na akce."
+        "short": "Nabídni na tržišti"
+      "lending":
+        "title": "Půjčování puzzle"
+        "text": "Přehled o tom, co komu půjčuješ a od kdy."
+      "picker":
+        "title": "Chytřejší výběr puzzle"
+        "text": "„Co složit příště?\" s filtry podle obtížnosti, tvého předpokládaného času a času, který máš."
+        "short": "Filtry podle obtížnosti a času"
+      "player_code":
+        "title": "Vlastní kód hráče"
+        "text": "Vyber si kód, který si kamarádi zapamatují, místo náhodného."
+        "short": "Vyber si vlastní"
+      "private_profile":
+        "title": "Soukromý profil"
+        "text": "Skryj svůj profil a vyber, kdo ho přesto uvidí."
+      "member_badge":
+        "title": "Odznak člena"
+        "text": "Na tvém profilu, aby ostatní věděli, že MySpeedPuzzling podporuješ."
+      "feature_requests":
+        "title": "Spolurozhoduj, co postavíme"
+        "text": "Navrhuj nové funkce a hlasuj pro ty, které chceš."
+  "shortcuts":
+    "title": "Vrhni se na své členské funkce"
+    "lead": "Pár míst, kde začít. Všechno ostatní najdeš níže."
+  "free_forever":
+    "title": "Zdarma pro všechny, napořád"
+    "lead": "Členství MySpeedPuzzling rozšiřuje, nikdy nic nebere. I bez něj můžeš:"
+    "items":
+      "stopwatch": "Měřit si časy stopkami"
+      "leaderboards": "Stoupat v žebříčcích a v MSP ratingu"
+      "xp": "Sbírat XP a postupovat na další úrovně"
+      "events": "Účastnit se akcí a soutěží"
+      "teams": "Skládat ve dvojicích a týmech"
+      "wishlist": "Mít seznam přání a žádat o půjčení puzzle"
+      "marketplace": "Procházet tržiště a psát prodejcům"
+      "compare": "Porovnat se s jedním dalším skládačem"
+      "scanner": "Naskenovat čárový kód při přidávání času"
+  "closing":
+    "title_trial": "Ještě váháš? Vyzkoušej to na %days% dní."
+    "text_trial": "Všechny členské funkce zdarma. Bez karty, nic se neruší."
+    "title_plans": "Chceš se přidat?"
+    "button_plans": "Vybrat předplatné"
+  "plans":
+    "yearly": "Ročně"
+    "monthly": "Měsíčně"
+    "yearly_badge": "2 měsíce zdarma"
+    "yearly_note": "Vychází na %price%"
+    "monthly_note": "Nejvíc flexibilní"
+    "continue": "Pokračovat k platbě · %price%"
+    "continue_store": "Předplatit · %price%"
+    "secure_stripe": "Bezpečná platba přes Stripe. Zrušit můžeš kdykoli na pár kliknutí."
+  "faq":
+    "title": "Otázky"
+    "trial":
+      "question": "Co se stane po zkušebním období?"
+      "answer": "Nic. Po %days% dnech skončí samo a o kartu se nikdy neptáme. Když si během něj předplatíš členství, zbývající dny ti zůstanou."
+    "cancel":
+      "question": "Můžu kdykoli zrušit?"
+      "answer": "Ano, v platebním portálu na pár kliknutí. Členem zůstaneš do konce zaplaceného období a nic dalšího se neplatí."
+    "data":
+      "question": "Co se stane s mými daty, když členství skončí?"
+      "answer": "Nic se nemaže. Tvoje časy, kolekce a nabídky zůstanou, kde jsou, a členské funkce se ti znovu odemknou, jakmile se vrátíš."
+    "switch":
+      "question": "Můžu přejít mezi měsíčním a ročním předplatným?"
+      "answer": "Ano, přímo na této stránce, jakmile budeš členem. Přechod na roční platí hned. Přechod na měsíční začne, až skončí zaplacený rok."
+    "referral":
+      "question": "O MySpeedPuzzling mi řekl kamarád"
+    "voucher":
+      "question": "Mám voucher nebo dárkový kód"
+      "answer": "Měsíce zdarma se přičtou k tvému členství. Slevový kód sníží cenu, kterou platíš."
+    "apps":
+      "question": "Předplatné mám z aplikace pro iPhone nebo Android"
+      "answer": "Pak tvoje předplatné spravuje App Store nebo Google Play a změnit či zrušit ho můžeš tam."
+    "money":
+      "question": "Kam jdou peníze?"
+      "who": "MySpeedPuzzling tvoří Jan a Simona, manželé. Jan miluje programování a budování skvělého produktu, Simona miluje puzzle a oba milujeme tuhle přátelskou puzzle komunitu."
+      "why": "Jan dnes MySpeedPuzzling buduje po večerech a v noci, vedle svého zaměstnání. Tvoje členství platí servery a hlavně nám kupuje čas, který můžeme MySpeedPuzzling věnovat. Naším snem je dělat to na plný úvazek a vybudovat ten nejlepší web pro puzzle komunitu pro všechny."
+  "sticky":
+    "trial_title": "%days% dní zdarma"
+    "trial_text": "Bez karty"
+    "trial_button": "Vyzkoušet zdarma"
+    "plans_title": "Staň se členem"
+    "plans_text": "Zrušit můžeš kdykoli"
+  "expired_info": "Tvoje časy, kolekce a nabídky tu pořád jsou. Vyber si předplatné a členské funkce se ti znovu odemknou."
 "membership_payment_cancelled":
   "meta":
     "title": "Platba byla zrušena"
@@ -6660,29 +6799,6 @@ free_trial:
         no_strings: "Bez karty, nic se neruší - skončí samo. Když se ti členství zalíbí, můžeš se kdykoli stát členem a zbytek zkušebního období ti zůstane."
         where_to_look: "Kam se podívat nejdřív"
         membership_link: "Možnosti členství a stav zkušebního období"
-    features:
-        insights:
-            title: "Přehledy na tvém profilu"
-            text: "Tvoje výkonnostní úroveň, obtížnost puzzle a jak dlouho by ti které puzzle mělo trvat."
-        statistics:
-            title: "Podrobné statistiky a grafy"
-            text: "Jak se tvoje časy vyvíjejí - po měsících, podle počtu dílků, podle značky."
-        picker:
-            title: "Co mám skládat příště?"
-            text: "Filtry pro členy: obtížnost, tvůj předpokládaný čas, kolik máš času."
-        collections:
-            title: "Vlastní kolekce"
-            text: "Uspořádej si puzzle po svém a měj u nich své časy i předpovědi."
-        ladder:
-            title: "Více z žebříčku"
-            text: "Filtruj podle země a jen podle prvních pokusů."
-        player_code:
-            title: "Vlastní kód hráče"
-            text: "Vyber si kód, který si kamarádi zapamatují - v nastavení profilu."
-        achievements:
-            title: "Tvoje úspěchy"
-            text: "Úspěchy, které už máš, čekají na své odhalení – každý na jedno malé puzzle."
-
 multiscan:
     meta:
         title: "Skenování puzzlí"

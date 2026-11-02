@@ -143,7 +143,7 @@ note in `feature_flags.md`). Add the `feature_flags.md` entry in this step.
 | `templates/membership/_subscription_plans.html.twig` | the web / iOS / Android plan buttons, **extracted unchanged** from `membership.html.twig` |
 | `templates/membership/_free_trial_start_form.html.twig` | the one POST form (button label + source + return as parameters) reused by card, members modal, offer modal |
 | `templates/free_trial_started.html.twig` | welcome page |
-| `templates/membership/_free_trial_feature_cards.html.twig` | deep-linked feature cards (welcome page + e-mail share the list) |
+| `templates/membership/_benefits.html.twig` (shortcuts mode) | deep-linked feature tiles - shared with the membership page since 2026-11-03 (the old `_free_trial_feature_cards` partial is gone) |
 | `templates/emails/free_trial_started.html.twig` | inky, same skeleton as `membership_granted` |
 
 **`StartFreeTrialController::__invoke`**

@@ -1,0 +1,610 @@
+// Membership page (templates/membership.html.twig, docs/features/membership-page.md) - mobile first
+
+$membership-coral-ink: #d63c42; // text-safe coral (4.58:1 on white), like the e-mails
+$membership-groups: (
+  understand: (#e9f1ff, #2f6fd6),
+  compete: (#fff3e0, #a3621b),
+  organise: (#e6f8f0, #157a52),
+  yours: (#f1ebff, #6b45c6),
+);
+
+.membership-page {
+  padding-top: .5rem;
+}
+
+.membership-eyebrow {
+  margin-bottom: .375rem;
+  font-size: $font-size-ms;
+  font-weight: $font-weight-medium;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: $membership-coral-ink;
+}
+
+.membership-title {
+  font-size: 1.875rem;
+  line-height: 1.15;
+  text-wrap: balance;
+  margin-bottom: 0;
+
+  @include media-breakpoint-up(lg) { font-size: 2.5rem; }
+}
+
+.membership-mascot {
+  width: 84px;
+  height: auto;
+  flex-shrink: 0;
+
+  @include media-breakpoint-up(lg) { width: 170px; }
+}
+
+.membership-lead {
+  margin: 1rem 0;
+  font-size: $font-size-lg;
+  max-width: 34em;
+}
+
+.membership-tick {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: 50%;
+  background: rgba($success, .15);
+  color: darken($success, 22%);
+  font-size: .8125rem;
+  margin-top: .0625rem;
+}
+
+.membership-checks {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: .5rem;
+
+  li {
+    display: flex;
+    gap: .625rem;
+    align-items: flex-start;
+    color: $headings-color;
+  }
+}
+
+// ---------- the offer / status card ----------
+.membership-offer {
+  border: 1px solid $gray-300;
+  border-radius: 1rem;
+  box-shadow: 0 .375rem 1.5rem rgba($gray-900, .08);
+
+  > .card-body {
+    display: grid;
+    gap: 1rem;
+    padding: 1.25rem;
+  }
+
+  // the old partials bring their own bottom margins - the grid gap spaces the card now
+  .free-trial-offer, .alert, h2, h4 { margin-bottom: 0 !important; }
+}
+
+.free-trial-offer {
+  border-radius: .75rem !important;
+  border-width: 1.5px !important;
+  background: linear-gradient(180deg, rgba($primary, .09), $white 85%) !important;
+
+  h4 { font-size: 1.3125rem; }
+}
+
+.membership-status {
+  display: flex;
+  gap: .875rem;
+  align-items: center;
+}
+
+.membership-status-title {
+  margin: 0;
+  font-size: 1.1875rem;
+  font-weight: $font-weight-medium;
+  color: $headings-color;
+  line-height: 1.3;
+}
+
+.membership-status-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  font-size: 1.25rem;
+
+  &--ok { background: rgba($success, .15); color: darken($success, 22%); }
+  &--warn { background: rgba($warning, .18); color: darken($warning, 30%); }
+  &--danger { background: rgba($danger, .12); color: $membership-coral-ink; }
+  &--wait { background: $gray-200; color: $gray-600; }
+}
+
+.membership-facts {
+  margin: 0;
+  border: 1px solid $gray-300;
+  border-radius: .75rem;
+
+  > div {
+    display: flex;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .6875rem .875rem;
+  }
+
+  > div + div { border-top: 1px solid $gray-300; }
+
+  dt { font-weight: $font-weight-normal; color: $gray-600; }
+  dd { margin: 0; font-weight: $font-weight-medium; color: $headings-color; text-align: right; }
+}
+
+// ---------- plan picker ----------
+.membership-plans {
+  display: grid;
+  gap: .75rem;
+}
+
+.membership-plan-options {
+  display: grid;
+  gap: .625rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.membership-plan {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: .875rem;
+  padding: .875rem 1rem;
+  border: 1.5px solid $gray-300;
+  border-radius: .75rem;
+  background: $white;
+  cursor: pointer;
+
+  input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  &:has(input:checked) {
+    border-color: $primary;
+    background: lighten($primary, 30%);
+    box-shadow: 0 0 0 3px rgba($primary, .12);
+  }
+
+  &:has(input:focus-visible) {
+    outline: 3px solid rgba($primary, .5);
+    outline-offset: 2px;
+  }
+}
+
+.membership-plan-radio {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 1.375rem;
+  height: 1.375rem;
+  border: 2px solid $gray-400;
+  border-radius: 50%;
+
+  input:checked ~ & {
+    border-color: $primary;
+
+    &::after {
+      content: "";
+      width: .625rem;
+      height: .625rem;
+      border-radius: 50%;
+      background: $primary;
+    }
+  }
+}
+
+.membership-plan-name {
+  font-weight: $font-weight-medium;
+  color: $headings-color;
+}
+
+.membership-plan-note {
+  display: block;
+  font-size: $font-size-ms;
+  font-weight: $font-weight-normal;
+  color: $gray-600;
+}
+
+.membership-plan-price {
+  margin-left: auto;
+  text-align: right;
+  font-weight: $font-weight-medium;
+  color: $headings-color;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+
+  s { font-size: $font-size-ms; font-weight: $font-weight-normal; color: $gray-600; }
+}
+
+// ---------- sections ----------
+.membership-section {
+  margin-top: 3rem;
+
+  @include media-breakpoint-up(lg) { margin-top: 4rem; }
+}
+
+.membership-section-head {
+  margin-bottom: 1.25rem;
+
+  h2 {
+    font-size: 1.5rem;
+    text-wrap: balance;
+    margin-bottom: .375rem;
+
+    @include media-breakpoint-up(lg) { font-size: 1.75rem; }
+  }
+
+  p:last-child { margin-bottom: 0; max-width: 40em; }
+}
+
+.membership-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: .625rem;
+  font-size: 1.25rem;
+}
+
+@each $key, $colours in $membership-groups {
+  .membership-group--#{$key} .membership-icon {
+    background: nth($colours, 1);
+    color: nth($colours, 2);
+  }
+}
+
+// highlights
+.membership-highlights {
+  display: grid;
+  gap: 1rem;
+
+  @include media-breakpoint-up(lg) { grid-template-columns: repeat(3, 1fr); }
+}
+
+.membership-highlight {
+  display: grid;
+  gap: .75rem;
+  align-content: start;
+  padding: 1.125rem;
+  border-radius: 1rem;
+  background: $gray-200;
+
+  h3 { font-size: 1.125rem; margin: 0; }
+  p { margin: 0; }
+}
+
+.membership-highlight-visual {
+  display: grid;
+  gap: .5rem;
+  align-content: center;
+  min-height: 8rem;
+  padding: .75rem;
+  border-radius: .625rem;
+  background: $white;
+  box-shadow: 0 .125rem .5rem rgba($gray-900, .05);
+}
+
+.membership-diff-row {
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+  font-size: $font-size-ms;
+  color: $headings-color;
+  font-variant-numeric: tabular-nums;
+}
+
+.membership-thumb {
+  width: 1.875rem;
+  height: 1.375rem;
+  border-radius: .25rem;
+  flex-shrink: 0;
+}
+
+.membership-diff-label { min-width: 5.5rem; }
+
+.membership-predict {
+  padding-top: .5rem;
+  border-top: 1px dashed $gray-300;
+  font-size: $font-size-ms;
+  color: $gray-600;
+}
+
+.membership-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: .375rem;
+  height: 5rem;
+
+  span {
+    flex: 1;
+    border-radius: .25rem .25rem 0 0;
+    background: rgba($primary, .25);
+
+    &.is-last { background: $primary; }
+  }
+}
+
+.membership-bars-gain {
+  text-align: right;
+  font-size: $font-size-ms;
+  font-weight: $font-weight-medium;
+  color: darken($success, 22%);
+}
+
+.membership-boxes {
+  display: flex;
+  justify-content: center;
+
+  span {
+    width: 3rem;
+    height: 3.5rem;
+    margin-left: -.75rem;
+    border: 2px solid $white;
+    border-radius: .375rem;
+    box-shadow: 0 .125rem .375rem rgba($gray-900, .12);
+
+    &:first-child { margin-left: 0; }
+  }
+}
+
+.membership-scanline {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: .5rem;
+  font-size: $font-size-ms;
+  color: $gray-600;
+
+  span { font-family: $font-family-monospace; letter-spacing: .05em; color: $headings-color; }
+}
+
+// benefit groups - folded on phones (the first open), always open from lg up
+.membership-groups {
+  display: grid;
+  gap: .875rem;
+
+  @include media-breakpoint-up(lg) {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.125rem;
+    align-items: start;
+  }
+}
+
+.membership-group {
+  border: 1px solid $gray-300;
+  border-radius: 1rem;
+
+  > summary {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: 1rem;
+    list-style: none;
+    cursor: pointer;
+
+    &::-webkit-details-marker { display: none; }
+
+    &::after {
+      content: "\F282"; // bi-chevron-down
+      font-family: bootstrap-icons;
+      margin-left: auto;
+      color: $gray-600;
+      transition: transform .2s;
+    }
+  }
+
+  &[open] > summary::after { transform: rotate(180deg); }
+
+  @include media-breakpoint-up(lg) {
+    @supports selector(::details-content) {
+      &::details-content { content-visibility: visible; }
+
+      > summary {
+        pointer-events: none;
+        cursor: default;
+
+        &::after { display: none; }
+      }
+    }
+  }
+}
+
+.membership-group-title {
+  display: block;
+  font-size: 1.0625rem;
+  font-weight: $font-weight-medium;
+  color: $headings-color;
+}
+
+.membership-group-count {
+  display: block;
+  font-size: $font-size-ms;
+  color: $gray-600;
+}
+
+.membership-benefit-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 1rem .5rem;
+
+  li {
+    display: flex;
+    gap: .75rem;
+    padding: .75rem 0;
+    border-top: 1px solid $gray-300;
+  }
+}
+
+.membership-benefit-body { flex: 1; min-width: 0; }
+
+.membership-benefit-title {
+  display: block;
+  font-weight: $font-weight-medium;
+  color: $headings-color;
+}
+
+.membership-benefit-text {
+  display: block;
+  font-size: $font-size-sm;
+}
+
+.membership-benefit-link {
+  align-self: center;
+  font-size: $font-size-ms;
+  font-weight: $font-weight-medium;
+  white-space: nowrap;
+  color: $membership-coral-ink;
+}
+
+// shortcuts for members
+.membership-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .625rem;
+
+  @include media-breakpoint-up(md) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.membership-shortcut {
+  display: grid;
+  gap: .375rem;
+  align-content: start;
+  padding: .875rem;
+  border-radius: .75rem;
+  background: $gray-200;
+  color: $headings-color;
+  text-decoration: none;
+
+  &:hover, &:focus-visible { background: darken($gray-200, 3%); color: $headings-color; }
+
+  .membership-icon { width: 2.125rem; height: 2.125rem; font-size: 1.0625rem; margin-bottom: .25rem; }
+}
+
+.membership-shortcut-title { font-weight: $font-weight-medium; font-size: $font-size-sm; }
+.membership-shortcut-text { font-size: $font-size-ms; color: $gray-600; }
+
+// free forever
+.membership-free {
+  padding: 1.25rem;
+  border-radius: 1rem;
+  background: $gray-200;
+
+  h2 { font-size: 1.25rem; }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: .5rem;
+
+    @include media-breakpoint-up(md) { grid-template-columns: repeat(2, 1fr); gap: .625rem 1.25rem; }
+    @include media-breakpoint-up(lg) { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  li {
+    display: flex;
+    gap: .5rem;
+    font-size: $font-size-sm;
+    color: $headings-color;
+
+    i { color: $gray-600; }
+  }
+}
+
+// closing
+.membership-closing {
+  display: grid;
+  justify-items: center;
+  gap: .875rem;
+  padding: 1.5rem 1.25rem;
+  border-radius: 1rem;
+  background: $gray-900;
+  color: $gray-300;
+  text-align: center;
+
+  h2 { color: $white; font-size: 1.375rem; margin: 0; text-wrap: balance; }
+  p { margin: 0; }
+}
+
+// FAQ
+.membership-faq {
+  border-top: 1px solid $gray-300;
+
+  details { border-bottom: 1px solid $gray-300; }
+
+  summary {
+    display: flex;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: 1rem .25rem;
+    list-style: none;
+    cursor: pointer;
+    font-weight: $font-weight-medium;
+    color: $headings-color;
+
+    &::-webkit-details-marker { display: none; }
+
+    &::after {
+      content: "\F64D"; // bi-plus-lg
+      font-family: bootstrap-icons;
+      color: $membership-coral-ink;
+    }
+  }
+
+  details[open] > summary::after { content: "\F63B"; } // bi-dash-lg
+}
+
+.membership-faq-answer {
+  padding: 0 .25rem 1rem;
+  max-width: 42em;
+
+  p:last-child { margin-bottom: 0; }
+  .card { margin: 0 !important; }
+}
+
+// phones: the next step stays a thumb away
+.membership-sticky {
+  position: sticky;
+  bottom: 0;
+  z-index: 1010;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin: 2rem calc(var(--bs-gutter-x, .75rem) * -1) -3rem;
+  padding: .625rem 1rem calc(.625rem + env(safe-area-inset-bottom));
+  border-top: 1px solid $gray-300;
+  background: rgba($white, .94);
+  backdrop-filter: blur(8px);
+
+  .btn { margin-left: auto; white-space: nowrap; }
+}
+
+.membership-sticky-text {
+  line-height: 1.3;
+  font-size: $font-size-sm;
+  color: $headings-color;
+
+  strong { display: block; font-weight: $font-weight-medium; }
+  span { font-size: $font-size-ms; color: $gray-600; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .membership-group > summary::after { transition: none; }
+}

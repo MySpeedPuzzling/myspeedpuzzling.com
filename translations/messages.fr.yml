@@ -2278,8 +2278,6 @@ competition_referees:
     "title": "Adhésion"
     "description": ""
   "title": "Adhésion"
-  "intro_text": "L'adhésion est un moyen d'accéder aux fonctionnalités exclusives pour les vrais passionnés de puzzles ! En souscrivant une adhésion, vous soutenez également le développement de la plateforme et nous aidez à réaliser notre vision de créer la meilleure plateforme communautaire de puzzles au monde."
-  "redirect_to_stripe": "Vous serez redirigé vers la passerelle de paiement Stripe."
   "subscription_active": "Abonnement actif, merci de faire partie de la communauté !"
   "membership_active": "Adhésion active, merci de faire partie de la communauté !"
   "membership_inactive": "L'adhésion n'est pas active"
@@ -2292,10 +2290,7 @@ competition_referees:
   "next_payment": "Prochain paiement"
   "membership_active_until": "Adhésion active jusqu'au"
   "payment_portal_button": "Gérer l'abonnement (portail de paiement)"
-  "description_title": "Quels sont les avantages de l'adhésion ?"
   "choose_your_subscription": "Choisissez votre abonnement"
-  "subscribe_for_monthly": "Mensuel pour"
-  "subscribe_for_yearly": "Annuel pour"
   "price_per_month": "%price%€ / mois"
   "price_per_year": "%price%€ / an"
   "billing_portal_info": "Dans le portail de paiement, vous pouvez mettre à jour vos détails de paiement, annuler votre adhésion, ou télécharger des factures ou reçus."
@@ -2317,40 +2312,13 @@ competition_referees:
   "manage_subscription_android_info": "Gérez votre abonnement dans Google Play Store sous Paiements et abonnements."
   "purchase_via_app_store": "Le paiement sera traité via l'Apple App Store."
   "purchase_via_play_store": "Le paiement sera traité via Google Play Store."
-  "perks_description": |
-    <ul>
-        <li>Un grand merci pour votre soutien au développement de la plateforme</li>
-        <li>Votre propre code joueur personnalisé (modifiable dans votre profil)</li>
-        <li>Mention membre sur votre profil</li>
-        <li>Filtrage par premières tentatives</li>
-        <li>Filtrage par pays</li>
-        <li>Graphiques</li>
-        <li>Lecteur de code-barres</li>
-        <li>Statistiques détaillées</li>
-    </ul>
-  "progression_perks": |
-    <h3 class="h4">Succès</h3>
-    <ul>
-        <li>Collectionnez des succès du Bronze au Diamant et gagnez des points de succès (AP)</li>
-        <li>Affichez vos succès sur votre profil et entrez dans le classement des points de succès</li>
-    </ul>
-    <p class="text-muted">Les XP et les niveaux sont gratuits pour tout le monde, membre ou non.</p>
-  "coming_soon_description": |
-    <h3 class="h4">Qu'est-ce qui vous attend bientôt ?</h3>
-    <ul>
-        <li>Rapports mensuels et annuels <small class="ms-1 text-muted">(bientôt)</small></li>
-        <li>Profil public mypuzzler.com <small class="ms-1 text-muted">(bientôt)</small></li>
-        <li class="mt-2">Défis spéciaux réservés aux membres</li>
-        <li>Prêt et vente de puzzles entre membres</li>
-        <li>&hellip; et bien plus encore, ce n'est qu'un petit aperçu de ce que nous vous préparons !</li>
-    </ul>
   "members_exclusive_button": "Exclusif aux membres"
   "members_exclusive_short": "Membres"
   "modal":
     "title": "Fonctionnalité exclusive pour les membres"
     "cta": "Devenir membre"
     "no_thanks": "Non, merci !"
-    "text": "<p>Débloquez l'accès à cette fonctionnalité et à d'autres conçues pour améliorer votre expérience.</p>\n<p>Devenez membre aujourd'hui, soutenez le développement de la plateforme et profitez de fonctionnalités exclusives qui rendent votre parcours speed puzzling encore plus excitant !</p>\n"
+    "text": "C'est l'une des fonctionnalités réservées aux membres. L'adhésion vous offre aussi :"
   "have_voucher_code": "Vous avez un code promo ?"
   "redeem_voucher": "Utiliser un bon"
   "discount_ready": "Réduction de %discount% % prête !"
@@ -2372,6 +2340,177 @@ competition_referees:
     "next_payment_info_discounted": "Ensuite, votre abonnement continue avec votre réduction de %discount% %."
     "membership_ends": "Fin de l'adhésion"
     "membership_ends_info": "Aucun paiement automatique – elle prend simplement fin."
+  "hero":
+    "eyebrow": "Adhésion"
+    "title": "Tirez davantage de chaque puzzle que vous faites"
+    "title_member": "Merci d'être membre"
+    "lead": "Découvrez la vraie difficulté de chaque puzzle, voyez-vous progresser et gardez vos puzzles bien rangés. Chaque adhésion aide aussi MySpeedPuzzling à rester indépendant et à grandir."
+    "lead_member": "Votre adhésion paie les serveurs et nous donne du temps pour construire MySpeedPuzzling. Tout ce qui suit est débloqué pour vous."
+  "highlights_list":
+    "difficulty": "La difficulté et votre temps prévu pour chaque puzzle"
+    "progress": "Statistiques détaillées, graphiques et succès"
+    "organise": "Vos propres collections, le scan multiple, la vente et le prêt"
+  "highlights":
+    "eyebrow": "Ce que vous obtenez"
+    "title": "Les trois choses que les membres préfèrent"
+    "difficulty":
+      "title": "Sachez si un puzzle est difficile"
+      "text": "La difficulté de chaque puzzle, votre niveau et le temps qu'un puzzle devrait vous prendre avant même d'ouvrir la boîte."
+      "predicted": "Votre temps prévu : %time%"
+    "progress":
+      "title": "Voyez-vous progresser"
+      "text": "Statistiques détaillées et graphiques par mois, nombre de pièces et marque, vos séries et des succès du Bronze au Diamant."
+    "organise":
+      "title": "Gardez vos puzzles bien rangés"
+      "text": "Vos propres collections, le scan d'une pile entière de boîtes d'un coup, et la vente, l'échange et le prêt de puzzles."
+  "benefits":
+    "title": "Tout est inclus"
+    "title_unlocked": "Tout ce qui est débloqué pour vous"
+    "lead": "Une adhésion, tout dedans. Pas de niveaux, pas d'options payantes."
+    "count": "{0,1}%count% fonctionnalité|]1,Inf[%count% fonctionnalités"
+    "new": "Nouveau"
+    "open": "Ouvrir"
+    "groups":
+      "understand": "Comprenez votre façon de faire"
+      "compete": "Rivalisez et comparez"
+      "organise": "Rangez vos puzzles"
+      "yours": "Personnalisez"
+    "items":
+      "insights":
+        "title": "Analyses"
+        "text": "Vos points forts, vos places manquées de peu et quoi faire ensuite, sur une page rien qu'à vous."
+        "short": "Points forts et prochaines étapes"
+      "difficulty":
+        "title": "La difficulté des puzzles partout"
+        "text": "Une icône de difficulté sur chaque puzzle, un filtre par difficulté et un tri du plus facile ou du plus difficile."
+      "predictions":
+        "title": "Votre niveau et vos temps prévus"
+        "text": "Le temps qu'un puzzle devrait vous prendre, et si vous l'avez battu une fois votre temps ajouté."
+      "statistics":
+        "title": "Statistiques détaillées et graphiques"
+        "text": "Vos temps par mois, nombre de pièces et marque."
+        "short": "Par mois, pièces et marque"
+      "leaderboard_chart":
+        "title": "Votre place sur chaque puzzle"
+        "text": "Un graphique de tous les temps du classement d'un puzzle, avec vous dessus."
+      "streaks":
+        "title": "Statistiques de séries"
+        "text": "Votre série actuelle et la plus longue, à côté de votre calendrier d'activité."
+      "achievements":
+        "title": "Succès"
+        "text": "Collectionnez-les du Bronze au Diamant, montrez-les sur votre profil et grimpez au classement des points de succès."
+        "short": "Du Bronze au Diamant"
+      "ladder_filters":
+        "title": "Filtres du classement"
+        "text": "Classement par pays et uniquement sur les premiers essais."
+      "compare":
+        "title": "Comparez jusqu'à 10 personnes"
+        "text": "Au lieu de 2, avec des graphiques, plus de filtres et des suggestions de puzzleurs à votre rythme."
+        "short": "Jusqu'à 10 personnes"
+      "partner_speed":
+        "title": "Un partenaire à votre rythme"
+        "text": "La recherche de partenaires trie les gens selon la proximité de leur rythme avec le vôtre."
+      "team_stats":
+        "title": "Statistiques des duos et équipes"
+        "text": "Voyez comment vous vous en sortez avec les personnes avec qui vous faites des puzzles."
+      "collections":
+        "title": "Vos propres collections"
+        "text": "Autant que vous voulez, avec vos temps et vos prévisions sur chaque puzzle."
+        "short": "Autant que vous voulez"
+      "multiscan":
+        "title": "Scan multiple"
+        "text": "Scannez une pile de boîtes et ajoutez-les toutes d'un coup à une collection."
+        "short": "Ajoutez une pile de boîtes"
+      "search_scanner":
+        "title": "Scanner depuis la recherche"
+        "text": "Trouvez n'importe quel puzzle en pointant l'appareil photo vers son code-barres."
+      "sell_swap":
+        "title": "Vendre et échanger"
+        "text": "Proposez des puzzles sur la place de marché et apportez-les aux événements."
+        "short": "Proposez sur la place de marché"
+      "lending":
+        "title": "Prêter des puzzles"
+        "text": "Gardez une trace de ce que vous avez prêté, à qui et depuis quand."
+      "picker":
+        "title": "Un choix de puzzles plus malin"
+        "text": "« Que faire ensuite ? » avec des filtres de difficulté, de votre temps prévu et du temps dont vous disposez."
+        "short": "Filtres de difficulté et de temps"
+      "player_code":
+        "title": "Votre propre code joueur"
+        "text": "Choisissez un code que vos amis retiendront au lieu d'un code aléatoire."
+        "short": "Choisissez le vôtre"
+      "private_profile":
+        "title": "Profil privé"
+        "text": "Masquez votre profil et choisissez qui peut encore le voir."
+      "member_badge":
+        "title": "Badge de membre"
+        "text": "Sur votre profil, pour que les autres sachent que vous soutenez MySpeedPuzzling."
+      "feature_requests":
+        "title": "Décidez de ce que nous construisons"
+        "text": "Proposez de nouvelles fonctionnalités et votez pour celles que vous voulez."
+  "shortcuts":
+    "title": "Lancez-vous dans vos fonctionnalités de membre"
+    "lead": "Quelques points de départ. Tout le reste se trouve plus bas."
+  "free_forever":
+    "title": "Gratuit pour tous, pour toujours"
+    "lead": "L'adhésion ajoute à MySpeedPuzzling, elle n'enlève jamais rien. Sans elle, vous pouvez toujours :"
+    "items":
+      "stopwatch": "Mesurer vos temps avec le chronomètre"
+      "leaderboards": "Grimper dans les classements et le MSP rating"
+      "xp": "Gagner de l'XP et monter de niveau"
+      "events": "Participer aux événements et compétitions"
+      "teams": "Faire des puzzles en duo et en équipe"
+      "wishlist": "Tenir une liste de souhaits et demander à emprunter des puzzles"
+      "marketplace": "Parcourir la place de marché et écrire aux vendeurs"
+      "compare": "Vous comparer à un autre puzzleur"
+      "scanner": "Scanner un code-barres en ajoutant un temps"
+  "closing":
+    "title_trial": "Pas encore sûr ? Essayez pendant %days% jours."
+    "text_trial": "Toutes les fonctionnalités de membre, gratuitement. Sans carte, rien à résilier."
+    "title_plans": "Prêt à nous rejoindre ?"
+    "button_plans": "Choisir une formule"
+  "plans":
+    "yearly": "Annuel"
+    "monthly": "Mensuel"
+    "yearly_badge": "2 mois offerts"
+    "yearly_note": "Revient à %price%"
+    "monthly_note": "Le plus flexible"
+    "continue": "Continuer vers le paiement · %price%"
+    "continue_store": "S'abonner · %price%"
+    "secure_stripe": "Paiement sécurisé via Stripe. Résiliable à tout moment en quelques clics."
+  "faq":
+    "title": "Questions"
+    "trial":
+      "question": "Que se passe-t-il après l'essai gratuit ?"
+      "answer": "Rien. Il se termine tout seul après %days% jours, et nous ne demandons jamais de carte. Si vous vous abonnez pendant l'essai, vous gardez les jours restants."
+    "cancel":
+      "question": "Puis-je résilier à tout moment ?"
+      "answer": "Oui, dans le portail de paiement en quelques clics. Vous restez membre jusqu'à la fin de la période payée, et rien d'autre n'est prélevé."
+    "data":
+      "question": "Que deviennent mes données si mon adhésion prend fin ?"
+      "answer": "Rien n'est supprimé. Vos temps, collections et annonces restent en place, et les fonctionnalités de membre se débloquent à nouveau dès votre retour."
+    "switch":
+      "question": "Puis-je passer du mensuel à l'annuel et inversement ?"
+      "answer": "Oui, directement sur cette page une fois membre. Le passage à l'annuel s'applique tout de suite. Le passage au mensuel commence à la fin de votre année payée."
+    "referral":
+      "question": "Un ami m'a parlé de MySpeedPuzzling"
+    "voucher":
+      "question": "J'ai un bon ou un code cadeau"
+      "answer": "Les mois gratuits sont ajoutés à votre adhésion. Un code de réduction baisse le prix que vous payez."
+    "apps":
+      "question": "Je me suis abonné dans l'app iPhone ou Android"
+      "answer": "Votre abonnement est alors géré par l'App Store ou Google Play, et vous pouvez le modifier ou le résilier là-bas."
+    "money":
+      "question": "Où va l'argent ?"
+      "who": "MySpeedPuzzling est construit par Jan et Simona, un mari et sa femme. Jan adore coder et construire un super produit, Simona adore les puzzles, et nous aimons tous les deux cette communauté de puzzleurs si chaleureuse."
+      "why": "Aujourd'hui, Jan construit MySpeedPuzzling le soir et la nuit, en plus de son travail. Votre adhésion paie les serveurs et, surtout, nous offre du temps à consacrer à MySpeedPuzzling. Notre rêve est d'y travailler à plein temps et de construire le meilleur site communautaire de puzzle pour tous."
+  "sticky":
+    "trial_title": "%days% jours gratuits"
+    "trial_text": "Sans carte"
+    "trial_button": "Essayer gratuitement"
+    "plans_title": "Devenez membre"
+    "plans_text": "Résiliable à tout moment"
+  "expired_info": "Vos temps, collections et annonces sont toujours là. Choisissez une formule pour débloquer à nouveau les fonctionnalités de membre."
 "membership_payment_cancelled":
   "meta":
     "title": "Paiement annulé"
@@ -6653,29 +6792,6 @@ free_trial:
         no_strings: "Sans carte, rien à résilier - il se termine tout seul. Si cela vous plaît, vous pouvez devenir membre à tout moment et garder le reste de votre essai."
         where_to_look: "Par où commencer"
         membership_link: "Options d'adhésion et état de votre essai"
-    features:
-        achievements:
-            title: "Vos succès"
-            text: "Les succès que vous avez déjà obtenus attendent leur révélation - un petit puzzle chacun."
-        insights:
-            title: "Analyses sur votre profil"
-            text: "Votre niveau, la difficulté des puzzles et le temps qu'un puzzle devrait vous prendre."
-        statistics:
-            title: "Statistiques et graphiques détaillés"
-            text: "L'évolution de vos temps - par mois, par nombre de pièces, par marque."
-        picker:
-            title: "Que faire comme prochain puzzle ?"
-            text: "Filtres réservés aux membres : difficulté, votre temps prévu, un budget temps."
-        collections:
-            title: "Vos propres collections"
-            text: "Organisez vos puzzles à votre façon et retrouvez-y vos temps et prévisions."
-        ladder:
-            title: "Plus de classement"
-            text: "Filtrez par pays et par premiers essais uniquement."
-        player_code:
-            title: "Votre propre code joueur"
-            text: "Choisissez un code facile à retenir pour vos amis - dans les paramètres du profil."
-
 multiscan:
     meta:
         title: "Scanner des puzzles"

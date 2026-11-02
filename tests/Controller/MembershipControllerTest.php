@@ -228,6 +228,54 @@ final class MembershipControllerTest extends WebTestCase
         $this->assertResponseRedirects('/en/membership');
     }
 
+    public function testANonMemberSeesThePlansAndEverythingAMembershipUnlocks(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $crawler = $browser->request('GET', '/en/membership');
+
+        $this->assertResponseIsSuccessful();
+
+        // One picker, yearly picked, the button pointing at the yearly checkout
+        self::assertCount(2, $crawler->filter('#membership-offer input[name="membership_plan"]'));
+        $this->assertSelectorExists('#membership-offer input[value="yearly"][checked]');
+        $this->assertSelectorExists('#membership-offer a[data-membership-plan-target="button"][href$="/en/buy-membership/yearly"]');
+        $this->assertSelectorExists('#membership-offer input[value="monthly"][data-url$="/en/buy-membership"]');
+
+        // The four groups of the one benefits list, no links to features they cannot use yet
+        self::assertCount(4, $crawler->filter('.membership-group'));
+        $this->assertSelectorTextContains('.membership-groups', 'Multiscan');
+        $this->assertSelectorTextContains('.membership-groups', 'Your own player code');
+        $this->assertSelectorNotExists('.membership-benefit-link');
+        $this->assertSelectorNotExists('.membership-shortcuts');
+        $this->assertSelectorTextContains('.membership-free', 'Free for everyone, always');
+
+        // Never-built features are gone for good
+        $page = $crawler->filter('main')->text();
+        self::assertStringNotContainsString('mypuzzler.com', $page);
+        self::assertStringNotContainsString('Monthly and yearly reports', $page);
+        self::assertStringNotContainsString('look forward to', $page);
+
+        // Insights stay behind INSIGHTS_PUBLIC (off in tests) for players
+        self::assertStringNotContainsString('Your strengths, close calls', $page);
+    }
+
+    public function testAMemberGetsShortcutsAndLinksToTheirFeatures(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $crawler = $browser->request('GET', '/en/membership');
+
+        $this->assertResponseIsSuccessful();
+        $this->assertSelectorTextContains('h1', 'Thank you for being a member');
+        $this->assertSelectorExists('.membership-shortcuts a[href="/en/multiscan"]');
+        $this->assertSelectorExists('.membership-benefit-link[href="/en/multiscan"]');
+        $this->assertSelectorNotExists('input[name="membership_plan"]');
+        $this->assertSelectorNotExists('.membership-free');
+        $this->assertSelectorNotExists('.membership-sticky');
+        self::assertCount(0, $crawler->filter('.membership-closing'));
+    }
+
     private function storePlan(string $lookupKey, null|string $scheduledLookupKey = null, null|\DateTimeImmutable $scheduledAt = null): void
     {
         $container = self::getContainer();

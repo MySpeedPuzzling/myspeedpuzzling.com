@@ -2196,8 +2196,6 @@ badges:
     "title": "Mitgliedschaft"
     "description": ""
   "title": "Mitgliedschaft"
-  "intro_text": "Die Mitgliedschaft ist eine Möglichkeit, Zugang zu exklusiven Funktionen für wahre Puzzle-Enthusiasten zu erhalten! Durch das Abonnieren einer Mitgliedschaft unterstützen Sie auch die Entwicklung der Plattform und helfen uns, unsere Vision zu erreichen, die beste Community-Puzzle-Plattform der Welt zu schaffen."
-  "redirect_to_stripe": "Sie werden zum Stripe-Zahlungsgateway weitergeleitet."
   "subscription_active": "Aktives Abonnement, vielen Dank, dass Sie Teil der Community sind!"
   "membership_active": "Aktive Mitgliedschaft, vielen Dank, dass Sie Teil der Community sind!"
   "membership_inactive": "Mitgliedschaft ist nicht aktiv"
@@ -2210,10 +2208,7 @@ badges:
   "next_payment": "Nächste Zahlung"
   "membership_active_until": "Mitgliedschaft aktiv bis"
   "payment_portal_button": "Abonnement verwalten (Zahlungsportal)"
-  "description_title": "Was sind die Vorteile der Mitgliedschaft?"
   "choose_your_subscription": "Wählen Sie Ihr Abonnement"
-  "subscribe_for_monthly": "Monatlich für"
-  "subscribe_for_yearly": "Jährlich für"
   "price_per_month": "€%price% / Monat"
   "price_per_year": "€%price% / Jahr"
   "billing_portal_info": "Im Zahlungsportal können Sie Ihre Zahlungsdetails aktualisieren, Ihre Mitgliedschaft kündigen oder Rechnungen oder Belege herunterladen."
@@ -2241,7 +2236,7 @@ badges:
     "title": "Exklusive Funktion für Mitglieder"
     "cta": "Mitglied werden"
     "no_thanks": "Nein, danke!"
-    "text": "<p>Erhalten Sie Zugang zu dieser und anderen Funktionen, die Ihr Erlebnis verbessern sollen.</p>\n<p>Werden Sie heute Mitglied, unterstützen Sie die Entwicklung der Plattform und genießen Sie exklusive Funktionen, die Ihre Speed Puzzling Reise noch aufregender machen!</p>\n"
+    "text": "Das ist eine der Funktionen für Mitglieder. Eine Mitgliedschaft bringt dir außerdem:"
   "have_voucher_code": "Haben Sie einen Gutscheincode?"
   "redeem_voucher": "Gutschein einlösen"
   "discount_ready": "%discount% % Rabatt bereit!"
@@ -2263,9 +2258,177 @@ badges:
     "next_payment_info_discounted": "Danach läuft Ihr Abonnement mit Ihrem Rabatt von %discount% % weiter."
     "membership_ends": "Mitgliedschaft endet"
     "membership_ends_info": "Keine automatische Zahlung – sie endet einfach."
-  "coming_soon_description": "<h3 class=\"h4\">Worauf können Sie sich bald freuen?</h3>\n<ul>\n    <li>Monats- und Jahresberichte <small class=\"ms-1 text-muted\">(bald)</small></li>\n    <li>Öffentliches mypuzzler.com-Profil <small class=\"ms-1 text-muted\">(bald)</small></li>\n    <li class=\"mt-2\">Besondere Herausforderungen exklusiv für Mitglieder</li>\n    <li>Puzzles unter Mitgliedern ausleihen und verkaufen</li>\n    <li>&hellip; und vieles mehr – das ist nur ein kleiner Vorgeschmack auf das, was wir für Sie vorbereiten!</li>\n</ul>\n"
-  "perks_description": "<ul>\n    <li>Ein großes Dankeschön für Ihre Unterstützung bei der Entwicklung der Plattform</li>\n    <li>Ihr eigener persönlicher Spielercode (änderbar in Ihrem Profil)</li>\n    <li>Mitglieds-Kennzeichnung auf Ihrem Profil</li>\n    <li>Filtern nach ersten Versuchen</li>\n    <li>Filtern nach Land</li>\n    <li>Diagramme</li>\n    <li>Barcode-Scanner</li>\n    <li>Detaillierte Statistiken</li>\n</ul>\n"
-  "progression_perks": "<h3 class=\"h4\">Erfolge</h3>\n<ul>\n    <li>Sammeln Sie Erfolge von Bronze bis Diamant und verdienen Sie Erfolgspunkte (AP)</li>\n    <li>Zeigen Sie Ihre Erfolge auf Ihrem Profil und erscheinen Sie in der Erfolgspunkte-Rangliste</li>\n</ul>\n<p class=\"text-muted\">XP und Level sind für alle kostenlos, ob Mitglied oder nicht.</p>\n"
+  "hero":
+    "eyebrow": "Mitgliedschaft"
+    "title": "Hol mehr aus jedem Puzzle heraus"
+    "title_member": "Danke, dass du Mitglied bist"
+    "lead": "Sieh, wie schwer jedes Puzzle wirklich ist, verfolge, wie du schneller wirst, und halte deine Puzzles in Ordnung. Jede Mitgliedschaft hilft außerdem, dass MySpeedPuzzling unabhängig bleibt und wächst."
+    "lead_member": "Deine Mitgliedschaft bezahlt die Server und schenkt uns Zeit für MySpeedPuzzling. Alles unten ist für dich freigeschaltet."
+  "highlights_list":
+    "difficulty": "Schwierigkeit und deine voraussichtliche Zeit bei jedem Puzzle"
+    "progress": "Detaillierte Statistiken, Diagramme und Erfolge"
+    "organise": "Eigene Sammlungen, Multiscan, Verkaufen und Verleihen"
+  "highlights":
+    "eyebrow": "Was du bekommst"
+    "title": "Drei Dinge, die Mitglieder am meisten lieben"
+    "difficulty":
+      "title": "Wisse, wie schwer ein Puzzle ist"
+      "text": "Die Schwierigkeit jedes Puzzles, deine Leistungsstufe und wie lange ein Puzzle bei dir dauern sollte, noch bevor du die Schachtel öffnest."
+      "predicted": "Deine voraussichtliche Zeit: %time%"
+    "progress":
+      "title": "Sieh, wie du schneller wirst"
+      "text": "Detaillierte Statistiken und Diagramme nach Monat, Teilezahl und Marke, deine Serien und Erfolge von Bronze bis Diamant."
+    "organise":
+      "title": "Halte deine Puzzles in Ordnung"
+      "text": "Eigene Sammlungen, einen ganzen Stapel Schachteln auf einmal scannen und Puzzles verkaufen, tauschen und verleihen."
+  "benefits":
+    "title": "Alles inklusive"
+    "title_unlocked": "Alles, was für dich freigeschaltet ist"
+    "lead": "Eine Mitgliedschaft, alles drin. Keine Stufen, keine Zusatzkosten."
+    "count": "{1}1 Funktion|]1,Inf[%count% Funktionen"
+    "new": "Neu"
+    "open": "Öffnen"
+    "groups":
+      "understand": "Verstehe dein Puzzeln"
+      "compete": "Messen und vergleichen"
+      "organise": "Ordne deine Puzzles"
+      "yours": "Mach es zu deinem"
+    "items":
+      "insights":
+        "title": "Einblicke"
+        "text": "Deine Stärken, knappe Platzierungen und was du als Nächstes puzzeln solltest, auf deiner eigenen Seite."
+        "short": "Stärken und nächste Schritte"
+      "difficulty":
+        "title": "Puzzle-Schwierigkeit überall"
+        "text": "Ein Schwierigkeitssymbol bei jedem Puzzle, ein Schwierigkeitsfilter und Sortierung nach leichtesten oder schwersten zuerst."
+      "predictions":
+        "title": "Deine Leistungsstufe und voraussichtliche Zeiten"
+        "text": "Wie lange ein Puzzle bei dir dauern sollte und ob du es geschlagen hast, sobald du deine Zeit einträgst."
+      "statistics":
+        "title": "Detaillierte Statistiken und Diagramme"
+        "text": "Deine Zeiten nach Monat, Teilezahl und Marke."
+        "short": "Nach Monat, Teilen und Marke"
+      "leaderboard_chart":
+        "title": "Wo du bei jedem Puzzle stehst"
+        "text": "Ein Diagramm aller Zeiten in der Bestenliste eines Puzzles, mit dir markiert."
+      "streaks":
+        "title": "Serien-Statistiken"
+        "text": "Deine aktuelle und längste Serie neben deinem Aktivitätskalender."
+      "achievements":
+        "title": "Erfolge"
+        "text": "Sammle sie von Bronze bis Diamant, zeige sie auf deinem Profil und steige in der Bestenliste der Erfolgspunkte auf."
+        "short": "Von Bronze bis Diamant"
+      "ladder_filters":
+        "title": "Ranglisten-Filter"
+        "text": "Rangliste nach Land und nur nach ersten Versuchen."
+      "compare":
+        "title": "Bis zu 10 Personen vergleichen"
+        "text": "Statt 2, mit Diagrammen, mehr Filtern und Vorschlägen für Puzzler in deinem Tempo."
+        "short": "Bis zu 10 Personen"
+      "partner_speed":
+        "title": "Ein Partner in deinem Tempo"
+        "text": "Die Partnersuche sortiert Leute danach, wie nah ihr Tempo an deinem liegt."
+      "team_stats":
+        "title": "Statistiken für Paare und Teams"
+        "text": "Sieh, wie gut du mit den Leuten puzzelst, mit denen du puzzelst."
+      "collections":
+        "title": "Eigene Sammlungen"
+        "text": "So viele du willst, mit deinen Zeiten und Prognosen bei jedem Puzzle."
+        "short": "So viele du willst"
+      "multiscan":
+        "title": "Multiscan"
+        "text": "Scanne einen Stapel Schachteln und füge alle auf einmal einer Sammlung hinzu."
+        "short": "Einen Stapel hinzufügen"
+      "search_scanner":
+        "title": "Scannen in der Suche"
+        "text": "Finde jedes Puzzle, indem du die Kamera auf seinen Barcode richtest."
+      "sell_swap":
+        "title": "Verkaufen und tauschen"
+        "text": "Biete Puzzles auf dem Marktplatz an und bring sie zu Events mit."
+        "short": "Auf dem Marktplatz anbieten"
+      "lending":
+        "title": "Puzzles verleihen"
+        "text": "Behalte im Blick, was du verliehen hast, an wen und seit wann."
+      "picker":
+        "title": "Klügere Puzzle-Auswahl"
+        "text": "„Was soll ich als Nächstes puzzeln?\" mit Filtern für Schwierigkeit, deine voraussichtliche Zeit und die Zeit, die du hast."
+        "short": "Filter für Schwierigkeit und Zeit"
+      "player_code":
+        "title": "Dein eigener Spielercode"
+        "text": "Wähle einen Code, den sich Freunde merken können, statt eines zufälligen."
+        "short": "Wähle deinen eigenen"
+      "private_profile":
+        "title": "Privates Profil"
+        "text": "Verberge dein Profil und wähle, wer es trotzdem sehen darf."
+      "member_badge":
+        "title": "Mitglieds-Abzeichen"
+        "text": "Auf deinem Profil, damit andere sehen, dass du MySpeedPuzzling unterstützt."
+      "feature_requests":
+        "title": "Bestimme mit, was wir bauen"
+        "text": "Schlage neue Funktionen vor und stimme für die ab, die du willst."
+  "shortcuts":
+    "title": "Leg los mit deinen Mitgliederfunktionen"
+    "lead": "Ein paar Orte zum Starten. Alles andere steht weiter unten."
+  "free_forever":
+    "title": "Für alle kostenlos, für immer"
+    "lead": "Die Mitgliedschaft ergänzt MySpeedPuzzling, sie nimmt nie etwas weg. Auch ohne kannst du:"
+    "items":
+      "stopwatch": "Deine Zeiten mit der Stoppuhr messen"
+      "leaderboards": "In den Bestenlisten und im MSP-Rating aufsteigen"
+      "xp": "XP sammeln und Level aufsteigen"
+      "events": "An Events und Wettbewerben teilnehmen"
+      "teams": "In Paaren und Teams puzzeln"
+      "wishlist": "Eine Wunschliste führen und Puzzles ausleihen anfragen"
+      "marketplace": "Den Marktplatz durchstöbern und Verkäufern schreiben"
+      "compare": "Dich mit einem anderen Puzzler vergleichen"
+      "scanner": "Beim Eintragen einer Zeit einen Barcode scannen"
+  "closing":
+    "title_trial": "Noch unsicher? Teste es %days% Tage lang."
+    "text_trial": "Alle Mitgliederfunktionen, kostenlos. Keine Karte, nichts zu kündigen."
+    "title_plans": "Bereit mitzumachen?"
+    "button_plans": "Plan wählen"
+  "plans":
+    "yearly": "Jährlich"
+    "monthly": "Monatlich"
+    "yearly_badge": "2 Monate gratis"
+    "yearly_note": "Entspricht %price%"
+    "monthly_note": "Am flexibelsten"
+    "continue": "Weiter zur Zahlung · %price%"
+    "continue_store": "Abonnieren · %price%"
+    "secure_stripe": "Sichere Zahlung über Stripe. Jederzeit mit wenigen Klicks kündbar."
+  "faq":
+    "title": "Fragen"
+    "trial":
+      "question": "Was passiert nach dem kostenlosen Test?"
+      "answer": "Nichts. Er endet nach %days% Tagen von selbst, und wir fragen nie nach einer Karte. Wenn du während des Tests abonnierst, behältst du die restlichen Tage."
+    "cancel":
+      "question": "Kann ich jederzeit kündigen?"
+      "answer": "Ja, im Zahlungsportal mit wenigen Klicks. Du bleibst bis zum Ende des bezahlten Zeitraums Mitglied, und es wird nichts mehr berechnet."
+    "data":
+      "question": "Was passiert mit meinen Daten, wenn meine Mitgliedschaft endet?"
+      "answer": "Nichts wird gelöscht. Deine Zeiten, Sammlungen und Angebote bleiben, wo sie sind, und die Mitgliederfunktionen werden wieder freigeschaltet, sobald du zurückkommst."
+    "switch":
+      "question": "Kann ich zwischen monatlich und jährlich wechseln?"
+      "answer": "Ja, direkt auf dieser Seite, sobald du Mitglied bist. Der Wechsel zu jährlich gilt sofort. Der Wechsel zu monatlich beginnt, wenn dein bezahltes Jahr endet."
+    "referral":
+      "question": "Ein Freund hat mir von MySpeedPuzzling erzählt"
+    "voucher":
+      "question": "Ich habe einen Gutschein oder Geschenkcode"
+      "answer": "Gratismonate werden deiner Mitgliedschaft hinzugefügt. Ein Rabattcode senkt den Preis, den du zahlst."
+    "apps":
+      "question": "Ich habe in der iPhone- oder Android-App abonniert"
+      "answer": "Dann wird dein Abo vom App Store oder von Google Play verwaltet, und du kannst es dort ändern oder kündigen."
+    "money":
+      "question": "Wohin geht das Geld?"
+      "who": "MySpeedPuzzling wird von Jan und Simona gebaut, einem Ehepaar. Jan liebt das Programmieren und das Bauen eines großartigen Produkts, Simona liebt Puzzles, und wir beide lieben diese freundliche Puzzle-Community."
+      "why": "Heute baut Jan MySpeedPuzzling abends und nachts, neben seinem Job. Deine Mitgliedschaft bezahlt die Server und schenkt uns vor allem Zeit für MySpeedPuzzling. Unser Traum ist es, Vollzeit daran zu arbeiten und die beste Puzzle-Community-Website für alle zu bauen."
+  "sticky":
+    "trial_title": "%days% Tage kostenlos"
+    "trial_text": "Keine Karte nötig"
+    "trial_button": "Kostenlos testen"
+    "plans_title": "Werde Mitglied"
+    "plans_text": "Jederzeit kündbar"
+  "expired_info": "Deine Zeiten, Sammlungen und Angebote sind alle noch da. Wähle einen Plan, um die Mitgliederfunktionen wieder freizuschalten."
 "membership_payment_cancelled":
   "meta":
     "title": "Zahlung abgebrochen"
@@ -6561,29 +6724,6 @@ free_trial:
         no_strings: "Keine Karte, nichts zu kündigen - er endet von selbst. Wenn es dir gefällt, kannst du jederzeit Mitglied werden und den Rest deines Tests behalten."
         where_to_look: "Wo du zuerst hinschauen solltest"
         membership_link: "Mitgliedschaft und Stand deines Tests"
-    features:
-        insights:
-            title: "Einblicke in deinem Profil"
-            text: "Deine Leistungsstufe, die Schwierigkeit von Puzzles und wie lange du für ein Puzzle brauchen solltest."
-        statistics:
-            title: "Detaillierte Statistiken und Diagramme"
-            text: "Wie sich deine Zeiten entwickeln - nach Monat, Teilezahl und Marke."
-        picker:
-            title: "Was puzzle ich als Nächstes?"
-            text: "Filter für Mitglieder: Schwierigkeit, deine prognostizierte Zeit, ein Zeitbudget."
-        collections:
-            title: "Eigene Sammlungen"
-            text: "Ordne deine Puzzles auf deine Art und sieh darin deine Zeiten und Prognosen."
-        ladder:
-            title: "Mehr aus der Rangliste"
-            text: "Filtere nach Land und nur nach ersten Versuchen."
-        player_code:
-            title: "Dein eigener Spielercode"
-            text: "Wähle einen Code, den sich Freunde merken können - in den Profileinstellungen."
-        achievements:
-            text: "Die Erfolge, die du schon verdient hast, warten darauf, aufgedeckt zu werden - jeder mit seinem eigenen kleinen Puzzle."
-            title: "Deine Erfolge"
-
 multiscan:
     meta:
         title: "Puzzles scannen"

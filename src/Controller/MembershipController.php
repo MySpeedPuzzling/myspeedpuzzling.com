@@ -70,12 +70,14 @@ final class MembershipController extends AbstractController
 
         $discountedMonthlyPrice = null;
         $discountedYearlyPrice = null;
+        $yearlyPaid = $baseYearly;
 
         if ($player->claimedDiscountVoucher !== null && !$player->claimedDiscountVoucher->isExpired($now)) {
             $discount = $player->claimedDiscountVoucher->percentageDiscount;
 
             $discountedMonthlyPrice = number_format($baseMonthly * (100 - $discount) / 100, $decimals, '.', '');
             $discountedYearlyPrice = number_format($baseYearly * (100 - $discount) / 100, $decimals, '.', '');
+            $yearlyPaid = $baseYearly * (100 - $discount) / 100;
         }
 
         return $this->render('membership.html.twig', [
@@ -86,6 +88,8 @@ final class MembershipController extends AbstractController
             'yearlyPrice' => $yearlyPrice,
             'discountedMonthlyPrice' => $discountedMonthlyPrice,
             'discountedYearlyPrice' => $discountedYearlyPrice,
+            // "Works out at €5 / month" under the yearly plan
+            'yearlyPerMonthPrice' => number_format($yearlyPaid / 12, $decimals, '.', ''),
             'plan_switch_available' => $this->membershipPlanSwitching->isAvailable(),
             'voucher_free_periods' => $membership !== null ? $this->getVoucherFreePeriods->notEndedForPlayer($profile->playerId, $now) : [],
         ]);

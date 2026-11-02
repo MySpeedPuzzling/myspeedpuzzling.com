@@ -108,6 +108,7 @@ Meta App Review approved + app published (2026-09-30), so Facebook lost its flag
   - `src/Component/Insights.php` — the Live component renders nothing while hidden (its `/_components` endpoint too)
   - `src/Component/PlayerHeader.php` — `PlayerHeaderTab::Insights`, own profile only
   - `templates/base.html.twig` — the user menu row (`insights_visible()`)
+  - `templates/membership/_benefits.html.twig` — the Insights line and tile of the membership benefits (`visible: insights_visible()`); drop the `visible:` when the flag goes
   - `templates/added_time_recap.html.twig`, `templates/puzzle_result/_body.html.twig` — the "See why" links (own results only)
   - Personal time estimates (stream 6c, `docs/features/insights/estimates.md`) - all through
     `src/Services/Insights/ResolvePersonalEstimates.php` (`forViewer()` = null while hidden: nothing queried, the

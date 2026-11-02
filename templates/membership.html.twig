@@ -1,70 +1,91 @@
 {% extends 'base.html.twig' %}
 
+{#
+    The membership page (docs/features/membership-page.md): pitch + one card holding the next step for this
+    player, what members get (templates/membership/_benefits.html.twig - THE list), what stays free, questions.
+#}
+
 {% block title %}{{ 'membership.meta.title'|trans }}{% endblock %}
 {% block meta_description %}{{ 'membership.meta.description'|trans }}{% endblock %}
 
+{% macro status(tone, icon, title) %}
+    <div class="membership-status">
+        <span class="membership-status-icon membership-status-icon--{{ tone }}" aria-hidden="true"><i class="{{ icon }}"></i></span>
+        <p class="membership-status-title">{{ title }}</p>
+    </div>
+{% endmacro %}
+
 {% block content %}
-    <div class="pb-4">
-        <div class="row gy-3 pb-3">
-            <div class="col-lg-6 col-md-8">
-                <h1 class="h2">{{ 'membership.title'|trans }}</h1>
+    {% import _self as m %}
+    {% set trial_days = constant('SpeedPuzzling\\Web\\Value\\FreeTrial::DAYS') %}
+    {% set is_active = membership and membership.isActive(now) %}
+    {% set in_trial = membership and membership.isInFreeTrial(now) %}
+    {% set is_paying_member = is_active and not in_trial %}
+    {% set can_start_trial = is_web() and logged_user.profile.canStartFreeTrial %}
+    {% set player_id = logged_user.profile.playerId %}
 
-                <p>{{ 'membership.intro_text'|trans }}</p>
+    <div class="membership-page pb-5">
+        {# ============ Hero: pitch | the next step ============ #}
+        <section class="row gy-4 gx-lg-5 align-items-start membership-hero">
+            <div class="col-lg-6">
+                <div class="d-flex align-items-start gap-3">
+                    <div class="flex-grow-1">
+                        <p class="membership-eyebrow">{{ 'membership.hero.eyebrow'|trans }}</p>
+                        <h1 class="membership-title">{{ (is_paying_member ? 'membership.hero.title_member' : 'membership.hero.title')|trans }}</h1>
+                    </div>
+                    <img class="membership-mascot" src="{{ asset('img/puzzlie-1.png') }}" alt="" width="1000" height="949">
+                </div>
 
-                <p></p>
+                <p class="membership-lead">{{ (is_paying_member ? 'membership.hero.lead_member' : 'membership.hero.lead')|trans }}</p>
 
-                <div class="card shadow my-4">
+                {% if not is_paying_member %}
+                    {{ include('membership/_benefit_highlights.html.twig') }}
+                {% endif %}
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card membership-offer" id="membership-offer">
                     <div class="card-body">
                         {# Members with medallions they have not revealed yet - lifetime, free trial and paid alike #}
-                        {% if membership and membership.isActive(now) and logged_user.profile is not null %}
-                            <twig:XpRevealInvite playerId="{{ logged_user.profile.playerId }}" />
+                        {% if is_active %}
+                            <twig:XpRevealInvite playerId="{{ player_id }}" />
                         {% endif %}
 
                         {% if membership and membership.hasLifetimeGrant %}
-                            <p class="text-success fs-5">
-                                <i class="ci-check-circle me-2"></i> {{ 'membership.lifetime_membership_active'|trans }}
-                            </p>
+                            {{ m.status('ok', 'bi bi-check-lg', 'membership.lifetime_membership_active'|trans) }}
 
                             <p class="mb-0">{{ 'membership.lifetime_membership_info'|trans }}</p>
 
                             {% if membership.stripeSubscriptionId %}
-                                <p class="mt-2 mb-1">{{ 'membership.lifetime_subscription_stopped_info'|trans }}</p>
+                                <p class="mt-2 mb-2">{{ 'membership.lifetime_subscription_stopped_info'|trans }}</p>
 
                                 {% if is_web() %}
-                                    <p class="mb-1">
-                                        <a data-turbo-prefetch="false" class="btn btn-outline-primary text-wrap" href="{{ path('billing_portal') }}">{{ 'membership.payment_portal_button'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i></a>
-                                    </p>
-
-                                    <p class="text-muted small mb-0">{{ 'membership.billing_portal_info'|trans }}</p>
+                                    <a data-turbo-prefetch="false" class="btn btn-outline-primary w-100 text-wrap" href="{{ path('billing_portal') }}">{{ 'membership.payment_portal_button'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i></a>
+                                    <p class="text-muted small text-center mt-2 mb-0">{{ 'membership.billing_portal_info'|trans }}</p>
                                 {% endif %}
                             {% endif %}
-                        {% elseif membership and membership.isInFreeTrial(now) %}
+                        {% elseif in_trial %}
                             {{ include('membership/_free_trial_status.html.twig', {membership: membership, now: now}) }}
 
                             {{ include('membership/_subscription_plans.html.twig') }}
-                        {% elseif membership and membership.isActive(now) %}
+                        {% elseif is_active %}
                             {% if membership.billingPeriodEndsAt %}
-                                <p class="text-success fs-5">
-                                    <i class="ci-check-circle me-2"></i> {{ 'membership.subscription_active'|trans }}
-                                </p>
+                                {{ m.status('ok', 'bi bi-check-lg', 'membership.subscription_active'|trans) }}
 
                                 {% if voucher_free_periods is empty %}
-                                    <p>
-                                        {{ 'membership.next_payment'|trans }}: <strong>{{ membership.billingPeriodEndsAt|format_date('long') }}</strong>
-                                    </p>
+                                    <dl class="membership-facts">
+                                        <div>
+                                            <dt>{{ 'membership.next_payment'|trans }}</dt>
+                                            <dd>{{ membership.billingPeriodEndsAt|format_date('long') }}</dd>
+                                        </div>
+                                    </dl>
                                 {% endif %}
                             {% elseif membership.endsAt and membership.endsAt > now %}
-                                <p class="text-warning fs-5">
-                                    <i class="ci-close-circle me-2"></i> {{ 'membership.membership_cancelling'|trans }}
-                                </p>
+                                {{ m.status('warn', 'bi bi-exclamation-lg', 'membership.membership_cancelling'|trans) }}
                             {% elseif membership.hasActiveGrant(now) %}
-                                <p class="text-success fs-5">
-                                    <i class="ci-check-circle me-2"></i> {{ 'membership.free_membership_active'|trans }}
-                                </p>
+                                {{ m.status('ok', 'bi bi-check-lg', 'membership.free_membership_active'|trans) }}
                             {% else %}
-                                <p class="text-danger fs-5">
-                                    <i class="ci-close-circle me-2"></i> {{ 'membership.membership_inactive'|trans }}
-                                </p>
+                                {{ m.status('danger', 'bi bi-x-lg', 'membership.membership_inactive'|trans) }}
                             {% endif %}
 
                             {# Without a Stripe customer there is nothing to manage - billing_portal would bounce back to this page #}
@@ -93,27 +114,28 @@
                             {% endif %}
 
                             {% if voucher_free_periods is empty and not membership.billingPeriodEndsAt and membership.activeUntil(now) %}
-                                <p class="{{ has_management ? '' : 'mb-0' }}">
-                                    {{ 'membership.membership_active_until'|trans }}: <strong>{{ membership.activeUntil(now)|format_date('long') }}</strong>
-                                </p>
+                                <dl class="membership-facts">
+                                    <div>
+                                        <dt>{{ 'membership.membership_active_until'|trans }}</dt>
+                                        <dd>{{ membership.activeUntil(now)|format_date('long') }}</dd>
+                                    </div>
+                                </dl>
                             {% endif %}
 
                             {% if has_management %}
-                                <p class="mb-1">
-                                    {% if is_web() and has_payment_portal %}
-                                        <a data-turbo-prefetch="false" class="btn btn-outline-primary text-wrap" href="{{ path('billing_portal') }}">{{ 'membership.payment_portal_button'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i></a>
-                                    {% elseif is_ios() %}
-                                        <a class="btn btn-outline-primary text-wrap" href="itms-apps://apps.apple.com/account/subscriptions">
-                                            <i class="bi bi-apple me-1"></i> {{ 'membership.manage_in_app_store'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
-                                        </a>
-                                    {% elseif is_android() %}
-                                        <a class="btn btn-outline-primary text-wrap" href="https://play.google.com/store/account/subscriptions">
-                                            <i class="bi bi-google-play me-1"></i> {{ 'membership.manage_in_play_store'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
-                                        </a>
-                                    {% endif %}
-                                </p>
+                                {% if is_web() and has_payment_portal %}
+                                    <a data-turbo-prefetch="false" class="btn btn-outline-primary w-100 text-wrap" href="{{ path('billing_portal') }}">{{ 'membership.payment_portal_button'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i></a>
+                                {% elseif is_ios() %}
+                                    <a class="btn btn-outline-primary w-100 text-wrap" href="itms-apps://apps.apple.com/account/subscriptions">
+                                        <i class="bi bi-apple me-1"></i> {{ 'membership.manage_in_app_store'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
+                                    </a>
+                                {% elseif is_android() %}
+                                    <a class="btn btn-outline-primary w-100 text-wrap" href="https://play.google.com/store/account/subscriptions">
+                                        <i class="bi bi-google-play me-1"></i> {{ 'membership.manage_in_play_store'|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
+                                    </a>
+                                {% endif %}
 
-                                <p class="text-muted small mb-0">
+                                <p class="text-muted small text-center mt-2 mb-0">
                                     {% if is_web() and has_payment_portal %}
                                         {{ 'membership.billing_portal_info'|trans }}
                                     {% elseif is_ios() %}
@@ -123,56 +145,212 @@
                                     {% endif %}
                                 </p>
                             {% endif %}
+
+                            {% if not membership.hasLifetimeGrant %}
+                                <p class="text-center small mt-3 mb-0">
+                                    <a href="{{ path('claim_voucher') }}" class="text-decoration-none"><i class="ci-gift me-1"></i> {{ 'membership.redeem_voucher'|trans }}</a>
+                                </p>
+                            {% endif %}
                         {% else %}
                             {% if membership and membership.isEndedFreeTrialOnly(now) %}
-                                <p class="fs-5">
-                                    <i class="ci-time me-2"></i> {{ 'free_trial.status.ended'|trans }}
-                                </p>
+                                {{ m.status('wait', 'ci-time', 'free_trial.status.ended'|trans) }}
                             {% elseif membership and not membership.isActive(now) %}
-                                <p class="text-danger fs-5">
-                                    <i class="ci-close-circle me-2"></i> {{ 'membership.membership_expired'|trans }}
-                                </p>
+                                {{ m.status('wait', 'bi bi-arrow-counterclockwise', 'membership.membership_expired'|trans) }}
+                                <p class="text-muted">{{ 'membership.expired_info'|trans }}</p>
                             {% endif %}
 
                             {% if is_web() and logged_user.profile.freeTrialAvailable %}
-                                {{ include('membership/_free_trial_offer.html.twig', {
-                                    days: constant('SpeedPuzzling\\Web\\Value\\FreeTrial::DAYS'),
-                                }) }}
+                                {{ include('membership/_free_trial_offer.html.twig', {days: trial_days}) }}
+                            {% else %}
+                                <h2 class="h5 mb-3">{{ 'membership.choose_your_subscription'|trans }}</h2>
                             {% endif %}
-
-                            <h4>{{ 'membership.choose_your_subscription'|trans }}</h4>
 
                             {{ include('membership/_subscription_plans.html.twig') }}
                         {% endif %}
                     </div>
                 </div>
+            </div>
+        </section>
 
-                {% if not membership or not membership.isActive(now) or membership.isInFreeTrial(now) %}
-                    <twig:ReferralCodeInput />
+        {# ============ Members and trial players: where to go ============ #}
+        {% if is_active %}
+            <section class="membership-section">
+                <header class="membership-section-head">
+                    <h2>{{ 'membership.shortcuts.title'|trans }}</h2>
+                    <p>{{ 'membership.shortcuts.lead'|trans }}</p>
+                </header>
+
+                {{ include('membership/_benefits.html.twig', {mode: 'shortcuts', player_id: player_id, show_links: true}) }}
+            </section>
+        {% else %}
+            {# ============ Everybody else: the three highlights ============ #}
+            <section class="membership-section">
+                <header class="membership-section-head">
+                    <p class="membership-eyebrow">{{ 'membership.highlights.eyebrow'|trans }}</p>
+                    <h2>{{ 'membership.highlights.title'|trans }}</h2>
+                </header>
+
+                <div class="membership-highlights">
+                    <article class="membership-highlight">
+                        <div class="membership-highlight-visual" aria-hidden="true">
+                            {% from '_difficulty_icon.html.twig' import icon as difficulty_icon %}
+                            {% for row in [
+                                {tier: enum('SpeedPuzzling\\Web\\Value\\DifficultyTier').Easy, pieces: 500, colours: '#9fd3ff, #ffd59e'},
+                                {tier: enum('SpeedPuzzling\\Web\\Value\\DifficultyTier').Average, pieces: 1000, colours: '#c9a3ff, #7a5cff'},
+                                {tier: enum('SpeedPuzzling\\Web\\Value\\DifficultyTier').VeryHard, pieces: 500, colours: '#ececec, #cfcfcf'},
+                            ] %}
+                                <div class="membership-diff-row">
+                                    <span class="membership-thumb" style="background: linear-gradient(135deg, {{ row.colours }})"></span>
+                                    <span class="flex-grow-1">{{ row.pieces }}</span>
+                                    {{ difficulty_icon(row.tier, false, 20) }}
+                                    <span class="membership-diff-label">{{ row.tier.translationKey|trans }}</span>
+                                </div>
+                            {% endfor %}
+                            <div class="membership-predict">{{ 'membership.highlights.difficulty.predicted'|trans({'%time%': '1:12:05'}) }}</div>
+                        </div>
+                        <h3>{{ 'membership.highlights.difficulty.title'|trans }}</h3>
+                        <p>{{ 'membership.highlights.difficulty.text'|trans }}</p>
+                    </article>
+
+                    <article class="membership-highlight">
+                        <div class="membership-highlight-visual" aria-hidden="true">
+                            <div class="membership-bars">
+                                {% for height in [72, 66, 70, 58, 52, 47, 40] %}
+                                    <span class="{{ loop.last ? 'is-last' }}" style="height: {{ height }}%"></span>
+                                {% endfor %}
+                            </div>
+                            <div class="membership-bars-gain"><i class="bi bi-arrow-down-right"></i> −11 min</div>
+                        </div>
+                        <h3>{{ 'membership.highlights.progress.title'|trans }}</h3>
+                        <p>{{ 'membership.highlights.progress.text'|trans }}</p>
+                    </article>
+
+                    <article class="membership-highlight">
+                        <div class="membership-highlight-visual" aria-hidden="true">
+                            <div class="membership-boxes">
+                                {% for colours in ['#ffb3a7, #ffd59e', '#9fd3ff, #b7f0d8', '#c9a3ff, #ffc6e0', '#ffe08a, #9fd3ff', '#b7f0d8, #7fc4a8'] %}
+                                    <span style="background: linear-gradient(135deg, {{ colours }})"></span>
+                                {% endfor %}
+                            </div>
+                            <div class="membership-scanline"><i class="bi bi-upc-scan"></i> <span>4005556173420</span> <i class="bi bi-check-circle-fill text-success"></i></div>
+                        </div>
+                        <h3>{{ 'membership.highlights.organise.title'|trans }}</h3>
+                        <p>{{ 'membership.highlights.organise.text'|trans }}</p>
+                    </article>
+                </div>
+            </section>
+        {% endif %}
+
+        {# ============ Everything a membership unlocks ============ #}
+        <section class="membership-section">
+            <header class="membership-section-head">
+                <h2>{{ (is_active ? 'membership.benefits.title_unlocked' : 'membership.benefits.title')|trans }}</h2>
+                {% if not is_active %}
+                    <p>{{ 'membership.benefits.lead'|trans }}</p>
                 {% endif %}
+            </header>
 
-                {% if membership and membership.isActive(now) and not membership.hasLifetimeGrant and not membership.isInFreeTrial(now) %}
-                    <div class="text-center mt-3">
-                        <a href="{{ path('claim_voucher') }}" class="btn btn-outline-secondary btn-sm">
-                            <i class="ci-gift me-1"></i> {{ 'membership.redeem_voucher'|trans }}
-                        </a>
+            {{ include('membership/_benefits.html.twig', {mode: 'groups', player_id: player_id, show_links: is_active}) }}
+        </section>
+
+        {# ============ What stays free ============ #}
+        {% if not is_paying_member %}
+            <section class="membership-section membership-free">
+                <h2>{{ 'membership.free_forever.title'|trans }}</h2>
+                <p>{{ 'membership.free_forever.lead'|trans }}</p>
+                <ul>
+                    {% for key in ['stopwatch', 'leaderboards', 'xp', 'events', 'teams', 'wishlist', 'marketplace', 'compare', 'scanner'] %}
+                        <li><i class="bi bi-check2" aria-hidden="true"></i> {{ ('membership.free_forever.items.' ~ key)|trans }}</li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endif %}
+
+        {# ============ Closing call ============ #}
+        {% if not is_active %}
+            <section class="membership-section membership-closing">
+                {% if can_start_trial %}
+                    <h2>{{ 'membership.closing.title_trial'|trans({'%days%': trial_days}) }}</h2>
+                    <p>{{ 'membership.closing.text_trial'|trans }}</p>
+                    {{ include('membership/_free_trial_start_form.html.twig', {
+                        source: 'membership_page',
+                        label: 'free_trial.offer.button'|trans,
+                    }) }}
+                {% else %}
+                    <h2>{{ 'membership.closing.title_plans'|trans }}</h2>
+                    <a href="#membership-offer" class="btn btn-primary btn-shadow">{{ 'membership.closing.button_plans'|trans }}</a>
+                {% endif %}
+            </section>
+        {% endif %}
+
+        {# ============ Questions ============ #}
+        <section class="membership-section">
+            <header class="membership-section-head">
+                <h2>{{ 'membership.faq.title'|trans }}</h2>
+            </header>
+
+            <div class="membership-faq">
+                {% if not is_paying_member and logged_user.profile.freeTrialAvailable %}
+                    <details>
+                        <summary>{{ 'membership.faq.trial.question'|trans }}</summary>
+                        <div class="membership-faq-answer"><p>{{ 'membership.faq.trial.answer'|trans({'%days%': trial_days}) }}</p></div>
+                    </details>
+                {% endif %}
+                <details>
+                    <summary>{{ 'membership.faq.cancel.question'|trans }}</summary>
+                    <div class="membership-faq-answer"><p>{{ 'membership.faq.cancel.answer'|trans }}</p></div>
+                </details>
+                <details>
+                    <summary>{{ 'membership.faq.data.question'|trans }}</summary>
+                    <div class="membership-faq-answer"><p>{{ 'membership.faq.data.answer'|trans }}</p></div>
+                </details>
+                <details>
+                    <summary>{{ 'membership.faq.switch.question'|trans }}</summary>
+                    <div class="membership-faq-answer"><p>{{ 'membership.faq.switch.answer'|trans }}</p></div>
+                </details>
+                {% if not is_paying_member %}
+                    <details id="membership-referral">
+                        <summary>{{ 'membership.faq.referral.question'|trans }}</summary>
+                        <div class="membership-faq-answer">
+                            <twig:ReferralCodeInput />
+                        </div>
+                    </details>
+                {% endif %}
+                <details>
+                    <summary>{{ 'membership.faq.voucher.question'|trans }}</summary>
+                    <div class="membership-faq-answer">
+                        <p>{{ 'membership.faq.voucher.answer'|trans }}</p>
+                        <p><a href="{{ path('claim_voucher') }}"><i class="ci-gift me-1"></i> {{ 'membership.redeem_voucher'|trans }}</a></p>
                     </div>
-                {% endif %}
-
-                <h2 class="mt-4">{{ 'membership.description_title'|trans }}</h2>
-                {{ 'membership.perks_description'|trans|raw }}
-                {# Achievements are a member perk from the progression launch on - described once they are live #}
-                {% if xp_system_visible() %}
-                    {{ 'membership.progression_perks'|trans|raw }}
-                {% endif %}
-                {{ 'membership.coming_soon_description'|trans|raw }}
-
+                </details>
+                <details>
+                    <summary>{{ 'membership.faq.apps.question'|trans }}</summary>
+                    <div class="membership-faq-answer"><p>{{ 'membership.faq.apps.answer'|trans }}</p></div>
+                </details>
+                <details>
+                    <summary>{{ 'membership.faq.money.question'|trans }}</summary>
+                    <div class="membership-faq-answer">
+                        <p>{{ 'membership.faq.money.who'|trans }}</p>
+                        <p>{{ 'membership.faq.money.why'|trans }}</p>
+                    </div>
+                </details>
             </div>
+        </section>
 
-            <div class="col-lg-5 offset-lg-1 col-md-4 text-center">
-                <img class="img-fluid" src="{{ asset('img/puzzlie-1.png') }}" alt="Mascot" width="1000" height="949">
+        {# ============ Phones: the next step stays a thumb away ============ #}
+        {% if not is_active and (can_start_trial or not logged_user.profile.freeTrialAvailable or not is_web()) %}
+            <div class="membership-sticky d-lg-none">
+                <div class="membership-sticky-text">
+                    {% if can_start_trial %}
+                        <strong>{{ 'membership.sticky.trial_title'|trans({'%days%': trial_days}) }}</strong>
+                        <span>{{ 'membership.sticky.trial_text'|trans }}</span>
+                    {% else %}
+                        <strong>{{ 'membership.sticky.plans_title'|trans }}</strong>
+                        <span>{{ 'membership.sticky.plans_text'|trans }}</span>
+                    {% endif %}
+                </div>
+                <a href="#membership-offer" class="btn btn-primary btn-sm">{{ (can_start_trial ? 'membership.sticky.trial_button' : 'membership.closing.button_plans')|trans }}</a>
             </div>
-        </div>
-
+        {% endif %}
     </div>
 {% endblock %}

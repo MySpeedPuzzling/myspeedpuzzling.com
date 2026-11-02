@@ -20,7 +20,8 @@
 
                 <h2 class="h4 mt-4 mb-3">{{ 'free_trial.started.where_to_look'|trans }}</h2>
 
-                {{ include('membership/_free_trial_feature_cards.html.twig', {player_id: player.playerId}) }}
+                {# The same tiles members get on the membership page - one list of what a membership unlocks #}
+                {{ include('membership/_benefits.html.twig', {mode: 'shortcuts', player_id: player.playerId, show_links: true}) }}
 
                 <p class="mt-4 mb-0">
                     <a href="{{ path('membership') }}">{{ 'free_trial.started.membership_link'|trans }}</a>

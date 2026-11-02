@@ -1,5 +1,6 @@
-{# The plan buttons of the membership page - web (Stripe), iOS and Android. Shown to players without a
-   membership and, so that a convinced player has somewhere to click, during the free trial too. #}
+{# The plan picker of the membership page - web (Stripe), iOS and Android. Shown to players without a
+   membership and, so that a convinced player has somewhere to click, during the free trial too.
+   Two plan cards (yearly picked) and one button; membership_plan_controller.js points the button at the picked plan. #}
 {% if discountedMonthlyPrice is not null %}
     <div class="alert alert-success mb-3">
         <i class="ci-check-circle me-2"></i>
@@ -8,81 +9,79 @@
     </div>
 {% endif %}
 
+{% set yearly_paid = discountedYearlyPrice ?? yearlyPrice %}
+{% set monthly_paid = discountedMonthlyPrice ?? monthlyPrice %}
+{% set yearly_label = 'membership.price_per_year'|trans({'%price%': yearly_paid}) %}
+{% set monthly_label = 'membership.price_per_month'|trans({'%price%': monthly_paid}) %}
+
 {% if is_web() %}
-    <div class="d-flex flex-wrap mt-2 text-center justify-content-center">
-        <p class="my-1 mx-1">
-            <a data-turbo-prefetch="false" class="btn btn-outline-primary mt-2 text-center fs-6" href="{{ path('buy_membership') }}">
-                <small><i class="ci-card me-1"></i> {{ 'membership.subscribe_for_monthly'|trans }}</small>
-                {% if discountedMonthlyPrice is not null %}
-                    <br><s class="text-muted small">{{ 'membership.price_per_month'|trans({'%price%': monthlyPrice}) }}</s>
-                    <br><strong>{{ 'membership.price_per_month'|trans({'%price%': discountedMonthlyPrice}) }}</strong>
-                {% else %}
-                    <br>{{ 'membership.price_per_month'|trans({'%price%': monthlyPrice}) }}
-                {% endif %}
-            </a>
-        </p>
-
-        <p class="my-1 mx-1">
-            <a data-turbo-prefetch="false" class="btn btn-outline-primary mt-2 text-center fs-6" href="{{ path('buy_membership', {'period': 'yearly'}) }}">
-                <small><i class="ci-card me-1"></i> {{ 'membership.subscribe_for_yearly'|trans }}</small>
-                {% if discountedYearlyPrice is not null %}
-                    <br><s class="text-muted small">{{ 'membership.price_per_year'|trans({'%price%': yearlyPrice}) }}</s>
-                    <br><strong>{{ 'membership.price_per_year'|trans({'%price%': discountedYearlyPrice}) }}</strong>
-                {% else %}
-                    <br>{{ 'membership.price_per_year'|trans({'%price%': yearlyPrice}) }}
-                {% endif %}
-            </a>
-        </p>
-    </div>
-
-    <p class="text-center mb-0">
-        <small class="text-muted">{{ 'membership.redirect_to_stripe'|trans }}</small>
-    </p>
+    {% set plans = [
+        {key: 'yearly', url: path('buy_membership', {period: 'yearly'}), label: yearly_label},
+        {key: 'monthly', url: path('buy_membership'), label: monthly_label},
+    ] %}
 {% elseif is_ios() %}
-    <div class="d-flex flex-wrap mt-2 text-center justify-content-center" data-controller="native-billing" data-native-billing-platform-value="ios">
-        <p class="my-1 mx-1">
-            <button type="button" class="btn btn-outline-primary mt-2 text-center fs-6" data-action="native-billing#purchase" data-native-billing-product-param="com.myspeedpuzzling.premium.monthly">
-                <small><i class="bi bi-apple me-1"></i> {{ 'membership.subscribe_for_monthly'|trans }}</small>
-                <br>{{ 'membership.price_per_month'|trans({'%price%': monthlyPrice}) }}
-            </button>
-        </p>
-
-        <p class="my-1 mx-1">
-            <button type="button" class="btn btn-outline-primary mt-2 text-center fs-6" data-action="native-billing#purchase" data-native-billing-product-param="com.myspeedpuzzling.premium.yearly">
-                <small><i class="bi bi-apple me-1"></i> {{ 'membership.subscribe_for_yearly'|trans }}</small>
-                <br>{{ 'membership.price_per_year'|trans({'%price%': yearlyPrice}) }}
-            </button>
-        </p>
-    </div>
-
-    <p class="text-center mb-0">
-        <small class="text-muted">{{ 'membership.purchase_via_app_store'|trans }}</small>
-    </p>
+    {% set plans = [
+        {key: 'yearly', product: 'com.myspeedpuzzling.premium.yearly', label: yearly_label},
+        {key: 'monthly', product: 'com.myspeedpuzzling.premium.monthly', label: monthly_label},
+    ] %}
 {% elseif is_android() %}
-    <div class="d-flex flex-wrap mt-2 text-center justify-content-center" data-controller="native-billing" data-native-billing-platform-value="android">
-        <p class="my-1 mx-1">
-            <button type="button" class="btn btn-outline-primary mt-2 text-center fs-6" data-action="native-billing#purchase" data-native-billing-product-param="premium_monthly">
-                <small><i class="bi bi-google-play me-1"></i> {{ 'membership.subscribe_for_monthly'|trans }}</small>
-                <br>{{ 'membership.price_per_month'|trans({'%price%': monthlyPrice}) }}
-            </button>
-        </p>
-
-        <p class="my-1 mx-1">
-            <button type="button" class="btn btn-outline-primary mt-2 text-center fs-6" data-action="native-billing#purchase" data-native-billing-product-param="premium_yearly">
-                <small><i class="bi bi-google-play me-1"></i> {{ 'membership.subscribe_for_yearly'|trans }}</small>
-                <br>{{ 'membership.price_per_year'|trans({'%price%': yearlyPrice}) }}
-            </button>
-        </p>
-    </div>
-
-    <p class="text-center mb-0">
-        <small class="text-muted">{{ 'membership.purchase_via_play_store'|trans }}</small>
-    </p>
+    {% set plans = [
+        {key: 'yearly', product: 'premium_yearly', label: yearly_label},
+        {key: 'monthly', product: 'premium_monthly', label: monthly_label},
+    ] %}
 {% endif %}
 
-<hr class="my-3">
-<p class="text-center mb-0">
-    <a href="{{ path('claim_voucher') }}" class="text-decoration-none">
-        <i class="ci-gift me-1"></i> {{ 'membership.have_voucher_code'|trans }}
-    </a>
+{% set picked = plans|first %}
+
+<div class="membership-plans"
+     data-controller="membership-plan{{ is_web() ? '' : ' native-billing' }}"
+     {% if not is_web() %}data-native-billing-platform-value="{{ is_ios() ? 'ios' : 'android' }}"{% endif %}>
+    <fieldset class="membership-plan-options">
+        <legend class="visually-hidden">{{ 'membership.choose_your_subscription'|trans }}</legend>
+
+        {% for plan in plans %}
+            <label class="membership-plan">
+                <input type="radio" name="membership_plan" value="{{ plan.key }}"{% if loop.first %} checked{% endif %}
+                       data-action="membership-plan#pick"
+                       data-label="{{ ('membership.plans.continue' ~ (is_web() ? '' : '_store'))|trans({'%price%': plan.label}) }}"
+                       {% if plan.url is defined %}data-url="{{ plan.url }}"{% else %}data-product="{{ plan.product }}"{% endif %}>
+                <span class="membership-plan-radio" aria-hidden="true"></span>
+                <span class="membership-plan-name">
+                    {{ ('membership.plans.' ~ plan.key)|trans }}
+                    {% if plan.key == 'yearly' %}<span class="badge bg-faded-success text-success ms-1">{{ 'membership.plans.yearly_badge'|trans }}</span>{% endif %}
+                    <span class="membership-plan-note">
+                        {% if plan.key == 'yearly' %}
+                            {{ 'membership.plans.yearly_note'|trans({'%price%': 'membership.price_per_month'|trans({'%price%': yearlyPerMonthPrice})}) }}
+                        {% else %}
+                            {{ 'membership.plans.monthly_note'|trans }}
+                        {% endif %}
+                    </span>
+                </span>
+                <span class="membership-plan-price">
+                    {% if plan.key == 'yearly' and discountedYearlyPrice is not null %}
+                        <s class="d-block">{{ 'membership.price_per_year'|trans({'%price%': yearlyPrice}) }}</s>
+                    {% elseif plan.key == 'monthly' and discountedMonthlyPrice is not null %}
+                        <s class="d-block">{{ 'membership.price_per_month'|trans({'%price%': monthlyPrice}) }}</s>
+                    {% endif %}
+                    {{ plan.label }}
+                </span>
+            </label>
+        {% endfor %}
+    </fieldset>
+
+    {% if is_web() %}
+        <a data-turbo-prefetch="false" class="btn btn-dark btn-lg w-100 text-wrap" href="{{ picked.url }}" data-membership-plan-target="button">
+            <span data-membership-plan-target="label">{{ 'membership.plans.continue'|trans({'%price%': picked.label}) }}</span>
+        </a>
+        <p class="text-muted small text-center mt-2 mb-0">{{ 'membership.plans.secure_stripe'|trans }}</p>
+    {% else %}
+        <button type="button" class="btn btn-dark btn-lg w-100 text-wrap" data-action="native-billing#purchase" data-native-billing-product-param="{{ picked.product }}" data-membership-plan-target="button">
+            <i class="bi {{ is_ios() ? 'bi-apple' : 'bi-google-play' }} me-1" aria-hidden="true"></i> <span data-membership-plan-target="label">{{ 'membership.plans.continue_store'|trans({'%price%': picked.label}) }}</span>
+        </button>
+        <p class="text-muted small text-center mt-2 mb-0">{{ (is_ios() ? 'membership.purchase_via_app_store' : 'membership.purchase_via_play_store')|trans }}</p>
+    {% endif %}
+</div>
+
+<p class="text-center small mt-3 mb-0">
+    <a href="{{ path('claim_voucher') }}" class="text-decoration-none"><i class="ci-gift me-1"></i> {{ 'membership.have_voucher_code'|trans }}</a>
 </p>

@@ -1,0 +1,92 @@
+{#
+    THE list of what a membership unlocks (docs/features/membership-page.md) - the membership page and the
+    free trial's welcome page both render it from here. A new members-only feature gets a line here (and its
+    texts under membership.benefits.items.* in all 6 locales); a removed or freed one loses it.
+
+    Parameters:
+      mode       - 'groups' (everything, grouped) or 'shortcuts' (the lines marked shortcut, as tiles)
+      player_id  - the viewer's player id (links to their own pages)
+      show_links - true while the viewer can use them (member, trial): each line links to its feature
+    rel: nofollow on player statistics, like every link to it (a crawl trap, see public/robots.txt)
+#}
+{% set insights_on = insights_visible() %}
+{% set xp_on = xp_system_visible() %}
+
+{% set groups = [
+    {key: 'understand', icon: 'bi-lightbulb', items: [
+        {key: 'insights', url: path('insights'), shortcut: true, visible: insights_on, new: true},
+        {key: 'difficulty', url: path('puzzles')},
+        {key: 'predictions', url: path('my_profile')},
+        {key: 'statistics', url: path('player_statistics', {playerId: player_id}), rel: 'nofollow', shortcut: true},
+        {key: 'leaderboard_chart'},
+        {key: 'streaks'},
+    ]},
+    {key: 'compete', icon: 'bi-trophy', items: [
+        {key: 'achievements', url: path('player_achievements', {playerId: player_id}), shortcut: true, visible: xp_on},
+        {key: 'ladder_filters', url: path('ladder')},
+        {key: 'compare', url: path('comparison'), shortcut: true},
+        {key: 'partner_speed', url: path('partner_finder')},
+        {key: 'team_stats'},
+    ]},
+    {key: 'organise', icon: 'bi-collection', items: [
+        {key: 'collections', url: path('puzzle_library', {playerId: player_id}), shortcut: true},
+        {key: 'multiscan', url: path('multiscan'), shortcut: true},
+        {key: 'search_scanner'},
+        {key: 'sell_swap', url: path('sell_swap_list_detail', {playerId: player_id}), shortcut: true},
+        {key: 'lending', url: path('lend_borrow_list_detail', {playerId: player_id})},
+        {key: 'picker', url: path('puzzle_picker'), shortcut: true},
+    ]},
+    {key: 'yours', icon: 'bi-person-badge', items: [
+        {key: 'player_code', url: path('edit_profile'), shortcut: true},
+        {key: 'private_profile', url: path('edit_profile')},
+        {key: 'member_badge'},
+        {key: 'feature_requests', url: path('feature_requests')},
+    ]},
+] %}
+
+{% if mode == 'shortcuts' %}
+    <div class="membership-shortcuts">
+        {% for group in groups %}
+            {% for item in group.items|filter(item => (item.shortcut ?? false) and (item.visible ?? true)) %}
+                <a href="{{ item.url }}"{% if item.rel is defined %} rel="{{ item.rel }}"{% endif %} class="membership-shortcut membership-group--{{ group.key }}">
+                    <span class="membership-icon" aria-hidden="true"><i class="bi {{ group.icon }}"></i></span>
+                    <span class="membership-shortcut-title">{{ ('membership.benefits.items.' ~ item.key ~ '.title')|trans }}</span>
+                    <span class="membership-shortcut-text">{{ ('membership.benefits.items.' ~ item.key ~ '.short')|trans }}</span>
+                </a>
+            {% endfor %}
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="membership-groups">
+        {% for group in groups %}
+            {% set items = []|merge(group.items|filter(item => item.visible ?? true)) %}
+            <details class="membership-group membership-group--{{ group.key }}"{% if loop.first %} open{% endif %}>
+                <summary>
+                    <span class="membership-icon" aria-hidden="true"><i class="bi {{ group.icon }}"></i></span>
+                    <span>
+                        <span class="membership-group-title">{{ ('membership.benefits.groups.' ~ group.key)|trans }}</span>
+                        <span class="membership-group-count">{{ 'membership.benefits.count'|trans({'%count%': items|length}) }}</span>
+                    </span>
+                </summary>
+
+                <ul class="membership-benefit-list">
+                    {% for item in items %}
+                        <li>
+                            <span class="membership-tick" aria-hidden="true"><i class="bi bi-check-lg"></i></span>
+                            <span class="membership-benefit-body">
+                                <span class="membership-benefit-title">
+                                    {{ ('membership.benefits.items.' ~ item.key ~ '.title')|trans }}
+                                    {% if item.new ?? false %}<span class="badge bg-faded-primary text-primary ms-1">{{ 'membership.benefits.new'|trans }}</span>{% endif %}
+                                </span>
+                                <span class="membership-benefit-text">{{ ('membership.benefits.items.' ~ item.key ~ '.text')|trans }}</span>
+                            </span>
+                            {% if show_links and item.url is defined %}
+                                <a href="{{ item.url }}"{% if item.rel is defined %} rel="{{ item.rel }}"{% endif %} class="membership-benefit-link">{{ 'membership.benefits.open'|trans }}<span class="visually-hidden">: {{ ('membership.benefits.items.' ~ item.key ~ '.title')|trans }}</span> <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </details>
+        {% endfor %}
+    </div>
+{% endif %}

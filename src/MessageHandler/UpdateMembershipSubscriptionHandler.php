@@ -111,6 +111,7 @@ readonly final class UpdateMembershipSubscriptionHandler
             }
 
             $membership->stripeDiscountCouponId = $this->discountCouponId($subscription);
+            $this->rememberPrice($membership, $subscription, $now);
 
             if ($subscription->cancel_at_period_end === true) {
                 $membership->cancel($billingPeriodEnd);
@@ -132,6 +133,7 @@ readonly final class UpdateMembershipSubscriptionHandler
                     $billingPeriodEnd,
                 );
                 $membership->stripeDiscountCouponId = $this->discountCouponId($subscription);
+                $this->rememberPrice($membership, $subscription, $now);
 
                 $this->membershipRepository->save($membership);
             }
@@ -142,6 +144,44 @@ readonly final class UpdateMembershipSubscriptionHandler
     {
         // Discounts expanded, so the coupon behind each one is readable
         return $this->retryStripeCall(fn () => $this->stripeClient->subscriptions->retrieve($subscriptionId, ['expand' => ['discounts']]));
+    }
+
+    /**
+     * The price the subscription is on, and the next one a subscription schedule has booked (the portal books a
+     * switch to the monthly plan for the end of the paid year that way) - docs/features/stripe.md "Switching plans"
+     */
+    private function rememberPrice(Membership $membership, \Stripe\Subscription $subscription, DateTimeImmutable $now): void
+    {
+        $firstItem = $subscription->items->data[0] ?? null;
+        $price = isset($firstItem->price) ? $firstItem->price : null;
+        $priceLookupKey = $price instanceof \Stripe\Price ? $price->lookup_key : null;
+
+        $scheduledLookupKey = null;
+        $scheduledAt = null;
+
+        $schedule = isset($subscription->schedule) ? $subscription->schedule : null;
+        $scheduleId = $schedule instanceof \Stripe\SubscriptionSchedule ? $schedule->id : $schedule;
+
+        if (is_string($scheduleId)) {
+            $schedule = $this->retryStripeCall(fn () => $this->stripeClient->subscriptionSchedules->retrieve($scheduleId, ['expand' => ['phases.items.price']]));
+
+            foreach ($schedule->phases as $phase) {
+                if ($phase->start_date <= $now->getTimestamp()) {
+                    continue;
+                }
+
+                $phasePrice = $phase->items[0]->price ?? null;
+
+                if ($phasePrice instanceof \Stripe\Price) {
+                    $scheduledLookupKey = $phasePrice->lookup_key;
+                    $scheduledAt = DateTimeImmutable::createFromFormat('U', (string) $phase->start_date) ?: null;
+                }
+
+                break;
+            }
+        }
+
+        $membership->rememberStripePrice($priceLookupKey, $scheduledLookupKey, $scheduledAt);
     }
 
     private function discountCouponId(\Stripe\Subscription $subscription): null|string

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\LifetimeMembership;
+use SpeedPuzzling\Web\Value\MembershipPlan;
 
 readonly final class PlayerMembership
 {
@@ -19,7 +20,34 @@ readonly final class PlayerMembership
         public null|string $discountVoucherCode = null,
         /** End of the free trial (docs/features/free-trial/README.md) - kept after it ran out */
         public null|DateTimeImmutable $trialEndsAt = null,
+        /** The regular Stripe plan the subscription is on - null for every other price (early adopter, …) */
+        public null|MembershipPlan $plan = null,
+        /** A switch booked on the subscription (to the monthly plan at the end of the paid year) */
+        public null|MembershipPlan $scheduledPlan = null,
+        public null|DateTimeImmutable $scheduledPlanChangeAt = null,
     ) {
+    }
+
+    /**
+     * The plan this member may switch to, as far as our copy of the subscription knows - decides whether the
+     * membership page offers it. MembershipPlanSwitching checks the live subscription again before Stripe is asked.
+     */
+    public function planSwitchTarget(DateTimeImmutable $now): null|MembershipPlan
+    {
+        if (
+            $this->plan === null
+            // Any booked change, even to a price that is no plan here
+            || $this->scheduledPlanChangeAt !== null
+            || $this->stripeSubscriptionId === null
+            || $this->endsAt !== null
+            || $this->billingPeriodEndsAt === null
+            // Days of a trial or a voucher run on the subscription - prorating them is no switch anybody expects
+            || $this->hasActiveGrant($now)
+        ) {
+            return null;
+        }
+
+        return $this->plan->switchTarget();
     }
 
     /**
@@ -109,6 +137,9 @@ readonly final class PlayerMembership
      *     trial_ends_at?: null|string,
      *     discount_percent: null|int,
      *     discount_voucher_code: null|string,
+     *     stripe_price_lookup_key?: null|string,
+     *     scheduled_price_lookup_key?: null|string,
+     *     scheduled_price_change_at?: null|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -137,6 +168,12 @@ readonly final class PlayerMembership
             assert($trialEndsAt instanceof DateTimeImmutable);
         }
 
+        $scheduledPlanChangeAt = null;
+        if (($row['scheduled_price_change_at'] ?? null) !== null) {
+            $scheduledPlanChangeAt = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $row['scheduled_price_change_at']);
+            assert($scheduledPlanChangeAt instanceof DateTimeImmutable);
+        }
+
         return new self(
             stripeSubscriptionId: $row['stripe_subscription_id'],
             endsAt: $endsAt,
@@ -145,6 +182,9 @@ readonly final class PlayerMembership
             discountPercent: $row['discount_percent'],
             discountVoucherCode: $row['discount_voucher_code'],
             trialEndsAt: $trialEndsAt,
+            plan: MembershipPlan::fromLookupKey($row['stripe_price_lookup_key'] ?? null),
+            scheduledPlan: $scheduledPlanChangeAt !== null ? MembershipPlan::fromLookupKey($row['scheduled_price_lookup_key'] ?? null) : null,
+            scheduledPlanChangeAt: $scheduledPlanChangeAt,
         );
     }
 }

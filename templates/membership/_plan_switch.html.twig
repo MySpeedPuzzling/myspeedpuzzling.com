@@ -1,0 +1,46 @@
+{#
+    The member's regular Stripe plan and the switch to the other one (docs/features/stripe.md "Switching plans").
+    Only for the monthly / yearly price - the early adopter price never gets here. The button opens Stripe's own
+    confirmation page, which shows the amount; the text here only says what kind of change it is.
+    Expects: membership (PlayerMembership with a plan), now, plan_switch_available (bool)
+#}
+{% set target = plan_switch_available ? membership.planSwitchTarget(now) : null %}
+{% set to_yearly = target is not null and target.name == 'Yearly' %}
+
+<div class="border rounded-3 px-3 py-2 mb-3">
+    <div class="d-flex flex-wrap align-items-center column-gap-3 row-gap-2">
+        <div class="me-auto">
+            <div class="fw-medium">
+                <i class="ci-calendar me-1 text-muted" aria-hidden="true"></i>
+                {{ ('membership.plan_switch.' ~ membership.plan.name|lower)|trans }}
+            </div>
+
+            {% if membership.scheduledPlan and membership.scheduledPlanChangeAt %}
+                <div class="small text-muted">
+                    {{ ('membership.plan_switch.scheduled_' ~ membership.scheduledPlan.name|lower)|trans({'%date%': membership.scheduledPlanChangeAt|format_date('long')}) }}
+                </div>
+            {% elseif to_yearly %}
+                <div class="small text-success">{{ 'membership.plan_switch.yearly_offer'|trans }}</div>
+            {% endif %}
+        </div>
+
+        {% if target %}
+            <form method="post" action="{{ path('membership_switch_plan') }}" data-turbo="false" class="m-0">
+                <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\SwitchMembershipPlanController::CSRF_TOKEN_ID')) }}">
+                <button type="submit" class="btn btn-sm {{ to_yearly ? 'btn-primary' : 'btn-outline-primary' }} text-nowrap">
+                    {{ (to_yearly ? 'membership.plan_switch.switch_to_yearly' : 'membership.plan_switch.switch_to_monthly')|trans }}<i class="bi bi-box-arrow-up-right ms-1 small" aria-hidden="true"></i>
+                </button>
+            </form>
+        {% endif %}
+    </div>
+
+    {% if target %}
+        <p class="small text-muted mb-0 mt-1">
+            {% if to_yearly %}
+                {{ 'membership.plan_switch.to_yearly_info'|trans }}
+            {% else %}
+                {{ 'membership.plan_switch.to_monthly_info'|trans({'%date%': membership.billingPeriodEndsAt|format_date('long')}) }}
+            {% endif %}
+        </p>
+    {% endif %}
+</div>

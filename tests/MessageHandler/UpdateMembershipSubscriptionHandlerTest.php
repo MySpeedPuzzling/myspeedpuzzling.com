@@ -16,7 +16,9 @@ use SpeedPuzzling\Web\Repository\MembershipRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use Stripe\Customer;
 use Stripe\Service\CustomerService;
+use Stripe\Service\SubscriptionScheduleService;
 use Stripe\Service\SubscriptionService;
+use Stripe\SubscriptionSchedule;
 use Stripe\StripeClient;
 use Stripe\Subscription;
 use Symfony\Component\Clock\MockClock;
@@ -354,5 +356,136 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
         );
 
         $handler(new UpdateMembershipSubscription($subscriptionId));
+    }
+
+    public function testStoresThePriceTheSubscriptionIsOn(): void
+    {
+        [$membership, $handler] = $this->planScenario(lookupKey: 'puzzlership_yearly', schedule: null);
+
+        $handler(new UpdateMembershipSubscription('sub_plan'));
+
+        self::assertSame('puzzlership_yearly', $membership->stripePriceLookupKey);
+        self::assertNull($membership->scheduledPriceLookupKey);
+        self::assertNull($membership->scheduledPriceChangeAt);
+    }
+
+    public function testStoresAChangeBookedForTheEndOfThePaidYear(): void
+    {
+        $changeAt = TestClock::now()->modify('+200 days')->setTime(10, 0);
+
+        $schedule = SubscriptionSchedule::constructFrom([
+            'id' => 'sub_sched_plan',
+            'object' => 'subscription_schedule',
+            'phases' => [
+                [
+                    'start_date' => TestClock::now()->modify('-165 days')->getTimestamp(),
+                    'end_date' => $changeAt->getTimestamp(),
+                    'items' => [['price' => ['id' => 'price_y', 'object' => 'price', 'lookup_key' => 'puzzlership_yearly'], 'quantity' => 1]],
+                ],
+                [
+                    'start_date' => $changeAt->getTimestamp(),
+                    'end_date' => null,
+                    'items' => [['price' => ['id' => 'price_m', 'object' => 'price', 'lookup_key' => 'puzzlership_monthly'], 'quantity' => 1]],
+                ],
+            ],
+        ]);
+
+        [$membership, $handler] = $this->planScenario(lookupKey: 'puzzlership_yearly', schedule: $schedule);
+
+        $handler(new UpdateMembershipSubscription('sub_plan'));
+
+        self::assertSame('puzzlership_yearly', $membership->stripePriceLookupKey);
+        self::assertSame('puzzlership_monthly', $membership->scheduledPriceLookupKey);
+        self::assertEquals($changeAt, $membership->scheduledPriceChangeAt);
+        // The billing period is untouched by a booked change
+        self::assertEquals(TestClock::now()->modify('+200 days')->setTime(10, 0), $membership->billingPeriodEndsAt);
+    }
+
+    public function testAnUpgradeToYearlyMovesTheBillingPeriodToTheNewYear(): void
+    {
+        [$membership, $handler] = $this->planScenario(lookupKey: 'puzzlership_yearly', schedule: null, periodEnd: TestClock::now()->modify('+365 days')->setTime(10, 0));
+        $membership->stripePriceLookupKey = 'puzzlership_monthly';
+
+        $handler(new UpdateMembershipSubscription('sub_plan'));
+
+        self::assertSame('puzzlership_yearly', $membership->stripePriceLookupKey);
+        self::assertEquals(TestClock::now()->modify('+365 days')->setTime(10, 0), $membership->billingPeriodEndsAt);
+        self::assertNull($membership->endsAt);
+    }
+
+    /**
+     * @return array{Membership, UpdateMembershipSubscriptionHandler}
+     */
+    private function planScenario(string $lookupKey, null|SubscriptionSchedule $schedule, null|\DateTimeImmutable $periodEnd = null): array
+    {
+        $playerId = Uuid::uuid7();
+        $periodEnd ??= TestClock::now()->modify('+200 days')->setTime(10, 0);
+
+        $player = new Player(id: $playerId, code: 'planplayer', userId: 'auth0|plan', name: 'Plan Player', registeredAt: TestClock::now());
+        $membership = new Membership(
+            id: Uuid::uuid7(),
+            player: $player,
+            createdAt: TestClock::now()->modify('-165 days'),
+            stripeSubscriptionId: 'sub_plan',
+            billingPeriodEndsAt: TestClock::now()->modify('+10 days'),
+        );
+        $membership->popEvents();
+
+        $subscription = Subscription::constructFrom([
+            'id' => 'sub_plan',
+            'object' => 'subscription',
+            'status' => 'active',
+            'customer' => 'cus_plan',
+            'cancel_at_period_end' => false,
+            'pause_collection' => null,
+            'schedule' => $schedule?->id,
+            'items' => [
+                'object' => 'list',
+                'data' => [[
+                    'id' => 'si_plan',
+                    'object' => 'subscription_item',
+                    'current_period_end' => $periodEnd->getTimestamp(),
+                    'price' => ['id' => 'price_current', 'object' => 'price', 'lookup_key' => $lookupKey],
+                ]],
+            ],
+        ]);
+
+        $subscriptionService = $this->createStub(SubscriptionService::class);
+        $subscriptionService->method('retrieve')->willReturn($subscription);
+
+        $customerService = $this->createStub(CustomerService::class);
+        $customerService->method('retrieve')->willReturn(Customer::constructFrom(['id' => 'cus_plan', 'metadata' => ['player_id' => $playerId->toString()]]));
+
+        $scheduleService = $this->createMock(SubscriptionScheduleService::class);
+        if ($schedule === null) {
+            $scheduleService->expects(self::never())->method('retrieve');
+        } else {
+            $scheduleService->expects(self::once())->method('retrieve')
+                ->with($schedule->id, ['expand' => ['phases.items.price']])
+                ->willReturn($schedule);
+        }
+
+        $stripeClient = $this->createStub(StripeClient::class);
+        $stripeClient->method('__get')->willReturnCallback(
+            fn (string $name) => match ($name) {
+                'subscriptions' => $subscriptionService,
+                'customers' => $customerService,
+                'subscriptionSchedules' => $scheduleService,
+                default => null,
+            },
+        );
+
+        $membershipRepository = $this->createStub(MembershipRepository::class);
+        $membershipRepository->method('getByStripeSubscriptionId')->willReturn($membership);
+
+        $handler = new UpdateMembershipSubscriptionHandler(
+            stripeClient: $stripeClient,
+            membershipRepository: $membershipRepository,
+            logger: new NullLogger(),
+            playerRepository: $this->createStub(PlayerRepository::class),
+            clock: new MockClock(TestClock::now()),
+        );
+
+        return [$membership, $handler];
     }
 }

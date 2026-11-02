@@ -136,6 +136,21 @@ final class ProcessSesEventHandlerTest extends KernelTestCase
         self::assertFalse($suppression->blocksAllMail(), 'Like a hard bounce: sign-in links are still tried');
     }
 
+    public function testEveryWordingOfAMissingDomainCountsButAFullInboxDoesNot(): void
+    {
+        $missingMailServer = 'smtp; 550 4.4.7 Message expired: unable to deliver in 840 minutes.<451 4.4.4 Unknown mail server. Could not find a mail server for hotmatil.com>';
+        $this->domainNotFound('typo@hotmatil.com', '2026-10-12T08:00:00.000Z', $missingMailServer);
+        $this->domainNotFound('typo@hotmatil.com', '2026-10-13T09:00:00.000Z', $missingMailServer);
+
+        $fullInbox = 'smtp; 554 4.4.7 Message expired: unable to deliver in 840 minutes.<452-4.2.2 The recipient\'s inbox is out of storage space.>';
+        $this->domainNotFound('full@example.com', '2026-10-12T08:00:00.000Z', $fullInbox);
+        $this->domainNotFound('full@example.com', '2026-10-13T09:00:00.000Z', $fullInbox);
+
+        $suppressions = self::getContainer()->get(EmailSuppressionRepository::class);
+        self::assertSame(EmailSuppressionSource::DomainNotFound, $suppressions->findByEmail('typo@hotmatil.com')?->source);
+        self::assertFalse($suppressions->isSuppressed('full@example.com'), 'A full inbox clears up by itself');
+    }
+
     public function testABounceOnAnAddressBlockedByHandKeepsTheBlock(): void
     {
         $suppressions = self::getContainer()->get(EmailSuppressionRepository::class);
@@ -264,14 +279,17 @@ final class ProcessSesEventHandlerTest extends KernelTestCase
         return [$handler, $logger];
     }
 
-    private function domainNotFound(string $recipient, string $at): void
-    {
+    private function domainNotFound(
+        string $recipient,
+        string $at,
+        string $diagnosticCode = 'smtp; 550 4.4.7 Message expired: unable to deliver in 840 minutes.<421 4.4.0 Unable to lookup DNS for googlemail.mail.com>',
+    ): void {
         $auditLog = $this->auditLog('unread_digest', $recipient);
         $this->process($this->event('Bounce', $auditLog, ['bounce' => [
             'bounceType' => 'Transient',
             'bounceSubType' => 'General',
             'timestamp' => $at,
-            'bouncedRecipients' => [['emailAddress' => $recipient, 'diagnosticCode' => 'smtp; 550 4.4.7 Message expired: unable to deliver in 840 minutes.<421 4.4.0 Unable to lookup DNS for googlemail.mail.com>']],
+            'bouncedRecipients' => [['emailAddress' => $recipient, 'diagnosticCode' => $diagnosticCode]],
         ]], recipients: [$recipient]));
     }
 

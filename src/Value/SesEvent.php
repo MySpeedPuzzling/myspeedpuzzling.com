@@ -13,8 +13,11 @@ use DateTimeImmutable;
  */
 final readonly class SesEvent
 {
-    /** SES's own words for a domain it could not look up, and Postfix's */
-    public const string DOMAIN_NOT_FOUND_PATTERN = '/Unable to lookup DNS for|Host or domain name not found/i';
+    /**
+     * SES's own words for a domain it could not look up (both wordings it uses - "<451 4.4.4 Unknown mail server.
+     * Could not find a mail server for hotmatil.com>" too), and Postfix's
+     */
+    public const string DOMAIN_NOT_FOUND_PATTERN = '/Unable to lookup DNS for|Could not find a mail server for|Host or domain name not found/i';
 
     /**
      * @param list<string> $recipients the addresses the event is about (bounced/complained ones, else all)

@@ -2285,7 +2285,7 @@ badges:
     "title": "Alles inklusive"
     "title_unlocked": "Alles, was für dich freigeschaltet ist"
     "lead": "Eine Mitgliedschaft, alles drin. Keine Stufen, keine Zusatzkosten."
-    "count": "{1}1 Funktion|]1,Inf[%count% Funktionen"
+    "count": "{1}1 Funktion|[0,Inf[%count% Funktionen"
     "new": "Neu"
     "open": "Öffnen"
     "groups":

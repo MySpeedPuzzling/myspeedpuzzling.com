@@ -2375,7 +2375,7 @@ recap_progress:
     "title": "Všechno, co členství obsahuje"
     "title_unlocked": "Všechno, co máš odemčené"
     "lead": "Jedno členství, všechno v něm. Žádné úrovně, žádné příplatky."
-    "count": "{1}1 funkce|[2,4]%count% funkce|[5,Inf[%count% funkcí"
+    "count": "{1}1 funkce|[2,4]%count% funkce|[0,Inf[%count% funkcí"
     "new": "Novinka"
     "open": "Otevřít"
     "groups":

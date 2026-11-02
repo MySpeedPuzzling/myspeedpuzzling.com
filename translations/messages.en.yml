@@ -2850,7 +2850,7 @@ membership:
         title: "Everything included"
         title_unlocked: "Everything that's unlocked for you"
         lead: "One membership, everything in it. No tiers, no add-ons."
-        count: "{1}1 feature|]1,Inf[%count% features"
+        count: "{1}1 feature|[0,Inf[%count% features"
         new: "New"
         open: "Open"
         groups:

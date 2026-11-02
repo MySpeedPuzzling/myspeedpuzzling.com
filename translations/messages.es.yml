@@ -2301,7 +2301,7 @@ badges:
     "title": "Todo incluido"
     "title_unlocked": "Todo lo que tienes desbloqueado"
     "lead": "Una membresía, todo dentro. Sin niveles ni extras."
-    "count": "{1}1 función|]1,Inf[%count% funciones"
+    "count": "{1}1 función|[0,Inf[%count% funciones"
     "new": "Nuevo"
     "open": "Abrir"
     "groups":

@@ -72,6 +72,10 @@
                             {% set has_management = (is_web() and has_payment_portal) or is_ios() or is_android() %}
                             {% set has_discount = membership.billingPeriodEndsAt and membership.discountPercent %}
 
+                            {% if is_web() and has_payment_portal and membership.plan and membership.billingPeriodEndsAt %}
+                                {{ include('membership/_plan_switch.html.twig', {membership: membership, now: now, plan_switch_available: plan_switch_available}) }}
+                            {% endif %}
+
                             {% if voucher_free_periods is not empty %}
                                 {{ include('membership/_voucher_free_periods.html.twig', {
                                     membership: membership,

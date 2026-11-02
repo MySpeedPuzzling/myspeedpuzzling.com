@@ -16,6 +16,14 @@ The free trial (`docs/features/free-trial/README.md`) shipped dark behind it for
 
 Meta App Review approved + app published (2026-09-30), so Facebook lost its flag and follows the credentials rule like Google, Microsoft and Apple: available and shown iff `FACEBOOK_APP_ID` + `FACEBOOK_APP_SECRET` are configured (`SocialLoginSettings::isAvailable()`; templates ask `social_login.isProviderAvailable('facebook')`). `isShown()` / `isProviderShown()` / `isAnyShown()` collapsed into `isAvailable()` / `isProviderAvailable()` / `isAnyAvailable()`. The review preview (`?facebook_preview=1`, the `msp_fb_preview` cookie set by `NativeAuthPageSubscriber`, `FacebookReviewPreviewTest`) is gone too - a leftover cookie in a browser is harmless, nothing reads it; so is a box `.env` / Infisical that still sets the flag. Kill switch = empty the credentials.
 
+## Membership plan switch (`STRIPE_PLAN_SWITCH_PORTAL_CONFIGURATION`)
+
+- **Feature:** monthly <-> yearly switch on the membership page (`docs/features/stripe.md` "Switching plans")
+- **Flag:** env var `STRIPE_PLAN_SWITCH_PORTAL_CONFIGURATION` = id of the Stripe portal configuration that allows the switch (printed by `myspeedpuzzling:stripe:sync-plan-switch-portal`) → `MembershipPlanSwitching::isAvailable()`. Not a Twig global (the membership controller passes `plan_switch_available`)
+- **Default:** empty in `.env` (off); `.env.test` sets a dummy id so the page shows the switch in tests
+- **Gated:** `templates/membership/_plan_switch.html.twig` (button only - the plan line shows either way), `SwitchMembershipPlanController` (refuses)
+- **Removal:** it is configuration, not a rollout flag - stays. Kill switch = empty it
+
 ## Shown prediction model (`PREDICTION_SHOWN_MODEL`)
 
 - **Feature:** which model makes the prediction players see - `v3` (the statistical model, `TimePredictionCalculator`)

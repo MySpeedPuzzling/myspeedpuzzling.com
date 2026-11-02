@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Exceptions\MembershipNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerMembership;
 use SpeedPuzzling\Web\Query\GetVoucherFreePeriods;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\Membership\MembershipPlanSwitching;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -27,6 +28,7 @@ final class MembershipController extends AbstractController
         readonly private ClockInterface $clock,
         readonly private PlayerRepository $playerRepository,
         readonly private GetVoucherFreePeriods $getVoucherFreePeriods,
+        readonly private MembershipPlanSwitching $membershipPlanSwitching,
     ) {
     }
 
@@ -84,6 +86,7 @@ final class MembershipController extends AbstractController
             'yearlyPrice' => $yearlyPrice,
             'discountedMonthlyPrice' => $discountedMonthlyPrice,
             'discountedYearlyPrice' => $discountedYearlyPrice,
+            'plan_switch_available' => $this->membershipPlanSwitching->isAvailable(),
             'voucher_free_periods' => $membership !== null ? $this->getVoucherFreePeriods->notEndedForPlayer($profile->playerId, $now) : [],
         ]);
     }

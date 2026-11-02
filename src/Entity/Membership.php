@@ -36,6 +36,21 @@ class Membership implements EntityWithEvents
     public null|string $stripeDiscountCouponId = null;
 
     /**
+     * The Stripe price the subscription is on and a booked change to another one (a switch to the monthly
+     * plan waits for the end of the paid year) - lookup keys as Stripe reports them on every subscription
+     * webhook, for display and for MembershipPlanSwitching's first check only. The switch itself is always
+     * decided on the live subscription (docs/features/stripe.md "Switching plans").
+     */
+    #[Column(length: 64, nullable: true)]
+    public null|string $stripePriceLookupKey = null;
+
+    #[Column(length: 64, nullable: true)]
+    public null|string $scheduledPriceLookupKey = null;
+
+    #[Column(nullable: true)]
+    public null|DateTimeImmutable $scheduledPriceChangeAt = null;
+
+    /**
      * The free trial (docs/features/free-trial/README.md): set once, by startFreeTrial(), and never
      * cleared - together with the membership row itself they are why a trial cannot be had twice.
      * `grantedUntil` may later move past `trialEndsAt` (a voucher claimed during the trial), so the
@@ -182,6 +197,23 @@ class Membership implements EntityWithEvents
                 $this->renewedBillingPeriodEnd = $billingPeriodEndsAt;
             }
         }
+    }
+
+    public function rememberStripePrice(
+        null|string $priceLookupKey,
+        null|string $scheduledPriceLookupKey,
+        null|DateTimeImmutable $scheduledPriceChangeAt,
+    ): void {
+        $this->stripePriceLookupKey = $priceLookupKey;
+
+        // A booked change only means something together with its date, and only when it changes something
+        if ($scheduledPriceLookupKey === null || $scheduledPriceChangeAt === null || $scheduledPriceLookupKey === $priceLookupKey) {
+            $scheduledPriceLookupKey = null;
+            $scheduledPriceChangeAt = null;
+        }
+
+        $this->scheduledPriceLookupKey = $scheduledPriceLookupKey;
+        $this->scheduledPriceChangeAt = $scheduledPriceChangeAt;
     }
 
     public function cancel(DateTimeImmutable $billingPeriodEndsAt): void

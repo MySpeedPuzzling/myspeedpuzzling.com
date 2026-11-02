@@ -33,6 +33,9 @@ SELECT
     membership.billing_period_ends_at,
     membership.granted_until,
     membership.trial_ends_at,
+    membership.stripe_price_lookup_key,
+    membership.scheduled_price_lookup_key,
+    membership.scheduled_price_change_at,
     discount_voucher.percentage_discount AS discount_percent,
     discount_voucher.code AS discount_voucher_code
 FROM membership
@@ -52,6 +55,9 @@ SQL;
          *     trial_ends_at: null|string,
          *     discount_percent: null|int,
          *     discount_voucher_code: null|string,
+         *     stripe_price_lookup_key: null|string,
+         *     scheduled_price_lookup_key: null|string,
+         *     scheduled_price_change_at: null|string,
          * } $row
          */
         $row = $this->database

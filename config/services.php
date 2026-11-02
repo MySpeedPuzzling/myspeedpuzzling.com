@@ -486,6 +486,10 @@ return static function (ContainerConfigurator $configurator): void {
             param('stripeApiKey'),
         ]);
 
+    // Empty = the monthly/yearly plan switch is off (docs/features/stripe.md "Switching plans")
+    $services->set(\SpeedPuzzling\Web\Services\Membership\MembershipPlanSwitching::class)
+        ->arg('$portalConfigurationId', '%env(STRIPE_PLAN_SWITCH_PORTAL_CONFIGURATION)%');
+
     $services->set(StripeWebhookHandler::class)
         ->args([
             param('stripeWebhookSecret'),

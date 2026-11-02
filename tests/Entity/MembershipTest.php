@@ -463,4 +463,36 @@ final class MembershipTest extends TestCase
         $events2 = $membership->popEvents();
         self::assertEmpty($events2);
     }
+
+    public function testRemembersTheStripePriceAndABookedChange(): void
+    {
+        $membership = $this->createMembership('sub_plan', TestClock::now()->modify('+300 days'));
+        $changeAt = TestClock::now()->modify('+300 days');
+
+        $membership->rememberStripePrice('puzzlership_yearly', 'puzzlership_monthly', $changeAt);
+
+        self::assertSame('puzzlership_yearly', $membership->stripePriceLookupKey);
+        self::assertSame('puzzlership_monthly', $membership->scheduledPriceLookupKey);
+        self::assertEquals($changeAt, $membership->scheduledPriceChangeAt);
+
+        // The schedule ran (or was released) - nothing booked any more
+        $membership->rememberStripePrice('puzzlership_monthly', null, null);
+
+        self::assertSame('puzzlership_monthly', $membership->stripePriceLookupKey);
+        self::assertNull($membership->scheduledPriceLookupKey);
+        self::assertNull($membership->scheduledPriceChangeAt);
+    }
+
+    public function testABookedChangeToTheSamePriceOrWithoutADateIsNoChange(): void
+    {
+        $membership = $this->createMembership('sub_plan', TestClock::now()->modify('+30 days'));
+
+        $membership->rememberStripePrice('puzzlership_monthly', 'puzzlership_monthly', TestClock::now()->modify('+30 days'));
+        self::assertNull($membership->scheduledPriceLookupKey);
+        self::assertNull($membership->scheduledPriceChangeAt);
+
+        $membership->rememberStripePrice('puzzlership_monthly', 'puzzlership_yearly', null);
+        self::assertNull($membership->scheduledPriceLookupKey);
+        self::assertNull($membership->scheduledPriceChangeAt);
+    }
 }

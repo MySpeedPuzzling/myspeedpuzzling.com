@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Results;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Results\PlayerMembership;
+use SpeedPuzzling\Web\Value\MembershipPlan;
 
 final class PlayerMembershipTest extends TestCase
 {
@@ -203,5 +204,72 @@ final class PlayerMembershipTest extends TestCase
         self::assertTrue($membership->isActive($afterTrial));
         self::assertFalse($membership->isInFreeTrial($afterTrial));
         self::assertFalse($membership->isEndedFreeTrialOnly($afterTrial));
+    }
+
+    public function testPlanSwitchIsOfferedForTheRegularPlans(): void
+    {
+        $now = new DateTimeImmutable('2026-11-02');
+
+        self::assertSame(MembershipPlan::Yearly, $this->subscribed(MembershipPlan::Monthly)->planSwitchTarget($now));
+        self::assertSame(MembershipPlan::Monthly, $this->subscribed(MembershipPlan::Yearly)->planSwitchTarget($now));
+    }
+
+    public function testNoPlanSwitchForAnyOtherPriceOrState(): void
+    {
+        $now = new DateTimeImmutable('2026-11-02');
+
+        // Early adopter and other prices are stored as no plan
+        self::assertNull($this->subscribed(null)->planSwitchTarget($now));
+        // Cancelled, days left
+        self::assertNull($this->subscribed(MembershipPlan::Monthly, endsAt: new DateTimeImmutable('2026-11-29'))->planSwitchTarget($now));
+        // A change already booked - even to a price that is no plan here
+        self::assertNull($this->subscribed(MembershipPlan::Yearly, scheduledPlan: MembershipPlan::Monthly, scheduledAt: new DateTimeImmutable('2027-05-01'))->planSwitchTarget($now));
+        self::assertNull($this->subscribed(MembershipPlan::Yearly, scheduledAt: new DateTimeImmutable('2027-05-01'))->planSwitchTarget($now));
+        // Trial or voucher days running on the subscription
+        self::assertNull($this->subscribed(MembershipPlan::Monthly, grantedUntil: new DateTimeImmutable('2026-11-10'))->planSwitchTarget($now));
+        // An ended grant does not matter any more
+        self::assertSame(MembershipPlan::Yearly, $this->subscribed(MembershipPlan::Monthly, grantedUntil: new DateTimeImmutable('2026-10-01'))->planSwitchTarget($now));
+    }
+
+    public function testPlanIsReadFromTheStoredLookupKeys(): void
+    {
+        $row = [
+            'stripe_subscription_id' => 'sub_1abc',
+            'ends_at' => null,
+            'billing_period_ends_at' => '2027-05-01 10:00:00',
+            'granted_until' => null,
+            'discount_percent' => null,
+            'discount_voucher_code' => null,
+            'stripe_price_lookup_key' => 'puzzlership_yearly',
+            'scheduled_price_lookup_key' => 'puzzlership_monthly',
+            'scheduled_price_change_at' => '2027-05-01 10:00:00',
+        ];
+
+        $membership = PlayerMembership::fromDatabaseRow($row);
+        self::assertSame(MembershipPlan::Yearly, $membership->plan);
+        self::assertSame(MembershipPlan::Monthly, $membership->scheduledPlan);
+        self::assertEquals(new DateTimeImmutable('2027-05-01 10:00:00'), $membership->scheduledPlanChangeAt);
+
+        $promo = PlayerMembership::fromDatabaseRow(['stripe_price_lookup_key' => 'puzzlership_monthly_promo', 'scheduled_price_lookup_key' => null, 'scheduled_price_change_at' => null] + $row);
+        self::assertNull($promo->plan);
+        self::assertNull($promo->scheduledPlanChangeAt);
+    }
+
+    private function subscribed(
+        null|MembershipPlan $plan,
+        null|DateTimeImmutable $endsAt = null,
+        null|DateTimeImmutable $grantedUntil = null,
+        null|MembershipPlan $scheduledPlan = null,
+        null|DateTimeImmutable $scheduledAt = null,
+    ): PlayerMembership {
+        return new PlayerMembership(
+            stripeSubscriptionId: 'sub_1abc',
+            endsAt: $endsAt,
+            billingPeriodEndsAt: $endsAt === null ? new DateTimeImmutable('2026-11-29') : null,
+            grantedUntil: $grantedUntil,
+            plan: $plan,
+            scheduledPlan: $scheduledPlan,
+            scheduledPlanChangeAt: $scheduledAt,
+        );
     }
 }

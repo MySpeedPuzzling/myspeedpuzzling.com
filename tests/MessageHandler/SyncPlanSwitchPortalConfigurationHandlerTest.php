@@ -55,7 +55,7 @@ final class SyncPlanSwitchPortalConfigurationHandlerTest extends TestCase
         self::assertSame([
             'enabled' => true,
             'default_allowed_updates' => ['price'],
-            'products' => [['product' => 'prod_regular', 'prices' => ['price_monthly', 'price_yearly']]],
+            'products' => [['product' => 'prod_regular', 'prices' => ['price_monthly', 'price_yearly'], 'adjustable_quantity' => ['enabled' => false]]],
             'proration_behavior' => 'always_invoice',
             'schedule_at_period_end' => ['conditions' => [['type' => 'shortening_interval']]],
         ], $features['subscription_update']);

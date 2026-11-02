@@ -79,7 +79,7 @@ readonly final class SyncPlanSwitchPortalConfigurationHandler
      *         invoice_history: array{enabled: bool},
      *         payment_method_update: array{enabled: bool},
      *         subscription_cancel: array{enabled: bool, mode: string, proration_behavior: string, cancellation_reason?: array{enabled: bool, options: array<string>}},
-     *         subscription_update: array{enabled: bool, default_allowed_updates: array<string>, products: array<array{product: string, prices: array<string>}>, proration_behavior: string, schedule_at_period_end: array{conditions: array<array{type: string}>}},
+     *         subscription_update: array{enabled: bool, default_allowed_updates: array<string>, products: array<array{product: string, prices: array<string>, adjustable_quantity: array{enabled: bool}}>, proration_behavior: string, schedule_at_period_end: array{conditions: array<array{type: string}>}},
      *     },
      *     business_profile?: array{headline?: string, privacy_policy_url?: string, terms_of_service_url?: string},
      * }
@@ -132,6 +132,8 @@ readonly final class SyncPlanSwitchPortalConfigurationHandler
                     'products' => [[
                         'product' => $product,
                         'prices' => [$monthly->id, $yearly->id],
+                        // Stripe's default lets the member change the quantity - one membership is one
+                        'adjustable_quantity' => ['enabled' => false],
                     ]],
                     'proration_behavior' => 'always_invoice',
                     'schedule_at_period_end' => [

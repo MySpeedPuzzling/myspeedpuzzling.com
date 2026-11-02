@@ -62,6 +62,7 @@ final class SystemClockCoverageTest extends TestCase
         'Services/PuzzleIntelligence/Model/PredictionEvaluator.php' => [['microtime('], self::DURATION],
         'Services/PuzzleIntelligence/PredictionModelRecalculator.php' => [['microtime('], self::DURATION],
         'Services/PuzzleIntelligence/PuzzleIntelligenceRecalculator.php' => [['microtime('], self::DURATION],
+        'MessageHandler/SyncPlanSwitchPortalConfigurationHandler.php' => [['\'now\''], 'Stripe\'s billing_cycle_anchor value "now" sent to the plan switch portal configuration - an API keyword, Stripe applies it on its own clock.'],
         'Services/SecretRevealPreview.php' => [['\'now\''], 'The word \'now\' as a token of a hash (a reveal without a moment), no clock read.'],
         'Twig/ClockTwigExtension.php' => [['\'now\''], 'Registers the Twig function now() - backed by the clock.'],
     ];
@@ -79,6 +80,7 @@ final class SystemClockCoverageTest extends TestCase
     private const array ALLOWED_IN_TESTS = [
         'Controller/LiveResults/CompetitionNameTagsTest.php' => [['hrtime('], self::DURATION],
         'EventSubscriber/BotTrustCookieSubscriberTest.php' => [['microtime('], 'The bot-blocker cookie\'s issued-at - the sidecar validates it on its own clock.'],
+        'MessageHandler/SyncPlanSwitchPortalConfigurationHandlerTest.php' => [['\'now\''], 'Stripe\'s billing_cycle_anchor value "now" sent to the plan switch portal configuration - an API keyword, Stripe applies it on its own clock.'],
         'Panther/Extension/PantherDatabaseManager.php' => [['microtime('], 'microtime() as entropy for a database name, not as a time.'],
         'RelativeTimeParityTest.php' => [['\'now\''], 'The label "now" the relative-time formatter prints - an expected text, no clock read.'],
         'Services/Doctrine/MigrationLockTest.php' => [['microtime('], self::DURATION],
@@ -118,6 +120,7 @@ final class SystemClockCoverageTest extends TestCase
         'Controller/StaleDocumentControllerTest.php' => [["'yesterday'"], self::INPUT],
         'DatePickerScriptTest.php' => [["'today'"], 'flatpickr\'s maxDate option - the browser judges it on the visitor\'s clock.'],
         'MessageHandler/OnlineRoundSetUpHandlersTest.php' => [["'+1 hour'", "'-5 minutes'", "'-90 minutes'", "'-30 minutes'"], self::STOPWATCH_TABLE],
+        'MessageHandler/SyncPlanSwitchPortalConfigurationHandlerTest.php' => [["'now'"], 'Stripe\'s billing_cycle_anchor value "now" sent to the plan switch portal configuration - an API keyword, Stripe applies it on its own clock.'],
         'RelativeTimeParityTest.php' => [["'now'", "'59 seconds ago'", "'1 minute ago'", "'1 hour ago'", "'27 days ago'"], 'Labels the relative-time formatter prints - expected texts, no moment.'],
         'Services/Insights/InsightsCriteriaTest.php' => [["'yesterday'"], self::INPUT],
         'Value/ComparisonCriteriaTest.php' => [["'yesterday'"], self::INPUT],

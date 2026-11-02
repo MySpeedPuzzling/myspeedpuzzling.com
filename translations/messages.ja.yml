@@ -638,7 +638,7 @@
     "switch_to_yearly": "年額に切り替える"
     "switch_to_monthly": "月額に切り替える"
     "yearly_offer": "年払いなら2か月分お得です。"
-    "to_yearly_info": "年額料金を今お支払いいただき、今月の残り分が差し引かれます。確定する前にStripeが正確な金額を表示します。"
+    "to_yearly_info": "1年間は切り替えた日から始まります。年額料金から今月の残り分が差し引かれます。確定する前にStripeが正確な金額を表示します。"
     "to_monthly_info": "お支払い済みの1年はそのまま続きます。月額のお支払いは%date%から始まります。"
     "scheduled_monthly": "%date%に月額プランに切り替わります。"
     "scheduled_yearly": "%date%に年額プランに切り替わります。"

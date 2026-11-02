@@ -2308,7 +2308,7 @@ recap_progress:
     "switch_to_yearly": "Přejít na roční"
     "switch_to_monthly": "Přejít na měsíční"
     "yearly_offer": "Při roční platbě máte 2 měsíce zdarma."
-    "to_yearly_info": "Roční cenu zaplatíte hned, sníženou o zbývající část tohoto měsíce. Přesnou částku vám Stripe ukáže před potvrzením."
+    "to_yearly_info": "Rok vám začne dnem změny: zaplatíte roční cenu sníženou o zbývající část tohoto měsíce. Přesnou částku vám Stripe ukáže před potvrzením."
     "to_monthly_info": "Zaplacený rok vám zůstane. Měsíční platby začnou %date%."
     "scheduled_monthly": "Od %date% přejde na měsíční plán."
     "scheduled_yearly": "Od %date% přejde na roční plán."

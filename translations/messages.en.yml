@@ -2783,7 +2783,7 @@ membership:
       switch_to_yearly: "Switch to yearly"
       switch_to_monthly: "Switch to monthly"
       yearly_offer: "Pay yearly and get 2 months free."
-      to_yearly_info: "You pay the yearly price now, minus what is left of this month. Stripe shows the exact amount before you confirm."
+      to_yearly_info: "Your year starts the day you switch: you pay the yearly price, minus what is left of this month. Stripe shows the exact amount before you confirm."
       to_monthly_info: "Your paid year stays as it is. Monthly payments start on %date%."
       scheduled_monthly: "Moves to the monthly plan on %date%."
       scheduled_yearly: "Moves to the yearly plan on %date%."

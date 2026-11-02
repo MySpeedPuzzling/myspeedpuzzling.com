@@ -2300,7 +2300,7 @@ competition_referees:
     "switch_to_yearly": "Passer à l'annuel"
     "switch_to_monthly": "Passer au mensuel"
     "yearly_offer": "Payez à l'année et profitez de 2 mois offerts."
-    "to_yearly_info": "Vous payez le prix annuel maintenant, moins ce qui reste de ce mois. Stripe vous montre le montant exact avant que vous confirmiez."
+    "to_yearly_info": "Votre année commence le jour du changement : vous payez le prix annuel, moins ce qui reste de ce mois. Stripe vous montre le montant exact avant que vous confirmiez."
     "to_monthly_info": "Votre année payée reste acquise. Les paiements mensuels commencent le %date%."
     "scheduled_monthly": "Passe à la formule mensuelle le %date%."
     "scheduled_yearly": "Passe à la formule annuelle le %date%."

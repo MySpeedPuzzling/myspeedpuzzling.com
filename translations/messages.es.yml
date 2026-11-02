@@ -383,6 +383,9 @@
   "solved_time": "Resuelto %count% vez"
   "current_ranking": "Posición actual: %rank%/%total%"
   "delete_confirm": "¿Estás seguro de que quieres eliminar este cronómetro?"
+  "keyboard_hint": "Consejo: pulsa %space% o %enter% para iniciar y detener el cronómetro."
+  "key_space": "Espacio"
+  "key_enter": "Intro"
   "status":
     "not_started": "Listo para comenzar"
     "running": "En marcha"

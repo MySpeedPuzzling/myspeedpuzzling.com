@@ -415,6 +415,9 @@
   "solved_time": "Résolu %count% fois"
   "current_ranking": "Classement actuel : %rank%/%total%"
   "delete_confirm": "Êtes-vous sûr de vouloir supprimer ce chronomètre ?"
+  "keyboard_hint": "Astuce : appuyez sur %space% ou %enter% pour démarrer et arrêter le chronomètre."
+  "key_space": "Espace"
+  "key_enter": "Entrée"
   "status":
     "not_started": "Prêt à démarrer"
     "running": "En cours"

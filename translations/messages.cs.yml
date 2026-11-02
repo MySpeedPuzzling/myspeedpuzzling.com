@@ -419,6 +419,9 @@ puzzle_result:
   "solved_time": "Složeno %count%x"
   "current_ranking": "Aktuální pořadí: %rank%/%total%"
   "delete_confirm": "Opravdu chcete smazat tyto stopky?"
+  "keyboard_hint": "Tip: stopky spustíte a zastavíte klávesou %space% nebo %enter%."
+  "key_space": "Mezerník"
+  "key_enter": "Enter"
   "status":
     "not_started": "Připravené ke startu"
     "running": "Puštěné"

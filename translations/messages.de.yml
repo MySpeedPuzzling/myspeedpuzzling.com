@@ -381,6 +381,9 @@
   "solved_time": "%count%-mal gelöst"
   "current_ranking": "Aktuelle Platzierung: %rank%/%total%"
   "delete_confirm": "Möchten Sie diese Stoppuhr wirklich löschen?"
+  "keyboard_hint": "Tipp: Mit %space% oder %enter% starten und stoppen Sie die Stoppuhr."
+  "key_space": "Leertaste"
+  "key_enter": "Enter"
   "status":
     "not_started": "Bereit zu starten"
     "running": "Läuft"

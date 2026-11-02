@@ -116,6 +116,15 @@
                         </button>
                     </div>
                 </div>
+
+                {# Only where a keyboard is likely (mouse/trackpad), see _stopwatch.scss #}
+                <p class="stopwatch-keyboard-hint small text-muted mb-0 mt-2">
+                    {{ ux_icon('bi:keyboard', {'aria-hidden': 'true', class: 'stopwatch-keyboard-hint-icon me-1'}) }}
+                    {{ 'stopwatch.keyboard_hint'|trans({
+                        '%space%': '<kbd>' ~ ('stopwatch.key_space'|trans|e) ~ '</kbd>',
+                        '%enter%': '<kbd>' ~ ('stopwatch.key_enter'|trans|e) ~ '</kbd>',
+                    })|raw }}
+                </p>
             </div>
         </div>
 

@@ -107,6 +107,31 @@
     }
 }
 
+// Space / Enter start and stop the stopwatch everywhere; the hint shows only where a keyboard is likely
+.stopwatch-keyboard-hint {
+    display: none;
+
+    @media (hover: hover) and (pointer: fine) {
+        display: block;
+    }
+
+    kbd {
+        font-size: 0.8em;
+        padding: 0.1rem 0.4rem;
+        color: var(--bs-body-color);
+        background-color: var(--bs-gray-100);
+        border: 1px solid var(--bs-border-color);
+        border-bottom-width: 2px;
+        box-shadow: none;
+    }
+}
+
+.stopwatch-keyboard-hint-icon {
+    width: 1.1em;
+    height: 1.1em;
+    vertical-align: -0.2em;
+}
+
 .stopwatch-rank {
     font-variant-numeric: tabular-nums;
     font-size: 0.85rem;
@@ -177,6 +202,10 @@
     .stopwatch-timer-wrap {
         padding-top: 0.25rem !important;
         padding-bottom: 0.25rem !important;
+    }
+
+    .stopwatch-keyboard-hint {
+        display: none;
     }
 
     .stopwatch-actions {

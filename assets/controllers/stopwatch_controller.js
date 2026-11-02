@@ -69,6 +69,13 @@ export default class extends Controller {
             }
         };
         document.addEventListener('visibilitychange', this._visibilityHandler);
+
+        this._starting = false;
+        this._swallowSpaceKeyUp = false;
+        this._keyDownHandler = (event) => this._onKeyDown(event);
+        this._keyUpHandler = (event) => this._onKeyUp(event);
+        document.addEventListener('keydown', this._keyDownHandler);
+        document.addEventListener('keyup', this._keyUpHandler);
     }
 
     disconnect() {
@@ -76,12 +83,15 @@ export default class extends Controller {
         this._releaseWakeLock();
         window.removeEventListener('online', this._onlineHandler);
         document.removeEventListener('visibilitychange', this._visibilityHandler);
+        document.removeEventListener('keydown', this._keyDownHandler);
+        document.removeEventListener('keyup', this._keyUpHandler);
     }
 
     // --- Actions ---
 
     async start() {
-        if (!navigator.onLine) return;
+        if (!navigator.onLine || this._starting) return;
+        this._starting = true;
 
         // Counting starts at the tap, not when the server answers
         const tappedAt = Date.now();
@@ -109,6 +119,8 @@ export default class extends Controller {
             history.replaceState(null, '', window.location.href);
         } catch {
             this._updateButtons();
+        } finally {
+            this._starting = false;
         }
     }
 
@@ -222,6 +234,62 @@ export default class extends Controller {
         if (event.key === 'Enter') {
             event.preventDefault();
             this.saveName();
+        }
+    }
+
+    // --- Keyboard: Space or Enter starts, stops and continues ---
+
+    _onKeyDown(event) {
+        if (event.key !== ' ' && event.key !== 'Enter') return;
+        if (event.repeat || event.defaultPrevented || event.isComposing) return;
+        if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+        if (!this._keyboardMayToggle(event.target)) return;
+
+        // The key belongs to the stopwatch: no page scroll, no second click on a focused button
+        event.preventDefault();
+        if (event.key === ' ') {
+            this._swallowSpaceKeyUp = true;
+        }
+
+        this._toggleByKeyboard();
+    }
+
+    // A focused button clicks itself on the Space key's keyup
+    _onKeyUp(event) {
+        if (event.key !== ' ' || !this._swallowSpaceKeyUp) return;
+        this._swallowSpaceKeyUp = false;
+        event.preventDefault();
+    }
+
+    _keyboardMayToggle(target) {
+        // An open modal or menu owns the keyboard
+        if (document.querySelector('.modal.show, .dropdown-menu.show, .offcanvas.show')) return false;
+
+        if (!(target instanceof Element) || target === document.body || target === document.documentElement) return true;
+
+        // The stopwatch's own Start / Stop / Continue buttons keep focus after a click: the key toggles like the click did
+        if (this._isMainButton(target)) return true;
+
+        // Anything else that takes Space or Enter itself (fields, links, other buttons, the name input) keeps it
+        return target.closest('input, textarea, select, button, a[href], summary, label, [contenteditable]:not([contenteditable="false"]), [role="button"], [role="link"], [role="checkbox"], [role="switch"], [role="menuitem"], [role="tab"], [tabindex]') === null;
+    }
+
+    _isMainButton(target) {
+        return ['startBtn', 'pauseBtn', 'resumeBtn'].some((name) => {
+            const has = `has${name.charAt(0).toUpperCase()}${name.slice(1)}Target`;
+            return this[has] && this[`${name}Target`].contains(target);
+        });
+    }
+
+    _toggleByKeyboard() {
+        const status = this.statusValue;
+
+        if (status === 'running') {
+            this.pause();
+        } else if (status === 'paused') {
+            this.resume();
+        } else if (!status || status === 'not_started') {
+            this.start();
         }
     }
 

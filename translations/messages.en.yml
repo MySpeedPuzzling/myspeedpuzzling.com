@@ -441,6 +441,9 @@ stopwatch:
     solved_time: "Solved %count% time"
     current_ranking: "Current ranking: %rank%/%total%"
     delete_confirm: "Are you sure you want to delete this stopwatch?"
+    keyboard_hint: "Tip: press %space% or %enter% to start and stop the stopwatch."
+    key_space: "Space"
+    key_enter: "Enter"
     status:
         not_started: "Ready to start"
         running: "Running"

@@ -383,6 +383,9 @@
   "solved_time": "%count%回完成"
   "current_ranking": "現在の順位: %rank%/%total%"
   "delete_confirm": "このストップウォッチを削除してもよろしいですか？"
+  "keyboard_hint": "ヒント：%space% または %enter% キーでストップウォッチを開始・停止できます。"
+  "key_space": "スペース"
+  "key_enter": "Enter"
   "status":
     "not_started": "開始準備完了"
     "running": "実行中"

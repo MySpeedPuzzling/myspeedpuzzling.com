@@ -55,6 +55,18 @@ final class StopwatchControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
     }
 
+    public function testKeyboardHintNamesSpaceAndEnter(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/stopwatch/' . StopwatchFixture::STOPWATCH_PAUSED);
+        $this->assertResponseIsSuccessful();
+
+        $keys = $crawler->filter('.stopwatch-keyboard-hint kbd')->each(static fn ($kbd): string => $kbd->text());
+        self::assertSame(['Space', 'Enter'], $keys);
+    }
+
     public function testPuzzleStopwatchPageReturns200(): void
     {
         $browser = self::createClient();

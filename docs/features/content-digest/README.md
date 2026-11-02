@@ -94,11 +94,14 @@ one player per address; **most engaged first** (latest `player_activity_day`, th
 
 | Tuesday | Slice | ≈ recipients | Command |
 |---|---|---|---|
-| 27 Oct 2026 | last result 28 days - 3 months, **plus** the visitors with an older result | 1,100 | `send-content-digest miss-you --last-activity-after="3 months"` and `send-content-digest miss-you --last-activity-before="9 months"` |
-| 3 Nov 2026 | last result 3-9 months | 1,650 | `send-content-digest miss-you --last-activity-after="9 months" --last-activity-before="3 months"` |
-| from 10 Nov | the weekly cron (the 28-day crossers) | 175 | `send-content-digest miss-you` |
+| ~~27 Oct 2026~~ | not run - forgotten, found 2 Nov; everything moved a week | - | - |
+| 3 Nov 2026 | last result 28 days - 3 months (1,171), **plus** the visitors with an older result (122); 137 of them holdout (dry run 2 Nov) | ≈ 1,156 mailed | scheduled on lily as a one-off systemd timer `msp-miss-you-wave1` (06:50, `/root/msp-miss-you-wave1.sh`): `send-content-digest miss-you --last-activity-after="3 months"` and `send-content-digest miss-you --last-activity-before="9 months"` |
+| 10 Nov 2026 | last result 3-9 months - after a look at wave 1 | 1,650 | `send-content-digest miss-you --last-activity-after="9 months" --last-activity-before="3 months"` |
+| from 17 Nov | the weekly cron (the 28-day crossers) | 175 | `send-content-digest miss-you` |
 
-  The cron row goes in from Tue 10 Nov; the first two Tuesdays are run by hand. Dormant accounts: never (code).
+  The cron row goes in from Tue 17 Nov; the first two Tuesdays are run by hand. A run started after 19:00 is not held
+  until the morning (it sends one a second from then) - start a hand run before 19:00 or schedule it for the morning.
+  Dormant accounts: never (code).
 
 ## Holdout
 

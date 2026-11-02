@@ -2218,7 +2218,7 @@ badges:
     "switch_to_yearly": "Zu jährlich wechseln"
     "switch_to_monthly": "Zu monatlich wechseln"
     "yearly_offer": "Bei jährlicher Zahlung sind 2 Monate gratis."
-    "to_yearly_info": "Sie zahlen den Jahrespreis jetzt, abzüglich des restlichen Teils dieses Monats. Stripe zeigt Ihnen den genauen Betrag, bevor Sie bestätigen."
+    "to_yearly_info": "Ihr Jahr beginnt am Tag des Wechsels: Sie zahlen den Jahrespreis, abzüglich des restlichen Teils dieses Monats. Stripe zeigt Ihnen den genauen Betrag, bevor Sie bestätigen."
     "to_monthly_info": "Ihr bezahltes Jahr bleibt bestehen. Die monatlichen Zahlungen beginnen am %date%."
     "scheduled_monthly": "Wechselt am %date% zum monatlichen Tarif."
     "scheduled_yearly": "Wechselt am %date% zum jährlichen Tarif."

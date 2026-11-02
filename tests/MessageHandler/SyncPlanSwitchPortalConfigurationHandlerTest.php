@@ -57,6 +57,7 @@ final class SyncPlanSwitchPortalConfigurationHandlerTest extends TestCase
             'default_allowed_updates' => ['price'],
             'products' => [['product' => 'prod_regular', 'prices' => ['price_monthly', 'price_yearly'], 'adjustable_quantity' => ['enabled' => false]]],
             'proration_behavior' => 'always_invoice',
+            'billing_cycle_anchor' => 'now',
             'schedule_at_period_end' => ['conditions' => [['type' => 'shortening_interval']]],
         ], $features['subscription_update']);
     }

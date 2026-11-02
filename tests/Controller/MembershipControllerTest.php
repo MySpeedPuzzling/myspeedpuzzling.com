@@ -134,6 +134,7 @@ final class MembershipControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $this->assertSelectorTextContains('.card-body', 'Moves to the monthly plan on May 1, 2027.');
         $this->assertSelectorNotExists('form[action="/en/membership/switch-plan"]');
+        $this->assertSelectorTextContains('form[action="/en/membership/keep-plan"] button', 'Keep the yearly plan');
     }
 
     public function testEarlyAdopterPriceGetsNoPlanSwitch(): void
@@ -147,6 +148,7 @@ final class MembershipControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $this->assertSelectorTextNotContains('.card-body', 'Monthly plan');
         $this->assertSelectorNotExists('form[action="/en/membership/switch-plan"]');
+        $this->assertSelectorNotExists('form[action="/en/membership/keep-plan"]');
         // The payment portal stays as it was
         $this->assertSelectorExists('a[href$="/billing-portal"]');
     }
@@ -199,6 +201,33 @@ final class MembershipControllerTest extends WebTestCase
         $this->assertResponseRedirects('/en/membership');
     }
 
+    public function testKeepingThePlanWithoutABookedChangeIsRefusedBeforeStripeIsAsked(): void
+    {
+        $browser = self::createClient();
+        $this->storePlan('puzzlership_yearly');
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $browser->request('GET', '/en/membership');
+        $token = $this->switchToken($browser, \SpeedPuzzling\Web\Controller\KeepMembershipPlanController::CSRF_TOKEN_ID);
+
+        $browser->request('POST', '/en/membership/keep-plan', ['_token' => $token]);
+
+        $this->assertResponseRedirects('/en/membership');
+        $browser->followRedirect();
+        $this->assertSelectorTextContains('body', "The booked change can't be undone here.");
+    }
+
+    public function testKeepingThePlanWithoutAValidTokenDoesNothing(): void
+    {
+        $browser = self::createClient();
+        $this->storePlan('puzzlership_yearly', 'puzzlership_monthly', new \DateTimeImmutable('2027-05-01 10:00:00'));
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $browser->request('POST', '/en/membership/keep-plan', ['_token' => 'forged']);
+
+        $this->assertResponseRedirects('/en/membership');
+    }
+
     private function storePlan(string $lookupKey, null|string $scheduledLookupKey = null, null|\DateTimeImmutable $scheduledAt = null): void
     {
         $container = self::getContainer();
@@ -206,7 +235,7 @@ final class MembershipControllerTest extends WebTestCase
         $container->get(EntityManagerInterface::class)->flush();
     }
 
-    private function switchToken(\Symfony\Bundle\FrameworkBundle\KernelBrowser $browser): string
+    private function switchToken(\Symfony\Bundle\FrameworkBundle\KernelBrowser $browser, string $tokenId = \SpeedPuzzling\Web\Controller\SwitchMembershipPlanController::CSRF_TOKEN_ID): string
     {
         // The membership page renders no form for these players, so the token comes from the session the page started
         $container = self::getContainer();
@@ -216,7 +245,7 @@ final class MembershipControllerTest extends WebTestCase
         $container->get(\Symfony\Component\HttpFoundation\RequestStack::class)->push($request);
 
         $token = $container->get(\Symfony\Component\Security\Csrf\CsrfTokenManagerInterface::class)
-            ->getToken(\SpeedPuzzling\Web\Controller\SwitchMembershipPlanController::CSRF_TOKEN_ID)
+            ->getToken($tokenId)
             ->getValue();
         $session->save();
 

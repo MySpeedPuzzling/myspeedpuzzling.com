@@ -24,6 +24,15 @@
             {% endif %}
         </div>
 
+        {% if plan_switch_available and membership.scheduledPlan and membership.scheduledPlanChangeAt %}
+            <form method="post" action="{{ path('membership_keep_plan') }}" class="m-0">
+                <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\KeepMembershipPlanController::CSRF_TOKEN_ID')) }}">
+                <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap">
+                    {{ ('membership.plan_switch.keep_' ~ membership.plan.name|lower)|trans }}
+                </button>
+            </form>
+        {% endif %}
+
         {% if target %}
             <form method="post" action="{{ path('membership_switch_plan') }}" data-turbo="false" class="m-0">
                 <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\SwitchMembershipPlanController::CSRF_TOKEN_ID')) }}">

@@ -17,7 +17,11 @@ use Stripe\Collection;
 use Stripe\Service\BillingPortal\BillingPortalServiceFactory;
 use Stripe\Service\BillingPortal\SessionService;
 use Stripe\Service\PriceService;
+use Psr\Log\NullLogger;
+use SpeedPuzzling\Web\Tests\Value\BookedPlanSwitchTest;
+use Stripe\Service\SubscriptionScheduleService;
 use Stripe\Service\SubscriptionService;
+use Stripe\SubscriptionSchedule;
 use Stripe\StripeClient;
 use Stripe\Subscription;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -31,6 +35,9 @@ final class MembershipPlanSwitchingTest extends KernelTestCase
 
     /** @var list<array<string, mixed>> */
     private array $createdSessions = [];
+
+    /** @var list<string> */
+    private array $releasedSchedules = [];
 
     public function testMonthlyMemberGetsStripesConfirmationOfTheYearlyPrice(): void
     {
@@ -152,10 +159,84 @@ final class MembershipPlanSwitchingTest extends KernelTestCase
         }
     }
 
-    private function storePlan(string $lookupKey): void
+    public function testKeepingThePlanReleasesTheBookedSchedule(): void
+    {
+        $this->storePlan('puzzlership_yearly', 'puzzlership_monthly');
+        $now = self::getContainer()->get(ClockInterface::class)->now()->getTimestamp();
+
+        $this->switching(
+            $this->liveSubscription('puzzlership_yearly', ['schedule' => 'sub_sched_keep']),
+            schedule: $this->bookedSchedule($now),
+        )->keepCurrentPlan(PlayerFixture::PLAYER_WITH_STRIPE, self::CUSTOMER);
+
+        self::assertSame(['sub_sched_keep'], $this->releasedSchedules);
+        self::assertSame([], $this->createdSessions);
+    }
+
+    public function testAScheduleNotBookedByOurSwitchIsLeftAlone(): void
+    {
+        $this->storePlan('puzzlership_yearly', 'puzzlership_monthly');
+        $now = self::getContainer()->get(ClockInterface::class)->now()->getTimestamp();
+
+        $this->expectException(MembershipPlanSwitchNotPossible::class);
+
+        try {
+            $this->switching(
+                $this->liveSubscription('puzzlership_yearly', ['schedule' => 'sub_sched_keep']),
+                schedule: $this->bookedSchedule($now, ['end_behavior' => 'cancel']),
+            )->keepCurrentPlan(PlayerFixture::PLAYER_WITH_STRIPE, self::CUSTOMER);
+        } finally {
+            self::assertSame([], $this->releasedSchedules);
+        }
+    }
+
+    public function testNothingToKeepWithoutABookedChange(): void
+    {
+        $this->storePlan('puzzlership_yearly');
+
+        $this->expectException(MembershipPlanSwitchNotPossible::class);
+
+        try {
+            $this->switching(null)->keepCurrentPlan(PlayerFixture::PLAYER_WITH_STRIPE, self::CUSTOMER);
+        } finally {
+            self::assertSame([], $this->releasedSchedules);
+        }
+    }
+
+    public function testNothingToKeepWhenStripeHasNoScheduleAnyMore(): void
+    {
+        $this->storePlan('puzzlership_yearly', 'puzzlership_monthly');
+
+        $this->expectException(MembershipPlanSwitchNotPossible::class);
+
+        try {
+            $this->switching($this->liveSubscription('puzzlership_yearly'))->keepCurrentPlan(PlayerFixture::PLAYER_WITH_STRIPE, self::CUSTOMER);
+        } finally {
+            self::assertSame([], $this->releasedSchedules);
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $overrides
+     */
+    private function bookedSchedule(int $now, array $overrides = []): SubscriptionSchedule
+    {
+        $periodEnd = $now + 300 * 86_400;
+
+        return BookedPlanSwitchTest::schedule(array_merge([
+            'subscription' => self::SUBSCRIPTION,
+            'customer' => self::CUSTOMER,
+        ], $overrides), phases: [
+            BookedPlanSwitchTest::phase($now - 65 * 86_400, $periodEnd, 'puzzlership_yearly'),
+            BookedPlanSwitchTest::phase($periodEnd, $periodEnd + 1, 'puzzlership_monthly'),
+        ]);
+    }
+
+    private function storePlan(string $lookupKey, null|string $scheduledLookupKey = null): void
     {
         $container = self::getContainer();
-        $container->get(MembershipRepository::class)->get(MembershipFixture::MEMBERSHIP_ACTIVE)->rememberStripePrice($lookupKey, null, null);
+        $changeAt = $scheduledLookupKey !== null ? $container->get(ClockInterface::class)->now()->modify('+300 days') : null;
+        $container->get(MembershipRepository::class)->get(MembershipFixture::MEMBERSHIP_ACTIVE)->rememberStripePrice($lookupKey, $scheduledLookupKey, $changeAt);
         $container->get(EntityManagerInterface::class)->flush();
     }
 
@@ -167,8 +248,23 @@ final class MembershipPlanSwitchingTest extends KernelTestCase
         return MembershipPlanSwitchEligibilityTest::subscription($lookupKey, ['id' => self::SUBSCRIPTION, 'customer' => self::CUSTOMER] + $overrides);
     }
 
-    private function switching(null|Subscription $liveSubscription, string $portalConfigurationId = 'bpc_plan_switch'): MembershipPlanSwitching
+    private function switching(null|Subscription $liveSubscription, string $portalConfigurationId = 'bpc_plan_switch', null|SubscriptionSchedule $schedule = null): MembershipPlanSwitching
     {
+        $schedules = $this->createMock(SubscriptionScheduleService::class);
+        // Cancelling a schedule cancels its subscription - never, whatever happens
+        $schedules->expects(self::never())->method('cancel');
+        if ($schedule === null) {
+            $schedules->expects(self::never())->method('retrieve');
+            $schedules->expects(self::never())->method('release');
+        } else {
+            $schedules->expects(self::atLeastOnce())->method('retrieve')->with($schedule->id, ['expand' => ['phases.items.price']])->willReturn($schedule);
+            $schedules->method('release')->willReturnCallback(function (string $id) use ($schedule): SubscriptionSchedule {
+                $this->releasedSchedules[] = $id;
+
+                return $schedule;
+            });
+        }
+
         $subscriptions = $this->createMock(SubscriptionService::class);
         if ($liveSubscription === null) {
             $subscriptions->expects(self::never())->method('retrieve');
@@ -204,6 +300,7 @@ final class MembershipPlanSwitchingTest extends KernelTestCase
                 'subscriptions' => $subscriptions,
                 'prices' => $prices,
                 'billingPortal' => $billingPortal,
+                'subscriptionSchedules' => $schedules,
                 default => null,
             },
         );
@@ -215,6 +312,7 @@ final class MembershipPlanSwitchingTest extends KernelTestCase
             $container->get(GetPlayerMembership::class),
             $container->get(UrlGeneratorInterface::class),
             $container->get(ClockInterface::class),
+            new NullLogger(),
             $portalConfigurationId,
         );
     }

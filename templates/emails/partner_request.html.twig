@@ -1,70 +1,58 @@
+{% extends 'emails/_card_layout.html.twig' %}
 {% trans_default_domain 'emails' %}
 {# "I'd like to puzzle with you" to the listed puzzler (SendPartnerRequestEmailHandler, docs/features/partner-finder.md
-   D6). Names who asks, never anybody's e-mail address: the receiver answers inside MySpeedPuzzling. #}
-{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
-    <wrapper>
-        <container>
-            {{ include('emails/_header.html.twig', {preheader: 'partner_request.preheader'|trans}) }}
+   D6). Names who asks, never anybody's e-mail address: the receiver answers inside MySpeedPuzzling.
+   The card layout (docs/features/transactional-emails.md "Card layout"): the ask, who asks (+ their note), the reply. #}
+{% set preheader = 'partner_request.preheader'|trans %}
 
-            <row>
-                <columns>
-                    <spacer size-sm="24"></spacer>
-                    <h3>{{ 'partner_request.title'|trans({'%sender%': senderName}) }}</h3>
-                    <spacer size-sm="8"></spacer>
-                </columns>
-            </row>
+{% block cards %}
+    {{ card_open }}
+        <h1 style="-webkit-hyphens: none; hyphens: none; font-size: 24px; line-height: 1.25; font-weight: bold; color: #373f50; margin: 0 0 12px 0; Margin: 0 0 12px 0;">{{ 'partner_request.title'|trans({'%sender%': senderName}) }}</h1>
+        <p style="-webkit-hyphens: none; hyphens: none; margin: 0 0 12px 0; Margin: 0 0 12px 0; line-height: 1.5;">{{ 'partner_request.greeting'|trans({'%name%': receiverName}) }}</p>
+        <p style="-webkit-hyphens: none; hyphens: none; margin: 0; Margin: 0; line-height: 1.5;">{{ ('partner_request.intro_' ~ kind.value)|trans({'%sender%': senderName, '%event%': eventName}) }}</p>
+    {{ card_close }}
 
-            <row>
-                <columns>
-                    <p>{{ 'partner_request.greeting'|trans({'%name%': receiverName}) }}</p>
-                    <p>{{ ('partner_request.intro_' ~ kind.value)|trans({'%sender%': senderName, '%event%': eventName}) }}</p>
+    {# Who asks #}
+    {% set facts = [] %}
+    {% if senderBest500Seconds is not null %}
+        {% set facts = facts|merge(['partner_request.best_500'|trans({'%time%': senderBest500Seconds|puzzlingTime})]) %}
+    {% elseif senderBest1000Seconds is not null %}
+        {% set facts = facts|merge(['partner_request.best_1000'|trans({'%time%': senderBest1000Seconds|puzzlingTime})]) %}
+    {% endif %}
+    {% if senderSolvedTotal is not null and senderSolvedTotal > 0 %}
+        {% set facts = facts|merge(['partner_request.solved'|trans({'%count%': senderSolvedTotal})]) %}
+    {% endif %}
+    {% if senderLanguages is not empty %}
+        {% set facts = facts|merge(['partner_request.speaks'|trans({'%languages%': senderLanguages|join(', ')})]) %}
+    {% endif %}
+    {{ card_open }}
+        <h2 style="-webkit-hyphens: none; hyphens: none; font-size: 18px; line-height: 1.3; font-weight: bold; color: #373f50; margin: 0; Margin: 0;">{{ senderName }}</h2>
+        {% if senderCountry is not null %}
+            <p style="-webkit-hyphens: none; hyphens: none; font-size: 15px; line-height: 1.4; color: #6b7488; margin: 2px 0 0 0; Margin: 2px 0 0 0;">{{ senderCountry }}</p>
+        {% endif %}
+        {% if facts is not empty %}
+            <table role="presentation" width="100%" style="width: 100%; margin-top: 8px;">
+                {% for fact in facts %}
+                    <tr>
+                        <td style="-webkit-hyphens: none; hyphens: none; padding: 8px 0; font-size: 15px; line-height: 1.4; color: #4b566b;{% if not loop.first %} border-top: 1px solid #eef1f5;{% endif %}">{{ fact }}</td>
+                    </tr>
+                {% endfor %}
+            </table>
+        {% endif %}
+        {% if note is not null %}
+            {{ include('emails/card/_note.html.twig', {note: note}) }}
+        {% endif %}
+    {{ card_close }}
 
-                    {# Who asks - inline styles, e-mail clients drop <style> #}
-                    <table role="presentation" width="100%" style="width: 100%; margin: 16px 0; background: #f6f9fc; border-left: 4px solid #d63c42; border-radius: 6px;">
-                        <tr>
-                            <td style="padding: 14px 16px;">
-                                <p style="margin: 0 0 4px; font-weight: bold;">
-                                    {{ senderName }}{% if senderCountry is not null %}<span style="font-weight: normal; color: #6b7488;"> · {{ senderCountry }}</span>{% endif %}
-                                </p>
+    {{ card_open }}
+        <center style="min-width: 0;">
+            <button href="{{ replyUrl }}">{{ 'partner_request.reply'|trans({'%sender%': senderName}) }}</button>
+        </center>
+        <p style="-webkit-hyphens: none; hyphens: none; font-size: 14px; line-height: 1.5; color: #6b7488; margin: 14px 0 0 0; Margin: 14px 0 0 0;">{{ 'partner_request.no_addresses'|trans }}</p>
+        {% if closeListingUrl is not null %}
+            <p style="-webkit-hyphens: none; hyphens: none; font-size: 14px; line-height: 1.5; color: #6b7488; margin: 8px 0 0 0; Margin: 8px 0 0 0;">{{ 'partner_request.found_partner'|trans({'%url%': closeListingUrl})|raw }}</p>
+        {% endif %}
+    {{ card_close }}
+{% endblock %}
 
-                                {% set facts = [] %}
-                                {% if senderBest500Seconds is not null %}
-                                    {% set facts = facts|merge(['partner_request.best_500'|trans({'%time%': senderBest500Seconds|puzzlingTime})]) %}
-                                {% elseif senderBest1000Seconds is not null %}
-                                    {% set facts = facts|merge(['partner_request.best_1000'|trans({'%time%': senderBest1000Seconds|puzzlingTime})]) %}
-                                {% endif %}
-                                {% if senderSolvedTotal is not null and senderSolvedTotal > 0 %}
-                                    {% set facts = facts|merge(['partner_request.solved'|trans({'%count%': senderSolvedTotal})]) %}
-                                {% endif %}
-                                {% if senderLanguages is not empty %}
-                                    {% set facts = facts|merge(['partner_request.speaks'|trans({'%languages%': senderLanguages|join(', ')})]) %}
-                                {% endif %}
-                                {% if facts is not empty %}
-                                    <p style="margin: 0 0 4px; font-size: 14px; color: #4b566b;">{{ facts|join(' · ') }}</p>
-                                {% endif %}
-
-                                {% if note is not null %}
-                                    <p style="margin: 8px 0 0; font-style: italic;">“{{ note }}”</p>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    </table>
-
-                    <center>
-                        <button href="{{ replyUrl }}">{{ 'partner_request.reply'|trans({'%sender%': senderName}) }}</button>
-                    </center>
-
-                    <spacer size-sm="10"></spacer>
-
-                    <p class="small-print">{{ 'partner_request.no_addresses'|trans }}</p>
-                    {% if closeListingUrl is not null %}
-                        <p class="small-print">{{ 'partner_request.found_partner'|trans({'%url%': closeListingUrl})|raw }}</p>
-                    {% endif %}
-                    <p class="small-print">{{ 'partner_request.opt_out'|trans({'%settingsUrl%': settingsUrl, '%unsubscribeUrl%': unsubscribeUrl})|raw }}</p>
-                </columns>
-            </row>
-
-            {{ include('emails/_footer.html.twig') }}
-        </container>
-    </wrapper>
-{% endapply %}
+{% block footer_note %}{{ 'partner_request.opt_out'|trans({'%settingsUrl%': settingsUrl, '%unsubscribeUrl%': unsubscribeUrl})|raw }}{% endblock %}

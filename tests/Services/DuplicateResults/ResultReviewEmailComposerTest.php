@@ -38,7 +38,7 @@ final class ResultReviewEmailComposerTest extends KernelTestCase
         self::assertSame('One of your results is awaiting verification', $email->getSubject());
         $html = (string) $email->getHtmlBody();
         self::assertStringContainsString('<title>One of your results is awaiting verification</title>', $html);
-        self::assertMatchesRegularExpression('~<h3[^>]*>One of your results is awaiting verification</h3>~', $html);
+        self::assertMatchesRegularExpression('~<h1[^>]*>One of your results is awaiting verification</h1>~', $html);
         self::assertStringContainsString('so we take a closer look when a result stands out', $html);
         self::assertStringContainsString('just a typo – fixing it', $html, 'The preheader');
         self::assertStringContainsString('Awaiting verification', $html);

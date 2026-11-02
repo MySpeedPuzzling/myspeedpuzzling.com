@@ -1,56 +1,41 @@
+{% extends 'emails/_card_layout.html.twig' %}
 {% trans_default_domain 'emails' %}
 {# "Could I borrow these?" to the owner (SendBorrowRequestEmailHandler, docs/features/wishlist-availability.md). Names who
-   asks and which puzzles, never anybody's e-mail address: the owner answers inside MySpeedPuzzling. #}
-{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
-    <wrapper>
-        <container>
-            {{ include('emails/_header.html.twig', {preheader: 'borrow_request.preheader'|trans}) }}
+   asks and which puzzles, never anybody's e-mail address: the owner answers inside MySpeedPuzzling.
+   The card layout (docs/features/transactional-emails.md "Card layout"): the ask with its puzzles, then the answer. #}
+{% set preheader = 'borrow_request.preheader'|trans %}
+{% set header_link = answerUrl %}
+{% set header_link_label = 'borrow_request.answer'|trans %}
 
-            <row>
-                <columns>
-                    <spacer size-sm="24"></spacer>
-                    <h3>{{ 'borrow_request.title'|trans({'%asker%': askerName, '%count%': puzzles|length}) }}</h3>
-                    <spacer size-sm="8"></spacer>
-                </columns>
-            </row>
+{% block cards %}
+    {{ card_open }}
+        <h1 style="-webkit-hyphens: none; hyphens: none; font-size: 24px; line-height: 1.25; font-weight: bold; color: #373f50; margin: 0 0 12px 0; Margin: 0 0 12px 0;">{{ 'borrow_request.title'|trans({'%asker%': askerName, '%count%': puzzles|length}) }}</h1>
+        <p style="-webkit-hyphens: none; hyphens: none; margin: 0 0 12px 0; Margin: 0 0 12px 0; line-height: 1.5;">{{ 'borrow_request.greeting'|trans({'%name%': ownerName}) }}</p>
+        <p style="-webkit-hyphens: none; hyphens: none; margin: 0 0 6px 0; Margin: 0 0 6px 0; line-height: 1.5;">{{ 'borrow_request.intro'|trans({'%asker%': askerName, '%count%': puzzles|length}) }}</p>
 
-            <row>
-                <columns>
-                    <p>{{ 'borrow_request.greeting'|trans({'%name%': ownerName}) }}</p>
-                    <p>{{ 'borrow_request.intro'|trans({'%asker%': askerName, '%count%': puzzles|length}) }}</p>
+        <table role="presentation" width="100%" style="width: 100%;">
+            {% for puzzle in puzzles %}
+                {{ include('emails/card/_puzzle_row.html.twig', {
+                    image: puzzle.image ?? null,
+                    name: puzzle.name,
+                    details: (['borrow_request.pieces'|trans({'%count%': puzzle.pieces})]|merge(puzzle.brand is not null ? [puzzle.brand] : []))|join(' · '),
+                    first: loop.first,
+                }) }}
+            {% endfor %}
+        </table>
 
-                    {# The puzzles - inline styles, e-mail clients drop <style> #}
-                    <table role="presentation" width="100%" style="width: 100%; margin: 16px 0; background: #f6f9fc; border-left: 4px solid #d63c42; border-radius: 6px;">
-                        <tr>
-                            <td style="padding: 14px 16px;">
-                                {% for puzzle in puzzles %}
-                                    <p style="margin: 0 0 4px;">
-                                        <strong>{{ puzzle.name }}</strong>
-                                        <span style="color: #6b7488;"> · {{ 'borrow_request.pieces'|trans({'%count%': puzzle.pieces}) }}{% if puzzle.brand is not null %} · {{ puzzle.brand }}{% endif %}</span>
-                                    </p>
-                                {% endfor %}
+        {% if note is not null %}
+            {{ include('emails/card/_note.html.twig', {note: note}) }}
+        {% endif %}
+    {{ card_close }}
 
-                                {% if note is not null %}
-                                    <p style="margin: 8px 0 0; font-style: italic;">“{{ note }}”</p>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    </table>
+    {{ card_open }}
+        <p style="-webkit-hyphens: none; hyphens: none; margin: 0 0 18px 0; Margin: 0 0 18px 0; line-height: 1.5;">{{ 'borrow_request.how_to_answer'|trans }}</p>
+        <center style="min-width: 0;">
+            <button href="{{ answerUrl }}">{{ 'borrow_request.answer'|trans }}</button>
+        </center>
+        <p style="-webkit-hyphens: none; hyphens: none; font-size: 14px; line-height: 1.5; color: #6b7488; margin: 14px 0 0 0; Margin: 14px 0 0 0;">{{ 'borrow_request.no_addresses'|trans }}</p>
+    {{ card_close }}
+{% endblock %}
 
-                    <p>{{ 'borrow_request.how_to_answer'|trans }}</p>
-
-                    <center>
-                        <button href="{{ answerUrl }}">{{ 'borrow_request.answer'|trans }}</button>
-                    </center>
-
-                    <spacer size-sm="10"></spacer>
-
-                    <p class="small-print">{{ 'borrow_request.no_addresses'|trans }}</p>
-                    <p class="small-print">{{ 'borrow_request.opt_out'|trans({'%settingsUrl%': settingsUrl, '%unsubscribeUrl%': unsubscribeUrl})|raw }}</p>
-                </columns>
-            </row>
-
-            {{ include('emails/_footer.html.twig') }}
-        </container>
-    </wrapper>
-{% endapply %}
+{% block footer_note %}{{ 'borrow_request.opt_out'|trans({'%settingsUrl%': settingsUrl, '%unsubscribeUrl%': unsubscribeUrl})|raw }}{% endblock %}

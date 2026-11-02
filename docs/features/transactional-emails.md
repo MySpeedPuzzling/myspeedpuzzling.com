@@ -33,6 +33,36 @@ logo, plain-text part, preheaders, document semantics, bulletproof buttons, one-
   absolute `https://myspeedpuzzling.com/img/email-logo.png` with `width="32" height="29"`.
 - `_footer.html.twig`: 13 px for real (no `<small>`), `#6b7488`, centred, under a `#fe696a` rule.
 
+## Card layout
+
+`templates/emails/_card_layout.html.twig` (2026-11-02): white cards (1 px `#e3e7ee` border, 12 px corners) on a
+`#f3f5f9` page, at most 600 px wide; header = logo + name, optionally the e-mail's page on the right
+(`header_link` + `header_link_label`); small print on the grey page in `#5f6a80`. Design and the mail-app research
+behind it (no layout depending on a media query, border never shadow, charts as table cells, light only, < ~80 KB):
+[content-digest README §"Design"](content-digest/README.md#design).
+
+A child `{% extends 'emails/_card_layout.html.twig' %}`, sets `preheader` (+ the optional header link), fills
+`{% block cards %}` with `{{ card_open }}…{{ card_close }}` and puts its opt-out line into the optional
+`{% block footer_note %}`. Needs `locale` in the context. Every `<p>`/heading carries an explicit `margin`/`Margin`,
+`font-weight: bold` where bold, and `hyphens: none` (Foundation inlines `hyphens: auto` on every cell: "puz-zles").
+Shared rows in `templates/emails/card/`: `_puzzle_row` (52 px thumbnail - none for a secret picture, the handler passes
+null -, name, details), `_note` (what the sender wrote), `_section_heading` (h2 with a colour square). Lists a reader
+should get as "- " lines in the plain-text part stay `<ul>/<li>` (`list-style: none`, rows split by `#eef1f5`).
+
+**Who uses it** - the summaries and the e-mails carrying several items or decisions:
+
+- the activity digest + "We miss you" (`content_digest/_layout.html.twig` just extends it),
+- "Your results" (`result_review`: one card per section - to check / already fixed / awaiting verification / answers),
+- unread messages (`unread_digest`: conversations card + requests card),
+- borrow request, sell/swap request (puzzles with thumbnails, the buyer's offers, the note, the answer),
+- partner request (who asks: country, best time, solved, languages, note).
+
+**Who keeps the slim layout** (`_header` + `_footer`): short one-action mails - sign-in link/code, password reset,
+e-mail verification, account deletion, social login linked, newsletter confirmation, membership / subscription /
+free-trial mails, feature-request status (one item, an optional comment), competition / organization / OAuth2 client
+submitted-approved-rejected, registration status, moderator invitation / role, partner reminder and "teamed up" (one
+fact, one button), and the plain internal `feedback` mail.
+
 ## Preheader
 
 The inbox preview line. `_header.html.twig` renders the optional `preheader` variable first, in a hidden `div.preheader`

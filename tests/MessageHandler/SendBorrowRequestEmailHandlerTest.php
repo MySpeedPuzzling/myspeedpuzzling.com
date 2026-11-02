@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AskToBorrowPuzzles;
 use SpeedPuzzling\Web\Message\SendBorrowRequestEmail;
@@ -51,6 +52,7 @@ final class SendBorrowRequestEmailHandlerTest extends KernelTestCase
             urlGenerator: $container->get(UrlGeneratorInterface::class),
             mailer: $this->mailer,
             translator: $container->get(TranslatorInterface::class),
+            clock: $container->get(ClockInterface::class),
         );
 
         // PLAYER_WITH_FAVORITES follows PLAYER_REGULAR
@@ -82,7 +84,7 @@ final class SendBorrowRequestEmailHandlerTest extends KernelTestCase
         $context = $email->getContext();
         self::assertSame(PlayerFixture::PLAYER_WITH_FAVORITES_NAME, $context['askerName']);
         self::assertSame('Saturday?', $context['note']);
-        self::assertSame([['name' => 'Lighthouse at Dusk', 'pieces' => 1000, 'brand' => null]], $context['puzzles']);
+        self::assertSame([['image' => null, 'name' => 'Lighthouse at Dusk', 'pieces' => 1000, 'brand' => null]], $context['puzzles']);
         self::assertIsString($context['answerUrl']);
         self::assertStringContainsString('/borrow-requests/' . $this->requestId, $context['answerUrl']);
     }

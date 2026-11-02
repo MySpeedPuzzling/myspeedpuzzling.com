@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\ListingRequestItem;
 use SpeedPuzzling\Web\Entity\ListingRequestOffer;
 use SpeedPuzzling\Web\Exceptions\ListingRequestNotFound;
@@ -41,6 +42,7 @@ readonly final class SendListingRequestEmailHandler
         private UrlGeneratorInterface $urlGenerator,
         private MailerInterface $mailer,
         private TranslatorInterface $translator,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -76,6 +78,9 @@ readonly final class SendListingRequestEmailHandler
         $sellerId = $seller->id->toString();
         $unsubscribeUrl = $this->unsubscribeUrl->forPlayer($sellerId, $locale);
 
+        // The thumbnails: never the picture of a puzzle still kept secret
+        $now = $this->clock->now();
+
         $email = (new TemplatedEmail())
             ->from(new Address('notify@notify.myspeedpuzzling.com', 'MySpeedPuzzling'))
             ->to($sellerEmail)
@@ -90,6 +95,7 @@ readonly final class SendListingRequestEmailHandler
                 'sellerName' => $seller->name ?? '#' . strtoupper($seller->code),
                 'buyerName' => $buyerName,
                 'listings' => array_map(static fn (ListingRequestItem $item): array => [
+                    'image' => $item->puzzle->isImageHiddenAt($now) ? null : $item->puzzle->image,
                     'name' => $item->puzzle->name,
                     'pieces' => $item->puzzle->piecesCount,
                     'brand' => $item->puzzle->manufacturer?->name,
@@ -98,6 +104,7 @@ readonly final class SendListingRequestEmailHandler
                     'currency' => $item->currency,
                 ], $waiting),
                 'offers' => array_map(static fn (ListingRequestOffer $offer): array => [
+                    'image' => $offer->puzzle->isImageHiddenAt($now) ? null : $offer->puzzle->image,
                     'name' => $offer->puzzle->name,
                     'pieces' => $offer->puzzle->piecesCount,
                     'brand' => $offer->puzzle->manufacturer?->name,

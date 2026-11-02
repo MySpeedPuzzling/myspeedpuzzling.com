@@ -1,68 +1,54 @@
+{% extends 'emails/_card_layout.html.twig' %}
 {% trans_default_domain 'emails' %}
-{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
-    <wrapper>
-        <container>
-            {{ include('emails/_header.html.twig', {preheader: 'unread_messages.preheader'|trans}) }}
+{# Unread messages + conversation requests (PrepareDigestEmailForPlayerHandler). The card layout
+   (docs/features/transactional-emails.md "Card layout"): one card for the unread conversations, one for the requests. #}
+{% set preheader = 'unread_messages.preheader'|trans %}
+{% set has_requests = pendingRequestCount is defined and pendingRequestCount > 0 %}
+{% if summaries is not empty %}
+    {% set header_link = url('conversations_list', {_locale: locale}) %}
+    {% set header_link_label = 'unread_messages.view_messages'|trans %}
+{% endif %}
 
-            <row>
-                <columns>
-                    <spacer size-sm="24"></spacer>
-                    <h3>{{ 'unread_messages.title'|trans }}</h3>
-                    <spacer size-sm="8"></spacer>
-                </columns>
-            </row>
+{% block cards %}
+    {{ card_open }}
+        <h1 style="-webkit-hyphens: none; hyphens: none; font-size: 24px; line-height: 1.25; font-weight: bold; color: #373f50; margin: 0 0 12px 0; Margin: 0 0 12px 0;">{{ 'unread_messages.title'|trans }}</h1>
+        <p style="-webkit-hyphens: none; hyphens: none; margin: 0 0 12px 0; Margin: 0 0 12px 0; line-height: 1.5;">{{ 'unread_messages.greeting'|trans({'%playerName%': playerName ?? 'Puzzler'}) }}</p>
 
-            <row>
-                <columns>
-                    <p>{{ 'unread_messages.greeting'|trans({'%playerName%': playerName ?? 'Puzzler'}) }}</p>
+        {% if summaries is not empty %}
+            <p style="-webkit-hyphens: none; hyphens: none; margin: 0 0 6px 0; Margin: 0 0 6px 0; line-height: 1.5;">{{ 'unread_messages.intro'|trans }}</p>
+            <ul style="list-style: none; margin: 0 0 18px 0; Margin: 0 0 18px 0; padding: 0;">
+                {% for summary in summaries %}
+                    <li style="-webkit-hyphens: none; hyphens: none; margin: 0; Margin: 0; padding: 10px 0; font-size: 15px; line-height: 1.45; color: #373f50;{% if not loop.first %} border-top: 1px solid #eef1f5;{% endif %}">
+                            {% if summary.puzzleName is not null %}
+                                {{ 'unread_messages.message_line_with_puzzle'|trans({'%count%': summary.unreadCount, '%senderName%': summary.senderName, '%puzzleName%': summary.puzzleName}) }}
+                            {% else %}
+                                {{ 'unread_messages.message_line'|trans({'%count%': summary.unreadCount, '%senderName%': summary.senderName}) }}
+                            {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+            <center style="min-width: 0;">
+                <button href="{{ url('conversations_list', {_locale: locale}) }}">{{ 'unread_messages.view_messages'|trans }}</button>
+            </center>
+        {% elseif has_requests %}
+            <p style="-webkit-hyphens: none; hyphens: none; margin: 0 0 12px 0; Margin: 0 0 12px 0; line-height: 1.5;">{{ 'unread_messages.pending_requests_only'|trans({'%count%': pendingRequestCount}) }}</p>
+            <p style="-webkit-hyphens: none; hyphens: none; font-size: 14px; line-height: 1.5; color: #6b7488; margin: 0 0 18px 0; Margin: 0 0 18px 0;">{{ 'unread_messages.pending_requests_context'|trans }}</p>
+            <center style="min-width: 0;">
+                <button href="{{ url('conversations_list', {_locale: locale, tab: 'requests'}) }}">{{ 'unread_messages.view_requests'|trans }}</button>
+            </center>
+        {% endif %}
+    {{ card_close }}
 
-                    {% if summaries is not empty %}
-                        <p>{{ 'unread_messages.intro'|trans }}</p>
+    {# Requests next to unread messages: their own card #}
+    {% if summaries is not empty and has_requests %}
+        {{ card_open }}
+            <p style="-webkit-hyphens: none; hyphens: none; margin: 0 0 12px 0; Margin: 0 0 12px 0; line-height: 1.5;">{{ 'unread_messages.pending_requests_also'|trans({'%count%': pendingRequestCount}) }}</p>
+            <p style="-webkit-hyphens: none; hyphens: none; font-size: 14px; line-height: 1.5; color: #6b7488; margin: 0 0 18px 0; Margin: 0 0 18px 0;">{{ 'unread_messages.pending_requests_context'|trans }}</p>
+            <center style="min-width: 0;">
+                <button href="{{ url('conversations_list', {_locale: locale, tab: 'requests'}) }}">{{ 'unread_messages.view_requests'|trans }}</button>
+            </center>
+        {{ card_close }}
+    {% endif %}
+{% endblock %}
 
-                        <ul>
-                            {% for summary in summaries %}
-                                <li>
-                                    {% if summary.puzzleName is not null %}
-                                        {{ 'unread_messages.message_line_with_puzzle'|trans({'%count%': summary.unreadCount, '%senderName%': summary.senderName, '%puzzleName%': summary.puzzleName}) }}
-                                    {% else %}
-                                        {{ 'unread_messages.message_line'|trans({'%count%': summary.unreadCount, '%senderName%': summary.senderName}) }}
-                                    {% endif %}
-                                </li>
-                            {% endfor %}
-                        </ul>
-
-                        <center>
-                            <button href="{{ url('conversations_list', {_locale: locale}) }}">
-                                {{ 'unread_messages.view_messages'|trans }}
-                            </button>
-                        </center>
-
-                        <spacer size-sm="10"></spacer>
-                    {% endif %}
-
-                    {% if pendingRequestCount is defined and pendingRequestCount > 0 %}
-                        {% if summaries is not empty %}
-                            <p>{{ 'unread_messages.pending_requests_also'|trans({'%count%': pendingRequestCount}) }}</p>
-                        {% else %}
-                            <p>{{ 'unread_messages.pending_requests_only'|trans({'%count%': pendingRequestCount}) }}</p>
-                        {% endif %}
-
-                        <p class="small-print">{{ 'unread_messages.pending_requests_context'|trans }}</p>
-
-                        <center>
-                            <button href="{{ url('conversations_list', {_locale: locale, tab: 'requests'}) }}">
-                                {{ 'unread_messages.view_requests'|trans }}
-                            </button>
-                        </center>
-
-                        <spacer size-sm="10"></spacer>
-                    {% endif %}
-
-                    <p class="small-print">{{ 'unread_messages.opt_out'|trans({'%settingsUrl%': settingsUrl, '%unsubscribeUrl%': unsubscribeUrl})|raw }}</p>
-                </columns>
-            </row>
-
-            {{ include('emails/_footer.html.twig') }}
-        </container>
-    </wrapper>
-{% endapply %}
+{% block footer_note %}{{ 'unread_messages.opt_out'|trans({'%settingsUrl%': settingsUrl, '%unsubscribeUrl%': unsubscribeUrl})|raw }}{% endblock %}

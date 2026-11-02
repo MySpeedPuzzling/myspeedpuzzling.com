@@ -15,7 +15,7 @@
 #}
 {% set card_open %}<table role="presentation" width="100%" style="width: 100%; border-collapse: separate;"><tr><td bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #e3e7ee; border-radius: 12px; padding: 22px 20px;">{% endset %}
 {% set card_close %}</td></tr></table><table role="presentation" width="100%" style="width: 100%;"><tr><td height="12" style="height: 12px; font-size: 0; line-height: 12px;">&nbsp;</td></tr></table>{% endset %}
-{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'), source('@styles/email-cards.css'))|email_document %}
     <table role="presentation" width="100%" bgcolor="#f3f5f9" data-email-background="#f3f5f9" style="width: 100%; background: #f3f5f9;">
         <tr>
             <td align="center" style="padding: 0 8px; text-align: center;">

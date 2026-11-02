@@ -1,0 +1,21 @@
+{# One puzzle as a row of a card's list (emails/_card_layout.html.twig): the 52 px thumbnail like the digest's
+   highlights (none for a puzzle without a picture or with a hidden one - the caller passes null), the name bold and
+   the details under it. Params: image (null|string), name, details (already joined, plain text), first (bool) #}
+<tr>
+    {% set row_border = first ? '' : ' border-top: 1px solid #eef1f5;' %}
+    {% if image is not null %}
+        <td width="52" style="width: 52px; padding: 10px 12px 10px 0; vertical-align: middle;{{ row_border }}">
+            <img src="{{ image|puzzle_image('puzzle_small') }}" alt="" width="52" height="52" style="display: block; width: 52px; height: 52px; border: 0; border-radius: 8px; object-fit: cover;">
+        </td>
+    {% else %}
+        <td width="52" style="width: 52px; padding: 10px 12px 10px 0; vertical-align: middle;{{ row_border }}">
+            <table role="presentation" style="border-collapse: separate;"><tr><td width="52" height="52" bgcolor="#eef1f5" style="width: 52px; height: 52px; font-size: 0; line-height: 52px; background: #eef1f5; border-radius: 8px;">&nbsp;</td></tr></table>
+        </td>
+    {% endif %}
+    <td style="padding: 10px 0; vertical-align: middle;{{ row_border }}">
+        <p style="-webkit-hyphens: none; hyphens: none; font-size: 16px; line-height: 1.35; font-weight: bold; color: #373f50; margin: 0; Margin: 0;">{{ name }}</p>
+        {% if details is not empty %}
+            <p style="-webkit-hyphens: none; hyphens: none; font-size: 14px; line-height: 1.4; color: #6b7488; margin: 2px 0 0 0; Margin: 2px 0 0 0;">{{ details }}</p>
+        {% endif %}
+    </td>
+</tr>

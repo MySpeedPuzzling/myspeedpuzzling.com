@@ -1,0 +1,6 @@
+/* The card e-mails (templates/emails/_card_layout.html.twig), inlined after foundation-emails.css: a card's own padding
+   is the space around its content, so a button adds none of its own (Foundation gives every button 16px below - with
+   the card's 22px it left a gap under the last button, Jan 2026-11-02). Text under a button sets its own margin-top. */
+table.button {
+  margin: 0;
+  Margin: 0; }

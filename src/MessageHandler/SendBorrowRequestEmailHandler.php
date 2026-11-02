@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\BorrowRequestItem;
 use SpeedPuzzling\Web\Exceptions\BorrowRequestNotFound;
 use SpeedPuzzling\Web\Message\SendBorrowRequestEmail;
@@ -40,6 +41,7 @@ readonly final class SendBorrowRequestEmailHandler
         private UrlGeneratorInterface $urlGenerator,
         private MailerInterface $mailer,
         private TranslatorInterface $translator,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -75,6 +77,9 @@ readonly final class SendBorrowRequestEmailHandler
         $ownerId = $owner->id->toString();
         $unsubscribeUrl = $this->unsubscribeUrl->forPlayer($ownerId, $locale);
 
+        // The thumbnails: never the picture of a puzzle still kept secret
+        $now = $this->clock->now();
+
         $email = (new TemplatedEmail())
             ->from(new Address('notify@notify.myspeedpuzzling.com', 'MySpeedPuzzling'))
             ->to($ownerEmail)
@@ -89,6 +94,7 @@ readonly final class SendBorrowRequestEmailHandler
                 'ownerName' => $owner->name ?? '#' . strtoupper($owner->code),
                 'askerName' => $askerName,
                 'puzzles' => array_map(static fn (BorrowRequestItem $item): array => [
+                    'image' => $item->puzzle->isImageHiddenAt($now) ? null : $item->puzzle->image,
                     'name' => $item->puzzle->name,
                     'pieces' => $item->puzzle->piecesCount,
                     'brand' => $item->puzzle->manufacturer?->name,

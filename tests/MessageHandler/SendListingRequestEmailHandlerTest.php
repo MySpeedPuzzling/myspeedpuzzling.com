@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Message\ChangeListingRequestEmails;
 use SpeedPuzzling\Web\Message\SendListingRequestEmail;
 use SpeedPuzzling\Web\Message\WithdrawListingRequest;
@@ -50,6 +51,7 @@ final class SendListingRequestEmailHandlerTest extends KernelTestCase
             urlGenerator: $container->get(UrlGeneratorInterface::class),
             mailer: $this->mailer,
             translator: $container->get(TranslatorInterface::class),
+            clock: $container->get(ClockInterface::class),
         );
 
         $listing = $this->seedListing(self::SELLER, $this->seedPuzzle(1000, 'Lighthouse at Dusk'));
@@ -75,8 +77,8 @@ final class SendListingRequestEmailHandlerTest extends KernelTestCase
 
         $context = $email->getContext();
         self::assertSame('Ship to Brno?', $context['note']);
-        self::assertSame([['name' => 'Lighthouse at Dusk', 'pieces' => 1000, 'brand' => null, 'type' => 'both', 'price' => 10.0, 'currency' => 'EUR']], $context['listings']);
-        self::assertSame([['name' => 'Swap Me', 'pieces' => 500, 'brand' => null]], $context['offers']);
+        self::assertSame([['image' => null, 'name' => 'Lighthouse at Dusk', 'pieces' => 1000, 'brand' => null, 'type' => 'both', 'price' => 10.0, 'currency' => 'EUR']], $context['listings']);
+        self::assertSame([['image' => null, 'name' => 'Swap Me', 'pieces' => 500, 'brand' => null]], $context['offers']);
         self::assertIsString($context['answerUrl']);
         self::assertStringContainsString('/sell-swap-requests/' . $this->requestId, $context['answerUrl']);
     }

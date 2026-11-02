@@ -227,7 +227,8 @@ final class ResultReviewEmailsTest extends KernelTestCase
         $tomEmail = $this->emailTo('tom@example.com');
         self::assertSame('Zkontroluješ prosím pár svých výsledků?', $tomEmail->getSubject());
         self::assertStringContainsString('/cs/review-results?from=rc-', (string) $tomEmail->getHtmlBody());
-        self::assertStringContainsString('<div lang="cs" dir="ltr" role="article"', (string) $tomEmail->getHtmlBody());
+        // The card layout's page colour sits on the same wrapper (style before lang)
+        self::assertMatchesRegularExpression('~<div[^>]* lang="cs" dir="ltr" role="article"~', (string) $tomEmail->getHtmlBody());
         self::assertStringContainsString('<title>Zkontroluješ prosím pár svých výsledků?</title>', (string) $tomEmail->getHtmlBody());
         self::assertStringContainsString('uložil ho i někdo další z tvé dvojice/týmu', (string) $tomEmail->getHtmlBody());
     }

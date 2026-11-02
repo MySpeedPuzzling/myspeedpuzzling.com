@@ -1,68 +1,63 @@
+{% extends 'emails/_card_layout.html.twig' %}
 {% trans_default_domain 'emails' %}
 {# "Could I have these?" to the seller (SendListingRequestEmailHandler, docs/features/marketplace/12-listing-requests.md).
    Names who asks, which listings at what price and what they offer in exchange, never anybody's e-mail address: the
-   seller answers inside MySpeedPuzzling. #}
-{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
-    <wrapper>
-        <container>
-            {{ include('emails/_header.html.twig', {preheader: 'listing_request.preheader'|trans}) }}
+   seller answers inside MySpeedPuzzling.
+   The card layout (docs/features/transactional-emails.md "Card layout"): the ask with its listings, what they offer,
+   then the answer. #}
+{% set preheader = 'listing_request.preheader'|trans %}
+{% set header_link = answerUrl %}
+{% set header_link_label = 'listing_request.answer'|trans %}
 
-            <row>
-                <columns>
-                    <spacer size-sm="24"></spacer>
-                    <h3>{{ 'listing_request.title'|trans({'%buyer%': buyerName, '%count%': listings|length}) }}</h3>
-                    <spacer size-sm="8"></spacer>
-                </columns>
-            </row>
+{% block cards %}
+    {{ card_open }}
+        <h1 style="-webkit-hyphens: none; hyphens: none; font-size: 24px; line-height: 1.25; font-weight: bold; color: #373f50; margin: 0 0 12px 0; Margin: 0 0 12px 0;">{{ 'listing_request.title'|trans({'%buyer%': buyerName, '%count%': listings|length}) }}</h1>
+        <p style="-webkit-hyphens: none; hyphens: none; margin: 0 0 12px 0; Margin: 0 0 12px 0; line-height: 1.5;">{{ 'listing_request.greeting'|trans({'%name%': sellerName}) }}</p>
+        <p style="-webkit-hyphens: none; hyphens: none; margin: 0 0 6px 0; Margin: 0 0 6px 0; line-height: 1.5;">{{ 'listing_request.intro'|trans({'%buyer%': buyerName, '%count%': listings|length}) }}</p>
 
-            <row>
-                <columns>
-                    <p>{{ 'listing_request.greeting'|trans({'%name%': sellerName}) }}</p>
-                    <p>{{ 'listing_request.intro'|trans({'%buyer%': buyerName, '%count%': listings|length}) }}</p>
+        <table role="presentation" width="100%" style="width: 100%;">
+            {% for listing in listings %}
+                {% set details = ['listing_request.pieces'|trans({'%count%': listing.pieces})] %}
+                {% if listing.brand is not null %}{% set details = details|merge([listing.brand]) %}{% endif %}
+                {% set details = details|merge([('listing_request.type.' ~ listing.type)|trans]) %}
+                {% if listing.price is not null and listing.price > 0 and listing.type in ['sell', 'both'] %}{% set details = details|merge([listing.price ~ ' ' ~ listing.currency]) %}{% endif %}
+                {{ include('emails/card/_puzzle_row.html.twig', {
+                    image: listing.image ?? null,
+                    name: listing.name,
+                    details: details|join(' · '),
+                    first: loop.first,
+                }) }}
+            {% endfor %}
+        </table>
 
-                    {# The listings - inline styles, e-mail clients drop <style> #}
-                    <table role="presentation" width="100%" style="width: 100%; margin: 16px 0; background: #f6f9fc; border-left: 4px solid #d63c42; border-radius: 6px;">
-                        <tr>
-                            <td style="padding: 14px 16px;">
-                                {% for listing in listings %}
-                                    <p style="margin: 0 0 4px;">
-                                        <strong>{{ listing.name }}</strong>
-                                        <span style="color: #6b7488;"> · {{ 'listing_request.pieces'|trans({'%count%': listing.pieces}) }}{% if listing.brand is not null %} · {{ listing.brand }}{% endif %}
-                                            · {{ ('listing_request.type.' ~ listing.type)|trans }}{% if listing.price is not null and listing.price > 0 and listing.type in ['sell', 'both'] %} · {{ listing.price }} {{ listing.currency }}{% endif %}</span>
-                                    </p>
-                                {% endfor %}
+        {% if note is not null %}
+            {{ include('emails/card/_note.html.twig', {note: note}) }}
+        {% endif %}
+    {{ card_close }}
 
-                                {% if offers is not empty %}
-                                    <p style="margin: 10px 0 4px;">{{ 'listing_request.offers'|trans({'%buyer%': buyerName}) }}</p>
-                                    {% for offer in offers %}
-                                        <p style="margin: 0 0 4px;">
-                                            {{ offer.name }}
-                                            <span style="color: #6b7488;"> · {{ 'listing_request.pieces'|trans({'%count%': offer.pieces}) }}{% if offer.brand is not null %} · {{ offer.brand }}{% endif %}</span>
-                                        </p>
-                                    {% endfor %}
-                                {% endif %}
+    {% if offers is not empty %}
+        {{ card_open }}
+            <h2 style="-webkit-hyphens: none; hyphens: none; font-size: 18px; line-height: 1.3; font-weight: bold; color: #373f50; margin: 0 0 6px 0; Margin: 0 0 6px 0;">{{ 'listing_request.offers'|trans({'%buyer%': buyerName}) }}</h2>
+            <table role="presentation" width="100%" style="width: 100%;">
+                {% for offer in offers %}
+                    {{ include('emails/card/_puzzle_row.html.twig', {
+                        image: offer.image ?? null,
+                        name: offer.name,
+                        details: (['listing_request.pieces'|trans({'%count%': offer.pieces})]|merge(offer.brand is not null ? [offer.brand] : []))|join(' · '),
+                        first: loop.first,
+                    }) }}
+                {% endfor %}
+            </table>
+        {{ card_close }}
+    {% endif %}
 
-                                {% if note is not null %}
-                                    <p style="margin: 8px 0 0; font-style: italic;">“{{ note }}”</p>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    </table>
+    {{ card_open }}
+        <p style="-webkit-hyphens: none; hyphens: none; margin: 0 0 18px 0; Margin: 0 0 18px 0; line-height: 1.5;">{{ 'listing_request.how_to_answer'|trans }}</p>
+        <center style="min-width: 0;">
+            <button href="{{ answerUrl }}">{{ 'listing_request.answer'|trans }}</button>
+        </center>
+        <p style="-webkit-hyphens: none; hyphens: none; font-size: 14px; line-height: 1.5; color: #6b7488; margin: 14px 0 0 0; Margin: 14px 0 0 0;">{{ 'listing_request.no_addresses'|trans }}</p>
+    {{ card_close }}
+{% endblock %}
 
-                    <p>{{ 'listing_request.how_to_answer'|trans }}</p>
-
-                    <center>
-                        <button href="{{ answerUrl }}">{{ 'listing_request.answer'|trans }}</button>
-                    </center>
-
-                    <spacer size-sm="10"></spacer>
-
-                    <p class="small-print">{{ 'listing_request.no_addresses'|trans }}</p>
-                    <p class="small-print">{{ 'listing_request.opt_out'|trans({'%settingsUrl%': settingsUrl, '%unsubscribeUrl%': unsubscribeUrl})|raw }}</p>
-                </columns>
-            </row>
-
-            {{ include('emails/_footer.html.twig') }}
-        </container>
-    </wrapper>
-{% endapply %}
+{% block footer_note %}{{ 'listing_request.opt_out'|trans({'%settingsUrl%': settingsUrl, '%unsubscribeUrl%': unsubscribeUrl})|raw }}{% endblock %}

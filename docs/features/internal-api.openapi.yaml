@@ -2028,6 +2028,56 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
+  /internal-api/solving-times/{timeId}/members/{playerId}/replace-with-guest:
+    parameters:
+      - $ref: "#/components/parameters/SolvingTimeId"
+      - $ref: "#/components/parameters/PlayerId"
+    post:
+      summary: Replace a registered member of a pair/team result with a guest
+      operationId: replaceGroupMemberWithGuest
+      description: |
+        A player added to somebody's pair/team result by mistake becomes the guest
+        the tracker meant - in this one result only (its snapshot and its pair/team).
+        409 when the player tracked the result or is not a registered member of it.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                guestName:
+                  type: string
+                  maxLength: 100
+                  description: Default the player's own name.
+      responses:
+        "200":
+          description: The result's group now
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [timeId, teamId, puzzlers]
+                properties:
+                  timeId: { type: string, format: uuid }
+                  teamId: { type: [string, "null"], format: uuid }
+                  puzzlers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        playerId: { type: [string, "null"], format: uuid }
+                        guestName: { type: [string, "null"] }
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
   /internal-api/players/{playerId}/email-block:
     parameters:
       - $ref: "#/components/parameters/PlayerId"

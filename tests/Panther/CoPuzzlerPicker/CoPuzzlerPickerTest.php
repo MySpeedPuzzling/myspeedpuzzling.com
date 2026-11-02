@@ -214,6 +214,27 @@ final class CoPuzzlerPickerTest extends CoPuzzlerPickerTestCase
         self::assertSame(['Grandma', '#PLAYER3'], self::submittedGroup($client));
     }
 
+    public function testSeveralTypedNamesNeverQuietlyAddAStrangerOfOneOfThem(): void
+    {
+        // Production 2026-10-22: "Julia, Jennifer" added a stranger's account named Jennifer, not the friend Jennifer
+        $client = self::openAddForm();
+
+        self::switchTo($client, 'team');
+
+        // The stranger is among the search's hits of this session…
+        self::search($client, 'Sarah Williams');
+        $client->waitFor('.copuzzler-search .ts-dropdown .option[data-value="' . self::SARAH . '"]');
+        self::searchInput($client)->sendKeys(str_repeat(WebDriverKeys::BACKSPACE, strlen('Sarah Williams')));
+
+        // …and still, typed in one go with somebody else, the name is a guest
+        self::search($client, 'Aunt Zoe, Sarah Williams');
+        $client->waitFor('.copuzzler-search .ts-dropdown .create');
+        self::searchInput($client)->sendKeys(WebDriverKeys::ENTER);
+        $client->waitFor('.copuzzler-chip[data-key="g:sarah williams"]');
+
+        self::assertSame(['Aunt Zoe', 'Sarah Williams'], self::submittedGroup($client));
+    }
+
     public function testNoMorePeopleThanTheMaximum(): void
     {
         $client = self::openAddForm();

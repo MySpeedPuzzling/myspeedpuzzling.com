@@ -192,6 +192,19 @@ the card opens instantly with skeleton chips. Edit form, 422 re-render and `?tea
     with both switches on it must be one attempt that is both (`PuzzlesSorter::filterGroupedByAttempt()`,
     `groupPuzzlesByTeam()`).
 
+### A player added by mistake (2026-11-02)
+
+A puzzler typed "Julia, Jennifer" meaning her friend Jennifer, a guest in two of her earlier teams; the result got a
+stranger's account named "Jennifer" instead, who wrote to us. With several names typed at once, `typedPeople(input,
+true)` → `knownByLabel()` turned a name into a registered player when it matched *exactly* - from the player's own
+people **and from the search's hits of that session**, and never a known guest. Now `knownByLabel()` matches only
+the player's own people (`this.known`: co-puzzlers, favorites, whoever they added in this form); anything else stays
+a guest. Picking a search hit (tap, or Enter on the highlighted hit) still adds that account - a visible choice.
+Fixing such a result: the internal API `POST /internal-api/solving-times/{timeId}/members/{playerId}/replace-with-guest`
+(`ReplaceGroupMemberWithGuest`, [`internal-api.md`](../internal-api.md) "Pairs and teams") - the player becomes the
+guest in that one result. The player can also leave by editing the result (any registered member may,
+`group-time-editing.md`).
+
 ## Guests, archive, cleanup (2026-09-21)
 
 - **`PuzzlingTeamMemberConversion`** is the one place that changes who a member *is*: `playerToGuest()` (account

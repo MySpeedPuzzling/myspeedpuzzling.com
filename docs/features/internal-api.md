@@ -307,6 +307,30 @@ curl -s -X POST -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type:
   https://myspeedpuzzling.com/internal-api/solving-times/<timeId>/mark-suspicious
 ```
 
+### Pairs and teams
+
+A registered player added to somebody's pair/team result by mistake (the tracker meant a guest of the same name and
+picked the account - [`pairs-and-teams/README.md`](./pairs-and-teams/README.md) "A player added by mistake"). Keyed by
+the **solving time id** and the **player id**.
+
+| Method | Path | Purpose | Body fields (all optional) |
+|---|---|---|---|
+| `POST` | `/internal-api/solving-times/{timeId}/members/{playerId}/replace-with-guest` | The player becomes a guest in this one result | `guestName` (≤ 100, default: the player's name) |
+
+- Only this result changes: its group snapshot, and its pair/team (the exact set of people with the guest instead -
+  found or created by `PuzzlingTeamResolver`). Other results of the old pair/team stay as they are; a pair/team left
+  without results goes with `myspeedpuzzling:cleanup-empty-puzzling-teams`. The group keeps its size, so the
+  prediction stays; statistics and insights follow `PuzzleSolvingTimeModified`, badges and XP are recalculated for
+  everybody who was in the group. Nobody is notified.
+- Answers `200` with `timeId`, `teamId` and `puzzlers` (`playerId` / `guestName` each, the tracker first).
+- `409` when the player tracked the result (it is theirs) or is not a registered member of it, `404` for an unknown
+  time or player, `400` for an unknown field or a player without a name and no `guestName`.
+
+```bash
+curl -s -X POST -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
+  https://myspeedpuzzling.com/internal-api/solving-times/<timeId>/members/<playerId>/replace-with-guest | jq
+```
+
 ### E-mail blocks and messages to players
 
 For a player whose e-mail does not arrive (a mistyped domain like `googlemail.mail.com`): stop every e-mail to the

@@ -694,6 +694,19 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->puzzlingTeam = $puzzlingTeam;
     }
 
+    /**
+     * A registered member was added by mistake and is replaced by the guest the tracker meant (ReplaceGroupMemberWithGuest).
+     * The group keeps its size, so the prediction stays; statistics and insights follow the event.
+     */
+    public function replaceMistakenMember(PuzzlersGroup $group, PuzzlingTeam $puzzlingTeam): void
+    {
+        $this->correctGroup($group, $puzzlingTeam);
+
+        $this->recordThat(
+            new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
+        );
+    }
+
     private function forgetPrediction(): void
     {
         $this->predictable = null;

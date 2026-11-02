@@ -145,11 +145,15 @@ export default class extends Controller {
         return people;
     }
 
+    /**
+     * Only the player's own people (co-puzzlers, favorites): a search hit of exactly that name is a stranger who shares
+     * it - "Julia, Jennifer" must never quietly add somebody's account (2026-10-22, a team got a stranger "Jennifer").
+     * A known guest of that name stays the guest (personFromValue gives the same key).
+     */
     knownByLabel(label) {
         const wanted = label.toLowerCase();
-        const candidates = [...this.known.values(), ...Object.values(this.tomSelect?.options || {}).filter(option => !option.created)];
 
-        return candidates.find(person => !person.guest && person.label && person.label.toLowerCase() === wanted) || null;
+        return [...this.known.values()].find(person => !person.guest && person.label && person.label.toLowerCase() === wanted) || null;
     }
 
     /** Same normalisation as TeamComposition::guestMemberKey() - good enough to match suggestions. */

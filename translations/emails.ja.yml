@@ -455,13 +455,13 @@ activity_digest:
         streak: "連続日数"
     how_title: "パズルの内訳"
     progress_title: "あなたの進捗"
-    busiest_day: "{1}いちばん頑張った日：%day%（1パズル、%pieces%ピース）|]1,Inf[いちばん頑張った日：%day%（%count%パズル、%pieces%ピース）"
+    busiest_day: "{1}いちばん頑張った日：%day%（1パズル、%pieces%ピース）|[0,Inf[いちばん頑張った日：%day%（%count%パズル、%pieces%ピース）"
     pieces: "%pieces%ピース"
     split:
         solo: "ソロ"
         duo: "ペア"
         team: "チーム"
-        numbers: "{1}1パズル、%pieces%ピース|]1,Inf[%count%パズル、%pieces%ピース"
+        numbers: "{1}1パズル、%pieces%ピース|[0,Inf[%count%パズル、%pieces%ピース"
     mark:
         attempts: "%count%回挑戦"
         pair: "ペア"

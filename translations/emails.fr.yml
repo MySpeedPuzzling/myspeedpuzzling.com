@@ -455,15 +455,15 @@ activity_digest:
         streak: "Jours d'affilée"
     how_title: "Comment vous avez fait vos puzzles"
     progress_title: "Votre progression"
-    busiest_day: "{1}Jour le plus actif : %day%, 1 puzzle, %pieces% pièces|]1,Inf[Jour le plus actif : %day%, %count% puzzles, %pieces% pièces"
+    busiest_day: "{1}Jour le plus actif : %day%, 1 puzzle, %pieces% pièces|[0,Inf[Jour le plus actif : %day%, %count% puzzles, %pieces% pièces"
     pieces: "%pieces% pièces"
     split:
         solo: "Solo"
         duo: "En duo"
         team: "En équipe"
-        numbers: "{1}1 puzzle, %pieces% pièces|]1,Inf[%count% puzzles, %pieces% pièces"
+        numbers: "{1}1 puzzle, %pieces% pièces|[0,Inf[%count% puzzles, %pieces% pièces"
     mark:
-        attempts: "{1}1 tentative|]1,Inf[%count% tentatives"
+        attempts: "{1}1 tentative|[0,Inf[%count% tentatives"
         pair: "en duo"
         team: "équipe de %count%"
         personal_best: "meilleur temps personnel"

@@ -443,15 +443,15 @@ activity_digest:
         streak: "Tage in Folge"
     how_title: "So hast du gepuzzelt"
     progress_title: "Dein Fortschritt"
-    busiest_day: "{1}Stärkster Tag: %day%, 1 Puzzle, %pieces% Teile|]1,Inf[Stärkster Tag: %day%, %count% Puzzles, %pieces% Teile"
+    busiest_day: "{1}Stärkster Tag: %day%, 1 Puzzle, %pieces% Teile|[0,Inf[Stärkster Tag: %day%, %count% Puzzles, %pieces% Teile"
     pieces: "%pieces% Teile"
     split:
         solo: "Solo"
         duo: "Zu zweit"
         team: "Im Team"
-        numbers: "{1}1 Puzzle, %pieces% Teile|]1,Inf[%count% Puzzles, %pieces% Teile"
+        numbers: "{1}1 Puzzle, %pieces% Teile|[0,Inf[%count% Puzzles, %pieces% Teile"
     mark:
-        attempts: "{1}1 Versuch|]1,Inf[%count% Versuche"
+        attempts: "{1}1 Versuch|[0,Inf[%count% Versuche"
         pair: "zu zweit"
         team: "im %count%er-Team"
         first_try: "erster Versuch"

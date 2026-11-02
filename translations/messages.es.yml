@@ -9047,7 +9047,7 @@ my_activity:
         solo: "Solo"
         duo: "En pareja"
         team: "En equipo"
-        numbers: "{1}1 puzzle, %pieces% piezas|]1,Inf[%count% puzzles, %pieces% piezas"
+        numbers: "{1}1 puzzle, %pieces% piezas|[0,Inf[%count% puzzles, %pieces% piezas"
     mark:
         awaiting_verification: "Pendiente de verificación"
         personal_best: "Récord personal"

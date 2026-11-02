@@ -9036,7 +9036,7 @@ my_activity:
         solo: "ソロ"
         duo: "ペア"
         team: "チーム"
-        numbers: "{1}1パズル、%pieces%ピース|]1,Inf[%count%パズル、%pieces%ピース"
+        numbers: "{1}1パズル、%pieces%ピース|[0,Inf[%count%パズル、%pieces%ピース"
     mark:
         awaiting_verification: "確認待ち"
         personal_best: "自己ベスト"

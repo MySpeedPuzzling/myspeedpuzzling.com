@@ -9073,7 +9073,7 @@ my_activity:
         solo: "Sólo"
         duo: "Ve dvojici"
         team: "V týmu"
-        numbers: "{1}1 puzzle, %pieces% dílků|[2,4]%count% puzzle, %pieces% dílků|[5,Inf[%count% puzzlí, %pieces% dílků"
+        numbers: "{1}1 puzzle, %pieces% dílků|[2,4]%count% puzzle, %pieces% dílků|[0,Inf[%count% puzzlí, %pieces% dílků"
     mark:
         awaiting_verification: "Čeká na ověření"
         personal_best: "Osobní rekord"

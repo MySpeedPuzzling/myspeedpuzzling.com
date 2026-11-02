@@ -455,15 +455,15 @@ activity_digest:
         streak: "Días de racha"
     how_title: "Cómo armaste"
     progress_title: "Tu progreso"
-    busiest_day: "{1}Día más activo: %day%, 1 puzzle, %pieces% piezas|]1,Inf[Día más activo: %day%, %count% puzzles, %pieces% piezas"
+    busiest_day: "{1}Día más activo: %day%, 1 puzzle, %pieces% piezas|[0,Inf[Día más activo: %day%, %count% puzzles, %pieces% piezas"
     pieces: "%pieces% piezas"
     split:
         solo: "Solo"
         duo: "En pareja"
         team: "En equipo"
-        numbers: "{1}1 puzzle, %pieces% piezas|]1,Inf[%count% puzzles, %pieces% piezas"
+        numbers: "{1}1 puzzle, %pieces% piezas|[0,Inf[%count% puzzles, %pieces% piezas"
     mark:
-        attempts: "{1}1 intento|]1,Inf[%count% intentos"
+        attempts: "{1}1 intento|[0,Inf[%count% intentos"
         pair: "en pareja"
         team: "equipo de %count%"
         personal_best: "récord personal"

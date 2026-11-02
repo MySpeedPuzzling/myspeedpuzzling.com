@@ -455,15 +455,15 @@ activity_digest:
         streak: "Dní v řadě"
     how_title: "Jak se skládalo"
     progress_title: "Tvůj postup"
-    busiest_day: "{1}Nejrušnější den: %day%, 1 puzzle, %pieces% dílků|[2,4]Nejrušnější den: %day%, %count% puzzle, %pieces% dílků|[5,Inf[Nejrušnější den: %day%, %count% puzzlí, %pieces% dílků"
+    busiest_day: "{1}Nejrušnější den: %day%, 1 puzzle, %pieces% dílků|[2,4]Nejrušnější den: %day%, %count% puzzle, %pieces% dílků|[0,Inf[Nejrušnější den: %day%, %count% puzzlí, %pieces% dílků"
     pieces: "%pieces% dílků"
     split:
         solo: "Sólo"
         duo: "Ve dvojici"
         team: "V týmu"
-        numbers: "{1}1 puzzle, %pieces% dílků|[2,4]%count% puzzle, %pieces% dílků|[5,Inf[%count% puzzlí, %pieces% dílků"
+        numbers: "{1}1 puzzle, %pieces% dílků|[2,4]%count% puzzle, %pieces% dílků|[0,Inf[%count% puzzlí, %pieces% dílků"
     mark:
-        attempts: "{1}1 pokus|[2,4]%count% pokusy|[5,Inf[%count% pokusů"
+        attempts: "{1}1 pokus|[2,4]%count% pokusy|[0,Inf[%count% pokusů"
         pair: "ve dvojici"
         team: "v %count%členném týmu"
         personal_best: "osobní rekord"

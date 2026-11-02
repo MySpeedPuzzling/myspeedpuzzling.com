@@ -8919,7 +8919,7 @@ my_activity:
         solo: "Solo"
         duo: "Zu zweit"
         team: "Im Team"
-        numbers: "{1}1 Puzzle, %pieces% Teile|]1,Inf[%count% Puzzles, %pieces% Teile"
+        numbers: "{1}1 Puzzle, %pieces% Teile|[0,Inf[%count% Puzzles, %pieces% Teile"
     mark:
         awaiting_verification: "Wartet auf Überprüfung"
         first_try: "Erster Versuch"

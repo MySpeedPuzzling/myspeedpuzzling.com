@@ -9320,7 +9320,7 @@ my_activity:
         solo: "Solo"
         duo: "In pairs"
         team: "In teams"
-        numbers: "{1}1 puzzle, %pieces% pieces|]1,Inf[%count% puzzles, %pieces% pieces"
+        numbers: "{1}1 puzzle, %pieces% pieces|[0,Inf[%count% puzzles, %pieces% pieces"
     mark:
         awaiting_verification: "Awaiting verification"
         personal_best: "Personal best"

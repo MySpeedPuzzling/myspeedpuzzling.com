@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestAlreadyReviewed;
 use SpeedPuzzling\Web\Exceptions\PuzzleEanAlreadyInCatalogue;
 use SpeedPuzzling\Web\Exceptions\NamePublicationNotConfirmed;
 use SpeedPuzzling\Web\Exceptions\PuzzleHiddenByHand;
+use SpeedPuzzling\Web\Exceptions\PlayerNotInGroupTime;
 use SpeedPuzzling\Web\Exceptions\PuzzleImageChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\PuzzleInTwoRoundsOfCategory;
 use SpeedPuzzling\Web\Exceptions\PuzzleNameAlreadyPublic;
@@ -124,6 +125,9 @@ return App::config([
             InvalidPuzzleImageAnalysis::class => ['log_level' => 'info'],
             InvalidPuzzleDifficultyEstimate::class => ['log_level' => 'info'],
             PuzzleImageChangedMeanwhile::class => ['log_level' => 'info'],
+            // Replacing a pair/team member with a guest refused - the tracker, or not a member of that result
+            // (docs/features/internal-api.md, Pairs and teams)
+            PlayerNotInGroupTime::class => ['log_level' => 'info'],
         ],
         'trusted_headers' => ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-prefix'],
         'trusted_proxies' => '%env(TRUSTED_PROXIES)%',

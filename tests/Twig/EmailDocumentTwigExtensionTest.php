@@ -26,6 +26,18 @@ final class EmailDocumentTwigExtensionTest extends TestCase
         self::assertStringContainsString('<body style="font-size: 16px;">', $html, 'The body stays as inlined');
     }
 
+    public function testATemplateMayAskForAPageBackground(): void
+    {
+        $inlined = '<html><body style="font-size: 16px;"><table data-email-background="#f3f5f9" bgcolor="#f3f5f9"><tr><td>x</td></tr></table></body></html>';
+        $html = (new EmailDocumentTwigExtension())->emailDocument($inlined, 'en', 'Your week');
+
+        self::assertStringContainsString('<body bgcolor="#f3f5f9" style="font-size: 16px;">', $html);
+        self::assertStringContainsString('<div style="background-color: #f3f5f9;" lang="en"', $html);
+
+        $plain = (new EmailDocumentTwigExtension())->emailDocument(self::INLINED, 'en', 'Your code');
+        self::assertStringNotContainsString('<body bgcolor', $plain, 'Every other e-mail keeps its white page');
+    }
+
     public function testDocumentSemantics(): void
     {
         $html = (new EmailDocumentTwigExtension())->emailDocument(self::INLINED, 'cs', 'Tvůj kód & "odkaz"');

@@ -436,7 +436,24 @@ activity_digest:
     karma: "{1}Danke: 1 deiner Beiträge zur Puzzle-Datenbank wurde angenommen.|[0,Inf[Danke: %count% deiner Beiträge zur Puzzle-Datenbank wurden angenommen."
     level: "Level %level%"
     level_up: "Level %from% → %to%"
+    grid:
+        puzzles: "Puzzles"
+        pieces: "Teile"
+        time: "Puzzlezeit"
+        streak: "Tage in Folge"
+    how_title: "So hast du gepuzzelt"
+    progress_title: "Dein Fortschritt"
+    busiest_day: "{1}Stärkster Tag: %day%, 1 Puzzle, %pieces% Teile|]1,Inf[Stärkster Tag: %day%, %count% Puzzles, %pieces% Teile"
+    pieces: "%pieces% Teile"
+    split:
+        solo: "Solo"
+        duo: "Zu zweit"
+        team: "Im Team"
+        numbers: "{1}1 Puzzle, %pieces% Teile|]1,Inf[%count% Puzzles, %pieces% Teile"
     mark:
+        attempts: "{1}1 Versuch|]1,Inf[%count% Versuche"
+        pair: "zu zweit"
+        team: "im %count%er-Team"
         first_try: "erster Versuch"
         personal_best: "persönliche Bestzeit"
     miss_you:
@@ -467,11 +484,6 @@ activity_digest:
     rating_up: "{1}1 Platz höher|[0,Inf[%count% Plätze höher"
     results_title: "Highlights"
     skill_tier: "Neue Skill-Stufe bei %pieces% Teilen: %tier%"
-    stat:
-        pieces: "{1}Teil|]1,Inf[Teile|{0}Teile"
-        puzzles: "{1}Puzzle|]1,Inf[Puzzles|{0}Puzzles"
-        streak: "Tage in Folge"
-        time: "gepuzzelt"
     subject:
         month: "Dein Puzzle-%month%"
         two_weeks: "Deine zwei Puzzlewochen: %dates%"

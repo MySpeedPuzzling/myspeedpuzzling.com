@@ -9032,6 +9032,11 @@ my_activity:
     results_title: "あなたのパズル"
     pieces: "{1}1ピース|[0,Inf[%count%ピース"
     place: "%total%人中%rank%位"
+    split:
+        solo: "ソロ"
+        duo: "ペア"
+        team: "チーム"
+        numbers: "{1}1パズル、%pieces%ピース|]1,Inf[%count%パズル、%pieces%ピース"
     mark:
         awaiting_verification: "確認待ち"
         personal_best: "自己ベスト"

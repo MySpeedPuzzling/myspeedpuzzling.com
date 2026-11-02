@@ -9043,6 +9043,11 @@ my_activity:
     results_title: "Tus puzzles"
     pieces: "{1}1 pieza|[0,Inf[%count% piezas"
     place: "#%rank% de %total%"
+    split:
+        solo: "Solo"
+        duo: "En pareja"
+        team: "En equipo"
+        numbers: "{1}1 puzzle, %pieces% piezas|]1,Inf[%count% puzzles, %pieces% piezas"
     mark:
         awaiting_verification: "Pendiente de verificación"
         personal_best: "Récord personal"

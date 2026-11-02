@@ -27,7 +27,9 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestDouble\InMemoryLogger;
 use SpeedPuzzling\Web\Tests\TestDouble\TransportSpy;
+use SpeedPuzzling\Web\Services\Digest\PlayerPeriodActivityReader;
 use SpeedPuzzling\Web\Value\ContentDigestKind;
+use SpeedPuzzling\Web\Value\DigestPeriod;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
@@ -124,7 +126,7 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
 
         self::assertStringContainsString('+1 vs last week', $html, '2 puzzles against 1 the week before');
         self::assertStringContainsString('2h', $html, 'Two hours of puzzling');
-        self::assertStringContainsString('time puzzling', $html);
+        self::assertStringContainsString('Time puzzling', $html);
         self::assertMatchesRegularExpression('/\d+ XP to Level \d+/', $html, 'The bar toward the next level');
         self::assertMatchesRegularExpression('/#\d+ of \d+/', $html, 'A highlight carries its leaderboard place');
         self::assertSame(3, substr_count($html, '/img/badges/') - substr_count($html, 'opacity: 0.6'), 'At most three achievements');
@@ -317,6 +319,32 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
         ($this->handler($transport))(new SendPlayerContentDigest(self::FREE_PLAYER, 'miss-you-2030-03-12', ContentDigestKind::MissYou, $this->insertRun()));
 
         self::assertCount(0, $transport->sent);
+    }
+
+    public function testAPuzzleSolvedSeveralTimesIsOneHighlightAndOnlyItsBestTimeHasThePlace(): void
+    {
+        $this->insertSolve(self::MEMBER, '2030-03-05 18:00:00', 3000);
+        $this->insertSolve(self::MEMBER, '2030-03-06 18:00:00', 1234);
+        $this->insertSolve(self::MEMBER, '2030-03-07 18:00:00', 2000);
+
+        $transport = new TransportSpy();
+        ($this->handler($transport))(new SendPlayerContentDigest(self::MEMBER, self::PERIOD, ContentDigestKind::Activity, $this->insertRun()));
+
+        $email = $transport->sent[0];
+        self::assertInstanceOf(TemplatedEmail::class, $email);
+        $this->render($email);
+        $html = (string) $email->getHtmlBody();
+        self::assertSame(1, substr_count($html, '3 attempts'), 'One line for the puzzle');
+        self::assertStringContainsString('3 attempts', $html);
+        self::assertStringContainsString('00:20:34', $html, 'The fastest attempt of the week');
+        self::assertSame(1, preg_match_all('/#\d+ of \d+/', $html), 'The place belongs to the best time only');
+
+        // The "Your week" page lists every attempt - the place stays on the one that earned it
+        $activity = self::getContainer()->get(PlayerPeriodActivityReader::class)->read(self::MEMBER, DigestPeriod::fromKey(self::PERIOD), true);
+        self::assertSame([null, 1234, null], array_map(
+            static fn (\SpeedPuzzling\Web\Results\PeriodResult $result): null|int => $result->rank === null ? null : $result->secondsToSolve,
+            array_values(array_filter($activity->results, static fn ($result): bool => $result->puzzleId === PuzzleFixture::PUZZLE_500_04 && $result->solvedAt->format('Y-m-d') >= '2030-03-05')),
+        ));
     }
 
     public function testNothingIsSentWhileTheLaunchSwitchIsOff(): void
@@ -545,7 +573,7 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
         $this->insertSolve($playerId, $atUtc);
     }
 
-    private function insertSolve(string $playerId, string $atUtc): void
+    private function insertSolve(string $playerId, string $atUtc, int $seconds = 3600): void
     {
         $this->database->executeStatement(
             'INSERT INTO puzzle_solving_time
@@ -553,13 +581,14 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
                  comment, finished_puzzle_photo, first_attempt, unboxed, puzzlers_count, puzzling_type,
                  suspicious, pieces_count_snapshot)
              VALUES
-                (:id, 3600, :playerId, :puzzleId, :at, true, NULL, :at,
+                (:id, :seconds, :playerId, :puzzleId, :at, true, NULL, :at,
                  NULL, NULL, false, false, 1, \'solo\', false, 500)',
             [
                 'id' => Uuid::uuid7()->toString(),
                 'playerId' => $playerId,
                 'puzzleId' => PuzzleFixture::PUZZLE_500_04,
                 'at' => $atUtc,
+                'seconds' => $seconds,
             ],
         );
     }

@@ -105,6 +105,13 @@ HTML;
 
         $html = (string) preg_replace('/^\s*<!DOCTYPE[^>]*>\s*/i', '', $html);
         $html = (string) preg_replace('/<html\b[^>]*>/i', $htmlTag . $head, $html, 1);
+        // A page colour asked for by the template (the digest's grey page behind its cards): on <body> and on the
+        // wrapper too - the template's own table ends with its content, the rest of the window would stay white
+        if (preg_match('/\sdata-email-background="(#[0-9a-f]{6})"/i', $html, $background) === 1) {
+            $wrapperOpen = str_replace('<div ', sprintf('<div style="background-color: %s;" ', $background[1]), $wrapperOpen);
+            $html = (string) preg_replace('/<body\b/i', sprintf('<body bgcolor="%s"', $background[1]), $html, 1);
+        }
+
         $html = (string) preg_replace('/<body\b([^>]*)>/i', '<body$1>' . $wrapperOpen, $html, 1);
         $html = (string) preg_replace('~</body>~i', '</div></body>', $html, 1);
         $html = self::layoutTablesArePresentation($html);

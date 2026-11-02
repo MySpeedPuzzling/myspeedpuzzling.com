@@ -191,6 +191,7 @@ e-mail, in order (`templates/emails/content_digest_activity.html.twig`):
 | Subject "Your week in puzzles: 12–18 Oct" / "Your two weeks in puzzles: …" / "Your October in puzzles" (ICU skeleton `MMMd` / `MMMM` = the standalone month name, e-mail locale; no numbers, no site name - Jan 2026-10-19) | always | - |
 | "Your week, Name" + the dates (ICU skeleton, e-mail locale) | always | - |
 | puzzles · pieces (each with "+3 vs last week" against the period before, `previousPeriodTotals()`; nothing when that one was empty or equal) · time puzzling (`compactTime`, when > 0) · day streak | always (streak > 1, not opted out) | - |
+| "Solo: 1 puzzle, 9,000 pieces · In teams: 1 puzzle, 500 pieces" (`PlayerPeriodActivity::splitByPuzzlingType()`, from the counted results - no query; solo / in pairs / in teams, only the kinds the period holds; each part kept on one line) - a pair/team puzzle counts with all its pieces for every member, so without it a team puzzle read as solo (player feedback 2026-11-02) | the period holds a pair or team result | - |
 | Level block: "Level N → M" · "+X XP this week", a bar toward the next level (table cells) and "N XP to Level M+1" (no bar at Level 50) | XP visible | XP history (`xp_history`) |
 | New: achievement · tier · +N AP (members, the 3 with the most points, then "+N more achievements") / "You earned an achievement. Become a member to find out which." | earned in the period | the achievement page / the "Your week" page / membership |
 | "5 new achievements" + their Bronze seals · "You already hold N of them, from your past results." (members) / "Members collect achievements…" (others) | an achievement drop was released in the period (`AchievementDrops`, docs/features/badges.md "Achievement drops") | the catalogue |
@@ -199,7 +200,7 @@ e-mail, in order (`templates/emails/content_digest_activity.html.twig`):
 | MSP Rating: #rank of total · up/down N places | moved (snapshots before vs in the period, 500 pc) | the ladder |
 | New skill tier for N pieces (members) | tier changed | the ladder |
 | Karma thanks | karma gained (workstream F hook) | (F's karma history) |
-| Highlights: up to 3 results, PB / first try first, each with its place on the puzzle's solo leaderboard ("#4 of 210", `GetRanking::forPuzzles()` for the period's puzzles - one statement) | results | the puzzle |
+| Highlights: up to 3 lines, **one per puzzle** (and solo / pair / team: the period's fastest attempt + "3 attempts", `PlayerPeriodActivity::highlights()`), PB / first try first, pair / "team of 3" marked, the place only next to the time that holds it (player feedback 2026-11-02 - every attempt showed today's place), each with its place on the puzzle's solo leaderboard ("#4 of 210", `GetRanking::forPuzzles()` for the period's puzzles - one statement) | results | the puzzle |
 | **See your week** (44 px Inky button) | always | `my_activity` with the period key |
 | Most solved by the community | ≥ 3 puzzlers solved one puzzle | the puzzle |
 | You get this every Monday · Change e-mails · Unsubscribe - in the footer, under its rule, centred (`_footer.html.twig` `note`) | always | token preferences page (no sign-in) / one-click unsubscribe |
@@ -212,6 +213,33 @@ any more (launch decision); AP only, and only members see which.
 runs on/after Mon 12 Oct 00:00 Prague, the first digest (12-18 Oct) shows every backfilled achievement as new - run
 it before, or tell the orchestrator to filter (see `docs/TODO.md`). XP is safe: backfill lines are `in_weekly_delta = false`.
 
+## Design
+
+Both digest e-mails (activity + "We miss you") share `templates/emails/content_digest/_layout.html.twig` (2026-11-02,
+after Jan pointed at UptimeRobot's and Sentry's weekly reports): white cards (1 px `#e3e7ee` border, 12 px corners) on a
+`#f3f5f9` page, at most 600 px wide, full width on a phone; header = logo + name on the left, the e-mail's page
+("See your week →") on the right; small print on the grey page in `#5f6a80` (4.98:1 there - `#6b7488` would be 4.29:1).
+Activity cards: the period (title, dates, a 2 × 2 grid label over value, the change against the period before as a pill -
+green up, neutral grey down, never red), "How you puzzled" (solo / in pairs / in teams bar + legend, pieces per day for a
+week or two weeks + "Busiest day" in words), "Your progress", Highlights (thumbnail, name + pieces / pair / team / PB /
+first try, time + place right-aligned), the button, the community card.
+
+Rules from the research behind it (mail apps as of late 2025):
+
+- **No layout depends on a media query** - Gmail apps with a non-Google account ignore `<style>`. One column of cards;
+  the stat grid is two 50 % cells on every screen (half a phone still fits "9h 56min" at 28 px).
+- **A border, never a shadow** (Gmail apps and classic Outlook drop `box-shadow`); square corners in classic Outlook
+  are accepted.
+- **Charts are table cells** with `bgcolor` and pixel heights (`font-size: 0; line-height: Npx;
+  mso-line-height-rule: exactly`), never a server-rendered image (one per recipient would be thousands of renders a
+  week, and image blocking would hide them). Line charts are therefore out. Every chart is also said in words.
+- **The page colour**: the grey sits on a table *and* on `<body>` + the article wrapper - the template asks for it
+  with `data-email-background="#f3f5f9"` and `email_document` sets it (other e-mails keep their white page).
+- `hyphens: none` on the header and the footer (Foundation hyphenates cells: "MySpeedPuz-zling", "si-mona@").
+- Colour scheme stays `light only`; mid-tone bar colours (solo `#d63c42`, pairs `#f0a04b`, teams `#3d5a98`) survive the
+  Gmail apps' forced dark mode.
+- HTML ≈ 45-55 KB per digest - keep it under ~80 KB (Gmail clips at 102 KB).
+
 ## "Your week" page
 
 Route `my_activity` - `/en/my/activity/{period}` (cs `/moje/aktivita/…`, all 6 locales), `{period}` = a week, two
@@ -222,7 +250,7 @@ for non-admins; invalid / future / pre-2020 periods are 404; `no-store`.
 
 What it shows (one column, 375 px first, 44 px tap targets): the period and its dates, previous / next (no next
 while the period runs), a Week / 2 weeks / Month switch on the same start date; numbers (puzzles, pieces, puzzling
-time, streak); level + XP → XP history; achievements (members: badge + tier + AP → achievement page; others: the
+time, streak) + the same solo / in pairs / in teams line as the e-mail; level + XP → XP history; achievements (members: badge + tier + AP → achievement page; others: the
 teaser + membership); MSP Rating place and movement, skill tier changes (members); karma (hook); **every result** of the
 period - puzzle, brand, pieces, time, the current place on the puzzle ("#3 of 40"), Personal best / First try / Pair /
 Team / Awaiting verification marks, its XP; favourites' activity; the community's most solved; **what next** - the

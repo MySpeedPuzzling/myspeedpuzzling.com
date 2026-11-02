@@ -9316,6 +9316,11 @@ my_activity:
     results_title: "Your puzzles"
     pieces: "{1}1 piece|[0,Inf[%count% pieces"
     place: "#%rank% of %total%"
+    split:
+        solo: "Solo"
+        duo: "In pairs"
+        team: "In teams"
+        numbers: "{1}1 puzzle, %pieces% pieces|]1,Inf[%count% puzzles, %pieces% pieces"
     mark:
         awaiting_verification: "Awaiting verification"
         personal_best: "Personal best"

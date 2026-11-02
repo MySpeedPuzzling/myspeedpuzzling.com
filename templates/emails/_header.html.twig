@@ -5,11 +5,7 @@
    so it stays visible when a mail app darkens the background. docs/features/transactional-emails.md #}
 <row>
     <columns>
-        {% if preheader is defined and preheader is not empty %}
-            {# The inbox preview line. Hidden everywhere; the zero-width filler keeps the preview from running on into
-               "MySpeedPuzzling" and the body text. The plain-text part leaves it out (EmailHtmlToTextConverter). #}
-            <div class="preheader" style="display: none; font-size: 1px; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden; mso-hide: all; color: #ffffff;">{{ preheader }}{% for i in 1..90 %}&#847;&zwnj;&nbsp;{% endfor %}</div>
-        {% endif %}
+        {{ include('emails/_preheader.html.twig') }}
         <table style="width: 100%;"><tr><td style="font-size: 0; line-height: 0; padding: 0; height: 12px;" height="12">&nbsp;</td></tr></table>
         <table style="width: 100%; border-collapse: collapse; border-bottom: 2px solid #fe696a;">
             <tr>

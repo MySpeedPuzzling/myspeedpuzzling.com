@@ -1,0 +1,6 @@
+{# The inbox preview line (docs/features/transactional-emails.md "Preheader") - the slim header and the digest layout #}
+{% if preheader is defined and preheader is not empty %}
+    {# The inbox preview line. Hidden everywhere; the zero-width filler keeps the preview from running on into
+       "MySpeedPuzzling" and the body text. The plain-text part leaves it out (EmailHtmlToTextConverter). #}
+    <div class="preheader" style="display: none; font-size: 1px; line-height: 1px; max-height: 0; max-width: 0; opacity: 0; overflow: hidden; mso-hide: all; color: #ffffff;">{{ preheader }}{% for i in 1..90 %}&#847;&zwnj;&nbsp;{% endfor %}</div>
+{% endif %}

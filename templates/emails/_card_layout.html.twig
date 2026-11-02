@@ -1,0 +1,62 @@
+{% trans_default_domain 'emails' %}
+{#
+    The card layout (docs/features/transactional-emails.md "Card layout", design + research in
+    docs/features/content-digest/README.md §"Design"): white cards on a light grey page, at most 600 px wide, full
+    width on a phone. Built for what mail apps really support (research 2026-11-02): one column of cards, never a
+    media query the layout depends on (Gmail apps with non-Google accounts ignore <style>), a 1 px border instead of a
+    shadow (Gmail apps and classic Outlook drop box-shadow), square corners in classic Outlook are fine, colours as
+    `bgcolor` on cells, the page colour on a table (Gmail drops <body> styles), every chart also said in words.
+    Used by the summary e-mails and those carrying several items (the digests, "Your results", unread messages,
+    borrow / sell-swap / partner requests); short one-action mails keep the slim layout (_header + _footer).
+
+    Children set `preheader`, `header_link` + `header_link_label` (optional) and fill the `cards` block; the optional
+    `footer_note` block is the small print under the cards (left out when empty). Cards: `{{ card_open }}…{{ card_close }}`.
+    Needs `locale` in the context (the logo's homepage link).
+#}
+{% set card_open %}<table role="presentation" width="100%" style="width: 100%; border-collapse: separate;"><tr><td bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #e3e7ee; border-radius: 12px; padding: 22px 20px;">{% endset %}
+{% set card_close %}</td></tr></table><table role="presentation" width="100%" style="width: 100%;"><tr><td height="12" style="height: 12px; font-size: 0; line-height: 12px;">&nbsp;</td></tr></table>{% endset %}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
+    <table role="presentation" width="100%" bgcolor="#f3f5f9" data-email-background="#f3f5f9" style="width: 100%; background: #f3f5f9;">
+        <tr>
+            <td align="center" style="padding: 0 8px; text-align: center;">
+                {{ include('emails/_preheader.html.twig') }}
+                <!--[if mso]><table role="presentation" width="600" align="center"><tr><td><![endif]-->
+                <table role="presentation" width="100%" align="center" style="width: 100%; max-width: 600px; margin: 0 auto;">
+                    {# Header: the logo + name (one link, as in the slim header), the e-mail's own page on the right #}
+                    <tr>
+                        <td style="padding: 18px 4px 14px 4px;">
+                            <table role="presentation" width="100%" style="width: 100%;">
+                                <tr>
+                                    <td style="vertical-align: middle; white-space: nowrap; -webkit-hyphens: none; hyphens: none;">
+                                        <a href="{{ url('homepage', {_locale: locale}) }}" style="color: #373f50; text-decoration: none; font-size: 16px; font-weight: bold; line-height: 29px;"><img src="https://myspeedpuzzling.com/img/email-logo.png" alt="" width="32" height="29" style="display: inline-block; width: 32px; height: 29px; border: 0; vertical-align: middle;">&nbsp;&nbsp;<span style="vertical-align: middle; color: #373f50; font-weight: bold;">MySpeedPuzzling</span></a>
+                                    </td>
+                                    {% if header_link is defined and header_link %}
+                                        <td align="right" style="vertical-align: middle; text-align: right; padding-left: 12px; -webkit-hyphens: none; hyphens: none;">
+                                            <a href="{{ header_link }}" style="color: #d63c42; font-size: 15px; font-weight: bold; text-decoration: none;">{{ header_link_label }}&nbsp;→</a>
+                                        </td>
+                                    {% endif %}
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 0;">
+                            {% block cards %}{% endblock %}
+                        </td>
+                    </tr>
+                    {# Small print on the grey page: #5f6a80 = 4.98:1 on #f3f5f9 (#6b7488 would be 4.29:1) #}
+                    <tr>
+                        <td style="padding: 8px 12px 28px 12px; text-align: center; -webkit-hyphens: none; hyphens: none;">
+                            {% set footer_note_html = block('footer_note') is defined ? block('footer_note') : '' %}
+                            {% if footer_note_html|trim is not empty %}
+                                <p style="color: #5f6a80; font-size: 13px; line-height: 1.5; text-align: center; -webkit-hyphens: none; hyphens: none; margin: 0 0 10px 0; Margin: 0 0 10px 0;">{{ footer_note_html|raw }}</p>
+                            {% endif %}
+                            <p style="color: #5f6a80; font-size: 13px; line-height: 1.5; text-align: center; -webkit-hyphens: none; hyphens: none; margin: 0; Margin: 0;">{{ 'footer'|trans({'%homepageLink%': url('homepage')})|raw }}</p>
+                        </td>
+                    </tr>
+                </table>
+                <!--[if mso]></td></tr></table><![endif]-->
+            </td>
+        </tr>
+    </table>
+{% endapply %}

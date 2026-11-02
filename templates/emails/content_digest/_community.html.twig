@@ -1,12 +1,10 @@
 {% trans_default_domain 'emails' %}
+{# The community line of both digest e-mails - a quiet card under the button (emails/content_digest/_layout.html.twig) #}
 {% if activity.mostSolved is not null %}
-    <row>
-        <columns>
-            <p>
-                {{ 'activity_digest.most_solved'|trans }}
-                <a href="{{ url('puzzle_detail', {puzzleId: activity.mostSolved.puzzleId, _locale: locale}) }}">{{ activity.mostSolved.name }}</a>
-                {{ 'activity_digest.most_solved_count'|trans({'%count%': activity.mostSolved.solvers}) }}
-            </p>
-        </columns>
-    </row>
+    {{ card_open }}
+        <p style="font-size: 14px; color: #6b7488; margin: 0; Margin: 0;">{{ 'activity_digest.most_solved'|trans }}</p>
+        <p style="margin: 4px 0 0 0; Margin: 4px 0 0 0;">
+            <a href="{{ url('puzzle_detail', {puzzleId: activity.mostSolved.puzzleId, _locale: locale}) }}" style="font-weight: bold;">{{ activity.mostSolved.name }}</a>&nbsp;<span style="color: #6b7488;">{{ 'activity_digest.most_solved_count'|trans({'%count%': activity.mostSolved.solvers}) }}</span>
+        </p>
+    {{ card_close }}
 {% endif %}

@@ -9069,6 +9069,11 @@ my_activity:
     results_title: "Tvoje puzzle"
     pieces: "{1}1 dílek|[2,4]%count% dílky|[0,Inf[%count% dílků"
     place: "#%rank% z %total%"
+    split:
+        solo: "Sólo"
+        duo: "Ve dvojici"
+        team: "V týmu"
+        numbers: "{1}1 puzzle, %pieces% dílků|[2,4]%count% puzzle, %pieces% dílků|[5,Inf[%count% puzzlí, %pieces% dílků"
     mark:
         awaiting_verification: "Čeká na ověření"
         personal_best: "Osobní rekord"

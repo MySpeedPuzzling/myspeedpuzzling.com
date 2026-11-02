@@ -423,11 +423,6 @@ activity_digest:
         week: "Tu semana, %name%"
         two_weeks: "Tus dos semanas, %name%"
         month: "Tu mes, %name%"
-    stat:
-        puzzles: "{1}puzzle|]1,Inf[puzzles|{0}puzzles"
-        pieces: "{1}pieza|]1,Inf[piezas|{0}piezas"
-        streak: "días de racha"
-        time: "armando puzzles"
     level: "Nivel %level%"
     level_up: "Nivel %from% → %to%"
     new_achievement: "Nuevo: %achievement%"
@@ -453,7 +448,24 @@ activity_digest:
     skill_tier: "Nuevo nivel de habilidad en %pieces% piezas: %tier%"
     karma: "{1}Gracias: se aceptó 1 de tus contribuciones a la base de datos de puzzles.|[0,Inf[Gracias: se aceptaron %count% de tus contribuciones a la base de datos de puzzles."
     results_title: "Lo más destacado"
+    grid:
+        puzzles: "Puzzles"
+        pieces: "Piezas"
+        time: "Tiempo armando"
+        streak: "Días de racha"
+    how_title: "Cómo armaste"
+    progress_title: "Tu progreso"
+    busiest_day: "{1}Día más activo: %day%, 1 puzzle, %pieces% piezas|]1,Inf[Día más activo: %day%, %count% puzzles, %pieces% piezas"
+    pieces: "%pieces% piezas"
+    split:
+        solo: "Solo"
+        duo: "En pareja"
+        team: "En equipo"
+        numbers: "{1}1 puzzle, %pieces% piezas|]1,Inf[%count% puzzles, %pieces% piezas"
     mark:
+        attempts: "{1}1 intento|]1,Inf[%count% intentos"
+        pair: "en pareja"
+        team: "equipo de %count%"
         personal_best: "récord personal"
         first_try: "primer intento"
     button:

@@ -8915,6 +8915,11 @@ my_activity:
     level: "Level %level%"
     level_progress: "Fortschritt zum nächsten Level"
     level_up: "Level %from% → %to%"
+    split:
+        solo: "Solo"
+        duo: "Zu zweit"
+        team: "Im Team"
+        numbers: "{1}1 Puzzle, %pieces% Teile|]1,Inf[%count% Puzzles, %pieces% Teile"
     mark:
         awaiting_verification: "Wartet auf Überprüfung"
         first_try: "Erster Versuch"

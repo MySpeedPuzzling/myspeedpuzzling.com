@@ -271,10 +271,17 @@ SQL;
         // One statement for the period's puzzles only (GetRanking::forPuzzles), never the player's whole history
         $rankings = $this->getRanking->forPuzzles($playerId, $soloPuzzleIds);
 
+        // The place is today's, earned by the player's best time on the puzzle - so only the result that IS that time
+        // carries it. Every attempt showing it read as if each had been "#30 of 305" when it was added (player
+        // feedback 2026-11-02: three attempts on one puzzle, all "#30 of 305")
         return array_map(static function (PeriodResult $result) use ($rankings): PeriodResult {
             $ranking = $result->isSolo() ? ($rankings[$result->puzzleId] ?? null) : null;
 
-            return $ranking === null ? $result : $result->withRank($ranking->rank, $ranking->totalPlayers);
+            if ($ranking === null || $result->secondsToSolve !== $ranking->time || $result->awaitingVerification) {
+                return $result;
+            }
+
+            return $result->withRank($ranking->rank, $ranking->totalPlayers);
         }, $results);
     }
 

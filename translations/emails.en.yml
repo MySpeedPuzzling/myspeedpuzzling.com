@@ -430,11 +430,6 @@ activity_digest:
         week: "Your week, %name%"
         two_weeks: "Your two weeks, %name%"
         month: "Your month, %name%"
-    stat:
-        puzzles: "{1}puzzle|]1,Inf[puzzles|{0}puzzles"
-        pieces: "{1}piece|]1,Inf[pieces|{0}pieces"
-        streak: "day streak"
-        time: "time puzzling"
     level: "Level %level%"
     level_up: "Level %from% → %to%"
     new_achievement: "New: %achievement%"
@@ -460,7 +455,24 @@ activity_digest:
     skill_tier: "New skill tier for %pieces% pieces: %tier%"
     karma: "{1}Thank you: 1 of your contributions to the puzzle database was accepted.|[0,Inf[Thank you: %count% of your contributions to the puzzle database were accepted."
     results_title: "Highlights"
+    grid:
+        puzzles: "Puzzles"
+        pieces: "Pieces"
+        time: "Time puzzling"
+        streak: "Day streak"
+    how_title: "How you puzzled"
+    progress_title: "Your progress"
+    busiest_day: "{1}Busiest day: %day%, 1 puzzle, %pieces% pieces|]1,Inf[Busiest day: %day%, %count% puzzles, %pieces% pieces"
+    pieces: "%pieces% pieces"
+    split:
+        solo: "Solo"
+        duo: "In pairs"
+        team: "In teams"
+        numbers: "{1}1 puzzle, %pieces% pieces|]1,Inf[%count% puzzles, %pieces% pieces"
     mark:
+        attempts: "{1}1 attempt|]1,Inf[%count% attempts"
+        pair: "pair"
+        team: "team of %count%"
         personal_best: "personal best"
         first_try: "first try"
     button:

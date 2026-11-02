@@ -423,11 +423,6 @@ activity_digest:
         week: "Tvůj týden, %name%"
         two_weeks: "Tvoje dva týdny, %name%"
         month: "Tvůj měsíc, %name%"
-    stat:
-        puzzles: "{0}puzzlí|{1}puzzle|[2,4]puzzle|[5,Inf[puzzlí"
-        pieces: "{0}dílků|{1}dílek|[2,4]dílky|[5,Inf[dílků"
-        streak: "dní v řadě"
-        time: "skládání"
     level: "Úroveň %level%"
     level_up: "Úroveň %from% → %to%"
     new_achievement: "Nový úspěch: %achievement%"
@@ -453,7 +448,24 @@ activity_digest:
     skill_tier: "Nová úroveň dovedností pro %pieces% dílků: %tier%"
     karma: "{1}Děkujeme: 1 tvůj příspěvek do databáze puzzlí byl přijat.|[2,4]Děkujeme: %count% tvoje příspěvky do databáze puzzlí byly přijaty.|[0,Inf[Děkujeme: %count% tvých příspěvků do databáze puzzlí bylo přijato."
     results_title: "To nejlepší"
+    grid:
+        puzzles: "Puzzle"
+        pieces: "Dílky"
+        time: "Čas skládání"
+        streak: "Dní v řadě"
+    how_title: "Jak se skládalo"
+    progress_title: "Tvůj postup"
+    busiest_day: "{1}Nejrušnější den: %day%, 1 puzzle, %pieces% dílků|[2,4]Nejrušnější den: %day%, %count% puzzle, %pieces% dílků|[5,Inf[Nejrušnější den: %day%, %count% puzzlí, %pieces% dílků"
+    pieces: "%pieces% dílků"
+    split:
+        solo: "Sólo"
+        duo: "Ve dvojici"
+        team: "V týmu"
+        numbers: "{1}1 puzzle, %pieces% dílků|[2,4]%count% puzzle, %pieces% dílků|[5,Inf[%count% puzzlí, %pieces% dílků"
     mark:
+        attempts: "{1}1 pokus|[2,4]%count% pokusy|[5,Inf[%count% pokusů"
+        pair: "ve dvojici"
+        team: "v %count%členném týmu"
         personal_best: "osobní rekord"
         first_try: "první pokus"
     button:

@@ -423,11 +423,6 @@ activity_digest:
         week: "%name%さんの1週間"
         two_weeks: "%name%さんの2週間"
         month: "%name%さんの1か月"
-    stat:
-        puzzles: "{1}パズル|]1,Inf[パズル|{0}パズル"
-        pieces: "{1}ピース|]1,Inf[ピース|{0}ピース"
-        streak: "日連続"
-        time: "パズル時間"
     level: "レベル%level%"
     level_up: "レベル%from% → %to%"
     new_achievement: "NEW：%achievement%"
@@ -453,7 +448,24 @@ activity_digest:
     skill_tier: "%pieces%ピースの新しいスキルティア：%tier%"
     karma: "{1}ありがとうございます！パズルデータベースへのあなたの貢献が1件承認されました。|[0,Inf[ありがとうございます！パズルデータベースへのあなたの貢献が%count%件承認されました。"
     results_title: "ハイライト"
+    grid:
+        puzzles: "パズル"
+        pieces: "ピース"
+        time: "パズル時間"
+        streak: "連続日数"
+    how_title: "パズルの内訳"
+    progress_title: "あなたの進捗"
+    busiest_day: "{1}いちばん頑張った日：%day%（1パズル、%pieces%ピース）|]1,Inf[いちばん頑張った日：%day%（%count%パズル、%pieces%ピース）"
+    pieces: "%pieces%ピース"
+    split:
+        solo: "ソロ"
+        duo: "ペア"
+        team: "チーム"
+        numbers: "{1}1パズル、%pieces%ピース|]1,Inf[%count%パズル、%pieces%ピース"
     mark:
+        attempts: "%count%回挑戦"
+        pair: "ペア"
+        team: "%count%人チーム"
         personal_best: "自己ベスト"
         first_try: "初挑戦"
     button:

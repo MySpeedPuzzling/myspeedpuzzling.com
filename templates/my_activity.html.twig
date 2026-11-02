@@ -73,6 +73,15 @@
                 </div>
             {% endif %}
         </section>
+        {% set split = activity.splitByPuzzlingType() %}
+        {% if split is not empty %}
+            <p class="my-activity-split fs-sm text-body-secondary text-center mt-n2 mb-4" data-testid="my-activity-split">
+                {%- for part in split -%}
+                    {%- if not loop.first %} · {% endif -%}
+                    <span class="text-nowrap"><strong class="text-body">{{ ('my_activity.split.' ~ part.type)|trans }}:</strong> {{ 'my_activity.split.numbers'|trans({'%count%': part.puzzles, '%pieces%': part.pieces|plain_number}) }}</span>
+                {%- endfor -%}
+            </p>
+        {% endif %}
 
         {% if activity.results is empty %}
             <div class="card card-body mb-4 text-center" data-testid="my-activity-empty">

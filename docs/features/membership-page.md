@@ -16,9 +16,9 @@ becomes members-only, gains a members-only part, or stops being members-only, up
    (`membership.free_forever.items.*`, list in `membership.html.twig`) instead.
 4. Never list a feature that is not built ("coming soon" lines were removed on purpose).
 
-The same partial renders the full grouped list on the membership page (`mode: 'groups'`) and the shortcut tiles
-for members and trial players - on the membership page and on the free trial's welcome page `free_trial_started`
-(`mode: 'shortcuts'`, the lines marked `shortcut: true`). The three-line summary
+The same partial renders the full grouped list on the membership page (`mode: 'groups'`, with "Open" links for
+active players) and the shortcut tiles on the free trial's welcome page `free_trial_started` (`mode: 'shortcuts'`,
+the lines marked `shortcut: true`). The three-line summary
 `templates/membership/_benefit_highlights.html.twig` is shared by the page's hero and the members-only modal
 (`#membersExclusiveModal` in `base.html.twig`) - keep it to the three strongest reasons.
 
@@ -28,7 +28,6 @@ for members and trial players - on the membership page and on the free trial's w
 |---|---|
 | Hero: eyebrow, headline, lead, three highlights (`_benefit_highlights`) | everyone (members get a thank-you headline, no highlights) |
 | Offer / status card `#membership-offer` (`.card-body`, tests read it) | free trial offer (`_free_trial_offer`) or its unlock date · plan picker (`_subscription_plans`) · trial status · member status with plan switch, voucher periods, discount, payment portal · cancelling · lifetime · expired |
-| Shortcut tiles (`_benefits` shortcuts) | active members and trial players |
 | Three highlight cards with small illustrations | not active |
 | Everything included (`_benefits` groups) - folded on phones (first open), open from `lg` via `::details-content`; "Open" links for active players | everyone |
 | Free for everyone, always | everyone but paying members |
@@ -40,6 +39,6 @@ for members and trial players - on the membership page and on the free trial's w
 from the controller, discounted prices struck through) and one button; `membership_plan_controller.js` points the
 button at the picked plan (checkout URL on the web, store product in the apps).
 
-Styles: `assets/styles/_membership.scss`. Texts: `membership.hero|highlights_list|highlights|benefits|shortcuts|
+Styles: `assets/styles/_membership.scss` - icons in coral on a soft coral background (one colour, not one per group), benefit groups as cards with a shadow. Texts: `membership.hero|highlights_list|highlights|benefits|shortcuts|
 free_forever|closing|plans|faq|sticky|expired_info`. "Where does the money go?" tells Jan and Simona's story - their
 words, keep it that way.

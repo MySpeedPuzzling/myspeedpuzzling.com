@@ -1,12 +1,6 @@
 // Membership page (templates/membership.html.twig, docs/features/membership-page.md) - mobile first
 
 $membership-coral-ink: #d63c42; // text-safe coral (4.58:1 on white), like the e-mails
-$membership-groups: (
-  understand: (#e9f1ff, #2f6fd6),
-  compete: (#fff3e0, #a3621b),
-  organise: (#e6f8f0, #157a52),
-  yours: (#f1ebff, #6b45c6),
-);
 
 .membership-page {
   padding-top: .5rem;
@@ -259,15 +253,11 @@ $membership-groups: (
   width: 2.5rem;
   height: 2.5rem;
   border-radius: .625rem;
+  background: rgba($primary, .12);
+  color: $membership-coral-ink;
   font-size: 1.25rem;
 }
 
-@each $key, $colours in $membership-groups {
-  .membership-group--#{$key} .membership-icon {
-    background: nth($colours, 1);
-    color: nth($colours, 2);
-  }
-}
 
 // highlights
 .membership-highlights {
@@ -389,6 +379,8 @@ $membership-groups: (
 .membership-group {
   border: 1px solid $gray-300;
   border-radius: 1rem;
+  background: $white;
+  box-shadow: 0 .375rem 1.5rem rgba($gray-900, .08);
 
   > summary {
     display: flex;

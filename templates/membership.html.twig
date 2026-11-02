@@ -172,18 +172,8 @@
             </div>
         </section>
 
-        {# ============ Members and trial players: where to go ============ #}
-        {% if is_active %}
-            <section class="membership-section">
-                <header class="membership-section-head">
-                    <h2>{{ 'membership.shortcuts.title'|trans }}</h2>
-                    <p>{{ 'membership.shortcuts.lead'|trans }}</p>
-                </header>
-
-                {{ include('membership/_benefits.html.twig', {mode: 'shortcuts', player_id: player_id, show_links: true}) }}
-            </section>
-        {% else %}
-            {# ============ Everybody else: the three highlights ============ #}
+        {# ============ Not a member yet: the three highlights (members find their links in the list below) ============ #}
+        {% if not is_active %}
             <section class="membership-section">
                 <header class="membership-section-head">
                     <p class="membership-eyebrow">{{ 'membership.highlights.eyebrow'|trans }}</p>

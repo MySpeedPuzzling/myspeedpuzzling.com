@@ -261,7 +261,7 @@ final class MembershipControllerTest extends WebTestCase
         self::assertStringNotContainsString('Your strengths, close calls', $page);
     }
 
-    public function testAMemberGetsShortcutsAndLinksToTheirFeatures(): void
+    public function testAMemberGetsLinksToTheirFeaturesInTheList(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
@@ -269,7 +269,8 @@ final class MembershipControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
         $this->assertSelectorTextContains('h1', 'Thank you for being a member');
-        $this->assertSelectorExists('.membership-shortcuts a[href="/en/multiscan"]');
+        // No shortcut tiles on this page - the links sit in the list itself
+        $this->assertSelectorNotExists('.membership-shortcuts');
         $this->assertSelectorExists('.membership-benefit-link[href="/en/multiscan"]');
         $this->assertSelectorNotExists('input[name="membership_plan"]');
         $this->assertSelectorNotExists('.membership-free');

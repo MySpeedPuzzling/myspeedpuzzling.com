@@ -41,6 +41,7 @@ registration_terms_required: "To create an account, please agree to the Terms of
 auth:
     email_required: "Enter your email address."
     email_invalid: "Enter a valid email address, like name@example.com."
+    email_mistyped: "Did you mean {{ suggestion }}? The address as typed has a typo in its domain, so our e-mails would never reach it."
     password_required: "Enter a password."
     password_too_short: "Use at least {{ limit }} characters."
     current_password_required: "Enter your current password."

@@ -69,6 +69,30 @@ readonly final class EmailAuditLogRepository
     }
 
     /**
+     * How many other e-mails to the address bounced on a full inbox from $since on (the bounce being processed is
+     * left out by its audit row - it may not be flushed yet, and an event arriving twice must not count twice)
+     */
+    public function countMailboxFullBounces(string $recipientEmail, \DateTimeImmutable $since, null|UuidInterface $except): int
+    {
+        $builder = $this->entityManager->createQueryBuilder()
+            ->select('COUNT(log.id)')
+            ->from(EmailAuditLog::class, 'log')
+            ->where('log.recipientEmail IN (:emails)')
+            ->andWhere('log.bouncedAt >= :since')
+            ->andWhere('log.bounceReason LIKE :reason')
+            ->setParameter('emails', array_values(array_unique([trim($recipientEmail), mb_strtolower(trim($recipientEmail))])))
+            ->setParameter('since', $since)
+            // recordBounce() writes "<bounceType>/<bounceSubType> <diagnosticCode>"
+            ->setParameter('reason', '%/' . SesEvent::MAILBOX_FULL_SUB_TYPE . '%');
+
+        if ($except !== null) {
+            $builder->andWhere('log.id <> :except')->setParameter('except', $except);
+        }
+
+        return (int) $builder->getQuery()->getSingleScalarResult();
+    }
+
+    /**
      * Deletes at most one batch per call (content-digest README §12) — an unbounded DELETE
      * at bulk-email volume produces a WAL burst and blocks vacuum for minutes. The caller
      * loops via message re-dispatch, so every batch commits in its own transaction.

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Services\NewsletterSignupTicket;
 use SpeedPuzzling\Web\Services\Turnstile\TurnstileVerifier;
+use SpeedPuzzling\Web\Value\MistypedEmailDomain;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -64,6 +65,8 @@ final class NewsletterSubscribeController extends AbstractController
             $error = 'newsletter.flash.try_again';
         } elseif (count($this->validator->validate($email, [new NotBlank(), new Email()])) > 0) {
             $error = 'newsletter.flash.invalid_email';
+        } elseif (MistypedEmailDomain::isMistyped($email)) {
+            $error = 'newsletter.flash.mistyped_email';
         }
 
         $isModal = $request->headers->get('Turbo-Frame') === 'modal-frame';
@@ -73,6 +76,7 @@ final class NewsletterSubscribeController extends AbstractController
             'ticket' => $this->signupTicket->issue(),
             'turnstileSiteKey' => $this->turnstile->isOn() ? $this->turnstile->siteKey() : null,
             'error' => $error,
+            'error_parameters' => ['%suggestion%' => MistypedEmailDomain::suggestionFor($email) ?? ''],
         ]);
     }
 }

@@ -151,6 +151,63 @@ final class ProcessSesEventHandlerTest extends KernelTestCase
         self::assertFalse($suppressions->isSuppressed('full@example.com'), 'A full inbox clears up by itself');
     }
 
+    public function testSesSayingTheDomainIsInvalidSuppressesTheAddressOnTheFirstBounce(): void
+    {
+        $this->domainNotFound('someone@gmail.coma', '2026-11-03T11:54:52.000Z', 'smtp; 550 5.4.4 Invalid domain');
+
+        $suppression = self::getContainer()->get(EmailSuppressionRepository::class)->findByEmail('someone@gmail.coma');
+        self::assertNotNull($suppression, 'SES calls it transient, but gmail.coma will never exist');
+        self::assertSame(EmailSuppressionSource::DomainNotFound, $suppression->source);
+        self::assertFalse($suppression->blocksAllMail());
+    }
+
+    public function testAFullInboxThreeTimesInThirtyDaysPausesNotificationsUntilAnEmailIsDelivered(): void
+    {
+        $suppressions = self::getContainer()->get(EmailSuppressionRepository::class);
+
+        $this->mailboxFull('full@example.com', '2026-10-05T08:00:00.000Z');
+        $this->mailboxFull('full@example.com', '2026-10-20T08:00:00.000Z');
+        self::assertFalse($suppressions->isSuppressed('full@example.com'), 'Twice is not enough');
+
+        $third = $this->mailboxFull('full@example.com', '2026-11-03T08:00:00.000Z');
+        // The same event arriving twice changes nothing
+        $this->mailboxFull('full@example.com', '2026-11-03T08:00:00.000Z', $third);
+
+        $suppression = $suppressions->findByEmail('full@example.com');
+        self::assertNotNull($suppression);
+        self::assertSame(EmailSuppressionSource::MailboxFull, $suppression->source);
+        self::assertTrue($suppression->isInEffect(new DateTimeImmutable('2026-11-20')));
+        self::assertFalse($suppression->isInEffect(new DateTimeImmutable('2026-12-04')), 'A full inbox pauses for 30 days at most');
+
+        $delivered = $this->auditLog('password_reset', 'full@example.com');
+        $this->process($this->event('Delivery', $delivered, ['delivery' => ['timestamp' => '2026-11-05T08:00:00.000Z']], recipients: ['full@example.com']));
+        self::assertFalse($suppressions->isSuppressed('full@example.com'), 'A delivered e-mail proves the inbox has room again');
+    }
+
+    public function testFullInboxesFarApartOrAHardBounceAfterwardsAreNotAPause(): void
+    {
+        $suppressions = self::getContainer()->get(EmailSuppressionRepository::class);
+
+        $this->mailboxFull('sometimes@example.com', '2026-08-01T08:00:00.000Z');
+        $this->mailboxFull('sometimes@example.com', '2026-10-20T08:00:00.000Z');
+        $this->mailboxFull('sometimes@example.com', '2026-11-03T08:00:00.000Z');
+        self::assertFalse($suppressions->isSuppressed('sometimes@example.com'), 'Only two of them within 30 days');
+
+        $this->mailboxFull('gone@example.com', '2026-10-05T08:00:00.000Z');
+        $this->mailboxFull('gone@example.com', '2026-10-20T08:00:00.000Z');
+        $this->mailboxFull('gone@example.com', '2026-11-03T08:00:00.000Z');
+        $hard = $this->auditLog('unread_digest', 'gone@example.com');
+        $this->process($this->event('Bounce', $hard, ['bounce' => [
+            'bounceType' => 'Permanent',
+            'bounceSubType' => 'NoEmail',
+            'timestamp' => '2026-11-04T08:00:00.000Z',
+            'bouncedRecipients' => [['emailAddress' => 'gone@example.com', 'diagnosticCode' => 'smtp; 550 5.1.1 user unknown']],
+        ]], recipients: ['gone@example.com']));
+
+        $suppression = $suppressions->findByEmail('gone@example.com');
+        self::assertSame(EmailSuppressionSource::HardBounce, $suppression?->source, 'The account is gone now - no longer lifted by time or a delivery');
+    }
+
     public function testABounceOnAnAddressBlockedByHandKeepsTheBlock(): void
     {
         $suppressions = self::getContainer()->get(EmailSuppressionRepository::class);
@@ -291,6 +348,19 @@ final class ProcessSesEventHandlerTest extends KernelTestCase
             'timestamp' => $at,
             'bouncedRecipients' => [['emailAddress' => $recipient, 'diagnosticCode' => $diagnosticCode]],
         ]], recipients: [$recipient]));
+    }
+
+    private function mailboxFull(string $recipient, string $at, null|EmailAuditLog $auditLog = null): EmailAuditLog
+    {
+        $auditLog ??= $this->auditLog('content_digest_activity', $recipient);
+        $this->process($this->event('Bounce', $auditLog, ['bounce' => [
+            'bounceType' => 'Transient',
+            'bounceSubType' => 'MailboxFull',
+            'timestamp' => $at,
+            'bouncedRecipients' => [['emailAddress' => $recipient, 'diagnosticCode' => 'smtp; 554 4.4.7 Message expired: unable to deliver in 840 minutes.<452-4.2.2 The recipient\'s inbox is out of storage space.>']],
+        ]], recipients: [$recipient]));
+
+        return $auditLog;
     }
 
     private function complain(string $emailType): EmailAuditLog

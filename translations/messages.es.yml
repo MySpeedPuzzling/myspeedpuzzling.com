@@ -5865,6 +5865,7 @@ newsletter:
     flash:
         try_again: "Algo ha salido mal. Por favor, inténtalo de nuevo."
         invalid_email: "Por favor, introduce una dirección de correo electrónico válida."
+        mistyped_email: "¿Quisiste decir %suggestion%? La dirección escrita tiene un error en el dominio, así que nuestros correos nunca llegarían."
         too_many_attempts: "Demasiados intentos. Por favor, inténtalo de nuevo más tarde."
         turned_on: "El correo mensual de novedades está activado. ¡Gracias!"
     check_inbox:
@@ -10202,6 +10203,7 @@ email_undeliverable:
         suppressed: "Los correos a esta dirección ya fueron devueltos antes."
         general: "El servidor de correo receptor rechazó nuestros correos."
         domain_not_found: "El dominio de esta dirección no existe (no se encontró ningún servidor de correo para él)."
+        mailbox_full: "El buzón de esta dirección está lleno, así que nuestros correos rebotan. Libera algo de espacio: las notificaciones vuelven con el próximo correo que llegue."
     server_said: "Respuesta del servidor: %answer%"
     change_address: "Cambiar tu dirección de correo"
 player_timezone:

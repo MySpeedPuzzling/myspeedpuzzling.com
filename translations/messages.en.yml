@@ -6388,6 +6388,7 @@ newsletter:
     flash:
         try_again: "Something went wrong, please try again."
         invalid_email: "Please enter a valid e-mail address."
+        mistyped_email: "Did you mean %suggestion%? The address as typed has a typo in its domain, so our e-mails would never reach it."
         too_many_attempts: "Too many attempts, please try again later."
         turned_on: "The monthly news e-mail is on. Thanks!"
     check_inbox:
@@ -10448,6 +10449,7 @@ email_undeliverable:
         suppressed: "E-mails to this address have bounced before."
         general: "The receiving mail server refused our e-mails."
         domain_not_found: "The domain of this address does not exist (no mail server could be found for it)."
+        mailbox_full: "The inbox of this address is full, so our e-mails bounce. Free up some space - notifications start again with the next e-mail that gets through."
     server_said: "The server's answer: %answer%"
     change_address: "Change your e-mail address"
 player_timezone:

@@ -5864,6 +5864,7 @@ newsletter:
     flash:
         try_again: "Etwas ist schiefgelaufen, bitte versuchen Sie es erneut."
         invalid_email: "Bitte geben Sie eine gültige E-Mail-Adresse ein."
+        mistyped_email: "Meinten Sie %suggestion%? Die eingegebene Adresse hat einen Tippfehler in der Domain, unsere E-Mails würden sie nie erreichen."
         too_many_attempts: "Zu viele Versuche, bitte versuchen Sie es später erneut."
         turned_on: "Die monatliche Neuigkeiten-E-Mail ist eingeschaltet. Danke!"
     check_inbox:
@@ -10201,6 +10202,7 @@ email_undeliverable:
         suppressed: "E-Mails an diese Adresse kamen schon früher als unzustellbar zurück."
         general: "Der empfangende Mailserver hat unsere E-Mails abgelehnt."
         domain_not_found: "Die Domain dieser Adresse existiert nicht (es wurde kein Mailserver dafür gefunden)."
+        mailbox_full: "Das Postfach dieser Adresse ist voll, deshalb kommen unsere E-Mails zurück. Schaffen Sie etwas Platz - die Benachrichtigungen starten wieder mit der nächsten E-Mail, die ankommt."
     server_said: "Antwort des Servers: %answer%"
     change_address: "E-Mail-Adresse ändern"
 player_timezone:

@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Value\BounceType;
 use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use SpeedPuzzling\Web\Value\EmailSuppressionSource;
+use SpeedPuzzling\Web\Value\MailboxFullRule;
 use SpeedPuzzling\Web\Value\MailStream;
 use SpeedPuzzling\Web\Value\SesEvent;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -33,6 +34,9 @@ use Symfony\Component\Messenger\MessageBusInterface;
  *   is still tried;
  * - a transient bounce saying the recipient's domain is not in DNS, a second time at least a day after the first →
  *   suppressed the same way (SES never calls a mistyped domain permanent; one DNS hiccup on their side is not enough);
+ *   SES's "5.4.4 Invalid domain" (a domain that cannot exist, gmail.coma) → suppressed on the first one;
+ * - a full inbox on MailboxFullRule::BOUNCES e-mails within MailboxFullRule::WITHIN_DAYS → notifications pause until a
+ *   delivery to the address (which lifts it) or MailboxFullRule::EXPIRES_AFTER_DAYS;
  * - complaint → only the kind of e-mail complained about is switched off: newsletter, activity digest ("We miss
  *   you" included), unread-messages digest or "Your results". A complaint about a transactional e-mail changes nothing.
  *
@@ -89,6 +93,7 @@ readonly final class ProcessSesEventHandler
         switch ($event->type) {
             case 'Delivery':
                 $auditLog?->markAsDelivered($event->occurredAt);
+                $this->liftMailboxFull($event);
                 break;
 
             case 'Open':
@@ -106,8 +111,19 @@ readonly final class ProcessSesEventHandler
                     trim(sprintf('%s/%s %s', $event->bounceType, $event->bounceSubType, $event->diagnosticCode ?? '')),
                 );
 
-                if ($event->isDomainNotFoundBounce()) {
+                if ($event->isInvalidDomainBounce()) {
+                    $this->suppress($event, $auditLog, $event->recipients, EmailSuppressionSource::DomainNotFound);
+                    $this->logger->warning('E-mail domain is invalid', [
+                        'stream' => $event->stream?->value,
+                        'email_type' => $this->emailType($event, $auditLog),
+                        'audit_log_id' => $event->auditLogId,
+                    ]);
+                } elseif ($event->isDomainNotFoundBounce()) {
                     $this->suppressWhenDomainNotFoundBefore($event, $auditLog);
+                }
+
+                if ($event->isMailboxFullBounce()) {
+                    $this->suppressWhenMailboxFullAgain($event, $auditLog);
                 }
 
                 if ($event->isPermanentBounce()) {
@@ -164,7 +180,7 @@ readonly final class ProcessSesEventHandler
             $suppression = $this->emailSuppressionRepository->findByEmail($recipient);
 
             if ($suppression !== null) {
-                $suppression->bouncedAgain($event->occurredAt, $event->bounceSubType, $event->diagnosticCode, $emailType);
+                $suppression->bouncedAgain($event->occurredAt, $event->bounceSubType, $event->diagnosticCode, $emailType, $source);
 
                 continue;
             }
@@ -199,6 +215,47 @@ readonly final class ProcessSesEventHandler
             'email_type' => $this->emailType($event, $auditLog),
             'audit_log_id' => $event->auditLogId,
         ]);
+    }
+
+    private function suppressWhenMailboxFullAgain(SesEvent $event, null|EmailAuditLog $auditLog): void
+    {
+        $since = $event->occurredAt->modify(sprintf('-%d days', MailboxFullRule::WITHIN_DAYS));
+        $recipients = array_values(array_filter(
+            $event->recipients,
+            function (string $recipient) use ($since, $auditLog): bool {
+                $existing = $this->emailSuppressionRepository->findByEmail($recipient);
+
+                // Already suppressed for a stronger reason - a full inbox changes nothing there
+                if ($existing !== null && $existing->source !== EmailSuppressionSource::MailboxFull) {
+                    return false;
+                }
+
+                return $this->emailAuditLogRepository->countMailboxFullBounces($recipient, $since, $auditLog?->id) + 1 >= MailboxFullRule::BOUNCES;
+            },
+        ));
+
+        if ($recipients === []) {
+            return;
+        }
+
+        // Routine (the person empties the inbox or not) - counted in Loki, never a Sentry issue
+        $this->suppress($event, $auditLog, $recipients, EmailSuppressionSource::MailboxFull);
+        $this->logger->info('E-mail inbox full again, notifications paused', [
+            'stream' => $event->stream?->value,
+            'email_type' => $this->emailType($event, $auditLog),
+            'audit_log_id' => $event->auditLogId,
+        ]);
+    }
+
+    private function liftMailboxFull(SesEvent $event): void
+    {
+        foreach ($event->recipients as $recipient) {
+            $suppression = $this->emailSuppressionRepository->findByEmail($recipient);
+
+            if ($suppression !== null && $suppression->isLiftedByDelivery()) {
+                $this->emailSuppressionRepository->delete($suppression);
+            }
+        }
     }
 
     private function applyComplaint(SesEvent $event, null|EmailAuditLog $auditLog): void

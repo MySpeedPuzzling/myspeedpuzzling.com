@@ -5854,6 +5854,7 @@ newsletter:
     flash:
         try_again: "問題が発生しました。もう一度お試しください。"
         invalid_email: "有効なメールアドレスを入力してください。"
+        mistyped_email: "%suggestion% の入力ミスではありませんか？入力されたアドレスはドメインに入力ミスがあるため、メールが届きません。"
         too_many_attempts: "試行回数が多すぎます。しばらくしてからもう一度お試しください。"
         turned_on: "月刊ニュースメールをオンにしました。ありがとうございます！"
     check_inbox:
@@ -10191,6 +10192,7 @@ email_undeliverable:
         suppressed: "このアドレスへのメールは以前にも返送されています。"
         general: "受信側のメールサーバーがメールを拒否しました。"
         domain_not_found: "このアドレスのドメインは存在しません（メールサーバーが見つかりませんでした）。"
+        mailbox_full: "このアドレスの受信トレイがいっぱいのため、メールが返送されています。空き容量を作ってください。次にメールが届いた時点で通知が再開されます。"
     server_said: "サーバーの応答: %answer%"
     change_address: "メールアドレスを変更する"
 player_timezone:

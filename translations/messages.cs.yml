@@ -5939,6 +5939,7 @@ newsletter:
     flash:
         try_again: "Něco se pokazilo, zkuste to prosím znovu."
         invalid_email: "Zadejte prosím platnou e-mailovou adresu."
+        mistyped_email: "Nemysleli jste %suggestion%? Zadaná adresa má překlep v doméně, takže by naše e-maily nikdy nedorazily."
         too_many_attempts: "Příliš mnoho pokusů, zkuste to prosím později."
         turned_on: "Měsíční e-mail s novinkami je zapnutý. Děkujeme!"
     check_inbox:
@@ -10204,6 +10205,7 @@ email_undeliverable:
         suppressed: "E-maily na tuto adresu se už dříve vrátily jako nedoručitelné."
         general: "Přijímající poštovní server naše e-maily odmítl."
         domain_not_found: "Doména této adresy neexistuje (nenašli jsme pro ni žádný poštovní server)."
+        mailbox_full: "Schránka této adresy je plná, takže se naše e-maily vracejí. Uvolněte v ní místo - upozornění se obnoví s prvním e-mailem, který dorazí."
     server_said: "Odpověď serveru: %answer%"
     change_address: "Změnit e-mailovou adresu"
 player_timezone:

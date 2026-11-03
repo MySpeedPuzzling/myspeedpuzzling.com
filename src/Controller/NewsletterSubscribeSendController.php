@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Services\NewsletterSignupTicket;
 use SpeedPuzzling\Web\Services\Turnstile\TurnstileVerifier;
 use SpeedPuzzling\Web\Value\NewsletterSignupTicketCheck;
 use SpeedPuzzling\Web\Value\TurnstileVerdict;
+use SpeedPuzzling\Web\Value\MistypedEmailDomain;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -75,6 +76,10 @@ final class NewsletterSubscribeSendController extends AbstractController
             return $this->showStepAgain($email, 'newsletter.flash.invalid_email');
         }
 
+        if (MistypedEmailDomain::isMistyped($email)) {
+            return $this->showStepAgain($email, 'newsletter.flash.mistyped_email');
+        }
+
         $ticketCheck = $this->signupTicket->check((string) $request->request->get('ticket'));
 
         if ($ticketCheck !== NewsletterSignupTicketCheck::Valid) {
@@ -121,6 +126,7 @@ final class NewsletterSubscribeSendController extends AbstractController
             'ticket' => $this->signupTicket->issue(),
             'turnstileSiteKey' => $this->turnstile->isOn() ? $this->turnstile->siteKey() : null,
             'error' => $error,
+            'error_parameters' => ['%suggestion%' => MistypedEmailDomain::suggestionFor($email) ?? ''],
         ], new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 }

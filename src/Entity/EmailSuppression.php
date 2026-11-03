@@ -13,6 +13,7 @@ use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Value\EmailSuppressionSource;
+use SpeedPuzzling\Web\Value\MailboxFullRule;
 
 /**
  * An address the receiving side refused for good (an SES permanent bounce, or a domain that does not exist): no
@@ -81,18 +82,41 @@ class EmailSuppression
         $this->reason = $reason;
     }
 
+    /**
+     * Still holds mail back: a full inbox pauses notifications for MailboxFullRule::EXPIRES_AFTER_DAYS only, every
+     * other suppression stays until the address changes (readers in SQL: MailboxFullRule::sqlInEffect())
+     */
+    public function isInEffect(DateTimeImmutable $now): bool
+    {
+        return $this->source !== EmailSuppressionSource::MailboxFull
+            || $this->suppressedAt > $now->modify(sprintf('-%d days', MailboxFullRule::EXPIRES_AFTER_DAYS));
+    }
+
+    /**
+     * A full inbox is the only suppression a delivery to the address lifts
+     */
+    public function isLiftedByDelivery(): bool
+    {
+        return $this->source === EmailSuppressionSource::MailboxFull;
+    }
+
     public static function canonicalize(string $email): string
     {
         return mb_strtolower(trim($email));
     }
 
     /**
-     * The address bounced again - keep the latest reason. A block by hand stays one: only the internal API lifts it
+     * The address bounced again - keep the latest reason. A block by hand stays one: only the internal API lifts it.
+     * A full inbox that now bounces for good (no such user, no such domain) becomes that suppression.
      */
-    public function bouncedAgain(DateTimeImmutable $at, null|string $bounceSubType, null|string $diagnosticCode, null|string $emailType): void
+    public function bouncedAgain(DateTimeImmutable $at, null|string $bounceSubType, null|string $diagnosticCode, null|string $emailType, null|EmailSuppressionSource $source = null): void
     {
         if ($this->source !== EmailSuppressionSource::Manual) {
             $this->suppressedAt = $at;
+        }
+
+        if ($this->source === EmailSuppressionSource::MailboxFull && $source !== null && $source !== EmailSuppressionSource::Manual) {
+            $this->source = $source;
         }
 
         $this->bounceSubType = $bounceSubType;

@@ -20,6 +20,15 @@ final readonly class SesEvent
     public const string DOMAIN_NOT_FOUND_PATTERN = '/Unable to lookup DNS for|Could not find a mail server for|Host or domain name not found/i';
 
     /**
+     * SES's answer for a domain that cannot exist ("smtp; 550 5.4.4 Invalid domain" for gmail.coma) - it still calls
+     * the bounce Transient, but nothing will ever change it: suppressed on the first one
+     */
+    public const string INVALID_DOMAIN_PATTERN = '/\b5\.4\.4 Invalid domain\b/i';
+
+    /** SES's bounce sub type for a full inbox (Gmail: "452 4.2.2 The recipient's inbox is out of storage space") */
+    public const string MAILBOX_FULL_SUB_TYPE = 'MailboxFull';
+
+    /**
      * @param list<string> $recipients the addresses the event is about (bounced/complained ones, else all)
      */
     public function __construct(
@@ -101,6 +110,21 @@ final readonly class SesEvent
             && $this->bounceType !== 'Permanent'
             && $this->diagnosticCode !== null
             && preg_match(self::DOMAIN_NOT_FOUND_PATTERN, $this->diagnosticCode) === 1;
+    }
+
+    public function isInvalidDomainBounce(): bool
+    {
+        return $this->type === 'Bounce'
+            && $this->bounceType !== 'Permanent'
+            && $this->diagnosticCode !== null
+            && preg_match(self::INVALID_DOMAIN_PATTERN, $this->diagnosticCode) === 1;
+    }
+
+    public function isMailboxFullBounce(): bool
+    {
+        return $this->type === 'Bounce'
+            && $this->bounceType !== 'Permanent'
+            && $this->bounceSubType === self::MAILBOX_FULL_SUB_TYPE;
     }
 
     /**

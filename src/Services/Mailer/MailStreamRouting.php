@@ -26,7 +26,7 @@ use Symfony\Component\Mime\RawMessage;
  *
  * - marks the stream on the message for the SES headers (SesMessageHeaders::STREAM_HEADER) and takes X-Transport off -
  *   there is one transport, MAILER_DSN (Amazon SES on production, SES only since 2026-10-19);
- * - drops notifications to an address that hard-bounced (email_suppression) - transactional mail is still tried,
+ * - drops notifications to an address that hard-bounced (email_suppression; a full inbox only for a while) - transactional mail is still tried,
  *   a sign-in link must never be held back by us; an address blocked by hand (internal API) gets nothing at all;
  * - a failed attempt is tried once more right away (a fresh connection - SES replaces the machines behind its
  *   endpoint), after a second failure the transport is left alone for PAUSE_SECONDS (an outage costs one wait, not one
@@ -67,7 +67,7 @@ final class MailStreamRouting implements TransportInterface
         foreach (self::recipients($message, $envelope) as $recipient) {
             $suppression = $this->emailSuppressionRepository->findByEmail($recipient);
 
-            if ($suppression === null) {
+            if ($suppression === null || !$suppression->isInEffect($this->clock->now())) {
                 continue;
             }
 

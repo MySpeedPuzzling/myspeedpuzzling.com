@@ -40,6 +40,10 @@ readonly final class EmailUndeliverable
             return 'email_undeliverable.reason.domain_not_found';
         }
 
+        if ($this->source === EmailSuppressionSource::MailboxFull) {
+            return 'email_undeliverable.reason.mailbox_full';
+        }
+
         return match ($this->bounceSubType) {
             'NoEmail' => 'email_undeliverable.reason.no_email',
             'Suppressed', 'OnAccountSuppressionList' => 'email_undeliverable.reason.suppressed',

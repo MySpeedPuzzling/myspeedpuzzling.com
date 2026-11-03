@@ -12,6 +12,7 @@ use Psr\Log\NullLogger;
 use SpeedPuzzling\Web\Repository\EmailSuppressionRepository;
 use SpeedPuzzling\Web\Services\Mailer\MailStreamRouting;
 use SpeedPuzzling\Web\Services\Mailer\SesMessageHeaders;
+use SpeedPuzzling\Web\Value\EmailSuppressionSource;
 use SpeedPuzzling\Web\Tests\TestDouble\ScriptedTransports;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Mailer\Exception\HttpTransportException;
@@ -139,6 +140,24 @@ final class MailStreamRoutingTest extends TestCase
         $routing->send($this->email('player@example.com'));
 
         self::assertSame(['transactional'], $transports->streams, 'Only the other address got its mail');
+    }
+
+    public function testAFullInboxPausesNotificationsForThirtyDaysOnly(): void
+    {
+        $transports = new ScriptedTransports();
+        $suppressions = $this->createStub(EmailSuppressionRepository::class);
+        $suppressions->method('findByEmail')->willReturnCallback(static fn (string $email): null|EmailSuppression => match ($email) {
+            'full@example.com' => new EmailSuppression(Uuid::uuid7(), $email, TestClock::now()->modify('-10 days'), 'MailboxFull', null, null, EmailSuppressionSource::MailboxFull),
+            'was-full@example.com' => new EmailSuppression(Uuid::uuid7(), $email, TestClock::now()->modify('-31 days'), 'MailboxFull', null, null, EmailSuppressionSource::MailboxFull),
+            default => null,
+        });
+        $routing = new MailStreamRouting($transports, $suppressions, new NullLogger(), new MockClock(TestClock::now()));
+
+        self::assertNull($routing->send($this->email('full@example.com', 'notifications')));
+        $routing->send($this->email('full@example.com'));
+        $routing->send($this->email('was-full@example.com', 'notifications'));
+
+        self::assertSame(['transactional', 'notifications'], $transports->streams);
     }
 
     public function testTheApiTransportIsRecognisedAsSesAndItsAccessKeyIdIsNeverStored(): void

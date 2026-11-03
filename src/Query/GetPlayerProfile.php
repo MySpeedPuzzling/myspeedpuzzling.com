@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Results\ComparisonLineUp;
 use SpeedPuzzling\Web\Results\PlayerProfile;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
+use SpeedPuzzling\Web\Value\MailboxFullRule;
 use SpeedPuzzling\Web\Value\MspRatingTimeline;
 
 /**
@@ -150,6 +151,7 @@ SQL;
     {
         $revealedIds = PrivateProfileAccess::sqlRevealedIdsOf('player');
         $comparisonLineUp = self::sqlComparisonLineUpOf('player');
+        $suppressionInEffect = MailboxFullRule::sqlInEffect('email_suppression');
 
         $query = <<<SQL
 SELECT
@@ -230,7 +232,7 @@ SELECT
 FROM player
 LEFT JOIN user_account ON user_account.user_id = player.user_id
 LEFT JOIN membership ON membership.player_id = player.id
-LEFT JOIN email_suppression ON email_suppression.email = user_account.email
+LEFT JOIN email_suppression ON email_suppression.email = user_account.email AND {$suppressionInEffect}
 WHERE player.user_id = :userId
 SQL;
 

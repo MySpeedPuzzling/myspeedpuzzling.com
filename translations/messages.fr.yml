@@ -5932,6 +5932,7 @@ newsletter:
     flash:
         try_again: "Une erreur est survenue, veuillez réessayer."
         invalid_email: "Veuillez saisir une adresse e-mail valide."
+        mistyped_email: "Vouliez-vous dire %suggestion% ? Le domaine de l'adresse saisie contient une faute de frappe, nos e-mails ne l'atteindraient jamais."
         too_many_attempts: "Trop de tentatives, veuillez réessayer plus tard."
         turned_on: "L'e-mail mensuel des nouveautés est activé. Merci !"
     check_inbox:
@@ -10197,6 +10198,7 @@ email_undeliverable:
         suppressed: "Des e-mails vers cette adresse ont déjà été renvoyés auparavant."
         general: "Le serveur de messagerie destinataire a refusé nos e-mails."
         domain_not_found: "Le domaine de cette adresse n'existe pas (aucun serveur de messagerie n'a été trouvé pour lui)."
+        mailbox_full: "La boîte de réception de cette adresse est pleine, nos e-mails sont donc renvoyés. Libérez un peu d'espace : les notifications reprennent avec le prochain e-mail qui arrive."
     server_said: "Réponse du serveur : %answer%"
     change_address: "Modifier votre adresse e-mail"
 player_timezone:

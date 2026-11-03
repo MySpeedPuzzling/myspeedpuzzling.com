@@ -13,7 +13,7 @@
     {% include 'newsletter/_honeypot.html.twig' %}
 
     {% if error %}
-        <div class="alert alert-warning" role="alert">{{ error|trans }}</div>
+        <div class="alert alert-warning" role="alert">{{ error|trans(error_parameters|default({})) }}</div>
     {% endif %}
 
     <p>{{ 'newsletter.signup.text'|trans }}</p>

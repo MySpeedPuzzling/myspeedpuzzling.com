@@ -58,6 +58,7 @@
                     <i class="bi bi-shuffle me-1"></i> {{ 'puzzle_picker.pick_from_collection'|trans }}
                 </a>
                 {{ include('multiscan/_entry_button.html.twig', {params: {action: 'add_to_library', collection: collection.collectionId ?? system_collection_id}, label: 'multiscan.entry.collection', title: 'multiscan.entry.collection_title'}) }}
+                {{ include('multiscan/_entry_button.html.twig', {params: {action: 'move_to_collection', from: collection.collectionId ?? system_collection_id}, label: 'multiscan.entry.collection_out', title: 'multiscan.entry.collection_out_title'}) }}
                 {% if collection.collectionId %}
                     <a href="{{ path('puzzle_add') }}?mode=collection&collection={{ collection.collectionId }}" class="btn btn-sm btn-outline-primary">
                         <i class="bi bi-puzzle me-1"></i> {{ 'collections.add_puzzle_here.button'|trans }}

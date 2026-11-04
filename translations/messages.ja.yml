@@ -757,7 +757,7 @@
         "short": "いくつでも"
       "multiscan":
         "title": "まとめてスキャン"
-        "text": "箱の山をスキャンして、まとめてコレクションに追加できます。"
+        "text": "箱をまとめてスキャンし、一度に追加・移動・貸し出しできます。"
         "short": "箱の山を追加"
       "search_scanner":
         "title": "検索バーからスキャン"
@@ -6728,6 +6728,8 @@ multiscan:
         collection_title: "箱をスキャンしてこのコレクションに直接追加"
         wishlist: "ウィッシュリストへスキャン"
         wishlist_title: "箱をスキャンしてそのままウィッシュリストへ"
+        collection_out: "スキャンして移動"
+        collection_out_title: "このコレクションから出す箱をスキャンして、別のコレクションへ移動または削除します"
     teaser:
         title: "パズルの山を一度にスキャン"
         text: "Multiscanはカメラを起動したままにします。箱を次々にかざして、最後に1つの操作をまとめて適用できます。"
@@ -6763,6 +6765,8 @@ multiscan:
         not_lent: "貸出中でも借用中でもありません"
         empty: "適用できるものがありません"
         missing_person: "相手が指定されていません"
+        not_in_collection: "そのコレクションにありません"
+        same_collection: "移動先に別のコレクションを選んでください"
     row:
         change: "別の候補を選ぶ"
         remove: "削除"
@@ -6778,6 +6782,8 @@ multiscan:
         return_returned: "返してもらった"
         return_give_back: "返す"
         return_mixed: "返してもらった / 返す"
+        move_to_collection: "移動…"
+        remove_from_collection: "削除…"
     apply:
         add_to_library: "%count%個をライブラリに追加"
         add_to_wishlist: "%count%個をウィッシュリストに追加"
@@ -6786,6 +6792,8 @@ multiscan:
         return_returned: "%count%個を返却済みにする"
         return_give_back: "%count%個を返す"
         return_mixed: "%count%件の貸借を終了"
+        move_to_collection: "%count%件を移動"
+        remove_from_collection: "%count%件を削除"
     field:
         collection: "コレクション"
         person_lend: "貸す相手"
@@ -6798,12 +6806,18 @@ multiscan:
         collection_create: "コレクション「%input%」を作成"
         no_results: "見つかりません"
         notes: "メモ（任意）"
+        collection_to: "移動先のコレクション"
+        collection_from: "移動元のコレクション"
+        collection_from_none: "どれもコレクションにありません"
+        collection_holds: "{0}スキャン済み 0件|[1,Inf[スキャン済み %count%件"
     recap:
         add_to_library: "%count%個のパズルをライブラリに追加しました。"
         add_to_wishlist: "%count%個のパズルをウィッシュリストに追加しました。"
         lend: "%count%個のパズルを%name%に貸し出しました。"
         borrow: "%count%個のパズルを%name%から借用として記録しました。"
         return: "%count%件の貸し借りを終了しました。"
+        move_to_collection: "[0,Inf[%count%件のパズルを%name%に移動しました。"
+        remove_from_collection: "[0,Inf[%count%件のパズルを%name%から削除しました。"
     error:
         nothing_to_apply: "適用できるものがありません - スキャンしたパズルのどれもこの操作の対象になりません。"
         person_required: "相手を入力してください：#プレイヤーコードまたは名前。"
@@ -6839,8 +6853,8 @@ multiscan:
             name: "パズル名"
             pieces: "ピース数"
             brand: "ブランド"
-            brand_pick: "ブランドを選択…"
-            brand_other: "…またはリストにないブランドを入力"
+            brand_search: "ブランドを検索、または新しいブランドを入力"
+            brand_create: "新しいブランド「%input%」"
             photo: "箱の写真"
         photo:
             take: "箱の写真を撮る"

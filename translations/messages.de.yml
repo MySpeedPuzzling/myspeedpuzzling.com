@@ -2337,7 +2337,7 @@ badges:
         "short": "So viele du willst"
       "multiscan":
         "title": "Multiscan"
-        "text": "Scanne einen Stapel Schachteln und füge alle auf einmal einer Sammlung hinzu."
+        "text": "Scanne einen Stapel Schachteln und füge alle auf einmal hinzu, verschiebe oder verleihe sie."
         "short": "Einen Stapel hinzufügen"
       "search_scanner":
         "title": "Scannen in der Suche"
@@ -6738,6 +6738,8 @@ multiscan:
         collection_title: "Schachteln direkt in diese Sammlung scannen"
         wishlist: "In die Wunschliste scannen"
         wishlist_title: "Schachteln direkt auf deine Wunschliste scannen"
+        collection_out: "Scannen zum Verschieben"
+        collection_out_title: "Scanne die Schachteln, die diese Sammlung verlassen, und verschiebe sie in eine andere oder entferne sie"
     teaser:
         title: "Einen ganzen Stapel Puzzles auf einmal scannen"
         text: "Multiscan lässt die Kamera laufen: Halte sie auf eine Schachtel nach der anderen und wende dann eine Aktion auf alle an."
@@ -6773,6 +6775,8 @@ multiscan:
         not_lent: "weder verliehen noch ausgeliehen"
         empty: "nichts anzuwenden"
         missing_person: "keine Person angegeben"
+        not_in_collection: "nicht in dieser Sammlung"
+        same_collection: "wähle eine andere Sammlung als Ziel"
     row:
         change: "Anderen Treffer wählen"
         remove: "Entfernen"
@@ -6788,6 +6792,8 @@ multiscan:
         return_returned: "Zurückbekommen"
         return_give_back: "Zurückgeben"
         return_mixed: "Zurückbekommen / zurückgeben"
+        move_to_collection: "Verschieben nach…"
+        remove_from_collection: "Entfernen aus…"
     apply:
         add_to_library: "%count% in die Bibliothek"
         add_to_wishlist: "%count% auf die Wunschliste"
@@ -6796,6 +6802,8 @@ multiscan:
         return_returned: "%count% als zurückgegeben markieren"
         return_give_back: "%count% zurückgeben"
         return_mixed: "%count% Leihen abschließen"
+        move_to_collection: "%count% verschieben"
+        remove_from_collection: "%count% entfernen"
     field:
         collection: "Sammlung"
         person_lend: "Verleihen an"
@@ -6808,12 +6816,18 @@ multiscan:
         collection_create: "Sammlung „%input%“ anlegen"
         no_results: "Nichts gefunden"
         notes: "Notiz (optional)"
+        collection_to: "In Sammlung verschieben"
+        collection_from: "Aus Sammlung"
+        collection_from_none: "Keines davon ist in einer Sammlung"
+        collection_holds: "{0}keins gescannt|{1}1 gescannt|[2,Inf[%count% gescannt"
     recap:
         add_to_library: "{1}Ein Puzzle zur Bibliothek hinzugefügt.|[0,Inf[%count% Puzzles zur Bibliothek hinzugefügt."
         add_to_wishlist: "{1}Ein Puzzle zur Wunschliste hinzugefügt.|[0,Inf[%count% Puzzles zur Wunschliste hinzugefügt."
         lend: "{1}Ein Puzzle an %name% verliehen.|[0,Inf[%count% Puzzles an %name% verliehen."
         borrow: "{1}Ein Puzzle als von %name% ausgeliehen erfasst.|[0,Inf[%count% Puzzles als von %name% ausgeliehen erfasst."
         return: "{1}Eine Ausleihe abgeschlossen.|[0,Inf[%count% Ausleihen abgeschlossen."
+        move_to_collection: "{1}Ein Puzzle nach %name% verschoben.|[0,Inf[%count% Puzzles nach %name% verschoben."
+        remove_from_collection: "{1}Ein Puzzle aus %name% entfernt.|[0,Inf[%count% Puzzles aus %name% entfernt."
     error:
         nothing_to_apply: "Nichts anzuwenden - keines der gescannten Puzzles passt zu dieser Aktion."
         person_required: "Sag uns, wer: ein #Spielercode oder ein Name."
@@ -6849,8 +6863,8 @@ multiscan:
             name: "Puzzle-Name"
             pieces: "Teile"
             brand: "Marke"
-            brand_pick: "Marke wählen…"
-            brand_other: "…oder eine Marke eintippen, die nicht in der Liste ist"
+            brand_search: "Marke suchen oder eine neue eintippen"
+            brand_create: "Neue Marke „%input%“"
             photo: "Foto der Schachtel"
         photo:
             take: "Schachtel fotografieren"

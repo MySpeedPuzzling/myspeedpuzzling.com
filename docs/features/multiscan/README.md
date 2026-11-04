@@ -74,7 +74,7 @@ would commit immediately, and lending sends a notification that cannot be unsent
   no reload.
 - **Contextual entry points** preselect the action but still go through the tray: library header
   ("Multiscan"), lend/borrow page ("Scan returned puzzles"), collection page ("Scan puzzles into this
-  collection").
+  collection", and "Scan to move or remove" = Move with this collection as "from", `?from=`).
 
 ## 4. Actions
 
@@ -83,6 +83,8 @@ Version 1 — only the puzzle varies, the shared input is natural:
 | Action | Shared input | Eligible row | Skipped with reason |
 |---|---|---|---|
 | Add to my library | collection (system or named) | any resolved | already in that collection |
+| Move to … (2026-11-04) | from collection + to collection (or a typed new one) | in the "from" collection | not in that collection, "to" = "from" |
+| Remove from … (2026-11-04) | from collection | in that collection | not in that collection |
 | Add to wishlist | — | any resolved | already on wishlist, already in library |
 | Lend to … | person (`#code` or name), note | resolved, not lent by me | already lent to X |
 | Borrowed from … | person, note | resolved, not held by me | already borrowed from X |
@@ -91,6 +93,11 @@ Version 1 — only the puzzle varies, the shared input is natural:
 "Mark returned" (I am the owner) and "Give back" (I am the holder) are one action on the server
 (`ReturnLentPuzzles`) and one button whose label follows the rows. Rows can belong to different
 borrowers; the recap groups them ("3 from Anna, 1 from Petr").
+
+Move / Remove reuse the collection pages' bulk messages (`MovePuzzlesToCollection`, `RemovePuzzlesFromCollection`).
+"From" not picked = the collection holding most of the scanned puzzles, pinned when the action is chosen
+(`MultiscanTray::onActionUpdated()` - a select showing another value than its prop is re-sent by Live) and kept
+after Apply, so the pile does not jump to the collection it was just moved into.
 
 Later (per-puzzle inputs or wide side effects): mark solved without a time, list for swap/free (sell
 needs a price per box), remove from library, mark sold to X (wipes collections + wishlist — never
@@ -148,10 +155,14 @@ Paths, in order:
   both places; quick-add answers "take a photo of the box first" / "not a usable photo" inline and keeps
   everything typed. See "Quick-add photo and never losing the tray" below. Lands unapproved but usable immediately, like the
   add form today. A "Open the full form" link leads to `puzzle_add?ean=…` in a new tab for the rare
-  case someone wants everything (identification number, alternative name). The brand select lists every
-  brand, approved or not; a brand typed into the text field instead goes to `AddPuzzle` as text and
-  `ManufacturerResolver` makes it the existing brand of that name (case and spacing ignored) before it
-  would create a new one (`docs/features/brand-duplicates.md`).
+  case someone wants everything (identification number, alternative name). The brand is **one searchable
+  picker** (2026-11-04, a player's feedback: a native select of 2,000+ brands is a long scroll on a phone):
+  `multiscan_picker_controller.js` mode `brand` fetches every brand, approved or not, once from
+  `multiscan_brand_options` (`/multiscan-brands.json`, most puzzles first, with logos - not rendered into the
+  tray's re-renders), searches name + EAN prefix, and a typed name that is no brand becomes `newBrand` as text:
+  `AddPuzzle` gets it and `ManufacturerResolver` makes it the existing brand of that name (case and spacing
+  ignored) before it would create a new one (`docs/features/brand-duplicates.md`). Only the selected brand
+  (the one the EAN prefix detected) is rendered, `MultiscanTray::selectedBrand()`.
 - **Skip for now** — the row moves to a separate **Unresolved** section under the actionable list,
   with its own count, tappable later. The main list therefore always equals "what the batch will
   touch", and the box is not lost. Unresolved rows survive an apply.

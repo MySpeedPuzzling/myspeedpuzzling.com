@@ -2902,7 +2902,7 @@ membership:
                 short: "As many as you like"
             multiscan:
                 title: "Multiscan"
-                text: "Scan a pile of boxes and add them all to a collection at once."
+                text: "Scan a pile of boxes and add, move or lend them all at once."
                 short: "Add a pile of boxes"
             search_scanner:
                 title: "Scan from the search bar"
@@ -7263,6 +7263,8 @@ multiscan:
         collection_title: "Scan boxes straight into this collection"
         wishlist: "Scan into wishlist"
         wishlist_title: "Scan boxes straight onto your wishlist"
+        collection_out: "Scan to move or remove"
+        collection_out_title: "Scan boxes leaving this collection and move them to another one or remove them"
     teaser:
         title: "Scan a pile of puzzles in one go"
         text: "Multiscan keeps the camera running: point it at box after box, then apply one action to all of them."
@@ -7298,6 +7300,8 @@ multiscan:
         not_lent: "not lent or borrowed"
         empty: "nothing to apply"
         missing_person: "no person given"
+        not_in_collection: "not in that collection"
+        same_collection: "pick another collection to move it to"
     row:
         change: "Pick a different match"
         remove: "Remove"
@@ -7313,6 +7317,8 @@ multiscan:
         return_returned: "Returned to me"
         return_give_back: "Give back"
         return_mixed: "Returned / give back"
+        move_to_collection: "Move to…"
+        remove_from_collection: "Remove from…"
     apply:
         add_to_library: "Add %count% to library"
         add_to_wishlist: "Wishlist %count%"
@@ -7321,6 +7327,8 @@ multiscan:
         return_returned: "Mark %count% returned"
         return_give_back: "Give %count% back"
         return_mixed: "Close %count% lends"
+        move_to_collection: "Move %count%"
+        remove_from_collection: "Remove %count%"
     field:
         collection: "Collection"
         person_lend: "Lend to"
@@ -7333,12 +7341,18 @@ multiscan:
         collection_create: "Create collection \"%input%\""
         no_results: "Nothing found"
         notes: "Note (optional)"
+        collection_to: "Move to collection"
+        collection_from: "From collection"
+        collection_from_none: "None of them is in a collection"
+        collection_holds: "{0}none scanned|{1}1 scanned|[2,Inf[%count% scanned"
     recap:
         add_to_library: "{1}One puzzle added to your library.|[0,Inf[%count% puzzles added to your library."
         add_to_wishlist: "{1}One puzzle added to your wishlist.|[0,Inf[%count% puzzles added to your wishlist."
         lend: "{1}One puzzle lent to %name%.|[0,Inf[%count% puzzles lent to %name%."
         borrow: "{1}One puzzle recorded as borrowed from %name%.|[0,Inf[%count% puzzles recorded as borrowed from %name%."
         return: "{1}One lend closed.|[0,Inf[%count% lends closed."
+        move_to_collection: "{1}One puzzle moved to %name%.|[0,Inf[%count% puzzles moved to %name%."
+        remove_from_collection: "{1}One puzzle removed from %name%.|[0,Inf[%count% puzzles removed from %name%."
     error:
         nothing_to_apply: "Nothing to apply - none of the scanned puzzles fits this action."
         person_required: "Tell us who: a #player-code or a name."
@@ -7374,8 +7388,8 @@ multiscan:
             name: "Puzzle name"
             pieces: "Pieces"
             brand: "Brand"
-            brand_pick: "Pick a brand…"
-            brand_other: "…or type a brand that is not in the list"
+            brand_search: "Search a brand or type a new one"
+            brand_create: "New brand \"%input%\""
             photo: "Photo of the box"
         photo:
             take: "Take a photo of the box"

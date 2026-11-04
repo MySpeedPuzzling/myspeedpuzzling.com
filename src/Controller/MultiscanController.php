@@ -52,10 +52,15 @@ final class MultiscanController extends AbstractController
             $presetCollectionId = null;
         }
 
+        // "Scan puzzles out of this collection": move / remove start with the collection they leave
+        $from = $request->query->getString('from');
+        $presetSourceCollectionId = $from === Collection::SYSTEM_ID || Uuid::isValid($from) ? $from : null;
+
         return $this->render('multiscan/index.html.twig', [
             'is_member' => $profile->activeMembership,
             'preset_action' => $presetAction,
             'preset_collection_id' => $presetCollectionId,
+            'preset_source_collection_id' => $presetSourceCollectionId,
         ]);
     }
 }

@@ -2427,7 +2427,7 @@ recap_progress:
         "short": "Kolik chceš"
       "multiscan":
         "title": "Hromadné skenování"
-        "text": "Naskenuj hromádku krabic a přidej je všechny najednou do kolekce."
+        "text": "Naskenuj hromádku krabic a všechny najednou přidej, přesuň nebo půjč."
         "short": "Přidej hromádku krabic"
       "search_scanner":
         "title": "Skenování z vyhledávání"
@@ -6813,6 +6813,8 @@ multiscan:
         collection_title: "Naskenuj krabice rovnou do této kolekce"
         wishlist: "Skenovat do seznamu přání"
         wishlist_title: "Naskenuj krabice rovnou na svůj seznam přání"
+        collection_out: "Naskenovat k přesunu"
+        collection_out_title: "Naskenuj krabice, které z kolekce odcházejí, a přesuň je do jiné kolekce nebo je odeber"
     teaser:
         title: "Naskenuj hromadu puzzlí najednou"
         text: "Multiscan nechá kameru běžet: namiř ji na jednu krabici za druhou a pak na všechny použij jednu akci."
@@ -6848,6 +6850,8 @@ multiscan:
         not_lent: "není půjčené ani vypůjčené"
         empty: "není co použít"
         missing_person: "není zadaná osoba"
+        not_in_collection: "není v té kolekci"
+        same_collection: "vyber jinou kolekci, kam ho přesunout"
     row:
         change: "Vybrat jiné puzzle"
         remove: "Odebrat"
@@ -6863,6 +6867,8 @@ multiscan:
         return_returned: "Vrátilo se mi"
         return_give_back: "Vracím"
         return_mixed: "Vrátilo se / vracím"
+        move_to_collection: "Přesunout do…"
+        remove_from_collection: "Odebrat z…"
     apply:
         add_to_library: "Přidat %count% do knihovny"
         add_to_wishlist: "%count% na seznam přání"
@@ -6871,6 +6877,8 @@ multiscan:
         return_returned: "Označit %count% jako vrácené"
         return_give_back: "Vrátit %count%"
         return_mixed: "Uzavřít %count% půjček"
+        move_to_collection: "Přesunout %count%"
+        remove_from_collection: "Odebrat %count%"
     field:
         collection: "Kolekce"
         person_lend: "Komu půjčit"
@@ -6883,12 +6891,18 @@ multiscan:
         collection_create: "Vytvořit kolekci „%input%“"
         no_results: "Nic nenalezeno"
         notes: "Poznámka (nepovinné)"
+        collection_to: "Přesunout do kolekce"
+        collection_from: "Z kolekce"
+        collection_from_none: "Žádné z nich není v kolekci"
+        collection_holds: "{0}žádné naskenované|{1}1 naskenované|[2,4]%count% naskenované|[5,Inf[%count% naskenovaných"
     recap:
         add_to_library: "{1}Jedno puzzle přidáno do knihovny.|{2,3,4}%count% puzzle přidána do knihovny.|[0,Inf[%count% puzzlí přidáno do knihovny."
         add_to_wishlist: "{1}Jedno puzzle přidáno na seznam přání.|{2,3,4}%count% puzzle přidána na seznam přání.|[0,Inf[%count% puzzlí přidáno na seznam přání."
         lend: "{1}Jedno puzzle půjčeno – %name%.|{2,3,4}%count% puzzle půjčena – %name%.|[0,Inf[%count% puzzlí půjčeno – %name%."
         borrow: "{1}Jedno puzzle zapsáno jako vypůjčené od %name%.|{2,3,4}%count% puzzle zapsána jako vypůjčená od %name%.|[0,Inf[%count% puzzlí zapsáno jako vypůjčených od %name%."
         return: "{1}Jedna výpůjčka uzavřena.|{2,3,4}%count% výpůjčky uzavřeny.|[0,Inf[%count% výpůjček uzavřeno."
+        move_to_collection: "{1}Jedno puzzle přesunuto do %name%.|[2,4]%count% puzzle přesunuta do %name%.|[0,Inf[%count% puzzlí přesunuto do %name%."
+        remove_from_collection: "{1}Jedno puzzle odebráno z %name%.|[2,4]%count% puzzle odebrána z %name%.|[0,Inf[%count% puzzlí odebráno z %name%."
     error:
         nothing_to_apply: "Není co použít - na žádné z naskenovaných puzzlí tahle akce nesedí."
         person_required: "Napiš komu: #kód hráče nebo jméno."
@@ -6924,8 +6938,8 @@ multiscan:
             name: "Název puzzle"
             pieces: "Počet dílků"
             brand: "Značka"
-            brand_pick: "Vyber značku…"
-            brand_other: "…nebo napiš značku, která v seznamu není"
+            brand_search: "Vyhledej značku nebo napiš novou"
+            brand_create: "Nová značka „%input%“"
             photo: "Fotka krabice"
         photo:
             take: "Vyfoť krabici"

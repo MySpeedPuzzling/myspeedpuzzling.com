@@ -18,6 +18,8 @@ use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Message\AddPuzzlesToCollection;
+use SpeedPuzzling\Web\Message\MovePuzzlesToCollection;
+use SpeedPuzzling\Web\Message\RemovePuzzlesFromCollection;
 use SpeedPuzzling\Web\Message\AddPuzzlesToWishList;
 use SpeedPuzzling\Web\Message\BorrowPuzzlesFromPlayer;
 use SpeedPuzzling\Web\Message\CreateCollection;
@@ -37,7 +39,6 @@ use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
 use SpeedPuzzling\Web\Results\CollectionOverview;
 use SpeedPuzzling\Web\Results\LendBorrowCounterparty;
-use SpeedPuzzling\Web\Results\ManufacturerOverview;
 use SpeedPuzzling\Web\Results\MultiscanEligibilityReport;
 use SpeedPuzzling\Web\Results\MultiscanRow;
 use SpeedPuzzling\Web\Results\PlayerIdentification;
@@ -96,11 +97,19 @@ final class MultiscanTray
     #[LiveProp]
     public array $rows = [];
 
-    #[LiveProp(writable: true)]
+    #[LiveProp(writable: true, onUpdated: 'onActionUpdated')]
     public string $action = 'add_to_library';
 
     #[LiveProp(writable: true)]
     public string $collectionId = Collection::SYSTEM_ID;
+
+    /**
+     * The collection "Move to collection" / "Remove from collection" take the puzzles out of: an id or the system
+     * collection's marker; '' = not picked, then the collection holding most of the scanned puzzles is used
+     * (effectiveSourceCollectionId()).
+     */
+    #[LiveProp(writable: true)]
+    public string $sourceCollectionId = '';
 
     #[LiveProp(writable: true)]
     public string $person = '';
@@ -182,9 +191,6 @@ final class MultiscanTray
     /** @var null|list<CollectionOverview> */
     private null|array $collections = null;
 
-    /** @var null|list<ManufacturerOverview> */
-    private null|array $manufacturers = null;
-
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetMultiscanCandidates $getMultiscanCandidates,
@@ -208,7 +214,7 @@ final class MultiscanTray
     ) {
     }
 
-    public function mount(null|string $presetAction = null, null|string $presetCollectionId = null): void
+    public function mount(null|string $presetAction = null, null|string $presetCollectionId = null, null|string $presetSourceCollectionId = null): void
     {
         $action = $presetAction !== null ? MultiscanAction::tryFrom($presetAction) : null;
 
@@ -218,6 +224,21 @@ final class MultiscanTray
 
         if ($presetCollectionId !== null && $this->collectionBelongsToPlayer($presetCollectionId)) {
             $this->collectionId = $presetCollectionId;
+        }
+
+        if ($presetSourceCollectionId !== null && $this->collectionBelongsToPlayer($presetSourceCollectionId)) {
+            $this->sourceCollectionId = $presetSourceCollectionId;
+        }
+    }
+
+    /**
+     * Switching to Move / Remove pins the collection holding most of the scanned puzzles as "From", so the select
+     * shows what its model holds (a select showing another value than its prop is re-sent by Live with every request)
+     */
+    public function onActionUpdated(): void
+    {
+        if ($this->sourceCollectionId === '' && $this->currentAction()->needsSourceCollection()) {
+            $this->sourceCollectionId = $this->effectiveSourceCollectionId() ?? '';
         }
     }
 
@@ -500,8 +521,9 @@ final class MultiscanTray
             $this->newPiecesCount = is_string($sheet['pieces'] ?? null) ? mb_substr($sheet['pieces'], 0, 6) : '';
             $this->newBrandName = is_string($sheet['brandName'] ?? null) ? mb_substr($sheet['brandName'], 0, 100) : '';
 
-            if (is_string($sheet['brand'] ?? null) && Uuid::isValid($sheet['brand'])) {
-                $this->newBrand = $sheet['brand'];
+            // A brand id or a typed new brand's name (the picker holds both); older trays kept a typed one apart
+            if (is_string($sheet['brand'] ?? null) && trim($sheet['brand']) !== '') {
+                $this->newBrand = mb_substr(trim($sheet['brand']), 0, 100);
             }
 
             // Same puzzle id as before the reload: a create that did go through is found, not repeated. The id comes
@@ -596,9 +618,15 @@ final class MultiscanTray
         }
 
         $personName = null;
+        $sourceCollectionId = $action->needsSourceCollection() ? $this->effectiveSourceCollectionId() : null;
+
+        if ($action->needsSourceCollection() && $sourceCollectionId === null) {
+            $this->error = 'multiscan.error.collection_not_found';
+            return;
+        }
 
         try {
-            if ($action === MultiscanAction::AddToLibrary && $collectionId !== null && !$this->collectionBelongsToPlayer($collectionId)) {
+            if ($action->needsTargetCollection() && $collectionId !== null && !$this->collectionBelongsToPlayer($collectionId)) {
                 if (Uuid::isValid($collectionId)) {
                     $this->error = 'multiscan.error.collection_not_found';
                     return;
@@ -626,6 +654,13 @@ final class MultiscanTray
 
             $message = match ($action) {
                 MultiscanAction::AddToLibrary => new AddPuzzlesToCollection($profile->playerId, $report->eligible, $collectionId),
+                MultiscanAction::MoveToCollection => new MovePuzzlesToCollection(
+                    $profile->playerId,
+                    $report->eligible,
+                    self::nullForSystem($sourceCollectionId),
+                    $collectionId,
+                ),
+                MultiscanAction::RemoveFromCollection => new RemovePuzzlesFromCollection($profile->playerId, $report->eligible, self::nullForSystem($sourceCollectionId)),
                 MultiscanAction::AddToWishlist => new AddPuzzlesToWishList($profile->playerId, $report->eligible),
                 MultiscanAction::Lend => new LendPuzzlesToPlayer($profile->playerId, $report->eligible, $participant?->playerId, $participant?->playerName, $notes),
                 MultiscanAction::Borrow => new BorrowPuzzlesFromPlayer($profile->playerId, $report->eligible, $participant?->playerId, $participant?->playerName, $notes),
@@ -636,7 +671,7 @@ final class MultiscanTray
         } catch (HandlerFailedException $e) {
             $this->failWith($e->getPrevious() ?? $e);
             return;
-        } catch (PlayerNotFound | CannotLendToSelf | PuzzleNotRevealedYet $e) {
+        } catch (PlayerNotFound | CannotLendToSelf | PuzzleNotRevealedYet | CollectionNotFound $e) {
             // HTTP exceptions of the handler arrive unwrapped (UnwrapHttpExceptionMiddleware)
             $this->failWith($e);
             return;
@@ -651,6 +686,17 @@ final class MultiscanTray
             if (isset($report->counterpartyNames[$puzzleId])) {
                 $names[$puzzleId] = $report->counterpartyNames[$puzzleId];
             }
+        }
+
+        if ($action === MultiscanAction::MoveToCollection) {
+            $personName = $this->collectionLabel($collectionId ?? Collection::SYSTEM_ID);
+        } elseif ($action === MultiscanAction::RemoveFromCollection && $sourceCollectionId !== null) {
+            $personName = $this->collectionLabel($sourceCollectionId);
+        }
+
+        // The pile stays where it was taken from: an automatic source would now be the target of the move
+        if ($sourceCollectionId !== null) {
+            $this->sourceCollectionId = $sourceCollectionId;
         }
 
         $this->recap = [
@@ -975,9 +1021,11 @@ final class MultiscanTray
         $statuses = $this->statuses();
         $counts = [];
 
+        $collectionId = self::nullForSystem($this->collectionId);
+        $sourceCollectionId = $this->effectiveSourceCollectionId();
+
         foreach (MultiscanAction::cases() as $action) {
-            $collectionId = $this->collectionId === Collection::SYSTEM_ID ? null : $this->collectionId;
-            $counts[$action->value] = count($this->eligibility->check($action, $ids, $statuses, $collectionId)->eligible);
+            $counts[$action->value] = count($this->eligibility->check($action, $ids, $statuses, $collectionId, $sourceCollectionId)->eligible);
         }
 
         return $counts;
@@ -1043,19 +1091,31 @@ final class MultiscanTray
     }
 
     /**
-     * @return list<ManufacturerOverview>
+     * The quick-add brand picker's selected option - the only one rendered: the rest (every brand, most puzzles first,
+     * with logos) is fetched once by the picker (MultiscanBrandOptionsController). A brand id, or a typed name that
+     * becomes a new brand unless it is an existing brand's name (ManufacturerResolver).
+     *
+     * @return null|array{value: string, text: string, logo: null|string}
      */
-    public function brandOptions(): array
+    public function selectedBrand(): null|array
     {
-        if ($this->manufacturers !== null) {
-            return $this->manufacturers;
+        $brand = trim($this->newBrand);
+
+        if ($brand === '') {
+            return null;
         }
 
-        // Every brand, approved or not - one left out gets typed again as a new brand
-        $list = $this->getManufacturers->allIncludingUnapproved();
-        usort($list, static fn (ManufacturerOverview $a, ManufacturerOverview $b): int => strcasecmp($a->manufacturerName, $b->manufacturerName));
+        if (!Uuid::isValid($brand)) {
+            return ['value' => $brand, 'text' => $brand, 'logo' => null];
+        }
 
-        return $this->manufacturers = $list;
+        if ($brand === $this->resolveBrandId && $this->resolveBrandName !== null) {
+            return ['value' => $brand, 'text' => $this->resolveBrandName, 'logo' => null];
+        }
+
+        $found = $this->getManufacturers->namesAndLogosByIds([$brand])[$brand] ?? null;
+
+        return $found === null ? null : ['value' => $brand, 'text' => $found['name'], 'logo' => $found['logo']];
     }
 
     /**
@@ -1158,7 +1218,8 @@ final class MultiscanTray
     }
 
     /**
-     * Quick-add brand: the typed name, otherwise the dropdown pick. AddPuzzleHandler turns a typed name
+     * Quick-add brand: the picker's value - a brand id or a typed name (newBrandName = a typed name of a tray saved
+     * before the picker could take one). AddPuzzleHandler turns a typed name
      * that is an existing brand (ignoring case and spacing, approved or not) into that brand
      * (ManufacturerResolver) - never a duplicate just because somebody typed "Ravensburger" again.
      */
@@ -1194,9 +1255,84 @@ final class MultiscanTray
 
     private function report(): MultiscanEligibilityReport
     {
-        $collectionId = $this->collectionId === Collection::SYSTEM_ID ? null : $this->collectionId;
+        return $this->eligibility->check(
+            $this->currentAction(),
+            $this->resolvedPuzzleIds(),
+            $this->statuses(),
+            self::nullForSystem($this->collectionId),
+            $this->effectiveSourceCollectionId(),
+        );
+    }
 
-        return $this->eligibility->check($this->currentAction(), $this->resolvedPuzzleIds(), $this->statuses(), $collectionId);
+    /**
+     * The collection "Move" / "Remove" take the scanned puzzles out of: the one picked, otherwise the collection
+     * holding most of them (ties: the first in the picker's order) - scanning a pile from one shelf needs no picking.
+     * Null while none of the scanned puzzles is in any collection.
+     */
+    public function effectiveSourceCollectionId(): null|string
+    {
+        if ($this->sourceCollectionId !== '' && $this->collectionBelongsToPlayer($this->sourceCollectionId)) {
+            return $this->sourceCollectionId;
+        }
+
+        $best = null;
+        $bestCount = 0;
+
+        foreach ($this->sourceCollectionOptions() as $option) {
+            if ($option['count'] > $bestCount) {
+                $best = $option['id'];
+                $bestCount = $option['count'];
+            }
+        }
+
+        return $best;
+    }
+
+    /**
+     * The "From collection" picker: the system collection and every own collection, each with how many of the
+     * scanned puzzles it holds.
+     *
+     * @return list<array{id: string, name: null|string, count: int}> name null = the system collection
+     */
+    public function sourceCollectionOptions(): array
+    {
+        $statuses = $this->statuses();
+        $counts = [];
+
+        foreach (array_unique($this->resolvedPuzzleIds()) as $puzzleId) {
+            foreach (array_keys($statuses->puzzleCollections[$puzzleId] ?? []) as $collectionId) {
+                $counts[$collectionId] = ($counts[$collectionId] ?? 0) + 1;
+            }
+        }
+
+        $options = [['id' => Collection::SYSTEM_ID, 'name' => null, 'count' => $counts[Collection::SYSTEM_ID] ?? 0]];
+
+        foreach ($this->collectionOptions() as $collection) {
+            if ($collection->collectionId !== null) {
+                $options[] = ['id' => $collection->collectionId, 'name' => $collection->name, 'count' => $counts[$collection->collectionId] ?? 0];
+            }
+        }
+
+        return $options;
+    }
+
+    /**
+     * A collection's name for the recap; the system collection's marker is translated by the template.
+     */
+    private function collectionLabel(string $collectionId): string
+    {
+        foreach ($this->collectionOptions() as $collection) {
+            if ($collection->collectionId === $collectionId) {
+                return $collection->name;
+            }
+        }
+
+        return Collection::SYSTEM_ID;
+    }
+
+    private static function nullForSystem(null|string $collectionId): null|string
+    {
+        return $collectionId === null || $collectionId === Collection::SYSTEM_ID || trim($collectionId) === '' ? null : $collectionId;
     }
 
     /**

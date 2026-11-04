@@ -617,6 +617,69 @@ final class MultiscanTrayTest extends WebTestCase
         ));
     }
 
+    public function testMoveTakesThePuzzlesOutOfTheCollectionHoldingMostOfThemIntoAnother(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client);
+
+        // PUZZLE_300 is in "My Ravensburger Collection", PUZZLE_6000 in none of the player's collections
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_300]);
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_6000]);
+        $tray->set('action', 'move_to_collection');
+
+        $component = $tray->component();
+        assert($component instanceof MultiscanTray);
+        self::assertSame(CollectionFixture::COLLECTION_PUBLIC, $component->sourceCollectionId, 'the collection holding the scanned puzzles is "From"');
+
+        $tray->set('collectionId', CollectionFixture::COLLECTION_STRIPE_TREFL);
+        $html = $tray->render()->toString();
+        self::assertStringContainsString('Move 1', $html);
+        self::assertStringContainsString('not in that collection', $html);
+
+        $tray->call('apply');
+        $html = $tray->render()->toString();
+        self::assertStringContainsString('One puzzle moved to My Trefl Collection.', $html);
+
+        /** @var Connection $database */
+        $database = self::getContainer()->get(Connection::class);
+        self::assertSame(
+            [CollectionFixture::COLLECTION_STRIPE_TREFL],
+            $database->fetchFirstColumn(
+                'SELECT collection_id::text FROM collection_item WHERE player_id = :p AND puzzle_id = :z AND collection_id IN (:public, :trefl)',
+                ['p' => PlayerFixture::PLAYER_WITH_STRIPE, 'z' => PuzzleFixture::PUZZLE_300, 'public' => CollectionFixture::COLLECTION_PUBLIC, 'trefl' => CollectionFixture::COLLECTION_STRIPE_TREFL],
+            ),
+        );
+    }
+
+    public function testRemoveFromTheCollectionTheScanWasStartedFrom(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client, data: ['presetAction' => 'remove_from_collection', 'presetSourceCollectionId' => CollectionFixture::COLLECTION_PUBLIC]);
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_PUZZLE_300]);
+        $tray->call('apply');
+        $html = $tray->render()->toString();
+
+        self::assertStringContainsString('One puzzle removed from My Ravensburger Collection.', $html);
+
+        /** @var Connection $database */
+        $database = self::getContainer()->get(Connection::class);
+        self::assertSame('0', $database->fetchOne(
+            'SELECT count(*)::text FROM collection_item WHERE player_id = :p AND puzzle_id = :z AND collection_id = :c',
+            ['p' => PlayerFixture::PLAYER_WITH_STRIPE, 'z' => PuzzleFixture::PUZZLE_300, 'c' => CollectionFixture::COLLECTION_PUBLIC],
+        ));
+    }
+
+    public function testForeignSourceCollectionPresetIsIgnored(): void
+    {
+        $client = self::createClient();
+        $tray = $this->tray($client, data: ['presetAction' => 'remove_from_collection', 'presetSourceCollectionId' => CollectionFixture::COLLECTION_PRIVATE]);
+
+        $component = $tray->component();
+        assert($component instanceof MultiscanTray);
+        self::assertSame('', $component->sourceCollectionId);
+    }
+
     public function testForeignCollectionPresetIsIgnored(): void
     {
         $client = self::createClient();

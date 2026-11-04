@@ -2419,7 +2419,7 @@ competition_referees:
         "short": "Autant que vous voulez"
       "multiscan":
         "title": "Scan multiple"
-        "text": "Scannez une pile de boîtes et ajoutez-les toutes d'un coup à une collection."
+        "text": "Scannez une pile de boîtes et ajoutez, déplacez ou prêtez-les toutes d'un coup."
         "short": "Ajoutez une pile de boîtes"
       "search_scanner":
         "title": "Scanner depuis la recherche"
@@ -6806,6 +6806,8 @@ multiscan:
         collection_title: "Scannez des boîtes directement dans cette collection"
         wishlist: "Scanner vers la liste de souhaits"
         wishlist_title: "Scannez des boîtes directement dans votre liste de souhaits"
+        collection_out: "Scanner pour déplacer"
+        collection_out_title: "Scannez les boîtes qui quittent cette collection et déplacez-les vers une autre ou retirez-les"
     teaser:
         title: "Scannez une pile de puzzles en une fois"
         text: "Multiscan garde la caméra active : visez les boîtes l'une après l'autre, puis appliquez une seule action à toutes."
@@ -6841,6 +6843,8 @@ multiscan:
         not_lent: "ni prêté ni emprunté"
         empty: "rien à appliquer"
         missing_person: "aucune personne indiquée"
+        not_in_collection: "pas dans cette collection"
+        same_collection: "choisissez une autre collection de destination"
     row:
         change: "Choisir une autre correspondance"
         remove: "Retirer"
@@ -6856,6 +6860,8 @@ multiscan:
         return_returned: "Revenu chez moi"
         return_give_back: "Rendre"
         return_mixed: "Retourné / à rendre"
+        move_to_collection: "Déplacer vers…"
+        remove_from_collection: "Retirer de…"
     apply:
         add_to_library: "Ajouter %count% à la bibliothèque"
         add_to_wishlist: "%count% en liste de souhaits"
@@ -6864,6 +6870,8 @@ multiscan:
         return_returned: "Marquer %count% comme retournés"
         return_give_back: "Rendre %count%"
         return_mixed: "Clôturer %count% prêts"
+        move_to_collection: "Déplacer %count%"
+        remove_from_collection: "Retirer %count%"
     field:
         collection: "Collection"
         person_lend: "Prêter à"
@@ -6876,12 +6884,18 @@ multiscan:
         collection_create: "Créer la collection « %input% »"
         no_results: "Rien trouvé"
         notes: "Note (facultatif)"
+        collection_to: "Déplacer vers la collection"
+        collection_from: "Depuis la collection"
+        collection_from_none: "Aucun n'est dans une collection"
+        collection_holds: "{0}aucun scanné|{1}1 scanné|[2,Inf[%count% scannés"
     recap:
         add_to_library: "{1}Un puzzle ajouté à votre bibliothèque.|[0,Inf[%count% puzzles ajoutés à votre bibliothèque."
         add_to_wishlist: "{1}Un puzzle ajouté à votre liste de souhaits.|[0,Inf[%count% puzzles ajoutés à votre liste de souhaits."
         lend: "{1}Un puzzle prêté à %name%.|[0,Inf[%count% puzzles prêtés à %name%."
         borrow: "{1}Un puzzle enregistré comme emprunté à %name%.|[0,Inf[%count% puzzles enregistrés comme empruntés à %name%."
         return: "{1}Un prêt clôturé.|[0,Inf[%count% prêts clôturés."
+        move_to_collection: "{1}Un puzzle déplacé vers %name%.|[0,Inf[%count% puzzles déplacés vers %name%."
+        remove_from_collection: "{1}Un puzzle retiré de %name%.|[0,Inf[%count% puzzles retirés de %name%."
     error:
         nothing_to_apply: "Rien à appliquer - aucun des puzzles scannés ne convient à cette action."
         person_required: "Dites-nous qui : un #code-joueur ou un nom."
@@ -6917,8 +6931,8 @@ multiscan:
             name: "Nom du puzzle"
             pieces: "Pièces"
             brand: "Marque"
-            brand_pick: "Choisir une marque…"
-            brand_other: "…ou saisissez une marque absente de la liste"
+            brand_search: "Cherchez une marque ou tapez-en une nouvelle"
+            brand_create: "Nouvelle marque « %input% »"
             photo: "Photo de la boîte"
         photo:
             take: "Photographier la boîte"

@@ -41,7 +41,8 @@
                 <i class="bi-check-circle-fill mt-1"></i>
                 <div class="flex-grow-1">
                     <div class="fw-medium">
-                        {{ ('multiscan.recap.' ~ this.recap.action)|trans({'%count%': this.recap.puzzleIds|length, '%name%': this.recap.person ?? ''}) }}
+                        {% set recap_name = this.recap.person == constant('SpeedPuzzling\\Web\\Entity\\Collection::SYSTEM_ID') ? 'collections.system_name'|trans : (this.recap.person ?? '') %}
+                        {{ ('multiscan.recap.' ~ this.recap.action)|trans({'%count%': this.recap.puzzleIds|length, '%name%': recap_name}) }}
                     </div>
                     <ul class="small mb-0 mt-1 ps-3">
                         {% for puzzle in recapPuzzles %}
@@ -170,7 +171,7 @@
                 {% for candidateAction in this.actions %}
                     {% set slug = candidateAction.value %}
                     <input type="radio" class="btn-check" name="multiscan-action" id="multiscan-action-{{ slug }}" value="{{ slug }}" data-model="action" autocomplete="off" {% if action.value == slug %}checked{% endif %}>
-                    {% set actionIcons = {add_to_library: 'bi-collection', add_to_wishlist: 'bi-heart', lend: 'bi-box-arrow-up-right', borrow: 'bi-box-arrow-in-down-left', return: 'bi-box-arrow-in-left'} %}
+                    {% set actionIcons = {add_to_library: 'bi-collection', move_to_collection: 'bi-arrow-left-right', remove_from_collection: 'bi-folder-minus', add_to_wishlist: 'bi-heart', lend: 'bi-box-arrow-up-right', borrow: 'bi-box-arrow-in-down-left', return: 'bi-box-arrow-in-left'} %}
                     <label class="btn btn-sm {% if action.value == slug %}btn-primary{% else %}btn-outline-secondary{% endif %} text-nowrap px-2" for="multiscan-action-{{ slug }}">
                         <i class="{{ actionIcons[slug] }} me-1"></i>
                         {% if slug == 'return' %}
@@ -184,10 +185,29 @@
             </div>
 
             <div class="d-flex flex-wrap gap-2 align-items-end mt-2">
+                {# "From collection" of Move / Remove: re-rendered (each collection says how many of the scanned puzzles
+                   it holds); not picked = the one holding most of them #}
+                {% if action.needsSourceCollection %}
+                    {% set source_id = this.effectiveSourceCollectionId %}
+                    <div class="flex-grow-1" style="min-width: 180px;">
+                        <label class="form-label small mb-1" for="multiscan-source-collection">{{ 'multiscan.field.collection_from'|trans }}</label>
+                        <select id="multiscan-source-collection" class="form-select form-select-sm" data-model="on(change)|sourceCollectionId">
+                            {% if source_id is null %}
+                                <option value="" selected>{{ 'multiscan.field.collection_from_none'|trans }}</option>
+                            {% endif %}
+                            {% for option in this.sourceCollectionOptions %}
+                                <option value="{{ option.id }}" {% if option.id == source_id %}selected{% endif %}>
+                                    {{ option.name ?? 'collections.system_name'|trans }} ({{ 'multiscan.field.collection_holds'|trans({'%count%': option.count}) }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endif %}
+
                 {# Collection picker: rendered once and kept by data-live-ignore (Tom Select must survive re-renders);
                    only its visibility follows the action #}
-                <div class="flex-grow-1 {% if action.value != 'add_to_library' %}d-none{% endif %}" style="min-width: 180px;">
-                    <label class="form-label small mb-1" for="multiscan-collection">{{ 'multiscan.field.collection'|trans }}</label>
+                <div class="flex-grow-1 {% if not action.needsTargetCollection %}d-none{% endif %}" style="min-width: 180px;">
+                    <label class="form-label small mb-1" for="multiscan-collection">{{ (action.value == 'move_to_collection' ? 'multiscan.field.collection_to' : 'multiscan.field.collection')|trans }}</label>
                     <div data-live-ignore>
                         <select id="multiscan-collection"
                                 class="form-select form-select-sm"
@@ -246,7 +266,7 @@
                 </div>
 
                 <button type="button"
-                        class="btn btn-primary btn-sm flex-shrink-0 {% if not action.needsPerson and action.value != 'add_to_library' %}ms-auto{% endif %}"
+                        class="btn {{ action.value == 'remove_from_collection' ? 'btn-danger' : 'btn-primary' }} btn-sm flex-shrink-0 {% if not action.needsPerson and not action.isCollectionAction %}ms-auto{% endif %}"
                         data-action="live#action"
                         data-live-action-param="apply"
                         data-loading="addAttribute(disabled)"
@@ -327,23 +347,32 @@
                             <label class="form-label small mb-1" for="multiscan-new-name">{{ 'multiscan.resolve.field.name'|trans }}</label>
                             <input type="text" id="multiscan-new-name" class="form-control form-control-sm" data-model="on(change)|newName" value="{{ this.newName }}" maxlength="255" autocomplete="off">
                         </div>
-                        <div class="row g-2 mb-2">
-                            <div class="col-5">
-                                <label class="form-label small mb-1" for="multiscan-new-pieces">{{ 'multiscan.resolve.field.pieces'|trans }}</label>
-                                <input type="number" id="multiscan-new-pieces" class="form-control form-control-sm" data-model="on(change)|newPiecesCount" value="{{ this.newPiecesCount }}" inputmode="numeric" min="2" max="100000">
-                            </div>
-                            <div class="col-7">
-                                <label class="form-label small mb-1" for="multiscan-new-brand">{{ 'multiscan.resolve.field.brand'|trans }}</label>
-                                <select id="multiscan-new-brand" class="form-select form-select-sm" data-model="newBrand">
-                                    <option value="">{{ 'multiscan.resolve.field.brand_pick'|trans }}</option>
-                                    {% for brand in this.brandOptions %}
-                                        <option value="{{ brand.manufacturerId }}" {% if this.newBrand == brand.manufacturerId %}selected{% endif %}>{{ brand.manufacturerName }}</option>
-                                    {% endfor %}
+                        {# One searchable brand field: every brand (most puzzles first, with logos) is fetched once by the
+                           picker; a typed name that is no brand becomes a new one. Kept by data-live-ignore so Tom Select
+                           survives re-renders - the id carries the code, so another box gets a fresh picker #}
+                        {% set selected_brand = this.selectedBrand %}
+                        <div class="mb-2">
+                            <label class="form-label small mb-1" for="multiscan-new-brand-{{ this.resolvingEan }}">{{ 'multiscan.resolve.field.brand'|trans }}</label>
+                            <div data-live-ignore id="multiscan-new-brand-wrap-{{ this.resolvingEan }}">
+                                <select id="multiscan-new-brand-{{ this.resolvingEan }}"
+                                        class="form-select form-select-sm"
+                                        data-model="on(change)|newBrand"
+                                        data-controller="multiscan-picker"
+                                        data-multiscan-picker-mode-value="brand"
+                                        data-multiscan-picker-options-url-value="{{ path('multiscan_brand_options') }}"
+                                        data-multiscan-picker-create-label-value="{{ 'multiscan.resolve.field.brand_create'|trans }}"
+                                        data-multiscan-picker-no-results-label-value="{{ 'multiscan.field.no_results'|trans }}"
+                                        placeholder="{{ 'multiscan.resolve.field.brand_search'|trans }}">
+                                    <option value="">{{ 'multiscan.resolve.field.brand_search'|trans }}</option>
+                                    {% if selected_brand %}
+                                        <option value="{{ selected_brand.value }}" selected data-data="{{ {logo: selected_brand.logo ? selected_brand.logo|thumbnail('puzzle_small') : null}|json_encode }}">{{ selected_brand.text }}</option>
+                                    {% endif %}
                                 </select>
                             </div>
                         </div>
                         <div class="mb-2">
-                            <input type="text" class="form-control form-control-sm" data-model="on(change)|newBrandName" value="{{ this.newBrandName }}" placeholder="{{ 'multiscan.resolve.field.brand_other'|trans }}" maxlength="100" autocomplete="off">
+                            <label class="form-label small mb-1" for="multiscan-new-pieces">{{ 'multiscan.resolve.field.pieces'|trans }}</label>
+                            <input type="number" id="multiscan-new-pieces" class="form-control form-control-sm" style="max-width: 10rem;" data-model="on(change)|newPiecesCount" value="{{ this.newPiecesCount }}" inputmode="numeric" min="2" max="100000">
                         </div>
                         {# Required, like on the add form. The multiscan controller keeps the (shrunk) photo
                            itself, so a failed upload or a re-render never loses it - hence data-live-ignore #}

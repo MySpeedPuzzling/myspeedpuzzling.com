@@ -11,6 +11,8 @@ namespace SpeedPuzzling\Web\Value;
 enum MultiscanAction: string
 {
     case AddToLibrary = 'add_to_library';
+    case MoveToCollection = 'move_to_collection';
+    case RemoveFromCollection = 'remove_from_collection';
     case AddToWishlist = 'add_to_wishlist';
     case Lend = 'lend';
     case Borrow = 'borrow';
@@ -19,5 +21,22 @@ enum MultiscanAction: string
     public function needsPerson(): bool
     {
         return $this === self::Lend || $this === self::Borrow;
+    }
+
+    /** The collection the puzzles go into (picker with "create a new one") */
+    public function needsTargetCollection(): bool
+    {
+        return $this === self::AddToLibrary || $this === self::MoveToCollection;
+    }
+
+    /** The collection the puzzles leave */
+    public function needsSourceCollection(): bool
+    {
+        return $this === self::MoveToCollection || $this === self::RemoveFromCollection;
+    }
+
+    public function isCollectionAction(): bool
+    {
+        return $this->needsTargetCollection() || $this->needsSourceCollection();
     }
 }

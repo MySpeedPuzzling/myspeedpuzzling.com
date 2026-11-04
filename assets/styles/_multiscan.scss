@@ -209,6 +209,29 @@
     overflow-y: auto;
 }
 
+// Quick-add brand picker: logo (or the brand's initial) in a fixed square so names line up
+.multiscan-brand-logo {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    object-fit: contain;
+    background: #fff;
+}
+
+.multiscan-brand-logo-empty {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: $gray-100;
+    color: $gray-600;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.multiscan-quick-add .ts-dropdown .ts-dropdown-content {
+    max-height: 40vh;
+}
+
 // Entry buttons on the library pages: the "New" badge sits over the top-right corner
 .multiscan-entry {
     margin-right: 10px;

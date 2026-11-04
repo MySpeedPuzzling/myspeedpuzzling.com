@@ -51,6 +51,27 @@ final class MultiscanEligibilityTest extends TestCase
         self::assertSame([self::LENT], $named->eligible, 'LENT is in the system collection only, so it can go into Favourites');
     }
 
+    public function testMoveAndRemoveApplyOnlyToWhatIsInTheSourceCollection(): void
+    {
+        $eligibility = new MultiscanEligibility();
+
+        $move = $eligibility->check(MultiscanAction::MoveToCollection, [self::OWNED, self::LENT, self::FRESH], $this->statuses(), 'col-2', 'col-1');
+        self::assertSame([self::OWNED], $move->eligible);
+        self::assertSame('not_in_collection', $move->reasonFor(self::FRESH));
+
+        $intoItself = $eligibility->check(MultiscanAction::MoveToCollection, [self::OWNED], $this->statuses(), 'col-1', 'col-1');
+        self::assertSame('same_collection', $intoItself->reasonFor(self::OWNED));
+
+        $fromSystem = $eligibility->check(MultiscanAction::MoveToCollection, [self::OWNED, self::LENT], $this->statuses(), 'col-1', Collection::SYSTEM_ID);
+        self::assertSame([self::OWNED, self::LENT], $fromSystem->eligible, 'one the target already holds only leaves the source');
+
+        $remove = $eligibility->check(MultiscanAction::RemoveFromCollection, [self::OWNED, self::LENT], $this->statuses(), null, 'col-1');
+        self::assertSame([self::OWNED], $remove->eligible);
+
+        $noSource = $eligibility->check(MultiscanAction::RemoveFromCollection, [self::OWNED], $this->statuses());
+        self::assertSame([], $noSource->eligible);
+    }
+
     public function testWishlistSkipsOwnedAndAlreadyWished(): void
     {
         $report = (new MultiscanEligibility())->check(MultiscanAction::AddToWishlist, [self::OWNED, self::WISHED, self::FRESH, self::BORROWED], $this->statuses());

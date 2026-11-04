@@ -2353,7 +2353,7 @@ badges:
         "short": "Todas las que quieras"
       "multiscan":
         "title": "Escaneo múltiple"
-        "text": "Escanea un montón de cajas y añádelas todas a una colección de una vez."
+        "text": "Escanea un montón de cajas y añádelas, muévelas o préstalas todas a la vez."
         "short": "Añade un montón de cajas"
       "search_scanner":
         "title": "Escanea desde el buscador"
@@ -6739,6 +6739,8 @@ multiscan:
         collection_title: "Escanea cajas directamente a esta colección"
         wishlist: "Escanear a la lista de deseos"
         wishlist_title: "Escanea cajas directamente a tu lista de deseos"
+        collection_out: "Escanear para mover"
+        collection_out_title: "Escanea las cajas que salen de esta colección y muévelas a otra o quítalas"
     teaser:
         title: "Escanea un montón de puzzles de una vez"
         text: "Multiscan mantiene la cámara encendida: apunta a una caja tras otra y luego aplica una sola acción a todas."
@@ -6774,6 +6776,8 @@ multiscan:
         not_lent: "no está prestado ni tomado prestado"
         empty: "nada que aplicar"
         missing_person: "no se indicó ninguna persona"
+        not_in_collection: "no está en esa colección"
+        same_collection: "elige otra colección de destino"
     row:
         change: "Elegir otra coincidencia"
         remove: "Quitar"
@@ -6789,6 +6793,8 @@ multiscan:
         return_returned: "Me lo devolvieron"
         return_give_back: "Devolver"
         return_mixed: "Devuelto / devolver"
+        move_to_collection: "Mover a…"
+        remove_from_collection: "Quitar de…"
     apply:
         add_to_library: "Añadir %count% a la biblioteca"
         add_to_wishlist: "%count% a la lista de deseos"
@@ -6797,6 +6803,8 @@ multiscan:
         return_returned: "Marcar %count% como devueltos"
         return_give_back: "Devolver %count%"
         return_mixed: "Cerrar %count% préstamos"
+        move_to_collection: "Mover %count%"
+        remove_from_collection: "Quitar %count%"
     field:
         collection: "Colección"
         person_lend: "Prestar a"
@@ -6809,12 +6817,18 @@ multiscan:
         collection_create: "Crear la colección «%input%»"
         no_results: "Nada encontrado"
         notes: "Nota (opcional)"
+        collection_to: "Mover a la colección"
+        collection_from: "De la colección"
+        collection_from_none: "Ninguno está en una colección"
+        collection_holds: "{0}ninguno escaneado|{1}1 escaneado|[2,Inf[%count% escaneados"
     recap:
         add_to_library: "{1}Un puzzle añadido a tu biblioteca.|[0,Inf[%count% puzzles añadidos a tu biblioteca."
         add_to_wishlist: "{1}Un puzzle añadido a tu lista de deseos.|[0,Inf[%count% puzzles añadidos a tu lista de deseos."
         lend: "{1}Un puzzle prestado a %name%.|[0,Inf[%count% puzzles prestados a %name%."
         borrow: "{1}Un puzzle registrado como prestado por %name%.|[0,Inf[%count% puzzles registrados como prestados por %name%."
         return: "{1}Un préstamo cerrado.|[0,Inf[%count% préstamos cerrados."
+        move_to_collection: "{1}Un puzzle movido a %name%.|[0,Inf[%count% puzzles movidos a %name%."
+        remove_from_collection: "{1}Un puzzle quitado de %name%.|[0,Inf[%count% puzzles quitados de %name%."
     error:
         nothing_to_apply: "Nada que aplicar - ninguno de los puzzles escaneados encaja con esta acción."
         person_required: "Dinos a quién: un #código de jugador o un nombre."
@@ -6850,8 +6864,8 @@ multiscan:
             name: "Nombre del puzzle"
             pieces: "Piezas"
             brand: "Marca"
-            brand_pick: "Elige una marca…"
-            brand_other: "…o escribe una marca que no esté en la lista"
+            brand_search: "Busca una marca o escribe una nueva"
+            brand_create: "Nueva marca «%input%»"
             photo: "Foto de la caja"
         photo:
             take: "Haz una foto de la caja"

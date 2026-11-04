@@ -21,13 +21,19 @@ readonly final class MultiscanEligibility
 {
     /**
      * @param list<string> $puzzleIds
+     * @param null|string $collectionId the target collection (add, move), null = the system collection
+     * @param null|string $sourceCollectionId the collection the puzzles leave (move, remove): an id or
+     *                                        Collection::SYSTEM_ID, null = none picked
      */
     public function check(
         MultiscanAction $action,
         array $puzzleIds,
         UserPuzzleStatuses $statuses,
         null|string $collectionId = null,
+        null|string $sourceCollectionId = null,
     ): MultiscanEligibilityReport {
+        // Collections are keyed by id, the system collection by its marker (GetUserPuzzleStatuses)
+        $target = $collectionId ?? Collection::SYSTEM_ID;
         $eligible = [];
         $skipped = [];
         $names = [];
@@ -41,8 +47,17 @@ readonly final class MultiscanEligibility
             $isBorrowed = isset($statuses->borrowedPuzzleIds[$puzzleId]);
 
             $reason = match ($action) {
-                MultiscanAction::AddToLibrary => isset($statuses->puzzleCollections[$puzzleId][$collectionId ?? Collection::SYSTEM_ID])
+                MultiscanAction::AddToLibrary => isset($statuses->puzzleCollections[$puzzleId][$target])
                     ? 'already_in_collection'
+                    : null,
+                // One the target already holds is eligible too: it only leaves the source (MovePuzzlesToCollectionHandler)
+                MultiscanAction::MoveToCollection => match (true) {
+                    $sourceCollectionId === null || !isset($statuses->puzzleCollections[$puzzleId][$sourceCollectionId]) => 'not_in_collection',
+                    $sourceCollectionId === $target => 'same_collection',
+                    default => null,
+                },
+                MultiscanAction::RemoveFromCollection => $sourceCollectionId === null || !isset($statuses->puzzleCollections[$puzzleId][$sourceCollectionId])
+                    ? 'not_in_collection'
                     : null,
                 MultiscanAction::AddToWishlist => match (true) {
                     in_array($puzzleId, $statuses->collection, true) => 'already_in_library',

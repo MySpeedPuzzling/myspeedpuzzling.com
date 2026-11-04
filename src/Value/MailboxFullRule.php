@@ -16,16 +16,20 @@ final class MailboxFullRule
     public const int WITHIN_DAYS = 30;
     public const int EXPIRES_AFTER_DAYS = 30;
 
+    /** Bind it with the app clock's now: `MailboxFullRule::NOW_PARAMETER => $clock->now()->format('Y-m-d H:i:s')` */
+    public const string NOW_PARAMETER = 'suppression_now';
+
     /**
      * The SQL condition (on an email_suppression alias) for a suppression that still holds mail back
      */
     public static function sqlInEffect(string $alias): string
     {
         return sprintf(
-            "(%1\$s.source <> '%2\$s' OR %1\$s.suppressed_at > NOW() - INTERVAL '%3\$d days')",
+            "(%1\$s.source <> '%2\$s' OR %1\$s.suppressed_at > CAST(:%4\$s AS timestamp) - INTERVAL '%3\$d days')",
             $alias,
             EmailSuppressionSource::MailboxFull->value,
             self::EXPIRES_AFTER_DAYS,
+            self::NOW_PARAMETER,
         );
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Value\MailboxFullRule;
 
 /**
@@ -15,6 +16,7 @@ readonly final class GetPlayerEmailSuppression
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -35,7 +37,10 @@ WHERE player.id = :playerId
 SQL;
 
         /** @var false|array{email: string, source: string, reason: null|string, suppressed_at: string, bounce_sub_type: null|string, diagnostic_code: null|string} $row */
-        $row = $this->database->executeQuery($query, ['playerId' => $playerId])->fetchAssociative();
+        $row = $this->database->executeQuery($query, [
+            'playerId' => $playerId,
+            MailboxFullRule::NOW_PARAMETER => $this->clock->now()->format('Y-m-d H:i:s'),
+        ])->fetchAssociative();
 
         if ($row === false) {
             return null;

@@ -242,6 +242,7 @@ SQL;
         $row = $this->database
             ->executeQuery($query, [
                 'userId' => $userId,
+                MailboxFullRule::NOW_PARAMETER => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
             ->fetchAssociative();
 

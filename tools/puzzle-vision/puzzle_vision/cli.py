@@ -119,6 +119,8 @@ def cmd_run(a: argparse.Namespace, ctx: Context) -> int:
         log.info("run ended early (exit %d) - no derive / crop proposals after it", rc)
         return rc
     if a.daily:
+        # players' new finished photos (~150 a day) before the derive, so the estimate's second view is current
+        cmd_finished_photos(argparse.Namespace(limit=None, workers=None, dry_run=False, no_embed=False), ctx)
         if ctx.profile.derive_after_daily:
             cmd_derive(argparse.Namespace(only=None, dry_run=False, json=False, force_model=False), ctx)
         if ctx.profile.propose_crops_daily:

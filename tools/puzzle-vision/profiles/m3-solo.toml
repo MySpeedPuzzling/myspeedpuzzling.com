@@ -141,10 +141,11 @@ tags = "1.0.0+fusion@tax1.0.0"
 crop_trust = "1.0.0+logit8-flatprobe"
 
 [daily]
-# new / stale images (~60 a day: ~20 min with the model loads, describe ~11 of them), then derive and a few crop proposals
+# new / stale images (~60 a day: ~20 min with the model loads, describe ~11 of them), new finished photos, then derive;
+# crop proposals off until Jan says the moderators' queue may get them (2026-11-04) - 50 a night once he does
 phases = ["artwork", "embed", "apple", "features", "cpu", "describe"]
 derive = true
-propose_crops = 50
+propose_crops = 0
 
 [launchd]
 # nightly window like m3-max (Jan works on this machine by day): start 01:30, stop after 6 hours

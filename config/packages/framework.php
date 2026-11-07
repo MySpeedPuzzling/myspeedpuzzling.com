@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Exceptions\CompetitionRoundHasResults;
 use SpeedPuzzling\Web\Exceptions\CompetitionSlugAmbiguous;
 use SpeedPuzzling\Web\Exceptions\CompetitionSlugTaken;
 use SpeedPuzzling\Web\Exceptions\CompetitionTagShared;
+use SpeedPuzzling\Web\Exceptions\FirstTryConflict;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleDifficultyEstimate;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleImageAnalysis;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
@@ -128,6 +129,9 @@ return App::config([
             // Replacing a pair/team member with a guest refused - the tracker, or not a member of that result
             // (docs/features/internal-api.md, Pairs and teams)
             PlayerNotInGroupTime::class => ['log_level' => 'info'],
+            // API v1 refusing firstAttempt=true when somebody of the result already holds a first try - answered 422
+            // with the reason, nothing saved (docs/features/first-try-integrity.md, WEB-FC)
+            FirstTryConflict::class => ['log_level' => 'info'],
         ],
         'trusted_headers' => ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-prefix'],
         'trusted_proxies' => '%env(TRUSTED_PROXIES)%',

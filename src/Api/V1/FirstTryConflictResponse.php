@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Api\V1;
 
 use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
+use SpeedPuzzling\Web\Exceptions\FirstTryConflict;
 use SpeedPuzzling\Web\Results\FirstTryTime;
-use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 /**
  * A 422 for firstAttempt=true when somebody of the result already has a first try of the puzzle
@@ -14,7 +14,7 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
  */
 final readonly class FirstTryConflictResponse
 {
-    public static function from(FirstTryAlreadyTaken $exception, string $playerId): UnprocessableEntityHttpException
+    public static function from(FirstTryAlreadyTaken $exception, string $playerId): FirstTryConflict
     {
         $own = array_values(array_map(
             static fn(FirstTryTime $time): string => $time->timeId,
@@ -30,6 +30,6 @@ final readonly class FirstTryConflictResponse
             $message = 'A first attempt of this puzzle is already recorded for a co-puzzler. Send firstAttempt=false.';
         }
 
-        return new UnprocessableEntityHttpException($message, $exception);
+        return new FirstTryConflict($message, $exception);
     }
 }

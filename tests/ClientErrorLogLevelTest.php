@@ -17,6 +17,8 @@ use SpeedPuzzling\Web\Exceptions\CompetitionRoundHasResults;
 use SpeedPuzzling\Web\Exceptions\CompetitionSlugAmbiguous;
 use SpeedPuzzling\Web\Exceptions\CompetitionSlugTaken;
 use SpeedPuzzling\Web\Exceptions\CompetitionTagShared;
+use SpeedPuzzling\Web\Exceptions\FirstTryAlreadyTaken;
+use SpeedPuzzling\Web\Exceptions\FirstTryConflict;
 use SpeedPuzzling\Web\Exceptions\InternalApiInvalidInput;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleDifficultyEstimate;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleImageAnalysis;
@@ -30,6 +32,7 @@ use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Exceptions\RoundPuzzlesNotAttachable;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
+use SpeedPuzzling\Web\Value\FirstTryAssessment;
 use SpeedPuzzling\Web\Value\SeriesConversionBlocker;
 use Stringable;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -45,7 +48,7 @@ use Throwable;
 
 /**
  * A request the client got wrong is answered with its 4xx and logged at info, so it never becomes
- * a Sentry issue (WEB-8F "Could not decode request body", WEB-BH, WEB-D0). So is a moderation race - the
+ * a Sentry issue (WEB-8F "Could not decode request body", WEB-BH, WEB-D0, WEB-FC first try already held). So is a moderation race - the
  * request was decided or the puzzle changed after it was read (WEB-D2). Other failures keep Symfony's levels
  * and stay visible.
  */
@@ -109,6 +112,7 @@ final class ClientErrorLogLevelTest extends KernelTestCase
         yield '422 invalid image analysis' => [new InvalidPuzzleImageAnalysis(['result' => 'is required.']), LogLevel::INFO];
         yield '422 invalid difficulty estimate' => [new InvalidPuzzleDifficultyEstimate(['items' => 'must be a list of 1 to 500 estimates.']), LogLevel::INFO];
         yield '409 image changed since it was analysed' => [new PuzzleImageChangedMeanwhile('0123456789abcdef'), LogLevel::INFO];
+        yield '422 API first try already held' => [new FirstTryConflict('A first attempt of this puzzle is already recorded for you.', new FirstTryAlreadyTaken(FirstTryAssessment::nothing(new DateTimeImmutable('2026-11-06 07:01:25')))), LogLevel::INFO];
         yield '409 conflict stays visible' => [new ConflictHttpException('A team with results cannot be deleted.'), LogLevel::ERROR];
         yield 'a bug stays critical' => [new RuntimeException('A new entity was found'), LogLevel::CRITICAL];
     }

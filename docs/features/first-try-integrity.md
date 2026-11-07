@@ -56,7 +56,8 @@ Surfaces:
 - **API v1** (`POST`/`PUT /api/v1/me/solving-times`): the processors turn `FirstTryAlreadyTaken` into a 422
   problem+json (`FirstTryConflictResponse`). The message names result ids only when they are the caller's own;
   otherwise "already recorded for a co-puzzler". Warnings do not exist in the API. Note: `PUT` still defaults
-  `first_attempt` to `false` when omitted - unchanged.
+  `first_attempt` to `false` when omitted - unchanged. The 422 is its own class `FirstTryConflict`, logged at info
+  (`config/packages/framework.php`): a refused request is not a Sentry issue (WEB-FC).
 
 Not enforced: Relax trackings (never carry the tag) and races between two simultaneous saves (both pass the check,
 the conflicts page cleans it up - no unique index is possible while legacy duplicates exist).

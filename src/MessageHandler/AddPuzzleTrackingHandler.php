@@ -126,7 +126,7 @@ readonly final class AddPuzzleTrackingHandler
             comment: $message->comment,
             finishedPuzzlePhoto: $finishedPuzzlePhotoPath,
             firstAttempt: false,
-            unboxed: false,
+            unboxed: $message->unboxed,
             puzzlingTeam: $puzzlingTeam = $this->puzzlingTeamResolver->resolve($group, usedByPlayerId: $player->id->toString()),
             createdVia: $message->createdVia,
             finishedPuzzlePhotoUploadMetadata: $finishedPuzzlePhotoUploadMetadata,

@@ -823,6 +823,7 @@ final class PuzzleAddController extends AbstractController
                 teamName: $teamName,
                 createdVia: SolvingTimeSource::Form,
                 finishedPuzzlesPhotoBrowserMetadata: $data->finishedPuzzlesPhotoBrowserMetadata,
+                unboxed: $data->unboxed,
             ),
         );
 

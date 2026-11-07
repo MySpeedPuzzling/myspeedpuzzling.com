@@ -279,6 +279,38 @@ final class PuzzleAddControllerTest extends WebTestCase
         $this->assertResponseRedirects();
     }
 
+    public function testRelaxEntryCanBeMarkedUnboxed(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $submission = $this->validSpeedPuzzlingSubmission($browser, '');
+        $submission['mode'] = 'relax';
+        $submission['puzzle'] = PuzzleFixture::PUZZLE_1000_05;
+        $submission['unboxed'] = '1';
+        unset($submission['timeHours'], $submission['timeMinutes'], $submission['timeSeconds'], $submission['competition']);
+
+        $browser->request('POST', '/en/puzzle-add', [
+            'puzzle_add_form' => $submission,
+        ]);
+
+        $this->assertResponseRedirects();
+        $location = $browser->getResponse()->headers->get('Location');
+        self::assertNotNull($location);
+        self::assertStringStartsWith('/en/tracking-added/', $location);
+
+        $trackingId = substr($location, strlen('/en/tracking-added/'));
+        $row = self::getContainer()->get(Connection::class)->fetchAssociative(
+            'SELECT seconds_to_solve, unboxed FROM puzzle_solving_time WHERE id = :id',
+            ['id' => $trackingId],
+        );
+
+        self::assertIsArray($row);
+        self::assertNull($row['seconds_to_solve']);
+        self::assertTrue($row['unboxed']);
+    }
+
     public function testSubmitLinksTheTimeToASeriesEdition(): void
     {
         $browser = self::createClient();

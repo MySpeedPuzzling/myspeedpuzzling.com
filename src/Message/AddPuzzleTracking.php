@@ -27,6 +27,8 @@ readonly final class AddPuzzleTracking
         // What the browser read from the finish photo before it shrank it (BrowserImageSummary) - stored when the photo
         // that arrived has no EXIF of its own (docs/features/upload-image-metadata.md)
         public null|UploadedImageMetadata $finishedPuzzlesPhotoBrowserMetadata = null,
+        // Solved without looking at the box image - a relax entry counts for the Unboxed achievements and XP bonus too
+        public bool $unboxed = false,
     ) {
     }
 }

@@ -36,7 +36,7 @@ The thresholds live in `src/BadgeConditions/*` (one class per type); the texts i
 | Team Spirit | `team_player` | 5 / 25 / 100 / 250 / 500 | Duo + team solves the player took part in |
 | Zen Puzzler | `zen_puzzler` | 5 / 15 / 50 / 150 / 365 | Relax solves (no time) |
 | First Try | `first_try` | 5 / 50 / 200 / 500 / 1000 | Solves logged as the first attempt |
-| Unboxed | `unboxed` | 5 / 15 / 30 / 50 / 100 | Solves without looking at the box |
+| Unboxed | `unboxed` | 5 / 15 / 30 / 50 / 100 | Solves without looking at the box (relax entries too) |
 | Brand Explorer | `brand_explorer` | 5 / 15 / 30 / 50 / 100 | Distinct manufacturers solved |
 | Marathoner | `marathoner` | 5 / 10 / 20 / 40 / 100 | Solves of puzzles with 2000+ pieces |
 | Photographer | `photographer` | 5 / 25 / 100 / 500 / 1000 | Results with a photo of the finished puzzle |

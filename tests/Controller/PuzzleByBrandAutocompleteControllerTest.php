@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Query\SearchPuzzle;
 use SpeedPuzzling\Web\Services\PuzzleChoicesBuilder;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
@@ -14,6 +16,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 final class PuzzleByBrandAutocompleteControllerTest extends WebTestCase
 {
@@ -189,6 +192,45 @@ final class PuzzleByBrandAutocompleteControllerTest extends WebTestCase
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
         $browser->request('GET', '/en/puzzle-by-brand-autocomplete/?brand=' . ManufacturerFixture::MANUFACTURER_RAVENSBURGER . '&competition=' . CompetitionFixture::COMPETITION_UNAPPROVED);
         self::assertNotContains(PuzzleFixture::PUZZLE_500_02, array_column(self::options($browser), 'value'));
+    }
+
+    /**
+     * The answer is exactly the brand's puzzles as PuzzleChoicesBuilder builds them for the request - whatever the
+     * headers around it do.
+     *
+     * @return iterable<string, array{string, string, null|string}>
+     */
+    public static function provideBodies(): iterable
+    {
+        yield 'Ravensburger, English guest' => ['/en/', ManufacturerFixture::MANUFACTURER_RAVENSBURGER, null];
+        yield 'Trefl, English guest' => ['/en/', ManufacturerFixture::MANUFACTURER_TREFL, null];
+        yield 'Trefl, Czech guest' => ['/cs/', ManufacturerFixture::MANUFACTURER_TREFL, null];
+        yield 'Trefl, Czech player on an English page' => ['/en/', ManufacturerFixture::MANUFACTURER_TREFL, PlayerFixture::PLAYER_REGULAR];
+        yield 'Ravensburger, Czech player on a Czech page' => ['/cs/', ManufacturerFixture::MANUFACTURER_RAVENSBURGER, PlayerFixture::PLAYER_REGULAR];
+    }
+
+    #[DataProvider('provideBodies')]
+    public function testBodyIsTheBuiltOptionsOfTheBrand(string $prefix, string $brandId, null|string $playerId): void
+    {
+        $browser = self::createClient();
+        $browser->disableReboot();
+
+        if ($playerId !== null) {
+            TestingLogin::asPlayer($browser, $playerId);
+        }
+
+        $browser->request('GET', $prefix . 'puzzle-by-brand-autocomplete/?brand=' . $brandId);
+        self::assertResponseIsSuccessful();
+
+        // Built under the same request (locale, signed-in viewer) the controller had
+        self::getContainer()->get(RequestStack::class)->push($browser->getRequest());
+        $expected = self::getContainer()->get(PuzzleChoicesBuilder::class)->build(
+            self::getContainer()->get(SearchPuzzle::class)->byBrandId($brandId),
+            trim($prefix, '/'),
+        );
+
+        self::assertNotEmpty($expected);
+        self::assertSame($expected, self::options($browser));
     }
 
     public function testUnknownBrandIsNotFound(): void

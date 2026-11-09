@@ -60,6 +60,13 @@ final class ResultImageCacheTest extends TestCase
         self::assertNull($this->cache->read($this->path(self::PLAYER, 'nothing')));
     }
 
+    public function testAMissingCardIsNotAWarning(): void
+    {
+        // Most cards are opened once and drawn then - a card not kept is the normal case, nothing to look at
+        self::assertNull($this->cache->read($this->path(self::PLAYER, 'nothing')));
+        self::assertSame([], $this->logger->records);
+    }
+
     public function testWriteLeavesNoTemporaryFileBehind(): void
     {
         $this->cache->write($this->path(self::PLAYER, 'time-1'), 'png');

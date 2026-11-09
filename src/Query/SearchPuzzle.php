@@ -47,14 +47,16 @@ readonly final class SearchPuzzle
 
         [$listCondition, $listParams] = self::listFilter($list, $listPlayerId);
 
+        [$tagCondition, $tagParams] = self::tagFilter($tag);
+
         $textSearch = PuzzleTextSearch::fromUserInput($search);
         $textCondition = self::andCondition($textSearch->condition('puzzle'));
 
+        // One row per puzzle: every filter is a condition on puzzle or a semi-join, the difficulty join is 1:1
         $query = <<<SQL
 SELECT
-    COUNT(DISTINCT puzzle.id) AS count
+    COUNT(*) AS count
 FROM puzzle
-LEFT JOIN tag_puzzle ON tag_puzzle.puzzle_id = puzzle.id
 {$difficultyJoin}
 WHERE
     (puzzle.hide_until IS NULL OR puzzle.hide_until <= :now::timestamp)
@@ -62,7 +64,7 @@ WHERE
     AND (:minPieces::int IS NULL OR pieces_count >= :minPieces)
     AND (:maxPieces::int IS NULL OR pieces_count <= :maxPieces)
     {$textCondition}
-    AND (:useTags = false OR tag_puzzle.tag_id IN(:tag))
+    {$tagCondition}
     {$difficultyCondition}
     {$listCondition}
 SQL;
@@ -73,13 +75,10 @@ SQL;
             'brandId' => $brandId,
             'minPieces' => $pieces->minPieces,
             'maxPieces' => $pieces->maxPieces,
-            'useTags' => $tag !== null ? 1 : 0,
-            'tag' => $tag ? [$tag] : [],
+            ...$tagParams,
         ];
 
-        $types = [
-            'tag' => ArrayParameterType::STRING,
-        ];
+        $types = [];
 
         if ($ratedTiers !== []) {
             $params['difficultyTiers'] = $ratedTiers;
@@ -127,6 +126,8 @@ SQL;
 
         [$listCondition, $listParams] = self::listFilter($list, $listPlayerId);
 
+        [$tagCondition, $tagParams] = self::tagFilter($tag);
+
         $textSearch = PuzzleTextSearch::fromUserInput($search);
         $textCondition = self::andCondition($textSearch->condition('puzzle'));
         $matchScore = $textSearch->score('puzzle');
@@ -145,7 +146,7 @@ SQL;
 
         $query = <<<SQL
 WITH puzzle_base AS (
-    SELECT DISTINCT ON (puzzle.id)
+    SELECT
         puzzle.id AS puzzle_id,
         puzzle.name AS puzzle_name,
         CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
@@ -160,7 +161,6 @@ WITH puzzle_base AS (
         puzzle.hide_image_until,
         {$matchScore} AS match_score
     FROM puzzle
-    LEFT JOIN tag_puzzle ON tag_puzzle.puzzle_id = puzzle.id
     {$difficultyJoin}
     WHERE
         (puzzle.hide_until IS NULL OR puzzle.hide_until <= :now::timestamp)
@@ -168,7 +168,7 @@ WITH puzzle_base AS (
         AND (:minPieces::int IS NULL OR pieces_count >= :minPieces)
         AND (:maxPieces::int IS NULL OR pieces_count <= :maxPieces)
         {$textCondition}
-        AND (:useTags = 0 OR tag_puzzle.tag_id IN(:tag))
+        {$tagCondition}
         {$difficultyCondition}
         {$listCondition}
 )
@@ -210,13 +210,10 @@ SQL;
             'minPieces' => $pieces->minPieces,
             'maxPieces' => $pieces->maxPieces,
             'offset' => $offset,
-            'useTags' => $tag !== null ? 1 : 0,
-            'tag' => $tag ? [$tag] : [],
+            ...$tagParams,
         ];
 
-        $types = [
-            'tag' => ArrayParameterType::STRING,
-        ];
+        $types = [];
 
         if ($ratedTiers !== []) {
             $params['difficultyTiers'] = $ratedTiers;
@@ -304,9 +301,26 @@ SQL;
     }
 
     /**
+     * The tag filter as a semi-join on puzzle.id, added only when a tag is chosen: it never adds rows, so the page
+     * needs no DISTINCT ON and the count is a plain COUNT(*). A LEFT JOIN on tag_puzzle used to be there for every
+     * search, and the DISTINCT it forced sorted every match by id before the real ORDER BY (a one-letter header
+     * search: 40 → 18 ms). tag_puzzle_pkey (tag_id, puzzle_id) answers it.
+     *
+     * @return array{string, array<string, string>}
+     */
+    private static function tagFilter(null|string $tag): array
+    {
+        if ($tag === null) {
+            return ['', []];
+        }
+
+        return ['AND puzzle.id IN (SELECT tp.puzzle_id FROM tag_puzzle tp WHERE tp.tag_id = :tag)', ['tag' => $tag]];
+    }
+
+    /**
      * "Only puzzles from my ..." as a semi-join on puzzle.id: it never adds rows, so
-     * DISTINCT ON / COUNT(DISTINCT) stay as they are and the page and the count
-     * cannot disagree. Every kind is scoped to the viewer, which is what makes a
+     * the page needs no DISTINCT ON and the count is a plain COUNT(*) - the page and
+     * the count cannot disagree. Every kind is scoped to the viewer, which is what makes a
      * collection id of somebody else match nothing.
      *
      * "Solved" is a time of the player's own or one as a team member - the team

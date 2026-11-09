@@ -1533,6 +1533,13 @@ Mirrored in [#212](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues
 - [ ] `EligibilityScheduleTest::testTheEventPageAndTheEventsPageRows` fails on origin/main too (2026-10-10): its two
       events 22 and 50 days out both fall in November and merge into one events-page row - make it date-proof
 
+## Player search (`SearchPlayers::fulltext`)
+
+- [ ] One-letter and two-letter searches read every player and run `unaccent()` per row (`a` 27 ms, `ja` 13 ms on a
+      copy of production): stored folded `player.search_name` / `search_code` like the puzzle keys would bring it to
+      ~8 / ~4 ms, but `SearchText::fold()` is not Postgres' `unaccent()` (ł, ø, ß), so what is found changes - Jan's call.
+      `ORDER BY match_score DESC LIMIT 10` has no tiebreak either (which 10 show for a short search is not stable)
+
 ## XP launch - after the switch is on (`docs/features/xp-levels/launch-2026-10.md`, `feature_flags.md` `xp-launch`)
 
 - [ ] Remove `XpFeatureGate`, the `{% if xp_system_visible() %}` wrappers and the readiness check in `XpLaunchRevealRule`

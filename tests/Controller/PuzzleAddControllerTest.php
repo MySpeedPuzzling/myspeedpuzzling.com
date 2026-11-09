@@ -58,6 +58,25 @@ final class PuzzleAddControllerTest extends WebTestCase
     }
 
     /**
+     * Regression (2026-11-07..09): without an explicit action the form posted to whatever the address bar said - the
+     * page before (hub, puzzle page) when it lagged behind - got a 200 Turbo dropped, and Save did nothing
+     */
+    public function testFormPostsToTheUrlItWasRenderedFor(): void
+    {
+        $browser = self::createClient();
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add/' . PuzzleFixture::PUZZLE_500_01 . '?mode=relax');
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame(
+            '/en/puzzle-add/' . PuzzleFixture::PUZZLE_500_01 . '?mode=relax',
+            $crawler->filter('form[name="puzzle_add_form"]')->attr('action'),
+        );
+    }
+
+    /**
      * @return array<string, array{null|string}>
      */
     public static function provideInvalidPuzzleValues(): array

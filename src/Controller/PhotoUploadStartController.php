@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Exceptions\PhotoUploadRefused;
 use SpeedPuzzling\Web\Services\BrowserImageSummary;
 use SpeedPuzzling\Web\Services\PhotoStash\DirectPhotoUpload;
@@ -43,6 +44,8 @@ final class PhotoUploadStartController extends AbstractController
         readonly private RateLimiterFactoryInterface $photoUploadLimiter,
         #[Autowire(param: 'directPhotoUploads')]
         readonly private bool $directPhotoUploads,
+        #[Autowire(service: 'monolog.logger.photo_upload')]
+        readonly private LoggerInterface $logger,
     ) {
     }
 
@@ -97,6 +100,13 @@ final class PhotoUploadStartController extends AbstractController
                 browserMetadata: BrowserImageSummary::fromInput($body['metadata'] ?? null),
             );
         } catch (PhotoUploadRefused $refused) {
+            // The browser only reports "refused" - why is known here (empty = a file the phone could not read yet?)
+            $this->logger->info('Background photo upload refused', [
+                'reason' => $refused->reason,
+                'bytes' => $body['bytes'],
+                'type' => mb_substr($body['type'], 0, 100),
+            ]);
+
             return self::refuse(
                 $refused->reason,
                 $refused->reason === 'storage' ? Response::HTTP_SERVICE_UNAVAILABLE : Response::HTTP_UNPROCESSABLE_ENTITY,

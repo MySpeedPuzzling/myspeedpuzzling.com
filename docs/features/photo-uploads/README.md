@@ -175,6 +175,11 @@ countable in Loki without fingers_crossed:
   `duration_ms`, `attempts`, `field`, `effective_type`, `downlink`, `online`.
 - `event=save` - every lost save, and every save that had photos: `outcome` (`saved` / `refused` / `failed`),
   `status`, `duration_ms`, `waited_ms` (Save waiting for uploads), `photos_direct`, `photos_in_form`, `retried`.
+  `reason=discarded` (outcome `failed`, status 0, never resent by itself): a full-page submit answered 200 without a
+  redirect - Turbo drops it and leaves no result, so before 2026-11-09 it was reported as `refused` and the player saw
+  nothing happen (the form had posted to the page before - it now always carries its own URL as `action`).
+- `Background photo upload refused` (info, server side, `PhotoUploadStartController`): why a start was refused
+  (`empty` / `too_large` / `type`, with `bytes` + `type`) - the browser's report only says `refused`.
 - **Warning (→ Sentry) only for `reason=store_refused`**: object storage answered a signed upload with an HTTP error
   while the player's connection worked - ours to look at. Everything else is a player's network: info.
 

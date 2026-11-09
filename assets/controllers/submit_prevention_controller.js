@@ -377,11 +377,15 @@ export default class extends Controller {
         // Turbo renders a failed answer only when it is HTML. A dropped connection (error) or the edge giving up on a
         // slow upload (Traefik's plain-text 502/504 after 60 s) leaves the form as it was without a word - the player
         // saw the progress bar fill and nothing happen (2026-10-14, 8 tries on a ~10 KB/s upload)
-        const lost = Boolean(error) || (fetchResponse && success === false && !fetchResponse.isHTML);
+        // A full-page submit answered 200 without a redirect: Turbo drops the answer and leaves no result at all (no
+        // success, no response, no error) - the player tapped Save and nothing happened (2026-11-07..09, the form
+        // posted to the page before). Lost too, but sending it again to the same place would not help
+        const discarded = success === undefined && !fetchResponse && !error;
+        const lost = discarded || Boolean(error) || (fetchResponse && success === false && !fetchResponse.isHTML);
 
         // Once more by itself, when the request was small (no photo bytes) and the answer simply never came - a deploy's
         // moment, a connection that dropped and came back. A resend of a saved form is answered as that result
-        if (lost && !this.autoRetried && this.sending && this.sending.inForm === 0 && (error || [0, 502, 503, 504].includes(status))) {
+        if (lost && !discarded && !this.autoRetried && this.sending && this.sending.inForm === 0 && (error || [0, 502, 503, 504].includes(status))) {
             this.autoRetried = true;
             this.sending.retried = true;
             this.showLabel(this.retryingTextValue);
@@ -399,7 +403,7 @@ export default class extends Controller {
             return;
         }
 
-        this.reportSave(success ? 'saved' : (lost ? 'failed' : 'refused'), status);
+        this.reportSave(success ? 'saved' : (lost ? 'failed' : 'refused'), status, discarded ? 'discarded' : null);
         this.reset();
 
         if (lost) {
@@ -407,7 +411,7 @@ export default class extends Controller {
         }
     }
 
-    reportSave(outcome, status) {
+    reportSave(outcome, status, reason = null) {
         const sending = this.sending;
         this.sending = null;
 
@@ -423,6 +427,7 @@ export default class extends Controller {
         reportPhotoUpload(this.reportUrlValue, {
             event: 'save',
             outcome,
+            reason,
             status,
             durationMs: Date.now() - sending.startedAt,
             waitedMs: sending.waitedMs,

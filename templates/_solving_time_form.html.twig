@@ -56,9 +56,11 @@
             }|json_encode,
         })}) %}
     {% endif %}
-    {% if form_action|default(null) %}
-        {% set form_start_options = form_start_options|merge({action: form_action}) %}
-    {% endif %}
+    {# Always an explicit action: without one the browser posts to whatever the address bar says, and on 2026-11-07..09
+       players saw the add form while the address was still the page before (hub, puzzle page, recap) - the save went
+       there, was answered 200 and Turbo dropped it: Save did nothing, 3 taps each. The URL this page was rendered for
+       is the one the form belongs to (same route on GET and POST, query string included) #}
+    {% set form_start_options = form_start_options|merge({action: form_action|default(null) ?: app.request.requestUri}) %}
     {{ form_start(solving_time_form, form_start_options) }}
         {# Add form only: the ids of the new result and of a new puzzle - the same form sent twice saves once #}
         {% if time_id is defined %}

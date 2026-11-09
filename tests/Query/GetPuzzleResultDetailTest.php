@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Tests\ResultQueriesParityScenario;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetPuzzleResultDetailTest extends KernelTestCase
@@ -153,6 +154,31 @@ final class GetPuzzleResultDetailTest extends KernelTestCase
 
         $this->expectException(PuzzleResultNotFound::class);
         $this->query->byTimeId(PuzzleSolvingTimeFixture::TIME_12, PlayerFixture::PLAYER_ADMIN);
+    }
+
+    /**
+     * player_skill is unique per player and pieces count; the day a second pieces count is computed, the attempts
+     * and the members must not come once per count - the tier shown is the one at PlayerHeader::TIER_PIECES_COUNT pieces
+     */
+    public function testAnotherPiecesCountSkillDoesNotDuplicateAttempts(): void
+    {
+        $database = self::getContainer()->get(Connection::class);
+        ResultQueriesParityScenario::skill($database, PlayerFixture::PLAYER_REGULAR, 3);
+        ResultQueriesParityScenario::skill($database, PlayerFixture::PLAYER_REGULAR, 6, pieces: 1000);
+
+        $result = $this->query->byTimeId(PuzzleSolvingTimeFixture::TIME_06, null);
+
+        self::assertSame(
+            [PuzzleSolvingTimeFixture::TIME_08, PuzzleSolvingTimeFixture::TIME_07, PuzzleSolvingTimeFixture::TIME_06],
+            array_map(static fn (PuzzleResultAttempt $attempt): string => $attempt->timeId, $result->attempts),
+        );
+        self::assertSame('proficient', $result->player->skillTierName);
+
+        // TIME_12: PLAYER_REGULAR's pair with PLAYER_PRIVATE
+        $pair = $this->query->byTimeId(PuzzleSolvingTimeFixture::TIME_12, PlayerFixture::PLAYER_REGULAR);
+        self::assertNotNull($pair->players);
+        self::assertCount(2, $pair->players);
+        self::assertSame('proficient', $pair->players[0]->playerId === PlayerFixture::PLAYER_REGULAR ? $pair->players[0]->skillTierName : $pair->players[1]->skillTierName);
     }
 
     public function testPrivateSoloPlayerIsNotFoundForOthers(): void

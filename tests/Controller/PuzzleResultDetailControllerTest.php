@@ -273,6 +273,25 @@ final class PuzzleResultDetailControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
+    public function testPairWithAHiddenMemberIsNotFoundForTheBlockerButStaysForTheMembers(): void
+    {
+        $browser = self::createClient();
+        // TIME_12: PLAYER_REGULAR's pair with PLAYER_PRIVATE - and PLAYER_REGULAR hides PLAYER_PRIVATE (fixtures)
+        $timeId = $this->cloneSolvingTime(PuzzleSolvingTimeFixture::TIME_12, ['days_ago' => 1]);
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, " . TestClock::SQL_NOW . ", 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_ADMIN, 'blocked' => PlayerFixture::PLAYER_PRIVATE],
+        );
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $browser->request('GET', '/en/result/' . $timeId);
+        self::assertResponseStatusCodeSame(404);
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $browser->request('GET', '/en/result/' . $timeId);
+        self::assertResponseIsSuccessful();
+    }
+
     public function testModalCostsTwoQueries(): void
     {
         $browser = self::createClient();

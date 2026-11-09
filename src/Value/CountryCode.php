@@ -264,13 +264,21 @@ enum CountryCode: string
             return null;
         }
 
-        foreach (self::cases() as $case) {
-            if ($case->name === strtolower($code)) {
-                return $case;
+        // Called once per hydrated player row (thousands on a big leaderboard), so a name => case map instead of a
+        // scan of all cases. Built once per process: enum cases never change, so sharing it between requests in
+        // FrankenPHP worker mode is safe and needs no ResetInterface.
+        /** @var null|array<string, self> $byName */
+        static $byName = null;
+
+        if ($byName === null) {
+            $byName = [];
+
+            foreach (self::cases() as $case) {
+                $byName[$case->name] = $case;
             }
         }
 
-        return null;
+        return $byName[strtolower($code)] ?? null;
     }
 
     /**

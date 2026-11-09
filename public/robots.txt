@@ -265,3 +265,17 @@ Disallow: /
 
 User-agent: Google-Extended
 Disallow: /
+
+# --- Crawlers measured wasting capacity (production, 2026-11-09). Meta's AI
+#     search indexer hammered /login, /feedback and social sign-in ~2,500
+#     times an hour together with meta-externalagent (above); ShapBot crawled
+#     noindex result pages. The bot blocker middleware also refuses both by
+#     user agent. facebookexternalhit (link previews of shared results) has no
+#     group of its own on purpose: it follows "*". A crawler obeys only its
+#     own group, so these groups must stand on their own. ---
+
+User-agent: meta-webindexer
+Disallow: /
+
+User-agent: ShapBot
+Disallow: /

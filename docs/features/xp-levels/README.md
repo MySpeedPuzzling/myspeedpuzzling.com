@@ -112,14 +112,26 @@ picks it up automatically.
 Recap after logging a time = **one progress card** (launch-2026-10.md "After logging a time"): the live rows come
 from the `XpRecapCelebration` LiveComponent (achievements this time earned + the level line with the receipt one tap
 away in a `<details>`), the page adds the place on the puzzle and - for piece counts with a rating (500) - MSP Rating /
-skill tier (members; free players one locked line). **The save settles the saving player's achievements and XP before
-it redirects** (`SavedTimeProgression`, add form + relax, achievements first): measured 2026-10-11 on the production
-copy at 3-9 ms for a typical player and at most 90 ms for the heaviest (2,300 results), so the recap shows both at its
-first render - Jan's rule: under 300 ms it belongs on the result page, at once. The messages the save queued stay the
-safety net (other pair/team members, a failure - both recompute from the records, so a second run changes nothing).
-Only when the XP is still missing does the component poll, with a growing delay (`POLL_DELAYS_MS`, ~30 s), and then
-say the XP is on its way; the render showing the XP is the last one. Dev runs the queue in its own `messenger-consumer`
-service (compose.yml), like production.
+skill tier (members; free players one locked line). **The save does no progression work** (since 2026-11, Jan's call):
+it queues the achievement evaluation and the XP award (`RecalculateBadgesForPlayer`, then `AwardXpForSolvingTime`) and
+redirects. Until then it settled both in its own request (`SavedTimeProgression`), but the consumer, woken by the commit
+(`LISTEN/NOTIFY`), usually took the player's `PlayerProgressionLock` first, so the save waited for it and then found
+nothing to do - Sentry, 7 days to 2026-11-09: ~31 ms of lock waiting per `POST puzzle_add` on average plus ~12-20 ms of
+settle work (90 ms+ for the heaviest players), on the critical path before the redirect. Now: the consumer normally
+finishes before the recap renders, so the XP and the achievements are there at the **first paint** (Jan's rule - under
+300 ms it belongs on the result page, at once - still holds). When they are not and the recap is fresh
+(`RecapProgress::isFresh`), `XpRecapCelebration` paints the "Counting your XP" row and settles **once by itself**
+`SETTLE_DELAY_MS` (50 ms) after the paint: `recap_settle_controller.js` fires the `settle` LiveAction one time (never a
+`data-poll`: that is a `setInterval` cleared only after the response, so every tick during the request would queue another
+`settle`, sent after the render showing the XP; a failed settle hands over to the poll), which runs
+`SavedTimeProgression::settleNow()` for the viewer (achievements first, then the solve's XP) - any wait for the consumer's lock happens there, with the page already
+shown. A fresh relax repeat (worth nothing on purpose, so its missing lines say nothing) settles once too. Both writers
+recompute from the records under the lock, so whoever comes second changes nothing (`SavedTimeProgressionEquivalenceTest`
+plays every order through). Only when the XP is still missing after that (or the recap is old) does the component poll,
+with a growing delay (`POLL_DELAYS_MS`, ~30 s), and then say the XP is on its way; the render showing the XP is the last
+one. Hidden progression (launch gate, opted out, not a participant) never settles - the consumer stores it as for
+everybody. Dev runs the queue in its own `messenger-consumer` service (compose.yml), like production; stop it to see the
+recap settle by itself.
 "This time earned an achievement" = badge rows stamped within 10 minutes after the time's
 `tracked_at` and before the player's next time (`GetBadges::earnedWithSolve()` / `countTiersEarnedWithSolve()`;
 badges do not point at a solve; the badge message is queued before the XP one). Members reveal it

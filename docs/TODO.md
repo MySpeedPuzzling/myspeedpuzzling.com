@@ -4,6 +4,11 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Recap settles XP itself (`docs/features/xp-levels/README.md` §Surfaces)
+
+- [ ] A week after the deploy: share of `XpRecapCelebration` `settle` Live requests against `POST puzzle_add` saves in Sentry. Above ~20 % the consumer lags behind (one queue for e-mails, notifications, XP) - give progression its own queue/consumer
+- [ ] Several `messenger-consumer` processes would break "XP lines exist, so the achievements were evaluated" on the queue path - settle regardless of lines on a fresh recap if that ever happens
+
 ## Result share image (`docs/features/result-share-image.md`, 2026-11-10)
 
 - [ ] Cheaper drawing, each changes the pixels slightly - only with Jan's visual yes (compare against

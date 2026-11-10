@@ -1,10 +1,17 @@
 {#
     The live rows of the recap's progress card: the achievements this time earned and the level line
-    (src/Component/XpRecapCelebration.php). Polls with a growing delay until the XP is counted, then never again.
+    (src/Component/XpRecapCelebration.php). A fresh recap whose XP is not counted yet settles once right after the
+    paint, then polls with a growing delay until the XP is counted, then never again.
 #}
 {% set mode = this.mode %}
+{% set settle_delay = this.settleDelay %}
 {% set poll_delay = this.pollDelay %}
-<div{{ attributes.defaults({class: 'recap-live'}) }}{% if poll_delay is not null %} data-poll="delay({{ poll_delay }})|checkProgress"{% endif %}>
+<div{{ attributes.defaults(settle_delay is not null ? {
+    class: 'recap-live',
+    'data-controller': 'recap-settle',
+    'data-recap-settle-delay-value': settle_delay,
+    'data-recap-settle-fallback-value': constant('SpeedPuzzling\\Web\\Component\\XpRecapCelebration::POLL_DELAYS_MS')[0],
+} : {class: 'recap-live'}) }}{% if poll_delay is not null %} data-poll="delay({{ poll_delay }})|checkProgress"{% endif %}>
     {% if mode != 'hidden' %}
         <div id="xp-solve-receipt">
         {% set profile = this.profile %}

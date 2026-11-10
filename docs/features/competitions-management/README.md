@@ -224,7 +224,10 @@ route `edit_time`) - one TomSelect field:
   (`current_competition_pick`, server-derived from the owner-checked row) is offered even when it is no longer public,
   so a re-save never silently detaches the time.
 - **Validation**: `CompetitionChoices::accepts()`; anything not offered (or a malformed value) gets the generic
-  `forms.competition_not_selectable` (never echoes names). The handlers stay authoritative: precedence `roundId` →
+  `forms.competition_not_selectable` (never echoes names). A submit pays one short statement of the list's own rule for
+  the one submitted value, the list itself is built only when the form is rendered (`LazyJsonValue`) - a valid save that
+  redirects never builds it, a refused form renders all of it (`CompetitionChoicesAcceptsTest` compares every kind of
+  value with the full list). The handlers stay authoritative: precedence `roundId` →
   `competitionId` (explicit) → `seriesId` (series pick, `SeriesEditionResolver`); a series or competition that stopped
   being public between render and submit saves the time without a link and logs a warning.
 - **Deep links**: `puzzle_add?competition=<uuid>` pre-selects a public one-time event, or an edition as

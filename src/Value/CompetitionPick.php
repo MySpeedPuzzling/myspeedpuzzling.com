@@ -112,6 +112,14 @@ final readonly class CompetitionPick
         return $this->kind === CompetitionPickKind::Series ? $this->id : null;
     }
 
+    /**
+     * `{…}` or `urn:uuid:…` pass Uuid::isValid() (and Postgres reads the first), but no offered value is ever spelled so
+     */
+    public function hasCanonicalId(): bool
+    {
+        return preg_match('/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/', $this->id) === 1;
+    }
+
     public function equals(self $other): bool
     {
         return $this->kind === $other->kind && $this->id === $other->id;

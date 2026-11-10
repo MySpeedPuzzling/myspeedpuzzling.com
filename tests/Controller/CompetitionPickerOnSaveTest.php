@@ -6,13 +6,16 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\EventDetailFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\StopwatchFixture;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
+use SpeedPuzzling\Web\Tests\SeriesEditionScenario;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -97,6 +100,76 @@ final class CompetitionPickerOnSaveTest extends WebTestCase
         $this->assertResponseStatusCodeSame(422);
         self::assertSame($offered, $this->editFormOptions($refused));
         self::assertStringNotContainsString(self::NOT_SELECTABLE, (string) $browser->getResponse()->getContent());
+    }
+
+    public function testAValidAddDoesNotBuildTheList(): void
+    {
+        $browser = $this->signedIn();
+        $page = $browser->request('GET', self::ADD_URL);
+        $timeId = Uuid::uuid7()->toString();
+
+        $this->startCountingQueries($browser);
+        $browser->request('POST', self::ADD_URL, [
+            'puzzle_add_form' => $this->addSubmission($page, EventDetailFixture::COMPETITION_HILLTOP_WEEKEND),
+            'time_id' => $timeId,
+        ]);
+
+        self::assertResponseRedirects('/en/time-added/' . $timeId);
+        self::assertSame(0, $this->listStatements($browser), 'A save that only redirects has no use for the list');
+    }
+
+    public function testAValidAddWithASeriesPickOrAnEditionDoesNotBuildTheList(): void
+    {
+        $browser = $this->signedIn();
+        $scenario = new SeriesEditionScenario(self::getContainer());
+        $today = self::getContainer()->get(ClockInterface::class)->now();
+
+        $seriesId = $scenario->series('Lantern Weekly Jam');
+        $edition = $scenario->edition($seriesId, 'Jam No. 154', $today->modify('-40 days')->format('Y-m-d'));
+
+        foreach (['series:' . $seriesId => '-3 days', 'edition:' . $edition => '-40 days'] as $value => $day) {
+            $page = $browser->request('GET', self::ADD_URL);
+            $submission = $this->addSubmission($page, $value);
+            $submission['finishedAt'] = $today->modify($day)->format('d.m.Y');
+            $timeId = Uuid::uuid7()->toString();
+
+            $this->startCountingQueries($browser);
+            $browser->request('POST', self::ADD_URL, ['puzzle_add_form' => $submission, 'time_id' => $timeId]);
+
+            self::assertResponseRedirects('/en/time-added/' . $timeId);
+            self::assertSame(0, $this->listStatements($browser), $value);
+        }
+    }
+
+    public function testAValidEditDoesNotBuildTheList(): void
+    {
+        $browser = $this->signedIn();
+        $page = $browser->request('GET', self::EDIT_URL);
+
+        $this->startCountingQueries($browser);
+        $browser->request('POST', self::EDIT_URL, [
+            'edit_puzzle_solving_time_form' => $this->editSubmission($page, EventDetailFixture::COMPETITION_HILLTOP_WEEKEND),
+        ]);
+
+        self::assertResponseRedirects();
+        self::assertSame(0, $this->listStatements($browser));
+    }
+
+    public function testAValidStopwatchFinishDoesNotBuildTheList(): void
+    {
+        $browser = $this->signedIn();
+        $url = '/en/save-stopwatch/' . StopwatchFixture::STOPWATCH_PAUSED;
+        $page = $browser->request('GET', $url);
+        $this->assertResponseIsSuccessful();
+        $timeId = Uuid::uuid7()->toString();
+
+        $submission = $this->addSubmission($page, EventDetailFixture::COMPETITION_HILLTOP_WEEKEND);
+
+        $this->startCountingQueries($browser);
+        $browser->request('POST', $url, ['puzzle_add_form' => $submission, 'time_id' => $timeId]);
+
+        self::assertResponseRedirects('/en/time-added/' . $timeId);
+        self::assertSame(0, $this->listStatements($browser));
     }
 
     public function testAFormThatComesBackBuildsTheListOnce(): void

@@ -28,6 +28,14 @@ final class GetPlayerRatingRankingPoolTest extends KernelTestCase
 {
     private const int PIECES_COUNT = 500;
 
+    private const array EVERYBODY = [
+        PlayerFixture::PLAYER_REGULAR,
+        PlayerFixture::PLAYER_WITH_STRIPE,
+        PlayerFixture::PLAYER_WITH_FAVORITES,
+        PlayerFixture::PLAYER_PRIVATE,
+        PlayerFixture::PLAYER_ADMIN,
+    ];
+
     private GetPlayerRatingRanking $ranking;
     private GetPlayerProfile $profiles;
     private Connection $connection;
@@ -43,26 +51,30 @@ final class GetPlayerRatingRankingPoolTest extends KernelTestCase
 
         $this->connection->executeStatement('UPDATE player SET ranking_opted_out = true WHERE id = :id', ['id' => PlayerFixture::PLAYER_ADMIN]);
 
-        foreach ([
+        $today = [
             PlayerFixture::PLAYER_PRIVATE => 1.9,
             PlayerFixture::PLAYER_ADMIN => 1.8,
             PlayerFixture::PLAYER_REGULAR => 1.5,
             PlayerFixture::PLAYER_WITH_STRIPE => 1.5,
             PlayerFixture::PLAYER_WITH_FAVORITES => 1.2,
-        ] as $playerId => $rating) {
+        ];
+
+        foreach ($today as $playerId => $rating) {
             $this->connection->executeStatement(
                 'INSERT INTO player_elo (id, player_id, pieces_count, elo_rating, computed_at) VALUES (:id, :player, :pieces, :rating, ' . TestClock::SQL_NOW . ')',
                 ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'pieces' => self::PIECES_COUNT, 'rating' => $rating],
             );
         }
 
-        foreach ([
+        $weekAgo = [
             PlayerFixture::PLAYER_PRIVATE => 1.95,
             PlayerFixture::PLAYER_ADMIN => 1.85,
             PlayerFixture::PLAYER_WITH_FAVORITES => 1.7,
             PlayerFixture::PLAYER_REGULAR => 1.6,
             PlayerFixture::PLAYER_WITH_STRIPE => 1.3,
-        ] as $playerId => $rating) {
+        ];
+
+        foreach ($weekAgo as $playerId => $rating) {
             $this->connection->executeStatement(
                 "INSERT INTO player_rating_snapshot (id, player_id, pieces_count, snapshot_date, elo_rating, elo_rank, computed_at) VALUES (:id, :player, :pieces, '2026-10-07', :rating, 1, " . TestClock::SQL_NOW . ')',
                 ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'pieces' => self::PIECES_COUNT, 'rating' => $rating],
@@ -143,13 +155,8 @@ final class GetPlayerRatingRankingPoolTest extends KernelTestCase
      * @param list<string> $playerIds
      * @return array<string, array{int, int, null|int, null|int}> rank and total (rating card), rank and place a week ago (header chip)
      */
-    private function standings(array $playerIds = [
-        PlayerFixture::PLAYER_REGULAR,
-        PlayerFixture::PLAYER_WITH_STRIPE,
-        PlayerFixture::PLAYER_WITH_FAVORITES,
-        PlayerFixture::PLAYER_PRIVATE,
-        PlayerFixture::PLAYER_ADMIN,
-    ]): array {
+    private function standings(array $playerIds = self::EVERYBODY): array
+    {
         $standings = [];
 
         foreach ($playerIds as $playerId) {

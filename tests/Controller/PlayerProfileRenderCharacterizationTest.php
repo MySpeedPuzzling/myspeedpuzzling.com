@@ -10,7 +10,6 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
-use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
@@ -33,29 +32,29 @@ final class PlayerProfileRenderCharacterizationTest extends WebTestCase
     private const string SNAPSHOT_DIRECTORY = __DIR__ . '/PlayerProfileRenderCharacterization';
 
     /**
-     * @return iterable<string, array{string, null|string}>
+     * @return iterable<string, array{string, string, null|string}>
      */
     public static function provideCases(): iterable
     {
-        yield 'regular, guest' => [PlayerFixture::PLAYER_REGULAR, null];
-        yield 'regular, signed-in other' => [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_FAVORITES];
-        yield 'regular, owner' => [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_REGULAR];
-        yield 'regular, member' => [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_STRIPE];
+        yield 'regular, guest' => ['regular, guest', PlayerFixture::PLAYER_REGULAR, null];
+        yield 'regular, signed-in other' => ['regular, signed-in other', PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_FAVORITES];
+        yield 'regular, owner' => ['regular, owner', PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_REGULAR];
+        yield 'regular, member' => ['regular, member', PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_STRIPE];
         // PLAYER_REGULAR blocks PLAYER_PRIVATE (UserBlockFixture): the blocked one sees the blocker's page normally
-        yield 'regular, viewed by the player it blocks' => [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_PRIVATE];
-        yield 'with favorites, guest' => [PlayerFixture::PLAYER_WITH_FAVORITES, null];
-        yield 'with favorites, member' => [PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_WITH_STRIPE];
-        yield 'with favorites, owner' => [PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_WITH_FAVORITES];
-        yield 'member, owner' => [PlayerFixture::PLAYER_WITH_STRIPE, PlayerFixture::PLAYER_WITH_STRIPE];
-        yield 'opted out, guest' => [PlayerFixture::PLAYER_ADMIN, null];
-        yield 'private, guest' => [PlayerFixture::PLAYER_PRIVATE, null];
-        yield 'private, owner' => [PlayerFixture::PLAYER_PRIVATE, PlayerFixture::PLAYER_PRIVATE];
+        yield 'regular, viewed by the player it blocks' => ['regular, viewed by the player it blocks', PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_PRIVATE];
+        yield 'with favorites, guest' => ['with favorites, guest', PlayerFixture::PLAYER_WITH_FAVORITES, null];
+        yield 'with favorites, member' => ['with favorites, member', PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_WITH_STRIPE];
+        yield 'with favorites, owner' => ['with favorites, owner', PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_WITH_FAVORITES];
+        yield 'member, owner' => ['member, owner', PlayerFixture::PLAYER_WITH_STRIPE, PlayerFixture::PLAYER_WITH_STRIPE];
+        yield 'opted out, guest' => ['opted out, guest', PlayerFixture::PLAYER_ADMIN, null];
+        yield 'private, guest' => ['private, guest', PlayerFixture::PLAYER_PRIVATE, null];
+        yield 'private, owner' => ['private, owner', PlayerFixture::PLAYER_PRIVATE, PlayerFixture::PLAYER_PRIVATE];
         // PLAYER_PRIVATE lets PLAYER_WITH_FAVORITES see her (PrivateProfileViewerFixture)
-        yield 'private, allow-listed viewer' => [PlayerFixture::PLAYER_PRIVATE, PlayerFixture::PLAYER_WITH_FAVORITES];
+        yield 'private, allow-listed viewer' => ['private, allow-listed viewer', PlayerFixture::PLAYER_PRIVATE, PlayerFixture::PLAYER_WITH_FAVORITES];
     }
 
     #[DataProvider('provideCases')]
-    public function testTheProfileShowsWhatItShowedBefore(string $profileId, null|string $viewerId): void
+    public function testTheProfileShowsWhatItShowedBefore(string $case, string $profileId, null|string $viewerId): void
     {
         $browser = self::createClient();
         self::ratingsWorld();
@@ -79,7 +78,7 @@ final class PlayerProfileRenderCharacterizationTest extends WebTestCase
             }
         }
 
-        $this->assertSnapshot($this->dataName(), $extract);
+        $this->assertSnapshot($case, $extract);
     }
 
     public function testThePlayerWhoBlocksSomebodyDoesNotFindTheirProfile(): void
@@ -104,7 +103,11 @@ final class PlayerProfileRenderCharacterizationTest extends WebTestCase
         $after = self::resultsExtract($component->render()->crawler());
 
         // The fixtures hold fewer rows than a page: "Show more" changes nothing, the rows stay as they were
-        self::assertSame($before['rows'], array_slice($after['rows'], 0, count($before['rows'])));
+        $rowsBefore = $before['rows'];
+        $rowsAfter = $after['rows'];
+        self::assertIsArray($rowsBefore);
+        self::assertIsArray($rowsAfter);
+        self::assertSame($rowsBefore, array_slice($rowsAfter, 0, count($rowsBefore)));
         $this->assertSnapshot('show more', $after);
     }
 
@@ -162,7 +165,7 @@ final class PlayerProfileRenderCharacterizationTest extends WebTestCase
      */
     private static function texts(Crawler $nodes): array
     {
-        return array_values($nodes->each(static fn (Crawler $node): string => self::text($node)));
+        return $nodes->each(static fn (Crawler $node): string => self::text($node));
     }
 
     /**

@@ -111,6 +111,12 @@ return App::config([
                 'manufacturer_overviews_cache' => [
                     'adapters' => ['cache.app'],
                 ],
+                // The puzzle page's related puzzles (GetRelatedPuzzles::forPuzzleCached()): per page which puzzles were
+                // chosen, the rows are read fresh. Guests only, mostly crawlers over every puzzle × 6 locales, so 7 days
+                // (+ up to 1 day jitter); ~0.4 kB per page, ~20 MB when every page has one
+                'related_puzzles_cache' => [
+                    'adapters' => ['cache.app'],
+                ],
                 // Amazon SNS signing certificates (SnsMessageVerifier), keyed by their URL
                 'sns_certificate_cache' => [
                     'adapters' => ['cache.app'],

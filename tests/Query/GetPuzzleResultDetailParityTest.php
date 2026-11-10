@@ -135,22 +135,30 @@ final class GetPuzzleResultDetailParityTest extends KernelTestCase
         self::assertEquals($expected->player, $actual->player, $context);
         self::assertEquals($expected->players, $actual->players, $context);
 
-        $orderKey = static fn (PuzzleResultAttempt $attempt): string => ($attempt->finishedAt ?? $attempt->trackedAt)->format('Y-m-d H:i:s.u') . '|' . $attempt->trackedAt->format('Y-m-d H:i:s.u');
-
         // The order is fixed by (finished, tracked); attempts equal in both may come in any order
-        self::assertSame(array_map($orderKey, $expected->attempts), array_map($orderKey, $actual->attempts), $context);
+        self::assertSame(array_map(self::orderKey(...), $expected->attempts), array_map(self::orderKey(...), $actual->attempts), $context);
+        self::assertEquals(self::withoutComparisons($expected->attempts), self::withoutComparisons($actual->attempts), $context);
+    }
 
-        $normalised = static function (array $attempts) use ($orderKey): array {
-            $plain = array_map(
-                static fn (PuzzleResultAttempt $attempt): PuzzleResultAttempt => $attempt->withComparison(isBest: false, deltaToPrevious: null, gapToBest: null),
-                $attempts,
-            );
-            usort($plain, static fn (PuzzleResultAttempt $a, PuzzleResultAttempt $b): int => [$orderKey($b), $a->timeId] <=> [$orderKey($a), $b->timeId]);
+    private static function orderKey(PuzzleResultAttempt $attempt): string
+    {
+        return ($attempt->finishedAt ?? $attempt->trackedAt)->format('Y-m-d H:i:s.u') . '|' . $attempt->trackedAt->format('Y-m-d H:i:s.u');
+    }
 
-            return $plain;
-        };
+    /**
+     * @param list<PuzzleResultAttempt> $attempts
+     * @return list<PuzzleResultAttempt>
+     */
+    private static function withoutComparisons(array $attempts): array
+    {
+        $plain = [];
+        foreach ($attempts as $attempt) {
+            $plain[] = $attempt->withComparison(isBest: false, deltaToPrevious: null, gapToBest: null);
+        }
 
-        self::assertEquals($normalised($expected->attempts), $normalised($actual->attempts), $context);
+        usort($plain, static fn (PuzzleResultAttempt $a, PuzzleResultAttempt $b): int => [self::orderKey($b), $a->timeId] <=> [self::orderKey($a), $b->timeId]);
+
+        return $plain;
     }
 
     /**
@@ -167,9 +175,9 @@ final class GetPuzzleResultDetailParityTest extends KernelTestCase
             return null;
         }
 
-        /** @var array{player_id: string, player_name: null|string, player_code: null|string, player_country: null|string, player_avatar: null|string, is_private: null|bool, skill_tier: null|int, ranking_opted_out: bool} $focusRow */
+        /** @var array{player_id: string, player_name: null|string, player_code: null|string, player_country: null|string, player_avatar: null|string, is_private: null|bool, skill_tier: null|int, ranking_opted_out: bool, players: null|string, puzzle_id: string, puzzle_name: string, puzzle_image: null|string, puzzle_image_ratio: null|string, pieces_count: int, manufacturer_name: string, puzzling_type: string, team_id: null|string, team_name: null|string} $focusRow */
         $player = Puzzler::fromDatabaseRow($focusRow);
-        $players = is_string($focusRow['players'] ?? null) ? array_values(Puzzler::createPuzzlersFromJson($focusRow['players'])) : null;
+        $players = $focusRow['players'] !== null ? array_values(Puzzler::createPuzzlersFromJson($focusRow['players'])) : null;
 
         $memberPlayerIds = [];
         foreach ($players ?? [] as $member) {
@@ -221,7 +229,6 @@ final class GetPuzzleResultDetailParityTest extends KernelTestCase
             );
         }
 
-        /** @var array{puzzle_id: string, puzzle_name: string, puzzle_image: null|string, puzzle_image_ratio: null|string, pieces_count: int, manufacturer_name: string, puzzling_type: string, team_id: null|string, team_name: null|string} $focusRow */
         return new PuzzleResultDetail(
             focusTimeId: $timeId,
             puzzleId: $focusRow['puzzle_id'],

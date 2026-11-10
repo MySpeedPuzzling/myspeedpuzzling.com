@@ -35,8 +35,11 @@ readonly final class ResultQueriesParityScenario
      */
     public static function seed(ContainerInterface $container): array
     {
+        // @phpstan-ignore symfonyContainer.privateService (the test container exposes it)
         $database = $container->get(Connection::class);
+        // @phpstan-ignore symfonyContainer.privateService (the test container exposes it)
         $bus = $container->get(MessageBusInterface::class);
+        // @phpstan-ignore symfonyContainer.privateService (the test container exposes it)
         $now = $container->get(ClockInterface::class)->now();
 
         self::skill($database, PlayerFixture::PLAYER_REGULAR, 3);

@@ -392,12 +392,12 @@ SQL,
 
             foreach ([3, 500] as $limit) {
                 $context = sprintf('latest, limit %d, viewer %s', $limit, $viewerId ?? 'anonymous');
-                $latest = $this->query->latest($limit);
+                $latest = array_values($this->query->latest($limit));
                 $this->assertSameFeed($this->previousLatest($limit), $latest, $limit, $context);
 
                 foreach ($playerIds as $playerId) {
                     $context = sprintf('player %s, limit %d, viewer %s', $playerId, $limit, $viewerId ?? 'anonymous');
-                    $actual = $this->query->forPlayer($playerId, $limit);
+                    $actual = array_values($this->query->forPlayer($playerId, $limit));
                     $this->assertSameFeed($this->previousForPlayer($playerId, $limit), $actual, $limit, $context);
 
                     foreach ([...$actual, ...$latest] as $item) {
@@ -463,21 +463,36 @@ SQL,
      */
     private function assertSameFeed(array $expected, array $actual, int $limit, string $context): void
     {
-        $trackedAt = static fn (RecentActivityItem $item): string => $item->trackedAt->format('Y-m-d H:i:s.u');
-
         // The tracked_at order is fixed; times tracked at the same moment may come in any order
-        self::assertSame(array_map($trackedAt, $expected), array_map($trackedAt, $actual), $context);
+        self::assertSame(array_map(self::trackedAt(...), $expected), array_map(self::trackedAt(...), $actual), $context);
 
         // A limit cutting through times tracked at the same moment may keep any of them
-        $cut = count($expected) === $limit && $expected !== [] ? $trackedAt($expected[array_key_last($expected)]) : null;
-        $comparable = static function (array $items) use ($trackedAt, $cut): array {
-            $kept = array_values(array_filter($items, static fn (RecentActivityItem $item): bool => $trackedAt($item) !== $cut));
-            usort($kept, static fn (RecentActivityItem $a, RecentActivityItem $b): int => [$trackedAt($b), $a->id] <=> [$trackedAt($a), $b->id]);
+        $cut = count($expected) === $limit && $expected !== [] ? self::trackedAt($expected[array_key_last($expected)]) : null;
 
-            return $kept;
-        };
+        self::assertEquals(self::comparableFeed($expected, $cut), self::comparableFeed($actual, $cut), $context);
+    }
 
-        self::assertEquals($comparable($expected), $comparable($actual), $context);
+    private static function trackedAt(RecentActivityItem $item): string
+    {
+        return $item->trackedAt->format('Y-m-d H:i:s.u');
+    }
+
+    /**
+     * @param list<RecentActivityItem> $items
+     * @return list<RecentActivityItem>
+     */
+    private static function comparableFeed(array $items, null|string $cut): array
+    {
+        $kept = [];
+        foreach ($items as $item) {
+            if (self::trackedAt($item) !== $cut) {
+                $kept[] = $item;
+            }
+        }
+
+        usort($kept, static fn (RecentActivityItem $a, RecentActivityItem $b): int => [self::trackedAt($b), $a->id] <=> [self::trackedAt($a), $b->id]);
+
+        return $kept;
     }
 
     /**

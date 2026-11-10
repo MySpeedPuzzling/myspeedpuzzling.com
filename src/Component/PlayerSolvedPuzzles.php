@@ -305,8 +305,7 @@ final class PlayerSolvedPuzzles
 
         // Fetch all puzzles (unfiltered)
         $this->allSoloPuzzles = $this->getPlayerSolvedPuzzles->soloByPlayerId($playerId);
-        $this->allDuoPuzzles = $this->getPlayerSolvedPuzzles->duoByPlayerId($playerId);
-        $this->allTeamPuzzles = $this->getPlayerSolvedPuzzles->teamByPlayerId($playerId);
+        ['duo' => $this->allDuoPuzzles, 'team' => $this->allTeamPuzzles] = $this->getPlayerSolvedPuzzles->groupByPlayerId($playerId);
 
         // Difficulty is members-only: for everyone else it is not even queried. The whole history, not just the
         // shown rows - the filter needs every tier

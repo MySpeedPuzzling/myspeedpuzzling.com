@@ -301,8 +301,7 @@ final class ActivityCalendar
         $dayEnd = $dayStart->setTime(23, 59, 59);
 
         $solo = $this->getPlayerSolvedPuzzles->soloByPlayerId($this->playerId, $dayStart, $dayEnd);
-        $duo = $this->getPlayerSolvedPuzzles->duoByPlayerId($this->playerId, $dayStart, $dayEnd);
-        $team = $this->getPlayerSolvedPuzzles->teamByPlayerId($this->playerId, $dayStart, $dayEnd);
+        ['duo' => $duo, 'team' => $team] = $this->getPlayerSolvedPuzzles->groupByPlayerId($this->playerId, $dayStart, $dayEnd);
 
         $merged = array_merge($solo, $duo, $team);
 

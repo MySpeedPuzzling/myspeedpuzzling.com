@@ -119,12 +119,6 @@ Why this one:
   their token is dead at once, the daily prune removes the objects. An explicit `discard()` (other forms after a save,
   feedback screenshots) still deletes them right away. The daily prune removes expired rows too (`PrunePhotoStashHandler`).
   Postgres rather than redis-state: the save already needs Postgres, so the flow gains no new dependency.
-- **Transition (two releases, docs/TODO.md):** release 1 reads the row first and falls back to an old `.json`
-  description (a token made by the previous release), and still writes every description in the old format too
-  (marked `mirror`, ignored by the fallback) - a reservation's after the answer (`kernel.terminate`) - so a container
-  of the previous release, still serving during the blue-green rollout, finds the photos. After the rollout
-  `myspeedpuzzling:backfill-photo-stash-entries --write` copies the still valid old descriptions into rows (dry run
-  without `--write`, idempotent); release 2 drops the fallback and the old-format write.
 - What the photo becomes is decided by the form's own save, which goes through its handlers as before.
 
 **Browser** - `assets/photo_upload.js` (`PhotoUpload`), used by `submit_prevention_controller.js` (add/edit-time form)
@@ -220,11 +214,10 @@ plain path is still used).
   refusals, other players.
 - `tests/Services/PhotoStash/PhotoStashTest.php` - reserve → upload → restore → preview, the cap (kept photos and
   reservations together, a preview making a photo recent again), expiry not moved by a preview, every read refusing
-  another player's token, browser summaries; release 1: old `.json` descriptions still working, the copy for the
-  previous release.
+  another player's token, browser summaries.
 - `tests/Services/PhotoStash/DirectPhotoUploadTest.php::testStartingTouchesNoObjectStorage` - new place, re-sign,
   replace and eviction against object storage that throws on every call (`ExplodingFilesystemAdapter`), zero calls.
-- `tests/MessageHandler/PrunePhotoStashHandlerTest.php`, `BackfillPhotoStashEntriesHandlerTest.php`, and the
+- `tests/MessageHandler/PrunePhotoStashHandlerTest.php` and the
   player deletion cascade in `DeletePlayerHandlerTest.php`.
 - `tests/Controller/PhotoUploads/DirectPhotoUploadTest.php` - the endpoint (auth, CSRF, refusals, kill switch), a new
   puzzle saved with a background-uploaded photo, the resend after a save answered as the saved result, a refused form

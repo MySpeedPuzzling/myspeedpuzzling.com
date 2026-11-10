@@ -289,23 +289,6 @@ final class DirectPhotoUploadTest extends WebTestCase
         self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
     }
 
-    /**
-     * Release 1 only (docs/TODO.md): after the answer, the old-format description for a container of the previous release
-     */
-    public function testTheOldDescriptionIsWrittenAfterTheAnswer(): void
-    {
-        $browser = $this->browser();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-
-        $answer = $this->start($browser, ['bytes' => 1000, 'type' => 'image/jpeg', 'name' => 'box.jpg']);
-        $this->assertResponseIsSuccessful();
-        self::assertIsString($answer['token'] ?? null);
-
-        $old = json_decode(self::getContainer()->get(Filesystem::class)->read('tmp-uploads/' . PlayerFixture::PLAYER_REGULAR . '/' . $answer['token'] . '.json'), true);
-        self::assertIsArray($old);
-        self::assertSame(['box.jpg', 'image/jpeg', false, 1000], [$old['name'], $old['mime'], $old['preview'], $old['bytes']]);
-    }
-
     public function testStartingAnUploadIsRefusedWithoutAReasonToTrustIt(): void
     {
         $browser = $this->browser();

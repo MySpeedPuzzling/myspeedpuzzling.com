@@ -31,11 +31,6 @@ readonly final class RecordPhotoStashEntryHandler
      */
     public function __invoke(RecordPhotoStashEntry $message): void
     {
-        // Recorded already (a backfill run again) - the first description stays
-        if ($this->photoStashEntryRepository->find($message->token, $message->playerId) !== null) {
-            return;
-        }
-
         $player = $this->playerRepository->get($message->playerId);
         $existing = $this->photoStashEntryRepository->ofPlayer($message->playerId);
 

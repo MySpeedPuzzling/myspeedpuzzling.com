@@ -10,8 +10,6 @@ use Imagick;
 use League\Flysystem\Filesystem;
 use League\Flysystem\FilesystemException;
 use League\Flysystem\StorageAttributes;
-use Nette\Utils\Json;
-use Nette\Utils\JsonException;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Message\ForgetStashedPhoto;
@@ -40,13 +38,6 @@ use Symfony\Contracts\Service\ResetInterface;
  * The form then carries only the token, and restore() reads the photo back like a kept one. Reserving, signing again
  * and letting go of a reservation make no object-storage call - the start of an upload never waits for it.
  *
- * Transition (release 1 of 2, docs/TODO.md): descriptions used to be `<token>.json` objects next to the photo. A token
- * without a row still works from its old `.json` (legacyMeta()), and every description is also written in the old
- * format - marked `mirror`, which legacyMeta() ignores - so a container of the previous release, still serving during a
- * blue-green rollout, finds the photos of this one. A reservation's copy is written after the answer
- * (writeLegacyDescriptions() on kernel.terminate). `myspeedpuzzling:backfill-photo-stash-entries` copies the old
- * descriptions into rows; release 2 drops the old format altogether.
- *
  * What the browser read from a photo before it shrank it (BrowserImageSummary, docs/features/upload-image-metadata.md)
  * is kept in the description next to it, so it comes back with the photo - a refused form's photo returns as a token only.
  *
@@ -63,13 +54,6 @@ final class PhotoStash implements ResetInterface
 
     /** @var list<string> */
     private array $temporaryFiles = [];
-
-    /**
-     * Release 1 only: old-format descriptions of this request's reservations, written after the answer
-     *
-     * @var array<string, string> path => contents
-     */
-    private array $pendingLegacyDescriptions = [];
 
     public function __construct(
         readonly private Filesystem $filesystem,
@@ -140,8 +124,6 @@ final class PhotoStash implements ResetInterface
             return null;
         }
 
-        $this->writeLegacyDescription($base, $this->legacyDescription($fileName, $mime, $preview !== null, null, $now, $browserMetadata?->toArray()));
-
         return new StashedPhoto($token, $fileName, $preview !== null);
     }
 
@@ -176,9 +158,6 @@ final class PhotoStash implements ResetInterface
             return null;
         }
 
-        // Release 1 only: after the answer - the player never waits for it
-        $this->pendingLegacyDescriptions[$this->base($playerId, $token) . '.json'] = $this->legacyDescription($fileName, $mime, false, $bytes, $now, $browserMetadata?->toArray());
-
         return $token;
     }
 
@@ -195,17 +174,6 @@ final class PhotoStash implements ResetInterface
             return;
         }
 
-        if ($meta['legacy']) {
-            // Release 1 only: a reservation made before the deploy has no row - its old description goes instead
-            try {
-                $this->filesystem->delete($this->base($playerId, $token) . '.json');
-            } catch (FilesystemException) {
-                // It expires on its own
-            }
-
-            return;
-        }
-
         try {
             $this->messageBus->dispatch(new ForgetStashedPhoto($token, $playerId));
         } catch (\Throwable $e) {
@@ -213,19 +181,6 @@ final class PhotoStash implements ResetInterface
             $this->logger->warning('Could not let go of a reserved photo place', [
                 'exception' => $e,
             ]);
-        }
-    }
-
-    /**
-     * Release 1 only (kernel.terminate): the old-format descriptions of this request's reservations
-     */
-    public function writeLegacyDescriptions(): void
-    {
-        $pending = $this->pendingLegacyDescriptions;
-        $this->pendingLegacyDescriptions = [];
-
-        foreach ($pending as $path => $contents) {
-            $this->writeLegacyDescription(substr($path, 0, -5), $contents);
         }
     }
 
@@ -297,20 +252,7 @@ final class PhotoStash implements ResetInterface
         }
 
         try {
-            $this->messageBus->dispatch($meta['legacy']
-                // Release 1 only: a photo stashed before the deploy gets its row now
-                ? new RecordPhotoStashEntry(
-                    token: $token,
-                    playerId: $playerId,
-                    name: $meta['name'],
-                    mime: $meta['mime'],
-                    preview: true,
-                    bytes: $meta['bytes'],
-                    browserMetadata: $meta['browserMetadata'] ?? $browserMetadata?->toArray(),
-                    storedAt: $meta['storedAt'],
-                    touchedAt: $now,
-                )
-                : new MarkStashedPhotoPreview($token, $playerId, $browserMetadata?->toArray(), $now));
+            $this->messageBus->dispatch(new MarkStashedPhotoPreview($token, $playerId, $browserMetadata?->toArray(), $now));
         } catch (\Throwable $e) {
             $this->logger->warning('Could not record the preview of a kept photo', [
                 'exception' => $e,
@@ -318,8 +260,6 @@ final class PhotoStash implements ResetInterface
 
             return new StashedPhoto($token, $meta['name'], false);
         }
-
-        $this->writeLegacyDescription($base, $this->legacyDescription($meta['name'], $meta['mime'], true, $meta['bytes'], $meta['storedAt'], $meta['browserMetadata'] ?? $browserMetadata?->toArray()));
 
         return new StashedPhoto($token, $meta['name'], true);
     }
@@ -414,8 +354,7 @@ final class PhotoStash implements ResetInterface
 
         $base = $this->base($playerId, $token);
 
-        // The old-format description too (release 1: mirrors and descriptions made before the deploy)
-        foreach ([$base, $base . '.jpg', $base . '.json'] as $path) {
+        foreach ([$base, $base . '.jpg'] as $path) {
             try {
                 $this->filesystem->delete($path);
             } catch (FilesystemException) {
@@ -461,11 +400,10 @@ final class PhotoStash implements ResetInterface
         }
 
         $this->temporaryFiles = [];
-        $this->pendingLegacyDescriptions = [];
     }
 
     /**
-     * @return null|array{name: string, mime: string, preview: bool, bytes: null|int, storedAt: DateTimeImmutable, browserMetadata: null|array<mixed>, legacy: bool}
+     * @return null|array{name: string, mime: string, preview: bool, bytes: null|int, storedAt: DateTimeImmutable, browserMetadata: null|array<mixed>}
      */
     private function meta(string $token, string $playerId): null|array
     {
@@ -483,92 +421,11 @@ final class PhotoStash implements ResetInterface
             return null;
         }
 
-        $meta = $meta !== null ? [...$meta, 'legacy' => false] : $this->legacyMeta($token, $playerId);
-
         if ($meta === null || $meta['storedAt'] < $this->clock->now()->modify('-' . self::KEEP_HOURS . ' hours')) {
             return null;
         }
 
         return $meta;
-    }
-
-    /**
-     * Release 1 only: the description of a photo stashed before the deploy, an object next to it. A mirror of a row
-     * (written by this release for the previous one) is no description - its row decides
-     *
-     * @return null|array{name: string, mime: string, preview: bool, bytes: null|int, storedAt: DateTimeImmutable, browserMetadata: null|array<mixed>, legacy: bool}
-     */
-    private function legacyMeta(string $token, string $playerId): null|array
-    {
-        try {
-            $meta = Json::decode($this->filesystem->read($this->base($playerId, $token) . '.json'), forceArrays: true);
-        } catch (FilesystemException | JsonException) {
-            return null;
-        }
-
-        return self::parseLegacyDescription($meta);
-    }
-
-    /**
-     * Release 1 only: an old-format description, as the previous release wrote it - null for a mirror or anything broken
-     *
-     * @return null|array{name: string, mime: string, preview: bool, bytes: null|int, storedAt: DateTimeImmutable, browserMetadata: null|array<mixed>, legacy: bool}
-     */
-    public static function parseLegacyDescription(mixed $meta): null|array
-    {
-        if (
-            is_array($meta) === false
-            || ($meta['mirror'] ?? false) === true
-            || is_string($meta['name'] ?? null) === false
-            || is_string($meta['mime'] ?? null) === false
-            || is_string($meta['storedAt'] ?? null) === false
-        ) {
-            return null;
-        }
-
-        try {
-            // In the app's time zone - written to the database as it is
-            $storedAt = new DateTimeImmutable($meta['storedAt'])->setTimezone(new \DateTimeZone(date_default_timezone_get()));
-        } catch (\Exception) {
-            return null;
-        }
-
-        return [
-            'name' => $meta['name'],
-            'mime' => $meta['mime'],
-            'preview' => ($meta['preview'] ?? false) === true,
-            'bytes' => is_int($meta['bytes'] ?? null) ? $meta['bytes'] : null,
-            'storedAt' => $storedAt,
-            'browserMetadata' => is_array($meta['browserMetadata'] ?? null) ? $meta['browserMetadata'] : null,
-            'legacy' => true,
-        ];
-    }
-
-    /**
-     * Release 1 only: what the previous release reads (its meta()), marked as a mirror of the row
-     *
-     * @param null|array<mixed> $browserMetadata
-     */
-    private function legacyDescription(string $name, string $mime, bool $preview, null|int $bytes, DateTimeImmutable $storedAt, null|array $browserMetadata): string
-    {
-        return Json::encode([
-            'name' => $name,
-            'mime' => $mime,
-            'preview' => $preview,
-            'bytes' => $bytes,
-            'storedAt' => $storedAt->format(DATE_ATOM),
-            'browserMetadata' => $browserMetadata,
-            'mirror' => true,
-        ]);
-    }
-
-    private function writeLegacyDescription(string $base, string $contents): void
-    {
-        try {
-            $this->filesystem->write($base . '.json', $contents);
-        } catch (\Throwable) {
-            // Only a container of the previous release would miss it
-        }
     }
 
     private function preview(string $path): null|string

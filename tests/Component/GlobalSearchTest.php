@@ -94,7 +94,8 @@ final class GlobalSearchTest extends WebTestCase
     {
         return array_values(array_filter(
             $this->executedSql($client),
-            static fn (string $sql): bool => str_contains($sql, 'COUNT(DISTINCT puzzle.id)'),
+            // SearchPuzzle::countByUserInput()
+            static fn (string $sql): bool => preg_match('/COUNT\(\*\) AS count\s+FROM puzzle\s/', $sql) === 1,
         ));
     }
 }

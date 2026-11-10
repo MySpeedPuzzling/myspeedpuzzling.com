@@ -9,6 +9,7 @@ use Doctrine\DBAL\Connection;
 use Nette\Utils\Json;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Component\PlayerHeader;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Results\RecentActivityItem;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
@@ -65,65 +66,22 @@ WITH matched AS MATERIALIZED (
         ORDER BY puzzle_solving_time.tracked_at DESC
         LIMIT :limit
     )
+),
+-- The listed times with what is joined per row; the brand, the skill tier, the members and the event are looked up
+-- after the limit, outside the join search
+listed AS MATERIALIZED (
+    SELECT
+        {$this->listedColumns()}
+    FROM matched
+    INNER JOIN puzzle_solving_time ON puzzle_solving_time.id = matched.id
+    INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
+    INNER JOIN player ON puzzle_solving_time.player_id = player.id
+    -- The brand was an inner join and puzzle.manufacturer_id is nullable: a time of a puzzle without one is left out
+    WHERE puzzle.manufacturer_id IS NOT NULL
+    ORDER BY puzzle_solving_time.tracked_at DESC
+    LIMIT :limit
 )
-SELECT
-    puzzle_solving_time.id as time_id,
-    puzzle.id AS puzzle_id,
-    puzzle.name AS puzzle_name,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
-    puzzle_solving_time.seconds_to_solve AS time,
-    puzzle_solving_time.player_id AS player_id,
-    player.name AS player_name,
-    player.code AS player_code,
-    player.country AS player_country,
-    player.avatar AS player_avatar,
-    puzzle.pieces_count,
-    puzzle_solving_time.comment,
-    manufacturer.name AS manufacturer_name,
-    puzzle.identification_number AS puzzle_identification_number,
-    puzzle_solving_time.tracked_at AS tracked_at,
-    finished_at,
-    puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo,
-    puzzle_solving_time.puzzling_team_id::varchar AS team_id,
-    first_attempt,
-    puzzle_solving_time.unboxed,
-    puzzle_solving_time.suspicious,
-    {$this->privateProfileAccess->sqlIsPrivate('player')} AS is_private,
-    competition.id AS competition_id,
-    competition.shortcut AS competition_shortcut,
-    competition.name AS competition_name,
-    competition.slug AS competition_slug,
-    cs.name AS competition_series_name,
-    cs.shortcut AS competition_series_shortcut,
-    cs.slug AS competition_series_slug,
-    ps.skill_tier,
-    player.ranking_opted_out,
-    CASE WHEN puzzle_solving_time.team IS NOT NULL THEN
-        (SELECT JSON_AGG(JSON_BUILD_OBJECT(
-            'player_id', elem.player ->> 'player_id',
-            'player_name', COALESCE(p.name, elem.player ->> 'player_name'),
-            'player_code', p.code,
-            'player_country', p.country,
-            'player_avatar', p.avatar,
-            'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
-            'skill_tier', ps_m.skill_tier,
-            'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
-        ) ORDER BY elem.ordinality)
-        FROM json_array_elements(puzzle_solving_time.team -> 'puzzlers') WITH ORDINALITY AS elem(player, ordinality)
-        LEFT JOIN player p ON p.id = (elem.player ->> 'player_id')::UUID
-        LEFT JOIN player_skill ps_m ON ps_m.player_id = p.id)
-    ELSE NULL END AS players
-FROM matched
-INNER JOIN puzzle_solving_time ON puzzle_solving_time.id = matched.id
-INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
-INNER JOIN player ON puzzle_solving_time.player_id = player.id
-INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
-LEFT JOIN competition ON puzzle_solving_time.competition_id = competition.id
-LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, puzzle_solving_time.competition_series_id)
-LEFT JOIN player_skill ps ON ps.player_id = player.id
-ORDER BY puzzle_solving_time.tracked_at DESC
-LIMIT :limit
+{$this->selectFromListed()}
 SQL;
 
         $data = $this->database
@@ -188,65 +146,21 @@ SQL;
         $notHidden = $this->notHidden('puzzle_solving_time');
 
         $query = <<<SQL
-SELECT
-    puzzle_solving_time.id as time_id,
-    puzzle.id AS puzzle_id,
-    puzzle.name AS puzzle_name,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
-    puzzle_solving_time.seconds_to_solve AS time,
-    puzzle_solving_time.player_id AS player_id,
-    player.name AS player_name,
-    player.code AS player_code,
-    player.country AS player_country,
-    player.avatar AS player_avatar,
-    puzzle.pieces_count,
-    puzzle_solving_time.comment,
-    manufacturer.name AS manufacturer_name,
-    puzzle.identification_number AS puzzle_identification_number,
-    puzzle_solving_time.tracked_at AS tracked_at,
-    finished_at,
-    puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo,
-    puzzle_solving_time.puzzling_team_id::varchar AS team_id,
-    first_attempt,
-    puzzle_solving_time.unboxed,
-    {$this->privateProfileAccess->sqlIsPrivate('player')} AS is_private,
-    competition.id AS competition_id,
-    competition.shortcut AS competition_shortcut,
-    competition.name AS competition_name,
-    competition.slug AS competition_slug,
-    cs.name AS competition_series_name,
-    cs.shortcut AS competition_series_shortcut,
-    cs.slug AS competition_series_slug,
-    ps.skill_tier,
-    player.ranking_opted_out,
-    CASE WHEN puzzle_solving_time.team IS NOT NULL THEN
-        (SELECT JSON_AGG(JSON_BUILD_OBJECT(
-            'player_id', elem.player ->> 'player_id',
-            'player_name', COALESCE(p.name, elem.player ->> 'player_name'),
-            'player_code', p.code,
-            'player_country', p.country,
-            'player_avatar', p.avatar,
-            'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
-            'skill_tier', ps_m.skill_tier,
-            'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
-        ) ORDER BY elem.ordinality)
-        FROM json_array_elements(puzzle_solving_time.team -> 'puzzlers') WITH ORDINALITY AS elem(player, ordinality)
-        LEFT JOIN player p ON p.id = (elem.player ->> 'player_id')::UUID
-        LEFT JOIN player_skill ps_m ON ps_m.player_id = p.id)
-    ELSE NULL END AS players
-FROM puzzle_solving_time
-INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
-INNER JOIN player ON puzzle_solving_time.player_id = player.id
-INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
-LEFT JOIN competition ON puzzle_solving_time.competition_id = competition.id
-LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, puzzle_solving_time.competition_series_id)
-LEFT JOIN player_skill ps ON ps.player_id = player.id
-WHERE {$this->privateProfileAccess->sqlIsPublic('player')}
-    AND puzzle_solving_time.suspicious = false
-    {$notHidden}
-ORDER BY puzzle_solving_time.tracked_at DESC
-LIMIT :limit
+WITH listed AS MATERIALIZED (
+    SELECT
+        {$this->listedColumns()}
+    FROM puzzle_solving_time
+    INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
+    INNER JOIN player ON puzzle_solving_time.player_id = player.id
+    WHERE {$this->privateProfileAccess->sqlIsPublic('player')}
+        AND puzzle_solving_time.suspicious = false
+        -- The brand was an inner join and puzzle.manufacturer_id is nullable: a time of a puzzle without one is left out
+        AND puzzle.manufacturer_id IS NOT NULL
+        {$notHidden}
+    ORDER BY puzzle_solving_time.tracked_at DESC
+    LIMIT :limit
+)
+{$this->selectFromListed()}
 SQL;
 
         $data = $this->database
@@ -465,6 +379,109 @@ SQL;
 
             return RecentActivityItem::fromDatabaseRow($row);
         }, $data);
+    }
+
+    /**
+     * Columns of `listed`: the time, its puzzle and its tracker (joined as `puzzle_solving_time`, `puzzle`, `player`)
+     */
+    private function listedColumns(): string
+    {
+        return <<<SQL
+puzzle_solving_time.id AS time_id,
+        puzzle.id AS puzzle_id,
+        puzzle.name AS puzzle_name,
+        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
+        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
+        puzzle_solving_time.seconds_to_solve AS time,
+        puzzle_solving_time.player_id,
+        player.name AS player_name,
+        player.code AS player_code,
+        player.country AS player_country,
+        player.avatar AS player_avatar,
+        puzzle.pieces_count,
+        puzzle_solving_time.comment,
+        puzzle.manufacturer_id,
+        puzzle.identification_number AS puzzle_identification_number,
+        puzzle_solving_time.tracked_at,
+        puzzle_solving_time.finished_at,
+        puzzle_solving_time.finished_puzzle_photo,
+        puzzle_solving_time.puzzling_team_id::varchar AS team_id,
+        puzzle_solving_time.first_attempt,
+        puzzle_solving_time.unboxed,
+        puzzle_solving_time.suspicious,
+        -- Already masked for the viewer (PrivateProfileAccess)
+        {$this->privateProfileAccess->sqlIsPrivate('player')} AS is_private_for_viewer,
+        player.ranking_opted_out,
+        puzzle_solving_time.competition_id,
+        puzzle_solving_time.competition_series_id,
+        puzzle_solving_time.team
+SQL;
+    }
+
+    /**
+     * The feed rows of the times in `listed`, newest first. Brand, skill tier and members are lookups by key and the
+     * event is joined by primary key - none of them can add or drop a row, so doing them after the limit lists the
+     * same rows. The skill tier is the one at PlayerHeader::TIER_PIECES_COUNT pieces: player_skill is unique per player
+     * and pieces count.
+     */
+    private function selectFromListed(): string
+    {
+        $tierPieces = PlayerHeader::TIER_PIECES_COUNT;
+
+        return <<<SQL
+SELECT
+    listed.time_id,
+    listed.puzzle_id,
+    listed.puzzle_name,
+    listed.puzzle_image,
+    listed.puzzle_image_ratio,
+    listed.time,
+    listed.player_id,
+    listed.player_name,
+    listed.player_code,
+    listed.player_country,
+    listed.player_avatar,
+    listed.pieces_count,
+    listed.comment,
+    (SELECT manufacturer.name FROM manufacturer WHERE manufacturer.id = listed.manufacturer_id) AS manufacturer_name,
+    listed.puzzle_identification_number,
+    listed.tracked_at,
+    listed.finished_at,
+    listed.finished_puzzle_photo,
+    listed.team_id,
+    listed.first_attempt,
+    listed.unboxed,
+    listed.suspicious,
+    listed.is_private_for_viewer AS is_private,
+    competition.id AS competition_id,
+    competition.shortcut AS competition_shortcut,
+    competition.name AS competition_name,
+    competition.slug AS competition_slug,
+    cs.name AS competition_series_name,
+    cs.shortcut AS competition_series_shortcut,
+    cs.slug AS competition_series_slug,
+    (SELECT ps.skill_tier FROM player_skill ps WHERE ps.player_id = listed.player_id AND ps.pieces_count = {$tierPieces}) AS skill_tier,
+    listed.ranking_opted_out,
+    CASE WHEN listed.team IS NOT NULL THEN
+        (SELECT JSON_AGG(JSON_BUILD_OBJECT(
+            'player_id', elem.player ->> 'player_id',
+            'player_name', COALESCE(p.name, elem.player ->> 'player_name'),
+            'player_code', p.code,
+            'player_country', p.country,
+            'player_avatar', p.avatar,
+            'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
+            'skill_tier', ps_m.skill_tier,
+            'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
+        ) ORDER BY elem.ordinality)
+        FROM json_array_elements(listed.team -> 'puzzlers') WITH ORDINALITY AS elem(player, ordinality)
+        LEFT JOIN player p ON p.id = (elem.player ->> 'player_id')::UUID
+        LEFT JOIN player_skill ps_m ON ps_m.player_id = p.id AND ps_m.pieces_count = {$tierPieces})
+    ELSE NULL END AS players
+FROM listed
+LEFT JOIN competition ON competition.id = listed.competition_id
+LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, listed.competition_series_id)
+ORDER BY listed.tracked_at DESC
+SQL;
     }
 
     /**

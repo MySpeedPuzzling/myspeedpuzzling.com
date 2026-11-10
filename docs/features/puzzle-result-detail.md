@@ -94,6 +94,23 @@ statement picks the subject's times through a `UNION` per kind (`custom_pst_play
 
 Query budget of the modal for a guest: 2 statements (`testModalCostsTwoQueries`).
 
+### Query shape (2026-11-09)
+
+The attempts statement executes in ~0.1 ms but took 2.3-2.4 ms to **plan** (warm; ~5 ms on a fresh connection):
+puzzle, brand, player, skill tier, team name and members were joined into every attempt row, so the planner searched
+an 11-relation join (`join_collapse_limit` 8) for lookups that are all 1:1 by key. Since then everything about the
+opened time lives in the `focus` CTE (`MATERIALIZED`, joining only `puzzle_solving_time`, `puzzle`, `player`; brand,
+skill tier and team name are scalar subqueries, the members' JSON too) and the outer query joins only the attempts and
+their event (`competition`, `competition_series`). Planning 2.5 → ~0.6 ms, the same rows - pinned by
+`GetPuzzleResultDetailParityTest`, which keeps the previous statement verbatim and compares every field for every time
+of the test database and five kinds of viewer. Keep new per-subject columns inside `focus`, not as joins outside.
+
+- The brand used to be an inner join and `puzzle.manufacturer_id` is nullable: `focus` keeps "no brand = not found"
+  with `manufacturer_id IS NOT NULL`.
+- The skill tier is the one at `PlayerHeader::TIER_PIECES_COUNT` pieces (player + members). `player_skill` is unique
+  per player *and* pieces count; the unpinned join listed every attempt once per computed pieces count
+  (`testAnotherPiecesCountSkillDoesNotDuplicateAttempts`).
+
 ## Members
 
 The progress chart (`Chart:PlayerPuzzleTimesChart`, ≥ 2 timed attempts) is members-only. Non-members get the locked

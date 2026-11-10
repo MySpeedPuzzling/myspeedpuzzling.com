@@ -52,6 +52,14 @@ whether anybody is looking, instead of `data-poll`.**
   - An open tab polls for as long as the browser lets its timers run.
 - The time label `{{ item.trackedAt|ago }}` (`.lb-time-date`) does not change between refreshes.
 
+**Statement shape (2026-11-09):** `GetRecentActivity::forPlayer()` and `latest()` limit the times in a `listed` CTE
+(time ⋈ puzzle ⋈ player, the filters, `ORDER BY tracked_at DESC LIMIT`) and only then look up the brand, the skill tier
+(at `PlayerHeader::TIER_PIECES_COUNT` pieces) and the members as scalar subqueries and join the event by key
+(`selectFromListed()`). With all of them in one join the planner searched 7-8 relations: 3.7-4.2 ms planning for
+0.2 ms execution (`forPlayer`), 2.2-2.6 ms (`latest`). Same rows, pinned by
+`GetRecentActivityTest::testForPlayerAndLatestMatchThePreviousStatementsInEveryField` (previous SQL kept verbatim).
+`ofPlayerFavorites()` still has the old shape (docs/TODO.md).
+
 ### 1.2 Production numbers
 
 Sources: Tempo (100 % of Traefik spans), the database, Mercure's own log.

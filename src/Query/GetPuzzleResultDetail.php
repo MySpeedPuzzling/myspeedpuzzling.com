@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Component\PlayerHeader;
 use SpeedPuzzling\Web\Exceptions\PuzzleResultNotFound;
 use SpeedPuzzling\Web\Results\PuzzleResultAttempt;
 use SpeedPuzzling\Web\Results\PuzzleResultDetail;
@@ -44,31 +45,58 @@ readonly final class GetPuzzleResultDetail
         $notHidden = $this->hiddenPlayers->sqlExclude('(CASE WHEN pst.team IS NULL THEN pst.player_id END)')
             . $this->hiddenPlayers->sqlExcludeTeam('pst.team');
 
-        // The subject is the opened time's solo player, or its exact pair/team (`puzzling_team_id`) - never the URL
+        $tierPieces = PlayerHeader::TIER_PIECES_COUNT;
+
+        // The subject is the opened time's solo player, or its exact pair/team (`puzzling_team_id`) - never the URL.
+        // Everything about the opened time - puzzle, brand, player, skill tier, team name, members - is read once in
+        // `focus`, as lookups by key, and not joined into the attempts: every relation in the outer join multiplied
+        // the planner's work (2.3 ms planning for 0.1 ms execution, docs/features/puzzle-result-detail.md "Query shape")
         $query = <<<SQL
-WITH focus AS (
-    SELECT id, puzzle_id, player_id, puzzling_type, puzzling_team_id, team
-    FROM puzzle_solving_time
-    WHERE id = :timeId
-),
-focus_members AS (
-    SELECT JSON_AGG(
-        JSON_BUILD_OBJECT(
-            'player_id', member.player ->> 'player_id',
-            'player_name', COALESCE(p.name, member.player ->> 'player_name'),
-            'player_code', p.code,
-            'player_country', p.country,
-            'player_avatar', p.avatar,
-            'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
-            'skill_tier', ps_member.skill_tier,
-            'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
-        ) ORDER BY member.ordinality
-    ) AS players
-    FROM focus
-        CROSS JOIN LATERAL json_array_elements(focus.team -> 'puzzlers') WITH ORDINALITY AS member(player, ordinality)
-        LEFT JOIN player p ON p.id = (member.player ->> 'player_id')::UUID
-        LEFT JOIN player_skill ps_member ON ps_member.player_id = p.id
-    WHERE focus.team IS NOT NULL
+WITH focus AS MATERIALIZED (
+    SELECT
+        focus_time.id,
+        focus_time.puzzle_id,
+        focus_time.player_id,
+        focus_time.puzzling_type,
+        focus_time.puzzling_team_id,
+        focus_time.team,
+        (SELECT puzzling_team.name FROM puzzling_team WHERE puzzling_team.id = focus_time.puzzling_team_id) AS team_name,
+        puzzle.name AS puzzle_name,
+        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
+        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
+        puzzle.pieces_count,
+        (SELECT manufacturer.name FROM manufacturer WHERE manufacturer.id = puzzle.manufacturer_id) AS manufacturer_name,
+        focus_player.name AS player_name,
+        focus_player.code AS player_code,
+        focus_player.country AS player_country,
+        focus_player.avatar AS player_avatar,
+        -- Already masked for the viewer (PrivateProfileAccess)
+        {$this->privateProfileAccess->sqlIsPrivate('focus_player')} AS is_private_for_viewer,
+        (SELECT ps.skill_tier FROM player_skill ps WHERE ps.player_id = focus_player.id AND ps.pieces_count = {$tierPieces}) AS skill_tier,
+        focus_player.ranking_opted_out,
+        CASE WHEN focus_time.team IS NOT NULL THEN (
+            SELECT JSON_AGG(
+                JSON_BUILD_OBJECT(
+                    'player_id', member.player ->> 'player_id',
+                    'player_name', COALESCE(p.name, member.player ->> 'player_name'),
+                    'player_code', p.code,
+                    'player_country', p.country,
+                    'player_avatar', p.avatar,
+                    'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
+                    'skill_tier', ps_member.skill_tier,
+                    'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
+                ) ORDER BY member.ordinality
+            )
+            FROM json_array_elements(focus_time.team -> 'puzzlers') WITH ORDINALITY AS member(player, ordinality)
+                LEFT JOIN player p ON p.id = (member.player ->> 'player_id')::UUID
+                LEFT JOIN player_skill ps_member ON ps_member.player_id = p.id AND ps_member.pieces_count = {$tierPieces}
+        ) END AS players
+    FROM puzzle_solving_time focus_time
+        INNER JOIN puzzle ON puzzle.id = focus_time.puzzle_id
+        INNER JOIN player focus_player ON focus_player.id = focus_time.player_id
+    WHERE focus_time.id = :timeId
+        -- The brand was an inner join and puzzle.manufacturer_id is nullable: no brand stays "not found"
+        AND puzzle.manufacturer_id IS NOT NULL
 ),
 -- Split by kind, so each branch walks its own index instead of every time of the puzzle
 subject_times AS (
@@ -109,33 +137,27 @@ SELECT
     cs.slug AS competition_series_slug,
     focus.puzzling_type,
     focus.puzzling_team_id::varchar AS team_id,
-    puzzling_team.name AS team_name,
-    puzzle.id AS puzzle_id,
-    puzzle.name AS puzzle_name,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
-    puzzle.pieces_count,
-    manufacturer.name AS manufacturer_name,
-    focus_player.id AS player_id,
-    focus_player.name AS player_name,
-    focus_player.code AS player_code,
-    focus_player.country AS player_country,
-    focus_player.avatar AS player_avatar,
-    {$this->privateProfileAccess->sqlIsPrivate('focus_player')} AS is_private,
-    ps.skill_tier,
-    focus_player.ranking_opted_out,
-    focus_members.players
+    focus.team_name,
+    focus.puzzle_id,
+    focus.puzzle_name,
+    focus.puzzle_image,
+    focus.puzzle_image_ratio,
+    focus.pieces_count,
+    focus.manufacturer_name,
+    focus.player_id,
+    focus.player_name,
+    focus.player_code,
+    focus.player_country,
+    focus.player_avatar,
+    focus.is_private_for_viewer AS is_private,
+    focus.skill_tier,
+    focus.ranking_opted_out,
+    focus.players
 FROM focus
     INNER JOIN subject_times ON true
     INNER JOIN puzzle_solving_time pst ON pst.id = subject_times.id
-    INNER JOIN puzzle ON puzzle.id = focus.puzzle_id
-    INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
-    INNER JOIN player focus_player ON focus_player.id = focus.player_id
-    LEFT JOIN player_skill ps ON ps.player_id = focus_player.id
-    LEFT JOIN puzzling_team ON puzzling_team.id = focus.puzzling_team_id
     LEFT JOIN competition ON competition.id = pst.competition_id
     LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, pst.competition_series_id)
-    LEFT JOIN focus_members ON true
 WHERE true
     {$notHidden}
 ORDER BY COALESCE(pst.finished_at, pst.tracked_at) DESC, pst.tracked_at DESC

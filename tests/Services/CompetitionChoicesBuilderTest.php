@@ -58,7 +58,7 @@ final class CompetitionChoicesBuilderTest extends KernelTestCase
         self::assertStringContainsString('Next: ' . $next . ' · 2 dates', $option['text']);
         self::assertStringContainsString('Online', $option['text']);
         self::assertStringNotContainsString('Jam No.', $option['text'], 'No edition on the series card');
-        self::assertSame([], array_filter($choices->optgroups, static fn (array $optgroup): bool => $optgroup['value'] === $seriesId));
+        self::assertSame([], array_filter($choices->optgroups(), static fn (array $optgroup): bool => $optgroup['value'] === $seriesId));
     }
 
     public function testASeriesCardSaysLastOrNoDatesYetAndLive(): void
@@ -175,7 +175,7 @@ final class CompetitionChoicesBuilderTest extends KernelTestCase
         self::assertStringContainsString('competitions/lantern-series.png', $option['text']);
         self::assertStringContainsString('loading="lazy"', $option['text']);
 
-        $optgroups = array_values(array_filter($choices->optgroups, static fn (array $optgroup): bool => $optgroup['value'] === $seriesId));
+        $optgroups = array_values(array_filter($choices->optgroups(), static fn (array $optgroup): bool => $optgroup['value'] === $seriesId));
         self::assertCount(1, $optgroups);
         self::assertSame('Lantern Weekly Jam', $optgroups[0]['label']);
         self::assertStringContainsString('competitions/lantern-series.png', $optgroups[0]['logo'] ?? '');
@@ -221,7 +221,7 @@ final class CompetitionChoicesBuilderTest extends KernelTestCase
 
         $withCurrentEvent = $this->builder->build(CompetitionPick::event(CompetitionFixture::COMPETITION_UNAPPROVED));
         self::assertTrue($withCurrentEvent->accepts(CompetitionPick::event(CompetitionFixture::COMPETITION_UNAPPROVED)));
-        $values = array_column($withCurrentEvent->options, 'value');
+        $values = array_column($withCurrentEvent->options(), 'value');
         self::assertCount(1, array_keys($values, CompetitionFixture::COMPETITION_UNAPPROVED, true));
     }
 
@@ -284,7 +284,7 @@ final class CompetitionChoicesBuilderTest extends KernelTestCase
      */
     private function option(CompetitionChoices $choices, string $value): array
     {
-        foreach ($choices->options as $option) {
+        foreach ($choices->options() as $option) {
             if ($option['value'] === $value) {
                 return $option;
             }

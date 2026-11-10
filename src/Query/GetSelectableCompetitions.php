@@ -208,6 +208,29 @@ SQL;
     }
 
     /**
+     * Whether all() offers this one-time event to everybody: the list's own condition, for one id. One statement.
+     */
+    public function isSelectableOneTimeEvent(string $competitionId): bool
+    {
+        $visible = IsCompetitionPubliclyVisible::SQL_CONDITION;
+
+        $found = $this->database->fetchOne(
+            <<<SQL
+SELECT 1
+FROM competition c
+LEFT JOIN competition_series cs ON cs.id = c.series_id
+WHERE c.id = :competitionId
+    AND c.series_id IS NULL
+    AND {$visible}
+LIMIT 1
+SQL,
+            ['competitionId' => $competitionId],
+        );
+
+        return $found !== false;
+    }
+
+    /**
      * A deep link's competition (`?competition=`), as the picker offers it: a publicly visible one-time event, or an
      * explicit edition of a publicly visible series - null for anything else. One statement.
      */

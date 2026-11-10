@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetSelectableCompetitions;
 use SpeedPuzzling\Web\Query\GetSeriesEditionChoices;
+use SpeedPuzzling\Web\Query\IsSeriesPubliclyVisible;
 use SpeedPuzzling\Web\Results\SelectableCompetition;
 use SpeedPuzzling\Web\Results\SeriesEditionChoice;
 use SpeedPuzzling\Web\Twig\ImageThumbnailTwigExtension;
@@ -33,6 +34,7 @@ readonly final class CompetitionChoicesBuilder
     public function __construct(
         private GetSelectableCompetitions $getSelectableCompetitions,
         private GetSeriesEditionChoices $getSeriesEditionChoices,
+        private IsSeriesPubliclyVisible $isSeriesPubliclyVisible,
         private ImageThumbnailTwigExtension $imageThumbnail,
         private TranslatorInterface $translator,
         private CompetitionPickerDate $dates,
@@ -47,6 +49,20 @@ readonly final class CompetitionChoicesBuilder
      *        list is offered again (only while publicly visible), so the control does not come back empty
      */
     public function build(null|CompetitionPick $current = null, null|CompetitionPick $submitted = null): CompetitionChoices
+    {
+        return new CompetitionChoices(
+            fn (): array => $this->list($current, $submitted),
+            $current,
+            $this->getSelectableCompetitions->isSelectableOneTimeEvent(...),
+            $this->isSeriesPubliclyVisible->check(...),
+            $this->getSeriesEditionChoices->isSelectableEdition(...),
+        );
+    }
+
+    /**
+     * @return array{options: list<array{value: string, text: string, keywords: string, optgroup?: string}>, optgroups: list<array{value: string, label: string, logo?: string}>, values: array<string, true>}
+     */
+    private function list(null|CompetitionPick $current, null|CompetitionPick $submitted): array
     {
         $options = [];
         $optgroups = [];
@@ -84,13 +100,7 @@ readonly final class CompetitionChoicesBuilder
             $values[$value] = true;
         }
 
-        return new CompetitionChoices(
-            $options,
-            $optgroups,
-            $values,
-            $current,
-            $this->getSeriesEditionChoices->isSelectableEdition(...),
-        );
+        return ['options' => $options, 'optgroups' => $optgroups, 'values' => $values];
     }
 
     /**

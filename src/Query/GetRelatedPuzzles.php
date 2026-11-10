@@ -38,6 +38,14 @@ readonly final class GetRelatedPuzzles
     }
 
     /**
+     * The same module as forPuzzle() - what the puzzle page shows.
+     */
+    public function forPuzzleCached(string $manufacturerId, int $piecesCount, string $puzzleId): RelatedPuzzles
+    {
+        return $this->forPuzzle($manufacturerId, $piecesCount, $puzzleId);
+    }
+
+    /**
      * One statement: the scope decision, the most-solved three and the three
      * picked by md5(id || current puzzle id). Approved, visible puzzles only,
      * never the current one.

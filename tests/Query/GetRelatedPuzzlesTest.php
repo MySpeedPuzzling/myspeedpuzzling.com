@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Query;
 
 use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetRelatedPuzzles;
 use SpeedPuzzling\Web\Results\RelatedPuzzle;
@@ -27,14 +28,30 @@ final class GetRelatedPuzzlesTest extends KernelTestCase
 
     private GetRelatedPuzzles $getRelatedPuzzles;
 
+    /**
+     * forPuzzle() or forPuzzleCached() - the page's cached path keeps every rule of the statement
+     */
+    private string $method = 'forPuzzle';
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function methods(): iterable
+    {
+        yield 'statement' => ['forPuzzle'];
+        yield 'cached' => ['forPuzzleCached'];
+    }
+
     protected function setUp(): void
     {
         self::bootKernel();
         $this->getRelatedPuzzles = self::getContainer()->get(GetRelatedPuzzles::class);
     }
 
-    public function testMostSolvedThreeThenThreePickedForThisPage(): void
+    #[DataProvider('methods')]
+    public function testMostSolvedThreeThenThreePickedForThisPage(string $method): void
     {
+        $this->method = $method;
         $solvedFillers = [];
         for ($i = 1; $i <= 6; $i++) {
             $solvedFillers[] = $this->addPuzzle(ManufacturerFixture::MANUFACTURER_RAVENSBURGER, 500, solves: 1);
@@ -74,8 +91,10 @@ final class GetRelatedPuzzlesTest extends KernelTestCase
         );
     }
 
-    public function testNeverTheCurrentPuzzleNorUnapprovedOrHiddenOnes(): void
+    #[DataProvider('methods')]
+    public function testNeverTheCurrentPuzzleNorUnapprovedOrHiddenOnes(string $method): void
     {
+        $this->method = $method;
         $unapproved = $this->addPuzzle(ManufacturerFixture::MANUFACTURER_RAVENSBURGER, 500, solves: 1000, approved: false);
         $secret = $this->addPuzzle(ManufacturerFixture::MANUFACTURER_RAVENSBURGER, 500, solves: 999, hidden: true);
 
@@ -88,8 +107,10 @@ final class GetRelatedPuzzlesTest extends KernelTestCase
         self::assertSame(PuzzleFixture::PUZZLE_500_01, $ids[0]);
     }
 
-    public function testSmallCombinationFallsBackToTheWholeBrand(): void
+    #[DataProvider('methods')]
+    public function testSmallCombinationFallsBackToTheWholeBrand(string $method): void
     {
+        $this->method = $method;
         // Trefl has one other 1000-piece puzzle: too few, so the module takes all of Trefl
         $related = $this->forPuzzle(PuzzleFixture::PUZZLE_1000_04, 1000, ManufacturerFixture::MANUFACTURER_TREFL);
 
@@ -102,6 +123,9 @@ final class GetRelatedPuzzlesTest extends KernelTestCase
         self::assertSame([1000, 500, 1500], array_map(static fn (RelatedPuzzle $puzzle): int => $puzzle->piecesCount, $related->puzzles));
     }
 
+    /**
+     * The statement only: a cached choice keeps its scope until it is computed again (GetRelatedPuzzlesCacheTest)
+     */
     public function testSixOtherPuzzlesOfTheCombinationAreEnough(): void
     {
         // Ravensburger 1000: five other visible puzzles - the whole brand
@@ -120,7 +144,9 @@ final class GetRelatedPuzzlesTest extends KernelTestCase
 
     private function forPuzzle(string $puzzleId, int $piecesCount, string $manufacturerId = ManufacturerFixture::MANUFACTURER_RAVENSBURGER): RelatedPuzzles
     {
-        return $this->getRelatedPuzzles->forPuzzle($manufacturerId, $piecesCount, $puzzleId);
+        return $this->method === 'forPuzzleCached'
+            ? $this->getRelatedPuzzles->forPuzzleCached($manufacturerId, $piecesCount, $puzzleId)
+            : $this->getRelatedPuzzles->forPuzzle($manufacturerId, $piecesCount, $puzzleId);
     }
 
     private function addPuzzle(string $manufacturerId, int $piecesCount, int $solves, bool $approved = true, bool $hidden = false): string

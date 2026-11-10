@@ -174,6 +174,71 @@ final class RobotsTxtTest extends KernelTestCase
     }
 
     /**
+     * Crawlers kept out completely: Meta's AI-training and AI-search
+     * crawlers and ShapBot - production 2026-11-09: ~2,500 requests/hour from Meta's indexers on /login, /feedback
+     * and social sign-in, ~100/hour from ShapBot on noindex result pages. The bot blocker middleware refuses
+     * them by user agent too; this is the polite half.
+     *
+     * @return array<string, array{string}>
+     */
+    public static function provideBlockedCrawlers(): array
+    {
+        return [
+            'Meta AI training crawler' => ['meta-externalagent'],
+            'Meta AI search indexer' => ['meta-webindexer'],
+            'ShapBot' => ['ShapBot'],
+        ];
+    }
+
+    #[DataProvider('provideBlockedCrawlers')]
+    public function testBlockedCrawlerIsKeptOutOfEverything(string $crawler): void
+    {
+        $router = $this->router();
+        $paths = [
+            '/',
+            $router->generate('puzzle_detail', ['puzzleId' => self::SAMPLE_ID, '_locale' => 'en']),
+            $router->generate('puzzle_result_detail', ['timeId' => self::SAMPLE_ID, '_locale' => 'en']),
+            $router->generate('result_image', ['timeId' => self::SAMPLE_ID]),
+            $router->generate('login'),
+        ];
+
+        foreach ($paths as $path) {
+            self::assertFalse($this->isAllowed($path, $crawler), sprintf('robots.txt must disallow %s for %s', $path, $crawler));
+        }
+    }
+
+    /**
+     * Facebook's link-preview fetchers render the preview (og:image = /result-image/...) when a player shares a
+     * result: they must never get a group of their own that shuts them out, and follow the "*" rules.
+     *
+     * @return array<string, array{string}>
+     */
+    public static function provideLinkPreviewFetchers(): array
+    {
+        return [
+            'Facebook link previews' => ['facebookexternalhit'],
+            'Facebot' => ['Facebot'],
+        ];
+    }
+
+    #[DataProvider('provideLinkPreviewFetchers')]
+    public function testLinkPreviewFetcherMayFetchSharedPages(string $crawler): void
+    {
+        $router = $this->router();
+        $paths = [
+            '/',
+            $router->generate('puzzle_detail', ['puzzleId' => self::SAMPLE_ID, '_locale' => 'en']),
+            $router->generate('puzzle_result_detail', ['timeId' => self::SAMPLE_ID, '_locale' => 'en']),
+            $router->generate('result_image', ['timeId' => self::SAMPLE_ID]),
+            $router->generate('player_profile', ['playerId' => self::SAMPLE_ID, '_locale' => 'en']),
+        ];
+
+        foreach ($paths as $path) {
+            self::assertTrue($this->isAllowed($path, $crawler), sprintf('robots.txt must allow %s for %s', $path, $crawler));
+        }
+    }
+
+    /**
      * @param array<string, string> $parameters
      * @return array<string, string> locale => generated path (percent-encoded, as a request carries it)
      */
@@ -198,12 +263,12 @@ final class RobotsTxtTest extends KernelTestCase
         return $paths;
     }
 
-    private function isAllowed(string $pathWithQuery): bool
+    private function isAllowed(string $pathWithQuery, string $crawler = '*'): bool
     {
         $longestMatch = -1;
         $allowed = true;
 
-        foreach ($this->rulesForEveryUserAgent() as [$directive, $pattern]) {
+        foreach ($this->rulesFor($crawler) as [$directive, $pattern]) {
             if (!$this->ruleMatches($pattern, $pathWithQuery)) {
                 continue;
             }
@@ -237,17 +302,50 @@ final class RobotsTxtTest extends KernelTestCase
     }
 
     /**
-     * Rules of every group naming "User-agent: *", with non-ASCII bytes percent-encoded (as Google's parser does).
+     * Rules a crawler obeys, picked the way Google (RFC 9309) does: the groups naming the crawler's own product
+     * token (case-insensitive) when there are any - and then ONLY those, the "*" group no longer applies to it -
+     * otherwise the "*" groups. Non-ASCII bytes are percent-encoded, as Google's parser does.
      *
      * @return list<array{string, string}> [directive, path pattern]
      */
-    private function rulesForEveryUserAgent(): array
+    private function rulesFor(string $crawler): array
+    {
+        $groups = $this->robotsGroups();
+        $own = array_filter(
+            $groups,
+            static fn (array $group): bool => $crawler !== '*' && in_array(strtolower($crawler), $group['agents'], true),
+        );
+        $obeyed = $own !== [] ? $own : array_filter(
+            $groups,
+            static fn (array $group): bool => in_array('*', $group['agents'], true),
+        );
+
+        $rules = [];
+
+        foreach ($obeyed as $group) {
+            foreach ($group['rules'] as $rule) {
+                $rules[] = $rule;
+            }
+        }
+
+        self::assertNotEmpty($rules, sprintf('robots.txt has no rules for "User-agent: %s"', $crawler));
+
+        return $rules;
+    }
+
+    /**
+     * @return list<array{agents: list<string>, rules: list<array{string, string}>}>
+     */
+    private function robotsGroups(): array
     {
         $content = file_get_contents(self::ROBOTS_TXT);
         self::assertIsString($content);
 
+        $groups = [];
+        /** @var list<string> $agents */
+        $agents = [];
+        /** @var list<array{string, string}> $rules */
         $rules = [];
-        $groupAgents = [];
         $readingAgents = false;
 
         foreach (explode("\n", $content) as $line) {
@@ -269,10 +367,15 @@ final class RobotsTxtTest extends KernelTestCase
             // Consecutive User-agent lines share the group that follows them
             if ($field === 'user-agent') {
                 if ($readingAgents === false) {
-                    $groupAgents = [];
+                    if ($agents !== []) {
+                        $groups[] = ['agents' => $agents, 'rules' => $rules];
+                    }
+
+                    $agents = [];
+                    $rules = [];
                 }
 
-                $groupAgents[] = $value;
+                $agents[] = strtolower($value);
                 $readingAgents = true;
 
                 continue;
@@ -280,7 +383,7 @@ final class RobotsTxtTest extends KernelTestCase
 
             $readingAgents = false;
 
-            if (($field !== 'allow' && $field !== 'disallow') || $value === '' || !in_array('*', $groupAgents, true)) {
+            if (($field !== 'allow' && $field !== 'disallow') || $value === '' || $agents === []) {
                 continue;
             }
 
@@ -293,9 +396,11 @@ final class RobotsTxtTest extends KernelTestCase
             $rules[] = [$field, $encoded];
         }
 
-        self::assertNotEmpty($rules, 'robots.txt has no rules for "User-agent: *"');
+        if ($agents !== []) {
+            $groups[] = ['agents' => $agents, 'rules' => $rules];
+        }
 
-        return $rules;
+        return $groups;
     }
 
     private function router(): RouterInterface

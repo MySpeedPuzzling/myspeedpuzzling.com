@@ -9,11 +9,11 @@ use SpeedPuzzling\Web\Results\EventSeriesRow;
 use SpeedPuzzling\Web\Results\EventsPage\Place;
 use SpeedPuzzling\Web\Results\EventsPage\SeriesLine;
 use SpeedPuzzling\Web\Results\OrganizationRef;
+use SpeedPuzzling\Web\Services\SearchTextFolds;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
 use SpeedPuzzling\Web\Value\EventType;
 use SpeedPuzzling\Web\Value\EventTypes;
 use SpeedPuzzling\Web\Value\EventsScope;
-use SpeedPuzzling\Web\Value\SearchText;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -74,6 +74,9 @@ readonly final class EventsIndexFactory
 
     public function __construct(
         private TranslatorInterface $translator,
+        // the folds of the search texts, remembered for the page being built (a series' name, country and
+        // organization names repeat on every edition)
+        private SearchTextFolds $folds = new SearchTextFolds(),
     ) {
     }
 
@@ -97,7 +100,7 @@ readonly final class EventsIndexFactory
         $name = $isEdition ? (string) $occurrence->seriesName : $occurrence->name;
         $longRunning = $occurrence->isLongRunning();
 
-        $searchText = self::searchText([
+        $searchText = $this->searchText([
             $occurrence->name,
             $isEdition ? $occurrence->seriesName : null,
             $occurrence->sessionLabel(),
@@ -162,7 +165,7 @@ readonly final class EventsIndexFactory
             'st' => null,
             'r' => false,
             'w' => $line->isPending,
-            'x' => self::searchText([
+            'x' => $this->searchText([
                 $series->name,
                 $series->location,
                 $series->countryCode?->localizedName($locale),
@@ -345,7 +348,7 @@ readonly final class EventsIndexFactory
     /**
      * @param list<null|string> $parts
      */
-    private static function searchText(array $parts): string
+    private function searchText(array $parts): string
     {
         $texts = [];
 
@@ -354,7 +357,7 @@ readonly final class EventsIndexFactory
                 continue;
             }
 
-            $folded = SearchText::fold($part);
+            $folded = $this->folds->fold($part);
 
             if ($folded !== '' && in_array($folded, $texts, true) === false) {
                 $texts[] = $folded;

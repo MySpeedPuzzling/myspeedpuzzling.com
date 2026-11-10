@@ -67,7 +67,8 @@ final class EventsPageFoldCharacterizationTest extends TestCase
         $places = [];
 
         foreach (['en', 'cs', 'de', 'fr', 'es', 'ja'] as $locale) {
-            foreach ([
+            foreach (
+                [
                 [false, 'Praha, Czech Republic', CountryCode::cz],
                 [false, 'Brno - Česko', CountryCode::cz],
                 [false, 'Brno - CESKO', CountryCode::cz],
@@ -82,7 +83,8 @@ final class EventsPageFoldCharacterizationTest extends TestCase
                 [false, '', CountryCode::de],
                 [false, 'Berlin', null],
                 [true, 'Praha', CountryCode::cz],
-            ] as [$isOnline, $location, $country]) {
+                ] as [$isOnline, $location, $country]
+            ) {
                 $places[] = [$isOnline, $location, $country, $locale];
             }
         }
@@ -145,14 +147,16 @@ final class EventsPageFoldCharacterizationTest extends TestCase
             }
         }
 
-        foreach ([
+        foreach (
+            [
             ['Mistrovství ČR', 'Ostrava', CountryCode::cz, 20],
             ['mistrovstvi cr', 'Olomouc, Česko', CountryCode::cz, 21],
             ['Alpine Cup', 'Zürich, Schweiz', CountryCode::ch, 5],
             ['Café Puzzle Évening', 'Paris', CountryCode::fr, -5],
             ['日本パズル大会', 'Tokyo 日本', CountryCode::jp, 60],
             ['US Open', 'US Open hall, Denver', CountryCode::us, 33],
-        ] as $j => [$name, $location, $country, $offset]) {
+            ] as $j => [$name, $location, $country, $offset]
+        ) {
             $day = new DateTimeImmutable(EventsIndexExamples::NOW, $utc)->setTime(0, 0)->modify(sprintf('%+d days', $offset));
             $occurrences[] = new EventOccurrence(
                 competitionId: sprintf('018d0099-0000-7000-a000-%012d', $j),

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Component\Chart;
 
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetPlayerChartData;
+use SpeedPuzzling\Web\Results\PlayerSoloCounts;
 use SpeedPuzzling\Web\Value\ChartTimePeriodType;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
@@ -36,6 +37,8 @@ final class PlayerAverageTimeChart
 
     /** @var array<int>|null */
     public null|array $availablePieces = null;
+
+    private null|PlayerSoloCounts $soloCounts = null;
 
     public function __construct(
         readonly private ChartBuilderInterface $chartBuilder,
@@ -117,10 +120,7 @@ final class PlayerAverageTimeChart
             'all' => $this->translator->trans('statistics.all_brands'),
         ];
 
-        $playerId = $this->playerId;
-        assert($playerId !== null);
-
-        $brands = $this->getPlayerChartData->getBrandsSolvedSoloByPlayer($playerId, $this->getPieces(), $this->onlyFirstTries);
+        $brands = $this->soloCounts()->brands($this->getPieces());
 
         foreach ($brands as $brandId => $brandName) {
             $brandChoices[$brandId] = $brandName;
@@ -135,15 +135,27 @@ final class PlayerAverageTimeChart
     public function availablePieces(): array
     {
         if ($this->availablePieces === null) {
-            $playerId = $this->playerId;
-            assert($playerId !== null);
-
             $brand = Uuid::isValid($this->brand ?? '') ? $this->brand : null;
 
-            $this->availablePieces = $this->getPlayerChartData->getSolvedPiecesCount($playerId, $brand, $this->onlyFirstTries);
+            $this->availablePieces = $this->soloCounts()->piecesCounts($brand);
         }
 
         return $this->availablePieces;
+    }
+
+    /**
+     * Both filters' counts from one statement, read once per render (the props are final by then)
+     */
+    private function soloCounts(): PlayerSoloCounts
+    {
+        if ($this->soloCounts === null) {
+            $playerId = $this->playerId;
+            assert($playerId !== null);
+
+            $this->soloCounts = $this->getPlayerChartData->soloCounts($playerId, $this->onlyFirstTries);
+        }
+
+        return $this->soloCounts;
     }
 
     public function getPieces(): int

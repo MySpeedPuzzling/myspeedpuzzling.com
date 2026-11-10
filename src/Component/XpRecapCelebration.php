@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Results\SolveXpDisplayInfo;
 use SpeedPuzzling\Web\Results\XpEntryLine;
 use SpeedPuzzling\Web\Results\XpProfile;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Services\Xp\SavedTimeProgression;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Value\BadgeTier;
 use SpeedPuzzling\Web\Value\LevelTable;
@@ -29,10 +30,14 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * the achievements this time earned and the level line. The page renders the card around it, with the rows that are
  * known at render time (place on the puzzle, MSP Rating / skill tier).
  *
- * The save settles the saver's achievements and XP before it redirects (SavedTimeProgression), so the first render
- * normally has them. The queued messages (AwardXpForSolvingTime, RecalculateBadgesForPlayer - the badge message
- * first) are the fallback - another pair/team member's view, a failed settlement: while the solve has no XP lines yet
- * the component polls with a growing delay (POLL_DELAYS_MS) and then says the XP is still on its way. The render that shows the XP is the last one: nothing
+ * The save does no progression work: it queues the achievement evaluation and the XP award (RecalculateBadgesForPlayer,
+ * then AwardXpForSolvingTime) and redirects. The consumer, woken by the commit, usually finishes before this component
+ * renders, so the first paint shows the XP. When it has not (the solve has no XP lines yet) and the recap is fresh, the
+ * component settles once by itself: `settle` (SETTLE_DELAY_MS after the paint) runs the viewer's evaluation and the
+ * award in its own request (SavedTimeProgression) - any wait for the consumer's PlayerProgressionLock happens there,
+ * with the page already painted. Both writers recompute from the records, so whoever comes second changes nothing.
+ * Only when that did not bring the XP either (or the recap is not fresh) does it poll with a growing delay
+ * (POLL_DELAYS_MS) and then say the XP is still on its way. The render that shows the XP is the last one: nothing
  * re-renders under the achievement reveal or the level-up celebration afterwards.
  *
  * Every registered member of a pair/team time sees their own lines, level and achievements (the viewer, never the
@@ -47,6 +52,9 @@ final class XpRecapCelebration
     /** About 30 s of polling in total, quick at first: the worker usually answers within a second or two */
     public const array POLL_DELAYS_MS = [1200, 2000, 3000, 5000, 8000, 11000];
 
+    /** Right after the first paint - the page is shown before the settle request starts */
+    public const int SETTLE_DELAY_MS = 50;
+
     #[LiveProp]
     public string $solvingTimeId = '';
 
@@ -56,6 +64,10 @@ final class XpRecapCelebration
 
     #[LiveProp]
     public int $attempts = 0;
+
+    /** The one settle of this recap ran (or was not needed) - never twice, the poll takes over */
+    #[LiveProp]
+    public bool $settled = false;
 
     private bool $loaded = false;
 
@@ -76,6 +88,7 @@ final class XpRecapCelebration
         readonly private GetSolveXpDisplayInfo $getSolveXpDisplayInfo,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private XpFeatureGate $xpFeatureGate,
+        readonly private SavedTimeProgression $savedTimeProgression,
     ) {
     }
 
@@ -83,6 +96,31 @@ final class XpRecapCelebration
     public function checkProgress(): void
     {
         $this->attempts++;
+    }
+
+    /**
+     * The queue was not done when the recap rendered: settle the viewer's achievements and this solve's XP now, once
+     */
+    #[LiveAction]
+    public function settle(): void
+    {
+        if ($this->shouldSettle() === false) {
+            return;
+        }
+
+        $this->settled = true;
+
+        $viewer = $this->retrieveLoggedUserProfile->getProfile();
+        assert($viewer !== null);
+
+        $this->savedTimeProgression->settleNow($viewer->playerId, $this->solvingTimeId);
+
+        // Render what the settle wrote
+        $this->loaded = false;
+        $this->loadedProfile = null;
+        $this->loadedInfo = null;
+        $this->loadedLines = [];
+        $this->loadedAchievements = null;
     }
 
     public function isVisible(): bool
@@ -115,8 +153,8 @@ final class XpRecapCelebration
     }
 
     /**
-     * receipt (XP counted), relax_repeat (counted, worth nothing on purpose), pending (still polling), late (polling
-     * gave up - the worker is slow), hidden
+     * receipt (XP counted), relax_repeat (counted, worth nothing on purpose), pending (settling or still polling), late
+     * (polling gave up - the worker is slow), hidden
      */
     public function mode(): string
     {
@@ -130,6 +168,11 @@ final class XpRecapCelebration
             return 'receipt';
         }
 
+        // A relax repeat has no lines by design, so they do not tell whether its achievements were evaluated yet
+        if ($this->shouldSettle()) {
+            return 'pending';
+        }
+
         if ($info->isTimed === false && $info->occurrenceIndex > 1) {
             return 'relax_repeat';
         }
@@ -137,13 +180,34 @@ final class XpRecapCelebration
         return $this->attempts < count(self::POLL_DELAYS_MS) ? 'pending' : 'late';
     }
 
-    public function pollDelay(): null|int
+    /**
+     * The Live poll of the pending row: the one settle right after the paint, then the growing checkProgress delays
+     */
+    public function pollDirective(): null|string
     {
         if ($this->mode() !== 'pending') {
             return null;
         }
 
-        return self::POLL_DELAYS_MS[$this->attempts] ?? null;
+        if ($this->shouldSettle()) {
+            return sprintf('delay(%d)|settle', self::SETTLE_DELAY_MS);
+        }
+
+        $delay = self::POLL_DELAYS_MS[$this->attempts] ?? null;
+
+        return $delay === null ? null : sprintf('delay(%d)|checkProgress', $delay);
+    }
+
+    /**
+     * A fresh recap of the viewer's own visible progression whose XP is not counted yet, not settled by this recap
+     * before. An old recap (back from editing, a bookmark) was settled by the queue long ago - it only polls.
+     */
+    private function shouldSettle(): bool
+    {
+        return $this->settled === false
+            && $this->celebrate
+            && $this->info() !== null
+            && $this->lines() === [];
     }
 
     public function viewerIsMember(): bool

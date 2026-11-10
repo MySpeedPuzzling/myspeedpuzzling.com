@@ -8,17 +8,23 @@ use SpeedPuzzling\Web\Tests\TestClock;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Component\XpRecapCelebration;
+use SpeedPuzzling\Web\Message\AddPuzzleTracking;
 use SpeedPuzzling\Web\Message\AwardXpForSolvingTime;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Services\AnnouncementModals\ResolveAnnouncementModal;
+use SpeedPuzzling\Web\Services\Progression\PlayerProgressionLock;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\StopwatchFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\LevelTable;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\ReceivedStamp;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 
@@ -119,42 +125,74 @@ final class RecapProgressCardTest extends WebTestCase
     }
 
     /**
-     * SavedTimeProgression: the save settles the saving player's achievements and XP before it redirects, so the recap
-     * shows them at its first render - no "Counting your XP", no polling. The queued messages stay the safety net.
+     * The save does no progression work (docs/features/xp-levels/README.md §Surfaces): it queues the achievement
+     * evaluation and the XP award and redirects - no progression lock taken, no XP line written in its request.
      */
-    public function testASavedTimeLandsOnARecapThatAlreadyShowsItsXp(): void
+    public function testASavedTimeRedirectsWithoutSettling(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
-        $crawler = $browser->request('GET', '/en/puzzle-add');
+        $timeId = $this->postTimedSave($browser, PuzzleFixture::PUZZLE_500_04);
+
+        self::assertResponseRedirects('/en/time-added/' . $timeId);
+        self::assertSame(
+            [RecalculateBadgesForPlayer::class, AwardXpForSolvingTime::class],
+            array_map(static fn (object $message): string => $message::class, $this->queuedProgression()),
+        );
+        self::assertSame(0, $this->xpLinesOf($timeId), 'Nothing awarded in the save');
+        self::assertSame(0, $this->progressionLocksHeld(), 'The save never waits for a player\'s progression lock');
+
+        // The queue is late: the fresh recap paints at once and settles itself right after
+        $crawler = $browser->followRedirect();
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('delay(' . XpRecapCelebration::SETTLE_DELAY_MS . ')|settle', $crawler->filter('[data-poll]')->attr('data-poll'));
+        self::assertStringContainsString('Counting your XP', $crawler->filter('section.recap-card')->text());
+    }
+
+    public function testAFinishedStopwatchRedirectsWithoutSettling(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/save-stopwatch/' . StopwatchFixture::STOPWATCH_PAUSED);
+        self::assertResponseIsSuccessful();
         $token = $crawler->filter('input[name="puzzle_add_form[_token]"]')->attr('value');
         self::assertNotNull($token);
         $timeId = Uuid::uuid7()->toString();
 
-        $browser->request('POST', '/en/puzzle-add', [
+        $browser->request('POST', '/en/save-stopwatch/' . StopwatchFixture::STOPWATCH_PAUSED, [
             'puzzle_add_form' => [
                 '_token' => $token,
                 'mode' => 'speed_puzzling',
-                'puzzle' => PuzzleFixture::PUZZLE_500_04,
+                'puzzle' => PuzzleFixture::PUZZLE_500_01,
                 'timeHours' => '0',
-                'timeMinutes' => '58',
+                'timeMinutes' => '30',
                 'timeSeconds' => '0',
                 'finishedAt' => self::getContainer()->get(ClockInterface::class)->now()->format('d.m.Y'),
                 'collection' => '__system_collection__',
             ],
             'time_id' => $timeId,
         ]);
-        self::assertResponseRedirects('/en/time-added/' . $timeId);
 
-        $transport = self::getContainer()->get('messenger.transport.async');
-        assert($transport instanceof InMemoryTransport);
-        $sent = array_map(
-            static fn (Envelope $envelope): string => $envelope->getMessage()::class,
-            $transport->getSent(),
-        );
-        self::assertContains(AwardXpForSolvingTime::class, $sent);
-        self::assertContains(RecalculateBadgesForPlayer::class, $sent);
+        self::assertResponseRedirects('/en/time-added/' . $timeId);
+        self::assertContains(AwardXpForSolvingTime::class, array_map(static fn (object $message): string => $message::class, $this->queuedProgression()));
+        self::assertSame(0, $this->xpLinesOf($timeId));
+        self::assertSame(0, $this->progressionLocksHeld());
+    }
+
+    /**
+     * The common case: the consumer, woken by the commit, is done before the recap renders - the XP is there at the
+     * first paint and nothing polls or settles.
+     */
+    public function testRecapShowsXpAtFirstPaintWhenTheConsumerWasFaster(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $timeId = $this->postTimedSave($browser, PuzzleFixture::PUZZLE_500_04);
+        $this->handleLikeTheConsumer($this->queuedProgression());
 
         $crawler = $browser->followRedirect();
 
@@ -162,6 +200,145 @@ final class RecapProgressCardTest extends WebTestCase
         self::assertCount(0, $crawler->filter('[data-poll]'));
         self::assertStringNotContainsString('Counting your XP', $crawler->filter('section.recap-card')->text());
         self::assertMatchesRegularExpression('/\+\d+ XP/', $crawler->filter('[data-testid="recap-level"]')->text());
+        self::assertGreaterThan(0, $this->xpLinesOf($timeId));
+    }
+
+    /**
+     * The consumer is late: the recap's one settle action does what the save used to do, the next render shows the
+     * XP, and the consumer's copies arriving afterwards change nothing.
+     */
+    public function testRecapSettlesItselfWhenTheConsumerIsLate(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $timeId = $this->postTimedSave($browser, PuzzleFixture::PUZZLE_500_04);
+        $queued = $this->queuedProgression();
+
+        $component = $this->createLiveComponent('XpRecapCelebration', ['solvingTimeId' => $timeId, 'celebrate' => true], $browser);
+        $component->setRouteLocale('en');
+        self::assertSame('delay(' . XpRecapCelebration::SETTLE_DELAY_MS . ')|settle', $component->render()->crawler()->filter('[data-poll]')->attr('data-poll'));
+
+        $component->call('settle');
+        $crawler = $component->render()->crawler();
+
+        self::assertCount(0, $crawler->filter('[data-poll]'));
+        self::assertMatchesRegularExpression('/\+\d+ XP/', $crawler->filter('[data-testid="recap-level"]')->text());
+        $settled = $this->progressionOf(PlayerFixture::PLAYER_ADMIN, $timeId);
+        self::assertGreaterThan(0, $this->xpLinesOf($timeId));
+
+        $this->handleLikeTheConsumer($queued);
+        self::assertSame($settled, $this->progressionOf(PlayerFixture::PLAYER_ADMIN, $timeId), 'The late consumer finds nothing left to do');
+    }
+
+    /**
+     * A settle that did not bring the XP (here: a time that needs verification earns nothing yet) is never repeated -
+     * the recap falls back to the growing poll and then says the XP is on its way.
+     */
+    public function testSettleRunsOncePerRecap(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $this->saveNow(PuzzleSolvingTimeFixture::TIME_03);
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE puzzle_solving_time SET suspicious = true WHERE id = :time',
+            ['time' => PuzzleSolvingTimeFixture::TIME_03],
+        );
+
+        $component = $this->createLiveComponent('XpRecapCelebration', ['solvingTimeId' => PuzzleSolvingTimeFixture::TIME_03, 'celebrate' => true], $browser);
+        $component->setRouteLocale('en');
+        self::assertSame('delay(' . XpRecapCelebration::SETTLE_DELAY_MS . ')|settle', $component->render()->crawler()->filter('[data-poll]')->attr('data-poll'));
+
+        $component->call('settle');
+        self::assertSame('delay(1200)|checkProgress', $component->render()->crawler()->filter('[data-poll]')->attr('data-poll'));
+
+        $component->call('checkProgress');
+        self::assertSame('delay(2000)|checkProgress', $component->render()->crawler()->filter('[data-poll]')->attr('data-poll'));
+        self::assertSame(0, $this->xpLinesOf(PuzzleSolvingTimeFixture::TIME_03));
+    }
+
+    /**
+     * Only a fresh recap settles: an old one (back from editing, a bookmark) without XP polls like before, and its
+     * settle action, sent anyway, writes nothing.
+     */
+    public function testAnOldRecapNeverSettles(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $crawler = $browser->request('GET', '/en/time-added/' . PuzzleSolvingTimeFixture::TIME_03);
+        self::assertSame('delay(1200)|checkProgress', $crawler->filter('[data-poll]')->attr('data-poll'));
+
+        $component = $this->createLiveComponent('XpRecapCelebration', ['solvingTimeId' => PuzzleSolvingTimeFixture::TIME_03], $browser);
+        $component->setRouteLocale('en');
+        $component->call('settle');
+
+        self::assertSame(0, $this->xpLinesOf(PuzzleSolvingTimeFixture::TIME_03));
+        self::assertSame(0, $this->progressionLocksHeld());
+    }
+
+    public function testHiddenProgressionNeverSettles(): void
+    {
+        // Before the launch, for a player who is no admin
+        FixedXpLaunchReadiness::$ready = false;
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $this->saveNow(PuzzleSolvingTimeFixture::TIME_01);
+        $this->assertNeverSettles($browser, PuzzleSolvingTimeFixture::TIME_01);
+
+        // Opted out of the progression
+        FixedXpLaunchReadiness::$ready = true;
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE player SET experience_system_opted_out = true WHERE id = :player',
+            ['player' => PlayerFixture::PLAYER_REGULAR],
+        );
+        $this->assertNeverSettles($browser, PuzzleSolvingTimeFixture::TIME_01);
+
+        // Somebody else's time
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $this->assertNeverSettles($browser, PuzzleSolvingTimeFixture::TIME_01);
+    }
+
+    /**
+     * A relax repeat is worth nothing on purpose, so its missing XP lines do not say whether the queue was there -
+     * a fresh one settles once too (its achievements), then shows the relax line.
+     */
+    public function testRelaxRepeatSettlesOnceWhenFresh(): void
+    {
+        $browser = self::createClient();
+        $this->makeAdmin(PlayerFixture::PLAYER_REGULAR);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        self::assertNotFalse(self::getContainer()->get(Connection::class)->fetchOne(
+            'SELECT 1 FROM puzzle_solving_time WHERE id = :time AND seconds_to_solve IS NULL',
+            ['time' => PuzzleSolvingTimeFixture::TIME_46_RELAX_NO_FINISHED_AT],
+        ));
+
+        $repeatId = Uuid::uuid7();
+        $puzzleId = self::getContainer()->get(Connection::class)->fetchOne(
+            'SELECT puzzle_id FROM puzzle_solving_time WHERE id = :time',
+            ['time' => PuzzleSolvingTimeFixture::TIME_46_RELAX_NO_FINISHED_AT],
+        );
+        self::assertIsString($puzzleId);
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new AddPuzzleTracking(
+            trackingId: $repeatId,
+            userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
+            puzzleId: $puzzleId,
+            comment: null,
+            finishedPuzzlesPhoto: null,
+            groupPlayers: [],
+            finishedAt: self::getContainer()->get(ClockInterface::class)->now(),
+        ));
+
+        $component = $this->createLiveComponent('XpRecapCelebration', ['solvingTimeId' => $repeatId->toString(), 'celebrate' => true], $browser);
+        $component->setRouteLocale('en');
+        self::assertSame('delay(' . XpRecapCelebration::SETTLE_DELAY_MS . ')|settle', $component->render()->crawler()->filter('[data-poll]')->attr('data-poll'));
+
+        $component->call('settle');
+        $crawler = $component->render()->crawler();
+
+        self::assertCount(0, $crawler->filter('[data-poll]'));
+        self::assertCount(1, $crawler->filter('[data-testid="recap-level"]'));
+        self::assertStringNotContainsString('Counting your XP', $crawler->text());
     }
 
     public function testLevelUpIsShownAndCelebratesOnlyRightAfterTheSave(): void
@@ -315,6 +492,125 @@ final class RecapProgressCardTest extends WebTestCase
         self::assertNotFalse($card);
         self::assertGreaterThan($actions, $card, 'Same order as added_time_recap: the actions first, then the card');
         self::assertStringContainsString('+2 XP', $html);
+    }
+
+    private function postTimedSave(KernelBrowser $browser, string $puzzleId): string
+    {
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        $token = $crawler->filter('input[name="puzzle_add_form[_token]"]')->attr('value');
+        self::assertNotNull($token);
+        $timeId = Uuid::uuid7()->toString();
+
+        $browser->request('POST', '/en/puzzle-add', [
+            'puzzle_add_form' => [
+                '_token' => $token,
+                'mode' => 'speed_puzzling',
+                'puzzle' => $puzzleId,
+                'timeHours' => '0',
+                'timeMinutes' => '58',
+                'timeSeconds' => '0',
+                'finishedAt' => self::getContainer()->get(ClockInterface::class)->now()->format('d.m.Y'),
+                'collection' => '__system_collection__',
+            ],
+            'time_id' => $timeId,
+        ]);
+
+        return $timeId;
+    }
+
+    /**
+     * The progression messages the last request queued, in their order. Read before the next request: the browser
+     * boots a new kernel - and a new in-memory transport - for it.
+     *
+     * @return list<object>
+     */
+    private function queuedProgression(): array
+    {
+        $transport = self::getContainer()->get('messenger.transport.async');
+        assert($transport instanceof InMemoryTransport);
+
+        $messages = [];
+        foreach ($transport->getSent() as $envelope) {
+            $message = $envelope->getMessage();
+
+            if ($message instanceof AwardXpForSolvingTime || $message instanceof RecalculateBadgesForPlayer) {
+                $messages[] = $message;
+            }
+        }
+
+        return $messages;
+    }
+
+    /**
+     * @param list<object> $messages
+     */
+    private function handleLikeTheConsumer(array $messages): void
+    {
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+
+        foreach ($messages as $message) {
+            $bus->dispatch($message, [new ReceivedStamp('async')]);
+        }
+    }
+
+    private function xpLinesOf(string $timeId): int
+    {
+        $count = self::getContainer()->get(Connection::class)->fetchOne(
+            'SELECT COUNT(*) FROM xp_entry WHERE solving_time_id = :time',
+            ['time' => $timeId],
+        );
+        assert(is_int($count));
+
+        return $count;
+    }
+
+    /**
+     * PlayerProgressionLock's advisory locks held by this test's connection. The test runs in one transaction, so a
+     * lock any request of it took is still held here.
+     */
+    private function progressionLocksHeld(): int
+    {
+        $count = self::getContainer()->get(Connection::class)->fetchOne(
+            "SELECT COUNT(*) FROM pg_locks WHERE locktype = 'advisory' AND objsubid = 2 AND classid = CAST(:keySpace AS oid) AND pid = pg_backend_pid()",
+            ['keySpace' => PlayerProgressionLock::KEY_SPACE],
+        );
+        assert(is_int($count));
+
+        return $count;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function progressionOf(string $playerId, string $timeId): array
+    {
+        $connection = self::getContainer()->get(Connection::class);
+        $player = $connection->fetchAssociative('SELECT xp_total, level, achievement_points FROM player WHERE id = :id', ['id' => $playerId]);
+        self::assertIsArray($player);
+
+        return [
+            ...$player,
+            'lines' => $connection->fetchFirstColumn(
+                "SELECT reason || ':' || amount FROM xp_entry WHERE player_id = :player AND solving_time_id = :time ORDER BY 1",
+                ['player' => $playerId, 'time' => $timeId],
+            ),
+            'badges' => $connection->fetchFirstColumn(
+                "SELECT type || ':' || COALESCE(CAST(tier AS TEXT), '-') FROM badge WHERE player_id = :player ORDER BY 1",
+                ['player' => $playerId],
+            ),
+        ];
+    }
+
+    private function assertNeverSettles(KernelBrowser $browser, string $timeId): void
+    {
+        $component = $this->createLiveComponent('XpRecapCelebration', ['solvingTimeId' => $timeId, 'celebrate' => true], $browser);
+        $component->setRouteLocale('en');
+        self::assertCount(0, $component->render()->crawler()->filter('[data-poll]'));
+
+        $component->call('settle');
+
+        self::assertSame(0, $this->xpLinesOf($timeId));
+        self::assertSame(0, $this->progressionLocksHeld());
     }
 
     /**

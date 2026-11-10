@@ -1,10 +1,11 @@
 {#
     The live rows of the recap's progress card: the achievements this time earned and the level line
-    (src/Component/XpRecapCelebration.php). Polls with a growing delay until the XP is counted, then never again.
+    (src/Component/XpRecapCelebration.php). A fresh recap whose XP is not counted yet settles once right after the
+    paint, then polls with a growing delay until the XP is counted, then never again.
 #}
 {% set mode = this.mode %}
-{% set poll_delay = this.pollDelay %}
-<div{{ attributes.defaults({class: 'recap-live'}) }}{% if poll_delay is not null %} data-poll="delay({{ poll_delay }})|checkProgress"{% endif %}>
+{% set poll = this.pollDirective %}
+<div{{ attributes.defaults({class: 'recap-live'}) }}{% if poll is not null %} data-poll="{{ poll }}"{% endif %}>
     {% if mode != 'hidden' %}
         <div id="xp-solve-receipt">
         {% set profile = this.profile %}

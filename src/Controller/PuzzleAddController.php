@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
-use SpeedPuzzling\Web\Services\Xp\SavedTimeProgression;
 use SpeedPuzzling\Web\Services\SecretPuzzleRefusalMessage;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -94,7 +93,6 @@ final class PuzzleAddController extends AbstractController
         readonly private SecretPuzzleRefusalMessage $secretPuzzleRefusalMessage,
         readonly private OfficialEntryTimePrefill $officialEntryTimePrefill,
         readonly private SuspiciousTimeFormCheck $suspiciousTimeFormCheck,
-        readonly private SavedTimeProgression $savedTimeProgression,
     ) {
     }
 
@@ -566,7 +564,6 @@ final class PuzzleAddController extends AbstractController
                         $data,
                         $timeId,
                         $userId,
-                        $userProfile->playerId,
                         $groupPlayers,
                         $stopwatchId,
                         $teamName,
@@ -576,7 +573,7 @@ final class PuzzleAddController extends AbstractController
                         // Only an answer to a time the check raised is a confirmation
                         $paceCheck !== null && $paceConfirmed ? SuspiciousTimeFormCheck::confirmedExpectation($paceCheck->assessment) : null,
                     ),
-                    PuzzleAddMode::Relax => $this->handleRelax($data, $timeId, $userId, $userProfile->playerId, $groupPlayers, $teamName),
+                    PuzzleAddMode::Relax => $this->handleRelax($data, $timeId, $userId, $groupPlayers, $teamName),
                     PuzzleAddMode::Collection => $this->handleCollection($data, $userProfile->playerId),
                 };
 
@@ -750,7 +747,6 @@ final class PuzzleAddController extends AbstractController
         PuzzleAddFormData $data,
         UuidInterface $timeId,
         string $userId,
-        string $playerId,
         array $groupPlayers,
         null|string $stopwatchId,
         string $teamName,
@@ -792,8 +788,7 @@ final class PuzzleAddController extends AbstractController
             ),
         );
 
-        // The recap shows the XP and the achievements of this time at once, not after a queue round trip
-        $this->savedTimeProgression->settleNow($playerId, $timeId->toString());
+        // No progression work here: the handler queued it, the recap shows it (XpRecapCelebration settles when late)
 
         return $this->redirectToRoute('added_time_recap', ['timeId' => $timeId]);
     }
@@ -805,7 +800,6 @@ final class PuzzleAddController extends AbstractController
         PuzzleAddFormData $data,
         UuidInterface $trackingId,
         string $userId,
-        string $playerId,
         array $groupPlayers,
         string $teamName,
     ): Response {
@@ -826,8 +820,6 @@ final class PuzzleAddController extends AbstractController
                 unboxed: $data->unboxed,
             ),
         );
-
-        $this->savedTimeProgression->settleNow($playerId, $trackingId->toString());
 
         return $this->redirectToRoute('added_tracking_recap', ['trackingId' => $trackingId]);
     }

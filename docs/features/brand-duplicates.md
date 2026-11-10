@@ -122,6 +122,13 @@ a puzzle merge → approve the remaining genuine new brands.
    result's brand to the picker, is gone.
    Left as they were (`onlyApprovedOrAddedByPlayer()`, approved only): the public search filter (`PuzzleFilterOptions`),
    the approval queue's brand suggestions and the admin puzzle merge page.
+   **Cached (2026-11):** the list without parameters (the same for everybody) is kept in `manufacturer_overviews_cache`
+   for 1 h under a fingerprint of every brand row, every hidden puzzle row (+ how many are hidden at `:now`), the puzzle
+   totals of the brands holding a hidden puzzle and the `hides_everywhere` round puzzles (`overviewsFingerprint()`,
+   ~3 ms). So a typed new brand is in its creator's next form, a rename/merge/delete shows at once and a secret-only
+   brand appears exactly at its reveal; only the "(123)" counts of public puzzles (and the order by them) may lag 1 h.
+   The organisers' variants (competition / player) are never cached. Guarded by `GetManufacturersTest` (the original
+   statement kept verbatim) and `GetManufacturersCacheTest`.
 2. **The server resolves a typed brand name** (`ManufacturerResolver`, the one place for `AddPuzzleHandler` incl. its
    `correct()`, the multiscan quick-add through it, and `AddPuzzleToCompetitionRoundHandler`): an id is that brand; a
    name is the existing brand whose name is equal after trimming, collapsing inner whitespace and lowercasing both sides

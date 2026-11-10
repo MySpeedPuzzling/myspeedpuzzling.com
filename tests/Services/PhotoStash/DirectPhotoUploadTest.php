@@ -188,10 +188,12 @@ final class DirectPhotoUploadTest extends KernelTestCase
         self::assertSame([], $storage->calls);
         self::assertSame($first->token, $retry->token);
 
-        // Release 1 only: a token without a row is looked up in the old format (an object-storage read) - outside
-        // the start, which never meets an unknown token it made itself
         self::assertNull($stash->reservedBytes($first->token, self::PLAYER), 'Replaced');
         self::assertNull($stash->reservedBytes($second->token, self::PLAYER), 'Made way for the newer ones');
+
+        // An unknown token, to sign again and to let go: still not a single call
+        $upload->start(self::PLAYER, 'new.jpg', 'image/jpeg', 5000, token: str_repeat('a', 32), replaces: str_repeat('b', 32));
+        self::assertSame([], $storage->calls);
     }
 
     /**

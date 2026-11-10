@@ -8,10 +8,10 @@ use AsyncAws\Core\Exception\Exception as AsyncAwsException;
 use Imagick;
 use Intervention\Image\Geometry\Factories\RectangleFactory;
 use Intervention\Image\ImageManager;
-use Intervention\Image\MediaType;
 use Intervention\Image\Typography\FontFactory;
 use League\Flysystem\Filesystem;
 use League\Flysystem\FilesystemException;
+use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
@@ -36,6 +36,7 @@ readonly final class GetResultImage
         private ResultImageCache $resultImageCache,
         private PlayerRepository $playerRepository,
         private LoggerInterface $logger,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -57,7 +58,7 @@ readonly final class GetResultImage
         $kept = $this->resultImageCache->read($path);
 
         if ($kept !== null) {
-            return new ResultImage($kept, withPlaceholder: false);
+            return new ResultImage($kept->content, withPlaceholder: false, drawnAt: $kept->keptAt);
         }
 
         $rankingText = '';
@@ -178,14 +179,18 @@ readonly final class GetResultImage
         assert($native instanceof Imagick);
         ImageMetadata::strip($native);
 
-        $fileContent = (string) $image->encodeUsingMediaType(MediaType::IMAGE_PNG, quality: 100);
+        $fileContent = ResultImagePng::encode($native);
 
         // A placeholder version is never stored: once the real photo is there, it is used
         if ($withPlaceholder === false) {
             $this->resultImageCache->write($path, $fileContent);
         }
 
-        return new ResultImage($fileContent, $withPlaceholder);
+        return new ResultImage(
+            $fileContent,
+            $withPlaceholder,
+            drawnAt: $withPlaceholder ? null : $this->clock->now(),
+        );
     }
 
     /**

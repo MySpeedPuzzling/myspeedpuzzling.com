@@ -4,6 +4,14 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Result share image (`docs/features/result-share-image.md`, 2026-11-10)
+
+- [ ] Cheaper drawing, each changes the pixels slightly - only with Jan's visual yes (compare against
+  `tests/fixtures/result-image/time06.png`): decode the photo with a size hint (`jpeg:size`), one native Imagick stroke
+  per text line instead of Intervention's 9 offset draws, JPEG instead of PNG (share controller hard-codes `.png`)
+- [ ] Sentry spans in `GetResultImage` (queries, photo read, decode, text, encode) to see whether the p99 is the photo
+  read from object storage before choosing among the above
+
 ## Activity feed statements (`docs/features/live-activity-feed.md` "Statement shape", 2026-11-09)
 
 - [ ] `GetRecentActivity::ofPlayerFavorites()` in the `listed` + `selectFromListed()` shape like `forPlayer()` /

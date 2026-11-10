@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
+use DateTimeImmutable;
 use League\Flysystem\Filesystem;
 use League\Flysystem\FilesystemException;
 use League\Flysystem\StorageAttributes;
+use League\Flysystem\UnableToRetrieveMetadata;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
+use SpeedPuzzling\Web\Results\KeptResultImage;
 
 /**
  * Result share images, kept on local disk for KEEP_HOURS - never in object storage. A card is opened right after the
@@ -31,17 +34,29 @@ readonly final class ResultImageCache
     ) {
     }
 
-    public function read(string $path): null|string
+    public function read(string $path): null|KeptResultImage
     {
         try {
-            if (
-                $this->filesystem->fileExists($path) === false
-                || $this->filesystem->lastModified($path) < $this->oldestKept()
-            ) {
+            try {
+                // One stat for a kept card - its time, which also says it is there
+                $lastModified = $this->filesystem->lastModified($path);
+            } catch (UnableToRetrieveMetadata $exception) {
+                // Most cards are drawn when first opened: not kept (yet) is the normal case, nothing to look at
+                if ($this->filesystem->fileExists($path) === false) {
+                    return null;
+                }
+
+                throw $exception;
+            }
+
+            if ($lastModified < $this->oldestKept()) {
                 return null;
             }
 
-            return $this->filesystem->read($path);
+            return new KeptResultImage(
+                $this->filesystem->read($path),
+                $this->clock->now()->setTimestamp($lastModified),
+            );
         } catch (FilesystemException $exception) {
             $this->logger->warning('Could not read a kept result image', [
                 'path' => $path,
@@ -50,6 +65,14 @@ readonly final class ResultImageCache
 
             return null;
         }
+    }
+
+    /**
+     * How much longer a card drawn at that moment is served as it is - after that, it is drawn again
+     */
+    public function secondsKeptAfter(DateTimeImmutable $drawnAt): int
+    {
+        return max(0, $drawnAt->getTimestamp() - $this->oldestKept());
     }
 
     public function write(string $path, string $content): void

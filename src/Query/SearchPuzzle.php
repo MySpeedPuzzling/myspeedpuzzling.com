@@ -455,6 +455,32 @@ SQL;
     }
 
     /**
+     * What the public byBrandId() list of a brand is built from, as a short string (~3-10 ms on Ravensburger's 6,000
+     * puzzles, the list + options ~100 ms): a content hash of every column byBrandId() reads of every puzzle of the
+     * brand, and how many of them are hidden (hide_until) and how many hide their picture (hide_image_until) at :now -
+     * a reveal changes the list at that moment with no row written. Any puzzle added, edited, moved, approved,
+     * merged away or deleted changes it. Not for the organisers' variant (round membership is not in it).
+     * The brand picker's ETag (PuzzleByBrandAutocompleteController).
+     */
+    public function brandFingerprint(string $brandId): string
+    {
+        $row = $this->database->executeQuery(<<<'SQL'
+SELECT
+    COUNT(*)
+    || ':' || COALESCE(SUM(hashtext(concat_ws('|', puzzle.id, puzzle.name, puzzle.alternative_names, puzzle.pieces_count, puzzle.approved, puzzle.image, puzzle.image_ratio, puzzle.ean, puzzle.identification_number, puzzle.hide_until, puzzle.hide_image_until))::bigint), 0)
+    || ':' || COUNT(*) FILTER (WHERE puzzle.hide_until > :now::timestamp)
+    || ':' || COUNT(*) FILTER (WHERE puzzle.hide_image_until > :now::timestamp)
+FROM puzzle
+WHERE puzzle.manufacturer_id = :manufacturerId
+SQL, [
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+            'manufacturerId' => $brandId,
+        ])->fetchOne();
+
+        return $brandId . ':' . (is_string($row) ? $row : '');
+    }
+
+    /**
      * The puzzle picker of one brand. Unapproved puzzles are listed, secret ones (hide_until in the future) never -
      * apart from the ones in rounds of $secretPuzzlesOfCompetitionId and the ones $secretPuzzlesAddedByPlayerId added that are in no round any more,
      * for an organiser adding puzzles to a round.

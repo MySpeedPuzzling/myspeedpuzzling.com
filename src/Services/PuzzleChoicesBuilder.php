@@ -30,6 +30,13 @@ readonly final class PuzzleChoicesBuilder
      * puzzle of that title alike, however many names it has, and an exact other name beats a longer main title
      * that merely starts with it. Codes and the piece count weigh least.
      */
+    /**
+     * Part of the brand picker's ETag (PuzzleByBrandAutocompleteController): bump it whenever build() answers
+     * differently for the same puzzles - a browser holding an older answer would otherwise get a 304 for it until
+     * the next deploy changes the release in the ETag (on dev and in tests nothing else would).
+     */
+    public const int FORMAT_VERSION = 1;
+
     public const array SEARCH_FIELDS = [
         ['field' => 'name', 'weight' => 3],
         ['field' => 'names', 'weight' => 2],

@@ -9,6 +9,8 @@ use SpeedPuzzling\Web\Query\SearchPuzzle;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\PuzzleChoicesBuilder;
+use SpeedPuzzling\Web\Services\PuzzleNameLanguage;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,6 +23,9 @@ final class PuzzleByBrandAutocompleteController extends AbstractController
         readonly private SearchPuzzle $searchPuzzle,
         readonly private PuzzleChoicesBuilder $puzzleChoicesBuilder,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private PuzzleNameLanguage $puzzleNameLanguage,
+        #[Autowire('%env(default::SENTRY_RELEASE)%')]
+        readonly private null|string $release,
     ) {
     }
 
@@ -49,11 +54,47 @@ final class PuzzleByBrandAutocompleteController extends AbstractController
             ? $this->retrieveLoggedUserProfile->getProfile()?->playerId
             : null;
 
-        return new JsonResponse([
+        // The public list (up to 7 MB of JSON for Ravensburger): the browser keeps it and asks with If-None-Match, a
+        // 304 skips reading and building it. Revalidated every time (no-cache, never max-age) - a puzzle just added
+        // must be in the next form, or it gets added twice. The organisers' variant holds secret puzzles and depends on
+        // round membership: never an ETag.
+        $etag = null;
+
+        if ($secretPuzzlesOfCompetition === null) {
+            $etag = sha1(implode('|', [
+                PuzzleChoicesBuilder::FORMAT_VERSION,
+                $this->release ?? '',
+                $this->searchPuzzle->brandFingerprint($brandSearch),
+                $request->getLocale(),
+                $this->puzzleNameLanguage->forViewer() ?? '',
+            ]));
+
+            $notModified = new Response();
+            self::revalidatedPrivately($notModified, $etag);
+
+            if ($notModified->isNotModified($request)) {
+                return $notModified;
+            }
+        }
+
+        $response = new JsonResponse([
             'results' => $this->puzzleChoicesBuilder->build(
                 $this->searchPuzzle->byBrandId($brandSearch, $secretPuzzlesOfCompetition, $secretPuzzlesAddedBy),
                 $request->getLocale(),
             ),
         ]);
+
+        if ($etag !== null) {
+            self::revalidatedPrivately($response, $etag);
+        }
+
+        return $response;
+    }
+
+    private static function revalidatedPrivately(Response $response, string $etag): void
+    {
+        $response->setEtag($etag);
+        $response->setPrivate();
+        $response->headers->addCacheControlDirective('no-cache');
     }
 }

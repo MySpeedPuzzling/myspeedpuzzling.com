@@ -258,6 +258,14 @@ Taken by the delivering agent where the plan left room (2026-10-04 onwards).
   as it already did for brands. Blue-green: options keep the old joined `search` text for one more release (not in
   `SEARCH_FIELDS`) and the renderer trusts `search` too, so a page of either release works with options of the
   other; phase 1c drops both.
+- **Revalidated by ETag (2026-11):** `puzzle_by_brand_autocomplete` answers the public list (no `competition`, or not
+  granted) with an `ETag` and `Cache-Control: private, no-cache`; a browser asking again with `If-None-Match` gets a 304
+  without the list being read or built (Ravensburger: ~7 MB of JSON, ~100 ms). The ETag = `PuzzleChoicesBuilder::FORMAT_VERSION`
+  + release (`SENTRY_RELEASE`) + `SearchPuzzle::brandFingerprint()` (content hash of every column the list reads of
+  every puzzle of the brand + how many are hidden / hide their picture at `:now`, so a reveal changes it) + locale +
+  `PuzzleNameLanguage::forViewer()`. Never `max-age`: a puzzle just added must be in the next form. The organisers'
+  variant (secret puzzles, round membership) gets no ETag. **Bump `FORMAT_VERSION` whenever `build()` answers
+  differently for the same puzzles.** Caddy's `encode` makes it `"…-gzip"` and strips that from `If-None-Match` again.
 - **Phase 1b - approval queue duplicates** compare barcodes through the search keys (leading zeros aside; junk in the
   EAN column no longer matches junk) and every name against every name; the statement got faster (28-48 → ~19 ms).
 - **Phase 1b - library lists** select `search_names` + `search_codes` in place of `ean` + `identification_number`

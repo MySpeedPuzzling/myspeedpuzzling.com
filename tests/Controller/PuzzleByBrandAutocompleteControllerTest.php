@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Response;
 
 final class PuzzleByBrandAutocompleteControllerTest extends WebTestCase
 {
@@ -233,12 +234,175 @@ final class PuzzleByBrandAutocompleteControllerTest extends WebTestCase
         self::assertSame($expected, self::options($browser));
     }
 
+    public function testAnswerCarriesAnEtagAndMustBeRevalidated(): void
+    {
+        $browser = self::createClient();
+        $browser->request('GET', '/en/puzzle-by-brand-autocomplete/?brand=' . ManufacturerFixture::MANUFACTURER_RAVENSBURGER);
+        self::assertResponseIsSuccessful();
+        self::assertCacheHeaders($browser->getResponse());
+
+        // A signed-in player's request uses the session - the ETag and revalidation stay
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $browser->request('GET', '/en/puzzle-by-brand-autocomplete/?brand=' . ManufacturerFixture::MANUFACTURER_RAVENSBURGER);
+        self::assertResponseIsSuccessful();
+        self::assertCacheHeaders($browser->getResponse());
+    }
+
+    public function testSameEtagAnswers304WithoutBody(): void
+    {
+        $browser = self::createClient();
+        $etag = self::etag($browser, '/en/', ManufacturerFixture::MANUFACTURER_RAVENSBURGER);
+
+        $browser->request('GET', '/en/puzzle-by-brand-autocomplete/?brand=' . ManufacturerFixture::MANUFACTURER_RAVENSBURGER, server: ['HTTP_IF_NONE_MATCH' => $etag]);
+        self::assertResponseStatusCodeSame(304);
+        self::assertSame('', (string) $browser->getResponse()->getContent());
+
+        // The same for a signed-in player
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $playerEtag = self::etag($browser, '/en/', ManufacturerFixture::MANUFACTURER_RAVENSBURGER);
+        $browser->request('GET', '/en/puzzle-by-brand-autocomplete/?brand=' . ManufacturerFixture::MANUFACTURER_RAVENSBURGER, server: ['HTTP_IF_NONE_MATCH' => $playerEtag]);
+        self::assertResponseStatusCodeSame(304);
+    }
+
+    public function testANewPuzzleOfTheBrandChangesTheEtag(): void
+    {
+        $browser = self::createClient();
+        $etag = self::etag($browser, '/en/', ManufacturerFixture::MANUFACTURER_TREFL);
+
+        $puzzleId = Uuid::uuid7()->toString();
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO puzzle (id, pieces_count, name, approved, manufacturer_id, alternative_names, is_available)
+             VALUES (:id, 500, 'Just Added Puzzle', false, :brand, '[]', false)",
+            ['id' => $puzzleId, 'brand' => ManufacturerFixture::MANUFACTURER_TREFL],
+        );
+
+        $browser->request('GET', '/en/puzzle-by-brand-autocomplete/?brand=' . ManufacturerFixture::MANUFACTURER_TREFL, server: ['HTTP_IF_NONE_MATCH' => $etag]);
+        self::assertResponseIsSuccessful();
+        self::assertContains($puzzleId, array_column(self::options($browser), 'value'));
+        self::assertNotSame($etag, $browser->getResponse()->getEtag());
+    }
+
+    /**
+     * Every column the option is built from - twice in one test transaction for the name (a row's xmin would not
+     * change the second time, its content does)
+     *
+     * @return iterable<string, list<string>>
+     */
+    public static function provideEdits(): iterable
+    {
+        yield 'name' => ["name = 'Renamed Once'"];
+        yield 'name twice' => ["name = 'Renamed Once'", "name = 'Renamed Twice'"];
+        yield 'other names' => ["alternative_names = '[{\"name\": \"Jiný název\", \"language\": \"cs\"}]'"];
+        yield 'pieces' => ['pieces_count = 999'];
+        yield 'picture' => ["image = 'puzzles/another.jpg'"];
+        yield 'ean' => ["ean = '4005556175512'"];
+        yield 'brand code' => ["identification_number = 'XYZ-1'"];
+        yield 'picture hidden' => ["hide_image_until = '2999-01-01 00:00:00'"];
+        yield 'hidden' => ["hide_until = '2999-01-01 00:00:00'"];
+        yield 'moved to another brand' => ['manufacturer_id = \'' . ManufacturerFixture::MANUFACTURER_TREFL . "'"];
+    }
+
+    #[DataProvider('provideEdits')]
+    public function testAnEditedPuzzleChangesTheEtag(string ...$changes): void
+    {
+        $browser = self::createClient();
+        $connection = self::getContainer()->get(Connection::class);
+        $url = '/en/puzzle-by-brand-autocomplete/?brand=' . ManufacturerFixture::MANUFACTURER_RAVENSBURGER;
+
+        foreach ($changes as $change) {
+            $browser->request('GET', $url);
+            $etag = $browser->getResponse()->getEtag();
+            $body = $browser->getResponse()->getContent();
+            self::assertNotNull($etag);
+
+            $connection->executeStatement('UPDATE puzzle SET ' . $change . ' WHERE id = :id', ['id' => PuzzleFixture::PUZZLE_500_01]);
+
+            $browser->request('GET', $url, server: ['HTTP_IF_NONE_MATCH' => $etag]);
+            self::assertResponseIsSuccessful($change);
+            self::assertNotSame($etag, $browser->getResponse()->getEtag(), $change);
+            self::assertNotSame($body, $browser->getResponse()->getContent(), $change);
+        }
+    }
+
+    public function testEtagDiffersByLocaleAndViewerLanguage(): void
+    {
+        $browser = self::createClient();
+        $englishGuest = self::etag($browser, '/en/', ManufacturerFixture::MANUFACTURER_TREFL);
+        $czechGuest = self::etag($browser, '/cs/', ManufacturerFixture::MANUFACTURER_TREFL);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $czechPlayerOnEnglish = self::etag($browser, '/en/', ManufacturerFixture::MANUFACTURER_TREFL);
+
+        self::assertCount(3, array_unique([$englishGuest, $czechGuest, $czechPlayerOnEnglish]));
+
+        // The English guest's copy is never confirmed for the Czech player on the same URL
+        $browser->request('GET', '/en/puzzle-by-brand-autocomplete/?brand=' . ManufacturerFixture::MANUFACTURER_TREFL, server: ['HTTP_IF_NONE_MATCH' => $englishGuest]);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('(Kouzelná zahrada)', self::option($browser, PuzzleFixture::PUZZLE_1000_02)['text']);
+    }
+
+    public function testAnotherBrandsEtagIsNotAccepted(): void
+    {
+        $browser = self::createClient();
+        $trefl = self::etag($browser, '/en/', ManufacturerFixture::MANUFACTURER_TREFL);
+
+        $browser->request('GET', '/en/puzzle-by-brand-autocomplete/?brand=' . ManufacturerFixture::MANUFACTURER_RAVENSBURGER, server: ['HTTP_IF_NONE_MATCH' => $trefl]);
+        self::assertResponseIsSuccessful();
+        self::assertNotEmpty(self::options($browser));
+    }
+
+    public function testTheOrganisersVariantHasNoEtagAndIgnoresIfNoneMatch(): void
+    {
+        $browser = self::createClient();
+        self::hide(PuzzleFixture::PUZZLE_500_02);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $publicEtag = self::etag($browser, '/en/', ManufacturerFixture::MANUFACTURER_RAVENSBURGER);
+
+        $browser->request(
+            'GET',
+            '/en/puzzle-by-brand-autocomplete/?brand=' . ManufacturerFixture::MANUFACTURER_RAVENSBURGER . '&competition=' . CompetitionFixture::COMPETITION_WJPC_2024,
+            server: ['HTTP_IF_NONE_MATCH' => $publicEtag],
+        );
+        self::assertResponseIsSuccessful();
+        self::assertNull($browser->getResponse()->getEtag());
+        self::assertContains(PuzzleFixture::PUZZLE_500_02, array_column(self::options($browser), 'value'));
+
+        // A player naming a competition they do not organise gets the public list - and its ETag
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
+        $browser->request(
+            'GET',
+            '/en/puzzle-by-brand-autocomplete/?brand=' . ManufacturerFixture::MANUFACTURER_RAVENSBURGER . '&competition=' . CompetitionFixture::COMPETITION_WJPC_2024,
+        );
+        self::assertResponseIsSuccessful();
+        self::assertNotNull($browser->getResponse()->getEtag());
+        self::assertNotContains(PuzzleFixture::PUZZLE_500_02, array_column(self::options($browser), 'value'));
+    }
+
     public function testUnknownBrandIsNotFound(): void
     {
         $browser = self::createClient();
         $browser->request('GET', '/en/puzzle-by-brand-autocomplete/?brand=nonsense');
 
         $this->assertResponseStatusCodeSame(404);
+    }
+
+    private static function etag(KernelBrowser $browser, string $prefix, string $brandId): string
+    {
+        $browser->request('GET', $prefix . 'puzzle-by-brand-autocomplete/?brand=' . $brandId);
+        self::assertResponseIsSuccessful();
+        $etag = $browser->getResponse()->getEtag();
+        self::assertNotNull($etag);
+
+        return $etag;
+    }
+
+    private static function assertCacheHeaders(Response $response): void
+    {
+        self::assertNotNull($response->getEtag());
+        self::assertTrue($response->headers->hasCacheControlDirective('private'), (string) $response->headers->get('Cache-Control'));
+        self::assertTrue($response->headers->hasCacheControlDirective('no-cache'), (string) $response->headers->get('Cache-Control'));
+        self::assertFalse($response->headers->hasCacheControlDirective('public'));
+        self::assertLessThanOrEqual(0, (int) $response->headers->getCacheControlDirective('max-age'));
+        self::assertLessThanOrEqual(0, (int) $response->headers->getCacheControlDirective('s-maxage'));
     }
 
     private static function hide(string $puzzleId): void

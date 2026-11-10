@@ -80,6 +80,10 @@ return App::config([
                 'manufacturer_overviews_cache' => [
                     'adapters' => ['cache.adapter.array'],
                 ],
+                // Chosen from the puzzles a test seeds and DAMA rolls back
+                'related_puzzles_cache' => [
+                    'adapters' => ['cache.adapter.array'],
+                ],
                 // Every test run signs with a fresh key under the same certificate URL
                 'sns_certificate_cache' => [
                     'adapters' => ['cache.adapter.array'],

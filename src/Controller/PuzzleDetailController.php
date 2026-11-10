@@ -141,7 +141,7 @@ final class PuzzleDetailController extends AbstractController
             'estimates' => $estimates,
             'estimate_collection_context' => $collectionContext,
             'show_seo_sections' => $showSeoSections,
-            'related' => $showSeoSections ? $this->getRelatedPuzzles->forPuzzle($puzzle->manufacturerId, $puzzle->piecesCount, $puzzleId) : null,
+            'related' => $showSeoSections ? $this->getRelatedPuzzles->forPuzzleCached($puzzle->manufacturerId, $puzzle->piecesCount, $puzzleId) : null,
             'puzzle_summary' => $this->getPuzzleSummary->forPuzzle($puzzleId),
             'catalogue_links' => PuzzleCatalogueLinks::forPuzzle($puzzle, $brandHub),
         ]);

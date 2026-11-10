@@ -60,6 +60,12 @@ Placement: a `<section class="puzzle-summary" …>` directly under the header bl
 > sections are rendered **for guests only** (`PuzzleDetailController`, `$user === null`): signed-in players have
 > these facts higher up (Details, the leaderboard strip), so for them the sections only repeated the page, and
 > `GetRelatedPuzzles` does not run for them. Crawlers visit signed out, so they see exactly what a guest sees.
+>
+> **Update 2026-11:** the page reads the related puzzles through `GetRelatedPuzzles::forPuzzleCached()`: the *choice*
+> (ids, order, scope) is kept per page in `related_puzzles_cache` for 7 days (+ up to 1 day jitter, ~0.4 kB each, up to
+> ~20 MB for every page) and the chosen rows are read fresh by id on every view (name, picture, hidden picture at once).
+> A chosen puzzle that may not be shown any more (deleted, merged away, unapproved, hidden, other brand or size) makes
+> the choice be computed again; only a newly added or revealed puzzle, or a change in solve counts, shows up late.
 
 Content is built from public data only. **No difficulty/percentile wording**: insights are the members' exclusive, per Jan.
 - **S1 (always):** "{name} is a {pieces}-piece jigsaw puzzle by {brand}."

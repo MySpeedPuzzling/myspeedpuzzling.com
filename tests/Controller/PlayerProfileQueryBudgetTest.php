@@ -26,18 +26,18 @@ final class PlayerProfileQueryBudgetTest extends WebTestCase
      */
     public static function providePages(): iterable
     {
-        // Measured on main 791fb38f7 (2026-11-10); - 1 since a player's pairs and teams are one statement (a player with both: - 2)
+        // Measured on main 791fb38f7 (2026-11-10); - 1 since a player's pairs and teams are one statement (a player with both: - 2), - 1 since the chart's two filters are one statement
         // PLAYER_REGULAR is in the referral program (AffiliateFixture): its three supporter statements are in every case
-        yield 'regular, guest' => [PlayerFixture::PLAYER_REGULAR, null, 13];
-        yield 'regular, signed-in other' => [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_FAVORITES, 18];
-        yield 'regular, owner' => [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_REGULAR, 19];
-        yield 'regular, member' => [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_STRIPE, 23];
-        yield 'with favorites, guest' => [PlayerFixture::PLAYER_WITH_FAVORITES, null, 9];
-        yield 'with favorites, member' => [PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_WITH_STRIPE, 19];
+        yield 'regular, guest' => [PlayerFixture::PLAYER_REGULAR, null, 12];
+        yield 'regular, signed-in other' => [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_FAVORITES, 17];
+        yield 'regular, owner' => [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_REGULAR, 18];
+        yield 'regular, member' => [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_STRIPE, 22];
+        yield 'with favorites, guest' => [PlayerFixture::PLAYER_WITH_FAVORITES, null, 8];
+        yield 'with favorites, member' => [PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_WITH_STRIPE, 18];
         // Masked: the profile row only - no chart, no rating card, no results
         yield 'private, guest' => [PlayerFixture::PLAYER_PRIVATE, null, 1];
-        yield 'private, owner' => [PlayerFixture::PLAYER_PRIVATE, PlayerFixture::PLAYER_PRIVATE, 16];
-        yield 'private, allow-listed viewer' => [PlayerFixture::PLAYER_PRIVATE, PlayerFixture::PLAYER_WITH_FAVORITES, 15];
+        yield 'private, owner' => [PlayerFixture::PLAYER_PRIVATE, PlayerFixture::PLAYER_PRIVATE, 15];
+        yield 'private, allow-listed viewer' => [PlayerFixture::PLAYER_PRIVATE, PlayerFixture::PLAYER_WITH_FAVORITES, 14];
     }
 
     #[DataProvider('providePages')]

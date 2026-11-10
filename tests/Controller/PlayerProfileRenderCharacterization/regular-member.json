@@ -18,15 +18,15 @@
             "500 pieces average time per month"
         ],
         "pieces": [
-            "500",
             "1000",
             "1500",
             "2000",
-            "300"
+            "300",
+            "500"
         ],
         "brands": [
-            "all = All Brands",
-            "018d0002-0000-0000-0000-000000000001 = Ravensburger (12)"
+            "018d0002-0000-0000-0000-000000000001 = Ravensburger (12)",
+            "all = All Brands"
         ],
         "locked": 0,
         "canvas": 1

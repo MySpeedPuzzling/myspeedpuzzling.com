@@ -124,8 +124,10 @@ final class PlayerProfileRenderCharacterizationTest extends WebTestCase
             'rating_history_frame' => $crawler->filter('turbo-frame#msp-rating-history')->count(),
             'chart' => $chart->count() === 0 ? null : [
                 'heading' => self::texts($chart->filter('h2')),
-                'pieces' => $chart->filter('select[data-model="pieces"] option')->each(static fn (Crawler $option): string => (string) $option->attr('value')),
-                'brands' => $chart->filter('select[data-model="brand"] option')->each(static fn (Crawler $option): string => $option->attr('value') . ' = ' . self::text($option)),
+                // The two lists as sets: equal counts come in whatever order the database's aggregate gives (they swapped between
+                // runs on one database), the order itself is PlayerAverageTimeChartTest's. The heading above pins the default
+                'pieces' => self::sorted($chart->filter('select[data-model="pieces"] option')->each(static fn (Crawler $option): string => (string) $option->attr('value'))),
+                'brands' => self::sorted($chart->filter('select[data-model="brand"] option')->each(static fn (Crawler $option): string => $option->attr('value') . ' = ' . self::text($option))),
                 'locked' => $chart->filter('.player-chart-placeholder')->count(),
                 'canvas' => $chart->filter('canvas')->count(),
             ],
@@ -161,6 +163,17 @@ final class PlayerProfileRenderCharacterizationTest extends WebTestCase
     private static function texts(Crawler $nodes): array
     {
         return array_values($nodes->each(static fn (Crawler $node): string => self::text($node)));
+    }
+
+    /**
+     * @param list<string> $values
+     * @return list<string>
+     */
+    private static function sorted(array $values): array
+    {
+        sort($values, SORT_STRING);
+
+        return $values;
     }
 
     private static function text(Crawler $node): string

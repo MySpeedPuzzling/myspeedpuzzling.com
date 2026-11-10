@@ -1,6 +1,6 @@
 # Result share image
 
-`GET /result-image/{timeId}` (`ResultImageController` → `GetResultImage`) draws an 800×800 PNG card of one result:
+`GET /result-image/{timeId}` (`ResultImageController` → `GetResultImage`) draws an 800×800 JPEG card of one result:
 the finished photo (else the box) under two overlays, puzzle name, brand, pieces, time, PPM, the player's name (none
 for a private profile), the rank and the player's code.
 
@@ -40,17 +40,22 @@ card is a `304` without the body.
 - The card does not depend on who asks, so the session listener's `max-age=0` is turned off for it
   (`AbstractSessionListener::NO_AUTO_CACHE_CONTROL_HEADER`) - otherwise every signed-in request would be uncacheable.
 
-## Encoding
+## Drawing and encoding
 
-Opaque 8-bit RGB PNG (`ResultImagePng`) instead of Intervention's RGBA: every pixel of the card is opaque, so the
-pixels are identical (`ResultImagePngTest` compares them) and the file is ~10 % smaller; zlib level 6 encodes a third
-faster than the default for ~1 % more bytes. `ImageMetadata::strip()` runs before it - no EXIF / text chunks.
+Progressive JPEG, quality 88 (`ResultImageJpeg`, sRGB always - a CMYK print file would show wrong otherwise);
+`ImageMetadata::strip()` runs before it - no EXIF. The text goes through `ResultImageText`: lines, breaks and places come
+from Intervention's layout, the outline is one native stroke instead of Intervention's nine shifted copies. Together
+(2026-11-10, Jan chose it over a Rust or libvips sidecar after a before/after): drawing 370 → about 110 ms, the file
+567 → 105 kB, on a Mac on a 2000 px photo. A sidecar would have saved about 50 ms more per card on ~1,450 requests a day.
+
+Sentry spans of op `result_image` show the steps of a drawn card: `photo read`, `draw`, `encode`.
+
+On the recap page the card sits in a fixed square with a shimmer until it arrives (`result_card_frame_controller.js`).
+The shimmer is behind the card, so it needs no script to end.
 
 `GetResultImageTest::testTheCardShowsWhatWasDrawn` compares the card with a reference
-(`tests/fixtures/result-image/time06.png`, regenerate command in the test) - the guard for any change to the drawing.
+(`tests/fixtures/result-image/time06.jpg`, regenerate command in the test) - the guard for any change to the drawing.
 
-## Not done yet (changes how the card looks - needs Jan's visual yes)
+## Not done yet
 
-- decode the photo with a size hint (`jpeg:size`) - several times cheaper for 4000 px phone photos;
-- one native Imagick stroke per text line instead of Intervention's 9 offset draws (~half of the drawing time);
-- JPEG instead of PNG (~10× smaller; the share controller hard-codes `image/png` + `.png`, the kept path would change).
+- drawing the card in the background right after the save, if the `photo read` and `draw` spans still justify it.

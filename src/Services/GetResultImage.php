@@ -8,6 +8,7 @@ use AsyncAws\Core\Exception\Exception as AsyncAwsException;
 use Imagick;
 use Intervention\Image\Geometry\Factories\RectangleFactory;
 use Intervention\Image\ImageManager;
+use Intervention\Image\Interfaces\ImageInterface;
 use Intervention\Image\Typography\FontFactory;
 use League\Flysystem\Filesystem;
 use League\Flysystem\FilesystemException;
@@ -20,6 +21,9 @@ use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Results\ResultImage;
 use SpeedPuzzling\Web\Results\SolvedPuzzleDetail;
 use SpeedPuzzling\Web\Value\SolvingTime;
+use Sentry\Tracing\SpanContext;
+
+use function Sentry\trace;
 
 readonly final class GetResultImage
 {
@@ -53,8 +57,8 @@ readonly final class GetResultImage
         // Kept under what it shows: a changed result never gets the card of before (ResultImageVersion)
         $version = $this->resultImageVersion->of($solvingTime, $player);
         $path = $isPrivateProfile
-            ? "players/$player->playerId/results/$timeId-$version-hidden.png"
-            : "players/$player->playerId/results/$timeId-$version.png";
+            ? "players/$player->playerId/results/$timeId-$version-hidden.jpg"
+            : "players/$player->playerId/results/$timeId-$version.jpg";
 
         $kept = $this->resultImageCache->read($path);
 
@@ -100,87 +104,60 @@ readonly final class GetResultImage
         $puzzleNameLines = (int) ceil(strlen($puzzleName) / 25);
         $puzzleNameOffset = (int) ((3 - $puzzleNameLines) * $fontSizeNormal / 3);
         $puzzleNameHeight = $puzzleNameLines * $fontSizeNormal;
-        [$imageContent, $withPlaceholder] = $this->photoFor($solvingTime);
+        [$imageContent, $withPlaceholder] = $this->timed('photo read', fn (): array => $this->photoFor($solvingTime));
 
-        $image = $this->imageManager->decode($imageContent)
-            ->cover($size, $size)
-            ->drawRectangle(function (RectangleFactory $rectangle) use ($size) {
-                $rectangle->at(0, 0);
-                $rectangle->size($size, $size);
-                $rectangle->background('rgba(250, 114, 111, 0.44)');
-            })
-            ->drawRectangle(function (RectangleFactory $rectangle) use ($size) {
-                $rectangle->at(0, 0);
-                $rectangle->size($size, $size);
-                $rectangle->background('rgba(0, 0, 0, 0.55)');
-            })
-            ->text($puzzleName, $size / 2, 100 + $puzzleNameOffset + $offsetTop, function (FontFactory $font) use ($fontSizeNormal, $size) {
+        $regular = __DIR__ . '/../../assets/fonts/Rubik/Rubik-Regular.ttf';
+        $light = __DIR__ . '/../../assets/fonts/Rubik/Rubik-Light.ttf';
+        $centered = static function (string $file, int $fontSize): callable {
+            return static function (FontFactory $font) use ($file, $fontSize): void {
+                $font->filename($file);
+                $font->size($fontSize);
+                $font->align('center', 'top');
+            };
+        };
+        $yOffset = $puzzleNameHeight + $puzzleNameOffset + $offsetTop;
+
+        $image = $this->timed('draw', function () use ($imageContent, $logo, $size, $regular, $light, $centered, $yOffset, $puzzleName, $puzzleNameOffset, $offsetTop, $fontSizeBig, $fontSizeNormal, $fontSizeSmall, $fontSizeLittle, $brandName, $solvingTime, $ppmText, $isPrivateProfile, $player, $rankingText, $signature): ImageInterface {
+            $image = $this->imageManager->decode($imageContent)
+                ->cover($size, $size)
+                ->drawRectangle(function (RectangleFactory $rectangle) use ($size) {
+                    $rectangle->at(0, 0);
+                    $rectangle->size($size, $size);
+                    $rectangle->background('rgba(250, 114, 111, 0.44)');
+                })
+                ->drawRectangle(function (RectangleFactory $rectangle) use ($size) {
+                    $rectangle->at(0, 0);
+                    $rectangle->size($size, $size);
+                    $rectangle->background('rgba(0, 0, 0, 0.55)');
+                });
+
+            ResultImageText::draw($image, $puzzleName, $size / 2, 100 + $puzzleNameOffset + $offsetTop, function (FontFactory $font) use ($centered, $regular, $fontSizeNormal, $size): void {
+                $centered($regular, $fontSizeNormal)($font);
                 $font->wrap((int) ($size * 0.97));
                 $font->lineHeight(1.4);
-                $font->filename(__DIR__ . '/../../assets/fonts/Rubik/Rubik-Regular.ttf');
-                $font->color('#ffffff');
-                $font->stroke('#000000', 1);
-                $font->size($fontSizeNormal);
-                $font->align('center', 'top');
-            })
-            ->text($brandName, $size / 2, 115 + $puzzleNameHeight + $puzzleNameOffset + $offsetTop, function (FontFactory $font) use ($fontSizeSmall) {
-                $font->filename(__DIR__ . '/../../assets/fonts/Rubik/Rubik-Light.ttf');
-                $font->color('#ffffff');
-                $font->stroke('#000000', 1);
-                $font->size($fontSizeSmall);
-                $font->align('center', 'top');
-            })
-            ->text($solvingTime->piecesCount . ' pieces', $size / 2, 170 + $puzzleNameHeight + $puzzleNameOffset + $offsetTop, function (FontFactory $font) use ($fontSizeNormal) {
-                $font->filename(__DIR__ . '/../../assets/fonts/Rubik/Rubik-Light.ttf');
-                $font->color('#ffffff');
-                $font->stroke('#000000', 1);
-                $font->size($fontSizeNormal);
-                $font->align('center', 'top');
-            })
-            ->text($solvingTime->time !== null ? $this->puzzlingTimeFormatter->formatTime($solvingTime->time) : 'Relax', $size / 2, 260 + $puzzleNameHeight + $puzzleNameOffset + $offsetTop, function (FontFactory $font) use ($fontSizeBig) {
-                $font->filename(__DIR__ . '/../../assets/fonts/Rubik/Rubik-Regular.ttf');
-                $font->color('#ffffff');
-                $font->stroke('#000000', 1);
-                $font->size($fontSizeBig);
-                $font->align('center', 'top');
-            })
-            ->text($ppmText, $size / 2, 340 + $puzzleNameHeight + $puzzleNameOffset + $offsetTop, function (FontFactory $font) use ($fontSizeSmall) {
-                $font->filename(__DIR__ . '/../../assets/fonts/Rubik/Rubik-Regular.ttf');
-                $font->color('#ffffff');
-                $font->stroke('#000000', 1);
-                $font->size($fontSizeSmall);
-                $font->align('center', 'top');
-            })
-            ->text($isPrivateProfile ? '' : ($player->playerName ?? ''), $size / 2, 400 + $puzzleNameHeight + $puzzleNameOffset + $offsetTop, function (FontFactory $font) use ($fontSizeSmall) {
-                $font->filename(__DIR__ . '/../../assets/fonts/Rubik/Rubik-Regular.ttf');
-                $font->color('#ffffff');
-                $font->stroke('#000000', 1);
-                $font->size($fontSizeSmall);
-                $font->align('center', 'top');
-            })
-            ->text($rankingText, $size / 2, 450 + $puzzleNameHeight + $puzzleNameOffset + $offsetTop, function (FontFactory $font) use ($fontSizeSmall) {
-                $font->filename(__DIR__ . '/../../assets/fonts/Rubik/Rubik-Light.ttf');
-                $font->color('#ffffff');
-                $font->stroke('#000000', 1);
-                $font->size($fontSizeSmall);
-                $font->align('center', 'top');
-            })
-            ->text($signature, 80, $size - $fontSizeLittle - 18, function (FontFactory $font) use ($fontSizeLittle) {
-                $font->filename(__DIR__ . '/../../assets/fonts/Rubik/Rubik-Light.ttf');
-                $font->color('#ffffff');
-                $font->stroke('#000000', 1);
+            });
+            ResultImageText::draw($image, $brandName, $size / 2, 115 + $yOffset, $centered($light, $fontSizeSmall));
+            ResultImageText::draw($image, $solvingTime->piecesCount . ' pieces', $size / 2, 170 + $yOffset, $centered($light, $fontSizeNormal));
+            ResultImageText::draw($image, $solvingTime->time !== null ? $this->puzzlingTimeFormatter->formatTime($solvingTime->time) : 'Relax', $size / 2, 260 + $yOffset, $centered($regular, $fontSizeBig));
+            ResultImageText::draw($image, $ppmText, $size / 2, 340 + $yOffset, $centered($regular, $fontSizeSmall));
+            ResultImageText::draw($image, $isPrivateProfile ? '' : ($player->playerName ?? ''), $size / 2, 400 + $yOffset, $centered($regular, $fontSizeSmall));
+            ResultImageText::draw($image, $rankingText, $size / 2, 450 + $yOffset, $centered($light, $fontSizeSmall));
+            ResultImageText::draw($image, $signature, 80, $size - $fontSizeLittle - 18, static function (FontFactory $font) use ($light, $fontSizeLittle): void {
+                $font->filename($light);
                 $font->size($fontSizeLittle);
                 $font->align('left', 'top');
-            })
-            ->insert($logo, 10, 10, 'bottom-left');
+            });
+
+            return $image->insert($logo, 10, 10, 'bottom-left');
+        });
 
         // The share image is drawn over the player's photo and would otherwise carry its EXIF - GPS
-        // position included - into a public PNG (the PNG encoder ignores Intervention's strip option)
+        // position included - into a public image
         $native = $image->core()->native();
         assert($native instanceof Imagick);
         ImageMetadata::strip($native);
 
-        $fileContent = ResultImagePng::encode($native);
+        $fileContent = $this->timed('encode', static fn (): string => ResultImageJpeg::encode($native));
 
         // A placeholder version is never stored: once the real photo is there, it is used
         if ($withPlaceholder === false) {
@@ -191,6 +168,19 @@ readonly final class GetResultImage
             $fileContent,
             $withPlaceholder,
             drawnAt: $withPlaceholder ? null : $this->clock->now(),
+        );
+    }
+
+    /**
+     * @template T
+     * @param callable(): T $work
+     * @return T
+     */
+    private function timed(string $step, callable $work): mixed
+    {
+        return trace(
+            static fn (): mixed => $work(),
+            SpanContext::make()->setOp('result_image')->setDescription($step),
         );
     }
 

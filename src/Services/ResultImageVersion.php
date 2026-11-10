@@ -19,7 +19,7 @@ readonly final class ResultImageVersion
     /**
      * Bump when the card is drawn differently - every card is then drawn again
      */
-    private const int DRAWING = 1;
+    private const int DRAWING = 2;
 
     public function __construct(
         private PlayerRepository $playerRepository,

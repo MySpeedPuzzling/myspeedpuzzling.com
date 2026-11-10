@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Results\EventsPage\RowTag;
 use SpeedPuzzling\Web\Results\EventsPage\RowTagType;
 use SpeedPuzzling\Web\Results\EventsPage\WhenLabel;
 use SpeedPuzzling\Web\Results\EventsViewerData;
+use SpeedPuzzling\Web\Services\SearchTextFolds;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
 use SpeedPuzzling\Web\Value\EventTime;
@@ -42,6 +43,8 @@ readonly final class EventRowFactory
 {
     public function __construct(
         private EventUrls $urls,
+        // the folds of places, remembered for the page being built
+        private SearchTextFolds $folds = new SearchTextFolds(),
     ) {
     }
 
@@ -101,7 +104,7 @@ readonly final class EventRowFactory
                 to: $longRunning ? null : $occurrence->endDate,
                 tone: self::tone($occurrence->isOnline, $status),
             ),
-            place: self::place($occurrence->isOnline, $occurrence->location, $occurrence->countryCode, $locale),
+            place: self::place($occurrence->isOnline, $occurrence->location, $occurrence->countryCode, $locale, $this->folds),
             tags: $this->tags(
                 $occurrence,
                 $status,
@@ -156,7 +159,7 @@ readonly final class EventRowFactory
             monthFrom: (int) $start->format('n'),
             monthTo: (int) ($occurrence->endDate ?? $start)->format('n'),
             hasResults: $occurrence->hasResults,
-            place: self::place($occurrence->isOnline, $occurrence->location, $occurrence->countryCode, $locale),
+            place: self::place($occurrence->isOnline, $occurrence->location, $occurrence->countryCode, $locale, $this->folds),
             scopeKey: EventsScope::keyOf($occurrence->isOnline, $occurrence->countryCode),
             visible: $onOwnPage || $scope->matches($occurrence->isOnline, $occurrence->countryCode),
             editionName: $onSeriesPage ? null : $occurrence->subtitle(),
@@ -333,9 +336,9 @@ readonly final class EventRowFactory
 
     /**
      * The city is left out when the location already holds the country's name (localised or English) - then the
-     * country shows alone.
+     * country shows alone. $folds remembers the folds while a page is built (the same cities and country names repeat).
      */
-    public static function place(bool $isOnline, null|string $location, null|CountryCode $country, string $locale): Place
+    public static function place(bool $isOnline, null|string $location, null|CountryCode $country, string $locale, null|SearchTextFolds $folds = null): Place
     {
         if ($isOnline) {
             return new Place(null, null, null, true);
@@ -345,10 +348,10 @@ readonly final class EventRowFactory
         $city = $location !== null && trim($location) !== '' ? trim($location) : null;
 
         if ($city !== null && $country !== null) {
-            $folded = SearchText::fold($city);
+            $folded = $folds === null ? SearchText::fold($city) : $folds->fold($city);
 
             foreach (array_unique([(string) $countryName, $country->value]) as $name) {
-                $foldedName = SearchText::fold($name);
+                $foldedName = $folds === null ? SearchText::fold($name) : $folds->fold($name);
 
                 if ($foldedName !== '' && str_contains($folded, $foldedName)) {
                     $city = null;

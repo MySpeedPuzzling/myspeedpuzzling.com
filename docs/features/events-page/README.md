@@ -224,7 +224,7 @@ still keeps secret - `RoundPuzzleReveal::sqlHidden()`, `puzzle.hide_until`; they
 occurrences statement). An edition matches when every word is in its own text or its series' (the index ships an
 edition's own words only). **Every typed word must match**; `wjpc` and `ejpc` also match their full names. Text is
 folded on the server with `SearchText::fold()` and the typed query in the browser with `foldSearchText()`
-(`assets/search_fold.js`) - the same fold. Results: Upcoming (rows), Past (newest 30 lines, editions one by one, with
+(`assets/search_fold.js`) - the same fold (while a page builds, through `SearchTextFolds`: the same texts repeat on every row; the memo is emptied between requests). Results: Upcoming (rows), Past (newest 30 lines, editions one by one, with
 the year), Series, Ongoing. Search honours the selected scope.
 
 ## Calendar view (`?view=calendar`)

@@ -27,6 +27,7 @@ use SpeedPuzzling\Web\Results\EventsPage\SessionChip;
 use SpeedPuzzling\Web\Results\EventsPage\WhenLabel;
 use SpeedPuzzling\Web\Results\EventsPage\YourEvent;
 use SpeedPuzzling\Web\Results\EventsViewerData;
+use SpeedPuzzling\Web\Services\SearchTextFolds;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\CountryRegion;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
@@ -34,7 +35,6 @@ use SpeedPuzzling\Web\Value\EventTypes;
 use SpeedPuzzling\Web\Value\EventsScope;
 use SpeedPuzzling\Web\Value\FollowTarget;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
-use SpeedPuzzling\Web\Value\SearchText;
 
 /**
  * Turns the occurrences and series into everything the events page renders (docs/features/events-page/
@@ -67,8 +67,10 @@ readonly final class EventsPageBuilder
         private EventsIndexFactory $indexFactory,
         // the row rules (shared with the series page); built from the URLs when not given - the unit tests' way
         null|EventRowFactory $rows = null,
+        // the folds of names, places and titles, remembered for the build (a series' name folds once, not per edition)
+        private SearchTextFolds $folds = new SearchTextFolds(),
     ) {
-        $this->rows = $rows ?? new EventRowFactory($urls);
+        $this->rows = $rows ?? new EventRowFactory($urls, $folds);
     }
 
     /**
@@ -150,7 +152,7 @@ readonly final class EventsPageBuilder
                 $occurrence,
                 $item['status'],
                 $this->urls->occurrence($occurrence),
-                self::place($occurrence->isOnline, $occurrence->location, $occurrence->countryCode, $locale),
+                $this->placeOf($occurrence->isOnline, $occurrence->location, $occurrence->countryCode, $locale),
                 $seriesIndexId,
                 $locale,
                 $seriesIndexId !== null ? ($seriesEntries[$seriesIndexId] ?? null) : null,
@@ -179,8 +181,8 @@ readonly final class EventsPageBuilder
             };
         }
 
-        usort($tba, self::compareByTitle(...));
-        usort($ongoing, self::compareByTitle(...));
+        usort($tba, $this->compareByTitle(...));
+        usort($ongoing, $this->compareByTitle(...));
 
         $rowOf = function (array $item, null|string $logo = null) use ($goingCounts, $partnerListingCounts, $viewer, $scope, $now, $day, $locale): AgendaRow {
             /** @var ListedOccurrence $item */
@@ -474,7 +476,7 @@ readonly final class EventsPageBuilder
             editionName: null,
             url: $this->urls->series($first->seriesSlug),
             leaf: new DateLeaf($first->startDate, null, self::tone($first->isOnline, EventOccurrenceStatus::Upcoming)),
-            place: self::place($first->isOnline, $first->location, $first->countryCode, $locale),
+            place: $this->placeOf($first->isOnline, $first->location, $first->countryCode, $locale),
             tags: $tags,
             when: self::when(EventOccurrenceStatus::Upcoming, $first->startDate, $day),
             sessions: $sessions,
@@ -539,7 +541,7 @@ readonly final class EventsPageBuilder
                 seriesId: $row->id,
                 name: $row->name,
                 url: $this->urls->series($row->slug),
-                place: self::place($row->isOnline, $row->location, $row->countryCode, $locale),
+                place: $this->placeOf($row->isOnline, $row->location, $row->countryCode, $locale),
                 isOnline: $row->isOnline,
                 editionCount: count($editionIds),
                 next: $seriesNext,
@@ -560,7 +562,7 @@ readonly final class EventsPageBuilder
             default => 2,
         };
 
-        usort($lines, static function (SeriesLine $a, SeriesLine $b) use ($rank): int {
+        usort($lines, function (SeriesLine $a, SeriesLine $b) use ($rank): int {
             $byRank = $rank($a) <=> $rank($b);
 
             if ($byRank !== 0) {
@@ -571,7 +573,7 @@ readonly final class EventsPageBuilder
                 return $rank($a) === 1 ? $b->next->date <=> $a->next->date : $a->next->date <=> $b->next->date;
             }
 
-            return strcmp(SearchText::fold($a->name), SearchText::fold($b->name));
+            return strcmp($this->folds->fold($a->name), $this->folds->fold($b->name));
         });
 
         $indexed = [];
@@ -651,8 +653,8 @@ readonly final class EventsPageBuilder
                 $lines[] = ['line' => $this->singleArchiveLine($item, $scope, $locale), 'sort' => $start];
             }
 
-            usort($lines, static fn (array $a, array $b): int => $b['sort'] <=> $a['sort']
-                ?: strcmp(SearchText::fold($a['line']->title), SearchText::fold($b['line']->title)));
+            usort($lines, fn (array $a, array $b): int => $b['sort'] <=> $a['sort']
+                ?: strcmp($this->folds->fold($a['line']->title), $this->folds->fold($b['line']->title)));
 
             $years[] = new ArchiveYear($year, array_map(static fn (array $line): ArchiveLine => $line['line'], $lines));
         }
@@ -726,7 +728,7 @@ readonly final class EventsPageBuilder
                     monthFrom: (int) $first->format('n'),
                     monthTo: (int) $to->format('n'),
                     hasResults: $hasResults,
-                    place: self::place($occurrence->isOnline, $occurrence->location, $occurrence->countryCode, $locale),
+                    place: $this->placeOf($occurrence->isOnline, $occurrence->location, $occurrence->countryCode, $locale),
                     scopeKey: EventsScope::keyOf($occurrence->isOnline, $occurrence->countryCode),
                     visible: $scope->matches($occurrence->isOnline, $occurrence->countryCode),
                     editionName: $occurrence->editionName(),
@@ -747,7 +749,7 @@ readonly final class EventsPageBuilder
                 monthFrom: (int) $first->format('n'),
                 monthTo: (int) $last->format('n'),
                 hasResults: $hasResults,
-                place: self::place($occurrence->isOnline, $occurrence->location, $occurrence->countryCode, $locale),
+                place: $this->placeOf($occurrence->isOnline, $occurrence->location, $occurrence->countryCode, $locale),
                 scopeKey: EventsScope::keyOf($occurrence->isOnline, $occurrence->countryCode),
                 visible: $scope->matches($occurrence->isOnline, $occurrence->countryCode),
                 year: $year,
@@ -849,13 +851,13 @@ readonly final class EventsPageBuilder
 
         $picked = array_values($picked);
 
-        usort($picked, static function (array $a, array $b): int {
+        usort($picked, function (array $a, array $b): int {
             $aStart = $a['item']['occurrence']->startDate;
             $bStart = $b['item']['occurrence']->startDate;
 
             if ($aStart === null || $bStart === null) {
                 return ($aStart === null) <=> ($bStart === null)
-                    ?: strcmp(SearchText::fold(self::titleOf($a['item']['occurrence'])), SearchText::fold(self::titleOf($b['item']['occurrence'])));
+                    ?: strcmp($this->folds->fold(self::titleOf($a['item']['occurrence'])), $this->folds->fold(self::titleOf($b['item']['occurrence'])));
             }
 
             return $aStart <=> $bStart ?: $a['item']['id'] <=> $b['item']['id'];
@@ -915,7 +917,7 @@ readonly final class EventsPageBuilder
             array_values($counts),
         );
 
-        usort($countryCounts, self::byUpcomingThenName(...));
+        usort($countryCounts, $this->byUpcomingThenName(...));
 
         return $countryCounts;
     }
@@ -1011,14 +1013,14 @@ readonly final class EventsPageBuilder
      * @param ListedOccurrence $a
      * @param ListedOccurrence $b
      */
-    private static function compareByTitle(array $a, array $b): int
+    private function compareByTitle(array $a, array $b): int
     {
-        return strcmp(SearchText::fold(self::titleOf($a['occurrence'])), SearchText::fold(self::titleOf($b['occurrence'])));
+        return strcmp($this->folds->fold(self::titleOf($a['occurrence'])), $this->folds->fold(self::titleOf($b['occurrence'])));
     }
 
-    private static function byUpcomingThenName(CountryCount $a, CountryCount $b): int
+    private function byUpcomingThenName(CountryCount $a, CountryCount $b): int
     {
-        return $b->upcoming <=> $a->upcoming ?: strcmp(SearchText::fold($a->name), SearchText::fold($b->name));
+        return $b->upcoming <=> $a->upcoming ?: strcmp($this->folds->fold($a->name), $this->folds->fold($b->name));
     }
 
     /**
@@ -1056,5 +1058,10 @@ readonly final class EventsPageBuilder
     public static function place(bool $isOnline, null|string $location, null|CountryCode $country, string $locale): Place
     {
         return EventRowFactory::place($isOnline, $location, $country, $locale);
+    }
+
+    private function placeOf(bool $isOnline, null|string $location, null|CountryCode $country, string $locale): Place
+    {
+        return EventRowFactory::place($isOnline, $location, $country, $locale, $this->folds);
     }
 }

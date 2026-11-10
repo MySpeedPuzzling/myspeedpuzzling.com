@@ -34,7 +34,7 @@ final class PrunePhotoStashCommand extends Command
         /** @var int $deleted */
         $deleted = $handledStamp->getResult();
 
-        (new SymfonyStyle($input, $output))->success("Deleted {$deleted} kept files.");
+        (new SymfonyStyle($input, $output))->success("Deleted {$deleted} kept files and photo descriptions.");
 
         return Command::SUCCESS;
     }

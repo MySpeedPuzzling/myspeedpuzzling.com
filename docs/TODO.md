@@ -4,6 +4,12 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## PhotoStash descriptions in Postgres (`docs/features/photo-uploads/README.md` "Where the stash keeps what", 2026-11-09)
+
+- [ ] After release 1 is deployed and no container of the previous release serves: `myspeedpuzzling:backfill-photo-stash-entries` (dry run), then `--write`
+- [ ] Release 2 (branch `perf/photo-stash-db-cleanup`): drop the old `.json` fallback read (`PhotoStash::legacyMeta()`), the old-format write (`PhotoStashLegacyDescriptionWriter`, `writeLegacyDescription()`), the backfill command and their tests
+- [ ] After release 2: one daily prune later, no `tmp-uploads/**/*.json` objects remain (the prune removes them by age)
+
 ## Recap settles XP itself (`docs/features/xp-levels/README.md` §Surfaces)
 
 - [ ] A week after the deploy: share of `XpRecapCelebration` `settle` Live requests against `POST puzzle_add` saves in Sentry. Above ~20 % the consumer lags behind (one queue for e-mails, notifications, XP) - give progression its own queue/consumer

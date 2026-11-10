@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\PhotoStash;
 
 use DateTimeImmutable;
+use Doctrine\DBAL\Exception as DatabaseException;
 use Imagick;
 use League\Flysystem\Filesystem;
 use League\Flysystem\FilesystemException;
@@ -13,10 +14,15 @@ use Nette\Utils\Json;
 use Nette\Utils\JsonException;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
+use SpeedPuzzling\Web\Message\ForgetStashedPhoto;
+use SpeedPuzzling\Web\Message\MarkStashedPhotoPreview;
+use SpeedPuzzling\Web\Message\RecordPhotoStashEntry;
+use SpeedPuzzling\Web\Query\GetPhotoStashEntry;
 use SpeedPuzzling\Web\Value\StashedPhoto;
 use SpeedPuzzling\Web\Value\UploadedImageMetadata;
 use SpeedPuzzling\Web\Value\UploadedImageMetadataSource;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Contracts\Service\ResetInterface;
 
 /**
@@ -24,12 +30,22 @@ use Symfony\Contracts\Service\ResetInterface;
  * (docs/features/first-try-integrity.md, "Photos survive a refused form"). A browser never re-sends a file
  * input on its own, so the photo waits in object storage and the form carries an unguessable token.
  *
- * Everything of a player lives under their own prefix - a token only works for the player who got it.
+ * The photo and its preview JPEG live in object storage under the player's own prefix; what makes a token work is its
+ * description, a `photo_stash_entry` row of that player (written through messages: RecordPhotoStashEntry,
+ * MarkStashedPhotoPreview, ForgetStashedPhoto) - a token only works for the player who got it.
  * A preview JPEG is made right away, so even a HEIC shows up in every browser.
  *
- * A photo can also arrive without PHP (docs/features/photo-uploads/README.md): reserve() writes the description
+ * A photo can also arrive without PHP (docs/features/photo-uploads/README.md): reserve() records the description
  * first and the browser uploads the photo itself straight to object storage under objectKey() (DirectPhotoUpload).
- * The form then carries only the token, and restore() reads the photo back like a kept one.
+ * The form then carries only the token, and restore() reads the photo back like a kept one. Reserving, signing again
+ * and letting go of a reservation make no object-storage call - the start of an upload never waits for it.
+ *
+ * Transition (release 1 of 2, docs/TODO.md): descriptions used to be `<token>.json` objects next to the photo. A token
+ * without a row still works from its old `.json` (legacyMeta()), and every description is also written in the old
+ * format - marked `mirror`, which legacyMeta() ignores - so a container of the previous release, still serving during a
+ * blue-green rollout, finds the photos of this one. A reservation's copy is written after the answer
+ * (writeLegacyDescriptions() on kernel.terminate). `myspeedpuzzling:backfill-photo-stash-entries` copies the old
+ * descriptions into rows; release 2 drops the old format altogether.
  *
  * What the browser read from a photo before it shrank it (BrowserImageSummary, docs/features/upload-image-metadata.md)
  * is kept in the description next to it, so it comes back with the photo - a refused form's photo returns as a token only.
@@ -42,16 +58,25 @@ final class PhotoStash implements ResetInterface
     private const string PREFIX = 'tmp-uploads';
     public const int KEEP_HOURS = 24;
     // Used photos stay until they expire (a resend must find them) - room for several forms and quick-adds in a row
-    private const int MAX_PER_PLAYER = 20;
+    public const int MAX_PER_PLAYER = 20;
     private const int PREVIEW_SIZE = 600;
 
     /** @var list<string> */
     private array $temporaryFiles = [];
 
+    /**
+     * Release 1 only: old-format descriptions of this request's reservations, written after the answer
+     *
+     * @var array<string, string> path => contents
+     */
+    private array $pendingLegacyDescriptions = [];
+
     public function __construct(
         readonly private Filesystem $filesystem,
         readonly private ClockInterface $clock,
         readonly private LoggerInterface $logger,
+        readonly private MessageBusInterface $messageBus,
+        readonly private GetPhotoStashEntry $getPhotoStashEntry,
     ) {
     }
 
@@ -61,11 +86,11 @@ final class PhotoStash implements ResetInterface
             return null;
         }
 
-        $this->makeRoom($playerId);
-
         $token = bin2hex(random_bytes(16));
         $base = $this->base($playerId, $token);
         $fileName = $file->getClientOriginalName() !== '' ? $file->getClientOriginalName() : 'photo';
+        $mime = $file->getMimeType() ?? 'application/octet-stream';
+        $now = $this->clock->now();
 
         try {
             $stream = fopen($file->getPathname(), 'rb');
@@ -85,14 +110,6 @@ final class PhotoStash implements ResetInterface
             if ($preview !== null) {
                 $this->filesystem->write($base . '.jpg', $preview);
             }
-
-            $this->filesystem->write($base . '.json', Json::encode([
-                'name' => $fileName,
-                'mime' => $file->getMimeType() ?? 'application/octet-stream',
-                'preview' => $preview !== null,
-                'storedAt' => $this->clock->now()->format(DATE_ATOM),
-                'browserMetadata' => $browserMetadata?->toArray(),
-            ]));
         } catch (FilesystemException $e) {
             // Then the player chooses the photo again - exactly what happened before this existed
             $this->logger->warning('Could not keep an uploaded photo for a refused form', [
@@ -102,30 +119,56 @@ final class PhotoStash implements ResetInterface
             return null;
         }
 
+        try {
+            $this->messageBus->dispatch(new RecordPhotoStashEntry(
+                token: $token,
+                playerId: $playerId,
+                name: $fileName,
+                mime: $mime,
+                preview: $preview !== null,
+                bytes: null,
+                browserMetadata: $browserMetadata?->toArray(),
+                storedAt: $now,
+                touchedAt: $now,
+            ));
+        } catch (\Throwable $e) {
+            // The photo waits in object storage for the prune
+            $this->logger->warning('Could not keep an uploaded photo for a refused form', [
+                'exception' => $e,
+            ]);
+
+            return null;
+        }
+
+        $this->writeLegacyDescription($base, $this->legacyDescription($fileName, $mime, $preview !== null, null, $now, $browserMetadata?->toArray()));
+
         return new StashedPhoto($token, $fileName, $preview !== null);
     }
 
     /**
      * A place for a photo the browser uploads itself (DirectPhotoUpload): the description now, the photo under
-     * objectKey() later. Null when object storage cannot take even the description - the browser then sends the
-     * photo with the form, as before.
+     * objectKey() later. No object-storage call. Null when even the description cannot be recorded - the browser then
+     * sends the photo with the form, as before.
      */
     public function reserve(string $playerId, string $fileName, string $mime, int $bytes, null|UploadedImageMetadata $browserMetadata = null): null|string
     {
-        $this->makeRoom($playerId);
-
         $token = bin2hex(random_bytes(16));
+        $fileName = $fileName !== '' ? $fileName : 'photo';
+        $now = $this->clock->now();
 
         try {
-            $this->filesystem->write($this->base($playerId, $token) . '.json', Json::encode([
-                'name' => $fileName !== '' ? $fileName : 'photo',
-                'mime' => $mime,
-                'preview' => false,
-                'bytes' => $bytes,
-                'storedAt' => $this->clock->now()->format(DATE_ATOM),
-                'browserMetadata' => $browserMetadata?->toArray(),
-            ]));
-        } catch (FilesystemException $e) {
+            $this->messageBus->dispatch(new RecordPhotoStashEntry(
+                token: $token,
+                playerId: $playerId,
+                name: $fileName,
+                mime: $mime,
+                preview: false,
+                bytes: $bytes,
+                browserMetadata: $browserMetadata?->toArray(),
+                storedAt: $now,
+                touchedAt: $now,
+            ));
+        } catch (\Throwable $e) {
             $this->logger->warning('Could not reserve a place for a directly uploaded photo', [
                 'exception' => $e,
             ]);
@@ -133,7 +176,57 @@ final class PhotoStash implements ResetInterface
             return null;
         }
 
+        // Release 1 only: after the answer - the player never waits for it
+        $this->pendingLegacyDescriptions[$this->base($playerId, $token) . '.json'] = $this->legacyDescription($fileName, $mime, false, $bytes, $now, $browserMetadata?->toArray());
+
         return $token;
+    }
+
+    /**
+     * Another photo was picked for the same field: the earlier reservation stops working at once. Its photo, if the
+     * browser got it uploaded, waits for the daily prune - no object-storage call here. A kept photo (no reservation)
+     * is never let go this way.
+     */
+    public function release(string $token, string $playerId): void
+    {
+        $meta = $this->meta($token, $playerId);
+
+        if ($meta === null || $meta['bytes'] === null) {
+            return;
+        }
+
+        if ($meta['legacy']) {
+            // Release 1 only: a reservation made before the deploy has no row - its old description goes instead
+            try {
+                $this->filesystem->delete($this->base($playerId, $token) . '.json');
+            } catch (FilesystemException) {
+                // It expires on its own
+            }
+
+            return;
+        }
+
+        try {
+            $this->messageBus->dispatch(new ForgetStashedPhoto($token, $playerId));
+        } catch (\Throwable $e) {
+            // It expires on its own
+            $this->logger->warning('Could not let go of a reserved photo place', [
+                'exception' => $e,
+            ]);
+        }
+    }
+
+    /**
+     * Release 1 only (kernel.terminate): the old-format descriptions of this request's reservations
+     */
+    public function writeLegacyDescriptions(): void
+    {
+        $pending = $this->pendingLegacyDescriptions;
+        $this->pendingLegacyDescriptions = [];
+
+        foreach ($pending as $path => $contents) {
+            $this->writeLegacyDescription(substr($path, 0, -5), $contents);
+        }
     }
 
     /**
@@ -195,20 +288,38 @@ final class PhotoStash implements ResetInterface
         }
 
         $base = $this->base($playerId, $token);
+        $now = $this->clock->now();
 
         try {
             $this->filesystem->write($base . '.jpg', $preview);
-            $this->filesystem->write($base . '.json', Json::encode([
-                'name' => $meta['name'],
-                'mime' => $meta['mime'],
-                'preview' => true,
-                'bytes' => $meta['bytes'],
-                'storedAt' => $meta['storedAt']->format(DATE_ATOM),
-                'browserMetadata' => $meta['browserMetadata'] ?? $browserMetadata?->toArray(),
-            ]));
         } catch (FilesystemException) {
             return new StashedPhoto($token, $meta['name'], false);
         }
+
+        try {
+            $this->messageBus->dispatch($meta['legacy']
+                // Release 1 only: a photo stashed before the deploy gets its row now
+                ? new RecordPhotoStashEntry(
+                    token: $token,
+                    playerId: $playerId,
+                    name: $meta['name'],
+                    mime: $meta['mime'],
+                    preview: true,
+                    bytes: $meta['bytes'],
+                    browserMetadata: $meta['browserMetadata'] ?? $browserMetadata?->toArray(),
+                    storedAt: $meta['storedAt'],
+                    touchedAt: $now,
+                )
+                : new MarkStashedPhotoPreview($token, $playerId, $browserMetadata?->toArray(), $now));
+        } catch (\Throwable $e) {
+            $this->logger->warning('Could not record the preview of a kept photo', [
+                'exception' => $e,
+            ]);
+
+            return new StashedPhoto($token, $meta['name'], false);
+        }
+
+        $this->writeLegacyDescription($base, $this->legacyDescription($meta['name'], $meta['mime'], true, $meta['bytes'], $meta['storedAt'], $meta['browserMetadata'] ?? $browserMetadata?->toArray()));
 
         return new StashedPhoto($token, $meta['name'], true);
     }
@@ -292,8 +403,18 @@ final class PhotoStash implements ResetInterface
             return;
         }
 
+        try {
+            $this->messageBus->dispatch(new ForgetStashedPhoto($token, $playerId));
+        } catch (\Throwable $e) {
+            // It expires on its own
+            $this->logger->warning('Could not forget a kept photo', [
+                'exception' => $e,
+            ]);
+        }
+
         $base = $this->base($playerId, $token);
 
+        // The old-format description too (release 1: mirrors and descriptions made before the deploy)
         foreach ([$base, $base . '.jpg', $base . '.json'] as $path) {
             try {
                 $this->filesystem->delete($path);
@@ -304,6 +425,9 @@ final class PhotoStash implements ResetInterface
     }
 
     /**
+     * The objects only - the descriptions are pruned by PrunePhotoStashHandler. Objects of photos that made way or were
+     * replaced (no description any more) go here too.
+     *
      * @return int how many files were removed
      */
     public function prune(): int
@@ -337,10 +461,11 @@ final class PhotoStash implements ResetInterface
         }
 
         $this->temporaryFiles = [];
+        $this->pendingLegacyDescriptions = [];
     }
 
     /**
-     * @return null|array{name: string, mime: string, preview: bool, bytes: null|int, storedAt: DateTimeImmutable, browserMetadata: null|array<mixed>}
+     * @return null|array{name: string, mime: string, preview: bool, bytes: null|int, storedAt: DateTimeImmutable, browserMetadata: null|array<mixed>, legacy: bool}
      */
     private function meta(string $token, string $playerId): null|array
     {
@@ -349,13 +474,51 @@ final class PhotoStash implements ResetInterface
         }
 
         try {
+            $meta = $this->getPhotoStashEntry->of($token, $playerId);
+        } catch (DatabaseException $e) {
+            $this->logger->warning('Could not read a kept photo\'s description', [
+                'exception' => $e,
+            ]);
+
+            return null;
+        }
+
+        $meta = $meta !== null ? [...$meta, 'legacy' => false] : $this->legacyMeta($token, $playerId);
+
+        if ($meta === null || $meta['storedAt'] < $this->clock->now()->modify('-' . self::KEEP_HOURS . ' hours')) {
+            return null;
+        }
+
+        return $meta;
+    }
+
+    /**
+     * Release 1 only: the description of a photo stashed before the deploy, an object next to it. A mirror of a row
+     * (written by this release for the previous one) is no description - its row decides
+     *
+     * @return null|array{name: string, mime: string, preview: bool, bytes: null|int, storedAt: DateTimeImmutable, browserMetadata: null|array<mixed>, legacy: bool}
+     */
+    private function legacyMeta(string $token, string $playerId): null|array
+    {
+        try {
             $meta = Json::decode($this->filesystem->read($this->base($playerId, $token) . '.json'), forceArrays: true);
         } catch (FilesystemException | JsonException) {
             return null;
         }
 
+        return self::parseLegacyDescription($meta);
+    }
+
+    /**
+     * Release 1 only: an old-format description, as the previous release wrote it - null for a mirror or anything broken
+     *
+     * @return null|array{name: string, mime: string, preview: bool, bytes: null|int, storedAt: DateTimeImmutable, browserMetadata: null|array<mixed>, legacy: bool}
+     */
+    public static function parseLegacyDescription(mixed $meta): null|array
+    {
         if (
             is_array($meta) === false
+            || ($meta['mirror'] ?? false) === true
             || is_string($meta['name'] ?? null) === false
             || is_string($meta['mime'] ?? null) === false
             || is_string($meta['storedAt'] ?? null) === false
@@ -363,9 +526,10 @@ final class PhotoStash implements ResetInterface
             return null;
         }
 
-        $storedAt = new DateTimeImmutable($meta['storedAt']);
-
-        if ($storedAt < $this->clock->now()->modify('-' . self::KEEP_HOURS . ' hours')) {
+        try {
+            // In the app's time zone - written to the database as it is
+            $storedAt = new DateTimeImmutable($meta['storedAt'])->setTimezone(new \DateTimeZone(date_default_timezone_get()));
+        } catch (\Exception) {
             return null;
         }
 
@@ -376,31 +540,34 @@ final class PhotoStash implements ResetInterface
             'bytes' => is_int($meta['bytes'] ?? null) ? $meta['bytes'] : null,
             'storedAt' => $storedAt,
             'browserMetadata' => is_array($meta['browserMetadata'] ?? null) ? $meta['browserMetadata'] : null,
+            'legacy' => true,
         ];
     }
 
     /**
-     * Only a few photos per player are kept at a time - the oldest makes way.
+     * Release 1 only: what the previous release reads (its meta()), marked as a mirror of the row
+     *
+     * @param null|array<mixed> $browserMetadata
      */
-    private function makeRoom(string $playerId): void
+    private function legacyDescription(string $name, string $mime, bool $preview, null|int $bytes, DateTimeImmutable $storedAt, null|array $browserMetadata): string
+    {
+        return Json::encode([
+            'name' => $name,
+            'mime' => $mime,
+            'preview' => $preview,
+            'bytes' => $bytes,
+            'storedAt' => $storedAt->format(DATE_ATOM),
+            'browserMetadata' => $browserMetadata,
+            'mirror' => true,
+        ]);
+    }
+
+    private function writeLegacyDescription(string $base, string $contents): void
     {
         try {
-            $kept = $this->filesystem->listContents(self::PREFIX . '/' . $this->playerKey($playerId), false)
-                ->filter(static fn(StorageAttributes $attributes): bool => $attributes->isFile() && str_ends_with($attributes->path(), '.json'))
-                ->sortByPath()
-                ->toArray();
-        } catch (FilesystemException) {
-            return;
-        }
-
-        if (count($kept) < self::MAX_PER_PLAYER) {
-            return;
-        }
-
-        usort($kept, static fn(StorageAttributes $a, StorageAttributes $b): int => ($a->lastModified() ?? 0) <=> ($b->lastModified() ?? 0));
-
-        foreach (array_slice($kept, 0, count($kept) - self::MAX_PER_PLAYER + 1) as $oldest) {
-            $this->discard(basename($oldest->path(), '.json'), $playerId);
+            $this->filesystem->write($base . '.json', $contents);
+        } catch (\Throwable) {
+            // Only a container of the previous release would miss it
         }
     }
 

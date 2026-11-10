@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\ExifPhotos;
 use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
+use SpeedPuzzling\Web\Tests\TestDouble\ToggleableFailingFilesystemAdapter;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -236,6 +237,73 @@ final class DirectPhotoUploadTest extends WebTestCase
         self::assertStringContainsString('/tmp-uploads/' . PlayerFixture::PLAYER_REGULAR . '/' . $answer['token'] . '?', $answer['url']);
         self::assertSame(['Content-Type' => 'image/jpeg', 'Content-Length' => '512000'], $answer['headers'] ?? null);
         self::assertSame(512_000, self::getContainer()->get(PhotoStash::class)->reservedBytes($answer['token'], PlayerFixture::PLAYER_REGULAR));
+    }
+
+    /**
+     * The start never waits for object storage: answered while it is down, and the place works afterwards
+     */
+    public function testStartIsAnsweredWithoutObjectStorage(): void
+    {
+        $browser = $this->browser();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        /** @var ToggleableFailingFilesystemAdapter $storage */
+        $storage = self::getContainer()->get('app.storage.s3_adapter');
+        $storage->setFailing(true);
+
+        $first = $this->start($browser, ['bytes' => 1000, 'type' => 'image/jpeg', 'name' => 'box.jpg']);
+        $this->assertResponseIsSuccessful();
+        self::assertIsString($first['token'] ?? null);
+
+        $retry = $this->start($browser, ['bytes' => 1000, 'type' => 'image/jpeg', 'name' => 'box.jpg', 'token' => $first['token']]);
+        $this->assertResponseIsSuccessful();
+        self::assertSame($first['token'], $retry['token'] ?? null);
+
+        $other = $this->start($browser, ['bytes' => 2000, 'type' => 'image/jpeg', 'name' => 'other.jpg', 'replaces' => $first['token']]);
+        $this->assertResponseIsSuccessful();
+        self::assertIsString($other['token'] ?? null);
+
+        $storage->setFailing(false);
+
+        $stash = self::getContainer()->get(PhotoStash::class);
+        self::assertNull($stash->reservedBytes($first['token'], PlayerFixture::PLAYER_REGULAR), 'Replaced');
+        self::assertSame(2000, $stash->reservedBytes($other['token'], PlayerFixture::PLAYER_REGULAR));
+    }
+
+    /**
+     * The browser's floor (assets/photo_upload.js): any refusal sends the photo with the form - "storage" when not even
+     * the place's description can be recorded
+     */
+    public function testStartingAnUploadWhenNothingCanBeReservedAnswersStorage(): void
+    {
+        $browser = $this->browser();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        // Rolled back with the test's transaction
+        self::getContainer()->get(Connection::class)->executeStatement('ALTER TABLE photo_stash_entry ADD CONSTRAINT test_refuses_everything CHECK (false) NOT VALID');
+
+        $answer = $this->start($browser, ['bytes' => 1000, 'type' => 'image/jpeg', 'name' => 'box.jpg']);
+
+        $this->assertResponseStatusCodeSame(503);
+        self::assertSame(['error' => 'storage'], $answer);
+        self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
+    }
+
+    /**
+     * Release 1 only (docs/TODO.md): after the answer, the old-format description for a container of the previous release
+     */
+    public function testTheOldDescriptionIsWrittenAfterTheAnswer(): void
+    {
+        $browser = $this->browser();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $answer = $this->start($browser, ['bytes' => 1000, 'type' => 'image/jpeg', 'name' => 'box.jpg']);
+        $this->assertResponseIsSuccessful();
+        self::assertIsString($answer['token'] ?? null);
+
+        $old = json_decode(self::getContainer()->get(Filesystem::class)->read('tmp-uploads/' . PlayerFixture::PLAYER_REGULAR . '/' . $answer['token'] . '.json'), true);
+        self::assertIsArray($old);
+        self::assertSame(['box.jpg', 'image/jpeg', false, 1000], [$old['name'], $old['mime'], $old['preview'], $old['bytes']]);
     }
 
     public function testStartingAnUploadIsRefusedWithoutAReasonToTrustIt(): void

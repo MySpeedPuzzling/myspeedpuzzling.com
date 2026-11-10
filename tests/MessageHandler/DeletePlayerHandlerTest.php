@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\DeletePlayer;
+use SpeedPuzzling\Web\Message\RecordPhotoStashEntry;
 use SpeedPuzzling\Web\Query\GetModerationActions;
 use SpeedPuzzling\Web\Tests\DataFixtures\ComparisonSubjectFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ModerationActionFixture;
@@ -273,6 +274,20 @@ final class DeletePlayerHandlerTest extends KernelTestCase
         self::assertSame(
             [ComparisonSubjectFixture::STRIPE_SELF, ComparisonSubjectFixture::STRIPE_ADMIN, ComparisonSubjectFixture::STRIPE_PAIR],
             $connection->fetchFirstColumn('SELECT id FROM comparison_subject WHERE player_id = :id ORDER BY added_at, id', ['id' => PlayerFixture::PLAYER_WITH_STRIPE]),
+        );
+    }
+
+    public function testDeletingAPlayerRemovesTheirKeptPhotoDescriptions(): void
+    {
+        $now = TestClock::now();
+        $this->messageBus->dispatch(new RecordPhotoStashEntry(str_repeat('a', 32), PlayerFixture::PLAYER_REGULAR, 'box.jpg', 'image/jpeg', false, 1000, null, $now, $now));
+        $this->messageBus->dispatch(new RecordPhotoStashEntry(str_repeat('b', 32), PlayerFixture::PLAYER_WITH_STRIPE, 'box.jpg', 'image/jpeg', false, 1000, null, $now, $now));
+
+        $this->messageBus->dispatch(new DeletePlayer(PlayerFixture::PLAYER_REGULAR));
+
+        self::assertSame(
+            [str_repeat('b', 32)],
+            $this->entityManager->getConnection()->fetchFirstColumn('SELECT token FROM photo_stash_entry'),
         );
     }
 

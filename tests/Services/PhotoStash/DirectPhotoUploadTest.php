@@ -8,6 +8,7 @@ use AsyncAws\S3\S3Client;
 use DateTimeImmutable;
 use League\Flysystem\Filesystem;
 use Psr\Log\NullLogger;
+use SpeedPuzzling\Web\Query\GetPhotoStashEntry;
 use SpeedPuzzling\Web\Exceptions\PhotoUploadRefused;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineMediaStores;
 use SpeedPuzzling\Web\Services\OnlineRounds\S3QueryPresigner;
@@ -19,6 +20,8 @@ use SpeedPuzzling\Web\Tests\TestDouble\ExplodingFilesystemAdapter;
 use SpeedPuzzling\Web\Value\PhotoUploadLimits;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
+use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\HttpClient\MockHttpClient;
 
 /**
@@ -44,9 +47,17 @@ final class DirectPhotoUploadTest extends KernelTestCase
         $this->upload = $this->newUpload($this->stash);
     }
 
-    private function newStash(Filesystem $filesystem): PhotoStash
+    private function newStash(Filesystem $filesystem, null|MessageBusInterface $messageBus = null): PhotoStash
     {
-        return new PhotoStash($filesystem, $this->clock, new NullLogger());
+        $container = self::getContainer();
+
+        return new PhotoStash(
+            $filesystem,
+            $this->clock,
+            new NullLogger(),
+            $messageBus ?? $container->get(MessageBusInterface::class),
+            $container->get(GetPhotoStashEntry::class),
+        );
     }
 
     private function newUpload(PhotoStash $stash): DirectPhotoUpload
@@ -132,7 +143,8 @@ final class DirectPhotoUploadTest extends KernelTestCase
     public function testAStartedPhotoIsRestoredOnceTheBrowserPutIt(): void
     {
         $presigned = $this->upload->start(self::PLAYER, 'box.jpg', 'image/jpeg', 3);
-        self::assertNull($this->stash->restore($presigned->token, self::PLAYER), 'Not uploaded yet');
+        $beforeTheUpload = $this->stash->restore($presigned->token, self::PLAYER);
+        self::assertNull($beforeTheUpload, 'Not uploaded yet');
 
         $this->filesystem->write($this->stash->objectKey(self::PLAYER, $presigned->token), 'abc');
 
@@ -155,11 +167,44 @@ final class DirectPhotoUploadTest extends KernelTestCase
     }
 
     /**
-     * A stash that cannot make a place - object storage refusing even the description
+     * docs/features/photo-uploads/README.md: the start of an upload never waits for object storage - a new place, a
+     * retry signing it again and letting go of the photo it replaces are all answered without a single call
+     */
+    public function testStartingTouchesNoObjectStorage(): void
+    {
+        $storage = new ExplodingFilesystemAdapter();
+        $stash = $this->newStash(new Filesystem($storage));
+        $upload = $this->newUpload($stash);
+
+        $first = $upload->start(self::PLAYER, 'box.jpg', 'image/jpeg', 1000);
+        $retry = $upload->start(self::PLAYER, 'box.jpg', 'image/jpeg', 1000, token: $first->token);
+        $second = $upload->start(self::PLAYER, 'other.jpg', 'image/jpeg', 2000, replaces: $first->token);
+
+        for ($i = 0; $i < PhotoStash::MAX_PER_PLAYER; $i++) {
+            $this->clock->modify('+1 second');
+            $upload->start(self::PLAYER, 'more.jpg', 'image/jpeg', 3000);
+        }
+
+        self::assertSame([], $storage->calls);
+        self::assertSame($first->token, $retry->token);
+
+        // Release 1 only: a token without a row is looked up in the old format (an object-storage read) - outside
+        // the start, which never meets an unknown token it made itself
+        self::assertNull($stash->reservedBytes($first->token, self::PLAYER), 'Replaced');
+        self::assertNull($stash->reservedBytes($second->token, self::PLAYER), 'Made way for the newer ones');
+    }
+
+    /**
+     * A stash that cannot make a place - the description cannot be recorded
      */
     private function unreservableStash(): PhotoStash
     {
-        return $this->newStash(new Filesystem(new ExplodingFilesystemAdapter()));
+        return $this->newStash($this->filesystem, new class implements MessageBusInterface {
+            public function dispatch(object $message, array $stamps = []): Envelope
+            {
+                throw new \RuntimeException('Database unavailable');
+            }
+        });
     }
 
     public function testATokenOfAnotherFileOrPlayerGetsAPlaceOfItsOwn(): void

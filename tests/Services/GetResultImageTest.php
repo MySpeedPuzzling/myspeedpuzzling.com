@@ -50,7 +50,7 @@ final class GetResultImageTest extends KernelTestCase
         $image = $container->get(GetResultImage::class)->forSolvingTime(PuzzleSolvingTimeFixture::TIME_06);
 
         self::assertFalse($image->withPlaceholder);
-        self::assertSame($image->content, $cache->read(self::CARD));
+        self::assertSame($image->content, $cache->read(self::CARD)?->content);
         self::assertFalse($bucket->fileExists(self::CARD));
 
         // The next request gets the kept card, even with the photo gone

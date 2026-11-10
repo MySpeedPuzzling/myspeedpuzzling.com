@@ -49,10 +49,20 @@ final class ResultImageCacheTest extends TestCase
         $this->cache->write($path, 'png');
 
         $this->age($path, hours: 47);
-        self::assertSame('png', $this->cache->read($path));
+        $kept = $this->cache->read($path);
+        self::assertNotNull($kept);
+        self::assertSame('png', $kept->content);
+        self::assertSame($this->clock->now()->getTimestamp() - 47 * 3600, $kept->keptAt->getTimestamp(), 'kept since the card was written');
 
         $this->age($path, hours: 49);
         self::assertNull($this->cache->read($path), 'An older card is drawn again');
+    }
+
+    public function testACardIsServedForWhatIsLeftOfItsHours(): void
+    {
+        self::assertSame(48 * 3600, $this->cache->secondsKeptAfter($this->clock->now()));
+        self::assertSame(1800, $this->cache->secondsKeptAfter($this->clock->now()->modify('-47 hours -30 minutes')));
+        self::assertSame(0, $this->cache->secondsKeptAfter($this->clock->now()->modify('-49 hours')));
     }
 
     public function testMissingImageIsNull(): void

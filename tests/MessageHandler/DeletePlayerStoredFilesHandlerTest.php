@@ -127,7 +127,7 @@ final class DeletePlayerStoredFilesHandlerTest extends KernelTestCase
         $this->handler()($this->sentMessage());
 
         self::assertNull($cache->read($theirs));
-        self::assertSame('png', $cache->read($others));
+        self::assertSame('png', $cache->read($others)?->content);
     }
 
     public function testMissingObjectsAreFine(): void

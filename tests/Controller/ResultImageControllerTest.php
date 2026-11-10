@@ -12,6 +12,8 @@ use SpeedPuzzling\Web\Services\ResultImageCache;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\ImagesWithMetadata;
+use SpeedPuzzling\Web\Tests\TestingLogin;
+use Symfony\Component\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
@@ -93,6 +95,9 @@ final class ResultImageControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertResponseHeaderSame('Content-Type', 'image/png');
         self::assertTrue($client->getResponse()->headers->hasCacheControlDirective('no-store'));
+        self::assertContains($client->getResponse()->headers->getCacheControlDirective('max-age'), [null, '0']);
+        self::assertNull($client->getResponse()->getEtag(), 'nothing to revalidate a placeholder card with');
+        self::assertNull($client->getResponse()->getLastModified());
         self::assertStringStartsWith("\x89PNG", (string) $client->getResponse()->getContent());
 
         /** @var Filesystem $filesystem */
@@ -150,7 +155,7 @@ final class ResultImageControllerTest extends WebTestCase
         $nameless = (string) $client->getResponse()->getContent();
 
         $cache = self::getContainer()->get(ResultImageCache::class);
-        self::assertSame(md5($nameless), md5((string) $cache->read(self::HIDDEN_CARD)));
+        self::assertSame(md5($nameless), md5((string) $cache->read(self::HIDDEN_CARD)?->content));
         self::assertNull($cache->read(self::CARD), 'the named card is never written for a private profile');
 
         $database->executeStatement('UPDATE player SET is_private = false WHERE id = :id', ['id' => PlayerFixture::PLAYER_REGULAR]);
@@ -162,7 +167,97 @@ final class ResultImageControllerTest extends WebTestCase
         $named = (string) $client->getResponse()->getContent();
 
         self::assertNotSame(md5($nameless), md5($named), 'the card kept while private is not served once public');
-        self::assertSame(md5($named), md5((string) $cache->read(self::CARD)));
+        self::assertSame(md5($named), md5((string) $cache->read(self::CARD)?->content));
+    }
+
+    public function testTheCardIsKeptByTheBrowserForAnHour(): void
+    {
+        $client = self::createClient();
+        $this->givePhotoToTheTime();
+
+        $client->request('GET', '/result-image/' . self::TIME);
+
+        $response = $client->getResponse();
+        self::assertResponseIsSuccessful();
+        // Only the player's own browser: a shared cache could keep a named card after the profile turned private
+        self::assertTrue($response->headers->hasCacheControlDirective('private'));
+        self::assertFalse($response->headers->hasCacheControlDirective('public'));
+        self::assertFalse($response->headers->hasCacheControlDirective('no-store'));
+        self::assertSame('3600', $response->headers->getCacheControlDirective('max-age'));
+        self::assertNotNull($response->getEtag());
+        self::assertNotNull($response->getLastModified());
+    }
+
+    public function testASignedInPlayerGetsTheSameCaching(): void
+    {
+        $client = self::createClient();
+        // The recap page, where the card is opened, is for a signed-in player: their session must not turn it off
+        TestingLogin::asPlayer($client, PlayerFixture::PLAYER_REGULAR);
+        $this->givePhotoToTheTime();
+
+        $client->request('GET', '/result-image/' . self::TIME);
+
+        self::assertResponseIsSuccessful();
+        self::assertTrue($client->getResponse()->headers->hasCacheControlDirective('private'));
+        self::assertSame('3600', $client->getResponse()->headers->getCacheControlDirective('max-age'));
+    }
+
+    public function testAnUnchangedCardIsNotSentAgain(): void
+    {
+        $client = self::createClient();
+        $client->disableReboot();
+        $this->givePhotoToTheTime();
+
+        $client->request('GET', '/result-image/' . self::TIME);
+        $etag = $client->getResponse()->getEtag();
+        self::assertIsString($etag);
+        $lastModified = (string) $client->getResponse()->headers->get('Last-Modified');
+
+        $client->request('GET', '/result-image/' . self::TIME, server: ['HTTP_IF_NONE_MATCH' => $etag]);
+        self::assertResponseStatusCodeSame(304);
+        self::assertSame('', (string) $client->getResponse()->getContent());
+        self::assertSame($etag, $client->getResponse()->getEtag());
+
+        $client->request('GET', '/result-image/' . self::TIME, server: ['HTTP_IF_MODIFIED_SINCE' => $lastModified]);
+        self::assertResponseStatusCodeSame(304);
+    }
+
+    public function testAChangedCardIsSentAgain(): void
+    {
+        $client = self::createClient();
+        $client->disableReboot();
+        $this->givePhotoToTheTime();
+
+        $client->request('GET', '/result-image/' . self::TIME);
+        $etag = $client->getResponse()->getEtag();
+        self::assertIsString($etag);
+
+        /** @var Connection $database */
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement('UPDATE player SET is_private = true WHERE id = :id', ['id' => PlayerFixture::PLAYER_REGULAR]);
+        self::getContainer()->get('doctrine.orm.entity_manager')->clear();
+
+        $client->request('GET', '/result-image/' . self::TIME, server: ['HTTP_IF_NONE_MATCH' => $etag]);
+        self::assertResponseStatusCodeSame(200);
+        self::assertNotSame($etag, $client->getResponse()->getEtag());
+        self::assertStringStartsWith("\x89PNG", (string) $client->getResponse()->getContent());
+    }
+
+    public function testTheBrowserNeverKeepsACardLongerThanTheServer(): void
+    {
+        $client = self::createClient();
+        $client->disableReboot();
+        $this->givePhotoToTheTime();
+
+        $client->request('GET', '/result-image/' . self::TIME);
+        $first = (string) $client->getResponse()->getContent();
+
+        // The card was kept 47 h 30 min ago: the server draws it again in 30 minutes, the browser keeps it no longer
+        self::getContainer()->get(ClockInterface::class)->sleep(47 * 3600 + 30 * 60); // a MockClock moves on at once
+
+        $client->request('GET', '/result-image/' . self::TIME);
+        self::assertSame(md5($first), md5((string) $client->getResponse()->getContent()), 'still the kept card');
+        self::assertSame('1800', $client->getResponse()->headers->getCacheControlDirective('max-age'));
     }
 
     private function givePhotoToTheTime(): void

@@ -119,7 +119,7 @@ final class GetAchievementHoldersParityTest extends KernelTestCase
             }
         }
 
-        self::assertGreaterThan(GetAchievementHolders::LISTED_PER_TIER, max(array_map(static fn (AchievementTierHolders $section): int => $section->listedCount, $sections)));
+        self::assertGreaterThan(GetAchievementHolders::LISTED_PER_TIER, max([0, ...array_map(static fn (AchievementTierHolders $section): int => $section->listedCount, $sections)]));
         self::assertGreaterThan(0, $listed);
         self::assertGreaterThan(0, $unlisted);
         self::assertGreaterThan(0, $firstToEarn);

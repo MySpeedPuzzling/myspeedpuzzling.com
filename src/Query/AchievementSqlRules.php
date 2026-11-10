@@ -57,35 +57,41 @@ SQL;
      * Competitor: one row per public in-person competition that has ended (before :today) and that the player took
      * part in - connected as its participant, or in a result linked to it. `at` = when it counted: the day after it
      * ended, or later when the player was connected or linked a result only afterwards. Binds :playerId and :today.
+     *
+     * Starts from the player's own entries and results (a handful of competitions), then keeps the public, ended,
+     * in-person ones - not from every competition with two lookups each, which grew with the number of competitions
+     * (CompetitorEventsParityTest pins the rows of the former). LEAST() skips a NULL like MIN() over no rows did.
      */
     public const string COMPETITOR_EVENTS = <<<SQL
 SELECT
     CAST(c.id AS TEXT) AS competition_id,
     TO_CHAR(
-        GREATEST(CAST(CAST(COALESCE(c.date_to, c.date_from) AS date) + 1 AS timestamp), LEAST(participant.at, result.at)),
+        GREATEST(CAST(CAST(COALESCE(c.date_to, c.date_from) AS date) + 1 AS timestamp), LEAST(taken_part.participant_at, taken_part.result_at)),
         'YYYY-MM-DD HH24:MI:SS.US'
     ) AS at
-FROM competition c
+FROM (
+    SELECT own.competition_id, MIN(own.participant_at) AS participant_at, MIN(own.result_at) AS result_at
+    FROM (
+        SELECT cp.competition_id, COALESCE(cp.connected_at, cp.registered_at) AS participant_at, CAST(NULL AS timestamp) AS result_at
+        FROM competition_participant cp
+        WHERE cp.player_id = :playerId AND cp.deleted_at IS NULL
+        UNION ALL
+        SELECT pst.competition_id, CAST(NULL AS timestamp), pst.tracked_at
+        FROM puzzle_solving_time pst
+        WHERE pst.competition_id IS NOT NULL
+          AND pst.suspicious = false
+          AND (
+            pst.player_id = :playerId
+            OR (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
+          )
+    ) own
+    GROUP BY own.competition_id
+) taken_part
+JOIN competition c ON c.id = taken_part.competition_id
 LEFT JOIN competition_series cs ON cs.id = c.series_id
-LEFT JOIN LATERAL (
-    SELECT COUNT(*) AS entries, MIN(COALESCE(cp.connected_at, cp.registered_at)) AS at
-    FROM competition_participant cp
-    WHERE cp.competition_id = c.id AND cp.player_id = :playerId AND cp.deleted_at IS NULL
-) participant ON true
-LEFT JOIN LATERAL (
-    SELECT COUNT(*) AS entries, MIN(pst.tracked_at) AS at
-    FROM puzzle_solving_time pst
-    WHERE pst.competition_id = c.id
-      AND pst.suspicious = false
-      AND (
-        pst.player_id = :playerId
-        OR (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
-      )
-) result ON true
 WHERE c.is_online = false
   AND COALESCE(c.date_to, c.date_from) IS NOT NULL
   AND CAST(COALESCE(c.date_to, c.date_from) AS date) < CAST(:today AS date)
-  AND (participant.entries > 0 OR result.entries > 0)
 SQL
         . ' AND ' . IsCompetitionPubliclyVisible::SQL_CONDITION . ' AND ' . self::IS_COMPETITION_KIND;
 }

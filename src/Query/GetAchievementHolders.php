@@ -58,8 +58,8 @@ SQL;
      * tier (the medal's "of 82", and telling "everyone went further" from "nobody yet").
      *
      * Each row knows whether it is the tier's very first holder among ALL holders (the "First to earn" trophy, given
-     * only when that first earn came after launch): the medal serial rule of §2, ROW_NUMBER() OVER (PARTITION BY
-     * type, tier ORDER BY earned_at, id), numbered before anybody is left out of the list.
+     * only when that first earn came after launch): serial 1 of the medal serial rule of §2 (ORDER BY earned_at, id
+     * within the type and tier), picked before anybody is left out of the list.
      *
      * Two statements whatever the number of holders: the listed rows, and per tier the counts (every country + the
      * filtered country).
@@ -77,43 +77,59 @@ SQL;
         null|BadgeTier $expandedTier = null,
         int $expandedLimit = self::LISTED_PER_TIER,
     ): array {
+        $tiers = implode(', ', array_map(static fn (BadgeTier $tier): string => '(' . $tier->value . ')', BadgeTier::cases()));
+
+        // Per tier one newest-first walk of the (type, tier, earned_at, id) index that stops at the section's limit,
+        // instead of numbering every holder of the type twice with window functions. "Listed under the highest tier"
+        // = no badge of a higher tier; "First to earn" = the tier's first badge of ALL holders, picked before anybody
+        // is left out. The viewer's blocks are inside the walk, so the positions close up.
         $listedSql = <<<SQL
-WITH numbered AS (
+WITH first_holder AS (
+    SELECT DISTINCT ON (b.tier) b.tier, b.id
+    FROM badge b
+    WHERE b.type = :type
+      AND b.tier IS NOT NULL
+    ORDER BY b.tier, b.earned_at ASC, b.id ASC
+)
+SELECT
+    listed.tier,
+    listed.earned_at,
+    CASE WHEN listed.id = first_holder.id THEN 1 ELSE 0 END AS is_first,
+    listed.player_id,
+    listed.player_name,
+    listed.code,
+    listed.country,
+    listed.avatar
+FROM (VALUES {$tiers}) AS tiers(tier)
+CROSS JOIN LATERAL (
     SELECT
         b.id,
         b.tier,
         b.earned_at,
-        b.player_id,
-        ROW_NUMBER() OVER (PARTITION BY b.tier ORDER BY b.earned_at ASC, b.id ASC) AS serial,
-        MAX(b.tier) OVER (PARTITION BY b.player_id) AS highest_tier
-    FROM badge b
-    WHERE b.type = :type
-      AND b.tier IS NOT NULL
-)
-SELECT tier, earned_at, serial, player_id, player_name, code, country, avatar
-FROM (
-    SELECT
-        n.tier,
-        n.earned_at,
-        n.serial,
         p.id AS player_id,
         p.name AS player_name,
         p.code,
         p.country,
-        p.avatar,
-        ROW_NUMBER() OVER (PARTITION BY n.tier ORDER BY n.earned_at DESC, n.id DESC) AS position
-    FROM numbered n
-    JOIN player p ON p.id = n.player_id
+        p.avatar
+    FROM badge b
+    JOIN player p ON p.id = b.player_id
     LEFT JOIN membership m ON m.player_id = p.id
-    WHERE n.tier = n.highest_tier
+    WHERE b.type = :type
+      AND b.tier = tiers.tier
+      AND NOT EXISTS (
+          SELECT 1 FROM badge higher
+          WHERE higher.player_id = b.player_id AND higher.type = b.type AND higher.tier > b.tier
+      )
       AND (CAST(:country AS TEXT) IS NULL OR p.country = :country)
       AND {$this->listedEligibility()}
-) ranked
-WHERE position <= CASE WHEN tier = CAST(:expandedTier AS INT) THEN CAST(:expandedLimit AS INT) ELSE CAST(:limit AS INT) END
-ORDER BY tier DESC, position ASC
+    ORDER BY b.earned_at DESC, b.id DESC
+    LIMIT CASE WHEN tiers.tier = CAST(:expandedTier AS INT) THEN CAST(:expandedLimit AS INT) ELSE CAST(:limit AS INT) END
+) listed
+LEFT JOIN first_holder ON first_holder.tier = listed.tier
+ORDER BY listed.tier DESC, listed.earned_at DESC, listed.id DESC
 SQL;
 
-        /** @var list<array{tier: int|string, earned_at: string, serial: int|string, player_id: string, player_name: null|string, code: string, country: null|string, avatar: null|string}> $listedRows */
+        /** @var list<array{tier: int|string, earned_at: string, is_first: int|string, player_id: string, player_name: null|string, code: string, country: null|string, avatar: null|string}> $listedRows */
         $listedRows = $this->database->executeQuery($listedSql, [
             'type' => $type->value,
             'country' => $country,
@@ -171,7 +187,7 @@ SQL;
                 avatar: $row['avatar'],
                 earnedAt: $earnedAt,
                 heldAtLaunch: $held,
-                firstToEarn: (int) $row['serial'] === 1 && $held === false,
+                firstToEarn: (int) $row['is_first'] === 1 && $held === false,
             );
         }
 
@@ -198,15 +214,18 @@ SQL;
      */
     public function countries(BadgeType $type): array
     {
+        // From membership: the listed eligibility needs a membership row (without one both of its branches are
+        // false), and there are far fewer members than badges of a type
         $sql = <<<SQL
 SELECT DISTINCT p.country
-FROM badge b
-JOIN player p ON p.id = b.player_id
-LEFT JOIN membership m ON m.player_id = p.id
-WHERE b.type = :type
-  AND b.tier IS NOT NULL
-  AND p.country IS NOT NULL
+FROM membership m
+JOIN player p ON p.id = m.player_id
+WHERE p.country IS NOT NULL
   AND {$this->listedEligibility()}
+  AND EXISTS (
+      SELECT 1 FROM badge b
+      WHERE b.player_id = p.id AND b.type = :type AND b.tier IS NOT NULL
+  )
 ORDER BY p.country
 SQL;
 

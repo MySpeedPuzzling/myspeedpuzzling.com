@@ -127,10 +127,10 @@ final class CompetitionPickerOnSaveTest extends WebTestCase
         $seriesId = $scenario->series('Lantern Weekly Jam');
         $edition = $scenario->edition($seriesId, 'Jam No. 154', $today->modify('-40 days')->format('Y-m-d'));
 
-        foreach (['series:' . $seriesId => '-3 days', 'edition:' . $edition => '-40 days'] as $value => $day) {
+        foreach (['series:' . $seriesId => $today->modify('-3 days'), 'edition:' . $edition => $today->modify('-40 days')] as $value => $day) {
             $page = $browser->request('GET', self::ADD_URL);
             $submission = $this->addSubmission($page, $value);
-            $submission['finishedAt'] = $today->modify($day)->format('d.m.Y');
+            $submission['finishedAt'] = $day->format('d.m.Y');
             $timeId = Uuid::uuid7()->toString();
 
             $this->startCountingQueries($browser);

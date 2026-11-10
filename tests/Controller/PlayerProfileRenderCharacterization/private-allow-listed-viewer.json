@@ -1,0 +1,100 @@
+{
+    "h1": [
+        "Jane Smith"
+    ],
+    "chips": [],
+    "private_alert": [],
+    "standing": [
+        "MSP Rating Ranking Ranked among 4 players #1 · 1900 View full ladder",
+        "MSP Rating Ranking Ranked among 3 players #1 · 1300 View full ladder"
+    ],
+    "rating_history_frame": 0,
+    "chart": {
+        "heading": [
+            "500 pieces average time per month"
+        ],
+        "pieces": [
+            "500",
+            "1000",
+            "300",
+            "2000"
+        ],
+        "brands": [
+            "all = All Brands",
+            "018d0002-0000-0000-0000-000000000001 = Ravensburger (8)",
+            "018d0002-0000-0000-0000-000000000002 = Trefl (1)"
+        ],
+        "locked": 1,
+        "canvas": 0
+    },
+    "results": {
+        "tabs": [
+            "Solo (10) [active]",
+            "Pair (2)",
+            "Team (0) [disabled]"
+        ],
+        "brands": [
+            "All manufacturers",
+            "Ravensburger (9)",
+            "Trefl (2)"
+        ],
+        "teams": [
+            "All pairs and teams",
+            "John Doe (2)"
+        ],
+        "rows": [
+            "Puzzle 11 300 pieces300 pcs · Ravensburger #2 of 2 1st try 00:15:00 18.09.2026 PPM 20 | /en/puzzle/018d0003-0000-0000-0000-000000000011,/en/puzzle/018d0003-0000-0000-0000-000000000011",
+            "Puzzle 1 500 pieces500 pcs · Ravensburger #2 of 5 Solved 3×1st try 00:23:20 30.09.2026 PPM 21.43 | /en/puzzle/018d0003-0000-0000-0000-000000000001,/en/puzzle/018d0003-0000-0000-0000-000000000001",
+            "Intel Test Puzzle A 500 pieces500 pcs · Ravensburger #1 of 5 1st try 00:26:20 09.09.2026 PPM 18.99 | /en/puzzle/018d0008-0000-0000-0000-000000000001,/en/puzzle/018d0008-0000-0000-0000-000000000001",
+            "Puzzle 2 500 pieces500 pcs · Ravensburger #2 of 5 Solved 2×1st try 00:27:30 04.09.2026 PPM 18.18 | /en/puzzle/018d0003-0000-0000-0000-000000000002,/en/puzzle/018d0003-0000-0000-0000-000000000002",
+            "Intel Test Puzzle B 500 pieces500 pcs · Ravensburger #1 of 5 1st try 00:28:40 14.09.2026 PPM 17.44 | /en/puzzle/018d0008-0000-0000-0000-000000000002,/en/puzzle/018d0008-0000-0000-0000-000000000002",
+            "Puzzle 3 500 pieces500 pcs · Ravensburger #3 of 5 1st try 00:35:00 20.09.2026 PPM 14.29 | /en/puzzle/018d0003-0000-0000-0000-000000000003,/en/puzzle/018d0003-0000-0000-0000-000000000003",
+            "Puzzle 5 500 pieces500 pcs · Trefl #2 of 2 1st try 00:41:40 02.10.2026 PPM 12 | /en/puzzle/018d0003-0000-0000-0000-000000000005,/en/puzzle/018d0003-0000-0000-0000-000000000005",
+            "Puzzle 6 1000 pieces1000 pcs · Ravensburger #3 of 4 1st try 01:10:00 22.09.2026 PPM 14.29 | /en/puzzle/018d0003-0000-0000-0000-000000000006,/en/puzzle/018d0003-0000-0000-0000-000000000006",
+            "Puzzle 7 1000 pieces1000 pcs · Trefl #3 of 3 1st try WJPC24 01:20:00 10.10.2026 PPM 12.5 | /en/puzzle/018d0003-0000-0000-0000-000000000007,/en/puzzle/018d0003-0000-0000-0000-000000000007",
+            "Puzzle 14 2000 pieces2000 pcs · Ravensburger #3 of 3 1st try 03:20:00 11.09.2026 PPM 10 | /en/puzzle/018d0003-0000-0000-0000-000000000014,/en/puzzle/018d0003-0000-0000-0000-000000000014"
+        ],
+        "shown": []
+    },
+    "results_duo": {
+        "tabs": [
+            "Solo (10)",
+            "Pair (2) [active]",
+            "Team (0) [disabled]"
+        ],
+        "brands": [
+            "All manufacturers",
+            "Ravensburger (9)",
+            "Trefl (2)"
+        ],
+        "teams": [
+            "All pairs and teams",
+            "John Doe (2)"
+        ],
+        "rows": [
+            "Puzzle 6 1000 pieces1000 pcs · Ravensburger John Doe Jane Smith Pair page 1st try 01:00:00 02.10.2026 PPM 16.67 2× 8.33 | /en/puzzle/018d0003-0000-0000-0000-000000000006,/en/puzzle/018d0003-0000-0000-0000-000000000006",
+            "Puzzle 8 1000 pieces1000 pcs · Ravensburger John Doe Jane Smith Pair page 1st try 01:06:40 06.10.2026 PPM 15 2× 7.5 | /en/puzzle/018d0003-0000-0000-0000-000000000008,/en/puzzle/018d0003-0000-0000-0000-000000000008"
+        ],
+        "shown": []
+    },
+    "results_group": {
+        "tabs": [
+            "Solo (10)",
+            "Pair (2)",
+            "Team (0) [disabled] [active]"
+        ],
+        "brands": [
+            "All manufacturers",
+            "Ravensburger (9)",
+            "Trefl (2)"
+        ],
+        "teams": [
+            "All pairs and teams",
+            "John Doe (2)"
+        ],
+        "rows": [
+            "No puzzles solved? Give it a go and see how you do! We believe, you can do it!"
+        ],
+        "shown": []
+    }
+}

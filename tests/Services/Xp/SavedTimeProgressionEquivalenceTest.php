@@ -421,7 +421,8 @@ final class SavedTimeProgressionEquivalenceTest extends WebTestCase
                 ['playerId' => $playerId],
             ) as $row
         ) {
-            $perSolve[(string) $row['solving_time_id']] = self::int($row['net']);
+            self::assertIsString($row['solving_time_id']);
+            $perSolve[$row['solving_time_id']] = self::int($row['net']);
         }
 
         /** @var list<string> $solveLines */

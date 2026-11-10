@@ -912,6 +912,46 @@ td.rank {
     }
 }
 
+.result-card-frame {
+    position: relative;
+    // Against the screen, not the parent: the parent shrinks to this box, so a percentage here would mean nothing
+    width: min(320px, calc(100vw - 2rem));
+    aspect-ratio: 1;
+    overflow: hidden;
+    background: $gray-200;
+
+    // Behind the card: if the script never runs, the card still covers it once it arrives
+    &.is-loading::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent, rgba($white, 0.65), transparent);
+        transform: translateX(-100%);
+        animation: result-card-shimmer 1.4s ease-in-out infinite;
+    }
+
+    .result-card-image {
+        position: relative;
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        &.is-loading::before {
+            animation: none;
+            transform: none;
+            opacity: 0.4;
+        }
+    }
+}
+
+@keyframes result-card-shimmer {
+    to {
+        transform: translateX(100%);
+    }
+}
+
 button[data-submit-prevention-target] {
     .spinner-border {
         display: none;

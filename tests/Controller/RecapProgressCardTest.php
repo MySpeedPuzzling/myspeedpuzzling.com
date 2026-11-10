@@ -519,6 +519,22 @@ final class RecapProgressCardTest extends WebTestCase
         self::assertStringContainsString('+2 XP', $html);
     }
 
+    public function testTheShareCardWaitsInAFixedSquareWithAShimmer(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $crawler = $browser->request('GET', '/en/time-added/' . PuzzleSolvingTimeFixture::TIME_03);
+
+        self::assertResponseIsSuccessful();
+        $frame = $crawler->filter('.result-card-frame.is-loading[data-controller="result-card-frame"]');
+        self::assertCount(1, $frame);
+        $image = $frame->filter('img[data-result-card-frame-target="image"]');
+        self::assertCount(1, $image);
+        self::assertStringContainsString('/result-image/' . PuzzleSolvingTimeFixture::TIME_03, (string) $image->attr('src'));
+        self::assertSame('load->result-card-frame#settle error->result-card-frame#settle', $image->attr('data-action'));
+    }
+
     private function postTimedSave(KernelBrowser $browser, string $puzzleId): string
     {
         $crawler = $browser->request('GET', '/en/puzzle-add');

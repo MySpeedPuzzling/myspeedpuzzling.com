@@ -25,6 +25,7 @@ final class ResultImageControllerTest extends WebTestCase
     // TIME_06: solo time of PLAYER_REGULAR (public profile, name "John Doe")
     private const string TIME = PuzzleSolvingTimeFixture::TIME_06;
     private const string PHOTO = 'players/' . PlayerFixture::PLAYER_REGULAR . '/finished-for-card.jpg';
+    private const string JPEG_SIGNATURE = "\xFF\xD8\xFF";
     private const string OTHER_PHOTO = 'players/' . PlayerFixture::PLAYER_REGULAR . '/finished-for-card-2.jpg';
 
     /**
@@ -64,13 +65,11 @@ final class ResultImageControllerTest extends WebTestCase
         $client->request('GET', '/result-image/' . $timeId);
 
         self::assertResponseIsSuccessful();
-        $png = (string) $client->getResponse()->getContent();
-        self::assertStringStartsWith("\x89PNG", $png);
-        self::assertSame([], array_values(array_intersect(
-            ImagesWithMetadata::pngChunkTypes($png),
-            ['eXIf', 'tEXt', 'zTXt', 'iTXt', 'tIME'],
-        )));
-        self::assertStringNotContainsString(ImagesWithMetadata::CAMERA, $png);
+        $jpeg = (string) $client->getResponse()->getContent();
+        self::assertStringStartsWith(self::JPEG_SIGNATURE, $jpeg);
+        self::assertStringNotContainsString('Exif', $jpeg);
+        self::assertStringNotContainsString('http://ns.adobe.com/xap/', $jpeg);
+        self::assertStringNotContainsString(ImagesWithMetadata::CAMERA, $jpeg);
     }
 
     #[DataProvider('missingPhotos')]
@@ -92,22 +91,22 @@ final class ResultImageControllerTest extends WebTestCase
         $client->request('GET', '/result-image/' . $timeId);
 
         self::assertResponseIsSuccessful();
-        self::assertResponseHeaderSame('Content-Type', 'image/png');
+        self::assertResponseHeaderSame('Content-Type', 'image/jpeg');
         self::assertTrue($client->getResponse()->headers->hasCacheControlDirective('no-store'));
         self::assertContains($client->getResponse()->headers->getCacheControlDirective('max-age'), [null, '0']);
         self::assertNull($client->getResponse()->getEtag(), 'nothing to revalidate a placeholder card with');
         self::assertNull($client->getResponse()->getLastModified());
-        self::assertStringStartsWith("\x89PNG", (string) $client->getResponse()->getContent());
+        self::assertStringStartsWith(self::JPEG_SIGNATURE, (string) $client->getResponse()->getContent());
 
         /** @var Filesystem $filesystem */
         $filesystem = self::getContainer()->get(Filesystem::class);
         self::assertFalse(
-            $filesystem->fileExists("players/$playerId/results/$timeId.png"),
+            $filesystem->fileExists("players/$playerId/results/$timeId.jpg"),
             'a placeholder version is never stored',
         );
     }
 
-    public function testTheCardIsAnInlinePng(): void
+    public function testTheCardIsAnInlineJpeg(): void
     {
         $client = self::createClient();
         $this->givePhotoToTheTime();
@@ -115,9 +114,9 @@ final class ResultImageControllerTest extends WebTestCase
         $client->request('GET', '/result-image/' . self::TIME);
 
         self::assertResponseIsSuccessful();
-        self::assertResponseHeaderSame('Content-Type', 'image/png');
+        self::assertResponseHeaderSame('Content-Type', 'image/jpeg');
         self::assertResponseHeaderSame('Content-Disposition', 'inline');
-        self::assertStringStartsWith("\x89PNG\r\n\x1a\n", (string) $client->getResponse()->getContent());
+        self::assertStringStartsWith(self::JPEG_SIGNATURE, (string) $client->getResponse()->getContent());
     }
 
     public function testAKeptCardIsServedWithoutDrawing(): void
@@ -155,7 +154,7 @@ final class ResultImageControllerTest extends WebTestCase
 
         $keptWhilePrivate = $this->keptCards();
         self::assertCount(1, $keptWhilePrivate);
-        self::assertStringEndsWith('-hidden.png', $keptWhilePrivate[0], 'the named card is never written for a private profile');
+        self::assertStringEndsWith('-hidden.jpg', $keptWhilePrivate[0], 'the named card is never written for a private profile');
         self::assertSame(md5($nameless), md5((string) self::getContainer()->get(ResultImageCache::class)->read($keptWhilePrivate[0])?->content));
 
         $database->executeStatement('UPDATE player SET is_private = false WHERE id = :id', ['id' => PlayerFixture::PLAYER_REGULAR]);
@@ -169,8 +168,8 @@ final class ResultImageControllerTest extends WebTestCase
         self::assertNotSame(md5($nameless), md5($named), 'the card kept while private is not served once public');
         $namedCards = array_values(array_diff($this->keptCards(), $keptWhilePrivate));
         self::assertCount(1, $namedCards);
-        self::assertStringEndsWith('.png', $namedCards[0]);
-        self::assertStringEndsNotWith('-hidden.png', $namedCards[0]);
+        self::assertStringEndsWith('.jpg', $namedCards[0]);
+        self::assertStringEndsNotWith('-hidden.jpg', $namedCards[0]);
         self::assertSame(md5($named), md5((string) self::getContainer()->get(ResultImageCache::class)->read($namedCards[0])?->content));
     }
 
@@ -244,7 +243,7 @@ final class ResultImageControllerTest extends WebTestCase
         $client->request('GET', '/result-image/' . self::TIME, server: ['HTTP_IF_NONE_MATCH' => $etag]);
         self::assertResponseStatusCodeSame(200);
         self::assertNotSame($etag, $client->getResponse()->getEtag());
-        self::assertStringStartsWith("\x89PNG", (string) $client->getResponse()->getContent());
+        self::assertStringStartsWith(self::JPEG_SIGNATURE, (string) $client->getResponse()->getContent());
     }
 
     public function testTheBrowserNeverKeepsACardLongerThanTheServer(): void

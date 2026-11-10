@@ -15,11 +15,8 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Result share image (`docs/features/result-share-image.md`, 2026-11-10)
 
-- [ ] Cheaper drawing, each changes the pixels slightly - only with Jan's visual yes (compare against
-  `tests/fixtures/result-image/time06.png`): decode the photo with a size hint (`jpeg:size`), one native Imagick stroke
-  per text line instead of Intervention's 9 offset draws, JPEG instead of PNG (share controller hard-codes `.png`)
-- [ ] Sentry spans in `GetResultImage` (queries, photo read, decode, text, encode) to see whether the p99 is the photo
-  read from object storage before choosing among the above
+- [ ] After a week of the `result_image` spans: draw the card in the background after the save if the `photo read` and
+  `draw` spans still make the recap wait
 
 ## Activity feed statements (`docs/features/live-activity-feed.md` "Statement shape", 2026-11-09)
 

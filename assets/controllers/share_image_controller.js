@@ -19,9 +19,14 @@ export default class extends Controller {
             const response = await fetch(this.imageUrlValue);
             const blobImageAsset = await response.blob();
 
+            // The file takes the type the server answered with: a share started from a page cached before the card
+            // became a JPEG can still get a PNG
+            const type = blobImageAsset.type === 'image/png' ? 'image/png' : 'image/jpeg';
+            const extension = type === 'image/png' ? 'png' : 'jpg';
+
             const filesArray = [
-                new File([blobImageAsset], `${this.titleValue}.png`, {
-                    type: 'image/png',
+                new File([blobImageAsset], `${this.titleValue}.${extension}`, {
+                    type,
                     lastModified: new Date().getTime(),
                 }),
             ];

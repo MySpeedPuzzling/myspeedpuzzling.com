@@ -47,7 +47,7 @@ final class ResultImageController extends AbstractController
         }
 
         $headers = [
-            'Content-Type' => 'image/png',
+            'Content-Type' => 'image/jpeg',
             'Content-Disposition' => 'inline',
         ];
 

@@ -62,7 +62,18 @@
                     </button>
                 </div>
 
-                <img style="max-width: 320px; width: 100%;" width="800" height="800" src="{{ path('result_image', {'timeId': solved_puzzle.timeId, 'v': result_image_version}) }}" alt="">
+                {# The card is drawn when it is first asked for: a fixed square with a shimmer until it arrives #}
+                <div class="result-card-frame is-loading" data-controller="result-card-frame">
+                    <img
+                        class="result-card-image"
+                        width="800"
+                        height="800"
+                        src="{{ path('result_image', {'timeId': solved_puzzle.timeId, 'v': result_image_version}) }}"
+                        alt=""
+                        data-result-card-frame-target="image"
+                        data-action="load->result-card-frame#settle error->result-card-frame#settle"
+                    >
+                </div>
             </div>
         </div>
 

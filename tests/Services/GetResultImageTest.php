@@ -20,11 +20,11 @@ final class GetResultImageTest extends KernelTestCase
     private const string FIXTURE_PHOTO = __DIR__ . '/../fixtures/result-image/photo.jpg';
 
     /**
-     * The card TIME_06 gets over FIXTURE_PHOTO, as drawn by the code of 2026-11-09 (PNG32). Regenerate it only when the
+     * The card TIME_06 gets over FIXTURE_PHOTO, as drawn by the code of 2026-11-10 (JPEG, one outline pass per line). Regenerate it only when the
      * card is meant to look different (and say so in the commit):
      * REGENERATE_RESULT_IMAGE_GOLDEN=1 vendor/bin/phpunit --filter testTheCardShowsWhatWasDrawn tests/Services/GetResultImageTest.php
      */
-    private const string GOLDEN = __DIR__ . '/../fixtures/result-image/time06.png';
+    private const string GOLDEN = __DIR__ . '/../fixtures/result-image/time06.jpg';
 
     /**
      * Normalized root mean square error a card may differ by - room for an ImageMagick / FreeType bump of the image,

@@ -102,8 +102,8 @@ final class SeatingProposalIntegrationTest extends KernelTestCase
         self::assertSame(2, $proposal->withDataBySource[SeatingSource::MspTimes->value]);
         self::assertSame(5, $proposal->withDataBySource[SeatingSource::EarlierRounds->value]);
 
-        // Only the order travels - never anybody's time
-        $json = (string) json_encode($proposal, JSON_THROW_ON_ERROR);
+        // Only the order travels - never anybody's time. The ids are left out first: a random one can hold these digits
+        $json = (string) preg_replace('/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i', '', (string) json_encode($proposal, JSON_THROW_ON_ERROR));
         foreach (['18500', '20000', '10000', '18000', '19000'] as $seconds) {
             self::assertStringNotContainsString($seconds, $json);
         }

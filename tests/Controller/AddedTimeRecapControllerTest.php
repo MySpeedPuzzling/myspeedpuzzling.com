@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use DateTimeImmutable;
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
@@ -187,5 +188,35 @@ final class AddedTimeRecapControllerTest extends WebTestCase
             self::assertStringNotContainsString('half of solves', (string) $browser->getResponse()->getContent());
         }
         self::assertStringNotContainsString('than predicted', (string) $browser->getResponse()->getContent());
+    }
+
+    /**
+     * After an edit the recap shows the edited card: its URL changes with what the card shows, so neither the
+     * browser nor the service worker can show the card of before (docs/features/result-share-image.md)
+     */
+    public function testTheShareCardsAddressChangesWithWhatItShows(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/time-added/' . PuzzleSolvingTimeFixture::TIME_01);
+        $this->assertResponseIsSuccessful();
+        $before = $crawler->filter('img[src*="/result-image/"]')->attr('src');
+        self::assertIsString($before);
+        self::assertMatchesRegularExpression('#^/result-image/' . PuzzleSolvingTimeFixture::TIME_01 . '\?v=[0-9a-f]{16}$#', $before);
+        self::assertSame($before, $crawler->filter('[data-share-image-image-url-value]')->attr('data-share-image-image-url-value'));
+
+        $crawler = $browser->request('GET', '/en/time-added/' . PuzzleSolvingTimeFixture::TIME_01);
+        self::assertSame($before, $crawler->filter('img[src*="/result-image/"]')->attr('src'), 'the same card, the same address');
+
+        /** @var Connection $database */
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement(
+            'UPDATE puzzle_solving_time SET seconds_to_solve = seconds_to_solve + 61 WHERE id = :id',
+            ['id' => PuzzleSolvingTimeFixture::TIME_01],
+        );
+
+        $crawler = $browser->request('GET', '/en/time-added/' . PuzzleSolvingTimeFixture::TIME_01);
+        self::assertNotSame($before, $crawler->filter('img[src*="/result-image/"]')->attr('src'));
     }
 }

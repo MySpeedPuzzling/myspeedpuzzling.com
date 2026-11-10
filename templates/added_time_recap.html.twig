@@ -54,7 +54,7 @@
                     <button
                         data-controller="share-image"
                         data-share-image-title-value="{{ solved_puzzle.puzzleName }}"
-                        data-share-image-image-url-value="{{ path('result_image', {'timeId': solved_puzzle.timeId}) }}"
+                        data-share-image-image-url-value="{{ path('result_image', {'timeId': solved_puzzle.timeId, 'v': result_image_version}) }}"
                         data-action="click->share-image#shareImageAsset"
                         class="btn btn-primary shadow-lg opacity-80"
                     >
@@ -62,7 +62,7 @@
                     </button>
                 </div>
 
-                <img style="max-width: 320px; width: 100%;" width="800" height="800" src="{{ path('result_image', {'timeId': solved_puzzle.timeId}) }}" alt="">
+                <img style="max-width: 320px; width: 100%;" width="800" height="800" src="{{ path('result_image', {'timeId': solved_puzzle.timeId, 'v': result_image_version}) }}" alt="">
             </div>
         </div>
 

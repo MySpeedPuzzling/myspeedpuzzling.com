@@ -306,6 +306,14 @@ async function staleWhileRevalidate(request, cacheName) {
             return response;
         }
 
+        // The Cache API stores whatever it is given, Cache-Control included: an
+        // image the server said never to keep (the result share card drawn over
+        // the placeholder photo) would otherwise be replayed on the next view
+        // instead of being asked for again.
+        if (isNoStoreResponse(response)) {
+            return response;
+        }
+
         if (response.ok || response.type === 'opaque') {
             cache.put(request, response.clone())
                 .then(() => trimCache(cacheName, IMAGES_CACHE_LIMIT))
@@ -383,6 +391,10 @@ async function pruneStaticCache() {
 // empty Content-Type - so they read as "not HTML" and stay cacheable as today.
 function isHtmlResponse(response) {
     return (response.headers.get('Content-Type') || '').indexOf('text/html') !== -1;
+}
+
+function isNoStoreResponse(response) {
+    return /(^|,)\s*no-store\s*(,|$)/i.test(response.headers.get('Cache-Control') || '');
 }
 
 // Never test the Accept header here: a navigation's Accept advertises image

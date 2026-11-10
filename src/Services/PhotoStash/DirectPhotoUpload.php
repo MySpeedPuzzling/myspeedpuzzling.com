@@ -21,6 +21,7 @@ use SpeedPuzzling\Web\Value\UploadedImageMetadata;
  * The photo lands in the PhotoStash (`tmp-uploads/<player>/<token>`, PhotoStash::objectKey()), so everything the stash
  * does works for it unchanged: restore() before the form validates it (the form's own constraints decide - a non-image
  * or an oversized file is refused there exactly like an upload), keep() for a refused form, expiry and the daily prune.
+ * Starting makes no object-storage call: the reservation is a database row (PhotoStash), the signature pure computation.
  *
  * The presigned `PUT` is signed for the declared type and exact length (S3QueryPresigner), so the store refuses any
  * other upload; the same bucket CORS rule as the online competitions' evidence lets the site's pages send it
@@ -83,8 +84,8 @@ final readonly class DirectPhotoUpload
                 ?? throw new PhotoUploadRefused('storage');
         }
 
-        if ($replaces !== null && $replaces !== '' && $replaces !== $token && $this->photoStash->reservedBytes($replaces, $playerId) !== null) {
-            $this->photoStash->discard($replaces, $playerId);
+        if ($replaces !== null && $replaces !== '' && $replaces !== $token) {
+            $this->photoStash->release($replaces, $playerId);
         }
 
         $now = $this->clock->now();

@@ -23,6 +23,13 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 readonly final class PuzzleChoicesBuilder
 {
     /**
+     * Part of the brand picker's ETag (PuzzleByBrandAutocompleteController): bump it whenever build() answers
+     * differently for the same puzzles - a browser holding an older answer would otherwise get a 304 for it until
+     * the next deploy changes the release in the ETag (on dev and in tests nothing else would).
+     */
+    public const int FORMAT_VERSION = 1;
+
+    /**
      * Tom Select's `searchField` for these options, weighted. Its scoring (@orchidjs/sifter) adds up, per field,
      * the typed word's share of the field's length (+0.5 when the field starts with it) times the weight - one long
      * field of every name would push a puzzle with five names below a puzzle with one for the very same title. So the
@@ -30,13 +37,6 @@ readonly final class PuzzleChoicesBuilder
      * puzzle of that title alike, however many names it has, and an exact other name beats a longer main title
      * that merely starts with it. Codes and the piece count weigh least.
      */
-    /**
-     * Part of the brand picker's ETag (PuzzleByBrandAutocompleteController): bump it whenever build() answers
-     * differently for the same puzzles - a browser holding an older answer would otherwise get a 304 for it until
-     * the next deploy changes the release in the ETag (on dev and in tests nothing else would).
-     */
-    public const int FORMAT_VERSION = 1;
-
     public const array SEARCH_FIELDS = [
         ['field' => 'name', 'weight' => 3],
         ['field' => 'names', 'weight' => 2],

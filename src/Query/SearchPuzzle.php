@@ -314,6 +314,11 @@ SQL;
             return ['', []];
         }
 
+        // A blank tag is not "no tag": it has always matched nothing, and it is no uuid to bind
+        if ($tag === '' || $tag === '0') {
+            return ['AND false', []];
+        }
+
         return ['AND puzzle.id IN (SELECT tp.puzzle_id FROM tag_puzzle tp WHERE tp.tag_id = :tag)', ['tag' => $tag]];
     }
 

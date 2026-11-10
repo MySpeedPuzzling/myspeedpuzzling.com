@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Query;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\DriverException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
@@ -77,6 +78,11 @@ final class SearchPuzzleCharacterizationTest extends KernelTestCase
         'my collection' => ['list' => 'collection:' . CollectionFixture::COLLECTION_STRIPE_TREFL],
         'my solved + tag' => ['list' => 'solved', 'tag' => TagFixture::TAG_WJPC],
         'my unsolved' => ['list' => 'unsolved'],
+        // A blank tag matches nothing (it never was "no filter"); only null means no tag
+        'empty tag' => ['tag' => ''],
+        'zero tag' => ['tag' => '0'],
+        'empty tag + brand' => ['brand' => ManufacturerFixture::MANUFACTURER_RAVENSBURGER, 'tag' => ''],
+        'zero tag + my list' => ['list' => 'solved', 'tag' => '0'],
     ];
 
     private SearchPuzzle $searchPuzzle;
@@ -156,6 +162,43 @@ final class SearchPuzzleCharacterizationTest extends KernelTestCase
                     $page = $this->ids($this->searchPuzzle, $term, $filter, $sort, $offset, 5);
                     self::assertSame($this->ids($this->before, $term, $filter, $sort, $offset, 5), $page, $context . " offset {$offset}");
                     self::assertSame(array_slice($all, $offset, 5), $page, $context . " offset {$offset} must be a slice of the whole list");
+                }
+            }
+        }
+    }
+
+    public function testABlankTagMatchesNothing(): void
+    {
+        foreach (['', '0'] as $tag) {
+            foreach ([$this->searchPuzzle, $this->before] as $search) {
+                foreach ([null, 'puzzle', 'a'] as $term) {
+                    self::assertSame([], $this->ids($search, $term, ['tag' => $tag], 'most-solved', 0, 1000));
+                    self::assertSame(0, $this->numberFound($search, $term, ['tag' => $tag]));
+                }
+            }
+        }
+    }
+
+    public function testATagThatIsNoUuidIsRefusedByTheDatabaseTheSameWay(): void
+    {
+        $connection = self::getContainer()->get(Connection::class);
+
+        foreach ([$this->before, $this->searchPuzzle] as $search) {
+            foreach (['page', 'count'] as $statement) {
+                $connection->beginTransaction();
+
+                try {
+                    if ($statement === 'page') {
+                        $this->ids($search, 'puzzle', ['tag' => 'abc'], 'most-solved', 0, 5);
+                    } else {
+                        $this->numberFound($search, 'puzzle', ['tag' => 'abc']);
+                    }
+
+                    self::fail($search::class . ' ' . $statement . ' accepted a tag that is no uuid');
+                } catch (DriverException $exception) {
+                    self::assertStringContainsString('uuid', $exception->getMessage());
+                } finally {
+                    $connection->rollBack();
                 }
             }
         }

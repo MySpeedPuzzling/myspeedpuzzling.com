@@ -4,6 +4,12 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Activity feed statements (`docs/features/live-activity-feed.md` "Statement shape", 2026-11-09)
+
+- [ ] `GetRecentActivity::ofPlayerFavorites()` in the `listed` + `selectFromListed()` shape like `forPlayer()` /
+  `latest()` (1.65 ms planning, 8 relations), with a reference-SQL parity test for every column. It still joins
+  `player_skill` without the pieces count - the day a second pieces count is computed it lists every time twice.
+
 ## Shown prediction model switch v3 → v7 (`docs/features/puzzle-intelligence/README.md` "The shown model switch", 2026-10-31)
 
 - [ ] Flip `PREDICTION_SHOWN_MODEL=v7` on lily.srv, then `backfill-solving-time-predictions --recompute-reconstructed`

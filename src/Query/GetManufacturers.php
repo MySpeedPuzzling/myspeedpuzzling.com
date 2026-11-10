@@ -9,12 +9,21 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\ManufacturerOverview;
 use SpeedPuzzling\Web\Value\PuzzleSecrecy;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 
 readonly final class GetManufacturers
 {
+    /**
+     * How long the every-brand list is kept for one fingerprint: only the "(123)" puzzle counts of public puzzles and
+     * the order by them can be this much behind - which brands are listed never is (overviewsFingerprint()).
+     */
+    private const int CACHE_TTL_SECONDS = 3600;
+
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
+        private CacheInterface $manufacturerOverviewsCache,
     ) {
     }
 
@@ -28,13 +37,79 @@ readonly final class GetManufacturers
      * round puzzles for its organisers, and the brands of the organiser's own secret puzzles that are in no round any more
      * (the round picker offers those puzzles too).
      *
+     * The list without parameters - the same for everybody, built on every add/edit-time form - is cached under
+     * overviewsFingerprint(); the organisers' variants (with a competition or a player) are never cached, so their
+     * secret brands can never reach the shared entry.
+     *
      * @return array<ManufacturerOverview>
      */
     public function allIncludingUnapproved(
         null|string $secretPuzzlesOfCompetitionId = null,
         null|string $secretPuzzlesAddedByPlayerId = null,
     ): array {
-        return $this->overviews('true', [], $secretPuzzlesOfCompetitionId, $secretPuzzlesAddedByPlayerId);
+        if ($secretPuzzlesOfCompetitionId !== null || $secretPuzzlesAddedByPlayerId !== null) {
+            return $this->overviews('true', [], $secretPuzzlesOfCompetitionId, $secretPuzzlesAddedByPlayerId);
+        }
+
+        $key = 'manufacturer_overviews_v1_' . $this->overviewsFingerprint();
+
+        /** @var array<ManufacturerOverview> $overviews */
+        $overviews = $this->manufacturerOverviewsCache->get($key, function (ItemInterface $item): array {
+            $item->expiresAfter(self::CACHE_TTL_SECONDS);
+
+            return $this->overviews('true', []);
+        });
+
+        return $overviews;
+    }
+
+    /**
+     * A hash of everything that decides which brands the every-brand list holds and how each is shown (~3 ms on
+     * production's 2,300 brands, a list costs ~20 ms + hydration):
+     * - every brand row as text - a new brand (typed into the add form: its creator sees it on the next form), a
+     *   rename, logo, EAN prefix, approval, merge or delete;
+     * - every hidden puzzle row as text, and how many are hidden at :now - a new secret puzzle, a reveal by hand and
+     *   the reveal moment itself (a brand whose every puzzle is secret appears exactly then);
+     * - how many puzzles each brand holding a hidden puzzle has - a brand left with nothing but secret puzzles
+     *   disappears at once;
+     * - the round puzzles hiding their puzzle everywhere (what makes a hidden approved puzzle secret).
+     * Not in it: the counts of public puzzles of other brands - those may lag CACHE_TTL_SECONDS.
+     * Content hashes, not xmin: a second change of a row in one transaction keeps its xmin.
+     */
+    private function overviewsFingerprint(): string
+    {
+        /** @var array<string, string> $row One row, always: a SELECT of scalar subqueries */
+        $row = $this->database->executeQuery(<<<'SQL'
+SELECT
+    (SELECT COUNT(*) || ':' || COALESCE(SUM(hashtext(manufacturer::text)::bigint), 0) FROM manufacturer) AS brands,
+    (
+        SELECT COUNT(*) || ':' || COALESCE(SUM(hashtext(hidden::text)::bigint), 0)
+            || ':' || COUNT(*) FILTER (WHERE hidden.hide_until > :now::timestamp)
+            || ':' || COUNT(*) FILTER (WHERE hidden.hide_image_until > :now::timestamp)
+        FROM puzzle hidden
+        WHERE hidden.hide_until IS NOT NULL OR hidden.hide_image_until IS NOT NULL
+    ) AS hidden_puzzles,
+    (
+        SELECT COUNT(*) || ':' || COALESCE(SUM(hashtext(brand_total.manufacturer_id::text || ':' || brand_total.total)::bigint), 0)
+        FROM (
+            SELECT of_brand.manufacturer_id, COUNT(*) AS total
+            FROM puzzle of_brand
+            WHERE of_brand.manufacturer_id IN (
+                SELECT hidden_brand.manufacturer_id
+                FROM puzzle hidden_brand
+                WHERE hidden_brand.hide_until IS NOT NULL OR hidden_brand.hide_image_until IS NOT NULL
+            )
+            GROUP BY of_brand.manufacturer_id
+        ) brand_total
+    ) AS brands_with_hidden_puzzles,
+    (
+        SELECT COUNT(*) || ':' || COALESCE(SUM(hashtext(crp::text)::bigint), 0)
+        FROM competition_round_puzzle crp
+        WHERE crp.hides_everywhere
+    ) AS secret_round_puzzles
+SQL, ['now' => $this->clock->now()->format('Y-m-d H:i:s')])->fetchAssociative();
+
+        return sha1(implode('|', $row));
     }
 
     /**

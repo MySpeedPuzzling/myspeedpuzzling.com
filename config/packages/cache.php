@@ -105,6 +105,12 @@ return App::config([
                 'player_rankings_cache' => [
                     'adapters' => ['cache.app'],
                 ],
+                // The every-brand list of the add/edit-time and puzzle forms (GetManufacturers::allIncludingUnapproved()
+                // without parameters): the same for everybody, ~20 ms + hydration on every form build. Keyed by a
+                // fingerprint of the brand rows and the secret puzzles, so a new brand shows at once; 1 hour
+                'manufacturer_overviews_cache' => [
+                    'adapters' => ['cache.app'],
+                ],
                 // Amazon SNS signing certificates (SnsMessageVerifier), keyed by their URL
                 'sns_certificate_cache' => [
                     'adapters' => ['cache.app'],

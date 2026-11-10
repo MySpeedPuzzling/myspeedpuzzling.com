@@ -76,6 +76,10 @@ return App::config([
                 'player_rankings_cache' => [
                     'adapters' => ['cache.adapter.array'],
                 ],
+                // The every-brand list, built from the brands and puzzles a test seeds and DAMA rolls back
+                'manufacturer_overviews_cache' => [
+                    'adapters' => ['cache.adapter.array'],
+                ],
                 // Every test run signs with a fresh key under the same certificate URL
                 'sns_certificate_cache' => [
                     'adapters' => ['cache.adapter.array'],

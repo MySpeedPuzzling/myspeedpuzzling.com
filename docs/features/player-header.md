@@ -97,7 +97,8 @@ page with the header.
   28 px with a 44 px hit area (`::after`). Member and Private profile are words on the `#CODE` line.
 - **Zero queries**: `xp_total`, `level`, `achievement_points` ride on both profile rows; `GetPlayerProfile::byId()` also
   carries the 500-piece skill tier and the MSP Rating place (`GetPlayerRatingRanking::sqlRankOf()`, the profile card's
-  number). The header's own `GetPlayerSkill` call is gone. `PlayerFavoritePuzzlersController` now passes the `byId()`
+  number; it counts the ladder's players by id against the few off it - partial index `custom_player_off_ladder`,
+  docs/database-indexes.md - instead of joining every counted row to `player`). The header's own `GetPlayerSkill` call is gone. `PlayerFavoritePuzzlersController` now passes the `byId()`
   row (the viewer's own row has no tier/place).
 - Free visitors see one lock at most: the skill-tier chip (the profile's "Player Insights" lock button is gone).
 - Styles: `assets/styles/_progression-profile.scss`. Tests: `tests/Controller/ProfileProgressionTest.php`.

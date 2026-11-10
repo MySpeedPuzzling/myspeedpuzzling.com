@@ -275,14 +275,14 @@ SQL;
     public function allForPlayer(string $playerId): array
     {
         $rank = $this->sqlRankOf('pe');
-        $totalPool = $this->sqlOnLadder('p3');
+        $totalPool = $this->sqlOnLadderByPlayerId('pe3.player_id');
 
         $query = <<<SQL
 SELECT
     pe.pieces_count,
     pe.elo_rating,
     {$rank} AS rank,
-    (SELECT COUNT(*) FROM player_elo pe3 INNER JOIN player p3 ON p3.id = pe3.player_id WHERE pe3.pieces_count = pe.pieces_count AND (({$totalPool}) OR p3.id = :playerId)) AS total
+    (SELECT COUNT(*) FROM player_elo pe3 WHERE pe3.pieces_count = pe.pieces_count AND (({$totalPool}) OR pe3.player_id = :playerId)) AS total
 FROM player_elo pe
 WHERE pe.player_id = :playerId
 ORDER BY pe.pieces_count ASC
@@ -313,9 +313,9 @@ SQL;
      */
     public function sqlRankOf(string $eloAlias): string
     {
-        $rankPool = $this->sqlOnLadder('rank_p');
+        $rankPool = $this->sqlOnLadderByPlayerId('rank_pe.player_id');
 
-        return "(1 + (SELECT COUNT(*) FROM player_elo rank_pe INNER JOIN player rank_p ON rank_p.id = rank_pe.player_id WHERE rank_pe.pieces_count = {$eloAlias}.pieces_count AND rank_pe.elo_rating > {$eloAlias}.elo_rating AND {$rankPool}))";
+        return "(1 + (SELECT COUNT(*) FROM player_elo rank_pe WHERE rank_pe.pieces_count = {$eloAlias}.pieces_count AND rank_pe.elo_rating > {$eloAlias}.elo_rating AND {$rankPool}))";
     }
 
     /**
@@ -326,9 +326,9 @@ SQL;
      */
     public function sqlPlaceOnStoredDayOf(string $playerIdSql, string $piecesCountSql, string $dayParameter, string $notBeforeParameter): string
     {
-        $rankPool = $this->sqlOnLadder('day_p');
+        $rankPool = $this->sqlOnLadderByPlayerId('day_o.player_id');
 
-        return "(SELECT 1 + (SELECT COUNT(*) FROM player_rating_snapshot day_o INNER JOIN player day_p ON day_p.id = day_o.player_id WHERE day_o.pieces_count = day_s.pieces_count AND day_o.snapshot_date = day_s.snapshot_date AND day_o.elo_rating > day_s.elo_rating AND {$rankPool})"
+        return "(SELECT 1 + (SELECT COUNT(*) FROM player_rating_snapshot day_o WHERE day_o.pieces_count = day_s.pieces_count AND day_o.snapshot_date = day_s.snapshot_date AND day_o.elo_rating > day_s.elo_rating AND {$rankPool})"
             . " FROM player_rating_snapshot day_s"
             . " WHERE day_s.player_id = {$playerIdSql} AND day_s.pieces_count = {$piecesCountSql} AND day_s.elo_rating IS NOT NULL"
             . " AND day_s.snapshot_date = (SELECT MAX(day_r.snapshot_date) FROM player_rating_snapshot day_r WHERE day_r.pieces_count = {$piecesCountSql} AND day_r.elo_rating IS NOT NULL AND day_r.snapshot_date <= CAST({$dayParameter} AS timestamp) AND day_r.snapshot_date >= CAST({$notBeforeParameter} AS timestamp)))";
@@ -343,6 +343,19 @@ SQL;
     private function sqlOnLadder(string $playerAlias): string
     {
         return self::sqlOnStoredLadder($playerAlias) . $this->hiddenPlayers->sqlExclude("{$playerAlias}.id");
+    }
+
+    /**
+     * sqlOnLadder() for a counted row that only has the player's id (player_elo, player_rating_snapshot): the same rule,
+     * read as "none of the players off the ladder" - a handful of private or opted-out players, found through the
+     * partial index custom_player_off_ladder (docs/database-indexes.md), instead of joining every counted row to its
+     * player, which read the whole player table on each count (4-7 times per profile view). Equal because both flags
+     * are NOT NULL and every counted row has its player (foreign key).
+     */
+    private function sqlOnLadderByPlayerId(string $playerIdColumn): string
+    {
+        return "{$playerIdColumn} NOT IN (SELECT off_ladder.id FROM player off_ladder WHERE off_ladder.is_private OR off_ladder.ranking_opted_out)"
+            . $this->hiddenPlayers->sqlExclude($playerIdColumn);
     }
 
     /**

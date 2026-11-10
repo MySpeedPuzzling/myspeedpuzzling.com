@@ -1,0 +1,85 @@
+{
+    "h1": [
+        "Michael Johnson"
+    ],
+    "chips": [
+        "Skill tier",
+        "#3 MSP Rating ▼ 2Down 2 places since 7 Oct"
+    ],
+    "private_alert": [],
+    "standing": [
+        "MSP Rating Ranking Ranked among 3 players #3 · 1200 View full ladder",
+        "MSP Rating Ranking Ranked among 2 players #2 · 1000 View full ladder"
+    ],
+    "rating_history_frame": 1,
+    "chart": {
+        "heading": [
+            "500 pieces average time per month"
+        ],
+        "pieces": [
+            "1000",
+            "1500",
+            "500"
+        ],
+        "brands": [
+            "018d0002-0000-0000-0000-000000000001 = Ravensburger (5)",
+            "all = All Brands"
+        ],
+        "locked": 1,
+        "canvas": 0
+    },
+    "results": {
+        "tabs": [
+            "Solo (7) [active]",
+            "Pair (0) [disabled]",
+            "Team (0) [disabled]"
+        ],
+        "brands": [
+            "All manufacturers",
+            "Ravensburger (7)"
+        ],
+        "teams": [],
+        "rows": [
+            "Share Edit Delete Puzzle 2 500 pieces500 pcs · Ravensburger #1 of 5 1st try 00:22:30 05.10.2026 PPM 22.22 | actions | /en/puzzle/018d0003-0000-0000-0000-000000000002,/en/puzzle/018d0003-0000-0000-0000-000000000002",
+            "Share Edit Delete Puzzle 3 500 pieces500 pcs · Ravensburger #4 of 5 1st try 00:46:40 30.08.2026 PPM 10.71 | actions | /en/puzzle/018d0003-0000-0000-0000-000000000003,/en/puzzle/018d0003-0000-0000-0000-000000000003",
+            "Share Edit Delete Intel Test Puzzle A 500 pieces500 pcs · Ravensburger #5 of 5 1st try 00:49:10 02.09.2026 PPM 10.17 | actions | /en/puzzle/018d0008-0000-0000-0000-000000000001,/en/puzzle/018d0008-0000-0000-0000-000000000001",
+            "Share Edit Delete Puzzle 1 500 pieces500 pcs · Ravensburger #5 of 5 1st try 00:50:00 07.10.2026 PPM 10 | actions | /en/puzzle/018d0003-0000-0000-0000-000000000001,/en/puzzle/018d0003-0000-0000-0000-000000000001",
+            "Share Edit Delete Intel Test Puzzle B 500 pieces500 pcs · Ravensburger #5 of 5 1st try 00:51:40 05.09.2026 PPM 9.68 | actions | /en/puzzle/018d0008-0000-0000-0000-000000000002,/en/puzzle/018d0008-0000-0000-0000-000000000002",
+            "Share Edit Delete Puzzle 6 1000 pieces1000 pcs · Ravensburger #4 of 4 Solved 2×1st try 01:25:00 24.09.2026 PPM 11.76 | actions | /en/puzzle/018d0003-0000-0000-0000-000000000006,/en/puzzle/018d0003-0000-0000-0000-000000000006",
+            "Share Edit Delete Puzzle 12 1500 pieces1500 pcs · Ravensburger #4 of 4 1st try 02:15:00 18.09.2026 PPM 11.11 | actions | /en/puzzle/018d0003-0000-0000-0000-000000000012,/en/puzzle/018d0003-0000-0000-0000-000000000012"
+        ],
+        "shown": []
+    },
+    "results_duo": {
+        "tabs": [
+            "Solo (7)",
+            "Pair (0) [disabled] [active]",
+            "Team (0) [disabled]"
+        ],
+        "brands": [
+            "All manufacturers",
+            "Ravensburger (7)"
+        ],
+        "teams": [],
+        "rows": [
+            "No puzzles solved? Give it a go and see how you do! We believe, you can do it!"
+        ],
+        "shown": []
+    },
+    "results_group": {
+        "tabs": [
+            "Solo (7)",
+            "Pair (0) [disabled]",
+            "Team (0) [disabled] [active]"
+        ],
+        "brands": [
+            "All manufacturers",
+            "Ravensburger (7)"
+        ],
+        "teams": [],
+        "rows": [
+            "No puzzles solved? Give it a go and see how you do! We believe, you can do it!"
+        ],
+        "shown": []
+    }
+}

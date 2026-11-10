@@ -1,0 +1,84 @@
+{
+    "h1": [
+        "Admin User"
+    ],
+    "chips": [],
+    "private_alert": [],
+    "standing": [],
+    "rating_history_frame": 0,
+    "chart": {
+        "heading": [
+            "500 pieces average time per month"
+        ],
+        "pieces": [
+            "1000",
+            "1500",
+            "500"
+        ],
+        "brands": [
+            "018d0002-0000-0000-0000-000000000001 = Ravensburger (9)",
+            "018d0002-0000-0000-0000-000000000002 = Trefl (1)",
+            "all = All Brands"
+        ],
+        "locked": 1,
+        "canvas": 0
+    },
+    "results": {
+        "tabs": [
+            "Solo (8) [active]",
+            "Pair (0) [disabled]",
+            "Team (0) [disabled]"
+        ],
+        "brands": [
+            "All manufacturers",
+            "Ravensburger (7)",
+            "Trefl (1)"
+        ],
+        "teams": [],
+        "rows": [
+            "Puzzle 1 500 pieces500 pcs · Ravensburger #1 of 4 Solved 3×1st try 00:20:00 03.10.2026 PPM 25 | /en/puzzle/018d0003-0000-0000-0000-000000000001,/en/puzzle/018d0003-0000-0000-0000-000000000001",
+            "Puzzle 3 500 pieces500 pcs · Ravensburger #2 of 4 Solved 2×1st try 00:30:00 21.09.2026 PPM 16.67 | /en/puzzle/018d0003-0000-0000-0000-000000000003,/en/puzzle/018d0003-0000-0000-0000-000000000003",
+            "Intel Test Puzzle B 500 pieces500 pcs · Ravensburger #2 of 4 1st try 00:34:10 16.09.2026 PPM 14.63 | /en/puzzle/018d0008-0000-0000-0000-000000000002,/en/puzzle/018d0008-0000-0000-0000-000000000002",
+            "Puzzle 2 500 pieces500 pcs · Ravensburger #4 of 4 Solved 2×1st try 00:35:00 06.09.2026 PPM 14.29 | /en/puzzle/018d0003-0000-0000-0000-000000000002,/en/puzzle/018d0003-0000-0000-0000-000000000002",
+            "Puzzle 5 500 pieces500 pcs · Trefl #1 of 1 1st try 00:36:40 30.09.2026 PPM 13.64 | /en/puzzle/018d0003-0000-0000-0000-000000000005,/en/puzzle/018d0003-0000-0000-0000-000000000005",
+            "Intel Test Puzzle A 500 pieces500 pcs · Ravensburger #3 of 4 1st try 00:38:20 12.09.2026 PPM 13.04 | /en/puzzle/018d0008-0000-0000-0000-000000000001,/en/puzzle/018d0008-0000-0000-0000-000000000001",
+            "Puzzle 6 1000 pieces1000 pcs · Ravensburger #1 of 3 Solved 4×1st try 01:05:00 23.09.2026 PPM 15.38 | /en/puzzle/018d0003-0000-0000-0000-000000000006,/en/puzzle/018d0003-0000-0000-0000-000000000006",
+            "Puzzle 12 1500 pieces1500 pcs · Ravensburger #1 of 4 1st try 01:53:20 16.09.2026 PPM 13.24 | /en/puzzle/018d0003-0000-0000-0000-000000000012,/en/puzzle/018d0003-0000-0000-0000-000000000012"
+        ],
+        "shown": []
+    },
+    "results_duo": {
+        "tabs": [
+            "Solo (8)",
+            "Pair (0) [disabled] [active]",
+            "Team (0) [disabled]"
+        ],
+        "brands": [
+            "All manufacturers",
+            "Ravensburger (7)",
+            "Trefl (1)"
+        ],
+        "teams": [],
+        "rows": [
+            "No puzzles solved? Give it a go and see how you do! We believe, you can do it!"
+        ],
+        "shown": []
+    },
+    "results_group": {
+        "tabs": [
+            "Solo (8)",
+            "Pair (0) [disabled]",
+            "Team (0) [disabled] [active]"
+        ],
+        "brands": [
+            "All manufacturers",
+            "Ravensburger (7)",
+            "Trefl (1)"
+        ],
+        "teams": [],
+        "rows": [
+            "No puzzles solved? Give it a go and see how you do! We believe, you can do it!"
+        ],
+        "shown": []
+    }
+}

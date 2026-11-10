@@ -4,8 +4,14 @@
     paint, then polls with a growing delay until the XP is counted, then never again.
 #}
 {% set mode = this.mode %}
-{% set poll = this.pollDirective %}
-<div{{ attributes.defaults({class: 'recap-live'}) }}{% if poll is not null %} data-poll="{{ poll }}"{% endif %}>
+{% set settle_delay = this.settleDelay %}
+{% set poll_delay = this.pollDelay %}
+<div{{ attributes.defaults(settle_delay is not null ? {
+    class: 'recap-live',
+    'data-controller': 'recap-settle',
+    'data-recap-settle-delay-value': settle_delay,
+    'data-recap-settle-fallback-value': constant('SpeedPuzzling\\Web\\Component\\XpRecapCelebration::POLL_DELAYS_MS')[0],
+} : {class: 'recap-live'}) }}{% if poll_delay is not null %} data-poll="delay({{ poll_delay }})|checkProgress"{% endif %}>
     {% if mode != 'hidden' %}
         <div id="xp-solve-receipt">
         {% set profile = this.profile %}

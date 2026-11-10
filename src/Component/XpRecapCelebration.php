@@ -33,8 +33,8 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * The save does no progression work: it queues the achievement evaluation and the XP award (RecalculateBadgesForPlayer,
  * then AwardXpForSolvingTime) and redirects. The consumer, woken by the commit, usually finishes before this component
  * renders, so the first paint shows the XP. When it has not (the solve has no XP lines yet) and the recap is fresh, the
- * component settles once by itself: `settle` (SETTLE_DELAY_MS after the paint) runs the viewer's evaluation and the
- * award in its own request (SavedTimeProgression) - any wait for the consumer's PlayerProgressionLock happens there,
+ * component settles once by itself: recap_settle_controller.js fires `settle` once, SETTLE_DELAY_MS after the paint,
+ * which runs the viewer's evaluation and the award in its own request (SavedTimeProgression) - any wait for the consumer's PlayerProgressionLock happens there,
  * with the page already painted. Both writers recompute from the records, so whoever comes second changes nothing.
  * Only when that did not bring the XP either (or the recap is not fresh) does it poll with a growing delay
  * (POLL_DELAYS_MS) and then say the XP is still on its way. The render that shows the XP is the last one: nothing
@@ -95,6 +95,8 @@ final class XpRecapCelebration
     #[LiveAction]
     public function checkProgress(): void
     {
+        // Only reached by the poll, or by the browser after a settle that failed: the poll has taken over
+        $this->settled = true;
         $this->attempts++;
     }
 
@@ -180,22 +182,20 @@ final class XpRecapCelebration
         return $this->attempts < count(self::POLL_DELAYS_MS) ? 'pending' : 'late';
     }
 
-    /**
-     * The Live poll of the pending row: the one settle right after the paint, then the growing checkProgress delays
-     */
-    public function pollDirective(): null|string
+    /** Delay of the one settle after the paint (recap_settle_controller.js), null when this render does not settle */
+    public function settleDelay(): null|int
     {
-        if ($this->mode() !== 'pending') {
+        return $this->shouldSettle() ? self::SETTLE_DELAY_MS : null;
+    }
+
+    /** Never next to the settle: `data-poll` is a setInterval, a tick during the settle would queue another request */
+    public function pollDelay(): null|int
+    {
+        if ($this->mode() !== 'pending' || $this->shouldSettle()) {
             return null;
         }
 
-        if ($this->shouldSettle()) {
-            return sprintf('delay(%d)|settle', self::SETTLE_DELAY_MS);
-        }
-
-        $delay = self::POLL_DELAYS_MS[$this->attempts] ?? null;
-
-        return $delay === null ? null : sprintf('delay(%d)|checkProgress', $delay);
+        return self::POLL_DELAYS_MS[$this->attempts] ?? null;
     }
 
     /**

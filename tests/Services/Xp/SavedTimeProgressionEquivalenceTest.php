@@ -300,8 +300,7 @@ final class SavedTimeProgressionEquivalenceTest extends WebTestCase
         $component->setRouteLocale('en');
         $crawler = $component->render()->crawler();
 
-        $poll = $crawler->filter('[data-poll]');
-        if ($poll->count() > 0 && str_ends_with((string) $poll->attr('data-poll'), '|settle')) {
+        if ($crawler->filter('[data-controller~="recap-settle"]')->count() > 0) {
             $component->call('settle');
             $crawler = $component->render()->crawler();
         }

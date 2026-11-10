@@ -121,8 +121,10 @@ settle work (90 ms+ for the heaviest players), on the critical path before the r
 finishes before the recap renders, so the XP and the achievements are there at the **first paint** (Jan's rule - under
 300 ms it belongs on the result page, at once - still holds). When they are not and the recap is fresh
 (`RecapProgress::isFresh`), `XpRecapCelebration` paints the "Counting your XP" row and settles **once by itself**
-`SETTLE_DELAY_MS` (50 ms) after the paint: the `settle` LiveAction runs `SavedTimeProgression::settleNow()` for the
-viewer (achievements first, then the solve's XP) - any wait for the consumer's lock happens there, with the page already
+`SETTLE_DELAY_MS` (50 ms) after the paint: `recap_settle_controller.js` fires the `settle` LiveAction one time (never a
+`data-poll`: that is a `setInterval` cleared only after the response, so every tick during the request would queue another
+`settle`, sent after the render showing the XP; a failed settle hands over to the poll), which runs
+`SavedTimeProgression::settleNow()` for the viewer (achievements first, then the solve's XP) - any wait for the consumer's lock happens there, with the page already
 shown. A fresh relax repeat (worth nothing on purpose, so its missing lines say nothing) settles once too. Both writers
 recompute from the records under the lock, so whoever comes second changes nothing (`SavedTimeProgressionEquivalenceTest`
 plays every order through). Only when the XP is still missing after that (or the recap is old) does the component poll,

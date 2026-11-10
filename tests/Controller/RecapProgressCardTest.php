@@ -23,6 +23,7 @@ use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\LevelTable;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\ReceivedStamp;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
@@ -147,7 +148,7 @@ final class RecapProgressCardTest extends WebTestCase
         $crawler = $browser->followRedirect();
 
         self::assertResponseIsSuccessful();
-        self::assertSame('delay(' . XpRecapCelebration::SETTLE_DELAY_MS . ')|settle', $crawler->filter('[data-poll]')->attr('data-poll'));
+        $this->assertSettlesOnce($crawler);
         self::assertStringContainsString('Counting your XP', $crawler->filter('section.recap-card')->text());
     }
 
@@ -217,12 +218,12 @@ final class RecapProgressCardTest extends WebTestCase
 
         $component = $this->createLiveComponent('XpRecapCelebration', ['solvingTimeId' => $timeId, 'celebrate' => true], $browser);
         $component->setRouteLocale('en');
-        self::assertSame('delay(' . XpRecapCelebration::SETTLE_DELAY_MS . ')|settle', $component->render()->crawler()->filter('[data-poll]')->attr('data-poll'));
+        $this->assertSettlesOnce($component->render()->crawler());
 
         $component->call('settle');
         $crawler = $component->render()->crawler();
 
-        self::assertCount(0, $crawler->filter('[data-poll]'));
+        self::assertCount(0, $crawler->filter('[data-poll], [data-controller~="recap-settle"]'), 'The render showing the XP is the last one');
         self::assertMatchesRegularExpression('/\+\d+ XP/', $crawler->filter('[data-testid="recap-level"]')->text());
         $settled = $this->progressionOf(PlayerFixture::PLAYER_ADMIN, $timeId);
         self::assertGreaterThan(0, $this->xpLinesOf($timeId));
@@ -247,14 +248,37 @@ final class RecapProgressCardTest extends WebTestCase
 
         $component = $this->createLiveComponent('XpRecapCelebration', ['solvingTimeId' => PuzzleSolvingTimeFixture::TIME_03, 'celebrate' => true], $browser);
         $component->setRouteLocale('en');
-        self::assertSame('delay(' . XpRecapCelebration::SETTLE_DELAY_MS . ')|settle', $component->render()->crawler()->filter('[data-poll]')->attr('data-poll'));
+        $this->assertSettlesOnce($component->render()->crawler());
 
         $component->call('settle');
-        self::assertSame('delay(1200)|checkProgress', $component->render()->crawler()->filter('[data-poll]')->attr('data-poll'));
+        $crawler = $component->render()->crawler();
+        self::assertSame('delay(1200)|checkProgress', $crawler->filter('[data-poll]')->attr('data-poll'));
+        self::assertCount(0, $crawler->filter('[data-controller~="recap-settle"]'));
 
         $component->call('checkProgress');
         self::assertSame('delay(2000)|checkProgress', $component->render()->crawler()->filter('[data-poll]')->attr('data-poll'));
         self::assertSame(0, $this->xpLinesOf(PuzzleSolvingTimeFixture::TIME_03));
+    }
+
+    /**
+     * The browser's way out of a settle that failed (an error answer, a dropped connection - recap_settle_controller.js):
+     * the poll takes over and the settle is not offered again.
+     */
+    public function testAFailedSettleHandsOverToThePoll(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $this->saveNow(PuzzleSolvingTimeFixture::TIME_03);
+
+        $component = $this->createLiveComponent('XpRecapCelebration', ['solvingTimeId' => PuzzleSolvingTimeFixture::TIME_03, 'celebrate' => true], $browser);
+        $component->setRouteLocale('en');
+        $this->assertSettlesOnce($component->render()->crawler());
+
+        $component->call('checkProgress');
+        $crawler = $component->render()->crawler();
+
+        self::assertSame('delay(2000)|checkProgress', $crawler->filter('[data-poll]')->attr('data-poll'));
+        self::assertCount(0, $crawler->filter('[data-controller~="recap-settle"]'));
     }
 
     /**
@@ -268,6 +292,7 @@ final class RecapProgressCardTest extends WebTestCase
 
         $crawler = $browser->request('GET', '/en/time-added/' . PuzzleSolvingTimeFixture::TIME_03);
         self::assertSame('delay(1200)|checkProgress', $crawler->filter('[data-poll]')->attr('data-poll'));
+        self::assertCount(0, $crawler->filter('[data-controller~="recap-settle"]'));
 
         $component = $this->createLiveComponent('XpRecapCelebration', ['solvingTimeId' => PuzzleSolvingTimeFixture::TIME_03], $browser);
         $component->setRouteLocale('en');
@@ -331,7 +356,7 @@ final class RecapProgressCardTest extends WebTestCase
 
         $component = $this->createLiveComponent('XpRecapCelebration', ['solvingTimeId' => $repeatId->toString(), 'celebrate' => true], $browser);
         $component->setRouteLocale('en');
-        self::assertSame('delay(' . XpRecapCelebration::SETTLE_DELAY_MS . ')|settle', $component->render()->crawler()->filter('[data-poll]')->attr('data-poll'));
+        $this->assertSettlesOnce($component->render()->crawler());
 
         $component->call('settle');
         $crawler = $component->render()->crawler();
@@ -601,11 +626,25 @@ final class RecapProgressCardTest extends WebTestCase
         ];
     }
 
+    /**
+     * The one-shot controller, and no `data-poll` next to it: a poll is a setInterval, every tick during the settle
+     * would queue another request
+     */
+    private function assertSettlesOnce(Crawler $crawler): void
+    {
+        $root = $crawler->filter('[data-controller~="recap-settle"]');
+
+        self::assertCount(1, $root);
+        self::assertSame((string) XpRecapCelebration::SETTLE_DELAY_MS, $root->attr('data-recap-settle-delay-value'));
+        self::assertSame((string) XpRecapCelebration::POLL_DELAYS_MS[0], $root->attr('data-recap-settle-fallback-value'));
+        self::assertCount(0, $crawler->filter('[data-poll]'));
+    }
+
     private function assertNeverSettles(KernelBrowser $browser, string $timeId): void
     {
         $component = $this->createLiveComponent('XpRecapCelebration', ['solvingTimeId' => $timeId, 'celebrate' => true], $browser);
         $component->setRouteLocale('en');
-        self::assertCount(0, $component->render()->crawler()->filter('[data-poll]'));
+        self::assertCount(0, $component->render()->crawler()->filter('[data-poll], [data-controller~="recap-settle"]'));
 
         $component->call('settle');
 

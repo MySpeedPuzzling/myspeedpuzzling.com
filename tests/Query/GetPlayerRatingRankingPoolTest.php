@@ -125,6 +125,20 @@ final class GetPlayerRatingRankingPoolTest extends KernelTestCase
         ], $this->standings());
     }
 
+    public function testTheCountsReadThePlayersOffTheLadderInsteadOfJoiningEveryCountedRow(): void
+    {
+        // Joining each counted row to its player read the whole player table on every count (4-7 per profile view)
+        self::assertStringNotContainsString('JOIN player', $this->ranking->sqlRankOf('elo'));
+        self::assertStringNotContainsString('JOIN player', $this->ranking->sqlPlaceOnStoredDayOf('p.id', '500', ':day', ':notBefore'));
+        self::assertStringContainsString('off_ladder.is_private OR off_ladder.ranking_opted_out', $this->ranking->sqlRankOf('elo'));
+
+        // ... through the partial index, whose predicate the fragment repeats word for word
+        self::assertSame(
+            'CREATE INDEX custom_player_off_ladder ON public.player USING btree (id) INCLUDE (is_private) WHERE (is_private OR ranking_opted_out)',
+            $this->connection->fetchOne("SELECT indexdef FROM pg_indexes WHERE indexname = 'custom_player_off_ladder'"),
+        );
+    }
+
     /**
      * @param list<string> $playerIds
      * @return array<string, array{int, int, null|int, null|int}> rank and total (rating card), rank and place a week ago (header chip)

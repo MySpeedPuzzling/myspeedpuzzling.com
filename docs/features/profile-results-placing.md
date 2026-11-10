@@ -57,6 +57,8 @@ number would be wrong for some viewers. A stored "puzzlers per board" count woul
 times, but it has to equal the board exactly through suspicious marks, merges, deletions and privacy changes - not worth
 the invalidation paths while the live count is fast enough.
 
+The component loads the player's pairs and teams together (`GetPlayerSolvedPuzzles::groupByPlayerId()`: one statement and one members lookup); `duoByPlayerId()` / `teamByPlayerId()` remain for callers of one kind.
+
 ## Files
 
 - `src/Component/PlayerSolvedPuzzles.php` (sorts, `placing`, `predictionsOptedOut`, `getPlacingSummary()`,

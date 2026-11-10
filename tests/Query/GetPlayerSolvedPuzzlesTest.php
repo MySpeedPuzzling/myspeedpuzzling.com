@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Query;
 
 use SpeedPuzzling\Web\Tests\TestClock;
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
+use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Results\SolvedPuzzleOverview;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
@@ -19,6 +21,7 @@ use SpeedPuzzling\Web\Tests\TestingViewer;
 use SpeedPuzzling\Web\Value\Puzzler;
 use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 final class GetPlayerSolvedPuzzlesTest extends KernelTestCase
 {
@@ -287,6 +290,71 @@ final class GetPlayerSolvedPuzzlesTest extends KernelTestCase
         self::assertCount(4, $queries);
     }
 
+    /**
+     * The profile, the activity calendar, the statistics and API v0 read a player's pairs and teams together: one
+     * statement and one members lookup for both, the same rows as the two lists apart - private members masked, a
+     * group with a member the viewer hides dropped (unless the viewer took part), the date range and first tries alike.
+     */
+    public function testPairsAndTeamsTogetherAreThePairsAndTheTeamsApart(): void
+    {
+        // The fixtures hold pairs only: two teams of PLAYER_REGULAR, one with PLAYER_PRIVATE in it
+        $this->addGroupTime(PlayerFixture::PLAYER_REGULAR_USER_ID, ['#admin', 'Grandma'], PuzzleFixture::PUZZLE_1500_01, '04:00:00');
+        $this->addGroupTime(PlayerFixture::PLAYER_REGULAR_USER_ID, ['#player2', '#player3'], PuzzleFixture::PUZZLE_2000, '03:00:00');
+        $this->block(PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_PRIVATE);
+        $from = new DateTimeImmutable('2020-01-01');
+        $to = TestClock::now();
+
+        foreach ([null, PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_FAVORITES] as $viewerId) {
+            if ($viewerId !== null) {
+                TestingViewer::signIn(self::getContainer(), $viewerId);
+            }
+
+            foreach ([PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_PRIVATE, PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_WITH_STRIPE] as $playerId) {
+                $label = ($viewerId ?? 'guest') . ' viewing ' . $playerId;
+
+                self::assertEquals(
+                    ['duo' => $this->query->duoByPlayerId($playerId), 'team' => $this->query->teamByPlayerId($playerId)],
+                    $this->query->groupByPlayerId($playerId),
+                    $label,
+                );
+                self::assertEquals(
+                    ['duo' => $this->query->duoByPlayerId($playerId, $from, $to, true), 'team' => $this->query->teamByPlayerId($playerId, $from, $to, true)],
+                    $this->query->groupByPlayerId($playerId, $from, $to, true),
+                    $label . ', first tries in a date range',
+                );
+            }
+        }
+
+        // The fixtures hold both kinds for PLAYER_REGULAR - the comparison above is not one of empty lists
+        $regular = $this->query->groupByPlayerId(PlayerFixture::PLAYER_REGULAR);
+        self::assertNotEmpty($regular['duo']);
+        self::assertNotEmpty($regular['team']);
+    }
+
+    public function testPairsAndTeamsTogetherCostOneStatementAndOneMembersLookup(): void
+    {
+        $this->query->soloByPlayerId(PlayerFixture::PLAYER_REGULAR);
+
+        /** @var DebugDataHolder $debugDataHolder */
+        $debugDataHolder = self::getContainer()->get('doctrine.debug_data_holder');
+        $debugDataHolder->reset();
+
+        $this->query->groupByPlayerId(PlayerFixture::PLAYER_REGULAR);
+
+        /** @var list<array{sql: string}> $executed */
+        $executed = $debugDataHolder->getData()['default'] ?? [];
+        $queries = array_column($executed, 'sql');
+
+        self::assertCount(2, $queries);
+        self::assertCount(1, array_filter($queries, static fn (string $sql): bool => str_contains($sql, 'player_elem.ordinality')));
+    }
+
+    public function testPairsAndTeamsOfAnUnknownPlayerAreNotFound(): void
+    {
+        $this->expectException(PlayerNotFound::class);
+        $this->query->groupByPlayerId('018d0000-0000-0000-0000-999999999999');
+    }
+
     public function testUnknownPlayerIsStillNotFoundAfterAnotherPlayerWasChecked(): void
     {
         $this->query->soloByPlayerId(PlayerFixture::PLAYER_REGULAR);
@@ -382,6 +450,26 @@ final class GetPlayerSolvedPuzzlesTest extends KernelTestCase
         return array_values(array_map(
             static fn ($time): string => $time->timeId,
             [...$this->query->duoByPlayerId($playerId), ...$this->query->teamByPlayerId($playerId)],
+        ));
+    }
+
+    /**
+     * @param list<string> $groupPlayers
+     */
+    private function addGroupTime(string $userId, array $groupPlayers, string $puzzleId, string $time): void
+    {
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new AddPuzzleSolvingTime(
+            timeId: Uuid::uuid7(),
+            userId: $userId,
+            puzzleId: $puzzleId,
+            competitionId: null,
+            time: $time,
+            comment: null,
+            finishedPuzzlesPhoto: null,
+            groupPlayers: $groupPlayers,
+            finishedAt: TestClock::now()->modify('-2 days'),
+            firstAttempt: false,
+            unboxed: false,
         ));
     }
 

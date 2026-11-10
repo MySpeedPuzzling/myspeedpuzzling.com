@@ -52,14 +52,16 @@ final class GetPlayerResultsController extends AbstractController
                 $this->getPlayerSolvedPuzzles->soloByPlayerId($playerId),
             );
 
+            $groups = $this->getPlayerSolvedPuzzles->groupByPlayerId($playerId);
+
             $duoResults = array_map(
                 fn (SolvedPuzzle $result): array => $this->resultToApiShape($result),
-                $this->getPlayerSolvedPuzzles->duoByPlayerId($playerId),
+                $groups['duo'],
             );
 
             $teamResults = array_map(
                 fn (SolvedPuzzle $result): array => $this->resultToApiShape($result),
-                $this->getPlayerSolvedPuzzles->teamByPlayerId($playerId),
+                $groups['team'],
             );
 
             return $this->json([

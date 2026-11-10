@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
@@ -33,10 +34,16 @@ final class SearchPuzzleBrandFingerprintTest extends KernelTestCase
             ['hideUntil' => $now->modify('+2 days')->format('Y-m-d H:i:s'), 'id' => PuzzleFixture::PUZZLE_500_03],
         );
 
-        $at = static fn (string $modify): string => new SearchPuzzle($connection, new MockClock($now->modify($modify)))
+        $at = static fn (DateTimeImmutable $moment): string => new SearchPuzzle($connection, new MockClock($moment))
             ->brandFingerprint(ManufacturerFixture::MANUFACTURER_RAVENSBURGER);
 
-        $fingerprints = [$at('+0 seconds'), $at('+1 day -1 second'), $at('+1 day'), $at('+2 days -1 second'), $at('+2 days')];
+        $fingerprints = [
+            $at($now),
+            $at($now->modify('+1 day -1 second')),
+            $at($now->modify('+1 day')),
+            $at($now->modify('+2 days -1 second')),
+            $at($now->modify('+2 days')),
+        ];
 
         self::assertSame($fingerprints[0], $fingerprints[1]);
         self::assertNotSame($fingerprints[1], $fingerprints[2]);

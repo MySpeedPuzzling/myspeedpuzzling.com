@@ -17,7 +17,6 @@ use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetRanking;
-use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Results\ResultImage;
 use SpeedPuzzling\Web\Results\SolvedPuzzleDetail;
 use SpeedPuzzling\Web\Value\SolvingTime;
@@ -34,7 +33,7 @@ readonly final class GetResultImage
         private GetRanking $getRanking,
         private Filesystem $filesystem,
         private ResultImageCache $resultImageCache,
-        private PlayerRepository $playerRepository,
+        private ResultImageVersion $resultImageVersion,
         private LoggerInterface $logger,
         private ClockInterface $clock,
     ) {
@@ -50,10 +49,12 @@ readonly final class GetResultImage
         // A public, unauthenticated image that is kept for a while (ResultImageCache): it follows the player's own
         // setting, never who is looking - allow-listed friends get the nameless one as well. The
         // separate path keeps a copy rendered while the profile was public from being served.
-        $isPrivateProfile = $this->playerRepository->get($solvingTime->playerId)->isPrivate;
+        $isPrivateProfile = $this->resultImageVersion->isPrivateProfile($solvingTime->playerId);
+        // Kept under what it shows: a changed result never gets the card of before (ResultImageVersion)
+        $version = $this->resultImageVersion->of($solvingTime, $player);
         $path = $isPrivateProfile
-            ? "players/$player->playerId/results/$timeId-hidden.png"
-            : "players/$player->playerId/results/$timeId.png";
+            ? "players/$player->playerId/results/$timeId-$version-hidden.png"
+            : "players/$player->playerId/results/$timeId-$version.png";
 
         $kept = $this->resultImageCache->read($path);
 

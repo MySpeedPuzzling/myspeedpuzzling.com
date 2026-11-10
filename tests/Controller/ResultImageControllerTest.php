@@ -25,8 +25,7 @@ final class ResultImageControllerTest extends WebTestCase
     // TIME_06: solo time of PLAYER_REGULAR (public profile, name "John Doe")
     private const string TIME = PuzzleSolvingTimeFixture::TIME_06;
     private const string PHOTO = 'players/' . PlayerFixture::PLAYER_REGULAR . '/finished-for-card.jpg';
-    private const string CARD = 'players/' . PlayerFixture::PLAYER_REGULAR . '/results/' . self::TIME . '.png';
-    private const string HIDDEN_CARD = 'players/' . PlayerFixture::PLAYER_REGULAR . '/results/' . self::TIME . '-hidden.png';
+    private const string OTHER_PHOTO = 'players/' . PlayerFixture::PLAYER_REGULAR . '/finished-for-card-2.jpg';
 
     /**
      * @return iterable<string, array{string}>
@@ -154,9 +153,10 @@ final class ResultImageControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $nameless = (string) $client->getResponse()->getContent();
 
-        $cache = self::getContainer()->get(ResultImageCache::class);
-        self::assertSame(md5($nameless), md5((string) $cache->read(self::HIDDEN_CARD)?->content));
-        self::assertNull($cache->read(self::CARD), 'the named card is never written for a private profile');
+        $keptWhilePrivate = $this->keptCards();
+        self::assertCount(1, $keptWhilePrivate);
+        self::assertStringEndsWith('-hidden.png', $keptWhilePrivate[0], 'the named card is never written for a private profile');
+        self::assertSame(md5($nameless), md5((string) self::getContainer()->get(ResultImageCache::class)->read($keptWhilePrivate[0])?->content));
 
         $database->executeStatement('UPDATE player SET is_private = false WHERE id = :id', ['id' => PlayerFixture::PLAYER_REGULAR]);
         // The next request reads the player afresh, as a new request in production does
@@ -167,7 +167,11 @@ final class ResultImageControllerTest extends WebTestCase
         $named = (string) $client->getResponse()->getContent();
 
         self::assertNotSame(md5($nameless), md5($named), 'the card kept while private is not served once public');
-        self::assertSame(md5($named), md5((string) $cache->read(self::CARD)?->content));
+        $namedCards = array_values(array_diff($this->keptCards(), $keptWhilePrivate));
+        self::assertCount(1, $namedCards);
+        self::assertStringEndsWith('.png', $namedCards[0]);
+        self::assertStringEndsNotWith('-hidden.png', $namedCards[0]);
+        self::assertSame(md5($named), md5((string) self::getContainer()->get(ResultImageCache::class)->read($namedCards[0])?->content));
     }
 
     public function testTheCardIsKeptByTheBrowserForAnHour(): void
@@ -271,5 +275,57 @@ final class ResultImageControllerTest extends WebTestCase
             'UPDATE puzzle_solving_time SET finished_puzzle_photo = :photo WHERE id = :id',
             ['photo' => self::PHOTO, 'id' => self::TIME],
         );
+    }
+
+    /**
+     * A kept card shows what it showed when it was drawn: a changed result is drawn again at once
+     *
+     * @return iterable<string, array{string, array<string, string>}>
+     */
+    public static function changesOfWhatTheCardShows(): iterable
+    {
+        yield 'the time was edited' => ['UPDATE puzzle_solving_time SET seconds_to_solve = 2345 WHERE id = :time', []];
+        yield 'the player renamed themselves' => ["UPDATE player SET name = 'Jane Roe' WHERE id = :player", []];
+        yield 'the finished photo was replaced' => ['UPDATE puzzle_solving_time SET finished_puzzle_photo = :otherPhoto WHERE id = :time', ['otherPhoto' => self::OTHER_PHOTO]];
+        yield 'the puzzle was renamed' => ["UPDATE puzzle SET name = 'Renamed puzzle' WHERE id = (SELECT puzzle_id FROM puzzle_solving_time WHERE id = :time)", []];
+    }
+
+    /**
+     * @param array<string, string> $parameters
+     */
+    #[DataProvider('changesOfWhatTheCardShows')]
+    public function testAChangedResultIsDrawnAgain(string $sql, array $parameters): void
+    {
+        $client = self::createClient();
+        $client->disableReboot();
+        $this->givePhotoToTheTime();
+        self::getContainer()->get(Filesystem::class)->write(self::OTHER_PHOTO, (string) file_get_contents(__DIR__ . '/../../public/img/example-image-ok.jpg'));
+
+        $client->request('GET', '/result-image/' . self::TIME);
+        self::assertResponseIsSuccessful();
+        $before = (string) $client->getResponse()->getContent();
+
+        /** @var Connection $database */
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement($sql, $parameters + ['time' => self::TIME, 'player' => PlayerFixture::PLAYER_REGULAR]);
+        self::getContainer()->get('doctrine.orm.entity_manager')->clear();
+
+        $client->request('GET', '/result-image/' . self::TIME);
+        self::assertResponseIsSuccessful();
+        self::assertNotSame(md5($before), md5((string) $client->getResponse()->getContent()), 'not the card kept before the change');
+        self::assertCount(2, $this->keptCards(), 'the changed result has a card of its own');
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function keptCards(): array
+    {
+        /** @var Filesystem $keptCards */
+        $keptCards = self::getContainer()->get('app.storage.result_images');
+
+        return array_values($keptCards->listContents('players/' . PlayerFixture::PLAYER_REGULAR . '/results')
+            ->map(static fn ($item): string => $item->path())
+            ->toArray());
     }
 }

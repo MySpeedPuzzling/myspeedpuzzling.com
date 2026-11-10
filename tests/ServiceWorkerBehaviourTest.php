@@ -237,7 +237,28 @@ final class ServiceWorkerBehaviourTest extends TestCase
     }
 
     /**
-     * @return list<array{name: string, expect: string, path: string, mode: string, destination: string, accept: string, offline?: bool, failingFetches?: int, onLine?: bool, aborted?: bool, cachedContentType?: string, networkContentType?: string}>
+     * The result share card drawn over the placeholder photo (photo missing, or hidden until a round starts) is
+     * answered `no-store`: the next view must ask again and get the real photo once it is there - never the
+     * placeholder card replayed from the image cache.
+     */
+    public function testAnImageTheServerSaysNotToStoreIsNotStored(): void
+    {
+        $result = self::answerTo('image answered no-store');
+
+        self::assertSame([], $result['cacheWrites']);
+        self::assertSame(['https://myspeedpuzzling.com/result-image/abc'], $result['networkFetches']);
+    }
+
+    public function testAnImageTheServerLetsTheBrowserKeepIsStored(): void
+    {
+        self::assertSame(
+            ['https://myspeedpuzzling.com/result-image/abc'],
+            self::answerTo('image answered private, max-age')['cacheWrites'],
+        );
+    }
+
+    /**
+     * @return list<array{name: string, expect: string, path: string, mode: string, destination: string, accept: string, offline?: bool, failingFetches?: int, onLine?: bool, aborted?: bool, cachedContentType?: string, networkContentType?: string, networkCacheControl?: string}>
      */
     private static function scenarios(): array
     {
@@ -258,6 +279,8 @@ final class ServiceWorkerBehaviourTest extends TestCase
             ['name' => 'navigation with a token in the query failing once', 'expect' => 'fresh-document', 'path' => '/en/login-link/check?user=a&hash=secret', 'mode' => 'navigate', 'destination' => 'document', 'accept' => self::SAFARI_NAVIGATION_ACCEPT, 'failingFetches' => 1],
             ['name' => 'navigation while the device knows it is offline', 'expect' => 'offline', 'path' => '/en/hub', 'mode' => 'navigate', 'destination' => 'document', 'accept' => self::SAFARI_NAVIGATION_ACCEPT, 'offline' => true, 'onLine' => false],
             ['name' => 'abandoned navigation', 'expect' => 'offline', 'path' => '/en/hub', 'mode' => 'navigate', 'destination' => 'document', 'accept' => self::CHROME_NAVIGATION_ACCEPT, 'offline' => true, 'aborted' => true],
+            ['name' => 'image answered no-store', 'expect' => 'cached', 'path' => '/result-image/abc', 'mode' => 'no-cors', 'destination' => 'image', 'accept' => self::CHROME_IMAGE_ACCEPT, 'cachedContentType' => 'image/png', 'networkContentType' => 'image/png', 'networkCacheControl' => 'max-age=0, must-revalidate, no-store, private'],
+            ['name' => 'image answered private, max-age', 'expect' => 'cached', 'path' => '/result-image/abc', 'mode' => 'no-cors', 'destination' => 'image', 'accept' => self::CHROME_IMAGE_ACCEPT, 'cachedContentType' => 'image/png', 'networkContentType' => 'image/png', 'networkCacheControl' => 'max-age=3600, private'],
             ['name' => 'image answered with html', 'expect' => 'not-stored', 'path' => '/img/missing.png', 'mode' => 'no-cors', 'destination' => 'image', 'accept' => self::CHROME_IMAGE_ACCEPT, 'cachedContentType' => 'image/png'],
             ['name' => 'finish detector bundle, import()', 'expect' => 'not-intercepted', 'path' => self::FINISH_DETECTOR . '/vision_bundle.mjs', 'mode' => 'cors', 'destination' => 'script', 'accept' => '*/*'],
             ['name' => 'finish detector WASM loader, importScripts()', 'expect' => 'not-intercepted', 'path' => self::FINISH_DETECTOR . '/wasm/vision_wasm_internal.js', 'mode' => 'no-cors', 'destination' => 'script', 'accept' => '*/*'],

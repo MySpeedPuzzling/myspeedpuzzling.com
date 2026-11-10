@@ -6,6 +6,8 @@
 // entry, and the network always answers "FRESH". A request that comes back
 // STALE was served from a cache; nothing about the source text is assumed.
 //
+// `networkCacheControl` sets the network answer's Cache-Control header.
+//
 // A scenario can make the network reject: `offline` rejects every fetch,
 // `failingFetches: N` only the first N (a connection that died once). POSTs to
 // the worker's failure report are recorded in `reports` and never fail or
@@ -75,9 +77,13 @@ async function run(scenario) {
                 return Promise.reject(new TypeError('Load failed'));
             }
 
-            return Promise.resolve(new Response('FRESH', {
-                headers: { 'Content-Type': scenario.networkContentType || 'text/html; charset=UTF-8' },
-            }));
+            const headers = { 'Content-Type': scenario.networkContentType || 'text/html; charset=UTF-8' };
+
+            if (scenario.networkCacheControl) {
+                headers['Cache-Control'] = scenario.networkCacheControl;
+            }
+
+            return Promise.resolve(new Response('FRESH', { headers }));
         },
     };
     sandbox.self = {

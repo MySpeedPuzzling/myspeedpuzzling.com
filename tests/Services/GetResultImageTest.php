@@ -16,7 +16,7 @@ final class GetResultImageTest extends KernelTestCase
 {
     // TIME_06: solo time of PLAYER_REGULAR (public profile)
     private const string PHOTO = 'players/018d0000-0000-0000-0000-000000000001/solo-1700000000.jpg';
-    private const string CARD = 'players/' . PlayerFixture::PLAYER_REGULAR . '/results/' . PuzzleSolvingTimeFixture::TIME_06 . '.png';
+    private const string CARDS_DIRECTORY = 'players/' . PlayerFixture::PLAYER_REGULAR . '/results';
     private const string FIXTURE_PHOTO = __DIR__ . '/../fixtures/result-image/photo.jpg';
 
     /**
@@ -50,8 +50,13 @@ final class GetResultImageTest extends KernelTestCase
         $image = $container->get(GetResultImage::class)->forSolvingTime(PuzzleSolvingTimeFixture::TIME_06);
 
         self::assertFalse($image->withPlaceholder);
-        self::assertSame($image->content, $cache->read(self::CARD)?->content);
-        self::assertFalse($bucket->fileExists(self::CARD));
+        /** @var Filesystem $keptCards */
+        $keptCards = $container->get('app.storage.result_images');
+        $kept = $keptCards->listContents(self::CARDS_DIRECTORY)->toArray();
+        self::assertCount(1, $kept);
+        self::assertStringStartsWith(self::CARDS_DIRECTORY . '/' . PuzzleSolvingTimeFixture::TIME_06 . '-', $kept[0]->path());
+        self::assertSame($image->content, $cache->read($kept[0]->path())?->content);
+        self::assertFalse($bucket->fileExists($kept[0]->path()));
 
         // The next request gets the kept card, even with the photo gone
         $bucket->delete(self::PHOTO);

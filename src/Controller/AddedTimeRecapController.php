@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\MspRatingCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerSkillCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
+use SpeedPuzzling\Web\Services\ResultImageVersion;
 use SpeedPuzzling\Web\Value\RecapProgress;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -45,6 +46,7 @@ final class AddedTimeRecapController extends AbstractController
         readonly private ResultAutoRemovalRepository $autoRemovalRepository,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private ClockInterface $clock,
+        readonly private ResultImageVersion $resultImageVersion,
     ) {
     }
 
@@ -146,6 +148,8 @@ final class AddedTimeRecapController extends AbstractController
             'viewer_player_id' => $viewer?->playerId,
             'viewer_is_member' => $viewerIsMember,
             'solved_puzzle' => $solvingPuzzle,
+            // In the share card's address: after an edit neither the browser nor the service worker shows the old card
+            'result_image_version' => $this->resultImageVersion->of($solvingPuzzle, $player),
             'puzzle_difficulty' => $puzzleDifficulty,
             'time_prediction' => $timePrediction,
             'player' => $player,

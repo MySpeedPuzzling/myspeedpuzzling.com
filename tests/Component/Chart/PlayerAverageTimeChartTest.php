@@ -102,7 +102,10 @@ final class PlayerAverageTimeChartTest extends KernelTestCase
         $chart->availablePieces();
         $chart->availableBrands();
 
-        self::assertCount(1, $debugDataHolder->getData()['default'] ?? []);
+        /** @var list<array{sql: string}> $executed */
+        $executed = $debugDataHolder->getData()['default'] ?? [];
+
+        self::assertCount(1, $executed);
     }
 
     private function chart(string $playerId): PlayerAverageTimeChart

@@ -173,10 +173,10 @@ final class ProfileProgressionTest extends WebTestCase
 
         // Guest on a member's profile: the profile row (header chips + ring included), the page's own statements and,
         // since the XP launch, the member's achievements showcase (page content, one statement)
-        self::assertSame(10, $this->measure($browser, null, PlayerFixture::PLAYER_WITH_STRIPE));
+        self::assertSame(9, $this->measure($browser, null, PlayerFixture::PLAYER_WITH_STRIPE));
         // A member viewer: + the signed-in overhead, the achievements showcase and the skill / rating cards; the
         // header's tier and the rings cost nothing
-        self::assertSame(21, $this->measure($browser, PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_WITH_STRIPE));
+        self::assertSame(20, $this->measure($browser, PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_WITH_STRIPE));
     }
 
     private function measure(KernelBrowser $browser, null|string $viewer, string $playerId): int

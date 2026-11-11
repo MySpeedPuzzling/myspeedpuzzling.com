@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Message\SubscribeToNewsletter;
+use SpeedPuzzling\Web\Services\Email\EmailDomainMailCheck;
 use SpeedPuzzling\Web\Services\NewsletterSignupTicket;
 use SpeedPuzzling\Web\Services\Turnstile\TurnstileVerifier;
 use SpeedPuzzling\Web\Value\NewsletterSignupTicketCheck;
@@ -43,6 +44,7 @@ final class NewsletterSubscribeSendController extends AbstractController
         private readonly RateLimiterFactoryInterface $newsletterSubscribeEmailLimiter,
         private readonly RateLimiterFactoryInterface $newsletterSubscribeIpLimiter,
         private readonly LoggerInterface $logger,
+        private readonly EmailDomainMailCheck $emailDomainMailCheck,
     ) {
     }
 
@@ -78,6 +80,10 @@ final class NewsletterSubscribeSendController extends AbstractController
 
         if (MistypedEmailDomain::isMistyped($email)) {
             return $this->showStepAgain($email, 'newsletter.flash.mistyped_email');
+        }
+
+        if ($this->emailDomainMailCheck->acceptsNoMail($email)) {
+            return $this->showStepAgain($email, 'newsletter.flash.domain_no_mail');
         }
 
         $ticketCheck = $this->signupTicket->check((string) $request->request->get('ticket'));
@@ -126,7 +132,10 @@ final class NewsletterSubscribeSendController extends AbstractController
             'ticket' => $this->signupTicket->issue(),
             'turnstileSiteKey' => $this->turnstile->isOn() ? $this->turnstile->siteKey() : null,
             'error' => $error,
-            'error_parameters' => ['%suggestion%' => MistypedEmailDomain::suggestionFor($email) ?? ''],
+            'error_parameters' => [
+                '%suggestion%' => MistypedEmailDomain::suggestionFor($email) ?? '',
+                '%domain%' => EmailDomainMailCheck::domainOf($email) ?? '',
+            ],
         ], new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY));
     }
 }

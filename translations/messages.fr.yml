@@ -5933,6 +5933,7 @@ newsletter:
         try_again: "Une erreur est survenue, veuillez réessayer."
         invalid_email: "Veuillez saisir une adresse e-mail valide."
         mistyped_email: "Vouliez-vous dire %suggestion% ? Le domaine de l'adresse saisie contient une faute de frappe, nos e-mails ne l'atteindraient jamais."
+        domain_no_mail: "%domain% n'accepte pas d'e-mails, nos e-mails n'atteindraient donc jamais cette adresse. Veuillez la vérifier."
         too_many_attempts: "Trop de tentatives, veuillez réessayer plus tard."
         turned_on: "L'e-mail mensuel des nouveautés est activé. Merci !"
     check_inbox:

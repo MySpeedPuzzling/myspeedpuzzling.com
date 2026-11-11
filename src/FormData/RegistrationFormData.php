@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\FormData;
 
 use SpeedPuzzling\Web\Validator\StrongPassword;
+use SpeedPuzzling\Web\Validator\EmailDomainAcceptsMail;
 use SpeedPuzzling\Web\Validator\NotMistypedEmailDomain;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -21,6 +22,7 @@ final class RegistrationFormData
     #[Assert\Email(message: 'auth.email_invalid')]
     #[Assert\Length(max: 180)]
     #[NotMistypedEmailDomain]
+    #[EmailDomainAcceptsMail]
     public string $email = '';
 
     #[StrongPassword]

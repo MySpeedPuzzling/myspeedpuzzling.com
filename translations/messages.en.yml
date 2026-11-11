@@ -6389,6 +6389,7 @@ newsletter:
         try_again: "Something went wrong, please try again."
         invalid_email: "Please enter a valid e-mail address."
         mistyped_email: "Did you mean %suggestion%? The address as typed has a typo in its domain, so our e-mails would never reach it."
+        domain_no_mail: "%domain% does not accept e-mails, so ours would never reach this address. Please check it."
         too_many_attempts: "Too many attempts, please try again later."
         turned_on: "The monthly news e-mail is on. Thanks!"
     check_inbox:

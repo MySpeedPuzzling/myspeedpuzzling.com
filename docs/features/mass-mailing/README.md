@@ -197,6 +197,17 @@ and both newsletter steps refuse such an address with "Did you mean …?". Addre
 addresses with a mistyped domain + addresses SES answered "5.4.4 Invalid domain" for), so the banner asks the player for
 a working one. Manual, idempotent, no cron.
 
+**Domains that accept no e-mail** (2026-11-11, after "We miss you" bounces to gmail.de): `MistypedEmailDomain` also knows
+a provider's name with another country's ending that publishes a null MX (`DEAD_LOOKALIKES`: gmail.de, gmail.fr →
+gmail.com, icloud.de → icloud.com; checked with `dig MX` - gmail.it / gmail.ch / gmail.nl have mail servers and stay
+out). Any other such domain is caught by `Services\Email\EmailDomainMailCheck` (constraint `EmailDomainAcceptsMail` on
+registration + e-mail change, and both newsletter steps): refused on a **null MX** (RFC 7505) or **no MX and no A/AAAA**
+(also a domain that does not exist); any DNS failure or timeout = accepted (fail open - `dns_get_record()` answers [] for
+"no records / no such domain" and false for a resolver error). Answers cached a day per domain
+(`email_domain_mail_cache`), failures never. Tests never ask DNS: `ScriptedDnsRecordLookup` fails open unless a test
+scripts a `.test` domain (example.com itself publishes a null MX). SES's own rule stays: "Unable to lookup DNS" a
+second time ≥ 24 h later suppresses as `domain_not_found`.
+
 **Banner:** the signed-in player's profile row carries their suppression; a LEFT JOIN in `GetPlayerProfile::byUserId()`
 adds no extra query. Every page then shows "We can't deliver e-mails to {email}" (`_email_undeliverable_banner.html.twig`)
 with:

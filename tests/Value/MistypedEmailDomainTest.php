@@ -28,6 +28,9 @@ final class MistypedEmailDomainTest extends TestCase
         yield 'upper case' => ['Someone@GMAIL.COMA', 'Someone@gmail.com'];
         yield 'seznam' => ['x@sezam.cz', 'x@seznam.cz'];
         yield 'outlook missing a letter' => ['x@outlok.com', 'x@outlook.com'];
+        yield 'gmail.de accepts no e-mail' => ['x@gmail.de', 'x@gmail.com'];
+        yield 'gmail.fr accepts no e-mail' => ['x@Gmail.FR', 'x@gmail.com'];
+        yield 'icloud.de accepts no e-mail' => ['x@icloud.de', 'x@icloud.com'];
     }
 
     #[DataProvider('mistyped')]
@@ -57,6 +60,7 @@ final class MistypedEmailDomainTest extends TestCase
         yield 'yahoo.co.uk' => ['x@yahoo.co.uk'];
         yield 'yahoo.ca' => ['x@yahoo.ca'];
         yield 'outlook.cz' => ['x@outlook.cz'];
+        yield 'gmail.it has mail servers' => ['x@gmail.it'];
         yield 'seznam.sk' => ['x@seznam.sk'];
         yield 'a company domain' => ['x@assemblepuzzlery.com'];
         yield 'Cameroon' => ['x@example.cm'];

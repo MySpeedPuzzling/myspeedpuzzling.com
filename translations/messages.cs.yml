@@ -5940,6 +5940,7 @@ newsletter:
         try_again: "Něco se pokazilo, zkuste to prosím znovu."
         invalid_email: "Zadejte prosím platnou e-mailovou adresu."
         mistyped_email: "Nemysleli jste %suggestion%? Zadaná adresa má překlep v doméně, takže by naše e-maily nikdy nedorazily."
+        domain_no_mail: "Doména %domain% nepřijímá e-maily, takže by naše e-maily na tuto adresu nikdy nedorazily. Zkontrolujte ji prosím."
         too_many_attempts: "Příliš mnoho pokusů, zkuste to prosím později."
         turned_on: "Měsíční e-mail s novinkami je zapnutý. Děkujeme!"
     check_inbox:

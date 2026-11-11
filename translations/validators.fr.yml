@@ -44,6 +44,7 @@ auth:
     email_required: "Saisissez votre adresse e-mail."
     email_invalid: "Saisissez une adresse e-mail valide, par exemple nom@example.com."
     email_mistyped: "Vouliez-vous dire {{ suggestion }} ? Le domaine de l'adresse saisie contient une faute de frappe, nos e-mails ne l'atteindraient jamais."
+    email_domain_no_mail: "{{ domain }} n'accepte pas d'e-mails, nos e-mails n'atteindraient donc jamais cette adresse. Veuillez la vérifier."
     password_required: "Saisissez un mot de passe."
     password_too_short: "Utilisez au moins {{ limit }} caractères."
     current_password_required: "Saisissez votre mot de passe actuel."

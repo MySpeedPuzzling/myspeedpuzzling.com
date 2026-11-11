@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use SpeedPuzzling\Web\Tests\TestClock;
+use SpeedPuzzling\Web\Tests\TestDouble\ScriptedDnsRecordLookup;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
@@ -74,6 +75,21 @@ final class RegisterControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         self::assertStringContainsString('please agree to the Terms of service', $crawler->filter('form')->text());
         self::assertNull($browser->getContainer()->get(UserAccountRepository::class)->findByEmail($email));
+    }
+
+    public function testAnAddressWhoseDomainAcceptsNoMailIsRefused(): void
+    {
+        $browser = self::createClient();
+        // A null MX (RFC 7505): the domain says it takes no mail
+        ScriptedDnsRecordLookup::script('no-mail.test', DNS_MX, [['pri' => 0, 'target' => '']]);
+        $email = 'register.nomail.' . bin2hex(random_bytes(4)) . '@no-mail.test';
+
+        $crawler = $this->submitRegistration($browser, $email, 'a-properly-long-passphrase');
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('no-mail.test does not accept e-mails', $crawler->filter('form')->text());
+        self::assertNull($browser->getContainer()->get(UserAccountRepository::class)->findByEmail($email));
+        self::assertCount(0, self::getMailerMessages());
     }
 
     public function testTickedNewsletterBoxSubscribesTheNewPlayer(): void

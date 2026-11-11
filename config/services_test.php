@@ -77,6 +77,10 @@ return static function (ContainerConfigurator $configurator): void {
         ->decorate('property_info')
         ->args([service('property_info.cache.inner'), service('cache.property_info')]);
 
+    // No DNS in tests - every domain check fails open unless a test scripts the answer
+    $services->set(\SpeedPuzzling\Web\Tests\TestDouble\ScriptedDnsRecordLookup::class);
+    $services->alias(\SpeedPuzzling\Web\Services\Email\DnsRecordLookup::class, \SpeedPuzzling\Web\Tests\TestDouble\ScriptedDnsRecordLookup::class);
+
     // API usage counters without Redis - CI's functional tests run no Redis service
     // (RedisApiUsageCounterTest covers the Lua script against a real one)
     $services->set(\SpeedPuzzling\Web\Tests\TestDouble\InMemoryApiUsageCounter::class);

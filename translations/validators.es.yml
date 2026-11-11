@@ -44,6 +44,7 @@ auth:
     email_required: "Introduce tu dirección de correo electrónico."
     email_invalid: "Introduce una dirección de correo válida, como nombre@example.com."
     email_mistyped: "¿Quisiste decir {{ suggestion }}? La dirección escrita tiene un error en el dominio, así que nuestros correos nunca llegarían."
+    email_domain_no_mail: "{{ domain }} no acepta correos, así que los nuestros nunca llegarían a esta dirección. Revísala, por favor."
     password_required: "Introduce una contraseña."
     password_too_short: "Usa al menos {{ limit }} caracteres."
     current_password_required: "Introduce tu contraseña actual."

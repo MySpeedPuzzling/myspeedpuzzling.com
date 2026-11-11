@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Psr\Log\LoggerInterface;
+use SpeedPuzzling\Web\Services\Email\EmailDomainMailCheck;
 use SpeedPuzzling\Web\Services\NewsletterSignupTicket;
 use SpeedPuzzling\Web\Services\Turnstile\TurnstileVerifier;
 use SpeedPuzzling\Web\Value\MistypedEmailDomain;
@@ -35,6 +36,7 @@ final class NewsletterSubscribeController extends AbstractController
         private readonly NewsletterSignupTicket $signupTicket,
         private readonly TurnstileVerifier $turnstile,
         private readonly LoggerInterface $logger,
+        private readonly EmailDomainMailCheck $emailDomainMailCheck,
     ) {
     }
 
@@ -67,6 +69,8 @@ final class NewsletterSubscribeController extends AbstractController
             $error = 'newsletter.flash.invalid_email';
         } elseif (MistypedEmailDomain::isMistyped($email)) {
             $error = 'newsletter.flash.mistyped_email';
+        } elseif ($this->emailDomainMailCheck->acceptsNoMail($email)) {
+            $error = 'newsletter.flash.domain_no_mail';
         }
 
         $isModal = $request->headers->get('Turbo-Frame') === 'modal-frame';
@@ -76,7 +80,10 @@ final class NewsletterSubscribeController extends AbstractController
             'ticket' => $this->signupTicket->issue(),
             'turnstileSiteKey' => $this->turnstile->isOn() ? $this->turnstile->siteKey() : null,
             'error' => $error,
-            'error_parameters' => ['%suggestion%' => MistypedEmailDomain::suggestionFor($email) ?? ''],
+            'error_parameters' => [
+                '%suggestion%' => MistypedEmailDomain::suggestionFor($email) ?? '',
+                '%domain%' => EmailDomainMailCheck::domainOf($email) ?? '',
+            ],
         ]);
     }
 }

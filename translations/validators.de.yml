@@ -44,6 +44,7 @@ auth:
     email_required: "Geben Sie Ihre E-Mail-Adresse ein."
     email_invalid: "Geben Sie eine gültige E-Mail-Adresse ein, z. B. name@example.com."
     email_mistyped: "Meinten Sie {{ suggestion }}? Die eingegebene Adresse hat einen Tippfehler in der Domain, unsere E-Mails würden sie nie erreichen."
+    email_domain_no_mail: "{{ domain }} nimmt keine E-Mails an, unsere E-Mails würden diese Adresse also nie erreichen. Bitte überprüfen Sie sie."
     password_required: "Geben Sie ein Passwort ein."
     password_too_short: "Verwenden Sie mindestens {{ limit }} Zeichen."
     current_password_required: "Geben Sie Ihr aktuelles Passwort ein."

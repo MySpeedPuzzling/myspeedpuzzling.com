@@ -5866,6 +5866,7 @@ newsletter:
         try_again: "Algo ha salido mal. Por favor, inténtalo de nuevo."
         invalid_email: "Por favor, introduce una dirección de correo electrónico válida."
         mistyped_email: "¿Quisiste decir %suggestion%? La dirección escrita tiene un error en el dominio, así que nuestros correos nunca llegarían."
+        domain_no_mail: "%domain% no acepta correos, así que los nuestros nunca llegarían a esta dirección. Revísala, por favor."
         too_many_attempts: "Demasiados intentos. Por favor, inténtalo de nuevo más tarde."
         turned_on: "El correo mensual de novedades está activado. ¡Gracias!"
     check_inbox:

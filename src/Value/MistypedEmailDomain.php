@@ -15,7 +15,9 @@ namespace SpeedPuzzling\Web\Value;
  *   any domain;
  * - one typo (a letter missing, added, changed or two swapped) away from one of the providers below - but never a
  *   domain that is itself a real mailbox domain (ymail.com, mail.com, …). Providers with short names (me.com,
- *   aol.com, web.de) are left out: one typo away from them are real domains.
+ *   aol.com, web.de) are left out: one typo away from them are real domains;
+ * - a provider's name with another country's ending that accepts no e-mail (gmail.de → gmail.com).
+ * Any other domain that accepts no e-mail is refused by `EmailDomainMailCheck` (DNS), without a suggestion.
  */
 final class MistypedEmailDomain
 {
@@ -45,6 +47,17 @@ final class MistypedEmailDomain
         't-online.de',
         'wanadoo.fr',
         'laposte.net',
+    ];
+
+    /**
+     * Another country's ending on a big provider's name, a domain that accepts no e-mail at all (a "null MX" record,
+     * RFC 7505) - people write gmail.de for gmail.com. Only domains checked to publish a null MX belong here
+     * (2026-11-11); gmail.it / gmail.ch / gmail.nl have mail servers of their own and stay out.
+     */
+    private const array DEAD_LOOKALIKES = [
+        'gmail.de' => 'gmail.com',
+        'gmail.fr' => 'gmail.com',
+        'icloud.de' => 'icloud.com',
     ];
 
     /**
@@ -101,6 +114,10 @@ final class MistypedEmailDomain
 
     private static function correctedDomain(string $domain): null|string
     {
+        if (isset(self::DEAD_LOOKALIKES[$domain])) {
+            return self::DEAD_LOOKALIKES[$domain];
+        }
+
         $lastDot = strrpos($domain, '.');
 
         if ($lastDot !== false && in_array(substr($domain, $lastDot + 1), self::MISTYPED_COM_ENDINGS, true)) {

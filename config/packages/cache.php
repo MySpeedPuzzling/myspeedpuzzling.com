@@ -16,6 +16,11 @@ return App::config([
                 'player_activity_cache' => [
                     'adapters' => ['cache.app'],
                 ],
+                // Does an e-mail domain accept mail at all (EmailDomainMailCheck) - a day per domain, so a form
+                // never waits on DNS twice for the same domain
+                'email_domain_mail_cache' => [
+                    'adapters' => ['cache.app'],
+                ],
                 // OAuth state + PKCE + rule-4 parked profiles for social login.
                 // Server-side instead of the session on purpose: Apple's form_post
                 // callback is a cross-site POST that arrives without SameSite=Lax

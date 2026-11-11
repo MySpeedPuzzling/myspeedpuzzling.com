@@ -44,6 +44,7 @@ auth:
     email_required: "Zadejte svou e-mailovou adresu."
     email_invalid: "Zadejte platnou e-mailovou adresu, např. jmeno@example.com."
     email_mistyped: "Nemysleli jste {{ suggestion }}? Zadaná adresa má překlep v doméně, takže by naše e-maily nikdy nedorazily."
+    email_domain_no_mail: "Doména {{ domain }} nepřijímá e-maily, takže by naše e-maily na tuto adresu nikdy nedorazily. Zkontrolujte ji prosím."
     password_required: "Zadejte heslo."
     password_too_short: "Použijte alespoň {{ limit }} znaků."
     current_password_required: "Zadejte své současné heslo."

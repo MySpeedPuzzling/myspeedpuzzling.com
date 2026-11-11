@@ -245,6 +245,8 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Services/SocialLogin/AppleProviderWithInlineKey.php',
             // value object, not a service
             __DIR__ . '/../src/Services/Storage/SpooledOperation.php',
+            // exception internal to EmailDomainMailCheck, not a service
+            __DIR__ . '/../src/Services/Email/DnsLookupFailed.php',
             // value object built by PuzzleResponseFactory::insightsFor(), not a service
             __DIR__ . '/../src/Services/Api/PuzzleInsightsBatch.php',
             // SQL fragment of one typed search, built by the queries - not a service
@@ -307,6 +309,9 @@ return static function (ContainerConfigurator $configurator): void {
     // HandledOutsideTransaction one
     $services->set(\SpeedPuzzling\Web\Services\MessengerMiddleware\TransactionMiddleware::class)
         ->arg('$transaction', inline_service(\Symfony\Bridge\Doctrine\Messenger\DoctrineTransactionMiddleware::class)->args([service('doctrine')]));
+
+    // Constraint validators with dependencies (EmailDomainAcceptsMailValidator) - autoconfigured as validators
+    $services->load('SpeedPuzzling\\Web\\Validator\\', __DIR__ . '/../src/Validator/{*Validator.php}');
 
     $services->load('SpeedPuzzling\\Web\\Query\\', __DIR__ . '/../src/Query/**/{*.php}');
     $services->load('SpeedPuzzling\\Web\\BadgeConditions\\', __DIR__ . '/../src/BadgeConditions/**/{*.php}');

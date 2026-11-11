@@ -5865,6 +5865,7 @@ newsletter:
         try_again: "Etwas ist schiefgelaufen, bitte versuchen Sie es erneut."
         invalid_email: "Bitte geben Sie eine gültige E-Mail-Adresse ein."
         mistyped_email: "Meinten Sie %suggestion%? Die eingegebene Adresse hat einen Tippfehler in der Domain, unsere E-Mails würden sie nie erreichen."
+        domain_no_mail: "%domain% nimmt keine E-Mails an, unsere E-Mails würden diese Adresse also nie erreichen. Bitte überprüfen Sie sie."
         too_many_attempts: "Zu viele Versuche, bitte versuchen Sie es später erneut."
         turned_on: "Die monatliche Neuigkeiten-E-Mail ist eingeschaltet. Danke!"
     check_inbox:

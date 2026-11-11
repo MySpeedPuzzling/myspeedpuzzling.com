@@ -99,7 +99,8 @@ final class SnapshotActivityDailySummaryHandlerTest extends KernelTestCase
     {
         $player = new Player(
             Uuid::uuid7(),
-            'ADSN' . bin2hex(random_bytes(2)),
+            // 16 random hex digits: 4 (65,536 codes) collided with another player on CI (2026-11-11)
+            'ADSN' . bin2hex(random_bytes(8)),
             'msp|' . bin2hex(random_bytes(8)),
             null,
             $registeredAt,

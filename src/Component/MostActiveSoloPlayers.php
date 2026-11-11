@@ -27,6 +27,11 @@ final class MostActiveSoloPlayers
     #[LiveProp]
     public int $showLimit = 4;
 
+    /** @var null|array<MostActivePlayer> */
+    private null|array $players = null;
+
+    private null|string $playersTimespan = null;
+
     public function __construct(
         readonly private GetMostActivePlayers $getMostActivePlayers,
         readonly private ClockInterface $clock,
@@ -37,6 +42,20 @@ final class MostActiveSoloPlayers
      * @return array<MostActivePlayer>
      */
     public function getPlayers(): array
+    {
+        // The template reads the list more than once; kept per tab, so a tab switch never shows the old tab's list
+        if ($this->players === null || $this->playersTimespan !== $this->timespan) {
+            $this->players = $this->fetchPlayers();
+            $this->playersTimespan = $this->timespan;
+        }
+
+        return $this->players;
+    }
+
+    /**
+     * @return array<MostActivePlayer>
+     */
+    private function fetchPlayers(): array
     {
         return match ($this->timespan) {
             'this_month' => $this->getMostActivePlayers->mostActiveSoloPlayersInMonth(

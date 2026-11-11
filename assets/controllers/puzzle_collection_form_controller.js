@@ -31,10 +31,7 @@ export default class extends Controller {
     }
 
     _configureTomselect(options) {
-        // Customize the "create new" option display
-        options.render.option_create = function (data, escape) {
-            return '<div class="create py-2"><i class="ci-add small"></i> Create new collection: <strong>' + escape(data.input) + '</strong></div>';
-        };
+        // The "create new" row comes from the input's data-create-label (assets/tom_select_create_option.js)
 
         // Handle value changes to show/hide new collection fields
         options.onChange = (value) => {

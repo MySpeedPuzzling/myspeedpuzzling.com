@@ -6,3 +6,16 @@ export const renderCreateOption = (label, input, escape) => `<div class="create 
     + `<span class="create__text"><span class="create__label">${escape(label)}</span>`
     + `<span class="create__name">${escape(input)}</span></span>`
     + `</div>`;
+
+// Fields built by Symfony UX Autocomplete with `create` get the same card from a `data-create-label` attribute on the
+// input (set in the form type) - runs after the field's own controllers, so the attribute is the last word.
+export const installCreateOptionLabels = (root = document) => {
+    root.addEventListener('autocomplete:pre-connect', (event) => {
+        const label = event.target?.dataset?.createLabel;
+        const render = event.detail?.options?.render;
+
+        if (label && render) {
+            render.option_create = (data, escape) => renderCreateOption(label, data.input, escape);
+        }
+    });
+};

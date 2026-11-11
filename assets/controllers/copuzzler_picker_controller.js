@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { renderCreateOption } from '../tom_select_create_option.js';
 
 /**
  * Solo / Pair / Team picker of the add/edit time form - docs/features/pairs-and-teams/README.md.
@@ -1227,11 +1228,10 @@ export default class extends Controller {
                     item: person => `<div>${escapeHtml(person.label)}</div>`,
                     option_create: data => {
                         const people = this.typedPeople(data.input);
-                        const text = people.length > 1
-                            ? texts.addSeveral.replace('%count%', String(people.length)).replace('%names%', people.map(person => person.label).join(', '))
-                            : texts.addGuest.replace('%name%', people[0]?.label || data.input);
 
-                        return `<div class="create">${escapeHtml(text)}</div>`;
+                        return people.length > 1
+                            ? renderCreateOption(texts.addSeveral.replace('%count%', String(people.length)), people.map(person => person.label).join(', '), escapeHtml)
+                            : renderCreateOption(texts.addGuest, people[0]?.label || data.input, escapeHtml);
                     },
                     // Not next to "Add “…” as a guest": the typed text is somebody, just not found
                     no_results: data => (this.tomSelect?.canCreate(data.input) ? null : `<div class="no-results">${escapeHtml(texts.noResults)}</div>`),

@@ -12,12 +12,18 @@ use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * @extends AbstractType<CollectionPuzzleActionFormData>
  */
 final class CollectionPuzzleActionFormType extends AbstractType
 {
+    public function __construct(
+        private readonly TranslatorInterface $translator,
+    ) {
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $collections = $options['collections'] ?? [];
@@ -48,6 +54,7 @@ final class CollectionPuzzleActionFormType extends AbstractType
             'attr' => [
                 'class' => 'form-control',
                 'maxlength' => 100,
+                'data-create-label' => $this->translator->trans('forms.add_puzzle_to_collection.create_new'),
             ],
         ]);
 

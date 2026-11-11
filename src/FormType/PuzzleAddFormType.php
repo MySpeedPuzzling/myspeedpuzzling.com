@@ -281,6 +281,7 @@ final class PuzzleAddFormType extends AbstractType
             'attr' => [
                 'class' => 'form-control',
                 'maxlength' => 100,
+                'data-create-label' => $this->translator->trans('forms.add_puzzle_to_collection.create_new'),
             ],
         ]);
 

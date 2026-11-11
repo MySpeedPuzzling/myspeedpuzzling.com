@@ -1,5 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 import TomSelect from 'tom-select';
+import { renderCreateOption } from '../tom_select_create_option.js';
 
 // Compared like the server does (ManufacturerResolver): spacing and case only - "Cech" is not "Čech"
 const normalizeName = (name) => name.trim().replace(/\s+/g, ' ').toLowerCase();
@@ -47,7 +48,7 @@ export default class extends Controller {
             render: {
                 option: (data, escape) => (brand ? this.renderBrand(data, escape) : this.renderPerson(data, escape)),
                 item: (data, escape) => (brand ? this.renderBrand(data, escape, true) : this.renderPerson(data, escape, true)),
-                option_create: (data, escape) => `<div class="create">${escape(this.createLabelValue.replace('%input%', data.input))}</div>`,
+                option_create: (data, escape) => renderCreateOption(this.createLabelValue, data.input.trim(), escape),
                 no_results: () => `<div class="no-results">${this.noResultsLabelValue}</div>`,
             },
             ...(person && this.hasSearchUrlValue && this.searchUrlValue !== '' ? {

@@ -34,6 +34,9 @@ window.bootstrap = { Modal, Dropdown, Collapse, Tab, Toast };
 
 import * as Turbo from '@hotwired/turbo';
 import './turbo-stream-actions.js'
+import { installCreateOptionLabels } from './tom_select_create_option.js';
+
+installCreateOptionLabels();
 
 Turbo.config.drive.progressBarDelay = 0;
 

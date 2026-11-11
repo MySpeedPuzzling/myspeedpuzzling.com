@@ -1,5 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 import * as bootstrap from 'bootstrap';
+import { renderCreateOption } from '../tom_select_create_option.js';
 
 // Brand and puzzle show an option's `text` as HTML (`options_as_html`): whatever a player typed is escaped first
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -92,10 +93,8 @@ export default class extends Controller {
             return;
         }
 
-        const addNewBrandMessage = this.addNewBrandMessageValue || 'Add new brand:';
-        event.detail.options.render.option_create = function (data, escape) {
-            return '<div class="create py-2"><i class="ci-add small"></i> ' + addNewBrandMessage + ' <strong>' + escape(data.input) + '</strong></div>';
-        };
+        const addNewBrandMessage = this.addNewBrandMessageValue || 'Add as a new brand';
+        event.detail.options.render.option_create = (data, escape) => renderCreateOption(addNewBrandMessage, data.input, escape);
 
 
         // A typed name that is an existing brand selects it instead of creating a new one. Compared with
@@ -149,10 +148,8 @@ export default class extends Controller {
         event.detail.options.render.option = renderOption;
         event.detail.options.render.item = renderOption;
 
-        const addNewPuzzleMessage = this.addNewPuzzleMessageValue || 'Add new puzzle:';
-        event.detail.options.render.option_create = function(data, escape) {
-            return '<div class="create py-2"><i class="ci-add small"></i> ' + addNewPuzzleMessage + ' <strong>' + escape(data.input) + '</strong></div>';
-        };
+        const addNewPuzzleMessage = this.addNewPuzzleMessageValue || 'Add as a new puzzle';
+        event.detail.options.render.option_create = (data, escape) => renderCreateOption(addNewPuzzleMessage, data.input, escape);
 
         event.detail.options.onChange = (value) => {
             this.onPuzzleValueChanged(value);

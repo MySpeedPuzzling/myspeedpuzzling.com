@@ -462,6 +462,54 @@
     padding-left: 0.75rem;
 }
 
+// "Add as a new puzzle / brand" (`assets/tom_select_create_option.js`): an action card above the results, never a grey
+// line - players read the old one as a hint and searched past it. #c53037 = 5.1:1 on the tinted background.
+.ts-dropdown .create.create--new {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin: 0.25rem 0.5rem 0.4rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px dashed rgba(197, 48, 55, 0.55);
+    border-radius: 0.5rem;
+    background: rgba(254, 105, 106, 0.07);
+    color: #373f50;
+    cursor: pointer;
+    opacity: 1;
+}
+.ts-dropdown .create.create--new.active {
+    border-style: solid;
+    background: rgba(254, 105, 106, 0.14);
+    color: #373f50;
+}
+.ts-dropdown .create--new .create__icon {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: #c53037;
+    color: #fff;
+    font-size: 1rem;
+}
+.ts-dropdown .create--new .create__text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.25;
+}
+.ts-dropdown .create--new .create__label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #c53037;
+}
+.ts-dropdown .create--new .create__name {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
 .ts-dropdown-content {
     padding: 5px 0;
 }

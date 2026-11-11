@@ -453,7 +453,7 @@
     pair_too_many: "Un duo, c'est deux personnes - gardez seulement la personne avec qui vous avez assemblé le puzzle."
     team_needs_people: "{1}Ajoutez encore une personne avec qui vous avez assemblé le puzzle - ce résultat officiel appartient à une équipe de trois personnes ou plus.|[0,Inf[Ajoutez les personnes avec qui vous avez assemblé le puzzle - ce résultat officiel appartient à une équipe de trois personnes ou plus."
 "forms":
-  "add_new_brand": "Ajouter une nouvelle marque :"
+  "add_new_brand": "Ajouter comme nouvelle marque"
   "choose_from_favorites": "- Choisir parmi les favoris -"
   "drop_file": "Glissez-déposez un fichier ici pour l'uploader"
   "choose_file": "Ou sélectionnez un fichier"
@@ -528,7 +528,7 @@
   "time_format_placeholder": "HH:MM:SS"
   "comment": "Info additionnelle"
   "finished_puzzle_photo": "Photo des puzzles terminés"
-  "add_new_puzzle": "Ajouter un nouveau puzzle - pas dans la liste"
+  "add_new_puzzle": "Ajouter comme nouveau puzzle"
   "puzzle": "Puzzle"
   "puzzle_help": "Choisissez un puzzle existant (recherche par nom, code de marque, pièces) ou ajoutez le nom du nouveau puzzle si non trouvé."
   "brand": "Marque"

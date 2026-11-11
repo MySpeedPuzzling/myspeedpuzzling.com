@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { renderCreateOption } from '../tom_select_create_option.js';
 
 // Options built by the server (BrandChoicesBuilder) carry a plain `name` and an HTML `text` escaped where it was built.
 // Any other option is text a player typed - a new brand, also when a refused form comes back with it - and is escaped.
@@ -33,11 +34,11 @@ export default class extends Controller {
     _onConnect(event) {
         const input = event.target;
         const options = event.detail.options;
-        const addNewBrandMessage = this.addNewBrandMessageValue || 'Add new brand:';
+        const addNewBrandMessage = this.addNewBrandMessageValue || 'Add as a new brand';
 
         options.render.option = renderOption;
         options.render.item = renderOption;
-        options.render.option_create = (data, escape) => `<div class="create py-2"><i class="ci-add small"></i> ${escape(addNewBrandMessage)} <strong>${escape(data.input)}</strong></div>`;
+        options.render.option_create = (data, escape) => renderCreateOption(addNewBrandMessage, data.input, escape);
 
         options.create = (typed) => {
             const tom = input.tomselect;

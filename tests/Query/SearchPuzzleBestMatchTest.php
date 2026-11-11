@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Tests\ChangesPuzzleRecords;
@@ -34,8 +35,8 @@ final class SearchPuzzleBestMatchTest extends KernelTestCase
         // None of them is solved, so only the tier tells them apart
         self::changePuzzleBrandCode(PuzzleFixture::PUZZLE_9000, 'TIGER');                    // 6 the exact brand code
         self::renamePuzzle(PuzzleFixture::PUZZLE_6000, 'Puzzle 18', self::names('Tiger'));   // 5 a whole (other) name
-        self::renamePuzzle(PuzzleFixture::PUZZLE_5000, 'Tiger Lily');                         // 4 a name starts with it
-        self::renamePuzzle(PuzzleFixture::PUZZLE_4000, 'White Tiger Cub');                    // 3 a word starts with it
+        self::renamePuzzle(PuzzleFixture::PUZZLE_5000, 'White Tiger Cub');                    // 4 a whole word of a name
+        self::renamePuzzle(PuzzleFixture::PUZZLE_4000, 'Tigers');                             // 3 a name only starts with it
         self::renamePuzzle(PuzzleFixture::PUZZLE_3000, 'Sabertiger');                         // 2 a name contains it
         self::changePuzzleBrandCode(PuzzleFixture::PUZZLE_2000, 'XTIGER9');                   // 1 a part of a code
 
@@ -55,8 +56,45 @@ final class SearchPuzzleBestMatchTest extends KernelTestCase
 
         // Every other sort keeps the match as the tiebreak only
         self::assertSame(
-            [PuzzleFixture::PUZZLE_2000, PuzzleFixture::PUZZLE_6000, PuzzleFixture::PUZZLE_9000, PuzzleFixture::PUZZLE_3000, PuzzleFixture::PUZZLE_5000, PuzzleFixture::PUZZLE_4000],
+            [PuzzleFixture::PUZZLE_2000, PuzzleFixture::PUZZLE_6000, PuzzleFixture::PUZZLE_9000, PuzzleFixture::PUZZLE_3000, PuzzleFixture::PUZZLE_4000, PuzzleFixture::PUZZLE_5000],
             $this->search('tiger', 'a-z'),
+        );
+    }
+
+    /**
+     * "parrot" (feedback 2026-11-10): the most solved "Puzzle Moment: Parrot" came after barely solved names that only
+     * begin with the word ("Parrots", "Parrot Tropics"). A whole word anywhere - also in an other name - is one rank,
+     * ordered by the most solved; only an exact name stays above it.
+     */
+    public function testAWholeWordAnywhereRanksAsOneAndTheMostSolvedLeadsIt(): void
+    {
+        [$solved, $moreSolved] = $this->twoSolvedPuzzles();
+
+        self::renamePuzzle(PuzzleFixture::PUZZLE_9000, 'Parrot');                                     // 5
+        self::renamePuzzle($moreSolved, 'Puzzle Moment: Parrot');                                      // 4, most solved
+        self::renamePuzzle($solved, 'Rainforest', self::names('Little parrot'));                       // 4 in an other name
+        self::renamePuzzle(PuzzleFixture::PUZZLE_6000, 'Parrot Tropics');                              // 4, nobody solved it
+        self::renamePuzzle(PuzzleFixture::PUZZLE_5000, 'Parrots');                                     // 3
+        self::renamePuzzle(PuzzleFixture::PUZZLE_4000, 'Two parrots');                                 // 3
+        self::renamePuzzle(PuzzleFixture::PUZZLE_3000, 'Sparrot');                                     // 2
+
+        self::assertSame(
+            [PuzzleFixture::PUZZLE_9000, $moreSolved, $solved, PuzzleFixture::PUZZLE_6000, PuzzleFixture::PUZZLE_5000, PuzzleFixture::PUZZLE_4000, PuzzleFixture::PUZZLE_3000],
+            $this->search('parrot'),
+        );
+    }
+
+    public function testAWholeWordOfPunctuationOrSeveralWords(): void
+    {
+        self::renamePuzzle(PuzzleFixture::PUZZLE_9000, 'Rome (Italy)');
+        self::renamePuzzle(PuzzleFixture::PUZZLE_6000, 'Rome (Italy) at night');
+        self::renamePuzzle(PuzzleFixture::PUZZLE_5000, 'Romeo (Italy)');
+        self::renamePuzzle(PuzzleFixture::PUZZLE_4000, 'Old Rome (Italy)s');
+
+        // Regex metacharacters are literal; "(italy)" ends on punctuation, so anything may follow it
+        self::assertSame(
+            [PuzzleFixture::PUZZLE_9000, PuzzleFixture::PUZZLE_4000, PuzzleFixture::PUZZLE_6000],
+            $this->search('rome (italy)'),
         );
     }
 
@@ -168,6 +206,24 @@ final class SearchPuzzleBestMatchTest extends KernelTestCase
                 self::assertCount($this->searchPuzzle->countByUserInput(null, $search, PiecesRange::any(), null), $ids, "\"$search\" by $sort");
             }
         }
+    }
+
+    /**
+     * Two puzzles somebody solved, the second solved more often
+     *
+     * @return array{string, string}
+     */
+    private function twoSolvedPuzzles(): array
+    {
+        /** @var list<string> $ids */
+        $ids = self::getContainer()->get(Connection::class)->fetchFirstColumn(
+            'SELECT ps.puzzle_id FROM puzzle_statistics ps JOIN puzzle p ON p.id = ps.puzzle_id
+             WHERE ps.solved_times_count > 0 AND p.hide_until IS NULL
+             ORDER BY ps.solved_times_count DESC, ps.puzzle_id LIMIT 2',
+        );
+        self::assertCount(2, $ids);
+
+        return [$ids[1], $ids[0]];
     }
 
     /**

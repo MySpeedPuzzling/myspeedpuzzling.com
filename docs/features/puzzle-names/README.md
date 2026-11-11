@@ -118,8 +118,8 @@ folding means no text filter at all (browsing). Indexes: `custom_puzzle_search_n
 |---|---|---|
 | 6 | exact EAN or brand code | `search_codes LIKE '%e:4005556147090\n%'` (or `c:…\n`; a tag always starts a line) |
 | 5 | a whole name | `search_names LIKE '%\nq\n%'` |
-| 4 | a name starts with it | `search_names LIKE '%\nq%'` |
-| 3 | a word starts with it | `search_names LIKE '% q%'` |
+| 4 | a name holds it as a whole word, anywhere ("Puzzle Moment: Parrot" for "parrot") | a name or word starts with it (the two `LIKE`s of rank 3) **and** `search_names ~ '(^\|[^[:alnum:]])q($\|[^[:alnum:]])'` (the boundary only on a letter/digit edge of `q`) |
+| 3 | a name or a word of it only starts with it ("Parrots") | `search_names LIKE '%\nq%'` or `LIKE '% q%'` |
 | 2 | a name contains it | `search_names LIKE '%q%'` |
 | 1 | part of a code (5+ letters/digits only) | `search_codes LIKE '%q%'` |
 
@@ -128,6 +128,12 @@ by `SearchPuzzle` (page, count, EAN lookup), `GetMarketplaceListings`, `FindPuzz
 `GetMultiscanCandidates`. Ordering: `best-match` (rank, then most solved) is the default whenever a term is typed;
 other sorts stay selectable. Global search shows the best 15 and links "Show all N results" to `/puzzle?search=…`.
 API v1 gets `sort=best-match` as an addition; its default is unchanged.
+
+Ranks 4 and 3 were "a name starts with it" / "a word starts with it" until 2026-11-11: "Parrots" and "Parrot Tropics"
+(0-1 solves) then came before "Puzzle Moment: Parrot" (900+ solves) - a player's feedback. Since then a whole word anywhere
+is one rank, ordered by the most solved. The regex runs only on rows the `LIKE` already matched (the index serves the
+condition only, as before); measured on the dev copy (41,282 puzzles, page query): "a" 14 → 15 ms, "pu" 6 → 9 ms,
+"parrot" 0.5 → 0.6 ms.
 
 Barcode scans are exact (`e:` whole line): today's loose substring hits (192 codes on dev, mostly wrong puzzles) end.
 

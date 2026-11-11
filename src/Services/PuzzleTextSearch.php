@@ -57,9 +57,14 @@ readonly final class PuzzleTextSearch
     }
 
     /**
-     * How well a row matches, for `ORDER BY … DESC`: 6 the exact barcode or brand code, 5 a whole name, 4 a name
-     * starts with it, 3 a word of a name starts with it, 2 a name contains it, 1 a part of a code (5+ letters or
-     * digits). 0 when nothing was typed.
+     * How well a row matches, for `ORDER BY … DESC`: 6 the exact barcode or brand code, 5 a whole name, 4 a name holds
+     * it as a whole word (anywhere: "Puzzle Moment: Parrot" for "parrot"), 3 a name or a word of it only starts with it
+     * ("Parrots"), 2 a name contains it, 1 a part of a code (5+ letters or digits). 0 when nothing was typed. Within a
+     * rank the queries order by the most solved, so a popular whole-word match is not buried under barely solved
+     * names that merely begin with the word.
+     *
+     * The whole-word regex runs only on the rows a name or word start already matched (the LIKE first) - the index
+     * still serves only the condition, the score costs 1-3 ms more on a one- or two-letter search over the whole catalogue.
      */
     public function score(string $alias): string
     {
@@ -75,8 +80,8 @@ readonly final class PuzzleTextSearch
         }
 
         $tiers[] = "WHEN {$alias}.search_names LIKE :ptsNamesWhole THEN 5";
-        $tiers[] = "WHEN {$alias}.search_names LIKE :ptsNamesStart THEN 4";
-        $tiers[] = "WHEN {$alias}.search_names LIKE :ptsNamesWordStart THEN 3";
+        $tiers[] = "WHEN {$alias}.search_names LIKE :ptsNamesStart OR {$alias}.search_names LIKE :ptsNamesWordStart"
+            . " THEN CASE WHEN {$alias}.search_names ~ :ptsNamesWholeWord THEN 4 ELSE 3 END";
         $tiers[] = "WHEN {$alias}.search_names LIKE :ptsNamesContains THEN 2";
 
         if ($this->query->codePart !== null) {
@@ -118,6 +123,7 @@ readonly final class PuzzleTextSearch
             'ptsNamesWhole' => $this->query->namesWhole,
             'ptsNamesStart' => $this->query->namesStart,
             'ptsNamesWordStart' => $this->query->namesWordStart,
+            'ptsNamesWholeWord' => $this->query->namesWholeWord,
             'ptsEanExact' => $this->query->eanExact,
             'ptsCodeExact' => $this->query->codeExact,
             'ptsCodePart' => $this->query->codePart,

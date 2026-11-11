@@ -31,6 +31,10 @@ final class PuzzleSearchQueryTest extends TestCase
         self::assertSame("%\nkouzelna zahrada\n%", $query->namesWhole);
         self::assertSame("%\nkouzelna zahrada%", $query->namesStart);
         self::assertSame('% kouzelna zahrada%', $query->namesWordStart);
+        self::assertSame('(^|[^[:alnum:]])kouzelna zahrada($|[^[:alnum:]])', $query->namesWholeWord);
+        // Metacharacters escaped; a punctuation edge needs no boundary
+        self::assertSame('\\(italy\\)', PuzzleSearchQuery::fromUserInput('(Italy)')->namesWholeWord);
+        self::assertSame('(^|[^[:alnum:]])100%', PuzzleSearchQuery::fromUserInput('100%')->namesWholeWord);
 
         // Full-width wildcards fold to ASCII first, so they are escaped like typed ones
         self::assertSame('%\\%\\_\\\\%', PuzzleSearchQuery::fromUserInput('％＿＼')->namesContains);

@@ -34,6 +34,8 @@ readonly final class PuzzleSearchQuery
         public null|string $namesStart = null,
         /** LIKE: a word of a name starts with it */
         public null|string $namesWordStart = null,
+        /** Postgres regex: a name holds it as a whole word - not followed or preceded by a letter or digit */
+        public null|string $namesWholeWord = null,
         /** LIKE: a whole barcode - the query is a number (digits, spaces, dashes, dots), without leading zeros */
         public null|string $eanExact = null,
         /** LIKE: a whole brand code - the query's letters and digits */
@@ -68,6 +70,7 @@ readonly final class PuzzleSearchQuery
             namesWhole: "%\n" . $escaped . "\n%",
             namesStart: "%\n" . $escaped . '%',
             namesWordStart: '% ' . $escaped . '%',
+            namesWholeWord: self::wholeWordPattern($folded),
             // No newline before the tag (it always starts a line): the trigram index then skips the tag letter, which
             // is in nearly every key
             eanExact: $digits !== '' ? '%e:' . $digits . "\n%" : null,
@@ -81,5 +84,19 @@ readonly final class PuzzleSearchQuery
     public function isEmpty(): bool
     {
         return $this->folded === '';
+    }
+
+    /**
+     * "puzzle moment: parrot" holds "parrot" as a whole word, "parrots" does not. A letter or digit at an edge of the
+     * query needs anything else (or a line edge - a newline is neither) next to it; a punctuation edge ("100%") needs
+     * nothing. preg_quote escapes every non-alphanumeric ARE metacharacter, and a backslash before a non-alphanumeric
+     * character is a literal in Postgres' ARE too.
+     */
+    private static function wholeWordPattern(string $folded): string
+    {
+        $before = preg_match('/^[\p{L}\p{N}]/u', $folded) === 1 ? '(^|[^[:alnum:]])' : '';
+        $after = preg_match('/[\p{L}\p{N}]$/u', $folded) === 1 ? '($|[^[:alnum:]])' : '';
+
+        return $before . preg_quote($folded) . $after;
     }
 }

@@ -783,6 +783,7 @@
     "puzzle_average_time": "Durchschnittszeit des Puzzles"
     "player_rank": "Deine Platzierung beim Puzzle"
     "puzzle_total_solved": "Gesamtzahl der Puzzle-Lösungen"
+    "msp_rating": "Ob es für dein MSP-Rating zählt, und wenn nicht, warum"
   "results":
     "heading": "Ergebnisse"
   "library":
@@ -3775,6 +3776,8 @@ puzzle_intelligence:
         no_entries: "Noch keine Spieler auf der Rangliste für diese Kategorie."
         no_results: "Keine Spieler entsprechen deinen Filtern."
         view_full_ladder: "Vollständige Rangliste anzeigen"
+        progress_not_counted_yet: "{1}+1 erster Versuch an einem Puzzle, das noch nicht zählt|[0,Inf[+%count% erste Versuche an Puzzles, die noch nicht zählen"
+        progress_not_counted_yet_help: "Ein Puzzle zählt, sobald mindestens 20 Puzzler darauf eine Zeit vom ersten Versuch haben - deine ersten Versuche dort zählen dann mit."
         recalculation_countdown: "Wird alle 15 Minuten neu berechnet. Nächste in"
         your_ranking: "Deine Platzierung"
         your_ranking_among: "Deine Platzierung (unter %total% Spielern)"

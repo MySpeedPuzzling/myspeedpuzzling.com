@@ -5,19 +5,26 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Results\ExportableSolvingTime;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\MspRatingFormula;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
+use SpeedPuzzling\Web\Value\RatingPortfolio;
 
 readonly final class GetExportableSolvingTimes
 {
+    private const int RATING_PIECES_COUNT = PuzzleIntelligenceRecalculator::RATING_PIECES_COUNTS[0];
+
     public function __construct(
         private Connection $database,
         private string $uploadedAssetsBaseUrl,
         private HiddenPlayers $hiddenPlayers,
         private PrivateProfileAccess $privateProfileAccess,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -40,6 +47,11 @@ readonly final class GetExportableSolvingTimes
         // (solo) or per exact pair/team with its best non-suspicious time, hidden players left out, private ones
         // only when the player may see them. A time ranks where it would stand among everybody else's best times,
         // so the best time gets exactly the leaderboard's rank; a suspicious time is not on the board, no rank.
+        // The msp_rating columns (ResultRatingStatus) read what the rating batch stored: which of the player's solo
+        // results of the rated piece count are its first-attempt / best-time entries, and whether each puzzle counts.
+        // The rating aggregates per puzzle (MspRatingCalculator: earliest-fastest first attempt, fastest result), so
+        // rating_times marks the one result that can be each entry; an entry is matched on its seconds as well, so a
+        // result saved after the last run of the batch is "not computed yet", never another result's entry.
         $query = <<<SQL
 WITH player_times AS (
     SELECT
@@ -110,6 +122,72 @@ standing AS (
     FROM player_times
     LEFT JOIN board ON board.puzzle_id = player_times.puzzle_id AND board.puzzling_type = player_times.puzzling_type
     GROUP BY player_times.id, player_times.seconds_to_solve, player_times.suspicious
+),
+rating_times AS (
+    SELECT
+        pst.id,
+        pst.puzzle_id,
+        pst.seconds_to_solve,
+        COALESCE(pst.finished_at, pst.tracked_at) >= :ratingWindowStart AS in_window,
+        ROW_NUMBER() OVER (
+            PARTITION BY pst.puzzle_id
+            ORDER BY pst.seconds_to_solve, COALESCE(pst.finished_at, pst.tracked_at), pst.id
+        ) = 1 AS best_time_candidate,
+        pst.first_attempt AND ROW_NUMBER() OVER (
+            PARTITION BY pst.puzzle_id, pst.first_attempt
+            ORDER BY pst.seconds_to_solve, COALESCE(pst.finished_at, pst.tracked_at), pst.id
+        ) = 1 AS first_attempt_candidate
+    FROM puzzle_solving_time pst
+    INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
+    WHERE pst.player_id = :playerId
+        AND puzzle.pieces_count = :ratingPiecesCount
+        AND pst.puzzling_type = 'solo'
+        AND pst.suspicious = false
+        AND pst.seconds_to_solve IS NOT NULL
+),
+-- Whether a puzzle counts and its public first-try solvers (the rating's rule, an aggregate); puzzle_rating_times holds
+-- the puzzles with 9+ of them, the others are counted here
+rating_puzzles AS (
+    SELECT
+        ids.puzzle_id,
+        COALESCE(prt.qualifies, false) AS qualifies,
+        COALESCE(prt.solver_count, (
+            SELECT COUNT(DISTINCT solver_time.player_id)
+            FROM puzzle_solving_time solver_time
+            INNER JOIN player solver ON solver.id = solver_time.player_id
+            WHERE solver_time.puzzle_id = ids.puzzle_id
+                AND solver_time.first_attempt = true
+                AND solver_time.puzzling_type = 'solo'
+                AND solver_time.suspicious = false
+                AND solver_time.seconds_to_solve IS NOT NULL
+                AND solver.is_private = false
+        )) AS first_try_solvers
+    FROM (SELECT DISTINCT puzzle_id FROM rating_times) ids
+    LEFT JOIN puzzle_rating_times prt ON prt.puzzle_id = ids.puzzle_id
+),
+rating_status AS (
+    SELECT
+        rating_times.id,
+        rating_times.in_window,
+        rating_times.first_attempt_candidate OR rating_times.best_time_candidate AS candidate,
+        fa.in_top AS counts_first_attempt,
+        bt.in_top AS counts_best_time,
+        rating_puzzles.qualifies,
+        rating_puzzles.first_try_solvers
+    FROM rating_times
+    INNER JOIN rating_puzzles ON rating_puzzles.puzzle_id = rating_times.puzzle_id
+    LEFT JOIN player_rating_entry fa ON rating_times.first_attempt_candidate
+        AND fa.player_id = :playerId
+        AND fa.pieces_count = :ratingPiecesCount
+        AND fa.puzzle_id = rating_times.puzzle_id
+        AND fa.portfolio = :firstAttemptPortfolio
+        AND fa.seconds = rating_times.seconds_to_solve
+    LEFT JOIN player_rating_entry bt ON rating_times.best_time_candidate
+        AND bt.player_id = :playerId
+        AND bt.pieces_count = :ratingPiecesCount
+        AND bt.puzzle_id = rating_times.puzzle_id
+        AND bt.portfolio = :bestTimePortfolio
+        AND bt.seconds = rating_times.seconds_to_solve
 )
 SELECT
     pst.id AS time_id,
@@ -155,7 +233,16 @@ SELECT
     competition.id AS event_id,
     competition.name AS event_name,
     cs.id AS event_series_id,
-    cs.name AS event_series_name
+    cs.name AS event_series_name,
+    pst.suspicious,
+    -- The exporting player's own setting: a private player has no MSP rating at all
+    (SELECT owner.is_private FROM player owner WHERE owner.id = :playerId) AS rating_player_private,
+    rating_status.in_window AS rating_in_window,
+    rating_status.candidate AS rating_candidate,
+    rating_status.counts_first_attempt AS rating_counts_first_attempt,
+    rating_status.counts_best_time AS rating_counts_best_time,
+    rating_status.qualifies AS rating_puzzle_qualifies,
+    rating_status.first_try_solvers AS rating_puzzle_first_try_solvers
 FROM puzzle_solving_time pst
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
@@ -165,6 +252,7 @@ INNER JOIN standing ON standing.id = pst.id
 -- (picked, or found for a series pick) with its series; a series pick without an edition (series-level) only its series
 LEFT JOIN competition ON competition.id = pst.competition_id
 LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, pst.competition_series_id)
+LEFT JOIN rating_status ON rating_status.id = pst.id
 ORDER BY COALESCE(pst.finished_at, pst.tracked_at) DESC, tracked_at DESC
 SQL;
 
@@ -193,10 +281,24 @@ SQL;
          *     event_name: null|string,
          *     event_series_id: null|string,
          *     event_series_name: null|string,
+         *     suspicious: bool,
+         *     rating_player_private: bool,
+         *     rating_in_window: null|bool,
+         *     rating_candidate: null|bool,
+         *     rating_counts_first_attempt: null|bool,
+         *     rating_counts_best_time: null|bool,
+         *     rating_puzzle_qualifies: null|bool,
+         *     rating_puzzle_first_try_solvers: null|int,
          * }> $data
          */
         $data = $this->database
-            ->executeQuery($query, ['playerId' => $playerId])
+            ->executeQuery($query, [
+                'playerId' => $playerId,
+                'ratingPiecesCount' => self::RATING_PIECES_COUNT,
+                'ratingWindowStart' => MspRatingFormula::windowStart($this->clock->now())->format('Y-m-d H:i:s'),
+                'firstAttemptPortfolio' => RatingPortfolio::FirstAttempt->value,
+                'bestTimePortfolio' => RatingPortfolio::BestTime->value,
+            ])
             ->fetchAllAssociative();
 
         return array_map(

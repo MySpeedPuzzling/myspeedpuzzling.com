@@ -90,6 +90,12 @@
                     </div>
                     <small class="text-muted fw-medium" style="min-width: 45px;">{{ rating_progress.first_attempts }}/{{ min_first_attempts }}</small>
                 </div>
+                {% if rating_progress.first_attempts_not_counted_yet > 0 %}
+                    <small class="d-block text-muted mb-2" data-testid="rating-progress-not-counted-yet">
+                        {{ 'puzzle_intelligence.elo.progress_not_counted_yet'|trans({'%count%': rating_progress.first_attempts_not_counted_yet}) }}
+                        &middot; {{ 'puzzle_intelligence.elo.progress_not_counted_yet_help'|trans }}
+                    </small>
+                {% endif %}
 
                 <div class="d-flex align-items-center gap-2">
                     <small class="text-muted" style="min-width: 110px;">

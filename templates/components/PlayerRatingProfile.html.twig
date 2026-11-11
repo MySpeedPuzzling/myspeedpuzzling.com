@@ -47,6 +47,12 @@
                     </div>
                     <small class="text-muted fw-medium">{{ ratingProgress.first_attempts }}/{{ minFirstAttempts }}</small>
                 </div>
+                {% if ratingProgress.first_attempts_not_counted_yet > 0 %}
+                    <small class="d-block text-muted mb-1" title="{{ 'puzzle_intelligence.elo.progress_not_counted_yet_help'|trans }}" data-testid="rating-progress-not-counted-yet">
+                        {{ 'puzzle_intelligence.elo.progress_not_counted_yet'|trans({'%count%': ratingProgress.first_attempts_not_counted_yet}) }}
+                        <a href="{{ path('methodology', {return: path('player_profile', {playerId: this.playerId}), return_title: 'menu.profile'|trans}) }}#msp-rating" rel="nofollow" class="text-muted" aria-label="{{ 'puzzle_intelligence.elo.progress_not_counted_yet_help'|trans }}"><i class="bi bi-info-circle" aria-hidden="true"></i></a>
+                    </small>
+                {% endif %}
                 <div class="d-flex align-items-center gap-2">
                     <small class="text-muted" style="min-width: 100px;">
                         <i class="bi bi-{{ ts_done ? 'check-circle-fill text-success' : 'x-circle text-muted' }} me-1"></i>

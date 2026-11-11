@@ -55,7 +55,7 @@ final class MspRatingLadderController extends AbstractController
                 $isRated = isset($this->getPlayerRatingRanking->allForPlayer($loggedPlayer->playerId)[$piecesCount]);
 
                 if ($isRated === false) {
-                    $ratingProgress = $this->mspRatingCalculator->getProgress($loggedPlayer->playerId, $piecesCount);
+                    $ratingProgress = $this->mspRatingCalculator->qualificationProgress($loggedPlayer->playerId, $piecesCount);
                 }
             }
         }

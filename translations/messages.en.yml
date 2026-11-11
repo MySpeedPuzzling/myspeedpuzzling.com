@@ -863,6 +863,7 @@ export:
         puzzle_average_time: "Puzzle average time"
         player_rank: "Your rank for the puzzle"
         puzzle_total_solved: "Total times puzzle was solved"
+        msp_rating: "Whether it counts toward your MSP rating, and if not, why"
     results:
         heading: "Results"
     library:
@@ -4476,6 +4477,8 @@ puzzle_intelligence:
         progress_first_attempts: "First attempts"
         progress_total_solves: "Total solves"
         view_full_ladder: "View full ladder"
+        progress_not_counted_yet: "{1}+1 first attempt on a puzzle that doesn't count yet|[0,Inf[+%count% first attempts on puzzles that don't count yet"
+        progress_not_counted_yet_help: "A puzzle counts once at least 20 puzzlers have a first-try time on it - your first attempts there will count then."
         search_placeholder: "Search by name..."
         all_countries: "All countries"
         no_results: "No players match your filters."

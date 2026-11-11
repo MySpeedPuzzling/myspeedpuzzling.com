@@ -46,6 +46,10 @@ readonly final class PuzzlerDataExporter
         'event_name',
         'event_series_id',
         'event_series_name',
+        // whether the result counts toward the MSP rating, and if not why (ResultRatingStatus)
+        'msp_rating',
+        'msp_rating_reason',
+        'msp_rating_puzzle_first_try_solvers',
     ];
 
     /**

@@ -655,6 +655,8 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
 - [ ] Marathon results: link several puzzles solved in one marathon session into one entry, showing the total marathon
       time, each puzzle's own time and the list of puzzles (feedback form 2026-10-25, sent from the karma page).
       Promised to Kotte (MSP #397, follow-up F190).
+- [ ] Support multipack puzzles (one box holding several puzzles, see docs/features/wasgij-and-multipacks.md) -
+      Rozebeest asked for it from a Trefl multipack puzzle page. Promised to Rozebeest (MSP #411, follow-up F197).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

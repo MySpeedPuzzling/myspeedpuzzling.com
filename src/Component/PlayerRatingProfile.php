@@ -26,7 +26,7 @@ final class PlayerRatingProfile
     /** @var array<int, array{elo_rating: float, rank: int, total: int}> */
     public array $ratings = [];
 
-    /** @var array{first_attempts: int, total_solves: int}|null */
+    /** @var array{first_attempts: int, first_attempts_not_counted_yet: int, total_solves: int}|null */
     public null|array $ratingProgress = null;
 
     public int $minFirstAttempts = MspRatingCalculator::MINIMUM_FIRST_ATTEMPTS;
@@ -47,9 +47,9 @@ final class PlayerRatingProfile
 
         // If own profile and no rating data, show progress for 500pc
         if ($this->isOwnProfile && $this->ratings === []) {
-            $progress = $this->mspRatingCalculator->getProgress($this->playerId, 500);
+            $progress = $this->mspRatingCalculator->qualificationProgress($this->playerId, 500);
 
-            if ($progress['first_attempts'] > 0 || $progress['total_solves'] > 0) {
+            if ($progress['first_attempts'] > 0 || $progress['first_attempts_not_counted_yet'] > 0 || $progress['total_solves'] > 0) {
                 $this->ratingProgress = $progress;
             }
         }

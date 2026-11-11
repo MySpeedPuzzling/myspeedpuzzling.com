@@ -120,7 +120,8 @@ final class PuzzlerDataExporterTest extends TestCase
             . '"finished_at","tracked_at","type","first_attempt","unboxed","players_count","team_members",'
             . '"finished_puzzle_photo_url","comment","puzzle_fastest_time","puzzle_fastest_time_formatted",'
             . '"puzzle_average_time","puzzle_average_time_formatted","player_rank","puzzle_total_solved","ppm",'
-            . '"event_id","event_name","event_series_id","event_series_name"',
+            . '"event_id","event_name","event_series_id","event_series_name",'
+            . '"msp_rating","msp_rating_reason","msp_rating_puzzle_first_try_solvers"',
             trim(explode("\n", $csv)[0]),
         );
     }
@@ -147,11 +148,11 @@ final class PuzzlerDataExporterTest extends TestCase
         $json = json_decode($this->exporter->export([$time], ExportFormat::Json), true);
         self::assertSame(
             ['event_id' => $eventId, 'event_name' => $eventName, 'event_series_id' => $seriesId, 'event_series_name' => $seriesName],
-            array_slice($json[0], -4, preserve_keys: true),
+            array_slice($json[0], -7, 4, preserve_keys: true),
         );
 
         $csvRows = array_map(static fn (string $line): array => str_getcsv($line, ',', '"', ''), array_values(array_filter(explode("\n", $this->exporter->export([$time], ExportFormat::Csv)))));
-        self::assertSame([$eventId ?? '', $eventName ?? '', $seriesId ?? '', $seriesName ?? ''], array_slice($csvRows[1], -4));
+        self::assertSame([$eventId ?? '', $eventName ?? '', $seriesId ?? '', $seriesName ?? ''], array_slice($csvRows[1], -7, 4));
 
         $xml = simplexml_load_string($this->exporter->export([$time], ExportFormat::Xml));
         self::assertNotFalse($xml);

@@ -835,6 +835,7 @@ comparison:
     "puzzle_average_time": "Průměrný čas puzzle"
     "player_rank": "Tvé pořadí u puzzle"
     "puzzle_total_solved": "Celkový počet složení puzzle"
+    "msp_rating": "Jestli se počítá do tvého MSP ratingu, a když ne, tak proč"
   "results":
     "heading": "Výsledky"
   "library":
@@ -3777,6 +3778,8 @@ puzzle_intelligence:
         no_entries: "V této kategorii zatím nejsou žádní hráči na žebříčku."
         no_results: "Žádní hráči neodpovídají vašim filtrům."
         view_full_ladder: "Zobrazit celý žebříček"
+        progress_not_counted_yet: "{1}+1 první pokus na puzzle, které se zatím nepočítá|[2,4]+%count% první pokusy na puzzle, která se zatím nepočítají|[0,Inf[+%count% prvních pokusů na puzzle, která se zatím nepočítají"
+        progress_not_counted_yet_help: "Puzzle se začne počítat, až na něm bude mít čas z prvního pokusu alespoň 20 puzzlerů - tvé první pokusy na něm se pak započítají."
         recalculation_countdown: "Přepočítává se každých 15 minut. Další za"
         your_ranking: "Vaše pořadí"
         your_ranking_among: "Vaše pořadí (z %total% hráčů)"

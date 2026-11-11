@@ -319,6 +319,45 @@ final class MspRatingCalculator implements ResetInterface
     }
 
     /**
+     * What a player not rated yet is shown on the way to a first rating (profile card, ladder, add-time recap).
+     * `first_attempts` counts only the puzzles that count in ratings (puzzle_rating_times.qualifies - 20+ public
+     * first-try solvers and a settled difficulty, as stored by the last run of the batch): the rating needs 20 first
+     * attempts on those, so a first attempt on any other puzzle never brings a player closer and is counted apart
+     * (`first_attempts_not_counted_yet`, it counts once its puzzle does). `total_solves` = getProgress()'s, every puzzle.
+     * A user report (2026-11-09): the card said 20/20 while the ladder still had no place for them.
+     *
+     * @return array{first_attempts: int, first_attempts_not_counted_yet: int, total_solves: int}
+     */
+    public function qualificationProgress(string $playerId, int $piecesCount): array
+    {
+        /** @var array{first_attempt_count: int|string, not_counted_yet_count: int|string, total_count: int|string}|false $result */
+        $result = $this->connection->fetchAssociative("
+            SELECT
+                COUNT(DISTINCT pst.puzzle_id) FILTER (WHERE pst.first_attempt = true AND COALESCE(pst.finished_at, pst.tracked_at) >= :cutoff AND prt.qualifies IS TRUE) AS first_attempt_count,
+                COUNT(DISTINCT pst.puzzle_id) FILTER (WHERE pst.first_attempt = true AND COALESCE(pst.finished_at, pst.tracked_at) >= :cutoff AND prt.qualifies IS NOT TRUE) AS not_counted_yet_count,
+                COUNT(DISTINCT pst.puzzle_id) FILTER (WHERE COALESCE(pst.finished_at, pst.tracked_at) >= :cutoff) AS total_count
+            FROM puzzle_solving_time pst
+            JOIN puzzle p ON p.id = pst.puzzle_id
+            LEFT JOIN puzzle_rating_times prt ON prt.puzzle_id = pst.puzzle_id AND prt.pieces_count = :piecesCount
+            WHERE pst.player_id = :playerId
+                AND p.pieces_count = :piecesCount
+                AND pst.puzzling_type = 'solo'
+                AND pst.suspicious = false
+                AND pst.seconds_to_solve IS NOT NULL
+        ", [
+            'playerId' => $playerId,
+            'piecesCount' => $piecesCount,
+            'cutoff' => $this->getCutoffDate()->format('Y-m-d H:i:s'),
+        ]);
+
+        return [
+            'first_attempts' => $result !== false ? (int) $result['first_attempt_count'] : 0,
+            'first_attempts_not_counted_yet' => $result !== false ? (int) $result['not_counted_yet_count'] : 0,
+            'total_solves' => $result !== false ? (int) $result['total_count'] : 0,
+        ];
+    }
+
+    /**
      * Calculate portfolio-based rating for a player.
      * Portfolio entries are decayed by age before sorting and selection.
      */

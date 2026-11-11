@@ -40,6 +40,21 @@ total): one entry per player (solo) or exact pair/team with its best non-suspici
 private ones only when the player may see them. A time ranks where it would stand among everybody else's best
 times, so the best time carries the leaderboard's rank; a suspicious time has no rank.
 
+Then the MSP rating (2026-11-11, user request: "which of my results count toward the rating, and if not why"):
+`msp_rating` = `first_attempt` / `best_time` / `first_attempt_and_best_time` / `not_counted`, `msp_rating_reason` (empty when it
+counts) = `not_500_pieces`, `not_solo`, `no_time`, `needs_verification`, `private_profile`,
+`puzzle_has_fewer_than_20_first_try_solvers`, `puzzle_difficulty_not_settled_yet`, `older_than_24_months`,
+`not_your_best_time_on_this_puzzle`, `outside_your_best_100`, `not_computed_yet` (saved after the batch's last run, every
+15 minutes), and `msp_rating_puzzle_first_try_solvers` = the puzzle's public first-try solvers (solo 500-piece results only;
+a puzzle counts from 20). `ResultRatingStatus` decides, from what the rating batch stored (`player_rating_entry`,
+`puzzle_rating_times`) - the export says what the rating did, it never computes it again. "Counts" = an entry among the
+player's best 100 of a portfolio; a player not rated yet has those entries too, and every `first_attempt` one is one of the
+20 the qualification asks for. The rating takes one result per puzzle and portfolio (the fastest first attempt, the
+fastest result - ties: the earliest), so another result of the same puzzle is `not_your_best_time_on_this_puzzle`.
+Still the one statement. The progress towards a first rating (profile card, ladder, add-time recap) counts first attempts
+on those counting puzzles only since the same day (`MspRatingCalculator::qualificationProgress()`), with the others shown
+apart as "+N first attempts on puzzles that don't count yet".
+
 ## The structure: one export = a set of flat sections
 
 The library export is a list of **sections**. A section = a name (snake_case, English, like the existing headers),

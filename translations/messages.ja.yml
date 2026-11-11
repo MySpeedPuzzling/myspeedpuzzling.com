@@ -891,6 +891,7 @@
     "puzzle_average_time": "パズルの平均タイム"
     "player_rank": "パズルでのあなたの順位"
     "puzzle_total_solved": "パズルの総完成回数"
+    "msp_rating": "MSPレーティングに反映されるかどうか、反映されない場合はその理由"
   "results":
     "heading": "記録"
   "library":
@@ -3766,6 +3767,8 @@ puzzle_intelligence:
         no_entries: "このカテゴリーのラダーにはまだプレイヤーがいません。"
         no_results: "フィルターに一致するプレイヤーがいません。"
         view_full_ladder: "ラダー全体を見る"
+        progress_not_counted_yet: "まだ対象外のパズルでの初回挑戦 +%count%"
+        progress_not_counted_yet_help: "初回挑戦のタイムを持つパズラーが20人以上になるとパズルが対象になり、そのパズルでのあなたの初回挑戦も反映されます。"
         recalculation_countdown: "15分ごとに再計算。次回まで"
         your_ranking: "あなたの順位"
         your_ranking_among: "あなたの順位（%total%人中）"

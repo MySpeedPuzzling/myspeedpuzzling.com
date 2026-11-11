@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
+use SpeedPuzzling\Web\Value\ResultRatingStatus;
 use SpeedPuzzling\Web\Value\SolvingTime;
 
 readonly final class ExportableSolvingTime
@@ -43,6 +45,11 @@ readonly final class ExportableSolvingTime
         public null|string $eventName = null,
         public null|string $eventSeriesId = null,
         public null|string $eventSeriesName = null,
+        // Whether the result counts toward the MSP rating, and if not why (ResultRatingStatus); the puzzle's public
+        // first-try solvers for a solo result of the rated piece count (a puzzle counts from 20)
+        public string $mspRating = ResultRatingStatus::NOT_COUNTED,
+        public null|string $mspRatingReason = null,
+        public null|int $mspRatingPuzzleFirstTrySolvers = null,
     ) {
         $this->ppm = $secondsToSolve !== null && $secondsToSolve > 0
             ? (new SolvingTime($secondsToSolve))->calculatePpm($piecesCount, $playersCount)
@@ -74,6 +81,14 @@ readonly final class ExportableSolvingTime
      *     event_name?: null|string,
      *     event_series_id?: null|string,
      *     event_series_name?: null|string,
+     *     suspicious?: bool,
+     *     rating_player_private?: bool,
+     *     rating_in_window?: null|bool,
+     *     rating_candidate?: null|bool,
+     *     rating_counts_first_attempt?: null|bool,
+     *     rating_counts_best_time?: null|bool,
+     *     rating_puzzle_qualifies?: null|bool,
+     *     rating_puzzle_first_try_solvers?: null|int,
      * } $row
      */
     public static function fromDatabaseRow(array $row, string $baseUrl): self
@@ -84,6 +99,21 @@ readonly final class ExportableSolvingTime
 
         $puzzleFastestTime = $row['puzzle_fastest_time'];
         $puzzleAverageTime = $row['puzzle_average_time'];
+        $solvers = $row['rating_puzzle_first_try_solvers'] ?? null;
+
+        $rating = ResultRatingStatus::of(
+            ratedPieceCount: in_array($row['pieces_count'], PuzzleIntelligenceRecalculator::RATING_PIECES_COUNTS, true),
+            solo: $row['solving_type'] === 'solo',
+            timed: $row['seconds_to_solve'] !== null,
+            suspicious: $row['suspicious'] ?? false,
+            playerPrivate: $row['rating_player_private'] ?? false,
+            countsFirstAttempt: $row['rating_counts_first_attempt'] ?? null,
+            countsBestTime: $row['rating_counts_best_time'] ?? null,
+            puzzleQualifies: $row['rating_puzzle_qualifies'] ?? false,
+            puzzleFirstTrySolvers: $solvers ?? 0,
+            candidate: $row['rating_candidate'] ?? false,
+            inWindow: $row['rating_in_window'] ?? false,
+        );
 
         return new self(
             timeId: $row['time_id'],
@@ -112,6 +142,9 @@ readonly final class ExportableSolvingTime
             eventName: $row['event_name'] ?? null,
             eventSeriesId: $row['event_series_id'] ?? null,
             eventSeriesName: $row['event_series_name'] ?? null,
+            mspRating: $rating->status,
+            mspRatingReason: $rating->reason,
+            mspRatingPuzzleFirstTrySolvers: $solvers,
         );
     }
 
@@ -161,6 +194,9 @@ readonly final class ExportableSolvingTime
             'event_name' => $this->eventName,
             'event_series_id' => $this->eventSeriesId,
             'event_series_name' => $this->eventSeriesName,
+            'msp_rating' => $this->mspRating,
+            'msp_rating_reason' => $this->mspRatingReason,
+            'msp_rating_puzzle_first_try_solvers' => $this->mspRatingPuzzleFirstTrySolvers,
         ];
     }
 }

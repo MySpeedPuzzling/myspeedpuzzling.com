@@ -132,7 +132,7 @@ final class AddedTimeRecapController extends AbstractController
                 $rating = $this->getPlayerRatingRanking->allForPlayer($solvingPuzzle->playerId)[$solvingPuzzle->piecesCount] ?? null;
 
                 if ($rating === null) {
-                    $ratingProgress = $this->mspRatingCalculator->getProgress(
+                    $ratingProgress = $this->mspRatingCalculator->qualificationProgress(
                         $solvingPuzzle->playerId,
                         $solvingPuzzle->piecesCount,
                     );

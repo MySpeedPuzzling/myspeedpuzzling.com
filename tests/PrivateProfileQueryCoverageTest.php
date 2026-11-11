@@ -33,6 +33,7 @@ final class PrivateProfileQueryCoverageTest extends TestCase
         'Query/GetAffiliateSupporters.php' => 'Public supporters list of somebody else\'s profile - stays public-only.',
         'Query/GetInsightsContext.php' => 'The player\'s own place on today\'s MSP Rating ladder (the Insights rating tile): the global ranking\'s rule, the same column as the profile header - no place while private, for everybody.',
         'Query/GetInsightsRatingInputs.php' => 'The player\'s own setting (a private player has no MSP rating, Insights says so), and the ladder pool of "which place would that be" - the global ranking\'s, public players only.',
+        'Query/GetExportableSolvingTimes.php' => 'The msp_rating columns: the exporting player\'s own setting (a private player has no MSP rating), and a puzzle\'s public first-try solvers - the rating\'s own count, an aggregate without identity.',
         'Query/GetInsightsShelf.php' => '"Faster than N % of its solvers" counts the public first-attempt times only, like the rating\'s time lists - an aggregate without identity.',
         'Query/GetFastestGroups.php' => 'fastest_teams keeps a group only if a member is public - the same rows and positions for every viewer; names on them go through the service.',
         'Query/GetFastestPairs.php' => 'fastest_teams keeps a pair only if a member is public - the same rows and positions for every viewer; names on them go through the service.',

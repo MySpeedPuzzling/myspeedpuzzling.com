@@ -125,6 +125,7 @@ Measured on production 2026-10-26 (`log_min_duration_statement = 500`) and a loc
   of ~35-50 % on a vacuumed copy; `custom_pst_solo_board` of the Times boards is in the same position. Now: a manual
   `VACUUM (ANALYZE) puzzle_solving_time` (no blocking, ~228 MB heap). Lasting: a per-table setting like notification's
   (`Version20261026235000`) - ~58k row updates a day, so e.g. 2 % - measure the boards and the batch before / after
+  (analyze alone is every ~1 % since `Version20261111130000`, for the month lists' estimates - vacuum is still 20 %)
 - [ ] `recalculate-community-stats` (~3 s a run on production): the `community_player_stats` upsert (1.2-1.45 s) and
   the moments' running totals (1.4 s) aggregate every result of every (candidate) player, pairs and teams expanded from
   JSON - no index helps a full aggregate. Splitting the moments' windows at `:since` (results before it only counted)

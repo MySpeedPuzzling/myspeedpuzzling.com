@@ -163,7 +163,7 @@ final class PlayerHeaderTest extends WebTestCase
             $menu = $crawler->filter($where . ' .dropdown-menu');
             self::assertCount(1, $menu->filter('form[action="/en/compare/add"] button.dropdown-item'), $where);
             self::assertStringContainsString('Add to comparison', $menu->text(), $where);
-            self::assertCount(1, $menu->filter('form[action="/en/compare/add"] button.dropdown-item .badge'), $where . ': "New"');
+            self::assertCount(0, $menu->filter('.badge'), $where . ': no "New" badge in the menu');
             self::assertCount(0, $menu->filter('form[action="/en/compare/remove"]'), $where);
             self::assertCount(0, $menu->filter('[id]'), $where);
         }

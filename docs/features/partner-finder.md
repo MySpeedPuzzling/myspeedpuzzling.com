@@ -400,7 +400,7 @@ The page marketing links to: route `partner_finder` (`Controller\PartnerFinder\P
 locales - en `/en/partner-finder`, cs `/hledani-partaku`, de `/de/partnersuche`, es `/es/buscar-companero`, fr
 `/fr/trouver-un-partenaire`, ja `/ja/パートナー探し`. Indexable (`index, follow` on the bare URL, `noindex, follow` with any
 query string), canonical + hreflang from `base.html.twig`, listed in `sitemap-static.xml`. Footer: "Partner finder" with
-the New badge in Discover, right after Events.
+in Discover, right after Events.
 
 **One statement for everybody**: `Query\GetPartnerFinderEvents::all()` → `Results\PartnerFinderGate` (`list<
 Results\PartnerFinderEvent>` = `MarketplaceEvent` + `listingCount`) - every event with `PartnerFinderEligibility::
@@ -433,7 +433,7 @@ closed listings not counted; nearest first; editions named with their series; `m
 `PartnerFinderGateControllerTest` (guest page with the fixture event `partner-finder-open` in the picker and the cards,
 redirect, no redirect for a draft / nonsense, empty state, signed-in, budget, static sitemap), `DraftCanaryTest` (the
 picker never lists a draft edition or an edition of a draft series - Draft Night has solo rounds only, no canary),
-`SiteFooterTest` (9 New badges). Copy in all 6 locales (`partner_finder.gate.*`, footer label `partner_finder.gate.footer_link`).
+`SiteFooterTest` (no New badges since 2026-11-11). Copy in all 6 locales (`partner_finder.gate.*`, footer label `partner_finder.gate.footer_link`).
 
 ## Phase 2 as built (2026-10-23)
 

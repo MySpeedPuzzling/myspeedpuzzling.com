@@ -8,12 +8,12 @@
                 <li><a href="{{ path('puzzles') }}">{{ 'footer.puzzle_database'|trans }}</a></li>
                 <li><a href="{{ path('ladder') }}">{{ 'menu.ladder'|trans }}</a></li>
                 {% if xp_system_visible() %}
-                    <li><a href="{{ path('badges_overview') }}">{{ 'badges.overview_title'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
+                    <li><a href="{{ path('badges_overview') }}">{{ 'badges.overview_title'|trans }}</a></li>
                 {% endif %}
-                <li><a href="{{ path('players') }}">{{ 'menu.players'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
+                <li><a href="{{ path('players') }}">{{ 'menu.players'|trans }}</a></li>
                 <li><a href="{{ path('recent_activity') }}">{{ 'footer.latest_puzzle_times'|trans }}</a></li>
-                <li><a href="{{ path('events') }}">{{ 'menu.events'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
-                <li><a href="{{ path('partner_finder') }}">{{ 'partner_finder.gate.footer_link'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
+                <li><a href="{{ path('events') }}">{{ 'menu.events'|trans }}</a></li>
+                <li><a href="{{ path('partner_finder') }}">{{ 'partner_finder.gate.footer_link'|trans }}</a></li>
                 <li><a href="{{ path('marketplace') }}">Marketplace</a></li>
             </ul>
         </div>
@@ -23,10 +23,10 @@
             <ul class="footer-links">
                 <li><a rel="nofollow" href="{{ path('puzzle_add') }}">{{ 'footer.puzzle_add'|trans }}</a></li>
                 <li><a rel="nofollow" href="{{ path('stopwatch') }}">{{ 'menu.stopwatch'|trans }}</a></li>
-                <li><a rel="nofollow" href="{{ path('multiscan') }}">{{ 'multiscan.title'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
-                <li><a href="{{ path('puzzle_picker') }}">{{ 'puzzle_picker.title'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
-                <li><a rel="nofollow" href="{{ path('pairs_and_teams') }}">{{ 'menu.pairs_and_teams'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
-                <li><a rel="nofollow" href="{{ path('comparison') }}">{{ 'comparison.title'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
+                <li><a rel="nofollow" href="{{ path('multiscan') }}">{{ 'multiscan.title'|trans }}</a></li>
+                <li><a href="{{ path('puzzle_picker') }}">{{ 'puzzle_picker.title'|trans }}</a></li>
+                <li><a rel="nofollow" href="{{ path('pairs_and_teams') }}">{{ 'menu.pairs_and_teams'|trans }}</a></li>
+                <li><a rel="nofollow" href="{{ path('comparison') }}">{{ 'comparison.title'|trans }}</a></li>
             </ul>
         </div>
 
@@ -34,7 +34,7 @@
             <h2 class="footer-heading">{{ 'footer.column.learn'|trans }}</h2>
             <ul class="footer-links">
                 {% if xp_system_visible() %}
-                    <li><a href="{{ path('progression_hub') }}">{{ 'progression_hub.menu_label'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
+                    <li><a href="{{ path('progression_hub') }}">{{ 'progression_hub.menu_label'|trans }}</a></li>
                 {% endif %}
                 <li><a href="{{ path('getting_started') }}">{{ 'onboarding.guide.link'|trans }}</a></li>
                 <li><a href="{{ path('guides') }}">{{ 'footer.guides'|trans }}</a></li>

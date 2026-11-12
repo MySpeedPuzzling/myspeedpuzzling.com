@@ -51,7 +51,7 @@ readonly final class SolvingTimeVerificationJson
         return [
             'timeId' => $time->id->toString(),
             'suspicious' => $time->suspicious,
-            'playerId' => $time->player->id->toString(),
+            'playerId' => $time->player?->id->toString(),
             'puzzleId' => $time->puzzle->id->toString(),
             'puzzleName' => $time->puzzle->name,
             'piecesCount' => $time->puzzle->piecesCount,

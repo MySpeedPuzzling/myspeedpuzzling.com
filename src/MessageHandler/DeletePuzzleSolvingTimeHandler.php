@@ -33,7 +33,7 @@ readonly final class DeletePuzzleSolvingTimeHandler
         $solvingTime = $this->puzzleSolvingTimeRepository->get($message->puzzleSolvingTimeId);
         $currentPlayer = $this->playerRepository->getByUserIdCreateIfNotExists($message->currentUserId);
 
-        if ($currentPlayer->id->equals($solvingTime->player->id) === false) {
+        if ($solvingTime->canBeDeletedBy($currentPlayer) === false) {
             throw new CanNotModifyOtherPlayersTime();
         }
 

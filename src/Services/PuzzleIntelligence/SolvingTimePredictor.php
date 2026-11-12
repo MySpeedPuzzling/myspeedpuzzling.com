@@ -85,7 +85,7 @@ readonly final class SolvingTimePredictor
 
         try {
             $predictions = $this->getPlayerPrediction->sideBySide(
-                $time->player->id->toString(),
+                $time->tracker()->id->toString(),
                 $time->puzzle->id->toString(),
                 excludeTimeId: $time->id->toString(),
                 before: SolveMoment::of($time->finishedAt, $time->trackedAt),
@@ -142,7 +142,7 @@ readonly final class SolvingTimePredictor
 
         try {
             $candidate = $this->getCandidatePrediction->forAddedTime(
-                $time->player->id->toString(),
+                $time->tracker()->id->toString(),
                 $time->puzzle->id->toString(),
                 $predictions,
                 new SolveConditions(unboxed: $time->unboxed, competition: $time->competition !== null || $time->competitionSeries !== null),
@@ -195,7 +195,7 @@ readonly final class SolvingTimePredictor
         // Async explicitly - the backfill command dispatches the same message synchronously
         $this->messageBus->dispatch(
             new BackfillSolvingTimePredictions(
-                $time->player->id->toString(),
+                $time->tracker()->id->toString(),
                 $reevaluate ? [$time->id->toString()] : [],
             ),
             [new DispatchAfterCurrentBusStamp(), new TransportNamesStamp(['async'])],

@@ -23,7 +23,7 @@ final class PuzzlersGroupDoctrineType extends JsonType
             return null;
         }
 
-        /** @var array{team_id: null|string, puzzlers: non-empty-array<array{player_id: null|string, player_name: null|string}>} $jsonData */
+        /** @var array{team_id: null|string, puzzlers: non-empty-array<array{player_id: null|string, player_name: null|string, anonymous_slot?: string}>} $jsonData */
         $jsonData = parent::convertToPHPValue($value, $platform);
 
         $puzzlers = [];
@@ -36,6 +36,7 @@ final class PuzzlersGroupDoctrineType extends JsonType
                 playerCode: null, // Not supported in domain
                 playerCountry: null,  // Not supported in domain
                 isPrivate: false, // Not supported in domain
+                anonymousSlot: $puzzler['anonymous_slot'] ?? null,
             );
         }
 
@@ -61,10 +62,17 @@ final class PuzzlersGroupDoctrineType extends JsonType
         ];
 
         foreach ($value->puzzlers as $puzzler) {
-            $data['puzzlers'][] = [
+            $stored = [
                 'player_id' => $puzzler->playerId,
                 'player_name' => $puzzler->playerName,
             ];
+
+            // Only on an imported event result's unclaimed people - every other snapshot stays byte for byte as before
+            if ($puzzler->anonymousSlot !== null) {
+                $stored['anonymous_slot'] = $puzzler->anonymousSlot;
+            }
+
+            $data['puzzlers'][] = $stored;
         }
 
         return parent::convertToDatabaseValue($data, $platform);

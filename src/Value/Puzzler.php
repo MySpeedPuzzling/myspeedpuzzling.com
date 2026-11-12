@@ -17,6 +17,9 @@ readonly final class Puzzler
         public null|string $skillTierName = null,
         public bool $rankingOptedOut = false,
         public null|string $playerAvatar = null,
+        // A person of an imported event result nobody has claimed yet - "a:" + uuid, its own member of the team
+        // (docs/features/event-results-import/README.md "Anonymous slots"); null for every player and guest
+        public null|string $anonymousSlot = null,
     ) {
     }
 

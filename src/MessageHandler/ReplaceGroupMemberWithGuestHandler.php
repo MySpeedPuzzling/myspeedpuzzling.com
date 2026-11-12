@@ -38,7 +38,7 @@ readonly final class ReplaceGroupMemberWithGuestHandler
         $player = $this->playerRepository->get($message->playerId);
         $playerId = $player->id->toString();
 
-        if ($time->player->id->equals($player->id)) {
+        if ($time->isTrackedBy($player)) {
             throw PlayerNotInGroupTime::isTracker();
         }
 

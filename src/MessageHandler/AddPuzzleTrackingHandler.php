@@ -72,7 +72,7 @@ readonly final class AddPuzzleTrackingHandler
         $existingTracking = $this->puzzleSolvingTimeRepository->findById($message->trackingId);
 
         if ($existingTracking !== null) {
-            if ($existingTracking->player->id->equals($player->id) === false) {
+            if ($existingTracking->isTrackedBy($player) === false) {
                 throw new SolvingTimeIdTaken();
             }
 

@@ -384,7 +384,7 @@ final class PuzzleAddController extends AbstractController
             $savedWithFormId !== null
             && $addTimeForm->isSubmitted()
             && $data->mode !== PuzzleAddMode::Collection
-            && $savedWithFormId->player->id->toString() === $userProfile->playerId
+            && $savedWithFormId->player?->id->toString() === $userProfile->playerId
             && $this->isSameEntry($savedWithFormId, $data, $newPuzzleId, $request) === false
         ) {
             // A stopwatch saves one result - its save form changed after the save is no second one

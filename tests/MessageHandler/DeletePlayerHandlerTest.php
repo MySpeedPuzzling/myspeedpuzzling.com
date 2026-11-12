@@ -95,7 +95,7 @@ final class DeletePlayerHandlerTest extends KernelTestCase
         $time = $this->entityManager->find(PuzzleSolvingTime::class, PuzzleSolvingTimeFixture::TIME_12);
 
         self::assertNotNull($time, 'TIME_12 must still exist; ownership should have transferred');
-        self::assertSame(PlayerFixture::PLAYER_PRIVATE, $time->player->id->toString());
+        self::assertSame(PlayerFixture::PLAYER_PRIVATE, $time->player?->id->toString());
         self::assertNotNull($time->team);
 
         $puzzlerIds = array_map(static fn($p) => $p->playerId, $time->team->puzzlers);
@@ -123,7 +123,7 @@ final class DeletePlayerHandlerTest extends KernelTestCase
         $time = $this->entityManager->find(PuzzleSolvingTime::class, PuzzleSolvingTimeFixture::TIME_12);
 
         self::assertNotNull($time);
-        self::assertSame(PlayerFixture::PLAYER_REGULAR, $time->player->id->toString(), 'Ownership unchanged');
+        self::assertSame(PlayerFixture::PLAYER_REGULAR, $time->player?->id->toString(), 'Ownership unchanged');
         self::assertNotNull($time->team);
         self::assertCount(2, $time->team->puzzlers, 'Anonymized entry preserved, count unchanged');
 

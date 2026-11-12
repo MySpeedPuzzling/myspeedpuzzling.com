@@ -151,7 +151,7 @@ readonly final class PuzzleSolvingTimeRepository
         $this->graveyardRepository->bury(new SolvingTimeGrave(
             id: Uuid::uuid7(),
             solvingTimeId: $solvingTime->id,
-            playerId: $solvingTime->player->id,
+            playerId: $solvingTime->player?->id,
             deletedAt: $now,
             deletedVia: $via,
             snapshot: RemovedResultSnapshot::of($solvingTime)->toArray(),

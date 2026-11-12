@@ -240,7 +240,7 @@ final class EditMarkedTimeRecheckTest extends KernelTestCase
         $this->entityManager->persist(new SuspiciousTimeNotice(
             id: Uuid::uuid7(),
             case: $case,
-            player: $time->player,
+            player: $time->tracker(),
             markedAt: $case->markedAt,
             notifiedAt: $markedAt,
             via: SuspiciousTimeNoticeVia::Run,

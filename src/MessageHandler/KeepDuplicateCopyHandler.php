@@ -67,7 +67,7 @@ readonly final class KeepDuplicateCopyHandler
 
         $deleted = array_values(array_filter(
             $copies,
-            static fn (PuzzleSolvingTime $copy): bool => $copy !== $kept && $copy->player->id->equals($player->id),
+            static fn (PuzzleSolvingTime $copy): bool => $copy !== $kept && $copy->isTrackedBy($player),
         ));
 
         // Nothing of the player's to delete - keeping it would delete somebody else's copy
@@ -80,7 +80,7 @@ readonly final class KeepDuplicateCopyHandler
 
         $firstTryLeftOff = false;
 
-        if ($kept->player->id->equals($player->id)) {
+        if ($kept->isTrackedBy($player)) {
             $firstTryMayMove = $this->firstTryMayMove($kept, $deleted, $player);
             $firstTryLeftOff = $firstTryMayMove === false;
 

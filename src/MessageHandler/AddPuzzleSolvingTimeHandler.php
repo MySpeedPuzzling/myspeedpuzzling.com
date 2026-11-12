@@ -125,7 +125,7 @@ readonly final class AddPuzzleSolvingTimeHandler
         $existingTime = $this->puzzleSolvingTimeRepository->findById($message->timeId);
 
         if ($existingTime !== null) {
-            if ($existingTime->player->id->equals($player->id) === false) {
+            if ($existingTime->isTrackedBy($player) === false) {
                 throw new SolvingTimeIdTaken();
             }
 

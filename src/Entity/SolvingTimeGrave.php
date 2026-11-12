@@ -41,10 +41,10 @@ class SolvingTimeGrave
         #[Immutable]
         #[Column(type: UuidType::NAME)]
         public UuidInterface $solvingTimeId,
-        // The tracker
+        // The tracker - null for an imported event result nobody had claimed (docs/features/event-results-import/README.md)
         #[Immutable]
-        #[Column(type: UuidType::NAME)]
-        public UuidInterface $playerId,
+        #[Column(type: UuidType::NAME, nullable: true)]
+        public null|UuidInterface $playerId,
         #[Immutable]
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $deletedAt,

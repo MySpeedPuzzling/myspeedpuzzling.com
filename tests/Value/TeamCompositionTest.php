@@ -100,6 +100,43 @@ final class TeamCompositionTest extends TestCase
         );
     }
 
+    public function testAnonymousSlotsOfAnImportedTeamAreItsOwnPeople(): void
+    {
+        $composition = TeamComposition::fromGroup(PuzzlersGroup::anonymous(['a:one', 'a:two', 'a:three']));
+
+        self::assertSame(3, $composition->size());
+
+        foreach ($composition->members as $member) {
+            self::assertNull($member->playerId);
+            self::assertNull($member->guestName);
+            self::assertStringStartsWith('a:', $member->memberKey);
+        }
+
+        self::assertSame($composition->key, TeamComposition::keyFromMemberKeys(['a:three', 'a:one', 'a:two']));
+    }
+
+    public function testTwoAnonymousTeamsOfTheSameSizeAreTwoTeams(): void
+    {
+        // Nameless guests would both read g:, g:#2, ... - one team for every imported team of four
+        self::assertNotSame(
+            TeamComposition::fromGroup(PuzzlersGroup::anonymous(['a:1', 'a:2', 'a:3', 'a:4']))->key,
+            TeamComposition::fromGroup(PuzzlersGroup::anonymous(['a:5', 'a:6', 'a:7', 'a:8']))->key,
+        );
+    }
+
+    public function testAClaimedSlotIsThePlayerAndTheRestStayAnonymous(): void
+    {
+        $composition = TeamComposition::fromGroup(new PuzzlersGroup(null, [
+            new Puzzler(self::ANNA, 'Anna', null, null, false),
+            new Puzzler(null, null, null, null, false, anonymousSlot: 'a:2'),
+        ]));
+
+        $keys = array_map(static fn($member) => $member->memberKey, $composition->members);
+
+        // Sorted by member key, like every composition
+        self::assertSame([self::ANNA, 'a:2'], $keys);
+    }
+
     /**
      * @param non-empty-list<string> $people Player ids, anything else is a guest name
      */

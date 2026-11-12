@@ -19,12 +19,13 @@ readonly final class RemovedResultSnapshot
     private const string DATE_FORMAT = 'Y-m-d H:i:s';
 
     /**
-     * @param null|array{team_id: null|string, puzzlers: list<array{player_id: null|string, player_name: null|string}>} $team
+     * @param null|array{team_id: null|string, puzzlers: list<array{player_id: null|string, player_name: null|string, anonymous_slot?: string}>} $team
      */
     public function __construct(
         public string $id,
         public null|int $secondsToSolve,
-        public string $playerId,
+        // Null for an imported event result nobody had claimed (docs/features/event-results-import/README.md)
+        public null|string $playerId,
         public string $puzzleId,
         // For whoever reads the snapshot later without the puzzle (admin, e-mail)
         public string $puzzleName,
@@ -75,14 +76,20 @@ readonly final class RemovedResultSnapshot
             $team = ['team_id' => $time->team->teamId, 'puzzlers' => []];
 
             foreach ($time->team->puzzlers as $puzzler) {
-                $team['puzzlers'][] = ['player_id' => $puzzler->playerId, 'player_name' => $puzzler->playerName];
+                $stored = ['player_id' => $puzzler->playerId, 'player_name' => $puzzler->playerName];
+
+                if ($puzzler->anonymousSlot !== null) {
+                    $stored['anonymous_slot'] = $puzzler->anonymousSlot;
+                }
+
+                $team['puzzlers'][] = $stored;
             }
         }
 
         return new self(
             id: $time->id->toString(),
             secondsToSolve: $time->secondsToSolve,
-            playerId: $time->player->id->toString(),
+            playerId: $time->player?->id->toString(),
             puzzleId: $time->puzzle->id->toString(),
             puzzleName: $time->puzzle->name,
             trackedAt: $time->trackedAt,
@@ -134,6 +141,7 @@ readonly final class RemovedResultSnapshot
                     playerCode: null,
                     playerCountry: null,
                     isPrivate: false,
+                    anonymousSlot: $puzzler['anonymous_slot'] ?? null,
                 ),
                 $this->team['puzzlers'],
             ),
@@ -190,7 +198,7 @@ readonly final class RemovedResultSnapshot
      */
     public static function fromArray(array $data): self
     {
-        /** @var array{id: string, seconds_to_solve: null|int, player_id: string, puzzle_id: string, puzzle_name: string, tracked_at: string, verified: bool, team: null|array{team_id: null|string, puzzlers: list<array{player_id: null|string, player_name: null|string}>}, puzzling_team_id: null|string, finished_at: null|string, comment: null|string, finished_puzzle_photo: null|string, first_attempt: bool, unboxed: bool, competition_id: null|string, competition_round_id: null|string, pieces_placed: null|int, qualified: null|bool, suspicious: bool, finished_later_seconds: null|int, created_via: null|string, predictable: null|bool, prediction_method: null|string, predicted_seconds: null|int, predicted_range_low_seconds: null|int, predicted_range_high_seconds: null|int, predicted_attempt_number: null|int, prediction_last_time_seconds: null|int, prediction_source: null|string, prediction_computed_at: null|string, prediction_model_version: null|int, competition_series_id?: null|string, series_edition_match?: null|string, predicted_range80_low_seconds?: null|int, predicted_range80_high_seconds?: null|int, finished_puzzle_photo_upload_metadata?: null|array<mixed>} $data */
+        /** @var array{id: string, seconds_to_solve: null|int, player_id: null|string, puzzle_id: string, puzzle_name: string, tracked_at: string, verified: bool, team: null|array{team_id: null|string, puzzlers: list<array{player_id: null|string, player_name: null|string, anonymous_slot?: string}>}, puzzling_team_id: null|string, finished_at: null|string, comment: null|string, finished_puzzle_photo: null|string, first_attempt: bool, unboxed: bool, competition_id: null|string, competition_round_id: null|string, pieces_placed: null|int, qualified: null|bool, suspicious: bool, finished_later_seconds: null|int, created_via: null|string, predictable: null|bool, prediction_method: null|string, predicted_seconds: null|int, predicted_range_low_seconds: null|int, predicted_range_high_seconds: null|int, predicted_attempt_number: null|int, prediction_last_time_seconds: null|int, prediction_source: null|string, prediction_computed_at: null|string, prediction_model_version: null|int, competition_series_id?: null|string, series_edition_match?: null|string, predicted_range80_low_seconds?: null|int, predicted_range80_high_seconds?: null|int, finished_puzzle_photo_upload_metadata?: null|array<mixed>} $data */
 
         return new self(
             id: $data['id'],

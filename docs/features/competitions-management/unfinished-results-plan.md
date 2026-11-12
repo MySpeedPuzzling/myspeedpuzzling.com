@@ -1,5 +1,10 @@
 # Unfinished Competition Results — Implementation Plan (phase 1b, refined)
 
+**Update 2026-11-12 (Jan):** an unfinished result now counts its **pieces placed and time spent** (new
+`seconds_spent`) in global and personal statistics - still never a completed puzzle, never ranked, never in a median.
+This replaces the "not counted" part of tier 2 below; see [event-results-import](../event-results-import/README.md)
+"Unfinished results" (D9). Everything else here stays the plan of record.
+
 **Status:** plan, 2026-09-18. Nothing implemented. Supersedes the "Unfinished results" and "How unfinished results appear elsewhere" sections of [round-results.md](round-results.md) where they differ — the differences are listed in [What changed against the earlier plan](#what-changed-against-the-earlier-plan).
 
 ## Goal

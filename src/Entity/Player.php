@@ -249,6 +249,15 @@ class Player
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     public null|DateTimeImmutable $moderatorSince = null;
 
+    /**
+     * Two of the player's claims of imported event results were removed as wrong (somebody of the team, the organizer
+     * or an admin said "not on our team") - no more claims until an admin clears it
+     * (docs/features/event-results-import/README.md "Gates")
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $eventClaimsBlockedAt = null;
+
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::INTEGER, options: ['default' => 0])]
     public int $xpTotal = 0;
@@ -664,6 +673,16 @@ class Player
     {
         // Granting twice keeps the original date
         $this->moderatorSince ??= $now;
+    }
+
+    public function blockEventClaims(DateTimeImmutable $now): void
+    {
+        $this->eventClaimsBlockedAt ??= $now;
+    }
+
+    public function unblockEventClaims(): void
+    {
+        $this->eventClaimsBlockedAt = null;
     }
 
     public function revokeModeratorRole(): void

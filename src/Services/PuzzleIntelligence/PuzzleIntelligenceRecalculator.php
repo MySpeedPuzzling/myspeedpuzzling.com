@@ -828,7 +828,8 @@ readonly final class PuzzleIntelligenceRecalculator
 
         /** @var list<string> */
         return $this->connection->fetchFirstColumn(
-            'SELECT DISTINCT player_id FROM puzzle_solving_time WHERE seconds_to_solve IS NOT NULL',
+            // Not an imported event result nobody has claimed yet (docs/features/event-results-import/README.md)
+            'SELECT DISTINCT pst.player_id FROM puzzle_solving_time pst WHERE pst.seconds_to_solve IS NOT NULL AND pst.player_id IS NOT NULL',
         );
     }
 

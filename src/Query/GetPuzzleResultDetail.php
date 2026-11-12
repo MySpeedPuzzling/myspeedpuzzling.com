@@ -84,7 +84,8 @@ WITH focus AS MATERIALIZED (
                     'player_avatar', p.avatar,
                     'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
                     'skill_tier', ps_member.skill_tier,
-                    'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
+                    'ranking_opted_out', COALESCE(p.ranking_opted_out, false),
+                    'anonymous_slot', member.player ->> 'anonymous_slot'
                 ) ORDER BY member.ordinality
             )
             FROM json_array_elements(focus_time.team -> 'puzzlers') WITH ORDINALITY AS member(player, ordinality)
@@ -93,7 +94,8 @@ WITH focus AS MATERIALIZED (
         ) END AS players
     FROM puzzle_solving_time focus_time
         INNER JOIN puzzle ON puzzle.id = focus_time.puzzle_id
-        INNER JOIN player focus_player ON focus_player.id = focus_time.player_id
+        -- No tracker on an imported event result nobody has claimed yet (docs/features/event-results-import/README.md)
+        LEFT JOIN player focus_player ON focus_player.id = focus_time.player_id
     WHERE focus_time.id = :timeId
         -- The brand was an inner join and puzzle.manufacturer_id is nullable: no brand stays "not found"
         AND puzzle.manufacturer_id IS NOT NULL
@@ -173,7 +175,7 @@ SQL;
         /**
          * @var list<array{
          *     time_id: string,
-         *     tracked_by_id: string,
+         *     tracked_by_id: null|string,
          *     time: null|int,
          *     finished_at: null|string,
          *     tracked_at: string,
@@ -198,7 +200,7 @@ SQL;
          *     puzzle_image_ratio: null|string,
          *     pieces_count: int,
          *     manufacturer_name: string,
-         *     player_id: string,
+         *     player_id: null|string,
          *     player_name: null|string,
          *     player_code: null|string,
          *     player_country: null|string,

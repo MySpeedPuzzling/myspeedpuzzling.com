@@ -43,9 +43,14 @@
 </div>
 
 <p class="text-muted mb-4" data-testid="team-members">
+    {# An imported event result nobody has claimed yet has no names to list (docs/features/event-results-import/README.md) #}
+    {% if team.members|filter(m => not m.anonymous) is empty %}
+        {{ (team.isPair ? 'puzzling_team.pair' : 'puzzling_team.team_of')|trans({'%count%': team.size}) }}
+    {% else %}
     {{ (team.isPair ? 'puzzling_team.pair' : 'puzzling_team.team_of')|trans({'%count%': team.size}) }}:
     {# Each name opens that player's profile with the results list narrowed to this pair/team #}
     {{ include('pairs_and_teams/_members.html.twig', {members: team.members, profile_filter: {team: team.teamId, category: team.isPair ? 'duo' : 'group'}}) }}
+    {% endif %}
 </p>
 
 <div class="card card-body shadow-sm mb-4" data-testid="team-stats">

@@ -6577,6 +6577,7 @@ favorite_puzzlers:
   "team_page": "チームのページ"
   "related_title": "メンバーが多い・少ない組み合わせ"
   "related_help": "ペアやチームはメンバーの顔ぶれそのものです。同じメンバーに誰かが加わったり欠けたりすると、別のペア／チームになります。"
+  "anonymous_puzzlers": "%count%人のパズラー"
 
 "onboarding":
   "find_later": "あとで読みたいですか？このガイドはいつでも各ページの一番下にあります。"

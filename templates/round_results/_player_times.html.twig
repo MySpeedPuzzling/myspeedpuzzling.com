@@ -26,7 +26,7 @@
                         {% set is_own_row = logged_user.profile is not null and result.containsPlayer(logged_user.profile.playerId) %}
                         <tr class="{{ is_own_row ? 'table-active-player' }}" data-round-result-status="{{ result.status.value }}">
                             <td class="player-name">
-                                {% for player in result.players %}
+                                {% for player in result.players|filter(p => p.anonymousSlot is null) %}
                                     {% if not loop.first %}<br>{% endif %}
                                     {% if player.isPrivate and (logged_user.profile is null or player.playerId != logged_user.profile.playerId) %}
                                         <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
@@ -44,7 +44,7 @@
                                     {% else %}
                                         <span class="player-name-item">{{ player.playerName }}</span>
                                     {% endif %}
-                                {% endfor %}
+                                {% endfor %}{% if result.players|filter(p => p.anonymousSlot is not null) is not empty %}{{ include('_anonymous_puzzlers.html.twig', {players: result.players, team_name: result.teamName}) }}{% endif %}
                             </td>
                             <td class="text-end">
                                 {% if result.status.value == 'unfinished' %}

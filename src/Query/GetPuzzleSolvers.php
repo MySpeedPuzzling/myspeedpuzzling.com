@@ -173,7 +173,8 @@ SELECT
             'player_avatar', p.avatar,
             'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
             'skill_tier', ps_member.skill_tier,
-            'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
+            'ranking_opted_out', COALESCE(p.ranking_opted_out, false),
+            'anonymous_slot', player_elem.player ->> 'anonymous_slot'
         ) ORDER BY player_elem.ordinality
     ) AS players
 FROM
@@ -204,7 +205,7 @@ SQL;
             /**
              * @var array{
              *     time_id: string,
-             *     player_id: string,
+             *     player_id: null|string,
              *     puzzle_id: string,
              *     time: int,
              *     comment: null|string,
@@ -270,7 +271,8 @@ SELECT
             'player_avatar', p.avatar,
             'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
             'skill_tier', ps_member.skill_tier,
-            'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
+            'ranking_opted_out', COALESCE(p.ranking_opted_out, false),
+            'anonymous_slot', player_elem.player ->> 'anonymous_slot'
         ) ORDER BY player_elem.ordinality
     ) AS players
 FROM
@@ -301,7 +303,7 @@ SQL;
             /**
              * @var array{
              *     time_id: string,
-             *     player_id: string,
+             *     player_id: null|string,
              *     puzzle_id: string,
              *     time: int,
              *     comment: null|string,

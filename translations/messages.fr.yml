@@ -6655,6 +6655,7 @@ favorite_puzzlers:
   "team_page": "Page de l'équipe"
   "related_title": "Avec quelqu'un en plus, ou en moins"
   "related_help": "Un duo ou une équipe, c'est le groupe exact de personnes - les mêmes personnes avec quelqu'un en plus ou en moins forment un autre groupe."
+  "anonymous_puzzlers": "%count% puzzleur|%count% puzzleurs"
 
 "onboarding":
   "find_later": "Vous préférez lire le guide plus tard ? Vous le trouverez toujours en bas de chaque page."

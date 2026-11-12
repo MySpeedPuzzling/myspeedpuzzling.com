@@ -6587,6 +6587,7 @@ favorite_puzzlers:
   "team_page": "Team-Seite"
   "related_title": "Mit jemandem mehr oder weniger"
   "related_help": "Ein Paar oder Team ist die genaue Gruppe von Personen - dieselben Personen mit jemandem zusätzlich oder jemandem weniger sind ein anderes."
+  "anonymous_puzzlers": "%count% Puzzler|%count% Puzzler"
 
 onboarding:
     find_later: "Möchten Sie die Anleitung später lesen? Sie finden sie immer ganz unten auf jeder Seite."

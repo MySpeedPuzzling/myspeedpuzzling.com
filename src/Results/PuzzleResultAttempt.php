@@ -14,7 +14,8 @@ readonly final class PuzzleResultAttempt
     public function __construct(
         public string $timeId,
         // Whoever tracked the time
-        public string $trackedByPlayerId,
+        // Null for an imported event result nobody has claimed yet (docs/features/event-results-import/README.md)
+        public null|string $trackedByPlayerId,
         // NULL = relax solve
         public null|int $time,
         public null|DateTimeImmutable $finishedAt,

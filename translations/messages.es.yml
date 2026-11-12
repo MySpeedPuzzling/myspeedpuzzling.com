@@ -6588,6 +6588,7 @@ favorite_puzzlers:
   "team_page": "Página del equipo"
   "related_title": "Con alguien más, o con alguien menos"
   "related_help": "Una pareja o equipo es el grupo exacto de personas - las mismas personas con alguien añadido o ausente forman otro distinto."
+  "anonymous_puzzlers": "%count% puzzlero|%count% puzzleros"
 
 "onboarding":
   "find_later": "¿Prefieres leer la guía más tarde? Siempre la encontrarás al final de cada página."

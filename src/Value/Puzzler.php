@@ -85,6 +85,7 @@ readonly final class Puzzler
          *     skill_tier?: null|int|string,
          *     ranking_opted_out?: null|bool,
          *     player_avatar?: null|string,
+         *     anonymous_slot?: null|string,
          *  }> $playersData */
         $playersData = Json::decode($json, true);
 
@@ -104,6 +105,7 @@ readonly final class Puzzler
                 skillTierName: $skillTierName,
                 rankingOptedOut: ($data['ranking_opted_out'] ?? null) === null ? false : (bool) $data['ranking_opted_out'],
                 playerAvatar: $data['player_avatar'] ?? null,
+                anonymousSlot: $data['anonymous_slot'] ?? null,
             );
         }, $playersData);
 

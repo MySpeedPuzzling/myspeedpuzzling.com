@@ -11,9 +11,9 @@
 <div class="pr-head">
     <div class="pr-subject">
         {% if result.isGroup %}
-            {% for member in result.players %}
+            {% for member in result.players|filter(p => p.anonymousSlot is null) %}
                 {{ include('_leaderboard_player.html.twig', {player: member, small: true}) }}
-            {% endfor %}
+            {% endfor %}{% if result.players|filter(p => p.anonymousSlot is not null) is not empty %}{{ include('_anonymous_puzzlers.html.twig', {players: result.players, team_name: result.teamName}) }}{% endif %}
             {% if result.teamId %}
                 <a class="pr-team-link" data-turbo-frame="_top" href="{{ path('puzzling_team_detail', {teamId: result.teamId}) }}">
                     <i class="bi bi-people-fill"></i> <span>{{ result.teamName ?? 'puzzle_result.team_page'|trans }}</span>

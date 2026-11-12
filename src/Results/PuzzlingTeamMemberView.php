@@ -49,4 +49,13 @@ readonly final class PuzzlingTeamMemberView
     {
         return $this->playerId === null;
     }
+
+    /**
+     * A person of an imported event result nobody has claimed yet - neither a player nor a named guest
+     * (docs/features/event-results-import/README.md "Anonymous slots")
+     */
+    public function isAnonymous(): bool
+    {
+        return $this->playerId === null && $this->guestName === null;
+    }
 }

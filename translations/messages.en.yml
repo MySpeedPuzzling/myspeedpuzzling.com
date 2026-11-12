@@ -7112,6 +7112,7 @@ puzzling_team:
     team_page: "Team page"
     related_title: "With somebody more, or fewer"
     related_help: "A pair or team is the exact group of people - the same people with somebody added or missing are another one."
+    anonymous_puzzlers: "%count% puzzler|%count% puzzlers"
 
 onboarding:
     find_later: "Want to read the guide later? You will always find it at the bottom of every page."

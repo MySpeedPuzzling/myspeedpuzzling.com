@@ -1,5 +1,5 @@
-{# Members of a pair/team, each the way this viewer may see them #}
-{%- for member in members -%}
+{# Members of a pair/team, each the way this viewer may see them - the unclaimed people of an imported event result as "+N" #}
+{%- for member in members|filter(m => not m.anonymous) -%}
     {%- if not loop.first %}, {% endif -%}
     {%- if member.isPrivate and (logged_user.profile is null or member.playerId != logged_user.profile.playerId) -%}
         <span class="text-muted">{{ 'secret_puzzler_name'|trans }}</span> <i class="bi bi-incognito text-muted"></i>
@@ -15,3 +15,5 @@
         {{ member.guestName }}
     {%- endif -%}
 {%- endfor -%}
+{%- set anonymous_count = members|filter(m => m.anonymous)|length -%}
+{%- if anonymous_count > 0 and anonymous_count < members|length %}, +{{ anonymous_count }}{% endif -%}

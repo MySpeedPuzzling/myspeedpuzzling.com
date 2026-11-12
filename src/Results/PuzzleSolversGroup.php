@@ -13,8 +13,9 @@ readonly final class PuzzleSolversGroup
         public string $timeId,
         // Whoever tracked the time - the only player allowed to edit or delete it
         // (EditTimeController, EditPuzzleSolvingTimeHandler), even though every
-        // member of the group sees it among their own attempts
-        public string $addedByPlayerId,
+        // member of the group sees it among their own attempts. Null for an imported event result nobody has
+        // claimed yet (docs/features/event-results-import/README.md)
+        public null|string $addedByPlayerId,
         public null|string $teamId,
         public null|int $time,
         /** @var array<Puzzler> */
@@ -38,7 +39,7 @@ readonly final class PuzzleSolversGroup
     /**
      * @param array{
      *     time_id: string,
-     *     player_id: string,
+     *     player_id: null|string,
      *     puzzle_id: string,
      *     time: int,
      *     comment: null|string,

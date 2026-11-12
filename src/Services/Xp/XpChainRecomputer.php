@@ -31,6 +31,7 @@ use SpeedPuzzling\Web\Value\XpReason;
  * A deleted solve's entries stay as audit history with exact negative mirrors (solve_compensation).
  *
  * @phpstan-type SolveRow array{id: string, puzzle_id: string, player_id: string, seconds_to_solve: null|int, puzzling_type: string, unboxed: bool, pieces: int, difficulty_tier: null|int, tracked_at: string, earned_at: string, team: null|string, suspicious: bool}
+ * @phpstan-type LoadedSolveRow array{id: string, puzzle_id: string, player_id: null|string, seconds_to_solve: null|int, puzzling_type: string, unboxed: bool, pieces: int, difficulty_tier: null|int, tracked_at: string, earned_at: string, team: null|string, suspicious: bool}
  */
 readonly final class XpChainRecomputer
 {
@@ -810,11 +811,14 @@ SQL;
     }
 
     /**
-     * @phpstan-return SolveRow|null
+     * One solve by id - player_id is null for an imported event result nobody has claimed yet
+     * (docs/features/event-results-import/README.md).
+     *
+     * @phpstan-return LoadedSolveRow|null
      */
     private function loadSolve(string $solvingTimeId): null|array
     {
-        /** @phpstan-var SolveRow|false $row */
+        /** @phpstan-var LoadedSolveRow|false $row */
         $row = $this->database
             ->executeQuery(self::SOLVE_SELECT . ' WHERE pst.id = :id', ['id' => $solvingTimeId])
             ->fetchAssociative();
@@ -823,14 +827,15 @@ SQL;
     }
 
     /**
-     * Registered participants: the owner plus every team member with a player id.
+     * Registered participants: the owner plus every team member with a player id - nobody for an imported event
+     * result nobody has claimed yet, so there is nothing to do.
      *
-     * @phpstan-param SolveRow $solve
+     * @phpstan-param LoadedSolveRow $solve
      * @return list<string>
      */
     private function participantsOf(array $solve): array
     {
-        $participants = [$solve['player_id']];
+        $participants = $solve['player_id'] !== null ? [$solve['player_id']] : [];
 
         if ($solve['team'] !== null) {
             try {

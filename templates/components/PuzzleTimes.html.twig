@@ -404,9 +404,10 @@
 
                         <td class="lb-solver">
                             {%~ if best.players is defined %}
-                                {%~ for puzzle_solver in best.players %}
+                                {%~ for puzzle_solver in best.players|filter(p => p.anonymousSlot is null) %}
                                     {{~ include('_leaderboard_player.html.twig', {player: puzzle_solver, small: true}) }}
                                 {%~ endfor %}
+                                {%~ if best.players|filter(p => p.anonymousSlot is not null) is not empty %}{{ include('_anonymous_puzzlers.html.twig', {players: best.players, team_name: best.teamName}) }}{% endif %}
                             {%~ else %}
                                 {{~ include('_leaderboard_player.html.twig', {player: best}) }}
                             {%~ endif %}

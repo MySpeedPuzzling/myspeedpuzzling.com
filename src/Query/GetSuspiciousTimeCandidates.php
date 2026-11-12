@@ -195,6 +195,8 @@ LEFT JOIN suspicious_time_puzzle_confirmation conf ON conf.puzzle_id = pst.puzzl
 LEFT JOIN solving_time_prediction stp ON stp.time_id = pst.id AND stp.predictor = 'statistical' AND stp.model_version = {$statisticalVersion}
 WHERE pst.seconds_to_solve > 0
     AND pst.suspicious = false
+    -- An imported event result nobody has claimed yet is nobody's to judge (docs/features/event-results-import/README.md)
+    AND pst.player_id IS NOT NULL
     AND p.pieces_count > 0
     {$onlyPuzzle}
 {$notCurrent}

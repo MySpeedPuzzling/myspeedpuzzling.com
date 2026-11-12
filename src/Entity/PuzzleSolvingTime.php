@@ -262,6 +262,51 @@ class PuzzleSolvingTime implements EntityWithEvents
         return $this->createdVia === SolvingTimeSource::EventImport;
     }
 
+    /**
+     * The organizer corrected the team's time on the sheet (docs/features/event-results-import/README.md).
+     */
+    public function correctImportedTime(int $secondsToSolve): void
+    {
+        if ($this->isImportedFromEvent() === false) {
+            throw new LogicException('Only an imported event result follows the organizer\'s sheet.');
+        }
+
+        if ($secondsToSolve === $this->secondsToSolve) {
+            return;
+        }
+
+        $this->secondsToSolve = $secondsToSolve;
+
+        $this->recordThat(
+            new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
+        );
+    }
+
+    /**
+     * The organizer changed how many people the team had, before anybody claimed it - other anonymous people, so
+     * another anonymous team.
+     */
+    public function replaceAnonymousGroup(PuzzlersGroup $anonymousGroup, PuzzlingTeam $puzzlingTeam): void
+    {
+        if ($this->isImportedFromEvent() === false || $this->isClaimedByAnybody()) {
+            throw new LogicException('Only an imported event result nobody has claimed gets other anonymous people.');
+        }
+
+        $this->correctGroup($anonymousGroup, $puzzlingTeam);
+
+        $this->recordThat(
+            new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
+        );
+    }
+
+    /**
+     * Whether somebody claimed a spot of this imported event result - then only a person changes its people.
+     */
+    public function isClaimedByAnybody(): bool
+    {
+        return $this->memberPlayerIds() !== [];
+    }
+
     public function isTrackedBy(Player $player): bool
     {
         return $this->player !== null && $this->player->id->equals($player->id);

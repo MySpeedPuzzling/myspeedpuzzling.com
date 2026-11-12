@@ -19,6 +19,10 @@ enum EventTabProblemCode: string
     case UnknownCompetitionType = 'unknown_competition_type';
     case UnreadablePuzzleLink = 'unreadable_puzzle_link';
     case NoTeams = 'no_teams';
+    // Found while applying, not while reading
+    case PuzzleNotFound = 'puzzle_not_found';
+    case PuzzleChangedAfterImport = 'puzzle_changed_after_import';
+    case CompetitionTypeChangedAfterImport = 'competition_type_changed_after_import';
 
     case RowWithoutTeamName = 'row_without_team_name';
     case TeamNameTooLong = 'team_name_too_long';
@@ -29,6 +33,9 @@ enum EventTabProblemCode: string
     case RowWithoutResult = 'row_without_result';
     case TimeAndPiecesPlaced = 'time_and_pieces_placed';
     case UnfinishedNotSupportedYet = 'unfinished_not_supported_yet';
+    // A team somebody claimed: the sheet no longer has it, or gives it another size - a person decides, never the import
+    case ClaimedTeamRemovedFromSheet = 'claimed_team_removed_from_sheet';
+    case ClaimedTeamChangedSize = 'claimed_team_changed_size';
 
     public function keepsTheWholeTabOut(): bool
     {
@@ -40,7 +47,10 @@ enum EventTabProblemCode: string
             self::UnreadableTimeLimit,
             self::UnknownCompetitionType,
             self::UnreadablePuzzleLink,
-            self::NoTeams => true,
+            self::NoTeams,
+            self::PuzzleNotFound,
+            self::PuzzleChangedAfterImport,
+            self::CompetitionTypeChangedAfterImport => true,
             self::RowWithoutTeamName,
             self::TeamNameTooLong,
             self::TeamNamedTwice,
@@ -49,7 +59,9 @@ enum EventTabProblemCode: string
             self::UnreadableTime,
             self::RowWithoutResult,
             self::TimeAndPiecesPlaced,
-            self::UnfinishedNotSupportedYet => false,
+            self::UnfinishedNotSupportedYet,
+            self::ClaimedTeamRemovedFromSheet,
+            self::ClaimedTeamChangedSize => false,
         };
     }
 }

@@ -73,6 +73,15 @@ class PuzzlingTeam implements EntityWithEvents
     }
 
     /**
+     * An imported event result's team (docs/features/event-results-import/README.md) carries the name the organizer's
+     * sheet gives it - nobody named it, so nobody is credited or told.
+     */
+    public function nameFromEvent(string $name): void
+    {
+        $this->name = self::cleanName($name);
+    }
+
+    /**
      * The add/edit time form may name a pair/team, never rename it - that is what the
      * "Pairs & teams" page is for, where the change is a deliberate act of its own.
      */

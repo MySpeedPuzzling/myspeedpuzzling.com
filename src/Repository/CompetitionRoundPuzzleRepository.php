@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Repository;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
+use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundPuzzleNotFound;
 
 readonly final class CompetitionRoundPuzzleRepository
@@ -29,6 +30,22 @@ readonly final class CompetitionRoundPuzzleRepository
         }
 
         return $roundPuzzle;
+    }
+
+    /**
+     * Read from the rows, never from CompetitionRound::$roundPuzzles - a round loaded before its puzzles were set in the
+     * same request holds a stale collection.
+     *
+     * @return list<string>
+     */
+    public function puzzleIdsOfRound(CompetitionRound $round): array
+    {
+        /** @var list<string> $puzzleIds */
+        $puzzleIds = $this->entityManager->createQuery(
+            'SELECT IDENTITY(roundPuzzle.puzzle) FROM ' . CompetitionRoundPuzzle::class . ' roundPuzzle WHERE roundPuzzle.round = :round',
+        )->setParameter('round', $round->id)->getSingleColumnResult();
+
+        return array_map(static fn (string $id): string => strtolower($id), $puzzleIds);
     }
 
     public function save(CompetitionRoundPuzzle $roundPuzzle): void

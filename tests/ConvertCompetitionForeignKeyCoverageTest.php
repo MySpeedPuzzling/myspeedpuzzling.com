@@ -20,6 +20,7 @@ final class ConvertCompetitionForeignKeyCoverageTest extends KernelTestCase
     private const string DELETED = 'deleted by the handler';
     private const string REPOINTED = 'repointed to the series';
     private const string CASCADES = 'cascades with the competition';
+    private const string DETACHED = 'set null - the row stays and knows its event is gone';
 
     private const array WHAT_THE_CONVERSION_DOES = [
         // Its maintainers become the series' maintainers first; the links go with the competition
@@ -32,6 +33,9 @@ final class ConvertCompetitionForeignKeyCoverageTest extends KernelTestCase
         'competition_referee.competition_id' => self::REFUSED,
         // SeriesConversionBlocker::Rounds (and with them OfficialResults)
         'competition_round.competition_id' => self::REFUSED,
+        // An organizer's results sheet tab (docs/features/event-results-import): its event has a round, so the conversion
+        // refuses it (SeriesConversionBlocker::Rounds); were it gone, the tab is "detached" and never imports it again
+        'event_results_sheet_tab.competition_id' => self::DETACHED,
         // Old addresses that led to the event lead to the series (+ a new row for the event's own address)
         'event_url_redirect.competition_id' => self::REPOINTED,
         // The followers follow the series

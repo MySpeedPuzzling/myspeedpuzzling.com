@@ -135,7 +135,7 @@ final class EventResultsTabParserTest extends TestCase
      */
     public static function unreadableEventFields(): iterable
     {
-        yield 'date' => ['10/5/26', 'tomorrow', EventTabProblemCode::UnreadableDate];
+        yield 'date' => ['10/5/26', 'someday', EventTabProblemCode::UnreadableDate];
         yield 'impossible date' => ['10/5/26', '2/30/26', EventTabProblemCode::UnreadableDate];
         yield 'start time' => ['7:00 PM', 'evening', EventTabProblemCode::UnreadableStartTime];
         yield 'time limit' => [',120,', ',two hours,', EventTabProblemCode::UnreadableTimeLimit];

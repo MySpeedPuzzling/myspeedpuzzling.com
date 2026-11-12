@@ -1212,6 +1212,90 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
+  /internal-api/event-results-sheets:
+    get:
+      summary: List the organizers' results sheets
+      operationId: listEventResultsSheets
+      description: Every registered results sheet with what became of each tab (docs/features/event-results-import/README.md).
+      responses:
+        "200":
+          description: The sheets with their tabs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sheets:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EventResultsSheet"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      summary: Register an organizer's results sheet
+      operationId: createEventResultsSheet
+      description: Read every hour from then on; every tab becomes a one-time event of the organization. The sheet must be shared "Anyone with the link".
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [spreadsheet, organizationId, actingPlayerId, timezone]
+              properties:
+                spreadsheet:
+                  type: string
+                  description: The sheet's link or its id.
+                organizationId:
+                  type: string
+                  format: uuid
+                actingPlayerId:
+                  type: string
+                  format: uuid
+                  description: Somebody on the organization's team - the events are created as them.
+                timezone:
+                  type: string
+                  example: America/Chicago
+                countryCode:
+                  type: string
+                  description: Two letters; the organization's country when left out.
+      responses:
+        "201":
+          description: The registered sheet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventResultsSheet"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: The sheet is registered already
+        "422":
+          description: The acting player is not on the organization's team
+  /internal-api/event-results-sheets/{sheetId}/sync:
+    post:
+      summary: Read a results sheet now
+      operationId: syncEventResultsSheet
+      parameters:
+        - name: sheetId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: The sheet with what became of its tabs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventResultsSheet"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: No such sheet
   /internal-api/organizations:
     get:
       summary: List or search organizations
@@ -3126,6 +3210,38 @@ components:
         format: uuid
 
   schemas:
+    EventResultsSheet:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        spreadsheetId: {type: string}
+        organizationId: {type: string, format: uuid}
+        actingPlayerId: {type: string, format: uuid}
+        timezone: {type: string}
+        countryCode: {type: string}
+        addedAt: {type: string}
+        lastFetchedAt: {type: string, nullable: true}
+        lastFetchError: {type: string, nullable: true}
+        tabs:
+          type: array
+          items:
+            type: object
+            properties:
+              gid: {type: string}
+              title: {type: string}
+              status: {type: string, enum: [imported, waiting_for_puzzle, problem, detached]}
+              problems:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    code: {type: string}
+                    detail: {type: string, nullable: true}
+                    line: {type: integer, nullable: true}
+              competitionId: {type: string, format: uuid, nullable: true}
+              results: {type: integer}
+              firstImportedAt: {type: string, nullable: true}
+              appliedAt: {type: string, nullable: true}
     EmailSuppression:
       type: object
       required: [email, source, reason, suppressedAt, bounceSubType, diagnosticCode]

@@ -3,6 +3,23 @@
 Design of record: [README.md](README.md). Five phases, each deployable on its own. Phases 1 and 2 change nothing
 visible: no unfinished and no trackerless row exists before phase 3.
 
+## Status (2026-11-12, PR #342, draft)
+
+- **Order changed:** trackerless times (phase 2) and the import (phase 3) first; unfinished results (phases 1 + 5) become
+  one stream after claiming - the organizer's sheets have no unfinished teams today, and the counting split only makes
+  sense together with the rows' display. Until then the import keeps a row with "Pieces placed" out
+  (`unfinished_not_supported_yet`).
+- **Done:** phase 2 (domain, migration, every reader, canary + coverage test, audit in
+  [trackerless-audit.md](trackerless-audit.md)); phase 3 (parser, sheet reader, per-tab upsert, sync, console command,
+  internal API). Checked against the organizer's real sheet locally: as it is today all four tabs are a `problem`
+  (no `Start time` / `Time limit` columns); with them all 50 teams parse, one tab is importable, three wait for their
+  puzzle link.
+- **Phase 4 follow-ups found on the way:** `PuzzleSolversGroup::isEditableBy()` / `PuzzleResultAttempt::isEditableBy()`
+  would show claimers an edit button `canBeModifiedBy()` refuses; the puzzle page shows the team name twice on an
+  anonymous row (name cell + team badge); `DismissFirstTryReview` / `UnmarkFirstAttempt` refuse imported results, so the
+  first-try toggle lives in the claim modal only; `CommunityStatsCalculator::resultsSql()` drops members when the
+  tracker is NULL - harmless while the first claimer always becomes the tracker.
+
 Public repo: made-up event, team and puzzle names only in code, tests, docs, commits and PR text. The organizer's
 spreadsheet id goes into the database through the internal API, never into the repo.
 

@@ -1,6 +1,6 @@
 # Event results import (an organizer's results spreadsheet)
 
-**Status:** plan, 2026-11-12. Nothing built. Phases in [implementation-plan.md](implementation-plan.md).
+**Status:** 2026-11-12 - trackerless times and the import built (PR #342, draft); claiming and unfinished results next. Progress in [implementation-plan.md](implementation-plan.md) "Status".
 
 An organizer who runs many casual events keeps the results in a Google Sheet: one tab per event, one row per team -
 the team's name, its time and how many people it had. Nobody's MySpeedPuzzling account is known. MySpeedPuzzling reads
@@ -89,7 +89,7 @@ gets one issue per thing to fix. The console command prints every tab's status o
   API. The spreadsheet ids live in the database only, never in the repo.
 - `event_results_sheet_tab` - one row per gid: `title`, `status`, `problems` (jsonb), `content_hash` (of the parsed tab -
   unchanged = nothing to do), `competition_id` (`SET NULL`; null after an import = `detached`).
-- `imported_result` - the upsert key of a row: `tab_id`, `team_key` (the team name folded like `SearchText::fold()`),
+- `event_imported_result` - the upsert key of a row: `tab_id`, `team_key` (the team name folded like `SearchText::fold()`),
   `solving_time_id` (unique, `CASCADE`). A renamed team = a removed row + a new row.
 
 ### `puzzle_solving_time`

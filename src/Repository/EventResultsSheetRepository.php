@@ -28,6 +28,11 @@ readonly final class EventResultsSheetRepository
         return $this->entityManager->find(EventResultsSheet::class, $sheetId) ?? throw new EventResultsSheetNotFound();
     }
 
+    public function findBySpreadsheetId(string $spreadsheetId): null|EventResultsSheet
+    {
+        return $this->entityManager->getRepository(EventResultsSheet::class)->findOneBy(['spreadsheetId' => $spreadsheetId]);
+    }
+
     /**
      * @return list<EventResultsSheet>
      */

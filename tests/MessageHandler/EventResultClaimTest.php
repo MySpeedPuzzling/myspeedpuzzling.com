@@ -184,7 +184,7 @@ final class EventResultClaimTest extends KernelTestCase
 
         self::assertSame(4, $this->anonymousCountOf($timeId));
         self::assertNull($this->database->fetchOne('SELECT player_id FROM puzzle_solving_time WHERE id = :id', ['id' => $timeId]));
-        self::assertSame(0, (int) $this->database->fetchOne('SELECT COUNT(*) FROM result_claim_log WHERE solving_time_id = :id', ['id' => $timeId]));
+        self::assertSame(0, self::int($this->database->fetchOne('SELECT COUNT(*) FROM result_claim_log WHERE solving_time_id = :id', ['id' => $timeId])));
 
         // Without the tag it is fine
         $this->claim($timeId, PlayerFixture::PLAYER_WITH_STRIPE);
@@ -239,7 +239,7 @@ final class EventResultClaimTest extends KernelTestCase
 
         self::assertSame(
             ['released', PlayerFixture::PLAYER_REGULAR],
-            array_values($this->database->fetchNumeric("SELECT action, by_player_id FROM result_claim_log WHERE solving_time_id = :id AND player_id = :player AND action <> 'claimed'", ['id' => $timeId, 'player' => PlayerFixture::PLAYER_REGULAR]) ?: []),
+            ($this->database->fetchNumeric("SELECT action, by_player_id FROM result_claim_log WHERE solving_time_id = :id AND player_id = :player AND action <> 'claimed'", ['id' => $timeId, 'player' => PlayerFixture::PLAYER_REGULAR]) ?: []),
         );
 
         // The released player may claim it again
@@ -365,7 +365,7 @@ final class EventResultClaimTest extends KernelTestCase
         self::assertContains(null, $memberPlayers);
         self::assertSame(1, $this->anonymousCountOf($pair));
         self::assertSame(
-            TeamComposition::keyFromMemberKeys(array_column($members, 'member_key')),
+            TeamComposition::keyFromMemberKeys(array_map(static fn (mixed $key): string => is_string($key) ? $key : '', array_column($members, 'member_key'))),
             $this->database->fetchOne('SELECT composition_key FROM puzzling_team WHERE id = :id', ['id' => $ownTeamId]),
         );
     }
@@ -506,8 +506,15 @@ final class EventResultClaimTest extends KernelTestCase
         return $json;
     }
 
+    private static function int(mixed $value): int
+    {
+        self::assertTrue(is_int($value) || is_numeric($value));
+
+        return (int) $value;
+    }
+
     private function notificationCount(string $type, string $timeId): int
     {
-        return (int) $this->database->fetchOne('SELECT COUNT(*) FROM notification WHERE type = :type AND target_solving_time_id = :id', ['type' => $type, 'id' => $timeId]);
+        return self::int($this->database->fetchOne('SELECT COUNT(*) FROM notification WHERE type = :type AND target_solving_time_id = :id', ['type' => $type, 'id' => $timeId]));
     }
 }

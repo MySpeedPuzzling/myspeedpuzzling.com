@@ -21,10 +21,18 @@ final class EventResultClaimTwigExtension extends AbstractExtension
     /**
      * @return array<TwigFunction>
      */
+    /**
+     * @param iterable<object> $players
+     */
+    public function canClaim(iterable $players, null|string $competitionId = null): bool
+    {
+        return $this->eventResultClaimability->canClaim($players, $competitionId);
+    }
+
     public function getFunctions(): array
     {
         return [
-            new TwigFunction('can_claim_event_result', fn (iterable $players, null|string $competitionId = null): bool => $this->eventResultClaimability->canClaim($players, $competitionId)),
+            new TwigFunction('can_claim_event_result', $this->canClaim(...)),
         ];
     }
 }

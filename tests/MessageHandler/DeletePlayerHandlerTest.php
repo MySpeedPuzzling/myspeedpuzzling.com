@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use SpeedPuzzling\Web\Tests\TestClock;
+use SpeedPuzzling\Web\Tests\TrackerlessTimeSeeding;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\ModerationAction;
@@ -13,6 +14,7 @@ use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
+use SpeedPuzzling\Web\Message\ClaimEventResultSlot;
 use SpeedPuzzling\Web\Message\DeletePlayer;
 use SpeedPuzzling\Web\Message\RecordPhotoStashEntry;
 use SpeedPuzzling\Web\Query\GetModerationActions;
@@ -27,6 +29,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
 
 final class DeletePlayerHandlerTest extends KernelTestCase
 {
+    use TrackerlessTimeSeeding;
+
     private MessageBusInterface $messageBus;
     private EntityManagerInterface $entityManager;
 
@@ -366,6 +370,52 @@ final class DeletePlayerHandlerTest extends KernelTestCase
             'SELECT added_by_player_id FROM organization WHERE id = :id',
             ['id' => OrganizationFixture::ORGANIZATION_RIVERBEND],
         ));
+    }
+
+    /**
+     * An imported event result is the event's (docs/features/event-results-import/README.md "Gates"): the deleted
+     * player's spot goes back to an anonymous slot, the result stays - though nobody else of it has an account, which
+     * deletes an ordinary pair/team time the player tracked.
+     */
+    public function testTheSpotOfAnImportedEventResultGoesBackToTheEvent(): void
+    {
+        $round = $this->seedTrackerlessEvent(PuzzleFixture::PUZZLE_1000_04);
+        $pals = $this->seedTrackerlessTime($round, PuzzleFixture::PUZZLE_1000_04, 'Puzzle Pals', 3600);
+        $crew = $this->seedTrackerlessTime($round, PuzzleFixture::PUZZLE_1000_04, 'Corner Crew', 3000);
+        $palsId = $pals->id->toString();
+        $crewId = $crew->id->toString();
+
+        // The deleted player tracks it, another claimer stays
+        $this->messageBus->dispatch(new ClaimEventResultSlot($palsId, PlayerFixture::PLAYER_PRIVATE));
+        $this->messageBus->dispatch(new ClaimEventResultSlot($palsId, PlayerFixture::PLAYER_WITH_FAVORITES));
+
+        $this->messageBus->dispatch(new DeletePlayer(PlayerFixture::PLAYER_PRIVATE));
+        $this->entityManager->clear();
+        $connection = $this->entityManager->getConnection();
+
+        self::assertSame(PlayerFixture::PLAYER_WITH_FAVORITES, $connection->fetchOne('SELECT player_id FROM puzzle_solving_time WHERE id = :id', ['id' => $palsId]));
+        self::assertNotFalse($connection->fetchOne('SELECT 1 FROM puzzle_solving_time WHERE id = :id', ['id' => $crewId]));
+
+        $team = $connection->fetchOne('SELECT team FROM puzzle_solving_time WHERE id = :id', ['id' => $palsId]);
+        self::assertIsString($team);
+        self::assertStringNotContainsString(PlayerFixture::PLAYER_PRIVATE, $team);
+        self::assertSame(3, substr_count($team, '"anonymous_slot"'));
+        self::assertFalse($connection->fetchOne('SELECT 1 FROM puzzling_team_member WHERE player_id = :id', ['id' => PlayerFixture::PLAYER_PRIVATE]));
+
+        self::assertSame(
+            [['action' => 'account_deleted', 'by_player_id' => null]],
+            $connection->fetchAllAssociative("SELECT action, by_player_id FROM result_claim_log WHERE solving_time_id = :id AND action <> 'claimed'", ['id' => $palsId]),
+        );
+
+        // The crew result was claimed by nobody else - it stays the event's, nobody's again
+        $this->messageBus->dispatch(new ClaimEventResultSlot($crewId, PlayerFixture::PLAYER_WITH_STRIPE));
+        $this->messageBus->dispatch(new DeletePlayer(PlayerFixture::PLAYER_WITH_STRIPE));
+        $this->entityManager->clear();
+
+        self::assertSame(
+            ['player_id' => null],
+            $connection->fetchAssociative('SELECT player_id FROM puzzle_solving_time WHERE id = :id', ['id' => $crewId]),
+        );
     }
 
     public function testAnApproverOfAnOrganizationCanBeDeleted(): void

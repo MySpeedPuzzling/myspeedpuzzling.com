@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Message\DeletePuzzleSolvingTime;
+use SpeedPuzzling\Web\Query\GetEventResultClaims;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Value\EditTimeReturnContext;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -25,6 +26,7 @@ final class DeleteTimeController extends AbstractController
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
+        readonly private GetEventResultClaims $getEventResultClaims,
     ) {
     }
 
@@ -41,6 +43,12 @@ final class DeleteTimeController extends AbstractController
     )]
     public function __invoke(Request $request, #[CurrentUser] UserInterface $user, string $timeId): Response
     {
+        // An imported event result is the event's: never deleted by a claimer, removed from their profile instead
+        // (docs/features/event-results-import/README.md "Gates")
+        if ($this->getEventResultClaims->context($timeId, null) !== null) {
+            return $this->redirectToRoute('event_result_release', ['timeId' => $timeId]);
+        }
+
         $contextValue = $request->isMethod('POST')
             ? $request->request->getString('context')
             : $request->query->getString('context');

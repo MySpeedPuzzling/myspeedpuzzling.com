@@ -9,6 +9,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
+use SpeedPuzzling\Web\Message\ClaimEventResultSlot;
 use SpeedPuzzling\Web\Message\DetectSuspiciousTimes;
 use SpeedPuzzling\Web\Query\GetFastestGroups;
 use SpeedPuzzling\Web\Query\GetFastestPairs;
@@ -98,6 +99,42 @@ final class TrackerlessTimeCanaryTest extends WebTestCase
             self::assertStringContainsString(self::CREW, $team);
             self::assertStringContainsString('Team of 4', $team);
             self::assertStringContainsString(self::TRACKERLESS_EVENT_NAME, $this->page('/en/events/' . self::TRACKERLESS_EVENT_SLUG));
+        }
+    }
+
+    /**
+     * Once somebody claimed a spot (docs/features/event-results-import/README.md "Display"): the claimer by name and the
+     * rest as "+3" - on the puzzle page, the round's results and the result detail; the untouched team as before.
+     */
+    public function testAPartlyClaimedResultShowsItsClaimerAndTheRest(): void
+    {
+        [$pals] = $this->seed();
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new ClaimEventResultSlot($pals->id->toString(), PlayerFixture::PLAYER_WITH_FAVORITES));
+
+        foreach ([null, PlayerFixture::PLAYER_REGULAR] as $viewer) {
+            if ($viewer !== null) {
+                TestingLogin::asPlayer($this->browser, $viewer);
+            }
+
+            $teams = $this->createLiveComponent('PuzzleTimes', [
+                'puzzleId' => self::PUZZLE,
+                'piecesCount' => 1000,
+                'category' => 'group',
+            ], $this->browser);
+            $teams->setRouteLocale('en');
+            $html = $teams->render()->toString();
+            self::assertStringContainsString(PlayerFixture::PLAYER_WITH_FAVORITES_NAME, $html);
+            self::assertSame(1, substr_count($html, 'data-testid="anonymous-more"'));
+            self::assertStringContainsString('>+3</span>', $html);
+            self::assertSame(1, substr_count($html, 'data-testid="anonymous-team"'), 'The other team nobody claimed');
+
+            $round = $this->page('/en/events/' . self::TRACKERLESS_EVENT_SLUG . '/results/' . self::TRACKERLESS_ROUND_SLUG);
+            self::assertStringContainsString(PlayerFixture::PLAYER_WITH_FAVORITES_NAME, $round);
+            self::assertStringContainsString('>+3</span>', $round);
+
+            $detail = $this->page('/en/result/' . $pals->id->toString());
+            self::assertStringContainsString(PlayerFixture::PLAYER_WITH_FAVORITES_NAME, $detail);
+            self::assertStringContainsString('>+3</span>', $detail);
         }
     }
 

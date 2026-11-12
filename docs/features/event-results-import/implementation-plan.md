@@ -14,11 +14,27 @@ visible: no unfinished and no trackerless row exists before phase 3.
   internal API). Checked against the organizer's real sheet locally: as it is today all four tabs are a `problem`
   (no `Start time` / `Time limit` columns); with them all 50 teams parse, one tab is importable, three wait for their
   puzzle link.
-- **Phase 4 follow-ups found on the way:** `PuzzleSolversGroup::isEditableBy()` / `PuzzleResultAttempt::isEditableBy()`
-  would show claimers an edit button `canBeModifiedBy()` refuses; the puzzle page shows the team name twice on an
-  anonymous row (name cell + team badge); `DismissFirstTryReview` / `UnmarkFirstAttempt` refuse imported results, so the
-  first-try toggle lives in the claim modal only; `CommunityStatsCalculator::resultsSql()` drops members when the
-  tracker is NULL - harmless while the first claimer always becomes the tracker.
+- **Phase 4 (claiming) done** - as built in [README.md](README.md) "Claiming a spot" / "Gates": `ClaimEventResultSlot` /
+  `ReleaseEventResultSlot` / `RemoveEventResultClaim`, slot-aware `PuzzlingTeamMemberConversion` (by result, splits a
+  result off a shared pair/team), `EventResultSlotRelease` (release, removal, account deletion), rate limiter
+  `event_result_claim`, notifications `EventResultClaimed` / `EventResultClaimRemoved`, the claim / release / removal
+  modals, buttons on the puzzle page, round results and result detail, "Remove from my profile" for every edit and delete
+  link of an imported result. The follow-ups found in phases 2-3 are done: `isEditableBy()` of the read models is false
+  for an imported result, the puzzle page shows an unclaimed team's name once (no team badge next to it), the first-try
+  toggle lives in the claim modal. Tests: `EventResultClaimTest`, `EventResultClaimControllersTest`, a case in
+  `DeletePlayerHandlerTest` and `ApplyEventResultsTabHandlerTest`, the canary with a partly claimed result.
+- **Left open after phase 4:**
+  - the organizer's ⋯ menu on the event page has no "Not on our team" yet - the organizer's team uses the result
+    detail's links (shown to them like to a claimer); admins likewise (no internal API endpoint yet);
+  - no admin UI to clear `player.event_claims_blocked_at` (`Player::unblockEventClaims()` exists);
+  - `result_claim_log.player_name` keeps the name of a deleted account (the log outlives the player by design) - decide
+    whether account deletion should blank it;
+  - `CommunityStatsCalculator::resultsSql()` drops members when the tracker is NULL - harmless, as an imported result
+    with a member always has a tracker (the first claimer, then the next one);
+  - claimed results show on profiles like any team time, but without "+N" for the anonymous rest (`GetTeamPlayers`
+    leaves people without a name and id out) - fine for now;
+  - `DismissFirstTryReview` / `UnmarkFirstAttempt` still refuse imported results: a claimer fixes a wrong first try by
+    releasing and claiming again.
 
 Public repo: made-up event, team and puzzle names only in code, tests, docs, commits and PR text. The organizer's
 spreadsheet id goes into the database through the internal API, never into the repo.

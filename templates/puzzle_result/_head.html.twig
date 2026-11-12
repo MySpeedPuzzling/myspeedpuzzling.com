@@ -23,6 +23,11 @@
             {{ include('_leaderboard_player.html.twig', {player: result.player}) }}
         {% endif %}
 
+        {% set focus_attempt = result.focusAttempt %}
+        {% if result.isGroup and focus_attempt is not null and focus_attempt.importedFromEvent %}
+            {{ include('event_result_claim/_result_actions.html.twig', {players: result.players, attempt: focus_attempt}) }}
+        {% endif %}
+
         {% if standing is not null %}
             <div class="pr-rank">
                 {{ include('_rank_chip.html.twig', {rank: standing.rank, total: standing.total}) }}

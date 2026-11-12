@@ -17,4 +17,6 @@ enum SolvingTimeDeletedVia: string
     case DuplicateAutoRemoval = 'duplicate_auto_removal';
     // A team the organizer took off the results sheet before anybody claimed it (docs/features/event-results-import)
     case EventImport = 'event_import';
+    // The player claimed their spot of an imported event result and said their own copy was the same result
+    case EventResultClaim = 'event_result_claim';
 }

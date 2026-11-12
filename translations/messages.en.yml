@@ -11817,3 +11817,49 @@ sandbox_gate:
 player_country:
     placeholder: "Choose your country"
     suggested: "We think you're from %country% - change it if not. It is saved once you save your profile."
+
+event_result_claim:
+    button: "This was my team"
+    cancel: "Cancel"
+    unnamed_team: "Team"
+    nobody_claimed: "Nobody has claimed a spot yet (%count% puzzler).|Nobody has claimed a spot yet (%count% puzzlers)."
+    claimed_by: "Claimed by:"
+    claim:
+        title: "This was my team"
+        intro: "The result shows on your profile and counts in your statistics. It stays the event's: only the organizer's results sheet changes it, and the other puzzlers of the team see that you claimed it."
+        first_try: "This was my first try at this puzzle"
+        same_result: "Is this the same result?"
+        same_result_help: "You already have a result of this puzzle from around the event day. If it is this one, yours is deleted and the event's result stays."
+        same_result_no: "No, that is another result"
+        puzzlers: "%count% puzzler|%count% puzzlers"
+        submit: "Yes, this was my team"
+        already_yours: "You already hold a spot in this team."
+    release:
+        title: "Remove from my profile"
+        button: "Remove from my profile"
+        intro: "The result stays the event's and your spot is free again - you can claim it again later."
+        submit: "Remove from my profile"
+    remove:
+        title: "Not on our team"
+        button: "Not on our team: %player%"
+        intro: "%player% will no longer be shown in this team. They are told their spot was removed, never by whom."
+        reason: "Note (optional, only for the MySpeedPuzzling team)"
+        submit: "Remove from the team"
+    flash:
+        claimed: "You are on the team %team% now."
+        released: "The result was removed from your profile."
+        removed: "The spot was removed."
+        expired: "The form expired - please try again."
+    refused:
+        not_imported: "Only a result imported from an event's results can be claimed."
+        team_full: "Every spot of this team is already claimed."
+        already_in_round: "You already have a result in this round. If it is this one, choose it under \"Is this the same result?\"."
+        blocked: "Your spots were removed by other puzzlers twice, so you can no longer claim event results. Write to us if this is a mistake."
+        first_try_taken: "A first try of this puzzle is already recorded for somebody of this team - claim it without the first try."
+        same_result_invalid: "That result cannot be replaced - choose one of your own results of this puzzle."
+        not_a_claimer: "This spot is not claimed by this puzzler."
+        not_allowed: "Only the other puzzlers of the team, the organizer and admins can remove a spot."
+        limit: "You claimed many teams today - please try again tomorrow."
+    notification:
+        claimed: "%player% joined %team% at %event%"
+        claim_removed: "Your spot in %team% at %event% was removed"

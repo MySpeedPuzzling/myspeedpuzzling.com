@@ -8,6 +8,8 @@
       - can_delete (bool): the viewer tracked the time - group members may edit, deleting stays with the tracker
       - edit_context (string, optional): opens the edit form in the modal and returns there afterwards
         (EditTimeReturnContext: 'profile' / 'puzzle-detail'); without it the edit page is a normal link
+      - imported (bool, optional): an imported event result - the event's, so no edit and no delete, only "Remove from my
+        profile" (docs/features/event-results-import/README.md "Gates")
 #}
 <div class="dropdown position-absolute ps-actions">
     <button class="btn btn-outline-primary btn-xs dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ 'edit'|trans }}">
@@ -27,6 +29,13 @@
                 <i class="ci-share me-2"></i> {{ 'share'|trans }}
             </button>
         </li>
+        {% if imported|default(false) %}
+            <li>
+                <a class="dropdown-item text-danger" href="{{ path('event_result_release', {timeId: time_id}) }}" data-turbo-frame="modal-frame" data-testid="event-result-release-link">
+                    <i class="ci-trash me-2"></i> {{ 'event_result_claim.release.button'|trans }}
+                </a>
+            </li>
+        {% else %}
         <li>
             {% if edit_context is defined %}
                 <a class="dropdown-item" href="{{ path('edit_time', {timeId: time_id, context: edit_context}) }}" data-turbo-frame="modal-frame">
@@ -44,6 +53,7 @@
                     <i class="ci-trash me-2"></i> {{ 'delete'|trans }}
                 </a>
             </li>
+        {% endif %}
         {% endif %}
     </ul>
 </div>

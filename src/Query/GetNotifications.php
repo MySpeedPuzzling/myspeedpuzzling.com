@@ -135,7 +135,8 @@ SELECT * FROM (
         CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
         CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
         puzzle_solving_time.puzzling_team_id::varchar AS team_id,
-        NULL::varchar AS team_name,
+        -- An imported event result's notifications name its team and event (docs/features/event-results-import/README.md)
+        CASE WHEN notification.type IN ('EventResultClaimed', 'EventResultClaimRemoved') THEN (SELECT puzzling_team.name FROM puzzling_team WHERE puzzling_team.id = puzzle_solving_time.puzzling_team_id) END AS team_name,
         NULL::uuid AS guest_link_request_id,
         NULL::varchar AS guest_link_guest_name,
         CASE
@@ -195,7 +196,7 @@ SELECT * FROM (
         NULL::uuid AS round_id,
         NULL::varchar AS round_name,
         NULL::varchar AS round_slug,
-        NULL::varchar AS round_competition_name,
+        CASE WHEN notification.type IN ('EventResultClaimed', 'EventResultClaimRemoved') THEN (SELECT competition.name FROM competition WHERE competition.id = puzzle_solving_time.competition_id) END AS round_competition_name,
         NULL::varchar AS round_competition_slug,
         NULL::varchar AS round_series_slug,
         -- Partner finder request fields (NULL)

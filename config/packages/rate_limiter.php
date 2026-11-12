@@ -131,6 +131,14 @@ return App::config([
                 'limit' => 10,
                 'interval' => '1 day',
             ],
+            // "This was my team" on an imported event result (ClaimEventResultSlotHandler,
+            // docs/features/event-results-import/README.md "Gates"): every claim puts a result on the player's profile and
+            // tells its other claimers. Per player, counted in the handler - more teams than anybody puzzled in a day.
+            'event_result_claim' => [
+                'policy' => 'sliding_window',
+                'limit' => 10,
+                'interval' => '1 day',
+            ],
             // "Ask to borrow" (AskToBorrowPuzzles, docs/features/wishlist-availability.md): every send is a notification and
             // an e-mail to up to 10 people. Per asker and send, counted in the handler.
             'borrow_request' => [

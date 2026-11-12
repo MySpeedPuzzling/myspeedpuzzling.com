@@ -407,16 +407,17 @@
                                 {%~ for puzzle_solver in best.players|filter(p => p.anonymousSlot is null) %}
                                     {{~ include('_leaderboard_player.html.twig', {player: puzzle_solver, small: true}) }}
                                 {%~ endfor %}
-                                {%~ if best.players|filter(p => p.anonymousSlot is not null) is not empty %}{{ include('_anonymous_puzzlers.html.twig', {players: best.players, team_name: best.teamName}) }}{% endif %}
+                                {%~ if best.players|filter(p => p.anonymousSlot is not null) is not empty %}{{ include('_anonymous_puzzlers.html.twig', {players: best.players, team_name: best.teamName}) }}{{ include('event_result_claim/_claim_button.html.twig', {time_id: best.timeId, players: best.players, competition_id: best.competitionId}) }}{% endif %}
                             {%~ else %}
                                 {{~ include('_leaderboard_player.html.twig', {player: best}) }}
                             {%~ endif %}
+                            {#~ An imported result nobody has claimed already shows its team's name in the people cell - no badge repeating it #}
+                            {%~ set nobody_claimed = best.players is defined and best.players|filter(p => p.anonymousSlot is null) is empty %}
                             {{~ include('_leaderboard_time_badges.html.twig', {
                                 time: best,
                                 attempts: aggregated_solver|length,
                                 skip_first_try: true,
-                                team_page_label: (this.category == 'duo' ? 'puzzling_team.pair_page' : 'puzzling_team.team_page')|trans,
-                            }) }}
+                            }|merge(nobody_claimed ? {} : {team_page_label: (this.category == 'duo' ? 'puzzling_team.pair_page' : 'puzzling_team.team_page')|trans})) }}
                         </td>
 
                         <td class="lb-time">

@@ -11571,3 +11571,49 @@ sandbox_gate:
 player_country:
     placeholder: "Elige tu país"
     suggested: "Creemos que eres de: %country%. Si no, cámbialo: se guarda cuando guardes tu perfil."
+
+event_result_claim:
+    button: "Este era mi equipo"
+    cancel: "Cancelar"
+    unnamed_team: "Equipo"
+    nobody_claimed: "Nadie ha reclamado un puesto todavía (%count% puzzlero).|Nadie ha reclamado un puesto todavía (%count% puzzleros)."
+    claimed_by: "Reclamado por:"
+    claim:
+        title: "Este era mi equipo"
+        intro: "El resultado aparece en tu perfil y cuenta en tus estadísticas. Sigue siendo del evento: solo la hoja de resultados del organizador lo cambia, y los demás puzzleros del equipo ven que lo reclamaste."
+        first_try: "Fue mi primer intento con este puzzle"
+        same_result: "¿Es el mismo resultado?"
+        same_result_help: "Ya tienes un resultado de este puzzle de alrededor del día del evento. Si es este, el tuyo se elimina y se queda el resultado del evento."
+        same_result_no: "No, es otro resultado"
+        puzzlers: "%count% puzzlero|%count% puzzleros"
+        submit: "Sí, este era mi equipo"
+        already_yours: "Ya tienes un puesto en este equipo."
+    release:
+        title: "Quitar de mi perfil"
+        button: "Quitar de mi perfil"
+        intro: "El resultado sigue siendo del evento y tu puesto queda libre - puedes volver a reclamarlo más tarde."
+        submit: "Quitar de mi perfil"
+    remove:
+        title: "No estaba en nuestro equipo"
+        button: "No estaba en nuestro equipo: %player%"
+        intro: "%player% ya no aparecerá en este equipo. Se le avisa de que su puesto fue retirado, nunca por quién."
+        reason: "Nota (opcional, solo para el equipo de MySpeedPuzzling)"
+        submit: "Retirar del equipo"
+    flash:
+        claimed: "Ahora estás en el equipo %team%."
+        released: "El resultado se quitó de tu perfil."
+        removed: "El puesto fue retirado."
+        expired: "El formulario caducó - inténtalo de nuevo."
+    refused:
+        not_imported: "Solo se puede reclamar un resultado importado de los resultados de un evento."
+        team_full: "Todos los puestos de este equipo ya están reclamados."
+        already_in_round: "Ya tienes un resultado en esta ronda. Si es este, elígelo en \"¿Es el mismo resultado?\"."
+        blocked: "Otros puzzleros retiraron tus puestos dos veces, así que ya no puedes reclamar resultados de eventos. Escríbenos si es un error."
+        first_try_taken: "Alguien de este equipo ya tiene registrado un primer intento con este puzzle - reclámalo sin el primer intento."
+        same_result_invalid: "Ese resultado no se puede reemplazar - elige uno de tus propios resultados de este puzzle."
+        not_a_claimer: "Este puesto no es de este puzzlero."
+        not_allowed: "Solo los demás puzzleros del equipo, el organizador y los administradores pueden retirar un puesto."
+        limit: "Hoy reclamaste muchos equipos - inténtalo de nuevo mañana."
+    notification:
+        claimed: "%player% se unió a %team% en %event%"
+        claim_removed: "Tu puesto en %team% en %event% fue retirado"

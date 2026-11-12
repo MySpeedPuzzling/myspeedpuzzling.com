@@ -1,0 +1,36 @@
+{#
+    The spots of an imported event result on its result detail (docs/features/event-results-import/README.md "Claiming a
+    spot", "Gates"): "This was my team" for who may claim, "Remove from my profile" for a claimer, "Not on our team" next
+    to every other claimer for the result's claimers, the organizer's team of the event and admins.
+
+    Inputs:
+      - players: the result's people (Puzzler, anonymousSlot set for an unclaimed spot)
+      - attempt: PuzzleResultAttempt - the imported result
+#}
+{%- set viewer_id = logged_user.profile is not null ? logged_user.profile.playerId : null -%}
+{%- set viewer_claimed = viewer_id is not null and viewer_id in players|map(p => p.playerId) -%}
+{%- set other_claimers = players|filter(p => p.playerId is not null and p.playerId != viewer_id) -%}
+{%- set may_remove = viewer_id is not null and other_claimers is not empty and (viewer_claimed or (attempt.competitionId is not null and is_granted('COMPETITION_EDIT', attempt.competitionId))) -%}
+<div class="pr-claim-actions d-flex flex-wrap align-items-center gap-1 mt-1" data-testid="event-result-actions">
+    {{- include('event_result_claim/_claim_button.html.twig', {time_id: attempt.timeId, players: players, competition_id: attempt.competitionId}) -}}
+
+    {%- if viewer_claimed -%}
+        <a href="{{ path('event_result_release', {timeId: attempt.timeId}) }}"
+           class="btn btn-link btn-xs text-danger p-0 ms-1"
+           data-turbo-frame="modal-frame"
+           data-testid="event-result-release-link"
+           rel="nofollow"
+        >{{ 'event_result_claim.release.button'|trans }}</a>
+    {%- endif -%}
+
+    {%- if may_remove -%}
+        {%- for claimer in other_claimers -%}
+            <a href="{{ path('event_result_claim_remove', {timeId: attempt.timeId, playerId: claimer.playerId}) }}"
+               class="btn btn-link btn-xs text-muted p-0 ms-1"
+               data-turbo-frame="modal-frame"
+               data-testid="event-result-remove-link"
+               rel="nofollow"
+            >{{ 'event_result_claim.remove.button'|trans({'%player%': (claimer.isPrivate and claimer.playerId != viewer_id) ? 'secret_puzzler_name'|trans : (claimer.playerName ?? ('#' ~ claimer.playerCode))}) }}</a>
+        {%- endfor -%}
+    {%- endif -%}
+</div>

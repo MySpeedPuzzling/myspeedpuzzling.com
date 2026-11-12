@@ -1,0 +1,35 @@
+{#
+    The imported event result a claim, release or removal is about: event, team, time, puzzle, and who claimed it
+    (docs/features/event-results-import/README.md "Claiming a spot").
+
+    Inputs:
+      - context: EventResultClaimContext
+#}
+<div class="card card-body mb-3" data-testid="event-result-summary">
+    <div class="fw-semibold">
+        {{ context.teamName ?? 'event_result_claim.unnamed_team'|trans }}
+        {% if context.seconds is not null %}
+            · <span class="tabular-nums">{{ context.seconds|puzzlingTime }}</span>
+        {% endif %}
+    </div>
+    {% if context.competitionName is not null %}
+        <div class="fs-sm text-muted">{{ context.competitionName }} · {{ context.solvedAt|date('d.m.Y') }}</div>
+    {% endif %}
+    <div class="fs-sm text-muted">
+        {{ context.manufacturerName }} {{ context.puzzleName }} {{ 'pieces_count'|trans({'%count%': context.piecesCount})|raw }}
+    </div>
+
+    <div class="fs-sm mt-2" data-testid="event-result-claimers">
+        {% if context.claimers is empty %}
+            {{ 'event_result_claim.nobody_claimed'|trans({'%count%': context.puzzlersCount}) }}
+        {% else %}
+            <span class="text-muted">{{ 'event_result_claim.claimed_by'|trans }}</span>
+            {% for claimer in context.claimers %}
+                {{ include('_leaderboard_player.html.twig', {player: claimer, small: true, show_tier: false}) }}
+            {% endfor %}
+            {% if context.anonymousCount > 0 %}
+                <span class="text-muted">+{{ context.anonymousCount }}</span>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>

@@ -112,6 +112,7 @@ SELECT
     competition.id AS competition_id,
     puzzle_solving_time.competition_series_id AS series_pick_id,
     (competition.series_id IS NOT NULL) AS competition_is_edition,
+    (puzzle_solving_time.created_via = 'event_import') AS imported_from_event,
     CASE
         WHEN puzzle_solving_time.team IS NOT NULL THEN
             JSON_AGG(
@@ -573,6 +574,7 @@ SELECT
     cs.shortcut AS competition_series_shortcut,
     cs.slug AS competition_series_slug,
     pst.suspicious,
+    (pst.created_via = 'event_import') AS imported_from_event,
     pst.puzzling_type
 FROM filtered_pst_ids fids
 INNER JOIN puzzle_solving_time pst ON pst.id = fids.id

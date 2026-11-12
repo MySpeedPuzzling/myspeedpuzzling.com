@@ -72,6 +72,7 @@ final class TrackerlessTimeQueryCoverageTest extends TestCase
         'Query/GetCoPuzzlers.php' => self::OWN,
         'Query/GetDuplicateCandidates.php' => self::OWN,
         'Query/GetDuplicatePuzzleSignalCandidates.php' => 'Admin: the same person\'s results on two puzzles - a time without a tracker or member is nobody\'s, NULL never pairs with NULL.',
+        'Query/GetEventResultClaims.php' => 'Claims of imported event results (docs/features/event-results-import/README.md "Claiming a spot"): who holds a spot - a time without a tracker is exactly what it reads, the tracker is never joined.',
         'Query/GetExportablePuzzleSolveSummary.php' => self::OWN,
         'Query/GetExportableSolvingTimes.php' => self::OWN,
         'Query/GetFastestGroups.php' => self::D4,

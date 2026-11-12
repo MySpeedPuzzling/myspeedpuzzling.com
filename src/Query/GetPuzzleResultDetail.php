@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Results\PuzzleResultStanding;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Value\Puzzler;
+use SpeedPuzzling\Web\Value\SolvingTimeSource;
 
 /**
  * One player's - or one exact pair's / team's - results on one puzzle, opened from one of its times
@@ -130,6 +131,7 @@ SELECT
     pst.suspicious,
     pst.comment,
     pst.finished_puzzle_photo,
+    (pst.created_via = :eventImport) AS imported_from_event,
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
@@ -169,6 +171,7 @@ SQL;
             ->executeQuery($query, [
                 'timeId' => $timeId,
                 'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+                'eventImport' => SolvingTimeSource::EventImport->value,
             ])
             ->fetchAllAssociative();
 
@@ -184,6 +187,7 @@ SQL;
          *     suspicious: bool,
          *     comment: null|string,
          *     finished_puzzle_photo: null|string,
+         *     imported_from_event: null|bool,
          *     competition_id: null|string,
          *     competition_shortcut: null|string,
          *     competition_name: null|string,
@@ -266,6 +270,7 @@ SQL;
                 competitionSeriesShortcut: $row['competition_series_shortcut'],
                 competitionSeriesSlug: $row['competition_series_slug'],
                 memberPlayerIds: $memberPlayerIds,
+                importedFromEvent: $row['imported_from_event'] === true,
             );
         }
 

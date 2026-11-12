@@ -1,0 +1,17 @@
+{#
+    "This was my team" on an imported event result with a spot left, for a signed-in viewer who may claim it
+    (docs/features/event-results-import/README.md "Claiming a spot"). Nothing for anybody else - guests included.
+
+    Inputs:
+      - time_id: string
+      - players: the result's people (anything with anonymousSlot and playerId)
+      - competition_id: null|string
+#}
+{%- if can_claim_event_result(players, competition_id) -%}
+    <a href="{{ path('event_result_claim', {timeId: time_id}) }}"
+       class="btn btn-outline-primary btn-xs ms-1"
+       data-turbo-frame="modal-frame"
+       data-testid="event-result-claim-button"
+       rel="nofollow"
+    ><i class="bi bi-person-plus"></i> {{ 'event_result_claim.button'|trans }}</a>
+{%- endif -%}

@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Entity\EventResultsSheet;
 use SpeedPuzzling\Web\Entity\Organization;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Message\ApplyEventResultsTab;
+use SpeedPuzzling\Web\Message\ClaimEventResultSlot;
 use SpeedPuzzling\Web\Services\EventResultsImport\EventResultsTabParser;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -151,6 +152,35 @@ final class ApplyEventResultsTabHandlerTest extends KernelTestCase
             'SELECT COUNT(*) FROM solving_time_graveyard WHERE solving_time_id = :id AND player_id IS NULL',
             ['id' => $edgeLords['id']],
         )), 'Buried like every deleted result');
+    }
+
+    /**
+     * A team somebody claimed is a person's now: the organizer's corrected time still applies, taking it off the sheet
+     * removes nothing (docs/features/event-results-import/README.md "Gates").
+     */
+    public function testAClaimedTeamFollowsACorrectedTimeAndStaysWhenTakenOffTheSheet(): void
+    {
+        $this->apply($this->eventRow('Puzzle Pals', '1:10:13', '4'), 'Edge Lords,1:12:04,3,,,,,,,,,,,,');
+        $edgeLords = array_values(array_filter($this->times(), static fn (array $time): bool => $time['team_name'] === 'Edge Lords'))[0];
+        self::assertIsString($edgeLords['id']);
+
+        $this->messageBus->dispatch(new ClaimEventResultSlot($edgeLords['id'], PlayerFixture::PLAYER_WITH_STRIPE));
+        $this->entityManager->clear();
+
+        $this->apply($this->eventRow('Puzzle Pals', '1:10:13', '4'), 'Edge Lords,1:11:00,3,,,,,,,,,,,,');
+
+        $corrected = $this->database->fetchAssociative('SELECT seconds_to_solve, player_id FROM puzzle_solving_time WHERE id = :id', ['id' => $edgeLords['id']]);
+        self::assertSame(['seconds_to_solve' => 4260, 'player_id' => PlayerFixture::PLAYER_WITH_STRIPE], $corrected);
+
+        $this->apply($this->eventRow('Puzzle Pals', '1:10:13', '4'));
+
+        self::assertSame(['Edge Lords', 'Puzzle Pals'], array_column($this->times(), 'team_name'), 'A claimed team stays');
+        self::assertSame(PlayerFixture::PLAYER_WITH_STRIPE, $this->database->fetchOne('SELECT player_id FROM puzzle_solving_time WHERE id = :id', ['id' => $edgeLords['id']]));
+
+        $tab = $this->tab();
+        self::assertSame('imported', $tab['status']);
+        self::assertIsString($tab['problems']);
+        self::assertStringContainsString('claimed_team_removed_from_sheet', $tab['problems']);
     }
 
     public function testATabWithoutAPuzzleLinkWaitsAndCreatesNothing(): void

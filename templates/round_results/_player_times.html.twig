@@ -44,7 +44,7 @@
                                     {% else %}
                                         <span class="player-name-item">{{ player.playerName }}</span>
                                     {% endif %}
-                                {% endfor %}{% if result.players|filter(p => p.anonymousSlot is not null) is not empty %}{{ include('_anonymous_puzzlers.html.twig', {players: result.players, team_name: result.teamName}) }}{% endif %}
+                                {% endfor %}{% if result.players|filter(p => p.anonymousSlot is not null) is not empty %}{{ include('_anonymous_puzzlers.html.twig', {players: result.players, team_name: result.teamName}) }}{{ include('event_result_claim/_claim_button.html.twig', {time_id: result.timeId, players: result.players, competition_id: event.id}) }}{% endif %}
                             </td>
                             <td class="text-end">
                                 {% if result.status.value == 'unfinished' %}

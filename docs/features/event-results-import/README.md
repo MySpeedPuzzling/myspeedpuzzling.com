@@ -1,6 +1,6 @@
 # Event results import (an organizer's results spreadsheet)
 
-**Status:** 2026-11-12 - trackerless times and the import built (PR #342, draft); claiming and unfinished results next. Progress in [implementation-plan.md](implementation-plan.md) "Status".
+**Status:** 2026-11-12 - trackerless times, the import and claiming built (PR #342, draft); unfinished results next. Progress in [implementation-plan.md](implementation-plan.md) "Status".
 
 An organizer who runs many casual events keeps the results in a Google Sheet: one tab per event, one row per team -
 the team's name, its time and how many people it had. Nobody's MySpeedPuzzling account is known. MySpeedPuzzling reads
@@ -112,35 +112,68 @@ every anonymous team of four would become one team). The team's name is the shee
 
 ## Claiming a spot
 
-"This was my team" on the result (puzzle page Teams tab, round results page, result detail), signed-in only, opens a
-confirmation modal: the event, the team, the time, the people who already claimed it, and a **"This was my first
-try at this puzzle"** toggle (off). On confirm, `ClaimEventResultSlot` (serialized by a lock on the time):
+"This was my team" (`event_result_claim/_claim_button.html.twig`) sits on a result that still has an anonymous slot -
+puzzle page Pairs/Teams tab, round results page, result detail - for a signed-in viewer who is not in it and holds no
+spot of an imported result of the same event (`EventResultClaimability`: one statement per request, only once such a
+row is rendered for a signed-in viewer; guests and every other page view pay nothing). It opens a confirmation in the
+modal (`ClaimEventResultSlotController`, `/{_locale}/event-result/{timeId}/claim`, a page of its own without the
+modal): the event, the team, the time, who already claimed it, **"This was my first try at this puzzle"** (off) and -
+when the viewer has their own result of the puzzle from the day before to the day after the event - **"Is this the same
+result?"** with those results to pick from. The POST (stateless CSRF `event_result_claim`) dispatches
+`ClaimEventResultSlot` (`SerializedByLock` on the result - claims, releases and removals of one result take turns);
+a refusal is answered 422 in the modal with the reason, a success closes the modal and refreshes the page.
 
-1. refuses when the team is full, when the player already holds a spot in any result of this round, when the player
-   was removed from claiming (below), or over the rate limit (10 claims per day);
-2. turns one `a:` slot into the player - `PuzzlingTeamMemberConversion::anonymousSlotToPlayer()` (new, next to
-   `guestToPlayer()`: the same key replacement, snapshot rewrite and merge when the composition key now equals an
-   existing team - only possible once every slot is claimed);
-3. sets the tracker when there is none (the first claimer);
-4. applies the first-try toggle through `FirstTryAssessor`, like a save (a refusal is shown in the modal, nothing changes);
-5. offers the duplicate: when the player already has a time on this puzzle within a day of the event, the modal asks
-   "Is this the same result?" - yes deletes theirs (`PuzzleSolvingTimeRepository::delete()`), the imported one stays;
-6. writes a `result_claim_log` row and notifies the other claimers ("Ann joined Puzzle Pals" + "Not on our team").
+`ClaimEventResultSlotHandler` checks everything before anything changes, then:
+
+1. refuses (`EventResultClaimRefused`, reason `EventResultClaimRefusal`) an ordinary result, a player blocked from
+   claiming, a "same result" that is not the player's own result of the puzzle, a player already in any result of the
+   round (one spot per round - the "same result" about to go does not count), a full team, a first try somebody of the
+   result already holds elsewhere; over the rate limit `event_result_claim` (10 a day per player)
+   `EventResultClaimLimitReached` (429);
+2. deletes the "same result" (`PuzzleSolvingTimeRepository::delete()`, `SolvingTimeDeletedVia::EventResultClaim`) -
+   the imported result stays;
+3. turns the first anonymous slot (in the order of the result's people) into the player -
+   `PuzzlingTeamMemberConversion::anonymousSlotToPlayer()`: member row, composition key and the result's group snapshot
+   (`{player_id, player_name: null}`, byte for byte what `PuzzlersGroupDoctrineType` writes). Once every slot is claimed
+   the people may be a pair/team that already exists - the result then joins it (the anonymous team is merged into it,
+   the name goes over when the existing one has none);
+4. the first claimer becomes the tracker (`PuzzleSolvingTime::slotClaimedBy()`);
+5. first try: a pair's/team's result is a first try only if it is everybody's - the first claimer's answer sets it
+   (checked by `FirstTryAssessor` like a save), a later claimer keeps the tag or takes it off and is never asked while
+   the result has none;
+6. logs `claimed` in `result_claim_log`; `EventResultSlotClaimed` (async) tells every other claimer
+   ("Ann joined Puzzle Pals at <event>", `NotificationType::EventResultClaimed`, nothing for a claimer who blocks the
+   new one); achievements and the XP chain of the result are recalculated like after a group edit.
 
 ### Gates (D6)
 
-- **The result is the event's.** Claimers cannot edit the time, puzzle, date or people and cannot delete it:
-  `PuzzleSolvingTime::canBeModifiedBy()` refuses for `source = event_import`; the profile's "Delete" becomes
-  **"Remove from my profile"** = `ReleaseEventResultSlot` (the slot becomes anonymous again, the tracker moves to the
-  next claimer or to nobody). Only the sheet changes the result. Claim-then-delete sabotage is impossible.
-- **Account deletion** releases the slot instead of what it does to other times today (`DeletePlayerHandler` deletes a
-  tracked team time without another registered member and turns members into named guests).
-- **Wrong claims:** one spot per person per round; claims ≤ team size; claimers shown publicly; every claimer can
-  remove another claimer ("Not on our team"), and so can the organization's team (event page ⋯ menu) and admins
-  (internal API). A player removed twice can no longer claim (`player.event_claims_blocked_at`, an admin clears it).
+- **The result is the event's.** `PuzzleSolvingTime::canBeModifiedBy()` / `canBeDeletedBy()` refuse it, and so do the
+  read models' `isEditableBy()` (`PuzzleSolversGroup`, `PuzzleResultAttempt`, `SolvedPuzzle`, `SolvedPuzzleDetail` -
+  they carry `importedFromEvent`): no edit button anywhere. Every edit or delete link of an imported result leads to
+  **"Remove from my profile"** (`ReleaseEventResultSlotController`, `/{_locale}/event-result/{timeId}/remove-from-profile`;
+  the profile's ⋯ menu shows it instead of Edit/Delete, the result detail next to the people) =
+  `ReleaseEventResultSlot`. Only the sheet changes the result; claim-then-delete sabotage is impossible.
+- **Releasing** (`EventResultSlotRelease`, the one way for a release, a removal and a deleted account):
+  `PuzzlingTeamMemberConversion::playerToAnonymousSlot()` puts a new `a:` slot in the player's place - in place when the
+  pair/team has no other result, otherwise (a fully claimed result that joined the people's existing pair/team) the
+  result gets a pair/team of its own under the same name and the people's other results keep theirs. The tracker moves
+  to the next claimer in the order of the people, or to nobody - then the result is nobody's again and loses a first
+  try (D7).
+- **Account deletion** (`DeletePlayerHandler`) releases every spot of the player first (`account_deleted`), so the
+  rest of the deletion never sees the player in an imported result: it is never deleted, never handed to another
+  member, never gets a named guest.
+- **Wrong claims:** one spot per person per round; claims ≤ team size; claimers shown publicly; **"Not on our team"**
+  (`RemoveEventResultClaimController`, `/{_locale}/event-result/{timeId}/not-on-our-team/{playerId}`, links next to
+  every other claimer on the result detail) = `RemoveEventResultClaim`, allowed for another claimer of the result, the
+  organizer's team of its event (`GetCompetitionPermissions::canEditCompetition()` - the creator, maintainers, the
+  organization's team) and admins; never for the player themselves (that is the release). The removed player is told
+  without who did it ("Your spot in Puzzle Pals at <event> was removed", `NotificationType::EventResultClaimRemoved`).
+  A player removed twice (`RemoveEventResultClaimHandler::REMOVALS_UNTIL_BLOCKED`) can no longer claim
+  (`player.event_claims_blocked_at`, an admin clears it with `Player::unblockEventClaims()` - no UI yet).
 - **Audit:** `result_claim_log`, append-only, no foreign keys (copied ids and names, like
-  `puzzle_moderation_decision`): `solving_time_id`, `slot_key`, `player_id`, `action` (claimed / released / removed /
-  account_deleted / sheet_removed), `by_player_id`, `reason`, `at`.
+  `puzzle_moderation_decision`): `solving_time_id`, `slot_key`, `player_id`, `player_name`, `action` (claimed /
+  released / removed / account_deleted), `by_player_id` (null = the system), `reason` (the remover's optional note,
+  ≤ 500), `at`.
 - Later if needed: claim codes the organizer hands out per team.
 
 ### Display

@@ -53,6 +53,9 @@ readonly final class SolvedPuzzle
         // What was predicted for this solo time when it was solved (docs/features/puzzle-intelligence/prediction-history.md),
         // null when it was not predicted - solo lists only
         public null|int $predictedSeconds = null,
+        // An imported event result (docs/features/event-results-import/README.md "Gates"): the event's - nobody edits or
+        // deletes it, its claimers release their spot instead
+        public bool $importedFromEvent = false,
     ) {
     }
 
@@ -95,6 +98,7 @@ readonly final class SolvedPuzzle
      *     skill_tier_name?: null|string,
      *     ranking_opted_out?: bool,
      *     predicted_seconds?: null|int,
+     *     imported_from_event?: null|bool,
      *     ...
      * } $row
      */
@@ -148,7 +152,21 @@ readonly final class SolvedPuzzle
             teamName: $row['team_name'] ?? null,
             playerAvatar: $row['player_avatar'] ?? null,
             predictedSeconds: $row['predicted_seconds'] ?? null,
+            importedFromEvent: ($row['imported_from_event'] ?? false) === true,
         );
+    }
+
+    /**
+     * An imported event result the player holds a spot of: "Remove from my profile" instead of Edit and Delete
+     * (docs/features/event-results-import/README.md "Gates").
+     */
+    public function isReleasableBy(null|string $playerId): bool
+    {
+        if ($playerId === null || $this->importedFromEvent === false) {
+            return false;
+        }
+
+        return $playerId === $this->playerId || Puzzler::listContainsPlayer($this->players, $playerId);
     }
 
     /**
@@ -157,7 +175,7 @@ readonly final class SolvedPuzzle
      */
     public function isEditableBy(null|string $playerId): bool
     {
-        if ($playerId === null) {
+        if ($playerId === null || $this->importedFromEvent) {
             return false;
         }
 

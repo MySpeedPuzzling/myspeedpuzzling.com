@@ -43,12 +43,15 @@ readonly final class PuzzleResultAttempt
         public null|int $deltaToPrevious = null,
         // How far behind the subject's best this attempt is (only for timed attempts that are not the best)
         public null|int $gapToBest = null,
+        // An imported event result (docs/features/event-results-import/README.md "Gates"): the event's - nobody edits or
+        // deletes it, its claimers release their spot instead
+        public bool $importedFromEvent = false,
     ) {
     }
 
     public function isEditableBy(null|string $playerId): bool
     {
-        if ($playerId === null) {
+        if ($playerId === null || $this->importedFromEvent) {
             return false;
         }
 
@@ -79,6 +82,7 @@ readonly final class PuzzleResultAttempt
             isBest: $isBest,
             deltaToPrevious: $deltaToPrevious,
             gapToBest: $gapToBest,
+            importedFromEvent: $this->importedFromEvent,
         );
     }
 }

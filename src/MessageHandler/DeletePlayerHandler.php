@@ -46,7 +46,10 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\SolvingTimeGraveyardRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Services\PlayerAccountEmail;
+use SpeedPuzzling\Web\Services\EventResultsImport\EventResultSlotRelease;
 use SpeedPuzzling\Web\Services\PuzzlingTeamMemberConversion;
+use SpeedPuzzling\Web\Value\EventResultsImport\ResultClaimAction;
+use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use SpeedPuzzling\Web\Value\Puzzler;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
 use Stripe\Exception\ApiErrorException;
@@ -69,6 +72,7 @@ final class DeletePlayerHandler
         private readonly PuzzlingTeamMemberConversion $puzzlingTeamMemberConversion,
         private readonly PlayerAccountEmail $playerAccountEmail,
         private readonly SolvingTimeGraveyardRepository $solvingTimeGraveyardRepository,
+        private readonly EventResultSlotRelease $eventResultSlotRelease,
     ) {
     }
 
@@ -161,9 +165,19 @@ final class DeletePlayerHandler
         $playerId = $player->id->toString();
         $removedPhotos = [];
 
+        // An imported event result is the event's: the player's spot goes back to it, the result stays
+        // (docs/features/event-results-import/README.md "Gates") - first, so the loops below never see the player in it
+        foreach ($this->importedResultsOf($playerId) as $time) {
+            $this->eventResultSlotRelease->release($time, $player, ResultClaimAction::AccountDeleted, by: null);
+        }
+
         $ownedTimes = $this->entityManager->getRepository(PuzzleSolvingTime::class)->findBy(['player' => $player]);
 
         foreach ($ownedTimes as $time) {
+            if ($time->isImportedFromEvent()) {
+                continue;
+            }
+
             $newOwner = $time->team === null ? null : $this->findNewOwner($time->team, $playerId);
 
             if ($time->team === null || $newOwner === null) {
@@ -183,7 +197,7 @@ final class DeletePlayerHandler
         $teamMemberTimes = $this->findTimesWherePlayerIsTeamMember($playerId);
 
         foreach ($teamMemberTimes as $time) {
-            if ($time->team === null) {
+            if ($time->team === null || $time->isImportedFromEvent()) {
                 continue;
             }
 
@@ -192,6 +206,27 @@ final class DeletePlayerHandler
         }
 
         return $removedPhotos;
+    }
+
+    /**
+     * @return array<PuzzleSolvingTime>
+     */
+    private function importedResultsOf(string $playerId): array
+    {
+        $ids = $this->entityManager->getConnection()
+            ->executeQuery(
+                'SELECT pst.id FROM puzzle_solving_time pst
+                    INNER JOIN puzzling_team_member member ON member.team_id = pst.puzzling_team_id AND member.player_id = :playerId
+                    WHERE pst.created_via = :source',
+                ['playerId' => $playerId, 'source' => SolvingTimeSource::EventImport->value],
+            )
+            ->fetchFirstColumn();
+
+        if (count($ids) === 0) {
+            return [];
+        }
+
+        return $this->entityManager->getRepository(PuzzleSolvingTime::class)->findBy(['id' => $ids]);
     }
 
     /**

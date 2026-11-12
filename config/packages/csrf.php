@@ -89,6 +89,9 @@ return App::config([
                 // sell/swap lists and the marketplace, the request sheet, the answer page and the withdraw buttons
                 'listing_selection',
                 'listing_request',
+                // Claiming a spot of an imported event result (docs/features/event-results-import/README.md): "This was my
+                // team", "Remove from my profile" and "Not on our team" sit on the puzzle page, round results and result detail
+                'event_result_claim',
                 // Background photo uploads (PhotoUploadStartController): the add-time form's photos, sent as the
                 // X-CSRF-Token header - the form is rendered on every add/edit page and kept open while it is filled in
                 'photo_upload',

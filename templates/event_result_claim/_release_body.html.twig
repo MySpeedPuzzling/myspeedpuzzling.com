@@ -1,0 +1,23 @@
+{#
+    "Remove from my profile" (ReleaseEventResultSlotController, docs/features/event-results-import/README.md "Gates").
+
+    Inputs:
+      - context: EventResultClaimContext
+      - error: null|string
+      - in_modal: bool
+#}
+{{ include('event_result_claim/_result_summary.html.twig') }}
+{{ include('event_result_claim/_error.html.twig') }}
+
+<p class="fs-sm">{{ 'event_result_claim.release.intro'|trans }}</p>
+
+<form method="post" action="{{ path('event_result_release', {timeId: context.timeId}) }}" data-testid="event-result-release-form"{% if in_modal %} data-turbo-frame="modal-frame"{% endif %}>
+    <input type="hidden" name="_token" value="{{ csrf_token('event_result_claim') }}">
+
+    <div class="d-flex flex-wrap gap-2 justify-content-end">
+        {% if in_modal %}
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">{{ 'event_result_claim.cancel'|trans }}</button>
+        {% endif %}
+        <button type="submit" class="btn btn-danger btn-sm">{{ 'event_result_claim.release.submit'|trans }}</button>
+    </div>
+</form>

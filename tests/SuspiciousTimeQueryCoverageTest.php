@@ -45,6 +45,7 @@ final class SuspiciousTimeQueryCoverageTest extends TestCase
         'Query/GetCoPuzzlers.php' => self::OWN,
         'Query/GetDuplicateCandidates.php' => self::DUPLICATES,
         'Query/GetDuplicatePuzzleSignalCandidates.php' => self::DUPLICATES,
+        'Query/GetEventResultClaims.php' => 'Who holds a spot of an imported event result, and the claimer\'s own results that may be the same one - a spot is a spot, suspicious or not; no figure.',
         'Query/GetFinishedPhotoAnalyses.php' => self::FINISHED_PHOTOS,
         'Query/GetFinishedPhotosForAnalysis.php' => self::FINISHED_PHOTOS,
         'Query/GetFirstTryTimes.php' => 'One first try per person per puzzle - a suspicious first try is still the first try.',

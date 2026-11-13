@@ -962,6 +962,11 @@
   "card_source_title": "ソースコード"
   "card_source_description": "OAuth2 authorization code flowを示す完全なPHPデモアプリケーション。クローンしてすぐに開発を始められます。"
   "card_source_button": "GitHubで見る"
+  "sandbox_title": "サンドボックスでテスト"
+  "sandbox_text": "<strong>%host%</strong>はMySpeedPuzzlingと同じコードで動いていますが、プレイヤーと記録は架空のものです。アプリを登録し、すべてのエンドポイントを試し、データを書き込めます。実際のプレイヤーには何も届かず、メールも送信されず、すべてのアカウントがメンバーです。"
+  "sandbox_gate": "検索エンジンを締め出すため、ページではパスワードが求められます：ユーザー <code>sandbox</code>、パスワード <code>sandbox</code>。APIはトークンだけで使えます。"
+  "sandbox_accounts": "架空のプレイヤー（<code>test-user+1@myspeedpuzzling.com</code>〜<code>test-user+200@myspeedpuzzling.com</code>、パスワード <code>sandbox</code>）としてログインするか、パスワード付きの自分のアカウントを作成してください。メールのログインリンクは届きません。"
+  "sandbox_button": "サンドボックスを開く"
   "auth_title": "認証"
   "auth_subtitle": "用途に応じた2つのAPI認証方法があります。"
   "auth_pat_title": "Personal Access Token"
@@ -11538,3 +11543,6 @@ listing_request:
         gone: "もう持っていない"
         declined: "今回は見送り"
         remove_from_list: "もう持っていない場合は、販売/交換リストからも削除する"
+sandbox_banner:
+    text: "サンドボックス：テスト用の架空のプレイヤーと記録です。ここに本物のデータはなく、メールは外部に送信されません。"
+    link: "MySpeedPuzzlingへ"

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Value;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Services\Sandbox\SandboxMail;
 
 /**
  * One Amazon SES event, read from the Message of an SNS notification. Two shapes arrive: configuration-set event
@@ -43,6 +44,8 @@ final readonly class SesEvent
         public null|string $bounceType = null,
         public null|string $bounceSubType = null,
         public null|string $diagnosticCode = null,
+        /** The message carried the SES tag sandbox=1 */
+        public bool $fromSandbox = false,
     ) {
     }
 
@@ -92,7 +95,17 @@ final readonly class SesEvent
             bounceType: is_string($detail['bounceType'] ?? null) ? $detail['bounceType'] : null,
             bounceSubType: is_string($detail['bounceSubType'] ?? null) ? $detail['bounceSubType'] : null,
             diagnosticCode: is_string($firstBounced['diagnosticCode'] ?? null) ? $firstBounced['diagnosticCode'] : null,
+            fromSandbox: self::tag($tags, SandboxMail::TAG) !== null,
         );
+    }
+
+    /**
+     * Sent by the sandbox (sandbox.myspeedpuzzling.com shares production's SES account and its event topics) - nothing
+     * of it may change anything on production
+     */
+    public function isFromSandbox(): bool
+    {
+        return $this->fromSandbox || SandboxMail::isSandboxSender($this->source);
     }
 
     public function isPermanentBounce(): bool

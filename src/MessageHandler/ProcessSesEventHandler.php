@@ -88,6 +88,16 @@ readonly final class ProcessSesEventHandler
             return;
         }
 
+        // The sandbox sends through the same SES account: its bounces and complaints are about sandbox mail
+        if ($event->isFromSandbox()) {
+            $this->logger->info('SES event of a sandbox e-mail ignored', [
+                'sns_message_id' => $message->snsMessageId,
+                'type' => $event->type,
+            ]);
+
+            return;
+        }
+
         $auditLog = $this->auditLog($event);
 
         switch ($event->type) {

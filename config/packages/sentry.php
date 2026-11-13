@@ -55,7 +55,9 @@ return App::config([
             'isolate_context_by_message' => true,
         ],
         'options' => [
-            'environment' => '%kernel.environment%',
+            // SENTRY_ENVIRONMENT names the installation (the sandbox sends `sandbox` into the same project,
+            // docs/features/sandbox/README.md "Sentry"); without it the kernel environment, `prod` on production
+            'environment' => '%env(default:kernel.environment:SENTRY_ENVIRONMENT)%',
             'send_default_pii' => true,
             // Only continue distributed traces whose baggage carries our org id —
             // forged/replayed sentry-trace headers from bots must not join our traces

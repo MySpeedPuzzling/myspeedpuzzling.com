@@ -120,6 +120,31 @@ final class ProcessSesEventHandlerTest extends KernelTestCase
         self::assertFalse(self::getContainer()->get(EmailSuppressionRepository::class)->isSuppressed(PlayerFixture::PLAYER_REGULAR_EMAIL));
     }
 
+    public function testABounceOrComplaintAboutASandboxMailChangesNothingOnProduction(): void
+    {
+        $suppressions = self::getContainer()->get(EmailSuppressionRepository::class);
+        $bounce = ['bounce' => [
+            'bounceType' => 'Permanent',
+            'bounceSubType' => 'NoEmail',
+            'timestamp' => '2026-10-12T08:00:02.000Z',
+            'bouncedRecipients' => [['emailAddress' => 'tester@example.com']],
+        ]];
+
+        // Sent from the sandbox's own sender domain
+        $bySender = $this->auditLog('unread_digest', 'tester@example.com');
+        $this->process($this->event('Bounce', $bySender, $bounce, ['tester@example.com'], source: 'MySpeedPuzzling <notify@sandbox.myspeedpuzzling.com>'));
+
+        self::assertFalse($suppressions->isSuppressed('tester@example.com'));
+        self::assertNull($this->reloadAuditLog($bySender)->bounceType);
+
+        // Tagged sandbox=1, whatever the sender
+        $byTag = $this->auditLog('unread_digest', 'tester@example.com');
+        $this->process($this->event('Bounce', $byTag, $bounce, ['tester@example.com'], extraTags: ['sandbox' => ['1']]));
+
+        self::assertFalse($suppressions->isSuppressed('tester@example.com'));
+        self::assertNull($this->reloadAuditLog($byTag)->bounceType);
+    }
+
     public function testADomainThatIsNotFoundTwiceADayApartSuppressesTheAddressOnceIsNotEnough(): void
     {
         $this->domainNotFound('typo@googlemail.mail.com', '2026-10-12T08:00:00.000Z');
@@ -387,21 +412,28 @@ final class ProcessSesEventHandlerTest extends KernelTestCase
     /**
      * @param array<string, mixed> $detail
      * @param list<string> $recipients
+     * @param array<string, list<string>> $extraTags
      *
      * @return array<string, mixed>
      */
-    private function event(string $type, EmailAuditLog $auditLog, array $detail, array $recipients = ['reader@example.com']): array
-    {
+    private function event(
+        string $type,
+        EmailAuditLog $auditLog,
+        array $detail,
+        array $recipients = ['reader@example.com'],
+        string $source = 'MySpeedPuzzling <notify@notify.myspeedpuzzling.com>',
+        array $extraTags = [],
+    ): array {
         return ['eventType' => $type] + $detail + [
             'mail' => [
                 'timestamp' => '2026-10-12T08:00:00.000Z',
-                'source' => 'MySpeedPuzzling <notify@notify.myspeedpuzzling.com>',
+                'source' => $source,
                 'destination' => $recipients,
                 'tags' => [
                     'ses:configuration-set' => ['notifications'],
                     'audit_id' => [$auditLog->id->toString()],
                     'email_type' => [$auditLog->emailType],
-                ],
+                ] + $extraTags,
             ],
         ];
     }

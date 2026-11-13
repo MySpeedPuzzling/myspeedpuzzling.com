@@ -30,6 +30,8 @@
         <meta name="turbo-prefetch" content="false">
 
         {% block robots %}<meta name="robots" content="index, follow">{% endblock %}
+        {# The sandbox (docs/features/sandbox/README.md) is never indexed, whatever a page's own robots block says #}
+        {% if sandbox %}<meta name="robots" content="noindex, nofollow, noarchive">{% endif %}
 
         {# Asset-failure beacon + self-heal. A corrupt cached bundle is refused by
            SRI on every page load and Sentry never hears about it (its browser SDK
@@ -485,6 +487,13 @@
           data-controller="pwa-lifecycle gallery file-drop-area datepicker global-search toast{% if ga_tracking is not empty %} analytics{% endif %}"
           {% if ga_tracking is not empty %}data-analytics-tracking-id-value="{{ ga_tracking }}"{% endif %}>
         <a href="#main-content" class="visually-hidden-focusable">{{ 'forms.skip_to_content'|trans }}</a>
+        {% if sandbox %}
+            {# Every page of the sandbox says what it is (docs/features/sandbox/README.md) #}
+            <div class="bg-warning text-dark text-center small py-1 px-3" role="note" data-testid="sandbox-banner">
+                <i class="bi bi-cone-striped me-1" aria-hidden="true"></i>{{ 'sandbox_banner.text'|trans }}
+                <a href="https://myspeedpuzzling.com" class="text-dark fw-semibold ms-1">{{ 'sandbox_banner.link'|trans }}</a>
+            </div>
+        {% endif %}
         {% block header %}
         {% if is_web() %}
         <header class="sticky-top shadow-sm" data-controller="header-height">

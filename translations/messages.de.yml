@@ -844,6 +844,11 @@
   "card_source_title": "Quellcode"
   "card_source_description": "Vollständige PHP-Demo-Anwendung, die den OAuth2 Authorization Code Flow zeigt. Klonen Sie sie und legen Sie los."
   "card_source_button": "Auf GitHub ansehen"
+  "sandbox_title": "In der Sandbox testen"
+  "sandbox_text": "<strong>%host%</strong> läuft mit demselben Code wie MySpeedPuzzling, aber mit erfundenen Spielern und Ergebnissen. Registrieren Sie eine App, rufen Sie jeden Endpunkt auf, schreiben Sie Daten – nichts davon erreicht echte Spieler, keine E-Mail verlässt die Sandbox, und jedes Konto ist Mitglied."
+  "sandbox_gate": "Die Seiten fragen nach einem Passwort, damit Suchmaschinen draußen bleiben: Benutzer <code>sandbox</code>, Passwort <code>sandbox</code>. Die API selbst braucht nur Ihr Token."
+  "sandbox_accounts": "Melden Sie sich als einer der erfundenen Spieler an (<code>test-user+1@myspeedpuzzling.com</code> bis <code>test-user+200@myspeedpuzzling.com</code>, Passwort <code>sandbox</code>) oder legen Sie ein eigenes Konto mit Passwort an – Anmeldelinks per E-Mail kommen dort nicht an."
+  "sandbox_button": "Sandbox öffnen"
   "auth_title": "Authentifizierung"
   "auth_subtitle": "Zwei Möglichkeiten zur Authentifizierung bei der API, je nach Anwendungsfall."
   "auth_pat_title": "Personal Access Token"
@@ -11548,3 +11553,6 @@ listing_request:
         gone: "Habe ich nicht mehr"
         declined: "Diesmal nicht"
         remove_from_list: "Wenn ich es nicht mehr habe, auch von meiner Verkaufs-/Tauschliste entfernen"
+sandbox_banner:
+    text: "Sandbox: erfundene Spieler und Ergebnisse zum Testen. Nichts hier ist echt, und keine E-Mail verlässt sie."
+    link: "Zu MySpeedPuzzling"

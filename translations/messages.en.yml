@@ -1215,6 +1215,11 @@ for_developers:
     card_source_title: "Source Code"
     card_source_description: "Full PHP demo application showing OAuth2 authorization code flow. Clone it and start building."
     card_source_button: "View on GitHub"
+    sandbox_title: "Test in the sandbox"
+    sandbox_text: "<strong>%host%</strong> runs the same code as MySpeedPuzzling, with made-up players and results. Register an app, call every endpoint, write data - nothing there reaches real players, no e-mail leaves it and every account is a member."
+    sandbox_gate: "The pages ask for a password to keep search engines out: user <code>sandbox</code>, password <code>sandbox</code>. The API itself needs only your token."
+    sandbox_accounts: "Sign in as one of the made-up players (<code>test-user+1@myspeedpuzzling.com</code> to <code>test-user+200@myspeedpuzzling.com</code>, password <code>sandbox</code>) or create your own account with a password - sign-in links by e-mail do not arrive there."
+    sandbox_button: "Open the sandbox"
     auth_title: "Authentication"
     auth_subtitle: "Two ways to authenticate with the API, depending on your use case."
     auth_pat_title: "Personal Access Token"
@@ -11795,3 +11800,6 @@ listing_request:
         gone: "I don't have it any more"
         declined: "Not this time"
         remove_from_list: "If I don't have it any more, also take it off my sell/swap list"
+sandbox_banner:
+    text: "Sandbox: made-up players and results for testing. Nothing here is real and no e-mail leaves it."
+    link: "Go to MySpeedPuzzling"

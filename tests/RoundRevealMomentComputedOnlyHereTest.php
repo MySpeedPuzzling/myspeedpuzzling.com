@@ -29,6 +29,8 @@ final class RoundRevealMomentComputedOnlyHereTest extends TestCase
         'src/Services/EventDetail/RoundsTimelineBuilder.php' => 'The rounds timeline: a round is over once its time limit has run (past/live/next) - no reveal moment; the round puzzles come from GetEditionRounds, revealed by RoundPuzzleReveal.',
         'src/Query/GetBadges.php' => 'The achievements earned with a time: badge rows stamped within minutes after the time was saved - no round, no reveal moment.',
         'src/Value/RecapProgress.php' => 'Whether a recap is opened right after the time was saved (the level-up celebration) - no round, no reveal moment.',
+        'src/Services/Sandbox/SandboxPeople.php' => 'Sandbox only: made-up players\' sign-up moments - no round, no reveal moment.',
+        'src/Services/Sandbox/SandboxResultPlanner.php' => 'Sandbox only: when a made-up result was solved and saved - no round, no reveal moment.',
     ];
 
     /**

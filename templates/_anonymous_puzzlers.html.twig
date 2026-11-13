@@ -1,6 +1,6 @@
 {#
     The people of an imported event result nobody has claimed yet (docs/features/event-results-import/README.md
-    "Display"): with nobody claimed, the team's name and "4 puzzlers"; next to the claimers, "+2". Nothing for any
+    "Display"): with nobody claimed, the team's name and "4 puzzlers" on a smaller line below; next to the claimers, "+2". Nothing for any
     other result - callers list the people without an anonymous slot as before.
 
     Inputs:
@@ -12,9 +12,10 @@
     {%- if anonymous_count == players|length -%}
         <span class="lb-player lb-anonymous-team" data-testid="anonymous-team">
             {%- if team_name is defined and team_name is not null -%}
-                <span class="lb-name lb-name-guest">{{ team_name }}</span> ·{{ ' ' }}
+                <span class="lb-name lb-name-guest">{{ team_name }}</span>
             {%- endif -%}
-            <span class="text-muted">{{ 'puzzling_team.anonymous_puzzlers'|trans({'%count%': anonymous_count}) }}</span>
+            {#- Its own line, smaller than the team's name -#}
+            <span class="d-block small text-muted">{{ 'puzzling_team.anonymous_puzzlers'|trans({'%count%': anonymous_count}) }}</span>
         </span>
     {%- else -%}
         <span class="lb-player lb-anonymous-more text-muted" data-testid="anonymous-more">+{{ anonymous_count }}</span>

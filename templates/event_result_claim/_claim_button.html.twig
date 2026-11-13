@@ -9,7 +9,7 @@
 #}
 {%- if can_claim_event_result(players, competition_id) -%}
     <a href="{{ path('event_result_claim', {timeId: time_id}) }}"
-       class="btn btn-outline-primary btn-xs ms-1"
+       class="btn btn-outline-primary btn-xs ms-1 text-decoration-none"
        data-turbo-frame="modal-frame"
        data-testid="event-result-claim-button"
        rel="nofollow"

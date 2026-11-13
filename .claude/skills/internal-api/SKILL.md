@@ -13,17 +13,23 @@ Full spec: `docs/features/internal-api.md` and `docs/features/internal-api.opena
 
 ## Config
 
-| Env | Base URL |
-|---|---|
-| **Production** (default) | `https://myspeedpuzzling.com` |
-| Local dev | `http://localhost:8080` |
+| Env | Base URL | Token in `.env.local` |
+|---|---|---|
+| **Production** (default) | `https://myspeedpuzzling.com` | `INTERNAL_API_TOKEN` |
+| **Sandbox** | `https://sandbox.myspeedpuzzling.com` | `SANDBOX_INTERNAL_API_TOKEN` |
+| Local dev | `http://localhost:8080` | `INTERNAL_API_TOKEN` |
 
-**Default to production** unless the user explicitly says "local" / "dev" / "against my laptop". The token in `.env.local` is shared across both envs.
+**Default to production** unless the user explicitly says "sandbox" (→ sandbox) or "local" / "dev" / "against my
+laptop" (→ local). The sandbox (docs/features/sandbox/README.md) is a separate installation with made-up data, its
+own database and its own token: production's token gets 401 there and the other way round. Never send a sandbox
+request to production or a production request to the sandbox - pick the base URL and the token as one pair, and say
+which installation you called.
 
-Load the token from the repo's `.env.local`:
+Load the token from the repo's `.env.local` (never print it):
 
 ```sh
-TOKEN=$(grep '^INTERNAL_API_TOKEN=' .env.local | cut -d= -f2)
+TOKEN=$(grep '^INTERNAL_API_TOKEN=' .env.local | cut -d= -f2)            # production / local
+TOKEN=$(grep '^SANDBOX_INTERNAL_API_TOKEN=' .env.local | cut -d= -f2)    # sandbox
 ```
 
 If `$TOKEN` is empty, stop and tell the user — the API is closed-by-default and will return 401.

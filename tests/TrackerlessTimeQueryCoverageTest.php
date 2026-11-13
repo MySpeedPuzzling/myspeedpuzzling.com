@@ -134,6 +134,7 @@ final class TrackerlessTimeQueryCoverageTest extends TestCase
         'Query/GetRecentIdenticalSolvingTime.php' => self::OWN,
         'Query/GetResultReviewEmailCandidates.php' => self::OWN,
         'Query/GetResultReviewEmails.php' => self::OWN,
+        'Query/GetSandboxSimulationData.php' => self::OWN,
         'Query/GetSeatingSeedTimes.php' => self::OWN,
         'Query/GetSolveTimeDistribution.php' => 'Counts solvers per kind: a pair/team by puzzling_team_id, which an imported result always has - each anonymous team is one solver.',
         'Query/GetSolveXpDisplayInfo.php' => self::OWN,

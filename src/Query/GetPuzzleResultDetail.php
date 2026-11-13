@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Results\PuzzleResultStanding;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Value\Puzzler;
+use SpeedPuzzling\Web\Value\SolvingTimeSource;
 
 /**
  * One player's - or one exact pair's / team's - results on one puzzle, opened from one of its times
@@ -84,7 +85,8 @@ WITH focus AS MATERIALIZED (
                     'player_avatar', p.avatar,
                     'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
                     'skill_tier', ps_member.skill_tier,
-                    'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
+                    'ranking_opted_out', COALESCE(p.ranking_opted_out, false),
+                    'anonymous_slot', member.player ->> 'anonymous_slot'
                 ) ORDER BY member.ordinality
             )
             FROM json_array_elements(focus_time.team -> 'puzzlers') WITH ORDINALITY AS member(player, ordinality)
@@ -93,7 +95,8 @@ WITH focus AS MATERIALIZED (
         ) END AS players
     FROM puzzle_solving_time focus_time
         INNER JOIN puzzle ON puzzle.id = focus_time.puzzle_id
-        INNER JOIN player focus_player ON focus_player.id = focus_time.player_id
+        -- No tracker on an imported event result nobody has claimed yet (docs/features/event-results-import/README.md)
+        LEFT JOIN player focus_player ON focus_player.id = focus_time.player_id
     WHERE focus_time.id = :timeId
         -- The brand was an inner join and puzzle.manufacturer_id is nullable: no brand stays "not found"
         AND puzzle.manufacturer_id IS NOT NULL
@@ -128,6 +131,7 @@ SELECT
     pst.suspicious,
     pst.comment,
     pst.finished_puzzle_photo,
+    (pst.created_via = :eventImport) AS imported_from_event,
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
@@ -167,13 +171,14 @@ SQL;
             ->executeQuery($query, [
                 'timeId' => $timeId,
                 'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+                'eventImport' => SolvingTimeSource::EventImport->value,
             ])
             ->fetchAllAssociative();
 
         /**
          * @var list<array{
          *     time_id: string,
-         *     tracked_by_id: string,
+         *     tracked_by_id: null|string,
          *     time: null|int,
          *     finished_at: null|string,
          *     tracked_at: string,
@@ -182,6 +187,7 @@ SQL;
          *     suspicious: bool,
          *     comment: null|string,
          *     finished_puzzle_photo: null|string,
+         *     imported_from_event: null|bool,
          *     competition_id: null|string,
          *     competition_shortcut: null|string,
          *     competition_name: null|string,
@@ -198,7 +204,7 @@ SQL;
          *     puzzle_image_ratio: null|string,
          *     pieces_count: int,
          *     manufacturer_name: string,
-         *     player_id: string,
+         *     player_id: null|string,
          *     player_name: null|string,
          *     player_code: null|string,
          *     player_country: null|string,
@@ -264,6 +270,7 @@ SQL;
                 competitionSeriesShortcut: $row['competition_series_shortcut'],
                 competitionSeriesSlug: $row['competition_series_slug'],
                 memberPlayerIds: $memberPlayerIds,
+                importedFromEvent: $row['imported_from_event'] === true,
             );
         }
 

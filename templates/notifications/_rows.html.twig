@@ -381,6 +381,31 @@
                     </a>
                 {% endif %}
             </td>
+        {% elseif notification.isEventResultClaimNotification %}
+            {# An imported event result (docs/features/event-results-import/README.md "Gates"): somebody joined a team the
+               player claimed (named, like the editor of a shared time), or the player's claim was taken back (never by whom) #}
+            <td class="text-center" style="width: 60px;">
+                <i class="ci-user-group fs-3 text-primary"></i>
+            </td>
+
+            <td class="align-middle fs-sm text-muted" data-testid="event-result-notification">
+                <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
+                {% if notification.notificationType.value == 'EventResultClaimed' %}
+                    {{ 'event_result_claim.notification.claimed'|trans({'%player%': notification.targetPlayerName, '%team%': notification.teamName ?? '', '%event%': notification.roundCompetitionName ?? ''}) }}
+                {% else %}
+                    {{ 'event_result_claim.notification.claim_removed'|trans({'%team%': notification.teamName ?? '', '%event%': notification.roundCompetitionName ?? ''}) }}
+                {% endif %}
+                -
+                <a class="text-decoration-underline" href="{{ path('puzzle_detail', {'puzzleId': notification.puzzleId}) }}">{{ notification.manufacturerName }} {{ notification.puzzleName }} {{ 'pieces_count'|trans({ '%count%': notification.piecesCount })|raw }}</a>
+            </td>
+
+            <td class="" style="width: 80px;">
+                {% if notification.puzzleImage is not null %}
+                    <a href="{{ path('puzzle_detail', {puzzleId: notification.puzzleId}) }}">
+                        {{ include('_puzzle_row_image.html.twig', {image: notification.puzzleImage, alt: 'puzzle_img_alt'|trans({'%puzzle%': notification.manufacturerName ~ ' ' ~ notification.puzzleName}), position: (position_offset ?? 0) + loop.index, ratio: notification.puzzleImageRatio}) }}
+                    </a>
+                {% endif %}
+            </td>
         {% elseif notification.isGroupSolvingTimeEditedNotification %}
             {# A pair/team time the player is part of was edited - the target player is the editor #}
             <td class="text-center" style="width: 60px;">

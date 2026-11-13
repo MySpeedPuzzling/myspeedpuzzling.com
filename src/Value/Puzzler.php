@@ -17,6 +17,9 @@ readonly final class Puzzler
         public null|string $skillTierName = null,
         public bool $rankingOptedOut = false,
         public null|string $playerAvatar = null,
+        // A person of an imported event result nobody has claimed yet - "a:" + uuid, its own member of the team
+        // (docs/features/event-results-import/README.md "Anonymous slots"); null for every player and guest
+        public null|string $anonymousSlot = null,
     ) {
     }
 
@@ -82,6 +85,7 @@ readonly final class Puzzler
          *     skill_tier?: null|int|string,
          *     ranking_opted_out?: null|bool,
          *     player_avatar?: null|string,
+         *     anonymous_slot?: null|string,
          *  }> $playersData */
         $playersData = Json::decode($json, true);
 
@@ -101,6 +105,7 @@ readonly final class Puzzler
                 skillTierName: $skillTierName,
                 rankingOptedOut: ($data['ranking_opted_out'] ?? null) === null ? false : (bool) $data['ranking_opted_out'],
                 playerAvatar: $data['player_avatar'] ?? null,
+                anonymousSlot: $data['anonymous_slot'] ?? null,
             );
         }, $playersData);
 

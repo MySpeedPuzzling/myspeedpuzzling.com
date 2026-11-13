@@ -71,4 +71,10 @@ enum NotificationType: string
     case ListingRequestAnswered = 'ListingRequestAnswered';
     case ListingRequestExpired = 'ListingRequestExpired';
     case ListingRequestUnavailable = 'ListingRequestUnavailable';
+
+    // An imported event result (docs/features/event-results-import/README.md "Claiming a spot"): the actor claimed a spot
+    // of a result the player has claimed too; the actor's claim of the player's spot was taken back by another claimer, the
+    // organizer's team or an admin (actor = who, never shown). Target = the result
+    case EventResultClaimed = 'EventResultClaimed';
+    case EventResultClaimRemoved = 'EventResultClaimRemoved';
 }

@@ -173,7 +173,7 @@ final class OnlineTimingGuardsTest extends KernelTestCase
             roundId: $roundId,
             competitionId: self::COMPETITION,
             name: $round->name,
-            minutesLimit: $round->minutesLimit,
+            minutesLimit: $round->minutesLimit ?? 0,
             startsAt: $round->startsAt,
             timezone: 'Europe/Prague',
             badgeBackgroundColor: null,

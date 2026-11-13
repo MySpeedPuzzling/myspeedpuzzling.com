@@ -6655,6 +6655,7 @@ favorite_puzzlers:
   "team_page": "Page de l'équipe"
   "related_title": "Avec quelqu'un en plus, ou en moins"
   "related_help": "Un duo ou une équipe, c'est le groupe exact de personnes - les mêmes personnes avec quelqu'un en plus ou en moins forment un autre groupe."
+  "anonymous_puzzlers": "%count% puzzleur|%count% puzzleurs"
 
 "onboarding":
   "find_later": "Vous préférez lire le guide plus tard ? Vous le trouverez toujours en bas de chaque page."
@@ -11565,3 +11566,49 @@ sandbox_gate:
 player_country:
     placeholder: "Choisis ton pays"
     suggested: "Nous pensons que tu viens de : %country%. Sinon, change-le - il sera enregistré quand tu enregistreras ton profil."
+
+event_result_claim:
+    button: "C’était mon équipe"
+    cancel: "Annuler"
+    unnamed_team: "Équipe"
+    nobody_claimed: "Personne n’a encore réclamé de place (%count% puzzleur).|Personne n’a encore réclamé de place (%count% puzzleurs)."
+    claimed_by: "Réclamé par :"
+    claim:
+        title: "C’était mon équipe"
+        intro: "Le résultat apparaît sur ton profil et compte dans tes statistiques. Il reste celui de l’événement : seule la feuille de résultats de l’organisateur le modifie, et les autres puzzleurs de l’équipe voient que tu l’as réclamé."
+        first_try: "C’était mon premier essai sur ce puzzle"
+        same_result: "Est-ce le même résultat ?"
+        same_result_help: "Tu as déjà un résultat de ce puzzle autour du jour de l’événement. Si c’est celui-ci, le tien est supprimé et le résultat de l’événement reste."
+        same_result_no: "Non, c’est un autre résultat"
+        puzzlers: "%count% puzzleur|%count% puzzleurs"
+        submit: "Oui, c’était mon équipe"
+        already_yours: "Tu as déjà une place dans cette équipe."
+    release:
+        title: "Retirer de mon profil"
+        button: "Retirer de mon profil"
+        intro: "Le résultat reste celui de l’événement et ta place redevient libre - tu pourras la réclamer à nouveau plus tard."
+        submit: "Retirer de mon profil"
+    remove:
+        title: "Pas dans notre équipe"
+        button: "Pas dans notre équipe : %player%"
+        intro: "%player% n’apparaîtra plus dans cette équipe. Cette personne est prévenue que sa place a été retirée, jamais par qui."
+        reason: "Note (facultative, seulement pour l’équipe MySpeedPuzzling)"
+        submit: "Retirer de l’équipe"
+    flash:
+        claimed: "Tu fais maintenant partie de l’équipe %team%."
+        released: "Le résultat a été retiré de ton profil."
+        removed: "La place a été retirée."
+        expired: "Le formulaire a expiré - réessaie."
+    refused:
+        not_imported: "Seul un résultat importé des résultats d’un événement peut être réclamé."
+        team_full: "Toutes les places de cette équipe sont déjà réclamées."
+        already_in_round: "Tu as déjà un résultat dans cette manche. Si c’est celui-ci, choisis-le sous « Est-ce le même résultat ? »."
+        blocked: "D’autres puzzleurs ont retiré tes places deux fois, tu ne peux donc plus réclamer de résultats d’événements. Écris-nous si c’est une erreur."
+        first_try_taken: "Un premier essai de ce puzzle est déjà enregistré pour quelqu’un de cette équipe - réclame-le sans le premier essai."
+        same_result_invalid: "Ce résultat ne peut pas être remplacé - choisis l’un de tes propres résultats de ce puzzle."
+        not_a_claimer: "Cette place n’est pas réclamée par ce puzzleur."
+        not_allowed: "Seuls les autres puzzleurs de l’équipe, l’organisateur et les administrateurs peuvent retirer une place."
+        limit: "Tu as réclamé beaucoup d’équipes aujourd’hui - réessaie demain."
+    notification:
+        claimed: "%player% a rejoint %team% à %event%"
+        claim_removed: "Ta place dans %team% à %event% a été retirée"

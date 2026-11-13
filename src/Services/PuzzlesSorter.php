@@ -737,7 +737,9 @@ readonly final class PuzzlesSorter
         $players = [];
 
         foreach ($puzzleSolversGroup->players as $player) {
-            $players[] = $player->playerId ?? $player->playerCode ?? $player->playerName ?? '';
+            // An anonymous slot of an imported event result is unique to its team - nameless, every anonymous team
+            // would read the same (docs/features/event-results-import/README.md)
+            $players[] = $player->anonymousSlot ?? $player->playerId ?? $player->playerCode ?? $player->playerName ?? '';
         }
 
         sort($players);

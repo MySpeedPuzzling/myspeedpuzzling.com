@@ -39,13 +39,15 @@ readonly final class GetSolvingTimePrediction
             return $stored->result;
         }
 
-        /** @var false|array{player_id: string, puzzle_id: string, finished_at: null|string, tracked_at: string} $row */
+        /** @var false|array{player_id: null|string, puzzle_id: string, finished_at: null|string, tracked_at: string} $row */
         $row = $this->database->fetchAssociative(
             'SELECT player_id, puzzle_id, finished_at, tracked_at FROM puzzle_solving_time WHERE id = :timeId',
             ['timeId' => $timeId],
         );
 
-        if ($row === false) {
+        // An imported event result nobody has claimed yet is nobody's - no prediction
+        // (docs/features/event-results-import/README.md)
+        if ($row === false || $row['player_id'] === null) {
             return null;
         }
 

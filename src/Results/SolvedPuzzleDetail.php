@@ -40,6 +40,9 @@ readonly final class SolvedPuzzleDetail
         public null|string $seriesPickId = null,
         // competitionId is an edition of a series (picked explicitly unless seriesPickId is set) - CompetitionPick::ofTime()
         public bool $competitionIsEdition = false,
+        // An imported event result (docs/features/event-results-import/README.md "Gates"): the event's - nobody edits or
+        // deletes it, its claimers release their spot instead
+        public bool $importedFromEvent = false,
     ) {
     }
 
@@ -68,6 +71,7 @@ readonly final class SolvedPuzzleDetail
      *     competition_id: null|string,
      *     series_pick_id?: null|string,
      *     competition_is_edition?: null|bool,
+     *     imported_from_event?: null|bool,
      *  } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -101,6 +105,7 @@ readonly final class SolvedPuzzleDetail
             trackedAt: isset($row['tracked_at']) ? new DateTimeImmutable($row['tracked_at']) : null,
             seriesPickId: $row['series_pick_id'] ?? null,
             competitionIsEdition: ($row['competition_is_edition'] ?? false) === true,
+            importedFromEvent: ($row['imported_from_event'] ?? false) === true,
         );
     }
 
@@ -110,7 +115,7 @@ readonly final class SolvedPuzzleDetail
      */
     public function isEditableBy(null|string $playerId): bool
     {
-        if ($playerId === null) {
+        if ($playerId === null || $this->importedFromEvent) {
             return false;
         }
 

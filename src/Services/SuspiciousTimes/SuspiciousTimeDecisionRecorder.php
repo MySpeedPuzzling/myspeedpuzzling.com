@@ -45,7 +45,7 @@ readonly final class SuspiciousTimeDecisionRecorder
             decidedAt: $this->clock->now(),
             puzzleId: $time->puzzle->id,
             timeId: $time->id,
-            trackerId: $time->player->id,
+            trackerId: $time->player?->id,
             caseId: $case?->id,
             reasonsShown: SuspiciousTimeReason::listToArray($reasonsShown),
             note: self::note($note),

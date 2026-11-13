@@ -17,7 +17,8 @@ readonly final class PuzzleSolvingTimeMovedToOtherPuzzle
     public function __construct(
         public UuidInterface $puzzleSolvingTimeId,
         public UuidInterface $puzzleId,
-        public UuidInterface $playerId,
+        // Null for an imported event result nobody has claimed (docs/features/event-results-import/README.md)
+        public null|UuidInterface $playerId,
         public int $piecesCount,
     ) {
     }

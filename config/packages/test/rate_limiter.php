@@ -32,6 +32,11 @@ return App::config([
                 'limit' => 100000,
                 'interval' => '1 day',
             ],
+            'event_result_claim' => [
+                'policy' => 'sliding_window',
+                'limit' => 100000,
+                'interval' => '1 day',
+            ],
             'borrow_request' => [
                 'policy' => 'sliding_window',
                 'limit' => 100000,

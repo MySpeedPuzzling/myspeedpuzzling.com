@@ -57,6 +57,7 @@ SELECT
     pst.finished_at,
     pst.tracked_at,
     p.pieces_count,
+    (SELECT puzzling_team.name FROM puzzling_team WHERE puzzling_team.id = pst.puzzling_team_id) AS team_name,
     owner.id AS owner_id,
     owner.name AS owner_name,
     owner.code AS owner_code,
@@ -66,7 +67,8 @@ SELECT
     ps.skill_tier AS owner_skill_tier
 FROM puzzle_solving_time pst
 INNER JOIN puzzle p ON p.id = pst.puzzle_id
-INNER JOIN player owner ON owner.id = pst.player_id
+-- No tracker on an imported event result nobody has claimed yet (docs/features/event-results-import/README.md)
+LEFT JOIN player owner ON owner.id = pst.player_id
 LEFT JOIN player_skill ps ON ps.player_id = owner.id AND ps.pieces_count = p.pieces_count
 WHERE pst.competition_round_id = :roundId
     AND pst.suspicious = false
@@ -76,14 +78,15 @@ SQL,
             ['roundId' => $round->id],
         )->fetchAllAssociative();
 
-        /** @var list<array{time_id: string, puzzle_id: string, team: null|string, seconds_to_solve: null|int|string, pieces_placed: null|int|string, finished_later_seconds: null|int|string, finished_at: null|string, tracked_at: string, pieces_count: int|string, owner_id: string, owner_name: null|string, owner_code: string, owner_country: null|string, owner_is_private: bool, owner_ranking_opted_out: bool, owner_skill_tier: null|int|string}> $rows */
+        /** @var list<array{time_id: string, puzzle_id: string, team: null|string, seconds_to_solve: null|int|string, pieces_placed: null|int|string, finished_later_seconds: null|int|string, finished_at: null|string, tracked_at: string, pieces_count: int|string, team_name: null|string, owner_id: null|string, owner_name: null|string, owner_code: null|string, owner_country: null|string, owner_is_private: null|bool, owner_ranking_opted_out: null|bool, owner_skill_tier: null|int|string}> $rows */
 
         $members = $this->loadGroupMembers($rows);
-        $limitSeconds = $round->minutesLimit * 60;
+        // Without a limit every finished time is within it
+        $limitSeconds = $round->minutesLimit === null ? PHP_INT_MAX : $round->minutesLimit * 60;
 
         /** @var array<string, array<string, true>> $seenPerPuzzle */
         $seenPerPuzzle = [];
-        /** @var array<string, list<array{players: non-empty-list<RoundResultPlayer>, row: array{time_id: string, puzzle_id: string, seconds_to_solve: null|int|string, pieces_placed: null|int|string, finished_later_seconds: null|int|string, finished_at: null|string, ...}, status: RoundResultStatus}>> $candidates */
+        /** @var array<string, list<array{players: non-empty-list<RoundResultPlayer>, row: array{time_id: string, puzzle_id: string, seconds_to_solve: null|int|string, pieces_placed: null|int|string, finished_later_seconds: null|int|string, finished_at: null|string, team_name: null|string, ...}, status: RoundResultStatus}>> $candidates */
         $candidates = [];
 
         foreach ($rows as $row) {
@@ -122,7 +125,7 @@ SQL,
     }
 
     /**
-     * @param list<array{players: non-empty-list<RoundResultPlayer>, row: array{time_id: string, puzzle_id: string, seconds_to_solve: null|int|string, pieces_placed: null|int|string, finished_later_seconds: null|int|string, finished_at: null|string, ...}, status: RoundResultStatus}> $candidates
+     * @param list<array{players: non-empty-list<RoundResultPlayer>, row: array{time_id: string, puzzle_id: string, seconds_to_solve: null|int|string, pieces_placed: null|int|string, finished_later_seconds: null|int|string, finished_at: null|string, team_name: null|string, ...}, status: RoundResultStatus}> $candidates
      * @return list<RoundResult>
      */
     private function order(array $candidates): array
@@ -162,6 +165,7 @@ SQL,
                 piecesPlaced: $row['pieces_placed'] !== null ? (int) $row['pieces_placed'] : null,
                 finishedLaterSeconds: $row['finished_later_seconds'] !== null ? (int) $row['finished_later_seconds'] : null,
                 finishedAt: $row['finished_at'] !== null ? new DateTimeImmutable($row['finished_at']) : null,
+                teamName: $row['team_name'],
             );
         }
 
@@ -221,7 +225,7 @@ SQL,
     }
 
     /**
-     * @param array{team: null|string, owner_id: string, owner_name: null|string, owner_code: string, owner_country: null|string, owner_is_private: bool, owner_ranking_opted_out: bool, owner_skill_tier: null|int|string, ...} $row
+     * @param array{team: null|string, owner_id: null|string, owner_name: null|string, owner_code: null|string, owner_country: null|string, owner_is_private: null|bool, owner_ranking_opted_out: null|bool, owner_skill_tier: null|int|string, ...} $row
      * @param array<string, array{name: null|string, code: string, country: null|string, is_private: bool, ranking_opted_out: bool, skill_tiers: array<int, int>}> $members
      * @return non-empty-list<RoundResultPlayer>
      */
@@ -230,14 +234,17 @@ SQL,
         $team = $this->decodeTeam($row['team']);
 
         if ($team === []) {
+            // A solo time always has its tracker - only an imported pair's/team's result may have none
+            assert($row['owner_id'] !== null && $row['owner_code'] !== null);
+
             return [new RoundResultPlayer(
                 playerId: $row['owner_id'],
                 playerName: $row['owner_name'],
                 playerCode: strtoupper($row['owner_code']),
                 playerCountry: CountryCode::fromCode($row['owner_country']),
-                isPrivate: $row['owner_is_private'],
+                isPrivate: $row['owner_is_private'] === true,
                 skillTierName: $this->skillTierName($row['owner_skill_tier']),
-                rankingOptedOut: $row['owner_ranking_opted_out'],
+                rankingOptedOut: $row['owner_ranking_opted_out'] === true,
             )];
         }
 
@@ -255,6 +262,7 @@ SQL,
                     isPrivate: false,
                     skillTierName: null,
                     rankingOptedOut: false,
+                    anonymousSlot: $puzzler['anonymous_slot'] ?? null,
                 );
 
                 continue;
@@ -277,17 +285,20 @@ SQL,
     /**
      * Same identity the puzzle page groups by: the player, or the sorted set of puzzlers of a group.
      *
-     * @param array{team: null|string, owner_id: string, ...} $row
+     * An anonymous slot of an imported event result is unique to its team - nameless, every anonymous team would read
+     * the same (docs/features/event-results-import/README.md).
+     *
+     * @param array{team: null|string, owner_id: null|string, ...} $row
      * @param non-empty-list<RoundResultPlayer> $players
      */
     private function identification(array $row, array $players): string
     {
         if ($row['team'] === null) {
-            return $row['owner_id'];
+            return (string) $row['owner_id'];
         }
 
         $identifiers = array_map(
-            static fn (RoundResultPlayer $player): string => $player->playerId ?? $player->playerCode ?? $player->playerName ?? '',
+            static fn (RoundResultPlayer $player): string => $player->anonymousSlot ?? $player->playerId ?? $player->playerCode ?? $player->playerName ?? '',
             $players,
         );
         sort($identifiers);
@@ -343,7 +354,7 @@ SQL,
     }
 
     /**
-     * @return list<array{player_id: null|string, player_name: null|string}>
+     * @return list<array{player_id: null|string, player_name: null|string, anonymous_slot?: string}>
      */
     private function decodeTeam(null|string $team): array
     {
@@ -351,7 +362,7 @@ SQL,
             return [];
         }
 
-        /** @var null|array{puzzlers?: list<array{player_id: null|string, player_name: null|string}>} $decoded */
+        /** @var null|array{puzzlers?: list<array{player_id: null|string, player_name: null|string, anonymous_slot?: string}>} $decoded */
         $decoded = json_decode($team, true);
 
         return $decoded['puzzlers'] ?? [];

@@ -28,7 +28,7 @@ final class OccurrenceRounds
     public const string SQL_JOIN = <<<SQL
 LEFT JOIN (
     SELECT competition_id,
-        json_agg(json_build_object('id', id, 'name', name, 'starts_at', starts_at, 'timezone', timezone) ORDER BY starts_at, id) AS rounds,
+        json_agg(json_build_object('id', id, 'name', name, 'starts_at', starts_at, 'timezone', timezone, 'start_time_known', start_time_known) ORDER BY starts_at, id) AS rounds,
         COUNT(*) AS round_count
     FROM competition_round
     GROUP BY competition_id
@@ -43,6 +43,7 @@ LEFT JOIN (
             'name', cr_j.name,
             'starts_at', cr_j.starts_at,
             'timezone', cr_j.timezone,
+            'start_time_known', cr_j.start_time_known,
             'has_results', (
                 EXISTS (SELECT 1 FROM puzzle_solving_time pst WHERE pst.competition_round_id = cr_j.id AND pst.suspicious = false)
                 OR %s
@@ -115,6 +116,7 @@ SQL;
                 zoneAssumed: RoundTimezone::isAssumed($zone, ...$countryCodes),
                 hasResults: ($item['has_results'] ?? false) === true,
                 category: is_string($item['category'] ?? null) ? $item['category'] : null,
+                startTimeKnown: ($item['start_time_known'] ?? true) !== false,
                 puzzleNames: array_values(array_filter($puzzles, static fn (mixed $name): bool => is_string($name) && trim($name) !== '')),
             );
         }

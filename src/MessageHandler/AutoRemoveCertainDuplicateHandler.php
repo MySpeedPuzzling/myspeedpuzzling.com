@@ -66,7 +66,7 @@ readonly final class AutoRemoveCertainDuplicateHandler
 
         $this->autoRemovalRepository->save(new ResultAutoRemoval(
             id: Uuid::uuid7(),
-            player: $copy->player,
+            player: $copy->tracker(),
             removedTimeId: $copy->id,
             keptTimeId: $kept->id,
             caseId: $case->id,

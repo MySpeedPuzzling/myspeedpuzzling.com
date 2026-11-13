@@ -1401,6 +1401,30 @@ curl -s "$API/series/quarry-hollow-virtual-contest" -H "$AUTH"
 `tests/Controller/InternalApi/RestructureWalkThroughInternalApiTest.php` walks this sequence in full (every round,
 both venue series, the redirects of the old addresses).
 
+### Event results sheets
+
+An organizer's results spreadsheet, read every hour; every tab becomes a one-time event of the organization with one
+nobody's result per team until the puzzlers claim their spots (`docs/features/event-results-import/README.md`). The
+sheet must be shared "Anyone with the link: Viewer". The spreadsheet id lives in the database only - never in the repo.
+
+| Method | Path | What |
+|---|---|---|
+| `GET` | `/internal-api/event-results-sheets` | every sheet with what became of each tab: `status` (`imported` / `waiting_for_puzzle` / `problem` / `detached`), `problems` (`code`, `detail`, `line`), `competitionId`, `results` |
+| `POST` | `/internal-api/event-results-sheets` | register a sheet: `spreadsheet` (its link or id), `organizationId`, `actingPlayerId` (somebody on the organization's team - the events are created as them, 422 otherwise), `timezone` of the sheet's start times (`America/Chicago`), optional `countryCode` (the organization's). `201` + the sheet; `409` when it is registered already |
+| `POST` | `/internal-api/event-results-sheets/{id}/sync` | read it now instead of at the next hourly run; answers the sheet with its tabs |
+
+```bash
+curl -s -X POST "$API/event-results-sheets" -H "$AUTH" -H 'Content-Type: application/json' -d '{
+  "spreadsheet": "https://docs.google.com/spreadsheets/d/<id>/edit",
+  "organizationId": "<organization id>",
+  "actingPlayerId": "<player on its team>",
+  "timezone": "America/Chicago"
+}'
+```
+
+Before the first sync on production: `myspeedpuzzling:sync-sarah-does-puzzles-results --dry-run` says what every tab would
+become and writes nothing.
+
 ### Examples
 
 ```sh

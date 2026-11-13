@@ -22,7 +22,8 @@ readonly final class TimelineRound
         public RoundStatus $status,
         // Live and Next only: "Live", "Today", "Tomorrow", "This weekend", "In 13 days"
         public null|WhenLabel $when,
-        public EventTime $time,
+        // null = only the round's day is known (EditionRoundDetail::$startTimeKnown)
+        public null|EventTime $time,
         // behind "Show N earlier rounds"
         public bool $folded,
         // the round results page - public pages, rounds with a slug and something to show

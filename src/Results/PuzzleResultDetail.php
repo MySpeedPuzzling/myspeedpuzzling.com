@@ -40,6 +40,20 @@ readonly final class PuzzleResultDetail
     ) {
     }
 
+    /**
+     * The attempt the detail was opened for.
+     */
+    public function focusAttempt(): null|PuzzleResultAttempt
+    {
+        foreach ($this->attempts as $attempt) {
+            if ($attempt->timeId === $this->focusTimeId) {
+                return $attempt;
+            }
+        }
+
+        return null;
+    }
+
     public function isGroup(): bool
     {
         return $this->players !== null;

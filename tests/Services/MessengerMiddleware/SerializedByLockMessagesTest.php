@@ -23,6 +23,7 @@ use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
 use SpeedPuzzling\Web\Message\AddTableRow;
+use SpeedPuzzling\Web\Message\ApplyEventResultsTab;
 use SpeedPuzzling\Web\Message\ApplyParticipantImport;
 use SpeedPuzzling\Web\Message\ApplyParticipantSheetChanges;
 use SpeedPuzzling\Web\Message\ApprovePuzzle;
@@ -38,6 +39,7 @@ use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
 use SpeedPuzzling\Web\Message\ChangeRoundTableNumbersUsage;
 use SpeedPuzzling\Web\Message\CheckInParticipant;
 use SpeedPuzzling\Web\Message\CheckOnlineRoundFinishPhotos;
+use SpeedPuzzling\Web\Message\ClaimEventResultSlot;
 use SpeedPuzzling\Web\Message\ClearComparisonLineUp;
 use SpeedPuzzling\Web\Message\ConfirmOnlineResult;
 use SpeedPuzzling\Web\Message\ConvertCompetitionToSeries;
@@ -251,6 +253,8 @@ final class SerializedByLockMessagesTest extends TestCase
      */
     private const array NOT_LOCKED = [
         AddCompetitionRound::class => 'creates an empty round - nobody is entered, nothing official exists yet',
+        ApplyEventResultsTab::class => 'an organizer\'s results sheet tab: creates the event and its round, keeps the round\'s limit and start as the sheet says, writes solving times - never a participant, entry or official result; serialized per tab (docs/features/event-results-import)',
+        ClaimEventResultSlot::class => 'only reads the round of an imported event result (one spot per person per round) - never a participant, entry, team or official result; serialized per result with its release and removal (docs/features/event-results-import/README.md "Claiming a spot")',
         AddPuzzleSolvingTime::class => 'a player\'s own time - reads the round to link the time, never writes entries or official results',
         AddPuzzleToCompetitionRound::class => 'adds a puzzle to a round - entries and results are not touched',
         AddTableRow::class => 'the table layout (rows and spots), not round entries',

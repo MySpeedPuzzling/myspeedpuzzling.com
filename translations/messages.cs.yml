@@ -6662,6 +6662,7 @@ favorite_puzzlers:
   "team_page": "Stránka týmu"
   "related_title": "S někým navíc, nebo bez někoho"
   "related_help": "Dvojice nebo tým je přesná skupina lidí - stejní lidé, ke kterým někdo přibyl nebo z nich někdo chybí, jsou už jiná skupina."
+  "anonymous_puzzlers": "{1}%count% puzzler|[2,4]%count% puzzleři|[0,Inf[%count% puzzlerů"
 
 onboarding:
     find_later: "Chcete si průvodce přečíst později? Odkaz najdete vždy dole na každé stránce."
@@ -11572,3 +11573,49 @@ sandbox_gate:
 player_country:
     placeholder: "Vyber svou zemi"
     suggested: "Myslíme si, že jsi z této země: %country%. Pokud ne, změň to - uloží se, až uložíš profil."
+
+event_result_claim:
+    button: "Tohle byl můj tým"
+    cancel: "Zrušit"
+    unnamed_team: "Tým"
+    nobody_claimed: "{1}Zatím se nikdo nepřihlásil (%count% puzzler).|[2,4]Zatím se nikdo nepřihlásil (%count% puzzleři).|[0,Inf[Zatím se nikdo nepřihlásil (%count% puzzlerů)."
+    claimed_by: "Přihlásili se:"
+    claim:
+        title: "Tohle byl můj tým"
+        intro: "Výsledek se ti zobrazí v profilu a započítá do statistik. Zůstává ale výsledkem akce: měnit ho může jen tabulka výsledků pořadatele a ostatní puzzleři týmu uvidí, že ses přihlásil(a)."
+        first_try: "Tohle byl můj první pokus o toto puzzle"
+        same_result: "Je to stejný výsledek?"
+        same_result_help: "Kolem dne akce už máš výsledek tohoto puzzle. Pokud je to tenhle, tvůj se smaže a zůstane výsledek z akce."
+        same_result_no: "Ne, to je jiný výsledek"
+        puzzlers: "{1}%count% puzzler|[2,4]%count% puzzleři|[0,Inf[%count% puzzlerů"
+        submit: "Ano, tohle byl můj tým"
+        already_yours: "V tomto týmu už místo máš."
+    release:
+        title: "Odebrat z mého profilu"
+        button: "Odebrat z mého profilu"
+        intro: "Výsledek zůstane výsledkem akce a tvoje místo se uvolní - později se k němu můžeš znovu přihlásit."
+        submit: "Odebrat z mého profilu"
+    remove:
+        title: "Nebyl(a) v našem týmu"
+        button: "Nebyl(a) v našem týmu: %player%"
+        intro: "%player% se už v tomto týmu nebude zobrazovat. Dozví se, že bylo jeho místo odebráno, nikdy ale kým."
+        reason: "Poznámka (nepovinná, jen pro tým MySpeedPuzzling)"
+        submit: "Odebrat z týmu"
+    flash:
+        claimed: "Teď jsi v týmu %team%."
+        released: "Výsledek byl odebrán z tvého profilu."
+        removed: "Místo bylo odebráno."
+        expired: "Platnost formuláře vypršela - zkus to prosím znovu."
+    refused:
+        not_imported: "Přihlásit se lze jen k výsledku importovanému z výsledků akce."
+        team_full: "Všechna místa v tomto týmu už jsou obsazená."
+        already_in_round: "V tomto kole už výsledek máš. Pokud je to tenhle, vyber ho u \"Je to stejný výsledek?\"."
+        blocked: "Ostatní puzzleři ti už dvakrát odebrali místo, proto se k výsledkům akcí už přihlašovat nemůžeš. Pokud jde o omyl, napiš nám."
+        first_try_taken: "Někdo z tohoto týmu už má první pokus o toto puzzle zaznamenaný - přihlas se bez prvního pokusu."
+        same_result_invalid: "Tento výsledek nelze nahradit - vyber jeden ze svých výsledků tohoto puzzle."
+        not_a_claimer: "Toto místo tento puzzler nemá."
+        not_allowed: "Místo mohou odebrat jen ostatní puzzleři týmu, pořadatel a administrátoři."
+        limit: "Dnes ses přihlásil(a) k mnoha týmům - zkus to prosím zítra."
+    notification:
+        claimed: "%player% se přidal(a) k týmu %team% na akci %event%"
+        claim_removed: "Tvoje místo v týmu %team% na akci %event% bylo odebráno"

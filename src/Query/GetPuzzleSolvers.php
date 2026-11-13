@@ -153,6 +153,7 @@ SELECT
     comment,
     pst.puzzling_team_id::varchar AS team_id,
     (SELECT puzzling_team.name FROM puzzling_team WHERE puzzling_team.id = pst.puzzling_team_id) AS team_name,
+    (pst.created_via = 'event_import') AS imported_from_event,
     finished_at,
     pst.tracked_at,
     first_attempt,
@@ -173,7 +174,8 @@ SELECT
             'player_avatar', p.avatar,
             'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
             'skill_tier', ps_member.skill_tier,
-            'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
+            'ranking_opted_out', COALESCE(p.ranking_opted_out, false),
+            'anonymous_slot', player_elem.player ->> 'anonymous_slot'
         ) ORDER BY player_elem.ordinality
     ) AS players
 FROM
@@ -204,7 +206,7 @@ SQL;
             /**
              * @var array{
              *     time_id: string,
-             *     player_id: string,
+             *     player_id: null|string,
              *     puzzle_id: string,
              *     time: int,
              *     comment: null|string,
@@ -250,6 +252,7 @@ SELECT
     comment,
     pst.puzzling_team_id::varchar AS team_id,
     (SELECT puzzling_team.name FROM puzzling_team WHERE puzzling_team.id = pst.puzzling_team_id) AS team_name,
+    (pst.created_via = 'event_import') AS imported_from_event,
     finished_at,
     pst.tracked_at,
     first_attempt,
@@ -270,7 +273,8 @@ SELECT
             'player_avatar', p.avatar,
             'is_private', {$this->privateProfileAccess->sqlIsPrivate('p')},
             'skill_tier', ps_member.skill_tier,
-            'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
+            'ranking_opted_out', COALESCE(p.ranking_opted_out, false),
+            'anonymous_slot', player_elem.player ->> 'anonymous_slot'
         ) ORDER BY player_elem.ordinality
     ) AS players
 FROM
@@ -301,7 +305,7 @@ SQL;
             /**
              * @var array{
              *     time_id: string,
-             *     player_id: string,
+             *     player_id: null|string,
              *     puzzle_id: string,
              *     time: int,
              *     comment: null|string,

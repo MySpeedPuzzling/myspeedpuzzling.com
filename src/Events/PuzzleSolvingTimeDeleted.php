@@ -11,7 +11,8 @@ readonly final class PuzzleSolvingTimeDeleted implements DeleteDomainEvent
 {
     public function __construct(
         public UuidInterface $puzzleId,
-        public UuidInterface $playerId,
+        // Null for an imported event result nobody has claimed (docs/features/event-results-import/README.md)
+        public null|UuidInterface $playerId,
         public int $piecesCount,
         public UuidInterface $puzzleSolvingTimeId,
     ) {
@@ -23,6 +24,6 @@ readonly final class PuzzleSolvingTimeDeleted implements DeleteDomainEvent
             throw new \InvalidArgumentException('Expected PuzzleSolvingTime entity');
         }
 
-        return new self($entity->puzzle->id, $entity->player->id, $entity->puzzle->piecesCount, $entity->id);
+        return new self($entity->puzzle->id, $entity->player?->id, $entity->puzzle->piecesCount, $entity->id);
     }
 }

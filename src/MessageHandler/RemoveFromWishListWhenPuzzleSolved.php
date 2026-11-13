@@ -22,6 +22,11 @@ readonly final class RemoveFromWishListWhenPuzzleSolved
     {
         $puzzleSolvingTime = $this->puzzleSolvingTimeRepository->get($event->puzzleSolvingTimeId->toString());
 
+        // An imported event result nobody has claimed yet is nobody's - no wishlist to look at
+        if ($puzzleSolvingTime->player === null) {
+            return;
+        }
+
         $wishListItem = $this->wishListItemRepository->findByPlayerIdAndPuzzleIdWithRemoveFlag(
             $puzzleSolvingTime->player->id->toString(),
             $puzzleSolvingTime->puzzle->id->toString(),

@@ -127,7 +127,7 @@ readonly final class EventRowFactory
             isPending: $occurrence->isPublic === false,
             visible: $onOwnPage || $scope->matches($occurrence->isOnline, $occurrence->countryCode),
             logo: $logo,
-            time: $onOwnPage && $occurrence->firstRound !== null ? EventTime::fromOccurrenceRound($occurrence->firstRound) : null,
+            time: $onOwnPage && $occurrence->firstRound !== null && $occurrence->firstRound->startTimeKnown ? EventTime::fromOccurrenceRound($occurrence->firstRound) : null,
             partnerFinderUrl: $isPast === false && $occurrence->isOnline === false && ($partnerListingCounts[strtolower($occurrence->competitionId)] ?? 0) > 0
                 ? $this->urls->partnerFinder($occurrence)
                 : null,

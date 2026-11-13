@@ -20,15 +20,17 @@ readonly final class PuzzleStatisticsCalculator
         $result = $this->connection->executeQuery("
             WITH times AS (
                 -- A suspicious time is neither a solve nor a time here (docs/features/suspicious-times.md)
-                SELECT player_id, puzzling_type, first_attempt, seconds_to_solve
+                -- Grouped by whoever tracked it; an imported event result nobody has claimed yet has no tracker and
+                -- stands for its own team (docs/features/event-results-import/README.md)
+                SELECT COALESCE(player_id, puzzling_team_id, id) AS solver_id, puzzling_type, first_attempt, seconds_to_solve
                 FROM puzzle_solving_time
                 WHERE puzzle_id = :puzzleId AND suspicious = false
             ),
             player_best_per_type AS (
-                SELECT player_id, puzzling_type, MIN(seconds_to_solve) AS best_time
+                SELECT solver_id, puzzling_type, MIN(seconds_to_solve) AS best_time
                 FROM times
                 WHERE seconds_to_solve IS NOT NULL
-                GROUP BY player_id, puzzling_type
+                GROUP BY solver_id, puzzling_type
             )
             SELECT
                 -- Total

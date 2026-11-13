@@ -1,0 +1,15 @@
+{% extends 'base.html.twig' %}
+
+{# The same confirmation as the modal, for a link opened on its own (AbstractEventResultClaimController) #}
+{% block title %}{{ title }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block hreflang %}{% endblock %}
+
+{% block content %}
+    <div class="container py-3" style="max-width: 640px;">
+        <h1 class="h4 mb-3">{{ title }}</h1>
+        {{ include(body_template, {in_modal: false}) }}
+    </div>
+{% endblock %}

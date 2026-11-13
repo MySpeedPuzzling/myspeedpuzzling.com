@@ -6577,6 +6577,7 @@ favorite_puzzlers:
   "team_page": "チームのページ"
   "related_title": "メンバーが多い・少ない組み合わせ"
   "related_help": "ペアやチームはメンバーの顔ぶれそのものです。同じメンバーに誰かが加わったり欠けたりすると、別のペア／チームになります。"
+  "anonymous_puzzlers": "%count%人のパズラー"
 
 "onboarding":
   "find_later": "あとで読みたいですか？このガイドはいつでも各ページの一番下にあります。"
@@ -11559,3 +11560,49 @@ sandbox_gate:
 player_country:
     placeholder: "国を選択"
     suggested: "お住まいの国は「%country%」だと思われます。違う場合は変更してください。プロフィールを保存すると保存されます。"
+
+event_result_claim:
+    button: "これは私のチームでした"
+    cancel: "キャンセル"
+    unnamed_team: "チーム"
+    nobody_claimed: "まだ誰も枠を申告していません（%count%人のパズラー）。"
+    claimed_by: "申告したパズラー："
+    claim:
+        title: "これは私のチームでした"
+        intro: "この記録はあなたのプロフィールに表示され、統計に含まれます。記録はイベントのものです。変更できるのは主催者の結果シートだけで、チームの他のパズラーにはあなたが申告したことが表示されます。"
+        first_try: "このパズルへの初挑戦でした"
+        same_result: "同じ記録ですか？"
+        same_result_help: "イベント当日前後のこのパズルの記録がすでにあります。それがこの記録なら、あなたの記録は削除され、イベントの記録が残ります。"
+        same_result_no: "いいえ、別の記録です"
+        puzzlers: "%count%人のパズラー"
+        submit: "はい、私のチームでした"
+        already_yours: "このチームの枠はすでにあなたのものです。"
+    release:
+        title: "プロフィールから外す"
+        button: "プロフィールから外す"
+        intro: "記録はイベントのものとして残り、あなたの枠は空きます。後でもう一度申告できます。"
+        submit: "プロフィールから外す"
+    remove:
+        title: "私たちのチームではありません"
+        button: "私たちのチームではありません：%player%"
+        intro: "%player%はこのチームに表示されなくなります。枠が外されたことは本人に通知されますが、誰が外したかは伝えられません。"
+        reason: "メモ（任意、MySpeedPuzzlingチームのみが見ます）"
+        submit: "チームから外す"
+    flash:
+        claimed: "チーム%team%のメンバーになりました。"
+        released: "記録をプロフィールから外しました。"
+        removed: "枠を外しました。"
+        expired: "フォームの有効期限が切れました。もう一度お試しください。"
+    refused:
+        not_imported: "申告できるのはイベントの結果から取り込まれた記録だけです。"
+        team_full: "このチームの枠はすべて申告済みです。"
+        already_in_round: "このラウンドにはすでに記録があります。それがこの記録なら「同じ記録ですか？」で選んでください。"
+        blocked: "他のパズラーにあなたの枠が2回外されたため、イベントの記録を申告できなくなりました。間違いの場合はお問い合わせください。"
+        first_try_taken: "このチームの誰かに、このパズルの初挑戦がすでに記録されています。初挑戦なしで申告してください。"
+        same_result_invalid: "その記録は置き換えられません。このパズルのあなた自身の記録を選んでください。"
+        not_a_claimer: "この枠はこのパズラーのものではありません。"
+        not_allowed: "枠を外せるのは、チームの他のパズラー、主催者、管理者だけです。"
+        limit: "今日は多くのチームを申告しました。明日もう一度お試しください。"
+    notification:
+        claimed: "%player%さんが%event%の%team%に参加しました"
+        claim_removed: "%event%の%team%でのあなたの枠が外されました"

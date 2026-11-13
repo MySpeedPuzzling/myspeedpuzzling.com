@@ -50,9 +50,11 @@
              data-stopwatch-phase="{{ phase }}"
         >
             <div class="card-body">
+                {% if round.minutesLimit is not null %}
                 <p class="mb-3">
                     <strong>{{ 'competition.round.minutes_limit'|trans }}:</strong> {{ round.minutesLimit }} min
                 </p>
+                {% endif %}
 
                 <p class="mb-2" data-stopwatch-status>
                     <strong>{{ 'competition.stopwatch.status'|trans }}:</strong>

@@ -57,6 +57,7 @@ readonly final class AddCompetitionRoundHandler
             timezone: $message->timezone,
             revealDelayMinutes: $message->revealDelayMinutes,
             teamSize: $teamSize,
+            startTimeKnown: $message->startTimeKnown,
         );
 
         $this->competitionRoundRepository->save($round);

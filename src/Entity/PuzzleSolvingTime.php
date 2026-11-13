@@ -19,6 +19,7 @@ use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Attribute\HasDeleteDomainEvent;
 use SpeedPuzzling\Web\Doctrine\PuzzlersGroupDoctrineType;
+use SpeedPuzzling\Web\Events\EventResultSlotClaimed;
 use SpeedPuzzling\Web\Events\GroupSolvingTimeEdited;
 use SpeedPuzzling\Web\Events\PuzzleSolved;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeDeleted;
@@ -141,9 +142,11 @@ class PuzzleSolvingTime implements EntityWithEvents
         public UuidInterface $id,
         #[Column(type: Types::INTEGER, nullable: true)]
         public null|int $secondsToSolve,
+        // Whoever tracked it - null only for an imported event result nobody has claimed yet
+        // (docs/features/event-results-import/README.md, importedFromEvent())
         #[ManyToOne]
-        #[JoinColumn(nullable: false)]
-        public Player $player,
+        #[JoinColumn(nullable: true)]
+        public null|Player $player,
         #[ManyToOne]
         #[JoinColumn(nullable: false, onDelete: 'CASCADE')]
         public Puzzle $puzzle,
@@ -208,6 +211,174 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->recordThat(
             new PuzzleSolved($this->id, $this->puzzle->id),
         );
+    }
+
+    /**
+     * A pair's or team's result from an organizer's results sheet (docs/features/event-results-import/README.md):
+     * nobody's yet - no tracker, one anonymous slot per person - until the puzzlers claim their spots. Solved and
+     * tracked on the event day, so it falls into that day's and month's statistics; a first try is never known.
+     */
+    public static function importedFromEvent(
+        UuidInterface $id,
+        Puzzle $puzzle,
+        Competition $competition,
+        CompetitionRound $competitionRound,
+        PuzzlersGroup $anonymousGroup,
+        PuzzlingTeam $puzzlingTeam,
+        int $secondsToSolve,
+        DateTimeImmutable $solvedAt,
+    ): self {
+        foreach ($anonymousGroup->puzzlers as $puzzler) {
+            if ($puzzler->anonymousSlot === null) {
+                throw new LogicException('An imported event result starts with anonymous slots only.');
+            }
+        }
+
+        if (count($anonymousGroup->puzzlers) < 2) {
+            throw new LogicException('An imported event result is a pair\'s or a team\'s.');
+        }
+
+        return new self(
+            id: $id,
+            secondsToSolve: $secondsToSolve,
+            player: null,
+            puzzle: $puzzle,
+            trackedAt: $solvedAt,
+            verified: false,
+            team: $anonymousGroup,
+            finishedAt: $solvedAt,
+            comment: null,
+            finishedPuzzlePhoto: null,
+            firstAttempt: false,
+            unboxed: false,
+            competitionRound: $competitionRound,
+            competition: $competition,
+            puzzlingTeam: $puzzlingTeam,
+            createdVia: SolvingTimeSource::EventImport,
+        );
+    }
+
+    public function isImportedFromEvent(): bool
+    {
+        return $this->createdVia === SolvingTimeSource::EventImport;
+    }
+
+    /**
+     * The organizer corrected the team's time on the sheet (docs/features/event-results-import/README.md).
+     */
+    public function correctImportedTime(int $secondsToSolve): void
+    {
+        if ($this->isImportedFromEvent() === false) {
+            throw new LogicException('Only an imported event result follows the organizer\'s sheet.');
+        }
+
+        if ($secondsToSolve === $this->secondsToSolve) {
+            return;
+        }
+
+        $this->secondsToSolve = $secondsToSolve;
+
+        $this->recordThat(
+            new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
+        );
+    }
+
+    /**
+     * The organizer changed how many people the team had, before anybody claimed it - other anonymous people, so
+     * another anonymous team.
+     */
+    public function replaceAnonymousGroup(PuzzlersGroup $anonymousGroup, PuzzlingTeam $puzzlingTeam): void
+    {
+        if ($this->isImportedFromEvent() === false || $this->isClaimedByAnybody()) {
+            throw new LogicException('Only an imported event result nobody has claimed gets other anonymous people.');
+        }
+
+        $this->correctGroup($anonymousGroup, $puzzlingTeam);
+
+        $this->recordThat(
+            new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
+        );
+    }
+
+    /**
+     * The player claimed a spot (docs/features/event-results-import/README.md "Claiming a spot"). Their place in the
+     * people is already changed in SQL (PuzzlingTeamMemberConversion::anonymousSlotToPlayer()); here the rest: the first
+     * claimer tracks the result, and the first-try answer. A pair's/team's result is a first try only if it is
+     * everybody's (docs/features/first-try-integrity.md), so a later claimer can keep the tag or take it off, never add it.
+     */
+    public function slotClaimedBy(Player $player, bool $firstTry): void
+    {
+        if ($this->isImportedFromEvent() === false) {
+            throw new LogicException('Only a spot of an imported event result is claimed.');
+        }
+
+        $firstClaim = $this->player === null;
+        $this->player ??= $player;
+        $this->firstAttempt = $firstTry && ($firstClaim || $this->firstAttempt);
+
+        $this->recordThat(
+            new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
+        );
+
+        $this->recordThat(
+            new EventResultSlotClaimed($this->id, $player->id),
+        );
+    }
+
+    /**
+     * The player's spot is anonymous again - released, removed by somebody else or the account deleted
+     * (docs/features/event-results-import/README.md "Gates"); their place in the people is already changed in SQL
+     * (PuzzlingTeamMemberConversion::playerToAnonymousSlot()). The tracker moves to $nextTracker - another claimer, or
+     * nobody: then the result is nobody's again and a first try is not known (D7).
+     */
+    public function slotReleasedBy(Player $player, null|Player $nextTracker): void
+    {
+        if ($this->isImportedFromEvent() === false) {
+            throw new LogicException('Only a spot of an imported event result is released.');
+        }
+
+        if ($this->isTrackedBy($player)) {
+            $this->player = $nextTracker;
+        }
+
+        if ($this->player === null) {
+            $this->firstAttempt = false;
+        }
+
+        $this->recordThat(
+            new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
+        );
+    }
+
+    /**
+     * Whether somebody claimed a spot of this imported event result - then only a person changes its people.
+     */
+    public function isClaimedByAnybody(): bool
+    {
+        return $this->memberPlayerIds() !== [];
+    }
+
+    public function isTrackedBy(Player $player): bool
+    {
+        return $this->player !== null && $this->player->id->equals($player->id);
+    }
+
+    /**
+     * Only whoever tracked it, and never an imported event result - that one is the event's; its claimers release
+     * their spot instead (docs/features/event-results-import/README.md "Gates").
+     */
+    public function canBeDeletedBy(Player $player): bool
+    {
+        return $this->isImportedFromEvent() === false && $this->isTrackedBy($player);
+    }
+
+    /**
+     * For code that only ever sees a tracked time - a solo time, a time the player may modify (canBeModifiedBy()
+     * refuses an imported one), a time just saved from a form. A time without a tracker reaching it is a bug.
+     */
+    public function tracker(): Player
+    {
+        return $this->player ?? throw new LogicException(sprintf('Solving time %s has no tracker.', $this->id->toString()));
     }
 
     /**
@@ -343,7 +514,13 @@ class PuzzleSolvingTime implements EntityWithEvents
      */
     public function canBeModifiedBy(Player $player): bool
     {
-        if ($this->player->id->equals($player->id)) {
+        // An imported event result is the event's: only the organizer's sheet changes it, its claimers release
+        // their spot instead (docs/features/event-results-import/README.md "Gates")
+        if ($this->isImportedFromEvent()) {
+            return false;
+        }
+
+        if ($this->player?->id->equals($player->id) === true) {
             return true;
         }
 
@@ -381,7 +558,7 @@ class PuzzleSolvingTime implements EntityWithEvents
      */
     public function memberPlayerIds(): array
     {
-        $ids = [$this->player->id->toString()];
+        $ids = $this->player === null ? [] : [$this->player->id->toString()];
 
         foreach ($this->team->puzzlers ?? [] as $puzzler) {
             if ($puzzler->playerId !== null) {
@@ -637,7 +814,7 @@ class PuzzleSolvingTime implements EntityWithEvents
         }
 
         $this->recordThat(
-            new PuzzleSolvingTimeMovedToOtherPuzzle($this->id, $this->puzzle->id, $this->player->id, $this->puzzle->piecesCount),
+            new PuzzleSolvingTimeMovedToOtherPuzzle($this->id, $this->puzzle->id, $this->player?->id, $this->puzzle->piecesCount),
         );
 
         $this->puzzle = $newPuzzle;

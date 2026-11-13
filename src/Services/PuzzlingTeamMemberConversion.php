@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
+use Closure;
 use Doctrine\DBAL\Connection;
+use LogicException;
+use Psr\Clock\ClockInterface;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Value\TeamComposition;
 
 /**
@@ -21,7 +25,51 @@ readonly final class PuzzlingTeamMemberConversion
 {
     public function __construct(
         private Connection $connection,
+        private ClockInterface $clock,
     ) {
+    }
+
+    /**
+     * A player claims a spot of an imported event result (docs/features/event-results-import/README.md "Claiming a
+     * spot"): the anonymous slot becomes the player in the result's pair/team and in its group snapshot. Once every slot
+     * is claimed the people may equal a team that already exists - the result then joins it.
+     *
+     * By result, not by team: a fully claimed result may share its team with the people's other results, and only
+     * this one changes.
+     */
+    public function anonymousSlotToPlayer(string $timeId, string $slotKey, string $playerId): void
+    {
+        $this->replaceMemberOfTime(
+            timeId: $timeId,
+            oldKey: $slotKey,
+            newKey: strtolower($playerId),
+            newPlayerId: $playerId,
+            isReplaced: static fn (array $puzzler): bool => ($puzzler['anonymous_slot'] ?? null) === $slotKey,
+            // Exactly what PuzzlersGroupDoctrineType writes for a player
+            replacement: ['player_id' => $playerId, 'player_name' => null],
+        );
+    }
+
+    /**
+     * The player's spot of an imported event result becomes anonymous again - released, removed by somebody else, or
+     * the account deleted (docs/features/event-results-import/README.md "Gates"). Only this result: when it shares its
+     * pair/team with the people's other results, it gets a team of its own.
+     */
+    public function playerToAnonymousSlot(string $timeId, string $playerId, string $newSlotKey): void
+    {
+        if (str_starts_with($newSlotKey, TeamComposition::ANONYMOUS_PREFIX) === false) {
+            throw new LogicException(sprintf('An anonymous slot starts with "%s", got "%s".', TeamComposition::ANONYMOUS_PREFIX, $newSlotKey));
+        }
+
+        $this->replaceMemberOfTime(
+            timeId: $timeId,
+            oldKey: strtolower($playerId),
+            newKey: $newSlotKey,
+            newPlayerId: null,
+            isReplaced: static fn (array $puzzler): bool => is_string($puzzler['player_id'] ?? null) && strtolower($puzzler['player_id']) === strtolower($playerId),
+            // Exactly what PuzzlersGroupDoctrineType writes for an anonymous person
+            replacement: ['player_id' => null, 'player_name' => null, 'anonymous_slot' => $newSlotKey],
+        );
     }
 
     /**
@@ -197,6 +245,146 @@ SQL,
                 );
             }
         }
+    }
+
+    /**
+     * @param Closure(array<string, mixed>): bool $isReplaced picks the person in the result's group snapshot
+     * @param array<string, null|string> $replacement
+     */
+    private function replaceMemberOfTime(
+        string $timeId,
+        string $oldKey,
+        string $newKey,
+        null|string $newPlayerId,
+        Closure $isReplaced,
+        array $replacement,
+    ): void {
+        $teamId = $this->connection->fetchOne('SELECT puzzling_team_id FROM puzzle_solving_time WHERE id = :id', ['id' => $timeId]);
+
+        if (is_string($teamId) === false) {
+            throw new LogicException(sprintf('Solving time %s has no pair/team.', $timeId));
+        }
+
+        /** @var list<array{member_key: string, player_id: null|string, guest_name: null|string, position: int}> $members */
+        $members = $this->connection->fetchAllAssociative(
+            'SELECT member_key, player_id, guest_name, position FROM puzzling_team_member WHERE team_id = :teamId ORDER BY position',
+            ['teamId' => $teamId],
+        );
+        $memberKeys = array_column($members, 'member_key');
+
+        if (in_array($oldKey, $memberKeys, true) === false) {
+            throw new LogicException(sprintf('"%s" is not a member of the pair/team of solving time %s.', $oldKey, $timeId));
+        }
+
+        // One person cannot be in a team twice
+        if (in_array($newKey, $memberKeys, true)) {
+            throw new LogicException(sprintf('"%s" is already a member of the pair/team of solving time %s.', $newKey, $timeId));
+        }
+
+        $newMemberKeys = array_values(array_filter($memberKeys, static fn (string $key): bool => $key !== $oldKey));
+        $newMemberKeys[] = $newKey;
+        $newCompositionKey = TeamComposition::keyFromMemberKeys($newMemberKeys);
+
+        $this->rewriteSnapshotOf($timeId, $isReplaced, $replacement);
+
+        $sharedWithOtherResults = $this->connection->fetchOne(
+            'SELECT 1 FROM puzzle_solving_time WHERE puzzling_team_id = :teamId AND id <> :timeId LIMIT 1',
+            ['teamId' => $teamId, 'timeId' => $timeId],
+        ) !== false;
+
+        $survivingTeamId = $this->connection->fetchOne(
+            'SELECT id FROM puzzling_team WHERE composition_key = :key AND id <> :teamId',
+            ['key' => $newCompositionKey, 'teamId' => $teamId],
+        );
+
+        if (is_string($survivingTeamId)) {
+            if ($sharedWithOtherResults) {
+                $this->moveTimeTo($timeId, $survivingTeamId);
+            } else {
+                $this->mergeInto($teamId, $survivingTeamId);
+            }
+
+            return;
+        }
+
+        if ($sharedWithOtherResults) {
+            // The people's other results keep their team; this one gets a team of its own, under the same name
+            $newTeamId = Uuid::uuid7()->toString();
+
+            $this->connection->executeStatement(
+                'INSERT INTO puzzling_team (id, composition_key, size, created_at, name) SELECT :newId, :key, size, :now, name FROM puzzling_team WHERE id = :teamId',
+                ['newId' => $newTeamId, 'key' => $newCompositionKey, 'now' => $this->clock->now()->format('Y-m-d H:i:s'), 'teamId' => $teamId],
+            );
+
+            foreach ($members as $member) {
+                $replaced = $member['member_key'] === $oldKey;
+
+                $this->connection->executeStatement(
+                    'INSERT INTO puzzling_team_member (id, team_id, member_key, player_id, guest_name, position) VALUES (:id, :teamId, :memberKey, :playerId, :guestName, :position)',
+                    [
+                        'id' => Uuid::uuid7()->toString(),
+                        'teamId' => $newTeamId,
+                        'memberKey' => $replaced ? $newKey : $member['member_key'],
+                        'playerId' => $replaced ? $newPlayerId : $member['player_id'],
+                        'guestName' => $replaced ? null : $member['guest_name'],
+                        'position' => $member['position'],
+                    ],
+                );
+            }
+
+            $this->moveTimeTo($timeId, $newTeamId);
+
+            return;
+        }
+
+        $this->connection->executeStatement(
+            'UPDATE puzzling_team_member SET player_id = :playerId, guest_name = NULL, member_key = :newKey WHERE team_id = :teamId AND member_key = :oldKey',
+            ['playerId' => $newPlayerId, 'newKey' => $newKey, 'teamId' => $teamId, 'oldKey' => $oldKey],
+        );
+
+        $this->connection->executeStatement(
+            'UPDATE puzzling_team SET composition_key = :key WHERE id = :teamId',
+            ['key' => $newCompositionKey, 'teamId' => $teamId],
+        );
+    }
+
+    /**
+     * @param Closure(array<string, mixed>): bool $isReplaced
+     * @param array<string, null|string> $replacement
+     */
+    private function rewriteSnapshotOf(string $timeId, Closure $isReplaced, array $replacement): void
+    {
+        $json = $this->connection->fetchOne('SELECT team FROM puzzle_solving_time WHERE id = :id', ['id' => $timeId]);
+
+        if (is_string($json) === false) {
+            throw new LogicException(sprintf('Solving time %s has no group snapshot.', $timeId));
+        }
+
+        /** @var array{team_id?: null|string, puzzlers?: list<array<string, mixed>>} $snapshot */
+        $snapshot = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+
+        foreach ($snapshot['puzzlers'] ?? [] as $index => $puzzler) {
+            if ($isReplaced($puzzler)) {
+                $snapshot['puzzlers'][$index] = $replacement;
+
+                $this->connection->executeStatement(
+                    'UPDATE puzzle_solving_time SET team = :team WHERE id = :id',
+                    ['team' => json_encode($snapshot, JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION), 'id' => $timeId],
+                );
+
+                return;
+            }
+        }
+
+        throw new LogicException(sprintf('The person to replace is not in the group snapshot of solving time %s.', $timeId));
+    }
+
+    private function moveTimeTo(string $timeId, string $teamId): void
+    {
+        $this->connection->executeStatement(
+            'UPDATE puzzle_solving_time SET puzzling_team_id = :teamId WHERE id = :timeId',
+            ['teamId' => $teamId, 'timeId' => $timeId],
+        );
     }
 
     private function convertMember(string $teamId, string $playerId, string $guestName): void

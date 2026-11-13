@@ -138,7 +138,7 @@ SQL;
      */
     private function hydrate(array $row, DateTimeImmutable $now): RoundResultsOverview
     {
-        /** @var array{id: string, name: string, category: string, starts_at: string, minutes_limit: int, slug: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string, results_first_published_at: null|string, table_numbers_off: bool, is_online: bool, puzzles_count: int, pieces_count: null|int, total: int, with_table_number: int, with_result: int, qualified: int, on_waitlist: int} $row */
+        /** @var array{id: string, name: string, category: string, starts_at: string, minutes_limit: null|int, slug: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string, results_first_published_at: null|string, table_numbers_off: bool, is_online: bool, puzzles_count: int, pieces_count: null|int, total: int, with_table_number: int, with_result: int, qualified: int, on_waitlist: int} $row */
         $date = static fn (null|string $value): null|DateTimeImmutable => $value !== null ? new DateTimeImmutable($value) : null;
         $startsAt = new DateTimeImmutable($row['starts_at']);
         $stopwatchStartedAt = $date($row['stopwatch_started_at']);

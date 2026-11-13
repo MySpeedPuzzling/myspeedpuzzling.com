@@ -13,4 +13,6 @@ enum SolvingTimeSource: string
     case Form = 'form';
     case Stopwatch = 'stopwatch';
     case Api = 'api';
+    // An organizer's results sheet (docs/features/event-results-import/README.md) - the result is the event's
+    case EventImport = 'event_import';
 }

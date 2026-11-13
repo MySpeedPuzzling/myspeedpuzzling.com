@@ -49,6 +49,16 @@ readonly final class PuzzleSolvingTimeRepository
         return $puzzle ?? throw new PuzzleSolvingTimeNotFound();
     }
 
+    /**
+     * The result as the database has it now - after PuzzlingTeamMemberConversion changed its people and pair/team in SQL
+     * (docs/features/event-results-import/README.md "Claiming a spot"). Call it before changing the entity: a refresh
+     * drops whatever was changed on it and not flushed.
+     */
+    public function reload(PuzzleSolvingTime $solvingTime): void
+    {
+        $this->entityManager->refresh($solvingTime);
+    }
+
     public function findById(UuidInterface $puzzleSolvingTimeId): null|PuzzleSolvingTime
     {
         return $this->entityManager->find(PuzzleSolvingTime::class, $puzzleSolvingTimeId);
@@ -151,7 +161,7 @@ readonly final class PuzzleSolvingTimeRepository
         $this->graveyardRepository->bury(new SolvingTimeGrave(
             id: Uuid::uuid7(),
             solvingTimeId: $solvingTime->id,
-            playerId: $solvingTime->player->id,
+            playerId: $solvingTime->player?->id,
             deletedAt: $now,
             deletedVia: $via,
             snapshot: RemovedResultSnapshot::of($solvingTime)->toArray(),

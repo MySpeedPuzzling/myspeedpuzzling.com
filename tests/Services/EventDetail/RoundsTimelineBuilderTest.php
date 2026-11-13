@@ -54,7 +54,7 @@ final class RoundsTimelineBuilderTest extends TestCase
         self::assertSame(DateLeaf::TONE_ONLINE, $timeline->rounds[3]->leaf->tone);
         // 22:00 in New York is the next day in UTC - the leaf shows the local day
         self::assertSame('2026-06-17', $timeline->rounds[3]->leaf->from?->format('Y-m-d'));
-        self::assertSame('2026-06-18T02:00:00Z', $timeline->rounds[3]->time->isoInstant());
+        self::assertSame('2026-06-18T02:00:00Z', $timeline->rounds[3]->time?->isoInstant());
 
         // Sessions and the page's dates: one session per round day
         self::assertCount(5, $timeline->sessions);

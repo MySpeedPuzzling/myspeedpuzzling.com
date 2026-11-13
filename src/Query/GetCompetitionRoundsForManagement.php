@@ -57,7 +57,7 @@ SQL;
              * @var array{
              *     id: string,
              *     name: string,
-             *     minutes_limit: int|string,
+             *     minutes_limit: null|int|string,
              *     starts_at: string,
              *     badge_background_color: null|string,
              *     badge_text_color: null|string,
@@ -74,7 +74,7 @@ SQL;
             return new CompetitionRoundForManagement(
                 id: $row['id'],
                 name: $row['name'],
-                minutesLimit: (int) $row['minutes_limit'],
+                minutesLimit: $row['minutes_limit'] !== null ? (int) $row['minutes_limit'] : null,
                 startsAt: new DateTimeImmutable($row['starts_at']),
                 badgeBackgroundColor: $row['badge_background_color'],
                 badgeTextColor: $row['badge_text_color'],

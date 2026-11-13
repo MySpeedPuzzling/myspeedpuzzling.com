@@ -17,7 +17,8 @@ readonly final class EditionRoundDetail
         public string $id,
         public string $name,
         public DateTimeImmutable $startsAt,
-        public int $minutesLimit,
+        // null = no limit given (CompetitionRound::$minutesLimit)
+        public null|int $minutesLimit,
         public RoundCategory $category,
         public null|string $badgeBackgroundColor,
         public null|string $badgeTextColor,
@@ -35,6 +36,8 @@ readonly final class EditionRoundDetail
         public bool $resultsPublished = false,
         // The round's online timing has live video on - the studio has a watch page (docs/features/online-competitions/)
         public bool $onlineVideo = false,
+        // false = only the day is known, $startsAt is noon of it - pages show no time (CompetitionRound::$startTimeKnown)
+        public bool $startTimeKnown = true,
     ) {
     }
 }

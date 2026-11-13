@@ -50,7 +50,7 @@ final readonly class RoundClock
             $round->stopwatchStatus,
             $round->stopwatchStartedAt,
             $round->stopwatchStoppedAt,
-            $round->minutesLimit,
+            $round->minutesLimit ?? 0, // only an imported round has no limit - it is never timed
             $now,
         );
     }

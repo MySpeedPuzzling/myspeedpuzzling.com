@@ -137,6 +137,8 @@ SELECT pst.player_id, pst.competition_round_id AS round_id
 FROM puzzle_solving_time pst
 INNER JOIN competition_round cr ON cr.id = pst.competition_round_id
 WHERE cr.competition_id = :competitionId
+    -- Not an imported event result nobody has claimed yet (docs/features/event-results-import/README.md)
+    AND pst.player_id IS NOT NULL
 UNION
 SELECT ptm.player_id, pst.competition_round_id AS round_id
 FROM puzzle_solving_time pst

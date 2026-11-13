@@ -40,6 +40,11 @@ readonly final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange
 
         // A result moved to another puzzle is gone from the one it left, like a deleted one
         if ($event instanceof PuzzleSolvingTimeDeleted || $event instanceof PuzzleSolvingTimeMovedToOtherPuzzle) {
+            // No tracker = an imported event result nobody claimed - a pair's or team's, nothing of anybody's solo metrics
+            if ($event->playerId === null) {
+                return;
+            }
+
             $playerId = $event->playerId->toString();
             $piecesCount = $event->piecesCount;
         } else {

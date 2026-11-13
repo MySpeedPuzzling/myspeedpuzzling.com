@@ -21,12 +21,13 @@
                             {% endif %}
 
                             {# Share / edit / delete, like in the recent activity - whoever tracked the time and every group member #}
-                            {% if logged_user.profile is not null and puzzle.isEditableBy(logged_user.profile.playerId) %}
+                            {% if logged_user.profile is not null and (puzzle.isEditableBy(logged_user.profile.playerId) or puzzle.isReleasableBy(logged_user.profile.playerId)) %}
                                 {{ include('_time_actions_menu.html.twig', {
                                     time_id: puzzle.timeId,
                                     puzzle_name: puzzle.puzzleName,
                                     can_delete: puzzle.playerId is same as logged_user.profile.playerId,
                                     edit_context: 'profile',
+                                    imported: puzzle.importedFromEvent,
                                 }) }}
                             {% endif %}
                         </div>

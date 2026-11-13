@@ -293,6 +293,16 @@ readonly final class PlayerNotification
             || $this->notificationType === NotificationType::GuestLinkAccepted;
     }
 
+    /**
+     * An imported event result (docs/features/event-results-import/README.md "Gates"): somebody joined a team the player
+     * claimed, or the player's claim was taken back.
+     */
+    public function isEventResultClaimNotification(): bool
+    {
+        return $this->notificationType === NotificationType::EventResultClaimed
+            || $this->notificationType === NotificationType::EventResultClaimRemoved;
+    }
+
     public function isPuzzlingTeamRenamedNotification(): bool
     {
         return $this->notificationType === NotificationType::PuzzlingTeamRenamed;

@@ -204,7 +204,7 @@ readonly final class MarkedTimeEditRecheck
             $assessment = $judge && $time->secondsToSolve !== null && $time->secondsToSolve > 0
                 ? $this->singleTimeSuspicionCheck->forEntry(
                     // A solo time is judged against its player - whoever tracked it, whoever edits it
-                    $time->player->id->toString(),
+                    $time->tracker()->id->toString(),
                     $time->puzzle->id->toString(),
                     $time->secondsToSolve,
                     $time->puzzlingType,

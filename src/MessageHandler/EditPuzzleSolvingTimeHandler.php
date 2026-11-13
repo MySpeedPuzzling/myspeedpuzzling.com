@@ -106,7 +106,7 @@ readonly final class EditPuzzleSolvingTimeHandler
         $puzzle = $solvingTime->puzzle;
 
         if ($message->puzzleId !== null && strtolower($message->puzzleId) !== $puzzle->id->toString()) {
-            if ($solvingTime->player->id->equals($currentPlayer->id) === false) {
+            if ($solvingTime->isTrackedBy($currentPlayer) === false) {
                 throw new CanNotModifyOtherPlayersTime();
             }
 
@@ -120,7 +120,7 @@ readonly final class EditPuzzleSolvingTimeHandler
 
         // Always assembled around whoever tracked the time, never around the editor - the row stays
         // theirs (first puzzler, not removable) no matter which group member edits it
-        $group = $this->puzzlersGrouping->assembleGroup($solvingTime->player, $message->groupPlayers);
+        $group = $this->puzzlersGrouping->assembleGroup($solvingTime->tracker(), $message->groupPlayers);
 
         $competition = null;
         $competitionSeries = null;
@@ -154,7 +154,7 @@ readonly final class EditPuzzleSolvingTimeHandler
             $firstTry = $this->firstTryAssessor->assess(new FirstTryEntry(
                 actorPlayerId: $currentPlayer->id->toString(),
                 puzzleId: $puzzle->id->toString(),
-                memberPlayerIds: FirstTryEntry::memberIdsOf($solvingTime->player->id->toString(), $group),
+                memberPlayerIds: FirstTryEntry::memberIdsOf($solvingTime->tracker()->id->toString(), $group),
                 solvedAt: $finishedAt ?? $solvingTime->trackedAt,
                 editedTimeId: $solvingTime->id->toString(),
                 previouslyFirstAttempt: $puzzleChanges ? false : $solvingTime->firstAttempt,
@@ -191,7 +191,7 @@ readonly final class EditPuzzleSolvingTimeHandler
         if ($message->finishedPuzzlesPhoto !== null) {
             $extension = $message->finishedPuzzlesPhoto->guessExtension();
             $timestamp = $this->clock->now()->getTimestamp();
-            $finishedPuzzlePhotoPath = "players/{$solvingTime->player->id->toString()}/{$message->puzzleSolvingTimeId}-$timestamp.$extension";
+            $finishedPuzzlePhotoPath = "players/{$solvingTime->tracker()->id->toString()}/{$message->puzzleSolvingTimeId}-$timestamp.$extension";
 
             // The browser's reading of a photo it shrank (no EXIF left in the file) - docs/features/upload-image-metadata.md
             $finishedPuzzlePhotoUploadMetadata = UploadedImageMetadata::preferring(

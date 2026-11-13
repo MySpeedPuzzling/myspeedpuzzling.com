@@ -21,6 +21,8 @@ readonly final class RoundResult
         public null|int $piecesPlaced,
         public null|int $finishedLaterSeconds,
         public null|DateTimeImmutable $finishedAt,
+        // Name of the pair/team, when it has one - an imported event result nobody has claimed yet is shown by it
+        public null|string $teamName = null,
     ) {
     }
 

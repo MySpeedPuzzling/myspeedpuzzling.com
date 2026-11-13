@@ -50,7 +50,8 @@ readonly final class RoundStopwatchState implements \JsonSerializable
             storedStatus: $round->stopwatchStatus,
             startedAt: $round->stopwatchStartedAt,
             stoppedAt: $round->stopwatchStoppedAt,
-            minutesLimit: $round->minutesLimit,
+            // Only an imported round has no limit - it is never timed here (its results come from the sheet)
+            minutesLimit: $round->minutesLimit ?? 0,
             asOf: $asOf,
         );
     }

@@ -14,6 +14,7 @@ use Normalizer;
 readonly final class TeamComposition
 {
     private const string GUEST_PREFIX = 'g:';
+    public const string ANONYMOUS_PREFIX = 'a:';
 
     /**
      * @param non-empty-list<TeamCompositionMember> $members Sorted by member key
@@ -30,6 +31,12 @@ readonly final class TeamComposition
         $position = 0;
 
         foreach ($group->puzzlers as $puzzler) {
+            // Unique per imported team, so two anonymous teams of the same size never become one team
+            if ($puzzler->anonymousSlot !== null) {
+                $members[$puzzler->anonymousSlot] = new TeamCompositionMember($puzzler->anonymousSlot, null, null, $position++);
+                continue;
+            }
+
             if ($puzzler->playerId !== null) {
                 $memberKey = strtolower($puzzler->playerId);
 

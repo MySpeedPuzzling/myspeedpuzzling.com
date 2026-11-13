@@ -1,0 +1,58 @@
+{#
+    "This was my team" (ClaimEventResultSlotController, docs/features/event-results-import/README.md "Claiming a spot").
+
+    Inputs:
+      - context: EventResultClaimContext
+      - viewer_id: string
+      - error: null|string - why the claim was refused
+      - in_modal: bool
+#}
+{{ include('event_result_claim/_result_summary.html.twig') }}
+{{ include('event_result_claim/_error.html.twig') }}
+
+{% if context.isClaimer(viewer_id) %}
+    <p class="fs-sm mb-0" data-testid="event-result-already-yours">{{ 'event_result_claim.claim.already_yours'|trans }}</p>
+{% elseif not context.hasSpotLeft %}
+    <p class="fs-sm mb-0" data-testid="event-result-team-full">{{ 'event_result_claim.refused.team_full'|trans }}</p>
+{% else %}
+    <form method="post" action="{{ path('event_result_claim', {timeId: context.timeId}) }}" data-testid="event-result-claim-form"{% if in_modal %} data-turbo-frame="modal-frame"{% endif %}>
+        <input type="hidden" name="_token" value="{{ csrf_token('event_result_claim') }}">
+
+        <p class="fs-sm">{{ 'event_result_claim.claim.intro'|trans }}</p>
+
+        {% if context.asksFirstTry %}
+            <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" role="switch" id="event-result-first-try" name="first_try" value="1">
+                <label class="form-check-label" for="event-result-first-try">{{ 'event_result_claim.claim.first_try'|trans }}</label>
+            </div>
+        {% endif %}
+
+        {% if context.sameResultCandidates is not empty %}
+            <fieldset class="mb-3" data-testid="event-result-same-result">
+                <legend class="fs-sm fw-semibold mb-1">{{ 'event_result_claim.claim.same_result'|trans }}</legend>
+                <p class="fs-xs text-muted mb-2">{{ 'event_result_claim.claim.same_result_help'|trans }}</p>
+                {% for candidate in context.sameResultCandidates %}
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="same_result" id="same-result-{{ candidate.timeId }}" value="{{ candidate.timeId }}">
+                        <label class="form-check-label fs-sm" for="same-result-{{ candidate.timeId }}">
+                            {{ candidate.solvedAt|date('d.m.Y') }}
+                            {% if candidate.seconds is not null %}· <span class="tabular-nums">{{ candidate.seconds|puzzlingTime }}</span>{% endif %}
+                            {% if candidate.puzzlersCount > 1 %}· {{ 'event_result_claim.claim.puzzlers'|trans({'%count%': candidate.puzzlersCount}) }}{% endif %}
+                        </label>
+                    </div>
+                {% endfor %}
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="same_result" id="same-result-none" value="" checked>
+                    <label class="form-check-label fs-sm" for="same-result-none">{{ 'event_result_claim.claim.same_result_no'|trans }}</label>
+                </div>
+            </fieldset>
+        {% endif %}
+
+        <div class="d-flex flex-wrap gap-2 justify-content-end">
+            {% if in_modal %}
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">{{ 'event_result_claim.cancel'|trans }}</button>
+            {% endif %}
+            <button type="submit" class="btn btn-primary btn-sm">{{ 'event_result_claim.claim.submit'|trans }}</button>
+        </div>
+    </form>
+{% endif %}

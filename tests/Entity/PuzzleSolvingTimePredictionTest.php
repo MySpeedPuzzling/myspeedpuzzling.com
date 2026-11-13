@@ -223,7 +223,7 @@ final class PuzzleSolvingTimePredictionTest extends KernelTestCase
     private function pairWithGuest(PuzzleSolvingTime $time): PuzzlersGroup
     {
         return new PuzzlersGroup(null, [
-            new Puzzler($time->player->id->toString(), null, null, null, false),
+            new Puzzler($time->tracker()->id->toString(), null, null, null, false),
             new Puzzler(null, 'Guest Puzzler', null, null, false),
         ]);
     }

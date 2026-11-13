@@ -15,7 +15,8 @@ readonly final class AddCompetitionRound
         public UuidInterface $roundId,
         public string $competitionId,
         public string $name,
-        public int $minutesLimit,
+        // null = no limit given (only the import of an organizer's results sheet)
+        public null|int $minutesLimit,
         // The instant (UTC); the organiser typed it as local time in $timezone
         public DateTimeImmutable $startsAt,
         public string $timezone,
@@ -28,6 +29,8 @@ readonly final class AddCompetitionRound
         // The expected size of a team round's teams (CompetitionRound::TEAM_SIZE_MIN..TEAM_SIZE_MAX), null = not set;
         // ignored for solo and pair rounds
         public null|int $teamSize = null,
+        // false = only the day is known, $startsAt is noon of it (CompetitionRound::$startTimeKnown)
+        public bool $startTimeKnown = true,
     ) {
     }
 }

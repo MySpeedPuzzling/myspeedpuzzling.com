@@ -148,7 +148,7 @@ final class EditCompetitionRoundHandlerTest extends KernelTestCase
             roundId: CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION,
             competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
             name: $round->name,
-            minutesLimit: $round->minutesLimit,
+            minutesLimit: $round->minutesLimit ?? 0,
             startsAt: $startsAt,
             timezone: $timezone,
             badgeBackgroundColor: $round->badgeBackgroundColor,

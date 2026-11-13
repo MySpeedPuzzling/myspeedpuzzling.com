@@ -38,6 +38,7 @@ final class DraftVisibilityCoverageTest extends TestCase
         'MessageHandler/CloseFinishedPartnerListingsHandler.php' => self::WRITE,
         'MessageHandler/ConvertCompetitionToSeriesHandler.php' => self::WRITE,
         'MessageHandler/DeleteCompetitionSeriesHandler.php' => self::WRITE,
+        'Query/GetEventResultClaims.php' => 'Names the event of one imported result in its claim modal - the import creates its events published, never as drafts (docs/features/event-results-import).',
         'Query/GetCompetitionPageSections.php' => 'The detail pages ask for sections only while the event or series is publicly visible; the editors are organiser tooling.',
         'Query/GetCompetitionPermissions.php' => self::ORGANISER,
         'Query/GetCompetitionRoundsForManagement.php' => self::ORGANISER,

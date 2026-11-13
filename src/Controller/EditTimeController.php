@@ -94,6 +94,12 @@ final class EditTimeController extends AbstractController
 
         $solvedPuzzle = $this->getPlayerSolvedPuzzles->byTimeId($timeId);
 
+        // An imported event result is the event's: nobody edits it, its claimers remove it from their profile instead
+        // (docs/features/event-results-import/README.md "Gates") - every edit link of one leads there
+        if ($solvedPuzzle->importedFromEvent) {
+            return $this->redirectToRoute('event_result_release', ['timeId' => $timeId]);
+        }
+
         if ($solvedPuzzle->isEditableBy($player->playerId) === false) {
             throw $this->createAccessDeniedException();
         }

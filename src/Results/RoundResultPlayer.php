@@ -17,6 +17,8 @@ readonly final class RoundResultPlayer
         public bool $isPrivate,
         public null|string $skillTierName,
         public bool $rankingOptedOut,
+        // A person of an imported event result nobody has claimed yet (docs/features/event-results-import/README.md)
+        public null|string $anonymousSlot = null,
     ) {
     }
 }

@@ -645,7 +645,7 @@ final class SecretPuzzleSafeguardsTest extends KernelTestCase
             roundId: CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION,
             competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
             name: $round->name,
-            minutesLimit: $round->minutesLimit,
+            minutesLimit: $round->minutesLimit ?? 0,
             startsAt: $startsAt,
             timezone: 'Europe/Prague',
             badgeBackgroundColor: $round->badgeBackgroundColor,

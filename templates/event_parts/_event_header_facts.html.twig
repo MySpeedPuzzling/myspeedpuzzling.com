@@ -19,7 +19,7 @@
 {% endif %}
 {#- One round: its start time in the event's zone, named (docs/features/events-page/high-frequency-series.md P30) - with
     two or more each round's row says it -#}
-{% if timeline.rounds|length == 1 %}<span class="ev-detail-fact" data-header-round-time>{{ include('event_parts/_event_time.html.twig', {time: (timeline.rounds|first).time, online: event_place.isOnline}) }}</span>{% endif %}
+{% if timeline.rounds|length == 1 and (timeline.rounds|first).time %}<span class="ev-detail-fact" data-header-round-time>{{ include('event_parts/_event_time.html.twig', {time: (timeline.rounds|first).time, online: event_place.isOnline}) }}</span>{% endif %}
 {% if timeline.isLive %}<span class="ev-detail-fact ev-when-live">{{ include('event_parts/_live.html.twig') }}</span>{% endif %}
 {% if recurring %}<span class="ev-detail-fact">{{ 'event_detail.facts.recurring'|trans }}</span>{% endif %}
 {% if timeline.rounds|length >= 2 %}<span class="ev-detail-fact">{{ 'event_detail.facts.rounds'|trans({'%count%': timeline.rounds|length}) }}</span>{% endif %}

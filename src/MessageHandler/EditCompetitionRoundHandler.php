@@ -137,6 +137,8 @@ readonly final class EditCompetitionRoundHandler
             badgeTextColor: $keep('badgeTextColor') ? $round->badgeTextColor : $message->badgeTextColor,
             category: $category,
             resultsLink: $keep('resultsLink') ? $round->resultsLink : $message->resultsLink,
+            // A start the organiser saved is a known one - a kept start stays as known as it was
+            startTimeKnown: $keep('startsAt') ? $round->startTimeKnown : true,
         );
         $round->changeRevealDelay($revealDelayMinutes);
 

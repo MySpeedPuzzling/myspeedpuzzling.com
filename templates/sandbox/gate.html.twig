@@ -1,0 +1,53 @@
+{# The sandbox's welcome page (SandboxGateSubscriber) - answered with 401 until "Enter". Standalone on purpose: it
+   renders before routing, so nothing of base.html.twig (route, user, locale switcher) exists yet. #}
+<!DOCTYPE html>
+<html lang="{{ locale }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="robots" content="noindex, nofollow, noarchive">
+    <title>{{ 'sandbox_gate.title'|trans({}, 'messages', locale) }} – MySpeedPuzzling</title>
+    <link rel="icon" href="/favicon.ico">
+    <style>
+        :root { --navy: #2b3445; --coral: #d63c42; --coral-soft: #fe696a; --muted: #5a6478; --bg: #f6f7fb; --card: #fff; }
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--navy);
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+        main { width: 100%; max-width: 560px; background: var(--card); border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(43, 52, 69, .10); padding: 28px 24px 32px; text-align: center; }
+        img { display: block; width: 100%; max-width: 420px; height: auto; margin: 0 auto 16px; aspect-ratio: 4 / 3; mix-blend-mode: multiply; }
+        .tag { display: inline-block; background: #fff4d6; color: #7a5a00; border-radius: 999px;
+            font-size: .8rem; font-weight: 600; padding: 4px 12px; margin-bottom: 12px; }
+        h1 { font-size: 1.6rem; line-height: 1.25; margin: 0 0 12px; text-wrap: balance; }
+        h1, p, li, a { word-break: auto-phrase; }
+        p.lead { font-size: 1.05rem; line-height: 1.5; margin: 0 0 20px; color: var(--muted); }
+        ul { text-align: left; margin: 0 0 24px; padding: 0; list-style: none; }
+        li { position: relative; padding: 0 0 10px 30px; line-height: 1.45; }
+        li::before { content: "✓"; position: absolute; left: 4px; top: 0; color: var(--coral-soft); font-weight: 700; }
+        button { width: 100%; min-height: 52px; border: 0; border-radius: 12px; background: var(--coral); color: #fff;
+            font-size: 1.1rem; font-weight: 700; cursor: pointer; }
+        button:hover, button:focus-visible { background: #b8323a; }
+        button:focus-visible { outline: 3px solid var(--navy); outline-offset: 2px; }
+        .real { display: inline-block; margin-top: 16px; color: var(--navy); font-weight: 600; }
+    </style>
+</head>
+<body>
+    <main data-testid="sandbox-gate">
+        <img src="/img/sandbox/sandbox-gate.webp" width="840" height="630" alt="{{ 'sandbox_gate.image_alt'|trans({}, 'messages', locale) }}">
+        <span class="tag">{{ 'sandbox_gate.tag'|trans({}, 'messages', locale) }}</span>
+        <h1>{{ 'sandbox_gate.title'|trans({}, 'messages', locale) }}</h1>
+        <p class="lead">{{ 'sandbox_gate.lead'|trans({}, 'messages', locale) }}</p>
+        <ul>
+            <li>{{ 'sandbox_gate.point_try'|trans({}, 'messages', locale) }}</li>
+            <li>{{ 'sandbox_gate.point_safe'|trans({}, 'messages', locale) }}</li>
+            <li>{{ 'sandbox_gate.point_mail'|trans({}, 'messages', locale) }}</li>
+        </ul>
+        <form method="post" action="/sandbox/enter">
+            <input type="hidden" name="return" value="{{ return }}">
+            <button type="submit">{{ 'sandbox_gate.enter'|trans({}, 'messages', locale) }}</button>
+        </form>
+        <a class="real" href="https://myspeedpuzzling.com">{{ 'sandbox_gate.real_site'|trans({}, 'messages', locale) }}</a>
+    </main>
+</body>
+</html>

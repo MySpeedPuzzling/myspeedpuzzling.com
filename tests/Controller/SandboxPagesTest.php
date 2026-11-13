@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use SpeedPuzzling\Web\EventSubscriber\SandboxNoIndexSubscriber;
+use SpeedPuzzling\Web\Services\Sandbox\SandboxGate;
+use Symfony\Component\BrowserKit\Cookie;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
@@ -24,6 +26,7 @@ final class SandboxPagesTest extends WebTestCase
         $_ENV['SANDBOX'] = $_SERVER['SANDBOX'] = '1';
         $_ENV['SANDBOX_URL'] = $_SERVER['SANDBOX_URL'] = 'https://sandbox.myspeedpuzzling.com';
         $client = self::createClient([], ['HTTP_HOST' => 'sandbox.myspeedpuzzling.com', 'HTTPS' => 'on']);
+        $client->getCookieJar()->set(new Cookie(SandboxGate::COOKIE, '1', null, '/', 'sandbox.myspeedpuzzling.com'));
 
         $crawler = $client->request('GET', '/en/for-developers');
 

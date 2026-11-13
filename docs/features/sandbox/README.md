@@ -31,25 +31,34 @@ could reach production's bucket and backups, the app only ever uses `S3_BUCKET`)
 e-mail is real but marked and kept apart from production (§6). The one thing it reads from production is the **public** image host for catalogue
 pictures — what any browser gets.
 
-## 3. Search engines: a published password
+## 3. Search engines: a welcome page with an Enter button
 
-The pages ask for a password (Traefik basicAuth): **user `sandbox`, password `sandbox`** — written on the For
-developers page. It is not there to keep people out; it keeps every crawler out, because no crawler sends credentials,
-so none ever reads a page. On top of that, every answer carries `X-Robots-Tag: noindex, nofollow, noarchive,
-nosnippet, noimageindex` (Traefik on every router **and** the app's `SandboxNoIndexSubscriber`), every page a
-`<meta name="robots" content="noindex…">` (`base.html.twig`), and `robots.txt` says `Disallow: /` (site and images).
+**Since 2026-11-13 (Jan's call, replaces the published basicAuth password `sandbox`/`sandbox`):** until a visitor
+pressed **Enter**, every page answers the sandbox's welcome page (`templates/sandbox/gate.html.twig`, picture
+`public/img/sandbox/sandbox-gate.webp`) with **401** + `noindex` + `no-store`: what the sandbox is, that nothing done
+there touches production, that its e-mails are real with `[Sandbox]` in the subject. Enter is a **POST**
+(`/sandbox/enter`, `SandboxEnterController`): it sets the cookie `msp_sandbox_entered` (1 year, HttpOnly, Lax) and
+continues to the page asked for (`ReturnUrl::tryFrom()`, else `/`). Crawlers follow links, they do not submit forms,
+so none of them ever gets a real page. The check (`SandboxGateSubscriber`) runs before routing - an unknown URL is the
+welcome page too, never a 404 page of the site. Why not the password: links in e-mails (sign-in, password reset,
+OAuth2 claim, an invitation) landed on the browser's password prompt; `https://user:pass@host` links are a phishing
+pattern spam filters punish and browsers treat differently.
 
-Open without the password, because a password would break them: `/api/` (Bearer tokens — a basicAuth takes the
-`Authorization` header), `/oauth2/token`, `/internal-api/`, `/-/` (health, telemetry), static files. They are
-JSON or files, carry `noindex` and nothing links to them from outside. `/api/docs` (Swagger UI) is HTML on that
-open router: noindex + robots.txt + no inbound links.
+Even if a bot pressed the button, nothing would be indexed: every answer carries `X-Robots-Tag: noindex, nofollow,
+noarchive, nosnippet, noimageindex` (Traefik on every router **and** the app's `SandboxNoIndexSubscriber`), every page
+a `<meta name="robots" content="noindex…">` (`base.html.twig`), and `robots.txt` says `Disallow: /` (site and images).
+
+Never behind the welcome page (`SandboxGate::isOpenPath()`, the same list as lily's open router): `/api/`,
+`/oauth2/token`, `/internal-api/`, `/-/` (health, telemetry), `robots.txt`, `/sandbox/enter`; static files never reach
+the app. They are JSON or files, carry `noindex` and nothing links to them from outside. `/api/docs` (Swagger UI) is
+HTML there: noindex + robots.txt + no inbound links.
 
 **Why not a Cloudflare challenge:** every API client (curl, a server-side OAuth2 token exchange) fails a challenge,
 the challenge needs the host proxied through Cloudflare (today the `*.myspeedpuzzling.com` wildcard is DNS-only), and
 it depends on Cloudflare's bot scoring instead of a rule that holds by construction.
 
 The host will show up in Certificate Transparency logs (every Let's Encrypt certificate is public) — bots will
-knock and get a 401.
+knock and get the welcome page with a 401.
 
 ## 4. Data
 
@@ -183,6 +192,7 @@ All behind a marker file (`/var/lib/msp-sandbox/cron.on`), created only after th
 |---|---|
 | The switch | `Services\Sandbox\SandboxMode` (`SANDBOX`), Twig globals `sandbox`, `sandbox_url` |
 | Noindex header | `EventSubscriber\SandboxNoIndexSubscriber` |
+| Welcome page (Enter) | `Services\Sandbox\SandboxGate`, `EventSubscriber\SandboxGateSubscriber`, `Controller\SandboxEnterController`, `templates/sandbox/gate.html.twig` (`sandbox_gate.*`, 6 locales), picture prompt `docs/design-system/prompts/subjects/sandbox-gate.md` |
 | Banner, noindex meta | `templates/base.html.twig` (`sandbox_banner.*` in 6 locales) |
 | For developers | `templates/for-developers.html.twig` — examples on `app.request.schemeAndHttpHost`, Sandbox section when `SANDBOX_URL` is set (`for_developers.sandbox_*`, 6 locales) |
 | Membership | `EventSubscriber\SandboxMembershipOnLoginSubscriber` → `GrantSandboxMembership`, `Services\Sandbox\SandboxMembership` |
@@ -190,7 +200,7 @@ All behind a marker file (`/var/lib/msp-sandbox/cron.on`), created only after th
 | People + results | `CreateSandboxPlayers`, `Services\Sandbox\SandboxPeople`, `SandboxTimeModel`, `SandboxResultPlanner`, `Query\GetSandboxSimulationData`, `Value\SandboxPlayer`/`SandboxPuzzle`/`SandboxPlannedResult`, commands `myspeedpuzzling:sandbox:seed` / `simulate-activity` |
 | Sentry environment | `config/packages/sentry.php` |
 | Deploy | `.github/workflows/test.yml` job `deploy-sandbox` (after a production deploy; a notice until the GitHub secret `DEPLOY_WEBHOOK_SECRET_SANDBOX` exists) |
-| Tests | `tests/Services/Sandbox/*`, `SandboxOnlyMessagesTest`, `CreateSandboxPlayersHandlerTest`, `GrantSandboxMembershipHandlerTest`, `SandboxSimulatedResultsTest`, `SandboxNoIndexSubscriberTest`, `SandboxPagesTest` |
+| Tests | `tests/Services/Sandbox/*`, `SandboxOnlyMessagesTest`, `CreateSandboxPlayersHandlerTest`, `GrantSandboxMembershipHandlerTest`, `SandboxSimulatedResultsTest`, `SandboxNoIndexSubscriberTest`, `SandboxPagesTest`, `SandboxGateTest` |
 
 A new table that should be in the catalogue: add it to `SandboxCatalogue::COLUMNS` with its export query —
 **public data only**. A new member feature needs nothing: the sandbox's members are ordinary members.
@@ -206,8 +216,8 @@ A new table that should be in the catalogue: add it to `SandboxCatalogue::COLUMN
 
 ## 13. Smoke test
 
-- [ ] `curl -sI https://sandbox.myspeedpuzzling.com/` → 401, `WWW-Authenticate: Basic`, `X-Robots-Tag: noindex…`
-- [ ] With `sandbox`/`sandbox`: the banner on every page, `<meta name="robots" content="noindex…">`, Sentry
+- [ ] `curl -sI https://sandbox.myspeedpuzzling.com/` → 401 (the welcome page, no `WWW-Authenticate`), `X-Robots-Tag: noindex…`
+- [ ] After Enter: back on the page asked for; the banner on every page, `<meta name="robots" content="noindex…">`, Sentry
       environment `sandbox` on a deliberate 404-free error (e.g. the free account's Buy with the dummy key)
 - [ ] `/robots.txt` and `https://sandbox-img.myspeedpuzzling.com/robots.txt` → `Disallow: /`
 - [ ] Register with a password → signed in → a member (the membership page says so); the verification e-mail
@@ -218,7 +228,7 @@ A new table that should be in the catalogue: add it to `SandboxCatalogue::COLUMN
 - [ ] For developers → create a personal access token → `curl -H "Authorization: Bearer …"
       https://sandbox.myspeedpuzzling.com/api/v1/me` → the sandbox account; the same token on production → 401
 - [ ] Register an OAuth2 app, approve it as the sandbox admin, run the authorization code flow end to end (the
-      password prompt appears once in the browser)
+      welcome page appears once in the browser)
 - [ ] Create an event with rounds as a made-up player; approve it as the admin; it is on `/en/events`
 - [ ] `test-user+free@myspeedpuzzling.com` sees the membership offer; every other made-up player is a member
 - [ ] Ten minutes later: new results of made-up players on the Hub (the activity cron)

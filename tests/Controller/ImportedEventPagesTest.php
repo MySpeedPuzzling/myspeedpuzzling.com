@@ -84,7 +84,14 @@ final class ImportedEventPagesTest extends WebTestCase
 
         $this->browser->request('GET', '/en/events/' . $event['slug'] . '/results/' . $event['round_slug']);
         self::assertResponseIsSuccessful();
-        self::assertStringContainsString('Edge Lords', (string) $this->browser->getResponse()->getContent());
+        $results = (string) $this->browser->getResponse()->getContent();
+        self::assertStringContainsString('Edge Lords', $results);
+        // The organizer's results are the event's official ones: ranked, without the "not the official results" note
+        self::assertStringContainsString('data-round-organizer-results', $results);
+        self::assertStringNotContainsString('data-round-unofficial', $results);
+        // 1:12:04 is 1:51 behind 1:10:13 - the leaderboard's gap line
+        self::assertStringContainsString('lb-gaps', $results);
+        self::assertSame(['1', '2'], array_map('trim', $this->browser->getCrawler()->filter('[data-round-result-rank]')->each(static fn ($cell): string => $cell->text())));
 
         $this->browser->request('GET', '/en/organizations/' . OrganizationFixture::ORGANIZATION_RIVERBEND_SLUG);
         self::assertResponseIsSuccessful();

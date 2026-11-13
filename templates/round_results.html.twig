@@ -21,7 +21,8 @@
     {#- Whenever the times puzzlers logged are listed (no published official results): they are not the official results -
         the organiser's are one tap away, in the label - the header then has no button of its own
         (docs/features/events-page/high-frequency-series.md "Edition page and round results") -#}
-    {% set unofficial_label = page.officialResults is null and round.puzzles is not empty %}
+    {% set organizer_results = page.officialResults is null and page.hasOrganizerResults() %}
+    {% set unofficial_label = page.officialResults is null and round.puzzles is not empty and not organizer_results %}
 
     {{ include('_return_back_button.html.twig', {fallbackUrl: event_url, fallbackTitle: event.name}) }}
 
@@ -98,6 +99,14 @@
             {%- if page.officialResultsLink %}
                 <span class="text-muted mx-1" aria-hidden="true">·</span><a href="{{ page.officialResultsLink }}" target="_blank" rel="noopener" class="text-nowrap" data-round-official-link>{{ 'round_results.official_results'|trans }}<span aria-hidden="true"> ↗</span></a>
             {%- endif %}
+        </p>
+    {% endif %}
+
+    {#- Imported from the organizer's results sheet (docs/features/event-results-import/): the event's official results -#}
+    {% if organizer_results %}
+        <p class="small mb-3" data-round-organizer-results>
+            <i class="bi bi-trophy me-1 text-muted" aria-hidden="true"></i><span class="fw-medium">{{ 'round_results.official.heading'|trans }}</span>
+            <span class="text-muted mx-1" aria-hidden="true">·</span><span class="text-muted">{{ 'round_results.official.source'|trans }}</span>
         </p>
     {% endif %}
 

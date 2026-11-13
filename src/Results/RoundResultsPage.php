@@ -37,6 +37,22 @@ readonly final class RoundResultsPage
     ) {
     }
 
+    /**
+     * The round's results come from the organizer's results sheet - they are its official results, ranked
+     */
+    public function hasOrganizerResults(): bool
+    {
+        foreach ($this->results as $puzzleResults) {
+            foreach ($puzzleResults as $result) {
+                if ($result->fromOrganizer) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     public function resultsCount(): int
     {
         return array_sum(array_map('count', $this->results));

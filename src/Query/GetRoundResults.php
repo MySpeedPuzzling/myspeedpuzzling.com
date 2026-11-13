@@ -57,6 +57,8 @@ SELECT
     pst.finished_at,
     pst.tracked_at,
     p.pieces_count,
+    -- From the organizer's results sheet (docs/features/event-results-import/) - the event's official results
+    pst.created_via = 'event_import' AS from_organizer,
     (SELECT puzzling_team.name FROM puzzling_team WHERE puzzling_team.id = pst.puzzling_team_id) AS team_name,
     owner.id AS owner_id,
     owner.name AS owner_name,
@@ -78,7 +80,7 @@ SQL,
             ['roundId' => $round->id],
         )->fetchAllAssociative();
 
-        /** @var list<array{time_id: string, puzzle_id: string, team: null|string, seconds_to_solve: null|int|string, pieces_placed: null|int|string, finished_later_seconds: null|int|string, finished_at: null|string, tracked_at: string, pieces_count: int|string, team_name: null|string, owner_id: null|string, owner_name: null|string, owner_code: null|string, owner_country: null|string, owner_is_private: null|bool, owner_ranking_opted_out: null|bool, owner_skill_tier: null|int|string}> $rows */
+        /** @var list<array{time_id: string, puzzle_id: string, team: null|string, seconds_to_solve: null|int|string, pieces_placed: null|int|string, finished_later_seconds: null|int|string, finished_at: null|string, tracked_at: string, pieces_count: int|string, from_organizer: null|bool, team_name: null|string, owner_id: null|string, owner_name: null|string, owner_code: null|string, owner_country: null|string, owner_is_private: null|bool, owner_ranking_opted_out: null|bool, owner_skill_tier: null|int|string}> $rows */
 
         $members = $this->loadGroupMembers($rows);
         // Without a limit every finished time is within it
@@ -86,7 +88,7 @@ SQL,
 
         /** @var array<string, array<string, true>> $seenPerPuzzle */
         $seenPerPuzzle = [];
-        /** @var array<string, list<array{players: non-empty-list<RoundResultPlayer>, row: array{time_id: string, puzzle_id: string, seconds_to_solve: null|int|string, pieces_placed: null|int|string, finished_later_seconds: null|int|string, finished_at: null|string, team_name: null|string, ...}, status: RoundResultStatus}>> $candidates */
+        /** @var array<string, list<array{players: non-empty-list<RoundResultPlayer>, row: array{time_id: string, puzzle_id: string, seconds_to_solve: null|int|string, pieces_placed: null|int|string, finished_later_seconds: null|int|string, finished_at: null|string, from_organizer: null|bool, team_name: null|string, ...}, status: RoundResultStatus}>> $candidates */
         $candidates = [];
 
         foreach ($rows as $row) {
@@ -125,7 +127,7 @@ SQL,
     }
 
     /**
-     * @param list<array{players: non-empty-list<RoundResultPlayer>, row: array{time_id: string, puzzle_id: string, seconds_to_solve: null|int|string, pieces_placed: null|int|string, finished_later_seconds: null|int|string, finished_at: null|string, team_name: null|string, ...}, status: RoundResultStatus}> $candidates
+     * @param list<array{players: non-empty-list<RoundResultPlayer>, row: array{time_id: string, puzzle_id: string, seconds_to_solve: null|int|string, pieces_placed: null|int|string, finished_later_seconds: null|int|string, finished_at: null|string, from_organizer: null|bool, team_name: null|string, ...}, status: RoundResultStatus}> $candidates
      * @return list<RoundResult>
      */
     private function order(array $candidates): array
@@ -152,9 +154,39 @@ SQL,
         });
 
         $ordered = [];
+        // The organizer's results are ranked among themselves (equal times share a place) - a time somebody logged
+        // themselves never moves an official place
+        $rank = 0;
+        $ranked = 0;
+        $previousSeconds = null;
+        $leaderSeconds = null;
 
         foreach ($candidates as $candidate) {
             $row = $candidate['row'];
+            $fromOrganizer = $row['from_organizer'] === true;
+            $resultRank = null;
+            $gapToLeader = null;
+            $gapToFaster = null;
+
+            if ($fromOrganizer && $candidate['status'] === RoundResultStatus::Finished) {
+                $ranked++;
+                $seconds = (int) $row['seconds_to_solve'];
+
+                // The leaderboard's gaps (_time_gaps.html.twig): behind the fastest from the third place on, behind
+                // the result above from the second
+                if ($leaderSeconds !== null && $previousSeconds !== null) {
+                    $gapToFaster = $seconds - $previousSeconds;
+                    $gapToLeader = $ranked > 2 ? $seconds - $leaderSeconds : null;
+                }
+
+                if ($seconds !== $previousSeconds) {
+                    $rank = $ranked;
+                }
+
+                $previousSeconds = $seconds;
+                $leaderSeconds ??= $seconds;
+                $resultRank = $rank;
+            }
 
             $ordered[] = new RoundResult(
                 timeId: $row['time_id'],
@@ -166,6 +198,10 @@ SQL,
                 finishedLaterSeconds: $row['finished_later_seconds'] !== null ? (int) $row['finished_later_seconds'] : null,
                 finishedAt: $row['finished_at'] !== null ? new DateTimeImmutable($row['finished_at']) : null,
                 teamName: $row['team_name'],
+                fromOrganizer: $fromOrganizer,
+                rank: $resultRank,
+                gapToLeader: $gapToLeader,
+                gapToFaster: $gapToFaster,
             );
         }
 

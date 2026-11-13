@@ -5,10 +5,13 @@
     newline: a round page renders byte for byte as before. Expects the page context plus puzzle and puzzle_results.
 #}
 {% from 'puzzle_intelligence/_macros.html.twig' import skill_icon %}
+{#- The organizer's results (imported from their results sheet) are the official ones: their places in a first column -#}
+{% set with_rank = page.hasOrganizerResults() %}
 <div class="table-responsive custom-table-wrapper mb-4">
                 <table class="table custom-table table-striped table-hover mb-0">
                     <thead>
                     <tr>
+                        {% if with_rank %}<th class="text-center" style="width: 3rem;">#</th>{% endif %}
                         <th>{{ 'puzzler_name'|trans }}</th>
                         <th class="text-end">{{ 'round_results.column_result'|trans }}</th>
                     </tr>
@@ -18,13 +21,14 @@
                     {% for result in puzzle_results %}
                         {% if previous_status is not null and result.status != previous_status %}
                             <tr>
-                                <td colspan="2" class="small text-muted fw-medium">{{ ('round_results.section.' ~ result.status.value)|trans }}</td>
+                                <td colspan="{{ with_rank ? 3 : 2 }}" class="small text-muted fw-medium">{{ ('round_results.section.' ~ result.status.value)|trans }}</td>
                             </tr>
                         {% endif %}
                         {% set previous_status = result.status %}
 
                         {% set is_own_row = logged_user.profile is not null and result.containsPlayer(logged_user.profile.playerId) %}
                         <tr class="{{ is_own_row ? 'table-active-player' }}" data-round-result-status="{{ result.status.value }}">
+                            {% if with_rank %}<td class="text-center tabular-nums" data-round-result-rank>{{ result.rank }}</td>{% endif %}
                             <td class="player-name">
                                 {% for player in result.players|filter(p => p.anonymousSlot is null) %}
                                     {% if not loop.first %}<br>{% endif %}
@@ -54,8 +58,13 @@
                                     {% endif %}
                                 {% else %}
                                     <span class="tabular-nums">{{ result.seconds|puzzlingTime }}</span>
+                                    {% if result.rank is not null and result.rank > 1 %}
+                                        <br>{{ include('_time_gaps.html.twig', {to_leader: result.gapToLeader, to_faster: result.gapToFaster}) }}
+                                    {% endif %}
                                 {% endif %}
-                                {% if result.finishedAt is not null %}
+                                {#- An in-person round happens on its own date - only an online round solved at home and sent later
+                                    has results of different days -#}
+                                {% if event.isOnline and result.finishedAt is not null %}
                                     <br><small class="text-muted">{{ result.finishedAt|date('d.m.Y') }}</small>
                                 {% endif %}
                             </td>

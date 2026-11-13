@@ -23,6 +23,13 @@ readonly final class RoundResult
         public null|DateTimeImmutable $finishedAt,
         // Name of the pair/team, when it has one - an imported event result nobody has claimed yet is shown by it
         public null|string $teamName = null,
+        // From the organizer's results sheet - the event's official results (docs/features/event-results-import/)
+        public bool $fromOrganizer = false,
+        // Its official place among the organizer's results (finished ones only); null for every other result
+        public null|int $rank = null,
+        // Seconds behind the fastest / the result above among the organizer's ranked results (_time_gaps.html.twig)
+        public null|int $gapToLeader = null,
+        public null|int $gapToFaster = null,
     ) {
     }
 

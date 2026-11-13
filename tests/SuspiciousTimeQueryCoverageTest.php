@@ -37,6 +37,7 @@ final class SuspiciousTimeQueryCoverageTest extends TestCase
         'Query/GetAccountDeletionSummary.php' => 'Counts what an account deletion removes - everything.',
         'Query/GetAdminCompetitions.php' => self::ADMIN,
         'Query/GetAdminSeries.php' => self::ADMIN,
+        'Query/GetSandboxSimulationData.php' => 'The sandbox simulation counts a made-up player\'s own solves of a puzzle (attempt number, first try) - every one counts, like the add-time handler\'s own first-try rule.',
         'Query/GetBadges.php' => 'Reads the moment a solve was logged (achievements earned with it) - the badge evaluation itself leaves suspicious results out.',
         'Query/GetBorrowedPuzzles.php' => self::OWN,
         'Query/GetComparisonPeople.php' => self::OWN,

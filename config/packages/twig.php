@@ -33,6 +33,9 @@ return App::config([
             'pairs_teams_picker_public' => '%pairsTeamsPickerPublic%',
             // Background photo uploads (kill switch) - see docs/features/feature_flags.md
             'direct_photo_uploads' => '%directPhotoUploads%',
+            // The sandbox (docs/features/sandbox/README.md): its banner + noindex meta, and where it is for developers
+            'sandbox' => '%sandbox%',
+            'sandbox_url' => '%env(trim:string:SANDBOX_URL)%',
         ],
         'paths' => [
             '%kernel.project_dir%/public/img' => 'images',

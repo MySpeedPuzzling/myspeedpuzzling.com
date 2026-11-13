@@ -126,6 +126,13 @@ return static function (ContainerConfigurator $configurator): void {
     // Pairs & teams picker rollout (docs/features/feature_flags.md): admins only until flipped to 1.
     $parameters->set('pairsTeamsPickerPublic', '%env(bool:PAIRS_TEAMS_PICKER_PUBLIC)%');
 
+    // This installation is the sandbox (docs/features/sandbox/README.md): banner, noindex, a membership for everybody,
+    // the sandbox-only commands allowed. 0 everywhere else - production never sets it.
+    $parameters->set('env(SANDBOX)', '0');
+    $parameters->set('sandbox', '%env(bool:SANDBOX)%');
+    // Where the sandbox is, for the "Sandbox" section of the For developers page - empty = the section is not shown
+    $parameters->set('env(SANDBOX_URL)', '');
+
     // Background photo uploads straight to object storage (docs/features/feature_flags.md): the kill switch, on by default
     $parameters->set('directPhotoUploads', '%env(bool:DIRECT_PHOTO_UPLOADS)%');
 

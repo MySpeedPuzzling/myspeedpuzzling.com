@@ -5,6 +5,8 @@
 {% block meta_description %}{{ 'for_developers.meta.description'|trans }}{% endblock %}
 
 {% block content %}
+    {# The examples name the installation they are read on - the sandbox's page shows the sandbox's addresses #}
+    {% set base_url = app.request.schemeAndHttpHost %}
     <div class="text-center mb-5">
         <h1 class="mb-3"><i class="bi bi-code-slash me-2"></i>{{ 'for_developers.heading'|trans }}</h1>
         <p class="lead text-muted col-lg-8 mx-auto">{{ 'for_developers.subtitle'|trans }}</p>
@@ -54,6 +56,21 @@
             </div>
         </div>
     </div>
+
+    {% if sandbox_url is not empty %}
+        {% set sandbox_host = sandbox_url|split('://')|last|trim('/') %}
+        <div class="card border-0 shadow-sm mb-5" id="sandbox" data-testid="for-developers-sandbox">
+            <div class="card-body">
+                <h2 class="h4 mb-3"><i class="bi bi-cone-striped me-2"></i>{{ 'for_developers.sandbox_title'|trans }}</h2>
+                <p>{{ 'for_developers.sandbox_text'|trans({'%host%': sandbox_host})|raw }}</p>
+                <p>{{ 'for_developers.sandbox_gate'|trans|raw }}</p>
+                <p class="text-muted">{{ 'for_developers.sandbox_accounts'|trans|raw }}</p>
+                <a href="{{ sandbox_url }}" class="btn btn-outline-primary text-wrap" rel="noopener">
+                    <i class="bi bi-box-arrow-up-right me-1"></i> {{ 'for_developers.sandbox_button'|trans }}
+                </a>
+            </div>
+        </div>
+    {% endif %}
 
     <h2 class="h4 mb-3"><i class="bi bi-shield-lock me-2"></i>{{ 'for_developers.auth_title'|trans }}</h2>
     <p class="text-muted mb-4">{{ 'for_developers.auth_subtitle'|trans }}</p>
@@ -111,7 +128,7 @@
                     <hr class="my-3">
                     <p class="mb-0">{{ 'for_developers.pat_how_to'|trans|raw }}</p>
                     <pre class="bg-light p-3 rounded"><code>curl -H "Authorization: Token msp_pat_YOUR_TOKEN_HERE" \
-  https://myspeedpuzzling.com/api/v1/me</code></pre>
+  {{ base_url }}/api/v1/me</code></pre>
                     <p class="text-muted fs-sm mb-0">{{ 'for_developers.pat_note'|trans|raw }}</p>
                 </div>
             </div>
@@ -128,14 +145,14 @@
                     <p>{{ 'for_developers.auth_code_good_for'|trans }}</p>
                     <hr class="my-3">
                     <p class="mb-0">{{ 'for_developers.auth_code_step1'|trans|raw }}</p>
-                    <pre class="bg-light p-3 rounded"><code>https://myspeedpuzzling.com/oauth2/authorize?
+                    <pre class="bg-light p-3 rounded"><code>{{ base_url }}/oauth2/authorize?
   client_id=YOUR_CLIENT_ID
   &amp;response_type=code
   &amp;redirect_uri=https://your-app.com/callback
   &amp;scope=profile:read results:read
   &amp;state=RANDOM_STATE</code></pre>
                     <p class="mb-0">{{ 'for_developers.auth_code_step2'|trans|raw }}</p>
-                    <pre class="bg-light p-3 rounded"><code>curl -X POST https://myspeedpuzzling.com/oauth2/token \
+                    <pre class="bg-light p-3 rounded"><code>curl -X POST {{ base_url }}/oauth2/token \
   -d "grant_type=authorization_code" \
   -d "code=AUTH_CODE_FROM_REDIRECT" \
   -d "redirect_uri=https://your-app.com/callback" \
@@ -152,9 +169,9 @@ HTTP/1.1 200 OK
 }</code></pre>
                     <p class="mb-0">{{ 'for_developers.auth_code_step3'|trans|raw }}</p>
                     <pre class="bg-light p-3 rounded"><code>curl -H "Authorization: Bearer ACCESS_TOKEN" \
-  https://myspeedpuzzling.com/api/v1/me/results</code></pre>
+  {{ base_url }}/api/v1/me/results</code></pre>
                     <p class="mb-0">{{ 'for_developers.auth_code_step4'|trans|raw }}</p>
-                    <pre class="bg-light p-3 rounded"><code>curl -X POST https://myspeedpuzzling.com/oauth2/token \
+                    <pre class="bg-light p-3 rounded"><code>curl -X POST {{ base_url }}/oauth2/token \
   -d "grant_type=refresh_token" \
   -d "refresh_token=REFRESH_TOKEN" \
   -d "client_id=YOUR_CLIENT_ID" \
@@ -175,7 +192,7 @@ HTTP/1.1 200 OK
                     <p>{{ 'for_developers.client_cred_good_for'|trans }}</p>
                     <hr class="my-3">
                     <p class="mb-0">{{ 'for_developers.client_cred_step1'|trans|raw }}</p>
-                    <pre class="bg-light p-3 rounded"><code>curl -X POST https://myspeedpuzzling.com/oauth2/token \
+                    <pre class="bg-light p-3 rounded"><code>curl -X POST {{ base_url }}/oauth2/token \
   -d "grant_type=client_credentials" \
   -d "client_id=YOUR_CLIENT_ID" \
   -d "client_secret=YOUR_CLIENT_SECRET" \
@@ -190,7 +207,7 @@ HTTP/1.1 200 OK
 }</code></pre>
                     <p class="mb-0">{{ 'for_developers.client_cred_step2'|trans|raw }}</p>
                     <pre class="bg-light p-3 rounded"><code>curl -H "Authorization: Bearer ACCESS_TOKEN" \
-  https://myspeedpuzzling.com/api/v1/players/PLAYER_UUID/results</code></pre>
+  {{ base_url }}/api/v1/players/PLAYER_UUID/results</code></pre>
                     <p class="text-muted fs-sm mb-0">{{ 'for_developers.client_cred_note'|trans|raw }}</p>
                 </div>
             </div>

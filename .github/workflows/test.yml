@@ -489,6 +489,37 @@ jobs:
                   github-token: ${{ secrets.GITHUB_TOKEN }}
                   webhook-secret: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
 
+  # The sandbox (sandbox.myspeedpuzzling.com, docs/features/sandbox/README.md) follows production: the image production
+  # was just given (`main`). It runs after the production deploy and never holds it back; until the sandbox's webhook
+  # secret exists it only says so and succeeds.
+  deploy-sandbox:
+      needs:
+          - deploy
+          - deploy-fast
+      if: >-
+          ${{ !cancelled()
+          && (needs.deploy.outputs.deployed == 'true' || needs.deploy-fast.outputs.deployed == 'true') }}
+      runs-on: ubuntu-latest
+      permissions: {}
+      concurrency:
+          group: deploy-sandbox
+          cancel-in-progress: false
+      steps:
+          -   name: Trigger the sandbox deploy (HMAC webhook)
+              env:
+                  SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET_SANDBOX }}
+              run: |
+                  if [ -z "$SECRET" ]; then
+                      echo "::notice::DEPLOY_WEBHOOK_SECRET_SANDBOX is not set - the sandbox was not deployed"
+                      exit 0
+                  fi
+                  BODY='{"app":"msp-sandbox","tag":"main"}'
+                  SIG="$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$SECRET" | sed 's/^.* //')"
+                  curl -fsS -X POST https://deploy.lily.srv.thedevs.cz/hooks/msp-sandbox \
+                    -H 'Content-Type: application/json' \
+                    -H "X-Hub-Signature-256: sha256=$SIG" \
+                    --data-raw "$BODY"
+
   # Its own job: the action is a Docker image that a job pulls before its first
   # step - inside a deploy job that held the webhook back by ~8s
   sentry-release:

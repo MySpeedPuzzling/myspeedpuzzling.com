@@ -28,7 +28,7 @@ The server side (compose stack, crons, secrets, first deploy and seed) lives in 
 Own database, Redis, Mercure, bucket `myspeedpuzzling-sandbox` (in production's Hetzner project - Jan's call; its key
 could reach production's bucket and backups, the app only ever uses `S3_BUCKET`), own secrets (Infisical
 `myspeedpuzzling-sandbox`; only `SENTRY_DSN` is production's), own OAuth2 keys (a sandbox token is worthless on production and the other way round). Its
-e-mail goes only to Mailpit. The one thing it reads from production is the **public** image host for catalogue
+e-mail is real but marked and kept apart from production (§6). The one thing it reads from production is the **public** image host for catalogue
 pictures — what any browser gets.
 
 ## 3. Search engines: a published password
@@ -105,13 +105,22 @@ and commands call `SandboxMode::assertOn()` first: on production (`SANDBOX=0`) t
 
 ## 6. E-mail, newsletter, outside services
 
-- `MAILER_DSN` = Mailpit, set in lily's `compose.yaml` (not in Infisical, so no Infisical edit can aim it at SES). The
-  Mailpit UI is VPN-only — it shows every sign-in link. Testers therefore register **with a password** (signing in
-  never waits for a confirmed e-mail).
+- **Real e-mail through production's SES account** (Jan 2026-11-13: organisers and API developers use the sandbox for
+  real - sign-in links, password resets, OAuth2 claim links must arrive). `MAILER_DSN` = production's SES API DSN in
+  the sandbox's Infisical project. `SandboxMailSubscriber` (sandbox only) guards every message:
+  - mail to the made-up players (`test-user+…@myspeedpuzzling.com`, `SandboxPeople::isMadeUpEmail()`) is never sent;
+  - the subject starts with `[Sandbox] `;
+  - every sender moves to the sandbox's own SES identity `sandbox.myspeedpuzzling.com` (`notify@notify.…` →
+    `notify@sandbox.…`, `robot@mail.…` → `robot@sandbox.…`; verified domain with Easy DKIM, `SandboxMail`);
+  - every message carries the SES tag `sandbox=1`.
+  Production's SES event handler ignores every event of a sandbox message (`SesEvent::isFromSandbox()`: the sender
+  domain or the tag), so a bounce or complaint about a sandbox mail never suppresses an address or switches off
+  anybody's e-mails on production. The sandbox itself receives no SES events (`SES_EVENTS_TOPIC_ARNS` empty), so it
+  keeps no bounce list of its own - fine at its volume. No VERP (`BOUNCE_EMAIL_DOMAIN` empty).
 - Newsletter off: empty `LISTMONK_*` — `ListmonkClient::isEnabled()` is false and every caller checks it.
 - Off by empty settings, set to `""` explicitly in lily's compose (the image's own `.env` has real defaults for some):
   WJPF (their side stores pairings permanently), social login (no button, no route — `SocialLoginSettings`), Google
-  Analytics, Turnstile, SES events, LiveKit, the CV worker, the puzzle-puzzle.cz login.
+  Analytics, Turnstile, LiveKit, the CV worker, the puzzle-puzzle.cz login.
 
 ## 7. Sentry
 
@@ -131,7 +140,7 @@ What lily's `apps/msp-sandbox/compose.yaml` sets, against production:
 | `APP_URL` | `https://sandbox.myspeedpuzzling.com/` | `https://myspeedpuzzling.com/` |
 | `SENTRY_ENVIRONMENT` | `sandbox` | unset → `prod` |
 | `SENTRY_TRACES/PROFILES_SAMPLE_RATE` | `0` | 0.1 / 0.25 |
-| `MAILER_DSN` | `smtp://msp-sandbox-mailpit:1025` | SES (Infisical) |
+| `MAILER_DSN` | production's SES (Infisical), guarded by `SandboxMailSubscriber` | SES (Infisical) |
 | `S3_BUCKET`, keys | `myspeedpuzzling-sandbox`, own key pair | `myspeedpuzzling` |
 | `UPLOADS_BASE_URL`, `NGINX_PROXY_BASE_URL` | `https://sandbox-img.myspeedpuzzling.com` | `https://img.myspeedpuzzling.com` |
 | `PREDICTION_SHOWN_MODEL` | `v7` (answers like production) | `v7` |
@@ -163,7 +172,7 @@ All behind a marker file (`/var/lib/msp-sandbox/cron.on`), created only after th
   by testers wait for approval like on production — an admin approves them, or the tester tests in the unapproved
   state.
 - **Hard-coded production addresses** stay where they belong (JSON-LD organization ids, the banner's "Go to
-  MySpeedPuzzling" link, internal notification recipients — those mails land in Mailpit). The For developers page's
+  MySpeedPuzzling" link, internal notification recipients — those mails reach Jan, `[Sandbox] `-prefixed). The For developers page's
   examples now name the installation they are read on.
 - **Mobile apps** have production built in — not in use, nothing to do.
 - **Cookies** are host-only: production's sign-in does not reach the sandbox.
@@ -201,8 +210,9 @@ A new table that should be in the catalogue: add it to `SandboxCatalogue::COLUMN
 - [ ] With `sandbox`/`sandbox`: the banner on every page, `<meta name="robots" content="noindex…">`, Sentry
       environment `sandbox` on a deliberate 404-free error (e.g. the free account's Buy with the dummy key)
 - [ ] `/robots.txt` and `https://sandbox-img.myspeedpuzzling.com/robots.txt` → `Disallow: /`
-- [ ] Register with a password → signed in → a member (the membership page says so); the e-mails are in Mailpit,
-      nothing in SES's sending statistics
+- [ ] Register with a password → signed in → a member (the membership page says so); the verification e-mail
+      arrives from `…@sandbox.myspeedpuzzling.com`, subject `[Sandbox] …`, DKIM pass
+- [ ] A made-up player's notification is not sent (log line "Sandbox: e-mail to made-up players only")
 - [ ] Puzzle pages show their box pictures (production's public images through `sandbox-img`)
 - [ ] Add a time with a photo → saved, the photo shows (the sandbox bucket + CORS)
 - [ ] For developers → create a personal access token → `curl -H "Authorization: Bearer …"

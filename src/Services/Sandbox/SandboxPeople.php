@@ -16,7 +16,8 @@ final class SandboxPeople
 {
     /**
      * Every generated player's e-mail is `test-user+<N>@myspeedpuzzling.com` - our own domain, so not even a mail that
-     * escaped the sandbox's mail catcher could reach a stranger. The simulation picks its players by this pattern.
+     * slipped through could reach a stranger; SandboxMailSubscriber never sends to them. The simulation picks its
+     * players by this pattern.
      */
     public const string EMAIL_DOMAIN = 'myspeedpuzzling.com';
     public const string EMAIL_PREFIX = 'test-user+';
@@ -79,5 +80,12 @@ final class SandboxPeople
     public static function email(int $number): string
     {
         return self::EMAIL_PREFIX . $number . '@' . self::EMAIL_DOMAIN;
+    }
+
+    public static function isMadeUpEmail(string $email): bool
+    {
+        $email = strtolower($email);
+
+        return str_starts_with($email, self::EMAIL_PREFIX) && str_ends_with($email, '@' . self::EMAIL_DOMAIN);
     }
 }

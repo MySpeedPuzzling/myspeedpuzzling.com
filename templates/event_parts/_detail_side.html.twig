@@ -15,7 +15,7 @@
             <dd>{% if timeline.start %}{{ events_date_range(timeline.start, timeline.end, 'yMMMd') }}{% else %}{{ 'edition.date_not_set'|trans }}{% endif %}</dd>
             {% if next %}
                 <dt>{{ 'event_rounds.side.next_round'|trans }}</dt>
-                <dd><a href="#round-{{ next.round.id }}">{{ next.round.name }}</a><br>{{ next.leaf.from|events_date('yMMMEd') }} · {{ event_time(next.time) }}</dd>
+                <dd><a href="#round-{{ next.round.id }}">{{ next.round.name }}</a><br>{{ next.leaf.from|events_date('yMMMEd') }}{% if next.time %} · {{ event_time(next.time) }}{% endif %}</dd>
             {% endif %}
             {% if event_place.isOnline or event_place.city or event_place.country %}
                 <dt>{{ 'event_detail.side.place'|trans }}</dt>
@@ -27,7 +27,8 @@
             {% endif %}
         </dl>
         {#- Rounds in different zones each name their own: no single note then -#}
-        {% if timeline.hasRounds and timeline.zone and not timeline.mixedZones %}
+        {#- A round of which only the day is known (an imported event) has no time to name a zone for -#}
+        {% if timeline.hasRounds and timeline.zone and not timeline.mixedZones and (timeline.rounds|first).time %}
             {% set zone_name = event_time_parts((timeline.rounds|first).time).zone %}
             <p class="ev-side-note">{{ (online ? 'event_detail.side.times_online' : 'event_detail.side.times_in_person')|trans({'%zone%': zone_name}) }}</p>
         {% endif %}

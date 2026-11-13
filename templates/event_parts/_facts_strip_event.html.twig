@@ -9,7 +9,7 @@
         {% if next and next.status.value == 'live' %}
             <li class="ev-when-live">{{ include('event_parts/_live.html.twig') }}<span class="ev-facts-strip-round">{{ next.round.name }}</span></li>
         {% elseif next %}
-            <li><a class="ev-facts-strip-link" href="#round-{{ next.round.id }}">{{ 'event_rounds.facts.next'|trans({'%date%': next.leaf.from|events_date('MMMEd')}) }} · {{ event_time(next.time) }}</a></li>
+            <li><a class="ev-facts-strip-link" href="#round-{{ next.round.id }}">{{ 'event_rounds.facts.next'|trans({'%date%': next.leaf.from|events_date('MMMEd')}) }}{% if next.time %} · {{ event_time(next.time) }}{% endif %}</a></li>
         {% endif %}
         {% if timeline.roundsWithResults > 0 %}
             <li>{{ 'event_rounds.facts.with_results'|trans({'%count%': timeline.roundsWithResults}) }}</li>

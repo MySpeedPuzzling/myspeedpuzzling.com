@@ -1403,7 +1403,7 @@ both venue series, the redirects of the old addresses).
 
 ### Event results sheets
 
-An organizer's results spreadsheet, read every hour; every tab becomes a one-time event of the organization with one
+An organizer's results spreadsheet, read on demand (no cron); every tab becomes a one-time event of the organization with one
 nobody's result per team until the puzzlers claim their spots (`docs/features/event-results-import/README.md`). The
 sheet must be shared "Anyone with the link: Viewer". The spreadsheet id lives in the database only - never in the repo.
 
@@ -1411,7 +1411,7 @@ sheet must be shared "Anyone with the link: Viewer". The spreadsheet id lives in
 |---|---|---|
 | `GET` | `/internal-api/event-results-sheets` | every sheet with what became of each tab: `status` (`imported` / `waiting_for_puzzle` / `problem` / `detached`), `problems` (`code`, `detail`, `line`), `competitionId`, `results` |
 | `POST` | `/internal-api/event-results-sheets` | register a sheet: `spreadsheet` (its link or id), `organizationId`, `actingPlayerId` (somebody on the organization's team - the events are created as them, 422 otherwise), `timezone` of the sheet's start times (`America/Chicago`), optional `countryCode` (the organization's). `201` + the sheet; `409` when it is registered already |
-| `POST` | `/internal-api/event-results-sheets/{id}/sync` | read it now instead of at the next hourly run; answers the sheet with its tabs |
+| `POST` | `/internal-api/event-results-sheets/{id}/sync` | read it now (the import runs only on demand); answers the sheet with its tabs |
 
 ```bash
 curl -s -X POST "$API/event-results-sheets" -H "$AUTH" -H 'Content-Type: application/json' -d '{

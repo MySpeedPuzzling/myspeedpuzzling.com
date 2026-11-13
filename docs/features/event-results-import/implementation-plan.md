@@ -106,8 +106,8 @@ From the audit of 2026-10-30 (174 readers of `puzzle_solving_time`). No row exis
      row, untouched), delete a removed unclaimed row through `PuzzleSolvingTimeRepository::delete()`, keep a removed
      claimed row (warning);
    - a changed puzzle link moves the tab's times (`moveToPuzzle()`).
-4. Console command `myspeedpuzzling:sync-sarah-does-puzzles-results [--sheet=] [--dry-run]` dispatches only; cron hourly on
-   lily.srv (add the row myself).
+4. Console command `myspeedpuzzling:sync-sarah-does-puzzles-results [--sheet=] [--dry-run]` dispatches only. **No cron**
+   (Jan, 2026-11-13): run on demand when the organizer says the sheet changed, or `POST …/{id}/sync`.
 5. Internal API: `GET|POST /internal-api/event-results-sheets`, `DELETE …/{id}`, `GET …/{id}/tabs` (statuses and
    problems), `POST …/{id}/sync`. OpenAPI + `internal-api.md`.
 6. Backfill: register the organizer's sheet, `--dry-run`, read the statuses, sync.

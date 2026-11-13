@@ -79,7 +79,7 @@ Tolerated without a warning: row order (the ranking is computed from the times),
 A tab with a `problem` is not imported at all, so a half-fixed tab never shows half its results. The exceptions: a
 team name twice and a row with neither value skip **those rows only** (listed as problems, rest imported).
 
-**A warning is logged when a tab's status or its list of problems changes** - not on every hourly run - so Sentry
+**A warning is logged when a tab's status or its list of problems changes** - not on every run - so Sentry
 gets one issue per thing to fix. The console command prints every tab's status on every run.
 
 ## Data model

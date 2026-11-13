@@ -19,7 +19,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
- * The hourly read of Sarah Does Puzzles' results sheet - the one organizer whose sheet is imported, in her sheet's format
+ * The on-demand read (no cron) of Sarah Does Puzzles' results sheet - the one organizer whose sheet is imported, in her sheet's format
  * (SarahDoesPuzzlesTabParser, docs/features/event-results-import/README.md). --dry-run reads and checks the sheet and
  * says what each tab would become - nothing is written.
  */

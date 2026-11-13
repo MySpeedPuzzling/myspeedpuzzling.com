@@ -81,7 +81,8 @@ SQL,
         /** @var list<array{time_id: string, puzzle_id: string, team: null|string, seconds_to_solve: null|int|string, pieces_placed: null|int|string, finished_later_seconds: null|int|string, finished_at: null|string, tracked_at: string, pieces_count: int|string, team_name: null|string, owner_id: null|string, owner_name: null|string, owner_code: null|string, owner_country: null|string, owner_is_private: null|bool, owner_ranking_opted_out: null|bool, owner_skill_tier: null|int|string}> $rows */
 
         $members = $this->loadGroupMembers($rows);
-        $limitSeconds = $round->minutesLimit * 60;
+        // Without a limit every finished time is within it
+        $limitSeconds = $round->minutesLimit === null ? PHP_INT_MAX : $round->minutesLimit * 60;
 
         /** @var array<string, array<string, true>> $seenPerPuzzle */
         $seenPerPuzzle = [];

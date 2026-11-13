@@ -173,6 +173,7 @@ readonly final class DuplicateCompetitionHandler
             tableNumbersOff: $round->tableNumbersOff,
             revealDelayMinutes: $round->revealDelayMinutes,
             teamSize: $round->teamSize,
+            startTimeKnown: $round->startTimeKnown,
         );
     }
 

@@ -148,7 +148,7 @@ readonly final class ApplyEventResultsTabHandler
     ): EventTabStatus {
         // Checked by hasTabProblem() - every event field is there
         assert($parsed->eventName !== null && $parsed->location !== null && $parsed->cityAndState !== null);
-        assert($parsed->localStartsAt !== null && $parsed->timeLimitMinutes !== null && $parsed->category !== null);
+        assert($parsed->localStartsAt !== null && $parsed->category !== null);
 
         $round = $this->roundRepository->ofCompetition($competition)[0] ?? null;
 
@@ -200,7 +200,7 @@ readonly final class ApplyEventResultsTabHandler
      */
     private function createEvent(EventResultsSheet $sheet, ParsedEventTab $parsed, string $puzzleId): string
     {
-        assert($parsed->eventName !== null && $parsed->timeLimitMinutes !== null && $parsed->category !== null);
+        assert($parsed->eventName !== null && $parsed->category !== null);
         [$location, $eventDay, $startsAt] = self::eventPlaceAndTime($sheet, $parsed);
 
         $competitionId = Uuid::uuid7();
@@ -238,6 +238,7 @@ readonly final class ApplyEventResultsTabHandler
             badgeTextColor: null,
             category: $parsed->category,
             teamSize: self::teamSize($parsed),
+            startTimeKnown: $parsed->startTimeKnown,
         ));
 
         $this->messageBus->dispatch(new SetCompetitionRoundPuzzles($roundId->toString(), [$puzzleId]));
@@ -258,7 +259,7 @@ readonly final class ApplyEventResultsTabHandler
         DateTimeImmutable $eventDay,
         DateTimeImmutable $startsAt,
     ): void {
-        assert($parsed->eventName !== null && $parsed->timeLimitMinutes !== null && $parsed->category !== null);
+        assert($parsed->eventName !== null && $parsed->category !== null);
 
         if (
             $competition->name !== $parsed->eventName
@@ -282,7 +283,11 @@ readonly final class ApplyEventResultsTabHandler
             );
         }
 
-        if ($round->minutesLimit !== $parsed->timeLimitMinutes || $round->startsAt->getTimestamp() !== $startsAt->getTimestamp()) {
+        if (
+            $round->minutesLimit !== $parsed->timeLimitMinutes
+            || $round->startsAt->getTimestamp() !== $startsAt->getTimestamp()
+            || $round->startTimeKnown !== $parsed->startTimeKnown
+        ) {
             $round->edit(
                 name: $round->name,
                 minutesLimit: $parsed->timeLimitMinutes,
@@ -292,6 +297,7 @@ readonly final class ApplyEventResultsTabHandler
                 badgeTextColor: $round->badgeTextColor,
                 category: $round->category,
                 resultsLink: $round->resultsLink,
+                startTimeKnown: $parsed->startTimeKnown,
             );
         }
 

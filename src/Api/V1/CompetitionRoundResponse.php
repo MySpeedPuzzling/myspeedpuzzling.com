@@ -16,7 +16,8 @@ final class CompetitionRoundResponse
         public string $id,
         public string $name,
         public null|string $startsAt,
-        public int $minutesLimit,
+        // null = no limit given (CompetitionRound::$minutesLimit)
+        public null|int $minutesLimit,
         public string $category,
         array $puzzles,
     ) {

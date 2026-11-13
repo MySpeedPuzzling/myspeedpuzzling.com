@@ -7,7 +7,7 @@ namespace SpeedPuzzling\Web\ConsoleCommands;
 use SpeedPuzzling\Web\Exceptions\GoogleSheetUnreadable;
 use SpeedPuzzling\Web\Message\SyncEventResultsSheet;
 use SpeedPuzzling\Web\Query\GetEventResultsSheets;
-use SpeedPuzzling\Web\Services\EventResultsImport\EventResultsTabParser;
+use SpeedPuzzling\Web\Services\EventResultsImport\SarahDoesPuzzlesTabParser;
 use SpeedPuzzling\Web\Services\EventResultsImport\GoogleSheetReader;
 use SpeedPuzzling\Web\Value\EventResultsImport\EventTabProblem;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -19,20 +19,21 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
- * The hourly read of every organizer's results sheet (docs/features/event-results-import/README.md). --dry-run reads and
- * checks the sheets and says what each tab would become - nothing is written.
+ * The hourly read of Sarah Does Puzzles' results sheet - the one organizer whose sheet is imported, in her sheet's format
+ * (SarahDoesPuzzlesTabParser, docs/features/event-results-import/README.md). --dry-run reads and checks the sheet and
+ * says what each tab would become - nothing is written.
  */
 #[AsCommand(
-    name: 'myspeedpuzzling:sync-event-results-sheets',
-    description: 'Reads the organizers\' results sheets and imports every tab as an event with its results',
+    name: 'myspeedpuzzling:sync-sarah-does-puzzles-results',
+    description: 'Reads Sarah Does Puzzles\' results sheet and imports every tab as an event with its results',
 )]
-final class SyncEventResultsSheetsConsoleCommand extends Command
+final class SyncSarahDoesPuzzlesResultsConsoleCommand extends Command
 {
     public function __construct(
         private readonly MessageBusInterface $messageBus,
         private readonly GetEventResultsSheets $getEventResultsSheets,
         private readonly GoogleSheetReader $reader,
-        private readonly EventResultsTabParser $parser,
+        private readonly SarahDoesPuzzlesTabParser $parser,
     ) {
         parent::__construct();
     }

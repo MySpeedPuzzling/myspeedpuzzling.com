@@ -22,7 +22,10 @@ readonly final class ParsedEventTab
         public null|string $location,
         public null|string $cityAndState,
         // The start as written - the wall clock of the event's place, the import puts it into its time zone
+        // Only the day given (no "Start time"): $localStartsAt is noon of it
         public null|DateTimeImmutable $localStartsAt,
+        public bool $startTimeKnown,
+        // null = no "Time limit" given
         public null|int $timeLimitMinutes,
         public null|RoundCategory $category,
         public null|string $puzzleId,

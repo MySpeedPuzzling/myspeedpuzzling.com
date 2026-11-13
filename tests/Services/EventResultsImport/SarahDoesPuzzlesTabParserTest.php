@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Services\EventResultsImport;
 
 use PHPUnit\Framework\TestCase;
-use SpeedPuzzling\Web\Services\EventResultsImport\EventResultsTabParser;
+use SpeedPuzzling\Web\Services\EventResultsImport\SarahDoesPuzzlesTabParser;
 use SpeedPuzzling\Web\Value\EventResultsImport\EventTabProblemCode;
 use SpeedPuzzling\Web\Value\RoundCategory;
 
@@ -13,7 +13,7 @@ use SpeedPuzzling\Web\Value\RoundCategory;
  * One tab of an organizer's results sheet, as Google's CSV export gives it (docs/features/event-results-import/README.md
  * "Format"). Made-up events and teams - the real sheets never go into this public repo.
  */
-final class EventResultsTabParserTest extends TestCase
+final class SarahDoesPuzzlesTabParserTest extends TestCase
 {
     private const string HEADER = 'Name,Time,Team Size,Pieces placed,Contest Name,Location,City and State,Brand,Puzzle Title,Date,Start time,Time limit,Competition Type,Link to MySpeedPuzzling,Puzzle Link- manufacturer';
     private const string PUZZLE_URL = 'https://myspeedpuzzling.com/en/puzzle/018d0003-0000-0000-0000-000000000001';
@@ -110,23 +110,54 @@ final class EventResultsTabParserTest extends TestCase
 
     public function testAMissingColumnIsAProblemOfTheWholeTab(): void
     {
-        $header = str_replace(',Start time', '', self::HEADER);
+        $header = str_replace(',Date', '', self::HEADER);
         $row = $this->eventRow('Puzzle Pals', '1:00:00', '4');
-        $row = preg_replace('/,7:00 PM/', '', $row, 1);
+        $row = preg_replace('/,10\/5\/26/', '', $row, 1);
         self::assertIsString($row);
 
         $tab = $this->parse($header, $row);
 
         self::assertSame([EventTabProblemCode::MissingColumn], $this->codes($tab));
-        self::assertSame('Start time', $tab->problems[0]->detail);
+        self::assertSame('Date', $tab->problems[0]->detail);
         self::assertFalse($tab->isImportable());
+    }
+
+    public function testWithoutStartTimeAndTimeLimitColumnsOnlyTheDayIsKnown(): void
+    {
+        // Sarah's sheet as it is: neither column
+        $header = str_replace(',Start time,Time limit', '', self::HEADER);
+        $row = str_replace(',7:00 PM,120', '', $this->eventRow('Puzzle Pals', '1:00:00', '4'));
+
+        $tab = $this->parse($header, $row);
+
+        self::assertSame([], $tab->problems);
+        self::assertTrue($tab->isImportable());
+        self::assertFalse($tab->startTimeKnown);
+        // Noon of the day - dates the round on its own day in every zone
+        self::assertSame('2026-10-05 12:00', $tab->localStartsAt?->format('Y-m-d H:i'));
+        self::assertNull($tab->timeLimitMinutes);
+    }
+
+    public function testEmptyStartTimeAndTimeLimitCellsAreFine(): void
+    {
+        $row = str_replace(',7:00 PM,120', ',,', $this->eventRow('Puzzle Pals', '1:00:00', '4'));
+
+        $tab = $this->parse(self::HEADER, $row);
+
+        self::assertSame([], $tab->problems);
+        self::assertFalse($tab->startTimeKnown);
+        self::assertNull($tab->timeLimitMinutes);
+
+        $withTimes = $this->parse(self::HEADER, $this->eventRow('Puzzle Pals', '1:00:00', '4'));
+        self::assertTrue($withTimes->startTimeKnown);
+        self::assertNotSame($withTimes->contentHash, $tab->contentHash, 'Adding a start time later is applied');
     }
 
     public function testAnEmptyTabIsAProblem(): void
     {
         self::assertSame([EventTabProblemCode::NoTeams], $this->codes($this->parse(self::HEADER)));
         $emptyFile = $this->parse('');
-        self::assertCount(11, $emptyFile->problems, 'Every required column is named');
+        self::assertCount(9, $emptyFile->problems, 'Every required column is named');
         self::assertSame([EventTabProblemCode::MissingColumn->value], array_values(array_unique(array_map(static fn($code) => $code->value, $this->codes($emptyFile)))));
     }
 
@@ -292,7 +323,7 @@ final class EventResultsTabParserTest extends TestCase
 
     private function parse(string ...$lines): \SpeedPuzzling\Web\Value\EventResultsImport\ParsedEventTab
     {
-        return (new EventResultsTabParser())->parse(implode("\n", $lines));
+        return (new SarahDoesPuzzlesTabParser())->parse(implode("\n", $lines));
     }
 
     /**

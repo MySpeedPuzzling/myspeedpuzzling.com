@@ -21,7 +21,8 @@ readonly final class AdminCompetitionRound
         public string $startsAt,
         // The zone its times are typed and shown in (IANA)
         public string $timezone,
-        public int $minutesLimit,
+        // null = no limit given (CompetitionRound::$minutesLimit)
+        public null|int $minutesLimit,
         // Minutes after the start when its secret puzzles with an automatic reveal come out (RoundPuzzleReveal)
         public int $revealDelayMinutes,
         // Team rounds: how many people a team is expected to have (null = not set) - a hint, never a limit
@@ -43,7 +44,7 @@ readonly final class AdminCompetitionRound
      *     name: string,
      *     category: string,
      *     starts_at: string,
-     *     minutes_limit: int,
+     *     minutes_limit: null|int,
      *     reveal_delay_minutes: int,
      *     team_size: null|int,
      *     badge_background_color: null|string,

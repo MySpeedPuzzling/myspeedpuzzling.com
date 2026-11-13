@@ -1422,7 +1422,7 @@ curl -s -X POST "$API/event-results-sheets" -H "$AUTH" -H 'Content-Type: applica
 }'
 ```
 
-Before the first sync on production: `myspeedpuzzling:sync-event-results-sheets --dry-run` says what every tab would
+Before the first sync on production: `myspeedpuzzling:sync-sarah-does-puzzles-results --dry-run` says what every tab would
 become and writes nothing.
 
 ### Examples

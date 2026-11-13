@@ -54,14 +54,16 @@ its own team; every further row is one team.
 | Location | 2 | yes | venue |
 | City and State | 2 | yes | `Saint Paul, MN` - the country is the organization's |
 | Date | 2 | yes | `M/D/YY`, `M/D/YYYY` (the sheet is US) or `YYYY-MM-DD` |
-| Start time | 2 | yes | **new** - `7:00 PM` / `19:00`, local time of the organization's country |
-| Time limit | 2 | yes | **new** - minutes; the round's limit and the time spent of an unfinished team |
+| Start time | 2 | no | `7:00 PM` / `19:00`, local time of the organization's country. Without it the round starts at noon of the day (`competition_round.start_time_known = false`) and pages show the day without a time |
+| Time limit | 2 | no | minutes; the round's limit and the time spent of an unfinished team. Without it the round has no limit (`minutes_limit` NULL, shown nowhere) |
 | Competition Type | 2 | yes | `Pairs` / `Teams` (later `Solo`) - the round's category |
 | Link to MySpeedPuzzling | 2 | yes | `https://myspeedpuzzling.com/<locale>/puzzle/<uuid>` |
 | Brand, Puzzle Title, Puzzle Link- manufacturer | 2 | no | informational; the link decides the puzzle |
 
-**What the organizer has to add** to today's sheet: the MySpeedPuzzling link on every tab, `Start time` and
-`Time limit`, and `Pieces placed` for teams that did not finish. Everything else already matches.
+**What the organizer has to add** to today's sheet: the MySpeedPuzzling link on every tab. `Start time` and `Time limit`
+are optional (an unreadable value is still a `problem` - a typo must not drop it quietly). Everything else already
+matches. The importer is Sarah Does Puzzles' own (`SarahDoesPuzzlesTabParser`, command
+`myspeedpuzzling:sync-sarah-does-puzzles-results`); the data model underneath is not tied to her.
 
 Tolerated without a warning: row order (the ranking is computed from the times), trailing spaces, empty rows.
 

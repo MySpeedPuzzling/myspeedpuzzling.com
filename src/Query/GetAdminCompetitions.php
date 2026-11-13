@@ -264,7 +264,7 @@ SQL, ['id' => $id]);
          *     name: string,
          *     category: string,
          *     starts_at: string,
-         *     minutes_limit: int,
+         *     minutes_limit: null|int,
          *     reveal_delay_minutes: int,
          *     team_size: null|int,
          *     badge_background_color: null|string,

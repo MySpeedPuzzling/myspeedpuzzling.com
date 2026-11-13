@@ -20,7 +20,8 @@ readonly final class RoundResultsOverview implements \JsonSerializable
         /** RoundCategory value: solo | duo | team */
         public string $category,
         public DateTimeImmutable $startsAt,
-        public int $minutesLimit,
+        // null = no limit given (CompetitionRound::$minutesLimit)
+        public null|int $minutesLimit,
         public null|string $slug,
         // The stopwatch at the moment the overview was read (RoundStopwatchStatus::at()): null | scheduled | running |
         // stopped - a scheduled start that has passed is running already

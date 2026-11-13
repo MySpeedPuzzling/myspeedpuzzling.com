@@ -12,7 +12,8 @@ readonly final class CompetitionEdition
         public string $id,
         public string $name,
         public DateTimeImmutable $startsAt,
-        public int $minutesLimit,
+        // null = no limit given (CompetitionRound::$minutesLimit)
+        public null|int $minutesLimit,
         public null|string $badgeBackgroundColor,
         public null|string $badgeTextColor,
         public int $puzzleCount,

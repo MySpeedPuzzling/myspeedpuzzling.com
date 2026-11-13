@@ -13,7 +13,7 @@ use SpeedPuzzling\Web\Entity\Organization;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Message\ApplyEventResultsTab;
 use SpeedPuzzling\Web\Message\ClaimEventResultSlot;
-use SpeedPuzzling\Web\Services\EventResultsImport\EventResultsTabParser;
+use SpeedPuzzling\Web\Services\EventResultsImport\SarahDoesPuzzlesTabParser;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
@@ -259,6 +259,42 @@ final class ApplyEventResultsTabHandlerTest extends KernelTestCase
         self::assertSame([], $this->times());
     }
 
+    public function testWithoutStartTimeAndTimeLimitTheRoundKnowsOnlyItsDayUntilTheSheetSaysMore(): void
+    {
+        $this->apply(str_replace(',7:00 PM,120,', ',,,', $this->eventRow('Puzzle Pals', '1:10:13', '4')));
+
+        $round = $this->round();
+        self::assertNull($round['minutes_limit']);
+        self::assertFalse((bool) $round['start_time_known']);
+        // Noon in Minnesota (CDT, UTC-5) - the round stays on its own day
+        self::assertSame('2026-10-05 17:00:00', substr(self::string($round['starts_at']), 0, 19));
+        self::assertSame('2026-10-05', substr(self::string($this->times()[0]['finished_at']), 0, 10));
+        self::assertSame('imported', $this->tab()['status']);
+
+        // The organizer adds them later - the next run applies them
+        $this->apply($this->eventRow('Puzzle Pals', '1:10:13', '4'));
+
+        $round = $this->round();
+        self::assertSame(120, self::int($round['minutes_limit']));
+        self::assertTrue((bool) $round['start_time_known']);
+        self::assertSame('2026-10-06 00:00:00', substr(self::string($round['starts_at']), 0, 19));
+        self::assertCount(1, $this->times());
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function round(): array
+    {
+        $round = $this->database->fetchAssociative(
+            'SELECT * FROM competition_round WHERE competition_id = :id',
+            ['id' => $this->competition()['id']],
+        );
+        self::assertIsArray($round);
+
+        return $round;
+    }
+
     public function testAPairsTabImportsPairs(): void
     {
         $row = str_replace([',Teams,', '"Puzzle Pals",1:10:13,4,'], [',Pairs,', '"Two of Us",0:24:48,2,'], $this->eventRow('Puzzle Pals', '1:10:13', '4'));
@@ -287,7 +323,7 @@ final class ApplyEventResultsTabHandlerTest extends KernelTestCase
 
     private function apply(string ...$rows): void
     {
-        $tab = (new EventResultsTabParser())->parse(implode("\n", [self::HEADER, ...$rows]));
+        $tab = (new SarahDoesPuzzlesTabParser())->parse(implode("\n", [self::HEADER, ...$rows]));
 
         $this->messageBus->dispatch(new ApplyEventResultsTab($this->sheetId, self::GID, 'Maple Street 10/5', $tab));
         $this->entityManager->clear();

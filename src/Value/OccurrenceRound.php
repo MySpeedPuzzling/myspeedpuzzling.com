@@ -27,6 +27,8 @@ readonly final class OccurrenceRound
         public bool $hasResults = false,
         public null|string $category = null,
         public array $puzzleNames = [],
+        // false = only the day is known, $startsAt is noon of it (CompetitionRound::$startTimeKnown)
+        public bool $startTimeKnown = true,
     ) {
     }
 

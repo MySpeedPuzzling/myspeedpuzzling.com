@@ -24,8 +24,8 @@
         </h3>
         <p class="ev-round-meta">
             <span class="ev-tag ev-round-category" data-round-category="{{ round.category.value }}">{{ ('competition.round.category.' ~ round.category.value)|trans }}</span>
-            <span class="ev-round-limit">{{ 'event_rounds.minutes'|trans({'%count%': round.minutesLimit}) }}</span>
-            {{ include('event_parts/_event_time.html.twig', {time: item.time, online: online}) }}
+            {%- if round.minutesLimit is not null %}<span class="ev-round-limit">{{ 'event_rounds.minutes'|trans({'%count%': round.minutesLimit}) }}</span>{% endif %}
+            {%- if item.time %}{{ include('event_parts/_event_time.html.twig', {time: item.time, online: online}) }}{% endif %}
             {% if item.when %}{{ include('event_parts/_when.html.twig', {when: item.when}) }}{% endif %}
         </p>
         {% if round.puzzles is not empty %}

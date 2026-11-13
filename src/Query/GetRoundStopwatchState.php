@@ -36,7 +36,7 @@ readonly final class GetRoundStopwatchState
         $asOf = $this->clock->now();
 
         $row = $this->database->fetchAssociative(
-            'SELECT id, stopwatch_status, stopwatch_started_at, stopwatch_stopped_at, minutes_limit FROM competition_round WHERE id = :roundId',
+            'SELECT id, stopwatch_status, stopwatch_started_at, stopwatch_stopped_at, COALESCE(minutes_limit, 0) AS minutes_limit FROM competition_round WHERE id = :roundId',
             ['roundId' => $roundId],
         );
 

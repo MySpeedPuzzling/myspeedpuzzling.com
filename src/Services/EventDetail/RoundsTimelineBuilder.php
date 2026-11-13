@@ -57,7 +57,7 @@ readonly final class RoundsTimelineBuilder
         // the zone of an event without rounds - RoundTimezone::resolve(null, its country, its series' country)
         string $zone = 'UTC',
     ): RoundsTimeline {
-        $isPastAt = static fn (EditionRoundDetail $round): bool => $round->startsAt->modify('+' . $round->minutesLimit . ' minutes') <= $now;
+        $isPastAt = static fn (EditionRoundDetail $round): bool => $round->startsAt->modify('+' . ($round->minutesLimit ?? 0) . ' minutes') <= $now;
 
         // Next: the first round not over - a running one counts
         $nextRoundId = null;
@@ -109,7 +109,7 @@ readonly final class RoundsTimelineBuilder
                 ),
                 status: $status,
                 when: self::when($status, $round, $now),
-                time: EventTime::fromRound($round),
+                time: $round->startTimeKnown ? EventTime::fromRound($round) : null,
                 folded: in_array($round->id, $foldedIds, true),
                 resultsUrl: $isPublic && $hasResults ? $this->resultsUrl($event, $round) : null,
                 officialResults: $round->resultsPublished,
@@ -128,6 +128,7 @@ readonly final class RoundsTimelineBuilder
                 startsAt: $round->startsAt,
                 zone: $round->timezone,
                 zoneAssumed: $round->timezoneAssumed,
+                startTimeKnown: $round->startTimeKnown,
             ),
             $rounds,
         ), $zone);
@@ -173,7 +174,7 @@ readonly final class RoundsTimelineBuilder
      */
     private static function stillWatchable(EditionRoundDetail $round, DateTimeImmutable $now): bool
     {
-        return $round->startsAt->modify(sprintf('+%d minutes +%d hours', $round->minutesLimit, self::WATCH_AFTER_END_HOURS)) > $now;
+        return $round->startsAt->modify(sprintf('+%d minutes +%d hours', $round->minutesLimit ?? 0, self::WATCH_AFTER_END_HOURS)) > $now;
     }
 
     /**

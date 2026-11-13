@@ -23,6 +23,13 @@ visible: no unfinished and no trackerless row exists before phase 3.
   for an imported result, the puzzle page shows an unclaimed team's name once (no team badge next to it), the first-try
   toggle lives in the claim modal. Tests: `EventResultClaimTest`, `EventResultClaimControllersTest`, a case in
   `DeletePlayerHandlerTest` and `ApplyEventResultsTabHandlerTest`, the canary with a partly claimed result.
+- **2026-11-13:** the importer is named for its one organizer (`SarahDoesPuzzlesTabParser`,
+  `myspeedpuzzling:sync-sarah-does-puzzles-results`), and `Start time` / `Time limit` are optional - Sarah's sheet has
+  neither, and she records no unfinished teams. A round may now have no limit (`competition_round.minutes_limit` NULL,
+  every page hides it, the stopwatch and online timing read 0) and a start of which only the day is known
+  (`start_time_known = false`, `starts_at` = noon of the day in the round's zone so every dating rule keeps it on its
+  day; the event page, its header, the organization/series rows and round results show no time). Her real sheet
+  checked: Pizza Luce importable (12 teams), the other three tabs (37 teams) wait for their puzzle link.
 - **Left open after phase 4:**
   - the organizer's ⋯ menu on the event page has no "Not on our team" yet - the organizer's team uses the result
     detail's links (shown to them like to a claimer); admins likewise (no internal API endpoint yet);
@@ -85,7 +92,7 @@ From the audit of 2026-10-30 (174 readers of `puzzle_solving_time`). No row exis
 1. Entities + generated migration: `EventResultsSheet`, `EventResultsSheetTab`, `ImportedResult`;
    `SolvingTimeSource::EventImport`.
 2. `GoogleSheetReader` (`src/Services/EventResultsImport/`): `htmlview` → gids + titles, CSV per gid; bounded
-   timeouts, a failure = `last_fetch_error` + one warning per change. Pure parser `EventResultsTabParser` →
+   timeouts, a failure = `last_fetch_error` + one warning per change. Pure parser `SarahDoesPuzzlesTabParser` →
    `ParsedEventTab` (event fields, rows, problems) - unit-tested on made-up CSVs, including the shapes seen in the
    first organizer's sheet (`1:10:13` and `24:48`, `team Size`, trailing spaces, rows not in time order).
 3. Messages: `SyncEventResultsSheet` (`HandledOutsideTransaction`: fetch + parse only) → `ApplyEventResultsTab` per
@@ -99,7 +106,7 @@ From the audit of 2026-10-30 (174 readers of `puzzle_solving_time`). No row exis
      row, untouched), delete a removed unclaimed row through `PuzzleSolvingTimeRepository::delete()`, keep a removed
      claimed row (warning);
    - a changed puzzle link moves the tab's times (`moveToPuzzle()`).
-4. Console command `myspeedpuzzling:sync-event-results-sheets [--sheet=] [--dry-run]` dispatches only; cron hourly on
+4. Console command `myspeedpuzzling:sync-sarah-does-puzzles-results [--sheet=] [--dry-run]` dispatches only; cron hourly on
    lily.srv (add the row myself).
 5. Internal API: `GET|POST /internal-api/event-results-sheets`, `DELETE …/{id}`, `GET …/{id}/tabs` (statuses and
    problems), `POST …/{id}/sync`. OpenAPI + `internal-api.md`.

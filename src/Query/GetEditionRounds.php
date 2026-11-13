@@ -35,6 +35,7 @@ SELECT
     cr.name,
     cr.minutes_limit,
     cr.starts_at,
+    cr.start_time_known,
     cr.category,
     cr.badge_background_color,
     cr.badge_text_color,
@@ -153,7 +154,7 @@ SQL;
 
         // Rounds come ordered by start, so the index is the round's position in the schedule
         return array_map(static function (array $row, int $schedulePosition) use ($puzzlesByRound): EditionRoundDetail {
-            /** @var array{id: string, name: string, minutes_limit: int|string, starts_at: string, category: string, badge_background_color: null|string, badge_text_color: null|string, slug: null|string, results_link: null|string, timezone: null|string, results_published: bool, location_country_code: null|string, series_country_code: null|string, online_video: bool} $row */
+            /** @var array{id: string, name: string, minutes_limit: null|int|string, starts_at: string, start_time_known: bool, category: string, badge_background_color: null|string, badge_text_color: null|string, slug: null|string, results_link: null|string, timezone: null|string, results_published: bool, location_country_code: null|string, series_country_code: null|string, online_video: bool} $row */
 
             $color = RoundBadgeColor::background($row['badge_background_color'], $schedulePosition);
 
@@ -161,7 +162,7 @@ SQL;
                 id: $row['id'],
                 name: $row['name'],
                 startsAt: new DateTimeImmutable($row['starts_at']),
-                minutesLimit: (int) $row['minutes_limit'],
+                minutesLimit: $row['minutes_limit'] !== null ? (int) $row['minutes_limit'] : null,
                 category: RoundCategory::from($row['category']),
                 badgeBackgroundColor: $row['badge_background_color'],
                 badgeTextColor: $row['badge_text_color'],
@@ -174,6 +175,7 @@ SQL;
                 timezoneAssumed: RoundTimezone::isAssumed($row['timezone'], $row['location_country_code'], $row['series_country_code']),
                 resultsPublished: $row['results_published'],
                 onlineVideo: $row['online_video'],
+                startTimeKnown: $row['start_time_known'],
             );
         }, $rounds, array_keys($rounds));
     }

@@ -10,7 +10,7 @@ use SpeedPuzzling\Web\Message\ApplyEventResultsTab;
 use SpeedPuzzling\Web\Message\RecordEventResultsSheetFetch;
 use SpeedPuzzling\Web\Message\SyncEventResultsSheet;
 use SpeedPuzzling\Web\Repository\EventResultsSheetRepository;
-use SpeedPuzzling\Web\Services\EventResultsImport\EventResultsTabParser;
+use SpeedPuzzling\Web\Services\EventResultsImport\SarahDoesPuzzlesTabParser;
 use SpeedPuzzling\Web\Services\EventResultsImport\GoogleSheetReader;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -26,7 +26,7 @@ readonly final class SyncEventResultsSheetHandler
     public function __construct(
         private EventResultsSheetRepository $sheetRepository,
         private GoogleSheetReader $reader,
-        private EventResultsTabParser $parser,
+        private SarahDoesPuzzlesTabParser $parser,
         private MessageBusInterface $messageBus,
         private LoggerInterface $logger,
     ) {

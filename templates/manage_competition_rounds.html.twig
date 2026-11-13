@@ -66,8 +66,10 @@
                                 <div class="small text-body-secondary mb-3">
                                     <i class="bi bi-calendar-event me-1"></i>{{ round.startsAt|date('d.m.Y H:i', round.timezone) }} <span class="text-muted" data-round-zone>({{ timezone_name(round.timezone, round.timezoneAssumed) }})</span>
                                     <span class="mx-1">&middot;</span>
+                                    {% if round.minutesLimit is not null %}
                                     <i class="bi bi-stopwatch me-1"></i>{{ round.minutesLimit }} min
                                     <span class="mx-1">&middot;</span>
+                                    {% endif %}
                                     <i class="bi bi-puzzle me-1"></i>{{ round.puzzleCount }} {{ 'competition.round.puzzles'|trans|lower }}
                                 </div>
 

@@ -17,11 +17,11 @@ use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\SearchText;
 
 /**
- * Reads one tab of an organizer's results sheet - Google's CSV export of it - into an event and its teams
- * (docs/features/event-results-import/README.md "Format"). Pure: no database, no clock. Row 2 carries the event,
+ * Reads one tab of Sarah Does Puzzles' results sheet - Google's CSV export of it, in the format agreed with her - into
+ * an event and its teams (docs/features/event-results-import/README.md "Format"). Pure: no database, no clock. Row 2 carries the event,
  * every row a team; a wrong event field keeps the whole tab out, a wrong row is skipped.
  */
-final class EventResultsTabParser
+final class SarahDoesPuzzlesTabParser
 {
     private const string NAME = 'name';
     private const string TIME = 'time';
@@ -45,13 +45,14 @@ final class EventResultsTabParser
         self::LOCATION => 'Location',
         self::CITY_AND_STATE => 'City and State',
         self::DATE => 'Date',
-        self::START_TIME => 'Start time',
-        self::TIME_LIMIT => 'Time limit',
         self::COMPETITION_TYPE => 'Competition Type',
         self::PUZZLE_LINK => 'Link to MySpeedPuzzling',
     ];
 
     private const int MAX_TEAM_SIZE = 20;
+
+    // The wall clock of an event whose sheet gives only its day (ParsedEventTab::$startTimeKnown = false)
+    private const string UNKNOWN_START_TIME = '12:00';
 
     private const string PUZZLE_LINK_PATTERN = '~^https?://(?:www\.)?myspeedpuzzling\.com/(?:[a-z]{2}/)?puzzle/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:[/?#].*)?$~i';
 
@@ -69,7 +70,7 @@ final class EventResultsTabParser
         }
 
         if ($problems !== []) {
-            return $this->tab(null, null, null, null, null, null, null, [], $problems);
+            return $this->tab(null, null, null, null, false, null, null, null, [], $problems);
         }
 
         /** @var list<array{int, array<int, string>}> $dataRecords line + cells, empty rows left out */
@@ -82,7 +83,7 @@ final class EventResultsTabParser
         }
 
         if ($dataRecords === []) {
-            return $this->tab(null, null, null, null, null, null, null, [], [new EventTabProblem(EventTabProblemCode::NoTeams)]);
+            return $this->tab(null, null, null, null, false, null, null, null, [], [new EventTabProblem(EventTabProblemCode::NoTeams)]);
         }
 
         $eventCells = $dataRecords[0][1];
@@ -98,8 +99,9 @@ final class EventResultsTabParser
         }
 
         $date = $this->required(self::cell($eventCells, $columns, self::DATE), self::DATE, EventTabProblemCode::UnreadableDate, self::date(...), $problems);
-        $startTime = $this->required(self::cell($eventCells, $columns, self::START_TIME), self::START_TIME, EventTabProblemCode::UnreadableStartTime, self::startTime(...), $problems);
-        $timeLimit = $this->required(self::cell($eventCells, $columns, self::TIME_LIMIT), self::TIME_LIMIT, EventTabProblemCode::UnreadableTimeLimit, self::timeLimit(...), $problems);
+        // Optional: without them the event shows its day without a time, and its round no time limit
+        $startTime = $this->optional(self::cell($eventCells, $columns, self::START_TIME), EventTabProblemCode::UnreadableStartTime, self::startTime(...), $problems);
+        $timeLimit = $this->optional(self::cell($eventCells, $columns, self::TIME_LIMIT), EventTabProblemCode::UnreadableTimeLimit, self::timeLimit(...), $problems);
         $category = $this->required(self::cell($eventCells, $columns, self::COMPETITION_TYPE), self::COMPETITION_TYPE, EventTabProblemCode::UnknownCompetitionType, self::category(...), $problems);
 
         $puzzleId = null;
@@ -115,8 +117,9 @@ final class EventResultsTabParser
 
         $localStartsAt = null;
 
-        if ($date !== null && $startTime !== null) {
-            $localStartsAt = DateTimeImmutable::createFromFormat('!Y-m-d H:i', $date . ' ' . $startTime, new DateTimeZone('UTC'));
+        if ($date !== null) {
+            // Only the day known: noon of it - the round is dated by its start, and noon keeps it on that day in every zone
+            $localStartsAt = DateTimeImmutable::createFromFormat('!Y-m-d H:i', $date . ' ' . ($startTime ?? self::UNKNOWN_START_TIME), new DateTimeZone('UTC'));
             $localStartsAt = $localStartsAt === false ? null : $localStartsAt;
         }
 
@@ -160,7 +163,7 @@ final class EventResultsTabParser
             $problems[] = new EventTabProblem(EventTabProblemCode::NoTeams);
         }
 
-        return $this->tab($eventName, $location, $cityAndState, $localStartsAt, $timeLimit, $category, $puzzleId, $rows, $problems);
+        return $this->tab($eventName, $location, $cityAndState, $localStartsAt, $startTime !== null, $timeLimit, $category, $puzzleId, $rows, $problems);
     }
 
     /**
@@ -261,6 +264,30 @@ final class EventResultsTabParser
     }
 
     /**
+     * An empty cell (or no such column) is fine; a value that cannot be read is a problem - a typo must not quietly
+     * drop the time the organizer meant to give.
+     *
+     * @template T
+     * @param callable(string): (null|T) $read
+     * @param list<EventTabProblem> $problems
+     * @return null|T
+     */
+    private function optional(string $value, EventTabProblemCode $unreadable, callable $read, array &$problems): mixed
+    {
+        if ($value === '') {
+            return null;
+        }
+
+        $read = $read($value);
+
+        if ($read === null) {
+            $problems[] = new EventTabProblem($unreadable, $value);
+        }
+
+        return $read;
+    }
+
+    /**
      * @param list<ParsedEventRow> $rows
      * @param list<EventTabProblem> $problems
      */
@@ -269,6 +296,7 @@ final class EventResultsTabParser
         null|string $location,
         null|string $cityAndState,
         null|DateTimeImmutable $localStartsAt,
+        bool $startTimeKnown,
         null|int $timeLimitMinutes,
         null|RoundCategory $category,
         null|string $puzzleId,
@@ -284,6 +312,7 @@ final class EventResultsTabParser
             $location,
             $cityAndState,
             $localStartsAt?->format('Y-m-d H:i'),
+            $startTimeKnown,
             $timeLimitMinutes,
             $category?->value,
             $puzzleId,
@@ -291,7 +320,7 @@ final class EventResultsTabParser
             array_map(static fn (EventTabProblem $problem): array => $problem->toArray(), $problems),
         ]));
 
-        return new ParsedEventTab($eventName, $location, $cityAndState, $localStartsAt, $timeLimitMinutes, $category, $puzzleId, $rows, $problems, $contentHash);
+        return new ParsedEventTab($eventName, $location, $cityAndState, $localStartsAt, $startTimeKnown, $timeLimitMinutes, $category, $puzzleId, $rows, $problems, $contentHash);
     }
 
     /**
@@ -344,6 +373,11 @@ final class EventResultsTabParser
      */
     private static function cell(array $cells, array $columns, string $column): string
     {
+        // An optional column may not be there at all
+        if (isset($columns[$column]) === false) {
+            return '';
+        }
+
         return trim($cells[$columns[$column]] ?? '');
     }
 

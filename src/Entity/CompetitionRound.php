@@ -46,8 +46,9 @@ class CompetitionRound implements EntityWithEvents
         public Competition $competition,
         #[Column]
         public string $name,
-        #[Column]
-        public int $minutesLimit,
+        // null = nobody said (an event imported from an organizer's results sheet without a time limit) - shown nowhere
+        #[Column(nullable: true)]
+        public null|int $minutesLimit,
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $startsAt,
         /**
@@ -104,6 +105,11 @@ class CompetitionRound implements EntityWithEvents
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: Types::SMALLINT, nullable: true)]
         public null|int $teamSize = null,
+        // false = only the day is known (an event imported from an organizer's results sheet without a start time):
+        // $startsAt is noon of that day in the round's zone, so it dates the round like any other, and pages show the
+        // day without a time. A start saved in the web form or the internal API is always known.
+        #[Column(options: ['default' => true])]
+        public bool $startTimeKnown = true,
     ) {
         RoundPuzzleReveal::assertValidDelay($revealDelayMinutes);
         self::assertValidTeamSize($teamSize);
@@ -278,13 +284,14 @@ class CompetitionRound implements EntityWithEvents
 
     public function edit(
         string $name,
-        int $minutesLimit,
+        null|int $minutesLimit,
         DateTimeImmutable $startsAt,
         string $timezone,
         null|string $badgeBackgroundColor,
         null|string $badgeTextColor,
         RoundCategory $category = RoundCategory::Solo,
         null|string $resultsLink = null,
+        bool $startTimeKnown = true,
     ): void {
         // The category decides which times belong to the round; its start and zone its local day, which the date
         // matching of series picks reads (docs/features/events-page/high-frequency-series.md)
@@ -304,6 +311,7 @@ class CompetitionRound implements EntityWithEvents
         $this->badgeTextColor = $badgeTextColor;
         $this->category = $category;
         $this->resultsLink = $resultsLink;
+        $this->startTimeKnown = $startTimeKnown;
     }
 
     /**

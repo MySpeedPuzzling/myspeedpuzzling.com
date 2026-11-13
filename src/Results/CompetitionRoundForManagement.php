@@ -13,7 +13,8 @@ readonly final class CompetitionRoundForManagement
     public function __construct(
         public string $id,
         public string $name,
-        public int $minutesLimit,
+        // null = no limit given (CompetitionRound::$minutesLimit)
+        public null|int $minutesLimit,
         public DateTimeImmutable $startsAt,
         public null|string $badgeBackgroundColor,
         public null|string $badgeTextColor,

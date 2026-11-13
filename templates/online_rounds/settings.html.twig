@@ -34,8 +34,10 @@
         <p class="h5 text-muted mb-1">{{ competition.name }} — {{ round.name }}</p>
         <p class="small text-muted">
             <i class="bi bi-calendar-event me-1" aria-hidden="true"></i>{{ zoned_datetime(round.startsAt, round.displayTimezone, round.timezoneAssumed) }}
+            {% if round.minutesLimit is not null %}
             <span class="mx-1">&middot;</span>
             <i class="bi bi-stopwatch me-1" aria-hidden="true"></i>{{ 'event_rounds.minutes'|trans({'%count%': round.minutesLimit}) }}
+            {% endif %}
         </p>
 
         {% if not availability.isAvailable %}

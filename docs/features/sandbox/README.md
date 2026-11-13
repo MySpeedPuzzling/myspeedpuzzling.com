@@ -25,9 +25,9 @@ The server side (compose stack, crons, secrets, first deploy and seed) lives in 
 
 **The sandbox shares nothing writable with production and holds nothing that identifies a person.**
 
-Own database, Redis, Mercure, bucket (in its own Hetzner project — a Hetzner S3 key reaches every bucket of its
-project, and production's project also holds the database backups), own secrets (Infisical `msp-sandbox`, never
-copies of production's), own OAuth2 keys (a sandbox token is worthless on production and the other way round). Its
+Own database, Redis, Mercure, bucket `myspeedpuzzling-sandbox` (in production's Hetzner project - Jan's call; its key
+could reach production's bucket and backups, the app only ever uses `S3_BUCKET`), own secrets (Infisical
+`myspeedpuzzling-sandbox`; only `SENTRY_DSN` is production's), own OAuth2 keys (a sandbox token is worthless on production and the other way round). Its
 e-mail goes only to Mailpit. The one thing it reads from production is the **public** image host for catalogue
 pictures — what any browser gets.
 
@@ -132,7 +132,7 @@ What lily's `apps/msp-sandbox/compose.yaml` sets, against production:
 | `SENTRY_ENVIRONMENT` | `sandbox` | unset → `prod` |
 | `SENTRY_TRACES/PROFILES_SAMPLE_RATE` | `0` | 0.1 / 0.25 |
 | `MAILER_DSN` | `smtp://msp-sandbox-mailpit:1025` | SES (Infisical) |
-| `S3_BUCKET`, keys | `myspeedpuzzling-sandbox`, own Hetzner project | `myspeedpuzzling` |
+| `S3_BUCKET`, keys | `myspeedpuzzling-sandbox`, own key pair | `myspeedpuzzling` |
 | `UPLOADS_BASE_URL`, `NGINX_PROXY_BASE_URL` | `https://sandbox-img.myspeedpuzzling.com` | `https://img.myspeedpuzzling.com` |
 | `PREDICTION_SHOWN_MODEL` | `v7` (answers like production) | `v7` |
 | `PREDICTION_CANDIDATE_ROWS`, `PREDICTION_GROUP_ROWS` | `0` | `1` |

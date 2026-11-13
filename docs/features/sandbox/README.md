@@ -101,6 +101,20 @@ and no table policy to keep current.
 and commands call `SandboxMode::assertOn()` first: on production (`SANDBOX=0`) they refuse before writing anything
 (`SandboxOnlyMessagesTest`). The export is the only one that runs on production, and it only reads.
 
+### Copying a real account (Jan, 2026-11-13)
+
+On request a real person's account is copied from production: they sign in on the sandbox with the **same e-mail and
+password**. Only the sign-in and the basic profile (e-mail, password hash, verified flag, name, code - a new one when
+the sandbox has it taken - country, language, time zone); never results, collections, pictures or anything private.
+An e-mail registered on the sandbox already keeps everything it has there and only gets production's password. Made-up
+`test-user+…` addresses are refused.
+
+Run on lily (Claude Code over ssh): `/srv/msp-sandbox/copy-account.sh <email>` = production's read-only
+`myspeedpuzzling:sandbox:export-account <email>` (`SandboxAccountExport`, JSON) piped into the sandbox's
+`myspeedpuzzling:sandbox:import-account` (`CopyAccountToSandbox`, sandbox only). **Deliberately not an internal API
+endpoint**: production's internal API would hand out password hashes to whoever holds its token, and the caller would
+see the hash; the pipe keeps it inside the box (never on disk, in a log, a terminal or the network).
+
 ## 5. Membership, payments
 
 - **Everybody is a member through data**, not a code switch: a `membership.granted_until` far in the future
@@ -198,9 +212,10 @@ All behind a marker file (`/var/lib/msp-sandbox/cron.on`), created only after th
 | Membership | `EventSubscriber\SandboxMembershipOnLoginSubscriber` → `GrantSandboxMembership`, `Services\Sandbox\SandboxMembership` |
 | Catalogue | `Services\Sandbox\SandboxCatalogue`, commands `myspeedpuzzling:sandbox:export-catalogue` / `import-catalogue`, `ImportSandboxCatalogue` |
 | People + results | `CreateSandboxPlayers`, `Services\Sandbox\SandboxPeople`, `SandboxTimeModel`, `SandboxResultPlanner`, `Query\GetSandboxSimulationData`, `Value\SandboxPlayer`/`SandboxPuzzle`/`SandboxPlannedResult`, commands `myspeedpuzzling:sandbox:seed` / `simulate-activity` |
+| Copying a real account | `Services\Sandbox\SandboxAccountExport`, `CopyAccountToSandbox`, commands `myspeedpuzzling:sandbox:export-account` / `import-account`, lily `apps/msp-sandbox/copy-account.sh` |
 | Sentry environment | `config/packages/sentry.php` |
 | Deploy | `.github/workflows/test.yml` job `deploy-sandbox` (after a production deploy; a notice until the GitHub secret `DEPLOY_WEBHOOK_SECRET_SANDBOX` exists) |
-| Tests | `tests/Services/Sandbox/*`, `SandboxOnlyMessagesTest`, `CreateSandboxPlayersHandlerTest`, `GrantSandboxMembershipHandlerTest`, `SandboxSimulatedResultsTest`, `SandboxNoIndexSubscriberTest`, `SandboxPagesTest`, `SandboxGateTest` |
+| Tests | `tests/Services/Sandbox/*`, `SandboxOnlyMessagesTest`, `CreateSandboxPlayersHandlerTest`, `GrantSandboxMembershipHandlerTest`, `SandboxSimulatedResultsTest`, `SandboxNoIndexSubscriberTest`, `SandboxPagesTest`, `SandboxGateTest`, `CopyAccountToSandboxHandlerTest` |
 
 A new table that should be in the catalogue: add it to `SandboxCatalogue::COLUMNS` with its export query —
 **public data only**. A new member feature needs nothing: the sandbox's members are ordinary members.

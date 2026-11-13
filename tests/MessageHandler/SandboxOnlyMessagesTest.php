@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use SpeedPuzzling\Web\Exceptions\SandboxModeIsOff;
+use SpeedPuzzling\Web\Message\CopyAccountToSandbox;
 use SpeedPuzzling\Web\Message\CreateSandboxPlayers;
 use SpeedPuzzling\Web\Message\GrantSandboxMembership;
 use SpeedPuzzling\Web\Message\ImportSandboxCatalogue;
@@ -25,6 +26,7 @@ final class SandboxOnlyMessagesTest extends KernelTestCase
     {
         yield 'players' => [new CreateSandboxPlayers(3, 'sandbox')];
         yield 'catalogue' => [new ImportSandboxCatalogue('/dev/null')];
+        yield 'account' => [new CopyAccountToSandbox('someone@example.com', null, true, 'Someone', 'someone', null, null, null)];
         yield 'membership' => [new GrantSandboxMembership(PlayerFixture::PLAYER_REGULAR_USER_ID)];
     }
 

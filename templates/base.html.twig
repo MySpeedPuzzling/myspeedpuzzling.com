@@ -29,9 +29,8 @@
         <meta name="turbo-cache-control" content="no-cache">
         <meta name="turbo-prefetch" content="false">
 
-        {% block robots %}<meta name="robots" content="index, follow">{% endblock %}
         {# The sandbox (docs/features/sandbox/README.md) is never indexed, whatever a page's own robots block says #}
-        {% if sandbox %}<meta name="robots" content="noindex, nofollow, noarchive">{% endif %}
+        {% if sandbox %}<meta name="robots" content="noindex, nofollow, noarchive">{% else %}{% block robots %}<meta name="robots" content="index, follow">{% endblock %}{% endif %}
 
         {# Asset-failure beacon + self-heal. A corrupt cached bundle is refused by
            SRI on every page load and Sentry never hears about it (its browser SDK

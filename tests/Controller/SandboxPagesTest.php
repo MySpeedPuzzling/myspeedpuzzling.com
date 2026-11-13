@@ -30,6 +30,7 @@ final class SandboxPagesTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSame(SandboxNoIndexSubscriber::HEADER_VALUE, $client->getResponse()->headers->get('X-Robots-Tag'));
         self::assertCount(1, $crawler->filter('[data-testid="sandbox-banner"]'));
+        self::assertCount(1, $crawler->filter('meta[name="robots"]'), "One robots tag: the sandbox one replaces the page's own");
         self::assertCount(1, $crawler->filter('meta[name="robots"][content="noindex, nofollow, noarchive"]'));
         self::assertCount(1, $crawler->filter('[data-testid="for-developers-sandbox"]'));
         self::assertStringContainsString('sandbox.myspeedpuzzling.com', $crawler->filter('[data-testid="for-developers-sandbox"]')->text());

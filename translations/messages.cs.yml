@@ -11569,3 +11569,6 @@ sandbox_gate:
     enter: "Vstoupit do sandboxu"
     real_site: "Ne, díky – chci na skutečný MySpeedPuzzling"
     image_alt: "Dílky puzzle si hrají na pískovišti u cedule Testovací prostor"
+player_country:
+    placeholder: "Vyber svou zemi"
+    suggested: "Myslíme si, že jsi z této země: %country%. Pokud ne, změň to - uloží se, až uložíš profil."

@@ -36,8 +36,9 @@ two forms cover every sign-up path. The legacy `RegisterUserToPlay` (a pre-2026 
 
 ## Settings
 
-"Time zone" on the edit-profile form (`EditProfileFormType`, shared with `finish_profile`, where it sits under "Add
-more" so that form never clears it): a select grouped by region, names from ICU in the page's language
+"Time zone" on the edit-profile form (`EditProfileFormType`, shared with `finish_profile`, where it is asked up front
+next to the country since 2026-11-13 - it used to sit folded under "Add more", where the detected zone was never
+preselected): a select grouped by region, names from ICU in the page's language
 (`Services\TimezoneChoices`: `Timezones::getName()`, UTC through `IntlTimeZone`), sorted by the city in brackets,
 searchable through TomSelect (`timezone_select_controller.js`, lazy, partial `_timezone_field.html.twig`).
 
@@ -46,6 +47,18 @@ searchable through TomSelect (`timezone_select_controller.js`, lazy, partial `_t
   the controller scrolls to it again and focuses it once TomSelect has replaced the select.
 - **Detected, not saved**: while nothing is saved, the controller preselects the browser's zone and shows "Detected from
   your browser - it is saved once you save your profile." Nothing is stored until the player presses Save.
+
+## The country guess
+
+The country field next to it (`_country_field.html.twig`, `profile_country_controller.js`: TomSelect with flags,
+names in the page's language, the English name searchable) preselects a guess while no country is saved - "We think
+you're from Czechia - change it if not", stored only on Save like the zone. The guess is the country of the time zone
+(the saved one, else the browser's; `TimezoneIdentifier::countryCodes()` = zone.tab, aliases included, rendered into the
+page only while there is something to guess), else the browser's language (`assets/country_guess.js`). The zone first:
+it is the device's own setting, while the language is often a default (`en-US` in Prague). No IP geolocation: the site
+is not behind a proxy that tells the country, an external lookup would send the visitor's IP to a third party, and a
+GeoIP database is upkeep for a guess the zone already gives; a VPN would mislead it too. An expat's zone names the
+country they live in - they correct it once.
 
 ## "Complete your profile" panel
 

@@ -24,7 +24,7 @@ ranked as a bare `#CODE`.
 |---|---|---|
 | Name at registration | `RegistrationFormType`, `RegisterUser::$name`, `RegisterUserHandler` | Optional, trimmed, blank = null. Social sign-up already carried the provider's name |
 | Welcome screen | `/welcome`, `templates/registration_welcome.html.twig` | One question, three big answers (log a puzzle / stopwatch / finish profile), guide link, skip. Both native and social registration land here |
-| Finish profile | route `finish_profile`, `FinishProfileController`, `templates/onboarding/finish_profile.html.twig` | Same `EditProfileFormType` + `EditProfile` message as "Edit profile"; shows name, country, photo, the rest folded under "Add more". Saves → Hub |
+| Finish profile | route `finish_profile`, `FinishProfileController`, `templates/onboarding/finish_profile.html.twig` | Same `EditProfileFormType` + `EditProfile` message as "Edit profile"; shows name, country (flags, "We think you're from …" guess - `player-timezone.md` "The country guess"), time zone, photo, the rest folded under "Add more". Saves → Hub |
 | "Getting started" card | Hub **and the player's own profile**, `templates/onboarding/_getting_started_card.html.twig` | See below |
 | The guide | route `getting_started` (`/en/getting-started`, localized slugs), `templates/onboarding/getting_started.html.twig` | Public, indexable, all 6 locales. Linked from footer column 1, the user menu, the FAQ, the welcome screen, the Hub card |
 | Empty statistics | `templates/components/PlayerStatistics.html.twig` | The owner's own empty statistics get a "Log your first puzzle" button |

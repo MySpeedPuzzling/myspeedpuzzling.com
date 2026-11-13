@@ -27,6 +27,11 @@ final class TimezoneIdentifier
     private static null|array $aliases = null;
 
     /**
+     * @var null|array<string, string>
+     */
+    private static null|array $countryCodes = null;
+
+    /**
      * @return null|string the listed identifier, or null for an empty or unknown value
      */
     public static function normalize(mixed $value): null|string
@@ -88,6 +93,39 @@ final class TimezoneIdentifier
         }
 
         return self::$aliases = $aliases;
+    }
+
+    /**
+     * Zone → lowercase country code (`Europe/Prague` → `cz`), aliases included (`Asia/Calcutta` → `in`), from the tz
+     * database's zone.tab. Zones of no country (`UTC`, `Etc/*`) are left out. The profile's country field guesses from
+     * it (templates/_country_field.html.twig): a device's time zone says where the player lives far more reliably than
+     * the browser's language (plenty of Czechs browse in en-US).
+     *
+     * @return array<string, string>
+     */
+    public static function countryCodes(): array
+    {
+        if (self::$countryCodes !== null) {
+            return self::$countryCodes;
+        }
+
+        $countries = [];
+
+        foreach (self::all() as $identifier) {
+            $code = (new \DateTimeZone($identifier))->getLocation()['country_code'] ?? '??';
+
+            if (preg_match('/^[A-Z]{2}$/', $code) === 1) {
+                $countries[$identifier] = strtolower($code);
+            }
+        }
+
+        foreach (self::aliases() as $alias => $identifier) {
+            if (isset($countries[$identifier])) {
+                $countries[$alias] = $countries[$identifier];
+            }
+        }
+
+        return self::$countryCodes = $countries;
     }
 
     /**

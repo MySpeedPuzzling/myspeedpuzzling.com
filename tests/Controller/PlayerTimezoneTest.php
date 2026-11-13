@@ -113,7 +113,9 @@ final class PlayerTimezoneTest extends WebTestCase
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
         $crawler = $browser->request('GET', '/en/finish-profile');
-        self::assertCount(1, $crawler->filter('details select#timezone'));
+        // Asked up front, next to the country - no longer folded under "Add more"
+        self::assertCount(1, $crawler->filter('select#timezone'));
+        self::assertCount(0, $crawler->filter('details select#timezone'));
 
         $browser->submit($crawler->selectButton('Save')->form());
 

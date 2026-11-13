@@ -1,0 +1,18 @@
+{#
+    The "Nationality" field of EditProfileFormType - edit profile and finish profile. profile_country_controller.js makes
+    it searchable with flags and, while no country is saved, preselects a guess with "We think you're from …" (saved only
+    on Save): the country of the player's time zone (saved, else the browser's), else the browser's language
+    (assets/country_guess.js). The zone map is rendered only while there is something to guess.
+#}
+<div class="country-field"
+    {{ stimulus_controller('profile-country', {
+        zoneCountries: field.vars.guess_zone_countries|default({}),
+        savedZone: field.vars.guess_saved_zone|default(''),
+        suggested: 'player_country.suggested'|trans,
+    }) }}
+>
+    {{ form_row(field) }}
+    <p class="form-text country-field-suggested mt-n2 mb-3" hidden {{ stimulus_target('profile-country', 'suggested') }}>
+        <i class="bi bi-magic me-1" aria-hidden="true"></i><span {{ stimulus_target('profile-country', 'sentence') }}></span>
+    </p>
+</div>

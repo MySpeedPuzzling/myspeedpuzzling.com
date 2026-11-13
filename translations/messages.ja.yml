@@ -11556,3 +11556,6 @@ sandbox_gate:
     enter: "サンドボックスに入る"
     real_site: "いいえ、本物のMySpeedPuzzlingへ"
     image_alt: "「テスト用エリア」の看板の横で砂場で遊ぶパズルのピース"
+player_country:
+    placeholder: "国を選択"
+    suggested: "お住まいの国は「%country%」だと思われます。違う場合は変更してください。プロフィールを保存すると保存されます。"

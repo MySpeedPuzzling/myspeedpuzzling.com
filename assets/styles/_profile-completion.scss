@@ -85,3 +85,39 @@
 #timezone {
     scroll-margin-top: calc(var(--header-height, 101px) + 1rem);
 }
+
+// The "Nationality" field with flags (profile_country_controller.js, templates/_country_field.html.twig)
+.country-option {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+
+    .fi {
+        flex-shrink: 0;
+    }
+
+    > span:last-child {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+// The chosen country reads as the field's value, not as a chip (_tom-select.scss gives every item one)
+.ts-wrapper.profile-country .ts-control {
+    flex-wrap: nowrap;
+    // Room for the arrow - _tom-select.scss computes this padding as 0 (see _comparison.scss), with !important
+    padding-right: 2.25rem !important;
+
+    .item {
+        min-width: 0;
+        padding: 0;
+        background: none;
+    }
+}
+
+// A country of "The most common" is listed again under "All countries" - while searching, once is enough
+.ts-wrapper.profile-country--searching .ts-dropdown .ts-cloned {
+    display: none;
+}

@@ -11813,3 +11813,6 @@ sandbox_gate:
     enter: "Enter the sandbox"
     real_site: "No thanks, take me to the real MySpeedPuzzling"
     image_alt: "Puzzle pieces playing in a sandbox next to a Test area sign"
+player_country:
+    placeholder: "Choose your country"
+    suggested: "We think you're from %country% - change it if not. It is saved once you save your profile."

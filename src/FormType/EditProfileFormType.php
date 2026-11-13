@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormType;
 
+use Collator;
 use SpeedPuzzling\Web\FormData\EditProfileFormData;
 use SpeedPuzzling\Web\Services\TimezoneChoices;
 use SpeedPuzzling\Web\Value\TimezoneIdentifier;
@@ -53,40 +54,65 @@ final class EditProfileFormType extends AbstractType
             'help' => 'forms.location_help',
         ]);
 
-        $allCountries = [];
+        // Values are the codes (`cz`), so the browser's guess can pick one (profile_country_controller.js); each country
+        // is listed twice (most common + all), which without choice_value would number the options instead.
+        // Names in the page's language, the English one kept for the search ("Czechia" finds "Česko").
+        $locale = $this->translator->getLocale();
+        $collator = new Collator($locale);
+        $allCountries = CountryCode::cases();
+        usort(
+            $allCountries,
+            static fn (CountryCode $a, CountryCode $b): int => (int) $collator->compare($a->localizedName($locale), $b->localizedName($locale)),
+        );
 
-        foreach (CountryCode::cases() as $country) {
-            $allCountries[$country->value] = $country->name;
+        $mostCommon = [
+            CountryCode::cz,
+            CountryCode::sk,
+            CountryCode::pl,
+            CountryCode::de,
+            CountryCode::at,
+            CountryCode::no,
+            CountryCode::fi,
+            CountryCode::us,
+            CountryCode::ca,
+            CountryCode::fr,
+            CountryCode::nz,
+            CountryCode::es,
+            CountryCode::nl,
+            CountryCode::pt,
+            CountryCode::gb,
+        ];
+
+        $mostCommonCodes = [];
+        foreach ($mostCommon as $country) {
+            $mostCommonCodes[] = $country->name;
         }
 
-        $countries = [
-            $this->translator->trans('forms.country_most_common') => [
-                CountryCode::cz->value => CountryCode::cz->name,
-                CountryCode::sk->value => CountryCode::sk->name,
-                CountryCode::pl->value => CountryCode::pl->name,
-                CountryCode::de->value => CountryCode::de->name,
-                CountryCode::at->value => CountryCode::at->name,
-                CountryCode::no->value => CountryCode::no->name,
-                CountryCode::fi->value => CountryCode::fi->name,
-                CountryCode::us->value => CountryCode::us->name,
-                CountryCode::ca->value => CountryCode::ca->name,
-                CountryCode::fr->value => CountryCode::fr->name,
-                CountryCode::nz->value => CountryCode::nz->name,
-                CountryCode::es->value => CountryCode::es->name,
-                CountryCode::nl->value => CountryCode::nl->name,
-                CountryCode::pt->value => CountryCode::pt->name,
-                CountryCode::gb->value => CountryCode::gb->name,
-            ],
-            $this->translator->trans('forms.country_all') => $allCountries,
-        ];
+        $allCodes = [];
+        foreach ($allCountries as $country) {
+            $allCodes[] = $country->name;
+        }
 
         $builder->add('country', ChoiceType::class, [
             'label' => 'forms.nationality',
             'required' => false,
             'expanded' => false,
             'multiple' => false,
-            'choices' => $countries,
+            'placeholder' => 'player_country.placeholder',
+            'choices' => [
+                $this->translator->trans('forms.country_most_common') => $mostCommonCodes,
+                $this->translator->trans('forms.country_all') => $allCodes,
+            ],
+            'choice_value' => static fn (null|string $code): string => $code ?? '',
+            'choice_label' => static fn (string $code): string => CountryCode::fromCode($code)?->localizedName($locale) ?? $code,
+            'choice_attr' => static fn (string $code): array => [
+                'data-flag' => $code,
+                'data-alias' => CountryCode::fromCode($code)->value ?? '',
+            ],
             'choice_translation_domain' => false,
+            'attr' => [
+                'data-profile-country-target' => 'select',
+            ],
         ]);
 
         // Searchable through timezone_select_controller.js, which also preselects the browser's zone while none is
@@ -155,6 +181,15 @@ final class EditProfileFormType extends AbstractType
         $view['timezone']->vars['id'] = self::TIMEZONE_ANCHOR;
         // For the browser's old zone names (templates/_timezone_field.html.twig → timezone_select_controller.js)
         $view['timezone']->vars['browser_aliases'] = TimezoneIdentifier::aliases();
+
+        // For the "We think you're from …" guess (templates/_country_field.html.twig) - only while no country is saved,
+        // the zone map is ~13 kB of HTML
+        $data = $form->getData();
+
+        if (CountryCode::fromCode($data->country) === null) {
+            $view['country']->vars['guess_zone_countries'] = TimezoneIdentifier::countryCodes();
+            $view['country']->vars['guess_saved_zone'] = $data->timezone;
+        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void

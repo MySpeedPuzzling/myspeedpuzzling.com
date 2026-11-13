@@ -11566,3 +11566,6 @@ sandbox_gate:
     enter: "Sandbox betreten"
     real_site: "Nein danke, zum echten MySpeedPuzzling"
     image_alt: "Puzzleteile spielen in einem Sandkasten neben einem Schild „Testbereich“"
+player_country:
+    placeholder: "Wähle dein Land"
+    suggested: "Wir glauben, du kommst aus: %country%. Falls nicht, ändere es - es wird gespeichert, sobald du dein Profil speicherst."

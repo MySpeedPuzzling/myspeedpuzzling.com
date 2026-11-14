@@ -19,11 +19,39 @@
                     <small class="text-muted">{{ collectionItem.puzzle.name }}</small>
                 </div>
                 <div class="card-body">
-                    {{ form_start(form) }}
+                    {# The action is explicit: the form posts to its own route wherever it is rendered #}
+                    {{ form_start(form, {action: path('edit_collection_item_comment', {collectionItemId: collectionItem.id})}) }}
 
                     <div class="mb-4">
                         {{ form_row(form.comment) }}
                     </div>
+
+                    {#
+                        The owner's own fields for collection puzzles (docs/features/custom-fields.md "Collection
+                        items") - plain inputs beside the Symfony form. This form is the only page that shows them:
+                        collection pages are often public, so nothing of them is ever rendered there.
+                    #}
+                    {% if my_fields.fields is not empty %}
+                        <div class="border-top pt-3 mb-4" data-testid="collection-item-my-fields">
+                            <p class="fw-semibold mb-1"><i class="bi bi-lock me-1"></i>{{ 'my_fields.title'|trans }}</p>
+                            <p class="form-text mt-0 mb-3">{{ 'my_fields.collection_item.private_note'|trans }}</p>
+
+                            {% if my_fields.problems is not empty %}
+                                <div class="alert alert-danger fs-sm" role="alert">{{ 'my_fields.values.not_saved'|trans }}</div>
+                            {% endif %}
+
+                            {{ include('my_fields/_inputs.html.twig', {my_fields: my_fields, id_prefix: 'item-my-field'}) }}
+
+                            <p class="form-text mb-0">
+                                <a href="{{ path('my_fields') }}">{{ 'my_fields.manage_link'|trans }}</a>
+                            </p>
+                        </div>
+                    {% else %}
+                        <p class="form-text mb-4" data-testid="collection-item-no-my-fields">
+                            <i class="bi bi-lock me-1"></i>{{ 'my_fields.collection_item.none'|trans }}
+                            <a href="{{ path('my_fields') }}">{{ 'my_fields.manage_link'|trans }}</a>
+                        </p>
+                    {% endif %}
 
                     <div class="d-flex justify-content-between gap-2">
                         <a href="{{ cancelUrl }}" class="btn btn-secondary">

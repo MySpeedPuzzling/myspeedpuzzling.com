@@ -8,16 +8,18 @@ use DateTimeImmutable;
 use SpeedPuzzling\Web\Exceptions\InvalidCustomValue;
 
 /**
- * A player's own values on one row (a result; a collection item from stage 1b), keyed by the id of the custom field -
+ * A player's own values on one row (a result, a collection item), keyed by the id of the custom field -
  * what the jsonb column holds (docs/features/custom-fields.md). One stored value per type:
  *
- * - text: a string of at most 500 characters, valid UTF-8 without control characters (line breaks and tabs stay)
+ * - text: a string of at most 500 characters, valid UTF-8 without control characters (line breaks and tabs stay) and
+ *   without the two characters XML can not hold (U+FFFE, U+FFFF)
  * - number: an int, or a float when it has a fraction
  * - date: `Y-m-d`
  * - yes/no: true / false (no answer = no value)
  * - one of a list: one of the field's choices
  * - tags: a list of free tags (the field has no fixed list) - at most 20, each at most 50 characters, each once
  *   whatever its letter case
+ * - rating: a whole number from 1 to 5
  *
  * normalise() is the one parser of a submitted value - the forms, the handlers, later the import and My data.
  */
@@ -26,6 +28,7 @@ readonly final class CustomValues
     public const int TEXT_MAX_LENGTH = 500;
     public const int MAX_TAGS = 20;
     public const int TAG_MAX_LENGTH = 50;
+    public const int RATING_MAX = 5;
     private const float NUMBER_LIMIT = 1_000_000_000_000.0;
 
     /**
@@ -127,6 +130,7 @@ readonly final class CustomValues
                 CustomFieldType::Date => CustomValueProblem::NotADate,
                 CustomFieldType::YesNo => CustomValueProblem::NotYesNo,
                 CustomFieldType::Choice => CustomValueProblem::UnknownChoice,
+                CustomFieldType::Rating => CustomValueProblem::NotARating,
                 CustomFieldType::Text, CustomFieldType::Tags => CustomValueProblem::NotValid,
             });
         }
@@ -138,6 +142,7 @@ readonly final class CustomValues
             CustomFieldType::YesNo => self::yesNo($submitted),
             CustomFieldType::Choice => self::choice($submitted, $choices),
             CustomFieldType::Tags => self::tags($submitted),
+            CustomFieldType::Rating => self::rating($submitted),
         };
     }
 
@@ -180,10 +185,11 @@ readonly final class CustomValues
     }
 
     /**
-     * Text the database can hold and a page can show: valid UTF-8 without control characters (a NUL byte or broken
-     * UTF-8 is refused by jsonb - as a failed write, not as a wrong value). Line breaks and tabs only where the text
-     * has lines. Checked before anything else is done with the text: a regular expression answers broken UTF-8 with
-     * nothing at all.
+     * Text the database can hold, a page can show and an XML export can carry: valid UTF-8 without control characters
+     * (a NUL byte or broken UTF-8 is refused by jsonb - as a failed write, not as a wrong value) and without U+FFFE
+     * and U+FFFF, which no XML 1.0 document may hold (lone surrogates are no valid UTF-8 already). Line breaks and
+     * tabs only where the text has lines. Checked before anything else is done with the text: a regular expression
+     * answers broken UTF-8 with nothing at all.
      */
     public static function isStorableText(string $text, bool $multiline): bool
     {
@@ -191,7 +197,7 @@ readonly final class CustomValues
             return false;
         }
 
-        return preg_match($multiline ? '/[^\P{Cc}\n\r\t]/u' : '/\p{Cc}/u', $text) === 0;
+        return preg_match($multiline ? '/[^\P{Cc}\n\r\t]|[\x{FFFE}\x{FFFF}]/u' : '/\p{Cc}|[\x{FFFE}\x{FFFF}]/u', $text) === 0;
     }
 
     /**
@@ -277,6 +283,24 @@ readonly final class CustomValues
     {
         if (is_string($submitted) === false || in_array($submitted, $choices, true) === false) {
             throw new InvalidCustomValue(CustomValueProblem::UnknownChoice);
+        }
+
+        return $submitted;
+    }
+
+    /**
+     * `1` to `5`, nothing else - not `4.5`, not `04`, not `5 stars`.
+     *
+     * @throws InvalidCustomValue
+     */
+    private static function rating(mixed $submitted): int
+    {
+        if (is_string($submitted) && preg_match('/^[1-9]$/', $submitted) === 1) {
+            $submitted = (int) $submitted;
+        }
+
+        if (is_int($submitted) === false || $submitted < 1 || $submitted > self::RATING_MAX) {
+            throw new InvalidCustomValue(CustomValueProblem::NotARating);
         }
 
         return $submitted;

@@ -51,6 +51,11 @@ final class CustomValuesTest extends TestCase
         yield 'tags as a list' => [CustomFieldType::Tags, [], ['night  sky', 'cats'], ['night sky', 'cats']];
         yield 'no tags' => [CustomFieldType::Tags, [], ' , ', null];
         yield 'a number as a tag' => [CustomFieldType::Tags, [], '2024, 500', ['2024', '500']];
+        yield 'a rating' => [CustomFieldType::Rating, [], '4', 4];
+        yield 'the lowest rating' => [CustomFieldType::Rating, [], ' 1 ', 1];
+        yield 'the highest rating' => [CustomFieldType::Rating, [], '5', 5];
+        yield 'a rating as a number' => [CustomFieldType::Rating, [], 3, 3];
+        yield 'no rating' => [CustomFieldType::Rating, [], '', null];
     }
 
     /**
@@ -88,6 +93,12 @@ final class CustomValuesTest extends TestCase
         yield 'a tag that is no UTF-8' => [CustomFieldType::Tags, [], ["cats", "\xFF\xFE"], CustomValueProblem::NotValid];
         yield 'a date with a NUL byte' => [CustomFieldType::Date, [], "2026-03\0-01", CustomValueProblem::NotADate];
         yield 'a choice that is no UTF-8' => [CustomFieldType::Choice, ['table'], "table\xC3\x28", CustomValueProblem::UnknownChoice];
+        // What no XML 1.0 document can hold would make the player's XML export unreadable
+        yield 'text with U+FFFF' => [CustomFieldType::Text, [], "edges\u{FFFF}last", CustomValueProblem::NotValid];
+        yield 'text with U+FFFE' => [CustomFieldType::Text, [], "edges\u{FFFE}last", CustomValueProblem::NotValid];
+        yield 'a tag with U+FFFF' => [CustomFieldType::Tags, [], "cats, sk\u{FFFF}y", CustomValueProblem::NotValid];
+        yield 'a choice with U+FFFF' => [CustomFieldType::Choice, ["table\u{FFFF}"], "table\u{FFFF}", CustomValueProblem::UnknownChoice];
+        yield 'text with a lone surrogate' => [CustomFieldType::Text, [], "edges\xED\xA0\x80last", CustomValueProblem::NotValid];
         yield 'a day that does not exist' => [CustomFieldType::Date, [], '2026-02-30', CustomValueProblem::NotADate];
         yield 'another date format' => [CustomFieldType::Date, [], '28.02.2026', CustomValueProblem::NotADate];
         yield 'a year far away' => [CustomFieldType::Date, [], '0026-02-28', CustomValueProblem::NotADate];
@@ -97,6 +108,21 @@ final class CustomValuesTest extends TestCase
         yield 'a tag of 51 characters' => [CustomFieldType::Tags, [], str_repeat('a', 51), CustomValueProblem::TagTooLong];
         yield '21 tags' => [CustomFieldType::Tags, [], implode(',', range(1, 21)), CustomValueProblem::TooManyTags];
         yield 'a tag that is no text' => [CustomFieldType::Tags, [], [['a']], CustomValueProblem::NotValid];
+        // A rating is a whole number from 1 to 5 and nothing else
+        yield 'a rating of zero' => [CustomFieldType::Rating, [], '0', CustomValueProblem::NotARating];
+        yield 'a rating of six' => [CustomFieldType::Rating, [], '6', CustomValueProblem::NotARating];
+        yield 'a rating of ten' => [CustomFieldType::Rating, [], '10', CustomValueProblem::NotARating];
+        yield 'half a star' => [CustomFieldType::Rating, [], '4.5', CustomValueProblem::NotARating];
+        yield 'half a star as a number' => [CustomFieldType::Rating, [], 4.5, CustomValueProblem::NotARating];
+        yield 'a rating with a leading zero' => [CustomFieldType::Rating, [], '04', CustomValueProblem::NotARating];
+        yield 'a negative rating' => [CustomFieldType::Rating, [], '-3', CustomValueProblem::NotARating];
+        yield 'a rating in words' => [CustomFieldType::Rating, [], 'five', CustomValueProblem::NotARating];
+        yield 'a rating in stars' => [CustomFieldType::Rating, [], '★★★', CustomValueProblem::NotARating];
+        yield 'a rating as a list' => [CustomFieldType::Rating, [], ['3'], CustomValueProblem::NotARating];
+        yield 'a rating as yes' => [CustomFieldType::Rating, [], true, CustomValueProblem::NotARating];
+        yield 'a rating with a control character' => [CustomFieldType::Rating, [], "3\x1B", CustomValueProblem::NotARating];
+        yield 'a rating that is no UTF-8' => [CustomFieldType::Rating, [], "3\xC3\x28", CustomValueProblem::NotARating];
+        yield 'a rating in other digits' => [CustomFieldType::Rating, [], '٣', CustomValueProblem::NotARating];
     }
 
     /**
@@ -124,6 +150,7 @@ final class CustomValuesTest extends TestCase
                 [CustomFieldType::Tags, ['cats', 'night sky']],
                 [CustomFieldType::Date, '2026-02-28'],
                 [CustomFieldType::Text, "one\ntwo"],
+                [CustomFieldType::Rating, 4],
             ] as [$type, $stored]
         ) {
             self::assertSame($stored, CustomValues::normalise($type, [], CustomValues::toInput($stored)));
@@ -140,6 +167,10 @@ final class CustomValuesTest extends TestCase
         self::assertFalse(CustomValues::isStorableText("a\0b", multiline: true));
         self::assertFalse(CustomValues::isStorableText("a\x7Fb", multiline: true));
         self::assertFalse(CustomValues::isStorableText("\xC3\x28", multiline: true));
+        // XML 1.0 can not hold these two; the characters around them it can
+        self::assertFalse(CustomValues::isStorableText("a\u{FFFF}b", multiline: true));
+        self::assertFalse(CustomValues::isStorableText("a\u{FFFE}b", multiline: false));
+        self::assertTrue(CustomValues::isStorableText("a\u{FFFD}\u{E000}\u{10000}b", multiline: false));
     }
 
     public function testChangesAreMergedAndNullTakesAValueAway(): void

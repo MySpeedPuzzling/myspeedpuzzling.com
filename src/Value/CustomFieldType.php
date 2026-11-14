@@ -16,4 +16,5 @@ enum CustomFieldType: string
     case YesNo = 'yes_no';
     case Choice = 'choice';
     case Tags = 'tags';
+    case Rating = 'rating';
 }

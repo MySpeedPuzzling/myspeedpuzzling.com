@@ -11866,14 +11866,14 @@ event_result_claim:
 
 my_fields:
     title: "My fields"
-    intro: "Your own fields for what you want to remember about a result: notes, a number, a date, tags. Add a ready-made one with one tap or make your own."
+    intro: "Your own fields for what you want to remember about a result or a puzzle in your collection: notes, a number, a date, a rating, tags. Add a ready-made one with one tap or make your own."
     private_note: "Only you see your fields and what you write in them - also on a result you solved in a pair or a team."
     back_to_settings: "Profile settings"
     manage_link: "Manage my fields"
     in_use_title: "Fields in use (%count% of %limit%)"
     empty: "No fields yet. Add a ready-made one below, or make your own."
     for_results: "Results"
-    for_collection_items: "Collection puzzles (filling them in arrives soon)"
+    for_collection_items: "Collection puzzles"
     move_up: "Move up"
     move_down: "Move down"
     edit: "Edit"
@@ -11900,7 +11900,7 @@ my_fields:
         places: "Where you fill it in"
         for_results: "On results"
         for_collection_items: "On collection puzzles"
-        for_collection_items_help: "You can set this up now. Filling fields in on the puzzles of your collection arrives soon."
+        for_collection_items_help: "You fill these in when you edit a puzzle in your collection."
     type:
         text: "Text"
         number: "Number"
@@ -11908,11 +11908,14 @@ my_fields:
         yes_no: "Yes / no"
         choice: "One of a list"
         tags: "Tags"
+        rating: "Rating (1-5)"
     value:
         none: "-"
         "yes": "Yes"
         "no": "No"
         tags_help: "Separate tags with commas."
+        rating_none: "No rating"
+        rating_stars: "%stars% of 5"
     errors:
         not_valid: "This value can not be saved."
         too_long: "Too long - at most %limit% characters."
@@ -11923,6 +11926,7 @@ my_fields:
         unknown_choice: "Choose one of the list."
         too_many_tags: "Too many tags - at most %limit%."
         tag_too_long: "A tag can have at most %limit% characters."
+        not_a_rating: "Choose a rating from 1 to 5."
         unknown_field: "This field is no longer in use."
     definition_errors:
         name_missing: "Give the field a name."
@@ -11956,8 +11960,14 @@ my_fields:
         label: "My fields"
         edit: "Edit"
         fill: "Fill in"
+    collection_item:
+        private_note: "Only you see these fields. They are never shown on your collection's page - not even when the collection is public."
+        none: "Want to note more about your copy - its condition, what you paid, where it is? Add your own fields; only you will see them."
+        saved: "Saved."
+        not_saved: "Your comment is saved. Your own fields could not be saved - please try again."
+    export_line: "What you wrote in your own fields"
     edit_profile_card:
-        text: "Your own private fields for results - notes, numbers, dates, tags. Only you ever see them."
+        text: "Your own private fields for results and for the puzzles in your collection - notes, numbers, dates, ratings, tags. Only you ever see them."
     standard:
         private_notes:
             label: "Private notes"
@@ -11989,3 +11999,11 @@ my_fields:
                 plastic: "Plastic"
         my_tags:
             label: "My tags"
+        how_i_liked_it:
+            label: "How I liked it"
+        how_hard_it_felt:
+            label: "How hard it felt"
+        quality:
+            label: "Quality"
+        started_on:
+            label: "Started on"

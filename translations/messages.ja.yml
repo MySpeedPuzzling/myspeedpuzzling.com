@@ -11609,14 +11609,14 @@ event_result_claim:
 
 my_fields:
     title: "マイ項目"
-    intro: "結果について覚えておきたいことを書く、自分だけの項目です。メモ、数値、日付、タグなど。用意された項目をワンタップで追加するか、自分で作成できます。"
+    intro: "結果やコレクションのパズルについて覚えておきたいことを書く、自分だけの項目です。メモ、数値、日付、評価、タグなど。用意された項目をワンタップで追加するか、自分で作成できます。"
     private_note: "項目とその内容は自分にしか見えません。ペアやチームで解いた結果でも同じです。"
     back_to_settings: "プロフィール設定"
     manage_link: "マイ項目を管理"
     in_use_title: "使用中の項目（%count% / %limit%）"
     empty: "まだ項目がありません。下の用意された項目を追加するか、自分で作成してください。"
     for_results: "結果"
-    for_collection_items: "コレクションのパズル（入力はまもなく対応）"
+    for_collection_items: "コレクションのパズル"
     move_up: "上へ移動"
     move_down: "下へ移動"
     edit: "編集"
@@ -11643,7 +11643,7 @@ my_fields:
         places: "入力する場所"
         for_results: "結果"
         for_collection_items: "コレクションのパズル"
-        for_collection_items_help: "設定は今すぐできます。コレクションのパズルでの入力はまもなく対応します。"
+        for_collection_items_help: "コレクションのパズルを編集するときに入力できます。"
     type:
         text: "テキスト"
         number: "数値"
@@ -11651,11 +11651,14 @@ my_fields:
         yes_no: "はい / いいえ"
         choice: "リストから1つ"
         tags: "タグ"
+        rating: "評価（1〜5）"
     value:
         none: "-"
         "yes": "はい"
         "no": "いいえ"
         tags_help: "タグはカンマで区切ってください。"
+        rating_none: "評価なし"
+        rating_stars: "5段階中%stars%"
     errors:
         not_valid: "この値は保存できません。"
         too_long: "長すぎます。%limit%文字以内で入力してください。"
@@ -11666,6 +11669,7 @@ my_fields:
         unknown_choice: "リストから1つ選んでください。"
         too_many_tags: "タグが多すぎます。%limit%個までです。"
         tag_too_long: "タグは%limit%文字までです。"
+        not_a_rating: "1から5の評価を選んでください。"
         unknown_field: "この項目は現在使われていません。"
     definition_errors:
         name_missing: "項目に名前を付けてください。"
@@ -11699,8 +11703,14 @@ my_fields:
         label: "マイ項目"
         edit: "編集"
         fill: "入力する"
+    collection_item:
+        private_note: "これらの項目は自分にしか見えません。コレクションが公開されていても、コレクションのページに表示されることはありません。"
+        none: "手持ちのパズルについて、状態や購入価格、保管場所などをメモしたいですか？自分だけの項目を追加できます。自分にしか見えません。"
+        saved: "保存しました。"
+        not_saved: "コメントは保存されました。自分の項目は保存できませんでした。もう一度お試しください。"
+    export_line: "自分の項目に書いた内容"
     edit_profile_card:
-        text: "結果のための自分だけの非公開項目です。メモ、数値、日付、タグなど。自分にしか見えません。"
+        text: "結果とコレクションのパズルのための自分だけの非公開項目です。メモ、数値、日付、評価、タグなど。自分にしか見えません。"
     standard:
         private_notes:
             label: "非公開メモ"
@@ -11732,3 +11742,11 @@ my_fields:
                 plastic: "プラスチック"
         my_tags:
             label: "マイタグ"
+        how_i_liked_it:
+            label: "気に入り度"
+        how_hard_it_felt:
+            label: "体感難易度"
+        quality:
+            label: "品質"
+        started_on:
+            label: "開始日"

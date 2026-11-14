@@ -48,6 +48,9 @@ readonly final class MovePuzzlesToCollectionHandler
 
         foreach ($sourceItems as $puzzleId => $item) {
             if (isset($targetItems[$puzzleId])) {
+                // The two items become one: what the owner wrote in their own fields on the leaving one fills the
+                // gaps of the one that stays (docs/features/custom-fields.md "Collection items")
+                $targetItems[$puzzleId]->fillCustomValueGapsFrom($item);
                 $this->collectionItemRepository->delete($item);
                 continue;
             }

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Query\GetExportableSolvingTimes;
+use SpeedPuzzling\Web\Services\CustomFields\OwnCustomValuesInExport;
 use SpeedPuzzling\Web\Services\PuzzlerDataExporter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\ExportFormat;
@@ -23,6 +24,7 @@ final class ExportPuzzlerDataDownloadController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetExportableSolvingTimes $getExportableSolvingTimes,
         readonly private PuzzlerDataExporter $exporter,
+        readonly private OwnCustomValuesInExport $ownCustomValuesInExport,
         readonly private ClockInterface $clock,
     ) {
     }
@@ -56,7 +58,8 @@ final class ExportPuzzlerDataDownloadController extends AbstractController
 
         $exportFormat = ExportFormat::from($format);
         $data = $this->getExportableSolvingTimes->byPlayerId($playerId);
-        $content = $this->exporter->export($data, $exportFormat);
+        // The player's own fields on their results - of whoever is signed in, which is this player
+        $content = $this->exporter->export($data, $exportFormat, $this->ownCustomValuesInExport->onResultsOfSignedInViewer());
 
         $filename = sprintf(
             'speedpuzzling-export-%s.%s',

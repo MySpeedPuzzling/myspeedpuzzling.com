@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Services\CustomFields\OwnCustomValuesInExport;
 use SpeedPuzzling\Web\Services\Export\PuzzleLibraryExportBuilder;
 use SpeedPuzzling\Web\Services\Export\SectionedExportWriter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -23,6 +24,7 @@ final class ExportPuzzleLibraryDownloadController extends AbstractController
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private PuzzleLibraryExportBuilder $exportBuilder,
+        readonly private OwnCustomValuesInExport $ownCustomValuesInExport,
         readonly private SectionedExportWriter $writer,
         readonly private ClockInterface $clock,
     ) {
@@ -52,7 +54,9 @@ final class ExportPuzzleLibraryDownloadController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        $file = $this->writer->write($this->exportBuilder->build($player), ExportFormat::from($format));
+        // The player's own fields on their collection items - of whoever is signed in, which is this player
+        $document = $this->exportBuilder->build($player, $this->ownCustomValuesInExport->onCollectionItemsOfSignedInViewer());
+        $file = $this->writer->write($document, ExportFormat::from($format));
 
         $filename = sprintf(
             'speedpuzzling-library-%s.%s',

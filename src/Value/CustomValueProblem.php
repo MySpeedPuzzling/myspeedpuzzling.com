@@ -18,6 +18,7 @@ enum CustomValueProblem: string
     case UnknownChoice = 'unknown_choice';
     case TooManyTags = 'too_many_tags';
     case TagTooLong = 'tag_too_long';
+    case NotARating = 'not_a_rating';
     case UnknownField = 'unknown_field';
 
     public function messageKey(): string

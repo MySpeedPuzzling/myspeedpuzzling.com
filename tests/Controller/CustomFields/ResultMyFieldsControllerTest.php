@@ -509,6 +509,48 @@ final class ResultMyFieldsControllerTest extends WebTestCase
         }
     }
 
+    public function testARatingIsRadiosInTheFormAndStarsOnTheResult(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, self::PLAYER);
+        $scenario = new CustomFieldsScenario(self::getContainer());
+        $liked = $scenario->readyMade(self::PLAYER, StandardCustomField::HowILikedIt);
+        $felt = $scenario->readyMade(self::PLAYER, StandardCustomField::HowHardItFelt);
+        $timeId = $scenario->result(self::PLAYER_USER);
+        $scenario->setValues($timeId, self::PLAYER, [$liked => '4']);
+
+        // The result: stars for the eye, "4 of 5" for a screen reader; a rating not given is not there
+        $block = $browser->request('GET', '/en/result/' . $timeId)->filter('[data-testid="result-my-fields"]');
+        self::assertStringContainsString('How I liked it:', $block->text());
+        self::assertSame('★★★★☆', $block->filter('[role="img"]')->text());
+        self::assertSame('4 of 5', $block->filter('[role="img"]')->attr('aria-label'));
+        self::assertStringNotContainsString('How hard it felt', $block->text());
+
+        // The form: five radios and "No rating" per field, the stored one checked - nothing in it needs JavaScript
+        $form = $browser->request('GET', '/en/custom-fields/result/' . $timeId)->filter('[data-testid="custom-values-form"]');
+        $checked = static fn (string $fieldId): array => $form->filter('input[type="radio"][name="my_fields[' . $fieldId . ']"][checked]')->each(static fn (Crawler $radio): string => (string) $radio->attr('value'));
+        self::assertCount(6, $form->filter('input[type="radio"][name="my_fields[' . $liked . ']"]'));
+        self::assertSame(['4'], $checked($liked));
+        self::assertSame([''], $checked($felt));
+        self::assertCount(0, $form->filter('[data-controller], [data-action]'), 'No JavaScript behaviour in the form');
+
+        // Another star, and a rating for the other field
+        $this->save($browser, $timeId, [$liked => '2', $felt => '5']);
+        self::assertResponseRedirects('/en/result/' . $timeId);
+        self::assertSame([$liked => 2, $felt => 5], $scenario->storedValues($timeId, self::PLAYER));
+
+        // "No rating" takes one away; a group sent without any radio keeps what it has
+        $this->save($browser, $timeId, [$liked => '']);
+        self::assertResponseRedirects('/en/result/' . $timeId);
+        self::assertSame([$felt => 5], $scenario->storedValues($timeId, self::PLAYER));
+
+        // No rating at all is a refusal at the field
+        $refused = $this->save($browser, $timeId, [$liked => '7', $felt => '5']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('1 to 5', $refused->filter('[data-custom-field="' . $liked . '"] .invalid-feedback')->text());
+        self::assertSame([$felt => 5], $scenario->storedValues($timeId, self::PLAYER));
+    }
+
     /**
      * @return array<string, mixed>
      */

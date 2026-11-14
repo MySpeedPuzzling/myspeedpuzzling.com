@@ -13,15 +13,27 @@ use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
 use Doctrine\ORM\Mapping\UniqueConstraint;
 use JetBrains\PhpStorm\Immutable;
+use LogicException;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Events\PuzzleAddedToCollection;
+use SpeedPuzzling\Web\Value\CustomValues;
 
 #[Entity]
 #[UniqueConstraint(columns: ['collection_id', 'player_id', 'puzzle_id'])]
 class CollectionItem implements EntityWithEvents
 {
     use HasEvents;
+
+    /**
+     * The owner's own values on this item, keyed by custom field id (docs/features/custom-fields.md "Collection
+     * items") - null = none. Private on purpose: collection pages are often public and their lists are shared, so
+     * nothing but the three methods below reaches the column, and CustomValuesCoverageTest lists who may call them.
+     *
+     * @var null|array<string, string|int|float|bool|list<string>>
+     */
+    #[Column(type: Types::JSON, nullable: true, options: ['jsonb' => true])]
+    private null|array $customValues = null;
 
     public function __construct(
         #[Id]
@@ -60,8 +72,40 @@ class CollectionItem implements EntityWithEvents
     }
 
     /**
-     * Moving is not re-adding: the item keeps its id, added date and comment (null = the system collection).
-     * The caller makes sure the target does not hold the puzzle yet (unique per collection, player and puzzle).
+     * The owner's own values - for the owner's edit form, their export and the writers, never for a page anybody else
+     * can open.
+     */
+    public function customValues(): CustomValues
+    {
+        return CustomValues::fromStored($this->customValues);
+    }
+
+    public function changeCustomValues(CustomValues $values): void
+    {
+        $this->customValues = $values->isEmpty() ? null : $values->values;
+    }
+
+    /**
+     * Two items of one player become one (the puzzle was already in the target collection, two puzzles were merged):
+     * what this item holds stays, only the fields it does not hold are filled from the item that goes away.
+     */
+    public function fillCustomValueGapsFrom(self $leaving): void
+    {
+        if ($leaving->player->id->equals($this->player->id) === false) {
+            throw new LogicException('Custom values never move between two players.');
+        }
+
+        $own = $this->customValues();
+        $filled = $leaving->customValues()->with($own->values);
+
+        if ($filled->values !== $own->values) {
+            $this->changeCustomValues($filled);
+        }
+    }
+
+    /**
+     * Moving is not re-adding: the item keeps its id, added date, comment and the owner's own values (null = the
+     * system collection). The caller makes sure the target does not hold the puzzle yet (unique per collection, player and puzzle).
      */
     public function moveTo(null|Collection $collection): void
     {

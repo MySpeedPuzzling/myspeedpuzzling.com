@@ -11770,3 +11770,55 @@ my_fields:
             label: "Calidad"
         started_on:
             label: "Empezado el"
+
+# Data import: upload and the imports pages (docs/features/data-import/upload.md)
+data_import:
+    home:
+        title: "Tus importaciones"
+        intro: "Trae los resultados y los puzzles que guardabas en una hoja de cálculo. Por ahora puedes subir el archivo; su lectura y la incorporación de sus filas a tu perfil llegarán pronto."
+        empty: "Todavía no hay importaciones."
+        import_button: "Importar una hoja de cálculo"
+    status:
+        uploading: "Subida sin terminar"
+        uploaded: "Subido"
+        reading: "Leyéndose"
+        setting_up: "Preparándose"
+        reviewing: "Esperándote"
+        done: "Hecho"
+        discarded: "Descartado"
+    new:
+        title: "Sube el archivo"
+        intro: "Elige la hoja de cálculo con tus resultados o tus puzzles. Solo tú la ves."
+        file_label: "Archivo de hoja de cálculo"
+        file_help: "Un archivo de Excel (.xlsx) o un archivo CSV o TSV, de %megabytes% MB como máximo."
+        submit: "Subir"
+        kept_note: "Guardamos el archivo %days% días y después se elimina. Puedes descartar una importación en cualquier momento."
+        uploading: "Subiendo… %percent% %"
+        checking: "Comprobando el archivo…"
+    soon: "La lectura del archivo y la incorporación de sus filas a tu perfil llegarán pronto. Hasta entonces no se añade nada a tu perfil."
+    detail:
+        state: "Estado"
+        size: "Tamaño"
+        started: "Subido el"
+        kept: "El archivo se guarda hasta el %date%."
+        file_removed: "El archivo se eliminó el %date%: los archivos se guardan %days% días. Para continuar con él más adelante, súbelo de nuevo."
+        not_finished: "La subida no terminó. Descarta esta importación y sube el archivo de nuevo."
+        discard: "Descartar esta importación"
+        discard_help: "El archivo se elimina. En tu perfil no cambia nada."
+        discard_confirm: "¿Descartar esta importación? Su archivo se elimina."
+    flash:
+        discarded: "La importación se descartó y su archivo se eliminó."
+    size:
+        mb: "%size% MB"
+        kb: "%size% kB"
+    refused:
+        empty: "El archivo está vacío."
+        too_large: "El archivo supera los %megabytes% MB."
+        type: "Solo se pueden importar archivos de Excel (.xlsx), CSV y TSV."
+        too_many: "Tienes %limit% importaciones sin terminar. Descarta primero una de ellas."
+        missing: "El archivo no llegó. Súbelo de nuevo, por favor."
+        size: "El archivo no llegó entero. Súbelo de nuevo, por favor."
+        state: "Esta importación ya tiene su archivo."
+        rate_limited: "Demasiadas subidas en la última hora. Inténtalo más tarde, por favor."
+        storage: "El archivo no se pudo guardar ahora. Inténtalo de nuevo en un momento, por favor."
+        no_file: "Elige primero un archivo, por favor."

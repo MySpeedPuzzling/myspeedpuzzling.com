@@ -11765,3 +11765,55 @@ my_fields:
             label: "Qualité"
         started_on:
             label: "Commencé le"
+
+# Data import: upload and the imports pages (docs/features/data-import/upload.md)
+data_import:
+    home:
+        title: "Vos imports"
+        intro: "Apportez les résultats et les puzzles que vous teniez dans un tableur. Pour l'instant, vous pouvez envoyer le fichier ; sa lecture et l'ajout de ses lignes à votre profil arrivent bientôt."
+        empty: "Aucun import pour l'instant."
+        import_button: "Importer un tableur"
+    status:
+        uploading: "Envoi non terminé"
+        uploaded: "Envoyé"
+        reading: "Lecture en cours"
+        setting_up: "Préparation en cours"
+        reviewing: "En attente de vous"
+        done: "Terminé"
+        discarded: "Abandonné"
+    new:
+        title: "Envoyer le fichier"
+        intro: "Choisissez le tableur contenant vos résultats ou vos puzzles. Vous seul le voyez."
+        file_label: "Fichier du tableur"
+        file_help: "Un fichier Excel (.xlsx) ou un fichier CSV ou TSV, de %megabytes% Mo au maximum."
+        submit: "Envoyer"
+        kept_note: "Nous conservons le fichier %days% jours, puis il est supprimé. Vous pouvez abandonner un import à tout moment."
+        uploading: "Envoi… %percent% %"
+        checking: "Vérification du fichier…"
+    soon: "La lecture du fichier et l'ajout de ses lignes à votre profil arrivent bientôt. D'ici là, rien n'est ajouté à votre profil."
+    detail:
+        state: "État"
+        size: "Taille"
+        started: "Envoyé le"
+        kept: "Le fichier est conservé jusqu'au %date%."
+        file_removed: "Le fichier a été supprimé le %date% - les fichiers sont conservés %days% jours. Pour continuer plus tard, envoyez-le de nouveau."
+        not_finished: "L'envoi ne s'est pas terminé. Abandonnez cet import et envoyez le fichier de nouveau."
+        discard: "Abandonner cet import"
+        discard_help: "Le fichier est supprimé. Rien ne change sur votre profil."
+        discard_confirm: "Abandonner cet import ? Son fichier est supprimé."
+    flash:
+        discarded: "L'import a été abandonné et son fichier supprimé."
+    size:
+        mb: "%size% Mo"
+        kb: "%size% ko"
+    refused:
+        empty: "Le fichier est vide."
+        too_large: "Le fichier dépasse %megabytes% Mo."
+        type: "Seuls les fichiers Excel (.xlsx), CSV et TSV peuvent être importés."
+        too_many: "Vous avez %limit% imports non terminés. Abandonnez d'abord l'un d'eux."
+        missing: "Le fichier n'est pas arrivé. Veuillez l'envoyer de nouveau."
+        size: "Le fichier n'est pas arrivé en entier. Veuillez l'envoyer de nouveau."
+        state: "Cet import a déjà son fichier."
+        rate_limited: "Trop d'envois au cours de la dernière heure. Veuillez réessayer plus tard."
+        storage: "Le fichier n'a pas pu être enregistré pour le moment. Veuillez réessayer dans un instant."
+        no_file: "Veuillez d'abord choisir un fichier."

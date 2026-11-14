@@ -12016,3 +12016,55 @@ my_fields:
             label: "Quality"
         started_on:
             label: "Started on"
+
+# Data import: upload and the imports pages (docs/features/data-import/upload.md)
+data_import:
+    home:
+        title: "Your imports"
+        intro: "Bring the results and puzzles you kept in a spreadsheet. For now you can upload the file; reading it and adding its rows to your profile arrive soon."
+        empty: "No imports yet."
+        import_button: "Import a spreadsheet"
+    status:
+        uploading: "Upload not finished"
+        uploaded: "Uploaded"
+        reading: "Being read"
+        setting_up: "Being set up"
+        reviewing: "Waiting for you"
+        done: "Done"
+        discarded: "Discarded"
+    new:
+        title: "Bring the file"
+        intro: "Pick the spreadsheet with your results or your puzzles. Only you see it."
+        file_label: "Spreadsheet file"
+        file_help: "An Excel file (.xlsx) or a CSV or TSV file, at most %megabytes% MB."
+        submit: "Upload"
+        kept_note: "We keep the file for %days% days, then it is removed. You can discard an import at any time."
+        uploading: "Uploading… %percent% %"
+        checking: "Checking the file…"
+    soon: "Reading the file and adding its rows to your profile arrive soon. Until then nothing is added to your profile."
+    detail:
+        state: "State"
+        size: "Size"
+        started: "Uploaded on"
+        kept: "The file is kept until %date%."
+        file_removed: "The file was removed on %date% - files are kept for %days% days. To go on with it later, upload it again."
+        not_finished: "The upload did not finish. Discard this import and upload the file again."
+        discard: "Discard this import"
+        discard_help: "The file is deleted. Nothing on your profile changes."
+        discard_confirm: "Discard this import? Its file is deleted."
+    flash:
+        discarded: "The import was discarded and its file deleted."
+    size:
+        mb: "%size% MB"
+        kb: "%size% kB"
+    refused:
+        empty: "The file is empty."
+        too_large: "The file is larger than %megabytes% MB."
+        type: "Only Excel (.xlsx), CSV and TSV files can be imported."
+        too_many: "You have %limit% unfinished imports. Discard one of them first."
+        missing: "The file did not arrive. Please upload it again."
+        size: "The file did not arrive whole. Please upload it again."
+        state: "This import already has its file."
+        rate_limited: "Too many uploads in the last hour. Please try again later."
+        storage: "The file could not be stored right now. Please try again in a moment."
+        no_file: "Please pick a file first."

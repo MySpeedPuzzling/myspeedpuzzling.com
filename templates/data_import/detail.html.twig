@@ -1,0 +1,63 @@
+{% extends 'base.html.twig' %}
+
+{#
+    One import of the signed-in player (docs/features/data-import/upload.md): its file, its state, the honest line
+    that reading and adding arrive soon, and Discard.
+#}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ import.fileName }} - {{ 'data_import.home.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{{ include('_page_crumbs.html.twig', {levels: [{name: 'data_import.home.title'|trans, url: path('data_imports')}]}) }}
+
+<div class="mx-auto" style="max-width: 720px;" data-testid="data-import-page">
+    <h1 class="h3 mb-3 text-break"><i class="bi bi-file-earmark-spreadsheet me-2"></i>{{ import.fileName }}</h1>
+
+    <div class="card card-body shadow-sm mb-3">
+        <dl class="row mb-0">
+            <dt class="col-5 col-sm-4 fw-normal text-muted">{{ 'data_import.detail.state'|trans }}</dt>
+            <dd class="col-7 col-sm-8">{{ include('data_import/_status_badge.html.twig', {status: import.status}) }}</dd>
+
+            {% if import.fileSize is not null %}
+                <dt class="col-5 col-sm-4 fw-normal text-muted">{{ 'data_import.detail.size'|trans }}</dt>
+                <dd class="col-7 col-sm-8" data-testid="import-size">{{ include('data_import/_file_size.html.twig', {bytes: import.fileSize}) }}</dd>
+            {% endif %}
+
+            <dt class="col-5 col-sm-4 fw-normal text-muted">{{ 'data_import.detail.started'|trans }}</dt>
+            <dd class="col-7 col-sm-8 mb-0">{{ import.createdAt|format_date('long') }}</dd>
+        </dl>
+    </div>
+
+    {% if import.status.value == 'uploading' %}
+        <div class="alert alert-warning fs-sm" data-testid="import-not-finished">{{ 'data_import.detail.not_finished'|trans }}</div>
+    {% else %}
+        <div class="alert alert-info fs-sm d-flex gap-2" data-testid="import-soon">
+            <i class="bi bi-info-circle flex-shrink-0"></i>
+            <span>
+                {{ 'data_import.soon'|trans }}
+                {% if import.fileKeptUntil is not null %}
+                    {{ 'data_import.detail.kept'|trans({'%date%': import.fileKeptUntil|format_date('long')}) }}
+                {% elseif import.fileRemovedAt is not null %}
+                    {{ 'data_import.detail.file_removed'|trans({'%date%': import.fileRemovedAt|format_date('long'), '%days%': keep_days}) }}
+                {% endif %}
+            </span>
+        </div>
+    {% endif %}
+
+    <div class="card card-body shadow-sm mb-4">
+        <h2 class="h5">{{ 'data_import.detail.discard'|trans }}</h2>
+        <p class="fs-sm text-muted">{{ 'data_import.detail.discard_help'|trans }}</p>
+
+        <form action="{{ path('data_import_discard', {importId: import.importId}) }}" method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) }}">
+            <button type="submit" class="btn btn-outline-danger text-wrap" style="min-height: 44px;" data-testid="discard-import"
+                    data-turbo-confirm="{{ 'data_import.detail.discard_confirm'|trans }}">
+                <i class="bi bi-trash me-1"></i>{{ 'data_import.detail.discard'|trans }}
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

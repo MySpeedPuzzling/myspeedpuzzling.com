@@ -1,0 +1,43 @@
+{% extends 'base.html.twig' %}
+
+{#
+    Imports home - the signed-in player's spreadsheets (docs/features/data-import/upload.md). Phone first: one column
+    of cards, every button at least 44 px tall, long file names break.
+#}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'data_import.home.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+<div class="mx-auto" style="max-width: 720px;" data-testid="data-imports-page">
+    <h1 class="h3 mb-2"><i class="bi bi-file-earmark-spreadsheet me-2"></i>{{ 'data_import.home.title'|trans }}</h1>
+    <p class="text-muted">{{ 'data_import.home.intro'|trans }}</p>
+
+    <a href="{{ path('data_import_new') }}" class="btn btn-primary text-wrap d-inline-flex align-items-center mb-4" style="min-height: 44px;" data-testid="import-a-spreadsheet">
+        <i class="bi bi-upload me-2"></i>{{ 'data_import.home.import_button'|trans }}
+    </a>
+
+    {% if imports is empty %}
+        <p class="text-muted" data-testid="no-imports">{{ 'data_import.home.empty'|trans }}</p>
+    {% else %}
+        <div class="d-flex flex-column gap-2 mb-4">
+            {% for import in imports %}
+                <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="card card-body shadow-sm p-3 text-decoration-none text-reset" data-testid="data-import">
+                    <div class="d-flex align-items-start justify-content-between gap-2">
+                        <div style="min-width: 0;">
+                            <div class="fw-semibold text-break">{{ import.fileName }}</div>
+                            <div class="fs-sm text-muted">
+                                {{ import.createdAt|format_date('medium') }}
+                                {%- if import.fileSize is not null %} · {{ include('data_import/_file_size.html.twig', {bytes: import.fileSize}) }}{% endif %}
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0">{{ include('data_import/_status_badge.html.twig', {status: import.status}) }}</div>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

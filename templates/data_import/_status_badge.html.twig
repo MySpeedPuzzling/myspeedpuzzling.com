@@ -1,0 +1,3 @@
+{#- The state of an import as a badge. `status` = Value\DataImportStatus -#}
+{%- set tone = status.value == 'uploaded' or status.value == 'done' ? 'success' : (status.value == 'uploading' ? 'warning' : 'info') -%}
+<span class="badge bg-faded-{{ tone }} text-{{ tone }}" data-testid="import-status">{{ ('data_import.status.' ~ status.value)|trans }}</span>

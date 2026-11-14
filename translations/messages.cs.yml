@@ -11772,3 +11772,55 @@ my_fields:
             label: "Kvalita"
         started_on:
             label: "Začato"
+
+# Data import: upload and the imports pages (docs/features/data-import/upload.md)
+data_import:
+    home:
+        title: "Vaše importy"
+        intro: "Přeneste si výsledky a puzzle, které máte v tabulce. Zatím lze soubor nahrát; jeho načtení a přidání řádků do vašeho profilu doplníme brzy."
+        empty: "Zatím žádné importy."
+        import_button: "Importovat tabulku"
+    status:
+        uploading: "Nahrávání nedokončeno"
+        uploaded: "Nahráno"
+        reading: "Načítá se"
+        setting_up: "Připravuje se"
+        reviewing: "Čeká na vás"
+        done: "Hotovo"
+        discarded: "Zahozeno"
+    new:
+        title: "Nahrajte soubor"
+        intro: "Vyberte tabulku se svými výsledky nebo puzzle. Vidíte ji jen vy."
+        file_label: "Soubor s tabulkou"
+        file_help: "Soubor Excelu (.xlsx) nebo soubor CSV či TSV, nejvýše %megabytes% MB."
+        submit: "Nahrát"
+        kept_note: "Soubor uchováme %days% dní, pak ho odstraníme. Import můžete kdykoli zahodit."
+        uploading: "Nahrávání… %percent% %"
+        checking: "Kontrola souboru…"
+    soon: "Načtení souboru a přidání jeho řádků do vašeho profilu doplníme brzy. Do té doby se do vašeho profilu nic nepřidá."
+    detail:
+        state: "Stav"
+        size: "Velikost"
+        started: "Nahráno dne"
+        kept: "Soubor uchováme do %date%."
+        file_removed: "Soubor byl odstraněn %date% - soubory uchováváme %days% dní. Chcete-li s ním později pokračovat, nahrajte ho znovu."
+        not_finished: "Nahrávání se nedokončilo. Zahoďte tento import a nahrajte soubor znovu."
+        discard: "Zahodit tento import"
+        discard_help: "Soubor se smaže. Ve vašem profilu se nic nezmění."
+        discard_confirm: "Zahodit tento import? Jeho soubor se smaže."
+    flash:
+        discarded: "Import byl zahozen a jeho soubor smazán."
+    size:
+        mb: "%size% MB"
+        kb: "%size% kB"
+    refused:
+        empty: "Soubor je prázdný."
+        too_large: "Soubor je větší než %megabytes% MB."
+        type: "Importovat lze jen soubory Excelu (.xlsx), CSV a TSV."
+        too_many: "Máte %limit% nedokončené importy. Nejprve jeden z nich zahoďte."
+        missing: "Soubor nedorazil. Nahrajte ho prosím znovu."
+        size: "Soubor nedorazil celý. Nahrajte ho prosím znovu."
+        state: "Tento import už svůj soubor má."
+        rate_limited: "Příliš mnoho nahrání za poslední hodinu. Zkuste to prosím později."
+        storage: "Soubor se teď nepodařilo uložit. Zkuste to prosím za chvíli znovu."
+        no_file: "Nejprve prosím vyberte soubor."

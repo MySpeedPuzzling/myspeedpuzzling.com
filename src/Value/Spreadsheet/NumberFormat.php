@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Value\Spreadsheet;
 
+use SpeedPuzzling\Web\Value\DatePrecision;
+
 /**
  * A number format code, classified (NumberFormatClassifier).
  */

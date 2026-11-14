@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Services\SpreadsheetReader;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Exceptions\SpreadsheetUnreadable;
+use SpeedPuzzling\Web\Services\SpreadsheetReader\ReadWorkbook;
 use SpeedPuzzling\Web\Services\SpreadsheetReader\Xlsx\XmlFloodScanner;
 use SpeedPuzzling\Web\Value\Spreadsheet\CellKind;
 use SpeedPuzzling\Web\Value\Spreadsheet\CellRange;
@@ -50,7 +51,116 @@ final class XlsxTimeBoundTest extends TestCase
             $attributes .= ' a' . $number . '=""';
         }
 
-        $this->assertRefusedAtOnce($this->workbookWith($place, '<flood' . $attributes . '/>'), 'a tag longer than a tag is');
+        // At its 65th attribute - long before the tag is all there
+        $this->assertRefusedAtOnce($this->workbookWith($place, '<flood' . $attributes . '/>'), 'a tag with more attributes than a tag has');
+    }
+
+    /**
+     * @return iterable<string, array{string, string}> what stands between two processing instructions, and where
+     */
+    public static function hiddenBehindAProcessingInstruction(): iterable
+    {
+        $attributes = '';
+
+        for ($number = 0; $number < 120_000; $number++) {
+            $attributes .= ' a' . $number . '=""';
+        }
+
+        $namespaces = '';
+
+        for ($number = 0; $number < 150_000; $number++) {
+            $namespaces .= ($number % 600 === 0 ? ($number === 0 ? '<g' : '><g') : '') . ' xmlns:p' . $number . '="u"';
+        }
+
+        foreach (['head', 'workbook', 'strings'] as $place) {
+            yield '120,000 attributes behind "<?a <!-- ?>", ' . $place => ['<?a <!-- ?><flood' . $attributes . '/><?b --> ?>', $place];
+            yield '120,000 attributes behind "<?a <![CDATA[ ?>", ' . $place => ['<?a <![CDATA[ ?><flood' . $attributes . '/><?b ]]> ?>', $place];
+        }
+
+        yield '150,000 namespace declarations behind "<?a <!-- ?>"' => ['<?a <!-- ?>' . $namespaces . '>' . str_repeat('</g>', 250) . '<?b --> ?>', 'head'];
+        yield 'a document type behind "<?a <!-- ?>"' => ['<?a <!-- ?><!DOCTYPE x [<!ENTITY e "v">]><?b --> ?>', 'head'];
+    }
+
+    /**
+     * A parser ends a processing instruction where it first closes, whatever stands in it - a scanner that took the
+     * comment for real would see nothing of what follows. A workbook's parts have no processing instructions.
+     */
+    #[DataProvider('hiddenBehindAProcessingInstruction')]
+    public function testNothingHidesBehindAProcessingInstruction(string $markup, string $place): void
+    {
+        $this->assertRefusedAtOnce($this->workbookWith($place, $markup), 'a processing instruction');
+    }
+
+    public function testTagsAndTextsAsLongAsRealWorkbooksHaveThemAreRead(): void
+    {
+        // A conditional format over thousands of ranges: one start tag of 100 KiB, after the rows
+        $ranges = rtrim(str_repeat('A1:B2 C3:D4 ', 8_600));
+        $longest = str_repeat('&', 32_767);
+        $sheet = RawXlsx::worksheet(
+            [1 => ['A' => RawXlsx::inline($longest), 'B' => RawXlsx::s(0), 'C' => RawXlsx::n('7')]],
+            '',
+            '<mergeCells count="1"><mergeCell ref="D1:E1"/></mergeCells><conditionalFormatting sqref="' . $ranges . '"><cfRule type="expression" priority="1"><formula>TRUE</formula></cfRule></conditionalFormatting>'
+            . '<dataValidations count="1"><dataValidation type="list" sqref="' . $ranges . '"><formula1>"a,b"</formula1></dataValidation></dataValidations>',
+        );
+
+        self::assertGreaterThan(100_000, strlen($ranges));
+        // 32,767 ampersands are 163,835 bytes as a workbook writes them - and one cell, as long as a cell can be
+        self::assertGreaterThan(131_072, substr_count($sheet, '&amp;') * 5);
+
+        $workbook = $this->open($this->saved((new RawXlsx())->sharedStrings([$longest])->sheet('Sheet', $sheet)), limits: new SpreadsheetLimits(maxCompressionRatio: 1_000_000));
+        $rows = $this->rowsOf($workbook);
+
+        self::assertSame($longest, self::cell($rows, 1, 1)->value);
+        self::assertSame($longest, self::cell($rows, 1, 2)->value);
+        self::assertSame(7, self::cell($rows, 1, 3)->value);
+        self::assertSame('D1:E1', $workbook->mergedRanges($workbook->sheets()[0])[0]->toA1());
+
+        // A sheet without merged ranges: the pass for them reads on to the first element that stands after them
+        $without = $this->open($this->saved((new RawXlsx())->sheet('Sheet', RawXlsx::worksheet([1 => ['A' => RawXlsx::n('7')]], '', '<conditionalFormatting sqref="' . $ranges . '"/>'))), limits: new SpreadsheetLimits(maxCompressionRatio: 1_000_000));
+
+        self::assertSame([], $without->mergedRanges($without->sheets()[0]));
+        self::assertSame(7, self::cell($this->rowsOf($without), 1, 1)->value);
+    }
+
+    public function testElementsNestedDeeperThanTheParserGoesAreDamagedNotACellTooLarge(): void
+    {
+        // The parser's message names its option "XML_PARSE_HUGE" - which has nothing to do with a text that is huge
+        $path = $this->saved((new RawXlsx())->sheet('Sheet', RawXlsx::worksheetAround('<sheetData><row r="1"><c r="A1">' . str_repeat('<is>', 300) . str_repeat('</is>', 300) . '</c></row></sheetData>')));
+
+        try {
+            $this->rowsOf($this->open($path));
+            self::fail('Three hundred elements inside one another were read.');
+        } catch (SpreadsheetUnreadable $e) {
+            self::assertSame(SpreadsheetUnreadableReason::Damaged, $e->reason, $e->getMessage());
+        }
+    }
+
+    public function testWhatTheApplicationHadInTheParsersListOfErrorsStaysThere(): void
+    {
+        $prefixed = $this->saved((new RawXlsx())->sheet('Sheet', RawXlsx::worksheetAround('<sheetData>' . str_repeat('<row><x:c><x:v>1</x:v></x:c></row>', 20) . '<row><c><v>1</v></c></row></sheetData>')));
+        $internal = libxml_use_internal_errors(true);
+        libxml_clear_errors();
+
+        try {
+            // The application parses something of its own, keeps the complaints in the list - and then reads a file
+            self::assertFalse(simplexml_load_string('<not-closed>'));
+            $before = array_map(static fn (\LibXMLError $error): string => $error->message, libxml_get_errors());
+            self::assertNotSame([], $before);
+
+            self::assertCount(1, $this->rowsOf($this->open($prefixed)));
+
+            $after = array_map(static fn (\LibXMLError $error): string => $error->message, libxml_get_errors());
+            self::assertSame($before, array_slice($after, 0, count($before)));
+            self::assertTrue(libxml_use_internal_errors());
+        } finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($internal);
+        }
+
+        // An application that does not keep them finds the list as empty as it left it
+        self::assertCount(1, $this->rowsOf($this->open($prefixed)));
+        self::assertSame([], libxml_get_errors());
+        self::assertSame($internal, libxml_use_internal_errors());
     }
 
     public function testATagOfMoreAttributesThanATagHasIsRefused(): void
@@ -135,7 +245,7 @@ final class XlsxTimeBoundTest extends TestCase
 
         // 150,000 in scope, 600 on a tag
         [$open, $close] = $nested(250, 600);
-        $this->assertRefusedAtOnce($this->saved((new RawXlsx())->sheet('Sheet', RawXlsx::worksheetAround($open . $cells . $close))), 'a tag longer than a tag is');
+        $this->assertRefusedAtOnce($this->saved((new RawXlsx())->sheet('Sheet', RawXlsx::worksheetAround($open . $cells . $close))), 'a tag with more attributes than a tag has');
 
         // 15,000 in scope, on tags that are tags like any other
         [$open, $close] = $nested(250, 60);
@@ -166,14 +276,14 @@ final class XlsxTimeBoundTest extends TestCase
 
     public function testWhatTheScannerLetsThroughIsWhatAWorkbookIsMadeOf(): void
     {
-        // Comments, CDATA sections, processing instructions and made-up elements between the cells, of every length -
-        // so that every kind of markup is cut by the edge of a chunk somewhere
+        // Comments, CDATA sections and made-up elements between the cells, of every length - so that every kind of
+        // markup is cut by the edge of a chunk somewhere
         $rows = '';
 
         for ($row = 1; $row <= 3_000; $row++) {
             $rows .= sprintf(
                 '<row r="%1$d" spans="1:3"><c r="A%1$d" t="inlineStr"><is><t xml:space="preserve"><![CDATA[text %1$d <b> & "more" %2$s]]></t></is></c>'
-                . '<!-- a comment %2$s with <tags> and "quotes" --><?made-up instruction="%1$d"?>'
+                . '<!-- a comment %2$s with <tags>, "quotes" and a <?made-up instruction="%1$d"?> -->'
                 . '<c r="B%1$d" made-up="%2$s &gt; 1" other=\'single "quoted" > 2\'><v>%1$d</v></c><extra note="%2$s"><deeper/></extra>'
                 . '<c r="C%1$d" t="str"><f>IF(A%1$d ="x", B%1$d ="y", "z")</f><v>a = "b" &lt; %1$d</v></c></row>',
                 $row,
@@ -236,29 +346,29 @@ final class XlsxTimeBoundTest extends TestCase
         )));
         $limits = new SpreadsheetLimits(maxRows: 1_000_000, maxRowsPerSheet: 1_000_000, maxCompressionRatio: 1_000_000);
 
-        // In time, the sheet reads - and says how long the reader worked on it
-        $workbook = $this->open($path, limits: $limits);
-        self::assertSame(150_000, iterator_count($workbook->rows($workbook->sheets()[0])));
-        $needed = $workbook->secondsRead();
-        self::assertGreaterThan(0.0, $needed);
-        $workbook->close();
+        $operations = [
+            // The rows are streamed …
+            'rows' => static fn (ReadWorkbook $workbook): int => iterator_count($workbook->rows($workbook->sheets()[0])),
+            // … or the parser skips them by itself, where no loop in PHP runs (the clock is asked on every chunk on
+            // its way to the parser): under the merged ranges, above a window
+            'merged ranges' => static fn (ReadWorkbook $workbook): int => count($workbook->mergedRanges($workbook->sheets()[0])),
+            'a window at the end' => static fn (ReadWorkbook $workbook): int => iterator_count($workbook->rows($workbook->sheets()[0], new CellRange(1, 149_990, 4, 150_000))),
+        ];
 
-        // With a tenth of that: refused while the rows are streamed …
-        $this->assertTooSlow(function () use ($path, $limits, $needed): void {
-            $short = $this->open($path, limits: $limits->withConsumed(0, 0, 0, $limits->maxReadSeconds - $needed / 10));
-            iterator_count($short->rows($short->sheets()[0]));
-        });
+        foreach ($operations as $name => $operation) {
+            // In time, it reads - and says how long the reader worked on it
+            $workbook = $this->open($path, limits: $limits);
+            $opened = $workbook->secondsRead();
+            self::assertSame(['rows' => 150_000, 'merged ranges' => 1, 'a window at the end' => 11][$name], $operation($workbook));
+            $needed = $workbook->secondsRead() - $opened;
+            self::assertGreaterThan(0.0, $needed, $name);
+            $workbook->close();
 
-        // … and while the parser skips the rows by itself, where no loop in PHP runs (the clock is asked on every
-        // chunk on its way to the parser)
-        $this->assertTooSlow(function () use ($path, $limits, $needed): void {
-            $short = $this->open($path, limits: $limits->withConsumed(0, 0, 0, $limits->maxReadSeconds - $needed / 10));
-            $short->mergedRanges($short->sheets()[0]);
-        });
-        $this->assertTooSlow(function () use ($path, $limits, $needed): void {
-            $short = $this->open($path, limits: $limits->withConsumed(0, 0, 0, $limits->maxReadSeconds - $needed / 10));
-            iterator_count($short->rows($short->sheets()[0], new CellRange(1, 149_990, 4, 150_000)));
-        });
+            // With a tenth of that: refused on the way
+            $this->assertTooSlow(function () use ($path, $limits, $opened, $needed, $operation): void {
+                $operation($this->open($path, limits: $limits->withConsumed(0, 0, 0, $limits->maxReadSeconds - $opened - $needed / 10)));
+            });
+        }
 
         // No time at all: refused when the workbook is opened
         $this->assertTooSlow(fn () => $this->open($path, limits: $limits->withConsumed(0, 0, 0, $limits->maxReadSeconds)));

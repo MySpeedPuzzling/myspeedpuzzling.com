@@ -7,7 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Services\SpreadsheetReader;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Services\SpreadsheetReader\NumberFormatClassifier;
-use SpeedPuzzling\Web\Value\Spreadsheet\DatePrecision;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\Spreadsheet\NumberFormatKind;
 
 final class NumberFormatClassifierTest extends TestCase

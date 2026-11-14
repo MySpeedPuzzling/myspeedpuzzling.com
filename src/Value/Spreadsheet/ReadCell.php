@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Value\Spreadsheet;
 
+use SpeedPuzzling\Web\Value\DatePrecision;
+
 /**
  * One cell with a value, as SpreadsheetReader hands it over (docs/features/data-import/reader.md "Cell kinds").
  *

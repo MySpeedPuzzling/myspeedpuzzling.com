@@ -147,7 +147,7 @@ final class XlsxSafetyTest extends TestCase
     public function testAPartThatLiesAboutItsSizeIsDamagedWhateverItsNameAndPlace(string $kind, string $target, string $entry): void
     {
         // Half a megabyte that the archive calls 1,000 bytes
-        $padding = '<!--' . str_repeat('x', 500_003) . '-->';
+        $padding = str_repeat('<!--' . str_repeat('x', 4_993) . '-->', 100) . 'xyz';
         $content = match ($kind) {
             'sharedStrings' => '<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' . $padding . '<si><t>text</t></si></sst>',
             'worksheet' => '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' . $padding . '<sheetData><row r="1"><c r="A1" t="s"><v>0</v></c></row></sheetData></worksheet>',
@@ -203,7 +203,7 @@ final class XlsxSafetyTest extends TestCase
     public function testEveryPassOverEveryPartCountsAgainstOneBudget(): void
     {
         // 150 KB before the first row - and three sheets that all point to this one part
-        $sheet = '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><!--' . str_repeat('x', 150_000) . '--><sheetData><row r="1"><c r="A1"><v>1</v></c></row></sheetData></worksheet>';
+        $sheet = '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' . str_repeat('<!--' . str_repeat('x', 1_493) . '-->', 100) . '<sheetData><row r="1"><c r="A1"><v>1</v></c></row></sheetData></worksheet>';
         $workbook = (new RawXlsx())->sheet('One', $sheet)->sheet('Two', $sheet)->sheet('Three', $sheet);
         $relationships = $workbook->parts()['xl/_rels/workbook.xml.rels'];
         $path = $this->saved($workbook->part('xl/_rels/workbook.xml.rels', strtr($relationships, ['worksheets/sheet2.xml' => 'worksheets/sheet1.xml', 'worksheets/sheet3.xml' => 'worksheets/sheet1.xml'])));

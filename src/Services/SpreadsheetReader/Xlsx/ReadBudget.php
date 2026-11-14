@@ -14,7 +14,8 @@ namespace SpeedPuzzling\Web\Services\SpreadsheetReader\Xlsx;
  *   here and never reach the application's error handler - the reader finds out by the call's result and says
  *   "damaged" itself, the same in every environment;
  * - the XML parser keeps its complaints in a list instead of raising a warning for each (a part of a million
- *   elements with an undeclared prefix would raise a million); PartMeter counts and empties it.
+ *   elements with an undeclared prefix would raise a million); they are counted and taken out of the list again -
+ *   only the reader's own: what the application had waiting in that list is neither counted nor cleared.
  */
 final class ReadBudget
 {
@@ -28,6 +29,8 @@ final class ReadBudget
     private null|int $enteredAt = null;
     private int $depth = 0;
     private bool $parserErrorsWereInternal = false;
+    /** Entries of the parser's list that are not ours to count or to clear: what the application had in it */
+    private int $listedBefore = 0;
 
     public function __construct(
         public int $remaining,
@@ -43,6 +46,9 @@ final class ReadBudget
 
         $this->enteredAt = hrtime(true);
         $this->parserErrorsWereInternal = libxml_use_internal_errors(true);
+        // An application that keeps the parser's complaints in the list itself may have some waiting there: they
+        // stay where they are (and ours are then left in the list behind them - the list can not be put back)
+        $this->listedBefore = $this->parserErrorsWereInternal ? count(libxml_get_errors()) : 0;
 
         $previous = null;
         $previous = set_error_handler(
@@ -78,17 +84,24 @@ final class ReadBudget
     public function countParserErrors(): void
     {
         $errors = libxml_get_errors();
+        $new = count($errors) - $this->listedBefore;
 
-        if ($errors === []) {
+        if ($new <= 0) {
             return;
         }
 
-        foreach ($errors as $error) {
-            $this->hugeText = $this->hugeText || stripos($error->message, 'huge') !== false;
+        foreach (array_slice($errors, $this->listedBefore) as $error) {
+            // The parser's own limit on one text; not "Excessive depth … use XML_PARSE_HUGE option"
+            $this->hugeText = $this->hugeText || str_contains($error->message, 'huge text node');
         }
 
-        $this->parserErrors += count($errors);
-        libxml_clear_errors();
+        $this->parserErrors += $new;
+
+        if ($this->listedBefore === 0) {
+            libxml_clear_errors();
+        } else {
+            $this->listedBefore += $new;
+        }
     }
 
     public function nanoseconds(): int

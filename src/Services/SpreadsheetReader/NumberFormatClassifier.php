@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\SpreadsheetReader;
 
-use SpeedPuzzling\Web\Value\Spreadsheet\DatePrecision;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\Spreadsheet\NumberFormat;
 use SpeedPuzzling\Web\Value\Spreadsheet\NumberFormatKind;
 

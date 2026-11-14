@@ -97,6 +97,7 @@ final class SystemClockCoverageTest extends TestCase
         'Services/SpreadsheetReader/SpreadsheetReaderMemoryTest.php' => [['hrtime('], self::DURATION],
         'Services/SpreadsheetReader/XlsxSafetyTest.php' => [['hrtime('], self::DURATION],
         'Services/SpreadsheetReader/XlsxTimeBoundTest.php' => [['hrtime('], self::DURATION],
+        'Services/SpreadsheetReader/XmlFloodScannerTest.php' => [['hrtime('], self::DURATION],
         'Services/Storage/ObjectStorageHttpClientFactoryTest.php' => [['microtime('], self::DURATION],
     ];
 

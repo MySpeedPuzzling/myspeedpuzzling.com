@@ -16,7 +16,7 @@ sandbox from the stage that can read them.
 | 0 | Plan reviewed (third review, of the revised plan) | done - reviews.md "Third review" | - | - | - |
 | 1a | Custom fields on results | **live 2026-11-14** | #344 | yes (deploy green, migration ran, 0 new Sentry issues in the hour after) | sandbox, in Chrome as a made-up player: the add form without fields carries nothing of the feature; with a field the result is saved and the value shows on the result. Before the merge, on the branch: invalid value dropped and named, a refused submit keeps the values, no-time mode, collection mode hides the block, the values form in the modal |
 | 1b | Custom fields on collection items, export | not started | | | |
-| 3 | Import: queue, upload, reading | not started | | | |
+| 3 | Import: queue, upload, reading | groundwork live 2026-11-14: the transport `imports` (#345) and its consumer on production (`imports-consumer`, lily D91) and on the sandbox; nothing is routed to it yet | #345 | queue + consumer | consumer up and waiting on both |
 | 4 | Columns and values | not started | | | |
 | 5 | Pairing and review | not started | | | |
 | 6a | The import's writer beside the add form's (handlers untouched) | not started | | | |
@@ -54,6 +54,9 @@ player data in the repository (fixtures copy shapes with invented puzzles); noth
 committed with `git add -A`; one destructive command per call, never the dev database; production data is only read.
 
 ## Log
+
+- 2026-11-14 - stage 3 groundwork: the import's own queue (#345) and consumer container (lily.srv D91, journal
+  2026-11-14 16:33) are live on production and the sandbox, in that order.
 
 - 2026-11-14 - **stage 1a live** (#344): independent review found no blocker and three should-fix items (the resend
   path of the add form, the privacy guard's reach, values lost when duplicate copies are removed) - fixed before the

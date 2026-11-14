@@ -11673,6 +11673,7 @@ my_fields:
         not_valid: "Tuto hodnotu nejde uložit."
         too_long: "Příliš dlouhé - nejvýše %limit% znaků."
         not_a_number: "Zadej číslo, například 12 nebo 12,5."
+        ambiguous_number: "Tohle se dá číst dvěma způsoby. Napiš to bez oddělovače (1250), nebo jako desetinné číslo (1,25)."
         not_a_date: "Zadej datum."
         not_yes_no: "Vyber ano, nebo ne."
         unknown_choice: "Vyber jednu možnost ze seznamu."
@@ -11687,12 +11688,14 @@ my_fields:
         choice_too_long: "Možnost může mít nejvýše %limit% znaků."
         no_target: "Vyber, kde pole vyplňuješ."
         ready_made: "Hotové pole nejde měnit."
+        invalid_characters: "Název nebo některá možnost obsahuje znaky, které nejde uložit."
     flash:
         added: "Pole bylo přidáno."
         saved: "Pole bylo uloženo."
         archived: "Pole bylo archivováno. Co jsi do něj napsal(a), zůstává."
         restored: "Pole se zase používá."
         limit_reached: "Najednou můžeš používat nejvýše %limit% polí. Některé archivuj a můžeš přidat další."
+        total_limit_reached: "Máš %limit% polí včetně archivovaných - víc jich být nemůže. Místo nového pole obnov některé archivované."
         name_taken: "Pole s tímto názvem už máš."
     add_form:
         toggle: "Moje pole"

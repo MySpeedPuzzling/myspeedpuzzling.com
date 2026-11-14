@@ -5,10 +5,15 @@
     The action is explicit: in the modal frame a form without one posts to the page under the modal. Saved, the answer
     is a redirect to the result detail - in the frame the detail replaces this form in the modal.
 
-    Inputs: time_id, my_fields (CustomFieldsForm)
+    Where it was opened from travels in the form (`context`): `page` - the modal over a page that shows the result
+    (saved or cancelled, the modal closes), `modal` - inside the result detail's own modal (saved or cancelled, the
+    detail comes back into the modal). As a full page there is no modal: both lead to the result.
+
+    Inputs: time_id, my_fields (CustomFieldsForm), context ('page' | 'modal'), in_modal (bool)
 #}
 <form action="{{ path('result_my_fields', {timeId: time_id}) }}" method="post" data-testid="custom-values-form">
     <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\CustomFields\\SolvingTimeCustomValuesController::CSRF_TOKEN_ID')) }}">
+    <input type="hidden" name="context" value="{{ context }}">
 
     <p class="form-text mt-0 mb-3"><i class="bi bi-lock me-1"></i>{{ 'my_fields.private_note'|trans }}</p>
 
@@ -23,7 +28,12 @@
         {{ include('my_fields/_inputs.html.twig', {my_fields: my_fields, id_prefix: 'my-field'}) }}
 
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <a href="{{ path('puzzle_result_detail', {timeId: time_id}) }}" class="btn btn-secondary d-inline-flex align-items-center" style="min-height: 44px;">{{ 'forms.cancel'|trans }}</a>
+            {% if in_modal|default(false) and context == 'page' %}
+                {# The result is on the page under the modal - cancelling only closes it #}
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="min-height: 44px;">{{ 'forms.cancel'|trans }}</button>
+            {% else %}
+                <a href="{{ path('puzzle_result_detail', {timeId: time_id}) }}" class="btn btn-secondary d-inline-flex align-items-center" style="min-height: 44px;">{{ 'forms.cancel'|trans }}</a>
+            {% endif %}
             <button type="submit" class="btn btn-primary text-wrap" style="min-height: 44px;">
                 <i class="bi bi-check-lg me-1"></i>{{ 'forms.save'|trans }}
             </button>

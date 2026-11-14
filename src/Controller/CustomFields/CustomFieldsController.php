@@ -102,6 +102,10 @@ final class CustomFieldsController extends AbstractController
             )),
             'limit' => CustomField::MAX_ACTIVE_PER_PLAYER,
             'limit_reached' => count($active) >= CustomField::MAX_ACTIVE_PER_PLAYER,
+            // No room for a new field although fewer than the limit are in use: the archived ones fill the table -
+            // an archived field can still be restored
+            'total_limit' => CustomField::MAX_PER_PLAYER,
+            'total_limit_reached' => count($fields) >= CustomField::MAX_PER_PLAYER,
         ]);
     }
 }

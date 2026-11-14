@@ -31,7 +31,9 @@ readonly final class CustomFieldRefusalMessage
         $refusal = $exception->getPrevious();
 
         if ($refusal instanceof CustomFieldLimitReached) {
-            return $this->translator->trans('my_fields.flash.limit_reached', ['%limit%' => CustomField::MAX_ACTIVE_PER_PLAYER]);
+            return $refusal->withArchived
+                ? $this->translator->trans('my_fields.flash.total_limit_reached', ['%limit%' => CustomField::MAX_PER_PLAYER])
+                : $this->translator->trans('my_fields.flash.limit_reached', ['%limit%' => CustomField::MAX_ACTIVE_PER_PLAYER]);
         }
 
         if ($refusal instanceof CustomFieldNameTaken) {

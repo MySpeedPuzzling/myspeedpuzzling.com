@@ -582,10 +582,11 @@ final class PuzzleAddController extends AbstractController
                 // The photos stay until they expire: a resend of this form (the answer got lost, the automatic retry)
                 // must find them to be answered as the saved result (docs/features/photo-uploads/README.md)
 
-                // The result is saved. The player's own fields follow as a step of their own that never throws and
-                // never changes this answer (docs/features/custom-fields.md "The add form")
+                // The result is saved and its answer is built. The player's own fields follow as the last step, one that
+                // never throws and never changes the answer - nothing after it touches the database
+                // (docs/features/custom-fields.md "The add form")
                 if ($mode !== PuzzleAddMode::Collection) {
-                    $this->addFormCustomFields->saveSubmitted($request, $timeId->toString(), $userProfile->playerId);
+                    $this->addFormCustomFields->saveSubmitted($request, $timeId->toString());
                 }
 
                 return $response;
@@ -593,10 +594,13 @@ final class PuzzleAddController extends AbstractController
                 $refusal = $exception->getPrevious();
 
                 if ($refusal instanceof SolvingTimeAlreadySaved) {
-                    // The same form again: its own fields are stored on the saved result (the same values twice = once)
-                    $this->addFormCustomFields->saveSubmitted($request, $refusal->timeId, $userProfile->playerId);
+                    $resendAnswer = $this->answerResend($refusal, $userProfile->playerId, $mode, $stopwatchId);
 
-                    return $this->answerResend($refusal, $userProfile->playerId, $mode, $stopwatchId);
+                    // The same form again: its own fields are stored on the saved result (the same values twice =
+                    // once) - last, like above: a failed write of them must not meet the answer's own dispatch
+                    $this->addFormCustomFields->saveSubmitted($request, $refusal->timeId);
+
+                    return $resendAnswer;
                 }
 
                 // The ids are user input - with fresh ones the next submit goes through
@@ -645,7 +649,7 @@ final class PuzzleAddController extends AbstractController
             'time_id' => $timeId->toString(),
             'new_puzzle_id' => $newPuzzleId->toString(),
             // Null for a player without custom fields - the form is then rendered without a byte of them
-            'my_fields' => $this->addFormCustomFields->forForm($request, $userProfile->playerId),
+            'my_fields' => $this->addFormCustomFields->forForm($request),
         ]);
     }
 

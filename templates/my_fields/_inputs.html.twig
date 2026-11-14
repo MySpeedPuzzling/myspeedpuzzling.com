@@ -27,17 +27,18 @@
         {% elseif field.type.value == 'yes_no' %}
             <select class="form-select{{ problem ? ' is-invalid' }}" id="{{ input_id }}" name="{{ name }}" style="font-size: 16px; min-height: 44px;">
                 <option value="">{{ 'my_fields.value.none'|trans }}</option>
-                <option value="yes"{{ value == 'yes' ? ' selected' }}>{{ 'my_fields.value.yes'|trans }}</option>
-                <option value="no"{{ value == 'no' ? ' selected' }}>{{ 'my_fields.value.no'|trans }}</option>
+                <option value="yes"{{ value is same as('yes') ? ' selected' }}>{{ 'my_fields.value.yes'|trans }}</option>
+                <option value="no"{{ value is same as('no') ? ' selected' }}>{{ 'my_fields.value.no'|trans }}</option>
             </select>
         {% elseif field.type.value == 'choice' %}
             <select class="form-select{{ problem ? ' is-invalid' }}" id="{{ input_id }}" name="{{ name }}" style="font-size: 16px; min-height: 44px;">
                 <option value="">{{ 'my_fields.value.none'|trans }}</option>
+                {# Strict comparisons: "1", "1.0" and "01" are three choices, never selected together #}
                 {% for choice in field.choices %}
-                    <option value="{{ choice }}"{{ value == choice ? ' selected' }}>{{ my_field_choice_label(field, choice) }}</option>
+                    <option value="{{ choice }}"{{ value is same as(choice) ? ' selected' }}>{{ my_field_choice_label(field, choice) }}</option>
                 {% endfor %}
                 {# A value from before the list changed stays selectable - it is what the result holds #}
-                {% if value != '' and value not in field.choices %}
+                {% if value is not same as('') and field.choices|filter(choice => choice is same as(value))|length == 0 %}
                     <option value="{{ value }}" selected>{{ my_field_choice_label(field, value) }}</option>
                 {% endif %}
             </select>

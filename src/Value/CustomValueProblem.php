@@ -12,6 +12,7 @@ enum CustomValueProblem: string
     case NotValid = 'not_valid';
     case TooLong = 'too_long';
     case NotANumber = 'not_a_number';
+    case AmbiguousNumber = 'ambiguous_number';
     case NotADate = 'not_a_date';
     case NotYesNo = 'not_yes_no';
     case UnknownChoice = 'unknown_choice';

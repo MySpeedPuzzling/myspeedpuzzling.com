@@ -11670,6 +11670,7 @@ my_fields:
         not_valid: "Dieser Wert kann nicht gespeichert werden."
         too_long: "Zu lang - höchstens %limit% Zeichen."
         not_a_number: "Gib eine Zahl ein, zum Beispiel 12 oder 12,5."
+        ambiguous_number: "Das lässt sich auf zwei Arten lesen. Schreibe es ohne Trennzeichen (1250) oder als Dezimalzahl (1,25)."
         not_a_date: "Gib ein Datum ein."
         not_yes_no: "Wähle Ja oder Nein."
         unknown_choice: "Wähle eine Möglichkeit aus der Liste."
@@ -11684,12 +11685,14 @@ my_fields:
         choice_too_long: "Eine Auswahl darf höchstens %limit% Zeichen haben."
         no_target: "Wähle, wo du das Feld ausfüllst."
         ready_made: "Ein fertiges Feld kann nicht geändert werden."
+        invalid_characters: "Der Name oder eine Auswahl enthält Zeichen, die nicht gespeichert werden können."
     flash:
         added: "Das Feld wurde hinzugefügt."
         saved: "Das Feld wurde gespeichert."
         archived: "Das Feld wurde archiviert. Was du hineingeschrieben hast, bleibt erhalten."
         restored: "Das Feld wird wieder verwendet."
         limit_reached: "Du kannst höchstens %limit% Felder gleichzeitig verwenden. Archiviere eines, um ein weiteres hinzuzufügen."
+        total_limit_reached: "Du hast %limit% Felder, die archivierten mitgezählt - mehr geht nicht. Stelle ein archiviertes Feld wieder her, statt ein neues anzulegen."
         name_taken: "Du hast schon ein Feld mit diesem Namen."
     add_form:
         toggle: "Meine Felder"

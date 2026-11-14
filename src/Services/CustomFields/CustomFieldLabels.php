@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Services\CustomFields;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Results\CustomFieldOverview;
+use SpeedPuzzling\Web\Services\EventsPage\EventsPageDates;
 use SpeedPuzzling\Web\Value\CustomFieldType;
 use SpeedPuzzling\Web\Value\CustomValues;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -18,6 +19,7 @@ readonly final class CustomFieldLabels
 {
     public function __construct(
         private TranslatorInterface $translator,
+        private EventsPageDates $dates,
     ) {
     }
 
@@ -58,7 +60,9 @@ readonly final class CustomFieldLabels
         if ($field->type === CustomFieldType::Date && is_string($value)) {
             $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
 
-            return $date !== false ? $date->format('d.m.Y') : $value;
+            // In the page's language, like every other date of the app that is not a form input ("1 Mar 2026",
+            // "1. 3. 2026", "2026年3月1日")
+            return $date !== false ? $this->dates->format($date, 'yMMMd') : $value;
         }
 
         return CustomValues::toInput($value);

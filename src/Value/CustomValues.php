@@ -11,7 +11,7 @@ use SpeedPuzzling\Web\Exceptions\InvalidCustomValue;
  * A player's own values on one row (a result; a collection item from stage 1b), keyed by the id of the custom field -
  * what the jsonb column holds (docs/features/custom-fields.md). One stored value per type:
  *
- * - text: a string of at most 500 characters
+ * - text: a string of at most 500 characters, valid UTF-8 without control characters (line breaks and tabs stay)
  * - number: an int, or a float when it has a fraction
  * - date: `Y-m-d`
  * - yes/no: true / false (no answer = no value)
@@ -119,6 +119,18 @@ readonly final class CustomValues
             }
         }
 
+        // Before any type reads it: a NUL byte or broken UTF-8 is a wrong value of every type - PHP's own date and
+        // text functions answer them with errors, not with "no"
+        if (is_string($submitted) && self::isStorableText($submitted, multiline: true) === false) {
+            throw new InvalidCustomValue(match ($type) {
+                CustomFieldType::Number => CustomValueProblem::NotANumber,
+                CustomFieldType::Date => CustomValueProblem::NotADate,
+                CustomFieldType::YesNo => CustomValueProblem::NotYesNo,
+                CustomFieldType::Choice => CustomValueProblem::UnknownChoice,
+                CustomFieldType::Text, CustomFieldType::Tags => CustomValueProblem::NotValid,
+            });
+        }
+
         return match ($type) {
             CustomFieldType::Text => self::text($submitted),
             CustomFieldType::Number => self::number($submitted),
@@ -156,6 +168,10 @@ readonly final class CustomValues
 
         $text = str_replace(["\r\n", "\r"], "\n", $submitted);
 
+        if (self::isStorableText($text, multiline: true) === false) {
+            throw new InvalidCustomValue(CustomValueProblem::NotValid);
+        }
+
         if (mb_strlen($text) > self::TEXT_MAX_LENGTH) {
             throw new InvalidCustomValue(CustomValueProblem::TooLong);
         }
@@ -164,7 +180,24 @@ readonly final class CustomValues
     }
 
     /**
-     * `12`, `12.5`, `12,5`, `1 250` - a decimal comma or point, spaces between thousands.
+     * Text the database can hold and a page can show: valid UTF-8 without control characters (a NUL byte or broken
+     * UTF-8 is refused by jsonb - as a failed write, not as a wrong value). Line breaks and tabs only where the text
+     * has lines. Checked before anything else is done with the text: a regular expression answers broken UTF-8 with
+     * nothing at all.
+     */
+    public static function isStorableText(string $text, bool $multiline): bool
+    {
+        if (mb_check_encoding($text, 'UTF-8') === false) {
+            return false;
+        }
+
+        return preg_match($multiline ? '/[^\P{Cc}\n\r\t]/u' : '/\p{Cc}/u', $text) === 0;
+    }
+
+    /**
+     * `12`, `12.5`, `12,5`, `1 250` - a decimal comma or point, spaces between thousands. One comma or point with
+     * exactly three digits behind a group of one to three (`1,250`, `12.500`) can be a thousand or a fraction - it is
+     * refused instead of guessed (`0,125` and `1234,567` can only be fractions).
      *
      * @throws InvalidCustomValue
      */
@@ -177,6 +210,10 @@ readonly final class CustomValues
 
             if (preg_match('/^-?\d{1,15}(?:[.,]\d{1,6})?$/', $compact) !== 1) {
                 throw new InvalidCustomValue(CustomValueProblem::NotANumber);
+            }
+
+            if (preg_match('/^-?[1-9]\d{0,2}[.,]\d{3}$/', $compact) === 1) {
+                throw new InvalidCustomValue(CustomValueProblem::AmbiguousNumber);
             }
 
             $number = (float) str_replace(',', '.', $compact);
@@ -265,11 +302,15 @@ readonly final class CustomValues
         $tags = [];
 
         foreach ($submitted as $tag) {
-            if (is_string($tag) === false) {
+            if (is_string($tag) === false || mb_check_encoding($tag, 'UTF-8') === false) {
                 throw new InvalidCustomValue(CustomValueProblem::NotValid);
             }
 
             $tag = trim((string) preg_replace('/\s+/u', ' ', $tag));
+
+            if (self::isStorableText($tag, multiline: false) === false) {
+                throw new InvalidCustomValue(CustomValueProblem::NotValid);
+            }
 
             if ($tag === '') {
                 continue;

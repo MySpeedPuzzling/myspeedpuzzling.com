@@ -3,19 +3,32 @@
     alone: a pair partner looking at the same result gets their own block, or none.
 
     Rendered only where own_field_values is not null (the viewer has fields for results) and the viewer is on the
-    attempt. The link opens the values form in the modal frame - from the full page and from inside the modal alike.
+    attempt - a player without fields gets no block and no taller row.
 
-    Inputs: own_field_values (OwnCustomValues), time_id
+    The button opens the values form in the modal frame and says where it was opened from: on the page (`context=page`:
+    saved, the modal closes and the page refreshes) or inside the result detail's own modal (`context=modal`: saved, the
+    detail comes back into the modal with the new values).
+
+    Inputs: own_field_values (OwnCustomValues), time_id, result_in_modal (bool, default false)
 #}
 {% set filled = own_field_values.filledOn(time_id) %}
-<div class="fs-xs mt-1 text-break" data-testid="result-my-fields">
-    <i class="bi bi-lock text-muted" title="{{ 'my_fields.private_note'|trans }}"></i>
-    {% for entry in filled %}
-        <span class="me-2"><span class="text-muted">{{ my_field_label(entry.field) }}:</span> {{ my_field_value_text(entry.field, entry.value) }}</span>
-    {% else %}
-        <span class="text-muted me-2">{{ 'my_fields.result.label'|trans }}</span>
-    {% endfor %}
-    <a href="{{ path('result_my_fields', {timeId: time_id}) }}" data-turbo-frame="modal-frame" class="text-nowrap">
-        {{- (filled is empty ? 'my_fields.result.fill' : 'my_fields.result.edit')|trans -}}
+{% set edit_label = (filled is empty ? 'my_fields.result.fill' : 'my_fields.result.edit')|trans %}
+<div class="d-flex align-items-start justify-content-between gap-2 fs-xs mt-1" id="my-fields-of-{{ time_id }}" data-testid="result-my-fields">
+    <div class="text-break pt-1" style="min-width: 0;">
+        <i class="bi bi-lock text-muted" title="{{ 'my_fields.private_note'|trans }}"></i>
+        {% for entry in filled %}
+            {# Text keeps its line breaks (pre-line) - shown as text, escaped like every value #}
+            <span class="me-2"{% if entry.field.type.value == 'text' %} style="white-space: pre-line;"{% endif %}><span class="text-muted">{{ my_field_label(entry.field) }}:</span> {{ my_field_value_text(entry.field, entry.value) }}</span>
+        {% else %}
+            <span class="text-muted me-2">{{ 'my_fields.result.label'|trans }}</span>
+        {% endfor %}
+    </div>
+    {# A 44 px target - a button, not a line of text #}
+    <a href="{{ path('result_my_fields', {timeId: time_id, context: result_in_modal|default(false) ? 'modal' : 'page'}) }}"
+       data-turbo-frame="modal-frame"
+       class="btn btn-sm btn-outline-secondary flex-shrink-0 d-inline-flex align-items-center justify-content-center text-nowrap"
+       style="min-height: 44px; min-width: 44px;"
+       aria-label="{{ 'my_fields.result.label'|trans }}: {{ edit_label }}">
+        <i class="ci-edit me-1" aria-hidden="true"></i>{{ edit_label }}
     </a>
 </div>

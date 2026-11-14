@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Query\GetCustomFields;
 use SpeedPuzzling\Web\Query\GetCustomValues;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Results\CustomFieldsForm;
+use SpeedPuzzling\Web\Services\CustomFields\CustomValuesWriteFailure;
 use SpeedPuzzling\Web\Services\CustomFields\SubmittedCustomValues;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CustomValues;
@@ -21,6 +22,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\UX\Turbo\TurboBundle;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -29,8 +31,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * else's business (docs/features/custom-fields.md). Only whoever is on the result gets here, and only ever to their
  * own values - a pair partner opens the same URL and gets their own (empty) form.
  *
- * In the modal frame it answers with the frame; saved, it goes back to the result detail (in the frame: the detail
- * replaces the form in the modal).
+ * In the modal frame it answers with the frame. Saved from the modal, the answer depends on what is under it
+ * (`context`, sent by the link and kept by the form): over a page that shows the result (`page`, the default) the
+ * modal closes and the page refreshes - the answer of the edit-time modal; inside the result detail's own modal
+ * (`modal`) the detail comes back into the frame with the new values. As a full page: a redirect to the result.
  */
 final class SolvingTimeCustomValuesController extends AbstractController
 {
@@ -78,6 +82,7 @@ final class SolvingTimeCustomValuesController extends AbstractController
 
         $problems = [];
         $isModal = $request->headers->get('Turbo-Frame') === 'modal-frame';
+        $context = ($request->isMethod('POST') ? $request->request->getString('context') : $request->query->getString('context')) === 'modal' ? 'modal' : 'page';
 
         if ($request->isMethod('POST')) {
             if ($this->isCsrfTokenValid(self::CSRF_TOKEN_ID, $request->request->getString('_token')) === false) {
@@ -92,10 +97,20 @@ final class SolvingTimeCustomValuesController extends AbstractController
                     $this->messageBus->dispatch(new SetSolvingTimeCustomValues($timeId, $viewer->playerId, $inputs));
                 }
 
-                // In the modal the result detail that replaces the form shows the saved values - a flash would wait
-                // for the next full page
-                if ($isModal === false) {
-                    $this->addFlash('success', $this->translator->trans('my_fields.values.saved'));
+                // Inside the result detail's own modal: the detail comes back into the frame and shows the saved
+                // values itself - a flash would wait for the next full page
+                if ($isModal && $context === 'modal') {
+                    return $this->redirectToRoute('puzzle_result_detail', ['timeId' => $timeId], Response::HTTP_SEE_OTHER);
+                }
+
+                $this->addFlash('success', $this->translator->trans('my_fields.values.saved'));
+
+                // Over a page that shows the result: close the modal and refresh the page under it. Gated on the
+                // frame header, not only on the stream format - Turbo asks for streams on every form submission
+                if ($isModal && TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
+                    $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+                    return $this->render('my_fields/_values_saved_stream.html.twig');
                 }
 
                 return $this->redirectToRoute('puzzle_result_detail', ['timeId' => $timeId], Response::HTTP_SEE_OTHER);
@@ -103,7 +118,8 @@ final class SolvingTimeCustomValuesController extends AbstractController
                 $refusal = $exception->getPrevious();
 
                 if (!$refusal instanceof InvalidCustomValues) {
-                    throw $exception;
+                    // Never the exception itself: a driver's message can quote the values
+                    throw CustomValuesWriteFailure::withoutValues($exception);
                 }
 
                 $problems = $refusal->problems;
@@ -112,6 +128,7 @@ final class SolvingTimeCustomValuesController extends AbstractController
 
         $response = $this->render($isModal ? 'my_fields/_values_modal.html.twig' : 'my_fields/values.html.twig', [
             'time_id' => $timeId,
+            'context' => $context,
             'my_fields' => new CustomFieldsForm($fields, $inputs, $problems),
         ]);
 

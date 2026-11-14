@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Repository\ResultDuplicateCaseRepository;
 use SpeedPuzzling\Web\Results\DuplicateCopiesDeleted;
+use SpeedPuzzling\Web\Services\CustomFields\CustomValuesOfRemovedCopy;
 use SpeedPuzzling\Web\Services\DuplicateResults\DuplicateCaseSetResolver;
 use SpeedPuzzling\Web\Services\DuplicateResults\ResultReviewReactions;
 use SpeedPuzzling\Web\Services\FirstTry\FirstTryAssessor;
@@ -50,6 +51,7 @@ readonly final class KeepDuplicateCopyHandler
         private ResultReviewReactions $resultReviewReactions,
         private ClockInterface $clock,
         private MessageBusInterface $messageBus,
+        private CustomValuesOfRemovedCopy $customValuesOfRemovedCopy,
     ) {
     }
 
@@ -95,6 +97,10 @@ readonly final class KeepDuplicateCopyHandler
         foreach ($this->caseRepository->findOpenReferencing($deletedIds) as $openCase) {
             $openCase->copyDeleted($now, $message->via);
         }
+
+        // What the players wrote into their own fields on the copies stays - on the kept result
+        // (docs/features/custom-fields.md "When a copy of a result is removed")
+        $this->customValuesOfRemovedCopy->moveTo($deleted, $kept);
 
         $badgePlayerIds = [];
 

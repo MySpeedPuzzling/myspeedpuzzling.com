@@ -69,8 +69,13 @@ readonly final class AddCustomFieldHandler
             ? CustomFieldDefinition::fromInput($message->name, $message->type, $message->choices, $message->forResults, $message->forCollectionItems)
             : null;
 
-        if ($activeCount >= CustomField::MAX_ACTIVE_PER_PLAYER || count($fields) >= CustomField::MAX_PER_PLAYER) {
+        if ($activeCount >= CustomField::MAX_ACTIVE_PER_PLAYER) {
             throw new CustomFieldLimitReached();
+        }
+
+        // Room among the fields in use, but none in all: an archived field comes back instead of a new one
+        if (count($fields) >= CustomField::MAX_PER_PLAYER) {
+            throw new CustomFieldLimitReached(withArchived: true);
         }
 
         $nameKey = CustomFieldDefinition::nameKey($definition !== null ? $definition->name : $message->name);

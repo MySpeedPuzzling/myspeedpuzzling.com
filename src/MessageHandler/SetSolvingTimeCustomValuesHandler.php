@@ -18,7 +18,6 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Repository\SolvingTimeCustomValuesRepository;
 use SpeedPuzzling\Web\Services\Doctrine\IdLock;
-use SpeedPuzzling\Web\Value\CustomFieldType;
 use SpeedPuzzling\Web\Value\CustomValueProblem;
 use SpeedPuzzling\Web\Value\CustomValues;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -83,16 +82,16 @@ readonly final class SetSolvingTimeCustomValuesHandler
                 continue;
             }
 
-            $choices = $field->choices;
             $current = $stored->of($field->id->toString());
 
-            // A choice the field had when the value was stored stays a valid value of this row
-            if ($field->type === CustomFieldType::Choice && is_string($current)) {
-                $choices[] = $current;
+            // The form sends every field back. What comes back as it is stored is no change and is not judged again:
+            // a choice the field had when the value was stored, a number the rules of today would ask about
+            if ($current !== null && is_string($submitted) && trim($submitted) === CustomValues::toInput($current)) {
+                continue;
             }
 
             try {
-                $changes[$field->id->toString()] = CustomValues::normalise($field->type, $choices, $submitted);
+                $changes[$field->id->toString()] = CustomValues::normalise($field->type, $field->choices, $submitted);
             } catch (InvalidCustomValue $refused) {
                 $problems[(string) $fieldId] = $refused->problem;
             }

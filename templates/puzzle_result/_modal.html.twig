@@ -13,7 +13,7 @@
             {{ include('puzzle_result/_head.html.twig', {result: result}) }}
         </div>
         <div class="modal-body pr-modal-body">
-            {{ include('puzzle_result/_body.html.twig', {result: result}) }}
+            {{ include('puzzle_result/_body.html.twig', {result: result, result_in_modal: true}) }}
         </div>
     </div>
 </turbo-frame>

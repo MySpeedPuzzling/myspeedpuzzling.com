@@ -32,6 +32,13 @@ final class CustomValuesTest extends TestCase
         yield 'decimal comma' => [CustomFieldType::Number, [], '12,5', 12.5];
         yield 'spaces between thousands' => [CustomFieldType::Number, [], '1 250', 1250];
         yield 'a fraction of zero is a whole number' => [CustomFieldType::Number, [], '7.0', 7];
+        yield 'no-break spaces between thousands' => [CustomFieldType::Number, [], "1\u{00A0}250\u{202F}000", 1250000];
+        yield 'thousands by spaces and a fraction' => [CustomFieldType::Number, [], '1 250,5', 1250.5];
+        yield 'three decimals behind a zero can only be a fraction' => [CustomFieldType::Number, [], '0,125', 0.125];
+        yield 'three decimals behind four digits can only be a fraction' => [CustomFieldType::Number, [], '1234.567', 1234.567];
+        yield 'two decimals' => [CustomFieldType::Number, [], '1,25', 1.25];
+        yield 'four decimals' => [CustomFieldType::Number, [], '1,2500', 1.25];
+        yield 'text keeps its tabs' => [CustomFieldType::Text, [], "a\tb", "a\tb"];
         yield 'a number as a number' => [CustomFieldType::Number, [], 4.25, 4.25];
         yield 'date' => [CustomFieldType::Date, [], '2026-02-28', '2026-02-28'];
         yield 'yes' => [CustomFieldType::YesNo, [], 'yes', true];
@@ -66,6 +73,21 @@ final class CustomValuesTest extends TestCase
         yield 'two decimal marks' => [CustomFieldType::Number, [], '1.2.3', CustomValueProblem::NotANumber];
         yield 'a formula as a number' => [CustomFieldType::Number, [], '=1+1', CustomValueProblem::NotANumber];
         yield 'an endless number' => [CustomFieldType::Number, [], '9999999999999999', CustomValueProblem::NotANumber];
+        // One comma or point with exactly three digits behind 1-3: a thousand or a fraction? Never guessed
+        yield 'a comma before three digits' => [CustomFieldType::Number, [], '1,250', CustomValueProblem::AmbiguousNumber];
+        yield 'a point before three digits' => [CustomFieldType::Number, [], '1.250', CustomValueProblem::AmbiguousNumber];
+        yield 'three digits before and behind' => [CustomFieldType::Number, [], '-125.500', CustomValueProblem::AmbiguousNumber];
+        yield 'two separators' => [CustomFieldType::Number, [], '1,250.5', CustomValueProblem::NotANumber];
+        yield 'a number that is no UTF-8' => [CustomFieldType::Number, [], "12\xC3\x28", CustomValueProblem::NotANumber];
+        // What the database could not hold is a wrong value - never an exception later
+        yield 'text with a NUL byte' => [CustomFieldType::Text, [], "edges\0last", CustomValueProblem::NotValid];
+        yield 'text with an escape character' => [CustomFieldType::Text, [], "edges\x1Blast", CustomValueProblem::NotValid];
+        yield 'text with a C1 control character' => [CustomFieldType::Text, [], "edges\u{0085}last", CustomValueProblem::NotValid];
+        yield 'text that is no UTF-8' => [CustomFieldType::Text, [], "edges \xC3\x28 last", CustomValueProblem::NotValid];
+        yield 'a tag with a NUL byte' => [CustomFieldType::Tags, [], "cats, sk\0y", CustomValueProblem::NotValid];
+        yield 'a tag that is no UTF-8' => [CustomFieldType::Tags, [], ["cats", "\xFF\xFE"], CustomValueProblem::NotValid];
+        yield 'a date with a NUL byte' => [CustomFieldType::Date, [], "2026-03\0-01", CustomValueProblem::NotADate];
+        yield 'a choice that is no UTF-8' => [CustomFieldType::Choice, ['table'], "table\xC3\x28", CustomValueProblem::UnknownChoice];
         yield 'a day that does not exist' => [CustomFieldType::Date, [], '2026-02-30', CustomValueProblem::NotADate];
         yield 'another date format' => [CustomFieldType::Date, [], '28.02.2026', CustomValueProblem::NotADate];
         yield 'a year far away' => [CustomFieldType::Date, [], '0026-02-28', CustomValueProblem::NotADate];
@@ -108,6 +130,16 @@ final class CustomValuesTest extends TestCase
         }
 
         self::assertSame('', CustomValues::toInput(null));
+    }
+
+    public function testTextTheDatabaseCanHoldIsValidUtf8WithoutControlCharacters(): void
+    {
+        self::assertTrue(CustomValues::isStorableText("Žluťoučký kůň\n\tパズル 🧩", multiline: true));
+        self::assertTrue(CustomValues::isStorableText('', multiline: false));
+        self::assertFalse(CustomValues::isStorableText("one\ntwo", multiline: false), 'A line break is a control character where the text has one line');
+        self::assertFalse(CustomValues::isStorableText("a\0b", multiline: true));
+        self::assertFalse(CustomValues::isStorableText("a\x7Fb", multiline: true));
+        self::assertFalse(CustomValues::isStorableText("\xC3\x28", multiline: true));
     }
 
     public function testChangesAreMergedAndNullTakesAValueAway(): void

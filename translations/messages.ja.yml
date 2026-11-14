@@ -11660,6 +11660,7 @@ my_fields:
         not_valid: "この値は保存できません。"
         too_long: "長すぎます。%limit%文字以内で入力してください。"
         not_a_number: "数値を入力してください（例：12 または 12.5）。"
+        ambiguous_number: "この数値は2通りに読めます。区切りなし（1250）か小数（1.25）で入力してください。"
         not_a_date: "日付を入力してください。"
         not_yes_no: "「はい」か「いいえ」を選んでください。"
         unknown_choice: "リストから1つ選んでください。"
@@ -11674,12 +11675,14 @@ my_fields:
         choice_too_long: "選択肢は%limit%文字までです。"
         no_target: "項目を入力する場所を選んでください。"
         ready_made: "用意された項目は変更できません。"
+        invalid_characters: "名前または選択肢に保存できない文字が含まれています。"
     flash:
         added: "項目を追加しました。"
         saved: "項目を保存しました。"
         archived: "項目をアーカイブしました。入力した内容は保存されています。"
         restored: "項目を再び使用できます。"
         limit_reached: "同時に使用できる項目は%limit%個までです。追加するには、いずれかをアーカイブしてください。"
+        total_limit_reached: "アーカイブ済みを含めて項目が%limit%個あり、これが上限です。新しく作成する代わりに、アーカイブ済みの項目を元に戻してください。"
         name_taken: "同じ名前の項目がすでにあります。"
     add_form:
         toggle: "マイ項目"

@@ -83,7 +83,9 @@ final class CustomFieldHandlersTest extends KernelTestCase
             $lastId = $this->scenario->field(self::PLAYER, 'Field ' . $i);
         }
 
-        self::assertInstanceOf(CustomFieldLimitReached::class, $this->refusalOf(fn () => $this->scenario->field(self::PLAYER, 'One too many')));
+        $refusal = $this->refusalOf(fn () => $this->scenario->field(self::PLAYER, 'One too many'));
+        self::assertInstanceOf(CustomFieldLimitReached::class, $refusal);
+        self::assertFalse($refusal->withArchived, 'The twenty in use - archiving one helps');
         self::assertInstanceOf(CustomFieldLimitReached::class, $this->refusalOf(fn () => $this->scenario->readyMade(self::PLAYER, StandardCustomField::MyTags)));
         self::assertSame(CustomField::MAX_ACTIVE_PER_PLAYER, $this->scenario->fieldsOf(self::PLAYER));
 
@@ -91,6 +93,55 @@ final class CustomFieldHandlersTest extends KernelTestCase
         $this->messageBus->dispatch(new ArchiveCustomField($lastId, self::PLAYER));
         $this->scenario->field(self::PLAYER, 'Now it fits');
         self::assertInstanceOf(CustomFieldLimitReached::class, $this->refusalOf(fn () => $this->messageBus->dispatch(new ArchiveCustomField($lastId, self::PLAYER, archived: false))));
+    }
+
+    public function testNamesAndChoicesTheDatabaseCouldNotHoldAreRefused(): void
+    {
+        $refused = [
+            'a name that is no UTF-8' => fn () => $this->scenario->field(self::PLAYER, "Place \xC3\x28"),
+            'a name with an escape character' => fn () => $this->scenario->field(self::PLAYER, "Place\x1B"),
+            'a choice with a NUL byte' => fn () => $this->scenario->field(self::PLAYER, 'Place', CustomFieldType::Choice, ['table', "flo\0or"]),
+            'a choice that is no UTF-8' => fn () => $this->scenario->field(self::PLAYER, 'Place', CustomFieldType::Choice, ["\xFF"]),
+        ];
+
+        foreach ($refused as $what => $action) {
+            $refusal = $this->refusalOf($action);
+
+            self::assertInstanceOf(InvalidCustomFieldDefinition::class, $refusal, $what);
+            self::assertSame(InvalidCustomFieldDefinition::INVALID_CHARACTERS, $refusal->reason, $what);
+        }
+
+        // An edit is checked the same way
+        $fieldId = $this->scenario->field(self::PLAYER, 'Place', CustomFieldType::Choice, ['table']);
+        $refusal = $this->refusalOf(fn () => $this->messageBus->dispatch(new EditCustomField($fieldId, self::PLAYER, "Pla\0ce", ['table'], true, false)));
+        self::assertInstanceOf(InvalidCustomFieldDefinition::class, $refusal);
+        self::assertSame(InvalidCustomFieldDefinition::INVALID_CHARACTERS, $refusal->reason);
+
+        // A line break or a tab in a name is white space like any other
+        $this->scenario->field(self::PLAYER, "Two\nlines\tname");
+        self::assertSame(['Place', 'Two lines name'], $this->names($this->getCustomFields->ofPlayer(self::PLAYER)));
+    }
+
+    public function testTheHardCapCountsTheArchivedFieldsAndSaysSo(): void
+    {
+        // Sixty fields, every one archived: none in use, no room for a new one
+        for ($i = 1; $i <= CustomField::MAX_PER_PLAYER; $i++) {
+            $lastId = $this->scenario->field(self::PLAYER, 'Field ' . $i);
+            $this->messageBus->dispatch(new ArchiveCustomField($lastId, self::PLAYER));
+        }
+
+        $refusal = $this->refusalOf(fn () => $this->scenario->field(self::PLAYER, 'One too many'));
+        self::assertInstanceOf(CustomFieldLimitReached::class, $refusal);
+        self::assertTrue($refusal->withArchived, 'Not the twenty in use - the sixty in all');
+
+        $refusal = $this->refusalOf(fn () => $this->scenario->readyMade(self::PLAYER, StandardCustomField::MyTags));
+        self::assertInstanceOf(CustomFieldLimitReached::class, $refusal);
+        self::assertTrue($refusal->withArchived);
+
+        // What the message tells the player to do works: an archived field comes back
+        $this->messageBus->dispatch(new ArchiveCustomField($lastId, self::PLAYER, archived: false));
+        self::assertCount(1, $this->getCustomFields->usableOnResults(self::PLAYER));
+        self::assertSame(CustomField::MAX_PER_PLAYER, $this->scenario->fieldsOf(self::PLAYER));
     }
 
     public function testAFieldThatCanNotBeSetUpIsRefusedWithItsReason(): void
@@ -102,6 +153,8 @@ final class CustomFieldHandlersTest extends KernelTestCase
             InvalidCustomFieldDefinition::TOO_MANY_CHOICES => fn () => $this->scenario->field(self::PLAYER, 'Place', CustomFieldType::Choice, array_map(strval(...), range(1, 31))),
             InvalidCustomFieldDefinition::CHOICE_TOO_LONG => fn () => $this->scenario->field(self::PLAYER, 'Place', CustomFieldType::Choice, [str_repeat('a', 51)]),
             InvalidCustomFieldDefinition::NO_TARGET => fn () => $this->scenario->field(self::PLAYER, 'Place', forResults: false),
+            // What the database could not hold is refused as a wrong name - never an exception at the write
+            InvalidCustomFieldDefinition::INVALID_CHARACTERS => fn () => $this->scenario->field(self::PLAYER, "Pla\0ce"),
         ];
 
         foreach ($refused as $reason => $action) {

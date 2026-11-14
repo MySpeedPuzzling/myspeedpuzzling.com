@@ -13,11 +13,13 @@ use Monolog\LogRecord;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetCustomFields;
 use SpeedPuzzling\Web\Repository\SolvingTimeCustomValuesRepository;
+use SpeedPuzzling\Web\Services\CustomFields\CustomValuesWriteFailure;
 use SpeedPuzzling\Web\Tests\CustomFieldsScenario;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\StopwatchFixture;
 use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -348,7 +350,14 @@ final class AddFormMyFieldsTest extends WebTestCase
         ));
         self::assertCount(1, $warnings);
         self::assertSame($timeId, $warnings[0]->context['solvingTimeId']);
-        self::assertInstanceOf(\Throwable::class, $warnings[0]->context['exception']);
+        // What is logged names the exceptions and nothing they said: a driver's message can quote the values
+        $logged = $warnings[0]->context['exception'];
+        self::assertInstanceOf(CustomValuesWriteFailure::class, $logged);
+        self::assertNull($logged->getPrevious());
+        self::assertStringContainsString('RuntimeException', $logged->getMessage());
+        self::assertStringNotContainsString('The values table is gone.', $logged->getMessage());
+        self::assertStringNotContainsString('edges last', $logged->getMessage() . $logged->getTraceAsString());
+        self::assertArrayNotHasKey('playerId', $warnings[0]->context);
 
         // The player lands on the recap as always, told where to fill the fields in
         $recap = $browser->followRedirect();
@@ -390,6 +399,222 @@ final class AddFormMyFieldsTest extends WebTestCase
         self::assertSame(1, $this->results($timeId));
         self::assertSame(0, $scenario->valueRows($timeId));
         self::assertTrue($logs->hasWarningThatContains('Custom fields of a saved result could not be saved'));
+    }
+
+    /**
+     * A NUL byte or broken UTF-8 passes every length check and is refused by jsonb - as a failed statement, which
+     * closes the entity manager. It is a wrong value instead: left out, named, the result answered as always - on the
+     * normal path and when the form is sent again.
+     */
+    public function testAValueTheDatabaseCouldNotHoldIsLeftOutOnTheNormalPathAndOnAResend(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, self::PLAYER);
+        $scenario = new CustomFieldsScenario(self::getContainer());
+        $notes = $scenario->field(self::PLAYER, 'Notes');
+        $labels = $scenario->field(self::PLAYER, 'Labels', CustomFieldType::Tags);
+        $fine = $scenario->field(self::PLAYER, 'Fine');
+        $minutes = 20;
+
+        foreach (['a NUL byte' => "edges\0last", 'broken UTF-8' => "edges \xC3\x28 last"] as $what => $value) {
+            $timeId = Uuid::uuid7()->toString();
+            $form = [...$this->formValues($browser), 'timeMinutes' => (string) $minutes++];
+            $myFields = [$notes => $value, $labels => $value, $fine => 'kept'];
+
+            $this->post($browser, $form, $timeId, $myFields);
+
+            self::assertResponseRedirects('/en/time-added/' . $timeId, message: $what);
+            self::assertSame(1, $this->results($timeId), $what);
+            self::assertSame([$fine => 'kept'], $scenario->storedValues($timeId, self::PLAYER), $what);
+            $recap = $browser->followRedirect();
+            self::assertResponseIsSuccessful($what);
+            self::assertStringContainsString('could not be saved: Notes, Labels.', $recap->filter('.alert-warning')->text(), $what);
+
+            // The same form again: the saved result's answer, nothing new, the same fields left out
+            $this->post($browser, $form, $timeId, $myFields);
+
+            self::assertResponseRedirects('/en/time-added/' . $timeId, message: $what . ', sent again');
+            self::assertSame(1, $this->results($timeId), $what);
+            self::assertSame([$fine => 'kept'], $scenario->storedValues($timeId, self::PLAYER), $what);
+            $recap = $browser->followRedirect();
+            self::assertResponseIsSuccessful($what);
+            self::assertStringContainsString('This result was already saved', $recap->filter('body')->text(), $what);
+        }
+    }
+
+    /**
+     * The form sent again while the values can not be written: the answer of a resend, as always - it is built
+     * before the fields are touched, so a write that failed can not meet the answer's own dispatch.
+     */
+    public function testAResendIsAnsweredAsAlwaysWhenSavingTheValuesFails(): void
+    {
+        $browser = self::createClient();
+        $browser->disableReboot();
+        TestingLogin::asPlayer($browser, self::PLAYER);
+        $scenario = new CustomFieldsScenario(self::getContainer());
+        $notes = $scenario->field(self::PLAYER, 'Notes');
+        $timeId = Uuid::uuid7()->toString();
+        $form = $this->formValues($browser);
+
+        $this->post($browser, $form, $timeId);
+        self::assertResponseRedirects('/en/time-added/' . $timeId);
+        $preventionsBefore = $this->resendsCaught($timeId);
+
+        $broken = $this->createStub(EntityManagerInterface::class);
+        $broken->method('getRepository')->willThrowException(new \RuntimeException('The values table is gone.'));
+        self::getContainer()->set(SolvingTimeCustomValuesRepository::class, new SolvingTimeCustomValuesRepository($broken));
+        $logs = new TestHandler();
+        self::getContainer()->get('logger')->pushHandler($logs);
+
+        $this->post($browser, $form, $timeId, [$notes => 'edges last']);
+
+        // The normal answer of a resend: the recap of the saved result, the resend recorded, nothing new
+        self::assertResponseRedirects('/en/time-added/' . $timeId);
+        self::assertSame(1, $this->results($timeId));
+        self::assertSame($preventionsBefore + 1, $this->resendsCaught($timeId), 'The answer\'s own dispatch ran - before the fields');
+        self::assertSame(0, $scenario->valueRows($timeId));
+        self::assertTrue($logs->hasWarningThatContains('Custom fields of a saved result could not be saved'));
+
+        $recap = $browser->followRedirect();
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('This result was already saved', $recap->filter('body')->text());
+        self::assertStringContainsString('Your own fields could not be saved', $recap->filter('.alert-warning')->text());
+    }
+
+    public function testTheFirstFieldMadeOnTheManagePageIsInTheAddFormAtOnce(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, self::PLAYER);
+
+        // The session knows: no fields
+        $browser->request('GET', '/en/puzzle-add');
+        self::assertStringNotContainsString('add-form-my-fields', (string) $browser->getResponse()->getContent());
+        $this->startCountingQueries($browser);
+        $browser->request('GET', '/en/puzzle-add');
+        self::assertSame([], $this->fieldStatements($browser));
+
+        // The first field, made the way a player makes it
+        $manage = $browser->request('GET', '/en/custom-fields');
+        $browser->request('POST', '/en/custom-fields', ['custom_field_form' => [
+            '_token' => $manage->filter('input[name="custom_field_form[_token]"]')->attr('value'),
+            'name' => 'Notes',
+            'type' => 'text',
+            'forResults' => '1',
+        ]]);
+        self::assertResponseRedirects('/en/custom-fields');
+
+        // No waiting for the memo to run out
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        self::assertCount(1, $crawler->filter('[data-testid="add-form-my-fields"] textarea'));
+
+        // Archived again: gone from the form at once, too
+        $manage = $browser->request('GET', '/en/custom-fields');
+        $browser->submit($manage->filter('[data-testid="custom-field"] form[action$="/archive"]')->form());
+        self::assertResponseRedirects('/en/custom-fields');
+        self::assertStringNotContainsString('add-form-my-fields', (string) $browser->request('GET', '/en/puzzle-add')->html());
+    }
+
+    public function testTheValuesAreSavedWithAStopwatchsResult(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, self::PLAYER);
+        $scenario = new CustomFieldsScenario(self::getContainer());
+        $notes = $scenario->field(self::PLAYER, 'Notes');
+        $url = '/en/save-stopwatch/' . StopwatchFixture::STOPWATCH_PAUSED;
+
+        $crawler = $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('[data-testid="add-form-my-fields"]'));
+        $timeId = (string) $crawler->filter('input[name="time_id"]')->attr('value');
+        $form = [...$this->formValues($browser, fetch: false), '_token' => (string) $crawler->filter('input[name="puzzle_add_form[_token]"]')->attr('value'), 'timeHours' => '0', 'timeMinutes' => '41', 'timeSeconds' => '13'];
+
+        $browser->request('POST', $url, ['puzzle_add_form' => $form, 'time_id' => $timeId, 'my_fields' => [$notes => 'timed with the stopwatch']]);
+
+        self::assertResponseRedirects('/en/time-added/' . $timeId);
+        $database = self::getContainer()->get(Connection::class);
+        self::assertSame('stopwatch', $database->fetchOne('SELECT created_via FROM puzzle_solving_time WHERE id = :id', ['id' => $timeId]));
+        self::assertSame('finished', $database->fetchOne('SELECT status FROM stopwatch WHERE id = :id', ['id' => StopwatchFixture::STOPWATCH_PAUSED]));
+        self::assertSame([$notes => 'timed with the stopwatch'], $scenario->storedValues($timeId, self::PLAYER));
+
+        // The save form sent again: the saved result, its fields as they are
+        $browser->request('POST', $url, ['puzzle_add_form' => $form, 'time_id' => $timeId, 'my_fields' => [$notes => 'timed with the stopwatch']]);
+        self::assertResponseRedirects('/en/time-added/' . $timeId);
+        self::assertSame(1, $scenario->valueRows($timeId));
+    }
+
+    public function testTheValuesAreSavedWithANewPuzzleAndItsFirstResultInOneSubmit(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, self::PLAYER);
+        $scenario = new CustomFieldsScenario(self::getContainer());
+        $notes = $scenario->field(self::PLAYER, 'Notes');
+
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        $timeId = (string) $crawler->filter('input[name="time_id"]')->attr('value');
+        $newPuzzleId = (string) $crawler->filter('input[name="new_puzzle_id"]')->attr('value');
+        $form = [
+            ...$this->formValues($browser, fetch: false),
+            '_token' => (string) $crawler->filter('input[name="puzzle_add_form[_token]"]')->attr('value'),
+            'puzzle' => 'A Puzzle Nobody Added Yet',
+            'puzzlePiecesCount' => '500',
+        ];
+
+        $browser->request(
+            'POST',
+            '/en/puzzle-add',
+            ['puzzle_add_form' => $form, 'time_id' => $timeId, 'new_puzzle_id' => $newPuzzleId, 'my_fields' => [$notes => 'first of its kind']],
+            ['puzzle_add_form' => ['puzzlePhoto' => $this->photo()]],
+        );
+
+        self::assertResponseRedirects('/en/time-added/' . $timeId);
+        $database = self::getContainer()->get(Connection::class);
+        self::assertSame('A Puzzle Nobody Added Yet', $database->fetchOne('SELECT name FROM puzzle WHERE id = :id', ['id' => $newPuzzleId]));
+        self::assertSame($newPuzzleId, $database->fetchOne('SELECT puzzle_id FROM puzzle_solving_time WHERE id = :id', ['id' => $timeId]));
+        self::assertSame([$notes => 'first of its kind'], $scenario->storedValues($timeId, self::PLAYER));
+    }
+
+    public function testAFieldNamedLikeMarkupIsNamedAsTextInTheFlash(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, self::PLAYER);
+        $scenario = new CustomFieldsScenario(self::getContainer());
+        $nasty = '<script>alert("x")</script>\'';
+        $number = $scenario->field(self::PLAYER, $nasty, CustomFieldType::Number);
+        $timeId = Uuid::uuid7()->toString();
+
+        $this->post($browser, $this->formValues($browser), $timeId, [$number => 'a few']);
+
+        self::assertResponseRedirects('/en/time-added/' . $timeId);
+        $recap = $browser->followRedirect();
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString('<script>alert(', $content);
+        self::assertStringContainsString('could not be saved: ' . $nasty . '.', $recap->filter('.alert-warning')->text());
+    }
+
+    /**
+     * Nothing was added to the edit form - not for a player with fields either, as a page and in the modal.
+     */
+    public function testTheEditFormHasNothingOfTheFields(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, self::PLAYER);
+        $scenario = new CustomFieldsScenario(self::getContainer());
+        $notes = $scenario->field(self::PLAYER, 'Quokka ledger');
+        $timeId = $scenario->result(PlayerFixture::PLAYER_REGULAR_USER_ID);
+        $scenario->setValues($timeId, self::PLAYER, [$notes => 'axolotl-whispers']);
+
+        foreach ([[], ['HTTP_TURBO_FRAME' => 'modal-frame']] as $server) {
+            $browser->request('GET', '/en/edit-time/' . $timeId, server: $server);
+
+            self::assertResponseIsSuccessful();
+            $content = (string) $browser->getResponse()->getContent();
+            self::assertStringContainsString('name="edit_puzzle_solving_time_form', $content, 'It is the edit form');
+
+            foreach ([...self::MARKUP, 'Quokka ledger', 'axolotl-whispers', $notes, '/custom-fields'] as $markup) {
+                self::assertStringNotContainsString($markup, $content, $markup);
+            }
+        }
     }
 
     public function testAResultWithAPhotoAndFieldsIsSavedWithBoth(): void
@@ -530,6 +755,17 @@ final class AddFormMyFieldsTest extends WebTestCase
         }
 
         return $browser->request('POST', '/en/puzzle-add', $parameters);
+    }
+
+    private function resendsCaught(string $timeId): int
+    {
+        $count = self::getContainer()->get(Connection::class)->fetchOne(
+            "SELECT COUNT(*) FROM result_duplicate_prevention WHERE time_id = :id AND kind = 'resend_caught'",
+            ['id' => $timeId],
+        );
+        assert(is_int($count) || is_string($count));
+
+        return (int) $count;
     }
 
     private function results(string $timeId): int

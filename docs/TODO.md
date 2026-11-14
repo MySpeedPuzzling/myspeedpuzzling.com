@@ -9,11 +9,15 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Stage 1b: collection items (`collection_item.custom_values`, the item's edit form), the export, the puzzle merge;
   then the "filling them in arrives soon" wording of the manage page goes away (`my_fields.for_collection_items`,
   `my_fields.form.for_collection_items_help`, 6 locales)
-- [ ] In a real browser (not verifiable by the tests): the "My fields" toggle of the add form, the block hiding in
-  collection mode (CSS `:has()` sibling rule in `my_fields/_add_form_block.html.twig`), the values form inside the
-  modal (saved → the result detail replaces it in the modal), the manage page at 380 px
-- [ ] A result removed automatically as a copy and brought back by Undo (`result_auto_removal`) comes back without its
-  custom values - the snapshot does not hold them. Decide with the import's Undo (stage 6b) whether it should
+- [ ] In a real browser again after the review round (2026-11-14): the values form saved from the modal over the
+  full-page result (the modal closes, the page refreshes with the flash) and from inside the result detail's own
+  modal (the detail comes back with the new values); the 44 px button of the result block
+- [ ] Reorder double-tap race: two quick taps on up/down post two forms built from the same list - the second swaps
+  against an order that is already gone (the result is a valid order, just not the one tapped). Fix with the order the
+  page showed in the form, or one request at a time
+- [ ] Browsers without `:has()` (before Safari 15.4 / Chrome 105 / Firefox 121) show the "My fields" block of the add
+  form in collection mode too - harmless (values posted from there are ignored), but it should hide: a target of the
+  form's controller, when that controller is touched for another reason
 - [ ] The edit-result form has no link to "My fields" (on purpose - nothing was added to it); add one if players miss it
 
 ## PhotoStash descriptions in Postgres (`docs/features/photo-uploads/README.md` "Where the stash keeps what", 2026-11-09)

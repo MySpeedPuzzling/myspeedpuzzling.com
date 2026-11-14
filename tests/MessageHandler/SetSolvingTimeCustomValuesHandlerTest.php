@@ -216,6 +216,50 @@ final class SetSolvingTimeCustomValuesHandlerTest extends KernelTestCase
         self::assertSame([$place => CustomValueProblem::UnknownChoice], $refusal->problems);
     }
 
+    public function testWhatComesBackAsItIsStoredIsNoChangeAndIsNotJudgedAgain(): void
+    {
+        $breaks = $this->scenario->field(self::A, 'Breaks', CustomFieldType::Number);
+        $place = $this->scenario->field(self::A, 'Place', CustomFieldType::Choice, ['table', 'floor']);
+        $notes = $this->scenario->field(self::A, 'Notes');
+        $timeId = $this->scenario->result(self::A_USER);
+        // 1.125: stored from an input nobody can misread - its own input form "1.125" would be asked about today
+        $this->scenario->setValues($timeId, self::A, [$breaks => '1,1250', $place => 'floor', $notes => "one\ntwo"]);
+        $this->messageBus->dispatch(new EditCustomField($place, self::A, 'Place', ['table'], true, false));
+        self::assertSame([$breaks => 1.125, $place => 'floor', $notes => "one\ntwo"], $this->scenario->storedValues($timeId, self::A));
+        $rowBefore = $this->database->fetchAssociative('SELECT id, custom_values::text AS stored, updated_at FROM solving_time_custom_values WHERE solving_time_id = :id', ['id' => $timeId]);
+
+        // The values form sends back what it showed (a browser sends a textarea's line breaks as CR LF)
+        $this->scenario->setValues($timeId, self::A, [$breaks => '1.125', $place => 'floor', $notes => "one\r\ntwo"]);
+
+        self::assertSame($rowBefore, $this->database->fetchAssociative('SELECT id, custom_values::text AS stored, updated_at FROM solving_time_custom_values WHERE solving_time_id = :id', ['id' => $timeId]));
+
+        // Typed anew, the same text is judged like any other
+        $other = $this->scenario->result(self::A_USER, time: '04:30:00', daysAgo: 5);
+        $refusal = $this->refusalOf(fn () => $this->scenario->setValues($other, self::A, [$breaks => '1.125']));
+        self::assertInstanceOf(InvalidCustomValues::class, $refusal);
+        self::assertSame([$breaks => CustomValueProblem::AmbiguousNumber], $refusal->problems);
+    }
+
+    public function testAValueTheDatabaseCouldNotHoldIsRefusedLikeAnyWrongValue(): void
+    {
+        $notes = $this->scenario->field(self::A, 'Notes');
+        $tags = $this->scenario->field(self::A, 'Labels', CustomFieldType::Tags);
+        $timeId = $this->scenario->result(self::A_USER);
+
+        foreach (["nul \0 byte", "broken \xC3\x28 utf-8"] as $value) {
+            $refusal = $this->refusalOf(fn () => $this->scenario->setValues($timeId, self::A, [$notes => $value, $tags => $value]));
+
+            // Refused before anything is written - not a failed statement, and so no closed entity manager
+            self::assertInstanceOf(InvalidCustomValues::class, $refusal);
+            self::assertSame([$notes => CustomValueProblem::NotValid, $tags => CustomValueProblem::NotValid], $refusal->problems);
+        }
+
+        self::assertSame(0, $this->scenario->valueRows($timeId));
+        // The connection and the entity manager are as they were: the next save goes through
+        $this->scenario->setValues($timeId, self::A, [$notes => 'fine']);
+        self::assertSame([$notes => 'fine'], $this->scenario->storedValues($timeId, self::A));
+    }
+
     public function testAnImportedEventResultTakesValuesOnlyFromItsClaimersAndAReleasedSpotLosesThem(): void
     {
         $notes = $this->scenario->field(self::A, 'Notes');

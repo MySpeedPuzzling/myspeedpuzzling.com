@@ -1,0 +1,8 @@
+{#
+    The values form was saved in the modal over a page that shows the result (docs/features/custom-fields.md): close
+    the modal and refresh the page, so the block under it shows the new values and the flash - the answer of the
+    edit-time modal (edit-time_success_stream.html.twig).
+#}
+{{ include('_modal_close_stream.html.twig') }}
+
+<turbo-stream action="refresh"></turbo-stream>

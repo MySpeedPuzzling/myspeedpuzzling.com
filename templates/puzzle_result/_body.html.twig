@@ -118,7 +118,7 @@
 
                 {# The viewer's own fields on an attempt they are on - theirs alone (docs/features/custom-fields.md) #}
                 {% if own_field_values|default(null) is not null and viewer_id is not null and (attempt.trackedByPlayerId == viewer_id or viewer_id in attempt.memberPlayerIds) %}
-                    {{ include('my_fields/_result_block.html.twig', {own_field_values: own_field_values, time_id: attempt.timeId}) }}
+                    {{ include('my_fields/_result_block.html.twig', {own_field_values: own_field_values, time_id: attempt.timeId, result_in_modal: result_in_modal|default(false)}) }}
                 {% endif %}
 
                 {# Like on the profile: the photo of the finished puzzle only for whoever may edit the time #}

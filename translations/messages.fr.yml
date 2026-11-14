@@ -11666,6 +11666,7 @@ my_fields:
         not_valid: "Cette valeur ne peut pas être enregistrée."
         too_long: "Trop long - %limit% caractères au maximum."
         not_a_number: "Saisis un nombre, par exemple 12 ou 12,5."
+        ambiguous_number: "Cela peut se lire de deux façons. Écris-le sans séparateur (1250) ou comme un nombre décimal (1,25)."
         not_a_date: "Saisis une date."
         not_yes_no: "Choisis oui ou non."
         unknown_choice: "Choisis un élément de la liste."
@@ -11680,12 +11681,14 @@ my_fields:
         choice_too_long: "Un choix peut avoir %limit% caractères au maximum."
         no_target: "Choisis où tu remplis le champ."
         ready_made: "Un champ tout prêt ne peut pas être modifié."
+        invalid_characters: "Le nom ou un choix contient des caractères qui ne peuvent pas être enregistrés."
     flash:
         added: "Le champ a été ajouté."
         saved: "Le champ a été enregistré."
         archived: "Le champ a été archivé. Ce que tu y as écrit est conservé."
         restored: "Le champ est de nouveau utilisé."
         limit_reached: "Tu peux utiliser %limit% champs au maximum à la fois. Archives-en un pour en ajouter un autre."
+        total_limit_reached: "Tu as %limit% champs en comptant les archivés - c’est le maximum. Restaure un champ archivé au lieu d’en créer un nouveau."
         name_taken: "Tu as déjà un champ avec ce nom."
     add_form:
         toggle: "Mes champs"

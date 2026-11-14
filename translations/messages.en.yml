@@ -11917,6 +11917,7 @@ my_fields:
         not_valid: "This value can not be saved."
         too_long: "Too long - at most %limit% characters."
         not_a_number: "Enter a number, for example 12 or 12.5."
+        ambiguous_number: "This can be read both ways. Write it without the separator (1250) or as a fraction (1.25)."
         not_a_date: "Enter a date."
         not_yes_no: "Choose yes or no."
         unknown_choice: "Choose one of the list."
@@ -11931,12 +11932,14 @@ my_fields:
         choice_too_long: "A choice can have at most %limit% characters."
         no_target: "Choose where you fill the field in."
         ready_made: "A ready-made field can not be changed."
+        invalid_characters: "The name or a choice has characters that can not be saved."
     flash:
         added: "The field was added."
         saved: "The field was saved."
         archived: "The field was archived. What you wrote in it is kept."
         restored: "The field is back in use."
         limit_reached: "You can use at most %limit% fields at once. Archive one to add another."
+        total_limit_reached: "You have %limit% fields, the archived ones counted - that is the most there can be. Restore an archived field instead of making a new one."
         name_taken: "You already have a field with this name."
     add_form:
         toggle: "My fields"

@@ -8,7 +8,7 @@ use SpeedPuzzling\Web\Exceptions\InvalidCustomFieldDefinition;
 
 /**
  * How a player set up one of their own fields, cleaned and checked (docs/features/custom-fields.md) - the one rule
- * for adding and editing a field: a name of 1-60 characters, choices only for "one of a list" (1-30, each at most 50
+ * for adding and editing a field: a name of 1-60 characters (valid UTF-8, no control characters), choices only for "one of a list" (1-30, each at most 50
  * characters, each once whatever its letter case), and at least one place the field is for.
  */
 readonly final class CustomFieldDefinition
@@ -36,6 +36,10 @@ readonly final class CustomFieldDefinition
      */
     public static function fromInput(string $name, CustomFieldType $type, array $choices, bool $forResults, bool $forCollectionItems): self
     {
+        if (CustomValues::isStorableText($name, multiline: true) === false) {
+            throw new InvalidCustomFieldDefinition(InvalidCustomFieldDefinition::INVALID_CHARACTERS);
+        }
+
         $name = self::clean($name);
 
         if ($name === '') {
@@ -72,6 +76,10 @@ readonly final class CustomFieldDefinition
         $cleaned = [];
 
         foreach ($choices as $choice) {
+            if (is_string($choice) && CustomValues::isStorableText($choice, multiline: true) === false) {
+                throw new InvalidCustomFieldDefinition(InvalidCustomFieldDefinition::INVALID_CHARACTERS);
+            }
+
             $choice = is_string($choice) ? self::clean($choice) : '';
 
             if ($choice === '') {
@@ -96,6 +104,10 @@ readonly final class CustomFieldDefinition
         return array_values($cleaned);
     }
 
+    /**
+     * One line: every run of white space (a line break or tab too) is one space. Only for text isStorableText() took -
+     * broken UTF-8 would come back from the regular expression as nothing.
+     */
     private static function clean(string $text): string
     {
         return trim((string) preg_replace('/\s+/u', ' ', $text));

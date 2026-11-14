@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetPuzzleResultDetail;
-use SpeedPuzzling\Web\Results\PuzzleResultAttempt;
 use SpeedPuzzling\Web\Services\CustomFields\OwnCustomValuesOnResults;
 use SpeedPuzzling\Web\Services\ResolveDifficultyTiers;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -55,24 +54,12 @@ final class PuzzleResultDetailController extends AbstractController
             ? 'puzzle_result/_modal.html.twig'
             : 'puzzle_result/detail.html.twig';
 
-        // The viewer's own fields on the attempts they are on - theirs alone, whoever else is on the result
-        // (docs/features/custom-fields.md); null for a guest, somebody else's result and a player without fields
-        $ownCustomValues = null;
-
-        if ($viewer !== null) {
-            $ownCustomValues = $this->ownCustomValuesOnResults->forViewer($request, $viewer->playerId, array_values(array_map(
-                static fn (PuzzleResultAttempt $attempt): string => $attempt->timeId,
-                array_filter(
-                    $result->attempts,
-                    static fn (PuzzleResultAttempt $attempt): bool => $attempt->trackedByPlayerId === $viewer->playerId
-                        || in_array($viewer->playerId, $attempt->memberPlayerIds, true),
-                ),
-            )));
-        }
-
         $response = $this->render($template, [
             'result' => $result,
-            'own_field_values' => $ownCustomValues,
+            // The signed-in viewer's own fields on the attempts they are on - theirs alone, whoever else is on the
+            // result (docs/features/custom-fields.md). The service takes no player id: it can only be the viewer's.
+            // Null for a guest, somebody else's result and a player without fields
+            'own_field_values' => $this->ownCustomValuesOnResults->ofSignedInViewer($request, $result->attempts),
             // Members see the puzzle's difficulty on its image (null for everyone else)
             'difficulty_tiers' => $this->resolveDifficultyTiers->forViewer($viewer, [$result->puzzleId]),
         ]);

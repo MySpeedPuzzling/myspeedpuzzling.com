@@ -17,6 +17,7 @@ final class InvalidCustomFieldDefinition extends \Exception
     public const string CHOICE_TOO_LONG = 'choice_too_long';
     public const string NO_TARGET = 'no_target';
     public const string READY_MADE = 'ready_made';
+    public const string INVALID_CHARACTERS = 'invalid_characters';
 
     public function __construct(
         public readonly string $reason,

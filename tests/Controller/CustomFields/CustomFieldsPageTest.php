@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\CustomFields;
 
+use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\CustomField;
 use SpeedPuzzling\Web\Tests\CustomFieldsScenario;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\CustomFieldType;
 use SpeedPuzzling\Web\Value\StandardCustomField;
@@ -136,6 +140,87 @@ final class CustomFieldsPageTest extends WebTestCase
         self::assertStringContainsString('Choose where you fill the field in.', $crawler->filter('form[name="custom_field_form"]')->text());
 
         self::assertSame(1, $scenario->fieldsOf(self::PLAYER));
+    }
+
+    public function testANameAndChoicesLikeMarkupAreShownAsText(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, self::PLAYER);
+        $nasty = '<script>alert("x")</script>\'';
+
+        $this->addOwnField($browser, ['name' => $nasty, 'type' => 'choice', 'choices' => $nasty . "\n<b>bold</b>", 'forResults' => '1']);
+        self::assertResponseRedirects('/en/custom-fields');
+        $crawler = $browser->followRedirect();
+
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString('<script>alert(', $content);
+        self::assertStringNotContainsString('<b>bold</b>', $content);
+        $card = $crawler->filter('[data-testid="custom-field"]');
+        self::assertSame($nasty, trim($card->filter('.fw-semibold')->text()));
+        self::assertStringContainsString($nasty . ', <b>bold</b>', $card->text());
+
+        // The edit page holds them as text as well
+        $edit = $browser->click($card->filter('a[href$="/edit"]')->link());
+        self::assertStringNotContainsString('<script>alert(', (string) $browser->getResponse()->getContent());
+        self::assertSame($nasty, $edit->filter('input[name="custom_field_form[name]"]')->attr('value'));
+    }
+
+    public function testANameTheDatabaseCouldNotHoldIsRefusedWith422(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, self::PLAYER);
+
+        foreach (["Pla\0ce", "Place \xC3\x28"] as $name) {
+            $crawler = $this->addOwnField($browser, ['name' => $name, 'type' => 'text', 'forResults' => '1']);
+
+            // Refused with words - by the form itself where it sees it first, by the handler otherwise (the handler's
+            // own refusal: CustomFieldHandlersTest)
+            self::assertResponseStatusCodeSame(422);
+            self::assertMatchesRegularExpression(
+                '/characters that can not be saved|does not match the expected UTF-8 charset|is not valid/',
+                $crawler->filter('form[name="custom_field_form"]')->text(),
+            );
+        }
+
+        self::assertSame(0, (new CustomFieldsScenario(self::getContainer()))->fieldsOf(self::PLAYER));
+    }
+
+    public function testTheHardCapSaysWhatItIsAndWhatToDo(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, self::PLAYER);
+        $database = self::getContainer()->get(Connection::class);
+
+        // Sixty archived fields - written straight into the table, the handlers' own test makes them one by one
+        for ($i = 1; $i <= CustomField::MAX_PER_PLAYER; $i++) {
+            $database->insert('player_custom_field', [
+                'id' => Uuid::uuid7()->toString(),
+                'player_id' => self::PLAYER,
+                'name' => 'Field ' . $i,
+                'type' => 'text',
+                'choices' => '[]',
+                'for_results' => 'true',
+                'for_collection_items' => 'false',
+                'position' => $i,
+                'created_at' => TestClock::now()->format('Y-m-d H:i:s'),
+                'archived_at' => TestClock::now()->format('Y-m-d H:i:s'),
+            ]);
+        }
+
+        $crawler = $browser->request('GET', '/en/custom-fields');
+        self::assertResponseIsSuccessful();
+        // Told before trying: not the twenty in use, and what helps
+        $notice = $crawler->filter('[data-testid="total-limit"]')->text();
+        self::assertStringContainsString('You have 60 fields, the archived ones counted', $notice);
+        self::assertStringContainsString('Restore an archived field instead of making a new one.', $notice);
+        self::assertNotNull($crawler->filter('form[name="custom_field_form"] button[type="submit"]')->attr('disabled'));
+        // Restoring is what still works
+        self::assertNull($crawler->filter('[data-testid="archived-custom-field"] button')->first()->attr('disabled'));
+
+        // Tried anyway (a form opened before): refused with the same words
+        $crawler = $this->addOwnField($browser, ['name' => 'One too many', 'type' => 'text', 'forResults' => '1']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('Restore an archived field instead of making a new one.', $crawler->filter('form[name="custom_field_form"]')->text());
     }
 
     public function testAReadyMadeFieldIsAddedWithOneTapAndIsNoLongerOffered(): void

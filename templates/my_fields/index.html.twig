@@ -85,6 +85,8 @@
 
     {% if limit_reached %}
         <div class="alert alert-warning fs-sm">{{ 'my_fields.flash.limit_reached'|trans({'%limit%': limit}) }}</div>
+    {% elseif total_limit_reached %}
+        <div class="alert alert-warning fs-sm" data-testid="total-limit">{{ 'my_fields.flash.total_limit_reached'|trans({'%limit%': total_limit}) }}</div>
     {% endif %}
 
     {% if ready_made is not empty %}
@@ -101,7 +103,7 @@
                             <div class="fs-sm text-muted">{{ ('my_fields.type.' ~ standard.type.value)|trans }}</div>
                             {{ include('my_fields/_field_places.html.twig', {for_results: standard.forResults, for_collection_items: standard.forCollectionItems}) }}
                         </div>
-                        <button type="submit" class="btn btn-outline-primary flex-shrink-0" style="min-height: 44px; min-width: 44px;"{{ limit_reached ? ' disabled' }} aria-label="{{ 'my_fields.ready_made.add'|trans({'%field%': standard.labelKey|trans}) }}">
+                        <button type="submit" class="btn btn-outline-primary flex-shrink-0" style="min-height: 44px; min-width: 44px;"{{ limit_reached or total_limit_reached ? ' disabled' }} aria-label="{{ 'my_fields.ready_made.add'|trans({'%field%': standard.labelKey|trans}) }}">
                             <i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline ms-1">{{ 'forms.add'|trans }}</span>
                         </button>
                     </form>
@@ -123,7 +125,7 @@
             {{ form_row(form.forResults) }}
             {{ form_row(form.forCollectionItems) }}
 
-            <button type="submit" class="btn btn-primary text-wrap" style="min-height: 44px;"{{ limit_reached ? ' disabled' }}>
+            <button type="submit" class="btn btn-primary text-wrap" style="min-height: 44px;"{{ limit_reached or total_limit_reached ? ' disabled' }}>
                 <i class="bi bi-plus-lg me-1"></i>{{ 'my_fields.add_own.submit'|trans }}
             </button>
         {{ form_end(form) }}

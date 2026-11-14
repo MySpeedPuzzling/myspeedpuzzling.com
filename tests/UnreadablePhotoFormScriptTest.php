@@ -34,7 +34,7 @@ final class UnreadablePhotoFormScriptTest extends TestCase
         self::assertFalse(self::at($facts, 'afterPick', 'buttonDisabled'));
 
         // One tap on Save: sent, without the photo, with everything typed
-        self::assertSame([['files' => self::NOTHING_SENT_AS_FILE, 'tokens' => [], 'comment' => 'typed by the player']], self::at($facts, 'sent'));
+        self::assertSame([['files' => self::NOTHING_SENT_AS_FILE, 'tokens' => [], 'dropped' => [], 'comment' => 'typed by the player']], self::at($facts, 'sent'));
 
         self::assertSame(['photo_dropped', 'empty', 'pick', 'finishedPuzzlesPhoto', 0], self::fields(self::at($facts, 'reports', 0), ['event', 'reason', 'detectedOn', 'field', 'bytes']));
         // The save that went through without it is a saved one - never counted as failed
@@ -54,7 +54,7 @@ final class UnreadablePhotoFormScriptTest extends TestCase
         self::assertSame(['UNREADABLE'], self::at($facts, 'afterPick', 'notes', 'finishedPuzzlesPhoto'));
         self::assertSame(0, self::at($facts, 'afterPick', 'files', 'finishedPuzzlesPhoto'));
         self::assertSame([], self::at($facts, 'starts'));
-        self::assertSame([['files' => self::NOTHING_SENT_AS_FILE, 'tokens' => [], 'comment' => 'typed by the player']], self::at($facts, 'sent'));
+        self::assertSame([['files' => self::NOTHING_SENT_AS_FILE, 'tokens' => [], 'dropped' => [], 'comment' => 'typed by the player']], self::at($facts, 'sent'));
 
         // The browser's own words - without the file's name
         self::assertSame(
@@ -75,7 +75,7 @@ final class UnreadablePhotoFormScriptTest extends TestCase
         self::assertSame(1, self::at($facts, 'afterPick', 'files', 'finishedPuzzlesPhoto'));
         self::assertSame(1000, self::at($facts, 'starts', 0, 'bytes'));
         self::assertSame(1, self::at($facts, 'puts'));
-        self::assertSame([['files' => self::NOTHING_SENT_AS_FILE, 'tokens' => ['photo_stash[finishedPuzzlesPhoto]' => str_repeat('a', 32)], 'comment' => 'typed by the player']], self::at($facts, 'sent'));
+        self::assertSame([['files' => self::NOTHING_SENT_AS_FILE, 'tokens' => ['photo_stash[finishedPuzzlesPhoto]' => str_repeat('a', 32)], 'dropped' => [], 'comment' => 'typed by the player']], self::at($facts, 'sent'));
         self::assertSame(['upload', 'done'], self::fields(self::at($facts, 'reports', 0), ['event', 'outcome']));
 
         // A device that does not answer the one-byte read is not judged: uploaded all the same, after the check's timeout
@@ -94,14 +94,14 @@ final class UnreadablePhotoFormScriptTest extends TestCase
         self::assertSame(['UNREADABLE'], self::at($empty, 'afterPick', 'notes', 'finishedPuzzlesPhoto'));
         self::assertSame([], self::at($empty, 'afterPick', 'statuses', 'finishedPuzzlesPhoto'));
         self::assertSame(0, self::at($empty, 'afterPick', 'files', 'finishedPuzzlesPhoto'));
-        self::assertSame([['files' => self::NOTHING_SENT_AS_FILE, 'tokens' => [], 'comment' => 'typed by the player']], self::at($empty, 'sent'));
+        self::assertSame([['files' => self::NOTHING_SENT_AS_FILE, 'tokens' => [], 'dropped' => [], 'comment' => 'typed by the player']], self::at($empty, 'sent'));
         self::assertContains(['photo_dropped', 'empty', 'start'], array_map(static fn (mixed $report): array => self::fields($report, ['event', 'reason', 'detectedOn']), self::reports($empty)));
 
         // Any other refusal: the fallback exactly as it was - the photo travels with the form
         self::assertSame([], self::at($tooLarge, 'afterPick', 'notes', 'finishedPuzzlesPhoto'));
         self::assertSame(['WITH FORM'], self::at($tooLarge, 'afterPick', 'statuses', 'finishedPuzzlesPhoto'));
         self::assertSame(1, self::at($tooLarge, 'afterPick', 'files', 'finishedPuzzlesPhoto'));
-        self::assertSame([['files' => ['finishedPuzzlesPhoto' => 1000, 'puzzlePhoto' => null], 'tokens' => [], 'comment' => 'typed by the player']], self::at($tooLarge, 'sent'));
+        self::assertSame([['files' => ['finishedPuzzlesPhoto' => 1000, 'puzzlePhoto' => null], 'tokens' => [], 'dropped' => [], 'comment' => 'typed by the player']], self::at($tooLarge, 'sent'));
         self::assertNotContains('photo_dropped', array_column(self::reports($tooLarge), 'event'));
     }
 
@@ -117,17 +117,18 @@ final class UnreadablePhotoFormScriptTest extends TestCase
         ] = $this->scenarios(['save-with-empty-photo-in-form', 'save-with-unreadable-photo-in-form', 'save-with-slow-read-in-form']);
 
         // Without background uploads too (the kill switch): one tap, sent without the empty photo
-        self::assertSame([['files' => self::NOTHING_SENT_AS_FILE, 'tokens' => [], 'comment' => 'typed by the player']], self::at($empty, 'sent'));
+        // ...and tells the next page, where the note next to the field is gone (EmptyPhotoParts)
+        self::assertSame([['files' => self::NOTHING_SENT_AS_FILE, 'tokens' => [], 'dropped' => ['photo_dropped[finishedPuzzlesPhoto]' => 'empty'], 'comment' => 'typed by the player']], self::at($empty, 'sent'));
         self::assertSame(['UNREADABLE'], self::at($empty, 'notes', 'finishedPuzzlesPhoto'));
 
         // The unreadable one is out, the good photo next to it still travels
-        self::assertSame([['files' => ['finishedPuzzlesPhoto' => null, 'puzzlePhoto' => 1000], 'tokens' => [], 'comment' => 'typed by the player']], self::at($unreadable, 'sent'));
+        self::assertSame([['files' => ['finishedPuzzlesPhoto' => null, 'puzzlePhoto' => 1000], 'tokens' => [], 'dropped' => ['photo_dropped[finishedPuzzlesPhoto]' => 'unreadable'], 'comment' => 'typed by the player']], self::at($unreadable, 'sent'));
         self::assertSame(['UNREADABLE'], self::at($unreadable, 'notes', 'finishedPuzzlesPhoto'));
         self::assertSame([], self::at($unreadable, 'notes', 'puzzlePhoto'));
         self::assertSame(['photo_dropped', 'unreadable', 'save'], self::fields(self::at($unreadable, 'reports', 0), ['event', 'reason', 'detectedOn']));
 
         // The check cannot tell: the photo goes with the form as it always did - the save waits for the check's timeout only
-        self::assertSame([['files' => ['finishedPuzzlesPhoto' => 2_345_678, 'puzzlePhoto' => null], 'tokens' => [], 'comment' => 'typed by the player']], self::at($slow, 'sent'));
+        self::assertSame([['files' => ['finishedPuzzlesPhoto' => 2_345_678, 'puzzlePhoto' => null], 'tokens' => [], 'dropped' => [], 'comment' => 'typed by the player']], self::at($slow, 'sent'));
         self::assertSame([], self::at($slow, 'notes', 'finishedPuzzlesPhoto'));
         self::assertTrue(self::at($slow, 'whileChecking', 'buttonDisabled'));
         self::assertSame('SAVING', self::at($slow, 'whileChecking', 'label'));
@@ -135,27 +136,153 @@ final class UnreadablePhotoFormScriptTest extends TestCase
         self::assertLessThan(3500, self::at($slow, 'tookMs'));
     }
 
-    public function testASaveThatDiesAtOnceWithAPhotoOffersToSaveWithoutIt(): void
+    /**
+     * At once, online, with a photo in the request: it may be the connection (a blocked request, the first one after the
+     * camera) as well as the photo. Said so the first time, with both ways on; the photo is named when it happens again
+     */
+    public function testASaveThatDiesAtOnceWithAPhotoSaysBothAndNamesThePhotoOnlyTheSecondTime(): void
     {
-        ['save-dies-at-once-with-photo' => $facts] = $this->scenarios(['save-dies-at-once-with-photo']);
+        [
+            'save-dies-at-once-with-photo' => $facts,
+            'save-without-after-first-failure' => $without,
+            'instant-failures-not-in-a-row' => $notInARow,
+        ] = $this->scenarios(['save-dies-at-once-with-photo', 'save-without-after-first-failure', 'instant-failures-not-in-a-row']);
 
-        // Not "the connection was too slow… try Wi-Fi"
-        self::assertSame('PHOTO', self::at($facts, 'afterFailure', 'alert'));
-        self::assertSame('WITHOUT', self::at($facts, 'afterFailure', 'saveWithoutButton'));
-        self::assertFalse(self::at($facts, 'afterFailure', 'buttonDisabled'), 'Save itself works again too');
-        self::assertSame(1, self::at($facts, 'afterFailure', 'files', 'finishedPuzzlesPhoto'), 'The photo stays until the player decides');
+        // The first time: neither "try Wi-Fi" nor "the photo" - both, with "Try again" and "Save without the photo"
+        self::assertSame('EITHER', self::at($facts, 'afterFirst', 'alert'));
+        self::assertSame('TRY AGAIN', self::at($facts, 'afterFirst', 'tryAgainButton'));
+        self::assertSame('WITHOUT', self::at($facts, 'afterFirst', 'saveWithoutButton'));
+        self::assertFalse(self::at($facts, 'afterFirst', 'buttonDisabled'), 'Save itself works again too');
+        self::assertSame(1, self::at($facts, 'afterFirst', 'files', 'finishedPuzzlesPhoto'), 'The photo stays until the player decides');
 
-        // One tap on "Save without the photo": the photo is out and the form is sent
+        // "Try again" sent the form as it was; it died at once again: now the photo is named
+        self::assertSame('PHOTO', self::at($facts, 'afterSecond', 'alert'));
+        self::assertSame('WITHOUT', self::at($facts, 'afterSecond', 'saveWithoutButton'));
+        self::assertNull(self::at($facts, 'afterSecond', 'tryAgainButton'));
+
+        // One tap on "Save without the photo": the photo is out, the form is sent and tells the next page
         self::assertNull(self::at($facts, 'afterWithout', 'alert'));
         self::assertSame(0, self::at($facts, 'afterWithout', 'files', 'finishedPuzzlesPhoto'));
         self::assertSame([
-            ['files' => ['finishedPuzzlesPhoto' => 1000, 'puzzlePhoto' => null], 'tokens' => [], 'comment' => 'typed by the player'],
-            ['files' => self::NOTHING_SENT_AS_FILE, 'tokens' => [], 'comment' => 'typed by the player'],
+            ['files' => ['finishedPuzzlesPhoto' => 1000, 'puzzlePhoto' => null], 'tokens' => [], 'dropped' => [], 'comment' => 'typed by the player'],
+            ['files' => ['finishedPuzzlesPhoto' => 1000, 'puzzlePhoto' => null], 'tokens' => [], 'dropped' => [], 'comment' => 'typed by the player'],
+            ['files' => self::NOTHING_SENT_AS_FILE, 'tokens' => [], 'dropped' => ['photo_dropped[finishedPuzzlesPhoto]' => 'not_sent'], 'comment' => 'typed by the player'],
         ], self::at($facts, 'sent'));
 
-        self::assertSame(['save', 'failed', 0, 'TypeError: Failed to fetch', 'photo', 1], self::fields(self::at($facts, 'reports', 0), ['event', 'outcome', 'status', 'error', 'failure', 'photosInForm']));
-        self::assertSame(['photo_dropped', 'not_sent', 'save_without'], self::fields(self::at($facts, 'reports', 1), ['event', 'reason', 'detectedOn']));
-        self::assertSame(['save', 'saved', 1, 'save_without'], self::fields(self::at($facts, 'reports', 2), ['event', 'outcome', 'photosDropped', 'droppedOn']));
+        self::assertSame(['save', 'failed', 0, 'TypeError: Failed to fetch', 'either', 1], self::fields(self::at($facts, 'reports', 0), ['event', 'outcome', 'status', 'error', 'failure', 'photosInForm']));
+        self::assertSame(['save', 'failed', 'photo'], self::fields(self::at($facts, 'reports', 1), ['event', 'outcome', 'failure']));
+        self::assertSame(['photo_dropped', 'not_sent', 'save_without'], self::fields(self::at($facts, 'reports', 2), ['event', 'reason', 'detectedOn']));
+        self::assertSame(['save', 'saved', 1, 'save_without'], self::fields(self::at($facts, 'reports', 3), ['event', 'outcome', 'photosDropped', 'droppedOn']));
+
+        // "Save without the photo" works right after the first failure too
+        self::assertSame(
+            ['files' => self::NOTHING_SENT_AS_FILE, 'tokens' => [], 'dropped' => ['photo_dropped[finishedPuzzlesPhoto]' => 'not_sent'], 'comment' => 'typed by the player'],
+            self::at($without, 'sent', 1),
+        );
+
+        // Only failures in a row count: after anything else in between it is "either" again
+        self::assertSame(['EITHER', 'TRY AGAIN', 'WITHOUT'], [self::at($notInARow, 'alert'), self::at($notInARow, 'tryAgainButton'), self::at($notInARow, 'saveWithoutButton')]);
+        self::assertSame(['either', null, 'either'], array_map(static fn (mixed $report): mixed => self::fields($report, ['failure'])[0], self::reports($notInARow)));
+    }
+
+    /**
+     * A new puzzle needs its box photo (the finished photo stands in when there is no other): "Save without the photo"
+     * never takes it - a save without it would be a certain "photo required"
+     */
+    public function testSaveWithoutThePhotoIsNotOfferedForThePhotoANewPuzzleNeeds(): void
+    {
+        [
+            'new-puzzle-box-photo-in-form' => $box,
+            'new-puzzle-both-photos-in-form' => $both,
+            'new-puzzle-finished-photo-only' => $finishedOnly,
+            'new-puzzle-box-photo-uploaded' => $uploaded,
+        ] = $this->scenarios(['new-puzzle-box-photo-in-form', 'new-puzzle-both-photos-in-form', 'new-puzzle-finished-photo-only', 'new-puzzle-box-photo-uploaded']);
+
+        // The box photo is the one in the request: "Try again" only, then the message asks for the photo - no button
+        self::assertSame(['EITHER REQUIRED', 'TRY AGAIN', null], [self::at($box, 'afterFirst', 'alert'), self::at($box, 'afterFirst', 'tryAgainButton'), self::at($box, 'afterFirst', 'saveWithoutButton')]);
+        self::assertSame(['PHOTO REQUIRED', null, null], [self::at($box, 'alert'), self::at($box, 'tryAgainButton'), self::at($box, 'saveWithoutButton')]);
+        self::assertSame(1, self::at($box, 'files', 'puzzlePhoto'), 'The box photo is never taken out');
+
+        // Both in the request: only the finished photo goes, the box photo still travels
+        self::assertSame(['EITHER', 'WITHOUT'], [self::at($both, 'afterFirst', 'alert'), self::at($both, 'afterFirst', 'saveWithoutButton')]);
+        self::assertSame(
+            ['files' => ['finishedPuzzlesPhoto' => null, 'puzzlePhoto' => 1000], 'tokens' => [], 'dropped' => ['photo_dropped[finishedPuzzlesPhoto]' => 'not_sent'], 'comment' => 'typed by the player'],
+            self::at($both, 'sent', 1),
+        );
+
+        // The finished photo is the new puzzle's only photo: it cannot go either
+        self::assertSame(['EITHER REQUIRED', 'TRY AGAIN', null], [self::at($finishedOnly, 'alert'), self::at($finishedOnly, 'tryAgainButton'), self::at($finishedOnly, 'saveWithoutButton')]);
+
+        // The box photo went up in the background: the finished photo may go, the box photo's token stays
+        self::assertSame(['EITHER', 'WITHOUT'], [self::at($uploaded, 'afterFirst', 'alert'), self::at($uploaded, 'afterFirst', 'saveWithoutButton')]);
+        self::assertSame(
+            ['files' => self::NOTHING_SENT_AS_FILE, 'tokens' => ['photo_stash[puzzlePhoto]' => str_repeat('a', 32)], 'dropped' => ['photo_dropped[finishedPuzzlesPhoto]' => 'not_sent'], 'comment' => 'typed by the player'],
+            self::at($uploaded, 'sent', 1),
+        );
+    }
+
+    /**
+     * The note next to the field is gone with the form in the same tap: a photo taken out while saving goes with the
+     * form as `photo_dropped[<field>]` - and only while it stays out
+     */
+    public function testAPhotoTakenOutWhileSavingTellsTheNextPage(): void
+    {
+        [
+            'start-says-empty-while-saving' => $whileSaving,
+            'photo-picked-again-after-save-without' => $pickedAgain,
+            'pick-empty' => $atPick,
+        ] = $this->scenarios(['start-says-empty-while-saving', 'photo-picked-again-after-save-without', 'pick-empty']);
+
+        // Save was waiting for the upload when its start called the photo empty
+        self::assertSame([['files' => self::NOTHING_SENT_AS_FILE, 'tokens' => [], 'dropped' => ['photo_dropped[finishedPuzzlesPhoto]' => 'empty'], 'comment' => 'typed by the player']], self::at($whileSaving, 'sent'));
+
+        // Another photo picked for the field: nothing is "left out" any more
+        self::assertSame(['photo_dropped[finishedPuzzlesPhoto]' => 'not_sent'], self::at($pickedAgain, 'sent', 1, 'dropped'));
+        self::assertSame(
+            ['files' => self::NOTHING_SENT_AS_FILE, 'tokens' => ['photo_stash[finishedPuzzlesPhoto]' => str_repeat('a', 32)], 'dropped' => [], 'comment' => 'typed by the player'],
+            self::at($pickedAgain, 'sent', 2),
+        );
+
+        // Taken out when it was picked: the player read the note next to the field - nothing to tell later
+        self::assertSame([], self::at($atPick, 'sent', 0, 'dropped'));
+    }
+
+    /**
+     * The kill switch (no background uploads): a picked photo is checked all the same
+     */
+    public function testAPickedPhotoIsCheckedWithoutBackgroundUploadsToo(): void
+    {
+        ['pick-empty-without-uploads' => $facts] = $this->scenarios(['pick-empty-without-uploads']);
+
+        self::assertSame([['UNREADABLE'], 0], [self::at($facts, 'afterEmpty', 'notes', 'finishedPuzzlesPhoto'), self::at($facts, 'afterEmpty', 'files', 'finishedPuzzlesPhoto')]);
+        self::assertSame([['UNREADABLE'], 0], [self::at($facts, 'afterUnreadable', 'notes', 'finishedPuzzlesPhoto'), self::at($facts, 'afterUnreadable', 'files', 'finishedPuzzlesPhoto')]);
+        // A photo that can be read stays in its input and goes with the form, as it always did there
+        self::assertSame([[], 1], [self::at($facts, 'afterNormal', 'notes', 'finishedPuzzlesPhoto'), self::at($facts, 'afterNormal', 'files', 'finishedPuzzlesPhoto')]);
+        self::assertSame([['files' => ['finishedPuzzlesPhoto' => 1000, 'puzzlePhoto' => null], 'tokens' => [], 'dropped' => [], 'comment' => 'typed by the player']], self::at($facts, 'sent'));
+        self::assertSame([], self::at($facts, 'starts'));
+    }
+
+    /**
+     * The pace check's "Yes, time is correct" (ppm_validator_controller.js) on the same form: with a photo travelling in
+     * the request Save detours for the one-byte read before the dialog AND after the confirmation - the first of each
+     * pair is stopped before the pace check sees it, so its "confirmed" is still there for the one that is sent
+     */
+    public function testConfirmingThePaceCheckSavesExactlyOnce(): void
+    {
+        [
+            'ppm-confirm-with-photo-in-form' => $withPhoto,
+            'ppm-confirm-without-photo' => $withoutPhoto,
+            'ppm-confirm-with-empty-photo-in-form' => $emptyPhoto,
+        ] = $this->scenarios(['ppm-confirm-with-photo-in-form', 'ppm-confirm-without-photo', 'ppm-confirm-with-empty-photo-in-form']);
+
+        // Asked first: nothing sent while the dialog is open
+        self::assertSame(0, self::at($withPhoto, 'whileAsked', 'sent'));
+        self::assertSame(0, self::at($withoutPhoto, 'whileAsked', 'sent'));
+
+        self::assertSame([['files' => ['finishedPuzzlesPhoto' => 1000, 'puzzlePhoto' => null], 'tokens' => [], 'dropped' => [], 'comment' => 'typed by the player']], self::at($withPhoto, 'sent'));
+        self::assertSame([['files' => self::NOTHING_SENT_AS_FILE, 'tokens' => [], 'dropped' => [], 'comment' => 'typed by the player']], self::at($withoutPhoto, 'sent'));
+        // An empty photo is out before the dialog, and the confirmed save says so once
+        self::assertSame([['files' => self::NOTHING_SENT_AS_FILE, 'tokens' => [], 'dropped' => ['photo_dropped[finishedPuzzlesPhoto]' => 'empty'], 'comment' => 'typed by the player']], self::at($emptyPhoto, 'sent'));
     }
 
     public function testTheConnectionMessageStaysForWhatItWasWrittenFor(): void
@@ -173,8 +300,11 @@ final class UnreadablePhotoFormScriptTest extends TestCase
         self::assertSame(['NETWORK', null], [self::at($offline, 'alert'), self::at($offline, 'saveWithoutButton')]);
         self::assertSame('network', self::at($offline, 'reports', 0, 'failure'));
 
-        // Neither at once nor slow: both possibilities named, the same offer
-        self::assertSame(['EITHER', 'WITHOUT'], [self::at($seconds, 'alert'), self::at($seconds, 'saveWithoutButton')]);
+        self::assertNull(self::at($slow, 'tryAgainButton'));
+        self::assertNull(self::at($offline, 'tryAgainButton'));
+
+        // Neither at once nor slow: both possibilities named, both ways on
+        self::assertSame(['EITHER', 'TRY AGAIN', 'WITHOUT'], [self::at($seconds, 'alert'), self::at($seconds, 'tryAgainButton'), self::at($seconds, 'saveWithoutButton')]);
         self::assertSame('either', self::at($seconds, 'reports', 0, 'failure'));
 
         // No photo in the request: resent once by itself, as before - no message yet

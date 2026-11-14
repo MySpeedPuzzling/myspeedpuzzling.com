@@ -167,7 +167,7 @@ and `multiscan_controller.js` (quick-add):
 | HEIC the browser cannot shrink | Uploaded as it is (≤ 60 MB, type guessed from the extension when the browser gives none); `ImageOptimizer` shrinks it on the server as before | As a normal upload, slower |
 | Player picks another photo / edits it | Old upload aborted, its place let go, new one starts | The status line restarts |
 | The phone hands over a photo of 0 bytes, or one the browser cannot read (§4.2) | Taken out of the form when picked - never uploaded, never sent | Next to the field: "This photo could not be read from your device, so it is not attached. You can save without it, or pick it again…" Save works |
-| A save dies at once with a photo inside the request (§4.2) | Not blamed on the connection | Red alert: "it looks like the photo could not be sent from your device" + button "Save without the photo" |
+| A save dies at once with a photo inside the request (§4.2) | It may be the connection or the photo - both are said | Red alert: "It may be the connection, or the photo could not be sent from your device" + "Try again" and "Save without the photo"; the photo is named when it happens again at once |
 | Multiscan quick-add | Same uploader; "Add puzzle" waits for the upload and sends the token; a token the server cannot use → the next tap sends the file | The line under the photo; button disabled while waiting |
 
 ### 4.1 What can still lose a form
@@ -182,13 +182,17 @@ and `multiscan_controller.js` (quick-add):
 start refused it (`empty`), the page said the photo would go with the form, and every Save then died in the browser
 after 30-80 ms with status 0 - eleven taps, each answered by "the connection was too slow… try Wi-Fi or mobile data".
 The result was saved only after the form was opened again without the photo; the same had happened a week before.
-(Why the browser aborts a request carrying such a file is not known - it never reached the server whole.)
+(Why the browser aborts a request carrying such a file is not known - it never reached the server whole. A reviewer's
+hypothesis, **not verified**: Chromium's `ERR_UPLOAD_FILE_CHANGED` - Android's content provider reports the file with
+size 0 when it is picked, the real file differs when the request is built, and Chromium refuses to upload a file that
+changed. The `error` texts of the telemetry below will tell.)
 
 **The rule: a photo the browser cannot read never blocks a save.** It is taken out of the form, the player is told
 next to the field, and the save goes on without it. Four places, each one wrapped so that a failure of the check
 itself leaves the form doing what it did before (`assets/photo_readability.js` holds the decisions, without the DOM):
 
-1. **When it is picked** (`photoChosen`, multiscan `photoPicked`): `size === 0` → out at once. Otherwise one byte is
+1. **When it is picked** (`photoChosen` - `photoChecked` on a form without background uploads, the kill switch -
+   and multiscan `photoPicked`): `size === 0` → out at once. Otherwise one byte is
    read (`file.slice(0, 1).arrayBuffer()`): a refused read (`NotReadableError`…) or one that comes back without the
    byte → out. A read that does not finish in 1.5 s (a photo still coming from the cloud), a browser without the API
    or a check that throws → **readable**, nothing changes. A photo the browser managed to shrink was read - not asked.
@@ -200,16 +204,42 @@ itself leaves the form doing what it did before (`assets/photo_readability.js` h
 4. **The server's floor** (`EmptyPhotoParts`, called by `PuzzleAddController` / `EditTimeController` before
    `FormPhotoStash::restore()`): a photo part that still arrives without a byte counts as no photo. Before, the form
    answered 422 "An empty file is not allowed". Now an existing puzzle's result is saved, a new puzzle gets its usual
-   "photo required", and a flash says the photo arrived empty. Request handling only - no message or handler knows.
+   "photo required", and a flash says a photo was left out. Request handling only - no message or handler knows.
+
+**A photo taken out while saving is said on the next page.** The note next to the field is gone with the form in the
+same tap (the redirect, the modal closing), and under the kill switch nothing of the photo reaches the server. So a
+photo taken out right before the request, by "Save without the photo", or while Save waited for its upload goes with
+the form as `photo_dropped[<field>]=<reason>` (`empty` / `unreadable` / `not_sent`; removed again when another photo
+is picked for the field), and `EmptyPhotoParts` turns it into the same flash - on the recap after an add, after an edit
+(page and modal), or on the refused form. Read strictly (a photo field of this form, a known reason, no photo for the
+field in the request after all) and added once: not while the same flash still waits to be shown (the automatic
+resend, a second tap). A photo taken out when it was picked leaves no marker - the player read the note.
 
 A new puzzle needs its box photo: there the note says "please pick it again" and promises no save without it
 (field `puzzlePhoto`, multiscan quick-add). Multiscan keeps the photo taken before, if there was one.
 
-**The message of a lost save** (`saveFailureKind()`): status 0 in under a second, online, with a photo inside the
-request → `photo`: "it looks like the photo could not be sent from your device" + **Save without the photo** (one tap:
-takes every photo that would travel as a file out and sends the form). Between 1 and 10 s → `either`: both
-possibilities named, the same button. Everything else - no photo in the request, offline, the edge's 502/504, a long
-wait, an answer Turbo dropped - keeps the connection message, `network`.
+**The message of a lost save** (`saveFailureKind()`). Status 0 in under a second, online, with a photo inside the
+request is what a photo the browser cannot send looks like - and also a connection that broke without saying so (the
+first request after the camera, a network change, DNS on dead Wi-Fi), and photos travel in the form exactly when the
+connection is bad (always under the kill switch). So:
+
+- the **first** such failure → `either`: "It may be the connection, or the photo could not be sent from your device"
+  with **Try again** (the form once more, through Save's own path - `time_id` makes a resend safe) and **Save without
+  the photo**. The same for a failure after 1-10 s.
+- the **second in a row** (`isInstantPhotoFailure()` counts them; anything else in between starts anew) → `photo`:
+  the photo is named, **Save without the photo**.
+- no photo in the request, offline, the edge's 502/504, a wait over 10 s, an answer Turbo dropped → `network`: the
+  connection message as it always was, no photo button.
+
+**"Save without the photo" never promises what cannot work** (`photosToSaveWithout()`): it takes out the photos that
+would travel as files - but a NEW puzzle (its section on show) keeps its box photo, and its finished photo too when
+that is the only photo it has. When nothing can go, the button is not offered and the message says a new puzzle needs
+its photo ("Try again" stays for the first failure).
+
+**The pace check's dialog** (`ppm_validator_controller.js`) on the same form: with a photo travelling in the request,
+Save detours for the one-byte read before the dialog and again after "Yes, time is correct". The first submit of each
+pair is stopped (`stopImmediatePropagation`) before the pace check sees it, so its `confirmed` flag is still set for
+the one that is sent - once (`testConfirmingThePaceCheckSavesExactlyOnce`).
 
 Not covered on purpose: the feedback form's screenshots (own controller, same uploader - an `empty` refusal there
 still sends the picture with the form) and the other photo forms, which send photos with the form only; the server's
@@ -227,7 +257,7 @@ countable in Loki without fingers_crossed:
 - `event=save` - every lost save, and every save that had photos (or had one taken out as unreadable): `outcome`
   (`saved` / `refused` / `failed`), `status`, `duration_ms`, `waited_ms` (Save waiting for uploads), `photos_direct`,
   `photos_in_form`, `retried`; of a lost save also `error` (the browser's own words, e.g. `TypeError: Failed to fetch`)
-  and `failure` (the message shown: `photo` / `either` / `network`); `photos_dropped` + `dropped_on` when photos were
+  and `failure` (the message shown: `either` / `photo` = the second instant failure in a row / `network`); `photos_dropped` + `dropped_on` when photos were
   taken out of this form before (§4.2). A save that goes through without its unreadable photo is `saved`, never `failed`.
 - `event=photo_dropped` - a photo taken out because the device could not read it (§4.2): `reason` (`empty` /
   `unreadable` / `not_sent` = the player's "Save without the photo"), `detected_on` (`pick` / `start` = the upload's
@@ -277,8 +307,12 @@ clients - one player tapping Save many times fires it (docs/TODO.md).
   `tests/Services/BrowserImageSummaryTest.php`, and in `tests/Controller/PhotoUploads/DirectPhotoUploadTest.php` the
   summary with a background upload, through a refused form, and the photo's own EXIF winning.
 - A photo the phone cannot read (§4.2): `tests/PhotoReadabilityScriptTest.php` runs `assets/photo_readability.js` under
-  node (0 bytes, a refused read, a read that hangs or throws, which message a lost save gets, error texts without file
-  names); `tests/Controller/PhotoUploads/UnreadablePhotoTest.php` - the start's `empty` answer, an empty photo part
-  saved without (add, edit) and "photo required" for a new puzzle, the new report fields cut and cleaned at info.
+  node (0 bytes, a refused read, a read that hangs or throws, which message a lost save gets, what "Save without the
+  photo" may take out, error texts without file names); `tests/UnreadablePhotoFormScriptTest.php` runs the real
+  `submit_prevention_controller.js` (real Stimulus, `photo_upload.js`, the pace check's confirm) in jsdom - pick, the
+  start's `empty`, Save with an unreadable photo, the messages and their buttons, a new puzzle's photo, the
+  `photo_dropped` marker; `tests/Controller/PhotoUploads/UnreadablePhotoTest.php` - the start's `empty` answer, an
+  empty photo part saved without (add, edit) and "photo required" for a new puzzle, the marker's flash (once; page and
+  modal; garbage ignored), the new report fields cut and cleaned at info. Multiscan has no script test.
 - Real browser (2026-10-18): Selenium Chromium on the compose network against a worktree build, MinIO as the store,
   with the network throttled and uploads made to fail - see the PR description.

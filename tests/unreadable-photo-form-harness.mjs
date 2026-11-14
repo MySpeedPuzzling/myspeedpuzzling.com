@@ -6,7 +6,8 @@
 //
 // Faked: the file inputs' `files` (jsdom cannot set them), fetch (the upload's start), XMLHttpRequest (the PUT to object
 // storage), navigator (online, sendBeacon = the telemetry). A submit that reaches the document was not stopped by the
-// controller - it is recorded as "sent" with what the request would carry.
+// controller - it is recorded as "sent" with what the request would carry. `ppm` scenarios mount the pace check's
+// confirm dialog (assets/controllers/ppm_validator_controller.js, its Bootstrap modal stubbed) on the same form.
 //
 // By hand: echo '["pick-empty"]' | node tests/unreadable-photo-form-harness.mjs
 
@@ -21,10 +22,17 @@ const { JSDOM } = require('jsdom');
 // The package's "main" is its UMD build - the controller imports named exports, like the bundler gives it
 const stimulusUrl = pathToFileURL(path.join(path.dirname(require.resolve('@hotwired/stimulus/package.json')), 'dist/stimulus.js')).href;
 
+const bootstrapStub = 'data:text/javascript,' + encodeURIComponent('const modal = { show() {}, hide() {} }; export const Modal = { getOrCreateInstance: () => modal, getInstance: () => modal };');
+
 registerHooks({
     resolve(specifier, context, nextResolve) {
         if (specifier === '@hotwired/stimulus') {
             return { url: stimulusUrl, format: 'module', shortCircuit: true };
+        }
+
+        // ppm_validator_controller.js only shows and hides its modal
+        if (specifier === 'bootstrap') {
+            return { url: bootstrapStub, format: 'module', shortCircuit: true };
         }
 
         return nextResolve(specifier, context);
@@ -34,9 +42,9 @@ registerHooks({
 const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'https://example.test/en/puzzle-add', pretendToBeVisual: true });
 const { window } = dom;
 
-const world = { online: true, reports: [], starts: [], startAnswer: null, puts: 0 };
+const world = { online: true, reports: [], starts: [], startAnswer: null, startDelayMs: 0, puts: 0 };
 
-for (const name of ['window', 'document', 'MutationObserver', 'Element', 'HTMLElement', 'HTMLInputElement', 'HTMLFormElement', 'Node', 'Event', 'CustomEvent']) {
+for (const name of ['window', 'document', 'MutationObserver', 'Element', 'HTMLElement', 'HTMLInputElement', 'HTMLFormElement', 'Node', 'Event', 'CustomEvent', 'KeyboardEvent', 'MouseEvent']) {
     globalThis[name] = name === 'window' ? window : window[name];
 }
 
@@ -56,6 +64,10 @@ Object.defineProperty(globalThis, 'navigator', {
 
 globalThis.fetch = async (url, init) => {
     world.starts.push(JSON.parse(init.body));
+
+    if (world.startDelayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, world.startDelayMs));
+    }
 
     if (world.startAnswer === 'network') {
         throw new TypeError('Failed to fetch');
@@ -92,8 +104,11 @@ globalThis.XMLHttpRequest = class {
 const { Application } = await import(stimulusUrl);
 const { default: SubmitPreventionController } = await import('../assets/controllers/submit_prevention_controller.js');
 
+const { default: PpmValidatorController } = await import('../assets/controllers/ppm_validator_controller.js');
+
 const application = Application.start(window.document.documentElement);
 application.register('submit-prevention', SubmitPreventionController);
+application.register('ppm-validator', PpmValidatorController);
 
 const wait = (ms = 0) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -143,11 +158,17 @@ const slowPhoto = () => ({
 
 const FIELDS = ['finishedPuzzlesPhoto', 'puzzlePhoto'];
 
-function buildForm({ uploads = true } = {}) {
+// `newPuzzle`: the new-puzzle section (with the box photo) is on show, as time_form_autocomplete_controller.js opens it;
+// `ppm`: the pace check with a time it asks about (1000 pieces in a minute)
+function buildForm({ uploads = true, newPuzzle = false, ppm = false } = {}) {
     const form = window.document.createElement('form');
     form.setAttribute('action', '/en/puzzle-add');
     form.setAttribute('method', 'post');
-    form.setAttribute('data-controller', 'submit-prevention');
+    form.setAttribute('data-controller', ppm ? 'submit-prevention ppm-validator' : 'submit-prevention');
+
+    if (ppm) {
+        form.setAttribute('data-ppm-validator-active-puzzle-pieces-value', '1000');
+    }
 
     const values = {
         'saving-text': 'SAVING',
@@ -157,7 +178,10 @@ function buildForm({ uploads = true } = {}) {
         'photo-unreadable-required-text': 'UNREADABLE REQUIRED',
         'save-failed-photo-text': 'PHOTO',
         'save-failed-either-text': 'EITHER',
+        'save-failed-photo-required-text': 'PHOTO REQUIRED',
+        'save-failed-either-required-text': 'EITHER REQUIRED',
         'save-without-photo-text': 'WITHOUT',
+        'try-again-text': 'TRY AGAIN',
         ...(uploads ? {
             'upload-url': '/en/photo-upload',
             'upload-csrf-token': 'csrf',
@@ -172,7 +196,7 @@ function buildForm({ uploads = true } = {}) {
     }
 
     form.innerHTML = FIELDS.map((field) => `
-        <div data-field="${field}">
+        <div data-field="${field}" class="${field === 'puzzlePhoto' && !newPuzzle ? 'd-none' : ''}">
             <div class="file-drop-area">
                 <div class="file-drop-icon"><div class="file-drop-preview"><img alt=""></div></div>
                 <span class="file-drop-message">an-earlier-photo.jpg</span>
@@ -181,6 +205,14 @@ function buildForm({ uploads = true } = {}) {
             </div>
         </div>`).join('') + `
         <input type="text" name="puzzle_add_form[comment]" value="typed by the player">
+        ${ppm ? `
+        <input type="text" value="0" data-ppm-validator-target="timeHours">
+        <input type="text" value="1" data-ppm-validator-target="timeMinutes">
+        <input type="text" value="0" data-ppm-validator-target="timeSeconds">
+        <div data-ppm-validator-target="modal">
+            <div data-ppm-validator-target="warningMessage"></div>
+            <button type="button" data-ppm-confirm data-action="click->ppm-validator#confirmSubmit">Yes, time is correct</button>
+        </div>` : ''}
         <button type="submit" data-submit-prevention-target="submit"><span data-submit-prevention-target="label">Save</span></button>`;
 
     const inputs = {};
@@ -220,9 +252,14 @@ function buildForm({ uploads = true } = {}) {
 
 const sent = [];
 
-// Reached only by a submit the controller let through: what the request would carry
+// Reached only by a submit the controllers let through: what the request would carry
 window.document.addEventListener('submit', (event) => {
     const form = event.target;
+
+    // Stopped by the pace check's dialog - not sent
+    if (event.defaultPrevented) {
+        return;
+    }
 
     sent.push({
         files: Object.fromEntries(FIELDS.map((field) => {
@@ -231,6 +268,8 @@ window.document.addEventListener('submit', (event) => {
             return [field, input.disabled || input.files.length === 0 ? null : input.files[0].size];
         })),
         tokens: Object.fromEntries([...form.querySelectorAll('input[type="hidden"]')].filter((hidden) => hidden.name.startsWith('photo_stash[') && hidden.value !== '').map((hidden) => [hidden.name, hidden.value])),
+        // What the page says it took out while saving - the next page's flash (EmptyPhotoParts)
+        dropped: Object.fromEntries([...form.querySelectorAll('input[type="hidden"]')].filter((hidden) => hidden.name.startsWith('photo_dropped[')).map((hidden) => [hidden.name, hidden.value])),
         comment: form.querySelector('input[name="puzzle_add_form[comment]"]').value,
     });
     event.preventDefault();
@@ -247,6 +286,8 @@ function look(form) {
         previews: form.querySelectorAll('.file-drop-preview').length,
         alert: alert ? alert.childNodes[0].textContent : null,
         saveWithoutButton: alert ? (alert.querySelector('[data-save-without-photo]')?.textContent ?? null) : null,
+        tryAgainButton: alert ? (alert.querySelector('[data-save-try-again]')?.textContent ?? null) : null,
+        warning: form.querySelector('[data-ppm-validator-target="warningMessage"]')?.textContent ?? null,
         buttonDisabled: form.querySelector('button[type="submit"]').disabled,
         label: form.querySelector('[data-submit-prevention-target="label"]').textContent,
         files: Object.fromEntries(FIELDS.map((field) => [field, form.querySelector(`input[name="puzzle_add_form[${field}]"]`).files.length])),
@@ -396,7 +437,8 @@ const scenarios = {
         return facts(form, { whileChecking, tookMs: Date.now() - startedAt });
     },
 
-    // A save that dies at once with a photo inside the request: not the connection - "Save without the photo"
+    // A save that dies at once with a photo inside the request may be the connection or the photo: both are said the
+    // first time ("Try again" + "Save without the photo"), the photo is named when it happens again at once
     async 'save-dies-at-once-with-photo'() {
         const { form, inputs } = buildForm();
         await settle();
@@ -405,14 +447,218 @@ const scenarios = {
         await until(() => sent.length === 1);
         answered(form, lostAtOnce());
         await settle();
-        const afterFailure = look(form);
+        const afterFirst = look(form);
+        form.querySelector('[data-save-try-again]').click();
+        await until(() => sent.length === 2);
+        answered(form, lostAtOnce());
+        await settle();
+        const afterSecond = look(form);
         form.querySelector('[data-save-without-photo]').click();
         await settle();
         const afterWithout = look(form);
         answered(form, saved());
         await settle();
 
-        return facts(form, { afterFailure, afterWithout });
+        return facts(form, { afterFirst, afterSecond, afterWithout });
+    },
+
+    // "Save without the photo" right after the first failure
+    async 'save-without-after-first-failure'() {
+        const { form, inputs } = buildForm();
+        await settle();
+        inputs.finishedPuzzlesPhoto.pick(photo(1000), true);
+        save(form);
+        await until(() => sent.length === 1);
+        answered(form, lostAtOnce());
+        await settle();
+        form.querySelector('[data-save-without-photo]').click();
+        await settle();
+
+        return facts(form);
+    },
+
+    // A failure in between (the form refused, then sent again) starts the count anew: not "the photo" at once
+    async 'instant-failures-not-in-a-row'() {
+        const { form, inputs } = buildForm();
+        await settle();
+        inputs.finishedPuzzlesPhoto.pick(photo(1000), true);
+        save(form);
+        await until(() => sent.length === 1);
+        answered(form, lostAtOnce());
+        await settle();
+        save(form);
+        await until(() => sent.length === 2);
+        answered(form, { success: false, fetchResponse: { statusCode: 422, redirected: false, isHTML: true } });
+        await settle();
+        save(form);
+        await until(() => sent.length === 3);
+        answered(form, lostAtOnce());
+        await settle();
+
+        return facts(form);
+    },
+
+    // A NEW puzzle needs its box photo: when that is the photo in the request, nothing can be left out
+    async 'new-puzzle-box-photo-in-form'() {
+        const { form, inputs } = buildForm({ newPuzzle: true });
+        await settle();
+        inputs.puzzlePhoto.pick(photo(1000), true);
+        save(form);
+        await until(() => sent.length === 1);
+        answered(form, lostAtOnce());
+        await settle();
+        const afterFirst = look(form);
+        form.querySelector('[data-save-try-again]').click();
+        await until(() => sent.length === 2);
+        answered(form, lostAtOnce());
+        await settle();
+
+        return facts(form, { afterFirst });
+    },
+
+    // ...with a finished photo next to it: only that one goes, the box photo stays
+    async 'new-puzzle-both-photos-in-form'() {
+        const { form, inputs } = buildForm({ newPuzzle: true });
+        await settle();
+        inputs.puzzlePhoto.pick(photo(1000), true);
+        inputs.finishedPuzzlesPhoto.pick(photo(2000), true);
+        save(form);
+        await until(() => sent.length === 1);
+        answered(form, lostAtOnce());
+        await settle();
+        const afterFirst = look(form);
+        form.querySelector('[data-save-without-photo]').click();
+        await until(() => sent.length === 2);
+
+        return facts(form, { afterFirst });
+    },
+
+    // ...and with the finished photo as its only photo (it stands in for the box photo): nothing can be left out
+    async 'new-puzzle-finished-photo-only'() {
+        const { form, inputs } = buildForm({ newPuzzle: true });
+        await settle();
+        inputs.finishedPuzzlesPhoto.pick(photo(1000), true);
+        save(form);
+        await until(() => sent.length === 1);
+        answered(form, lostAtOnce());
+        await settle();
+
+        return facts(form);
+    },
+
+    // The box photo went up in the background, the finished photo travels in the form: that one may go
+    async 'new-puzzle-box-photo-uploaded'() {
+        const { form, inputs } = buildForm({ newPuzzle: true });
+        await settle();
+        inputs.puzzlePhoto.pick(photo(1000));
+        await until(() => look(form).statuses.puzzlePhoto[0] === 'DONE');
+        inputs.finishedPuzzlesPhoto.pick(photo(2000), true);
+        save(form);
+        await until(() => sent.length === 1);
+        answered(form, lostAtOnce());
+        await settle();
+        const afterFirst = look(form);
+        form.querySelector('[data-save-without-photo]').click();
+        await until(() => sent.length === 2);
+
+        return facts(form, { afterFirst });
+    },
+
+    // Without background uploads (the kill switch) a picked photo is checked all the same
+    async 'pick-empty-without-uploads'() {
+        const { form, inputs } = buildForm({ uploads: false });
+        await settle();
+        inputs.finishedPuzzlesPhoto.pick(photo(0));
+        await settle();
+        const afterEmpty = look(form);
+        inputs.finishedPuzzlesPhoto.pick(unreadablePhoto());
+        await settle();
+        const afterUnreadable = look(form);
+        inputs.finishedPuzzlesPhoto.pick(photo(1000));
+        await settle();
+        const afterNormal = look(form);
+        save(form);
+        await until(() => sent.length === 1);
+
+        return facts(form, { afterEmpty, afterUnreadable, afterNormal });
+    },
+
+    // Save tapped while the photo still uploads, then the start calls it empty: out, and the next page is told
+    async 'start-says-empty-while-saving'() {
+        world.startAnswer = { status: 422, body: { error: 'empty' } };
+        world.startDelayMs = 150;
+        const { form, inputs } = buildForm();
+        await settle();
+        inputs.finishedPuzzlesPhoto.pick(photo(1000));
+        await settle();
+        save(form);
+        await until(() => sent.length === 1);
+
+        return facts(form);
+    },
+
+    // A marker is only for a photo that stays out: another photo picked for the field takes it away
+    async 'photo-picked-again-after-save-without'() {
+        const { form, inputs } = buildForm();
+        await settle();
+        inputs.finishedPuzzlesPhoto.pick(photo(1000), true);
+        save(form);
+        await until(() => sent.length === 1);
+        answered(form, lostAtOnce());
+        await settle();
+        form.querySelector('[data-save-without-photo]').click();
+        await until(() => sent.length === 2);
+        // Refused by the server (in the browser the form would be rendered again) - the player picks another photo
+        answered(form, { success: false, fetchResponse: { statusCode: 422, redirected: false, isHTML: true } });
+        await settle();
+        inputs.finishedPuzzlesPhoto.pick(photo(3000));
+        await until(() => look(form).statuses.finishedPuzzlesPhoto[0] === 'DONE');
+        save(form);
+        await until(() => sent.length === 3);
+
+        return facts(form);
+    },
+
+    // The pace check's dialog with a photo in the form: Save detours for the one-byte read before AND after "Yes, time
+    // is correct" - the form must still be sent exactly once
+    async 'ppm-confirm-with-photo-in-form'() {
+        const { form, inputs } = buildForm({ ppm: true });
+        await settle();
+        inputs.finishedPuzzlesPhoto.pick(photo(1000), true);
+        save(form);
+        await until(() => look(form).warning !== '');
+        const whileAsked = { ...look(form), sent: sent.length };
+        form.querySelector('[data-ppm-confirm]').click();
+        await until(() => sent.length >= 1);
+        await wait(300);
+
+        return facts(form, { whileAsked });
+    },
+
+    async 'ppm-confirm-without-photo'() {
+        const { form } = buildForm({ ppm: true });
+        await settle();
+        save(form);
+        await until(() => look(form).warning !== '');
+        const whileAsked = { ...look(form), sent: sent.length };
+        form.querySelector('[data-ppm-confirm]').click();
+        await until(() => sent.length >= 1);
+        await wait(300);
+
+        return facts(form, { whileAsked });
+    },
+
+    async 'ppm-confirm-with-empty-photo-in-form'() {
+        const { form, inputs } = buildForm({ ppm: true, uploads: false });
+        await settle();
+        inputs.finishedPuzzlesPhoto.pick(photo(0), true);
+        save(form);
+        await until(() => look(form).warning !== '');
+        form.querySelector('[data-ppm-confirm]').click();
+        await until(() => sent.length >= 1);
+        await wait(300);
+
+        return facts(form);
     },
 
     // The same failure after a long wait is what the old message was written for
@@ -479,6 +725,7 @@ for (const name of JSON.parse(readFileSync(0, 'utf8'))) {
     world.reports = [];
     world.starts = [];
     world.puts = 0;
+    world.startDelayMs = 0;
     world.startAnswer = startOk;
     sent.length = 0;
     window.document.body.innerHTML = '';

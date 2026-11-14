@@ -16,6 +16,8 @@ export const FAST_FAILURE_MS = 1000;
 // ...and one that took this long was the connection
 export const SLOW_FAILURE_MS = 10000;
 export const ERROR_TEXT_MAX = 200;
+// The new puzzle's box photo on the add form (PuzzleAddFormType) - required, unlike a result's finished photo
+export const BOX_PHOTO_FIELD = 'puzzlePhoto';
 
 const TIMED_OUT = Symbol('timed out');
 
@@ -135,20 +137,47 @@ export function describeError(error, hide = []) {
 }
 
 /**
- * A save never got its answer. Which message does the player get?
- *
- * - `photo`: it died at once, online, with a photo in the request - the browser could not send the photo. The page
- *   offers "Save without the photo".
- * - `either`: not at once, not slow either - both possibilities are named, the same offer.
- * - `network`: everything the old message was written for - no photo in the request, offline, the edge's 502/504 after
- *   a slow upload, a long wait.
+ * A lost save that died at once, online, with a photo inside the request. It is what a photo the browser cannot send
+ * looks like - and also a connection that broke without saying so (the first request after the camera, a network
+ * change, DNS on dead Wi-Fi), and photos travel in the form exactly when the connection is bad.
  *
  * @param {{status?: number, durationMs?: number|null, online?: boolean, photosInForm?: number, discarded?: boolean}} save
+ * @returns {boolean}
+ */
+export function isInstantPhotoFailure(save) {
+    try {
+        const { status = 0, durationMs = null, online = true, photosInForm = 0, discarded = false } = save || {};
+
+        return photosInForm > 0
+            && !discarded
+            && online !== false
+            && status === 0
+            && typeof durationMs === 'number'
+            && Number.isFinite(durationMs)
+            && durationMs >= 0
+            && durationMs < FAST_FAILURE_MS;
+    } catch (error) {
+        return false;
+    }
+}
+
+/**
+ * A save never got its answer. Which message does the player get?
+ *
+ * - `either`: it died at once with a photo in the request (the first time), or after a few seconds - it may be the
+ *   connection, or the photo. Both are named; the page offers "Try again" and "Save without the photo".
+ * - `photo`: it died at once again, right after another such failure (`earlierInstantFailures`) - now the photo is
+ *   named. "Save without the photo".
+ * - `network`: everything the old message was written for - no photo in the request, offline, the edge's 502/504 after
+ *   a slow upload, a long wait, an answer Turbo dropped. No photo button.
+ *
+ * @param {{status?: number, durationMs?: number|null, online?: boolean, photosInForm?: number, discarded?: boolean,
+ *          earlierInstantFailures?: number}} save
  * @returns {'photo'|'either'|'network'}
  */
 export function saveFailureKind(save) {
     try {
-        const { status = 0, durationMs = null, online = true, photosInForm = 0, discarded = false } = save || {};
+        const { status = 0, durationMs = null, online = true, photosInForm = 0, discarded = false, earlierInstantFailures = 0 } = save || {};
 
         if (!(photosInForm > 0) || discarded || online === false || status !== 0) {
             return 'network';
@@ -159,12 +188,40 @@ export function saveFailureKind(save) {
         }
 
         if (durationMs < FAST_FAILURE_MS) {
-            return 'photo';
+            return earlierInstantFailures > 0 ? 'photo' : 'either';
         }
 
         return durationMs < SLOW_FAILURE_MS ? 'either' : 'network';
     } catch (error) {
         return 'network';
+    }
+}
+
+/**
+ * "Save without the photo": which of the photos travelling inside the request may be taken out?
+ *
+ * A result needs no photo - every one of them. A NEW puzzle needs its box photo (the finished photo stands in for it
+ * when there is no other): there only the finished photo goes, and only while a box photo stays. Nothing to take out =
+ * `required`: the button is not offered, the message asks for the photo again.
+ *
+ * @param {{inForm?: string[], newPuzzle?: boolean, boxPhotoAvailable?: boolean}} form `inForm`: the fields whose photo
+ *        would travel as a file; `boxPhotoAvailable`: the box photo field holds a photo (as a file or uploaded)
+ * @returns {{drop: string[], required: boolean}}
+ */
+export function photosToSaveWithout(form) {
+    try {
+        const { inForm = [], newPuzzle = false, boxPhotoAvailable = false } = form || {};
+        const fields = Array.isArray(inForm) ? inForm.filter((field) => typeof field === 'string') : [];
+
+        if (!newPuzzle) {
+            return { drop: fields, required: false };
+        }
+
+        const drop = boxPhotoAvailable ? fields.filter((field) => field !== BOX_PHOTO_FIELD) : [];
+
+        return { drop, required: drop.length === 0 };
+    } catch (error) {
+        return { drop: [], required: false };
     }
 }
 

@@ -14,8 +14,9 @@ use Symfony\Component\Process\Process;
  *
  * - a photo of 0 bytes, or one the browser refuses to read, is recognised - and nothing else is: a slow read, a check
  *   that misbehaves or a browser without the API leave the photo alone (what the form did before)
- * - a save that died at once with a photo in it is not blamed on the connection; everything the old message was written
- *   for keeps it
+ * - a save that died at once with a photo in it may be the connection or the photo: both are said, the photo is named
+ *   only when it happens again at once; everything the old message was written for keeps it
+ * - "Save without the photo" never takes the photo a new puzzle needs
  * - what the telemetry says about an error carries no file name, path or address
  * - none of it ever throws
  */
@@ -103,30 +104,42 @@ final class PhotoReadabilityScriptTest extends TestCase
         self::assertLessThan(250, self::tookMs($answers['a read slower than the timeout']));
     }
 
-    public function testASaveThatDiedAtOnceWithAPhotoInItIsThePhoto(): void
+    /**
+     * A save that dies at once with a photo in it is also what a broken connection looks like (the first request after
+     * the camera, a network change): the first time both are said, only the second time in a row the photo is named
+     */
+    public function testASaveThatDiedAtOnceWithAPhotoNamesThePhotoOnlyWhenItHappensAgain(): void
     {
         $answers = $this->answers([
             // 2026-11-14: status 0 after 30-80 ms, online, the photo in the form
-            'the incident' => ['fn' => 'failure', 'save' => ['status' => 0, 'durationMs' => 45, 'online' => true, 'photosInForm' => 1]],
-            'just under a second' => ['fn' => 'failure', 'save' => ['status' => 0, 'durationMs' => 999, 'online' => true, 'photosInForm' => 2]],
-            // Neither at once nor slow: both are named
+            'the incident, first tap' => ['fn' => 'failure', 'save' => ['status' => 0, 'durationMs' => 45, 'online' => true, 'photosInForm' => 1]],
+            'the incident, second tap' => ['fn' => 'failure', 'save' => ['status' => 0, 'durationMs' => 45, 'online' => true, 'photosInForm' => 1, 'earlierInstantFailures' => 1]],
+            'the incident, eleventh tap' => ['fn' => 'failure', 'save' => ['status' => 0, 'durationMs' => 60, 'online' => true, 'photosInForm' => 1, 'earlierInstantFailures' => 10]],
+            'just under a second, first' => ['fn' => 'failure', 'save' => ['status' => 0, 'durationMs' => 999, 'online' => true, 'photosInForm' => 2]],
+            'just under a second, again' => ['fn' => 'failure', 'save' => ['status' => 0, 'durationMs' => 999, 'online' => true, 'photosInForm' => 2, 'earlierInstantFailures' => 1]],
+            // Neither at once nor slow: both are named, however often
             'a few seconds' => ['fn' => 'failure', 'save' => ['status' => 0, 'durationMs' => 3500, 'online' => true, 'photosInForm' => 1]],
-            'duration unknown' => ['fn' => 'failure', 'save' => ['status' => 0, 'online' => true, 'photosInForm' => 1]],
+            'a few seconds, after an instant one' => ['fn' => 'failure', 'save' => ['status' => 0, 'durationMs' => 3500, 'online' => true, 'photosInForm' => 1, 'earlierInstantFailures' => 1]],
+            'duration unknown' => ['fn' => 'failure', 'save' => ['status' => 0, 'online' => true, 'photosInForm' => 1, 'earlierInstantFailures' => 3]],
             'duration garbage' => ['fn' => 'failure', 'save' => ['status' => 0, 'durationMs' => 'soon', 'online' => true, 'photosInForm' => 1]],
-            // What the message was written for
-            'slow, then dropped' => ['fn' => 'failure', 'save' => ['status' => 0, 'durationMs' => 42_000, 'online' => true, 'photosInForm' => 1]],
-            'offline' => ['fn' => 'failure', 'save' => ['status' => 0, 'durationMs' => 20, 'online' => false, 'photosInForm' => 1]],
+            // What the message was written for - whatever happened before
+            'slow, then dropped' => ['fn' => 'failure', 'save' => ['status' => 0, 'durationMs' => 42_000, 'online' => true, 'photosInForm' => 1, 'earlierInstantFailures' => 2]],
+            'offline' => ['fn' => 'failure', 'save' => ['status' => 0, 'durationMs' => 20, 'online' => false, 'photosInForm' => 1, 'earlierInstantFailures' => 2]],
             'the edge gave up on a slow upload' => ['fn' => 'failure', 'save' => ['status' => 504, 'durationMs' => 60_000, 'online' => true, 'photosInForm' => 2]],
-            'a deploy moment' => ['fn' => 'failure', 'save' => ['status' => 502, 'durationMs' => 300, 'online' => true, 'photosInForm' => 1]],
-            'no photo in the request' => ['fn' => 'failure', 'save' => ['status' => 0, 'durationMs' => 45, 'online' => true, 'photosInForm' => 0]],
-            'answered 200 and dropped by Turbo' => ['fn' => 'failure', 'save' => ['status' => 0, 'durationMs' => 45, 'online' => true, 'photosInForm' => 1, 'discarded' => true]],
+            'a deploy moment' => ['fn' => 'failure', 'save' => ['status' => 502, 'durationMs' => 300, 'online' => true, 'photosInForm' => 1, 'earlierInstantFailures' => 1]],
+            'no photo in the request' => ['fn' => 'failure', 'save' => ['status' => 0, 'durationMs' => 45, 'online' => true, 'photosInForm' => 0, 'earlierInstantFailures' => 1]],
+            'answered 200 and dropped by Turbo' => ['fn' => 'failure', 'save' => ['status' => 0, 'durationMs' => 45, 'online' => true, 'photosInForm' => 1, 'discarded' => true, 'earlierInstantFailures' => 1]],
             'nothing known' => ['fn' => 'failure', 'save' => null],
         ]);
 
         self::assertSame([
-            'the incident' => 'photo',
-            'just under a second' => 'photo',
+            'the incident, first tap' => 'either',
+            'the incident, second tap' => 'photo',
+            'the incident, eleventh tap' => 'photo',
+            'just under a second, first' => 'either',
+            'just under a second, again' => 'photo',
             'a few seconds' => 'either',
+            'a few seconds, after an instant one' => 'either',
             'duration unknown' => 'either',
             'duration garbage' => 'either',
             'slow, then dropped' => 'network',
@@ -137,6 +150,79 @@ final class PhotoReadabilityScriptTest extends TestCase
             'answered 200 and dropped by Turbo' => 'network',
             'nothing known' => 'network',
         ], $answers);
+    }
+
+    /**
+     * What counts towards "again": only a failure at once, online, with a photo in the request
+     */
+    public function testOnlyAnInstantFailureWithAPhotoCountsTowardsNamingThePhoto(): void
+    {
+        $answers = $this->answers([
+            'at once, with a photo' => ['fn' => 'instant', 'save' => ['status' => 0, 'durationMs' => 45, 'online' => true, 'photosInForm' => 1]],
+            'after a few seconds' => ['fn' => 'instant', 'save' => ['status' => 0, 'durationMs' => 3500, 'online' => true, 'photosInForm' => 1]],
+            'offline' => ['fn' => 'instant', 'save' => ['status' => 0, 'durationMs' => 45, 'online' => false, 'photosInForm' => 1]],
+            'an answer came' => ['fn' => 'instant', 'save' => ['status' => 502, 'durationMs' => 45, 'online' => true, 'photosInForm' => 1]],
+            'no photo in the request' => ['fn' => 'instant', 'save' => ['status' => 0, 'durationMs' => 45, 'online' => true, 'photosInForm' => 0]],
+            'dropped by Turbo' => ['fn' => 'instant', 'save' => ['status' => 0, 'durationMs' => 45, 'online' => true, 'photosInForm' => 1, 'discarded' => true]],
+            'duration unknown' => ['fn' => 'instant', 'save' => ['status' => 0, 'online' => true, 'photosInForm' => 1]],
+            'nothing known' => ['fn' => 'instant', 'save' => null],
+        ]);
+
+        self::assertSame([
+            'at once, with a photo' => true,
+            'after a few seconds' => false,
+            'offline' => false,
+            'an answer came' => false,
+            'no photo in the request' => false,
+            'dropped by Turbo' => false,
+            'duration unknown' => false,
+            'nothing known' => false,
+        ], $answers);
+    }
+
+    /**
+     * "Save without the photo" must not promise what cannot work: a new puzzle needs its box photo, and its finished
+     * photo stands in for it when there is no other
+     */
+    public function testSaveWithoutThePhotoNeverTakesTheNewPuzzlesPhoto(): void
+    {
+        $answers = $this->answers([
+            'a result: every photo may go' => ['fn' => 'without', 'form' => ['inForm' => ['finishedPuzzlesPhoto']]],
+            'a result, hidden box field still holding a file' => ['fn' => 'without', 'form' => ['inForm' => ['finishedPuzzlesPhoto', 'puzzlePhoto'], 'newPuzzle' => false, 'boxPhotoAvailable' => true]],
+            'new puzzle, box photo in the request' => ['fn' => 'without', 'form' => ['inForm' => ['puzzlePhoto'], 'newPuzzle' => true, 'boxPhotoAvailable' => true]],
+            'new puzzle, both in the request' => ['fn' => 'without', 'form' => ['inForm' => ['finishedPuzzlesPhoto', 'puzzlePhoto'], 'newPuzzle' => true, 'boxPhotoAvailable' => true]],
+            'new puzzle, box photo uploaded' => ['fn' => 'without', 'form' => ['inForm' => ['finishedPuzzlesPhoto'], 'newPuzzle' => true, 'boxPhotoAvailable' => true]],
+            'new puzzle, the finished photo is its only photo' => ['fn' => 'without', 'form' => ['inForm' => ['finishedPuzzlesPhoto'], 'newPuzzle' => true, 'boxPhotoAvailable' => false]],
+            'garbage' => ['fn' => 'without', 'form' => ['inForm' => 'all of them', 'newPuzzle' => true]],
+            'nothing known' => ['fn' => 'without', 'form' => null],
+        ]);
+
+        self::assertSame([
+            'a result: every photo may go' => ['drop' => ['finishedPuzzlesPhoto'], 'required' => false],
+            'a result, hidden box field still holding a file' => ['drop' => ['finishedPuzzlesPhoto', 'puzzlePhoto'], 'required' => false],
+            'new puzzle, box photo in the request' => ['drop' => [], 'required' => true],
+            'new puzzle, both in the request' => ['drop' => ['finishedPuzzlesPhoto'], 'required' => false],
+            'new puzzle, box photo uploaded' => ['drop' => ['finishedPuzzlesPhoto'], 'required' => false],
+            'new puzzle, the finished photo is its only photo' => ['drop' => [], 'required' => true],
+            'garbage' => ['drop' => [], 'required' => true],
+            'nothing known' => ['drop' => [], 'required' => false],
+        ], $answers);
+    }
+
+    /**
+     * assets/image_compression.js: a shrunk copy of 0 bytes (a canvas that gave back nothing) never replaces the photo
+     */
+    public function testAnEmptyShrunkCopyNeverReplacesThePhoto(): void
+    {
+        $answers = $this->answers([
+            'smaller' => ['fn' => 'smaller', 'original' => 5_000_000, 'compressed' => 600_000],
+            'empty' => ['fn' => 'smaller', 'original' => 5_000_000, 'compressed' => 0],
+            'larger' => ['fn' => 'smaller', 'original' => 600_000, 'compressed' => 700_000],
+            'the same size' => ['fn' => 'smaller', 'original' => 600_000, 'compressed' => 600_000],
+            'none' => ['fn' => 'smaller', 'original' => 600_000, 'compressed' => null],
+        ]);
+
+        self::assertSame(['smaller' => 'compressed', 'empty' => 'original', 'larger' => 'original', 'the same size' => 'original', 'none' => 'original'], $answers);
     }
 
     public function testAnErrorIsDescribedWithoutFileNamesPathsOrAddresses(): void

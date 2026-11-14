@@ -27,13 +27,14 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
  * - the upload start's `empty` answer the page relies on
  * - the floor under the page: a photo part that still arrives without a byte counts as no photo - the result is saved,
  *   a new puzzle is still told that it needs its photo
+ * - what the page says it took out while saving (`photo_dropped[<field>]`) said on the page that comes next, once
  * - the telemetry: the new fields, cut and cleaned, never above info
  */
 final class UnreadablePhotoTest extends WebTestCase
 {
     // TIME_06: PLAYER_REGULAR on PUZZLE_500_02, 36:40
     private const string EDIT_URL = '/en/edit-time/' . PuzzleSolvingTimeFixture::TIME_06;
-    private const string LEFT_OUT = 'A photo arrived empty from your device and was left out';
+    private const string LEFT_OUT = 'A photo could not be read from your device and was left out';
 
     /** @var list<string> */
     private array $files = [];
@@ -186,6 +187,139 @@ final class UnreadablePhotoTest extends WebTestCase
         self::assertIsString(self::getContainer()->get(Connection::class)->fetchOne('SELECT finished_puzzle_photo FROM puzzle_solving_time WHERE id = :id', ['id' => $timeId]));
     }
 
+    /**
+     * The page took the photo out while saving (`photo_dropped[<field>]`): its own note is gone with the form, so the
+     * page that comes next says it - once, however often the same save is sent
+     */
+    public function testAPhotoThePageTookOutWhileSavingIsSaidOnceOnTheRecap(): void
+    {
+        $browser = $this->browser();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        $timeId = (string) $crawler->filter('input[name="time_id"]')->attr('value');
+        $request = ['puzzle_add_form' => $this->existingPuzzleSubmission($crawler), 'time_id' => $timeId, 'photo_dropped' => ['finishedPuzzlesPhoto' => 'empty']];
+
+        $browser->request('POST', '/en/puzzle-add', $request);
+        $this->assertResponseRedirects('/en/time-added/' . $timeId);
+
+        // The answer got lost: the automatic resend, then one more tap - the same save, the same form
+        $browser->request('POST', '/en/puzzle-add', $request);
+        $this->assertResponseRedirects('/en/time-added/' . $timeId);
+        $browser->request('POST', '/en/puzzle-add', $request);
+        $this->assertResponseRedirects('/en/time-added/' . $timeId);
+
+        $browser->followRedirect();
+        $this->assertResponseIsSuccessful();
+        self::assertSame(1, substr_count((string) $browser->getResponse()->getContent(), self::LEFT_OUT));
+
+        // Shown once: gone on the next page
+        $browser->request('GET', '/en/puzzle-add');
+        self::assertStringNotContainsString(self::LEFT_OUT, (string) $browser->getResponse()->getContent());
+    }
+
+    public function testAPhotoThePageTookOutIsSaidAfterAnEditOnThePageAndInTheModal(): void
+    {
+        $browser = $this->browser();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        // The full page: "Save without the photo", then the redirect
+        $crawler = $browser->request('GET', self::EDIT_URL);
+        $browser->request('POST', self::EDIT_URL, ['edit_puzzle_solving_time_form' => $this->editSubmission($crawler), 'photo_dropped' => ['finishedPuzzlesPhoto' => 'not_sent']]);
+        $this->assertResponseRedirects();
+        $this->followRedirects($browser);
+        $this->assertSelectorTextContains('body', self::LEFT_OUT);
+
+        // The modal: the answer closes it and refreshes the page behind it - which shows the flash
+        $crawler = $browser->request('GET', self::EDIT_URL);
+        $browser->request(
+            'POST',
+            self::EDIT_URL,
+            ['edit_puzzle_solving_time_form' => $this->editSubmission($crawler), 'photo_dropped' => ['finishedPuzzlesPhoto' => 'unreadable']],
+            server: ['HTTP_TURBO_FRAME' => 'modal-frame', 'HTTP_ACCEPT' => 'text/vnd.turbo-stream.html, text/html, application/xhtml+xml'],
+        );
+        $this->assertResponseIsSuccessful();
+        self::assertStringContainsString('<turbo-stream action="refresh">', (string) $browser->getResponse()->getContent());
+
+        $browser->request('GET', '/en/puzzle-add');
+        $this->assertSelectorTextContains('body', self::LEFT_OUT);
+    }
+
+    /**
+     * Read strictly: a field of the form, a known reason, and no photo for the field in the request after all
+     */
+    public function testWhatThePageSaysItTookOutIsIgnoredUnlessItIsWhatThePageSends(): void
+    {
+        $browser = $this->browser();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $garbage = [
+            'an unknown reason' => ['finishedPuzzlesPhoto' => 'because'],
+            'markup' => ['finishedPuzzlesPhoto' => '<script>alert(1)</script>'],
+            'an unknown field' => ['comment' => 'empty', 'logo' => 'empty', 'photo' => 'empty'],
+            'a list' => ['finishedPuzzlesPhoto' => ['empty']],
+            'no fields at all' => 'empty',
+        ];
+
+        $seconds = 0;
+
+        foreach ($garbage as $label => $dropped) {
+            $crawler = $browser->request('GET', '/en/puzzle-add');
+            $timeId = (string) $crawler->filter('input[name="time_id"]')->attr('value');
+
+            $browser->request('POST', '/en/puzzle-add', ['puzzle_add_form' => ['timeSeconds' => (string) ++$seconds] + $this->existingPuzzleSubmission($crawler), 'time_id' => $timeId, 'photo_dropped' => $dropped]);
+            $this->assertResponseRedirects('/en/time-added/' . $timeId, null, $label);
+            $browser->followRedirect();
+            self::assertStringNotContainsString(self::LEFT_OUT, (string) $browser->getResponse()->getContent(), $label);
+        }
+
+        // The photo came after all (picked again, or uploaded): nothing was left out
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        $timeId = (string) $crawler->filter('input[name="time_id"]')->attr('value');
+        $browser->request(
+            'POST',
+            '/en/puzzle-add',
+            ['puzzle_add_form' => ['timeSeconds' => (string) ++$seconds] + $this->existingPuzzleSubmission($crawler), 'time_id' => $timeId, 'photo_dropped' => ['finishedPuzzlesPhoto' => 'empty']],
+            ['puzzle_add_form' => ['finishedPuzzlesPhoto' => $this->upload(ExifPhotos::jpeg(40, 30, null))]],
+        );
+        $this->assertResponseRedirects('/en/time-added/' . $timeId);
+        $browser->followRedirect();
+        self::assertStringNotContainsString(self::LEFT_OUT, (string) $browser->getResponse()->getContent());
+
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        $timeId = (string) $crawler->filter('input[name="time_id"]')->attr('value');
+        $browser->request('POST', '/en/puzzle-add', [
+            'puzzle_add_form' => ['timeSeconds' => (string) ++$seconds] + $this->existingPuzzleSubmission($crawler),
+            'time_id' => $timeId,
+            'photo_dropped' => ['finishedPuzzlesPhoto' => 'empty'],
+            'photo_stash' => ['finishedPuzzlesPhoto' => $this->uploadedPhoto($browser)],
+        ]);
+        $this->assertResponseRedirects('/en/time-added/' . $timeId);
+        $browser->followRedirect();
+        self::assertStringNotContainsString(self::LEFT_OUT, (string) $browser->getResponse()->getContent());
+    }
+
+    /**
+     * A new puzzle whose photo the page took out: the usual "photo required", and the reason on the same page
+     */
+    public function testANewPuzzleWhosePhotoThePageTookOutIsToldWhy(): void
+    {
+        $browser = $this->browser();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+
+        $browser->request('POST', '/en/puzzle-add', [
+            'puzzle_add_form' => $this->newPuzzleSubmission($crawler, 'Taken Out Box Photo Puzzle'),
+            ...$this->ids($crawler),
+            'photo_dropped' => ['puzzlePhoto' => 'unreadable'],
+        ]);
+
+        $this->assertResponseStatusCodeSame(422);
+        $this->assertSelectorTextContains('form[name="puzzle_add_form"]', 'Photo of solved puzzle, motif or box is required');
+        $this->assertSelectorTextContains('body', self::LEFT_OUT);
+    }
+
     public function testAnEmptyPhotoPartDoesNotStopAnEdit(): void
     {
         $browser = $this->browser();
@@ -200,17 +334,7 @@ final class UnreadablePhotoTest extends WebTestCase
         $browser->request(
             'POST',
             self::EDIT_URL,
-            ['edit_puzzle_solving_time_form' => [
-                '_token' => (string) $crawler->filter('input[name="edit_puzzle_solving_time_form[_token]"]')->attr('value'),
-                'mode' => 'speed_puzzling',
-                'brand' => ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
-                'puzzle' => PuzzleFixture::PUZZLE_500_02,
-                'timeHours' => '0',
-                'timeMinutes' => '36',
-                'timeSeconds' => '40',
-                'finishedAt' => '12.07.2026',
-                'comment' => 'Saved although the photo was empty',
-            ]],
+            ['edit_puzzle_solving_time_form' => ['comment' => 'Saved although the photo was empty'] + $this->editSubmission($crawler)],
             ['edit_puzzle_solving_time_form' => ['finishedPuzzlesPhoto' => $this->upload('')]],
         );
 
@@ -349,14 +473,33 @@ final class UnreadablePhotoTest extends WebTestCase
             self::assertCount(1, $form, $url);
 
             self::assertStringContainsString('could not be read from your device', (string) $form->attr('data-submit-prevention-photo-unreadable-text-value'), $url);
-            self::assertStringContainsString('You can save without it', (string) $form->attr('data-submit-prevention-photo-unreadable-text-value'), $url);
+            self::assertStringContainsString('Save without it', (string) $form->attr('data-submit-prevention-photo-unreadable-text-value'), $url);
             // The box photo of a new puzzle is required - no "save without it" there
-            self::assertStringNotContainsString('save without', (string) $form->attr('data-submit-prevention-photo-unreadable-required-text-value'), $url);
-            self::assertStringContainsString('photo could not be sent', (string) $form->attr('data-submit-prevention-save-failed-photo-text-value'), $url);
-            self::assertStringContainsString('or the connection', (string) $form->attr('data-submit-prevention-save-failed-either-text-value'), $url);
+            self::assertStringNotContainsStringIgnoringCase('save without', (string) $form->attr('data-submit-prevention-photo-unreadable-required-text-value'), $url);
+            // Short enough to read on a phone
+            self::assertLessThanOrEqual(120, mb_strlen((string) $form->attr('data-submit-prevention-photo-unreadable-text-value')), $url);
+            self::assertLessThanOrEqual(120, mb_strlen((string) $form->attr('data-submit-prevention-photo-unreadable-required-text-value')), $url);
+
+            // The first failure at once names both; only the second one in a row the photo
+            self::assertStringContainsString('It may be the connection, or the photo could not be sent', (string) $form->attr('data-submit-prevention-save-failed-either-text-value'), $url);
+            self::assertStringContainsString('again - it looks like the photo could not be sent', (string) $form->attr('data-submit-prevention-save-failed-photo-text-value'), $url);
+            self::assertSame('Try again', $form->attr('data-submit-prevention-try-again-text-value'), $url);
             self::assertSame('Save without the photo', $form->attr('data-submit-prevention-save-without-photo-text-value'), $url);
+            // A new puzzle's photo cannot be left out: its own texts, which promise no save without it
+            foreach (['photo-required', 'either-required'] as $text) {
+                $required = (string) $form->attr('data-submit-prevention-save-failed-' . $text . '-text-value');
+                self::assertStringContainsString('A new puzzle needs its photo', $required, $url);
+                self::assertStringNotContainsStringIgnoringCase('save without', $required, $url);
+            }
             // The message for what it was written for stays
             self::assertStringContainsString('the connection was too slow or was interrupted', (string) $form->attr('data-submit-prevention-save-failed-text-value'), $url);
+        }
+    }
+
+    private function followRedirects(KernelBrowser $browser): void
+    {
+        for ($hops = 0; $hops < 5 && $browser->getResponse()->isRedirection(); $hops++) {
+            $browser->followRedirect();
         }
     }
 
@@ -441,6 +584,23 @@ final class UnreadablePhotoTest extends WebTestCase
             'timeSeconds' => '13',
             'finishedAt' => '12.07.2026',
             'collection' => '__system_collection__',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function editSubmission(Crawler $crawler): array
+    {
+        return [
+            '_token' => (string) $crawler->filter('input[name="edit_puzzle_solving_time_form[_token]"]')->attr('value'),
+            'mode' => 'speed_puzzling',
+            'brand' => ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+            'puzzle' => PuzzleFixture::PUZZLE_500_02,
+            'timeHours' => '0',
+            'timeMinutes' => '36',
+            'timeSeconds' => '40',
+            'finishedAt' => '12.07.2026',
         ];
     }
 

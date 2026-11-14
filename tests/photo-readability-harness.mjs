@@ -1,9 +1,11 @@
-// Runs assets/photo_readability.js (is a picked photo empty or unreadable, which message a lost save gets, what the
-// telemetry may say about an error) for the cases tests/PhotoReadabilityScriptTest.php hands over on stdin, and prints
+// Runs assets/photo_readability.js (is a picked photo empty or unreadable, which message a lost save gets, which photos
+// "Save without the photo" may take out, what the telemetry may say about an error - and image_compression.js's choice
+// between a photo and its shrunk copy) for the cases tests/PhotoReadabilityScriptTest.php hands over on stdin, and prints
 // each answer as JSON. A rejection of any function is itself an answer ({rejected: …}) - none of them may reject.
 
 import { readFileSync } from 'node:fs';
-import { describeError, isEmptyPhoto, probePhoto, refusalOf, saveFailureKind } from '../assets/photo_readability.js';
+import { describeError, isEmptyPhoto, isInstantPhotoFailure, photosToSaveWithout, probePhoto, refusalOf, saveFailureKind } from '../assets/photo_readability.js';
+import { smallerOrOriginal } from '../assets/image_compression.js';
 
 const cases = JSON.parse(readFileSync(0, 'utf8'));
 
@@ -89,6 +91,17 @@ async function answer(testCase) {
             return describeError(testCase.raw !== undefined ? testCase.raw : errorOf(testCase.error), testCase.hide ?? []);
         case 'failure':
             return saveFailureKind(testCase.save);
+        case 'instant':
+            return isInstantPhotoFailure(testCase.save);
+        case 'without':
+            return photosToSaveWithout(testCase.form);
+        case 'smaller': {
+            // Which of the two the form goes on with: the shrunk copy, or the photo as picked
+            const original = { size: testCase.original };
+            const compressed = testCase.compressed === null ? null : { size: testCase.compressed };
+
+            return smallerOrOriginal(compressed, original) === original ? 'original' : 'compressed';
+        }
         case 'refusal':
             return refusalOf(fakeResponse(testCase.response), testCase.timeoutMs ?? 50);
         default:

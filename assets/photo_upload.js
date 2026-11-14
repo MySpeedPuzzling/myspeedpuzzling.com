@@ -201,6 +201,8 @@ export class PhotoUpload {
         while (!this.aborted) {
             this.attempts += 1;
             this.loaded = 0;
+            // The report tells the last attempt's error, never one a later attempt got past
+            this.error = null;
             this.changed();
 
             const outcome = await this.attempt();

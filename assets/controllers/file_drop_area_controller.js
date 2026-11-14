@@ -41,6 +41,11 @@ export default class extends Controller {
                             image.src = fileData;
 
                             image.onload = function() {
+                                // Taken out while the preview was decoding - nothing to show
+                                if (!input.files || !input.files[0]) {
+                                    return;
+                                }
+
                                 icon.className = 'file-drop-preview img-thumbnail rounded';
                                 icon.innerHTML = '<img src="' + image.src + '" alt="' + fileName + '">';
 

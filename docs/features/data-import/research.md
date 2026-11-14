@@ -86,9 +86,50 @@ So "same puzzle, day and time" finds 97 % of the flagged results whose puzzle wa
 3 %; and a fifth of the flagged results are invisible until the puzzle is paired, because the spreadsheet's name is
 not the catalogue's. The flag in the file is nearly always right.
 
+## The fourth file (another app's export)
+
+`PuzzleTrackerExport-…csv` - the official export of the app "Puzzle Tracker": UTF-8 with a byte-order mark, commas,
+one header row, 23 columns, 459 puzzles of a Czech player.
+
+| Column | Filled | Notes |
+|---|---|---|
+| ID | 459 | a UUID per row - stable across exports |
+| Name, Brand, Number of elements | 459 / 453 / 457 | 46 brands; 63 puzzle keys appear more than once (each solve is its own row) |
+| Status | 459 | Completed 394 · Waiting list 60 · Wish list 5 |
+| Time | 393 | `h:mm:ss` without leading zeros: `0:56:4`, `1:5:9` (122 of 393 have a one-digit part) |
+| Creation / Start / End date | 459 / 394 / 394 | `dd.mm.yyyy`; start ≠ end in 18 rows |
+| Satisfaction, Difficulty, Quality | 394 each | 1-5 |
+| Price, Sell price, Missing pieces, Place of purchase | 97 / 51 / 5 / 19 | |
+| Artist | 0 | the column exists, this player never filled it |
+| Puzzle type | 459 | Brand new / Second-hand |
+| Bar code | 170 (37 %) | all 13 digits |
+| Tags | 413 | the player's own system in hashtags: `#01-individual` / `#02-pair` / `#03-team` (who solved), `#xSOLD`, `#xRETURNED`, `#xFOR_SALE`, `#xGIFTED`, `#Lended_<name>` (what became of the copy) |
+| Notes | 34 | partner names, "Team - 3", another time |
+| Picture id, Picture URL | 451 | 447 on the app's own storage (the player's photos), 4 product pictures of a barcode service |
+
+Against the production catalogue (2026-11-14):
+
+| | Rows |
+|---|---|
+| Barcode on exactly one puzzle | 150 of 170 (88 %); several 1; unknown 19. For 4 of the 150 the piece count differs (501 against 500 and the like) |
+| Name + pieces + brand on exactly one puzzle | 217 of 459 (47 %); several 6 |
+| Found by both, and both name the same puzzle | 81 of 81 - not one disagreement |
+| Found by either | 286 (62 %): 69 only by the barcode, 136 only by the name |
+| Name + pieces only | 22 more |
+| No barcode hit and no exact name | 130 (28 %) |
+
+A barcode column lifts the one-tap share by 15 points here, and where both rules speak they agree every time - the
+best check of the pairing rules we have.
+
 ## What players track that MySpeedPuzzling does not
 
 Read across the three files (and the public template) for what is worth having, not only worth importing.
+
+**What another app gives its users that MySpeedPuzzling does not** (file 4): a rating of how they liked the puzzle,
+how hard it felt and its quality; a status that carries a puzzle from wish list to waiting list to completed; start
+and end date of a solve; price and sell price; missing pieces; a photo of every puzzle. The ratings and dates are
+ready-made fields now; **players' ratings of puzzles and brands** are a candidate of their own (nothing on the site
+lets a player say "this cut was poor").
 
 **Personal facts with no home on MySpeedPuzzling today** - they become ready-made fields (README "Ready-made fields"):
 private notes on a result (all three files; the site has only a public comment), what to work on next, the copy's

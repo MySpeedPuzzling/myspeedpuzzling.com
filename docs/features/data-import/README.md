@@ -30,10 +30,12 @@ The demand shows in what people already do by hand. The import is for them and f
 
 ## What real spreadsheets look like
 
-Three real files from players (kept out of the repository) and one public template were taken apart:
+Four real files from players (kept out of the repository) and one public template were taken apart - three
+spreadsheets people built themselves and one **export of another puzzle-tracking app** ("Puzzle Tracker"):
 
 | Seen | Consequence |
 |---|---|
+| Another app's export (CSV, 459 puzzles): a stable **ID** per row, a **Status** (Completed / Waiting list / Wish list), time written `0:56:4`, start and end date, three ratings 1-5 (satisfaction, difficulty, quality), price, sell price, missing pieces, artist, place of purchase, new / second-hand, a **barcode** for 37 % of the rows, hashtags the player used for their own system (`#02-pair`, `#xSOLD`, `#Lended_…`) and a **link to a picture** of every puzzle | Exports of known apps are **built-in layouts** - recognised by their headers, nothing to map ("Coming from Puzzle Tracker?"). A row id of the source is the row's identity. A status column decides what a row is, the wish list included. A word or tag can carry a meaning (pair, sold). Times without leading zeros. Ratings are ready-made fields. The picture link is kept with the puzzle |
 | A training workbook of 20 sheets: a **puzzle list** (1,338 puzzles with brand, pieces, tags), results sheets **by category** (500 pieces solo, 300 pieces, pairs, competitions, large, small, one sheet per speed-run puzzle) that name the puzzle only by a dropdown into the list - two of them have no brand column - plus statistics, goals, drills, a brand list and another person's results | A sheet has a **kind** (results / puzzles I own / a puzzle list other sheets point to / not puzzles / somebody else's); brand and pieces may be **looked up in another sheet** by the puzzle's name; a sheet may set a value for all its rows (pair, the puzzle) |
 | A dashboard of formulas in rows 1-5, the header in row 6; Excel tables and frozen panes mark where the data starts; one sheet holds 20 small tables side by side | Excel's own table and freeze marks are the first hint for the header row; several tables on a sheet are several regions, the largest offered first |
 | Tables stretched to row 1,000 with unticked checkboxes (641 "rows" holding only `FALSE`), and rows with the puzzle prefilled but no date and no time | A row with nothing but default values is empty; a results row without date and time is a template row - both left out |
@@ -139,7 +141,13 @@ One screen per **layout** (sheets with the same headers are one layout; the larg
 
 - The sheets of the layout with their row counts and a switch each, and what each sheet is: results, puzzles I own,
   **a puzzle list the other sheets point to**, not puzzles (statistics, goals, drills, lists), somebody else's.
-- **What a row is** - a result, a puzzle I own, or both. A yes/no column may decide it per row ("Completed?"), and a
+- **What a row is** - a result, a puzzle I own, a puzzle on my wish list, or both a result and owned. A status
+  column may decide it per row (`Completed` / `Waiting list` / `Wish list`).
+- **Words that mean something.** For a column of words or tags the player can give a value a meaning from a short
+  list: this is a pair result / a team result / solo, a first try, not mine any more (sold, returned, given away),
+  borrowed. `#02-pair`, `#xSOLD`, `borrowed`, "Got rid of: yes" - one answer per distinct value, remembered with the
+  layout.
+- The older wording, kept for the simple case: a result, a puzzle I own, or both. A yes/no column may decide it per row ("Completed?"), and a
   word in a column may say a row is not owned (`borrowed`, "Got rid of").
 - **What the whole sheet says:** "every row here is a pair result", "every row is this puzzle"; and **where the rest
   is**: "brand and pieces come from the sheet 'Speed Puzzles', by the puzzle's name".
@@ -260,13 +268,13 @@ data_import_sheet      a sheet (tab) of it
   rows_total, rows_left_out
 
 data_import_puzzle     a distinct puzzle of the import - the unit of pairing (D3)
-  id, import_id, puzzle_key, name, brand_text, manufacturer_id, pieces_count, eans, brand_codes,
+  id, import_id, puzzle_key, name, brand_text, manufacturer_id, pieces_count, eans, brand_codes, picture_url,
   tier (found | probably | choose | none), candidates jsonb [{puzzleId, how, score}], searched_at,
   choice (undecided | catalogue | unlisted | left_out), puzzle_id, unlisted_puzzle_id, decided_at,
   decided_how (player | remembered)
 
 data_import_row        a row of a sheet. Its key, state and outcomes are kept for ever; cells and parsed can be wiped
-  id, import_id, sheet_id, import_puzzle_id, row_number, first_seen_version, last_seen_version,
+  id, import_id, sheet_id, import_puzzle_id, row_number, source_row_id, first_seen_version, last_seen_version,
   cells jsonb (typed value + shown text per column), parsed jsonb, problems jsonb [{field, code, choices}],
   answers jsonb, kind (result | owned | both | not_a_puzzle), source_key, same_as_row_id, add_as_separate,
   state (waiting | ready | queued | added | already_yours | left_out | failed | undone), failure, batch_id, added_at
@@ -298,7 +306,7 @@ unlisted_solving_time  id, unlisted_puzzle_id, player_id, seconds_to_solve, fini
 unlisted_collection_item  id, unlisted_puzzle_id, player_id, collection_id (null = the system one), comment, added_at,
                           custom_values jsonb, import_row_id
 
-custom_field           id, player_id, name, standard_key (null = the player's own), type (text | number | date | yes_no | choice | tags), choices jsonb,
+custom_field           id, player_id, name, standard_key (null = the player's own), type (text | number | date | yes_no | choice | tags | rating), choices jsonb,
                        for_results, for_collection_items, position, archived_at
 solving_time_custom_values   solving_time_id, player_id, values jsonb      primary key (solving_time_id, player_id)
 collection_item.custom_values jsonb
@@ -310,6 +318,9 @@ puzzle_solving_time.finished_at_precision   null = day (every existing row), mon
 - `puzzle_key` = folded name (`SearchText::fold()`, a `(…)` part kept) + piece count + the brand: the catalogue brand's
   id when the text resolved to one, else the brand text reduced to letters and digits. No barcode, no raw text - adding
   an EAN column or fixing a brand's spelling must not make a second puzzle.
+- `source_row_id` = the source's own id of the row, when the file has one (our export's `result_id`, another app's
+  `ID`). Within one source it **is** the row's identity and wins over the key below: a renamed puzzle or a corrected
+  time in a newer export is the same row, changed - not a new one.
 - `source_key` = kind + `puzzle_key` + solve date at its precision + seconds (or "no time") + solo/pair/team, plus
   an occurrence counter for rows of one sheet that are equal in all of it. No attempt number (see "Never twice"), no
   comment, no people, no codes, no custom values.
@@ -334,6 +345,11 @@ detection as today (BOM, UTF-8, Windows-1250/1252, `sep=`). A leading `'` writte
 Our own export is read in all four formats (`.xlsx`, `.json`, `.xml`, the ZIP of CSVs) and needs no mapping: its
 headers are a built-in layout, `puzzle_id` pairs exactly, `result_id` / `collection_item_id` that exist are "already
 yours". Other XML or JSON is not read - "save it as Excel or CSV".
+
+**Exports of other apps** are built-in layouts too (`KnownExportLayout`: the header set that identifies it, the
+mapping, the words with a meaning, the id column). The first is Puzzle Tracker's CSV; each further app is one more
+entry, added when a player sends us its export. The import page says so: "Coming from another app? Upload its
+export - we know Puzzle Tracker's."
 
 The file goes **straight to object storage** by a presigned upload: 25 MB from a phone on a slow connection must not
 hold a web worker or run into the proxy's 60 seconds. The presigner and the bucket's rules of the photo uploads are
@@ -391,7 +407,7 @@ brand and pieces of results that lack them, and may be imported as owned puzzles
 
 | Level | Example | Handling |
 |---|---|---|
-| certain | a duration cell under 24 h; `1:09:17`; `0:55:41` | taken |
+| certain | a duration cell under 24 h; `1:09:17`; `0:55:41`; `0:56:4` (parts without leading zeros, as some apps export) | taken |
 | read from text | `8min`, `1h 23m`, `25 min`, `1.5 h` | taken, shown once in "To fix" as read |
 | read with leftovers | `0:55:41 (slower than…)`, `1:40ish` | time proposed, the rest goes to the private notes, needs a yes |
 | two readings | `17:36`, a time-of-day cell `1:02`, a duration cell of 24 h or more, a duration with `:00` seconds in a column that has seconds (`45:30` typed, stored as 45 h 30 min) | one question per column and shape, helped by the piece count |
@@ -419,7 +435,7 @@ Per distinct puzzle (D3), in the background, cheapest first:
 | Remembered | the player decided this `puzzle_key` before | as decided, ticked |
 | Our own id | the file has `puzzle_id` (our export) and the puzzle exists (following `puzzle_redirect`) | Found |
 | The player's own result | a result on the player's profile with the same day **and** time as a row, on a puzzle of the same piece count | Found - "you logged this one as *Circle of Colours: Ocean*" - **only when all of this holds:** the row has an exact day and a time with real seconds (not `45:00`, not `8min`), the same solo/pair/team, exactly one result fits the row and exactly one row fits the result, every such row of the puzzle points to the same catalogue puzzle, and no name or barcode match says otherwise. Anything less is "Probably", never ticked for the player |
-| Barcode | a valid barcode on exactly one catalogue puzzle (`PuzzleTextSearch::barcodeCondition`, hidden puzzles left out) whose piece count agrees | Found |
+| Barcode | a valid barcode on exactly one catalogue puzzle (`PuzzleTextSearch::barcodeCondition`, hidden puzzles left out) whose piece count agrees (a count 1 apart counts as agreeing - a box says 501, the catalogue 500; anything else is "Probably") | Found |
 | Barcode, several | a multipack code | Choose |
 | Name + pieces + brand | a folded name (also without a `(…)` part) equal to a line of `search_names`, the same `pieces_count`, the resolved brand - one puzzle | Found |
 | Name + pieces | as above without the brand - one puzzle | Probably (never ticked for the player) |
@@ -462,7 +478,10 @@ once ("3 of your unlisted puzzles are in the catalogue now").
   - **Find in the catalogue** - "Is it one of these?" (same brand and pieces, similar names) and the search. Choosing a
     puzzle moves the unlisted puzzle's results and collection items onto it through the import's writer - the same
     checks, the same "never twice" rule, one batch in the log, undoable (Undo makes it unlisted again).
-  - **Add to the catalogue** - only after "Is it one of these?" was answered "none". Then the normal add-puzzle form,
+  - **Add to the catalogue** - only after "Is it one of these?" was answered "none". When the export carried a
+    picture of the puzzle, "Use the picture from my export" fetches it on that tap (only from the hosts the known
+    layout names, size and type checked, stored like an uploaded photo); it is still the box-photo rule that decides
+    and the moderators who approve. Then the normal add-puzzle form,
     prefilled: a photo of the box is required (`PuzzleBoxPhoto`), the barcode optional, the brand chosen as in that
     form; `AddPuzzle` creates the puzzle (unapproved, into the approvals queue like any new puzzle), then the same
     move. At most 10 a day per player. A puzzle added to the catalogue is not taken back by Undo.
@@ -638,7 +657,8 @@ after the first real imports, that is the hard problem.
 
 ## Custom fields
 
-The player's own columns: text, number, date, yes/no, one of a list, **tags** (several of a list). For results, for
+The player's own columns: text, number, date, yes/no, one of a list, **tags** (several of a list), a **rating** of
+1-5. For results, for
 collection items, or both. Private: only the owner ever reads them.
 
 - **Manage** at `/{_locale}/custom-fields` (a card on the edit-profile page links there): add, rename, reorder, type,
@@ -684,7 +704,12 @@ anyone to re-enter anything.
 | Artist | collection items | text | files 1, 2 | a catalogue attribute, once enough players agree per puzzle |
 | Year of release | collection items | number | file 1 | the same |
 | Material | collection items | cardboard / wood / plastic | files 2, 1 (in notes) | the same |
-| My tags | results, collection items | tags | files 1, 3 | personal filters; a check of our picture tags |
+| My tags | results, collection items | tags | files 1, 3, 4 | personal filters; a check of our picture tags |
+| How I liked it | results, collection items | rating 1-5 | file 4 | players' ratings of a puzzle |
+| How hard it felt | results | rating 1-5 | file 4 | felt difficulty against the measured one |
+| Quality | collection items | rating 1-5 | file 4 | players' ratings of a brand's cut and print |
+| Started on | results | date | file 4 | solves that took several days |
+| Sold for | collection items | number | file 4 | - |
 
 Artist, year and material are facts about the puzzle, not about one player's copy. They are stored privately like
 every custom value; nothing is copied into the shared catalogue from an import. What the import gives us is the
@@ -836,8 +861,11 @@ There is no admin-only or invited stage (Q10). What carries the risk instead:
 
 ## Not in scope (now)
 
-- Wishlist, sell/swap and lending rows (the export has them; an import of our own export could bring them later).
-  "Waiting to arrive" and the like stay as custom fields.
+- Sell/swap and lending rows (our export has them; an import could bring them later). "Lent to …", "for sale" and
+  "waiting to arrive" stay as tags or custom fields. **The wish list is in**: a row whose status says so is added to
+  the player's wish list (the existing `AddPuzzleToWishList`), with the same "already yours" rule.
+- Fetching pictures by itself. A picture link from an export is kept with the puzzle and used only when the player
+  asks ("Unlisted puzzles").
 - Events / competitions of a result, the place and the number of competitors (kept as custom fields or notes).
 - Results of a part of a puzzle, drills (flipping, sorting) and anything else that is not a whole puzzle solved.
 - Registered co-puzzlers (D12).

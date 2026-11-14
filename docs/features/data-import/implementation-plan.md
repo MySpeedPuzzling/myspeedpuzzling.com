@@ -9,7 +9,7 @@ the import; stages 3-5 write nothing to real data; **stage 6 is the first that w
 ```
 1 Custom fields
    ── 3 Import: queue, upload, reading ── 4 Columns + values ── 5 Pairing + review (builds the row sheet)
-   ── 6a Writer extraction ── 6b Add, never twice, Undo ── 6c Date precision ── 7 Unlisted puzzles
+   ── 6a The import's own writer ── 6b Add, never twice, Undo ── 6c Date precision ── 7 Unlisted puzzles
    ── 2a My data, read-only ── 2b one-row editing ── 2c many at once ── 8 Entry points and the guide
 ```
 
@@ -25,13 +25,14 @@ cron rows in lily.srv, `docs/TODO.md` for loose ends.
 Until stage 6b the import says plainly that adding arrives soon and keeps everything the player set up. The only
 switch is the safety switch that pauses every "Add" (kept in the database, flipped on `/admin/imports`), added in 6b.
 
-**Before stage 3 - the test files.** The three real files stay out of the repository. `tests/fixtures/import/` gets
+**Before stage 3 - the test files.** The four real files stay out of the repository. `tests/fixtures/import/` gets
 hand-made workbooks that copy their *shapes* with invented puzzles: the ten-sheet workbook (piles + year sheets,
 drifting headers, summary blocks, mixed time cells, month-only dates, hidden years), the all-formulas Google export
 without times, the training workbook (Excel tables under a dashboard of formulas, a puzzle list the results sheets
 point to, results sheets without a brand, rows of unticked checkboxes, template rows, attempt numbers, equal results
 in a log, the same result on two sheets, an "entered on MSP" column, tags, twenty small tables on one sheet, drill
-sheets, another person's sheet), our own export in each of its four formats, a semicolon CSV in Windows-1250, a file over each limit, a
+sheets, another person's sheet), another app's export (a row id, a status column, times without leading zeros, hashtags with a meaning, barcodes,
+picture links), our own export in each of its four formats, a semicolon CSV in Windows-1250, a file over each limit, a
 zip bomb. Every reader and recogniser test runs on them.
 
 ---
@@ -73,6 +74,8 @@ Ships alone, in two pull requests: **1a** fields on results, **1b** fields on co
 
 **1b - collection items and the export**
 
+- The custom field type `rating` (1-5) and the ready-made fields the fourth file added (how I liked it, how hard it
+  felt, quality, started on, sold for).
 - `collection_item.custom_values` + migration; the fields in the collection item's edit form
   (`EditCollectionItemCommentController`); copying an item to another collection copies its values.
 - The puzzle merge: an item moving onto the survivor keeps its values; two items merging keep the survivor's and fill
@@ -157,6 +160,10 @@ during a 10,000-row read arrives at once; nothing outside the import tables chan
   `problems`, `kind`, `puzzle_key`, `source_key`, equal rows linked (`same_as_row_id`); every parse job carries the sheet's `mapping_version` (an older job never overwrites a newer one); re-run for one sheet whenever
   its mapping or an answer changes. The "Sheets and columns" screen: confident columns in one line, unsure ones as
   cards, row meaning, the layout's questions, the live line.
+- **Known exports:** `KnownExportLayout` with Puzzle Tracker's CSV as the first entry (header set, mapping, words
+  with a meaning, the id column, the hosts its pictures may be fetched from); `source_row_id` as a row's identity
+  within a source; "words that mean something" for a column of words or tags (pair / team / solo, first try, not
+  mine any more, borrowed); a status column deciding what a row is, the wish list included.
 - **4c Memory:** `import_layout` (saved on leaving the screen; exact signature → applied with a notice; ≥ 80 % of the
   headers → applied to the known columns; similar sheets of one workbook share it); the built-in layout of our own
   export in its four formats.
@@ -221,7 +228,8 @@ device and a newer version of the file.
   - The five handlers of `PuzzleSolved` check `created_via`; Night Owl and the hour-of-day chart leave imports out;
     the writer asks for reconstructed predictions; `ResultDuplicatePrevention` for rows confirmed as two.
   - The import's collection writer (own ids, comments never overwritten, membership and ownership checks, several
-    collections per row).
+    collections per row); wish-list rows through the existing `AddPuzzleToWishList`, "already yours" when the puzzle
+    is on the list.
   - "Never twice" per puzzle: equal rows collapsed (not across attempt numbers), rows paired off one to one with the
     player's equal results, one question per puzzle only when the profile has results left without a partner; a row
     that says "already on MySpeedPuzzling" and finds no partner is listed, not added.
@@ -271,6 +279,8 @@ re-saved (0 new), undoes a batch, and the profile, the puzzle pages and the stat
   blocks on the profile's results and the collection pages, the banner line
   (`GetPlayerReviewCounts`, `HintType::UnlistedPuzzles`), the owner's totals line (Q2), export sections
   `unlisted_puzzles`, `unlisted_results`, `unlisted_collection_items`.
+- "Use the picture from my export" on "Add to the catalogue": fetched on the player's tap only, from the hosts the
+  known layout names, size and type checked, never by itself.
 - Weekly `myspeedpuzzling:match-unlisted-puzzles` (exact steps only, one notification per run and player; lily cron).
 - The merge handler moves `unlisted_puzzle.resolved_puzzle_id`; `PuzzleMergeForeignKeyCoverageTest`.
 - Guards: `UnlistedPuzzleCoverageTest`, `UnlistedPuzzleCanaryTest`.

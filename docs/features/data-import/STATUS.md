@@ -5,7 +5,8 @@ Design: [README.md](README.md) · stages: [implementation-plan.md](implementatio
 work reads it first and updates it last.
 
 Jan, 2026-11-14: the whole plan is built, verified, reviewed and delivered to production autonomously, stage by stage,
-public from the first stage. The three real files (in Jan's `~/Downloads`, never in the repository) are tried on the
+public from the first stage. The four real files (in Jan's `~/Downloads`, never in the repository - three spreadsheets and one export of the
+app Puzzle Tracker) are tried on the
 sandbox from the stage that can read them.
 
 ## Where we are
@@ -54,6 +55,10 @@ committed with `git add -A`; one destructive command per call, never the dev dat
 
 ## Log
 
+- 2026-11-14 - a fourth file (Puzzle Tracker's export): known exports as built-in layouts, the source's row id as
+  identity, the wish list as a target, words with a meaning, ratings and four more ready-made fields.
+- 2026-11-14 - Jan: the add form must never break - stage 1a saves fields after the result, stage 6a no longer
+  touches the add form's handlers.
 - 2026-11-14 - design written, reviewed twice, revised; third real file analysed; Jan decided every question
   (README "Decided by Jan"). Third review of the revised plan: 3 blockers and 11 major points, all folded into the
   design and the plan before any code.

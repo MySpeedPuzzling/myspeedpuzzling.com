@@ -41,6 +41,18 @@ final class SpreadsheetSafeValue
         return self::text($value);
     }
 
+    /**
+     * The other way round, for a file that comes back (the data import): the apostrophe forCsv() put in front of a
+     * text is taken off again. A text that merely starts with an apostrophe stays as it is; a text somebody typed as
+     * an apostrophe followed by a formula sign looks exactly like a guarded one and loses its apostrophe.
+     */
+    public static function withoutFormulaGuard(string $value): string
+    {
+        return strlen($value) > 1 && $value[0] === "'" && in_array($value[1], self::FORMULA_TRIGGERS, true)
+            ? substr($value, 1)
+            : $value;
+    }
+
     private static function text(null|bool|int|float|string $value): string
     {
         return match (true) {

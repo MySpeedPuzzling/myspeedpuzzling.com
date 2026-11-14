@@ -264,6 +264,9 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Services/Api/PuzzleInsightsBatch.php',
             // SQL fragment of one typed search, built by the queries - not a service
             __DIR__ . '/../src/Services/PuzzleTextSearch.php',
+            // one opened file of SpreadsheetReader and the parts that read it - not services
+            __DIR__ . '/../src/Services/SpreadsheetReader/Xlsx/',
+            __DIR__ . '/../src/Services/SpreadsheetReader/Csv/',
             // one planning run of ParticipantImportPlanner and its values - not services
             __DIR__ . '/../src/Services/ParticipantImport/Plan/',
             // one planning run of SheetChangesPlanner and its result - not services

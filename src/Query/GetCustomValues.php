@@ -50,6 +50,39 @@ SQL;
             ['solvingTimeIds' => ArrayParameterType::STRING],
         )->fetchAllAssociative();
 
+        return self::byResult($rows);
+    }
+
+    /**
+     * Everything the viewer wrote on results, keyed by solving time id - their export: one statement whatever the
+     * number of results.
+     *
+     * @return array<string, CustomValues>
+     */
+    public function allOfViewer(string $viewerPlayerId): array
+    {
+        if (Uuid::isValid($viewerPlayerId) === false) {
+            return [];
+        }
+
+        $query = <<<SQL
+SELECT solving_time_id, custom_values
+FROM solving_time_custom_values
+WHERE player_id = :viewerPlayerId
+SQL;
+
+        /** @var list<array{solving_time_id: string, custom_values: string}> $rows */
+        $rows = $this->database->executeQuery($query, ['viewerPlayerId' => $viewerPlayerId])->fetchAllAssociative();
+
+        return self::byResult($rows);
+    }
+
+    /**
+     * @param list<array{solving_time_id: string, custom_values: string}> $rows
+     * @return array<string, CustomValues>
+     */
+    private static function byResult(array $rows): array
+    {
         $values = [];
 
         foreach ($rows as $row) {

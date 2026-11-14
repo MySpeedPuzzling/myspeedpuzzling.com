@@ -18,8 +18,8 @@ use SpeedPuzzling\Web\Value\SelectedPuzzlesOutcome;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
- * The selected puzzles stay in the source and are added to the target too, with the source item's added date and
- * comment. Puzzles the target already holds are skipped; so are puzzles no longer in the source and secret puzzles
+ * The selected puzzles stay in the source and are added to the target too, with the source item's added date,
+ * comment and the owner's own values (docs/features/custom-fields.md "Collection items"). Puzzles the target already holds are skipped; so are puzzles no longer in the source and secret puzzles
  * (nothing personal is recorded on one before its reveal - SecretPuzzleAccess).
  */
 #[AsMessageHandler]
@@ -65,14 +65,18 @@ readonly final class CopyPuzzlesToCollectionHandler
                 continue;
             }
 
-            $this->collectionItemRepository->save(new CollectionItem(
+            $copy = new CollectionItem(
                 id: Uuid::uuid7(),
                 collection: $target,
                 player: $player,
                 puzzle: $item->puzzle,
                 comment: $item->comment,
                 addedAt: $item->addedAt,
-            ));
+            );
+            // The owner's own fields are about the puzzle: the copy starts with what the source holds
+            $copy->changeCustomValues($item->customValues());
+
+            $this->collectionItemRepository->save($copy);
             $copied++;
         }
 

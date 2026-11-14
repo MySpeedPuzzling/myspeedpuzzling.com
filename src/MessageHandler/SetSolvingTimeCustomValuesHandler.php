@@ -8,7 +8,6 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\SolvingTimeCustomValues;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
-use SpeedPuzzling\Web\Exceptions\InvalidCustomValue;
 use SpeedPuzzling\Web\Exceptions\InvalidCustomValues;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
@@ -17,8 +16,8 @@ use SpeedPuzzling\Web\Repository\CustomFieldRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Repository\SolvingTimeCustomValuesRepository;
+use SpeedPuzzling\Web\Services\CustomFields\SubmittedValuesChange;
 use SpeedPuzzling\Web\Services\Doctrine\IdLock;
-use SpeedPuzzling\Web\Value\CustomValueProblem;
 use SpeedPuzzling\Web\Value\CustomValues;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -61,47 +60,18 @@ readonly final class SetSolvingTimeCustomValuesHandler
 
         $fields = [];
 
+        // Somebody else's field, an archived one, one that is not for results: all the same "no such field"
         foreach ($this->customFieldRepository->ofPlayer($player) as $field) {
-            $fields[$field->id->toString()] = $field;
+            if ($field->isUsableOnResults()) {
+                $fields[$field->id->toString()] = $field;
+            }
         }
 
         $row = $this->solvingTimeCustomValuesRepository->find($solvingTime, $player);
         $stored = $row?->values() ?? new CustomValues();
 
         // Everything checked before anything changes - a refused handler's changes stay in the entity manager
-        $changes = [];
-        $problems = [];
-
-        foreach ($message->values as $fieldId => $submitted) {
-            $field = $fields[strtolower((string) $fieldId)] ?? null;
-
-            // Somebody else's field, an archived one, one that is not for results: all the same "no such field"
-            if ($field === null || $field->isUsableOnResults() === false) {
-                $problems[(string) $fieldId] = CustomValueProblem::UnknownField;
-
-                continue;
-            }
-
-            $current = $stored->of($field->id->toString());
-
-            // The form sends every field back. What comes back as it is stored is no change and is not judged again:
-            // a choice the field had when the value was stored, a number the rules of today would ask about
-            if ($current !== null && is_string($submitted) && trim($submitted) === CustomValues::toInput($current)) {
-                continue;
-            }
-
-            try {
-                $changes[$field->id->toString()] = CustomValues::normalise($field->type, $field->choices, $submitted);
-            } catch (InvalidCustomValue $refused) {
-                $problems[(string) $fieldId] = $refused->problem;
-            }
-        }
-
-        if ($problems !== []) {
-            throw new InvalidCustomValues($problems);
-        }
-
-        $values = $stored->with($changes);
+        $values = SubmittedValuesChange::apply($stored, $fields, $message->values);
         $now = $this->clock->now();
 
         if ($row === null) {

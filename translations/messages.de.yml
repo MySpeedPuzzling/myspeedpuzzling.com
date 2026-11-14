@@ -11619,14 +11619,14 @@ event_result_claim:
 
 my_fields:
     title: "Meine Felder"
-    intro: "Eigene Felder für das, was du dir zu einem Ergebnis merken möchtest: Notizen, eine Zahl, ein Datum, Tags. Füge ein fertiges Feld mit einem Tippen hinzu oder lege ein eigenes an."
+    intro: "Eigene Felder für das, was du dir zu einem Ergebnis oder zu einem Puzzle deiner Sammlung merken möchtest: Notizen, eine Zahl, ein Datum, eine Bewertung, Tags. Füge ein fertiges Feld mit einem Tippen hinzu oder lege ein eigenes an."
     private_note: "Deine Felder und was du hineinschreibst, siehst nur du - auch bei einem Ergebnis, das du zu zweit oder im Team gepuzzelt hast."
     back_to_settings: "Profileinstellungen"
     manage_link: "Meine Felder verwalten"
     in_use_title: "Felder in Verwendung (%count% von %limit%)"
     empty: "Noch keine Felder. Füge unten ein fertiges Feld hinzu oder lege ein eigenes an."
     for_results: "Ergebnisse"
-    for_collection_items: "Puzzles der Sammlung (Ausfüllen kommt bald)"
+    for_collection_items: "Puzzles der Sammlung"
     move_up: "Nach oben"
     move_down: "Nach unten"
     edit: "Bearbeiten"
@@ -11653,7 +11653,7 @@ my_fields:
         places: "Wo du es ausfüllst"
         for_results: "Bei Ergebnissen"
         for_collection_items: "Bei Puzzles der Sammlung"
-        for_collection_items_help: "Du kannst das schon jetzt einrichten. Das Ausfüllen bei den Puzzles deiner Sammlung kommt bald."
+        for_collection_items_help: "Du füllst sie aus, wenn du ein Puzzle in deiner Sammlung bearbeitest."
     type:
         text: "Text"
         number: "Zahl"
@@ -11661,11 +11661,14 @@ my_fields:
         yes_no: "Ja / nein"
         choice: "Eine aus einer Liste"
         tags: "Tags"
+        rating: "Bewertung (1-5)"
     value:
         none: "-"
         "yes": "Ja"
         "no": "Nein"
         tags_help: "Tags mit Kommas trennen."
+        rating_none: "Keine Bewertung"
+        rating_stars: "%stars% von 5"
     errors:
         not_valid: "Dieser Wert kann nicht gespeichert werden."
         too_long: "Zu lang - höchstens %limit% Zeichen."
@@ -11676,6 +11679,7 @@ my_fields:
         unknown_choice: "Wähle eine Möglichkeit aus der Liste."
         too_many_tags: "Zu viele Tags - höchstens %limit%."
         tag_too_long: "Ein Tag darf höchstens %limit% Zeichen haben."
+        not_a_rating: "Wähle eine Bewertung von 1 bis 5."
         unknown_field: "Dieses Feld wird nicht mehr verwendet."
     definition_errors:
         name_missing: "Gib dem Feld einen Namen."
@@ -11709,8 +11713,14 @@ my_fields:
         label: "Meine Felder"
         edit: "Bearbeiten"
         fill: "Ausfüllen"
+    collection_item:
+        private_note: "Diese Felder siehst nur du. Auf der Seite deiner Sammlung erscheinen sie nie - auch nicht, wenn die Sammlung öffentlich ist."
+        none: "Möchtest du dir mehr zu deinem Exemplar notieren - Zustand, Preis, Aufbewahrungsort? Lege eigene Felder an; nur du siehst sie."
+        saved: "Gespeichert."
+        not_saved: "Dein Kommentar ist gespeichert. Deine eigenen Felder konnten nicht gespeichert werden - bitte versuche es noch einmal."
+    export_line: "Was du in deine eigenen Felder geschrieben hast"
     edit_profile_card:
-        text: "Deine eigenen privaten Felder für Ergebnisse - Notizen, Zahlen, Daten, Tags. Nur du siehst sie."
+        text: "Deine eigenen privaten Felder für Ergebnisse und für die Puzzles deiner Sammlung - Notizen, Zahlen, Daten, Bewertungen, Tags. Nur du siehst sie."
     standard:
         private_notes:
             label: "Private Notizen"
@@ -11742,3 +11752,11 @@ my_fields:
                 plastic: "Kunststoff"
         my_tags:
             label: "Meine Tags"
+        how_i_liked_it:
+            label: "Wie es mir gefiel"
+        how_hard_it_felt:
+            label: "Wie schwer es sich anfühlte"
+        quality:
+            label: "Qualität"
+        started_on:
+            label: "Begonnen am"

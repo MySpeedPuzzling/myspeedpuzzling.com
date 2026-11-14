@@ -110,6 +110,11 @@ class CustomField
         return $this->forResults && $this->archivedAt === null;
     }
 
+    public function isUsableOnCollectionItems(): bool
+    {
+        return $this->forCollectionItems && $this->archivedAt === null;
+    }
+
     /**
      * A player's own field only - a ready-made one is the registry's. The type stays: the stored values are of it.
      */

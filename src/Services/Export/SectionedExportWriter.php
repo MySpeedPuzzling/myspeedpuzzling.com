@@ -14,6 +14,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use SpeedPuzzling\Web\Results\Export\ExportDocument;
 use SpeedPuzzling\Web\Results\Export\ExportFile;
 use SpeedPuzzling\Web\Results\Export\ExportSection;
+use SpeedPuzzling\Web\Results\Export\OwnCustomColumns;
 use SpeedPuzzling\Web\Value\ExportFormat;
 use ZipArchive;
 
@@ -54,8 +55,12 @@ readonly final class SectionedExportWriter
 
         foreach ($sections as $section) {
             $document[$section->name] = array_map(
-                fn (array $row): array => $this->orderedRow($section, $row),
+                fn (array $row, int $index): array => $section->customColumns === []
+                    ? $this->orderedRow($section, $row)
+                    // An object also when every field is empty - never a list
+                    : [...$this->orderedRow($section, $row), OwnCustomColumns::ELEMENT => (object) $section->customRow($index)],
                 $section->rows,
+                array_keys($section->rows),
             );
         }
 
@@ -93,13 +98,13 @@ readonly final class SectionedExportWriter
         foreach ($sections as $section) {
             $sheet = $spreadsheet->createSheet();
             $sheet->setTitle($section->name);
-            $this->writeHeader($sheet, $section->columns);
+            $this->writeHeader($sheet, [...$section->columns, ...$section->customColumns]);
             $sheet->freezePane('A2');
 
             $row = 2;
-            foreach ($section->rows as $values) {
+            foreach ($section->rows as $index => $values) {
                 $column = 1;
-                foreach ($this->orderedRow($section, $values) as $value) {
+                foreach ($this->cells($section, $index, $values) as $value) {
                     SpreadsheetSafeValue::writeXlsxCell($sheet, $column, $row, $value);
                     $column++;
                 }
@@ -146,9 +151,9 @@ readonly final class SectionedExportWriter
             $zip->addFromString('about.csv', $this->csv($aboutRows));
 
             foreach ($sections as $section) {
-                $rows = [$section->columns];
-                foreach ($section->rows as $values) {
-                    $rows[] = array_values($this->orderedRow($section, $values));
+                $rows = [[...$section->columns, ...$section->customColumns]];
+                foreach ($section->rows as $index => $values) {
+                    $rows[] = $this->cells($section, $index, $values);
                 }
 
                 $zip->addFromString($section->name . '.csv', $this->csv($rows));
@@ -187,12 +192,16 @@ readonly final class SectionedExportWriter
             $sectionElement->setAttribute('description', $section->description);
             $root->appendChild($sectionElement);
 
-            foreach ($section->rows as $values) {
+            foreach ($section->rows as $index => $values) {
                 $record = $dom->createElement('record');
                 $sectionElement->appendChild($record);
 
                 foreach ($this->orderedRow($section, $values) as $column => $value) {
                     $this->appendValue($dom, $record, $column, $value);
+                }
+
+                foreach ($section->customRow($index) as $label => $value) {
+                    OwnCustomColumns::appendXml($dom, $record, $label, $value);
                 }
             }
         }
@@ -230,6 +239,20 @@ readonly final class SectionedExportWriter
         }
 
         return $ordered;
+    }
+
+    /**
+     * The row as spreadsheet cells: its columns, then the player's own fields (tags joined).
+     *
+     * @param array<string, scalar|null> $row
+     * @return list<scalar|null>
+     */
+    private function cells(ExportSection $section, int $index, array $row): array
+    {
+        return [
+            ...array_values($this->orderedRow($section, $row)),
+            ...array_map(OwnCustomColumns::cell(...), array_values($section->customRow($index))),
+        ];
     }
 
     /**
@@ -280,6 +303,12 @@ readonly final class SectionedExportWriter
 
         foreach ($sections as $section) {
             $lines[] = sprintf('%s.csv (%d rows) - %s', $section->name, count($section->rows), $section->description);
+        }
+
+        if (array_any($sections, static fn (ExportSection $section): bool => $section->customColumns !== [])) {
+            $lines[] = '';
+            $lines[] = 'Columns named "custom:..." are your own fields (My fields): "custom:<key>" is a ready-made field,';
+            $lines[] = '"custom:own:<name>" one you named yourself. Tags are joined with ", "; a rating is a number from 1 to 5.';
         }
 
         return implode("\n", $lines) . "\n";

@@ -421,6 +421,9 @@ readonly final class ApprovePuzzleMergeRequestHandler
         // puzzles the second one's lookup goes to the database, which does not hold the first one's moves before the
         // flush - two rows would land on the survivor and the flush would fail
         $onSurvivor = [];
+        // The same for collection items, with the item itself: per collection and player, the item on the survivor
+        /** @var array<string, CollectionItem> $survivorItems */
+        $survivorItems = [];
 
         foreach ($puzzlesToMerge as $puzzleToMerge) {
             // Migrate solving times (records PuzzleSolvingTimeModified event which triggers statistics recalculation)
@@ -435,17 +438,24 @@ readonly final class ApprovePuzzleMergeRequestHandler
             foreach ($collectionItems as $item) {
                 // Check if player already has survivor puzzle in the same collection
                 $key = 'collection|' . ($item->collection?->id->toString() ?? 'system') . '|' . $item->player->id->toString();
-                $existing = isset($onSurvivor[$key]) || $this->entityManager->getRepository(CollectionItem::class)->findOneBy([
+                // The survivor's item itself is kept, not only "there is one": a merged item's own values fill its gaps
+                $survivorItem = $survivorItems[$key] ?? $this->entityManager->getRepository(CollectionItem::class)->findOneBy([
                     'collection' => $item->collection,
                     'player' => $item->player,
                     'puzzle' => $survivorPuzzle,
-                ]) !== null;
-                if ($existing) {
+                ]);
+                if ($survivorItem !== null) {
+                    // Two items of one player become one. What the owner wrote in their own fields
+                    // (docs/features/custom-fields.md "Collection items") stays on the survivor's item, and the fields
+                    // it does not hold are filled from the merged one. Private values: never in the audit snapshot
+                    $survivorItem->fillCustomValueGapsFrom($item);
+                    $survivorItems[$key] = $survivorItem;
                     $this->entityManager->remove($item);
                     $inventory['collectionItems']['droppedAsDuplicate'][] = $item->id->toString();
                 } else {
+                    // The item moves with everything on it, the owner's own values included
                     $item->puzzle = $survivorPuzzle;
-                    $onSurvivor[$key] = true;
+                    $survivorItems[$key] = $item;
                     $inventory['collectionItems']['moved'][] = $item->id->toString();
                 }
             }

@@ -53,6 +53,9 @@ readonly final class MovePuzzleToCollectionHandler
         if ($existingTargetItem !== null) {
             // Already in the target: it only leaves the source, the comment goes to the target item
             if ($sourceItem !== null && $sourceItem !== $existingTargetItem) {
+                // The owner's own fields of the leaving item fill the gaps of the one that stays
+                // (docs/features/custom-fields.md "Collection items")
+                $existingTargetItem->fillCustomValueGapsFrom($sourceItem);
                 $this->collectionItemRepository->delete($sourceItem);
             }
 

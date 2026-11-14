@@ -55,6 +55,44 @@ Still the one statement. The progress towards a first rating (profile card, ladd
 on those counting puzzles only since the same day (`MspRatingCalculator::qualificationProgress()`), with the others shown
 apart as "+N first attempts on puzzles that don't count yet".
 
+## Own fields (custom fields, 2026-11-14)
+
+A player's own fields (`custom-fields.md`, "My fields") are in both downloads: on every result in the results file,
+on every row of `collection_items` in the library file. Only the downloading player's own - `OwnCustomValuesInExport`
+takes no player id and resolves the signed-in player itself; a pair partner's values on a shared result are never in
+anybody else's file.
+
+**Which fields become columns:** the fields in use for the place (results / collection puzzles) in the player's order
+- also while empty, so the shape of the file does not depend on what is filled in -, then every other field that
+still holds a value there (archived, or no longer for that place). A player without fields gets the files exactly as
+they were.
+
+**One label names a field in every format.** The export's column names are English and fixed whatever the page
+language is, so:
+
+- a ready-made field: `custom:<key>` - its fixed key (`custom:price_paid`, `custom:how_i_liked_it`), the same for
+  every player and in every language;
+- a player's own field: `custom:own:<name>` - the name they gave it (`custom:own:Shelf`). A key has no colon, so
+  an own field named like a key is still its own column: `custom:own:price_paid` beside `custom:price_paid`.
+
+| Format | Shape | Values |
+|---|---|---|
+| XLSX, CSV | one column per field **after every existing column** | number = number, yes/no = `true` / `false`, date = `Y-m-d`, rating = number 1-5, tags joined with `", "`, one of a list = the stored choice (a ready-made list's key: `like_new`, `cardboard`) |
+| JSON | an object `custom` as the last key of the row: `{"custom:price_paid": 12.5, "custom:own:Shelf": "top"}` | typed: number, boolean, list of tags, rating as a number, date as a `Y-m-d` string; `null` = empty. Every row has every label |
+| XML | `<custom name="custom:price_paid">12.5</custom>` children after the row's other elements (a field's name is no valid element name) | text; tags as `<tag>` children: `<custom name="custom:my_tags"><tag>cats</tag><tag>sky</tag></custom>`; an empty element for an empty field. A character XML 1.0 can not hold (a control character, U+FFFE, U+FFFF) is left out - new values never have one, a value stored before that rule might |
+
+- **Nothing that was there changed:** no existing column was renamed, moved or removed, in either file;
+  `PuzzleLibraryExportBuilder::FORMAT_VERSION` stays 1 (columns were added). The other library sections have no own
+  fields. `OwnFieldsInExportsTest` compares every format with and without the fields.
+- **Every spreadsheet cell goes through `SpreadsheetSafeValue`**, a header is written as text: a value or tag starting
+  with `=`, `+`, `-`, `@` is text in XLSX and gets the leading `'` in CSV; markup in a field's name is an attribute
+  value in XML and a string in JSON.
+- **Cost: two statements per download** (the player's fields, their values - `GetCustomValues::allOfViewer()` /
+  `GetCollectionItemCustomValues::allOfViewer()`), **one** for a player without any field; constant in the number of
+  results, items, fields and values (`MyFieldsExportTest`; the library's own guard "a larger library costs no more"
+  is unchanged and green). The exports' own queries select nothing of the values.
+- The CSV ZIP's README gets two lines about the `custom:` columns when a section has any.
+
 ## The structure: one export = a set of flat sections
 
 The library export is a list of **sections**. A section = a name (snake_case, English, like the existing headers),

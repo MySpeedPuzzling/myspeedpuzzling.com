@@ -675,7 +675,9 @@ collection items, or both. Private: only the owner ever reads them.
 - **Never in a shared read:** the values are read by one query for the signed-in player only
   (`GetCustomValues::forViewer`), never joined into the result lists, the result detail's query or the API.
 - **Shown** to the owner on the result detail, in My data (as columns), in the export (extra columns in the
-  spreadsheet formats, a nested object in JSON, `<custom name="…">` in XML).
+  spreadsheet formats, a nested object in JSON, `<custom name="…">` in XML - `docs/features/data-export.md` "Own
+  fields"). A collection item's values are shown in its edit form only - never on a collection page, which is often
+  public (`docs/features/custom-fields.md` "Collection items").
 - **Import:** a column mapped to a new custom field creates it at "Add" (not before - an abandoned import leaves
   nothing behind).
 - A pair's or team's result: each registered member has their own values (D16).
@@ -709,7 +711,7 @@ anyone to re-enter anything.
 | How hard it felt | results | rating 1-5 | file 4 | felt difficulty against the measured one |
 | Quality | collection items | rating 1-5 | file 4 | players' ratings of a brand's cut and print |
 | Started on | results | date | file 4 | solves that took several days |
-| Sold for | collection items | number | file 4 | - |
+| Sold for (**not offered yet** - a puzzle marked as sold leaves the collections and its item's values go with it; first the values must travel onto the sold/swapped history) | collection items | number | file 4 | - |
 
 Artist, year and material are facts about the puzzle, not about one player's copy. They are stored privately like
 every custom value; nothing is copied into the shared catalogue from an import. What the import gives us is the

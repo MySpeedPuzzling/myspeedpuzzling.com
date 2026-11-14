@@ -11622,14 +11622,14 @@ event_result_claim:
 
 my_fields:
     title: "Moje pole"
-    intro: "Vlastní pole na to, co si chceš k výsledku zapamatovat: poznámky, číslo, datum, štítky. Přidej hotové pole jedním klepnutím, nebo si vytvoř vlastní."
+    intro: "Vlastní pole na to, co si chceš zapamatovat k výsledku nebo k puzzle ve své kolekci: poznámky, číslo, datum, hodnocení, štítky. Přidej hotové pole jedním klepnutím, nebo si vytvoř vlastní."
     private_note: "Svoje pole a to, co do nich napíšeš, vidíš jen ty - i u výsledku, který jsi skládal(a) ve dvojici nebo v týmu."
     back_to_settings: "Nastavení profilu"
     manage_link: "Spravovat moje pole"
     in_use_title: "Používaná pole (%count% z %limit%)"
     empty: "Zatím žádná pole. Přidej hotové pole níže, nebo si vytvoř vlastní."
     for_results: "Výsledky"
-    for_collection_items: "Puzzle v kolekci (vyplňování přibude brzy)"
+    for_collection_items: "Puzzle v kolekci"
     move_up: "Posunout nahoru"
     move_down: "Posunout dolů"
     edit: "Upravit"
@@ -11656,7 +11656,7 @@ my_fields:
         places: "Kde ho vyplňuješ"
         for_results: "U výsledků"
         for_collection_items: "U puzzle v kolekci"
-        for_collection_items_help: "Nastavit to můžeš už teď. Vyplňování polí u puzzle v kolekci přibude brzy."
+        for_collection_items_help: "Vyplníš je při úpravě puzzle ve své kolekci."
     type:
         text: "Text"
         number: "Číslo"
@@ -11664,11 +11664,14 @@ my_fields:
         yes_no: "Ano / ne"
         choice: "Jedna ze seznamu"
         tags: "Štítky"
+        rating: "Hodnocení (1-5)"
     value:
         none: "-"
         "yes": "Ano"
         "no": "Ne"
         tags_help: "Štítky odděl čárkami."
+        rating_none: "Bez hodnocení"
+        rating_stars: "%stars% z 5"
     errors:
         not_valid: "Tuto hodnotu nejde uložit."
         too_long: "Příliš dlouhé - nejvýše %limit% znaků."
@@ -11679,6 +11682,7 @@ my_fields:
         unknown_choice: "Vyber jednu možnost ze seznamu."
         too_many_tags: "Příliš mnoho štítků - nejvýše %limit%."
         tag_too_long: "Štítek může mít nejvýše %limit% znaků."
+        not_a_rating: "Vyber hodnocení od 1 do 5."
         unknown_field: "Toto pole se už nepoužívá."
     definition_errors:
         name_missing: "Pojmenuj pole."
@@ -11712,8 +11716,14 @@ my_fields:
         label: "Moje pole"
         edit: "Upravit"
         fill: "Vyplnit"
+    collection_item:
+        private_note: "Tato pole vidíš jen ty. Na stránce tvé kolekce se nikdy nezobrazí - ani když je kolekce veřejná."
+        none: "Chceš si ke svému kusu poznamenat víc - stav, kolik stál, kde ho máš? Přidej si vlastní pole; uvidíš je jen ty."
+        saved: "Uloženo."
+        not_saved: "Komentář je uložen. Tvoje vlastní pole se nepodařilo uložit - zkus to prosím znovu."
+    export_line: "Co máš zapsáno ve vlastních polích"
     edit_profile_card:
-        text: "Vlastní soukromá pole k výsledkům - poznámky, čísla, data, štítky. Vidíš je jen ty."
+        text: "Vlastní soukromá pole k výsledkům a k puzzle ve tvé kolekci - poznámky, čísla, data, hodnocení, štítky. Vidíš je jen ty."
     standard:
         private_notes:
             label: "Soukromé poznámky"
@@ -11745,3 +11755,11 @@ my_fields:
                 plastic: "Plast"
         my_tags:
             label: "Moje štítky"
+        how_i_liked_it:
+            label: "Jak se mi líbilo"
+        how_hard_it_felt:
+            label: "Jak těžké mi připadalo"
+        quality:
+            label: "Kvalita"
+        started_on:
+            label: "Začato"

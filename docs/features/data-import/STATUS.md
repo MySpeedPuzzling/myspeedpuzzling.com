@@ -15,7 +15,7 @@ sandbox from the stage that can read them.
 |---|---|---|---|---|---|
 | 0 | Plan reviewed (third review, of the revised plan) | done - reviews.md "Third review" | - | - | - |
 | 1a | Custom fields on results | **live 2026-11-14** | #344 | yes (deploy green, migration ran, 0 new Sentry issues in the hour after) | sandbox, in Chrome as a made-up player: the add form without fields carries nothing of the feature; with a field the result is saved and the value shows on the result. Before the merge, on the branch: invalid value dropped and named, a refused submit keeps the values, no-time mode, collection mode hides the block, the values form in the modal |
-| 1b | Custom fields on collection items, export, ratings | pull request open | #346 | | |
+| 1b | Custom fields on collection items, export, ratings | **live 2026-11-14** | #346 | yes (deploy green, migration ran) | sandbox, in Chrome: a rating and a note saved with a new result; the results export carries `custom` for every row. Before the merge, on the branch: the stars in the add form, the item's edit form (comment untouched), nothing of the values on the collection page |
 | 3 | Import: queue, upload, reading | groundwork live 2026-11-14: the transport `imports` (#345) and its consumer on production (`imports-consumer`, lily D91) and on the sandbox; nothing is routed to it yet | #345 | queue + consumer | consumer up and waiting on both |
 | 4 | Columns and values | not started | | | |
 | 5 | Pairing and review | not started | | | |
@@ -54,6 +54,16 @@ player data in the repository (fixtures copy shapes with invented puzzles); noth
 committed with `git add -A`; one destructive command per call, never the dev database; production data is only read.
 
 ## Log
+
+- 2026-11-14 - **stage 1b live** (#346). The independent review found that Sentry attaches a POST's body to every
+  event - a player's own values would have gone with any warning during a submit (stage 1a included); fixed in the
+  same pull request (`OwnFieldsSentryScrubber`). Own fields are `custom:own:<name>` in the export, ready-made ones
+  `custom:<key>`. "Sold for" was taken out of the ready-made fields: marking a puzzle sold deletes the item and its
+  values (TODO: carry them into the sold/swapped history).
+- 2026-11-14 - the reader is being built on `data-import/3-reader` (OpenSpout added there; the dependency lookup
+  needed GitHub access - done by the orchestrator, the lock changed by that one package).
+- Sandbox, not ours: adding a result for a puzzle whose picture is not in the sandbox bucket logs
+  `UnableToReadFile` (Sentry WEB-FQ, environment sandbox) - seen during the sandbox checks.
 
 - 2026-11-14 - stage 3 groundwork: the import's own queue (#345) and consumer container (lily.srv D91, journal
   2026-11-14 16:33) are live on production and the sandbox, in that order.

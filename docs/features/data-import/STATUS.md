@@ -45,7 +45,8 @@ sandbox from the stage that can read them.
    orchestrator; a client-side path is not "done" until it ran in a real browser.
 8. **Squash merge**, one stage at a time. Then: the deploy job, the site answers, Sentry `firstSeen:-1h` on
    production and sandbox, the new pages opened in Chrome on production (own account) and sandbox, the migration ran.
-9. **This file updated**, the feature's entry in CLAUDE.md and the docs it names, `docs/TODO.md` for loose ends.
+9. **This file is kept by the orchestrator only** - a stage's branch never edits it (three merge conflicts taught
+   that); the feature's entry in CLAUDE.md and the docs it names, the feature's entry in CLAUDE.md and the docs it names, `docs/TODO.md` for loose ends.
 
 Rules that never bend: **the add-result form is never put at risk** (Jan, 2026-11-14: "the most important part of
 the whole app … we must never break it at any point") - no stage changes its messages or handlers, anything shown in

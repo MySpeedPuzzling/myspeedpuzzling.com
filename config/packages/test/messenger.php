@@ -17,6 +17,10 @@ return App::config([
                 'content_digest_emails' => [
                     'dsn' => 'in-memory://',
                 ],
+                // The spreadsheet import's queue - in memory, so tests see what was queued and run handlers directly
+                'imports' => [
+                    'dsn' => 'in-memory://',
+                ],
             ],
             'routing' => [
                 PrepareDigestEmailForPlayer::class => 'sync',

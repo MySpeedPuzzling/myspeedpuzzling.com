@@ -49,6 +49,7 @@
         "nette/utils": "^4.0",
         "nyholm/psr7": "^1.8",
         "oneup/flysystem-bundle": "^4.9",
+        "openspout/openspout": "^5",
         "patrickbussmann/oauth2-apple": "^0.4.0",
         "phpdocumentor/reflection-docblock": "^6.0",
         "phpoffice/phpspreadsheet": "^5.0",

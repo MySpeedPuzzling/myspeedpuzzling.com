@@ -47,7 +47,7 @@ final class PruneDataImportsHandlerTest extends KernelTestCase
         // Something arrived for the first, nothing for the second
         $old = $this->started('old.xlsx', hoursAgo: DataImportLimits::UNCONFIRMED_UPLOAD_HOURS + 1);
         $this->filesystem->write($this->key($old, DataImportFileKind::Xlsx), 'half of it');
-        $oldEmpty = $this->started('old-empty.csv', hoursAgo: DataImportLimits::UNCONFIRMED_UPLOAD_HOURS + 1);
+        $oldEmpty = $this->started('old-empty.csv', hoursAgo: DataImportLimits::UNCONFIRMED_UPLOAD_HOURS + 1, playerId: PlayerFixture::PLAYER_WITH_STRIPE);
         $fresh = $this->started('fresh.xlsx', hoursAgo: DataImportLimits::UNCONFIRMED_UPLOAD_HOURS - 1);
         // Confirmed long ago, but young enough to keep its file
         $confirmed = $this->uploaded('confirmed.xlsx', daysAgo: 2);
@@ -78,19 +78,58 @@ final class PruneDataImportsHandlerTest extends KernelTestCase
         self::assertSame(['unconfirmed' => 0, 'files' => 0, 'discarded' => 0], $this->prune());
     }
 
-    public function testADiscardedImportGoesWhole(): void
+    /**
+     * An upload URL signed before the discard stays valid for half an hour: the object can come back after the
+     * discard deleted it. The row keeps the key, and the prune deletes the object once more before the row goes -
+     * but only once no signature can be valid any more.
+     */
+    public function testAnObjectPutBackAfterTheDiscardIsGoneAfterThePrune(): void
     {
         $discarded = $this->uploaded('discarded.xlsx', daysAgo: 0);
         $kept = $this->uploaded('kept.xlsx', daysAgo: 0);
+        $key = $this->key($discarded, DataImportFileKind::Xlsx);
         $this->bus->dispatch(new DiscardImport($discarded, PlayerFixture::PLAYER_REGULAR));
 
-        self::assertEqualsCanonicalizing([$discarded, $kept], $this->importIds(), 'Discarding marks the import - the prune removes it');
-        self::assertFalse($this->filesystem->fileExists($this->key($discarded, DataImportFileKind::Xlsx)));
+        self::assertFalse($this->filesystem->fileExists($key), 'Discarding deletes the file at once');
+        self::assertSame($key, $this->database->fetchOne('SELECT file_key FROM data_import WHERE id = :id', ['id' => $discarded]));
+
+        // The browser's upload was still running (or somebody kept the signed URL)
+        $this->filesystem->write($key, '0123456789');
+
+        // Discarded a moment ago: the URL may still be valid - the row that knows the key stays
+        self::assertSame(['unconfirmed' => 0, 'files' => 0, 'discarded' => 0], $this->prune());
+        self::assertEqualsCanonicalizing([$discarded, $kept], $this->importIds());
+
+        $this->database->executeStatement('UPDATE data_import SET discarded_at = :at WHERE id = :id', [
+            'at' => TestClock::now()->modify('-' . DataImportLimits::SIGNATURE_GRACE_HOURS . ' hours -1 minute')->format('Y-m-d H:i:s'),
+            'id' => $discarded,
+        ]);
 
         self::assertSame(['unconfirmed' => 0, 'files' => 0, 'discarded' => 1], $this->prune());
 
         self::assertSame([$kept], $this->importIds());
+        self::assertFalse($this->filesystem->fileExists($key), 'The object that came back is gone with the row');
         self::assertTrue($this->filesystem->fileExists($this->key($kept, DataImportFileKind::Xlsx)));
+    }
+
+    /**
+     * An upload discarded while it was running: whatever arrives afterwards goes with the prune too
+     */
+    public function testAnUploadDiscardedWhileRunningLeavesNothingBehind(): void
+    {
+        $importId = $this->started('running.xlsx', hoursAgo: 0);
+        $key = $this->key($importId, DataImportFileKind::Xlsx);
+        $this->bus->dispatch(new DiscardImport($importId, PlayerFixture::PLAYER_REGULAR));
+        $this->filesystem->write($key, '0123456789');
+
+        $this->database->executeStatement('UPDATE data_import SET discarded_at = :at WHERE id = :id', [
+            'at' => TestClock::now()->modify('-2 hours')->format('Y-m-d H:i:s'),
+            'id' => $importId,
+        ]);
+
+        self::assertSame(['unconfirmed' => 0, 'files' => 0, 'discarded' => 1], $this->prune());
+        self::assertSame([], $this->importIds());
+        self::assertFalse($this->filesystem->fileExists($key));
     }
 
     /**
@@ -156,10 +195,10 @@ final class PruneDataImportsHandlerTest extends KernelTestCase
         return $removed;
     }
 
-    private function started(string $name, int $hoursAgo): string
+    private function started(string $name, int $hoursAgo, string $playerId = PlayerFixture::PLAYER_REGULAR): string
     {
         $importId = Uuid::uuid7()->toString();
-        $this->bus->dispatch(new StartImport($importId, PlayerFixture::PLAYER_REGULAR, $name, 10));
+        $this->bus->dispatch(new StartImport($importId, $playerId, $name, 10));
         $this->createdAt($importId, TestClock::now()->modify('-' . $hoursAgo . ' hours'));
 
         return $importId;

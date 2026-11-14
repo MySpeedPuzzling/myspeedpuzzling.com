@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use League\Flysystem\Filesystem;
 use SpeedPuzzling\Web\Services\DataImport\ImportFileStorage;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\DataImportLimits;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -219,6 +220,9 @@ final class ImportUploadTest extends WebTestCase
         $browser->request('POST', '/en/import/' . $importId . '/discard', ['_token' => $token]);
         $this->assertResponseStatusCodeSame(404);
 
+        $browser->request('POST', '/en/import/' . $importId . '/finish', ['_token' => $token]);
+        $this->assertResponseStatusCodeSame(404);
+
         // Signing "again" somebody else's id makes an import of one's own, never a URL for theirs
         $answer = $this->start($browser, $token, ['name' => 'mine.xlsx', 'bytes' => 7, 'importId' => $importId]);
         $this->assertResponseIsSuccessful();
@@ -251,7 +255,8 @@ final class ImportUploadTest extends WebTestCase
         $browser->request('POST', '/en/import/' . $importId . '/discard', ['_token' => $token]);
         $this->assertResponseRedirects('/en/import');
 
-        self::assertSame(['discarded', 'mine.xlsx', 7, null], $this->importRow($importId));
+        // The key stays on the row until the prune removes it: a signed upload URL could still bring the object back
+        self::assertSame(['discarded', 'mine.xlsx', 7, $key], $this->importRow($importId));
         self::assertFalse(self::getContainer()->get(Filesystem::class)->fileExists($key));
 
         $crawler = $browser->followRedirect();
@@ -331,6 +336,164 @@ final class ImportUploadTest extends WebTestCase
         $browser->request('POST', '/en/import/' . $first . '/discard', ['_token' => $token]);
         $this->start($browser, $token, ['name' => 'four.csv', 'bytes' => 1]);
         $this->assertResponseIsSuccessful();
+    }
+
+    /**
+     * Ten uploads started side by side must not all become imports: the uploads on their way hold a place too
+     */
+    public function testUploadsStartedSideBySideCountAgainstTheLimitTogether(): void
+    {
+        $browser = $this->browser();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $token = $this->token($browser);
+
+        $started = [];
+
+        foreach (['one.csv', 'two.csv', 'three.csv'] as $name) {
+            $answer = $this->start($browser, $token, ['name' => $name, 'bytes' => 1]);
+            $this->assertResponseIsSuccessful();
+            self::assertIsString($answer['importId'] ?? null);
+            $started[] = $answer['importId'];
+        }
+
+        $answer = $this->start($browser, $token, ['name' => 'four.csv', 'bytes' => 1]);
+        $this->assertResponseStatusCodeSame(422);
+        self::assertSame('too_many', $answer['error'] ?? null);
+
+        // All three can be confirmed - they were counted when they started
+        foreach ($started as $importId) {
+            self::getContainer()->get(Filesystem::class)->write($this->key($importId, 'csv'), 'x');
+            $this->confirm($browser, $token, $importId);
+            $this->assertResponseIsSuccessful();
+        }
+
+        self::assertSame(3, $this->countImports(PlayerFixture::PLAYER_REGULAR));
+    }
+
+    /**
+     * Should an upload ever get around the start's count, its confirmation does not
+     */
+    public function testAConfirmationOverTheLimitIsRefused(): void
+    {
+        $browser = $this->browser();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $this->uploadedImport($browser, 'one.csv', '1');
+        $this->uploadedImport($browser, 'two.csv', '2');
+        $third = $this->uploadedImport($browser, 'three.csv', '3');
+        $token = $this->token($browser);
+        $database = self::getContainer()->get(Connection::class);
+
+        // A fourth upload on its way although three imports are unfinished - what the start never lets happen
+        $database->executeStatement("UPDATE data_import SET status = 'discarded' WHERE id = :id", ['id' => $third]);
+        $fourth = $this->start($browser, $token, ['name' => 'four.csv', 'bytes' => 1]);
+        $this->assertResponseIsSuccessful();
+        self::assertIsString($fourth['importId'] ?? null);
+        $database->executeStatement("UPDATE data_import SET status = 'uploaded' WHERE id = :id", ['id' => $third]);
+        self::getContainer()->get(Filesystem::class)->write($this->key($fourth['importId'], 'csv'), '4');
+
+        $refused = $this->confirm($browser, $token, $fourth['importId']);
+        $this->assertResponseStatusCodeSame(409);
+        self::assertSame('too_many', $refused['error'] ?? null);
+        self::assertSame('uploading', $this->importRow($fourth['importId'])[0]);
+    }
+
+    /**
+     * The file arrived but the browser's confirmation never did: the import is not hidden for ever
+     */
+    public function testAnUploadThatStayedUnconfirmedIsListedAndCanBeFinished(): void
+    {
+        $browser = $this->browser();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $token = $this->token($browser);
+
+        $answer = $this->start($browser, $token, ['name' => 'times.csv', 'bytes' => 5]);
+        self::assertIsString($answer['importId'] ?? null);
+        $importId = $answer['importId'];
+
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE data_import SET created_at = :at WHERE id = :id',
+            ['at' => TestClock::now()->modify('-2 minutes')->format('Y-m-d H:i:s'), 'id' => $importId],
+        );
+
+        $crawler = $browser->request('GET', '/en/import');
+        $card = $crawler->filter('[data-testid="data-import"]');
+        self::assertCount(1, $card);
+        self::assertSame('Finishing the upload', $card->filter('[data-testid="import-status"]')->text());
+        self::assertSame('/en/import/' . $importId . '/finish', $card->filter('form')->attr('action'));
+
+        // Nothing arrived yet: said on the import's page, which keeps the button
+        $browser->request('POST', '/en/import/' . $importId . '/finish', ['_token' => $token]);
+        $this->assertResponseRedirects('/en/import/' . $importId);
+        $crawler = $browser->followRedirect();
+        self::assertStringContainsString('The file did not arrive', (string) $browser->getResponse()->getContent());
+        self::assertCount(1, $crawler->filter('[data-testid="finish-upload"]'));
+
+        $browser->request('POST', '/en/import/' . $importId . '/finish', ['_token' => 'not-the-token']);
+        $this->assertResponseStatusCodeSame(403);
+
+        self::getContainer()->get(Filesystem::class)->write($this->key($importId, 'csv'), '12345');
+
+        $browser->request('POST', '/en/import/' . $importId . '/finish', ['_token' => $token]);
+        $this->assertResponseRedirects('/en/import/' . $importId);
+        $crawler = $browser->followRedirect();
+        self::assertSame('uploaded', $this->importRow($importId)[0]);
+        self::assertCount(0, $crawler->filter('[data-testid="finish-upload"]'));
+        self::assertSame('Uploaded', $crawler->filter('[data-testid="import-status"]')->text());
+    }
+
+    /**
+     * The script started an upload, could not send the file and sends the form instead: the same import goes on
+     */
+    public function testTheFormGoesOnWithTheUploadTheScriptStarted(): void
+    {
+        $browser = $this->browser();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $token = $this->token($browser);
+        $content = "puzzle;time\nSunset 1000;01:02:03\n";
+        $limiter = self::getContainer()->get('limiter.data_import_upload')->create(PlayerFixture::PLAYER_WITH_STRIPE);
+        $limiter->reset();
+
+        try {
+            $started = $this->start($browser, $token, ['name' => 'results.csv', 'bytes' => strlen($content)]);
+            self::assertIsString($started['importId'] ?? null);
+            $remaining = $limiter->consume(0)->getRemainingTokens();
+
+            $browser->request('POST', '/en/import/new', ['_token' => $token, 'import_id' => $started['importId']], ['file' => $this->uploadedFile('results.csv', $content)]);
+
+            $this->assertResponseRedirects('/en/import/' . $started['importId']);
+            self::assertSame(1, $this->countImports(PlayerFixture::PLAYER_WITH_STRIPE), 'One file, one import');
+            self::assertSame('uploaded', $this->importRow($started['importId'])[0]);
+            self::assertSame($content, self::getContainer()->get(Filesystem::class)->read($this->key($started['importId'], 'csv', PlayerFixture::PLAYER_WITH_STRIPE)));
+            self::assertSame($remaining, $limiter->consume(0)->getRemainingTokens(), 'One file, one upload of the limit');
+
+            // Another file under that id (or an id that is nobody's upload) is an import of its own
+            $browser->request('POST', '/en/import/new', ['_token' => $token, 'import_id' => $started['importId']], ['file' => $this->uploadedFile('other.csv', 'other')]);
+            self::assertSame(2, $this->countImports(PlayerFixture::PLAYER_WITH_STRIPE));
+        } finally {
+            $limiter->reset();
+        }
+    }
+
+    /**
+     * An upload is removed by the prune a day after it started - nothing is signed for it in its last hour
+     */
+    public function testAnOldUploadIsNotSignedAgain(): void
+    {
+        $browser = $this->browser();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $token = $this->token($browser);
+
+        $first = $this->start($browser, $token, ['name' => 'times.csv', 'bytes' => 5]);
+        self::assertIsString($first['importId'] ?? null);
+
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE data_import SET created_at = :at WHERE id = :id',
+            ['at' => TestClock::now()->modify('-23 hours -1 minute')->format('Y-m-d H:i:s'), 'id' => $first['importId']],
+        );
+
+        $again = $this->start($browser, $token, ['name' => 'times.csv', 'bytes' => 5, 'importId' => $first['importId']]);
+        $this->assertResponseIsSuccessful();
+        self::assertNotSame($first['importId'], $again['importId'] ?? null);
     }
 
     public function testUploadsAreRateLimitedPerPlayer(): void
@@ -481,6 +644,11 @@ final class ImportUploadTest extends WebTestCase
         self::assertTrue($row[3] === null || is_string($row[3]));
 
         return [$row[0], $row[1], $row[2], $row[3]];
+    }
+
+    private function key(string $importId, string $kind, string $playerId = PlayerFixture::PLAYER_REGULAR): string
+    {
+        return 'tmp-imports/player-' . $playerId . '/' . $importId . '/file.' . $kind;
     }
 
     private function countImports(string $playerId): int

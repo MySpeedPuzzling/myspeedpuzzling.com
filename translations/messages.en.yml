@@ -12025,7 +12025,7 @@ data_import:
         empty: "No imports yet."
         import_button: "Import a spreadsheet"
     status:
-        uploading: "Upload not finished"
+        uploading: "Finishing the upload"
         uploaded: "Uploaded"
         reading: "Being read"
         setting_up: "Being set up"
@@ -12041,6 +12041,8 @@ data_import:
         kept_note: "We keep the file for %days% days, then it is removed. You can discard an import at any time."
         uploading: "Uploading… %percent% %"
         checking: "Checking the file…"
+        arrived: "The file arrived, but it could not be checked yet."
+        arrived_link: "Open the import to finish it"
     soon: "Reading the file and adding its rows to your profile arrive soon. Until then nothing is added to your profile."
     detail:
         state: "State"
@@ -12048,12 +12050,14 @@ data_import:
         started: "Uploaded on"
         kept: "The file is kept until %date%."
         file_removed: "The file was removed on %date% - files are kept for %days% days. To go on with it later, upload it again."
-        not_finished: "The upload did not finish. Discard this import and upload the file again."
+        not_finished: "The upload was not finished. If the file was sent, finishing it here is enough. Otherwise discard this import and upload the file again."
+        finish: "Finish the upload"
         discard: "Discard this import"
         discard_help: "The file is deleted. Nothing on your profile changes."
         discard_confirm: "Discard this import? Its file is deleted."
     flash:
         discarded: "The import was discarded and its file deleted."
+        finished: "The file is here."
     size:
         mb: "%size% MB"
         kb: "%size% kB"

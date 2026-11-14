@@ -11778,7 +11778,7 @@ data_import:
         empty: "Noch keine Importe."
         import_button: "Tabelle importieren"
     status:
-        uploading: "Upload nicht abgeschlossen"
+        uploading: "Upload wird abgeschlossen"
         uploaded: "Hochgeladen"
         reading: "Wird eingelesen"
         setting_up: "Wird vorbereitet"
@@ -11794,6 +11794,8 @@ data_import:
         kept_note: "Wir bewahren die Datei %days% Tage auf, danach wird sie entfernt. Du kannst einen Import jederzeit verwerfen."
         uploading: "Wird hochgeladen… %percent% %"
         checking: "Datei wird geprüft…"
+        arrived: "Die Datei ist angekommen, konnte aber noch nicht geprüft werden."
+        arrived_link: "Import öffnen und abschließen"
     soon: "Das Einlesen der Datei und das Hinzufügen ihrer Zeilen zu deinem Profil folgen bald. Bis dahin wird deinem Profil nichts hinzugefügt."
     detail:
         state: "Status"
@@ -11801,12 +11803,14 @@ data_import:
         started: "Hochgeladen am"
         kept: "Die Datei wird bis zum %date% aufbewahrt."
         file_removed: "Die Datei wurde am %date% entfernt - Dateien werden %days% Tage aufbewahrt. Um später damit weiterzumachen, lade sie erneut hoch."
-        not_finished: "Der Upload wurde nicht abgeschlossen. Verwirf diesen Import und lade die Datei erneut hoch."
+        not_finished: "Der Upload wurde nicht abgeschlossen. Wenn die Datei gesendet wurde, genügt es, ihn hier abzuschließen. Andernfalls verwirf diesen Import und lade die Datei erneut hoch."
+        finish: "Upload abschließen"
         discard: "Diesen Import verwerfen"
         discard_help: "Die Datei wird gelöscht. An deinem Profil ändert sich nichts."
         discard_confirm: "Diesen Import verwerfen? Seine Datei wird gelöscht."
     flash:
         discarded: "Der Import wurde verworfen und seine Datei gelöscht."
+        finished: "Die Datei ist da."
     size:
         mb: "%size% MB"
         kb: "%size% kB"

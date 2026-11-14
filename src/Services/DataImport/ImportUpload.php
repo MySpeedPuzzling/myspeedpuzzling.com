@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\DataImport;
 
 use League\Flysystem\FilesystemException;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\ImportUploadRefused;
 use SpeedPuzzling\Web\Message\ConfirmImportUploaded;
 use SpeedPuzzling\Web\Message\StartImport;
 use SpeedPuzzling\Web\Repository\DataImportRepository;
+use SpeedPuzzling\Web\Value\DataImportFileKind;
+use SpeedPuzzling\Web\Value\DataImportLimits;
 use SpeedPuzzling\Web\Value\DataImportStatus;
 use SpeedPuzzling\Web\Value\PresignedImportUpload;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -31,12 +34,14 @@ readonly final class ImportUpload
         private MessageBusInterface $messageBus,
         private DataImportRepository $dataImportRepository,
         private ImportFileStorage $storage,
+        private ClockInterface $clock,
     ) {
     }
 
     /**
-     * Whether start() would only sign an upload again (the same import, still uploading, the same size) - that is no
-     * new upload for the rate limit.
+     * Whether the player's upload of this id can be gone on with (the same import, still uploading, the same size):
+     * start() then only signs it again and receive() puts the form's file into it - no new import, and no new
+     * upload for the rate limit.
      */
     public function isRetry(string $playerId, null|string $importId, int $bytes): bool
     {
@@ -49,7 +54,10 @@ readonly final class ImportUpload
         return $import !== null
             && $import->isOwnedBy(strtolower($playerId))
             && $import->status === DataImportStatus::Uploading
-            && $import->fileSize === $bytes;
+            && $import->fileSize === $bytes
+            // The prune removes an unconfirmed upload after a day - nothing is signed for it in its last hour, so
+            // no upload URL outlives the row (DataImportLimits::SIGNATURE_GRACE_HOURS)
+            && $import->createdAt > $this->clock->now()->modify('-' . (DataImportLimits::UNCONFIRMED_UPLOAD_HOURS - DataImportLimits::SIGNATURE_GRACE_HOURS) . ' hours');
     }
 
     /**
@@ -78,17 +86,37 @@ readonly final class ImportUpload
     }
 
     /**
-     * @return string the new import's id
+     * Whether receive() would put the form's file into the upload the page's script started for it (the direct way
+     * did not work after its start) instead of making a second import.
+     */
+    public function continues(string $playerId, null|string $importId, UploadedFile $file): bool
+    {
+        $bytes = $file->getSize();
+
+        if ($bytes === false || $this->isRetry($playerId, $importId, $bytes) === false || $importId === null) {
+            return false;
+        }
+
+        return $this->dataImportRepository->find($importId)?->fileKind === DataImportFileKind::ofFileName(trim($file->getClientOriginalName()));
+    }
+
+    /**
+     * @param null|string $importId the upload the page's script started for this very file - gone on with when it is
+     *        (continues()), so one file is one import
+     *
+     * @return string the import's id
      *
      * @throws ImportUploadRefused
      * @throws FilesystemException object storage does not take the file - the import stays `uploading` for the prune
      */
-    public function receive(string $playerId, UploadedFile $file): string
+    public function receive(string $playerId, UploadedFile $file, null|string $importId = null): string
     {
         $bytes = $file->getSize();
-        $importId = Uuid::uuid7()->toString();
 
-        $this->dispatch(new StartImport($importId, $playerId, $file->getClientOriginalName(), $bytes === false ? 0 : $bytes));
+        if ($importId === null || $this->continues($playerId, $importId, $file) === false) {
+            $importId = Uuid::uuid7()->toString();
+            $this->dispatch(new StartImport($importId, $playerId, $file->getClientOriginalName(), $bytes === false ? 0 : $bytes));
+        }
 
         $import = $this->dataImportRepository->getOwnedBy($importId, $playerId);
 

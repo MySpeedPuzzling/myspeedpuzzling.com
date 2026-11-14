@@ -57,7 +57,10 @@ readonly final class DataImportRepository
         return $import;
     }
 
-    public function countUnfinishedOf(Player $player): int
+    /**
+     * @param list<DataImportStatus> $statuses
+     */
+    public function countOf(Player $player, array $statuses): int
     {
         return (int) $this->entityManager->createQueryBuilder()
             ->select('COUNT(i.id)')
@@ -65,7 +68,7 @@ readonly final class DataImportRepository
             ->where('i.player = :player')
             ->andWhere('i.status IN (:statuses)')
             ->setParameter('player', $player)
-            ->setParameter('statuses', DataImportStatus::unfinished())
+            ->setParameter('statuses', $statuses)
             ->getQuery()
             ->getSingleScalarResult();
     }
@@ -121,14 +124,16 @@ readonly final class DataImportRepository
     /**
      * @return list<DataImport>
      */
-    public function discarded(int $limit): array
+    public function discardedBefore(DateTimeImmutable $before, int $limit): array
     {
         /** @var list<DataImport> $imports */
         $imports = $this->entityManager->createQueryBuilder()
             ->select('i')
             ->from(DataImport::class, 'i')
             ->where('i.status = :status')
+            ->andWhere('i.discardedAt < :before')
             ->setParameter('status', DataImportStatus::Discarded)
+            ->setParameter('before', $before)
             ->orderBy('i.discardedAt', 'ASC')
             ->setMaxResults($limit)
             ->getQuery()

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller\DataImport;
 
 use League\Flysystem\FilesystemException;
 use Psr\Log\LoggerInterface;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\ImportUploadRefused;
 use SpeedPuzzling\Web\Services\DataImport\ImportUpload;
 use SpeedPuzzling\Web\Services\DataImport\ImportUploadRefusalMessage;
@@ -91,12 +92,16 @@ final class BringImportFileController extends AbstractController
             return self::refused(in_array($file->getError(), [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true) ? 'too_large' : 'no_file');
         }
 
-        if ($this->dataImportUploadLimiter->create($playerId)->consume()->isAccepted() === false) {
+        // The upload the page's script started for this file and could not finish: the same import, counted once
+        $startedId = $request->request->getString('import_id');
+        $startedId = Uuid::isValid($startedId) && $this->importUpload->continues($playerId, $startedId, $file) ? $startedId : null;
+
+        if ($startedId === null && $this->dataImportUploadLimiter->create($playerId)->consume()->isAccepted() === false) {
             return self::refused('rate_limited');
         }
 
         try {
-            $importId = $this->importUpload->receive($playerId, $file);
+            $importId = $this->importUpload->receive($playerId, $file, $startedId);
         } catch (ImportUploadRefused $refused) {
             return self::refused($refused->reason);
         } catch (FilesystemException $e) {

@@ -11,8 +11,12 @@ import { Controller } from '@hotwired/stimulus';
  *
  * Whatever can not work this way - the start can not be reached, object storage refuses or can not be reached from
  * this browser - sends the form as it is: the same file, the same limits, checked by the same code on the server
- * (BringImportFileController). A refusal with a reason (too large, not a spreadsheet, too many imports) is shown and
- * nothing is sent. Without this script the form is a plain upload form.
+ * (BringImportFileController). When an upload was started before, the form carries its id and goes on with that
+ * import - one file never makes two. A refusal with a reason (too large, not a spreadsheet, too many imports) is
+ * shown and nothing is sent. Without this script the form is a plain upload form.
+ *
+ * When the file is up but the confirmation can not be reached, the page says so and links to the import's page,
+ * whose "Finish the upload" button checks again - the player is never left with an import they can not see.
  */
 
 const PUT_ATTEMPTS = 3;
@@ -24,7 +28,7 @@ const STALL_MS = 45000;
 const wait = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 export default class extends Controller {
-    static targets = ['input', 'submit', 'progress', 'bar', 'status', 'error'];
+    static targets = ['input', 'submit', 'progress', 'bar', 'status', 'error', 'importId', 'arrived', 'arrivedLink'];
 
     static values = {
         startUrl: String,
@@ -71,6 +75,7 @@ export default class extends Controller {
 
         this.busy = true;
         this.showError(null);
+        this.arrivedTarget.hidden = true;
         this.submitTarget.disabled = true;
         this.showProgress(0);
 
@@ -115,7 +120,8 @@ export default class extends Controller {
         }
 
         if (!putDone) {
-            this.fallBackToForm();
+            // The form goes on with the import started here - one file is one import (and one upload of the limit)
+            this.fallBackToForm(signed.importId);
             return;
         }
 
@@ -140,8 +146,11 @@ export default class extends Controller {
             }
         }
 
-        // The file is up but the check could not be reached: the import's page says where it stands
-        this.refuse('storage');
+        // The file is up but the check could not be reached: said so, with the way to the import's page - it has
+        // the button that checks again. Never the form: the file would be sent a second time
+        this.hideProgress();
+        this.arrivedLinkTarget.href = signed.importUrl;
+        this.arrivedTarget.hidden = false;
     }
 
     /**
@@ -162,7 +171,7 @@ export default class extends Controller {
         }
 
         // Signed out, a stale page, the server unreachable: the form finds out (and shows the sign-in page if needed)
-        this.fallBackToForm();
+        this.fallBackToForm(importId);
 
         return null;
     }
@@ -245,8 +254,9 @@ export default class extends Controller {
         });
     }
 
-    fallBackToForm() {
+    fallBackToForm(importId = null) {
         this.sendWithForm = true;
+        this.importIdTarget.value = importId || '';
         this.hideProgress();
         this.submitTarget.disabled = false;
 

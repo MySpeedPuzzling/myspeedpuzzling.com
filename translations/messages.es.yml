@@ -11779,7 +11779,7 @@ data_import:
         empty: "Todavía no hay importaciones."
         import_button: "Importar una hoja de cálculo"
     status:
-        uploading: "Subida sin terminar"
+        uploading: "Terminando la subida"
         uploaded: "Subido"
         reading: "Leyéndose"
         setting_up: "Preparándose"
@@ -11795,6 +11795,8 @@ data_import:
         kept_note: "Guardamos el archivo %days% días y después se elimina. Puedes descartar una importación en cualquier momento."
         uploading: "Subiendo… %percent% %"
         checking: "Comprobando el archivo…"
+        arrived: "El archivo llegó, pero todavía no se pudo comprobar."
+        arrived_link: "Abrir la importación para terminarla"
     soon: "La lectura del archivo y la incorporación de sus filas a tu perfil llegarán pronto. Hasta entonces no se añade nada a tu perfil."
     detail:
         state: "Estado"
@@ -11802,12 +11804,14 @@ data_import:
         started: "Subido el"
         kept: "El archivo se guarda hasta el %date%."
         file_removed: "El archivo se eliminó el %date%: los archivos se guardan %days% días. Para continuar con él más adelante, súbelo de nuevo."
-        not_finished: "La subida no terminó. Descarta esta importación y sube el archivo de nuevo."
+        not_finished: "La subida no se terminó. Si el archivo se envió, basta con terminarla aquí. Si no, descarta esta importación y sube el archivo de nuevo."
+        finish: "Terminar la subida"
         discard: "Descartar esta importación"
         discard_help: "El archivo se elimina. En tu perfil no cambia nada."
         discard_confirm: "¿Descartar esta importación? Su archivo se elimina."
     flash:
         discarded: "La importación se descartó y su archivo se eliminó."
+        finished: "El archivo ya está aquí."
     size:
         mb: "%size% MB"
         kb: "%size% kB"

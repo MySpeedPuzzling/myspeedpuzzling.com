@@ -11781,7 +11781,7 @@ data_import:
         empty: "Zatím žádné importy."
         import_button: "Importovat tabulku"
     status:
-        uploading: "Nahrávání nedokončeno"
+        uploading: "Dokončuje se nahrávání"
         uploaded: "Nahráno"
         reading: "Načítá se"
         setting_up: "Připravuje se"
@@ -11797,6 +11797,8 @@ data_import:
         kept_note: "Soubor uchováme %days% dní, pak ho odstraníme. Import můžete kdykoli zahodit."
         uploading: "Nahrávání… %percent% %"
         checking: "Kontrola souboru…"
+        arrived: "Soubor dorazil, ale zatím se ho nepodařilo zkontrolovat."
+        arrived_link: "Otevřít import a dokončit ho"
     soon: "Načtení souboru a přidání jeho řádků do vašeho profilu doplníme brzy. Do té doby se do vašeho profilu nic nepřidá."
     detail:
         state: "Stav"
@@ -11804,12 +11806,14 @@ data_import:
         started: "Nahráno dne"
         kept: "Soubor uchováme do %date%."
         file_removed: "Soubor byl odstraněn %date% - soubory uchováváme %days% dní. Chcete-li s ním později pokračovat, nahrajte ho znovu."
-        not_finished: "Nahrávání se nedokončilo. Zahoďte tento import a nahrajte soubor znovu."
+        not_finished: "Nahrávání nebylo dokončeno. Pokud se soubor odeslal, stačí ho zde dokončit. Jinak tento import zahoďte a nahrajte soubor znovu."
+        finish: "Dokončit nahrávání"
         discard: "Zahodit tento import"
         discard_help: "Soubor se smaže. Ve vašem profilu se nic nezmění."
         discard_confirm: "Zahodit tento import? Jeho soubor se smaže."
     flash:
         discarded: "Import byl zahozen a jeho soubor smazán."
+        finished: "Soubor je tady."
     size:
         mb: "%size% MB"
         kb: "%size% kB"

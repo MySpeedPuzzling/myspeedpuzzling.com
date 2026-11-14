@@ -32,7 +32,15 @@
     </div>
 
     {% if import.status.value == 'uploading' %}
-        <div class="alert alert-warning fs-sm" data-testid="import-not-finished">{{ 'data_import.detail.not_finished'|trans }}</div>
+        <div class="alert alert-warning fs-sm" data-testid="import-not-finished">
+            <p class="mb-2">{{ 'data_import.detail.not_finished'|trans }}</p>
+            <form action="{{ path('data_import_upload_finish', {importId: import.importId}) }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) }}">
+                <button type="submit" class="btn btn-primary text-wrap" style="min-height: 44px;" data-testid="finish-upload">
+                    <i class="bi bi-arrow-repeat me-1"></i>{{ 'data_import.detail.finish'|trans }}
+                </button>
+            </form>
+        </div>
     {% else %}
         <div class="alert alert-info fs-sm d-flex gap-2" data-testid="import-soon">
             <i class="bi bi-info-circle flex-shrink-0"></i>

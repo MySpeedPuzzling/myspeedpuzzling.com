@@ -23,12 +23,23 @@ enum DataImportStatus: string
 
     /**
      * The imports that count against DataImportLimits::MAX_UNFINISHED_PER_PLAYER: the file arrived and the import is
-     * neither finished nor discarded. An upload that never finished is not one - the daily prune removes it.
+     * neither finished nor discarded.
      *
      * @return list<self>
      */
     public static function unfinished(): array
     {
         return [self::Uploaded, self::Reading, self::SettingUp, self::Reviewing];
+    }
+
+    /**
+     * What a new upload is counted against: the unfinished imports and the uploads on their way - else ten uploads
+     * started side by side would all pass the count and all be confirmed.
+     *
+     * @return list<self>
+     */
+    public static function holdingAPlace(): array
+    {
+        return [self::Uploading, ...self::unfinished()];
     }
 }

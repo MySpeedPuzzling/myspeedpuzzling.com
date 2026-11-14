@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
 use SpeedPuzzling\Web\Results\DataImportOverview;
@@ -30,12 +31,14 @@ SQL;
 
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
     /**
-     * The newest first. Without the uploads that never finished (the browser is still sending, or gave up - the daily
-     * prune removes those) and without discarded imports.
+     * The newest first. Without discarded imports, and without an upload started a moment ago (the browser is still
+     * sending it): after DataImportLimits::UPLOADING_SHOWN_AFTER_SECONDS it is listed as one to finish - the file
+     * may have arrived although the confirmation never did, and the player must not be left with a hidden import.
      *
      * @return list<DataImportOverview>
      */
@@ -51,7 +54,8 @@ SELECT
 {$columns}
 FROM data_import
 WHERE data_import.player_id = :playerId
-    AND data_import.status NOT IN (:uploading, :discarded)
+    AND data_import.status <> :discarded
+    AND (data_import.status <> :uploading OR data_import.created_at < CAST(:uploadingBefore AS timestamp))
 ORDER BY data_import.created_at DESC, data_import.id DESC
 LIMIT 200
 SQL;
@@ -60,6 +64,7 @@ SQL;
             'playerId' => $playerId,
             'uploading' => DataImportStatus::Uploading->value,
             'discarded' => DataImportStatus::Discarded->value,
+            'uploadingBefore' => $this->clock->now()->modify('-' . DataImportLimits::UPLOADING_SHOWN_AFTER_SECONDS . ' seconds')->format('Y-m-d H:i:s'),
         ])->fetchAllAssociative();
 
         return array_map(self::overview(...), $rows);

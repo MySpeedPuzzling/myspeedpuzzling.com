@@ -30,12 +30,21 @@
               data-data-import-upload-checking-text-value="{{ 'data_import.new.checking'|trans }}">
             <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) }}">
 
+            {# Filled by the script when it started an upload and falls back to this form: the same import goes on #}
+            <input type="hidden" name="import_id" value="" data-data-import-upload-target="importId">
+
             <label for="data-import-file" class="form-label">{{ 'data_import.new.file_label'|trans }}</label>
             <input type="file" id="data-import-file" name="file" class="form-control" style="font-size: 16px; min-height: 44px;"
                    accept="{{ accept }}" required data-data-import-upload-target="input" aria-describedby="data-import-file-help">
             <div id="data-import-file-help" class="form-text">{{ 'data_import.new.file_help'|trans({'%megabytes%': max_megabytes}) }}</div>
 
             <div class="alert alert-danger fs-sm mt-3 mb-0" role="alert" data-data-import-upload-target="error" data-testid="import-refusal"{{ refusal is null ? ' hidden' }}>{{ refusal }}</div>
+
+            {# The file is up but the check could not be reached - never a dead end: the import's page finishes it #}
+            <div class="alert alert-warning fs-sm mt-3 mb-0" role="alert" data-data-import-upload-target="arrived" data-testid="import-arrived" hidden>
+                {{ 'data_import.new.arrived'|trans }}
+                <a href="{{ path('data_imports') }}" class="alert-link" data-data-import-upload-target="arrivedLink">{{ 'data_import.new.arrived_link'|trans }}</a>
+            </div>
 
             <div class="mt-3" data-data-import-upload-target="progress" hidden>
                 <div class="progress" style="height: 10px;">

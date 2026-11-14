@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Services\DataImport\ImportFileStorage;
 use SpeedPuzzling\Web\Services\Doctrine\IdLock;
 use SpeedPuzzling\Web\Value\DataImportFileKind;
 use SpeedPuzzling\Web\Value\DataImportLimits;
+use SpeedPuzzling\Web\Value\DataImportStatus;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -72,7 +73,8 @@ readonly final class StartImportHandler
             throw new ImportUploadRefused('too_large');
         }
 
-        if ($this->dataImportRepository->countUnfinishedOf($player) >= DataImportLimits::MAX_UNFINISHED_PER_PLAYER) {
+        // Uploads on their way count too: started side by side, they would otherwise all pass and all be confirmed
+        if ($this->dataImportRepository->countOf($player, DataImportStatus::holdingAPlace()) >= DataImportLimits::MAX_UNFINISHED_PER_PLAYER) {
             throw new ImportUploadRefused('too_many');
         }
 

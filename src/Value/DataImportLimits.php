@@ -21,4 +21,12 @@ final class DataImportLimits
     /** An upload the browser never confirmed is removed after this */
     public const int UNCONFIRMED_UPLOAD_HOURS = 24;
     public const int FILE_NAME_MAX_LENGTH = 200;
+    /**
+     * Longer than a presigned upload URL lives (ImportFileStorage::PUT_LIFETIME_SECONDS): until this much time has
+     * passed since the last signature, somebody holding the URL can still put an object under the import's key - so
+     * the row that knows the key stays that long (docs/features/data-import/upload.md "A file must not come back").
+     */
+    public const int SIGNATURE_GRACE_HOURS = 1;
+    /** An upload on its way is shown on Imports home once it is this old - then it is stuck, not running */
+    public const int UPLOADING_SHOWN_AFTER_SECONDS = 60;
 }

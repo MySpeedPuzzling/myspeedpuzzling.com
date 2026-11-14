@@ -11,7 +11,8 @@ player's id for every read, `DataImportRepository::getOwnedBy()` for every write
 
 | Route | Path | What |
 |---|---|---|
-| `data_imports` | `GET /{_locale}/import` | Imports home: the player's imports, newest first, state of each, "Import a spreadsheet". Uploads still on their way and discarded imports are not listed |
+| `data_imports` | `GET /{_locale}/import` | Imports home: the player's imports, newest first, state of each, "Import a spreadsheet". Discarded imports are not listed; an upload on its way is listed once it is a minute old, as "Finishing the upload" with the button below |
+| `data_import_upload_finish` | `POST /{_locale}/import/{importId}/finish` | "Finish the upload": the confirmation as a plain form (CSRF, then the import's page) - for an import that stayed `uploading` |
 | `data_import_new` | `GET\|POST /{_locale}/import/new` | Bring the file: file picker with a progress line; the `POST` is the fallback form |
 | `data_import_detail` | `GET /{_locale}/import/{importId}` | One import: file name, size, state, "reading and adding arrive soon", until when the file is kept, Discard |
 | `data_import_discard` | `POST /{_locale}/import/{importId}/discard` | Discard (CSRF, then back to Imports home) |
@@ -29,20 +30,25 @@ are reused; the rest is the import's own (`ImportFileStorage`, `ImportUpload`).
 
 1. **Start** (`StartImportUploadController` → message `StartImport`): the browser sends `{name, bytes}`. The handler
    checks the kind (by the name's extension: `.xlsx`, `.csv`, `.tsv` - `DataImportFileKind`), the size (1 byte to
-   25 MB) and the player's unfinished imports (at most 3 with a file that arrived - `DataImportStatus::unfinished()`),
-   under a lock per player, and creates the import in the state `uploading`. The answer: `importId`, the presigned
+   25 MB) and the player's imports holding a place (at most 3: the unfinished ones **and the uploads on their way** -
+   `DataImportStatus::holdingAPlace()`; else uploads started side by side would all pass), under a lock per player,
+   and creates the import in the state `uploading`. The answer: `importId`, the presigned
    `url`, the `headers` it was signed with, `expiresAtMs` (30 minutes), `confirmUrl`, `importUrl`.
    - The **key is the server's**: `tmp-imports/player-<playerId>/<importId>/file.<kind>` - nothing of the file's name.
    - The **content type is the server's** (browsers send none or a wrong one for these files) and the **exact length
      is signed**, so the store refuses any other upload.
    - `importId` in the body signs a still uploading import of the same player and size again (the URL ran out) - no
-     new import, no rate-limit hit. Anybody else's id simply makes a new import.
+     new import, no rate-limit hit. Anybody else's id simply makes a new import, and so does an upload started more
+     than 23 hours ago (see "A file must not come back").
    - Refusals are `{"error": <reason>, "message": <text>}`: 422 `type` / `empty` / `too_large` / `too_many`, 429
      `rate_limited`, 403 `invalid_csrf_token`, 400 `invalid_request`.
 2. **PUT** by the browser (`assets/controllers/data_import_upload_controller.js`): progress line, three attempts, a
-   403 from the store signs once more.
+   403 from the store signs once more. When the file is up but the confirmation can not be reached after its
+   retries, the page says the file arrived and links to the import's page - "Finish the upload" there (and on
+   Imports home) checks again; the form is not sent then (the file would travel twice).
 3. **Confirm** (`ConfirmImportUploadController` → message `ConfirmImportUploaded`): the handler checks that the object
-   exists with exactly the signed size and moves the import to `uploaded`. 409 `missing` / `size` / `state`, 503
+   exists with exactly the signed size and moves the import to `uploaded` (under the player's lock, the limit of 3
+   unfinished imports checked once more). 409 `missing` / `size` / `state` / `too_many`, 503
    `storage` when object storage does not answer (nothing changed - the browser asks again), 404 for another
    player's import. Confirming twice changes nothing. **No read message is dispatched** - that arrives with the
    reader.
@@ -51,7 +57,9 @@ are reused; the rest is the import's own (`ImportFileStorage`, `ImportUpload`).
 JavaScript, and by the script whenever the direct way can not work (the start unreachable, the store refusing or
 unreachable from this browser). `ImportUpload::receive()` sends the same `StartImport`, stores the file under the same
 key and sends the same `ConfirmImportUploaded` - the same limits by the same code. Success redirects to the import's
-page, a refusal re-renders with 422 and the reason.
+page, a refusal re-renders with 422 and the reason. When the script had started an upload before it fell back, the
+form carries that import's id (`import_id`) and **goes on with it** (`ImportUpload::continues()`: the player's own,
+still uploading, same size and kind): one file is one import and one upload of the rate limit.
 
 **Rate limit** `data_import_upload`: 10 new uploads per player per hour (sliding window; the design's number),
 counted for direct starts and fallback posts alike.
@@ -81,9 +89,19 @@ Where the README left room, `data_import` got:
 ## Discard
 
 `DiscardImport` (the player's own import only): rows and sheets deleted, the object deleted, the import marked
-`discarded` (gone from every page at once - a 404). A delete object storage refuses is retried by the storage layer;
-should it throw, the import keeps its key and the prune tries again. Nothing an import could have added exists yet, so nothing else is kept; a later stage
-keeps the rows' keys and outcomes of an import that added something (README "Never twice").
+`discarded` (gone from every page at once - a 404). Nothing an import could have added exists yet, so nothing else is
+kept; a later stage keeps the rows' keys and outcomes of an import that added something (README "Never twice").
+
+## A file must not come back
+
+A presigned upload URL stays valid for 30 minutes after it was signed, whatever happens to the import meanwhile: a
+browser still sending - or anybody holding the URL - can create the object again after it was deleted. So **a row is
+removed only when no signature for its key can still be valid, and only after its object was deleted once more**:
+
+- a discarded import **keeps `file_key`**; the discard deletes the object at once, the prune deletes it again and
+  removes the row once the discard is more than 1 hour old (`DataImportLimits::SIGNATURE_GRACE_HOURS`);
+- an upload never confirmed is removed 24 hours after it started, and nothing is signed for it after its 23rd hour
+  (`ImportUpload::isRetry()`).
 
 ## Prune
 
@@ -92,10 +110,14 @@ has the logic):
 
 1. uploads never confirmed after 24 hours: whatever arrived is deleted, the import with it;
 2. files of imports created more than 30 days ago: the object is deleted, the import stays with `file_removed_at`;
-3. discarded imports: the file if it is still there, then the import whole (its sheets and rows by foreign key).
+3. imports discarded more than 1 hour ago: the object once more, then the import whole (its sheets and rows by
+   foreign key).
 
-At most 500 of each kind per run. A delete object storage refuses is queued and retried by the storage layer itself
-(`FailoverS3Adapter`); should a delete ever throw, the import keeps its key and the next run tries again.
+At most 500 of each kind per run. `PruneDataImports` is handled **outside a transaction**
+(`HandledOutsideTransaction`): the handler reads what is due and deletes the objects; the rows are written by
+`RecordDataImportsPruned`, 50 imports per message and transaction, which reads each row again (an upload confirmed in
+the meantime stays, without its file). A delete object storage refuses is queued and retried by the storage layer
+itself (`FailoverS3Adapter`); should a delete ever throw, the import keeps its row and the next run tries again.
 
 ## Account deletion
 

@@ -378,6 +378,9 @@ their state, decisions and outcomes; new rows wait; rows no longer in the file k
 
 ## Recognising columns and values
 
+The value readers, the header words and the keys as built, with every rule and its examples:
+[value-readers.md](value-readers.md).
+
 No model, two signals per column, combined into a certainty:
 
 1. **The header** against a synonym list per field in the six locales (name / title / puzzle / název / Titel / nombre /

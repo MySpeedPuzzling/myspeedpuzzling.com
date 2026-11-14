@@ -15,7 +15,7 @@ sandbox from the stage that can read them.
 |---|---|---|---|---|---|
 | 0 | Plan reviewed (third review, of the revised plan) | done - reviews.md "Third review" | - | - | - |
 | 1a | Custom fields on results | merged 2026-11-14 | #344 | | |
-| 1b | Custom fields on collection items, export, ratings | pull request open | #PR_NUMBER | | |
+| 1b | Custom fields on collection items, export, ratings | pull request open | #346 | | |
 | 3 | Import: queue, upload, reading | not started | | | |
 | 4 | Columns and values | not started | | | |
 | 5 | Pairing and review | not started | | | |

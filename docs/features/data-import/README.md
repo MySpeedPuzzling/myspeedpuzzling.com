@@ -211,7 +211,7 @@ be closed; a notification and an e-mail say when it is done) → "Added. 2,173 p
 |---|---|---|
 | D1 | The import is rows in the database from the first second, not a session and not a file with state in the URL | Resumable for weeks, on another device; the participants import's "file + URL state, 24 h" does not stretch to 5,000 rows |
 | D2 | Unlisted puzzles live in **their own tables**; `puzzle`, `puzzle_solving_time`, `collection_item` never hold one | 180 files read `puzzle`, 152 read `puzzle_solving_time`, no single place filters them, and the aggregates (`GetStatistics`, brand counts, insights, XP) would count them. A table nothing reads cannot leak. The price: owner-only pages that should show both read two places, and unlisted results are outside charts, streaks and rankings (Q2) |
-| D3 | The unit of pairing is the **distinct puzzle** of an import, not the row; decisions are kept per player | One decision for a puzzle's to-do row and all its results, asked once ever |
+| D3 | The unit of pairing is the **distinct puzzle** of an import, not the row; decisions are kept per player (found by the resolved key first, then the text key) | One decision for a puzzle's to-do row and all its results, asked once ever |
 | D4 | Paired rows become ordinary results / collection items through **one write path of the import, built beside the add form's - the add form's own handlers are not touched** (Jan, 2026-11-14: the add form is the most important part of the app and must never break). The import's writer uses the same building blocks (`PuzzlersGrouping`, `PuzzlingTeamResolver`, `FirstTryAssessor`, the entity's constructor) with its own rules for side effects; a parity test saves the same input through the form and through the import and compares the rows | The form's handlers stamp "tracked now", notify followers per result and recompute XP, badges and insights per result: 40-60 statements and several follow-up jobs per row. Extracting a shared writer out of the two handlers (the first plan) would have rewritten the most used write path of the site for the import's sake |
 | D5 | `tracked_at` of an imported result = **noon of its solve day in the player's time zone** (`player.timezone`, else their country's zone, else UTC), plus the row's position in microseconds (an order without ever leaving the day); a month-only or year-only result takes noon of the period's first day. Every reader that takes `tracked_at` for "when it was logged" has a rule for imports ("Readers of `tracked_at`") | Monthly global statistics, the feeds, the digest and the moments read `tracked_at`; "now" would put ten years of puzzling into this week. Noon keeps the day in every zone and stays out of the night-time rules; the offset keeps an order |
 | D6 | **Identity in three parts.** (1) `source_key` - what the row says, folded and parsed - answers "was this row added by an import before?". (2) At "Add", the import's rows of a puzzle are compared with **all** the player's results of that puzzle: equal ones pair off, what is left on the profile's side becomes one question per puzzle. (3) Rows that are equal inside one import are **one result** unless the player says "two" (Jan, 2026-11-14) - equal rows on different sheets are one result, and on one sheet differing attempt numbers keep a log of repeated solves apart. How many rows are added is settled when the batch is created, under a lock per player, so order and retries cannot change it | Row numbers, file names, raw cells and the mapping are never identity (Firefly III, BeanHub and Lunch Money failed exactly there). No derived ids: a new result gets a new UUIDv7 |
@@ -313,17 +313,26 @@ collection_item.custom_values jsonb
 puzzle_solving_time.finished_at_precision   null = day (every existing row), month, year
 ```
 
-**Keys, exactly.**
+**Keys, exactly** (built in stage 4a - `docs/features/data-import/value-readers.md` "Keys"). Every key is a pure
+function of what the row says, never of the catalogue's state, and carries its version: `1:<sha256>`.
 
-- `puzzle_key` = folded name (`SearchText::fold()`, a `(…)` part kept) + piece count + the brand: the catalogue brand's
-  id when the text resolved to one, else the brand text reduced to letters and digits. No barcode, no raw text - adding
-  an EAN column or fixing a brand's spelling must not make a second puzzle.
+- `puzzle_key` = the name folded by a **frozen** fold of the keys' own (`ImportKeyFold::v1()`, a `(…)` part kept) +
+  piece count (unknown when missing or zero) + the brand **as written**, reduced to letters and digits. No brand id, no
+  barcode, no raw text: adding an EAN column, answering "MB = Milton Bradley" or a brand merged in the catalogue never
+  changes it. A row without a name has no key.
+- `resolved_puzzle_key` = the same with the catalogue brand's id instead of the brand text - a **second, lookup key**
+  ("the same puzzle once its brand is known": `Master Pieces` and `MasterPieces Inc.`). Looked up first, the text key
+  as the fallback; stored only next to its inputs so a brand answer or merge can compute it again; never inside
+  another key.
+- Source keys are **per created thing**, not per row: a result key (`puzzle_key` + solve date at its precision +
+  seconds or "no time" + solo/pair/team + an occurrence counter for rows of one sheet equal in all of that), an owned
+  key (`puzzle_key` + the collection's label), a wish-list key (`puzzle_key`). A row that is a result and owned has
+  two. No attempt number (see "Never twice"), no comment, no people, no codes, no custom values.
 - `source_row_id` = the source's own id of the row, when the file has one (our export's `result_id`, another app's
-  `ID`). Within one source it **is** the row's identity and wins over the key below: a renamed puzzle or a corrected
-  time in a newer export is the same row, changed - not a new one.
-- `source_key` = kind + `puzzle_key` + solve date at its precision + seconds (or "no time") + solo/pair/team, plus
-  an occurrence counter for rows of one sheet that are equal in all of it. No attempt number (see "Never twice"), no
-  comment, no people, no codes, no custom values.
+  `ID`). Within one source it **is** the row's identity and wins over the keys: a renamed puzzle or a corrected time
+  in a newer export is the same row, changed - not a new one.
+- A key gives exact equality only. "A month-only row is the same solve as an exact one" is decided by comparing
+  parsed values and created results ("Never twice"), never by comparing keys.
 
 Additions to existing code: `SolvingTimeSource::Import`, `SolvingTimeDeletedVia::ImportUndo`,
 `collection_item.custom_values`, `puzzle_solving_time.finished_at_precision`. `data_import_puzzle.puzzle_id`,

@@ -17,7 +17,7 @@ sandbox from the stage that can read them.
 | 1a | Custom fields on results | **live 2026-11-14** | #344 | yes (deploy green, migration ran, 0 new Sentry issues in the hour after) | sandbox, in Chrome as a made-up player: the add form without fields carries nothing of the feature; with a field the result is saved and the value shows on the result. Before the merge, on the branch: invalid value dropped and named, a refused submit keeps the values, no-time mode, collection mode hides the block, the values form in the modal |
 | 1b | Custom fields on collection items, export, ratings | **live 2026-11-14** | #346 | yes (deploy green, migration ran) | sandbox, in Chrome: a rating and a note saved with a new result; the results export carries `custom` for every row. Before the merge, on the branch: the stars in the add form, the item's edit form (comment untouched), nothing of the values on the collection page |
 | 3 | Import: queue, upload, reading | groundwork live 2026-11-14: the transport `imports` (#345) and its consumer on production (`imports-consumer`, lily D91) and on the sandbox; nothing is routed to it yet | #345 | queue + consumer | consumer up and waiting on both |
-| 4 | Columns and values | 4a value readers: being built (`data-import/4a-value-readers`) | | | |
+| 4 | Columns and values | **4a value readers live 2026-11-14** (#348; nothing calls them yet). 4b (the screen), 4c (memory, known exports) not started | #348 | yes | deploy green |
 | 5 | Pairing and review | not started | | | |
 | 6a | The import's writer beside the add form's (handlers untouched) | not started | | | |
 | 6b | Add, never twice, Undo | not started | | | |
@@ -55,6 +55,15 @@ player data in the repository (fixtures copy shapes with invented puzzles); noth
 committed with `git add -A`; one destructive command per call, never the dev database; production data is only read.
 
 ## Log
+
+- 2026-11-14 - **stage 4a merged** (#348). Its review's blockers, fixed first: a slow hobbyist's `h:mm` column was
+  resolved as `mm:ss` without asking; the keys depended on the catalogue's state and on a fold that changes; `Jan 23`
+  became an exact day. Keys are now pure functions of the row, `1:<hash>`, one per created thing.
+- 2026-11-14 - alert MspPhotoSavesFailing: NOT ours - one player's phone handing over a 0-byte photo, 65 minutes
+  before the first deploy of the day. Fix on its own branch (#349, the add form's upload script): reviewed, tried in
+  desktop Chrome; held for Jan's word on a real-phone test before the merge.
+- 2026-11-14 - the reader (#347): second security review - memory and unmetered access closed, time not bounded on
+  libxml 2.9.14 (three crafted XML shapes); second fix round running.
 
 - 2026-11-14 - the reader (#347) is NOT merged: the security review found three ways a hostile file could exhaust
   the worker (parts opened that were never size-checked, no cap on a single text value / shared string / CSV

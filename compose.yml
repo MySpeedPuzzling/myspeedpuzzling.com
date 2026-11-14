@@ -49,7 +49,7 @@ services:
         depends_on:
             - postgres
             - redis
-        command: "bash -c 'php bin/wait-for-database 60 && exec bin/console messenger:consume async --time-limit 120 --memory-limit 256M'"
+        command: "bash -c 'php bin/wait-for-database 60 && exec bin/console messenger:consume async imports --time-limit 120 --memory-limit 512M'"
         # The image's check asks the web server, which this container does not run
         healthcheck:
             disable: true

@@ -16,7 +16,7 @@ sandbox from the stage that can read them.
 | 0 | Plan reviewed (third review, of the revised plan) | done - reviews.md "Third review" | - | - | - |
 | 1a | Custom fields on results | **live 2026-11-14** | #344 | yes (deploy green, migration ran, 0 new Sentry issues in the hour after) | sandbox, in Chrome as a made-up player: the add form without fields carries nothing of the feature; with a field the result is saved and the value shows on the result. Before the merge, on the branch: invalid value dropped and named, a refused submit keeps the values, no-time mode, collection mode hides the block, the values form in the modal |
 | 1b | Custom fields on collection items, export, ratings | **live 2026-11-14** | #346 | yes (deploy green, migration ran) | sandbox, in Chrome: a rating and a note saved with a new result; the results export carries `custom` for every row. Before the merge, on the branch: the stars in the add form, the item's edit form (comment untouched), nothing of the values on the collection page |
-| 3 | Import: queue, upload, reading | groundwork live 2026-11-14: the transport `imports` (#345) and its consumer on production (`imports-consumer`, lily D91) and on the sandbox; nothing is routed to it yet | #345 | queue + consumer | consumer up and waiting on both |
+| 3 | Import: queue, upload, reading | groundwork live 2026-11-14: the transport `imports` (#345) and its consumer on production (`imports-consumer`, lily D91) and on the sandbox; nothing is routed to it yet. **The reader merged** (#347, nothing calls it). 3a (upload + pages) building; 3b (reading + progress), 3c (Google link) next | #345, #347 | queue + consumer | consumer up and waiting on both |
 | 4 | Columns and values | **4a value readers live 2026-11-14** (#348; nothing calls them yet). 4b (the screen), 4c (memory, known exports) not started | #348 | yes | deploy green |
 | 5 | Pairing and review | not started | | | |
 | 6a | The import's writer beside the add form's (handlers untouched) | not started | | | |
@@ -55,6 +55,14 @@ player data in the repository (fixtures copy shapes with invented puzzles); noth
 committed with `git add -A`; one destructive command per call, never the dev database; production data is only read.
 
 ## Log
+
+- 2026-11-14 - **the reader is merged** (#347) after four security fix rounds; the reviewer's last verdict: merge,
+  no blocker (the processing-instruction bypass closed, 60,000 seeded documents of its own without a difference
+  between the scanner's and the parser's view). Nothing calls it yet. Left for stage 3b (docs/TODO.md): the 60 s
+  budget is wall-clock - on a loaded host the largest allowed file took 18-41 s, so the job's budget must be set with
+  the consumer's real load in mind; 1.5 million distinct blank texts are stopped only by the clock.
+- 2026-11-14 - stage 3 is split: 3a (tables, upload straight to storage, the imports pages, prune - building),
+  3b (reading jobs + live progress), 3c (Google Sheets link).
 
 - 2026-11-14 - **the empty-photo fix is live** (#349, deployed 20:42 UTC; Jan: merge it, he could not reproduce it
   either). A photo the phone hands over empty or unreadable is left out with a note, the result is saved. Checked on

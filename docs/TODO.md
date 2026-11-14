@@ -1613,3 +1613,11 @@ Mirrored in [#212](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues
 - [ ] Re-run `myspeedpuzzling:xp-distribution` after the launch backfill: without achievement XP a local copy gave 112
       players at Level 50 and median level 10 (the curve was calibrated to a median of 13-14 with achievement XP) -
       decide whether the curve needs a touch
+
+## Data import - the reader (from the security review of #347)
+
+- [ ] The read budget (60 s) is wall-clock: the largest allowed file (50,000 x 20) took 18-41 s on a host at load 11.
+  Decide in stage 3b: per-job budget against the consumer's real load, and what the player is told on `too_slow`
+  (try again, not "your file is broken"). `docs/features/data-import/reader.md`
+- [ ] 1.5 million distinct blank texts between cells are stopped only by the clock (61 s) - count them in
+  `XmlFloodScanner`.

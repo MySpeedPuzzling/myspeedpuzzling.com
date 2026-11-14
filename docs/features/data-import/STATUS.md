@@ -16,7 +16,7 @@ sandbox from the stage that can read them.
 | 0 | Plan reviewed (third review, of the revised plan) | done - reviews.md "Third review" | - | - | - |
 | 1a | Custom fields on results | **live 2026-11-14** | #344 | yes (deploy green, migration ran, 0 new Sentry issues in the hour after) | sandbox, in Chrome as a made-up player: the add form without fields carries nothing of the feature; with a field the result is saved and the value shows on the result. Before the merge, on the branch: invalid value dropped and named, a refused submit keeps the values, no-time mode, collection mode hides the block, the values form in the modal |
 | 1b | Custom fields on collection items, export, ratings | **live 2026-11-14** | #346 | yes (deploy green, migration ran) | sandbox, in Chrome: a rating and a note saved with a new result; the results export carries `custom` for every row. Before the merge, on the branch: the stars in the add form, the item's edit form (comment untouched), nothing of the values on the collection page |
-| 3 | Import: queue, upload, reading | groundwork live 2026-11-14: the transport `imports` (#345) and its consumer on production (`imports-consumer`, lily D91) and on the sandbox; nothing is routed to it yet. **The reader merged** (#347, nothing calls it). 3a (upload + pages) building; 3b (reading + progress), 3c (Google link) next | #345, #347 | queue + consumer | consumer up and waiting on both |
+| 3 | Import: queue, upload, reading | groundwork live 2026-11-14: the transport `imports` (#345) and its consumer on production (`imports-consumer`, lily D91) and on the sandbox; nothing is routed to it yet. **The reader merged** (#347, nothing calls it). **3a live** (#350: upload + pages, unlinked); 3b (reading + progress) building; 3c (Google link) next | #345, #347, #350 | queue + consumer | consumer up and waiting on both |
 | 4 | Columns and values | **4a value readers live 2026-11-14** (#348; nothing calls them yet). 4b (the screen), 4c (memory, known exports) not started | #348 | yes | deploy green |
 | 5 | Pairing and review | not started | | | |
 | 6a | The import's writer beside the add form's (handlers untouched) | not started | | | |
@@ -55,6 +55,18 @@ player data in the repository (fixtures copy shapes with invented puzzles); noth
 committed with `git add -A`; one destructive command per call, never the dev database; production data is only read.
 
 ## Log
+
+- 2026-11-14 - **stage 3a live** (#350): the three import tables, upload straight to storage (fallback form reuses
+  the started import), Imports home / Bring the file / one import / Discard, daily prune (cron 03:44 on production and
+  the sandbox, lily f0eea94 - installed with the next deploy). Review: no blocker, five fixes before the merge (a
+  discarded file could be put back through the still-valid signed URL; the "3 unfinished imports" rule could be
+  bypassed by parallel starts; the prune held a transaction across storage calls; a failed confirmation left a
+  hidden import; the fallback cost two imports). Tried in Chrome on the branch (direct upload, fallback with the
+  store blocked, discard) and on the sandbox (a real upload to the real bucket). NOT tried at phone width (the test
+  browser would not resize). The pages are linked from nowhere yet. One shard failed on main after the merge on
+  `AssetFailureScriptTest` (a timing test of the self-heal script, untouched) and passed on re-run.
+- 2026-11-14 - stage 3b (reading with live progress; CPU-time budget, the blank-run cap, one pass per sheet - the
+  plan's 2,000-rows slicing is dropped: a streamed sheet can not be resumed) is being built.
 
 - 2026-11-14 - **the reader is merged** (#347) after four security fix rounds; the reviewer's last verdict: merge,
   no blocker (the processing-instruction bypass closed, 60,000 seeded documents of its own without a difference

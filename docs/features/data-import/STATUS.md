@@ -5,7 +5,8 @@ Design: [README.md](README.md) · stages: [implementation-plan.md](implementatio
 work reads it first and updates it last.
 
 Jan, 2026-11-14: the whole plan is built, verified, reviewed and delivered to production autonomously, stage by stage,
-public from the first stage. The three real files (in Jan's `~/Downloads`, never in the repository) are tried on the
+public from the first stage. The four real files (in Jan's `~/Downloads`, never in the repository - three spreadsheets and one export of the
+app Puzzle Tracker) are tried on the
 sandbox from the stage that can read them.
 
 ## Where we are
@@ -18,7 +19,7 @@ sandbox from the stage that can read them.
 | 3 | Import: queue, upload, reading | not started | | | |
 | 4 | Columns and values | not started | | | |
 | 5 | Pairing and review | not started | | | |
-| 6a | `SolvingTimeWriter` extracted | not started | | | |
+| 6a | The import's writer beside the add form's (handlers untouched) | not started | | | |
 | 6b | Add, never twice, Undo | not started | | | |
 | 6c | Date precision | not started | | | |
 | 7 | Unlisted puzzles | not started | | | |
@@ -46,11 +47,18 @@ sandbox from the stage that can read them.
    production and sandbox, the new pages opened in Chrome on production (own account) and sandbox, the migration ran.
 9. **This file updated**, the feature's entry in CLAUDE.md and the docs it names, `docs/TODO.md` for loose ends.
 
-Rules that never bend: no real player data in the repository (fixtures copy shapes with invented puzzles); nothing
+Rules that never bend: **the add-result form is never put at risk** (Jan, 2026-11-14: "the most important part of
+the whole app … we must never break it at any point") - no stage changes its messages or handlers, anything shown in
+it is additive, fails open, has a switch, and is tried in a real browser on the branch before the merge; no real
+player data in the repository (fixtures copy shapes with invented puzzles); nothing
 committed with `git add -A`; one destructive command per call, never the dev database; production data is only read.
 
 ## Log
 
+- 2026-11-14 - a fourth file (Puzzle Tracker's export): known exports as built-in layouts, the source's row id as
+  identity, the wish list as a target, words with a meaning, ratings and four more ready-made fields.
+- 2026-11-14 - Jan: the add form must never break - stage 1a saves fields after the result, stage 6a no longer
+  touches the add form's handlers.
 - 2026-11-14 - design written, reviewed twice, revised; third real file analysed; Jan decided every question
   (README "Decided by Jan"). Third review of the revised plan: 3 blockers and 11 major points, all folded into the
   design and the plan before any code.

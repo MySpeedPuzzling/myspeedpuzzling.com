@@ -17,7 +17,7 @@ sandbox from the stage that can read them.
 | 1a | Custom fields on results | **live 2026-11-14** | #344 | yes (deploy green, migration ran, 0 new Sentry issues in the hour after) | sandbox, in Chrome as a made-up player: the add form without fields carries nothing of the feature; with a field the result is saved and the value shows on the result. Before the merge, on the branch: invalid value dropped and named, a refused submit keeps the values, no-time mode, collection mode hides the block, the values form in the modal |
 | 1b | Custom fields on collection items, export, ratings | **live 2026-11-14** | #346 | yes (deploy green, migration ran) | sandbox, in Chrome: a rating and a note saved with a new result; the results export carries `custom` for every row. Before the merge, on the branch: the stars in the add form, the item's edit form (comment untouched), nothing of the values on the collection page |
 | 3 | Import: queue, upload, reading | groundwork live 2026-11-14: the transport `imports` (#345) and its consumer on production (`imports-consumer`, lily D91) and on the sandbox; nothing is routed to it yet | #345 | queue + consumer | consumer up and waiting on both |
-| 4 | Columns and values | not started | | | |
+| 4 | Columns and values | 4a value readers: being built (`data-import/4a-value-readers`) | | | |
 | 5 | Pairing and review | not started | | | |
 | 6a | The import's writer beside the add form's (handlers untouched) | not started | | | |
 | 6b | Add, never twice, Undo | not started | | | |
@@ -55,6 +55,14 @@ player data in the repository (fixtures copy shapes with invented puzzles); noth
 committed with `git add -A`; one destructive command per call, never the dev database; production data is only read.
 
 ## Log
+
+- 2026-11-14 - the reader (#347) is NOT merged: the security review found three ways a hostile file could exhaust
+  the worker (parts opened that were never size-checked, no cap on a single text value / shared string / CSV
+  line, unbounded work per sheet entry). Fix round: OpenSpout leaves the runtime (test-only, `require-dev`), one
+  checked door to every zip entry, caps inside the streaming loops, server faults no longer reported as a damaged
+  file. Sheet width is a sanity cap (1,000); a region is read through a window.
+- 2026-11-14 - stage 4a (value readers: durations, dates, pieces, yes/no, headers in 6 languages, the keys) started
+  on its own branch - pure logic, independent of the reader.
 
 - 2026-11-14 - **stage 1b live** (#346). The independent review found that Sentry attaches a POST's body to every
   event - a player's own values would have gone with any warning during a submit (stage 1a included); fixed in the

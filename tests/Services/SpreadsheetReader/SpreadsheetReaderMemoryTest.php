@@ -82,7 +82,8 @@ final class SpreadsheetReaderMemoryTest extends TestCase
         $growth = memory_get_peak_usage() - $before;
 
         self::assertSame(40_001, $rows);
-        self::assertLessThan(4 * self::MEBIBYTE, $growth, sprintf('Reading 280,000 text cells took %.1f MiB.', $growth / self::MEBIBYTE));
+        // The parser's view of the file is three times a row's size at most (3 MiB), whatever the file's length
+        self::assertLessThan(6 * self::MEBIBYTE, $growth, sprintf('Reading 280,000 text cells took %.1f MiB.', $growth / self::MEBIBYTE));
     }
 
     #[Group('spreadsheet-reader-large')]

@@ -267,6 +267,7 @@ return static function (ContainerConfigurator $configurator): void {
             // one opened file of SpreadsheetReader and the parts that read it - not services
             __DIR__ . '/../src/Services/SpreadsheetReader/Xlsx/',
             __DIR__ . '/../src/Services/SpreadsheetReader/Csv/',
+            __DIR__ . '/../src/Services/SpreadsheetReader/TemporaryFolder.php',
             // one planning run of ParticipantImportPlanner and its values - not services
             __DIR__ . '/../src/Services/ParticipantImport/Plan/',
             // one planning run of SheetChangesPlanner and its result - not services

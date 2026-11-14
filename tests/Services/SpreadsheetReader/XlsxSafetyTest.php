@@ -6,15 +6,17 @@ namespace SpeedPuzzling\Web\Tests\Services\SpreadsheetReader;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use SpeedPuzzling\Web\Exceptions\SpreadsheetReaderFailed;
 use SpeedPuzzling\Web\Exceptions\SpreadsheetUnreadable;
+use SpeedPuzzling\Web\Services\SpreadsheetReader\SpreadsheetReader;
 use SpeedPuzzling\Web\Value\Spreadsheet\SpreadsheetFormat;
 use SpeedPuzzling\Web\Value\Spreadsheet\SpreadsheetLimits;
 use SpeedPuzzling\Web\Value\Spreadsheet\SpreadsheetUnreadableReason;
 
 /**
  * The file is untrusted: every way of being too big, broken or hostile ends in SpreadsheetUnreadable with its reason -
- * never in another exception, never with something left in the temporary folder (SpreadsheetFiles checks that after
- * every test).
+ * never in another exception, never in a string or a pass without a cap, never with something left in the temporary
+ * folder (SpreadsheetFiles checks that after every test). Every hostile file is made in the test, small on disk.
  */
 final class XlsxSafetyTest extends TestCase
 {
@@ -59,8 +61,7 @@ final class XlsxSafetyTest extends TestCase
         $workbook = $this->open($path, limits: new SpreadsheetLimits(maxRows: 10));
 
         self::assertCount(6, $this->rowsOf($workbook, 1));
-        // The same sheet read again counts once
-        self::assertCount(6, $this->rowsOf($workbook, 1));
+        self::assertSame(6, $workbook->rowsRead());
 
         try {
             $this->rowsOf($workbook, 2);
@@ -70,18 +71,19 @@ final class XlsxSafetyTest extends TestCase
         }
     }
 
-    public function testAValueBeyondTheLastAllowedColumnIsTooManyColumns(): void
+    public function testAValueBeyondTheWidestSheetAllowedIsTooManyColumns(): void
     {
-        // Column 60 is BH, column 61 is BI
-        $fits = $this->saved((new RawXlsx())->sheet('Wide', RawXlsx::worksheet([1 => ['A' => RawXlsx::n('1'), 'BH' => RawXlsx::n('60')]])));
-        $tooWide = $this->saved((new RawXlsx())->sheet('Wide', RawXlsx::worksheet([1 => ['A' => RawXlsx::n('1')], 2 => ['BI' => RawXlsx::n('61')]])));
+        // Column 1,000 is ALL, column 1,001 is ALM
+        $fits = $this->saved((new RawXlsx())->sheet('Wide', RawXlsx::worksheet([1 => ['A' => RawXlsx::n('1'), 'ALL' => RawXlsx::n('1000')]])));
+        $tooWide = $this->saved((new RawXlsx())->sheet('Wide', RawXlsx::worksheet([1 => ['A' => RawXlsx::n('1')], 2 => ['ALM' => RawXlsx::n('1001')]])));
         // A cell out there that holds nothing (a border, a colour) is not a value
         $styledOnly = $this->saved((new RawXlsx())->styles([14])->sheet('Wide', RawXlsx::worksheetAround('<sheetData><row r="1"><c r="A1"><v>1</v></c><c r="XFD1" s="1"/></row></sheetData>')));
 
-        self::assertSame(60, $this->rowsOf($this->open($fits))[1]->lastColumn());
+        // Sixty columns are no limit of the reader's: a sheet of twenty tables side by side is read
+        self::assertSame(1000, $this->rowsOf($this->open($fits))[1]->lastColumn());
         self::assertSame([1], array_keys($this->rowsOf($this->open($styledOnly))));
         $this->assertUnreadableWhileStreaming(SpreadsheetUnreadableReason::TooManyColumns, $tooWide);
-        $this->assertUnreadableWhileStreaming(SpreadsheetUnreadableReason::TooManyColumns, $fits, new SpreadsheetLimits(maxColumns: 59));
+        $this->assertUnreadableWhileStreaming(SpreadsheetUnreadableReason::TooManyColumns, $fits, new SpreadsheetLimits(maxColumns: 999));
     }
 
     public function testMoreCellsThanAllowedIsTooManyCells(): void
@@ -128,16 +130,287 @@ final class XlsxSafetyTest extends TestCase
         $this->assertUnreadable(SpreadsheetUnreadableReason::TooLarge, $path, new SpreadsheetLimits(maxZipEntries: 20));
     }
 
-    public function testAPartLongerThanItsHeaderSaysIsDamaged(): void
+    /**
+     * @return iterable<string, array{string, string, string}> which relationship, the target it gets, the entry it is
+     */
+    public static function partsReachedThroughARelationship(): iterable
     {
-        $path = $this->saved($this->smallWorkbook()->part('xl/worksheets/sheet7.xml', '<r>' . str_repeat('<a/>', 5_000) . '</r>'));
+        yield 'the shared strings under a name that is no XML' => ['sharedStrings', 'strings.bin', 'xl/strings.bin'];
+        yield 'a sheet under a name that is no XML' => ['worksheet', 'worksheets/s.bin', 'xl/worksheets/s.bin'];
+        yield 'the styles outside the workbook\'s folder' => ['styles', '/customXml/s.xml', 'customXml/s.xml'];
+    }
+
+    /**
+     * What is checked is what is opened: a part is metered whatever its name and wherever a relationship finds it.
+     */
+    #[DataProvider('partsReachedThroughARelationship')]
+    public function testAPartThatLiesAboutItsSizeIsDamagedWhateverItsNameAndPlace(string $kind, string $target, string $entry): void
+    {
+        // Half a megabyte that the archive calls 1,000 bytes
+        $padding = '<!--' . str_repeat('x', 500_003) . '-->';
+        $content = match ($kind) {
+            'sharedStrings' => '<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' . $padding . '<si><t>text</t></si></sst>',
+            'worksheet' => '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' . $padding . '<sheetData><row r="1"><c r="A1" t="s"><v>0</v></c></row></sheetData></worksheet>',
+            default => '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' . $padding . '<cellXfs><xf numFmtId="0"/></cellXfs></styleSheet>',
+        };
+
+        $workbook = (new RawXlsx())->sharedStrings(['text'])->sheet('Sheet', RawXlsx::worksheet([1 => ['A' => RawXlsx::s(0)]]));
+        $relationships = $workbook->parts()['xl/_rels/workbook.xml.rels'];
+        $path = $this->saved(
+            $workbook
+                ->part('xl/_rels/workbook.xml.rels', strtr($relationships, match ($kind) {
+                    'sharedStrings' => ['Target="sharedStrings.xml"' => 'Target="' . $target . '"'],
+                    'worksheet' => ['Target="worksheets/sheet1.xml"' => 'Target="' . $target . '"'],
+                    default => ['Target="styles.xml"' => 'Target="' . $target . '"'],
+                }))
+                ->part($entry, $content),
+        );
+
+        // Honest, the workbook reads
+        self::assertSame('text', self::cell($this->rowsOf($this->open($path)), 1, 1)->value);
+
+        RawXlsx::declareSize($path, strlen($content), 1_000);
+
+        try {
+            $this->rowsOf($this->open($path));
+            self::fail('A part that is longer than the archive says was read.');
+        } catch (SpreadsheetUnreadable $e) {
+            self::assertSame(SpreadsheetUnreadableReason::Damaged, $e->reason, $e->getMessage());
+            self::assertStringContainsString('longer than the archive says', $e->getMessage());
+        }
+    }
+
+    public function testATabThatIsNoWorksheetIsNeverOpenedWhateverItPointsAt(): void
+    {
+        $bomb = str_repeat('A', 3_000_011);
+        $workbook = (new RawXlsx())->sheet('Real', RawXlsx::worksheet([1 => ['A' => RawXlsx::n('1')]]));
+        $parts = $workbook->parts();
+        $path = $this->saved(
+            $workbook
+                ->part('xl/charts/x.bin', $bomb)
+                ->part('xl/workbook.xml', str_replace('</sheets>', '<sheet name="Chart" sheetId="9" r:id="rIdChart"/></sheets>', $parts['xl/workbook.xml']))
+                ->part('xl/_rels/workbook.xml.rels', str_replace('</Relationships>', '<Relationship Id="rIdChart" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chartsheet" Target="charts/x.bin"/></Relationships>', $parts['xl/_rels/workbook.xml.rels'])),
+        );
+        RawXlsx::declareSize($path, strlen($bomb), 1_000);
+
+        // The archive lies about the chart sheet's part - nobody opens it, so nobody is lied to
+        $opened = $this->open($path, limits: new SpreadsheetLimits(maxReadBytes: 100_000));
+
+        self::assertSame(['Real'], array_column($opened->sheets(), 'title'));
+        self::assertSame(1, self::cell($this->rowsOf($opened), 1, 1)->value);
+    }
+
+    public function testEveryPassOverEveryPartCountsAgainstOneBudget(): void
+    {
+        // 150 KB before the first row - and three sheets that all point to this one part
+        $sheet = '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><!--' . str_repeat('x', 150_000) . '--><sheetData><row r="1"><c r="A1"><v>1</v></c></row></sheetData></worksheet>';
+        $workbook = (new RawXlsx())->sheet('One', $sheet)->sheet('Two', $sheet)->sheet('Three', $sheet);
+        $relationships = $workbook->parts()['xl/_rels/workbook.xml.rels'];
+        $path = $this->saved($workbook->part('xl/_rels/workbook.xml.rels', strtr($relationships, ['worksheets/sheet2.xml' => 'worksheets/sheet1.xml', 'worksheets/sheet3.xml' => 'worksheets/sheet1.xml'])));
+
+        self::assertCount(3, $this->open($path)->sheets());
+        // Opening looks into the part three times: the budget counts it three times
+        $this->assertUnreadable(SpreadsheetUnreadableReason::TooLarge, $path, new SpreadsheetLimits(maxReadBytes: 400_000));
+
+        // Rows that hold nothing are not free either
+        $empty = $this->saved((new RawXlsx())->sheet('Empty rows', RawXlsx::worksheetAround('<sheetData>' . str_repeat('<row/>', 100_000) . '<row><c><v>1</v></c></row></sheetData>')));
+
+        self::assertSame([100_001], array_keys($this->rowsOf($this->open($empty))));
+        $this->assertUnreadableWhileStreaming(SpreadsheetUnreadableReason::TooLarge, $empty, new SpreadsheetLimits(maxReadBytes: 300_000));
+    }
+
+    public function testACellLongerThanACellCanBeIsRefusedWhileItArrives(): void
+    {
+        // Five megabytes in one cell: a few kilobytes on disk
+        $longCell = $this->saved((new RawXlsx())->sheet('Long', RawXlsx::worksheetAround('<sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>' . str_repeat('a', 5_000_000) . '</t></is></c></row></sheetData>')));
+        $longValue = $this->saved((new RawXlsx())->sheet('Long', RawXlsx::worksheetAround('<sheetData><row r="1"><c r="A1" t="str"><f>REPT("a",5000000)</f><v>' . str_repeat('a', 5_000_000) . '</v></c></row></sheetData>')));
+
+        $this->assertUnreadableWhileStreaming(SpreadsheetUnreadableReason::CellTooLarge, $longCell, self::packedWell());
+        $this->assertUnreadableWhileStreaming(SpreadsheetUnreadableReason::CellTooLarge, $longValue, self::packedWell());
+
+        // As long as a spreadsheet's cell can be: read
+        $longest = str_repeat('ž', 32_767);
+        $rows = $this->rowsOf($this->open($this->saved((new RawXlsx())->sheet('Longest', RawXlsx::worksheet([1 => ['A' => RawXlsx::inline($longest)]]))), limits: self::packedWell()));
+
+        self::assertSame($longest, self::cell($rows, 1, 1)->value);
+    }
+
+    public function testACellOfTwentyMegabytesIsRefused(): void
+    {
+        $path = $this->saved((new RawXlsx())->sheet('Huge', RawXlsx::worksheetAround('<sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>' . str_repeat('a', 20_000_000) . '</t></is></c></row></sheetData>')));
+        gc_collect_cycles();
+        memory_reset_peak_usage();
+        $before = memory_get_usage();
+
+        try {
+            $this->rowsOf($this->open($path, limits: self::packedWell()));
+            self::fail('A cell of twenty megabytes was read.');
+        } catch (SpreadsheetUnreadable $e) {
+            // The XML parser itself gives up on a text of ten megabytes, before a cell's own cap is asked
+            self::assertContains($e->reason, [SpreadsheetUnreadableReason::CellTooLarge, SpreadsheetUnreadableReason::Damaged]);
+        }
+
+        self::assertLessThan(24 * 1024 * 1024, memory_get_peak_usage() - $before);
+    }
+
+    public function testARowOfManyLargeCellsIsRefusedBeforeItIsBuilt(): void
+    {
+        $cells = '';
+
+        // Twenty cells of 100 KB each: every one fits a cell, together they are no row
+        for ($column = 1; $column <= 20; $column++) {
+            $cells .= '<c t="inlineStr"><is><t>' . str_repeat(chr(64 + $column), 100_000) . '</t></is></c>';
+        }
+
+        $this->assertUnreadableWhileStreaming(
+            SpreadsheetUnreadableReason::CellTooLarge,
+            $this->saved((new RawXlsx())->sheet('Heavy', RawXlsx::worksheetAround('<sheetData><row r="1">' . $cells . '</row></sheetData>'))),
+            self::packedWell(),
+        );
+
+        // The same weight through the shared strings: one long text, pointed to by every cell of a row
+        $pointers = [];
+
+        for ($column = 'A'; $column !== 'U'; $column = str_increment($column)) {
+            $pointers[$column] = RawXlsx::s(0);
+        }
+
+        $this->assertUnreadableWhileStreaming(
+            SpreadsheetUnreadableReason::CellTooLarge,
+            $this->saved((new RawXlsx())->sharedStrings([str_repeat('b', 100_000)])->sheet('Heavy', RawXlsx::worksheet([1 => $pointers]))),
+            self::packedWell(),
+        );
+    }
+
+    public function testASharedStringOfAHundredThousandRunsIsReadInOneStraightPass(): void
+    {
+        $runs = '<si>' . str_repeat('<r><rPr><b/></rPr><t>a</t></r>', 100_000) . '</si>';
+        $emptyRuns = '<si>' . str_repeat('<r><t/></r>', 200_000) . '<r><t>end</t></r></si>';
+        $path = $this->saved(
+            (new RawXlsx())->sharedStrings([$runs, $emptyRuns, 'plain'])->sheet('Runs', RawXlsx::worksheet([1 => ['A' => RawXlsx::s(0), 'B' => RawXlsx::s(1), 'C' => RawXlsx::s(2)]])),
+        );
+        $this->rowsOf($this->open($this->saved((new RawXlsx())->sharedStrings(['warm-up'])->sheet('Warm-up', RawXlsx::worksheet([1 => ['A' => RawXlsx::s(0)]])))));
+
+        gc_collect_cycles();
+        memory_reset_peak_usage();
+        $before = memory_get_usage();
+        $started = hrtime(true);
+
+        $rows = $this->rowsOf($this->open($path, limits: self::packedWell()));
+
+        self::assertSame(str_repeat('a', 100_000), self::cell($rows, 1, 1)->value);
+        self::assertSame('end', self::cell($rows, 1, 2)->value);
+        self::assertSame('plain', self::cell($rows, 1, 3)->value);
+        // Generous bounds: it takes a fraction of a second and no more memory than the string itself
+        self::assertLessThan(10.0, (hrtime(true) - $started) / 1e9);
+        self::assertLessThan(8 * 1024 * 1024, memory_get_peak_usage() - $before);
+
+        // One run more than a cell can hold
+        $tooMany = '<si>' . str_repeat('<r><t>a</t></r>', 131_073) . '</si>';
+        $this->assertUnreadableWhileStreaming(
+            SpreadsheetUnreadableReason::CellTooLarge,
+            $this->saved((new RawXlsx())->sharedStrings([$tooMany])->sheet('Runs', RawXlsx::worksheet([1 => ['A' => RawXlsx::s(0)]]))),
+            self::packedWell(),
+        );
+    }
+
+    public function testMoreSharedStringsThanCellsAllowedIsTooManyCells(): void
+    {
+        $path = $this->saved((new RawXlsx())->sharedStrings(['a', 'b', 'c', 'd'])->sheet('Strings', RawXlsx::worksheet([1 => ['A' => RawXlsx::s(0)]])));
+
+        self::assertCount(1, $this->rowsOf($this->open($path, limits: new SpreadsheetLimits(maxCells: 4))));
+        $this->assertUnreadableWhileStreaming(SpreadsheetUnreadableReason::TooManyCells, $path, new SpreadsheetLimits(maxCells: 3));
+    }
+
+    public function testFiftyThousandTabsAreCountedNotWorkedThrough(): void
+    {
+        $tabs = '';
+
+        for ($tab = 1; $tab <= 50_000; $tab++) {
+            // Chart sheets, macro sheets, tabs that point nowhere: every one is a tab
+            $tabs .= sprintf('<sheet name="Tab %1$d" sheetId="%1$d" r:id="rIdNone%1$d"/>', $tab);
+        }
+
+        $workbook = (new RawXlsx())->sheet('Real', RawXlsx::worksheet([1 => ['A' => RawXlsx::n('1')]]));
+        $path = $this->saved($workbook->part('xl/workbook.xml', str_replace('</sheets>', $tabs . '</sheets>', $workbook->parts()['xl/workbook.xml'])));
+        $started = hrtime(true);
+
+        $this->assertUnreadable(SpreadsheetUnreadableReason::TooManySheets, $path);
+
+        self::assertLessThan(5.0, (hrtime(true) - $started) / 1e9);
+    }
+
+    public function testTwoEntriesOfOneNameAreDamaged(): void
+    {
+        $path = $this->saved($this->smallWorkbook()->part('xl/worksheets/sheet7.xml', '<worksheet/>'));
         $bytes = (string) file_get_contents($path);
-        // The unpacked size stands in the entry's header and in the archive's directory: say 40 bytes in both
-        $real = pack('V', 3 + 4 * 5_000 + 4);
-        self::assertSame(2, substr_count($bytes, $real));
-        file_put_contents($path, str_replace($real, pack('V', 40), $bytes));
+
+        // The second sheet takes the first one's name, in its own header and in the archive's directory
+        self::assertSame(2, substr_count($bytes, 'xl/worksheets/sheet7.xml'));
+        file_put_contents($path, str_replace('xl/worksheets/sheet7.xml', 'xl/worksheets/sheet1.xml', $bytes));
 
         $this->assertUnreadable(SpreadsheetUnreadableReason::Damaged, $path);
+    }
+
+    public function testAttributesThatAreNoNumbersAreDamagedNotGuessed(): void
+    {
+        $styled = static fn (string $style): RawXlsx => (new RawXlsx())->styles([14])->sheet('Sheet', RawXlsx::worksheetAround('<sheetData><row r="1"><c r="A1" s="' . $style . '"><v>45356</v></c></row></sheetData>'));
+
+        self::assertSame('2024-03-05', self::cell($this->rowsOf($this->open($this->saved($styled('1')))), 1, 1)->shown);
+        $this->assertUnreadableWhileStreaming(SpreadsheetUnreadableReason::Damaged, $this->saved($styled('1e9')));
+        $this->assertUnreadableWhileStreaming(SpreadsheetUnreadableReason::Damaged, $this->saved($styled('-1')));
+        $this->assertUnreadableWhileStreaming(SpreadsheetUnreadableReason::Damaged, $this->saved($styled('99999999999999999999')));
+        $this->assertUnreadableWhileStreaming(SpreadsheetUnreadableReason::Damaged, $this->saved((new RawXlsx())->sheet('Sheet', RawXlsx::worksheetAround('<sheetData><row r="two"><c><v>1</v></c></row></sheetData>'))));
+        $this->assertUnreadable(SpreadsheetUnreadableReason::Damaged, $this->saved(
+            (new RawXlsx())->sheet('Sheet', RawXlsx::worksheet([], '<sheetViews><sheetView><pane ySplit="many" state="frozen"/></sheetView></sheetViews>')),
+        ));
+        $this->assertUnreadable(SpreadsheetUnreadableReason::Damaged, $this->saved(
+            $this->smallWorkbook()->part('xl/styles.xml', '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cellXfs><xf numFmtId="fourteen"/></cellXfs></styleSheet>'),
+        ));
+    }
+
+    public function testTheFormatsOfConditionalFormattingAreNotTheCellsFormats(): void
+    {
+        // Number 164 is a month for the cells - and, further down, something else for a conditional format
+        $styles = '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+            . '<numFmts count="1"><numFmt numFmtId="164" formatCode="mmmm\ yyyy"/></numFmts>'
+            . '<cellXfs count="2"><xf numFmtId="0"/><xf numFmtId="164" applyNumberFormat="1"/></cellXfs>'
+            . '<dxfs count="1"><dxf><numFmt numFmtId="164" formatCode="0.00"/></dxf></dxfs>'
+            . '</styleSheet>';
+
+        $rows = $this->rowsOf($this->open($this->saved(
+            (new RawXlsx())->sheet('Sheet', RawXlsx::worksheet([1 => ['A' => RawXlsx::n('45356', 1)]]))->part('xl/styles.xml', $styles),
+        )));
+
+        self::assertSame('2024-03', self::cell($rows, 1, 1)->shown);
+    }
+
+    public function testAFolderThatCanNotBeWrittenIsTheServersFaultNotTheFiles(): void
+    {
+        $strings = [];
+        $rows = [];
+
+        for ($index = 0; $index < 5_500; $index++) {
+            $strings[] = 'Made-up puzzle ' . $index;
+            $rows[$index + 1] = ['A' => RawXlsx::s($index)];
+        }
+
+        $path = $this->saved((new RawXlsx())->sharedStrings($strings)->sheet('Many', RawXlsx::worksheet($rows)));
+        // A "folder" under a file: nothing can be made there, whoever runs the test
+        $reader = new SpreadsheetReader($this->file('not a folder', 'txt') . '/tmp');
+        $workbook = $reader->open($path, SpreadsheetFormat::Xlsx);
+
+        try {
+            iterator_to_array($workbook->rows($workbook->sheets()[0]), false);
+            self::fail('The shared strings were kept without a place to keep them.');
+        } catch (SpreadsheetReaderFailed $e) {
+            self::assertStringContainsString('temporary folder', $e->getMessage());
+        } finally {
+            $workbook->close();
+        }
+
+        // Not a row was handed out - and the file is not called damaged
+        self::assertSame(0, $workbook->rowsRead());
     }
 
     public function testAFileThatIsNoZipIsNotASpreadsheet(): void
@@ -170,6 +443,14 @@ final class XlsxSafetyTest extends TestCase
         yield 'a Numbers file' => [['Index/Document.iwa' => 'x', 'Metadata/Properties.plist' => 'x'], SpreadsheetUnreadableReason::UnsupportedFormat];
         yield 'a binary workbook' => [['[Content_Types].xml' => '<Types/>', 'xl/workbook.bin' => 'x'], SpreadsheetUnreadableReason::UnsupportedFormat];
         yield 'a text document renamed' => [['[Content_Types].xml' => '<Types/>', 'word/document.xml' => '<w:document/>'], SpreadsheetUnreadableReason::NotASpreadsheet];
+        yield 'a text document with its relationships' => [[
+            '_rels/.rels' => '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>',
+            'word/document.xml' => '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body/></w:document>',
+        ], SpreadsheetUnreadableReason::NotASpreadsheet];
+        yield 'a binary workbook with its relationships' => [[
+            '_rels/.rels' => '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.bin"/></Relationships>',
+            'xl/workbook.bin' => 'x',
+        ], SpreadsheetUnreadableReason::UnsupportedFormat];
         yield 'any other zip' => [['holiday.txt' => 'x'], SpreadsheetUnreadableReason::NotASpreadsheet];
         yield 'a workbook without its relationships' => [['xl/workbook.xml' => '<workbook/>'], SpreadsheetUnreadableReason::Damaged];
     }
@@ -321,21 +602,6 @@ final class XlsxSafetyTest extends TestCase
         $this->assertUnreadableWhileStreaming(SpreadsheetUnreadableReason::Damaged, $path);
     }
 
-    public function testWhatALibraryThrowsIsWrappedAndKept(): void
-    {
-        $path = $this->saved((new RawXlsx())->sharedStrings(['only one'])->sheet('Broken', RawXlsx::worksheet([1 => ['A' => RawXlsx::s(99)]])));
-        $workbook = $this->open($path);
-
-        try {
-            $this->rowsOf($workbook);
-            self::fail('A shared string that is not there was read.');
-        } catch (SpreadsheetUnreadable $e) {
-            self::assertSame(SpreadsheetUnreadableReason::Damaged, $e->reason);
-            self::assertNotNull($e->getPrevious());
-            self::assertStringStartsWith('OpenSpout\\', $e->getPrevious()::class);
-        }
-    }
-
     public function testAWorkbookWithoutSheetsOrWithAMissingSheetPartIsDamaged(): void
     {
         $this->assertUnreadable(SpreadsheetUnreadableReason::Damaged, $this->saved(new RawXlsx()));
@@ -375,13 +641,17 @@ final class XlsxSafetyTest extends TestCase
 
         $workbook = $this->open($this->saved((new RawXlsx())->sharedStrings($strings)->sheet('Many', RawXlsx::worksheet($rows))));
 
-        // More strings than stay in memory: they went to a file in the reader's own folder
+        // Nothing is written before a cell asks for a text
+        self::assertSame([], glob($this->folder . '/tmp/*'));
+
+        $read = $this->rowsOf($workbook);
+
+        // More strings than stay in memory: they went to a file in the reader's own folder, which only the server reads
         $folders = glob($this->folder . '/tmp/msp-spreadsheet-*');
         self::assertIsArray($folders);
         self::assertCount(1, $folders);
-        self::assertNotSame([], glob($folders[0] . '/shared-strings-*'));
-
-        $read = $this->rowsOf($workbook);
+        self::assertSame(0700, fileperms($folders[0]) & 0777);
+        self::assertCount(2, (array) glob($folders[0] . '/*'));
 
         self::assertCount(6_000, $read);
         self::assertSame('Made-up puzzle 0', self::cell($read, 1, 1)->value);
@@ -391,6 +661,15 @@ final class XlsxSafetyTest extends TestCase
         $workbook->close();
 
         self::assertSame([], glob($this->folder . '/tmp/*'));
+    }
+
+    /**
+     * The limits for a test whose file is one character a million times: such a file packs like a zip bomb, and it is
+     * the cap behind that check the test is about.
+     */
+    private static function packedWell(): SpreadsheetLimits
+    {
+        return new SpreadsheetLimits(maxCompressionRatio: 1_000_000);
     }
 
     private function smallWorkbook(): RawXlsx

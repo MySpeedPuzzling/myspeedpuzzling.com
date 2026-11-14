@@ -109,6 +109,8 @@ final class NumberFormatClassifier
         if ($tokens === []) {
             return match (true) {
                 str_contains($bare, '@') => new NumberFormat(NumberFormatKind::Text),
+                // Nothing but zeros: a number padded to that many digits - a barcode, a catalogue number
+                preg_match('/^0{2,}$/', trim($bare)) === 1 => new NumberFormat(NumberFormatKind::Number, zeroPadded: strlen(trim($bare))),
                 default => new NumberFormat(NumberFormatKind::Number, percent: str_contains($bare, '%')),
             };
         }

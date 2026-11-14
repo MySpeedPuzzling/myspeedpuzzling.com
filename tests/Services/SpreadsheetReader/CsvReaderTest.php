@@ -6,8 +6,11 @@ namespace SpeedPuzzling\Web\Tests\Services\SpreadsheetReader;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use SpeedPuzzling\Web\Exceptions\SpreadsheetReaderFailed;
 use SpeedPuzzling\Web\Exceptions\SpreadsheetUnreadable;
+use SpeedPuzzling\Web\Services\SpreadsheetReader\SpreadsheetReader;
 use SpeedPuzzling\Web\Value\Spreadsheet\CellKind;
+use SpeedPuzzling\Web\Value\Spreadsheet\CellRange;
 use SpeedPuzzling\Web\Value\Spreadsheet\ReadRow;
 use SpeedPuzzling\Web\Value\Spreadsheet\SpreadsheetFormat;
 use SpeedPuzzling\Web\Value\Spreadsheet\SpreadsheetLimits;
@@ -197,11 +200,145 @@ final class CsvReaderTest extends TestCase
         }
     }
 
-    public function testEmptyCellsBeyondTheLastAllowedColumnAreNoValues(): void
+    public function testEmptyFieldsCountAsColumns(): void
     {
-        $rows = $this->rowsOf($this->open($this->file("A,B,,,,,\n1,2,,,,,\n"), SpreadsheetFormat::Csv, new SpreadsheetLimits(maxColumns: 2)));
+        $path = $this->file("A,B,,,,,\n1,2,,,,,\n");
 
-        self::assertSame(['1', '2'], self::texts($rows[2]));
+        self::assertSame(['1', '2'], self::texts($this->rowsOf($this->open($path, SpreadsheetFormat::Csv, new SpreadsheetLimits(maxColumns: 7)))[2]));
+        // A line of nothing but delimiters is as wide as it is long
+        self::assertSame(SpreadsheetUnreadableReason::TooManyColumns, $this->reasonWhileStreaming($path, new SpreadsheetLimits(maxColumns: 6)));
+        self::assertSame(SpreadsheetUnreadableReason::TooManyColumns, $this->reasonWhileStreaming($this->file("A,B\n" . str_repeat(',', 2_000) . "\n")));
+    }
+
+    public function testALineOfFiveMillionDelimitersIsRefusedBeforeItIsParsed(): void
+    {
+        $path = $this->file("A,B\n1,2\n" . str_repeat(',', 5_000_000) . "\n3,4\n");
+        gc_collect_cycles();
+        memory_reset_peak_usage();
+        $before = memory_get_usage();
+        $started = hrtime(true);
+
+        try {
+            $this->open($path, SpreadsheetFormat::Csv);
+            self::fail('A line longer than a row can be was accepted.');
+        } catch (SpreadsheetUnreadable $e) {
+            self::assertSame(SpreadsheetUnreadableReason::CellTooLarge, $e->reason);
+        }
+
+        // Five million fields were never made
+        self::assertLessThan(4 * 1024 * 1024, memory_get_peak_usage() - $before);
+        self::assertLessThan(5.0, (hrtime(true) - $started) / 1e9);
+
+        // The same in UTF-16 and with old Mac line ends
+        foreach (["\xFF\xFE" . mb_convert_encoding("A;B\n" . str_repeat(';', 1_100_000) . "\n", 'UTF-16LE', 'UTF-8'), "A,B\r" . str_repeat(',', 1_100_000) . "\r1,2\r"] as $bytes) {
+            try {
+                $this->open($this->file($bytes), SpreadsheetFormat::Csv);
+                self::fail('A line longer than a row can be was accepted.');
+            } catch (SpreadsheetUnreadable $e) {
+                self::assertSame(SpreadsheetUnreadableReason::CellTooLarge, $e->reason);
+            }
+        }
+    }
+
+    public function testACellLongerThanACellCanBeIsRefused(): void
+    {
+        // A quote that never closes takes every line after it into one cell
+        $path = $this->file("Name,Notes\nMeadow,\"never closed\n" . str_repeat("another line, and another\n", 10_000));
+
+        self::assertSame(SpreadsheetUnreadableReason::CellTooLarge, $this->reasonWhileStreaming($path));
+
+        // Megabytes after such a quote are never read into one record: the parser sees a window of the file
+        $long = $this->file("Name,Notes\nMeadow,\"never closed\n" . str_repeat(str_repeat('another line, and another, ', 30) . "\n", 12_000));
+        gc_collect_cycles();
+        memory_reset_peak_usage();
+        $before = memory_get_usage();
+
+        self::assertGreaterThan(9_000_000, filesize($long));
+        self::assertSame(SpreadsheetUnreadableReason::CellTooLarge, $this->reasonWhileStreaming($long));
+        self::assertLessThan(8 * 1024 * 1024, memory_get_peak_usage() - $before);
+
+        // Records over many lines that do close are read across the window's edges, each in one piece
+        $multiline = $this->file("Name,Notes\n" . str_repeat("Meadow,\"line one\nline two, with a comma\nline three\"\nAlps,plain\n", 40_000));
+        $rows = $this->rowsOf($this->open($multiline, SpreadsheetFormat::Csv, new SpreadsheetLimits(maxRows: 100_000, maxRowsPerSheet: 100_000)));
+
+        self::assertCount(80_001, $rows);
+        self::assertSame(['Meadow', "line one\nline two, with a comma\nline three"], self::texts($rows[79_998]));
+        self::assertSame(['Alps', 'plain'], self::texts($rows[80_001]));
+        self::assertSame(['Name' => 1, 'Meadow' => 40_000, 'Alps' => 40_000], array_count_values(array_map(static fn (ReadRow $row): string => $row->cells[1]->asText(), $rows)));
+        self::assertSame(SpreadsheetUnreadableReason::CellTooLarge, $this->reasonWhileStreaming($this->file("A,B\n1," . str_repeat('x', 200) . "\n"), new SpreadsheetLimits(maxCellBytes: 199)));
+        self::assertNull($this->reasonWhileStreaming($this->file("A,B\n1," . str_repeat('x', 200) . "\n"), new SpreadsheetLimits(maxCellBytes: 200)));
+        // A line may be as long as a row, not longer
+        self::assertNull($this->reasonWhileStreaming($this->file("A,B\n" . str_repeat('x', 98) . ",y\n"), new SpreadsheetLimits(maxRowBytes: 100)));
+
+        try {
+            $this->open($this->file("A,B\n" . str_repeat('x', 99) . ",y\n"), SpreadsheetFormat::Csv, new SpreadsheetLimits(maxRowBytes: 100));
+            self::fail('A line longer than a row can be was accepted.');
+        } catch (SpreadsheetUnreadable $e) {
+            self::assertSame(SpreadsheetUnreadableReason::CellTooLarge, $e->reason);
+        }
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function textsWithControlCharacters(): iterable
+    {
+        // Three control characters in a file of honest text (a file of little else is no text at all)
+        $line = "Name;Note\nMea\x00dow;be\x07ll\x1B and\ttab\n" . str_repeat("Made-up puzzle;an ordinary note\n", 20);
+
+        yield 'UTF-8' => [$line];
+        yield 'Windows-1250' => [(string) iconv('UTF-8', 'Windows-1250', $line . "Žluťoučký;kůň\n")];
+        yield 'UTF-16 little endian' => ["\xFF\xFE" . mb_convert_encoding($line, 'UTF-16LE', 'UTF-8')];
+        yield 'UTF-16 big endian' => ["\xFE\xFF" . mb_convert_encoding($line, 'UTF-16BE', 'UTF-8')];
+    }
+
+    #[DataProvider('textsWithControlCharacters')]
+    public function testControlCharactersNeverReachACellWhateverTheEncoding(string $bytes): void
+    {
+        $rows = $this->rowsOf($this->open($this->file($bytes), SpreadsheetFormat::Csv));
+
+        // A NUL can not even be stored; a tab is text
+        self::assertSame(['Meadow', "bell and\ttab"], self::texts($rows[2]));
+
+        foreach ($rows as $row) {
+            foreach ($row->cells as $cell) {
+                self::assertDoesNotMatchRegularExpression('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', $cell->asText());
+            }
+        }
+    }
+
+    public function testATextFileThatIsMostlyControlCharactersIsNoSpreadsheetInUtf16Either(): void
+    {
+        try {
+            $this->open($this->file("\xFF\xFE" . mb_convert_encoding(str_repeat("a\x00\x01\x02;", 200), 'UTF-16LE', 'UTF-8')), SpreadsheetFormat::Csv);
+            self::fail('A file of control characters was opened.');
+        } catch (SpreadsheetUnreadable $e) {
+            self::assertSame(SpreadsheetUnreadableReason::NotASpreadsheet, $e->reason);
+        }
+    }
+
+    public function testOnlyTheCellsInsideAWindowAreHandedOut(): void
+    {
+        $workbook = $this->open($this->file("A,B,C,D\n1,2,3,4\n5,6,7,8\n9,10,11,12\n13,14,15,16\n"), SpreadsheetFormat::Csv);
+        $rows = iterator_to_array($workbook->rows($workbook->sheets()[0], new CellRange(2, 2, 3, 4)), false);
+
+        self::assertSame([2, 3, 4], array_map(static fn (ReadRow $row): int => $row->number, $rows));
+        self::assertSame([2 => '2', 3 => '3'], array_map(static fn ($cell) => $cell->value, $rows[0]->cells));
+        self::assertSame(3, $workbook->rowsRead());
+        self::assertSame(6, $workbook->cellsRead());
+    }
+
+    public function testAFolderThatCanNotBeWrittenIsTheServersFaultNotTheFiles(): void
+    {
+        $utf16 = $this->file("\xFF\xFE" . mb_convert_encoding("Name;Pieces\nMeadow;500\n", 'UTF-16LE', 'UTF-8'));
+        // A "folder" under a file: nothing can be made there, whoever runs the test
+        $reader = new SpreadsheetReader($this->file('not a folder', 'txt') . '/tmp');
+
+        // A file that needs no rewriting needs no folder
+        self::assertCount(1, $reader->open($this->file("Name;Pieces\nMeadow;500\n"), SpreadsheetFormat::Csv)->sheets());
+
+        $this->expectException(SpreadsheetReaderFailed::class);
+        $reader->open($utf16, SpreadsheetFormat::Csv);
     }
 
     /**
@@ -240,7 +377,11 @@ final class CsvReaderTest extends TestCase
     {
         $workbook = $this->open($this->file("\xFF\xFE" . mb_convert_encoding("Name;Pieces\nMeadow;500\n", 'UTF-16LE', 'UTF-8')), SpreadsheetFormat::Csv);
 
-        self::assertCount(1, (array) glob($this->folder . '/tmp/msp-spreadsheet-*.csv'));
+        // In a folder of its own that only the server reads, under a name nobody can guess
+        $folders = (array) glob($this->folder . '/tmp/msp-spreadsheet-*');
+        self::assertCount(1, $folders);
+        self::assertSame(0700, fileperms((string) $folders[0]) & 0777);
+        self::assertCount(1, (array) glob($folders[0] . '/*.csv'));
         self::assertCount(2, $this->rowsOf($workbook));
         // Read again from the start
         self::assertCount(2, $this->rowsOf($workbook));
@@ -270,7 +411,7 @@ final class CsvReaderTest extends TestCase
         return array_values(array_map(static fn ($cell): string => $cell->asText(), $row->cells));
     }
 
-    private function reasonWhileStreaming(string $path, SpreadsheetLimits $limits): null|SpreadsheetUnreadableReason
+    private function reasonWhileStreaming(string $path, SpreadsheetLimits $limits = new SpreadsheetLimits()): null|SpreadsheetUnreadableReason
     {
         try {
             $this->rowsOf($this->open($path, SpreadsheetFormat::Csv, $limits));

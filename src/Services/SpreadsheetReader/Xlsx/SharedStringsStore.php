@@ -4,23 +4,16 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\SpreadsheetReader\Xlsx;
 
-use OpenSpout\Reader\Exception\SharedStringNotFoundException;
-use OpenSpout\Reader\XLSX\Manager\SharedStringsCaching\CachingStrategyInterface;
+use SpeedPuzzling\Web\Exceptions\SpreadsheetReaderFailed;
+use SpeedPuzzling\Web\Services\SpreadsheetReader\TemporaryFolder;
 
 /**
- * Where OpenSpout keeps a workbook's shared strings (every distinct text of every sheet) while the sheets are read.
- *
- * OpenSpout's own two stores are bounded by the number of strings, not by their size: up to 10,000 strings - or all
- * of them, when PHP's memory limit looks roomy - stay in memory however long they are. A hostile workbook makes that
- * hundreds of megabytes. This one is bounded both ways: a small table stays in memory (the usual workbook), anything
- * more goes to one file in the reader's own temporary folder with an index of fixed-size records beside it, and a
- * lookup reads one string. Memory stays the same for a million strings.
- *
- * The interface is marked internal by OpenSpout, yet it is what its public CachingStrategyFactoryInterface - the
- * argument of its reader's constructor - must return. SharedStringsStoreTest pins the four calls the reader makes.
+ * Where a workbook's shared strings (every distinct text of every sheet) are kept while its rows are read. Bounded
+ * both ways: a small table stays in memory (the usual workbook), anything more goes to one file in the reader's
+ * temporary folder with an index of fixed-size records beside it, and a lookup reads one string. Memory stays the
+ * same for a million strings.
  */
-// @phpstan-ignore class.implementsInternalInterface (the public factory interface of OpenSpout's reader returns it; pinned by SharedStringsStoreTest)
-final class SharedStringsStore implements CachingStrategyInterface
+final class SharedStringsStore
 {
     private const int INDEX_RECORD_BYTES = 12;
     private const int WRITE_BUFFER_BYTES = 65_536;
@@ -37,6 +30,8 @@ final class SharedStringsStore implements CachingStrategyInterface
     private $data = null;
     /** @var null|resource */
     private $index = null;
+    /** @var list<string> */
+    private array $files = [];
     private string $dataBuffer = '';
     private string $indexBuffer = '';
     private int $dataBytes = 0;
@@ -45,7 +40,7 @@ final class SharedStringsStore implements CachingStrategyInterface
     private array $remembered = [];
 
     public function __construct(
-        private readonly string $folder,
+        private readonly TemporaryFolder $folder,
         private readonly int $maxStringsInMemory = 5_000,
         private readonly int $maxBytesInMemory = 1_048_576,
     ) {
@@ -53,20 +48,24 @@ final class SharedStringsStore implements CachingStrategyInterface
 
     public function __destruct()
     {
-        $this->clearCache();
+        $this->clear();
     }
 
-    public function addStringForIndex(string $sharedString, int $sharedStringIndex): void
+    public function count(): int
     {
-        if ($sharedStringIndex !== $this->count) {
-            throw new \LogicException('Shared strings arrive in order.');
-        }
+        return $this->count;
+    }
 
+    /**
+     * Adds the next string (they are numbered in the order they are added).
+     */
+    public function add(string $string): void
+    {
         $this->count++;
 
         if ($this->data === null) {
-            $this->inMemory[$sharedStringIndex] = $sharedString;
-            $this->inMemoryBytes += strlen($sharedString);
+            $this->inMemory[] = $string;
+            $this->inMemoryBytes += strlen($string);
 
             if ($this->count > $this->maxStringsInMemory || $this->inMemoryBytes > $this->maxBytesInMemory) {
                 $this->moveToFile();
@@ -75,82 +74,95 @@ final class SharedStringsStore implements CachingStrategyInterface
             return;
         }
 
-        $this->append($sharedString);
+        $this->append($string);
     }
 
-    public function closeCache(): void
+    /**
+     * After the last string: what is still in the write buffers goes to the file.
+     */
+    public function finish(): void
     {
         $this->flush();
     }
 
-    public function getStringAtIndex(int $sharedStringIndex): string
+    /**
+     * @return null|string null: there is no such string
+     */
+    public function get(int $number): null|string
     {
-        if ($this->data === null || $this->index === null) {
-            return $this->inMemory[$sharedStringIndex] ?? throw new SharedStringNotFoundException(sprintf('Shared string not found for index: %d', $sharedStringIndex));
+        if ($number < 0 || $number >= $this->count) {
+            return null;
         }
 
-        $slot = $sharedStringIndex % self::REMEMBERED_SLOTS;
+        if ($this->data === null || $this->index === null) {
+            return $this->inMemory[$number] ?? null;
+        }
 
-        if (isset($this->remembered[$slot]) && $this->remembered[$slot][0] === $sharedStringIndex) {
+        $slot = $number % self::REMEMBERED_SLOTS;
+
+        if (isset($this->remembered[$slot]) && $this->remembered[$slot][0] === $number) {
             return $this->remembered[$slot][1];
         }
 
-        if ($sharedStringIndex < 0 || $sharedStringIndex >= $this->count) {
-            throw new SharedStringNotFoundException(sprintf('Shared string not found for index: %d', $sharedStringIndex));
-        }
-
-        $record = stream_get_contents($this->index, self::INDEX_RECORD_BYTES, $sharedStringIndex * self::INDEX_RECORD_BYTES);
+        $record = stream_get_contents($this->index, self::INDEX_RECORD_BYTES, $number * self::INDEX_RECORD_BYTES);
         $position = is_string($record) && strlen($record) === self::INDEX_RECORD_BYTES ? unpack('Poffset/Vlength', $record) : false;
 
         if ($position === false || is_int($position['offset']) === false || is_int($position['length']) === false) {
-            throw new SharedStringNotFoundException(sprintf('Shared string not found for index: %d', $sharedStringIndex));
+            throw new SpreadsheetReaderFailed('The shared strings can not be read back from the temporary folder.');
         }
 
         $string = $position['length'] === 0 ? '' : stream_get_contents($this->data, $position['length'], $position['offset']);
 
         if (is_string($string) === false || strlen($string) !== $position['length']) {
-            throw new SharedStringNotFoundException(sprintf('Shared string not found for index: %d', $sharedStringIndex));
+            throw new SpreadsheetReaderFailed('The shared strings can not be read back from the temporary folder.');
         }
 
         if ($position['length'] <= self::REMEMBERED_STRING_BYTES) {
-            $this->remembered[$slot] = [$sharedStringIndex, $string];
+            $this->remembered[$slot] = [$number, $string];
         }
 
         return $string;
     }
 
-    public function clearCache(): void
+    /**
+     * Never throws.
+     */
+    public function clear(): void
     {
         $this->inMemory = [];
         $this->remembered = [];
+        $this->count = 0;
 
         foreach ([$this->data, $this->index] as $handle) {
             if (is_resource($handle)) {
-                $path = stream_get_meta_data($handle)['uri'] ?? null;
-                fclose($handle);
-
-                if (is_string($path)) {
-                    @unlink($path);
-                }
+                @fclose($handle);
             }
+        }
+
+        foreach ($this->files as $file) {
+            @unlink($file);
         }
 
         $this->data = null;
         $this->index = null;
+        $this->files = [];
     }
 
     private function moveToFile(): void
     {
-        $name = $this->folder . '/shared-strings-' . bin2hex(random_bytes(8));
-        $data = fopen($name . '.data', 'x+b');
-        $index = fopen($name . '.index', 'x+b');
+        $dataFile = $this->folder->newFile('strings');
+        $indexFile = $this->folder->newFile('index');
+        // "x": the file must not exist - nothing that is already in the folder is ever written into
+        $data = @fopen($dataFile, 'x+b');
+        $index = @fopen($indexFile, 'x+b');
 
         if ($data === false || $index === false) {
-            throw new \RuntimeException('The shared strings can not be written to the temporary folder.');
+            throw new SpreadsheetReaderFailed('The shared strings can not be written to the temporary folder.');
         }
 
         $this->data = $data;
         $this->index = $index;
+        $this->files = [$dataFile, $indexFile];
 
         foreach ($this->inMemory as $string) {
             $this->append($string);
@@ -178,13 +190,14 @@ final class SharedStringsStore implements CachingStrategyInterface
             return;
         }
 
+        // A full disk fails here, loudly - never a shorter file
         if (
-            fwrite($this->data, $this->dataBuffer) !== strlen($this->dataBuffer)
-            || fwrite($this->index, $this->indexBuffer) !== strlen($this->indexBuffer)
-            || fflush($this->data) === false
-            || fflush($this->index) === false
+            @fwrite($this->data, $this->dataBuffer) !== strlen($this->dataBuffer)
+            || @fwrite($this->index, $this->indexBuffer) !== strlen($this->indexBuffer)
+            || @fflush($this->data) === false
+            || @fflush($this->index) === false
         ) {
-            throw new \RuntimeException('The shared strings can not be written to the temporary folder.');
+            throw new SpreadsheetReaderFailed('The shared strings can not be written to the temporary folder.');
         }
 
         $this->dataBuffer = '';

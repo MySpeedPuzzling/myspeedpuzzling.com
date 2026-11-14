@@ -4,89 +4,82 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\SpreadsheetReader\Xlsx;
 
+use SpeedPuzzling\Web\Exceptions\SpreadsheetReaderFailed;
 use SpeedPuzzling\Web\Exceptions\SpreadsheetUnreadable;
 use SpeedPuzzling\Web\Value\Spreadsheet\SpreadsheetLimits;
 
 /**
- * The zip archive an .xlsx workbook is, checked before a byte of it is parsed
- * (docs/features/data-import/reader.md "Safety"):
+ * The zip archive an .xlsx workbook is - and **the only door to anything inside it**
+ * (docs/features/data-import/reader.md "Safety").
  *
- * - the file's size, that it is a zip at all (an old .xls, a password-protected workbook, an .ods, a .docx get their
- *   own reasons), the number of entries, no encrypted entry, no entry name that leaves the archive;
- * - what the archive says it unpacks to: all parts together, and the ratio to its packed size (a zip bomb);
- * - that it tells the truth: every XML part of the workbook is unpacked once, counted, and refused when it turns out
- *   longer than its header says - libzip hands out whatever the stream holds, so the declared sizes alone prove nothing;
- * - and that no such part declares a document type (where XML entities - the stuff of XML attacks - come from).
+ * When it is opened, before a byte is unpacked: the file's size, that it is a zip at all (an old .xls, a
+ * password-protected workbook, an .ods, a .docx get their own reasons), the number of entries, no encrypted entry, no
+ * entry name that leaves the archive or stands twice, and what the archive says it unpacks to (all parts together,
+ * and the ratio to its packed size - a zip bomb).
  *
- * Nothing is ever written to disk here, and pictures or other binary parts are never opened.
+ * What the archive says proves nothing - libzip hands out whatever a compressed stream holds - so every part is read
+ * through xml(), whatever its name and whoever points to it: the bytes it really unpacks to are counted as they are
+ * read, against the size its header declares and against one budget for the whole workbook, and XmlPart refuses a
+ * DOCTYPE. One ZipArchive, no stream wrapper, nothing written to disk, and a part nobody reads (a picture) is never
+ * opened.
  */
-final readonly class XlsxPackage
+final class XlsxPackage
 {
     public const array RELATIONSHIP_NAMESPACES = [
         'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
         'http://purl.oclc.org/ooxml/officeDocument/relationships',
     ];
 
-    public const string WORKBOOK = 'xl/workbook.xml';
-    public const string WORKBOOK_RELATIONSHIPS = 'xl/_rels/workbook.xml.rels';
-
     /** A part this small is not worth a ratio: a short repetitive XML packs well and harms nobody */
     private const int RATIO_FROM_BYTES = 1024 * 1024;
 
+    private bool $closed = false;
+
     /**
-     * @param array<string, int> $entries entry name => unpacked size
+     * @param array<string, array{int, int}> $entries entry name => [index in the archive, unpacked size it declares]
      */
     private function __construct(
-        public string $path,
-        private array $entries,
+        private readonly \ZipArchive $zip,
+        private readonly array $entries,
+        private readonly ReadBudget $budget,
     ) {
     }
 
     public static function open(string $path, SpreadsheetLimits $limits): self
     {
-        $realPath = is_file($path) && is_readable($path) ? realpath($path) : false;
-
-        if ($realPath === false) {
+        if (is_file($path) === false || is_readable($path) === false) {
             throw SpreadsheetUnreadable::damaged('the file can not be opened');
         }
 
-        if (str_contains($realPath, '#')) {
-            throw new \InvalidArgumentException('A workbook can not be read from a path with "#" in it.');
-        }
-
-        $size = (int) filesize($realPath);
+        $size = (int) filesize($path);
 
         if ($size > $limits->maxFileBytes) {
             throw SpreadsheetUnreadable::tooLarge(sprintf('the file has %d bytes', $size));
         }
 
-        $head = (string) file_get_contents($realPath, false, null, 0, 8);
+        $head = (string) file_get_contents($path, false, null, 0, 8);
 
         if ($head === "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1") {
-            throw self::holdsEncryptedPackage($realPath)
+            throw self::holdsEncryptedPackage($path)
                 ? SpreadsheetUnreadable::passwordProtected('the workbook is encrypted')
                 : SpreadsheetUnreadable::unsupportedFormat('an old .xls workbook');
         }
 
         $zip = new \ZipArchive();
 
-        if ($zip->open($realPath, \ZipArchive::RDONLY) !== true) {
+        if ($zip->open($path, \ZipArchive::RDONLY) !== true) {
             throw str_starts_with($head, "PK\x03\x04")
                 ? SpreadsheetUnreadable::damaged('the zip archive is broken or cut short')
                 : SpreadsheetUnreadable::notASpreadsheet('not a zip archive');
         }
 
         try {
-            $entries = self::checkedEntries($zip, $size, $limits);
-            self::assertIsWorkbook($entries);
-            self::assertSizesAreTrue($zip, $entries);
-        } finally {
+            return new self($zip, self::checkedEntries($zip, $size, $limits), new ReadBudget($limits->maxReadBytes));
+        } catch (\Throwable $e) {
             $zip->close();
+
+            throw $e;
         }
-
-        self::assertNoDocumentTypes($realPath, $entries);
-
-        return new self($realPath, $entries);
     }
 
     public function has(string $entry): bool
@@ -95,15 +88,55 @@ final readonly class XlsxPackage
     }
 
     /**
-     * @param int $maxNodes how many XML nodes the caller is ready to walk through
+     * Opens a part for reading - any part, by its exact name.
      */
-    public function xml(string $entry, int $maxNodes): XmlPart
+    public function xml(string $entry): XmlPart
     {
-        if ($this->has($entry) === false) {
+        $known = $this->entries[$entry] ?? null;
+
+        if ($known === null || $this->closed) {
             throw SpreadsheetUnreadable::damaged(sprintf('the part "%s" is missing', $entry));
         }
 
-        return XmlPart::open($this->path, $entry, $maxNodes);
+        $stream = @$this->zip->getStreamIndex($known[0]);
+
+        if ($stream === false) {
+            throw SpreadsheetUnreadable::damaged(sprintf('the part "%s" can not be unpacked', $entry));
+        }
+
+        $meter = new PartMeter($known[1], $this->budget);
+
+        if (PartMeterFilter::register() === false || stream_filter_append($stream, PartMeterFilter::NAME, STREAM_FILTER_READ, $meter) === false) {
+            fclose($stream);
+
+            throw new SpreadsheetReaderFailed('The byte meter can not be put on a stream.');
+        }
+
+        return XmlPart::over($stream, $meter, $entry);
+    }
+
+    /**
+     * What kind of archive this is when it turns out to hold no workbook.
+     */
+    public function notAWorkbook(): SpreadsheetUnreadable
+    {
+        return match (true) {
+            $this->has('xl/workbook.bin') => SpreadsheetUnreadable::unsupportedFormat('a binary .xlsb workbook'),
+            $this->has('mimetype') || $this->has('content.xml') => SpreadsheetUnreadable::unsupportedFormat('an OpenDocument file'),
+            $this->has('Index/Document.iwa') || $this->has('Index.zip') => SpreadsheetUnreadable::unsupportedFormat('a Numbers file'),
+            default => SpreadsheetUnreadable::notASpreadsheet('a zip archive without a workbook'),
+        };
+    }
+
+    /**
+     * Never throws.
+     */
+    public function close(): void
+    {
+        if ($this->closed === false) {
+            $this->closed = true;
+            @$this->zip->close();
+        }
     }
 
     /**
@@ -142,7 +175,7 @@ final readonly class XlsxPackage
     }
 
     /**
-     * @return array<string, int>
+     * @return array<string, array{int, int}>
      */
     private static function checkedEntries(\ZipArchive $zip, int $fileBytes, SpreadsheetLimits $limits): array
     {
@@ -172,12 +205,17 @@ final readonly class XlsxPackage
                 throw SpreadsheetUnreadable::damaged('a zip entry with a name that leaves the archive');
             }
 
+            // Two entries of one name: which one a reader gets depends on the reader - none of them here
+            if (isset($entries[$name])) {
+                throw SpreadsheetUnreadable::damaged('two zip entries of the same name');
+            }
+
             if ($stat['encryption_method'] !== \ZipArchive::EM_NONE) {
                 throw SpreadsheetUnreadable::passwordProtected('the archive holds an encrypted entry');
             }
 
             if ($unpacked >= self::RATIO_FROM_BYTES && $unpacked > max(1, $stat['comp_size']) * $limits->maxCompressionRatio) {
-                throw SpreadsheetUnreadable::tooLarge(sprintf('the part "%s" unpacks to %d× its size', $name, intdiv($unpacked, max(1, $stat['comp_size']))));
+                throw SpreadsheetUnreadable::tooLarge(sprintf('a part unpacks to %d× its size', intdiv($unpacked, max(1, $stat['comp_size']))));
             }
 
             $total += $unpacked;
@@ -186,7 +224,7 @@ final readonly class XlsxPackage
                 throw SpreadsheetUnreadable::tooLarge(sprintf('the workbook unpacks to more than %d bytes', $limits->maxUncompressedBytes));
             }
 
-            $entries[$name] = $unpacked;
+            $entries[$name] = [$index, $unpacked];
         }
 
         if ($total >= self::RATIO_FROM_BYTES && $total > max(1, $fileBytes) * $limits->maxCompressionRatio) {
@@ -194,105 +232,6 @@ final readonly class XlsxPackage
         }
 
         return $entries;
-    }
-
-    /**
-     * @param array<string, int> $entries
-     */
-    private static function assertIsWorkbook(array $entries): void
-    {
-        if (isset($entries[self::WORKBOOK], $entries[self::WORKBOOK_RELATIONSHIPS])) {
-            return;
-        }
-
-        throw match (true) {
-            isset($entries['xl/workbook.bin']) => SpreadsheetUnreadable::unsupportedFormat('a binary .xlsb workbook'),
-            isset($entries['mimetype']) || isset($entries['content.xml']) => SpreadsheetUnreadable::unsupportedFormat('an OpenDocument file'),
-            isset($entries['Index/Document.iwa']) || isset($entries['Index.zip']) => SpreadsheetUnreadable::unsupportedFormat('a Numbers file'),
-            isset($entries[self::WORKBOOK]) => SpreadsheetUnreadable::damaged('the workbook has no relationships part'),
-            default => SpreadsheetUnreadable::notASpreadsheet('a zip archive without a workbook'),
-        };
-    }
-
-    /**
-     * @param array<string, int> $entries
-     */
-    private static function assertSizesAreTrue(\ZipArchive $zip, array $entries): void
-    {
-        foreach ($entries as $name => $declared) {
-            if (self::isRead($name) === false) {
-                continue;
-            }
-
-            $stream = @$zip->getStream($name);
-
-            if ($stream === false) {
-                throw SpreadsheetUnreadable::damaged(sprintf('the part "%s" can not be unpacked', $name));
-            }
-
-            try {
-                $read = 0;
-
-                while (feof($stream) === false) {
-                    $chunk = fread($stream, 262_144);
-
-                    if ($chunk === false) {
-                        throw SpreadsheetUnreadable::damaged(sprintf('the part "%s" can not be unpacked', $name));
-                    }
-
-                    $read += strlen($chunk);
-
-                    if ($read > $declared) {
-                        throw SpreadsheetUnreadable::damaged(sprintf('the part "%s" is longer than the archive says', $name));
-                    }
-                }
-            } finally {
-                fclose($stream);
-            }
-
-            if ($read !== $declared) {
-                throw SpreadsheetUnreadable::damaged(sprintf('the part "%s" is shorter than the archive says', $name));
-            }
-        }
-    }
-
-    /**
-     * A workbook part never has a DOCTYPE - and without one no entity can be declared, so none can be expanded or
-     * fetched by whoever parses the part later (OpenSpout reads the workbook and the shared strings by itself). A
-     * DOCTYPE can only stand before the root element, so every part is opened and read up to there.
-     *
-     * @param array<string, int> $entries
-     */
-    private static function assertNoDocumentTypes(string $path, array $entries): void
-    {
-        foreach ($entries as $name => $size) {
-            if (self::isRead($name) === false) {
-                continue;
-            }
-
-            $xml = XmlPart::open($path, $name, 10_000);
-
-            try {
-                // XmlPart::read() refuses a document type declaration
-                while ($xml->read()) {
-                    if ($xml->reader->nodeType === \XMLReader::ELEMENT) {
-                        break;
-                    }
-                }
-            } finally {
-                $xml->close();
-            }
-        }
-    }
-
-    /**
-     * The parts somebody parses: the workbook's own XML. Pictures, printer settings, macros and custom XML are never
-     * opened, so what they hold does not matter.
-     */
-    private static function isRead(string $name): bool
-    {
-        return (str_starts_with($name, 'xl/') || $name === '_rels/.rels' || $name === '[Content_Types].xml')
-            && (str_ends_with($name, '.xml') || str_ends_with($name, '.rels'));
     }
 
     /**

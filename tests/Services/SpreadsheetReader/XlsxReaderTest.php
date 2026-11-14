@@ -12,12 +12,15 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx as XlsxWriter;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use SpeedPuzzling\Web\Exceptions\SpreadsheetUnreadable;
 use SpeedPuzzling\Web\Value\Spreadsheet\CellKind;
 use SpeedPuzzling\Web\Value\Spreadsheet\CellRange;
 use SpeedPuzzling\Web\Value\Spreadsheet\DatePrecision;
 use SpeedPuzzling\Web\Value\Spreadsheet\ReadCell;
 use SpeedPuzzling\Web\Value\Spreadsheet\ReadRow;
 use SpeedPuzzling\Web\Value\Spreadsheet\ReadTable;
+use SpeedPuzzling\Web\Value\Spreadsheet\SpreadsheetLimits;
+use SpeedPuzzling\Web\Value\Spreadsheet\SpreadsheetUnreadableReason;
 
 /**
  * Every workbook here is made up in the test: by PhpSpreadsheet's writer where it can write the shape, part by part
@@ -100,7 +103,6 @@ final class XlsxReaderTest extends TestCase
 
         foreach ($rows[2]->cells as $cell) {
             self::assertFalse($cell->isFormula);
-            self::assertNull($cell->hyperlink);
         }
     }
 
@@ -593,31 +595,235 @@ final class XlsxReaderTest extends TestCase
         self::assertSame('2024 results', self::cell($rows, 1, 1)->value);
     }
 
-    public function testALinkIsHandedOverWhenItIsNotTheCellsOwnText(): void
+    public function testLinksAreNotReadAndACellKeepsItsText(): void
     {
         $workbook = $this->open($this->saved(
-            (new RawXlsx())
-                ->sheet(
-                    'Links',
-                    RawXlsx::worksheet([
-                        1 => ['A' => RawXlsx::inline('Picture'), 'B' => RawXlsx::inline('https://example.test/typed'), 'C' => RawXlsx::n('12')],
-                        2 => ['A' => RawXlsx::inline('No link')],
-                    ]),
-                    links: ['A1' => 'https://example.test/picture.jpg?id=1&size=2', 'B1' => 'https://example.test/typed', 'C1:D1' => 'https://example.test/number', 'F9' => 'https://example.test/empty-cell'],
-                )
-                ->sheet('No links', RawXlsx::worksheet([1 => ['A' => RawXlsx::inline('Plain')]])),
+            (new RawXlsx())->sheet(
+                'Links',
+                RawXlsx::worksheet([1 => ['A' => RawXlsx::inline('Picture'), 'B' => RawXlsx::inline('https://example.test/typed')]]),
+                links: ['A1' => 'javascript:alert(1)', 'B1' => 'https://example.test/typed'],
+            ),
         ));
 
         $rows = $this->rowsOf($workbook);
 
-        self::assertSame('Picture', self::cell($rows, 1, 1)->value);
-        self::assertSame('https://example.test/picture.jpg?id=1&size=2', self::cell($rows, 1, 1)->hyperlink);
-        // The cell shows the address itself: nothing to add
-        self::assertNull(self::cell($rows, 1, 2)->hyperlink);
-        self::assertSame(12, self::cell($rows, 1, 3)->value);
-        self::assertSame('https://example.test/number', self::cell($rows, 1, 3)->hyperlink);
-        self::assertNull(self::cell($rows, 2, 1)->hyperlink);
-        self::assertNull(self::cell($this->rowsOf($workbook, 2), 1, 1)->hyperlink);
+        // Where a cell links to is not handed out (it would cost a second pass); an address typed into a cell is its text
+        self::assertSame(['Picture', 'https://example.test/typed'], array_column($rows[1]->cells, 'value'));
+    }
+
+    public function testOnlyTheCellsInsideAWindowAreHandedOut(): void
+    {
+        $cells = [];
+
+        // Two tables side by side: results in A-C (header in row 3), drills in E-F (header in row 3), a note far right
+        for ($row = 3; $row <= 12; $row++) {
+            $cells[$row] = [
+                'A' => RawXlsx::inline('left ' . $row),
+                'B' => RawXlsx::n((string) $row),
+                'C' => RawXlsx::n('0.5', 1),
+                'E' => RawXlsx::inline('right ' . $row),
+                'F' => RawXlsx::n((string) ($row * 10)),
+                'CZ' => RawXlsx::inline('far away'),
+            ];
+        }
+
+        $cells[1] = ['A' => RawXlsx::inline('A dashboard above')];
+        $cells[40] = ['E' => RawXlsx::inline('below the tables')];
+        ksort($cells);
+
+        $workbook = $this->open($this->saved(
+            (new RawXlsx())->styles([21])->sheet('Side by side', RawXlsx::worksheet($cells), tables: [RawXlsx::table('Left', 'A3:C12'), RawXlsx::table('Right', 'E3:F8')]),
+        ));
+        $sheet = $workbook->sheets()[0];
+        [$left, $right] = $sheet->tables;
+
+        $leftRows = iterator_to_array($workbook->rows($sheet, $left->range), false);
+
+        self::assertCount(10, $leftRows);
+        self::assertSame(3, $leftRows[0]->number);
+        self::assertSame([1, 2, 3], array_keys($leftRows[0]->cells));
+        self::assertSame('left 12', $leftRows[9]->cells[1]->value);
+        self::assertSame(43200, $leftRows[9]->cells[3]->value);
+
+        $rightRows = iterator_to_array($workbook->rows($sheet, $right->range), false);
+
+        // Rows 3-8, columns E-F: the column numbers are the sheet's
+        self::assertSame([3, 4, 5, 6, 7, 8], array_map(static fn (ReadRow $row): int => $row->number, $rightRows));
+        self::assertSame([5, 6], array_keys($rightRows[5]->cells));
+        self::assertSame('right 8', $rightRows[5]->cells[5]->value);
+        self::assertSame(80, $rightRows[5]->cells[6]->value);
+
+        // Only what was handed out is counted
+        self::assertSame(16, $workbook->rowsRead());
+        self::assertSame(30 + 12, $workbook->cellsRead());
+
+        // A window nothing is in
+        self::assertSame([], iterator_to_array($workbook->rows($sheet, new CellRange(10, 20, 12, 30)), false));
+        // The whole sheet is as wide as its widest row
+        self::assertSame(104, $this->rowsOf($workbook)[3]->lastColumn());
+    }
+
+    public function testWhatWasReadIsCountedAndTheRestOfTheBudgetGoesToTheNextJob(): void
+    {
+        $path = $this->saved(
+            (new RawXlsx())
+                ->sheet('One', RawXlsx::worksheet([1 => ['A' => RawXlsx::n('1'), 'B' => RawXlsx::n('2')], 2 => ['A' => RawXlsx::n('3')], 3 => ['A' => RawXlsx::n('4')]]))
+                ->sheet('Two', RawXlsx::worksheet([1 => ['A' => RawXlsx::n('1'), 'B' => RawXlsx::n('2')], 2 => ['A' => RawXlsx::n('3')], 3 => ['A' => RawXlsx::n('4')]])),
+        );
+        $limits = new SpreadsheetLimits(maxRows: 5, maxCells: 7);
+
+        // The first job reads the first sheet…
+        $first = $this->open($path, limits: $limits);
+        self::assertSame(0, $first->rowsRead());
+        self::assertCount(3, $this->rowsOf($first, 1));
+        self::assertSame(3, $first->rowsRead());
+        self::assertSame(4, $first->cellsRead());
+
+        // … and hands what is left of the budget to the job that reads the second
+        $left = $limits->withConsumed($first->rowsRead(), $first->cellsRead());
+        $first->close();
+
+        self::assertSame(2, $left->maxRows);
+        self::assertSame(3, $left->maxCells);
+        self::assertSame($limits->maxSheets, $left->maxSheets);
+
+        $second = $this->open($path, limits: $left);
+
+        try {
+            $this->rowsOf($second, 2);
+            self::fail('Six rows were read with a budget of five.');
+        } catch (SpreadsheetUnreadable $e) {
+            self::assertSame(SpreadsheetUnreadableReason::TooManyRows, $e->reason);
+        }
+
+        self::assertSame(0, $limits->withConsumed(9, 9)->maxRows);
+
+        // Everything but the two budgets is carried over as it is
+        $custom = new SpreadsheetLimits(1, 2, 30, 4, 5, 60, 7, 8, 9, 10, 11, 12, 13);
+        $expected = get_object_vars($custom);
+        $expected['maxRows'] = 20;
+        $expected['maxCells'] = 45;
+
+        self::assertSame($expected, get_object_vars($custom->withConsumed(10, 15)));
+    }
+
+    public function testANumberPaddedWithZerosKeepsThemAndSaysItIsACode(): void
+    {
+        $rows = $this->rowsOf($this->open($this->saved(
+            (new RawXlsx())
+                ->styles(['0000000000000', '00000', '0.00'])
+                ->sheet('Codes', RawXlsx::worksheet([1 => [
+                    // A barcode that starts with zeros, typed as a number and formatted to thirteen digits
+                    'A' => RawXlsx::n('45555123456', 1),
+                    'B' => RawXlsx::n('42', 2),
+                    'C' => RawXlsx::n('42', 3),
+                    'D' => RawXlsx::n('1234567', 2),
+                    'E' => RawXlsx::n('4.5', 2),
+                ]])),
+        )));
+
+        $barcode = self::cell($rows, 1, 1);
+        self::assertSame(45555123456, $barcode->value);
+        self::assertSame('0045555123456', $barcode->shown);
+        self::assertSame(13, $barcode->paddedDigits);
+
+        self::assertSame('00042', self::cell($rows, 1, 2)->shown);
+        self::assertSame(5, self::cell($rows, 1, 2)->paddedDigits);
+        self::assertSame('42', self::cell($rows, 1, 3)->shown);
+        self::assertNull(self::cell($rows, 1, 3)->paddedDigits);
+        // Longer than the padding, and not a whole number: shown as the number it is
+        self::assertSame('1234567', self::cell($rows, 1, 4)->shown);
+        self::assertSame('4.5', self::cell($rows, 1, 5)->shown);
+    }
+
+    public function testADayIsNotMovedByRoundingButAShownTimeIsRoundedToTheSecond(): void
+    {
+        $rows = $this->rowsOf($this->open($this->saved(
+            (new RawXlsx())
+                ->styles([14, 'm/d/yyyy h:mm:ss', 21, 'mmmm\ yyyy'])
+                ->sheet('Midnight', RawXlsx::worksheet([1 => [
+                    // 0.3 s and a hair before midnight of 5 March
+                    'A' => RawXlsx::n('45355.9999965', 1),
+                    'B' => RawXlsx::n('45355.9999965', 2),
+                    'C' => RawXlsx::n('0.9999965', 3),
+                    'D' => RawXlsx::n('45355.999999999', 1),
+                    // The last second of February shown as a month
+                    'E' => RawXlsx::n('45351.9999965', 4),
+                    'F' => RawXlsx::n('45355.99998', 2),
+                ]])),
+        )));
+
+        // A cell that shows only its day is that day
+        self::assertSame('2024-03-04', self::cell($rows, 1, 1)->shown);
+        self::assertSame('2024-03-04', self::cell($rows, 1, 4)->shown);
+        self::assertSame('2024-02', self::cell($rows, 1, 5)->shown);
+        // A cell that shows its time shows it rounded to the second - seconds first, then the day
+        self::assertSame('2024-03-05 00:00:00', self::cell($rows, 1, 2)->shown);
+        self::assertSame(0, self::cell($rows, 1, 2)->timeSeconds);
+        self::assertSame([CellKind::TimeOfDay, 0, '0:00:00'], self::kindValueShown(self::cell($rows, 1, 3)));
+        self::assertSame('2024-03-04 23:59:58', self::cell($rows, 1, 6)->shown);
+    }
+
+    public function testTextWithoutPreservedWhiteSpaceIsShownAsExcelShowsIt(): void
+    {
+        $sheetData = '<sheetData><row r="1">'
+            . '<c r="A1" t="s"><v>0</v></c><c r="B1" t="s"><v>1</v></c><c r="C1" t="s"><v>2</v></c>'
+            . '<c r="D1" t="inlineStr"><is><t>  typed in place  </t></is></c>'
+            . '<c r="E1" t="inlineStr"><is><t xml:space="preserve">  typed in place  </t></is></c>'
+            . '</row></sheetData>';
+
+        $rows = $this->rowsOf($this->open($this->saved(
+            (new RawXlsx())
+                ->sharedStrings(['<si><t>  not preserved  </t></si>', '<si><t xml:space="preserve">  preserved  </t></si>', "<si>\n  <r><t xml:space=\"preserve\">Rich </t></r>\n  <r><t>\n    text\n  </t></r>\n</si>"])
+                ->sheet('Spaces', RawXlsx::worksheetAround($sheetData)),
+        )));
+
+        // Without xml:space="preserve" the white space around a text is the file's layout, not the player's
+        self::assertSame('not preserved', self::cell($rows, 1, 1)->value);
+        self::assertSame('  preserved  ', self::cell($rows, 1, 2)->value);
+        self::assertSame('Rich text', self::cell($rows, 1, 3)->value);
+        self::assertSame('typed in place', self::cell($rows, 1, 4)->value);
+        self::assertSame('  typed in place  ', self::cell($rows, 1, 5)->value);
+    }
+
+    public function testTheRelationshipsNamespaceMayHaveAnyPrefix(): void
+    {
+        $path = $this->saved(
+            (new RawXlsx())
+                ->sharedStrings(['found'])
+                ->sheet('Any prefix', RawXlsx::worksheet([1 => ['A' => RawXlsx::s(0)]]))
+                ->part('xl/workbook.xml', '<?xml version="1.0"?><x:workbook xmlns:x="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:rel="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+                    . '<x:sheets><x:sheet name="Any prefix" sheetId="1" rel:id="rId1"/></x:sheets></x:workbook>'),
+        );
+
+        $workbook = $this->open($path);
+
+        self::assertSame(['Any prefix'], array_column($workbook->sheets(), 'title'));
+        self::assertSame('found', self::cell($this->rowsOf($workbook), 1, 1)->value);
+    }
+
+    public function testTheWorkbookIsFoundThroughThePackagesRelationshipsWhateverItsName(): void
+    {
+        $workbook = new RawXlsx();
+        $workbook->sharedStrings(['elsewhere'])->sheet('Moved', RawXlsx::worksheet([1 => ['A' => RawXlsx::s(0)]]));
+        $parts = $workbook->parts();
+
+        $path = $this->path();
+        $zip = new \ZipArchive();
+        $zip->open($path, \ZipArchive::CREATE);
+
+        // The same workbook with every part under another folder and other names - only the relationships say where
+        foreach ($parts as $entry => $content) {
+            $zip->addFromString(strtr($entry, ['xl/' => 'book/', 'workbook.xml' => 'main.xml', 'sharedStrings.xml' => 'texts.dat', 'sheet1.xml' => 'first.part']), strtr($content, [
+                'Target="xl/workbook.xml"' => 'Target="book/main.xml"',
+                'Target="sharedStrings.xml"' => 'Target="texts.dat"',
+                'Target="worksheets/sheet1.xml"' => 'Target="worksheets/first.part"',
+            ]));
+        }
+
+        $zip->close();
+
+        self::assertSame('elsewhere', self::cell($this->rowsOf($this->open($path)), 1, 1)->value);
     }
 
     public function testTheDateSystemOf1904IsHonoured(): void
@@ -671,7 +877,7 @@ final class XlsxReaderTest extends TestCase
                         'F' => RawXlsx::n('2958466', 1),
                         // A date typed with a wrong year is still a date - the layer above calls it a problem
                         'G' => RawXlsx::n('46818', 1),
-                        // Rounding up to midnight moves the day
+                        // A hair before midnight is still the day it is
                         'H' => RawXlsx::n('45355.999999999', 1),
                     ],
                 ])),
@@ -686,7 +892,7 @@ final class XlsxReaderTest extends TestCase
         self::assertSame([CellKind::Number, -5, '-5'], self::kindValueShown(self::cell($rows, 1, 5)));
         self::assertSame(CellKind::Number, self::cell($rows, 1, 6)->kind);
         self::assertSame('2028-03-06', self::cell($rows, 1, 7)->asDate()->format('Y-m-d'));
-        self::assertSame('2024-03-05', self::cell($rows, 1, 8)->asDate()->format('Y-m-d'));
+        self::assertSame('2024-03-04', self::cell($rows, 1, 8)->asDate()->format('Y-m-d'));
     }
 
     public function testNumbersAreShownWithoutFloatNoise(): void
@@ -733,6 +939,8 @@ final class XlsxReaderTest extends TestCase
             . '<c r="C1" t="d" s="1"><v>2024-03-05T13:30:00</v></c>'
             . '<c r="D1" t="d"><v>not a date</v></c>'
             . '<c r="E1" t="d"><v>2024-02-31</v></c>'
+            . '<c r="F1" t="d"><v>2024-03-05T99:99:00</v></c>'
+            . '<c r="G1" t="d"><v>2024-03-05T13:30:00.250+01:00</v></c>'
             . '</row></sheetData>';
 
         $rows = $this->rowsOf($this->open($this->saved((new RawXlsx())->styles(['mmmm\ yyyy'])->sheet('Strict', RawXlsx::worksheetAround($sheetData)))));
@@ -743,8 +951,11 @@ final class XlsxReaderTest extends TestCase
         self::assertSame(48600, self::cell($rows, 1, 2)->timeSeconds);
         self::assertSame('2024-03', self::cell($rows, 1, 3)->shown);
         self::assertNull(self::cell($rows, 1, 3)->timeSeconds);
-        self::assertSame([CellKind::Text, 'not a date', 'not a date'], self::kindValueShown(self::cell($rows, 1, 4)));
-        self::assertSame(CellKind::Text, self::cell($rows, 1, 5)->kind);
+        // What is no date in a cell that says it holds one is an error value - never a guess
+        self::assertSame([CellKind::Error, '#VALUE!', '#VALUE!'], self::kindValueShown(self::cell($rows, 1, 4)));
+        self::assertSame(CellKind::Error, self::cell($rows, 1, 5)->kind);
+        self::assertSame(CellKind::Error, self::cell($rows, 1, 6)->kind);
+        self::assertSame('2024-03-05 13:30:00', self::cell($rows, 1, 7)->shown);
     }
 
     public function testASheetCanBeStreamedAgainAndOnlyByItsOwnWorkbook(): void
@@ -854,7 +1065,6 @@ final class XlsxReaderTest extends TestCase
         self::assertSame(['Puzzle', 'Pieces', 'Finished', 'Time', 'Month', 'No box?', 'Share'], array_column($rows[3]->cells, 'value'));
 
         self::assertSame('Made-up Meadow', self::cell($rows, 4, 1)->value);
-        self::assertSame('https://example.test/meadow', self::cell($rows, 4, 1)->hyperlink);
         self::assertSame(500, self::cell($rows, 4, 2)->value);
 
         $finished = self::cell($rows, 4, 3);

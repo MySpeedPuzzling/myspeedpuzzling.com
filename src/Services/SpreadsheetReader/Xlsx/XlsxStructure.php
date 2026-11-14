@@ -15,18 +15,23 @@ use SpeedPuzzling\Web\Value\Spreadsheet\SpreadsheetLimits;
 
 /**
  * What a workbook is made of, read from its small parts before any row: the sheets in tab order with their visibility,
- * the date system, every cell style's number format (xl/styles.xml), and per sheet its used range, frozen pane and
- * Excel tables. The pass of our own that a streaming reader does not give (docs/features/data-import/README.md D14).
+ * the date system, every cell style's number format, where the shared strings are, and per sheet its used range,
+ * frozen pane and Excel tables.
+ *
+ * Every part is found through the relationships (never by a name it "should" have) and read through
+ * XlsxPackage::xml() - so whatever a relationship points at is metered and checked like any other part. Nothing here
+ * is done once per tab of an untrusted workbook without a cap in front of it.
  */
 final readonly class XlsxStructure
 {
     /** More cell styles than Excel itself allows (64,000) is not a workbook anybody made */
     private const int MAX_CELL_STYLES = 70_000;
     private const int MAX_NUMBER_FORMATS = 10_000;
-    private const int MAX_RELATIONSHIPS = 20_000;
+    /** Relationships of one part that are looked at (a sheet with a link in every row has tens of thousands) … */
+    private const int MAX_RELATIONSHIPS_SEEN = 100_000;
+    /** … and kept: only the kinds asked for */
+    private const int MAX_RELATIONSHIPS_KEPT = 5_000;
     private const int MAX_TABLES = 2_000;
-    /** Nodes of a small part (workbook.xml, a table's root, a sheet up to its first row) */
-    private const int SMALL_PART_NODES = 200_000;
 
     /**
      * @param list<NumberFormat> $cellFormats cell style index (a cell's "s") => its number format
@@ -38,19 +43,23 @@ final readonly class XlsxStructure
         public array $cellFormats,
         public array $sheets,
         public array $entries,
+        public null|string $sharedStringsEntry,
     ) {
     }
 
     public static function read(XlsxPackage $package, SpreadsheetLimits $limits): self
     {
-        $relationships = self::relationships($package, XlsxPackage::WORKBOOK);
+        $workbookEntry = self::workbookEntry($package);
+        $relationships = self::relationships($package, $workbookEntry, ['/worksheet', '/styles', '/sharedStrings']);
         $date1904 = false;
         $sheets = [];
         $entries = [];
         $titles = [];
+        $tabs = 0;
         $tablesLeft = self::MAX_TABLES;
+        $root = true;
 
-        $xml = $package->xml(XlsxPackage::WORKBOOK, self::SMALL_PART_NODES);
+        $xml = $package->xml($workbookEntry);
 
         try {
             while ($xml->read()) {
@@ -58,28 +67,42 @@ final readonly class XlsxStructure
                     continue;
                 }
 
-                if ($xml->reader->localName === 'workbookPr') {
+                $name = $xml->reader->localName;
+
+                if ($root) {
+                    $root = false;
+
+                    if ($name !== 'workbook') {
+                        throw $package->notAWorkbook();
+                    }
+
+                    continue;
+                }
+
+                if ($name === 'workbookPr') {
                     $date1904 = in_array(strtolower((string) $xml->attribute('date1904')), ['1', 'true', 'on'], true);
 
                     continue;
                 }
 
-                if ($xml->reader->localName !== 'sheet') {
+                if ($name !== 'sheet') {
                     continue;
+                }
+
+                // Every tab counts - a chart sheet too: nothing is done a hundred thousand times for a hostile workbook
+                if (++$tabs > $limits->maxSheets) {
+                    throw SpreadsheetUnreadable::tooManySheets($limits->maxSheets);
                 }
 
                 $relationship = $relationships[(string) $xml->relationshipId()] ?? null;
 
-                // A chart sheet, a macro sheet: tabs without cells
+                // A chart sheet, a macro sheet: tabs without cells - their parts are never opened
                 if ($relationship === null || str_ends_with($relationship['type'], '/worksheet') === false) {
                     continue;
                 }
 
-                if (count($sheets) >= $limits->maxSheets) {
-                    throw SpreadsheetUnreadable::tooManySheets($limits->maxSheets);
-                }
-
-                $title = (string) $xml->attribute('name');
+                // A tab's name is 31 characters at most
+                $title = mb_strcut((string) $xml->attribute('name'), 0, 255, 'UTF-8');
                 $entry = $relationship['entry'];
 
                 if (isset($titles[$title]) || $package->has($entry) === false) {
@@ -111,15 +134,23 @@ final readonly class XlsxStructure
             throw SpreadsheetUnreadable::damaged('the workbook has no sheet');
         }
 
-        return new self($date1904, self::cellFormats($package, $relationships), $sheets, $entries);
+        return new self(
+            $date1904,
+            self::cellFormats($package, self::target($package, $relationships, '/styles')),
+            $sheets,
+            $entries,
+            self::target($package, $relationships, '/sharedStrings'),
+        );
     }
 
     /**
-     * The relationships of a part.
+     * The relationships of a part that point to another part of the workbook and are of a kind asked for.
      *
-     * @return array<string, array{type: string, entry: string, target: string, external: bool}> relationship id => …
+     * @param list<string> $typeEndings how the wanted kinds end: "/worksheet", "/table" …
+     *
+     * @return array<string, array{type: string, entry: string}> relationship id => …
      */
-    public static function relationships(XlsxPackage $package, string $entry): array
+    private static function relationships(XlsxPackage $package, string $entry, array $typeEndings): array
     {
         $relationshipsEntry = XlsxPackage::relationshipsOf($entry);
 
@@ -128,7 +159,8 @@ final readonly class XlsxStructure
         }
 
         $relationships = [];
-        $xml = $package->xml($relationshipsEntry, self::MAX_RELATIONSHIPS * 4);
+        $seen = 0;
+        $xml = $package->xml($relationshipsEntry);
 
         try {
             while ($xml->read()) {
@@ -136,25 +168,68 @@ final readonly class XlsxStructure
                     continue;
                 }
 
-                if (count($relationships) >= self::MAX_RELATIONSHIPS) {
+                if (++$seen > self::MAX_RELATIONSHIPS_SEEN || count($relationships) >= self::MAX_RELATIONSHIPS_KEPT) {
                     break;
                 }
 
+                $type = (string) $xml->attribute('Type');
+                $id = (string) $xml->attribute('Id');
                 $target = (string) $xml->attribute('Target');
-                $external = $xml->attribute('TargetMode') === 'External';
+                $wanted = false;
 
-                $relationships[(string) $xml->attribute('Id')] = [
-                    'type' => (string) $xml->attribute('Type'),
-                    'entry' => $external ? '' : XlsxPackage::resolve($entry, $target),
-                    'target' => $target,
-                    'external' => $external,
-                ];
+                foreach ($typeEndings as $ending) {
+                    $wanted = $wanted || str_ends_with($type, $ending);
+                }
+
+                // A link to the outside is no part; names longer than any writer makes are not kept
+                if ($wanted === false || $xml->attribute('TargetMode') === 'External' || strlen($id) > 255 || strlen($target) > 1024) {
+                    continue;
+                }
+
+                $relationships[$id] = ['type' => $type, 'entry' => XlsxPackage::resolve($entry, $target)];
             }
         } finally {
             $xml->close();
         }
 
         return $relationships;
+    }
+
+    /**
+     * The workbook part: what the package's own relationships call the office document, else xl/workbook.xml.
+     */
+    private static function workbookEntry(XlsxPackage $package): string
+    {
+        foreach (self::relationships($package, '', ['/officeDocument']) as $relationship) {
+            if (str_ends_with($relationship['type'], '/officeDocument') && $package->has($relationship['entry'])) {
+                // A binary workbook is no XML at all
+                if (str_ends_with($relationship['entry'], '.bin')) {
+                    throw $package->notAWorkbook();
+                }
+
+                return $relationship['entry'];
+            }
+        }
+
+        if ($package->has('xl/workbook.xml')) {
+            return 'xl/workbook.xml';
+        }
+
+        throw $package->notAWorkbook();
+    }
+
+    /**
+     * @param array<string, array{type: string, entry: string}> $relationships
+     */
+    private static function target(XlsxPackage $package, array $relationships, string $typeEnding): null|string
+    {
+        foreach ($relationships as $relationship) {
+            if (str_ends_with($relationship['type'], $typeEnding) && $package->has($relationship['entry'])) {
+                return $relationship['entry'];
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -166,7 +241,7 @@ final readonly class XlsxStructure
     {
         $usedRange = null;
         $frozenPane = null;
-        $xml = $package->xml($entry, self::SMALL_PART_NODES);
+        $xml = $package->xml($entry);
 
         try {
             while ($xml->read()) {
@@ -181,12 +256,12 @@ final readonly class XlsxStructure
                 }
 
                 if ($name === 'dimension') {
-                    $usedRange = CellRange::fromA1((string) $xml->attribute('ref'));
+                    $usedRange = CellRange::fromA1(substr((string) $xml->attribute('ref'), 0, 32));
                 } elseif ($name === 'pane' && $frozenPane === null && in_array($xml->attribute('state'), ['frozen', 'frozenSplit'], true)) {
-                    $rows = (int) (float) $xml->attribute('ySplit');
-                    $columns = (int) (float) $xml->attribute('xSplit');
+                    $rows = self::split($xml, 'ySplit', CellRange::MAX_ROW);
+                    $columns = self::split($xml, 'xSplit', CellRange::MAX_COLUMN);
 
-                    if ($rows >= 0 && $rows < CellRange::MAX_ROW && $columns >= 0 && $columns < CellRange::MAX_COLUMN && $rows + $columns > 0) {
+                    if ($rows + $columns > 0) {
                         $frozenPane = new FrozenPane($rows + 1, $columns + 1);
                     }
                 }
@@ -199,6 +274,24 @@ final readonly class XlsxStructure
     }
 
     /**
+     * How many rows or columns a pane freezes: a whole number, which some writers spell "6.0".
+     */
+    private static function split(XmlPart $xml, string $attribute, int $below): int
+    {
+        $value = $xml->attribute($attribute);
+
+        if ($value === null) {
+            return 0;
+        }
+
+        if (preg_match('/^(\d{1,7})(\.0+)?$/', $value, $match) !== 1 || (int) $match[1] >= $below) {
+            throw SpreadsheetUnreadable::damaged('a frozen pane that freezes no whole number of rows or columns');
+        }
+
+        return (int) $match[1];
+    }
+
+    /**
      * The Excel tables of a sheet: its relationships name their parts, each part's root element says where it is.
      *
      * @return list<ReadTable> top to bottom, left to right
@@ -207,16 +300,16 @@ final readonly class XlsxStructure
     {
         $tables = [];
 
-        foreach (self::relationships($package, $sheetEntry) as $relationship) {
+        foreach (self::relationships($package, $sheetEntry, ['/table']) as $relationship) {
             if (count($tables) >= $atMost) {
                 break;
             }
 
-            if (str_ends_with($relationship['type'], '/table') === false || $package->has($relationship['entry']) === false) {
+            if ($package->has($relationship['entry']) === false) {
                 continue;
             }
 
-            $xml = $package->xml($relationship['entry'], self::SMALL_PART_NODES);
+            $xml = $package->xml($relationship['entry']);
 
             try {
                 while ($xml->read()) {
@@ -224,14 +317,14 @@ final readonly class XlsxStructure
                         continue;
                     }
 
-                    $range = $xml->reader->localName === 'table' ? CellRange::fromA1((string) $xml->attribute('ref')) : null;
+                    $range = $xml->reader->localName === 'table' ? CellRange::fromA1(substr((string) $xml->attribute('ref'), 0, 32)) : null;
 
                     if ($range !== null) {
-                        $headerRows = $xml->attribute('headerRowCount') === null ? 1 : (int) $xml->attribute('headerRowCount');
-                        $totalsRows = min(max(0, (int) $xml->attribute('totalsRowCount')), $range->rows() - 1);
+                        $headerRows = $xml->number('headerRowCount', 1, CellRange::MAX_ROW);
+                        $totalsRows = min($xml->number('totalsRowCount', 0, CellRange::MAX_ROW), $range->rows() - 1);
 
                         $tables[] = new ReadTable(
-                            name: (string) ($xml->attribute('displayName') ?? $xml->attribute('name')),
+                            name: mb_strcut((string) ($xml->attribute('displayName') ?? $xml->attribute('name')), 0, 255, 'UTF-8'),
                             range: $range,
                             headerRow: $headerRows > 0 ? $range->firstRow : null,
                             totalsRows: $totalsRows,
@@ -252,33 +345,23 @@ final readonly class XlsxStructure
     }
 
     /**
-     * xl/styles.xml: <numFmts> spells out the workbook's own formats, <cellXfs> lists the cell styles a cell's "s"
-     * points into; each names a format by number.
-     *
-     * @param array<string, array{type: string, entry: string, target: string, external: bool}> $relationships
+     * The styles part: <numFmts> right under the root spells out the workbook's own formats, <cellXfs> lists the cell
+     * styles a cell's "s" points into; each names a format by number. Nothing after </cellXfs> is read - the formats
+     * of conditional formatting (<dxfs>) reuse the same numbers for other codes.
      *
      * @return list<NumberFormat>
      */
-    private static function cellFormats(XlsxPackage $package, array $relationships): array
+    private static function cellFormats(XlsxPackage $package, null|string $entry): array
     {
-        $entry = null;
-
-        foreach ($relationships as $relationship) {
-            if (str_ends_with($relationship['type'], '/styles')) {
-                $entry = $relationship['entry'];
-            }
-        }
-
-        if ($entry === null || $package->has($entry) === false) {
+        if ($entry === null) {
             return [];
         }
 
         $codes = [];
         $formatIds = [];
+        $inNumberFormats = false;
         $inCellFormats = false;
-        // Fonts, fills, borders and differential styles are walked through too - a styles part has no more of them
-        // than cell styles times a handful
-        $xml = $package->xml($entry, self::MAX_CELL_STYLES * 60);
+        $xml = $package->xml($entry);
 
         try {
             while ($xml->read()) {
@@ -286,8 +369,12 @@ final readonly class XlsxStructure
                 $name = $xml->reader->localName;
 
                 if ($type === \XMLReader::END_ELEMENT) {
-                    if ($name === 'cellXfs') {
-                        $inCellFormats = false;
+                    if ($name === 'cellXfs' && $inCellFormats) {
+                        break;
+                    }
+
+                    if ($name === 'numFmts') {
+                        $inNumberFormats = false;
                     }
 
                     continue;
@@ -297,21 +384,27 @@ final readonly class XlsxStructure
                     continue;
                 }
 
-                if ($name === 'numFmt') {
+                if ($name === 'numFmts' && $xml->reader->depth === 1) {
+                    $inNumberFormats = $xml->reader->isEmptyElement === false;
+                } elseif ($name === 'numFmt' && $inNumberFormats) {
                     if (count($codes) >= self::MAX_NUMBER_FORMATS) {
                         throw SpreadsheetUnreadable::tooLarge('the workbook defines too many number formats');
                     }
 
                     // Excel allows 255 characters; anything longer is cut, never refused
-                    $codes[(int) $xml->attribute('numFmtId')] = substr((string) $xml->attribute('formatCode'), 0, 1024);
-                } elseif ($name === 'cellXfs') {
-                    $inCellFormats = $xml->reader->isEmptyElement === false;
+                    $codes[$xml->number('numFmtId', 0, 1_000_000)] = mb_strcut((string) $xml->attribute('formatCode'), 0, 1024, 'UTF-8');
+                } elseif ($name === 'cellXfs' && $xml->reader->depth === 1) {
+                    if ($xml->reader->isEmptyElement) {
+                        break;
+                    }
+
+                    $inCellFormats = true;
                 } elseif ($name === 'xf' && $inCellFormats) {
                     if (count($formatIds) >= self::MAX_CELL_STYLES) {
                         throw SpreadsheetUnreadable::tooLarge('the workbook defines too many cell styles');
                     }
 
-                    $formatIds[] = (int) $xml->attribute('numFmtId');
+                    $formatIds[] = $xml->number('numFmtId', 0, 1_000_000);
                 }
             }
         } finally {

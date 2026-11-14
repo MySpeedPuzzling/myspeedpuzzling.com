@@ -9,7 +9,8 @@ use SpeedPuzzling\Web\Value\Spreadsheet\SpreadsheetUnreadableReason;
 /**
  * A file SpreadsheetReader does not read: over a limit, not a spreadsheet, damaged, protected by a password, or in a
  * format that is not supported (docs/features/data-import/reader.md "Limits and reasons"). The only exception the
- * reader lets out for a bad file - whatever a library tripped over is its `previous`.
+ * reader lets out for what a file is or holds. What is the server's doing - a temporary folder that can not be
+ * written, a full disk - is SpreadsheetReaderFailed, and a bug stays the error it is.
  *
  * The message is for the logs and never holds a cell's content; the player is told by $reason.
  */
@@ -40,12 +41,17 @@ final class SpreadsheetUnreadable extends \RuntimeException
 
     public static function tooManyColumns(int $max): self
     {
-        return new self(SpreadsheetUnreadableReason::TooManyColumns, sprintf('a value beyond column %d', $max));
+        return new self(SpreadsheetUnreadableReason::TooManyColumns, sprintf('more than %d columns', $max));
     }
 
     public static function tooManyCells(int $max): self
     {
         return new self(SpreadsheetUnreadableReason::TooManyCells, sprintf('more than %d cells', $max));
+    }
+
+    public static function cellTooLarge(string $detail): self
+    {
+        return new self(SpreadsheetUnreadableReason::CellTooLarge, $detail);
     }
 
     public static function notASpreadsheet(string $detail, null|\Throwable $previous = null): self

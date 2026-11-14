@@ -90,7 +90,9 @@ final class SystemClockCoverageTest extends TestCase
         'Services/LiveKit/StudioSpectatorsTest.php' => [['microtime('], self::DURATION],
         'Services/RateLimiting/RedisSlidingWindowLimiterTest.php' => [['microtime('], 'Forked processes start together at a real moment (time_sleep_until), and the limiter counts on real time.'],
         'Services/Session/PostgresSessionHandlerTest.php' => [['hrtime('], self::DURATION],
+        'Services/SpreadsheetReader/CsvReaderTest.php' => [['hrtime('], self::DURATION],
         'Services/SpreadsheetReader/SpreadsheetReaderMemoryTest.php' => [['hrtime('], self::DURATION],
+        'Services/SpreadsheetReader/XlsxSafetyTest.php' => [['hrtime('], self::DURATION],
         'Services/Storage/ObjectStorageHttpClientFactoryTest.php' => [['microtime('], self::DURATION],
     ];
 

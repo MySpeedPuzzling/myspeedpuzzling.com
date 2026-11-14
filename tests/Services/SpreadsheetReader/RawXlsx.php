@@ -256,9 +256,25 @@ final class RawXlsx
     }
 
     /**
+     * Makes the archive lie about a part: the unpacked size in the entry's header and in the archive's directory is
+     * replaced - the part still unpacks to what it really holds.
+     */
+    public static function declareSize(string $path, int $realBytes, int $declaredBytes): void
+    {
+        $bytes = (string) file_get_contents($path);
+        $real = pack('V', $realBytes);
+
+        if (substr_count($bytes, $real) !== 2) {
+            throw new \LogicException('The size to replace does not stand in the archive exactly twice - choose a part of another length.');
+        }
+
+        file_put_contents($path, str_replace($real, pack('V', $declaredBytes), $bytes));
+    }
+
+    /**
      * @return array<string, string>
      */
-    private function parts(): array
+    public function parts(): array
     {
         $contentTypes = '';
         $workbookSheets = '';

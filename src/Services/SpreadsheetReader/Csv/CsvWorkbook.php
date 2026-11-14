@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\SpreadsheetReader\Csv;
 
+use SpeedPuzzling\Web\Exceptions\SpreadsheetReaderFailed;
 use SpeedPuzzling\Web\Exceptions\SpreadsheetUnreadable;
 use SpeedPuzzling\Web\Services\SpreadsheetReader\ReadWorkbook;
+use SpeedPuzzling\Web\Services\SpreadsheetReader\TemporaryFolder;
+use SpeedPuzzling\Web\Value\Spreadsheet\CellRange;
 use SpeedPuzzling\Web\Value\Spreadsheet\ReadCell;
 use SpeedPuzzling\Web\Value\Spreadsheet\ReadRow;
 use SpeedPuzzling\Web\Value\Spreadsheet\ReadSheet;
@@ -13,8 +16,8 @@ use SpeedPuzzling\Web\Value\Spreadsheet\SpreadsheetLimits;
 
 /**
  * An opened CSV/TSV text file: one sheet, every cell a text exactly as written (typing "0:56:4" or "12.03.2024" is
- * the next layer's job). The file is never loaded whole - it is looked through once in chunks (encoding, binary
- * check), then parsed record by record.
+ * the next layer's job). The file is never loaded whole - it is looked through once in chunks (is it text, how long
+ * are its lines, which encoding), then parsed record by record.
  *
  * - Encoding: a byte-order mark, UTF-16 without one, valid UTF-8, else Windows-1250 or Windows-1252 (CsvEncoding).
  * - Delimiter: Excel's `sep=;` first line, else the one of `,` `;` tab that gives the first records the same number
@@ -22,9 +25,13 @@ use SpeedPuzzling\Web\Value\Spreadsheet\SpreadsheetLimits;
  * - Quotes as in RFC 4180 (a cell may hold delimiters, quotes and line breaks); lines end with \r\n, \n or a bare \r.
  * - A row's number is the record's number as a spreadsheet shows the file (a `sep=` line is not a row; a record with
  *   line breaks inside a cell is one row); a record without a value is not handed out.
+ * - Bounded: no line is longer than a row may be (checked before anything is parsed, so the parser is never handed
+ *   an endless line); a record - which a quote that never closes stretches over every line after it - is no longer
+ *   than that either (the parser reads a window of the file, never the file); a record has no more fields than a
+ *   sheet has columns, empty ones count; and a cell is no longer than a cell may be.
  *
- * UTF-16 files and files with bare \r line ends are first rewritten as UTF-8 with \n into the temporary folder -
- * close() removes the copy.
+ * UTF-16 files and files with bare \r line ends are first rewritten as UTF-8 with \n into the reader's temporary
+ * folder - close() removes the copy.
  */
 final class CsvWorkbook implements ReadWorkbook
 {
@@ -33,12 +40,14 @@ final class CsvWorkbook implements ReadWorkbook
     private const int DELIMITER_SAMPLE_RECORDS = 20;
     private const array DELIMITERS = [',', ';', "\t"];
 
+    private int $rowsRead = 0;
+    private int $cellsRead = 0;
     private bool $closed = false;
 
     private function __construct(
         /** The file that is parsed: the upload itself, or its rewritten copy */
         private readonly string $path,
-        private readonly null|string $temporaryCopy,
+        private readonly TemporaryFolder $folder,
         private readonly CsvEncoding $encoding,
         private readonly string $delimiter,
         /** Where the first record starts (after a byte-order mark and a `sep=` line) */
@@ -71,31 +80,33 @@ final class CsvWorkbook implements ReadWorkbook
             throw SpreadsheetUnreadable::unsupportedFormat('a workbook, not a text file');
         }
 
-        $mark = CsvEncoding::fromByteOrderMark($head);
-        $encoding = $mark === null ? CsvEncoding::utf16WithoutMark($head) : $mark[0];
-        $offset = $mark === null ? 0 : $mark[1];
-        $utf16 = $encoding === CsvEncoding::Utf16LittleEndian || $encoding === CsvEncoding::Utf16BigEndian;
-        $bareCarriageReturns = false;
-
-        if ($utf16 === false) {
-            [$validUtf8, $bareCarriageReturns, $sample] = self::lookThrough($path, $size);
-            $encoding ??= match (true) {
-                $validUtf8 => CsvEncoding::Utf8,
-                CsvEncoding::looksCentralEuropean($sample) => CsvEncoding::Windows1250,
-                default => CsvEncoding::Windows1252,
-            };
-        }
-
-        $copy = null;
-
-        if ($utf16 || $bareCarriageReturns) {
-            $copy = self::rewritten($path, $offset, $utf16 ? $encoding : null, $temporaryBase);
-            $path = $copy;
-            $offset = 0;
-            $encoding = $utf16 ? CsvEncoding::Utf8 : $encoding;
-        }
+        $folder = new TemporaryFolder($temporaryBase);
 
         try {
+            $mark = CsvEncoding::fromByteOrderMark($head);
+            $encoding = $mark === null ? CsvEncoding::utf16WithoutMark($head) : $mark[0];
+            $offset = $mark === null ? 0 : $mark[1];
+
+            if ($encoding === CsvEncoding::Utf16LittleEndian || $encoding === CsvEncoding::Utf16BigEndian) {
+                // Looked through after it became UTF-8: what UTF-16 holds as U+0000 is a control character like any other
+                $path = self::rewritten($path, $offset, $encoding, $folder);
+                $offset = 0;
+                $encoding = CsvEncoding::Utf8;
+                self::lookThrough($path, $limits);
+            } else {
+                [$validUtf8, $bareCarriageReturns, $sample] = self::lookThrough($path, $limits);
+                $encoding ??= match (true) {
+                    $validUtf8 => CsvEncoding::Utf8,
+                    CsvEncoding::looksCentralEuropean($sample) => CsvEncoding::Windows1250,
+                    default => CsvEncoding::Windows1252,
+                };
+
+                if ($bareCarriageReturns) {
+                    $path = self::rewritten($path, $offset, null, $folder);
+                    $offset = 0;
+                }
+            }
+
             $sample = (string) file_get_contents($path, false, null, $offset, self::SAMPLE_BYTES);
             $delimiter = null;
 
@@ -106,16 +117,19 @@ final class CsvWorkbook implements ReadWorkbook
                 $sample = substr($sample, strlen($match[0]));
             }
 
-            $delimiter ??= self::detectDelimiter($sample);
+            $delimiter ??= self::detectDelimiter($sample, $limits->maxRowBytes);
+        } catch (\ErrorException $e) {
+            $folder->remove();
+
+            // A warning PHP raised over what the file holds (and an error handler made an exception of)
+            throw SpreadsheetUnreadable::damaged('the file could not be read', $e);
         } catch (\Throwable $e) {
-            if ($copy !== null) {
-                @unlink($copy);
-            }
+            $folder->remove();
 
             throw $e;
         }
 
-        return new self($path, $copy, $encoding, $delimiter, $offset, new ReadSheet(1, ''), $limits);
+        return new self($path, $folder, $encoding, $delimiter, $offset, new ReadSheet(1, ''), $limits);
     }
 
     public function sheets(): array
@@ -123,13 +137,13 @@ final class CsvWorkbook implements ReadWorkbook
         return [$this->sheet];
     }
 
-    public function rows(ReadSheet $sheet): \Generator
+    public function rows(ReadSheet $sheet, null|CellRange $window = null): \Generator
     {
         if ($this->closed || $sheet !== $this->sheet) {
             throw new \InvalidArgumentException('The sheet does not belong to this file, or the file is closed.');
         }
 
-        return $this->stream();
+        return $this->stream($window);
     }
 
     public function mergedRanges(ReadSheet $sheet): array
@@ -137,120 +151,241 @@ final class CsvWorkbook implements ReadWorkbook
         return [];
     }
 
+    public function rowsRead(): int
+    {
+        return $this->rowsRead;
+    }
+
+    public function cellsRead(): int
+    {
+        return $this->cellsRead;
+    }
+
     public function close(): void
     {
-        if ($this->closed) {
-            return;
-        }
-
-        $this->closed = true;
-
-        if ($this->temporaryCopy !== null) {
-            @unlink($this->temporaryCopy);
+        if ($this->closed === false) {
+            $this->closed = true;
+            $this->folder->remove();
         }
     }
 
     /**
      * @return \Generator<int, ReadRow>
      */
-    private function stream(): \Generator
+    private function stream(null|CellRange $window): \Generator
     {
-        $handle = fopen($this->path, 'rb');
+        $handle = @fopen($this->path, 'rb');
 
         if ($handle === false) {
             throw SpreadsheetUnreadable::damaged('the file can not be opened');
         }
 
+        $limits = $this->limits;
+        $maxRows = min($limits->maxRows, $limits->maxRowsPerSheet);
+
+        // The parser never reads the file itself but a view of it that is moved along: a record can run over many
+        // lines - as far as a quote that never closes takes it - and the view is where that ends
+        $recordBytes = max(0, $limits->maxRowBytes) + 2;
+        $view = null;
+        $viewBytes = 0;
+        $exhausted = false;
+
         try {
             fseek($handle, $this->dataOffset);
             $number = 0;
             $rows = 0;
-            $cellCount = 0;
 
-            while (($record = fgetcsv($handle, null, $this->delimiter, '"', '')) !== false) {
+            while (true) {
+                $position = $view === null ? 0 : (int) ftell($view);
+
+                if ($exhausted === false && $viewBytes - $position < $recordBytes) {
+                    [$view, $viewBytes, $exhausted] = self::movedWindow($handle, $view, max(65_536, $recordBytes));
+                    $position = 0;
+                }
+
+                if ($view === null || $position >= $viewBytes) {
+                    break;
+                }
+
+                // No line is longer than a row may be (lookThrough() saw to that)
+                $record = fgetcsv($view, $recordBytes, $this->delimiter, '"', '');
+
+                if ($record === false) {
+                    break;
+                }
+
+                if ((int) ftell($view) - $position > $recordBytes) {
+                    throw SpreadsheetUnreadable::cellTooLarge(sprintf('a record of more than %d bytes', $limits->maxRowBytes));
+                }
+
                 $number++;
+
+                // Empty fields count: a line of nothing but delimiters is as wide as it is long
+                if (count($record) > $limits->maxColumns) {
+                    throw SpreadsheetUnreadable::tooManyColumns($limits->maxColumns);
+                }
+
+                if ($window !== null && ($number < $window->firstRow || $number > $window->lastRow)) {
+                    if ($number > $window->lastRow) {
+                        break;
+                    }
+
+                    continue;
+                }
+
                 $cells = [];
 
                 foreach ($record as $index => $value) {
-                    if ($value === null || $value === '') {
+                    if ($value === null || $value === '' || ($window !== null && ($index + 1 < $window->firstColumn || $index + 1 > $window->lastColumn))) {
                         continue;
                     }
 
-                    $text = $this->encoding->decode($value);
+                    // A quoted cell may run over many lines - as far as an unclosed quote takes it
+                    if (strlen($value) > $limits->maxCellBytes) {
+                        throw SpreadsheetUnreadable::cellTooLarge(sprintf('a cell of more than %d bytes', $limits->maxCellBytes));
+                    }
+
+                    $text = ReadCell::withoutControls($this->encoding->decode($value));
 
                     // A byte-order mark left inside the text (a file glued together)
                     if ($number === 1 && $index === 0 && str_starts_with($text, "\u{FEFF}")) {
                         $text = substr($text, 3);
                     }
 
-                    if ($text === '') {
-                        continue;
+                    if ($text !== '') {
+                        $cells[$index + 1] = ReadCell::text($text);
                     }
-
-                    if ($index >= $this->limits->maxColumns) {
-                        throw SpreadsheetUnreadable::tooManyColumns($this->limits->maxColumns);
-                    }
-
-                    $cells[$index + 1] = ReadCell::text($text);
                 }
 
                 if ($cells === []) {
                     continue;
                 }
 
-                $cellCount += count($cells);
+                $this->rowsRead++;
+                $this->cellsRead += count($cells);
 
-                if (++$rows > min($this->limits->maxRows, $this->limits->maxRowsPerSheet)) {
-                    throw SpreadsheetUnreadable::tooManyRows(min($this->limits->maxRows, $this->limits->maxRowsPerSheet));
+                if (++$rows > $limits->maxRowsPerSheet || $this->rowsRead > $limits->maxRows) {
+                    throw SpreadsheetUnreadable::tooManyRows($maxRows);
                 }
 
-                if ($cellCount > $this->limits->maxCells) {
-                    throw SpreadsheetUnreadable::tooManyCells($this->limits->maxCells);
+                if ($this->cellsRead > $limits->maxCells) {
+                    throw SpreadsheetUnreadable::tooManyCells($limits->maxCells);
                 }
 
                 yield new ReadRow($number, $cells);
             }
+        } catch (\ErrorException $e) {
+            // A warning PHP raised over what the file holds (and an error handler made an exception of)
+            throw SpreadsheetUnreadable::damaged('the file could not be read', $e);
         } finally {
             fclose($handle);
+
+            if ($view !== null) {
+                fclose($view);
+            }
         }
     }
 
     /**
-     * One pass over the file in chunks: is it text at all, is it valid UTF-8, does it end its lines with a bare \r.
+     * The next window on the file: what the parser has not read of the old one, and more of the file behind it - so
+     * that a record that starts in it has room for as many bytes as a record may have, and no more than a few times
+     * that is ever in memory.
+     *
+     * @param resource $file
+     * @param null|resource $window
+     *
+     * @return array{resource, int, bool} the window (in memory), its length, and whether the file is read to its end
+     */
+    private static function movedWindow($file, $window, int $blockBytes): array
+    {
+        $unread = '';
+
+        if ($window !== null) {
+            $unread = (string) stream_get_contents($window);
+            fclose($window);
+        }
+
+        $moved = fopen('php://memory', 'w+b');
+
+        if ($moved === false) {
+            throw new SpreadsheetReaderFailed('A stream in memory can not be opened.');
+        }
+
+        fwrite($moved, $unread);
+        $added = stream_copy_to_stream($file, $moved, 2 * $blockBytes);
+
+        if ($added === false) {
+            fclose($moved);
+
+            throw SpreadsheetUnreadable::damaged('the file can not be read');
+        }
+
+        rewind($moved);
+
+        return [$moved, strlen($unread) + $added, $added === 0 || feof($file)];
+    }
+
+    /**
+     * One pass over the file in chunks: is it text at all, is no line longer than a row may be, is it valid UTF-8,
+     * does it end its lines with a bare \r.
      *
      * @return array{bool, bool, string} valid UTF-8?, bare \r line ends?, the first bytes (to tell the code page)
      */
-    private static function lookThrough(string $path, int $size): array
+    private static function lookThrough(string $path, SpreadsheetLimits $limits): array
     {
-        $handle = fopen($path, 'rb');
+        $handle = @fopen($path, 'rb');
 
         if ($handle === false) {
             throw SpreadsheetUnreadable::damaged('the file can not be opened');
         }
 
+        // A chunk no longer than a line may be: a line that is too long then always reaches over a chunk's edge
+        $chunkBytes = max(1, min(self::CHUNK_BYTES, $limits->maxRowBytes));
+
         try {
             $validUtf8 = true;
             $carry = '';
             $controls = 0;
+            $size = 0;
             $carriageReturns = false;
             $lineFeeds = false;
             $sample = '';
+            $lineBytes = 0;
 
             while (feof($handle) === false) {
-                $chunk = fread($handle, self::CHUNK_BYTES);
+                $chunk = fread($handle, $chunkBytes);
 
                 if ($chunk === false) {
                     throw SpreadsheetUnreadable::damaged('the file can not be read');
                 }
 
-                // Text never holds NUL bytes, and hardly any control characters: a picture, an archive, a database
-                if (str_contains($chunk, "\0")) {
-                    throw SpreadsheetUnreadable::notASpreadsheet('not a text file');
+                if ($chunk === '') {
+                    continue;
                 }
 
-                $controls += (int) preg_match_all('/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/', $chunk);
+                $size += strlen($chunk);
+                // Text holds hardly any control characters, NUL least of all: a picture, an archive, a database do
+                $controls += (int) preg_match_all('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', $chunk);
                 $carriageReturns = $carriageReturns || str_contains($chunk, "\r");
                 $lineFeeds = $lineFeeds || str_contains($chunk, "\n");
+
+                $firstBreak = strcspn($chunk, "\r\n");
+
+                if ($firstBreak === strlen($chunk)) {
+                    $lineBytes += strlen($chunk);
+                } else {
+                    $lineBytes += $firstBreak;
+
+                    if ($lineBytes > $limits->maxRowBytes) {
+                        break;
+                    }
+
+                    $lineBytes = strlen($chunk) - 1 - max((int) strrpos($chunk, "\n"), (int) strrpos($chunk, "\r"));
+                }
+
+                if ($lineBytes > $limits->maxRowBytes) {
+                    break;
+                }
 
                 if (strlen($sample) < self::SAMPLE_BYTES) {
                     $sample .= substr($chunk, 0, self::SAMPLE_BYTES - strlen($sample));
@@ -266,6 +401,10 @@ final class CsvWorkbook implements ReadWorkbook
 
             if ($controls > max(2, $size / 100)) {
                 throw SpreadsheetUnreadable::notASpreadsheet('not a text file');
+            }
+
+            if ($lineBytes > $limits->maxRowBytes) {
+                throw SpreadsheetUnreadable::cellTooLarge(sprintf('a line of more than %d bytes', $limits->maxRowBytes));
             }
 
             return [$validUtf8 && $carry === '', $carriageReturns && $lineFeeds === false, $sample];
@@ -299,25 +438,30 @@ final class CsvWorkbook implements ReadWorkbook
     }
 
     /**
-     * The file again as UTF-8 with \n line ends, in the temporary folder.
+     * The file again as UTF-8 with \n line ends, in the reader's temporary folder.
      *
      * @param null|CsvEncoding $utf16 the UTF-16 flavour to convert from; null = the bytes stay, only line ends change
      */
-    private static function rewritten(string $path, int $offset, null|CsvEncoding $utf16, string $temporaryBase): string
+    private static function rewritten(string $path, int $offset, null|CsvEncoding $utf16, TemporaryFolder $folder): string
     {
-        $copy = rtrim($temporaryBase, '/') . '/msp-spreadsheet-' . bin2hex(random_bytes(8)) . '.csv';
-        $source = fopen($path, 'rb');
-        $target = fopen($copy, 'xb');
+        $copy = $folder->newFile('csv');
+        $source = @fopen($path, 'rb');
+        // "x": created here and now - never a file that is already there
+        $target = @fopen($copy, 'xb');
 
         try {
-            if ($source === false || $target === false) {
-                throw SpreadsheetUnreadable::damaged('the file can not be rewritten');
+            if ($source === false) {
+                throw SpreadsheetUnreadable::damaged('the file can not be opened');
+            }
+
+            if ($target === false) {
+                throw new SpreadsheetReaderFailed('The text file can not be rewritten into the temporary folder.');
             }
 
             fseek($source, $offset);
 
-            if ($utf16 !== null && stream_filter_append($source, 'convert.iconv.' . $utf16->value . '/UTF-8', STREAM_FILTER_READ) === false) {
-                throw SpreadsheetUnreadable::damaged('the file is not UTF-16 text');
+            if ($utf16 !== null && @stream_filter_append($source, 'convert.iconv.' . $utf16->value . '/UTF-8', STREAM_FILTER_READ) === false) {
+                throw new SpreadsheetReaderFailed('The UTF-16 converter is not there.');
             }
 
             $pendingCarriageReturn = false;
@@ -339,28 +483,28 @@ final class CsvWorkbook implements ReadWorkbook
                     $chunk = substr($chunk, 0, -1);
                 }
 
-                fwrite($target, str_replace(["\r\n", "\r"], "\n", $chunk));
+                self::write($target, str_replace(["\r\n", "\r"], "\n", $chunk));
             }
 
             if ($pendingCarriageReturn) {
-                fwrite($target, "\n");
+                self::write($target, "\n");
             }
-        } catch (\Throwable $e) {
-            if ($target !== false) {
-                fclose($target);
+
+            // A full disk shows here at the latest - never a copy that is shorter than the file
+            if (@fflush($target) === false || @fclose($target) === false) {
                 $target = false;
+
+                throw new SpreadsheetReaderFailed('The text file can not be rewritten into the temporary folder.');
             }
 
-            @unlink($copy);
-
-            throw $e;
+            $target = false;
         } finally {
             if ($source !== false) {
                 fclose($source);
             }
 
             if ($target !== false) {
-                fclose($target);
+                @fclose($target);
             }
         }
 
@@ -368,17 +512,27 @@ final class CsvWorkbook implements ReadWorkbook
     }
 
     /**
+     * @param resource $target
+     */
+    private static function write($target, string $bytes): void
+    {
+        if ($bytes !== '' && @fwrite($target, $bytes) !== strlen($bytes)) {
+            throw new SpreadsheetReaderFailed('The text file can not be rewritten into the temporary folder.');
+        }
+    }
+
+    /**
      * The delimiter giving the most of the first records the same number of fields (more than one), then the one that
      * gives all of them the same number, then the most fields - as long as at least half of the records agree. A file
      * of one column has no delimiter to find: a comma it is.
      */
-    private static function detectDelimiter(string $sample): string
+    private static function detectDelimiter(string $sample, int $maxLineBytes): string
     {
         $best = ',';
         $bestScore = [0, 0, 0];
 
         foreach (self::DELIMITERS as $delimiter) {
-            $records = self::firstRecords($sample, $delimiter);
+            $records = self::firstRecords($sample, $delimiter, $maxLineBytes);
             $counts = array_values(array_filter($records, static fn (int $fields): bool => $fields > 1));
 
             if ($counts === []) {
@@ -408,7 +562,7 @@ final class CsvWorkbook implements ReadWorkbook
     /**
      * @return list<int> the number of fields of each of the first records that hold a value
      */
-    private static function firstRecords(string $sample, string $delimiter): array
+    private static function firstRecords(string $sample, string $delimiter, int $maxLineBytes): array
     {
         $stream = fopen('php://memory', 'w+b');
 
@@ -421,9 +575,13 @@ final class CsvWorkbook implements ReadWorkbook
             rewind($stream);
             $fields = [];
 
-            while (count($fields) < self::DELIMITER_SAMPLE_RECORDS && ($record = fgetcsv($stream, null, $delimiter, '"', '')) !== false) {
-                if (array_filter($record, static fn (null|string $value): bool => $value !== null && trim($value) !== '') !== []) {
-                    $fields[] = count($record);
+            while (count($fields) < self::DELIMITER_SAMPLE_RECORDS && ($record = fgetcsv($stream, max(0, $maxLineBytes) + 2, $delimiter, '"', '')) !== false) {
+                foreach ($record as $value) {
+                    if ($value !== null && trim($value) !== '') {
+                        $fields[] = count($record);
+
+                        break;
+                    }
                 }
             }
 

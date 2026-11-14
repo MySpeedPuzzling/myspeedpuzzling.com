@@ -19,6 +19,9 @@ final readonly class NumberFormat
         public bool $timeShown = false,
         /** Numbers only: shown as a percentage */
         public bool $percent = false,
+        /** Numbers only: the digits a code of nothing but zeros pads to ("0000000000000" = 13) - a barcode, a
+         *  catalogue number: a code rather than an amount. 0 = not padded */
+        public int $zeroPadded = 0,
     ) {
     }
 

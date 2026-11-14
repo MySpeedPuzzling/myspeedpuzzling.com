@@ -25,8 +25,9 @@ final readonly class ReadCell
         public bool $yearShown = true,
         /** Dates only: the time of day in seconds when the format shows one next to the date */
         public null|int $timeSeconds = null,
-        /** The address the cell links to, when it has a link that is not its own text */
-        public null|string $hyperlink = null,
+        /** Numbers only: the digits the cell's format pads to with zeros ("0000000000000" = 13); null = not padded.
+         *  Such a number is a code - a barcode keeps its leading zeros in $shown */
+        public null|int $paddedDigits = null,
     ) {
     }
 
@@ -35,11 +36,15 @@ final readonly class ReadCell
         return new self(CellKind::Text, $text, $text, $isFormula);
     }
 
-    public static function number(int|float $number, bool $isFormula = false, bool $percent = false): self
+    public static function number(int|float $number, bool $isFormula = false, bool $percent = false, int $zeroPadded = 0): self
     {
-        $shown = $percent ? self::numberText($number * 100) . '%' : self::numberText($number);
+        $shown = match (true) {
+            $percent => self::numberText($number * 100) . '%',
+            $zeroPadded > 0 && is_int($number) && $number >= 0 => str_pad((string) $number, $zeroPadded, '0', STR_PAD_LEFT),
+            default => self::numberText($number),
+        };
 
-        return new self(CellKind::Number, $number, $shown, $isFormula);
+        return new self(CellKind::Number, $number, $shown, $isFormula, paddedDigits: $zeroPadded > 0 ? $zeroPadded : null);
     }
 
     /**
@@ -88,18 +93,18 @@ final readonly class ReadCell
         return new self(CellKind::Error, $code, $code, $isFormula);
     }
 
-    public function withHyperlink(string $url): self
+    /**
+     * A text without the characters that are no text: the C0 control characters except tab, line feed and carriage
+     * return (a NUL can not even be stored). The one rule for every text the reader hands out, from a workbook and
+     * from a text file alike.
+     */
+    public static function withoutControls(string $text): string
     {
-        return new self(
-            $this->kind,
-            $this->value,
-            $this->shown,
-            $this->isFormula,
-            $this->precision,
-            $this->yearShown,
-            $this->timeSeconds,
-            $url,
-        );
+        if (preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', $text) !== 1) {
+            return $text;
+        }
+
+        return preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $text) ?? '';
     }
 
     /**

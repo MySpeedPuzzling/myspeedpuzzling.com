@@ -17,10 +17,11 @@ use SpeedPuzzling\Web\Value\Spreadsheet\CellKind;
 use SpeedPuzzling\Web\Value\Spreadsheet\ReadCell;
 
 /**
- * The rows are read by a pass of our own, not by OpenSpout's row iterator (XlsxWorkbook says why). This holds the two
- * against each other on generated workbooks: the same rows, the same cells, the same values - wherever OpenSpout has
- * a value at all. What it has none for is ours alone and tested in XlsxReaderTest: a formula's saved error, a text
- * that starts with "=", the precision of a date.
+ * No library reads a workbook at runtime: rows and shared strings are passes of our own (XlsxWorkbook says why).
+ * OpenSpout - a development dependency, here only - is the second opinion: this holds the two against each other on
+ * generated workbooks, the same rows, the same cells, the same values wherever OpenSpout has a value at all (rich
+ * text runs, white space, escapes and reading aids in the shared strings included). What it has none for is ours
+ * alone and tested in XlsxReaderTest: a formula's saved error, a text that starts with "=", the precision of a date.
  */
 final class OpenSpoutParityTest extends TestCase
 {
@@ -63,18 +64,31 @@ final class OpenSpoutParityTest extends TestCase
             . '<row r="9"><c r="A9"><f>SUM(A6:B6)</f><v>503.25</v></c><c r="B9" t="str"><f>B2&amp;"!"</f><v>Sunset!</v></c><c r="C9" t="b"><f>A6&gt;1</f><v>1</v></c>'
             . '<c r="D9" s="1"><f>TODAY()</f><v>45357</v></c><c r="E9" s="3"><f>C7*2</f><v>2.125</v></c><c r="F9"><f>A1</f></c></row>'
             . '<row><c><v>10</v></c><c><v>11</v></c></row>'
+            . '<row r="12"><c r="A12" t="s"><v>4</v></c><c r="B12" t="s"><v>5</v></c><c r="C12" t="s"><v>6</v></c><c r="D12" t="s"><v>7</v></c><c r="E12" t="s"><v>8</v></c></row>'
             . '<row r="400"><c r="AX400" t="s"><v>3</v></c></row>'
             . '</sheetData>';
 
         $path = $this->saved(
             (new RawXlsx())
-                ->sharedStrings(['Sunset', 'Žluťoučký kůň & <tags>', "Two\nlines", '<si><r><t xml:space="preserve">Rich </t></r><r><t>text</t></r></si>'])
+                ->sharedStrings([
+                    'Sunset',
+                    'Žluťoučký kůň & <tags>',
+                    "Two\nlines",
+                    '<si><r><rPr><b/></rPr><t xml:space="preserve">Rich </t></r><r><t>text</t></r></si>',
+                    // White space that is the file's layout, white space that is the player's
+                    "<si>\n  <t>\n    laid out\n  </t>\n</si>",
+                    '<si><t xml:space="preserve">  kept  </t></si>',
+                    "<si><r><t xml:space=\"preserve\"> a </t></r><r><t>  b  </t></r><r><t xml:space=\"preserve\"> c </t></r></si>",
+                    // An escaped underscore in front of what would be an escape, and a reading aid that is no text
+                    'a literal _x005F_x0041_ sequence',
+                    '<si><t>東京</t><rPh sb="0" eb="2"><t>トウキョウ</t></rPh></si>',
+                ])
                 ->styles([14, 'mmmm\ yyyy', '[h]:mm:ss', 'h:mm:ss', 'm/d/yyyy h:mm', 'yyyy-mm-dd'])
                 ->sheet('Mixed', RawXlsx::worksheetAround($sheetData, '<dimension ref="A2:AX400"/>'))
                 ->sheet('Second', RawXlsx::worksheet([1 => ['A' => RawXlsx::s(0), 'C' => RawXlsx::n('7')], 5 => ['B' => RawXlsx::inline('five')]]), 'hidden'),
         );
 
-        self::assertSame(29, $this->assertSameAsOpenSpout($path));
+        self::assertSame(34, $this->assertSameAsOpenSpout($path));
     }
 
     public function testAWorkbookWrittenByASpreadsheetLibrary(): void

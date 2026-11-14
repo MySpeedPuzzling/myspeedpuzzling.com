@@ -1,0 +1,8 @@
+{#- A file's size for people: MB from 1 MB up, kB below. `bytes` may be null (nothing known). -#}
+{%- if bytes is not null -%}
+    {%- if bytes >= 1048576 -%}
+        {{ 'data_import.size.mb'|trans({'%size%': (bytes / 1048576)|format_number({fraction_digit: 1})}) }}
+    {%- else -%}
+        {{ 'data_import.size.kb'|trans({'%size%': max(1, (bytes / 1024)|round)|format_number}) }}
+    {%- endif -%}
+{%- endif -%}

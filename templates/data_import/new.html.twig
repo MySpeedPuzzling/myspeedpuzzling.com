@@ -1,0 +1,67 @@
+{% extends 'base.html.twig' %}
+
+{#
+    "Bring the file" (docs/features/data-import/upload.md). The form is a plain upload form; with the script
+    (data_import_upload_controller.js) the picked file goes straight to object storage with a progress line, and the
+    form itself is only the fallback.
+#}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'data_import.new.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{{ include('_page_crumbs.html.twig', {levels: [{name: 'data_import.home.title'|trans, url: path('data_imports')}]}) }}
+
+<div class="mx-auto" style="max-width: 720px;" data-testid="data-import-new-page">
+    <h1 class="h3 mb-2"><i class="bi bi-upload me-2"></i>{{ 'data_import.new.title'|trans }}</h1>
+    <p class="text-muted">{{ 'data_import.new.intro'|trans }}</p>
+
+    <div class="card card-body shadow-sm mb-3">
+        <form action="{{ path('data_import_new') }}" method="post" enctype="multipart/form-data"
+              data-controller="data-import-upload"
+              data-action="submit->data-import-upload#submit"
+              data-data-import-upload-start-url-value="{{ path('data_import_upload_start') }}"
+              data-data-import-upload-csrf-token-value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) }}"
+              data-data-import-upload-max-bytes-value="{{ max_bytes }}"
+              data-data-import-upload-messages-value="{{ refusal_messages|json_encode|e('html_attr') }}"
+              data-data-import-upload-uploading-text-value="{{ 'data_import.new.uploading'|trans }}"
+              data-data-import-upload-checking-text-value="{{ 'data_import.new.checking'|trans }}">
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) }}">
+
+            {# Filled by the script when it started an upload and falls back to this form: the same import goes on #}
+            <input type="hidden" name="import_id" value="" data-data-import-upload-target="importId">
+
+            <label for="data-import-file" class="form-label">{{ 'data_import.new.file_label'|trans }}</label>
+            <input type="file" id="data-import-file" name="file" class="form-control" style="font-size: 16px; min-height: 44px;"
+                   accept="{{ accept }}" required data-data-import-upload-target="input" aria-describedby="data-import-file-help">
+            <div id="data-import-file-help" class="form-text">{{ 'data_import.new.file_help'|trans({'%megabytes%': max_megabytes}) }}</div>
+
+            <div class="alert alert-danger fs-sm mt-3 mb-0" role="alert" data-data-import-upload-target="error" data-testid="import-refusal"{{ refusal is null ? ' hidden' }}>{{ refusal }}</div>
+
+            {# The file is up but the check could not be reached - never a dead end: the import's page finishes it #}
+            <div class="alert alert-warning fs-sm mt-3 mb-0" role="alert" data-data-import-upload-target="arrived" data-testid="import-arrived" hidden>
+                {{ 'data_import.new.arrived'|trans }}
+                <a href="{{ path('data_imports') }}" class="alert-link" data-data-import-upload-target="arrivedLink">{{ 'data_import.new.arrived_link'|trans }}</a>
+            </div>
+
+            <div class="mt-3" data-data-import-upload-target="progress" hidden>
+                <div class="progress" style="height: 10px;">
+                    <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-data-import-upload-target="bar"></div>
+                </div>
+                <div class="fs-sm text-muted mt-1" aria-live="polite" data-data-import-upload-target="status"></div>
+            </div>
+
+            <button type="submit" class="btn btn-primary text-wrap mt-3" style="min-height: 44px;" data-data-import-upload-target="submit">
+                <i class="bi bi-upload me-1"></i>{{ 'data_import.new.submit'|trans }}
+            </button>
+        </form>
+    </div>
+
+    <div class="alert alert-info fs-sm d-flex gap-2">
+        <i class="bi bi-info-circle flex-shrink-0"></i>
+        <span>{{ 'data_import.soon'|trans }} {{ 'data_import.new.kept_note'|trans({'%days%': keep_days}) }}</span>
+    </div>
+</div>
+{% endblock %}

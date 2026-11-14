@@ -23,6 +23,7 @@ use SpeedPuzzling\Web\Entity\FeatureRequest;
 use SpeedPuzzling\Web\Entity\FeatureRequestComment;
 use SpeedPuzzling\Web\Entity\FeatureRequestCommentReport;
 use SpeedPuzzling\Web\Entity\FeatureRequestVote;
+use SpeedPuzzling\Web\Entity\DataImport;
 use SpeedPuzzling\Web\Entity\Membership;
 use SpeedPuzzling\Web\Entity\ModerationAction;
 use SpeedPuzzling\Web\Entity\Notification;
@@ -79,6 +80,24 @@ final class DeletePlayerHandler
     }
 
     /**
+     * @return list<string>
+     */
+    private function dataImportFiles(Player $player): array
+    {
+        /** @var list<string> $keys */
+        $keys = $this->entityManager->createQueryBuilder()
+            ->select('i.fileKey')
+            ->from(DataImport::class, 'i')
+            ->where('i.player = :player')
+            ->andWhere('i.fileKey IS NOT NULL')
+            ->setParameter('player', $player)
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        return $keys;
+    }
+
+    /**
      * @throws PlayerNotFound
      */
     public function __invoke(DeletePlayer $message): void
@@ -88,6 +107,9 @@ final class DeletePlayerHandler
         $playerName = $player->name ?? $player->code;
         // Read before anything is removed - the rows holding the paths go with the player
         $storedFiles = $player->avatar !== null ? [$player->avatar] : [];
+
+        // Their spreadsheets waiting in object storage - the imports themselves go with the player (foreign key)
+        $storedFiles = [...$storedFiles, ...$this->dataImportFiles($player)];
 
         $this->cancelStripeSubscription($playerId);
 

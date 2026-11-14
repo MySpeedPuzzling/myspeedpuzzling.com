@@ -161,6 +161,14 @@ return App::config([
                 'limit' => 2000,
                 'interval' => '1 hour',
             ],
+            // Spreadsheet imports (docs/features/data-import/upload.md): every new upload - direct or with the fallback
+            // form - is up to 25 MB in our bucket. 10 an hour per player (the design's number, README "Security and
+            // privacy"); signing a still running upload again does not count.
+            'data_import_upload' => [
+                'policy' => 'sliding_window',
+                'limit' => 10,
+                'interval' => '1 hour',
+            ],
             // Public API catalog search (GET /api/v1/puzzles) - the only unbounded
             // read in V1, so scraping is kept to a walk. Keyed by the token owner
             // (player behind a PAT / auth-code token, client id for client_credentials);

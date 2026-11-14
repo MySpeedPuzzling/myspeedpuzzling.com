@@ -222,7 +222,7 @@ be closed; a notification and an e-mail say when it is done) → "Added. 2,173 p
 | D11 | Notes columns map to **private notes** (a custom field) by default; "Public comment" must be chosen | `puzzle_solving_time.comment` is shown to everybody |
 | D12 | Co-puzzlers from a file are **guests** (names), never registered players | Adding a registered player puts the result on their profile; the existing consent flow (`GuestLinkRequest`) links a guest later |
 | D13 | **Date precision is stored** (`puzzle_solving_time.finished_at_precision`: day / month / year; a result without any date needs the player's answer). Day-based rules skip imprecise results. Until that stage ships, only results with an exact day are added | A month stored as the 1st counts for Weekend Puzzler, streaks, the calendar, the duplicate check's "same day" and can become the "first" solve that sets a baseline. File 1 has ~700 month-only results, file 2 ~200 with no date |
-| D14 | The reader hides behind `SpreadsheetReader` and **streams** (the limits of Q8 allow 50,000 rows); which library reads `.xlsx` is confirmed by a measurement at the start of stage 3 (OpenSpout expected) | `ParticipantFileReader` reads with styles off, so it cannot tell a date from a duration; with styles on, PhpSpreadsheet needs about 1.6 KB a cell |
+| D14 | **The `.xlsx` reader is OpenSpout** (streaming), behind `SpreadsheetReader`, with a small pass of our own over the workbook's parts for what a streaming reader does not give (a cell's number format, Excel tables, frozen panes). Measured 2026-11-14 (research.md "Reader measurement") | On the real files OpenSpout needs 4 MB and 1.4-1.6 s; PhpSpreadsheet with styles 34 MB and 5-8 s, and for the largest allowed file (50,000 rows, a million cells) 554 MB even without styles - against 2 MB. `ParticipantFileReader` (PhpSpreadsheet, styles off) stays as it is for the participants import |
 | D15 | First try is **off** for imported results unless a column says so (a first-try column, or attempt number 1); a first try somebody of the result already holds is a row problem with choices | First tries feed difficulty and skill; a guessed one is worse than none |
 | D16 | Custom values live on the row they describe: a `jsonb` column on `collection_item` and the unlisted tables, a side table per (result, player) for results | A pair's result is one row of several players - each has their own values; no existing query selects the new columns, so they are private by construction |
 | D17 | An unlisted puzzle becomes a catalogue puzzle **one at a time, through the normal add-puzzle path**, after a "Is it one of these?" step | "Not in the catalogue" only means "no puzzle of that exact name" - a third of them have a similar one. A new puzzle is public at once and lands in the approvals queue |
@@ -766,7 +766,7 @@ The import's row sheet and "To fix" list are the same components.
 |---|---|---|
 | Upload | the start < 1 s; the bytes go to object storage | create the import, sign the upload, queue the read when the object arrived |
 | Reading 10 sheets / 5,000 rows | < 15 s in all | measured at the start of stage 3 on a 25 MB, million-cell fixture too; decides the reader (D14) |
-| Reading the largest allowed file (50,000 rows) | < 3 min in all, < 512 MB at any moment, no single job over 10 s | a streaming reader, one job per sheet and per 2,000 rows |
+| Reading the largest allowed file (50,000 rows) | < 3 min in all, < 64 MB at any moment, one job per sheet ≤ 60 s | OpenSpout: 24 s and 2 MB for a million cells (measured), rows written in batches of 500 |
 | Exact pairing, 5,000 rows | < 1 s | one statement |
 | Similar-name search | ~26 ms per puzzle, in the background | chunks of 100, results appear as they come |
 | A page of the review | ≤ 6 statements, 50 rows | rows by `(import_id, state)`, puzzles by `(import_id, tier, choice)` |
@@ -778,8 +778,8 @@ The import's row sheet and "To fix" list are the same components.
 Indexes: `data_import_row (import_id, state)`, `(player_id, source_key)`; `data_import_puzzle (import_id, tier, choice)`;
 `unlisted_puzzle (player_id) where resolved_at is null`. No new index on `puzzle` or `puzzle_solving_time`.
 
-The `imports` consumer handles one message at a time, and **no message works longer than about ten seconds** - a
-large import is many short jobs, so other players' imports take their turns in between instead of waiting behind it.
+The `imports` consumer handles one message at a time, and **no message works longer than about ten seconds** (reading
+one very large sheet and fetching a Google sheet excepted) - a large import is many short jobs, so other players' imports take their turns in between instead of waiting behind it.
 
 ## Large imports
 
@@ -793,8 +793,9 @@ in the import works on a whole file at once:
   each sheet's pane) first.
 - **The file is opened once.** The first job turns the workbook into rows in the database (or a line-per-row file
   next to it); later jobs never download and unpack the workbook again.
-- **Every background job is short.** Fetching a Google sheet is its own job (the one allowed 30 seconds). Reading is
-  a job per sheet and per 2,000 rows; the similar-name search a job per
+- **Every background job is short** - about ten seconds - with two measured exceptions: fetching a Google sheet
+  (30 s allowed) and reading one sheet, which a streaming reader can only do from its start (a million-cell sheet
+  takes 24 s to read plus the writes; 60 s allowed, progress published as it goes). Reading is a job per sheet; the similar-name search a job per
   100 puzzles (50,000 puzzles are about 22 minutes of lookups, spread out); adding a job per 25 rows. A job that would
   run longer is cut smaller.
 - **Screens never load an import.** Lists are pages of 50 from the database; counts come from indexed states.

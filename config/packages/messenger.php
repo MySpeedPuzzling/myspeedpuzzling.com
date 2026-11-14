@@ -73,6 +73,17 @@ return App::config([
                 ],
                 // Dedicated queue on the same Doctrine table, drained by the digest
                 // consumer container — SMTP pacing stays isolated from transactional mail.
+                // The spreadsheet import's own queue on the same Doctrine table, drained by its own consumer
+                // container: reading a file, searching similar names and adding rows are many short jobs that
+                // must never wait in front of the sign-in e-mails on `async` (docs/features/data-import/README.md
+                // D9). No retries: an import job is driven by the rows' state and continued by its own sweeper -
+                // a failed job is recorded on the import, never re-run blindly.
+                'imports' => [
+                    'dsn' => '%env(MESSENGER_TRANSPORT_DSN)%?auto_setup=false&queue_name=imports',
+                    'retry_strategy' => [
+                        'max_retries' => 0,
+                    ],
+                ],
                 'content_digest_emails' => [
                     'dsn' => '%env(MESSENGER_TRANSPORT_DSN)%?auto_setup=false&queue_name=content_digest_emails',
                     'retry_strategy' => [

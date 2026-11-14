@@ -121,6 +121,29 @@ Against the production catalogue (2026-11-14):
 A barcode column lifts the one-tap share by 15 points here, and where both rules speak they agree every time - the
 best check of the pairing rules we have.
 
+## Reader measurement (2026-11-14)
+
+PHP 8.3 on the development machine (the server runs 8.5), OpenSpout 5.3.0 and PhpSpreadsheet 5.11.0, every run in a
+process of its own, every non-empty cell of every sheet read.
+
+| File | Reader | Time | Peak memory | Tells a date from a duration? |
+|---|---|---|---|---|
+| File 1 (10 sheets, 34,984 cells) | OpenSpout | 1.4 s | 4 MB | yes - date cells and interval cells are separate kinds |
+| | PhpSpreadsheet, styles on | 8.1 s | 34 MB | yes, by the cell's format code (`m/d`, `mmmm yyyy`, `[h]:mm:ss`) |
+| | PhpSpreadsheet, styles off (today's `ParticipantFileReader` mode) | 1.1 s | 30 MB | **no** - dates and durations are plain numbers |
+| File 3 (20 sheets, 30,214 cells) | OpenSpout | 1.6 s | 4 MB | yes |
+| | PhpSpreadsheet, styles on | 4.6 s | 34 MB | yes |
+| | PhpSpreadsheet, styles off | 1.5 s | 26 MB | no |
+| Generated: 1 sheet, 50,000 rows, 983,353 cells (6.2 MB) | OpenSpout | 23.7 s | 2 MB | |
+| | PhpSpreadsheet, styles off | 22.9 s | **554 MB** | |
+| A pass of our own over the sheet XML (style id of every cell) | `XMLReader` | 1.5 s for 983,353 cells; 0.1 s for file 3 | 2 MB | |
+
+What it settles: OpenSpout is the reader (constant memory; the other needs half a gigabyte for the largest allowed
+file even in its cheapest mode). OpenSpout does not hand out a cell's number format, and the design needs it (a
+month-only date, a date whose format hides the year, a time of day against a duration over 24 hours) - together with
+Excel's tables and frozen panes that is one small pass of our own over `styles.xml`, `tables/*.xml` and each sheet's
+XML, cheap as measured. A streaming reader cannot start in the middle of a sheet, so a sheet is read in one job.
+
 ## What players track that MySpeedPuzzling does not
 
 Read across the three files (and the public template) for what is worth having, not only worth importing.

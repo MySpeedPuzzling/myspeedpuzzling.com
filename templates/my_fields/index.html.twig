@@ -1,0 +1,153 @@
+{% extends 'base.html.twig' %}
+
+{#
+    "My fields" - the signed-in player's own fields (docs/features/custom-fields.md). Phone first: one column of cards,
+    every button at least 44 px tall, nothing scrolls sideways at 380 px (long names break, buttons wrap).
+#}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'my_fields.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{% include '_return_back_button.html.twig' with {fallbackUrl: path('edit_profile'), fallbackTitle: 'my_fields.back_to_settings'|trans} %}
+
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\CustomFields\\CustomFieldsController::CSRF_TOKEN_ID')) %}
+
+<div class="mx-auto" style="max-width: 720px;" data-testid="custom-fields-page">
+    <h1 class="h3 mb-2"><i class="bi bi-ui-checks me-2"></i>{{ 'my_fields.title'|trans }}</h1>
+    <p class="text-muted">{{ 'my_fields.intro'|trans }}</p>
+
+    <div class="alert alert-info fs-sm d-flex gap-2">
+        <i class="bi bi-lock flex-shrink-0"></i>
+        <span>{{ 'my_fields.private_note'|trans }}</span>
+    </div>
+
+    <h2 class="h5" id="my-fields">{{ 'my_fields.in_use_title'|trans({'%count%': active_fields|length, '%limit%': limit}) }}</h2>
+
+    {% if active_fields is empty %}
+        <p class="text-muted mb-4">{{ 'my_fields.empty'|trans }}</p>
+    {% else %}
+        <div class="d-flex flex-column gap-2 mb-4">
+            {% for field in active_fields %}
+                <div class="card card-body shadow-sm p-3" data-testid="custom-field">
+                    <div class="d-flex align-items-start justify-content-between gap-2">
+                        <div style="min-width: 0;">
+                            <div class="fw-semibold text-break">{{ my_field_label(field) }}</div>
+                            <div class="fs-sm text-muted">{{ ('my_fields.type.' ~ field.type.value)|trans }}</div>
+                            {{ include('my_fields/_field_places.html.twig', {for_results: field.forResults, for_collection_items: field.forCollectionItems}) }}
+                            {% if field.choices is not empty %}
+                                <div class="fs-xs text-muted text-break mt-1">
+                                    {%- for choice in field.choices -%}
+                                        {{ my_field_choice_label(field, choice) }}{{ not loop.last ? ', ' }}
+                                    {%- endfor -%}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex gap-1 flex-shrink-0">
+                            <form action="{{ path('my_fields_move', {fieldId: field.fieldId}) }}" method="post">
+                                <input type="hidden" name="_token" value="{{ csrf }}">
+                                <input type="hidden" name="direction" value="up">
+                                <button type="submit" class="btn btn-outline-secondary p-0" style="width: 44px; height: 44px;" title="{{ 'my_fields.move_up'|trans }}" aria-label="{{ 'my_fields.move_up'|trans }}"{{ loop.first ? ' disabled' }}>
+                                    <i class="bi bi-arrow-up"></i>
+                                </button>
+                            </form>
+                            <form action="{{ path('my_fields_move', {fieldId: field.fieldId}) }}" method="post">
+                                <input type="hidden" name="_token" value="{{ csrf }}">
+                                <input type="hidden" name="direction" value="down">
+                                <button type="submit" class="btn btn-outline-secondary p-0" style="width: 44px; height: 44px;" title="{{ 'my_fields.move_down'|trans }}" aria-label="{{ 'my_fields.move_down'|trans }}"{{ loop.last ? ' disabled' }}>
+                                    <i class="bi bi-arrow-down"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 mt-3">
+                        {% if field.standard is null %}
+                            <a href="{{ path('my_fields_edit', {fieldId: field.fieldId}) }}" class="btn btn-outline-primary text-wrap d-inline-flex align-items-center" style="min-height: 44px;">
+                                <i class="ci-edit me-1"></i>{{ 'my_fields.edit'|trans }}
+                            </a>
+                        {% endif %}
+                        <form action="{{ path('my_fields_archive', {fieldId: field.fieldId}) }}" method="post">
+                            <input type="hidden" name="_token" value="{{ csrf }}">
+                            <button type="submit" class="btn btn-outline-secondary text-wrap" style="min-height: 44px;">
+                                <i class="bi bi-archive me-1"></i>{{ 'my_fields.archive'|trans }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <p class="fs-sm text-muted">{{ 'my_fields.archive_help'|trans }}</p>
+    {% endif %}
+
+    {% if limit_reached %}
+        <div class="alert alert-warning fs-sm">{{ 'my_fields.flash.limit_reached'|trans({'%limit%': limit}) }}</div>
+    {% endif %}
+
+    {% if ready_made is not empty %}
+        <div class="card card-body shadow-sm mb-4">
+            <h2 class="h5">{{ 'my_fields.ready_made.title'|trans }}</h2>
+            <p class="fs-sm text-muted">{{ 'my_fields.ready_made.intro'|trans }}</p>
+
+            <div class="d-flex flex-column gap-2">
+                {% for standard in ready_made %}
+                    <form action="{{ path('my_fields_add_ready_made', {key: standard.value}) }}" method="post" class="d-flex align-items-center justify-content-between gap-2 border rounded p-2" data-testid="ready-made-field">
+                        <input type="hidden" name="_token" value="{{ csrf }}">
+                        <div style="min-width: 0;">
+                            <div class="fw-semibold text-break">{{ standard.labelKey|trans }}</div>
+                            <div class="fs-sm text-muted">{{ ('my_fields.type.' ~ standard.type.value)|trans }}</div>
+                            {{ include('my_fields/_field_places.html.twig', {for_results: standard.forResults, for_collection_items: standard.forCollectionItems}) }}
+                        </div>
+                        <button type="submit" class="btn btn-outline-primary flex-shrink-0" style="min-height: 44px; min-width: 44px;"{{ limit_reached ? ' disabled' }} aria-label="{{ 'my_fields.ready_made.add'|trans({'%field%': standard.labelKey|trans}) }}">
+                            <i class="bi bi-plus-lg"></i><span class="d-none d-sm-inline ms-1">{{ 'forms.add'|trans }}</span>
+                        </button>
+                    </form>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="card card-body shadow-sm mb-4">
+        <h2 class="h5">{{ 'my_fields.add_own.title'|trans }}</h2>
+
+        {{ form_start(form, {action: path('my_fields')}) }}
+            {{ form_errors(form) }}
+            {{ form_row(form.name, {attr: {style: 'font-size: 16px; min-height: 44px;'}}) }}
+            {{ form_row(form.type, {attr: {style: 'font-size: 16px; min-height: 44px;'}}) }}
+            {{ form_row(form.choices, {attr: {style: 'font-size: 16px;'}}) }}
+
+            <p class="form-label mb-1">{{ 'my_fields.form.places'|trans }}</p>
+            {{ form_row(form.forResults) }}
+            {{ form_row(form.forCollectionItems) }}
+
+            <button type="submit" class="btn btn-primary text-wrap" style="min-height: 44px;"{{ limit_reached ? ' disabled' }}>
+                <i class="bi bi-plus-lg me-1"></i>{{ 'my_fields.add_own.submit'|trans }}
+            </button>
+        {{ form_end(form) }}
+    </div>
+
+    {% if archived_fields is not empty %}
+        <h2 class="h5">{{ 'my_fields.archived_title'|trans({'%count%': archived_fields|length}) }}</h2>
+        <div class="d-flex flex-column gap-2 mb-4">
+            {% for field in archived_fields %}
+                <div class="card card-body shadow-sm p-3 d-flex flex-row align-items-center justify-content-between gap-2" data-testid="archived-custom-field">
+                    <div style="min-width: 0;">
+                        <div class="fw-semibold text-break text-muted">{{ my_field_label(field) }}</div>
+                        <div class="fs-sm text-muted">{{ ('my_fields.type.' ~ field.type.value)|trans }}</div>
+                    </div>
+                    <form action="{{ path('my_fields_archive', {fieldId: field.fieldId}) }}" method="post" class="flex-shrink-0">
+                        <input type="hidden" name="_token" value="{{ csrf }}">
+                        <input type="hidden" name="restore" value="1">
+                        <button type="submit" class="btn btn-outline-primary text-wrap" style="min-height: 44px;"{{ limit_reached ? ' disabled' }}>
+                            {{ 'my_fields.restore'|trans }}
+                        </button>
+                    </form>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

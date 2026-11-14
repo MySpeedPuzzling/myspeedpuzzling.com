@@ -1,0 +1,21 @@
+{#
+    The signed-in viewer's own fields on one attempt of the result detail (docs/features/custom-fields.md) - theirs
+    alone: a pair partner looking at the same result gets their own block, or none.
+
+    Rendered only where own_field_values is not null (the viewer has fields for results) and the viewer is on the
+    attempt. The link opens the values form in the modal frame - from the full page and from inside the modal alike.
+
+    Inputs: own_field_values (OwnCustomValues), time_id
+#}
+{% set filled = own_field_values.filledOn(time_id) %}
+<div class="fs-xs mt-1 text-break" data-testid="result-my-fields">
+    <i class="bi bi-lock text-muted" title="{{ 'my_fields.private_note'|trans }}"></i>
+    {% for entry in filled %}
+        <span class="me-2"><span class="text-muted">{{ my_field_label(entry.field) }}:</span> {{ my_field_value_text(entry.field, entry.value) }}</span>
+    {% else %}
+        <span class="text-muted me-2">{{ 'my_fields.result.label'|trans }}</span>
+    {% endfor %}
+    <a href="{{ path('result_my_fields', {timeId: time_id}) }}" data-turbo-frame="modal-frame" class="text-nowrap">
+        {{- (filled is empty ? 'my_fields.result.fill' : 'my_fields.result.edit')|trans -}}
+    </a>
+</div>

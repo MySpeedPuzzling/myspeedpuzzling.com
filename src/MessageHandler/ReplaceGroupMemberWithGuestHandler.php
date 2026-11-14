@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Message\RecalculateXpChainForSolve;
 use SpeedPuzzling\Web\Message\ReplaceGroupMemberWithGuest;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
+use SpeedPuzzling\Web\Repository\SolvingTimeCustomValuesRepository;
 use SpeedPuzzling\Web\Services\PuzzlingTeamResolver;
 use SpeedPuzzling\Web\Value\Puzzler;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
@@ -29,6 +30,7 @@ readonly final class ReplaceGroupMemberWithGuestHandler
         private PlayerRepository $playerRepository,
         private PuzzlingTeamResolver $puzzlingTeamResolver,
         private MessageBusInterface $commandBus,
+        private SolvingTimeCustomValuesRepository $solvingTimeCustomValuesRepository,
     ) {
     }
 
@@ -66,6 +68,13 @@ readonly final class ReplaceGroupMemberWithGuestHandler
         assert($puzzlingTeam !== null);
 
         $time->replaceMistakenMember($group, $puzzlingTeam);
+
+        // No longer on the result: their own values of it go with them (docs/features/custom-fields.md)
+        $customValues = $this->solvingTimeCustomValuesRepository->find($time, $player);
+
+        if ($customValues !== null) {
+            $this->solvingTimeCustomValuesRepository->delete($customValues);
+        }
 
         foreach ($membersBefore as $memberPlayerId) {
             $this->commandBus->dispatch(new RecalculateBadgesForPlayer($memberPlayerId));

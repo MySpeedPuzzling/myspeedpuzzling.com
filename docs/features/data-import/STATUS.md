@@ -13,7 +13,7 @@ sandbox from the stage that can read them.
 | Stage | What | State | Pull request | On production | Checked on production / sandbox |
 |---|---|---|---|---|---|
 | 0 | Plan reviewed (third review, of the revised plan) | done - reviews.md "Third review" | - | - | - |
-| 1a | Custom fields on results | not started | | | |
+| 1a | Custom fields on results | pull request open | #PRNUMBER | | |
 | 1b | Custom fields on collection items, export | not started | | | |
 | 3 | Import: queue, upload, reading | not started | | | |
 | 4 | Columns and values | not started | | | |
@@ -54,3 +54,9 @@ committed with `git add -A`; one destructive command per call, never the dev dat
 - 2026-11-14 - design written, reviewed twice, revised; third real file analysed; Jan decided every question
   (README "Decided by Jan"). Third review of the revised plan: 3 blockers and 11 major points, all folded into the
   design and the plan before any code.
+- 2026-11-14 - stage 1a built (`docs/features/custom-fields.md`). Changed against the plan while building, by the
+  owner's word: **the add-result form is never part of it** - the values do not travel inside `AddPuzzleSolvingTime` /
+  `AddPuzzleTracking` (both untouched) but are saved after the result by a step that can not fail it, the fields are
+  plain inputs beside the Symfony form, a value that can not be stored is left out and never a 422, kill switch
+  `CUSTOM_FIELDS_IN_ADD_FORM`. Found in the codebase: a table named `custom_field` can not exist (Doctrine ignores
+  `custom_*`) - it is `player_custom_field`; the values column is `custom_values` (`values` is a reserved word).

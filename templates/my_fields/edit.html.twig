@@ -1,0 +1,39 @@
+{% extends 'base.html.twig' %}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'my_fields.edit_page.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{% include '_return_back_button.html.twig' with {fallbackUrl: path('my_fields'), fallbackTitle: 'my_fields.title'|trans} %}
+
+<div class="mx-auto" style="max-width: 720px;">
+    <h1 class="h3 mb-3">{{ 'my_fields.edit_page.title'|trans }}</h1>
+
+    <div class="card card-body shadow-sm">
+        {{ form_start(form, {action: path('my_fields_edit', {fieldId: field.fieldId})}) }}
+            {{ form_errors(form) }}
+            {{ form_row(form.name, {attr: {style: 'font-size: 16px; min-height: 44px;'}}) }}
+
+            <p class="fs-sm text-muted">{{ 'my_fields.edit_page.type_fixed'|trans({'%type%': ('my_fields.type.' ~ field.type.value)|trans}) }}</p>
+
+            {% if form.choices is defined %}
+                {{ form_row(form.choices, {attr: {style: 'font-size: 16px;'}}) }}
+                <p class="fs-sm text-muted">{{ 'my_fields.edit_page.choices_note'|trans }}</p>
+            {% endif %}
+
+            <p class="form-label mb-1">{{ 'my_fields.form.places'|trans }}</p>
+            {{ form_row(form.forResults) }}
+            {{ form_row(form.forCollectionItems) }}
+
+            <div class="d-flex flex-wrap justify-content-between gap-2">
+                <a href="{{ path('my_fields') }}" class="btn btn-secondary d-inline-flex align-items-center" style="min-height: 44px;">{{ 'forms.cancel'|trans }}</a>
+                <button type="submit" class="btn btn-primary text-wrap" style="min-height: 44px;">
+                    <i class="bi bi-check-lg me-1"></i>{{ 'forms.save'|trans }}
+                </button>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}

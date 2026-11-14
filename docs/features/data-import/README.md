@@ -295,9 +295,10 @@ unlisted_solving_time  id, unlisted_puzzle_id, player_id, seconds_to_solve, fini
 unlisted_collection_item  id, unlisted_puzzle_id, player_id, collection_id (null = the system one), comment, added_at,
                           custom_values jsonb, import_row_id
 
-custom_field           id, player_id, name, standard_key (null = the player's own), type (text | number | date | yes_no | choice | tags), choices jsonb,
+player_custom_field    id, player_id, name, standard_key (null = the player's own), type (text | number | date | yes_no | choice | tags), choices jsonb,
                        for_results, for_collection_items, position, archived_at
-solving_time_custom_values   solving_time_id, player_id, values jsonb      primary key (solving_time_id, player_id)
+                       (built in stage 1a; not `custom_field` - Doctrine ignores every table named `custom_*`)
+solving_time_custom_values   id, solving_time_id, player_id, custom_values jsonb      unique (solving_time_id, player_id)
 collection_item.custom_values jsonb
 puzzle_solving_time.finished_at_precision   null = day (every existing row), month, year
 ```
@@ -637,7 +638,9 @@ collection items, or both. Private: only the owner ever reads them.
 - **Manage** at `/{_locale}/custom-fields` (a card on the edit-profile page links there): add, rename, reorder, type,
   archive (values kept, field hidden).
 - **Add a result:** a "My fields" toggle after the event section opens the player's result fields - only when they
-  have any; the values travel with the result's own message, so the save is one piece.
+  have any. The fields are beside the form, never part of it (Jan, 2026-11-14 - the add form must never break): plain
+  inputs, saved after the result by a step of their own that can not fail it; a value that can not be stored is left
+  out and named, never a refused save (`docs/features/custom-fields.md` "The add form").
 - **Edit:** the values have their **own** small form and message (`SetSolvingTimeCustomValues`), never the result's
   edit: editing a pair's result tells the whole team and recalculates everybody's achievements, and a private field
   is nobody else's business. The collection item's fields sit in its edit form (an item has one owner).

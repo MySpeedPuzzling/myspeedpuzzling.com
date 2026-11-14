@@ -4,6 +4,18 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Custom fields (`docs/features/custom-fields.md`, 2026-11-14)
+
+- [ ] Stage 1b: collection items (`collection_item.custom_values`, the item's edit form), the export, the puzzle merge;
+  then the "filling them in arrives soon" wording of the manage page goes away (`my_fields.for_collection_items`,
+  `my_fields.form.for_collection_items_help`, 6 locales)
+- [ ] In a real browser (not verifiable by the tests): the "My fields" toggle of the add form, the block hiding in
+  collection mode (CSS `:has()` sibling rule in `my_fields/_add_form_block.html.twig`), the values form inside the
+  modal (saved → the result detail replaces it in the modal), the manage page at 380 px
+- [ ] A result removed automatically as a copy and brought back by Undo (`result_auto_removal`) comes back without its
+  custom values - the snapshot does not hold them. Decide with the import's Undo (stage 6b) whether it should
+- [ ] The edit-result form has no link to "My fields" (on purpose - nothing was added to it); add one if players miss it
+
 ## PhotoStash descriptions in Postgres (`docs/features/photo-uploads/README.md` "Where the stash keeps what", 2026-11-09)
 
 - [ ] After release 2: one daily prune later, no `tmp-uploads/**/*.json` objects remain (the prune removes them by age)

@@ -1,0 +1,36 @@
+{#
+    The signed-in player's own values on one result (docs/features/custom-fields.md) - shared by the modal
+    (_values_modal.html.twig) and the full page (values.html.twig).
+
+    The action is explicit: in the modal frame a form without one posts to the page under the modal. Saved, the answer
+    is a redirect to the result detail - in the frame the detail replaces this form in the modal.
+
+    Inputs: time_id, my_fields (CustomFieldsForm)
+#}
+<form action="{{ path('result_my_fields', {timeId: time_id}) }}" method="post" data-testid="custom-values-form">
+    <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\CustomFields\\SolvingTimeCustomValuesController::CSRF_TOKEN_ID')) }}">
+
+    <p class="form-text mt-0 mb-3"><i class="bi bi-lock me-1"></i>{{ 'my_fields.private_note'|trans }}</p>
+
+    {% if my_fields.fields is empty %}
+        <p class="text-muted">{{ 'my_fields.values.no_fields'|trans }}</p>
+        <a href="{{ path('my_fields') }}" data-turbo-frame="_top" class="btn btn-outline-primary d-inline-flex align-items-center" style="min-height: 44px;">{{ 'my_fields.manage_link'|trans }}</a>
+    {% else %}
+        {% if my_fields.problems is not empty %}
+            <div class="alert alert-danger fs-sm" role="alert">{{ 'my_fields.values.not_saved'|trans }}</div>
+        {% endif %}
+
+        {{ include('my_fields/_inputs.html.twig', {my_fields: my_fields, id_prefix: 'my-field'}) }}
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <a href="{{ path('puzzle_result_detail', {timeId: time_id}) }}" class="btn btn-secondary d-inline-flex align-items-center" style="min-height: 44px;">{{ 'forms.cancel'|trans }}</a>
+            <button type="submit" class="btn btn-primary text-wrap" style="min-height: 44px;">
+                <i class="bi bi-check-lg me-1"></i>{{ 'forms.save'|trans }}
+            </button>
+        </div>
+
+        <p class="form-text mb-0 mt-3">
+            <a href="{{ path('my_fields') }}" data-turbo-frame="_top">{{ 'my_fields.manage_link'|trans }}</a>
+        </p>
+    {% endif %}
+</form>

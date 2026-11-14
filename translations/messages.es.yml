@@ -11617,3 +11617,126 @@ event_result_claim:
     notification:
         claimed: "%player% se unió a %team% en %event%"
         claim_removed: "Tu puesto en %team% en %event% fue retirado"
+
+my_fields:
+    title: "Mis campos"
+    intro: "Tus propios campos para lo que quieras recordar de un resultado: notas, un número, una fecha, etiquetas. Añade un campo ya preparado con un toque o crea el tuyo."
+    private_note: "Tus campos y lo que escribes en ellos solo los ves tú, también en un resultado que hiciste en pareja o en equipo."
+    back_to_settings: "Ajustes del perfil"
+    manage_link: "Gestionar mis campos"
+    in_use_title: "Campos en uso (%count% de %limit%)"
+    empty: "Aún no tienes campos. Añade abajo uno ya preparado o crea el tuyo."
+    for_results: "Resultados"
+    for_collection_items: "Puzzles de la colección (rellenarlos llegará pronto)"
+    move_up: "Subir"
+    move_down: "Bajar"
+    edit: "Editar"
+    archive: "Archivar"
+    restore: "Restaurar"
+    archive_help: "Archivar oculta un campo en todas partes. Lo que escribiste en él se conserva y vuelve cuando restauras el campo."
+    archived_title: "Archivados (%count%)"
+    ready_made:
+        title: "Campos ya preparados"
+        intro: "Un toque añade un campo. Su nombre sigue el idioma de la página."
+        add: "Añadir %field%"
+    add_own:
+        title: "Crear tu propio campo"
+        submit: "Añadir campo"
+    edit_page:
+        title: "Editar campo"
+        type_fixed: "Tipo: %type%. El tipo de un campo no se puede cambiar."
+        choices_note: "Una opción que quites se queda en los resultados que ya la tienen."
+    form:
+        name: "Nombre"
+        type: "Tipo"
+        choices: "Opciones"
+        choices_help: "Solo para «Una de una lista»: una opción por línea."
+        places: "Dónde lo rellenas"
+        for_results: "En los resultados"
+        for_collection_items: "En los puzzles de la colección"
+        for_collection_items_help: "Puedes dejarlo configurado ya. Rellenar los campos en los puzzles de tu colección llegará pronto."
+    type:
+        text: "Texto"
+        number: "Número"
+        date: "Fecha"
+        yes_no: "Sí / no"
+        choice: "Una de una lista"
+        tags: "Etiquetas"
+    value:
+        none: "-"
+        "yes": "Sí"
+        "no": "No"
+        tags_help: "Separa las etiquetas con comas."
+    errors:
+        not_valid: "Este valor no se puede guardar."
+        too_long: "Demasiado largo: como máximo %limit% caracteres."
+        not_a_number: "Escribe un número, por ejemplo 12 o 12,5."
+        not_a_date: "Escribe una fecha."
+        not_yes_no: "Elige sí o no."
+        unknown_choice: "Elige una opción de la lista."
+        too_many_tags: "Demasiadas etiquetas: como máximo %limit%."
+        tag_too_long: "Una etiqueta puede tener como máximo %limit% caracteres."
+        unknown_field: "Este campo ya no se usa."
+    definition_errors:
+        name_missing: "Ponle un nombre al campo."
+        name_too_long: "El nombre puede tener como máximo %limit% caracteres."
+        choices_missing: "Escribe al menos una opción, una por línea."
+        too_many_choices: "Demasiadas opciones: como máximo %limit%."
+        choice_too_long: "Una opción puede tener como máximo %limit% caracteres."
+        no_target: "Elige dónde rellenas el campo."
+        ready_made: "Un campo ya preparado no se puede cambiar."
+    flash:
+        added: "El campo se ha añadido."
+        saved: "El campo se ha guardado."
+        archived: "El campo se ha archivado. Lo que escribiste en él se conserva."
+        restored: "El campo vuelve a estar en uso."
+        limit_reached: "Puedes usar como máximo %limit% campos a la vez. Archiva uno para añadir otro."
+        name_taken: "Ya tienes un campo con este nombre."
+    add_form:
+        toggle: "Mis campos"
+        title: "Mis campos"
+        some_not_saved: "Tu resultado está guardado. Estos campos tuyos no se pudieron guardar: %fields%. Puedes rellenarlos en el resultado."
+        not_saved: "Tu resultado está guardado. Tus propios campos no se pudieron guardar; puedes rellenarlos en el resultado."
+    values:
+        title: "Mis campos en este resultado"
+        saved: "Tus campos se han guardado."
+        not_saved: "Aún no se ha guardado nada; revisa los campos marcados."
+        no_fields: "Aún no tienes campos para resultados."
+        back: "este resultado"
+    result:
+        label: "Mis campos"
+        edit: "Editar"
+        fill: "Rellenar"
+    edit_profile_card:
+        text: "Tus propios campos privados para los resultados: notas, números, fechas, etiquetas. Solo los ves tú."
+    standard:
+        private_notes:
+            label: "Notas privadas"
+        what_to_work_on:
+            label: "En qué trabajar"
+        condition:
+            label: "Estado"
+        missing_pieces:
+            label: "Piezas que faltan"
+        bought_on:
+            label: "Comprado el"
+        bought_from:
+            label: "Comprado en"
+        price_paid:
+            label: "Precio pagado"
+        where_it_is:
+            label: "Dónde está"
+        copies:
+            label: "Ejemplares"
+        artist:
+            label: "Artista"
+        year_of_release:
+            label: "Año de lanzamiento"
+        material:
+            label: "Material"
+            choices:
+                cardboard: "Cartón"
+                wood: "Madera"
+                plastic: "Plástico"
+        my_tags:
+            label: "Mis etiquetas"

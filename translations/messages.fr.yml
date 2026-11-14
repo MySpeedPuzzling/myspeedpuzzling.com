@@ -11612,3 +11612,126 @@ event_result_claim:
     notification:
         claimed: "%player% a rejoint %team% à %event%"
         claim_removed: "Ta place dans %team% à %event% a été retirée"
+
+my_fields:
+    title: "Mes champs"
+    intro: "Tes propres champs pour ce que tu veux retenir d’un résultat : des notes, un nombre, une date, des étiquettes. Ajoute un champ tout prêt d’un seul geste ou crée le tien."
+    private_note: "Tes champs et ce que tu y écris ne sont visibles que par toi - aussi pour un résultat fait en duo ou en équipe."
+    back_to_settings: "Paramètres du profil"
+    manage_link: "Gérer mes champs"
+    in_use_title: "Champs utilisés (%count% sur %limit%)"
+    empty: "Aucun champ pour l’instant. Ajoute un champ tout prêt ci-dessous ou crée le tien."
+    for_results: "Résultats"
+    for_collection_items: "Puzzles de la collection (le remplissage arrive bientôt)"
+    move_up: "Monter"
+    move_down: "Descendre"
+    edit: "Modifier"
+    archive: "Archiver"
+    restore: "Restaurer"
+    archive_help: "Archiver masque un champ partout. Ce que tu y as écrit est conservé et revient quand tu restaures le champ."
+    archived_title: "Archivés (%count%)"
+    ready_made:
+        title: "Champs tout prêts"
+        intro: "Un geste ajoute un champ. Son nom suit la langue de la page."
+        add: "Ajouter %field%"
+    add_own:
+        title: "Créer ton propre champ"
+        submit: "Ajouter le champ"
+    edit_page:
+        title: "Modifier le champ"
+        type_fixed: "Type : %type%. Le type d’un champ ne peut pas être changé."
+        choices_note: "Un choix que tu retires reste sur les résultats qui l’ont déjà."
+    form:
+        name: "Nom"
+        type: "Type"
+        choices: "Choix"
+        choices_help: "Seulement pour « Un choix dans une liste » : un choix par ligne."
+        places: "Où tu le remplis"
+        for_results: "Sur les résultats"
+        for_collection_items: "Sur les puzzles de la collection"
+        for_collection_items_help: "Tu peux déjà le régler. Le remplissage sur les puzzles de ta collection arrive bientôt."
+    type:
+        text: "Texte"
+        number: "Nombre"
+        date: "Date"
+        yes_no: "Oui / non"
+        choice: "Un choix dans une liste"
+        tags: "Étiquettes"
+    value:
+        none: "-"
+        "yes": "Oui"
+        "no": "Non"
+        tags_help: "Sépare les étiquettes par des virgules."
+    errors:
+        not_valid: "Cette valeur ne peut pas être enregistrée."
+        too_long: "Trop long - %limit% caractères au maximum."
+        not_a_number: "Saisis un nombre, par exemple 12 ou 12,5."
+        not_a_date: "Saisis une date."
+        not_yes_no: "Choisis oui ou non."
+        unknown_choice: "Choisis un élément de la liste."
+        too_many_tags: "Trop d’étiquettes - %limit% au maximum."
+        tag_too_long: "Une étiquette peut avoir %limit% caractères au maximum."
+        unknown_field: "Ce champ n’est plus utilisé."
+    definition_errors:
+        name_missing: "Donne un nom au champ."
+        name_too_long: "Le nom peut avoir %limit% caractères au maximum."
+        choices_missing: "Écris au moins un choix, un par ligne."
+        too_many_choices: "Trop de choix - %limit% au maximum."
+        choice_too_long: "Un choix peut avoir %limit% caractères au maximum."
+        no_target: "Choisis où tu remplis le champ."
+        ready_made: "Un champ tout prêt ne peut pas être modifié."
+    flash:
+        added: "Le champ a été ajouté."
+        saved: "Le champ a été enregistré."
+        archived: "Le champ a été archivé. Ce que tu y as écrit est conservé."
+        restored: "Le champ est de nouveau utilisé."
+        limit_reached: "Tu peux utiliser %limit% champs au maximum à la fois. Archives-en un pour en ajouter un autre."
+        name_taken: "Tu as déjà un champ avec ce nom."
+    add_form:
+        toggle: "Mes champs"
+        title: "Mes champs"
+        some_not_saved: "Ton résultat est enregistré. Ces champs à toi n’ont pas pu être enregistrés : %fields%. Tu peux les remplir sur le résultat."
+        not_saved: "Ton résultat est enregistré. Tes propres champs n’ont pas pu être enregistrés - tu peux les remplir sur le résultat."
+    values:
+        title: "Mes champs sur ce résultat"
+        saved: "Tes champs ont été enregistrés."
+        not_saved: "Rien n’a encore été enregistré - vérifie les champs signalés."
+        no_fields: "Tu n’as pas encore de champs pour les résultats."
+        back: "ce résultat"
+    result:
+        label: "Mes champs"
+        edit: "Modifier"
+        fill: "Remplir"
+    edit_profile_card:
+        text: "Tes propres champs privés pour les résultats - notes, nombres, dates, étiquettes. Toi seul(e) les vois."
+    standard:
+        private_notes:
+            label: "Notes privées"
+        what_to_work_on:
+            label: "À travailler"
+        condition:
+            label: "État"
+        missing_pieces:
+            label: "Pièces manquantes"
+        bought_on:
+            label: "Acheté le"
+        bought_from:
+            label: "Acheté chez"
+        price_paid:
+            label: "Prix payé"
+        where_it_is:
+            label: "Où il est"
+        copies:
+            label: "Exemplaires"
+        artist:
+            label: "Artiste"
+        year_of_release:
+            label: "Année de sortie"
+        material:
+            label: "Matériau"
+            choices:
+                cardboard: "Carton"
+                wood: "Bois"
+                plastic: "Plastique"
+        my_tags:
+            label: "Mes étiquettes"

@@ -1,0 +1,15 @@
+{#
+    Where a field is filled in. Collection puzzles get their inputs in the next stage (docs/features/custom-fields.md
+    "What 1b adds") - until then the line says so plainly.
+
+    Inputs: for_results, for_collection_items (bool)
+#}
+<div class="fs-xs text-muted">
+    {%- if for_results -%}
+        <span class="text-nowrap"><i class="bi bi-stopwatch me-1"></i>{{ 'my_fields.for_results'|trans }}</span>
+    {%- endif -%}
+    {%- if for_results and for_collection_items %} · {% endif -%}
+    {%- if for_collection_items -%}
+        <span><i class="bi bi-collection me-1"></i>{{ 'my_fields.for_collection_items'|trans }}</span>
+    {%- endif -%}
+</div>

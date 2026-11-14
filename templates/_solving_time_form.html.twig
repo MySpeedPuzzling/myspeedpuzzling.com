@@ -426,7 +426,7 @@
                             <div class="sp-preview" data-series-edition-preview-target="output" aria-live="polite"></div>
                         </div>
                     </div>
-                </div>
+                </div>{{ my_fields|default(null) is not null ? include('my_fields/_add_form_block.html.twig') : '' }}
 
                 {# Comment and photo section (Speed + Relax only) #}
                 <div class="card card-body shadow mb-3" data-puzzle-add-form-target="commonSection">

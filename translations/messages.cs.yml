@@ -11619,3 +11619,126 @@ event_result_claim:
     notification:
         claimed: "%player% se přidal(a) k týmu %team% na akci %event%"
         claim_removed: "Tvoje místo v týmu %team% na akci %event% bylo odebráno"
+
+my_fields:
+    title: "Moje pole"
+    intro: "Vlastní pole na to, co si chceš k výsledku zapamatovat: poznámky, číslo, datum, štítky. Přidej hotové pole jedním klepnutím, nebo si vytvoř vlastní."
+    private_note: "Svoje pole a to, co do nich napíšeš, vidíš jen ty - i u výsledku, který jsi skládal(a) ve dvojici nebo v týmu."
+    back_to_settings: "Nastavení profilu"
+    manage_link: "Spravovat moje pole"
+    in_use_title: "Používaná pole (%count% z %limit%)"
+    empty: "Zatím žádná pole. Přidej hotové pole níže, nebo si vytvoř vlastní."
+    for_results: "Výsledky"
+    for_collection_items: "Puzzle v kolekci (vyplňování přibude brzy)"
+    move_up: "Posunout nahoru"
+    move_down: "Posunout dolů"
+    edit: "Upravit"
+    archive: "Archivovat"
+    restore: "Obnovit"
+    archive_help: "Archivací se pole všude skryje. Co jsi do něj napsal(a), zůstane a po obnovení pole se zase ukáže."
+    archived_title: "Archivovaná (%count%)"
+    ready_made:
+        title: "Hotová pole"
+        intro: "Pole přidáš jedním klepnutím. Jeho název se řídí jazykem stránky."
+        add: "Přidat %field%"
+    add_own:
+        title: "Vytvořit vlastní pole"
+        submit: "Přidat pole"
+    edit_page:
+        title: "Upravit pole"
+        type_fixed: "Typ: %type%. Typ pole nejde změnit."
+        choices_note: "Možnost, kterou odebereš, zůstane u výsledků, které ji už mají."
+    form:
+        name: "Název"
+        type: "Typ"
+        choices: "Možnosti"
+        choices_help: "Jen pro „Jedna ze seznamu“: každá možnost na vlastním řádku."
+        places: "Kde ho vyplňuješ"
+        for_results: "U výsledků"
+        for_collection_items: "U puzzle v kolekci"
+        for_collection_items_help: "Nastavit to můžeš už teď. Vyplňování polí u puzzle v kolekci přibude brzy."
+    type:
+        text: "Text"
+        number: "Číslo"
+        date: "Datum"
+        yes_no: "Ano / ne"
+        choice: "Jedna ze seznamu"
+        tags: "Štítky"
+    value:
+        none: "-"
+        "yes": "Ano"
+        "no": "Ne"
+        tags_help: "Štítky odděl čárkami."
+    errors:
+        not_valid: "Tuto hodnotu nejde uložit."
+        too_long: "Příliš dlouhé - nejvýše %limit% znaků."
+        not_a_number: "Zadej číslo, například 12 nebo 12,5."
+        not_a_date: "Zadej datum."
+        not_yes_no: "Vyber ano, nebo ne."
+        unknown_choice: "Vyber jednu možnost ze seznamu."
+        too_many_tags: "Příliš mnoho štítků - nejvýše %limit%."
+        tag_too_long: "Štítek může mít nejvýše %limit% znaků."
+        unknown_field: "Toto pole se už nepoužívá."
+    definition_errors:
+        name_missing: "Pojmenuj pole."
+        name_too_long: "Název může mít nejvýše %limit% znaků."
+        choices_missing: "Napiš aspoň jednu možnost, každou na vlastní řádek."
+        too_many_choices: "Příliš mnoho možností - nejvýše %limit%."
+        choice_too_long: "Možnost může mít nejvýše %limit% znaků."
+        no_target: "Vyber, kde pole vyplňuješ."
+        ready_made: "Hotové pole nejde měnit."
+    flash:
+        added: "Pole bylo přidáno."
+        saved: "Pole bylo uloženo."
+        archived: "Pole bylo archivováno. Co jsi do něj napsal(a), zůstává."
+        restored: "Pole se zase používá."
+        limit_reached: "Najednou můžeš používat nejvýše %limit% polí. Některé archivuj a můžeš přidat další."
+        name_taken: "Pole s tímto názvem už máš."
+    add_form:
+        toggle: "Moje pole"
+        title: "Moje pole"
+        some_not_saved: "Výsledek je uložený. Tato tvoje pole se nepodařilo uložit: %fields%. Vyplnit je můžeš u výsledku."
+        not_saved: "Výsledek je uložený. Tvoje vlastní pole se nepodařilo uložit - vyplnit je můžeš u výsledku."
+    values:
+        title: "Moje pole u tohoto výsledku"
+        saved: "Tvoje pole byla uložena."
+        not_saved: "Zatím se nic neuložilo - zkontroluj prosím označená pole."
+        no_fields: "Zatím nemáš žádná pole pro výsledky."
+        back: "tento výsledek"
+    result:
+        label: "Moje pole"
+        edit: "Upravit"
+        fill: "Vyplnit"
+    edit_profile_card:
+        text: "Vlastní soukromá pole k výsledkům - poznámky, čísla, data, štítky. Vidíš je jen ty."
+    standard:
+        private_notes:
+            label: "Soukromé poznámky"
+        what_to_work_on:
+            label: "Na čem zapracovat"
+        condition:
+            label: "Stav"
+        missing_pieces:
+            label: "Chybějící dílky"
+        bought_on:
+            label: "Koupeno dne"
+        bought_from:
+            label: "Koupeno od"
+        price_paid:
+            label: "Zaplacená cena"
+        where_it_is:
+            label: "Kde je"
+        copies:
+            label: "Počet kusů"
+        artist:
+            label: "Autor"
+        year_of_release:
+            label: "Rok vydání"
+        material:
+            label: "Materiál"
+            choices:
+                cardboard: "Karton"
+                wood: "Dřevo"
+                plastic: "Plast"
+        my_tags:
+            label: "Moje štítky"

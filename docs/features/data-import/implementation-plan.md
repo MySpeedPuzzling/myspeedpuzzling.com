@@ -52,9 +52,12 @@ Ships alone, in two pull requests: **1a** fields on results, **1b** fields on co
    `SetSolvingTimeCustomValues` (the actor must be the tracker or a registered member of the result; values validated
    against the field's type; unknown field ids refused).
 4. `/{_locale}/custom-fields` (manage, ready-made fields with one tap) and a card on edit-profile.
-5. **Add a result:** the values travel inside `AddPuzzleSolvingTime` and `AddPuzzleTracking` (one save, and a resent
-   form stays idempotent); the fields are children of the add form, so a 422 keeps them. A "My fields" toggle after
-   the event section, only when the player has fields.
+5. **Add a result:** ~~the values travel inside `AddPuzzleSolvingTime` and `AddPuzzleTracking`~~ - changed while
+   building (Jan, 2026-11-14: the add form must never break): the add messages, handlers and form type are untouched;
+   the fields are plain inputs beside the form (a refused submit re-renders them from the request), saved after the
+   result - also on a resend - by a step that never throws; a value that can not be stored is left out and named,
+   never a 422; kill switch `CUSTOM_FIELDS_IN_ADD_FORM`. A "My fields" toggle after the event section, only when the
+   player has fields.
 6. **Edit:** an own route and form in the modal frame (explicit `action`), linked from the result detail and the edit
    form - **never through `EditPuzzleSolvingTime`**: that message tells every member of a pair/team result and
    recalculates their achievements and XP.

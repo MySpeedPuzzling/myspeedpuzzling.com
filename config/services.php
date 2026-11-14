@@ -136,6 +136,11 @@ return static function (ContainerConfigurator $configurator): void {
     // Background photo uploads straight to object storage (docs/features/feature_flags.md): the kill switch, on by default
     $parameters->set('directPhotoUploads', '%env(bool:DIRECT_PHOTO_UPLOADS)%');
 
+    // The player's own fields in the add-result form (docs/features/feature_flags.md): the kill switch, on by default -
+    // 0 = the form never loads, shows or saves them (the custom fields page and the form on a result keep working)
+    $parameters->set('env(CUSTOM_FIELDS_IN_ADD_FORM)', '1');
+    $parameters->set('customFieldsInAddForm', '%env(bool:CUSTOM_FIELDS_IN_ADD_FORM)%');
+
     // Insights (docs/features/feature_flags.md): the page and its links only while 1, admins always.
     $parameters->set('insightsPublic', '%env(bool:INSIGHTS_PUBLIC)%');
 

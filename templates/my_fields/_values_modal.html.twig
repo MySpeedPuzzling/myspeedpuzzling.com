@@ -1,0 +1,10 @@
+{# The values form in the global modal (opened from the result detail) - see _values_form.html.twig #}
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-lock me-1"></i>{{ 'my_fields.values.title'|trans }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+    </div>
+    <div class="modal-body">
+        {{ include('my_fields/_values_form.html.twig', {in_modal: true}) }}
+    </div>
+</turbo-frame>

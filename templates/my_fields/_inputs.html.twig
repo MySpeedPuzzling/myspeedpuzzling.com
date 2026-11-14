@@ -1,0 +1,57 @@
+{#
+    The signed-in player's own fields as inputs (docs/features/custom-fields.md) - shared by the add-result form's
+    "My fields" block and the values form of a result.
+
+    Plain inputs named my_fields[<field id>], on purpose no Symfony form children: nothing typed here can make the
+    form around them invalid. Every input is 16 px text (no zoom on iPhone) and at least 44 px tall.
+
+    Inputs:
+      - my_fields: CustomFieldsForm (fields, what each input holds, problems per field)
+      - id_prefix: unique per page, so two blocks never share an id
+#}
+{% set input_name = constant('SpeedPuzzling\\Web\\Results\\CustomFieldsForm::INPUT') %}
+{% for field in my_fields.fields %}
+    {% set input_id = id_prefix ~ '-' ~ field.fieldId %}
+    {% set value = my_fields.input(field) %}
+    {% set problem = my_fields.problem(field) %}
+    {% set name = input_name ~ '[' ~ field.fieldId ~ ']' %}
+    <div class="mb-3 custom-field-input" data-custom-field="{{ field.fieldId }}">
+        <label class="form-label" for="{{ input_id }}">{{ my_field_label(field) }}</label>
+
+        {% if field.type.value == 'text' %}
+            <textarea class="form-control{{ problem ? ' is-invalid' }}" id="{{ input_id }}" name="{{ name }}" rows="2" maxlength="{{ constant('SpeedPuzzling\\Web\\Value\\CustomValues::TEXT_MAX_LENGTH') }}" style="font-size: 16px; min-height: 44px;">{{ value }}</textarea>
+        {% elseif field.type.value == 'number' %}
+            <input type="text" inputmode="decimal" autocomplete="off" class="form-control{{ problem ? ' is-invalid' }}" id="{{ input_id }}" name="{{ name }}" value="{{ value }}" style="font-size: 16px; min-height: 44px;">
+        {% elseif field.type.value == 'date' %}
+            <input type="date" class="form-control{{ problem ? ' is-invalid' }}" id="{{ input_id }}" name="{{ name }}" value="{{ value }}" style="font-size: 16px; min-height: 44px;">
+        {% elseif field.type.value == 'yes_no' %}
+            <select class="form-select{{ problem ? ' is-invalid' }}" id="{{ input_id }}" name="{{ name }}" style="font-size: 16px; min-height: 44px;">
+                <option value="">{{ 'my_fields.value.none'|trans }}</option>
+                <option value="yes"{{ value is same as('yes') ? ' selected' }}>{{ 'my_fields.value.yes'|trans }}</option>
+                <option value="no"{{ value is same as('no') ? ' selected' }}>{{ 'my_fields.value.no'|trans }}</option>
+            </select>
+        {% elseif field.type.value == 'choice' %}
+            <select class="form-select{{ problem ? ' is-invalid' }}" id="{{ input_id }}" name="{{ name }}" style="font-size: 16px; min-height: 44px;">
+                <option value="">{{ 'my_fields.value.none'|trans }}</option>
+                {# Strict comparisons: "1", "1.0" and "01" are three choices, never selected together #}
+                {% for choice in field.choices %}
+                    <option value="{{ choice }}"{{ value is same as(choice) ? ' selected' }}>{{ my_field_choice_label(field, choice) }}</option>
+                {% endfor %}
+                {# A value from before the list changed stays selectable - it is what the result holds #}
+                {% if value is not same as('') and field.choices|filter(choice => choice is same as(value))|length == 0 %}
+                    <option value="{{ value }}" selected>{{ my_field_choice_label(field, value) }}</option>
+                {% endif %}
+            </select>
+        {% else %}
+            <input type="text" autocomplete="off" autocapitalize="none" class="form-control{{ problem ? ' is-invalid' }}" id="{{ input_id }}" name="{{ name }}" value="{{ value }}" style="font-size: 16px; min-height: 44px;" aria-describedby="{{ input_id }}-help">
+            <div class="form-text" id="{{ input_id }}-help">{{ 'my_fields.value.tags_help'|trans }}</div>
+        {% endif %}
+
+        {% if problem %}
+            <div class="invalid-feedback d-block">{{ problem.messageKey|trans({
+                '%limit%': problem.value == 'too_long' ? constant('SpeedPuzzling\\Web\\Value\\CustomValues::TEXT_MAX_LENGTH')
+                    : (problem.value == 'too_many_tags' ? constant('SpeedPuzzling\\Web\\Value\\CustomValues::MAX_TAGS') : constant('SpeedPuzzling\\Web\\Value\\CustomValues::TAG_MAX_LENGTH')),
+            }) }}</div>
+        {% endif %}
+    </div>
+{% endfor %}

@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Query\GetDuplicateCandidates;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Repository\ResultAutoRemovalRepository;
 use SpeedPuzzling\Web\Repository\ResultDuplicateCaseRepository;
+use SpeedPuzzling\Web\Services\CustomFields\CustomValuesOfRemovedCopy;
 use SpeedPuzzling\Web\Services\DuplicateResults\DuplicateClassifier;
 use SpeedPuzzling\Web\Value\DuplicateTier;
 use SpeedPuzzling\Web\Value\RemovedResultSnapshot;
@@ -41,6 +42,7 @@ readonly final class AutoRemoveCertainDuplicateHandler
         private DuplicateClassifier $classifier,
         private ClockInterface $clock,
         private MessageBusInterface $messageBus,
+        private CustomValuesOfRemovedCopy $customValuesOfRemovedCopy,
     ) {
     }
 
@@ -82,6 +84,10 @@ readonly final class AutoRemoveCertainDuplicateHandler
         $copyId = $copy->id->toString();
         $copyPuzzleId = $copy->puzzle->id->toString();
         $memberPlayerIds = $copy->memberPlayerIds();
+
+        // What the players wrote into their own fields on the copy stays - on the kept result. An Undo brings the
+        // copy back without them: they are on the kept one (docs/features/custom-fields.md)
+        $this->customValuesOfRemovedCopy->moveTo([$copy], $kept);
 
         $this->puzzleSolvingTimeRepository->delete($copy, SolvingTimeDeletedVia::DuplicateAutoRemoval);
 

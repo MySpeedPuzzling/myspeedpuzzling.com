@@ -1,0 +1,18 @@
+{% extends 'base.html.twig' %}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'my_fields.values.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{% include '_return_back_button.html.twig' with {fallbackUrl: path('puzzle_result_detail', {timeId: time_id}), fallbackTitle: 'my_fields.values.back'|trans} %}
+
+<div class="mx-auto" style="max-width: 720px;">
+    <h1 class="h3 mb-3"><i class="bi bi-lock me-2"></i>{{ 'my_fields.values.title'|trans }}</h1>
+
+    <div class="card card-body shadow-sm">
+        {{ include('my_fields/_values_form.html.twig') }}
+    </div>
+</div>
+{% endblock %}

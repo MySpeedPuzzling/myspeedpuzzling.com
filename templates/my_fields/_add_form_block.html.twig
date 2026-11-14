@@ -1,0 +1,31 @@
+{#
+    "My fields" in the add-result form (docs/features/custom-fields.md "The add form") - included by
+    _solving_time_form.html.twig only when the player has fields for results (my_fields: CustomFieldsForm); for
+    everybody else the form is rendered without a byte of this.
+
+    Beside the form, never part of it: the inputs are plain inputs next to the Symfony form (like the co-puzzlers), the
+    values are saved after the result by a step of their own, and nothing typed here can refuse the result.
+
+    Speed puzzling and relax only. The form's JavaScript hides the comment/photo card (the next element) in
+    collection mode - this block follows it through the sibling rule below, so the form's controller stays as it is.
+#}
+<style>
+    .my-fields-block:has(+ [data-puzzle-add-form-target="commonSection"].d-none) { display: none; }
+</style>
+<div class="my-fields-block" data-controller="toggle" data-testid="add-form-my-fields">
+    {% set my_fields_open = my_fields.hasAnyInput %}
+    <button type="button" class="btn btn-outline-secondary shadow w-100 mb-3 {{ my_fields_open ? 'hidden' }}" data-action="click->toggle#toggle" data-toggle-target-param="myFields" style="min-height: 44px;">
+        <i class="bi bi-lock me-1"></i> {{ 'my_fields.add_form.toggle'|trans }}
+    </button>
+
+    <div class="card card-body shadow mb-3 {{ not my_fields_open ? 'hidden' }}" data-toggle-target="myFields">
+        <p class="fw-semibold mb-1"><i class="bi bi-lock me-1"></i>{{ 'my_fields.add_form.title'|trans }}</p>
+        <p class="form-text mt-0 mb-3">{{ 'my_fields.private_note'|trans }}</p>
+
+        {{ include('my_fields/_inputs.html.twig', {my_fields: my_fields, id_prefix: 'add-my-field'}) }}
+
+        <p class="form-text mb-0">
+            <a href="{{ path('my_fields') }}" target="_blank" rel="noopener">{{ 'my_fields.manage_link'|trans }}</a>
+        </p>
+    </div>
+</div>

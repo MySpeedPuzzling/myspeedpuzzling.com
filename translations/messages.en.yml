@@ -11863,3 +11863,129 @@ event_result_claim:
     notification:
         claimed: "%player% joined %team% at %event%"
         claim_removed: "Your spot in %team% at %event% was removed"
+
+my_fields:
+    title: "My fields"
+    intro: "Your own fields for what you want to remember about a result: notes, a number, a date, tags. Add a ready-made one with one tap or make your own."
+    private_note: "Only you see your fields and what you write in them - also on a result you solved in a pair or a team."
+    back_to_settings: "Profile settings"
+    manage_link: "Manage my fields"
+    in_use_title: "Fields in use (%count% of %limit%)"
+    empty: "No fields yet. Add a ready-made one below, or make your own."
+    for_results: "Results"
+    for_collection_items: "Collection puzzles (filling them in arrives soon)"
+    move_up: "Move up"
+    move_down: "Move down"
+    edit: "Edit"
+    archive: "Archive"
+    restore: "Restore"
+    archive_help: "Archiving hides a field everywhere. What you wrote in it is kept and comes back when you restore the field."
+    archived_title: "Archived (%count%)"
+    ready_made:
+        title: "Ready-made fields"
+        intro: "One tap adds a field. Its name follows the language of the page."
+        add: "Add %field%"
+    add_own:
+        title: "Make your own field"
+        submit: "Add field"
+    edit_page:
+        title: "Edit field"
+        type_fixed: "Type: %type%. The type of a field can not be changed."
+        choices_note: "A choice you remove stays on the results that already have it."
+    form:
+        name: "Name"
+        type: "Type"
+        choices: "Choices"
+        choices_help: "Only for \"One of a list\": one choice per line."
+        places: "Where you fill it in"
+        for_results: "On results"
+        for_collection_items: "On collection puzzles"
+        for_collection_items_help: "You can set this up now. Filling fields in on the puzzles of your collection arrives soon."
+    type:
+        text: "Text"
+        number: "Number"
+        date: "Date"
+        yes_no: "Yes / no"
+        choice: "One of a list"
+        tags: "Tags"
+    value:
+        none: "-"
+        "yes": "Yes"
+        "no": "No"
+        tags_help: "Separate tags with commas."
+    errors:
+        not_valid: "This value can not be saved."
+        too_long: "Too long - at most %limit% characters."
+        not_a_number: "Enter a number, for example 12 or 12.5."
+        ambiguous_number: "This can be read both ways. Write it without the separator (1250) or as a fraction (1.25)."
+        not_a_date: "Enter a date."
+        not_yes_no: "Choose yes or no."
+        unknown_choice: "Choose one of the list."
+        too_many_tags: "Too many tags - at most %limit%."
+        tag_too_long: "A tag can have at most %limit% characters."
+        unknown_field: "This field is no longer in use."
+    definition_errors:
+        name_missing: "Give the field a name."
+        name_too_long: "The name can have at most %limit% characters."
+        choices_missing: "Write at least one choice, one per line."
+        too_many_choices: "Too many choices - at most %limit%."
+        choice_too_long: "A choice can have at most %limit% characters."
+        no_target: "Choose where you fill the field in."
+        ready_made: "A ready-made field can not be changed."
+        invalid_characters: "The name or a choice has characters that can not be saved."
+    flash:
+        added: "The field was added."
+        saved: "The field was saved."
+        archived: "The field was archived. What you wrote in it is kept."
+        restored: "The field is back in use."
+        limit_reached: "You can use at most %limit% fields at once. Archive one to add another."
+        total_limit_reached: "You have %limit% fields, the archived ones counted - that is the most there can be. Restore an archived field instead of making a new one."
+        name_taken: "You already have a field with this name."
+    add_form:
+        toggle: "My fields"
+        title: "My fields"
+        some_not_saved: "Your result is saved. These fields of yours could not be saved: %fields%. You can fill them in on the result."
+        not_saved: "Your result is saved. Your own fields could not be saved - you can fill them in on the result."
+    values:
+        title: "My fields on this result"
+        saved: "Your fields were saved."
+        not_saved: "Nothing was saved yet - please check the marked fields."
+        no_fields: "You have no fields for results yet."
+        back: "this result"
+    result:
+        label: "My fields"
+        edit: "Edit"
+        fill: "Fill in"
+    edit_profile_card:
+        text: "Your own private fields for results - notes, numbers, dates, tags. Only you ever see them."
+    standard:
+        private_notes:
+            label: "Private notes"
+        what_to_work_on:
+            label: "What to work on"
+        condition:
+            label: "Condition"
+        missing_pieces:
+            label: "Missing pieces"
+        bought_on:
+            label: "Bought on"
+        bought_from:
+            label: "Bought from"
+        price_paid:
+            label: "Price paid"
+        where_it_is:
+            label: "Where it is"
+        copies:
+            label: "Copies"
+        artist:
+            label: "Artist"
+        year_of_release:
+            label: "Year of release"
+        material:
+            label: "Material"
+            choices:
+                cardboard: "Cardboard"
+                wood: "Wood"
+                plastic: "Plastic"
+        my_tags:
+            label: "My tags"

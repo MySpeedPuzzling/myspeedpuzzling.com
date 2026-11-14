@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Entity\Organization;
 use SpeedPuzzling\Web\Entity\ComparisonSubject;
 use SpeedPuzzling\Web\Entity\Conversation;
 use SpeedPuzzling\Web\Entity\ConversationReport;
+use SpeedPuzzling\Web\Entity\CustomField;
 use SpeedPuzzling\Web\Entity\DigestEmailLog;
 use SpeedPuzzling\Web\Entity\DismissedHint;
 use SpeedPuzzling\Web\Entity\FeatureRequest;
@@ -30,6 +31,7 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\SellSwapListItem;
 use SpeedPuzzling\Web\Entity\SoldSwappedItem;
+use SpeedPuzzling\Web\Entity\SolvingTimeCustomValues;
 use SpeedPuzzling\Web\Entity\Stopwatch;
 use SpeedPuzzling\Web\Entity\TransactionRating;
 use SpeedPuzzling\Web\Entity\PrivateProfileViewer;
@@ -88,6 +90,9 @@ final class DeletePlayerHandler
         $storedFiles = $player->avatar !== null ? [$player->avatar] : [];
 
         $this->cancelStripeSubscription($playerId);
+
+        // First: nothing below then meets a row of theirs
+        $this->deleteCustomFields($playerId);
 
         $storedFiles = [...$storedFiles, ...$this->handlePuzzleSolvingTimes($player, $playerName)];
         // Erasure: their times go without a grave, and the graves + tombstones of times deleted earlier go too
@@ -323,6 +328,22 @@ final class DeletePlayerHandler
         // xp_entry and xp_solve_tier reference players via a plain uuid column (no FK) — clean up explicitly.
         $em->createQuery('DELETE FROM ' . XpEntry::class . ' x WHERE x.playerId = :p')->setParameter('p', $playerId)->execute();
         $em->createQuery('DELETE FROM ' . XpSolveTier::class . ' x WHERE x.playerId = :p')->setParameter('p', $playerId)->execute();
+    }
+
+    /**
+     * The player's own fields and their values on every result - their own results and the pairs'/teams' results they
+     * are on, which stay for the others (docs/features/custom-fields.md). Deleted here although both foreign keys
+     * cascade: the purge does not rely on the schema, and as bulk statements - the rows are never loaded one by one.
+     */
+    private function deleteCustomFields(string $playerId): void
+    {
+        $this->entityManager->createQuery(
+            'DELETE FROM ' . SolvingTimeCustomValues::class . ' v WHERE v.player = :p',
+        )->setParameter('p', $playerId)->execute();
+
+        $this->entityManager->createQuery(
+            'DELETE FROM ' . CustomField::class . ' f WHERE f.player = :p',
+        )->setParameter('p', $playerId)->execute();
     }
 
     private function deleteUserBlocks(string $playerId): void

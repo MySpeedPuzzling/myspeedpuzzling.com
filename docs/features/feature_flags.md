@@ -152,6 +152,19 @@ Meta App Review approved + app published (2026-09-30), so Facebook lost its flag
   - `src/Controller/PhotoUploadStartController.php` — 404 while off
 - **Remove when:** a few weeks of telemetry without trouble — then drop the flag, keep the code paths.
 
+## Custom fields in the add-result form (`CUSTOM_FIELDS_IN_ADD_FORM`)
+
+- **Feature:** the player's own fields ("My fields") in the add-result form (`docs/features/custom-fields.md` "The add form")
+- **Flag:** env var `CUSTOM_FIELDS_IN_ADD_FORM` → parameter `customFieldsInAddForm` (`config/services.php`, with the
+  default `1` as the parameter `env(CUSTOM_FIELDS_IN_ADD_FORM)` - no `.env` line needed), injected into
+  `Services\CustomFields\AddFormCustomFields` only. Not a Twig global.
+- **Default:** **ON** (`1`). It is the kill switch: `0` = the add form never loads, shows or saves custom fields - it
+  is the form of a player without fields for everybody, and a form opened before the flip still saves its result
+  (without the fields). The custom fields page, the values form of a result and the result detail's block keep working.
+- **Gated files:** `src/Services/CustomFields/AddFormCustomFields.php` (`forForm()` returns null, `saveSubmitted()`
+  does nothing) - the block is `templates/my_fields/_add_form_block.html.twig`, included only when `forForm()` gave fields
+- **Remove when:** never - it is the off switch of an optional part of the app's most important form.
+
 ## Pairs & teams picker rollout (`PAIRS_TEAMS_PICKER_PUBLIC`)
 
 - **Feature:** the Solo / Pair / Team picker of the add/edit time form (`docs/features/pairs-and-teams/README.md`)

@@ -4,6 +4,22 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Custom fields (`docs/features/custom-fields.md`, 2026-11-14)
+
+- [ ] Stage 1b: collection items (`collection_item.custom_values`, the item's edit form), the export, the puzzle merge;
+  then the "filling them in arrives soon" wording of the manage page goes away (`my_fields.for_collection_items`,
+  `my_fields.form.for_collection_items_help`, 6 locales)
+- [ ] In a real browser again after the review round (2026-11-14): the values form saved from the modal over the
+  full-page result (the modal closes, the page refreshes with the flash) and from inside the result detail's own
+  modal (the detail comes back with the new values); the 44 px button of the result block
+- [ ] Reorder double-tap race: two quick taps on up/down post two forms built from the same list - the second swaps
+  against an order that is already gone (the result is a valid order, just not the one tapped). Fix with the order the
+  page showed in the form, or one request at a time
+- [ ] Browsers without `:has()` (before Safari 15.4 / Chrome 105 / Firefox 121) show the "My fields" block of the add
+  form in collection mode too - harmless (values posted from there are ignored), but it should hide: a target of the
+  form's controller, when that controller is touched for another reason
+- [ ] The edit-result form has no link to "My fields" (on purpose - nothing was added to it); add one if players miss it
+
 ## PhotoStash descriptions in Postgres (`docs/features/photo-uploads/README.md` "Where the stash keeps what", 2026-11-09)
 
 - [ ] After release 2: one daily prune later, no `tmp-uploads/**/*.json` objects remain (the prune removes them by age)

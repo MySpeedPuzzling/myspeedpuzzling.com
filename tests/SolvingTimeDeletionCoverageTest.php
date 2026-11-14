@@ -21,6 +21,7 @@ final class SolvingTimeDeletionCoverageTest extends TestCase
         'src/Repository/PuzzleSolvingTimeRepository.php' => 'the one deletion path: buries the time, writes the tombstones',
         'src/MessageHandler/DeletePlayerHandler.php' => 'account deletion erases the times without a grave (right to erasure) and wipes the player\'s graves and tombstones',
         'src/MessageHandler/ApprovePuzzleMergeRequestHandler.php' => 'removes collection/wishlist/sell-swap/lending rows - solving times are moved onto the survivor, never removed',
+        'src/Repository/SolvingTimeCustomValuesRepository.php' => 'removes a player\'s own custom values row of a result (docs/features/custom-fields.md) - never the result',
     ];
 
     public function testEveryFileRemovingEntitiesNextToSolvingTimesIsDecided(): void

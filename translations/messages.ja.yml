@@ -11606,3 +11606,129 @@ event_result_claim:
     notification:
         claimed: "%player%さんが%event%の%team%に参加しました"
         claim_removed: "%event%の%team%でのあなたの枠が外されました"
+
+my_fields:
+    title: "マイ項目"
+    intro: "結果について覚えておきたいことを書く、自分だけの項目です。メモ、数値、日付、タグなど。用意された項目をワンタップで追加するか、自分で作成できます。"
+    private_note: "項目とその内容は自分にしか見えません。ペアやチームで解いた結果でも同じです。"
+    back_to_settings: "プロフィール設定"
+    manage_link: "マイ項目を管理"
+    in_use_title: "使用中の項目（%count% / %limit%）"
+    empty: "まだ項目がありません。下の用意された項目を追加するか、自分で作成してください。"
+    for_results: "結果"
+    for_collection_items: "コレクションのパズル（入力はまもなく対応）"
+    move_up: "上へ移動"
+    move_down: "下へ移動"
+    edit: "編集"
+    archive: "アーカイブ"
+    restore: "元に戻す"
+    archive_help: "アーカイブすると、項目はどこにも表示されなくなります。入力した内容は保存され、項目を元に戻すと再び表示されます。"
+    archived_title: "アーカイブ済み（%count%）"
+    ready_made:
+        title: "用意された項目"
+        intro: "ワンタップで項目を追加できます。項目名はページの言語で表示されます。"
+        add: "%field%を追加"
+    add_own:
+        title: "自分の項目を作成"
+        submit: "項目を追加"
+    edit_page:
+        title: "項目を編集"
+        type_fixed: "種類：%type%。項目の種類は変更できません。"
+        choices_note: "削除した選択肢は、すでにそれを選んでいる結果には残ります。"
+    form:
+        name: "名前"
+        type: "種類"
+        choices: "選択肢"
+        choices_help: "「リストから1つ」の場合のみ：1行に1つずつ入力します。"
+        places: "入力する場所"
+        for_results: "結果"
+        for_collection_items: "コレクションのパズル"
+        for_collection_items_help: "設定は今すぐできます。コレクションのパズルでの入力はまもなく対応します。"
+    type:
+        text: "テキスト"
+        number: "数値"
+        date: "日付"
+        yes_no: "はい / いいえ"
+        choice: "リストから1つ"
+        tags: "タグ"
+    value:
+        none: "-"
+        "yes": "はい"
+        "no": "いいえ"
+        tags_help: "タグはカンマで区切ってください。"
+    errors:
+        not_valid: "この値は保存できません。"
+        too_long: "長すぎます。%limit%文字以内で入力してください。"
+        not_a_number: "数値を入力してください（例：12 または 12.5）。"
+        ambiguous_number: "この数値は2通りに読めます。区切りなし（1250）か小数（1.25）で入力してください。"
+        not_a_date: "日付を入力してください。"
+        not_yes_no: "「はい」か「いいえ」を選んでください。"
+        unknown_choice: "リストから1つ選んでください。"
+        too_many_tags: "タグが多すぎます。%limit%個までです。"
+        tag_too_long: "タグは%limit%文字までです。"
+        unknown_field: "この項目は現在使われていません。"
+    definition_errors:
+        name_missing: "項目に名前を付けてください。"
+        name_too_long: "名前は%limit%文字までです。"
+        choices_missing: "選択肢を1つ以上、1行に1つずつ入力してください。"
+        too_many_choices: "選択肢が多すぎます。%limit%個までです。"
+        choice_too_long: "選択肢は%limit%文字までです。"
+        no_target: "項目を入力する場所を選んでください。"
+        ready_made: "用意された項目は変更できません。"
+        invalid_characters: "名前または選択肢に保存できない文字が含まれています。"
+    flash:
+        added: "項目を追加しました。"
+        saved: "項目を保存しました。"
+        archived: "項目をアーカイブしました。入力した内容は保存されています。"
+        restored: "項目を再び使用できます。"
+        limit_reached: "同時に使用できる項目は%limit%個までです。追加するには、いずれかをアーカイブしてください。"
+        total_limit_reached: "アーカイブ済みを含めて項目が%limit%個あり、これが上限です。新しく作成する代わりに、アーカイブ済みの項目を元に戻してください。"
+        name_taken: "同じ名前の項目がすでにあります。"
+    add_form:
+        toggle: "マイ項目"
+        title: "マイ項目"
+        some_not_saved: "結果は保存されました。次のマイ項目は保存できませんでした：%fields%。結果のページで入力できます。"
+        not_saved: "結果は保存されました。マイ項目は保存できませんでした。結果のページで入力できます。"
+    values:
+        title: "この結果のマイ項目"
+        saved: "マイ項目を保存しました。"
+        not_saved: "まだ何も保存されていません。印の付いた項目を確認してください。"
+        no_fields: "結果用の項目がまだありません。"
+        back: "この結果"
+    result:
+        label: "マイ項目"
+        edit: "編集"
+        fill: "入力する"
+    edit_profile_card:
+        text: "結果のための自分だけの非公開項目です。メモ、数値、日付、タグなど。自分にしか見えません。"
+    standard:
+        private_notes:
+            label: "非公開メモ"
+        what_to_work_on:
+            label: "取り組むこと"
+        condition:
+            label: "状態"
+        missing_pieces:
+            label: "欠けているピース"
+        bought_on:
+            label: "購入日"
+        bought_from:
+            label: "購入先"
+        price_paid:
+            label: "支払った金額"
+        where_it_is:
+            label: "保管場所"
+        copies:
+            label: "個数"
+        artist:
+            label: "アーティスト"
+        year_of_release:
+            label: "発売年"
+        material:
+            label: "素材"
+            choices:
+                cardboard: "紙"
+                wood: "木"
+                plastic: "プラスチック"
+        my_tags:
+            label: "マイタグ"

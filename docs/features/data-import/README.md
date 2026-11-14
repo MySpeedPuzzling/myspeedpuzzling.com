@@ -305,9 +305,10 @@ unlisted_solving_time  id, unlisted_puzzle_id, player_id, seconds_to_solve, fini
 unlisted_collection_item  id, unlisted_puzzle_id, player_id, collection_id (null = the system one), comment, added_at,
                           custom_values jsonb, import_row_id
 
-custom_field           id, player_id, name, standard_key (null = the player's own), type (text | number | date | yes_no | choice | tags | rating), choices jsonb,
+player_custom_field    id, player_id, name, standard_key (null = the player's own), type (text | number | date | yes_no | choice | tags | rating), choices jsonb,
                        for_results, for_collection_items, position, archived_at
-solving_time_custom_values   solving_time_id, player_id, values jsonb      primary key (solving_time_id, player_id)
+                       (built in stage 1a; not `custom_field` - Doctrine ignores every table named `custom_*`)
+solving_time_custom_values   id, solving_time_id, player_id, custom_values jsonb      unique (solving_time_id, player_id)
 collection_item.custom_values jsonb
 puzzle_solving_time.finished_at_precision   null = day (every existing row), month, year
 ```

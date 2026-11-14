@@ -11616,3 +11616,129 @@ event_result_claim:
     notification:
         claimed: "%player% ist %team% bei %event% beigetreten"
         claim_removed: "Dein Platz in %team% bei %event% wurde entfernt"
+
+my_fields:
+    title: "Meine Felder"
+    intro: "Eigene Felder für das, was du dir zu einem Ergebnis merken möchtest: Notizen, eine Zahl, ein Datum, Tags. Füge ein fertiges Feld mit einem Tippen hinzu oder lege ein eigenes an."
+    private_note: "Deine Felder und was du hineinschreibst, siehst nur du - auch bei einem Ergebnis, das du zu zweit oder im Team gepuzzelt hast."
+    back_to_settings: "Profileinstellungen"
+    manage_link: "Meine Felder verwalten"
+    in_use_title: "Felder in Verwendung (%count% von %limit%)"
+    empty: "Noch keine Felder. Füge unten ein fertiges Feld hinzu oder lege ein eigenes an."
+    for_results: "Ergebnisse"
+    for_collection_items: "Puzzles der Sammlung (Ausfüllen kommt bald)"
+    move_up: "Nach oben"
+    move_down: "Nach unten"
+    edit: "Bearbeiten"
+    archive: "Archivieren"
+    restore: "Wiederherstellen"
+    archive_help: "Archivieren blendet ein Feld überall aus. Was du hineingeschrieben hast, bleibt erhalten und ist wieder da, sobald du das Feld wiederherstellst."
+    archived_title: "Archiviert (%count%)"
+    ready_made:
+        title: "Fertige Felder"
+        intro: "Ein Tippen fügt ein Feld hinzu. Sein Name richtet sich nach der Sprache der Seite."
+        add: "%field% hinzufügen"
+    add_own:
+        title: "Eigenes Feld anlegen"
+        submit: "Feld hinzufügen"
+    edit_page:
+        title: "Feld bearbeiten"
+        type_fixed: "Typ: %type%. Der Typ eines Feldes kann nicht geändert werden."
+        choices_note: "Eine Auswahl, die du entfernst, bleibt bei den Ergebnissen, die sie schon haben."
+    form:
+        name: "Name"
+        type: "Typ"
+        choices: "Auswahlmöglichkeiten"
+        choices_help: "Nur für „Eine aus einer Liste“: eine Auswahl pro Zeile."
+        places: "Wo du es ausfüllst"
+        for_results: "Bei Ergebnissen"
+        for_collection_items: "Bei Puzzles der Sammlung"
+        for_collection_items_help: "Du kannst das schon jetzt einrichten. Das Ausfüllen bei den Puzzles deiner Sammlung kommt bald."
+    type:
+        text: "Text"
+        number: "Zahl"
+        date: "Datum"
+        yes_no: "Ja / nein"
+        choice: "Eine aus einer Liste"
+        tags: "Tags"
+    value:
+        none: "-"
+        "yes": "Ja"
+        "no": "Nein"
+        tags_help: "Tags mit Kommas trennen."
+    errors:
+        not_valid: "Dieser Wert kann nicht gespeichert werden."
+        too_long: "Zu lang - höchstens %limit% Zeichen."
+        not_a_number: "Gib eine Zahl ein, zum Beispiel 12 oder 12,5."
+        ambiguous_number: "Das lässt sich auf zwei Arten lesen. Schreibe es ohne Trennzeichen (1250) oder als Dezimalzahl (1,25)."
+        not_a_date: "Gib ein Datum ein."
+        not_yes_no: "Wähle Ja oder Nein."
+        unknown_choice: "Wähle eine Möglichkeit aus der Liste."
+        too_many_tags: "Zu viele Tags - höchstens %limit%."
+        tag_too_long: "Ein Tag darf höchstens %limit% Zeichen haben."
+        unknown_field: "Dieses Feld wird nicht mehr verwendet."
+    definition_errors:
+        name_missing: "Gib dem Feld einen Namen."
+        name_too_long: "Der Name darf höchstens %limit% Zeichen haben."
+        choices_missing: "Schreibe mindestens eine Auswahl, eine pro Zeile."
+        too_many_choices: "Zu viele Auswahlmöglichkeiten - höchstens %limit%."
+        choice_too_long: "Eine Auswahl darf höchstens %limit% Zeichen haben."
+        no_target: "Wähle, wo du das Feld ausfüllst."
+        ready_made: "Ein fertiges Feld kann nicht geändert werden."
+        invalid_characters: "Der Name oder eine Auswahl enthält Zeichen, die nicht gespeichert werden können."
+    flash:
+        added: "Das Feld wurde hinzugefügt."
+        saved: "Das Feld wurde gespeichert."
+        archived: "Das Feld wurde archiviert. Was du hineingeschrieben hast, bleibt erhalten."
+        restored: "Das Feld wird wieder verwendet."
+        limit_reached: "Du kannst höchstens %limit% Felder gleichzeitig verwenden. Archiviere eines, um ein weiteres hinzuzufügen."
+        total_limit_reached: "Du hast %limit% Felder, die archivierten mitgezählt - mehr geht nicht. Stelle ein archiviertes Feld wieder her, statt ein neues anzulegen."
+        name_taken: "Du hast schon ein Feld mit diesem Namen."
+    add_form:
+        toggle: "Meine Felder"
+        title: "Meine Felder"
+        some_not_saved: "Dein Ergebnis ist gespeichert. Diese Felder von dir konnten nicht gespeichert werden: %fields%. Du kannst sie beim Ergebnis ausfüllen."
+        not_saved: "Dein Ergebnis ist gespeichert. Deine eigenen Felder konnten nicht gespeichert werden - du kannst sie beim Ergebnis ausfüllen."
+    values:
+        title: "Meine Felder bei diesem Ergebnis"
+        saved: "Deine Felder wurden gespeichert."
+        not_saved: "Es wurde noch nichts gespeichert - bitte prüfe die markierten Felder."
+        no_fields: "Du hast noch keine Felder für Ergebnisse."
+        back: "diesem Ergebnis"
+    result:
+        label: "Meine Felder"
+        edit: "Bearbeiten"
+        fill: "Ausfüllen"
+    edit_profile_card:
+        text: "Deine eigenen privaten Felder für Ergebnisse - Notizen, Zahlen, Daten, Tags. Nur du siehst sie."
+    standard:
+        private_notes:
+            label: "Private Notizen"
+        what_to_work_on:
+            label: "Woran ich arbeiten will"
+        condition:
+            label: "Zustand"
+        missing_pieces:
+            label: "Fehlende Teile"
+        bought_on:
+            label: "Gekauft am"
+        bought_from:
+            label: "Gekauft bei"
+        price_paid:
+            label: "Bezahlter Preis"
+        where_it_is:
+            label: "Wo es ist"
+        copies:
+            label: "Exemplare"
+        artist:
+            label: "Künstler"
+        year_of_release:
+            label: "Erscheinungsjahr"
+        material:
+            label: "Material"
+            choices:
+                cardboard: "Karton"
+                wood: "Holz"
+                plastic: "Kunststoff"
+        my_tags:
+            label: "Meine Tags"

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetPuzzleResultDetail;
+use SpeedPuzzling\Web\Services\CustomFields\OwnCustomValuesOnResults;
 use SpeedPuzzling\Web\Services\ResolveDifficultyTiers;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -24,6 +25,7 @@ final class PuzzleResultDetailController extends AbstractController
         readonly private GetPuzzleResultDetail $getPuzzleResultDetail,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private ResolveDifficultyTiers $resolveDifficultyTiers,
+        readonly private OwnCustomValuesOnResults $ownCustomValuesOnResults,
     ) {
     }
 
@@ -54,6 +56,10 @@ final class PuzzleResultDetailController extends AbstractController
 
         $response = $this->render($template, [
             'result' => $result,
+            // The signed-in viewer's own fields on the attempts they are on - theirs alone, whoever else is on the
+            // result (docs/features/custom-fields.md). The service takes no player id: it can only be the viewer's.
+            // Null for a guest, somebody else's result and a player without fields
+            'own_field_values' => $this->ownCustomValuesOnResults->ofSignedInViewer($request, $result->attempts),
             // Members see the puzzle's difficulty on its image (null for everyone else)
             'difficulty_tiers' => $this->resolveDifficultyTiers->forViewer($viewer, [$result->puzzleId]),
         ]);

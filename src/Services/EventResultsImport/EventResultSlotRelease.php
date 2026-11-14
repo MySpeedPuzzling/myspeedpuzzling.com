@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Message\RecalculateXpChainForSolve;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Repository\ResultClaimLogRepository;
+use SpeedPuzzling\Web\Repository\SolvingTimeCustomValuesRepository;
 use SpeedPuzzling\Web\Services\PuzzlingTeamMemberConversion;
 use SpeedPuzzling\Web\Value\EventResultsImport\EventResultClaimRefusal;
 use SpeedPuzzling\Web\Value\EventResultsImport\ResultClaimAction;
@@ -37,6 +38,7 @@ readonly final class EventResultSlotRelease
         private PuzzlingTeamMemberConversion $puzzlingTeamMemberConversion,
         private MessageBusInterface $messageBus,
         private ClockInterface $clock,
+        private SolvingTimeCustomValuesRepository $solvingTimeCustomValuesRepository,
     ) {
     }
 
@@ -62,6 +64,13 @@ readonly final class EventResultSlotRelease
         // The people and the pair/team changed in SQL - the entity reads them again before its own change
         $this->solvingTimeRepository->reload($time);
         $time->slotReleasedBy($player, $time->isTrackedBy($player) ? $this->nextTracker($time, $playerId) : null);
+
+        // No longer on the result: their own values of it go with them (docs/features/custom-fields.md)
+        $customValues = $this->solvingTimeCustomValuesRepository->find($time, $player);
+
+        if ($customValues !== null) {
+            $this->solvingTimeCustomValuesRepository->delete($customValues);
+        }
 
         $this->resultClaimLogRepository->save(new ResultClaimLog(
             id: Uuid::uuid7(),

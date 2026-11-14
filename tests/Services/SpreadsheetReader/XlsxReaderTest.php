@@ -698,13 +698,17 @@ final class XlsxReaderTest extends TestCase
 
         self::assertSame(0, $limits->withConsumed(9, 9)->maxRows);
 
-        // Everything but the two budgets is carried over as it is
-        $custom = new SpreadsheetLimits(1, 2, 30, 4, 5, 60, 7, 8, 9, 10, 11, 12, 13);
+        // Everything but the four budgets is carried over as it is
+        $custom = new SpreadsheetLimits(1, 2, 30, 4, 5, 60, 7, 8, 9, 10, 11, 1200, 13.5, 14, 15, 16);
         $expected = get_object_vars($custom);
         $expected['maxRows'] = 20;
         $expected['maxCells'] = 45;
+        $expected['maxReadBytes'] = 1000;
+        $expected['maxReadSeconds'] = 10.0;
 
-        self::assertSame($expected, get_object_vars($custom->withConsumed(10, 15)));
+        self::assertSame($expected, get_object_vars($custom->withConsumed(10, 15, 200, 3.5)));
+        self::assertSame(0, $custom->withConsumed(0, 0, 5000, 99.0)->maxReadBytes);
+        self::assertSame(0.0, $custom->withConsumed(0, 0, 5000, 99.0)->maxReadSeconds);
     }
 
     public function testANumberPaddedWithZerosKeepsThemAndSaysItIsACode(): void

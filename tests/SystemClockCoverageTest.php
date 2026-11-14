@@ -55,6 +55,9 @@ final class SystemClockCoverageTest extends TestCase
         'ConsoleCommands/XpBackfillConsoleCommand.php' => [['microtime('], self::DURATION],
         'EventSubscriber/ApiUsageSubscriber.php' => [['hrtime('], self::DURATION],
         'MessageHandler/EvaluateGroupPredictionsHandler.php' => [['microtime('], self::DURATION],
+        'Services/SpreadsheetReader/Csv/CsvWorkbook.php' => [['hrtime('], self::DURATION],
+        'Services/SpreadsheetReader/TemporaryFolder.php' => [['hrtime('], self::DURATION],
+        'Services/SpreadsheetReader/Xlsx/ReadBudget.php' => [['hrtime('], self::DURATION],
         'Services/GenerateManufacturerSlug.php' => [['microtime('], 'microtime() as entropy for a slug, not as a time.'],
         'Services/LiveKit/StudioSpectators.php' => [['microtime('], 'A lock-wait deadline in microtime(true) - a duration, no date is read.'],
         'Services/PuzzleIntelligence/Group/GroupModelRecalculator.php' => [['microtime('], self::DURATION],
@@ -93,6 +96,7 @@ final class SystemClockCoverageTest extends TestCase
         'Services/SpreadsheetReader/CsvReaderTest.php' => [['hrtime('], self::DURATION],
         'Services/SpreadsheetReader/SpreadsheetReaderMemoryTest.php' => [['hrtime('], self::DURATION],
         'Services/SpreadsheetReader/XlsxSafetyTest.php' => [['hrtime('], self::DURATION],
+        'Services/SpreadsheetReader/XlsxTimeBoundTest.php' => [['hrtime('], self::DURATION],
         'Services/Storage/ObjectStorageHttpClientFactoryTest.php' => [['microtime('], self::DURATION],
     ];
 

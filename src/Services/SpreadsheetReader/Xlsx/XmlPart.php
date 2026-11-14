@@ -10,10 +10,13 @@ use SpeedPuzzling\Web\Exceptions\SpreadsheetUnreadable;
  * One XML part of a workbook, read node by node from the stream XlsxPackage opened for it - never unpacked to disk,
  * never loaded whole.
  *
- * Untrusted input: no network, no DTD or external entity is loaded (libxml's defaults, never switched on here); a
- * part with a DOCTYPE or an entity is refused (a workbook never has one - entities are what an XML attack is made
- * of); a part that ends before its root element closes is damaged; and every byte it unpacks to passes the part's
- * meter (longer than the archive says = damaged, over the workbook's budget = too large).
+ * Untrusted input: no network, no DTD or external entity is loaded (libxml's defaults, never switched on here); the
+ * part is read as UTF-8 whatever it says of itself; a part with a DOCTYPE or an entity is refused (a workbook never
+ * has one - entities are what an XML attack is made of); a part that ends before its root element closes is damaged;
+ * and every chunk it unpacks to passes the part's meter first (PartMeter: size, budget, time, flood shapes).
+ *
+ * Nothing here relies on a PHP warning: every call of the parser is checked by its result, and why it stopped is
+ * asked from the meter. (The workbook's ReadBudget keeps the parser's warnings away from the application meanwhile.)
  */
 final class XmlPart
 {
@@ -27,16 +30,40 @@ final class XmlPart
         public readonly \XMLReader $reader,
         private $stream,
         private readonly PartMeter $meter,
+        private readonly ReadBudget $budget,
         private readonly string $entry,
     ) {
+    }
+
+    public function __destruct()
+    {
+        $this->close();
     }
 
     /**
      * @param resource $stream the part's stream, with its meter already on it
      */
-    public static function over($stream, PartMeter $meter, string $entry): self
+    public static function over($stream, PartMeter $meter, ReadBudget $budget, string $entry): self
     {
-        return new self(\XMLReader::fromStream($stream, null, LIBXML_NONET | LIBXML_COMPACT), $stream, $meter, $entry);
+        try {
+            // The parser reads the first bytes at once: a compressed part that is corrupt fails here already
+            $reader = @\XMLReader::fromStream($stream, 'UTF-8', LIBXML_NONET | LIBXML_COMPACT);
+        } catch (\Throwable $e) {
+            @fclose($stream);
+
+            throw self::refusal($meter, $budget, $entry) ?? SpreadsheetUnreadable::damaged(sprintf('the part "%s" can not be unpacked', $entry), $e);
+        }
+
+        $part = new self($reader, $stream, $meter, $budget, $entry);
+        $refusal = self::refusal($meter, $budget, $entry);
+
+        if ($refusal !== null) {
+            $part->close();
+
+            throw $refusal;
+        }
+
+        return $part;
     }
 
     /**
@@ -65,7 +92,7 @@ final class XmlPart
 
     /**
      * From an element: moves past it and everything inside it, to whatever follows. The inside is parsed by libxml
-     * alone (and metered like everything else).
+     * alone - and every chunk of it still passes the meter, with its clock and its scanner.
      */
     public function next(): bool
     {
@@ -136,6 +163,9 @@ final class XmlPart
         return $this->reader->getAttribute('r:id');
     }
 
+    /**
+     * Never throws.
+     */
     public function close(): void
     {
         if ($this->closed) {
@@ -155,18 +185,34 @@ final class XmlPart
      */
     private function ended(): bool
     {
-        if ($this->meter->failure === PartMeter::OVER_BUDGET) {
-            throw SpreadsheetUnreadable::tooLarge('the workbook holds more XML than is read from one file');
-        }
+        $refusal = self::refusal($this->meter, $this->budget, $this->entry);
 
-        if ($this->meter->failure === PartMeter::LONGER_THAN_DECLARED) {
-            throw SpreadsheetUnreadable::damaged(sprintf('the part "%s" is longer than the archive says', $this->entry));
+        if ($refusal !== null) {
+            throw $refusal;
         }
 
         if ($this->complete === false) {
-            throw SpreadsheetUnreadable::damaged(sprintf('the part "%s" is not well-formed XML', $this->entry));
+            // The parser's own limit on one text (10 MB) is a cell that is too large, not a broken file
+            $this->budget->countParserErrors();
+
+            throw $this->budget->hugeText
+                ? SpreadsheetUnreadable::cellTooLarge('a text longer than the XML parser reads')
+                : SpreadsheetUnreadable::damaged(sprintf('the part "%s" is not well-formed XML, or can not be unpacked', $this->entry));
         }
 
         return false;
+    }
+
+    private static function refusal(PartMeter $meter, ReadBudget $budget, string $entry): null|SpreadsheetUnreadable
+    {
+        return match ($meter->failure) {
+            null => null,
+            PartMeter::OVER_BUDGET => SpreadsheetUnreadable::tooLarge('the workbook holds more XML than is read from one file'),
+            PartMeter::OUT_OF_TIME => SpreadsheetUnreadable::tooSlow(sprintf('reading took more than the %.1f s a file gets', $budget->nanoseconds() / 1e9)),
+            PartMeter::LONGER_THAN_DECLARED => SpreadsheetUnreadable::damaged(sprintf('the part "%s" is longer than the archive says', $entry)),
+            PartMeter::TOO_MANY_PARSER_ERRORS => SpreadsheetUnreadable::damaged(sprintf('the part "%s" is XML the parser complains about over and over', $entry)),
+            XmlFloodScanner::TEXT_TOO_LONG => SpreadsheetUnreadable::cellTooLarge('a text longer than a cell holds'),
+            default => SpreadsheetUnreadable::damaged(sprintf('the part "%s" holds %s', $entry, $meter->failure)),
+        };
     }
 }

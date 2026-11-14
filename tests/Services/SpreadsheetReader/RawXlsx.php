@@ -272,6 +272,79 @@ final class RawXlsx
     }
 
     /**
+     * Makes the archive say a part is packed by another method (12 = bzip2, 14 = LZMA, 93 = Zstandard, 95 = XZ).
+     */
+    public static function declareMethod(string $path, string $entry, int $method): void
+    {
+        $bytes = (string) file_get_contents($path);
+        $where = self::locate($bytes, $entry);
+        $bytes = substr_replace($bytes, pack('v', $method), $where['central'] + 10, 2);
+        $bytes = substr_replace($bytes, pack('v', $method), $where['local'] + 8, 2);
+        file_put_contents($path, $bytes);
+    }
+
+    /**
+     * Breaks the packed bytes of a part in their middle: the archive's directory still looks right, unpacking fails.
+     */
+    public static function corrupt(string $path, string $entry): void
+    {
+        $bytes = (string) file_get_contents($path);
+        $where = self::locate($bytes, $entry);
+
+        if ($where['packed'] < 400) {
+            throw new \LogicException('The part is too small to break in its middle - give it more to pack.');
+        }
+
+        for ($at = $where['data'] + intdiv($where['packed'], 2), $end = $at + 128; $at < $end; $at++) {
+            $bytes[$at] = chr((ord($bytes[$at]) ^ 0x5A) & 0xFF);
+        }
+
+        file_put_contents($path, $bytes);
+    }
+
+    /**
+     * Where an entry stands in an archive: its record in the directory, its own header, its packed bytes.
+     *
+     * @return array{central: int, local: int, data: int, packed: int}
+     */
+    private static function locate(string $bytes, string $entry): array
+    {
+        $end = strrpos($bytes, "PK\x05\x06");
+
+        if ($end === false) {
+            throw new \LogicException('Not a zip archive.');
+        }
+
+        $at = self::number($bytes, $end + 16, 'V');
+
+        for ($left = self::number($bytes, $end + 10, 'v'); $left > 0; $left--) {
+            $nameLength = self::number($bytes, $at + 28, 'v');
+
+            if (substr($bytes, $at + 46, $nameLength) === $entry) {
+                $local = self::number($bytes, $at + 42, 'V');
+
+                return [
+                    'central' => $at,
+                    'local' => $local,
+                    'data' => $local + 30 + self::number($bytes, $local + 26, 'v') + self::number($bytes, $local + 28, 'v'),
+                    'packed' => self::number($bytes, $at + 20, 'V'),
+                ];
+            }
+
+            $at += 46 + $nameLength + self::number($bytes, $at + 30, 'v') + self::number($bytes, $at + 32, 'v');
+        }
+
+        throw new \LogicException(sprintf('The archive has no entry "%s".', $entry));
+    }
+
+    private static function number(string $bytes, int $at, string $format): int
+    {
+        $unpacked = unpack($format, $bytes, $at);
+
+        return is_array($unpacked) && is_int($unpacked[1] ?? null) ? $unpacked[1] : throw new \LogicException('The archive is cut short.');
+    }
+
+    /**
      * @return array<string, string>
      */
     public function parts(): array

@@ -246,11 +246,11 @@ final class XlsxSafetyTest extends TestCase
             $this->rowsOf($this->open($path, limits: self::packedWell()));
             self::fail('A cell of twenty megabytes was read.');
         } catch (SpreadsheetUnreadable $e) {
-            // The XML parser itself gives up on a text of ten megabytes, before a cell's own cap is asked
-            self::assertContains($e->reason, [SpreadsheetUnreadableReason::CellTooLarge, SpreadsheetUnreadableReason::Damaged]);
+            // Refused before the XML parser has it: its own limit of ten megabytes a text is never reached
+            self::assertSame(SpreadsheetUnreadableReason::CellTooLarge, $e->reason);
         }
 
-        self::assertLessThan(24 * 1024 * 1024, memory_get_peak_usage() - $before);
+        self::assertLessThan(2 * 1024 * 1024, memory_get_peak_usage() - $before);
     }
 
     public function testARowOfManyLargeCellsIsRefusedBeforeItIsBuilt(): void
@@ -314,12 +314,19 @@ final class XlsxSafetyTest extends TestCase
         );
     }
 
-    public function testMoreSharedStringsThanCellsAllowedIsTooManyCells(): void
+    public function testTheDistinctTextsOfAWorkbookHaveCapsOfTheirOwn(): void
     {
-        $path = $this->saved((new RawXlsx())->sharedStrings(['a', 'b', 'c', 'd'])->sheet('Strings', RawXlsx::worksheet([1 => ['A' => RawXlsx::s(0)]])));
+        $path = $this->saved((new RawXlsx())->sharedStrings(['aaaa', 'bbbb', 'cccc', 'dddd'])->sheet('Strings', RawXlsx::worksheet([1 => ['A' => RawXlsx::s(3)]])));
 
-        self::assertCount(1, $this->rowsOf($this->open($path, limits: new SpreadsheetLimits(maxCells: 4))));
-        $this->assertUnreadableWhileStreaming(SpreadsheetUnreadableReason::TooManyCells, $path, new SpreadsheetLimits(maxCells: 3));
+        self::assertCount(1, $this->rowsOf($this->open($path, limits: new SpreadsheetLimits(maxSharedStrings: 4, maxSharedStringBytes: 16))));
+        $this->assertUnreadableWhileStreaming(SpreadsheetUnreadableReason::TooLarge, $path, new SpreadsheetLimits(maxSharedStrings: 3));
+        $this->assertUnreadableWhileStreaming(SpreadsheetUnreadableReason::TooLarge, $path, new SpreadsheetLimits(maxSharedStringBytes: 15));
+
+        // Not the import's cell budget: a late job with two cells left still reads all four texts for its one cell
+        $late = (new SpreadsheetLimits())->withConsumed(49_000, 999_998);
+
+        self::assertSame(2, $late->maxCells);
+        self::assertSame('dddd', self::cell($this->rowsOf($this->open($path, limits: $late)), 1, 1)->value);
     }
 
     public function testFiftyThousandTabsAreCountedNotWorkedThrough(): void
@@ -429,9 +436,10 @@ final class XlsxSafetyTest extends TestCase
         $this->assertUnreadable(SpreadsheetUnreadableReason::Damaged, $path);
     }
 
-    public function testAFileThatIsMissingIsDamaged(): void
+    public function testAFileThatIsMissingIsTheServersFaultNotTheFiles(): void
     {
-        $this->assertUnreadable(SpreadsheetUnreadableReason::Damaged, $this->path());
+        $this->expectException(SpreadsheetReaderFailed::class);
+        $this->open($this->path());
     }
 
     /**

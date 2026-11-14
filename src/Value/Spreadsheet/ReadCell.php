@@ -57,8 +57,11 @@ final readonly class ReadCell
         null|int $timeSeconds = null,
         bool $isFormula = false,
     ): self {
-        $day = \DateTimeImmutable::createFromFormat('!Y-m-d', $date->format('Y-m-d'), new \DateTimeZone('UTC'));
-        \assert($day !== false);
+        // Built from numbers, not parsed from a text: no year a caller hands over makes this fail
+        $day = (new \DateTimeImmutable('@0'))
+            ->setTimezone(new \DateTimeZone('UTC'))
+            ->setDate((int) $date->format('Y'), (int) $date->format('n'), (int) $date->format('j'))
+            ->setTime(0, 0);
 
         $shown = match (true) {
             $precision === DatePrecision::Year => $day->format('Y'),

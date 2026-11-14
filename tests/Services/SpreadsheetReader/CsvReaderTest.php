@@ -259,12 +259,19 @@ final class CsvReaderTest extends TestCase
 
         // Records over many lines that do close are read across the window's edges, each in one piece
         $multiline = $this->file("Name,Notes\n" . str_repeat("Meadow,\"line one\nline two, with a comma\nline three\"\nAlps,plain\n", 40_000));
-        $rows = $this->rowsOf($this->open($multiline, SpreadsheetFormat::Csv, new SpreadsheetLimits(maxRows: 100_000, maxRowsPerSheet: 100_000)));
+        $workbook = $this->open($multiline, SpreadsheetFormat::Csv, new SpreadsheetLimits(maxRows: 100_000, maxRowsPerSheet: 100_000));
+        $names = [];
 
-        self::assertCount(80_001, $rows);
-        self::assertSame(['Meadow', "line one\nline two, with a comma\nline three"], self::texts($rows[79_998]));
-        self::assertSame(['Alps', 'plain'], self::texts($rows[80_001]));
-        self::assertSame(['Name' => 1, 'Meadow' => 40_000, 'Alps' => 40_000], array_count_values(array_map(static fn (ReadRow $row): string => $row->cells[1]->asText(), $rows)));
+        foreach ($workbook->rows($workbook->sheets()[0]) as $row) {
+            $names[$row->cells[1]->asText()] = ($names[$row->cells[1]->asText()] ?? 0) + 1;
+
+            if ($row->cells[1]->asText() === 'Meadow') {
+                self::assertSame("line one\nline two, with a comma\nline three", $row->cells[2]->asText());
+            }
+        }
+
+        self::assertSame(['Name' => 1, 'Meadow' => 40_000, 'Alps' => 40_000], $names);
+        self::assertSame(80_001, $workbook->rowsRead());
         self::assertSame(SpreadsheetUnreadableReason::CellTooLarge, $this->reasonWhileStreaming($this->file("A,B\n1," . str_repeat('x', 200) . "\n"), new SpreadsheetLimits(maxCellBytes: 199)));
         self::assertNull($this->reasonWhileStreaming($this->file("A,B\n1," . str_repeat('x', 200) . "\n"), new SpreadsheetLimits(maxCellBytes: 200)));
         // A line may be as long as a row, not longer
@@ -328,6 +335,87 @@ final class CsvReaderTest extends TestCase
         self::assertSame(6, $workbook->cellsRead());
     }
 
+    public function testSeveralWindowsAreReadInOnePass(): void
+    {
+        $workbook = $this->open($this->file("A,B,C,D\n1,2,3,4\n5,6,7,8\n9,10,11,12\n13,14,15,16\n"), SpreadsheetFormat::Csv);
+        $seen = [];
+
+        foreach ($workbook->rows($workbook->sheets()[0], new CellRange(3, 1, 4, 2), new CellRange(1, 2, 2, 4)) as $window => $row) {
+            $seen[] = [$window, $row->number, array_map(static fn ($cell) => $cell->value, $row->cells)];
+        }
+
+        self::assertSame([
+            [0, 1, [3 => 'C', 4 => 'D']],
+            [0, 2, [3 => '3', 4 => '4']],
+            [1, 2, [1 => '1', 2 => '2']],
+            [1, 3, [1 => '5', 2 => '6']],
+            [1, 4, [1 => '9', 2 => '10']],
+        ], $seen);
+    }
+
+    public function testAnOldMacFileWithALineFeedInsideACellIsStillReadByItsCarriageReturns(): void
+    {
+        // Records end with \r; one cell holds a \n - which is no reason to take the file for a Unix one
+        $mac = "Name,Notes\rMeadow,\"line one\nline two\"\rAlps,plain\rHarbour,\"a, b\"\r";
+        $rows = $this->rowsOf($this->open($this->file($mac), SpreadsheetFormat::Csv));
+
+        self::assertSame([1, 2, 3, 4], array_keys($rows));
+        self::assertSame(['Meadow', "line one\nline two"], self::texts($rows[2]));
+        self::assertSame(['Harbour', 'a, b'], self::texts($rows[4]));
+
+        // And the other way round: a Windows file with a bare \r inside a cell is read by its \r\n
+        $windows = "Name,Notes\r\nMeadow,\"line one\rline two\"\r\nAlps,plain\r\n";
+        $rows = $this->rowsOf($this->open($this->file($windows), SpreadsheetFormat::Csv));
+
+        self::assertSame([1, 2, 3], array_keys($rows));
+        self::assertSame(['Meadow', "line one\rline two"], self::texts($rows[2]));
+
+        // A \r\n cut in two by the edge of a chunk is still one line end
+        $long = str_repeat('x', 1_048_576 - strlen("Name,Notes\r\n") - 3) . ",y\r\n";
+        $rows = $this->rowsOf($this->open($this->file("Name,Notes\r\n" . $long . "Alps,plain\r\n"), SpreadsheetFormat::Csv, new SpreadsheetLimits(maxCellBytes: 2_000_000)));
+
+        self::assertSame([1, 2, 3], array_keys($rows));
+        self::assertSame(['Alps', 'plain'], self::texts($rows[3]));
+    }
+
+    public function testBytesAndSecondsOfATextFileAreCountedAndAreBudgets(): void
+    {
+        $path = $this->file("Name,Pieces\n" . str_repeat("Made-up Meadow,500\n", 5_000));
+        $size = (int) filesize($path);
+        $workbook = $this->open($path, SpreadsheetFormat::Csv);
+
+        // Looked through once when it is opened, read once more when it is streamed
+        self::assertSame($size, $workbook->bytesRead());
+        self::assertCount(5_001, $this->rowsOf($workbook));
+        self::assertGreaterThanOrEqual(2 * $size - 20, $workbook->bytesRead());
+        self::assertGreaterThan(0.0, $workbook->secondsRead());
+        self::assertLessThan(5.0, $workbook->secondsRead());
+
+        foreach ([[new SpreadsheetLimits(maxReadBytes: $size), SpreadsheetUnreadableReason::TooLarge], [new SpreadsheetLimits(maxReadSeconds: 0.0), SpreadsheetUnreadableReason::TooSlow]] as [$limits, $reason]) {
+            try {
+                $this->rowsOf($this->open($path, SpreadsheetFormat::Csv, $limits));
+                self::fail('A text file was read beyond its budget.');
+            } catch (SpreadsheetUnreadable $e) {
+                self::assertSame($reason, $e->reason);
+            }
+        }
+    }
+
+    public function testAFileClosedWhileItIsStreamedHandsOutNoFurtherRow(): void
+    {
+        $workbook = $this->open($this->file("\xFF\xFE" . mb_convert_encoding("Name;Pieces\n" . str_repeat("Meadow;500\n", 100), 'UTF-16LE', 'UTF-8')), SpreadsheetFormat::Csv);
+        $read = 0;
+
+        foreach ($workbook->rows($workbook->sheets()[0]) as $row) {
+            if (++$read === 10) {
+                $workbook->close();
+            }
+        }
+
+        self::assertSame(10, $read);
+        self::assertSame([], glob($this->folder . '/tmp/*'));
+    }
+
     public function testAFolderThatCanNotBeWrittenIsTheServersFaultNotTheFiles(): void
     {
         $utf16 = $this->file("\xFF\xFE" . mb_convert_encoding("Name;Pieces\nMeadow;500\n", 'UTF-16LE', 'UTF-8'));
@@ -363,14 +451,10 @@ final class CsvReaderTest extends TestCase
         }
     }
 
-    public function testAMissingFileIsDamaged(): void
+    public function testAMissingFileIsTheServersFaultNotTheFiles(): void
     {
-        try {
-            $this->open($this->path('csv'), SpreadsheetFormat::Csv);
-            self::fail('A file that is not there was opened.');
-        } catch (SpreadsheetUnreadable $e) {
-            self::assertSame(SpreadsheetUnreadableReason::Damaged, $e->reason);
-        }
+        $this->expectException(SpreadsheetReaderFailed::class);
+        $this->open($this->path('csv'), SpreadsheetFormat::Csv);
     }
 
     public function testTheRewrittenCopyIsRemovedOnClose(): void

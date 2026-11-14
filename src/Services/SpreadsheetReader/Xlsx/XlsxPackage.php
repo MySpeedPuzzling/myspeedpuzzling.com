@@ -20,8 +20,8 @@ use SpeedPuzzling\Web\Value\Spreadsheet\SpreadsheetLimits;
  * What the archive says proves nothing - libzip hands out whatever a compressed stream holds - so every part is read
  * through xml(), whatever its name and whoever points to it: the bytes it really unpacks to are counted as they are
  * read, against the size its header declares and against one budget for the whole workbook, and XmlPart refuses a
- * DOCTYPE. One ZipArchive, no stream wrapper, nothing written to disk, and a part nobody reads (a picture) is never
- * opened.
+ * DOCTYPE, and XmlFloodScanner sees every chunk before the parser does. One ZipArchive, no stream wrapper, nothing
+ * written to disk, and a part nobody reads (a picture) is never opened.
  */
 final class XlsxPackage
 {
@@ -41,14 +41,16 @@ final class XlsxPackage
     private function __construct(
         private readonly \ZipArchive $zip,
         private readonly array $entries,
-        private readonly ReadBudget $budget,
+        public readonly ReadBudget $budget,
+        private readonly int $maxTextBytes,
     ) {
     }
 
     public static function open(string $path, SpreadsheetLimits $limits): self
     {
+        // The upload is ours to keep: a file that is not there is the server's fault, not the player's file's
         if (is_file($path) === false || is_readable($path) === false) {
-            throw SpreadsheetUnreadable::damaged('the file can not be opened');
+            throw new SpreadsheetReaderFailed('The spreadsheet file is not there or can not be opened.');
         }
 
         $size = (int) filesize($path);
@@ -74,7 +76,12 @@ final class XlsxPackage
         }
 
         try {
-            return new self($zip, self::checkedEntries($zip, $size, $limits), new ReadBudget($limits->maxReadBytes));
+            return new self(
+                $zip,
+                self::checkedEntries($zip, $size, $limits),
+                new ReadBudget($limits->maxReadBytes, (int) round(max(0.0, $limits->maxReadSeconds) * 1e9)),
+                $limits->maxCellBytes,
+            );
         } catch (\Throwable $e) {
             $zip->close();
 
@@ -104,7 +111,7 @@ final class XlsxPackage
             throw SpreadsheetUnreadable::damaged(sprintf('the part "%s" can not be unpacked', $entry));
         }
 
-        $meter = new PartMeter($known[1], $this->budget);
+        $meter = new PartMeter($known[1], $this->budget, new XmlFloodScanner($this->maxTextBytes));
 
         if (PartMeterFilter::register() === false || stream_filter_append($stream, PartMeterFilter::NAME, STREAM_FILTER_READ, $meter) === false) {
             fclose($stream);
@@ -112,7 +119,7 @@ final class XlsxPackage
             throw new SpreadsheetReaderFailed('The byte meter can not be put on a stream.');
         }
 
-        return XmlPart::over($stream, $meter, $entry);
+        return XmlPart::over($stream, $meter, $this->budget, $entry);
     }
 
     /**
@@ -212,6 +219,11 @@ final class XlsxPackage
 
             if ($stat['encryption_method'] !== \ZipArchive::EM_NONE) {
                 throw SpreadsheetUnreadable::passwordProtected('the archive holds an encrypted entry');
+            }
+
+            // A workbook's parts are stored or deflated: no other decoder (bzip2, lzma, xz, zstd) runs on an upload
+            if ($stat['comp_method'] !== \ZipArchive::CM_STORE && $stat['comp_method'] !== \ZipArchive::CM_DEFLATE) {
+                throw SpreadsheetUnreadable::unsupportedFormat('a zip entry packed by a method other than deflate');
             }
 
             if ($unpacked >= self::RATIO_FROM_BYTES && $unpacked > max(1, $stat['comp_size']) * $limits->maxCompressionRatio) {

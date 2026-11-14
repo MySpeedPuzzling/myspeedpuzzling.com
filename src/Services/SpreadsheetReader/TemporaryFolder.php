@@ -18,9 +18,12 @@ final class TemporaryFolder
     private const string PREFIX = 'msp-spreadsheet-';
 
     private null|string $path = null;
+    private int $touchedAt = 0;
 
     public function __construct(
         private readonly string $base,
+        /** A folder that is in use says so once a minute: prune() goes by when it was last written to */
+        private readonly int $keepAliveNanoseconds = 60_000_000_000,
     ) {
     }
 
@@ -30,6 +33,17 @@ final class TemporaryFolder
     public function newFile(string $extension): string
     {
         return $this->path() . '/' . bin2hex(random_bytes(8)) . '.' . $extension;
+    }
+
+    /**
+     * To be called now and then while the file is read: a read that takes long is not taken for an abandoned one.
+     */
+    public function keepAlive(): void
+    {
+        if ($this->path !== null && hrtime(true) - $this->touchedAt >= $this->keepAliveNanoseconds) {
+            @touch($this->path);
+            $this->touchedAt = hrtime(true);
+        }
     }
 
     /**
@@ -86,6 +100,8 @@ final class TemporaryFolder
         if (@mkdir($path, 0700) === false) {
             throw new SpreadsheetReaderFailed(sprintf('A folder can not be created in the temporary folder "%s".', $base));
         }
+
+        $this->touchedAt = hrtime(true);
 
         return $this->path = $path;
     }

@@ -25,11 +25,15 @@ foreach ($workbook->sheets() as $sheet) {              // no row is read for thi
         }
     }
 
-    $workbook->rows($sheet, $sheet->tables[1]->range);  // only the cells inside a range - one table of several
+    foreach ($workbook->rows($sheet, ...array_column($sheet->tables, 'range')) as $window => $row) {
+        // only the cells inside the windows, all of them in ONE pass; $window = which one (0, 1, …)
+    }
+
     $workbook->mergedRanges($sheet);                    // list<CellRange>, one pass that skips the rows
 }
 
-$workbook->rowsRead(); $workbook->cellsRead();          // consumed so far - what the next job takes off its budget
+$workbook->rowsRead(); $workbook->cellsRead();          // consumed so far …
+$workbook->bytesRead(); $workbook->secondsRead();       // … what the next job takes off its budgets
 $workbook->close();                                     // lets go of the file, removes its temporary folder; never throws
 
 $reader->pruneLeftovers($clock->now()->modify('-1 day'));   // folders of readers that never closed (a killed worker)
@@ -37,36 +41,59 @@ $reader->pruneLeftovers($clock->now()->modify('-1 day'));   // folders of reader
 
 | Class | What |
 |---|---|
-| `Services\SpreadsheetReader\SpreadsheetReader` | the service: `open(path, format, limits)`, `pruneLeftovers(lastWrittenBefore)`. Its optional constructor argument is the base of the temporary folders (default: the system's) |
-| `Services\SpreadsheetReader\ReadWorkbook` | an opened file: `sheets()`, `rows(sheet, ?window)`, `mergedRanges(sheet)`, `rowsRead()`, `cellsRead()`, `close()` |
+| `Services\SpreadsheetReader\SpreadsheetReader` | the service: `open(path, format, limits)`, `pruneLeftovers(lastWrittenBefore)`. Its optional constructor argument is the base of the temporary folders (default: `msp-spreadsheet-reader` under the system's - a folder of the reader's own, so nothing else is ever pruned) |
+| `Services\SpreadsheetReader\ReadWorkbook` | an opened file: `sheets()`, `rows(sheet, ...windows)`, `mergedRanges(sheet)`, `rowsRead()`, `cellsRead()`, `bytesRead()`, `secondsRead()`, `close()` |
 | `Value\Spreadsheet\ReadSheet`, `ReadTable`, `FrozenPane`, `CellRange` | what is known before any row |
 | `Value\Spreadsheet\ReadRow`, `ReadCell`, `CellKind`, `DatePrecision` | what a row holds |
 | `Value\Spreadsheet\SpreadsheetFormat`, `SpreadsheetLimits` | what to read it as, and how big it may be |
 | `Exceptions\SpreadsheetUnreadable` + `Value\Spreadsheet\SpreadsheetUnreadableReason` | what a file is or holds: the only exception for a bad file |
-| `Exceptions\SpreadsheetReaderFailed` | what is the server's fault: a temporary folder that can not be made or written (a full disk). Never shown as "your file is damaged" |
+| `Exceptions\SpreadsheetReaderFailed` | what is the server's fault: the uploaded file is not there or can not be opened, a temporary folder can not be made or written (a full disk). Never shown as "your file is damaged" |
 | `Services\SpreadsheetReader\NumberFormatClassifier` | a number format code → date / time / duration / number |
 | `Services\Export\SpreadsheetSafeValue::withoutFormulaGuard()` | takes off the `'` our own export puts in front of a text - **not** applied by the reader |
 
 **Rows.** A row is handed out when it holds at least one value; its number is the spreadsheet's (gaps stay gaps, a
 stray value in row 1,048,576 is row 1,048,576). A sheet can be streamed again - reading starts over, and counts again.
-A generator that is abandoned half-way lets go of the part by itself.
+A generator that is abandoned half-way lets go of the part by itself; a workbook that is closed while a sheet is
+streamed hands out no further row.
 
-**A window.** `rows($sheet, $range)` hands out only the cells inside the range - the column numbers stay the sheet's.
-Rows above it are skipped by the XML parser alone, the first row below it ends the pass, cells left and right of it
-are neither handed out nor counted. That is how a sheet of twenty tables side by side is read table by table; **how
-many columns a mapped region may have (the 60 of Q8) is the next layer's rule**, the reader only refuses a sheet
-wider than 1,000 columns.
+**Windows.** `rows($sheet, $range, $range, …)` hands out only the cells inside the ranges, **all of them in one pass
+over the sheet**: for every row one `ReadRow` per window it has cells in, the generator's key being the window's index
+(the column numbers stay the sheet's). Rows above the first window are skipped by the XML parser alone, the first row
+below the last ends the pass, cells outside every window are neither handed out nor counted. That is how a sheet of
+twenty tables side by side is read - in one pass, not twenty (each pass over a sheet costs its bytes against the
+budget). **How many columns a mapped region may have (the 60 of Q8) is the next layer's rule**; the reader only
+refuses a sheet wider than 1,000 columns.
 
-**Budgets across jobs.** The caller reads one sheet per job. `SpreadsheetLimits::$maxRows` and `$maxCells` are what
-is still allowed to be read; after a job `rowsRead()` / `cellsRead()` say what it used, and
-`$limits->withConsumed($rows, $cells)` are the limits of the next job. Opening the same workbook again costs the
-structure only ("Measurements": under a millisecond for a 24 MiB file of one sheet, 7 ms for a hundred sheets) - no
-row and no shared string is read until a job asks.
+**Budgets across jobs.** The caller reads one sheet per job. Four limits are budgets **of the import, not of one
+opened file**: `maxRows`, `maxCells`, `maxReadBytes`, `maxReadSeconds`. After a job, `rowsRead()`, `cellsRead()`,
+`bytesRead()` and `secondsRead()` say what it used, and
+`$limits->withConsumed($rows, $cells, $bytes, $seconds)` are the limits of the next job - so a hostile file costs its
+budget once, not once per job. Opening the same workbook again costs the structure only ("Measurements": under a
+millisecond for a 24 MiB file of one sheet, 8 ms for a hundred sheets); but **every job whose sheet has texts reads
+the workbook's shared strings again**, and all of that counts: the defaults (512 MiB, 60 s) leave room for a hundred
+jobs on an ordinary workbook, a caller with many sheets and a large string table reads several sheets per job.
 
-**Errors.** What a file is or holds → `SpreadsheetUnreadable` with a reason. What is the server's → 
-`SpreadsheetReaderFailed`. A bug → the error it is (nothing is caught wholesale; the one thing that is turned into
-"damaged" is a PHP warning raised while a part or a record is read, when an error handler makes an exception of it).
-`InvalidArgumentException`: a sheet of another workbook, or a closed workbook.
+**Errors.** What a file is or holds → `SpreadsheetUnreadable` with a reason. What is the server's →
+`SpreadsheetReaderFailed`. A bug → the error it is (nothing is caught wholesale). Nothing depends on whether PHP
+warnings are exceptions: every call of the XML parser is checked by its result, and while the reader works its
+warnings are kept from the application's error handler ("Safety"). `InvalidArgumentException`: a sheet of another
+workbook, or a closed workbook.
+
+### What the job must still do
+
+The reader bounds what a file can cost **inside PHP**. Two things are the caller's - the import's reading job:
+
+1. **A hard timeout around a read, at the level of the process** (the Messenger worker's time limit, a
+   `pcntl_alarm`, the container's): the reader's seconds are counted by the reader itself, in PHP - a defence against
+   every shape we know and measured, not against a bug of the parser we do not know. A read that is still running long
+   after its budget is killed from outside.
+2. **Mark the import as "reading attempted" before the read starts**, in a transaction of its own. A job that was
+   killed (the timeout above, memory, a crash of the parser) is then seen on the retry and the import is failed with
+   "we could not read this file" - never read again blindly, time after time.
+
+And: pass the budgets on (`withConsumed()`), call `pruneLeftovers()` when the worker starts and once a day, and keep a
+**cap of its own on the text it stores** - a row may hold 1 MiB and there may be 50,000 of them; the reader bounds a
+cell and a row, not what an import adds up to.
 
 What the reader hands to the layer above ("Recognising columns and values") and does **not** decide itself: which
 row is the header (the table's `headerRow`, the frozen pane and the used range are the hints), which rows are
@@ -180,14 +207,16 @@ The table above is `NumberFormatClassifierTest`'s data provider.
 ## How an .xlsx is read
 
 1. **The archive** (`XlsxPackage`): checked when it is opened - "Safety" - and from then on **the only door to
-   anything inside it**. One `ZipArchive`; `xml(entry)` opens a part's stream, puts a byte meter on it and hands it to
-   `XMLReader::fromStream()`. No `zip://` wrapper, no second archive, nothing unpacked to disk.
+   anything inside it**. One `ZipArchive`; `xml(entry)` opens a part's stream, puts the meter on it (`PartMeter`,
+   through a stream filter: bytes, clock, parser complaints, and `XmlFloodScanner` in front of the parser) and hands
+   it to `XMLReader::fromStream()` as UTF-8. No `zip://` wrapper, no second archive, nothing unpacked to disk.
 2. **The structure** (`XlsxStructure`), when the workbook is opened: the package's relationships say where the
    workbook part is, its relationships where the sheets, the styles and the shared strings are - **every part is
    found through a relationship, never by the name it "should" have**. Read: the sheets in tab order with their
    visibility, the date system, every cell style → its number format (classified once per format), and per worksheet
    its part up to the first row (`<dimension>`, the frozen `<pane>`) and its tables (`ref`, `headerRowCount`,
-   `totalsRowCount`). A tab that is no worksheet (a chart sheet) is counted and never opened.
+   `totalsRowCount`). A tab that is no worksheet (a chart sheet) is counted and never opened. The workbook part is
+   read up to the end of its list of sheets, the styles up to `</cellXfs>`.
 3. **Rows** (`SheetCellStream` + `XlsxWorkbook`), when they are asked for: one pass over the sheet's XML, node by
    node, up to `</sheetData>`. Per cell: the style index, the type, whether it holds a formula, and the saved value as
    stored - a number, a boolean, an error code, a shared string's number, or the text itself. The value is typed by
@@ -197,7 +226,12 @@ The table above is `NumberFormatClassifierTest`'s data provider.
    bounded store: a small table stays in memory (up to 5,000 strings and 1 MiB), anything more goes to one file with
    an index beside it in the reader's temporary folder, and a lookup reads one string.
 5. **Merged ranges** (`mergedRanges()`), when they are asked for: one pass in which the XML parser skips
-   `<sheetData>` by itself and stops after `<mergeCells>`.
+   `<sheetData>` by itself and which stops at the first element that stands after `<mergeCells>` in a sheet
+   (conditional formats, links and extensions are never read).
+
+Where the parser skips by itself (`XMLReader::next()`: the rows under `mergedRanges()`, the rows above a window) no
+loop in PHP runs - but every 8 KiB chunk of what it skips still passes the meter on its way to the parser, with the
+clock, the byte count and the scanner. That hook can not be forgotten in a loop, which is why the checks live there.
 
 ### No library at runtime
 
@@ -235,11 +269,15 @@ This is where the code departs from the letter of D14 (and of README "Reading a 
   records the same number of fields, as long as half of them agree - never the most frequent character. A file of one
   column is read with a comma.
 - **Quotes** as in RFC 4180: a cell may hold delimiters, doubled quotes and line breaks. Lines end with `\r\n`, `\n`
-  or a bare `\r`.
+  or a bare `\r` - which of them, the file's majority says: more bare `\r` than `\n` is an old Mac's file (one `\n`
+  inside a cell does not make it a Unix file), anything else is read by its `\n` (a bare `\r` inside a cell stays in
+  the cell).
 - **Row numbers** are the record numbers a spreadsheet shows: the `sep=` line is no row, a record with line breaks in
   a cell is one row, an empty line is counted but not handed out.
 - **Columns:** every field of a record counts, empty ones too - a line of nothing but delimiters is as wide as it is
   long.
+- Bytes and seconds are counted like a workbook's (`bytesRead()`: the look-through and the parse; `maxReadBytes`,
+  `maxReadSeconds`).
 - UTF-16 files and files with bare `\r` line ends are first rewritten as UTF-8 with `\n` into the reader's temporary
   folder (through an iconv stream filter, in 64 KiB chunks, every write checked); a UTF-16 file is looked through
   **after** it became UTF-8, so its control characters are counted and dropped like everybody's. `close()` removes
@@ -247,28 +285,34 @@ This is where the code departs from the letter of D14 (and of README "Reading a 
 
 ## Safety
 
-The file is untrusted. **No string, row, part or pass over it is without a cap**, and every cap is checked where the
-bytes arrive - not after something was built.
+The file is untrusted. **No string, row, part or pass over it is without a cap, and neither is the time**: every cap
+is checked where the bytes arrive - not after something was built, and before the XML parser gets them where the
+parser itself would be slow.
 
 | What | How | Where |
 |---|---|---|
-| The archive, before a byte is unpacked | file size; it is a zip (an old `.xls` and a password-protected workbook - both an OLE container - are told apart; `.xlsb`, `.ods`, `.numbers`, a `.docx` get their own reason); number of entries; no encrypted entry; no entry name that leaves the archive (`..`, absolute, a drive, a backslash) **or stands twice**; what it says it unpacks to, and the ratio to its packed size | `XlsxPackage::open()` |
+| The archive, before a byte is unpacked | file size; it is a zip (an old `.xls` and a password-protected workbook - both an OLE container - are told apart; `.xlsb`, `.ods`, `.numbers`, a `.docx` get their own reason); number of entries; no encrypted entry; **only stored and deflated entries** (bzip2, LZMA, XZ, Zstandard, deflate64: `unsupported_format` - no other decoder ever runs on an upload); no entry name that leaves the archive (`..`, absolute, a drive, a backslash) **or stands twice**; what it says it unpacks to, and the ratio to its packed size | `XlsxPackage::open()` |
 | **What is checked is what is opened** | every part is read through `XlsxPackage::xml()` - whatever its name (`strings.bin`), wherever a relationship finds it (`/customXml/s.xml`), whoever asks. Nothing else opens the zip | `XlsxPackage` |
 | **The archive lies about sizes** (libzip hands out whatever a compressed stream holds: an entry declared as 1,000 bytes streamed 51 MB) | a meter on every part's stream counts the bytes that really arrive: more than the entry declares = `damaged`, at the first chunk | `PartMeter`, `PartMeterFilter` |
-| **One budget for all the XML of a workbook** | the same meter counts every pass over every part against `maxReadBytes` (256 MiB): a hundred sheets that point to one part cost a hundred times its size; rows and cells that hold nothing are not free; over it = `too_large`. This is the bound on the **time** a hostile workbook can cost - about 11 s of parsing at worst ("Measurements"), seconds for a file within the limits | `ReadBudget` |
+| **One budget of bytes for all the XML of an import** | the same meter counts every pass over every part against `maxReadBytes` (512 MiB, carried from job to job): a hundred sheets that point to one part cost a hundred times its size; rows and cells that hold nothing are not free; over it = `too_large` | `ReadBudget` |
+| **One budget of seconds** | the reader's own time (what the caller does between two rows is not counted) against `maxReadSeconds` (60 s, carried from job to job), asked on every 8 KiB chunk on its way to the parser - in every loop, and where the parser skips by itself; over it = `too_slow` | `ReadBudget`, `PartMeter` |
+| **Shapes the XML parser is slow on** (libxml 2.9, which production runs: superlinear inside one call, where no check in PHP sees it) | `XmlFloodScanner` sees every chunk **before the parser does** and refuses, as `damaged`: a tag longer than 8 KiB (a start tag of 300,000 attributes: 90 s unguarded); a tag of more than 64 attributes; more than 64 namespace declarations in a part (150,000 in scope: 11 s for every megabyte after them); more than 2,000 distinct element and attribute names in a part (3.3 million: 117 s and 156 MB of the parser's own memory); anything that is no tag, comment or CDATA section where one has to stand. Quote-aware, constant memory (one unfinished tag is carried), 4 ms per MiB | `XmlFloodScanner` |
+| Encoding | a part is UTF-8 (a byte-order mark and `encoding="UTF-8"` or `US-ASCII` allowed) and is parsed as UTF-8 whatever it says - so the scanner sees what the parser sees; UTF-16, any other declared encoding: `damaged` | `XmlFloodScanner`, `XmlPart` |
+| The parser's complaints | kept in the parser's list instead of raised as a PHP warning each, counted on every chunk: more than 100 in a workbook (elements with a prefix nobody declared, by the hundred thousand) = `damaged` | `ReadBudget`, `PartMeter` |
+| **PHP warnings** | none is relied on and none escapes: every call of the parser is checked by its result (a compressed part that is corrupt = `damaged`), and while the reader works, warnings raised from inside the XML reader are taken by the reader's own handler - the same in production (warnings are logged) and in development (warnings are exceptions) | `ReadBudget`, `XmlPart` |
 | XML entities | a part with a DOCTYPE, an entity or an entity reference is refused (without a DOCTYPE no entity can exist); `LIBXML_NONET`, no entity substitution, no DTD loading | `XmlPart` |
 | A part cut short or not well-formed | `damaged`, at the node where it breaks | `XmlPart` |
 | Work per tab | every `<sheet>` element counts against `maxSheets` (a chart sheet too) **before** anything is done for it | `XlsxStructure` |
 | Cell styles (≤ 70,000 - Excel allows 64,000), number formats (≤ 10,000), relationships looked at (≤ 100,000) and kept (≤ 5,000, only the kinds asked for), tables (≤ 2,000), names (a tab ≤ 255 bytes, a format code ≤ 1,024) | bounded where they are read | `XlsxStructure` |
 | Attributes that should be numbers (`s`, `r` of a row, `numFmtId`, `headerRowCount`, a pane's split) | digits or `damaged` - never cast and guessed | `XmlPart::number()` |
-| **A cell's value** | refused the moment it grows over `maxCellBytes` (131,072 = 32,767 characters of 4 bytes), while its text nodes arrive (the XML parser itself gives up on a text node of 10 MB) | `SheetCellStream` |
+| **A cell's value** | refused the moment it grows over `maxCellBytes` (131,072 = 32,767 characters of 4 bytes): by the scanner as the text arrives, before the parser has buffered it (so the parser's own 10 MB limit on a text is never reached), and again where the cell is put together (runs of rich text in a buffer of their own - no copying per run) | `XmlFloodScanner`, `SheetCellStream` |
 | **A row** | a value beyond column `maxColumns` is refused when its cell ends; the values of a row together over `maxRowBytes` (1 MiB) when the cell that tips it ends - also when the weight comes from shared strings a row's cells point to. A row is never built first and measured after | `SheetCellStream`, `XlsxWorkbook` |
-| **Shared strings** | a string over `maxCellBytes`, more strings than `maxCells`, more bytes than the read budget: refused while they are read; kept on disk beyond 1 MiB / 5,000 strings | `SharedStrings`, `SharedStringsStore` |
+| **Shared strings** | a string over `maxCellBytes` (`cell_too_large`); more than `maxSharedStrings` (1,000,000) or `maxSharedStringBytes` (128 MiB) of them (`too_large`) - fixed caps, not what is left of the import's cell budget: every job that reads a sheet with texts reads them all; kept on disk beyond 1 MiB / 5,000 strings | `SharedStrings`, `SharedStringsStore` |
 | **A line of a text file** | longer than `maxRowBytes`: refused by the look-through, before anything is parsed (a 25 MB line of commas would be 26 million fields) | `CsvWorkbook::lookThrough()` |
 | **A record of a text file** | longer than `maxRowBytes` (a quote that never closes: refused after 1 MiB, not after the rest of the file); more fields than `maxColumns` (empty ones count); a cell over `maxCellBytes` | `CsvWorkbook` |
 | Text that is no text | NUL and other control characters counted over the whole file, in every encoding: more than 1 in 100 bytes = `not_a_spreadsheet`; the few that remain never reach a cell | `CsvWorkbook`, `ReadCell::withoutControls()` |
 | Rows, cells, sheet width | `maxRowsPerSheet`, `maxRows`, `maxCells`, `maxColumns` | `XlsxWorkbook`, `CsvWorkbook` |
-| Temporary files | only the shared strings of a large workbook and a rewritten UTF-16 / old-Mac text file; in `<base>/msp-spreadsheet-<16 hex>` (mode 0700), made when first needed, files under random names created exclusively (`x`), every write checked (a full disk fails loudly, never a shorter copy); removed by `close()` and the destructor, which never throw; `pruneLeftovers()` for what a killed worker left | `TemporaryFolder` |
+| Temporary files | only the shared strings of a large workbook and a rewritten UTF-16 / old-Mac text file; in `<base>/msp-spreadsheet-<16 hex>` (mode 0700; the base, by default `msp-spreadsheet-reader` under the system's temporary folder, is the reader's own), made when first needed, files under random names created exclusively (`x`), every write checked (a full disk fails loudly, never a shorter copy); removed by `close()` and the destructor, which never throw; a folder in use is touched once a minute, so `pruneLeftovers()` - by last-written time - takes only what a killed worker left | `TemporaryFolder` |
 | Formulas | never calculated | everywhere |
 | Logs | the exception's message never holds a cell's content | `SpreadsheetUnreadable` |
 
@@ -279,9 +323,19 @@ bytes arrive - not after something was built.
 | A zip bomb (a part that unpacks to 1,000× its size, declared honestly) | `too_large` at `open()`, nothing unpacked |
 | An entry that declares 1,000 bytes and holds 51 MB, under any name, reached through any relationship | `damaged` at the first chunk read from it |
 | A tab typed as a chart sheet that points at such a part | listed nowhere, never opened |
-| 100 sheets that all point to one large part | `too_large` when the passes over it together exceed `maxReadBytes` |
+| 100 sheets that all point to one large part; one sheet read again by every job | `too_large` when the passes over it together exceed `maxReadBytes` - of the import, not of one job |
+| A start tag of 300,000 attributes (2.6 MB) - on a cell, in a sheet's head, in the workbook part, the styles, the shared strings | `damaged` in 2-17 ms: the tag is refused at 8 KiB, before the parser gets it (unguarded: 90 s in one call) |
+| Hundreds of thousands of distinct element or attribute names | `damaged` in 1 ms, at the 2,001st name (unguarded: 117 s for 3.3 million) |
+| 150,000 namespace declarations in scope, 600 or 60 on a tag | `damaged` in 1 ms: the tag is too long, or the part's 65th declaration (unguarded: 11 s per MiB after them) |
+| 100,000 elements with a prefix nobody declared | `damaged` after the first hundred complaints of the parser; not one PHP warning |
+| A sheet that parses slowly for a reason nobody thought of | `too_slow` when the import's seconds are used up - also while the parser skips rows by itself |
+| A compressed part that is corrupt | `damaged`, without a PHP warning, in production and development alike |
+| A part packed with bzip2, LZMA, XZ, Zstandard | `unsupported_format` at `open()` |
+| A part in UTF-16 or one that says `encoding="ISO-8859-1"` | `damaged` |
+| A date in a workbook that counts from 1904 beyond the year 9999 (serial 2,957,004 and up) | a number cell - no date, no error |
 | 50,000 `<sheet>` elements | `too_many_sheets` at the 101st |
-| A cell of 5 MB / 20 MB | `cell_too_large` / `damaged` (the XML parser's own 10 MB limit) while it arrives |
+| A cell of 5 MB / 20 MB | `cell_too_large` after its first 131 KB, before the parser has buffered it |
+| A cell typed in place of 120,000 runs of text | read in one straight pass (0.1 s) |
 | A row of 20 cells of 100 KB each; a row of cells that all point to one 100 KB shared string | `cell_too_large` when the row passes 1 MiB |
 | A shared string of 2,000,000 runs | read in one straight pass; `cell_too_large` if its text passes 131,072 bytes |
 | A sheet that says it is 16,384 columns wide; a million empty rows | no effect on the cost of a cell; the bytes count against `maxReadBytes` |
@@ -302,11 +356,13 @@ bytes arrive - not after something was built.
 | `maxZipEntries` | 10,000 | `too_large` | `open()` |
 | `maxUncompressedBytes` - what the archive says it unpacks to, pictures included | 512 MiB | `too_large` | `open()` |
 | `maxCompressionRatio` - of the archive, and of any part over 1 MiB | 200 | `too_large` | `open()` |
-| `maxReadBytes` - XML really unpacked and parsed from one opened workbook, all passes | 256 MiB | `too_large` | while any part is read |
+| `maxReadBytes` - **budget of the import**: bytes still allowed to be unpacked and parsed (a text file: read), all passes | 512 MiB | `too_large` | while any part is read |
+| `maxReadSeconds` - **budget of the import**: the reader's own seconds still allowed | 60 s | `too_slow` | on every chunk |
 | `maxSheets` - tabs of any kind | 100 | `too_many_sheets` | `open()` |
 | `maxRowsPerSheet` - rows of one `rows()` call | 50,000 | `too_many_rows` | while streaming |
-| `maxRows` - rows still allowed from this opened file | 50,000 | `too_many_rows` | while streaming |
-| `maxCells` - cells still allowed from this opened file; also the number of shared strings | 1,000,000 | `too_many_cells` | while streaming |
+| `maxRows` - **budget of the import**: rows still allowed | 50,000 | `too_many_rows` | while streaming |
+| `maxCells` - **budget of the import**: cells still allowed | 1,000,000 | `too_many_cells` | while streaming |
+| `maxSharedStrings`, `maxSharedStringBytes` - the distinct texts of a workbook; not budgets | 1,000,000 / 128 MiB | `too_large` | when a sheet's first text is read |
 | `maxColumns` - the right-most column a value may stand in; fields of a CSV record | 1,000 | `too_many_columns` | while streaming |
 | `maxCellBytes` - one cell's text, one shared string | 131,072 | `cell_too_large` | while streaming |
 | `maxRowBytes` - a row's values together; a line and a record of a text file | 1 MiB | `cell_too_large` | while streaming; a text file's line at `open()` |
@@ -318,13 +374,22 @@ beyond the last allowed column is not a value and refuses nothing.
 
 | Reason | When |
 |---|---|
-| `too_large` | the file, the archive's entries, what it says it unpacks to, its ratio (a zip bomb), the XML read from it, too many cell styles or number formats |
+| `too_large` | the file, the archive's entries, what it says it unpacks to, its ratio (a zip bomb), the bytes read from it over all jobs, too many cell styles, number formats or distinct texts |
+| `too_slow` | the reader's seconds on the file, over all jobs, are used up |
 | `too_many_sheets`, `too_many_rows`, `too_many_columns`, `too_many_cells` | the limits above |
 | `cell_too_large` | a cell, a shared string, a row's values together, a line or a record of a text file hold more than a spreadsheet's can |
 | `not_a_spreadsheet` | not a zip (for `.xlsx`), a zip without a workbook (a `.docx`), an empty file, binary data or a picture given as text |
-| `damaged` | a truncated or broken zip, a missing file, two entries of one name, a part that is missing, not well-formed, cut short, longer than its header says, or holds a DOCTYPE; a sheet named twice; no sheet; attributes, rows or cells that make no sense; a shared string that is not there; a PHP warning over what the file holds |
+| `damaged` | a truncated or broken zip, two entries of one name, a part that is missing, can not be unpacked, is not well-formed, cut short, longer than its header says, not UTF-8, holds a DOCTYPE or one of the shapes the parser is slow on; a sheet named twice; no sheet; attributes, rows or cells that make no sense; a shared string that is not there |
 | `password_protected` | an encrypted workbook (OLE container with an `EncryptedPackage`), an encrypted zip entry |
-| `unsupported_format` | `.xls`, `.xlsb`, `.ods`, `.numbers`; a workbook given as CSV |
+| `unsupported_format` | `.xls`, `.xlsb`, `.ods`, `.numbers`; a part packed by a method other than deflate; a workbook given as CSV |
+
+A file that is **not there** or can not be opened is no reason of the file's: `SpreadsheetReaderFailed`.
+
+**Why 60 s and 512 MiB.** A file at every limit at once (a million cells, 100,000 texts) is 2.4 s and 31 MiB here,
+read in one job. The budgets are the import's - a job per sheet opens the workbook again and reads the shared strings
+again - and seconds are wall-clock seconds of a server that may be busy (the same read took seven times as long on a
+loaded development machine). Twenty-five times the measured need is room for both; a caller that knows its server
+passes less.
 
 ## Deliberately not done
 
@@ -334,6 +399,9 @@ beyond the last allowed column is not a value and refuses nothing.
 - **The leading `'` of our own export** is left on the text; `SpreadsheetSafeValue::withoutFormulaGuard()` takes it
   off. (A text a player typed as an apostrophe followed by `=` looks the same and would lose its apostrophe.)
 - **`.xls`, `.xlsb`, `.ods`, `.numbers`** are not read ("save it as Excel or CSV").
+- **Workbook parts in UTF-16** (or any encoding but UTF-8) are not read - no spreadsheet writes them; a text file in
+  UTF-16 is.
+- **Parts packed by another method than deflate** are not unpacked.
 - **Pictures** are never opened.
 - **Sheet titles** are handed out as written in the workbook (no `_xHHHH_` decoding).
 - **Number formats are not applied**: `shown` is a stable text (ISO-like dates, `h:mm:ss`), not Excel's rendering -
@@ -342,57 +410,75 @@ beyond the last allowed column is not a value and refuses nothing.
 
 ## Measurements
 
-PHP 8.5.12 (aarch64, the project's base image in Docker on the development machine), 2026-11-14, the best of 4-5
-runs each (the machine is shared; a single run under load took up to seven times as long). Peak memory is the growth
-of `memory_get_peak_usage()` while a workbook is opened and its first sheet streamed, after a warm-up read.
+PHP 8.5.12, libxml 2.9.14 (aarch64, the project's base image in Docker on the development machine; production runs
+the same libxml), 2026-11-14, the best of 3-5 runs each (the machine is shared; a single run under load took up to
+seven times as long). Peak memory is the growth of `memory_get_peak_usage()` while a workbook is opened and its first
+sheet streamed, after a warm-up read.
 
-| File | `open()` | Streaming the sheet | Peak memory |
-|---|---|---|---|
-| Generated, 2,000 rows × 10 columns (20,000 cells, 10 kinds of cells, a text of its own per row) | < 1 ms | 0.06 s | +0.2 MiB |
-| Generated, 20,000 × 10 (200,000 cells; 20,050 shared strings, kept in the store's file) | < 1 ms | 0.5 s | +0.5 MiB |
-| Generated, 50,000 × 20 (1,000,000 cells; 100,050 shared strings) - the most cells allowed | < 1 ms | 2.5 s | +0.5 MiB |
-| **The largest file allowed: 24.1 MiB** - the million cells plus 22 MiB of pictures that nobody opens | **< 1 ms** | 2.6 s | +0.5 MiB |
-| 100 sheets of 500 rows with a table and a frozen pane each | 7 ms | 4 ms (one sheet) | +0.3 MiB |
+| File | `open()` | Streaming the sheet | XML read | Peak memory |
+|---|---|---|---|---|
+| Generated, 2,000 rows × 10 columns (20,000 cells, 10 kinds of cells, a text of its own per row) | < 1 ms | 0.05 s | 0.6 MiB | +0.3 MiB |
+| Generated, 20,000 × 10 (200,000 cells; 20,050 shared strings, kept in the store's file) | < 1 ms | 0.48 s | 6.4 MiB | +0.5 MiB |
+| Generated, 50,000 × 20 (1,000,000 cells; 100,050 shared strings) - the most cells allowed | < 1 ms | 2.4 s | 31.4 MiB | +0.5 MiB |
+| **The largest file allowed: 24.1 MiB** - the million cells plus 22 MiB of pictures that nobody opens | **< 1 ms** | 2.3 s | 31.4 MiB | +0.5 MiB |
+| 100 sheets of 500 rows with a table and a frozen pane each | 8 ms | 4 ms (one sheet) | 0.9 MiB | +0.3 MiB |
 
-`open()` reads the archive's directory, the workbook part, its relationships, the styles, and of every worksheet the
-part up to its first row, its relationships and its tables' root elements - nothing that grows with the rows. So a
-job per sheet that opens the workbook again pays milliseconds for it; the shared strings are read by the job whose
-sheet needs them (0.03 s for 20,000 strings, 0.13 s for 100,000 - inside the streaming times above).
+`open()` reads the archive's directory, the workbook part up to its sheets, its relationships, the styles, and of
+every worksheet the part up to its first row, its relationships and its tables' root elements - nothing that grows
+with the rows. So a job per sheet that opens the workbook again pays milliseconds for it; the shared strings are read
+by the job whose sheet needs them (0.03 s for 20,000 strings, 0.13 s for 100,000 - inside the streaming times above).
 
 The design's budget for the largest file was 3 minutes and 64 MB (README "Performance").
 
-**The time a hostile file can cost** is bounded by `maxReadBytes`. Measured on sheets of nothing but empty cells, a
-megabyte on disk each: 64 MB of `<c s="1"/>` are walked in 1.4 s, 64 MB of bare `<c/>` (the most nodes a byte can
-buy) in 2.6 s - so the whole budget of 256 MiB is about 11 s, at the end of which the file is refused with
-`too_large`.
+**What the scanner costs.** Reading is 75 ms for a MiB of sheet XML in all (2.4 s for 31.4 MiB). Of that:
+
+| | per MiB of XML |
+|---|---|
+| The XML parser's bare loop over a sheet (no scanner, nothing done with the nodes) | 12.7 ms |
+| `XmlFloodScanner` on a sheet (the tags a sheet is made of: one regular expression a chunk) | 4.1 ms |
+| `XmlFloodScanner` on shared strings | 2.7 ms |
+| `XmlFloodScanner` on a sheet whose every start tag it does not know by heart (a prefix on each: looked at one by one) | 15.7 ms |
+
+So the scanner is 0.11 s of the 2.4 s a million cells take - 5 % (the same read measured 2.3-2.5 s before it was
+there: inside the noise of the machine), and a fifth more on a workbook written with a prefix on every tag.
+
+**The time a hostile file can cost** is bounded three times over: the scanner refuses the shapes the parser is slow
+on within milliseconds (measured: 2-17 ms for a start tag of 300,000 attributes, 1 ms for 300,000 distinct names and
+for 15,000 namespace declarations - `XlsxTimeBoundTest` asserts under 5 s each); what passes the scanner is read in a
+time that grows with its bytes - 64 MB of `<c s="1"/>` in 1.4 s, 64 MB of bare `<c/>` (the most nodes a byte can buy)
+in 2.6 s - and those are a budget (512 MiB: about 20 s at worst); and the reader's seconds are a budget themselves
+(60 s). Each over all jobs of an import.
 
 **The four real files** (research.md; kept outside the repository - read locally, counts only, default limits, the
-best of 3 runs; "everything" = every sheet streamed, its merged ranges, and every table once more through its window):
+best of 3 runs; "everything" = every sheet streamed, its merged ranges, and all its tables once more as windows of one
+pass):
 
-| File | Sheets | Rows / cells handed out | `open()` | Everything | Peak memory |
-|---|---|---|---|---|---|
-| File 1 | 10 (a frozen pane on each) | 4,486 / 34,986 - 4,916 dates (723 month-only, 1,313 without a shown year), 618 times of day, 356 durations, 2 errors, 1,348 formula cells | 6 ms | 0.40 s | +0.5 MiB |
-| File 2 | 1 | 793 / 4,996 - every cell a formula | 2 ms | 0.06 s | +0.1 MiB |
-| File 3 | 20 (2 hidden; 32 tables on 13 sheets, headers on rows 1-8; 12 frozen panes) | 5,209 / 30,214 - 3,603 durations, 4,910 booleans, 2,461 dates; 29,474 cells again through the 32 windows | 9 ms | 0.82 s | +0.5 MiB |
-| File 4 (CSV) | 1 | 460 / 7,282 in 23 columns | 2 ms | 0.02 s | +1.4 MiB |
+| File | Sheets | Rows / cells of the sheets | `open()` | Everything | XML read | Peak memory |
+|---|---|---|---|---|---|---|
+| File 1 | 10 | 4,486 / 34,986 - 4,916 dates, 618 times of day, 356 durations, 2 errors, 1,348 formula cells | 2 ms | 0.18 s | 4.8 MiB | +0.5 MiB |
+| File 2 | 1 | 793 / 4,996 - every cell a formula | < 1 ms | 0.03 s | 1.6 MiB | +0.1 MiB |
+| File 3 | 20 (2 hidden; 32 tables on 13 sheets) | 5,209 / 30,214 - 3,603 durations, 4,910 booleans, 2,461 dates; 29,474 cells again through the 32 windows | 4 ms | 0.34 s | 11.0 MiB | +0.5 MiB |
+| File 4 (CSV) | 1 | 460 / 7,282 in 23 columns | 1 ms | 0.01 s | 0.4 MiB | +1.4 MiB |
 
-File 3's sheet of twenty tables side by side reaches column 93: the first version refused it at 60 columns, now it
-is read whole, and table by table through windows.
+All four pass the scanner as they are. File 3's sheet of twenty tables side by side reaches column 93: the first
+version refused it at 60 columns, now it is read whole, and its tables as twenty windows of one pass.
 
 ## Tests
 
 `tests/Services/SpreadsheetReader/` - every fixture is **generated in the test** (PhpSpreadsheet's writer for a
 realistic workbook; `RawXlsx` writes a workbook part by part for the shapes a writer can not produce, and makes an
-archive lie about a part's size). Every hostile file is small on disk. No real file is in the repository.
+archive lie about a part's size or packing method and breaks a part's packed bytes). Every hostile file is small on
+disk. No real file is in the repository.
 
 | Test | What |
 |---|---|
 | `NumberFormatClassifierTest` | the classification table, built-in formats |
 | `XlsxReaderTest` | every cell kind, date precisions, durations against times, texts and their white space, formulas, tables, panes, hidden sheets, checkboxes, gaps and stray cells, merged ranges, a window on two tables side by side, the budget handed from one open to the next, leading zeros, rounding at midnight, a relationship prefix other than `r:`, a workbook whose parts have other names, 1904, edges of the calendar, time zones, a workbook written by PhpSpreadsheet |
+| `XlsxTimeBoundTest` | the shapes the parser is slow on (300,000 attributes on a tag, in five places; hundreds of thousands of distinct names; thousands of namespace declarations; undeclared prefixes) - the typed refusal **and** under 5 s each; what the scanner must let through (comments, CDATA, instructions, made-up elements cut by every chunk edge); parts that are not UTF-8; the budget of seconds - while rows are streamed, while the parser skips by itself, not the caller's time; bytes and seconds carried over three jobs; a corrupt packed part in each of four parts, without a warning, with warnings as exceptions; other packing methods; a cell of 120,000 runs; every extreme number in both date systems; several windows in one pass; `close()` while a sheet is streamed |
 | `XlsxSafetyTest` | one test per limit and reason; the hostile files of the table above; garbage attributes; `<dxfs>`; an unwritable temporary folder is not `damaged` |
-| `CsvReaderTest` | delimiters, line ends, `sep=`, mark, encodings, quotes, empty lines, one column, limits, a line of five million delimiters, a quote that never closes, control characters in every encoding, a window, not text, an unwritable temporary folder |
+| `CsvReaderTest` | delimiters, line ends, `sep=`, mark, encodings, quotes, empty lines, one column, limits, a line of five million delimiters, a quote that never closes, control characters in every encoding, windows, an old Mac's file with a `\n` in a cell and a Windows file with a `\r` in one, bytes and seconds as budgets, `close()` while streaming, not text, a missing file and an unwritable temporary folder as the server's faults |
 | `OpenSpoutParityTest` | our rows and shared strings against OpenSpout's reader (the development dependency's only use) |
-| `SharedStringsStoreTest`, `TemporaryFolderTest` | the store: memory, file, lookups, clean-up; the folder: lazy, 0700, exclusive names, `pruneLeftovers()` |
+| `SharedStringsStoreTest`, `TemporaryFolderTest` | the store: memory, file, lookups, clean-up; the folder: lazy, 0700, exclusive names, kept alive while in use, `pruneLeftovers()`, the default base |
 | `SpreadsheetReaderMemoryTest` | memory does not grow with the rows (20,000 × 10 against 2,000 × 10, under 4 MiB; a CSV of 40,000 rows under 6 MiB - the parser's view). Opt-in, not in CI: `SPREADSHEET_READER_LARGE=1 vendor/bin/phpunit --group spreadsheet-reader-large tests/Services/SpreadsheetReader` reads 50,000 × 20 and prints time and memory |
 
 Every test checks afterwards that the reader left nothing in the temporary folder it was given.

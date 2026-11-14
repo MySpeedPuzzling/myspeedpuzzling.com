@@ -107,14 +107,49 @@ final class TemporaryFolderTest extends TestCase
         self::assertSame(1, $reader->pruneLeftovers($now));
     }
 
-    public function testAReaderWithoutAFolderOfItsOwnUsesTheSystems(): void
+    public function testAFolderInUseSaysSoAndIsNotTakenForAnAbandonedOne(): void
+    {
+        mkdir($this->base);
+        $now = new \DateTimeImmutable('2026-11-14 12:00:00 UTC');
+        $folder = new TemporaryFolder($this->base, keepAliveNanoseconds: 0);
+        $path = dirname($folder->newFile('strings'));
+
+        // A read that has been going on since yesterday …
+        touch($path, $now->modify('-26 hours')->getTimestamp());
+        self::assertSame($now->modify('-26 hours')->getTimestamp(), filemtime($path));
+
+        // … and is still going on
+        $folder->keepAlive();
+        clearstatcache();
+
+        self::assertGreaterThan($now->modify('-1 hour')->getTimestamp(), filemtime($path));
+        self::assertSame(0, TemporaryFolder::prune($this->base, $now->modify('-24 hours')));
+
+        // Once a minute is enough
+        $patient = new TemporaryFolder($this->base);
+        $other = dirname($patient->newFile('strings'));
+        touch($other, $now->modify('-26 hours')->getTimestamp());
+        $patient->keepAlive();
+        clearstatcache();
+
+        self::assertSame($now->modify('-26 hours')->getTimestamp(), filemtime($other));
+
+        $folder->remove();
+        $patient->remove();
+    }
+
+    public function testAReaderWithoutAFolderOfItsOwnUsesOneUnderTheSystems(): void
     {
         $path = $this->base . '.csv';
-        file_put_contents($path, "a,b\n1,2\n");
+        file_put_contents($path, "\xFF\xFE" . mb_convert_encoding("a;b\n1;2\n", 'UTF-16LE', 'UTF-8'));
+        $default = sys_get_temp_dir() . '/' . SpreadsheetReader::DEFAULT_TEMPORARY_FOLDER;
 
         try {
             $workbook = (new SpreadsheetReader())->open($path, SpreadsheetFormat::Csv);
 
+            // The rewritten copy stands in the reader's own folder - not loose in the system's
+            self::assertDirectoryExists($default);
+            self::assertSame(0700, fileperms($default) & 0777);
             self::assertCount(2, iterator_to_array($workbook->rows($workbook->sheets()[0]), false));
 
             $workbook->close();

@@ -17,8 +17,10 @@ use SpeedPuzzling\Web\Value\Spreadsheet\SpreadsheetLimits;
  * - A string is its <t> texts put together: plain (<si><t>) or runs of rich text (<si><r><t>). The reading aid of
  *   East Asian text (<rPh>) is not part of it.
  * - A <t> without xml:space="preserve" loses the white space around it, as Excel shows it.
- * - Bounded: a string by SpreadsheetLimits::$maxCellBytes, their number by ::$maxCells, the part's bytes by the
- *   workbook's read budget (XlsxPackage) - and a string of two million empty runs is two million steps, no more.
+ * - Bounded: a string by SpreadsheetLimits::$maxCellBytes, their number by ::$maxSharedStrings and their bytes
+ *   together by ::$maxSharedStringBytes (fixed caps: every job that reads a sheet with texts reads them all, whatever
+ *   is left of the import's cell budget), the part's bytes and the time by the workbook's budget - and a string of
+ *   two million empty runs is two million steps, no more.
  */
 final class SharedStrings
 {
@@ -64,6 +66,7 @@ final class SharedStrings
         $preserve = false;
         $string = '';
         $text = '';
+        $bytes = 0;
 
         try {
             while ($xml->read()) {
@@ -93,6 +96,12 @@ final class SharedStrings
                     if ($name === 'si' && $inString) {
                         $inString = false;
                         $inPhonetic = false;
+                        $bytes += strlen($string);
+
+                        if ($bytes > $this->limits->maxSharedStringBytes) {
+                            throw SpreadsheetUnreadable::tooLarge(sprintf('the workbook holds more than %d bytes of distinct texts', $this->limits->maxSharedStringBytes));
+                        }
+
                         $store->add(self::decoded($string));
                     } elseif ($name === 'rPh') {
                         $inPhonetic = false;
@@ -108,8 +117,8 @@ final class SharedStrings
                 $name = $reader->localName;
 
                 if ($name === 'si') {
-                    if ($store->count() >= $this->limits->maxCells) {
-                        throw SpreadsheetUnreadable::tooManyCells($this->limits->maxCells);
+                    if ($store->count() >= $this->limits->maxSharedStrings) {
+                        throw SpreadsheetUnreadable::tooLarge(sprintf('the workbook holds more than %d distinct texts', $this->limits->maxSharedStrings));
                     }
 
                     $string = '';

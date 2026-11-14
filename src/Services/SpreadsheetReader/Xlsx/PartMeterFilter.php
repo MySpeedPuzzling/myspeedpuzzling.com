@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\SpreadsheetReader\Xlsx;
 
 /**
- * A read filter on a part's stream that lets every byte pass a PartMeter on its way to the XML parser - and stops
- * the stream when the meter says so.
+ * A read filter on a part's stream that lets every chunk pass a PartMeter on its way to the XML parser - and stops
+ * the stream, without handing the chunk on, when the meter says so.
  */
 final class PartMeterFilter extends \php_user_filter
 {
@@ -39,7 +39,7 @@ final class PartMeterFilter extends \php_user_filter
         while (($bucket = stream_bucket_make_writeable($in)) !== null) {
             $consumed += $bucket->datalen;
 
-            if ($meter->add($bucket->datalen) === false) {
+            if ($meter->pass($bucket->data) === false) {
                 return PSFS_ERR_FATAL;
             }
 

@@ -27,10 +27,14 @@ use SpeedPuzzling\Web\Value\Spreadsheet\SpreadsheetLimits;
  */
 final readonly class SpreadsheetReader
 {
+    /** Under the system's temporary folder, a folder of the reader's own - nothing else is ever pruned */
+    public const string DEFAULT_TEMPORARY_FOLDER = 'msp-spreadsheet-reader';
+
     /**
      * @param null|string $temporaryFolder the folder in which an opened file makes one of its own (mode 0700,
      *                                     removed by ReadWorkbook::close()) when it has to write something - many
-     *                                     shared strings, a rewritten UTF-16 text; null = the system's
+     *                                     shared strings, a rewritten UTF-16 text; null = a folder of the reader's
+     *                                     own under the system's (DEFAULT_TEMPORARY_FOLDER)
      */
     public function __construct(
         private null|string $temporaryFolder = null,
@@ -65,6 +69,6 @@ final readonly class SpreadsheetReader
 
     private function temporaryBase(): string
     {
-        return $this->temporaryFolder ?? sys_get_temp_dir();
+        return $this->temporaryFolder ?? rtrim(sys_get_temp_dir(), '/') . '/' . self::DEFAULT_TEMPORARY_FOLDER;
     }
 }

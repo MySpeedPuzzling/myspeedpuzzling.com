@@ -17,6 +17,8 @@ enum SpreadsheetUnreadableReason: string
     case TooManyCells = 'too_many_cells';
     /** A cell, or a row's cells together, or a line of a text file hold more text than a spreadsheet's can */
     case CellTooLarge = 'cell_too_large';
+    /** Reading took more time than a file gets */
+    case TooSlow = 'too_slow';
     /** Not tabular data at all: a picture, a text document, a zip of something else */
     case NotASpreadsheet = 'not_a_spreadsheet';
     /** A workbook or text file that is broken: truncated, invalid XML, parts missing or lying about themselves */

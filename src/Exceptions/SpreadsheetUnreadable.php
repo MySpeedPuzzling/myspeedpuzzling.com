@@ -54,6 +54,11 @@ final class SpreadsheetUnreadable extends \RuntimeException
         return new self(SpreadsheetUnreadableReason::CellTooLarge, $detail);
     }
 
+    public static function tooSlow(string $detail): self
+    {
+        return new self(SpreadsheetUnreadableReason::TooSlow, $detail);
+    }
+
     public static function notASpreadsheet(string $detail, null|\Throwable $previous = null): self
     {
         return new self(SpreadsheetUnreadableReason::NotASpreadsheet, $detail, $previous);

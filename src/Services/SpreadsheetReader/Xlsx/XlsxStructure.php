@@ -63,6 +63,11 @@ final readonly class XlsxStructure
 
         try {
             while ($xml->read()) {
+                // What stands after the list of sheets (defined names, extensions) is not read
+                if ($xml->reader->nodeType === \XMLReader::END_ELEMENT && $xml->reader->localName === 'sheets') {
+                    break;
+                }
+
                 if ($xml->reader->nodeType !== \XMLReader::ELEMENT) {
                     continue;
                 }

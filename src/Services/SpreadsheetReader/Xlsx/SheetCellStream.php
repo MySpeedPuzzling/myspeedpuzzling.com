@@ -18,8 +18,9 @@ use SpeedPuzzling\Web\Value\Spreadsheet\SpreadsheetLimits;
  * moment its values together do, a value beyond the last allowed column the moment its cell ends. A row or a cell
  * without its "r" attribute follows the previous one.
  *
- * With a window only the rows and columns inside it are collected: rows above are skipped by libxml alone, the first
- * row below ends the pass.
+ * With windows only the rows and columns inside their bounding box are collected: rows no window reaches into are
+ * skipped by libxml alone (every chunk of them still passes the part's meter), the first row below the last window
+ * ends the pass.
  */
 final class SheetCellStream
 {
@@ -35,11 +36,21 @@ final class SheetCellStream
     /** The reader already stands on a node that was not looked at yet (after skipping a row) */
     private bool $standing = false;
 
+    private readonly int $firstColumn;
+    private readonly int $lastColumn;
+    private readonly int $lastWindowRow;
+
+    /**
+     * @param list<CellRange> $windows
+     */
     public function __construct(
         private readonly XmlPart $xml,
         private readonly SpreadsheetLimits $limits,
-        private readonly null|CellRange $window = null,
+        private readonly array $windows = [],
     ) {
+        $this->firstColumn = $windows === [] ? 1 : min(array_column($windows, 'firstColumn'));
+        $this->lastColumn = $windows === [] ? CellRange::MAX_COLUMN : max(array_column($windows, 'lastColumn'));
+        $this->lastWindowRow = $windows === [] ? CellRange::MAX_ROW : max(array_column($windows, 'lastRow'));
     }
 
     /**
@@ -78,7 +89,7 @@ final class SheetCellStream
 
             $this->lastRow = $row;
 
-            if ($this->window !== null && $row > $this->window->lastRow) {
+            if ($row > $this->lastWindowRow) {
                 break;
             }
 
@@ -86,7 +97,7 @@ final class SheetCellStream
                 return [$row, []];
             }
 
-            if ($this->window !== null && $row < $this->window->firstRow) {
+            if ($this->windows !== [] && $this->inAWindow($row) === false) {
                 // Past the whole row without a node of it reaching PHP
                 if ($xml->next() === false) {
                     break;
@@ -111,6 +122,17 @@ final class SheetCellStream
         $this->xml->close();
     }
 
+    private function inAWindow(int $row): bool
+    {
+        foreach ($this->windows as $window) {
+            if ($row >= $window->firstRow && $row <= $window->lastRow) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * From a <row> to its end.
      *
@@ -121,8 +143,8 @@ final class SheetCellStream
         $xml = $this->xml;
         $reader = $xml->reader;
         $maxCellBytes = $this->limits->maxCellBytes;
-        $firstColumn = $this->window === null ? 1 : $this->window->firstColumn;
-        $lastColumn = $this->window === null ? CellRange::MAX_COLUMN : $this->window->lastColumn;
+        $firstColumn = $this->firstColumn;
+        $lastColumn = $this->lastColumn;
         $cells = [];
         $rowBytes = 0;
         $previousColumn = 0;
@@ -138,8 +160,10 @@ final class SheetCellStream
         $inText = false;
         $inInline = false;
         $inPhonetic = false;
-        // Where in $raw a <t> without xml:space="preserve" starts: the white space around it goes, as Excel shows it
-        $trimFrom = null;
+        // The text of the <t> at hand, in a buffer of its own (a cell of a hundred thousand runs is not copied a
+        // hundred thousand times); without xml:space="preserve" the white space around it goes, as Excel shows it
+        $run = null;
+        $runIsKept = false;
 
         while (true) {
             // The reader itself, without XmlPart's checks: they are about a document's prolog and end, and this is
@@ -154,14 +178,18 @@ final class SheetCellStream
                 if ($nodeType === \XMLReader::END_ELEMENT) {
                     $inText = false;
 
-                    if ($trimFrom !== null) {
-                        $raw = substr($raw, 0, $trimFrom) . trim(substr($raw, $trimFrom), " \t\n\r");
-                        $trimFrom = null;
+                    if ($run !== null) {
+                        $raw .= $runIsKept ? $run : trim($run, " \t\n\r");
+                        $run = null;
                     }
                 } elseif (isset(self::TEXT_NODES[$nodeType])) {
-                    $raw .= $reader->value;
+                    if ($run === null) {
+                        $raw .= $reader->value;
+                    } else {
+                        $run .= $reader->value;
+                    }
 
-                    if (strlen($raw) > $maxCellBytes) {
+                    if (strlen($raw) + strlen((string) $run) > $maxCellBytes) {
                         throw SpreadsheetUnreadable::cellTooLarge(sprintf('a cell of more than %d bytes', $maxCellBytes));
                     }
                 }
@@ -245,12 +273,14 @@ final class SheetCellStream
                     $inPhonetic = $reader->isEmptyElement === false;
                 } elseif ($name === 't' && $inPhonetic === false && $reader->isEmptyElement === false) {
                     $inText = true;
-                    $trimFrom = $reader->getAttribute('xml:space') === 'preserve' ? null : strlen($raw);
+                    $run = '';
+                    $runIsKept = $reader->getAttribute('xml:space') === 'preserve';
                 }
             } elseif ($name === 'v') {
                 // A cell of inline text has no <v> of interest; any other cell's value is the <v>
                 if ($type !== 'inlineStr') {
                     $raw = '';
+                    $run = null;
                     $filled = true;
                     $inText = $reader->isEmptyElement === false;
                 }

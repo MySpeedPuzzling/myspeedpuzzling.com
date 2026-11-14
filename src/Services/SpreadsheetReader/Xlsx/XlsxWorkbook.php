@@ -25,6 +25,9 @@ use SpeedPuzzling\Web\Value\Spreadsheet\SpreadsheetLimits;
  * when the first cell needs one (SharedStrings). One row in memory at a time; what a row costs depends on the cells
  * it holds, never on what the sheet says about its own size.
  *
+ * Every entry point brackets its work with the budget's enter() and leave() (ReadBudget): the reader's seconds are
+ * counted there, and warnings of the XML reader are kept from the application while it works.
+ *
  * No library parses the file at runtime. OpenSpout's row iterator was tried first and measured (it sizes every row
  * by the sheet's <dimension>: one attribute of an untrusted file made 200,000 cells take 76 s) and its shared-strings
  * reader builds each string as a DOM; OpenSpoutParityTest still holds our rows against it on generated workbooks.
@@ -36,12 +39,22 @@ final class XlsxWorkbook implements ReadWorkbook
     private const int EPOCH_SERIAL_1900 = 25_569;
     /** The 1904 date system starts 1,462 days later */
     private const int EPOCH_SERIAL_1904 = 24_107;
-    /** The last moment a spreadsheet date can hold: 9999-12-31 */
-    private const float MAX_DATE_SERIAL = 2_958_465.99999999;
+    /** The last day a spreadsheet date can be, 9999-12-31, as a serial number of the 1900 and of the 1904 date system */
+    private const int LAST_DAY_1900 = 2_958_465;
+    private const int LAST_DAY_1904 = 2_957_003;
+
+    /** The elements of a sheet that stand before its merged ranges (ECMA-376 §18.3.1.99, in this order) */
+    private const array BEFORE_MERGED_RANGES = [
+        'worksheet' => true, 'sheetPr' => true, 'dimension' => true, 'sheetViews' => true, 'sheetFormatPr' => true, 'cols' => true,
+        'sheetData' => true, 'sheetCalcPr' => true, 'sheetProtection' => true, 'protectedRanges' => true, 'scenarios' => true,
+        'autoFilter' => true, 'sortState' => true, 'dataConsolidate' => true, 'customSheetViews' => true, 'mergeCells' => true,
+    ];
 
     private int $rowsRead = 0;
     private int $cellsRead = 0;
     private bool $closed = false;
+    /** @var array<int, SheetCellStream> the sheets being streamed right now: closed with the workbook */
+    private array $streams = [];
 
     private function __construct(
         private readonly XlsxPackage $package,
@@ -60,18 +73,16 @@ final class XlsxWorkbook implements ReadWorkbook
     public static function open(string $path, SpreadsheetLimits $limits, string $temporaryBase): self
     {
         $package = XlsxPackage::open($path, $limits);
+        $package->budget->enter();
 
         try {
             $structure = XlsxStructure::read($package, $limits);
-        } catch (\ErrorException $e) {
-            $package->close();
-
-            // A warning PHP raised over what a part holds (and an error handler made an exception of)
-            throw SpreadsheetUnreadable::damaged('the workbook could not be read', $e);
         } catch (\Throwable $e) {
             $package->close();
 
             throw $e;
+        } finally {
+            $package->budget->leave();
         }
 
         $folder = new TemporaryFolder($temporaryBase);
@@ -84,20 +95,24 @@ final class XlsxWorkbook implements ReadWorkbook
         return $this->structure->sheets;
     }
 
-    public function rows(ReadSheet $sheet, null|CellRange $window = null): \Generator
+    public function rows(ReadSheet $sheet, CellRange ...$windows): \Generator
     {
         // Checked now, not at the first row: a generator's body only runs once it is iterated
         $entry = $this->entryOf($sheet);
 
-        return $this->stream($entry, $window);
+        return $this->stream($entry, array_values($windows));
     }
 
     public function mergedRanges(ReadSheet $sheet): array
     {
+        $entry = $this->entryOf($sheet);
         $ranges = [];
-        $xml = $this->package->xml($this->entryOf($sheet));
+        $budget = $this->package->budget;
+        $budget->enter();
+        $xml = null;
 
         try {
+            $xml = $this->package->xml($entry);
             $more = $xml->read();
 
             while ($more) {
@@ -109,7 +124,7 @@ final class XlsxWorkbook implements ReadWorkbook
 
                 $name = $xml->reader->localName;
 
-                // The rows are skipped by libxml alone
+                // The rows are skipped by the parser alone - every chunk of them still passes the part's meter
                 if ($name === 'sheetData') {
                     $more = $xml->next();
 
@@ -126,15 +141,17 @@ final class XlsxWorkbook implements ReadWorkbook
                     if ($range !== null) {
                         $ranges[] = $range;
                     }
-                } elseif ($ranges !== [] && $xml->reader->depth === 1) {
-                    // What follows the merged ranges is of no interest
+                } elseif ($xml->reader->depth === 1 && isset(self::BEFORE_MERGED_RANGES[$name]) === false) {
+                    // Everything that stands after the merged ranges in a sheet (conditional formats, links,
+                    // extensions) is not read
                     break;
                 }
 
                 $more = $xml->read();
             }
         } finally {
-            $xml->close();
+            $xml?->close();
+            $budget->leave();
         }
 
         return $ranges;
@@ -150,6 +167,16 @@ final class XlsxWorkbook implements ReadWorkbook
         return $this->cellsRead;
     }
 
+    public function bytesRead(): int
+    {
+        return $this->package->budget->read;
+    }
+
+    public function secondsRead(): float
+    {
+        return $this->package->budget->nanoseconds() / 1e9;
+    }
+
     public function close(): void
     {
         if ($this->closed) {
@@ -157,59 +184,125 @@ final class XlsxWorkbook implements ReadWorkbook
         }
 
         $this->closed = true;
+
+        // A sheet that is still being streamed ends here: its generator hands out no further row
+        foreach ($this->streams as $stream) {
+            $stream->close();
+        }
+
+        $this->streams = [];
         $this->sharedStrings->clear();
         $this->package->close();
         $this->folder->remove();
     }
 
     /**
+     * @param list<CellRange> $windows
+     *
      * @return \Generator<int, ReadRow>
      */
-    private function stream(string $entry, null|CellRange $window): \Generator
+    private function stream(string $entry, array $windows): \Generator
     {
+        $budget = $this->package->budget;
         $lastRow = 0;
         $rows = 0;
-        $stream = new SheetCellStream($this->package->xml($entry), $this->limits, $window);
+        $stream = null;
 
         try {
-            while (($next = $stream->nextRow()) !== null) {
-                [$number, $metas] = $next;
+            while ($this->closed === false) {
+                $out = [];
+                // The reader's own time: what the caller does with a row is not counted
+                $budget->enter();
 
-                // A row number that goes backwards or repeats is passed over: the first one stands
-                if ($number <= $lastRow) {
-                    continue;
+                try {
+                    if ($stream === null) {
+                        $stream = new SheetCellStream($this->package->xml($entry), $this->limits, $windows);
+                        $this->streams[spl_object_id($stream)] = $stream;
+                    }
+
+                    $next = $stream->nextRow();
+
+                    if ($next === null) {
+                        break;
+                    }
+
+                    [$number, $metas] = $next;
+
+                    // A row number that goes backwards or repeats is passed over: the first one stands
+                    if ($number <= $lastRow || $metas === []) {
+                        $lastRow = max($lastRow, $number);
+
+                        continue;
+                    }
+
+                    $lastRow = $number;
+                    $cells = $this->cells($metas);
+
+                    foreach ($windows === [] ? [null] : $windows as $index => $window) {
+                        $inWindow = $window === null ? $cells : self::inside($window, $number, $cells);
+
+                        if ($inWindow === []) {
+                            continue;
+                        }
+
+                        $this->rowsRead++;
+                        $this->cellsRead += count($inWindow);
+                        $out[] = [$index, new ReadRow($number, $inWindow)];
+
+                        if (++$rows > $this->limits->maxRowsPerSheet) {
+                            throw SpreadsheetUnreadable::tooManyRows($this->limits->maxRowsPerSheet);
+                        }
+
+                        if ($this->rowsRead > $this->limits->maxRows) {
+                            throw SpreadsheetUnreadable::tooManyRows($this->limits->maxRows);
+                        }
+
+                        if ($this->cellsRead > $this->limits->maxCells) {
+                            throw SpreadsheetUnreadable::tooManyCells($this->limits->maxCells);
+                        }
+                    }
+
+                    if (($rows & 1023) === 0) {
+                        $this->folder->keepAlive();
+                    }
+                } finally {
+                    $budget->leave();
                 }
 
-                $lastRow = $number;
-                $cells = $metas === [] ? [] : $this->cells($metas);
-
-                if ($cells === []) {
-                    continue;
+                foreach ($out as [$index, $row]) {
+                    yield $index => $row;
                 }
-
-                $this->rowsRead++;
-                $this->cellsRead += count($cells);
-
-                if (++$rows > $this->limits->maxRowsPerSheet) {
-                    throw SpreadsheetUnreadable::tooManyRows($this->limits->maxRowsPerSheet);
-                }
-
-                if ($this->rowsRead > $this->limits->maxRows) {
-                    throw SpreadsheetUnreadable::tooManyRows($this->limits->maxRows);
-                }
-
-                if ($this->cellsRead > $this->limits->maxCells) {
-                    throw SpreadsheetUnreadable::tooManyCells($this->limits->maxCells);
-                }
-
-                yield new ReadRow($number, $cells);
             }
-        } catch (\ErrorException $e) {
-            // A warning PHP raised over what a cell holds (and an error handler made an exception of)
-            throw SpreadsheetUnreadable::damaged('a sheet could not be read', $e);
         } finally {
-            $stream->close();
+            if ($stream !== null) {
+                unset($this->streams[spl_object_id($stream)]);
+                $stream->close();
+            }
         }
+    }
+
+    /**
+     * The cells of a row that stand inside a window.
+     *
+     * @param array<int, ReadCell> $cells
+     *
+     * @return array<int, ReadCell>
+     */
+    private static function inside(CellRange $window, int $row, array $cells): array
+    {
+        if ($row < $window->firstRow || $row > $window->lastRow) {
+            return [];
+        }
+
+        $inside = [];
+
+        foreach ($cells as $column => $cell) {
+            if ($column >= $window->firstColumn && $column <= $window->lastColumn) {
+                $inside[$column] = $cell;
+            }
+        }
+
+        return $inside;
     }
 
     /**
@@ -282,14 +375,15 @@ final class XlsxWorkbook implements ReadWorkbook
         $kind = $format === null ? NumberFormatKind::General : $format->kind;
 
         // More days than a spreadsheet can count is a number, whatever its format says
-        if ($kind === NumberFormatKind::Duration && abs($number) <= self::MAX_DATE_SERIAL) {
+        if ($kind === NumberFormatKind::Duration && abs($number) <= self::LAST_DAY_1900 + 1) {
             return ReadCell::duration((int) round($number * self::SECONDS_PER_DAY), $formula);
         }
 
-        // A negative "date" is shown as ##### by a spreadsheet; so is one beyond the year 9999
-        $datable = $number >= 0 && $number <= self::MAX_DATE_SERIAL;
+        // A negative "date" is shown as ##### by a spreadsheet; so is one beyond the year 9999 - which a workbook
+        // that counts from 1904 reaches 1,462 days sooner
+        $lastDay = $this->structure->date1904 ? self::LAST_DAY_1904 : self::LAST_DAY_1900;
 
-        if ($datable && $format !== null && ($kind === NumberFormatKind::Time || $kind === NumberFormatKind::Date)) {
+        if ($number >= 0 && $number < $lastDay + 1 && $format !== null && ($kind === NumberFormatKind::Time || $kind === NumberFormatKind::Date)) {
             // Seconds first, then the split into day and time: 23:59:59.7 is midnight of the next day
             $moment = (int) round($number * self::SECONDS_PER_DAY);
             $seconds = $moment % self::SECONDS_PER_DAY;
@@ -299,14 +393,19 @@ final class XlsxWorkbook implements ReadWorkbook
                 return ReadCell::timeOfDay($seconds, $formula);
             }
 
-            return ReadCell::date(
-                // A cell that shows no time is its day - however close to midnight its number is
-                $this->dayOf($format->timeShown ? intdiv($moment, self::SECONDS_PER_DAY) : (int) floor($number)),
-                $format->precision ?? DatePrecision::Day,
-                $format->yearShown,
-                $format->timeShown ? $seconds : null,
-                $formula,
-            );
+            // A cell that shows no time is its day - however close to midnight its number is
+            $day = $format->timeShown ? intdiv($moment, self::SECONDS_PER_DAY) : (int) floor($number);
+
+            // The last second of the year 9999, rounded up, is no date any more
+            if ($day <= $lastDay) {
+                return ReadCell::date(
+                    $this->dayOf($day),
+                    $format->precision ?? DatePrecision::Day,
+                    $format->yearShown,
+                    $format->timeShown ? $seconds : null,
+                    $formula,
+                );
+            }
         }
 
         if (is_float($number) && floor($number) === $number && abs($number) < 1e15) {

@@ -52,9 +52,13 @@ Ships alone, in two pull requests: **1a** fields on results, **1b** fields on co
    `SetSolvingTimeCustomValues` (the actor must be the tracker or a registered member of the result; values validated
    against the field's type; unknown field ids refused).
 4. `/{_locale}/custom-fields` (manage, ready-made fields with one tap) and a card on edit-profile.
-5. **Add a result:** the values travel inside `AddPuzzleSolvingTime` and `AddPuzzleTracking` (one save, and a resent
-   form stays idempotent); the fields are children of the add form, so a 422 keeps them. A "My fields" toggle after
-   the event section, only when the player has fields.
+5. **Add a result - without touching the add path** (Jan: the add form must never break): `AddPuzzleSolvingTime`,
+   `AddPuzzleTracking` and their handlers are unchanged. The controller saves the values in a separate step after
+   the result is saved (also on the resend path; an idempotent upsert), inside a catch-all: a failure is logged and
+   told, never an error. An invalid value is left out, never a 422. Loading the fields fails open. For a player
+   without fields the form's HTML is what it was (test). Switch `CUSTOM_FIELDS_IN_ADD_FORM`. A "My fields" toggle
+   after the event section, only when the player has fields. **Tried in a real browser on the branch before the
+   merge**: add with and without fields, with a photo, pair, no time, a 422 for another reason, the resend.
 6. **Edit:** an own route and form in the modal frame (explicit `action`), linked from the result detail and the edit
    form - **never through `EditPuzzleSolvingTime`**: that message tells every member of a pair/team result and
    recalculates their achievements and XP.
@@ -198,8 +202,11 @@ device and a newer version of the file.
 
 ## Stage 6 - Add
 
-- **6a (own PR, no behaviour change):** `SolvingTimeWriter` extracted from `AddPuzzleSolvingTimeHandler` **and**
-  `AddPuzzleTrackingHandler`; the handlers and the API processor call it. Full suite + `SolvingTimeWritePathTest`.
+- **6a The import's writer beside the form's (own PR; the add form's handlers are not touched):**
+  `ImportedResultWriter` built from the same building blocks, used by nothing yet; `ImportWritePathParityTest`
+  (the same input through `AddPuzzleSolvingTimeHandler` / `AddPuzzleTrackingHandler` and through the writer → equal
+  rows apart from the listed differences); how the writer keeps `PuzzleSolved` from reaching the five handlers
+  decided and tested here.
 - **6b Add, never twice, Undo** (second reviewer; a rehearsal on the sandbox):
   - `SolvingTimeSource::SpreadsheetImport` (`spreadsheet_import` - `event_import` sits next to it),
     `SolvingTimeDeletedVia::ImportUndo`; entities + migration: `data_change_batch`,
@@ -305,7 +312,6 @@ another handler lets go too early.
 
 ## Where the risk is
 
-Stages 1, 2a, 2b, 3, 4, 5 cannot damage shared data (new tables, owner-only pages, existing messages). **6a** is a
-refactor of the most used write path under the full suite. **6b** writes results in bulk: second reviewer, sandbox
+Stages 1, 2a, 2b, 3, 4, 5 cannot damage shared data (new tables, owner-only pages, existing messages). **6a** adds a writer next to the add form's handlers and changes none of them. **6b** writes results in bulk: second reviewer, sandbox
 rehearsal, the "Never twice" test class. **6c** changes readers of existing data: its coverage test is the net.
 Stage 7 adds no reader to shared tables; its risk is a leak, held by the two guard tests.

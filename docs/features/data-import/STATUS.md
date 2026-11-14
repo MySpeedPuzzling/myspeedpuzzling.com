@@ -18,7 +18,7 @@ sandbox from the stage that can read them.
 | 3 | Import: queue, upload, reading | not started | | | |
 | 4 | Columns and values | not started | | | |
 | 5 | Pairing and review | not started | | | |
-| 6a | `SolvingTimeWriter` extracted | not started | | | |
+| 6a | The import's writer beside the add form's (handlers untouched) | not started | | | |
 | 6b | Add, never twice, Undo | not started | | | |
 | 6c | Date precision | not started | | | |
 | 7 | Unlisted puzzles | not started | | | |
@@ -46,7 +46,10 @@ sandbox from the stage that can read them.
    production and sandbox, the new pages opened in Chrome on production (own account) and sandbox, the migration ran.
 9. **This file updated**, the feature's entry in CLAUDE.md and the docs it names, `docs/TODO.md` for loose ends.
 
-Rules that never bend: no real player data in the repository (fixtures copy shapes with invented puzzles); nothing
+Rules that never bend: **the add-result form is never put at risk** (Jan, 2026-11-14: "the most important part of
+the whole app … we must never break it at any point") - no stage changes its messages or handlers, anything shown in
+it is additive, fails open, has a switch, and is tried in a real browser on the branch before the merge; no real
+player data in the repository (fixtures copy shapes with invented puzzles); nothing
 committed with `git add -A`; one destructive command per call, never the dev database; production data is only read.
 
 ## Log

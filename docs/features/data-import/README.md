@@ -104,7 +104,10 @@ which puzzle a row means**.
    admin can undo anybody's.
 8. **Phone first.** Every step works one-handed at 380 px: lists and sheets, one decision per screen, no horizontal
    scrolling of the page.
-9. **Decide per puzzle, per brand, per value - not per row.** One answer about "MB" fixes 60 rows; one answer about a
+9. **The add form is never put at risk.** Adding a result is the most important thing the site does. Nothing in this
+   work changes its handlers; what is added around it (the player's own fields) is saved after the result, can never
+   refuse or lose a result, is invisible for players who do not use it, and has a switch.
+10. **Decide per puzzle, per brand, per value - not per row.** One answer about "MB" fixes 60 rows; one answer about a
    puzzle fixes its to-do row and its three results; an answer given once is remembered for the next file.
 
 ## The player's journey
@@ -202,7 +205,7 @@ be closed; a notification and an e-mail say when it is done) → "Added. 2,173 p
 | D1 | The import is rows in the database from the first second, not a session and not a file with state in the URL | Resumable for weeks, on another device; the participants import's "file + URL state, 24 h" does not stretch to 5,000 rows |
 | D2 | Unlisted puzzles live in **their own tables**; `puzzle`, `puzzle_solving_time`, `collection_item` never hold one | 180 files read `puzzle`, 152 read `puzzle_solving_time`, no single place filters them, and the aggregates (`GetStatistics`, brand counts, insights, XP) would count them. A table nothing reads cannot leak. The price: owner-only pages that should show both read two places, and unlisted results are outside charts, streaks and rankings (Q2) |
 | D3 | The unit of pairing is the **distinct puzzle** of an import, not the row; decisions are kept per player | One decision for a puzzle's to-do row and all its results, asked once ever |
-| D4 | Paired rows become ordinary results / collection items through **one write path of the import**, built on the same building blocks as the add form, with the import's own rules for side effects | The form's handlers stamp "tracked now", notify followers per result and recompute XP, badges and insights per result: 40-60 statements and several follow-up jobs per row. The shared core (`SolvingTimeWriter`) is extracted from **both** existing handlers first - with a time (`AddPuzzleSolvingTimeHandler`) and without (`AddPuzzleTrackingHandler`) |
+| D4 | Paired rows become ordinary results / collection items through **one write path of the import, built beside the add form's - the add form's own handlers are not touched** (Jan, 2026-11-14: the add form is the most important part of the app and must never break). The import's writer uses the same building blocks (`PuzzlersGrouping`, `PuzzlingTeamResolver`, `FirstTryAssessor`, the entity's constructor) with its own rules for side effects; a parity test saves the same input through the form and through the import and compares the rows | The form's handlers stamp "tracked now", notify followers per result and recompute XP, badges and insights per result: 40-60 statements and several follow-up jobs per row. Extracting a shared writer out of the two handlers (the first plan) would have rewritten the most used write path of the site for the import's sake |
 | D5 | `tracked_at` of an imported result = **noon of its solve day in the player's time zone** (`player.timezone`, else their country's zone, else UTC), plus the row's position in microseconds (an order without ever leaving the day); a month-only or year-only result takes noon of the period's first day. Every reader that takes `tracked_at` for "when it was logged" has a rule for imports ("Readers of `tracked_at`") | Monthly global statistics, the feeds, the digest and the moments read `tracked_at`; "now" would put ten years of puzzling into this week. Noon keeps the day in every zone and stays out of the night-time rules; the offset keeps an order |
 | D6 | **Identity in three parts.** (1) `source_key` - what the row says, folded and parsed - answers "was this row added by an import before?". (2) At "Add", the import's rows of a puzzle are compared with **all** the player's results of that puzzle: equal ones pair off, what is left on the profile's side becomes one question per puzzle. (3) Rows that are equal inside one import are **one result** unless the player says "two" (Jan, 2026-11-14) - equal rows on different sheets are one result, and on one sheet differing attempt numbers keep a log of repeated solves apart. How many rows are added is settled when the batch is created, under a lock per player, so order and retries cannot change it | Row numbers, file names, raw cells and the mapping are never identity (Firefly III, BeanHub and Lunch Money failed exactly there). No derived ids: a new result gets a new UUIDv7 |
 | D7 | A re-import **adds new rows, skips known ones, offers changes, never removes**; reading a file again makes a new **version** of the same import, and decisions carry over | What Linear, Letterboxd, Shopify and every CRM do; rows missing from a newer file may simply have been cut out |
@@ -478,12 +481,16 @@ fix". While rows are left, the message dispatches itself again; then `FinishImpo
 rows' state, so a restarted worker, a retry or a second delivery repeats nothing. A sweeper (every 5 minutes) continues
 batches that stand still.
 
-**The shared core** (`SolvingTimeWriter`, extracted in its own change from both existing handlers): the group
-(`PuzzlersGrouping`, `PuzzlingTeamResolver`), the first-try rule (`FirstTryAssessor`), the pace limit, the entity, the
-round/series resolvers. The add form, the tracking form and the API keep calling it with today's behaviour.
+**The import's writer** (`ImportedResultWriter`) stands beside the add form's handlers and does not change them: it
+builds the result with the same building blocks - the group (`PuzzlersGrouping`, `PuzzlingTeamResolver`), the
+first-try rule (`FirstTryAssessor`), the pace limit, the entity's own constructor. `ImportWritePathParityTest` saves
+the same input through the add form's handler and through the import and compares the two rows field by field, apart
+from the listed differences - a change of the form's rules that the import does not follow turns it red.
 
-**What an imported result does.** The entity records `PuzzleSolved` like any result; its five handlers check
-`created_via`:
+**What an imported result does.** The entity records `PuzzleSolved` in its constructor. The five handlers of that
+event run on every result anybody adds, so the import does not make them branch: its writer takes the event off the
+entity before the flush and does itself what an imported result needs. (Only if the event cannot be taken off does
+each handler get one early return for `created_via`, each under its own test.)
 
 | | Typed result | Imported result |
 |---|---|---|
@@ -637,7 +644,11 @@ collection items, or both. Private: only the owner ever reads them.
 - **Manage** at `/{_locale}/custom-fields` (a card on the edit-profile page links there): add, rename, reorder, type,
   archive (values kept, field hidden).
 - **Add a result:** a "My fields" toggle after the event section opens the player's result fields - only when they
-  have any; the values travel with the result's own message, so the save is one piece.
+  have any. The add form is protected (principle 9): its messages and handlers are unchanged; the values are saved
+  by a separate step **after** the result is saved, and a failure there is logged and told ("Your result is saved.
+  Your own fields could not be saved") - never an error; an invalid value is left out, never a refusal; loading the
+  fields fails open (the form renders as without fields); for a player without fields the form is exactly what it
+  was; `CUSTOM_FIELDS_IN_ADD_FORM` switches the block off.
 - **Edit:** the values have their **own** small form and message (`SetSolvingTimeCustomValues`), never the result's
   edit: editing a pair's result tells the whole team and recalculates everybody's achievements, and a private field
   is nobody else's business. The collection item's fields sit in its edit form (an item has one owner).
@@ -718,7 +729,8 @@ The import's row sheet and "To fix" list are the same components.
 | Sign-in e-mails waiting behind an import | Its own queue and consumer (D9) |
 | Private notes made public | Private by default (D11); "Public comment" says so; a notice before the first "Add" |
 | A custom value shown to somebody else | Nothing existing reads the columns; `CustomValuesCoverageTest` |
-| Two write paths for results drift apart | One `SolvingTimeWriter`; `SolvingTimeWritePathTest` saves the same input through the forms and through the import and compares the rows, apart from the listed differences |
+| The add form breaks | Its handlers are not changed by any stage; what touches the form is additive, fails open, is covered by the form's untouched existing tests, tried in a real browser on the branch **before** merging, and has a switch |
+| Two write paths for results drift apart | `ImportWritePathParityTest` saves the same input through the form's handler and through the import and compares the rows, apart from the listed differences |
 | A parser bug turns a file into a 500 or eats memory | Limits first, the worker not the request, its own memory limit, every reader failure is a message on the import |
 
 ## Performance

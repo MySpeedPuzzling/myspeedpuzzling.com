@@ -252,6 +252,12 @@ Measured on production 2026-10-26 (`log_min_duration_statement = 500`) and a loc
       still used), p95 upload `duration_ms` - tune the backoff / stall numbers and the Loki alert thresholds below.
       Between reviews the Loki alerts (lily.srv `log-alerts.yml`, group `myspeedpuzzling-photo-uploads`, 2026-10-18)
       e-mail on: ≥ 3 failed saves in 6h, > 30 % of saves falling back to photos in the form, > 15 % of uploads failing.
+- [ ] The alert MspPhotoSavesFailing counts events, not clients - one player tapping Save 11 times fires it (count
+      distinct clients). Found 2026-11-14 (README "A photo the phone cannot read"); the rule lives in lily.srv.
+- [ ] A week after "A photo the phone cannot read" is live: count `event=photo_dropped` by `detected_on` and `reason`,
+      and `event=save` with `failure=photo|either` - does `unreadable` (a photo with bytes the browser cannot read)
+      ever happen, and is the "Save without the photo" offer used (`dropped_on=save_without`)? Still unknown: why the
+      browser aborts a request carrying an empty file - read the `error` texts.
 - [x] lily.srv: deny `tmp-uploads/` in the images nginx like `online/` (kept and background-uploaded photos are private
       for 24 h; the tokens are unguessable, but nothing needs to serve them publicly).
 - [x] lily.srv: Traefik `readTimeout` 180 s (applied 2026-10-18; already planned for the maintenance window) - the plain form path still

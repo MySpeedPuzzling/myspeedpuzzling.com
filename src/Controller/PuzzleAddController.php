@@ -42,6 +42,7 @@ use SpeedPuzzling\Web\Services\CoPuzzlerPicker;
 use SpeedPuzzling\Web\Services\CustomFields\AddFormCustomFields;
 use SpeedPuzzling\Web\Services\FirstTry\FirstTryFormCheck;
 use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
+use SpeedPuzzling\Web\Services\PhotoStash\EmptyPhotoParts;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\RoundResults\OfficialEntryTimePrefill;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -87,6 +88,7 @@ final class PuzzleAddController extends AbstractController
         readonly private IsSeriesPubliclyVisible $isSeriesPubliclyVisible,
         readonly private FirstTryFormCheck $firstTryFormCheck,
         readonly private FormPhotoStash $formPhotoStash,
+        readonly private EmptyPhotoParts $emptyPhotoParts,
         readonly private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
         readonly private MistypedYearNormalizer $mistypedYearNormalizer,
         readonly private ClockInterface $clock,
@@ -329,6 +331,8 @@ final class PuzzleAddController extends AbstractController
             'current_competition_pick' => $deepLinkPick,
             'submitted_competition_pick' => $this->submittedCompetitionPick($request),
         ]);
+        // A photo part without a single byte counts as no photo at all - never throws (EmptyPhotoParts)
+        $this->emptyPhotoParts->leaveOut($request, $addTimeForm);
         // A photo kept from a refused submit goes back into its empty file input first (FormPhotoStash)
         $restoredPhotos = $this->formPhotoStash->restore($request, $addTimeForm, $userProfile->playerId);
         $addTimeForm->handleRequest($request);

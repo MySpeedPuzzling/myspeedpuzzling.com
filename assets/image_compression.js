@@ -82,6 +82,14 @@ export function compressImage(file) {
 }
 
 /**
+ * The compressed copy when it is worth using: smaller than the original - and not empty (a canvas that gave back a
+ * blob of 0 bytes would replace a good photo with nothing). Else the original.
+ */
+export function smallerOrOriginal(compressed, original) {
+    return compressed && compressed.size > 0 && compressed.size < original.size ? compressed : original;
+}
+
+/**
  * The smaller of the original and its compressed copy - never fails: a browser that cannot
  * decode the photo (some HEIC outside Safari) just sends the original.
  */
@@ -91,9 +99,7 @@ export async function compressedOrOriginal(file) {
     }
 
     try {
-        const compressed = await compressImage(file);
-
-        return compressed.size < file.size ? compressed : file;
+        return smallerOrOriginal(await compressImage(file), file);
     } catch (error) {
         return file;
     }

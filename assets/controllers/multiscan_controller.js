@@ -1,8 +1,9 @@
 import { Controller } from '@hotwired/stimulus';
 import { getComponent } from '@symfony/ux-live-component';
 import { compressedOrOriginal, shouldCompress } from '../image_compression.js';
-import { PhotoUpload } from '../photo_upload.js';
+import { PhotoUpload, reportPhotoUpload } from '../photo_upload.js';
 import { readPhotoMetadata } from '../photo_metadata.js';
+import { probePhoto } from '../photo_readability.js';
 
 /**
  * Bridge between the continuous barcode scanner and the MultiscanTray Live
@@ -19,6 +20,8 @@ import { readPhotoMetadata } from '../photo_metadata.js';
  *  - with an upload URL, a quick-add photo uploads in the background as soon as it is taken (assets/photo_upload.js,
  *    docs/features/photo-uploads/README.md) and "Add puzzle" sends only its token; a photo whose upload could not
  *    work goes with the action as a file, as before
+ *  - a photo the phone hands over empty, or that the browser cannot read, is never kept nor sent: a note asks for
+ *    another one (assets/photo_readability.js, docs/features/photo-uploads/README.md "A photo the phone cannot read")
  */
 export default class extends Controller {
     static targets = ['tray', 'scanner', 'eanInput', 'typedRow', 'typedToggle'];
@@ -33,6 +36,7 @@ export default class extends Controller {
         connectionLostMessage: String,
         restoredMessage: String,
         createFailedMessage: String,
+        photoUnreadableMessage: { type: String, default: 'This photo could not be read from your device. Please pick it again.' },
         storageKey: String,
         uploadUrl: { type: String, default: '' },
         uploadCsrfToken: { type: String, default: '' },
@@ -387,6 +391,18 @@ export default class extends Controller {
         }
 
         this.renderPhoto(box, null, true);
+
+        // A photo of 0 bytes, or one the browser cannot read: not kept - the photo taken before (if any) stays
+        const unreadable = await this.unreadable(file);
+
+        if (unreadable !== null) {
+            input.value = '';
+            this.renderPhoto(box, this.photos.get(ean) || null, false);
+            this.photoUnreadable(ean, unreadable.unreadable, 'pick', unreadable.error, file);
+            return;
+        }
+
+        this.clearPhotoUnreadable(box);
         // What its EXIF says is read before shrinking - the canvas drops it (docs/features/upload-image-metadata.md)
         const [prepared, read] = await Promise.all([
             compressedOrOriginal(file),
@@ -409,12 +425,139 @@ export default class extends Controller {
                 field: 'multiscan',
                 replaces: previousToken,
                 metadata,
-                onChange: () => this.renderUploadStatus(ean),
+                onChange: (changed) => {
+                    // The server called it empty: sending it with the action instead would never arrive
+                    if (!this.dropPhotoCalledEmpty(ean, changed)) {
+                        this.renderUploadStatus(ean);
+                    }
+                },
             });
         }
 
         this.photos.set(ean, photo);
         this.renderPhoto(box, photo, false);
+    }
+
+    // ------------------------------------------------------------------ a photo the phone cannot read
+
+    /** {unreadable, error} of a photo that is empty or cannot be read, else null - also when the check itself fails */
+    async unreadable(file) {
+        try {
+            const probe = await probePhoto(file);
+
+            return probe && probe.unreadable !== null ? probe : null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    photoBox(ean) {
+        const box = this.trayTarget.querySelector('.multiscan-photo');
+
+        return box && box.getAttribute('data-multiscan-photo-for') === ean ? box : null;
+    }
+
+    /** The note under the photo button (its box is data-live-ignore) and the report - never throws */
+    photoUnreadable(ean, reason, detectedOn, errorText, file) {
+        try {
+            const box = this.photoBox(ean);
+
+            if (box && this.photoUnreadableMessageValue !== '') {
+                let note = box.querySelector('[data-multiscan-photo-unreadable]');
+
+                if (!note) {
+                    note = document.createElement('div');
+                    note.className = 'alert alert-warning small py-2 px-3 mt-2 mb-0';
+                    note.setAttribute('role', 'alert');
+                    box.append(note);
+                }
+
+                note.setAttribute('data-multiscan-photo-unreadable', ean);
+                note.textContent = this.photoUnreadableMessageValue;
+            }
+
+            reportPhotoUpload(this.reportUrlValue, {
+                event: 'photo_dropped',
+                reason,
+                detectedOn,
+                field: 'multiscan',
+                bytes: file && typeof file.size === 'number' ? file.size : undefined,
+                error: errorText || undefined,
+            });
+        } catch (error) {
+            // The photo is not kept - that is what matters
+        }
+    }
+
+    /** @param {string|null} keepFor the code whose note stays (null = none) */
+    clearPhotoUnreadable(box, keepFor = null) {
+        try {
+            box.querySelectorAll('[data-multiscan-photo-unreadable]').forEach((note) => {
+                if (keepFor === null || note.getAttribute('data-multiscan-photo-unreadable') !== keepFor) {
+                    note.remove();
+                }
+            });
+        } catch (error) {
+            // A stale note is no reason to stop
+        }
+    }
+
+    /** true when the photo was let go: its background upload was refused as `empty` */
+    dropPhotoCalledEmpty(ean, upload) {
+        try {
+            const photo = this.photos.get(ean);
+
+            if (!photo || photo.upload !== upload || upload.state !== 'failed' || upload.refusal !== 'empty') {
+                return false;
+            }
+
+            this.letGoOfUnreadablePhoto(ean, photo, 'empty', 'start', null);
+
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    /** true when the photo was let go: about to travel with the action as a file, and the browser cannot read it */
+    async dropPhotoIfUnreadable(ean, photo) {
+        try {
+            // Let go while "Add puzzle" waited for its upload (refused as empty)
+            if (photo.unreadable) {
+                return true;
+            }
+
+            const unreadable = await this.unreadable(photo.file);
+
+            if (photo.unreadable) {
+                return true;
+            }
+
+            if (unreadable === null) {
+                return false;
+            }
+
+            if (this.photos.get(ean) === photo) {
+                this.letGoOfUnreadablePhoto(ean, photo, unreadable.unreadable, 'save', unreadable.error);
+            }
+
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    letGoOfUnreadablePhoto(ean, photo, reason, detectedOn, errorText) {
+        photo.unreadable = true;
+        this.forgetPhoto(ean);
+
+        const box = this.photoBox(ean);
+        if (box) {
+            this.renderPhoto(box, null, false);
+        }
+
+        this.renderUploadStatus(ean);
+        this.photoUnreadable(ean, reason, detectedOn, errorText, photo.file);
     }
 
     /** The background upload's line under the quick-add photo - its box is data-live-ignore, so it survives re-renders */
@@ -482,6 +625,18 @@ export default class extends Controller {
             token = photo.upload.state === 'done' && photo.upload.token ? photo.upload.token : '';
         }
 
+        // About to travel with the action as a file: a photo the browser cannot read would never arrive - another one
+        // is asked for instead (a new puzzle needs its box photo)
+        if (token === '' && await this.dropPhotoIfUnreadable(ean, photo)) {
+            this.creating = false;
+
+            if (button.isConnected) {
+                button.disabled = false;
+            }
+
+            return;
+        }
+
         if (token === '') {
             // A throw-away input per attempt: the Live Component empties the input it uploaded from after
             // every answer, even a failed one - the photo itself stays here for the next try
@@ -540,6 +695,8 @@ export default class extends Controller {
             const ean = box.getAttribute('data-multiscan-photo-for') || '';
             this.renderPhoto(box, this.photos.get(ean) || null, false);
             this.renderUploadStatus(ean);
+            // The note of another code's photo
+            this.clearPhotoUnreadable(box, ean);
         }
     }
 

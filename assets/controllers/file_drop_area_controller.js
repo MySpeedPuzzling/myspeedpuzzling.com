@@ -26,6 +26,11 @@ export default class extends Controller {
                 if (input.files && input.files[0]) {
                     let reader = new FileReader();
                     reader.onload = (e) => {
+                        // Taken out again meanwhile: a photo the phone cannot read (submit_prevention_controller.js)
+                        if (!input.files || !input.files[0]) {
+                            return;
+                        }
+
                         let fileData = e.target.result;
                         let fileName = input.files[0].name;
                         message.innerHTML = fileName;
@@ -36,6 +41,11 @@ export default class extends Controller {
                             image.src = fileData;
 
                             image.onload = function() {
+                                // Taken out while the preview was decoding - nothing to show
+                                if (!input.files || !input.files[0]) {
+                                    return;
+                                }
+
                                 icon.className = 'file-drop-preview img-thumbnail rounded';
                                 icon.innerHTML = '<img src="' + image.src + '" alt="' + fileName + '">';
 

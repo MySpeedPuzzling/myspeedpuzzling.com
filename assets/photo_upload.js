@@ -13,8 +13,14 @@
  *   (a store this browser cannot reach) - ends as `failed`: the photo stays in its file input and goes with the form,
  *   exactly as before this existed. Nothing is ever worse than the plain form.
  *
+ * One refusal does not go with the form: `empty` - a photo of 0 bytes (a phone handing the browser a file it cannot read,
+ * 2026-11-14). A request carrying it dies in the browser, so whoever started the upload takes the photo out of the form
+ * and says so (`refusal`, docs/features/photo-uploads/README.md "A photo the phone cannot read").
+ *
  * Shared by the add/edit-time form (submit_prevention_controller.js) and multiscan quick-add (multiscan_controller.js).
  */
+
+import { describeError, refusalOf } from './photo_readability.js';
 
 const BACKOFF_MS = [1000, 3000, 8000, 15000, 30000];
 const OFFLINE_WAIT_MS = 60000;
@@ -93,6 +99,10 @@ export class PhotoUpload {
         this.state = 'uploading';
         this.reason = null;
         this.status = null;
+        // Why the server refused to start (`empty`, `too_large`, `type`…) - null when it did not say
+        this.refusal = null;
+        // The browser's own words for the last failure ("TypeError: Failed to fetch") - telemetry only
+        this.error = null;
         this.retryable = false;
         this.token = null;
         this.signed = null;
@@ -191,6 +201,8 @@ export class PhotoUpload {
         while (!this.aborted) {
             this.attempts += 1;
             this.loaded = 0;
+            // The report tells the last attempt's error, never one a later attempt got past
+            this.error = null;
             this.changed();
 
             const outcome = await this.attempt();
@@ -246,6 +258,7 @@ export class PhotoUpload {
             outcome: state,
             reason: state === 'done' ? null : this.reason,
             status: this.status,
+            error: state === 'done' ? null : this.error,
             field: this.options.field,
             bytes: this.total,
             sentBytes: this.loaded,
@@ -314,6 +327,8 @@ export class PhotoUpload {
                 }),
             });
         } catch (error) {
+            this.error = describeError(error, [this.file.name]);
+
             return { reason: 'network' };
         }
 
@@ -323,6 +338,9 @@ export class PhotoUpload {
 
         // Refused (too large, type, signed out, limit) or storage unavailable (503): the form can still take the photo
         if (!response.ok) {
+            // Which refusal - only `empty` is treated differently by the forms; never waits long, never throws
+            this.refusal = await refusalOf(response);
+
             return { reason: 'refused', status: response.status, fatal: true };
         }
 
@@ -416,7 +434,13 @@ export class PhotoUpload {
                 settle(stalled ? { reason: 'stalled' } : { reason: 'aborted', fatal: true });
             };
 
-            xhr.send(this.file);
+            try {
+                xhr.send(this.file);
+            } catch (error) {
+                // A file the browser cannot hand over at all: an instant failure like any other, never a hung upload
+                this.error = describeError(error, [this.file.name]);
+                settle({ reason: 'network', instant: true });
+            }
         });
     }
 }

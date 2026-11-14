@@ -1,7 +1,16 @@
 import { Controller } from '@hotwired/stimulus';
-import { compressImage, shouldCompress } from '../image_compression.js';
+import { compressImage, shouldCompress, smallerOrOriginal } from '../image_compression.js';
 import { PhotoUpload, reportPhotoUpload } from '../photo_upload.js';
 import { photoMetadataOf, readPhotoMetadata, rememberPhotoMetadata } from '../photo_metadata.js';
+import {
+    BOX_PHOTO_FIELD,
+    describeError,
+    isEmptyPhoto,
+    isInstantPhotoFailure,
+    photosToSaveWithout,
+    probePhoto,
+    saveFailureKind,
+} from '../photo_readability.js';
 
 /**
  * Locks a form's submit button while it saves, shrinks photos in the browser, and - where the form opts in with an
@@ -16,6 +25,14 @@ import { photoMetadataOf, readPhotoMetadata, rememberPhotoMetadata } from '../ph
  *   with the upload's start and as `photo_metadata[<field>]` with the form (docs/features/upload-image-metadata.md)
  * - a save that never got an answer (dropped connection, the edge's plain-text 502/504) is tried once more by itself
  *   when it carried no photo bytes (time_id / new_puzzle_id make a resend safe), then said out loud
+ * - a photo the phone hands over empty, or that the browser cannot read, never blocks a save: it is taken out of the
+ *   form with a note next to its field - when it is picked, when the upload's start calls it empty, and once more right
+ *   before the request (assets/photo_readability.js, docs/features/photo-uploads/README.md "A photo the phone cannot
+ *   read"). Every one of these checks is wrapped: should it fail, the form does what it did before
+ * - a save that died at once with a photo in it may be the connection or the photo: both are said, with "Try again" and
+ *   "Save without the photo"; the second such failure in a row names the photo. A new puzzle keeps its box photo
+ * - a photo taken out while saving goes with the form as `photo_dropped[<field>]`, so the next page can say so
+ *   (EmptyPhotoParts) - the note next to the field is gone with the form
  */
 export default class extends Controller {
     static targets = ["submit", "label"];
@@ -30,6 +47,16 @@ export default class extends Controller {
         photoTooLargeText: { type: String, default: 'This photo is too large to upload (%size% MB).' },
         dropFileText: { type: String, default: '' },
         saveFailedText: { type: String, default: '' },
+        // A photo the phone cannot read (assets/photo_readability.js)
+        photoUnreadableText: { type: String, default: 'This photo could not be read from your device, so it is not attached. You can save without it, or pick it again.' },
+        photoUnreadableRequiredText: { type: String, default: 'This photo could not be read from your device. Please pick it again.' },
+        saveFailedPhotoText: { type: String, default: '' },
+        saveFailedEitherText: { type: String, default: '' },
+        // The same two for a new puzzle whose photo cannot be left out
+        saveFailedPhotoRequiredText: { type: String, default: '' },
+        saveFailedEitherRequiredText: { type: String, default: '' },
+        saveWithoutPhotoText: { type: String, default: '' },
+        tryAgainText: { type: String, default: '' },
         // Background uploads (PhotoUploadStartController) - empty = photos go with the form
         uploadUrl: { type: String, default: '' },
         uploadCsrfToken: { type: String, default: '' },
@@ -54,16 +81,25 @@ export default class extends Controller {
         this.prepared = false;
         this.autoRetried = false;
         this.sending = null;
+        // Photos taken out because the phone could not read them - told with every save report from then on
+        this.photosDropped = 0;
+        this.lastDropOn = null;
+        // Lost saves in a row that died at once with a photo in the request - the second one names the photo
+        this.instantFailures = 0;
 
         this.boundPrevent = this.preventDuplicateSubmission.bind(this);
         this.boundSubmitEnd = this.submitEnded.bind(this);
         this.boundPhotoChosen = this.photoChosen.bind(this);
+        this.boundPhotoChecked = this.photoChecked.bind(this);
 
         this.element.addEventListener('submit', this.boundPrevent);
         this.element.addEventListener('turbo:submit-end', this.boundSubmitEnd);
 
         if (this.uploadUrlValue !== '') {
             this.element.addEventListener('change', this.boundPhotoChosen);
+        } else {
+            // Without background uploads (the kill switch) a picked photo is still checked: empty or unreadable = out
+            this.element.addEventListener('change', this.boundPhotoChecked);
         }
     }
 
@@ -71,6 +107,7 @@ export default class extends Controller {
         this.element.removeEventListener('submit', this.boundPrevent);
         this.element.removeEventListener('turbo:submit-end', this.boundSubmitEnd);
         this.element.removeEventListener('change', this.boundPhotoChosen);
+        this.element.removeEventListener('change', this.boundPhotoChecked);
         window.clearTimeout(this.stillSavingTimer);
 
         // The form is gone (saved, or replaced by the refused one - whose photos the server kept)
@@ -102,6 +139,14 @@ export default class extends Controller {
             return;
         }
 
+        // A photo of 0 bytes (a phone handing over a file it cannot read): never uploaded, never sent with the form
+        if (this.dropIfEmpty(input, file, 'pick')) {
+            return;
+        }
+
+        // Can the browser read it at all? Asked for one byte now, answered before the upload starts - never throws
+        const probing = this.probe(file);
+
         let prepared = file;
 
         // Shrunk now rather than on Save - the same 2000 px / JPEG 0.85 as before
@@ -115,7 +160,8 @@ export default class extends Controller {
             try {
                 const compressed = await compressImage(file);
 
-                if (compressed.size < file.size) {
+                // Smaller - and never an empty result
+                if (smallerOrOriginal(compressed, file) === compressed) {
                     prepared = compressed;
                 }
             } catch (error) {
@@ -135,6 +181,20 @@ export default class extends Controller {
                 const transfer = new DataTransfer();
                 transfer.items.add(prepared);
                 input.files = transfer.files;
+            }
+        }
+
+        // A photo the browser shrank was read; any other one waits for the one-byte read (bounded, PROBE_TIMEOUT_MS)
+        if (prepared === file) {
+            const probe = await probing;
+
+            // Another photo was picked meanwhile - that one has its own check
+            if (!input.files || input.files[0] !== file) {
+                return;
+            }
+
+            if (probe.unreadable !== null && this.dropUnreadablePhoto(input, 'pick', probe.unreadable, probe.error, file)) {
+                return;
             }
         }
 
@@ -162,6 +222,11 @@ export default class extends Controller {
         const entry = this.uploads.get(input);
 
         if (!entry || entry.upload !== upload) {
+            return;
+        }
+
+        // The server called it empty: sending it with the form instead would only make the save die in the browser
+        if (upload.state === 'failed' && upload.refusal === 'empty' && this.dropUnreadablePhoto(input, 'start', 'empty', null, entry.file)) {
             return;
         }
 
@@ -352,6 +417,321 @@ export default class extends Controller {
         this.disabledInputs.clear();
     }
 
+    // ------------------------------------------------------------------ a photo the phone cannot read
+
+    /** Never rejects, never waits longer than the probe's own timeout - "readable" when the check itself fails */
+    probe(file) {
+        try {
+            return probePhoto(file).catch(() => ({ unreadable: null, error: null }));
+        } catch (error) {
+            return Promise.resolve({ unreadable: null, error: null });
+        }
+    }
+
+    /**
+     * A photo picked on a form without background uploads (the kill switch): the same check as photoChosen's, nothing
+     * else - the photo stays in its input and goes with the form
+     */
+    async photoChecked(event) {
+        try {
+            const input = event.target;
+
+            if (!(input instanceof HTMLInputElement) || !input.classList.contains('file-drop-input')) {
+                return;
+            }
+
+            const file = input.files && input.files[0];
+
+            if (!file || this.dropIfEmpty(input, file, 'pick')) {
+                return;
+            }
+
+            const probe = await this.probe(file);
+
+            if (probe.unreadable !== null && input.files && input.files[0] === file) {
+                this.dropUnreadablePhoto(input, 'pick', probe.unreadable, probe.error, file);
+            }
+        } catch (error) {
+            // As before: the photo goes with the form
+        }
+    }
+
+    /** true when the photo was taken out */
+    dropIfEmpty(input, file, detectedOn) {
+        try {
+            return isEmptyPhoto(file) && this.dropUnreadablePhoto(input, detectedOn, 'empty', null, file);
+        } catch (error) {
+            return false;
+        }
+    }
+
+    /**
+     * Takes the photo out of its field - it is neither uploaded nor sent with the form - and says so next to the field.
+     * The form stays as it is otherwise; Save works without the photo.
+     *
+     * @param {string} detectedOn `pick`, `start` (the upload's start called it empty), `save` (right before the
+     *        request), `save_without` (the player's "Save without the photo")
+     * @returns {boolean} false when it could not be done - the caller then goes on as before
+     */
+    dropUnreadablePhoto(input, detectedOn, reason, errorText = null, file = null) {
+        try {
+            const field = this.fieldOf(input);
+
+            input.value = '';
+
+            // A browser that keeps the file after `value = ''` - the photo is still in the form: not taken out
+            if (input.files && input.files.length > 0) {
+                return false;
+            }
+
+            this.uploads.get(input)?.upload.abort();
+            this.uploads.delete(input);
+            this.photosDropped += 1;
+            this.lastDropOn = detectedOn;
+
+            try {
+                // Taken out while saving: the note below is gone with the form in the same tap - the next page says it
+                if (detectedOn === 'save' || detectedOn === 'save_without' || this.isSubmittingValue) {
+                    this.markPhotoDropped(input, field, reason);
+                }
+            } catch (error) {
+                // Saved without the notice then
+            }
+
+            try {
+                this.forgetUploadedToken(input);
+                this.renderUploadStatus(input, null);
+                this.showDropAreaEmpty(input);
+
+                if (detectedOn !== 'save_without') {
+                    this.showPhotoUnreadable(input, field);
+                }
+            } catch (error) {
+                // The photo is out of the form - that is what matters
+            }
+
+            reportPhotoUpload(this.reportUrlValue, {
+                event: 'photo_dropped',
+                reason,
+                detectedOn,
+                field,
+                bytes: file && typeof file.size === 'number' ? file.size : undefined,
+                error: errorText || undefined,
+            });
+
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    /**
+     * `photo_dropped[<field>]=<reason>` with the form (EmptyPhotoParts turns it into the flash of the page that comes
+     * next) - until another photo is picked for the field
+     */
+    markPhotoDropped(input, field, reason) {
+        const name = 'photo_dropped[' + field + ']';
+        let hidden = [...this.element.querySelectorAll('input[type="hidden"][data-photo-dropped]')].find(element => element.name === name);
+
+        if (!hidden) {
+            hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = name;
+            hidden.setAttribute('data-photo-dropped', '');
+            this.element.append(hidden);
+            input.addEventListener('change', () => hidden.remove(), { once: true });
+        }
+
+        hidden.value = reason;
+    }
+
+    /** A token of ours from an earlier try of this form must not bring back the photo this one replaced */
+    forgetUploadedToken(input) {
+        const name = 'photo_stash[' + this.fieldOf(input) + ']';
+
+        for (const hidden of this.element.querySelectorAll('input[type="hidden"][data-photo-upload-token]')) {
+            if (hidden.name === name) {
+                hidden.value = '';
+            }
+        }
+    }
+
+    showDropAreaEmpty(input) {
+        const area = input.closest('.file-drop-area');
+
+        if (!area) {
+            return;
+        }
+
+        const icon = area.querySelector('.file-drop-preview, .file-drop-icon');
+        if (icon) {
+            icon.className = 'file-drop-icon';
+            icon.innerHTML = '<i class="ci-cloud-upload"></i>';
+        }
+
+        const message = area.querySelector('.file-drop-message');
+        if (message && this.dropFileTextValue !== '') {
+            message.textContent = this.dropFileTextValue;
+        }
+
+        area.querySelector('.file-drop-edit-btn')?.remove();
+    }
+
+    showPhotoUnreadable(input, field) {
+        const anchor = input.closest('.file-drop-area') ?? input;
+        // A new puzzle needs its box photo - there "save without it" would promise too much
+        const text = field === 'puzzlePhoto' ? this.photoUnreadableRequiredTextValue : this.photoUnreadableTextValue;
+
+        anchor.parentElement.querySelectorAll('[data-photo-unreadable], [data-photo-too-large]').forEach(note => note.remove());
+
+        if (text === '') {
+            return;
+        }
+
+        const note = document.createElement('div');
+        note.className = 'alert alert-warning small py-2 px-3 mb-2';
+        note.setAttribute('data-photo-unreadable', '');
+        note.setAttribute('role', 'alert');
+        note.textContent = text;
+        anchor.before(note);
+
+        // Picking another photo takes the note away
+        input.addEventListener('change', () => note.remove(), { once: true });
+    }
+
+    /** Photos that would travel inside the request as files: every picked one that was not uploaded in the background */
+    photosGoingWithForm() {
+        const photos = [];
+
+        for (const input of this.element.querySelectorAll('.file-drop-input')) {
+            const file = input.files && input.files[0];
+
+            if (!file || input.disabled) {
+                continue;
+            }
+
+            const entry = this.uploads.get(input);
+
+            if (entry && entry.file === file && entry.upload.state === 'done' && entry.upload.token) {
+                continue;
+            }
+
+            photos.push({ input, file });
+        }
+
+        return photos;
+    }
+
+    countPhotosGoingWithForm() {
+        try {
+            return this.photosGoingWithForm().length;
+        } catch (error) {
+            return 0;
+        }
+    }
+
+    /** Right before the request, without waiting: a photo of 0 bytes still in the form (an old page, another path) */
+    dropEmptyPhotos(detectedOn) {
+        try {
+            for (const { input, file } of this.photosGoingWithForm()) {
+                this.dropIfEmpty(input, file, detectedOn);
+            }
+        } catch (error) {
+            // As before: the photo goes with the form
+        }
+    }
+
+    /** The same for a photo the browser can no longer read - one byte asked of each, all at once, bounded */
+    async dropUnreadablePhotos(detectedOn) {
+        try {
+            const photos = this.photosGoingWithForm();
+            const probes = await Promise.all(photos.map(photo => this.probe(photo.file)));
+
+            photos.forEach(({ input, file }, index) => {
+                const probe = probes[index];
+
+                if (probe && probe.unreadable !== null && input.files && input.files[0] === file) {
+                    this.dropUnreadablePhoto(input, detectedOn, probe.unreadable, probe.error, file);
+                }
+            });
+        } catch (error) {
+            // As before: the photo goes with the form
+        }
+    }
+
+    /**
+     * Is the form adding a NEW puzzle? Its box photo field is then on show (time_form_autocomplete_controller.js opens
+     * the section) - false when there is none or it cannot be told
+     */
+    newPuzzleActive() {
+        try {
+            const box = [...this.element.querySelectorAll('.file-drop-input')].find(input => this.fieldOf(input) === BOX_PHOTO_FIELD);
+
+            return Boolean(box) && box.closest('.d-none, [hidden]') === null;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    /** Does the box photo field hold a photo - picked, uploaded in the background, or kept from a refused submit? */
+    boxPhotoAvailable() {
+        const box = [...this.element.querySelectorAll('.file-drop-input')].find(input => this.fieldOf(input) === BOX_PHOTO_FIELD);
+
+        if (!box) {
+            return false;
+        }
+
+        if (box.files && box.files[0]) {
+            return true;
+        }
+
+        const name = 'photo_stash[' + BOX_PHOTO_FIELD + ']';
+
+        return [...this.element.querySelectorAll('input[type="hidden"]')].some(hidden => hidden.name === name && hidden.value !== '');
+    }
+
+    /**
+     * What "Save without the photo" may take out (photosToSaveWithout): every photo travelling as a file - but never
+     * the photo a new puzzle needs. `required` = nothing can go, the button is not offered
+     *
+     * @returns {{photos: Array<{input: HTMLInputElement, file: File}>, required: boolean}}
+     */
+    saveWithoutOffer() {
+        const photos = this.photosGoingWithForm();
+        const offer = photosToSaveWithout({
+            inForm: photos.map(photo => this.fieldOf(photo.input)),
+            newPuzzle: this.newPuzzleActive(),
+            boxPhotoAvailable: this.boxPhotoAvailable(),
+        });
+
+        return { photos: photos.filter(photo => offer.drop.includes(this.fieldOf(photo.input))), required: offer.required };
+    }
+
+    /** "Save without the photo": the photos that may go are taken out, then the form is sent */
+    saveWithoutPhotos(event) {
+        event?.preventDefault();
+
+        try {
+            for (const { input, file } of this.saveWithoutOffer().photos) {
+                this.dropUnreadablePhoto(input, 'save_without', 'not_sent', null, file);
+            }
+        } catch (error) {
+            // Sent as it is then
+        }
+
+        this.tryAgain();
+    }
+
+    /** "Try again": the form is sent once more, through Save's own path (time_id makes a resend safe) */
+    tryAgain(event) {
+        event?.preventDefault();
+        this.removeSaveFailed();
+
+        if (!this.isSubmittingValue) {
+            this.element.requestSubmit();
+        }
+    }
+
     // ------------------------------------------------------------------ the submit
 
     // Turbo fires submit-end as soon as the answer's headers arrive. A successful full-page submit answers with a
@@ -403,15 +783,49 @@ export default class extends Controller {
             return;
         }
 
-        this.reportSave(success ? 'saved' : (lost ? 'failed' : 'refused'), status, discarded ? 'discarded' : null);
+        // Not every lost save is the connection: one that died at once with a photo in it may never have left the
+        // browser. The first time both are said, the second time in a row the photo is named
+        const failure = lost ? this.failureKind(status, discarded) : null;
+
+        if (!lost) {
+            this.instantFailures = 0;
+        }
+
+        this.reportSave(success ? 'saved' : (lost ? 'failed' : 'refused'), status, discarded ? 'discarded' : null, { error, failure });
         this.reset();
 
         if (lost) {
-            this.showSaveFailed();
+            this.showSaveFailed(failure);
         }
     }
 
-    reportSave(outcome, status, reason = null) {
+    /** `photo` / `either` / `network` (assets/photo_readability.js) - `network`, the old message, when it cannot tell */
+    failureKind(status, discarded) {
+        try {
+            const sending = this.sending;
+
+            if (!sending) {
+                return 'network';
+            }
+
+            const save = {
+                status,
+                durationMs: Date.now() - sending.startedAt,
+                online: navigator.onLine,
+                photosInForm: sending.inForm,
+                discarded,
+                earlierInstantFailures: this.instantFailures,
+            };
+
+            this.instantFailures = isInstantPhotoFailure(save) ? this.instantFailures + 1 : 0;
+
+            return saveFailureKind(save);
+        } catch (error) {
+            return 'network';
+        }
+    }
+
+    reportSave(outcome, status, reason = null, details = {}) {
         const sending = this.sending;
         this.sending = null;
 
@@ -419,8 +833,8 @@ export default class extends Controller {
             return;
         }
 
-        // Every lost save; the others only when photos were part of it
-        if (outcome !== 'failed' && sending.direct === 0 && sending.inForm === 0) {
+        // Every lost save; the others only when photos were part of it - or were taken out as unreadable
+        if (outcome !== 'failed' && sending.direct === 0 && sending.inForm === 0 && !(sending.dropped > 0)) {
             return;
         }
 
@@ -434,11 +848,51 @@ export default class extends Controller {
             photosDirect: sending.direct,
             photosInForm: sending.inForm,
             retried: sending.retried,
+            // The browser's own words for a lost save ("TypeError: Failed to fetch"), and which message it got
+            error: outcome === 'failed' ? (describeError(details.error) || undefined) : undefined,
+            failure: details.failure || undefined,
+            // Photos taken out of this form because the phone could not read them, and where the last one was noticed
+            photosDropped: sending.dropped > 0 ? sending.dropped : undefined,
+            droppedOn: sending.dropped > 0 ? (sending.droppedOn || undefined) : undefined,
         });
     }
 
-    showSaveFailed() {
-        if (this.saveFailedTextValue === '') {
+    /**
+     * @param {null|string} failure `either` = it may be the connection or a photo in the request: said so, with "Try
+     *        again" and "Save without the photo"; `photo` = the second such failure in a row: the photo is named, "Save
+     *        without the photo". A new puzzle's photo cannot be left out - its own texts, no such button.
+     *        Anything else, or a text missing: the message as it always was
+     */
+    showSaveFailed(failure = null) {
+        let text = this.saveFailedTextValue;
+        let actions = [];
+
+        try {
+            if ((failure === 'photo' || failure === 'either') && this.countPhotosGoingWithForm() > 0) {
+                const offer = this.saveWithoutOffer();
+                const texts = failure === 'photo'
+                    ? [this.saveFailedPhotoTextValue, this.saveFailedPhotoRequiredTextValue]
+                    : [this.saveFailedEitherTextValue, this.saveFailedEitherRequiredTextValue];
+                const other = offer.required ? texts[1] : texts[0];
+
+                if (other !== '') {
+                    text = other;
+
+                    if (failure === 'either' && this.tryAgainTextValue !== '') {
+                        actions.push({ text: this.tryAgainTextValue, primary: true, marker: 'data-save-try-again', run: (event) => this.tryAgain(event) });
+                    }
+
+                    if (!offer.required && offer.photos.length > 0 && this.saveWithoutPhotoTextValue !== '') {
+                        actions.push({ text: this.saveWithoutPhotoTextValue, primary: failure === 'photo', marker: 'data-save-without-photo', run: (event) => this.saveWithoutPhotos(event) });
+                    }
+                }
+            }
+        } catch (error) {
+            text = this.saveFailedTextValue;
+            actions = [];
+        }
+
+        if (text === '') {
             return;
         }
 
@@ -448,7 +902,29 @@ export default class extends Controller {
         note.className = 'alert alert-danger mb-3';
         note.setAttribute('data-save-failed', '');
         note.setAttribute('role', 'alert');
-        note.textContent = this.saveFailedTextValue;
+        note.textContent = text;
+
+        if (actions.length > 0) {
+            try {
+                const buttons = document.createElement('div');
+                buttons.className = 'd-flex flex-wrap gap-2 mt-2';
+
+                for (const action of actions) {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'btn btn-sm ' + (action.primary ? 'btn-danger' : 'btn-outline-danger');
+                    button.setAttribute(action.marker, '');
+                    button.textContent = action.text;
+                    button.addEventListener('click', action.run);
+                    buttons.append(button);
+                }
+
+                note.append(buttons);
+            } catch (error) {
+                // The message alone then
+            }
+        }
+
         this.submitTarget.before(note);
         note.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
@@ -486,11 +962,17 @@ export default class extends Controller {
             this.autoRetried = false;
             this.waitedMs = 0;
 
+            // A photo of 0 bytes still in the form would make the request die in the browser - out it goes, the save goes on
+            this.dropEmptyPhotos('save');
+
             const fileInputs = this.element.querySelectorAll('.file-drop-input');
             const filesToCompress = this.compressImagesValue ? this.findFilesToCompress(fileInputs) : [];
             const uploads = this.pendingUploads();
+            // Photos that travel inside the request are asked for one byte first (prepare) - none when every photo was
+            // uploaded in the background, the usual case
+            const photosToCheck = this.countPhotosGoingWithForm();
 
-            if (filesToCompress.length > 0 || uploads.length > 0) {
+            if (filesToCompress.length > 0 || uploads.length > 0 || photosToCheck > 0) {
                 event.preventDefault();
                 event.stopImmediatePropagation();
 
@@ -525,7 +1007,7 @@ export default class extends Controller {
         }
 
         if (!retry) {
-            this.sending = { ...counts, startedAt: Date.now(), waitedMs: this.waitedMs || 0, retried: false };
+            this.sending = { ...counts, startedAt: Date.now(), waitedMs: this.waitedMs || 0, retried: false, dropped: this.photosDropped, droppedOn: this.lastDropOn };
         }
 
         this.isSubmittingValue = true;
@@ -563,7 +1045,10 @@ export default class extends Controller {
             this.waitedMs = Date.now() - startedAt;
         }
 
+        // What still goes with the form as a file (an upload that gave up included): can the browser read it? A photo
+        // it cannot read is taken out with a note and the save goes on - never rejects, bounded by the probe's timeout
         this.showSavingState();
+        await this.dropUnreadablePhotos('save');
     }
 
     showUploadingState() {
@@ -696,7 +1181,8 @@ export default class extends Controller {
             try {
                 const compressedFile = await compressImage(file);
 
-                if (compressedFile.size < file.size) {
+                // Smaller - and never an empty result
+                if (smallerOrOriginal(compressedFile, file) === compressedFile) {
                     this.processedFiles.add(compressedFile);
                     rememberPhotoMetadata(compressedFile, await reading);
                     const dataTransfer = new DataTransfer();

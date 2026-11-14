@@ -116,7 +116,7 @@ constant in the number of rows (test).
   import message, `failed` as today, the redelivery timeout set on purpose) and its
   consumer - a service in `compose.yml` and in lily.srv's `apps/myspeedpuzzling/compose.yaml` (its own memory limit,
   restarted by `deploy.sh` like `messenger-consumer`; the sandbox gets one too).
-- **The reader, measured first:** peak memory and time of reading the fixture shaped like the ten-sheet workbook and a
+- **The reader - measured 2026-11-14, OpenSpout it is** (research.md "Reader measurement"); what was planned to be measured: peak memory and time of reading the fixture shaped like the ten-sheet workbook and a
   10,000-row sheet, with the cell kinds the design needs (date vs duration vs time of day, month-only formats), in
   PhpSpreadsheet with styles on and in OpenSpout (docs checked then). The winner goes behind `SpreadsheetReader`;
   `ParticipantFileReader` stays as it is. Budget: 256 MB, 15 s.

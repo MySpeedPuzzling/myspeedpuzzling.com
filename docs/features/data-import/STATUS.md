@@ -56,6 +56,15 @@ committed with `git add -A`; one destructive command per call, never the dev dat
 
 ## Log
 
+- 2026-11-14 - **the empty-photo fix is live** (#349, deployed 20:42 UTC; Jan: merge it, he could not reproduce it
+  either). A photo the phone hands over empty or unreadable is left out with a note, the result is saved. Checked on
+  the sandbox in Chrome (an empty pick dropped with the note; a real photo uploaded and saved); no new Sentry issue.
+  Not tried on a real phone. The one affected player gets a mail from Jan (draft in MSP Mailer).
+- 2026-11-14 - Jan: form data in Sentry is fine and wanted (the fields' scrubber stays as shipped, nothing more is
+  hidden); the mock-ups canvas is gone and not needed.
+- 2026-11-14 - the reader (#347): third security review found a way to hide markup from the scanner inside a
+  processing instruction; fourth fix round running (any `<?` after the declaration refused, one sequential tokenizer).
+
 - 2026-11-14 - **stage 4a merged** (#348). Its review's blockers, fixed first: a slow hobbyist's `h:mm` column was
   resolved as `mm:ss` without asking; the keys depended on the catalogue's state and on a fold that changes; `Jan 23`
   became an exact day. Keys are now pure functions of the row, `1:<hash>`, one per created thing.

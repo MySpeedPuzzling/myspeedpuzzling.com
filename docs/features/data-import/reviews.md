@@ -5,8 +5,8 @@ reviewers: one **independent** (only the documents and the code, no knowledge of
 **with context** (the two real files, the production numbers, Jan's brief and every later message). Both checked the
 draft's claims against the code. This file records what they found and what changed.
 
-Mock-ups (13 screens, phone first): https://claude.ai/artifact/PdC6VNTTKy6Ft5EUg7TcvC - private to Jan. They were
-drawn **before** the reviews; what differs from the revised design is listed at the end.
+Mock-ups (13 screens, phone first) were drawn **before** the reviews; the canvas no longer exists and is not needed
+(Jan, 2026-11-14) - the README is the design. What differed from the revised design is listed at the end.
 
 ## Found by both
 

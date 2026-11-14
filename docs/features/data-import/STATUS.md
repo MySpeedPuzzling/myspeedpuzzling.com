@@ -13,7 +13,7 @@ sandbox from the stage that can read them.
 | Stage | What | State | Pull request | On production | Checked on production / sandbox |
 |---|---|---|---|---|---|
 | 0 | Plan reviewed (third review, of the revised plan) | done - reviews.md "Third review" | - | - | - |
-| 1a | Custom fields on results | pull request open | #PRNUMBER | | |
+| 1a | Custom fields on results | pull request open | #344 | | |
 | 1b | Custom fields on collection items, export | not started | | | |
 | 3 | Import: queue, upload, reading | not started | | | |
 | 4 | Columns and values | not started | | | |

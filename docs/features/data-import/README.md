@@ -147,8 +147,7 @@ One screen per **layout** (sheets with the same headers are one layout; the larg
   list: this is a pair result / a team result / solo, a first try, not mine any more (sold, returned, given away),
   borrowed. `#02-pair`, `#xSOLD`, `borrowed`, "Got rid of: yes" - one answer per distinct value, remembered with the
   layout.
-- The older wording, kept for the simple case: a result, a puzzle I own, or both. A yes/no column may decide it per row ("Completed?"), and a
-  word in a column may say a row is not owned (`borrowed`, "Got rid of").
+- A yes/no column may decide it per row too ("Completed?").
 - **What the whole sheet says:** "every row here is a pair result", "every row is this puzzle"; and **where the rest
   is**: "brand and pieces come from the sheet 'Speed Puzzles', by the puzzle's name".
 - **The columns.** Those we are sure about are one line: "Recognised: Title, Brand, Pieces, Completed, Time -

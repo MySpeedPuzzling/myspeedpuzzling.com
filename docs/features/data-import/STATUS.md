@@ -14,7 +14,7 @@ sandbox from the stage that can read them.
 | Stage | What | State | Pull request | On production | Checked on production / sandbox |
 |---|---|---|---|---|---|
 | 0 | Plan reviewed (third review, of the revised plan) | done - reviews.md "Third review" | - | - | - |
-| 1a | Custom fields on results | pull request open | #344 | | |
+| 1a | Custom fields on results | **live 2026-11-14** | #344 | yes (deploy green, migration ran, 0 new Sentry issues in the hour after) | sandbox, in Chrome as a made-up player: the add form without fields carries nothing of the feature; with a field the result is saved and the value shows on the result. Before the merge, on the branch: invalid value dropped and named, a refused submit keeps the values, no-time mode, collection mode hides the block, the values form in the modal |
 | 1b | Custom fields on collection items, export | not started | | | |
 | 3 | Import: queue, upload, reading | not started | | | |
 | 4 | Columns and values | not started | | | |
@@ -54,6 +54,10 @@ player data in the repository (fixtures copy shapes with invented puzzles); noth
 committed with `git add -A`; one destructive command per call, never the dev database; production data is only read.
 
 ## Log
+
+- 2026-11-14 - **stage 1a live** (#344): independent review found no blocker and three should-fix items (the resend
+  path of the add form, the privacy guard's reach, values lost when duplicate copies are removed) - fixed before the
+  merge together with two findings of the browser test. Stage 1b started.
 
 - 2026-11-14 - a fourth file (Puzzle Tracker's export): known exports as built-in layouts, the source's row id as
   identity, the wish list as a target, words with a meaning, ratings and four more ready-made fields.

@@ -7073,6 +7073,12 @@ photo_upload:
     waiting: "Teď nejde internet - fotka se nahraje, jakmile se připojení vrátí."
     done: "Fotka je nahraná."
     with_form: "Fotka se odešle spolu s formulářem, až ho uložíš."
+    unreadable: "Tuhle fotku se nepodařilo z tvého zařízení načíst, proto není přiložená. Můžeš uložit bez ní, nebo ji vybrat znovu - obvykle pomůže vybrat ji z galerie nebo ji vyfotit znovu."
+    unreadable_required: "Tuhle fotku se nepodařilo z tvého zařízení načíst. Vyber ji prosím znovu - obvykle pomůže vybrat ji z galerie nebo ji vyfotit znovu."
+    arrived_empty: "Fotka z tvého zařízení dorazila prázdná, proto jsme ji vynechali. Přidej ji prosím znovu - obvykle pomůže vybrat ji z galerie nebo ji vyfotit znovu."
+    save_failed_photo: "Uložení se nedokončilo - vypadá to, že se fotku nepodařilo z tvého zařízení odeslat. Všechny vyplněné údaje tu zůstávají. Ulož bez fotky, nebo fotku vyber znovu a ulož."
+    save_failed_either: "Uložení se nedokončilo - buď se fotku nepodařilo z tvého zařízení odeslat, nebo se přerušilo připojení. Všechny vyplněné údaje tu zůstávají. Zkus to znovu, nebo ulož bez fotky."
+    save_without_photo: "Uložit bez fotky"
 photo_stash:
     kept: "Tvoje fotka tu zůstala, nemusíš ji vybírat znovu."
     kept_logo: "Tvoje logo tu zůstalo, nemusíš ho vybírat znovu."

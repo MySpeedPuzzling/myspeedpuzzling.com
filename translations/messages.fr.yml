@@ -7066,6 +7066,12 @@ photo_upload:
     waiting: "Pas de connexion pour le moment : la photo sera envoyée dès son retour."
     done: "Photo envoyée."
     with_form: "La photo sera envoyée avec le formulaire lors de l'enregistrement."
+    unreadable: "Cette photo n'a pas pu être lue depuis votre appareil, elle n'est donc pas jointe. Vous pouvez enregistrer sans elle ou la choisir à nouveau : la choisir depuis la galerie ou la reprendre aide le plus souvent."
+    unreadable_required: "Cette photo n'a pas pu être lue depuis votre appareil. Veuillez la choisir à nouveau : la choisir depuis la galerie ou la reprendre aide le plus souvent."
+    arrived_empty: "Une photo est arrivée vide depuis votre appareil et a été laissée de côté. Veuillez l'ajouter à nouveau : la choisir depuis la galerie ou la reprendre aide le plus souvent."
+    save_failed_photo: "L'enregistrement n'a pas abouti : il semble que la photo n'ait pas pu être envoyée depuis votre appareil. Tout ce que vous avez saisi est conservé. Enregistrez sans la photo, ou choisissez-la à nouveau puis enregistrez."
+    save_failed_either: "L'enregistrement n'a pas abouti : soit la photo n'a pas pu être envoyée depuis votre appareil, soit la connexion a été interrompue. Tout ce que vous avez saisi est conservé. Réessayez, ou enregistrez sans la photo."
+    save_without_photo: "Enregistrer sans la photo"
 photo_stash:
     kept: "Votre photo est toujours là, inutile de la choisir à nouveau."
     kept_logo: "Votre logo est toujours là, inutile de le choisir à nouveau."

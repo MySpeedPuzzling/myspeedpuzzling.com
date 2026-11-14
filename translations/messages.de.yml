@@ -6998,6 +6998,12 @@ photo_upload:
     waiting: "Gerade keine Verbindung - das Foto wird hochgeladen, sobald sie zurück ist."
     done: "Foto hochgeladen."
     with_form: "Das Foto wird beim Speichern zusammen mit dem Formular gesendet."
+    unreadable: "Dieses Foto konnte auf deinem Gerät nicht gelesen werden und ist deshalb nicht angehängt. Du kannst ohne es speichern oder es noch einmal auswählen - meist hilft es, das Foto aus der Galerie zu wählen oder es neu aufzunehmen."
+    unreadable_required: "Dieses Foto konnte auf deinem Gerät nicht gelesen werden. Bitte wähle es noch einmal aus - meist hilft es, das Foto aus der Galerie zu wählen oder es neu aufzunehmen."
+    arrived_empty: "Ein Foto kam von deinem Gerät leer an und wurde weggelassen. Bitte füge es noch einmal hinzu - meist hilft es, das Foto aus der Galerie zu wählen oder es neu aufzunehmen."
+    save_failed_photo: "Das Speichern wurde nicht abgeschlossen - anscheinend konnte das Foto von deinem Gerät nicht gesendet werden. Alles, was du ausgefüllt hast, ist noch da. Speichere ohne das Foto oder wähle das Foto noch einmal aus und speichere dann."
+    save_failed_either: "Das Speichern wurde nicht abgeschlossen - entweder konnte das Foto von deinem Gerät nicht gesendet werden oder die Verbindung wurde unterbrochen. Alles, was du ausgefüllt hast, ist noch da. Versuche es noch einmal oder speichere ohne das Foto."
+    save_without_photo: "Ohne Foto speichern"
 photo_stash:
     kept: "Ihr Foto ist noch da, Sie müssen es nicht erneut auswählen."
     kept_logo: "Ihr Logo ist noch da, Sie müssen es nicht erneut auswählen."

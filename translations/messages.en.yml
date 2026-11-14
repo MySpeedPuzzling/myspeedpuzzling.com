@@ -7523,6 +7523,12 @@ photo_upload:
     waiting: "No connection right now - the photo will upload as soon as it is back."
     done: "Photo uploaded."
     with_form: "The photo will be sent together with the form when you save."
+    unreadable: "This photo could not be read from your device, so it is not attached. You can save without it, or pick it again - choosing it from your gallery or taking a new one usually helps."
+    unreadable_required: "This photo could not be read from your device. Please pick it again - choosing it from your gallery or taking a new one usually helps."
+    arrived_empty: "A photo arrived empty from your device and was left out. Please add it again - choosing it from your gallery or taking a new one usually helps."
+    save_failed_photo: "Saving didn't finish - it looks like the photo could not be sent from your device. Everything you filled in is still here. Save without the photo, or pick the photo again and save."
+    save_failed_either: "Saving didn't finish - either the photo could not be sent from your device, or the connection was interrupted. Everything you filled in is still here. Try again, or save without the photo."
+    save_without_photo: "Save without the photo"
 photo_stash:
     kept: "Your photo is still here, no need to choose it again."
     kept_logo: "Your logo is still here, no need to choose it again."

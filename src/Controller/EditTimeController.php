@@ -23,6 +23,7 @@ use SpeedPuzzling\Web\Query\GetXpEntriesForSolve;
 use SpeedPuzzling\Web\Results\SolvedPuzzleDetail;
 use SpeedPuzzling\Web\Services\CoPuzzlerPicker;
 use SpeedPuzzling\Web\Services\FirstTry\FirstTryFormCheck;
+use SpeedPuzzling\Web\Services\PhotoStash\EmptyPhotoParts;
 use SpeedPuzzling\Web\Services\PhotoStash\FormPhotoStash;
 use SpeedPuzzling\Web\Services\PuzzleChoicesBuilder;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -63,6 +64,7 @@ final class EditTimeController extends AbstractController
         readonly private CoPuzzlerPicker $coPuzzlerPicker,
         readonly private FirstTryFormCheck $firstTryFormCheck,
         readonly private FormPhotoStash $formPhotoStash,
+        readonly private EmptyPhotoParts $emptyPhotoParts,
         readonly private PuzzleChoicesBuilder $puzzleChoicesBuilder,
         readonly private SecretPuzzleAccess $secretPuzzleAccess,
         readonly private SecretPuzzleRefusalMessage $secretPuzzleRefusalMessage,
@@ -171,6 +173,8 @@ final class EditTimeController extends AbstractController
             'submitted_competition_pick' => $this->submittedCompetitionPick($request),
             'can_change_puzzle' => $canChangePuzzle,
         ]);
+        // A photo part without a single byte counts as no photo at all - never throws (EmptyPhotoParts)
+        $this->emptyPhotoParts->leaveOut($request, $editTimeForm);
         // A photo kept from a refused submit goes back into its empty file input first (FormPhotoStash)
         $restoredPhotos = $this->formPhotoStash->restore($request, $editTimeForm, $player->playerId);
         $editTimeForm->handleRequest($request);

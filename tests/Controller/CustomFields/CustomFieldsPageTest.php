@@ -88,9 +88,16 @@ final class CustomFieldsPageTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('[data-testid="custom-field"]'));
         self::assertCount(count(StandardCustomField::cases()), $crawler->filter('[data-testid="ready-made-field"]'));
-        // A field for collection puzzles says plainly that filling it in arrives soon
-        self::assertStringContainsString('filling them in arrives soon', $crawler->filter('[data-testid="ready-made-field"][action$="/ready-made/condition"]')->text());
-        self::assertStringNotContainsString('arrives soon', $crawler->filter('[data-testid="ready-made-field"][action$="/ready-made/what_to_work_on"]')->text());
+        // Each says where it is filled in - a field for collection puzzles is as usable as one for results
+        self::assertStringContainsString('Collection puzzles', $crawler->filter('[data-testid="ready-made-field"][action$="/ready-made/condition"]')->text());
+        self::assertStringNotContainsString('Collection puzzles', $crawler->filter('[data-testid="ready-made-field"][action$="/ready-made/what_to_work_on"]')->text());
+        self::assertStringContainsString('Results', $crawler->filter('[data-testid="ready-made-field"][action$="/ready-made/how_i_liked_it"]')->text());
+        self::assertStringContainsString('Collection puzzles', $crawler->filter('[data-testid="ready-made-field"][action$="/ready-made/how_i_liked_it"]')->text());
+        self::assertStringContainsString('Rating (1-5)', $crawler->filter('[data-testid="ready-made-field"][action$="/ready-made/quality"]')->text());
+        // Nothing says "soon" any more
+        self::assertStringNotContainsString('soon', $crawler->filter('[data-testid="custom-fields-page"]')->text());
+        // A rating is a type of an own field too
+        self::assertCount(1, $crawler->filter('select[name="custom_field_form[type]"] option[value="rating"]'));
         // The form posts to its own address, whatever page shows it
         self::assertSame('/en/custom-fields', $crawler->filter('form[name="custom_field_form"]')->attr('action'));
         // Phone first: a list of cards, never a table

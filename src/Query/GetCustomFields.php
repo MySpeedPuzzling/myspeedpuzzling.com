@@ -74,4 +74,17 @@ SQL;
             static fn (CustomFieldOverview $field): bool => $field->isUsableOnResults(),
         ));
     }
+
+    /**
+     * The fields the player fills on a puzzle of their collection: for collection items, not archived.
+     *
+     * @return list<CustomFieldOverview>
+     */
+    public function usableOnCollectionItems(string $playerId): array
+    {
+        return array_values(array_filter(
+            $this->ofPlayer($playerId),
+            static fn (CustomFieldOverview $field): bool => $field->isUsableOnCollectionItems(),
+        ));
+    }
 }

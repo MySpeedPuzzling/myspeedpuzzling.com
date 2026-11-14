@@ -13,26 +13,36 @@ use PHPUnit\Framework\TestCase;
  * them out. So every file under src/ whose code (comments aside) names
  *
  * - the storage: the tables `player_custom_field` / `solving_time_custom_values` (any `custom_field…` name), the
- *   column `custom_values`, the entities `CustomField` / `SolvingTimeCustomValues` and their repositories, or
- * - anything that hands fields or values out: the readers `GetCustomFields` / `GetCustomValues`, the services
- *   `ViewerResultFields`, `OwnCustomValuesOnResults`, `AddFormCustomFields`, `CustomValuesOfRemovedCopy`,
- *   `CustomFieldLabels`, and the objects that carry them - `CustomValues`, `OwnCustomValues`, `CustomFieldOverview`,
- *   `CustomFieldsForm`
+ *   column `custom_values` (of the values table and of `collection_item`), the entities `CustomField` /
+ *   `SolvingTimeCustomValues` and their repositories, **the collection item's own values** - its property and its
+ *   three methods `customValues` / `changeCustomValues` / `fillCustomValueGapsFrom` - or
+ * - anything that hands fields or values out: the readers `GetCustomFields` / `GetCustomValues` /
+ *   `GetCollectionItemCustomValues`, the services `ViewerResultFields`, `OwnCustomValuesOnResults`,
+ *   `AddFormCustomFields`, `OwnCustomValuesInExport`, `CustomValuesOfRemovedCopy`, `SubmittedValuesChange`,
+ *   `CustomFieldLabels`, and the objects that carry them - `CustomValues`, `OwnCustomValues`, `OwnCustomColumns`,
+ *   `CustomFieldOverview`, `CustomFieldsForm`
  *
  * is listed here with the reason it may. A new caller - a profile controller asking for the profile owner's values,
  * an API resource, a list query - fails this test until its author has made that decision and written it down.
+ *
+ * Collection pages are often public and their lists are shared between viewers, and `CollectionItem` is an entity half
+ * the app holds - so the item's values are private in the entity (no public property), and whoever calls one of its
+ * three methods is on this list: the owner's edit form, the writers, the export. No collection page, list, card, API
+ * resource, share page, marketplace or lending class is.
  *
  * What the test can not see: what a listed file does with them. That is what the reasons are for (each says whose
  * fields the file touches, so a review can check it) and what CustomValuesPrivacyCanaryTest checks from the outside.
  */
 final class CustomValuesCoverageTest extends TestCase
 {
-    private const string NEEDLES = '/custom_field|custom_values|\b(?:CustomField|CustomFieldRepository|SolvingTimeCustomValues|SolvingTimeCustomValuesRepository|GetCustomFields|GetCustomValues|ViewerResultFields|OwnCustomValuesOnResults|AddFormCustomFields|CustomValuesOfRemovedCopy|CustomFieldLabels|CustomValues|OwnCustomValues|CustomFieldOverview|CustomFieldsForm)\b/';
+    private const string NEEDLES = '/custom_field|custom_values|\b(?:CustomField|CustomFieldRepository|SolvingTimeCustomValues|SolvingTimeCustomValuesRepository|GetCustomFields|GetCustomValues|GetCollectionItemCustomValues|ViewerResultFields|OwnCustomValuesOnResults|AddFormCustomFields|OwnCustomValuesInExport|CustomValuesOfRemovedCopy|SubmittedValuesChange|CustomFieldLabels|CustomValues|OwnCustomValues|OwnCustomColumns|CustomFieldOverview|CustomFieldsForm|customValues|changeCustomValues|fillCustomValueGapsFrom)\b/';
 
     private const string MANAGE_PAGE = 'The manage page "My fields" (signed-in only): lists and changes the fields of RetrieveLoggedUserProfile\'s player - no player id comes from the URL; a field id from the URL is looked up among that player\'s fields only.';
     private const string FIELD_WRITE = 'Write side of a player\'s own fields: loads the acting player\'s fields (CustomFieldRepository::ofPlayer / getOwnedBy) - somebody else\'s field is "not found".';
     private const string MEMBER_LEFT = 'Deletes the values row of a player who is no longer on the result - nothing is read out or shown.';
     private const string COPY_REMOVED = 'Duplicate results: before a copy is deleted, CustomValuesOfRemovedCopy moves each player\'s row onto the kept result of the same player - nothing is read out or shown.';
+    private const string ITEMS_BECOME_ONE = 'Two collection items of one player become one (the target collection already holds the puzzle): CollectionItem::fillCustomValueGapsFrom() fills the staying item\'s empty fields from the leaving item of the same player - nothing is read out or shown.';
+    private const string EXPORT_WRITER = 'Renders an owner-only export: writes the OwnCustomColumns it is handed (built by OwnCustomValuesInExport for the signed-in player) as extra columns - runs no query, reads nothing itself.';
     private const string NO_QUERY = 'Feature-internal value/DTO - holds or checks what an owner-only reader or writer gave it, runs no query and is reached only through the listed services.';
 
     /** Files that may name the storage or what hands it out */
@@ -40,17 +50,21 @@ final class CustomValuesCoverageTest extends TestCase
         // The storage
         'Entity/CustomField.php' => 'The entity.',
         'Entity/SolvingTimeCustomValues.php' => 'The entity - one row per result and player.',
+        'Entity/CollectionItem.php' => 'The collection item: the owner\'s own values in a private property (`custom_values`), reached only through customValues() / changeCustomValues() / fillCustomValueGapsFrom() - every caller of those is on this list.',
         'Repository/CustomFieldRepository.php' => 'Write-side repository: a player\'s own fields (getOwnedBy refuses anybody else\'s).',
         'Repository/SolvingTimeCustomValuesRepository.php' => 'Write-side repository: rows by result and player, for the writer and the clean-ups - never for display.',
 
         // The two readers
         'Query/GetCustomFields.php' => 'THE reader of a player\'s fields. Callers pass the signed-in player\'s id (see each caller\'s reason).',
-        'Query/GetCustomValues.php' => 'THE reader of the values - every statement bound to the viewer\'s id.',
+        'Query/GetCustomValues.php' => 'THE reader of the values on results - every statement bound to the viewer\'s id.',
+        'Query/GetCollectionItemCustomValues.php' => 'THE reader of the values on collection items - every statement bound to the viewer\'s id (`WHERE player_id = :viewerPlayerId`). Called by the owner\'s edit form and the owner\'s export only.',
 
         // What hands them out
         'Services/CustomFields/ViewerResultFields.php' => 'The signed-in player\'s fields for results, with the "has none" memo of their session. Called by AddFormCustomFields and OwnCustomValuesOnResults (which resolve the signed-in player themselves) and by the manage page to clear the memo.',
         'Services/CustomFields/OwnCustomValuesOnResults.php' => 'The owner-only block of the result detail. Takes no player id: resolves the signed-in viewer itself and reads only the attempts that viewer is on.',
         'Services/CustomFields/AddFormCustomFields.php' => 'The add-result form. Takes no player id: resolves the signed-in player itself, shows their fields and saves their values on the result they just saved.',
+        'Services/CustomFields/OwnCustomValuesInExport.php' => 'The owner-only exports. Takes no player id: resolves the signed-in player itself and reads that player\'s fields and values (results / collection items) for the file they download.',
+        'Services/CustomFields/SubmittedValuesChange.php' => 'The one rule of both writers: checks submitted values against the acting player\'s fields and returns what the row holds afterwards - pure, runs no query, shows nothing.',
         'Services/CustomFields/CustomValuesOfRemovedCopy.php' => self::COPY_REMOVED,
         'Services/CustomFields/SubmittedCustomValues.php' => 'Reads the `my_fields[…]` inputs of the current request (their name is CustomFieldsForm::INPUT) - what the signed-in player just typed, never stored values.',
         'Services/CustomFields/CustomFieldLabels.php' => 'Words a field and a value (ready-made names in the page language) - formats what it is given, reads nothing.',
@@ -65,6 +79,16 @@ final class CustomValuesCoverageTest extends TestCase
         'Controller/CustomFields/MoveCustomFieldController.php' => self::MANAGE_PAGE,
         'Controller/CustomFields/SolvingTimeCustomValuesController.php' => 'The values form of a result (signed-in only): 404 unless RetrieveLoggedUserProfile\'s player is on the result, then that player\'s fields and that player\'s values (GetCustomValues::forViewer with their id).',
 
+        // The collection item's edit form - the only page that shows an item's values
+        'Controller/EditCollectionItemCommentController.php' => 'The owner\'s edit form of one collection item (signed-in only, 404 unless the item is RetrieveLoggedUserProfile\'s player\'s): that player\'s fields for collection items and that item\'s values through GetCollectionItemCustomValues::forViewer with their id.',
+
+        // The owner-only exports
+        'Controller/ExportPuzzlerDataDownloadController.php' => 'The results export (403 unless the URL\'s player is the signed-in one): calls OwnCustomValuesInExport::onResultsOfSignedInViewer(), which takes no player id.',
+        'Controller/ExportPuzzleLibraryDownloadController.php' => 'The library export (403 unless the URL\'s player is the signed-in one): calls OwnCustomValuesInExport::onCollectionItemsOfSignedInViewer(), which takes no player id.',
+        'Services/PuzzlerDataExporter.php' => self::EXPORT_WRITER,
+        'Services/Export/SectionedExportWriter.php' => self::EXPORT_WRITER,
+        'Services/Export/PuzzleLibraryExportBuilder.php' => 'Builds the owner-only library export: puts the OwnCustomColumns it is handed onto the `collection_items` rows by item id - its own queries (GetExportable…) select nothing of the values.',
+
         // The two shared pages that show a player their own
         'Controller/PuzzleAddController.php' => 'The add-result form: calls AddFormCustomFields::forForm() / saveSubmitted(), which take no player id and resolve the signed-in player themselves.',
         'Controller/PuzzleResultDetailController.php' => 'The result detail: calls OwnCustomValuesOnResults::ofSignedInViewer(), which takes no player id - the block can only be the viewer\'s own, on attempts the viewer is on.',
@@ -74,7 +98,12 @@ final class CustomValuesCoverageTest extends TestCase
         'MessageHandler/ArchiveCustomFieldHandler.php' => self::FIELD_WRITE,
         'MessageHandler/EditCustomFieldHandler.php' => self::FIELD_WRITE,
         'MessageHandler/ReorderCustomFieldsHandler.php' => self::FIELD_WRITE,
-        'MessageHandler/SetSolvingTimeCustomValuesHandler.php' => 'THE writer of the values: the acting player\'s own row of a result they are on (memberPlayerIds), their own fields only.',
+        'MessageHandler/SetSolvingTimeCustomValuesHandler.php' => 'THE writer of the values on results: the acting player\'s own row of a result they are on (memberPlayerIds), their own fields only.',
+        'MessageHandler/SetCollectionItemCustomValuesHandler.php' => 'THE writer of the values on collection items: the acting player\'s own item (anybody else\'s is "not found"), their own fields for collection items only.',
+        'MessageHandler/CopyPuzzlesToCollectionHandler.php' => 'Copying a player\'s own items into another collection of theirs: the copy starts with the source item\'s values (changeCustomValues) - nothing is read out or shown.',
+        'MessageHandler/MovePuzzlesToCollectionHandler.php' => self::ITEMS_BECOME_ONE,
+        'MessageHandler/MovePuzzleToCollectionHandler.php' => self::ITEMS_BECOME_ONE,
+        'MessageHandler/ApprovePuzzleMergeRequestHandler.php' => 'Puzzle merge: an item that meets the same player\'s item of the surviving puzzle in the same collection fills that item\'s empty fields (fillCustomValueGapsFrom) before it is removed - nothing is read out, shown or written to the merge audit.',
         'MessageHandler/DeletePlayerHandler.php' => 'Account deletion: deletes the player\'s fields and their values on every result, by player id.',
         'MessageHandler/RemoveCustomValuesOfFormerMembers.php' => self::MEMBER_LEFT,
         'MessageHandler/ReplaceGroupMemberWithGuestHandler.php' => self::MEMBER_LEFT,
@@ -86,6 +115,7 @@ final class CustomValuesCoverageTest extends TestCase
         'Value/CustomValues.php' => self::NO_QUERY,
         'Value/CustomFieldDefinition.php' => 'Checks a field\'s name and choices (uses CustomValues::isStorableText) - no query.',
         'Results/OwnCustomValues.php' => self::NO_QUERY,
+        'Results/Export/OwnCustomColumns.php' => self::NO_QUERY,
         'Results/CustomFieldOverview.php' => self::NO_QUERY,
         'Results/CustomFieldsForm.php' => self::NO_QUERY,
         'FormData/CustomFieldFormData.php' => 'The manage page\'s form data - prefilled from one of the signed-in player\'s own fields (CustomFieldOverview).',
@@ -129,6 +159,8 @@ final class CustomValuesCoverageTest extends TestCase
         $services = [
             \SpeedPuzzling\Web\Services\CustomFields\OwnCustomValuesOnResults::class => ['ofSignedInViewer'],
             \SpeedPuzzling\Web\Services\CustomFields\AddFormCustomFields::class => ['forForm', 'saveSubmitted'],
+            // Not a shared page, but the same rule: an export can only carry the downloading player's own
+            \SpeedPuzzling\Web\Services\CustomFields\OwnCustomValuesInExport::class => ['onResultsOfSignedInViewer', 'onCollectionItemsOfSignedInViewer'],
         ];
 
         foreach ($services as $class => $expectedMethods) {
@@ -160,6 +192,22 @@ final class CustomValuesCoverageTest extends TestCase
             $root . '/Query/GetPlayerProfile.php',
             $root . '/Controller/EditTimeController.php',
             $root . '/Controller/PlayerProfileController.php',
+            // Collection pages are often public, their lists shared: nothing that reads or shows a collection knows
+            // the items' values - not the lists, not the cards' DTO, not the export's own item query (the export gets
+            // them from the viewer-bound reader), not adding a puzzle to a collection
+            $root . '/Query/GetCollectionItems.php',
+            $root . '/Query/GetPlayerCollectionsWithCounts.php',
+            $root . '/Query/GetPuzzleCollections.php',
+            $root . '/Query/GetUnsolvedPuzzles.php',
+            $root . '/Query/GetBorrowCandidates.php',
+            $root . '/Query/GetExportableCollectionItems.php',
+            $root . '/Results/CollectionItemOverview.php',
+            $root . '/Results/Export/ExportableCollectionItem.php',
+            $root . '/Controller/CollectionDetailController.php',
+            $root . '/Controller/SystemCollectionDetailController.php',
+            $root . '/Services/CollectionSelectionResponder.php',
+            $root . '/Repository/CollectionItemRepository.php',
+            $root . '/MessageHandler/AddPuzzleToCollectionHandler.php',
         ];
 
         /** @var \SplFileInfo $file */
@@ -198,6 +246,15 @@ final class CustomValuesCoverageTest extends TestCase
                 'new CustomFieldsForm($fields)',
                 'private CustomFieldLabels $labels',
                 '$this->customValuesOfRemovedCopy = new CustomValuesOfRemovedCopy($repository, $clock);',
+                // A collection page, card or API resource reaching for an item's values
+                'SELECT ci.id, ci.custom_values FROM collection_item ci',
+                '$values = $collectionItem->customValues();',
+                '$item->changeCustomValues($values);',
+                '$target->fillCustomValueGapsFrom($source);',
+                'private GetCollectionItemCustomValues $getCollectionItemCustomValues,',
+                'private OwnCustomValuesInExport $ownCustomValuesInExport,',
+                'function write(OwnCustomColumns $custom): void',
+                'SubmittedValuesChange::apply($stored, $fields, $submitted)',
             ] as $code
         ) {
             self::assertMatchesRegularExpression(self::NEEDLES, $code);
@@ -207,6 +264,7 @@ final class CustomValuesCoverageTest extends TestCase
         self::assertDoesNotMatchRegularExpression(self::NEEDLES, 'final class AddReadyMadeCustomFieldMessage');
         self::assertDoesNotMatchRegularExpression(self::NEEDLES, 'new ArchiveCustomField($fieldId, $playerId)');
         self::assertDoesNotMatchRegularExpression(self::NEEDLES, 'new SetSolvingTimeCustomValues($timeId, $playerId, $values)');
+        self::assertDoesNotMatchRegularExpression(self::NEEDLES, 'new SetCollectionItemCustomValues($collectionItemId, $playerId, $values)');
     }
 
     /**

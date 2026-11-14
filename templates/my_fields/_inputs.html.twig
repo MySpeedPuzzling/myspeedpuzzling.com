@@ -5,18 +5,45 @@
     Plain inputs named my_fields[<field id>], on purpose no Symfony form children: nothing typed here can make the
     form around them invalid. Every input is 16 px text (no zoom on iPhone) and at least 44 px tall.
 
+    A rating is five radios styled as star buttons plus "No rating" (which takes the value away) - it works without
+    JavaScript. The stars up to the chosen one are lit where the browser knows :has(); elsewhere only the chosen one
+    is, with its number on it.
+
     Inputs:
       - my_fields: CustomFieldsForm (fields, what each input holds, problems per field)
       - id_prefix: unique per page, so two blocks never share an id
 #}
 {% set input_name = constant('SpeedPuzzling\\Web\\Results\\CustomFieldsForm::INPUT') %}
+{% if my_fields.fields|filter(field => field.type.value == 'rating')|length > 0 %}
+    <style>
+        .my-fields-rating .my-fields-star {
+            min-width: 44px;
+            min-height: 44px;
+            --bs-btn-active-bg: #fff4d6;
+            --bs-btn-active-border-color: #e0a100;
+            --bs-btn-active-color: #7a5200;
+            --bs-btn-hover-bg: #fffaeb;
+            --bs-btn-hover-border-color: #e0a100;
+            --bs-btn-hover-color: #7a5200;
+        }
+        .my-fields-rating .my-fields-star:has(~ .my-fields-star-input:checked) {
+            background-color: var(--bs-btn-active-bg);
+            border-color: var(--bs-btn-active-border-color);
+            color: var(--bs-btn-active-color);
+        }
+    </style>
+{% endif %}
 {% for field in my_fields.fields %}
     {% set input_id = id_prefix ~ '-' ~ field.fieldId %}
     {% set value = my_fields.input(field) %}
     {% set problem = my_fields.problem(field) %}
     {% set name = input_name ~ '[' ~ field.fieldId ~ ']' %}
     <div class="mb-3 custom-field-input" data-custom-field="{{ field.fieldId }}">
-        <label class="form-label" for="{{ input_id }}">{{ my_field_label(field) }}</label>
+        {% if field.type.value == 'rating' %}
+            <span class="form-label d-block" id="{{ input_id }}-label">{{ my_field_label(field) }}</span>
+        {% else %}
+            <label class="form-label" for="{{ input_id }}">{{ my_field_label(field) }}</label>
+        {% endif %}
 
         {% if field.type.value == 'text' %}
             <textarea class="form-control{{ problem ? ' is-invalid' }}" id="{{ input_id }}" name="{{ name }}" rows="2" maxlength="{{ constant('SpeedPuzzling\\Web\\Value\\CustomValues::TEXT_MAX_LENGTH') }}" style="font-size: 16px; min-height: 44px;">{{ value }}</textarea>
@@ -42,6 +69,16 @@
                     <option value="{{ value }}" selected>{{ my_field_choice_label(field, value) }}</option>
                 {% endif %}
             </select>
+        {% elseif field.type.value == 'rating' %}
+            <div class="my-fields-rating d-flex flex-wrap align-items-center gap-1" role="radiogroup" aria-labelledby="{{ input_id }}-label">
+                {% for stars in 1..5 %}
+                    <input type="radio" class="btn-check my-fields-star-input" name="{{ name }}" id="{{ input_id }}-{{ stars }}" value="{{ stars }}" autocomplete="off"{{ value is same as(stars ~ '') ? ' checked' }}>
+                    <label class="btn btn-outline-secondary my-fields-star d-inline-flex align-items-center justify-content-center px-2" for="{{ input_id }}-{{ stars }}" aria-label="{{ 'my_fields.value.rating_stars'|trans({'%stars%': stars}) }}"><i class="bi bi-star-fill" aria-hidden="true"></i><span class="ms-1" aria-hidden="true">{{ stars }}</span></label>
+                {% endfor %}
+                {# Takes the rating away - and what is checked while there is none #}
+                <input type="radio" class="btn-check" name="{{ name }}" id="{{ input_id }}-none" value="" autocomplete="off"{{ value is same as('') ? ' checked' }}>
+                <label class="btn btn-outline-secondary d-inline-flex align-items-center" for="{{ input_id }}-none" style="min-height: 44px;">{{ 'my_fields.value.rating_none'|trans }}</label>
+            </div>
         {% else %}
             <input type="text" autocomplete="off" autocapitalize="none" class="form-control{{ problem ? ' is-invalid' }}" id="{{ input_id }}" name="{{ name }}" value="{{ value }}" style="font-size: 16px; min-height: 44px;" aria-describedby="{{ input_id }}-help">
             <div class="form-text" id="{{ input_id }}-help">{{ 'my_fields.value.tags_help'|trans }}</div>

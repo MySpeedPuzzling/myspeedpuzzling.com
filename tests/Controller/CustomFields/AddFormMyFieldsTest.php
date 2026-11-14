@@ -24,6 +24,7 @@ use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\CustomFieldType;
+use SpeedPuzzling\Web\Value\StandardCustomField;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -154,6 +155,102 @@ final class AddFormMyFieldsTest extends WebTestCase
         $recap = $browser->followRedirect();
         self::assertResponseIsSuccessful();
         self::assertCount(0, $recap->filter('.alert-warning'), 'Nothing to tell when everything was saved');
+    }
+
+    public function testARatingIsFiveRadiosInTheBlockAndIsSavedWithTheResult(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, self::PLAYER);
+        $scenario = new CustomFieldsScenario(self::getContainer());
+        $liked = $scenario->readyMade(self::PLAYER, StandardCustomField::HowILikedIt);
+        $felt = $scenario->readyMade(self::PLAYER, StandardCustomField::HowHardItFelt);
+        $started = $scenario->readyMade(self::PLAYER, StandardCustomField::StartedOn);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+
+        self::assertResponseIsSuccessful();
+        $block = $crawler->filter('form[name="puzzle_add_form"] [data-testid="add-form-my-fields"]');
+        self::assertCount(3, $block->filter('[data-custom-field]'));
+        self::assertCount(1, $block->filter('input[type="date"][name="my_fields[' . $started . ']"]'));
+
+        // Plain radios beside the Symfony form - they work without JavaScript and are no children of the form
+        foreach ([$liked, $felt] as $rating) {
+            $radios = $block->filter('input[type="radio"][name="my_fields[' . $rating . ']"]');
+            self::assertSame(['1', '2', '3', '4', '5', ''], $radios->each(static fn (Crawler $radio): string => (string) $radio->attr('value')));
+            // Nothing chosen yet: "No rating" is the checked one, so an untouched block sends no rating
+            self::assertSame([''], $block->filter('input[type="radio"][name="my_fields[' . $rating . ']"][checked]')->each(static fn (Crawler $radio): string => (string) $radio->attr('value')));
+
+            foreach ($radios->each(static fn (Crawler $radio): string => (string) $radio->attr('id')) as $radioId) {
+                self::assertCount(1, $block->filter('label[for="' . $radioId . '"]'), $radioId);
+            }
+        }
+
+        self::assertCount(0, $crawler->filter('[name^="puzzle_add_form[my"]'));
+        // Closed until tapped, like every block without a value
+        self::assertStringContainsString('hidden', (string) $block->filter('[data-toggle-target="myFields"]')->attr('class'));
+
+        $timeId = Uuid::uuid7()->toString();
+        $this->post($browser, $this->formValues($browser), $timeId, [$liked => '4', $felt => '', $started => '2026-07-10']);
+
+        self::assertResponseRedirects('/en/time-added/' . $timeId);
+        self::assertSame(1, $this->results($timeId));
+        self::assertSame([$liked => 4, $started => '2026-07-10'], $scenario->storedValues($timeId, self::PLAYER));
+        $recap = $browser->followRedirect();
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $recap->filter('.alert-warning'), 'Nothing to tell when everything was saved');
+    }
+
+    public function testARatingThatIsNoRatingNeverRefusesTheResult(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, self::PLAYER);
+        $scenario = new CustomFieldsScenario(self::getContainer());
+        $liked = $scenario->readyMade(self::PLAYER, StandardCustomField::HowILikedIt);
+        $felt = $scenario->readyMade(self::PLAYER, StandardCustomField::HowHardItFelt);
+        $stars = $scenario->field(self::PLAYER, 'Stars', CustomFieldType::Rating);
+
+        $half = $scenario->field(self::PLAYER, 'Half a star', CustomFieldType::Rating);
+        $words = $scenario->field(self::PLAYER, 'In words', CustomFieldType::Rating);
+        $timeId = Uuid::uuid7()->toString();
+
+        $this->post($browser, $this->formValues($browser), $timeId, [$liked => '6', $stars => '0', $half => '4.5', $words => 'five', $felt => '2']);
+
+        // No 422, ever: the result is saved, the good rating with it, and the player is told about the others
+        self::assertResponseRedirects('/en/time-added/' . $timeId);
+        self::assertSame(1, $this->results($timeId));
+        self::assertSame([$felt => 2], $scenario->storedValues($timeId, self::PLAYER));
+        $recap = $browser->followRedirect();
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('How I liked it, Stars, Half a star, In words', $recap->filter('.alert-warning')->text());
+
+        // A list where one rating belongs is no value at all - and still no refusal
+        $otherTimeId = Uuid::uuid7()->toString();
+        $browser->request('POST', '/en/puzzle-add', [
+            'puzzle_add_form' => [...$this->formValues($browser), 'timeMinutes' => '9', 'finishedAt' => '11.07.2026'],
+            'time_id' => $otherTimeId,
+            'my_fields' => [$stars => ['5', '1'], $felt => '3'],
+        ]);
+        self::assertResponseRedirects('/en/time-added/' . $otherTimeId);
+        self::assertSame([$felt => 3], $scenario->storedValues($otherTimeId, self::PLAYER));
+    }
+
+    public function testARefusedSaveKeepsTheChosenRating(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, self::PLAYER);
+        $scenario = new CustomFieldsScenario(self::getContainer());
+        $liked = $scenario->readyMade(self::PLAYER, StandardCustomField::HowILikedIt);
+        $timeId = Uuid::uuid7()->toString();
+
+        // A competition that can not be picked refuses the save - nothing to do with the fields
+        $crawler = $this->post($browser, [...$this->formValues($browser), 'competition' => CompetitionFixture::COMPETITION_UNAPPROVED], $timeId, [$liked => '5']);
+
+        self::assertResponseStatusCodeSame(422);
+        $block = $crawler->filter('[data-testid="add-form-my-fields"]');
+        self::assertSame(['5'], $block->filter('input[type="radio"][name="my_fields[' . $liked . ']"][checked]')->each(static fn (Crawler $radio): string => (string) $radio->attr('value')));
+        // Open, because something is in it
+        self::assertStringNotContainsString('hidden', (string) $block->filter('[data-toggle-target="myFields"]')->attr('class'));
+        self::assertSame(0, $this->results($timeId));
     }
 
     public function testTheValuesAreSavedWithAResultWithoutATime(): void

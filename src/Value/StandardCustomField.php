@@ -27,29 +27,38 @@ enum StandardCustomField: string
     case YearOfRelease = 'year_of_release';
     case Material = 'material';
     case MyTags = 'my_tags';
+    case HowILikedIt = 'how_i_liked_it';
+    case HowHardItFelt = 'how_hard_it_felt';
+    case Quality = 'quality';
+    case StartedOn = 'started_on';
+    case SoldFor = 'sold_for';
 
     public function type(): CustomFieldType
     {
         return match ($this) {
             self::PrivateNotes, self::WhatToWorkOn, self::BoughtFrom, self::WhereItIs, self::Artist => CustomFieldType::Text,
-            self::MissingPieces, self::PricePaid, self::Copies, self::YearOfRelease => CustomFieldType::Number,
-            self::BoughtOn => CustomFieldType::Date,
+            self::MissingPieces, self::PricePaid, self::Copies, self::YearOfRelease, self::SoldFor => CustomFieldType::Number,
+            self::BoughtOn, self::StartedOn => CustomFieldType::Date,
             self::Condition, self::Material => CustomFieldType::Choice,
             self::MyTags => CustomFieldType::Tags,
+            self::HowILikedIt, self::HowHardItFelt, self::Quality => CustomFieldType::Rating,
         };
     }
 
     public function forResults(): bool
     {
         return match ($this) {
-            self::PrivateNotes, self::WhatToWorkOn, self::MyTags => true,
+            self::PrivateNotes, self::WhatToWorkOn, self::MyTags, self::HowILikedIt, self::HowHardItFelt, self::StartedOn => true,
             default => false,
         };
     }
 
     public function forCollectionItems(): bool
     {
-        return $this !== self::WhatToWorkOn;
+        return match ($this) {
+            self::WhatToWorkOn, self::HowHardItFelt, self::StartedOn => false,
+            default => true,
+        };
     }
 
     /**
@@ -79,6 +88,11 @@ enum StandardCustomField: string
             self::YearOfRelease => 'Year of release',
             self::Material => 'Material',
             self::MyTags => 'My tags',
+            self::HowILikedIt => 'How I liked it',
+            self::HowHardItFelt => 'How hard it felt',
+            self::Quality => 'Quality',
+            self::StartedOn => 'Started on',
+            self::SoldFor => 'Sold for',
         };
     }
 
@@ -221,6 +235,46 @@ enum StandardCustomField: string
             'es' => ['mis etiquetas', 'etiquetas', 'categorías', 'temas'],
             'fr' => ['mes étiquettes', 'étiquettes', 'tags', 'catégories', 'thèmes'],
             'ja' => ['マイタグ', 'タグ', 'ラベル', 'カテゴリ'],
+        ],
+        'how_i_liked_it' => [
+            'en' => ['how i liked it', 'satisfaction', 'my rating', 'rating', 'enjoyment'],
+            'cs' => ['jak se mi líbilo', 'spokojenost', 'moje hodnocení', 'hodnocení'],
+            'de' => ['wie es mir gefiel', 'zufriedenheit', 'meine bewertung', 'bewertung'],
+            'es' => ['cuánto me gustó', 'satisfacción', 'mi valoración', 'valoración'],
+            'fr' => ['à quel point il m\'a plu', 'satisfaction', 'ma note', 'appréciation'],
+            'ja' => ['気に入り度', '満足度', '評価'],
+        ],
+        'how_hard_it_felt' => [
+            'en' => ['how hard it felt', 'difficulty', 'felt difficulty', 'perceived difficulty', 'how hard'],
+            'cs' => ['jak těžké mi připadalo', 'obtížnost', 'náročnost', 'pocitová obtížnost'],
+            'de' => ['wie schwer es sich anfühlte', 'schwierigkeit', 'schwierigkeitsgrad', 'gefühlte schwierigkeit'],
+            'es' => ['lo difícil que me pareció', 'dificultad', 'dificultad percibida'],
+            'fr' => ['difficulté ressentie', 'difficulté', 'niveau de difficulté'],
+            'ja' => ['体感難易度', '難易度', '難しさ'],
+        ],
+        'quality' => [
+            'en' => ['quality', 'puzzle quality', 'cut quality', 'print quality'],
+            'cs' => ['kvalita', 'kvalita puzzle', 'kvalita výseku', 'kvalita tisku'],
+            'de' => ['qualität', 'puzzlequalität', 'stanzqualität', 'druckqualität'],
+            'es' => ['calidad', 'calidad del puzzle', 'calidad del corte', 'calidad de impresión'],
+            'fr' => ['qualité', 'qualité du puzzle', 'qualité de découpe', 'qualité d\'impression'],
+            'ja' => ['品質', 'クオリティ', 'カットの品質', '印刷の品質'],
+        ],
+        'started_on' => [
+            'en' => ['started on', 'start date', 'date started', 'started'],
+            'cs' => ['začato', 'datum zahájení', 'zahájeno'],
+            'de' => ['begonnen am', 'startdatum', 'angefangen'],
+            'es' => ['empezado el', 'fecha de inicio', 'comenzado'],
+            'fr' => ['commencé le', 'date de début', 'commencé'],
+            'ja' => ['開始日', '始めた日'],
+        ],
+        'sold_for' => [
+            'en' => ['sold for', 'sell price', 'selling price', 'sale price', 'sold price'],
+            'cs' => ['prodáno za', 'prodejní cena', 'cena prodeje'],
+            'de' => ['verkauft für', 'verkaufspreis'],
+            'es' => ['vendido por', 'precio de venta'],
+            'fr' => ['vendu pour', 'prix de vente'],
+            'ja' => ['売却価格', '販売価格', '売値'],
         ],
     ];
 }

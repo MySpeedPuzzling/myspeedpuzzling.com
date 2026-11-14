@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services;
 
 use DOMDocument;
+use DOMElement;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Csv;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use SimpleXMLElement;
+use SpeedPuzzling\Web\Results\Export\OwnCustomColumns;
 use SpeedPuzzling\Web\Results\ExportableSolvingTime;
 use SpeedPuzzling\Web\Services\Export\SpreadsheetSafeValue;
 use SpeedPuzzling\Web\Value\ExportFormat;
@@ -53,24 +55,36 @@ readonly final class PuzzlerDataExporter
     ];
 
     /**
+     * The player's own fields (docs/features/data-export.md "Own fields") come after every other column, and only
+     * for a player who has any - without them the file is what it always was.
+     *
      * @param array<ExportableSolvingTime> $data
+     * @param null|OwnCustomColumns $custom the downloading player's own values, keyed by result id
      */
-    public function export(array $data, ExportFormat $format): string
+    public function export(array $data, ExportFormat $format, null|OwnCustomColumns $custom = null): string
     {
+        $custom ??= new OwnCustomColumns();
+
         return match ($format) {
-            ExportFormat::Json => $this->toJson($data),
-            ExportFormat::Xlsx => $this->toXlsx($data),
-            ExportFormat::Csv => $this->toCsv($data),
-            ExportFormat::Xml => $this->toXml($data),
+            ExportFormat::Json => $this->toJson($data, $custom),
+            ExportFormat::Xlsx => $this->toXlsx($data, $custom),
+            ExportFormat::Csv => $this->toCsv($data, $custom),
+            ExportFormat::Xml => $this->toXml($data, $custom),
         };
     }
 
     /**
      * @param array<ExportableSolvingTime> $data
      */
-    private function toJson(array $data): string
+    private function toJson(array $data, OwnCustomColumns $custom): string
     {
-        $rows = array_map(static fn(ExportableSolvingTime $item): array => $item->toArray(), $data);
+        $rows = array_map(
+            static fn(ExportableSolvingTime $item): array => $custom->isEmpty()
+                ? $item->toArray()
+                // An object also when every field is empty - never a list
+                : [...$item->toArray(), OwnCustomColumns::ELEMENT => (object) $custom->of($item->timeId)],
+            $data,
+        );
 
         return json_encode($rows, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     }
@@ -78,9 +92,9 @@ readonly final class PuzzlerDataExporter
     /**
      * @param array<ExportableSolvingTime> $data
      */
-    private function toXlsx(array $data): string
+    private function toXlsx(array $data, OwnCustomColumns $custom): string
     {
-        $spreadsheet = $this->createSpreadsheet($data, forCsv: false);
+        $spreadsheet = $this->createSpreadsheet($data, $custom, forCsv: false);
 
         $writer = new Xlsx($spreadsheet);
         $tempFile = tempnam(sys_get_temp_dir(), 'export_');
@@ -98,9 +112,9 @@ readonly final class PuzzlerDataExporter
     /**
      * @param array<ExportableSolvingTime> $data
      */
-    private function toCsv(array $data): string
+    private function toCsv(array $data, OwnCustomColumns $custom): string
     {
-        $spreadsheet = $this->createSpreadsheet($data, forCsv: true);
+        $spreadsheet = $this->createSpreadsheet($data, $custom, forCsv: true);
 
         $writer = new Csv($spreadsheet);
         $writer->setDelimiter(',');
@@ -121,7 +135,7 @@ readonly final class PuzzlerDataExporter
     /**
      * @param array<ExportableSolvingTime> $data
      */
-    private function toXml(array $data): string
+    private function toXml(array $data, OwnCustomColumns $custom): string
     {
         $xml = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><solving_times></solving_times>');
 
@@ -137,6 +151,16 @@ readonly final class PuzzlerDataExporter
                 };
 
                 $record->addChild($key, htmlspecialchars($stringValue, ENT_XML1, 'UTF-8'));
+            }
+
+            if ($custom->isEmpty() === false) {
+                $recordElement = dom_import_simplexml($record);
+                $document = $recordElement->ownerDocument;
+                assert($recordElement instanceof DOMElement && $document !== null);
+
+                foreach ($custom->of($item->timeId) as $label => $value) {
+                    OwnCustomColumns::appendXml($document, $recordElement, $label, $value);
+                }
             }
         }
 
@@ -163,7 +187,7 @@ readonly final class PuzzlerDataExporter
      *
      * @param array<ExportableSolvingTime> $data
      */
-    private function createSpreadsheet(array $data, bool $forCsv): Spreadsheet
+    private function createSpreadsheet(array $data, OwnCustomColumns $custom, bool $forCsv): Spreadsheet
     {
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -172,6 +196,12 @@ readonly final class PuzzlerDataExporter
         $col = 1;
         foreach (self::HEADERS as $header) {
             $sheet->setCellValue([$col, 1], $header);
+            $col++;
+        }
+
+        // A player names their own fields: a header is text, never a formula
+        foreach ($custom->labels as $label) {
+            $sheet->setCellValueExplicit([$col, 1], $forCsv ? SpreadsheetSafeValue::forCsv($label) : $label, DataType::TYPE_STRING);
             $col++;
         }
 
@@ -188,6 +218,18 @@ readonly final class PuzzlerDataExporter
                     $sheet->setCellValueExplicit([$col, $row], SpreadsheetSafeValue::forCsv($value), DataType::TYPE_STRING);
                 } else {
                     SpreadsheetSafeValue::writeXlsxCell($sheet, $col, $row, $value);
+                }
+
+                $col++;
+            }
+
+            foreach ($custom->of($item->timeId) as $value) {
+                $cell = OwnCustomColumns::cell($value);
+
+                if ($forCsv) {
+                    $sheet->setCellValueExplicit([$col, $row], SpreadsheetSafeValue::forCsv($cell), DataType::TYPE_STRING);
+                } else {
+                    SpreadsheetSafeValue::writeXlsxCell($sheet, $col, $row, $cell);
                 }
 
                 $col++;

@@ -30,6 +30,7 @@ use SpeedPuzzling\Web\Results\Export\ExportableSoldSwappedItem;
 use SpeedPuzzling\Web\Results\Export\ExportableWishListItem;
 use SpeedPuzzling\Web\Results\Export\ExportDocument;
 use SpeedPuzzling\Web\Results\Export\ExportSection;
+use SpeedPuzzling\Web\Results\Export\OwnCustomColumns;
 use SpeedPuzzling\Web\Results\PlayerProfile;
 use SpeedPuzzling\Web\Results\PuzzleListInsights;
 use SpeedPuzzling\Web\Services\ResolvePuzzleListInsights;
@@ -91,9 +92,16 @@ readonly final class PuzzleLibraryExportBuilder
     ) {
     }
 
-    public function build(PlayerProfile $player): ExportDocument
+    /**
+     * @param null|OwnCustomColumns $collectionItemFields the downloading player's own fields on their collection
+     *                                                    items, keyed by collection item id (OwnCustomValuesInExport
+     *                                                    resolves the signed-in player itself) - extra columns at the
+     *                                                    end of `collection_items`
+     */
+    public function build(PlayerProfile $player, null|OwnCustomColumns $collectionItemFields = null): ExportDocument
     {
         $playerId = $player->playerId;
+        $collectionItemFields ??= new OwnCustomColumns();
 
         $collections = $this->getExportableCollections->byPlayerId($playerId);
         $collectionItems = $this->getExportableCollectionItems->byPlayerId($playerId);
@@ -130,6 +138,11 @@ readonly final class PuzzleLibraryExportBuilder
                 columns: [...ExportableCollectionItem::COLUMNS, ...self::PUZZLE_COLUMNS],
                 rows: array_map(
                     static fn (ExportableCollectionItem $item): array => [...$item->toColumns($systemCollectionName), ...$puzzleColumns($item->puzzle)],
+                    $collectionItems,
+                ),
+                customColumns: $collectionItemFields->labels,
+                customRows: $collectionItemFields->isEmpty() ? [] : array_map(
+                    static fn (ExportableCollectionItem $item): array => $collectionItemFields->of($item->collectionItemId),
                     $collectionItems,
                 ),
             ),

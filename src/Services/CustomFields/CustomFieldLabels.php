@@ -57,6 +57,10 @@ readonly final class CustomFieldLabels
             return $this->choiceLabel($field, $value);
         }
 
+        if ($field->type === CustomFieldType::Rating && is_int($value)) {
+            return $this->translator->trans('my_fields.value.rating_stars', ['%stars%' => $value]);
+        }
+
         if ($field->type === CustomFieldType::Date && is_string($value)) {
             $date = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
 

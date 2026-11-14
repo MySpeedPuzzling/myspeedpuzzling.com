@@ -34,6 +34,11 @@ readonly final class CustomFieldOverview
         return $this->forResults && $this->archived === false;
     }
 
+    public function isUsableOnCollectionItems(): bool
+    {
+        return $this->forCollectionItems && $this->archived === false;
+    }
+
     /**
      * @param array{
      *     id: string,

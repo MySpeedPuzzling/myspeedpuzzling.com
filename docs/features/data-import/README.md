@@ -675,7 +675,9 @@ collection items, or both. Private: only the owner ever reads them.
 - **Never in a shared read:** the values are read by one query for the signed-in player only
   (`GetCustomValues::forViewer`), never joined into the result lists, the result detail's query or the API.
 - **Shown** to the owner on the result detail, in My data (as columns), in the export (extra columns in the
-  spreadsheet formats, a nested object in JSON, `<custom name="…">` in XML).
+  spreadsheet formats, a nested object in JSON, `<custom name="…">` in XML - `docs/features/data-export.md` "Own
+  fields"). A collection item's values are shown in its edit form only - never on a collection page, which is often
+  public (`docs/features/custom-fields.md` "Collection items").
 - **Import:** a column mapped to a new custom field creates it at "Add" (not before - an abandoned import leaves
   nothing behind).
 - A pair's or team's result: each registered member has their own values (D16).

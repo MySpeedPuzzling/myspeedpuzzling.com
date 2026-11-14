@@ -4,11 +4,34 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Ideas from players' spreadsheets (`docs/features/data-import/research.md` "What players track that MySpeedPuzzling does not", 2026-11-14)
+
+Candidates for work of their own - none is part of the import. What each is and where it was seen:
+[research.md](features/data-import/research.md#what-players-track-that-myspeedpuzzling-does-not).
+
+- [ ] Players' ratings of puzzles and brands (how they liked it, how hard it felt, the cut and print) - the ready-made
+  rating fields collect them privately; a shared rating is its own design
+- [ ] "Where would my time have placed" at the event that used the puzzle
+- [ ] The difference against my previous best on a repeat, and a history of my records on a puzzle
+- [ ] My rank on a puzzle at the time I logged it (only the live rank exists)
+- [ ] My own times in bands per piece count, and the same for pace
+- [ ] Monthly average: all runs against first tries only
+- [ ] "Days on the shelf" - solved minus bought (needs the ready-made "Bought on")
+- [ ] What my to-do pile is made of: totals per brand and per piece count of the unsolved list
+- [ ] Personal goals
+- [ ] A puzzle solved over and over as a "project" with its curve
+- [ ] The life of a copy: ordered → owned → passed on (wishlist, collection and sold/swapped are separate lists today)
+- [ ] Facts the catalogue lacks, once enough players agree per puzzle: artist, year of release, material, piece style,
+  shape
+
 ## Custom fields (`docs/features/custom-fields.md`, 2026-11-14)
 
-- [ ] Stage 1b: collection items (`collection_item.custom_values`, the item's edit form), the export, the puzzle merge;
-  then the "filling them in arrives soon" wording of the manage page goes away (`my_fields.for_collection_items`,
-  `my_fields.form.for_collection_items_help`, 6 locales)
+- [ ] In a real browser (1b, 2026-11-14): the rating's star buttons - in the add form's block, the values form of a
+  result (page and modal) and the collection item's edit form: tap targets, the lit stars, "No rating", keyboard
+- [ ] "My data" is the place to see and edit collection values in bulk (stage 2); until then they are in the item's
+  edit form and the export only - on purpose nothing on the collection page
+- [ ] The collection item's edit form is titled "Edit comment" (`collections.edit_comment.title`) although it holds
+  the player's fields too - rename when the form is next touched (6 locales)
 - [ ] In a real browser again after the review round (2026-11-14): the values form saved from the modal over the
   full-page result (the modal closes, the page refreshes with the flash) and from inside the result detail's own
   modal (the detail comes back with the new values); the 44 px button of the result block

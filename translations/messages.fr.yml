@@ -11615,14 +11615,14 @@ event_result_claim:
 
 my_fields:
     title: "Mes champs"
-    intro: "Tes propres champs pour ce que tu veux retenir d’un résultat : des notes, un nombre, une date, des étiquettes. Ajoute un champ tout prêt d’un seul geste ou crée le tien."
+    intro: "Tes propres champs pour ce que tu veux retenir d’un résultat ou d’un puzzle de ta collection : des notes, un nombre, une date, une évaluation, des étiquettes. Ajoute un champ tout prêt d’un seul geste ou crée le tien."
     private_note: "Tes champs et ce que tu y écris ne sont visibles que par toi - aussi pour un résultat fait en duo ou en équipe."
     back_to_settings: "Paramètres du profil"
     manage_link: "Gérer mes champs"
     in_use_title: "Champs utilisés (%count% sur %limit%)"
     empty: "Aucun champ pour l’instant. Ajoute un champ tout prêt ci-dessous ou crée le tien."
     for_results: "Résultats"
-    for_collection_items: "Puzzles de la collection (le remplissage arrive bientôt)"
+    for_collection_items: "Puzzles de la collection"
     move_up: "Monter"
     move_down: "Descendre"
     edit: "Modifier"
@@ -11649,7 +11649,7 @@ my_fields:
         places: "Où tu le remplis"
         for_results: "Sur les résultats"
         for_collection_items: "Sur les puzzles de la collection"
-        for_collection_items_help: "Tu peux déjà le régler. Le remplissage sur les puzzles de ta collection arrive bientôt."
+        for_collection_items_help: "Tu les remplis en modifiant un puzzle de ta collection."
     type:
         text: "Texte"
         number: "Nombre"
@@ -11657,11 +11657,14 @@ my_fields:
         yes_no: "Oui / non"
         choice: "Un choix dans une liste"
         tags: "Étiquettes"
+        rating: "Évaluation (1-5)"
     value:
         none: "-"
         "yes": "Oui"
         "no": "Non"
         tags_help: "Sépare les étiquettes par des virgules."
+        rating_none: "Sans évaluation"
+        rating_stars: "%stars% sur 5"
     errors:
         not_valid: "Cette valeur ne peut pas être enregistrée."
         too_long: "Trop long - %limit% caractères au maximum."
@@ -11672,6 +11675,7 @@ my_fields:
         unknown_choice: "Choisis un élément de la liste."
         too_many_tags: "Trop d’étiquettes - %limit% au maximum."
         tag_too_long: "Une étiquette peut avoir %limit% caractères au maximum."
+        not_a_rating: "Choisis une évaluation de 1 à 5."
         unknown_field: "Ce champ n’est plus utilisé."
     definition_errors:
         name_missing: "Donne un nom au champ."
@@ -11705,8 +11709,12 @@ my_fields:
         label: "Mes champs"
         edit: "Modifier"
         fill: "Remplir"
+    collection_item:
+        private_note: "Ces champs ne sont visibles que par toi. Ils n’apparaissent jamais sur la page de ta collection, même quand la collection est publique."
+        none: "Envie de noter autre chose sur ton exemplaire - son état, son prix, où il est rangé ? Ajoute tes propres champs ; toi seul(e) les verras."
+    export_line: "Ce que tu as écrit dans tes propres champs"
     edit_profile_card:
-        text: "Tes propres champs privés pour les résultats - notes, nombres, dates, étiquettes. Toi seul(e) les vois."
+        text: "Tes propres champs privés pour les résultats et pour les puzzles de ta collection - notes, nombres, dates, évaluations, étiquettes. Toi seul(e) les vois."
     standard:
         private_notes:
             label: "Notes privées"
@@ -11738,3 +11746,13 @@ my_fields:
                 plastic: "Plastique"
         my_tags:
             label: "Mes étiquettes"
+        how_i_liked_it:
+            label: "À quel point il m’a plu"
+        how_hard_it_felt:
+            label: "Difficulté ressentie"
+        quality:
+            label: "Qualité"
+        started_on:
+            label: "Commencé le"
+        sold_for:
+            label: "Vendu pour"

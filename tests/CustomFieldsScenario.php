@@ -9,6 +9,7 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddCustomField;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
+use SpeedPuzzling\Web\Message\SetCollectionItemCustomValues;
 use SpeedPuzzling\Web\Message\SetSolvingTimeCustomValues;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Value\CustomFieldType;
@@ -124,6 +125,51 @@ readonly final class CustomFieldsScenario
         $stored = $this->database->fetchOne(
             'SELECT custom_values FROM solving_time_custom_values WHERE solving_time_id = :timeId AND player_id = :playerId',
             ['timeId' => $timeId, 'playerId' => $playerId],
+        );
+
+        if (is_string($stored) === false) {
+            return null;
+        }
+
+        /** @var array<string, mixed> $values */
+        $values = json_decode($stored, true, flags: JSON_THROW_ON_ERROR);
+
+        return $values;
+    }
+
+    /**
+     * @param array<string, mixed> $values keyed by field id
+     */
+    public function setItemValues(string $collectionItemId, string $playerId, array $values): void
+    {
+        try {
+            $this->messageBus->dispatch(new SetCollectionItemCustomValues($collectionItemId, $playerId, $values));
+        } finally {
+            $this->forgetLoadedEntities();
+        }
+    }
+
+    /**
+     * The player's item of the puzzle in the collection (null = the system collection), null = there is none.
+     */
+    public function itemId(string $playerId, string $puzzleId, null|string $collectionId): null|string
+    {
+        $itemId = $this->database->fetchOne(
+            'SELECT id FROM collection_item WHERE player_id = :playerId AND puzzle_id = :puzzleId AND collection_id IS NOT DISTINCT FROM :collectionId',
+            ['playerId' => $playerId, 'puzzleId' => $puzzleId, 'collectionId' => $collectionId],
+        );
+
+        return is_string($itemId) ? $itemId : null;
+    }
+
+    /**
+     * @return null|array<string, mixed> what the collection item holds, null = nothing (or no such item)
+     */
+    public function storedItemValues(string $collectionItemId): null|array
+    {
+        $stored = $this->database->fetchOne(
+            'SELECT custom_values FROM collection_item WHERE id = :id',
+            ['id' => $collectionItemId],
         );
 
         if (is_string($stored) === false) {

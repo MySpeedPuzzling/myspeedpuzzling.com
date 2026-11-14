@@ -18,7 +18,15 @@
         <i class="bi bi-lock text-muted" title="{{ 'my_fields.private_note'|trans }}"></i>
         {% for entry in filled %}
             {# Text keeps its line breaks (pre-line) - shown as text, escaped like every value #}
-            <span class="me-2"{% if entry.field.type.value == 'text' %} style="white-space: pre-line;"{% endif %}><span class="text-muted">{{ my_field_label(entry.field) }}:</span> {{ my_field_value_text(entry.field, entry.value) }}</span>
+            <span class="me-2"{% if entry.field.type.value == 'text' %} style="white-space: pre-line;"{% endif %}><span class="text-muted">{{ my_field_label(entry.field) }}:</span>
+                {% if entry.field.type.value == 'rating' -%}
+                    {# Stars for the eye, "4 of 5" for a screen reader and on hover #}
+                    {%- set rating_text = my_field_value_text(entry.field, entry.value) -%}
+                    <span role="img" aria-label="{{ rating_text }}" title="{{ rating_text }}" class="text-nowrap">{% for star in 1..5 %}{{ star <= entry.value ? '★' : '☆' }}{% endfor %}</span>
+                {%- else -%}
+                    {{ my_field_value_text(entry.field, entry.value) }}
+                {%- endif -%}
+            </span>
         {% else %}
             <span class="text-muted me-2">{{ 'my_fields.result.label'|trans }}</span>
         {% endfor %}

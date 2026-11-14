@@ -55,6 +55,9 @@ final class SystemClockCoverageTest extends TestCase
         'ConsoleCommands/XpBackfillConsoleCommand.php' => [['microtime('], self::DURATION],
         'EventSubscriber/ApiUsageSubscriber.php' => [['hrtime('], self::DURATION],
         'MessageHandler/EvaluateGroupPredictionsHandler.php' => [['microtime('], self::DURATION],
+        'Services/SpreadsheetReader/Csv/CsvWorkbook.php' => [['hrtime('], self::DURATION],
+        'Services/SpreadsheetReader/TemporaryFolder.php' => [['hrtime('], self::DURATION],
+        'Services/SpreadsheetReader/Xlsx/ReadBudget.php' => [['hrtime('], self::DURATION],
         'Services/GenerateManufacturerSlug.php' => [['microtime('], 'microtime() as entropy for a slug, not as a time.'],
         'Services/LiveKit/StudioSpectators.php' => [['microtime('], 'A lock-wait deadline in microtime(true) - a duration, no date is read.'],
         'Services/PuzzleIntelligence/Group/GroupModelRecalculator.php' => [['microtime('], self::DURATION],
@@ -90,6 +93,11 @@ final class SystemClockCoverageTest extends TestCase
         'Services/LiveKit/StudioSpectatorsTest.php' => [['microtime('], self::DURATION],
         'Services/RateLimiting/RedisSlidingWindowLimiterTest.php' => [['microtime('], 'Forked processes start together at a real moment (time_sleep_until), and the limiter counts on real time.'],
         'Services/Session/PostgresSessionHandlerTest.php' => [['hrtime('], self::DURATION],
+        'Services/SpreadsheetReader/CsvReaderTest.php' => [['hrtime('], self::DURATION],
+        'Services/SpreadsheetReader/SpreadsheetReaderMemoryTest.php' => [['hrtime('], self::DURATION],
+        'Services/SpreadsheetReader/XlsxSafetyTest.php' => [['hrtime('], self::DURATION],
+        'Services/SpreadsheetReader/XlsxTimeBoundTest.php' => [['hrtime('], self::DURATION],
+        'Services/SpreadsheetReader/XmlFloodScannerTest.php' => [['hrtime('], self::DURATION],
         'Services/Storage/ObjectStorageHttpClientFactoryTest.php' => [['microtime('], self::DURATION],
     ];
 

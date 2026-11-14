@@ -76,7 +76,9 @@ return App::config([
                 MethodNotAllowedHttpException::class,
             ],
             'traces_sampler' => 'sentry.traces_sampler',
-            // No personal link's token of an online competition in anything sent (OnlineTokenSentryScrubber)
+            // No personal link's token of an online competition in anything sent (OnlineTokenSentryScrubber), and
+            // nothing a player typed into their own fields - the request body is attached to every event
+            // (OwnFieldsSentryScrubber; both through SentryBeforeSend)
             'before_send' => 'sentry.before_send',
             'before_send_transaction' => 'sentry.before_send',
             'before_breadcrumb' => 'sentry.before_breadcrumb',

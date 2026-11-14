@@ -78,10 +78,12 @@ it while archived restores it with its id (and so its values).
 |---|---|
 | results and collection puzzles | Private notes, My tags, How I liked it (rating) |
 | results only | What to work on, How hard it felt (rating), Started on (date) |
-| collection puzzles only | Condition, Missing pieces, Bought on, Bought from, Price paid, Where it is, Copies, Artist, Year of release, Material, Quality (rating), Sold for (number) |
+| collection puzzles only | Condition, Missing pieces, Bought on, Bought from, Price paid, Where it is, Copies, Artist, Year of release, Material, Quality (rating) |
 
-How I liked it, How hard it felt, Quality, Started on and Sold for came with 1b - what another puzzle app's export
-carries (`docs/features/data-import/research.md`).
+How I liked it, How hard it felt, Quality and Started on came with 1b - what another puzzle app's export carries
+(`docs/features/data-import/research.md`). **"Sold for" is not offered yet** (decided in the review of 1b): a puzzle
+marked as sold or swapped leaves the collections, and its item's values go with the item - the field would promise to
+keep what the app then drops. It comes back when the values travel onto the sold/swapped history (`docs/TODO.md`).
 
 ## Storage
 
@@ -142,9 +144,15 @@ Only the owner ever reads their fields and values. That is not a rule of each pa
     `GetPlayerCollectionsWithCounts`, `GetPuzzleCollections`, `GetUnsolvedPuzzles`, `GetBorrowCandidates`,
     `GetExportableCollectionItems`, `CollectionItemOverview`, the two collection page controllers,
     `CollectionSelectionResponder`, `CollectionItemRepository`, `AddPuzzleToCollectionHandler`.
+  - **Templates:** every template whose Twig code (comments and quoted texts aside) names the values - the item's
+    `customValues`, `custom_values`, a `.values` read, `my_field_value_text()`, `.filledOn`, the variables
+    `my_fields` / `own_field_values` - is the feature's own (`templates/my_fields/`) or listed with its reason: the
+    collection item's edit form, the result detail's body, the add form's one include.
+  - **No wholesale read of `collection_item`:** in `src/Query` and `src/Services`, a file that names the table may
+    not select it with a wildcard (`ci.*`, `SELECT * FROM collection_item`) or as a whole row (`to_jsonb(ci)`,
+    `row_to_json(…)`) - that would carry `custom_values` without naming it. None does; an exception would be listed.
   - **What it can not see:** what a listed file does with the values - that is what the reasons are for, and what the
-    canary checks from the outside. Templates are not scanned (only `templates/my_fields/` and the two includes use
-    the Twig functions).
+    canary checks from the outside.
   - **This is why routes, texts, templates and form inputs are named `my_fields…`** - the storage names stay rare
     enough to guard.
 - `tests/CustomValuesPrivacyCanaryTest.php` - A and B on one pair result, A has values: nothing the partner, another
@@ -179,7 +187,8 @@ The add-result form is the most important form of the app. The fields are **besi
 - **Nothing of a value in the log:** the warning carries a `CustomValuesWriteFailure` - the classes of the exception
   chain and the SQLSTATE, never their messages. A driver's message quotes the statement's data (Postgres:
   `CONTEXT: JSON data, line 1: {"…`), and warnings go to Loki and Sentry. The values form of a result rethrows a
-  failed write the same way.
+  failed write the same way. What else Sentry would be sent - the request's body above all - is "Nothing of a value
+  leaves the app" below.
 - **A field never refuses a result:** a value that can not be stored (not a number, a bad date, an unknown choice,
   too long) is left out, the rest is saved, and the flash names the fields that were not. No 422 can come from a field
   in the add form. (The values form of a result validates normally and answers 422.)
@@ -207,6 +216,20 @@ The edit form has no fields and no link - values are edited from the result deta
   request runs no statement of this feature.
 - **Its one downside:** a first field made on another device shows up here up to two minutes late. On the same device
   at once: every change on the manage page clears the memo, and so does opening the manage page with fields.
+
+## Nothing of a value leaves the app
+
+A value never goes into a log line or to Sentry. Three ways it could, and what closes each:
+
+| How it would get out | What stops it |
+|---|---|
+| **The request's body.** The Sentry SDK attaches the parsed POST body to every event (`send_default_pii`, its `RequestIntegration`) - so *any* warning or exception during a POST that carries `my_fields[…]` (the add-result form, the values form of a result, the collection item's edit form) would send what was typed as `request.data`. This applied to stage 1a in production until the review of 1b found it. | `Services\Sentry\OwnFieldsSentryScrubber` in `before_send` and `before_send_transaction` (after the online tokens' scrubber - `SentryBeforeSend`, `config/services.php`): the `my_fields` entry of the body is replaced by `[withheld]` at any depth of a parsed form or JSON body; a raw body that names the fields (a content type PHP does not parse) is withheld as a whole. |
+| **A stack frame's arguments** (`zend.exception_ignore_args` is off): a frame of `CustomValues::normalise()` or `SubmittedValuesChange::apply()` is called with the values. | The same scrubber withholds the arguments of every frame inside the custom fields' own code (class names with `CustomValue`, `CustomField`, `CustomColumns`, `SubmittedValuesChange`); the frame stays. |
+| **A message printed as an object.** Every class under `Message/` is printed property by property (`GenericObjectSerializer`, `class_serializers`). | `GenericObjectSerializer` prints `[REDACTED]` for `values` of `SetSolvingTimeCustomValues` and `SetCollectionItemCustomValues`, for `CustomValues::$values`, `CustomFieldsForm::$inputs`, `OwnCustomColumns::$valuesByRow`, and for any property named `customValues` (the two entities). |
+| **An exception's message** (a driver quoting the statement's data). | `CustomValuesWriteFailure::withoutValues()` - the classes and the SQLSTATE, never the messages - wherever a failed write of values is logged or rethrown (the add form, the values form, the collection item's edit form). |
+
+`tests/Services/Sentry/OwnFieldsSentryScrubberTest.php`: bodies of every shape, frames, the two messages, and the
+client's own `before_send` and serializer (wired in, not only written).
 
 ## When a player leaves a result
 
@@ -292,11 +315,23 @@ comment as before and, under it, the owner's fields for collection puzzles (`my_
 never shown on your collection's page - not even when the collection is public." A player without such fields gets
 one quiet line with a link to "My fields" instead.
 
-- Saved: the fields first (`SetCollectionItemCustomValues`), then the comment (`EditCollectionItemComment`,
-  unchanged), then the answer the form always gave (flash + redirect to the collection).
-- A value that can not be stored: **422**, the message at its field, everything typed still in the form, **nothing
-  saved** - not the other fields, not the comment. A comment that is too long: 422 as before, the fields keep what was
-  typed.
+**The comment form was there first and keeps working whatever happens to the fields:**
+
+- **Reading fails open:** any error while loading the fields or the item's values = the form of a player without
+  fields (a warning is logged: `Custom fields could not be loaded for the collection item's edit form`); a save from
+  it saves the comment and leaves the values alone.
+- **Checked before anything is written:** `SubmittedValuesChange::problems()` - the writer's own rule, without a
+  write. A value that can not be stored: **422**, the message at its field, everything typed still in the form,
+  **nothing saved** - not the other fields, not the comment. A comment that is too long: 422 as before, the fields
+  keep what was typed.
+- **Then the comment** (`EditCollectionItemComment`, unchanged), its flash and its redirect - **then the fields**
+  (`SetCollectionItemCustomValues`), only when one of them changed, by a step that never throws: a write that failed
+  at the database closes Doctrine's entity manager, and nothing of the comment may depend on that. If it fails, the
+  comment is saved and the player is told "Your comment is saved. Your own fields could not be saved - please try
+  again." (a warning with a `CustomValuesWriteFailure`: `Custom fields of a collection item could not be saved - its
+  comment was`). A field archived in another tab meanwhile is simply no longer the form's.
+- **The flash fits what happened:** "Saved." when a field changed, the comment's own "Comment was successfully
+  updated." when only the comment was in play.
 - Only the fields the form shows are taken from the request; a rating whose radios are all unchecked sends nothing
   and keeps what is stored.
 - The form names its `action` explicitly; the answer is `Cache-Control: private, no-store`.
@@ -311,8 +346,10 @@ one quiet line with a link to "My fields" instead.
 | Move or copy **into a collection that already holds the puzzle** | copy: nothing changes. Move: the source item leaves, and what it holds **fills the gaps** of the item that stays (`CollectionItem::fillCustomValueGapsFrom()`); what the staying item holds stays |
 | **Puzzle merge** (`ApprovePuzzleMergeRequestHandler`), the player has only the merged puzzle | the item moves onto the survivor with its values |
 | Puzzle merge, the player has both puzzles in the same collection | the two items become one: the survivor's item keeps its values, its gaps are filled from the merged one. The handler keeps the survivor's item object per collection and player for that (it used to keep only "there is one") |
+| Puzzle merge of several puzzles at once | in the order of the merge request's puzzles: the first merged item fills the survivor item's gaps first, the next only what is still empty. Without an item of the survivor, the first merged item moves and is the one that is filled (`PuzzleMergeOfSeveralDuplicatesTest`) |
 | The merge audit (`puzzle_merge_audit`) | holds the ids of the items moved and dropped, as before - **never a value** (the audit outlives items and players) |
-| **Remove** from a collection, sold/swapped, "remove from all collections" | the values are a column of the row - they go with it, nothing else to clean |
+| **Remove** from a collection, "remove from all collections" | the values are a column of the row - they go with it, nothing else to clean |
+| **Marked as sold or swapped** | the puzzle leaves the collections, and the item's values go with the item - nothing of them reaches the sold/swapped history yet (`docs/TODO.md`; the reason "Sold for" is not a ready-made field) |
 | **Account deletion** | `DeletePlayerHandler` already deletes the player's collection items (and their fields) - nothing new |
 
 ## The rating input
@@ -320,16 +357,23 @@ one quiet line with a link to "My fields" instead.
 Five radios styled as star buttons ("★ 1" … "★ 5", Bootstrap's `btn-check`) and a sixth, "No rating", which is
 checked while there is none and takes a rating away. **No JavaScript:** a group of radios in every form that includes
 `_inputs.html.twig` (the add form's block, the values form of a result, the collection item's edit form). Every
-button is at least 44 px. The stars up to the chosen one are lit by a `:has()` rule in the partial's own `<style>`
-(only rendered when a rating field is in the form - the add form of a player without fields is still byte for byte
-what it was); a browser without `:has()` lights the chosen star only, and its number says which.
+button is at least 44 px. The partial's own `<style>` (only rendered when a rating field is in the form - the add form
+of a player without fields is still byte for byte what it was) lights **the chosen star** by a rule of its own
+(`.my-fields-star-input:checked + .my-fields-star`, explicit colours - not left to the theme's rule for a checked
+button, which did not light it) and **the stars before it** by a second rule with `:has()`. Two rules on purpose: a
+browser without `:has()` (before Safari 15.4 / Chrome 105 / Firefox 121) drops the second and keeps the first - it
+lights the chosen star only, and the number on it says which.
 
 In the add form a rating can not refuse a result either: a value that is no rating is left out and named in the flash
 (`AddFormMyFieldsTest`).
 
 ## What 1b added
 
-- The type `rating` and five more ready-made fields (How I liked it, How hard it felt, Quality, Started on, Sold for).
+- The type `rating` and four more ready-made fields (How I liked it, How hard it felt, Quality, Started on).
+- Text may not hold U+FFFE or U+FFFF either (no XML 1.0 document can - one would make the XML export unreadable);
+  the XML writer leaves out what was stored before (`OwnCustomColumns::xmlText()`).
+- `OwnFieldsSentryScrubber` + `GenericObjectSerializer`: nothing of a value in what is sent to Sentry ("Nothing of a
+  value leaves the app") - this closed a hole stage 1a had in production.
 - `collection_item.custom_values` (migration `Version20261114152154`), the fields in the collection item's edit
   form, the reader and the writer bound to the owner; the "arrives soon" wording is gone.
 - Copy / move / merge keep the values ("Copy, move, merge, remove").

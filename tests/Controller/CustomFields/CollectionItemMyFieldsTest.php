@@ -5,7 +5,17 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller\CustomFields;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
+use Monolog\Handler\TestHandler;
+use Monolog\Level;
+use Monolog\LogRecord;
 use SpeedPuzzling\Web\Message\ArchiveCustomField;
+use SpeedPuzzling\Web\MessageHandler\SetCollectionItemCustomValuesHandler;
+use SpeedPuzzling\Web\Query\GetCustomFields;
+use SpeedPuzzling\Web\Repository\CollectionItemRepository;
+use SpeedPuzzling\Web\Repository\CustomFieldRepository;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\CustomFields\CustomValuesWriteFailure;
 use SpeedPuzzling\Web\Tests\CustomFieldsScenario;
 use SpeedPuzzling\Web\Tests\DataFixtures\CollectionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CollectionItemFixture;
@@ -15,6 +25,7 @@ use SpeedPuzzling\Web\Value\StandardCustomField;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
@@ -140,14 +151,17 @@ final class CollectionItemMyFieldsTest extends WebTestCase
         self::assertResponseRedirects('/en/collection/' . CollectionFixture::COLLECTION_PUBLIC);
         self::assertSame('A new comment', $this->comment());
         self::assertEquals([$shelf => 'top shelf', $price => 12.5, $quality => 5, $tags => ['gradient', 'cats']], $scenario->storedItemValues(self::ITEM));
-        $browser->followRedirect();
-        self::assertResponseIsSuccessful();
-        self::assertStringContainsString('Comment was successfully updated.', (string) $browser->getResponse()->getContent());
+        // The fields were in play: the message does not speak of the comment alone
+        self::assertSame(['Saved.'], $this->flashes($browser, 'success'));
 
-        // Saved as it opens: nothing changes. Emptied: the values go, "No rating" takes the rating away
-        $this->submit($browser, 'A new comment', []);
+        // Saved as it opens: nothing changes - and with only the comment in play, the comment's own words
+        $this->submit($browser, 'Another comment', []);
         self::assertResponseRedirects();
+        self::assertSame('Another comment', $this->comment());
         self::assertEquals([$shelf => 'top shelf', $price => 12.5, $quality => 5, $tags => ['gradient', 'cats']], $scenario->storedItemValues(self::ITEM));
+        self::assertSame(['Comment was successfully updated.'], $this->flashes($browser, 'success'));
+
+        // Emptied: the values go, "No rating" takes the rating away
 
         $this->submit($browser, 'A new comment', [$shelf => '', $quality => '']);
         self::assertResponseRedirects();
@@ -189,6 +203,113 @@ final class CollectionItemMyFieldsTest extends WebTestCase
         self::assertResponseRedirects('/en/collection/' . CollectionFixture::COLLECTION_PUBLIC);
         self::assertEquals([$shelf => 'bottom shelf', $price => 9, $bought => '2026-03-01'], $scenario->storedItemValues(self::ITEM));
         self::assertSame('A comment that is saved', $this->comment());
+    }
+
+    /**
+     * The comment form was here before the fields and keeps working whatever happens to them.
+     */
+    public function testTheFormIsTheCommentFormWhenTheFieldsCanNotBeLoaded(): void
+    {
+        $browser = self::createClient();
+        $browser->disableReboot();
+        TestingLogin::asPlayer($browser, self::OWNER);
+        $scenario = new CustomFieldsScenario(self::getContainer());
+        $shelf = $scenario->field(self::OWNER, 'Shelf', forResults: false, forCollectionItems: true);
+        $scenario->setItemValues(self::ITEM, self::OWNER, [$shelf => 'top shelf']);
+
+        $broken = $this->createStub(Connection::class);
+        $broken->method('executeQuery')->willThrowException(new \RuntimeException('The fields table is gone.'));
+        self::getContainer()->set(GetCustomFields::class, new GetCustomFields($broken));
+        $logs = new TestHandler();
+        self::getContainer()->get('logger')->pushHandler($logs);
+
+        // The form of a player without fields
+        $crawler = $browser->request('GET', self::URL);
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('textarea[name="edit_collection_item_comment_form[comment]"]'));
+        self::assertCount(0, $crawler->filter('[data-testid="collection-item-my-fields"]'));
+        self::assertCount(0, $crawler->filter('[name^="my_fields["]'));
+        self::assertCount(1, $crawler->filter('[data-testid="collection-item-no-my-fields"]'));
+        self::assertTrue($logs->hasWarningThatContains('Custom fields could not be loaded for the collection item\'s edit form'));
+
+        // ...and it saves the comment - also with fields in the request (a form opened before the trouble began);
+        // what the item holds stays
+        $values = $crawler->filter('form[name="edit_collection_item_comment_form"]')->form()->getPhpValues();
+        self::assertIsArray($values['edit_collection_item_comment_form'] ?? null);
+        $values['edit_collection_item_comment_form']['comment'] = 'Saved whatever happens';
+        $browser->request('POST', self::URL, [...$values, 'my_fields' => [$shelf => 'bottom shelf']]);
+
+        self::assertResponseRedirects('/en/collection/' . CollectionFixture::COLLECTION_PUBLIC);
+        self::assertSame('Saved whatever happens', $this->comment());
+        self::assertSame([$shelf => 'top shelf'], $scenario->storedItemValues(self::ITEM));
+        self::assertSame(['Comment was successfully updated.'], $this->flashes($browser, 'success'));
+    }
+
+    public function testTheCommentIsSavedAndThePlayerIsToldWhenSavingTheFieldsFails(): void
+    {
+        $browser = self::createClient();
+        $browser->disableReboot();
+        TestingLogin::asPlayer($browser, self::OWNER);
+        $scenario = new CustomFieldsScenario(self::getContainer());
+        $shelf = $scenario->field(self::OWNER, 'Shelf', forResults: false, forCollectionItems: true);
+
+        // The writer of the fields breaks: its repository answers every call with an exception
+        $broken = $this->createStub(EntityManagerInterface::class);
+        $broken->method('getRepository')->willThrowException(new \RuntimeException('The fields table is gone.'));
+        self::getContainer()->set(SetCollectionItemCustomValuesHandler::class, new SetCollectionItemCustomValuesHandler(
+            self::getContainer()->get(CollectionItemRepository::class),
+            self::getContainer()->get(PlayerRepository::class),
+            new CustomFieldRepository($broken),
+        ));
+        $logs = new TestHandler();
+        self::getContainer()->get('logger')->pushHandler($logs);
+
+        $this->submit($browser, 'The comment is saved', [$shelf => 'axolotl-shelf']);
+
+        // The answer the form always gave, and the comment is saved
+        self::assertResponseRedirects('/en/collection/' . CollectionFixture::COLLECTION_PUBLIC);
+        self::assertSame('The comment is saved', $this->comment());
+        self::assertNull($scenario->storedItemValues(self::ITEM));
+
+        // The player is told what was saved and what was not - and not that everything was
+        self::assertSame([], $this->flashes($browser, 'success'));
+        self::assertSame(['Your comment is saved. Your own fields could not be saved - please try again.'], $this->flashes($browser, 'warning'));
+
+        $warnings = array_values(array_filter(
+            $logs->getRecords(),
+            static fn (LogRecord $record): bool => $record->level === Level::Warning && $record->message === 'Custom fields of a collection item could not be saved - its comment was',
+        ));
+        self::assertCount(1, $warnings);
+        self::assertSame(self::ITEM, $warnings[0]->context['collectionItemId']);
+        // What is logged names the exceptions and nothing they said, and nothing that was typed
+        $logged = $warnings[0]->context['exception'];
+        self::assertInstanceOf(CustomValuesWriteFailure::class, $logged);
+        self::assertNull($logged->getPrevious());
+        self::assertStringContainsString('RuntimeException', $logged->getMessage());
+        self::assertStringNotContainsString('The fields table is gone.', $logged->getMessage());
+        self::assertStringNotContainsString('axolotl-shelf', $logged->getMessage() . $logged->getTraceAsString());
+    }
+
+    public function testAFieldArchivedWhileTheFormWasOpenKeepsTheCommentAndItsValueIsNotForTheFormAnyMore(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, self::OWNER);
+        $scenario = new CustomFieldsScenario(self::getContainer());
+        $shelf = $scenario->field(self::OWNER, 'Shelf', forResults: false, forCollectionItems: true);
+
+        $crawler = $browser->request('GET', self::URL);
+        $values = $crawler->filter('form[name="edit_collection_item_comment_form"]')->form()->getPhpValues();
+        self::assertIsArray($values['edit_collection_item_comment_form'] ?? null);
+        $values['edit_collection_item_comment_form']['comment'] = 'Typed before the field went';
+        // In another tab, meanwhile
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new ArchiveCustomField($shelf, self::OWNER));
+
+        $browser->request('POST', self::URL, [...$values, 'my_fields' => [$shelf => 'top shelf']]);
+
+        // The form no longer has the field: the comment is saved, the value is not for this form any more
+        self::assertResponseRedirects('/en/collection/' . CollectionFixture::COLLECTION_PUBLIC);
+        self::assertSame('Typed before the field went', $this->comment());
+        self::assertNull($scenario->storedItemValues(self::ITEM));
     }
 
     public function testACommentThatIsTooLongAnswers422AndKeepsWhatWasTypedIntoTheFields(): void
@@ -292,6 +413,19 @@ final class CollectionItemMyFieldsTest extends WebTestCase
         }
 
         return $browser->request('POST', $url, [...$values, ...$instead]);
+    }
+
+    /**
+     * What the next page will tell the player, taken out of the session like the page would.
+     *
+     * @return list<string>
+     */
+    private function flashes(KernelBrowser $browser, string $type): array
+    {
+        $session = $browser->getRequest()->getSession();
+        self::assertInstanceOf(FlashBagAwareSessionInterface::class, $session);
+
+        return array_values(array_filter($session->getFlashBag()->get($type), is_string(...)));
     }
 
     private function comment(): null|string

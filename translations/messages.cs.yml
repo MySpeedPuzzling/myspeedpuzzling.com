@@ -11719,6 +11719,8 @@ my_fields:
     collection_item:
         private_note: "Tato pole vidíš jen ty. Na stránce tvé kolekce se nikdy nezobrazí - ani když je kolekce veřejná."
         none: "Chceš si ke svému kusu poznamenat víc - stav, kolik stál, kde ho máš? Přidej si vlastní pole; uvidíš je jen ty."
+        saved: "Uloženo."
+        not_saved: "Komentář je uložen. Tvoje vlastní pole se nepodařilo uložit - zkus to prosím znovu."
     export_line: "Co máš zapsáno ve vlastních polích"
     edit_profile_card:
         text: "Vlastní soukromá pole k výsledkům a k puzzle ve tvé kolekci - poznámky, čísla, data, hodnocení, štítky. Vidíš je jen ty."
@@ -11761,5 +11763,3 @@ my_fields:
             label: "Kvalita"
         started_on:
             label: "Začato"
-        sold_for:
-            label: "Prodáno za"

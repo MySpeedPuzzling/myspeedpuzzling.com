@@ -6,6 +6,11 @@ namespace SpeedPuzzling\Web\Services\Sentry;
 
 use DateTimeInterface;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Message\SetCollectionItemCustomValues;
+use SpeedPuzzling\Web\Message\SetSolvingTimeCustomValues;
+use SpeedPuzzling\Web\Results\CustomFieldsForm;
+use SpeedPuzzling\Web\Results\Export\OwnCustomColumns;
+use SpeedPuzzling\Web\Value\CustomValues;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Messenger\Envelope;
 use UnitEnum;
@@ -16,6 +21,23 @@ final class GenericObjectSerializer
 
     private const array SENSITIVE_PROPERTIES = [
         'password',
+        // What a player wrote into their own fields, wherever an entity holding it is nested
+        // (docs/features/custom-fields.md "Nothing of a value leaves the app")
+        'customValues',
+    ];
+
+    /**
+     * The same for classes whose property has too plain a name to withhold everywhere: the two messages that carry a
+     * player's own values, and the objects that hold them.
+     *
+     * @var array<class-string, list<string>>
+     */
+    private const array SENSITIVE_PROPERTIES_OF = [
+        SetSolvingTimeCustomValues::class => ['values'],
+        SetCollectionItemCustomValues::class => ['values'],
+        CustomValues::class => ['values'],
+        CustomFieldsForm::class => ['inputs'],
+        OwnCustomColumns::class => ['valuesByRow'],
     ];
 
     /**
@@ -39,7 +61,10 @@ final class GenericObjectSerializer
                 continue;
             }
 
-            if (in_array($property->getName(), self::SENSITIVE_PROPERTIES, true)) {
+            if (
+                in_array($property->getName(), self::SENSITIVE_PROPERTIES, true)
+                || in_array($property->getName(), self::SENSITIVE_PROPERTIES_OF[$object::class] ?? [], true)
+            ) {
                 $data[$property->getName()] = '[REDACTED]';
                 continue;
             }

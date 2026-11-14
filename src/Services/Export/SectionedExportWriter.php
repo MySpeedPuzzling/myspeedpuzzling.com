@@ -308,7 +308,7 @@ readonly final class SectionedExportWriter
         if (array_any($sections, static fn (ExportSection $section): bool => $section->customColumns !== [])) {
             $lines[] = '';
             $lines[] = 'Columns named "custom:..." are your own fields (My fields): "custom:<key>" is a ready-made field,';
-            $lines[] = '"custom: <name>" one you named yourself. Tags are joined with ", "; a rating is a number from 1 to 5.';
+            $lines[] = '"custom:own:<name>" one you named yourself. Tags are joined with ", "; a rating is a number from 1 to 5.';
         }
 
         return implode("\n", $lines) . "\n";

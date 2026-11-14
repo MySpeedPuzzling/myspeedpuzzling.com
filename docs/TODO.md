@@ -26,6 +26,14 @@ Candidates for work of their own - none is part of the import. What each is and 
 
 ## Custom fields (`docs/features/custom-fields.md`, 2026-11-14)
 
+- [ ] The values of a collection item go with the item when the puzzle is marked as sold or swapped - carry them
+  onto the sold/swapped history and its export section (`sold_swapped`); then the ready-made field "Sold for" (taken
+  out in the review of 1b: it would promise what the app drops) can come back
+- [ ] One message for the comment and the fields of the collection item's edit form (today: a check, then
+  `EditCollectionItemComment`, then `SetCollectionItemCustomValues` - two transactions)
+- [ ] A rollback to an image from before the `rating` type breaks the manage page (and the forms) for a player who
+  made a rating field - `CustomFieldType::from()` on an unknown type. Fail open there: skip a field of a type the
+  code does not know
 - [ ] In a real browser (1b, 2026-11-14): the rating's star buttons - in the add form's block, the values form of a
   result (page and modal) and the collection item's edit form: tap targets, the lit stars, "No rating", keyboard
 - [ ] "My data" is the place to see and edit collection values in bulk (stage 2); until then they are in the item's

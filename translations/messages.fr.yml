@@ -11712,6 +11712,8 @@ my_fields:
     collection_item:
         private_note: "Ces champs ne sont visibles que par toi. Ils n’apparaissent jamais sur la page de ta collection, même quand la collection est publique."
         none: "Envie de noter autre chose sur ton exemplaire - son état, son prix, où il est rangé ? Ajoute tes propres champs ; toi seul(e) les verras."
+        saved: "Enregistré."
+        not_saved: "Ton commentaire est enregistré. Tes propres champs n’ont pas pu être enregistrés - réessaie."
     export_line: "Ce que tu as écrit dans tes propres champs"
     edit_profile_card:
         text: "Tes propres champs privés pour les résultats et pour les puzzles de ta collection - notes, nombres, dates, évaluations, étiquettes. Toi seul(e) les vois."
@@ -11754,5 +11756,3 @@ my_fields:
             label: "Qualité"
         started_on:
             label: "Commencé le"
-        sold_for:
-            label: "Vendu pour"

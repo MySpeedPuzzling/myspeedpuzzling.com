@@ -31,6 +31,7 @@ use SpeedPuzzling\Web\Services\OnlineRounds\S3OnlineMediaStorage;
 use SpeedPuzzling\Web\Services\RateLimiting\RedisSlidingWindowLimiterFactory;
 use SpeedPuzzling\Web\Services\ResultImageCache;
 use SpeedPuzzling\Web\Services\Sentry\OnlineTokenSentryScrubber;
+use SpeedPuzzling\Web\Services\Sentry\SentryBeforeSend;
 use SpeedPuzzling\Web\Services\Mailer\MailStreamRouting;
 use SpeedPuzzling\Web\Services\Mailer\Sns\SnsMessageVerifier;
 use SpeedPuzzling\Web\Services\SentryTracesSampler;
@@ -655,9 +656,10 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set('sentry.traces_sampler', \Closure::class)
         ->factory([service(SentryTracesSampler::class), '__invoke']);
 
-    // No personal link's token of an online competition reaches Sentry (config/packages/sentry.php)
+    // No personal link's token of an online competition reaches Sentry, and nothing a player typed into their own
+    // fields - the SDK attaches the request body to every event (config/packages/sentry.php, SentryBeforeSend)
     $services->set('sentry.before_send', \Closure::class)
-        ->factory([service(OnlineTokenSentryScrubber::class), 'beforeSend']);
+        ->factory([service(SentryBeforeSend::class), 'beforeSend']);
     $services->set('sentry.before_breadcrumb', \Closure::class)
         ->factory([service(OnlineTokenSentryScrubber::class), 'beforeBreadcrumb']);
 };

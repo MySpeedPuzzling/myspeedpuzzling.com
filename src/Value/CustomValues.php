@@ -11,7 +11,8 @@ use SpeedPuzzling\Web\Exceptions\InvalidCustomValue;
  * A player's own values on one row (a result, a collection item), keyed by the id of the custom field -
  * what the jsonb column holds (docs/features/custom-fields.md). One stored value per type:
  *
- * - text: a string of at most 500 characters, valid UTF-8 without control characters (line breaks and tabs stay)
+ * - text: a string of at most 500 characters, valid UTF-8 without control characters (line breaks and tabs stay) and
+ *   without the two characters XML can not hold (U+FFFE, U+FFFF)
  * - number: an int, or a float when it has a fraction
  * - date: `Y-m-d`
  * - yes/no: true / false (no answer = no value)
@@ -184,10 +185,11 @@ readonly final class CustomValues
     }
 
     /**
-     * Text the database can hold and a page can show: valid UTF-8 without control characters (a NUL byte or broken
-     * UTF-8 is refused by jsonb - as a failed write, not as a wrong value). Line breaks and tabs only where the text
-     * has lines. Checked before anything else is done with the text: a regular expression answers broken UTF-8 with
-     * nothing at all.
+     * Text the database can hold, a page can show and an XML export can carry: valid UTF-8 without control characters
+     * (a NUL byte or broken UTF-8 is refused by jsonb - as a failed write, not as a wrong value) and without U+FFFE
+     * and U+FFFF, which no XML 1.0 document may hold (lone surrogates are no valid UTF-8 already). Line breaks and
+     * tabs only where the text has lines. Checked before anything else is done with the text: a regular expression
+     * answers broken UTF-8 with nothing at all.
      */
     public static function isStorableText(string $text, bool $multiline): bool
     {
@@ -195,7 +197,7 @@ readonly final class CustomValues
             return false;
         }
 
-        return preg_match($multiline ? '/[^\P{Cc}\n\r\t]/u' : '/\p{Cc}/u', $text) === 0;
+        return preg_match($multiline ? '/[^\P{Cc}\n\r\t]|[\x{FFFE}\x{FFFF}]/u' : '/\p{Cc}|[\x{FFFE}\x{FFFF}]/u', $text) === 0;
     }
 
     /**

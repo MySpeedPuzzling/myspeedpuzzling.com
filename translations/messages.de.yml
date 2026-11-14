@@ -11716,6 +11716,8 @@ my_fields:
     collection_item:
         private_note: "Diese Felder siehst nur du. Auf der Seite deiner Sammlung erscheinen sie nie - auch nicht, wenn die Sammlung öffentlich ist."
         none: "Möchtest du dir mehr zu deinem Exemplar notieren - Zustand, Preis, Aufbewahrungsort? Lege eigene Felder an; nur du siehst sie."
+        saved: "Gespeichert."
+        not_saved: "Dein Kommentar ist gespeichert. Deine eigenen Felder konnten nicht gespeichert werden - bitte versuche es noch einmal."
     export_line: "Was du in deine eigenen Felder geschrieben hast"
     edit_profile_card:
         text: "Deine eigenen privaten Felder für Ergebnisse und für die Puzzles deiner Sammlung - Notizen, Zahlen, Daten, Bewertungen, Tags. Nur du siehst sie."
@@ -11758,5 +11760,3 @@ my_fields:
             label: "Qualität"
         started_on:
             label: "Begonnen am"
-        sold_for:
-            label: "Verkauft für"

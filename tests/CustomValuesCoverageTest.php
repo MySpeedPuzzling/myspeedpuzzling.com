@@ -43,6 +43,7 @@ final class CustomValuesCoverageTest extends TestCase
     private const string COPY_REMOVED = 'Duplicate results: before a copy is deleted, CustomValuesOfRemovedCopy moves each player\'s row onto the kept result of the same player - nothing is read out or shown.';
     private const string ITEMS_BECOME_ONE = 'Two collection items of one player become one (the target collection already holds the puzzle): CollectionItem::fillCustomValueGapsFrom() fills the staying item\'s empty fields from the leaving item of the same player - nothing is read out or shown.';
     private const string EXPORT_WRITER = 'Renders an owner-only export: writes the OwnCustomColumns it is handed (built by OwnCustomValuesInExport for the signed-in player) as extra columns - runs no query, reads nothing itself.';
+    private const string SENTRY = 'Keeps what a player typed out of what is sent to Sentry: names the classes whose values it withholds - reads nothing, shows nothing.';
     private const string NO_QUERY = 'Feature-internal value/DTO - holds or checks what an owner-only reader or writer gave it, runs no query and is reached only through the listed services.';
 
     /** Files that may name the storage or what hands it out */
@@ -69,6 +70,8 @@ final class CustomValuesCoverageTest extends TestCase
         'Services/CustomFields/SubmittedCustomValues.php' => 'Reads the `my_fields[…]` inputs of the current request (their name is CustomFieldsForm::INPUT) - what the signed-in player just typed, never stored values.',
         'Services/CustomFields/CustomFieldLabels.php' => 'Words a field and a value (ready-made names in the page language) - formats what it is given, reads nothing.',
         'Services/CustomFields/CustomFieldRefusalMessage.php' => 'Words a refused add/edit of the player\'s own field - names the entity for its limits only.',
+        'Services/Sentry/OwnFieldsSentryScrubber.php' => self::SENTRY,
+        'Services/Sentry/GenericObjectSerializer.php' => self::SENTRY,
         'Twig/CustomFieldsTwigExtension.php' => 'Twig functions over CustomFieldLabels for the feature\'s own templates (templates/my_fields/) - formats what the template was given, reads nothing.',
 
         // The pages of the feature
@@ -223,6 +226,212 @@ final class CustomValuesCoverageTest extends TestCase
             self::assertFileExists($path);
             self::assertDoesNotMatchRegularExpression('/custom_field|custom_values|CustomField|CustomValues|my_fields/i', (string) file_get_contents($path), $path);
         }
+    }
+
+    /**
+     * Templates are code too: a template that is handed a collection item (an entity half the app passes around) can
+     * print `item.customValues.values`, and one that is handed the viewer's own block can be included anywhere. Every
+     * template that names the values - the entity's methods, the column, a `.values` read, the Twig function that
+     * words a value, the variables that carry them (`my_fields`, `own_field_values`) - is listed with its reason; a
+     * template under `templates/my_fields/` is the feature's own.
+     */
+    private const string TEMPLATE_NEEDLES = '/custom_?values|\.values\b|own_field_values|my_field_value_text|\.filledOn\b|\bmy_fields\b/i';
+
+    private const string OWN_TEMPLATES = 'my_fields/';
+
+    /** Templates outside templates/my_fields/ that may name the values */
+    private const array ALLOWED_TEMPLATES = [
+        'collections/edit-item-comment.html.twig' => 'The owner\'s edit form of one collection item (the controller 404s for anybody else): includes my_fields/_inputs.html.twig with the CustomFieldsForm of the signed-in owner - it never reads the item\'s values off the entity.',
+        '_solving_time_form.html.twig' => 'The add-result form: one expression that includes my_fields/_add_form_block.html.twig when `my_fields` is there - the CustomFieldsForm AddFormCustomFields built for the signed-in player from the request (what was just typed, never stored values).',
+        'puzzle_result/_body.html.twig' => 'The result detail: includes my_fields/_result_block.html.twig with `own_field_values`, which OwnCustomValuesOnResults built for the signed-in viewer alone (null for anybody else - then nothing is included).',
+    ];
+
+    public function testOnlyTheListedTemplatesNameTheValues(): void
+    {
+        $unlisted = [];
+        $stale = self::ALLOWED_TEMPLATES;
+        $ownTemplates = 0;
+        $root = (string) realpath(__DIR__ . '/../templates');
+
+        /** @var \SplFileInfo $file */
+        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)) as $file) {
+            if ($file->getExtension() !== 'twig') {
+                continue;
+            }
+
+            if (preg_match(self::TEMPLATE_NEEDLES, self::templateCodeOf((string) file_get_contents($file->getPathname()))) !== 1) {
+                continue;
+            }
+
+            $relative = substr($file->getPathname(), strlen($root) + 1);
+
+            if (str_starts_with($relative, self::OWN_TEMPLATES)) {
+                $ownTemplates++;
+
+                continue;
+            }
+
+            unset($stale[$relative]);
+
+            if (array_key_exists($relative, self::ALLOWED_TEMPLATES) === false) {
+                $unlisted[] = $relative;
+            }
+        }
+
+        sort($unlisted);
+
+        self::assertSame([], $unlisted, 'These templates name a player\'s own values (the collection item\'s customValues, a `.values` read, the viewer\'s own block). The values are private (docs/features/custom-fields.md): a collection page is often public and its lists are shared, a result is shown to everybody. If the template shows the signed-in player their OWN values, handed in by a service that resolves the signed-in player itself, list it here and say so.');
+        self::assertSame([], array_keys($stale), 'These templates no longer name the values - remove them from the list.');
+        self::assertGreaterThan(1, $ownTemplates, 'The feature\'s own templates were found - the scan sees what it should');
+    }
+
+    public function testTheTemplateNeedlesCatchWhatTheyShould(): void
+    {
+        foreach (
+            [
+                '{{ item.customValues.values|json_encode }}',
+                '{% for value in collectionItem.customValues.values %}',
+                '{{ row.custom_values }}',
+                '{{ stored.values[field.fieldId] }}',
+                '{{ include(\'my_fields/_result_block.html.twig\', {own_field_values: own_field_values}) }}',
+                '{{ my_field_value_text(field, value) }}',
+                '{% for entry in something.filledOn(time_id) %}',
+                '{{ my_fields.inputs[field.fieldId] }}',
+                '{{ my_fields.input(field) }}',
+                '{{ my_fields|default(null) is not null ? include(\'my_fields/_add_form_block.html.twig\') : \'\' }}',
+                // Inside an attribute's quotes it is still Twig
+                '<div class="card" data-values="{{ item.customValues.values|json_encode }}">',
+            ] as $template
+        ) {
+            self::assertMatchesRegularExpression(self::TEMPLATE_NEEDLES, self::templateCodeOf($template), $template);
+        }
+
+        // A text key, a route or a comment that only has the words hands nothing out
+        foreach (
+            [
+                '{{ \'my_fields.values.title\'|trans }}',
+                '<a href="{{ path(\'my_fields\') }}">{{ "my_fields.values.saved"|trans }}</a>',
+                '{# the item.customValues are never shown here #}',
+                '{{ form.vars.value }}',
+            ] as $template
+        ) {
+            self::assertDoesNotMatchRegularExpression(self::TEMPLATE_NEEDLES, self::templateCodeOf($template), $template);
+        }
+    }
+
+    /**
+     * No query reads a collection item wholesale. `collection_item.custom_values` is named by one reader - but a
+     * `SELECT ci.*`, a `SELECT * FROM collection_item` or a `to_jsonb(ci)` would carry the column without naming it,
+     * straight past the needles above. Files that do so on purpose are listed with their reason (none today).
+     */
+    private const array ALLOWED_WHOLESALE_READS = [];
+
+    /**
+     * @return array<string, string> file => the reason it may
+     */
+    private static function allowedWholesaleReads(): array
+    {
+        return self::ALLOWED_WHOLESALE_READS;
+    }
+
+    public function testNoQueryReadsACollectionItemWholesale(): void
+    {
+        $offenders = [];
+        $scanned = 0;
+        $root = (string) realpath(__DIR__ . '/../src');
+
+        foreach (['Query', 'Services'] as $directory) {
+            /** @var \SplFileInfo $file */
+            foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root . '/' . $directory, \FilesystemIterator::SKIP_DOTS)) as $file) {
+                if ($file->getExtension() !== 'php') {
+                    continue;
+                }
+
+                $code = self::codeOf($file->getPathname());
+
+                if (preg_match('/\bcollection_item\b/', $code) !== 1) {
+                    continue;
+                }
+
+                $scanned++;
+                $relative = substr($file->getPathname(), strlen($root) + 1);
+
+                if (self::readsCollectionItemsWholesale($code) && array_key_exists($relative, self::allowedWholesaleReads()) === false) {
+                    $offenders[] = $relative;
+                }
+            }
+        }
+
+        sort($offenders);
+
+        self::assertGreaterThan(5, $scanned, 'The queries that read collection items were found - the scan sees what it should');
+        self::assertSame([], $offenders, 'These files read `collection_item` with a wildcard (`alias.*`, `SELECT * FROM collection_item`) or as a whole row (`to_jsonb(`, `row_to_json(`). That selects `custom_values` - a player\'s private values (docs/features/custom-fields.md "Collection items") - without naming it. Select the columns by name.');
+    }
+
+    public function testTheWholesaleCheckCatchesWhatItShould(): void
+    {
+        foreach (
+            [
+                'SELECT ci.* FROM collection_item ci WHERE ci.player_id = :playerId',
+                'SELECT ci.id, ci.* FROM collection_item AS ci',
+                'SELECT collection_item.* FROM collection_item',
+                'SELECT * FROM collection_item WHERE player_id = :playerId',
+                "SELECT *\nFROM collection_item\nWHERE player_id = :playerId",
+                'SELECT to_jsonb(ci) FROM collection_item ci',
+                'SELECT row_to_json(item) FROM collection_item item',
+                'SELECT p.name, item.* FROM puzzle p INNER JOIN collection_item item ON item.puzzle_id = p.id',
+            ] as $sql
+        ) {
+            self::assertTrue(self::readsCollectionItemsWholesale($sql), $sql);
+        }
+
+        foreach (
+            [
+                'SELECT ci.id, ci.comment FROM collection_item ci',
+                'SELECT COUNT(*) FROM collection_item WHERE player_id = :playerId',
+                // A wildcard over another table or a subquery whose own columns are named
+                'SELECT p.* FROM puzzle p WHERE EXISTS (SELECT 1 FROM collection_item ci WHERE ci.puzzle_id = p.id)',
+                'SELECT * FROM (SELECT ci.id, ci.puzzle_id FROM collection_item ci) owned',
+            ] as $sql
+        ) {
+            self::assertFalse(self::readsCollectionItemsWholesale($sql), $sql);
+        }
+    }
+
+    private static function readsCollectionItemsWholesale(string $code): bool
+    {
+        // Every name the table goes by in the file: itself and its aliases
+        preg_match_all('/\bcollection_item\s+(?:AS\s+)?([a-z_][a-z0-9_]*)\b/i', $code, $matches);
+        $names = ['collection_item'];
+
+        foreach ($matches[1] as $alias) {
+            if (in_array(strtoupper($alias), ['WHERE', 'ON', 'INNER', 'LEFT', 'RIGHT', 'JOIN', 'CROSS', 'ORDER', 'GROUP', 'SET', 'USING', 'LIMIT', 'UNION', 'AS', 'FOR', 'HAVING', 'VALUES', 'RETURNING', 'FULL', 'NATURAL', 'WINDOW', 'OFFSET'], true) === false) {
+                $names[] = $alias;
+            }
+        }
+
+        foreach (array_unique($names) as $name) {
+            $name = preg_quote($name, '/');
+
+            if (preg_match('/\b' . $name . '\.\*|\b(?:to_jsonb?|row_to_json|json_agg|jsonb_agg|array_agg)\(\s*' . $name . '\s*\)/i', $code) === 1) {
+                return true;
+            }
+        }
+
+        return preg_match('/SELECT\s+\*\s+FROM\s+collection_item\b/i', $code) === 1;
+    }
+
+    /**
+     * What Twig runs in a template - its `{{ }}` and `{% %}`, without comments and quoted texts: a translation key, a
+     * route name or a comment naming the values decides nothing.
+     */
+    private static function templateCodeOf(string $template): string
+    {
+        $withoutComments = (string) preg_replace('/\{#.*?#\}/s', '', $template);
+        // Only what Twig runs: the markup around it (attributes in quotes, texts) is no code
+        preg_match_all('/\{\{.*?\}\}|\{%.*?%\}/s', $withoutComments, $blocks);
+
+        return (string) preg_replace('/\'[^\'\n]*\'|"[^"\n]*"/', "''", implode("\n", $blocks[0]));
     }
 
     public function testTheNeedlesCatchWhatTheyShould(): void

@@ -63,19 +63,19 @@ final class MyFieldsExportTest extends WebTestCase
         $partnerNotes = $scenario->field(self::PARTNER, 'Notes of the partner');
         $scenario->setValues($timeId, self::PARTNER, [$partnerNotes => 'partner-only-words']);
 
-        $labels = ['custom: Notes <b>bold</b>', 'custom:how_hard_it_felt', 'custom:my_tags', 'custom: Never filled in', 'custom: Now for the collection', 'custom: Archived with a value'];
+        $labels = ['custom:own:Notes <b>bold</b>', 'custom:how_hard_it_felt', 'custom:my_tags', 'custom:own:Never filled in', 'custom:own:Now for the collection', 'custom:own:Archived with a value'];
 
         $rows = $this->json($browser, self::RESULTS . 'json');
         $byId = self::rowsBy('result_id', $rows);
         self::assertArrayHasKey($timeId, $byId);
         self::assertSame($labels, array_keys(self::customOf($byId[$timeId])));
         self::assertSame([
-            'custom: Notes <b>bold</b>' => '=1+1',
+            'custom:own:Notes <b>bold</b>' => '=1+1',
             'custom:how_hard_it_felt' => 3,
             'custom:my_tags' => ['gradient', 'cats'],
-            'custom: Never filled in' => null,
-            'custom: Now for the collection' => true,
-            'custom: Archived with a value' => 7,
+            'custom:own:Never filled in' => null,
+            'custom:own:Now for the collection' => true,
+            'custom:own:Archived with a value' => 7,
         ], self::customOf($byId[$timeId]));
         // Every row has the same columns, also one without a value
         self::assertSame(array_fill_keys($labels, null), self::customOf($byId[$otherTimeId]));
@@ -89,7 +89,7 @@ final class MyFieldsExportTest extends WebTestCase
 
         $xml = $this->download($browser, self::RESULTS . 'xml');
         self::assertStringContainsString('<custom name="custom:how_hard_it_felt">3</custom>', $xml);
-        self::assertStringContainsString('<custom name="custom: Notes &lt;b&gt;bold&lt;/b&gt;">=1+1</custom>', $xml);
+        self::assertStringContainsString('<custom name="custom:own:Notes &lt;b&gt;bold&lt;/b&gt;">=1+1</custom>', $xml);
         self::assertStringContainsString('<tag>gradient</tag>', $xml);
 
         self::assertStringStartsWith('PK', $this->download($browser, self::RESULTS . 'xlsx'));
@@ -116,13 +116,13 @@ final class MyFieldsExportTest extends WebTestCase
         $scenario->field(self::PLAYER, 'Notes on a solve');
         $scenario->setItemValues(CollectionItemFixture::ITEM_04, self::PLAYER, [$price => '12,5', $condition => 'like_new', $quality => '5', $shelf => '+top']);
 
-        $labels = ['custom:price_paid', 'custom:condition', 'custom:quality', 'custom: Shelf "A"'];
+        $labels = ['custom:price_paid', 'custom:condition', 'custom:quality', 'custom:own:Shelf "A"'];
 
         $json = $this->json($browser, self::LIBRARY . 'json');
         self::assertIsArray($json['collection_items'] ?? null);
         $items = self::rowsBy('collection_item_id', $json['collection_items']);
         self::assertCount(9, $items);
-        self::assertSame(['custom:price_paid' => 12.5, 'custom:condition' => 'like_new', 'custom:quality' => 5, 'custom: Shelf "A"' => '+top'], self::customOf($items[CollectionItemFixture::ITEM_04]));
+        self::assertSame(['custom:price_paid' => 12.5, 'custom:condition' => 'like_new', 'custom:quality' => 5, 'custom:own:Shelf "A"' => '+top'], self::customOf($items[CollectionItemFixture::ITEM_04]));
         self::assertSame(array_fill_keys($labels, null), self::customOf($items[CollectionItemFixture::ITEM_05]));
         self::assertSame('custom', array_key_last($items[CollectionItemFixture::ITEM_04]));
 
@@ -144,11 +144,50 @@ final class MyFieldsExportTest extends WebTestCase
 
         $xml = $this->download($browser, self::LIBRARY . 'xml');
         self::assertStringContainsString('<custom name="custom:price_paid">12.5</custom>', $xml);
-        self::assertStringContainsString('<custom name="custom: Shelf &quot;A&quot;">+top</custom>', $xml);
+        self::assertStringContainsString('<custom name="custom:own:Shelf &quot;A&quot;">+top</custom>', $xml);
         self::assertStringNotContainsString('Notes on a solve', $xml);
 
         self::assertStringStartsWith('PK', $this->download($browser, self::LIBRARY . 'xlsx'));
         self::assertStringStartsWith('PK', $this->download($browser, self::LIBRARY . 'csv'));
+    }
+
+    /**
+     * A player may name their own field like a ready-made field's key. The two are two columns in every format - the
+     * label of an own field says so (`custom:own:…`), a key has no colon.
+     */
+    public function testAnOwnFieldNamedLikeAReadyMadeKeyIsItsOwnColumn(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, self::PLAYER);
+        $scenario = new CustomFieldsScenario(self::getContainer());
+        $readyMade = $scenario->readyMade(self::PLAYER, StandardCustomField::PricePaid);
+        $own = $scenario->field(self::PLAYER, 'price_paid', forResults: false, forCollectionItems: true);
+        $ownNotes = $scenario->field(self::PLAYER, 'private_notes');
+        $readyMadeNotes = $scenario->readyMade(self::PLAYER, StandardCustomField::PrivateNotes);
+        $scenario->setItemValues(CollectionItemFixture::ITEM_04, self::PLAYER, [$readyMade => '12', $own => 'own-price-text']);
+        $timeId = $scenario->result(self::PLAYER_USER);
+        $scenario->setValues($timeId, self::PLAYER, [$ownNotes => 'own-notes-text', $readyMadeNotes => 'ready-made-notes-text']);
+
+        // The library: both prices, each under its own label
+        $json = $this->json($browser, self::LIBRARY . 'json');
+        self::assertIsArray($json['collection_items'] ?? null);
+        $item = self::customOf(self::rowsBy('collection_item_id', $json['collection_items'])[CollectionItemFixture::ITEM_04]);
+        self::assertSame(12, $item['custom:price_paid'] ?? null);
+        self::assertSame('own-price-text', $item['custom:own:price_paid'] ?? null);
+        // "Private notes" is for collection puzzles too - empty here, and still apart from the own field's name
+        self::assertSame(['custom:price_paid', 'custom:own:price_paid', 'custom:private_notes'], array_keys($item));
+
+        $xml = $this->download($browser, self::LIBRARY . 'xml');
+        self::assertStringContainsString('<custom name="custom:price_paid">12</custom>', $xml);
+        self::assertStringContainsString('<custom name="custom:own:price_paid">own-price-text</custom>', $xml);
+
+        // The results file: the same for the notes
+        $result = self::customOf(self::rowsBy('result_id', $this->json($browser, self::RESULTS . 'json'))[$timeId]);
+        self::assertSame(['custom:own:private_notes' => 'own-notes-text', 'custom:private_notes' => 'ready-made-notes-text'], $result);
+
+        $header = strtok($this->download($browser, self::RESULTS . 'csv'), "\n");
+        self::assertIsString($header);
+        self::assertStringEndsWith('"custom:own:private_notes","custom:private_notes"', trim($header));
     }
 
     /**

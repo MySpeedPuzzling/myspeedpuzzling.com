@@ -711,7 +711,7 @@ anyone to re-enter anything.
 | How hard it felt | results | rating 1-5 | file 4 | felt difficulty against the measured one |
 | Quality | collection items | rating 1-5 | file 4 | players' ratings of a brand's cut and print |
 | Started on | results | date | file 4 | solves that took several days |
-| Sold for | collection items | number | file 4 | - |
+| Sold for (**not offered yet** - a puzzle marked as sold leaves the collections and its item's values go with it; first the values must travel onto the sold/swapped history) | collection items | number | file 4 | - |
 
 Artist, year and material are facts about the puzzle, not about one player's copy. They are stored privately like
 every custom value; nothing is copied into the shared catalogue from an import. What the import gives us is the

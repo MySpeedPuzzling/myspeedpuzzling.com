@@ -32,20 +32,20 @@ final class OwnFieldsInExportsTest extends TestCase
     private const string ROW = '018d0000-0000-0000-0000-000000000001';
     private const string EMPTY_ROW = '018d0000-0000-0000-0000-000000000002';
 
-    private const string MARKUP_NAME = 'custom: <script>alert("x")</script> & \'co\'';
+    private const string MARKUP_NAME = 'custom:own:<script>alert("x")</script> & \'co\'';
     private const string FORMULA = '=HYPERLINK("http://evil.example","x")';
 
     /** The columns in order: every type, a field named like markup, a field nothing is written in */
     private const array LABELS = [
         'custom:private_notes',
-        'custom: Breaks',
+        'custom:own:Breaks',
         'custom:started_on',
-        'custom: Sorted first',
+        'custom:own:Sorted first',
         'custom:condition',
         'custom:my_tags',
         'custom:how_i_liked_it',
         self::MARKUP_NAME,
-        'custom: Nothing in it',
+        'custom:own:Nothing in it',
     ];
 
     /**
@@ -67,14 +67,14 @@ final class OwnFieldsInExportsTest extends TestCase
         self::assertSame(self::LABELS, array_keys($rows[0]['custom']));
         self::assertSame([
             'custom:private_notes' => self::FORMULA,
-            'custom: Breaks' => 2.5,
+            'custom:own:Breaks' => 2.5,
             'custom:started_on' => '2026-03-01',
-            'custom: Sorted first' => false,
+            'custom:own:Sorted first' => false,
             'custom:condition' => 'like_new',
             'custom:my_tags' => ['=cmd', 'night sky'],
             'custom:how_i_liked_it' => 4,
             self::MARKUP_NAME => "one\ntwo",
-            'custom: Nothing in it' => null,
+            'custom:own:Nothing in it' => null,
         ], $rows[0]['custom']);
         // A row without any value: the same keys, all empty - an object, never a list
         self::assertSame(array_fill_keys(self::LABELS, null), $rows[1]['custom']);
@@ -179,13 +179,13 @@ final class OwnFieldsInExportsTest extends TestCase
         self::assertSame(self::LABELS, array_keys($custom));
         self::assertSame('custom', $record->lastElementChild?->tagName, 'After every other column');
         self::assertSame(self::FORMULA, $custom['custom:private_notes']->textContent);
-        self::assertSame('2.5', $custom['custom: Breaks']->textContent);
+        self::assertSame('2.5', $custom['custom:own:Breaks']->textContent);
         self::assertSame('2026-03-01', $custom['custom:started_on']->textContent);
-        self::assertSame('false', $custom['custom: Sorted first']->textContent);
+        self::assertSame('false', $custom['custom:own:Sorted first']->textContent);
         self::assertSame('like_new', $custom['custom:condition']->textContent);
         self::assertSame('4', $custom['custom:how_i_liked_it']->textContent);
         self::assertSame("one\ntwo", $custom[self::MARKUP_NAME]->textContent);
-        self::assertSame('', $custom['custom: Nothing in it']->textContent);
+        self::assertSame('', $custom['custom:own:Nothing in it']->textContent);
         // Tags: one <tag> each
         $tags = [];
 
@@ -203,6 +203,57 @@ final class OwnFieldsInExportsTest extends TestCase
         }
 
         self::assertSame(self::elementTexts(self::xml($this->export($export, ExportFormat::Xml, null))), self::elementTexts($dom));
+    }
+
+    /**
+     * U+FFFF (and U+FFFE, a control character) may be in a value stored before they were refused at the input: one of
+     * them in an XML file makes the whole file unreadable. They are left out; the rest of the value stays.
+     */
+    #[DataProvider('provideExports')]
+    public function testACharacterXmlCanNotHoldIsLeftOutOfTheXmlFile(string $export): void
+    {
+        $custom = new OwnCustomColumns(["custom:own:Shelf\u{FFFF}"], [
+            self::ROW => ["custom:own:Shelf\u{FFFF}" => "top\u{FFFF} shelf\u{FFFE}\u{1} left"],
+            self::EMPTY_ROW => ["custom:own:Shelf\u{FFFF}" => ["cats\u{FFFF}", "sk\u{0}y"]],
+        ]);
+
+        $content = $this->export($export, ExportFormat::Xml, $custom);
+
+        self::assertStringNotContainsString("\u{FFFF}", $content);
+        self::assertStringNotContainsString("\u{FFFE}", $content);
+        // The file is a document a parser reads
+        $dom = self::xml($content);
+        $elements = (new \DOMXPath($dom))->query('//custom');
+        self::assertNotFalse($elements);
+        self::assertSame(2, $elements->length);
+        $first = $elements->item(0);
+        $second = $elements->item(1);
+        self::assertInstanceOf(\DOMElement::class, $first);
+        self::assertInstanceOf(\DOMElement::class, $second);
+        self::assertSame('custom:own:Shelf', $first->getAttribute('name'));
+        self::assertSame('top shelf left', $first->textContent);
+        $tags = [];
+
+        foreach ($second->getElementsByTagName('tag') as $tag) {
+            $tags[] = $tag->textContent;
+        }
+
+        self::assertSame(['cats', 'sky'], $tags);
+
+        // The other formats can hold them: JSON as an escape, a spreadsheet as it is - nothing is changed there
+        $json = $this->jsonRows($export, $custom);
+        self::assertIsArray($json[0]['custom']);
+        self::assertSame("top\u{FFFF} shelf\u{FFFE}\u{1} left", $json[0]['custom']["custom:own:Shelf\u{FFFF}"] ?? null);
+    }
+
+    public function testXmlTextKeepsEverythingXmlCanHold(): void
+    {
+        $text = "Žluťoučký kůň\n\tパズル 🧩 <b>&amp;</b> \u{E000}\u{FFFD}";
+
+        self::assertSame($text, OwnCustomColumns::xmlText($text));
+        self::assertSame('ab', OwnCustomColumns::xmlText("a\u{0}\u{8}\u{B}\u{C}\u{1F}\u{FFFE}\u{FFFF}b"));
+        // No UTF-8 at all: nothing, never a broken file
+        self::assertSame('', OwnCustomColumns::xmlText("a\xC3\x28b"));
     }
 
     public function testAPlayerWithoutFieldsGetsTheFilesAsTheyAlwaysWere(): void
@@ -227,16 +278,16 @@ final class OwnFieldsInExportsTest extends TestCase
         return new OwnCustomColumns(self::LABELS, [
             self::ROW => [
                 'custom:private_notes' => self::FORMULA,
-                'custom: Breaks' => 2.5,
+                'custom:own:Breaks' => 2.5,
                 'custom:started_on' => '2026-03-01',
-                'custom: Sorted first' => false,
+                'custom:own:Sorted first' => false,
                 'custom:condition' => 'like_new',
                 'custom:my_tags' => ['=cmd', 'night sky'],
                 'custom:how_i_liked_it' => 4,
                 self::MARKUP_NAME => "one\ntwo",
             ],
             // A row the export does not have: never written anywhere
-            '018d0000-0000-0000-0000-00000000ffff' => ['custom: Breaks' => 99],
+            '018d0000-0000-0000-0000-00000000ffff' => ['custom:own:Breaks' => 99],
         ]);
     }
 

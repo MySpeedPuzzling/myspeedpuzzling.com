@@ -66,11 +66,17 @@ committed with `git add -A`; one destructive command per call, never the dev dat
 - 2026-11-14 - stage 1b built (`docs/features/custom-fields.md` "Collection items", `docs/features/data-export.md`
   "Own fields"). Settled while building: a collection item's values are a **private property** of the entity with one
   viewer-bound reader - never on a collection page, not for the owner either; the export names a ready-made field by
-  its key (`custom:price_paid`) and an own field by its name (`custom: Shelf`), since the export's columns are English
-  and fixed; a move into a collection that already holds the puzzle fills the staying item's gaps like the merge does.
+  its key (`custom:price_paid`) and an own field by its name (`custom:own:Shelf`), since the export's columns are
+  English and fixed; a move into a collection that already holds the puzzle fills the staying item's gaps like the merge does.
   Found in the codebase: the collection item's edit form is a full page - it has no modal variant; marking a puzzle
   as sold/swapped removes it from the collections, so that item's values ("Sold for" included) go with it - the
   sold/swapped history keeps its own price.
+- 2026-11-14 - review round of 1b (#346). **Found: the Sentry SDK attaches the request body to every event, so a
+  warning during any POST with `my_fields[…]` sent the typed values - true for stage 1a in production too.** Closed by
+  `OwnFieldsSentryScrubber` (body, frames) and `GenericObjectSerializer` (the two messages). Also: the export's label
+  of an own field is `custom:own:<name>`; the guard scans templates and refuses wildcard reads of `collection_item`;
+  the item's edit form reads failing open, checks first, saves the comment and then the fields; U+FFFE / U+FFFF are
+  refused and left out of XML; "Sold for" is not offered until its value survives "mark as sold".
 - 2026-11-14 - a fourth file (Puzzle Tracker's export): known exports as built-in layouts, the source's row id as
   identity, the wish list as a target, words with a meaning, ratings and four more ready-made fields.
 - 2026-11-14 - Jan: the add form must never break - stage 1a saves fields after the result, stage 6a no longer

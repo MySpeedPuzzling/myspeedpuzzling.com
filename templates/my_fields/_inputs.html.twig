@@ -26,10 +26,21 @@
             --bs-btn-hover-border-color: #e0a100;
             --bs-btn-hover-color: #7a5200;
         }
+        /* The chosen star: said here, not left to the theme's rule for a checked button */
+        .my-fields-rating .my-fields-star-input:checked + .my-fields-star {
+            background-color: #fff4d6;
+            border-color: #e0a100;
+            color: #7a5200;
+        }
+        /* The stars before it - a rule of its own: a browser without :has() drops it and keeps the one above */
         .my-fields-rating .my-fields-star:has(~ .my-fields-star-input:checked) {
-            background-color: var(--bs-btn-active-bg);
-            border-color: var(--bs-btn-active-border-color);
-            color: var(--bs-btn-active-color);
+            background-color: #fff4d6;
+            border-color: #e0a100;
+            color: #7a5200;
+        }
+        .my-fields-rating .my-fields-star-input:focus-visible + .my-fields-star {
+            outline: 2px solid #7a5200;
+            outline-offset: 2px;
         }
     </style>
 {% endif %}

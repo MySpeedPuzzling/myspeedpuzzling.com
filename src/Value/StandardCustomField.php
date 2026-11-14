@@ -11,6 +11,9 @@ namespace SpeedPuzzling\Web\Value;
  * without asking anybody to enter anything again.
  *
  * A key is stored (`custom_field.standard_key`) - never rename a case's value, never change a type.
+ *
+ * Not here on purpose: "Sold for". A puzzle marked as sold or swapped leaves the collections, and its item's values go
+ * with the item - the field would promise to keep what the app then drops (docs/TODO.md "Custom fields").
  */
 enum StandardCustomField: string
 {
@@ -31,13 +34,12 @@ enum StandardCustomField: string
     case HowHardItFelt = 'how_hard_it_felt';
     case Quality = 'quality';
     case StartedOn = 'started_on';
-    case SoldFor = 'sold_for';
 
     public function type(): CustomFieldType
     {
         return match ($this) {
             self::PrivateNotes, self::WhatToWorkOn, self::BoughtFrom, self::WhereItIs, self::Artist => CustomFieldType::Text,
-            self::MissingPieces, self::PricePaid, self::Copies, self::YearOfRelease, self::SoldFor => CustomFieldType::Number,
+            self::MissingPieces, self::PricePaid, self::Copies, self::YearOfRelease => CustomFieldType::Number,
             self::BoughtOn, self::StartedOn => CustomFieldType::Date,
             self::Condition, self::Material => CustomFieldType::Choice,
             self::MyTags => CustomFieldType::Tags,
@@ -92,7 +94,6 @@ enum StandardCustomField: string
             self::HowHardItFelt => 'How hard it felt',
             self::Quality => 'Quality',
             self::StartedOn => 'Started on',
-            self::SoldFor => 'Sold for',
         };
     }
 
@@ -267,14 +268,6 @@ enum StandardCustomField: string
             'es' => ['empezado el', 'fecha de inicio', 'comenzado'],
             'fr' => ['commencé le', 'date de début', 'commencé'],
             'ja' => ['開始日', '始めた日'],
-        ],
-        'sold_for' => [
-            'en' => ['sold for', 'sell price', 'selling price', 'sale price', 'sold price'],
-            'cs' => ['prodáno za', 'prodejní cena', 'cena prodeje'],
-            'de' => ['verkauft für', 'verkaufspreis'],
-            'es' => ['vendido por', 'precio de venta'],
-            'fr' => ['vendu pour', 'prix de vente'],
-            'ja' => ['売却価格', '販売価格', '売値'],
         ],
     ];
 }

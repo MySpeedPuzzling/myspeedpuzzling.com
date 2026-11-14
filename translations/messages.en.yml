@@ -11963,6 +11963,8 @@ my_fields:
     collection_item:
         private_note: "Only you see these fields. They are never shown on your collection's page - not even when the collection is public."
         none: "Want to note more about your copy - its condition, what you paid, where it is? Add your own fields; only you will see them."
+        saved: "Saved."
+        not_saved: "Your comment is saved. Your own fields could not be saved - please try again."
     export_line: "What you wrote in your own fields"
     edit_profile_card:
         text: "Your own private fields for results and for the puzzles in your collection - notes, numbers, dates, ratings, tags. Only you ever see them."
@@ -12005,5 +12007,3 @@ my_fields:
             label: "Quality"
         started_on:
             label: "Started on"
-        sold_for:
-            label: "Sold for"

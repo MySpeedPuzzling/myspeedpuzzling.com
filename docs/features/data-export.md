@@ -72,14 +72,14 @@ language is, so:
 
 - a ready-made field: `custom:<key>` - its fixed key (`custom:price_paid`, `custom:how_i_liked_it`), the same for
   every player and in every language;
-- a player's own field: `custom: <name>` - the name they gave it (`custom: Shelf`). The space keeps it apart from
-  every key.
+- a player's own field: `custom:own:<name>` - the name they gave it (`custom:own:Shelf`). A key has no colon, so
+  an own field named like a key is still its own column: `custom:own:price_paid` beside `custom:price_paid`.
 
 | Format | Shape | Values |
 |---|---|---|
 | XLSX, CSV | one column per field **after every existing column** | number = number, yes/no = `true` / `false`, date = `Y-m-d`, rating = number 1-5, tags joined with `", "`, one of a list = the stored choice (a ready-made list's key: `like_new`, `cardboard`) |
-| JSON | an object `custom` as the last key of the row: `{"custom:price_paid": 12.5, "custom: Shelf": "top"}` | typed: number, boolean, list of tags, rating as a number, date as a `Y-m-d` string; `null` = empty. Every row has every label |
-| XML | `<custom name="custom:price_paid">12.5</custom>` children after the row's other elements (a field's name is no valid element name) | text; tags as `<tag>` children: `<custom name="custom:my_tags"><tag>cats</tag><tag>sky</tag></custom>`; an empty element for an empty field |
+| JSON | an object `custom` as the last key of the row: `{"custom:price_paid": 12.5, "custom:own:Shelf": "top"}` | typed: number, boolean, list of tags, rating as a number, date as a `Y-m-d` string; `null` = empty. Every row has every label |
+| XML | `<custom name="custom:price_paid">12.5</custom>` children after the row's other elements (a field's name is no valid element name) | text; tags as `<tag>` children: `<custom name="custom:my_tags"><tag>cats</tag><tag>sky</tag></custom>`; an empty element for an empty field. A character XML 1.0 can not hold (a control character, U+FFFE, U+FFFF) is left out - new values never have one, a value stored before that rule might |
 
 - **Nothing that was there changed:** no existing column was renamed, moved or removed, in either file;
   `PuzzleLibraryExportBuilder::FORMAT_VERSION` stays 1 (columns were added). The other library sections have no own

@@ -18,11 +18,14 @@ use SpeedPuzzling\Web\Repository\CollectionItemRepository;
 use SpeedPuzzling\Web\Results\CustomFieldsForm;
 use SpeedPuzzling\Web\Services\CustomFields\CustomValuesWriteFailure;
 use SpeedPuzzling\Web\Services\CustomFields\SubmittedCustomValues;
+use SpeedPuzzling\Web\Services\CustomFields\SubmittedValuesChange;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CustomValues;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
@@ -34,6 +37,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * puzzles (docs/features/custom-fields.md "Collection items") - the only page that shows those values. An item has
  * one owner, so the fields sit in this form; they are plain inputs beside the Symfony form (`my_fields[<field id>]`),
  * read and written for the signed-in owner only.
+ *
+ * The comment was here first and keeps working whatever happens to the fields: they are read failing open (the form
+ * of a player without fields), checked before anything is written (a wrong value = 422, nothing saved), and saved
+ * after the comment by a step that can not lose it.
  */
 final class EditCollectionItemCommentController extends AbstractController
 {
@@ -44,6 +51,7 @@ final class EditCollectionItemCommentController extends AbstractController
         readonly private GetCollectionItemCustomValues $getCollectionItemCustomValues,
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
+        readonly private LoggerInterface $logger,
     ) {
     }
 
@@ -79,18 +87,32 @@ final class EditCollectionItemCommentController extends AbstractController
         $collectionItemId = $collectionItem->id->toString();
 
         // The signed-in owner's fields for collection puzzles and what this item holds in them - both statements are
-        // bound to the signed-in player's id
-        $fields = $this->getCustomFields->usableOnCollectionItems($player->playerId);
-        $stored = $fields === []
-            ? new CustomValues()
-            : $this->getCollectionItemCustomValues->forViewer([$collectionItemId], $player->playerId)[$collectionItemId] ?? new CustomValues();
+        // bound to the signed-in player's id. Failing open: the comment form works without them
+        $fields = [];
+        $stored = new CustomValues();
 
-        $inputs = [];
+        try {
+            $fields = $this->getCustomFields->usableOnCollectionItems($player->playerId);
 
-        foreach ($fields as $field) {
-            $inputs[$field->fieldId] = CustomValues::toInput($stored->of($field->fieldId));
+            if ($fields !== []) {
+                $stored = $this->getCollectionItemCustomValues->forViewer([$collectionItemId], $player->playerId)[$collectionItemId] ?? $stored;
+            }
+        } catch (\Throwable $exception) {
+            // Reading carries no value of anybody (the statements' parameters are ids) - logged as it is
+            $this->logger->warning('Custom fields could not be loaded for the collection item\'s edit form - it is shown without them', [
+                'exception' => $exception,
+            ]);
+
+            $fields = [];
         }
 
+        $storedInputs = [];
+
+        foreach ($fields as $field) {
+            $storedInputs[$field->fieldId] = CustomValues::toInput($stored->of($field->fieldId));
+        }
+
+        $inputs = $storedInputs;
         $problems = [];
 
         $formData = EditCollectionItemCommentFormData::fromCollectionItem($collectionItem);
@@ -104,44 +126,37 @@ final class EditCollectionItemCommentController extends AbstractController
         }
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // The fields first: they are the part that can be refused, and nothing is saved then
-            if ($fields !== []) {
-                try {
-                    $this->messageBus->dispatch(new SetCollectionItemCustomValues($collectionItemId, $player->playerId, $inputs));
-                } catch (HandlerFailedException $exception) {
-                    $refusal = $exception->getPrevious();
+            // Checked before anything is written: a value that can not be stored refuses the save as a whole
+            $problems = SubmittedValuesChange::problems($stored, $fields, $inputs);
+        }
 
-                    if (!$refusal instanceof InvalidCustomValues) {
-                        // Never the exception itself: a driver's message can quote the values
-                        throw CustomValuesWriteFailure::withoutValues($exception);
-                    }
+        if ($form->isSubmitted() && $form->isValid() && $problems === []) {
+            // The same fields in both, in whatever order they were sent
+            $fieldsChanged = array_diff_assoc($inputs, $storedInputs) !== [];
 
-                    $problems = $refusal->problems;
-                }
+            $this->messageBus->dispatch(
+                new EditCollectionItemComment(
+                    collectionItemId: $collectionItemId,
+                    playerId: $player->playerId,
+                    comment: $formData->comment,
+                ),
+            );
+
+            // The comment's own words as long as only the comment was in play
+            $this->addFlash('success', $this->translator->trans($fieldsChanged ? 'my_fields.collection_item.saved' : 'collections.flash.comment_updated'));
+
+            // Redirect back to collection detail or system collection
+            $answer = $collectionItem->collection !== null
+                ? $this->redirectToRoute('collection_detail', ['collectionId' => $collectionItem->collection->id->toString()])
+                : $this->redirectToRoute('system_collection_detail', ['playerId' => $player->playerId]);
+
+            // The fields last, after the comment is saved and its answer built: a write that failed at the database
+            // closes Doctrine's entity manager, and nothing of the comment may depend on that
+            if ($fieldsChanged) {
+                $this->saveFields($request, $collectionItemId, $player->playerId, $inputs);
             }
 
-            if ($problems === []) {
-                $this->messageBus->dispatch(
-                    new EditCollectionItemComment(
-                        collectionItemId: $collectionItemId,
-                        playerId: $player->playerId,
-                        comment: $formData->comment,
-                    ),
-                );
-
-                $this->addFlash('success', $this->translator->trans('collections.flash.comment_updated'));
-
-                // Redirect back to collection detail or system collection
-                if ($collectionItem->collection !== null) {
-                    return $this->redirectToRoute('collection_detail', [
-                        'collectionId' => $collectionItem->collection->id->toString(),
-                    ]);
-                }
-
-                return $this->redirectToRoute('system_collection_detail', [
-                    'playerId' => $player->playerId,
-                ]);
-            }
+            return $answer;
         }
 
         // Determine cancel URL based on collection type
@@ -172,5 +187,40 @@ final class EditCollectionItemCommentController extends AbstractController
         $response->headers->set('Cache-Control', 'private, no-store');
 
         return $response;
+    }
+
+    /**
+     * Never throws - the comment is saved and answered. A refusal here is rare (the values were checked a moment ago:
+     * a field archived in another tab meanwhile); anything else is logged without a value in it.
+     *
+     * @param array<string, string> $inputs
+     */
+    private function saveFields(Request $request, string $collectionItemId, string $playerId, array $inputs): void
+    {
+        try {
+            $this->messageBus->dispatch(new SetCollectionItemCustomValues($collectionItemId, $playerId, $inputs));
+        } catch (\Throwable $exception) {
+            try {
+                $refusal = $exception instanceof HandlerFailedException ? $exception->getPrevious() : null;
+
+                if (!$refusal instanceof InvalidCustomValues) {
+                    $this->logger->warning('Custom fields of a collection item could not be saved - its comment was', [
+                        'collectionItemId' => $collectionItemId,
+                        // Never the exception itself: a driver's message can quote the values (CustomValuesWriteFailure)
+                        'exception' => CustomValuesWriteFailure::withoutValues($exception),
+                    ]);
+                }
+
+                // The success flash would say more than what happened
+                $session = $request->hasSession() ? $request->getSession() : null;
+
+                if ($session instanceof FlashBagAwareSessionInterface) {
+                    $session->getFlashBag()->get('success');
+                    $session->getFlashBag()->add('warning', $this->translator->trans('my_fields.collection_item.not_saved'));
+                }
+            } catch (\Throwable) {
+                // The comment is saved - nothing about the player's own fields may get in its way
+            }
+        }
     }
 }

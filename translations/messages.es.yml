@@ -11717,6 +11717,8 @@ my_fields:
     collection_item:
         private_note: "Estos campos solo los ves tú. Nunca se muestran en la página de tu colección, ni siquiera cuando la colección es pública."
         none: "¿Quieres anotar algo más sobre tu ejemplar: su estado, lo que pagaste, dónde está? Añade tus propios campos; solo los verás tú."
+        saved: "Guardado."
+        not_saved: "Tu comentario se ha guardado. Tus propios campos no se pudieron guardar; inténtalo de nuevo."
     export_line: "Lo que escribiste en tus propios campos"
     edit_profile_card:
         text: "Tus propios campos privados para los resultados y para los puzzles de tu colección: notas, números, fechas, valoraciones, etiquetas. Solo los ves tú."
@@ -11759,5 +11761,3 @@ my_fields:
             label: "Calidad"
         started_on:
             label: "Empezado el"
-        sold_for:
-            label: "Vendido por"

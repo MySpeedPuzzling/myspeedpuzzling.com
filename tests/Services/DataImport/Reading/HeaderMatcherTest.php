@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Services\DataImport\Reading;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Services\DataImport\Reading\HeaderMatcher;
+use SpeedPuzzling\Web\Value\DataImport\DurationUnit;
 use SpeedPuzzling\Web\Value\DataImport\FieldGuess;
 use SpeedPuzzling\Web\Value\DataImport\ImportField;
 use SpeedPuzzling\Web\Value\StandardCustomField;
@@ -52,7 +53,6 @@ final class HeaderMatcherTest extends TestCase
         yield 'app: Missing pieces' => ['Missing pieces', $readyMade, StandardCustomField::MissingPieces];
         yield 'app: Artist' => ['Artist', $readyMade, StandardCustomField::Artist];
         yield 'app: Place of purchase' => ['Place of purchase', $readyMade, StandardCustomField::BoughtFrom];
-        yield 'app: Puzzle type' => ['Puzzle type', $readyMade, StandardCustomField::Condition];
         yield 'app: Bar code' => ['Bar code', ImportField::Barcode];
         yield 'app: Tags' => ['Tags', $readyMade, StandardCustomField::MyTags];
         yield 'app: Notes' => ['Notes', $readyMade, StandardCustomField::PrivateNotes];
@@ -253,9 +253,8 @@ final class HeaderMatcherTest extends TestCase
         yield 'file 3: the difference to the best attempt is worked out, not an attempt number' => ['Diff between previous best attempt', ImportField::Computed];
         yield 'file 3: the standing on MySpeedPuzzling is worked out, not "already there"' => ['Current standing on my speed puzzling', ImportField::Computed];
         yield 'file 3: the placing at a competition' => ['Placing if used at comp', ImportField::Computed];
-        yield 'the other app\'s sell price is at least a price' => ['Sell price', ImportField::ReadyMadeField, StandardCustomField::PricePaid];
-        yield 'the other app\'s creation date is at least a date' => ['Creation date', ImportField::SolvedOn];
-        yield 'a time with more words' => ['My best time ever', ImportField::Time];
+        yield 'a brand with more words' => ['Puzzle brand name', ImportField::Brand];
+        yield 'a barcode with more words' => ['Barcode number', ImportField::Barcode];
         yield 'an artist\'s name is the artist, not the puzzle\'s name' => ['Artist name', ImportField::ReadyMadeField, StandardCustomField::Artist];
         yield 'ja: a word inside a longer header' => ['パズルのタイトル一覧', ImportField::PuzzleName];
         yield 'a percentage of something' => ['Share in %', ImportField::Computed];
@@ -302,7 +301,7 @@ final class HeaderMatcherTest extends TestCase
 
     public function testGuessesAreSortedByScore(): void
     {
-        foreach (['Date completed', 'Diff between previous best attempt', 'Purchase price', 'Time with breaks'] as $header) {
+        foreach (['Date completed', 'Diff between previous best attempt', 'Purchase price', 'Pieces per minute', 'Missing pieces'] as $header) {
             $scores = array_map(static fn (FieldGuess $guess): int => $guess->score, (new HeaderMatcher())->guess($header));
             $sorted = $scores;
             rsort($sorted);
@@ -333,10 +332,211 @@ final class HeaderMatcherTest extends TestCase
         yield 'the other app\'s picture id' => ['Picture id'];
         yield 'a column letter' => ['Column7'];
         yield 'a word nobody knows' => ['Zxqv'];
+        // A generic word inside a longer header is a part of another thing
+        yield 'time: Start time' => ['Start time'];
+        yield 'time: End time' => ['End time'];
+        yield 'time: Goal time' => ['Goal time'];
+        yield 'time: Best time' => ['Best time'];
+        yield 'time: My best time ever' => ['My best time ever'];
+        yield 'time: Time with breaks' => ['Time with breaks'];
+        yield 'date: Date added' => ['Date added'];
+        yield 'date: Release date' => ['Release date'];
+        yield 'date: Creation date' => ['Creation date'];
+        yield 'date: Date sold' => ['Date sold'];
+        yield 'with: With box' => ['With box'];
+        yield 'who: Who gave it' => ['Who gave it'];
+        yield 'de: mit Rahmen' => ['mit Rahmen'];
+        yield 'es: con marco' => ['con marco'];
+        yield 'fr: avec cadre' => ['avec cadre'];
+        yield 'price: Sell price' => ['Sell price'];
+        yield 'list: Wish list' => ['Wish list'];
+        yield 'name: Shop name' => ['Shop name'];
+        yield 'code: Zip code' => ['Zip code'];
+        yield 'count: Word count' => ['Word count'];
+        yield 'type: Puzzle type - a known export\'s own' => ['Puzzle type'];
+        yield 'place: Place of birth' => ['Place of birth'];
+        yield 'ja: start time' => ['スタートタイム'];
+        yield 'cs: čas startu' => ['Čas startu'];
+        yield 'de: Zeit Start' => ['Zeit Start'];
+
+        // Not what they were taken for
+        yield 'a picture is no puzzle name' => ['Image'];
+        yield 'nor is Picture' => ['Picture'];
+        yield 'January is no barcode' => ['Jan'];
+        yield 'Min is a minimum as often as minutes' => ['Min'];
+        yield 'a single letter is no unit' => ['H'];
+
         yield 'a part of a word is no word' => ['Timetable'];
         yield 'a part of a word is no word, the other way' => ['Datel'];
         yield 'an emoji' => ['🧩'];
         yield 'a very long header' => [str_repeat('Title ', 200)];
+    }
+
+    /**
+     * @param list<array{ImportField, null|StandardCustomField}> $fields
+     */
+    #[DataProvider('ambiguousHeaders')]
+    public function testAHeaderThatMeansSeveralThingsIsNeverSure(string $header, array $fields): void
+    {
+        $guesses = (new HeaderMatcher())->guess($header);
+        $exact = array_values(array_filter($guesses, static fn (FieldGuess $guess): bool => $guess->isExact()));
+
+        self::assertSame($fields, array_map(static fn (FieldGuess $guess): array => [$guess->field, $guess->readyMadeField], $exact), $header);
+
+        foreach ($guesses as $guess) {
+            self::assertFalse($guess->sure, $header . ': the values or the player decide');
+        }
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{ImportField, null|StandardCustomField}>}>
+     */
+    public static function ambiguousHeaders(): iterable
+    {
+        $pieces = [ImportField::Pieces, null];
+        $readyMade = static fn (StandardCustomField $field): array => [ImportField::ReadyMadeField, $field];
+
+        yield 'Count: pieces or copies' => ['Count', [$pieces, $readyMade(StandardCustomField::Copies)]];
+        yield 'Anzahl: pieces or copies' => ['Anzahl', [$pieces, $readyMade(StandardCustomField::Copies)]];
+        yield 'Name: the puzzle or a person' => ['Name', [[ImportField::PuzzleName, null], [ImportField::SolvedWith, null]]];
+        yield 'cs: jméno is a person\'s name' => ['Jméno', [[ImportField::SolvedWith, null]]];
+        yield 'es: nombre - a name, and in French a number' => ['Nombre', [[ImportField::PuzzleName, null], $readyMade(StandardCustomField::Copies)]];
+        yield 'Type' => ['Type', [[ImportField::SolvingType, null]]];
+        yield 'Status' => ['Status', [[ImportField::Status, null]]];
+        yield 'Completed: a date in one file, a yes/no in another' => ['Completed', [[ImportField::SolvedOn, null], [ImportField::Status, null]]];
+        yield 'Completed?' => ['Completed?', [[ImportField::SolvedOn, null], [ImportField::Status, null]]];
+        yield 'Finished' => ['Finished', [[ImportField::SolvedOn, null], [ImportField::Status, null]]];
+        yield 'cs: dokončeno' => ['Dokončeno', [[ImportField::SolvedOn, null], [ImportField::Status, null]]];
+        yield 'de: beendet' => ['beendet', [[ImportField::SolvedOn, null], [ImportField::Status, null]]];
+        yield 'Year: the year of release - never the day it was solved' => ['Year', [$readyMade(StandardCustomField::YearOfRelease)]];
+        yield 'cs: rok' => ['Rok', [$readyMade(StandardCustomField::YearOfRelease)]];
+        yield 'Place: a rank or where it is kept' => ['Place', [[ImportField::Computed, null], $readyMade(StandardCustomField::WhereItIs)]];
+        yield 'Size' => ['Size', [$pieces]];
+        yield 'de: Größe' => ['Größe', [$pieces]];
+        yield 'de: Groesse' => ['Groesse', [$pieces]];
+        yield 'fr: note - a remark or a mark out of five' => ['Note', [$readyMade(StandardCustomField::PrivateNotes), $readyMade(StandardCustomField::HowILikedIt)]];
+        yield 'cs: stav - the status or the condition' => ['Stav', [[ImportField::Status, null], $readyMade(StandardCustomField::Condition)]];
+        yield 'with a note in brackets' => ['Count (pcs)', [$pieces, $readyMade(StandardCustomField::Copies)]];
+    }
+
+    #[DataProvider('sureHeaders')]
+    public function testAHeaderWithOneMeaningIsSure(string $header, ImportField $field, null|StandardCustomField $readyMade = null): void
+    {
+        $guesses = (new HeaderMatcher())->guess($header);
+
+        self::assertNotSame([], $guesses, $header);
+        self::assertSame($field, $guesses[0]->field, $header);
+        self::assertSame($readyMade, $guesses[0]->readyMadeField, $header);
+        self::assertTrue($guesses[0]->sure, $header);
+
+        foreach (array_slice($guesses, 1) as $other) {
+            self::assertFalse($other->sure, 'Only the first guess can be sure');
+            self::assertFalse($other->isExact());
+        }
+    }
+
+    /**
+     * @return iterable<string, array{0: string, 1: ImportField, 2?: StandardCustomField}>
+     */
+    public static function sureHeaders(): iterable
+    {
+        yield 'Title' => ['Title', ImportField::PuzzleName];
+        yield 'Brand' => ['Brand', ImportField::Brand];
+        yield 'Pieces' => ['Pieces', ImportField::Pieces];
+        yield 'Time' => ['Time', ImportField::Time];
+        yield 'Date' => ['Date', ImportField::SolvedOn];
+        yield 'Date completed' => ['Date completed', ImportField::SolvedOn];
+        yield 'End date' => ['End date', ImportField::SolvedOn];
+        yield 'Start date - on its exact words only' => ['Start date', ImportField::ReadyMadeField, StandardCustomField::StartedOn];
+        yield 'Price' => ['Price', ImportField::ReadyMadeField, StandardCustomField::PricePaid];
+        yield 'a comment is private' => ['Comment', ImportField::ReadyMadeField, StandardCustomField::PrivateNotes];
+        yield 'notes are private' => ['Notes', ImportField::ReadyMadeField, StandardCustomField::PrivateNotes];
+        yield 'PPM' => ['PPM', ImportField::Computed];
+        yield 'Pieces/min' => ['Pieces/min', ImportField::Computed];
+        yield 'pcs/min' => ['pcs/min', ImportField::Computed];
+        yield 'Pieces per minute' => ['Pieces per minute', ImportField::Computed];
+        yield 'de: Legezeit' => ['Legezeit', ImportField::Time];
+        yield 'fr: chrono' => ['Chrono', ImportField::Time];
+        yield 'de: Künstler' => ['Künstler', ImportField::ReadyMadeField, StandardCustomField::Artist];
+        yield 'de: Kuenstler, typed without the umlaut' => ['Kuenstler', ImportField::ReadyMadeField, StandardCustomField::Artist];
+        yield 'de: Stueck is no word, Strichcode is' => ['Strichcode', ImportField::Barcode];
+        yield 'ja: JANコード' => ['JANコード', ImportField::Barcode];
+        yield 'Missing pieces' => ['Missing pieces', ImportField::ReadyMadeField, StandardCustomField::MissingPieces];
+    }
+
+    public function testAHeldWordIsNeverSure(): void
+    {
+        foreach (['Artist name', 'Diff between previous best attempt', 'Puzzle brand name', 'Share in %'] as $header) {
+            $guesses = (new HeaderMatcher())->guess($header);
+
+            self::assertNotSame([], $guesses, $header);
+
+            foreach ($guesses as $guess) {
+                self::assertFalse($guess->sure, $header);
+            }
+        }
+    }
+
+    public function testAQualifierDoesNotHideTheWordsOfAFormula(): void
+    {
+        // "best", "previous" make it no attempt number - the difference is still something MySpeedPuzzling works out
+        $guesses = (new HeaderMatcher())->guess('Diff between previous best attempt');
+
+        self::assertCount(1, $guesses);
+        self::assertSame(ImportField::Computed, $guesses[0]->field);
+    }
+
+    #[DataProvider('headersWithAUnit')]
+    public function testAUnitInAHeaderIsHandedOut(string $header, null|DurationUnit $unit): void
+    {
+        $guesses = (new HeaderMatcher())->guess($header);
+
+        self::assertNotSame([], $guesses, $header);
+        self::assertSame(ImportField::Time, $guesses[0]->field, $header);
+        self::assertSame(FieldGuess::EXACT, $guesses[0]->score, $header);
+        self::assertTrue($guesses[0]->sure, $header);
+        self::assertSame($unit, $guesses[0]->unitHint, $header);
+    }
+
+    /**
+     * @return iterable<string, array{string, null|DurationUnit}>
+     */
+    public static function headersWithAUnit(): iterable
+    {
+        yield 'Time (min)' => ['Time (min)', DurationUnit::Minutes];
+        yield 'Time (minutes)' => ['Time (minutes)', DurationUnit::Minutes];
+        yield 'Time (in minutes)' => ['Time (in minutes)', DurationUnit::Minutes];
+        yield 'Time in minutes' => ['Time in minutes', DurationUnit::Minutes];
+        yield 'Time [s]' => ['Time [s]', DurationUnit::Seconds];
+        yield 'Time (sec)' => ['Time (sec)', DurationUnit::Seconds];
+        yield 'Duration (h)' => ['Duration (h)', DurationUnit::Hours];
+        yield 'Duration in hours' => ['Duration in hours', DurationUnit::Hours];
+        yield 'cs: Čas (h)' => ['Čas (h)', DurationUnit::Hours];
+        yield 'cs: Čas (min)' => ['Čas (min)', DurationUnit::Minutes];
+        yield 'de: Zeit (Std)' => ['Zeit (Std)', DurationUnit::Hours];
+        yield 'de: Zeit (Min.)' => ['Zeit (Min.)', DurationUnit::Minutes];
+        yield 'es: Tiempo (minutos)' => ['Tiempo (minutos)', DurationUnit::Minutes];
+        yield 'fr: Temps (heures)' => ['Temps (heures)', DurationUnit::Hours];
+        yield 'ja: タイム(分)' => ['タイム(分)', DurationUnit::Minutes];
+        yield 'the header is the unit: Minutes' => ['Minutes', DurationUnit::Minutes];
+        yield 'the header is the unit: Hours' => ['Hours', DurationUnit::Hours];
+        yield 'the header is the unit: Seconds' => ['Seconds', DurationUnit::Seconds];
+        yield 'the header is the unit: Minuten' => ['Minuten', DurationUnit::Minutes];
+        yield 'the header is the unit: Stunden' => ['Stunden', DurationUnit::Hours];
+        yield 'a format in brackets is no unit' => ['Time (h:mm:ss)', null];
+        yield 'no unit' => ['Time', null];
+        yield 'ja: 時間 is "time" as a header' => ['時間', null];
+    }
+
+    public function testAUnitBelongsToATimeColumnOnly(): void
+    {
+        foreach ((new HeaderMatcher())->guess('Price (h)') as $guess) {
+            self::assertNull($guess->unitHint);
+        }
+
+        foreach ((new HeaderMatcher())->guess('Pieces per minute') as $guess) {
+            self::assertNull($guess->unitHint);
+        }
     }
 
     public function testEveryWordOfEveryFieldIsGuessedAsThatField(): void

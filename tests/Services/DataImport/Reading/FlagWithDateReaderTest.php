@@ -13,7 +13,7 @@ use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Value\DataImport\CellInput;
 use SpeedPuzzling\Web\Value\DataImport\DateCertainty;
 use SpeedPuzzling\Web\Value\DataImport\DateOrder;
-use SpeedPuzzling\Web\Value\DataImport\DatePrecision;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\DataImport\YesNoCertainty;
 use Symfony\Component\Clock\MockClock;
 

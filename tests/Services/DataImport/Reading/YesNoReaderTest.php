@@ -36,6 +36,8 @@ final class YesNoReaderTest extends TestCase
         'non', 'Non', 'faux', 'FAUX',
         'いいえ',
         ' no ', 'No.', '(n)', 'ｎｏ',
+        // A full-width ｘ is how a cross is typed on a Japanese keyboard - not the letter of a tick
+        'ｘ', 'Ｘ', '（ｘ）',
     ];
 
     #[DataProvider('yes')]

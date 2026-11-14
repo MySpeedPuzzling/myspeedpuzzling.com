@@ -10,7 +10,7 @@ use LogicException;
 use PHPUnit\Framework\TestCase;
 use SpeedPuzzling\Web\Value\DataImport\CellInput;
 use SpeedPuzzling\Web\Value\DataImport\CellInputKind;
-use SpeedPuzzling\Web\Value\DataImport\DatePrecision;
+use SpeedPuzzling\Web\Value\DatePrecision;
 
 final class CellInputTest extends TestCase
 {
@@ -32,6 +32,9 @@ final class CellInputTest extends TestCase
         $timeOfDay = CellInput::timeOfDay(3720);
         self::assertSame(CellInputKind::TimeOfDay, $timeOfDay->kind);
         self::assertSame(3720, $timeOfDay->asSeconds());
+        self::assertFalse($timeOfDay->clockFormat);
+        self::assertTrue(CellInput::timeOfDay(3720, true)->clockFormat, 'A clock\'s format: h:mm AM/PM, a date with a time');
+        self::assertFalse($duration->clockFormat);
 
         self::assertTrue(CellInput::boolean(true)->asBoolean());
         self::assertFalse(CellInput::boolean(false)->asBoolean());

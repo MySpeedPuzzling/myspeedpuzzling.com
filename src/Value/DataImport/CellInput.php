@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Value\DataImport;
 use DateTimeImmutable;
 use DateTimeZone;
 use LogicException;
+use SpeedPuzzling\Web\Value\DatePrecision;
 
 /**
  * One cell as the value readers take it (docs/features/data-import/value-readers.md "Input"): a text, or a value the
@@ -23,6 +24,8 @@ final readonly class CellInput
         public DatePrecision $precision = DatePrecision::Day,
         /** Dates only: false when the cell's format hides the year ("m/d") - the value's year was never seen */
         public bool $yearKnown = true,
+        /** Times of day only: the cell's format is a clock's (AM/PM, or a date with a time) - a moment, never a duration */
+        public bool $clockFormat = false,
     ) {
     }
 
@@ -49,9 +52,13 @@ final readonly class CellInput
         return new self(CellInputKind::Duration, $seconds);
     }
 
-    public static function timeOfDay(int $seconds): self
+    /**
+     * @param bool $clockFormat The format shows a clock (h:mm AM/PM, a date with a time): a "Start time" column, NOW().
+     *        Without it the cell may be a duration typed into a plain time cell (h:mm:ss, h:mm)
+     */
+    public static function timeOfDay(int $seconds, bool $clockFormat = false): self
     {
-        return new self(CellInputKind::TimeOfDay, $seconds);
+        return new self(CellInputKind::TimeOfDay, $seconds, clockFormat: $clockFormat);
     }
 
     /**

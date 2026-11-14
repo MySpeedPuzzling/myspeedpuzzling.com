@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Value\DataImport;
 
-use SpeedPuzzling\Web\Value\SearchText;
-
 /**
  * A brand as a spreadsheet writes it, reduced to what two spellings of one brand share
  * (docs/features/data-import/README.md "Brands", "Keys, exactly").
@@ -13,11 +11,12 @@ use SpeedPuzzling\Web\Value\SearchText;
 final readonly class ImportBrandText
 {
     /**
-     * Folded, letters and digits only: "Master Pieces", "MasterPieces" and "master-pieces" are "masterpieces",
-     * "Schmidt Spiele®" is "schmidtspiele". Empty for a text without a letter or a digit.
+     * Folded (the keys' frozen fold, ImportKeyFold v1), letters and digits only: "Master Pieces", "MasterPieces" and
+     * "master-pieces" are "masterpieces", "Schmidt Spiele®" is "schmidtspiele". Empty for a text without a letter or
+     * a digit. It is a part of every puzzle key - it changes only together with the key's version.
      */
     public static function lettersAndDigits(null|string $brand): string
     {
-        return $brand === null ? '' : SearchText::code($brand);
+        return $brand === null ? '' : ImportKeyFold::lettersAndDigitsV1($brand);
     }
 }

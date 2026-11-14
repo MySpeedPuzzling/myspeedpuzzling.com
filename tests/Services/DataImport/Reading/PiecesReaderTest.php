@@ -43,7 +43,8 @@ final class PiecesReaderTest extends TestCase
         yield 'a non-breaking space after' => [CellInput::text("500\u{00A0}"), 500];
         yield 'full-width digits' => [CellInput::text('１０００'), 1000];
         yield 'leading zeros' => [CellInput::text('0500'), 500];
-        yield 'one piece' => [CellInput::number(1), 1];
+        yield 'the fewest taken from a lone number' => [CellInput::number(10), 10];
+        yield 'twelve' => [CellInput::text('12'), 12];
         yield 'an odd count' => [CellInput::text('1014'), 1014];
         yield 'the largest puzzle' => [CellInput::number(60000), 60000];
         yield 'a direction mark before' => [CellInput::text("\u{200E}300"), 300];
@@ -101,6 +102,45 @@ final class PiecesReaderTest extends TestCase
         yield 'ja: ピース' => ['500ピース', 500];
         yield 'ja: ピース after a space and full-width digits' => ['１０００ ピース', 1000];
         yield 'a thousands mark and a word' => ['1,000 pieces', 1000];
+    }
+
+    /**
+     * @param list<int> $numbers
+     */
+    #[DataProvider('loneSmallNumbers')]
+    public function testALoneNumberBelowTenMayBeThousands(CellInput $cell, array $numbers): void
+    {
+        // "1.000" typed where a dot is the decimal mark is stored as the number 1
+        $read = (new PiecesReader())->read($cell);
+
+        self::assertSame(PiecesCertainty::Problem, $read->certainty);
+        self::assertSame(PiecesProblem::PossiblyThousands, $read->problem);
+        self::assertNull($read->pieces, 'Neither 1 nor 1000 is taken - both are handed out');
+        self::assertSame($numbers, $read->numbers);
+    }
+
+    /**
+     * @return iterable<string, array{CellInput, list<int>}>
+     */
+    public static function loneSmallNumbers(): iterable
+    {
+        yield 'the number 1' => [CellInput::number(1), [1, 1000]];
+        yield 'the number 2' => [CellInput::number(2), [2, 2000]];
+        yield 'the number 1 as a float' => [CellInput::number(1.0), [1, 1000]];
+        yield 'the number 9' => [CellInput::number(9), [9, 9000]];
+        yield 'the text 1' => [CellInput::text('1'), [1, 1000]];
+        yield 'the text 1.0' => [CellInput::text('1.0'), [1, 1000]];
+        yield 'the text 5' => [CellInput::text(' 5 '), [5, 5000]];
+    }
+
+    public function testAWordOrAThousandsMarkMakesASmallCountMeant(): void
+    {
+        $reader = new PiecesReader();
+
+        self::assertSame(1, $reader->read(CellInput::text('1 piece'))->pieces);
+        self::assertSame(4, $reader->read(CellInput::text('4 dílky'))->pieces);
+        self::assertSame(9, $reader->read(CellInput::text('9 pcs'))->pieces);
+        self::assertSame(1000, $reader->read(CellInput::text('1.000'))->pieces);
     }
 
     /**
@@ -203,6 +243,10 @@ final class PiecesReaderTest extends TestCase
         yield 'a barcode in the pieces column' => [CellInput::text('400555616'), PiecesProblem::TooMany, null, [400555616]];
         yield 'a thousands mark too far' => [CellInput::text('500.000'), PiecesProblem::TooMany, null, [500000]];
         yield 'a huge float' => [CellInput::number(1e30), PiecesProblem::TooMany];
+        yield 'a float one above the largest integer' => [CellInput::number(2.0 ** 63), PiecesProblem::TooMany];
+        yield 'the largest integer' => [CellInput::number(PHP_INT_MAX), PiecesProblem::TooMany, null, [PHP_INT_MAX]];
+        yield 'a float just above the cap' => [CellInput::number(60001.0), PiecesProblem::TooMany, null, [60001]];
+        yield 'digits of another script' => [CellInput::text('٣٠٠'), PiecesProblem::Unreadable, '٣٠٠'];
         yield 'a word' => [CellInput::text('large'), PiecesProblem::Unreadable, 'large'];
         yield 'a word: mini' => [CellInput::text('mini'), PiecesProblem::Unreadable, 'mini'];
         yield 'scientific notation' => [CellInput::text('1e3'), PiecesProblem::Unreadable, '1e3'];
@@ -250,7 +294,7 @@ final class PiecesReaderTest extends TestCase
     {
         $reader = new PiecesReader();
 
-        foreach (['1', '60000', '60,000', '60.000', '60 000 pcs', '59999.0'] as $text) {
+        foreach (['10', '60000', '60,000', '60.000', '60 000 pcs', '59999.0'] as $text) {
             $read = $reader->read(CellInput::text($text));
 
             self::assertNotNull($read->pieces, $text);

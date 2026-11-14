@@ -24,6 +24,12 @@ final readonly class PiecesReader
     /** The largest puzzle sold has 60,000 pieces */
     public const int MOST_PIECES = 60_000;
 
+    /**
+     * A lone number below this is not taken: "1.000" typed where a dot is the decimal mark is stored as 1, and a
+     * puzzle of a handful of pieces is rare enough to ask about
+     */
+    public const int FEWEST_PIECES_TAKEN_FROM_A_LONE_NUMBER = 10;
+
     // "pieces" in en / cs / de / es / fr / ja, in lower case without accents
     private const string WORD = '(?:pieces?|pcs?|pzs?|pzas?|p|elements?|el|dilk[uy]|dilek|dilku|kus[uy]?|ks|teile?n?|tlg|tl|stuck|stk|piezas?|ピース|片|個|枚)\.?';
 
@@ -43,7 +49,7 @@ final readonly class PiecesReader
     private function number(int|float $number): ReadPieces
     {
         if (is_int($number)) {
-            return self::whole($number, false);
+            return self::whole($number, false, true);
         }
 
         if (is_nan($number) || is_infinite($number)) {
@@ -58,7 +64,12 @@ final readonly class PiecesReader
             return ReadPieces::problem(PiecesProblem::NotWhole, ImportText::ofNumber($number));
         }
 
-        return $number > PHP_INT_MAX ? ReadPieces::problem(PiecesProblem::TooMany) : self::whole((int) $number, false);
+        // Before any cast: a float beyond the integers has no integer to be cast to
+        if ($number > self::MOST_PIECES) {
+            return ReadPieces::problem(PiecesProblem::TooMany, null, $number < 1e15 ? [(int) $number] : []);
+        }
+
+        return self::whole((int) $number, false, true);
     }
 
     private function text(string $text): ReadPieces
@@ -76,39 +87,39 @@ final readonly class PiecesReader
         $value = ImportText::plain($typed);
         $worded = false;
 
-        if (preg_match('/^(.*\d)\s*' . self::WORD . '$/u', $value, $match) === 1) {
+        if (preg_match('/^(.*[0-9])\s*' . self::WORD . '$/u', $value, $match) === 1) {
             $value = $match[1];
             $worded = true;
         }
 
-        if (preg_match('/^\d{1,9}$/', $value) === 1) {
-            return self::whole((int) $value, $worded);
+        if (preg_match('/^[0-9]{1,9}$/', $value) === 1) {
+            return self::whole((int) $value, $worded, $worded === false);
         }
 
         // "1,000", "1 000", "1.000", "12'000": the same mark before every group of three digits. In a pieces column a
         // dot before exactly three digits is a thousands mark, never a decimal point - a piece count is whole
-        if (preg_match('/^\d{1,3}([,. \'’])\d{3}(?:\1\d{3})?$/u', $value) === 1) {
-            return self::whole((int) preg_replace('/\D+/u', '', $value), true);
+        if (preg_match('/^[0-9]{1,3}([,. \'’])[0-9]{3}(?:\1[0-9]{3})?$/u', $value) === 1) {
+            return self::whole((int) preg_replace('/[^0-9]+/', '', $value), true, false);
         }
 
-        if (preg_match('/^(\d{1,9})[.,](\d{1,9})$/', $value, $match) === 1) {
+        if (preg_match('/^([0-9]{1,9})[.,]([0-9]{1,9})$/', $value, $match) === 1) {
             return ltrim($match[2], '0') === ''
-                ? self::whole((int) $match[1], true)
+                ? self::whole((int) $match[1], true, $worded === false)
                 : ReadPieces::problem(PiecesProblem::NotWhole, $typed);
         }
 
-        if (preg_match('/^[-−–]\s?\d+(?:[.,]\d+)?$/u', $value) === 1) {
+        if (preg_match('/^[-−–]\s?[0-9]+(?:[.,][0-9]+)?$/u', $value) === 1) {
             return ReadPieces::problem(PiecesProblem::Negative, $typed);
         }
 
         $parts = preg_split('/\s*' . self::TIMES . '\s*/u', $value) ?: [];
 
-        if (count($parts) >= 2 && $parts === array_filter($parts, static fn (string $part): bool => preg_match('/^\d{1,6}$/', $part) === 1)) {
+        if (count($parts) >= 2 && $parts === array_filter($parts, static fn (string $part): bool => preg_match('/^[0-9]{1,6}$/', $part) === 1)) {
             return ReadPieces::problem(PiecesProblem::Multipack, $typed, array_map(intval(...), $parts));
         }
 
-        if (preg_match('/\?|^(?:~|≈|±|\+\/-|ca\.?|cca\.?|circa|approx\.?|about|around|asi|etwa|unos|environ|約)\s*\d|\d\s*\+$/u', $value) === 1) {
-            preg_match_all('/\d{1,9}/', $value, $numbers);
+        if (preg_match('/\?|^(?:~|≈|±|\+\/-|ca\.?|cca\.?|circa|approx\.?|about|around|asi|etwa|unos|environ|約)\s*[0-9]|[0-9]\s*\+$/u', $value) === 1) {
+            preg_match_all('/[0-9]{1,9}/', $value, $numbers);
 
             return ReadPieces::problem(PiecesProblem::Unknown, $typed, array_map(intval(...), $numbers[0]));
         }
@@ -116,12 +127,16 @@ final readonly class PiecesReader
         return ReadPieces::problem(PiecesProblem::Unreadable, $typed);
     }
 
-    private static function whole(int $number, bool $fromText): ReadPieces
+    /**
+     * @param bool $lone The number stands alone - no word for "pieces" and no thousands mark next to it
+     */
+    private static function whole(int $number, bool $fromText, bool $lone): ReadPieces
     {
         return match (true) {
             $number < 0 => ReadPieces::problem(PiecesProblem::Negative, (string) $number),
             $number === 0 => ReadPieces::problem(PiecesProblem::Zero),
             $number > self::MOST_PIECES => ReadPieces::problem(PiecesProblem::TooMany, null, [$number]),
+            $lone && $number < self::FEWEST_PIECES_TAKEN_FROM_A_LONE_NUMBER => ReadPieces::problem(PiecesProblem::PossiblyThousands, null, [$number, $number * 1000]),
             $fromText => ReadPieces::fromText($number),
             default => ReadPieces::certain($number),
         };

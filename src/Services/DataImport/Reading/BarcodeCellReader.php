@@ -28,7 +28,7 @@ final readonly class BarcodeCellReader
     private const string LOST_END = '/0{5,}$/';
 
     // A long number (eight digits and more) as a narrow column shows it: "4.00556E+12", "4,00556e12"
-    private const string SCIENTIFIC = '/^\d(?:[.,]\d+)?e\+?(?:0?[7-9]|1\d)$/i';
+    private const string SCIENTIFIC = '/^[0-9](?:[.,][0-9]+)?e\+?(?:0?[7-9]|1[0-9])$/i';
 
     public function read(CellInput $cell): ReadBarcodes
     {
@@ -73,11 +73,11 @@ final readonly class BarcodeCellReader
         }
 
         // A number written out with its decimals: "4005556169320.0"
-        if (preg_match('/^(\d{8,14})[.,]0+$/', $typed, $match) === 1) {
+        if (preg_match('/^([0-9]{8,14})[.,]0+$/', $typed, $match) === 1) {
             return $this->digits($match[1]);
         }
 
-        if (preg_match('/^\d+$/', $typed) === 1) {
+        if (preg_match('/^[0-9]+$/', $typed) === 1) {
             return $this->digits($typed);
         }
 

@@ -46,17 +46,14 @@ final class DurationReaderTest extends TestCase
         yield 'two parts without leading zeros' => ['1:5:9', self::H + 5 * self::M + 9];
         yield 'leading zeros everywhere' => ['01:02:03', self::H + 2 * self::M + 3];
         yield 'two-digit hours' => ['12:00:01', 12 * self::H + 1];
-        yield 'more than a day' => ['25:10:05', 25 * self::H + 10 * self::M + 5];
-        yield 'three-digit hours' => ['100:00:00', 100 * self::H];
         yield 'zero hours, zero minutes' => ['0:00:59', 59];
-        yield 'seconds :00' => ['1:30:00', self::H + 30 * self::M];
+        yield 'the last second of a day' => ['23:59:59', 86399];
         yield 'spaces around' => ['  1:09:17  ', 4157];
         yield 'a tab and a line break around' => ["\t1:09:17\n", 4157];
         yield 'a non-breaking space after' => ["1:09:17\u{00A0}", 4157];
         yield 'a right-to-left mark after' => ["1:09:17\u{200F}", 4157];
         yield 'a zero-width space inside' => ["1:09\u{200B}:17", 4157];
         yield 'full-width digits and colons' => ['１：０９：１７', 4157];
-        yield 'the longest time offered' => ['1000:00:00', DurationReader::MAX_SECONDS];
     }
 
     #[DataProvider('textsWithUnits')]
@@ -293,23 +290,26 @@ final class DurationReaderTest extends TestCase
         $whole237 = ['minutes' => 14220, 'seconds' => 237, 'hours' => 853200, 'hours_dot_minutes' => 853200, 'minutes_dot_seconds' => 14220];
 
         yield 'a whole number as text' => [CellInput::text('237'), $whole237];
+        yield 'full-width digits' => [CellInput::text('２３７'), $whole237];
         yield 'a whole number cell' => [CellInput::number(237), $whole237];
         yield 'a whole number cell stored as a float' => [CellInput::number(237.0), $whole237];
         yield 'a small number' => [CellInput::text('2'), ['minutes' => 120, 'seconds' => 2, 'hours' => 7200, 'hours_dot_minutes' => 7200, 'minutes_dot_seconds' => 120]];
         yield 'a number too large for hours' => [CellInput::text('5000'), ['minutes' => 300000, 'seconds' => 5000, 'minutes_dot_seconds' => 300000]];
 
-        $hoursDotMinutes = ['minutes' => 486, 'hours' => 29160, 'hours_dot_minutes' => 29400, 'minutes_dot_seconds' => 490];
+        $hoursDotMinutes = ['minutes' => 486, 'seconds' => 8, 'hours' => 29160, 'hours_dot_minutes' => 29400, 'minutes_dot_seconds' => 490];
 
         yield 'the "hours.minutes" habit as text' => [CellInput::text('8.10'), $hoursDotMinutes];
         yield 'the same number in a cell, its last zero gone' => [CellInput::number(8.1), $hoursDotMinutes];
         yield 'the same as text without the zero' => [CellInput::text('8.1'), $hoursDotMinutes];
         yield 'a decimal comma' => [CellInput::text('8,10'), $hoursDotMinutes];
-        yield 'minutes written as 05' => [CellInput::text('8.05'), ['minutes' => 483, 'hours' => 28980, 'hours_dot_minutes' => 29100, 'minutes_dot_seconds' => 485]];
-        yield 'decimals that cannot be minutes' => [CellInput::text('8.75'), ['minutes' => 525, 'hours' => 31500]];
-        yield 'one and a half' => [CellInput::number(1.5), ['minutes' => 90, 'hours' => 5400, 'hours_dot_minutes' => 6600, 'minutes_dot_seconds' => 110]];
+        yield 'minutes written as 05' => [CellInput::text('8.05'), ['minutes' => 483, 'seconds' => 8, 'hours' => 28980, 'hours_dot_minutes' => 29100, 'minutes_dot_seconds' => 485]];
+        yield 'decimals that cannot be minutes' => [CellInput::text('8.75'), ['minutes' => 525, 'seconds' => 9, 'hours' => 31500]];
+        yield 'one and a half' => [CellInput::number(1.5), ['minutes' => 90, 'seconds' => 2, 'hours' => 5400, 'hours_dot_minutes' => 6600, 'minutes_dot_seconds' => 110]];
         yield 'the part of a day a spreadsheet stores a time as' => [CellInput::number(0.048113425925926), ['minutes' => 3, 'hours' => 173, 'day_fraction' => 4157]];
-        yield 'many decimals above one are no part of a day' => [CellInput::number(1.2345), ['minutes' => 74, 'hours' => 4444]];
-        yield 'text decimals without a fraction' => [CellInput::text('8.00'), ['minutes' => 480, 'hours' => 28800, 'hours_dot_minutes' => 28800, 'minutes_dot_seconds' => 480]];
+        yield 'many decimals above one are no part of a day' => [CellInput::number(1.2345), ['minutes' => 74, 'seconds' => 1, 'hours' => 4444]];
+        yield 'text decimals without a fraction' => [CellInput::text('8.00'), ['minutes' => 480, 'seconds' => 8, 'hours' => 28800, 'hours_dot_minutes' => 28800, 'minutes_dot_seconds' => 480]];
+        yield 'a part of a day with two decimals' => [CellInput::number(0.05), ['minutes' => 3, 'hours' => 180, 'hours_dot_minutes' => 300, 'minutes_dot_seconds' => 5, 'day_fraction' => 4320]];
+        yield 'the same as text' => [CellInput::text('0.05'), ['minutes' => 3, 'hours' => 180, 'hours_dot_minutes' => 300, 'minutes_dot_seconds' => 5, 'day_fraction' => 4320]];
     }
 
     /**
@@ -362,6 +362,33 @@ final class DurationReaderTest extends TestCase
         yield 'a question mark' => ['?'];
         yield 'a dash' => ['-'];
         yield 'dollar signs' => ['$$$'];
+
+        // A sign touching the time: a difference, not a time (how a spreadsheet exports a negative one)
+        yield 'a minus before three parts' => ['-1:02:03'];
+        yield 'a typographic minus' => ['−1:02:03'];
+        yield 'an en dash used as a minus' => ['–1:02'];
+        yield 'a plus' => ['+1:02:03'];
+        yield 'a plus before two parts' => ['+0:45'];
+        yield 'a minus before a unit time' => ['-45 s'];
+        yield 'a minus before hours and a number' => ['-1h23'];
+        yield 'a minus in brackets' => ['(-1:02:03)'];
+        yield 'a minus after a label' => ['diff: -0:02:10'];
+        yield 'a sign right after the time' => ['1:02:03-'];
+
+        // Days next to a time: the time is only a part of what is meant
+        yield 'days and hours' => ['2 days 3 h'];
+        yield 'a day and a clock time' => ['1d 2:30:00'];
+        yield 'days after the time' => ['3 h 2 days'];
+        yield 'cs: days' => ['2 dny 3 hod'];
+        yield 'de: days' => ['2 Tage 3 Std'];
+        yield 'es: days' => ['2 días 3 h'];
+        yield 'fr: days' => ['2 jours 3 h'];
+        yield 'ja: days' => ['2日 3時間'];
+
+        // Digits of another script are no number here
+        yield 'Arabic-Indic digits with a unit' => ['٣ h'];
+        yield 'Arabic-Indic digits in a clock time' => ['١:٠٩:١٧'];
+        yield 'Devanagari digits' => ['१२:३४'];
 
         yield 'two times with a slash' => ['1:02:03 / 58:10'];
         yield 'two times of three parts' => ['1:02:03, 0:58:10'];
@@ -447,13 +474,13 @@ final class DurationReaderTest extends TestCase
         self::assertSame([4157], $read->readings);
     }
 
-    public function testADurationCellUnderADayWithoutSecondsIsTakenButFlaggedForTheColumn(): void
+    public function testADurationCellUnderADayWithoutSecondsIsTheColumnsToSettle(): void
     {
         // 17:36 typed into a cell formatted [h]:mm:ss is stored as 17 h 36 min
         $read = (new DurationReader())->read(CellInput::duration(17 * self::H + 36 * self::M));
 
-        self::assertSame(DurationCertainty::Certain, $read->certainty);
-        self::assertSame(17 * self::H + 36 * self::M, $read->seconds);
+        self::assertSame(DurationCertainty::TwoReadings, $read->certainty);
+        self::assertNull($read->seconds, 'Never taken by itself - a column of real h:mm:ss times lets it stand, any other asks');
         self::assertSame(DurationShape::ZeroSecondsDurationCell, $read->shape);
         self::assertSame(17 * self::H + 36 * self::M, $read->secondsBy(DurationReadingRule::AsStored));
         self::assertSame(17 * self::M + 36, $read->secondsBy(DurationReadingRule::StoredHoursAsMinutes));
@@ -508,6 +535,118 @@ final class DurationReaderTest extends TestCase
         self::assertNull($read->seconds);
         self::assertSame(DurationShape::TimeOfDayCell, $read->shape);
         self::assertSame([self::H + 2 * self::M, self::M + 2], $read->readings);
+    }
+
+    public function testAClockTimeIsNoDuration(): void
+    {
+        // A cell formatted h:mm AM/PM, or a date with a time: "Start time", NOW() - a moment, never how long
+        $reader = new DurationReader();
+
+        self::assertSame(DurationCertainty::Unreadable, $reader->read(CellInput::timeOfDay(self::H + 2 * self::M, true))->certainty);
+        self::assertSame(DurationCertainty::Unreadable, $reader->read(CellInput::timeOfDay(4157, true))->certainty);
+        self::assertSame([], $reader->read(CellInput::timeOfDay(4157, true))->readings);
+        self::assertSame(4157, $reader->read(CellInput::timeOfDay(4157))->seconds, 'Without the flag a time cell with seconds is a duration typed into a plain cell');
+    }
+
+    /**
+     * @param list<int> $readings
+     */
+    #[DataProvider('textsLikeCells')]
+    public function testATextOfThreePartsReadsLikeTheCellOfTheSameValue(string $text, int $stored, DurationShape $shape, array $readings): void
+    {
+        // A sheet saved as CSV must read like its workbook
+        $reader = new DurationReader();
+        $fromText = $reader->read(CellInput::text($text));
+        $fromCell = $reader->read(CellInput::duration($stored));
+
+        self::assertSame(DurationCertainty::TwoReadings, $fromText->certainty, $text);
+        self::assertNull($fromText->seconds);
+        self::assertSame($shape, $fromText->shape);
+        self::assertSame($readings, $fromText->readings);
+
+        self::assertSame($fromCell->certainty, $fromText->certainty);
+        self::assertSame($fromCell->shape, $fromText->shape);
+        self::assertSame($fromCell->readings, $fromText->readings);
+    }
+
+    /**
+     * @return iterable<string, array{string, int, DurationShape, list<int>}>
+     */
+    public static function textsLikeCells(): iterable
+    {
+        yield 'the README\'s 45:30 typed, stored as 45 h 30 min' => ['45:30:00', 163800, DurationShape::LongDurationCell, [163800, 2730]];
+        yield 'exactly a day' => ['24:00:00', 86400, DurationShape::LongDurationCell, [86400, 1440]];
+        yield 'more than a day, with seconds: one reading, still the column\'s' => ['25:10:05', 90605, DurationShape::LongDurationCell, [90605]];
+        yield 'three-digit hours' => ['100:00:00', 360000, DurationShape::LongDurationCell, [360000, 6000]];
+        yield 'the longest time offered' => ['1000:00:00', DurationReader::MAX_SECONDS, DurationShape::LongDurationCell, [DurationReader::MAX_SECONDS, 60000]];
+        yield 'under a day, seconds :00' => ['1:30:00', 5400, DurationShape::ZeroSecondsDurationCell, [5400, 90]];
+        yield 'under a day, seconds :00, leading zeros' => ['01:30:00', 5400, DurationShape::ZeroSecondsDurationCell, [5400, 90]];
+        yield 'a whole number of hours' => ['2:00:00', 7200, DurationShape::ZeroSecondsDurationCell, [7200, 120]];
+        yield 'in brackets' => ['(17:36:00)', 63360, DurationShape::ZeroSecondsDurationCell, [63360, 1056]];
+    }
+
+    public function testATextWithSecondsUnderADayIsCertainLikeItsCell(): void
+    {
+        $reader = new DurationReader();
+
+        self::assertSame(DurationCertainty::Certain, $reader->read(CellInput::text('12:00:01'))->certainty);
+        self::assertSame($reader->read(CellInput::duration(43201))->seconds, $reader->read(CellInput::text('12:00:01'))->seconds);
+    }
+
+    #[DataProvider('twoPartsWithHundredths')]
+    public function testTwoPartsAndTwoDecimalsBelowSixtyMayBeHoursMinutesAndSeconds(string $text, int $minutesSeconds, int $hoursMinutesSeconds, null|string $leftover = null): void
+    {
+        $read = (new DurationReader())->read(CellInput::text($text));
+
+        self::assertSame($leftover === null ? DurationCertainty::TwoReadings : DurationCertainty::ReadWithLeftovers, $read->certainty, $text);
+        self::assertNull($read->seconds);
+        self::assertSame(DurationShape::TwoPartTextWithHundredths, $read->shape);
+        self::assertSame($minutesSeconds, $read->secondsBy(DurationReadingRule::MinutesSeconds));
+        self::assertSame($hoursMinutesSeconds, $read->secondsBy(DurationReadingRule::HoursMinutesDotSeconds));
+        self::assertSame($leftover, $read->leftover);
+    }
+
+    /**
+     * @return iterable<string, array{0: string, 1: int, 2: int, 3?: string}>
+     */
+    public static function twoPartsWithHundredths(): iterable
+    {
+        yield '1:02.03 - 62.03 s, or 1 h 2 min 3 s' => ['1:02.03', 62, 3723];
+        yield 'hundredths that round up' => ['17:36.50', 1057, 63410];
+        yield 'a decimal comma' => ['1:02,03', 62, 3723];
+        yield 'with a remark' => ['1:02.03 (pb)', 62, 3723, 'pb'];
+    }
+
+    public function testAnyOtherFractionCanOnlyBeOneOfSeconds(): void
+    {
+        $reader = new DurationReader();
+
+        foreach (['17:36.5' => 1057, '1:02.75' => 63, '1:02.035' => 62, '1:02.999' => 63] as $text => $seconds) {
+            $read = $reader->read(CellInput::text($text));
+
+            self::assertSame(DurationCertainty::ReadFromText, $read->certainty, $text);
+            self::assertSame($seconds, $read->seconds, $text);
+            self::assertNull($read->shape, $text);
+        }
+    }
+
+    public function testAValueWithAShapeIsNeverTakenByItself(): void
+    {
+        $reader = new DurationReader();
+
+        $cells = [
+            CellInput::text('17:36'), CellInput::text('1:02.03'), CellInput::text('45:30:00'), CellInput::text('1:30:00'), CellInput::text('237'),
+            CellInput::text('8.10'), CellInput::text('1.30 h'), CellInput::text('17:36 for both'), CellInput::number(237), CellInput::number(8.1),
+            CellInput::duration(5400), CellInput::duration(163800), CellInput::duration(90605), CellInput::timeOfDay(3720),
+        ];
+
+        foreach ($cells as $cell) {
+            $read = $reader->read($cell);
+
+            self::assertNotNull($read->shape);
+            self::assertNull($read->seconds);
+            self::assertNotSame([], $read->readings);
+        }
     }
 
     #[DataProvider('unreadableCells')]

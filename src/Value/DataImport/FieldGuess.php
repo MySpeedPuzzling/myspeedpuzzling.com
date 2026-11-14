@@ -23,6 +23,14 @@ final readonly class FieldGuess
         public null|StandardCustomField $readyMadeField,
         /** EXACT, or 50-95 for a header that holds a word of the field among others */
         public int $score,
+        /**
+         * The only guess the header alone may map a column by: it is exact, no other field has the same word, and the
+         * word is not one that means several things ("Name", "Count", "Type", "Year", "Completed" …). Every other
+         * guess is an offer - the values or the player decide.
+         */
+        public bool $sure = false,
+        /** Time only: the unit the header names for its numbers ("Time (min)", "Hours") */
+        public null|DurationUnit $unitHint = null,
     ) {
     }
 

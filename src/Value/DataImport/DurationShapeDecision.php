@@ -18,13 +18,15 @@ final readonly class DurationShapeDecision
         public DurationShape $shape,
         /** The rule every value of the shape is read by - null means: ask the player */
         public null|DurationReadingRule $rule,
-        /** When asking: the reading that fits the rows best, to offer first - never applied by itself */
+        /** When asking: the reading whose pace is ordinary for most rows, to offer first - never applied by itself */
         public null|DurationReadingRule $suggested,
         public array $options,
         public int $rows,
         /** Rows of the shape that have a piece count - the ones a pace could be checked on */
         public int $checkedRows,
         public array $exampleRows,
+        /** The rule is what the column's header says ("Time (min)") - not worked out from the rows */
+        public bool $byHeaderUnit = false,
     ) {
     }
 

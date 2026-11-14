@@ -10,36 +10,49 @@ use SpeedPuzzling\Web\Value\DataImport\DurationReadingRule;
 use SpeedPuzzling\Web\Value\DataImport\DurationShape;
 use SpeedPuzzling\Web\Value\DataImport\DurationShapeDecision;
 use SpeedPuzzling\Web\Value\DataImport\DurationShapeOption;
+use SpeedPuzzling\Web\Value\DataImport\DurationUnit;
 
 /**
- * Decides, for one time column, how each ambiguous shape is read - "17:36", a time-of-day cell "1:02", a duration
- * cell of 45 hours, a bare "237" (docs/features/data-import/README.md "Durations": one question per column and shape,
- * helped by the piece count; docs/features/data-import/value-readers.md "The column decides").
+ * Decides, for one time column, how each ambiguous shape is read - "17:36", a time cell "1:02", a duration of 45
+ * hours, a bare "237" (docs/features/data-import/README.md "Durations": one question per column and shape, helped by
+ * the piece count; docs/features/data-import/value-readers.md "The column decides").
  *
- * A reading that cannot read every value of the shape is out (a "8.75" in the column: nobody writes hours.minutes
- * there). Between the others the only evidence is the pace: pieces per minute of a row under a reading, inside or
- * outside what a person can do. A shape is resolved only when one reading fits nearly all rows that have a piece
- * count, no row speaks for another reading against it, and at least half of those rows tell the two apart. Anything
- * less is a question for the player - with the readings, how each fits, and the best one offered first.
+ * A wrong answer here puts a result on a public leaderboard sixty times too fast, so the rows decide only when
+ * nothing else can be meant: the winning reading gives an ORDINARY pace for every row that has a piece count, and
+ * every other reading is far outside what anybody puzzles at for nearly all of them. The two readings of "40:00" are
+ * sixty times apart - 1,000 pieces in 40 minutes or in 40 hours - and a pace that is merely possible proves nothing:
+ * a slow puzzler's hours must never become a fast puzzler's minutes. Anything less is a question for the player, with
+ * the readings, how each fits, and the ordinary one offered first.
+ *
+ * A unit in the column's header ("Time (min)") is the answer for its bare numbers; the pace never overrides it.
  */
 final readonly class DurationColumnResolver
 {
-    /** 1,000 pieces in 33 hours - slower than that a time is more likely misread than puzzled */
-    public const float SLOWEST_PIECES_PER_MINUTE = 0.5;
+    /** A pace a person can puzzle at: from 1,000 pieces in 83 hours … */
+    public const float SLOWEST_PIECES_PER_MINUTE = 0.2;
 
-    /** 500 pieces in 8 minutes 20 seconds - nobody is faster; the add form refuses from 100 */
+    /** … to 500 pieces in 8 minutes 20 seconds; the add form refuses from 100 */
     public const float FASTEST_PIECES_PER_MINUTE = 60.0;
 
-    /** Fewer rows with a piece count decide nothing */
+    /** An ordinary pace is never faster than 1,000 pieces in 67 minutes - a faster reading is never chosen for the player */
+    public const float ORDINARY_FASTEST_PIECES_PER_MINUTE = 15.0;
+
+    /** The reading that loses must be far outside what anybody does: slower than 1,000 pieces in two weeks … */
+    public const float FAR_TOO_SLOW_PIECES_PER_MINUTE = 0.05;
+
+    /** … or faster than the add form accepts */
+    public const float FAR_TOO_FAST_PIECES_PER_MINUTE = 100.0;
+
+    /** Fewer rows with a piece count decide nothing … */
     public const int ROWS_TO_DECIDE = 3;
 
-    /** The share of rows with a piece count a reading must fit */
+    /** … and neither does a smaller share of the shape's rows */
+    public const float SHARE_OF_ROWS_TO_DECIDE = 0.3;
+
+    /** The share of rows with a piece count for which every other reading must be far outside */
     public const float NEARLY_ALL = 0.95;
 
-    /** The share of rows with a piece count that must fit the reading and not the other one */
-    public const float TELLS_APART = 0.5;
-
-    /** Above this share of a column's times, duration cells with :00 seconds are no coincidence in a column with seconds */
+    /** Up to this share of a column's times, values with :00 seconds are chance in a column whose other times have seconds */
     public const float MANY_ZERO_SECONDS = 0.1;
 
     private const int EXAMPLE_ROWS = 5;
@@ -47,8 +60,9 @@ final readonly class DurationColumnResolver
     /**
      * @param list<DurationColumnCell> $cells Every row of the column, in order - a row's index is how it is named in
      *        the decisions
+     * @param null|DurationUnit $unitHint The unit the column's header names (FieldGuess::$unitHint)
      */
-    public function resolve(array $cells): DurationColumnResolution
+    public function resolve(array $cells, null|DurationUnit $unitHint = null): DurationColumnResolution
     {
         $byShape = [];
 
@@ -62,7 +76,7 @@ final readonly class DurationColumnResolver
 
         foreach (DurationShape::cases() as $shape) {
             if (isset($byShape[$shape->value])) {
-                $decisions[] = $this->decide($shape, $byShape[$shape->value], $cells);
+                $decisions[] = $this->decide($shape, $byShape[$shape->value], $cells, $unitHint);
             }
         }
 
@@ -71,20 +85,35 @@ final readonly class DurationColumnResolver
 
     public static function isPlausiblePace(int $seconds, int $pieces): bool
     {
-        if ($seconds <= 0 || $pieces <= 0) {
-            return false;
-        }
+        $pace = self::pace($seconds, $pieces);
 
-        $piecesPerMinute = $pieces * 60 / $seconds;
+        return $pace !== null && $pace >= self::SLOWEST_PIECES_PER_MINUTE && $pace <= self::FASTEST_PIECES_PER_MINUTE;
+    }
 
-        return $piecesPerMinute >= self::SLOWEST_PIECES_PER_MINUTE && $piecesPerMinute <= self::FASTEST_PIECES_PER_MINUTE;
+    public static function isOrdinaryPace(int $seconds, int $pieces): bool
+    {
+        $pace = self::pace($seconds, $pieces);
+
+        return $pace !== null && $pace >= self::SLOWEST_PIECES_PER_MINUTE && $pace <= self::ORDINARY_FASTEST_PIECES_PER_MINUTE;
+    }
+
+    public static function isFarOutsidePace(int $seconds, int $pieces): bool
+    {
+        $pace = self::pace($seconds, $pieces);
+
+        return $pace === null || $pace < self::FAR_TOO_SLOW_PIECES_PER_MINUTE || $pace > self::FAR_TOO_FAST_PIECES_PER_MINUTE;
+    }
+
+    private static function pace(int $seconds, int $pieces): null|float
+    {
+        return $seconds <= 0 || $pieces <= 0 ? null : $pieces * 60 / $seconds;
     }
 
     /**
      * @param non-empty-array<int, DurationColumnCell> $values The cells of the shape by their row
      * @param list<DurationColumnCell> $column
      */
-    private function decide(DurationShape $shape, array $values, array $column): DurationShapeDecision
+    private function decide(DurationShape $shape, array $values, array $column, null|DurationUnit $unitHint): DurationShapeDecision
     {
         $readings = self::readingsByRule($values);
 
@@ -109,50 +138,63 @@ final readonly class DurationColumnResolver
         ));
         $checked = count($checkedRows);
 
-        $plausible = [];
+        // Per rule and row with a piece count: is the pace ordinary, plausible, far outside
+        $paces = [];
         $options = [];
 
         foreach ($rules as $name) {
-            $plausible[$name] = [];
+            $paces[$name] = ['ordinary' => [], 'plausible' => [], 'far' => []];
 
             foreach ($checkedRows as $row) {
-                $seconds = $readings[$name][$row];
-                $plausible[$name][$row] = $seconds !== null && self::isPlausiblePace($seconds, (int) $values[$row]->pieces);
+                $seconds = $readings[$name][$row] ?? 0;
+                $pieces = (int) $values[$row]->pieces;
+
+                $paces[$name]['ordinary'][$row] = self::isOrdinaryPace($seconds, $pieces);
+                $paces[$name]['plausible'][$row] = self::isPlausiblePace($seconds, $pieces);
+                $paces[$name]['far'][$row] = self::isFarOutsidePace($seconds, $pieces);
             }
 
-            $fits = count(array_filter($plausible[$name]));
+            $plausible = count(array_filter($paces[$name]['plausible']));
 
             $options[] = new DurationShapeOption(
                 DurationReadingRule::from($name),
                 count(array_filter($readings[$name], static fn (null|int $seconds): bool => $seconds !== null)),
-                $fits,
-                $checked - $fits,
+                count(array_filter($paces[$name]['ordinary'])),
+                $plausible,
+                $checked - $plausible,
                 $sameAs[$name] ?? [],
             );
         }
 
-        $winners = [];
+        $rule = null;
+        $byHeaderUnit = false;
 
-        foreach ($rules as $name) {
-            if ($this->wins($name, $rules, $readings, $plausible, $checked)) {
-                $winners[] = $name;
+        if ($shape === DurationShape::BareNumber && $unitHint !== null) {
+            // The header said it - the rows are not asked
+            $rule = $unitHint->rule();
+            $byHeaderUnit = true;
+        } else {
+            $winners = array_values(array_filter(
+                $rules,
+                fn (string $name): bool => $this->wins($name, $rules, $readings, $paces, $checked, count($values)),
+            ));
+
+            if (count($winners) === 1) {
+                $rule = DurationReadingRule::from($winners[0]);
+            } elseif ($this->storedValueStands($shape, $rules, $values, $column, $readings, $paces, $checked)) {
+                $rule = DurationReadingRule::AsStored;
             }
-        }
-
-        $rule = count($winners) === 1 ? DurationReadingRule::from($winners[0]) : null;
-
-        if ($rule === null && $shape === DurationShape::ZeroSecondsDurationCell && $this->storedValueStands($values, $column, $plausible, $checked)) {
-            $rule = DurationReadingRule::AsStored;
         }
 
         return new DurationShapeDecision(
             $shape,
             $rule,
-            $rule === null ? self::bestFitting($options) : null,
+            $rule === null ? self::mostOrdinary($options) : null,
             $options,
             count($values),
             $checked,
             self::exampleRows($values),
+            $byHeaderUnit,
         );
     }
 
@@ -178,17 +220,25 @@ final readonly class DurationColumnResolver
     }
 
     /**
+     * The rows settle a shape for a reading only when it reads every value, enough rows have a piece count, its pace
+     * is ordinary for every one of them, and every other reading that could be meant for the column is far outside
+     * for nearly all of them.
+     *
      * @param list<string> $rules
      * @param array<string, array<int, null|int>> $readings
-     * @param array<string, array<int, bool>> $plausible
+     * @param array<string, array{ordinary: array<int, bool>, plausible: array<int, bool>, far: array<int, bool>}> $paces
      */
-    private function wins(string $name, array $rules, array $readings, array $plausible, int $checked): bool
+    private function wins(string $name, array $rules, array $readings, array $paces, int $checked, int $rows): bool
     {
-        if ($checked < self::ROWS_TO_DECIDE || in_array(null, $readings[$name], true)) {
+        if (in_array(null, $readings[$name], true)) {
             return false;
         }
 
-        if (count(array_filter($plausible[$name])) / $checked < self::NEARLY_ALL) {
+        if ($checked < self::ROWS_TO_DECIDE || $checked / $rows < self::SHARE_OF_ROWS_TO_DECIDE) {
+            return false;
+        }
+
+        if (in_array(false, $paces[$name]['ordinary'], true)) {
             return false;
         }
 
@@ -198,20 +248,7 @@ final readonly class DurationColumnResolver
                 continue;
             }
 
-            $apart = 0;
-
-            foreach ($plausible[$name] as $row => $fits) {
-                if ($fits === false && $plausible[$other][$row]) {
-                    // A row that only the other reading explains
-                    return false;
-                }
-
-                if ($fits && $plausible[$other][$row] === false) {
-                    $apart++;
-                }
-            }
-
-            if ($apart / $checked < self::TELLS_APART) {
+            if (count(array_filter($paces[$other]['far'])) / $checked < self::NEARLY_ALL) {
                 return false;
             }
         }
@@ -220,19 +257,39 @@ final readonly class DurationColumnResolver
     }
 
     /**
-     * A duration cell under 24 hours with :00 seconds is taken as stored unless the column gives a reason to doubt it:
-     * a pace that does not fit, a duration cell of 24 hours or more next to it (the same typing habit), or - in a
-     * column whose other times have seconds - more of them than chance leaves.
+     * When the rows do not settle it, a value stands as the spreadsheet stored it in two cases only:
      *
+     * - it has no other reading at all (a duration of a day and more WITH seconds) and no row's pace speaks against it;
+     * - it is a time without seconds (a cell, or text like "1:30:00") in a column of real h:mm:ss times - the column's
+     *   other times have seconds, such values are one or at most MANY_ZERO_SECONDS of them (a time ends in :00 once
+     *   in sixty), no row's pace speaks against it, and no duration of a day and more without seconds stands in the
+     *   column (the mark of "45:30" typed for minutes and seconds).
+     *
+     * A column whose times all end in :00 is never silently hours and minutes - it is asked.
+     *
+     * @param list<string> $rules
      * @param non-empty-array<int, DurationColumnCell> $values
      * @param list<DurationColumnCell> $column
-     * @param array<string, array<int, bool>> $plausible
+     * @param array<string, array<int, null|int>> $readings
+     * @param array<string, array{ordinary: array<int, bool>, plausible: array<int, bool>, far: array<int, bool>}> $paces
      */
-    private function storedValueStands(array $values, array $column, array $plausible, int $checked): bool
+    private function storedValueStands(DurationShape $shape, array $rules, array $values, array $column, array $readings, array $paces, int $checked): bool
     {
-        $asStored = $plausible[DurationReadingRule::AsStored->value] ?? [];
+        $asStored = DurationReadingRule::AsStored->value;
 
-        if ($checked > 0 && count(array_filter($asStored)) / $checked < self::NEARLY_ALL) {
+        if (isset($readings[$asStored]) === false || in_array(null, $readings[$asStored], true)) {
+            return false;
+        }
+
+        if ($checked > 0 && count(array_filter($paces[$asStored]['plausible'])) / $checked < self::NEARLY_ALL) {
+            return false;
+        }
+
+        if ($rules === [$asStored]) {
+            return true;
+        }
+
+        if ($shape !== DurationShape::ZeroSecondsDurationCell && $shape !== DurationShape::TimeOfDayCell) {
             return false;
         }
 
@@ -240,7 +297,9 @@ final readonly class DurationColumnResolver
         $withSeconds = 0;
 
         foreach ($column as $cell) {
-            if ($cell->read->shape === DurationShape::LongDurationCell) {
+            $stored = $cell->read->seconds ?? $cell->read->secondsBy(DurationReadingRule::AsStored);
+
+            if ($cell->read->shape === DurationShape::LongDurationCell && $cell->read->secondsBy(DurationReadingRule::StoredHoursAsMinutes) !== null) {
                 return false;
             }
 
@@ -248,34 +307,35 @@ final readonly class DurationColumnResolver
                 $times++;
             }
 
-            if ($cell->read->shape === null && $cell->read->seconds !== null && $cell->read->seconds % 60 !== 0) {
+            if ($stored !== null && $stored % 60 !== 0 && ($cell->read->shape === null || $cell->read->shape === DurationShape::LongDurationCell)) {
                 $withSeconds++;
             }
         }
 
-        return $withSeconds === 0 || count($values) < 2 || count($values) / max(1, $times) <= self::MANY_ZERO_SECONDS;
+        return $withSeconds > 0 && (count($values) === 1 || count($values) / max(1, $times) <= self::MANY_ZERO_SECONDS);
     }
 
     /**
-     * The one reading that fits more rows than any other - null when none fits a row or two fit equally many.
+     * The one reading whose pace is ordinary for more rows than any other's - null when none is for any row, or two
+     * are for equally many.
      *
      * @param list<DurationShapeOption> $options
      */
-    private static function bestFitting(array $options): null|DurationReadingRule
+    private static function mostOrdinary(array $options): null|DurationReadingRule
     {
         $best = null;
         $tie = false;
 
         foreach ($options as $option) {
-            if ($best === null || $option->plausibleRows > $best->plausibleRows) {
+            if ($best === null || $option->ordinaryRows > $best->ordinaryRows) {
                 $best = $option;
                 $tie = false;
-            } elseif ($option->plausibleRows === $best->plausibleRows) {
+            } elseif ($option->ordinaryRows === $best->ordinaryRows) {
                 $tie = true;
             }
         }
 
-        return $best === null || $tie || $best->plausibleRows === 0 ? null : $best->rule;
+        return $best === null || $tie || $best->ordinaryRows === 0 ? null : $best->rule;
     }
 
     /**

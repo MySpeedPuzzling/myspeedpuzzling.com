@@ -14,13 +14,15 @@ enum DurationReadingRule: string
     case MinutesSeconds = 'minutes_seconds';
     /** "17:36" = 17 h 36 min */
     case HoursMinutes = 'hours_minutes';
+    /** "1:02.03" = 1 h 2 min 3 s */
+    case HoursMinutesDotSeconds = 'hours_minutes_dot_seconds';
     /** A cell's stored value as it is: 45:30:00 = 45 h 30 min */
     case AsStored = 'as_stored';
     /** A cell's stored hours and minutes were typed as minutes and seconds: 45:30:00 = 45 min 30 s */
     case StoredHoursAsMinutes = 'stored_hours_as_minutes';
     /** "237" = 237 min, "1.5" = 1.5 min */
     case Minutes = 'minutes';
-    /** "237" = 237 s */
+    /** "237" = 237 s, "8.4" = 8 s */
     case Seconds = 'seconds';
     /** "2" = 2 h, "1.5" = 1.5 h */
     case Hours = 'hours';

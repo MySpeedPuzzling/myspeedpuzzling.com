@@ -22,13 +22,16 @@ use SpeedPuzzling\Web\Services\DataImport\Reading\YesNoReader;
 use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Value\DataImport\CellInput;
 use SpeedPuzzling\Web\Value\DataImport\DateCertainty;
-use SpeedPuzzling\Web\Value\DataImport\DatePrecision;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\DataImport\DurationCertainty;
 use SpeedPuzzling\Web\Value\DataImport\DurationColumnCell;
+use SpeedPuzzling\Web\Value\DataImport\DurationUnit;
 use SpeedPuzzling\Web\Value\DataImport\ImportPuzzleKey;
+use SpeedPuzzling\Web\Value\DataImport\ImportSourceKey;
 use SpeedPuzzling\Web\Value\DataImport\PiecesCertainty;
 use SpeedPuzzling\Web\Value\DataImport\ReadDate;
 use SpeedPuzzling\Web\Value\DataImport\ReadDuration;
+use SpeedPuzzling\Web\Value\DataImport\ShortDateMeaning;
 use Symfony\Component\Clock\MockClock;
 
 /**
@@ -118,7 +121,12 @@ final class ValueReadersNeverThrowTest extends TestCase
                 self::assertLessThanOrEqual(100, $guess->score, $text);
             }
 
-            self::assertMatchesRegularExpression('/^[0-9a-f]{64}$/', ImportPuzzleKey::of($text, null, null, $text));
+            $key = ImportPuzzleKey::of($text, null, $text);
+
+            if ($key !== null) {
+                self::assertMatchesRegularExpression('/^1:[0-9a-f]{64}$/', $key);
+                self::assertMatchesRegularExpression('/^1:[0-9a-f]{64}$/', ImportSourceKey::owned($key, $text));
+            }
         }
 
         // The column resolvers take whatever the readers made of it
@@ -137,6 +145,23 @@ final class ValueReadersNeverThrowTest extends TestCase
 
         foreach ($readDates as $date) {
             self::assertDateKeepsItsPromises($resolution->apply($date), 'after the column\'s order');
+        }
+
+        foreach (ShortDateMeaning::cases() as $answer) {
+            $answered = (new DateOrderResolver())->resolve($readDates, $answer);
+
+            foreach ($readDates as $date) {
+                self::assertDateKeepsItsPromises($answered->apply($date), 'after the player\'s answer');
+            }
+        }
+
+        // … and a header's unit
+        foreach (DurationUnit::cases() as $unit) {
+            $withUnit = (new DurationColumnResolver())->resolve($column, $unit);
+
+            foreach ($column as $cell) {
+                self::assertDurationKeepsItsPromises($withUnit->apply($cell->read), 'with the header\'s unit');
+            }
         }
     }
 
@@ -197,6 +222,7 @@ final class ValueReadersNeverThrowTest extends TestCase
         foreach ([0, 1, 59, 60, 61, 3599, 3600, 3660, 86399, 86400, 86401, 163800, 3_600_000, 3_600_060, PHP_INT_MAX, -1, -60, PHP_INT_MIN] as $seconds) {
             $cells[] = CellInput::duration($seconds);
             $cells[] = CellInput::timeOfDay($seconds);
+            $cells[] = CellInput::timeOfDay($seconds, true);
         }
 
         foreach (['0001-01-01', '1899-12-30', '1949-12-31', '1950-01-01', '2024-02-29', '2026-10-14', '2026-10-15', '2026-10-16', '9999-12-31'] as $day) {
@@ -266,6 +292,10 @@ final class ValueReadersNeverThrowTest extends TestCase
             self::assertContains($read->seconds, $read->readings, $input);
         }
 
+        if ($read->shape !== null) {
+            self::assertNull($read->seconds, $input . ': a value with a shape is never taken by itself');
+        }
+
         switch ($read->certainty) {
             case DurationCertainty::NoTime:
             case DurationCertainty::Unreadable:
@@ -303,6 +333,18 @@ final class ValueReadersNeverThrowTest extends TestCase
 
         if ($read->certainty === DateCertainty::OrderOpen) {
             self::assertGreaterThan(1, count($read->possibleOrders), $input);
+        }
+
+        if ($read->certainty === DateCertainty::DayOrYearOpen) {
+            self::assertCount(2, $read->possibleShortMeanings, $input);
+            self::assertSame([], $read->possibleOrders, $input);
+        }
+
+        foreach ($read->possibleShortMeanings as $meaning) {
+            $settled = $read->asShort($meaning);
+
+            self::assertContains($settled->certainty, [DateCertainty::Certain, DateCertainty::OrderOpen], $input);
+            self::assertSame([], $settled->possibleShortMeanings, $input);
         }
 
         foreach ($read->possibleOrders as $order) {

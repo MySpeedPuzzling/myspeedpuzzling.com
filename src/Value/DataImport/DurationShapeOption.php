@@ -16,6 +16,8 @@ final readonly class DurationShapeOption
         public DurationReadingRule $rule,
         /** Values of the shape this rule can read */
         public int $readableRows,
+        /** Rows with a piece count whose pace under this rule is an ordinary one (DurationColumnResolver::isOrdinaryPace()) */
+        public int $ordinaryRows,
         /** Rows with a piece count whose pace under this rule is one a person can puzzle at */
         public int $plausibleRows,
         /** Rows with a piece count whose pace under this rule is not (or which the rule cannot read) */

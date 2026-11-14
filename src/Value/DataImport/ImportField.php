@@ -55,11 +55,11 @@ enum ImportField: string
     /** @var array<string, array<string, list<string>>> */
     private const array HEADER_WORDS = [
         'puzzle_name' => [
-            'en' => ['title', 'name', 'puzzle', 'puzzle name', 'puzzle title', 'name of puzzle', 'image', 'image name', 'motif'],
-            'cs' => ['název', 'titul', 'jméno', 'název puzzle', 'puzzle', 'motiv', 'obrázek'],
+            'en' => ['title', 'name', 'puzzle', 'puzzle name', 'puzzle title', 'name of puzzle', 'motif'],
+            'cs' => ['název', 'titul', 'název puzzle', 'puzzle', 'motiv'],
             'de' => ['titel', 'name', 'puzzle', 'puzzlename', 'puzzletitel', 'motiv', 'bezeichnung'],
-            'es' => ['nombre', 'título', 'puzzle', 'rompecabezas', 'nombre del puzzle', 'imagen'],
-            'fr' => ['titre', 'nom', 'puzzle', 'nom du puzzle', 'image'],
+            'es' => ['nombre', 'título', 'puzzle', 'rompecabezas', 'nombre del puzzle'],
+            'fr' => ['titre', 'nom', 'puzzle', 'nom du puzzle'],
             'ja' => ['タイトル', '名前', 'パズル名', 'パズル', '作品名', '商品名'],
         ],
         'brand' => [
@@ -71,9 +71,9 @@ enum ImportField: string
             'ja' => ['メーカー', 'ブランド', '製造元'],
         ],
         'pieces' => [
-            'en' => ['pieces', 'pcs', 'pc', 'piece count', 'pieces count', 'number of pieces', 'no of pieces', 'nr of pieces', 'num pieces', 'of pieces', 'number pieces', 'number of elements', 'elements', 'size', 'puzzle size'],
+            'en' => ['pieces', 'pcs', 'pc', 'piece count', 'pieces count', 'number of pieces', 'no of pieces', 'nr of pieces', 'num pieces', 'of pieces', 'number pieces', 'number of elements', 'elements', 'size', 'puzzle size', 'count'],
             'cs' => ['dílků', 'počet dílků', 'dílky', 'počet dílů', 'dílů', 'velikost'],
-            'de' => ['teile', 'teilezahl', 'teileanzahl', 'anzahl teile', 'anzahl der teile', 'größe'],
+            'de' => ['teile', 'teilezahl', 'teileanzahl', 'anzahl teile', 'anzahl der teile', 'anzahl', 'größe'],
             'es' => ['piezas', 'número de piezas', 'nº de piezas', 'n de piezas', 'cantidad de piezas', 'tamaño'],
             'fr' => ['pièces', 'nombre de pièces', 'nb de pièces', 'nb pièces', 'taille'],
             'ja' => ['ピース', 'ピース数', 'サイズ'],
@@ -84,7 +84,7 @@ enum ImportField: string
             'de' => ['strichcode', 'barcode', 'ean', 'ean code'],
             'es' => ['código de barras', 'ean'],
             'fr' => ['code-barres', 'code barres', 'code à barres', 'ean'],
-            'ja' => ['バーコード', 'janコード', 'jan'],
+            'ja' => ['バーコード', 'janコード', 'jan code'],
         ],
         'brand_code' => [
             'en' => ['brand code', 'item number', 'item no', 'item code', 'article number', 'article no', 'art no', 'product code', 'product number', 'sku', 'model number', 'model', 'catalogue number', 'catalog number', 'reference', 'ref', 'code'],
@@ -97,7 +97,7 @@ enum ImportField: string
         'solved_on' => [
             'en' => ['date', 'completed', 'finished', 'solved', 'done', 'end date', 'date completed', 'date finished', 'date solved', 'completion date', 'finish date', 'completed on', 'finished on', 'solved on', 'date of completion', 'when'],
             'cs' => ['datum', 'dokončeno', 'složeno', 'datum dokončení', 'datum složení', 'hotovo', 'kdy'],
-            'de' => ['datum', 'fertig', 'fertiggestellt', 'abgeschlossen', 'gelegt', 'enddatum', 'fertig am', 'gelegt am', 'wann'],
+            'de' => ['datum', 'fertig', 'fertiggestellt', 'abgeschlossen', 'beendet', 'beendet am', 'gelegt', 'enddatum', 'fertig am', 'gelegt am', 'wann'],
             'es' => ['fecha', 'terminado', 'completado', 'fecha de finalización', 'fecha de fin', 'fecha final', 'cuándo'],
             'fr' => ['date', 'terminé', 'fini', 'date de fin', 'terminé le', 'fini le', 'quand'],
             'ja' => ['日付', '完成日', '完成', '完了日'],
@@ -105,21 +105,21 @@ enum ImportField: string
         'time' => [
             'en' => ['time', 'duration', 'solve time', 'solving time', 'completion time', 'time taken', 'total time', 'finish time', 'my time', 'time to complete', 'time spent'],
             'cs' => ['čas', 'doba', 'čas složení', 'výsledný čas', 'doba skládání'],
-            'de' => ['zeit', 'dauer', 'puzzlezeit', 'gesamtzeit', 'benötigte zeit'],
+            'de' => ['zeit', 'dauer', 'legezeit', 'puzzlezeit', 'gesamtzeit', 'benötigte zeit'],
             'es' => ['tiempo', 'duración', 'tiempo total', 'tiempo de resolución'],
-            'fr' => ['temps', 'durée', 'temps total', 'temps de réalisation'],
+            'fr' => ['temps', 'durée', 'chrono', 'temps total', 'temps de réalisation'],
             'ja' => ['タイム', '時間', '所要時間', '完成時間'],
         ],
         'solved_with' => [
-            'en' => ['solved with', 'with', 'with whom', 'partner', 'partners', 'teammates', 'team', 'team members', 'co-puzzlers', 'puzzled with', 'done with', 'who'],
-            'cs' => ['s kým', 'spoluhráči', 'tým', 'partner', 'parťák', 'skládáno s'],
+            'en' => ['solved with', 'with', 'with whom', 'partner', 'partners', 'teammates', 'team', 'team members', 'co-puzzlers', 'puzzled with', 'done with', 'who', 'name'],
+            'cs' => ['s kým', 'spoluhráči', 'tým', 'partner', 'parťák', 'skládáno s', 'jméno'],
             'de' => ['mit', 'mit wem', 'partner', 'team', 'mitpuzzler', 'gepuzzelt mit'],
             'es' => ['con', 'con quién', 'compañeros', 'equipo', 'pareja'],
             'fr' => ['avec', 'avec qui', 'partenaire', 'partenaires', 'équipe', 'coéquipiers'],
             'ja' => ['一緒に', 'パートナー', 'チーム', 'メンバー'],
         ],
         'solving_type' => [
-            'en' => ['solo/pair/team', 'solo or team', 'solo/team', 'solving type', 'puzzling type', 'mode', 'players', 'puzzlers', 'people', 'number of people', 'number people', 'number of puzzlers', 'team size', 'participants'],
+            'en' => ['solo/pair/team', 'solo or team', 'solo/team', 'solving type', 'puzzling type', 'type', 'mode', 'players', 'puzzlers', 'people', 'number of people', 'number people', 'number of puzzlers', 'team size', 'participants'],
             'cs' => ['typ skládání', 'sólo/dvojice/tým', 'počet lidí', 'počet hráčů', 'jednotlivec/dvojice/tým'],
             'de' => ['modus', 'solo/paar/team', 'anzahl personen', 'personen', 'einzel/paar/team'],
             'es' => ['modalidad', 'individual/pareja/equipo', 'número de personas', 'personas'],
@@ -175,12 +175,14 @@ enum ImportField: string
             'ja' => ['手放した', '売却', '売却済み', '譲渡'],
         ],
         'status' => [
-            'en' => ['status', 'stage', 'progress'],
-            'cs' => ['stav', 'status'],
-            'de' => ['status', 'stand'],
-            'es' => ['estado', 'estatus'],
-            'fr' => ['statut', 'état d\'avancement'],
-            'ja' => ['状態', 'ステータス'],
+            // A "Completed" column is a date in one real file and a yes/no in another: the same words as "solved on",
+            // so the two tie and the values decide
+            'en' => ['status', 'stage', 'progress', 'completed', 'finished', 'solved', 'done'],
+            'cs' => ['stav', 'status', 'dokončeno', 'složeno', 'hotovo'],
+            'de' => ['status', 'stand', 'fertig', 'abgeschlossen', 'beendet'],
+            'es' => ['estado', 'estatus', 'terminado', 'completado'],
+            'fr' => ['statut', 'état d\'avancement', 'terminé', 'fini'],
+            'ja' => ['状態', 'ステータス', '完成'],
         ],
         'public_comment' => [
             'en' => ['public comment', 'public comments', 'public note', 'public notes', 'comment for everyone', 'msp comment'],
@@ -199,7 +201,7 @@ enum ImportField: string
             'ja' => ['コレクション', 'リスト'],
         ],
         'computed' => [
-            'en' => ['ppm', 'pieces per minute', 'pieces/minute', 'pieces per min', 'pieces a minute', 'pph', 'pieces per hour', 'pace', 'speed', 'seconds per piece', 'time per piece', 'diff', 'difference', 'percentage', 'percent', 'percentile', 'in top percentage', 'top percentage', 'standing', 'current standing', 'place', 'placing', 'placement', 'rank', 'ranking', 'position', 'days to complete', 'average', 'avg'],
+            'en' => ['ppm', 'pieces per minute', 'pieces/minute', 'pieces per min', 'pieces/min', 'pcs/min', 'pcs per min', 'pcs per minute', 'pieces a minute', 'pph', 'pieces per hour', 'pieces/hour', 'pcs/hour', 'pieces/h', 'pcs/h', 'pace', 'speed', 'seconds per piece', 'time per piece', 'diff', 'difference', 'percentage', 'percent', 'percentile', 'in top percentage', 'top percentage', 'standing', 'current standing', 'place', 'placing', 'placement', 'rank', 'ranking', 'position', 'days to complete', 'average', 'avg'],
             'cs' => ['dílků za minutu', 'rychlost', 'tempo', 'pořadí', 'umístění', 'průměr', 'rozdíl', 'procento', 'procenta'],
             'de' => ['teile pro minute', 'geschwindigkeit', 'tempo', 'platz', 'platzierung', 'rang', 'durchschnitt', 'differenz', 'prozent'],
             'es' => ['piezas por minuto', 'velocidad', 'ritmo', 'posición', 'puesto', 'promedio', 'media', 'diferencia', 'porcentaje'],

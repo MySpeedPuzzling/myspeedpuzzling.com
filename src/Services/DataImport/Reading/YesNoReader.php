@@ -64,7 +64,9 @@ final readonly class YesNoReader
 
     private function text(string $text): ReadYesNo
     {
-        $typed = ImportText::clean(mb_substr(mb_scrub($text, 'UTF-8'), 0, self::LONGEST_WORD * 2, 'UTF-8'));
+        // The full-width ｘ is how a cross is typed on a Japanese keyboard - cleaning would make it the letter of a tick
+        $text = str_replace(['ｘ', 'Ｘ'], '×', mb_scrub($text, 'UTF-8'));
+        $typed = ImportText::clean(mb_substr($text, 0, self::LONGEST_WORD * 2, 'UTF-8'));
 
         if ($typed === '') {
             return ReadYesNo::blank();

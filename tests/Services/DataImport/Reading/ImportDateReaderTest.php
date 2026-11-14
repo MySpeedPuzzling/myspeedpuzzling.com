@@ -13,9 +13,10 @@ use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Value\DataImport\CellInput;
 use SpeedPuzzling\Web\Value\DataImport\DateCertainty;
 use SpeedPuzzling\Web\Value\DataImport\DateOrder;
-use SpeedPuzzling\Web\Value\DataImport\DatePrecision;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\DataImport\DateProblem;
 use SpeedPuzzling\Web\Value\DataImport\ReadDate;
+use SpeedPuzzling\Web\Value\DataImport\ShortDateMeaning;
 use Symfony\Component\Clock\MockClock;
 
 /**
@@ -256,7 +257,7 @@ final class ImportDateReaderTest extends TestCase
     {
         yield 'a day and a month\'s name' => ['3 March', '03-03'];
         yield 'a month\'s name and a day' => ['March 3', '03-03'];
-        yield 'a short month and a day' => ['Sep 20', '09-20'];
+        yield 'a month\'s name and one digit - no year is one digit' => ['Sep 5', '09-05'];
         yield 'a day and a short month, as a spreadsheet shows a day' => ['20-Sep', '09-20'];
         yield 'cs' => ['3. března', '03-03'];
         yield 'de' => ['3. März', '03-03'];
@@ -266,7 +267,7 @@ final class ImportDateReaderTest extends TestCase
         yield 'a month alone' => ['March', '03-01', DatePrecision::Month];
         yield 'ja: a month alone' => ['3月', '03-01', DatePrecision::Month];
         yield 'numbers that only one order makes' => ['29/2', '02-29'];
-        yield 'numbers that month-first and year-first read the same' => ['3/13', '03-13'];
+        yield 'numbers whose second part is one digit - no year is one digit' => ['25/3', '03-25'];
         yield 'a leap day by name' => ['29 February', '02-29'];
     }
 
@@ -431,6 +432,157 @@ final class ImportDateReaderTest extends TestCase
         yield 'an emoji' => ['📅'];
         yield 'a very long text' => [str_repeat('3 March 2024 ', 50)];
         yield 'a megabyte of digits' => [str_repeat('2', 1_000_000)];
+        yield 'digits of another script' => ['٣ March 2024'];
+        yield 'digits of another script in numbers' => ['٣٠/١٢/٢٠٢٣'];
+        yield 'a short date that is neither a day nor a month of a year' => ['13/13'];
+        yield 'a month of 13 and a number no day' => ['13/45'];
+    }
+
+    #[DataProvider('shortDates')]
+    public function testAShortDateIsADayWithoutAYearOrAMonthOfAYear(string $text, string $monthAndDay, string $monthOfYear): void
+    {
+        // "Jan 23, Feb 23, Mar 23" are the months of 2023 as often as three 23rds: the column says which, never a value
+        $read = self::reader()->read(CellInput::text($text));
+
+        self::assertSame(DateCertainty::DayOrYearOpen, $read->certainty, $text);
+        self::assertNull($read->date, 'No date is taken until the column is settled');
+        self::assertSame([ShortDateMeaning::DayOfMonth, ShortDateMeaning::MonthOfYear], $read->possibleShortMeanings);
+        self::assertSame([], $read->possibleOrders, 'The order of day and month is asked after this, of the day reading');
+
+        $asDay = $read->asShort(ShortDateMeaning::DayOfMonth);
+        self::assertSame(DateCertainty::Certain, $asDay->certainty);
+        self::assertSame(ReadDate::PLACEHOLDER_YEAR . '-' . $monthAndDay, $asDay->date?->format('Y-m-d'));
+        self::assertSame(DatePrecision::Day, $asDay->precision);
+        self::assertFalse($asDay->yearKnown);
+        self::assertSame([], $asDay->possibleShortMeanings, 'Settled');
+
+        $asMonth = $read->asShort(ShortDateMeaning::MonthOfYear);
+        self::assertSame(DateCertainty::Certain, $asMonth->certainty);
+        self::assertSame($monthOfYear . '-01', $asMonth->date?->format('Y-m-d'));
+        self::assertSame(DatePrecision::Month, $asMonth->precision);
+        self::assertTrue($asMonth->yearKnown);
+        self::assertTrue($asMonth->centuryAssumed);
+    }
+
+    /**
+     * @return iterable<string, array{string, string, string}>
+     */
+    public static function shortDates(): iterable
+    {
+        yield 'a month\'s name and two digits' => ['Jan 23', '01-23', '2023-01'];
+        yield 'a short month and two digits' => ['Sep 20', '09-20', '2020-09'];
+        yield 'with a dot' => ['Sep. 20', '09-20', '2020-09'];
+        yield 'with a slash' => ['Sep/20', '09-20', '2020-09'];
+        yield 'a leading zero' => ['March 05', '03-05', '2005-03'];
+        yield 'cs' => ['leden 23', '01-23', '2023-01'];
+        yield 'de' => ['März 24', '03-24', '2024-03'];
+        yield 'numbers: month and day, or month and year' => ['10/23', '10-23', '2023-10'];
+        yield 'numbers with a leading zero' => ['01/24', '01-24', '2024-01'];
+        yield 'numbers with a dot' => ['3.13', '03-13', '2013-03'];
+        yield 'numbers with a dash' => ['12-24', '12-24', '2024-12'];
+    }
+
+    public function testNumbersThatCanBeADayFirstDateKeepThatReadingToo(): void
+    {
+        // "10/11": 10 November, 11 October - or October 2011
+        $read = self::reader()->read(CellInput::text('10/11'));
+
+        self::assertSame(DateCertainty::DayOrYearOpen, $read->certainty);
+
+        $asDay = $read->asShort(ShortDateMeaning::DayOfMonth);
+        self::assertSame(DateCertainty::OrderOpen, $asDay->certainty);
+        self::assertSame('2000-11-10', $asDay->dayIn(DateOrder::DayMonthYear));
+        self::assertSame('2000-10-11', $asDay->dayIn(DateOrder::MonthDayYear));
+        self::assertSame('2011-10-01', $read->asShort(ShortDateMeaning::MonthOfYear)->date?->format('Y-m-d'));
+    }
+
+    public function testAShortDateWithOneMeaningIsReadAndTellsTheColumnWhichItIs(): void
+    {
+        $reader = self::reader();
+
+        // 30 is no day of February: a month of 2030 - flagged, it is in the future
+        $year = $reader->read(CellInput::text('Feb 30'));
+        self::assertSame(DateCertainty::Certain, $year->certainty);
+        self::assertSame('2030-02-01', $year->date?->format('Y-m-d'));
+        self::assertSame(DatePrecision::Month, $year->precision);
+        self::assertSame([ShortDateMeaning::MonthOfYear], $year->possibleShortMeanings);
+        self::assertSame([DateProblem::InTheFuture], $year->problems);
+        self::assertSame(DateCertainty::Unreadable, $year->asShort(ShortDateMeaning::DayOfMonth)->certainty);
+
+        $numbers = $reader->read(CellInput::text('2/30'));
+        self::assertSame('2030-02-01', $numbers->date?->format('Y-m-d'));
+        self::assertSame([ShortDateMeaning::MonthOfYear], $numbers->possibleShortMeanings);
+
+        // One digit is no year, 25 no month
+        foreach (['Jan 5' => '01-05', '25/3' => '03-25', '25/03' => '03-25'] as $text => $monthAndDay) {
+            $day = $reader->read(CellInput::text($text));
+
+            self::assertSame(DateCertainty::Certain, $day->certainty, $text);
+            self::assertSame(ReadDate::PLACEHOLDER_YEAR . '-' . $monthAndDay, $day->date?->format('Y-m-d'), $text);
+            self::assertFalse($day->yearKnown);
+            self::assertSame([ShortDateMeaning::DayOfMonth], $day->possibleShortMeanings, $text);
+            self::assertSame(DateCertainty::Unreadable, $day->asShort(ShortDateMeaning::MonthOfYear)->certainty);
+        }
+    }
+
+    public function testHowASpreadsheetShowsAMonthOfAYearAndADayOfAMonthAreNoQuestion(): void
+    {
+        $reader = self::reader();
+
+        // mmm-yy shows "Sep-20", d-mmm shows "20-Sep"; an apostrophe is a year
+        foreach (['Sep-20', 'Sep \'20', 'Sep ’20'] as $text) {
+            $month = $reader->read(CellInput::text($text));
+
+            self::assertSame(DateCertainty::Certain, $month->certainty, $text);
+            self::assertSame('2020-09-01', $month->date?->format('Y-m-d'), $text);
+            self::assertSame([], $month->possibleShortMeanings, $text);
+        }
+
+        foreach (['20-Sep', '20 Sep', '20. Sep'] as $text) {
+            $day = $reader->read(CellInput::text($text));
+
+            self::assertSame(DateCertainty::Certain, $day->certainty, $text);
+            self::assertSame('2000-09-20', $day->date?->format('Y-m-d'), $text);
+            self::assertFalse($day->yearKnown);
+            self::assertSame([], $day->possibleShortMeanings, $text);
+        }
+    }
+
+    public function testAYearIsPutIntoTheDayReadingOfAShortDate(): void
+    {
+        $reader = self::reader();
+        $withYear = $reader->withYear($reader->read(CellInput::text('Jan 23')), 2019);
+
+        self::assertSame(DateCertainty::DayOrYearOpen, $withYear->certainty, 'The year does not answer what the 23 is');
+        self::assertSame('2019-01-23', $withYear->asShort(ShortDateMeaning::DayOfMonth)->date?->format('Y-m-d'));
+        self::assertTrue($withYear->asShort(ShortDateMeaning::DayOfMonth)->yearKnown);
+        self::assertSame('2023-01-01', $withYear->asShort(ShortDateMeaning::MonthOfYear)->date?->format('Y-m-d'));
+    }
+
+    public function testATypedDateTurnedAroundByTheSpreadsheetCanBeTurnedBack(): void
+    {
+        $reader = self::reader();
+
+        // 3 April typed day-first, read month-first by the spreadsheet: stored as 4 March
+        $typed = $reader->read(CellInput::date(self::day('2023-03-04')));
+        $back = $reader->withDayAndMonthSwapped($typed);
+
+        self::assertSame('2023-04-03', $back->date?->format('Y-m-d'));
+        self::assertTrue($back->typed);
+        self::assertSame([], $back->problems);
+
+        // Turned back, 12 May 2026 is 5 December 2026 - after today
+        self::assertSame([DateProblem::InTheFuture], $reader->withDayAndMonthSwapped($reader->read(CellInput::date(self::day('2026-05-12'))))->problems);
+
+        // A day above 12 cannot have been turned around; a text date is not the spreadsheet's doing; a month has no day
+        $late = $reader->read(CellInput::date(self::day('2023-03-14')));
+        self::assertSame($late, $reader->withDayAndMonthSwapped($late));
+
+        $text = $reader->read(CellInput::text('2023-03-04'));
+        self::assertSame($text, $reader->withDayAndMonthSwapped($text));
+
+        $month = $reader->read(CellInput::date(self::day('2023-03-04'), DatePrecision::Month));
+        self::assertSame($month, $reader->withDayAndMonthSwapped($month));
     }
 
     #[DataProvider('noDate')]
@@ -465,6 +617,8 @@ final class ImportDateReaderTest extends TestCase
         self::assertTrue($day->yearKnown);
         self::assertSame([], $day->possibleOrders);
         self::assertSame([], $day->problems);
+        self::assertTrue($day->typed, 'The spreadsheet made it a date');
+        self::assertFalse($reader->read(CellInput::text('2025-01-03'))->typed);
 
         // A cell whose format shows "September 2020" holds some day of that month
         $month = $reader->read(CellInput::date(self::day('2020-09-14'), DatePrecision::Month));

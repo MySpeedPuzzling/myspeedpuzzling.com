@@ -10,19 +10,21 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Value\DataImport\CellInput;
 use SpeedPuzzling\Web\Value\DataImport\CellInputKind;
 use SpeedPuzzling\Web\Value\DataImport\DateOrder;
-use SpeedPuzzling\Web\Value\DataImport\DatePrecision;
 use SpeedPuzzling\Web\Value\DataImport\DateProblem;
 use SpeedPuzzling\Web\Value\DataImport\ImportCalendarWords;
 use SpeedPuzzling\Web\Value\DataImport\ImportText;
 use SpeedPuzzling\Web\Value\DataImport\ReadDate;
+use SpeedPuzzling\Web\Value\DataImport\ShortDateMeaning;
+use SpeedPuzzling\Web\Value\DatePrecision;
 
 /**
  * Reads one cell of a date column (docs/features/data-import/README.md "Dates", docs/features/data-import/value-readers.md
  * "Dates" - every rule and its examples).
  *
  * A typed date passes through with the precision its format shows. A text is read without guessing: a date written in
- * numbers comes back with every order in which it is a real date (DateOrderResolver settles the column), a month's
- * name or a four-digit year in front has one reading, a text without a year says so, anything else is unreadable.
+ * numbers comes back with every order in which it is a real date, a short date ("Jan 23", "10/23") with both of its
+ * meanings - a day without a year, a month of a year - and DateOrderResolver settles the column; a month's name with a
+ * full year or a four-digit year in front has one reading, a text without a year says so, anything else is unreadable.
  * A date after today or before 1950 is read and flagged - a problem to fix, never corrected here. Never throws.
  */
 final readonly class ImportDateReader
@@ -54,11 +56,25 @@ final readonly class ImportDateReader
 
     /**
      * A date whose year was never seen ("1/3", a cell showing "m/d"), with the year the sheet's name or the player
-     * gave. A date that knows its year stays as it is; 29 February of a year without one is unreadable.
+     * gave. A date that knows its year stays as it is; 29 February of a year without one is unreadable. Of a short
+     * date still open between a day and a year, only the day reading gets the year.
      */
     public function withYear(ReadDate $read, int $year): ReadDate
     {
-        if ($read->yearKnown || $year < 1 || $year > 9999) {
+        if ($year < 1 || $year > 9999) {
+            return $read;
+        }
+
+        if ($read->possibleShortMeanings !== []) {
+            $day = $read->shortReading(ShortDateMeaning::DayOfMonth);
+
+            return ReadDate::short(
+                $day === null ? null : $this->withYear($day, $year),
+                $read->shortReading(ShortDateMeaning::MonthOfYear),
+            );
+        }
+
+        if ($read->yearKnown) {
             return $read;
         }
 
@@ -71,7 +87,7 @@ final readonly class ImportDateReader
 
             return $reading === null
                 ? ReadDate::unreadable()
-                : ReadDate::certain($reading['date'], $read->precision, true, $reading['problems']);
+                : ReadDate::certain($reading['date'], $read->precision, true, $reading['problems'], typed: $read->typed);
         }
 
         $byOrder = [];
@@ -88,6 +104,23 @@ final readonly class ImportDateReader
         return ReadDate::inNumbers($byOrder, true, false);
     }
 
+    /**
+     * A typed date with its day and month changed back - for a column whose typed dates a spreadsheet turned around
+     * (DateOrderState::TypedDatesInDoubt) once the player said so. Only a typed day with a day of 12 or less changes.
+     */
+    public function withDayAndMonthSwapped(ReadDate $read): ReadDate
+    {
+        if ($read->typed === false || $read->date === null || $read->precision !== DatePrecision::Day) {
+            return $read;
+        }
+
+        $reading = $this->reading((int) $read->date->format('Y'), (int) $read->date->format('j'), (int) $read->date->format('n'), DatePrecision::Day);
+
+        return $reading === null
+            ? $read
+            : ReadDate::certain($reading['date'], DatePrecision::Day, $read->yearKnown, $read->yearKnown ? $reading['problems'] : [], typed: true);
+    }
+
     private function dateCell(DateTimeImmutable $date, DatePrecision $precision, bool $yearKnown): ReadDate
     {
         $reading = $this->reading(
@@ -101,7 +134,7 @@ final readonly class ImportDateReader
             return ReadDate::unreadable();
         }
 
-        return ReadDate::certain($reading['date'], $precision, $yearKnown, $yearKnown ? $reading['problems'] : []);
+        return ReadDate::certain($reading['date'], $precision, $yearKnown, $yearKnown ? $reading['problems'] : [], typed: true);
     }
 
     private function number(int|float $number): ReadDate
@@ -142,7 +175,7 @@ final readonly class ImportDateReader
      */
     private static function withoutTimeOfDay(string $value): string
     {
-        $pattern = '/^(.*\d)(?:\s+|t)\d{1,2}:\d{2}(?::\d{2}(?:[.,]\d+)?)?\s*(?:am|pm|a\.m\.|p\.m\.)?\s*(?:z|utc|gmt|[+-]\d{2}:?\d{2})?$/u';
+        $pattern = '/^(.*[0-9])(?:\s+|t)[0-9]{1,2}:[0-9]{2}(?::[0-9]{2}(?:[.,][0-9]+)?)?\s*(?:am|pm|a\.m\.|p\.m\.)?\s*(?:z|utc|gmt|[+-][0-9]{2}:?[0-9]{2})?$/u';
 
         return preg_match($pattern, $value, $match) === 1 ? $match[1] : $value;
     }
@@ -166,7 +199,7 @@ final readonly class ImportDateReader
      */
     private function eastAsian(string $value): null|ReadDate
     {
-        if (preg_match('/^(?:(\d{4})年)?\s*(?:(\d{1,2})月)?\s*(?:(\d{1,2})日)?$/u', $value, $match) !== 1) {
+        if (preg_match('/^(?:([0-9]{4})年)?\s*(?:([0-9]{1,2})月)?\s*(?:([0-9]{1,2})日)?$/u', $value, $match) !== 1) {
             return null;
         }
 
@@ -187,22 +220,22 @@ final readonly class ImportDateReader
      */
     private function numbers(string $value): null|ReadDate
     {
-        if (preg_match('/^(\d{1,4})\s?([\/.\-])\s?(\d{1,2})\s?\2\s?(\d{1,4})\.?$/', $value, $match) === 1) {
+        if (preg_match('/^([0-9]{1,4})\s?([\/.\-])\s?([0-9]{1,2})\s?\2\s?([0-9]{1,4})\.?$/', $value, $match) === 1) {
             return $this->threeNumbers($match[1], $match[3], $match[4]);
         }
 
-        if (preg_match('/^(\d{1,4})\s?[\/.\-]\s?(\d{1,4})\.?$/', $value, $match) === 1) {
+        if (preg_match('/^([0-9]{1,4})\s?[\/.\-]\s?([0-9]{1,4})\.?$/', $value, $match) === 1) {
             return $this->twoNumbers($match[1], $match[2]);
         }
 
-        if (preg_match('/^(\d{4})(\d{2})(\d{2})$/', $value, $match) === 1) {
+        if (preg_match('/^([0-9]{4})([0-9]{2})([0-9]{2})$/', $value, $match) === 1) {
             // "20231230" - only with a year a bare number may be
             return self::isBareYear((int) $match[1])
                 ? $this->single((int) $match[1], (int) $match[2], (int) $match[3], DatePrecision::Day)
                 : ReadDate::unreadable();
         }
 
-        if (preg_match('/^\d{4}$/', $value) === 1) {
+        if (preg_match('/^[0-9]{4}$/', $value) === 1) {
             return self::isBareYear((int) $value)
                 ? $this->single((int) $value, 1, 1, DatePrecision::Year)
                 : ReadDate::unreadable();
@@ -258,24 +291,31 @@ final readonly class ImportDateReader
             return ReadDate::unreadable();
         }
 
-        // A day and a month without a year - never a month and a two-digit year
-        return ReadDate::inNumbers($this->readings([
+        // A short date: a day and a month without a year (in either order) - or, when the second number has two
+        // digits, a month and its year ("10/23" = October 2023). The column says which
+        $asDay = ReadDate::inNumbers($this->readings([
             DateOrder::DayMonthYear->value => [null, (int) $second, (int) $first],
             DateOrder::MonthDayYear->value => [null, (int) $first, (int) $second],
             DateOrder::YearMonthDay->value => [null, (int) $first, (int) $second],
         ]), false, false);
+
+        $asMonth = strlen($second) === 2
+            ? $this->single(self::fullYear((int) $second), (int) $first, 1, DatePrecision::Month, true)
+            : null;
+
+        return ReadDate::short($asDay, $asMonth);
     }
 
     /**
      * A date with a month's name: "3 March 2024", "March 3, 2024", "3. března 2024", "3 de marzo de 2024", "Sept 2020",
-     * "Sep-20", "20-Sep", "March".
+     * "Sep-20", "20-Sep", "Sep 20", "March".
      */
     private function words(string $value): null|ReadDate
     {
         // "3rd", "1er", "2e", "3º" (which NFKC made "3o")
-        $value = preg_replace('/(\d)(?:st|nd|rd|th|er|ere|re|eme|e|o|a)(?![\p{L}\p{N}])/u', '$1', $value) ?? $value;
+        $value = preg_replace('/([0-9])(?:st|nd|rd|th|er|ere|re|eme|e|o|a)(?![\p{L}\p{N}])/u', '$1', $value) ?? $value;
 
-        if (preg_match_all('/\d+|\p{L}+/u', $value, $matches, PREG_OFFSET_CAPTURE) < 1) {
+        if (preg_match_all('/[0-9]+|\p{L}+/u', $value, $matches, PREG_OFFSET_CAPTURE) < 1) {
             return null;
         }
 
@@ -349,8 +389,10 @@ final readonly class ImportDateReader
     }
 
     /**
-     * "Sept 2020" is a month. "Sep-20" is the month of a year the way a spreadsheet shows it; "Sep 20" is a day of
-     * September, the year unknown - unless the number is no day of that month.
+     * A month's name and a number after it. Four digits are the year: "Sept 2020". Two digits right after a dash or
+     * an apostrophe are the year too - "Sep-20" is how a spreadsheet shows a month of a year ("20-Sep" is its day),
+     * "Sep '20" how people write one. Any other one or two digits are a short date: a day ("Sep 20" = 20 September,
+     * the year unknown) or, with two digits, a year (September 2020) - the column says which.
      */
     private function monthThenNumber(int $month, string $number, string $before): null|ReadDate
     {
@@ -362,15 +404,15 @@ final readonly class ImportDateReader
             return null;
         }
 
-        $asYear = $this->single(self::fullYear((int) $number), $month, 1, DatePrecision::Month, true);
+        $asMonth = strlen($number) === 2
+            ? $this->single(self::fullYear((int) $number), $month, 1, DatePrecision::Month, true)
+            : null;
 
-        if (strlen($number) === 2 && preg_match('/[\-\/\'’]/u', $before) === 1) {
-            return $asYear;
+        if ($asMonth !== null && preg_match('/^\s*[\-\'’]\s*$/u', $before) === 1) {
+            return $asMonth;
         }
 
-        $asDay = $this->single(null, $month, (int) $number, DatePrecision::Day);
-
-        return $asDay->date === null && strlen($number) === 2 ? $asYear : $asDay;
+        return ReadDate::short($this->single(null, $month, (int) $number, DatePrecision::Day), $asMonth);
     }
 
     /**

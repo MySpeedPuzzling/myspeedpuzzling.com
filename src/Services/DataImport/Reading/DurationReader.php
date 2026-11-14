@@ -16,10 +16,13 @@ use SpeedPuzzling\Web\Value\DataImport\ReadDuration;
  * Reads one cell of a time column into seconds, with how sure it is (docs/features/data-import/README.md "Durations",
  * docs/features/data-import/value-readers.md "Durations" - every rule and its examples).
  *
- * Never throws and never guesses: a value with one meaning is taken, a shape with several ("17:36", a bare "237", a
- * time-of-day cell without seconds) comes back with every reading for DurationColumnResolver, a time inside other
- * text is only proposed, anything else is unreadable. An empty cell and a zero are "no time" - a result without a
- * time, not a problem.
+ * Never throws and never guesses: a value with one meaning is taken, a shape with several ("17:36", "45:30:00", a
+ * bare "237", a time cell without seconds) comes back with every reading for DurationColumnResolver and without a time
+ * of its own, a time inside other text is only proposed, anything else is unreadable - also a time with a sign or a
+ * number of days next to it. An empty cell and a zero are "no time" - a result without a time, not a problem.
+ *
+ * A text reads like the cell of the same value ("45:30:00" like a duration cell of 45 h 30 min), so a sheet saved as
+ * CSV reads like its workbook.
  */
 final readonly class DurationReader
 {
@@ -28,7 +31,8 @@ final readonly class DurationReader
 
     private const int DAY = 86_400;
 
-    private const string NUMBER = '\d{1,5}(?:[.,]\d{1,2})?';
+    // Digits are ASCII only: full-width ones were made so (ImportText::clean()), other scripts' digits are no number here
+    private const string NUMBER = '[0-9]{1,5}(?:[.,][0-9]{1,2})?';
 
     // Unit words of en / cs / de / es / fr / ja - none has an accent, the case does not matter. A Latin word must end
     // there ("5 stars" is no "5 s"); a Japanese unit may be followed by anything ("23分くらい")
@@ -39,14 +43,21 @@ final readonly class DurationReader
     // Between two parts: nothing, a comma, or "and" in the six languages
     private const string BETWEEN = '(?:\s*,\s*|\s+(?:and|und|a|y|et)\s+|\s*)';
 
-    private const string CLOCK_3 = '/^(\d{1,4}):(\d{1,2}):(\d{1,2})(?:[.,](\d{1,3}))?$/';
-    private const string CLOCK_2 = '/^(\d{1,4}):(\d{1,2})(?:[.,](\d{1,3}))?$/';
+    private const string CLOCK_3 = '/^([0-9]{1,4}):([0-9]{1,2}):([0-9]{1,2})(?:[.,]([0-9]{1,3}))?$/';
+    private const string CLOCK_2 = '/^([0-9]{1,4}):([0-9]{1,2})(?:[.,]([0-9]{1,3}))?$/';
 
     // A clock time inside other text; a decimal comma is not read there ("1:02:03, 58:10" is a list)
-    private const string CLOCK_INSIDE = '/(?<![\p{N}:.,])(\d{1,4}):(\d{1,2})(?::(\d{1,2}))?(?:\.(\d{1,3})(?!\d))?(?![\p{N}:])/u';
+    private const string CLOCK_INSIDE = '/(?<![\p{N}:.,])([0-9]{1,4}):([0-9]{1,2})(?::([0-9]{1,2}))?(?:\.([0-9]{1,3})(?![0-9]))?(?![\p{N}:])/u';
 
     // What is left of a value when its one time is taken out must not look like a piece of another time
-    private const string BROKEN_TIME = '/\d\s*:|:\s*\d|\?\s*:|:\s*\?/';
+    private const string BROKEN_TIME = '/[0-9]\s*:|:\s*[0-9]|\?\s*:|:\s*\?/';
+
+    // A sign touching a time: a difference ("-1:02:03" is how a spreadsheet exports a negative one), never a time
+    private const string SIGN_BEFORE = '/[+\-−–—]$/u';
+    private const string SIGN_AFTER = '/^[+\-−–—]/u';
+
+    // A number of days next to a time ("2 days 3 h", "1d 2:30:00"): the time is only a part of what is meant
+    private const string DAYS = '/(?<![\p{L}\p{N}])[0-9]+(?:[.,][0-9]+)?\s*(?:days?|d|dn[yiuí]|dnů|den|tage?n?|d[ií]as?|jours?|j|日間|日)(?!\p{L})/iu';
 
     public function read(CellInput $cell): ReadDuration
     {
@@ -54,13 +65,19 @@ final readonly class DurationReader
             CellInputKind::Blank => ReadDuration::noTime(),
             CellInputKind::Text => $this->text($cell->asText()),
             CellInputKind::Number => $this->number($cell->asNumber()),
-            CellInputKind::Duration => $this->durationCell($cell->asSeconds()),
-            CellInputKind::TimeOfDay => $this->timeOfDayCell($cell->asSeconds()),
+            CellInputKind::Duration => self::stored($cell->asSeconds()),
+            // A clock's time (h:mm AM/PM, a date with a time) is a moment - "Start time", NOW() - never how long
+            CellInputKind::TimeOfDay => $cell->clockFormat ? ReadDuration::unreadable() : $this->timeOfDayCell($cell->asSeconds()),
             CellInputKind::Date, CellInputKind::Boolean => ReadDuration::unreadable(),
         };
     }
 
-    private function durationCell(int $seconds): ReadDuration
+    /**
+     * A duration as a spreadsheet stores it - a duration cell, or a text of hours:minutes:seconds. With seconds and
+     * under a day it has one meaning. Without seconds it may be "45:30" typed for 45 min 30 s; a day and more is
+     * always the column's to look at.
+     */
+    private static function stored(int $seconds): ReadDuration
     {
         if ($seconds === 0) {
             return ReadDuration::noTime();
@@ -78,11 +95,7 @@ final readonly class DurationReader
             return ReadDuration::certain($seconds);
         }
 
-        return ReadDuration::certainUnlessTheColumnSaysOtherwise(
-            $seconds,
-            DurationShape::ZeroSecondsDurationCell,
-            self::storedReadings($seconds),
-        );
+        return ReadDuration::ambiguous(DurationShape::ZeroSecondsDurationCell, self::storedReadings($seconds));
     }
 
     private function timeOfDayCell(int $seconds): ReadDuration
@@ -104,7 +117,7 @@ final readonly class DurationReader
     }
 
     /**
-     * A cell's value as stored, and - when it has no seconds - its hours and minutes taken as minutes and seconds.
+     * A stored value as it is, and - when it has no seconds - its hours and minutes taken as minutes and seconds.
      *
      * @return list<DurationReading>
      */
@@ -149,16 +162,7 @@ final readonly class DurationReader
             );
         }
 
-        $readings = [
-            [DurationReadingRule::Minutes, (int) round($number * 60)],
-            [DurationReadingRule::Hours, (int) round($number * 3600)],
-        ];
-
-        if ($number < 1) {
-            $readings[] = [DurationReadingRule::DayFraction, (int) round($number * self::DAY)];
-        }
-
-        return ReadDuration::ambiguous(DurationShape::BareNumber, self::readings($readings));
+        return ReadDuration::ambiguous(DurationShape::BareNumber, self::decimalReadings($number, null, null));
     }
 
     private function text(string $text): ReadDuration
@@ -183,7 +187,7 @@ final readonly class DurationReader
     }
 
     /**
-     * "1:09:17", "0:56:4", "17:36", "17:36.5" - the whole value is a clock time.
+     * "1:09:17", "0:56:4", "45:30:00", "17:36", "17:36.5", "1:02.03" - the whole value is a clock time.
      */
     private function clockText(string $value): null|ReadDuration
     {
@@ -198,7 +202,8 @@ final readonly class DurationReader
                 return self::single(ReadDuration::fromText($seconds + self::roundedUp($match[4])));
             }
 
-            return self::single(ReadDuration::certain($seconds));
+            // Like the cell of the same value
+            return self::stored($seconds);
         }
 
         if (preg_match(self::CLOCK_2, $value, $match) !== 1) {
@@ -207,21 +212,34 @@ final readonly class DurationReader
 
         $first = (int) $match[1];
         $second = (int) $match[2];
+        $fraction = $match[3] ?? '';
 
         if ($second >= 60) {
             return ReadDuration::unreadable();
         }
 
-        // A fraction can only be one of seconds: "17:36.5" is minutes and seconds
-        if (($match[3] ?? '') !== '') {
-            return self::single(ReadDuration::fromText($first * 60 + $second + self::roundedUp($match[3])));
-        }
-
-        if ($first === 0 && $second === 0) {
+        if ($first === 0 && $second === 0 && (int) $fraction === 0) {
             return ReadDuration::noTime();
         }
 
-        return ReadDuration::ambiguous(DurationShape::TwoPartText, self::twoPartReadings($first, $second));
+        if ($fraction === '') {
+            return ReadDuration::ambiguous(DurationShape::TwoPartText, self::readings([
+                [DurationReadingRule::MinutesSeconds, $first * 60 + $second],
+                [DurationReadingRule::HoursMinutes, $first * 3600 + $second * 60],
+            ]));
+        }
+
+        $minutesSeconds = $first * 60 + $second + self::roundedUp($fraction);
+
+        // Two decimals below 60 may be the seconds of "h:mm.ss"; any other fraction can only be one of seconds
+        if (strlen($fraction) === 2 && (int) $fraction < 60) {
+            return ReadDuration::ambiguous(DurationShape::TwoPartTextWithHundredths, self::readings([
+                [DurationReadingRule::MinutesSeconds, $minutesSeconds],
+                [DurationReadingRule::HoursMinutesDotSeconds, $first * 3600 + $second * 60 + (int) $fraction],
+            ]));
+        }
+
+        return self::single(ReadDuration::fromText($minutesSeconds));
     }
 
     /**
@@ -229,7 +247,7 @@ final readonly class DurationReader
      */
     private function clockWithUnit(string $value): null|ReadDuration
     {
-        if (preg_match('/^(\d{1,4}):(\d{1,2})(?::(\d{1,2}))?\s*(?:(?<h>' . self::HOURS . ')|(?<m>' . self::MINUTES . '))$/iu', $value, $match) !== 1) {
+        if (preg_match('/^([0-9]{1,4}):([0-9]{1,2})(?::([0-9]{1,2}))?\s*(?:(?<h>' . self::HOURS . ')|(?<m>' . self::MINUTES . '))$/iu', $value, $match) !== 1) {
             return null;
         }
 
@@ -253,7 +271,7 @@ final readonly class DurationReader
      */
     private function numberText(string $value): null|ReadDuration
     {
-        if (preg_match('/^(\d{1,7})(?:[.,](\d{1,2}))?$/', $value, $match) !== 1) {
+        if (preg_match('/^([0-9]{1,7})(?:[.,]([0-9]{1,2}))?$/', $value, $match) !== 1) {
             return null;
         }
 
@@ -293,7 +311,8 @@ final readonly class DurationReader
 
     /**
      * "0:55:41 (slower than last time)", "1:40ish", "casual but 1:11", "about 25 min" - exactly one time inside other
-     * text. Several times ("6:07, 6:23, 5:05") or a piece of one ("1:13:??") are unreadable.
+     * text. Several times ("6:07, 6:23, 5:05"), a piece of one ("1:13:??"), a time with a sign ("-1:02:03") or with
+     * days next to it ("2 days 3 h") are unreadable.
      */
     private function timeInsideText(string $value): null|ReadDuration
     {
@@ -324,9 +343,15 @@ final readonly class DurationReader
         }
 
         $time = $found[0]['read'];
-        $rest = substr($value, 0, $found[0]['offset']) . ' ' . substr($value, $found[0]['offset'] + $found[0]['length']);
+        $before = substr($value, 0, $found[0]['offset']);
+        $after = substr($value, $found[0]['offset'] + $found[0]['length']);
+        $rest = $before . ' ' . $after;
 
         if ($time->readings === [] || preg_match(self::BROKEN_TIME, $rest) === 1) {
+            return null;
+        }
+
+        if (preg_match(self::SIGN_BEFORE, $before) === 1 || preg_match(self::SIGN_AFTER, $after) === 1 || preg_match(self::DAYS, $rest) === 1) {
             return null;
         }
 
@@ -470,19 +495,8 @@ final readonly class DurationReader
             . ')';
 
         return $anchored
-            ? '/^' . $body . '(?:\s*(?<tail>\d{1,2}))?$/iu'
-            : '/(?<![\p{L}\p{N}:.,\'"′’”])' . $body . '(?:(?<tail>\d{1,2})(?![\p{L}\p{N}:.,])|(?!\d))/iu';
-    }
-
-    /**
-     * @return list<DurationReading>
-     */
-    private static function twoPartReadings(int $first, int $second): array
-    {
-        return self::readings([
-            [DurationReadingRule::MinutesSeconds, $first * 60 + $second],
-            [DurationReadingRule::HoursMinutes, $first * 3600 + $second * 60],
-        ]);
+            ? '/^' . $body . '(?:\s*(?<tail>[0-9]{1,2}))?$/iu'
+            : '/(?<![\p{L}\p{N}:.,\'"′’”])' . $body . '(?:(?<tail>[0-9]{1,2})(?![\p{L}\p{N}:.,])|(?![0-9]))/iu';
     }
 
     /**
@@ -500,18 +514,27 @@ final readonly class DurationReader
     }
 
     /**
+     * A number with decimals: as minutes, seconds (rounded) or hours; with at most two decimals below 60 also the
+     * "hours.minutes" and "minutes.seconds" habits ($whole and $hundredths, null with more decimals); below 1 also the
+     * part of a day a spreadsheet stores a time as.
+     *
      * @return list<DurationReading>
      */
-    private static function decimalReadings(float $value, int $whole, int $hundredths): array
+    private static function decimalReadings(float $value, null|int $whole, null|int $hundredths): array
     {
         $readings = [
             [DurationReadingRule::Minutes, (int) round($value * 60)],
+            [DurationReadingRule::Seconds, (int) round($value)],
             [DurationReadingRule::Hours, (int) round($value * 3600)],
         ];
 
-        if ($hundredths < 60) {
+        if ($whole !== null && $hundredths !== null && $hundredths < 60) {
             $readings[] = [DurationReadingRule::HoursDotMinutes, $whole * 3600 + $hundredths * 60];
             $readings[] = [DurationReadingRule::MinutesDotSeconds, $whole * 60 + $hundredths];
+        }
+
+        if ($value < 1) {
+            $readings[] = [DurationReadingRule::DayFraction, (int) round($value * self::DAY)];
         }
 
         return self::readings($readings);

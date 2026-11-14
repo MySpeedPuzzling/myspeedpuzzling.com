@@ -8,9 +8,10 @@ namespace SpeedPuzzling\Web\Value\DataImport;
  * What DurationReader made of one cell of a time column (docs/features/data-import/value-readers.md "Durations").
  *
  * $seconds is the time the import takes when nobody says otherwise - null while it has none to take (no time,
- * unreadable, or a shape with several meanings that the column has not settled). $readings holds every possible time.
- * $shape names the ambiguous shape the value has, so one answer covers the column; a value can need both that answer
- * and the player's yes for its leftover text ("17:36 for both").
+ * unreadable, or a shape the column has not settled). $readings holds every possible time. $shape names the shape the
+ * value has, so one answer covers the column - **a value with a shape never has $seconds**: it is taken only through
+ * settledBy() (DurationColumnResolution::apply()). A value can need both that answer and the player's yes for its
+ * leftover text ("17:36 for both").
  */
 final readonly class ReadDuration
 {
@@ -83,16 +84,6 @@ final readonly class ReadDuration
             $shape,
             $leftover,
         );
-    }
-
-    /**
-     * A cell taken as stored, whose shape the column may still question (a duration cell with :00 seconds).
-     *
-     * @param list<DurationReading> $alternatives
-     */
-    public static function certainUnlessTheColumnSaysOtherwise(int $seconds, DurationShape $shape, array $alternatives): self
-    {
-        return new self(DurationCertainty::Certain, $seconds, $alternatives, $shape);
     }
 
     public function secondsBy(DurationReadingRule $rule): null|int

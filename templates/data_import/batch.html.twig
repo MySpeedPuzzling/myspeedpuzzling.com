@@ -112,6 +112,14 @@
             </div>
         {% endif %}
 
+        {% if batch.unlisted > 0 %}
+            {# Rows kept with the player's unlisted puzzles (docs/features/data-import/unlisted-puzzles.md) #}
+            <p class="fs-sm text-muted mb-3" data-testid="import-batch-unlisted" data-rows="{{ batch.unlisted }}">
+                <i class="bi bi-bookmark me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.batch.kept'|trans({'%number%': batch.unlisted|format_number}) }}
+                <a href="{{ path('unlisted_puzzles') }}" class="d-inline-block py-1" data-testid="import-batch-unlisted-link">{{ 'unlisted_puzzles.link'|trans }}</a>
+            </p>
+        {% endif %}
+
         <div class="d-flex flex-column gap-2 mb-3">
             {% if batch.results > 0 %}
                 <a href="{{ path('my_profile') }}" class="btn btn-primary text-wrap d-flex align-items-center justify-content-center" style="min-height: 48px;" data-testid="import-batch-profile">

@@ -33,9 +33,11 @@ A row is **ready** - derived, never stored. **One definition**: `DataImportRowRe
 `queueReadyRows()` queues with and the screens count with (`GetImportAddScreen`):
 
 - it is data (`kind` result / owned / both / wish_list), without a problem, on a sheet that is in;
-- its distinct puzzle is decided as a **catalogue** puzzle (the rules' "found", the player's choice, a remembered one);
-- a row with a result has a **date** - a day, or the month or year the file knows (`parsed.datePrecision`; stored
-  as that: `date-precision.md`);
+- its distinct puzzle is decided as a **catalogue** puzzle (the rules' "found", the player's choice, a remembered one)
+  and a row with a result has a **date** - a day, or the month or year the file knows (`parsed.datePrecision`; stored
+  as that: `date-precision.md`) - **or** its puzzle is kept as an **unlisted puzzle** (stage 7,
+  [unlisted-puzzles.md](unlisted-puzzles.md)): such a row goes into the unlisted tables, never to the profile, dated
+  or not;
 - it waits (`state = waiting`), was not refused before (`failure IS NULL`) and no Undo holds it - **or** it was
   settled as "already yours" with a result that is gone since (undone, deleted): "already yours" is always what
   exists now.
@@ -44,9 +46,9 @@ Not ready, and said so in the outcome's `skipped` (the screens word it):
 
 | Code | Why |
 |---|---|
-| `unlisted_not_yet` | The puzzle is kept as an unlisted puzzle - stage 7. The row is **not** added and stays waiting |
+| `unlisted_not_yet` | Until stage 7: the puzzle is kept as an unlisted puzzle. No "Add" answers it any more - such rows are ready now ([unlisted-puzzles.md](unlisted-puzzles.md)); the code stays for batches made before |
 | `needs_exact_day` | A result without any date - the player gives it one. (Until stage 6c also a result known to the month or year only; those are added with their precision now - `date-precision.md`. The code kept its name) |
-| `over_daily_limit` | More than `DataImportLimits::MAX_RESULTS_ADDED_PER_DAY` (2,000) results of the player's imports today (UTC); the rest is ready tomorrow. Owned and wish-list rows are not counted |
+| `over_daily_limit` | More than `DataImportLimits::MAX_RESULTS_ADDED_PER_DAY` (2,000) results of the player's imports **made public** today (UTC) - by an "Add" or by the pairing of an unlisted puzzle (`data_import_row.result_made_at`, written with the link); the rest is ready tomorrow. Owned and wish-list rows and rows kept as unlisted are not counted |
 
 A row that was **refused** before (below) is left alone by "add everything that is ready" and taken again only when
 it is asked for by its id or its puzzle's - the player fixed or answered something.
@@ -146,10 +148,13 @@ result and an owned puzzle whose result is refused adds no collection item.
 
 1. `ImportWriteLock::lockUntilCommit(player)` - the writer's own lock, first statement. The row is read after it;
    only a row still `queued` in this batch is touched.
-2. Ready still? Its puzzle decided as a catalogue puzzle, no problem. The puzzle still choosable for the player and
+2. A row whose puzzle is kept as an unlisted puzzle is `UnlistedRowWriter`'s from here
+   ([unlisted-puzzles.md](unlisted-puzzles.md) "Adding") - none of the steps below. Ready still? Its puzzle decided
+   as a catalogue puzzle, no problem. The puzzle still choosable for the player and
    writable (`SecretPuzzleAccess`). **A puzzle merged since the pairing is the survivor already**: a merge moves
    `data_import_puzzle.puzzle_id` (`puzzleMergedInto()`, stage 5a), so no `puzzle_redirect` is followed here.
-3. **The result** (kind result / both):
+3. **The result** (kind result / both) - after the equal rows, all of it is `ImportResultQuestions::ask()`, the one
+   method the pairing of an unlisted puzzle calls too ([unlisted-puzzles.md](unlisted-puzzles.md) "Pairing"):
    - an equal row (`same_as_row_id` without `add_as_separate`): the row that stands for the group is added first if
      its turn has not come, and this row is that result (`equal_row`);
    - the row's own result still exists (`this_row`) / a row with the same `source_key` made one in any import of

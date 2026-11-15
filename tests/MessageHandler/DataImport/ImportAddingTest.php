@@ -212,7 +212,8 @@ final class ImportAddingTest extends KernelTestCase
         $ready = $this->resultRow($import, $sheet, 'Zq Ready Puzzle', 500, 'Zqready', '2024-01-01', 1800);
         // A result without any date waits - the player gives it one (a month or a year is a date: date-precision.md)
         $month = $this->seedRow($import, $sheet, 'Zq Month Puzzle', 500, 'Zqready', ['seconds' => 1900, 'type' => 'solo']);
-        // Not in the catalogue: kept as an unlisted puzzle - those arrive with a later release
+        // Not in the catalogue: kept as an unlisted puzzle - the row goes to the player's unlisted puzzles, never to
+        // the profile (docs/features/data-import/unlisted-puzzles.md; UnlistedPuzzlesTest has the whole of it)
         $unlisted = $this->resultRow($import, $sheet, 'Zq Nowhere To Be Found At All', 750, 'Zqready', '2024-01-02', 2000);
         // Undecided, and a row with a problem
         $undecided = $this->resultRow($import, $sheet, 'Zq Nobody Decided This One', 750, 'Zqready', '2024-01-03', 2100);
@@ -225,10 +226,12 @@ final class ImportAddingTest extends KernelTestCase
 
         $outcome = $this->addAndWork($import, $player);
 
-        self::assertSame([AddImportRowsOutcome::STARTED, 1, ['unlisted_not_yet' => 1, 'needs_exact_day' => 1]], [$outcome->status, $outcome->rows, $outcome->skipped]);
+        self::assertSame([AddImportRowsOutcome::STARTED, 2, ['needs_exact_day' => 1]], [$outcome->status, $outcome->rows, $outcome->skipped]);
         self::assertSame('added', $this->rowNow($ready)['state']);
+        // Added - as an unlisted result: the row names no result of the profile
+        self::assertSame(['added', null, false], [$this->rowNow($unlisted)['state'], $this->rowNow($unlisted)['solving_time_id'], $this->rowNow($unlisted)['result_made']]);
 
-        foreach ([$month, $unlisted, $undecided] as $rowId) {
+        foreach ([$month, $undecided] as $rowId) {
             self::assertSame(['waiting', null, null], [$this->rowNow($rowId)['state'], $this->rowNow($rowId)['batch_id'], $this->rowNow($rowId)['solving_time_id']]);
         }
 
@@ -236,7 +239,7 @@ final class ImportAddingTest extends KernelTestCase
 
         // Asked for by name they are not taken either - and nothing is started
         $again = $this->add($import, $player, [$month, $unlisted, $undecided]);
-        self::assertSame([AddImportRowsOutcome::NOTHING, null, ['unlisted_not_yet' => 1, 'needs_exact_day' => 1]], [$again->status, $again->id, $again->skipped]);
+        self::assertSame([AddImportRowsOutcome::NOTHING, null, ['needs_exact_day' => 1]], [$again->status, $again->id, $again->skipped]);
     }
 
     public function testAPuzzleMergedBetweenPairingAndAddingTakesTheResultOnTheSurvivor(): void

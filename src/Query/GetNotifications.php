@@ -896,7 +896,8 @@ SELECT * FROM (
         NULL::int AS import_results_taken_back,
         NULL::varchar AS import_taken_back_reason
     FROM page notification
-    WHERE notification.type IN ('ModeratorRoleGranted', 'ModeratorRoleRevoked', 'ModeratorInvitationReceived')
+    -- … and the one about the reader's unlisted puzzles: it has no target either, and nothing of them is read here
+    WHERE notification.type IN ('ModeratorRoleGranted', 'ModeratorRoleRevoked', 'ModeratorInvitationReceived', 'UnlistedPuzzlesFound')
 
     UNION ALL
 

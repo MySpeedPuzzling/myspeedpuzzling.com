@@ -21,8 +21,8 @@ sandbox from the stage that can read them.
 | 5 | Pairing and review | **5a live 2026-11-15** (#356: the data, the matcher, decisions; production plans checked); **5b live 2026-11-15** (#358: the screens). Stage 5 is complete | #356, #358 | yes | sandbox: tiers on the real catalogue for two sample files |
 | 6a | The import's writer beside the add form's (handlers untouched) | **merged 2026-11-15, dormant** - nothing calls it | #355 | yes | parity test in CI |
 | 6b | Add, never twice, Undo | **6b-1 live 2026-11-15** (#359: the engine, the switch, `/admin/imports` - no player button); **6b-2 live 2026-11-15** (#360: review, add, take back); **6b-3 + 6b-4 live** (#361 group answers, #362 the moderators' card for an import) | #359, #360, #361, #362 | yes | sandbox: two real files added to a made-up player (see the log) |
-| 6c | Date precision | not started | | | |
-| 7 | Unlisted puzzles | not started | | | |
+| 6c | Date precision | **live 2026-11-15** | #364 | yes | production pages after the deploy (see the log) |
+| 7 | Unlisted puzzles | **live 2026-11-15** | #363 | yes | sandbox: kept, added, listed (see the log) |
 | 2a-c | My data | not started | | | |
 | 8 | Entry points and the guide | not started | | | |
 
@@ -55,6 +55,30 @@ player data in the repository (fixtures copy shapes with invented puzzles); noth
 committed with `git add -A`; one destructive command per call, never the dev database; production data is only read.
 
 ## Log
+
+- 2026-11-15 - **stage 7 live** (#363): unlisted puzzles in their own tables (`unlisted_puzzle`, `unlisted_result`,
+  `unlisted_ownership`, `unlisted_pairing` - nothing unlisted is ever a row of `puzzle`, `puzzle_solving_time`,
+  `collection_item` or the wish list; `UnlistedDataCoverageTest`), owner-only pages `/{_locale}/unlisted-puzzles`,
+  "It is this catalogue puzzle" → the results become real results through `ImportResultQuestions` (the same
+  questions as an Add - one code path, a parity test) and the writer, undoable for 30 days; the daily look
+  `myspeedpuzzling:pair-unlisted-puzzles` only suggests (cron 03:49 on production and the sandbox, lily, pushed
+  after the deploy); the daily guard counts what became public that day (`result_made_at`). On the sandbox: a
+  not-found puzzle kept as unlisted → "Add 2" → "Rows kept with your unlisted puzzles: 2" → the list shows both,
+  with "Only you see these". Pairing itself was not tried in a browser (tests only). Left for later: "add it
+  anyway" for results a pairing keeps, notes/custom fields of unlisted rows, unlisted data in the export, an
+  admin page for pairings, suggesting an unlisted puzzle for the catalogue.
+
+- 2026-11-15 - **stage 6c live** (#364): `puzzle_solving_time.finished_at_precision` (NULL = an exact day, `month`,
+  `year`; a metadata-only ADD), month and year rows are added by the import (anchored to the first day of the
+  period), `result_date()` shows "March 2021" / "2021", such results are left out of day-based things (calendar,
+  streaks, weekday statistics, recent windows, series edition by date); API v1 and the export gain `date_precision`.
+  The review checked every changed statement and all 20 changed templates for exact-day results: no regression;
+  one fix - the Insights batch's ordering was restored so `custom_pst_qualifying_first_attempt` stays an
+  index-only scan ("first" = the anchor everywhere). After the deploy on production: recent activity, the Hub,
+  the ladder, Players, a profile, a puzzle page and Events answer 200, the "… ago" labels count.
+- 2026-11-15 - stage 7 (unlisted puzzles, #363): reviewed twice (privacy holds; the pairing now asks the engine's
+  questions through one shared method `ImportResultQuestions`; the daily guard counts what became public that day),
+  merging main (6c) before its merge. Stage 2a (My data, read-only) started.
 
 - 2026-11-15 - **6b-3 and 6b-4 live** (#361, #362). One answer for a whole group of rows that were not added
   ("These times are right - add all N" with an honest summary first; "They are missing - add all N" / leave out;

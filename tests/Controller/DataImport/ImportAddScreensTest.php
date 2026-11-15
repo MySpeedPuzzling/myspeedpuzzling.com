@@ -104,11 +104,14 @@ final class ImportAddScreensTest extends WebTestCase
             self::assertCount(1, $crawler->filter('turbo-frame[data-import-live] [data-testid="import-ready"]'));
         }
 
-        // A puzzle kept as unlisted: its rows wait for a later step, said so
+        // A puzzle kept as unlisted: its rows are ready - for the player's unlisted puzzles, said so, never counted
+        // among what goes to the profile
         $twin = $this->importPuzzle($importId, 'Zq Card Twin');
         $this->database->update('data_import_puzzle', ['choice' => 'unlisted'], ['id' => $twin['id']]);
         $crawler = $this->browser->request('GET', '/en/import/' . $importId);
-        self::assertStringContainsString('Rows of unlisted puzzles: 1. Unlisted puzzles arrive with a later step - nothing is lost.', self::spaced($crawler->filter('[data-testid="not-ready-unlisted"]')->text()));
+        self::assertCount(0, $crawler->filter('[data-testid="not-ready-unlisted"]'));
+        self::assertSame('1', $crawler->filter('[data-testid="import-ready-unlisted"]')->attr('data-rows'));
+        self::assertStringContainsString('Rows kept with your unlisted puzzles: 1 - only you see them.', self::spaced($crawler->filter('[data-testid="import-ready-unlisted"]')->text()));
         self::assertCount(0, $crawler->filter('[data-testid="not-ready-undecided"]'));
     }
 

@@ -349,6 +349,14 @@ readonly final class PlayerNotification
         return $this->conversationId !== null;
     }
 
+    /**
+     * "Some of your unlisted puzzles may be in the catalogue now" - no target: the page it leads to is the reader's own.
+     */
+    public function isUnlistedPuzzlesNotification(): bool
+    {
+        return $this->notificationType === NotificationType::UnlistedPuzzlesFound;
+    }
+
     public function isImportNotification(): bool
     {
         return $this->importId !== null && in_array($this->notificationType, [NotificationType::ImportRowsAdded, NotificationType::ImportRowsTakenBack], true);

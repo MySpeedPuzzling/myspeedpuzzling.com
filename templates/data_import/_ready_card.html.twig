@@ -23,6 +23,11 @@
             <p class="fw-medium mb-2" data-testid="import-ready-counts">
                 {{ 'data_import.add.counts'|trans({'%results%': add.results|format_number, '%owned%': add.owned|format_number, '%wish_list%': add.wishList|format_number}) }}
             </p>
+            {% if add.unlisted > 0 %}
+                <p class="fs-sm text-muted mb-2" data-testid="import-ready-unlisted" data-rows="{{ add.unlisted }}">
+                    <i class="bi bi-bookmark me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.add.ready'|trans({'%number%': add.unlisted|format_number}) }}
+                </p>
+            {% endif %}
             {% if not add.paused %}
                 <a href="{{ path('data_import_add', {importId: import_id}) }}" class="btn btn-primary w-100 text-wrap d-flex align-items-center justify-content-center" style="min-height: 48px;" data-testid="import-review-and-add">
                     <i class="bi bi-check2-square me-1" aria-hidden="true"></i>{{ 'data_import.add.ready.review'|trans }}

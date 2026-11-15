@@ -26,6 +26,9 @@
     <h1 class="h3 mb-2">{{ 'data_import.not_added.title'|trans }}</h1>
     <p class="text-muted fs-sm">{{ 'data_import.not_added.intro'|trans({'%number%': counts.notAdded|format_number}) }}</p>
 
+    {# One answer for a whole group of rows - all rows of a reason, not only the fifty of this page #}
+    {{ include('data_import/_group_cards.html.twig', {import_id: import.importId, batch_id: batch_id, reasons: reasons, group_request_ids: group_request_ids, csrf: csrf}) }}
+
     {% if people_rows > 0 %}
         {# One answer for all rows that say pair or team and name nobody - never one tap per row #}
         <div class="card card-body shadow-sm mb-3" data-testid="import-not-added-people" data-rows="{{ people_rows }}">

@@ -67,6 +67,18 @@
             {% endif %}
         </div>
 
+        {# One answer for a whole group of rows - the reasons a player can do something about come first #}
+        {% if reasons is not empty %}
+            {{ include('data_import/_group_cards.html.twig', {
+                import_id: import.importId,
+                batch_id: batch.id,
+                reasons: reasons,
+                group_request_ids: group_request_ids,
+                csrf: csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')),
+                people_link: true,
+            }) }}
+        {% endif %}
+
         {% if reasons is not empty %}
             <div class="card card-body shadow-sm mb-3" data-testid="import-batch-reasons">
                 <h2 class="h6 mb-2">{{ 'data_import.batch.reasons'|trans }}</h2>

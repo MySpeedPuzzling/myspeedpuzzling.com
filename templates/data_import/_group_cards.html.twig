@@ -1,0 +1,71 @@
+{#
+    One answer for a whole group of rows that could not be added (docs/features/data-import/group-answers.md) - on
+    the done page of an "Add" and on the list of rows that could not be added. A card per reason that has one
+    action for all its rows - every row of the reason, on all pages, worked out by the server (the forms name the
+    reason, never the rows) - then a line for the reasons that have none, saying why.
+
+    Variables: import_id, batch_id (null: of the whole import), reasons (code => rows), group_request_ids
+    (missing, leave_out), csrf, people_link (bool: say where the "who did you solve these with" card is).
+#}
+{% set times = reasons.unusual_time ?? 0 %}
+{% set said = reasons.said_already_on_profile ?? 0 %}
+{% set people = reasons.people_do_not_fit_type ?? 0 %}
+{% set twins = reasons.equal_row_not_added ?? 0 %}
+{% set duplicates = (reasons.similar_result_exists ?? 0) + (reasons.somebody_elses_result ?? 0) %}
+{% set scope = batch_id is null ? {importId: import_id} : {importId: import_id, batch: batch_id} %}
+
+{% if times > 0 %}
+    {# The summary asks the time verification about a sample of the rows: a page of its own, loaded into this frame #}
+    <div data-controller="data-import-times-frame" data-testid="import-group-times" data-rows="{{ times }}">
+        <turbo-frame id="import-group-times" src="{{ path('data_import_not_added_times', scope) }}" loading="lazy">
+            <div class="card card-body shadow-sm mb-3">
+                <h2 class="h6 mb-1">{{ 'data_import.group.times.title'|trans({'%number%': times|format_number}) }}</h2>
+                <p class="fs-sm text-muted mb-2">{{ 'data_import.group.times.loading'|trans }}</p>
+                <a href="{{ path('data_import_not_added_times', scope) }}" class="btn btn-outline-primary text-wrap d-inline-flex align-items-center align-self-start" style="min-height: 44px;" data-turbo-frame="_top" rel="nofollow">
+                    {{ 'data_import.group.times.open'|trans }}
+                </a>
+            </div>
+        </turbo-frame>
+    </div>
+{% endif %}
+
+{% if said > 0 %}
+    <div class="card card-body shadow-sm mb-3" data-testid="import-group-said" data-rows="{{ said }}">
+        <h2 class="h6 mb-1">{{ 'data_import.group.said.title'|trans({'%number%': said|format_number}) }}</h2>
+        <p class="fs-sm text-muted mb-2">{{ 'data_import.group.said.hint'|trans }}</p>
+        <div class="d-flex flex-wrap gap-2">
+            {% for action, key in {add_anyway: 'missing', leave_out: 'leave_out'} %}
+                <form action="{{ path('data_import_group_answer_start', {importId: import_id}) }}" method="post">
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <input type="hidden" name="request_id" value="{{ group_request_ids[key] }}">
+                    <input type="hidden" name="code" value="said_already_on_profile">
+                    <input type="hidden" name="action" value="{{ action }}">
+                    {% if batch_id is not null %}<input type="hidden" name="batch" value="{{ batch_id }}">{% endif %}
+                    <button type="submit" class="btn {{ action == 'add_anyway' ? 'btn-primary' : 'btn-outline-secondary' }} text-wrap" style="min-height: 44px;" data-testid="import-group-said-{{ key }}">
+                        {{ ('data_import.group.said.' ~ key)|trans({'%number%': said|format_number}) }}
+                    </button>
+                </form>
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}
+
+{% if people > 0 and people_link|default(false) %}
+    <p class="fs-sm" data-testid="import-group-people">
+        <a href="{{ path('data_import_not_added', scope) }}" class="d-inline-flex align-items-center" style="min-height: 44px;">
+            <i class="bi bi-people me-2" aria-hidden="true"></i>{{ 'data_import.group.people_link'|trans({'%number%': people|format_number}) }}
+        </a>
+    </p>
+{% endif %}
+
+{% if duplicates > 0 %}
+    <p class="fs-sm text-muted" data-testid="import-group-one-by-one" data-rows="{{ duplicates }}">
+        <i class="bi bi-files me-2" aria-hidden="true"></i>{{ 'data_import.group.one_by_one'|trans({'%number%': duplicates|format_number}) }}
+    </p>
+{% endif %}
+
+{% if twins > 0 %}
+    <p class="fs-sm text-muted" data-testid="import-group-twins" data-rows="{{ twins }}">
+        <i class="bi bi-link-45deg me-2" aria-hidden="true"></i>{{ 'data_import.group.equal_note'|trans({'%number%': twins|format_number}) }}
+    </p>
+{% endif %}

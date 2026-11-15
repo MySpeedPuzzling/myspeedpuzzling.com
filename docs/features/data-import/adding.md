@@ -408,7 +408,7 @@ import / row, a row and the whole import, owner and admin, a running batch while
   (`import_puzzle_decision`) - 6b-2's Undo screen should offer it.
 - The XP awards of an import are on `imports`, a queue without retries: one that fails goes to the failure
   transport, like any import job.
-- `DataImportRow::parsedAs()` does not clear `failure`: a refused row that is parsed again keeps its reason until
-  it is asked for by id.
+- (settled in 6b-3) `DataImportRow::parsedAs()` clears the `failure` of a waiting row that is read differently
+  (its key changes), and `addAnyway()` clears the one it answers - group-answers.md.
 - The 2,000-a-day guard counts by UTC day.
 - `ImportProgress::publishAdding()` publishes a new message type; the screens that read it are 6b-2's.

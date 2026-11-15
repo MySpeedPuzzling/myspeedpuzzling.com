@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\DataImport;
 
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\MessageHandler\AnswerImportRowsGroupHandler;
 use SpeedPuzzling\Web\Query\GetDataImports;
 use SpeedPuzzling\Web\Query\GetImportAddScreen;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\DataImport\ImportRowRefusal;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -44,13 +47,19 @@ final class ImportBatchController extends AbstractController
         $import = $this->getDataImports->byIdOfPlayer($importId, $player->playerId);
         $batch = $this->getImportAddScreen->batch($importId, $player->playerId, $batchId);
 
+        $outcomes = $batch['notAdded'] + $batch['alreadyYours'] > 0
+            ? $this->getImportAddScreen->outcomesOfBatch($importId, $player->playerId, $batchId)
+            : ['reasons' => [], 'alreadyYours' => []];
+        // What the player can do something about comes first: the groups with one answer for all their rows
+        $order = [...AnswerImportRowsGroupHandler::CODES, ImportRowRefusal::PeopleDoNotFitType->value];
+        uksort($outcomes['reasons'], static fn (string $a, string $b): int => (in_array($a, $order, true) ? array_search($a, $order, true) : 99) <=> (in_array($b, $order, true) ? array_search($b, $order, true) : 99));
+
         return $this->render('data_import/batch.html.twig', [
             'import' => $import,
             'batch' => $batch,
-            // Why rows could not be added, and how rows were already the player's - what explains the numbers
-            'outcomes' => $batch['notAdded'] + $batch['alreadyYours'] > 0
-                ? $this->getImportAddScreen->outcomesOfBatch($importId, $player->playerId, $batchId)
-                : ['reasons' => [], 'alreadyYours' => []],
+            // Why rows could not be added (groups with one answer first), and how rows were already the player's
+            'outcomes' => $outcomes,
+            'group_request_ids' => ['missing' => Uuid::uuid7()->toString(), 'leave_out' => Uuid::uuid7()->toString()],
         ]);
     }
 }

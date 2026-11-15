@@ -11775,6 +11775,50 @@ my_fields:
 
 # Data import: upload and the imports pages (docs/features/data-import/upload.md)
 data_import:
+    group:
+        title: "Procházíme vaše řádky"
+        line: "Procházíme vaše řádky… %done% z %total%"
+        finishing: "Dokončujeme…"
+        then_added: "Až projdeme všechny řádky, ty, kterých se vaše odpověď týká, se přidají - tato stránka pak ukáže, jak daleko přidávání je."
+        people_link: "Řádky, které uvádějí dvojici nebo tým a nikoho nejmenují: %number% - jedna odpověď pro všechny"
+        one_by_one: "Možné duplicity: %number%. Odpovídá se na ně po jedné a u každé je vidět výsledek, který už existuje."
+        equal_note: "Řádky, které se řídí svým dvojčetem: %number%. Každý je stejným výsledkem jako jiný řádek vašeho souboru a vyřeší se, až se přidá ten - tady není co dělat."
+        times:
+            title: "Neobvyklé časy: %number%"
+            loading: "Prohlížíme tyto časy…"
+            open: "Podívat se na tyto časy"
+            hint: "Tyto časy jsou mnohem rychlejší nebo pomalejší, než bychom u vás pro dané puzzle čekali. Než odpovíte za všechny, podívejte se na ně."
+            looked: "Právě jsme prohlédli %looked% z %number%."
+            split: "Rychlejší, než jsme čekali: %faster% · pomalejší, než jsme čekali: %slower%"
+            faster_range: "Ty rychlejší jsou %from%× až %to%× rychlejší, než jsme čekali."
+            slower_range: "Ty pomalejší jsou %from%× až %to%× pomalejší, než jsme čekali."
+            most_faster: "Většina časů v tomto souboru je rychlejší než vaše dosavadní výsledky na MySpeedPuzzling - pokud je soubor vaší vlastní historií, je to v pořádku."
+            most_slower: "Většina časů v tomto souboru je pomalejší než vaše dosavadní výsledky na MySpeedPuzzling - pokud je soubor vaší vlastní historií, je to v pořádku."
+            examples: "Například"
+            expected: "Čekali jsme přibližně %expected%."
+            none_now: "Žádný z prohlédnutých časů už nevypadá neobvykle - na vašem profilu jsou teď další řádky souboru."
+            right: "Tyto časy jsou správně - přidat všech %number%"
+            leave_out: "Vynechat je (%number%)"
+            one_by_one: "Odpovídat po jednom"
+            file_hint: "Jedna odpověď pro každý neobvyklý čas v tomto souboru - nejen pro ty, které jsou tu vidět. Každý čas se nejdřív prohlédne, může to chvíli trvat."
+            file_right: "Všechny neobvyklé časy v tomto souboru jsou správně"
+            file_leave_out: "Vynechat všechny neobvyklé časy z tohoto souboru"
+        said:
+            title: "Podle souboru už jsou na MySpeedPuzzling: %number%"
+            hint: "Tyto výsledky jsme na vašem profilu nenašli. Pokud chybí, přidejte je - pokud víte, že tam jsou (u jiného dne nebo puzzle), vynechte je."
+            missing: "Chybí - přidat všech %number%"
+            leave_out: "Vynechat je (%number%)"
+        done:
+            title: "Hotovo"
+            answered: "Řádky, kterých se vaše odpověď týká: %answered% z %total%"
+            before_add: "Teď jsou připravené - zkontrolujte je a přidejte."
+            left_out: "Jsou vynechané. Řádek můžete vrátit zpět v části „K opravě“."
+            not_added: "Vaše odpověď je uložena. Přidávání teď nešlo spustit - řádky jsou připravené a lze je přidat z kontroly."
+            none: "Odpověď se nedotkla žádného řádku - mezitím se změnily."
+            stale: "Vypadá to, že se nic neděje."
+            continue: "Pokračovat"
+        flash:
+            nothing: "Na tuto odpověď už nečeká žádný řádek."
     nothing_until_add: "Na váš profil se nic nepřidá, dokud si to neprohlédnete a nestisknete Přidat."
     add:
         title: "Kontrola před přidáním"

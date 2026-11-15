@@ -1064,7 +1064,7 @@ SQL, ['importId' => $importId, 'now' => TestClock::FROZEN_NOW]);
         // the Undo (2; +1 with results it kept); Imports home - the imports and what each added (2)
         $signedIn = $budgets['few']['home'] - 2;
         self::assertSame(
-            ['review' => $signedIn + 4, 'done' => $signedIn + 2, 'added' => $signedIn + 3, 'not-added' => $signedIn + 4, 'undo-step' => $signedIn + 3, 'undone' => $signedIn + 2],
+            ['review' => $signedIn + 4, 'done' => $signedIn + 2, 'added' => $signedIn + 3, 'not-added' => $signedIn + 5, 'undo-step' => $signedIn + 3, 'undone' => $signedIn + 2],
             array_intersect_key($budgets['few'], ['review' => 1, 'done' => 1, 'added' => 1, 'not-added' => 1, 'undo-step' => 1, 'undone' => 1]),
         );
         // The progress the live line asks for: one statement on top of the session's own

@@ -33,7 +33,7 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  *   (ImportRowTimeCheck). A form can not wave a question through on rows nobody asked it about;
  * - the word is given for the row as it reads now and the puzzle it is paired with (DataImportRow::addAnyway()).
  *
- * @return array{confirmed: int, skipped: int}
+ * @return array{confirmed: int, skipped: int, confirmedRowIds: list<string>, lookedAt: int, lastRowId: null|string}
  */
 #[AsMessageHandler]
 readonly final class ConfirmImportRowsHandler
@@ -48,7 +48,7 @@ readonly final class ConfirmImportRowsHandler
     }
 
     /**
-     * @return array{confirmed: int, skipped: int}
+     * @return array{confirmed: int, skipped: int, confirmedRowIds: list<string>, lookedAt: int, lastRowId: null|string}
      *
      * @throws DataImportNotFound
      */
@@ -73,6 +73,19 @@ readonly final class ConfirmImportRowsHandler
 
         $rowIds = array_values(array_unique(array_map(strtolower(...), $message->rowIds)));
 
+        // A whole group: the next chunk of the rows that wait with the reason - worked out here, never sent
+        if ($message->refusedWith !== null) {
+            if ($codes !== [$message->refusedWith]) {
+                throw new DataImportNotFound();
+            }
+
+            $rowIds = $this->dataImportRowRepository->idsRefusedWith($import, $message->refusedWith, $message->ofBatchId, $message->afterRowId, max(1, min($message->limit, ImportRowAnswers::MAX_ROWS)));
+
+            if ($rowIds === []) {
+                return ['confirmed' => 0, 'skipped' => 0, 'confirmedRowIds' => [], 'lookedAt' => 0, 'lastRowId' => null];
+            }
+        }
+
         if (count($rowIds) > ImportRowAnswers::MAX_ROWS || ($codes !== [] && $rowIds === [])) {
             throw new DataImportNotFound();
         }
@@ -85,6 +98,7 @@ readonly final class ConfirmImportRowsHandler
 
         $confirmed = 0;
         $skipped = 0;
+        $confirmedRowIds = [];
 
         if ($codes !== []) {
             $puzzleIds = $this->dataImportRowRepository->cataloguePuzzleIdsOf($import, $rowIds);
@@ -117,6 +131,7 @@ readonly final class ConfirmImportRowsHandler
                 }
 
                 $row->addAnyway($asked[$rowId], $puzzleIds[$rowId]);
+                $confirmedRowIds[] = $rowId;
                 $confirmed++;
             }
         }
@@ -139,6 +154,12 @@ readonly final class ConfirmImportRowsHandler
             $import->workedOn($this->clock->now());
         }
 
-        return ['confirmed' => $confirmed, 'skipped' => $skipped];
+        return [
+            'confirmed' => $confirmed,
+            'skipped' => $skipped,
+            'confirmedRowIds' => $confirmedRowIds,
+            'lookedAt' => count($rowIds),
+            'lastRowId' => $rowIds === [] ? null : $rowIds[array_key_last($rowIds)],
+        ];
     }
 }

@@ -10,6 +10,7 @@ use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\DataImport;
 use SpeedPuzzling\Web\Entity\DataImportBatch;
+use SpeedPuzzling\Web\Entity\DataImportGroupAnswer;
 use SpeedPuzzling\Web\Entity\DataImportUndo;
 use SpeedPuzzling\Web\Value\DataImportBatchState;
 
@@ -31,6 +32,16 @@ readonly final class DataImportBatchRepository
     public function saveUndo(DataImportUndo $undo): void
     {
         $this->entityManager->persist($undo);
+    }
+
+    public function saveGroupAnswer(DataImportGroupAnswer $answer): void
+    {
+        $this->entityManager->persist($answer);
+    }
+
+    public function findGroupAnswer(string $answerId): null|DataImportGroupAnswer
+    {
+        return Uuid::isValid($answerId) ? $this->entityManager->find(DataImportGroupAnswer::class, $answerId) : null;
     }
 
     public function find(string $batchId): null|DataImportBatch

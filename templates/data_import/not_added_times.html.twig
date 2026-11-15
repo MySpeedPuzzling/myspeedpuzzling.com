@@ -1,0 +1,92 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The rows that wait with an unusual time, before one answer for all of them
+    (docs/features/data-import/group-answers.md "Unusual times"): how many are faster / slower than expected, how
+    far off, five examples with what was expected, "most of the times in this file…" - then the two buttons. A page
+    of its own whose frame the done page and the list load. Its forms leave the frame (`_top`).
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
+{% set scope = batch_id is null ? {importId: import.importId} : {importId: import.importId, batch: batch_id} %}
+
+{% block title %}{{ 'data_import.group.times.title'|trans({'%number%': summary.rows|format_number}) }} - {{ import_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{{ include('_page_crumbs.html.twig', {levels: [
+    {name: 'data_import.home.title'|trans, url: path('data_imports')},
+    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
+    {name: 'data_import.not_added.title'|trans, url: path('data_import_not_added', scope)},
+]}) }}
+
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-group-times-page">
+    <turbo-frame id="import-group-times">
+        <div class="card card-body shadow-sm mb-3" data-testid="import-group-times-summary"
+             data-rows="{{ summary.rows }}" data-looked-at="{{ summary.lookedAt }}" data-faster="{{ summary.faster }}" data-slower="{{ summary.slower }}" data-most="{{ summary.most }}">
+            <h2 class="h6 mb-2">{{ 'data_import.group.times.title'|trans({'%number%': summary.rows|format_number}) }}</h2>
+            {% if summary.rows == 0 %}
+                <p class="fs-sm text-muted mb-0">{{ 'data_import.group.flash.nothing'|trans }}</p>
+            {% else %}
+                <p class="fs-sm mb-1">{{ 'data_import.group.times.hint'|trans }}</p>
+                {% if summary.faster + summary.slower > 0 %}
+                    <p class="fs-sm text-muted mb-1">{{ 'data_import.group.times.looked'|trans({'%looked%': summary.lookedAt|format_number, '%number%': summary.rows|format_number}) }}</p>
+                    <p class="fw-medium mb-1" data-testid="import-group-times-split">{{ 'data_import.group.times.split'|trans({'%faster%': summary.faster|format_number, '%slower%': summary.slower|format_number}) }}</p>
+                    {% if summary.fasterFrom is not null %}
+                        <p class="fs-sm mb-1" data-testid="import-group-times-faster">{{ 'data_import.group.times.faster_range'|trans({'%from%': summary.fasterFrom|format_number({max_fraction_digit: 1}), '%to%': summary.fasterTo|format_number({max_fraction_digit: 1})}) }}</p>
+                    {% endif %}
+                    {% if summary.slowerFrom is not null %}
+                        <p class="fs-sm mb-1" data-testid="import-group-times-slower">{{ 'data_import.group.times.slower_range'|trans({'%from%': summary.slowerFrom|format_number({max_fraction_digit: 1}), '%to%': summary.slowerTo|format_number({max_fraction_digit: 1})}) }}</p>
+                    {% endif %}
+                    {% if summary.most is not null %}
+                        <p class="alert alert-info fs-sm mt-2 mb-2" data-testid="import-group-times-most">
+                            <i class="bi bi-info-circle me-1" aria-hidden="true"></i>{{ ('data_import.group.times.most_' ~ summary.most)|trans }}
+                        </p>
+                    {% endif %}
+                    {% if summary.examples is not empty %}
+                        <p class="fs-sm fw-medium mt-2 mb-2">{{ 'data_import.group.times.examples'|trans }}</p>
+                        <div class="d-flex flex-column gap-3 mb-3">
+                            {% for example in summary.examples %}
+                                <div class="border rounded-3 p-2" data-testid="import-group-times-example" data-direction="{{ example.direction }}">
+                                    {{ include('data_import/_add_row.html.twig', {row: example.row}) }}
+                                    {% if example.expected is not null %}
+                                        <p class="fs-sm text-muted mt-1 mb-0">
+                                            {{ 'data_import.group.times.expected'|trans({'%expected%': '%d:%02d:%02d'|format(example.expected // 3600, (example.expected % 3600) // 60, example.expected % 60)}) }}
+                                        </p>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <p class="fs-sm text-muted mb-2" data-testid="import-group-times-none-now">{{ 'data_import.group.times.none_now'|trans }}</p>
+                {% endif %}
+
+                <div class="d-flex flex-wrap gap-2">
+                    {% for action, key in {add_anyway: 'right', leave_out: 'leave_out'} %}
+                        <form action="{{ path('data_import_group_answer_start', {importId: import.importId}) }}" method="post" data-turbo-frame="_top">
+                            <input type="hidden" name="_token" value="{{ csrf }}">
+                            <input type="hidden" name="request_id" value="{{ request_ids[key] }}">
+                            <input type="hidden" name="code" value="unusual_time">
+                            <input type="hidden" name="action" value="{{ action }}">
+                            {% if batch_id is not null %}<input type="hidden" name="batch" value="{{ batch_id }}">{% endif %}
+                            <button type="submit" class="btn {{ action == 'add_anyway' ? 'btn-primary' : 'btn-outline-secondary' }} text-wrap" style="min-height: 44px;" data-testid="import-group-times-{{ key }}">
+                                {{ ('data_import.group.times.' ~ key)|trans({'%number%': summary.rows|format_number}) }}
+                            </button>
+                        </form>
+                    {% endfor %}
+                    <a href="{{ path('data_import_not_added', scope) }}" class="btn btn-link text-wrap d-inline-flex align-items-center" style="min-height: 44px;" data-turbo-frame="_top">
+                        {{ 'data_import.group.times.one_by_one'|trans }}
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </turbo-frame>
+
+    <a href="{{ path('data_import_not_added', scope) }}" class="btn btn-link px-0 d-inline-flex align-items-center" style="min-height: 44px;">
+        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.not_added.title'|trans }}
+    </a>
+</div>
+{% endblock %}

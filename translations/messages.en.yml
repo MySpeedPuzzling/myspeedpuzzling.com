@@ -12019,6 +12019,50 @@ my_fields:
 
 # Data import: upload and the imports pages (docs/features/data-import/upload.md)
 data_import:
+    group:
+        title: "Going through your rows"
+        line: "Going through your rows… %done% of %total%"
+        finishing: "Finishing…"
+        then_added: "When all rows are gone through, the ones that took your answer are added - this page then shows how far the adding is."
+        people_link: "Rows that say pair or team and name nobody: %number% - one answer for all of them"
+        one_by_one: "Possible duplicates: %number%. They are answered one by one, with the result that is there already shown beside each."
+        equal_note: "Rows that follow their twin row: %number%. Each is the same result as another row of your file and is settled when that row is added - nothing to do here."
+        times:
+            title: "Unusual times: %number%"
+            loading: "Looking at these times…"
+            open: "Look at these times"
+            hint: "These times are much faster or slower than we would expect of you for the puzzle. Have a look before you answer for all of them."
+            looked: "Looked at %looked% of the %number% just now."
+            split: "Faster than expected: %faster% · slower than expected: %slower%"
+            faster_range: "The faster ones are between %from%× and %to%× faster than we expected."
+            slower_range: "The slower ones are between %from%× and %to%× slower than we expected."
+            most_faster: "Most of the times in this file are faster than your results on MySpeedPuzzling so far - if this file is your own history, that is expected."
+            most_slower: "Most of the times in this file are slower than your results on MySpeedPuzzling so far - if this file is your own history, that is expected."
+            examples: "For example"
+            expected: "We expected about %expected%."
+            none_now: "None of the times we looked at seems unusual any more, now that other rows of the file are on your profile."
+            right: "These times are right - add all %number%"
+            leave_out: "Leave them out (%number%)"
+            one_by_one: "Answer them one by one"
+            file_hint: "One answer for every unusual time in this file - not only the ones shown here. Each time is looked at first, which can take a moment."
+            file_right: "All unusual times in this file are right"
+            file_leave_out: "Leave out all unusual times of this file"
+        said:
+            title: "The file says these are on MySpeedPuzzling already: %number%"
+            hint: "We did not find these results on your profile. If they are missing, add them - if you know they are there (under another day or puzzle), leave them out."
+            missing: "They are missing - add all %number%"
+            leave_out: "Leave them out (%number%)"
+        done:
+            title: "Done"
+            answered: "Rows that took your answer: %answered% of %total%"
+            before_add: "They are ready now - review them and add them."
+            left_out: "They are left out. You can take a row in again in “To fix”."
+            not_added: "Your answer is saved. Adding could not start right now - the rows are ready and can be added from the review."
+            none: "No row took the answer - they changed meanwhile."
+            stale: "This seems to stand still."
+            continue: "Go on"
+        flash:
+            nothing: "No row waits for this answer any more."
     nothing_until_add: "Nothing is added to your profile until you have looked at it and pressed Add."
     add:
         title: "Review before adding"

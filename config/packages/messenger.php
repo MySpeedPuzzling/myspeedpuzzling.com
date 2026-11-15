@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Message\BuildImportPuzzles;
 use SpeedPuzzling\Web\Message\MatchImportPuzzlesFuzzy;
 use SpeedPuzzling\Web\Message\ParseImportSheet;
 use SpeedPuzzling\Web\Message\ProcessImportBatch;
+use SpeedPuzzling\Web\Message\ProcessImportGroupAnswer;
 use SpeedPuzzling\Web\Message\ProcessImportUndo;
 use SpeedPuzzling\Web\Message\ProposeImportMappings;
 use SpeedPuzzling\Web\Message\ShareImportLayout;
@@ -169,6 +170,9 @@ return App::config([
                 // once), the job sending itself again - other players' imports take their turns in between
                 ProcessImportBatch::class => 'imports',
                 ProcessImportUndo::class => 'imports',
+                // One answer for a whole group of an import's rows (docs/features/data-import/group-answers.md):
+                // chunks that queue themselves again; a small group is handled at once (TransportNamesStamp `sync`)
+                ProcessImportGroupAnswer::class => 'imports',
                 // "Your import is done" - never in the worker's turn
                 SendImportAddedEmail::class => 'async',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)

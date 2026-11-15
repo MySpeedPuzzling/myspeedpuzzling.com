@@ -110,9 +110,12 @@
         </a>
     {% endif %}
 
-    <div class="alert alert-info fs-sm d-flex gap-2" data-testid="import-soon">
+    <div class="alert alert-info fs-sm d-flex gap-2" data-testid="import-next-step">
         <i class="bi bi-info-circle flex-shrink-0"></i>
-        <span>{{ 'data_import.puzzles.soon'|trans }}</span>
+        <span>
+            {{ 'data_import.add.saved_note'|trans }}
+            <a href="{{ path('data_import_add', {importId: import.importId}) }}" class="alert-link">{{ 'data_import.add.ready.review'|trans }}</a>
+        </span>
     </div>
 
     <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="btn btn-link px-0" style="min-height: 44px;">

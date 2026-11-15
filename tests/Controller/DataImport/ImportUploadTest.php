@@ -80,8 +80,8 @@ final class ImportUploadTest extends WebTestCase
         self::assertStringContainsString('My puzzles 2024.xlsx', $crawler->filter('h1')->text());
         self::assertSame('Uploaded', $crawler->filter('[data-testid="import-status"]')->text());
         self::assertSame('2 kB', trim($crawler->filter('[data-testid="import-size"]')->text()));
-        self::assertStringContainsString('arrive soon', $crawler->filter('[data-testid="import-soon"]')->text());
-        self::assertStringContainsString('The file is kept until', $crawler->filter('[data-testid="import-soon"]')->text());
+        self::assertStringNotContainsString('arrive soon', (string) $browser->getResponse()->getContent());
+        self::assertStringContainsString('The file is kept until', $crawler->filter('[data-testid="import-file-kept"]')->text());
 
         $crawler = $browser->request('GET', '/en/import');
         $this->assertResponseIsSuccessful();

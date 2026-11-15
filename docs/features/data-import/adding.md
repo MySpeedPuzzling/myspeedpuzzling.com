@@ -1,9 +1,9 @@
 # Adding an import's rows to the profile (stage 6b-1)
 
 The engine of "Add": the ready rows of a player's import become results, collection puzzles and wish list puzzles -
-in the background, never twice, with Undo, a safety switch and an audit page. **No player-facing button calls it
-yet** (stage 6b-2 wires the screens); what exists here is messages, handlers, the worker's jobs, the admin page and
-the tests.
+in the background, never twice, with Undo, a safety switch and an audit page. What is here is messages, handlers,
+the worker's jobs, the admin page and their tests; **the player's screens on top of it - the review, the button, the
+progress, Undo - are stage 6b-2's: [adding-screens.md](adding-screens.md)**.
 
 The add-result form is not touched: results are written only by stage 6a's `ImportedResultWriter` and what is owed
 for them only by `ImportedResultsFollowUp` ([writer.md](writer.md)); a result is deleted only through
@@ -29,7 +29,8 @@ for them only by `ImportedResultsFollowUp` ([writer.md](writer.md)); a result is
 
 ## Ready
 
-A row is **ready** - derived, never stored (`DataImportRowRepository::queueReadyRows()`):
+A row is **ready** - derived, never stored. **One definition**: `DataImportRowRepository::sqlReadyRows()`, the CTEs
+`queueReadyRows()` queues with and the screens count with (`GetImportAddScreen`):
 
 - it is data (`kind` result / owned / both / wish_list), without a problem, on a sheet that is in;
 - its distinct puzzle is decided as a **catalogue** puzzle (the rules' "found", the player's choice, a remembered one);
@@ -132,7 +133,10 @@ After an Undo a row is `waiting` again (the README's "ready"; `DataImportRowStat
 
 The three questions of "never twice" (`similar_result_exists`, `somebody_elses_result`,
 `said_already_on_profile`) and `unusual_time` are waved through per row by the player's answer
-`answers.addAnyway` (a list of the codes) - **6b-2 writes it**; nothing here does.
+`answers.addAnyway` - **6b-2 writes it** (`ConfirmImportRows`), as a map `code → fingerprint`: the word is given for
+the row as it reads (its time, day, kind, people) and the puzzle it is paired with (`DataImportRow::addAnyway()`,
+`waiverFingerprint()`) and counts only while that still matches (`isWavedThrough()`) - a changed time, another
+mapping or another puzzle asks again. A bare list of codes is not honoured.
 
 **A row is all or nothing**: everything that can refuse it is checked before anything is created; a row that is a
 result and an owned puzzle whose result is refused adds no collection item.
@@ -166,7 +170,8 @@ result and an owned puzzle whose result is refused adds no collection item.
 
 ### What a row remembers
 
-`solving_time_id` (+ `result_made`: the link alone stays after an Undo), `collection_item_id`, `wish_list_item_id` -
+`solving_time_id` (+ `result_made`; an Undo clears the link with the result - the row is as before its "Add" and can
+be corrected on the row sheet), `collection_item_id`, `wish_list_item_id` -
 only what the row **created** - and `made`:
 
 ```json
@@ -341,7 +346,8 @@ rows' keys and links are what "never twice" and Undo rest on.
 - **Add**: `AddImportRows(Uuid::uuid7() per press - in a hidden field, kept across a re-render, $importId,
   $playerId, rowIds: …, importPuzzleIds: …)`; read the `AddImportRowsOutcome` (`status`, `id`, `rows`, `skipped`).
 - **Progress**: `GetImportAdding::ofPlayersImport()` and the `import_adding` messages on the player's topic.
-- **The questions**: write `data_import_row.answers.addAnyway` (a list of refusal codes), then "Add" the row by id.
+- **The questions**: `ConfirmImportRows` writes `data_import_row.answers.addAnyway` (code → fingerprint of what was
+  confirmed), then "Add" the row by id.
 - **Undo**: `UndoImportRows(Uuid::uuid7(), $importId, $playerId, DataImportUndoScope::Rows|Batch|Import, batchId:,
   rowIds:, includeEdited:)`.
 - **Discard**: hide it for an import with a batch (the handler refuses).

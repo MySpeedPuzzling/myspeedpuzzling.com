@@ -303,7 +303,7 @@ final class ImportNeverTwiceTest extends KernelTestCase
         self::assertCount(3, $this->resultsOf($player));
 
         // The player's "add it anyway", written on the row by the screens
-        $this->pairingDatabase()->update('data_import_row', ['answers' => '{"addAnyway": ["similar_result_exists"]}'], ['id' => $otherDate]);
+        $this->waive($otherDate, 'similar_result_exists');
         $this->addAndWork($import, $player, [$otherDate, $otherTime]);
 
         self::assertSame('added', $this->rowNow($otherDate)['state']);

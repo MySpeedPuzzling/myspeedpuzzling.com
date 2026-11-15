@@ -1,0 +1,141 @@
+{% extends 'base.html.twig' %}
+
+{#
+    One "Add" of an import (docs/features/data-import/adding-screens.md "Progress and done"): while the worker goes
+    through its rows the live line - safe to leave - then what came of it: added, already yours, could not be added
+    with a plain sentence per reason, and the ways on: the profile, the rows, Undo.
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
+
+{% block title %}{{ 'data_import.batch.title'|trans }} - {{ import_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{% set reasons = outcomes.reasons %}
+{{ include('_page_crumbs.html.twig', {levels: [
+    {name: 'data_import.home.title'|trans, url: path('data_imports')},
+    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
+]}) }}
+
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-batch-page" data-state="{{ batch.running ? 'running' : 'finished' }}">
+    <h1 class="h3 mb-3">{{ (batch.running ? 'data_import.batch.title' : 'data_import.batch.title_done')|trans }}</h1>
+
+    {% if batch.running %}
+        {{ include('data_import/_adding_live.html.twig', {
+            url: path('data_import_batch_progress', {importId: import.importId, batchId: batch.id}),
+            batch_id: batch.id,
+            total: batch.rows,
+            done: batch.done,
+            line: 'data_import.batch.line',
+            finishing: 'data_import.batch.finishing',
+            paused: batch.paused,
+            refresh_url: path('data_import_batch', {importId: import.importId, batchId: batch.id}),
+        }) }}
+        <p class="fs-sm text-muted">{{ 'data_import.batch.told'|trans }}</p>
+    {% else %}
+        <div class="card card-body shadow-sm mb-3" data-testid="import-batch-outcome"
+             data-added="{{ batch.added }}" data-already-yours="{{ batch.alreadyYours }}" data-not-added="{{ batch.notAdded }}"
+             data-results="{{ batch.results }}" data-owned="{{ batch.collectionItems }}" data-wish-list="{{ batch.wishListItems }}">
+            {% if batch.endedByUndo %}
+                <p class="fs-sm text-muted" data-testid="import-batch-stopped">{{ 'data_import.batch.stopped'|trans }}</p>
+            {% endif %}
+            <ul class="list-unstyled mb-0">
+                <li class="d-flex justify-content-between gap-2 py-1"><span><i class="bi bi-check-circle me-2 text-success" aria-hidden="true"></i>{{ 'data_import.batch.added'|trans }}</span><strong>{{ batch.added|format_number }}</strong></li>
+                {% if batch.added > 0 %}
+                    <li class="fs-sm text-muted ps-4 pb-1" data-testid="import-batch-made">
+                        {{ 'data_import.add.counts'|trans({'%results%': batch.results|format_number, '%owned%': batch.collectionItems|format_number, '%wish_list%': batch.wishListItems|format_number}) }}
+                    </li>
+                {% endif %}
+                <li class="d-flex justify-content-between gap-2 py-1"><span><i class="bi bi-person-check me-2 text-muted" aria-hidden="true"></i>{{ 'data_import.batch.already_yours'|trans }}</span><strong>{{ batch.alreadyYours|format_number }}</strong></li>
+                <li class="d-flex justify-content-between gap-2 py-1"><span><i class="bi bi-eye me-2 {{ batch.notAdded > 0 ? 'text-warning' : 'text-muted' }}" aria-hidden="true"></i>{{ 'data_import.batch.not_added'|trans }}</span><strong>{{ batch.notAdded|format_number }}</strong></li>
+            </ul>
+            {# What explains the numbers: rows that added nothing because the player had it already, and how #}
+            {% if outcomes.alreadyYours is not empty %}
+                <ul class="list-unstyled fs-sm text-muted border-top mt-2 pt-2 mb-0" data-testid="import-batch-already-yours">
+                    {% for how, count in outcomes.alreadyYours %}
+                        {% set line = ('data_import.batch.how.' ~ how)|trans({'%number%': count|format_number}) %}
+                        <li class="py-1" data-testid="import-batch-how" data-how="{{ how }}" data-rows="{{ count }}">
+                            {{- line == 'data_import.batch.how.' ~ how ? 'data_import.batch.how.owned'|trans({'%number%': count|format_number}) : line -}}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            {% if batch.undoneAt is not null %}
+                <p class="fs-sm text-muted mt-2 mb-0" data-testid="import-batch-undone">{{ 'data_import.batch.undone'|trans({'%date%': batch.undoneAt|format_date('long')}) }}</p>
+            {% endif %}
+        </div>
+
+        {% if reasons is not empty %}
+            <div class="card card-body shadow-sm mb-3" data-testid="import-batch-reasons">
+                <h2 class="h6 mb-2">{{ 'data_import.batch.reasons'|trans }}</h2>
+                <ul class="list-unstyled fs-sm mb-2">
+                    {% for code, count in reasons %}
+                        {% set sentence = ('data_import.reason.' ~ code)|trans %}
+                        <li class="d-flex gap-2 py-1" data-testid="import-batch-reason" data-code="{{ code }}" data-rows="{{ count }}">
+                            <strong class="flex-shrink-0">{{ count|format_number }} ×</strong>
+                            <span>{{ sentence == 'data_import.reason.' ~ code ? 'data_import.reason.error'|trans : sentence }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <a href="{{ path('data_import_not_added', {importId: import.importId, batch: batch.id}) }}" class="btn btn-outline-primary w-100 text-wrap d-flex align-items-center justify-content-center" style="min-height: 44px;" data-testid="import-batch-not-added-link">
+                    <i class="bi bi-list-ul me-1" aria-hidden="true"></i>{{ 'data_import.batch.see_not_added'|trans }}
+                </a>
+            </div>
+        {% endif %}
+
+        {% if batch.skipped is not empty %}
+            <div class="card card-body shadow-sm mb-3 fs-sm" data-testid="import-batch-skipped">
+                <p class="fw-medium mb-1">{{ 'data_import.batch.skipped'|trans }}</p>
+                <ul class="list-unstyled mb-0">
+                    {% for code, count in batch.skipped %}
+                        {% set sentence = ('data_import.reason.' ~ code)|trans %}
+                        <li class="d-flex gap-2 py-1" data-testid="import-batch-skipped-reason" data-code="{{ code }}">
+                            <strong class="flex-shrink-0">{{ count|format_number }} ×</strong>
+                            <span>{{ sentence == 'data_import.reason.' ~ code ? 'data_import.reason.not_ready'|trans : sentence }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        <div class="d-flex flex-column gap-2 mb-3">
+            {% if batch.results > 0 %}
+                <a href="{{ path('my_profile') }}" class="btn btn-primary text-wrap d-flex align-items-center justify-content-center" style="min-height: 48px;" data-testid="import-batch-profile">
+                    <i class="bi bi-person me-1" aria-hidden="true"></i>{{ 'data_import.batch.see_profile'|trans }}
+                </a>
+            {% endif %}
+            {% if batch.stillAdded > 0 %}
+                <a href="{{ path('data_import_added', {importId: import.importId, batch: batch.id}) }}" class="btn btn-outline-primary text-wrap d-flex align-items-center justify-content-center" style="min-height: 44px;" data-testid="import-batch-added-link">
+                    <i class="bi bi-list-check me-1" aria-hidden="true"></i>{{ 'data_import.batch.see_added'|trans }}
+                </a>
+            {% endif %}
+            <a href="{{ path('data_import_add', {importId: import.importId}) }}" class="btn btn-outline-primary text-wrap d-flex align-items-center justify-content-center" style="min-height: 44px;">
+                <i class="bi bi-check2-square me-1" aria-hidden="true"></i>{{ 'data_import.batch.review_more'|trans }}
+            </a>
+        </div>
+
+        <p class="fs-sm text-muted">{{ 'data_import.batch.follow_up'|trans }}</p>
+
+        {% if batch.stillAdded > 0 %}
+            <div class="card card-body shadow-sm mb-3" data-testid="import-batch-undo">
+                <h2 class="h6 mb-1">{{ 'data_import.undo.title'|trans }}</h2>
+                <p class="fs-sm text-muted mb-2">{{ 'data_import.undo.offer'|trans }}</p>
+                <div class="d-flex flex-column gap-2">
+                    <a href="{{ path('data_import_undo', {importId: import.importId, batch: batch.id}) }}" class="btn btn-outline-danger text-wrap d-flex align-items-center justify-content-center" style="min-height: 44px;" data-testid="import-undo-batch" rel="nofollow">
+                        <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ 'data_import.undo.batch'|trans }}
+                    </a>
+                    <a href="{{ path('data_import_undo', {importId: import.importId}) }}" class="btn btn-link text-danger text-wrap d-flex align-items-center justify-content-center" style="min-height: 44px;" data-testid="import-undo-import" rel="nofollow">
+                        {{ 'data_import.undo.import'|trans }}
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    {% endif %}
+
+    <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="btn btn-link px-0 d-inline-flex align-items-center" style="min-height: 44px;">
+        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.columns.back_to_import'|trans }}
+    </a>
+</div>
+{% endblock %}

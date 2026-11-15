@@ -269,11 +269,13 @@ class DataImportRow
     }
 
     /**
-     * Undo took back what the row made: it waits again and can be added again. The link to its result stays - the
-     * result is gone, and the writer replaces a link whose result is gone.
+     * Undo took back what the row made: it waits again as before its "Add" - it can be corrected (the row sheet takes
+     * only a row that names no result) and added again. The link to its result goes with the result: the writer's
+     * compare-and-set expects "nothing, or a result that is gone", and nothing is the clean state.
      */
     public function undone(): void
     {
+        $this->solvingTimeId = null;
         $this->state = DataImportRowState::Waiting;
         $this->failure = null;
         $this->addedAt = null;
@@ -345,6 +347,75 @@ class DataImportRow
     public function answered(array $answers): void
     {
         $this->answers = $answers === [] ? null : $answers;
+    }
+
+    /**
+     * The player's word "add it anyway" to questions an "Add" asks about this row (ImportRowRefusal's values -
+     * docs/features/data-import/adding.md "Refusals": a similar result exists, somebody else's result, the file says
+     * it is on MySpeedPuzzling, an unusual time). **The word is given for what the row says now**: it is kept with a
+     * fingerprint of the row's time, day, kind, people and the puzzle it is paired with (waiverFingerprint()), and
+     * counts only while that still matches - a changed time, a mapping read differently, another puzzle ask again.
+     * Kept with the row's other answers, so every later parse keeps it.
+     *
+     * @param list<string> $codes
+     */
+    public function addAnyway(array $codes, null|string $puzzleId): void
+    {
+        $answers = $this->answers ?? [];
+        $waved = is_array($answers['addAnyway'] ?? null) ? $answers['addAnyway'] : [];
+        $fingerprint = $this->waiverFingerprint($puzzleId);
+        $kept = [];
+
+        // Words given for another reading of the row are gone - they would never count again
+        foreach ($waved as $code => $given) {
+            if (is_string($code) && $given === $fingerprint) {
+                $kept[$code] = $given;
+            }
+        }
+
+        foreach ($codes as $code) {
+            $kept[$code] = $fingerprint;
+        }
+
+        $answers['addAnyway'] = $kept;
+        $this->answers = $answers;
+    }
+
+    /**
+     * Whether the player said "add it anyway" to this question - about the row as it is now.
+     */
+    public function isWavedThrough(string $code, null|string $puzzleId): bool
+    {
+        $waved = $this->answers['addAnyway'] ?? null;
+
+        return is_array($waved) && ($waved[$code] ?? null) === $this->waiverFingerprint($puzzleId);
+    }
+
+    /**
+     * What an "add it anyway" was said about: the row's time, day, kind and people as they were read, and the
+     * catalogue puzzle the row is paired with.
+     */
+    public function waiverFingerprint(null|string $puzzleId): string
+    {
+        $parsed = $this->parsed ?? [];
+
+        return md5(json_encode([
+            $parsed['seconds'] ?? null,
+            $parsed['date'] ?? null,
+            $parsed['datePrecision'] ?? null,
+            $parsed['type'] ?? null,
+            $parsed['people'] ?? [],
+            $puzzleId === null ? null : strtolower($puzzleId),
+        ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
+    }
+
+    /**
+     * "One result or two?" (README D6): a row that is the same result as another row of the file is counted on its
+     * own when the player says so - and as that row's result again when they take it back.
+     */
+    public function countOnItsOwn(bool $separate): void
+    {
+        $this->addAsSeparate = $separate && $this->sameAsRow !== null;
     }
 
     /**

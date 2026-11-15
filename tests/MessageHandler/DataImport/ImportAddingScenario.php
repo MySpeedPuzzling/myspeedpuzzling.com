@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler\DataImport;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\DataImport;
+use SpeedPuzzling\Web\Entity\DataImportRow;
 use SpeedPuzzling\Web\Entity\DataImportSheet;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Message\AddImportRows;
@@ -139,6 +140,23 @@ trait ImportAddingScenario
         $this->pairingEntityManager()->clear();
 
         return $outcome;
+    }
+
+    /**
+     * The player's "add it anyway" to a question of an "Add", as the screens write it: given for the row as it reads
+     * now and the puzzle it is paired with (DataImportRow::addAnyway()).
+     */
+    private function waive(string $rowId, string $code): void
+    {
+        $entityManager = $this->pairingEntityManager();
+        $entityManager->clear();
+        $row = $entityManager->find(DataImportRow::class, $rowId);
+        self::assertNotNull($row);
+        $puzzleId = $this->pairingDatabase()->fetchOne('SELECT puzzle_id FROM data_import_puzzle WHERE id = :id', ['id' => $row->importPuzzleId?->toString()]);
+        self::assertIsString($puzzleId);
+        $row->addAnyway([$code], $puzzleId);
+        $entityManager->flush();
+        $entityManager->clear();
     }
 
     /**

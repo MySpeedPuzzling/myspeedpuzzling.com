@@ -584,7 +584,7 @@ SQL, ['importId' => $import->id->toString(), 'sheetId' => $sheet->id->toString()
         self::assertCount(4, $this->resultsOf($player));
 
         // "It is right": added, and stored the way the add form's answer is - the scan tells the moderator
-        $this->pairingDatabase()->update('data_import_row', ['answers' => '{"addAnyway": ["unusual_time"]}'], ['id' => $unusual]);
+        $this->waive($unusual, 'unusual_time');
         $this->addAndWork($import, $player, [$unusual]);
 
         self::assertSame('added', $this->rowNow($unusual)['state']);

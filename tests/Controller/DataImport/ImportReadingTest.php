@@ -175,7 +175,7 @@ final class ImportReadingTest extends WebTestCase
         self::assertCount(0, $listed->eq(0)->filter('[data-testid="import-sheet-hidden"]'));
         self::assertStringContainsString('Old notes', $listed->eq(1)->text());
         self::assertCount(1, $listed->eq(1)->filter('[data-testid="import-sheet-hidden"]'));
-        self::assertStringContainsString('arrives soon', $crawler->filter('[data-testid="import-soon"]')->text());
+        self::assertStringNotContainsString('arrives soon', (string) $this->browser->getResponse()->getContent());
 
         $this->browser->request('GET', '/en/import/' . $importId . '/progress');
         $this->assertResponseIsSuccessful();

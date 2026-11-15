@@ -36,6 +36,21 @@
                         </div>
                         <div class="flex-shrink-0">{{ include('data_import/_status_badge.html.twig', {status: import.status}) }}</div>
                     </div>
+                    {% set made = added[import.importId] ?? null %}
+                    {% if made is not null %}
+                        {# What the import added to the profile, and whether it is adding right now #}
+                        <div class="fs-sm mt-2" data-testid="data-import-added" data-results="{{ made.results }}">
+                            {% if made.adding %}
+                                <span class="badge bg-faded-info text-info me-1" data-testid="data-import-adding"><i class="bi bi-activity me-1"></i>{{ 'data_import.home.adding'|trans }}</span>
+                            {% endif %}
+                            {% if made.results + made.collectionItems + made.wishListItems > 0 %}
+                                {{ 'data_import.add.added_so_far'|trans({'%results%': made.results|format_number, '%owned%': made.collectionItems|format_number, '%wish_list%': made.wishListItems|format_number}) }}
+                                {%- if made.lastAddedAt is not null %} · {{ made.lastAddedAt|format_date('medium') }}{% endif %}
+                            {% else %}
+                                <span class="text-muted">{{ 'data_import.home.nothing_added_now'|trans }}</span>
+                            {% endif %}
+                        </div>
+                    {% endif %}
                     {% if import.status.value == 'uploading' %}
                         {# The file may be up although the confirmation never arrived - checked again here #}
                         <form action="{{ path('data_import_upload_finish', {importId: import.importId}) }}" method="post" class="mt-2">

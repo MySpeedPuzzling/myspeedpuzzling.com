@@ -365,14 +365,14 @@ readonly final class ImportRowAdder
         if (
             $said['type'] !== PuzzlingType::Solo
             && $said['seconds'] !== null
-            && self::isWavedThrough($row, ImportRowRefusal::SomebodyElsesResult) === false
+            && $row->isWavedThrough(ImportRowRefusal::SomebodyElsesResult->value, $puzzle->id->toString()) === false
             && $this->neverTwice->somebodyElseHasIt($player, $puzzle, $said['day'], $said['seconds'])
         ) {
             return self::answer(refused: ImportRowRefusal::SomebodyElsesResult->value);
         }
 
         if (
-            self::isWavedThrough($row, ImportRowRefusal::SimilarResultExists) === false
+            $row->isWavedThrough(ImportRowRefusal::SimilarResultExists->value, $puzzle->id->toString()) === false
             && ImportNeverTwice::similar($free, $said['day'], $said['seconds']) !== null
         ) {
             return self::answer(refused: ImportRowRefusal::SimilarResultExists->value);
@@ -384,12 +384,12 @@ readonly final class ImportRowAdder
             ? null
             : $this->timeCheck->unusual($playerId, $puzzle->id->toString(), $said['seconds'], $said['type'], count($people) + 1, $said['day']);
 
-        if ($unusual !== null && self::isWavedThrough($row, ImportRowRefusal::UnusualTime) === false) {
+        if ($unusual !== null && $row->isWavedThrough(ImportRowRefusal::UnusualTime->value, $puzzle->id->toString()) === false) {
             return self::answer(refused: ImportRowRefusal::UnusualTime->value);
         }
 
         // A hint, not a rule: the file says the result is on MySpeedPuzzling and none was found - listed, not added
-        if (($row->parsed['alreadyOnMsp'] ?? null) === true && self::isWavedThrough($row, ImportRowRefusal::SaidAlreadyOnProfile) === false) {
+        if (($row->parsed['alreadyOnMsp'] ?? null) === true && $row->isWavedThrough(ImportRowRefusal::SaidAlreadyOnProfile->value, $puzzle->id->toString()) === false) {
             return self::answer(refused: ImportRowRefusal::SaidAlreadyOnProfile->value);
         }
 
@@ -646,17 +646,6 @@ readonly final class ImportRowAdder
     private static function outcome(string $status, null|string $code = null, array $customValuesOf = []): array
     {
         return ['status' => $status, 'code' => $code, 'customValuesOf' => $customValuesOf];
-    }
-
-    /**
-     * The player's answer "add it anyway" to a question of "never twice" - written on the row by the screens
-     * (`answers.addAnyway`, a list of the refusal codes waved through).
-     */
-    private static function isWavedThrough(DataImportRow $row, ImportRowRefusal $refusal): bool
-    {
-        $waved = $row->answers['addAnyway'] ?? null;
-
-        return is_array($waved) && in_array($refusal->value, $waved, true);
     }
 
     /**

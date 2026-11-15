@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\DataImport;
 
 use SpeedPuzzling\Web\Query\GetDataImports;
+use SpeedPuzzling\Web\Query\GetImportAddScreen;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -23,6 +24,7 @@ final class ImportsHomeController extends AbstractController
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetDataImports $getDataImports,
+        readonly private GetImportAddScreen $getImportAddScreen,
     ) {
     }
 
@@ -40,6 +42,8 @@ final class ImportsHomeController extends AbstractController
 
         return $this->render('data_import/index.html.twig', [
             'imports' => $this->getDataImports->ofPlayer($player->playerId),
+            // What each import added to the profile, and whether one is adding right now - one statement for all
+            'added' => $this->getImportAddScreen->addedByImports($player->playerId),
         ]);
     }
 }

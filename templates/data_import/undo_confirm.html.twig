@@ -1,0 +1,65 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The step before an Undo (docs/features/data-import/adding-screens.md "Undo"): what will be removed, in numbers,
+    and what is kept - then a real POST form. No confirm() dialog. Variables: scope (rows | batch | import), row
+    (ImportAddRow, scope rows), batch (scope batch), counts, request_id.
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
+{% set back_url = scope == 'batch' ? path('data_import_batch', {importId: import.importId, batchId: batch.id}) : (scope == 'rows' ? path('data_import_added', {importId: import.importId}) : path('data_import_detail', {importId: import.importId})) %}
+
+{% block title %}{{ ('data_import.undo.confirm.title_' ~ scope)|trans }} - {{ import_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{{ include('_page_crumbs.html.twig', {levels: [
+    {name: 'data_import.home.title'|trans, url: path('data_imports')},
+    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
+]}) }}
+
+<div class="mx-auto" style="max-width: 560px;" data-testid="import-undo-confirm-page" data-scope="{{ scope }}" data-rows="{{ counts.added }}">
+    <h1 class="h3 mb-3">{{ ('data_import.undo.confirm.title_' ~ scope)|trans }}</h1>
+
+    {% if row is not null %}
+        <div class="card card-body shadow-sm mb-3 p-3">
+            {{ include('data_import/_add_row.html.twig', {row: row}) }}
+        </div>
+    {% endif %}
+
+    {% if counts.added == 0 %}
+        <p class="text-muted" data-testid="import-undo-nothing">{{ 'data_import.undo.flash.nothing'|trans }}</p>
+    {% else %}
+        <div class="card card-body shadow-sm mb-3" data-testid="import-undo-removes"
+             data-results="{{ counts.results }}" data-owned="{{ counts.collectionItems }}" data-wish-list="{{ counts.wishListItems }}">
+            <h2 class="h6 mb-2">{{ 'data_import.undo.confirm.removes'|trans }}</h2>
+            <ul class="list-unstyled mb-0">
+                {% if counts.results > 0 %}<li class="d-flex justify-content-between gap-2 py-1"><span>{{ 'data_import.add.kind.results'|trans }}</span><strong>{{ counts.results|format_number }}</strong></li>{% endif %}
+                {% if counts.collectionItems > 0 %}<li class="d-flex justify-content-between gap-2 py-1"><span>{{ 'data_import.add.kind.owned'|trans }}</span><strong>{{ counts.collectionItems|format_number }}</strong></li>{% endif %}
+                {% if counts.wishListItems > 0 %}<li class="d-flex justify-content-between gap-2 py-1"><span>{{ 'data_import.add.kind.wish_list'|trans }}</span><strong>{{ counts.wishListItems|format_number }}</strong></li>{% endif %}
+                {% if counts.wishListItemsToRestore > 0 %}<li class="d-flex justify-content-between gap-2 py-1 text-muted"><span>{{ 'data_import.undo.confirm.restores'|trans }}</span><span>{{ counts.wishListItemsToRestore|format_number }}</span></li>{% endif %}
+            </ul>
+        </div>
+
+        <div class="card card-body shadow-sm mb-3 fs-sm" data-testid="import-undo-keeps">
+            <h2 class="h6 mb-2">{{ 'data_import.undo.confirm.keeps'|trans }}</h2>
+            <p class="mb-1"><i class="bi bi-shield-check me-1 text-success" aria-hidden="true"></i>{{ 'data_import.undo.confirm.keeps_edited'|trans }}</p>
+            <p class="mb-1"><i class="bi bi-shield-check me-1 text-success" aria-hidden="true"></i>{{ 'data_import.undo.confirm.keeps_moved'|trans }}</p>
+            <p class="mb-0"><i class="bi bi-arrow-repeat me-1 text-muted" aria-hidden="true"></i>{{ 'data_import.undo.confirm.ready_again'|trans }}</p>
+        </div>
+
+        <form action="{{ path('data_import_undo_start', {importId: import.importId}) }}" method="post" class="d-flex flex-column gap-2 mb-3" data-testid="import-undo-form">
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) }}">
+            <input type="hidden" name="request_id" value="{{ request_id }}">
+            <input type="hidden" name="scope" value="{{ scope }}">
+            {% if row is not null %}<input type="hidden" name="row" value="{{ row.rowId }}">{% endif %}
+            {% if batch is not null %}<input type="hidden" name="batch" value="{{ batch.id }}">{% endif %}
+            <button type="submit" class="btn btn-danger btn-lg text-wrap" style="min-height: 52px;" data-testid="import-undo-button">
+                <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ ('data_import.undo.confirm.button_' ~ scope)|trans }}
+            </button>
+            <a href="{{ back_url }}" class="btn btn-outline-secondary text-wrap d-flex align-items-center justify-content-center" style="min-height: 44px;">{{ 'data_import.undo.confirm.cancel'|trans }}</a>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}

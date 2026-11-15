@@ -1,0 +1,52 @@
+{#
+    What is not ready to be added yet, in plain words, each with the place where the player settles it
+    (docs/features/data-import/adding-screens.md "Ready to add"). Variables: add (ImportAddSummary), import_id,
+    daily_limit (optional - shown with the rows that wait for tomorrow).
+#}
+{% if add.hasNotReady or add.overDailyLimit > 0 %}
+    <ul class="list-unstyled fs-sm mb-0" data-testid="import-not-ready">
+        {% if add.undecided > 0 %}
+            <li class="py-1" data-testid="not-ready-undecided" data-rows="{{ add.undecided }}">
+                <a href="{{ path('data_import_puzzles', {importId: import_id}) }}" class="d-inline-flex align-items-center" style="min-height: 44px;">
+                    <i class="bi bi-hand-index-thumb me-2" aria-hidden="true"></i>{{ 'data_import.add.not_ready.undecided'|trans({'%number%': add.undecided|format_number}) }}
+                </a>
+            </li>
+        {% endif %}
+        {% if add.needLook > 0 %}
+            <li class="py-1" data-testid="not-ready-need-look" data-rows="{{ add.needLook }}">
+                <a href="{{ path('data_import_to_fix', {importId: import_id}) }}" class="d-inline-flex align-items-center" style="min-height: 44px;">
+                    <i class="bi bi-eye me-2" aria-hidden="true"></i>{{ 'data_import.add.not_ready.need_look'|trans({'%number%': add.needLook|format_number}) }}
+                </a>
+            </li>
+        {% endif %}
+        {% if add.sheetsNotSetUp > 0 %}
+            <li class="py-1" data-testid="not-ready-sheets" data-sheets="{{ add.sheetsNotSetUp }}">
+                <a href="{{ path('data_import_columns', {importId: import_id}) }}" class="d-inline-flex align-items-center" style="min-height: 44px;">
+                    <i class="bi bi-columns-gap me-2" aria-hidden="true"></i>{{ 'data_import.add.not_ready.sheets'|trans({'%number%': add.sheetsNotSetUp|format_number}) }}
+                </a>
+            </li>
+        {% endif %}
+        {% if add.notAdded > 0 %}
+            <li class="py-1" data-testid="not-ready-not-added" data-rows="{{ add.notAdded }}">
+                <a href="{{ path('data_import_not_added', {importId: import_id}) }}" class="d-inline-flex align-items-center" style="min-height: 44px;">
+                    <i class="bi bi-arrow-repeat me-2" aria-hidden="true"></i>{{ 'data_import.add.not_ready.not_added'|trans({'%number%': add.notAdded|format_number}) }}
+                </a>
+            </li>
+        {% endif %}
+        {% if add.unlisted > 0 %}
+            <li class="py-2 text-muted" data-testid="not-ready-unlisted" data-rows="{{ add.unlisted }}">
+                <i class="bi bi-hourglass me-2" aria-hidden="true"></i>{{ 'data_import.add.not_ready.unlisted'|trans({'%number%': add.unlisted|format_number}) }}
+            </li>
+        {% endif %}
+        {% if add.needsExactDay > 0 %}
+            <li class="py-2 text-muted" data-testid="not-ready-exact-day" data-rows="{{ add.needsExactDay }}">
+                <i class="bi bi-hourglass me-2" aria-hidden="true"></i>{{ 'data_import.add.not_ready.needs_exact_day'|trans({'%number%': add.needsExactDay|format_number}) }}
+            </li>
+        {% endif %}
+        {% if add.overDailyLimit > 0 %}
+            <li class="py-2 text-muted" data-testid="not-ready-daily-limit" data-rows="{{ add.overDailyLimit }}">
+                <i class="bi bi-calendar-day me-2" aria-hidden="true"></i>{{ 'data_import.add.not_ready.over_daily_limit'|trans({'%number%': add.overDailyLimit|format_number, '%limit%': (daily_limit|default(2000))|format_number}) }}
+            </li>
+        {% endif %}
+    </ul>
+{% endif %}

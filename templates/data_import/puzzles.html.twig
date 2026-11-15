@@ -100,12 +100,10 @@
                 {{ 'data_import.puzzles.decided_otherwise'|trans({'%unlisted%': overview.unlisted|format_number, '%left_out%': overview.leftOut|format_number}) }}
             </p>
         {% endif %}
-    </turbo-frame>
 
-    <div class="alert alert-info fs-sm d-flex gap-2" data-testid="import-soon">
-        <i class="bi bi-info-circle flex-shrink-0" aria-hidden="true"></i>
-        <span>{{ 'data_import.puzzles.soon'|trans }}</span>
-    </div>
+        {# What is ready to be added, and the way to its review (docs/features/data-import/adding-screens.md) #}
+        {{ include('data_import/_ready_card.html.twig', {add: add, import_id: import.importId}) }}
+    </turbo-frame>
 
     <a href="{{ path('data_import_columns', {importId: import.importId}) }}" class="btn btn-link px-0" style="min-height: 44px;">
         <i class="bi bi-columns-gap me-1" aria-hidden="true"></i>{{ 'data_import.columns.open'|trans }}

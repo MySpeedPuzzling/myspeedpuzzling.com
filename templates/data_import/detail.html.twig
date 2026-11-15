@@ -2,8 +2,9 @@
 
 {#
     One import of the signed-in player (docs/features/data-import/upload.md, reading.md): its file, its state, the
-    reading's live progress, then the sheets the file holds - or why it could not be read, with "Try again" - the
-    honest line that adding arrives soon, and Discard.
+    reading's live progress, then the sheets the file holds - or why it could not be read, with "Try again" - what
+    is ready to be added to the profile (docs/features/data-import/adding-screens.md "Ready to add"), and Discard -
+    which an import that added something does not offer: it says what it keeps and how to take it back.
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -149,6 +150,7 @@
                 </a>
             </div>
             {{ include('data_import/_pairing_summary.html.twig', {pairing: pairing, import_id: import.importId}) }}
+            {{ include('data_import/_ready_card.html.twig', {add: add, import_id: import.importId}) }}
         {% endif %}
         <div class="card shadow-sm mb-3" data-testid="import-sheets">
             <div class="card-body pb-2">
@@ -214,31 +216,43 @@
         <p class="fs-sm text-muted" data-testid="import-sharing-off"><i class="bi bi-shield-check me-1"></i>{{ 'data_import.google.sharing_off'|trans }}</p>
     {% endif %}
 
-    {% if status != 'uploading' and status != 'fetching' and status != 'fetch_failed' %}
-        <div class="alert alert-info fs-sm d-flex gap-2" data-testid="import-soon">
+    {% if status != 'uploading' and status != 'fetching' and status != 'fetch_failed' and (import.fileKeptUntil is not null or import.fileRemovedAt is not null) %}
+        <p class="fs-sm text-muted d-flex gap-2" data-testid="import-file-kept">
             <i class="bi bi-info-circle flex-shrink-0"></i>
             <span>
-                {{ (status == 'setting_up' ? 'data_import.puzzles.soon' : 'data_import.soon')|trans }}
                 {% if import.fileKeptUntil is not null %}
                     {{ 'data_import.detail.kept'|trans({'%date%': import.fileKeptUntil|format_date('long')}) }}
-                {% elseif import.fileRemovedAt is not null %}
+                {% else %}
                     {{ 'data_import.detail.file_removed'|trans({'%date%': import.fileRemovedAt|format_date('long'), '%days%': keep_days}) }}
                 {% endif %}
             </span>
-        </div>
+        </p>
     {% endif %}
 
-    <div class="card card-body shadow-sm mb-4">
-        <h2 class="h5">{{ 'data_import.detail.discard'|trans }}</h2>
-        <p class="fs-sm text-muted">{{ 'data_import.detail.discard_help'|trans }}</p>
+    {% if add.latestBatchId is not null %}
+        {# An import that added something is kept: its rows are how nothing is added twice and how it is taken back #}
+        <div class="card card-body shadow-sm mb-4" data-testid="import-kept">
+            <h2 class="h5">{{ 'data_import.detail.kept_title'|trans }}</h2>
+            <p class="fs-sm text-muted{{ add.hasAdded ? '' : ' mb-0' }}">{{ 'data_import.detail.kept_because_added'|trans }}</p>
+            {% if add.hasAdded %}
+                <a href="{{ path('data_import_undo', {importId: import.importId}) }}" class="btn btn-outline-danger text-wrap d-inline-flex align-items-center align-self-start" style="min-height: 44px;" data-testid="import-undo-import" rel="nofollow">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>{{ 'data_import.undo.import'|trans }}
+                </a>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="card card-body shadow-sm mb-4">
+            <h2 class="h5">{{ 'data_import.detail.discard'|trans }}</h2>
+            <p class="fs-sm text-muted">{{ 'data_import.detail.discard_help'|trans }}</p>
 
-        <form action="{{ path('data_import_discard', {importId: import.importId}) }}" method="post">
-            <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) }}">
-            <button type="submit" class="btn btn-outline-danger text-wrap" style="min-height: 44px;" data-testid="discard-import"
-                    data-turbo-confirm="{{ 'data_import.detail.discard_confirm'|trans }}">
-                <i class="bi bi-trash me-1"></i>{{ 'data_import.detail.discard'|trans }}
-            </button>
-        </form>
-    </div>
+            <form action="{{ path('data_import_discard', {importId: import.importId}) }}" method="post">
+                <input type="hidden" name="_token" value="{{ csrf }}">
+                <button type="submit" class="btn btn-outline-danger text-wrap" style="min-height: 44px;" data-testid="discard-import"
+                        data-turbo-confirm="{{ 'data_import.detail.discard_confirm'|trans }}">
+                    <i class="bi bi-trash me-1"></i>{{ 'data_import.detail.discard'|trans }}
+                </button>
+            </form>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}

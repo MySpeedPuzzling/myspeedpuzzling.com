@@ -1660,3 +1660,12 @@ Mirrored in [#212](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues
   their own - take them if players paste them often.
 - [ ] A Google sheet whose fetch failed and that is never tried again or discarded keeps its place of the three
   forever (like a file whose reading failed) - decide with the prune of abandoned imports.
+
+## Data import: the progress statement while a sheet is read
+
+- [ ] `GetDataImports::progress()` counts `data_import_row` rows with `parsed_version = sheet.mapping_version` for
+  the sheets being read, on every poll (4 s) and every publish (≤ 1/s): a scan of the sheet's rows through
+  `(sheet_id, row_number)` - up to 50,000 rows, a few ms each time, only while a parse runs. If it shows up, either
+  an index `(sheet_id, parsed_version)` on `data_import_row` (generated; it is written with every parsed batch) or a
+  counter on the sheet moved by `RecordParsedImportRows`. See `docs/features/data-import/columns-screen.md`
+  "Performance".

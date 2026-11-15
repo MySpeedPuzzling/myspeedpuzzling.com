@@ -23,17 +23,16 @@
     <h1 class="h3 mb-2">{{ 'data_import.columns.title'|trans }}</h1>
     <p class="text-muted fs-sm">{{ 'data_import.columns.intro'|trans }}</p>
 
-    {{ include('data_import/_setup_live.html.twig', {import_id: import.importId, working: summary.working}) }}
+    {{ include('data_import/_setup_live.html.twig', {import_id: import.importId, working: summary.working, revision: revision}) }}
 
     <turbo-frame id="import-sheets-live" data-import-live target="_top">
         <p class="fs-sm fw-medium mb-3" data-testid="import-summary">
-            {{ 'data_import.columns.summary'|trans({'%ready%': summary.ready|format_number, '%look%': summary.look|format_number, '%left_out%': summary.left_out|format_number}) }}
-            {%- if summary.waiting > 0 %} · <span class="text-warning">{{ 'data_import.columns.summary_waiting'|trans({'%number%': summary.waiting|format_number}) }}</span>{% endif %}
+            {{ 'data_import.columns.summary'|trans({'%ready%': summary.ready|format_number, '%look%': summary.look|format_number, '%waiting%': summary.waiting|format_number, '%left_out%': summary.left_out|format_number}) }}
         </p>
 
         {% for sheet in sheets %}
             {% set state = sheet.state %}
-            <div class="card shadow-sm mb-3{{ state == 'waiting' ? ' border-warning' : '' }}" data-testid="sheet-card" data-sheet-state="{{ state }}">
+            <div class="card shadow-sm mb-3{{ sheet.asksThePlayer ? ' border-warning' : '' }}" data-testid="sheet-card" data-sheet-state="{{ state }}">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start gap-2">
                         <h2 class="h5 mb-1 text-break" data-testid="sheet-card-title">
@@ -45,7 +44,7 @@
                         <span class="badge bg-faded-warning text-warning mb-1"><i class="bi bi-eye-slash me-1"></i>{{ 'data_import.sheets.hidden'|trans }}</span>
                     {% endif %}
 
-                    {{ include('data_import/_sheet_state.html.twig', {state: state, understood: sheet.rowsUnderstood, look: sheet.rowsNeedLook, left_out: sheet.rowsLeftOut}) }}
+                    {{ include('data_import/_sheet_state.html.twig', {state: state, understood: sheet.rowsUnderstood, look: sheet.rowsNeedLook, left_out: sheet.rowsLeftOut, waiting: sheet.rowsWaiting}) }}
 
                     {% if sheet.mapped and sheet.kind is not null %}
                         {# One tap changes what the sheet is: the choices fold out, each a button of the same form #}
@@ -71,10 +70,13 @@
                         </details>
 
                         <a href="{{ path('data_import_sheet', {importId: import.importId, sheetId: sheet.sheetId}) }}"
-                           class="btn {{ state == 'waiting' ? 'btn-primary' : 'btn-outline-primary' }} w-100 mt-2 text-wrap d-flex align-items-center justify-content-center"
+                           class="btn {{ sheet.asksThePlayer ? 'btn-primary' : 'btn-outline-primary' }} w-100 mt-2 text-wrap d-flex align-items-center justify-content-center"
                            style="min-height: 44px;" data-testid="sheet-card-open">
                             {% if state == 'waiting' %}
                                 <i class="bi bi-question-circle me-1"></i>{{ 'data_import.columns.card.answer'|trans }}
+                            {% elseif sheet.asksThePlayer and state == 'parsed' %}
+                                {# A question that decides a few rows: the rest of the sheet is read already #}
+                                <i class="bi bi-question-circle me-1"></i><span data-testid="sheet-card-answer-some">{{ 'data_import.columns.card.answer_some'|trans({'%questions%': sheet.questions|format_number, '%rows%': sheet.rowsWaiting|format_number}) }}</span>
                             {% else %}
                                 <i class="bi bi-columns-gap me-1"></i>{{ 'data_import.columns.card.open'|trans }}
                             {% endif %}

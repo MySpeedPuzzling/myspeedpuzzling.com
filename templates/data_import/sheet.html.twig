@@ -30,16 +30,16 @@
         <span class="badge bg-faded-warning text-warning mb-2"><i class="bi bi-eye-slash me-1"></i>{{ 'data_import.sheets.hidden'|trans }}</span>
     {% endif %}
 
-    {{ include('data_import/_setup_live.html.twig', {import_id: import_id, working: working}) }}
+    {{ include('data_import/_setup_live.html.twig', {import_id: import_id, working: working, revision: revision}) }}
 
     <turbo-frame id="import-sheet-live" data-import-live target="_top">
         <div class="card card-body shadow-sm mb-3" data-testid="import-sheet-standing">
-            {{ include('data_import/_sheet_state.html.twig', {state: state, understood: sheet.rowsUnderstood, look: sheet.rowsNeedLook, left_out: sheet.rowsLeftOut}) }}
+            {{ include('data_import/_sheet_state.html.twig', {state: state, understood: sheet.rowsUnderstood, look: sheet.rowsNeedLook, left_out: sheet.rowsLeftOut, waiting: sheet.rowsWaiting}) }}
             {% if state == 'failed' %}
                 <p class="fs-sm text-muted mb-0 mt-2" data-testid="import-sheet-failed-hint">{{ (mapping is null ? 'data_import.columns.sheet.failed_unmapped' : 'data_import.columns.sheet.failed_hint')|trans }}</p>
             {% elseif state == 'left_out' %}
                 <p class="fs-sm text-muted mb-0 mt-2">{{ 'data_import.columns.sheet.left_out_hint'|trans }}</p>
-            {% elseif state == 'parsed' and sheet.rowsNeedLook > 0 %}
+            {% elseif state in ['parsed', 'waiting'] and sheet.rowsNeedLook > 0 %}
                 <a href="{{ path('data_import_sheet_rows', {importId: import_id, sheetId: sheet.sheetId}) }}"
                    class="btn btn-outline-primary w-100 mt-3 text-wrap d-flex align-items-center justify-content-center" style="min-height: 44px;" data-testid="import-sheet-need-look">
                     <i class="bi bi-eye me-1"></i>{{ 'data_import.columns.sheet.need_look_link'|trans({'%number%': sheet.rowsNeedLook|format_number}) }}
@@ -64,10 +64,10 @@
             <h2 class="h5 mt-4 mb-2"><i class="bi bi-question-circle me-1 text-warning"></i>{{ 'data_import.columns.sheet.questions_title'|trans }}</h2>
         {% endif %}
         {% for question in questions %}
-            <fieldset class="card card-body shadow-sm mb-3 border-warning" data-testid="import-question" data-question="{{ question.id }}">
-                <legend class="h6 mb-2 float-none w-auto">
+            <div class="card card-body shadow-sm mb-3 border-warning" role="group" aria-labelledby="question-title-{{ loop.index }}" data-testid="import-question" data-question="{{ question.id }}">
+                <h3 class="h6 mb-2" id="question-title-{{ loop.index }}">
                     {{ ('data_import.columns.question.' ~ question.type)|trans({'%column%': question.header != '' ? question.header : 'data_import.columns.sheet.column_unnamed'|trans({'%letter%': question.letter})}) }}
-                </legend>
+                </h3>
                 {% if question.examples is not empty %}
                     <p class="fs-sm text-muted mb-2">
                         {{ 'data_import.columns.sheet.examples'|trans }}
@@ -110,41 +110,41 @@
                     <div class="text-danger fs-sm mt-2" role="alert" data-testid="import-question-error">{{ ('data_import.columns.error.' ~ question.error)|trans }}</div>
                 {% endif %}
                 <p class="fs-xs text-muted mb-0 mt-2">{{ 'data_import.columns.sheet.question_rows'|trans({'%number%': question.rows|format_number}) }}</p>
-            </fieldset>
+            </div>
         {% endfor %}
 
         {# ---- What the sheet is, what a row is ---- #}
-        <fieldset class="card card-body shadow-sm mb-3" data-testid="import-sheet-kind">
-            <legend class="h6 mb-2 float-none w-auto">{{ 'data_import.columns.sheet.kind_title'|trans }}</legend>
+        <div class="card card-body shadow-sm mb-3" role="radiogroup" aria-labelledby="kind-title" data-testid="import-sheet-kind">
+                <h3 class="h6 mb-2" id="kind-title">{{ 'data_import.columns.sheet.kind_title'|trans }}</h3>
             <div class="d-grid gap-2">
                 {% for choice in kinds %}
                     <input type="radio" class="btn-check" name="kind" id="kind-{{ choice }}" value="{{ choice }}" autocomplete="off" {% if kind == choice %}checked{% endif %}>
                     <label class="btn btn-outline-primary text-start text-wrap" for="kind-{{ choice }}" style="min-height: 44px;">{{ ('data_import.sheets.kind.' ~ choice)|trans }}</label>
                 {% endfor %}
             </div>
-        </fieldset>
+        </div>
 
         {% if mapping.imported %}
-            <fieldset class="card card-body shadow-sm mb-3" data-testid="import-sheet-row-meaning">
-                <legend class="h6 mb-2 float-none w-auto">{{ 'data_import.columns.sheet.row_title'|trans }}</legend>
+            <div class="card card-body shadow-sm mb-3" role="radiogroup" aria-labelledby="row-meaning-title" data-testid="import-sheet-row-meaning">
+                <h3 class="h6 mb-2" id="row-meaning-title">{{ 'data_import.columns.sheet.row_title'|trans }}</h3>
                 <div class="d-grid gap-2">
                     {% for choice in row_meanings %}
                         <input type="radio" class="btn-check" name="row_meaning" id="row-meaning-{{ choice }}" value="{{ choice }}" autocomplete="off" {% if row_meaning == choice %}checked{% endif %}>
                         <label class="btn btn-outline-primary text-start text-wrap" for="row-meaning-{{ choice }}" style="min-height: 44px;">{{ ('data_import.columns.row_meaning.' ~ choice)|trans }}</label>
                     {% endfor %}
                 </div>
-            </fieldset>
+            </div>
 
             {% if kind == 'results' %}
-                <fieldset class="card card-body shadow-sm mb-3" data-testid="import-sheet-solving-type">
-                    <legend class="h6 mb-2 float-none w-auto">{{ 'data_import.columns.sheet.solving_title'|trans }}</legend>
+                <div class="card card-body shadow-sm mb-3" role="radiogroup" aria-labelledby="solving-type-title" data-testid="import-sheet-solving-type">
+                <h3 class="h6 mb-2" id="solving-type-title">{{ 'data_import.columns.sheet.solving_title'|trans }}</h3>
                     <div class="d-grid gap-2">
                         {% for choice in ['']|merge(solving_types) %}
                             <input type="radio" class="btn-check" name="solving_type" id="solving-type-{{ choice|default('rows') }}" value="{{ choice }}" autocomplete="off" {% if solving_type == choice %}checked{% endif %}>
                             <label class="btn btn-outline-primary text-start text-wrap" for="solving-type-{{ choice|default('rows') }}" style="min-height: 44px;">{{ ('data_import.columns.solving_type.' ~ (choice|default('rows')))|trans }}</label>
                         {% endfor %}
                     </div>
-                </fieldset>
+                </div>
             {% endif %}
 
             {# ---- The columns ---- #}
@@ -210,7 +210,7 @@
 
     {# ---- The first rows, as they were understood ---- #}
     <turbo-frame id="import-sheet-preview" data-import-live target="_top">
-        {% if state == 'parsed' %}
+        {% if state in ['parsed', 'waiting'] %}
             <h2 class="h5 mt-2 mb-2">{{ 'data_import.columns.sheet.preview_title'|trans }}</h2>
             <div data-testid="import-sheet-preview">
                 {% for row in preview %}

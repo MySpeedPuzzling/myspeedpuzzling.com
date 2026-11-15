@@ -86,11 +86,10 @@ readonly final class RecordImportMappingsHandler
 
             $sheet->mappingProposed($proposal);
 
-            // Also a sheet that is "not puzzles": its rows are left out by the same job as after a confirmed mapping
-            if ($proposal->mapping->needsAnAnswer() === false) {
-                $this->messageBus->dispatch(new ParseImportSheet($message->importId, $sheet->id->toString(), $sheet->mappingVersion));
-                $queued[] = $sheet->id->toString();
-            }
+            // Also a sheet that is "not puzzles": its rows are left out by the same job as after a confirmed mapping.
+            // And a sheet with a question: only the rows the question decides wait (PendingQuestionRows)
+            $this->messageBus->dispatch(new ParseImportSheet($message->importId, $sheet->id->toString(), $sheet->mappingVersion));
+            $queued[] = $sheet->id->toString();
         }
 
         $import->workedOn($this->clock->now());

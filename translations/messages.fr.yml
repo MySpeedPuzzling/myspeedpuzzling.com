@@ -11776,8 +11776,7 @@ data_import:
         back_to_import: "Retour à l'import"
         back_to_sheets: "Retour à toutes les feuilles"
         back_to_sheet: "Retour à la feuille"
-        summary: "Lignes prêtes : %ready% · À regarder : %look% · Feuilles laissées de côté : %left_out%"
-        summary_waiting: "Feuilles qui attendent votre réponse : %number%"
+        summary: "Lignes prêtes : %ready% · À regarder : %look% · En attente de votre réponse : %waiting% · Feuilles laissées de côté : %left_out%"
         soon: "L'association de vos puzzles avec la base de données de puzzles et leur ajout à votre profil arrivent bientôt. D'ici là, rien n'est ajouté à votre profil."
         live:
             working: "Nous cherchons ce que contiennent vos feuilles…"
@@ -11786,13 +11785,16 @@ data_import:
             left_out: "Laissée de côté"
             understood: "Lignes comprises : %number%"
             need_look: "À regarder : %number%"
+            waiting_rows: "En attente de votre réponse : %number%"
             rows_left_out: "Laissées de côté : %number%"
         card:
             rows: "Lignes : %number%"
             this_is: "Cette feuille est :"
             open: "Questions et colonnes"
             answer: "Répondre à la question"
+            answer_some: "Questions en attente : %questions% (lignes : %rows%)"
         flash:
+            nothing_changed: "Rien n'a été modifié, rien n'a donc été relu."
             saved: "Enregistré. Les lignes de la feuille sont relues."
             changed_meanwhile: "Cette feuille a été modifiée entre-temps, dans un autre onglet ou sur un autre appareil. Voici son état actuel - merci de refaire votre modification."
         error:
@@ -11930,6 +11932,8 @@ data_import:
             next: "Suivant"
         problem:
             other: "Nous n'avons pas pu lire cela avec certitude."
+            waiting: "Cette ligne attend votre réponse à la question de la feuille."
+            date_typed_open: "Nous ne savons pas encore si le jour et le mois de cette date ont été inversés."
             no_name: "Cette ligne n'a pas de nom de puzzle."
             lookup_ambiguous: "La liste de puzzles contient ce nom plusieurs fois, avec une autre marque ou un autre nombre de pièces - nous ne savons pas lequel est visé."
             pieces_multipack: "Cela ressemble à plusieurs puzzles dans une boîte - nous ne savons pas quel nombre de pièces retenir."
@@ -12026,7 +12030,6 @@ data_import:
         waiting_for_answer: "En attente de votre réponse"
         parsing: "Lecture de ses lignes…"
         understood: "Lignes comprises : %understood% · à regarder : %look%"
-        left_out: "Laissées de côté : %count%"
         refresh_hint: "Cette liste ne se met pas encore à jour toute seule - actualisez la page pour voir où elle en est."
     google:
         title: "Coller un lien Google Sheets"

@@ -11770,8 +11770,7 @@ data_import:
         back_to_import: "インポートに戻る"
         back_to_sheets: "すべてのシートに戻る"
         back_to_sheet: "シートに戻る"
-        summary: "準備できた行: %ready% · 確認が必要: %look% · 除外したシート: %left_out%"
-        summary_waiting: "あなたの回答を待っているシート: %number%"
+        summary: "準備できた行: %ready% · 確認が必要: %look% · 回答待ち: %waiting% · 除外したシート: %left_out%"
         soon: "パズルデータベースとの照合とプロフィールへの追加は、まもなく対応します。それまでプロフィールには何も追加されません。"
         live:
             working: "シートの内容を確認しています…"
@@ -11780,13 +11779,16 @@ data_import:
             left_out: "除外"
             understood: "読み取れた行: %number%"
             need_look: "確認が必要: %number%"
+            waiting_rows: "回答待ち: %number%"
             rows_left_out: "除外: %number%"
         card:
             rows: "行: %number%"
             this_is: "このシートは:"
             open: "質問と列"
             answer: "質問に答える"
+            answer_some: "未回答の質問: %questions%（行: %rows%）"
         flash:
+            nothing_changed: "変更がなかったため、読み直しは行いませんでした。"
             saved: "保存しました。シートの行を読み直しています。"
             changed_meanwhile: "このシートは、別のタブまたは別の端末で変更されました。現在の状態を表示しています。お手数ですが、もう一度変更してください。"
         error:
@@ -11924,6 +11926,8 @@ data_import:
             next: "次へ"
         problem:
             other: "確実に読み取れませんでした。"
+            waiting: "この行は、シートの質問へのあなたの回答を待っています。"
+            date_typed_open: "この日付の日と月が入れ替わっているかどうか、まだわかりません。"
             no_name: "この行にはパズル名がありません。"
             lookup_ambiguous: "パズル一覧に同じ名前が複数あり、メーカーまたはピース数が異なるため、どれを指すのかわかりません。"
             pieces_multipack: "1箱に複数のパズルが入っているようで、どのピース数を使うべきかわかりません。"
@@ -12020,7 +12024,6 @@ data_import:
         waiting_for_answer: "あなたの回答を待っています"
         parsing: "行を読み取っています…"
         understood: "読み取れた行: %understood% · 確認が必要: %look%"
-        left_out: "除外: %count%"
         refresh_hint: "この一覧はまだ自動では更新されません。進み具合はページを再読み込みして確認してください。"
     google:
         title: "Google スプレッドシートのリンクを貼り付け"

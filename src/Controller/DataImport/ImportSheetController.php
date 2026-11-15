@@ -47,9 +47,16 @@ final class ImportSheetController extends AbstractController
             return $this->redirectToRoute('data_import_detail', ['importId' => $importId]);
         }
 
+        // Nothing to set up before the import worked out what the sheet holds: the list shows it being recognised
+        // and gets its card by itself
+        if ($sheet->mappingVersion === 0 && $sheet->failure === null) {
+            return $this->redirectToRoute('data_import_columns', ['importId' => $importId]);
+        }
+
         return $this->render('data_import/sheet.html.twig', [
             ...$this->page->parameters($importId, $sheet, $player->playerId),
             'import' => $this->getDataImports->byIdOfPlayer($importId, $player->playerId),
+            'revision' => $this->getDataImports->progressOfPlayer($importId, $player->playerId)->revision,
         ]);
     }
 }

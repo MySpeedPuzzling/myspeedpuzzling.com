@@ -11781,8 +11781,7 @@ data_import:
         back_to_import: "Volver a la importación"
         back_to_sheets: "Volver a todas las hojas"
         back_to_sheet: "Volver a la hoja"
-        summary: "Filas listas: %ready% · Para revisar: %look% · Hojas omitidas: %left_out%"
-        summary_waiting: "Hojas que esperan tu respuesta: %number%"
+        summary: "Filas listas: %ready% · Para revisar: %look% · Esperan tu respuesta: %waiting% · Hojas omitidas: %left_out%"
         soon: "Emparejar tus puzzles con la base de datos de puzzles y añadirlos a tu perfil llegará pronto. Hasta entonces no se añade nada a tu perfil."
         live:
             working: "Averiguando qué contienen tus hojas…"
@@ -11791,13 +11790,16 @@ data_import:
             left_out: "Omitida"
             understood: "Filas entendidas: %number%"
             need_look: "Para revisar: %number%"
+            waiting_rows: "Esperan tu respuesta: %number%"
             rows_left_out: "Omitidas: %number%"
         card:
             rows: "Filas: %number%"
             this_is: "Esta hoja es:"
             open: "Preguntas y columnas"
             answer: "Responder la pregunta"
+            answer_some: "Preguntas por responder: %questions% (filas: %rows%)"
         flash:
+            nothing_changed: "No se cambió nada, así que no se volvió a leer nada."
             saved: "Guardado. Las filas de la hoja se están leyendo de nuevo."
             changed_meanwhile: "Esta hoja se cambió mientras tanto, en otra pestaña o en otro dispositivo. Así está ahora: por favor, haz tu cambio otra vez."
         error:
@@ -11935,6 +11937,8 @@ data_import:
             next: "Siguiente"
         problem:
             other: "No pudimos leer esto con seguridad."
+            waiting: "Esta fila espera tu respuesta a la pregunta de la hoja."
+            date_typed_open: "Todavía no sabemos si en esta fecha se intercambiaron el día y el mes."
             no_name: "Esta fila no tiene nombre de puzzle."
             lookup_ambiguous: "La lista de puzzles tiene este nombre más de una vez, con otra marca u otro número de piezas: no sabemos cuál es."
             pieces_multipack: "Parecen varios puzzles en una caja: no sabemos qué número de piezas tomar."
@@ -12031,7 +12035,6 @@ data_import:
         waiting_for_answer: "Esperando tu respuesta"
         parsing: "Recorriendo sus filas…"
         understood: "Filas entendidas: %understood% · para revisar: %look%"
-        left_out: "Omitidas: %count%"
         refresh_hint: "Esta lista aún no se actualiza sola: recarga la página para ver cómo va."
     google:
         title: "Pega un enlace de Hojas de cálculo de Google"

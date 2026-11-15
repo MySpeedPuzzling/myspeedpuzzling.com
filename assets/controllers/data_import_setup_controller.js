@@ -11,7 +11,8 @@ import { Controller } from '@hotwired/stimulus';
  * is still worked on, the page asks the JSON endpoint instead - more and more seldom when it does not answer, and
  * not at all after ten minutes without one answer.
  *
- * The payload carries numbers and a `revision` only. Whenever the revision changes - a sheet got its mapping, its
+ * The payload carries numbers and a `revision` only; the page is rendered with the revision it shows. Whenever the
+ * revision changes - a sheet got its mapping, its
  * rows were read, its set-up failed - or the work ends, every `<turbo-frame data-import-live>` of the page is loaded
  * again (the page's own address, Turbo takes the frame out of it): counts, states and the preview update without a
  * reload, and the form the player may be filling in is never touched (it stands outside those frames).
@@ -32,6 +33,10 @@ export default class extends Controller {
         importId: String,
         url: String,
         working: Boolean,
+        // The sheets' states as the page was rendered: a sheet that finishes before the first answer is seen too
+        revision: String,
+        // Where to go when a live part can not be loaded again (the import's own page)
+        fallbackUrl: String,
         workingText: String,
         rowsText: String,
     };
@@ -42,7 +47,7 @@ export default class extends Controller {
         this.stopped = false;
         this.failures = 0;
         this.failingSince = 0;
-        this.revision = null;
+        this.revision = this.revisionValue || null;
         this.working = this.workingValue;
         this.numbers = new Intl.NumberFormat(document.documentElement.lang || undefined);
 
@@ -57,7 +62,21 @@ export default class extends Controller {
             this.show(data);
         };
 
+        // A live part the answer does not hold (signed out, the import discarded or past its set-up, an error
+        // page): Turbo would leave the frame as it is and log an error - a full visit shows what is instead
+        this.onFrameMissing = (event) => {
+            if (!(event.target instanceof Element) || !event.target.matches('turbo-frame[data-import-live]')) {
+                return;
+            }
+
+            event.preventDefault();
+            this.stopped = true;
+            window.clearTimeout(this.timer);
+            event.detail.visit(this.fallbackUrlValue || window.location.href);
+        };
+
         document.addEventListener('mercure:message', this.onMessage);
+        document.addEventListener('turbo:frame-missing', this.onFrameMissing);
 
         if (this.working) {
             // What happened between the page's rendering and now is asked for at once
@@ -67,6 +86,7 @@ export default class extends Controller {
 
     disconnect() {
         document.removeEventListener('mercure:message', this.onMessage);
+        document.removeEventListener('turbo:frame-missing', this.onFrameMissing);
         this.stopped = true;
         window.clearTimeout(this.timer);
     }

@@ -48,37 +48,39 @@ final class ImportColumnsController extends AbstractController
 
         $sheets = $this->getDataImports->sheetsOfPlayer($importId, $player->playerId);
 
-        // Those that wait for the player first, then the file's own order
-        usort($sheets, static fn (DataImportSheetOverview $a, DataImportSheetOverview $b): int => [$a->state() !== 'waiting', $a->position] <=> [$b->state() !== 'waiting', $b->position]);
+        // Those that ask the player something first, then the file's own order
+        usort($sheets, static fn (DataImportSheetOverview $a, DataImportSheetOverview $b): int => [$a->asksThePlayer() === false, $a->position] <=> [$b->asksThePlayer() === false, $b->position]);
 
         return $this->render('data_import/columns.html.twig', [
             'import' => $import,
             'sheets' => $sheets,
             'summary' => self::summary($sheets),
+            // What the live line compares the progress with from its first moment (data_import_setup_controller.js)
+            'revision' => $this->getDataImports->progressOfPlayer($importId, $player->playerId)->revision,
         ]);
     }
 
     /**
-     * The import in one line: rows ready, rows that need a look, sheets left out - and whether anything is still
-     * worked on by itself.
+     * The import in one line: rows ready, rows that need a look, rows that wait for an answer, sheets left out - and
+     * whether anything is still worked on by itself.
      *
      * @param list<DataImportSheetOverview> $sheets
      *
-     * @return array{ready: int, look: int, left_out: int, waiting: int, working: bool}
+     * @return array{ready: int, look: int, waiting: int, left_out: int, working: bool}
      */
     public static function summary(array $sheets): array
     {
-        $summary = ['ready' => 0, 'look' => 0, 'left_out' => 0, 'waiting' => 0, 'working' => false];
+        $summary = ['ready' => 0, 'look' => 0, 'waiting' => 0, 'left_out' => 0, 'working' => false];
 
         foreach ($sheets as $sheet) {
             $state = $sheet->state();
             $summary['left_out'] += $sheet->isLeftOut() && $sheet->failed === false ? 1 : 0;
-            $summary['waiting'] += $state === 'waiting' ? 1 : 0;
             $summary['working'] = $summary['working'] || $state === 'recognising' || $state === 'parsing';
 
-            if ($state === 'parsed') {
+            if ($state === 'parsed' || $state === 'waiting') {
                 $summary['ready'] += $sheet->rowsUnderstood;
                 $summary['look'] += $sheet->rowsNeedLook;
+                $summary['waiting'] += $sheet->rowsWaiting;
             }
         }
 

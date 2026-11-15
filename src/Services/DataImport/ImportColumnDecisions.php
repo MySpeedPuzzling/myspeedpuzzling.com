@@ -39,6 +39,8 @@ use SpeedPuzzling\Web\Value\DataImportLimits;
 final readonly class ImportColumnDecisions
 {
     private const int EXAMPLES = 3;
+    /** A reading of a time beyond this is not offered as an answer: 99 hours */
+    private const int LONGEST_BELIEVABLE_SECONDS = 99 * 3600;
     /** Rows that can only be read in the winning order, for day first against month first to be taken unasked ... */
     private const int ROWS_TO_SETTLE_THE_ORDER = 3;
     /** ... or this share of the column's dates (a column of three dates is settled by one) */
@@ -120,11 +122,34 @@ final readonly class ImportColumnDecisions
                     continue;
                 }
 
+                // A reading that makes one of the rows shown longer than anybody puzzles ("326" as 326 hours) is not
+                // offered; when one reading is left, it is taken - nothing to ask
+                $rules = array_values(array_unique(array_map(static fn (DurationShapeOption $option): string => $option->rule->value, $decision->options)));
+                $believable = array_values(array_filter($rules, static function (string $rule) use ($decision, $durations): bool {
+                    foreach ($decision->exampleRows as $row) {
+                        $seconds = isset($durations[$row]) ? $durations[$row]->read->secondsBy(DurationReadingRule::from($rule)) : null;
+
+                        if ($seconds !== null && $seconds > self::LONGEST_BELIEVABLE_SECONDS) {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                }));
+
+                if (count($believable) === 1) {
+                    $options = $options->withDuration($decision->shape, DurationReadingRule::from($believable[0]), ImportSheetOptions::BY_ROWS);
+
+                    continue;
+                }
+
+                $rules = $believable === [] ? $rules : $believable;
+
                 $questions[] = new ImportQuestion(
                     ImportQuestionType::DurationShape,
                     $time->column,
-                    array_values(array_unique(array_map(static fn (DurationShapeOption $option): string => $option->rule->value, $decision->options))),
-                    $decision->suggested?->value,
+                    $rules,
+                    $decision->suggested !== null && in_array($decision->suggested->value, $rules, true) ? $decision->suggested->value : null,
                     self::examples($durationTexts, $decision->exampleRows),
                     $decision->shape,
                     $decision->rows,

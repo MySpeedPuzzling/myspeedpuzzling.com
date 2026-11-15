@@ -13,7 +13,7 @@ readonly final class ImportSheetRow
 {
     /**
      * @param array<string, mixed> $parsed
-     * @param list<array{field: string, code: string, value: string}> $problems
+     * @param list<array{field: string, code: string, value: string, waiting: bool}> $problems
      */
     public function __construct(
         /** The spreadsheet's own row number */

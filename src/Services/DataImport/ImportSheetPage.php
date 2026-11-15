@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\DataImport;
 
 use SpeedPuzzling\Web\Query\GetImportSheetScreen;
+use SpeedPuzzling\Web\Results\DataImportSheetOverview;
 use SpeedPuzzling\Web\Results\ImportSheetDetail;
 use Symfony\Component\HttpFoundation\InputBag;
 
@@ -54,13 +55,15 @@ final readonly class ImportSheetPage
     {
         $mapping = ImportSheetScreen::mappingOf($sheet);
 
-        return match (true) {
-            $sheet->failure !== null => 'failed',
-            $mapping === null => 'recognising',
-            $mapping->isImported() === false => $sheet->parsed ? 'left_out' : 'parsing',
-            $mapping->needsAnAnswer() => 'waiting',
-            $sheet->parsed === false => 'parsing',
-            default => 'parsed',
-        };
+        return DataImportSheetOverview::stateOf(
+            $sheet->failure !== null,
+            $mapping !== null,
+            $mapping !== null && $mapping->isImported() === false,
+            $sheet->parsed,
+            $mapping !== null && $mapping->needsAnAnswer(),
+            $sheet->rowsUnderstood,
+            $sheet->rowsNeedLook,
+            $sheet->rowsWaiting,
+        );
     }
 }

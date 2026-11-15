@@ -5,13 +5,16 @@
     (data_import_setup_controller.js). Whenever a sheet's state changes, every <turbo-frame data-import-live> of the
     page is loaded again, so counts and lists update without a reload. Numbers only - nothing of the file.
 
-    Variables: import_id, working (something still happens by itself).
+    Variables: import_id, working (something still happens by itself), revision (the sheets' states as the page was
+    rendered - what the script compares the progress with from its first moment).
 #}
 <div class="card card-body shadow-sm mb-3 py-2" data-testid="import-setup-live"
      data-controller="data-import-setup"
      data-data-import-setup-import-id-value="{{ import_id }}"
      data-data-import-setup-url-value="{{ path('data_import_progress', {importId: import_id}) }}"
      data-data-import-setup-working-value="{{ working ? 'true' : 'false' }}"
+     data-data-import-setup-revision-value="{{ revision|default('') }}"
+     data-data-import-setup-fallback-url-value="{{ path('data_import_detail', {importId: import_id}) }}"
      data-data-import-setup-working-text-value="{{ 'data_import.columns.live.working'|trans }}"
      data-data-import-setup-rows-text-value="{{ 'data_import.columns.live.rows'|trans }}"
      {% if not working %}hidden{% endif %}>

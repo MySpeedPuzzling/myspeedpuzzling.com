@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Query\GetImportSheetRows;
 use SpeedPuzzling\Web\Services\DataImport\ImportEqualRows;
 use SpeedPuzzling\Web\Services\DataImport\ImportProgress;
 use SpeedPuzzling\Web\Services\DataImport\ImportRowParser;
+use SpeedPuzzling\Web\Services\DataImport\PendingQuestionRows;
 use SpeedPuzzling\Web\Services\DataImport\SheetLookupFactory;
 use SpeedPuzzling\Web\Value\DataImport\ImportMapping;
 use SpeedPuzzling\Web\Value\DataImport\ImportSheetOptions;
@@ -69,8 +70,9 @@ readonly final class ParseImportSheetHandler
 
             $mapping = ImportMapping::fromArray($sheet['mapping']);
 
-            // Once per sheet and version: a second delivery, the safety net or a job beside a running one stops here
-            if ($mapping->needsAnAnswer() || $this->ask(new BeginImportSheetParse($message->importId, $message->sheetId, $message->mappingVersion)) !== true) {
+            // Once per sheet and version: a second delivery, the safety net or a job beside a running one stops here.
+            // A sheet with a question is parsed too: only the rows the question decides wait (PendingQuestionRows)
+            if ($this->ask(new BeginImportSheetParse($message->importId, $message->sheetId, $message->mappingVersion)) !== true) {
                 return;
             }
 
@@ -84,6 +86,7 @@ readonly final class ParseImportSheetHandler
             $understood = 0;
             $needLook = 0;
             $leftOut = 0;
+            $waiting = 0;
             $after = 0;
 
             // A page is bounded by rows and by bytes (GetImportSheetRows::page()): the last one is the empty one
@@ -91,12 +94,13 @@ readonly final class ParseImportSheetHandler
                 $records = [];
 
                 foreach ($page as $row) {
-                    $parsed = $this->parser->parse($row['number'], $row['cells'], $mapping, $options, $valueAnswers, $lookup);
+                    $parsed = PendingQuestionRows::mark($this->parser->parse($row['number'], $row['cells'], $mapping, $options, $valueAnswers, $lookup), $row['cells'], $mapping);
                     $records[$row['id']] = $parsed->toRecord();
                     $after = $row['number'];
 
                     match (true) {
                         $parsed->isData() === false => $leftOut++,
+                        $parsed->isWaiting() => $waiting++,
                         $parsed->isUnderstood() => $understood++,
                         default => $needLook++,
                     };
@@ -113,7 +117,7 @@ readonly final class ParseImportSheetHandler
                 return;
             }
 
-            if ($this->ask(new RecordImportSheetParsed($message->importId, $message->sheetId, $message->mappingVersion, $understood, $needLook, $leftOut)) === true) {
+            if ($this->ask(new RecordImportSheetParsed($message->importId, $message->sheetId, $message->mappingVersion, $understood, $needLook, $leftOut, $waiting)) === true) {
                 $this->messageBus->dispatch(new LinkEqualImportRows($message->importId));
             }
         } catch (\Throwable $e) {

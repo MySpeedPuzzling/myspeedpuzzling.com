@@ -12027,8 +12027,7 @@ data_import:
         back_to_import: "Back to the import"
         back_to_sheets: "Back to all sheets"
         back_to_sheet: "Back to the sheet"
-        summary: "Rows ready: %ready% · Need a look: %look% · Sheets left out: %left_out%"
-        summary_waiting: "Sheets waiting for your answer: %number%"
+        summary: "Rows ready: %ready% · Need a look: %look% · Waiting for your answer: %waiting% · Sheets left out: %left_out%"
         soon: "Pairing your puzzles with the puzzle database and adding them to your profile arrive soon. Until then nothing is added to your profile."
         live:
             working: "Working out what your sheets hold…"
@@ -12037,13 +12036,16 @@ data_import:
             left_out: "Left out"
             understood: "Rows understood: %number%"
             need_look: "Need a look: %number%"
+            waiting_rows: "Waiting for your answer: %number%"
             rows_left_out: "Left out: %number%"
         card:
             rows: "Rows: %number%"
             this_is: "This sheet is:"
             open: "Questions and columns"
             answer: "Answer the question"
+            answer_some: "Questions to answer: %questions% (rows: %rows%)"
         flash:
+            nothing_changed: "Nothing was changed, so nothing was read again."
             saved: "Saved. The rows of the sheet are being read again."
             changed_meanwhile: "This sheet was changed in the meantime, in another tab or on another device. Here is how it stands now - please make your change again."
         error:
@@ -12181,6 +12183,8 @@ data_import:
             next: "Next"
         problem:
             other: "We could not read this for sure."
+            waiting: "This row waits for your answer to the sheet's question."
+            date_typed_open: "We do not know yet whether the day and the month of this date were swapped."
             no_name: "This row has no puzzle name."
             lookup_ambiguous: "The puzzle list has this name more than once, with another brand or piece count - we do not know which one is meant."
             pieces_multipack: "This looks like several puzzles in one box - we do not know which piece count to take."
@@ -12277,7 +12281,6 @@ data_import:
         waiting_for_answer: "Waiting for your answer"
         parsing: "Reading through its rows…"
         understood: "Rows understood: %understood% · need a look: %look%"
-        left_out: "Left out: %count%"
         refresh_hint: "This list does not update by itself yet - refresh the page to see how far it is."
     google:
         title: "Paste a Google Sheets link"

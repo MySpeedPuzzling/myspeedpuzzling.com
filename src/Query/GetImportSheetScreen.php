@@ -36,7 +36,7 @@ readonly final class GetImportSheetScreen
             throw new DataImportNotFound();
         }
 
-        /** @var false|array{id: string, title: string, position: int, hidden: bool, rows_total: int, kind: null|string, mapping_version: int, parsed_version: null|int, mapping: null|string, options: null|string, rows_understood: int, rows_need_look: int, rows_left_out: int, set_up_failure: null|string, status: string, lookup_title: null|string} $row */
+        /** @var false|array{id: string, title: string, position: int, hidden: bool, rows_total: int, kind: null|string, mapping_version: int, parsed_version: null|int, mapping: null|string, options: null|string, rows_understood: int, rows_need_look: int, rows_left_out: int, rows_waiting: int, set_up_failure: null|string, status: string, lookup_title: null|string} $row */
         $row = $this->database->executeQuery(<<<SQL
 SELECT
     sheet.id,
@@ -52,6 +52,7 @@ SELECT
     sheet.rows_understood,
     sheet.rows_need_look,
     sheet.rows_left_out,
+    sheet.rows_waiting,
     sheet.set_up_failure,
     data_import.status,
     lookup.title AS lookup_title
@@ -92,6 +93,7 @@ SQL, [
             failure: $row['set_up_failure'],
             beingSetUp: $row['status'] === DataImportStatus::SettingUp->value,
             lookupSheetTitle: $row['lookup_title'],
+            rowsWaiting: $row['rows_waiting'],
         );
     }
 
@@ -134,7 +136,8 @@ SQL, ['sheetId' => $sheetId, 'importId' => $importId, 'playerId' => $playerId, '
      */
     public function understoodRows(string $importId, string $sheetId, string $playerId, bool $onlyNeedingALook, int $limit, int $offset = 0): array
     {
-        $needALook = $onlyNeedingALook ? 'AND stored.problems IS NOT NULL' : '';
+        // A row a question that is not answered yet decides waits - it is not one that "needs a look"
+        $needALook = $onlyNeedingALook ? "AND stored.problems IS NOT NULL AND NOT (stored.problems @> '[{\"waiting\": true}]'::jsonb)" : '';
 
         /** @var list<array{row_number: int, kind: string, parsed: null|string, problems: null|string}> $rows */
         $rows = $this->database->executeQuery(<<<SQL
@@ -164,6 +167,7 @@ SQL, ['sheetId' => $sheetId, 'importId' => $importId, 'playerId' => $playerId, '
                         'field' => is_string($problem['field'] ?? null) ? $problem['field'] : '',
                         'code' => $problem['code'],
                         'value' => is_string($problem['value'] ?? null) ? $problem['value'] : '',
+                        'waiting' => ($problem['waiting'] ?? false) === true,
                     ];
                 }
             }

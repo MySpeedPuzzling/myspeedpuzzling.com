@@ -79,6 +79,14 @@ final class ConfirmImportSheetController extends AbstractController
             return $this->refused($importId, $sheet, $player->playerId, $form, $submission['errors']);
         }
 
+        // Nothing was changed: nothing is read again. A sheet whose set-up was given up is the exception - saving it
+        // as it is, is how it is tried once more
+        if ($submission['mapping'] === null && $submission['answers'] === [] && $submission['sheetWide'] === null && $sheet->failure === null) {
+            $this->addFlash('info', $this->translator->trans('data_import.columns.flash.nothing_changed'));
+
+            return $back;
+        }
+
         try {
             $this->messageBus->dispatch(new ConfirmImportMapping(
                 importId: $importId,
@@ -125,6 +133,7 @@ final class ConfirmImportSheetController extends AbstractController
             [
                 ...$this->page->parameters($importId, $sheet, $playerId, $form, $errors),
                 'import' => $this->getDataImports->byIdOfPlayer($importId, $playerId),
+                'revision' => $this->getDataImports->progressOfPlayer($importId, $playerId)->revision,
             ],
             new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY),
         );

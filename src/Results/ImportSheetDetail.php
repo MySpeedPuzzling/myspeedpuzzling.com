@@ -39,6 +39,8 @@ readonly final class ImportSheetDetail
         public bool $beingSetUp,
         /** The sheet brand and pieces are looked up in, by the puzzle's name */
         public null|string $lookupSheetTitle = null,
+        /** Rows a question that is not answered yet decides */
+        public int $rowsWaiting = 0,
     ) {
     }
 }

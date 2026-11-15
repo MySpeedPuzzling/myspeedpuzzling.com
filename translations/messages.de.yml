@@ -11780,8 +11780,7 @@ data_import:
         back_to_import: "Zurück zum Import"
         back_to_sheets: "Zurück zu allen Blättern"
         back_to_sheet: "Zurück zum Blatt"
-        summary: "Zeilen bereit: %ready% · Zum Ansehen: %look% · Ausgelassene Blätter: %left_out%"
-        summary_waiting: "Blätter, die auf deine Antwort warten: %number%"
+        summary: "Zeilen bereit: %ready% · Zum Ansehen: %look% · Warten auf deine Antwort: %waiting% · Ausgelassene Blätter: %left_out%"
         soon: "Das Zuordnen deiner Puzzles zur Puzzle-Datenbank und das Hinzufügen zu deinem Profil kommen bald. Bis dahin wird deinem Profil nichts hinzugefügt."
         live:
             working: "Wir finden heraus, was deine Blätter enthalten…"
@@ -11790,13 +11789,16 @@ data_import:
             left_out: "Ausgelassen"
             understood: "Verstandene Zeilen: %number%"
             need_look: "Zum Ansehen: %number%"
+            waiting_rows: "Warten auf deine Antwort: %number%"
             rows_left_out: "Ausgelassen: %number%"
         card:
             rows: "Zeilen: %number%"
             this_is: "Dieses Blatt ist:"
             open: "Fragen und Spalten"
             answer: "Frage beantworten"
+            answer_some: "Offene Fragen: %questions% (Zeilen: %rows%)"
         flash:
+            nothing_changed: "Es wurde nichts geändert, also wurde nichts erneut gelesen."
             saved: "Gespeichert. Die Zeilen des Blatts werden erneut gelesen."
             changed_meanwhile: "Dieses Blatt wurde inzwischen geändert, in einem anderen Tab oder auf einem anderen Gerät. So steht es jetzt - bitte nimm deine Änderung noch einmal vor."
         error:
@@ -11934,6 +11936,8 @@ data_import:
             next: "Weiter"
         problem:
             other: "Das konnten wir nicht sicher lesen."
+            waiting: "Diese Zeile wartet auf deine Antwort auf die Frage zum Blatt."
+            date_typed_open: "Wir wissen noch nicht, ob bei diesem Datum Tag und Monat vertauscht wurden."
             no_name: "Diese Zeile hat keinen Puzzlenamen."
             lookup_ambiguous: "Die Puzzleliste enthält diesen Namen mehrmals, mit anderer Marke oder Teilezahl - wir wissen nicht, welches gemeint ist."
             pieces_multipack: "Das sieht nach mehreren Puzzles in einer Schachtel aus - wir wissen nicht, welche Teilezahl gilt."
@@ -12030,7 +12034,6 @@ data_import:
         waiting_for_answer: "Wartet auf deine Antwort"
         parsing: "Die Zeilen werden durchgegangen…"
         understood: "Verstandene Zeilen: %understood% · zum Ansehen: %look%"
-        left_out: "Ausgelassen: %count%"
         refresh_hint: "Diese Liste aktualisiert sich noch nicht von selbst - lade die Seite neu, um den Stand zu sehen."
     google:
         title: "Google-Sheets-Link einfügen"

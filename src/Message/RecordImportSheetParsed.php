@@ -20,6 +20,8 @@ readonly final class RecordImportSheetParsed implements RequiresFreshEntityManag
         public int $rowsUnderstood,
         public int $rowsNeedLook,
         public int $rowsLeftOut,
+        /** Rows a question of the sheet that is not answered yet decides */
+        public int $rowsWaiting = 0,
     ) {
     }
 }

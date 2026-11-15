@@ -136,6 +136,10 @@ class DataImportSheet
     #[Column(options: ['default' => 0])]
     public int $rowsNeedLook = 0;
 
+    /** Rows that are puzzles and that a question of the sheet which is not answered yet decides */
+    #[Column(options: ['default' => 0])]
+    public int $rowsWaiting = 0;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -265,8 +269,9 @@ class DataImportSheet
         return $this->parsedVersion === $this->mappingVersion;
     }
 
-    public function parsed(int $mappingVersion, int $understood, int $needLook, int $leftOut): void
+    public function parsed(int $mappingVersion, int $understood, int $needLook, int $leftOut, int $waiting = 0): void
     {
+        $this->rowsWaiting = $waiting;
         $this->parsedVersion = $mappingVersion;
         $this->parsingVersion = null;
         $this->parsingStartedAt = null;

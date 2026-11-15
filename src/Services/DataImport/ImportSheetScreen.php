@@ -253,6 +253,13 @@ final readonly class ImportSheetScreen
             }
         }
 
+        // "A column says it for each row" only where a column does - the page never offers it otherwise
+        $hasStatus = array_filter($columns, static fn (array $stored): bool => ($stored['field'] ?? null) === ImportField::Status->value) !== [];
+
+        if ($rowMeaning === DataImportRowMeaning::ByColumn && $current->rowMeaning !== DataImportRowMeaning::ByColumn && $hasStatus === false) {
+            $errors['form'] = 'refused';
+        }
+
         $mappingChanged = $changed !== [] || $kind !== $current->kind || $rowMeaning !== $current->rowMeaning;
 
         return [

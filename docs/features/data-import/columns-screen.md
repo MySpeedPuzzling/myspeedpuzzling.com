@@ -25,8 +25,8 @@ redirects to its own page.
 | `data_import_progress` | `GET …/progress` (3b) | gained `working`, `rowsToParse`, `rowsParsed`, `revision` |
 
 The import's own page (`data_import_detail`) gained, once the file is read, the summary line "Rows ready: N · Need a
-look: M · Sheets left out: K", the sheets that wait for an answer, the button to this screen, and the honest line
-that pairing with the puzzle database and adding arrive soon. Its read-only table of sheets stays.
+look: M · Waiting for your answer: K · Sheets left out: L", the button to this screen, and the honest line that
+pairing with the puzzle database and adding arrive soon. Its read-only table of sheets stays.
 
 Code: `src/Controller/DataImport/Import{Columns,Sheet,SheetRows}Controller.php`, `ConfirmImportSheetController.php`,
 `src/Services/DataImport/ImportSheetScreen.php` (the mapping as the page shows it, and the form as the message takes
@@ -38,8 +38,7 @@ pages.
 ## The list of sheets
 
 A card per sheet: its name, its number of rows, how it stands, what MySpeedPuzzling takes it for. **The sheets that
-wait for an answer come first**, then the file's own order. Above the cards the summary line (plus "Sheets waiting
-for your answer: N").
+ask something come first**, then the file's own order. Above the cards the summary line.
 
 "This sheet is: Results - Change" folds out the six kinds (results, puzzles I own, wish list, puzzle list the other
 sheets point to, not puzzles, somebody else's) as buttons: **one tap** saves it (the same form and message as the
@@ -51,12 +50,27 @@ sheet's page, back to the list) and the sheet is read again.
 
 | State | When | Shows |
 |---|---|---|
-| `recognising` | no mapping yet (`mapping_version = 0`) | "Working out what it holds…"; the sheet's page has no form |
-| `waiting` | the mapping has a question | "Waiting for your answer"; the card's button says "Answer the question" |
-| `parsing` | mapped, no question, rows not read for the current mapping | "Reading through its rows…" |
-| `parsed` | rows read | "Rows understood: N · Need a look: M · Left out: K" |
+| `recognising` | no mapping yet (`mapping_version = 0`) | "Working out what it holds…"; a visit to the sheet's page goes back to the list, which gets the card by itself |
+| `parsing` | mapped, rows not read for the current mapping | "Reading through its rows…" |
+| `waiting` | read, and its questions decide **at least half of its rows** | "Waiting for your answer"; the card's button says "Answer the question" |
+| `parsed` | rows read | "Rows understood: N · Need a look: M · Waiting for your answer: W · Left out: K"; with a question left, the card's button is "Questions to answer: 2 (rows: 12)" |
 | `left_out` | not puzzles / somebody else's (and its rows are left out) | "Left out"; its page offers only what it is, so it can be taken back |
 | `failed` | `set_up_failure` (`parse_failed`, `proposal_failed`, `mapping_invalid`) | "We could not work this sheet out - a fault on our side"; with a mapping: "Save the sheet once more below and we will try again" (a confirmed mapping starts the set-up over), without one: nothing of it is imported for now |
+
+### A question and its rows
+
+**A question never holds back its whole sheet** (a 629-row sheet once waited for two questions that decide 12 rows).
+A sheet is parsed as soon as it has a mapping - this changed stage 4b-1's rule "a sheet with a question is not
+parsed". The rows a pending question decides are marked right after the parser read them
+(`PendingQuestionRows::mark()`): the problem the parser left open for want of the answer (`time_two_readings`,
+`date_day_or_month_open`, `date_order_open`, `date_no_year`) gets `waiting: true`; for "were the typed dates turned
+around?", which leaves nothing open in the parser, every row with a typed date gets the problem `date_typed_open`.
+Such a row is **neither ready nor "needs a look"**: it is counted in `data_import_sheet.rows_waiting` (a generated
+migration), left out of the need-a-look list, and says "This row waits for your answer" in the preview. Answering
+parses the sheet again, as before; version checks and "a parse of a sheet and a version happens once" are untouched.
+
+A time question no longer offers a reading that makes one of its example rows longer than 99 hours
+(`326 → 326:00:00`); when a single reading is left, it is taken and nothing is asked (`ImportColumnDecisions`).
 
 ## One sheet
 
@@ -108,8 +122,9 @@ submit answers 422 with the same page and the player's choices kept**; nothing i
 (`ImportMappingChangedMeanwhile`: another tab, another device) redirects to the sheet as it stands with a notice. A
 saved one redirects (PRG) to the sheet - or to the list for the one-tap change.
 
-Saving a sheet nothing was changed on is allowed on purpose: it is how a sheet whose parse was given up is tried
-again.
+"A column says it for each row" is refused (422) on a sheet without a status column - the page never offers it
+there. **A save that changes nothing reads nothing again** (the notice "Nothing was changed") - except on a sheet
+whose set-up was given up: saving it as it is, is how it is tried again.
 
 ### The live line
 
@@ -127,10 +142,12 @@ The payload (topic and endpoint alike) gained, numbers only:
 | `rowsToParse`, `rowsParsed` | the rows of the sheets being read, and how many are done for the current mapping |
 | `revision` | an md5 over every sheet's id, mapping version, parsed version and failure - another one whenever a sheet's state changes |
 
-Whenever the revision changes or the work ends, **every `<turbo-frame data-import-live>` of the page is loaded
-again** (the page's own address; Turbo takes the frame out of it): the list's summary and cards, a sheet's state and
+The page is rendered with the revision it shows (`data-…-revision-value`), so a sheet that finishes before the
+script's first question is noticed too. Whenever the revision changes or the work ends, **every `<turbo-frame
+data-import-live>` of the page is loaded again** (the page's own address; Turbo takes the frame out of it): the list's summary and cards, a sheet's state and
 its preview. The sheet's form stands outside those frames - a refresh never touches what the player is filling in.
-A page with nothing to wait for makes no request; it only listens. Without JavaScript the line has a "Refresh the
+A page with nothing to wait for makes no request; it only listens. An answer that does not hold the frame (signed
+out, the import discarded, an error page - `turbo:frame-missing`) becomes a full visit to the import's page. Without JavaScript the line has a "Refresh the
 page" link.
 
 ## Rows that need a look
@@ -142,7 +159,7 @@ value as the sheet has it** (highlighted) and a plain sentence. Every code `Impo
 for sure"):
 
 `no_name`, `lookup_ambiguous` · `pieces_multipack`, `_unknown`, `_possibly_thousands`, `_not_whole`, `_zero`,
-`_negative`, `_too_many`, `_unreadable` · `time_unreadable`, `time_needs_yes`, `time_two_readings` ·
+`_negative`, `_too_many`, `_unreadable` · `date_typed_open` · `time_unreadable`, `time_needs_yes`, `time_two_readings` ·
 `date_unreadable`, `date_in_the_future`, `date_before_1950`, `date_order_open`, `date_day_or_month_open`,
 `date_other_order`, `date_no_year` · `barcode_scientific_notation`, `barcode_digits_lost`, `barcode_damaged` ·
 `type_unknown`, `attempt_unreadable`, `status_unknown`, `yes_no_unknown`.
@@ -174,12 +191,13 @@ Statements on top of what every signed-in page loads, whatever the number of she
 
 | Page | |
 |---|---|
-| the list | 2 - the import, its sheets |
-| a sheet | 4 - the sheet, a dozen of its first rows (sample values), five rows as understood, the import |
+| the list | 3 - the import, its sheets, the revision (the progress statement) |
+| a sheet | 5 - the sheet, a dozen of its first rows (sample values), five rows as understood, the import, the revision |
 | rows that need a look | 3 - the sheet, a page of rows (`LIMIT 50 OFFSET`, on the `(sheet_id, row_number)` index), the import |
 
 `GET …/progress` counts the rows done only for sheets that are being read at that moment (nothing is counted once
-the import rests).
+the import rests); what it costs on a large sheet, and the index that would make it cheap, is noted in
+`docs/TODO.md`.
 
 ## Deliberately not editable yet
 

@@ -11783,8 +11783,7 @@ data_import:
         back_to_import: "Zpět na import"
         back_to_sheets: "Zpět na všechny listy"
         back_to_sheet: "Zpět na list"
-        summary: "Řádky připravené: %ready% · K nahlédnutí: %look% · Vynechané listy: %left_out%"
-        summary_waiting: "Listy čekající na vaši odpověď: %number%"
+        summary: "Řádky připravené: %ready% · K nahlédnutí: %look% · Čekají na vaši odpověď: %waiting% · Vynechané listy: %left_out%"
         soon: "Spárování vašich puzzle s databází puzzle a jejich přidání na profil přijde brzy. Do té doby se na váš profil nic nepřidá."
         live:
             working: "Zjišťujeme, co vaše listy obsahují…"
@@ -11793,13 +11792,16 @@ data_import:
             left_out: "Vynecháno"
             understood: "Pochopené řádky: %number%"
             need_look: "K nahlédnutí: %number%"
+            waiting_rows: "Čekají na vaši odpověď: %number%"
             rows_left_out: "Vynecháno: %number%"
         card:
             rows: "Řádky: %number%"
             this_is: "Tento list je:"
             open: "Otázky a sloupce"
             answer: "Odpovědět na otázku"
+            answer_some: "Otázky k zodpovězení: %questions% (řádky: %rows%)"
         flash:
+            nothing_changed: "Nic se nezměnilo, proto se nic nečetlo znovu."
             saved: "Uloženo. Řádky listu se čtou znovu."
             changed_meanwhile: "Tento list se mezitím změnil, v jiné záložce nebo na jiném zařízení. Takhle vypadá teď - udělejte prosím svou změnu znovu."
         error:
@@ -11937,6 +11939,8 @@ data_import:
             next: "Další"
         problem:
             other: "Tohle jsme nedokázali přečíst s jistotou."
+            waiting: "Tento řádek čeká na vaši odpověď na otázku u listu."
+            date_typed_open: "Zatím nevíme, jestli jsou u tohoto data prohozené den a měsíc."
             no_name: "Tento řádek nemá název puzzle."
             lookup_ambiguous: "V seznamu puzzle je tento název vícekrát, s jinou značkou nebo počtem dílků - nevíme, které je myšleno."
             pieces_multipack: "Vypadá to na několik puzzle v jedné krabici - nevíme, který počet dílků vzít."
@@ -12033,7 +12037,6 @@ data_import:
         waiting_for_answer: "Čeká na vaši odpověď"
         parsing: "Procházíme jeho řádky…"
         understood: "Řádky, kterým rozumíme: %understood% · ke kontrole: %look%"
-        left_out: "Vynecháno: %count%"
         refresh_hint: "Tento seznam se zatím neobnovuje sám - obnovte stránku a uvidíte, jak je daleko."
     google:
         title: "Vložte odkaz na Tabulky Google"

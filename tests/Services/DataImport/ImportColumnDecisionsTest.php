@@ -54,6 +54,32 @@ final class ImportColumnDecisionsTest extends TestCase
         self::assertSame(['rule' => DurationReadingRule::HoursMinutes, 'by' => ImportSheetOptions::BY_ROWS], $options->durations['two_part_text']);
     }
 
+    public function testAReadingNobodyWouldBelieveIsNotOfferedAndASingleOneLeftIsTaken(): void
+    {
+        // No piece count, so no pace settles anything: "326" as hours would be 326 hours - not offered
+        [, $questions] = $this->settle(Kit::sheet('Numbers', [
+            1 => ['Puzzle', 'Time'],
+            2 => ['Plum Orchard', 326],
+            3 => ['Chalk Cliffs', 61],
+        ]));
+
+        self::assertCount(1, $questions);
+        self::assertSame('duration_shape.bare_number', $questions[0]->id());
+        self::assertContains('minutes', $questions[0]->choices);
+        self::assertNotContains('hours', $questions[0]->choices);
+        self::assertNotContains($questions[0]->suggested, ['hours']);
+
+        // "326:10" as hours and minutes is 326 hours: minutes and seconds is all that is left - taken, not asked
+        [$options, $questions] = $this->settle(Kit::sheet('Long', [
+            1 => ['Puzzle', 'Time'],
+            2 => ['Plum Orchard', '326:10'],
+            3 => ['Chalk Cliffs', '45:10'],
+        ]));
+
+        self::assertSame([], $questions);
+        self::assertSame(['rule' => DurationReadingRule::MinutesSeconds, 'by' => ImportSheetOptions::BY_ROWS], $options->durations['two_part_text']);
+    }
+
     public function testAUnitInTheHeaderAnswersTheBareNumbers(): void
     {
         [$options, $questions] = $this->settle(Kit::sheet('Minutes', [

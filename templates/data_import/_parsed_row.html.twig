@@ -27,12 +27,17 @@
         {{ facts|join(' · ') }}
     </div>
     {% for problem in row.problems %}
-        <div class="fs-sm mt-2 d-flex gap-2" data-testid="parsed-row-problem" data-code="{{ problem.code }}">
-            <i class="bi bi-eye text-warning flex-shrink-0" aria-hidden="true"></i>
+        <div class="fs-sm mt-2 d-flex gap-2" data-testid="parsed-row-problem" data-code="{{ problem.code }}"{% if problem.waiting %} data-waiting="true"{% endif %}>
+            <i class="bi {{ problem.waiting ? 'bi-question-circle' : 'bi-eye' }} text-warning flex-shrink-0" aria-hidden="true"></i>
             <span class="text-break">
                 {% if problem.value != '' %}<mark class="px-1 rounded" data-testid="parsed-row-problem-value">{{ problem.value }}</mark>{% endif %}
-                {% set sentence = ('data_import.columns.problem.' ~ problem.code)|trans %}
-                {{ sentence == 'data_import.columns.problem.' ~ problem.code ? 'data_import.columns.problem.other'|trans : sentence }}
+                {% if problem.waiting %}
+                    {# Not a problem of the row: a question of its sheet decides it #}
+                    {{ 'data_import.columns.problem.waiting'|trans }}
+                {% else %}
+                    {% set sentence = ('data_import.columns.problem.' ~ problem.code)|trans %}
+                    {{ sentence == 'data_import.columns.problem.' ~ problem.code ? 'data_import.columns.problem.other'|trans : sentence }}
+                {% endif %}
             </span>
         </div>
     {% endfor %}

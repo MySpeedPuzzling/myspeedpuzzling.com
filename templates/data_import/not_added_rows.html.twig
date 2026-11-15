@@ -61,6 +61,12 @@
                     <p class="fs-sm mt-2 mb-2" data-testid="import-not-added-why">
                         <i class="bi bi-eye me-1 text-warning" aria-hidden="true"></i>{{ sentence == 'data_import.reason.' ~ code ? 'data_import.reason.error'|trans : sentence }}
                     </p>
+                    {% for other in row.alsoWaitsWith %}
+                        {# Asked once: the other question the same "Add" found on the row - one answer covers both #}
+                        <p class="fs-sm mb-2" data-testid="import-not-added-also" data-code="{{ other }}">
+                            <i class="bi bi-plus-circle me-1 text-warning" aria-hidden="true"></i>{{ 'data_import.once.row_also'|trans }} {{ ('data_import.reason.' ~ other)|trans }} {{ 'data_import.once.row_covers'|trans }}
+                        </p>
+                    {% endfor %}
                     {% if beside[row.rowId] is defined %}
                         {# What the question is about: the result that is there already - before "Add it anyway" #}
                         <div class="fs-sm border rounded-3 p-2 mb-2" data-testid="import-not-added-beside">
@@ -81,6 +87,7 @@
                                 <input type="hidden" name="rows[]" value="{{ row.rowId }}">
                                 {% if batch_id is not null %}<input type="hidden" name="batch" value="{{ batch_id }}">{% endif %}
                                 {% if code in wavable %}
+                                    {% for other in row.alsoWaitsWith %}<input type="hidden" name="anyway_also[]" value="{{ other }}">{% endfor %}
                                     <button type="submit" name="anyway" value="{{ code }}" class="btn btn-outline-primary text-wrap" style="min-height: 44px;" data-testid="import-not-added-anyway">
                                         <i class="bi bi-check2 me-1" aria-hidden="true"></i>{{ (code == 'unusual_time' ? 'data_import.not_added.right' : 'data_import.not_added.anyway')|trans }}
                                     </button>

@@ -1063,7 +1063,7 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'rowIds' => $rowIds], ['
      * One group answer of the player's import (DataImportGroupAnswer): what it is about, how far it is, what came
      * of it. One statement.
      *
-     * @return array{id: string, code: string, action: string, beforeAdd: bool, ofBatchId: null|string, running: bool, stale: bool, total: int, done: int, answered: int, batchId: null|string, addStatus: null|string}
+     * @return array{id: string, code: string, action: string, beforeAdd: bool, ofBatchId: null|string, running: bool, stale: bool, total: int, done: int, answered: int, stillWaiting: int, batchId: null|string, addStatus: null|string}
      *
      * @throws DataImportNotFound
      */
@@ -1071,10 +1071,10 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'rowIds' => $rowIds], ['
     {
         self::assertIds($importId, $playerId, $answerId);
 
-        /** @var false|array{id: string, code: string, action: string, before_add: bool, of_batch_id: null|string, state: string, last_activity_at: string, rows_total: int, rows_done: int, rows_answered: int, batch_id: null|string, add_status: null|string} $row */
+        /** @var false|array{id: string, code: string, action: string, before_add: bool, of_batch_id: null|string, state: string, last_activity_at: string, rows_total: int, rows_done: int, rows_answered: int, rows_still_waiting: int, batch_id: null|string, add_status: null|string} $row */
         $row = $this->database->executeQuery(<<<SQL
 SELECT answer.id, answer.code, answer.action, answer.before_add, answer.of_batch_id, answer.state, answer.last_activity_at,
-    answer.rows_total, answer.rows_done, answer.rows_answered, answer.batch_id, answer.add_status
+    answer.rows_total, answer.rows_done, answer.rows_answered, answer.rows_still_waiting, answer.batch_id, answer.add_status
 FROM data_import_group_answer answer
 INNER JOIN data_import ON data_import.id = answer.import_id
 WHERE answer.id = :answerId
@@ -1101,6 +1101,8 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'answerId' => $answerId]
             'total' => $row['rows_total'],
             'done' => min($row['rows_total'], $row['rows_done']),
             'answered' => $row['rows_answered'],
+            // Rows that took the answer and wait with the other question an "Add" found on them
+            'stillWaiting' => $row['rows_still_waiting'],
             'batchId' => $row['batch_id'],
             'addStatus' => $row['add_status'],
         ];
@@ -1108,22 +1110,24 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'answerId' => $answerId]
 
     /**
      * How many rows of the import (of one "Add", or of all) wait with each reason - what the group cards say - and
-     * how many results with a time the import has at all (what "most of the times in this file" is measured by).
-     * One statement.
+     * how many results with a time the import has at all (what "most of the times in this file" is measured by),
+     * and `also`: of the rows of a reason, how many wait with another question too (by that question's code -
+     * `open_questions`; today only "the file says it is on MySpeedPuzzling" beside an unusual time), so a card can
+     * ask both on one screen. One statement.
      *
-     * @return array{reasons: array<string, int>, timedResults: int}
+     * @return array{reasons: array<string, int>, timedResults: int, also: array<string, array<string, int>>}
      */
     public function notAddedByReason(string $importId, string $playerId, null|string $batchId): array
     {
-        $none = ['reasons' => [], 'timedResults' => 0];
+        $none = ['reasons' => [], 'timedResults' => 0, 'also' => []];
 
         if (self::areIds($importId, $playerId) === false || ($batchId !== null && Uuid::isValid($batchId) === false)) {
             return $none;
         }
 
-        /** @var list<array{code: null|string, rows: int}> $rows */
+        /** @var list<array{code: null|string, also: null|string, rows: int}> $rows */
         $rows = $this->database->executeQuery(<<<SQL
-SELECT r.failure AS code, COUNT(*) AS rows
+SELECT r.failure AS code, NULL AS also, COUNT(*) AS rows
 FROM data_import_row r
 INNER JOIN data_import ON data_import.id = r.import_id
 WHERE r.import_id = :importId
@@ -1136,7 +1140,24 @@ GROUP BY r.failure
 
 UNION ALL
 
-SELECT NULL, COUNT(*)
+-- The rows that wait with a second question beside their reason (DataImportRow::openQuestions())
+SELECT r.failure, other.code, COUNT(*)
+FROM data_import_row r
+INNER JOIN data_import ON data_import.id = r.import_id
+CROSS JOIN LATERAL jsonb_array_elements_text(r.open_questions) AS other(code)
+WHERE r.import_id = :importId
+    AND data_import.player_id = :playerId
+    AND data_import.status <> 'discarded'
+    AND r.state = 'waiting'
+    AND r.failure IS NOT NULL
+    AND jsonb_typeof(r.open_questions) = 'array'
+    AND other.code <> r.failure
+    AND (CAST(:batchId AS UUID) IS NULL OR r.batch_id = CAST(:batchId AS UUID))
+GROUP BY r.failure, other.code
+
+UNION ALL
+
+SELECT NULL, NULL, COUNT(*)
 FROM data_import_row r
 INNER JOIN data_import ON data_import.id = r.import_id
 WHERE r.import_id = :importId
@@ -1149,6 +1170,8 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'batchId' => $batchId])-
         foreach ($rows as $row) {
             if ($row['code'] === null) {
                 $none['timedResults'] = $row['rows'];
+            } elseif ($row['also'] !== null) {
+                $none['also'][$row['code']][$row['also']] = $row['rows'];
             } else {
                 $none['reasons'][$row['code']] = $row['rows'];
             }
@@ -1353,7 +1376,7 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'rowId' => $rowId])->fet
         $equal = $equalGroups ? 'equal_group.equal_rows + 1' : '1';
         $separate = $equalGroups ? 'equal_group.separate' : 'r.add_as_separate';
 
-        /** @var list<array{id: string, row_number: int, kind: null|string, parsed: null|string, title: string, state: string, failure: null|string, import_puzzle_id: null|string, puzzle_id: null|string, puzzle_name: null|string, brand_name: null|string, pieces_count: null|int, image: null|string, image_ratio: null|float|string, solving_time_id: null|string, made_collection_item: bool, made_wish_list_item: bool, added_at: null|string, kept_by_undo: bool, being_taken_back: bool, batch_id: null|string, equal_rows: int, add_as_separate: bool}> $rows */
+        /** @var list<array{id: string, row_number: int, kind: null|string, parsed: null|string, title: string, state: string, failure: null|string, import_puzzle_id: null|string, puzzle_id: null|string, puzzle_name: null|string, brand_name: null|string, pieces_count: null|int, image: null|string, image_ratio: null|float|string, solving_time_id: null|string, made_collection_item: bool, made_wish_list_item: bool, added_at: null|string, kept_by_undo: bool, being_taken_back: bool, batch_id: null|string, equal_rows: int, add_as_separate: bool, open_questions: null|string}> $rows */
         $rows = $this->database->executeQuery(<<<SQL
 {$with}
 SELECT
@@ -1364,6 +1387,7 @@ SELECT
     sheet.title,
     r.state,
     CASE WHEN r.state = 'failed' THEN COALESCE(r.failure, 'error') ELSE r.failure END AS failure,
+    CASE WHEN r.state = 'waiting' AND r.failure IS NOT NULL THEN r.open_questions END AS open_questions,
     r.import_puzzle_id,
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
@@ -1429,7 +1453,24 @@ SQL, [
             batchId: $row['batch_id'],
             equalRows: $row['equal_rows'],
             addAsSeparate: $row['add_as_separate'],
+            alsoWaitsWith: self::alsoWaitsWith($row['open_questions'] ?? null, $row['failure']),
         );
+    }
+
+    /**
+     * The other questions a row waits with beside its reason (`data_import_row.open_questions`).
+     *
+     * @return list<string>
+     */
+    private static function alsoWaitsWith(mixed $openQuestions, null|string $failure): array
+    {
+        $questions = is_string($openQuestions) ? json_decode($openQuestions, true) : null;
+
+        if (is_array($questions) === false || $failure === null) {
+            return [];
+        }
+
+        return array_values(array_filter($questions, static fn (mixed $code): bool => is_string($code) && $code !== $failure));
     }
 
     /**

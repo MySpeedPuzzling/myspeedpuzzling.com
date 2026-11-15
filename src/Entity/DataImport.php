@@ -189,6 +189,22 @@ class DataImport
     #[Column(type: Types::JSON, nullable: true, options: ['jsonb' => true])]
     public null|array $pairingCounters = null;
 
+    /**
+     * The player's answers that stand for the whole file (docs/features/data-import/adding.md "A question is asked
+     * once"): `{"unusual_time": "2026-11-15T10:00:00+00:00", …}` - the question's code (STANDING_QUESTIONS only)
+     * and when the answer "add them" was given for all its rows. A row of this import that reaches the question in
+     * a later "Add" is not sent back with it (ImportResultQuestions writes the row's own waiver, with the row's
+     * fingerprint, when it adds the row). Never for a possible duplicate - those are answered one by one.
+     *
+     * @var null|array<string, string>
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::JSON, nullable: true, options: ['jsonb' => true])]
+    public null|array $standingAnswers = null;
+
+    /** The only questions an answer can stand for: the two one answer is right for (group-answers.md) */
+    public const array STANDING_QUESTIONS = ['unusual_time', 'said_already_on_profile'];
+
     private function __construct(
         #[Id]
         #[Immutable]
@@ -342,6 +358,40 @@ class DataImport
     public function isOwnedBy(string $playerId): bool
     {
         return $this->player->id->toString() === $playerId;
+    }
+
+    /**
+     * "Add them" was said for every row of a question: it stands for the rows of this import that reach the
+     * question later. Only for the two questions one answer is right for.
+     */
+    public function answerStandsFor(string $code, DateTimeImmutable $now): void
+    {
+        if (in_array($code, self::STANDING_QUESTIONS, true) === false || isset($this->standingAnswers[$code])) {
+            return;
+        }
+
+        $this->standingAnswers = [...($this->standingAnswers ?? []), $code => $now->format(DATE_ATOM)];
+    }
+
+    /**
+     * "Change": the question is asked again from now on. What rows were answered before stays answered.
+     */
+    public function standingAnswerTakenBack(string $code): bool
+    {
+        if (isset($this->standingAnswers[$code]) === false) {
+            return false;
+        }
+
+        $answers = $this->standingAnswers;
+        unset($answers[$code]);
+        $this->standingAnswers = $answers === [] ? null : $answers;
+
+        return true;
+    }
+
+    public function hasStandingAnswerFor(string $code): bool
+    {
+        return in_array($code, self::STANDING_QUESTIONS, true) && is_string($this->standingAnswers[$code] ?? null);
     }
 
     /**

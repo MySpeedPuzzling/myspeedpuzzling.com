@@ -11932,6 +11932,31 @@ data_import:
         flash:
             nothing: "Auf diese Antwort wartet keine Zeile mehr."
             busy: "Eine andere Antwort geht diese Zeilen bereits durch - hier siehst du, wie weit sie ist."
+    # A question is asked once per file (guided flow 6) - docs/features/data-import/adding.md
+    once:
+        said:
+            heading: "Schon auf MySpeedPuzzling?"
+            count: "Deine Datei sagt, diese Ergebnisse seien schon auf MySpeedPuzzling, und wir haben sie nicht gefunden: %number%"
+            count_so_far: "Deine Datei sagt, einige Ergebnisse seien schon auf MySpeedPuzzling. Von den ersten %checked%, die wir uns angesehen haben, haben wir nicht gefunden: %number%"
+            hint: "Ein Ergebnis, das wir auf deinem Profil finden, wird nie doppelt hinzugefügt. Diese haben wir nicht gefunden - vielleicht fehlen sie, oder sie stehen dort unter einem anderen Tag oder Puzzle."
+            missing: "Sie fehlen - hinzufügen"
+            leave_out: "Nicht importieren"
+            answer_hint: "Deine Antwort gilt für jede solche Zeile dieser Datei - auch für Zeilen, die du später hinzufügst. Jede Zeile wird zuerst angesehen, das kann einen Moment dauern."
+            stands: "Ergebnisse, die laut deiner Datei schon auf MySpeedPuzzling sind und die wir nicht gefunden haben: %number%. Sie werden hinzugefügt - deine Antwort für diese Datei."
+        times:
+            stands: "Ungewöhnliche Zeiten unter den ersten %checked% Ergebnissen: %number%. Sie werden so hinzugefügt, wie sie sind - deine Antwort für diese Datei."
+        change: "Ändern"
+        changed: "Geändert. Ab jetzt fragen wir wieder."
+        holds: "„Hinzufügen“ gilt für den Rest dieser Datei - auch für Zeilen, die du später hinzufügst. Ändern kannst du es unter „Prüfen und hinzufügen“."
+        also_said:
+            line: "Einige davon sagen außerdem, sie seien schon auf MySpeedPuzzling, und wir haben sie nicht gefunden: %number%. Beantworte auch das:"
+            add: "Sie fehlen - auch hinzufügen"
+            leave_out: "Diese nicht importieren (%number%)"
+            stands: "Einige davon sagen außerdem, sie seien schon auf MySpeedPuzzling: %number%. Sie werden auch hinzugefügt - deine Antwort für diese Datei."
+        still_waiting: "Zeilen, die auf noch eine Antwort warten: %number%. Deine Datei sagt, sie seien schon auf MySpeedPuzzling, und wir haben sie nicht gefunden."
+        answer_them: "Für sie antworten"
+        row_also: "Außerdem:"
+        row_covers: "Eine Antwort gilt für beides."
     nothing_until_add: "Deinem Profil wird nichts hinzugefügt, bevor du es dir angesehen und auf Hinzufügen gedrückt hast."
     add:
         title: "Prüfen und hinzufügen"

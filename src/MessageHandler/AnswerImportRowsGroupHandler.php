@@ -29,7 +29,13 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  *    anything else is "not found": a page never sends it;
  * 4. one answer at a time per reason: while another answer goes through the rows of this reason, that one answers
  *    (`busy`) - "add all" and "leave them out" side by side would split the group;
- * 5. the group is counted; an empty group answers null.
+ * 5. the group is counted; an empty group answers null;
+ * 6. "add it anyway" for a whole group **stands for the file** from here on (DataImport::answerStandsFor()): a row
+ *    of the import that reaches the question in a later "Add" is not sent back with it. "Leave them out" never
+ *    stands - a later row is asked.
+ *
+ * `also`: the answer to the other of the two questions for the rows of this group that wait with both - kept on
+ * the answer (anything but the other question with "add it anyway" / "leave out" is dropped). It does not stand.
  *
  * Nothing is confirmed here: the answer is gone through by ProcessImportGroupAnswer - at once when it is small
  * (`atOnce`), on the `imports` queue otherwise.
@@ -84,7 +90,6 @@ readonly final class AnswerImportRowsGroupHandler
         if (
             in_array($message->code, self::CODES, true) === false
             || in_array($message->action, [DataImportGroupAnswer::ADD_ANYWAY, DataImportGroupAnswer::LEAVE_OUT], true) === false
-            || ($message->beforeAdd && $message->code !== ImportRowRefusal::UnusualTime->value)
         ) {
             throw new DataImportNotFound();
         }
@@ -96,15 +101,37 @@ readonly final class AnswerImportRowsGroupHandler
             return ['id' => $open->id->toString(), 'atOnce' => false, 'started' => false, 'busy' => true];
         }
 
-        $rows = $message->beforeAdd
-            ? count($this->rowRepository->idsOfTimedReady($import, null, DataImportLimits::MAX_ROWS))
-            : $this->rowRepository->countRefusedWith($import, $message->code, $batchId);
+        $rows = match (true) {
+            $message->beforeAdd === false => $this->rowRepository->countRefusedWith($import, $message->code, $batchId),
+            // Before an "Add": the ready rows the question could be about - each is shown to the engine in its turn
+            $message->code === ImportRowRefusal::UnusualTime->value => count($this->rowRepository->idsOfTimedReady($import, null, DataImportLimits::MAX_ROWS)),
+            default => count($this->rowRepository->idsOfSaidAlreadyReady($import, null, DataImportLimits::MAX_ROWS)),
+        };
 
         if ($rows === 0) {
             return null;
         }
 
+        // The other question of the rows that wait with both, answered on the same screen
+        $also = [];
+
+        if ($message->action === DataImportGroupAnswer::ADD_ANYWAY && $message->beforeAdd === false) {
+            foreach (self::CODES as $other) {
+                // An answer that stands for the file is the answer to the other question here too
+                $answer = $import->hasStandingAnswerFor($other) ? DataImportGroupAnswer::ADD_ANYWAY : $message->also[$other] ?? null;
+
+                if ($other !== $message->code && in_array($answer, [DataImportGroupAnswer::ADD_ANYWAY, DataImportGroupAnswer::LEAVE_OUT], true)) {
+                    $also[$other] = $answer;
+                }
+            }
+        }
+
         $now = $this->clock->now();
+
+        if ($message->action === DataImportGroupAnswer::ADD_ANYWAY) {
+            $import->answerStandsFor($message->code, $now);
+        }
+
         $this->batchRepository->saveGroupAnswer(new DataImportGroupAnswer(
             id: Uuid::fromString($message->requestId),
             import: $import,
@@ -114,6 +141,7 @@ readonly final class AnswerImportRowsGroupHandler
             beforeAdd: $message->beforeAdd,
             rowsTotal: $rows,
             startedAt: $now,
+            also: $also === [] ? null : $also,
         ));
         $import->workedOn($now);
 

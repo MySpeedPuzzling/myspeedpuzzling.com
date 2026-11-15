@@ -11928,6 +11928,31 @@ data_import:
         flash:
             nothing: "Plus aucune ligne n'attend cette réponse."
             busy: "Une autre réponse parcourt déjà ces lignes - voici où elle en est."
+    # A question is asked once per file (guided flow 6) - docs/features/data-import/adding.md
+    once:
+        said:
+            heading: "Déjà sur MySpeedPuzzling ?"
+            count: "Votre fichier indique que ces résultats sont déjà sur MySpeedPuzzling, et nous ne les avons pas trouvés : %number%"
+            count_so_far: "Votre fichier indique que certains résultats sont déjà sur MySpeedPuzzling. Parmi les %checked% premiers que nous avons regardés, nous n'avons pas trouvé : %number%"
+            hint: "Un résultat que nous trouvons sur votre profil n'est jamais ajouté deux fois. Ceux-ci, nous ne les avons pas trouvés - ils manquent peut-être, ou s'y trouvent sous un autre jour ou un autre puzzle."
+            missing: "Ils manquent - les ajouter"
+            leave_out: "Ne pas les importer"
+            answer_hint: "Votre réponse vaut pour chaque ligne de ce genre dans ce fichier - aussi pour les lignes que vous ajouterez plus tard. Chaque ligne est d'abord regardée, ce qui peut prendre un moment."
+            stands: "Résultats que votre fichier indique déjà sur MySpeedPuzzling et que nous n'avons pas trouvés : %number%. Ils sont ajoutés - votre réponse pour ce fichier."
+        times:
+            stands: "Temps inhabituels parmi les %checked% premiers résultats : %number%. Ils sont ajoutés tels quels - votre réponse pour ce fichier."
+        change: "Modifier"
+        changed: "Modifié. À partir de maintenant, nous reposons la question."
+        holds: "« Les ajouter » vaut pour le reste de ce fichier - aussi pour les lignes que vous ajouterez plus tard. Vous pouvez le modifier dans « Vérifier et ajouter »."
+        also_said:
+            line: "Certains d'entre eux indiquent aussi qu'ils sont déjà sur MySpeedPuzzling, et nous ne les avons pas trouvés : %number%. Répondez aussi à cela :"
+            add: "Ils manquent - les ajouter aussi"
+            leave_out: "Ne pas importer ceux-là (%number%)"
+            stands: "Certains d'entre eux indiquent aussi qu'ils sont déjà sur MySpeedPuzzling : %number%. Ils sont ajoutés aussi - votre réponse pour ce fichier."
+        still_waiting: "Lignes qui attendent encore une réponse : %number%. Votre fichier indique qu'elles sont déjà sur MySpeedPuzzling, et nous ne les avons pas trouvées."
+        answer_them: "Répondre pour elles"
+        row_also: "Aussi :"
+        row_covers: "Une réponse vaut pour les deux."
     nothing_until_add: "Rien n'est ajouté à votre profil tant que vous ne l'avez pas vérifié et appuyé sur Ajouter."
     add:
         title: "Vérifier et ajouter"

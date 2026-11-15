@@ -12179,6 +12179,31 @@ data_import:
         flash:
             nothing: "No row waits for this answer any more."
             busy: "Another answer is already going through these rows - here is how far it is."
+    # A question is asked once per file (guided flow 6) - docs/features/data-import/adding.md
+    once:
+        said:
+            heading: "Already on MySpeedPuzzling?"
+            count: "Your file says these results are on MySpeedPuzzling already, and we did not find them: %number%"
+            count_so_far: "Your file says some results are on MySpeedPuzzling already. Of the first %checked% we looked at, we did not find: %number%"
+            hint: "A result we find on your profile is never added twice. These we did not find - they may be missing, or be there under another day or puzzle."
+            missing: "They are missing - add them"
+            leave_out: "Don't import them"
+            answer_hint: "Your answer holds for every such row of this file - also for rows you add later. Each row is looked at first, which can take a moment."
+            stands: "Results your file says are on MySpeedPuzzling already and we did not find: %number%. They are added - your answer for this file."
+        times:
+            stands: "Unusual times among the first %checked% results: %number%. They are added as they are - your answer for this file."
+        change: "Change"
+        changed: "Changed. From now on we ask again."
+        holds: "“Add them” holds for the rest of this file - also for rows you add later. You can change it on “Check and add”."
+        also_said:
+            line: "Some of these also say they are already on MySpeedPuzzling, and we did not find them: %number%. Answer that too:"
+            add: "They are missing - add them too"
+            leave_out: "Don't import those (%number%)"
+            stands: "Some of these also say they are already on MySpeedPuzzling: %number%. They are added too - your answer for this file."
+        still_waiting: "Rows that wait for one more answer: %number%. Your file says they are on MySpeedPuzzling already, and we did not find them."
+        answer_them: "Answer for them"
+        row_also: "Also:"
+        row_covers: "One answer covers both."
     nothing_until_add: "Nothing is added to your profile until you have looked at it and pressed Add."
     add:
         title: "Check and add"

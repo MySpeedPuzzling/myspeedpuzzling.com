@@ -1,0 +1,63 @@
+{% extends 'base.html.twig' %}
+
+{#
+    "Your file says these results are on MySpeedPuzzling already, and we did not find them" - asked before the
+    "Add" (docs/features/data-import/adding-screens.md "Already on MySpeedPuzzling, asked before the Add"): a page of
+    its own whose frame the review loads. The count is the engine's own (ImportSaidAlreadyCheck); the two answers are
+    one group answer given before the "Add" (the form names the reason, never the rows). With an answer that stands
+    for the file: the count, the answer and "Change". Nothing to ask: an empty frame. The forms leave the frame.
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
+
+{% block title %}{{ 'data_import.once.said.heading'|trans }} - {{ import_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{{ include('data_import/_flow_header.html.twig', {import: import, step: 5}) }}
+
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-add-said-page" data-import-flow-screen="add_said">
+    <turbo-frame id="import-add-said">
+        {% if check.notFound > 0 or stands %}
+            <div class="card card-body shadow-sm mb-3" data-testid="import-add-said" data-said="{{ check.said }}" data-not-found="{{ check.notFound }}" data-all-checked="{{ check.allChecked ? 1 : 0 }}" data-stands="{{ stands ? 1 : 0 }}">
+                <h2 class="h6 mb-1">{{ 'data_import.once.said.heading'|trans }}</h2>
+                {% if stands %}
+                    {# The answer stands for the file: what it covers this time is still said, with the way to change it #}
+                    <p class="fs-sm mb-2" data-testid="import-add-said-stands">
+                        <i class="bi bi-check-circle me-1 text-success" aria-hidden="true"></i>{{ 'data_import.once.said.stands'|trans({'%number%': check.notFound|format_number}) }}
+                    </p>
+                    <form action="{{ path('data_import_standing_answer_change', {importId: import.importId}) }}" method="post" data-turbo-frame="_top">
+                        <input type="hidden" name="_token" value="{{ csrf }}">
+                        <input type="hidden" name="code" value="said_already_on_profile">
+                        <button type="submit" class="btn btn-link text-wrap p-0" style="min-height: 44px;" data-testid="import-add-said-change">{{ 'data_import.once.change'|trans }}</button>
+                    </form>
+                {% else %}
+                    <p class="fw-medium mb-1" data-testid="import-add-said-count">
+                        {{ (check.allChecked ? 'data_import.once.said.count' : 'data_import.once.said.count_so_far')|trans({'%number%': check.notFound|format_number, '%checked%': check.said|format_number}) }}
+                    </p>
+                    <p class="fs-sm text-muted mb-2">{{ 'data_import.once.said.hint'|trans }}</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for action, key in {add_anyway: 'missing', leave_out: 'leave_out'} %}
+                            <form action="{{ path('data_import_group_answer_start', {importId: import.importId}) }}" method="post" data-turbo-frame="_top">
+                                <input type="hidden" name="_token" value="{{ csrf }}">
+                                <input type="hidden" name="request_id" value="{{ group_request_ids[key] }}">
+                                <input type="hidden" name="code" value="said_already_on_profile">
+                                <input type="hidden" name="action" value="{{ action }}">
+                                <input type="hidden" name="before_add" value="1">
+                                <button type="submit" class="btn {{ action == 'add_anyway' ? 'btn-outline-primary' : 'btn-outline-secondary' }} text-wrap" style="min-height: 44px;" data-testid="import-add-said-{{ key }}">
+                                    {{ ('data_import.once.said.' ~ key)|trans }}
+                                </button>
+                            </form>
+                        {% endfor %}
+                    </div>
+                    <p class="fs-sm text-muted mt-2 mb-0">{{ 'data_import.once.said.answer_hint'|trans }}</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    </turbo-frame>
+
+    {{ include('data_import/_flow_footer.html.twig', {import: import, primary: {label: 'data_import.add.back_to_review'|trans, url: path('data_import_add', {importId: import.importId}), testid: 'import-flow-back-primary'}}, with_context = false) }}
+</div>
+{% endblock %}

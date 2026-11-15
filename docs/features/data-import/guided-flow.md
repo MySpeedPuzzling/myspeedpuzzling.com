@@ -1364,3 +1364,50 @@ card whose brand or piece count differs.
 script (`data_import_ticks_controller.js`, `data_import_pile_controller.js`) was executed; both were only parsed.
 The screens are covered by `ImportPuzzlesInBulkTest`, `ImportPuzzleBulkConfirmTest`, `ImportPairingScreensTest` and
 `ImportFlowScreensTest` as a browser without scripts sees them.
+
+## As built - slice 6 (a question is asked once per file)
+
+What shipped with slice 6, and where it differs from §5.9 / §5.10 - each with its reason. **[logic]**: the engine's
+question path changed *when* it asks, never *whether*; the full description is adding.md "A question is asked once"
+and adding-screens.md. One generated migration (`data_import.standing_answers`, `data_import_row.open_questions`,
+`data_import_group_answer.also` + `rows_still_waiting`). The add-result form and `ImportedResultWriter` are
+untouched.
+
+**Built**
+
+- **Both group questions in one pass** - `ImportResultQuestions::judge()`: an unusual time and "the file says it is
+  on MySpeedPuzzling" are looked at together; the row is told both (`open_questions`), its reason is the first.
+  The card of the unusual times asks the other question for the rows that have both, on the same screen; a row's
+  own card says both and its one button answers both. Answered for one, a row waits for the other only.
+- **"Already on MySpeedPuzzling" before the Add** - a lazy frame of "Check and add" with the count the engine
+  itself gives (`ImportSaidAlreadyCheck` → `ImportRowAdder::openQuestionsOf()` → the same `judge()`), and the two
+  answers as a group answer given before the "Add" (`AnswerImportRowsGroup` with `before_add` for this reason too).
+- **A standing answer per import** - `data_import.standing_answers`, written by every "add them" for a group, read
+  by `ImportResultQuestions::ask()` for an "Add": the row's own waiver (with its fingerprint) and the
+  `SuspiciousTimeConfirmation` are written when the row is added. Shown before every "Add" with what it covers
+  this time, and "Change".
+- Six locales (`data_import.once.*`), `ImportQuestionsOnceTest`, two more cases and one test in
+  `ImportResultQuestionsParityTest`.
+
+**Differences from the specification**
+
+| Where | As built | Why |
+|---|---|---|
+| §5.9 "> 2 quick questions before adding" (one folded line) | Two blocks of the review, each a lazy frame: the times (as before) and "Already on MySpeedPuzzling?". No count of questions in a heading. | Each block asks the engine about rows one by one (several statements a row) - they stay off the review's own statements; the review can not know how many questions there are without them. |
+| §5.10 table: standing answer `{unusual_time: right, said_already: missing}` "read by `ImportRowAdder`" | `{"unusual_time": "<when>", "said_already_on_profile": "<when>"}` (the engine's codes, the moment as the value), read in `ImportResultQuestions::ask()` with `standingAnswers: true` passed by `ImportRowAdder`. | One place asks the questions; the pairing of an unlisted puzzle calls the same method and must **not** honour it. |
+| §5.10 "a standing answer" as a separate choice ("for all of them") | Every "add them" for a group **is** the standing answer; the screen says so under the buttons. "Don't import them" never stands. | A second button with nearly the same words would be one more thing to read; the group buttons already mean "all of them". Leaving out is not remembered: it removes rows, and a later row may be another case. |
+| §5.10 wording "416 times are much faster or slower than your results here" / "Your file says 441 results are…" | "Unusual times: 416" stays (slice 5 owns the cards); the new block says "Your file says these results are on MySpeedPuzzling already, and we did not find them: 441". | Counts stand after a colon everywhere in the import's texts - no plural forms to get wrong in six languages. |
+| A row edited after a standing answer | Covered: its waiver is written when it is added, for the row as it reads then. | The answer is to the question for the file. The per-row rule did not move: a waiver given before a change still fails closed, and without a standing answer the row is asked again. |
+| "Both answers on one screen" for "don't import" | On the unusual-times card the other answer is "They are missing - add them too" or "Don't import those (N)", required for "add them"; a form without it (an older page) leaves the rows waiting for the other question. | Nothing is preselected - "add" must never be a default. |
+| The done page's "Some rows can have one more question after this one." | Not on a screen (slice 5 did not ship the sentence); with this slice it would be untrue for the two group questions. A possible duplicate can still follow - it is asked first, alone. | - |
+| The count before the Add | Bounded at 500 marked rows ("Of the first 500 we looked at…"); the answer itself covers every marked row. | A few statements a row. |
+
+**Loose end closed:** "a row with two doubts is asked twice" (docs/TODO.md - the line is to be ticked by whoever
+merges; this slice does not edit that file).
+
+**Not verified:** nothing of this slice was run in a browser - no screen was looked at at 360 px; the radios'
+`required` and the second button's `formaction` / `formnovalidate` were only read as markup by the tests' browser
+without scripts. `partner_daily_limit` / `too_many_partners` under a standing answer are not in the new table test
+(they need hundreds of rows); `ImportPeopleTest` covers them unchanged and they are asked after the questions, as
+before.
+

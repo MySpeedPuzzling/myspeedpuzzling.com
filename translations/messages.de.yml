@@ -12621,6 +12621,7 @@ unlisted_puzzles:
         candidates: "Ist es eines von diesen?"
         this_one: "Das ist es"
     pairing:
+        tomorrow: "Das heutige Limit für Ergebnisse aus Tabellen (%limit% pro Tag) ist erreicht. Der Rest wird morgen von selbst hinzugefügt - nichts geht verloren."
         running: "Die Ergebnisse werden deinem Profil hinzugefügt…"
         undoing: "Die Verknüpfung wird rückgängig gemacht…"
         leave: "Du kannst diese Seite verlassen - die Arbeit läuft im Hintergrund weiter."
@@ -12648,6 +12649,11 @@ unlisted_puzzles:
         from_file: "Aus deiner Datei"
         from_import: "Aus einer Tabelle, die du am %date% importiert hast"
     remove:
+        what: "Das wird endgültig entfernt"
+        results: "Nicht gelistete Ergebnisse"
+        marks: "Besitz- / Wunschangaben"
+        real_stays: "Was bereits zu normalen Ergebnissen oder Puzzles deiner Sammlung wurde, bleibt in deinem Profil: %number%."
+        cancel: "Behalten"
         title: "Dieses nicht gelistete Puzzle entfernen"
         hint: "Es wird samt seinen nicht gelisteten Ergebnissen und der Angabe, ob du es besitzt oder dir wünschst, entfernt. In deinem Profil ändert sich nichts. Das erneute Einlesen derselben Datei bringt es nicht zurück."
         button: "Entfernen"

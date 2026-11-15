@@ -125,6 +125,14 @@ class UnlistedResult
         #[Immutable]
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $createdAt,
+        /** The file says the result is on MySpeedPuzzling already - a question when the puzzle is paired */
+        #[Immutable]
+        #[Column(options: ['default' => false])]
+        public bool $saidAlreadyOnProfile = false,
+        /** The player said of two equal rows "these are two" - told to the duplicate job when it becomes a real result */
+        #[Immutable]
+        #[Column(options: ['default' => false])]
+        public bool $countedOnItsOwn = false,
     ) {
     }
 

@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Repository\DataImportSettingsRepository;
 use SpeedPuzzling\Web\Repository\ImportPuzzleDecisionRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRedirectRepository;
 use SpeedPuzzling\Web\Repository\UnlistedPuzzleRepository;
+use SpeedPuzzling\Web\Services\DataImport\ImportWriteLock;
 use SpeedPuzzling\Web\Value\ImportPuzzleChoice;
 use SpeedPuzzling\Web\Value\Unlisted\UnlistedPairingOutcome;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -52,6 +53,7 @@ readonly final class PairUnlistedPuzzleHandler
         private PuzzleRedirectRepository $puzzleRedirectRepository,
         private ImportPuzzleDecisionRepository $decisionRepository,
         private EntityManagerInterface $entityManager,
+        private ImportWriteLock $lock,
         private RateLimiterFactoryInterface $dataImportAddLimiter,
         private MessageBusInterface $messageBus,
         private ClockInterface $clock,
@@ -67,6 +69,10 @@ readonly final class PairUnlistedPuzzleHandler
             throw new UnlistedPuzzleNotFound();
         }
 
+        // The player's import lock, first - the lock every step of a pairing, every row of an "Add" and "Remove"
+        // take: what is read below is what holds when this is committed (two tabs never meet half-way)
+        $this->lock->lockUntilCommit($message->playerId);
+
         $unlistedPuzzle = $this->unlistedRepository->getOwnedBy($message->unlistedPuzzleId, $message->playerId);
         $player = $unlistedPuzzle->player;
         $playerId = $player->id->toString();
@@ -74,7 +80,7 @@ readonly final class PairUnlistedPuzzleHandler
 
         if ($sameRequest !== null) {
             // Somebody else's request id is nobody's business
-            if ($sameRequest->unlistedPuzzle->id->equals($unlistedPuzzle->id) === false) {
+            if ($sameRequest->unlistedPuzzle?->id->equals($unlistedPuzzle->id) !== true) {
                 throw new UnlistedPuzzleNotFound();
             }
 

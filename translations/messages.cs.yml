@@ -12624,6 +12624,7 @@ unlisted_puzzles:
         candidates: "Je to některé z těchto?"
         this_one: "Je to tohle"
     pairing:
+        tomorrow: "Dnešní limit výsledků z tabulek (%limit% denně) je vyčerpán. Zbytek se přidá zítra sám - nic se neztratí."
         running: "Přidáváme jeho výsledky na váš profil…"
         undoing: "Vracíme spárování zpět…"
         leave: "Stránku můžete opustit - práce pokračuje na pozadí."
@@ -12651,6 +12652,11 @@ unlisted_puzzles:
         from_file: "Z vašeho souboru"
         from_import: "Z tabulky, kterou jste importovali %date%"
     remove:
+        what: "Tímto se natrvalo odebere"
+        results: "Výsledky mimo databázi"
+        marks: "Záznamy o vlastnictví / přání"
+        real_stays: "To, co se už stalo běžnými výsledky nebo puzzle ve vaší sbírce, na profilu zůstane: %number%."
+        cancel: "Ponechat"
         title: "Odebrat toto puzzle mimo databázi"
         hint: "Odebere se i s výsledky mimo databázi a s tím, zda ho vlastníte nebo si ho přejete. Na vašem profilu se nic nezmění. Opětovné načtení stejného souboru ho nevrátí."
         button: "Odebrat"

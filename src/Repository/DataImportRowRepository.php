@@ -10,10 +10,12 @@ use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\DataImport;
+use SpeedPuzzling\Web\Entity\DataImportPuzzle;
 use SpeedPuzzling\Web\Entity\DataImportRow;
 use SpeedPuzzling\Web\Entity\DataImportSheet;
 use SpeedPuzzling\Web\Value\DataImportRowKind;
 use SpeedPuzzling\Web\Value\DataImportRowState;
+use SpeedPuzzling\Web\Value\ImportPuzzleChoice;
 
 readonly final class DataImportRowRepository
 {
@@ -63,11 +65,13 @@ readonly final class DataImportRowRepository
      * would write whatever the object holds, with no way to say "only if nobody was faster", and only at the flush;
      * written here, at once, a later row of the same transaction sees the link too.
      */
-    public function linkSolvingTime(string $rowId, null|string $expected, string $solvingTimeId): bool
+    public function linkSolvingTime(string $rowId, null|string $expected, string $solvingTimeId, DateTimeImmutable $madeAt): bool
     {
+        // `result_made_at` goes with the link: the moment the result became a result of the profile - what the daily
+        // guard counts, for an "Add" and for the pairing of an unlisted puzzle alike
         return $this->entityManager->getConnection()->executeStatement(
-            'UPDATE data_import_row SET solving_time_id = :new WHERE id = :id AND solving_time_id IS NOT DISTINCT FROM CAST(:expected AS UUID)',
-            ['new' => $solvingTimeId, 'id' => $rowId, 'expected' => $expected],
+            'UPDATE data_import_row SET solving_time_id = :new, result_made_at = :madeAt WHERE id = :id AND solving_time_id IS NOT DISTINCT FROM CAST(:expected AS UUID)',
+            ['new' => $solvingTimeId, 'id' => $rowId, 'expected' => $expected, 'madeAt' => $madeAt->format('Y-m-d H:i:s')],
         ) === 1;
     }
 
@@ -486,8 +490,8 @@ SQL, [
      *   or not);
      * - `ready`: of them, the rows whose puzzle is decided as a catalogue puzzle and - for a result - whose day is
      *   exact, and the rows whose puzzle is kept as an unlisted puzzle (`choice = 'unlisted'`, whatever the day's
-     *   precision), in the file's order, with the running number of results (`results_so_far`: the daily guard takes
-     *   the first N - unlisted results count too).
+     *   precision), in the file's order, with the running number of results for the profile (`results_so_far`: the
+     *   daily guard takes the first N - unlisted results are private and not counted).
      *
      * Parameters: `:importId`, `:explicit` (0 / 1), and whatever $selection names.
      *
@@ -537,7 +541,8 @@ chosen AS (
 ready AS (
     SELECT
         chosen.*,
-        SUM(CASE WHEN chosen.has_result THEN 1 ELSE 0 END) OVER (ORDER BY chosen.position, chosen.row_number, chosen.id) AS results_so_far
+        -- Only results for the profile use the day up: an unlisted result is private until its puzzle is paired
+        SUM(CASE WHEN chosen.has_result AND chosen.choice = 'catalogue' THEN 1 ELSE 0 END) OVER (ORDER BY chosen.position, chosen.row_number, chosen.id) AS results_so_far
     FROM chosen
     WHERE (
             chosen.choice = 'catalogue'
@@ -604,13 +609,13 @@ taken AS (
     SET state = :queued, batch_id = :batchId, failure = NULL
     FROM ready
     WHERE data_import_row.id = ready.id
-        AND (ready.has_result = FALSE OR ready.results_so_far <= :resultsLeft)
+        AND (ready.has_result = FALSE OR ready.choice = 'unlisted' OR ready.results_so_far <= :resultsLeft)
         AND data_import_row.state IN ('waiting', 'failed', 'already_yours')
     RETURNING data_import_row.id
 )
 SELECT
     (SELECT COUNT(*) FROM taken) AS queued,
-    (SELECT COUNT(*) FROM ready WHERE ready.has_result AND ready.results_so_far > :resultsLeft) AS over_daily_limit,
+    (SELECT COUNT(*) FROM ready WHERE ready.has_result AND ready.choice = 'catalogue' AND ready.results_so_far > :resultsLeft) AS over_daily_limit,
     (SELECT COUNT(*) FROM chosen WHERE chosen.choice = 'catalogue' AND chosen.puzzle_id IS NOT NULL AND chosen.has_result AND chosen.exact_day = FALSE) AS needs_exact_day
 SQL, $parameters, $types)->fetchAssociative();
 
@@ -622,8 +627,11 @@ SQL, $parameters, $types)->fetchAssociative();
     }
 
     /**
-     * How many results the player's imports added since $since or have queued right now - what the daily guard
-     * counts (README Q4). A result that was undone since is not counted.
+     * How many results of the player's imports **became results of the profile** since $since - by an "Add" or by
+     * the pairing of an unlisted puzzle, whenever their row was added (`result_made_at`, written with the link) - or
+     * are queued for one right now: what the daily guard counts (README Q4). A result that was undone since is not
+     * counted, and neither is a row kept with the player's unlisted puzzles - it is private until it is paired
+     * (docs/features/data-import/unlisted-puzzles.md "The daily guard").
      */
     public function countResultsAddedOrQueuedSince(string $playerId, DateTimeImmutable $since): int
     {
@@ -633,15 +641,22 @@ SQL, $parameters, $types)->fetchAssociative();
             ->join('r.import', 'i')
             ->where('i.player = :player')
             ->andWhere('r.kind IN (:kinds)')
-            ->andWhere('r.state = :queued OR (r.state = :added AND r.addedAt >= :since AND r.solvingTimeId IS NOT NULL)')
+            ->andWhere(
+                // Queued for the profile - or a result made since $since (one made before the stamp existed: by its
+                // row's own moment)
+                '(r.state = :queued AND NOT EXISTS (SELECT 1 FROM ' . DataImportPuzzle::class . ' kept WHERE kept.id = r.importPuzzleId AND kept.choice = :unlisted))'
+                . ' OR (r.solvingTimeId IS NOT NULL AND (r.resultMadeAt >= :since OR (r.resultMadeAt IS NULL AND r.state = :added AND r.addedAt >= :since)))',
+            )
             ->setParameter('player', $playerId)
             ->setParameter('kinds', [DataImportRowKind::Result->value, DataImportRowKind::Both->value])
             ->setParameter('queued', DataImportRowState::Queued->value)
             ->setParameter('added', DataImportRowState::Added->value)
+            ->setParameter('unlisted', ImportPuzzleChoice::Unlisted->value)
             ->setParameter('since', $since)
             ->getQuery()
             ->getSingleScalarResult();
     }
+
 
     /**
      * The batch's next rows that still wait for their turn, in the file's order.

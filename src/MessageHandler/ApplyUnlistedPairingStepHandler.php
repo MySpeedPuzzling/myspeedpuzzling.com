@@ -21,7 +21,8 @@ readonly final class ApplyUnlistedPairingStepHandler
     }
 
     /**
-     * @return bool for FINISH: whether the pairing is through
+     * @return bool for FINISH: whether the pairing is through; for RESULT: false when today's guard on results is used up
+     *         and the result waits for tomorrow
      */
     public function __invoke(ApplyUnlistedPairingStep $message): bool
     {
@@ -39,11 +40,13 @@ readonly final class ApplyUnlistedPairingStepHandler
             return true;
         }
 
-        match ($message->step) {
-            ApplyUnlistedPairingStep::RESULT => $this->pairer->result($message->pairingId, $message->subjectId),
-            ApplyUnlistedPairingStep::OWNERSHIP => $this->pairer->ownership($message->pairingId, $message->subjectId),
-            default => null,
-        };
+        if ($message->step === ApplyUnlistedPairingStep::RESULT) {
+            return $this->pairer->result($message->pairingId, $message->subjectId);
+        }
+
+        if ($message->step === ApplyUnlistedPairingStep::OWNERSHIP) {
+            $this->pairer->ownership($message->pairingId, $message->subjectId);
+        }
 
         return true;
     }

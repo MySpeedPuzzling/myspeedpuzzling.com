@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Repository\PuzzleRedirectRepository;
 use SpeedPuzzling\Web\Repository\UnlistedPuzzleRepository;
 use SpeedPuzzling\Web\Results\ImportCataloguePuzzle;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\DataImportLimits;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -113,8 +114,42 @@ readonly final class UnlistedPuzzlePage
             'found' => $searchable ? $this->getImportPuzzleScreen->search($playerId, $typed, $puzzle['piecesCount'], $manufacturerId) : [],
             // One id per rendered page: a double tap or a retry of "It is this one" answers the same pairing
             'request_id' => Uuid::uuid7()->toString(),
+            'daily_limit' => DataImportLimits::MAX_RESULTS_ADDED_PER_DAY,
             'undo_until' => $now->modify(sprintf('-%d days', UnlistedPairing::UNDO_DAYS)),
         ];
+    }
+
+    /**
+     * What "Remove" would take away - shown before anything is removed.
+     *
+     * @return array{puzzle: array<string, mixed>, working: bool, results: int, marks: int, real: int}
+     *
+     * @throws NotFoundHttpException
+     */
+    public function removal(string $unlistedPuzzleId): array
+    {
+        $puzzle = $this->getUnlistedPuzzles->one($this->ownerPlayerId(), $unlistedPuzzleId);
+        $working = false;
+
+        foreach ($puzzle['pairings'] as $pairing) {
+            $working = $working || $pairing['state'] === 'running' || $pairing['state'] === 'undoing';
+        }
+
+        $results = 0;
+        $marks = 0;
+        $real = 0;
+
+        foreach ($puzzle['results'] as $result) {
+            $results += $result['unlisted'] ? 1 : 0;
+            $real += $result['unlisted'] ? 0 : 1;
+        }
+
+        foreach ($puzzle['marks'] as $mark) {
+            $marks += $mark['unlisted'] ? 1 : 0;
+            $real += $mark['unlisted'] ? 0 : 1;
+        }
+
+        return ['puzzle' => $puzzle, 'working' => $working, 'results' => $results, 'marks' => $marks, 'real' => $real];
     }
 
     /**

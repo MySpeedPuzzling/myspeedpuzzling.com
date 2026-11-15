@@ -115,7 +115,7 @@ SQL, ['ownerPlayerId' => $ownerPlayerId])->fetchAssociative();
      *     pairedPuzzleId: null|string, pairedAt: null|DateTimeImmutable, suggestedPuzzleId: null|string, unlistedLeft: int,
      *     results: list<array{id: string, seconds: null|int, solvedOn: null|string, datePrecision: null|string, type: string, people: list<string>, firstAttempt: null|bool, comment: null|string, unlisted: bool, solvingTimeId: null|string, keptReason: null|string}>,
      *     marks: list<array{id: string, kind: string, comment: null|string, collectionLabel: null|string, unlisted: bool, keptReason: null|string}>,
-     *     pairings: list<array{id: string, puzzleId: string, state: string, startedAt: DateTimeImmutable, finishedAt: null|DateTimeImmutable, undoneAt: null|DateTimeImmutable, resultsAdded: int, resultsAlreadyYours: int, resultsKept: int, itemsAdded: int, itemsAlreadyYours: int, resultsTakenBack: int, resultsKeptByUndo: int}>
+     *     pairings: list<array{id: string, puzzleId: string, state: string, startedAt: DateTimeImmutable, finishedAt: null|DateTimeImmutable, undoneAt: null|DateTimeImmutable, resultsAdded: int, resultsAlreadyYours: int, resultsKept: int, itemsAdded: int, itemsAlreadyYours: int, resultsTakenBack: int, resultsKeptByUndo: int, waitsForTomorrow: bool}>
      * }
      *
      * @throws UnlistedPuzzleNotFound
@@ -186,12 +186,13 @@ WHERE mark.unlisted_puzzle_id = :unlistedPuzzleId
 ORDER BY mark.kind, mark.id
 SQL, $parameters)->fetchAllAssociative();
 
-        /** @var list<array{id: string, puzzle_id: string, state: string, started_at: string, finished_at: null|string, undone_at: null|string, results_added: int, results_already_yours: int, results_kept: int, items_added: int, items_already_yours: int, results_taken_back: int, results_kept_by_undo: int}> $pairings */
+        /** @var list<array{id: string, puzzle_id: string, state: string, started_at: string, finished_at: null|string, undone_at: null|string, results_added: int, results_already_yours: int, results_kept: int, items_added: int, items_already_yours: int, results_taken_back: int, results_kept_by_undo: int, waits_for_tomorrow: bool}> $pairings */
         $pairings = $this->database->executeQuery(<<<SQL
 SELECT
     pairing.id, pairing.puzzle_id, pairing.state, pairing.started_at, pairing.finished_at, pairing.undone_at,
     pairing.results_added, pairing.results_already_yours, pairing.results_kept, pairing.items_added,
-    pairing.items_already_yours, pairing.results_taken_back, pairing.results_kept_by_undo
+    pairing.items_already_yours, pairing.results_taken_back, pairing.results_kept_by_undo,
+    pairing.daily_limit_reached_at IS NOT NULL AS waits_for_tomorrow
 FROM unlisted_pairing pairing
 WHERE pairing.unlisted_puzzle_id = :unlistedPuzzleId
     AND pairing.player_id = :ownerPlayerId
@@ -255,6 +256,7 @@ SQL, $parameters)->fetchAllAssociative();
                 'itemsAlreadyYours' => $pairing['items_already_yours'],
                 'resultsTakenBack' => $pairing['results_taken_back'],
                 'resultsKeptByUndo' => $pairing['results_kept_by_undo'],
+                'waitsForTomorrow' => $pairing['waits_for_tomorrow'],
             ], $pairings),
         ];
     }

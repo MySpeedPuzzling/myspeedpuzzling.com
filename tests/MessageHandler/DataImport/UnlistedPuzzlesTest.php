@@ -5,7 +5,19 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\MessageHandler\DataImport;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Entity\UnlistedPairing;
+use SpeedPuzzling\Web\Entity\UnlistedPuzzle;
+use SpeedPuzzling\Web\Entity\UnlistedResult;
+use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
+use SpeedPuzzling\Web\Message\SubmitPuzzleMergeRequest;
+use SpeedPuzzling\Web\Query\GetUnlistedPuzzles;
+use SpeedPuzzling\Web\Repository\DataImportRowRepository;
+use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Value\DataImportLimits;
 use SpeedPuzzling\Web\Entity\DataImport;
 use SpeedPuzzling\Web\Entity\DataImportSheet;
 use SpeedPuzzling\Web\Entity\Manufacturer;
@@ -453,6 +465,218 @@ final class UnlistedPuzzlesTest extends KernelTestCase
         $this->handled($handler, new SuggestUnlistedPuzzlePairings());
         self::assertNull($this->unlistedPuzzle($player, 'Zq Sug Lighthouse At Dawn')['suggested_puzzle_id']);
         self::assertSame(1, $told());
+    }
+
+    public function testWhatAPairingMakesPublicCountsInTheDailyGuardAndTheRestWaitsForTomorrow(): void
+    {
+        $player = $this->seedPairingPlayer('pairing-guard');
+        $brand = $this->seedBrand('Zqguard');
+        $catalogue = $this->seedCataloguePuzzle('Zq Guard Catalogue', 500, $brand);
+        $playerId = $player->id->toString();
+        $rows = self::getContainer()->get(DataImportRowRepository::class);
+        $startOfDay = TestClock::now()->setTimezone(new DateTimeZone('UTC'))->setTime(0, 0);
+
+        [$import, $sheet] = $this->importOf($player);
+        $first = $this->resultRow($import, $sheet, 'Zq Guard My Copy', 500, 'Zqguard', '2024-08-01', 3000);
+        $this->resultRow($import, $sheet, 'Zq Guard My Copy', 500, 'Zqguard', '2024-08-08', 3100);
+        $this->resultRow($import, $sheet, 'Zq Guard My Copy', 500, 'Zqguard', '2024-08-15', 3200);
+        $this->ownedRow($import, $sheet, 'Zq Guard My Copy', 500, 'Zqguard');
+        $this->pair($import);
+        $this->keepUnlisted($import, $player, 'Zq Guard My Copy');
+
+        // The day is used up by results the player's imports made public today (all but none are left) …
+        $this->pairingDatabase()->executeStatement(
+            <<<SQL
+INSERT INTO data_import_row (id, import_id, sheet_id, row_number, first_seen_version, last_seen_version, add_as_separate, state, result_made, kind, solving_time_id, result_made_at, added_at)
+SELECT gen_random_uuid(), :importId, :sheetId, 100000 + filler, 1, 1, FALSE, 'added', TRUE, 'result', gen_random_uuid(), :now, :now
+FROM generate_series(1, :limit) filler
+SQL,
+            ['importId' => $import->id->toString(), 'sheetId' => $sheet->id->toString(), 'now' => TestClock::FROZEN_NOW, 'limit' => DataImportLimits::MAX_RESULTS_ADDED_PER_DAY],
+        );
+        self::assertSame(DataImportLimits::MAX_RESULTS_ADDED_PER_DAY, $rows->countResultsAddedOrQueuedSince($playerId, $startOfDay));
+
+        // … and rows kept as unlisted are added all the same: they are private, the guard is about what is public
+        $added = $this->addAndWork($import, $player);
+        self::assertSame([AddImportRowsOutcome::STARTED, 4, []], [$added->status, $added->rows, $added->skipped]);
+        self::assertSame(DataImportLimits::MAX_RESULTS_ADDED_PER_DAY, $rows->countResultsAddedOrQueuedSince($playerId, $startOfDay));
+        $unlisted = $this->unlistedPuzzle($player, 'Zq Guard My Copy');
+        self::assertCount(3, $this->unlistedResults($unlisted['id']));
+
+        // The rows were added long ago; two results are left of today
+        $this->pairingDatabase()->executeStatement("UPDATE data_import_row SET added_at = '2020-01-01 00:00:00' WHERE import_id = :id AND row_number < 100000", ['id' => $import->id->toString()]);
+        $this->pairingDatabase()->executeStatement('DELETE FROM data_import_row WHERE import_id = :id AND row_number IN (100001, 100002)', ['id' => $import->id->toString()]);
+
+        $outcome = $this->pairUnlisted($player, $unlisted['id'], $catalogue);
+
+        // Two results became public - and count as made today, whenever their rows were added; the third waits. The
+        // mark is not held: only results use the day up
+        self::assertCount(2, $this->resultsOf($player, $catalogue));
+        self::assertSame(DataImportLimits::MAX_RESULTS_ADDED_PER_DAY, $rows->countResultsAddedOrQueuedSince($playerId, $startOfDay));
+        self::assertSame(TestClock::FROZEN_NOW, $this->pairingDatabase()->fetchOne('SELECT result_made_at FROM data_import_row WHERE id = :id', ['id' => $first]));
+        $waiting = $this->pairingNow($outcome->pairingId);
+        self::assertSame(['running', TestClock::FROZEN_NOW], [$waiting['state'], $waiting['daily_limit_reached_at']]);
+        self::assertSame([true, true, false], array_column($this->unlistedResults($unlisted['id']), 'converted'));
+        self::assertSame([null, null, null], array_column($this->unlistedResults($unlisted['id']), 'kept_reason'));
+        self::assertSame([true], array_column($this->unlistedMarks($unlisted['id']), 'converted'));
+        // Asked again the same day, it still waits - nothing is added over the guard
+        $this->workPairing((string) $outcome->pairingId, 3);
+        self::assertCount(2, $this->resultsOf($player, $catalogue));
+
+        // The owner's page says so
+        self::assertTrue(self::getContainer()->get(GetUnlistedPuzzles::class)->one($playerId, $unlisted['id'])['pairings'][0]['waitsForTomorrow']);
+
+        // Tomorrow (nothing was made public "today" any more) the sweeper's turn goes on and finishes it
+        $this->pairingDatabase()->executeStatement("UPDATE data_import_row SET result_made_at = '2020-01-01 00:00:00', added_at = '2020-01-01 00:00:00' WHERE import_id = :id", ['id' => $import->id->toString()]);
+        $this->workPairing((string) $outcome->pairingId);
+        $done = $this->pairingNow($outcome->pairingId);
+        self::assertSame(['finished', 3, 0, null], [$done['state'], $done['results_added'], $done['results_kept'], $done['daily_limit_reached_at']]);
+        self::assertCount(3, $this->resultsOf($player, $catalogue));
+
+        // An Undo gives the day back: a result that is gone is not counted
+        self::assertSame(1, $rows->countResultsAddedOrQueuedSince($playerId, $startOfDay));
+        $this->undoPairing($player, (string) $outcome->pairingId);
+        self::assertSame(0, $rows->countResultsAddedOrQueuedSince($playerId, $startOfDay));
+    }
+
+    public function testAPuzzleMergedBetweenTheTapAndTheStepTakesTheResultsOnTheSurvivor(): void
+    {
+        $player = $this->seedPairingPlayer('pairing-merged');
+        $brand = $this->seedBrand('Zqumerge');
+        $survivor = $this->seedCataloguePuzzle('Zq Umerge Survivor', 500, $brand);
+        $duplicate = $this->seedCataloguePuzzle('Zq Umerge Duplicate', 500, $brand);
+
+        [$import, $sheet] = $this->importOf($player);
+        $this->resultRow($import, $sheet, 'Zq Umerge My Copy', 500, 'Zqumerge', '2024-09-01', 3000);
+        $this->ownedRow($import, $sheet, 'Zq Umerge My Copy', 500, 'Zqumerge');
+        $this->pair($import);
+        $this->keepUnlisted($import, $player, 'Zq Umerge My Copy');
+        $this->addAndWork($import, $player);
+        $unlisted = $this->unlistedPuzzle($player, 'Zq Umerge My Copy');
+
+        // The tap - and before the worker comes to it, the catalogue puzzle is merged into another
+        $outcome = $this->pairUnlisted($player, $unlisted['id'], $duplicate, work: false);
+        self::assertSame(UnlistedPairingOutcome::STARTED, $outcome->status);
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+        $mergeRequestId = Uuid::uuid7()->toString();
+        $bus->dispatch(new SubmitPuzzleMergeRequest(mergeRequestId: $mergeRequestId, sourcePuzzleId: $survivor, reporterId: PlayerFixture::PLAYER_REGULAR, duplicatePuzzleIds: [$duplicate]));
+        $bus->dispatch(new ApprovePuzzleMergeRequest(
+            mergeRequestId: $mergeRequestId,
+            reviewerId: PlayerFixture::PLAYER_ADMIN,
+            survivorPuzzleId: $survivor,
+            mergedName: 'Zq Umerge Survivor',
+            mergedEans: null,
+            mergedBrandCodes: null,
+            mergedPiecesCount: 500,
+            mergedManufacturerId: $brand->id->toString(),
+            selectedImagePuzzleId: null,
+        ));
+        $this->pairingEntityManager()->clear();
+
+        $this->workPairing((string) $outcome->pairingId);
+
+        // Nothing is left "not available": the result and the collection item are on the survivor
+        self::assertSame([$survivor], array_column($this->resultsOf($player), 'puzzle_id'));
+        self::assertSame([null], array_column($this->unlistedResults($unlisted['id']), 'kept_reason'));
+        self::assertSame([$survivor], $this->pairingDatabase()->fetchFirstColumn('SELECT puzzle_id FROM collection_item WHERE player_id = :id', ['id' => $player->id->toString()]));
+        $done = $this->pairingNow($outcome->pairingId);
+        self::assertSame(['finished', 1, 0, 1], [$done['state'], $done['results_added'], $done['results_kept'], $done['items_added']]);
+
+        // … and the Undo takes them back from there (a merge is not a change of the player's)
+        $this->undoPairing($player, (string) $outcome->pairingId);
+        self::assertSame([], $this->resultsOf($player));
+        self::assertSame('undone', $this->pairingNow($outcome->pairingId)['state']);
+    }
+
+    public function testPairingAndRemovingTakeThePlayersImportLockSoTwoTabsNeverMeetHalfWay(): void
+    {
+        $brand = $this->seedBrand('Zqlock');
+        $catalogue = $this->seedCataloguePuzzle('Zq Lock Catalogue', 500, $brand);
+        $entityManager = $this->pairingEntityManager();
+        $held = fn (string $playerId): int => $this->pairingCount(
+            "SELECT COUNT(*) FROM pg_locks WHERE locktype = 'advisory' AND pid = pg_backend_pid() AND objsubid = 1 AND ((classid::bigint << 32) | objid::bigint) = hashtextextended(:key, 0)",
+            ['key' => 'import-result:' . $playerId],
+        );
+
+        foreach (['pair', 'undo', 'remove'] as $action) {
+            // An unlisted puzzle written directly - nothing of the engine has taken this player's lock yet
+            $player = $this->seedPairingPlayer('lock-' . $action);
+            $player = $entityManager->find(Player::class, $player->id->toString());
+            self::assertNotNull($player);
+            $unlistedPuzzle = new UnlistedPuzzle(Uuid::uuid7(), $player, '1:' . hash('sha256', 'lock-' . $action), 'Zq Lock My Copy', TestClock::now());
+            $entityManager->persist($unlistedPuzzle);
+            $entityManager->persist(new UnlistedResult(Uuid::uuid7(), $unlistedPuzzle, $player, 3000, '2024-01-01', 'day', PuzzlingType::Solo, [], null, null, Uuid::uuid7(), '1:' . hash('sha256', 'lock-row-' . $action), 1, TestClock::now()));
+            $pairing = new UnlistedPairing(Uuid::uuid7(), Uuid::uuid7(), $player, $unlistedPuzzle, Uuid::fromString($catalogue), TestClock::now());
+            $pairing->finished(['resultsAdded' => 0, 'resultsAlreadyYours' => 0, 'resultsKept' => 1, 'itemsAdded' => 0, 'itemsAlreadyYours' => 0], TestClock::now());
+
+            if ($action === 'undo') {
+                $entityManager->persist($pairing);
+            }
+
+            $entityManager->flush();
+            $playerId = $player->id->toString();
+            $unlistedId = $unlistedPuzzle->id->toString();
+            $pairingId = $pairing->id->toString();
+            $entityManager->clear();
+            self::assertSame(0, $held($playerId), $action);
+
+            match ($action) {
+                'pair' => $this->pairUnlisted($playerId, $unlistedId, $catalogue, work: false),
+                'undo' => $this->undoPairing($playerId, $pairingId, work: false),
+                default => self::getContainer()->get(MessageBusInterface::class)->dispatch(new RemoveUnlistedPuzzle($unlistedId, $playerId)),
+            };
+
+            // The very lock every step of a pairing and every row of an "Add" take (ImportWriteLock) - held until
+            // the request's transaction ends
+            self::assertSame(1, $held($playerId), $action);
+        }
+    }
+
+    public function testAPairingTakenBackIsNotSuggestedAgainAndItsRecordOutlivesThePuzzle(): void
+    {
+        $player = $this->seedPairingPlayer('pairing-record');
+        $brand = $this->seedBrand('Zqrec');
+
+        [$import, $sheet] = $this->importOf($player);
+        $this->resultRow($import, $sheet, 'Zq Rec Lighthouse At Dusk', 500, 'Zqrec', '2024-10-01', 3000);
+        $this->pair($import);
+        $this->keepUnlisted($import, $player, 'Zq Rec Lighthouse At Dusk');
+        $this->addAndWork($import, $player);
+        $unlisted = $this->unlistedPuzzle($player, 'Zq Rec Lighthouse At Dusk');
+
+        // The catalogue grows by the very puzzle; the player pairs by hand - and takes it back
+        $grown = $this->seedCataloguePuzzle('Zq Rec Lighthouse At Dusk', 500, $this->pairingEntityManager()->find(Manufacturer::class, $brand->id->toString()));
+        $outcome = $this->pairUnlisted($player, $unlisted['id'], $grown);
+        self::assertCount(1, $this->resultsOf($player, $grown));
+        $this->undoPairing($player, (string) $outcome->pairingId);
+        self::assertSame([], $this->resultsOf($player, $grown));
+
+        // The daily look would find it "certainly" - and says nothing: the player just said "not this puzzle"
+        $handler = self::getContainer()->get(SuggestUnlistedPuzzlePairingsHandler::class);
+        $this->handled($handler, new SuggestUnlistedPuzzlePairings());
+        self::assertNull($this->unlistedPuzzle($player, 'Zq Rec Lighthouse At Dusk')['suggested_puzzle_id']);
+        self::assertSame(0, $this->pairingCount('SELECT COUNT(*) FROM notification WHERE player_id = :id AND type = :type', ['id' => $player->id->toString(), 'type' => NotificationType::UnlistedPuzzlesFound->value]));
+        // Pairing by hand stays open
+        $again = $this->pairUnlisted($player, $unlisted['id'], $grown);
+        self::assertSame(UnlistedPairingOutcome::STARTED, $again->status);
+        $this->undoPairing($player, (string) $again->pairingId);
+
+        // "Remove" takes the unlisted puzzle and its results - the records of its pairings stay: who, when, with
+        // which catalogue puzzle, what came of it
+        $this->handled(self::getContainer()->get(RemoveUnlistedPuzzleHandler::class), new RemoveUnlistedPuzzle($unlisted['id'], $player->id->toString()));
+        self::assertSame(0, $this->pairingCount('SELECT COUNT(*) FROM unlisted_puzzle WHERE player_id = :id', ['id' => $player->id->toString()]));
+        self::assertSame(0, $this->pairingCount('SELECT COUNT(*) FROM unlisted_result WHERE player_id = :id', ['id' => $player->id->toString()]));
+        self::assertSame(
+            [
+                ['state' => 'undone', 'unlisted_puzzle_id' => null, 'puzzle_id' => $grown, 'unlisted_puzzle_key' => ImportPuzzleKey::of('Zq Rec Lighthouse At Dusk', 500, 'Zqrec'), 'results_added' => 1, 'results_taken_back' => 1],
+                ['state' => 'undone', 'unlisted_puzzle_id' => null, 'puzzle_id' => $grown, 'unlisted_puzzle_key' => ImportPuzzleKey::of('Zq Rec Lighthouse At Dusk', 500, 'Zqrec'), 'results_added' => 1, 'results_taken_back' => 1],
+            ],
+            $this->pairingDatabase()->fetchAllAssociative('SELECT state, unlisted_puzzle_id, puzzle_id, unlisted_puzzle_key, results_added, results_taken_back FROM unlisted_pairing WHERE player_id = :id ORDER BY id', ['id' => $player->id->toString()]),
+        );
+        // … and what was public for a while is whole in the graveyard
+        self::assertSame(2, $this->pairingCount("SELECT COUNT(*) FROM solving_time_graveyard WHERE deleted_via = 'import_undo' AND player_id = :id", ['id' => $player->id->toString()]));
+        // A record without its unlisted puzzle is nothing to undo
+        $this->expectException(UnlistedPuzzleNotFound::class);
+        $this->undoPairing($player, (string) $outcome->pairingId);
     }
 
     public function testAccountDeletionRemovesEverythingUnlisted(): void

@@ -17,8 +17,9 @@ use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * "Remove" on the signed-in player's unlisted puzzle: it goes with its unlisted results and marks. Always a redirect
- * (PRG) - to the list.
+ * "Remove" on the signed-in player's unlisted puzzle, in two steps like the import's "Take back": the GET shows what
+ * would go (so many results, so many marks - for good), the POST with its CSRF token removes them and redirects to
+ * the list (PRG). Another player's unlisted puzzle - and any for a guest - is a 404 for both.
  */
 final class RemoveUnlistedPuzzleController extends AbstractController
 {
@@ -33,11 +34,26 @@ final class RemoveUnlistedPuzzleController extends AbstractController
         path: '/{_locale}/unlisted-puzzles/{unlistedPuzzleId}/remove',
         name: 'unlisted_puzzle_remove',
         requirements: ['_locale' => ImportsHomeController::LOCALES, 'unlistedPuzzleId' => Requirement::UUID],
-        methods: ['POST'],
+        methods: ['GET', 'POST'],
     )]
     public function __invoke(Request $request, string $unlistedPuzzleId): Response
     {
         $playerId = $this->page->ownerPlayerId();
+
+        // First what would go - the results are removed for good, so nothing is removed by one tap
+        if ($request->isMethod('GET')) {
+            $removal = $this->page->removal($unlistedPuzzleId);
+
+            if ($removal['working']) {
+                return $this->redirectToRoute('unlisted_puzzle', ['unlistedPuzzleId' => $unlistedPuzzleId]);
+            }
+
+            $response = $this->render('unlisted_puzzles/remove.html.twig', $removal);
+            $response->headers->set('Cache-Control', 'private, no-store');
+            $response->headers->set('X-Robots-Tag', 'noindex, nofollow');
+
+            return $response;
+        }
 
         if ($this->isCsrfTokenValid(UnlistedPuzzlePage::CSRF_TOKEN_ID, $request->request->getString('_token')) === false) {
             throw $this->createAccessDeniedException();

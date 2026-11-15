@@ -12617,6 +12617,7 @@ unlisted_puzzles:
         candidates: "Est-ce l'un de ceux-ci ?"
         this_one: "C'est celui-ci"
     pairing:
+        tomorrow: "La limite du jour pour les résultats issus de feuilles de calcul (%limit% par jour) est atteinte. Le reste sera ajouté demain automatiquement - rien n'est perdu."
         running: "Ajout de ses résultats à votre profil…"
         undoing: "Annulation de l'association…"
         leave: "Vous pouvez quitter cette page - le travail continue en arrière-plan."
@@ -12644,6 +12645,11 @@ unlisted_puzzles:
         from_file: "De votre fichier"
         from_import: "D'une feuille de calcul importée le %date%"
     remove:
+        what: "Ceci sera retiré définitivement"
+        results: "Résultats hors catalogue"
+        marks: "Mentions de possession / souhait"
+        real_stays: "Ce qui est déjà devenu des résultats ordinaires ou des puzzles de votre collection reste sur votre profil : %number%."
+        cancel: "Le garder"
         title: "Retirer ce puzzle"
         hint: "Il est retiré avec ses résultats hors catalogue et le fait que vous le possédiez ou le souhaitiez. Rien n'est modifié sur votre profil. Relire le même fichier ne le fait pas revenir."
         button: "Retirer"

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\Unlisted;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
@@ -30,19 +31,16 @@ use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Repository\UnlistedPuzzleRepository;
 use SpeedPuzzling\Web\Repository\WishListItemRepository;
 use SpeedPuzzling\Web\Services\DataImport\ImportedResultsFollowUp;
-use SpeedPuzzling\Web\Services\DataImport\ImportedResultWriter;
+use SpeedPuzzling\Web\Services\DataImport\ImportResultQuestions;
 use SpeedPuzzling\Web\Services\DataImport\ImportNeverTwice;
 use SpeedPuzzling\Web\Services\DataImport\ImportRowAdder;
-use SpeedPuzzling\Web\Services\DataImport\ImportRowTimeCheck;
 use SpeedPuzzling\Web\Services\DataImport\ImportWriteLock;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
-use SpeedPuzzling\Web\Value\DataImport\ImportedResult;
 use SpeedPuzzling\Web\Value\DataImport\ImportedResultOutcome;
 use SpeedPuzzling\Web\Value\DataImport\ImportedResultRefusal;
-use SpeedPuzzling\Web\Value\DataImport\ImportedResultStatus;
 use SpeedPuzzling\Web\Value\DataImport\ImportRowRefusal;
+use SpeedPuzzling\Web\Value\DataImportLimits;
 use SpeedPuzzling\Web\Value\ImportPuzzleChoice;
-use SpeedPuzzling\Web\Value\PuzzlingType;
 use SpeedPuzzling\Web\Value\SolvingTimeDeletedVia;
 use SpeedPuzzling\Web\Value\Unlisted\UnlistedKeptReason;
 use SpeedPuzzling\Web\Value\Unlisted\UnlistedOwnershipKind;
@@ -53,11 +51,14 @@ use Symfony\Component\Messenger\MessageBusInterface;
  * The steps of "It is this catalogue puzzle" and of its Undo (docs/features/data-import/unlisted-puzzles.md
  * "Pairing") - **the one place where something unlisted becomes public**, and it goes the import's own way:
  *
- * - an unlisted result becomes a real result **only through ImportedResultWriter** (stage 6a), after the questions
- *   the engine asks of a row before it calls the writer (ImportRowAdder): never twice against what the player has -
- *   the row's own result, the same data from another import, the same day + time + kind on the profile -, a similar
- *   result, somebody else's pair/team result, people that do not fit, the time verification's judgement. Nothing is
- *   waved through here: **whatever would be a question stays unlisted**, with the reason;
+ * - an unlisted result becomes a real result **only through ImportResultQuestions** - the very code an "Add" asks
+ *   its questions with and then calls ImportedResultWriter from, not a copy: never twice against what the player has
+ *   (the row's own result, the same data from another import, the same day + time + kind on the profile), a similar
+ *   result, somebody else's pair/team result, people that do not fit, the time verification's judgement, "the file
+ *   says it is on MySpeedPuzzling", "these are two" told to the duplicate job. Nothing is waved through here:
+ *   **whatever would be a question stays unlisted**, with the reason;
+ * - **what a pairing makes public counts in the day's guard** like what an "Add" makes public: once today's
+ *   results are used up, the rest waits for tomorrow;
  * - only a result with an exact day is ever made (a month is never stored as a day);
  * - a mark becomes an item of the player's system collection / wish list under the engine's rules; what was there
  *   before is never touched.
@@ -74,10 +75,9 @@ readonly final class UnlistedPairer
     public function __construct(
         private UnlistedPuzzleRepository $unlistedRepository,
         private DataImportRowRepository $rowRepository,
-        private ImportedResultWriter $writer,
+        private ImportResultQuestions $questions,
         private ImportedResultsFollowUp $followUp,
         private ImportNeverTwice $neverTwice,
-        private ImportRowTimeCheck $timeCheck,
         private GetImportPuzzleCandidates $candidates,
         private SecretPuzzleAccess $secretPuzzleAccess,
         private CollectionItemRepository $collectionItemRepository,
@@ -92,25 +92,50 @@ readonly final class UnlistedPairer
     ) {
     }
 
-    public function result(string $pairingId, string $resultId): void
+    /**
+     * @return bool false: **today's guard on results from spreadsheets is used up** - the result was left as it is
+     *         and waits for tomorrow (the pairing stays at work); true: the step is done
+     */
+    public function result(string $pairingId, string $resultId): bool
     {
         $pairing = $this->lockedPairing($pairingId);
         $result = $this->unlistedRepository->findResult($resultId);
 
         if ($pairing === null || $result === null || $result->pairingId?->equals($pairing->id) !== true || $result->keptReason !== null) {
-            return;
+            return true;
         }
 
         $now = $this->clock->now();
         $pairing->workedOn($now);
 
         if ($pairing->state === UnlistedPairingState::Running && $result->isUnlisted()) {
+            // What a pairing makes public counts like what an "Add" makes public: at most so many results a day
+            // (README Q4). Asked under the player's lock, of the results as they are now
+            if ($this->resultsLeftToday($pairing->player->id->toString(), $now) <= 0) {
+                $pairing->waitsForTomorrow($now);
+
+                return false;
+            }
+
+            $pairing->goesOn();
             $this->convertResult($pairing, $result, $now);
         }
 
         if ($pairing->state === UnlistedPairingState::Undoing && $result->isUnlisted() === false) {
             $this->takeBackResult($pairing, $result, $now);
         }
+
+        return true;
+    }
+
+    /**
+     * How many results the player's imports may still make public today (UTC, as AddImportRowsHandler counts).
+     */
+    private function resultsLeftToday(string $playerId, DateTimeImmutable $now): int
+    {
+        $startOfDay = $now->setTimezone(new DateTimeZone('UTC'))->setTime(0, 0);
+
+        return DataImportLimits::MAX_RESULTS_ADDED_PER_DAY - $this->rowRepository->countResultsAddedOrQueuedSince($playerId, $startOfDay);
     }
 
     public function ownership(string $pairingId, string $ownershipId): void
@@ -173,11 +198,13 @@ readonly final class UnlistedPairer
 
         $now = $this->clock->now();
         $unlistedPuzzle = $pairing->unlistedPuzzle;
-        $results = $this->unlistedRepository->resultsOf($unlistedPuzzle);
-        $ownerships = $this->unlistedRepository->ownershipsOf($unlistedPuzzle);
+        $results = $unlistedPuzzle === null ? [] : $this->unlistedRepository->resultsOf($unlistedPuzzle);
+        $ownerships = $unlistedPuzzle === null ? [] : $this->unlistedRepository->ownershipsOf($unlistedPuzzle);
 
         if ($undoing) {
             $pairing->undone($now);
+            // "Not this puzzle": the daily look does not suggest what the player just took back (and tell them again)
+            $unlistedPuzzle?->pairingTakenBack($pairing->puzzleId);
 
             if ($pairing->resultsTakenBack > 0) {
                 $this->messageBus->dispatch(new RecalculateBadgesForPlayer($pairing->player->id->toString()));
@@ -190,7 +217,7 @@ readonly final class UnlistedPairer
             }
 
             // Everything is unlisted again: so is the puzzle, and the next file's rows of it
-            if ($somethingStillReal === false) {
+            if ($somethingStillReal === false && $unlistedPuzzle !== null) {
                 $unlistedPuzzle->unpaired();
                 $remembered = $this->decisionRepository->ofPlayerByKeys($pairing->player, [$unlistedPuzzle->puzzleKey])[$unlistedPuzzle->puzzleKey] ?? null;
 
@@ -275,103 +302,54 @@ readonly final class UnlistedPairer
             return;
         }
 
-        $day = $result->solvedOn;
-        $seconds = $result->secondsToSolve !== null && $result->secondsToSolve > 0 ? $result->secondsToSolve : null;
-        $type = $result->puzzlingType;
-        $people = ImportRowAdder::people($result->people);
-
-        // The writer's own two questions first (it asks them again): the row's result, the same data elsewhere
-        $linked = $this->rowRepository->linkedSolvingTimeId($row->id->toString());
-
-        if ($linked !== null && $this->resultExists($linked)) {
-            $result->converted(Uuid::fromString($linked), false, null, $now);
-
-            return;
-        }
-
-        foreach ($this->rowRepository->solvingTimeIdsOfSourceKey($playerId, $result->sourceKey, $row->id->toString()) as $known) {
-            if ($this->resultExists($known)) {
-                $result->converted(Uuid::fromString($known), false, null, $now);
-
-                return;
-            }
-        }
-
-        // The player has exactly this result on the profile, and no row speaks for it: it is that one
-        $free = $this->neverTwice->freeResultsOnProfile($player, $puzzle);
-        $equal = ImportNeverTwice::equal($free, $day, $seconds, $type, null);
-
-        if ($equal !== null) {
-            $result->converted(Uuid::fromString($equal), false, null, $now);
-            $row->unlistedResultIsOnProfile(Uuid::fromString($equal));
-
-            return;
-        }
-
-        if (PuzzlingType::fromPuzzlersCount(count($people) + 1) !== $type) {
-            $result->kept(ImportRowRefusal::PeopleDoNotFitType->value);
-
-            return;
-        }
-
-        if ($type !== PuzzlingType::Solo && $seconds !== null && $this->neverTwice->somebodyElseHasIt($player, $puzzle, $day, $seconds)) {
-            $result->kept(ImportRowRefusal::SomebodyElsesResult->value);
-
-            return;
-        }
-
-        if (ImportNeverTwice::similar($free, $day, $seconds) !== null) {
-            $result->kept(ImportRowRefusal::SimilarResultExists->value);
-
-            return;
-        }
-
-        if ($seconds !== null && $this->timeCheck->unusual($playerId, $puzzle->id->toString(), $seconds, $type, count($people) + 1, $day) !== null) {
-            $result->kept(ImportRowRefusal::UnusualTime->value);
-
-            return;
-        }
-
-        $outcome = $this->writer->write(new ImportedResult(
-            importRowId: $row->id->toString(),
+        // Every question an "Add" asks before it writes, and the writer - the import's own code, not a copy of it
+        // (ImportResultQuestions): what would be a question to the player keeps the result unlisted, with the reason
+        $asked = $this->questions->ask(
+            row: $row,
+            player: $player,
+            puzzle: $puzzle,
             sourceKey: $result->sourceKey,
-            playerId: $playerId,
-            puzzleId: $puzzle->id->toString(),
-            seconds: $seconds,
-            solvedDay: $day,
-            timezone: ImportedResult::zoneOf($player),
+            day: $result->solvedOn,
+            seconds: $result->secondsToSolve !== null && $result->secondsToSolve > 0 ? $result->secondsToSolve : null,
+            type: $result->puzzlingType,
+            people: ImportRowAdder::people($result->people),
             firstTry: $result->firstAttempt,
-            groupPlayers: $people,
             comment: $result->comment,
-            position: max(0, $result->rowNumber),
-        ));
+            position: $result->rowNumber,
+            saidAlreadyOnProfile: $result->saidAlreadyOnProfile,
+            countedOnItsOwn: $result->countedOnItsOwn,
+        );
 
-        if ($outcome->status === ImportedResultStatus::Refused) {
-            $result->kept($outcome->refusal->value ?? ImportRowRefusal::NotReady->value);
+        if ($asked['refused'] !== null) {
+            $result->kept($asked['refused']);
 
             return;
         }
 
-        if ($outcome->solvingTimeId === null) {
+        if ($asked['alreadyTimeId'] === null) {
             $result->kept(UnlistedKeptReason::Error->value);
 
             return;
         }
 
-        if ($outcome->status === ImportedResultStatus::AlreadyAdded) {
-            $result->converted(Uuid::fromString($outcome->solvingTimeId), false, null, $now);
+        if ($asked['made'] === null) {
+            // The player's already: nothing was added. A result of the profile no row spoke for is this row's now
+            $result->converted(Uuid::fromString($asked['alreadyTimeId']), false, null, $now);
+
+            if ($asked['alreadyHow'] === 'profile') {
+                $row->unlistedResultIsOnProfile(Uuid::fromString($asked['alreadyTimeId']));
+            }
 
             return;
         }
 
-        $solvingTime = $this->scheduledResult($outcome->solvingTimeId);
-        $made = ['result' => ImportRowAdder::resultFacts($solvingTime)];
+        $made = ['result' => $asked['made']];
 
-        if ($outcome->removedWishListItem !== null) {
-            $made['removedWishListItems'] = [self::removedWish($outcome->removedWishListItem['id'], $outcome->removedWishListItem['puzzleId'], $outcome->removedWishListItem['addedAt'])];
+        if ($asked['removedWishListItem'] !== null) {
+            $made['removedWishListItems'] = [self::removedWish($asked['removedWishListItem']['id'], $asked['removedWishListItem']['puzzleId'], $asked['removedWishListItem']['addedAt'])];
         }
 
-        $result->converted($solvingTime->id, true, $made, $now);
+        $result->converted(Uuid::fromString($asked['alreadyTimeId']), true, $made, $now);
     }
 
     private function takeBackResult(UnlistedPairing $pairing, UnlistedResult $result, DateTimeImmutable $now): void
@@ -540,6 +518,12 @@ readonly final class UnlistedPairer
         $puzzleId = $pairing->puzzleId->toString();
         $puzzle = $this->entityManager->find(Puzzle::class, $puzzleId);
 
+        // Merged into another puzzle between the player's tap and this step: the survivor is the puzzle now
+        if ($puzzle === null) {
+            $puzzleId = $this->puzzleRedirectRepository->findByOldPuzzleId($puzzleId)?->survivorPuzzleId->toString() ?? $puzzleId;
+            $puzzle = $this->entityManager->find(Puzzle::class, $puzzleId);
+        }
+
         if ($puzzle === null || isset($this->candidates->choosable([$puzzleId], $playerId, $now)[$puzzleId]) === false) {
             return ImportRowRefusal::PuzzleNotAvailable->value;
         }
@@ -551,32 +535,6 @@ readonly final class UnlistedPairer
         }
 
         return $puzzle;
-    }
-
-    private function resultExists(string $solvingTimeId): bool
-    {
-        return (int) $this->entityManager->createQueryBuilder()
-            ->select('COUNT(time.id)')
-            ->from(PuzzleSolvingTime::class, 'time')
-            ->where('time.id = :id')
-            ->setParameter('id', $solvingTimeId)
-            ->getQuery()
-            ->getSingleScalarResult() > 0;
-    }
-
-    /**
-     * The result the writer just persisted - not in the database before the flush.
-     */
-    private function scheduledResult(string $solvingTimeId): PuzzleSolvingTime
-    {
-        foreach ($this->entityManager->getUnitOfWork()->getScheduledEntityInsertions() as $entity) {
-            if ($entity instanceof PuzzleSolvingTime && $entity->id->toString() === $solvingTimeId) {
-                return $entity;
-            }
-        }
-
-        return $this->entityManager->find(PuzzleSolvingTime::class, $solvingTimeId)
-            ?? throw new \LogicException(sprintf('The result %s the writer added is not there.', $solvingTimeId));
     }
 
     /**

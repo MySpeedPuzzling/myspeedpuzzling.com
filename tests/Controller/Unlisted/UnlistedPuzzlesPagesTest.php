@@ -77,7 +77,9 @@ final class UnlistedPuzzlesPagesTest extends WebTestCase
         self::assertCount(1, $crawler->filter('[data-testid="unlisted-mark"][data-kind="owned"]'));
         self::assertStringContainsString('results.xlsx', $crawler->filter('[data-testid="unlisted-source"]')->text());
         self::assertCount(1, $crawler->filter('[data-testid="unlisted-pair"]'));
-        self::assertCount(1, $crawler->filter('[data-testid="unlisted-remove-button"]'));
+        // "Remove" is a page of its own - nothing is removed by one tap
+        self::assertSame('/en/unlisted-puzzles/' . $unlistedId . '/remove', $crawler->filter('[data-testid="unlisted-remove-link"]')->attr('href'));
+        self::assertCount(0, $crawler->filter('[data-testid="unlisted-remove-button"]'));
         $token = (string) $crawler->filter('input[name="_token"]')->first()->attr('value');
 
         // The import's pages lead here, discreetly
@@ -230,8 +232,20 @@ final class UnlistedPuzzlesPagesTest extends WebTestCase
         self::assertCount(2, $crawler->filter('[data-testid="unlisted-result"][data-unlisted="true"]'));
         self::assertCount(1, $this->browser->request('GET', '/en/unlisted-puzzles')->filter('[data-testid="unlisted-puzzle"]'));
 
-        // Remove: back on the list, which is empty again
+        // Remove, in two steps: first what would go - and looking changes nothing
         $crawler = $this->browser->request('GET', '/en/unlisted-puzzles/' . $unlistedId);
+        $crawler = $this->browser->click($crawler->filter('[data-testid="unlisted-remove-link"]')->link());
+        self::assertResponseIsSuccessful();
+        $removal = $crawler->filter('[data-testid="unlisted-remove-page"]');
+        self::assertSame(['2', '1', '0'], [$removal->attr('data-results'), $removal->attr('data-marks'), $removal->attr('data-real')]);
+        self::assertSame('Zq Flow Kinkajou Harbor', self::spaced($crawler->filter('[data-testid="unlisted-remove-name"]')->text()));
+        self::assertSame('/en/unlisted-puzzles/' . $unlistedId, $crawler->filter('[data-testid="unlisted-remove-cancel"]')->attr('href'));
+        self::assertSame(2, $this->pairingCount('SELECT COUNT(*) FROM unlisted_result WHERE unlisted_puzzle_id = :id', ['id' => $unlistedId]));
+        // … without the token nothing goes either
+        $this->browser->request('POST', '/en/unlisted-puzzles/' . $unlistedId . '/remove', ['_token' => 'wrong']);
+        self::assertResponseStatusCodeSame(403);
+        self::assertSame(2, $this->pairingCount('SELECT COUNT(*) FROM unlisted_result WHERE unlisted_puzzle_id = :id', ['id' => $unlistedId]));
+        // … then the button: back on the list, which is empty again
         $this->browser->submit($crawler->filter('[data-testid="unlisted-remove-button"]')->form());
         self::assertResponseRedirects('/en/unlisted-puzzles');
         self::assertCount(1, $this->browser->followRedirect()->filter('[data-testid="unlisted-empty"]'));
@@ -276,7 +290,7 @@ final class UnlistedPuzzlesPagesTest extends WebTestCase
         TestingLogin::asPlayer($this->browser, $owner->id->toString());
 
         foreach (['en', 'cs', 'de', 'es', 'fr', 'ja'] as $locale) {
-            foreach (['/unlisted-puzzles', '/unlisted-puzzles/' . $unlistedId] as $path) {
+            foreach (['/unlisted-puzzles', '/unlisted-puzzles/' . $unlistedId, '/unlisted-puzzles/' . $unlistedId . '/remove'] as $path) {
                 $this->browser->request('GET', '/' . $locale . $path);
                 self::assertResponseIsSuccessful($locale . $path);
                 // No text falls back to its key
@@ -335,6 +349,7 @@ final class UnlistedPuzzlesPagesTest extends WebTestCase
             ['GET', '/en/unlisted-puzzles/' . $unlistedId],
             ['POST', '/en/unlisted-puzzles/' . $unlistedId . '/search'],
             ['POST', '/en/unlisted-puzzles/' . $unlistedId . '/pair'],
+            ['GET', '/en/unlisted-puzzles/' . $unlistedId . '/remove'],
             ['POST', '/en/unlisted-puzzles/' . $unlistedId . '/remove'],
             ['POST', '/en/unlisted-puzzles/' . $unlistedId . '/not-this-one'],
             ['POST', '/en/unlisted-puzzles/' . $unlistedId . '/pairings/0193f000-0000-7000-8000-000000000003/undo'],

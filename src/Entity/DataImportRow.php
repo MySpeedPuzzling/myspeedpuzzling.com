@@ -123,6 +123,16 @@ class DataImportRow
     public null|UuidInterface $solvingTimeId = null;
 
     /**
+     * When the result the row names (`solvingTimeId`) was **made** - by an "Add", or by the pairing of the row's
+     * unlisted puzzle with a catalogue puzzle. What the daily guard counts: results that became public today,
+     * whenever their row was added (DataImportRowRepository::countResultsAddedOrQueuedSince()). Written with the
+     * link (linkSolvingTime()); gone with it
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $resultMadeAt = null;
+
+    /**
      * A hint of the pairing, worked out again by every run while the row waits (docs/features/data-import/pairing.md
      * "Already yours"): `profile` = a result on the player's profile has the row's day, time and kind on a puzzle of
      * the same piece count; `earlier_import` = a row with the same key in an import of the player made a result that
@@ -199,9 +209,10 @@ class DataImportRow
      * ImportedResultWriter made a result of the row. A row whose earlier result is gone (deleted, undone) may make
      * another - the link then names the new one.
      */
-    public function resultCreated(UuidInterface $solvingTimeId): void
+    public function resultCreated(UuidInterface $solvingTimeId, DateTimeImmutable $now): void
     {
         $this->solvingTimeId = $solvingTimeId;
+        $this->resultMadeAt = $now;
     }
 
     public function isQueuedIn(string $batchId): bool
@@ -276,6 +287,7 @@ class DataImportRow
     public function undone(): void
     {
         $this->solvingTimeId = null;
+        $this->resultMadeAt = null;
         $this->state = DataImportRowState::Waiting;
         $this->failure = null;
         $this->addedAt = null;
@@ -305,6 +317,7 @@ class DataImportRow
     public function unlistedResultIsUnlistedAgain(): void
     {
         $this->solvingTimeId = null;
+        $this->resultMadeAt = null;
         $this->alreadyYoursHow = null;
         $this->alreadyYoursSolvingTimeId = null;
     }

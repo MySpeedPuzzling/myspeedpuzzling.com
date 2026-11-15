@@ -162,7 +162,7 @@ readonly final class ImportedResultWriter
         // if it still names what was read above: whoever loses that race wrote nothing yet
         $solvingTimeId = Uuid::uuid7();
 
-        if ($this->rowRepository->linkSolvingTime($result->importRowId, $linkedTimeId, $solvingTimeId->toString()) === false) {
+        if ($this->rowRepository->linkSolvingTime($result->importRowId, $linkedTimeId, $solvingTimeId->toString(), $this->clock->now()) === false) {
             $winner = $this->rowRepository->linkedSolvingTimeId($result->importRowId)
                 ?? throw new LogicException(sprintf('Import row %s lost its link while it was written.', $result->importRowId));
 
@@ -198,7 +198,7 @@ readonly final class ImportedResultWriter
 
         $this->entityManager->persist($solvingTime);
         // The loaded row in step with what the database already says
-        $row->resultCreated($solvingTime->id);
+        $row->resultCreated($solvingTime->id, $this->clock->now());
 
         return ImportedResultOutcome::added(
             importRowId: $result->importRowId,

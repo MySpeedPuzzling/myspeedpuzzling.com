@@ -76,7 +76,13 @@ guard AS (
     INNER JOIN data_import other ON other.id = r.import_id
     WHERE other.player_id = :playerId
         AND r.kind IN ('result', 'both')
-        AND (r.state = 'queued' OR (r.state = 'added' AND r.added_at >= :startOfDay AND r.solving_time_id IS NOT NULL))
+        AND (
+            (r.state = 'queued' AND NOT EXISTS (SELECT 1 FROM data_import_puzzle kept WHERE kept.id = r.import_puzzle_id AND kept.choice = 'unlisted'))
+            OR (
+                r.solving_time_id IS NOT NULL
+                AND (r.result_made_at >= :startOfDay OR (r.result_made_at IS NULL AND r.state = 'added' AND r.added_at >= :startOfDay))
+            )
+        )
 ),
 judged AS (
     SELECT
@@ -86,7 +92,7 @@ judged AS (
         flagged.row_number,
         flagged.has_result,
         flagged.equal_row,
-        flagged.has_result = FALSE OR flagged.results_so_far <= guard.results_left AS taken,
+        flagged.has_result = FALSE OR flagged.choice = 'unlisted' OR flagged.results_so_far <= guard.results_left AS taken,
         -- Kept as the player's own unlisted puzzle: the row makes nothing on the profile
         flagged.choice = 'unlisted' AS unlisted_row,
         flagged.choice <> 'unlisted' AND flagged.has_result AND flagged.equal_row = FALSE AND flagged.known = FALSE AS new_result,

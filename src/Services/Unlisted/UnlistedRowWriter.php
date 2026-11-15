@@ -166,6 +166,8 @@ readonly final class UnlistedRowWriter
                 sourceKey: $said['sourceKey'],
                 rowNumber: max(0, $row->rowNumber),
                 createdAt: $now,
+                saidAlreadyOnProfile: ($parsed['alreadyOnMsp'] ?? null) === true,
+                countedOnItsOwn: $row->addAsSeparate,
             );
             $this->unlistedRepository->saveResult($result);
             $made['resultId'] = $result->id->toString();

@@ -176,6 +176,20 @@ class UnlistedPuzzle
     }
 
     /**
+     * The player took a pairing with this catalogue puzzle back: it is "not this puzzle" for the daily look too -
+     * never suggested again (pairing by hand stays open).
+     */
+    public function pairingTakenBack(UuidInterface $puzzleId): void
+    {
+        $this->refusedSuggestionPuzzleId = $puzzleId;
+
+        if ($this->suggestedPuzzleId?->equals($puzzleId) === true) {
+            $this->suggestedPuzzleId = null;
+            $this->suggestedAt = null;
+        }
+    }
+
+    /**
      * "Not this one": the suggestion goes and is never made again.
      */
     public function suggestionRefused(): void

@@ -16,6 +16,7 @@ The add-result form is not touched: nothing here calls its messages or handlers,
 | `GetUnlistedPuzzles` | THE reader - every statement bound to the owner |
 | `UnlistedPuzzlePage` + `src/Controller/Unlisted/` | The owner's pages and their actions |
 | `PairUnlistedPuzzle` → `ProcessUnlistedPairing` → `ApplyUnlistedPairingStep` (`UnlistedPairer`) | "It is this catalogue puzzle", in turns on `imports` |
+| `ImportResultQuestions` | **The one way a result of a spreadsheet reaches the profile** - the questions and the writer, called by an "Add" and by a pairing alike |
 | `UndoUnlistedPairing` | Undo of a pairing - the same worker, the other way |
 | `RemoveUnlistedPuzzle`, `AnswerUnlistedSuggestion` | "Remove", "Not this one" |
 | `SuggestUnlistedPuzzlePairings`, `myspeedpuzzling:pair-unlisted-puzzles` | The daily look at the grown catalogue |
@@ -62,15 +63,20 @@ unlisted_result     id, unlisted_puzzle_id, player_id, seconds_to_solve (null = 
                     solved_on (`2024-03-09` / `2024-03` / `2024` - as the row has it), date_precision,
                     puzzling_type, people jsonb (names), first_attempt (as the file said), comment,
                     import_row_id (unique), source_key, row_number, created_at,
+                    said_already_on_profile, counted_on_its_own ("these are two"),
                     pairing_id, converted_solving_time_id, converted_at, converted_created, made jsonb, kept_reason
 unlisted_ownership  id, unlisted_puzzle_id, player_id, kind (owned | wish_list), comment, collection_label,
                     import_row_id, created_at, pairing_id, converted_item_id, converted_at, converted_created,
                     made jsonb, kept_reason                                 unique (unlisted_puzzle_id, kind)
-unlisted_pairing    id, request_id (unique), player_id, unlisted_puzzle_id, puzzle_id, state
+unlisted_pairing    id, request_id (unique), player_id, unlisted_puzzle_id (SET NULL - the record outlives the
+                    puzzle), unlisted_puzzle_key (copied), puzzle_id, state
                     (running | finished | undoing | undone), started_at, finished_at, undo_requested_at, undone_at,
-                    last_activity_at, results_added, results_already_yours, results_kept, items_added,
+                    last_activity_at, daily_limit_reached_at, results_added, results_already_yours, results_kept, items_added,
                     items_already_yours, results_taken_back, results_kept_by_undo
 ```
+
+Also `data_import_row.result_made_at`: when the result a row names was **made** - by an "Add" or by a pairing - written
+with the link (`DataImportRowRepository::linkSolvingTime()`). It is what the daily guard counts.
 
 `comment` is the column the player mapped to "Public comment": it is public only once the result is a real one.
 Notes and the values of the player's own fields are **not** copied here (below, "Left for later").
@@ -106,8 +112,9 @@ only is kept as the file says it. The row goes through the same batch and turn m
   removed, and the unlisted puzzle with them when nothing hangs on it any more and it is not paired; the row waits
   again. **Not when its puzzle was paired since and the result or the mark is a real one now**: the whole row stays
   `added` (`made.keptByUndo`, counted with the results "changed since") - the pairing's own Undo comes first.
-- The daily guard (2,000 results a day) takes unlisted results into its count while an "Add" is being queued; once
-  added they do not use the day up (they name no result).
+- **The daily guard** (2,000 results a day, README Q4) is about what becomes **public**: rows kept as unlisted are
+  not counted - not while they are queued, not once they are added - and an "Add" takes them whatever is left of the
+  day. What counts is counted when it becomes public: see "The daily guard" below.
 
 The screens (6b-2) say it: the review and the ready card have a line "Rows kept as unlisted puzzles: N - only you see
 them", they are not among "what will be added to your profile", and the done page links to the list.
@@ -129,8 +136,10 @@ Owner only, all 6 locales, mobile first, no JavaScript of their own.
     (`UnlistedPuzzleMatcher::candidatesOf()`); and the import's own search (`GetImportPuzzleScreen::search()`), a POST
     answered 422 (`unlisted_puzzle_search`). Every one is the import's catalogue card
     (`data_import/_catalogue_puzzle.html.twig`) as a button "It is this one".
-  - **"Remove"**: the puzzle goes with its unlisted results and marks; nothing on the profile is touched; reading
-    the same file again does not bring it back (its rows keep saying "added").
+  - **"Remove"** - two steps, like the import's "Take back": a link to `/{_locale}/unlisted-puzzles/{id}/remove`,
+    which says what would go for good (so many unlisted results, so many marks; what is a real result by now
+    stays), then a POST with its CSRF token. The puzzle goes with its unlisted results and marks; nothing on the
+    profile is touched; reading the same file again does not bring it back (its rows keep saying "added").
 - Entry points: a link on the import's done page and on Imports home, and the notification. Nothing else yet.
 
 ## Pairing ("It is this catalogue puzzle")
@@ -138,7 +147,8 @@ Owner only, all 6 locales, mobile first, no JavaScript of their own.
 1. **`PairUnlistedPuzzle`** (request id, unlisted puzzle, player, catalogue puzzle) - serialized with the player's
    "Add"s, one transaction, every check before anything is written: the unlisted puzzle is the player's (else "not
    found") → the same request id answers the same pairing → the import's safety switch (`paused`) → no pairing or
-   Undo of it at work → **the catalogue puzzle is one the player may choose**
+   Undo of it at work (all read under the player's import lock, below) → **the catalogue puzzle is one the player
+   may choose**
    (`GetImportPuzzleCandidates::choosable()`: never hidden or secret, never waiting for approval unless they added
    it - whatever the form sent) → it was not paired with another catalogue puzzle whose results are still there →
    the rate limit of "Add" (`data_import_add`) → something unlisted is left. Then the pairing is recorded, the
@@ -150,21 +160,24 @@ Owner only, all 6 locales, mobile first, no JavaScript of their own.
    second delivery or a restart converts nothing twice. A step that throws is rolled back and its subject marked
    (`error`); the pairing goes on. The safety switch is asked before every step of a pairing; the sweeper
    (`myspeedpuzzling:continue-import-batches`) queues a pairing that stands still again.
-3. **A result** (`UnlistedPairer::convertResult()`), in the engine's order - what `ImportRowAdder` asks before it
-   calls the writer, and then the writer:
-   - the catalogue puzzle may still be chosen and written to (`puzzle_not_available`, `puzzle_not_revealed`);
+3. **A result** (`UnlistedPairer::convertResult()`):
+   - the catalogue puzzle may still be chosen and written to (`puzzle_not_available`, `puzzle_not_revealed`) - **a
+     puzzle merged between the tap and the step is its survivor** (`puzzle_redirect`);
    - **only a result with an exact day** is ever made (`needs_exact_day`) - a month is never stored as a day (6c);
-   - the row's own result or the same data from another import exists → it is that result (nothing added);
-   - the player has exactly this result on the profile (day + time + kind), not spoken for → it is that one, and the
-     row speaks for it from now on;
-   - people that do not fit the kind (`people_do_not_fit_type`), somebody else's pair/team result of that day and
-     time (`somebody_elses_result`), **a similar result on the profile** - the same time on another day, or the same
-     day with another time (`similar_result_exists`), a time the time verification finds unusual (`unusual_time`):
-     **the result stays unlisted, with the reason shown**. Nothing is waved through here - whatever would be a
-     question to the player publishes nothing;
-   - `ImportedResultWriter::write()` - guests only, the first-try assessment, the too-fast and too-long limits, the
-     wish list's "remove when solved", `created_via = spreadsheet_import`, `tracked_at` = noon of the solve day. A
-     refusal of the writer keeps the result unlisted with its code.
+   - then **`ImportResultQuestions::ask()` - the very method an "Add" calls for a row** (`ImportRowAdder::resultOf()`),
+     not a copy of it, with what the unlisted result kept of its row: the row's own result or the same data from
+     another import exists → it is that result; the player has exactly this result on the profile, not spoken for →
+     it is that one, and the row speaks for it from now on; people that do not fit the kind
+     (`people_do_not_fit_type`); somebody else's pair/team result of that day and time (`somebody_elses_result`); a
+     similar result on the profile (`similar_result_exists`); a time the time verification finds unusual
+     (`unusual_time`); the file says the result is on MySpeedPuzzling and none was found
+     (`said_already_on_profile`); then `ImportedResultWriter::write()` - guests only, the first-try assessment, the
+     too-fast and too-long limits, the wish list's "remove when solved", `created_via = spreadsheet_import` - and
+     with it "these are two" told to the duplicate job (`ResultDuplicatePrevention` `saved_anyway`) for a result the
+     player counted on its own. **A refusal keeps the result unlisted, with the reason shown.** Nothing is waved
+     through on the unlisted page - whatever would be a question to the player publishes nothing.
+   `ImportResultQuestionsParityTest` runs the same cases through an "Add" and through a pairing and compares what
+   came of them.
 4. **A mark** (`convertOwnership()`): owned → an item of the system collection unless one is there (never touched),
    honouring the wish list's "remove when added to my collection" (written down for Undo); wish → a wish list item
    unless the puzzle is on the list, owned or solved.
@@ -172,6 +185,25 @@ Owner only, all 6 locales, mobile first, no JavaScript of their own.
    owes it (the puzzle's statistics, `AwardXpForSolvingTime` per result on `imports`, achievements once, the
    prediction backfill) - and the pairing's numbers. No notification: the player pressed the button and the page
    says what came of it.
+
+### The lock
+
+"It is this catalogue puzzle", its Undo, "Remove", every step of the worker and every row of an "Add" take **the
+player's import lock** (`ImportWriteLock`, until their transaction ends) before they read anything: a "Remove" in
+one tab and a pairing in another take turns, each sees what the other committed, and neither ends in a foreign-key
+error.
+
+### The daily guard
+
+What a pairing makes public counts like what an "Add" makes public: at most
+`DataImportLimits::MAX_RESULTS_ADDED_PER_DAY` results a day and player (UTC).
+`DataImportRowRepository::countResultsAddedOrQueuedSince()` counts the rows whose result was **made** today
+(`result_made_at` - whenever the row itself was added) or is queued for the profile; a result that was undone is
+not counted, a row kept as unlisted never. Before a pairing converts a result it asks, under the lock, what is left
+of the day: nothing left → the result is left as it is (no reason on it), the pairing is marked
+(`daily_limit_reached_at`) and **stays at work** - the page says "Today's limit … is reached. The rest is added
+tomorrow, by itself" - and the sweeper (`myspeedpuzzling:continue-import-batches`, every 5 minutes) goes on with it
+once the day has turned. Marks are not held: only results use the day up.
 
 A paired puzzle with something still unlisted on it stays on the list ("Still unlisted here: N", each with its
 reason) and offers "Try to add the rest again" - a new pairing with the same catalogue puzzle. Rows a later "Add"
@@ -190,9 +222,14 @@ never held by the safety switch. The same worker, the other way, exactly what th
 - the collection / wish list item it created is removed (kept when moved to another collection since), a wish list
   item it removed comes back;
 - the results and marks are unlisted again; when nothing of the puzzle is real any more it is unpaired and the
-  remembered decision says "unlisted" again.
+  remembered decision says "unlisted" again;
+- **the catalogue puzzle is "not this puzzle" for the daily look** (`refused_suggestion_puzzle_id`): it is not
+  suggested - and the player not told - again. Pairing by hand stays open.
 
-The pairing's record stays for good (who, when, which catalogue puzzle, what came of it, when it was taken back).
+The pairing's record stays for good (who, when, which catalogue puzzle, what came of it, when it was taken back) -
+**also when the unlisted puzzle is removed afterwards**: `unlisted_pairing.unlisted_puzzle_id` is set to null by the
+database, the puzzle's key is copied on the record, and the results that were public for a while are whole in
+`solving_time_graveyard`. It goes with the player's account only.
 After 30 days the results are ordinary results the player deletes like any other.
 
 ## When the catalogue grows
@@ -219,7 +256,7 @@ Cron (lily): `17 5 * * * … php bin/console myspeedpuzzling:pair-unlisted-puzzl
 | `custom_values` on the unlisted tables | Not stored | Left for later - see below |
 | A pairing is "one batch in the log" (`data_change_batch`) | `unlisted_pairing` + what it made on the results and marks themselves | 6b-1 built no change log; Undo is exact and bounded by the subject, as for rows |
 | One locked message that moves everything | The request records, the worker converts in turns | The brief; no message works longer than a few seconds |
-| Pairing "moves" results - a question (similar result, unusual time) is asked | Such a result stays unlisted with the reason; nothing is waved through | A choice that affects what becomes public publishes less; the answers need a screen |
+| Pairing "moves" results - a question (similar result, unusual time) is asked | The same questions by the same code (`ImportResultQuestions`); such a result stays unlisted with the reason; nothing is waved through | A choice that affects what becomes public publishes less; the answers need a screen |
 | Undo of a pairing: no limit named | 30 days, the player's own | The brief |
 | A weekly job `match-unlisted-puzzles` that tells "3 of your unlisted puzzles are in the catalogue now" | Daily `pair-unlisted-puzzles`; the notification names no number | The brief; a number would need a target column in the notifications' UNION - the list page says it |
 | A 404 for somebody else, a sign-in redirect for a guest (as the import's pages) | 404 for both | The brief |
@@ -241,7 +278,7 @@ Cron (lily): `17 5 * * * … php bin/console myspeedpuzzling:pair-unlisted-puzzl
 - **Export**: no sections `unlisted_puzzles` / `unlisted_results` / `unlisted_collection_items` in the library export.
 - **Admins**: no page for pairings and no admin Undo; a pairing is on `unlisted_pairing`, what it made by
   `unlisted_result.pairing_id` / `converted_solving_time_id`, a deleted result whole in `solving_time_graveyard`.
-- The daily guard does not count results a pairing makes (only the shared rate limit of 120 an hour bounds them).
+- A pairing that waits for tomorrow can not be undone or removed before it is through.
 - After an Undo of a pairing only the remembered decision goes back to "unlisted"; a `data_import_puzzle` of an
   import that was decided as the catalogue puzzle through that remembered decision keeps its decision.
 - The import's "what this import added" list shows a row kept as unlisted without a badge of its own.
@@ -254,6 +291,9 @@ Cron (lily): `17 5 * * * … php bin/console myspeedpuzzling:pair-unlisted-puzzl
 day, owned, wish, both - the unlisted tables only; the same data again and equal rows; Undo; pairing: new results
 once, the result the player had, a similar one and a month-only one kept, the mark, the remembered decision, a
 resent request, the rest again, the import's Undo after a pairing, Undo of the pairing; a result changed since; who
-may pair and with what; paused; Remove; the daily look; account deletion), `tests/Controller/Unlisted/
+may pair and with what; paused; Remove; the daily look; the daily guard and "the rest tomorrow"; a puzzle merged
+between the tap and the step; the lock of pairing, Undo and Remove; an undone pairing is not suggested again and its
+record outlives the puzzle; account deletion), `tests/Services/DataImport/ImportResultQuestionsParityTest` (the
+same cases through an "Add" and through a pairing), `tests/Controller/Unlisted/
 UnlistedPuzzlesPagesTest` (owner only, the canary, the list's statements, the flow from the page, every language),
 `tests/UnlistedDataCoverageTest`.

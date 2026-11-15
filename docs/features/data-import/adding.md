@@ -47,7 +47,7 @@ Not ready, and said so in the outcome's `skipped` (the screens word it):
 |---|---|
 | `unlisted_not_yet` | Until stage 7: the puzzle is kept as an unlisted puzzle. No "Add" answers it any more - such rows are ready now ([unlisted-puzzles.md](unlisted-puzzles.md)); the code stays for batches made before |
 | `needs_exact_day` | A result known to the month or year only, or undated - stage 6c. A month is never stored as a day |
-| `over_daily_limit` | More than `DataImportLimits::MAX_RESULTS_ADDED_PER_DAY` (2,000) results of the player's imports today (UTC); the rest is ready tomorrow. Owned and wish-list rows are not counted |
+| `over_daily_limit` | More than `DataImportLimits::MAX_RESULTS_ADDED_PER_DAY` (2,000) results of the player's imports **made public** today (UTC) - by an "Add" or by the pairing of an unlisted puzzle (`data_import_row.result_made_at`, written with the link); the rest is ready tomorrow. Owned and wish-list rows and rows kept as unlisted are not counted |
 
 A row that was **refused** before (below) is left alone by "add everything that is ready" and taken again only when
 it is asked for by its id or its puzzle's - the player fixed or answered something.
@@ -152,7 +152,8 @@ result and an owned puzzle whose result is refused adds no collection item.
    as a catalogue puzzle, no problem. The puzzle still choosable for the player and
    writable (`SecretPuzzleAccess`). **A puzzle merged since the pairing is the survivor already**: a merge moves
    `data_import_puzzle.puzzle_id` (`puzzleMergedInto()`, stage 5a), so no `puzzle_redirect` is followed here.
-3. **The result** (kind result / both):
+3. **The result** (kind result / both) - after the equal rows, all of it is `ImportResultQuestions::ask()`, the one
+   method the pairing of an unlisted puzzle calls too ([unlisted-puzzles.md](unlisted-puzzles.md) "Pairing"):
    - an equal row (`same_as_row_id` without `add_as_separate`): the row that stands for the group is added first if
      its turn has not come, and this row is that result (`equal_row`);
    - the row's own result still exists (`this_row`) / a row with the same `source_key` made one in any import of

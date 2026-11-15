@@ -343,12 +343,12 @@ final class ImportedResultWriterTest extends KernelTestCase
         $second = Uuid::uuid7()->toString();
 
         self::assertNull($rows->linkedSolvingTimeId($row));
-        self::assertTrue($rows->linkSolvingTime($row, null, $first));
+        self::assertTrue($rows->linkSolvingTime($row, null, $first, TestClock::now()));
         // Somebody was faster: the reader that saw "nothing" writes nothing
-        self::assertFalse($rows->linkSolvingTime($row, null, $second));
+        self::assertFalse($rows->linkSolvingTime($row, null, $second, TestClock::now()));
         self::assertSame($first, $rows->linkedSolvingTimeId($row));
         // A link to a result that is gone is replaced by whoever read exactly it
-        self::assertTrue($rows->linkSolvingTime($row, $first, $second));
+        self::assertTrue($rows->linkSolvingTime($row, $first, $second, TestClock::now()));
         self::assertSame($second, $rows->linkedSolvingTimeId($row));
     }
 

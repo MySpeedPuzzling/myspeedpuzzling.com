@@ -25,7 +25,8 @@ use Symfony\Component\Messenger\Stamp\HandledStamp;
  * Everything is read from the subjects' state, under the player's lock inside each step: a second delivery, a
  * restart or a second worker repeats nothing. A step that throws is rolled back and its subject marked - it stays
  * unlisted (or, for an Undo, real) with the reason - and the pairing goes on. **The safety switch is asked before
- * every step of a pairing** (never of an Undo): a paused pairing waits for the sweeper.
+ * every step of a pairing** (never of an Undo): a paused pairing waits for the sweeper. So does a pairing that used
+ * today's guard on results up (UnlistedPairer::result()): its marks still go, its results wait for tomorrow.
  */
 #[AsMessageHandler]
 readonly final class ProcessUnlistedPairingHandler
@@ -53,8 +54,10 @@ readonly final class ProcessUnlistedPairingHandler
         $startedAt = hrtime(true);
         $done = 0;
         $firstFailure = null;
+        // Today's guard on results from spreadsheets is used up: the results that are left wait for tomorrow
+        $resultsWait = false;
 
-        while ($done < DataImportLimits::ROWS_PER_TURN && (hrtime(true) - $startedAt) / 1_000_000_000 < DataImportLimits::SECONDS_PER_TURN) {
+        while ($resultsWait === false && $done < DataImportLimits::ROWS_PER_TURN && (hrtime(true) - $startedAt) / 1_000_000_000 < DataImportLimits::SECONDS_PER_TURN) {
             $pending = $this->unlistedRepository->pendingOfPairing($message->pairingId, $undoing, DataImportLimits::ROWS_PER_TURN - $done);
 
             if ($pending === []) {
@@ -64,6 +67,10 @@ readonly final class ProcessUnlistedPairingHandler
             }
 
             foreach ($pending as $subject) {
+                if ($resultsWait && $subject['kind'] === ApplyUnlistedPairingStep::RESULT) {
+                    continue;
+                }
+
                 if ($undoing === false && $this->settingsRepository->isAddingPaused()) {
                     // The pairing waits; myspeedpuzzling:continue-import-batches goes on once adding is on again
                     return;
@@ -72,7 +79,9 @@ readonly final class ProcessUnlistedPairingHandler
                 $done++;
 
                 try {
-                    $this->messageBus->dispatch(new ApplyUnlistedPairingStep($message->pairingId, $subject['kind'], $subject['id']));
+                    $stepDone = $this->messageBus->dispatch(new ApplyUnlistedPairingStep($message->pairingId, $subject['kind'], $subject['id']))->last(HandledStamp::class)?->getResult();
+                    // The marks of the same turn still go: only results use the day up
+                    $resultsWait = $resultsWait || $stepDone === false;
                 } catch (\Throwable $e) {
                     $firstFailure ??= $e;
                     // The rolled-back step left its changes in the entity manager
@@ -100,6 +109,12 @@ readonly final class ProcessUnlistedPairingHandler
                 'pairing_id' => $message->pairingId,
                 'exception' => $firstFailure,
             ]);
+        }
+
+        if ($resultsWait) {
+            // The pairing stays at work and is not queued again now: myspeedpuzzling:continue-import-batches asks
+            // every few minutes, and goes on with it once the day has turned
+            return;
         }
 
         // The next turn - behind whatever else waits on the `imports` queue

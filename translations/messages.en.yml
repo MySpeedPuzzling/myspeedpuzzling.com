@@ -12868,6 +12868,7 @@ unlisted_puzzles:
         candidates: "Is it one of these?"
         this_one: "It is this one"
     pairing:
+        tomorrow: "Today's limit of results from spreadsheets (%limit% a day) is reached. The rest is added tomorrow, by itself - nothing is lost."
         running: "Adding its results to your profile…"
         undoing: "Taking the pairing back…"
         leave: "You can leave this page - the work goes on in the background."
@@ -12895,6 +12896,11 @@ unlisted_puzzles:
         from_file: "From your file"
         from_import: "From a spreadsheet you imported on %date%"
     remove:
+        what: "This removes for good"
+        results: "Unlisted results"
+        marks: "Owned / wished marks"
+        real_stays: "What already became regular results or puzzles of your collection stays on your profile: %number%."
+        cancel: "Keep it"
         title: "Remove this unlisted puzzle"
         hint: "It goes with its unlisted results and with whether you own or wish for it. Nothing on your profile is touched. Reading the same file again does not bring it back."
         button: "Remove"

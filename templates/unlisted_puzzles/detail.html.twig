@@ -56,7 +56,12 @@
     {# --- A pairing or an Undo at work --- #}
     {% if working is not null %}
         <div class="card card-body shadow-sm mb-3" data-testid="unlisted-working" data-state="{{ working.state }}">
-            <p class="fw-medium mb-1"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>{{ (working.state == 'undoing' ? 'unlisted_puzzles.pairing.undoing' : 'unlisted_puzzles.pairing.running')|trans }}</p>
+            {% if working.waitsForTomorrow %}
+                {# Today's guard on results from spreadsheets is used up: the rest is added tomorrow, by itself #}
+                <p class="fw-medium mb-1" data-testid="unlisted-waits-for-tomorrow"><i class="bi bi-calendar-day me-2" aria-hidden="true"></i>{{ 'unlisted_puzzles.pairing.tomorrow'|trans({'%limit%': daily_limit|format_number}) }}</p>
+            {% else %}
+                <p class="fw-medium mb-1"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>{{ (working.state == 'undoing' ? 'unlisted_puzzles.pairing.undoing' : 'unlisted_puzzles.pairing.running')|trans }}</p>
+            {% endif %}
             <p class="fs-sm text-muted mb-2">{{ 'unlisted_puzzles.pairing.leave'|trans }}</p>
             <a href="{{ path('unlisted_puzzle', {unlistedPuzzleId: puzzle.id}) }}" class="btn btn-outline-primary text-wrap d-inline-flex align-items-center align-self-start" style="min-height: 44px;" data-turbo="false">
                 <i class="bi bi-arrow-clockwise me-1" aria-hidden="true"></i>{{ 'data_import.reading.refresh'|trans }}
@@ -236,20 +241,13 @@
         </div>
     {% endif %}
 
-    {# --- Remove --- #}
+    {# --- Remove: a page of its own says what would go before anything does --- #}
     {% if working is null %}
-        <details class="card card-body shadow-sm mb-3" data-testid="unlisted-remove">
-            <summary class="fw-semibold d-flex align-items-center" style="min-height: 44px; cursor: pointer;">
-                <i class="bi bi-trash me-2" aria-hidden="true"></i>{{ 'unlisted_puzzles.remove.title'|trans }}
-            </summary>
-            <p class="fs-sm text-muted mt-2">{{ 'unlisted_puzzles.remove.hint'|trans }}</p>
-            <form action="{{ path('unlisted_puzzle_remove', {unlistedPuzzleId: puzzle.id}) }}" method="post">
-                <input type="hidden" name="_token" value="{{ csrf }}">
-                <button type="submit" class="btn btn-outline-danger w-100 text-wrap" style="min-height: 44px;" data-testid="unlisted-remove-button">
-                    <i class="bi bi-trash me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.remove.button'|trans }}
-                </button>
-            </form>
-        </details>
+        <p class="mb-3">
+            <a href="{{ path('unlisted_puzzle_remove', {unlistedPuzzleId: puzzle.id}) }}" class="btn btn-link text-danger text-wrap d-inline-flex align-items-center px-0" style="min-height: 44px;" data-testid="unlisted-remove-link" rel="nofollow">
+                <i class="bi bi-trash me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.remove.title'|trans }}
+            </a>
+        </p>
     {% endif %}
 </div>
 {% endblock %}

@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Exceptions\UnlistedPuzzleNotFound;
 use SpeedPuzzling\Web\Message\ProcessUnlistedPairing;
 use SpeedPuzzling\Web\Message\UndoUnlistedPairing;
 use SpeedPuzzling\Web\Repository\UnlistedPuzzleRepository;
+use SpeedPuzzling\Web\Services\DataImport\ImportWriteLock;
 use SpeedPuzzling\Web\Value\Unlisted\UnlistedPairingOutcome;
 use SpeedPuzzling\Web\Value\Unlisted\UnlistedPairingState;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -26,6 +27,7 @@ readonly final class UndoUnlistedPairingHandler
 {
     public function __construct(
         private UnlistedPuzzleRepository $unlistedRepository,
+        private ImportWriteLock $lock,
         private MessageBusInterface $messageBus,
         private ClockInterface $clock,
     ) {
@@ -36,9 +38,12 @@ readonly final class UndoUnlistedPairingHandler
      */
     public function __invoke(UndoUnlistedPairing $message): UnlistedPairingOutcome
     {
+        // The player's import lock, first - as "It is this catalogue puzzle", its steps and "Remove" take it
+        $this->lock->lockUntilCommit($message->playerId);
         $pairing = $this->unlistedRepository->findPairing($message->pairingId);
 
-        if ($pairing === null || Uuid::isValid($message->playerId) === false || $pairing->unlistedPuzzle->isOwnedBy($message->playerId) === false) {
+        // A pairing whose unlisted puzzle was removed is a record only: nothing of it can be taken back
+        if ($pairing === null || $pairing->unlistedPuzzle === null || Uuid::isValid($message->playerId) === false || $pairing->unlistedPuzzle->isOwnedBy($message->playerId) === false) {
             throw new UnlistedPuzzleNotFound();
         }
 

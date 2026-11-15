@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+
+{#
+    "Remove" an unlisted puzzle, step one (docs/features/data-import/unlisted-puzzles.md "The pages"): what would go -
+    its unlisted results and marks, for good - before anything does. The button is a POST with its CSRF token.
+    Owner only.
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Services\\Unlisted\\UnlistedPuzzlePage::CSRF_TOKEN_ID')) %}
+
+{% block title %}{{ 'unlisted_puzzles.remove.title'|trans }} - {{ puzzle.name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{{ include('_page_crumbs.html.twig', {levels: [
+    {name: 'data_import.home.title'|trans, url: path('data_imports')},
+    {name: 'unlisted_puzzles.title'|trans, url: path('unlisted_puzzles')},
+    {name: puzzle.name, url: path('unlisted_puzzle', {unlistedPuzzleId: puzzle.id})},
+]}) }}
+
+<div class="mx-auto" style="max-width: 720px;" data-testid="unlisted-remove-page" data-results="{{ results }}" data-marks="{{ marks }}" data-real="{{ real }}">
+    <h1 class="h3 mb-2">{{ 'unlisted_puzzles.remove.title'|trans }}</h1>
+    <p class="fw-medium text-break mb-3" data-testid="unlisted-remove-name">{{ puzzle.name }}</p>
+
+    <div class="card card-body shadow-sm mb-3">
+        <h2 class="h6 mb-2">{{ 'unlisted_puzzles.remove.what'|trans }}</h2>
+        <ul class="list-unstyled mb-2">
+            <li class="d-flex justify-content-between gap-2 py-1"><span><i class="bi bi-stopwatch me-2" aria-hidden="true"></i>{{ 'unlisted_puzzles.remove.results'|trans }}</span><strong>{{ results|format_number }}</strong></li>
+            <li class="d-flex justify-content-between gap-2 py-1"><span><i class="bi bi-box-seam me-2" aria-hidden="true"></i>{{ 'unlisted_puzzles.remove.marks'|trans }}</span><strong>{{ marks|format_number }}</strong></li>
+        </ul>
+        <p class="fs-sm text-muted mb-0">{{ 'unlisted_puzzles.remove.hint'|trans }}</p>
+        {% if real > 0 %}
+            <p class="fs-sm mt-2 mb-0" data-testid="unlisted-remove-real">{{ 'unlisted_puzzles.remove.real_stays'|trans({'%number%': real|format_number}) }}</p>
+        {% endif %}
+    </div>
+
+    <form action="{{ path('unlisted_puzzle_remove', {unlistedPuzzleId: puzzle.id}) }}" method="post" class="d-flex flex-column gap-2">
+        <input type="hidden" name="_token" value="{{ csrf }}">
+        <button type="submit" class="btn btn-danger text-wrap" style="min-height: 48px;" data-testid="unlisted-remove-button">
+            <i class="bi bi-trash me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.remove.button'|trans }}
+        </button>
+        <a href="{{ path('unlisted_puzzle', {unlistedPuzzleId: puzzle.id}) }}" class="btn btn-outline-primary text-wrap d-flex align-items-center justify-content-center" style="min-height: 44px;" data-testid="unlisted-remove-cancel">{{ 'unlisted_puzzles.remove.cancel'|trans }}</a>
+    </form>
+</div>
+{% endblock %}

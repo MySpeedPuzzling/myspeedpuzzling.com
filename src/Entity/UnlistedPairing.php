@@ -21,8 +21,8 @@ use SpeedPuzzling\Web\Value\Unlisted\UnlistedPairingState;
 /**
  * One "It is this catalogue puzzle" of a player about one of their unlisted puzzles
  * (docs/features/data-import/unlisted-puzzles.md "Pairing") - kept for good: who, when, which catalogue puzzle, what
- * came of it, and whether it was taken back. What it made is on the results and marks themselves (their
- * `pairing_id`), so an Undo is exact.
+ * came of it, and whether it was taken back - **also after its unlisted puzzle was removed**. What it made is on the
+ * results and marks themselves (their `pairing_id`), so an Undo is exact.
  *
  * `puzzleId` is a plain id: the record of a decision, not a link the catalogue has to keep.
  */
@@ -88,6 +88,27 @@ class UnlistedPairing
     #[Column(options: ['default' => 0])]
     public int $resultsKeptByUndo = 0;
 
+    /**
+     * Null once the unlisted puzzle was removed: **the record stays** - it is the audit trail of results that were
+     * public for a while (`unlistedPuzzleKey` and `puzzleId` still say what was paired with what)
+     */
+    #[ManyToOne]
+    #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    public null|UnlistedPuzzle $unlistedPuzzle;
+
+    /** The unlisted puzzle's key, copied: it outlives the unlisted puzzle */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(length: 80)]
+    public string $unlistedPuzzleKey;
+
+    /**
+     * The day's guard on results from spreadsheets was reached while it ran (DataImportLimits::
+     * MAX_RESULTS_ADDED_PER_DAY): what is left waits - the pairing stays at work and goes on tomorrow
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $dailyLimitReachedAt = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -101,10 +122,7 @@ class UnlistedPairing
         #[ManyToOne]
         #[JoinColumn(nullable: false, onDelete: 'CASCADE')]
         public Player $player,
-        #[Immutable]
-        #[ManyToOne]
-        #[JoinColumn(nullable: false, onDelete: 'CASCADE')]
-        public UnlistedPuzzle $unlistedPuzzle,
+        UnlistedPuzzle $unlistedPuzzle,
         #[Immutable]
         #[Column(type: UuidType::NAME)]
         public UuidInterface $puzzleId,
@@ -113,6 +131,8 @@ class UnlistedPairing
         public DateTimeImmutable $startedAt,
     ) {
         $this->lastActivityAt = $startedAt;
+        $this->unlistedPuzzle = $unlistedPuzzle;
+        $this->unlistedPuzzleKey = $unlistedPuzzle->puzzleKey;
     }
 
     public function isWorking(): bool
@@ -126,11 +146,26 @@ class UnlistedPairing
     }
 
     /**
+     * Today's guard is used up: the results that are left wait for tomorrow.
+     */
+    public function waitsForTomorrow(DateTimeImmutable $now): void
+    {
+        $this->dailyLimitReachedAt ??= $now;
+        $this->lastActivityAt = $now;
+    }
+
+    public function goesOn(): void
+    {
+        $this->dailyLimitReachedAt = null;
+    }
+
+    /**
      * @param array{resultsAdded: int, resultsAlreadyYours: int, resultsKept: int, itemsAdded: int, itemsAlreadyYours: int} $counts
      */
     public function finished(array $counts, DateTimeImmutable $now): void
     {
         $this->state = UnlistedPairingState::Finished;
+        $this->dailyLimitReachedAt = null;
         $this->finishedAt = $now;
         $this->lastActivityAt = $now;
         $this->resultsAdded = $counts['resultsAdded'];
@@ -150,6 +185,7 @@ class UnlistedPairing
     public function undoRequested(DateTimeImmutable $now): void
     {
         $this->state = UnlistedPairingState::Undoing;
+        $this->dailyLimitReachedAt = null;
         $this->undoRequestedAt = $now;
         $this->lastActivityAt = $now;
     }

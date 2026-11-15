@@ -84,8 +84,13 @@ SELECT
 FROM (
     SELECT
         data_import_puzzle.*,
-        data_import_puzzle.puzzle_id IS NOT NULL
-            AND data_import_puzzle.candidates @> jsonb_build_array(jsonb_build_object('puzzleId', CAST(data_import_puzzle.puzzle_id AS TEXT))) AS is_candidate
+        -- A candidate is kept by its id at the time: one merged since is the puzzle it was merged into
+        EXISTS (
+            SELECT 1
+            FROM jsonb_array_elements(data_import_puzzle.candidates) AS candidate
+            LEFT JOIN puzzle_redirect ON CAST(puzzle_redirect.old_puzzle_id AS TEXT) = candidate->>'puzzleId'
+            WHERE COALESCE(CAST(puzzle_redirect.survivor_puzzle_id AS TEXT), candidate->>'puzzleId') = CAST(data_import_puzzle.puzzle_id AS TEXT)
+        ) AS is_candidate
     FROM data_import_puzzle
     WHERE data_import_puzzle.import_id = :importId
 ) AS import_puzzle

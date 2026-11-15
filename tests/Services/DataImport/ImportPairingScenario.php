@@ -199,19 +199,19 @@ trait ImportPairingScenario
     }
 
     /**
-     * @return array{id: string, tier: null|string, choice: string, puzzle_id: null|string, decided_how: null|string, decided_at: null|string, candidates: list<array{puzzleId: string, how: string, score: null|float, piecesDiffer: bool}>, manufacturer_id: null|string, rows_results: int, rows_owned: int}
+     * @return array{id: string, tier: null|string, choice: string, puzzle_id: null|string, decided_how: null|string, decided_at: null|string, decision_version: int, candidates: list<array{puzzleId: string, how: string, score: null|float, piecesDiffer: bool}>, manufacturer_id: null|string, rows_results: int, rows_owned: int}
      */
     private function importPuzzle(DataImport|string $import, string $name): array
     {
         $row = $this->pairingDatabase()->fetchAssociative(
-            'SELECT id, tier, choice, puzzle_id, decided_how, decided_at, candidates, manufacturer_id, rows_results, rows_owned FROM data_import_puzzle WHERE import_id = :importId AND name = :name',
+            'SELECT id, tier, choice, puzzle_id, decided_how, decided_at, decision_version, candidates, manufacturer_id, rows_results, rows_owned FROM data_import_puzzle WHERE import_id = :importId AND name = :name',
             ['importId' => is_string($import) ? $import : $import->id->toString(), 'name' => $name],
         );
         self::assertIsArray($row, sprintf('The import has no puzzle "%s".', $name));
         self::assertIsString($row['candidates']);
         $row['candidates'] = json_decode($row['candidates'], true, flags: JSON_THROW_ON_ERROR);
 
-        /** @var array{id: string, tier: null|string, choice: string, puzzle_id: null|string, decided_how: null|string, decided_at: null|string, candidates: list<array{puzzleId: string, how: string, score: null|float, piecesDiffer: bool}>, manufacturer_id: null|string, rows_results: int, rows_owned: int} $row */
+        /** @var array{id: string, tier: null|string, choice: string, puzzle_id: null|string, decided_how: null|string, decided_at: null|string, decision_version: int, candidates: list<array{puzzleId: string, how: string, score: null|float, piecesDiffer: bool}>, manufacturer_id: null|string, rows_results: int, rows_owned: int} $row */
         return $row;
     }
 

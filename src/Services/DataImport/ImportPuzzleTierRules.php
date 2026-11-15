@@ -19,6 +19,8 @@ use SpeedPuzzling\Web\Value\ImportPuzzleTier;
  * | `earlier_import` - a row with the same key made a result on it | always | |
  * | `barcode` | the file's piece count agrees | the file has no piece count |
  * | `name` - a whole name of the puzzle, the same piece count | the file's brand is the puzzle's brand | the brand differs or is missing, or the file has no piece count |
+ * | `name_without_brackets` - the file's name without its "(…)" part ("Paris (Panorama)" is not "Paris") | | always |
+ * | `name_short` - a name of fewer than MIN_NAME_LENGTH characters or without a letter ("Cat", "2024") | | always |
  * | `own_result` - one result of the player's meets one row: same day, time, kind | the time has real seconds, the file has a piece count | otherwise |
  * | `own_result_loose` - a result meets a row less exactly | | always |
  * | `brand_code` - only when the file's brand is the puzzle's brand | | always |
@@ -30,6 +32,9 @@ use SpeedPuzzling\Web\Value\ImportPuzzleTier;
  * Then: exactly one strong puzzle → **found** (the only tier decided for the player); several strong → **choose**;
  * no strong and exactly one weak → **probably**; several weak, or only candidates with another piece count →
  * **choose**; nothing → null: the similar-name search decides between **choose** and **none** (similar()).
+ *
+ * **A lookup that was cut** (`capped`: it found more puzzles than it may bring) is never "found": the one strong
+ * puzzle among those it brought may be one of several it did not - "choose".
  */
 final class ImportPuzzleTierRules
 {
@@ -37,15 +42,18 @@ final class ImportPuzzleTierRules
     /** Trigram similarity of the names from which a catalogue puzzle is offered (README: to be checked on 200 labelled rows) */
     public const float SIMILAR_NAME_THRESHOLD = 0.6;
 
+    /** A folded name shorter than this is never paired by its name for the player */
+    public const int MIN_NAME_LENGTH = 4;
+
     private const int STRONG = 0;
     private const int WEAK = 1;
     private const int OTHER_PIECES = 2;
 
     /** The better the lookup, the earlier - what a candidate says it was found by when several lookups found it */
-    private const array HOW_ORDER = ['own_id', 'earlier_import', 'barcode', 'name', 'own_result', 'brand_code', 'own_result_loose'];
+    private const array HOW_ORDER = ['own_id', 'earlier_import', 'barcode', 'name', 'own_result', 'brand_code', 'name_without_brackets', 'name_short', 'own_result_loose'];
 
     /**
-     * @param list<array{puzzleId: string, how: string, pieces: int, manufacturerId: null|string, isPlayers?: bool}> $hits
+     * @param list<array{puzzleId: string, how: string, pieces: int, manufacturerId: null|string, isPlayers?: bool, capped?: bool}> $hits
      *
      * @return array{tier: null|ImportPuzzleTier, puzzleId: null|string, candidates: list<array{puzzleId: string, how: string, score: null|float, piecesDiffer: bool}>}
      *         `puzzleId` only for "found"
@@ -102,7 +110,10 @@ final class ImportPuzzleTierRules
         $strong = array_keys(array_filter($puzzles, static fn (array $puzzle): bool => $puzzle['strength'] === self::STRONG));
         $weak = array_keys(array_filter($puzzles, static fn (array $puzzle): bool => $puzzle['strength'] === self::WEAK));
 
+        $capped = array_filter($hits, static fn (array $hit): bool => $hit['capped'] ?? false) !== [];
+
         $tier = match (true) {
+            count($strong) === 1 && $capped => ImportPuzzleTier::Choose,
             count($strong) === 1 => ImportPuzzleTier::Found,
             count($strong) > 1 => ImportPuzzleTier::Choose,
             count($weak) === 1 => ImportPuzzleTier::Probably,

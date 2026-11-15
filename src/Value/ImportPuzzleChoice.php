@@ -16,4 +16,10 @@ enum ImportPuzzleChoice: string
     case Unlisted = 'unlisted';
     /** Its rows are not added */
     case LeftOut = 'left_out';
+    /**
+     * **Only a remembered decision** (import_puzzle_decision), never an import's puzzle: the player took back a
+     * pairing with that catalogue puzzle - "not this one, ask me". The rules never decide the key to be that puzzle
+     * again; it stays undecided with its candidates.
+     */
+    case NotThisPuzzle = 'not_this_puzzle';
 }

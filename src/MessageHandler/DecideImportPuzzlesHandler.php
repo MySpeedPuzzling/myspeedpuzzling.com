@@ -28,13 +28,13 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * is written** - a refused message leaves no half of itself behind:
  *
  * - the import is the player's and is being set up, every puzzle named is one of it;
- * - three-way: each puzzle's `decided_at` is still what the page saw;
+ * - three-way: each puzzle's `decision_version` is still what the page saw;
  * - a chosen catalogue puzzle exists and may be a candidate for this player (GetImportPuzzleCandidates::sqlCandidate()
  *   - what the player finds by searching passes the same check);
  * - a catalogue puzzle whose piece count is not the file's (more than one apart) is chosen alone, never in a group.
  *
  * Then each puzzle takes the decision as the player's, and the player's remembered decision for its key is written
- * (or removed, when a decision is taken back). The counters of "where the rules end" move by what changed - the
+ * (a pairing taken back is remembered as "not this puzzle"; anything else taken back is forgotten). The counters of "where the rules end" move by what changed - the
  * next run of the pairing counts them afresh (GetImportPairing::counters() is the same rule in SQL).
  */
 #[AsMessageHandler]
@@ -89,11 +89,11 @@ readonly final class DecideImportPuzzlesHandler
                 throw new ImportPuzzleChoiceRefused(ImportPuzzleChoiceRefused::UNKNOWN_PUZZLE, $decision->importPuzzleId);
             }
 
-            if (($decision->choice === ImportPuzzleChoice::Catalogue) !== ($decision->puzzleId !== null)) {
+            if ($decision->choice === ImportPuzzleChoice::NotThisPuzzle || ($decision->choice === ImportPuzzleChoice::Catalogue) !== ($decision->puzzleId !== null)) {
                 throw new ImportPuzzleChoiceRefused(ImportPuzzleChoiceRefused::INVALID, $decision->importPuzzleId);
             }
 
-            if ($importPuzzle->isDecisionOf($decision->seenDecidedAt) === false) {
+            if ($importPuzzle->isDecisionVersion($decision->seenVersion) === false) {
                 $stale[] = $decision->importPuzzleId;
             }
 
@@ -149,9 +149,17 @@ readonly final class DecideImportPuzzlesHandler
             $key = $importPuzzle->puzzleKey;
 
             if ($decision->choice === ImportPuzzleChoice::Undecided) {
+                // A pairing taken back is remembered as "not this puzzle": the import's puzzle may be built anew (a
+                // sheet left out and taken in again), and the rules must not make the same pairing again
+                $takenBack = $importPuzzle->choice === ImportPuzzleChoice::Catalogue ? $importPuzzle->puzzle : null;
                 $importPuzzle->decisionTakenBack($now);
 
-                if (isset($remembered[$key])) {
+                if ($takenBack !== null && isset($remembered[$key])) {
+                    $remembered[$key]->decide(ImportPuzzleChoice::NotThisPuzzle, $takenBack, $now);
+                } elseif ($takenBack !== null) {
+                    $remembered[$key] = new ImportPuzzleDecision(Uuid::uuid7(), $import->player, $key, ImportPuzzleChoice::NotThisPuzzle, $takenBack, $now);
+                    $this->decisionRepository->save($remembered[$key]);
+                } elseif (isset($remembered[$key])) {
                     $this->decisionRepository->delete($remembered[$key]);
                     unset($remembered[$key]);
                 }

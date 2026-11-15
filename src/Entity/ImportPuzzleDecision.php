@@ -20,7 +20,9 @@ use SpeedPuzzling\Web\Value\ImportPuzzleChoice;
 /**
  * A player's remembered answer for one puzzle key (docs/features/data-import/pairing.md "Remembered decisions"): the
  * same puzzle in their next file, or in a newer version of this one, arrives decided. Written whenever the player
- * decides (DecideImportPuzzlesHandler), removed when they take the decision back. One per player and key.
+ * decides (DecideImportPuzzlesHandler). Taking a pairing back is remembered too - as "not this puzzle"
+ * (ImportPuzzleChoice::NotThisPuzzle), so the rules do not make the same pairing again when the import's puzzle is
+ * built anew; taking anything else back removes the decision. One per player and key.
  */
 #[Entity]
 #[UniqueConstraint(columns: ['player_id', 'puzzle_key'])]
@@ -64,8 +66,10 @@ class ImportPuzzleDecision
 
     public function decide(ImportPuzzleChoice $choice, null|Puzzle $puzzle, DateTimeImmutable $now): void
     {
-        if ($choice === ImportPuzzleChoice::Undecided || ($choice === ImportPuzzleChoice::Catalogue) !== ($puzzle !== null)) {
-            throw new \LogicException('A remembered decision is a catalogue puzzle, "unlisted" or "left out".');
+        $namesAPuzzle = $choice === ImportPuzzleChoice::Catalogue || $choice === ImportPuzzleChoice::NotThisPuzzle;
+
+        if ($choice === ImportPuzzleChoice::Undecided || $namesAPuzzle !== ($puzzle !== null)) {
+            throw new \LogicException('A remembered decision is a catalogue puzzle, "not this puzzle", "unlisted" or "left out".');
         }
 
         $this->choice = $choice;

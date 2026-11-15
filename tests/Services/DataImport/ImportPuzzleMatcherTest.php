@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Message\BuildImportPuzzles;
 use SpeedPuzzling\Web\Message\MatchImportPuzzlesFuzzy;
+use SpeedPuzzling\Web\Message\ReadWaitingImports;
 use SpeedPuzzling\Web\MessageHandler\BuildImportPuzzlesHandler;
 use SpeedPuzzling\Web\MessageHandler\MatchImportPuzzlesFuzzyHandler;
 use SpeedPuzzling\Web\Services\DataImport\ImportPuzzleMatcher;
@@ -19,6 +20,7 @@ use SpeedPuzzling\Web\Value\PuzzleName;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 /**
@@ -127,6 +129,117 @@ final class ImportPuzzleMatcherTest extends KernelTestCase
         $multipack = $this->importPuzzle($import, 'Zq a multipack');
         self::assertSame('choose', $multipack['tier']);
         self::assertEqualsCanonicalizing([$multipackA, $multipackB], self::candidateIds($multipack));
+    }
+
+    public function testACutListOfSameNamedPuzzlesIsNeverFound(): void
+    {
+        $player = $this->seedPairingPlayer('capped');
+        $brand = $this->seedBrand('Zqcapped');
+        $otherBrand = $this->seedBrand('Zqcappedother');
+        $soloBrand = $this->seedBrand('Zqcappedsolo');
+        $ofTheBrand = [];
+
+        // 25 puzzles called "Zq Sunset", two of them of the file's brand - and one of a third brand
+        for ($index = 0; $index < 25; $index++) {
+            $id = $this->seedCataloguePuzzle('Zq Sunset', 1000, match (true) {
+                $index === 7, $index === 23 => $brand,
+                $index === 24 => $soloBrand,
+                default => $otherBrand,
+            });
+
+            if ($index === 7 || $index === 23) {
+                $ofTheBrand[] = $id;
+            }
+        }
+
+        [$import, $sheet] = $this->seedImport($player);
+        $this->seedRow($import, $sheet, 'Zq Sunset', 1000, 'Zqcapped');
+        $this->seedRow($import, $sheet, 'zq sunset', 1000, 'Zqcappedsolo');
+        $this->pair($import);
+
+        // Both of the brand are among the candidates, first - whatever their ids
+        $two = $this->importPuzzle($import, 'Zq Sunset');
+        self::assertSame(['choose', 'undecided', null], [$two['tier'], $two['choice'], $two['puzzle_id']]);
+        self::assertEqualsCanonicalizing($ofTheBrand, array_slice(self::candidateIds($two), 0, 2));
+
+        // One of the brand among 25: the lookup was cut, so even the only strong one is not "found"
+        $one = $this->importPuzzle($import, 'zq sunset');
+        self::assertSame(['choose', 'undecided', null, null], [$one['tier'], $one['choice'], $one['puzzle_id'], $one['decided_how']]);
+    }
+
+    public function testANameWithoutItsBracketsOrTooShortIsOnlyASuggestion(): void
+    {
+        $player = $this->seedPairingPlayer('brackets');
+        $brand = $this->seedBrand('Zqbrackets');
+        $paris = $this->seedCataloguePuzzle('Zq Paris', 1000, $brand);
+        $short = $this->seedCataloguePuzzle('Zqx', 500, $brand);
+        $year = $this->seedCataloguePuzzle('20 26', 500, $brand);
+        $shortWithBarcode = $this->seedCataloguePuzzle('Zqy', 500, $brand, eans: [self::ean('299999700007')]);
+
+        [$import, $sheet] = $this->seedImport($player);
+        $this->seedRow($import, $sheet, 'Zq Paris (Panorama)', 1000, 'Zqbrackets');
+        $this->seedRow($import, $sheet, 'ZQX', 500, 'Zqbrackets');
+        $this->seedRow($import, $sheet, '20 26', 500, 'Zqbrackets');
+        $this->seedRow($import, $sheet, 'Zqy', 500, 'Zqbrackets', ['barcodes' => [self::ean('299999700007')]]);
+        $this->pair($import);
+
+        foreach (['Zq Paris (Panorama)' => [$paris, 'name_without_brackets'], 'ZQX' => [$short, 'name_short'], '20 26' => [$year, 'name_short']] as $written => [$puzzle, $how]) {
+            $importPuzzle = $this->importPuzzle($import, (string) $written);
+            self::assertSame(['probably', 'undecided', null], [$importPuzzle['tier'], $importPuzzle['choice'], $importPuzzle['puzzle_id']], (string) $written);
+            self::assertSame([$puzzle], self::candidateIds($importPuzzle), (string) $written);
+            self::assertSame($how, $importPuzzle['candidates'][0]['how'], (string) $written);
+        }
+
+        // A barcode pairs whatever the name is
+        self::assertSame(['found', $shortWithBarcode], [$this->importPuzzle($import, 'Zqy')['tier'], $this->importPuzzle($import, 'Zqy')['puzzle_id']]);
+    }
+
+    public function testAPairingThatDidNotComeToRestIsAskedForAgainABoundedNumberOfTimes(): void
+    {
+        $player = $this->seedPairingPlayer('safety-net');
+        [$import, $sheet] = $this->seedImport($player);
+        $this->seedRow($import, $sheet, 'Zq Waiting For Its Pairing', 500);
+        $importId = $import->id->toString();
+        $bus = self::getContainer()->get(MessageBusInterface::class);
+        $transport = self::getContainer()->get('messenger.transport.imports');
+        self::assertInstanceOf(InMemoryTransport::class, $transport);
+        $asked = static fn (): int => count(array_filter($transport->getSent(), static fn ($envelope): bool => $envelope->getMessage() == new BuildImportPuzzles($importId)));
+        $rest = fn () => $this->pairingDatabase()->executeStatement(
+            'UPDATE data_import SET last_activity_at = :at WHERE id = :id',
+            ['at' => TestClock::now()->modify('-16 minutes')->format('Y-m-d H:i:s'), 'id' => $importId],
+        );
+        $this->pairingEntityManager()->clear();
+
+        // Not parsed yet: nothing to pair
+        $rest();
+        $bus->dispatch(new ReadWaitingImports());
+        self::assertSame(0, $asked());
+
+        // Parsed, the pairing's run failed or its message was lost, a quarter of an hour without news
+        $this->pairingDatabase()->executeStatement('UPDATE data_import_sheet SET mapping_version = 1, parsed_version = 1 WHERE id = :id', ['id' => $sheet->id->toString()]);
+        $rest();
+        $bus->dispatch(new ReadWaitingImports());
+        self::assertSame(1, $asked());
+
+        // Asked for a moment ago: left alone
+        $bus->dispatch(new ReadWaitingImports());
+        self::assertSame(1, $asked());
+
+        // It fails every time: three times, no more
+        for ($run = 0; $run < 4; $run++) {
+            $rest();
+            $bus->dispatch(new ReadWaitingImports());
+        }
+
+        self::assertSame(3, $asked());
+
+        // A run that ends starts the count again, and a paired import is left alone
+        $this->pair($importId);
+        self::assertSame(0, $this->pairingCount('SELECT pairing_requeues FROM data_import WHERE id = :id', ['id' => $importId]));
+        $transport->reset();
+        $rest();
+        $bus->dispatch(new ReadWaitingImports());
+        self::assertSame(0, $asked());
     }
 
     public function testAHiddenPuzzleAndSomebodyElsesUnapprovedPuzzleAreNeverCandidates(): void

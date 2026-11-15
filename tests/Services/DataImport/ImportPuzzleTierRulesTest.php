@@ -20,7 +20,7 @@ final class ImportPuzzleTierRulesTest extends TestCase
     private const string X = 'brand-x';
 
     /**
-     * @param list<array{puzzleId: string, how: string, pieces: int, manufacturerId: null|string, isPlayers?: bool}> $hits
+     * @param list<array{puzzleId: string, how: string, pieces: int, manufacturerId: null|string, isPlayers?: bool, capped?: bool}> $hits
      * @param list<string> $candidates
      */
     #[DataProvider('provideCases')]
@@ -34,7 +34,7 @@ final class ImportPuzzleTierRulesTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{null|int, null|string, list<array{puzzleId: string, how: string, pieces: int, manufacturerId: null|string, isPlayers?: bool}>, null|ImportPuzzleTier, null|string, list<string>}>
+     * @return iterable<string, array{null|int, null|string, list<array{puzzleId: string, how: string, pieces: int, manufacturerId: null|string, isPlayers?: bool, capped?: bool}>, null|ImportPuzzleTier, null|string, list<string>}>
      */
     public static function provideCases(): iterable
     {
@@ -50,6 +50,10 @@ final class ImportPuzzleTierRulesTest extends TestCase
         yield 'two puzzles of that name, pieces and brand' => [500, self::X, [$a('name'), $b('name')], ImportPuzzleTier::Choose, null, [self::A, self::B]];
         yield 'two puzzles of that name, none with the brand' => [500, null, [$a('name'), $b('name')], ImportPuzzleTier::Choose, null, [self::A, self::B]];
         yield 'among equals the one the player has comes first' => [500, null, [$a('name'), $b('name', isPlayers: true)], ImportPuzzleTier::Choose, null, [self::B, self::A]];
+        yield 'the name without its brackets is a suggestion' => [500, self::X, [$a('name_without_brackets')], ImportPuzzleTier::Probably, null, [self::A]];
+        yield 'a short name is a suggestion' => [500, self::X, [$a('name_short')], ImportPuzzleTier::Probably, null, [self::A]];
+        yield 'a short name beside its barcode' => [500, self::X, [$a('name_short'), $a('barcode')], ImportPuzzleTier::Found, self::A, [self::A]];
+        yield 'one strong puzzle of a lookup that was cut' => [500, self::X, [[...$a('name'), 'capped' => true], $b('name', brand: 'brand-y')], ImportPuzzleTier::Choose, null, [self::A, self::B]];
         yield 'barcode' => [500, null, [$a('barcode')], ImportPuzzleTier::Found, self::A, [self::A]];
         yield 'barcode, one piece apart' => [501, null, [$a('barcode')], ImportPuzzleTier::Found, self::A, [self::A]];
         yield 'barcode, no pieces in the file' => [null, null, [$a('barcode')], ImportPuzzleTier::Probably, null, [self::A]];

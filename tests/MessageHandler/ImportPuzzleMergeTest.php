@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
 use SpeedPuzzling\Web\Message\DecideImportPuzzles;
 use SpeedPuzzling\Web\Message\SubmitPuzzleMergeRequest;
 use SpeedPuzzling\Web\MessageHandler\DecideImportPuzzlesHandler;
+use SpeedPuzzling\Web\Query\GetImportPairing;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\Services\DataImport\ImportPairingScenario;
 use SpeedPuzzling\Web\Value\DataImport\ImportPuzzleDecisionChange;
@@ -38,13 +39,16 @@ final class ImportPuzzleMergeTest extends KernelTestCase
 
         [$import, $sheet] = $this->seedImport($player);
         $this->seedRow($import, $sheet, 'Zq Merge Duplicate', 500, 'Zqmerge');
-        $this->seedRow($import, $sheet, 'Zq the one I picked', 500);
+        $this->seedRow($import, $sheet, 'Zq Merge Second Duplicate', 500, 'Zqmerge');
         $this->pair($import);
 
-        self::assertSame(['automatic', $duplicate], [$this->importPuzzle($import, 'Zq Merge Duplicate')['decided_how'], $this->importPuzzle($import, 'Zq Merge Duplicate')['puzzle_id']]);
+        $automatic = $this->importPuzzle($import, 'Zq Merge Second Duplicate');
+        self::assertSame(['automatic', $otherDuplicate], [$automatic['decided_how'], $automatic['puzzle_id']]);
 
+        // The player says yes to what the rules found: their own decision now, remembered
+        $confirmed = $this->importPuzzle($import, 'Zq Merge Duplicate');
         $this->handled(self::getContainer()->get(DecideImportPuzzlesHandler::class), new DecideImportPuzzles($import->id->toString(), $player->id->toString(), [
-            new ImportPuzzleDecisionChange($this->importPuzzle($import, 'Zq the one I picked')['id'], ImportPuzzleChoice::Catalogue, $otherDuplicate, null),
+            new ImportPuzzleDecisionChange($confirmed['id'], ImportPuzzleChoice::Catalogue, $duplicate, $confirmed['decision_version']),
         ]));
 
         $mergeRequestId = Uuid::uuid7()->toString();
@@ -76,8 +80,15 @@ final class ImportPuzzleMergeTest extends KernelTestCase
             $this->pairingDatabase()->fetchAllAssociative('SELECT choice, puzzle_id FROM import_puzzle_decision WHERE player_id = :id', ['id' => $player->id->toString()]),
         );
 
+        // The player's puzzle still lists the merged puzzle as its candidate: counted through the merge, it is the
+        // puzzle the rules offered - nothing was overruled
+        self::assertSame([$duplicate], self::candidateIds($this->importPuzzle($import, 'Zq Merge Duplicate')));
+        $counters = self::getContainer()->get(GetImportPairing::class)->counters($import->id->toString());
+        self::assertSame([1, 0], [$counters['player']['decided'], $counters['player']['foundOverruled']]);
+
         // The next run of the pairing finds the survivor under the merged puzzle's name (a merge keeps every name)
         $this->pair($import);
-        self::assertSame(['found', $survivor, 'automatic'], [$this->importPuzzle($import, 'Zq Merge Duplicate')['tier'], $this->importPuzzle($import, 'Zq Merge Duplicate')['puzzle_id'], $this->importPuzzle($import, 'Zq Merge Duplicate')['decided_how']]);
+        $again = $this->importPuzzle($import, 'Zq Merge Second Duplicate');
+        self::assertSame(['found', $survivor, 'automatic'], [$again['tier'], $again['puzzle_id'], $again['decided_how']]);
     }
 }

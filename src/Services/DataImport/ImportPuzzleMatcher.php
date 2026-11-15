@@ -71,17 +71,18 @@ readonly final class ImportPuzzleMatcher
             $wanted[] = [
                 'id' => $puzzle['id'],
                 'pieces' => $puzzle['pieces'],
+                'manufacturerId' => $puzzle['brandText'] === null ? null : $brands[$puzzle['brandText']] ?? null,
                 'ownId' => $puzzle['ownPuzzleId'],
-                'names' => self::namePatterns($puzzle['name']),
-                'eans' => self::barcodePatterns($puzzle['eans']),
-                'codes' => self::brandCodePatterns($puzzle['brandCodes']),
+                'names' => self::nameLines($puzzle['name']),
+                'eans' => self::codeLines($puzzle['eans'], PuzzleTextSearch::barcodeLine(...)),
+                'codes' => self::codeLines($puzzle['brandCodes'], PuzzleTextSearch::brandCodeLine(...)),
             ];
         }
 
         $hits = [];
 
         foreach ($this->candidates->exactHits($wanted, $playerId, $now) as $hit) {
-            $hits[$hit['importPuzzleId']][] = ['puzzleId' => $hit['puzzleId'], 'how' => $hit['how'], 'pieces' => $hit['pieces'], 'manufacturerId' => $hit['manufacturerId'], 'isPlayers' => $hit['isPlayers']];
+            $hits[$hit['importPuzzleId']][] = ['puzzleId' => $hit['puzzleId'], 'how' => $hit['how'], 'pieces' => $hit['pieces'], 'manufacturerId' => $hit['manufacturerId'], 'isPlayers' => $hit['isPlayers'], 'capped' => $hit['capped']];
         }
 
         $profileHints = [];
@@ -96,7 +97,9 @@ readonly final class ImportPuzzleMatcher
         foreach ($open as $puzzle) {
             $manufacturerId = $puzzle['brandText'] === null ? null : $brands[$puzzle['brandText']] ?? null;
             $said = ImportPuzzleTierRules::exact($puzzle['pieces'], $manufacturerId, $hits[$puzzle['id']] ?? []);
-            $found = $said['tier'] === ImportPuzzleTier::Found ? $said['puzzleId'] : null;
+            // "Found" is decided for the player - unless they once took exactly this pairing back ("not this puzzle",
+            // remembered per key): then it stays what the rules say, undecided, with its candidates
+            $found = $said['tier'] === ImportPuzzleTier::Found && $said['puzzleId'] !== $puzzle['notThisPuzzleId'] ? $said['puzzleId'] : null;
             // The moment of an automatic decision stays while it names the same puzzle: a page that shows it is not
             // told "somebody decided meanwhile" by every run
             $sameAsBefore = $found !== null && $puzzle['choice'] === ImportPuzzleChoice::Catalogue->value && $puzzle['puzzleId'] === $found;
@@ -207,63 +210,52 @@ readonly final class ImportPuzzleMatcher
     }
 
     /**
-     * The name as written, and without a "(…)" part - "Ocean (500)" is the catalogue's "Ocean".
+     * The name as a line of the names key holds it - and, as a lookup of its own, without a "(…)" part: "Ocean
+     * (500)" may be the catalogue's "Ocean", but "Paris (Panorama)" is not "Paris", so that one is only ever a
+     * suggestion. A name too short or without a letter ("Cat", "2024") is a suggestion too.
      *
-     * @return list<string>
+     * @return list<array{line: string, how: string}>
      */
-    private static function namePatterns(string $name): array
+    private static function nameLines(string $name): array
     {
-        $names = [$name, trim((string) preg_replace('/\s*\([^()]*\)\s*/u', ' ', $name))];
-        $patterns = [];
+        $lines = [];
+        $written = PuzzleTextSearch::nameLine($name);
+        $withoutBrackets = PuzzleTextSearch::nameLine(trim((string) preg_replace('/\s*\([^()]*\)\s*/u', ' ', $name)));
 
-        foreach ($names as $candidate) {
-            $pattern = PuzzleTextSearch::wholeNamePattern($candidate);
-
-            if ($pattern !== null) {
-                $patterns[$pattern] = true;
-            }
+        if ($written !== '') {
+            $lines[] = ['line' => $written, 'how' => self::isTooShortToPair($written) ? 'name_short' : 'name'];
         }
 
-        return array_map(strval(...), array_keys($patterns));
+        if ($withoutBrackets !== '' && $withoutBrackets !== $written) {
+            $lines[] = ['line' => $withoutBrackets, 'how' => 'name_without_brackets'];
+        }
+
+        return $lines;
     }
 
-    /**
-     * @param list<string> $barcodes
-     *
-     * @return list<array{lineEnd: string, line: string}>
-     */
-    private static function barcodePatterns(array $barcodes): array
+    private static function isTooShortToPair(string $foldedName): bool
     {
-        $patterns = [];
-
-        foreach (array_slice($barcodes, 0, self::MAX_CODES) as $barcode) {
-            $pattern = PuzzleTextSearch::barcodePatterns($barcode);
-
-            if ($pattern !== null) {
-                $patterns[] = $pattern;
-            }
-        }
-
-        return $patterns;
+        return mb_strlen($foldedName) < ImportPuzzleTierRules::MIN_NAME_LENGTH || preg_match('/\p{L}/u', $foldedName) !== 1;
     }
 
     /**
      * @param list<string> $codes
+     * @param callable(string): (null|string) $asLine
      *
-     * @return list<string>
+     * @return list<string> each as a line of the codes key holds it, without its tag
      */
-    private static function brandCodePatterns(array $codes): array
+    private static function codeLines(array $codes, callable $asLine): array
     {
-        $patterns = [];
+        $lines = [];
 
         foreach (array_slice($codes, 0, self::MAX_CODES) as $code) {
-            $pattern = PuzzleTextSearch::brandCodePattern($code);
+            $line = $asLine($code);
 
-            if ($pattern !== null) {
-                $patterns[] = $pattern;
+            if ($line !== null && $line !== '') {
+                $lines[$line] = true;
             }
         }
 
-        return $patterns;
+        return array_map(strval(...), array_keys($lines));
     }
 }

@@ -14,7 +14,8 @@ row sheet) are stage 5b - here the import page only says where the pairing stand
 - [Where the rules end](#where-the-rules-end)
 - [The summary](#the-summary)
 - [A puzzle merge](#a-puzzle-merge)
-- [The statements](#the-statements) - **two to be explained on production before the merge**
+- [When a run fails](#when-a-run-fails)
+- [The statements](#the-statements) - measured on production; the exact one once more before the merge
 - [What 5b's screens can call](#what-5bs-screens-can-call)
 - [Where the README and the code differ](#where-the-readme-and-the-code-differ)
 
@@ -62,17 +63,19 @@ ParseImportSheetHandler ends a sheet's parse
 | `searched_at` | when the similar-name search ran for it |
 | `choice` | `undecided` / `catalogue` / `unlisted` / `left_out` |
 | `puzzle_id` | the catalogue puzzle of a `catalogue` choice. Foreign key **without** `ON DELETE`: a merge moves it; any other path that deletes a paired puzzle fails instead of leaving a decision without its puzzle |
-| `decided_at` | when the decision last changed - taking it back counts. The three-way check's stamp |
+| `decided_at` | when the decision last changed - taking it back counts |
+| `decision_version` | raised by every change of the decision (the player's, a remembered one arriving, the rules' own) - **the three-way check's stamp** (`decided_at` keeps whole seconds) |
 | `decided_how` | `player` / `remembered` / `automatic`. Only `player` is never replaced by a later run |
 
 `import_puzzle_decision` - a player's remembered answer. Unique `(player_id, puzzle_key)` (a surrogate `id` is the
-primary key - the README has the pair as the key). `choice` (`catalogue` / `unlisted` / `left_out`), `puzzle_id`
-(`ON DELETE CASCADE`), `decided_at`. Goes with the player.
+primary key - the README has the pair as the key). `choice` (`catalogue` / `unlisted` / `left_out` /
+`not_this_puzzle` - a pairing the player took back, with the puzzle it was), `puzzle_id` (`ON DELETE CASCADE`),
+`decided_at`. Goes with the player.
 
 `data_import_row`: `import_puzzle_id` is filled (index added); new `already_yours_how` (`profile` /
 `earlier_import`) and `already_yours_solving_time_id`.
 
-`data_import`: `pairing_run`, `paired_at`, `pairing_counters` (jsonb).
+`data_import`: `pairing_run`, `paired_at`, `pairing_counters` (jsonb), `pairing_requeues`.
 
 Not built here: `picture_url`, `unlisted_puzzle_id` (stage 7), the player's own brand aliases.
 
@@ -97,19 +100,25 @@ first given a strength. "The count agrees" = the file's piece count is the puzzl
 |---|---|---|---|
 | `own_id` | the file's own puzzle id, following `puzzle_redirect` | always | |
 | `earlier_import` | a row with the same `source_key` in another import of the player made a result that exists - on that result's puzzle | always | |
-| `barcode` | a barcode of the rows is an `e:` line of `search_codes` (leading zeros tolerated, never a part of a longer code) | the count agrees | the file has no piece count |
-| `name` | the name folded by `SearchText::fold()` - as written, and without a `(…)` part - is a whole line of `search_names` (any name of the puzzle), **and** `pieces_count` is the file's when the file has one | the brand resolved from the file is the puzzle's brand | the brand differs or is missing; or the file has no piece count |
+| `barcode` | a barcode of the rows **equals** an `e:` line of `search_codes` (digits without leading zeros on both sides) | the count agrees | the file has no piece count |
+| `name` | the name folded by `SearchText::fold()` - as written, and without a `(…)` part - **equals** a line of `search_names` (any name of the puzzle), **and** `pieces_count` is the file's when the file has one | the brand resolved from the file is the puzzle's brand | the brand differs or is missing; or the file has no piece count |
+| `name_without_brackets` | the same lookup with the file's name without its `(…)` part - "Ocean (500)" may be "Ocean", "Paris (Panorama)" is not "Paris" | | always |
+| `name_short` | the `name` lookup for a folded name of fewer than 4 characters or without a letter ("Cat", "2024", "20 26") | | always |
 | `own_result` | one result of the player meets one row, one to one: same day, same seconds, same solo/pair/team | the time has real seconds (not a multiple of 60), the file has a piece count, and no other lookup points at another puzzle | otherwise |
 | `own_result_loose` | a result meets a row less exactly (the day before or after, another kind, several rows or results) | | always |
-| `brand_code` | a brand code of the rows is a `c:` line of `search_codes` - with or without the EAN's check digit - **and** the file's brand is the puzzle's | | always |
+| `brand_code` | a brand code of the rows (letters and digits) **equals** a `c:` line of `search_codes` - with or without the EAN's check digit - **and** the file's brand is the puzzle's | | always |
+
+**A lookup that was cut is never "found".** Each kind of lookup brings at most 20 puzzles per import puzzle - after
+the candidate rule, the file's brand first. When it found more (`capped`), one strong puzzle among those it brought
+is "choose": it may be one of several (25 puzzles called "Sunset", one of the brand).
 
 **A hit whose piece count does not agree is neither strong nor weak**: it is a candidate only (`piecesDiffer`), and
 alone it makes the puzzle "choose".
 
 | Tier | Exact rule | Decided for the player |
 |---|---|---|
-| **found** | exactly one strong puzzle | yes - `catalogue`, `automatic`, changeable |
-| **choose** | several strong puzzles; or no strong one and several weak ones; or only candidates with another piece count; or (after the search) names with trigram similarity ≥ 0.6 | never |
+| **found** | exactly one strong puzzle, no lookup cut | yes - `catalogue`, `automatic`, changeable - unless the player took exactly this pairing back before ("not this puzzle"): then it stays undecided with its candidates |
+| **choose** | several strong puzzles; or one strong puzzle of a cut lookup; or no strong one and several weak ones; or only candidates with another piece count; or (after the search) names with trigram similarity ≥ 0.6 | never |
 | **probably** | no strong puzzle, exactly one weak one | never |
 | **none** | nothing exact, and no similar name | never |
 
@@ -140,7 +149,11 @@ months and years, rows without a time, owned and wish-list rows - all of that is
 
 ## Remembered decisions
 
-Written by `DecideImportPuzzles`, one per player and puzzle key; removed when the player takes a decision back.
+Written by `DecideImportPuzzles`, one per player and puzzle key. **A pairing taken back is remembered as "not this
+puzzle"** (`not_this_puzzle` + the catalogue puzzle): the import's puzzle is a new row whenever its rows leave the
+file and come back (a sheet left out and taken in again), and in the player's next file - and the rules would make
+the same wrong pairing again. With it they still say "found" and decide nothing. Taking back anything that names no
+puzzle (unlisted, left out) removes the remembered decision.
 Every run applies them first (`DataImportPuzzleRepository::applyRememberedDecisions()`), to every puzzle the player
 has not decided in this import: the same key → the same choice, `decided_how = remembered`, with the moment the
 decision was made. A remembered catalogue puzzle that may not be a candidate any more is not applied, and a
@@ -150,20 +163,20 @@ not - the decision is remembered, so the key arrives decided when it comes back.
 ## Decisions
 
 `DecideImportPuzzles(importId, playerId, list<ImportPuzzleDecisionChange>)`, each change
-`(importPuzzleId, choice, puzzleId, seenDecidedAt)`. Under the import's lock; **all or nothing, everything checked
+`(importPuzzleId, choice, puzzleId, seenVersion)`. Under the import's lock; **all or nothing, everything checked
 before anything is written**:
 
 | Refused with | When |
 |---|---|
 | `DataImportNotFound` (404) | not the player's import, or it is not being set up |
-| `ImportPuzzleDecidedMeanwhile` (409, `importPuzzleIds`) | a puzzle's `decided_at` is not what the page saw (`seenDecidedAt`, null = never decided) |
+| `ImportPuzzleDecidedMeanwhile` (409, `importPuzzleIds`) | a puzzle's `decision_version` is not what the page saw (`seenVersion`, 0 = never decided) |
 | `ImportPuzzleChoiceRefused` (422) `unknown_puzzle` | no such puzzle of this import |
-| … `invalid` | `catalogue` without a puzzle, or another choice with one |
+| … `invalid` | `catalogue` without a puzzle, another choice with one, or `not_this_puzzle` (nothing a page sends) |
 | … `not_choosable` | the catalogue puzzle does not exist or may not be a candidate for this player |
 | … `other_piece_count_in_group` | a puzzle whose piece count is not the file's (more than one apart) in a message of several decisions - it can only be chosen alone |
 
-`Undecided` takes a decision back: `decided_how = player` (so no run ticks it again), the remembered decision is
-removed. Any other choice is stored as the player's and remembered. An automatic "found" is undone the same way.
+`Undecided` takes a decision back: `decided_how = player` (so no run ticks it again), and what is remembered is
+"not this puzzle" (above). Any other choice is stored as the player's and remembered. An automatic "found" is undone the same way.
 
 ## Where the rules end
 
@@ -177,6 +190,10 @@ invented numbers:
  "remembered": 0,
  "player": {"decided": 31, "foundOverruled": 2, "noneOfThese": 9, "pickedAnother": 4, "foundByHand": 6}}
 ```
+
+A candidate is kept by its id at the time, so `GetImportPairing::counters()` reads candidates through
+`puzzle_redirect` (a puzzle merged since is the puzzle it was merged into); the handler's own count between two runs
+does not, and the next run corrects it.
 
 `tiers` = what the rules left (never changed by a decision; `open` = the search has not come to it). `foundOverruled`
 = a "found" the player unticked or replaced; `noneOfThese` = "probably" / "choose" answered with unlisted or left
@@ -198,6 +215,15 @@ that tier (a "found" the player unticked is "to choose"), `notFound` = undecided
 `import_puzzle_decision.puzzle_id` onto the survivor as objects (`puzzleMergedInto()`), ids in the merge audit's
 inventory (`importPuzzles`, `importPuzzleDecisions`). Both are listed in `PuzzleMergeForeignKeyCoverageTest`;
 `ImportPuzzleMergeTest`.
+
+## When a run fails
+
+The `imports` queue has no retries. A run that fails - a puzzle merge deleting a puzzle the run is just pairing with
+(the foreign key refuses one of the two), a fault of ours - is rolled back whole and leaves `paired_at` empty. The
+safety net (`ReadWaitingImportsHandler`, every 5 minutes) queues `BuildImportPuzzles` again for an import that is
+being set up, has a parsed sheet, is not paired and wrote nothing for a quarter of an hour
+(`RequestImportPairing`) - at most `DataImportLimits::MAX_SET_UP_ATTEMPTS` (3) times (`data_import.pairing_requeues`,
+back to zero when a run ends). It also pairs imports parsed before this stage.
 
 ## The statements
 
@@ -222,84 +248,138 @@ thousands of puzzles. Per run of `BuildImportPuzzles`, whatever the size:
 
 and per chunk of `MatchImportPuzzlesFuzzy`: the waiting puzzles, the threshold, **`GetImportPuzzleCandidates::similarNames()`**, one write.
 
-What a name, a barcode and a brand code match is `PuzzleTextSearch`'s - its new batch methods
-(`wholeNamePattern()`, `barcodePatterns()`, `brandCodePattern()`, `batch…Condition()`, `nameSimilarity()`,
-`batchSimilarNameCondition()`) put the typed search's own patterns into a join; no statement elsewhere matches
-puzzle text.
+What a name, a barcode and a brand code match is `PuzzleTextSearch`'s: the exact statement joins by equality with
+the lines of the stored keys (`sqlNameLines()` / `sqlCodeLines()` split a key in SQL; `nameLine()` / `barcodeLine()`
+/ `brandCodeLine()` write the other side in PHP), the similar-name statement uses `batchSimilarNameCondition()` /
+`nameSimilarity()`. The line format lives there and in `PuzzleSearchKeys` only - `PuzzleTextSearchLinesTest` pins
+that a key is split into exactly the lines it is built of (other names, several EANs, check-digit aliases). No
+statement elsewhere matches puzzle text.
 
-### To be explained on production by the orchestrator before merge
+### Measured on production (2026-11-15, read only, 46,427 puzzles)
 
-Both were only looked at on the **dev copy** of the catalogue (41,282 puzzles, weeks old, read only): the similar-name
-statement for 100 puzzles 177 ms (a `Bitmap Index Scan on custom_puzzle_search_names_trgm` per puzzle, ~46 rows
-each, 0.75 ms), the name branch of the exact statement for 3,000 names 757 ms (`BitmapAnd` of the piece-count index
-and the trigram index, 0.25 ms each). Production's plans decide. `EXPLAIN (ANALYZE, BUFFERS)` each with real values:
-`:wanted` as below (take names, codes and piece counts of a few hundred real puzzles plus some invented ones),
-`:playerId` a player with many results, `:now` the current time.
+- **Similar names**, a chunk of 100: 840 ms - a `Bitmap Index Scan on custom_puzzle_search_names_trgm` per puzzle
+  (80 index rows → 2 after the filter). Within the budget.
+- **The exact statement, first shape - `LIKE` through the trigram indexes - was far over budget**: 100 wanted puzzles
+  1,072 ms, 3,000 ran into the 20 s statement timeout (a whole-name `LIKE` ~8.5 ms, a barcode `LIKE` ~3.7 ms each on
+  production; the dev copy's 0.25 ms was not representative). 5,000 puzzles would have been 45-60 s inside the
+  build's transaction and lock.
+- **The shape built now - equality hash joins against the catalogue's lines, split once**: 143 ms for 5,000 wanted
+  puzzles (names + barcodes; a sequential scan of `puzzle` ~9 ms per key, 48,182 name lines, 28,897 barcode lines,
+  two hash joins ~70 ms each). One shape for every size of import - a small import is not sent through the index.
+
+The statement as committed adds to the measured one: brand codes (`c:` lines, in the same join as the barcodes, by
+tag), a join to `puzzle` inside each lookup so that **who may be a candidate and whether the brand agrees is settled
+before the cap**, the cap of 20 hits per wanted puzzle and kind (`row_number()`, the brand's own puzzles first,
+`capped` when more were found), the own-id branch and `is_players`. On the dev
+copy (41,282 puzzles) the whole of it took ~0.6 s for 5,000 wanted puzzles with hash joins throughout - **worth one
+more `EXPLAIN (ANALYZE, BUFFERS)` on production before the merge** (the planner's row estimates for the joins are
+far too high, so look at what JIT costs).
 
 **1. The exact statement** (`GetImportPuzzleCandidates::exactHits()`). Budget: under 1 s for 5,000 puzzles (README).
-Watch for: a sequential scan of `puzzle` inside any `LATERAL` (each must be an index scan of
-`custom_puzzle_search_names_trgm` / `custom_puzzle_search_codes_trgm`), and the two `EXISTS` at the end (one index
-probe each per hit).
 
 ```sql
--- :wanted = [{"id": "<uuid>", "pieces": 500, "ownId": null,
---             "names": ["%\nzq circle of kites\n%"],                          -- PuzzleTextSearch::wholeNamePattern()
---             "eans":  [{"lineEnd": "%4005556174812\n%", "line": "\ne:4005556174812\n"}],  -- ::barcodePatterns()
---             "codes": ["%c:17481\n%"]}, …]                                    -- ::brandCodePattern()
-WITH wanted AS (
+-- :wanted = [{"id": "<uuid>", "pieces": 500, "manufacturerId": "<uuid or null>", "ownId": null,
+--             "names": [{"line": "zq circle of kites (gift)", "how": "name"},          -- PuzzleTextSearch::nameLine() = SearchText::fold()
+--                       {"line": "zq circle of kites", "how": "name_without_brackets"}],
+--             "eans":  ["4005556174812"],          -- ::barcodeLine(): digits without leading zeros
+--             "codes": ["17481"]}, …]              -- ::brandCodeLine(): letters and digits (SearchText::code())
+WITH wanted AS MATERIALIZED (
     SELECT *
-    FROM jsonb_to_recordset(CAST(:wanted AS JSONB)) AS wanted(id UUID, pieces INT, "ownId" UUID, names JSONB, eans JSONB, codes JSONB)
+    FROM jsonb_to_recordset(CAST(:wanted AS JSONB)) AS wanted(id UUID, pieces INT, "manufacturerId" UUID, "ownId" UUID, names JSONB, eans JSONB, codes JSONB)
+),
+wanted_names AS MATERIALIZED (
+    SELECT DISTINCT wanted.id, wanted.pieces, wanted."manufacturerId" AS manufacturer_id, name.line, name.how
+    FROM wanted
+    CROSS JOIN LATERAL jsonb_to_recordset(wanted.names) AS name(line TEXT, how TEXT)
+),
+wanted_codes AS MATERIALIZED (
+    SELECT DISTINCT wanted.id, wanted."manufacturerId" AS manufacturer_id, 'e' AS tag, barcode.code
+    FROM wanted
+    CROSS JOIN LATERAL jsonb_array_elements_text(wanted.eans) AS barcode(code)
+
+    UNION ALL
+
+    SELECT DISTINCT wanted.id, wanted."manufacturerId", 'c', brand_code.code
+    FROM wanted
+    CROSS JOIN LATERAL jsonb_array_elements_text(wanted.codes) AS brand_code(code)
+),
+catalogue_names AS MATERIALIZED (
+    -- PuzzleTextSearch::sqlNameLines()
+    SELECT pts_puzzle.id, pts_puzzle.pieces_count, pts_line AS line
+    FROM puzzle pts_puzzle
+    CROSS JOIN LATERAL unnest(string_to_array(btrim(pts_puzzle.search_names, E'\n'), E'\n')) AS pts_line
+    WHERE pts_line <> ''
+),
+catalogue_codes AS MATERIALIZED (
+    -- PuzzleTextSearch::sqlCodeLines()
+    SELECT pts_puzzle.id, substring(pts_line from 1 for 1) AS tag, substring(pts_line from 3) AS code
+    FROM puzzle pts_puzzle
+    CROSS JOIN LATERAL unnest(string_to_array(btrim(pts_puzzle.search_codes, E'\n'), E'\n')) AS pts_line
+    WHERE pts_line LIKE 'e:%' OR pts_line LIKE 'c:%'
 ),
 hits AS (
-    SELECT wanted.id, found.id AS puzzle_id, 'name' AS how
-    FROM wanted
-    CROSS JOIN LATERAL jsonb_array_elements_text(wanted.names) AS name_pattern(value)
-    CROSS JOIN LATERAL (
-        SELECT by_name.id
-        FROM puzzle by_name
-        WHERE by_name.search_names LIKE name_pattern.value
-            AND (wanted.pieces IS NULL OR by_name.pieces_count = wanted.pieces)
-        ORDER BY by_name.id
-        LIMIT 20
-    ) found
+    -- Who may be a candidate, and whether the brand agrees, is settled BEFORE the cap: the brand's own puzzles come
+    -- first, and a kind of lookup that found more than it may bring says so (`capped`) - never "found" then
+    SELECT by_name.id, by_name.puzzle_id, by_name.how, by_name.total > 20 AS capped
+    FROM (
+        SELECT
+            wanted_names.id,
+            wanted_names.how,
+            puzzle.id AS puzzle_id,
+            row_number() OVER name_hits AS position,
+            COUNT(*) OVER (PARTITION BY wanted_names.id, wanted_names.how) AS total
+        FROM wanted_names
+        INNER JOIN catalogue_names
+            ON catalogue_names.line = wanted_names.line
+            AND (wanted_names.pieces IS NULL OR catalogue_names.pieces_count = wanted_names.pieces)
+        INNER JOIN puzzle ON puzzle.id = catalogue_names.id
+        WHERE ((puzzle.hide_until IS NULL OR puzzle.hide_until <= :now::timestamp)
+            AND (puzzle.hide_image_until IS NULL OR puzzle.hide_image_until <= :now::timestamp)
+            AND (puzzle.approved OR puzzle.added_by_user_id = :playerId))
+        WINDOW name_hits AS (
+            PARTITION BY wanted_names.id, wanted_names.how
+            ORDER BY (wanted_names.manufacturer_id IS NOT NULL AND puzzle.manufacturer_id = wanted_names.manufacturer_id) DESC, puzzle.id
+        )
+    ) by_name
+    WHERE by_name.position <= 20
 
     UNION ALL
 
-    SELECT wanted.id, found.id, 'barcode'
-    FROM wanted
-    CROSS JOIN LATERAL jsonb_to_recordset(wanted.eans) AS barcode("lineEnd" TEXT, line TEXT)
-    CROSS JOIN LATERAL (
-        SELECT by_barcode.id
-        FROM puzzle by_barcode
-        WHERE (by_barcode.search_codes LIKE barcode."lineEnd" AND strpos(by_barcode.search_codes, barcode.line) > 0)
-        ORDER BY by_barcode.id
-        LIMIT 20
-    ) found
+    SELECT by_code.id, by_code.puzzle_id, CASE WHEN by_code.tag = 'e' THEN 'barcode' ELSE 'brand_code' END, by_code.total > 20
+    FROM (
+        SELECT
+            wanted_codes.id,
+            wanted_codes.tag,
+            puzzle.id AS puzzle_id,
+            row_number() OVER code_hits AS position,
+            COUNT(*) OVER (PARTITION BY wanted_codes.id, wanted_codes.tag) AS total
+        FROM wanted_codes
+        INNER JOIN catalogue_codes
+            ON catalogue_codes.code = wanted_codes.code
+            AND catalogue_codes.tag = wanted_codes.tag
+        INNER JOIN puzzle ON puzzle.id = catalogue_codes.id
+        WHERE ((puzzle.hide_until IS NULL OR puzzle.hide_until <= :now::timestamp)
+            AND (puzzle.hide_image_until IS NULL OR puzzle.hide_image_until <= :now::timestamp)
+            AND (puzzle.approved OR puzzle.added_by_user_id = :playerId))
+        WINDOW code_hits AS (
+            PARTITION BY wanted_codes.id, wanted_codes.tag
+            ORDER BY (wanted_codes.manufacturer_id IS NOT NULL AND puzzle.manufacturer_id = wanted_codes.manufacturer_id) DESC, puzzle.id
+        )
+    ) by_code
+    WHERE by_code.position <= 20
 
     UNION ALL
 
-    SELECT wanted.id, found.id, 'brand_code'
-    FROM wanted
-    CROSS JOIN LATERAL jsonb_array_elements_text(wanted.codes) AS code_pattern(value)
-    CROSS JOIN LATERAL (
-        SELECT by_code.id
-        FROM puzzle by_code
-        WHERE by_code.search_codes LIKE code_pattern.value
-        ORDER BY by_code.id
-        LIMIT 20
-    ) found
-
-    UNION ALL
-
-    SELECT wanted.id, COALESCE(puzzle_redirect.survivor_puzzle_id, wanted."ownId"), 'own_id'
+    SELECT wanted.id, COALESCE(puzzle_redirect.survivor_puzzle_id, wanted."ownId"), 'own_id', FALSE
     FROM wanted
     LEFT JOIN puzzle_redirect ON puzzle_redirect.old_puzzle_id = wanted."ownId"
     WHERE wanted."ownId" IS NOT NULL
 )
-SELECT DISTINCT
+SELECT
     hits.id AS import_puzzle_id,
     hits.puzzle_id,
     hits.how,
+    BOOL_OR(hits.capped) AS capped,
     puzzle.pieces_count,
     puzzle.manufacturer_id,
     (
@@ -309,13 +389,17 @@ SELECT DISTINCT
 FROM hits
 INNER JOIN puzzle ON puzzle.id = hits.puzzle_id
 WHERE ((puzzle.hide_until IS NULL OR puzzle.hide_until <= :now::timestamp)
-    AND (puzzle.hide_image_until IS NULL OR puzzle.hide_image_until <= :now::timestamp)
-    AND (puzzle.approved OR puzzle.added_by_user_id = :playerId))
+            AND (puzzle.hide_image_until IS NULL OR puzzle.hide_image_until <= :now::timestamp)
+            AND (puzzle.approved OR puzzle.added_by_user_id = :playerId))
+GROUP BY hits.id, hits.puzzle_id, hits.how, puzzle.id
 ORDER BY hits.id, hits.puzzle_id, hits.how
 ```
 
+A barcode is compared as the key stores it - digits without leading zeros, the whole number; the scanner's
+misread tolerance (`FindPuzzlesByScannedEan`) is deliberately not part of the exact tier.
+
 **2. The similar-name statement** (`GetImportPuzzleCandidates::similarNames()`), a chunk of 100. Budget: ~2 s a
-chunk (README: 26 ms a puzzle). Run both lines in one transaction - the first sets the index threshold (0.1 under
+chunk - measured 840 ms (above). Run both lines in one transaction - the first sets the index threshold (0.1 under
 the similarity asked for: the index finds a stretch of the names key, the measure compares whole names). Watch for:
 `Bitmap Index Scan on custom_puzzle_search_names_trgm` with `search_names %> …` per wanted puzzle, and how many rows
 the heap filter throws away for short or common names.
@@ -366,8 +450,8 @@ result - `data_import_row` has no index by player and key; the README's `(player
 - Lists per group: `data_import_puzzle` by `(import_id, tier, choice)` (the index is there); a candidate's picture
   and name come from `puzzle` by the ids in `candidates` - check `GetImportPuzzleCandidates::sqlCandidate()` and
   follow `puzzle_redirect`.
-- `DecideImportPuzzles` for one tap, "Tick all I see here" (a list of changes, each with the `decided_at` the page
-  showed), "None of these" (`Unlisted` / `LeftOut`), untick (`Undecided`). A 409 names the stale puzzles.
+- `DecideImportPuzzles` for one tap, "Tick all I see here" (a list of changes, each with the `decision_version` the
+  page showed), "None of these" (`Unlisted` / `LeftOut`), untick (`Undecided`). A 409 names the stale puzzles.
 - The search sheet: whatever the player picks goes through `DecideImportPuzzles`, which checks it like a candidate.
 - Rows of a puzzle: `data_import_row.import_puzzle_id` (indexed); `already_yours_how` for the folded group.
 - A decision changes no row: "a row is ready when its puzzle is decided" is derived (`choice` of its puzzle).
@@ -385,3 +469,15 @@ result - `data_import_row` has no index by player and key; the README's `(player
 | `decided_how (player \| remembered)` | + `automatic` | the rules' own "found" must be told apart: it is replaced by later runs |
 | Remembered brand answers ("MB = Milton Bradley") | not built - `ImportBrandResolver` knows the catalogue's rule and letters-and-digits | no storage for a player's aliases yet |
 | "Run when a layout is confirmed" | after every parse of a sheet | the parse is what changes rows |
+| Name + pieces + brand is "Found", "also without a `(…)` part" | without the brackets, or for a name under 4 characters or without a letter, only "probably" | the review: "Paris (Panorama)" is not "Paris" |
+| Three-way on `decided_at` | on `decision_version` | the column keeps whole seconds |
+| Taking a decision back clears the remembered decision | a pairing taken back is remembered as "not this puzzle" | the import's puzzle is rebuilt, and the rules would pair it again |
+
+## Loose ends
+
+- Every run writes every undecided puzzle again (tier, candidates) even when nothing changed - row churn on a large
+  import parsed sheet by sheet.
+- The similar-name search is never repeated for a puzzle it looked at, while the exact rules find nothing - a puzzle
+  added to the catalogue later under a similar name is not offered until the key is new.
+- The 0.6 threshold is unchecked; results the player is only a member of are not "already yours"; no index for
+  `markRowsOfEarlierImports()`.

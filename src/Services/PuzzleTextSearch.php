@@ -109,61 +109,64 @@ readonly final class PuzzleTextSearch
     }
 
     /**
-     * **Batch lookups** - many texts against the keys in one statement, each text a column of a joined row instead of
-     * a bound parameter (the data import's pairing, docs/features/data-import/pairing.md). The patterns are the typed
-     * search's own (PuzzleSearchQuery), so a batch and a typed search agree on what "the same name" and "the same
-     * code" are; whether a puzzle may be shown at all (hidden, secret) is the caller's condition.
+     * **Batch lookups** - many texts against the keys in one statement (the data import's pairing,
+     * docs/features/data-import/pairing.md). Not through the trigram indexes: on production a whole-name `LIKE`
+     * costs ~8.5 ms and a barcode `LIKE` ~3.7 ms each, so thousands of them are a minute. Instead the catalogue's keys
+     * are split into their lines once (sqlNameLines() / sqlCodeLines() - a sequential scan of `puzzle`, ~10 ms) and
+     * joined by **equality** with texts written exactly as the lines are (nameLine() / barcodeLine() /
+     * brandCodeLine()): 5,000 puzzles in ~150 ms. The line format lives here and in PuzzleSearchKeys only -
+     * PuzzleTextSearchLinesTest pins that the two agree. Whether a puzzle may be shown at all (hidden, secret) is the
+     * caller's condition.
      *
-     * The pattern of "a name of the puzzle is exactly this text" - null for a text that folds to nothing.
+     * One row per name of every puzzle: `id`, `pieces_count`, `line` (the folded name).
      */
-    public static function wholeNamePattern(string $name): null|string
+    public static function sqlNameLines(): string
     {
-        return PuzzleSearchQuery::fromUserInput($name)->namesWhole;
+        return "SELECT pts_puzzle.id, pts_puzzle.pieces_count, pts_line AS line"
+            . " FROM puzzle pts_puzzle"
+            . " CROSS JOIN LATERAL unnest(string_to_array(btrim(pts_puzzle.search_names, E'\\n'), E'\\n')) AS pts_line"
+            . " WHERE pts_line <> ''";
     }
 
     /**
-     * `$patternExpression` is an SQL expression holding a wholeNamePattern().
+     * One row per code of every puzzle: `id`, `tag` (`e` a barcode number without leading zeros, `c` a brand code as
+     * letters and digits - the check-digit aliases among them), `code` (the line without its tag).
      */
-    public static function batchWholeNameCondition(string $alias, string $patternExpression): string
+    public static function sqlCodeLines(): string
     {
-        return "{$alias}.search_names LIKE {$patternExpression}";
+        return "SELECT pts_puzzle.id, substring(pts_line from 1 for 1) AS tag, substring(pts_line from 3) AS code"
+            . " FROM puzzle pts_puzzle"
+            . " CROSS JOIN LATERAL unnest(string_to_array(btrim(pts_puzzle.search_codes, E'\\n'), E'\\n')) AS pts_line"
+            . " WHERE pts_line LIKE 'e:%' OR pts_line LIKE 'c:%'";
     }
 
     /**
-     * The two texts of the exact barcode lookup (barcodeCondition()) for one number - null when it is no number.
-     *
-     * @return null|array{lineEnd: string, line: string}
+     * A name as a line of the names key holds it - '' when nothing is left.
      */
-    public static function barcodePatterns(string $number): null|array
+    public static function nameLine(string $name): string
     {
-        $query = PuzzleSearchQuery::fromUserInput($number);
-
-        return $query->eanLine === null || $query->eanLineEnd === null ? null : ['lineEnd' => $query->eanLineEnd, 'line' => $query->eanLine];
+        return SearchText::fold($name);
     }
 
     /**
-     * barcodeCondition() with the two texts of barcodePatterns() as SQL expressions.
+     * A barcode as an `e:` line holds it: its digits without leading zeros. Null when the text is no number (digits
+     * with spaces, dashes or dots at most) - exactly what the typed search takes for a barcode.
      */
-    public static function batchBarcodeCondition(string $alias, string $lineEndExpression, string $lineExpression): string
+    public static function barcodeLine(string $number): null|string
     {
-        return "({$alias}.search_codes LIKE {$lineEndExpression} AND strpos({$alias}.search_codes, {$lineExpression}) > 0)";
+        $line = PuzzleSearchQuery::fromUserInput($number)->eanLine;
+
+        return $line === null ? null : substr($line, 3, -1);
     }
 
     /**
-     * The pattern of "a brand code of the puzzle is exactly this" - with or without the EAN's check digit, since the
-     * key holds both (BrandCodeCheckDigit). Null for a text without a letter or digit.
+     * A brand code as a `c:` line holds it: letters and digits only. Null without any.
      */
-    public static function brandCodePattern(string $code): null|string
+    public static function brandCodeLine(string $code): null|string
     {
-        return PuzzleSearchQuery::fromUserInput($code)->codeExact;
-    }
+        $line = SearchText::code($code);
 
-    /**
-     * `$patternExpression` is an SQL expression holding a brandCodePattern().
-     */
-    public static function batchBrandCodeCondition(string $alias, string $patternExpression): string
-    {
-        return "{$alias}.search_codes LIKE {$patternExpression}";
+        return $line === '' ? null : $line;
     }
 
     /**

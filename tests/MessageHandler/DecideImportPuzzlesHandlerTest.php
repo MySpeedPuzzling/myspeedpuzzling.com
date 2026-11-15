@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use DateTimeImmutable;
 use SpeedPuzzling\Web\Entity\DataImport;
 use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
 use SpeedPuzzling\Web\Exceptions\ImportPuzzleChoiceRefused;
@@ -52,8 +51,8 @@ final class DecideImportPuzzlesHandlerTest extends KernelTestCase
         self::assertSame(['probably', 'undecided'], [$probably['tier'], $probably['choice']]);
 
         $this->decide($import, $player->id->toString(), [
-            new ImportPuzzleDecisionChange($probably['id'], ImportPuzzleChoice::Catalogue, $puzzle, null),
-            new ImportPuzzleDecisionChange($this->importPuzzle($import, 'Zq Nothing Like It Anywhere')['id'], ImportPuzzleChoice::Unlisted, null, null),
+            new ImportPuzzleDecisionChange($probably['id'], ImportPuzzleChoice::Catalogue, $puzzle, 0),
+            new ImportPuzzleDecisionChange($this->importPuzzle($import, 'Zq Nothing Like It Anywhere')['id'], ImportPuzzleChoice::Unlisted, null, 0),
         ]);
 
         $decided = $this->importPuzzle($import, 'Zq Remembered Harbour');
@@ -75,13 +74,91 @@ final class DecideImportPuzzlesHandlerTest extends KernelTestCase
 
         // Taken back: undecided by the player's own word, forgotten for the next file, and no run ticks it again
         $this->decide($next, $player->id->toString(), [
-            new ImportPuzzleDecisionChange($remembered['id'], ImportPuzzleChoice::Undecided, null, new DateTimeImmutable((string) $remembered['decided_at'])),
+            new ImportPuzzleDecisionChange($remembered['id'], ImportPuzzleChoice::Undecided, null, $remembered['decision_version']),
         ]);
         $this->pair($next);
 
         $takenBack = $this->importPuzzle($next, 'zq remembered  HARBOUR');
         self::assertSame(['undecided', null, 'player'], [$takenBack['choice'], $takenBack['puzzle_id'], $takenBack['decided_how']]);
-        self::assertSame(1, $this->pairingCount('SELECT COUNT(*) FROM import_puzzle_decision WHERE player_id = :id', ['id' => $player->id->toString()]));
+        // ... and what is remembered now is "not this puzzle"
+        self::assertSame(
+            [['choice' => 'not_this_puzzle', 'puzzle_id' => $puzzle], ['choice' => 'unlisted', 'puzzle_id' => null]],
+            $this->pairingDatabase()->fetchAllAssociative('SELECT choice, puzzle_id FROM import_puzzle_decision WHERE player_id = :id ORDER BY choice', ['id' => $player->id->toString()]),
+        );
+
+        // Taking back what names no puzzle is simply forgotten
+        $unlisted = $this->importPuzzle($next, 'Zq Nothing Like It Anywhere');
+        $this->decide($next, $player->id->toString(), [new ImportPuzzleDecisionChange($unlisted['id'], ImportPuzzleChoice::Undecided, null, $unlisted['decision_version'])]);
+        self::assertSame(['not_this_puzzle'], $this->pairingDatabase()->fetchFirstColumn('SELECT choice FROM import_puzzle_decision WHERE player_id = :id', ['id' => $player->id->toString()]));
+    }
+
+    public function testAPairingTakenBackIsNotMadeAgainWhenThePuzzleIsBuiltAnew(): void
+    {
+        $player = $this->seedPairingPlayer('taken-back');
+        $brand = $this->seedBrand('Zqtakenback');
+        $wrong = $this->seedCataloguePuzzle('Zq Same Name Other Edition', 500, $brand);
+
+        [$import, $sheet] = $this->seedImport($player);
+        $row = $this->seedRow($import, $sheet, 'Zq Same Name Other Edition', 500, 'Zqtakenback');
+        [$nextFile, $nextSheet] = $this->seedImport($player);
+        $this->seedRow($nextFile, $nextSheet, 'Zq Same Name Other Edition', 500, 'Zqtakenback');
+        $this->pair($import);
+
+        $found = $this->importPuzzle($import, 'Zq Same Name Other Edition');
+        self::assertSame(['found', 'catalogue', $wrong, 'automatic'], [$found['tier'], $found['choice'], $found['puzzle_id'], $found['decided_how']]);
+
+        // "Not this one"
+        $this->decide($import, $player->id->toString(), [new ImportPuzzleDecisionChange($found['id'], ImportPuzzleChoice::Undecided, null, $found['decision_version'])]);
+
+        // The sheet is left out and taken in again: the import's puzzle is a new row
+        $this->pairingDatabase()->executeStatement("UPDATE data_import_row SET state = 'left_out' WHERE id = :id", ['id' => $row]);
+        $this->pair($import);
+        self::assertSame(0, $this->pairingCount('SELECT COUNT(*) FROM data_import_puzzle WHERE import_id = :id', ['id' => $import->id->toString()]));
+        $this->pairingDatabase()->executeStatement("UPDATE data_import_row SET state = 'waiting' WHERE id = :id", ['id' => $row]);
+        $this->pair($import);
+
+        // The rules still say "found" - and decide nothing: it waits for the player, with its candidate
+        foreach ([$import, $nextFile] as $index => $file) {
+            if ($index === 1) {
+                $this->pair($file);
+            }
+
+            $again = $this->importPuzzle($file, 'Zq Same Name Other Edition');
+            self::assertNotSame($found['id'], $again['id']);
+            self::assertSame(['found', 'undecided', null, null], [$again['tier'], $again['choice'], $again['puzzle_id'], $again['decided_how']]);
+            self::assertSame([$wrong], self::candidateIds($again));
+        }
+
+        // Until the player says it is that puzzle after all
+        $again = $this->importPuzzle($import, 'Zq Same Name Other Edition');
+        $this->decide($import, $player->id->toString(), [new ImportPuzzleDecisionChange($again['id'], ImportPuzzleChoice::Catalogue, $wrong, $again['decision_version'])]);
+        $this->pair($nextFile);
+        self::assertSame(['catalogue', $wrong, 'remembered'], [$this->importPuzzle($nextFile, 'Zq Same Name Other Edition')['choice'], $this->importPuzzle($nextFile, 'Zq Same Name Other Edition')['puzzle_id'], $this->importPuzzle($nextFile, 'Zq Same Name Other Edition')['decided_how']]);
+    }
+
+    public function testEveryChangeOfADecisionHasItsOwnVersionEvenWithinOneSecond(): void
+    {
+        $player = $this->seedPairingPlayer('versions');
+        $puzzle = $this->seedCataloguePuzzle('Zq Versioned Decision', 500);
+        [$import, $sheet] = $this->seedImport($player);
+        $this->seedRow($import, $sheet, 'Zq Versioned Decision', 500);
+        $this->pair($import);
+        $id = $this->importPuzzle($import, 'Zq Versioned Decision')['id'];
+
+        // The clock stands still: three changes in the same second
+        $this->decide($import, $player->id->toString(), [new ImportPuzzleDecisionChange($id, ImportPuzzleChoice::Catalogue, $puzzle, 0)]);
+        $this->decide($import, $player->id->toString(), [new ImportPuzzleDecisionChange($id, ImportPuzzleChoice::LeftOut, null, 1)]);
+        self::assertSame([2, 'left_out'], [$this->importPuzzle($import, 'Zq Versioned Decision')['decision_version'], $this->importPuzzle($import, 'Zq Versioned Decision')['choice']]);
+
+        // A page that saw the first of them is stale although `decided_at` is the same
+        try {
+            $this->decide($import, $player->id->toString(), [new ImportPuzzleDecisionChange($id, ImportPuzzleChoice::Unlisted, null, 1)]);
+            self::fail('A stale decision was taken.');
+        } catch (ImportPuzzleDecidedMeanwhile) {
+        }
+
+        // "Not this puzzle" is nothing a page can send
+        self::assertSame(ImportPuzzleChoiceRefused::INVALID, $this->refusal($import, $player->id->toString(), [new ImportPuzzleDecisionChange($id, ImportPuzzleChoice::NotThisPuzzle, $puzzle, 2)]));
     }
 
     public function testALaterRunOfThePairingKeepsThePlayersDecisions(): void
@@ -103,11 +180,11 @@ final class DecideImportPuzzlesHandlerTest extends KernelTestCase
 
         $this->decide($import, $player->id->toString(), [
             // Overruled: the rules said one puzzle, the player says another
-            new ImportPuzzleDecisionChange($rules['id'], ImportPuzzleChoice::Catalogue, $picked, new DateTimeImmutable((string) $rules['decided_at'])),
+            new ImportPuzzleDecisionChange($rules['id'], ImportPuzzleChoice::Catalogue, $picked, $rules['decision_version']),
         ]);
         $this->decide($import, $player->id->toString(), [
-            new ImportPuzzleDecisionChange($unticked['id'], ImportPuzzleChoice::Undecided, null, new DateTimeImmutable((string) $unticked['decided_at'])),
-            new ImportPuzzleDecisionChange($this->importPuzzle($import, 'Zq Gone And Back Again')['id'], ImportPuzzleChoice::LeftOut, null, null),
+            new ImportPuzzleDecisionChange($unticked['id'], ImportPuzzleChoice::Undecided, null, $unticked['decision_version']),
+            new ImportPuzzleDecisionChange($this->importPuzzle($import, 'Zq Gone And Back Again')['id'], ImportPuzzleChoice::LeftOut, null, 0),
         ]);
 
         $counters = $this->pairingCounters($import);
@@ -147,7 +224,7 @@ final class DecideImportPuzzlesHandlerTest extends KernelTestCase
         $importPuzzle = $this->importPuzzle($import, 'Zq Not Yours To Decide');
 
         try {
-            $this->decide($import, $intruder->id->toString(), [new ImportPuzzleDecisionChange($importPuzzle['id'], ImportPuzzleChoice::Catalogue, $puzzle, null)]);
+            $this->decide($import, $intruder->id->toString(), [new ImportPuzzleDecisionChange($importPuzzle['id'], ImportPuzzleChoice::Catalogue, $puzzle, 0)]);
             self::fail('Another player decided about the import.');
         } catch (DataImportNotFound) {
         }
@@ -170,12 +247,12 @@ final class DecideImportPuzzlesHandlerTest extends KernelTestCase
         $two = $this->importPuzzle($import, 'Zq Stale Two');
 
         // Another tab decided the first one meanwhile
-        $this->decide($import, $player->id->toString(), [new ImportPuzzleDecisionChange($one['id'], ImportPuzzleChoice::LeftOut, null, null)]);
+        $this->decide($import, $player->id->toString(), [new ImportPuzzleDecisionChange($one['id'], ImportPuzzleChoice::LeftOut, null, 0)]);
 
         try {
             $this->decide($import, $player->id->toString(), [
-                new ImportPuzzleDecisionChange($two['id'], ImportPuzzleChoice::Catalogue, $second, null),
-                new ImportPuzzleDecisionChange($one['id'], ImportPuzzleChoice::Catalogue, $first, null),
+                new ImportPuzzleDecisionChange($two['id'], ImportPuzzleChoice::Catalogue, $second, 0),
+                new ImportPuzzleDecisionChange($one['id'], ImportPuzzleChoice::Catalogue, $first, 0),
             ]);
             self::fail('A stale decision was taken.');
         } catch (ImportPuzzleDecidedMeanwhile $stale) {
@@ -207,25 +284,25 @@ final class DecideImportPuzzlesHandlerTest extends KernelTestCase
 
         foreach ([$hidden, $unapproved, '018d0003-ffff-0000-0000-00000000dead'] as $notChoosable) {
             self::assertSame(ImportPuzzleChoiceRefused::NOT_CHOOSABLE, $this->refusal($import, $player->id->toString(), [
-                new ImportPuzzleDecisionChange($mine['id'], ImportPuzzleChoice::Catalogue, $notChoosable, null),
+                new ImportPuzzleDecisionChange($mine['id'], ImportPuzzleChoice::Catalogue, $notChoosable, 0),
             ]));
         }
 
         self::assertSame(ImportPuzzleChoiceRefused::INVALID, $this->refusal($import, $player->id->toString(), [
-            new ImportPuzzleDecisionChange($mine['id'], ImportPuzzleChoice::Catalogue, null, null),
+            new ImportPuzzleDecisionChange($mine['id'], ImportPuzzleChoice::Catalogue, null, 0),
         ]));
         self::assertSame(ImportPuzzleChoiceRefused::UNKNOWN_PUZZLE, $this->refusal($import, $player->id->toString(), [
-            new ImportPuzzleDecisionChange('018d0003-ffff-0000-0000-00000000dead', ImportPuzzleChoice::LeftOut, null, null),
+            new ImportPuzzleDecisionChange('018d0003-ffff-0000-0000-00000000dead', ImportPuzzleChoice::LeftOut, null, 0),
         ]));
         // Another piece count: never in a group ...
         self::assertSame(ImportPuzzleChoiceRefused::OTHER_PIECE_COUNT_IN_GROUP, $this->refusal($import, $player->id->toString(), [
-            new ImportPuzzleDecisionChange($mine['id'], ImportPuzzleChoice::Catalogue, $thousand, null),
-            new ImportPuzzleDecisionChange($other['id'], ImportPuzzleChoice::Catalogue, $fiveHundred, null),
+            new ImportPuzzleDecisionChange($mine['id'], ImportPuzzleChoice::Catalogue, $thousand, 0),
+            new ImportPuzzleDecisionChange($other['id'], ImportPuzzleChoice::Catalogue, $fiveHundred, 0),
         ]));
         self::assertSame(['undecided', 'undecided'], [$this->importPuzzle($import, 'Zq my five hundred')['choice'], $this->importPuzzle($import, 'Zq my other five hundred')['choice']]);
 
         // ... only one by one
-        $this->decide($import, $player->id->toString(), [new ImportPuzzleDecisionChange($mine['id'], ImportPuzzleChoice::Catalogue, $thousand, null)]);
+        $this->decide($import, $player->id->toString(), [new ImportPuzzleDecisionChange($mine['id'], ImportPuzzleChoice::Catalogue, $thousand, 0)]);
         self::assertSame(['catalogue', $thousand], [$this->importPuzzle($import, 'Zq my five hundred')['choice'], $this->importPuzzle($import, 'Zq my five hundred')['puzzle_id']]);
     }
 

@@ -16,6 +16,7 @@ use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Value\DataImportFileKind;
+use SpeedPuzzling\Web\Value\DataImportLimits;
 use SpeedPuzzling\Web\Value\DataImportSource;
 use SpeedPuzzling\Web\Value\DataImportStatus;
 
@@ -151,6 +152,15 @@ class DataImport
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     public null|DateTimeImmutable $pairedAt = null;
+
+    /**
+     * How often the safety net asked for the pairing again because a run did not come to rest (it failed - a puzzle
+     * merge beside it, a fault of ours; the queue has no retries). Bounded like a sheet's set-up attempts; back to
+     * zero when a run ends.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(options: ['default' => 0])]
+    public int $pairingRequeues = 0;
 
     /**
      * "Where the rules end" - numbers only (ImportPairingCounters): puzzles per tier as the rules left them, and how
@@ -462,7 +472,25 @@ class DataImport
     {
         $this->pairingCounters = $counters;
         $this->pairedAt = $now;
+        $this->pairingRequeues = 0;
         $this->lastActivityAt = $now;
+    }
+
+    /**
+     * The safety net asks for the pairing once more (RequestImportPairing).
+     *
+     * @return bool false: it is not waited for, or it was asked for often enough
+     */
+    public function pairingRequestedAgain(DateTimeImmutable $now): bool
+    {
+        if ($this->isBeingSetUp() === false || $this->pairedAt !== null || $this->cellsWipedAt !== null || $this->pairingRequeues >= DataImportLimits::MAX_SET_UP_ATTEMPTS) {
+            return false;
+        }
+
+        $this->pairingRequeues++;
+        $this->lastActivityAt = $now;
+
+        return true;
     }
 
     public function readingFinished(DateTimeImmutable $now): void

@@ -201,7 +201,8 @@ SQL, ['importId' => $import->id->toString()]);
      * The player's remembered decisions (import_puzzle_decision) arrive on every puzzle of the import the player has
      * not decided in this import: the same key → the same decision, as `remembered`, with the moment it was made. A
      * remembered catalogue puzzle that may not be a candidate any more is not applied. And a `remembered` decision
-     * whose source is gone or changed is taken off again.
+     * whose source is gone or changed is taken off again. "Not this puzzle" is no decision to apply - the rules read
+     * it (forTheRules()).
      */
     public function applyRememberedDecisions(DataImport $import, DateTimeImmutable $now): void
     {
@@ -214,19 +215,21 @@ SQL, ['importId' => $import->id->toString()]);
             'remembered' => ImportPuzzleDecidedHow::Remembered->value,
             'catalogue' => ImportPuzzleChoice::Catalogue->value,
             'undecided' => ImportPuzzleChoice::Undecided->value,
+            'notThis' => ImportPuzzleChoice::NotThisPuzzle->value,
         ];
         $valid = <<<SQL
     SELECT decision.puzzle_key, decision.choice, decision.puzzle_id, decision.decided_at
     FROM import_puzzle_decision decision
     LEFT JOIN puzzle ON puzzle.id = decision.puzzle_id
     WHERE decision.player_id = :playerId
+        AND decision.choice <> :notThis
         AND (decision.choice <> :catalogue OR (puzzle.id IS NOT NULL AND {$candidate}))
 SQL;
         $connection = $this->entityManager->getConnection();
 
         $connection->executeStatement(<<<SQL
 UPDATE data_import_puzzle
-SET choice = :undecided, puzzle_id = NULL, decided_at = NULL, decided_how = NULL
+SET choice = :undecided, puzzle_id = NULL, decided_at = NULL, decided_how = NULL, decision_version = decision_version + 1
 WHERE data_import_puzzle.import_id = :importId
     AND data_import_puzzle.decided_how = :remembered
     AND NOT EXISTS (
@@ -238,7 +241,7 @@ SQL, $parameters);
 
         $connection->executeStatement(<<<SQL
 UPDATE data_import_puzzle
-SET choice = valid.choice, puzzle_id = valid.puzzle_id, decided_at = valid.decided_at, decided_how = :remembered
+SET choice = valid.choice, puzzle_id = valid.puzzle_id, decided_at = valid.decided_at, decided_how = :remembered, decision_version = decision_version + 1
 FROM ({$valid}) AS valid
 WHERE data_import_puzzle.import_id = :importId
     AND valid.puzzle_key = data_import_puzzle.puzzle_key
@@ -253,20 +256,34 @@ SQL, $parameters);
     }
 
     /**
-     * The puzzles the rules decide about: those neither the player nor a remembered decision has decided.
+     * The puzzles the rules decide about: those neither the player nor a remembered decision has decided - each
+     * with the catalogue puzzle the player once took back for its key ("not this puzzle"), if any.
      *
-     * @return list<array{id: string, name: string, brandText: null|string, pieces: null|int, ownPuzzleId: null|string, eans: list<string>, brandCodes: list<string>, searched: bool, choice: string, puzzleId: null|string, decidedAt: null|string}>
+     * @return list<array{id: string, name: string, brandText: null|string, pieces: null|int, ownPuzzleId: null|string, eans: list<string>, brandCodes: list<string>, searched: bool, choice: string, puzzleId: null|string, decidedAt: null|string, notThisPuzzleId: null|string}>
      */
     public function forTheRules(DataImport $import): array
     {
-        /** @var list<array{id: string, name: string, brand_text: null|string, pieces_count: null|int, own_puzzle_id: null|string, eans: string, brand_codes: string, searched: bool, choice: string, puzzle_id: null|string, decided_at: null|string}> $rows */
+        /** @var list<array{id: string, name: string, brand_text: null|string, pieces_count: null|int, own_puzzle_id: null|string, eans: string, brand_codes: string, searched: bool, choice: string, puzzle_id: null|string, decided_at: null|string, not_this_puzzle_id: null|string}> $rows */
         $rows = $this->entityManager->getConnection()->executeQuery(<<<SQL
-SELECT id, name, brand_text, pieces_count, own_puzzle_id, eans, brand_codes, searched_at IS NOT NULL AS searched, choice, puzzle_id, decided_at
+SELECT
+    data_import_puzzle.id, data_import_puzzle.name, data_import_puzzle.brand_text, data_import_puzzle.pieces_count,
+    data_import_puzzle.own_puzzle_id, data_import_puzzle.eans, data_import_puzzle.brand_codes,
+    data_import_puzzle.searched_at IS NOT NULL AS searched, data_import_puzzle.choice, data_import_puzzle.puzzle_id,
+    data_import_puzzle.decided_at, taken_back.puzzle_id AS not_this_puzzle_id
 FROM data_import_puzzle
-WHERE import_id = :importId
-    AND (decided_how IS NULL OR decided_how = :automatic)
-ORDER BY id
-SQL, ['importId' => $import->id->toString(), 'automatic' => ImportPuzzleDecidedHow::Automatic->value])->fetchAllAssociative();
+LEFT JOIN import_puzzle_decision taken_back
+    ON taken_back.player_id = :playerId
+    AND taken_back.puzzle_key = data_import_puzzle.puzzle_key
+    AND taken_back.choice = :notThis
+WHERE data_import_puzzle.import_id = :importId
+    AND (data_import_puzzle.decided_how IS NULL OR data_import_puzzle.decided_how = :automatic)
+ORDER BY data_import_puzzle.id
+SQL, [
+            'importId' => $import->id->toString(),
+            'playerId' => $import->player->id->toString(),
+            'automatic' => ImportPuzzleDecidedHow::Automatic->value,
+            'notThis' => ImportPuzzleChoice::NotThisPuzzle->value,
+        ])->fetchAllAssociative();
 
         return array_map(static fn (array $row): array => [
             'id' => $row['id'],
@@ -280,6 +297,7 @@ SQL, ['importId' => $import->id->toString(), 'automatic' => ImportPuzzleDecidedH
             'choice' => $row['choice'],
             'puzzleId' => $row['puzzle_id'],
             'decidedAt' => $row['decided_at'],
+            'notThisPuzzleId' => $row['not_this_puzzle_id'],
         ], $rows);
     }
 
@@ -305,7 +323,12 @@ SET manufacturer_id = said."manufacturerId",
     choice = said.choice,
     puzzle_id = said."puzzleId",
     decided_at = said."decidedAt",
-    decided_how = said."decidedHow"
+    decided_how = said."decidedHow",
+    decision_version = data_import_puzzle.decision_version + CASE
+        WHEN data_import_puzzle.choice IS DISTINCT FROM said.choice
+            OR data_import_puzzle.puzzle_id IS DISTINCT FROM said."puzzleId"
+            OR data_import_puzzle.decided_how IS DISTINCT FROM said."decidedHow"
+        THEN 1 ELSE 0 END
 FROM jsonb_to_recordset(CAST(:results AS JSONB)) AS said(id UUID, "manufacturerId" UUID, tier TEXT, candidates JSONB, "keepSearch" BOOLEAN, choice TEXT, "puzzleId" UUID, "decidedAt" TIMESTAMP, "decidedHow" TEXT)
 WHERE data_import_puzzle.id = said.id
     AND data_import_puzzle.import_id = :importId

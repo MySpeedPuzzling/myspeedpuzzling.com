@@ -10,7 +10,7 @@ use Doctrine\Migrations\AbstractMigration;
 /**
  * Auto-generated Migration: Please modify to your needs!
  */
-final class Version20261115041245 extends AbstractMigration
+final class Version20261115045025 extends AbstractMigration
 {
     public function getDescription(): string
     {
@@ -20,7 +20,7 @@ final class Version20261115041245 extends AbstractMigration
     public function up(Schema $schema): void
     {
         // this up() migration is auto-generated, please modify it to your needs
-        $this->addSql('CREATE TABLE data_import_puzzle (brand_text TEXT DEFAULT NULL, pieces_count INT DEFAULT NULL, eans JSONB DEFAULT \'[]\' NOT NULL, brand_codes JSONB DEFAULT \'[]\' NOT NULL, own_puzzle_id UUID DEFAULT NULL, rows_results INT DEFAULT 0 NOT NULL, rows_owned INT DEFAULT 0 NOT NULL, rows_wish_list INT DEFAULT 0 NOT NULL, tier VARCHAR(16) DEFAULT NULL, candidates JSONB DEFAULT \'[]\' NOT NULL, searched_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NULL, choice VARCHAR(16) DEFAULT \'undecided\' NOT NULL, decided_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NULL, decided_how VARCHAR(16) DEFAULT NULL, id UUID NOT NULL, puzzle_key VARCHAR(80) NOT NULL, name TEXT NOT NULL, created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, manufacturer_id UUID DEFAULT NULL, puzzle_id UUID DEFAULT NULL, import_id UUID NOT NULL, PRIMARY KEY (id))');
+        $this->addSql('CREATE TABLE data_import_puzzle (brand_text TEXT DEFAULT NULL, pieces_count INT DEFAULT NULL, eans JSONB DEFAULT \'[]\' NOT NULL, brand_codes JSONB DEFAULT \'[]\' NOT NULL, own_puzzle_id UUID DEFAULT NULL, rows_results INT DEFAULT 0 NOT NULL, rows_owned INT DEFAULT 0 NOT NULL, rows_wish_list INT DEFAULT 0 NOT NULL, tier VARCHAR(16) DEFAULT NULL, candidates JSONB DEFAULT \'[]\' NOT NULL, searched_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NULL, choice VARCHAR(16) DEFAULT \'undecided\' NOT NULL, decided_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NULL, decided_how VARCHAR(16) DEFAULT NULL, decision_version INT DEFAULT 0 NOT NULL, id UUID NOT NULL, puzzle_key VARCHAR(80) NOT NULL, name TEXT NOT NULL, created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, manufacturer_id UUID DEFAULT NULL, puzzle_id UUID DEFAULT NULL, import_id UUID NOT NULL, PRIMARY KEY (id))');
         $this->addSql('CREATE INDEX IDX_AFD571EDA23B42D ON data_import_puzzle (manufacturer_id)');
         $this->addSql('CREATE INDEX IDX_AFD571EDD9816812 ON data_import_puzzle (puzzle_id)');
         $this->addSql('CREATE INDEX IDX_AFD571EDB6A263D9 ON data_import_puzzle (import_id)');
@@ -37,6 +37,7 @@ final class Version20261115041245 extends AbstractMigration
         $this->addSql('ALTER TABLE import_puzzle_decision ADD CONSTRAINT FK_F22A1A4399E6F5DF FOREIGN KEY (player_id) REFERENCES player (id) ON DELETE CASCADE NOT DEFERRABLE');
         $this->addSql('ALTER TABLE data_import ADD pairing_run INT DEFAULT 0 NOT NULL');
         $this->addSql('ALTER TABLE data_import ADD paired_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NULL');
+        $this->addSql('ALTER TABLE data_import ADD pairing_requeues INT DEFAULT 0 NOT NULL');
         $this->addSql('ALTER TABLE data_import ADD pairing_counters JSONB DEFAULT NULL');
         $this->addSql('ALTER TABLE data_import_row ADD already_yours_how VARCHAR(16) DEFAULT NULL');
         $this->addSql('ALTER TABLE data_import_row ADD already_yours_solving_time_id UUID DEFAULT NULL');
@@ -55,6 +56,7 @@ final class Version20261115041245 extends AbstractMigration
         $this->addSql('DROP TABLE import_puzzle_decision');
         $this->addSql('ALTER TABLE data_import DROP pairing_run');
         $this->addSql('ALTER TABLE data_import DROP paired_at');
+        $this->addSql('ALTER TABLE data_import DROP pairing_requeues');
         $this->addSql('ALTER TABLE data_import DROP pairing_counters');
         $this->addSql('DROP INDEX IDX_DF686C828440DCAE');
         $this->addSql('ALTER TABLE data_import_row DROP already_yours_how');

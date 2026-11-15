@@ -92,10 +92,7 @@ class DataImportPuzzle
     #[JoinColumn(nullable: true)]
     public null|Puzzle $puzzle = null;
 
-    /**
-     * When the decision last changed - taking it back counts. What a page sends back with its decision
-     * (DecideImportPuzzles): another value in the database means somebody decided meanwhile. Null: never decided.
-     */
+    /** When the decision last changed - taking it back counts. Null: never decided */
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     public null|DateTimeImmutable $decidedAt = null;
@@ -103,6 +100,15 @@ class DataImportPuzzle
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(length: 16, nullable: true, enumType: ImportPuzzleDecidedHow::class)]
     public null|ImportPuzzleDecidedHow $decidedHow = null;
+
+    /**
+     * Raised by every change of the decision - the player's, a remembered one arriving, the rules' own. What a page
+     * sends back with its decision (DecideImportPuzzles): another number in the database means somebody decided
+     * meanwhile. A number, not `decided_at`: the column keeps whole seconds, and two changes fit into one.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(options: ['default' => 0])]
+    public int $decisionVersion = 0;
 
     public function __construct(
         #[Id]
@@ -131,7 +137,7 @@ class DataImportPuzzle
      */
     public function decidedByPlayer(ImportPuzzleChoice $choice, null|Puzzle $puzzle, DateTimeImmutable $now): void
     {
-        if ($choice === ImportPuzzleChoice::Undecided) {
+        if ($choice === ImportPuzzleChoice::Undecided || $choice === ImportPuzzleChoice::NotThisPuzzle) {
             throw new \LogicException('Taking a decision back is decisionTakenBack().');
         }
 
@@ -143,6 +149,7 @@ class DataImportPuzzle
         $this->puzzle = $puzzle;
         $this->decidedAt = $now;
         $this->decidedHow = ImportPuzzleDecidedHow::Player;
+        $this->decisionVersion++;
     }
 
     /**
@@ -154,14 +161,15 @@ class DataImportPuzzle
         $this->puzzle = null;
         $this->decidedAt = $now;
         $this->decidedHow = ImportPuzzleDecidedHow::Player;
+        $this->decisionVersion++;
     }
 
     /**
-     * Whether a page that saw `$seen` as the decision's moment still looks at the current decision.
+     * Whether a page that saw this version of the decision still looks at the current one.
      */
-    public function isDecisionOf(null|DateTimeImmutable $seen): bool
+    public function isDecisionVersion(int $seen): bool
     {
-        return $this->decidedAt?->format('Y-m-d H:i:s') === $seen?->format('Y-m-d H:i:s');
+        return $this->decisionVersion === $seen;
     }
 
     /**

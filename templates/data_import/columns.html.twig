@@ -14,29 +14,30 @@
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}
-{{ include('_page_crumbs.html.twig', {levels: [
-    {name: 'data_import.home.title'|trans, url: path('data_imports')},
-    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
-]}) }}
+{{ include('data_import/_flow_header.html.twig', {import: import, step: 2}) }}
 
-<div class="mx-auto" style="max-width: 720px;" data-testid="import-columns-page">
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-columns-page" data-import-flow-screen="columns">
     <h1 class="h3 mb-2">{{ 'data_import.columns.title'|trans }}</h1>
     <p class="text-muted fs-sm">{{ 'data_import.columns.intro'|trans }}</p>
 
     {{ include('data_import/_setup_live.html.twig', {import_id: import.importId, working: summary.working, revision: revision}) }}
 
     <turbo-frame id="import-sheets-live" data-import-live target="_top">
-        <p class="fs-sm fw-medium mb-3" data-testid="import-summary">
-            {{ 'data_import.columns.summary'|trans({'%ready%': summary.ready|format_number, '%look%': summary.look|format_number, '%waiting%': summary.waiting|format_number, '%left_out%': summary.left_out|format_number}) }}
-        </p>
+        {# One number a line, a zero is not printed (guided-flow.md §2 rule 5) #}
+        <ul class="list-unstyled fs-sm fw-medium mb-3" data-testid="import-summary" data-ready="{{ summary.ready }}" data-look="{{ summary.look }}" data-waiting="{{ summary.waiting }}" data-left-out="{{ summary.left_out }}">
+            {% if summary.ready > 0 %}<li>{{ 'data_import.columns.summary_line.ready'|trans({'%count%': summary.ready, '%number%': summary.ready|format_number}) }}</li>{% endif %}
+            {% if summary.look > 0 %}
+                <li><a href="{{ path('data_import_to_fix', {importId: import.importId}) }}" class="d-inline-flex align-items-center" style="min-height: 44px;">{{ 'data_import.columns.summary_line.look'|trans({'%count%': summary.look, '%number%': summary.look|format_number}) }}</a></li>
+            {% endif %}
+            {% if summary.waiting > 0 %}<li>{{ 'data_import.columns.summary_line.waiting'|trans({'%count%': summary.waiting, '%number%': summary.waiting|format_number}) }}</li>{% endif %}
+            {% if summary.left_out > 0 %}<li class="fw-normal text-muted">{{ 'data_import.columns.summary_line.left_out'|trans({'%count%': summary.left_out, '%number%': summary.left_out|format_number}) }}</li>{% endif %}
+        </ul>
 
-        {# Right after the first layout: what the pairing found, and the way to it (pairing-screens.md "We found N") #}
+        {# Right after the first layout: what the matching found (pairing-screens.md "We found N") - step 4 is the way to it #}
         {% if pairing.puzzles > 0 %}
-            <div class="card card-body shadow-sm mb-3 border-primary" data-testid="import-found-puzzles">
-                <p class="fw-medium mb-2">{{ 'data_import.puzzles.we_found'|trans({'%found%': pairing.found|format_number, '%puzzles%': pairing.puzzles|format_number}) }}</p>
-                <a href="{{ path('data_import_puzzles', {importId: import.importId}) }}" class="btn btn-primary w-100 text-wrap d-flex align-items-center justify-content-center" style="min-height: 44px;" data-testid="import-found-puzzles-open">
-                    <i class="bi bi-puzzle me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.open'|trans }}
-                </a>
+            <div class="fs-sm text-muted mb-3" data-testid="import-found-puzzles">
+                <p class="mb-0">{{ 'data_import.puzzles.we_found'|trans({'%found%': pairing.found|format_number, '%puzzles%': pairing.puzzles|format_number}) }}</p>
+                <a href="{{ path('data_import_puzzles', {importId: import.importId}) }}" class="d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-found-puzzles-open">{{ 'data_import.puzzles.open'|trans }}</a>
             </div>
         {% endif %}
 
@@ -76,7 +77,7 @@
                                 <input type="hidden" name="back" value="list">
                                 {% for kind in ['results', 'owned', 'wish_list', 'puzzle_list', 'not_puzzles', 'somebody_else'] %}
                                     <button type="submit" name="kind" value="{{ kind }}"
-                                            class="btn {{ kind == sheet.kind.value ? 'btn-primary' : 'btn-outline-primary' }} text-wrap text-start"
+                                            class="btn btn-outline-primary{{ kind == sheet.kind.value ? ' active' : '' }} text-wrap text-start"
                                             style="min-height: 44px;" data-testid="sheet-card-kind-{{ kind }}"
                                             {% if kind == sheet.kind.value %}aria-pressed="true"{% endif %}>
                                         {{ ('data_import.sheets.kind.' ~ kind)|trans }}
@@ -86,7 +87,7 @@
                         </details>
 
                         <a href="{{ path('data_import_sheet', {importId: import.importId, sheetId: sheet.sheetId}) }}"
-                           class="btn {{ sheet.asksThePlayer ? 'btn-primary' : 'btn-outline-primary' }} w-100 mt-2 text-wrap d-flex align-items-center justify-content-center"
+                           class="btn btn-outline-primary w-100 mt-2 text-wrap d-flex align-items-center justify-content-center"
                            style="min-height: 44px;" data-testid="sheet-card-open">
                             {% if state == 'waiting' %}
                                 <i class="bi bi-question-circle me-1"></i>{{ 'data_import.columns.card.answer'|trans }}
@@ -101,6 +102,24 @@
                 </div>
             </div>
         {% endfor %}
+
+        {{ include('data_import/_sheets_table.html.twig', {sheets: sheets}, with_context = false) }}
+
+        {# The ONE primary of the screen: a question first, else on to the next step #}
+        {% set asking = sheets|filter(sheet => sheet.asksThePlayer)|first %}
+        {% if asking %}
+            {{ include('data_import/_flow_footer.html.twig', {import: import, offer_add: true, primary: {
+                label: 'data_import.columns.card.answer'|trans,
+                url: path('data_import_sheet', {importId: import.importId, sheetId: asking.sheetId}),
+                icon: 'bi-question-circle',
+                testid: 'import-flow-answer',
+            }}, with_context = false) }}
+            <a href="{{ path('data_import_detail', {importId: import.importId, after: 'check'}) }}" class="btn btn-link px-0 d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-flow-continue" rel="nofollow">{{ 'data_import.flow.continue_later'|trans }}</a>
+        {% elseif not summary.working %}
+            {{ include('data_import/_flow_footer.html.twig', {import: import, continue_after: 'check', continue_label: 'data_import.flow.looks_right'|trans, offer_add: true}, with_context = false) }}
+        {% else %}
+            {{ include('data_import/_flow_footer.html.twig', {import: import}, with_context = false) }}
+        {% endif %}
     </turbo-frame>
 
     {% if saved_layouts > 0 %}
@@ -110,16 +129,5 @@
         </a>
     {% endif %}
 
-    <div class="alert alert-info fs-sm d-flex gap-2" data-testid="import-next-step">
-        <i class="bi bi-info-circle flex-shrink-0"></i>
-        <span>
-            {{ 'data_import.add.saved_note'|trans }}
-            <a href="{{ path('data_import_add', {importId: import.importId}) }}" class="alert-link">{{ 'data_import.add.ready.review'|trans }}</a>
-        </span>
-    </div>
-
-    <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="btn btn-link px-0" style="min-height: 44px;">
-        <i class="bi bi-arrow-left me-1"></i>{{ 'data_import.columns.back_to_import'|trans }}
-    </a>
 </div>
 {% endblock %}

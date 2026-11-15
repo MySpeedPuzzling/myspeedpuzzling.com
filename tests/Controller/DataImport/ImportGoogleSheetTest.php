@@ -111,8 +111,9 @@ final class ImportGoogleSheetTest extends WebTestCase
 
         $crawler = $this->browser->request('GET', '/en/import/' . $importId);
         $this->assertResponseIsSuccessful();
-        self::assertSame('Google sheet', $crawler->filter('h1')->text());
-        self::assertSame('Fetching from Google', $crawler->filter('[data-testid="import-status"]')->text());
+        self::assertSame('Google sheet', trim($crawler->filter('[data-testid="import-flow-file"]')->text()));
+        self::assertSame('fetching', $crawler->filter('[data-testid="data-import-page"]')->attr('data-status'));
+        self::assertSame('working', $crawler->filter('[data-testid="import-flow-step"][data-number="1"]')->attr('data-state'));
         self::assertSame('Google Sheets link', $crawler->filter('[data-testid="import-source"]')->text());
         $line = $crawler->filter('[data-testid="import-reading"]');
         self::assertSame('data-import-progress', $line->attr('data-controller'));
@@ -166,8 +167,8 @@ final class ImportGoogleSheetTest extends WebTestCase
 
         $crawler = $this->browser->request('GET', '/en/import/' . $importId);
         $this->assertResponseIsSuccessful();
-        self::assertSame('My puzzles.xlsx', $crawler->filter('h1')->text());
-        self::assertCount(1, $crawler->filter('[data-testid="import-sheets"]'));
+        self::assertSame('My puzzles.xlsx', trim($crawler->filter('[data-testid="import-flow-file"]')->text()));
+        self::assertCount(5, $crawler->filter('[data-testid="import-flow-line"]'));
         self::assertStringContainsString('switch its sharing off', $crawler->filter('[data-testid="import-sharing-off"]')->text());
         self::assertCount(1, $crawler->filter('[data-testid="import-file-kept"]'));
     }
@@ -233,7 +234,7 @@ final class ImportGoogleSheetTest extends WebTestCase
         self::assertSame('not_shared', $failed->attr('data-reason'));
         self::assertStringContainsString('Google asks to sign in', $failed->text());
         self::assertStringContainsString('Share → Anyone with the link → Viewer', $failed->text());
-        self::assertSame('Could not be fetched', $crawler->filter('[data-testid="import-status"]')->text());
+        self::assertSame('fetch_failed', $crawler->filter('[data-testid="data-import-page"]')->attr('data-status'));
         self::assertCount(0, $crawler->filter('[data-testid="import-reading"]'));
         $token = (string) $failed->filter('form input[name="_token"]')->attr('value');
 

@@ -15,13 +15,9 @@
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}
-{{ include('_page_crumbs.html.twig', {levels: [
-    {name: 'data_import.home.title'|trans, url: path('data_imports')},
-    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
-    {name: 'data_import.add.title'|trans, url: path('data_import_add', {importId: import.importId})},
-]}) }}
+{{ include('data_import/_flow_header.html.twig', {import: import, step: 5}) }}
 
-<div class="mx-auto" style="max-width: 720px;" data-testid="import-add-times-page">
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-add-times-page" data-import-flow-screen="add_times">
     <turbo-frame id="import-add-times">
         <div class="card card-body shadow-sm mb-3" data-testid="import-add-times" data-unusual="{{ unusual|length }}" data-checked="{{ checked }}">
             <h2 class="h6 mb-1">{{ 'data_import.add.times.title'|trans }}</h2>
@@ -46,7 +42,7 @@
                             <form action="{{ path('data_import_add_confirm', {importId: import.importId}) }}" method="post" class="d-flex flex-wrap gap-2" data-turbo-frame="_top">
                                 <input type="hidden" name="_token" value="{{ csrf }}">
                                 <input type="hidden" name="rows[]" value="{{ item.row.rowId }}">
-                                <button type="submit" name="action" value="right" class="btn btn-primary text-wrap" style="min-height: 44px;" data-testid="import-add-unusual-right">
+                                <button type="submit" name="action" value="right" class="btn btn-outline-primary text-wrap" style="min-height: 44px;" data-testid="import-add-unusual-right">
                                     <i class="bi bi-check2 me-1" aria-hidden="true"></i>{{ 'data_import.add.times.right'|trans }}
                                 </button>
                                 <button type="submit" name="action" value="leave_out" class="btn btn-outline-secondary text-wrap" style="min-height: 44px;" data-testid="import-add-unusual-leave-out">
@@ -96,8 +92,6 @@
         </div>
     </turbo-frame>
 
-    <a href="{{ path('data_import_add', {importId: import.importId}) }}" class="btn btn-link px-0 d-inline-flex align-items-center" style="min-height: 44px;">
-        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.add.back_to_review'|trans }}
-    </a>
+    {{ include('data_import/_flow_footer.html.twig', {import: import, primary: {label: 'data_import.add.back_to_review'|trans, url: path('data_import_add', {importId: import.importId}), testid: 'import-flow-back-primary'}}, with_context = false) }}
 </div>
 {% endblock %}

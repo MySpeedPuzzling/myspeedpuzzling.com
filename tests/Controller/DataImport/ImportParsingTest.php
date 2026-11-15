@@ -131,18 +131,18 @@ final class ImportParsingTest extends WebTestCase
         self::assertSame(2, $this->database->fetchOne("SELECT rows_waiting FROM data_import_sheet WHERE import_id = :id AND title = '2023'", ['id' => $importId]));
         self::assertSame(['not_a_puzzle', 'left_out', ['leftOut' => 'sheet_left_out']], [$rows['Stats'][2]['kind'], $rows['Stats'][2]['state'], $rows['Stats'][2]['parsed']]);
 
-        // The page says it - read only
+        // "How we read your file" says it - read only, the sheet that asks first
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
-        $crawler = $this->browser->request('GET', '/en/import/' . $importId);
+        $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/columns');
         $this->assertResponseIsSuccessful();
         $states = $crawler->filter('[data-testid="import-sheet-state"]')->each(static fn ($node): string => trim((string) preg_replace('/\s+/', ' ', $node->text())));
         self::assertSame(
             [
-                'Puzzle list the other sheets point to Rows understood: 4 · need a look: 0 · Left out: 1',
-                'Results Rows understood: 5 · need a look: 1 · Left out: 2',
-                'Results Rows understood: 2 · need a look: 0 · Left out: 1',
+                'Results Waits for your answer',
+                'Puzzle list the other sheets point to Rows read: 4 · could not read: 0 · Not imported: 1',
+                'Results Rows read: 5 · could not read: 1 · Not imported: 2',
+                'Results Rows read: 2 · could not read: 0 · Not imported: 1',
                 'Not puzzles',
-                'Results Waiting for your answer',
             ],
             $states,
         );
@@ -271,8 +271,10 @@ final class ImportParsingTest extends WebTestCase
         self::assertSame([], $this->queued());
 
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
-        $crawler = $this->browser->request('GET', '/en/import/' . $importId);
+        $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/columns');
         self::assertSame('We could not work this sheet out - a fault on our side', trim($crawler->filter('[data-testid="import-sheet-failed"]')->text()));
+        // "Where you are" says it calmly, as a fault of ours
+        self::assertStringContainsString('Something went wrong on our side with 1 sheet. Nothing is lost.', $this->browser->request('GET', '/en/import/' . $importId)->filter('[data-testid="import-flow-line"][data-step="check"]')->text());
         self::assertCount(0, $crawler->filter('[data-testid="import-sheets-working"]'));
 
         // A mapping the player confirms starts over

@@ -59,7 +59,7 @@ final class UnlistedPuzzlesPagesTest extends WebTestCase
         self::assertCount(1, $crawler->filter('meta[name="robots"][content="noindex, nofollow"]'));
         self::assertSame(['3', '3'], [$crawler->filter('[data-testid="unlisted-puzzles-page"]')->attr('data-puzzles'), $crawler->filter('[data-testid="unlisted-puzzles-page"]')->attr('data-results')]);
         // The plain line: only they see these, and nothing counts until paired
-        self::assertStringContainsString('Only you see these. They do not count in statistics, charts or rankings until you pair them with a catalogue puzzle.', self::spaced($crawler->filter('[data-testid="unlisted-only-you"]')->text()));
+        self::assertStringContainsString('Only you see it, with its results and whether you own it - nothing is lost. It does not count in your statistics or rankings until it is matched with a puzzle in our database.', self::spaced($crawler->filter('[data-testid="unlisted-only-you"]')->text()));
         self::assertSame(
             ['Zq Pages Numbat Dream', 'Zq Pages Quokka Harbour', 'Zq Pages Wombat Meadow'],
             $crawler->filter('[data-testid="unlisted-puzzle-name"]')->each(static fn (Crawler $name): string => self::spaced($name->text())),

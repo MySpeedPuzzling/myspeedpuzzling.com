@@ -87,25 +87,35 @@ final class ImportAddScreensTest extends WebTestCase
         $this->sheetsAreRead($importId);
         TestingLogin::asPlayer($this->browser, $player->id->toString());
 
-        foreach (['/en/import/' . $importId, '/en/import/' . $importId . '/puzzles'] as $page) {
-            $crawler = $this->browser->request('GET', $page);
-            self::assertResponseIsSuccessful();
+        // "Where you are": step 5 says what is ready, the ONE primary is the first open step - the puzzle that waits
+        // for a choice - and what is ready can be added now
+        $crawler = $this->browser->request('GET', '/en/import/' . $importId);
+        self::assertResponseIsSuccessful();
+        $add = $crawler->filter('[data-testid="import-flow-line"][data-step="add"]');
+        // The wish for a puzzle the player is about to log as solved is still a wish today: three things
+        self::assertSame(['open', '3'], [$add->attr('data-state'), $add->attr('data-waiting')]);
+        self::assertStringContainsString('3 ready to add now.', self::spaced($add->text()));
+        $puzzles = $crawler->filter('[data-testid="import-flow-line"][data-step="puzzles"]');
+        self::assertSame(['open', '1'], [$puzzles->attr('data-state'), $puzzles->attr('data-waiting')]);
+        $primary = $crawler->filter('[data-testid="import-flow-primary"]');
+        self::assertSame(['/en/import/' . $importId . '/puzzles', 'Match your puzzles'], [$primary->attr('href'), self::spaced($primary->text())]);
+        self::assertSame('3', $crawler->filter('[data-testid="import-flow-add-ready"]')->attr('data-ready'));
+        self::assertSame('/en/import/' . $importId . '/add', $crawler->filter('[data-testid="import-flow-add-ready"] a')->attr('href'));
+        self::assertStringNotContainsString('arrives soon', (string) $this->browser->getResponse()->getContent());
+        // It is inside the part of the page that follows the matching by itself
+        self::assertCount(1, $crawler->filter('turbo-frame[data-import-live] [data-testid="import-flow-primary"]'));
 
-            $card = $crawler->filter('[data-testid="import-ready"]');
-            self::assertSame(['ready', '3'], [$card->attr('data-state'), $card->attr('data-rows')], $page);
-            // The wish for a puzzle the player is about to log as solved is still a wish today: three things
-            self::assertSame('Results: 1 · Puzzles you own: 1 · Wish list: 1', self::spaced($card->filter('[data-testid="import-ready-counts"]')->text()));
-            self::assertSame('/en/import/' . $importId . '/add', $card->filter('[data-testid="import-review-and-add"]')->attr('href'));
-            self::assertSame('Review and add', self::spaced($card->filter('[data-testid="import-review-and-add"]')->text()));
+        // The Puzzles screen says the same under its one primary
+        $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/puzzles');
+        self::assertResponseIsSuccessful();
+        self::assertSame('3', $crawler->filter('turbo-frame[data-import-live] [data-testid="import-flow-add-ready"]')->attr('data-ready'));
+        self::assertSame('/en/import/' . $importId . '/add', $crawler->filter('[data-testid="import-flow-add-ready"] a')->attr('href'));
 
-            // What is not ready, in plain words, with the place where it is settled
-            self::assertSame('1', $card->filter('[data-testid="not-ready-undecided"]')->attr('data-rows'));
-            self::assertSame('/en/import/' . $importId . '/puzzles', $card->filter('[data-testid="not-ready-undecided"] a')->attr('href'));
-            self::assertStringContainsString('Results without a date: 1. Open the rows and give them a date - nothing is lost.', self::spaced($card->filter('[data-testid="not-ready-exact-day"]')->text()));
-            self::assertStringNotContainsString('arrives soon', (string) $this->browser->getResponse()->getContent());
-            // The card is inside the part of the page that follows the pairing by itself
-            self::assertCount(1, $crawler->filter('turbo-frame[data-import-live] [data-testid="import-ready"]'));
-        }
+        // What is not ready, in plain words, with the place where it is settled: on "Check and add"
+        $card = $this->browser->request('GET', '/en/import/' . $importId . '/add')->filter('[data-testid="import-add-not-ready"]');
+        self::assertSame('1', $card->filter('[data-testid="not-ready-undecided"]')->attr('data-rows'));
+        self::assertSame('/en/import/' . $importId . '/puzzles', $card->filter('[data-testid="not-ready-undecided"] a')->attr('href'));
+        self::assertStringContainsString('Results with no date: 1. Give them a day, a month or a year - nothing is lost.', self::spaced($card->filter('[data-testid="not-ready-exact-day"]')->text()));
 
         // A puzzle kept as unlisted: its rows are ready - for the player's unlisted puzzles, said so, never counted
         // among what goes to the profile
@@ -114,8 +124,8 @@ final class ImportAddScreensTest extends WebTestCase
         $crawler = $this->browser->request('GET', '/en/import/' . $importId);
         self::assertCount(0, $crawler->filter('[data-testid="not-ready-unlisted"]'));
         self::assertSame('1', $crawler->filter('[data-testid="import-ready-unlisted"]')->attr('data-rows'));
-        self::assertStringContainsString('Rows kept with your unlisted puzzles: 1 - only you see them.', self::spaced($crawler->filter('[data-testid="import-ready-unlisted"]')->text()));
-        self::assertCount(0, $crawler->filter('[data-testid="not-ready-undecided"]'));
+        self::assertStringContainsString('Rows kept just for you: 1 - only you see them.', self::spaced($crawler->filter('[data-testid="import-ready-unlisted"]')->text()));
+        self::assertSame('done', $crawler->filter('[data-testid="import-flow-line"][data-step="puzzles"]')->attr('data-state'));
     }
 
     public function testTheReviewSaysWhatWillBeAddedAndTheEngineThenAddsExactlyThat(): void
@@ -159,7 +169,7 @@ final class ImportAddScreensTest extends WebTestCase
             ['9', '4', '2', '1', '3'],
             [$counts->attr('data-rows'), $counts->attr('data-results'), $counts->attr('data-owned'), $counts->attr('data-wish-list'), $counts->attr('data-already-yours')],
         );
-        self::assertSame(['Results', 'Rows ready: 9'], [self::spaced($crawler->filter('[data-testid="import-add-sheet"] span')->eq(0)->text()), self::spaced($crawler->filter('[data-testid="import-add-sheet"] span')->eq(1)->text())]);
+        self::assertSame(['Results', 'Ready to add: 9'], [self::spaced($crawler->filter('[data-testid="import-add-sheet"] span')->eq(0)->text()), self::spaced($crawler->filter('[data-testid="import-add-sheet"] span')->eq(1)->text())]);
 
         // The first results as they will appear: the catalogue puzzle, time, day, kind, the people as guests, first try
         $sample = $crawler->filter('[data-testid="import-add-sample"] [data-testid="add-row"]');
@@ -219,10 +229,11 @@ final class ImportAddScreensTest extends WebTestCase
         $this->browser->request('GET', '/en/import/' . $importId . '/batches/' . $batchId . '/progress');
         self::assertSame(['id' => $batchId, 'running' => true, 'paused' => false, 'total' => 9, 'done' => 0], json_decode((string) $this->browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR));
         // While it runs the import's card leads to it instead of offering another "Add"
-        $card = $this->browser->request('GET', '/en/import/' . $importId)->filter('[data-testid="import-ready"]');
-        self::assertSame('adding', $card->attr('data-state'));
-        self::assertSame('/en/import/' . $importId . '/batches/' . $batchId, $card->filter('[data-testid="import-ready-follow"]')->attr('href'));
-        self::assertCount(0, $card->filter('[data-testid="import-review-and-add"]'));
+        $detail = $this->browser->request('GET', '/en/import/' . $importId);
+        self::assertSame('working', $detail->filter('[data-testid="import-flow-line"][data-step="add"]')->attr('data-state'));
+        $primary = $detail->filter('[data-testid="import-flow-primary"]');
+        self::assertSame(['/en/import/' . $importId . '/batches/' . $batchId, 'See how far it is'], [$primary->attr('href'), self::spaced($primary->text())]);
+        self::assertCount(0, $detail->filter('[data-testid="import-flow-add-ready"]'));
 
         // The worker - the real one - and then: what the review said is what was done
         $this->work($batchId);
@@ -308,13 +319,13 @@ final class ImportAddScreensTest extends WebTestCase
 
         self::getContainer()->get(MessageBusInterface::class)->dispatch(new ChangeImportAddingPaused(true, PlayerFixture::PLAYER_ADMIN, 'Looking at something'));
 
-        // The card says so calmly - and offers no "Review and add"
-        $card = $this->browser->request('GET', '/en/import/' . $importId)->filter('[data-testid="import-ready"]');
-        self::assertSame('paused', $card->attr('data-state'));
-        self::assertStringContainsString('Adding is paused for a moment by our team.', self::spaced($card->filter('[data-testid="import-ready-paused"]')->text()));
+        // "Where you are" says so calmly on step 5 - and no button leads to an "Add"
+        $detail = $this->browser->request('GET', '/en/import/' . $importId);
+        $card = $detail->filter('[data-testid="import-flow-line"][data-step="add"]');
+        self::assertStringContainsString('Adding is paused for a moment by our team.', self::spaced($card->text()));
         self::assertStringContainsString('nothing is lost', $card->text());
-        self::assertCount(0, $card->filter('[data-testid="import-review-and-add"]'));
-        self::assertCount(0, $card->filter('button'));
+        self::assertCount(0, $detail->filter('[data-testid="import-flow-primary"]'));
+        self::assertCount(0, $detail->filter('[data-testid="import-flow-add-ready"]'));
         // The admin's reason is the admins' - never shown to the player
         self::assertStringNotContainsString('Looking at something', (string) $this->browser->getResponse()->getContent());
 
@@ -390,7 +401,7 @@ final class ImportAddScreensTest extends WebTestCase
         self::assertSame([['unusual_time'], []], [$this->wavedThrough($right), $this->wavedThrough($usual)]);
         $this->browser->request('POST', '/en/import/' . $importId . '/add/confirm', ['_token' => $token, 'action' => 'leave_out', 'rows' => [$leftOut]]);
         self::assertResponseRedirects('/en/import/' . $importId . '/add#unusual-times');
-        self::assertStringContainsString('Left out.', $this->browser->followRedirect()->text());
+        self::assertStringContainsString('Not imported.', $this->browser->followRedirect()->text());
         self::assertSame('left_out', $this->rowNow($leftOut)['state']);
 
         // Asked once: neither is listed any more, and the review counts what is left
@@ -700,8 +711,8 @@ SQL, ['importId' => $importId, 'now' => TestClock::FROZEN_NOW]);
         // Every row's button has an id of its own
         $requestIds = $crawler->filter('[data-testid="import-not-added-row"] input[name="request_id"]')->each(static fn (Crawler $input): null|string => $input->attr('value'));
         self::assertCount(3, array_unique($requestIds));
-        // The import's card names them too
-        self::assertSame('/en/import/' . $importId . '/not-added', $this->browser->request('GET', '/en/import/' . $importId)->filter('[data-testid="not-ready-not-added"] a')->attr('href'));
+        // The review names them too
+        self::assertSame('/en/import/' . $importId . '/not-added', $this->browser->request('GET', '/en/import/' . $importId . '/add')->filter('[data-testid="not-ready-not-added"] a')->attr('href'));
 
         // "Add it anyway": the answer is written and the row is added by its own "Add"
         $fields = [
@@ -836,7 +847,7 @@ SQL, ['importId' => $importId, 'now' => TestClock::FROZEN_NOW]);
         // It runs on the worker: the page follows it
         $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/undos/' . $undoId);
         self::assertSame('running', $crawler->filter('[data-testid="import-undo-page"]')->attr('data-state'));
-        self::assertSame('Taking back… 0 of 1', self::spaced($crawler->filter('[data-testid="import-adding-line"]')->text()));
+        self::assertSame('Undoing… 0 of 1', self::spaced($crawler->filter('[data-testid="import-adding-line"]')->text()));
         $this->browser->request('GET', '/en/import/' . $importId . '/undos/' . $undoId . '/progress');
         self::assertSame(['id' => $undoId, 'running' => true, 'paused' => false, 'total' => 1, 'done' => 0], json_decode((string) $this->browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR));
         $this->workUndo($undoId);
@@ -914,7 +925,7 @@ SQL, ['importId' => $importId, 'now' => TestClock::FROZEN_NOW]);
         self::assertCount(0, $crawler->filter('[data-testid="import-undo-form"]'));
         $this->browser->request('POST', '/en/import/' . $importId . '/undo', ['_token' => $token, 'request_id' => '0193e7a0-0000-7000-8000-000000000003', 'scope' => 'import']);
         self::assertResponseRedirects('/en/import/' . $importId . '/added');
-        self::assertStringContainsString('There is nothing to take back here.', $this->browser->followRedirect()->text());
+        self::assertStringContainsString('There is nothing to undo here.', $this->browser->followRedirect()->text());
     }
 
     public function testAfterTakingBackARowItsPuzzlesPairingCanBeForgotten(): void
@@ -937,7 +948,7 @@ SQL, ['importId' => $importId, 'now' => TestClock::FROZEN_NOW]);
         $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/undos/' . $undo->id . '?row=' . $row);
         $forget = $crawler->filter('[data-testid="import-undo-wrong-puzzle"] form');
         self::assertSame('/en/import/' . $importId . '/rows/' . $row . '/forget-pairing', $forget->attr('action'));
-        self::assertSame('Forget the pairing and choose again', self::spaced($forget->filter('[data-testid="import-forget-pairing"]')->text()));
+        self::assertSame('Forget the match and pick again', self::spaced($forget->filter('[data-testid="import-forget-pairing"]')->text()));
 
         $this->browser->request('POST', '/en/import/' . $importId . '/rows/' . $row . '/forget-pairing', ['_token' => $this->token($crawler)]);
         self::assertResponseRedirects('/en/import/' . $importId . '/puzzle/' . $importPuzzle['id']);
@@ -945,7 +956,7 @@ SQL, ['importId' => $importId, 'now' => TestClock::FROZEN_NOW]);
         // ... also for the next file: remembered as "not this puzzle"
         self::assertSame('not_this_puzzle', $this->database->fetchOne('SELECT choice FROM import_puzzle_decision WHERE player_id = :id', ['id' => $player->id->toString()]));
         // The row waits for its puzzle now - it is not ready any more
-        self::assertSame('1', $this->browser->request('GET', '/en/import/' . $importId)->filter('[data-testid="not-ready-undecided"]')->attr('data-rows'));
+        self::assertSame('1', $this->browser->request('GET', '/en/import/' . $importId . '/add')->filter('[data-testid="not-ready-undecided"]')->attr('data-rows'));
 
         // Without the row named (a batch's or an import's take-back) the page leads to the puzzles instead
         $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/undos/' . $undo->id);
@@ -1104,7 +1115,7 @@ SQL, ['importId' => $importId, 'now' => TestClock::FROZEN_NOW]);
         $crawler = $this->browser->request('GET', '/en/import/' . $importId);
         self::assertCount(0, $crawler->filter('[data-testid="discard-import"]'));
         $keptCard = $crawler->filter('[data-testid="import-kept"]');
-        self::assertStringContainsString('Discarding it would not remove anything from your profile', $keptCard->text());
+        self::assertStringContainsString('It stays in your list so the same rows are never added twice and you can undo them.', self::spaced($keptCard->text()));
         self::assertSame('/en/import/' . $importId . '/undo', $keptCard->filter('[data-testid="import-undo-import"]')->attr('href'));
         self::assertStringContainsString('Added so far - results: 2', self::spaced($crawler->filter('[data-testid="import-ready-added"]')->text()));
 

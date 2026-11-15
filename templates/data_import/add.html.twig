@@ -16,12 +16,9 @@
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}
-{{ include('_page_crumbs.html.twig', {levels: [
-    {name: 'data_import.home.title'|trans, url: path('data_imports')},
-    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
-]}) }}
+{{ include('data_import/_flow_header.html.twig', {import: import, step: 5}) }}
 
-<div class="mx-auto" style="max-width: 720px;" data-testid="import-add-page">
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-add-page" data-import-flow-screen="add">
     <h1 class="h3 mb-2">{{ 'data_import.add.title'|trans }}</h1>
     <p class="text-muted fs-sm">{{ 'data_import.add.intro'|trans }}</p>
 
@@ -35,7 +32,7 @@
     {% if add.runningBatchId is not null %}
         <div class="alert alert-info fs-sm" data-testid="import-add-running">
             <p class="mb-2">{{ 'data_import.add.ready.adding'|trans }}</p>
-            <a href="{{ path('data_import_batch', {importId: import.importId, batchId: add.runningBatchId}) }}" class="btn btn-outline-primary text-wrap d-inline-flex align-items-center" style="min-height: 44px;">
+            <a href="{{ path('data_import_batch', {importId: import.importId, batchId: add.runningBatchId}) }}" class="btn btn-primary text-wrap d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-add-follow">
                 <i class="bi bi-activity me-1" aria-hidden="true"></i>{{ 'data_import.add.ready.follow'|trans }}
             </a>
         </div>
@@ -55,7 +52,7 @@
                 {% if add.unlisted > 0 %}
                     {# Kept with the player's unlisted puzzles: nothing of them is public (docs/features/data-import/unlisted-puzzles.md) #}
                     <li class="d-flex justify-content-between gap-2 py-1" data-testid="import-add-unlisted" data-rows="{{ add.unlisted }}"><span><i class="bi bi-bookmark me-2" aria-hidden="true"></i>{{ 'unlisted_puzzles.add.kind'|trans }}</span><strong>{{ add.unlisted|format_number }}</strong></li>
-                    <li class="fs-sm text-muted ps-4 pb-1">{{ 'unlisted_puzzles.only_you'|trans }}</li>
+                    <li class="ps-4 pb-1">{{ include('data_import/_explain.html.twig', {text: 'data_import.explain.unlisted'|trans, more: 'data_import.explain.unlisted_more'|trans, fold: true, summary: 'data_import.explain.unlisted_summary'|trans, testid: 'import-explain-unlisted'}, with_context = false) }}</li>
                 {% endif %}
                 {% if add.alreadyYours > 0 %}
                     <li class="d-flex justify-content-between gap-2 py-1 text-muted"><span><i class="bi bi-person-check me-2" aria-hidden="true"></i>{{ 'data_import.add.kind.already_yours'|trans }}</span><span>{{ add.alreadyYours|format_number }}</span></li>
@@ -108,6 +105,7 @@
                 {{ 'data_import.people.card.guests'|trans({'%count%': people_counts.people - people_counts.players}) }}
             </p>
             <p class="fs-sm mb-2">{{ 'data_import.people.card.hint'|trans }}</p>
+            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.guest'|trans, fold: true, summary: 'data_import.explain.guest_summary'|trans, testid: 'import-explain-guest'}, with_context = false) }}
             <a href="{{ path('data_import_people', {importId: import.importId}) }}" class="btn btn-outline-primary text-wrap d-inline-flex align-items-center align-self-start" style="min-height: 44px;" data-testid="import-add-people-link">
                 <i class="bi bi-people me-1" aria-hidden="true"></i>{{ 'data_import.people.card.open'|trans }}
             </a>
@@ -222,12 +220,19 @@
                     {{ 'data_import.add.button_settle'|trans({'%number%': add.rowsToTake|format_number}) }}
                 {%- endif -%}
             </button>
-            <p class="fs-sm text-muted text-center mt-2 mb-0">{{ 'data_import.add.button_hint'|trans }}</p>
+            <p class="fs-sm text-muted mt-2 mb-2">{{ 'data_import.add.button_hint'|trans }}</p>
+            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.undo'|trans, testid: 'import-explain-undo'}, with_context = false) }}
         </form>
+        {{ include('data_import/_flow_footer.html.twig', {import: import}, with_context = false) }}
+    {% elseif add.runningBatchId is not null or add.paused %}
+        {{ include('data_import/_flow_footer.html.twig', {import: import}, with_context = false) }}
+    {% elseif add.undecided > 0 %}
+        {# Nothing is ready: the way on is the step that holds the rows back #}
+        {{ include('data_import/_flow_footer.html.twig', {import: import, primary: {label: 'data_import.puzzles.open'|trans, url: path('data_import_puzzles', {importId: import.importId}), icon: 'bi-puzzle', testid: 'import-flow-primary'}}, with_context = false) }}
+    {% elseif add.needLook > 0 %}
+        {{ include('data_import/_flow_footer.html.twig', {import: import, primary: {label: 'data_import.flow.primary.rows'|trans({'%count%': add.needLook, '%number%': add.needLook|format_number}), url: path('data_import_to_fix', {importId: import.importId}), testid: 'import-flow-primary'}}, with_context = false) }}
+    {% else %}
+        {{ include('data_import/_flow_footer.html.twig', {import: import, continue_after: 'add', continue_label: 'data_import.flow.where_you_are'|trans}, with_context = false) }}
     {% endif %}
-
-    <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="btn btn-link px-0 d-inline-flex align-items-center" style="min-height: 44px;">
-        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.columns.back_to_import'|trans }}
-    </a>
 </div>
 {% endblock %}

@@ -41,7 +41,7 @@
                     <input type="hidden" name="code" value="said_already_on_profile">
                     <input type="hidden" name="action" value="{{ action }}">
                     {% if batch_id is not null %}<input type="hidden" name="batch" value="{{ batch_id }}">{% endif %}
-                    <button type="submit" class="btn {{ action == 'add_anyway' ? 'btn-primary' : 'btn-outline-secondary' }} text-wrap" style="min-height: 44px;" data-testid="import-group-said-{{ key }}">
+                    <button type="submit" class="btn {{ action == 'add_anyway' ? 'btn-outline-primary' : 'btn-link' }} text-wrap" style="min-height: 44px;" data-testid="import-group-said-{{ key }}">
                         {{ ('data_import.group.said.' ~ key)|trans({'%number%': said|format_number}) }}
                     </button>
                 </form>

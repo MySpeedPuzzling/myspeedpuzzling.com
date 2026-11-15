@@ -165,8 +165,12 @@ final class ImportReadingTest extends WebTestCase
         // The page lists what the file holds
         $crawler = $this->browser->request('GET', '/en/import/' . $importId);
         $this->assertResponseIsSuccessful();
-        self::assertSame('Read', $crawler->filter('[data-testid="import-status"]')->text());
+        self::assertSame(['steps', 'setting_up'], [$crawler->filter('[data-testid="data-import-page"]')->attr('data-stage'), $crawler->filter('[data-testid="data-import-page"]')->attr('data-status')]);
         self::assertCount(0, $crawler->filter('[data-testid="import-reading"]'));
+        self::assertStringNotContainsString('arrives soon', (string) $this->browser->getResponse()->getContent());
+        // What the file holds is listed in "How we read your file"
+        $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/columns');
+        $this->assertResponseIsSuccessful();
         $listed = $crawler->filter('[data-testid="import-sheet"]');
         self::assertCount(2, $listed);
         self::assertStringContainsString('Results', $listed->eq(0)->text());
@@ -203,7 +207,7 @@ final class ImportReadingTest extends WebTestCase
         );
 
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
-        $crawler = $this->browser->request('GET', '/en/import/' . $importId);
+        $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/columns');
         self::assertStringContainsString('The whole file', $crawler->filter('[data-testid="import-sheet"]')->text());
     }
 
@@ -276,7 +280,8 @@ final class ImportReadingTest extends WebTestCase
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
         $crawler = $this->browser->request('GET', '/en/import/' . $importId);
         $this->assertResponseIsSuccessful();
-        self::assertSame('Could not be read', $crawler->filter('[data-testid="import-status"]')->text());
+        self::assertSame(['file', 'read_failed'], [$crawler->filter('[data-testid="data-import-page"]')->attr('data-stage'), $crawler->filter('[data-testid="data-import-page"]')->attr('data-status')]);
+        self::assertSame('We could not read this file.', trim($crawler->filter('[data-testid="import-flow-headline"]')->text()));
         $failed = $crawler->filter('[data-testid="import-read-failed"]');
         self::assertSame($reason, $failed->attr('data-reason'));
         self::assertStringContainsString($said, $failed->text());
@@ -358,7 +363,7 @@ final class ImportReadingTest extends WebTestCase
         $this->assertResponseRedirects('/en/import/' . $first);
         $crawler = $this->browser->followRedirect();
         self::assertStringContainsString('You already imported this very file', $crawler->filter('.alert-info')->first()->text());
-        self::assertCount(2, $crawler->filter('[data-testid="import-sheet"]'));
+        self::assertCount(5, $crawler->filter('[data-testid="import-flow-line"]'));
 
         // Only the one import is on the list
         $crawler = $this->browser->request('GET', '/en/import');

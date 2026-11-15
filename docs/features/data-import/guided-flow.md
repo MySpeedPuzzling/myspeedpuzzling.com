@@ -1162,3 +1162,45 @@ the same tab with `?return=` back to the screen (the site's return-url conventio
 the guide's first line for a player who came from the flow. §12's "How this works" links use the same anchors
 (`#unlisted`, `#take-back`, `#imported-result`, `#never-twice`). All anchors join
 `ImportGuideControllerTest::ANCHORS`.
+
+## As built - slice 1 (the spine)
+
+What shipped with slice 1, and where it differs from the sections above - each with its reason. Slices 2-9 are not
+started; everything below is **[UI]**: no query, message, handler or route changed, no migration.
+
+**Built**
+
+- `Services/DataImport/ImportFlow` (a value, not a service) with `Results/ImportFlowStep`, `ImportFlowText`,
+  `ImportFlowAction`: the five step states (`done` / `open` / `working` / `ahead`), one status sentence a line, the
+  ONE primary action, the "add what is ready now" line, what may be finished or discarded. Table-tested in
+  `ImportFlowTest`. "Where you are" runs the same five statements the import's page ran before
+  (`ImportFlowScreensTest`, measured against `main`).
+- `_flow_header.html.twig` on all 19 screens of an import (instead of the breadcrumbs), `_flow_footer.html.twig` at
+  their end, `_flow_text.html.twig` (numbers and dates formatted per language), `_explain.html.twig`.
+- `detail.html.twig` is "Where you are". The State / Size / Uploaded card is the menu's "About this file"; the
+  sheets table (`_sheets_table.html.twig`) is folded at the end of "How we read your file" - and at the bottom of a
+  **finished** import's page, whose sheets can not be opened any more. `_ready_card` and `_pairing_summary` are gone.
+- One `.btn-primary` a screen; every other action is an outline button or a link. The chooser has none: a tap on a
+  puzzle's card is its answer (§6.2).
+- §8's vocabulary in the texts these screens have, six locales (values changed, keys kept; 18 keys nothing renders
+  any more were removed). Explanations in place for unlisted puzzles, guest and undo (+ finish, discard, "why it
+  stays", "what happens to the file", which the new page needed).
+
+**Differences from the specification**
+
+| Where | As built | Why |
+|---|---|---|
+| §2 rule 3, the addresses `…/check`, `/people`, `/add` | The existing routes stay. **Continue** is `data_import_detail?after=<screen>` (`check`, `rows`, `people`, `puzzles`): the import's page answers with a redirect to the next screen that has something waiting (`ImportFlow::nextAfter()`), never back to the screen it came from, and to step 5 when nothing waits. | "Same routes" - and it lets every screen have a true Continue without one statement more: the target is worked out where the data is loaded anyway. Nothing is stored. |
+| §3 step dots on screens inside a step | Only "Where you are" knows what is passed and what waits. On the other screens the dots show step 1 as done and the screen's own step as current; the rest are plain numbers (links), claiming nothing. | Those pages do not load the sheets / matching / add summaries. Loading them there would be new statements on every screen. |
+| §3 menu on screens inside a step | "Where you are", "How we read your file", "Column set-ups we remember", "About this file". Finish / Discard / Undo-everything / "What this import added" are in the menu of "Where you are" only (and at its bottom). | They depend on what the import added, which only that page loads. |
+| §5.3 step 3 "People" on "Where you are" | The line reads "Names in your file are added as guests unless you say who they are." and is never the primary action. `ImportFlow` takes the people's counts (`GetImportPeople::counts()`) and then says "Nobody else is named" / "Tell us who N people are" / "People in your file: N…" and makes "Say who they are" the primary - tested, but **no page passes them yet**. | The import's page does not count the people; counting them is one statement more on it, which this slice was not to add. One line in `ImportDetailController` switches it on. |
+| §5.6 the pair sheet's question in step 3 | As 6d built it: a question of the sheet, so it counts among step 2's questions ("N questions about your file"). | Moving it is a change of 6d's screen, not of the spine. |
+| §2 "no column under Please check these" | Step 2 is passed when no sheet asks, no row could not be read, no sheet failed and nothing is being worked out. Uncertain columns do not keep it open. | The sheets' overview does not say whether a sheet has such a column. |
+| §5.3 step 4 "276 wait for you" | "N of M matched." + "R rows wait for you to match their puzzle." (rows, not puzzles); the step is open while rows wait for a puzzle. | The matching summary counts kept-just-for-me puzzles together with the not-found ones, so "puzzles that wait" can not be told from it; the add summary's rows can. |
+| §5.3 primary "Answer 2 questions" after an Add | "Answer for N rows that wait" → the list of those rows. | The number of questions is not known on the page - the number of rows is. |
+| §5.4 the one-question-a-screen sequence and the one-sentence-a-sheet summary | Not built (slice 4). The screen got its header, the counters as one number a line, one primary ("Answer the question" while a sheet asks - with "Continue - I'll answer later" as a link - else "Looks right - continue"). | Slice 4. |
+| §5.10 the done page's primary | "See them on my profile" (or Continue); the group cards' buttons are outline. `not_added_times`' "Yes, these are my times" is outline too - it is a frame inside those pages. | The done page of §5.10 is slice 5; one primary a screen holds already. |
+| Undo's confirm button | `btn-primary` (it was `btn-danger`). | One primary a screen; an Undo can be added again. |
+| §5.2 "Bring your file", §5.1 Imports home, `places_taken`, `layouts` | Untouched (no flow header). | Not screens of one import; §5.1 is slice 5, §5.2 is not in slice 1. |
+| §13 "How this step works" | No link in the footer. | The guide's route is not on `main`. |
+| My data, a time that needs a word | The **cell** now says "Please check the time - if it is right, open the row and confirm it there." (`my_data.edit.time_check_in_row`); the row's sheet and the add-result form keep "…confirm it below". | A table cell has nothing below it; the add-result form's text is not touched. |

@@ -33,14 +33,9 @@
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}
-{{ include('_page_crumbs.html.twig', {levels: [
-    {name: 'data_import.home.title'|trans, url: path('data_imports')},
-    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
-    {name: 'data_import.puzzles.title'|trans, url: path('data_import_puzzles', {importId: import.importId})},
-    {name: ('data_import.puzzles.group.' ~ list_group|replace({'-': '_'}) ~ '.title')|trans, url: path('data_import_puzzle_group', {importId: import.importId, group: list_group})},
-]}) }}
+{{ include('data_import/_flow_header.html.twig', {import: import, step: 4}) }}
 
-<div class="mx-auto" style="max-width: 560px;" data-testid="import-puzzle-chooser" data-choice="{{ card.choice }}" data-version="{{ card.decisionVersion }}">
+<div class="mx-auto" style="max-width: 560px;" data-testid="import-puzzle-chooser" data-import-flow-screen="puzzle_choose" data-choice="{{ card.choice }}" data-version="{{ card.decisionVersion }}">
     <div class="d-flex justify-content-between align-items-baseline gap-2 mb-2">
         <h1 class="h5 mb-0">{{ 'data_import.puzzles.chooser.title'|trans }}</h1>
         {% if flow is not null %}
@@ -131,7 +126,7 @@
             <label for="import-puzzle-search-input" class="form-label fs-sm text-muted mb-1">{{ 'data_import.puzzles.chooser.search_label'|trans }}</label>
             <div class="d-flex gap-2">
                 <input type="search" id="import-puzzle-search-input" name="search" value="{{ searched ?? card.name }}" class="form-control" style="font-size: 16px; min-height: 44px;" maxlength="200" autocomplete="off" enterkeyhint="search" data-testid="import-chooser-search-input">
-                <button type="submit" class="btn btn-primary flex-shrink-0" style="min-height: 44px;" data-testid="import-chooser-search-button">
+                <button type="submit" class="btn btn-outline-primary flex-shrink-0" style="min-height: 44px;" data-testid="import-chooser-search-button">
                     <i class="bi bi-search" aria-hidden="true"></i><span class="visually-hidden">{{ 'data_import.puzzles.chooser.search_button'|trans }}</span>
                 </button>
             </div>
@@ -170,7 +165,9 @@
             <button type="submit" name="action" value="unlisted" class="btn btn-outline-primary w-100 text-wrap" style="min-height: 44px;" data-testid="import-chooser-unlisted">
                 <i class="bi bi-bookmark me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.chooser.unlisted'|trans }}
             </button>
-            <p class="fs-sm text-muted mt-1 mb-3">{{ 'data_import.puzzles.chooser.unlisted_hint'|trans }}</p>
+            <div class="mt-1 mb-2">
+                {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.unlisted'|trans, more: 'data_import.explain.unlisted_more'|trans, testid: 'import-explain-unlisted'}, with_context = false) }}
+            </div>
             <button type="submit" name="action" value="left_out" class="btn btn-outline-secondary w-100 text-wrap" style="min-height: 44px;" data-testid="import-chooser-leave-out">
                 <i class="bi bi-dash-circle me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.chooser.leave_out'|trans }}
             </button>
@@ -188,5 +185,8 @@
             <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.chooser.back_to_list'|trans }}
         </a>
     </div>
+
+    {# A tap on a puzzle's card is the answer here - the screen has no other primary button #}
+    {{ include('data_import/_flow_footer.html.twig', {import: import}, with_context = false) }}
 </div>
 {% endblock %}

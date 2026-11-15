@@ -14,12 +14,9 @@
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}
-{{ include('_page_crumbs.html.twig', {levels: [
-    {name: 'data_import.home.title'|trans, url: path('data_imports')},
-    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
-]}) }}
+{{ include('data_import/_flow_header.html.twig', {import: import, step: 5}) }}
 
-<div class="mx-auto" style="max-width: 720px;" data-testid="import-group-answer-page" data-state="{{ answer.running ? 'running' : 'finished' }}">
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-group-answer-page" data-import-flow-screen="group_answer" data-state="{{ answer.running ? 'running' : 'finished' }}">
     <h1 class="h3 mb-3">{{ (answer.running ? 'data_import.group.title' : 'data_import.group.done.title')|trans }}</h1>
 
     {% if answer.running %}
@@ -74,8 +71,6 @@
         </div>
     {% endif %}
 
-    <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="btn btn-link px-0 d-inline-flex align-items-center" style="min-height: 44px;">
-        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.columns.back_to_import'|trans }}
-    </a>
+    {{ include('data_import/_flow_footer.html.twig', {import: import}, with_context = false) }}
 </div>
 {% endblock %}

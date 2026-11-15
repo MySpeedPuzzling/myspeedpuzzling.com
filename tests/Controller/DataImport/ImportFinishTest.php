@@ -91,7 +91,7 @@ final class ImportFinishTest extends WebTestCase
             $taken->filter('[data-testid="import-in-progress"]')->each(static fn ($link): array => [self::spaced($link->text()), $link->attr('href')]),
         );
         // What the page promises about Discard is true
-        self::assertStringContainsString('Until you add something from it you can discard an import; afterwards you can take back what it added.', self::spaced($crawler->text()));
+        self::assertStringContainsString('Until you add something from it you can discard an import; afterwards you can undo what it added.', self::spaced($crawler->text()));
         self::assertStringNotContainsString('at any time', $crawler->text());
 
         // None of them can be discarded - the lock-out this is about
@@ -103,7 +103,7 @@ final class ImportFinishTest extends WebTestCase
         $crawler = $this->browser->request('GET', '/en/import/' . $first);
         $button = $crawler->filter('[data-testid="import-finish"] [data-testid="import-finish-button"]');
         self::assertSame("I'm done with this import", self::spaced($button->text()));
-        self::assertStringContainsString('What it added stays on your profile and can still be taken back', self::spaced($crawler->filter('[data-testid="import-finish"]')->text()));
+        self::assertStringContainsString('What it added stays on your profile and can still be undone', self::spaced($crawler->filter('[data-testid="import-finish"]')->text()));
         $this->browser->submit($button->form());
         self::assertResponseRedirects('/en/import/' . $first);
         self::assertSame('done', $this->statusOf($first));
@@ -172,11 +172,14 @@ final class ImportFinishTest extends WebTestCase
         // Its page: finished, what it added, the way to go on - and nothing to add or to finish
         $crawler = $this->browser->request('GET', '/en/import/' . $importId);
         self::assertResponseIsSuccessful();
-        self::assertSame('Finished', self::spaced($crawler->filter('[data-testid="import-status"]')->text()));
+        self::assertSame(['finished', 'done'], [$crawler->filter('[data-testid="data-import-page"]')->attr('data-stage'), $crawler->filter('[data-testid="data-import-page"]')->attr('data-status')]);
+        self::assertSame('This import is finished.', self::spaced($crawler->filter('[data-testid="import-flow-headline"]')->text()));
         self::assertStringContainsString('Added so far - results: 1', self::spaced($crawler->filter('[data-testid="import-finished-added"]')->text()));
         self::assertCount(1, $crawler->filter('[data-testid="import-go-on"]'));
         self::assertCount(1, $crawler->filter('[data-testid="import-undo-import"]'));
-        self::assertCount(0, $crawler->filter('[data-testid="import-ready"]'));
+        self::assertSame('data_import_added', $crawler->filter('[data-testid="import-flow-primary"]')->attr('data-route'));
+        self::assertCount(0, $crawler->filter('[data-testid="import-flow-add-ready"]'));
+        self::assertCount(0, $crawler->filter('[data-testid="import-flow-line-link"]'), 'the lines of a finished import are read-only');
         self::assertCount(0, $crawler->filter('[data-testid="import-finish"]'));
         self::assertCount(0, $crawler->filter('[data-testid="discard-import"]'));
 
@@ -223,7 +226,8 @@ final class ImportFinishTest extends WebTestCase
 
         // It is what it was: both rows can be added again
         $crawler = $this->browser->request('GET', '/en/import/' . $importId);
-        self::assertSame(['ready', '2'], [$crawler->filter('[data-testid="import-ready"]')->attr('data-state'), $crawler->filter('[data-testid="import-ready"]')->attr('data-rows')]);
+        $add = $crawler->filter('[data-testid="import-flow-line"][data-step="add"]');
+        self::assertSame(['open', '2'], [$add->attr('data-state'), $add->attr('data-waiting')]);
         $again = $this->addAndWork($importId, $playerId);
         self::assertSame(2, $this->batchNow($again->id)['rows_added']);
     }

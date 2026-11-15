@@ -16,13 +16,9 @@
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}
-{{ include('_page_crumbs.html.twig', {levels: [
-    {name: 'data_import.home.title'|trans, url: path('data_imports')},
-    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
-    {name: 'data_import.puzzles.title'|trans, url: path('data_import_puzzles', {importId: import.importId})},
-]}) }}
+{{ include('data_import/_flow_header.html.twig', {import: import, step: 4}) }}
 
-<div class="mx-auto" style="max-width: 720px;" data-testid="import-puzzle-group-page" data-group="{{ group }}">
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-puzzle-group-page" data-import-flow-screen="puzzle_group" data-group="{{ group }}">
     <h1 class="h3 mb-2">{{ group_title }}</h1>
     <p class="text-muted fs-sm mb-2">{{ ('data_import.puzzles.group.' ~ group|replace({'-': '_'}) ~ '.hint')|trans }}</p>
 
@@ -62,7 +58,7 @@
                         <input type="hidden" name="cards[{{ card.importPuzzleId }}][catalogue]" value="{{ card.shown.puzzleId }}">
                     {% endfor %}
                     <button type="submit" name="action" value="tick_all" class="btn btn-primary w-100 text-wrap" style="min-height: 48px;" data-testid="import-puzzle-tick-all-button">
-                        <i class="bi bi-check-all me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.list.tick_all'|trans({'%number%': tickable|length}) }}
+                        <i class="bi bi-check-all me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.list.tick_all'|trans({'%count%': tickable|length, '%number%': tickable|length}) }}
                     </button>
                     <p class="fs-sm text-muted mt-2 mb-0">{{ 'data_import.puzzles.list.tick_all_hint'|trans }}</p>
                 </form>
@@ -72,8 +68,12 @@
         {% endif %}
     </turbo-frame>
 
-    <a href="{{ path('data_import_puzzles', {importId: import.importId}) }}" class="btn btn-link px-0 mt-3" style="min-height: 44px;">
-        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.back_to_summary'|trans }}
-    </a>
+    {# The pile's own primary is "Yes, these N are right" or "Do the next 20"; a pile with nothing to press leads on #}
+    {% set has_own_primary = cards is not empty and ((group in ['choose', 'not-found'] and open > 0) or tickable|default([])|length > 0) %}
+    {{ include('data_import/_flow_footer.html.twig', {
+        import: import,
+        primary: has_own_primary ? null : {label: 'data_import.flow.continue'|trans, url: path('data_import_puzzles', {importId: import.importId}), testid: 'import-flow-continue'},
+        back: has_own_primary ? {label: 'data_import.puzzles.back_to_summary'|trans, url: path('data_import_puzzles', {importId: import.importId})} : null,
+    }, with_context = false) }}
 </div>
 {% endblock %}

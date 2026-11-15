@@ -137,7 +137,10 @@ final class MyDataCellController extends AbstractController
             MyDataCellSave::IN_SHEET_ONLY => $this->refuse($this->translator->trans('my_data.edit.in_sheet_only'), Response::HTTP_FORBIDDEN, row: true),
             MyDataCellSave::CHANGED_MEANWHILE => $this->changedMeanwhile($this->resultCells($viewer, $timeId)[$column]),
             MyDataCellSave::INVALID => $this->refuse($this->translator->trans($column === MyDataResultEdit::TIME ? 'my_data.edit.time_invalid' : 'my_data.edit.not_saved')),
-            MyDataCellSave::REFUSED => $this->refuse((string) $save->outcome?->firstError(), row: $save->outcome?->asksAQuestion === true),
+            // A time that needs the player's word is confirmed in the row's sheet - a table cell has nothing "below" it
+            MyDataCellSave::REFUSED => $save->outcome?->firstError() === $this->translator->trans('suspicious_time.form.error')
+                ? $this->refuse($this->translator->trans('my_data.edit.time_check_in_row'), row: true)
+                : $this->refuse((string) $save->outcome?->firstError(), row: $save->outcome?->asksAQuestion === true),
             default => new JsonResponse(['status' => $save->status, 'cells' => $this->resultCells($viewer, $timeId)]),
         };
     }

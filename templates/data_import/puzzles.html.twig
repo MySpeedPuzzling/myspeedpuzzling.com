@@ -15,12 +15,9 @@
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 
 {% block content %}
-{{ include('_page_crumbs.html.twig', {levels: [
-    {name: 'data_import.home.title'|trans, url: path('data_imports')},
-    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
-]}) }}
+{{ include('data_import/_flow_header.html.twig', {import: import, step: 4}) }}
 
-<div class="mx-auto" style="max-width: 720px;" data-testid="import-puzzles-page">
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-puzzles-page" data-import-flow-screen="puzzles">
     <h1 class="h3 mb-2">{{ 'data_import.puzzles.title'|trans }}</h1>
     <p class="text-muted fs-sm">{{ 'data_import.puzzles.intro'|trans }}</p>
 
@@ -32,22 +29,10 @@
             <p class="fs-sm text-muted mb-1" data-testid="import-puzzles-searching">{{ 'data_import.pairing.searching'|trans({'%number%': overview.searching|format_number}) }}</p>
         {% endif %}
 
-        {# One clear next step: the first group that needs the player #}
+        {# One clear next step - the first pile that needs the player: it is the screen's ONE primary, at its end #}
         {% set next = overview.nextGroup %}
         <div class="my-3" data-testid="import-puzzles-next" data-next="{{ next ?? (overview.rowsNeedLook > 0 ? 'to-fix' : 'nothing') }}">
-            {% if next in ['choose', 'not-found'] %}
-                <a href="{{ path('data_import_puzzle_next', {importId: import.importId, group: next}) }}" class="btn btn-primary btn-lg w-100 text-wrap d-flex align-items-center justify-content-center" style="min-height: 52px;" rel="nofollow">
-                    <i class="bi {{ icons[next] }} me-2" aria-hidden="true"></i>{{ ('data_import.puzzles.next.' ~ next|replace({'-': '_'}))|trans }}
-                </a>
-            {% elseif next is not null %}
-                <a href="{{ path('data_import_puzzle_group', {importId: import.importId, group: next}) }}" class="btn btn-primary btn-lg w-100 text-wrap d-flex align-items-center justify-content-center" style="min-height: 52px;">
-                    <i class="bi {{ icons[next] }} me-2" aria-hidden="true"></i>{{ ('data_import.puzzles.next.' ~ next|replace({'-': '_'}))|trans }}
-                </a>
-            {% elseif overview.rowsNeedLook > 0 %}
-                <a href="{{ path('data_import_to_fix', {importId: import.importId}) }}" class="btn btn-primary btn-lg w-100 text-wrap d-flex align-items-center justify-content-center" style="min-height: 52px;">
-                    <i class="bi bi-eye me-2" aria-hidden="true"></i>{{ 'data_import.puzzles.next.to_fix'|trans }}
-                </a>
-            {% elseif overview.puzzles > 0 and not live.working %}
+            {% if next is null and overview.rowsNeedLook == 0 and overview.puzzles > 0 and not live.working %}
                 <p class="alert alert-success fs-sm mb-0"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.next.nothing'|trans }}</p>
             {% endif %}
         </div>
@@ -101,12 +86,29 @@
             </p>
         {% endif %}
 
-        {# What is ready to be added, and the way to its review (docs/features/data-import/adding-screens.md) #}
-        {{ include('data_import/_ready_card.html.twig', {add: add, import_id: import.importId}) }}
+        {# The ONE primary: the first pile with something waiting - else on to the next step. Under it, what is
+           ready to be added now (docs/features/data-import/guided-flow.md §2 rule 4) #}
+        {% set ready = add.canAdd and add.runningBatchId is null and not add.paused ? add.toAdd : 0 %}
+        {% if add.paused %}
+            <p class="fs-sm text-muted" data-testid="import-ready-paused"><i class="bi bi-pause-circle me-1" aria-hidden="true"></i>{{ 'data_import.add.paused'|trans }}</p>
+        {% endif %}
+        {% if next in ['choose', 'not-found'] %}
+            {{ include('data_import/_flow_footer.html.twig', {import: import, ready: ready, primary: {
+                label: ('data_import.puzzles.next.' ~ next|replace({'-': '_'}))|trans,
+                url: path('data_import_puzzle_next', {importId: import.importId, group: next}),
+                icon: icons[next], nofollow: true, testid: 'import-puzzles-next-button',
+            }}, with_context = false) }}
+        {% elseif next is not null %}
+            {{ include('data_import/_flow_footer.html.twig', {import: import, ready: ready, primary: {
+                label: ('data_import.puzzles.next.' ~ next|replace({'-': '_'}))|trans,
+                url: path('data_import_puzzle_group', {importId: import.importId, group: next}),
+                icon: icons[next], testid: 'import-puzzles-next-button',
+            }}, with_context = false) }}
+        {% elseif live.working %}
+            {{ include('data_import/_flow_footer.html.twig', {import: import, ready: ready}, with_context = false) }}
+        {% else %}
+            {{ include('data_import/_flow_footer.html.twig', {import: import, continue_after: 'puzzles'}, with_context = false) }}
+        {% endif %}
     </turbo-frame>
-
-    <a href="{{ path('data_import_columns', {importId: import.importId}) }}" class="btn btn-link px-0" style="min-height: 44px;">
-        <i class="bi bi-columns-gap me-1" aria-hidden="true"></i>{{ 'data_import.columns.open'|trans }}
-    </a>
 </div>
 {% endblock %}

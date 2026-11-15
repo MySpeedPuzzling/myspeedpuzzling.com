@@ -74,7 +74,7 @@ final class ImportGroupAnswersTest extends WebTestCase
         $card = $crawler->filter('[data-testid="import-group-said"]');
         self::assertSame('60', $card->attr('data-rows'));
         self::assertSame('They are missing - add all 60', self::spaced($card->filter('[data-testid="import-group-said-missing"]')->text()));
-        self::assertSame('Leave them out (60)', self::spaced($card->filter('[data-testid="import-group-said-leave_out"]')->text()));
+        self::assertSame("Don't import them (60)", self::spaced($card->filter('[data-testid="import-group-said-leave_out"]')->text()));
         // The form names the reason and the action - never the rows
         $form = $card->filter('form')->first();
         self::assertSame('/en/import/' . $importId . '/group-answers', $form->attr('action'));
@@ -279,7 +279,7 @@ SQL, ['rowId' => $said[0]]);
         self::assertStringContainsString('Most of the times in this file are faster than your results on MySpeedPuzzling so far - if this file is your own history, that is expected.', self::spaced($summary->filter('[data-testid="import-group-times-most"]')->text()));
         self::assertCount(4, $summary->filter('[data-testid="import-group-times-example"]'));
         self::assertStringContainsString('We expected about', $summary->filter('[data-testid="import-group-times-example"]')->first()->text());
-        self::assertSame('These times are right - add all 4', self::spaced($summary->filter('[data-testid="import-group-times-right"]')->text()));
+        self::assertSame('Yes, these are my times - add them (4)', self::spaced($summary->filter('[data-testid="import-group-times-right"]')->text()));
         self::assertStringNotContainsString('uspicious', (string) $this->browser->getResponse()->getContent());
         $form = $summary->filter('form')->first();
         self::assertSame('_top', $form->attr('data-turbo-frame'));
@@ -341,7 +341,7 @@ SQL, ['rowId' => $said[0]]);
         $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/add/times');
         $group = $crawler->filter('[data-testid="import-add-times-group"]');
         self::assertSame('All unusual times in this file are right', self::spaced($group->filter('[data-testid="import-add-times-group-right"]')->text()));
-        self::assertSame('Leave out all unusual times of this file', self::spaced($group->filter('[data-testid="import-add-times-group-leave_out"]')->text()));
+        self::assertSame("Don't import any unusual time of this file", self::spaced($group->filter('[data-testid="import-add-times-group-leave_out"]')->text()));
         $form = $group->filter('form')->first();
         $answerId = (string) $form->filter('input[name="request_id"]')->attr('value');
 
@@ -365,7 +365,7 @@ SQL, ['rowId' => $said[0]]);
         self::assertResponseIsSuccessful();
         $outcome = $crawler->filter('[data-testid="import-group-answer-outcome"]');
         self::assertSame(['2', '3'], [$outcome->attr('data-answered'), $outcome->attr('data-total')]);
-        self::assertStringContainsString('They are ready now - review them and add them.', $outcome->text());
+        self::assertStringContainsString('They are ready now - check them and add them.', $outcome->text());
         self::assertSame('/en/import/' . $importId . '/add', $crawler->filter('[data-testid="import-group-answer-review"]')->attr('href'));
 
         $this->addAndWork($importId, $player);
@@ -455,7 +455,7 @@ SQL, ['rowId' => $said[0]]);
         $crawler = $this->browser->followRedirect();
         self::assertResponseIsSuccessful();
         self::assertSame(['2', '2'], [$crawler->filter('[data-testid="import-group-answer-outcome"]')->attr('data-answered'), $crawler->filter('[data-testid="import-group-answer-outcome"]')->attr('data-total')]);
-        self::assertStringContainsString('They are left out.', $crawler->filter('[data-testid="import-group-answer-outcome"]')->text());
+        self::assertStringContainsString('They are not imported.', $crawler->filter('[data-testid="import-group-answer-outcome"]')->text());
         self::assertSame(['waiting', 'left_out', 'left_out'], [$this->rowNow($this->rowId($importId, 2))['state'], $this->rowNow($this->rowId($importId, 3))['state'], $this->rowNow($this->rowId($importId, 4))['state']]);
         self::assertSame(0, $this->pairingCount('SELECT COUNT(*) FROM data_import_batch WHERE import_id = :id', ['id' => $importId]));
     }

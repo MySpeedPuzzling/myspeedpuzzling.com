@@ -380,6 +380,7 @@ result_review:
     intro_verification_answered: "Thank you for getting back to us. We had another look – here is what we found."
     verification_heading: "Awaiting verification"
     verification_text: "A result much faster or much slower than your usual ones is often a typo, so results like that are set aside – out of rankings and statistics – until they're checked."
+    verification_import_group: "Results from your spreadsheet import, set aside together: %number%"
     verification_action: "On the review page you can fix a time in a moment – or tell us it's right."
     verification_answers_heading: "We had another look"
     verification_answer_trusted: "Your time %time% on %puzzleName% was checked – it counts again."

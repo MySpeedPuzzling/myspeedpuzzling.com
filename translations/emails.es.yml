@@ -373,6 +373,7 @@ result_review:
     intro_verification_answered: "Gracias por responder. Volvimos a revisarlo – esto es lo que encontramos."
     verification_heading: "Pendiente de verificación"
     verification_text: "Un resultado mucho más rápido o mucho más lento que los habituales suele ser un error al escribir, así que lo apartamos – fuera de clasificaciones y estadísticas – hasta que se compruebe."
+    verification_import_group: "Resultados de tu importación de hoja de cálculo, apartados juntos: %number%"
     verification_action: "En la página de revisión puedes corregir un tiempo en un momento – o decirnos que es correcto."
     verification_answers_heading: "Volvimos a revisarlo"
     verification_answer_trusted: "Revisamos tu tiempo %time% en %puzzleName% – vuelve a contar."

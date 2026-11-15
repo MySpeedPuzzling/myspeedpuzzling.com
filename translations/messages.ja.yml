@@ -7318,6 +7318,7 @@ suspicious_time:
     # "Review your results" - the section "Awaiting verification" (templates/review_results/_suspicious_times.html.twig).
     # Neutral, never blaming: a time much faster or slower than the player's usual is most often a typo.
     review:
+        import_group: "スプレッドシートのインポートによる記録のうち、まとめて保留になったもの: %number%。下に一覧があり、それぞれに回答できます。"
         title: "確認待ち"
         intro: "いつものタイムよりかなり速い、またはかなり遅い記録は、もう一度確認しています。多くは、時間の欄が空のままといった入力ミスです。確認が済むまで、この記録はご自身の記録には残りますが、ランキングや統計には含まれません。すぐに修正するか、タイムが正しいことをお知らせください。"
         pair_result: "ペアの記録"
@@ -11781,6 +11782,7 @@ data_import:
             slower_range: "遅いものは、想定の %from% 倍から %to% 倍の時間がかかっています。"
             most_faster: "このファイルのタイムの大半は、これまでのMySpeedPuzzlingでの記録より速いものです。このファイルがご自身の記録であれば、問題ありません。"
             most_slower: "このファイルのタイムの大半は、これまでのMySpeedPuzzlingでの記録より遅いものです。このファイルがご自身の記録であれば、問題ありません。"
+            most_mixed: "このファイルのタイムの大半は、これまでのMySpeedPuzzlingでの記録と比べていつもと違うものです。このファイルがご自身の記録であれば、問題ありません。"
             examples: "例"
             expected: "想定は約 %expected% でした。"
             none_now: "ファイルのほかの行がプロフィールに追加されたため、確認したタイムにいつもと違うものはなくなりました。"
@@ -11806,6 +11808,7 @@ data_import:
             continue: "続ける"
         flash:
             nothing: "この回答を待っている行はもうありません。"
+            busy: "これらの行は別の回答がすでに処理しています。進み具合はこちらです。"
     nothing_until_add: "内容を確認して「追加」を押すまで、プロフィールには何も追加されません。"
     add:
         title: "追加前の確認"

@@ -90,6 +90,9 @@ final class StartImportGroupAnswerController extends AbstractController
                 new ProcessImportGroupAnswer($answerId),
                 ($started['atOnce'] ?? false) === true ? [new TransportNamesStamp(['sync'])] : [],
             );
+        } elseif (($started['busy'] ?? false) === true) {
+            // Another answer is going through this group: said, with the way to it
+            $this->addFlash('info', $this->translator->trans('data_import.group.flash.busy'));
         } else {
             // The same form again. An answer no turn has touched for a minute is sent on its way once more
             $answer = $this->getImportAddScreen->groupAnswer($importId, $player->playerId, $answerId);

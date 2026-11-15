@@ -7329,6 +7329,7 @@ suspicious_time:
     # "Review your results" - the section "Awaiting verification" (templates/review_results/_suspicious_times.html.twig).
     # Neutral, never blaming: a time much faster or slower than the player's usual is most often a typo.
     review:
+        import_group: "Resultados de tu importación de hoja de cálculo que se apartaron juntos: %number%. Están abajo: puedes responder a cada uno."
         title: "Pendiente de verificación"
         intro: "Echamos un segundo vistazo a los resultados mucho más rápidos o mucho más lentos que tus tiempos habituales – casi siempre es un error al escribir, como una casilla de horas vacía. Mientras no se aclare, el resultado se queda entre tus resultados pero no cuenta en clasificaciones ni estadísticas. Corrígelo en un momento o dinos que el tiempo es correcto."
         pair_result: "Resultado de pareja"
@@ -11792,6 +11793,7 @@ data_import:
             slower_range: "Los más lentos son entre %from%× y %to%× más lentos de lo que esperábamos."
             most_faster: "La mayoría de los tiempos de este archivo son más rápidos que tus resultados en MySpeedPuzzling hasta ahora; si este archivo es tu propio historial, es lo esperable."
             most_slower: "La mayoría de los tiempos de este archivo son más lentos que tus resultados en MySpeedPuzzling hasta ahora; si este archivo es tu propio historial, es lo esperable."
+            most_mixed: "La mayoría de los tiempos de este archivo son poco habituales en comparación con tus resultados en MySpeedPuzzling hasta ahora; si este archivo es tu propio historial, es lo esperable."
             examples: "Por ejemplo"
             expected: "Esperábamos unos %expected%."
             none_now: "Ninguno de los tiempos revisados parece ya poco habitual, ahora que otras filas del archivo están en tu perfil."
@@ -11817,6 +11819,7 @@ data_import:
             continue: "Continuar"
         flash:
             nothing: "Ya no hay filas esperando esta respuesta."
+            busy: "Otra respuesta ya está repasando estas filas: aquí ves cómo va."
     nothing_until_add: "No se añade nada a tu perfil hasta que lo hayas revisado y pulses Añadir."
     add:
         title: "Revisar antes de añadir"

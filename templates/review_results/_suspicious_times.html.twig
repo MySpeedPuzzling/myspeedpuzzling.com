@@ -21,8 +21,23 @@
             <p class="text-muted fs-sm">{{ 'suspicious_time.review.intro'|trans }}</p>
         {% endif %}
 
+        {# Results of one spreadsheet import that were set aside together: said once, above the first of them #}
+        {% set import_results = {} %}
+        {% for item in suspicious_times %}
+            {% if item.importBatchId is not null %}
+                {% set import_results = import_results|merge({(item.importBatchId): (import_results[item.importBatchId] ?? 0) + 1}) %}
+            {% endif %}
+        {% endfor %}
+        {% set import_groups_said = [] %}
+
         {% for item in suspicious_times %}
             {% set puzzle = item.puzzle %}
+            {% if item.importBatchId is not null and import_results[item.importBatchId] >= 2 and item.importBatchId not in import_groups_said %}
+                {% set import_groups_said = import_groups_said|merge([item.importBatchId]) %}
+                <div class="alert alert-info fs-sm" data-testid="suspicious-import-group" data-results="{{ import_results[item.importBatchId] }}">
+                    <i class="bi bi-file-earmark-spreadsheet me-1"></i>{{ 'suspicious_time.review.import_group'|trans({'%number%': import_results[item.importBatchId]|format_number}) }}
+                </div>
+            {% endif %}
             {% set edit_params = {timeId: item.timeId, context: 'review-results'} %}
 
             <div class="card card-body shadow-sm mb-3" data-testid="suspicious-time" data-time-id="{{ item.timeId }}">

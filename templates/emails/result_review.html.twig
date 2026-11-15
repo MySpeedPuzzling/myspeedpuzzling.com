@@ -73,13 +73,19 @@
     {% endif %}
 
     {# Times set aside until they are checked: told once per mark, like a removal #}
-    {% if markedTimes is not empty %}
+    {% if hasMarkedTimes|default(markedTimes is not empty) %}
         {{ card_open }}
             {{ include('emails/card/_section_heading.html.twig', {text: 'result_review.verification_heading'|trans, color: '#3d5a98'}) }}
             <p style="-webkit-hyphens: none; hyphens: none; {{ text_style }}">{{ 'result_review.verification_text'|trans }}</p>
             <ul style="list-style: none; margin: 0; Margin: 0; padding: 0;">
-                {% for markedTime in markedTimes %}
+                {# One item for a whole spreadsheet import whose results were set aside together - never a line per result #}
+                {% for results in markedImportGroups|default([]) %}
                     <li style="-webkit-hyphens: none; hyphens: none; {{ row_style }}{% if not loop.first %} border-top: 1px solid #eef1f5;{% endif %}">
+                        {{ 'result_review.verification_import_group'|trans({'%number%': results|format_number(locale: locale)}) }}
+                    </li>
+                {% endfor %}
+                {% for markedTime in markedTimes %}
+                    <li style="-webkit-hyphens: none; hyphens: none; {{ row_style }}{% if not loop.first or markedImportGroups|default([]) is not empty %} border-top: 1px solid #eef1f5;{% endif %}">
                             {{ 'result_review.case_line'|trans({
                                 '%puzzleName%': markedTime.puzzleName,
                                 '%time%': markedTime.secondsToSolve is not null ? markedTime.secondsToSolve|puzzlingTime : '-',

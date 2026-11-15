@@ -18,6 +18,8 @@ readonly final class ResultReviewEmailMarkedTime
         public string $puzzleName,
         public null|int $secondsToSolve,
         public DateTimeImmutable $solvedAt,
+        /** The "Add" of the player's spreadsheet import that made the result - null for a typed one */
+        public null|string $importBatchId = null,
     ) {
     }
 }

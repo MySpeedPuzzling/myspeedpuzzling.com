@@ -25,21 +25,23 @@ The add-result form is not touched. Results are written only by the engine.
    the page is about and a `request_id` - **never the rows**. CSRF; always a redirect.
 3. **`AnswerImportRowsGroup`** (under the import's lock): the import is the player's and rows can be added from it;
    the same `request_id` answers the same group answer; only the two reasons above take a group answer (anything
-   else is a 404); the group is counted; a `data_import_group_answer` row is written (`DataImportGroupAnswer`: what
+   else is a 404); **one answer at a time per reason** - while one goes through the rows, a second ("Leave them out"
+   beside "Add all") is not started: "Another answer is already going through these rows", with its page; the group is counted; a `data_import_group_answer` row is written (`DataImportGroupAnswer`: what
    it is about, how far it is - kept for good, like a batch).
 4. **The rows are gone through in chunks** by `ProcessImportGroupAnswer` - at once in the request for up to 200
    rows, on the `imports` queue for more (200 rows a turn, the job sending itself again so other players' jobs take
-   their turns in between). Each chunk:
-   - "add it anyway" → `ConfirmImportRows` (extended: `refusedWith` resolves a chunk itself; the group job hands it
-     the chunk's ids). **Per row, the same checks as a single answer**: the row still waits, the question is the one
-     it waits with, and the word is stored with the fingerprint of what the row says now (its time, day, kind,
-     people, paired puzzle) - a later change asks again. A confirmed row's `failure` is cleared: its question is
-     answered, it is ready like any other row;
-   - "leave out" → the pairing screens' `AnswerImportRows(leaveOut)`; a chunk it refuses (its sheet is being read
-     again) is passed over and counted;
-   - what the turn did is written by `RecordImportGroupAnswer` under the answer's lock, only if the answer still
-     stands where the turn began - a job delivered twice counts nothing twice.
-5. **The end.** The turn that ended the answer starts **one "Add" of exactly the rows that took "add it anyway"**
+   their turns in between). **One turn, one chunk - claimed and answered in one transaction**
+   (`AnswerImportGroupChunk`, under the answer's lock): the rows after the answer's cursor are read, answered,
+   written down as answered and the cursor moves past them, all or nothing. Two turns side by side (a job delivered
+   twice, "Go on" pressed while a turn runs) never take the same rows: the second waits for the lock and finds the
+   cursor moved. So each row is confirmed by exactly one turn and the answer's list is exactly the confirmed rows.
+   - "add it anyway" → `ConfirmImportRowsHandler`. **Per row, the same checks as a single answer**: the row still
+     waits, the question is the one it waits with, and the word is stored with the fingerprint of what the row says
+     now (its time, day, kind, people, paired puzzle) - a later change asks again. A confirmed row's `failure` is
+     cleared: its question is answered, it is ready like any other row;
+   - "leave out" → the pairing screens' `AnswerImportRowsHandler(leaveOut)`, which checks everything before it writes
+     anything: a chunk it refuses (its sheet is being read again) wrote nothing and is passed over.
+5. **The end.** The answer is ended once (`RecordImportGroupAnswer`, under its lock), and the turn that ended it starts **one "Add" of exactly the rows that took "add it anyway"**
    (`AddImportRows` by their ids). Everything an "Add" does applies: never twice, the daily guard of 2,000 results
    (what it leaves is ready tomorrow from the normal review - the question is answered), the safety switch (paused:
    the rows stay ready, the page says so).
@@ -65,8 +67,10 @@ rows - each costs several statements) and the page says, before the two buttons:
 - five examples - the fastest, the slowest, three around the middle - each with the puzzle, the time and "We
   expected about 2:55:00.";
 - **"Most of the times in this file are faster than your results on MySpeedPuzzling so far - if this file is your
-  own history, that is expected."** - only when more than half of the import's results with a time are unusual the
-  same way (the group's size × the sample's share of that direction, against the import's timed results).
+  own history, that is expected."** - only when the rows that wait as unusual are more than half of the import's
+  results with a time: **exact counts over all the import's rows** (one aggregate statement,
+  `GetImportAddScreen::notAddedByReason()`), never an extrapolation of the sample. The sample only chooses the word:
+  "faster" / "slower" when four of five of the times looked at are off that way, else "unusual".
 
 Rows already on the profile change the judgement: a time refused as unusual may not look unusual any more once the
 file's other rows were added ("None of the times we looked at seems unusual any more…").
@@ -82,18 +86,20 @@ takes the answer, nothing is added: the player presses "Add" as usual.
 
 Exactly what it does with a single "It is right" (adding.md "Time verification", suspicious-time-review.md): when
 the row is added and its time is still unusual for the player, the engine stores a `SuspiciousTimeConfirmation` -
-and **the scan still raises such a result, with the reason `confirmed_while_saving`**, so a moderator sees that the
-player was asked. The scan never marks and tells the player nothing by itself. **So a group of 416 confirmed times
-can put up to 416 cases into the moderators' queue.** The scan was not changed here; whether confirmed imported
-results should be raised at all, or capped per player and run, is a decision for the time verification
-(suspicious-time-review.md) - before many histories arrive.
+and the scan still raises such a result, with the reason `confirmed_while_saving`. The scan is unchanged and never
+marks or tells the player anything by itself.
+
+**The moderators' queue is not flooded by it**: the pending cases on results that one "Add" made are **one card**
+there - the import judged as a whole (the imported times beside the player's typed ones), with "Looks fine - all N",
+"Mark all N as needing verification" (the player told once for the group) and "Open them one by one"
+(suspicious-time-review.md "Import cards").
 
 (Fewer confirmations than rows is normal: a row whose time is not unusual any more when its turn comes - the file's
 earlier rows are on the profile by then - is added without one.)
 
 ## Code
 
-`src/Entity/DataImportGroupAnswer.php` (+ migration `data_import_group_answer`), `src/Message/{AnswerImportRowsGroup,ProcessImportGroupAnswer,RecordImportGroupAnswer}.php`
+`src/Entity/DataImportGroupAnswer.php` (+ migration `data_import_group_answer`), `src/Message/{AnswerImportRowsGroup,ProcessImportGroupAnswer,AnswerImportGroupChunk,RecordImportGroupAnswer}.php`
 and handlers, `ConfirmImportRows` (`refusedWith`, `ofBatchId`, `afterRowId`, `limit`; answers the confirmed ids),
 `DataImportRow::addAnyway()` (clears the answered `failure`) / `parsedAs()` (clears a stale one),
 `DataImportRowRepository::{idsRefusedWith,countRefusedWith,idsOfTimedReady}`, `GetImportAddScreen::{groupAnswer,notAddedByReason,sampleNotAddedFor}`,
@@ -116,7 +122,6 @@ through a workbook read by the real handlers; every group text in every language
 
 ## Loose ends
 
-- **The moderators' queue** after a large confirmed group (above) - the scan is unchanged.
 - The summary looks at a sample of 200 rows; its shares are the sample's.
 - A group answer that stops (a worker restarted) is not picked up by the batches' sweeper
   (`myspeedpuzzling:continue-import-batches`); its page offers "Go on" after a minute.

@@ -7328,6 +7328,7 @@ suspicious_time:
     # "Review your results" - the section "Awaiting verification" (templates/review_results/_suspicious_times.html.twig).
     # Neutral, never blaming: a time much faster or slower than the player's usual is most often a typo.
     review:
+        import_group: "Ergebnisse aus deinem Tabellen-Import, die gemeinsam zurückgestellt wurden: %number%. Sie stehen unten - du kannst zu jedem antworten."
         title: "Wartet auf Überprüfung"
         intro: "Wir sehen uns Ergebnisse genauer an, die deutlich schneller oder langsamer sind als Ihre üblichen Zeiten – meistens ist es ein Tippfehler, etwa ein leeres Stundenfeld. Bis das geklärt ist, bleibt das Ergebnis in Ihren eigenen Ergebnissen, zählt aber nicht in Ranglisten und Statistiken. Korrigieren Sie es kurz, oder sagen Sie uns, dass die Zeit stimmt."
         pair_result: "Paarergebnis"
@@ -11791,6 +11792,7 @@ data_import:
             slower_range: "Die langsameren sind %from%× bis %to%× langsamer, als wir erwartet haben."
             most_faster: "Die meisten Zeiten in dieser Datei sind schneller als deine bisherigen Ergebnisse auf MySpeedPuzzling - wenn diese Datei deine eigene Historie ist, ist das zu erwarten."
             most_slower: "Die meisten Zeiten in dieser Datei sind langsamer als deine bisherigen Ergebnisse auf MySpeedPuzzling - wenn diese Datei deine eigene Historie ist, ist das zu erwarten."
+            most_mixed: "Die meisten Zeiten in dieser Datei sind im Vergleich zu deinen bisherigen Ergebnissen auf MySpeedPuzzling ungewöhnlich - wenn diese Datei deine eigene Historie ist, ist das zu erwarten."
             examples: "Zum Beispiel"
             expected: "Wir haben etwa %expected% erwartet."
             none_now: "Keine der angesehenen Zeiten wirkt noch ungewöhnlich - inzwischen sind weitere Zeilen der Datei auf deinem Profil."
@@ -11816,6 +11818,7 @@ data_import:
             continue: "Weitermachen"
         flash:
             nothing: "Auf diese Antwort wartet keine Zeile mehr."
+            busy: "Eine andere Antwort geht diese Zeilen bereits durch - hier siehst du, wie weit sie ist."
     nothing_until_add: "Deinem Profil wird nichts hinzugefügt, bevor du es dir angesehen und auf Hinzufügen gedrückt hast."
     add:
         title: "Prüfen vor dem Hinzufügen"

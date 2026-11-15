@@ -44,6 +44,14 @@ readonly final class DataImportBatchRepository
         return Uuid::isValid($answerId) ? $this->entityManager->find(DataImportGroupAnswer::class, $answerId) : null;
     }
 
+    /**
+     * The answer that is going through the rows of this reason right now - one at a time per import and reason.
+     */
+    public function findRunningGroupAnswer(DataImport $import, string $code): null|DataImportGroupAnswer
+    {
+        return $this->entityManager->getRepository(DataImportGroupAnswer::class)->findOneBy(['import' => $import, 'code' => $code, 'state' => DataImportBatchState::Running]);
+    }
+
     public function find(string $batchId): null|DataImportBatch
     {
         return Uuid::isValid($batchId) ? $this->entityManager->find(DataImportBatch::class, $batchId) : null;

@@ -41,18 +41,23 @@ final class TimeVerificationController extends AbstractController
         $counts = $this->getSuspiciousTimeQueue->counts();
         $direction = $tab->direction();
         $puzzleCards = [];
+        $importCards = [];
+        // One import's cases opened one by one ("Open them one by one" of an import card)
+        $onlyImportBatch = preg_match('/^' . self::ID_REQUIREMENT . '$/i', $request->query->getString('import')) === 1 ? strtolower($request->query->getString('import')) : null;
         $puzzleCardCases = [];
         $caseIds = [];
         $total = 0;
         $perPage = GetSuspiciousTimeQueue::PER_PAGE;
 
         if ($direction !== null) {
-            $pending = $this->getSuspiciousTimeQueue->pending($direction, $page);
+            $pending = $this->getSuspiciousTimeQueue->pending($direction, $page, $onlyImportBatch);
             $caseIds = $pending->caseIds;
             $total = $pending->total;
 
             // One decision about the puzzle settles many cases - on top of the first page, each case decided right in it
-            if ($page === 1) {
+            if ($page === 1 && $onlyImportBatch === null) {
+                // A history brought in at once is judged at once: one card per "Add" of a spreadsheet import
+                $importCards = $this->getSuspiciousTimeQueue->importCards($direction);
                 $puzzleCards = $this->getSuspiciousTimeQueue->puzzleCards($direction);
                 $cardCaseIds = [];
 
@@ -82,6 +87,8 @@ final class TimeVerificationController extends AbstractController
             'pages' => max(1, (int) ceil($total / $perPage)),
             'total' => $total,
             'puzzle_cards' => $puzzleCards,
+            'import_cards' => $importCards,
+            'only_import_batch' => $onlyImportBatch,
             'puzzle_card_cases' => $puzzleCardCases,
             'cases' => $this->getSuspiciousTimeCaseDetail->cards($caseIds),
             'log' => $tab === SuspiciousTimeQueueTab::Log ? $this->getSuspiciousTimesOverview->log($page) : [],

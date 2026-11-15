@@ -64,5 +64,10 @@
             {% endfor %}
         </div>
     {% endif %}
+
+    {# Puzzles of a spreadsheet that are not in the catalogue - the reader's own page (docs/features/data-import/unlisted-puzzles.md) #}
+    <p class="fs-sm text-muted mb-0">
+        <a href="{{ path('unlisted_puzzles') }}" class="d-inline-flex align-items-center py-2" data-testid="unlisted-puzzles-link"><i class="bi bi-bookmark me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.link'|trans }}</a>
+    </p>
 </div>
 {% endblock %}

@@ -15,30 +15,22 @@ use SpeedPuzzling\Web\Entity\DataImportRow;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
-use SpeedPuzzling\Web\Entity\ResultDuplicatePrevention;
-use SpeedPuzzling\Web\Entity\SuspiciousTimeConfirmation;
 use SpeedPuzzling\Web\Entity\WishListItem;
 use SpeedPuzzling\Web\Events\PuzzleAddedToCollection;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Query\GetImportPuzzleCandidates;
 use SpeedPuzzling\Web\Repository\CollectionItemRepository;
 use SpeedPuzzling\Web\Repository\DataImportRowRepository;
-use SpeedPuzzling\Web\Repository\ResultDuplicatePreventionRepository;
-use SpeedPuzzling\Web\Repository\SuspiciousTimeConfirmationRepository;
 use SpeedPuzzling\Web\Repository\WishListItemRepository;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
-use SpeedPuzzling\Web\Value\DataImport\ImportedResult;
-use SpeedPuzzling\Web\Value\DataImport\ImportedResultKnownBy;
+use SpeedPuzzling\Web\Services\Unlisted\UnlistedRowWriter;
 use SpeedPuzzling\Web\Value\DataImport\ImportedResultRefusal;
-use SpeedPuzzling\Web\Value\DataImport\ImportedResultStatus;
 use SpeedPuzzling\Web\Value\DataImport\ImportRowRefusal;
 use SpeedPuzzling\Web\Value\DataImportRowKind;
 use SpeedPuzzling\Web\Value\DataImportRowState;
 use SpeedPuzzling\Web\Value\DatePrecision;
-use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\ImportPuzzleChoice;
 use SpeedPuzzling\Web\Value\PuzzlingType;
-use SpeedPuzzling\Web\Value\SolvingTimeSource;
 
 /**
  * One queued row of an "Add" becomes what it says (docs/features/data-import/adding.md "A row, step by step"): a
@@ -63,15 +55,13 @@ readonly final class ImportRowAdder
         private EntityManagerInterface $entityManager,
         private ImportWriteLock $lock,
         private DataImportRowRepository $rowRepository,
-        private ImportedResultWriter $writer,
         private ImportNeverTwice $neverTwice,
+        private ImportResultQuestions $questions,
         private GetImportPuzzleCandidates $candidates,
         private SecretPuzzleAccess $secretPuzzleAccess,
         private CollectionItemRepository $collectionItemRepository,
         private WishListItemRepository $wishListItemRepository,
-        private ResultDuplicatePreventionRepository $duplicatePreventionRepository,
-        private ImportRowTimeCheck $timeCheck,
-        private SuspiciousTimeConfirmationRepository $confirmationRepository,
+        private UnlistedRowWriter $unlistedRows,
         private ClockInterface $clock,
     ) {
     }
@@ -109,7 +99,7 @@ readonly final class ImportRowAdder
         }
 
         // The row's own result, or the same data from another import: the writer's part of "never twice" - add() asks
-        if ($this->knownResult($row, $playerId, $said['sourceKey']) !== null) {
+        if ($this->questions->knownResult($row, $playerId, $said['sourceKey']) !== null) {
             return false;
         }
 
@@ -152,10 +142,13 @@ readonly final class ImportRowAdder
         $isOwned = in_array($row->kind, [DataImportRowKind::Owned, DataImportRowKind::Both], true);
         $isWish = $row->kind === DataImportRowKind::WishList;
 
-        // What was ready when the batch was made may not be any more: the decision taken back, the sheet parsed again
+        // Kept as the player's own unlisted puzzle: the row goes into the unlisted tables and nowhere else
+        // (docs/features/data-import/unlisted-puzzles.md) - no catalogue puzzle, no result, nothing public
         if ($importPuzzle !== null && $importPuzzle->choice === ImportPuzzleChoice::Unlisted) {
-            return $this->refuse($row, ImportRowRefusal::UnlistedNotYet->value);
+            return $this->addUnlisted($row, $importPuzzle, $batchId, $player, $hasResult, $hasResult || $isOwned || $isWish);
         }
+
+        // What was ready when the batch was made may not be any more: the decision taken back, the sheet parsed again
 
         $puzzle = $this->decidedPuzzle($row);
 
@@ -308,6 +301,58 @@ readonly final class ImportRowAdder
     }
 
     /**
+     * A row whose puzzle is kept as an unlisted puzzle: all of it is UnlistedRowWriter's - here only what belongs to
+     * the batch: a row that is the same result as another row of the file lets that row go first (README D6).
+     *
+     * @return array{status: string, code: null|string, customValuesOf: list<string>}
+     */
+    private function addUnlisted(DataImportRow $row, DataImportPuzzle $importPuzzle, string $batchId, Player $player, bool $hasResult, bool $isData): array
+    {
+        if ($row->problems !== null || $isData === false) {
+            return $this->refuse($row, ImportRowRefusal::NotReady->value);
+        }
+
+        $customValuesOf = [];
+        $resultIsAnotherRows = false;
+        $standingTimeId = null;
+
+        if ($hasResult && $row->sameAsRow !== null && $row->addAsSeparate === false) {
+            $standsFor = $this->standingRow($row);
+
+            if ($standsFor->isQueuedIn($batchId)) {
+                $customValuesOf = $this->add($standsFor->id->toString(), $batchId, $player->id->toString())['customValuesOf'];
+            }
+
+            if (in_array($standsFor->state, [DataImportRowState::Added, DataImportRowState::AlreadyYours], true) === false) {
+                return $this->refuse($row, ImportRowRefusal::EqualRowNotAdded->value, $customValuesOf);
+            }
+
+            $resultIsAnotherRows = true;
+            $standingTimeId = $standsFor->state === DataImportRowState::AlreadyYours ? $standsFor->alreadyYoursSolvingTimeId : null;
+        }
+
+        $now = $this->clock->now();
+        $written = $this->unlistedRows->write($row, $importPuzzle, $player, $resultIsAnotherRows, $now);
+
+        if ($written['refused'] !== null) {
+            return $this->refuse($row, $written['refused'], $customValuesOf);
+        }
+
+        $alreadyTimeId = $written['alreadyTimeId'] !== null ? Uuid::fromString($written['alreadyTimeId']) : $standingTimeId;
+
+        if ($written['made'] === null) {
+            $row->alreadyYours($written['alreadyHow'] ?? 'owned', $alreadyTimeId);
+
+            return self::outcome('already_yours', customValuesOf: $customValuesOf);
+        }
+
+        // The values of the player's own fields have nothing to stand on yet: an unlisted result is no result
+        $row->added($now, null, null, ['unlisted' => $written['made']], $written['alreadyHow'], $written['alreadyHow'] === null ? null : $alreadyTimeId);
+
+        return self::outcome('added', customValuesOf: $customValuesOf);
+    }
+
+    /**
      * The result part of a row: already the player's (how, which result), refused (why), or made by the writer.
      *
      * @param array{day: string, precision: DatePrecision, seconds: null|int, type: PuzzlingType, sourceKey: string} $said
@@ -342,26 +387,11 @@ readonly final class ImportRowAdder
             return self::answer(how: 'equal_row', timeId: $timeId->toString(), customValuesOf: $customValuesOf);
         }
 
-        // The writer's part of "never twice", asked first so that the questions below are only asked of a row that
-        // would really be written: this row's result is still there, or a row with the same key made one
-        $known = $this->knownResult($row, $playerId, $said['sourceKey']);
-
-        if ($known !== null) {
-            return self::answer(how: $known['how'], timeId: $known['id']);
-        }
-
-        $free = $this->neverTwice->freeResultsOnProfile($player, $puzzle);
-        $equal = ImportNeverTwice::equal($free, $said['day'], $said['seconds'], $said['type'], $row->alreadyYoursSolvingTimeId?->toString(), $said['precision']);
-
-        if ($equal !== null) {
-            return self::answer(how: 'profile', timeId: $equal);
-        }
-
-        // "Sept 2020" on one sheet and "14 Sep 2020" on another, the same time: the coarser row is the result the
-        // finer row of the same file made or was settled with - not a second one (README "Never twice", step 2)
-        if ($said['precision'] !== DatePrecision::Day && $said['seconds'] !== null) {
-            // The finer row may stand later in the file: it is added first, so that the rows' order changes nothing
-            // (its result is not in the database before this transaction ends - the row itself says what it became)
+        // "Sept 2020" on one sheet and "14 Sep 2020" on another, the same time: the finer row may stand later in the
+        // file - it is added first, so that the rows' order changes nothing (its result is not in the database before
+        // this transaction ends - the row itself says what it became). The batch's own part of the questions below
+        $customValuesOf = [];
+        $finerRowsResult = function () use ($row, $batchId, $playerId, $said, &$customValuesOf): null|string {
             foreach ($this->finerQueuedRows($row, $batchId, $said) as $finerRow) {
                 $customValuesOf = $this->add($finerRow->id->toString(), $batchId, $playerId)['customValuesOf'];
                 $finerTimeId = match ($finerRow->state) {
@@ -371,123 +401,49 @@ readonly final class ImportRowAdder
                 };
 
                 if ($finerTimeId !== null) {
-                    return self::answer(how: 'equal_row', timeId: $finerTimeId->toString(), customValuesOf: $customValuesOf);
+                    return $finerTimeId->toString();
                 }
             }
 
-            $finer = ImportNeverTwice::equal(
-                $this->neverTwice->resultsOfThisImport($player, $puzzle, $row->import->id->toString()),
-                $said['day'],
-                $said['seconds'],
-                $said['type'],
-                null,
-                $said['precision'],
-            );
+            return null;
+        };
 
-            if ($finer !== null) {
-                return self::answer(how: 'equal_row', timeId: $finer);
-            }
-        }
-
-        $people = self::people($row->parsed['people'] ?? null);
-
-        // What the writer would build must be what the row says it is: a "pair" without a partner named would be
-        // written as a solo result, on the solo leaderboard
-        if (PuzzlingType::fromPuzzlersCount(count($people) + 1) !== $said['type']) {
-            return self::answer(refused: ImportRowRefusal::PeopleDoNotFitType->value);
-        }
-
-        if (
-            $said['type'] !== PuzzlingType::Solo
-            && $said['seconds'] !== null
-            && $row->isWavedThrough(ImportRowRefusal::SomebodyElsesResult->value, $puzzle->id->toString()) === false
-            && $this->neverTwice->somebodyElseHasIt($player, $puzzle, $said['day'], $said['seconds'], $said['precision'])
-        ) {
-            return self::answer(refused: ImportRowRefusal::SomebodyElsesResult->value);
-        }
-
-        if (
-            $row->isWavedThrough(ImportRowRefusal::SimilarResultExists->value, $puzzle->id->toString()) === false
-            && ImportNeverTwice::similar($free, $said['day'], $said['seconds'], $said['precision']) !== null
-        ) {
-            return self::answer(refused: ImportRowRefusal::SimilarResultExists->value);
-        }
-
-        // The time verification's own judgement, as the add form asks it: an unusual time needs the player's "it is
-        // right" (README "Time verification") - and with it the result is added and the answer stored for the scan
-        $unusual = $said['seconds'] === null
-            ? null
-            : $this->timeCheck->unusual($playerId, $puzzle->id->toString(), $said['seconds'], $said['type'], count($people) + 1, $said['day']);
-
-        if ($unusual !== null && $row->isWavedThrough(ImportRowRefusal::UnusualTime->value, $puzzle->id->toString()) === false) {
-            return self::answer(refused: ImportRowRefusal::UnusualTime->value);
-        }
-
-        // A hint, not a rule: the file says the result is on MySpeedPuzzling and none was found - listed, not added
-        if (($row->parsed['alreadyOnMsp'] ?? null) === true && $row->isWavedThrough(ImportRowRefusal::SaidAlreadyOnProfile->value, $puzzle->id->toString()) === false) {
-            return self::answer(refused: ImportRowRefusal::SaidAlreadyOnProfile->value);
-        }
-
-        $outcome = $this->writer->write(new ImportedResult(
-            importRowId: $row->id->toString(),
+        // Every question the import asks before a result is written, and the writer - the one way a result of a
+        // spreadsheet reaches the profile, shared with the pairing of unlisted puzzles (ImportResultQuestions)
+        $asked = $this->questions->ask(
+            row: $row,
+            player: $player,
+            puzzle: $puzzle,
             sourceKey: $said['sourceKey'],
-            playerId: $playerId,
-            puzzleId: $puzzle->id->toString(),
+            day: $said['day'],
             seconds: $said['seconds'],
-            solvedDay: $said['day'],
-            timezone: ImportedResult::zoneOf($player),
+            type: $said['type'],
+            people: self::people($row->parsed['people'] ?? null),
             firstTry: is_bool($row->parsed['firstTry'] ?? null) ? $row->parsed['firstTry'] : null,
-            groupPlayers: $people,
             comment: $comment,
-            position: max(0, $row->rowNumber),
+            position: $row->rowNumber,
+            saidAlreadyOnProfile: ($row->parsed['alreadyOnMsp'] ?? null) === true,
+            countedOnItsOwn: $row->addAsSeparate,
             precision: $said['precision'],
-        ));
+            hintedSolvingTimeId: $row->alreadyYoursSolvingTimeId?->toString(),
+            finerRowsResult: $finerRowsResult,
+        );
 
-        if ($outcome->status === ImportedResultStatus::Refused) {
-            return self::answer(refused: $outcome->refusal->value ?? ImportRowRefusal::NotReady->value);
+        if ($asked['refused'] !== null) {
+            return self::answer(refused: $asked['refused']);
         }
 
-        if ($outcome->status === ImportedResultStatus::AlreadyAdded) {
-            return self::answer(
-                how: $outcome->knownBy === ImportedResultKnownBy::Row ? 'this_row' : 'earlier_import',
-                timeId: $outcome->solvingTimeId,
-            );
-        }
-
-        $solvingTime = $this->scheduledResult((string) $outcome->solvingTimeId);
-
-        // Two equal rows the player confirmed as two: the form's "it's another solve, save it" - the daily duplicate
-        // job takes such a result as confirmed real (writer.md "What 6b calls", step 5)
-        if ($row->addAsSeparate) {
-            $this->duplicatePreventionRepository->save(new ResultDuplicatePrevention(
-                Uuid::uuid7(),
-                $player,
-                DuplicatePreventionKind::SavedAnyway,
-                $solvingTime->id,
-                $puzzle->id,
-                $this->clock->now(),
-                SolvingTimeSource::SpreadsheetImport,
-            ));
-        }
-
-        // "It is right": stored the way the form's answer is, so the scan tells the moderator the player was asked
-        if ($unusual !== null) {
-            $this->confirmationRepository->save(new SuspiciousTimeConfirmation(
-                id: Uuid::uuid7(),
-                time: $solvingTime,
-                player: $player,
-                expectedSeconds: $unusual->expectedSeconds ?? 0,
-                confirmedAt: $this->clock->now(),
-            ));
+        if ($asked['made'] === null) {
+            return self::answer(how: $asked['alreadyHow'], timeId: $asked['alreadyTimeId'], customValuesOf: $customValuesOf);
         }
 
         $removed = [];
 
-        if ($outcome->removedWishListItem !== null) {
-            $removed[] = self::removedWish($outcome->removedWishListItem['id'], $outcome->removedWishListItem['puzzleId'], $outcome->removedWishListItem['addedAt'], 'solved');
+        if ($asked['removedWishListItem'] !== null) {
+            $removed[] = self::removedWish($asked['removedWishListItem']['id'], $asked['removedWishListItem']['puzzleId'], $asked['removedWishListItem']['addedAt'], 'solved');
         }
 
-        return self::answer(made: self::resultFacts($solvingTime), removed: $removed);
+        return self::answer(made: $asked['made'], removed: $removed);
     }
 
     /**
@@ -656,62 +612,6 @@ readonly final class ImportRowAdder
         }
 
         return ['day' => $date . $rest, 'precision' => $precision];
-    }
-
-    /**
-     * The writer's own two questions (ImportedResultWriter, "never twice" steps 2 and 3), asked before the profile is
-     * looked at: the result this row made that still exists, else a result a row with the same key made - in any of
-     * the player's imports. The writer asks them again when it is called.
-     *
-     * @return null|array{id: string, how: string}
-     */
-    private function knownResult(DataImportRow $row, string $playerId, string $sourceKey): null|array
-    {
-        $linked = $this->rowRepository->linkedSolvingTimeId($row->id->toString());
-
-        if ($linked !== null && $this->resultExists($linked)) {
-            return ['id' => $linked, 'how' => 'this_row'];
-        }
-
-        foreach ($this->rowRepository->solvingTimeIdsOfSourceKey($playerId, $sourceKey, $row->id->toString()) as $known) {
-            if ($this->resultExists($known)) {
-                return ['id' => $known, 'how' => 'earlier_import'];
-            }
-        }
-
-        return null;
-    }
-
-    private function resultExists(string $solvingTimeId): bool
-    {
-        foreach ($this->entityManager->getUnitOfWork()->getScheduledEntityInsertions() as $entity) {
-            if ($entity instanceof PuzzleSolvingTime && $entity->id->toString() === $solvingTimeId) {
-                return true;
-            }
-        }
-
-        return (int) $this->entityManager->createQueryBuilder()
-            ->select('COUNT(time.id)')
-            ->from(PuzzleSolvingTime::class, 'time')
-            ->where('time.id = :id')
-            ->setParameter('id', $solvingTimeId)
-            ->getQuery()
-            ->getSingleScalarResult() > 0;
-    }
-
-    /**
-     * The result the writer just persisted - not in the database before the flush.
-     */
-    private function scheduledResult(string $solvingTimeId): PuzzleSolvingTime
-    {
-        foreach ($this->entityManager->getUnitOfWork()->getScheduledEntityInsertions() as $entity) {
-            if ($entity instanceof PuzzleSolvingTime && $entity->id->toString() === $solvingTimeId) {
-                return $entity;
-            }
-        }
-
-        return $this->entityManager->find(PuzzleSolvingTime::class, $solvingTimeId)
-            ?? throw new LogicException(sprintf('The result %s the writer added is not there.', $solvingTimeId));
     }
 
     /**

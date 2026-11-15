@@ -104,7 +104,6 @@ readonly final class AddImportRowsHandler
         );
 
         $skipped = array_filter([
-            ImportRowRefusal::UnlistedNotYet->value => $counts['unlisted'],
             ImportRowRefusal::NeedsExactDay->value => $counts['needsExactDay'],
             self::SKIPPED_OVER_DAILY_LIMIT => $counts['overDailyLimit'],
         ], static fn (int $count): bool => $count > 0);

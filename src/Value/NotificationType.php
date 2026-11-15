@@ -85,4 +85,9 @@ enum NotificationType: string
     // An admin took back what an import of the player had added (the emergency Undo): told once, with the reason.
     // Target = the Undo (its counts, its reason and its import)
     case ImportRowsTakenBack = 'ImportRowsTakenBack';
+
+    // The daily look found catalogue puzzles for some of the player's unlisted puzzles
+    // (docs/features/data-import/unlisted-puzzles.md "When the catalogue grows"): one per run whatever their number,
+    // no target - the player confirms each on their own Unlisted puzzles page
+    case UnlistedPuzzlesFound = 'UnlistedPuzzlesFound';
 }

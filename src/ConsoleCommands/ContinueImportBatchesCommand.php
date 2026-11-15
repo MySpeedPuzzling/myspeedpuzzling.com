@@ -31,10 +31,16 @@ final class ContinueImportBatchesCommand extends Command
 
         /** @var HandledStamp $handledStamp */
         $handledStamp = $envelope->last(HandledStamp::class);
-        /** @var array{batches: int, undos: int, answers: int} $done */
+        /** @var array{batches: int, undos: int, answers: int, pairings: int} $done */
         $done = $handledStamp->getResult();
 
-        (new SymfonyStyle($input, $output))->success(sprintf('Continued %d batches and %d undos; ended %d group answers that stood still.', $done['batches'], $done['undos'], $done['answers']));
+        (new SymfonyStyle($input, $output))->success(sprintf(
+            'Continued %d batches, %d undos and %d pairings of unlisted puzzles; ended %d group answers that stood still.',
+            $done['batches'],
+            $done['undos'],
+            $done['pairings'],
+            $done['answers'],
+        ));
 
         return Command::SUCCESS;
     }

@@ -38,7 +38,7 @@ readonly final class ImportAddSummary
         public int $equalRows,
         /** Results the player's imports may still add today (DataImportLimits::MAX_RESULTS_ADDED_PER_DAY) */
         public int $resultsLeftToday,
-        /** Not ready: the puzzle is kept as an unlisted puzzle */
+        /** Rows this "Add" takes that are kept with the player's unlisted puzzles - nothing of them is public */
         public int $unlisted,
         /** Not ready: a result without an exact day */
         public int $needsExactDay,
@@ -84,7 +84,7 @@ readonly final class ImportAddSummary
     /** What the button's number is: the things this "Add" would make */
     public function toAdd(): int
     {
-        return $this->results + $this->owned + $this->wishList;
+        return $this->results + $this->owned + $this->wishList + $this->unlisted;
     }
 
     public function hasAdded(): bool
@@ -95,6 +95,6 @@ readonly final class ImportAddSummary
     /** Anything that keeps rows from being ready and that the player can settle or wait for */
     public function hasNotReady(): bool
     {
-        return $this->undecided + $this->needLook + $this->sheetsNotSetUp + $this->unlisted + $this->needsExactDay + $this->notAdded > 0;
+        return $this->undecided + $this->needLook + $this->sheetsNotSetUp + $this->needsExactDay + $this->notAdded > 0;
     }
 }

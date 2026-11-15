@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Message\ParseImportSheet;
 use SpeedPuzzling\Web\Message\ProcessImportBatch;
 use SpeedPuzzling\Web\Message\ProcessImportGroupAnswer;
 use SpeedPuzzling\Web\Message\ProcessImportUndo;
+use SpeedPuzzling\Web\Message\ProcessUnlistedPairing;
 use SpeedPuzzling\Web\Message\ProposeImportMappings;
 use SpeedPuzzling\Web\Message\ShareImportLayout;
 use SpeedPuzzling\Web\Message\ReadImportFile;
@@ -173,6 +174,8 @@ return App::config([
                 // One answer for a whole group of an import's rows (docs/features/data-import/group-answers.md):
                 // chunks that queue themselves again; a small group is handled at once (TransportNamesStamp `sync`)
                 ProcessImportGroupAnswer::class => 'imports',
+                // A pairing of an unlisted puzzle with a catalogue puzzle, and its Undo - the same worker, in turns
+                ProcessUnlistedPairing::class => 'imports',
                 // "Your import is done" - never in the worker's turn
                 SendImportAddedEmail::class => 'async',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)

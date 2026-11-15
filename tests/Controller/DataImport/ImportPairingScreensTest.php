@@ -383,7 +383,7 @@ final class ImportPairingScreensTest extends WebTestCase
 
         // "None of these" → kept as unlisted, said plainly; then nothing waits any more
         $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/puzzle/' . $beacon['id'] . '?flow=choose&done=1');
-        self::assertStringContainsString('arrive with a later step', $crawler->filter('[data-testid="import-chooser-none"]')->text());
+        self::assertStringContainsString('only you see them', $crawler->filter('[data-testid="import-chooser-none"]')->text());
         $this->browser->request('POST', '/en/import/' . $importId . '/puzzles/decide', ['_token' => $token, 'action' => 'unlisted', 'puzzle' => $beacon['id'], 'version' => '0', 'from' => 'chooser', 'group' => 'choose', 'flow' => 'choose', 'done' => '1']);
         self::assertResponseRedirects('/en/import/' . $importId . '/puzzles/choose/next?after=' . $beacon['id'] . '&done=2');
         $this->browser->followRedirect();

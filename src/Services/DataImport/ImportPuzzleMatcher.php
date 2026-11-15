@@ -216,7 +216,7 @@ readonly final class ImportPuzzleMatcher
      *
      * @return list<array{line: string, how: string}>
      */
-    private static function nameLines(string $name): array
+    public static function nameLines(string $name): array
     {
         $lines = [];
         $written = PuzzleTextSearch::nameLine($name);
@@ -244,7 +244,7 @@ readonly final class ImportPuzzleMatcher
      *
      * @return list<string> each as a line of the codes key holds it, without its tag
      */
-    private static function codeLines(array $codes, callable $asLine): array
+    public static function codeLines(array $codes, callable $asLine): array
     {
         $lines = [];
 

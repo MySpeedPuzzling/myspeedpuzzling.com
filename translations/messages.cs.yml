@@ -11792,9 +11792,11 @@ data_import:
         back: "Zpět"
         start_over: "Začít u tohoto listu znovu"
         start_over_hint: "List projdeme znovu, jako byste žádný takový ještě nenastavovali. Vaše uložené rozvržení zůstane, jak je."
+        column_check: "Minule jste sloupec s tímto názvem nastavili jako „%field%“, ale zdejší hodnoty tomu neodpovídají. Zkontrolujte to prosím."
         notice:
             remembered: "Použili jsme, co jste nastavili minule (%name%) - změňte cokoli, co je jinak."
             remembered_partly: "Většina záhlaví je stejná jako minule (%name%), proto jsou tyto sloupce nastavené jako tehdy - zbytek prosím zkontrolujte."
+            meaning_kept: "Co tento list je - výsledky, puzzle, která vlastníte, nebo seznam přání, sólo nebo s někým - jsme nechali tak, jak to vychází z listu samotného, protože se to liší od minula. Zkontrolujte to prosím níže."
         flash:
             started_over: "List jsme prošli od začátku. Jeho řádky se čtou znovu."
             renamed: "Rozvržení má nový název."

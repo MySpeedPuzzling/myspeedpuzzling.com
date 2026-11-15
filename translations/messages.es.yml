@@ -11790,9 +11790,11 @@ data_import:
         back: "Volver"
         start_over: "Empezar de nuevo con esta hoja"
         start_over_hint: "Revisamos esta hoja otra vez como si nunca hubieras configurado una igual. Tu diseño guardado se queda como está."
+        column_check: "La última vez configuraste una columna con este nombre como «%field%», pero los valores de aquí no lo parecen. Revísalo, por favor."
         notice:
             remembered: "Hemos usado lo que configuraste la última vez (%name%): cambia lo que sea distinto."
             remembered_partly: "La mayoría de los encabezados son los mismos que la última vez (%name%), así que esas columnas están configuradas como entonces: revisa el resto, por favor."
+            meaning_kept: "Lo que es esta hoja - resultados, puzzles que tienes o una lista de deseos, en solitario o con otras personas - se ha dejado tal como se deduce de la propia hoja, porque es distinto de la última vez. Revísalo abajo, por favor."
         flash:
             started_over: "Hemos revisado esta hoja desde cero. Sus filas se están leyendo de nuevo."
             renamed: "El diseño tiene su nuevo nombre."

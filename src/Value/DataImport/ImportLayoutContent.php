@@ -14,7 +14,8 @@ use SpeedPuzzling\Web\Value\StandardCustomField;
  * What a remembered layout holds - `import_layout.content` (docs/features/data-import/layouts.md "What is
  * remembered"): what the sheet is, what a row is, what each column is **by its header** (never by its place alone: a
  * moved column still maps), and the answers that are a habit of whoever keeps the sheet - how a shape of time is
- * read, the order of day and month, what "Jan 23" means.
+ * read, the order of day and month, what "Jan 23" means - **each with the column it was given for**: an answer
+ * about "Time" says nothing about another column.
  *
  * Never here: the year of a sheet's dates (the sheet's own), where the table stands, the questions, sample values,
  * or the id of anything of an import.
@@ -38,6 +39,12 @@ final readonly class ImportLayoutContent
         public null|ShortDateMeaning $shortDates = null,
         public null|PuzzlingType $solvingType = null,
         public null|array $lookup = null,
+        /** The name of the sheet it was saved from: what the sheet is goes to a sheet of that name only */
+        public string $title = '',
+        /** The header key of the time column the `durations` were answered for */
+        public null|string $durationsColumn = null,
+        /** The header key of the date column `dateOrder` and `shortDates` were answered for */
+        public null|string $datesColumn = null,
     ) {
     }
 
@@ -59,6 +66,9 @@ final readonly class ImportLayoutContent
             'shortDates' => $this->shortDates?->value,
             'solvingType' => $this->solvingType?->value,
             'lookup' => $this->lookup,
+            'title' => $this->title,
+            'durationsColumn' => $this->durationsColumn,
+            'datesColumn' => $this->datesColumn,
         ];
     }
 
@@ -115,6 +125,9 @@ final readonly class ImportLayoutContent
             StoredShape::nullableEnum($data, 'shortDates', ShortDateMeaning::class),
             StoredShape::nullableEnum($data, 'solvingType', PuzzlingType::class),
             $lookup === null ? null : ['signature' => StoredShape::string($lookup, 'signature', 80), 'title' => StoredShape::string($lookup, 'title', 2000)],
+            StoredShape::string($data, 'title', 2000),
+            StoredShape::nullableString($data, 'durationsColumn', 2100),
+            StoredShape::nullableString($data, 'datesColumn', 2100),
         );
     }
 }

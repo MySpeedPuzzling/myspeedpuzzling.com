@@ -18,7 +18,10 @@ use SpeedPuzzling\Web\Value\DataImport\KnownExportLayout;
 use SpeedPuzzling\Web\Value\DataImport\MappedColumn;
 use SpeedPuzzling\Web\Value\DataImport\RememberedLayout;
 use SpeedPuzzling\Web\Value\DataImport\SavedImportLayout;
+use SpeedPuzzling\Web\Value\DataImportRowMeaning;
 use SpeedPuzzling\Web\Value\DataImportSheetKind;
+use SpeedPuzzling\Web\Value\SearchText;
+use SpeedPuzzling\Web\Value\StandardCustomField;
 
 /**
  * Knows a sheet's layout again and applies what the player set up for it last time
@@ -27,16 +30,22 @@ use SpeedPuzzling\Web\Value\DataImportSheetKind;
  * - **The signature** of a sheet is its header row as it is compared: every header folded (HeaderMatcher::words()),
  *   a header that stands there twice numbered, left to right. A sheet without a header row has none - and is never
  *   remembered.
- * - **The same headers** (in any order): every column is as the player set it up, the sheet is what they said it is.
+ * - **The same headers** (in any order): every column is as the player set it up.
  * - **At least SHARE_TO_APPLY of the headers in common:** the columns both have are as the player set them up, the
- *   others are proposed as usual, and what the sheet is is worked out again from all of them.
- * - **Answers** (how a shape of time is read, day or month first, what "Jan 23" means) answer only a question the
- *   new sheet really asks, only with a reading its rows still allow, and never against what its rows point to - then
- *   the question is asked again.
+ *   others are proposed as usual.
+ * - **A layout carries the columns - never a certainty the sheet does not support:** a remembered column is "certain"
+ *   only when the sheet's own values go with it (else it is one to check); what the sheet is (results / owned / wish
+ *   list, what a row is) is taken over only when the sheet's own name and columns say the same, or the sheet has the
+ *   name of the one the layout was saved from; "every row is a pair result" only for a sheet of that name.
+ * - **Answers** (how a shape of time is read, day or month first, what "Jan 23" means) answer only a question about
+ *   the very column they were given for, only one the new sheet really asks, only with a reading its rows still
+ *   allow, and never against what its rows point to - then the question is asked again.
  */
 final readonly class ImportLayoutMatcher
 {
     public const float SHARE_TO_APPLY = 0.8;
+    /** The share of a column's values that must go with a remembered field for the column to be "certain" */
+    public const float VALUES_FIT_FROM = 0.6;
 
     private const string SIGNATURE_VERSION = 'L1:';
     private const int ANSWER_PASSES = 3;
@@ -44,6 +53,7 @@ final readonly class ImportLayoutMatcher
     public function __construct(
         private SheetKindGuesser $kindGuesser,
         private ImportColumnDecisions $decisions,
+        private ColumnRecogniser $columnRecogniser,
     ) {
     }
 
@@ -142,11 +152,15 @@ final readonly class ImportLayoutMatcher
     }
 
     /**
-     * The proposal with the fitting layout applied - or as it was, when none fits.
+     * The sheet's own proposal with the fitting layout applied - or as it was, when none fits.
      *
+     * @param ImportSheetProposal $proposal the sheet's OWN proposal (ImportSheetAnalyser) - what it says by itself is
+     *        what a layout is checked against
      * @param list<SavedImportLayout> $layouts
+     * @param iterable<int, array<int, array<string, mixed>>> $rows a sample of the sheet's rows (row number => cells
+     *        by column): what the remembered columns are checked against
      */
-    public function apply(string $sheetTitle, ImportSheetProposal $proposal, array $layouts): ImportSheetProposal
+    public function apply(string $sheetTitle, ImportSheetProposal $proposal, array $layouts, iterable $rows = []): ImportSheetProposal
     {
         $match = self::matching($proposal->mapping, $layouts);
 
@@ -158,25 +172,29 @@ final readonly class ImportLayoutMatcher
         $mapping = $proposal->mapping;
         $content = $layout->content;
         $keys = self::keysByColumn($mapping);
+        $values = self::valuesByColumn($mapping, $rows);
         $columns = [];
         $slots = [];
         $remembered = [];
 
-        foreach ($mapping->columns as $index => $column) {
-            $known = $content->columns[$keys[$column->column] ?? ''] ?? null;
+        foreach ($mapping->columns as $index => $own) {
+            $column = $own;
+            $known = $content->columns[$keys[$own->column] ?? ''] ?? null;
 
             // A role (the source's own row id …) is a known export's to give, never a layout's
-            if ($known !== null && $column->role === null) {
+            if ($known !== null && $own->role === null) {
+                $fits = $this->fits($own, $known['field'], $known['readyMade'], $values[$own->column] ?? []);
                 $column = new MappedColumn(
-                    $column->column,
-                    $column->header,
+                    $own->column,
+                    $own->header,
                     $known['field'],
-                    ColumnCertainty::Certain,
+                    // What the sheet's own values do not go with is the player's to check - never ours to be sure of
+                    $fits ? ColumnCertainty::Certain : ColumnCertainty::Probable,
                     MappedColumn::BY_REMEMBERED,
                     $known['readyMade'],
                     null,
-                    null,
-                    $known['field'] === ImportField::Time ? $column->unit : null,
+                    $fits || $own->field === $known['field'] ? null : $own->field,
+                    $known['field'] === ImportField::Time ? $own->unit : null,
                 );
                 $remembered[$index] = true;
             }
@@ -186,7 +204,7 @@ final readonly class ImportLayoutMatcher
 
                 // Two remembered columns on one field can not be: the later one is left as it was proposed
                 if ($slot !== null && isset($slots[$slot])) {
-                    $column = $mapping->columns[$index];
+                    $column = $own;
                     unset($remembered[$index]);
                 } elseif ($slot !== null) {
                     $slots[$slot] = true;
@@ -218,15 +236,24 @@ final readonly class ImportLayoutMatcher
 
         $columns = array_values($columns);
 
-        if ($whole) {
-            // "The puzzle list the other sheets point to" is found across the workbook each time - by itself the
-            // sheet is a list of owned puzzles
-            $kind = $content->kind === DataImportSheetKind::PuzzleList ? DataImportSheetKind::Owned : $content->kind;
-            $certainty = ColumnCertainty::Certain;
-            $rowMeaning = $content->rowMeaning;
-        } else {
-            [$kind, $certainty, $rowMeaning] = $this->kindGuesser->guess($sheetTitle, $columns, $mapping->layout === null ? null : KnownExportLayout::byId($mapping->layout));
+        // What the sheet is, by itself: its name and its columns as they stand now
+        [$kind, $certainty, $rowMeaning] = $this->kindGuesser->guess($sheetTitle, $columns, $mapping->layout === null ? null : KnownExportLayout::byId($mapping->layout));
+        // "The puzzle list the other sheets point to" is found across the workbook each time - by itself the sheet
+        // is a list of owned puzzles
+        $saidKind = $content->kind === DataImportSheetKind::PuzzleList ? DataImportSheetKind::Owned : $content->kind;
+        $saidMeaning = $content->rowMeaning;
+        $hasStatus = array_filter($columns, static fn (MappedColumn $column): bool => $column->field === ImportField::Status) !== [];
+        $sameName = self::titleKey($sheetTitle) === self::titleKey($content->title);
+        $sayable = $saidMeaning !== DataImportRowMeaning::ByColumn || $hasStatus;
+
+        // The player's word about a sheet of this name - or the sheet says the same by itself. Never across sheets
+        // whose names differ ("Pairs" / "Solo", "Collection" / "Wishlist") when the sheet itself says otherwise
+        if ($sayable && ($sameName || ($kind === $saidKind && $rowMeaning === $saidMeaning))) {
+            [$kind, $certainty, $rowMeaning] = [$saidKind, ColumnCertainty::Certain, $saidMeaning];
         }
+
+        $solvingType = $sameName ? $content->solvingType : null;
+        $meaningKept = $kind !== $saidKind || $rowMeaning !== $saidMeaning || $solvingType !== $content->solvingType;
 
         $applied = new ImportMapping(
             $kind,
@@ -237,7 +264,7 @@ final readonly class ImportLayoutMatcher
             $columns,
             [],
             $mapping->layout,
-            new RememberedLayout($whole ? RememberedLayout::WHOLE : RememberedLayout::PARTLY, $layout->id, mb_substr($layout->name, 0, 200)),
+            new RememberedLayout($whole ? RememberedLayout::WHOLE : RememberedLayout::PARTLY, $layout->id, mb_substr($layout->name, 0, 200), $meaningKept),
         );
 
         try {
@@ -247,9 +274,68 @@ final readonly class ImportLayoutMatcher
             return $proposal;
         }
 
-        $options = $content->solvingType === null ? $proposal->options : $proposal->options->withSolvingType($content->solvingType);
+        $options = $solvingType === null ? $proposal->options : $proposal->options->withSolvingType($solvingType);
 
         return new ImportSheetProposal($applied, $options, $proposal->valueAnswers, $proposal->headerSignature);
+    }
+
+    /**
+     * What two sheets must share for one's "what this sheet is" to be the other's: the name, folded, without its
+     * digits ("Results 2021" and "Results 2022" are one name; "Pairs" and "Solo" are two).
+     */
+    public static function titleKey(string $sheetTitle): string
+    {
+        return trim((string) preg_replace('/[^\p{L}]+/u', ' ', SearchText::fold($sheetTitle)));
+    }
+
+    /**
+     * Whether the sheet's own values go with what the player said the column is: the sheet's own proposal says the
+     * same - or nothing in its values speaks against it (VALUES_FIT_FROM of them are read as that field, and the
+     * recogniser did not take them for something else).
+     *
+     * @param list<array<string, mixed>> $values
+     */
+    private function fits(MappedColumn $own, null|ImportField $field, null|StandardCustomField $readyMade, array $values): bool
+    {
+        // "Don't import" claims nothing about the values
+        if ($field === null || ($own->field === $field && $own->readyMade === $readyMade)) {
+            return true;
+        }
+
+        $valuesSayOtherwise = $own->field !== null
+            && $own->field !== ImportField::Computed
+            && in_array($own->reason, [MappedColumn::BY_VALUES, MappedColumn::BY_HEADER_AND_VALUES], true);
+
+        return $valuesSayOtherwise === false && $this->columnRecogniser->valuesFit($field, $values) >= self::VALUES_FIT_FROM;
+    }
+
+    /**
+     * @param iterable<int, array<int, array<string, mixed>>> $rows
+     *
+     * @return array<int, list<array<string, mixed>>> column => up to ColumnRecogniser::SAMPLE values of the table
+     */
+    private static function valuesByColumn(ImportMapping $mapping, iterable $rows): array
+    {
+        $table = $mapping->table();
+        $values = [];
+
+        if ($table === null) {
+            return [];
+        }
+
+        foreach ($rows as $number => $cells) {
+            if ($table->holdsRow($number) === false) {
+                continue;
+            }
+
+            foreach ($cells as $column => $cell) {
+                if ($table->holdsColumn($column) && StoredCells::isBlank($cell) === false && count($values[$column] ?? []) < ColumnRecogniser::SAMPLE) {
+                    $values[$column][] = $cell;
+                }
+            }
+        }
+
+        return $values;
     }
 
     /**
@@ -309,7 +395,7 @@ final readonly class ImportLayoutMatcher
         [$options, $questions] = $this->decisions->settle($mapping, $options, $sheetTitle, $rows());
 
         for ($pass = 0; $layout !== null && $questions !== [] && $pass < self::ANSWER_PASSES; $pass++) {
-            $answers = self::answers($questions, $layout);
+            $answers = self::answers($questions, $layout, self::keysByColumn($mapping));
 
             if ($answers === []) {
                 break;
@@ -324,23 +410,28 @@ final readonly class ImportLayoutMatcher
     }
 
     /**
-     * The layout's answers to the questions a sheet asks. Only an answer the question offers (the sheet's rows still
-     * allow that reading), and never one the rows point away from: a remembered answer does not hide a question the
-     * new sheet's own values contradict.
+     * The layout's answers to the questions a sheet asks. Only for the very column the answer was given for (a time
+     * column the layout never knew is asked about like anybody's), only an answer the question offers (the sheet's
+     * rows still allow that reading), and never one the rows point away from: a remembered answer does not hide a
+     * question the new sheet's own values contradict.
      *
      * @param list<ImportQuestion> $questions
+     * @param array<int, string> $keys the sheet's header keys by column (self::keysByColumn())
      *
      * @return array<string, string> question id => answer
      */
-    public static function answers(array $questions, ImportLayoutContent $layout): array
+    public static function answers(array $questions, ImportLayoutContent $layout, array $keys): array
     {
         $answers = [];
 
         foreach ($questions as $question) {
+            $key = $keys[$question->column] ?? null;
             $answer = match ($question->type) {
-                ImportQuestionType::DurationShape => $question->shape === null ? null : ($layout->durations[$question->shape->value] ?? null)?->value,
-                ImportQuestionType::DateOrder => $layout->dateOrder?->value,
-                ImportQuestionType::ShortDates => $layout->shortDates?->value,
+                ImportQuestionType::DurationShape => $question->shape === null || $key === null || $key !== $layout->durationsColumn
+                    ? null
+                    : ($layout->durations[$question->shape->value] ?? null)?->value,
+                ImportQuestionType::DateOrder => $key === null || $key !== $layout->datesColumn ? null : $layout->dateOrder?->value,
+                ImportQuestionType::ShortDates => $key === null || $key !== $layout->datesColumn ? null : $layout->shortDates?->value,
                 // The year is the sheet's own; whether a spreadsheet turned typed dates around is the file's
                 ImportQuestionType::Year, ImportQuestionType::TypedDates => null,
             };
@@ -365,7 +456,7 @@ final readonly class ImportLayoutMatcher
      *
      * @param null|array{signature: string, title: string} $lookup
      */
-    public static function contentOf(ImportMapping $mapping, ImportSheetOptions $options, null|array $lookup): null|ImportLayoutContent
+    public static function contentOf(ImportMapping $mapping, ImportSheetOptions $options, null|array $lookup, string $sheetTitle = ''): null|ImportLayoutContent
     {
         $keys = self::keysByColumn($mapping);
 
@@ -389,15 +480,26 @@ final readonly class ImportLayoutMatcher
             }
         }
 
+        $time = $mapping->column(ImportField::Time);
+        $date = $mapping->column(ImportField::SolvedOn);
+        $dateOrder = ($options->dateOrder['by'] ?? null) === ImportSheetOptions::BY_PLAYER ? $options->dateOrder['order'] : null;
+        $shortDates = ($options->shortDates['by'] ?? null) === ImportSheetOptions::BY_PLAYER ? $options->shortDates['meaning'] : null;
+        $durationsColumn = $time === null ? null : $keys[$time->column] ?? null;
+        $datesColumn = $date === null ? null : $keys[$date->column] ?? null;
+
         return new ImportLayoutContent(
             $mapping->kind,
             $mapping->rowMeaning,
             $columns,
-            $durations,
-            ($options->dateOrder['by'] ?? null) === ImportSheetOptions::BY_PLAYER ? $options->dateOrder['order'] : null,
-            ($options->shortDates['by'] ?? null) === ImportSheetOptions::BY_PLAYER ? $options->shortDates['meaning'] : null,
+            // An answer is kept with the column it was given for - without one it could only be guessed at later
+            $durationsColumn === null ? [] : $durations,
+            $datesColumn === null ? null : $dateOrder,
+            $datesColumn === null ? null : $shortDates,
             $options->solvingType,
             $lookup,
+            mb_substr($sheetTitle, 0, 2000),
+            $durations === [] ? null : $durationsColumn,
+            $dateOrder === null && $shortDates === null ? null : $datesColumn,
         );
     }
 

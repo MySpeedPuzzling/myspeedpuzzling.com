@@ -15,10 +15,12 @@ use SpeedPuzzling\Web\Message\MatchImportPuzzlesFuzzy;
 use SpeedPuzzling\Web\Message\ParseImportSheet;
 use SpeedPuzzling\Web\Message\ProposeImportMappings;
 use SpeedPuzzling\Web\Message\ReadImportFile;
+use SpeedPuzzling\Web\Message\ShareImportLayout;
 use SpeedPuzzling\Web\Message\StartImport;
 use SpeedPuzzling\Web\MessageHandler\ParseImportSheetHandler;
 use SpeedPuzzling\Web\MessageHandler\ProposeImportMappingsHandler;
 use SpeedPuzzling\Web\MessageHandler\ReadImportFileHandler;
+use SpeedPuzzling\Web\MessageHandler\ShareImportLayoutHandler;
 use SpeedPuzzling\Web\Services\DataImport\ImportFileStorage;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\Services\SpreadsheetReader\RawXlsx;
@@ -195,19 +197,33 @@ final class ImportLayoutsTest extends WebTestCase
             'answers' => ['duration_shape.two_part_text' => 'minutes_seconds'],
             'columns' => ['4' => 'public_comment'],
         ]);
+        self::assertResponseRedirects();
+        // ... and the two others are to follow: until the worker has been there they show as being worked out
+        self::assertSame(
+            [2, 1, false],
+            array_values((array) $this->database->fetchAssociative('SELECT mapping_version, parsed_version, confirmed_by_player FROM data_import_sheet WHERE id = :id', ['id' => $y2022])),
+        );
+        $list = $this->browser->request('GET', '/en/import/' . $importId . '/columns');
+        self::assertCount(3, $list->filter('[data-sheet-state="parsing"]'));
+        // (the queue of a test is emptied with every request: what the confirmation queued is sent again)
+        $this->bus->dispatch(new ParseImportSheet($importId, $y2021, 2));
+        $layoutId = $this->database->fetchOne('SELECT id FROM import_layout');
+        self::assertIsString($layoutId);
+        $this->bus->dispatch(new ShareImportLayout($importId, $layoutId));
         $handled = $this->work();
-        // ... and the two others follow at once: three sheets are read again, the fourth is left alone
-        self::assertCount(3, $handled);
+        // The confirmed sheet is read, the layout is shared by the worker, the two others are read: the fourth
+        // sheet is left alone
+        self::assertSame([ParseImportSheet::class, ShareImportLayout::class, ParseImportSheet::class, ParseImportSheet::class], array_map(static fn (object $message): string => $message::class, $handled));
         // Each of those parses asked for the import's puzzles to be built again, as any parse does - nothing more
-        self::assertSame(3, $this->buildsSeen);
+        self::assertSame(2, $this->buildsSeen);
 
         foreach ([$y2022, $y2023] as $sheetId) {
             $mapping = $this->mapping($sheetId);
             self::assertSame([], $mapping['questions']);
-            self::assertSame(['remembered', 'Years.xlsx - 2021'], [$mapping['remembered']['how'], $mapping['remembered']['name']]);
+            self::assertSame(['remembered', 'Years.xlsx - 2021', false], [$mapping['remembered']['how'], $mapping['remembered']['name'], $mapping['remembered']['meaningKept']]);
             self::assertSame(['public_comment', 'remembered'], [$mapping['columns'][3]['field'], $mapping['columns'][3]['reason']]);
             self::assertSame(
-                ['mapping_version' => 2, 'parsed_version' => 2, 'confirmed_by_player' => false, 'rows_understood' => 2, 'rows_waiting' => 0],
+                ['mapping_version' => 3, 'parsed_version' => 3, 'confirmed_by_player' => false, 'rows_understood' => 2, 'rows_waiting' => 0],
                 $this->database->fetchAssociative('SELECT mapping_version, parsed_version, confirmed_by_player, rows_understood, rows_waiting FROM data_import_sheet WHERE id = :id', ['id' => $sheetId]),
             );
         }
@@ -221,12 +237,12 @@ final class ImportLayoutsTest extends WebTestCase
         // the player confirmed - keeps its own
         $page = $this->browser->request('GET', '/en/import/' . $importId . '/sheets/' . $y2022);
         self::assertCount(1, $page->filter('[data-testid="import-sheet-remembered"]'));
-        $this->browser->request('POST', '/en/import/' . $importId . '/sheets/' . $y2022, ['_token' => $this->token($page), 'version' => '2', 'columns' => ['4' => '']]);
+        $this->browser->request('POST', '/en/import/' . $importId . '/sheets/' . $y2022, ['_token' => $this->token($page), 'version' => '3', 'columns' => ['4' => '']]);
         self::assertResponseRedirects();
-        self::assertCount(2, $this->work());
+        self::assertCount(3, $this->work());
 
         self::assertSame(
-            [$y2021 => ['public_comment', 2, true], $y2022 => [null, 3, true], $y2023 => [null, 3, false]],
+            [$y2021 => ['public_comment', 2, true], $y2022 => [null, 4, true], $y2023 => [null, 5, false]],
             array_map(
                 fn (string $sheetId): array => [
                     $this->mapping($sheetId)['columns'][3]['field'],
@@ -240,6 +256,72 @@ final class ImportLayoutsTest extends WebTestCase
         self::assertNull($this->database->fetchOne("SELECT content -> 'columns' -> 'mood#1' ->> 'field' FROM import_layout"));
         // The answer about the times is still the layout's
         self::assertSame([], $this->mapping($y2023)['questions']);
+    }
+
+    public function testSheetsOfAnotherMeaningOrWithMostOfTheHeadersGetTheColumnsAndNothingElse(): void
+    {
+        $importId = $this->imported('Club.xlsx', [
+            'Pairs' => [self::HEADERS, ['Plum Orchard', 500, '45:10', 'happy'], ['Chalk Cliffs', 500, '52:31', 'tired']],
+            'Solo' => [self::HEADERS, ['Tea House', 500, '47:20', 'calm'], ['Marble Run', 500, '51:02', 'proud']],
+            // Most of the headers: four of five
+            'Teams' => [[...self::HEADERS, 'Lap'], ['Glass Marbles', 500, '47:55', 'sleepy', '44:01'], ['Circle of Kites', 500, '44:44', 'glad', '43:12']],
+            // "Mood" holds numbers here
+            'Scores' => [self::HEADERS, ['Night Harbour', 500, '46:15', 7], ['Paper Boats', 500, '48:02', 9]],
+        ]);
+        [$pairs, $solo, $teams, $scores] = [$this->sheetId($importId, 'Pairs'), $this->sheetId($importId, 'Solo'), $this->sheetId($importId, 'Teams'), $this->sheetId($importId, 'Scores')];
+
+        // On "Pairs": every row is a pair result, the times are minutes and seconds, "Mood" is who it was solved with
+        $this->bus->dispatch(new ConfirmImportMapping(
+            $importId,
+            PlayerFixture::PLAYER_REGULAR,
+            $pairs,
+            1,
+            mapping: self::withColumn($this->mapping($pairs), 3, 'solved_with'),
+            answers: ['duration_shape.two_part_text' => 'minutes_seconds'],
+            sheetWide: ['solvingType' => 'duo'],
+        ));
+        $this->work();
+
+        // "Solo" got the columns and the answer about that very column - but is not a sheet of pair results
+        $mapping = $this->mapping($solo);
+        self::assertSame(['remembered', true], [$mapping['remembered']['how'], $mapping['remembered']['meaningKept']]);
+        self::assertSame(['solved_with', 'certain', 'remembered'], [$mapping['columns'][3]['field'], $mapping['columns'][3]['certainty'], $mapping['columns'][3]['reason']]);
+        self::assertSame([], $mapping['questions']);
+        self::assertNull($this->database->fetchOne("SELECT options ->> 'solvingType' FROM data_import_sheet WHERE id = :id", ['id' => $solo]));
+        self::assertSame('duo', $this->database->fetchOne("SELECT options ->> 'solvingType' FROM data_import_sheet WHERE id = :id", ['id' => $pairs]));
+
+        // "Teams" has most of the headers: the shared columns at once, with the notice - and its own new time-like
+        // column "Lap" is nobody's remembered answer
+        $mapping = $this->mapping($teams);
+        self::assertSame(['remembered_partly', true], [$mapping['remembered']['how'], $mapping['remembered']['meaningKept']]);
+        self::assertSame(['solved_with', 'remembered'], [$mapping['columns'][3]['field'], $mapping['columns'][3]['reason']]);
+        self::assertNotSame('remembered', $mapping['columns'][4]['reason']);
+        self::assertNull($this->database->fetchOne("SELECT options ->> 'solvingType' FROM data_import_sheet WHERE id = :id", ['id' => $teams]));
+
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+        $page = $this->browser->request('GET', '/en/import/' . $importId . '/sheets/' . $teams);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('Most of these headers are the same as last time (Club.xlsx - Pairs)', $page->filter('[data-testid="import-sheet-remembered"]')->text());
+        self::assertStringContainsString('was left as we worked it out from this sheet itself', $page->filter('[data-testid="import-sheet-meaning-kept"]')->text());
+        // Nothing is ticked for "every row is": the player says it
+        self::assertCount(0, $page->filter('[data-testid="import-sheet-solving-type"] input[checked][value="duo"]'));
+
+        // "Scores": the same headers, but its "Mood" holds numbers - kept as the player said, as a column to check
+        $mapping = $this->mapping($scores);
+        self::assertSame(['solved_with', 'probable', 'remembered'], [$mapping['columns'][3]['field'], $mapping['columns'][3]['certainty'], $mapping['columns'][3]['reason']]);
+        $page = $this->browser->request('GET', '/en/import/' . $importId . '/sheets/' . $scores);
+        self::assertStringContainsString('the values here do not look like it', $page->filter('[data-testid="import-column-card"][data-column="4"] [data-testid="import-column-check"]')->text());
+
+        // A later file: a tab called "Solo" is still not pairs, a tab called "Pairs" is
+        $later = $this->imported('Club 2.xlsx', [
+            'Solo' => [self::HEADERS, ['Tea House', 500, '39:20', 'calm'], ['Marble Run', 500, '41:02', 'proud']],
+            'Pairs' => [self::HEADERS, ['Plum Orchard', 500, '43:10', 'Ana'], ['Chalk Cliffs', 500, '49:31', 'Ana']],
+        ]);
+        self::assertSame([null, 'duo'], [
+            $this->database->fetchOne("SELECT options ->> 'solvingType' FROM data_import_sheet WHERE id = :id", ['id' => $this->sheetId($later, 'Solo')]),
+            $this->database->fetchOne("SELECT options ->> 'solvingType' FROM data_import_sheet WHERE id = :id", ['id' => $this->sheetId($later, 'Pairs')]),
+        ]);
+        self::assertSame([true, false], [$this->mapping($this->sheetId($later, 'Solo'))['remembered']['meaningKept'], $this->mapping($this->sheetId($later, 'Pairs'))['remembered']['meaningKept']]);
     }
 
     public function testASheetWhoseOwnValuesPointAnotherWayIsAskedAgain(): void
@@ -430,6 +512,7 @@ final class ImportLayoutsTest extends WebTestCase
                     $message instanceof ReadImportFile => ReadImportFileHandler::class,
                     $message instanceof ProposeImportMappings => ProposeImportMappingsHandler::class,
                     $message instanceof ParseImportSheet => ParseImportSheetHandler::class,
+                    $message instanceof ShareImportLayout => ShareImportLayoutHandler::class,
                     default => self::fail('Nothing handles ' . $message::class),
                 };
 
@@ -480,16 +563,30 @@ final class ImportLayoutsTest extends WebTestCase
     }
 
     /**
-     * @return array{columns: list<array<string, mixed>>, questions: list<array<string, mixed>>, remembered: array{how: string, id: string, name: string}}
+     * @return array{columns: list<array<string, mixed>>, questions: list<array<string, mixed>>, remembered: array{how: string, id: string, name: string, meaningKept: bool}}
      */
     private function mapping(string $sheetId): array
     {
         $json = $this->database->fetchOne('SELECT mapping FROM data_import_sheet WHERE id = :id', ['id' => $sheetId]);
         self::assertIsString($json);
-        /** @var array{columns: list<array<string, mixed>>, questions: list<array<string, mixed>>, remembered: array{how: string, id: string, name: string}} $mapping */
+        /** @var array{columns: list<array<string, mixed>>, questions: list<array<string, mixed>>, remembered: array{how: string, id: string, name: string, meaningKept: bool}} $mapping */
         $mapping = json_decode($json, true);
 
         return $mapping;
+    }
+
+    /**
+     * @param array<string, mixed> $mapping
+     *
+     * @return array<string, mixed> the mapping with one column said to be another field, as a form would send it
+     */
+    private static function withColumn(array $mapping, int $index, string $field): array
+    {
+        /** @var list<array<string, mixed>> $columns */
+        $columns = $mapping['columns'];
+        $columns[$index]['field'] = $field;
+
+        return [...$mapping, 'columns' => $columns];
     }
 
     private function token(Crawler $page): string

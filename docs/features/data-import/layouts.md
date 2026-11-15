@@ -17,8 +17,10 @@ Tests: `tests/Services/DataImport/ImportLayoutMatcherTest.php`, `tests/Controlle
 ConfirmImportMapping (the player's word on a sheet; validation and versions as before)
   └─ ImportLayouts::confirmed()          same transaction, under the import's lock
        1. the layout of the sheet's header row is saved for the player (new, or the newer word over the old one)
-       2. sheets of the same workbook with the very same header row that the player has not confirmed themselves
-          get that mapping and those answers as a new version each → ParseImportSheet
+       2. the unconfirmed sheets of the workbook the layout fits get a new version (shown as being worked out)
+          └─ ShareImportLayout           imports queue, outside a transaction
+               per sheet: ImportSheetAnalyser → ImportLayoutMatcher::apply() → ::settle()
+               └─ RecordSharedImportMappings   one transaction: next version of each changed sheet → ParseImportSheet
 
 ProposeImportMappings (a later import)
   per sheet: ImportSheetAnalyser → ImportLayoutMatcher::apply()      the player's saved layout over the proposal
@@ -26,6 +28,10 @@ ProposeImportMappings (a later import)
   per sheet: ImportLayoutMatcher::settle()                           the layout answers what the sheet still asks
   └─ RecordImportMappings                                            stores it; counts the layout as used once
 ```
+
+**The principle behind every rule below: a layout saves the player work on the columns - it never states something
+about a sheet with certainty that the sheet itself does not support.** A silent wrong reading becomes a wrong public
+result later.
 
 ## The signature
 
@@ -47,14 +53,37 @@ ProposeImportMappings (a later import)
 
 `ImportLayoutMatcher::matching()` - among the player's own layouts (50 at most):
 
-| | When | What happens | `mapping.remembered.how` |
+| | When | The columns | `mapping.remembered.how` |
 |---|---|---|---|
-| 1 | the same signature | every column that has a key is what the player said, `certainty: certain`, `reason: remembered`; the sheet is what they said it is (kind, row meaning, "every row is a pair result") | `remembered` |
+| 1 | the same signature | every column that has a key is what the player said (`reason: remembered`) | `remembered` |
 | 2 | the same headers in another order | the same - columns are matched **by header, never by place**: a moved column still maps | `remembered` |
-| 3 | at least **80 %** of the headers in common (`common / max(headers of the sheet, headers of the layout)`) | the columns both have are what the player said; the others are proposed as usual; a missing column is nobody's problem; what the sheet is is worked out again from all columns (`SheetKindGuesser`) | `remembered_partly` |
+| 3 | at least **80 %** of the headers in common (`common / max(headers of the sheet, headers of the layout)`) | the columns both have are what the player said; the others are proposed as usual; a missing column is nobody's problem | `remembered_partly` |
 | - | less | nothing of the layout is applied | - |
 
 Of two that fit: the same signature first, then the larger share, then the one used last.
+
+### A remembered column is checked against the sheet's values
+
+A remembered column is `certain` only when the sheet's own values go with it (`ImportLayoutMatcher::fits()`): the
+sheet's own proposal says the same field, or at least 60 % of a sample of its values are read as that field
+(`ColumnRecogniser::valuesFit()`) **and** the recogniser did not take the values for another field. Otherwise the
+field stays what the player said, but as `probable` (what the sheet itself would say in `offered`): the sheet's page
+lists it under the columns to check, with "Last time you set a column with this name up as … but the values here do
+not look like it". "Don't import" claims nothing and is always certain.
+
+### What the sheet is - only where the sheet agrees
+
+Kind, row meaning and "every row is solo / pair / team" are **not** part of what a header row says: tabs "Solo",
+"Pairs", "Teams" - or "Collection" and "Wishlist" - share one. After the columns are applied the sheet is asked what
+it is by itself (`SheetKindGuesser`, its name and its columns), and the layout's word is taken only
+
+- for **kind and row meaning**: when the sheet says the same by itself, or the sheet has **the name of the sheet the
+  layout was saved from** (`content.title`; compared folded and without digits, so "Results 2021" and "Results 2022"
+  are one name and "Pairs" / "Solo" are two);
+- for **the solving type**: only for a sheet of that name.
+
+Otherwise the sheet keeps its own, `mapping.remembered.meaningKept` is set, and the page says "What this sheet is …
+was left as we worked it out from this sheet itself … Please check it below."
 
 - **Never two columns on one single-valued field:** what the player set up stays; a column proposed beside it that
   wants the same field is left unknown (`reason: duplicate`, what it would have been on offer).
@@ -86,8 +115,10 @@ Remembered - only what the **player** answered (`by: player`), never what the ro
 | what `Jan 23` means (`shortDates`) | which collection the sheet's puzzles are filed under - the sheet's |
 | "every row is solo / pair / team" (`solvingType`) | where the table stands, sample values, questions, counts |
 
-How they are given (`ImportLayoutMatcher::settle()` / `answers()`): the sheet's times and dates are settled from its
-own rows first, exactly as for anybody. Then the layout answers **only a question the sheet really asks**, and only
+Each answer is kept **with the header key of the column it was given for** (`content.durationsColumn`,
+`content.datesColumn`). How they are given (`ImportLayoutMatcher::settle()` / `answers()`): the sheet's times and
+dates are settled from its own rows first, exactly as for anybody. Then the layout answers **only a question the
+sheet really asks about that very column** (a time column the layout never knew is asked about as usual), and only
 
 1. with an answer the question offers (a reading the sheet's rows rule out is not among the choices), and
 2. when the rows do not point another way (`question.suggested` is empty or the same answer).
@@ -108,20 +139,24 @@ title and that header row that is a list of puzzles becomes the list again - onl
 
 ## One workbook
 
-When the player confirms a sheet, the other sheets of the same import with **the very same signature** that the
-player has not confirmed themselves follow at once: the confirmed mapping, the answers (each sheet is settled from its
-own rows - the year of "2021" stays 2021's), a new `mapping_version`, read again (`ParseImportSheet`), and so are the
-sheets that look puzzles up in them.
+When the player confirms a sheet, the other sheets of the same import that the layout fits - **the same header row
+or at least 80 % of it** - and that the player has not confirmed themselves follow, by the very same rules as a later
+import: the columns; what the sheet is only where it agrees; answers only per known column; each sheet settled from
+its own rows (the year of "2021" stays 2021's).
 
+- In the confirming transaction those sheets only get a new `mapping_version` (`followsAConfirmedSheet()`): the
+  screen shows them as being read, no older job writes on. The work is `ShareImportLayout` on the `imports` queue
+  (a sample and up to 5,000 rows per sheet are a worker's job, not a request's): every sheet is recognised again
+  from its own rows - never from what an earlier confirmation left on it - the layout is applied, and
+  `RecordSharedImportMappings` stores what changed as the next version and queues `ParseImportSheet` (which queues
+  the pairing's build like any parse - nothing extra is queued here). A sheet nothing changes for is read as it is.
+  A lost message is the safety net's (`read-waiting-imports`: a mapped sheet that is not parsed).
 - `data_import_sheet.confirmed_by_player` is set by `ConfirmImportMapping` and by "Start over". **A sheet with it is
-  never overwritten.** A sheet without it follows every later confirmation of a sheet with its header row (the newest
-  word).
-- A sheet whose mapping and options would not change gets no new version.
-- Bounded: 30 sheets per confirmation (`ImportLayouts::MAX_SHEETS_SHARED`), each settled from at most 5,000 rows,
-  inside the confirming transaction.
-- A sheet the player marks "not puzzles" or "somebody else's" is not remembered and nothing follows it - two sheets
-  with the same headers may well be two people's.
-- Sheets mapped before this stage shipped have `confirmed_by_player = false` even where the player confirmed them.
+  never overwritten** - checked again, with the version, when the result is stored. A sheet without it follows every
+  later confirmation (the newest word). The migration sets it for every sheet beyond its first mapping version, so
+  an import open during the deploy keeps what its player confirmed.
+- Bounded: 30 sheets per confirmation (`ImportLayouts::MAX_SHEETS_SHARED`).
+- A sheet the player marks "not puzzles" or "somebody else's" is not remembered and nothing follows it.
 
 ## The screen
 
@@ -139,7 +174,7 @@ sheets that look puzzles up in them.
 `import_layout`: `id`, `player_id` (cascade - a player's layouts go with the player), `signature` (unique with the
 player), `name` (the file's and sheet's name when saved; '' = "Unnamed layout"), `headers` (jsonb, the keys),
 `content` (jsonb, `ImportLayoutContent`: `shape`, `kind`, `rowMeaning`, `columns` by key → `field` / `readyMade`,
-`durations`, `dateOrder`, `shortDates`, `solvingType`, `lookup`), `changes_known_export`, `times_used` (once per later
+`durations`, `dateOrder`, `shortDates`, `solvingType`, `lookup`, `title`, `durationsColumn`, `datesColumn`), `changes_known_export`, `times_used` (once per later
 import it was applied in), `last_used_at` (saved or applied), `created_at`. 50 per player - one more replaces the one
 used longest ago. Plus `data_import_sheet.confirmed_by_player`. One generated migration.
 
@@ -151,7 +186,19 @@ for its own player (`GetImportLayouts`), never in a URL, never logged.
 | Handled at once | |
 |---|---|
 | `StartImportSheetOver` | under the import's lock, like `ConfirmImportMapping` |
+| `RecordSharedImportMappings` | under the import's lock; version and `confirmed_by_player` checked |
 | `RenameImportLayout`, `ForgetImportLayout` | the player's own layout or `ImportLayoutNotFound` (404) |
+
+| On `imports` | |
+|---|---|
+| `ShareImportLayout` | outside a transaction |
+
+## Known limits
+
+- `changes_known_export` is sticky: once the player changed a known export's mapping, their layout keeps being
+  applied over that export until they forget it.
+- Two columns with the same header are told apart by their order (`notes#1`, `notes#2`): swapped, each gets the
+  other's field - checked against the values like any remembered column, nothing more.
 
 ## Not built here
 

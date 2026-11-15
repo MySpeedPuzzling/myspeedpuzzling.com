@@ -11785,9 +11785,11 @@ data_import:
         back: "Retour"
         start_over: "Recommencer pour cette feuille"
         start_over_hint: "Nous reprenons cette feuille comme si vous n'en aviez jamais configuré de semblable. Votre mise en page enregistrée reste telle quelle."
+        column_check: "La dernière fois, vous aviez configuré une colonne de ce nom comme « %field% », mais les valeurs ici n'y ressemblent pas. Merci de vérifier."
         notice:
             remembered: "Nous avons repris ce que vous aviez configuré la dernière fois (%name%) - modifiez ce qui est différent."
             remembered_partly: "La plupart des en-têtes sont les mêmes que la dernière fois (%name%), ces colonnes sont donc configurées comme alors - merci de vérifier le reste."
+            meaning_kept: "Ce qu'est cette feuille - des résultats, des puzzles que vous possédez ou une liste de souhaits, en solo ou à plusieurs - a été laissé tel que la feuille elle-même le montre, car cela diffère de la dernière fois. Merci de le vérifier ci-dessous."
         flash:
             started_over: "Nous avons repris cette feuille à partir de zéro. Ses lignes sont relues."
             renamed: "La mise en page porte son nouveau nom."

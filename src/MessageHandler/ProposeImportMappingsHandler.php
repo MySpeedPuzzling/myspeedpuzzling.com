@@ -66,7 +66,7 @@ readonly final class ProposeImportMappingsHandler
                 $proposal = $this->analyser->analyse($sample);
 
                 if ($layouts !== []) {
-                    $proposal = $this->layoutMatcher->apply($sample->title, $proposal, $layouts);
+                    $proposal = $this->layoutMatcher->apply($sample->title, $proposal, $layouts, $sample->rows);
                 }
 
                 $proposals[$sheet['id']] = $proposal;

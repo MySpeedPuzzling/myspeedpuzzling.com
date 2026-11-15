@@ -25,6 +25,11 @@ final readonly class RememberedLayout
         public string $how,
         public string $id,
         public string $name,
+        /**
+         * What the layout said the sheet is (results / owned / wish list, what a row is, solo / pair / team) was NOT
+         * taken over, because this sheet's own name or columns say something else - the screen asks the player to check
+         */
+        public bool $meaningKept = false,
     ) {
     }
 
@@ -34,11 +39,11 @@ final readonly class RememberedLayout
     }
 
     /**
-     * @return array{how: string, id: string, name: string}
+     * @return array{how: string, id: string, name: string, meaningKept: bool}
      */
     public function toArray(): array
     {
-        return ['how' => $this->how, 'id' => $this->id, 'name' => $this->name];
+        return ['how' => $this->how, 'id' => $this->id, 'name' => $this->name, 'meaningKept' => $this->meaningKept];
     }
 
     /**
@@ -52,6 +57,7 @@ final readonly class RememberedLayout
             StoredShape::string($data, 'how', 30),
             StoredShape::string($data, 'id', 36),
             StoredShape::string($data, 'name', 300),
+            StoredShape::bool($data, 'meaningKept'),
         );
 
         if (in_array($remembered->how, [self::WHOLE, self::PARTLY], true) === false) {

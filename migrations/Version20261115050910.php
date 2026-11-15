@@ -25,6 +25,12 @@ final class Version20261115050910 extends AbstractMigration
         $this->addSql('CREATE UNIQUE INDEX UNIQ_460BD1FA99E6F5DFAE880141 ON import_layout (player_id, signature)');
         $this->addSql('ALTER TABLE import_layout ADD CONSTRAINT FK_460BD1FA99E6F5DF FOREIGN KEY (player_id) REFERENCES player (id) ON DELETE CASCADE NOT DEFERRABLE');
         $this->addSql('ALTER TABLE data_import_sheet ADD confirmed_by_player BOOLEAN DEFAULT false NOT NULL');
+        // A data statement beside the generated ones, on purpose: a sheet whose mapping went beyond the import's own
+        // proposal before this column existed was, as far as anything can tell, confirmed by its player - and a
+        // sheet "confirmed by the player" is what a layout confirmed on another sheet must never be laid over. Too
+        // many sheets marked (a sheet re-read because its puzzle list changed) only means such a sheet does not
+        // follow by itself; too few would overwrite a player's work in an import that is open during the deploy
+        $this->addSql('UPDATE data_import_sheet SET confirmed_by_player = true WHERE mapping_version > 1');
     }
 
     public function down(Schema $schema): void

@@ -10,17 +10,12 @@ use SpeedPuzzling\Web\Entity\DataImport;
 use SpeedPuzzling\Web\Entity\DataImportSheet;
 use SpeedPuzzling\Web\Entity\ImportLayout;
 use SpeedPuzzling\Web\Exceptions\InvalidImportMapping;
-use SpeedPuzzling\Web\Message\ParseImportSheet;
-use SpeedPuzzling\Web\Query\GetImportSheetRows;
+use SpeedPuzzling\Web\Message\ShareImportLayout;
 use SpeedPuzzling\Web\Repository\ImportLayoutRepository;
 use SpeedPuzzling\Web\Services\Doctrine\IdLock;
-use SpeedPuzzling\Web\Value\DataImport\ColumnCertainty;
 use SpeedPuzzling\Web\Value\DataImport\ImportMapping;
 use SpeedPuzzling\Web\Value\DataImport\ImportSheetOptions;
-use SpeedPuzzling\Web\Value\DataImport\ImportSheetProposal;
 use SpeedPuzzling\Web\Value\DataImport\SavedImportLayout;
-use SpeedPuzzling\Web\Value\DataImportLimits;
-use SpeedPuzzling\Web\Value\DataImportSheetKind;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
@@ -29,9 +24,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
  * lock:
  *
  * 1. the sheet's layout is saved for the player - a new one, or the one of the same signature with the newer word;
- * 2. the other sheets of the same workbook with the same header row that the player has not confirmed themselves
- *    get the same mapping and answers at once, as a new version each, and are read again. A sheet the player
- *    confirmed is never touched.
+ * 2. the other sheets of the same workbook the layout fits that the player has not confirmed themselves are asked
+ *    to follow (ShareImportLayout, on the imports queue). A sheet the player confirmed is never touched.
  *
  * A sheet without a header row, and one the player left out, is not remembered.
  */
@@ -39,15 +33,13 @@ final readonly class ImportLayouts
 {
     /** A player's saved layouts: one more replaces the one used longest ago */
     public const int MAX_PER_PLAYER = 50;
-    /** Sheets of one workbook that follow a confirmed one in a single step - each is settled from its own rows */
+    /** Sheets of one workbook that follow a confirmed one in a single step */
     public const int MAX_SHEETS_SHARED = 30;
 
     private const string LOCK_NAME = 'import_layout';
 
     public function __construct(
         private ImportLayoutRepository $layoutRepository,
-        private ImportLayoutMatcher $matcher,
-        private GetImportSheetRows $rows,
         private MessageBusInterface $messageBus,
         private IdLock $idLock,
         private ClockInterface $clock,
@@ -68,7 +60,7 @@ final readonly class ImportLayouts
         }
 
         $signature = ImportLayoutMatcher::signature($mapping);
-        $content = ImportLayoutMatcher::contentOf($mapping, $options, self::lookupOf($options, $sheets));
+        $content = ImportLayoutMatcher::contentOf($mapping, $options, self::lookupOf($options, $sheets), $sheet->title);
 
         if ($signature === null || $content === null) {
             return;
@@ -110,7 +102,7 @@ final readonly class ImportLayouts
             $layout->savedAgain($headers, $content, $changesKnownExport, $now);
         }
 
-        $this->share($import, $sheet, $sheets, new SavedImportLayout(
+        $this->askSiblingsToFollow($import, $sheet, $sheets, new SavedImportLayout(
             $layout->id->toString(),
             $layout->name,
             $signature,
@@ -122,79 +114,38 @@ final readonly class ImportLayouts
     }
 
     /**
-     * Within one workbook: the sheets with the very same header row follow the confirmed one.
+     * Within one workbook: the sheets the layout fits (the same header row, or most of it) that the player has not
+     * confirmed themselves are to follow the confirmed one. Here they only get a new version - so the screen shows
+     * them as being worked out, and no older job writes on - and one ShareImportLayout is queued: working a sheet out
+     * reads thousands of its rows, which is a worker's job and not this request's.
      *
      * @param list<DataImportSheet> $sheets
      */
-    private function share(DataImport $import, DataImportSheet $confirmed, array $sheets, SavedImportLayout $layout): void
+    private function askSiblingsToFollow(DataImport $import, DataImportSheet $confirmed, array $sheets, SavedImportLayout $layout): void
     {
-        $shared = 0;
+        $asked = 0;
 
         foreach ($sheets as $sheet) {
-            if ($sheet === $confirmed || $sheet->mappingVersion === 0 || $sheet->confirmedByPlayer) {
+            if ($sheet === $confirmed || $sheet->mappingVersion === 0 || $sheet->confirmedByPlayer || $asked >= self::MAX_SHEETS_SHARED) {
                 continue;
             }
 
             try {
                 $current = ImportMapping::fromArray($sheet->mapping ?? []);
-                $options = ImportSheetOptions::fromArray($sheet->options);
             } catch (InvalidImportMapping) {
                 continue;
             }
 
-            if (ImportLayoutMatcher::signature($current) !== $layout->signature || ++$shared > self::MAX_SHEETS_SHARED) {
+            if (ImportLayoutMatcher::matching($current, [$layout]) === null) {
                 continue;
             }
 
-            /** @var array<int, array<string, string>> $valueAnswers */
-            $valueAnswers = $sheet->valueAnswers ?? [];
-            $proposal = $this->matcher->apply(
-                $sheet->title,
-                // Whatever the sheet got from an earlier confirmation is taken off first: it follows the newest one
-                new ImportSheetProposal($current->withQuestions([])->withRemembered(null), $options->withoutPlayerAnswers(), $valueAnswers, $sheet->headerSignature),
-                [$layout],
-            );
-            $mapping = $proposal->mapping;
+            $sheet->followsAConfirmedSheet();
+            $asked++;
+        }
 
-            if ($mapping->remembered === null) {
-                continue;
-            }
-
-            // The list other sheets look puzzles up in stays that list
-            if ($current->kind === DataImportSheetKind::PuzzleList && $mapping->kind === DataImportSheetKind::Owned) {
-                $mapping = $mapping->withKind(DataImportSheetKind::PuzzleList, ColumnCertainty::Certain);
-            }
-
-            $sheetId = $sheet->id->toString();
-            $table = $mapping->table();
-            [$options, $questions] = $this->matcher->settle(
-                $mapping,
-                $proposal->options,
-                $sheet->title,
-                fn (): iterable => $this->rows->rows($sheetId, DataImportLimits::COLUMN_DECISION_ROWS, $table->firstRow ?? 1, $table?->lastRow),
-                $layout->content,
-            );
-            $mapping = $mapping->withQuestions($questions);
-
-            if (self::canonical($mapping->toArray()) === self::canonical($sheet->mapping ?? []) && self::canonical($options->toArray()) === self::canonical($sheet->options ?? [])) {
-                continue;
-            }
-
-            if ($sheet->mappingShared($mapping, $options, $valueAnswers) === false) {
-                continue;
-            }
-
-            $this->messageBus->dispatch(new ParseImportSheet($import->id->toString(), $sheetId, $sheet->mappingVersion));
-
-            foreach ($sheets as $other) {
-                if ($other === $sheet || $other->mappingVersion === 0 || ($other->options['lookupSheetId'] ?? null) !== $sheetId) {
-                    continue;
-                }
-
-                // As after a confirmed mapping: whoever looks puzzles up in the sheet reads its rows again
-                $other->lookedUpSheetChanged();
-                $this->messageBus->dispatch(new ParseImportSheet($import->id->toString(), $other->id->toString(), $other->mappingVersion));
-            }
+        if ($asked > 0) {
+            $this->messageBus->dispatch(new ShareImportLayout($import->id->toString(), $layout->id));
         }
     }
 
@@ -231,21 +182,5 @@ final readonly class ImportLayouts
 
         // '' for a Google sheet nobody named: the list says "Unnamed layout" in the reader's language
         return mb_substr($name, 0, ImportLayout::MAX_NAME_LENGTH);
-    }
-
-    /**
-     * A stored JSON object and the same one built anew, comparable: the order of keys is nobody's word.
-     *
-     * @param array<mixed> $value
-     *
-     * @return array<mixed>
-     */
-    private static function canonical(array $value): array
-    {
-        if (array_is_list($value) === false) {
-            ksort($value);
-        }
-
-        return array_map(static fn (mixed $item): mixed => is_array($item) ? self::canonical($item) : $item, $value);
     }
 }

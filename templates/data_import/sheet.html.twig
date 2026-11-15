@@ -56,6 +56,9 @@
                 <i class="bi bi-bookmark-check flex-shrink-0"></i>
                 <span class="text-break">{{ ('data_import.layouts.notice.' ~ mapping.remembered.how)|trans({'%name%': layout_name}) }}</span>
             </div>
+            {% if mapping.remembered.meaningKept %}
+                <p class="mb-0 mt-2 fw-medium" data-testid="import-sheet-meaning-kept"><i class="bi bi-exclamation-circle me-1"></i>{{ 'data_import.layouts.notice.meaning_kept'|trans }}</p>
+            {% endif %}
             <form action="{{ path('data_import_sheet_start_over', {importId: import_id, sheetId: sheet.sheetId}) }}" method="post" class="mt-2">
                 <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) }}">
                 <input type="hidden" name="version" value="{{ sheet.mappingVersion }}">
@@ -252,6 +255,9 @@
     {% set header = column.header != '' ? column.header : 'data_import.columns.sheet.column_unnamed'|trans({'%letter%': column.letter}) %}
     <div class="card card-body shadow-sm mb-3{{ column.error ? ' border-danger' : '' }}" data-testid="import-column-card" data-column="{{ column.column }}" data-certainty="{{ column.certainty }}">
         <div class="fw-medium text-break mb-1">{{ header }}</div>
+        {% if column.reason == 'remembered' and column.certainty == 'probable' %}
+            <p class="fs-sm text-warning mb-2" data-testid="import-column-check"><i class="bi bi-exclamation-circle me-1"></i>{{ 'data_import.layouts.column_check'|trans({'%field%': column.label|trans}) }}</p>
+        {% endif %}
         {% if column.certainty == 'unknown' and column.offered is not null %}
             <p class="fs-sm text-muted mb-2">{{ 'data_import.columns.sheet.offered'|trans({'%field%': column.offered|trans}) }}</p>
         {% endif %}

@@ -195,6 +195,17 @@ class DataImportSheet
     }
 
     /**
+     * A sheet of the same workbook with this header row was confirmed, and this one is to follow it
+     * (ShareImportLayout): a new version at once - the screen shows the sheet as being worked out, and nothing of an
+     * older job is written - until the worker has laid the layout over it, or found nothing to change.
+     */
+    public function followsAConfirmedSheet(): void
+    {
+        $this->mappingVersion++;
+        $this->startsOver();
+    }
+
+    /**
      * What the player confirmed for another sheet of the same workbook with the same headers, laid over this one -
      * a new version like any change, but not the player's word on this sheet.
      *

@@ -39,7 +39,7 @@ final class ImportLayoutMatcherTest extends TestCase
     protected function setUp(): void
     {
         $this->kit = new Kit();
-        $this->matcher = new ImportLayoutMatcher($this->kit->kindGuesser, $this->kit->decisions);
+        $this->matcher = new ImportLayoutMatcher($this->kit->kindGuesser, $this->kit->decisions, $this->kit->columnRecogniser);
     }
 
     public function testTheSignatureIsTheHeaderRowAsItIsComparedAndASheetWithoutHeadersHasNone(): void
@@ -75,8 +75,8 @@ final class ImportLayoutMatcherTest extends TestCase
             new ImportSheetOptions(solvingType: PuzzlingType::Duo),
         );
 
-        $moved = Kit::sheet('Spring', [1 => ['Who', 'Time', 'Mood', 'Puzzle', 'Pieces'], 2 => ['Ana', '0:58:40', 'tired', 'Chalk Cliffs', 500]]);
-        $proposal = $this->matcher->apply($moved->title, $this->kit->analyser->analyse($moved), [$layout]);
+        $moved = Kit::sheet('2024', [1 => ['Who', 'Time', 'Mood', 'Puzzle', 'Pieces'], 2 => ['Ana', '0:58:40', 'tired', 'Chalk Cliffs', 500]]);
+        $proposal = $this->matcher->apply($moved->title, $this->kit->analyser->analyse($moved), [$layout], $moved->rows);
 
         self::assertEquals(new RememberedLayout(RememberedLayout::WHOLE, $layout->id, 'Log.xlsx - 2023'), $proposal->mapping->remembered);
         self::assertSame(
@@ -104,7 +104,7 @@ final class ImportLayoutMatcherTest extends TestCase
         // One column is gone ("Weather"), one is new ("Brand"): 9 of 10 headers in common
         $next = Kit::sheet('2024', [1 => ['Puzzle', 'Pieces', 'Time', 'Mood', 'Who', 'Table', 'Lamp', 'Music', 'Snack', 'Brand'], 2 => ['Chalk Cliffs', 500, '0:58:40', 'tired', 'Ana', 'oak', 'off', 'none', 'cake', 'Trefl']]);
         $own = $this->kit->analyser->analyse($next);
-        $proposal = $this->matcher->apply($next->title, $own, [$layout]);
+        $proposal = $this->matcher->apply($next->title, $own, [$layout], $next->rows);
         $columns = self::columns($proposal->mapping);
 
         self::assertSame(RememberedLayout::PARTLY, $proposal->mapping->remembered?->how);
@@ -123,16 +123,81 @@ final class ImportLayoutMatcherTest extends TestCase
         self::assertNull(ImportLayoutMatcher::matching($untouched->mapping, [$layout]));
     }
 
+    public function testWhatASheetIsNeverSpreadsToASheetOfAnotherNameThatSaysOtherwise(): void
+    {
+        $headers = ['Puzzle', 'Pieces', 'Time'];
+        // On the tab "Pairs" the player said: every row is a pair result
+        $pairs = $this->layout(Kit::sheet('Pairs', [1 => $headers, 2 => ['Plum Orchard', 500, '1:02:03']]), [], new ImportSheetOptions(solvingType: PuzzlingType::Duo));
+
+        foreach (['Solo', 'Teams', 'Pairs with Ana'] as $title) {
+            $sheet = Kit::sheet($title, [1 => $headers, 2 => ['Chalk Cliffs', 500, '0:58:40']]);
+            $proposal = $this->matcher->apply($title, $this->kit->analyser->analyse($sheet), [$pairs], $sheet->rows);
+
+            // The columns follow - "every row is a pair" does not, and the sheet says that it was left alone
+            self::assertSame(RememberedLayout::WHOLE, $proposal->mapping->remembered?->how, $title);
+            self::assertNull($proposal->options->solvingType, $title);
+            self::assertTrue($proposal->mapping->remembered->meaningKept, $title);
+        }
+
+        // A tab of that name in a later file (or "Pairs 2025" beside "Pairs 2024") is the same tab: the player's word holds
+        foreach (['Pairs', 'pairs 2025'] as $title) {
+            $sheet = Kit::sheet($title, [1 => $headers, 2 => ['Chalk Cliffs', 500, '0:58:40']]);
+            $proposal = $this->matcher->apply($title, $this->kit->analyser->analyse($sheet), [$pairs], $sheet->rows);
+            self::assertSame([PuzzlingType::Duo, false], [$proposal->options->solvingType, $proposal->mapping->remembered?->meaningKept], $title);
+        }
+
+        // "Collection" and "Wishlist" with the same header row: confirming one never makes the other its kind
+        $list = ['Puzzle', 'Brand', 'Pieces'];
+        $collection = Kit::sheet('Collection', [1 => $list, 2 => ['Plum Orchard', 'Trefl', 500]]);
+        $wishlist = Kit::sheet('Wishlist', [1 => $list, 2 => ['Night Harbour', 'Jumbo', 1000]]);
+        self::assertSame([DataImportSheetKind::Owned, DataImportSheetKind::WishList], [$this->kit->analyser->analyse($collection)->mapping->kind, $this->kit->analyser->analyse($wishlist)->mapping->kind]);
+
+        $wishes = $this->matcher->apply('Wishlist', $this->kit->analyser->analyse($wishlist), [$this->layout($collection, [])], $wishlist->rows)->mapping;
+        self::assertSame([DataImportSheetKind::WishList, DataImportRowMeaning::WishList, true], [$wishes->kind, $wishes->rowMeaning, $wishes->remembered?->meaningKept]);
+        $owned = $this->matcher->apply('Collection', $this->kit->analyser->analyse($collection), [$this->layout($wishlist, [])], $collection->rows)->mapping;
+        self::assertSame([DataImportSheetKind::Owned, DataImportRowMeaning::Owned, true], [$owned->kind, $owned->rowMeaning, $owned->remembered?->meaningKept]);
+
+        // Where the sheet says the same by itself there is nothing to keep apart
+        $other = Kit::sheet('Shelf', [1 => $list, 2 => ['Tea House', 'Jumbo', 1000]]);
+        $shelf = $this->matcher->apply('Shelf', $this->kit->analyser->analyse($other), [$this->layout($collection, [])], $other->rows)->mapping;
+        self::assertSame([DataImportSheetKind::Owned, ColumnCertainty::Certain, false], [$shelf->kind, $shelf->kindCertainty, $shelf->remembered?->meaningKept]);
+    }
+
+    public function testARememberedColumnIsCertainOnlyWhenTheSheetsOwnValuesGoWithIt(): void
+    {
+        // The player said: "When" is the day it was solved, "Lap" is the time
+        $layout = $this->layout(
+            Kit::sheet('Log', [1 => ['Puzzle', 'Pieces', 'When', 'Lap'], 2 => ['Plum Orchard', 500, '2026-01-10', '1:02:03']]),
+            ['when#1' => ImportField::SolvedOn, 'lap#1' => ImportField::Time],
+        );
+
+        $fitting = Kit::sheet('Log', [1 => ['Puzzle', 'Pieces', 'When', 'Lap'], 2 => ['Chalk Cliffs', 500, '2026-02-08', '0:58:40'], 3 => ['Tea House', 500, '2026-02-09', '0:51:12']]);
+        $columns = self::columns($this->matcher->apply('Log', $this->kit->analyser->analyse($fitting), [$layout], $fitting->rows)->mapping);
+        self::assertSame([['solved_on', 'certain', 'remembered'], ['time', 'certain', 'remembered']], [$columns['When'], $columns['Lap']]);
+
+        // The same headers over other values: "When" holds words, "Lap" holds names - kept as the player said, but
+        // as columns to check, never as something we are sure of
+        $other = Kit::sheet('Log', [1 => ['Puzzle', 'Pieces', 'When', 'Lap'], 2 => ['Chalk Cliffs', 500, 'in the morning', 'Ana'], 3 => ['Tea House', 500, 'after dinner', 'Ben']]);
+        $columns = self::columns($this->matcher->apply('Log', $this->kit->analyser->analyse($other), [$layout], $other->rows)->mapping);
+        self::assertSame([['solved_on', 'probable', 'remembered'], ['time', 'probable', 'remembered']], [$columns['When'], $columns['Lap']]);
+        self::assertSame(['puzzle_name', 'certain', 'remembered'], $columns['Puzzle']);
+
+        // Values the recogniser itself reads as something else: remembered "Time" over a column of dates
+        $dates = Kit::sheet('Log', [1 => ['Puzzle', 'Pieces', 'When', 'Lap'], 2 => ['Chalk Cliffs', 500, '2026-02-08', Kit::date('2026-02-08')], 3 => ['Tea House', 500, '2026-02-09', Kit::date('2026-02-09')]]);
+        $mapping = $this->matcher->apply('Log', $this->kit->analyser->analyse($dates), [$layout], $dates->rows)->mapping;
+        self::assertSame(['time', 'probable', 'remembered'], self::columns($mapping)['Lap']);
+    }
+
     public function testAColumnProposedBesideARememberedOneNeverTakesTheSameField(): void
     {
-        $headers = ['Puzzle', 'Pieces', 'Finished', 'Mood', 'Who', 'Table', 'Lamp', 'Music', 'Snack', 'Weather'];
-        // The player said the time stands in "Finished"
-        $layout = $this->layout(Kit::sheet('2023', [1 => $headers, 2 => ['Plum Orchard', 500, '1:02:03', 'happy', 'Ana', 'oak', 'on', 'jazz', 'tea', 'rain']]), ['finished#1' => ImportField::Time]);
+        $headers = ['Puzzle', 'Pieces', 'Lap', 'Mood', 'Who', 'Table', 'Lamp', 'Music', 'Snack', 'Weather'];
+        // The player said the time stands in "Lap"
+        $layout = $this->layout(Kit::sheet('2023', [1 => $headers, 2 => ['Plum Orchard', 500, '1:02:03', 'happy', 'Ana', 'oak', 'on', 'jazz', 'tea', 'rain']]), ['lap#1' => ImportField::Time]);
 
-        $next = Kit::sheet('2024', [1 => ['Puzzle', 'Pieces', 'Finished', 'Mood', 'Who', 'Table', 'Lamp', 'Music', 'Snack', 'Time'], 2 => ['Chalk Cliffs', 500, '0:58:40', 'tired', 'Ana', 'oak', 'off', 'none', 'cake', '0:58:40']]);
-        $columns = self::columns($this->matcher->apply($next->title, $this->kit->analyser->analyse($next), [$layout])->mapping);
+        $next = Kit::sheet('2024', [1 => ['Puzzle', 'Pieces', 'Lap', 'Mood', 'Who', 'Table', 'Lamp', 'Music', 'Snack', 'Time'], 2 => ['Chalk Cliffs', 500, '0:58:40', 'tired', 'Ana', 'oak', 'off', 'none', 'cake', '0:58:40']]);
+        $columns = self::columns($this->matcher->apply($next->title, $this->kit->analyser->analyse($next), [$layout], $next->rows)->mapping);
 
-        self::assertSame(['time', 'certain', 'remembered'], $columns['Finished']);
+        self::assertSame(['time', 'certain', 'remembered'], $columns['Lap']);
         self::assertSame([null, 'unknown', 'duplicate'], $columns['Time']);
     }
 
@@ -148,21 +213,31 @@ final class ImportLayoutMatcherTest extends TestCase
         self::assertSame(['duration_shape.two_part_text', 'minutes_seconds'], [$asked[0]->id(), $asked[0]->suggested]);
 
         // "Minutes and seconds" last time: nothing is asked, and the answer stands as the player's
-        $minutes = new ImportLayoutContent(DataImportSheetKind::Results, DataImportRowMeaning::Result, [], [DurationShape::TwoPartText->value => DurationReadingRule::MinutesSeconds]);
+        $minutes = new ImportLayoutContent(DataImportSheetKind::Results, DataImportRowMeaning::Result, [], [DurationShape::TwoPartText->value => DurationReadingRule::MinutesSeconds], durationsColumn: 'time#1');
         [$options, $questions] = $this->matcher->settle($mapping, new ImportSheetOptions(), $sheet->title, $rows, $minutes);
         self::assertSame([], $questions);
         self::assertSame(['rule' => DurationReadingRule::MinutesSeconds, 'by' => ImportSheetOptions::BY_PLAYER], $options->durations[DurationShape::TwoPartText->value]);
 
         // "Hours and minutes" last time, but this sheet's own values point the other way: asked again
-        $hours = new ImportLayoutContent(DataImportSheetKind::Results, DataImportRowMeaning::Result, [], [DurationShape::TwoPartText->value => DurationReadingRule::HoursMinutes]);
+        $hours = new ImportLayoutContent(DataImportSheetKind::Results, DataImportRowMeaning::Result, [], [DurationShape::TwoPartText->value => DurationReadingRule::HoursMinutes], durationsColumn: 'time#1');
         [$options, $questions] = $this->matcher->settle($mapping, new ImportSheetOptions(), $sheet->title, $rows, $hours);
         self::assertCount(1, $questions);
         self::assertSame([], $options->durations);
 
+        $keys = ImportLayoutMatcher::keysByColumn($mapping);
         // A reading the sheet's values rule out is not among the choices - never given
-        self::assertSame([], ImportLayoutMatcher::answers($asked, new ImportLayoutContent(DataImportSheetKind::Results, DataImportRowMeaning::Result, [], [DurationShape::TwoPartText->value => DurationReadingRule::Seconds])));
+        self::assertSame([], ImportLayoutMatcher::answers($asked, new ImportLayoutContent(DataImportSheetKind::Results, DataImportRowMeaning::Result, [], [DurationShape::TwoPartText->value => DurationReadingRule::Seconds], durationsColumn: 'time#1'), $keys));
         // An answer about another shape answers nothing here; the year is never a layout's
-        self::assertSame([], ImportLayoutMatcher::answers($asked, new ImportLayoutContent(DataImportSheetKind::Results, DataImportRowMeaning::Result, [], [DurationShape::BareNumber->value => DurationReadingRule::Minutes], DateOrder::DayMonthYear)));
+        self::assertSame([], ImportLayoutMatcher::answers($asked, new ImportLayoutContent(DataImportSheetKind::Results, DataImportRowMeaning::Result, [], [DurationShape::BareNumber->value => DurationReadingRule::Minutes], DateOrder::DayMonthYear, durationsColumn: 'time#1', datesColumn: 'time#1'), $keys));
+
+        // An answer given for another column says nothing about this one: "Minutes and seconds" was said about a
+        // column called "Lap" - this sheet's "Time" is asked about like anybody's
+        $ofAnotherColumn = new ImportLayoutContent(DataImportSheetKind::Results, DataImportRowMeaning::Result, [], [DurationShape::TwoPartText->value => DurationReadingRule::MinutesSeconds], durationsColumn: 'lap#1');
+        self::assertSame([], ImportLayoutMatcher::answers($asked, $ofAnotherColumn, $keys));
+        [$options, $questions] = $this->matcher->settle($mapping, new ImportSheetOptions(), $sheet->title, $rows, $ofAnotherColumn);
+        self::assertSame([1, []], [count($questions), $options->durations]);
+        // ... and an answer without its column (nothing says which it was) is nobody's
+        self::assertSame([], ImportLayoutMatcher::answers($asked, new ImportLayoutContent(DataImportSheetKind::Results, DataImportRowMeaning::Result, [], [DurationShape::TwoPartText->value => DurationReadingRule::MinutesSeconds]), $keys));
 
         // What the rows settle by themselves is the rows' - a layout is not asked
         $clear = Kit::sheet('Clear', [1 => ['Puzzle', 'Pieces', 'Time'], 2 => ['Plum Orchard', 500, '1:02:03']]);
@@ -180,9 +255,11 @@ final class ImportLayoutMatcherTest extends TestCase
             ->withYear(2023, ImportSheetOptions::BY_PLAYER)
             ->withCollectionLabel('Keep pile');
 
-        $content = ImportLayoutMatcher::contentOf($mapping, $options, null);
+        $content = ImportLayoutMatcher::contentOf($mapping, $options, null, 'Log');
         self::assertNotNull($content);
         self::assertSame([DurationShape::TwoPartText->value => DurationReadingRule::MinutesSeconds], $content->durations);
+        // Each answer with the column it was given for, and the name of the sheet
+        self::assertSame(['time#1', 'date#1', 'Log'], [$content->durationsColumn, $content->datesColumn, $content->title]);
         self::assertSame(DateOrder::DayMonthYear, $content->dateOrder);
         self::assertNull($content->shortDates);
         // Stored and read back the same - and no year, no collection, no place of the table anywhere in it
@@ -208,7 +285,7 @@ final class ImportLayoutMatcherTest extends TestCase
         self::assertNotNull($content);
         $columns = $content->columns;
         $columns['artist#1'] = ['field' => null, 'readyMade' => null];
-        $content = new ImportLayoutContent($content->kind, $content->rowMeaning, $columns);
+        $content = new ImportLayoutContent($content->kind, $content->rowMeaning, $columns, title: $export->title);
         $saved = static fn (bool $changes): SavedImportLayout => new SavedImportLayout('0193a000-0000-7000-8000-000000000001', 'My export', (string) ImportLayoutMatcher::signature($own->mapping), ImportLayoutMatcher::headerKeys($own->mapping), $content, $changes, TestClock::now());
 
         self::assertSame($own, $this->matcher->apply('', $own, [$saved(false)]));
@@ -231,7 +308,7 @@ final class ImportLayoutMatcherTest extends TestCase
 
         // The names of this file's results are not on the list (yet): the workbook's own names find nothing
         $proposals = [
-            'results-id' => $this->matcher->apply($results->title, $this->kit->analyser->analyse($results), [$layout]),
+            'results-id' => $this->matcher->apply($results->title, $this->kit->analyser->analyse($results), [$layout], $results->rows),
             'list-id' => $this->kit->analyser->analyse($list),
             'other-id' => $this->kit->analyser->analyse(Kit::sheet('Sold', [1 => ['Puzzle', 'Brand', 'Pieces'], 2 => ['Tea House', 'Jumbo', 1000]])),
         ];
@@ -264,7 +341,7 @@ final class ImportLayoutMatcherTest extends TestCase
             $mapping->columns,
         );
         $confirmed = new ImportMapping($mapping->kind, ColumnCertainty::Certain, $mapping->rowMeaning, $mapping->regions, $mapping->region, $columns);
-        $content = ImportLayoutMatcher::contentOf($confirmed, $options ?? new ImportSheetOptions(), $lookup);
+        $content = ImportLayoutMatcher::contentOf($confirmed, $options ?? new ImportSheetOptions(), $lookup, $sheet->title);
         self::assertNotNull($content);
 
         return new SavedImportLayout(

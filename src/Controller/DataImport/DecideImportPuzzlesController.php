@@ -350,7 +350,7 @@ final class DecideImportPuzzlesController extends AbstractController
 
         ImportInPlace::answerFor($request, $screenRoute, $screenPath);
 
-        return $this->render('data_import/puzzles_answer.stream.html.twig', [
+        return $this->render('data_import/_puzzles_answer.stream.html.twig', [
             'import_id' => $importId,
             'pile' => $pile,
             'chooser' => $chooser,
@@ -400,7 +400,7 @@ final class DecideImportPuzzlesController extends AbstractController
             // Asked on the chooser itself: the question takes its place at the top of the screen, and is shown
             ImportInPlace::answerFor($request, 'data_import_puzzle_choose', $this->generateUrl('data_import_puzzle_choose', ['importId' => $importId, 'importPuzzleId' => $importPuzzleId]));
 
-            return $this->render('data_import/puzzles_answer.stream.html.twig', [
+            return $this->render('data_import/_puzzles_answer.stream.html.twig', [
                 'import_id' => $importId,
                 'pile' => null,
                 'chooser' => ['fresh' => true] + $chooser,
@@ -480,7 +480,7 @@ final class DecideImportPuzzlesController extends AbstractController
             if ($screen !== null) {
                 ImportInPlace::answerFor($request, 'data_import_puzzle_group', $this->generateUrl('data_import_puzzle_group', ['importId' => $importId, 'group' => $pile]));
 
-                return $this->render('data_import/puzzles_answer.stream.html.twig', [
+                return $this->render('data_import/_puzzles_answer.stream.html.twig', [
                     'import_id' => $importId,
                     'pile' => ['notices' => $notices, 'fresh' => true] + $screen,
                     'chooser' => null,

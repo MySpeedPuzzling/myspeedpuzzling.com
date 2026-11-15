@@ -1,7 +1,7 @@
 {#
     The chooser of one puzzle of an import, as ONE element (puzzle_choose.html.twig says what is on it): the page
     shows it, and an answer given on it gets the element back - the same puzzle as it stands now, or the next puzzle
-    of the round (puzzles_answer.stream.html.twig) - so nothing scrolls and nothing is loaded twice. The element says
+    of the round (_puzzles_answer.stream.html.twig) - so nothing scrolls and nothing is loaded twice. The element says
     the address of the screen it shows (`data-import-answers-url`): the script puts it in the address bar.
 
     Variables: what ImportPuzzleChooserController::parameters() gives; `fresh` (optional) - another puzzle than the
@@ -23,7 +23,7 @@
     {% endif %}
 {% endmacro %}
 
-<div id="import-chooser" class="mx-auto" style="max-width: 560px;" data-testid="import-puzzle-chooser" data-import-answers-url="{{ path('data_import_puzzle_choose', {importId: import.importId, importPuzzleId: card.importPuzzleId}|merge(flow is not null ? {flow: flow, done: done} : {})|merge(last is not null ? {last: last} : {})) }}"{% if fresh|default(false) %} data-import-answers-show{% endif %} data-import-flow-screen="puzzle_choose" data-choice="{{ card.choice }}" data-version="{{ card.decisionVersion }}">
+<div id="import-chooser" class="mx-auto" style="max-width: 560px;" data-testid="import-puzzle-chooser" data-import-answers-url="{{ path('data_import_puzzle_choose', {importId: import.importId, importPuzzleId: card.importPuzzleId}|merge(flow is not null ? {flow: flow, done: done} : {})|merge(last is not null ? {last: last} : {})) }}"{% if fresh|default(false) %} data-import-answers-show{% endif %} data-choice="{{ card.choice }}" data-version="{{ card.decisionVersion }}">
     <div class="d-flex justify-content-between align-items-baseline gap-2 mb-2">
         <h1 class="h5 mb-0">{{ 'data_import.puzzles.chooser.title'|trans }}</h1>
         {% if flow is not null %}
@@ -197,7 +197,4 @@
             </a>
         {% endif %}
     </div>
-
-    {# A tap on a puzzle's card is the answer here - the screen has no other primary button #}
-    {{ include('data_import/_flow_footer.html.twig', {import: import}, with_context = false) }}
 </div>

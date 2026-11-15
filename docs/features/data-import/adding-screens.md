@@ -291,6 +291,12 @@ Every row's form has its own `request_id`.
 solo / pair / team - before "Add it anyway": the player's own result for the first, a pair/team result with the
 row's very day and time for the second (nobody's name).
 
+On "What will be added" every "Don't import" / "Put back" - a row, every row of one puzzle, and since 2026-11 the
+whole sheet too - names the list's frame (`data-turbo-frame="import-add-list"`): the redirect is followed inside the
+frame, the list and its bar are swapped and the page stays where it is. An answer that does not hold the frame (the
+last sheet went and nothing can be added any more → "Where you are") becomes a full visit
+(`data_import_times_frame_controller.js`).
+
 ### Who did you solve these with?
 
 An export that marks pair / team by a tag and names nobody leaves dozens of rows with `people_do_not_fit_type`. On

@@ -243,7 +243,14 @@ export default class extends Controller {
             const url = new URL(screen.getAttribute('data-import-answers-url'), window.location.href);
 
             if (url.href !== window.location.href) {
-                window.history.replaceState(window.history.state, '', url.href);
+                // Through Turbo's own history where it has one, so Turbo knows the address too
+                const history = Turbo.navigator ? Turbo.navigator.history : null;
+
+                if (history && typeof history.replace === 'function') {
+                    history.replace(url);
+                } else {
+                    window.history.replaceState(window.history.state, '', url.href);
+                }
             }
         }
 

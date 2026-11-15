@@ -27,8 +27,13 @@
 {% block content %}
 {{ include('data_import/_flow_header.html.twig', {import: import, step: 4}) }}
 
-<div data-testid="import-puzzle-chooser-page" {{ include('data_import/_answers_controller.html.twig', with_context = false) }}>
+<div data-testid="import-puzzle-chooser-page" data-import-flow-screen="puzzle_choose" {{ include('data_import/_answers_controller.html.twig', with_context = false) }}>
     {{ include('data_import/_chooser.html.twig') }}
+
+    {# A tap on a puzzle's card is the answer here - the screen has no other primary button #}
+    <div class="mx-auto" style="max-width: 560px;">
+        {{ include('data_import/_flow_footer.html.twig', {import: import}, with_context = false) }}
+    </div>
     {{ include('data_import/_answer_said.html.twig', {said: null}, with_context = false) }}
 </div>
 {% endblock %}

@@ -108,6 +108,17 @@ page `…/import/{id}/people`: every person with the number of rows, two example
 A decision is per name per import, so it goes for all rows of that name. Taken → 302 back to the person; not taken
 → the page with a 422 and the notice at the person; without the token → 403; another player's import → 404.
 
+### Answers in place
+
+To Turbo (and the import's script - pairing-screens.md "Answers in place" describes both) the answer is shown where
+it was given instead: `DecideImportPersonController::shown()` answers with Turbo Streams
+(`_people_answer.stream.html.twig`) - `replace #person-<id>` with the person's card as it stands after the answer
+(`_person.html.twig`: who they are now - or, for an answer that could not be taken, the same card with the notice;
+nothing was written), `update #import-people-list` with every card for "Yes, still right - for all of them",
+`remove #import-people-remembered` once fewer than two remembered names wait, and "Saved." in the line that stays in
+view (`#import-answer-said`). What is written is what the redirect's answer writes; a plain post still gets the 302
+/ 422 above. The consent form "Ask <player>" posts to Pairs & teams and is not part of it.
+
 ### Suggestions
 
 `GetImportPeople::suggestable()` - **only among players the importing player is already connected to**:
@@ -277,7 +288,8 @@ alike, also a block after the code resolved; a name → guest, suggestions only 
 - never the stranger of the same name, the private one, the blocked one -, mapped → member, remembered in a second
 import and changeable; own name / code left out; the partner's own result not added twice; a partner's first try;
 20 partners; 200 a day; account deletion), `tests/Controller/DataImport/ImportPeopleScreenTest` (owner only, token,
-302 / 422, the consent form after an Add, the partner's notification row, 5 more locales),
+302 / 422, the consent form after an Add, the partner's notification row, 5 more locales; the same answers shown
+in place - the card's stream, a refusal with nothing written, all cards for the one answer about all, 403 / 404),
 `ImportAddScreensTest` (a "Pairs" sheet asks, waits, is added as pair results with the partner, the review's line; a
 people column wins; solo is not asked again), `tests/Value/DataImport/SolvingTypeWordsTest` (titles in 6 languages).
 

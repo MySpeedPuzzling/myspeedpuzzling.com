@@ -253,9 +253,11 @@ final class ImportFlowScreensTest extends WebTestCase
             self::assertSame(1, substr_count($source, "include('data_import/_flow_header.html.twig'"), $file->getFilename() . ' must include the flow header once');
             self::assertStringNotContainsString("include('_page_crumbs.html.twig'", $source, $file->getFilename() . ': the flow header replaces the breadcrumbs');
             self::assertSame(1, substr_count($source, 'data-import-flow-screen="'), $file->getFilename() . ' must mark its screen');
-            // The flow's footer - or, for "Where you are", the flow's own primary
+            // The flow's footer - or, for "Where you are", the flow's own primary. A pile's screen is one element
+            // of its own (an answer given on it is shown in place): the footer is in that element
+            $ends = $source . ($file->getFilename() === 'puzzle_group.html.twig' && str_contains($source, "include('data_import/_pile.html.twig')") ? (string) file_get_contents($templates . '/_pile.html.twig') : '');
             self::assertTrue(
-                str_contains($source, "include('data_import/_flow_footer.html.twig'") || str_contains($source, 'data-testid="import-flow-primary"'),
+                str_contains($ends, "include('data_import/_flow_footer.html.twig'") || str_contains($ends, 'data-testid="import-flow-primary"'),
                 $file->getFilename() . ' must end with the flow footer',
             );
         }

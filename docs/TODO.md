@@ -1614,6 +1614,30 @@ Mirrored in [#212](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues
       players at Level 50 and median level 10 (the curve was calibrated to a median of 13-14 with achievement XP) -
       decide whether the curve needs a touch
 
+## Data import - answers in place (`docs/features/data-import/pairing-screens.md` "Answers in place")
+
+Built without a browser: the server's streams and the script (in jsdom) are tested, the screen itself was never
+looked at. To try on a phone (390 px) and a desktop, with an import that has all three piles:
+
+- [ ] `…/import/{id}/puzzles/probably?part=differs`: "Yes, this is it" on several cards in a row - the card leaves,
+      the next one is under the thumb, the page does not move, pictures do not flicker (the morph), "Undo the last
+      one" brings the card back; the line at the bottom does not cover the card's buttons.
+- [ ] `…/puzzles/probably` (the grid): "Yes, these N are right" - the next twenty appear from their beginning; the
+      grid's own sticky bar and the line at the bottom do not overlap.
+- [ ] `…/puzzles/not-found` and `…/puzzles/choose`: "Continue" / "Keep the others just for me" - small pile in
+      place; a pile large enough for the worker (the working line appears and the page follows it).
+- [ ] The chooser's round (`…/puzzles/choose` → "Do the next 20"): a tap shows the next puzzle from its top, the
+      address changes, the browser's Back leaves the round sensibly; "Undo the last one"; another piece count asked
+      in place; the search results' taps.
+- [ ] `…/import/{id}/people`: save / "That is me" / a wrong code - the card changes where it stands.
+- [ ] `…/add/list`: "Don't import this sheet" keeps the page where it is.
+- [ ] Offline (DevTools) and a slow network: the button turns, a second tap does nothing, "That did not save…"
+      appears under the card and the next tap works.
+- [ ] A keyboard and VoiceOver: where focus lands after each answer, and that the line at the bottom is read.
+- [ ] "Undo the last one" after one answer for several (the grid, a pile) - not built; decide whether it is wanted.
+- [ ] `add/list` rows: the waiting state and the "did not save" line of the script (they use the frame, with
+      Turbo's own waiting state only).
+
 ## Data import - recognising and parsing (stage 4b-1, `docs/features/data-import/columns.md`)
 
 - [ ] Two tables standing side by side on one sheet can not both be imported: a stored row is one spreadsheet row,

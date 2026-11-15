@@ -132,7 +132,7 @@ final class DecideImportPersonController extends AbstractController
 
         ImportInPlace::answerFor($request, 'data_import_people', $this->generateUrl('data_import_people', ['importId' => $importId]));
 
-        return $this->render('data_import/people_answer.stream.html.twig', $page + [
+        return $this->render('data_import/_people_answer.stream.html.twig', $page + [
             // Null: every card (an answer for all of them - or for a person the page no longer has)
             'person' => $person,
             'said' => $saved === null ? null : ['type' => 'success', 'text' => $saved, 'import_id' => $importId],

@@ -12223,6 +12223,8 @@ data_import:
             keeps: "Ce qui reste"
             keeps_edited: "Les résultats que vous avez modifiés depuis l'import restent sur votre profil. Vous pourrez ensuite les retirer un par un."
             keeps_moved: "Les puzzles que vous avez déplacés dans une autre collection y restent."
+            removes_kept: "Lignes gardées rien que pour vous (puzzles hors catalogue)"
+            keeps_matched: "Ce que vous avez associé à un puzzle du catalogue, ou ajouté au catalogue, depuis vos puzzles hors catalogue reste. Annulez d'abord cette association sur la page du puzzle hors catalogue."
             ready_again: "Les lignes sont ensuite de nouveau prêtes et peuvent être ajoutées à nouveau."
             button_rows: "Annuler cette ligne"
             button_batch: "Annuler ce qui vient d'être ajouté"
@@ -12240,6 +12242,8 @@ data_import:
             title: "Conservés : vous les avez modifiés depuis l'import"
             hint: "L'annulation ne retire jamais un résultat que vous avez modifié ensuite - sauf si vous le demandez ici."
             remove_too: "Le retirer aussi"
+            matched: "Ce résultat a été déplacé sur un puzzle du catalogue : l'annulation de l'import le laisse donc en place. Annulez d'abord cette association :"
+            matched_link: "Ouvrir le puzzle hors catalogue"
         wrong_puzzle:
             title: "Associé au mauvais puzzle ?"
             row_hint: "Oubliez comment ce puzzle a été associé - aussi pour votre prochain fichier - et choisissez à nouveau."
@@ -12349,6 +12353,7 @@ data_import:
             brand_code: "Même code de marque."
             similar_name: "Nom similaire."
             chosen: "Vous l'avez choisi."
+            own_added: "Vous l'avez ajouté au catalogue."
             remembered: "Comme vous l'avez décidé lors d'un import précédent."
             search: "Trouvé par votre recherche."
         chooser:
@@ -13167,6 +13172,10 @@ unlisted_puzzles:
     intro: "Ce sont les puzzles de vos feuilles de calcul qui ne sont pas encore dans le catalogue de MySpeedPuzzling - ils sont conservés ici avec leurs résultats et le fait que vous les possédiez."
     intro_actions: "Chacun peut être associé à un puzzle du catalogue, ou ajouté au catalogue avec une photo de sa boîte."
     import_link: "Les puzzles gardés rien que pour vous sont sur la page Puzzles hors catalogue"
+    matched:
+        title: "Associés ces 30 derniers jours (%number%)"
+        hint: "Leurs résultats sont maintenant sur votre profil. Ouvrez-en un pour voir ce qui s'est passé - ou pour annuler l'association."
+        on: "Associé le %date%"
     actions:
         match: "Associer"
     guide:
@@ -13183,6 +13192,7 @@ unlisted_puzzles:
         cancel: "Annuler"
         limit: "Vous pouvez ajouter %limit% nouveaux puzzles par jour."
         limit_reached: "Vous avez ajouté %limit% nouveaux puzzles ces dernières 24 heures - c'est la limite. Réessayez demain ; rien n'est perdu."
+        limit_match: "Vous pouvez toujours l'associer à un puzzle déjà présent dans le catalogue."
         failed: "Le puzzle n'a pas pu être enregistré. Rien n'a été ajouté - veuillez réessayer."
         added: "Ajouté au catalogue - en attente d'approbation. Ses résultats sont en cours d'ajout à votre profil."
         row_added: "Ajouté au catalogue - en attente d'approbation"

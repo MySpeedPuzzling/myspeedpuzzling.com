@@ -12228,6 +12228,8 @@ data_import:
             keeps: "Lo que se queda"
             keeps_edited: "Los resultados que cambiaste después de la importación se quedan en tu perfil. Después puedes quitarlos uno a uno."
             keeps_moved: "Los puzzles que moviste a otra colección se quedan allí."
+            removes_kept: "Filas guardadas solo para ti (puzzles fuera del catálogo)"
+            keeps_matched: "Lo que emparejaste con un puzzle del catálogo, o añadiste al catálogo, desde tus puzzles fuera del catálogo se queda. Deshaz primero ese emparejamiento en la página del puzzle fuera del catálogo."
             ready_again: "Después las filas vuelven a estar listas y se pueden añadir de nuevo."
             button_rows: "Deshacer esta fila"
             button_batch: "Deshacer lo que se acaba de añadir"
@@ -12245,6 +12247,8 @@ data_import:
             title: "Conservados: los cambiaste después de la importación"
             hint: "Deshacer nunca quita un resultado que hayas editado después - salvo que lo digas aquí."
             remove_too: "Quitarlo también"
+            matched: "Este resultado se movió a un puzzle del catálogo, por eso deshacer la importación lo deja. Deshaz primero ese emparejamiento:"
+            matched_link: "Abrir el puzzle fuera del catálogo"
         wrong_puzzle:
             title: "¿Emparejado con el puzzle equivocado?"
             row_hint: "Olvida cómo se emparejó este puzzle - también para tu próximo archivo - y elige de nuevo."
@@ -12354,6 +12358,7 @@ data_import:
             brand_code: "Mismo código de marca."
             similar_name: "Nombre parecido."
             chosen: "Lo elegiste tú."
+            own_added: "Lo añadiste al catálogo."
             remembered: "Como decidiste en una importación anterior."
             search: "Encontrado con tu búsqueda."
         chooser:
@@ -13172,6 +13177,10 @@ unlisted_puzzles:
     intro: "Estos son puzzles de tus hojas de cálculo que todavía no están en el catálogo de MySpeedPuzzling: se guardan aquí con sus resultados y con si los tienes."
     intro_actions: "Cada uno lo puedes emparejar con un puzzle del catálogo o añadirlo al catálogo con una foto de su caja."
     import_link: "Los puzzles guardados solo para ti están en la página Puzzles fuera del catálogo"
+    matched:
+        title: "Emparejados en los últimos 30 días (%number%)"
+        hint: "Sus resultados ya están en tu perfil. Abre uno para ver qué pasó, o para deshacer el emparejamiento."
+        on: "Emparejado el %date%"
     actions:
         match: "Emparejar"
     guide:
@@ -13188,6 +13197,7 @@ unlisted_puzzles:
         cancel: "Cancelar"
         limit: "Puedes añadir %limit% puzzles nuevos al día."
         limit_reached: "Has añadido %limit% puzzles nuevos en las últimas 24 horas: ese es el límite. Inténtalo mañana; no se pierde nada."
+        limit_match: "Todavía puedes emparejarlo con un puzzle que ya esté en el catálogo."
         failed: "No se ha podido guardar el puzzle. No se ha añadido nada; inténtalo de nuevo."
         added: "Añadido al catálogo: espera la aprobación. Sus resultados se están añadiendo a tu perfil."
         row_added: "Añadido al catálogo: espera la aprobación"

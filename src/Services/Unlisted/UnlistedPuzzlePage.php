@@ -190,7 +190,9 @@ readonly final class UnlistedPuzzlePage
                     continue;
                 }
 
-                $own = $this->offered($playerId, $id, $unlisted['piecesCount'], is_string($manufacturerId) ? $manufacturerId : null, 'chosen');
+                // Without the file's brand: it is the puzzle the reader made of this very one - "the brand differs" would
+                // only say that the brand they typed is not (yet) one the file's text stands for
+                $own = $this->offered($playerId, $id, $unlisted['piecesCount'], null, 'own_added');
 
                 if ($own !== null) {
                     break;

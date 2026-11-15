@@ -12474,6 +12474,8 @@ data_import:
             keeps: "What stays"
             keeps_edited: "Results you changed since the import stay on your profile. You can remove them one by one afterwards."
             keeps_moved: "Puzzles you moved to another collection stay there."
+            removes_kept: "Rows kept just for you (unlisted puzzles)"
+            keeps_matched: "What you matched with a catalogue puzzle, or added to the catalogue, from your unlisted puzzles stays. Undo that match on the unlisted puzzle's page first."
             ready_again: "The rows are ready again afterwards and can be added again."
             button_rows: "Undo this row"
             button_batch: "Undo what was added just now"
@@ -12491,6 +12493,8 @@ data_import:
             title: "Kept: you changed these since the import"
             hint: "An undo never removes a result you edited afterwards - unless you say so here."
             remove_too: "Remove it too"
+            matched: "This result was moved onto a catalogue puzzle, so an undo of the import leaves it. Undo that match first:"
+            matched_link: "Open the unlisted puzzle"
         wrong_puzzle:
             title: "Matched with the wrong puzzle?"
             row_hint: "Forget how this puzzle was matched - also for your next file - and pick again."
@@ -12600,6 +12604,7 @@ data_import:
             brand_code: "Same brand code."
             similar_name: "Similar name."
             chosen: "You picked it."
+            own_added: "You added it to the catalogue."
             remembered: "As you decided in an earlier import."
             search: "Found by your search."
         chooser:
@@ -13418,6 +13423,10 @@ unlisted_puzzles:
     intro: "These are puzzles from your spreadsheets that are not in the MySpeedPuzzling catalogue yet - kept here with their results and whether you own them."
     intro_actions: "For each one you can match it with a catalogue puzzle, or add it to the catalogue with a photo of its box."
     import_link: "Puzzles kept just for you are on the page Unlisted puzzles"
+    matched:
+        title: "Matched in the last 30 days (%number%)"
+        hint: "Their results are on your profile now. Open one to see what happened - or to undo the match."
+        on: "Matched on %date%"
     actions:
         match: "Match"
     guide:
@@ -13434,6 +13443,7 @@ unlisted_puzzles:
         cancel: "Cancel"
         limit: "You can add %limit% new puzzles a day."
         limit_reached: "You have added %limit% new puzzles in the last 24 hours - that is the limit. Try again tomorrow; nothing is lost."
+        limit_match: "You can still match it with a puzzle that is in the catalogue already."
         failed: "The puzzle could not be saved. Nothing was added - please try again."
         added: "Added to the catalogue - waiting for approval. Its results are being added to your profile."
         row_added: "Added to the catalogue - waiting for approval"

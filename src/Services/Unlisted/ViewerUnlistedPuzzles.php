@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\Unlisted;
 
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Entity\UnlistedPairing;
 use SpeedPuzzling\Web\Query\GetUnlistedPuzzles;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -22,8 +23,9 @@ use Symfony\Contracts\Service\ResetInterface;
  * second request, do not move. The unlisted pages tell what they know for free (remember()), so the item appears and
  * disappears at once where the player acts.
  *
- * Its one downside: the first puzzles kept by an import show up in the menu up to two minutes late (the import's own
- * pages link to the list meanwhile).
+ * A remembered "none" is not believed on the import's own pages and on the unlisted pages (one statement there, for
+ * a player without any): the worker that makes the first unlisted puzzle has no session to tell, and the overview of
+ * the import that made them must link to them at once. Elsewhere the first ones show up to two minutes late.
  */
 final class ViewerUnlistedPuzzles implements ResetInterface
 {
@@ -60,9 +62,15 @@ final class ViewerUnlistedPuzzles implements ResetInterface
         $now = $this->clock->now()->getTimestamp();
         $memo = $session?->get(self::SESSION_KEY);
 
+        // On the import's and the unlisted pages a remembered "none" is not believed: that is where the first one is
+        // made (the worker has no session to tell), and where the answer must be right at once
+        $route = $this->requestStack->getMainRequest()?->attributes->get('_route');
+        $whereItChanges = is_string($route) && preg_match('/^(data_import|unlisted_)/', $route) === 1;
+
         if (
             is_array($memo)
             && ($memo['player'] ?? null) === $playerId
+            && (($memo['has'] ?? null) === true || $whereItChanges === false)
             && is_bool($memo['has'] ?? null)
             && is_int($memo['until'] ?? null)
             && $memo['until'] > $now
@@ -72,7 +80,7 @@ final class ViewerUnlistedPuzzles implements ResetInterface
             return $this->answer = $memo['has'];
         }
 
-        $has = $this->getUnlistedPuzzles->has($playerId);
+        $has = $this->getUnlistedPuzzles->has($playerId, $this->clock->now()->modify(sprintf('-%d days', UnlistedPairing::UNDO_DAYS)));
         $this->store($session, $playerId, $has, $now);
 
         return $this->answer = $has;

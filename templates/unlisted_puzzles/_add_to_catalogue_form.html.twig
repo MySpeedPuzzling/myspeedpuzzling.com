@@ -10,7 +10,8 @@
 
 {# What could not be done although nothing is wrong with the form: the match refused after the puzzle was made, a request too large #}
 {% if notice is not null %}
-    <p class="d-flex gap-2 p-2 rounded-2 bg-faded-warning" role="alert" data-testid="catalogue-notice">
+    {# Focused when it arrives: the reader was at the button, far below - Turbo and the browser bring it into view #}
+    <p class="d-flex gap-2 p-2 rounded-2 bg-faded-warning" role="alert" tabindex="-1" autofocus data-testid="catalogue-notice">
         <i class="bi bi-exclamation-triangle flex-shrink-0" aria-hidden="true"></i>
         <span>{{ notice }}</span>
     </p>
@@ -34,10 +35,23 @@
         </form>
     </div>
     <details class="mb-2" data-testid="catalogue-form-fold"{% if form_open %} open{% endif %}>
-        <summary class="d-flex align-items-center text-muted" style="min-height: 44px; cursor: pointer;">{{ 'unlisted_puzzles.catalogue.own_change'|trans }}</summary>
+        {# No flex on the summary: it would take the disclosure triangle away, and the line would read as plain text #}
+        <summary class="py-2 text-primary fw-medium" style="cursor: pointer;">{{ 'unlisted_puzzles.catalogue.own_change'|trans }}</summary>
 {% endif %}
 
+{# Today's ten are used up: said instead of the form - a form that is refused after it was filled, photo and all, helps nobody. Matching stays open #}
+{% set limit_instead_of_form = limit_reached and own_puzzle is null and not form_open %}
+{% if limit_instead_of_form %}
+    <div class="p-2 rounded-2 bg-secondary mb-3" data-testid="catalogue-limit-reached">
+        <p class="mb-2"><i class="bi bi-calendar-day me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.catalogue.limit_reached'|trans({'%limit%': limit}) }}</p>
+        <p class="fs-sm text-muted mb-2">{{ 'unlisted_puzzles.catalogue.limit_match'|trans }}</p>
+        <a href="{{ path('unlisted_puzzle', {unlistedPuzzleId: puzzle.id}) }}#match" class="btn btn-outline-primary text-wrap d-inline-flex align-items-center" style="min-height: 44px;" data-turbo-frame="_top" data-testid="catalogue-limit-match">
+            <i class="bi bi-search me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.actions.match'|trans }}
+        </a>
+    </div>
+{% else %}
 <p class="fs-sm text-muted mb-3">{{ 'unlisted_puzzles.catalogue.intro'|trans }}</p>
+{% endif %}
 
 {% if likely is not empty %}
     <div class="p-2 rounded-2 bg-faded-primary mb-3" data-testid="catalogue-likely">
@@ -59,7 +73,8 @@
     </div>
 {% endif %}
 
-{{ form_start(form, {action: add_url, attr: {'data-turbo-frame': is_modal ? 'modal-frame' : '_top', 'data-testid': 'catalogue-form', novalidate: 'novalidate'}}) }}
+{% if not limit_instead_of_form %}
+{{ form_start(form, {action: add_url, attr: {'data-turbo-frame': is_modal ? 'modal-frame' : '_top', 'data-testid': 'catalogue-form'}}) }}
     <input type="hidden" name="_token" value="{{ csrf }}">
     <input type="hidden" name="new_puzzle_id" value="{{ new_puzzle_id }}">
     <input type="hidden" name="request_id" value="{{ request_id }}">
@@ -78,6 +93,14 @@
         <span>{{ 'unlisted_puzzles.catalogue.what_happens'|trans }}</span>
     </p>
 
+    {# Once more where the reader is: the button they just pressed #}
+    {% if notice is not null %}
+        <p class="d-flex gap-2 p-2 rounded-2 bg-faded-warning fs-sm" data-testid="catalogue-notice-at-button">
+            <i class="bi bi-exclamation-triangle flex-shrink-0" aria-hidden="true"></i>
+            <span>{{ notice }}</span>
+        </p>
+    {% endif %}
+
     <div class="d-flex flex-wrap gap-2">
         <button type="submit" class="btn btn-primary text-wrap flex-fill" style="min-height: 44px;" data-testid="catalogue-submit">
             <i class="bi bi-plus-circle me-1" aria-hidden="true"></i>{{ 'unlisted_puzzles.catalogue.button'|trans }}
@@ -90,6 +113,7 @@
     </div>
     <p class="fs-sm text-muted mt-2 mb-0">{{ 'unlisted_puzzles.catalogue.limit'|trans({'%limit%': limit}) }}</p>
 {{ form_end(form) }}
+{% endif %}
 {% if own_puzzle is not null %}
     </details>
 {% endif %}

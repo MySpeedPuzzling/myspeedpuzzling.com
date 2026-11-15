@@ -12230,6 +12230,8 @@ data_import:
             keeps: "Co zůstane"
             keeps_edited: "Výsledky, které jste po importu změnili, na profilu zůstanou. Potom je můžete odstranit jednotlivě."
             keeps_moved: "Puzzle, která jste přesunuli do jiné sbírky, tam zůstanou."
+            removes_kept: "Řádky ponechané jen pro vás (puzzle mimo databázi)"
+            keeps_matched: "Co jste z puzzlí mimo databázi spárovali s puzzle z databáze nebo do databáze přidali, zůstane. Nejdřív vraťte spárování zpět na stránce daného puzzle mimo databázi."
             ready_again: "Řádky budou potom znovu připravené a lze je přidat znovu."
             button_rows: "Vrátit tento řádek zpět"
             button_batch: "Vrátit zpět to, co se přidalo právě teď"
@@ -12247,6 +12249,8 @@ data_import:
             title: "Ponecháno: tyto výsledky jste po importu změnili"
             hint: "Vrácení zpět nikdy neodebere výsledek, který jste potom upravili - pokud to tady neřeknete."
             remove_too: "Odstranit i tento"
+            matched: "Tento výsledek byl přesunut k puzzle z databáze, proto ho vrácení importu ponechalo. Nejdřív vraťte zpět to spárování:"
+            matched_link: "Otevřít puzzle mimo databázi"
         wrong_puzzle:
             title: "Přiřazeno ke špatnému puzzle?"
             row_hint: "Zapomeneme, jak bylo toto puzzle přiřazené - i pro váš příští soubor - a vyberete znovu."
@@ -12356,6 +12360,7 @@ data_import:
             brand_code: "Stejný kód značky."
             similar_name: "Podobný název."
             chosen: "Vybrali jste ho."
+            own_added: "Přidali jste ho do databáze."
             remembered: "Jak jste rozhodli v dřívějším importu."
             search: "Nalezeno vaším hledáním."
         chooser:
@@ -13174,6 +13179,10 @@ unlisted_puzzles:
     intro: "Tohle jsou puzzle z vašich tabulek, která zatím nejsou v databázi MySpeedPuzzling - zůstávají tady i s výsledky a s tím, zda je vlastníte."
     intro_actions: "Každé můžete spárovat s puzzle z databáze, nebo ho do databáze přidat s fotkou krabice."
     import_link: "Puzzle ponechaná jen pro vás najdete na stránce Puzzle mimo databázi"
+    matched:
+        title: "Spárováno za posledních 30 dní (%number%)"
+        hint: "Jejich výsledky jsou teď na vašem profilu. Otevřete některé a uvidíte, co se stalo - nebo spárování vraťte zpět."
+        on: "Spárováno %date%"
     actions:
         match: "Spárovat"
     guide:
@@ -13190,6 +13199,7 @@ unlisted_puzzles:
         cancel: "Zrušit"
         limit: "Za den můžete přidat %limit% nových puzzlí."
         limit_reached: "Za posledních 24 hodin jste přidali %limit% nových puzzlí - to je limit. Zkuste to zítra, nic se neztratí."
+        limit_match: "Stále ho můžete spárovat s puzzle, které už v databázi je."
         failed: "Puzzle se nepodařilo uložit. Nic se nepřidalo - zkuste to prosím znovu."
         added: "Přidáno do databáze - čeká na schválení. Jeho výsledky se přidávají na váš profil."
         row_added: "Přidáno do databáze - čeká na schválení"

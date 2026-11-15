@@ -161,8 +161,19 @@ The menu is on every page and nearly nobody has unlisted puzzles, so `ViewerUnli
 in the player's session, like `ViewerResultFields`: "none" for 2 minutes, "some" for 10 - one small statement
 (`GetUnlistedPuzzles::has()`) per 2 minutes of use for a player without any, never one per page; the pinned page
 budgets count a second request and did not move. The list page tells the service what it just read
-(`remember()`), so the item is right there at once. Its one downside: the first puzzles an import keeps show in the
-menu up to 2 minutes late - the import's own pages link to the list meanwhile.
+(`remember()`), so the item is right there at once. **A remembered "none" is not believed on the import's own pages
+and on the unlisted pages** (routes `data_import…` / `unlisted_…`; one statement there for a player without any):
+the worker that makes the first unlisted puzzle has no session to tell, and the overview of the import that made
+them shows the line - and the menu the item - at once. "Has some" also means a match young enough to be taken back.
+
+**Matched ones stay reachable**: a puzzle everything of which was matched leaves the list, but its page holds the
+match's Undo for 30 days - so the list ends with a folded "Matched in the last 30 days (N)" with a link to each
+(read by the summary's own statement: the list still costs two).
+
+**The import's Undo and a matched puzzle**: the page that asks first names the rows kept just for the player and
+says that what was matched since stays; on the Undo's page such a row carries no "Remove it too" (it could do
+nothing) but the reason and a link to the unlisted puzzle, where the match's Undo is
+(`GetImportAddScreen::keptJustForYouOfRows()` - the row's own record, never the unlisted tables).
 
 ## Add to the catalogue
 
@@ -223,6 +234,8 @@ add-result form (controllers, form types, messages, handlers) is touched, and th
   its field name `puzzlePhoto`). So the size is smaller here - `UnlistedCatalogueProposalFormType::MAX_PHOTO_BYTES`
   (20 MB; the add form's 60 MB assumes its shrinking) - and a request above PHP's `post_max_size`, which arrives
   without any field, is answered with the form and "The photo is too large", not with the token check's 403.
+- **The day's ten used up**: the message stands **instead of the form** (modal and page), with "Match" still
+  offered - never a form that is refused after it was filled.
 - **Limits**: at most `UnlistedPuzzlePage::MAX_CATALOGUE_ADDITIONS_PER_DAY` (10) new puzzles per player in 24 hours,
   counted over every way a player adds a puzzle (`CountPuzzlesAddedByPlayer` - there was no limiter for added
   puzzles to reuse; the add form itself is not limited by it); nothing is created while the import's safety switch

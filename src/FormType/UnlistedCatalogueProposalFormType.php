@@ -47,31 +47,27 @@ final class UnlistedCatalogueProposalFormType extends AbstractType
 
         $builder->add('name', TextType::class, [
             'label' => 'unlisted_puzzles.catalogue.form.name',
-            'label_attr' => ['class' => 'required'],
-            'required' => false,
+            'required' => true,
             'attr' => [...$input, 'maxlength' => 200],
         ]);
 
         $builder->add('brand', TextType::class, [
             'label' => 'forms.brand',
-            'label_attr' => ['class' => 'required'],
-            'required' => false,
+            'required' => true,
             'attr' => [...$input, 'maxlength' => 100],
         ]);
 
         $builder->add('piecesCount', IntegerType::class, [
             'label' => 'forms.pieces_count',
-            'label_attr' => ['class' => 'required'],
-            'required' => false,
+            'required' => true,
             'attr' => [...$input, 'inputmode' => 'numeric', 'min' => 10, 'max' => 99999],
         ]);
 
         $builder->add('photo', FileType::class, [
             'label' => 'unlisted_puzzles.catalogue.form.photo',
-            'label_attr' => ['class' => 'required'],
             'help' => 'unlisted_puzzles.catalogue.form.photo_help',
             'help_translation_parameters' => ['%megabytes%' => intdiv(self::MAX_PHOTO_BYTES, 1_000_000)],
-            'required' => false,
+            'required' => true,
             // The add form's rule for a box photo (which kinds of picture), with a smaller size: nothing shrinks the
             // photo in the browser here, and what is sent is one plain request
             'constraints' => [new Image(maxSize: self::MAX_PHOTO_BYTES, mimeTypes: PhotoUploadLimits::MIME_TYPES, mimeTypesMessage: PuzzleBoxPhoto::constraint()->mimeTypesMessage)],

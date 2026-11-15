@@ -12227,6 +12227,8 @@ data_import:
             keeps: "Was bleibt"
             keeps_edited: "Ergebnisse, die du seit dem Import geändert hast, bleiben auf deinem Profil. Du kannst sie danach einzeln entfernen."
             keeps_moved: "Puzzles, die du in eine andere Sammlung verschoben hast, bleiben dort."
+            removes_kept: "Zeilen, die nur für dich behalten werden (nicht gelistete Puzzles)"
+            keeps_matched: "Was du von deinen nicht gelisteten Puzzles mit einem Katalogpuzzle verknüpft oder zum Katalog hinzugefügt hast, bleibt. Mache diese Verknüpfung zuerst auf der Seite des nicht gelisteten Puzzles rückgängig."
             ready_again: "Die Zeilen sind danach wieder bereit und können erneut hinzugefügt werden."
             button_rows: "Diese Zeile rückgängig machen"
             button_batch: "Rückgängig machen, was gerade hinzugefügt wurde"
@@ -12244,6 +12246,8 @@ data_import:
             title: "Behalten: Diese hast du seit dem Import geändert"
             hint: "Das Rückgängigmachen entfernt nie ein Ergebnis, das du danach bearbeitet hast - es sei denn, du sagst es hier."
             remove_too: "Auch entfernen"
+            matched: "Dieses Ergebnis wurde auf ein Katalogpuzzle verschoben, deshalb lässt das Rückgängigmachen des Imports es stehen. Mache zuerst diese Verknüpfung rückgängig:"
+            matched_link: "Nicht gelistetes Puzzle öffnen"
         wrong_puzzle:
             title: "Dem falschen Puzzle zugeordnet?"
             row_hint: "Vergiss, wie dieses Puzzle zugeordnet wurde - auch für deine nächste Datei - und wähle erneut."
@@ -12353,6 +12357,7 @@ data_import:
             brand_code: "Gleicher Markencode."
             similar_name: "Ähnlicher Name."
             chosen: "Du hast es gewählt."
+            own_added: "Du hast es zum Katalog hinzugefügt."
             remembered: "Wie du in einem früheren Import entschieden hast."
             search: "Durch deine Suche gefunden."
         chooser:
@@ -13171,6 +13176,10 @@ unlisted_puzzles:
     intro: "Das sind Puzzles aus deinen Tabellen, die noch nicht im Katalog von MySpeedPuzzling stehen - sie bleiben hier mit ihren Ergebnissen und der Angabe, ob du sie besitzt."
     intro_actions: "Jedes kannst du mit einem Katalogpuzzle verknüpfen oder mit einem Foto der Schachtel zum Katalog hinzufügen."
     import_link: "Die nur für dich behaltenen Puzzles findest du auf der Seite Nicht gelistete Puzzles"
+    matched:
+        title: "In den letzten 30 Tagen verknüpft (%number%)"
+        hint: "Ihre Ergebnisse stehen jetzt in deinem Profil. Öffne eines, um zu sehen, was passiert ist - oder um die Verknüpfung rückgängig zu machen."
+        on: "Verknüpft am %date%"
     actions:
         match: "Verknüpfen"
     guide:
@@ -13187,6 +13196,7 @@ unlisted_puzzles:
         cancel: "Abbrechen"
         limit: "Du kannst %limit% neue Puzzles pro Tag hinzufügen."
         limit_reached: "Du hast in den letzten 24 Stunden %limit% neue Puzzles hinzugefügt - das ist die Grenze. Versuche es morgen wieder; nichts geht verloren."
+        limit_match: "Du kannst es weiterhin mit einem Puzzle verknüpfen, das schon im Katalog steht."
         failed: "Das Puzzle konnte nicht gespeichert werden. Nichts wurde hinzugefügt - bitte versuche es noch einmal."
         added: "Zum Katalog hinzugefügt - wartet auf Freigabe. Seine Ergebnisse werden deinem Profil hinzugefügt."
         row_added: "Zum Katalog hinzugefügt - wartet auf Freigabe"

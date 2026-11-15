@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Unlisted;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Controller\DataImport\ImportsHomeController;
+use SpeedPuzzling\Web\Entity\UnlistedPairing;
 use SpeedPuzzling\Web\Query\GetUnlistedPuzzles;
 use SpeedPuzzling\Web\Services\Unlisted\UnlistedPuzzlePage;
 use SpeedPuzzling\Web\Services\Unlisted\ViewerUnlistedPuzzles;
@@ -26,6 +28,7 @@ final class UnlistedPuzzlesController extends AbstractController
         readonly private UnlistedPuzzlePage $page,
         readonly private GetUnlistedPuzzles $getUnlistedPuzzles,
         readonly private ViewerUnlistedPuzzles $viewerUnlistedPuzzles,
+        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -38,9 +41,10 @@ final class UnlistedPuzzlesController extends AbstractController
     public function __invoke(Request $request): Response
     {
         $playerId = $this->page->ownerPlayerId();
-        $summary = $this->getUnlistedPuzzles->summary($playerId);
+        // Matched ones leave the list - while their match can be taken back they stay reachable, folded under it
+        $summary = $this->getUnlistedPuzzles->summary($playerId, $this->clock->now()->modify(sprintf('-%d days', UnlistedPairing::UNDO_DAYS)));
         // The menu of this very page - and of the next ones - knows without asking
-        $this->viewerUnlistedPuzzles->remember($summary['puzzles'] > 0);
+        $this->viewerUnlistedPuzzles->remember($summary['puzzles'] > 0 || $summary['matched'] !== []);
         $pages = max(1, (int) ceil($summary['puzzles'] / self::PER_PAGE));
         $page = min($pages, max(1, $request->query->getInt('page', 1)));
 

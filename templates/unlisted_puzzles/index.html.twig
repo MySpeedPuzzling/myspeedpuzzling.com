@@ -48,5 +48,26 @@
 
         {{ include('data_import/_pages.html.twig', {page: page, pages: pages, route: 'unlisted_puzzles', parameters: {}, label: 'unlisted_puzzles.title'|trans}, with_context = false) }}
     {% endif %}
+
+    {# Matched ones left the list - while the match can be taken back (30 days) their page stays one tap away #}
+    {% if summary.matched is not empty %}
+        <details class="mb-3" data-testid="unlisted-matched" data-puzzles="{{ summary.matched|length }}">
+            <summary class="py-2 fw-medium" style="cursor: pointer;">{{ 'unlisted_puzzles.matched.title'|trans({'%number%': summary.matched|length|format_number}) }}</summary>
+            <p class="fs-sm text-muted mb-2">{{ 'unlisted_puzzles.matched.hint'|trans }}</p>
+            <ul class="list-unstyled mb-0">
+                {% for matched in summary.matched %}
+                    <li class="border-top">
+                        <a href="{{ path('unlisted_puzzle', {unlistedPuzzleId: matched.id}) }}" class="d-flex justify-content-between align-items-center gap-2 py-2 text-reset text-decoration-none" style="min-height: 44px;" data-testid="unlisted-matched-puzzle" data-unlisted-puzzle-id="{{ matched.id }}">
+                            <span style="min-width: 0;">
+                                <span class="d-block text-break">{{ matched.name }}</span>
+                                <span class="d-block fs-sm text-muted">{{ 'unlisted_puzzles.matched.on'|trans({'%date%': matched.pairedAt|format_date('long')}) }}</span>
+                            </span>
+                            <i class="bi bi-chevron-right text-muted flex-shrink-0" aria-hidden="true"></i>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </details>
+    {% endif %}
 </div>
 {% endblock %}

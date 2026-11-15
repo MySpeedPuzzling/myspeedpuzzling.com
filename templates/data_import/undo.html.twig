@@ -54,6 +54,13 @@
                     {% for row in kept %}
                         <div class="border rounded-3 p-2" data-testid="import-undo-kept-row" data-row-id="{{ row.rowId }}">
                             {{ include('data_import/_add_row.html.twig', {row: row}) }}
+                            {% if kept_matched[row.rowId] is defined %}
+                                {# Kept just for the player and matched since: nothing here can remove it - the match's own Undo can #}
+                                <p class="fs-sm mt-2 mb-1" data-testid="import-undo-kept-matched">{{ 'data_import.undo.kept.matched'|trans }}</p>
+                                <a href="{{ path('unlisted_puzzle', {unlistedPuzzleId: kept_matched[row.rowId]}) }}" class="btn btn-outline-primary btn-sm text-wrap d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-undo-kept-matched-link">
+                                    {{ 'data_import.undo.kept.matched_link'|trans }}
+                                </a>
+                            {% else %}
                             <div class="d-flex flex-wrap gap-2 mt-2">
                                 {% if row.solvingTimeId is not null %}
                                     <a href="{{ path('puzzle_result_detail', {timeId: row.solvingTimeId}) }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center" style="min-height: 44px;">
@@ -71,6 +78,7 @@
                                     </button>
                                 </form>
                             </div>
+                            {% endif %}
                         </div>
                     {% endfor %}
                 </div>

@@ -88,7 +88,9 @@ final class AddUnlistedPuzzleToCatalogueTest extends WebTestCase
                 $crawler->filter('input[name="catalogue[piecesCount]"]')->attr('value'),
             ],
         );
-        self::assertCount(1, $crawler->filter('input[type="file"][name="catalogue[photo]"]'));
+        self::assertCount(1, $crawler->filter('input[type="file"][name="catalogue[photo]"][required]'));
+        self::assertCount(3, $crawler->filter('input[name="catalogue[name]"][required], input[name="catalogue[brand]"][required], input[name="catalogue[piecesCount]"][required]'));
+        self::assertCount(0, $crawler->filter('input[name="catalogue[ean]"][required], input[name="catalogue[brandCode]"][required]'));
         // What becomes public is said before anything is sent
         self::assertStringContainsString('Your results on it show on your profile and count like any other', self::spaced($crawler->filter('[data-testid="catalogue-what-happens"]')->text()));
         $fields = $this->fieldsOf($crawler);
@@ -179,7 +181,13 @@ final class AddUnlistedPuzzleToCatalogueTest extends WebTestCase
         self::assertCount(2, $this->resultsOf($owner, $puzzleId));
 
         // Everything moved: it left the list, its page says what it became, and the form is not offered any more
-        self::assertCount(1, $this->browser->request('GET', '/en/unlisted-puzzles')->filter('[data-testid="unlisted-empty"]'));
+        $crawler = $this->browser->request('GET', '/en/unlisted-puzzles');
+        self::assertCount(1, $crawler->filter('[data-testid="unlisted-empty"]'));
+        // … but stays one tap away while the match can be taken back: folded under the list, and still in the menu
+        self::assertSame('1', $crawler->filter('details[data-testid="unlisted-matched"]:not([open])')->attr('data-puzzles'));
+        self::assertSame('/en/unlisted-puzzles/' . $unlistedId, $crawler->filter('[data-testid="unlisted-matched-puzzle"]')->attr('href'));
+        self::assertStringContainsString('Zq Modal Serval Terrace', self::spaced($crawler->filter('[data-testid="unlisted-matched-puzzle"]')->text()));
+        self::assertCount(1, $crawler->filter('[data-testid="menu-unlisted-puzzles"]'));
         $crawler = $this->browser->request('GET', '/en/unlisted-puzzles/' . $unlistedId);
         self::assertCount(1, $crawler->filter('[data-testid="unlisted-paired-puzzle"]'));
         self::assertCount(0, $crawler->filter('[data-testid="unlisted-add-to-catalogue"]'));
@@ -204,8 +212,21 @@ final class AddUnlistedPuzzleToCatalogueTest extends WebTestCase
         self::assertStringContainsString('Zq Modal Serval Terrace', (string) $this->browser->getResponse()->getContent());
 
         // --- The import's Undo afterwards: its rows are real results now, so they stay - the matching's Undo is first ---
-        $this->undo($import, $owner, DataImportUndoScope::Import);
+        $crawler = $this->browser->request('GET', '/en/import/' . $import->id->toString() . '/undo');
+        self::assertResponseIsSuccessful();
+        // The page that asks first says so: what was matched stays, the match's own Undo is first
+        self::assertSame('3', $crawler->filter('[data-testid="import-undo-removes-kept"]')->attr('data-rows'));
+        self::assertStringContainsString('Undo that match on the unlisted puzzle\'s page first', self::spaced($crawler->filter('[data-testid="import-undo-keeps-matched"]')->text()));
+        $importUndo = $this->undo($import, $owner, DataImportUndoScope::Import);
         self::assertCount(2, $this->resultsOf($owner, $puzzleId));
+        // What it left is no dead end: no "Remove it too" that could do nothing - the reason, and the way to the match
+        $crawler = $this->browser->request('GET', '/en/import/' . $import->id->toString() . '/undos/' . $importUndo->id);
+        self::assertResponseIsSuccessful();
+        self::assertGreaterThanOrEqual(1, $crawler->filter('[data-testid="import-undo-kept-row"]')->count());
+        self::assertCount($crawler->filter('[data-testid="import-undo-kept-row"]')->count(), $crawler->filter('[data-testid="import-undo-kept-matched"]'));
+        self::assertCount(0, $crawler->filter('[data-testid="import-undo-remove-too"]'));
+        self::assertStringContainsString('This result was moved onto a catalogue puzzle', self::spaced($crawler->filter('[data-testid="import-undo-kept-matched"]')->first()->text()));
+        self::assertSame('/en/unlisted-puzzles/' . $unlistedId, $crawler->filter('[data-testid="import-undo-kept-matched-link"]')->first()->attr('href'));
         self::assertSame(0, $this->pairingCount("SELECT COUNT(*) FROM data_import_row WHERE import_id = :id AND state <> 'added'", ['id' => $import->id->toString()]));
 
         // Undo of the matching (30 days, from the unlisted puzzle's page): the results are unlisted again …
@@ -227,6 +248,10 @@ final class AddUnlistedPuzzleToCatalogueTest extends WebTestCase
             self::assertSame($puzzleId, $crawler->filter('[data-testid="catalogue-own-puzzle"]')->attr('data-puzzle-id'));
             self::assertCount(0, $crawler->filter('[data-testid="catalogue-likely-puzzle"][data-puzzle-id="' . $puzzleId . '"]'));
             self::assertCount(1, $crawler->filter('details[data-testid="catalogue-form-fold"]:not([open]) [data-testid="catalogue-form"]'));
+            // It is theirs: said as such, never as "the brand differs"
+            self::assertSame('own_added', $crawler->filter('[data-testid="catalogue-own-puzzle"] [data-testid="catalogue-puzzle"]')->attr('data-how'));
+            self::assertStringContainsString('You added it to the catalogue.', self::spaced($crawler->filter('[data-testid="catalogue-own-puzzle"]')->text()));
+            self::assertStringNotContainsString('brand differs', self::spaced($crawler->filter('[data-testid="catalogue-own-puzzle"]')->text()));
         }
 
         $again = $this->fieldsOf($crawler);
@@ -348,6 +373,9 @@ final class AddUnlistedPuzzleToCatalogueTest extends WebTestCase
         $crawler = $this->browser->request('POST', $address, server: ['CONTENT_LENGTH' => '200000000']);
         self::assertResponseStatusCodeSame(422);
         self::assertStringContainsString('The photo is too large - at most 20 MB', self::spaced($crawler->filter('[data-testid="catalogue-notice"]')->text()));
+        // Brought into view where it stands, and said once more at the button the reader just pressed
+        self::assertCount(1, $crawler->filter('[data-testid="catalogue-notice"][autofocus][tabindex="-1"]'));
+        self::assertCount(1, $crawler->filter('[data-testid="catalogue-form"] [data-testid="catalogue-notice-at-button"]'));
         self::assertSame('Zq Limit Caracal Bridge', $crawler->filter('input[name="catalogue[name]"]')->attr('value'));
         // … while an empty POST without that is what it looks like
         $this->browser->request('POST', $address);
@@ -371,6 +399,16 @@ final class AddUnlistedPuzzleToCatalogueTest extends WebTestCase
             $this->database->update('puzzle', ['added_by_user_id' => $owner->id->toString(), 'added_at' => TestClock::now()->modify('-2 hours')->format('Y-m-d H:i:s')], ['id' => $added]);
         }
 
+        // Said instead of the form - in the modal and on the page -, with matching still open
+        foreach ([[], self::MODAL] as $server) {
+            $crawler = $this->browser->request('GET', $address, server: $server);
+            self::assertResponseIsSuccessful();
+            self::assertStringContainsString('You have added 10 new puzzles in the last 24 hours', self::spaced($crawler->filter('[data-testid="catalogue-limit-reached"]')->text()));
+            self::assertCount(0, $crawler->filter('[data-testid="catalogue-form"], input[type="file"]'));
+            self::assertSame(['/en/unlisted-puzzles/' . $ids['Zq Limit Caracal Bridge'] . '#match', '_top'], [$crawler->filter('[data-testid="catalogue-limit-match"]')->attr('href'), $crawler->filter('[data-testid="catalogue-limit-match"]')->attr('data-turbo-frame')]);
+        }
+
+        // … and a form opened before the tenth is refused all the same
         $crawler = $this->browser->request('POST', $address, $fields, ['catalogue' => ['photo' => self::photo()]]);
         self::assertResponseStatusCodeSame(422);
         self::assertStringContainsString('You have added 10 new puzzles in the last 24 hours', self::spaced($crawler->filter('[data-testid="catalogue-form"]')->text()));
@@ -454,6 +492,16 @@ final class AddUnlistedPuzzleToCatalogueTest extends WebTestCase
         self::assertCount(0, array_filter($this->executedSql($this->browser), static fn (string $sql): bool => str_contains($sql, 'unlisted_puzzle')));
         // Their own list tells the menu at once when that changes
         self::assertCount(0, $this->browser->request('GET', '/en/unlisted-puzzles')->filter('[data-testid="menu-unlisted-puzzles"]'));
+        // Their first import keeps a puzzle (the worker has no session to tell): its overview shows the line and the
+        // menu the item at once - the remembered "none" is not believed on the import's pages
+        self::assertCount(0, $this->browser->request('GET', '/en/faq')->filter('[data-testid="menu-unlisted-puzzles"]'));
+        $this->seedBrand('Zqfirst');
+        [$first] = $this->seedUnlisted($other, 'Zqfirst', [['Zq First Civet Pier', 500, '2024-09-09', 2500]]);
+        $crawler = $this->browser->request('GET', '/en/import/' . $first->id->toString());
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('[data-testid="import-unlisted-link"]'));
+        self::assertCount(1, $crawler->filter('[data-testid="menu-unlisted-puzzles"]'));
+        self::assertCount(1, $this->browser->request('GET', '/en/faq')->filter('[data-testid="menu-unlisted-puzzles"]'));
 
         // --- A guest: the guide's words without the link (the page would be "not found" for them) ---
         $this->browser->getCookieJar()->clear();

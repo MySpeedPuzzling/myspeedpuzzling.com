@@ -9,7 +9,9 @@ allowed-tools: Bash, Read
 
 Thin reference for calling the MySpeedPuzzling admin-only internal API. Higher-level skills (`/feature-request`, `/feature-request-complete`) already wrap the common cases — only use this skill directly for ad-hoc calls, one-offs (`mark-declined`), or new endpoints not yet wrapped.
 
-Full spec: `docs/features/internal-api.md` and `docs/features/internal-api.openapi.yaml`.
+Full spec: `docs/features/internal-api.md` and `docs/features/internal-api.openapi.yaml`. The current endpoint list with its
+rules (reviewer player, merges, image analysis…) is `.claude/rules/internal-api.md`; competitions/events through the API:
+`.claude/rules/features/events.md` ("Events through the internal API").
 
 ## Config
 

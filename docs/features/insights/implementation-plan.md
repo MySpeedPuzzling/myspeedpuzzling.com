@@ -33,7 +33,7 @@ files in this folder hold the numbers and the reasoning. [`prototype.html`](./pr
 4. **Docs as you go:**
    - Update `docs/features/internal-api.md` + `internal-api.openapi.yaml` for every endpoint.
    - Update `docs/features/puzzle-intelligence/` for model changes, `docs/features/feature_flags.md` for the flag, `docs/database-indexes.md` for custom indexes, and `docs/TODO.md` for loose ends.
-   - Add a CLAUDE.md "Feature Planning" entry when the page launches.
+   - Add the feature's entry to `.claude/rules/features/insights.md` when the page launches (never root CLAUDE.md).
 5. **The backfill is not your job.** It runs in separate Claude Code sessions on the two Macs (prompts in §9). Phases 1 + 2 unblock it.
    - After Phase 2 is merged and deployed, tell Jan the backfill sessions can start, and give him the two prompts from §9.
    - Then continue with Phases 3-6 without waiting. Only §8 (launch) waits for the backfill.
@@ -491,7 +491,7 @@ Goal: every number the page shows, computed and tested, within the performance b
 3. Jan looks at the admin-visible page and says yes.
 4. Remove the flag:
    - delete `InsightsFeature`'s flag check (keep it as the members / free decision point if useful) and the `.env` entry;
-   - update `feature_flags.md` (move to "Retired") and add the CLAUDE.md "Feature Planning" entry;
+   - update `feature_flags.md` (move to "Retired") and add the feature's entry to `.claude/rules/features/insights.md`;
    - ask Jan whether an announcement modal is wanted (`docs/features/announcement-modals.md`).
 5. Daily mode continues on the Macs (launchd), plus the nightly derive and `/image-crop-review`.
 
@@ -536,7 +536,7 @@ How you work:
   (or check STATUS.md for his answer) to confirm the M3 session ran the final derive; then run
   `myspeedpuzzling:evaluate-image-estimates` on production, report the gate results, and ASK JAN FOR CONFIRMATION before
   removing the flag. Only after his explicit yes: a PR that removes the flag (code, .env, feature_flags.md → "Retired"),
-  adds the CLAUDE.md "Feature Planning" entry, and asks Jan whether an announcement modal is wanted.
+  adds the feature's entry to `.claude/rules/features/insights.md`, and asks Jan whether an announcement modal is wanted.
 - Machine limits: Jan's M3 Max runs large models during the backfill. Never run the full test suite locally (single
   test files only; CI is the gate), check `memory_pressure` before heavy Docker work, never load ML models, keep at most
   ~3 subagents busy at once.

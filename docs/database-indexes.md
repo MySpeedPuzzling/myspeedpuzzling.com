@@ -1,7 +1,7 @@
 # Custom Database Indexes
 
 Indexes Doctrine cannot express (GIN trigram, JSONB, partial and expression indexes) live outside the
-entity mapping. The rules are in `CLAUDE.md` → "Custom Database Indexes": `custom_` prefix (so
+entity mapping. The rules are in `.claude/rules/database.md` → "Custom Database Indexes": `custom_` prefix (so
 `CustomIndexFilteringSchemaManagerFactory` never generates a `DROP` for them), written by hand in a
 migration, and mirrored in `tests/bootstrap.php` so tests run against the same plan.
 

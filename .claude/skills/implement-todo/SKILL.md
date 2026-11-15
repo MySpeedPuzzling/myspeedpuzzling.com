@@ -11,8 +11,8 @@ One item per session, start to finish, in this order:
 
 **pick → claim → research → refine (brainstorm) → Jan's answers → implement → ship → verify → close**
 
-Jan runs `/clear` before each invocation, so this session starts empty - keep it lean. Everything in `CLAUDE.md`
-and the memory index applies; this skill only adds the loop around it.
+Jan runs `/clear` before each invocation, so this session starts empty - keep it lean. Everything in `CLAUDE.md`,
+the path-scoped rules in `.claude/rules/` (read the area's file before planning) and the memory index applies; this skill only adds the loop around it.
 
 ## Arguments
 
@@ -133,7 +133,8 @@ Already done or obsolete? Check it, tick it (or delete it) with the reason, and 
 
 - `docs/TODO.md`: tick the item (`[x]`, date, link to the doc) - that also removes the claim mark. Loose ends found
   on the way go in as new unticked items in the right section. The tick rides in the same commit as the change.
-- Feature doc, and the `CLAUDE.md` feature entry when the behaviour changed in a way the next session must know.
+- Feature doc, and the feature's entry in its area rule file (`.claude/rules/features/<area>.md`) when the behaviour
+  changed in a way the next session must know - never root `CLAUDE.md` (it holds only every-session rules).
 - **Player promises** - an item naming `MSP #…` / `follow-up F…` (the msp-mailer adds those with `todo-add` when a
   reply promises a change), only once it is **deployed**: draft the delivery mail with the `msp-mailer` skill, one
   per follow-up the item names:

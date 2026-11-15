@@ -1,0 +1,81 @@
+---
+paths:
+  - "src/**/*Auth*"
+  - "src/**/*Login*"
+  - "src/**/*SignIn*"
+  - "src/**/*Social*"
+  - "src/**/*Oauth*"
+  - "src/**/*Microsoft*"
+  - "src/**/*Apple*"
+  - "src/**/*Google*"
+  - "src/**/*Facebook*"
+  - "src/**/*Password*"
+  - "src/**/*ReturnUrl*"
+  - "src/**/*AccountDeletion*"
+  - "src/**/*DeletePlayer*"
+  - "src/**/*Register*"
+  - "src/**/*Membership*"
+  - "src/**/*Stripe*"
+  - "src/**/*Billing*"
+  - "src/**/*FreeTrial*"
+  - "src/**/*Voucher*"
+  - "src/**/*Referral*"
+  - "src/**/*Checkout*"
+  - "src/Security/**"
+  - "src/Services/SocialLogin/**"
+  - "src/Services/Session/**"
+  - "src/Services/Membership/**"
+  - "src/Services/Billing/**"
+  - "templates/**/_auth*"
+  - "templates/membership/**"
+  - "config/packages/security.php"
+  - "docs/features/auth-hardening/**"
+  - "docs/features/auth-ux-redesign.md"
+  - "docs/features/return-url.md"
+  - "docs/features/account-deletion.md"
+  - "docs/features/stripe.md"
+  - "docs/features/membership-page.md"
+  - "docs/features/free-trial/**"
+  - "docs/features/referral-program.md"
+  - "src/**/*UserAccount*"
+  - "src/**/*CheckEmail*"
+  - "src/**/*InAppBrowser*"
+  - "src/**/*Welcome*"
+  - "templates/**/*login*"
+  - "templates/**/*register*"
+  - "templates/**/*membership*"
+  - "assets/**/*membership*"
+  - "templates/**/*auth*"
+  - "assets/**/*auth*"
+  - "templates/**/*password*"
+  - "assets/**/*password*"
+  - "templates/**/*social*"
+  - "assets/**/*social*"
+  - "templates/**/*trial*"
+  - "templates/**/*welcome*"
+  - "templates/**/*account*"
+  - "templates/**/*referral*"
+  - "templates/**/*voucher*"
+  - "assets/**/*voucher*"
+  - "src/**/*SessionHandler*"
+  - "src/**/Session/**"
+  - "src/**/*Affiliate*"
+  - "src/**/*PlanSwitch*"
+  - "src/**/*Subscription*"
+  - "src/**/*Payment*"
+---
+
+# Accounts, sign-in and membership
+
+Loaded automatically when you read or edit files of this area (authentication, sessions, return URLs, account deletion, Stripe, the membership page, free trial and referrals). Read on purpose when planning work here before touching code. Each entry is the as-built summary; its doc under `docs/features/` is the design of record - read it before changing behaviour, and update both when behaviour changes.
+
+- **Auth Hardening**: `docs/features/auth-hardening/README.md` — DB auth audit trail (`auth_audit_log` table, `RecordAuthAuditEvent` via `AuthAuditRecorder` — never breaks login), user-facing `/account/recent-activity` page, 24-month prune cron `myspeedpuzzling:prune-auth-audit-log`, GDPR deletion now removes `UserAccount`. Social login (PR 2): Google/Microsoft/Apple/Facebook via league provider libraries (Microsoft: personal accounts only, `GenericProvider` + PKCE + own id_token check `MicrosoftIdTokenVerifier`, identity = `oid`, e-mail trusted only on `MicrosoftConsumerMailDomains`, `MICROSOFT_CLIENT_SECRET_EXPIRES_AT` reminder - `microsoft-plan.md`; button order Google, Microsoft, Apple, Facebook), `oauth_identity` table (D13), per-provider authenticators on `main`, cache-backed OAuth state (`social_login_state_cache` pool — Apple's form_post callback has no session), 5 settled linking rules in `SocialAccountResolver`, rule-4 interstitial `/register/social`, "Connected sign-in methods" on edit-profile, ≥1-sign-in-method invariant in `UnlinkOauthIdentityHandler`; Google + Apple **public since 2026-09-29**, Facebook since 2026-09-30 (Meta app published, its flag + App Review preview removed), Microsoft shipped dark 2026-09-30 (a provider is available and shown iff its credentials are configured — `SocialLoginSettings::isAvailable()` gates routes/authenticators and, via Twig global `social_login` (`isProviderAvailable()`/`isAnyAvailable()`), the buttons; no flags, no admin-only stage)
+- **Sign-in / sign-up UX**: `docs/features/auth-ux-redesign.md` — phase 1 shipped 2026-09-29: `_auth_layout.html.twig` (no card, 16px/48px fields, `_auth.scss`), "Check your email" screens `/login-link/sent` + `/password-reset/sent` (address via `CheckEmailFlash`, never the URL; `/password-reset/sent` has route `priority: 10` because `{token}` matches "sent"), auto sign-in after a password reset, sign-in link keeps `?return=` (booked in `login_link_request.return_path`, not in the signed URL), in-app browser notice (`InAppBrowser`, Google button re-targeted), client-only hand-offs (sessionStorage e-mail, localStorage "Last used"). Phase 2 (shipped 2026-09-29, §9) = 6-digit code in the same mail as the link: bound to the requesting browser's session (`SignInCodePending`, never the URL), HMAC-hashed on the `login_link_request` row, one sign-in per request (code use sets `code_used_at` → link refused even in the scanner grace window), 5 wrong tries kill the code but not the link; `SignInCodeAuthenticator` claims only `POST /verify-code` (renamed 2026-09-30 so iOS Password AutoFill does not see a login form: no autofocus, no login wording, no other text input incl. the footer newsletter field), failures re-render 422 via `SignInCodeController`
+- **Sessions**: `PostgresSessionHandler` (`src/Services/Session/`) keeps them in the `sessions` table on the worker's own Doctrine connection — no connect per request, reads never lock, a request writes only when the session data changed (`metadata_update_threshold` 3600, `updateTimestamp()` is a no-op) and those writes do not wait for the WAL flush (`SET LOCAL synchronous_commit TO OFF`). Measured 2026-09-30: the DSN-built `PdoSessionHandler` it replaced cost ~15 ms per signed-in request and serialized concurrent requests of one visitor on the commit. Never give sessions a `PDO::ATTR_PERSISTENT` connection: FrankenPHP leaves one idle backend behind per thread restart (`max_requests`)
+- **Remember me**: always on, no checkbox — sliding 30 days, signature-based on `['email','password']`, stock Symfony listener. Symfony's `RememberMeListener` clears the cookie on *every* `LoginFailureEvent`, so no authenticator on `main` may fail on plain page views (the Auth0 one did until Phase 6 — `RememberMeTest` guards it). A cookie-restored visitor holds a `RememberMeToken`, which `IS_AUTHENTICATED_FULLY` rejects: use `IS_AUTHENTICATED_REMEMBERED`, and `^/admin` asks for `ADMIN_ACCESS`
+- **Return URLs**: `docs/features/return-url.md` — `?return=` / `?return_title=` convention, also how post-login redirects work (`LoginEntryPoint` puts the destination in the URL; `SessionFreeExceptionListenerPass` flips `ExceptionListener`'s `$stateless` flag so no `target_path` session row is written; social login carries it in the cache-backed `OauthFlowState`, since Apple's form_post callback has no cookies). **Gotcha:** `AbstractLoginFormAuthenticator::supports()` compares `getLoginUrl()` against the request path, so `getLoginUrl()` must stay bare — put the `?return=` on the failure redirect instead. **Every consumer must validate via `SpeedPuzzling\Web\Value\ReturnUrl::tryFrom()`** (rejects `//`, `/\`, schemes, encoded variants, CRLF) or the Twig `safe_return_url()`; templates propagate values onward unsanitised by design, so validation at the point of *use* is the invariant.
+- **Account deletion**: `docs/features/account-deletion.md` — self-service "Delete my account": edit-profile danger zone → e-mailed split-token link (`account_deletion_request`, 60 min, cascades with `user_account`) → last-chance page (`GET /delete-account/{token}` only *shows* it — mail clients prefetch links, so deletion is the CSRF+checkbox `POST`) → `ConfirmAccountDeletion` runs the existing `DeletePlayer` nested → `/account-deleted`. Signed-in-as-that-account browsers are logged out *before* the delete so the audit row cascades. Ops: `myspeedpuzzling:player:delete <uuid|code|email> [--force]`
+- **Stripe Payments**: `docs/features/stripe.md` — Stripe integration for premium membership
+- **Membership page**: `docs/features/membership-page.md` — `/en/membership`, mobile first: offer/status card, plan picker, benefits, "Free for everyone, always", FAQ. **Every members-only feature (new, changed, removed or freed) updates `templates/membership/_benefits.html.twig` + its `membership.benefits.items.*` texts in all 6 locales in the same change** - that partial is THE list of what members get (membership page, free trial welcome page; the members modal shows `_benefit_highlights`). Never list unbuilt features
+- **Free trial**: `docs/features/free-trial/README.md` — 10 days of membership, once per player, no Stripe, live for everyone (no flag). **A trial is just a `membership.granted_until` grant**, so every membership gate works unchanged; eligibility = *no `membership` row* (a row only ever comes from a subscription, a voucher, an admin grant or a trial) and the unique index on `player_id` makes "once" race-free. `StartFreeTrial` → `Membership::startFreeTrial()`; `trial_*` columns exist for the UI and the funnel only. **Startable only when the account is 7 days old** (`FreeTrial::MINIMUM_ACCOUNT_AGE_DAYS`; `PlayerProfile::canStartFreeTrial()` for the UI, `StartFreeTrialHandler` authoritative; no activity condition on purpose - players who never log a time do become members) - a younger account is told the date instead (`_free_trial_unlock_sentence.html.twig`). Offered on the membership page, in `#membersExclusiveModal` and by a one-time modal (button + modal only once startable); web only (store review). Checkout already turns remaining grant days into a Stripe trial ("subscribe now, keep your days" - except in the last 24 h). Reminder 3 days before the end: cron `myspeedpuzzling:send-free-trial-ending-reminders` (daily). Numbers at `/admin/free-trial`. Trial players count as `active_trials`, not `active_members`
+- **Referral Program**: `docs/features/referral-program.md` — Members earn 10% of referred subscription revenue. No separate entity — `player.referralProgramJoinedAt` + `player.referralProgramSuspended`. Code = player code. Cookie-based + code-input attribution. Payouts per currency, manual admin payout marking

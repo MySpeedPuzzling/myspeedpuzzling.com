@@ -892,10 +892,10 @@ final class ImportPairingScreensTest extends WebTestCase
         // to the group. The row's own group (it was its only row) is gone by then: the list of groups it is
         $piecesKey = (string) $toFix->filter('[data-testid="import-to-fix-group"]')->eq(1)->filter('input[name="group"]')->first()->attr('value');
         $this->browser->request('POST', $base . '/rows/' . $row5, ['_token' => $token, 'stamp' => $stampOf($row5), 'action' => 'save', 'return' => $base . '/to-fix#group-' . $piecesKey, 'answers' => ['pieces' => '500']]);
-        self::assertResponseRedirects($base . '/to-fix#import-to-fix-groups');
+        self::assertResponseRedirects($base . '/to-fix#import-to-fix-count');
         $back = $this->browser->followRedirect();
         self::assertStringContainsString('Row 5 is saved. We can read all of it now.', $back->filter('[data-testid="import-saved-notice"]')->text());
-        self::assertCount(1, $back->filter('[data-testid="import-to-fix-page"] #import-to-fix-groups'));
+        self::assertCount(1, $back->filter('[data-testid="import-to-fix-page"] #import-to-fix-count'));
         // Said once
         self::assertCount(0, $this->browser->request('GET', $base . '/to-fix')->filter('[data-testid="import-saved-notice"]'));
 

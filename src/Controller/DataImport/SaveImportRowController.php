@@ -181,7 +181,7 @@ final class SaveImportRowController extends AbstractController
      */
     private function onwards(string $importId, string $playerId, string $rowId, null|ImportRowOrigin $origin, bool $next): Response
     {
-        // The group the player came from is gone (its last row was just answered): the list of groups instead, so
+        // The group the player came from is gone (its last row was just answered): the top of the list of groups instead, so
         // that the page still lands where the player was
         $anchor = $origin?->anchor();
 
@@ -189,7 +189,7 @@ final class SaveImportRowController extends AbstractController
             $origin !== null && $origin->screen === 'to_fix' && $anchor !== null && str_starts_with($anchor, 'group-')
             && $this->getImportRowsToFix->groups($importId, $playerId, 1, 0, substr($anchor, 6))['groups'] === []
         ) {
-            $origin = $origin->at('import-to-fix-groups');
+            $origin = $origin->at('import-to-fix-count');
         }
 
         if ($origin !== null && $next === false) {

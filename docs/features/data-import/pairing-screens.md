@@ -207,8 +207,10 @@ load again and does not jump:
 | changed meanwhile | a redirect to the list as it stands, with the notice (for a stream request too) |
 
 **Nothing jumps under the finger** (`data_import_settle_controller.js`, on the page): what replaces a group's card
-or a row not imported keeps the height of what it replaced for a moment (1.6 s) and then gives it up slowly, and is
-scrolled into view (`block: 'nearest'`) only when it is under the sticky header or below the screen.
+or a row not imported keeps the height of what it replaced **until the player moves on by themselves** - the first
+scroll, a pointer moved more than 12 px, a touch outside the confirmation, a key (15 s at the latest) - and only
+then gives it up, slowly: a pointer resting where it tapped never finds another button under it. The confirmation
+is scrolled into view (`block: 'nearest'`) only when it is under the sticky header or below the screen.
 
 Without a script the same POST redirects back to the list (PRG) with the same words as a flash, and a refused value
 is the whole page with a 422 - as before. Known limit: a row that is in two groups (two things unclear) and is left
@@ -279,10 +281,13 @@ hidden `return`, so it survives a refused save (422) and the redirect after a sa
 
 **Said where the player lands.** The page a save leads to is scrolled to the row or group the player came from, so
 "Row 14 is saved" is a flash of its own (`SaveImportRowController::SAVED_FLASH`) that the flow header renders
-**fixed in view** at the bottom of the screen (`_saved_notice.html.twig`, `.import-saved-notice`) - on every screen
-of an import, at any width - instead of at the top of the page. Anchored rows, groups and puzzles land below the
-sticky site header (`assets/styles/_data-import.scss`: `scroll-margin-top` 124 px). A group the player came from
-that is gone after the save (its last row was the one fixed) gives way to `#import-to-fix-groups`, the list itself.
+**fixed in view right under the sticky site header** (`_saved_notice.html.twig`, `.import-saved-notice`: `top` =
+`--header-height`, the header's measured height) - on every screen of an import, at any width, never over the
+buttons a screen keeps at its bottom. It fades by itself after six seconds (CSS; still in the page for a screen
+reader, × closes it at once). Anchored rows, groups and puzzles land below the header - and below the notice while
+it is shown (`assets/styles/_data-import.scss`: `scroll-margin-top` from `--header-height`). A group the player came
+from that is gone after the save (its last row was the one fixed) gives way to `#import-to-fix-count`, the line
+above the groups.
 
 **After a save** (PRG, the flash names the row - "Row 14 is saved. We can read all of it now." or "… Something in it
 still needs a look.", "Row 14 is not imported."):

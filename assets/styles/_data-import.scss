@@ -1,29 +1,52 @@
 // The spreadsheet import's screens (templates/data_import/, docs/features/data-import/pairing-screens.md
 // "The way back"): what a save in the row's editor needs on the screen it leads back to.
 
-// A row, a group or a puzzle the browser scrolls to (`#row-…`, `#group-…`, `#puzzle-…`, the list of groups) lands
-// below the sticky site header, not under it - also where the element carries a smaller margin of its own
+// A row, a group or a puzzle the browser scrolls to (`#row-…`, `#group-…`, `#puzzle-…`, the count above the groups)
+// lands below the sticky site header, not under it - also where the element carries a smaller margin of its own.
+// `--header-height` is the header's real height (header_height_controller.js).
 [data-import-flow-screen] [id^="row-"],
 [data-import-flow-screen] [id^="group-"],
 [data-import-flow-screen] [id^="puzzle-"],
 [data-import-flow-screen] [id^="left-out-row-"],
+#import-to-fix-count,
 #import-to-fix-groups {
-    scroll-margin-top: 124px !important;
+    scroll-margin-top: calc(var(--header-height, 101px) + 1.25rem) !important;
 }
 
-// "Row 14 is saved": said where the player lands - fixed in view, whatever the page scrolled to
+// ... and below "Row 14 is saved" while that is shown under the header
+html:has(.import-saved-notice) {
+    [data-import-flow-screen] [id^="row-"],
+    [data-import-flow-screen] [id^="group-"],
+    [data-import-flow-screen] [id^="puzzle-"],
+    #import-to-fix-count,
+    #import-to-fix-groups {
+        scroll-margin-top: calc(var(--header-height, 101px) + 5.5rem) !important;
+    }
+}
+
+// "Row 14 is saved": said where the player lands - fixed in view right under the site header, whatever the page
+// scrolled to, and never over the buttons a screen keeps at its bottom. It fades by itself after six seconds (still
+// there for a screen reader, and nothing can be tapped on it any more); the × closes it at once.
 .import-saved-notice {
     position: fixed;
+    top: calc(var(--header-height, 101px) + 8px);
     left: 50%;
-    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     transform: translateX(-50%);
     width: min(520px, calc(100vw - 32px));
     margin: 0;
-    z-index: 1080;
+    z-index: 1020;
+    animation: import-saved-notice-out 0.6s ease 6s forwards;
 }
 
-// An answered group of "Rows we could not read" keeps its place for a moment, then gives it up slowly
-// (data_import_settle_controller.js) - the next card's button never jumps under the finger
+@keyframes import-saved-notice-out {
+    to {
+        opacity: 0;
+        pointer-events: none;
+    }
+}
+
+// An answered group of "Rows we could not read" keeps its place until the player moves on, then gives it up slowly
+// (data_import_settle_controller.js) - the next card's button never comes to rest under the finger
 .import-settling {
     transition: min-height 0.6s ease;
 }

@@ -3410,6 +3410,7 @@ competition_referees:
   "max_characters": "Maximum 2000 caractères."
   "message_empty": "Le message ne peut pas être vide."
   "message_label": "Message"
+  "more_actions": "Plus d'actions"
   "new_message": "Nouveau message"
   "no_conversations": "Vous n'avez pas encore de conversations."
   "no_conversations_yet": "Pas encore de conversations."

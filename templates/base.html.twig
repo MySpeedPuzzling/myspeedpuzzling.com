@@ -482,7 +482,8 @@
     {% set comparison_launcher = logged_user.profile is not null
         and not hide_comparison_launcher|default(false)
         and logged_user.profile.comparisonLineUp.hasOthers() %}
-    <body class="lang-{{ app.request.locale }}{{ comparison_launcher ? ' has-comparison-launcher' }}"
+    {# A page adds its own class with `{% set page_body_class = '…' %}` at its top (outside blocks) #}
+    <body class="lang-{{ app.request.locale }}{{ comparison_launcher ? ' has-comparison-launcher' }}{{ page_body_class|default(null) ? ' ' ~ page_body_class }}"
           data-controller="pwa-lifecycle gallery file-drop-area datepicker global-search toast{% if ga_tracking is not empty %} analytics{% endif %}"
           {% if ga_tracking is not empty %}data-analytics-tracking-id-value="{{ ga_tracking }}"{% endif %}>
         <a href="#main-content" class="visually-hidden-focusable">{{ 'forms.skip_to_content'|trans }}</a>

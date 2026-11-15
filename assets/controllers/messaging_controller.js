@@ -18,12 +18,31 @@ export default class extends Controller {
 
         this.observer = new MutationObserver(() => this.scrollToBottom());
         this.observer.observe(this.messagesTarget, { childList: true });
+
+        // The full-height chat page resizes the list after the first paint (styles and fonts
+        // settling, the phone keyboard opening): stay on the newest message unless the reader
+        // scrolled up to read older ones
+        this._atBottom = true;
+        this._scrollHandler = () => {
+            const el = this.messagesTarget;
+            this._atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+        };
+        this.messagesTarget.addEventListener('scroll', this._scrollHandler, { passive: true });
+
+        if (typeof ResizeObserver !== 'undefined') {
+            this.resizeObserver = new ResizeObserver(() => {
+                if (this._atBottom) this.scrollToBottom();
+            });
+            this.resizeObserver.observe(this.messagesTarget);
+        }
     }
 
     disconnect() {
         if (this.observer) {
             this.observer.disconnect();
         }
+        this.resizeObserver?.disconnect();
+        this.messagesTarget.removeEventListener('scroll', this._scrollHandler);
         if (this.modalElement && this._modalShownHandler) {
             this.modalElement.removeEventListener('shown.bs.modal', this._modalShownHandler);
         }

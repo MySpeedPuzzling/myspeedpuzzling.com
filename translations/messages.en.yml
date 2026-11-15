@@ -3965,6 +3965,7 @@ messaging:
     requests: "Requests"
     title: "Messages"
     send: "Send"
+    more_actions: "More actions"
     send_placeholder: "Type your message..."
     report: "Report"
     report_reason_placeholder: "Describe why you are reporting this conversation..."

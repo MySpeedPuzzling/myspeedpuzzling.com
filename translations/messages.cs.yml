@@ -3418,6 +3418,7 @@ recap_progress:
   "max_characters": "Maximálně 2000 znaků."
   "message_empty": "Zpráva nemůže být prázdná."
   "message_label": "Zpráva"
+  "more_actions": "Další akce"
   "new_message": "Nová zpráva"
   "no_conversations": "Zatím nemáte žádné konverzace."
   "no_conversations_yet": "Zatím žádné konverzace."

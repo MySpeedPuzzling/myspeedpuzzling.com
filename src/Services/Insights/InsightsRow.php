@@ -16,12 +16,15 @@ use SpeedPuzzling\Web\Value\InsightsTimeOfDay;
  */
 readonly final class InsightsRow
 {
+    /** The weekday of a result whose day is not known (docs/features/data-import/date-precision.md) - none of 1-7 */
+    public const int NO_WEEKDAY = 0;
+
     /**
      * @param null|float $ratio time ÷ the puzzle's median solo time
      * @param null|float $form your usual then: median ratio of your boxed first tries within ±75 days
      * @param null|float $residual ratio ÷ form ÷ the community's learning factor - 1.0 = exactly your usual
      * @param string $solveDate Y-m-d - the date you gave, else the logging day in your zone (UTC without one)
-     * @param int $weekday ISO-8601 day of solveDate
+     * @param int $weekday ISO-8601 day of solveDate; NO_WEEKDAY for a result known to its month or year only
      * @param null|int $daysSincePrevious days since the previous solo result's solve day, null for the first result
      * @param int $sameDayIndex earlier solo results the same day
      */

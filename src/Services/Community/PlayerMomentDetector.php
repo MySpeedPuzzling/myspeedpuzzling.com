@@ -81,6 +81,9 @@ solo AS (
         z.pieces_count,
         t.seconds_to_solve,
         LEAST(COALESCE(t.finished_at, t.tracked_at), :now::timestamp) AS solved_at,
+        -- A moment happened on a day: a result known to its month or year only is never one (it still is a time to
+        -- beat for the results after it) - docs/features/data-import/date-precision.md
+        t.finished_at_precision IS NULL AS exact_day,
         t.tracked_at
     FROM puzzle_solving_time t
     JOIN candidates c ON c.player_id = t.player_id
@@ -105,7 +108,7 @@ SELECT
     previous_best AS previous_value,
     solved_at AS occurred_at
 FROM ranked
-WHERE solved_at >= :since AND previous_best IS NOT NULL AND seconds_to_solve < previous_best
+WHERE solved_at >= :since AND exact_day AND previous_best IS NOT NULL AND seconds_to_solve < previous_best
 SQL;
 
         /** @var list<array{player_id: string, solving_time_id: string, pieces_count: int|string, value: int|string, previous_value: int|string, occurred_at: string}> $rows */
@@ -154,6 +157,8 @@ numbered AS (
         r.player_id,
         r.time_id,
         r.solved_at,
+        -- NULL for a result known to its month or year only: it counts in the running totals and is no moment
+        r.day_at,
         z.pieces_count,
         ROW_NUMBER() OVER w AS position,
         SUM(z.pieces_count) OVER w AS pieces_running
@@ -166,7 +171,7 @@ numbered AS (
 SELECT 'puzzles' AS kind, n.player_id, n.time_id, n.solved_at, m.milestone
 FROM numbered n
 JOIN unnest({$puzzleMilestones}) AS m(milestone) ON n.position = m.milestone
-WHERE n.solved_at >= :since
+WHERE n.day_at >= :since
 
 UNION ALL
 
@@ -174,13 +179,13 @@ SELECT 'pieces', n.player_id, n.time_id, n.solved_at, m.milestone
 FROM numbered n
 JOIN unnest({$piecesMilestones}) AS m(milestone)
     ON n.pieces_running >= m.milestone AND n.pieces_running - n.pieces_count < m.milestone
-WHERE n.solved_at >= :since
+WHERE n.day_at >= :since
 
 UNION ALL
 
 SELECT 'first', n.player_id, n.time_id, n.solved_at, NULL
 FROM numbered n
-WHERE n.position = 1 AND n.solved_at >= :since
+WHERE n.position = 1 AND n.day_at >= :since
 SQL;
 
         /** @var list<array{kind: string, player_id: string, time_id: string, solved_at: string, milestone: null|int|string}> $rows */

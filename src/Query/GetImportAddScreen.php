@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Repository\DataImportRowRepository;
 use SpeedPuzzling\Web\Results\ImportAddRow;
 use SpeedPuzzling\Web\Results\ImportAddSummary;
 use SpeedPuzzling\Web\Value\DataImportLimits;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\DataImportStatus;
 
 /**
@@ -684,7 +685,7 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'code' => $code, 'batchI
      *
      * @param list<string> $rowIds
      *
-     * @return array<string, list<array{seconds: null|int, day: DateTimeImmutable, type: string}>> by row id
+     * @return array<string, list<array{seconds: null|int, day: DateTimeImmutable, precision: DatePrecision, type: string}>> by row id
      */
     public function resultsBeside(string $importId, string $playerId, array $rowIds): array
     {
@@ -694,14 +695,33 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'code' => $code, 'batchI
             return [];
         }
 
-        /** @var list<array{row_id: string, seconds_to_solve: null|int, day: string, puzzling_type: string}> $rows */
+        $rowDay = DataImportRowRepository::sqlRowAnchorDay('r');
+        // The coarser of what the row and the result know of their day: 0 a day, 1 a month, 2 a year
+        $coarser = <<<SQL
+GREATEST(
+    CASE r.parsed ->> 'datePrecision' WHEN 'year' THEN 2 WHEN 'month' THEN 1 ELSE 0 END,
+    CASE WHEN result.finished_at IS NULL THEN 0 WHEN result.finished_at_precision = 'year' THEN 2 WHEN result.finished_at_precision = 'month' THEN 1 ELSE 0 END
+)
+SQL;
+        $samePeriod = <<<SQL
+DATE_TRUNC(CASE {$coarser} WHEN 2 THEN 'year' WHEN 1 THEN 'month' ELSE 'day' END, COALESCE(result.finished_at, result.tracked_at))
+    = DATE_TRUNC(CASE {$coarser} WHEN 2 THEN 'year' WHEN 1 THEN 'month' ELSE 'day' END, CAST({$rowDay} AS TIMESTAMP))
+SQL;
+
+        // The rules are ImportNeverTwice::similar() and somebodyElseHasIt(): two exact days as ever; where the row or
+        // the result knows only a month or a year, the same time (never the stored first day against a real day)
+        /** @var list<array{row_id: string, seconds_to_solve: null|int, day: string, precision: null|string, puzzling_type: string}> $rows */
         $rows = $this->database->executeQuery(<<<SQL
-SELECT r.id AS row_id, beside.seconds_to_solve, beside.day, beside.puzzling_type
+SELECT r.id AS row_id, beside.seconds_to_solve, beside.day, beside.precision, beside.puzzling_type
 FROM data_import_row r
 INNER JOIN data_import ON data_import.id = r.import_id
 INNER JOIN data_import_puzzle import_puzzle ON import_puzzle.id = r.import_puzzle_id
 CROSS JOIN LATERAL (
-    SELECT result.seconds_to_solve, CAST(COALESCE(result.finished_at, result.tracked_at) AS DATE) AS day, result.puzzling_type
+    SELECT
+        result.seconds_to_solve,
+        CAST(COALESCE(result.finished_at, result.tracked_at) AS DATE) AS day,
+        CASE WHEN result.finished_at IS NULL THEN NULL ELSE result.finished_at_precision END AS precision,
+        result.puzzling_type
     FROM puzzle_solving_time result
     WHERE result.puzzle_id = import_puzzle.puzzle_id
         AND (
@@ -709,8 +729,11 @@ CROSS JOIN LATERAL (
                 r.failure = 'similar_result_exists'
                 AND result.player_id = :playerId
                 AND (
-                    (result.seconds_to_solve = CAST(r.parsed ->> 'seconds' AS INTEGER))
-                    <> (CAST(COALESCE(result.finished_at, result.tracked_at) AS DATE) = CAST(r.parsed ->> 'date' AS DATE))
+                    (
+                        {$coarser} = 0
+                        AND (result.seconds_to_solve = CAST(r.parsed ->> 'seconds' AS INTEGER)) <> (CAST(COALESCE(result.finished_at, result.tracked_at) AS DATE) = {$rowDay})
+                    )
+                    OR ({$coarser} > 0 AND result.seconds_to_solve = CAST(r.parsed ->> 'seconds' AS INTEGER))
                 )
             )
             OR (
@@ -719,7 +742,7 @@ CROSS JOIN LATERAL (
                 AND result.player_id <> :playerId
                 AND result.puzzling_type <> 'solo'
                 AND result.seconds_to_solve = CAST(r.parsed ->> 'seconds' AS INTEGER)
-                AND CAST(COALESCE(result.finished_at, result.tracked_at) AS DATE) = CAST(r.parsed ->> 'date' AS DATE)
+                AND {$samePeriod}
             )
         )
     ORDER BY COALESCE(result.finished_at, result.tracked_at), result.id
@@ -729,13 +752,18 @@ WHERE r.import_id = :importId
     AND data_import.player_id = :playerId
     AND r.id IN (:rowIds)
     AND r.failure IN ('similar_result_exists', 'somebody_elses_result')
-    AND r.parsed ->> 'date' ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+    AND {$rowDay} IS NOT NULL
 SQL, ['importId' => $importId, 'playerId' => $playerId, 'rowIds' => $rowIds], ['rowIds' => ArrayParameterType::STRING])->fetchAllAssociative();
 
         $beside = [];
 
         foreach ($rows as $row) {
-            $beside[$row['row_id']][] = ['seconds' => $row['seconds_to_solve'], 'day' => new DateTimeImmutable($row['day']), 'type' => $row['puzzling_type']];
+            $beside[$row['row_id']][] = [
+                'seconds' => $row['seconds_to_solve'],
+                'day' => new DateTimeImmutable($row['day']),
+                'precision' => DatePrecision::ofStored($row['precision']),
+                'type' => $row['puzzling_type'],
+            ];
         }
 
         return $beside;

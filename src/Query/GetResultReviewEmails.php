@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Results\AutoRemovedResult;
 use SpeedPuzzling\Web\Results\ResultReviewEmailCase;
 use SpeedPuzzling\Web\Results\ResultReviewEmailMarkedTime;
 use SpeedPuzzling\Web\Results\ResultReviewEmailVerificationAnswer;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\DuplicateCaseStatus;
 use SpeedPuzzling\Web\Value\DuplicateKind;
 use SpeedPuzzling\Web\Value\DuplicateTier;
@@ -87,7 +88,8 @@ SELECT
     c.kind,
     puzzle.name AS puzzle_name,
     a.seconds_to_solve,
-    COALESCE(a.finished_at, a.tracked_at) AS solved_at
+    COALESCE(a.finished_at, a.tracked_at) AS solved_at,
+    a.finished_at_precision
 FROM result_duplicate_case c
 INNER JOIN puzzle_solving_time a ON a.id = c.time_a_id
 INNER JOIN puzzle_solving_time b ON b.id = c.time_b_id
@@ -98,7 +100,7 @@ WHERE c.id IN (:caseIds)
 ORDER BY CASE c.tier WHEN :possible THEN 1 ELSE 0 END, b.tracked_at DESC, c.id
 SQL;
 
-        /** @var list<array{case_id: string, time_a_id: string, time_b_id: string, tier: string, kind: string, puzzle_name: string, seconds_to_solve: null|int, solved_at: string}> $rows */
+        /** @var list<array{case_id: string, time_a_id: string, time_b_id: string, tier: string, kind: string, puzzle_name: string, seconds_to_solve: null|int, solved_at: string, finished_at_precision: null|string}> $rows */
         $rows = $this->database->fetchAllAssociative($query, [
             'caseIds' => $caseIds,
             'playerId' => $playerId,
@@ -117,6 +119,7 @@ SQL;
             puzzleName: $row['puzzle_name'],
             secondsToSolve: $row['seconds_to_solve'],
             solvedAt: new DateTimeImmutable($row['solved_at']),
+            datePrecision: DatePrecision::ofStored($row['finished_at_precision']),
         ), $rows);
     }
 
@@ -160,6 +163,7 @@ SQL;
                 puzzleName: $snapshot->puzzleName,
                 secondsToSolve: $snapshot->secondsToSolve,
                 solvedAt: $snapshot->finishedAt ?? $snapshot->trackedAt,
+                datePrecision: $snapshot->finishedAt === null ? DatePrecision::Day : $snapshot->finishedAtPrecision,
                 savedAt: $snapshot->trackedAt,
                 removedAt: new DateTimeImmutable($row['removed_at']),
                 keptTimeId: $row['kept_time_id'],
@@ -188,6 +192,7 @@ SELECT
     puzzle.name AS puzzle_name,
     t.seconds_to_solve,
     COALESCE(t.finished_at, t.tracked_at) AS solved_at,
+    t.finished_at_precision,
     import_row.batch_id AS import_batch_id
 FROM suspicious_time_notice notice
 INNER JOIN suspicious_time_case suspicion ON suspicion.id = notice.case_id
@@ -213,7 +218,7 @@ WHERE notice.id IN (:noticeIds)
 ORDER BY notice.marked_at DESC, COALESCE(t.finished_at, t.tracked_at) DESC, notice.id
 SQL;
 
-        /** @var list<array{notice_id: string, puzzle_name: string, seconds_to_solve: null|int, solved_at: string, import_batch_id: null|string}> $rows */
+        /** @var list<array{notice_id: string, puzzle_name: string, seconds_to_solve: null|int, solved_at: string, finished_at_precision: null|string, import_batch_id: null|string}> $rows */
         $rows = $this->database->fetchAllAssociative($query, [
             'noticeIds' => $noticeIds,
             'playerId' => $playerId,
@@ -229,6 +234,7 @@ SQL;
             secondsToSolve: $row['seconds_to_solve'],
             solvedAt: new DateTimeImmutable($row['solved_at']),
             importBatchId: $row['import_batch_id'],
+            datePrecision: DatePrecision::ofStored($row['finished_at_precision']),
         ), $rows);
     }
 
@@ -253,6 +259,7 @@ SELECT
     puzzle.name AS puzzle_name,
     t.seconds_to_solve,
     COALESCE(t.finished_at, t.tracked_at) AS solved_at,
+    t.finished_at_precision,
     notice.answer,
     notice.answer_note
 FROM suspicious_time_notice notice
@@ -268,7 +275,7 @@ WHERE notice.id IN (:noticeIds)
 ORDER BY notice.answered_at DESC, notice.id
 SQL;
 
-        /** @var list<array{notice_id: string, puzzle_name: string, seconds_to_solve: null|int, solved_at: string, answer: string, answer_note: null|string}> $rows */
+        /** @var list<array{notice_id: string, puzzle_name: string, seconds_to_solve: null|int, solved_at: string, finished_at_precision: null|string, answer: string, answer_note: null|string}> $rows */
         $rows = $this->database->fetchAllAssociative($query, [
             'noticeIds' => $noticeIds,
             'playerId' => $playerId,
@@ -281,6 +288,7 @@ SQL;
             puzzleName: $row['puzzle_name'],
             secondsToSolve: $row['seconds_to_solve'],
             solvedAt: new DateTimeImmutable($row['solved_at']),
+            datePrecision: DatePrecision::ofStored($row['finished_at_precision']),
             answer: SuspiciousTimeReplyAnswer::from($row['answer']),
             note: $row['answer_note'],
         ), $rows);

@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Results\SuspiciousTimeCaseCard;
 use SpeedPuzzling\Web\Results\SuspiciousTimeCaseNoticeRow;
 use SpeedPuzzling\Web\Results\SuspiciousTimeSameDayResult;
 use SpeedPuzzling\Web\Services\SuspiciousTimes\SuspicionFingerprint;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\ExpectedTimeSource;
 use SpeedPuzzling\Web\Value\PuzzleSecrecy;
 use SpeedPuzzling\Web\Value\PuzzlingType;
@@ -113,6 +114,7 @@ readonly final class GetSuspiciousTimeCaseDetail
                 timeId: $row['time_id'],
                 seconds: $row['seconds_to_solve'],
                 solvedAt: new DateTimeImmutable($row['finished_at'] ?? $row['tracked_at']),
+                datePrecision: DatePrecision::ofStored($row['finished_at_precision']),
                 trackedAt: new DateTimeImmutable($row['tracked_at']),
                 puzzlingType: $puzzlingType,
                 puzzlersCount: $row['puzzlers_count'],
@@ -159,7 +161,7 @@ readonly final class GetSuspiciousTimeCaseDetail
 
     /**
      * @param list<string> $caseIds
-     * @return list<array{case_id: string, status: string, origin: string, direction: null|string, tier: null|string, score: null|float|string, reasons: string, expected_seconds: null|int, expected_source: null|string, detector_version: null|int, fingerprint: string, current_fingerprint: string, detected_at: string, decided_at: null|string, decided_by_name: null|string, decided_by_code: null|string, reasons_shown: string, moderator_note: null|string, marked_at: null|string, player_edited_at: null|string, time_id: string, seconds_to_solve: null|int, finished_at: null|string, tracked_at: string, puzzling_type: string, puzzlers_count: int, puzzling_team_id: null|string, comment: null|string, finished_puzzle_photo: null|string, first_attempt: bool, unboxed: bool, suspicious: bool, puzzle_id: string, puzzle_name: string, pieces_count: int, puzzle_image: null|string, manufacturer_name: null|string, solved_times_solo_count: null|int, median_time_solo: null|int, fastest_time_solo: null|int, solved_times_duo_count: null|int, median_time_duo: null|int, fastest_time_duo: null|int, solved_times_team_count: null|int, median_time_team: null|int, fastest_time_team: null|int, difficulty_score: null|float|string, player_id: string, player_name: null|string, player_code: string, is_private: bool, competition_name: null|string, round_name: null|string, ahead: null|int|string}>
+     * @return list<array{case_id: string, status: string, origin: string, direction: null|string, tier: null|string, score: null|float|string, reasons: string, expected_seconds: null|int, expected_source: null|string, detector_version: null|int, fingerprint: string, current_fingerprint: string, detected_at: string, decided_at: null|string, decided_by_name: null|string, decided_by_code: null|string, reasons_shown: string, moderator_note: null|string, marked_at: null|string, player_edited_at: null|string, time_id: string, seconds_to_solve: null|int, finished_at: null|string, finished_at_precision: null|string, tracked_at: string, puzzling_type: string, puzzlers_count: int, puzzling_team_id: null|string, comment: null|string, finished_puzzle_photo: null|string, first_attempt: bool, unboxed: bool, suspicious: bool, puzzle_id: string, puzzle_name: string, pieces_count: int, puzzle_image: null|string, manufacturer_name: null|string, solved_times_solo_count: null|int, median_time_solo: null|int, fastest_time_solo: null|int, solved_times_duo_count: null|int, median_time_duo: null|int, fastest_time_duo: null|int, solved_times_team_count: null|int, median_time_team: null|int, fastest_time_team: null|int, difficulty_score: null|float|string, player_id: string, player_name: null|string, player_code: string, is_private: bool, competition_name: null|string, round_name: null|string, ahead: null|int|string}>
      */
     private function caseRows(array $caseIds): array
     {
@@ -170,7 +172,7 @@ SELECT
     c.detector_version, c.fingerprint, {$fingerprint} AS current_fingerprint, c.detected_at, c.decided_at,
     decider.name AS decided_by_name, decider.code AS decided_by_code, c.reasons_shown, c.moderator_note, c.marked_at,
     c.player_edited_at,
-    pst.id AS time_id, pst.seconds_to_solve, pst.finished_at, pst.tracked_at, pst.puzzling_type, pst.puzzlers_count,
+    pst.id AS time_id, pst.seconds_to_solve, pst.finished_at, pst.finished_at_precision, pst.tracked_at, pst.puzzling_type, pst.puzzlers_count,
     pst.puzzling_team_id, pst.comment, pst.finished_puzzle_photo, pst.first_attempt, pst.unboxed, pst.suspicious,
     p.id AS puzzle_id, p.name AS puzzle_name, p.pieces_count, p.image AS puzzle_image, m.name AS manufacturer_name,
     ps.solved_times_solo_count, ps.median_time_solo, ps.fastest_time_solo,
@@ -206,7 +208,7 @@ LEFT JOIN LATERAL (
 WHERE c.id IN (:caseIds)
 SQL;
 
-        /** @var list<array{case_id: string, status: string, origin: string, direction: null|string, tier: null|string, score: null|float|string, reasons: string, expected_seconds: null|int, expected_source: null|string, detector_version: null|int, fingerprint: string, current_fingerprint: string, detected_at: string, decided_at: null|string, decided_by_name: null|string, decided_by_code: null|string, reasons_shown: string, moderator_note: null|string, marked_at: null|string, player_edited_at: null|string, time_id: string, seconds_to_solve: null|int, finished_at: null|string, tracked_at: string, puzzling_type: string, puzzlers_count: int, puzzling_team_id: null|string, comment: null|string, finished_puzzle_photo: null|string, first_attempt: bool, unboxed: bool, suspicious: bool, puzzle_id: string, puzzle_name: string, pieces_count: int, puzzle_image: null|string, manufacturer_name: null|string, solved_times_solo_count: null|int, median_time_solo: null|int, fastest_time_solo: null|int, solved_times_duo_count: null|int, median_time_duo: null|int, fastest_time_duo: null|int, solved_times_team_count: null|int, median_time_team: null|int, fastest_time_team: null|int, difficulty_score: null|float|string, player_id: string, player_name: null|string, player_code: string, is_private: bool, competition_name: null|string, round_name: null|string, ahead: null|int|string}> $rows */
+        /** @var list<array{case_id: string, status: string, origin: string, direction: null|string, tier: null|string, score: null|float|string, reasons: string, expected_seconds: null|int, expected_source: null|string, detector_version: null|int, fingerprint: string, current_fingerprint: string, detected_at: string, decided_at: null|string, decided_by_name: null|string, decided_by_code: null|string, reasons_shown: string, moderator_note: null|string, marked_at: null|string, player_edited_at: null|string, time_id: string, seconds_to_solve: null|int, finished_at: null|string, finished_at_precision: null|string, tracked_at: string, puzzling_type: string, puzzlers_count: int, puzzling_team_id: null|string, comment: null|string, finished_puzzle_photo: null|string, first_attempt: bool, unboxed: bool, suspicious: bool, puzzle_id: string, puzzle_name: string, pieces_count: int, puzzle_image: null|string, manufacturer_name: null|string, solved_times_solo_count: null|int, median_time_solo: null|int, fastest_time_solo: null|int, solved_times_duo_count: null|int, median_time_duo: null|int, fastest_time_duo: null|int, solved_times_team_count: null|int, median_time_team: null|int, fastest_time_team: null|int, difficulty_score: null|float|string, player_id: string, player_name: null|string, player_code: string, is_private: bool, competition_name: null|string, round_name: null|string, ahead: null|int|string}> $rows */
         $rows = $this->database->fetchAllAssociative(
             $query,
             ['caseIds' => $caseIds, 'slow' => SuspicionDirection::Slow->value],
@@ -301,6 +303,9 @@ JOIN puzzle_solving_time o ON o.player_id = t.player_id AND o.id <> t.id
 JOIN puzzle p ON p.id = o.puzzle_id
 WHERE c.id IN (:caseIds)
     AND CAST(COALESCE(o.finished_at, o.tracked_at) AS date) = CAST(COALESCE(t.finished_at, t.tracked_at) AS date)
+    -- Two real days only: the first day of a month or year a result is known to is no day (date-precision.md)
+    AND o.finished_at_precision IS NULL
+    AND t.finished_at_precision IS NULL
     AND {$notSecret}
 ORDER BY o.tracked_at, o.id
 SQL;

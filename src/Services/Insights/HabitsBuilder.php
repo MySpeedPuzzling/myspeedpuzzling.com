@@ -29,7 +29,9 @@ readonly final class HabitsBuilder
         }
 
         foreach ($rows as $row) {
-            $byWeekday[$row->weekday][] = $row;
+            if ($row->weekday !== InsightsRow::NO_WEEKDAY) {
+                $byWeekday[$row->weekday][] = $row;
+            }
 
             if ($row->daysSincePrevious !== null) {
                 $byBreak[self::breakBucket($row->daysSincePrevious)][] = $row;

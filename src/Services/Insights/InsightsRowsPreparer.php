@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services\Insights;
 use DateTimeImmutable;
 use DateTimeZone;
 use SpeedPuzzling\Web\Results\InsightsSoloResult;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\InsightsTimeOfDay;
 
 /**
@@ -65,14 +66,21 @@ readonly final class InsightsRowsPreparer
                 $timeOfDay = InsightsTimeOfDay::ofHour((int) $logged->format('G'));
             }
 
-            $daysSincePrevious = $latestDate === null ? null : max(0, self::daysBetween($latestDate, $solveDate));
+            // A result known to its month or year only stands on the first day of that period: it has no weekday, is
+            // no "n-th solve of the day" and no day to count a break from (docs/features/data-import/date-precision.md)
+            $hasDay = $result->finishedAt === null || $result->datePrecision === DatePrecision::Day;
 
-            if ($latestDate === null || $solveDate > $latestDate) {
+            $daysSincePrevious = $latestDate === null || $hasDay === false ? null : max(0, self::daysBetween($latestDate, $solveDate));
+
+            if ($hasDay && ($latestDate === null || $solveDate > $latestDate)) {
                 $latestDate = $solveDate;
             }
 
-            $sameDayIndex = $perDate[$solveDate] ?? 0;
-            $perDate[$solveDate] = $sameDayIndex + 1;
+            $sameDayIndex = $hasDay ? $perDate[$solveDate] ?? 0 : 0;
+
+            if ($hasDay) {
+                $perDate[$solveDate] = $sameDayIndex + 1;
+            }
 
             $rows[] = new InsightsRow(
                 result: $result,
@@ -81,7 +89,7 @@ readonly final class InsightsRowsPreparer
                 residual: $residual,
                 solveDate: $solveDate,
                 solveMoment: $moments[$i],
-                weekday: (int) $day->format('N'),
+                weekday: $hasDay ? (int) $day->format('N') : InsightsRow::NO_WEEKDAY,
                 timeOfDay: $timeOfDay,
                 daysSincePrevious: $daysSincePrevious,
                 sameDayIndex: $sameDayIndex,

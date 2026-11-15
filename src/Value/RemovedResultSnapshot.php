@@ -65,6 +65,9 @@ readonly final class RemovedResultSnapshot
         // What the photo's file carried when uploaded (docs/features/upload-image-metadata.md) - older snapshots have no
         // key, read as null
         public null|UploadedImageMetadata $finishedPuzzlePhotoUploadMetadata = null,
+        // How exactly the solve day is known (docs/features/data-import/date-precision.md) - older snapshots have no
+        // key, read as a day
+        public DatePrecision $finishedAtPrecision = DatePrecision::Day,
     ) {
     }
 
@@ -123,6 +126,7 @@ readonly final class RemovedResultSnapshot
             predictedRange80LowSeconds: $time->predictedRange80LowSeconds,
             predictedRange80HighSeconds: $time->predictedRange80HighSeconds,
             finishedPuzzlePhotoUploadMetadata: $time->finishedPuzzlePhotoUploadMetadata(),
+            finishedAtPrecision: $time->datePrecision(),
         );
     }
 
@@ -190,6 +194,7 @@ readonly final class RemovedResultSnapshot
             'competition_series_id' => $this->competitionSeriesId,
             'series_edition_match' => $this->seriesEditionMatch?->value,
             'finished_puzzle_photo_upload_metadata' => $this->finishedPuzzlePhotoUploadMetadata?->toArray(),
+            'finished_at_precision' => $this->finishedAtPrecision === DatePrecision::Day ? null : $this->finishedAtPrecision->value,
         ];
     }
 
@@ -198,7 +203,7 @@ readonly final class RemovedResultSnapshot
      */
     public static function fromArray(array $data): self
     {
-        /** @var array{id: string, seconds_to_solve: null|int, player_id: null|string, puzzle_id: string, puzzle_name: string, tracked_at: string, verified: bool, team: null|array{team_id: null|string, puzzlers: list<array{player_id: null|string, player_name: null|string, anonymous_slot?: string}>}, puzzling_team_id: null|string, finished_at: null|string, comment: null|string, finished_puzzle_photo: null|string, first_attempt: bool, unboxed: bool, competition_id: null|string, competition_round_id: null|string, pieces_placed: null|int, qualified: null|bool, suspicious: bool, finished_later_seconds: null|int, created_via: null|string, predictable: null|bool, prediction_method: null|string, predicted_seconds: null|int, predicted_range_low_seconds: null|int, predicted_range_high_seconds: null|int, predicted_attempt_number: null|int, prediction_last_time_seconds: null|int, prediction_source: null|string, prediction_computed_at: null|string, prediction_model_version: null|int, competition_series_id?: null|string, series_edition_match?: null|string, predicted_range80_low_seconds?: null|int, predicted_range80_high_seconds?: null|int, finished_puzzle_photo_upload_metadata?: null|array<mixed>} $data */
+        /** @var array{id: string, seconds_to_solve: null|int, player_id: null|string, puzzle_id: string, puzzle_name: string, tracked_at: string, verified: bool, team: null|array{team_id: null|string, puzzlers: list<array{player_id: null|string, player_name: null|string, anonymous_slot?: string}>}, puzzling_team_id: null|string, finished_at: null|string, comment: null|string, finished_puzzle_photo: null|string, first_attempt: bool, unboxed: bool, competition_id: null|string, competition_round_id: null|string, pieces_placed: null|int, qualified: null|bool, suspicious: bool, finished_later_seconds: null|int, created_via: null|string, predictable: null|bool, prediction_method: null|string, predicted_seconds: null|int, predicted_range_low_seconds: null|int, predicted_range_high_seconds: null|int, predicted_attempt_number: null|int, prediction_last_time_seconds: null|int, prediction_source: null|string, prediction_computed_at: null|string, prediction_model_version: null|int, competition_series_id?: null|string, series_edition_match?: null|string, predicted_range80_low_seconds?: null|int, predicted_range80_high_seconds?: null|int, finished_puzzle_photo_upload_metadata?: null|array<mixed>, finished_at_precision?: null|string} $data */
 
         return new self(
             id: $data['id'],
@@ -237,6 +242,7 @@ readonly final class RemovedResultSnapshot
             predictedRange80LowSeconds: $data['predicted_range80_low_seconds'] ?? null,
             predictedRange80HighSeconds: $data['predicted_range80_high_seconds'] ?? null,
             finishedPuzzlePhotoUploadMetadata: UploadedImageMetadata::fromArray($data['finished_puzzle_photo_upload_metadata'] ?? null),
+            finishedAtPrecision: DatePrecision::ofStored($data['finished_at_precision'] ?? null),
         );
     }
 }

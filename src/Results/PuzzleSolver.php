@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\DatePrecision;
 
 readonly final class PuzzleSolver
 {
@@ -32,6 +33,8 @@ readonly final class PuzzleSolver
         public null|string $competitionSeriesShortcut = null,
         public null|string $competitionSeriesSlug = null,
         public null|string $playerAvatar = null,
+        // How exactly the solve day is known (date-precision.md): a day, or only its month or year
+        public DatePrecision $datePrecision = DatePrecision::Day,
     ) {
     }
 
@@ -45,6 +48,7 @@ readonly final class PuzzleSolver
      *     player_country: null|string,
      *     time: int,
      *     finished_at: null|string,
+     *     finished_at_precision: null|string,
      *     tracked_at: string,
      *     first_attempt: bool,
      *     unboxed: bool,
@@ -87,6 +91,7 @@ readonly final class PuzzleSolver
             skillTierName: $row['skill_tier_name'] ?? null,
             rankingOptedOut: $row['ranking_opted_out'] ?? false,
             playerAvatar: $row['player_avatar'] ?? null,
+            datePrecision: DatePrecision::ofStored($row['finished_at_precision']),
         );
     }
 

@@ -71,7 +71,7 @@
                             {% for result in beside[row.rowId] %}
                                 <div class="fw-medium" data-testid="import-not-added-beside-result">
                                     {%- if result.seconds is not null %}{{ '%d:%02d:%02d'|format(result.seconds // 3600, (result.seconds % 3600) // 60, result.seconds % 60) }} · {% endif -%}
-                                    {{ result.day|format_date('medium', timezone='UTC') }} · {{ ('data_import.add.type.' ~ result.type)|trans }}
+                                    {{ result.precision.value == 'day' ? result.day|format_date('medium', timezone='UTC') : result_date(result.day, result.precision, 'medium') }} · {{ ('data_import.add.type.' ~ result.type)|trans }}
                                 </div>
                             {% endfor %}
                         </div>

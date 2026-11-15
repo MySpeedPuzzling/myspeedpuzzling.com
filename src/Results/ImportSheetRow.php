@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use SpeedPuzzling\Web\Services\DataImport\ImportRowAdder;
+use SpeedPuzzling\Web\Value\DatePrecision;
+
 /**
  * A row of a sheet as the import understood it (GetImportSheetScreen::understoodRows(); the shape of `parsed` is
  * docs/features/data-import/columns.md "What a parsed row holds"). Everything in it is the player's own text:
@@ -70,6 +73,24 @@ readonly final class ImportSheetRow
         }
 
         return \DateTimeImmutable::createFromFormat('!Y-m-d', $date) ?: null;
+    }
+
+    /**
+     * The month or the year a result was solved in, when the row knows no more: its first day and how much of it is
+     * known - for `result_date()`, which writes "March 2021" / "2021" (docs/features/data-import/date-precision.md).
+     * Null for a row that knows the day (day()) or has no date.
+     *
+     * @return null|array{day: \DateTimeImmutable, precision: DatePrecision}
+     */
+    public function period(): null|array
+    {
+        $said = ImportRowAdder::dateSaid($this->parsed);
+
+        if ($said === null || $said['precision'] === DatePrecision::Day) {
+            return null;
+        }
+
+        return ['day' => new \DateTimeImmutable($said['day']), 'precision' => $said['precision']];
     }
 
     /**

@@ -38,13 +38,15 @@ readonly final class GetDuplicatePuzzleSignalCandidates
         $query = <<<SQL
 WITH person_result AS (
     SELECT pst.id, pst.player_id AS person_id, pst.puzzle_id, pst.seconds_to_solve,
-        COALESCE(pst.finished_at, pst.tracked_at)::date AS solved_day
+        -- A result known to its month or year only has no day to share with a result of another puzzle (NULL never
+        -- equals): the first day it is stored on is not evidence that two puzzles are one (date-precision.md)
+        CASE WHEN pst.finished_at_precision IS NULL THEN COALESCE(pst.finished_at, pst.tracked_at)::date END AS solved_day
     FROM puzzle_solving_time pst
     WHERE pst.puzzling_team_id IS NULL
         AND pst.seconds_to_solve IS NOT NULL
     UNION ALL
     SELECT pst.id, member.player_id, pst.puzzle_id, pst.seconds_to_solve,
-        COALESCE(pst.finished_at, pst.tracked_at)::date
+        CASE WHEN pst.finished_at_precision IS NULL THEN COALESCE(pst.finished_at, pst.tracked_at)::date END
     FROM puzzle_solving_time pst
     INNER JOIN puzzling_team_member member ON member.team_id = pst.puzzling_team_id AND member.player_id IS NOT NULL
     WHERE pst.seconds_to_solve IS NOT NULL

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Value\Statistics;
 
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
+use SpeedPuzzling\Web\Value\DatePrecision;
 
 readonly final class PerCategoryStatistics
 {
@@ -50,9 +51,15 @@ readonly final class PerCategoryStatistics
 
             $totalPieces += $piecesCount;
 
+            // A result known to its month or year only is on no day: it counts in every total below, and neither as an
+            // active day (the streak) nor in the time spent per day (docs/features/data-import/date-precision.md)
+            $hasDay = $result->finishedAt === null || $result->datePrecision === DatePrecision::Day;
+
             // A relax solve (null time) still counts as an active day for the streak,
             // even though it contributes nothing to the time-spent-per-day totals below.
-            $activeDays[$finishedDate] = true;
+            if ($hasDay) {
+                $activeDays[$finishedDate] = true;
+            }
 
             if ($time !== null) {
                 if (!isset($piecesGroups[$piecesCount])) {
@@ -62,11 +69,13 @@ readonly final class PerCategoryStatistics
                 $piecesGroups[$piecesCount][] = $time;
 
                 // Grouping time spent per day
-                if (!isset($timePerDay[$finishedDate])) {
-                    $timePerDay[$finishedDate] = 0;
-                }
+                if ($hasDay) {
+                    if (!isset($timePerDay[$finishedDate])) {
+                        $timePerDay[$finishedDate] = 0;
+                    }
 
-                $timePerDay[$finishedDate] += $time;
+                    $timePerDay[$finishedDate] += $time;
+                }
             }
 
             if (!isset($countPerManufacturer[$manufacturerName])) {

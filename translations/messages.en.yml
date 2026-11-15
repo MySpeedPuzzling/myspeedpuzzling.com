@@ -12101,7 +12101,7 @@ data_import:
             sheets: "Sheets whose columns are not set up yet: %number%"
             not_added: "Rows that could not be added: %number%"
             unlisted: "Rows of unlisted puzzles: %number%. Unlisted puzzles arrive with a later step - nothing is lost."
-            needs_exact_day: "Results without an exact day: %number%. They arrive with a later step - nothing is lost."
+            needs_exact_day: "Results without a date: %number%. Open the rows and give them a date - nothing is lost."
             over_daily_limit: "Results that wait for tomorrow: %number% (at most %limit% results a day)."
         kind:
             results: "Results"
@@ -12198,7 +12198,7 @@ data_import:
         comment_too_long: "The comment is longer than MySpeedPuzzling takes. Shorten it in your file, or map the column to private notes."
         not_ready: "The row was not ready any more when its turn came - its puzzle or something about the row changed meanwhile."
         unlisted_not_yet: "The puzzle is kept as an unlisted puzzle. Unlisted puzzles arrive with a later step - nothing is lost."
-        needs_exact_day: "The result has no exact day. Results known to the month or year arrive with a later step - or open the row and give it a day."
+        needs_exact_day: "The result has no date. Open the row and give it a day, a month or a year."
         puzzle_not_available: "The puzzle can not be chosen any more. Choose the puzzle again."
         similar_result_exists: "Your profile already has a result of this puzzle that looks like this row - the same time on another day, or the same day with another time. If it is another solve, add it anyway."
         somebody_elses_result: "Somebody else already logged a pair or team result of this puzzle with this day and time. If you solved it together, ask them to link you instead - or add it anyway."
@@ -12915,7 +12915,7 @@ unlisted_puzzles:
         undo_already_running: "This puzzle is being worked on right now. Try again in a moment."
         undo_nothing: "This pairing can not be undone any more."
     reason:
-        needs_exact_day: "The result has no exact day, so it stays unlisted for now. Results known to the month or year arrive with a later step."
+        needs_exact_day: "The result has no date, so it stays unlisted. There is nothing to add it to your profile with."
         similar_result_exists: "Your profile already has a result of that puzzle that looks like this one - the same time on another day, or the same day with another time. It stays unlisted so nothing is added twice."
         somebody_elses_result: "Somebody else already logged a pair or team result of that puzzle with this day and time. It stays unlisted - if you solved it together, ask them to link you."
         people_do_not_fit_type: "The result says pair or team and names nobody - or says solo and names people. It stays unlisted."

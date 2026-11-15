@@ -26,6 +26,12 @@ final class SolvingTimeResponse
          * opted out, PAT or results:read. Null otherwise, and always null on PUT.
          */
         public null|TimePredictionResponse $prediction = null,
+        /**
+         * How exactly `finished_at` is known: `day` (every result typed into MySpeedPuzzling or sent through this API),
+         * or `month` / `year` for a result imported from a spreadsheet that knew no more - `finished_at` is then the
+         * first day of that month or year and must not be read as a day. Additive (2026-11).
+         */
+        public string $datePrecision = 'day',
     ) {
     }
 }

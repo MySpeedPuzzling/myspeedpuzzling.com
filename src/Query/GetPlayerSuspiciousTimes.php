@@ -9,6 +9,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\FirstTryPuzzle;
 use SpeedPuzzling\Web\Results\PlayerSuspiciousTime;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\PuzzlingType;
 use SpeedPuzzling\Web\Value\SuspiciousTimeCaseStatus;
 use SpeedPuzzling\Web\Value\SuspiciousTimeReason;
@@ -113,6 +114,7 @@ SELECT
     pst.player_id AS tracker_id,
     pst.seconds_to_solve,
     COALESCE(pst.finished_at, pst.tracked_at) AS solved_at,
+    pst.finished_at_precision,
     pst.puzzling_type,
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
@@ -142,7 +144,7 @@ SQL;
      */
     private function fetch(string $query, array $parameters): array
     {
-        /** @var list<array{case_id: string, reasons_shown: string, moderator_note: null|string, marked_at: string, response: null|string, response_text: null|string, answer: null|string, answer_note: null|string, answered_at: null|string, time_id: string, tracker_id: string, seconds_to_solve: null|int, solved_at: string, puzzling_type: string, puzzle_id: string, puzzle_name: string, puzzle_pieces_count: int, puzzle_image: null|string, manufacturer_name: string, import_batch_id: null|string}> $rows */
+        /** @var list<array{case_id: string, reasons_shown: string, moderator_note: null|string, marked_at: string, response: null|string, response_text: null|string, answer: null|string, answer_note: null|string, answered_at: null|string, time_id: string, tracker_id: string, seconds_to_solve: null|int, solved_at: string, finished_at_precision: null|string, puzzling_type: string, puzzle_id: string, puzzle_name: string, puzzle_pieces_count: int, puzzle_image: null|string, manufacturer_name: string, import_batch_id: null|string}> $rows */
         $rows = $this->database->fetchAllAssociative($query, [
             ...$parameters,
             'now' => $this->clock->now()->format('Y-m-d H:i:s'),
@@ -175,6 +177,7 @@ SQL;
                 ),
                 secondsToSolve: $row['seconds_to_solve'],
                 solvedAt: new DateTimeImmutable($row['solved_at']),
+                datePrecision: DatePrecision::ofStored($row['finished_at_precision']),
                 puzzlingType: PuzzlingType::from($row['puzzling_type']),
                 reasonsShown: $reasonsByCase[$row['case_id']] ?? [],
                 moderatorNote: $row['moderator_note'],

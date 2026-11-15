@@ -6,7 +6,7 @@
    Neutral wording: nothing here says "suspicious". #}
 {%- macro time_line(item) -%}
     {%- if item.secondsToSolve is not null %}<strong>{{ item.secondsToSolve|puzzlingTime }}</strong> · {% endif -%}
-    {{ item.solvedAt|date('d.m.Y') }}
+    {{ result_date(item.solvedAt, item.datePrecision) }}
     {%- if item.puzzlingType.value == 'duo' %} · {{ 'suspicious_time.review.pair_result'|trans }}{% endif -%}
     {%- if item.puzzlingType.value == 'team' %} · {{ 'suspicious_time.review.team_result'|trans }}{% endif -%}
 {%- endmacro -%}

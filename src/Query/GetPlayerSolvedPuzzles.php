@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Results\SolvedPuzzleDetail;
 use SpeedPuzzling\Web\Results\SolvedPuzzleOverview;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use Symfony\Contracts\Service\ResetInterface;
 
@@ -105,6 +106,7 @@ SELECT
     manufacturer.name AS manufacturer_name,
     manufacturer.id AS manufacturer_id,
     finished_at,
+    puzzle_solving_time.finished_at_precision,
     puzzle_solving_time.tracked_at,
     finished_puzzle_photo,
     first_attempt,
@@ -156,6 +158,7 @@ SQL;
          *     comment: null|string,
          *     players: null|string,
          *     finished_at: null|string,
+     *     finished_at_precision: null|string,
          *     tracked_at: string,
          *     finished_puzzle_photo: string,
          *     first_attempt: bool,
@@ -224,6 +227,7 @@ SELECT
     puzzle_solving_time.comment,
     puzzle_solving_time.tracked_at,
     finished_at,
+    puzzle_solving_time.finished_at_precision,
     manufacturer.name AS manufacturer_name,
     puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo,
     first_attempt,
@@ -310,6 +314,7 @@ SQL;
              *     finished_puzzle_photo: null|string,
              *     puzzle_identification_number: null|string,
              *     finished_at: null|string,
+             *     finished_at_precision: null|string,
              *     first_attempt: bool,
              *     unboxed: bool,
              *     solved_times: int,
@@ -369,6 +374,7 @@ SELECT
     puzzle_solving_time.comment,
     puzzle_solving_time.tracked_at,
     finished_at,
+    puzzle_solving_time.finished_at_precision,
     manufacturer.name AS manufacturer_name,
     puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo,
     first_attempt,
@@ -426,6 +432,7 @@ SQL;
              *     finished_puzzle_photo: null|string,
              *     puzzle_identification_number: null|string,
              *     finished_at: null|string,
+             *     finished_at_precision: null|string,
              *     first_attempt: bool,
              *     unboxed: bool,
              *     solved_times: int,
@@ -559,6 +566,7 @@ SELECT
     finished_puzzle_photo,
     tracked_at,
     finished_at,
+    pst.finished_at_precision,
     puzzle.identification_number AS puzzle_identification_number,
     pst.comment,
     manufacturer.name AS manufacturer_name,
@@ -626,6 +634,7 @@ SQL;
              *     puzzle_identification_number: null|string,
              *     tracked_at: string,
              *     finished_at: null|string,
+             *     finished_at_precision: null|string,
              *     first_attempt: bool,
              *     unboxed: bool,
              *     competition_id: null|string,
@@ -704,7 +713,8 @@ SELECT
     manufacturer.name AS manufacturer_name,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS image,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS image_ratio,
-    puzzle_solving_time.finished_at
+    puzzle_solving_time.finished_at,
+    puzzle_solving_time.finished_at_precision
 FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
@@ -742,6 +752,7 @@ SQL;
          *     image: null|string,
          *     image_ratio: null|string,
          *     finished_at: null|string,
+     *     finished_at_precision: null|string,
          * } $data
          */
 
@@ -756,6 +767,7 @@ SQL;
             image: $data['image'],
             imageRatio: $data['image_ratio'] !== null ? (float) $data['image_ratio'] : null,
             finishedAt: $data['finished_at'] !== null ? new DateTimeImmutable($data['finished_at']) : null,
+            datePrecision: DatePrecision::ofStored($data['finished_at_precision']),
         );
     }
 
@@ -784,7 +796,8 @@ SELECT DISTINCT ON (puzzle.name, puzzle.id)
     manufacturer.name AS manufacturer_name,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS image,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS image_ratio,
-    puzzle_solving_time.finished_at
+    puzzle_solving_time.finished_at,
+    puzzle_solving_time.finished_at_precision
 FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
@@ -814,6 +827,7 @@ SQL;
              *     image: null|string,
              *     image_ratio: null|string,
              *     finished_at: null|string,
+             *     finished_at_precision: null|string,
              * } $row
              */
 
@@ -828,6 +842,7 @@ SQL;
                 image: $row['image'],
                 imageRatio: $row['image_ratio'] !== null ? (float) $row['image_ratio'] : null,
                 finishedAt: $row['finished_at'] !== null ? new DateTimeImmutable($row['finished_at']) : null,
+                datePrecision: DatePrecision::ofStored($row['finished_at_precision']),
             );
         }, $data);
     }

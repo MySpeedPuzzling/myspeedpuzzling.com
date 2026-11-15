@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\DataImport;
 
+use Closure;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use LogicException;
@@ -22,6 +23,7 @@ use SpeedPuzzling\Web\Value\DataImport\ImportedResult;
 use SpeedPuzzling\Web\Value\DataImport\ImportedResultKnownBy;
 use SpeedPuzzling\Web\Value\DataImport\ImportedResultStatus;
 use SpeedPuzzling\Web\Value\DataImport\ImportRowRefusal;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\DuplicatePreventionKind;
 use SpeedPuzzling\Web\Value\PuzzlingType;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
@@ -42,7 +44,9 @@ use SpeedPuzzling\Web\Value\SolvingTimeSource;
  * 1. the row's own result is still there (`this_row`) / a row with the same source key made one in any import of the
  *    player (`earlier_import`) - the writer's own questions, asked first so the ones below are only asked of a result
  *    that would really be written;
- * 2. the player has the same result on the profile - day, time, solo/pair/team - and no row speaks for it (`profile`);
+ * 2. the player has the same result on the profile - day (within the month or year the file knows), time,
+ *    solo/pair/team - and no row speaks for it (`profile`); a result known to its month or year only is the result a
+ *    finer row of the same file made (`equal_row`);
  * 3. the people fit the kind (`people_do_not_fit_type`);
  * 4. somebody else's pair/team result of that day and time (`somebody_elses_result`);
  * 5. a result on the profile that may be this one written differently (`similar_result_exists`);
@@ -72,18 +76,25 @@ readonly final class ImportResultQuestions
     }
 
     /**
-     * @param string $day Y-m-d - only a result with an exact day gets here
+     * @param string $day Y-m-d - the day, or the first day of the month or year the file knows ($precision); an
+     *        undated result never gets here
      * @param null|int $seconds null = solved without a time
      * @param list<string> $people the other people, one per entry, guests every one (ImportRowAdder::people())
      * @param null|bool $firstTry what the file said
      * @param bool $saidAlreadyOnProfile the file says the result is on MySpeedPuzzling already
      * @param bool $countedOnItsOwn the player said of two equal rows "these are two"
+     * @param DatePrecision $precision how exactly the file knows the solve day - stored with the result
+     *        (docs/features/data-import/date-precision.md); "the same day" is then "within that month / year"
      * @param null|string $hintedSolvingTimeId the result the pairing's hint names - it pairs off first
+     * @param null|Closure(): (null|string) $finerRowsResult asked for a result known to its month or year only: the
+     *        result of a finer row of the same file that still waits in the caller's batch (ImportRowAdder adds it
+     *        first), by id - null: there is none
      *
      * @return array{refused: null|string, made: null|array{puzzleId: string, seconds: null|int, day: null|string, teamId: null|string}, alreadyHow: null|string, alreadyTimeId: null|string, removedWishListItem: null|array{id: string, puzzleId: string, addedAt: DateTimeImmutable}}
      *         `refused`: why not (ImportRowRefusal / ImportedResultRefusal); `made`: what the writer wrote
      *         (ImportRowAdder::resultFacts()) - `alreadyTimeId` is then the new result's id; `alreadyHow`: the result
-     *         is the player's already - `this_row`, `earlier_import`, `profile` - and `alreadyTimeId` names it
+     *         is the player's already - `this_row`, `earlier_import`, `profile`, `equal_row` (a finer row of the
+     *         same file is this result) - and `alreadyTimeId` names it
      */
     public function ask(
         DataImportRow $row,
@@ -99,7 +110,9 @@ readonly final class ImportResultQuestions
         int $position,
         bool $saidAlreadyOnProfile,
         bool $countedOnItsOwn,
+        DatePrecision $precision = DatePrecision::Day,
         null|string $hintedSolvingTimeId = null,
+        null|Closure $finerRowsResult = null,
     ): array {
         $playerId = $player->id->toString();
         $puzzleId = $puzzle->id->toString();
@@ -111,10 +124,29 @@ readonly final class ImportResultQuestions
         }
 
         $free = $this->neverTwice->freeResultsOnProfile($player, $puzzle);
-        $equal = ImportNeverTwice::equal($free, $day, $seconds, $type, $hintedSolvingTimeId);
+        $equal = ImportNeverTwice::equal($free, $day, $seconds, $type, $hintedSolvingTimeId, $precision);
 
         if ($equal !== null) {
             return self::answer(how: 'profile', timeId: $equal);
+        }
+
+        // "Sept 2020" on one sheet and "14 Sep 2020" on another, the same time: the coarser row is the result the
+        // finer row of the same file made or was settled with - not a second one (README "Never twice", step 2)
+        if ($precision !== DatePrecision::Day && $seconds !== null) {
+            // A finer row that still waits in the caller's batch goes first (the batch's own part)
+            $finer = $finerRowsResult === null ? null : $finerRowsResult();
+            $finer ??= ImportNeverTwice::equal(
+                $this->neverTwice->resultsOfThisImport($player, $puzzle, $row->import->id->toString()),
+                $day,
+                $seconds,
+                $type,
+                null,
+                $precision,
+            );
+
+            if ($finer !== null) {
+                return self::answer(how: 'equal_row', timeId: $finer);
+            }
         }
 
         // What the writer would build must be what the row says it is: a "pair" without a partner named would be
@@ -127,14 +159,14 @@ readonly final class ImportResultQuestions
             $type !== PuzzlingType::Solo
             && $seconds !== null
             && $row->isWavedThrough(ImportRowRefusal::SomebodyElsesResult->value, $puzzleId) === false
-            && $this->neverTwice->somebodyElseHasIt($player, $puzzle, $day, $seconds)
+            && $this->neverTwice->somebodyElseHasIt($player, $puzzle, $day, $seconds, $precision)
         ) {
             return self::answer(refused: ImportRowRefusal::SomebodyElsesResult->value);
         }
 
         if (
             $row->isWavedThrough(ImportRowRefusal::SimilarResultExists->value, $puzzleId) === false
-            && ImportNeverTwice::similar($free, $day, $seconds) !== null
+            && ImportNeverTwice::similar($free, $day, $seconds, $precision) !== null
         ) {
             return self::answer(refused: ImportRowRefusal::SimilarResultExists->value);
         }
@@ -166,6 +198,7 @@ readonly final class ImportResultQuestions
             groupPlayers: $people,
             comment: $comment,
             position: max(0, $position),
+            precision: $precision,
         ));
 
         if ($outcome->status === ImportedResultStatus::Refused) {

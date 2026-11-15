@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Results\FirstTryPuzzle;
 use SpeedPuzzling\Web\Services\DuplicateResults\DuplicateSets;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\DuplicateCaseStatus;
 use SpeedPuzzling\Web\Value\DuplicateKind;
 use SpeedPuzzling\Web\Value\DuplicateTier;
@@ -94,6 +95,7 @@ SQL;
                 puzzleName: $snapshot->puzzleName,
                 secondsToSolve: $snapshot->secondsToSolve,
                 solvedAt: $snapshot->finishedAt ?? $snapshot->trackedAt,
+                datePrecision: $snapshot->finishedAt === null ? DatePrecision::Day : $snapshot->finishedAtPrecision,
                 savedAt: $snapshot->trackedAt,
                 removedAt: new DateTimeImmutable($row['removed_at']),
                 keptTimeId: $row['kept_time_id'],
@@ -214,6 +216,7 @@ SELECT
     pst.id AS time_id,
     pst.player_id AS tracker_id,
     COALESCE(pst.finished_at, pst.tracked_at) AS solved_at,
+    pst.finished_at_precision,
     pst.tracked_at,
     pst.seconds_to_solve,
     pst.comment,
@@ -243,14 +246,14 @@ WHERE pst.id IN (:timeIds)
 ORDER BY pst.id, participant.position
 SQL;
 
-        /** @var list<array{time_id: string, tracker_id: string, solved_at: string, tracked_at: string, seconds_to_solve: null|int, comment: null|string, finished_puzzle_photo: null|string, first_attempt: bool, unboxed: bool, competition_name: null|string, participant_player_id: null|string, participant_guest_name: null|string, participant_code: null|string, participant_name: null|string, participant_private: bool}> $rows */
+        /** @var list<array{time_id: string, tracker_id: string, solved_at: string, finished_at_precision: null|string, tracked_at: string, seconds_to_solve: null|int, comment: null|string, finished_puzzle_photo: null|string, first_attempt: bool, unboxed: bool, competition_name: null|string, participant_player_id: null|string, participant_guest_name: null|string, participant_code: null|string, participant_name: null|string, participant_private: bool}> $rows */
         $rows = $this->database->fetchAllAssociative(
             $query,
             ['timeIds' => array_values(array_unique($timeIds))],
             ['timeIds' => ArrayParameterType::STRING],
         );
 
-        /** @var array<string, array{row: array{time_id: string, tracker_id: string, solved_at: string, tracked_at: string, seconds_to_solve: null|int, comment: null|string, finished_puzzle_photo: null|string, first_attempt: bool, unboxed: bool, competition_name: null|string}, people: list<FirstTryPerson>}> $collected */
+        /** @var array<string, array{row: array{time_id: string, tracker_id: string, solved_at: string, finished_at_precision: null|string, tracked_at: string, seconds_to_solve: null|int, comment: null|string, finished_puzzle_photo: null|string, first_attempt: bool, unboxed: bool, competition_name: null|string}, people: list<FirstTryPerson>}> $collected */
         $collected = [];
 
         foreach ($rows as $row) {
@@ -274,6 +277,7 @@ SQL;
                 timeId: $timeId,
                 trackerId: $row['tracker_id'],
                 solvedAt: new DateTimeImmutable($row['solved_at']),
+                datePrecision: DatePrecision::ofStored($row['finished_at_precision']),
                 trackedAt: new DateTimeImmutable($row['tracked_at']),
                 secondsToSolve: $row['seconds_to_solve'],
                 comment: $row['comment'],

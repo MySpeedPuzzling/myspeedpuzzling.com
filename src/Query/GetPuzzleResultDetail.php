@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Results\PuzzleResultDetail;
 use SpeedPuzzling\Web\Results\PuzzleResultStanding;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\Puzzler;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
 
@@ -125,6 +126,7 @@ SELECT
     pst.player_id AS tracked_by_id,
     pst.seconds_to_solve AS time,
     pst.finished_at,
+    pst.finished_at_precision,
     pst.tracked_at,
     pst.first_attempt,
     pst.unboxed,
@@ -181,6 +183,7 @@ SQL;
          *     tracked_by_id: null|string,
          *     time: null|int,
          *     finished_at: null|string,
+         *     finished_at_precision: null|string,
          *     tracked_at: string,
          *     first_attempt: bool,
          *     unboxed: bool,
@@ -256,6 +259,7 @@ SQL;
                 trackedByPlayerId: $row['tracked_by_id'],
                 time: $row['time'],
                 finishedAt: $row['finished_at'] !== null ? new DateTimeImmutable($row['finished_at']) : null,
+                datePrecision: DatePrecision::ofStored($row['finished_at_precision']),
                 trackedAt: new DateTimeImmutable($row['tracked_at']),
                 firstAttempt: $row['first_attempt'],
                 unboxed: $row['unboxed'],

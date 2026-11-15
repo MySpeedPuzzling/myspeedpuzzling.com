@@ -34,9 +34,10 @@ A row is **ready** - derived, never stored. **One definition**: `DataImportRowRe
 
 - it is data (`kind` result / owned / both / wish_list), without a problem, on a sheet that is in;
 - its distinct puzzle is decided as a **catalogue** puzzle (the rules' "found", the player's choice, a remembered one)
-  and a row with a result has an **exact day** (`parsed.datePrecision = day`) - **or** its puzzle is kept as an
-  **unlisted puzzle** (stage 7, [unlisted-puzzles.md](unlisted-puzzles.md)): such a row goes into the unlisted
-  tables, never to the profile, whatever its date's precision;
+  and a row with a result has a **date** - a day, or the month or year the file knows (`parsed.datePrecision`; stored
+  as that: `date-precision.md`) - **or** its puzzle is kept as an **unlisted puzzle** (stage 7,
+  [unlisted-puzzles.md](unlisted-puzzles.md)): such a row goes into the unlisted tables, never to the profile, dated
+  or not;
 - it waits (`state = waiting`), was not refused before (`failure IS NULL`) and no Undo holds it - **or** it was
   settled as "already yours" with a result that is gone since (undone, deleted): "already yours" is always what
   exists now.
@@ -46,7 +47,7 @@ Not ready, and said so in the outcome's `skipped` (the screens word it):
 | Code | Why |
 |---|---|
 | `unlisted_not_yet` | Until stage 7: the puzzle is kept as an unlisted puzzle. No "Add" answers it any more - such rows are ready now ([unlisted-puzzles.md](unlisted-puzzles.md)); the code stays for batches made before |
-| `needs_exact_day` | A result known to the month or year only, or undated - stage 6c. A month is never stored as a day |
+| `needs_exact_day` | A result without any date - the player gives it one. (Until stage 6c also a result known to the month or year only; those are added with their precision now - `date-precision.md`. The code kept its name) |
 | `over_daily_limit` | More than `DataImportLimits::MAX_RESULTS_ADDED_PER_DAY` (2,000) results of the player's imports **made public** today (UTC) - by an "Add" or by the pairing of an unlisted puzzle (`data_import_row.result_made_at`, written with the link); the rest is ready tomorrow. Owned and wish-list rows and rows kept as unlisted are not counted |
 
 A row that was **refused** before (below) is left alone by "add everything that is ready" and taken again only when
@@ -208,8 +209,8 @@ Ids and numbers only - never a cell's content, never a value of a field.
 | Collection puzzles | The check under the player's lock (the system collection has no uniqueness in the database) |
 
 Of the README's five steps: 1, 2 (exact days), 3 and 5 are built as written; **step 4 is a refusal with a code
-instead of one question per puzzle** (the question's screen is 6b-2's); the piles of step 2 for month-only, year-only
-and undated rows wait for 6c with those rows.
+instead of one question per puzzle** (the question's screen is 6b-2's); the piles of step 2 for month-only and
+year-only rows are built in 6c (`date-precision.md` "Never twice"); undated rows wait for the player's answer.
 
 ## The player's own fields
 
@@ -276,7 +277,7 @@ and month, never "recent"; a solve of the last days is as recent as a typed back
 | `GetRecentActivity` (Hub, `/recent-activity`, a player's feed) | Ordered by `tracked_at`: an imported result stands at its solve day, not on top. Results solved in the last days appear like results typed for those days |
 | `PlayerMomentDetector` / `player_moment`, `CommunityStatsCalculator` (Players page) | Windows by `tracked_at` / solve day: only solves that really are recent count |
 | `GetContentDigestRecipients` (weekly digest), `GetMostSolvedPuzzles`, `GetStatistics` | A period by `tracked_at`: an old solve is not in this period |
-| Weekday rules (`ISODOW` of `finished_at` - Weekend Puzzler, the calendar), streaks | Day-based on the solve day, which an imported result has exactly (only exact days are added) |
+| Weekday rules (`ISODOW` of `finished_at` - Weekend Puzzler, the calendar), streaks | Day-based on the solve day: a result known to its month or year only is left out (`finished_at_precision IS NULL` - `date-precision.md` "Counting") |
 | `NotifyWhenPuzzleSolved` (followers) | Never runs - the writer takes `PuzzleSolved` off |
 | XP weekly boost / `XpFormulaCutoff` | By `tracked_at` = the solve day: history earns the base only (writer.md "XP") |
 | The duplicate job's "saved seconds apart" | 6a: never certain for an imported result |

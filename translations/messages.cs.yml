@@ -11857,7 +11857,7 @@ data_import:
             sheets: "Listy, které ještě nemají nastavené sloupce: %number%"
             not_added: "Řádky, které se nepodařilo přidat: %number%"
             unlisted: "Řádky puzzlí mimo databázi: %number%. Puzzle mimo databázi přijdou s dalším krokem - nic se neztratí."
-            needs_exact_day: "Výsledky bez přesného dne: %number%. Přijdou s dalším krokem - nic se neztratí."
+            needs_exact_day: "Výsledky bez data: %number%. Otevřete řádky a datum doplňte - nic se neztratí."
             over_daily_limit: "Výsledky, které počkají na zítřek: %number% (nejvýše %limit% výsledků denně)."
         kind:
             results: "Výsledky"
@@ -11954,7 +11954,7 @@ data_import:
         comment_too_long: "Komentář je delší, než MySpeedPuzzling přijímá. Zkraťte ho v souboru, nebo sloupec přiřaďte k soukromým poznámkám."
         not_ready: "Když na řádek přišla řada, už nebyl připravený - jeho puzzle nebo něco v řádku se mezitím změnilo."
         unlisted_not_yet: "Puzzle je vedeno jako puzzle mimo databázi. Ta přijdou s dalším krokem - nic se neztratí."
-        needs_exact_day: "Výsledek nemá přesný den. Výsledky známé jen na měsíc nebo rok přijdou s dalším krokem - nebo otevřete řádek a den doplňte."
+        needs_exact_day: "Výsledek nemá datum. Otevřete řádek a doplňte den, měsíc nebo rok."
         puzzle_not_available: "Toto puzzle už nelze vybrat. Vyberte puzzle znovu."
         similar_result_exists: "Na profilu už máte výsledek tohoto puzzle, který vypadá jako tento řádek - stejný čas v jiný den, nebo stejný den s jiným časem. Pokud jde o jiné složení, přidejte ho přesto."
         somebody_elses_result: "Někdo jiný už zapsal výsledek dvojice nebo týmu u tohoto puzzle se stejným dnem a časem. Pokud jste skládali spolu, požádejte ho raději o propojení - nebo výsledek přesto přidejte."
@@ -12671,7 +12671,7 @@ unlisted_puzzles:
         undo_already_running: "S tímto puzzle se právě pracuje. Zkuste to za chvíli."
         undo_nothing: "Toto spárování už nelze vrátit zpět."
     reason:
-        needs_exact_day: "Výsledek nemá přesný den, proto zatím zůstává mimo databázi. Výsledky známé jen na měsíc nebo rok přijdou v dalším kroku."
+        needs_exact_day: "Výsledek nemá žádné datum, proto zůstává mimo databázi. Bez data ho nelze přidat na profil."
         similar_result_exists: "Na profilu už máte výsledek tohoto puzzle, který vypadá jako tento - stejný čas v jiný den, nebo stejný den s jiným časem. Zůstává mimo databázi, aby se nic nepřidalo dvakrát."
         somebody_elses_result: "Někdo jiný už zapsal párový nebo týmový výsledek tohoto puzzle se stejným dnem a časem. Zůstává mimo databázi - pokud jste skládali spolu, požádejte je o propojení."
         people_do_not_fit_type: "Výsledek říká pár nebo tým a nikoho nejmenuje - nebo říká sólo a jmenuje lidi. Zůstává mimo databázi."

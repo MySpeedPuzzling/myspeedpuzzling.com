@@ -16,13 +16,14 @@ use Doctrine\ORM\Mapping\UniqueConstraint;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\PuzzlingType;
 
 /**
  * A result of a player on one of their unlisted puzzles (docs/features/data-import/unlisted-puzzles.md) - **never a
  * row of `puzzle_solving_time`**: it is in no ranking, statistic, chart, streak, feed, XP, achievement or API answer,
  * and only its owner ever sees it. It holds what the row of the file said, as it said it (a day known to the month
- * only stays a month).
+ * only stays a month - and becomes a result known to its month when the puzzle is paired).
  *
  * When its puzzle is paired with a catalogue puzzle it becomes a real result through the import's writer
  * (ImportedResultWriter) - then `convertedSolvingTimeId` names that result (one the pairing made, or one the player
@@ -141,10 +142,39 @@ class UnlistedResult
         return $this->convertedAt === null;
     }
 
-    public function hasExactDay(): bool
+    /**
+     * The date as the import's writer takes it: the day, or the first day of the month or year the file knows, with
+     * how exactly it is known (docs/features/data-import/date-precision.md). Null: undated - nothing to write.
+     *
+     * @return null|array{day: string, precision: DatePrecision}
+     */
+    public function dated(): null|array
     {
-        return $this->datePrecision === 'day' && $this->solvedOn !== null && preg_match('/^\d{4}-\d{2}-\d{2}$/', $this->solvedOn) === 1;
+        if ($this->solvedOn === null || $this->datePrecision === null) {
+            return null;
+        }
+
+        $precision = DatePrecision::tryFrom($this->datePrecision);
+
+        if ($precision === null) {
+            return null;
+        }
+
+        [$pattern, $rest] = match ($precision) {
+            DatePrecision::Day => ['/^\d{4}-\d{2}-\d{2}$/', ''],
+            DatePrecision::Month => ['/^\d{4}-\d{2}$/', '-01'],
+            DatePrecision::Year => ['/^\d{4}$/', '-01-01'],
+        };
+
+        if (preg_match($pattern, $this->solvedOn) !== 1) {
+            return null;
+        }
+
+        $day = DateTimeImmutable::createFromFormat('!Y-m-d', $this->solvedOn . $rest);
+
+        return $day === false || $day->format('Y-m-d') !== $this->solvedOn . $rest ? null : ['day' => $this->solvedOn . $rest, 'precision' => $precision];
     }
+
 
     /**
      * A pairing takes it: whatever an earlier pairing said of it is gone.

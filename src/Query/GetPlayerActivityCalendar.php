@@ -39,6 +39,8 @@ SELECT
 FROM puzzle_solving_time
 WHERE
     finished_at IS NOT NULL
+    -- Only a result that knows its day is on a day of the calendar, and has a weekday (date-precision.md)
+    AND finished_at_precision IS NULL
     AND finished_at >= :dateFrom
     AND finished_at <= :dateTo
     AND suspicious = false
@@ -107,6 +109,8 @@ SELECT DISTINCT to_char(finished_at, 'YYYY-MM-DD') AS day
 FROM puzzle_solving_time
 WHERE
     finished_at IS NOT NULL
+    -- Only a result that knows its day is on a day of the calendar, and has a weekday (date-precision.md)
+    AND finished_at_precision IS NULL
     AND finished_at >= :dateFrom
     AND finished_at <= :dateTo
     AND suspicious = false
@@ -146,6 +150,8 @@ SELECT
 FROM puzzle_solving_time
 WHERE
     finished_at IS NOT NULL
+    -- Only a result that knows its day is on a day of the calendar, and has a weekday (date-precision.md)
+    AND finished_at_precision IS NULL
     AND finished_at >= :dateFrom
     AND finished_at <= :dateTo
     AND suspicious = false

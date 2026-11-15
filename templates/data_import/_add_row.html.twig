@@ -30,6 +30,8 @@
             {%- if said.time is not null %}{% set facts = facts|merge([said.time]) %}{% endif -%}
             {%- if said.day is not null %}
                 {%- set facts = facts|merge([said.day|format_date('medium', timezone='UTC')]) -%}
+            {%- elseif said.period is not null %}
+                {%- set facts = facts|merge([result_date(said.period.day, said.period.precision, 'medium')]) -%}
             {%- elseif said.text('date') is not null %}
                 {%- set facts = facts|merge([said.text('date')]) -%}
             {%- endif -%}

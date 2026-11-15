@@ -37,6 +37,7 @@ use SpeedPuzzling\Web\Value\DataImport\ImportedResultOutcome;
 use SpeedPuzzling\Web\Value\DataImport\ImportedResultRefusal;
 use SpeedPuzzling\Web\Value\DataImport\ImportedResultStatus;
 use SpeedPuzzling\Web\Value\DataImportFileKind;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -109,6 +110,10 @@ final class ImportWritePathParityTest extends KernelTestCase
         'prediction_source',
         'prediction_computed_at',
         'prediction_model_version',
+        // How exactly the solve day is known (docs/features/data-import/date-precision.md): a typed result always
+        // knows its day (NULL - the forms cannot say anything else); an imported one holds what its file knows -
+        // NULL for a day, as in every case of the provider, `month` / `year` otherwise (testAMonthOrAYearIs...)
+        'finished_at_precision',
     ];
 
     private const string PUZZLE = PuzzleFixture::PUZZLE_1000_05;
@@ -346,6 +351,30 @@ final class ImportWritePathParityTest extends KernelTestCase
     }
 
     /**
+     * The one column only an import can fill (date-precision.md): a file that knows the month or the year of a solve.
+     * The result stands on the first day of that period - `finished_at` and noon of it as `tracked_at` - and says so;
+     * the same day typed into the form is a day.
+     */
+    public function testAMonthOrAYearIsStoredAsThatByTheImportAndNeverByTheForm(): void
+    {
+        $typist = $this->newPlayer('typist');
+        $importer = $this->newPlayer('importer');
+
+        $typed = $this->row($this->saveThroughTheAddForm($typist, 5400, '2021-03-01', [], false, null));
+        $month = $this->saveThroughTheImport($importer, 5400, '2021-03-01', [], false, null, DatePrecision::Month);
+        $year = $this->saveThroughTheImport($importer, 5500, '2021-01-01', [], false, null, DatePrecision::Year);
+        self::assertNotNull($month->solvingTimeId);
+        self::assertNotNull($year->solvingTimeId);
+
+        self::assertNull($typed['finished_at_precision']);
+        self::assertSame('month', $this->row($month->solvingTimeId)['finished_at_precision']);
+        self::assertSame('2021-03-01 00:00:00', $this->row($month->solvingTimeId)['finished_at']);
+        self::assertSame($typed['finished_at'], $this->row($month->solvingTimeId)['finished_at']);
+        self::assertSame('year', $this->row($year->solvingTimeId)['finished_at_precision']);
+        self::assertSame('2021-01-01 00:00:00', $this->row($year->solvingTimeId)['finished_at']);
+    }
+
+    /**
      * @param list<string> $columns
      */
     private function assertEveryColumnIsDecided(array $columns): void
@@ -411,7 +440,11 @@ final class ImportWritePathParityTest extends KernelTestCase
 
         // The prediction: stored live for a typed solo result of today or yesterday, never for an imported one -
         // that one stays "not evaluated" until the backfill reconstructs it, like a back-dated typed result
-        $predictionColumns = array_values(array_diff(self::DIFFERENT, ['tracked_at', 'created_via']));
+        // finished_at_precision: the rows of this comparison know their day - nothing stored on either side
+        self::assertNull($typed['finished_at_precision'], 'A typed result always knows its day.');
+        self::assertNull($imported['finished_at_precision'], 'An imported result of an exact day stores no precision.');
+
+        $predictionColumns = array_values(array_diff(self::DIFFERENT, ['tracked_at', 'created_via', 'finished_at_precision']));
 
         foreach ($predictionColumns as $column) {
             self::assertNull($imported[$column], sprintf('An imported result is never predicted live ("%s").', $column));
@@ -504,7 +537,7 @@ final class ImportWritePathParityTest extends KernelTestCase
     /**
      * @param list<string> $groupPlayers
      */
-    private function saveThroughTheImport(string $playerId, null|int $seconds, string $day, array $groupPlayers, bool $firstTry, null|string $comment): ImportedResultOutcome
+    private function saveThroughTheImport(string $playerId, null|int $seconds, string $day, array $groupPlayers, bool $firstTry, null|string $comment, DatePrecision $precision = DatePrecision::Day): ImportedResultOutcome
     {
         $player = $this->entityManager->find(Player::class, $playerId);
         self::assertNotNull($player);
@@ -531,6 +564,7 @@ final class ImportWritePathParityTest extends KernelTestCase
             groupPlayers: $groupPlayers,
             comment: $comment,
             position: $row->rowNumber,
+            precision: $precision,
         );
 
         // As stage 6b's handler will: inside its transaction, flushed by the transaction's end

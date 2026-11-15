@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Exceptions\GuestLinkRequestNotFound;
 use SpeedPuzzling\Web\Results\GuestLinkRequestDetail;
 use SpeedPuzzling\Web\Results\PuzzlingTeamTime;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Value\DatePrecision;
 
 readonly final class GetGuestLinkRequests
 {
@@ -55,7 +56,7 @@ SQL,
 
         /**
          * @var list<array{
-         *     time_id: string, seconds_to_solve: null|int, solved_at: string, first_attempt: bool, unboxed: bool,
+         *     time_id: string, seconds_to_solve: null|int, solved_at: string, finished_at_precision: null|string, first_attempt: bool, unboxed: bool,
          *     puzzle_id: string, puzzle_name: string, pieces_count: int, puzzle_image: null|string, manufacturer_name: string,
          * }> $times
          */
@@ -65,6 +66,7 @@ SELECT
     time.id AS time_id,
     time.seconds_to_solve,
     COALESCE(time.finished_at, time.tracked_at) AS solved_at,
+    time.finished_at_precision,
     time.first_attempt,
     time.unboxed,
     puzzle.id AS puzzle_id,
@@ -105,6 +107,7 @@ SQL,
                 puzzleImage: $time['puzzle_image'],
                 time: $time['seconds_to_solve'],
                 solvedAt: new DateTimeImmutable($time['solved_at']),
+                datePrecision: DatePrecision::ofStored($time['finished_at_precision']),
                 firstAttempt: $time['first_attempt'],
                 unboxed: $time['unboxed'],
             ), $times),

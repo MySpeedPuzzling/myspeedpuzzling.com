@@ -88,8 +88,8 @@ later.
 ## Adding
 
 A row is **ready** also when its puzzle is decided as `unlisted` (`DataImportRowRepository::sqlReadyRows()` - the one
-definition) - whatever its date's precision: nothing public is made of it, so a day known to the month or the year
-only is kept as the file says it. The row goes through the same batch and turn machinery as any other
+definition) - dated or not: nothing public is made of it, and what the file says of the date is kept as it says
+it (a day, a month, a year, nothing). The row goes through the same batch and turn machinery as any other
 (`AddImportRows` → `ProcessImportBatch` → `ApplyImportRow`); in `ImportRowAdder::add()` it is handed to
 `UnlistedRowWriter::write()` instead of being refused `unlisted_not_yet` (the code stays for batches made before).
 
@@ -163,7 +163,11 @@ Owner only, all 6 locales, mobile first, no JavaScript of their own.
 3. **A result** (`UnlistedPairer::convertResult()`):
    - the catalogue puzzle may still be chosen and written to (`puzzle_not_available`, `puzzle_not_revealed`) - **a
      puzzle merged between the tap and the step is its survivor** (`puzzle_redirect`);
-   - **only a result with an exact day** is ever made (`needs_exact_day`) - a month is never stored as a day (6c);
+   - **a result that knows only its month or year becomes a result of that precision** (6c, `date-precision.md`:
+     the first day of the period + `finished_at_precision`); only a result **without any date** stays unlisted
+     (`needs_exact_day` - the code kept its name). The results that know their day are converted first, so "Sept
+     2021" is the result its day of the same file made, never a second one - what an "Add" does by adding the finer
+     row first;
    - then **`ImportResultQuestions::ask()` - the very method an "Add" calls for a row** (`ImportRowAdder::resultOf()`),
      not a copy of it, with what the unlisted result kept of its row: the row's own result or the same data from
      another import exists → it is that result; the player has exactly this result on the profile, not spoken for →
@@ -269,8 +273,8 @@ Cron (lily): `17 5 * * * … php bin/console myspeedpuzzling:pair-unlisted-puzzl
   pictures fetched from the file's links; editing an unlisted result by hand; adding an unlisted puzzle outside the
   import; joining two spellings ("These are the same"); "Fine as it is"; My data; other entry points; the
   owner-only blocks on the profile and the collection pages, the banner line and the totals line.
-- **Date precision (6c)**: a result known to the month or the year only stays unlisted when its puzzle is paired
-  (`needs_exact_day`) - "Try to add the rest again" takes it once 6c can store it.
+- An undated unlisted result can not be given a date on the unlisted page (editing is left for later): it stays
+  unlisted when its puzzle is paired.
 - **Answers to the pairing's questions**: a result kept for `similar_result_exists`, `somebody_elses_result`,
   `unusual_time`, `first_try_taken` has no "add it anyway" on the unlisted page yet.
 - **The player's own fields and notes** of an unlisted row are not stored with the unlisted result and are not
@@ -289,7 +293,7 @@ Cron (lily): `17 5 * * * … php bin/console myspeedpuzzling:pair-unlisted-puzzl
 
 `tests/MessageHandler/DataImport/UnlistedPuzzlesTest` (adding: results with and without a time, a pair, a month-only
 day, owned, wish, both - the unlisted tables only; the same data again and equal rows; Undo; pairing: new results
-once, the result the player had, a similar one and a month-only one kept, the mark, the remembered decision, a
+once, the result the player had, a similar one and an undated one kept, month and year results paired with their precision, the mark, the remembered decision, a
 resent request, the rest again, the import's Undo after a pairing, Undo of the pairing; a result changed since; who
 may pair and with what; paused; Remove; the daily look; the daily guard and "the rest tomorrow"; a puzzle merged
 between the tap and the step; the lock of pairing, Undo and Remove; an undone pairing is not suggested again and its

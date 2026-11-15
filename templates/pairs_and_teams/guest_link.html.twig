@@ -49,7 +49,7 @@
                         </td>
                         <td class="text-end text-nowrap">
                             {% if time.time is not null %}<strong>{{ time.time|puzzlingTime }}</strong>{% else %}<span class="text-muted">{{ 'puzzle_add.mode.relax'|trans }}</span>{% endif %}<br>
-                            <span class="text-muted">{{ time.solvedAt|date('d.m.Y') }}</span>
+                            <span class="text-muted">{{ result_date(time.solvedAt, time.datePrecision) }}</span>
                         </td>
                     </tr>
                 {% endfor %}

@@ -59,7 +59,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
  *   **whatever would be a question stays unlisted**, with the reason;
  * - **what a pairing makes public counts in the day's guard** like what an "Add" makes public: once today's
  *   results are used up, the rest waits for tomorrow;
- * - only a result with an exact day is ever made (a month is never stored as a day);
+ * - a result known to its month or year becomes a result of that precision; an undated one stays unlisted;
  * - a mark becomes an item of the player's system collection / wish list under the engine's rules; what was there
  *   before is never touched.
  *
@@ -286,8 +286,11 @@ readonly final class UnlistedPairer
             return;
         }
 
-        // A date we do not know is never stored as a day (README D13) - such a result waits for the date precision
-        if ($result->hasExactDay() === false || $result->solvedOn === null) {
+        // A result known to its month or year becomes a result of that precision (date-precision.md); only one
+        // without any date has nothing to be written with - the code kept its name
+        $dated = $result->dated();
+
+        if ($dated === null) {
             $result->kept(UnlistedKeptReason::NeedsExactDay->value);
 
             return;
@@ -309,7 +312,7 @@ readonly final class UnlistedPairer
             player: $player,
             puzzle: $puzzle,
             sourceKey: $result->sourceKey,
-            day: $result->solvedOn,
+            day: $dated['day'],
             seconds: $result->secondsToSolve !== null && $result->secondsToSolve > 0 ? $result->secondsToSolve : null,
             type: $result->puzzlingType,
             people: ImportRowAdder::people($result->people),
@@ -318,6 +321,7 @@ readonly final class UnlistedPairer
             position: $result->rowNumber,
             saidAlreadyOnProfile: $result->saidAlreadyOnProfile,
             countedOnItsOwn: $result->countedOnItsOwn,
+            precision: $dated['precision'],
         );
 
         if ($asked['refused'] !== null) {

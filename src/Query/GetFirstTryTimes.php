@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Results\FirstTryTime;
 use SpeedPuzzling\Web\Results\LateFirstTry;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
+use SpeedPuzzling\Web\Value\DatePrecision;
 
 /**
  * Who took part in which result of a puzzle, for the first-try rules (docs/features/first-try-integrity.md).
@@ -344,6 +345,7 @@ SQL;
         return <<<SQL
 pst.id AS time_id,
     COALESCE(pst.finished_at, pst.tracked_at) AS solved_at,
+    pst.finished_at_precision,
     pst.tracked_at,
     pst.player_id AS tracker_id,
     pst.first_attempt,
@@ -405,6 +407,7 @@ SQL;
             $times[$timeId] = new FirstTryTime(
                 timeId: $timeId,
                 solvedAt: new DateTimeImmutable($this->string($row, 'solved_at')),
+                datePrecision: DatePrecision::ofStored(is_string($row['finished_at_precision'] ?? null) ? $row['finished_at_precision'] : null),
                 firstAttempt: ($row['first_attempt'] ?? false) === true,
                 secondsToSolve: is_int($seconds) ? $seconds : null,
                 people: $time['people'],

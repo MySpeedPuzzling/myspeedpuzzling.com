@@ -229,18 +229,24 @@ readonly final class UnlistedPuzzleRepository
         $pending = [];
 
         foreach (['result' => UnlistedResult::class, 'ownership' => UnlistedOwnership::class] as $kind => $class) {
-            /** @var list<array{id: UuidInterface}> $rows */
-            $rows = $this->entityManager->createQueryBuilder()
+            $query = $this->entityManager->createQueryBuilder()
                 ->select('subject.id')
                 ->from($class, 'subject')
                 ->where('subject.pairingId = :pairingId')
                 ->andWhere($undoing ? 'subject.convertedAt IS NOT NULL' : 'subject.convertedAt IS NULL')
                 ->andWhere('subject.keptReason IS NULL')
                 ->setParameter('pairingId', $pairingId)
-                ->orderBy('subject.id')
-                ->setMaxResults($limit)
-                ->getQuery()
-                ->getArrayResult();
+                ->setMaxResults($limit);
+
+            // The results that know their day first: one known to its month or year only is then the result a finer
+            // one of the same file made, not a second one (the order an "Add" keeps by adding the finer row first)
+            if ($kind === 'result') {
+                $query->addSelect("CASE WHEN subject.datePrecision = 'day' THEN 0 WHEN subject.datePrecision = 'month' THEN 1 ELSE 2 END AS HIDDEN coarseness")
+                    ->orderBy('coarseness');
+            }
+
+            /** @var list<array{id: UuidInterface}> $rows */
+            $rows = $query->addOrderBy('subject.id')->getQuery()->getArrayResult();
 
             foreach ($rows as $row) {
                 $pending[] = ['kind' => $kind, 'id' => $row['id']->toString()];

@@ -11,7 +11,7 @@ namespace SpeedPuzzling\Web\Value\Unlisted;
  */
 enum UnlistedKeptReason: string
 {
-    /** A result known to the month or the year only, or without a date: a date we do not know is never stored as a day */
+    /** A result without any date: there is nothing to write it with (the code kept the import's name) */
     case NeedsExactDay = 'needs_exact_day';
     /** The result it became was changed since - an Undo of the pairing leaves it where it is */
     case EditedSince = 'edited_since';

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler\DataImport;
 
-use DateTimeImmutable;
 use DateTimeZone;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Ramsey\Uuid\Uuid;
@@ -35,10 +34,8 @@ use SpeedPuzzling\Web\Query\GetNotifications;
 use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Value\DataImport\AddImportRowsOutcome;
 use SpeedPuzzling\Web\Value\DataImport\ImportPuzzleKey;
-use SpeedPuzzling\Web\Value\DataImport\ImportSourceKey;
 use SpeedPuzzling\Web\Value\DataImportRowKind;
 use SpeedPuzzling\Web\Value\DataImportUndoScope;
-use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\NotificationType;
 use SpeedPuzzling\Web\Value\PuzzlingType;
 use SpeedPuzzling\Web\Value\Unlisted\UnlistedPairingOutcome;
@@ -217,7 +214,8 @@ final class UnlistedPuzzlesTest extends KernelTestCase
         $untimed = $this->resultRow($import, $sheet, 'Zq Pair My Harbour Copy', 750, 'Zqpair', '2024-01-05', null);
         $equal = $this->resultRow($import, $sheet, 'Zq Pair My Harbour Copy', 750, 'Zqpair', '2024-01-09', 2500);
         $similar = $this->resultRow($import, $sheet, 'Zq Pair My Harbour Copy', 750, 'Zqpair', '2024-01-12', 2600);
-        $month = $this->monthRow($import, $sheet, 'Zq Pair My Harbour Copy', 750, 'Zqpair', '2021-09', 2300);
+        // A result without any date has nothing to be written with: it stays unlisted
+        $month = $this->undatedRow($import, $sheet, 'Zq Pair My Harbour Copy', 750, 'Zqpair', 2300);
         $owned = $this->ownedRow($import, $sheet, 'Zq Pair My Harbour Copy', 750, 'Zqpair', ['comment' => 'Box a bit torn']);
         $wish = $this->wishRow($import, $sheet, 'Zq Pair My Dream Copy', 1000, 'Zqpair');
         $this->pair($import);
@@ -241,7 +239,7 @@ final class UnlistedPuzzlesTest extends KernelTestCase
         $this->workPairing($outcome->pairingId);
 
         // Two new results through the import's writer; the one the player had is that one; the similar one and the
-        // month-only one stay unlisted, each with its reason - nothing is waved through
+        // undated one stay unlisted, each with its reason - nothing is waved through
         $results = $this->resultsOf($player, $catalogue);
         self::assertSame(
             [['2024-01-02 00:00:00', 2400, true, 'Public words'], ['2024-01-05 00:00:00', null, true, null], ['2024-01-09 00:00:00', 2500, false, null], ['2024-01-12 00:00:00', 2700, false, null]],
@@ -327,6 +325,52 @@ final class UnlistedPuzzlesTest extends KernelTestCase
         self::assertSame(2, $this->pairingCount("SELECT COUNT(*) FROM solving_time_graveyard WHERE deleted_via = 'import_undo' AND player_id = :id", ['id' => $player->id->toString()]));
         // Asked again, the Undo answers the same and does nothing
         self::assertSame(UnlistedPairingOutcome::SAME_REQUEST, $this->undoPairing($player, (string) $outcome->pairingId)->status);
+    }
+
+    public function testAnUnlistedResultThatKnowsOnlyItsMonthBecomesAResultOfThatPrecisionWhenPaired(): void
+    {
+        $player = $this->seedPairingPlayer('pairing-month');
+        $brand = $this->seedBrand('Zqmonth');
+        $catalogue = $this->seedCataloguePuzzle('Zq Month Catalogue', 500, $brand);
+
+        [$import, $sheet] = $this->importOf($player);
+        // Sheet order: the month first, then the very day of it with the same time, then a year, then nothing
+        $month = $this->monthRow($import, $sheet, 'Zq Month My Copy', 500, 'Zqmonth', '2021-09', 3000);
+        $day = $this->resultRow($import, $sheet, 'Zq Month My Copy', 500, 'Zqmonth', '2021-09-14', 3000);
+        $otherMonth = $this->monthRow($import, $sheet, 'Zq Month My Copy', 500, 'Zqmonth', '2022-03', 3100);
+        $year = $this->resultRow($import, $sheet, 'Zq Month My Copy', 500, 'Zqmonth', '2019', 3200);
+        $undated = $this->undatedRow($import, $sheet, 'Zq Month My Copy', 500, 'Zqmonth', 3300);
+        $this->pair($import);
+        $this->keepUnlisted($import, $player, 'Zq Month My Copy');
+        $this->addAndWork($import, $player);
+        $unlisted = $this->unlistedPuzzle($player, 'Zq Month My Copy');
+        self::assertCount(5, $this->unlistedResults($unlisted['id']));
+
+        $outcome = $this->pairUnlisted($player, $unlisted['id'], $catalogue);
+
+        // Stored as the file knows them (date-precision.md): the first day of the period, with its precision
+        self::assertSame(
+            [['2019-01-01 00:00:00', 'year', 3200], ['2021-09-14 00:00:00', null, 3000], ['2022-03-01 00:00:00', 'month', 3100]],
+            array_map(
+                static fn (array $result): array => [$result['finished_at'], $result['finished_at_precision'], $result['seconds_to_solve']],
+                $this->pairingDatabase()->fetchAllAssociative('SELECT finished_at, finished_at_precision, seconds_to_solve FROM puzzle_solving_time WHERE player_id = :id AND puzzle_id = :puzzle ORDER BY finished_at', ['id' => $player->id->toString(), 'puzzle' => $catalogue]),
+            ),
+        );
+        $byRow = [];
+
+        foreach ($this->unlistedResults($unlisted['id']) as $result) {
+            self::assertIsString($result['import_row_id']);
+            $byRow[$result['import_row_id']] = $result;
+        }
+
+        // "Sept 2021" is the result its day made - whatever their order in the file -, never a second one
+        self::assertSame([true, false, $byRow[$day]['converted_solving_time_id']], [$byRow[$month]['converted'], $byRow[$month]['converted_created'], $byRow[$month]['converted_solving_time_id']]);
+        self::assertSame([true, true], [$byRow[$day]['converted'], $byRow[$day]['converted_created']]);
+        self::assertSame([true, true], [$byRow[$otherMonth]['converted_created'], $byRow[$year]['converted_created']]);
+        // Only the one without any date stays unlisted
+        self::assertSame([false, 'needs_exact_day'], [$byRow[$undated]['converted'], $byRow[$undated]['kept_reason']]);
+        $pairing = $this->pairingNow($outcome->pairingId);
+        self::assertSame([3, 1, 1], [$pairing['results_added'], $pairing['results_already_yours'], $pairing['results_kept']]);
     }
 
     public function testAResultChangedSinceThePairingIsKeptByItsUndo(): void
@@ -716,18 +760,17 @@ SQL,
      */
     private function monthRow(DataImport $import, DataImportSheet $sheet, string $name, int $pieces, string $brand, string $month, int $seconds): string
     {
-        [$import, $sheet] = $this->managed($import, $sheet);
-        $puzzleKey = ImportPuzzleKey::of($name, $pieces, $brand);
-        self::assertNotNull($puzzleKey);
-        $key = ImportSourceKey::result($puzzleKey, new DateTimeImmutable($month . '-01'), DatePrecision::Month, $seconds, PuzzlingType::Solo, 1);
+        return $this->resultRow($import, $sheet, $name, $pieces, $brand, $month, $seconds);
+    }
 
-        return $this->seedRow($import, $sheet, $name, $pieces, $brand, [
-            'date' => $month,
-            'datePrecision' => 'month',
-            'seconds' => $seconds,
-            'type' => 'solo',
-            'keys' => ['result' => $key],
-        ], DataImportRowKind::Result, $key);
+    /**
+     * A row with a result that has no date at all.
+     */
+    private function undatedRow(DataImport $import, DataImportSheet $sheet, string $name, int $pieces, string $brand, int $seconds): string
+    {
+        [$import, $sheet] = $this->managed($import, $sheet);
+
+        return $this->seedRow($import, $sheet, $name, $pieces, $brand, ['seconds' => $seconds, 'type' => 'solo']);
     }
 
     /**

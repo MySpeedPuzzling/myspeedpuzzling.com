@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\InsightsImageTrait;
 use SpeedPuzzling\Web\Value\InsightsPuzzlePersonality;
 use SpeedPuzzling\Web\Value\TimePredictionMethod;
@@ -65,6 +66,8 @@ readonly final class InsightsSoloResult
         public null|int $predictedRange80HighSeconds = null,
         /** Its `tracked_at` is made up (noon of the solve day): the result has no hour it was logged at */
         public bool $fromSpreadsheetImport = false,
+        /** How exactly the solve day is known: a result known to its month or year only has no weekday and no day */
+        public DatePrecision $datePrecision = DatePrecision::Day,
     ) {
     }
 
@@ -109,6 +112,7 @@ readonly final class InsightsSoloResult
      *     solved_at: string,
      *     tracked_at: string,
      *     finished_at: null|string,
+     *     finished_at_precision?: null|string,
      *     first_attempt: bool|int|string,
      *     unboxed: bool|int|string,
      *     attempt: int|string,
@@ -186,6 +190,7 @@ readonly final class InsightsSoloResult
             predictedRange80LowSeconds: self::intOrNull($row['predicted_range80_low_seconds'] ?? null),
             predictedRange80HighSeconds: self::intOrNull($row['predicted_range80_high_seconds'] ?? null),
             fromSpreadsheetImport: self::bool($row['from_spreadsheet_import'] ?? false),
+            datePrecision: DatePrecision::ofStored($row['finished_at_precision'] ?? null),
         );
     }
 

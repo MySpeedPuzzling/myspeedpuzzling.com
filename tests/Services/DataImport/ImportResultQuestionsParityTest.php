@@ -36,6 +36,10 @@ final class ImportResultQuestionsParityTest extends KernelTestCase
     {
         yield 'a new result with a time' => [[['2024-01-02', 2400, ['comment' => 'Words']]], [], ['made']];
         yield 'a new result without a time' => [[['2024-01-02', null, []]], [], ['made']];
+        // 6c: a result that knows only its month is added as that - by both
+        yield 'a result known to its month' => [[['2021-09', 2400, []]], [], ['made']];
+        yield 'a month the profile has a day of, the same time' => [[['2021-09', 2500, []]], [['2021-09-14', 2500, false]], ['already']];
+        yield 'a month and its day in one file are one result' => [[['2021-09', 2400, []], ['2021-09-14', 2400, []]], [], ['already', 'made']];
         yield 'a pair with a guest' => [[['2024-01-02', 3000, ['type' => 'duo', 'people' => ['Anna']]]], [], ['made']];
         yield 'the same result is on the profile' => [[['2024-01-09', 2500, []]], [['2024-01-09', 2500, false]], ['already']];
         yield 'a similar result is on the profile' => [[['2024-01-12', 2600, []]], [['2024-01-12', 2700, false]], ['refused:similar_result_exists']];

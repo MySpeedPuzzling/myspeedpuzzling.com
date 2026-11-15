@@ -9,6 +9,7 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\DuplicateCandidate;
 use SpeedPuzzling\Web\Results\DuplicateCandidateTime;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
 
 /**
@@ -65,17 +66,21 @@ readonly final class GetDuplicateCandidates
      */
     private function find(string $soloScope, string $groupScope, array $parameters): array
     {
+        // "The same day" is the same day, or the same month / year of two results that know no more - never the first
+        // day a period is stored on against a real day (docs/features/data-import/date-precision.md)
+        $period = DatePrecision::sqlSolvedPeriod(...);
+
         $pairsQuery = <<<SQL
 WITH person_result AS (
     SELECT pst.id, pst.player_id AS person_id, pst.player_id AS tracker_id, pst.puzzling_team_id AS team_id,
-        pst.puzzle_id, pst.seconds_to_solve, COALESCE(pst.finished_at, pst.tracked_at)::date AS solved_day, pst.tracked_at
+        pst.puzzle_id, pst.seconds_to_solve, {$period('pst')} AS solved_day, pst.tracked_at
     FROM puzzle_solving_time pst
     WHERE pst.puzzling_team_id IS NULL
         AND pst.seconds_to_solve IS NOT NULL
         {$soloScope}
     UNION ALL
     SELECT pst.id, member.player_id, pst.player_id, pst.puzzling_team_id,
-        pst.puzzle_id, pst.seconds_to_solve, COALESCE(pst.finished_at, pst.tracked_at)::date, pst.tracked_at
+        pst.puzzle_id, pst.seconds_to_solve, {$period('pst')}, pst.tracked_at
     FROM puzzle_solving_time pst
     INNER JOIN puzzling_team_member member ON member.team_id = pst.puzzling_team_id AND member.player_id IS NOT NULL
     WHERE pst.seconds_to_solve IS NOT NULL
@@ -131,7 +136,7 @@ SELECT
                 AND other.puzzling_team_id IS NULL
                 AND other.id NOT IN (a.id, b.id)
                 AND other.seconds_to_solve IS DISTINCT FROM a.seconds_to_solve
-                AND COALESCE(other.finished_at, other.tracked_at)::date IN (COALESCE(a.finished_at, a.tracked_at)::date, COALESCE(b.finished_at, b.tracked_at)::date)
+                AND {$period('other')} IN ({$period('a')}, {$period('b')})
         )
         OR EXISTS (
             SELECT 1
@@ -141,7 +146,7 @@ SELECT
                 AND other.puzzle_id = a.puzzle_id
                 AND other.id NOT IN (a.id, b.id)
                 AND other.seconds_to_solve IS DISTINCT FROM a.seconds_to_solve
-                AND COALESCE(other.finished_at, other.tracked_at)::date IN (COALESCE(a.finished_at, a.tracked_at)::date, COALESCE(b.finished_at, b.tracked_at)::date)
+                AND {$period('other')} IN ({$period('a')}, {$period('b')})
         )
     ) AS practice_session,
     CASE WHEN a.player_id = b.player_id AND b.tracked_at - a.tracked_at < INTERVAL '1 hour' THEN EXISTS (
@@ -171,6 +176,8 @@ SQL;
 
     private function timeColumns(string $alias): string
     {
+        $period = DatePrecision::sqlSolvedPeriod($alias);
+
         return <<<SQL
 {$alias}.id AS {$alias}_id,
     {$alias}.player_id AS {$alias}_tracker_id,
@@ -183,7 +190,7 @@ SQL;
         INNER JOIN player member_player ON member_player.id = member.player_id
         WHERE member.team_id = {$alias}.puzzling_team_id
     ) AS {$alias}_people,
-    COALESCE({$alias}.finished_at, {$alias}.tracked_at)::date::text AS {$alias}_solved_day,
+    {$period} AS {$alias}_solved_day,
     {$alias}.finished_at AS {$alias}_finished_at,
     {$alias}.tracked_at AS {$alias}_tracked_at,
     {$alias}.comment AS {$alias}_comment,

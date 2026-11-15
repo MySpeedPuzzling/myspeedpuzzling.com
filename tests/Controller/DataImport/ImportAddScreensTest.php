@@ -76,8 +76,8 @@ final class ImportAddScreensTest extends WebTestCase
         $this->resultRow($import, $sheet, 'Zq Card Harbour', 500, 'Zqcard', '2024-03-01', 3723);
         $this->ownedRow($import, $sheet, 'Zq Card Meadow', 1000, 'Zqcard');
         $this->wishRow($import, $sheet, 'Zq Card Harbour', 500, 'Zqcard');
-        // A result known to the month only, and a row whose puzzle waits for a choice
-        $this->seedRow($import, $sheet, 'Zq Card Meadow', 1000, 'Zqcard', ['date' => '2024-02', 'datePrecision' => 'month', 'seconds' => 4000, 'type' => 'solo']);
+        // A result without any date, and a row whose puzzle waits for a choice
+        $this->seedRow($import, $sheet, 'Zq Card Meadow', 1000, 'Zqcard', ['seconds' => 4000, 'type' => 'solo']);
         $this->resultRow($import, $sheet, 'Zq Card Twin', 500, '', '2024-03-05', 2000);
         $this->pair($import);
         $importId = $import->id->toString();
@@ -98,7 +98,7 @@ final class ImportAddScreensTest extends WebTestCase
             // What is not ready, in plain words, with the place where it is settled
             self::assertSame('1', $card->filter('[data-testid="not-ready-undecided"]')->attr('data-rows'));
             self::assertSame('/en/import/' . $importId . '/puzzles', $card->filter('[data-testid="not-ready-undecided"] a')->attr('href'));
-            self::assertStringContainsString('Results without an exact day: 1. They arrive with a later step - nothing is lost.', self::spaced($card->filter('[data-testid="not-ready-exact-day"]')->text()));
+            self::assertStringContainsString('Results without a date: 1. Open the rows and give them a date - nothing is lost.', self::spaced($card->filter('[data-testid="not-ready-exact-day"]')->text()));
             self::assertStringNotContainsString('arrives soon', (string) $this->browser->getResponse()->getContent());
             // The card is inside the part of the page that follows the pairing by itself
             self::assertCount(1, $crawler->filter('turbo-frame[data-import-live] [data-testid="import-ready"]'));

@@ -479,6 +479,22 @@ SQL, [
     }
 
     /**
+     * SQL: the day a parsed row's date is stored on - `parsed.date` is written at its precision (`2021-03-15`,
+     * `2021-03`, `2021`), a month or a year stands on its first day (docs/features/data-import/date-precision.md).
+     * NULL for a row without a date. A CASE, so that nothing is cast before its shape is known.
+     */
+    public static function sqlRowAnchorDay(string $alias): string
+    {
+        return <<<SQL
+CASE
+    WHEN {$alias}.parsed ->> 'date' ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN CAST({$alias}.parsed ->> 'date' AS DATE)
+    WHEN {$alias}.parsed ->> 'date' ~ '^[0-9]{4}-[0-9]{2}$' THEN CAST(({$alias}.parsed ->> 'date') || '-01' AS DATE)
+    WHEN {$alias}.parsed ->> 'date' ~ '^[0-9]{4}$' THEN CAST(({$alias}.parsed ->> 'date') || '-01-01' AS DATE)
+END
+SQL;
+    }
+
+    /**
      * **The one definition of "ready"** (docs/features/data-import/adding.md "Ready") - two CTEs for whoever needs
      * them: "Add" itself (queueReadyRows()) and the screens that say beforehand what an "Add" would take
      * (Query\GetImportAddScreen), so the two can never drift apart.
@@ -488,10 +504,10 @@ SQL, [
      *   `:explicit = 1`), or settled as "already yours" with a result that is gone since ("already yours" is what
      *   exists now; puzzle_solving_time is asked only whether the id exists - whatever the result's state, tracked
      *   or not);
-     * - `ready`: of them, the rows whose puzzle is decided as a catalogue puzzle and - for a result - whose day is
-     *   exact, and the rows whose puzzle is kept as an unlisted puzzle (`choice = 'unlisted'`, whatever the day's
-     *   precision), in the file's order, with the running number of results for the profile (`results_so_far`: the
-     *   daily guard takes the first N - unlisted results are private and not counted).
+     * - `ready`: of them, the rows whose puzzle is decided as a catalogue puzzle and - for a result - that have a
+     *   date (a day, a month or a year), and the rows whose puzzle is kept as an unlisted puzzle
+     *   (`choice = 'unlisted'`, dated or not), in the file's order, with the running number of results for the
+     *   profile (`results_so_far`: the daily guard takes the first N - unlisted results are private and not counted).
      *
      * Parameters: `:importId`, `:explicit` (0 / 1), and whatever $selection names.
      *
@@ -511,8 +527,10 @@ chosen AS (
         r.kind = 'wish_list' AS is_wish,
         puzzle.choice,
         puzzle.puzzle_id,
-        -- Only a row with a result has a day to ask about (`parsed` is the widest thing a row holds)
-        r.kind IN ('result', 'both') AND COALESCE(r.parsed ->> 'datePrecision', '') = 'day' AND r.parsed ->> 'date' IS NOT NULL AS exact_day,
+        -- Only a row with a result has a date to ask about (`parsed` is the widest thing a row holds). A day, a month
+        -- or a year - the precision is stored with the result (date-precision.md); a result without any date waits.
+        -- (The column kept its name from the stage that added exact days only.)
+        r.kind IN ('result', 'both') AND COALESCE(r.parsed ->> 'datePrecision', '') IN ('day', 'month', 'year') AND r.parsed ->> 'date' IS NOT NULL AS exact_day,
         -- The same result as another row of the file: one result unless the player says otherwise (README D6)
         r.same_as_row_id IS NOT NULL AND r.add_as_separate = FALSE AS equal_row,
         r.state,
@@ -559,7 +577,7 @@ SQL;
     /**
      * "Add": the rows of the selection that are ready are queued for the batch, in the file's order - a row is ready
      * when it is data without a problem, its sheet is in, its puzzle is decided as a catalogue puzzle and, for a
-     * result, its day is exact - or its puzzle is kept as an unlisted puzzle
+     * result, it has a date - or its puzzle is kept as an unlisted puzzle
      * (docs/features/data-import/adding.md "Ready") - a row that waits, or one settled as
      * "already yours" whose result is gone since. One statement, so a row is queued by
      * one batch only: the second of two "Add"s finds it queued. At most $resultsLeft of the rows that carry a result
@@ -791,21 +809,50 @@ SQL, $parameters, $types)->fetchAssociative();
     }
 
     /**
+     * The result rows of a distinct puzzle that are still queued in the batch, besides one row - what a row known to
+     * its month or year looks through for a finer row of the same result (ImportRowAdder). At most 200.
+     *
+     * @return list<DataImportRow>
+     */
+    public function queuedResultRowsOfPuzzle(string $batchId, UuidInterface $importPuzzleId, string $exceptRowId): array
+    {
+        /** @var list<DataImportRow> $rows */
+        $rows = $this->entityManager->createQueryBuilder()
+            ->select('r')
+            ->from(DataImportRow::class, 'r')
+            ->where('r.batchId = :batchId')
+            ->andWhere('r.state = :queued')
+            ->andWhere('r.importPuzzleId = :importPuzzleId')
+            ->andWhere('r.id != :except')
+            ->andWhere('r.kind IN (:kinds)')
+            ->setParameter('batchId', $batchId)
+            ->setParameter('queued', DataImportRowState::Queued->value)
+            ->setParameter('importPuzzleId', $importPuzzleId)
+            ->setParameter('except', $exceptRowId)
+            ->setParameter('kinds', [DataImportRowKind::Result->value, DataImportRowKind::Both->value])
+            ->orderBy('r.id')
+            ->setMaxResults(200)
+            ->getQuery()
+            ->getResult();
+
+        return $rows;
+    }
+
+    /**
      * Which of the results are spoken for by a row of the player's imports: the result a row made, or the result a
      * row was settled as "already yours" with. A result on the profile pairs off with one row only (README "Never
-     * twice", step 2).
+     * twice", step 2). With $importId: only by the rows of that one import.
      *
      * @param list<string> $solvingTimeIds
      *
      * @return array<string, true> by solving time id
      */
-    public function solvingTimeIdsSpokenFor(string $playerId, array $solvingTimeIds): array
+    public function solvingTimeIdsSpokenFor(string $playerId, array $solvingTimeIds, null|string $importId = null): array
     {
         if ($solvingTimeIds === []) {
             return [];
         }
 
-        /** @var list<array{solvingTimeId: null|UuidInterface, alreadyYoursSolvingTimeId: null|UuidInterface, state: DataImportRowState}> $rows */
         $rows = $this->entityManager->createQueryBuilder()
             ->select('r.solvingTimeId', 'r.alreadyYoursSolvingTimeId', 'r.state')
             ->from(DataImportRow::class, 'r')
@@ -815,9 +862,14 @@ SQL, $parameters, $types)->fetchAssociative();
             ->setParameter('player', $playerId)
             ->setParameter('ids', $solvingTimeIds)
             // On a waiting row the column is only the pairing's hint; a row that is settled or added speaks for it
-            ->setParameter('settled', [DataImportRowState::AlreadyYours->value, DataImportRowState::Added->value])
-            ->getQuery()
-            ->getArrayResult();
+            ->setParameter('settled', [DataImportRowState::AlreadyYours->value, DataImportRowState::Added->value]);
+
+        if ($importId !== null) {
+            $rows->andWhere('i.id = :import')->setParameter('import', $importId);
+        }
+
+        $rows = $rows->getQuery()->getArrayResult();
+        /** @var list<array{solvingTimeId: null|UuidInterface, alreadyYoursSolvingTimeId: null|UuidInterface, state: DataImportRowState}> $rows */
 
         $spokenFor = [];
 

@@ -59,11 +59,17 @@ trait ImportAddingScenario
         $occurrence = is_int($more['occurrence'] ?? null) ? $more['occurrence'] : 1;
         $puzzleKey = ImportPuzzleKey::of($name, $pieces, $brand);
         self::assertNotNull($puzzleKey);
-        $key = ImportSourceKey::result($puzzleKey, new DateTimeImmutable($day), DatePrecision::Day, $seconds, PuzzlingType::from($type), $occurrence);
+        // The day as the parser writes it, at its precision: `2024-03-05`, `2024-03` (a month), `2024` (a year)
+        [$precision, $anchor] = match (strlen($day)) {
+            4 => [DatePrecision::Year, $day . '-01-01'],
+            7 => [DatePrecision::Month, $day . '-01'],
+            default => [DatePrecision::Day, $day],
+        };
+        $key = ImportSourceKey::result($puzzleKey, new DateTimeImmutable($anchor), $precision, $seconds, PuzzlingType::from($type), $occurrence);
 
         return $this->seedRow($import, $sheet, $name, $pieces, $brand, [
             'date' => $day,
-            'datePrecision' => 'day',
+            'datePrecision' => $precision->value,
             'seconds' => $seconds,
             'type' => $type,
             'keys' => ['result' => $key],
@@ -322,7 +328,7 @@ trait ImportAddingScenario
     private function resultsOf(Player|string $player, null|string $puzzleId = null): array
     {
         return $this->pairingDatabase()->fetchAllAssociative(
-            'SELECT id, puzzle_id, seconds_to_solve, finished_at, tracked_at, puzzling_type, first_attempt, comment, created_via, team, suspicious FROM puzzle_solving_time WHERE player_id = :playerId AND (CAST(:puzzleId AS UUID) IS NULL OR puzzle_id = :puzzleId) ORDER BY finished_at, seconds_to_solve',
+            'SELECT id, puzzle_id, seconds_to_solve, finished_at, finished_at_precision, tracked_at, puzzling_type, first_attempt, comment, created_via, team, suspicious FROM puzzle_solving_time WHERE player_id = :playerId AND (CAST(:puzzleId AS UUID) IS NULL OR puzzle_id = :puzzleId) ORDER BY finished_at, seconds_to_solve',
             ['playerId' => is_string($player) ? $player : $player->id->toString(), 'puzzleId' => $puzzleId],
         );
     }

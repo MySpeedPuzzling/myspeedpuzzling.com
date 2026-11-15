@@ -65,7 +65,7 @@
                                 {#- An in-person round happens on its own date - only an online round solved at home and sent later
                                     has results of different days -#}
                                 {% if event.isOnline and result.finishedAt is not null %}
-                                    <br><small class="text-muted">{{ result.finishedAt|date('d.m.Y') }}</small>
+                                    <br><small class="text-muted">{{ result_date(result.finishedAt, result.datePrecision) }}</small>
                                 {% endif %}
                             </td>
                         </tr>

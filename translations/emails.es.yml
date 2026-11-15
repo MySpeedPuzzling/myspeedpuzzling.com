@@ -561,3 +561,20 @@ listing_request:
     answer: "Responder"
     no_addresses: "Nunca compartimos direcciones de e-mail: respondes dentro de MySpeedPuzzling."
     opt_out: "Recibes este e-mail porque tienes puzzles en tu lista de venta/intercambio. <a href=\"%settingsUrl%\">Configuración de e-mails</a> · <a href=\"%unsubscribeUrl%\">Dejar de recibir estos e-mails</a>"
+
+# "Your import is done" - one per finished "Add" of a spreadsheet import (docs/features/data-import/adding.md)
+import_added:
+    subject: "{0}Tu importación ha terminado|{1}Tu importación ha terminado: 1 fila añadida|]1,Inf[Tu importación ha terminado: %count% filas añadidas"
+    preheader: "Mira lo que se añadió a tu perfil y deshazlo si algo no cuadra."
+    title: "Tu importación ha terminado"
+    greeting: "Hola, %name%:"
+    intro: "Hemos repasado las filas de %file% que nos pediste añadir."
+    added: "{0}No se añadió nada.|{1}Se añadió 1 fila a tu perfil.|]1,Inf[Se añadieron %count% filas a tu perfil."
+    results: "{0}ningún resultado|{1}1 resultado|]1,Inf[%count% resultados"
+    collection_items: "{0}ningún puzzle de colección|{1}1 puzzle de colección|]1,Inf[%count% puzzles de colección"
+    wish_list_items: "{0}ningún puzzle de la lista de deseos|{1}1 puzzle de la lista de deseos|]1,Inf[%count% puzzles de la lista de deseos"
+    already_yours: "{0}Ninguna era ya tuya.|{1}1 ya era tuya: nada se añadió dos veces.|]1,Inf[%count% ya eran tuyas: nada se añadió dos veces."
+    not_added: "{0}Se pudieron añadir todas las filas.|{1}1 fila no se pudo añadir y te espera.|]1,Inf[%count% filas no se pudieron añadir y te esperan."
+    open: "Abrir la importación"
+    undo_hint: "¿Algo no cuadra? En la página de la importación puedes deshacer lo añadido."
+    opt_out: "Recibes este correo porque añadiste filas de una importación de hoja de cálculo. <a href=\"%settingsUrl%\">Ajustes de correo</a> · <a href=\"%unsubscribeUrl%\">Dejar de recibir estos correos</a>"

@@ -19,4 +19,7 @@ enum SolvingTimeDeletedVia: string
     case EventImport = 'event_import';
     // The player claimed their spot of an imported event result and said their own copy was the same result
     case EventResultClaim = 'event_result_claim';
+    // A result a spreadsheet import added, taken back by its Undo - the player's, or an admin's
+    // (docs/features/data-import/adding.md "Undo")
+    case ImportUndo = 'import_undo';
 }

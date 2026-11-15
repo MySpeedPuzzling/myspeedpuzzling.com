@@ -80,6 +80,13 @@ final class MessagingSettingsFormType extends AbstractType
             'required' => false,
         ]);
 
+        // docs/features/data-import/adding.md - the e-mail saying an "Add" of a spreadsheet import is done
+        $builder->add('importEmails', CheckboxType::class, [
+            'label' => 'data_import.settings.emails_label',
+            'help' => 'data_import.settings.emails_help',
+            'required' => false,
+        ]);
+
         $builder->add('featureRequestEmails', EnumType::class, [
             'class' => FeatureRequestEmails::class,
             'label' => 'edit_profile.feature_request_emails',

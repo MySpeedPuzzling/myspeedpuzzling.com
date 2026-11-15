@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Events\OfficialRoundResultsPublished;
 use SpeedPuzzling\Web\Events\PuzzleMergeApproved;
 use SpeedPuzzling\Web\Events\SeriesEditionsChanged;
 use SpeedPuzzling\Web\Message\AddComparisonSubject;
+use SpeedPuzzling\Web\Message\AddImportRows;
 use SpeedPuzzling\Web\Message\AddCompetitionRound;
 use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
@@ -76,6 +77,7 @@ use SpeedPuzzling\Web\Message\StartRoundStopwatch;
 use SpeedPuzzling\Web\Message\StopRoundStopwatch;
 use SpeedPuzzling\Web\Message\SubmitPuzzleChangeRequest;
 use SpeedPuzzling\Web\Message\UndoAutoRemoval;
+use SpeedPuzzling\Web\Message\UndoImportRows;
 use SpeedPuzzling\Web\Message\UndoParticipantCheckIn;
 use SpeedPuzzling\Web\Message\UnmarkParticipantPaid;
 use SpeedPuzzling\Web\Message\UnpublishCompetition;
@@ -86,6 +88,7 @@ use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\ComparisonKind;
 use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
+use SpeedPuzzling\Web\Value\DataImportUndoScope;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\OnlineConfirmedSource;
 use SpeedPuzzling\Web\Value\ParticipantImportRows;
@@ -106,6 +109,27 @@ final class SerializedByLockMessagesTest extends TestCase
     {
         self::assertSame('stripe-subscription-sub_123', (new UpdateMembershipSubscription('sub_123'))->lockKey());
         self::assertSame('stripe-subscription-sub_123', (new CancelMembershipSubscription('sub_123'))->lockKey());
+    }
+
+    /**
+     * "Add" of a spreadsheet import (docs/features/data-import/adding.md): one at a time per player, whatever import
+     * and rows it names - "is one running?", the day's count and the queueing are one step. An Undo is one at a time
+     * per import, whoever asks.
+     */
+    public function testAnAddOfImportRowsLocksThePlayerAndAnUndoTheImport(): void
+    {
+        $player = '018D0000-0000-0000-0000-00000000000A';
+        $key = (new AddImportRows('request', 'import', $player))->lockKey();
+
+        self::assertSame('data-import-add-018d0000-0000-0000-0000-00000000000a', $key);
+        self::assertSame($key, (new AddImportRows('other-request', 'other-import', strtolower($player), ['row'], ['puzzle']))->lockKey());
+        self::assertNotSame($key, (new AddImportRows('request', 'import', '018d0000-0000-0000-0000-00000000000b'))->lockKey());
+
+        $import = '018D0000-0000-0000-0000-0000000000C1';
+        $undo = (new UndoImportRows('request', $import, $player, DataImportUndoScope::Import))->lockKey();
+
+        self::assertSame('data-import-undo-018d0000-0000-0000-0000-0000000000c1', $undo);
+        self::assertSame($undo, (new UndoImportRows('other-request', strtolower($import), 'an-admin', DataImportUndoScope::Batch, 'batch', asAdmin: true, reason: 'why'))->lockKey());
     }
 
     /**

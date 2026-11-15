@@ -1,0 +1,98 @@
+{% extends 'base.html.twig' %}
+{# One "Add" for admins (docs/features/data-import/adding.md "The audit page") - English only. What each row made by
+   id, never a cell of the spreadsheet. #}
+
+{% block title %}Import batch{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <p class="mb-2"><a href="{{ path('admin_imports') }}">&larr; Spreadsheet imports</a></p>
+    <h1 class="h3 mb-2">Batch of {{ batch.player_name }}</h1>
+    <p class="text-muted mb-3">
+        <a href="{{ path('player_profile', {playerId: batch.player_id}) }}">{{ batch.player_name }}</a> · {{ batch.file_name }} ·
+        started {{ batch.started_at|date('d.m.Y H:i') }} UTC{% if batch.finished_at is not null %} · finished {{ batch.finished_at|date('d.m.Y H:i') }} UTC{% endif %}
+        {% if batch.undone_at is not null %} · <span class="badge bg-secondary">undone {{ batch.undone_at|date('d.m.Y H:i') }}</span>{% endif %}
+    </p>
+
+    <div class="row g-3 mb-4" data-testid="import-batch-counts">
+        {% for label, value in {
+            'Rows queued': batch.rows_requested,
+            'Still waiting for their turn': batch.rows_queued,
+            'Added': batch.rows_added,
+            'Results': batch.results_added,
+            'Collection puzzles': batch.collection_items_added,
+            'Wish list puzzles': batch.wish_list_items_added,
+            'Already theirs': batch.rows_already_yours,
+            'Refused by a rule': batch.rows_refused,
+            'Failed (ours)': batch.rows_failed,
+        } %}
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="card card-body py-2 px-3">
+                    <div class="fs-sm text-muted">{{ label }}</div>
+                    <div class="h5 mb-0">{{ value }}</div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="card card-body shadow-sm mb-4 border-danger">
+        <h2 class="h5">Undo this batch</h2>
+        <p class="fs-sm mb-3">
+            Takes back everything this batch added: its results are deleted (with a grave and tombstones, like any deleted
+            result), the collection and wish list puzzles it created are removed, wish list puzzles it removed come back.
+            A result the player changed since is kept. The rows wait again and can be added again. A batch that still runs
+            is stopped first.
+        </p>
+        <form method="post" action="{{ path('admin_import_batch_undo', {batchId: batch.id}) }}" class="row g-2 align-items-end" data-testid="import-batch-undo-form">
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\Admin\\DataImport\\UndoImportBatchController::CSRF_TOKEN_ID')) }}">
+            <input type="hidden" name="requestId" value="{{ undo_request_id }}">
+            <div class="col-md-7">
+                <label class="form-label fs-sm" for="import-batch-undo-reason">Reason (required - kept with the Undo)</label>
+                <input type="text" class="form-control" id="import-batch-undo-reason" name="reason" maxlength="500" required>
+            </div>
+            <div class="col-md-5">
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Take back everything this batch added?')">Undo this batch</button>
+            </div>
+        </form>
+    </div>
+
+    {% if undos is not empty %}
+        <h2 class="h5">Undos of this batch</h2>
+        {{ include('admin/_import_undos.html.twig', {undos: undos}) }}
+    {% endif %}
+
+    <h2 class="h5">Rows <small class="text-muted">(not added first; 500 at most)</small></h2>
+    <div class="table-responsive">
+        <table class="table table-sm align-middle" data-testid="import-batch-rows">
+            <thead>
+                <tr>
+                    <th>Sheet</th>
+                    <th class="text-end">Row</th>
+                    <th>Kind</th>
+                    <th>Outcome</th>
+                    <th>Why</th>
+                    <th>Made</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                    <tr>
+                        <td>{{ row.sheet_title }}</td>
+                        <td class="text-end">{{ row.row_number }}</td>
+                        <td>{{ row.kind }}</td>
+                        <td>
+                            <span class="badge {{ row.outcome == 'added' ? 'bg-success' : (row.outcome == 'failed' ? 'bg-danger' : (row.outcome == 'refused' ? 'bg-warning text-dark' : 'bg-secondary')) }}">{{ row.outcome }}</span>
+                        </td>
+                        <td class="fs-sm">{{ row.failure ?? row.already_yours_how ?? '' }}{% if row.kept_by_undo is not null %} kept by an Undo (changed since){% endif %}</td>
+                        <td class="fs-sm">
+                            {% if row.solving_time_id is not null %}<a href="{{ path('puzzle_result_detail', {_locale: 'en', timeId: row.solving_time_id}) }}">result</a>{% endif %}
+                            {% if row.collection_item_id is not null %} · collection puzzle{% endif %}
+                            {% if row.wish_list_item_id is not null %} · wish list puzzle{% endif %}
+                            {% if row.wish_list_items_removed > 0 %} · removed {{ row.wish_list_items_removed }} from the wish list{% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

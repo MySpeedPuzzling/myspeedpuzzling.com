@@ -99,6 +99,11 @@ class Notification
         #[JoinColumn(onDelete: 'CASCADE')]
         #[Immutable]
         public null|ListingRequest $targetListingRequest = null,
+        // ImportRowsAdded: the "Add" of a spreadsheet import that is done (docs/features/data-import/adding.md)
+        #[ManyToOne]
+        #[JoinColumn(onDelete: 'CASCADE')]
+        #[Immutable]
+        public null|DataImportBatch $targetDataImportBatch = null,
     ) {
     }
 }

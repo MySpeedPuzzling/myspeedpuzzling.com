@@ -12086,3 +12086,19 @@ data_import:
         google_link: "これは Google スプレッドシートのリンクではありません。シートを開き、共有 → リンクをコピー を選んでここに貼り付けてください。docs.google.com/spreadsheets で始まります。"
         google_published: "これは「ウェブに公開」のリンクです。代わりに 共有 → リンクをコピー のリンクを貼り付けてください。"
         google_rate_limited: "この 1 時間に取り込んだ Google スプレッドシートが多すぎます。しばらくしてからもう一度お試しください。"
+    # Adding rows to the profile (docs/features/data-import/adding.md): the e-mail switch, its unsubscribe page, the notification
+    settings:
+        emails_label: "インポートのメール"
+        emails_help: "スプレッドシートのインポートの行がプロフィールに追加されたときに届くメールです。通知にはいつでも表示されます。"
+    emails_unsubscribe:
+        headline: "インポートのメール"
+        text: "スプレッドシートのインポートが完了したときのメールが不要ですか？ 通知には引き続き表示され、ほかのメールはそのままです。"
+        confirm_button: "このメールを停止する"
+        done: "完了しました。インポートのメールは届かなくなります。通知には引き続き表示されます。"
+        settings_hint: "プロフィール設定の「メッセージと通知」でいつでも再び有効にできます。"
+    notification:
+        done: "%file% のインポートが完了しました。"
+        added: "{0}追加なし|[1,Inf[%count% 行を追加"
+        already_yours: "{0}登録済みなし|[1,Inf[%count% 行は登録済み"
+        not_added: "{0}追加できなかった行なし|[1,Inf[%count% 行は追加できませんでした"
+        open: "開く"

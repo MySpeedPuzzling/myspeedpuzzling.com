@@ -77,4 +77,8 @@ enum NotificationType: string
     // organizer's team or an admin (actor = who, never shown). Target = the result
     case EventResultClaimed = 'EventResultClaimed';
     case EventResultClaimRemoved = 'EventResultClaimRemoved';
+
+    // An "Add" of the player's spreadsheet import is done (docs/features/data-import/adding.md "Telling the player"):
+    // one per batch, never per row. Target = the batch (its counts and its import)
+    case ImportRowsAdded = 'ImportRowsAdded';
 }

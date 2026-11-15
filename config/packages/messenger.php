@@ -17,6 +17,8 @@ use SpeedPuzzling\Web\Message\PushNewsletterSubscriberToListmonk;
 use SpeedPuzzling\Web\Message\BuildImportPuzzles;
 use SpeedPuzzling\Web\Message\MatchImportPuzzlesFuzzy;
 use SpeedPuzzling\Web\Message\ParseImportSheet;
+use SpeedPuzzling\Web\Message\ProcessImportBatch;
+use SpeedPuzzling\Web\Message\ProcessImportUndo;
 use SpeedPuzzling\Web\Message\ProposeImportMappings;
 use SpeedPuzzling\Web\Message\ReadImportFile;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
@@ -27,6 +29,7 @@ use SpeedPuzzling\Web\Message\RecalculateXpForPlayer;
 use SpeedPuzzling\Web\Message\RemoveNewsletterSubscriberFromListmonk;
 use SpeedPuzzling\Web\Message\SendPartnerListingReminder;
 use SpeedPuzzling\Web\Message\SendBorrowRequestEmail;
+use SpeedPuzzling\Web\Message\SendImportAddedEmail;
 use SpeedPuzzling\Web\Message\SendListingRequestEmail;
 use SpeedPuzzling\Web\Message\SendPartnerRequestEmail;
 use SpeedPuzzling\Web\Message\SendPartnerTeamedUpEmail;
@@ -157,6 +160,13 @@ return App::config([
                 // Fetching a Google sheet's export for an import: waits for Google outside a transaction, then hands
                 // the file to the reading above (docs/features/data-import/google-sheets.md)
                 StartImportFromGoogleSheet::class => 'imports',
+                // Adding an import's rows to the profile and taking them back (docs/features/data-import/adding.md):
+                // turns of a few rows outside a transaction, each row a message of its own (not routed: handled at
+                // once), the job sending itself again - other players' imports take their turns in between
+                ProcessImportBatch::class => 'imports',
+                ProcessImportUndo::class => 'imports',
+                // "Your import is done" - never in the worker's turn
+                SendImportAddedEmail::class => 'async',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)
                 'SpeedPuzzling\Web\Events\PuzzleBorrowed' => 'sync',
                 'SpeedPuzzling\Web\Events\PuzzleAddedToCollection' => 'sync',

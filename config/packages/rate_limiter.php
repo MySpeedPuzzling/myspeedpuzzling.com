@@ -177,6 +177,15 @@ return App::config([
                 'limit' => 10,
                 'interval' => '1 hour',
             ],
+            // "Add" of a spreadsheet import (AddImportRows, docs/features/data-import/adding.md): every accepted one is
+            // a batch on the `imports` worker, a notification and an e-mail. Working in portions ("the next 20") is
+            // the design, so the limit is generous; what one player can add in a day is bounded by
+            // DataImportLimits::MAX_RESULTS_ADDED_PER_DAY, not by this. Per player, counted in the handler.
+            'data_import_add' => [
+                'policy' => 'sliding_window',
+                'limit' => 120,
+                'interval' => '1 hour',
+            ],
             // Public API catalog search (GET /api/v1/puzzles) - the only unbounded
             // read in V1, so scraping is kept to a walk. Keyed by the token owner
             // (player behind a PAT / auth-code token, client id for client_credentials);

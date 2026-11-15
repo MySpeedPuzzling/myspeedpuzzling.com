@@ -57,6 +57,10 @@ readonly final class EditMessagingSettingsHandler
             $player->changeListingRequestEmails($message->listingRequestEmails);
         }
 
+        if ($message->importEmails !== null) {
+            $player->changeImportEmails($message->importEmails);
+        }
+
         $playerEmail = $newsletterChanged ? $this->playerAccountEmail->ofPlayer($player) : null;
 
         if ($playerEmail !== null) {

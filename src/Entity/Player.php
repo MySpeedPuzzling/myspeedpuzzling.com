@@ -199,6 +199,12 @@ class Player
     #[Column(type: Types::BOOLEAN, options: ['default' => true])]
     public bool $listingRequestEmails = true;
 
+    // The e-mail saying an "Add" of the player's spreadsheet import is done (docs/features/data-import/adding.md) - the
+    // in-app notification is sent either way
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BOOLEAN, options: ['default' => true])]
+    public bool $importEmails = true;
+
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::STRING, enumType: ContentDigestFrequency::class, options: ['default' => 'weekly'])]
     public ContentDigestFrequency $contentDigestFrequency = ContentDigestFrequency::Weekly;
@@ -577,6 +583,11 @@ class Player
     public function changeListingRequestEmails(bool $enabled): void
     {
         $this->listingRequestEmails = $enabled;
+    }
+
+    public function changeImportEmails(bool $enabled): void
+    {
+        $this->importEmails = $enabled;
     }
 
     public function changeContentDigestFrequency(ContentDigestFrequency $frequency): void

@@ -570,3 +570,20 @@ listing_request:
     answer: "Answer"
     no_addresses: "We never share e-mail addresses: you answer inside MySpeedPuzzling."
     opt_out: "You get this e-mail because you have puzzles on your sell/swap list. <a href=\"%settingsUrl%\">E-mail settings</a> · <a href=\"%unsubscribeUrl%\">Stop these e-mails</a>"
+
+# "Your import is done" - one per finished "Add" of a spreadsheet import (docs/features/data-import/adding.md)
+import_added:
+    subject: "{0}Your import is done|{1}Your import is done: 1 row added|]1,Inf[Your import is done: %count% rows added"
+    preheader: "See what was added to your profile - and take it back if something is wrong."
+    title: "Your import is done"
+    greeting: "Hi %name%,"
+    intro: "We went through the rows you asked us to add from %file%."
+    added: "{0}Nothing was added.|{1}1 row was added to your profile.|]1,Inf[%count% rows were added to your profile."
+    results: "{0}no results|{1}1 result|]1,Inf[%count% results"
+    collection_items: "{0}no collection puzzles|{1}1 collection puzzle|]1,Inf[%count% collection puzzles"
+    wish_list_items: "{0}no wish list puzzles|{1}1 wish list puzzle|]1,Inf[%count% wish list puzzles"
+    already_yours: "{0}None of them was yours already.|{1}1 was yours already - nothing was added twice.|]1,Inf[%count% were yours already - nothing was added twice."
+    not_added: "{0}Every row could be added.|{1}1 row could not be added and waits for you.|]1,Inf[%count% rows could not be added and wait for you."
+    open: "Open the import"
+    undo_hint: "Something looks wrong? You can take back what was added on the import's page."
+    opt_out: "You get this e-mail because you added rows of a spreadsheet import. <a href=\"%settingsUrl%\">E-mail settings</a> · <a href=\"%unsubscribeUrl%\">Stop these e-mails</a>"

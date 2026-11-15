@@ -103,6 +103,7 @@ final class CustomValuesCoverageTest extends TestCase
         'MessageHandler/ReorderCustomFieldsHandler.php' => self::FIELD_WRITE,
         'MessageHandler/SetSolvingTimeCustomValuesHandler.php' => 'THE writer of the values on results: the acting player\'s own row of a result they are on (memberPlayerIds), their own fields only.',
         'MessageHandler/SetCollectionItemCustomValuesHandler.php' => 'THE writer of the values on collection items: the acting player\'s own item (anybody else\'s is "not found"), their own fields for collection items only.',
+        'MessageHandler/WriteImportRowCustomValuesHandler.php' => 'Spreadsheet import (docs/features/data-import/adding.md "The player\'s own fields"): the values a row of the importing player\'s own file carries for their own ready-made fields are handed to the two writers above, for the result / collection item that row just made for that same player (the import is checked to be theirs); adds a ready-made field the player lacks through AddCustomField. Reads the player\'s fields for their ids and types only - no stored value is read out, shown or logged.',
         'MessageHandler/CopyPuzzlesToCollectionHandler.php' => 'Copying a player\'s own items into another collection of theirs: the copy starts with the source item\'s values (changeCustomValues) - nothing is read out or shown.',
         'MessageHandler/MovePuzzlesToCollectionHandler.php' => self::ITEMS_BECOME_ONE,
         'MessageHandler/MovePuzzleToCollectionHandler.php' => self::ITEMS_BECOME_ONE,

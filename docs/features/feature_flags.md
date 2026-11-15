@@ -152,6 +152,22 @@ Meta App Review approved + app published (2026-09-30), so Facebook lost its flag
   - `src/Controller/PhotoUploadStartController.php` — 404 while off
 - **Remove when:** a few weeks of telemetry without trouble — then drop the flag, keep the code paths.
 
+## Spreadsheet import: the safety switch that pauses adding (`data_import_settings.adding_paused`)
+
+- **Feature:** adding an import's rows to the profile (`docs/features/data-import/adding.md` "The switch")
+- **Flag:** a row in the database, not an env var (an env var would need every container restarted):
+  `data_import_settings.adding_paused` with who flipped it, when and why. Flipped by admins on `/admin/imports`
+  (`ChangeImportAddingPaused`; pausing needs a reason; every flip is a warning in the log → Sentry). No row = never
+  paused. Read with one indexed statement by `DataImportSettingsRepository::isAddingPaused()` - never cached
+- **Default:** off (adding works)
+- **Gated:** `AddImportRowsHandler` (answers `paused`, queues nothing), `BeginImportBatchTurnHandler` and
+  `ProcessImportBatchHandler` (a running batch stops after the row it is at and waits), `ContinueImportBatchesHandler`
+  (the sweeper does not wake paused batches). **Not gated:** reading, mapping, pairing, and Undo - the player's and
+  the admins' - which is the point of the switch
+- **Switching it on again:** waiting batches go on with the sweeper's next run
+  (`myspeedpuzzling:continue-import-batches`, every 5 minutes)
+- **Removal:** never - it is a safety switch, not a rollout flag
+
 ## Custom fields in the add-result form (`CUSTOM_FIELDS_IN_ADD_FORM`)
 
 - **Feature:** the player's own fields ("My fields") in the add-result form (`docs/features/custom-fields.md` "The add form")

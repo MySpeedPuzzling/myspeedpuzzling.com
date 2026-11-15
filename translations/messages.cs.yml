@@ -12099,3 +12099,19 @@ data_import:
         google_link: "Tohle není odkaz na tabulku Google. Otevřete tabulku, zvolte Sdílet → Kopírovat odkaz a vložte ho sem - začíná docs.google.com/spreadsheets."
         google_published: "Tohle je odkaz „publikováno na webu“. Vložte prosím odkaz ze Sdílet → Kopírovat odkaz."
         google_rate_limited: "Příliš mnoho tabulek Google za poslední hodinu. Zkuste to prosím později."
+    # Adding rows to the profile (docs/features/data-import/adding.md): the e-mail switch, its unsubscribe page, the notification
+    settings:
+        emails_label: "E-maily o importu"
+        emails_help: "E-mail, když se řádky z vašeho importu tabulky přidají do vašeho profilu. V oznámeních to uvidíte vždy."
+    emails_unsubscribe:
+        headline: "E-maily o importu"
+        text: "Nechcete už dostávat e-mail, když je import vaší tabulky hotový? V oznámeních to uvidíte dál a ostatní e-maily zůstanou, jak jsou."
+        confirm_button: "Zastavit tyto e-maily"
+        done: "Hotovo - e-maily o importu už nedostanete. V oznámeních to uvidíte dál."
+        settings_hint: "Kdykoli je znovu zapnete v nastavení profilu v části „Zprávy a oznámení“."
+    notification:
+        done: "Import souboru %file% je hotový."
+        added: "{0}Nic se nepřidalo|{1}přidán 1 řádek|[2,4]přidány %count% řádky|[5,Inf[přidáno %count% řádků"
+        already_yours: "{0}žádný už nebyl váš|{1}1 už byl váš|[2,4]%count% už byly vaše|[5,Inf[%count% už bylo vašich"
+        not_added: "{0}žádný nezůstal stranou|{1}1 se nepodařilo přidat|[2,4]%count% se nepodařilo přidat|[5,Inf[%count% se nepodařilo přidat"
+        open: "Otevřít"

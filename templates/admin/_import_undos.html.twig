@@ -1,0 +1,48 @@
+<div class="table-responsive mb-4">
+    <table class="table table-sm align-middle" data-testid="import-undos">
+        <thead>
+            <tr>
+                <th>Started (UTC)</th>
+                <th>Player</th>
+                <th>What</th>
+                <th>Asked by</th>
+                <th>State</th>
+                <th class="text-end">Rows</th>
+                <th class="text-end">Results deleted</th>
+                <th class="text-end">Kept (changed since)</th>
+                <th class="text-end">Collection</th>
+                <th class="text-end">Wish list</th>
+                <th class="text-end">Failed</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for undo in undos %}
+                <tr>
+                    <td class="text-nowrap">{{ undo.started_at|date('d.m.Y H:i') }}</td>
+                    <td><a href="{{ path('player_profile', {playerId: undo.player_id}) }}">{{ undo.player_name }}</a><br><small class="text-muted">{{ undo.file_name }}</small></td>
+                    <td>
+                        {% if undo.scope == 'batch' and undo.batch_id is not null %}
+                            <a href="{{ path('admin_import_batch', {batchId: undo.batch_id}) }}">a batch</a>
+                        {% elseif undo.scope == 'import' %}
+                            the whole import
+                        {% else %}
+                            chosen rows
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{ undo.requested_by_name ?? '-' }}
+                        {% if undo.by_admin %}<span class="badge bg-danger">admin</span>{% endif %}
+                        {% if undo.reason is not null %}<br><small class="text-muted">"{{ undo.reason }}"</small>{% endif %}
+                    </td>
+                    <td>{{ undo.state }}</td>
+                    <td class="text-end">{{ undo.rows_undone }} / {{ undo.rows_requested }}</td>
+                    <td class="text-end">{{ undo.results_deleted }}</td>
+                    <td class="text-end">{{ undo.results_kept_edited }}</td>
+                    <td class="text-end">-{{ undo.collection_items_removed }}{% if undo.collection_items_kept > 0 %} <small class="text-muted">({{ undo.collection_items_kept }} kept)</small>{% endif %}</td>
+                    <td class="text-end">-{{ undo.wish_list_items_removed }} / +{{ undo.wish_list_items_restored }}</td>
+                    <td class="text-end {{ undo.rows_failed > 0 ? 'text-danger fw-bold' : '' }}">{{ undo.rows_failed }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

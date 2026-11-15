@@ -1,0 +1,10 @@
+{# The row sheet of one collection puzzle in the global modal (opened from the wide table) - see _puzzle_row_form.html.twig #}
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil me-1" aria-hidden="true"></i>{{ 'my_data.row.title_puzzle'|trans }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+    </div>
+    <div class="modal-body">
+        {{ include('my_data/_puzzle_row_form.html.twig') }}
+    </div>
+</turbo-frame>

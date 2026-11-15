@@ -1,0 +1,8 @@
+{#
+    A row sheet of "My data" was saved in the modal over the table (docs/features/my-data.md "Editing one row"): close
+    the modal and refresh the page, so the table under it shows the new values and the flash - the answer of the
+    edit-time modal (edit-time_success_stream.html.twig).
+#}
+{{ include('_modal_close_stream.html.twig') }}
+
+<turbo-stream action="refresh"></turbo-stream>

@@ -1,6 +1,11 @@
 {#
     The player's own results: a real table from 992 px (sticky header, sideways scroll inside its own box), a compact
-    list below it. Both are rendered; CSS shows one. A row opens the existing result detail.
+    list below it. Both are rendered; CSS shows one. A row opens its row sheet (docs/features/my-data.md "Editing one
+    row"): in the modal from the table, as a page from the list.
+
+    On the table a cell of an editable column is edited in place (my_data_edit_controller.js): `data-edit` says with
+    which input, `data-value` what the cell holds - sent back as `from`. A value of several lines is edited in the
+    row sheet only.
 
     The cells of the player's own fields are texts OwnFieldsInMyData worded for the signed-in player alone.
 #}
@@ -15,12 +20,24 @@
     {% endif %}
 {% endmacro %}
 
+{# The attributes of a cell edited in place - none for a value of several lines (the row sheet's textarea keeps them) #}
+{% macro edit(type, value) %}
+    {%- if '\n' not in value %} data-edit="{{ type }}" data-value="{{ value }}" tabindex="0" data-action="dblclick->my-data-edit#open keydown->my-data-edit#key"{% endif -%}
+{% endmacro %}
+
 {# "Anna, Hidden Puzzler" - a teammate hidden from this player is worded like on the profile, never named #}
 {% set hidden_name = 'secret_puzzler_name'|trans %}
 
 {% set sorts = {brand: 'brand', pieces: 'pieces', time: 'time', date: 'date'} %}
+{# Where a saved row sheet goes back to: this page of the table, in its state #}
+{% set here = path('my_data', criteria.query({page: page.page > 1 ? page.page : null})) %}
 
-<div class="my-data-scroll d-none d-lg-block" data-testid="my-data-table">
+<div class="my-data-scroll d-none d-lg-block" data-testid="my-data-table"
+     data-controller="my-data-edit"
+     data-my-data-edit-token-value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\MyData\\MyDataResultRowController::CSRF_TOKEN_ID')) }}"
+     data-my-data-edit-open-row-value="{{ 'my_data.row.open'|trans }}"
+     data-my-data-edit-failed-value="{{ 'my_data.edit.not_saved'|trans }}"
+     data-my-data-edit-hint-value="{{ 'my_data.edit.cell_hint'|trans }}">
     <table class="table table-sm align-middle mb-0">
         <thead>
             <tr>
@@ -28,7 +45,7 @@
                 {% for column, shown in columns %}
                     {% if shown %}
                         {% if own_fields.columns[column] is defined %}
-                            <th scope="col" data-column="{{ column }}" data-own-field>{{ own_fields.columns[column] }}</th>
+                            <th scope="col" data-column="{{ column }}" data-own-field{% if own_fields.editors[column] is defined %} data-edit-options="{{ own_fields.editors[column].options|json_encode }}"{% endif %}>{{ own_fields.columns[column] }}</th>
                         {% else %}
                             {{ _self.head(criteria, column, sorts[column] ?? null) }}
                         {% endif %}
@@ -40,9 +57,10 @@
             {% for row in page.rows %}
                 {% set date = row.finishedAt ?? row.trackedAt %}
                 {% set precision = row.finishedAt is not null ? row.datePrecision : null %}
-                <tr data-testid="my-data-row" data-row-id="{{ row.timeId }}">
+                {% set row_url = path('my_data_result_row', {timeId: row.timeId, return: here}) %}
+                <tr data-testid="my-data-row" data-row-id="{{ row.timeId }}" data-row-url="{{ row_url }}" data-cell-url="{{ path('my_data_cell', {kind: 'result', id: row.timeId}) }}">
                     <th scope="row" class="my-data-puzzle">
-                        <a href="{{ path('puzzle_result_detail', {timeId: row.timeId}) }}" data-turbo-frame="modal-frame" rel="nofollow" class="d-flex align-items-center gap-2 text-reset">
+                        <a href="{{ row_url }}" data-turbo-frame="modal-frame" rel="nofollow" class="d-flex align-items-center gap-2 text-reset" data-testid="my-data-open-row">
                             {{ lazy_puzzle_image(row.imagePath, 'puzzle_small', 'puzzle_img_alt'|trans({'%puzzle%': (row.puzzle.brandName ?? '') ~ ' ' ~ row.puzzle.name}), loop.index, 40, 'rounded-1 flex-shrink-0') }}
                             <span class="d-block" style="min-width: 0;">
                                 <span class="d-block fw-medium">{{ row.puzzle.name }}</span>
@@ -53,18 +71,18 @@
                     {% for column, shown in columns %}
                         {% if shown %}
                             {% if own_fields.columns[column] is defined %}
-                                <td data-column="{{ column }}" class="my-data-text">{{ own_fields.cell(row.timeId, column) }}</td>
+                                <td data-column="{{ column }}" class="my-data-text"{% if own_fields.editors[column] is defined %}{{ _self.edit(own_fields.editors[column].type, own_fields.input(row.timeId, column)) }}{% endif %}>{{ own_fields.cell(row.timeId, column) }}</td>
                             {% elseif column == 'brand' %}
                                 <td data-column="brand">{{ row.puzzle.brandName }}</td>
                             {% elseif column == 'pieces' %}
                                 <td data-column="pieces" class="text-end text-nowrap">{{ row.puzzle.piecesCount|format_number }}</td>
                             {% elseif column == 'time' %}
-                                <td data-column="time" class="text-end text-nowrap fw-medium">
+                                <td data-column="time" class="text-end text-nowrap fw-medium"{% if row.editable and row.seconds is not null %}{{ _self.edit('time', row.editValue('time')) }}{% endif %}>
                                     {%- if row.seconds is not null %}{{ row.seconds|puzzlingTime }}{% else %}<span class="text-muted fw-normal">{{ 'my_data.cell.no_time'|trans }}</span>{% endif -%}
                                     {%- if row.suspicious %} <span class="badge bg-warning text-dark fw-normal">{{ 'my_data.cell.needs_verification'|trans }}</span>{% endif -%}
                                 </td>
                             {% elseif column == 'date' %}
-                                <td data-column="date" class="text-nowrap"><time datetime="{{ result_date_machine(date, precision) }}">{{ result_date(date, precision) }}</time></td>
+                                <td data-column="date" class="text-nowrap"{% if row.editable %}{{ _self.edit('date', row.editValue('date')) }}{% endif %}><time datetime="{{ result_date_machine(date, precision) }}">{{ result_date(date, precision) }}</time></td>
                             {% elseif column == 'group' %}
                                 <td data-column="group">
                                     {{ ('my_data.type.' ~ row.solvingType)|trans }}
@@ -72,9 +90,9 @@
                                     {%- if row.coPuzzlers is not empty %}<span class="d-block fs-xs text-muted" data-testid="my-data-with">{{ 'my_data.cell.with'|trans({'%names%': row.coPuzzlers|map(person => person.hidden ? hidden_name : person.name)|join(', ')}) }}</span>{% endif -%}
                                 </td>
                             {% elseif column == 'first_try' %}
-                                <td data-column="first_try" class="text-center">{% if row.firstAttempt %}<i class="bi bi-check-lg text-success" aria-hidden="true"></i><span class="visually-hidden">{{ 'my_data.cell.ticked'|trans }}</span>{% endif %}</td>
+                                <td data-column="first_try" class="text-center"{% if row.editable and row.seconds is not null %}{{ _self.edit('check', row.editValue('first_try')) }}{% endif %}>{% if row.firstAttempt %}<i class="bi bi-check-lg text-success" aria-hidden="true"></i><span class="visually-hidden">{{ 'my_data.cell.ticked'|trans }}</span>{% endif %}</td>
                             {% elseif column == 'comment' %}
-                                <td data-column="comment" class="my-data-text">{{ row.comment }}</td>
+                                <td data-column="comment" class="my-data-text"{% if row.editable %}{{ _self.edit('text', row.editValue('comment')) }}{% endif %}>{{ row.comment }}</td>
                             {% elseif column == 'photo' %}
                                 <td data-column="photo" class="text-center">{% if row.hasPhoto %}<i class="bi bi-image" aria-hidden="true"></i><span class="visually-hidden">{{ 'my_data.cell.ticked'|trans }}</span>{% endif %}</td>
                             {% elseif column == 'source' %}
@@ -95,7 +113,7 @@
         {% set date = row.finishedAt ?? row.trackedAt %}
         {% set precision = row.finishedAt is not null ? row.datePrecision : null %}
         <li>
-            <a href="{{ path('puzzle_result_detail', {timeId: row.timeId}) }}" data-turbo-frame="modal-frame" rel="nofollow" class="my-data-item text-reset" data-testid="my-data-item" data-row-id="{{ row.timeId }}">
+            <a href="{{ path('my_data_result_row', {timeId: row.timeId, return: here}) }}" rel="nofollow" class="my-data-item text-reset" data-testid="my-data-item" data-row-id="{{ row.timeId }}">
                 {{ lazy_puzzle_image(row.imagePath, 'puzzle_small', 'puzzle_img_alt'|trans({'%puzzle%': (row.puzzle.brandName ?? '') ~ ' ' ~ row.puzzle.name}), loop.index, 48, 'rounded-1 flex-shrink-0') }}
                 <span class="my-data-item-main">
                     <span class="d-block fw-medium text-truncate">{{ row.puzzle.name }}</span>

@@ -89,6 +89,13 @@ final class CustomValuesCoverageTest extends TestCase
         // "My data" - the owner's own table (no player id in its address)
         'Controller/MyData/MyDataController.php' => '"My data" (signed-in only, no player id in the address): calls OwnFieldsInMyData::onResultsOfSignedInViewer() / onCollectionItemsOfSignedInViewer(), which take no player id - the columns can only be the signed-in player\'s own, on rows GetMyDataResults / GetMyDataPuzzles read for that same player.',
 
+        // "My data", editing one row (docs/features/my-data.md "Editing one row")
+        'Services/MyData/CustomFieldsOfMyDataRow.php' => 'The row sheets and the cells edited in place of "My data". Takes no player id: resolves the signed-in player itself, reads that player\'s fields and - through the two viewer-bound readers - that player\'s values on ONE row, and writes them through the two writers\' messages with that player\'s id. Nothing of a value is logged.',
+        'Results/MyData/MyDataRowCustomFields.php' => self::NO_QUERY,
+        'Controller/MyData/MyDataResultRowController.php' => 'The row sheet of one result (signed-in only, 404 unless RetrieveLoggedUserProfile\'s player is on the result): calls CustomFieldsOfMyDataRow::onResultOfSignedInViewer() / saveOnResultOfSignedInViewer(), which take no player id - the inputs are the signed-in player\'s own row of values, a pair partner gets their own.',
+        'Controller/MyData/MyDataPuzzleRowController.php' => 'The row sheet of one collection puzzle (signed-in only, 404 unless the item is RetrieveLoggedUserProfile\'s player\'s): calls CustomFieldsOfMyDataRow::onCollectionItemOfSignedInViewer() / saveOnCollectionItemOfSignedInViewer(), which take no player id.',
+        'Controller/MyData/MyDataCellController.php' => 'One cell of "My data" saved in place (signed-in only, 404 unless the row is the signed-in player\'s): an own field\'s cell goes through CustomFieldsOfMyDataRow (no player id) and answers that one cell of the signed-in player\'s own values; the value travels as `my_fields[…]`, the name OwnFieldsSentryScrubber withholds.',
+
         // The owner-only exports
         'Controller/ExportPuzzlerDataDownloadController.php' => 'The results export (403 unless the URL\'s player is the signed-in one): calls OwnCustomValuesInExport::onResultsOfSignedInViewer(), which takes no player id.',
         'Controller/ExportPuzzleLibraryDownloadController.php' => 'The library export (403 unless the URL\'s player is the signed-in one): calls OwnCustomValuesInExport::onCollectionItemsOfSignedInViewer(), which takes no player id.',
@@ -171,6 +178,8 @@ final class CustomValuesCoverageTest extends TestCase
             \SpeedPuzzling\Web\Services\CustomFields\OwnCustomValuesInExport::class => ['onResultsOfSignedInViewer', 'onCollectionItemsOfSignedInViewer'],
             // "My data": the same rule - the table can only carry the signed-in player's own
             \SpeedPuzzling\Web\Services\MyData\OwnFieldsInMyData::class => ['onResultsOfSignedInViewer', 'onCollectionItemsOfSignedInViewer'],
+            // ... and one row of it, read and written
+            \SpeedPuzzling\Web\Services\MyData\CustomFieldsOfMyDataRow::class => ['onResultOfSignedInViewer', 'onCollectionItemOfSignedInViewer', 'saveOnResultOfSignedInViewer', 'saveOnCollectionItemOfSignedInViewer'],
         ];
 
         foreach ($services as $class => $expectedMethods) {
@@ -255,6 +264,8 @@ final class CustomValuesCoverageTest extends TestCase
     private const array ALLOWED_TEMPLATES = [
         'collections/edit-item-comment.html.twig' => 'The owner\'s edit form of one collection item (the controller 404s for anybody else): includes my_fields/_inputs.html.twig with the CustomFieldsForm of the signed-in owner - it never reads the item\'s values off the entity.',
         '_solving_time_form.html.twig' => 'The add-result form: one expression that includes my_fields/_add_form_block.html.twig when `my_fields` is there - the CustomFieldsForm AddFormCustomFields built for the signed-in player from the request (what was just typed, never stored values).',
+        'my_data/_result_row_form.html.twig' => 'The row sheet of one result in "My data" (the controller 404s unless the signed-in player is on the result): includes my_fields/_inputs.html.twig with the CustomFieldsForm CustomFieldsOfMyDataRow built for the signed-in player alone.',
+        'my_data/_puzzle_row_form.html.twig' => 'The row sheet of one collection puzzle in "My data" (the controller 404s for anybody but the owner): includes my_fields/_inputs.html.twig with the CustomFieldsForm of the signed-in owner - it never reads the item\'s values off the entity it is handed.',
         'puzzle_result/_body.html.twig' => 'The result detail: includes my_fields/_result_block.html.twig with `own_field_values`, which OwnCustomValuesOnResults built for the signed-in viewer alone (null for anybody else - then nothing is included).',
     ];
 

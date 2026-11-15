@@ -48,6 +48,30 @@ readonly final class MyDataResultRow
     }
 
     /**
+     * Whether the row's own fields (time, day, first try, comment) can be edited by the player: every result of the
+     * table but an imported event result - that one is the event's (SolvedPuzzleDetail::isEditableBy()).
+     */
+    public function isEditable(): bool
+    {
+        return $this->source !== SolvingTimeSource::EventImport;
+    }
+
+    /**
+     * What a cell holds for an edit in place (`data-value`, sent back as `from`) - the same text
+     * MyDataResultEdit::cell() makes of the stored result: the time as `h:mm:ss`, the exact day as `Y-m-d` ('' while
+     * only the month or year is known).
+     */
+    public function editValue(string $field): string
+    {
+        return match ($field) {
+            'time' => $this->seconds !== null && $this->seconds > 0 ? sprintf('%d:%02d:%02d', intdiv($this->seconds, 3600), intdiv($this->seconds % 3600, 60), $this->seconds % 60) : '',
+            'date' => $this->finishedAt !== null && ($this->datePrecision === null || $this->datePrecision === 'day') ? $this->finishedAt->format('Y-m-d') : '',
+            'first_try' => $this->firstAttempt ? '1' : '0',
+            default => $this->comment ?? '',
+        };
+    }
+
+    /**
      * @return list<array{name: null|string, hidden: bool}>
      */
     private static function coPuzzlers(null|string $json): array

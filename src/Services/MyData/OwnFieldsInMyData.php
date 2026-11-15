@@ -12,8 +12,10 @@ use SpeedPuzzling\Web\Results\CustomFieldOverview;
 use SpeedPuzzling\Web\Results\MyData\MyDataOwnFields;
 use SpeedPuzzling\Web\Services\CustomFields\CustomFieldLabels;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\CustomFieldType;
 use SpeedPuzzling\Web\Value\CustomValues;
 use SpeedPuzzling\Web\Value\MyDataColumns;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The player's own fields as columns of "My data" (docs/features/my-data.md "Own fields"): the fields in use for the
@@ -35,6 +37,7 @@ readonly final class OwnFieldsInMyData
         private GetCustomValues $getCustomValues,
         private GetCollectionItemCustomValues $getCollectionItemCustomValues,
         private CustomFieldLabels $labels,
+        private TranslatorInterface $translator,
         private LoggerInterface $logger,
     ) {
     }
@@ -62,6 +65,36 @@ readonly final class OwnFieldsInMyData
     }
 
     /**
+     * How a cell of the field is edited in place on the wide table (docs/features/my-data.md "Editing in place") -
+     * the inputs of `my_fields/_inputs.html.twig`, one line each.
+     *
+     * @return array{type: string, options: list<array{string, string}>}
+     */
+    private function editor(CustomFieldOverview $field): array
+    {
+        $none = ['', $this->translator->trans('my_fields.value.none')];
+
+        return match ($field->type) {
+            CustomFieldType::Number => ['type' => 'number', 'options' => []],
+            CustomFieldType::Date => ['type' => 'date', 'options' => []],
+            CustomFieldType::YesNo => ['type' => 'select', 'options' => [
+                $none,
+                ['yes', $this->translator->trans('my_fields.value.yes')],
+                ['no', $this->translator->trans('my_fields.value.no')],
+            ]],
+            CustomFieldType::Choice => ['type' => 'select', 'options' => [
+                $none,
+                ...array_map(fn (string $choice): array => [$choice, $this->labels->choiceLabel($field, $choice)], $field->choices),
+            ]],
+            CustomFieldType::Rating => ['type' => 'select', 'options' => [
+                ['', $this->translator->trans('my_fields.value.rating_none')],
+                ...array_map(fn (int $stars): array => [(string) $stars, $this->translator->trans('my_fields.value.rating_stars', ['%stars%' => $stars])], range(1, 5)),
+            ]],
+            default => ['type' => 'text', 'options' => []],
+        };
+    }
+
+    /**
      * @param callable(CustomFieldOverview): bool $inUse
      * @param callable(string): array<string, CustomValues> $valuesOfViewer
      */
@@ -81,12 +114,15 @@ readonly final class OwnFieldsInMyData
             }
 
             $columns = [];
+            $editors = [];
 
             foreach ($fields as $field) {
                 $columns[MyDataColumns::fieldColumn($field->fieldId)] = $this->labels->label($field);
+                $editors[MyDataColumns::fieldColumn($field->fieldId)] = $this->editor($field);
             }
 
             $cells = [];
+            $inputs = [];
 
             foreach ($valuesOfViewer($viewerId) as $rowId => $values) {
                 foreach ($fields as $field) {
@@ -94,11 +130,12 @@ readonly final class OwnFieldsInMyData
 
                     if ($text !== '') {
                         $cells[$rowId][MyDataColumns::fieldColumn($field->fieldId)] = $text;
+                        $inputs[$rowId][MyDataColumns::fieldColumn($field->fieldId)] = CustomValues::toInput($values->of($field->fieldId));
                     }
                 }
             }
 
-            return new MyDataOwnFields($columns, $cells);
+            return new MyDataOwnFields($columns, $cells, $inputs, $editors);
         } catch (\Throwable $exception) {
             // Reading carries no value of anybody (the statements' parameters are ids) - logged as it is
             $this->logger->warning('Custom fields could not be loaded for My data - the table is shown without them', [

@@ -100,6 +100,7 @@ final class TrackerlessTimeQueryCoverageTest extends TestCase
         'Query/GetInsightsSoloResults.php' => self::SOLO,
         'Query/GetMostActivePlayers.php' => self::PER_PLAYER,
         'Query/GetMostSolvedPuzzles.php' => self::COUNTS,
+        'Query/GetMyDataResultContext.php' => 'Reads how one result was added and its label, by the id of a result MyDataResultEditor::rowOf() proved to be the signed-in player\'s own (tracked by them or as a registered member) - nothing of its tracker is read.',
         'Query/GetMyDataResults.php' => self::OWN,
         'Query/GetNotifications.php' => self::PER_PLAYER,
         'Query/GetPendingPuzzleProposals.php' => self::ADMIN,

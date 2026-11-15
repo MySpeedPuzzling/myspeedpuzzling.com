@@ -1,0 +1,83 @@
+{#
+    The row sheet of one puzzle of the player's collections in "My data" (docs/features/my-data.md "Editing one row")
+    - shared by the modal (_puzzle_row_modal.html.twig) and the page (puzzle_row.html.twig).
+
+    Edits the comment, the owner's own fields for collection puzzles and - for members - the collection. The owner's
+    values are on this owner-only sheet and never on a collection's own page.
+
+    The action is explicit: in the modal frame a form without one posts to the page under the modal.
+
+    Variables: item (CollectionItem - the signed-in player's own), comment, collections (value => name, empty for a
+    player who is no member), picked_collection, collection_error, solved (null|ExportablePuzzleSolveSummary),
+    my_fields (CustomFieldsForm), return_url, in_modal
+#}
+<form action="{{ path('my_data_puzzle_row', {itemId: item.id}) }}" method="post" data-testid="my-data-row-form">
+    <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\MyData\\MyDataResultRowController::CSRF_TOKEN_ID')) }}">
+    <input type="hidden" name="return" value="{{ return_url }}">
+
+    <div class="border rounded-2 p-3 mb-3 fs-sm" data-testid="my-data-row-context">
+        <p class="fw-semibold mb-1">
+            <a href="{{ path('puzzle_detail', {puzzleId: item.puzzle.id}) }}" data-turbo-frame="_top" class="text-reset">{{ item.puzzle.name }}</a>
+        </p>
+        <p class="text-muted mb-1">{% if item.puzzle.manufacturer is not null %}{{ item.puzzle.manufacturer.name }} · {% endif %}{{ item.puzzle.piecesCount|format_number }}</p>
+        <p class="mb-1"><span class="text-muted">{{ 'my_data.column.added'|trans }}:</span> {{ result_date(item.addedAt) }}</p>
+        <p class="mb-0" data-testid="my-data-row-solved">
+            {%- if solved is not null -%}
+                {{ 'my_data.cell.solved'|trans({'%count%': solved.solvedCount|format_number}) }}
+                {%- if solved.bestSoloSeconds is not null %} · {{ 'my_data.cell.best'|trans({'%time%': solved.bestSoloSeconds|puzzlingTime}) }}{% endif -%}
+            {%- else -%}
+                <span class="text-muted">{{ 'my_data.cell.not_solved'|trans }}</span>
+            {%- endif -%}
+        </p>
+        {% if collections is empty %}
+            <p class="mb-0 mt-1"><span class="text-muted">{{ 'my_data.column.collection'|trans }}:</span> {{ item.collection is not null ? item.collection.name : 'my_data.main_collection'|trans }}</p>
+        {% endif %}
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label" for="my-data-row-comment">{{ 'my_data.column.comment'|trans }}</label>
+        <textarea class="form-control" name="comment" id="my-data-row-comment" rows="3" maxlength="500" style="font-size: 16px; min-height: 44px;">{{ comment }}</textarea>
+    </div>
+
+    {% if collections is not empty %}
+        <div class="mb-3">
+            <label class="form-label" for="my-data-row-collection">{{ 'my_data.column.collection'|trans }}</label>
+            <select class="form-select{{ collection_error ? ' is-invalid' }}" name="collection" id="my-data-row-collection" style="font-size: 16px; min-height: 44px;">
+                {% for value, name in collections %}
+                    <option value="{{ value }}"{{ value is same as(picked_collection) ? ' selected' }}>{{ name }}</option>
+                {% endfor %}
+            </select>
+            {% if collection_error %}
+                <div class="invalid-feedback d-block" data-testid="my-data-row-collection-error">{{ collection_error }}</div>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {% if my_fields.fields is not empty %}
+        <div class="border-top pt-3 mb-3" data-testid="my-data-row-my-fields">
+            <p class="fw-semibold mb-1"><i class="bi bi-lock me-1" aria-hidden="true"></i>{{ 'my_fields.title'|trans }}</p>
+            <p class="form-text mt-0 mb-3">{{ 'my_fields.collection_item.private_note'|trans }}</p>
+
+            {% if my_fields.problems is not empty %}
+                <div class="alert alert-danger fs-sm" role="alert">{{ 'my_fields.values.not_saved'|trans }}</div>
+            {% endif %}
+
+            {{ include('my_fields/_inputs.html.twig', {my_fields: my_fields, id_prefix: 'my-data-row-field'}) }}
+        </div>
+    {% endif %}
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+        {% if in_modal %}
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="min-height: 44px;">{{ 'forms.cancel'|trans }}</button>
+        {% else %}
+            <a href="{{ return_url }}" class="btn btn-secondary d-inline-flex align-items-center" style="min-height: 44px;">{{ 'forms.cancel'|trans }}</a>
+        {% endif %}
+        <button type="submit" class="btn btn-primary text-wrap" style="min-height: 44px;" data-testid="my-data-row-save">
+            <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ 'forms.save'|trans }}
+        </button>
+    </div>
+
+    {% if my_fields.fields is empty %}
+        <p class="form-text mb-0 mt-3"><a href="{{ path('my_fields') }}" data-turbo-frame="_top">{{ 'my_fields.manage_link'|trans }}</a></p>
+    {% endif %}
+</form>

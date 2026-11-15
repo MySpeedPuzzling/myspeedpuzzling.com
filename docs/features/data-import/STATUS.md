@@ -20,7 +20,7 @@ sandbox from the stage that can read them.
 | 4 | Columns and values | **4a value readers live 2026-11-14** (#348; nothing calls them yet). **4b-1 live 2026-11-15** (#353: recognise + parse, known exports); **4b-2 live 2026-11-15** (#354: the screen); **4c live 2026-11-15** (#357: remembered layouts). Stage 4 is complete | #348, #353, #354, #357 | yes | deploy green |
 | 5 | Pairing and review | **5a live 2026-11-15** (#356: the data, the matcher, decisions; production plans checked); **5b live 2026-11-15** (#358: the screens). Stage 5 is complete | #356, #358 | yes | sandbox: tiers on the real catalogue for two sample files |
 | 6a | The import's writer beside the add form's (handlers untouched) | **merged 2026-11-15, dormant** - nothing calls it | #355 | yes | parity test in CI |
-| 6b | Add, never twice, Undo | not started | | | |
+| 6b | Add, never twice, Undo | **6b-1 live 2026-11-15** (#359: the engine, the switch, `/admin/imports` - no player button); 6b-2 (the screens) in its fix round | #359 | engine | the first end-to-end run on the branch (see the log) |
 | 6c | Date precision | not started | | | |
 | 7 | Unlisted puzzles | not started | | | |
 | 2a-c | My data | not started | | | |
@@ -55,6 +55,28 @@ player data in the repository (fixtures copy shapes with invented puzzles); noth
 committed with `git add -A`; one destructive command per call, never the dev database; production data is only read.
 
 ## Log
+
+- 2026-11-15 - **stage 6b-1 live, no buttons** (#359): the engine of Add - `AddImportRows` → a batch on `imports`
+  (a row = its own transaction under the player's lock; turns; resumable), never twice in seven layers, Undo per
+  row / batch / import (`UndoImportRows`; keeps results the player changed since), the pause switch
+  (`data_import_settings`, read before every row), `/admin/imports` with a batch's rows and the admin's Undo, one
+  notification + one e-mail a batch (`player.import_emails`), the sweeper `myspeedpuzzling:continue-import-batches`
+  (cron every 5 min at :03 on production and the sandbox, lily 9749d72 - added after the deploy this time; both
+  run exit 0). Review: no path found that writes a row twice or deletes what the import did not make; fixed before
+  the merge - **partners named in a file are guests only** (a `#code` was resolved to a registered player: results
+  on another player's profile without their doing - decided by the orchestrator for D12, told to Jan); a puzzle
+  merge defeated Undo; "Undo everything" did not stop a running batch; imported results left out of Night Owl, the
+  hour-of-day chart and "when you logged"; an unusual time is judged before a row is added and waits for "it is
+  right"; the follow-up in chunks, XP awards on `imports`. Notes of a file stay private notes (not the public
+  comment). Loose: XP awards on `imports` have no retries; an owned row always goes to the main collection.
+- 2026-11-15 - 6b-2 (review, the button, progress, done, Undo) in its fix round. The first end-to-end run, on the
+  branch against the real catalogue with a made-up player: Puzzle Tracker's export → review 162 results / 188 owned
+  → one tap → ~20 s → 137 results (`spreadsheet_import`, 2023-2025, none in the future, no duplicate, no photo),
+  142 collection items, one notification; 25 rows not added with reasons (14 pair/team without names, 11 unusual
+  times); a second review: nothing ready; "Take back everything": 0 imported results, the collection as before,
+  137 tombstones, rows waiting again.
+- 2026-11-15 - two of the orchestrator's merge-and-watch commands hung for hours on a wait for the run's title;
+  the merges and deploys themselves were fine (checked by revision on the server). Waits are bounded from now on.
 
 - 2026-11-15 - **stage 5b live** (#358): the pairing screens - Puzzles summary (`…/import/{id}/puzzles`), the group
   lists (50 a page, the paired puzzle's picture and why, "Not this one", tick / "Tick all I see here"), the

@@ -14,6 +14,7 @@ readonly final class DataImportOverview
 {
     public function __construct(
         public string $importId,
+        /** '' for a Google sheet whose title is not known (yet) */
         public string $fileName,
         public null|int $fileSize,
         public DataImportStatus $status,
@@ -28,6 +29,9 @@ readonly final class DataImportOverview
         public null|int $sheetsTotal = null,
         public int $sheetsRead = 0,
         public int $rowsRead = 0,
+        /** Why the Google sheet was not fetched, as the page has a sentence for it - null unless fetching failed */
+        public null|string $fetchFailure = null,
+        public bool $fromGoogleSheet = false,
     ) {
     }
 }

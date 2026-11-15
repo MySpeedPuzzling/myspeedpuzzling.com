@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\DataImport\ImportFileStorage;
 use SpeedPuzzling\Web\Services\Doctrine\IdLock;
 use SpeedPuzzling\Web\Value\DataImportFileKind;
+use SpeedPuzzling\Web\Value\DataImportFileName;
 use SpeedPuzzling\Web\Value\DataImportLimits;
 use SpeedPuzzling\Web\Value\DataImportStatus;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -58,7 +59,7 @@ readonly final class StartImportHandler
         }
 
         // Shown on the player's own pages only; never part of the object's key
-        $fileName = mb_substr(trim(str_replace(["\r", "\n", "\t", "\0", '/', '\\'], ' ', $message->fileName)), 0, DataImportLimits::FILE_NAME_MAX_LENGTH);
+        $fileName = DataImportFileName::clean($message->fileName);
         $kind = DataImportFileKind::ofFileName($fileName);
 
         if ($kind === null) {

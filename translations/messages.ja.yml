@@ -11770,6 +11770,8 @@ data_import:
     status:
         uploading: "アップロードを完了中"
         uploaded: "アップロード済み"
+        fetching: "Google から取得中"
+        fetch_failed: "取得できませんでした"
         reading: "読み取り中"
         read_failed: "読み取れませんでした"
         setting_up: "読み取り済み"
@@ -11778,7 +11780,8 @@ data_import:
         discarded: "破棄済み"
     new:
         title: "ファイルをアップロード"
-        intro: "結果またはパズルのスプレッドシートを選んでください。見られるのはあなただけです。"
+        intro: "Google スプレッドシートのリンクを貼り付けるか、結果またはパズルのスプレッドシートのファイルを選んでください。見られるのはあなただけです。"
+        file_title: "またはファイルをアップロード"
         file_label: "スプレッドシートのファイル"
         file_help: "Excel ファイル (.xlsx)、CSV または TSV ファイル。最大 %megabytes% MB。"
         submit: "アップロード"
@@ -11790,6 +11793,7 @@ data_import:
     soon: "各列の意味の指定とプロフィールへの行の追加は近日対応します。それまでプロフィールには何も追加されません。"
     detail:
         state: "状態"
+        source: "取り込み元"
         size: "サイズ"
         started: "アップロード日"
         kept: "ファイルは %date% まで保管されます。"
@@ -11800,6 +11804,7 @@ data_import:
         discard_help: "ファイルは削除されます。プロフィールは何も変わりません。"
         discard_confirm: "このインポートを破棄しますか?ファイルは削除されます。"
     reading:
+        fetching: "Google からシートを取得中…"
         waiting: "読み取り待ち…"
         reading: "ファイルを読み取り中…"
         sheets: "読み取ったシート: %done% / %total%"
@@ -11827,6 +11832,24 @@ data_import:
         understood: "読み取れた行: %understood% · 確認が必要: %look%"
         left_out: "除外: %count%"
         refresh_hint: "この一覧はまだ自動では更新されません。進み具合はページを再読み込みして確認してください。"
+    google:
+        title: "Google スプレッドシートのリンクを貼り付け"
+        link_label: "Google スプレッドシートのリンク"
+        share_hint: "シートは、リンクを知っている全員に共有されている必要があります。Google スプレッドシートで:"
+        share_steps: "共有 → リンクを知っている全員 → 閲覧者"
+        submit: "シートを取得"
+        unnamed: "Google スプレッドシート"
+        source: "Google スプレッドシートのリンク"
+        sharing_off: "シートを取り込みました。共有はオフに戻してかまいません。"
+    fetch_failed:
+        title: "シートを取得できませんでした"
+        not_shared: "Google がログインを求めています。シートはまだリンクで共有されていません。共有してから、もう一度お試しください。"
+        not_found: "このリンクのスプレッドシートは Google に見つかりません。リンクが途中で切れていないか、シートが削除されていないかを確認して、もう一度貼り付けてください。"
+        too_large: "Excel ファイルにすると %megabytes% MB を超えます。インポートできるサイズを超えています。"
+        refused: "今回は Google からシートを受け取れませんでした。後でもう一度試すか、Google スプレッドシートでダウンロード（ファイル → ダウンロード → Microsoft Excel）してファイルをアップロードしてください。"
+        not_a_spreadsheet: "Google から届いたものはスプレッドシートではありません。Google スプレッドシートでダウンロード（ファイル → ダウンロード → Microsoft Excel）してファイルをアップロードしてください。"
+        failed: "シートの取得中にこちら側で問題が発生しました。もう一度お試しください。"
+        upload_instead: "代わりにファイルをアップロード"
     read_failed:
         title: "ファイルを読み取れませんでした"
         too_large: "ファイルの内容がインポートの上限を超えています。インポートできるファイルは最大 %megabytes% MB です。"
@@ -11861,3 +11884,6 @@ data_import:
         rate_limited: "この1時間のアップロードが多すぎます。しばらくしてからもう一度お試しください。"
         storage: "現在ファイルを保存できませんでした。少ししてからもう一度お試しください。"
         no_file: "先にファイルを選んでください。"
+        google_link: "これは Google スプレッドシートのリンクではありません。シートを開き、共有 → リンクをコピー を選んでここに貼り付けてください。docs.google.com/spreadsheets で始まります。"
+        google_published: "これは「ウェブに公開」のリンクです。代わりに 共有 → リンクをコピー のリンクを貼り付けてください。"
+        google_rate_limited: "この 1 時間に取り込んだ Google スプレッドシートが多すぎます。しばらくしてからもう一度お試しください。"

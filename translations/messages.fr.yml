@@ -11776,6 +11776,8 @@ data_import:
     status:
         uploading: "Fin de l'envoi en cours"
         uploaded: "Envoyé"
+        fetching: "Récupération depuis Google"
+        fetch_failed: "Récupération impossible"
         reading: "Lecture en cours"
         read_failed: "Lecture impossible"
         setting_up: "Lu"
@@ -11784,7 +11786,8 @@ data_import:
         discarded: "Abandonné"
     new:
         title: "Envoyer le fichier"
-        intro: "Choisissez le tableur contenant vos résultats ou vos puzzles. Vous seul le voyez."
+        intro: "Collez le lien de votre feuille Google, ou choisissez le fichier du tableur contenant vos résultats ou vos puzzles. Vous seul le voyez."
+        file_title: "Ou envoyer un fichier"
         file_label: "Fichier du tableur"
         file_help: "Un fichier Excel (.xlsx) ou un fichier CSV ou TSV, de %megabytes% Mo au maximum."
         submit: "Envoyer"
@@ -11796,6 +11799,7 @@ data_import:
     soon: "Le choix du sens de chaque colonne et l'ajout des lignes à votre profil arrivent bientôt. D'ici là, rien n'est ajouté à votre profil."
     detail:
         state: "État"
+        source: "Source"
         size: "Taille"
         started: "Envoyé le"
         kept: "Le fichier est conservé jusqu'au %date%."
@@ -11806,6 +11810,7 @@ data_import:
         discard_help: "Le fichier est supprimé. Rien ne change sur votre profil."
         discard_confirm: "Abandonner cet import ? Son fichier est supprimé."
     reading:
+        fetching: "Récupération de la feuille depuis Google…"
         waiting: "En attente de lecture…"
         reading: "Lecture du fichier…"
         sheets: "Feuilles lues : %done% sur %total%"
@@ -11833,6 +11838,24 @@ data_import:
         understood: "Lignes comprises : %understood% · à regarder : %look%"
         left_out: "Laissées de côté : %count%"
         refresh_hint: "Cette liste ne se met pas encore à jour toute seule - actualisez la page pour voir où elle en est."
+    google:
+        title: "Coller un lien Google Sheets"
+        link_label: "Lien de la feuille Google"
+        share_hint: "La feuille doit être partagée avec toute personne disposant du lien. Dans Google Sheets :"
+        share_steps: "Partager → Tous les utilisateurs disposant du lien → Lecteur"
+        submit: "Récupérer la feuille"
+        unnamed: "Feuille Google"
+        source: "Lien Google Sheets"
+        sharing_off: "La feuille est ici maintenant - vous pouvez de nouveau désactiver son partage."
+    fetch_failed:
+        title: "La feuille n'a pas pu être récupérée"
+        not_shared: "Google demande de se connecter : la feuille n'est donc pas encore partagée par lien. Partagez-la et réessayez."
+        not_found: "Google ne connaît aucune feuille de calcul avec ce lien. Vérifiez que le lien est complet et que la feuille n'a pas été supprimée, puis collez-le à nouveau."
+        too_large: "En fichier Excel, la feuille dépasse %megabytes% Mo - plus que ce qu'un import peut accepter."
+        refused: "Google n'a pas remis la feuille cette fois-ci. Réessayez plus tard, ou téléchargez-la dans Google Sheets (Fichier → Télécharger → Microsoft Excel) et envoyez le fichier."
+        not_a_spreadsheet: "Ce que Google a envoyé n'est pas une feuille de calcul. Téléchargez la feuille dans Google Sheets (Fichier → Télécharger → Microsoft Excel) et envoyez le fichier."
+        failed: "Un problème est survenu de notre côté pendant la récupération de la feuille. Veuillez réessayer."
+        upload_instead: "Envoyer plutôt un fichier"
     read_failed:
         title: "Le fichier n'a pas pu être lu"
         too_large: "Le fichier contient plus que ce qu'un import peut accepter. Un import accepte un fichier de %megabytes% Mo au maximum."
@@ -11867,3 +11890,6 @@ data_import:
         rate_limited: "Trop d'envois au cours de la dernière heure. Veuillez réessayer plus tard."
         storage: "Le fichier n'a pas pu être enregistré pour le moment. Veuillez réessayer dans un instant."
         no_file: "Veuillez d'abord choisir un fichier."
+        google_link: "Ce n'est pas le lien d'une feuille Google. Ouvrez la feuille, choisissez Partager → Copier le lien et collez-le ici - il commence par docs.google.com/spreadsheets."
+        google_published: "C'est un lien « publié sur le Web ». Collez plutôt le lien obtenu par Partager → Copier le lien."
+        google_rate_limited: "Trop de feuilles Google au cours de la dernière heure. Veuillez réessayer plus tard."

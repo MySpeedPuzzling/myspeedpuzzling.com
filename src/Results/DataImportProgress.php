@@ -39,7 +39,7 @@ readonly final class DataImportProgress
      */
     public function isMoving(): bool
     {
-        return $this->status === DataImportStatus::Uploaded->value || $this->status === DataImportStatus::Reading->value;
+        return in_array($this->status, [DataImportStatus::Fetching->value, DataImportStatus::Uploaded->value, DataImportStatus::Reading->value], true);
     }
 
     /**

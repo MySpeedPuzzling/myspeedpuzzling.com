@@ -15,7 +15,9 @@ use SpeedPuzzling\Web\Results\DataImportSheetOverview;
 use SpeedPuzzling\Web\Value\DataImportLimits;
 use SpeedPuzzling\Web\Value\DataImportReadFailure;
 use SpeedPuzzling\Web\Value\DataImportSheetKind;
+use SpeedPuzzling\Web\Value\DataImportSource;
 use SpeedPuzzling\Web\Value\DataImportStatus;
+use SpeedPuzzling\Web\Value\GoogleSheetFetchFailure;
 
 /**
  * The signed-in player's own imports (docs/features/data-import/upload.md) - for their own pages only: the caller
@@ -29,7 +31,9 @@ readonly final class GetDataImports
     data_import.file_size,
     data_import.status,
     data_import.created_at,
-    data_import.file_key IS NOT NULL AS file_kept,
+    data_import.source,
+    -- A Google sheet has its key from the start and its file only once it was fetched
+    (data_import.file_key IS NOT NULL AND data_import.status NOT IN ('fetching', 'fetch_failed')) AS file_kept,
     data_import.file_removed_at,
     data_import.read_error,
     data_import.sheets_total,
@@ -118,6 +122,7 @@ SQL;
         /**
          * @var array{
          *     id: string,
+         *     source: string,
          *     file_name: string,
          *     file_size: null|int|string,
          *     status: string,
@@ -145,6 +150,8 @@ SQL;
             sheetsTotal: $row['sheets_total'],
             sheetsRead: $row['sheets_read'],
             rowsRead: $row['rows_read'],
+            fetchFailure: $row['status'] === DataImportStatus::FetchFailed->value ? GoogleSheetFetchFailure::shown($row['read_error']) : null,
+            fromGoogleSheet: $row['source'] === DataImportSource::GoogleSheet->value,
         );
     }
 

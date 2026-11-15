@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Message\ReadWaitingImports;
+use SpeedPuzzling\Web\Message\RecordImportFetchFailed;
 use SpeedPuzzling\Web\Message\RecordImportReadFailed;
 use SpeedPuzzling\Web\Message\RequestImportRead;
 use SpeedPuzzling\Web\Message\RequestImportSetUp;
@@ -27,6 +28,9 @@ use Symfony\Component\Messenger\Stamp\HandledStamp;
  * - an import "being read" that wrote nothing for DataImportLimits::READING_STALLED_AFTER_SECONDS - its worker died
  *   or was killed by the time limit - is failed with the "our side" wording: the reading state always ends, and the
  *   player can try again from the page;
+ * - a Google sheet "being fetched" without any news for DataImportLimits::FETCHING_STALLED_AFTER_SECONDS - its message
+ *   was lost, or its worker died (a fetch itself never takes more than a minute) - is failed the same way: the
+ *   fetching state always ends too (docs/features/data-import/google-sheets.md);
  * - a read import one of whose sheets still waits for its mapping or its parse, with nothing written for the same
  *   quarter of an hour, gets that step queued again (RequestImportSetUp).
  */
@@ -91,6 +95,22 @@ readonly final class ReadWaitingImportsHandler
             if ($this->messageBus->dispatch(new RequestImportSetUp($importId))->last(HandledStamp::class)?->getResult() === true) {
                 $queued++;
             }
+        }
+
+        $since = $now->modify('-' . DataImportLimits::FETCHING_STALLED_AFTER_SECONDS . ' seconds');
+
+        foreach ($this->dataImportRepository->idsFetchingWithoutProgressSince($since, self::PER_RUN) as $importId) {
+            $envelope = $this->messageBus->dispatch(new RecordImportFetchFailed($importId, DataImportReadFailure::STALLED, withoutProgressSince: $since));
+
+            if ($envelope->last(HandledStamp::class)?->getResult() !== true) {
+                continue;
+            }
+
+            $failed++;
+            $this->progress->publish($importId);
+            $this->logger->warning('An import\'s Google sheet was being fetched without any news for a quarter of an hour - its message was lost or its worker died; the player can try again', [
+                'import_id' => $importId,
+            ]);
         }
 
         return ['queued' => $queued, 'failed' => $failed];

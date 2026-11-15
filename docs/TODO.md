@@ -1639,3 +1639,17 @@ Mirrored in [#212](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues
 - [ ] Merged cells are not stored (a second pass over every sheet); decide in stage 4 whether the mapping needs them.
 - [ ] "Your file is ready" in the bell: a notification type of its own (entity field, the `GetNotifications` UNION
   branch, template, 6 locales) - with the e-mail, once an import can add something.
+
+## Data import - Google Sheets link (stage 3c, `docs/features/data-import/google-sheets.md`)
+
+- [ ] lily.srv: the `imports` consumer needs outbound HTTPS to `docs.google.com` and `*.googleusercontent.com`
+  (production and sandbox); then one real sheet pasted on the sandbox - no real Google fetch ran through the handler
+  before the merge.
+- [ ] Watch for the warning "A redirect to … - not a host a Google sheet's export comes from": Google downloads from
+  a host outside `GoogleSheetFile::DOWNLOAD_HOST_PATTERN` - widen the pattern knowingly.
+- [ ] "The same Google sheet again" / "Look for new rows" (README "Bring the file"): with versions in stage 4. Until
+  then the same link pasted again is a new import.
+- [ ] "Published to the web" links (`/spreadsheets/d/e/2PACX-…/pub?output=xlsx`) are refused with a sentence of
+  their own - take them if players paste them often.
+- [ ] A Google sheet whose fetch failed and that is never tried again or discarded keeps its place of the three
+  forever (like a file whose reading failed) - decide with the prune of abandoned imports.

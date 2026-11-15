@@ -347,6 +347,12 @@ last batch, its state, its reason and what it made; every deleted result whole i
 An import that ever queued a row cannot be discarded (`DiscardImportHandler` → `ImportCanNotBeDiscarded`, 409): its
 rows' keys and links are what "never twice" and Undo rest on.
 
+It does not hold one of the player's 3 places for ever, though: it is **finished** - by the player's "I'm done with
+this import" or by the daily prune once nothing of it is left to add - and it holds no place from the moment every
+row of it is settled (upload.md "Finished"). A finished import refuses "Add" (`not_addable`) and every answer or
+decision like any import that is not being set up; **Undo works on it as before**, and "Go on with this import"
+sets it up again.
+
 ## What 6b-2 calls
 
 - **Add**: `AddImportRows(Uuid::uuid7() per press - in a hidden field, kept across a re-render, $importId,

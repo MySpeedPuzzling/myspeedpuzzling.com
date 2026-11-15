@@ -310,6 +310,10 @@ remove anything from your profile - to remove what it added, take it back." with
 added". A page that was open before the "Add" may still post Discard: nothing is discarded, the player lands on the
 import's page with that line.
 
+**Finishing.** Such an import does not hold one of the player's three places for ever: its page (and the page of a
+finished "Add") offers **"I'm done with this import"**; a finished import is folded under "Finished (n)" on Imports
+home, read-only except "Take back" and "Go on with this import" - upload.md "Finished".
+
 ## The live line
 
 `_adding_live.html.twig` + `data_import_adding_controller.js` - the mechanism of the reading's and the set-up's

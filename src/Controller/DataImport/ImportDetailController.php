@@ -75,7 +75,9 @@ final class ImportDetailController extends AbstractController
             // Its distinct puzzles and how far their pairing with the catalogue is - one statement, read only
             'pairing' => $this->getImportPairing->summary($importId),
             // What is ready to be added, what is not and why, and what the import added so far - one statement
-            'add' => $this->getImportAddScreen->summary($importId, $player->playerId),
+            'add' => $add = $this->getImportAddScreen->summary($importId, $player->playerId),
+            // A finished import can be gone on with while its rows still hold what the spreadsheet said
+            'can_go_on' => $add->wiped === false,
             // What the page's live line starts from: it follows the reading of the rows and the pairing by itself
             'live' => ImportPuzzlesController::live($this->getDataImports->progressOfPlayer($importId, $player->playerId)),
             'keep_days' => DataImportLimits::KEEP_FILE_DAYS,

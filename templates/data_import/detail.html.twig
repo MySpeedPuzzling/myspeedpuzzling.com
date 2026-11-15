@@ -43,6 +43,30 @@
     {% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
     {% set status = import.status.value %}
 
+    {% if status == 'done' %}
+        {# Finished: read-only - what it added can be taken back below, and it can be gone on with #}
+        <div class="card card-body shadow-sm mb-3" data-testid="import-finished">
+            <h2 class="h5"><i class="bi bi-check2-circle me-1" aria-hidden="true"></i>{{ 'data_import.finish.finished_title'|trans }}</h2>
+            <p class="fs-sm text-muted">{{ 'data_import.finish.finished_help'|trans }}</p>
+            {% if add.hasAdded %}
+                <p class="fs-sm" data-testid="import-finished-added">
+                    {{ 'data_import.add.added_so_far'|trans({'%results%': add.resultsAdded|format_number, '%owned%': add.collectionItemsAdded|format_number, '%wish_list%': add.wishListItemsAdded|format_number}) }}
+                    <a href="{{ path('data_import_added', {importId: import.importId}) }}" class="d-inline-flex align-items-center" style="min-height: 44px;">{{ 'data_import.add.see_added'|trans }}</a>
+                </p>
+            {% endif %}
+            {% if can_go_on %}
+                <form action="{{ path('data_import_go_on', {importId: import.importId}) }}" method="post">
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <button type="submit" class="btn btn-outline-primary text-wrap" style="min-height: 44px;" data-testid="import-go-on">
+                        <i class="bi bi-arrow-return-right me-1" aria-hidden="true"></i>{{ 'data_import.finish.go_on'|trans }}
+                    </button>
+                </form>
+            {% else %}
+                <p class="fs-sm text-muted mb-0" data-testid="import-can-not-go-on">{{ 'data_import.finish.can_not_go_on_note'|trans }}</p>
+            {% endif %}
+        </div>
+    {% endif %}
+
     {% if status == 'uploading' %}
         <div class="alert alert-warning fs-sm" data-testid="import-not-finished">
             <p class="mb-2">{{ 'data_import.detail.not_finished'|trans }}</p>
@@ -227,6 +251,10 @@
                 {% endif %}
             </span>
         </p>
+    {% endif %}
+
+    {% if status == 'setting_up' and add.latestBatchId is not null and add.runningBatchId is null %}
+        {{ include('data_import/_finish_card.html.twig', {import_id: import.importId, csrf: csrf}) }}
     {% endif %}
 
     {% if add.latestBatchId is not null %}

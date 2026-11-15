@@ -10,6 +10,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\ImportUploadRefused;
 use SpeedPuzzling\Web\Message\CreateImportFromGoogleSheet;
 use SpeedPuzzling\Web\Repository\DataImportRepository;
+use SpeedPuzzling\Web\Services\DataImport\ImportSlots;
 use SpeedPuzzling\Web\Services\DataImport\ImportUpload;
 use SpeedPuzzling\Web\Services\DataImport\ImportUploadRefusalMessage;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -43,6 +44,7 @@ final class BringImportFileController extends AbstractController
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private ImportUpload $importUpload,
+        readonly private ImportSlots $importSlots,
         readonly private ImportUploadRefusalMessage $refusalMessage,
         readonly private RateLimiterFactoryInterface $dataImportUploadLimiter,
         readonly private RateLimiterFactoryInterface $dataImportGoogleLimiter,
@@ -86,7 +88,13 @@ final class BringImportFileController extends AbstractController
             $linkRefusal = $viaLink ? $received['refusal'] : null;
         }
 
+        // Asked after the POST: what the page says is what the next try would meet
+        $held = $this->importSlots->heldBy($player->playerId);
+
         return $this->render('data_import/new.html.twig', [
+            // The imports to finish or discard first - only when every place is taken
+            'held' => count($held) >= DataImportLimits::MAX_UNFINISHED_PER_PLAYER ? $held : [],
+            'places' => DataImportLimits::MAX_UNFINISHED_PER_PLAYER,
             'refusal' => $refusal !== null ? $this->refusalMessage->of($refusal) : null,
             'google_link' => $link,
             'google_import_id' => Uuid::uuid7()->toString(),

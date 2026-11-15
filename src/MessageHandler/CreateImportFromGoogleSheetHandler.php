@@ -15,10 +15,9 @@ use SpeedPuzzling\Web\Message\StartImportFromGoogleSheet;
 use SpeedPuzzling\Web\Repository\DataImportRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\DataImport\ImportFileStorage;
+use SpeedPuzzling\Web\Services\DataImport\ImportSlots;
 use SpeedPuzzling\Web\Services\Doctrine\IdLock;
 use SpeedPuzzling\Web\Value\DataImportFileKind;
-use SpeedPuzzling\Web\Value\DataImportLimits;
-use SpeedPuzzling\Web\Value\DataImportStatus;
 use SpeedPuzzling\Web\Value\GoogleSheetLink;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -29,6 +28,7 @@ readonly final class CreateImportFromGoogleSheetHandler
     public function __construct(
         private PlayerRepository $playerRepository,
         private DataImportRepository $dataImportRepository,
+        private ImportSlots $importSlots,
         private MessageBusInterface $messageBus,
         private IdLock $idLock,
         private ClockInterface $clock,
@@ -65,7 +65,7 @@ readonly final class CreateImportFromGoogleSheetHandler
             return;
         }
 
-        if ($this->dataImportRepository->countOf($player, DataImportStatus::holdingAPlace()) >= DataImportLimits::MAX_UNFINISHED_PER_PLAYER) {
+        if ($this->importSlots->isFullFor($player->id->toString())) {
             throw new ImportUploadRefused('too_many');
         }
 

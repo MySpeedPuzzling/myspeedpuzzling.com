@@ -66,6 +66,8 @@ readonly final class ImportAddSummary
         public array $sampleIds = [],
         /** @var list<string> the first rows that add nothing - already the player's */
         public array $knownIds = [],
+        /** "Forget the spreadsheet's content": the rows' cells are gone - nothing more can be added from the import */
+        public bool $wiped = false,
     ) {
     }
 

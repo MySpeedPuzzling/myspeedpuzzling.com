@@ -288,6 +288,7 @@ SQL, [
             sheets: $sheets,
             sampleIds: array_values(array_filter(self::decoded($row['sample_ids']), is_string(...))),
             knownIds: array_values(array_filter(self::decoded($row['known_ids']), is_string(...))),
+            wiped: $row['wiped'],
         );
     }
 

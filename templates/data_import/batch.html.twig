@@ -154,6 +154,11 @@
         {% endif %}
     {% endif %}
 
+    {% if not batch.running and import.status.value == 'setting_up' %}
+        {# Nothing more to bring from this spreadsheet? The import is finished from here too #}
+        {{ include('data_import/_finish_card.html.twig', {import_id: import.importId, csrf: csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID'))}) }}
+    {% endif %}
+
     <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="btn btn-link px-0 d-inline-flex align-items-center" style="min-height: 44px;">
         <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.columns.back_to_import'|trans }}
     </a>

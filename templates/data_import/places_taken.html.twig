@@ -1,0 +1,27 @@
+{% extends 'base.html.twig' %}
+
+{#
+    "Go on with this import" when the player's places are taken (docs/features/data-import/upload.md "Finished"):
+    which imports are in progress, and the way back.
+#}
+
+{% set hide_comparison_launcher = true %}
+
+{% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
+
+{% block title %}{{ import_name }} - {{ 'data_import.home.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{{ include('_page_crumbs.html.twig', {levels: [{name: 'data_import.home.title'|trans, url: path('data_imports')}, {name: import_name, url: path('data_import_detail', {importId: import.importId})}]}) }}
+
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-places-taken-page">
+    <h1 class="h3 mb-3 text-break"><i class="bi bi-file-earmark-spreadsheet me-2"></i>{{ import_name }}</h1>
+
+    {{ include('data_import/_places_taken.html.twig', {held: held, limit: limit}) }}
+
+    <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="btn btn-link px-0 d-inline-flex align-items-center" style="min-height: 44px;">
+        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.columns.back_to_import'|trans }}
+    </a>
+</div>
+{% endblock %}

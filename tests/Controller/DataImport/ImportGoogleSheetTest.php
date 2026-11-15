@@ -353,7 +353,7 @@ final class ImportGoogleSheetTest extends WebTestCase
 
         $crawler = $this->browser->request('POST', '/en/import/new', ['_token' => $token, 'google_link' => self::LINK]);
         $this->assertResponseStatusCodeSame(422);
-        self::assertStringContainsString('3 unfinished imports', $crawler->filter('[data-testid="import-link-refusal"]')->text());
+        self::assertStringContainsString('3 imports in progress', $crawler->filter('[data-testid="import-link-refusal"]')->text());
         self::assertSame(3, $this->countImports(PlayerFixture::PLAYER_WITH_STRIPE));
 
         // A sheet that was not fetched still holds its place - until it is discarded

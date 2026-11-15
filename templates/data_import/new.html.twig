@@ -20,6 +20,11 @@
     <h1 class="h3 mb-2"><i class="bi bi-upload me-2"></i>{{ 'data_import.new.title'|trans }}</h1>
     <p class="text-muted">{{ 'data_import.new.intro'|trans }}</p>
 
+    {% if held is not empty %}
+        {# Every place is taken: said before a file is picked, with the imports to finish or discard #}
+        {{ include('data_import/_places_taken.html.twig', {held: held, limit: places}) }}
+    {% endif %}
+
     <div class="card card-body shadow-sm mb-3" data-testid="import-google-card">
         <h2 class="h5"><i class="bi bi-link-45deg me-1"></i>{{ 'data_import.google.title'|trans }}</h2>
         <form action="{{ path('data_import_new') }}" method="post">

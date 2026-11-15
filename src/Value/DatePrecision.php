@@ -79,22 +79,4 @@ CASE {$alias}.finished_at_precision
 END
 SQL;
     }
-
-    /**
-     * SQL: the latest moment a result can have happened: its solve day (else when it was logged) - and for a result
-     * known to its month or year the END of that period. Ordering "which solve was first" by it makes such a result
-     * the first one only when it certainly was. Used where no index serves the order (PlayerSkillCalculator); the
-     * baseline's qualifying first attempt keeps the stored value - `custom_pst_qualifying_first_attempt` is keyed on
-     * it (docs/features/data-import/date-precision.md "Counting").
-     */
-    public static function sqlLatestPossibleMoment(string $alias): string
-    {
-        return <<<SQL
-CASE {$alias}.finished_at_precision
-    WHEN 'month' THEN {$alias}.finished_at + INTERVAL '1 month'
-    WHEN 'year' THEN {$alias}.finished_at + INTERVAL '1 year'
-    ELSE COALESCE({$alias}.finished_at, {$alias}.tracked_at)
-END
-SQL;
-    }
 }

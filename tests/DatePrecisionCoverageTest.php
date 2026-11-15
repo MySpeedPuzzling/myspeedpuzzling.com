@@ -19,7 +19,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class DatePrecisionCoverageTest extends TestCase
 {
-    private const string ORDER = 'Chronological order of a player\'s results (the insights order): a result known to its month or year stands at the start of its period - the earliest moment it can have happened, so nothing reads data from after it. "Which solve of a puzzle was first" is the same order where an index serves it (PlayerBaselineCalculator); only the skill percentiles, which no index serves, take the end of the period (DatePrecision::sqlLatestPossibleMoment(), PlayerSkillCalculator).';
+    private const string ORDER = 'Chronological order of a player\'s results (the insights order): a result known to its month or year stands at the start of its period - the earliest moment it can have happened, so nothing reads data from after it. "Which solve of a puzzle was first" is that same order everywhere (baseline, skill percentiles).';
     private const string LONG_WINDOW = 'A window of months or years back from now (recent form, activity, a rating window): whether a result of "March 2021" is inside is the same question on any day of that month, give or take the month itself.';
     private const string FIRST_LAST = 'The first / last time a puzzle or a person was solved with, as a moment to sort by or to word roughly ("3 years ago"): the start of the period.';
     private const string INSIGHTS = 'The Insights page (not public yet, INSIGHTS_PUBLIC): reads the solve moment to order results and for long windows; its weekday and "n-th solve of the day" come from InsightsRowsPreparer, which leaves results without a day out.';
@@ -68,6 +68,7 @@ final class DatePrecisionCoverageTest extends TestCase
         'Services/PuzzleIntelligence/Model/UnboxedFirstTries.php' => self::ORDER,
         'Services/PuzzleIntelligence/MspRatingCalculator.php' => self::ORDER . ' The rating window is ' . self::LONG_WINDOW,
         'Services/PuzzleIntelligence/PlayerBaselineCalculator.php' => self::FIRST_BY_INDEX,
+        'Services/PuzzleIntelligence/PlayerSkillCalculator.php' => self::ORDER . ' Its first attempt per puzzle is the baseline\'s rule: the stored value.',
         'Services/PuzzleIntelligence/PredictionReconstructor.php' => self::ORDER . ' Its "first attempt" order is the baseline\'s, in PHP.',
         'Services/PuzzleIntelligence/RepeatResiduals.php' => self::ORDER,
         'Services/PuzzleIntelligence/StatisticalInputsSql.php' => self::FIRST_BY_INDEX,

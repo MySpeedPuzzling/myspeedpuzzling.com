@@ -34,6 +34,7 @@ async function run(scenario) {
         const listeners = { error: [], load: [] };
         const failing = load.failing || [];
         const network = scenario.network || {};
+        const stalls = Object.values(network).some((answer) => answer && answer.status === 'stalled');
 
         const element = (asset) => {
             const isScript = asset.url.endsWith('.js');
@@ -62,8 +63,10 @@ async function run(scenario) {
 
         const sandbox = {
             JSON, Promise, Object, String, parseInt, Uint8Array,
-            // Time runs fast here: the script's 10 s refetch deadline fires after 20 ms.
-            setTimeout: (callback, delay) => setTimeout(callback, Math.min(delay, 20)).unref(),
+            // Time runs fast here. The script's 10 s refetch deadline fires after 20 ms only where a download is
+            // meant to stall; elsewhere it gets 2 s, so a refetch that hashes its bytes on a loaded CI runner is
+            // not cut off as a timeout (the flake of 2026-11: 'refetch' => 'timeout' instead of 'intact').
+            setTimeout: (callback, delay) => setTimeout(callback, Math.min(delay, delay >= 10000 && !stalls ? 2000 : 20)).unref(),
             btoa: (value) => Buffer.from(value, 'binary').toString('base64'),
             crypto: { subtle: nodeCrypto.webcrypto.subtle },
             navigator: {
@@ -125,7 +128,17 @@ async function run(scenario) {
         }
         await new Promise((resolve) => setTimeout(resolve, 10));
         for (const listener of listeners.load) listener({});
-        await new Promise((resolve) => setTimeout(resolve, 50));
+        // Wait until the script has gone quiet (nothing new for 60 ms), at most 3 s - a fixed 50 ms was not
+        // enough on a loaded runner.
+        const signature = () => JSON.stringify([did.beacons.length, did.reloads, did.refetches.length, did.cacheDeletes.length, storage]);
+        let last = signature();
+        let quietSince = Date.now();
+        const startedAt = Date.now();
+        while (Date.now() - quietSince < 60 && Date.now() - startedAt < 3000) {
+            await new Promise((resolve) => setTimeout(resolve, 10));
+            const now = signature();
+            if (now !== last) { last = now; quietSince = Date.now(); }
+        }
 
         did.historyMarked = !!(historyState && historyState.mspAssetHeal);
         loads.push(did);

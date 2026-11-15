@@ -20,6 +20,11 @@ readonly final class DataImportSheetRepository
         $this->entityManager->persist($sheet);
     }
 
+    public function find(string $sheetId): null|DataImportSheet
+    {
+        return $this->entityManager->find(DataImportSheet::class, $sheetId);
+    }
+
     /**
      * @return list<DataImportSheet>
      */

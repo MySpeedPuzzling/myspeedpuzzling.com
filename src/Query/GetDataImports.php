@@ -10,7 +10,10 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
 use SpeedPuzzling\Web\Results\DataImportOverview;
+use SpeedPuzzling\Web\Results\DataImportProgress;
+use SpeedPuzzling\Web\Results\DataImportSheetOverview;
 use SpeedPuzzling\Web\Value\DataImportLimits;
+use SpeedPuzzling\Web\Value\DataImportReadFailure;
 use SpeedPuzzling\Web\Value\DataImportStatus;
 
 /**
@@ -26,7 +29,11 @@ readonly final class GetDataImports
     data_import.status,
     data_import.created_at,
     data_import.file_key IS NOT NULL AS file_kept,
-    data_import.file_removed_at
+    data_import.file_removed_at,
+    data_import.read_error,
+    data_import.sheets_total,
+    data_import.sheets_read,
+    data_import.rows_read
 SQL;
 
     public function __construct(
@@ -116,6 +123,10 @@ SQL;
          *     created_at: string,
          *     file_kept: bool,
          *     file_removed_at: null|string,
+         *     read_error: null|string,
+         *     sheets_total: null|int,
+         *     sheets_read: int,
+         *     rows_read: int,
          * } $row
          */
         $createdAt = new DateTimeImmutable($row['created_at']);
@@ -129,6 +140,126 @@ SQL;
             fileKept: $row['file_kept'],
             fileRemovedAt: $row['file_removed_at'] !== null ? new DateTimeImmutable($row['file_removed_at']) : null,
             fileKeptUntil: $row['file_kept'] ? $createdAt->modify('+' . DataImportLimits::KEEP_FILE_DAYS . ' days') : null,
+            readFailure: $row['status'] === DataImportStatus::ReadFailed->value ? DataImportReadFailure::shown($row['read_error']) : null,
+            sheetsTotal: $row['sheets_total'],
+            sheetsRead: $row['sheets_read'],
+            rowsRead: $row['rows_read'],
         );
+    }
+
+    /**
+     * How far the player's own import is - what its page asks for while the file is read. An import that was closed
+     * because the player already has the very same file answers `same_file` and names that import; any other
+     * discarded one is "not found".
+     *
+     * @throws DataImportNotFound
+     */
+    public function progressOfPlayer(string $importId, string $playerId): DataImportProgress
+    {
+        $progress = Uuid::isValid($playerId) ? $this->progress($importId) : null;
+
+        if ($progress === null || $progress->playerId !== strtolower($playerId)) {
+            throw new DataImportNotFound();
+        }
+
+        return $progress;
+    }
+
+    /**
+     * The same for whoever publishes it to the player's own topic (ImportProgress) - never for a page: no player is
+     * checked here.
+     */
+    public function progress(string $importId): null|DataImportProgress
+    {
+        if (Uuid::isValid($importId) === false) {
+            return null;
+        }
+
+        $query = <<<SQL
+SELECT
+    data_import.id,
+    data_import.player_id,
+    data_import.status,
+    data_import.read_error,
+    data_import.sheets_total,
+    data_import.sheets_read,
+    data_import.rows_read,
+    same_file.id AS same_file_as
+FROM data_import
+LEFT JOIN data_import same_file
+    ON same_file.id = data_import.same_file_as_import_id
+    AND same_file.player_id = data_import.player_id
+    AND same_file.status <> :discarded
+WHERE data_import.id = :importId
+SQL;
+
+        /** @var false|array{id: string, player_id: string, status: string, read_error: null|string, sheets_total: null|int, sheets_read: int, rows_read: int, same_file_as: null|string} $row */
+        $row = $this->database->executeQuery($query, [
+            'importId' => $importId,
+            'discarded' => DataImportStatus::Discarded->value,
+        ])->fetchAssociative();
+
+        if ($row === false) {
+            return null;
+        }
+
+        $discarded = $row['status'] === DataImportStatus::Discarded->value;
+
+        if ($discarded && $row['same_file_as'] === null) {
+            return null;
+        }
+
+        return new DataImportProgress(
+            importId: $row['id'],
+            playerId: $row['player_id'],
+            status: $discarded ? DataImportProgress::SAME_FILE : $row['status'],
+            sheetsTotal: $row['sheets_total'],
+            sheetsRead: $row['sheets_read'],
+            rowsRead: $row['rows_read'],
+            readFailure: $row['status'] === DataImportStatus::ReadFailed->value ? DataImportReadFailure::shown($row['read_error']) : null,
+            sameFileAsImportId: $discarded ? $row['same_file_as'] : null,
+        );
+    }
+
+    /**
+     * The sheets of the player's own import as the file has them - an import that was not read has none.
+     *
+     * @return list<DataImportSheetOverview>
+     */
+    public function sheetsOfPlayer(string $importId, string $playerId): array
+    {
+        if (Uuid::isValid($importId) === false || Uuid::isValid($playerId) === false) {
+            return [];
+        }
+
+        $query = <<<SQL
+SELECT
+    data_import_sheet.position,
+    data_import_sheet.title,
+    data_import_sheet.hidden,
+    data_import_sheet.rows_total,
+    data_import_sheet.columns_total
+FROM data_import_sheet
+INNER JOIN data_import ON data_import.id = data_import_sheet.import_id
+WHERE data_import_sheet.import_id = :importId
+    AND data_import.player_id = :playerId
+    AND data_import.status <> :discarded
+ORDER BY data_import_sheet.position
+SQL;
+
+        /** @var list<array{position: int, title: string, hidden: bool, rows_total: int, columns_total: int}> $rows */
+        $rows = $this->database->executeQuery($query, [
+            'importId' => $importId,
+            'playerId' => $playerId,
+            'discarded' => DataImportStatus::Discarded->value,
+        ])->fetchAllAssociative();
+
+        return array_map(static fn (array $row): DataImportSheetOverview => new DataImportSheetOverview(
+            position: $row['position'],
+            title: $row['title'],
+            hidden: $row['hidden'],
+            rows: $row['rows_total'],
+            columns: $row['columns_total'],
+        ), $rows);
     }
 }

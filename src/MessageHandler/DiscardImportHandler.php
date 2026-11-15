@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Repository\DataImportRepository;
 use SpeedPuzzling\Web\Repository\DataImportRowRepository;
 use SpeedPuzzling\Web\Repository\DataImportSheetRepository;
 use SpeedPuzzling\Web\Services\DataImport\ImportFileStorage;
+use SpeedPuzzling\Web\Services\Doctrine\IdLock;
 use SpeedPuzzling\Web\Value\DataImportStatus;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -32,6 +33,7 @@ readonly final class DiscardImportHandler
         private DataImportSheetRepository $dataImportSheetRepository,
         private DataImportRowRepository $dataImportRowRepository,
         private ImportFileStorage $storage,
+        private IdLock $idLock,
         private ClockInterface $clock,
         private LoggerInterface $logger,
     ) {
@@ -43,6 +45,10 @@ readonly final class DiscardImportHandler
     public function __invoke(DiscardImport $message): void
     {
         $import = $this->dataImportRepository->getOwnedBy($message->importId, $message->playerId);
+
+        // The lock every write of a running read takes (RecordImportRowsHandler): a batch on its way is in before the
+        // rows are deleted, and the next one finds the import discarded - no row is written behind a discard
+        $this->idLock->lockUntilCommit($import->id);
 
         if ($import->status === DataImportStatus::Discarded) {
             return;

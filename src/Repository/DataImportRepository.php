@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Repository;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
+use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\DataImport;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
@@ -71,6 +72,80 @@ readonly final class DataImportRepository
             ->setParameter('statuses', $statuses)
             ->getQuery()
             ->getSingleScalarResult();
+    }
+
+    /**
+     * Another import of the player that was read - or is being read - from the very same bytes. Not one that is
+     * discarded, nor one whose reading failed (the new upload is then the player's next try).
+     */
+    public function findLiveOfSameFile(DataImport $import, string $sha256): null|DataImport
+    {
+        /** @var null|DataImport $same */
+        $same = $this->entityManager->createQueryBuilder()
+            ->select('i')
+            ->from(DataImport::class, 'i')
+            ->where('i.player = :player')
+            ->andWhere('i.fileSha256 = :sha256')
+            ->andWhere('i.id <> :id')
+            ->andWhere('i.status IN (:statuses)')
+            ->setParameter('player', $import->player)
+            ->setParameter('sha256', $sha256)
+            ->setParameter('id', $import->id)
+            ->setParameter('statuses', [DataImportStatus::Reading, DataImportStatus::SettingUp, DataImportStatus::Reviewing, DataImportStatus::Done])
+            ->orderBy('i.createdAt', 'ASC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return $same;
+    }
+
+    /**
+     * Uploaded imports nobody started to read (the message was lost, or they were uploaded before reading existed)
+     * whose file is still there.
+     *
+     * @return list<string> ids
+     */
+    public function idsWaitingToBeReadSince(DateTimeImmutable $uploadedBefore, int $limit): array
+    {
+        /** @var list<array{id: UuidInterface}> $rows */
+        $rows = $this->entityManager->createQueryBuilder()
+            ->select('i.id')
+            ->from(DataImport::class, 'i')
+            ->where('i.status = :status')
+            ->andWhere('i.fileKey IS NOT NULL')
+            ->andWhere('i.lastActivityAt < :before')
+            ->setParameter('status', DataImportStatus::Uploaded)
+            ->setParameter('before', $uploadedBefore)
+            ->orderBy('i.lastActivityAt', 'ASC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_map(static fn (array $row): string => $row['id']->toString(), $rows);
+    }
+
+    /**
+     * Imports "being read" that wrote nothing since the moment given: their worker died.
+     *
+     * @return list<string> ids
+     */
+    public function idsReadingWithoutProgressSince(DateTimeImmutable $since, int $limit): array
+    {
+        /** @var list<array{id: UuidInterface}> $rows */
+        $rows = $this->entityManager->createQueryBuilder()
+            ->select('i.id')
+            ->from(DataImport::class, 'i')
+            ->where('i.status = :status')
+            ->andWhere('i.lastActivityAt < :since')
+            ->setParameter('status', DataImportStatus::Reading)
+            ->setParameter('since', $since)
+            ->orderBy('i.lastActivityAt', 'ASC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_map(static fn (array $row): string => $row['id']->toString(), $rows);
     }
 
     /**

@@ -105,6 +105,58 @@ final readonly class ImportFileStorage
     }
 
     /**
+     * Streams the object into a local file - never into memory - and says what it is: for the worker that reads it.
+     *
+     * @return array{bytes: int, sha256: string}
+     *
+     * @throws FilesystemException object storage does not answer, or the object is not there
+     * @throws \RuntimeException the local file can not be written
+     */
+    public function downloadTo(string $key, string $localPath): array
+    {
+        $source = $this->filesystem->readStream($key);
+        $target = fopen($localPath, 'wb');
+
+        try {
+            if ($target === false) {
+                throw new \RuntimeException('The file for a downloaded import can not be opened.');
+            }
+
+            $hash = hash_init('sha256');
+            $bytes = 0;
+
+            while (feof($source) === false) {
+                $chunk = fread($source, 1_048_576);
+
+                if ($chunk === false) {
+                    throw new \RuntimeException('An import\'s file can not be read from object storage.');
+                }
+
+                if ($chunk === '') {
+                    continue;
+                }
+
+                hash_update($hash, $chunk);
+                $bytes += strlen($chunk);
+
+                if (fwrite($target, $chunk) !== strlen($chunk)) {
+                    throw new \RuntimeException('A downloaded import can not be written to the disk.');
+                }
+            }
+
+            return ['bytes' => $bytes, 'sha256' => hash_final($hash)];
+        } finally {
+            if (is_resource($source)) {
+                fclose($source);
+            }
+
+            if (is_resource($target)) {
+                fclose($target);
+            }
+        }
+    }
+
+    /**
      * A missing object counts as deleted.
      *
      * @throws FilesystemException

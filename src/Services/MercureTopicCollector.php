@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
+use SpeedPuzzling\Web\Services\DataImport\ImportProgress;
 use Symfony\Contracts\Service\ResetInterface;
 
 final class MercureTopicCollector implements ResetInterface
@@ -30,6 +31,9 @@ final class MercureTopicCollector implements ResetInterface
         $baseTopics = [
             '/unread-count/' . $playerId,
             '/conversations/' . $playerId,
+            // The progress of the player's spreadsheet imports (ImportProgress). One topic per player, not per
+            // import: a topic of one page would be dropped whenever another request rewrites the subscribe cookie
+            ImportProgress::topicOf($playerId),
         ];
 
         $allTopics = $baseTopics;

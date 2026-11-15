@@ -1,7 +1,7 @@
 # Data import: upload and the imports pages (stage 3a)
 
 What stage 3a built of [the design](README.md): a signed-in player can bring a spreadsheet, see their imports and
-discard one. **Nothing reads the file yet** - `uploaded` is where an import rests until the reader arrives (stage 3b).
+discard one. Since stage 3b an import that becomes `uploaded` is read at once - [reading.md](reading.md).
 No page of the site links here yet; entry points are a later stage.
 
 ## Pages
@@ -50,8 +50,8 @@ are reused; the rest is the import's own (`ImportFileStorage`, `ImportUpload`).
    exists with exactly the signed size and moves the import to `uploaded` (under the player's lock, the limit of 3
    unfinished imports checked once more). 409 `missing` / `size` / `state` / `too_many`, 503
    `storage` when object storage does not answer (nothing changed - the browser asks again), 404 for another
-   player's import. Confirming twice changes nothing. **No read message is dispatched** - that arrives with the
-   reader.
+   player's import. Confirming twice changes nothing. The first confirmation queues `ReadImportFile`
+   ([reading.md](reading.md)).
 
 **The fallback** is the page's plain form (`BringImportFileController`, `multipart/form-data`): used without
 JavaScript, and by the script whenever the direct way can not work (the start unreachable, the store refusing or
@@ -66,8 +66,8 @@ counted for direct starts and fallback posts alike.
 
 ## States
 
-`DataImportStatus`: `uploading` → `uploaded` → (later stages: `reading`, `setting_up`, `reviewing`, `done`), and
-`discarded`. The README's data model lists the later ones; `uploading` and `uploaded` are this stage's.
+`DataImportStatus`: `uploading` → `uploaded` → `reading` → `setting_up` or `read_failed` ([reading.md](reading.md))
+→ (later stages: `reviewing`, `done`), and `discarded`. `uploading` and `uploaded` are this stage's.
 
 ## Tables
 

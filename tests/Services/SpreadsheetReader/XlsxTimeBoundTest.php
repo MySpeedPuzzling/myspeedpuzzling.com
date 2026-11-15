@@ -221,6 +221,107 @@ final class XlsxTimeBoundTest extends TestCase
         $this->assertRefusedAtOnce($this->workbookWith($place, $flood), 'more distinct names than a part has');
     }
 
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function placesForBlankTexts(): iterable
+    {
+        yield 'in the head of a sheet' => ['head'];
+        yield 'among the cells' => ['cell'];
+        yield 'in the shared strings' => ['strings'];
+    }
+
+    /**
+     * The parser keeps every distinct blank text of under 60 bytes in its dictionary: 1.5 million different ones of
+     * 21 bytes between tags were stopped only by the clock. A fifth of that here - the file is refused at its 1,001st.
+     */
+    #[DataProvider('placesForBlankTexts')]
+    public function testHundredsOfThousandsOfDistinctBlankTextsAreRefusedBeforeTheParserGetsThem(string $place): void
+    {
+        $blank = [' ', "\t", "\n"];
+        $flood = '';
+
+        for ($number = 0; $number < 300_000; $number++) {
+            $text = '';
+
+            // 21 bytes that spell the number in base 3 - every text another one
+            for ($digit = 0, $rest = $number; $digit < 21; $digit++, $rest = intdiv($rest, 3)) {
+                $text .= $blank[$rest % 3];
+            }
+
+            $flood .= $text . '<f/>';
+        }
+
+        $path = $this->workbookWith($place, $flood);
+        unset($flood);
+        $started = hrtime(true);
+
+        $this->assertRefusedAtOnce($path, XmlFloodScanner::TOO_MANY_BLANK_RUNS);
+
+        self::assertLessThan(1.0, (hrtime(true) - $started) / 1e9, 'Refused, but not at once.');
+    }
+
+    public function testAPrettyPrintedSheetOfFiftyThousandRowsIsRead(): void
+    {
+        $rows = '';
+
+        for ($row = 1; $row <= 50_000; $row++) {
+            // A line and an indentation of its depth before every element, as a tool that formats XML writes them -
+            // 450,000 runs of white space, four different ones
+            $rows .= "\n    <row r=\"{$row}\">";
+
+            foreach (['A', 'B', 'C', 'D'] as $column) {
+                $rows .= "\n      <c r=\"{$column}{$row}\">\n        <v>{$row}</v>\n      </c>";
+            }
+
+            $rows .= "\n    </row>";
+        }
+
+        $path = $this->saved((new RawXlsx())->sheet('Sheet', RawXlsx::worksheetAround("\n  <sheetData>" . $rows . "\n  </sheetData>\n")));
+        unset($rows);
+        $workbook = $this->open($path, limits: new SpreadsheetLimits(maxCompressionRatio: 1_000_000));
+        $count = 0;
+        $lastNumber = 0;
+        $lastValue = null;
+
+        foreach ($workbook->rows($workbook->sheets()[0]) as $row) {
+            $count++;
+            $lastNumber = $row->number;
+            $lastValue = $row->cell(4)?->value;
+        }
+
+        self::assertSame(50_000, $count);
+        self::assertSame(50_000, $lastNumber);
+        self::assertSame(50_000, $lastValue);
+        self::assertSame(200_000, $workbook->cellsRead());
+    }
+
+    public function testARunOfWhiteSpaceTheStreamCutsInTwoIsCountedAsOne(): void
+    {
+        $scanner = new XmlFloodScanner(131_072);
+        $document = '<a>';
+
+        // More different runs than a part has, all but the first cut by a chunk's end
+        for ($number = 0; $number <= XmlFloodScanner::MAX_BLANK_RUNS; $number++) {
+            $document .= str_repeat(' ', 1 + $number % 30) . str_repeat("\n", 1 + intdiv($number, 30)) . '<c/>';
+        }
+
+        $refused = null;
+
+        foreach (str_split($document, 7) as $chunk) {
+            $refused ??= $scanner->scan($chunk);
+        }
+
+        self::assertSame(XmlFloodScanner::TOO_MANY_BLANK_RUNS, $refused);
+
+        // The same runs over and over are no flood, however the stream is cut
+        $scanner = new XmlFloodScanner(131_072);
+
+        foreach (str_split('<a>' . str_repeat("\n    <c/>\n  <c/>", 50_000) . '</a>', 5) as $chunk) {
+            self::assertNull($scanner->scan($chunk));
+        }
+    }
+
     public function testThousandsOfNamespaceDeclarationsInScopeAreRefusedBeforeTheParserGetsThem(): void
     {
         $nested = static function (int $levels, int $perTag): array {

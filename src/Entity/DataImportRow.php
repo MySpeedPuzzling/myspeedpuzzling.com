@@ -20,8 +20,8 @@ use SpeedPuzzling\Web\Value\DataImportRowState;
 
 /**
  * A row of a sheet of an import (docs/features/data-import/README.md "Data model"). Its key, state and outcomes are
- * kept for ever; `cells` and `parsed` can be wiped. Written by the reader, which is not built yet - the table exists
- * so the later stages add little.
+ * kept for ever; `cells` and `parsed` can be wiped. Written when the file is read: `cells` in the shape of
+ * Services\DataImport\ImportRowCells (docs/features/data-import/reading.md "What a row keeps").
  *
  * `importPuzzleId` and `batchId` point at tables of later stages (`data_import_puzzle`, `data_change_batch`): plain
  * ids until those exist.

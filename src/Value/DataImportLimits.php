@@ -14,6 +14,25 @@ final class DataImportLimits
     public const int MAX_SHEETS = 100;
     public const int MAX_ROWS = 50_000;
     public const int MAX_CELLS = 1_000_000;
+    /**
+     * What an import's rows may hold as text altogether (the reader bounds a cell and a row - 50,000 rows of 1 MiB
+     * each would still be 50 GB): twice what the largest honest import stores (README "Large imports": 50-150 MB).
+     */
+    public const int MAX_STORED_BYTES = 300 * 1024 * 1024;
+    /** Rows written per transaction while a file is read */
+    public const int ROWS_PER_BATCH = 500;
+    /** … or fewer, when they are heavy: a batch travels as one message */
+    public const int BYTES_PER_BATCH = 4 * 1024 * 1024;
+    /** CPU seconds the reader gets for one file (docs/features/data-import/reader.md) */
+    public const float READ_CPU_SECONDS = 60.0;
+    /** … and seconds on the wall clock, the last resort */
+    public const float READ_WALL_SECONDS = 300.0;
+    /** PHP's own time limit around a read - a parser that hangs is killed with the worker, the import is rescued */
+    public const int READ_HARD_SECONDS = 420;
+    /** An uploaded import nobody started to read after this long is queued again (a message that was lost) */
+    public const int UNREAD_AFTER_SECONDS = 120;
+    /** An import "being read" without any progress for this long: its worker died */
+    public const int READING_STALLED_AFTER_SECONDS = 900;
     /** Imports whose file arrived and that are neither finished nor discarded */
     public const int MAX_UNFINISHED_PER_PLAYER = 3;
     /** How long the uploaded file is kept in object storage */

@@ -11,7 +11,12 @@ export default class extends Controller {
     connect() {
         this._refreshTimeout = null;
 
-        this._onMercureMessage = () => this.debouncedRefresh();
+        this._onMercureMessage = (event) => {
+            // The player's private stream also carries the progress of their spreadsheet imports - not ours
+            if (event.detail && event.detail.type === 'import_progress') return;
+
+            this.debouncedRefresh();
+        };
         document.addEventListener('mercure:message', this._onMercureMessage);
     }
 

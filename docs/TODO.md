@@ -1614,10 +1614,14 @@ Mirrored in [#212](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues
       players at Level 50 and median level 10 (the curve was calibrated to a median of 13-14 with achievement XP) -
       decide whether the curve needs a touch
 
-## Data import - the reader (from the security review of #347)
+## Data import - reading the file (stage 3b, `docs/features/data-import/reading.md`)
 
-- [ ] The read budget (60 s) is wall-clock: the largest allowed file (50,000 x 20) took 18-41 s on a host at load 11.
-  Decide in stage 3b: per-job budget against the consumer's real load, and what the player is told on `too_slow`
-  (try again, not "your file is broken"). `docs/features/data-import/reader.md`
-- [ ] 1.5 million distinct blank texts between cells are stopped only by the clock (61 s) - count them in
-  `XmlFloodScanner`.
+- [ ] Run the page's live progress in a real browser on the branch (Mercure event → the line moves; the stream
+  blocked → polling; the end → the sheets list) - written without one.
+- [ ] lily.srv: the `imports` consumer needs the Mercure publisher settings (`MERCURE_URL`, `MERCURE_PUBLIC_URL`,
+  `MERCURE_JWT_SECRET`) and object storage like the web container, a writable temporary folder with room for a
+  25 MB file plus the reader's shared strings, and a cron row for `myspeedpuzzling:read-waiting-imports` (every 5
+  minutes).
+- [ ] Merged cells are not stored (a second pass over every sheet); decide in stage 4 whether the mapping needs them.
+- [ ] "Your file is ready" in the bell: a notification type of its own (entity field, the `GetNotifications` UNION
+  branch, template, 6 locales) - with the e-mail, once an import can add something.

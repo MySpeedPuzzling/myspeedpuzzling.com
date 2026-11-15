@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\SpreadsheetReader\Xlsx;
 
+use SpeedPuzzling\Web\Services\SpreadsheetReader\CpuClock;
+
 /**
  * What an opened workbook may still cost: bytes of XML unpacked and parsed, and seconds spent reading - one budget for
  * every pass over every part (SpreadsheetLimits::$maxReadBytes, ::$maxReadSeconds).
  *
+ * The seconds are the process's own CPU time (CpuClock), with a ceiling of wall-clock seconds as the last resort.
  * Time is counted only while the reader works: every entry point of the workbook brackets its work with enter() and
  * leave(), so what the caller does with a row between two rows is not the reader's time. While the reader works,
  * - warnings PHP raises from inside the XML reader (a compressed part that is corrupt: "Zip stream error") are taken
@@ -27,6 +30,8 @@ final class ReadBudget
 
     private int $spent = 0;
     private null|int $enteredAt = null;
+    private int $wallSpent = 0;
+    private null|int $wallEnteredAt = null;
     private int $depth = 0;
     private bool $parserErrorsWereInternal = false;
     /** Entries of the parser's list that are not ours to count or to clear: what the application had in it */
@@ -34,7 +39,10 @@ final class ReadBudget
 
     public function __construct(
         public int $remaining,
+        /** CPU time of the process the reader may still use */
         private readonly int $maxNanoseconds,
+        /** Wall-clock time the reader may still take - far above the CPU time: the last resort */
+        private readonly int $maxWallNanoseconds = PHP_INT_MAX,
     ) {
     }
 
@@ -44,7 +52,8 @@ final class ReadBudget
             return;
         }
 
-        $this->enteredAt = hrtime(true);
+        $this->enteredAt = CpuClock::nanoseconds();
+        $this->wallEnteredAt = CpuClock::wallNanoseconds();
         $this->parserErrorsWereInternal = libxml_use_internal_errors(true);
         // An application that keeps the parser's complaints in the list itself may have some waiting there: they
         // stay where they are (and ours are then left in the list behind them - the list can not be put back)
@@ -73,8 +82,13 @@ final class ReadBudget
         libxml_use_internal_errors($this->parserErrorsWereInternal);
 
         if ($this->enteredAt !== null) {
-            $this->spent += hrtime(true) - $this->enteredAt;
+            $this->spent += CpuClock::nanoseconds() - $this->enteredAt;
             $this->enteredAt = null;
+        }
+
+        if ($this->wallEnteredAt !== null) {
+            $this->wallSpent += CpuClock::wallNanoseconds() - $this->wallEnteredAt;
+            $this->wallEnteredAt = null;
         }
     }
 
@@ -104,13 +118,21 @@ final class ReadBudget
         }
     }
 
+    /**
+     * CPU time the reader has used on the file.
+     */
     public function nanoseconds(): int
     {
-        return $this->spent + ($this->enteredAt === null ? 0 : hrtime(true) - $this->enteredAt);
+        return $this->spent + ($this->enteredAt === null ? 0 : CpuClock::nanoseconds() - $this->enteredAt);
+    }
+
+    public function wallNanoseconds(): int
+    {
+        return $this->wallSpent + ($this->wallEnteredAt === null ? 0 : CpuClock::wallNanoseconds() - $this->wallEnteredAt);
     }
 
     public function outOfTime(): bool
     {
-        return $this->nanoseconds() > $this->maxNanoseconds;
+        return $this->nanoseconds() > $this->maxNanoseconds || $this->wallNanoseconds() > $this->maxWallNanoseconds;
     }
 }

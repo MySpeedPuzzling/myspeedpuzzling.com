@@ -1696,5 +1696,3 @@ Mirrored in [#212](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues
   again when the catalogue grows.
 - [ ] Reader: the 60 s CPU / 300 s wall budget and the blank-run cap are in; `too_slow` wording says "try again".
   (The two older reader items above are done by #351.)
-- [ ] The results export names a private teammate in clear (`GetExportableSolvingTimes.php:209-221`, older than
-  My data; My data masks them like the profile since #365) - decide whether the export should mask too.

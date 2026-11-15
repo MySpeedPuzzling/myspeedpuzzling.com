@@ -56,6 +56,17 @@ committed with `git add -A`; one destructive command per call, never the dev dat
 
 ## Log
 
+- 2026-11-15 - **Jan's answers:** (1) the entry points (stage 8, #366) are merged only AFTER the people of a file
+  are settled; (2) "code / id resolve to real person -> yes please, not sure about plain text names to avoid
+  conflicts (we could ask user whether to map and find and all matches map to existing players ... during / after
+  import)" - so a `#code` becomes the player by itself, a name is a guest unless the importing player says who it
+  is (stage 6d, building: `data_import_person`, suggestions only among players the importer is connected to, the
+  partner told once per batch, limits per partner; after the Add the existing guest-link consent flow); (3) the
+  results export keeps naming a private teammate - "puzzled with him so you know it was him"; (4) the mail to the
+  player with the empty photos was sent.
+- 2026-11-15 - stage 8 (#366): reviewed (no template, route or query problem; the add form intact in a browser on
+  the branch); the guide's copy is being made exact in six languages; HELD until 6d is live.
+
 - 2026-11-15 - **stage 2a live** (#365): My data `/{_locale}/my-data` - the player's own results, puzzles and wish
   list as a table (≥ 992 px) or a compact list (phone), search, filters, sort, paging in SQL, own fields as
   columns, a column chooser remembered per player; read-only. Production plans before the merge: the results page

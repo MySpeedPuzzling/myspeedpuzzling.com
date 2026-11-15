@@ -136,6 +136,7 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
             roundId: $solvingTime->competitionRound?->id->toString(),
             competitionId: $solvingTime->competition?->id->toString(),
             seriesId: ($solvingTime->competitionSeries ?? $solvingTime->competition?->series)?->id->toString(),
+            datePrecision: $solvingTime->datePrecision()->value,
             prediction: $this->predictionBefore($data->groupPlayers !== [], $timeSeconds, $timeId->toString()),
         );
     }
@@ -179,6 +180,7 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
             roundId: $solvingTime->competitionRound?->id->toString(),
             competitionId: $solvingTime->competition?->id->toString(),
             seriesId: ($solvingTime->competitionSeries ?? $solvingTime->competition?->series)?->id->toString(),
+            datePrecision: $solvingTime->datePrecision()->value,
             prediction: $this->predictionBefore($solvingTime->puzzlingTeam !== null, $solvingTime->secondsToSolve, $resend->timeId),
         );
     }

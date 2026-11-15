@@ -122,6 +122,8 @@ SELECT
     TO_CHAR(COALESCE(pst.finished_at, pst.tracked_at), 'YYYY-MM-DD') AS solve_day,
     CAST(EXTRACT(ISODOW FROM COALESCE(pst.finished_at, pst.tracked_at)) AS INTEGER) AS iso_dow,
     COALESCE(pst.finished_at, pst.tracked_at) >= '2000-01-01' AS dated,
+    pst.finished_at_precision IS NULL AS exact_day,
+    pst.finished_at_precision IS DISTINCT FROM 'year' AS quarter_known,
     CAST(EXTRACT(YEAR FROM COALESCE(pst.finished_at, pst.tracked_at)) AS INTEGER) AS solve_year,
     CAST(EXTRACT(QUARTER FROM COALESCE(pst.finished_at, pst.tracked_at)) AS INTEGER) AS solve_quarter,
     {$nightOwl} AS night_owl,

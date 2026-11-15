@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\MetricConfidence;
 use SpeedPuzzling\Web\Value\SkillTier;
 use Symfony\Contracts\Service\ResetInterface;
@@ -139,7 +140,7 @@ final class PlayerSkillCalculator implements ResetInterface
                     pst.first_attempt AS is_first_attempt,
                     ROW_NUMBER() OVER (
                         PARTITION BY pst.player_id, pst.puzzle_id
-                        ORDER BY pst.first_attempt DESC, COALESCE(pst.finished_at, pst.tracked_at) ASC
+                        ORDER BY pst.first_attempt DESC, " . DatePrecision::sqlLatestPossibleMoment('pst') . " ASC
                     ) AS rn
                 FROM puzzle_solving_time pst
                 JOIN puzzle p ON p.id = pst.puzzle_id
@@ -376,7 +377,7 @@ final class PlayerSkillCalculator implements ResetInterface
                     AND pst.seconds_to_solve IS NOT NULL
                 ORDER BY pst.puzzle_id,
                     pst.first_attempt DESC,
-                    COALESCE(pst.finished_at, pst.tracked_at) ASC
+                    " . DatePrecision::sqlLatestPossibleMoment('pst') . " ASC
             ),
             puzzle_rankings AS (
                 SELECT

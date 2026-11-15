@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\Puzzler;
 
 readonly final class PuzzleSolversGroup
@@ -36,6 +37,8 @@ readonly final class PuzzleSolversGroup
         // An imported event result (docs/features/event-results-import/README.md "Gates"): the event's - nobody edits or
         // deletes it, its claimers release their spot instead
         public bool $importedFromEvent = false,
+        // How exactly the solve day is known (date-precision.md): a day, or only its month or year
+        public DatePrecision $datePrecision = DatePrecision::Day,
     ) {
     }
 
@@ -49,6 +52,7 @@ readonly final class PuzzleSolversGroup
      *     team_id: null|string,
      *     players: string,
      *     finished_at: null|string,
+     *     finished_at_precision: null|string,
      *     tracked_at: string,
      *     first_attempt: bool,
      *     unboxed: bool,
@@ -86,6 +90,7 @@ readonly final class PuzzleSolversGroup
             competitionSeriesSlug: $row['competition_series_slug'],
             teamName: $row['team_name'] ?? null,
             importedFromEvent: ($row['imported_from_event'] ?? false) === true,
+            datePrecision: DatePrecision::ofStored($row['finished_at_precision']),
         );
     }
 

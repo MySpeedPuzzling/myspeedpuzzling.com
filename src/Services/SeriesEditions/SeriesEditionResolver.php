@@ -41,7 +41,9 @@ readonly final class SeriesEditionResolver
         return $this->answer(
             $time->competitionSeries->id->toString(),
             $time->puzzle->id->toString(),
-            $time->finishedAt ?? $time->trackedAt,
+            // A result known to its month or year only has no day an edition could be matched by: only its puzzle can
+            // name the edition - and only one edition, there is no "nearest by day" (date-precision.md)
+            $time->hasExactDay() ? $time->finishedAt ?? $time->trackedAt : null,
             $time->puzzlingType,
         );
     }
@@ -59,7 +61,7 @@ readonly final class SeriesEditionResolver
         return $this->answer($seriesId, $puzzleId !== null && Uuid::isValid($puzzleId) ? $puzzleId : null, $solveDay, $category);
     }
 
-    private function answer(string $seriesId, null|string $puzzleId, DateTimeImmutable $solveDay, PuzzlingType $category): SeriesEditionResolution
+    private function answer(string $seriesId, null|string $puzzleId, null|DateTimeImmutable $solveDay, PuzzlingType $category): SeriesEditionResolution
     {
         $candidates = SeriesEditionMatch::sqlCandidates('c.series_id = CAST(:seriesId AS UUID)');
         $answer = SeriesEditionMatch::sqlAnswer(
@@ -80,7 +82,7 @@ SQL,
                 'puzzleId' => $puzzleId,
                 'category' => $category->value,
                 // The same day SQL reads from COALESCE(finished_at, tracked_at) of a stored time
-                'day' => $solveDay->format('Y-m-d'),
+                'day' => $solveDay?->format('Y-m-d'),
                 SeriesEditionMatch::NOW_PARAMETER => $this->clock->now()->format(SeriesEditionMatch::DATE_FORMAT),
             ],
         );

@@ -9,6 +9,7 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use Throwable;
 use SpeedPuzzling\Web\Results\TimePredictionResult;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\AttemptFlags;
@@ -984,10 +985,12 @@ final class PredictionReconstructor implements ResetInterface
     {
         $byPuzzleAndPlayer = [];
 
+        $latestPossible = DatePrecision::sqlLatestPossibleMoment('pst');
+
         foreach (array_chunk($puzzleIds, self::PUZZLE_CHUNK_SIZE) as $chunk) {
-            /** @var list<array{id: string, puzzle_id: string, player_id: string, pieces_count: int|string, seconds_to_solve: int|string, first_attempt: bool, solved_ts: float|string, tracked_ts: float|string}> $rows */
+            /** @var list<array{id: string, puzzle_id: string, player_id: string, pieces_count: int|string, seconds_to_solve: int|string, first_attempt: bool, solved_ts: float|string, latest_ts: float|string, tracked_ts: float|string}> $rows */
             $rows = $this->connection->fetchAllAssociative(
-                <<<'SQL'
+                <<<SQL
                 SELECT
                     pst.id,
                     pst.puzzle_id,
@@ -996,6 +999,7 @@ final class PredictionReconstructor implements ResetInterface
                     pst.seconds_to_solve,
                     pst.first_attempt,
                     EXTRACT(EPOCH FROM COALESCE(pst.finished_at, pst.tracked_at)) AS solved_ts,
+                    EXTRACT(EPOCH FROM {$latestPossible}) AS latest_ts,
                     EXTRACT(EPOCH FROM pst.tracked_at) AS tracked_ts
                 FROM puzzle_solving_time pst
                 JOIN puzzle p ON p.id = pst.puzzle_id
@@ -1019,6 +1023,7 @@ final class PredictionReconstructor implements ResetInterface
                     qualifying: true,
                     solved: (float) $row['solved_ts'],
                     tracked: (float) $row['tracked_ts'],
+                    latestPossible: (float) $row['latest_ts'],
                 );
             }
         }
@@ -1055,7 +1060,8 @@ final class PredictionReconstructor implements ResetInterface
     }
 
     /**
-     * The insights "first attempt" preference: solves flagged first_attempt first, then the oldest.
+     * The insights "first attempt" preference: solves flagged first_attempt first, then the oldest - a result known to
+     * its month or year only by the end of that period (PlayerBaselineCalculator::qualifyingFirstAttemptsQuery()).
      *
      * @param list<PredictionInputSolve> $solves
      * @return list<PredictionInputSolve>
@@ -1064,7 +1070,7 @@ final class PredictionReconstructor implements ResetInterface
     {
         usort(
             $solves,
-            static fn (PredictionInputSolve $a, PredictionInputSolve $b): int => [$b->firstAttempt, $a->solved, $a->tracked, $a->id] <=> [$a->firstAttempt, $b->solved, $b->tracked, $b->id],
+            static fn (PredictionInputSolve $a, PredictionInputSolve $b): int => [$b->firstAttempt, $a->firstOrderMoment(), $a->tracked, $a->id] <=> [$a->firstAttempt, $b->firstOrderMoment(), $b->tracked, $b->id],
         );
 
         return $solves;
@@ -1079,7 +1085,8 @@ final class PredictionReconstructor implements ResetInterface
     {
         // The stored centre of a repeat: the statistical model's, whichever model was shown (RepeatResiduals::storedPersonalSql())
         $stored = RepeatResiduals::storedPersonalSql('pst');
-        /** @var list<array{id: string, puzzle_id: string, pieces_count: int|string, seconds_to_solve: int|string, first_attempt: bool, suspicious: bool, unboxed: bool, stored_personal: null|int|string, solved_ts: float|string, tracked_ts: float|string}> $rows */
+        $latestPossible = DatePrecision::sqlLatestPossibleMoment('pst');
+        /** @var list<array{id: string, puzzle_id: string, pieces_count: int|string, seconds_to_solve: int|string, first_attempt: bool, suspicious: bool, unboxed: bool, stored_personal: null|int|string, solved_ts: float|string, latest_ts: float|string, tracked_ts: float|string}> $rows */
         $rows = $this->connection->fetchAllAssociative(
             <<<SQL
             SELECT
@@ -1092,6 +1099,7 @@ final class PredictionReconstructor implements ResetInterface
                 pst.unboxed,
                 CASE WHEN pst.predictable = true AND pst.prediction_method = 'personal' THEN {$stored} END AS stored_personal,
                 EXTRACT(EPOCH FROM COALESCE(pst.finished_at, pst.tracked_at)) AS solved_ts,
+                EXTRACT(EPOCH FROM {$latestPossible}) AS latest_ts,
                 EXTRACT(EPOCH FROM pst.tracked_at) AS tracked_ts
             FROM puzzle_solving_time pst
             JOIN puzzle p ON p.id = pst.puzzle_id
@@ -1113,6 +1121,7 @@ final class PredictionReconstructor implements ResetInterface
             solved: (float) $row['solved_ts'],
             tracked: (float) $row['tracked_ts'],
             storedPersonalPredictionSeconds: $row['stored_personal'] !== null ? (int) $row['stored_personal'] : null,
+            latestPossible: (float) $row['latest_ts'],
         ), $rows);
     }
 

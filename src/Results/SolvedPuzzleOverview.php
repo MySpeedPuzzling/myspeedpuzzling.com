@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 
 readonly final class SolvedPuzzleOverview
@@ -21,6 +22,8 @@ readonly final class SolvedPuzzleOverview
         public null|string $image,
         public null|float $imageRatio,
         public null|DateTimeImmutable $finishedAt,
+        // How exactly the solve day is known (date-precision.md): a day, or only its month or year
+        public DatePrecision $datePrecision = DatePrecision::Day,
     ) {
     }
 }

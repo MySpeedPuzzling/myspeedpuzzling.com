@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\RoundResultStatus;
 
 readonly final class RoundResult
@@ -30,6 +31,8 @@ readonly final class RoundResult
         // Seconds behind the fastest / the result above among the organizer's ranked results (_time_gaps.html.twig)
         public null|int $gapToLeader = null,
         public null|int $gapToFaster = null,
+        // How exactly the solve day is known (date-precision.md): a day, or only its month or year
+        public DatePrecision $datePrecision = DatePrecision::Day,
     ) {
     }
 

@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Results\RoundResultPlayer;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\RoundResultStatus;
 use SpeedPuzzling\Web\Value\SkillTier;
 
@@ -55,6 +56,7 @@ SELECT
     pst.pieces_placed,
     pst.finished_later_seconds,
     pst.finished_at,
+    pst.finished_at_precision,
     pst.tracked_at,
     p.pieces_count,
     -- From the organizer's results sheet (docs/features/event-results-import/) - the event's official results
@@ -80,7 +82,7 @@ SQL,
             ['roundId' => $round->id],
         )->fetchAllAssociative();
 
-        /** @var list<array{time_id: string, puzzle_id: string, team: null|string, seconds_to_solve: null|int|string, pieces_placed: null|int|string, finished_later_seconds: null|int|string, finished_at: null|string, tracked_at: string, pieces_count: int|string, from_organizer: null|bool, team_name: null|string, owner_id: null|string, owner_name: null|string, owner_code: null|string, owner_country: null|string, owner_is_private: null|bool, owner_ranking_opted_out: null|bool, owner_skill_tier: null|int|string}> $rows */
+        /** @var list<array{time_id: string, puzzle_id: string, team: null|string, seconds_to_solve: null|int|string, pieces_placed: null|int|string, finished_later_seconds: null|int|string, finished_at: null|string, finished_at_precision: null|string, tracked_at: string, pieces_count: int|string, from_organizer: null|bool, team_name: null|string, owner_id: null|string, owner_name: null|string, owner_code: null|string, owner_country: null|string, owner_is_private: null|bool, owner_ranking_opted_out: null|bool, owner_skill_tier: null|int|string}> $rows */
 
         $members = $this->loadGroupMembers($rows);
         // Without a limit every finished time is within it
@@ -88,7 +90,7 @@ SQL,
 
         /** @var array<string, array<string, true>> $seenPerPuzzle */
         $seenPerPuzzle = [];
-        /** @var array<string, list<array{players: non-empty-list<RoundResultPlayer>, row: array{time_id: string, puzzle_id: string, seconds_to_solve: null|int|string, pieces_placed: null|int|string, finished_later_seconds: null|int|string, finished_at: null|string, from_organizer: null|bool, team_name: null|string, ...}, status: RoundResultStatus}>> $candidates */
+        /** @var array<string, list<array{players: non-empty-list<RoundResultPlayer>, row: array{time_id: string, puzzle_id: string, seconds_to_solve: null|int|string, pieces_placed: null|int|string, finished_later_seconds: null|int|string, finished_at: null|string, finished_at_precision: null|string, from_organizer: null|bool, team_name: null|string, ...}, status: RoundResultStatus}>> $candidates */
         $candidates = [];
 
         foreach ($rows as $row) {
@@ -127,7 +129,7 @@ SQL,
     }
 
     /**
-     * @param list<array{players: non-empty-list<RoundResultPlayer>, row: array{time_id: string, puzzle_id: string, seconds_to_solve: null|int|string, pieces_placed: null|int|string, finished_later_seconds: null|int|string, finished_at: null|string, from_organizer: null|bool, team_name: null|string, ...}, status: RoundResultStatus}> $candidates
+     * @param list<array{players: non-empty-list<RoundResultPlayer>, row: array{time_id: string, puzzle_id: string, seconds_to_solve: null|int|string, pieces_placed: null|int|string, finished_later_seconds: null|int|string, finished_at: null|string, finished_at_precision: null|string, from_organizer: null|bool, team_name: null|string, ...}, status: RoundResultStatus}> $candidates
      * @return list<RoundResult>
      */
     private function order(array $candidates): array
@@ -197,6 +199,7 @@ SQL,
                 piecesPlaced: $row['pieces_placed'] !== null ? (int) $row['pieces_placed'] : null,
                 finishedLaterSeconds: $row['finished_later_seconds'] !== null ? (int) $row['finished_later_seconds'] : null,
                 finishedAt: $row['finished_at'] !== null ? new DateTimeImmutable($row['finished_at']) : null,
+                datePrecision: DatePrecision::ofStored($row['finished_at_precision']),
                 teamName: $row['team_name'],
                 fromOrganizer: $fromOrganizer,
                 rank: $resultRank,

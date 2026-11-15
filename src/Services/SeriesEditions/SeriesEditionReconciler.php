@@ -64,7 +64,9 @@ pick AS (
         pst.competition_series_id AS series_id,
         pst.puzzle_id,
         CAST(pst.puzzling_type AS VARCHAR) AS category,
-        CAST(COALESCE(pst.finished_at, pst.tracked_at) AS DATE) AS solve_day,
+        -- No day for a result known to its month or year only: SeriesEditionMatch then matches by the puzzle of one
+        -- edition or not at all - never by the first day such a result is stored on (date-precision.md)
+        CASE WHEN pst.finished_at_precision IS NULL THEN CAST(COALESCE(pst.finished_at, pst.tracked_at) AS DATE) END AS solve_day,
         pst.competition_id AS current_id,
         CAST(pst.series_edition_match AS VARCHAR) AS current_kind
     FROM puzzle_solving_time pst

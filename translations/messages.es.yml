@@ -11855,7 +11855,7 @@ data_import:
             sheets: "Hojas con las columnas aún sin configurar: %number%"
             not_added: "Filas que no se pudieron añadir: %number%"
             unlisted: "Filas de puzzles fuera del catálogo: %number%. Los puzzles fuera del catálogo llegarán en un paso posterior; no se pierde nada."
-            needs_exact_day: "Resultados sin un día exacto: %number%. Llegarán en un paso posterior; no se pierde nada."
+            needs_exact_day: "Resultados sin fecha: %number%. Abre las filas y ponles una fecha; no se pierde nada."
             over_daily_limit: "Resultados que esperan a mañana: %number% (como máximo %limit% resultados al día)."
         kind:
             results: "Resultados"
@@ -11952,7 +11952,7 @@ data_import:
         comment_too_long: "El comentario es más largo de lo que MySpeedPuzzling acepta. Acórtalo en tu archivo o asigna la columna a las notas privadas."
         not_ready: "La fila ya no estaba lista cuando le llegó el turno: su puzzle o algo de la fila cambió entretanto."
         unlisted_not_yet: "El puzzle se conserva como puzzle fuera del catálogo. Los puzzles fuera del catálogo llegarán en un paso posterior; no se pierde nada."
-        needs_exact_day: "El resultado no tiene un día exacto. Los resultados de los que solo se sabe el mes o el año llegarán en un paso posterior; o abre la fila y ponle un día."
+        needs_exact_day: "El resultado no tiene fecha. Abre la fila y ponle un día, un mes o un año."
         puzzle_not_available: "Este puzzle ya no se puede elegir. Vuelve a elegir el puzzle."
         similar_result_exists: "Tu perfil ya tiene un resultado de este puzzle que se parece a esta fila: el mismo tiempo otro día, o el mismo día con otro tiempo. Si fue otra vez que lo montaste, añádelo igualmente."
         somebody_elses_result: "Otra persona ya registró un resultado en pareja o en equipo de este puzzle con este día y este tiempo. Si lo montasteis juntos, mejor pídele que te vincule; o añádelo igualmente."

@@ -187,6 +187,9 @@ readonly final class ImportedResultWriter
             createdVia: SolvingTimeSource::SpreadsheetImport,
         );
 
+        // What the file knows of the day: a month or a year is stored as that, never as a day (README D13)
+        $solvingTime->solveDayKnownOnlyTo($result->precision);
+
         // The constructor records PuzzleSolved. Its five handlers do per result what an import does once per batch,
         // or not at all (writer.md "Reactions") - so the event is taken off here, before any flush can dispatch it.
         // Anything else the entity may record one day stays

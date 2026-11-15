@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\ComparisonSubjectRef;
+use SpeedPuzzling\Web\Value\DatePrecision;
 
 /**
  * One subject's results on one puzzle within the comparison filters (GetComparisonResults). Times outside the period /
@@ -31,6 +32,9 @@ readonly final class ComparisonTimeRow
         public null|int $difficultyTier = null,
         // Only when asked for (sort by name, charts), else always null
         public null|string $puzzleName = null,
+        // How exactly those two days are known (date-precision.md): a day, or only the month or year
+        public DatePrecision $bestDayPrecision = DatePrecision::Day,
+        public DatePrecision $firstTryDayPrecision = DatePrecision::Day,
     ) {
     }
 }

@@ -250,6 +250,10 @@ INNER JOIN puzzle_solving_time other
     AND other.puzzling_type <> 'solo'
     AND other.seconds_to_solve > 0
     AND COALESCE(other.finished_at, other.tracked_at)::date = request.solved_day
+    -- "The same day" needs two real days: a result known to its month or year only stands on the first day of it
+    -- (date-precision.md) - neither such a result of somebody else, nor the judged result itself, is evidence here
+    AND other.finished_at_precision IS NULL
+    AND NOT EXISTS (SELECT 1 FROM puzzle_solving_time judged WHERE judged.id = request.time_id AND judged.finished_at_precision IS NOT NULL)
 WHERE NOT EXISTS (
         SELECT 1
         FROM user_block block

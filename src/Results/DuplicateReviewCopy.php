@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\DatePrecision;
 
 /**
  * One copy of a duplicate case as the person sees it on the review page and the recap - people the viewer may
@@ -27,6 +28,8 @@ readonly final class DuplicateReviewCopy
         public bool $unboxed,
         public null|string $competitionName,
         public array $people,
+        // How exactly the solve day is known (date-precision.md): a day, or only its month or year
+        public DatePrecision $datePrecision = DatePrecision::Day,
     ) {
     }
 

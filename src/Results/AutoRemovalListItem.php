@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\DatePrecision;
 
 /**
  * One automatic removal on the admin overview (/admin/duplicate-results).
@@ -27,6 +28,8 @@ readonly final class AutoRemovalListItem
         public string $keptTimeId,
         public DateTimeImmutable $removedAt,
         public null|DateTimeImmutable $undoneAt,
+        // How exactly the solve day is known (date-precision.md): a day, or only its month or year
+        public DatePrecision $datePrecision = DatePrecision::Day,
     ) {
     }
 }

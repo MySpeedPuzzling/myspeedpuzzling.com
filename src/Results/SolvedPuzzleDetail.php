@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\Puzzler;
 
@@ -43,6 +44,8 @@ readonly final class SolvedPuzzleDetail
         // An imported event result (docs/features/event-results-import/README.md "Gates"): the event's - nobody edits or
         // deletes it, its claimers release their spot instead
         public bool $importedFromEvent = false,
+        // How exactly the solve day is known (date-precision.md): a day, or only its month or year
+        public DatePrecision $datePrecision = DatePrecision::Day,
     ) {
     }
 
@@ -64,6 +67,7 @@ readonly final class SolvedPuzzleDetail
      *     comment: null|string,
      *     players: null|string,
      *     finished_at: null|string,
+     *     finished_at_precision?: null|string,
      *     tracked_at?: null|string,
      *     finished_puzzle_photo: string,
      *     first_attempt: bool,
@@ -106,6 +110,7 @@ readonly final class SolvedPuzzleDetail
             seriesPickId: $row['series_pick_id'] ?? null,
             competitionIsEdition: ($row['competition_is_edition'] ?? false) === true,
             importedFromEvent: ($row['imported_from_event'] ?? false) === true,
+            datePrecision: DatePrecision::ofStored($row['finished_at_precision'] ?? null),
         );
     }
 

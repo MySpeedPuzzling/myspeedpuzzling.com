@@ -56,7 +56,7 @@
             <li class="pr-attempt"{% if is_focus %} aria-current="true"{% endif %}>
                 <div class="pr-attempt-line">
                     <span class="pr-attempt-date">
-                        {{- (attempt.finishedAt ?? attempt.trackedAt)|date('d.m.Y') -}}
+                        {{- result_date(attempt.finishedAt ?? attempt.trackedAt, attempt.finishedAt is null ? null : attempt.datePrecision) -}}
                         <span class="pr-attempt-number" title="{{ 'puzzle_result.attempt_number'|trans({'%number%': attempts_count - loop.index0}) }}">#{{ attempts_count - loop.index0 }}</span>
                     </span>
 

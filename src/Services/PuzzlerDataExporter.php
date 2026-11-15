@@ -52,6 +52,8 @@ readonly final class PuzzlerDataExporter
         'msp_rating',
         'msp_rating_reason',
         'msp_rating_puzzle_first_try_solvers',
+        // how exactly finished_at is known: day / month / year (docs/features/data-import/date-precision.md)
+        'date_precision',
     ];
 
     /**

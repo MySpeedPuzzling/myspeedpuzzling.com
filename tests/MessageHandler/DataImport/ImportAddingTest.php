@@ -210,8 +210,8 @@ final class ImportAddingTest extends KernelTestCase
 
         [$import, $sheet] = $this->importOf($player);
         $ready = $this->resultRow($import, $sheet, 'Zq Ready Puzzle', 500, 'Zqready', '2024-01-01', 1800);
-        // A month is never stored as a day - the row waits for the date precision
-        $month = $this->seedRow($import, $sheet, 'Zq Month Puzzle', 500, 'Zqready', ['date' => '2021-09', 'datePrecision' => 'month', 'seconds' => 1900, 'type' => 'solo']);
+        // A result without any date waits - the player gives it one (a month or a year is a date: date-precision.md)
+        $month = $this->seedRow($import, $sheet, 'Zq Month Puzzle', 500, 'Zqready', ['seconds' => 1900, 'type' => 'solo']);
         // Not in the catalogue: kept as an unlisted puzzle - those arrive with a later release
         $unlisted = $this->resultRow($import, $sheet, 'Zq Nowhere To Be Found At All', 750, 'Zqready', '2024-01-02', 2000);
         // Undecided, and a row with a problem

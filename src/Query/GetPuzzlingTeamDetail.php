@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Results\RelatedPuzzlingTeam;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\DatePrecision;
 
 /**
  * The public page of a pair/team (docs/features/pairs-and-teams/README.md).
@@ -75,6 +76,7 @@ SELECT
     time.id AS time_id,
     time.seconds_to_solve,
     COALESCE(time.finished_at, time.tracked_at) AS solved_at,
+    time.finished_at_precision,
     time.first_attempt,
     time.unboxed,
     time.suspicious,
@@ -97,6 +99,7 @@ SQL;
          *     time_id: string,
          *     seconds_to_solve: null|int,
          *     solved_at: string,
+         *     finished_at_precision: null|string,
          *     first_attempt: bool,
          *     unboxed: bool,
          *     suspicious: bool,
@@ -122,6 +125,7 @@ SQL;
             puzzleImage: $row['puzzle_image'],
             time: $row['seconds_to_solve'],
             solvedAt: new DateTimeImmutable($row['solved_at']),
+            datePrecision: DatePrecision::ofStored($row['finished_at_precision']),
             firstAttempt: $row['first_attempt'],
             unboxed: $row['unboxed'],
             suspicious: $row['suspicious'],

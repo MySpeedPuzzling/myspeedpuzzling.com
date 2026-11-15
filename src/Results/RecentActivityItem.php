@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\Puzzler;
 
 readonly final class RecentActivityItem
@@ -46,6 +47,8 @@ readonly final class RecentActivityItem
         public null|string $playerAvatar = null,
         // Only the player's own feed lists a suspicious time (labelled) - the shared feeds leave it out
         public bool $suspicious = false,
+        // How exactly the solve day is known (date-precision.md): a day, or only its month or year
+        public DatePrecision $datePrecision = DatePrecision::Day,
     ) {
     }
 
@@ -76,6 +79,7 @@ readonly final class RecentActivityItem
      *     comment: null|string,
      *     tracked_at: string,
      *     finished_at: null|string,
+     *     finished_at_precision?: null|string,
      *     finished_puzzle_photo: null|string,
      *     puzzle_identification_number: null|string,
      *     team_id?: null|string,
@@ -143,6 +147,7 @@ readonly final class RecentActivityItem
             rankingOptedOut: $row['ranking_opted_out'] ?? false,
             playerAvatar: $row['player_avatar'] ?? null,
             suspicious: $row['suspicious'] ?? false,
+            datePrecision: DatePrecision::ofStored($row['finished_at_precision'] ?? null),
         );
     }
 

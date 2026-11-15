@@ -9,13 +9,14 @@ use DateTimeZone;
 use InvalidArgumentException;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 use SpeedPuzzling\Web\Value\TimezoneIdentifier;
 
 /**
  * One result a row of a player's spreadsheet says, ready for ImportedResultWriter
- * (docs/features/data-import/writer.md). The puzzle is a catalogue puzzle and the day is exact - unlisted puzzles
- * and month-only dates never get here.
+ * (docs/features/data-import/writer.md). The puzzle is a catalogue puzzle - unlisted puzzles never get here. The
+ * day is exact, or the first day of the month or year the file knows (docs/features/data-import/date-precision.md).
  */
 readonly final class ImportedResult
 {
@@ -31,7 +32,9 @@ readonly final class ImportedResult
     public const int MAX_SECONDS = 3_599_999;
 
     /**
-     * @param string $solvedDay Y-m-d, the day the puzzle was solved - as the file says it
+     * @param string $solvedDay Y-m-d, the day the puzzle was solved - as the file says it; for a result known to its
+     *     month or year only, the first day of that period (the anchor)
+     * @param DatePrecision $precision how exactly the file knows the solve day
      * @param string $timezone IANA zone the day is read in (zoneOf() the player)
      * @param null|int $seconds null = solved without a time
      * @param null|bool $firstTry what the file says; null = it says nothing, which is "no" (README D15)
@@ -52,11 +55,16 @@ readonly final class ImportedResult
         public array $groupPlayers = [],
         public null|string $comment = null,
         public int $position = 0,
+        public DatePrecision $precision = DatePrecision::Day,
     ) {
         $day = DateTimeImmutable::createFromFormat('!Y-m-d', $solvedDay, new DateTimeZone('UTC'));
 
         if ($day === false || $day->format('Y-m-d') !== $solvedDay) {
             throw new InvalidArgumentException(sprintf('"%s" is not a day (Y-m-d).', $solvedDay));
+        }
+
+        if ($precision->anchorOf($day)->format('Y-m-d') !== $solvedDay) {
+            throw new InvalidArgumentException(sprintf('A result known to its %s is dated on the first day of it, not "%s".', $precision->value, $solvedDay));
         }
 
         if (RoundTimezone::isValid($timezone) === false) {
@@ -89,7 +97,8 @@ readonly final class ImportedResult
     }
 
     /**
-     * `finished_at`: the day, as the add form stores a picked date - midnight, no zone.
+     * `finished_at`: the day, as the add form stores a picked date - midnight, no zone. The first day of the period for
+     * a result known to its month or year - `finished_at_precision` says that it is no real day.
      */
     public function finishedAt(): DateTimeImmutable
     {

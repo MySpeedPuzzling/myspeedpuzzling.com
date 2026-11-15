@@ -75,6 +75,9 @@ INNER JOIN puzzle_solving_time
     ON puzzle_solving_time.player_id = :playerId
     AND puzzle_solving_time.seconds_to_solve = dated.seconds
     AND CAST(COALESCE(puzzle_solving_time.finished_at, puzzle_solving_time.tracked_at) AS DATE) BETWEEN dated.day - 1 AND dated.day + 1
+    -- A day against a day: a result known to its month or year only stands on the first day of it, which is no day to
+    -- compare with (docs/features/data-import/date-precision.md) - and only rows with an exact day are asked (above)
+    AND puzzle_solving_time.finished_at_precision IS NULL
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 WHERE (dated.pieces_count IS NULL OR ABS(puzzle.pieces_count - dated.pieces_count) <= 1)
     AND {$candidate}

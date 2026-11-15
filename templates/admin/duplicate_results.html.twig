@@ -552,7 +552,7 @@
                             </td>
                             <td data-label="Puzzle">
                                 <a href="{{ path('puzzle_detail', {puzzleId: removal.puzzleId}) }}">{{ removal.puzzleName }}</a>
-                                <div class="small text-nowrap">{{ removal.seconds is not null ? removal.seconds|puzzlingTime : 'no time' }} · {{ removal.solvedAt|date('d.m.Y') }}</div>
+                                <div class="small text-nowrap">{{ removal.seconds is not null ? removal.seconds|puzzlingTime : 'no time' }} · {{ result_date(removal.solvedAt, removal.datePrecision) }}</div>
                             </td>
                             <td data-label="Copy saved" class="text-nowrap">{{ removal.savedAt|date('d.m.Y H:i:s') }}</td>
                             <td data-label="Removed" class="text-nowrap">{{ removal.removedAt|date('d.m.Y H:i') }}</td>

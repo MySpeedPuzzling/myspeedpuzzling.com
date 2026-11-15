@@ -6,7 +6,7 @@
       - time: anything with finishedAt and firstAttempt
 #}
 {%- if time.finishedAt is not null -%}
-    <time class="lb-time-date" datetime="{{ time.finishedAt|date('Y-m-d') }}">{{ time.finishedAt|date('d.m.Y') }}</time>
+    <time class="lb-time-date" datetime="{{ result_date_machine(time.finishedAt, time.datePrecision) }}">{{ result_date(time.finishedAt, time.datePrecision) }}</time>
 {%- endif -%}
 {#- 1st try on a line of its own under the date - squeezed next to it, both were hard to read (user feedback) -#}
 {%- if time.firstAttempt -%}

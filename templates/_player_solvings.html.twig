@@ -105,7 +105,7 @@
                         </a>
 
                         {% if puzzle.finishedAt is not null %}
-                            <time class="ps-date" datetime="{{ puzzle.finishedAt|date('Y-m-d') }}">{{ puzzle.finishedAt|date('d.m.Y') }}</time>
+                            <time class="ps-date" datetime="{{ result_date_machine(puzzle.finishedAt, puzzle.datePrecision) }}">{{ result_date(puzzle.finishedAt, puzzle.datePrecision) }}</time>
                         {% endif %}
 
                         {% if puzzle.time is not null %}

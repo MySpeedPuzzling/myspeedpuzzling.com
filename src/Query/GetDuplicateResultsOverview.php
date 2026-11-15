@@ -10,6 +10,7 @@ use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\AutoRemovalListItem;
 use SpeedPuzzling\Web\Results\DuplicateCaseListItem;
 use SpeedPuzzling\Web\Results\DuplicateResultsTotals;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\DuplicateCaseListTab;
 use SpeedPuzzling\Web\Value\DuplicateCaseStatus;
 use SpeedPuzzling\Web\Value\DuplicateKind;
@@ -311,6 +312,7 @@ SQL;
                 puzzleName: $snapshot->puzzleName,
                 seconds: $snapshot->secondsToSolve,
                 solvedAt: $snapshot->finishedAt ?? $snapshot->trackedAt,
+                datePrecision: $snapshot->finishedAt === null ? DatePrecision::Day : $snapshot->finishedAtPrecision,
                 savedAt: $snapshot->trackedAt,
                 isGroup: $snapshot->team !== null,
                 removedTimeId: $row['removed_time_id'],

@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Services\ActivityCalendarStreakCalculator;
 use SpeedPuzzling\Web\Services\ResolveDifficultyTiers;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\DatePrecision;
 use SpeedPuzzling\Web\Value\DifficultyTier;
 use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
 use Symfony\UX\Chartjs\Model\Chart;
@@ -303,7 +304,12 @@ final class ActivityCalendar
         $solo = $this->getPlayerSolvedPuzzles->soloByPlayerId($this->playerId, $dayStart, $dayEnd);
         ['duo' => $duo, 'team' => $team] = $this->getPlayerSolvedPuzzles->groupByPlayerId($this->playerId, $dayStart, $dayEnd);
 
-        $merged = array_merge($solo, $duo, $team);
+        // A day of the calendar lists the results of that day - a result known to its month or year only stands on the
+        // first day of it in the database and belongs to no day (docs/features/data-import/date-precision.md)
+        $merged = array_values(array_filter(
+            array_merge($solo, $duo, $team),
+            static fn (SolvedPuzzle $result): bool => $result->datePrecision === DatePrecision::Day,
+        ));
 
         usort($merged, static function (SolvedPuzzle $a, SolvedPuzzle $b): int {
             $aDate = $a->finishedAt ?? $a->trackedAt;

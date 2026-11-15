@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\ComparisonSubjectRef;
+use SpeedPuzzling\Web\Value\DatePrecision;
 
 /**
  * One subject's time on one compared puzzle (ComparisonBuilder). `seconds` / `timeId` / `day` are the compared time:
@@ -30,6 +31,8 @@ readonly final class ComparisonCell
         // Behind the fastest time of the puzzle: seconds, and as a ratio (0.12 = 12 % slower); 0 for the fastest
         public int $deltaSeconds,
         public float $deltaRatio,
+        // How exactly the solve day is known (date-precision.md): a day, or only its month or year
+        public DatePrecision $dayPrecision = DatePrecision::Day,
     ) {
     }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use SpeedPuzzling\Web\Value\DataImport\RememberedLayout;
 use SpeedPuzzling\Web\Value\DataImportSheetKind;
 
 /**
@@ -43,6 +44,8 @@ readonly final class DataImportSheetOverview
         public int $rowsWaiting = 0,
         /** How many questions the sheet asks */
         public int $questions = 0,
+        /** A layout the player saved earlier was applied to it (docs/features/data-import/layouts.md) */
+        public null|RememberedLayout $rememberedLayout = null,
     ) {
     }
 

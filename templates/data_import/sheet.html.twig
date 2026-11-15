@@ -48,6 +48,25 @@
         </div>
     </turbo-frame>
 
+    {# ---- A layout the player saved earlier was applied (docs/features/data-import/layouts.md) ---- #}
+    {% if mapping is not null and mapping.remembered is not null %}
+        {% set layout_name = mapping.remembered.name != '' ? mapping.remembered.name : 'data_import.layouts.unnamed'|trans %}
+        <div class="alert alert-info fs-sm mb-3" data-testid="import-sheet-remembered" data-how="{{ mapping.remembered.how }}">
+            <div class="d-flex gap-2">
+                <i class="bi bi-bookmark-check flex-shrink-0"></i>
+                <span class="text-break">{{ ('data_import.layouts.notice.' ~ mapping.remembered.how)|trans({'%name%': layout_name}) }}</span>
+            </div>
+            <form action="{{ path('data_import_sheet_start_over', {importId: import_id, sheetId: sheet.sheetId}) }}" method="post" class="mt-2">
+                <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) }}">
+                <input type="hidden" name="version" value="{{ sheet.mappingVersion }}">
+                <button type="submit" class="btn btn-outline-primary w-100 text-wrap" style="min-height: 44px;" data-testid="import-sheet-start-over">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>{{ 'data_import.layouts.start_over'|trans }}
+                </button>
+                <p class="fs-xs text-muted mb-0 mt-1">{{ 'data_import.layouts.start_over_hint'|trans }}</p>
+            </form>
+        </div>
+    {% endif %}
+
     {% if mapping is not null %}
     <form action="{{ path('data_import_sheet_confirm', {importId: import_id, sheetId: sheet.sheetId}) }}" method="post" data-testid="import-sheet-form" novalidate>
         <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) }}">

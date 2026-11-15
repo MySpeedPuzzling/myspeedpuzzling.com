@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Query\GetImportSheetRows;
 use SpeedPuzzling\Web\Repository\DataImportRepository;
 use SpeedPuzzling\Web\Repository\DataImportSheetRepository;
 use SpeedPuzzling\Web\Services\DataImport\ImportColumnDecisions;
+use SpeedPuzzling\Web\Services\DataImport\ImportLayouts;
 use SpeedPuzzling\Web\Services\Doctrine\IdLock;
 use SpeedPuzzling\Web\Value\DataImport\ColumnCertainty;
 use SpeedPuzzling\Web\Value\DataImport\ImportField;
@@ -41,6 +42,10 @@ use Symfony\Component\Messenger\MessageBusInterface;
  *    wait - PendingQuestionRows) - and that of every sheet
  *    that looks puzzles up in it, each with a new version of its own, so no older job of theirs writes on.
  *
+ * 5. what the player said is remembered as the layout of sheets with this header row, and the sheets of the same
+ *    workbook with that header row which the player has not confirmed themselves follow at once (ImportLayouts,
+ *    docs/features/data-import/layouts.md).
+ *
  * Nothing but this sheet (and those) is parsed again.
  */
 #[AsMessageHandler]
@@ -53,6 +58,7 @@ readonly final class ConfirmImportMappingHandler
         private DataImportSheetRepository $dataImportSheetRepository,
         private GetImportSheetRows $rows,
         private ImportColumnDecisions $decisions,
+        private ImportLayouts $layouts,
         private MessageBusInterface $messageBus,
         private IdLock $idLock,
         private ClockInterface $clock,
@@ -117,6 +123,8 @@ readonly final class ConfirmImportMappingHandler
 
             $this->messageBus->dispatch(new ParseImportSheet($message->importId, $other->id->toString(), $other->mappingVersion));
         }
+
+        $this->layouts->confirmed($import, $sheet, $current, $sheets);
 
         $import->workedOn($this->clock->now());
     }

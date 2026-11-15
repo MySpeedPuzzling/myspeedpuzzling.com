@@ -11762,6 +11762,31 @@ my_fields:
 
 # Data import: upload and the imports pages (docs/features/data-import/upload.md)
 data_import:
+    layouts:
+        title: "保存したレイアウト"
+        intro: "シートの列を確定すると、その設定を覚えておきます。次に同じ見出しのシートが来たときは、自動で同じように設定されます。レイアウトはあなただけのもので、ほかの人が見たり使ったりすることはありません。"
+        link: "保存したレイアウト（%number%）"
+        empty: "まだ何も保存されていません。シートの列を確定すると、次回のために覚えておきます。"
+        unnamed: "名前のないレイアウト"
+        columns: "列：%number%"
+        times_used: "再利用：%number%回"
+        last_used: "最終使用：%date%"
+        rename: "名前を変更"
+        name_label: "名前"
+        save_name: "名前を保存"
+        forget: "このレイアウトを忘れる"
+        forget_hint: "次にこの見出しのシートが来たときは、最初から設定されます。すでに設定済みのシートはそのままです。"
+        back: "戻る"
+        start_over: "このシートを最初からやり直す"
+        start_over_hint: "同じようなシートを一度も設定したことがないものとして、このシートをもう一度読み取ります。保存したレイアウトはそのまま残ります。"
+        notice:
+            remembered: "前回の設定（%name%）を使いました。違うところがあれば変更してください。"
+            remembered_partly: "見出しのほとんどが前回（%name%）と同じなので、その列は前回と同じように設定しました。残りを確認してください。"
+        flash:
+            started_over: "このシートを最初から読み取り直しました。行をもう一度読み込んでいます。"
+            renamed: "レイアウトの名前を変更しました。"
+            forgotten: "レイアウトを忘れました。"
+            name_needed: "レイアウトの名前を入力してください。"
     columns:
         title: "シートと列"
         intro: "ファイルの各シートについて、読み取れた内容です。こちらで判断できなかった点に答え、間違っているところは変更してください。"

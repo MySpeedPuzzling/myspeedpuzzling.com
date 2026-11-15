@@ -11775,6 +11775,31 @@ my_fields:
 
 # Data import: upload and the imports pages (docs/features/data-import/upload.md)
 data_import:
+    layouts:
+        title: "Vaše uložená rozvržení"
+        intro: "Když potvrdíte sloupce listu, zapamatujeme si je. Další list se stejnými záhlavími se pak nastaví stejně sám. Vaše rozvržení jsou jen vaše - nikdo jiný je nevidí ani nepoužívá."
+        link: "Vaše uložená rozvržení (%number%)"
+        empty: "Zatím tu nic není. Potvrďte sloupce některého listu a příště si je zapamatujeme."
+        unnamed: "Rozvržení bez názvu"
+        columns: "Sloupce: %number%"
+        times_used: "Použito znovu: %number%×"
+        last_used: "Naposledy použito: %date%"
+        rename: "Přejmenovat"
+        name_label: "Název"
+        save_name: "Uložit název"
+        forget: "Zapomenout toto rozvržení"
+        forget_hint: "Další list s těmito záhlavími se pak nastaví od začátku. Listy, které už jsou nastavené, zůstanou, jak jsou."
+        back: "Zpět"
+        start_over: "Začít u tohoto listu znovu"
+        start_over_hint: "List projdeme znovu, jako byste žádný takový ještě nenastavovali. Vaše uložené rozvržení zůstane, jak je."
+        notice:
+            remembered: "Použili jsme, co jste nastavili minule (%name%) - změňte cokoli, co je jinak."
+            remembered_partly: "Většina záhlaví je stejná jako minule (%name%), proto jsou tyto sloupce nastavené jako tehdy - zbytek prosím zkontrolujte."
+        flash:
+            started_over: "List jsme prošli od začátku. Jeho řádky se čtou znovu."
+            renamed: "Rozvržení má nový název."
+            forgotten: "Rozvržení je zapomenuto."
+            name_needed: "Napište prosím název rozvržení."
     columns:
         title: "Listy a sloupce"
         intro: "Tady je, co jsme z každého listu vašeho souboru pochopili. Odpovězte na to, co jsme sami nezjistili, a opravte, co jsme určili špatně."

@@ -62,7 +62,7 @@
                                 <button type="submit" name="action" value="leave_out" class="btn btn-outline-secondary text-wrap" style="min-height: 44px;" data-testid="import-add-unusual-leave-out">
                                     {{ 'data_import.add.times.leave_out'|trans }}
                                 </button>
-                                <a href="{{ path('data_import_row', {importId: import.importId, rowId: item.row.rowId}) }}" class="btn btn-link text-wrap d-inline-flex align-items-center" style="min-height: 44px;" data-turbo-frame="_top">
+                                <a href="{{ path('data_import_row', {importId: import.importId, rowId: item.row.rowId, return: app.request.requestUri}) }}" class="btn btn-link text-wrap d-inline-flex align-items-center" style="min-height: 44px;" data-turbo-frame="_top">
                                     {{ 'data_import.add.times.fix'|trans }}
                                 </a>
                             </form>

@@ -29,10 +29,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * The player's word on one sheet (docs/features/data-import/columns-screen.md "Saving"): answers to its questions,
  * what it is, what a row is, what its columns are - one form, one message (ConfirmImportMapping). POST + CSRF.
  *
- * Saved: back to the sheet (or to the list, for the one-tap change there - or to the next question, for an answer
- * given on step 2's one-question screens), whose rows are read again in the background. Refused: the same page again with a 422 and the reason at its field - never a 200, never a lost
- * choice. Changed meanwhile in another tab: the sheet as it stands now, with a notice. Another player's import is a
- * 404.
+ * Saved: on to "Where you are" (the import's page - it says "Saved - your rows are being read again", follows the
+ * reading live and names the next step), while the rows are read again in the background; a sheet saved as it was
+ * moves on the same way. The one-tap change of the list leads back to the list (`back=list`), an answer given on
+ * step 2's one-question screens to the next question (`back=check`). Refused: the same page again with a 422 and the
+ * reason at its field - never a 200, never a lost choice. Changed meanwhile in another tab: the sheet as it stands
+ * now, with a notice. Another player's import is a 404.
  */
 final class ConfirmImportSheetController extends AbstractController
 {
@@ -70,8 +72,12 @@ final class ConfirmImportSheetController extends AbstractController
             // One question a screen (guided-flow.md §5.4): back to the row of questions, at the place it was asked at -
             // the answered one is gone, so the next one stands there now
             'check' => $this->redirectToRoute('data_import_columns', array_filter(['importId' => $importId, 'q' => max(0, $form->getInt('q'))])),
-            default => $this->redirectToRoute('data_import_sheet', ['importId' => $importId, 'sheetId' => $sheetId]),
+            default => null,
         };
+        // The sheet's own Save moves on: "Where you are" follows the reading and names the next step (the flow
+        // decides which - ImportFlow). Only a change made meanwhile leads back to the sheet itself
+        $saved = $back ?? $this->redirectToRoute('data_import_detail', ['importId' => $importId]);
+        $back ??= $this->redirectToRoute('data_import_sheet', ['importId' => $importId, 'sheetId' => $sheetId]);
 
         if ($sheet->beingSetUp === false) {
             return $this->redirectToRoute('data_import_detail', ['importId' => $importId]);
@@ -88,7 +94,7 @@ final class ConfirmImportSheetController extends AbstractController
         if ($submission['mapping'] === null && $submission['answers'] === [] && $submission['sheetWide'] === null && $sheet->failure === null) {
             $this->addFlash('info', $this->translator->trans('data_import.columns.flash.nothing_changed'));
 
-            return $back;
+            return $saved;
         }
 
         try {
@@ -123,7 +129,7 @@ final class ConfirmImportSheetController extends AbstractController
 
         $this->addFlash('success', $this->translator->trans('data_import.columns.flash.saved'));
 
-        return $back;
+        return $saved;
     }
 
     /**

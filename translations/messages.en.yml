@@ -12716,6 +12716,8 @@ data_import:
         left_out_title: "Rows you chose not to import: %number%"
         take_in: "Import after all"
         row_of: "Row %row% · %sheet%"
+        no_time: "Import these without a time (%number%)"
+        groups_left: "Groups still to answer: %number%"
         error:
             empty: "Please fill in a value first."
             unreadable: "We could not read this for sure. Please write it another way."
@@ -12730,6 +12732,7 @@ data_import:
             answered: "Rows fixed: %number%"
             left_out: "Rows not imported: %number%"
             taken_in: "The row is put back."
+            no_time: "Rows that will be imported without a time: %number%"
             more_remain: "Rows of this group still waiting: %number%. Give the answer once more."
     row:
         title: "Row %number%"
@@ -12745,12 +12748,29 @@ data_import:
         left_out_note: "This row is not imported."
         not_answerable: "This row can not be changed right now - its sheet is being read again. Please try in a moment."
         back: "Back to “Rows we could not read”"
+        back_to:
+            overview: "Back to your import"
+            check: "Back to “How we read your file”"
+            sheet: "Back to the sheet"
+            people: "Back to “People in your file”"
+            puzzles: "Back to your puzzles"
+            puzzle: "Back to this puzzle"
+            add: "Back to “Check and add”"
+            add_list: "Back to “What will be added”"
+            add_times: "Back to “Unusual times”"
+            not_added: "Back to “Rows that wait for your answer”"
+            added: "Back to “What this import added”"
+            other: "Back to where you were"
+        no_time: "No time - I didn't time this one"
+        save_next: "Save and fix the next one"
         flash:
             nothing_changed: "Nothing was changed."
             changed_meanwhile: "This row changed meanwhile. Nothing was saved; here is how it stands now."
-            saved: "The row is saved."
-            left_out: "The row is not imported."
-            taken_in: "The row is put back."
+            saved: "Row %number% is saved. We can read all of it now."
+            saved_needs_look: "Row %number% is saved. Something in it still needs a look."
+            puzzle_matched_again: "We are matching this row's puzzle again - it takes a moment."
+            left_out: "Row %number% is not imported."
+            taken_in: "Row %number% is put back."
     answer:
         choose: "Choose…"
         choice:
@@ -12783,7 +12803,7 @@ data_import:
             rows_left_out: "Not imported: %number%"
         flash:
             nothing_changed: "Nothing was changed, so nothing was read again."
-            saved: "Saved. The rows of the sheet are being read again."
+            saved: "Saved - your rows are being read again."
             changed_meanwhile: "This sheet was changed in the meantime, in another tab or on another device. Here is how it stands now - please make your change again."
         error:
             refused: "We could not save this, so nothing was changed. Please check your choices and try again."

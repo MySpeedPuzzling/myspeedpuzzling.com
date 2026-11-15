@@ -1523,3 +1523,33 @@ counter of "Undo the ticked" was not executed (it is slice 3's script, unchanged
 browser without scripts sees them: `ImportColumnsScreenTest`, `ImportAfterTheAddTest`, `ImportAddScreensTest`,
 `ImportGroupAnswersTest`, `ImportFlowScreensTest` (one primary a screen, the words of §8, six locales with their
 plural forms), `ImportHomeCardTest`, `ImportFlowTest`.
+
+## As built - after the first tester (the row's editor: a way back, a clear "saved", "no time")
+
+A player's report of 2026-11-15, the part about single rows and the columns. The design of record is
+[pairing-screens.md](pairing-screens.md) ("To fix", "No time", "The way back") and
+[columns-screen.md](columns-screen.md) ("Saving"); in short:
+
+- **A way back.** Every link into a row's editor carries `?return=` (the screen, its page / filter and anchor);
+  `ImportRowOrigin` takes only a screen of this very import and names the back link after it. It survives a 422 and
+  the redirect after a save.
+- **A clear "saved".** A saved row leads back to where the player came from - or on to the next row that needs a
+  look, or to "Rows we could not read" - and that page says "Row 14 is saved. We can read all of it now." One
+  primary button (Save), and "Save and fix the next one" while another row needs a look.
+- **Saving the columns moves on** to "Where you are", which says "Saved - your rows are being read again" and
+  follows the reading live. `back=list|check` are as they were. Which step comes next is `ImportFlow`'s to say.
+- **No time.** "No time - I didn't time this one" beside the time's input, and "Import these without a time (N)"
+  for a group of unreadable times: the row is what an empty time cell makes it - a result without a time.
+- **No jumping on "Rows we could not read".** Group answers and "Import after all" are answered in place with Turbo
+  Streams; the redirect stays as the fallback without a script.
+
+| The report asked for | Built | Why |
+|---|---|---|
+| "Row 14 is saved - it will be added." | "Row 14 is saved. We can read all of it now." / "… Something in it still needs a look." | A row that reads well may still wait for its puzzle to be matched or for a question of step 5 - "will be added" would promise what the page can not know. |
+| Back to the page of the puzzle after its title was fixed | The puzzles' overview, when the save made the row another puzzle | The page of the old puzzle is gone once the puzzles are built again (a puzzle of the file without rows is deleted). |
+
+**Not verified in a browser:** the tick switching the time's input off (`data_import_no_time_controller.js`), the
+streams as Turbo applies them (a 422 stream replacing the group's card, the confirmation staying in view, the
+`data-turbo-confirm` of "Don't import them" with a stream answer), and the anchors after a redirect
+(`#group-<key>`, `#row-<id>`). Covered as the server answers them: `ImportPairingScreensTest`,
+`ImportColumnsScreenTest`, `ImportRowOriginTest`, `ImportRowAnswersTest`.

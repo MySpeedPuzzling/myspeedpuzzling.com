@@ -12469,6 +12469,8 @@ data_import:
         left_out_title: "Zeilen, die du nicht importieren wolltest: %number%"
         take_in: "Doch importieren"
         row_of: "Zeile %row% · %sheet%"
+        no_time: "Diese ohne Zeit importieren (%number%)"
+        groups_left: "Gruppen, die noch auf eine Antwort warten: %number%"
         error:
             empty: "Bitte gib zuerst einen Wert ein."
             unreadable: "Das konnten wir nicht sicher lesen. Bitte schreib es anders."
@@ -12483,6 +12485,7 @@ data_import:
             answered: "Korrigierte Zeilen: %number%"
             left_out: "Nicht importierte Zeilen: %number%"
             taken_in: "Die Zeile ist wieder aufgenommen."
+            no_time: "Zeilen, die ohne Zeit importiert werden: %number%"
             more_remain: "Zeilen dieser Gruppe, die noch warten: %number%. Gib die Antwort bitte noch einmal."
     row:
         title: "Zeile %number%"
@@ -12498,12 +12501,29 @@ data_import:
         left_out_note: "Diese Zeile wird nicht importiert."
         not_answerable: "Diese Zeile kann gerade nicht geändert werden - ihr Blatt wird neu gelesen. Bitte versuche es gleich noch einmal."
         back: "Zurück zu „Zeilen, die wir nicht lesen konnten“"
+        back_to:
+            overview: "Zurück zu deinem Import"
+            check: "Zurück zu „So haben wir deine Datei gelesen“"
+            sheet: "Zurück zum Blatt"
+            people: "Zurück zu „Personen in deiner Datei“"
+            puzzles: "Zurück zu deinen Puzzles"
+            puzzle: "Zurück zu diesem Puzzle"
+            add: "Zurück zu „Prüfen und hinzufügen“"
+            add_list: "Zurück zu „Was hinzugefügt wird“"
+            add_times: "Zurück zu „Ungewöhnliche Zeiten“"
+            not_added: "Zurück zu „Zeilen, die auf deine Antwort warten“"
+            added: "Zurück zu „Was dieser Import hinzugefügt hat“"
+            other: "Zurück zur vorherigen Seite"
+        no_time: "Keine Zeit - dieses Puzzle habe ich nicht gestoppt"
+        save_next: "Speichern und die nächste korrigieren"
         flash:
             nothing_changed: "Es wurde nichts geändert."
             changed_meanwhile: "Diese Zeile hat sich inzwischen geändert. Es wurde nichts gespeichert; so steht sie jetzt."
-            saved: "Die Zeile ist gespeichert."
-            left_out: "Die Zeile wird nicht importiert."
-            taken_in: "Die Zeile ist wieder aufgenommen."
+            saved: "Zeile %number% ist gespeichert. Wir können sie jetzt ganz lesen."
+            saved_needs_look: "Zeile %number% ist gespeichert. Etwas darin muss aber noch angesehen werden."
+            puzzle_matched_again: "Wir ordnen das Puzzle dieser Zeile neu zu - das dauert einen Moment."
+            left_out: "Zeile %number% wird nicht importiert."
+            taken_in: "Zeile %number% ist wieder aufgenommen."
     answer:
         choose: "Auswählen…"
         choice:
@@ -12536,7 +12556,7 @@ data_import:
             rows_left_out: "Nicht importiert: %number%"
         flash:
             nothing_changed: "Es wurde nichts geändert, also wurde nichts erneut gelesen."
-            saved: "Gespeichert. Die Zeilen des Blatts werden erneut gelesen."
+            saved: "Gespeichert - deine Zeilen werden erneut gelesen."
             changed_meanwhile: "Dieses Blatt wurde inzwischen geändert, in einem anderen Tab oder auf einem anderen Gerät. So steht es jetzt - bitte nimm deine Änderung noch einmal vor."
         error:
             refused: "Das konnten wir nicht speichern, es wurde also nichts geändert. Bitte prüfe deine Auswahl und versuche es noch einmal."

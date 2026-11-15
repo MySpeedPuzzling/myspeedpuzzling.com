@@ -25,7 +25,7 @@ final class ImportRowSheet
      * @param array<string, string> $typed what the refused form held, by field - shown again
      * @param array<string, string> $errors by field
      *
-     * @return list<array{field: string, input: string, choices: list<string>, header: string, original: string, answer: string, understood: null|string, problems: list<array{code: string, value: string}>, error: null|string}>
+     * @return list<array{field: string, input: string, choices: list<string>, header: string, original: string, answer: string, understood: null|string, problems: list<array{code: string, value: string}>, error: null|string, noTime: bool}>
      */
     public static function fields(ImportRowDetail $detail, array $typed = [], array $errors = []): array
     {
@@ -52,16 +52,21 @@ final class ImportRowSheet
                 }
             }
 
+            // "No time - I didn't time this one" is an answer of its own beside the time's input, never a text in it
+            $answer = $typed[$field] ?? ImportRowAnswers::typed($detail->answers, $field) ?? '';
+            $noTime = $field === 'time' && $answer === ImportRowAnswers::NO_TIME;
+
             $fields[$field] = [
                 'field' => $field,
                 'input' => $input,
                 'choices' => self::CHOICES[$input] ?? [],
                 'header' => $column->header,
                 'original' => StoredCells::shown($detail->cells[$column->column] ?? null),
-                'answer' => $typed[$field] ?? ImportRowAnswers::typed($detail->answers, $field) ?? '',
+                'answer' => $noTime ? '' : $answer,
                 'understood' => self::understood($detail, $field),
                 'problems' => $problems,
                 'error' => $errors[$field] ?? null,
+                'noTime' => $noTime,
             ];
         }
 
@@ -80,6 +85,7 @@ final class ImportRowSheet
                         'understood' => self::understood($detail, 'solved_on'),
                         'problems' => [['code' => $problem['code'], 'value' => $problem['value']]],
                         'error' => $errors['solved_on'] ?? null,
+                        'noTime' => false,
                     ];
 
                     break;
@@ -92,7 +98,7 @@ final class ImportRowSheet
 
     /**
      * What the form changes: the fields whose text is not what the row's answer already is. An emptied field takes
-     * its answer back.
+     * its answer back. "No time" ticked is the time's text ImportRowAnswers::NO_TIME (the controller says so).
      *
      * @param array<array-key, mixed> $submitted `answers[<field>]` of the form
      *
@@ -104,8 +110,9 @@ final class ImportRowSheet
 
         foreach (self::fields($detail) as $field) {
             $text = $submitted[$field['field']] ?? null;
+            $answer = $field['noTime'] ? ImportRowAnswers::NO_TIME : $field['answer'];
 
-            if (is_string($text) && trim($text) !== trim($field['answer'])) {
+            if (is_string($text) && trim($text) !== trim($answer)) {
                 $changed[$field['field']] = mb_substr(trim($text), 0, 500);
             }
         }

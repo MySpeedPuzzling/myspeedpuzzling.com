@@ -75,7 +75,7 @@
             <details class="mt-2" data-testid="import-chooser-rows" open>
                 <summary class="fs-sm text-muted" style="min-height: 32px; cursor: pointer;">{{ 'data_import.puzzles.chooser.rows_title'|trans }}</summary>
                 {% for row in rows %}
-                    <a href="{{ path('data_import_row', {importId: import.importId, rowId: row.rowId}) }}" class="d-block text-decoration-none text-body" data-testid="import-chooser-row">
+                    <a href="{{ path('data_import_row', {importId: import.importId, rowId: row.rowId, return: app.request.isMethod('GET') ? app.request.requestUri : path('data_import_puzzle_choose', {importId: import.importId, importPuzzleId: card.importPuzzleId})}) }}" class="d-block text-decoration-none text-body" data-testid="import-chooser-row">
                         {{ include('data_import/_parsed_row.html.twig', {row: row}, with_context = false) }}
                     </a>
                 {% endfor %}

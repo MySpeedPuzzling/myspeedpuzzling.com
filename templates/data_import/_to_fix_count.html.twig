@@ -1,0 +1,13 @@
+{#
+    How many groups of "Rows we could not read" still wait (to_fix.html.twig) - always the element
+    `#import-to-fix-count`, kept up to date by an answer given in place (_to_fix.stream.html.twig).
+
+    Variables: total (the groups of the whole list), shown (the groups on this page).
+#}
+<div id="import-to-fix-count" data-testid="import-to-fix-count" data-total="{{ total }}">
+    {% if total == 0 or shown == 0 %}
+        <p class="alert alert-success fs-sm" data-testid="import-to-fix-empty"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{{ 'data_import.to_fix.empty'|trans }}</p>
+    {% else %}
+        <p class="fs-sm fw-medium" role="status">{{ 'data_import.to_fix.groups_left'|trans({'%count%': total, '%number%': total|format_number}) }}</p>
+    {% endif %}
+</div>

@@ -12459,6 +12459,8 @@ data_import:
         left_out_title: "インポートしないことにした行: %number% 件"
         take_in: "やはりインポートする"
         row_of: "行 %row% · %sheet%"
+        no_time: "タイムなしでインポートする(%number%)"
+        groups_left: "まだ回答を待っているグループ: %number%"
         error:
             empty: "先に値を入力してください。"
             unreadable: "確実に読み取れませんでした。別の書き方でお試しください。"
@@ -12473,6 +12475,7 @@ data_import:
             answered: "修正した行: %number%"
             left_out: "インポートしない行: %number% 件"
             taken_in: "行をインポートに戻しました。"
+            no_time: "タイムなしでインポートされる行: %number%"
             more_remain: "このグループでまだ対応待ちの行: %number%。もう一度回答してください。"
     row:
         title: "行 %number%"
@@ -12488,12 +12491,29 @@ data_import:
         left_out_note: "この行はインポートされません。"
         not_answerable: "この行は現在変更できません。シートを再度読み取っています。しばらくしてからお試しください。"
         back: "「読み取れなかった行」に戻る"
+        back_to:
+            overview: "インポートに戻る"
+            check: "「ファイルの読み取り方」に戻る"
+            sheet: "シートに戻る"
+            people: "「ファイルに出てくる人」に戻る"
+            puzzles: "パズルに戻る"
+            puzzle: "このパズルに戻る"
+            add: "「確認して追加」に戻る"
+            add_list: "「追加される内容」に戻る"
+            add_times: "「いつもと違うタイム」に戻る"
+            not_added: "「あなたの回答を待っている行」に戻る"
+            added: "「このインポートが追加したもの」に戻る"
+            other: "元のページに戻る"
+        no_time: "タイムなし - このパズルは計っていません"
+        save_next: "保存して次の行を直す"
         flash:
             nothing_changed: "何も変更されませんでした。"
             changed_meanwhile: "この行はすでに変更されています。何も保存されていません。現在の状態を表示しています。"
-            saved: "行を保存しました。"
-            left_out: "この行はインポートされません。"
-            taken_in: "行をインポートに戻しました。"
+            saved: "行 %number% を保存しました。すべて読み取れるようになりました。"
+            saved_needs_look: "行 %number% を保存しました。まだ確認が必要なところがあります。"
+            puzzle_matched_again: "この行のパズルを照合し直しています。少しお待ちください。"
+            left_out: "行 %number% はインポートされません。"
+            taken_in: "行 %number% をインポートに戻しました。"
     answer:
         choose: "選択…"
         choice:
@@ -12526,7 +12546,7 @@ data_import:
             rows_left_out: "インポートしない: %number% 件"
         flash:
             nothing_changed: "変更がなかったため、読み直しは行いませんでした。"
-            saved: "保存しました。シートの行を読み直しています。"
+            saved: "保存しました。行を読み直しています。"
             changed_meanwhile: "このシートは、別のタブまたは別の端末で変更されました。現在の状態を表示しています。お手数ですが、もう一度変更してください。"
         error:
             refused: "保存できなかったため、何も変更されていません。選択内容を確認して、もう一度お試しください。"

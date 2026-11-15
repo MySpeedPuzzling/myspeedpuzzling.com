@@ -464,7 +464,7 @@ Still to look at on production (not run there):
 | "Before the first Add, once: results appear on your profile…" | the lines stand on every review | no "seen" state to keep; it is two lines |
 | Step 4 of "never twice": one question per puzzle before adding ("Your profile has 14 Sep… The same one?"), with yes / no / leave out, and the file's values offered as a change | after the "Add": the row waits under "could not be added" with **Add it anyway** | the engine refuses per row (adding.md); "yes, the same one" is leaving it there; offering the file's values as a change is My data's |
 | "144 results are on two sheets - counted once" as a line of the summary | every group of equal rows is listed with its switch, whichever sheets they are on | one control for both cases |
-| Unusual time: "correct it, say it is right, add without a time, leave out"; "one answer may cover all rows of the same shape" | It is right (one / all shown) · Leave out · Fix the row | "add without a time" is emptying the time on the row sheet; a shape-wide answer needs the shapes |
+| Unusual time: "correct it, say it is right, add without a time, leave out"; "one answer may cover all rows of the same shape" | It is right (one / all shown) · Leave out · Fix the row | "add without a time" is "No time - I didn't time this one" on the row sheet (pairing-screens.md "No time"); a shape-wide answer needs the shapes |
 | The e-mail and the notification are not sent when the page showed the end (`seen_at`) | sent by the engine when the batch ends | 6b-1's call; no `seen_at` exists |
 | A notification and an e-mail for a finished Undo | none for the player's own | the engine's rule |
 | Undo "in My data" | on the import's own pages | My data is a later stage |

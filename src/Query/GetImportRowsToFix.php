@@ -145,6 +145,36 @@ SQL, ['importId' => $importId, 'playerId' => $playerId, 'discarded' => DataImpor
     }
 
     /**
+     * The row that needs a look after this one in the file's order - or, past the last, the first one. Null: no
+     * other row needs a look. One statement.
+     */
+    public function nextRowId(string $importId, string $playerId, string $afterRowId): null|string
+    {
+        if (Uuid::isValid($importId) === false || Uuid::isValid($playerId) === false || Uuid::isValid($afterRowId) === false) {
+            return null;
+        }
+
+        $rows = self::ROWS;
+        $id = $this->database->executeQuery(<<<SQL
+SELECT CAST(stored.id AS TEXT)
+{$rows}
+    AND stored.id <> :after
+ORDER BY
+    CASE WHEN (sheet.position, stored.row_number) > (
+        SELECT here_sheet.position, here.row_number
+        FROM data_import_row here
+        INNER JOIN data_import_sheet here_sheet ON here_sheet.id = here.sheet_id
+        WHERE here.id = :after
+    ) THEN 0 ELSE 1 END,
+    sheet.position,
+    stored.row_number
+LIMIT 1
+SQL, ['importId' => $importId, 'playerId' => $playerId, 'discarded' => DataImportStatus::Discarded->value, 'after' => $afterRowId])->fetchOne();
+
+        return is_string($id) ? $id : null;
+    }
+
+    /**
      * The rows the player left out themselves, in the file's order - to take them in again. One statement.
      *
      * @return array{rows: list<ImportSheetRow>, total: int}

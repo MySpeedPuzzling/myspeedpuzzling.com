@@ -35,6 +35,7 @@ final class ImportRowAnswersTest extends TestCase
         yield 'minutes or hours? - not read' => [ImportField::Time, '45:10', null];
         yield 'a bare number is no time' => [ImportField::Time, '75', null];
         yield 'words are no time' => [ImportField::Time, 'about an hour', null];
+        yield 'no time - not timed' => [ImportField::Time, ImportRowAnswers::NO_TIME, 0];
         yield 'pieces' => [ImportField::Pieces, '1000', 1000];
         yield 'pieces in words are not read' => [ImportField::Pieces, 'a few', null];
         yield 'a day' => [ImportField::SolvedOn, '2025-01-03', '2025-01-03'];
@@ -107,6 +108,54 @@ final class ImportRowAnswersTest extends TestCase
         // "Leave this row out"
         $leftOut = $kit->parser->parse(2, $cells, $mapping, $options, rowAnswers: [ImportRowAnswers::LEFT_OUT => true, ...$answers]);
         self::assertSame([ImportRowLeftOut::ByPlayer, DataImportRowKind::NotAPuzzle], [$leftOut->leftOut, $leftOut->kind]);
+    }
+
+    public function testNoTimeMakesTheRowWhatAnEmptyTimeCellMakesIt(): void
+    {
+        $kit = new ImportTestKit();
+        $rows = static fn (mixed $unreadable, mixed $readable, mixed $alone): array => [
+            1 => ['Puzzle', 'Pieces', 'Date', 'Time'],
+            2 => ['Zq Untimed Harbour', 500, ImportTestKit::date('2026-01-10'), $unreadable],
+            3 => ['Zq Untimed Meadow', 500, ImportTestKit::date('2026-01-11'), $readable],
+            // Nothing but its time says that this one was solved
+            4 => ['Zq Untimed Orchard', 500, null, $alone],
+            5 => ['Zq Plain Lighthouse', 500, ImportTestKit::date('2026-01-12'), ImportTestKit::duration(2411)],
+            6 => ['Zq Plain Windmill', 500, ImportTestKit::date('2026-01-13'), ImportTestKit::duration(2512)],
+            7 => ['Zq Plain Bridge', 500, ImportTestKit::date('2026-01-14'), ImportTestKit::duration(2613)],
+        ];
+        $sheet = ImportTestKit::sheet('Results', $rows('casually, over a week', ImportTestKit::duration(2893), 'no idea'));
+        $empty = ImportTestKit::sheet('Results', $rows(null, null, null));
+        $proposal = $kit->workbook([$sheet])['Results']['proposal'];
+        $mapping = $proposal->mapping;
+        $options = $proposal->options;
+        $noTime = ['time' => self::answers()->read(ImportField::Time, ImportRowAnswers::NO_TIME)];
+        self::assertSame(['time' => ['text' => 'no_time', 'value' => 0]], $noTime);
+
+        // A time nobody can read, and a time that was read: "No time" makes both a result without a time, with
+        // nothing unclear - the very row an empty time cell makes (the same keys: never twice, equal rows)
+        self::assertSame(['time_unreadable'], array_column($kit->parser->parse(2, $sheet->rows[2], $mapping, $options)->problems, 'code'));
+        self::assertSame(2893, $kit->parser->parse(3, $sheet->rows[3], $mapping, $options)->parsed['seconds']);
+
+        foreach ([2, 3] as $rowNumber) {
+            $answered = $kit->parser->parse($rowNumber, $sheet->rows[$rowNumber], $mapping, $options, rowAnswers: $noTime);
+            $asEmptyCell = $kit->parser->parse($rowNumber, $empty->rows[$rowNumber], $mapping, $options);
+
+            self::assertSame([], $answered->problems);
+            self::assertSame(DataImportRowKind::Result, $answered->kind);
+            self::assertArrayNotHasKey('seconds', $answered->parsed);
+            self::assertEquals($asEmptyCell, $answered);
+        }
+
+        // A row that only its time made a result stays a result - the player said it was solved, just not timed
+        $alone = $kit->parser->parse(4, $sheet->rows[4], $mapping, $options, rowAnswers: $noTime);
+        self::assertSame([DataImportRowKind::Result, []], [$alone->kind, $alone->problems]);
+        self::assertArrayNotHasKey('seconds', $alone->parsed);
+        self::assertNotNull($alone->sourceKey);
+
+        // Back to a time: the answer is a time again, or is taken back and the cell is read as before
+        $timed = $kit->parser->parse(2, $sheet->rows[2], $mapping, $options, rowAnswers: ['time' => self::answers()->read(ImportField::Time, '1:15:00')]);
+        self::assertSame(4500, $timed->parsed['seconds']);
+        self::assertSame(2893, $kit->parser->parse(3, $sheet->rows[3], $mapping, $options, rowAnswers: [])->parsed['seconds']);
     }
 
     private static function answers(): ImportRowAnswers

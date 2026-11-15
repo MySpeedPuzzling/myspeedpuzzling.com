@@ -30,6 +30,8 @@ final class ImportRowDraft
     public null|DateTimeImmutable $date = null;
     public DatePrecision $precision = DatePrecision::Day;
     public null|int $seconds = null;
+    /** The player said "No time - I didn't time this one" about this row (ImportRowAnswers::NO_TIME): a result */
+    public bool $untimed = false;
     /** @var list<string> */
     public array $people = [];
     public null|PuzzlingType $type = null;

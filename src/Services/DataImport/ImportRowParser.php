@@ -158,7 +158,7 @@ final readonly class ImportRowParser
         }
 
         $hasResult = $row->date !== null || $row->seconds !== null || $row->solved === true || $row->meaning === ImportWordMeaning::Result || $row->meaning === ImportWordMeaning::Both
-            || $row->hasProblemOf(ImportField::Time) || $row->hasProblemOf(ImportField::SolvedOn);
+            || $row->hasProblemOf(ImportField::Time) || $row->hasProblemOf(ImportField::SolvedOn) || $row->untimed;
         [$leftOut, $nameMissing] = $this->rowFilter->judge(
             $row->name !== null,
             $row->brand !== null,

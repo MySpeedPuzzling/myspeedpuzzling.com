@@ -56,6 +56,22 @@ committed with `git add -A`; one destructive command per call, never the dev dat
 
 ## Log
 
+- 2026-11-15 - **Jan on the experience** ("it is very complex it should have outstanding UX for everyone, even non
+  tech person understand it"; "am i able to manually skip rows"; "add small font with info icon explaining
+  ('unlisted' is great example) and/or prepare 'How import works' webpage ... with examples or screenshots"; the
+  welcome page and the guide get "Import your data from elsewhere" as an item). Going through all four real files
+  on the sandbox sheet by sheet: the column mappings are right; found - a sheet titled "500 piece Pairs" was
+  imported as SOLO (fixed with stage 6d), three imports that added something locked a player out (#368, live: an
+  import can be finished), the import's page is three equal buttons without an order, 400+ single puzzle
+  decisions for a collector's file, no list of what will be added with untick.
+  → **[guided-flow.md](guided-flow.md) is the design of record for the import's screens from now on**: five
+  steps (File, Check, People, Puzzles, Add) with one primary button a screen, "Where you are" instead of the
+  import's page, bulk decisions with their safety rules, "What will be added" with untick, the vocabulary
+  (matching instead of pairing, …), explanations in place, the guide around one sample spreadsheet. Build plan: 9
+  slices; slice 1 (the spine, UI only) starts when 6d is merged. **Stage 8 (#366) is held until 6d and the
+  first slices are live.**
+- 2026-11-15 - #368 live (finish an import); My data 2b (#367) in CI after its fix round.
+
 - 2026-11-15 - **Jan's answers:** (1) the entry points (stage 8, #366) are merged only AFTER the people of a file
   are settled; (2) "code / id resolve to real person -> yes please, not sure about plain text names to avoid
   conflicts (we could ask user whether to map and find and all matches map to existing players ... during / after

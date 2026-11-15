@@ -514,6 +514,8 @@ builds the result with the same building blocks - the group (`PuzzlersGrouping`,
 first-try rule (`FirstTryAssessor`), the pace limit, the entity's own constructor. `ImportWritePathParityTest` saves
 the same input through the add form's handler and through the import and compares the two rows field by field, apart
 from the listed differences - a change of the form's rules that the import does not follow turns it red.
+Built in stage 6a: [writer.md](writer.md) - the differences, the reactions, what stage 6b calls, and where this
+page and the code disagreed (the microsecond offset, the name of `created_via`).
 
 **What an imported result does.** The entity records `PuzzleSolved` in its constructor. The five handlers of that
 event run on every result anybody adds, so the import does not make them branch: its writer takes the event off the

@@ -100,6 +100,15 @@ class DataImportRow
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     public null|DateTimeImmutable $addedAt = null;
 
+    /**
+     * The result this row made (docs/features/data-import/writer.md "The link") - a plain id on purpose: it stays
+     * when the result is deleted, and whether the row's result exists is always asked of the results themselves.
+     * Written only by resultCreated()
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: UuidType::NAME, nullable: true)]
+    public null|UuidInterface $solvingTimeId = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -122,6 +131,15 @@ class DataImportRow
         #[Column]
         public int $lastSeenVersion,
     ) {
+    }
+
+    /**
+     * ImportedResultWriter made a result of the row. A row whose earlier result is gone (deleted, undone) may make
+     * another - the link then names the new one.
+     */
+    public function resultCreated(UuidInterface $solvingTimeId): void
+    {
+        $this->solvingTimeId = $solvingTimeId;
     }
 
     /**

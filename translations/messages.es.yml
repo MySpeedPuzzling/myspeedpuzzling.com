@@ -11932,6 +11932,31 @@ data_import:
         flash:
             nothing: "Ya no hay filas esperando esta respuesta."
             busy: "Otra respuesta ya está repasando estas filas: aquí ves cómo va."
+    # A question is asked once per file (guided flow 6) - docs/features/data-import/adding.md
+    once:
+        said:
+            heading: "¿Ya en MySpeedPuzzling?"
+            count: "Tu archivo dice que estos resultados ya están en MySpeedPuzzling, y no los hemos encontrado: %number%"
+            count_so_far: "Tu archivo dice que algunos resultados ya están en MySpeedPuzzling. De los primeros %checked% que hemos mirado, no hemos encontrado: %number%"
+            hint: "Un resultado que encontramos en tu perfil nunca se añade dos veces. Estos no los hemos encontrado: puede que falten, o que estén con otro día u otro puzzle."
+            missing: "Faltan: añadirlos"
+            leave_out: "No importarlos"
+            answer_hint: "Tu respuesta vale para todas las filas así de este archivo, también para las que añadas más tarde. Primero se mira cada fila, lo que puede tardar un momento."
+            stands: "Resultados que según tu archivo ya están en MySpeedPuzzling y que no hemos encontrado: %number%. Se añaden: es tu respuesta para este archivo."
+        times:
+            stands: "Tiempos inusuales entre los primeros %checked% resultados: %number%. Se añaden tal como están: es tu respuesta para este archivo."
+        change: "Cambiar"
+        changed: "Cambiado. A partir de ahora volvemos a preguntar."
+        holds: "«Añadirlos» vale para el resto de este archivo, también para las filas que añadas más tarde. Puedes cambiarlo en «Revisar y añadir»."
+        also_said:
+            line: "Algunos de ellos también dicen que ya están en MySpeedPuzzling, y no los hemos encontrado: %number%. Responde también a eso:"
+            add: "Faltan: añadirlos también"
+            leave_out: "No importar esos (%number%)"
+            stands: "Algunos de ellos también dicen que ya están en MySpeedPuzzling: %number%. Se añaden también: es tu respuesta para este archivo."
+        still_waiting: "Filas que esperan una respuesta más: %number%. Tu archivo dice que ya están en MySpeedPuzzling, y no las hemos encontrado."
+        answer_them: "Responder"
+        row_also: "Además:"
+        row_covers: "Una respuesta vale para las dos."
     nothing_until_add: "No se añade nada a tu perfil hasta que lo hayas revisado y pulses Añadir."
     add:
         title: "Revisar y añadir"

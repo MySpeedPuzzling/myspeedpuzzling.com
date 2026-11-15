@@ -11921,6 +11921,31 @@ data_import:
         flash:
             nothing: "この回答を待っている行はもうありません。"
             busy: "これらの行は別の回答がすでに処理しています。進み具合はこちらです。"
+    # A question is asked once per file (guided flow 6) - docs/features/data-import/adding.md
+    once:
+        said:
+            heading: "すでにMySpeedPuzzlingにありますか？"
+            count: "ファイルではすでにMySpeedPuzzlingにあるとされていますが、見つからなかった記録：%number%件"
+            count_so_far: "ファイルでは一部の記録がすでにMySpeedPuzzlingにあるとされています。最初に確認した%checked%件のうち、見つからなかった記録：%number%件"
+            hint: "プロフィールで見つかった記録が二重に追加されることはありません。これらは見つかりませんでした。登録されていないか、別の日付や別のパズルで登録されている可能性があります。"
+            missing: "登録されていない - 追加する"
+            leave_out: "インポートしない"
+            answer_hint: "この回答は、このファイルの同じような行すべてに適用されます。あとで追加する行も同じです。まず各行を確認するため、少し時間がかかることがあります。"
+            stands: "ファイルではすでにMySpeedPuzzlingにあるとされ、見つからなかった記録：%number%件。追加されます（このファイルへのあなたの回答です）。"
+        times:
+            stands: "最初の%checked%件の記録のうち、通常と異なるタイム：%number%件。そのまま追加されます（このファイルへのあなたの回答です）。"
+        change: "変更"
+        changed: "変更しました。これからはまた確認します。"
+        holds: "「追加する」は、このファイルの残りの行にも適用されます。あとで追加する行も同じです。「確認して追加」で変更できます。"
+        also_said:
+            line: "このうち、すでにMySpeedPuzzlingにあるとされているのに見つからなかった記録：%number%件。こちらにも回答してください："
+            add: "登録されていない - これらも追加する"
+            leave_out: "これらはインポートしない（%number%件）"
+            stands: "このうち、すでにMySpeedPuzzlingにあるとされている記録：%number%件。これらも追加されます（このファイルへのあなたの回答です）。"
+        still_waiting: "もう1つ回答を待っている行：%number%件。ファイルではすでにMySpeedPuzzlingにあるとされていますが、見つかりませんでした。"
+        answer_them: "回答する"
+        row_also: "さらに："
+        row_covers: "1つの回答で両方に適用されます。"
     nothing_until_add: "内容を確認して「追加」を押すまで、プロフィールには何も追加されません。"
     add:
         title: "確認して追加"

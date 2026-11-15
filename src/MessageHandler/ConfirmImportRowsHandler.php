@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Message\ConfirmImportRows;
 use SpeedPuzzling\Web\Query\GetImportAddScreen;
 use SpeedPuzzling\Web\Repository\DataImportRepository;
 use SpeedPuzzling\Web\Repository\DataImportRowRepository;
+use SpeedPuzzling\Web\Services\DataImport\ImportRowAdder;
 use SpeedPuzzling\Web\Services\DataImport\ImportRowAnswers;
 use SpeedPuzzling\Web\Services\DataImport\ImportRowTimeCheck;
 use SpeedPuzzling\Web\Services\Doctrine\IdLock;
@@ -28,12 +29,15 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * own**: the word is written where it still makes sense and the other rows are passed over and counted -
  *
  * - a row that does not wait any more (an "Add" holds it, it made something, it was left out) is past its words;
- * - "add it anyway" is taken only for the question the row was really asked: the reason it waits with
- *   (`failure`) - or, for an unusual time before any "Add", the time verification's own judgement of the row now
- *   (ImportRowTimeCheck). A form can not wave a question through on rows nobody asked it about;
- * - the word is given for the row as it reads now and the puzzle it is paired with (DataImportRow::addAnyway()).
+ * - "add it anyway" is taken only for a question the row was really asked: the questions it waits with
+ *   (DataImportRow::openQuestions() - the reason it was not added, and what the same "Add" found beside it) - or,
+ *   before any "Add": for an unusual time, the time verification's own judgement of the row now
+ *   (ImportRowTimeCheck); for "the file says it is on MySpeedPuzzling", the engine's own question asked of the row
+ *   now (ImportRowAdder::openQuestionsOf()). A form can not wave a question through on rows nobody asked it about;
+ * - the word is given for the row as it reads now and the puzzle it is paired with (DataImportRow::addAnyway()). A
+ *   row that waits with two questions and is answered one waits for the other only (`stillWaitingRowIds`).
  *
- * @return array{confirmed: int, skipped: int, confirmedRowIds: list<string>, lookedAt: int, lastRowId: null|string}
+ * @return array{confirmed: int, skipped: int, confirmedRowIds: list<string>, stillWaitingRowIds: list<string>, lookedAt: int, lastRowId: null|string}
  */
 #[AsMessageHandler]
 readonly final class ConfirmImportRowsHandler
@@ -42,13 +46,14 @@ readonly final class ConfirmImportRowsHandler
         private DataImportRepository $dataImportRepository,
         private DataImportRowRepository $dataImportRowRepository,
         private ImportRowTimeCheck $timeCheck,
+        private ImportRowAdder $rowAdder,
         private IdLock $idLock,
         private ClockInterface $clock,
     ) {
     }
 
     /**
-     * @return array{confirmed: int, skipped: int, confirmedRowIds: list<string>, lookedAt: int, lastRowId: null|string}
+     * @return array{confirmed: int, skipped: int, confirmedRowIds: list<string>, stillWaitingRowIds: list<string>, lookedAt: int, lastRowId: null|string}
      *
      * @throws DataImportNotFound
      */
@@ -82,7 +87,7 @@ readonly final class ConfirmImportRowsHandler
             $rowIds = $this->dataImportRowRepository->idsRefusedWith($import, $message->refusedWith, $message->ofBatchId, $message->afterRowId, max(1, min($message->limit, ImportRowAnswers::MAX_ROWS)));
 
             if ($rowIds === []) {
-                return ['confirmed' => 0, 'skipped' => 0, 'confirmedRowIds' => [], 'lookedAt' => 0, 'lastRowId' => null];
+                return ['confirmed' => 0, 'skipped' => 0, 'confirmedRowIds' => [], 'stillWaitingRowIds' => [], 'lookedAt' => 0, 'lastRowId' => null];
             }
         }
 
@@ -99,11 +104,13 @@ readonly final class ConfirmImportRowsHandler
         $confirmed = 0;
         $skipped = 0;
         $confirmedRowIds = [];
+        $stillWaitingRowIds = [];
 
         if ($codes !== []) {
             $puzzleIds = $this->dataImportRowRepository->cataloguePuzzleIdsOf($import, $rowIds);
             $asked = [];
-            $notAskedYet = [];
+            $timesNotAskedYet = [];
+            $saidNotAskedYet = [];
 
             foreach ($rows as $rowId => $row) {
                 if ($row->state !== DataImportRowState::Waiting || in_array($row->kind, [DataImportRowKind::Result, DataImportRowKind::Both], true) === false || isset($puzzleIds[$rowId]) === false) {
@@ -111,16 +118,32 @@ readonly final class ConfirmImportRowsHandler
                 }
 
                 if ($row->failure !== null) {
-                    // The question the row waits with - and no other
-                    $asked[$rowId] = array_values(array_intersect($codes, [$row->failure]));
-                } elseif (in_array(ImportRowRefusal::UnusualTime->value, $codes, true)) {
-                    $notAskedYet[] = $rowId;
+                    // The questions the row waits with - and no other
+                    $asked[$rowId] = array_values(array_intersect($codes, $row->openQuestions()));
+
+                    continue;
+                }
+
+                if (in_array(ImportRowRefusal::UnusualTime->value, $codes, true)) {
+                    $timesNotAskedYet[] = $rowId;
+                }
+
+                if (in_array(ImportRowRefusal::SaidAlreadyOnProfile->value, $codes, true)) {
+                    $saidNotAskedYet[] = $rowId;
                 }
             }
 
             // Before any "Add": only a time the verification itself finds unusual now is anything to confirm
-            foreach (array_keys($this->timeCheck->unusualAmong($import, $notAskedYet)) as $rowId) {
-                $asked[$rowId] = [ImportRowRefusal::UnusualTime->value];
+            foreach (array_keys($this->timeCheck->unusualAmong($import, $timesNotAskedYet)) as $rowId) {
+                $asked[$rowId][] = ImportRowRefusal::UnusualTime->value;
+            }
+
+            // Before any "Add": only a row the engine itself would send back with "the file says it is on
+            // MySpeedPuzzling" now - its own steps, not a second rule
+            foreach ($saidNotAskedYet as $rowId) {
+                if (in_array(ImportRowRefusal::SaidAlreadyOnProfile->value, $this->rowAdder->openQuestionsOf($rows[$rowId], false), true)) {
+                    $asked[$rowId][] = ImportRowRefusal::SaidAlreadyOnProfile->value;
+                }
             }
 
             foreach ($rows as $rowId => $row) {
@@ -133,6 +156,10 @@ readonly final class ConfirmImportRowsHandler
                 $row->addAnyway($asked[$rowId], $puzzleIds[$rowId]);
                 $confirmedRowIds[] = $rowId;
                 $confirmed++;
+
+                if ($row->failure !== null) {
+                    $stillWaitingRowIds[] = $rowId;
+                }
             }
         }
 
@@ -158,6 +185,7 @@ readonly final class ConfirmImportRowsHandler
             'confirmed' => $confirmed,
             'skipped' => $skipped,
             'confirmedRowIds' => $confirmedRowIds,
+            'stillWaitingRowIds' => $stillWaitingRowIds,
             'lookedAt' => count($rowIds),
             'lastRowId' => $rowIds === [] ? null : $rowIds[array_key_last($rowIds)],
         ];

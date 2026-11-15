@@ -147,6 +147,69 @@ mapping or another puzzle asks again. A bare list of codes is not honoured.
 **A row is all or nothing**: everything that can refuse it is checked before anything is created; a row that is a
 result and an owned puzzle whose result is refused adds no collection item.
 
+### A question is asked once (guided flow, slice 6)
+
+A real file showed it: a player answered "these 416 unusual times are right - add them", and 259 of them came back
+with the next question ("your file says these are on MySpeedPuzzling, and we did not find them"). Three things
+changed **when** a question is asked - never **whether**:
+
+1. **Both group questions are looked at in one pass.** `ImportResultQuestions::ask()` used to stop at the first
+   refusal. For the two questions one answer is right for (`unusual_time`, `said_already_on_profile` - group-answers.md)
+   it now looks at both before it sends the row back (`judge()`): the row's `failure` is the first of them and
+   **`data_import_row.open_questions`** (jsonb, `["unusual_time", "said_already_on_profile"]`) holds all of them when
+   there is more than one (`DataImportRow::refused($code, $openQuestions)`, read through `openQuestions()`, which
+   trusts the list only on a row that waits with a reason). `addAnyway()` takes the answered codes off: a row
+   answered for one waits for the other only (`failure` becomes the next). Nothing else is collected: a possible
+   duplicate (`similar_result_exists`, `somebody_elses_result`) and `people_do_not_fit_type` are asked before
+   either and refuse alone, as before; the partner limits and the writer's refusals (`first_try_taken`, `too_fast`,
+   …) come after, when no question is open - as before. Every clearing of `failure` clears the list
+   (`added()`, `alreadyYours()`, `failed()`, `undone()`, `parsedAs()` for a changed key, `queueReadyRows()`).
+2. **"Already on MySpeedPuzzling" is asked before the "Add"** (adding-screens.md "Already on MySpeedPuzzling, asked
+   before the Add"). The count is the engine's own: `ImportRowAdder::openQuestionsOf($row, withTimeCheck: false)`
+   feeds `ImportResultQuestions::openQuestions()` - the same `judge()` an "Add" runs, with what `add()` feeds it -
+   for the ready rows the file marks (`DataImportRowRepository::idsOfSaidAlreadyReady()`, on `sqlReadyRows()`). No
+   second rule. It reads the database as it is now: rows of the same "Add" that go first are not added yet, so the
+   "Add" has the last word (a row it still sends back is on the card after it - or covered by the standing answer).
+3. **An answer for a whole group stands for the file**: `data_import.standing_answers` (jsonb,
+   `{"unusual_time": "<when>", "said_already_on_profile": "<when>"}` - `DataImport::STANDING_QUESTIONS`, these two
+   only). `AnswerImportRowsGroupHandler` writes it with every "add it anyway" for a group (after an "Add" or before
+   it); "leave them out" never stands. In `ask()`, **for an "Add" only** (`standingAnswers: true` from
+   `ImportRowAdder`): a question that is open on the row and has a standing answer gets the row's own waiver
+   written right there - `DataImportRow::addAnyway()`, with the fingerprint of the row as it reads when it is
+   added - and the row goes on. Everything a single "It is right" stores is stored: the
+   `SuspiciousTimeConfirmation` for a time the verification finds unusual (the scan raises it with
+   `confirmed_while_saving` - time verification is untouched).
+
+**What a standing answer covers and what not**
+
+| Covered | Not covered |
+|---|---|
+| Rows of the same import that reach the question in a later "Add" (more puzzles matched since) | Another import of the same player |
+| A row corrected since (another time, day, puzzle): the answer is to the **question for the file**; the per-row waiver is written at add time with the row's current fingerprint. The per-row rule is unchanged - a waiver given *before* a change still fails closed (`isWavedThrough()`), and without a standing answer the row is asked again | A possible duplicate (`similar_result_exists`, `somebody_elses_result`): one by one, with the result beside the row - `AnswerImportRowsGroup`, `ChangeImportStandingAnswer` and the `also` answer all refuse the codes |
+| | `first_try_taken`, `too_fast`, `time_too_long`, `people_do_not_fit_type`, the daily guard, `too_many_partners`, `partner_daily_limit`: never waivable, by anything |
+| | The pairing of an unlisted puzzle (`UnlistedPairer`): a pairing asks again |
+
+"Change" (`ChangeImportStandingAnswer`, under the import's lock) takes the answer back: the question is asked
+again from then on; rows answered or added before stay as they are.
+
+**Unlisted pairing** goes through the same `ask()`, so it looks at both questions too; it keeps one reason per
+unlisted result (`kept_reason` = the first, as before - `questions` is not stored there) and passes no
+`standingAnswers`. `ImportResultQuestionsParityTest` holds both paths to the same answer for "unusual + said" and
+"similar + said", and pins the one new listed difference (a standing answer counts for an "Add", a pairing asks).
+
+**The group answers** (group-answers.md) with it:
+
+- the group of a reason is still the rows whose `failure` it is. A row with two questions is in the group of the
+  first (the unusual times), and **that card asks the other on the same screen**: `AnswerImportRowsGroup::$also`
+  (`{"said_already_on_profile": "add_anyway" | "leave_out"}`, kept on `data_import_group_answer.also`) - "add them
+  too" goes into the same `ConfirmImportRows` (both codes, each only where it is open), "don't import those" leaves
+  exactly the rows with both out. An answer that stands for the other question is taken as "add them too";
+- without it, the rows take the answer and wait for the other question only: they are counted
+  (`rows_still_waiting`), **not** named to the "Add" at the end (it could only refuse them again), and are in the
+  other question's group from then on;
+- `ConfirmImportRowsHandler` takes a word for any question the row waits with (`openQuestions()`), and - before an
+  "Add" - for "the file says it is on MySpeedPuzzling" only on a row the engine itself would send back with it.
+
 ## A row, step by step (`ImportRowAdder::add()`)
 
 1. `ImportWriteLock::lockUntilCommit(player)` - the writer's own lock, first statement. The row is read after it;
@@ -163,7 +226,9 @@ result and an owned puzzle whose result is refused adds no collection item.
    - the row's own result still exists (`this_row`) / a row with the same `source_key` made one in any import of
      the player (`earlier_import`) - the writer's questions, asked first;
    - the player has the same result on the profile, not spoken for (`profile`);
-   - the questions above, and **the time verification's judgement** of the row's time (`unusual_time`, below);
+   - the questions above, and **the time verification's judgement** of the row's time (`unusual_time`, below) -
+     looked at together with "the file says it is on MySpeedPuzzling", so a row with both is told both ("A question
+     is asked once");
      then `ImportedResultWriter::write()` - `groupPlayers` are the row's people, one per entry, as the import's
      people are decided when the row is added (stage 6d, [people.md](people.md): **a code of the file that resolved,
      or a name the importing player mapped, is that registered player; everybody else is a guest**; the importing

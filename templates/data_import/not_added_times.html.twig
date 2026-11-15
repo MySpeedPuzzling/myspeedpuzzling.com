@@ -60,23 +60,44 @@
                     <p class="fs-sm text-muted mb-2" data-testid="import-group-times-none-now">{{ 'data_import.group.times.none_now'|trans }}</p>
                 {% endif %}
 
-                <div class="d-flex flex-wrap gap-2">
-                    {% for action, key in {add_anyway: 'right', leave_out: 'leave_out'} %}
-                        <form action="{{ path('data_import_group_answer_start', {importId: import.importId}) }}" method="post" data-turbo-frame="_top">
-                            <input type="hidden" name="_token" value="{{ csrf }}">
-                            <input type="hidden" name="request_id" value="{{ request_ids[key] }}">
-                            <input type="hidden" name="code" value="unusual_time">
-                            <input type="hidden" name="action" value="{{ action }}">
-                            {% if batch_id is not null %}<input type="hidden" name="batch" value="{{ batch_id }}">{% endif %}
-                            <button type="submit" class="btn {{ action == 'add_anyway' ? 'btn-outline-primary' : 'btn-link' }} text-wrap" style="min-height: 44px;" data-testid="import-group-times-{{ key }}">
-                                {{ ('data_import.group.times.' ~ key)|trans({'%number%': summary.rows|format_number}) }}
-                            </button>
-                        </form>
-                    {% endfor %}
-                    <a href="{{ path('data_import_not_added', scope) }}" class="btn btn-link text-wrap d-inline-flex align-items-center" style="min-height: 44px;" data-turbo-frame="_top">
-                        {{ 'data_import.group.times.one_by_one'|trans }}
-                    </a>
-                </div>
+                {# Asked once: the rows of this group that also wait with "the file says it is on MySpeedPuzzling" get
+                   their other answer on this very card - they are not sent back a second time for it #}
+                {% set also = also_said|default(0) %}
+                <form action="{{ path('data_import_group_answer_start', {importId: import.importId}) }}" method="post" data-turbo-frame="_top" data-testid="import-group-times-form">
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    {# The press of "add them"; "don't import them" is another press and names its own in its address #}
+                    <input type="hidden" name="request_id" value="{{ request_ids.right }}">
+                    <input type="hidden" name="code" value="unusual_time">
+                    {% if batch_id is not null %}<input type="hidden" name="batch" value="{{ batch_id }}">{% endif %}
+                    {% if also > 0 %}
+                        <fieldset class="border rounded-3 p-2 mb-3" data-testid="import-group-times-also" data-rows="{{ also }}" data-stands="{{ said_stands|default(false) ? 1 : 0 }}">
+                            {% if said_stands|default(false) %}
+                                <p class="fs-sm mb-0">{{ 'data_import.once.also_said.stands'|trans({'%number%': also|format_number}) }}</p>
+                            {% else %}
+                                <legend class="fs-sm fw-medium float-none w-auto mb-2">{{ 'data_import.once.also_said.line'|trans({'%number%': also|format_number}) }}</legend>
+                                {% for value, key in {add_anyway: 'add', leave_out: 'leave_out'} %}
+                                    <div class="form-check d-flex align-items-center gap-2" style="min-height: 44px;">
+                                        <input class="form-check-input mt-0" type="radio" name="also[said_already_on_profile]" id="import-also-said-{{ key }}" value="{{ value }}" required data-testid="import-group-times-also-{{ key }}">
+                                        <label class="form-check-label fs-sm" for="import-also-said-{{ key }}">{{ ('data_import.once.also_said.' ~ key)|trans({'%number%': also|format_number}) }}</label>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        </fieldset>
+                    {% endif %}
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="submit" name="action" value="add_anyway" class="btn btn-outline-primary text-wrap" style="min-height: 44px;" data-testid="import-group-times-right">
+                            {{ 'data_import.group.times.right'|trans({'%number%': summary.rows|format_number}) }}
+                        </button>
+                        <button type="submit" name="action" value="leave_out" class="btn btn-link text-wrap" style="min-height: 44px;" data-testid="import-group-times-leave_out" formnovalidate
+                                formaction="{{ path('data_import_group_answer_start', {importId: import.importId, request: request_ids.leave_out}) }}">
+                            {{ 'data_import.group.times.leave_out'|trans({'%number%': summary.rows|format_number}) }}
+                        </button>
+                        <a href="{{ path('data_import_not_added', scope) }}" class="btn btn-link text-wrap d-inline-flex align-items-center" style="min-height: 44px;" data-turbo-frame="_top">
+                            {{ 'data_import.group.times.one_by_one'|trans }}
+                        </a>
+                    </div>
+                    <p class="fs-sm text-muted mt-2 mb-0">{{ 'data_import.once.holds'|trans }}</p>
+                </form>
             {% endif %}
         </div>
     </turbo-frame>

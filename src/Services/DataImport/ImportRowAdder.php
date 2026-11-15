@@ -195,7 +195,7 @@ readonly final class ImportRowAdder
             $result = $this->resultOf($row, $batchId, $player, $puzzle, $said, $comment);
 
             if ($result['refused'] !== null) {
-                return $this->refuse($row, $result['refused'], $result['customValuesOf']);
+                return $this->refuse($row, $result['refused'], $result['customValuesOf'], $result['questions']);
             }
 
             $customValuesOf = $result['customValuesOf'];
@@ -359,7 +359,7 @@ readonly final class ImportRowAdder
      *
      * @param array{day: string, precision: DatePrecision, seconds: null|int, type: PuzzlingType, sourceKey: string, people: list<string>, registeredPlayerIds: list<string>} $said
      *
-     * @return array{refused: null|string, made: null|array<string, mixed>, alreadyHow: null|string, alreadyTimeId: null|string, removedWishListItems: list<array<string, mixed>>, customValuesOf: list<string>}
+     * @return array{refused: null|string, questions: list<string>, made: null|array<string, mixed>, alreadyHow: null|string, alreadyTimeId: null|string, removedWishListItems: list<array<string, mixed>>, customValuesOf: list<string>}
      */
     private function resultOf(DataImportRow $row, string $batchId, Player $player, Puzzle $puzzle, array $said, null|string $comment): array
     {
@@ -431,10 +431,12 @@ readonly final class ImportRowAdder
             finerRowsResult: $finerRowsResult,
             // Asked last, of a result that would really be written: a registered partner is never flooded
             lastCheck: fn (): null|string => $this->partnerLimits->refusal($player, $batchId, $said['registeredPlayerIds'], $this->clock->now()),
+            // An "Add" of the import: what the player answered for the whole file counts for this row too
+            standingAnswers: true,
         );
 
         if ($asked['refused'] !== null) {
-            return self::answer(refused: $asked['refused']);
+            return self::answer(refused: $asked['refused'], questions: $asked['questions']);
         }
 
         if ($asked['made'] === null) {
@@ -451,11 +453,63 @@ readonly final class ImportRowAdder
     }
 
     /**
+     * Before an "Add": the questions a row that waits would be sent back with if it were added now - of the two
+     * one answer is right for (an unusual time, "the file says it is on MySpeedPuzzling"). **The engine's own
+     * steps** (ImportResultQuestions::openQuestions(), fed with what add() feeds ask() with), never a second rule:
+     * a row that is the same result as another row, whose puzzle is not a catalogue puzzle, without a date, already
+     * the player's, or refused by a rule first waits with neither. Nothing is written and no lock is taken - the
+     * "Add" has the last word.
+     *
+     * @param bool $withTimeCheck false: only "the file says it is on MySpeedPuzzling" (cheap); true: both
+     *
+     * @return list<string>
+     */
+    public function openQuestionsOf(DataImportRow $row, bool $withTimeCheck): array
+    {
+        if (
+            in_array($row->kind, [DataImportRowKind::Result, DataImportRowKind::Both], true) === false
+            || $row->problems !== null
+            || ($row->sameAsRow !== null && $row->addAsSeparate === false)
+        ) {
+            return [];
+        }
+
+        $saidAlreadyOnProfile = ($row->parsed['alreadyOnMsp'] ?? null) === true;
+
+        if ($saidAlreadyOnProfile === false && $withTimeCheck === false) {
+            return [];
+        }
+
+        $puzzle = $this->decidedPuzzle($row);
+        $said = $puzzle === null ? null : $this->resultSaid($row);
+
+        if ($puzzle === null || $said === null) {
+            return [];
+        }
+
+        return $this->questions->openQuestions(
+            row: $row,
+            player: $row->import->player,
+            puzzle: $puzzle,
+            sourceKey: $said['sourceKey'],
+            day: $said['day'],
+            seconds: $said['seconds'],
+            type: $said['type'],
+            people: $said['people'],
+            saidAlreadyOnProfile: $saidAlreadyOnProfile,
+            precision: $said['precision'],
+            hintedSolvingTimeId: $row->alreadyYoursSolvingTimeId?->toString(),
+            withTimeCheck: $withTimeCheck,
+        );
+    }
+
+    /**
      * @param null|array<string, mixed> $made
      * @param list<array<string, mixed>> $removed
      * @param list<string> $customValuesOf
+     * @param list<string> $questions
      *
-     * @return array{refused: null|string, made: null|array<string, mixed>, alreadyHow: null|string, alreadyTimeId: null|string, removedWishListItems: list<array<string, mixed>>, customValuesOf: list<string>}
+     * @return array{refused: null|string, questions: list<string>, made: null|array<string, mixed>, alreadyHow: null|string, alreadyTimeId: null|string, removedWishListItems: list<array<string, mixed>>, customValuesOf: list<string>}
      */
     private static function answer(
         null|string $refused = null,
@@ -464,9 +518,11 @@ readonly final class ImportRowAdder
         null|string $timeId = null,
         array $removed = [],
         array $customValuesOf = [],
+        array $questions = [],
     ): array {
         return [
             'refused' => $refused,
+            'questions' => $questions,
             'made' => $made,
             'alreadyHow' => $how,
             'alreadyTimeId' => $timeId,
@@ -649,12 +705,14 @@ readonly final class ImportRowAdder
 
     /**
      * @param list<string> $customValuesOf
+     * @param list<string> $questions every question the row waits with, when it has more than the one it is
+     *        refused for (ImportResultQuestions)
      *
      * @return array{status: string, code: null|string, customValuesOf: list<string>}
      */
-    private function refuse(DataImportRow $row, string $code, array $customValuesOf = []): array
+    private function refuse(DataImportRow $row, string $code, array $customValuesOf = [], array $questions = []): array
     {
-        $row->refused($code);
+        $row->refused($code, $questions);
 
         return self::outcome('refused', $code, $customValuesOf);
     }

@@ -82,6 +82,14 @@ class DataImportGroupAnswer
     #[Column(length: 32, nullable: true)]
     public null|string $addStatus = null;
 
+    /**
+     * Rows that took the answer and still wait - with the other question an "Add" found on them at the same time
+     * (the answer's page says so, with the way to it)
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(options: ['default' => 0])]
+    public int $rowsStillWaiting = 0;
+
     public function __construct(
         /** The id the form chose for its press */
         #[Id]
@@ -118,6 +126,16 @@ class DataImportGroupAnswer
         #[Immutable]
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $startedAt,
+        /**
+         * The answer to the other question of the rows that have both open (`{"said_already_on_profile":
+         * "add_anyway"}`): given on the same screen, so such a row is not sent back a second time. Only for the rows
+         * of this answer; null: they wait for that question.
+         *
+         * @var null|array<string, string>
+         */
+        #[Immutable]
+        #[Column(type: Types::JSON, nullable: true, options: ['jsonb' => true])]
+        public null|array $also = null,
     ) {
         $this->lastActivityAt = $startedAt;
     }
@@ -131,16 +149,20 @@ class DataImportGroupAnswer
      * A turn went through rows.
      *
      * @param list<string> $answeredRowIds the rows that took the answer
+     * @param list<string> $notToAddRowIds of them, the rows the "Add" at the end must not name: they wait with
+     *        another question (it would only refuse them again), or the answer to that other question left them out
+     * @param int $stillWaiting how many of them wait with another question
      */
-    public function turnDone(int $rows, array $answeredRowIds, null|UuidInterface $cursor, DateTimeImmutable $now): void
+    public function turnDone(int $rows, array $answeredRowIds, null|UuidInterface $cursor, DateTimeImmutable $now, array $notToAddRowIds = [], int $stillWaiting = 0): void
     {
         $this->rowsDone += $rows;
         $this->rowsAnswered += count($answeredRowIds);
+        $this->rowsStillWaiting += $stillWaiting;
         $this->lastRowId = $cursor ?? $this->lastRowId;
         $this->lastActivityAt = $now;
 
         if ($this->action === self::ADD_ANYWAY && $this->beforeAdd === false) {
-            $this->answeredRowIds = [...$this->answeredRowIds, ...$answeredRowIds];
+            $this->answeredRowIds = [...$this->answeredRowIds, ...array_values(array_diff($answeredRowIds, $notToAddRowIds))];
         }
     }
 

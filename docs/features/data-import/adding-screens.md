@@ -141,6 +141,48 @@ same file are on the profile (a row is judged against the results that exist whe
 the engine with `unusual_time` and waits in "Rows that could not be added" with the same answer: **It is right -
 add it**. So nothing unusual is ever added without the player's word, whatever the page showed.
 
+### Already on MySpeedPuzzling, asked before the Add (guided flow, slice 6)
+
+`…/import/{id}/add/already-on` (`data_import_add_said`, `ImportAddSaidAlreadyController`, `add_said.html.twig`) - a
+page of its own, loaded into a lazy frame of the review (`#already-on`), like the times. `ImportSaidAlreadyCheck`
+shows the ready results the file marks "already on MySpeedPuzzling" to **the engine's own question** (adding.md "A
+question is asked once") - at most 500 rows, a few statements each - and the block says:
+
+- "Your file says these results are on MySpeedPuzzling already, and we did not find them: N" (beyond 500 marked
+  rows: "Of the first 500 we looked at, we did not find: N"), with **"They are missing - add them"** /
+  **"Don't import them"**: one group answer with `before_add` and the code `said_already_on_profile` - every marked
+  ready row is shown to the engine on the worker (100 a turn), only a row it would send back takes the answer (the
+  existing waiver with the row's fingerprint, or "not imported"); nothing is added - the player presses "Add";
+- nothing to ask: the frame stays empty;
+- with an answer that stands: "…: N. They are added - your answer for this file." and **Change**.
+
+`ImportQuestionsOnceTest` compares the block's rows with the rows an "Add" without an answer then sends back for it.
+
+### Answers that stand for the file
+
+"Add them" for a whole group (after an "Add" or before it) stands for the rest of the file (adding.md). The screens
+say so where the answer is given ("“Add them” holds for the rest of this file - also for rows you add later. You
+can change it on “Check and add”.") and **show it before every "Add"**:
+
+- the times frame: "Unusual times among the first 100 results: N. They are added as they are - your answer for
+  this file." + **Change**; the unusual times are still listed with what was expected, "Don't import" and "Fix it" -
+  the per-row "It is right" and the two file-wide buttons are gone while the answer stands;
+- the "already on" frame, as above.
+
+**Change** = `POST …/add/standing-answer` (`data_import_standing_answer_change`, CSRF, a redirect back to the
+review's block): asked again from now on.
+
+### Two questions on one row
+
+- the card of the unusual times (`not_added_times.html.twig`) says up front how many of its rows also wait with
+  "the file says it is on MySpeedPuzzling" (`GetImportAddScreen::notAddedByReason()['also']`) and asks it there:
+  two radios, none preselected, required for "Yes, these are my times - add them" ("They are missing - add them
+  too" / "Don't import those (N)"); "Don't import them" needs none. One form, one press;
+- a row's own card in the list (`not_added_rows.html.twig`) says both sentences ("Also: … One answer covers
+  both.") and its one button sends both codes (`anyway_also[]`, `ImportAddRow::$alsoWaitsWith`);
+- a group answer that left rows waiting for the other question says so on its page ("Rows that wait for one more
+  answer: N…" with the way to them).
+
 ## The words before adding
 
 `POST …/add/confirm`, `action`:

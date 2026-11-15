@@ -20,8 +20,11 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  * added directly and once kept as unlisted and then paired, must come to the same thing - the same answer per row,
  * the same results on the puzzle, the same "these are two" told to the duplicate job.
  *
- * The one listed difference: a question the player waved through on the row ("add it anyway") is waved for the
- * puzzle the row was paired with when they said so - a pairing asks again.
+ * The listed differences: a question the player waved through on the row ("add it anyway") is waved for the
+ * puzzle the row was paired with when they said so - a pairing asks again; and for the same reason an answer that
+ * stands for the whole file (DataImport::$standingAnswers) counts for an "Add" of that import only - a pairing asks
+ * (testAStandingAnswerCountsForAnAddAndAPairingAsksAgain). What "a question is asked once" means for both: the two
+ * group questions are looked at together by the same code, and the first is the reason either path says.
  */
 final class ImportResultQuestionsParityTest extends KernelTestCase
 {
@@ -45,6 +48,10 @@ final class ImportResultQuestionsParityTest extends KernelTestCase
         yield 'a similar result is on the profile' => [[['2024-01-12', 2600, []]], [['2024-01-12', 2700, false]], ['refused:similar_result_exists']];
         yield 'a pair that names nobody' => [[['2024-01-02', 3000, ['type' => 'duo']]], [], ['refused:people_do_not_fit_type']];
         yield 'the file says it is on MySpeedPuzzling' => [[['2024-01-02', 2400, ['alreadyOnMsp' => true]]], [], ['refused:said_already_on_profile']];
+        // A question is asked once: both paths look at the two group questions together and say the first - and a
+        // possible duplicate is still asked before either, one by one
+        yield 'an unusual time the file says is on MySpeedPuzzling' => [[['2023-04-01', 1711, ['alreadyOnMsp' => true]]], [['2023-01-01', 10801, false], ['2023-02-01', 10501, false], ['2023-03-01', 10201, false]], ['refused:unusual_time']];
+        yield 'a similar result, and the file says it is on MySpeedPuzzling' => [[['2024-01-12', 2600, ['alreadyOnMsp' => true]]], [['2024-01-12', 2700, false]], ['refused:similar_result_exists']];
         yield 'faster than anybody puzzles' => [[['2024-01-02', 60, []]], [], ['refused:too_fast']];
         yield 'a first try that is taken' => [[['2024-02-02', 2400, ['firstTry' => true]]], [['2024-01-01', 2500, true]], ['refused:first_try_taken']];
         yield 'two equal rows that are one result' => [[['2024-01-02', 2400, []], ['2024-01-02', 2400, ['occurrence' => 2, 'sameAsFirst' => true]]], [], ['made', 'already']];
@@ -111,6 +118,41 @@ final class ImportResultQuestionsParityTest extends KernelTestCase
         // "These are two", told to the duplicate job by both
         self::assertSame($this->savedAnyway($adder), $this->savedAnyway($pairer));
         self::assertSame(count(array_filter($rows, static fn (array $row): bool => ($row[2]['separate'] ?? false) === true)), $this->savedAnyway($pairer));
+    }
+
+    public function testAStandingAnswerCountsForAnAddAndAPairingAsksAgain(): void
+    {
+        self::bootKernel();
+        // seedRows() writes the brand of the other cases
+        $brand = $this->seedBrand('Zqparity');
+        $puzzleOfAdd = $this->seedCataloguePuzzle('Zq Parity Stands Added', 1000, $brand);
+        $puzzleOfPairing = $this->seedCataloguePuzzle('Zq Parity Stands Paired', 1000, $this->pairingEntityManager()->find(Manufacturer::class, $brand->id->toString()));
+        $rows = [['2024-01-02', 2400, ['alreadyOnMsp' => true]]];
+        $stands = ['standing_answers' => '{"said_already_on_profile": "2026-01-01T00:00:00+00:00"}'];
+
+        // An "Add" of the import the answer stands for: the row is added, with its own waiver written down
+        $adder = $this->seedPairingPlayer('parity-stands-add');
+        [$import, $sheet] = $this->importOf($adder);
+        [$rowOfAdd] = $this->seedRows($import, $sheet, 'Zq Parity Stands Added', $rows);
+        $this->pair($import);
+        $this->pairingDatabase()->update('data_import', $stands, ['id' => $import->id->toString()]);
+        $this->pairingEntityManager()->clear();
+        $this->addAndWork($import->id->toString(), $adder);
+        self::assertSame(['added', true], [$this->rowNow($rowOfAdd)['state'], $this->rowNow($rowOfAdd)['result_made']]);
+        self::assertIsString($this->pairingDatabase()->fetchOne("SELECT answers -> 'addAnyway' ->> 'said_already_on_profile' FROM data_import_row WHERE id = :id", ['id' => $rowOfAdd]));
+
+        // The same row kept as unlisted and paired later: the pairing asks - the result stays unlisted with the reason
+        $pairer = $this->seedPairingPlayer('parity-stands-pair');
+        [$import, $sheet] = $this->importOf($pairer);
+        [$rowOfPairing] = $this->seedRows($import, $sheet, 'Zq Parity Stands My Copy', $rows);
+        $this->pair($import);
+        $this->pairingDatabase()->update('data_import', $stands, ['id' => $import->id->toString()]);
+        $this->pairingEntityManager()->clear();
+        $this->keepUnlisted($import->id->toString(), $pairer, 'Zq Parity Stands My Copy');
+        $this->addAndWork($import->id->toString(), $pairer);
+        $this->pairUnlisted($pairer, $this->unlistedPuzzle($pairer, 'Zq Parity Stands My Copy')['id'], $puzzleOfPairing);
+        self::assertSame('said_already_on_profile', $this->pairingDatabase()->fetchOne('SELECT kept_reason FROM unlisted_result WHERE import_row_id = :id', ['id' => $rowOfPairing]));
+        self::assertSame([1, 0], [count($this->resultsOf($adder, $puzzleOfAdd)), count($this->resultsOf($pairer, $puzzleOfPairing))]);
     }
 
     /**

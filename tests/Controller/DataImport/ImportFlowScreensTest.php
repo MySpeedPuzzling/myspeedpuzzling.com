@@ -87,6 +87,7 @@ final class ImportFlowScreensTest extends WebTestCase
         $this->assertScreen($base . '/add', 5, 1, 'Add 3 to my profile');
         $this->assertScreen($base . '/add/list', 5, 1, 'Done - back to the check');
         $this->assertScreen($base . '/add/times', 5, 1, 'Back to “Check and add”');
+        $this->assertScreen($base . '/add/already-on', 5, 1, 'Back to “Check and add”');
 
         // ---- An Add ran: the screens after it ----
         $batchId = (string) $this->addAndWork($importId, $player)->id;
@@ -235,7 +236,7 @@ final class ImportFlowScreensTest extends WebTestCase
         sort($screens);
         self::assertSame(
             [
-                'add.html.twig', 'add_list.html.twig', 'add_times.html.twig', 'added_rows.html.twig', 'batch.html.twig', 'columns.html.twig', 'detail.html.twig',
+                'add.html.twig', 'add_list.html.twig', 'add_said.html.twig', 'add_times.html.twig', 'added_rows.html.twig', 'batch.html.twig', 'columns.html.twig', 'detail.html.twig',
                 'group_answer.html.twig', 'not_added_rows.html.twig', 'not_added_times.html.twig', 'people.html.twig', 'puzzle_choose.html.twig',
                 'puzzle_group.html.twig', 'puzzles.html.twig', 'row.html.twig', 'sheet.html.twig', 'sheet_rows.html.twig', 'to_fix.html.twig',
                 'undo.html.twig', 'undo_confirm.html.twig',

@@ -80,7 +80,9 @@ final class StartImportAddController extends AbstractController
 
         if ($named && in_array($anyway, GetImportAddScreen::WAVABLE, true)) {
             // Written only on rows that wait with this very question - a row this press already queued is passed over
-            $this->messageBus->dispatch(new ConfirmImportRows($importId, $player->playerId, $rowIds, [$anyway]));
+            // (`anyway_also[]`: the other questions the same card asked - a row with two doubts is answered once)
+            $also = array_values(array_intersect(array_filter($form->all('anyway_also'), is_string(...)), GetImportAddScreen::WAVABLE));
+            $this->messageBus->dispatch(new ConfirmImportRows($importId, $player->playerId, $rowIds, array_values(array_unique([$anyway, ...$also]))));
         }
 
         $outcome = $this->messageBus->dispatch(new AddImportRows($requestId, $importId, $player->playerId, $named ? $rowIds : null))

@@ -11934,6 +11934,31 @@ data_import:
         flash:
             nothing: "Na tuto odpověď už nečeká žádný řádek."
             busy: "Tyto řádky už prochází jiná odpověď - tady vidíte, jak je daleko."
+    # A question is asked once per file (guided flow 6) - docs/features/data-import/adding.md
+    once:
+        said:
+            heading: "Už na MySpeedPuzzling?"
+            count: "Váš soubor uvádí, že tyto výsledky už na MySpeedPuzzling jsou, ale nenašli jsme je: %number%"
+            count_so_far: "Váš soubor uvádí, že některé výsledky už na MySpeedPuzzling jsou. Z prvních %checked%, na které jsme se podívali, jsme nenašli: %number%"
+            hint: "Výsledek, který na vašem profilu najdeme, se nikdy nepřidá dvakrát. Tyto jsme nenašli - možná chybí, nebo jsou u jiného dne či jiného puzzle."
+            missing: "Chybí - přidat je"
+            leave_out: "Neimportovat je"
+            answer_hint: "Vaše odpověď platí pro každý takový řádek tohoto souboru - i pro řádky, které přidáte později. Na každý řádek se nejdřív podíváme, chvíli to může trvat."
+            stands: "Výsledky, o kterých váš soubor uvádí, že už na MySpeedPuzzling jsou, a nenašli jsme je: %number%. Přidají se - vaše odpověď pro tento soubor."
+        times:
+            stands: "Neobvyklé časy mezi prvními %checked% výsledky: %number%. Přidají se tak, jak jsou - vaše odpověď pro tento soubor."
+        change: "Změnit"
+        changed: "Změněno. Odteď se zase ptáme."
+        holds: "„Přidat je“ platí pro zbytek tohoto souboru - i pro řádky, které přidáte později. Změnit to můžete v kroku „Zkontrolovat a přidat“."
+        also_said:
+            line: "Některé z nich zároveň uvádějí, že už na MySpeedPuzzling jsou, ale nenašli jsme je: %number%. Odpovězte i na to:"
+            add: "Chybí - přidat je také"
+            leave_out: "Tyto neimportovat (%number%)"
+            stands: "Některé z nich zároveň uvádějí, že už na MySpeedPuzzling jsou: %number%. Přidají se také - vaše odpověď pro tento soubor."
+        still_waiting: "Řádky, které čekají ještě na jednu odpověď: %number%. Váš soubor uvádí, že už na MySpeedPuzzling jsou, ale nenašli jsme je."
+        answer_them: "Odpovědět"
+        row_also: "A také:"
+        row_covers: "Jedna odpověď platí pro obojí."
     nothing_until_add: "Na váš profil se nic nepřidá, dokud si to neprohlédnete a nestisknete Přidat."
     add:
         title: "Zkontrolovat a přidat"

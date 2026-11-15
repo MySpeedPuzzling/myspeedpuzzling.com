@@ -106,6 +106,18 @@ class DataImportRow
     #[Column(type: Types::TEXT, nullable: true)]
     public null|string $failure = null;
 
+    /**
+     * Every question the row waits with, when an "Add" found more than one at once
+     * (docs/features/data-import/adding.md "A question is asked once"): the codes in the order they are asked -
+     * `failure` is the first of them. Null: the row waits with `failure` alone, or with nothing. Read through
+     * openQuestions(), which never trusts the list of a row that waits with nothing.
+     *
+     * @var null|list<string>
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::JSON, nullable: true, options: ['jsonb' => true])]
+    public null|array $openQuestions = null;
+
     #[Column(type: UuidType::NAME, nullable: true)]
     public null|UuidInterface $batchId = null;
 
@@ -237,6 +249,7 @@ class DataImportRow
         $this->state = DataImportRowState::Added;
         $this->addedAt = $now;
         $this->failure = null;
+        $this->openQuestions = null;
         $this->collectionItemId = $collectionItemId;
         $this->wishListItemId = $wishListItemId;
         $this->made = $made;
@@ -256,6 +269,7 @@ class DataImportRow
     {
         $this->state = DataImportRowState::AlreadyYours;
         $this->failure = null;
+        $this->openQuestions = null;
         $this->alreadyYoursHow = $how;
         $this->alreadyYoursSolvingTimeId = $solvingTimeId;
     }
@@ -263,11 +277,33 @@ class DataImportRow
     /**
      * A rule said no (ImportRowRefusal / ImportedResultRefusal): the row waits again with the reason - it can be
      * fixed, answered and asked for again; "add everything that is ready" leaves it alone until then.
+     *
+     * @param list<string> $openQuestions every question the "Add" found open on the row at once - $code first; a
+     *        row with two doubts is told both, so it is not sent back a second time for the other
      */
-    public function refused(string $code): void
+    public function refused(string $code, array $openQuestions = []): void
     {
         $this->state = DataImportRowState::Waiting;
         $this->failure = $code;
+        $questions = array_values(array_unique([$code, ...$openQuestions]));
+        $this->openQuestions = count($questions) > 1 ? $questions : null;
+    }
+
+    /**
+     * The questions the row waits with - the reason it was not added (`failure`) first, then the others an "Add"
+     * found at the same time. Empty for a row that waits with nothing.
+     *
+     * @return list<string>
+     */
+    public function openQuestions(): array
+    {
+        if ($this->failure === null || $this->state !== DataImportRowState::Waiting) {
+            return [];
+        }
+
+        $others = array_filter($this->openQuestions ?? [], is_string(...));
+
+        return array_values(array_unique([$this->failure, ...$others]));
     }
 
     /**
@@ -277,6 +313,7 @@ class DataImportRow
     {
         $this->state = DataImportRowState::Failed;
         $this->failure = $code;
+        $this->openQuestions = null;
     }
 
     /**
@@ -290,6 +327,7 @@ class DataImportRow
         $this->resultMadeAt = null;
         $this->state = DataImportRowState::Waiting;
         $this->failure = null;
+        $this->openQuestions = null;
         $this->addedAt = null;
         $this->collectionItemId = null;
         $this->wishListItemId = null;
@@ -364,6 +402,7 @@ class DataImportRow
         // when it is added. So an answer for "all rows refused for X" never sweeps in a row that was corrected since
         if ($this->failure !== null && $this->state === DataImportRowState::Waiting && $record['sourceKey'] !== $this->sourceKey) {
             $this->failure = null;
+            $this->openQuestions = null;
         }
 
         $this->parsedVersion = $mappingVersion;
@@ -419,9 +458,12 @@ class DataImportRow
         }
 
         // The question the row waits with is answered: it is ready again like any other row ("Add" takes it with
-        // everything that is ready - today, or tomorrow when today's guard is used up)
-        if (in_array($this->failure, $codes, true)) {
-            $this->failure = null;
+        // everything that is ready - today, or tomorrow when today's guard is used up) - unless an "Add" found
+        // another question on it at the same time: then it waits for that one only
+        if ($this->failure !== null) {
+            $left = array_values(array_diff($this->openQuestions(), $codes));
+            $this->failure = $left[0] ?? null;
+            $this->openQuestions = count($left) > 1 ? $left : null;
         }
 
         $answers['addAnyway'] = $kept;

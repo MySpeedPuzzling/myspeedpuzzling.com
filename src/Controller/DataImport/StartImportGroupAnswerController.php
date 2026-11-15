@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Message\AnswerImportRowsGroup;
 use SpeedPuzzling\Web\Message\ProcessImportGroupAnswer;
 use SpeedPuzzling\Web\Query\GetImportAddScreen;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\DataImport\ImportRowRefusal;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,7 +26,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * all 416", "They are missing - add all 441", "Leave them out" - from the done page of an "Add", the list of rows
  * that could not be added, and (for unusual times, before any "Add") the review. POST + CSRF; the form names the
  * reason and the action, **never the rows** - the server works them out; its `request_id` makes the same form sent
- * again answer the same group answer. Always a redirect:
+ * again answer the same group answer. `also[<code>]` is the answer to the other question of the rows that wait with
+ * both ("259 of these also say they are already on MySpeedPuzzling"), given on the same screen. Always a redirect:
  *
  * - a small group is answered at once: on to the "Add" it started (the batch's page), else to its own page;
  * - a large one goes to the worker: its page follows it live, and leads on to the "Add" when it is through;
@@ -63,17 +65,28 @@ final class StartImportGroupAnswerController extends AbstractController
         $batchId = Uuid::isValid($form->getString('batch')) ? strtolower($form->getString('batch')) : null;
         $beforeAdd = $form->getString('before_add') === '1';
         $back = $beforeAdd
-            ? $this->redirectToRoute('data_import_add', ['importId' => $importId, '_fragment' => 'unusual-times'])
+            ? $this->redirectToRoute('data_import_add', ['importId' => $importId, '_fragment' => $form->getString('code') === ImportRowRefusal::SaidAlreadyOnProfile->value ? 'already-on' : 'unusual-times'])
             : $this->redirectToRoute('data_import_not_added', array_filter(['importId' => $importId, 'batch' => $batchId]));
 
+        // The other question of the rows that wait with both, answered on the same screen
+        $also = [];
+
+        foreach ($form->all('also') as $code => $answer) {
+            if (is_string($code) && is_string($answer)) {
+                $also[$code] = $answer;
+            }
+        }
+
         $started = $this->messageBus->dispatch(new AnswerImportRowsGroup(
-            $form->getString('request_id'),
+            // A form with two buttons: the second names its own press in its address (`formaction`)
+            $request->query->getString('request') !== '' ? $request->query->getString('request') : $form->getString('request_id'),
             $importId,
             $player->playerId,
             $form->getString('code'),
             $form->getString('action'),
             $batchId,
             $beforeAdd,
+            $also,
         ))->last(HandledStamp::class)?->getResult();
 
         if (is_array($started) === false || is_string($started['id'] ?? null) === false) {

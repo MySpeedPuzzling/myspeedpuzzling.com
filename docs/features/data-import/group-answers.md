@@ -125,6 +125,15 @@ through a workbook read by the real handlers; every group text in every language
 
 **Nothing was run in a browser by this stage's author.**
 
+## Asked once (guided flow, slice 6)
+
+A row with two doubts is not sent back twice any more, "the file says it is on MySpeedPuzzling" is asked before
+the "Add" too, and "add them" for a group stands for the file - adding.md "A question is asked once",
+adding-screens.md "Already on MySpeedPuzzling, asked before the Add". What that changed here: step 3 takes
+`before_add` for both reasons and an `also` answer for the rows that wait with both; step 4's chunk passes the rows
+that still wait with another question over when it names the rows to add; "add it anyway" writes the standing
+answer.
+
 ## Loose ends
 
 - The summary looks at a sample of 200 rows; its shares are the sample's.

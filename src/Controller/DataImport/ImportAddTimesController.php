@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Repository\DataImportRepository;
 use SpeedPuzzling\Web\Results\ImportAddRow;
 use SpeedPuzzling\Web\Services\DataImport\ImportRowTimeCheck;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\DataImport\ImportRowRefusal;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -55,9 +56,11 @@ final class ImportAddTimesController extends AbstractController
         $rows = $this->getImportAddScreen->timedRows($importId, $player->playerId, self::ROWS_CHECKED);
         $unusual = [];
 
+        $entity = $this->dataImportRepository->getOwnedBy($importId, $player->playerId);
+
         if ($rows !== []) {
             $assessments = $this->timeCheck->unusualAmong(
-                $this->dataImportRepository->getOwnedBy($importId, $player->playerId),
+                $entity,
                 array_map(static fn (ImportAddRow $row): string => $row->rowId, $rows),
             );
 
@@ -77,6 +80,9 @@ final class ImportAddTimesController extends AbstractController
             'all_checked' => count($rows) < self::ROWS_CHECKED,
             // One answer for every unusual time of the file - not only the first rows looked at here
             'group_request_ids' => ['right' => Uuid::uuid7()->toString(), 'leave_out' => Uuid::uuid7()->toString()],
+            // "These times are right" stands for the whole file: the count is still said before each "Add", with
+            // "Change" - the answer removes the round trip, not what the player sees
+            'stands' => $entity->hasStandingAnswerFor(ImportRowRefusal::UnusualTime->value),
         ]);
     }
 }

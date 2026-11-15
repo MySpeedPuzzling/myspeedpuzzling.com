@@ -7,8 +7,10 @@ namespace SpeedPuzzling\Web\Controller\DataImport;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetDataImports;
 use SpeedPuzzling\Web\Query\GetImportAddScreen;
+use SpeedPuzzling\Web\Repository\DataImportRepository;
 use SpeedPuzzling\Web\Services\DataImport\ImportUnusualTimesSummary;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\DataImport\ImportRowRefusal;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,6 +32,7 @@ final class ImportUnusualTimesGroupController extends AbstractController
         readonly private GetDataImports $getDataImports,
         readonly private GetImportAddScreen $getImportAddScreen,
         readonly private ImportUnusualTimesSummary $summary,
+        readonly private DataImportRepository $dataImportRepository,
     ) {
     }
 
@@ -54,6 +57,10 @@ final class ImportUnusualTimesGroupController extends AbstractController
             'batch_id' => $batchId,
             'summary' => $this->summary->of($importId, $player->playerId, $batchId, $counts),
             'request_ids' => ['right' => Uuid::uuid7()->toString(), 'leave_out' => Uuid::uuid7()->toString()],
+            // Asked once: how many of these rows also wait with "the file says it is on MySpeedPuzzling" - answered
+            // on this very card - and whether an answer to that already stands for the file
+            'also_said' => $counts['also'][ImportRowRefusal::UnusualTime->value][ImportRowRefusal::SaidAlreadyOnProfile->value] ?? 0,
+            'said_stands' => $this->dataImportRepository->getOwnedBy($importId, $player->playerId)->hasStandingAnswerFor(ImportRowRefusal::SaidAlreadyOnProfile->value),
         ]);
     }
 }

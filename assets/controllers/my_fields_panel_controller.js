@@ -10,7 +10,8 @@ import { Controller } from '@hotwired/stimulus';
  * - The area sits inside the result's <form>, and a form can not hold another form: the (empty) dialog is moved out
  *   of the form before anything is loaded into it - into the Bootstrap modal the form is in when there is one (a
  *   modal takes the focus back from anything outside it), else to the end of the page.
- * - Closing the dialog fetches the "My fields" block again and puts back what was typed into the old one.
+ * - Closing the dialog after something was changed in it fetches the "My fields" block again and puts back what was
+ *   typed into the old one; closing it after only looking changes nothing.
  * - Anything that fails leaves the form as it was. Without <dialog> the link opens the manage page in a new tab,
  *   as it did before this existed.
  */
@@ -33,23 +34,47 @@ export default class extends Controller {
 
         (this.element.closest('.modal-content') || document.body).appendChild(this.dialog);
 
-        this.onClose = () => this.refreshBlock();
+        this.changed = false;
+        this.refreshes = 0;
+
+        this.onClose = () => {
+            // Only looked: the block stays exactly as it is
+            if (this.changed) {
+                this.changed = false;
+                this.refreshBlock();
+            }
+        };
+        this.onMouseDown = (event) => {
+            this.pressedOnBackdrop = event.target === this.dialog;
+        };
         this.onClick = (event) => {
-            // The backdrop is the dialog element itself; its content sits in the children
-            if (event.target === this.dialog || event.target.closest('[data-own-fields-close]')) {
+            // The backdrop is the dialog element itself; its content sits in the children. A text selection dragged
+            // out of an input ends as a click on the backdrop too - only a press that began there closes
+            if ((event.target === this.dialog && this.pressedOnBackdrop) || event.target.closest('[data-own-fields-close]')) {
                 this.dialog.close();
             }
+        };
+        this.onSubmitEnd = () => {
+            this.changed = true;
         };
         this.onFrameMissing = (event) => {
             // Signed out meanwhile, or an error page: never Turbo's "Content missing", never a visit away
             event.preventDefault();
-            this.frame.innerHTML = '';
-            this.unavailable.classList.remove('d-none');
+            this.showUnavailable();
         };
+        this.onFetchError = () => this.showUnavailable();
 
         this.dialog.addEventListener('close', this.onClose);
+        this.dialog.addEventListener('mousedown', this.onMouseDown);
         this.dialog.addEventListener('click', this.onClick);
+        this.frame.addEventListener('turbo:submit-end', this.onSubmitEnd);
         this.frame.addEventListener('turbo:frame-missing', this.onFrameMissing);
+        this.frame.addEventListener('turbo:fetch-request-error', this.onFetchError);
+    }
+
+    showUnavailable() {
+        this.frame.innerHTML = '';
+        this.unavailable.classList.remove('d-none');
     }
 
     disconnect() {
@@ -58,8 +83,11 @@ export default class extends Controller {
         }
 
         this.dialog.removeEventListener('close', this.onClose);
+        this.dialog.removeEventListener('mousedown', this.onMouseDown);
         this.dialog.removeEventListener('click', this.onClick);
+        this.frame.removeEventListener('turbo:submit-end', this.onSubmitEnd);
         this.frame.removeEventListener('turbo:frame-missing', this.onFrameMissing);
+        this.frame.removeEventListener('turbo:fetch-request-error', this.onFetchError);
 
         if (this.dialog.open) {
             this.dialog.close();
@@ -94,6 +122,9 @@ export default class extends Controller {
             return;
         }
 
+        // Closed twice quickly: only the answer to the last question is used
+        const refresh = ++this.refreshes;
+
         try {
             const response = await fetch(this.blockUrlValue, {
                 credentials: 'same-origin',
@@ -106,10 +137,34 @@ export default class extends Controller {
             }
 
             const markup = await response.text();
+
+            if (refresh !== this.refreshes || !this.hasBlockTarget) {
+                return;
+            }
+
             const typed = readTyped(this.blockTarget);
+            // Typing in the block already (a slow answer): the same input gets the focus and the caret back
+            const active = this.blockTarget.contains(document.activeElement) ? document.activeElement : null;
+            const focused = active && active.name ? { name: active.name, value: active.value, start: active.selectionStart, end: active.selectionEnd, radio: active.type === 'radio' } : null;
 
             this.blockTarget.innerHTML = markup;
             writeTyped(this.blockTarget, typed);
+
+            if (focused) {
+                const again = Array.from(this.blockTarget.querySelectorAll('[name]')).find((input) => input.name === focused.name && (!focused.radio || input.value === focused.value));
+
+                if (again) {
+                    again.focus({ preventScroll: true });
+
+                    if (!focused.radio && typeof focused.start === 'number' && typeof again.setSelectionRange === 'function') {
+                        try {
+                            again.setSelectionRange(focused.start, focused.end);
+                        } catch (error) {
+                            // An input type without a text selection
+                        }
+                    }
+                }
+            }
         } catch (error) {
             // The form keeps the block it had
         }

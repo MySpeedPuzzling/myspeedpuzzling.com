@@ -228,7 +228,7 @@ lose anything typed.
   when the form is in a Bootstrap modal (a modal takes the focus back from anything outside it), else to `<body>` -
   before anything is loaded into it.
 - A native `<dialog>` (`showModal()`, top layer), not the site's `modal-frame`: that frame may be what holds the form.
-- Closing it (Done, ×, Esc, the backdrop) fetches `my_fields_add_form_block` (`AddFormMyFieldsBlockController`: the
+- Closing it (Done, ×, Esc, the backdrop) after a form in it was submitted fetches `my_fields_add_form_block` (`AddFormMyFieldsBlockController`: the
   block alone, empty inputs, never a value, `no-store`, clears the session's "has none" memo) and swaps it into the
   form; what was typed into the old inputs is put back by input name (a choice taken off the list is not).
 - Anything failing leaves the form as it was: no `<dialog>` support or no JavaScript = the links open the manage page

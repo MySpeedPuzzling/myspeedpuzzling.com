@@ -147,7 +147,16 @@ final class ImportReadingTest extends WebTestCase
         self::assertSame('reading', $published[0]['status']);
 
         // Nothing of the file stays on the worker's disk
-        self::assertSame([], glob(rtrim(sys_get_temp_dir(), '/') . '/' . ReadImportFileHandler::TEMPORARY_FOLDER . '/*'));
+        // The folder is shared by every test process of a parallel run: another worker's file may be there for a
+        // moment, so the folder gets a few seconds to be empty
+        $folder = rtrim(sys_get_temp_dir(), '/') . '/' . ReadImportFileHandler::TEMPORARY_FOLDER . '/*';
+        $deadline = microtime(true) + 5.0;
+
+        while (glob($folder) !== [] && microtime(true) < $deadline) {
+            usleep(100_000);
+        }
+
+        self::assertSame([], glob($folder), 'Nothing of the file stays on the worker\'s disk');
 
         // The same message once more finds nothing to read
         $this->read($importId);

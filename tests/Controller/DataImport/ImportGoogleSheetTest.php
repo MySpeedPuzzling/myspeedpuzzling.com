@@ -142,7 +142,16 @@ final class ImportGoogleSheetTest extends WebTestCase
         // … and the reading was asked for
         self::assertSame([$importId], $this->queued(ReadImportFile::class));
         self::assertNotNull($this->row($importId, 'read_requested_at')['read_requested_at']);
-        self::assertSame([], glob(rtrim(sys_get_temp_dir(), '/') . '/' . ReadImportFileHandler::TEMPORARY_FOLDER . '/*'), 'Nothing of the file stays on the worker\'s disk');
+        // The folder is shared by every test process of a parallel run: another worker's file may be there for a
+        // moment, so the folder gets a few seconds to be empty
+        $folder = rtrim(sys_get_temp_dir(), '/') . '/' . ReadImportFileHandler::TEMPORARY_FOLDER . '/*';
+        $deadline = microtime(true) + 5.0;
+
+        while (glob($folder) !== [] && microtime(true) < $deadline) {
+            usleep(100_000);
+        }
+
+        self::assertSame([], glob($folder), 'Nothing of the file stays on the worker\'s disk');
 
         // The page was told: states only, to the owner's private topic
         $published = $this->published($importId);

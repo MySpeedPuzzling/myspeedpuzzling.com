@@ -4,13 +4,19 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\DataImportBatch;
 use SpeedPuzzling\Web\Entity\Notification;
+use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\FinishImportBatch;
 use SpeedPuzzling\Web\Message\SendImportAddedEmail;
+use SpeedPuzzling\Web\Query\GetUserBlocks;
 use SpeedPuzzling\Web\Repository\DataImportBatchRepository;
+use SpeedPuzzling\Web\Repository\DataImportPersonRepository;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\DataImportRowRepository;
 use SpeedPuzzling\Web\Repository\NotificationRepository;
 use SpeedPuzzling\Web\Services\DataImport\ImportedResultsFollowUp;
@@ -24,11 +30,13 @@ use Symfony\Component\Messenger\MessageBusInterface;
  * batch's lock - so two deliveries finish it once. Its rows are all through and what is owed per result is done
  * (FollowUpImportBatch, in chunks); what is left is once per batch:
  *
- * - once per person: the importing player's achievements, and one prediction backfill when a solo result waits for
- *   one (ImportedResultsFollowUp::forPeople() - an import's results have one registered person, the importer);
+ * - once per person: the achievements of the importing player and of every registered partner on the batch's
+ *   results, and one prediction backfill when a solo result waits for one (ImportedResultsFollowUp::forPeople());
+ * - every registered partner told once, in the app: ONE notification per batch whatever the number of results
+ *   (docs/features/data-import/people.md "What the partner is told");
  * - the batch finished, with what its rows say now;
- * - the player told once: ONE notification and - when `player.import_emails` is on - ONE e-mail. Nobody else is told
- *   anything: no follower, no feed (the writer took PuzzleSolved off every result). **A batch an Undo stopped tells
+ * - the player told once: ONE notification and - when `player.import_emails` is on - ONE e-mail. No follower is told
+ *   anything and nothing reaches a feed (the writer took PuzzleSolved off every result). **A batch an Undo stopped tells
  *   nothing** - "N added" just before they are taken back would be noise; the Undo speaks for itself.
  *
  * A batch with more than a tenth of its rows failed on our side is a warning: a person should look.
@@ -40,6 +48,9 @@ readonly final class FinishImportBatchHandler
         private DataImportBatchRepository $batchRepository,
         private DataImportRowRepository $rowRepository,
         private NotificationRepository $notificationRepository,
+        private DataImportPersonRepository $personRepository,
+        private PlayerRepository $playerRepository,
+        private GetUserBlocks $getUserBlocks,
         private ImportedResultsFollowUp $followUp,
         private MessageBusInterface $messageBus,
         private IdLock $idLock,
@@ -71,8 +82,13 @@ readonly final class FinishImportBatchHandler
         $player = $batch->import->player;
         $playerId = $player->id->toString();
 
+        // The registered partners on the results the batch made (a code of the file that resolved, a name the
+        // player mapped - docs/features/data-import/people.md): each is owed what the player is, once
+        $partnerResults = $this->personRepository->partnerResultsOfBatch($message->batchId, $playerId);
+        $batch->partnersCounted($partnerResults);
+
         if ($batch->followedUpTo !== null) {
-            $this->followUp->forPeople([$playerId], $batch->predictionsOwed ? [$playerId] : []);
+            $this->followUp->forPeople([$playerId, ...array_map(strval(...), array_keys($partnerResults))], $batch->predictionsOwed ? [$playerId] : []);
         }
 
         $batch->finished($counts, $now);
@@ -87,6 +103,7 @@ readonly final class FinishImportBatchHandler
                 targetDataImportBatch: $batch,
             ));
             $batch->playerNotified($now);
+            $this->tellPartners($batch, $partnerResults, $now);
 
             if ($player->importEmails) {
                 $this->messageBus->dispatch(new SendImportAddedEmail($message->batchId));
@@ -100,6 +117,46 @@ readonly final class FinishImportBatchHandler
                 'rows_requested' => $batch->rowsRequested,
                 'rows_failed' => $counts['failed'],
             ]);
+        }
+    }
+
+    /**
+     * ONE notification per registered partner, whatever the number of results: "<importer> added N results with you
+     * from a spreadsheet" - in the app only, never an e-mail. Nothing is created about the importing player for
+     * somebody with a block between the two (a block that came after the results were written).
+     *
+     * @param array<string, int> $partnerResults player id => results
+     */
+    private function tellPartners(DataImportBatch $batch, array $partnerResults, DateTimeImmutable $now): void
+    {
+        $partnerIds = array_map(strval(...), array_keys(array_filter($partnerResults, static fn (int $results): bool => $results > 0)));
+
+        if ($partnerIds === []) {
+            return;
+        }
+
+        $importer = $batch->import->player;
+        $blocked = array_map(strtolower(...), $this->getUserBlocks->blockedEitherWay($importer->id->toString(), $partnerIds));
+
+        foreach ($partnerIds as $partnerId) {
+            if (in_array(strtolower($partnerId), $blocked, true)) {
+                continue;
+            }
+
+            try {
+                $partner = $this->playerRepository->get($partnerId);
+            } catch (PlayerNotFound) {
+                continue;
+            }
+
+            $this->notificationRepository->save(new Notification(
+                Uuid::uuid7(),
+                $partner,
+                NotificationType::ImportResultsAddedWithYou,
+                $now,
+                actorPlayer: $importer,
+                targetDataImportBatch: $batch,
+            ));
         }
     }
 }

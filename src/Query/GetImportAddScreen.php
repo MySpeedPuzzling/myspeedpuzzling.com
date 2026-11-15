@@ -151,8 +151,43 @@ SQL;
         $notAdded = self::NOT_ADDED;
         $review = $forReview ? <<<SQL
 (
-    SELECT jsonb_agg(jsonb_build_object('title', sheet.title, 'ready', per_sheet.rows) ORDER BY sheet.position)
-    FROM (SELECT judged.sheet_id, COUNT(*) AS rows FROM judged WHERE judged.taken GROUP BY judged.sheet_id) per_sheet
+    -- A line per sheet, with what its results will be added as - solo, pair, team - and with whom: a sheet read as
+    -- the wrong kind, or a sheet of somebody else's results, is seen before the tap (people.md "The review's line")
+    SELECT jsonb_agg(jsonb_build_object(
+        'title', sheet.title,
+        'ready', per_sheet.rows,
+        'results', per_sheet.results,
+        'solo', per_sheet.solo,
+        'duo', per_sheet.duo,
+        'team', per_sheet.team,
+        'people', (
+            SELECT jsonb_agg(first_named.person)
+            FROM (
+                SELECT DISTINCT named.person
+                FROM judged named_row
+                INNER JOIN data_import_row named_said ON named_said.id = named_row.id
+                CROSS JOIN LATERAL jsonb_array_elements_text(
+                    CASE WHEN jsonb_typeof(named_said.parsed -> 'people') = 'array' THEN named_said.parsed -> 'people' ELSE '[]'::jsonb END
+                ) AS named(person)
+                WHERE named_row.taken AND named_row.sheet_id = per_sheet.sheet_id AND named_said.kind IN ('result', 'both')
+                ORDER BY named.person
+                LIMIT 4
+            ) first_named
+        )
+    ) ORDER BY sheet.position)
+    FROM (
+        SELECT
+            judged.sheet_id,
+            COUNT(*) AS rows,
+            COUNT(*) FILTER (WHERE said.kind IN ('result', 'both')) AS results,
+            COUNT(*) FILTER (WHERE said.kind IN ('result', 'both') AND said.parsed ->> 'type' = 'solo') AS solo,
+            COUNT(*) FILTER (WHERE said.kind IN ('result', 'both') AND said.parsed ->> 'type' = 'duo') AS duo,
+            COUNT(*) FILTER (WHERE said.kind IN ('result', 'both') AND said.parsed ->> 'type' = 'team') AS team
+        FROM judged
+        INNER JOIN data_import_row said ON said.id = judged.id
+        WHERE judged.taken
+        GROUP BY judged.sheet_id
+    ) per_sheet
     INNER JOIN data_import_sheet sheet ON sheet.id = per_sheet.sheet_id
 ) AS sheets,
 (
@@ -256,7 +291,15 @@ SQL, [
 
         foreach (self::decoded($row['sheets']) as $sheet) {
             if (is_array($sheet) && is_string($sheet['title'] ?? null) && is_int($sheet['ready'] ?? null)) {
-                $sheets[] = ['title' => $sheet['title'], 'ready' => $sheet['ready']];
+                $sheets[] = [
+                    'title' => $sheet['title'],
+                    'ready' => $sheet['ready'],
+                    'results' => is_int($sheet['results'] ?? null) ? $sheet['results'] : 0,
+                    'solo' => is_int($sheet['solo'] ?? null) ? $sheet['solo'] : 0,
+                    'duo' => is_int($sheet['duo'] ?? null) ? $sheet['duo'] : 0,
+                    'team' => is_int($sheet['team'] ?? null) ? $sheet['team'] : 0,
+                    'people' => array_values(array_filter(is_array($sheet['people'] ?? null) ? $sheet['people'] : [], is_string(...))),
+                ];
             }
         }
 

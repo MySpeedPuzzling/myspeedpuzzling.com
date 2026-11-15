@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller\DataImport;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetDataImports;
 use SpeedPuzzling\Web\Query\GetImportAddScreen;
+use SpeedPuzzling\Web\Query\GetImportPeople;
 use SpeedPuzzling\Web\Results\ImportAddRow;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\DataImportLimits;
@@ -23,7 +24,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * button. Nothing is added by opening it and nothing starts by itself. The times that may need a word are looked
  * up apart (ImportAddTimesController, a frame of this page).
  *
- * Another player's import is a 404. Four statements, whatever the import's size - the ready rows are worked out
+ * Another player's import is a 404. Five statements, whatever the import's size - the ready rows are worked out
  * once (the summary), which also names the rows shown first.
  */
 final class ImportAddReviewController extends AbstractController
@@ -34,6 +35,7 @@ final class ImportAddReviewController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetDataImports $getDataImports,
         readonly private GetImportAddScreen $getImportAddScreen,
+        readonly private GetImportPeople $getImportPeople,
     ) {
     }
 
@@ -69,6 +71,8 @@ final class ImportAddReviewController extends AbstractController
             // One id per press of "Add": the same form sent again (a double tap, a resent form) answers the same batch
             'request_id' => Uuid::uuid7()->toString(),
             'daily_limit' => DataImportLimits::MAX_RESULTS_ADDED_PER_DAY,
+            // "People in your file" (docs/features/data-import/people.md) - one statement
+            'people_counts' => $this->getImportPeople->counts($importId, $player->playerId),
         ]);
     }
 }

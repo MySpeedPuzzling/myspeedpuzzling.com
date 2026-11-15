@@ -357,6 +357,15 @@ readonly final class PlayerNotification
         return $this->notificationType === NotificationType::UnlistedPuzzlesFound;
     }
 
+    /**
+     * "<importer> added N results with you from a spreadsheet" (docs/features/data-import/people.md): the reader is
+     * a registered partner on results of somebody's import. `importRowsAdded` is the reader's own count.
+     */
+    public function isImportPartnerNotification(): bool
+    {
+        return $this->notificationType === NotificationType::ImportResultsAddedWithYou;
+    }
+
     public function isImportNotification(): bool
     {
         return $this->importId !== null && in_array($this->notificationType, [NotificationType::ImportRowsAdded, NotificationType::ImportRowsTakenBack], true);

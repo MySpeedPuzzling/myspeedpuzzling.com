@@ -104,12 +104,15 @@ numbers with what the real worker then adds.
    already yours and the rows that repeat another row; the daily guard when it bites ("Today: N. The remaining M are
    ready tomorrow"); a line per sheet ("Rows ready: N").
 2. **The first results as they will appear** (5): the catalogue puzzle with its picture, time, day, solo / pair /
-   team, the people "as guests", first try.
+   team, the people, first try. Under every sheet's line: what its results will be added as - solo, pair, team -
+   and with whom ([people.md](people.md) "The review's line"); then the card "People in your file" (codes became
+   players, names stay guests unless the player says who they are) with the link to `…/people`.
 3. **Unusual times** - a frame (below).
 4. **The same result on several rows** - "Rows: 3 - counted as one result." with **They are 3 results** (and back:
    **It is one result**). The first 20 groups.
 5. **Already on your profile: N** - folded, the first 20 rows, nothing to do.
-6. What an import does (results are public like typed ones, people are guests; everything can be taken back) and
+6. What an import does (results are public like typed ones; a player code in the file becomes that player, names
+   stay guests unless the player says who they are; everything can be taken back) and
    what it does **not** do, in two lines: followers are not notified; results are dated by their day and do not show
    up as new activity.
 7. **Not ready yet** - the card's lines again.

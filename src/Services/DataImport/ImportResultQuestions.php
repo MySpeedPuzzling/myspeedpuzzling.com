@@ -79,7 +79,10 @@ readonly final class ImportResultQuestions
      * @param string $day Y-m-d - the day, or the first day of the month or year the file knows ($precision); an
      *        undated result never gets here
      * @param null|int $seconds null = solved without a time
-     * @param list<string> $people the other people, one per entry, guests every one (ImportRowAdder::people())
+     * @param list<string> $people the other people, one per entry: `#code` for a registered player the import
+     *        resolved (ImportRowPeople), a guest's name otherwise - the writer resolves nothing else
+     * @param null|Closure(): (null|string) $lastCheck asked when nothing else refuses the result, right before the
+     *        writer: a refusal code, or null (ImportRowAdder: the limits that protect a registered partner)
      * @param null|bool $firstTry what the file said
      * @param bool $saidAlreadyOnProfile the file says the result is on MySpeedPuzzling already
      * @param bool $countedOnItsOwn the player said of two equal rows "these are two"
@@ -113,6 +116,7 @@ readonly final class ImportResultQuestions
         DatePrecision $precision = DatePrecision::Day,
         null|string $hintedSolvingTimeId = null,
         null|Closure $finerRowsResult = null,
+        null|Closure $lastCheck = null,
     ): array {
         $playerId = $player->id->toString();
         $puzzleId = $puzzle->id->toString();
@@ -184,6 +188,12 @@ readonly final class ImportResultQuestions
         // A hint, not a rule: the file says the result is on MySpeedPuzzling and none was found - listed, not added
         if ($saidAlreadyOnProfile && $row->isWavedThrough(ImportRowRefusal::SaidAlreadyOnProfile->value, $puzzleId) === false) {
             return self::answer(refused: ImportRowRefusal::SaidAlreadyOnProfile->value);
+        }
+
+        $lastRefusal = $lastCheck === null ? null : $lastCheck();
+
+        if ($lastRefusal !== null) {
+            return self::answer(refused: $lastRefusal);
         }
 
         $outcome = $this->writer->write(new ImportedResult(

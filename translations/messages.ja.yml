@@ -11824,7 +11824,7 @@ data_import:
         back_to_review: "確認に戻る"
         sheet_rows: "準備ができた行: %number%"
         daily_limit: "スプレッドシートから追加できる記録は1日 %limit% 件までです。本日分: %today%。残りの %later% 件は明日追加できます。何も失われません。"
-        with_guests: "%people%(ゲストとして)と一緒に"
+        with_guests: "%people% と一緒に"
         first_try: "初挑戦"
         button: "%number% 件をプロフィールに追加"
         button_part: "今回は %total% 件中 %number% 件を追加 - 残りは明日"
@@ -11887,7 +11887,7 @@ data_import:
             hint: "何もする必要はありません。これらの行が二重に追加されることはありません。"
             more: "ほか %number% 件。"
         does:
-            public: "記録は、手入力したものと同じように、プロフィールと各パズルのランキングに表示されます。一緒に組み立てた人はゲストとして追加されます。"
+            public: "記録は、手入力したものと同じように、プロフィールと各パズルのランキングに表示されます。ファイル内のプレイヤーコードはそのプレイヤーになり、名前は誰なのかを指定するまでゲストのままです。"
             undo: "1行だけ、1回の追加分、またはこのインポートが追加したすべてを取り消せます。"
         does_not:
             followers: "フォロワーには通知されません。"
@@ -11906,6 +11906,16 @@ data_import:
             rate_limited: "短時間に多くの追加が行われました。しばらくしてからもう一度お試しください。"
             not_addable: "現在、このインポートから行を追加することはできません。"
             daily_limit: "スプレッドシートからの本日分の記録 %number% 件を使い切りました。残りは明日追加できます。何も失われません。"
+        sheet_as:
+            results: "[0,Inf[記録 %count% 件"
+            all_solo: "ソロ"
+            all_duo: "ペア"
+            all_team: "チーム"
+            some_solo: "ソロ %count%"
+            some_duo: "ペア %count%"
+            some_team: "チーム %count%"
+            with: "%people% と一緒に"
+            hint: "シートごとに確認してください:ソロ・ペア・チームのどれか、そして他の人ではなくあなたの記録であること。"
     batch:
         how:
             owned: "パズルをすでに持っていた行(ファイルの別の行、または以前から): %number%"
@@ -11951,6 +11961,8 @@ data_import:
         equal_row_not_added: "ファイルの別の行と同じ記録で、その行が追加されませんでした。"
         error: "この行について、こちら側で問題が発生しました。状況は把握しています。もう一度お試しいただけます。"
         over_daily_limit: "スプレッドシートからの記録の本日の上限を超えています。明日また追加できます。"
+        too_many_partners: "今回の追加は、記録に載せられる他のプレイヤー 20 人の上限に達しました。この行は次の追加でもう一度追加してください。"
+        partner_daily_limit: "この記録のプレイヤーは、今日すでにあなたの表計算ファイルから 200 件の記録を受け取っています。この行は明日また追加できます。"
     added:
         title: "このインポートが追加したもの"
         intro: "このインポートが追加した行: %number%。行を取り消すと、その行が追加したものはプロフィールから削除されます。"
@@ -11969,7 +11981,7 @@ data_import:
         people:
             title: "誰と一緒に組み立てましたか?"
             hint: "ペアまたはチームとなっているのに誰も書かれていない行: %number%。まとめて1つの回答で設定でき、その後追加されます。"
-            names: "名前(カンマ区切り)- ゲストとして追加されます"
+            names: "名前またはプレイヤーコード(#abc123)をカンマ区切りで - コードはそのプレイヤーになり、名前はゲストのままです"
             submit: "これらの行に適用して追加する(%number%)"
             solo: "ソロでした - 追加する(%number%)"
             no_names: "名前を1人以上入力するか、ソロを選んでください。"
@@ -12302,6 +12314,10 @@ data_import:
             save_help: "プロフィールには何も追加されません。選択した内容でこのシートの行を読み直します。"
             preview_title: "最初の数行の読み取り結果"
             preview_empty: "このシートの行にパズルは見つかりませんでした。"
+            solving_question_hint: "誰と組み立てたかを示す列がないため、推測せずにおたずねします。回答はこのシートのすべての記録に使われます。"
+            partner_label: "誰と一緒に組み立てましたか?"
+            partner_placeholder: "Anna または #abc123"
+            partner_help: "シート全体への回答です:名前またはプレイヤーコード(#abc123)、複数の場合はカンマ区切り。行によって相手が違う場合は空のままにしてください - あとで行ごとに指定できます。"
         row_meaning:
             result: "記録"
             both: "記録（パズルも持っている）"
@@ -12319,6 +12335,7 @@ data_import:
             date_order: "「%column%」の日付は、何が最初に書かれていますか？"
             typed_dates: "「%column%」の一部の日付は、表計算ソフトによって日と月が入れ替わっている可能性があります。入れ替わっていますか？"
             year: "「%column%」の日付には年がありません。何年の日付ですか？"
+            sheet_solving_type: "このシートの名前は「%title%」です。ペアまたはチームの記録ですか?"
         answer:
             duration:
                 minutes_seconds: "分と秒"
@@ -12344,6 +12361,11 @@ data_import:
                 "no": "いいえ、このままで正しいです"
             year:
                 stored: "各セルに保存されている年"
+            sheet_solving_type:
+                solo: "いいえ - ソロで組み立てました"
+                duo: "はい - ペアの記録です"
+                team: "チームの記録です"
+                rows: "行ごとに書いてあります"
         group:
             puzzle: "パズル"
             result: "記録"
@@ -12428,6 +12450,7 @@ data_import:
             attempt_unreadable: "ここから挑戦回数を読み取れませんでした。"
             status_unknown: "この状態が何を表すのかわかりません。"
             yes_no_unknown: "「はい」なのか「いいえ」なのか判断できませんでした。"
+            type_open: "このシートは、ペアまたはチームの記録かどうかをたずねています - 先に回答してください。"
     home:
         adding: "追加中"
         nothing_added_now: "このインポートから追加されたものは、現在プロフィールにありません。"
@@ -12591,6 +12614,44 @@ data_import:
         taken_back_reason: "理由: %reason%"
 
 # Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
+        with_you: "[0,Inf[%player% さんが表計算ファイルから、あなたとの記録を %count% 件追加しました。"
+        with_you_open: "ペアとチーム"
+    people:
+        title: "ファイルに出てくる人"
+        intro: "ファイルのペア・チームの記録に書かれている人の一覧です。ファイルにプレイヤーコード(#abc123)があれば、そのプレイヤーになります。名前は、誰なのかを指定するまでゲストのままです。"
+        added_note: "すでに追加した記録はそのままです。ここで選んだ内容は、これから追加する行に使われます。"
+        none: "ファイルには、あなた以外の人は書かれていません。"
+        rows: "[0,Inf[%count% 行"
+        who: "%name% は誰ですか?"
+        maybe: "もしかして"
+        solved_together: "すでに一緒の記録があります"
+        save: "保存"
+        to_review: "確認画面に戻る"
+        ask_hint: "すでに追加した記録では、「%guest%」はゲストです。ゲストを自分のプロフィールに変えられるのは本人だけです。"
+        ask: "%player% さんに「%guest%」本人であることの確認を依頼する"
+        state:
+            player_code: "%player% - ファイル内のプレイヤーコードで見つかりました"
+            player_player: "%player% - あなたが指定しました"
+            player_remembered: "%player% - 以前のインポートから記憶しています"
+            me: "あなた自身です - 一緒に組み立てた人には含めません"
+            guest: "ゲスト(アカウントなし)"
+            guest_remembered: "ゲスト(アカウントなし)- 以前のインポートから記憶しています"
+        answer:
+            player: "%player%(#%code%)です"
+            guest: "MySpeedPuzzling にいない - ゲストのままにする"
+            code: "このコードのプレイヤーです:"
+            me: "自分です"
+        refused:
+            unknown_player: "その内容では、追加できるプレイヤーが見つかりませんでした。プレイヤーコードを確認するか、ゲストのままにしてください。"
+            invalid: "まず誰なのかを選んでください。"
+        flash:
+            saved: "保存しました。"
+        card:
+            people: "[0,Inf[%count% 人"
+            players: "{0}プレイヤーなし|[1,Inf[プレイヤー %count% 人"
+            guests: "{0}ゲストなし|[1,Inf[ゲスト %count% 人"
+            hint: "プレイヤーコードはそのプレイヤーになりました。名前は、誰なのかを指定するまでゲストのままです。"
+            open: "誰が誰かを見る"
 unlisted_puzzles:
     title: "未掲載パズル"
     link: "未掲載パズルを見る"

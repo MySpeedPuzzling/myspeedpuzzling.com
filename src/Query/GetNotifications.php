@@ -1687,18 +1687,20 @@ SELECT * FROM (
 
     -- "Your import is done" (docs/features/data-import/adding.md "Telling the player"): one per finished "Add" of the
     -- reader's own spreadsheet import - and "we took back N results" after an admin's Undo of it. No other player is in
-    -- either (the admin is not named), so nothing of it can be hidden
+    -- either (the admin is not named), so nothing of it can be hidden. And "<importer> added N results with you from a
+    -- spreadsheet" (docs/features/data-import/people.md): the same batch, read by a registered partner - the actor is
+    -- the importing player, hidden with the page's own rule (notHidden()), the count is the reader's own
     SELECT
         notification.id AS notification_id,
         notification.notified_at,
         notification.read_at,
         notification.type AS notification_type,
-        NULL::uuid AS target_player_id,
-        NULL::varchar AS target_player_name,
-        NULL::varchar AS target_player_code,
-        NULL::varchar AS target_player_country,
-        NULL::varchar AS target_player_avatar,
-        NULL::boolean AS target_player_is_private,
+        actor.id AS target_player_id,
+        CASE WHEN {$actorIsPrivate} THEN NULL ELSE actor.name END AS target_player_name,
+        actor.code AS target_player_code,
+        CASE WHEN {$actorIsPrivate} THEN NULL ELSE actor.country END AS target_player_country,
+        CASE WHEN {$actorIsPrivate} THEN NULL ELSE actor.avatar END AS target_player_avatar,
+        {$actorIsPrivate} AS target_player_is_private,
         NULL::uuid AS puzzle_id,
         NULL::varchar AS puzzle_name,
         NULL::varchar AS manufacturer_name,
@@ -1780,9 +1782,14 @@ SELECT * FROM (
         NULL::int AS listing_items_total,
         NULL::int AS listing_items_yes,
         -- Spreadsheet import fields
-        data_import.id AS import_id,
-        data_import.file_name AS import_file_name,
-        import_batch.rows_added AS import_rows_added,
+        -- A partner is told nothing of the import itself: not its id, not its file's name
+        CASE WHEN notification.type = 'ImportResultsAddedWithYou' THEN NULL ELSE data_import.id END AS import_id,
+        CASE WHEN notification.type = 'ImportResultsAddedWithYou' THEN NULL ELSE data_import.file_name END AS import_file_name,
+        CASE
+            WHEN notification.type = 'ImportResultsAddedWithYou'
+                THEN COALESCE((import_batch.partner_results ->> notification.player_id::text)::int, 0)
+            ELSE import_batch.rows_added
+        END AS import_rows_added,
         import_batch.rows_already_yours AS import_rows_already_yours,
         (import_batch.rows_refused + import_batch.rows_failed) AS import_rows_not_added,
         import_undo.results_deleted AS import_results_taken_back,
@@ -1791,6 +1798,8 @@ SELECT * FROM (
     LEFT JOIN data_import_batch import_batch ON import_batch.id = notification.target_data_import_batch_id
     LEFT JOIN data_import_undo import_undo ON import_undo.id = notification.target_data_import_undo_id
     INNER JOIN data_import ON data_import.id = COALESCE(import_batch.import_id, import_undo.import_id)
+    -- Only the partner's notification names anybody: the player's own "your import is done" has no actor
+    LEFT JOIN player actor ON actor.id = notification.actor_player_id AND notification.type = 'ImportResultsAddedWithYou'
     WHERE notification.target_data_import_batch_id IS NOT NULL
         OR notification.target_data_import_undo_id IS NOT NULL
 ) AS combined_notifications
@@ -1841,6 +1850,7 @@ SQL;
     AND (notification.target_listing_request_id IS NULL OR (TRUE{$partnerRequestNotHidden}))
     AND (notification.target_puzzling_team_id IS NULL OR (TRUE{$partnerRequestNotHidden}))
     AND (notification.target_guest_link_request_id IS NULL OR (TRUE{$partnerRequestNotHidden}))
+    AND (notification.target_data_import_batch_id IS NULL OR (TRUE{$partnerRequestNotHidden}))
 SQL;
     }
 }

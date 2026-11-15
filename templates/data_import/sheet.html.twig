@@ -88,9 +88,12 @@
         {% for question in questions %}
             <div class="card card-body shadow-sm mb-3 border-warning" role="group" aria-labelledby="question-title-{{ loop.index }}" data-testid="import-question" data-question="{{ question.id }}">
                 <h3 class="h6 mb-2" id="question-title-{{ loop.index }}">
-                    {{ ('data_import.columns.question.' ~ question.type)|trans({'%column%': question.header != '' ? question.header : 'data_import.columns.sheet.column_unnamed'|trans({'%letter%': question.letter})}) }}
+                    {{ ('data_import.columns.question.' ~ question.type)|trans({'%column%': question.header != '' ? question.header : 'data_import.columns.sheet.column_unnamed'|trans({'%letter%': question.letter}), '%title%': question.examples|first|default('')}) }}
                 </h3>
-                {% if question.examples is not empty %}
+                {% if question.type == 'sheet_solving_type' %}
+                    {# The sheet's title says pair or team and no column names the partners: asked, never taken either way #}
+                    <p class="fs-sm text-muted mb-2">{{ 'data_import.columns.sheet.solving_question_hint'|trans }}</p>
+                {% elseif question.examples is not empty %}
                     <p class="fs-sm text-muted mb-2">
                         {{ 'data_import.columns.sheet.examples'|trans }}
                         {% for example in question.examples %}<code class="text-body bg-secondary rounded px-1 me-1 text-break" data-testid="import-question-example">{{ example }}</code>{% endfor %}
@@ -131,7 +134,12 @@
                 {% if question.error %}
                     <div class="text-danger fs-sm mt-2" role="alert" data-testid="import-question-error">{{ ('data_import.columns.error.' ~ question.error)|trans }}</div>
                 {% endif %}
-                <p class="fs-xs text-muted mb-0 mt-2">{{ 'data_import.columns.sheet.question_rows'|trans({'%number%': question.rows|format_number}) }}</p>
+                {% if question.type == 'sheet_solving_type' %}
+                    {{ include('data_import/_sheet_partner.html.twig', {sheet_partner: sheet_partner}) }}
+                {% endif %}
+                {% if question.rows > 0 %}
+                    <p class="fs-xs text-muted mb-0 mt-2">{{ 'data_import.columns.sheet.question_rows'|trans({'%number%': question.rows|format_number}) }}</p>
+                {% endif %}
             </div>
         {% endfor %}
 
@@ -166,6 +174,10 @@
                             <label class="btn btn-outline-primary text-start text-wrap" for="solving-type-{{ choice|default('rows') }}" style="min-height: 44px;">{{ ('data_import.columns.solving_type.' ~ (choice|default('rows')))|trans }}</label>
                         {% endfor %}
                     </div>
+                    {# Asked with the question while the sheet asks "are these pair results?" - one field of that name #}
+                    {% if questions|filter(question => question.type == 'sheet_solving_type') is empty %}
+                        {{ include('data_import/_sheet_partner.html.twig', {sheet_partner: sheet_partner}) }}
+                    {% endif %}
                 </div>
             {% endif %}
 

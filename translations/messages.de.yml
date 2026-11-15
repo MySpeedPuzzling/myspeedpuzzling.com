@@ -11834,7 +11834,7 @@ data_import:
         back_to_review: "Zurück zur Prüfung"
         sheet_rows: "Bereite Zeilen: %number%"
         daily_limit: "Aus Tabellen werden höchstens %limit% Ergebnisse pro Tag hinzugefügt. Heute: %today%. Die übrigen %later% sind morgen bereit - nichts geht verloren."
-        with_guests: "mit %people% (als Gäste)"
+        with_guests: "mit %people%"
         first_try: "erster Versuch"
         button: "%number% zu meinem Profil hinzufügen"
         button_part: "Jetzt %number% von %total% hinzufügen - der Rest morgen"
@@ -11897,7 +11897,7 @@ data_import:
             hint: "Nichts zu tun. Diese Zeilen werden kein zweites Mal hinzugefügt."
             more: "Und weitere: %number%."
         does:
-            public: "Ergebnisse erscheinen auf deinem Profil und in der Rangliste jedes Puzzles - wie die, die du eintippst. Leute, mit denen du gepuzzelt hast, werden als Gäste hinzugefügt."
+            public: "Ergebnisse erscheinen auf deinem Profil und in der Rangliste jedes Puzzles - wie die, die du eintippst. Ein Spielercode in deiner Datei wird zu diesem Spieler; Namen bleiben Gäste, bis du sagst, wer sie sind."
             undo: "Du kannst eine einzelne Zeile, ein Hinzufügen oder alles zurücknehmen, was dieser Import hinzugefügt hat."
         does_not:
             followers: "Deine Follower werden nicht benachrichtigt."
@@ -11916,6 +11916,16 @@ data_import:
             rate_limited: "Das war viel Hinzufügen in kurzer Zeit. Bitte versuche es in einer Weile noch einmal."
             not_addable: "Aus diesem Import können im Moment keine Zeilen hinzugefügt werden."
             daily_limit: "Die %number% Ergebnisse aus Tabellen für heute sind aufgebraucht. Der Rest ist morgen bereit - nichts geht verloren."
+        sheet_as:
+            results: "{1}1 Ergebnis|[0,Inf[%count% Ergebnisse"
+            all_solo: "Solo"
+            all_duo: "Paar"
+            all_team: "Team"
+            some_solo: "%count% Solo"
+            some_duo: "%count% Paar"
+            some_team: "%count% Team"
+            with: "mit %people%"
+            hint: "Prüfe jedes Blatt: Solo, Paar oder Team - und dass die Ergebnisse deine sind, nicht die von jemand anderem."
     batch:
         how:
             owned: "Zeilen, deren Puzzle du schon hattest - aus einer anderen Zeile der Datei oder von früher: %number%"
@@ -11961,6 +11971,8 @@ data_import:
         equal_row_not_added: "Es ist dasselbe Ergebnis wie in einer anderen Zeile deiner Datei, und diese Zeile wurde nicht hinzugefügt."
         error: "Bei dieser Zeile ist auf unserer Seite etwas schiefgegangen. Wir wissen Bescheid - du kannst es noch einmal versuchen."
         over_daily_limit: "Über dem heutigen Limit für Ergebnisse aus Tabellen - morgen wieder bereit."
+        too_many_partners: "Dieses Hinzufügen hat sein Limit von 20 anderen Spielern auf seinen Ergebnissen erreicht. Füge diese Zeile beim nächsten Mal erneut hinzu."
+        partner_daily_limit: "Ein Spieler in diesem Ergebnis hat heute schon 200 Ergebnisse aus deinen Tabellen bekommen. Die Zeile ist morgen wieder bereit."
     added:
         title: "Was dieser Import hinzugefügt hat"
         intro: "Von diesem Import hinzugefügte Zeilen: %number%. Du kannst eine Zeile zurücknehmen - was sie hinzugefügt hat, wird von deinem Profil entfernt."
@@ -11979,7 +11991,7 @@ data_import:
         people:
             title: "Mit wem hast du sie gepuzzelt?"
             hint: "Zeilen, die Paar oder Team sagen und niemanden nennen: %number%. Eine Antwort für alle - danach werden sie hinzugefügt."
-            names: "Namen, durch Kommas getrennt - sie werden als Gäste hinzugefügt"
+            names: "Namen oder Spielercodes (#abc123), durch Kommas getrennt - ein Code wird zu diesem Spieler, ein Name bleibt ein Gast"
             submit: "Für diese Zeilen übernehmen und hinzufügen (%number%)"
             solo: "Es war Solo - hinzufügen (%number%)"
             no_names: "Bitte gib mindestens einen Namen ein - oder wähle Solo."
@@ -12312,6 +12324,10 @@ data_import:
             save_help: "Deinem Profil wird nichts hinzugefügt. Die Zeilen dieses Blatts werden mit deiner Auswahl erneut gelesen."
             preview_title: "Die ersten Zeilen, wie wir sie verstanden haben"
             preview_empty: "In den Zeilen dieses Blatts haben wir kein Puzzle gefunden."
+            solving_question_hint: "Keine Spalte sagt, mit wem du gepuzzelt hast - deshalb fragen wir, statt zu raten. Deine Antwort gilt für alle Ergebnisse dieses Blatts."
+            partner_label: "Mit wem hast du sie gepuzzelt?"
+            partner_placeholder: "Anna oder #abc123"
+            partner_help: "Eine Antwort für das ganze Blatt: ein Name oder ein Spielercode (#abc123), mehrere durch Kommas getrennt. Verschiedene Partner in verschiedenen Zeilen? Lass es leer - du kannst es später pro Zeile sagen."
         row_meaning:
             result: "Ein Ergebnis"
             both: "Ein Ergebnis, und das Puzzle gehört mir"
@@ -12329,6 +12345,7 @@ data_import:
             date_order: "Was steht in den Daten von „%column%“ zuerst?"
             typed_dates: "Bei manchen Daten in „%column%“ hat die Tabelle vielleicht Tag und Monat vertauscht. War das so?"
             year: "Die Daten in „%column%“ zeigen kein Jahr. Aus welchem Jahr sind sie?"
+            sheet_solving_type: "Dieses Blatt heißt „%title%“. Sind das Paar- oder Team-Ergebnisse?"
         answer:
             duration:
                 minutes_seconds: "Minuten und Sekunden"
@@ -12354,6 +12371,11 @@ data_import:
                 "no": "Nein, sie stimmen so, wie sie sind"
             year:
                 stored: "Das Jahr, das jede Zelle speichert"
+            sheet_solving_type:
+                solo: "Nein - ich habe sie solo gepuzzelt"
+                duo: "Ja - Paar-Ergebnisse"
+                team: "Team-Ergebnisse"
+                rows: "Jede Zeile sagt es"
         group:
             puzzle: "Das Puzzle"
             result: "Das Ergebnis"
@@ -12438,6 +12460,7 @@ data_import:
             attempt_unreadable: "Hier konnten wir keine Versuchsnummer lesen."
             status_unknown: "Wir wissen nicht, was dieser Status bedeutet."
             yes_no_unknown: "Wir konnten nicht erkennen, ob das ein Ja oder ein Nein ist."
+            type_open: "Das Blatt fragt, ob das Paar- oder Team-Ergebnisse sind - beantworte das zuerst."
     home:
         adding: "Wird gerade hinzugefügt"
         nothing_added_now: "Davon ist im Moment nichts auf deinem Profil."
@@ -12601,6 +12624,44 @@ data_import:
         taken_back_reason: "Grund: %reason%"
 
 # Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
+        with_you: "{1}%player% hat aus einer Tabelle ein Ergebnis mit dir hinzugefügt.|[0,Inf[%player% hat aus einer Tabelle %count% Ergebnisse mit dir hinzugefügt."
+        with_you_open: "Paare & Teams"
+    people:
+        title: "Personen in deiner Datei"
+        intro: "Das sind die Personen, die deine Datei bei Paar- und Team-Ergebnissen nennt. Ein Spielercode (#abc123) in der Datei wird zu diesem Spieler. Ein Name bleibt ein Gast, bis du sagst, wer es ist."
+        added_note: "Ergebnisse, die schon hinzugefügt sind, bleiben, wie sie sind. Was du hier wählst, gilt für die Zeilen, die du ab jetzt hinzufügst."
+        none: "Deine Datei nennt niemanden außer dir."
+        rows: "{1}1 Zeile|[0,Inf[%count% Zeilen"
+        who: "Wer ist %name%?"
+        maybe: "vielleicht"
+        solved_together: "Ihr habt schon gemeinsame Ergebnisse"
+        save: "Speichern"
+        to_review: "Zurück zur Übersicht"
+        ask_hint: "In den Ergebnissen, die du schon hinzugefügt hast, ist „%guest%“ ein Gast. Nur die Person selbst kann aus dem Gast ihr eigenes Profil machen."
+        ask: "%player% bitten zu bestätigen, „%guest%“ zu sein"
+        state:
+            player_code: "%player% - über den Spielercode in deiner Datei gefunden"
+            player_player: "%player% - das hast du gesagt"
+            player_remembered: "%player% - aus einem früheren Import gemerkt"
+            me: "Das bist du - zählt nicht zu den Mitpuzzlern"
+            guest: "Ein Gast (kein Konto)"
+            guest_remembered: "Ein Gast (kein Konto) - aus einem früheren Import gemerkt"
+        answer:
+            player: "Das ist %player% (#%code%)"
+            guest: "Nicht auf MySpeedPuzzling - als Gast behalten"
+            code: "Das ist der Spieler mit diesem Code:"
+            me: "Das bin ich"
+        refused:
+            unknown_player: "Damit haben wir keinen Spieler gefunden, den du hinzufügen kannst. Prüfe den Spielercode oder behalte die Person als Gast."
+            invalid: "Wähle zuerst, wer das ist."
+        flash:
+            saved: "Gespeichert."
+        card:
+            people: "{1}1 Person|[0,Inf[%count% Personen"
+            players: "{0}keine Spieler|{1}1 Spieler|]1,Inf[%count% Spieler"
+            guests: "{0}keine Gäste|{1}1 Gast|]1,Inf[%count% Gäste"
+            hint: "Spielercodes wurden zum Spieler. Namen bleiben Gäste, bis du sagst, wer sie sind."
+            open: "Ansehen, wer wer ist"
 unlisted_puzzles:
     title: "Nicht gelistete Puzzles"
     link: "Deine nicht gelisteten Puzzles"

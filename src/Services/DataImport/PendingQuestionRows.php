@@ -24,11 +24,15 @@ final class PendingQuestionRows
     /** The problem of a typed date that waits for "were they turned around?" */
     public const string TYPED_DATE_OPEN = 'date_typed_open';
 
+    /** A result of a sheet that asks "are these pair results?" - it says nothing itself, and is not solo by default */
+    public const string TYPE_OPEN = 'type_open';
+
     private const array DECIDED_BY = [
         'time_two_readings' => ImportQuestionType::DurationShape,
         'date_day_or_month_open' => ImportQuestionType::ShortDates,
         'date_order_open' => ImportQuestionType::DateOrder,
         'date_no_year' => ImportQuestionType::Year,
+        self::TYPE_OPEN => ImportQuestionType::SheetSolvingType,
     ];
 
     /**

@@ -86,6 +86,11 @@ enum NotificationType: string
     // Target = the Undo (its counts, its reason and its import)
     case ImportRowsTakenBack = 'ImportRowsTakenBack';
 
+    // Somebody's spreadsheet import put results on the player's profile - the player is a registered partner on
+    // them (docs/features/data-import/people.md "What the partner is told"): ONE per "Add" whatever the number of
+    // results, no e-mail. Target = the batch (whose `partner_results` holds the player's count), actor = the importer
+    case ImportResultsAddedWithYou = 'ImportResultsAddedWithYou';
+
     // The daily look found catalogue puzzles for some of the player's unlisted puzzles
     // (docs/features/data-import/unlisted-puzzles.md "When the catalogue grows"): one per run whatever their number,
     // no target - the player confirms each on their own Unlisted puzzles page

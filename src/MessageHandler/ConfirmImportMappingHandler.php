@@ -204,6 +204,16 @@ readonly final class ConfirmImportMappingHandler
             $options = $options->withSolvingType($type);
         }
 
+        if (array_key_exists('partner', $sheetWide)) {
+            $partner = $sheetWide['partner'];
+
+            if ($partner !== null && (is_string($partner) === false || mb_strlen($partner) > 200)) {
+                throw new InvalidImportMapping('The partner of a sheet is a short text: names or player codes.');
+            }
+
+            $options = $options->withPartner($partner);
+        }
+
         if (array_key_exists('collectionLabel', $sheetWide)) {
             $label = $sheetWide['collectionLabel'];
 

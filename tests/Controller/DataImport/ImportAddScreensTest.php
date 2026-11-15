@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Message\AnswerImportRows;
 use SpeedPuzzling\Web\Message\BuildImportPuzzles;
 use SpeedPuzzling\Web\Message\ChangeImportAddingPaused;
+use SpeedPuzzling\Web\Message\ConfirmImportMapping;
 use SpeedPuzzling\Web\Message\ConfirmImportUploaded;
 use SpeedPuzzling\Web\Message\MatchImportPuzzlesFuzzy;
 use SpeedPuzzling\Web\Message\ParseImportSheet;
@@ -21,6 +22,8 @@ use SpeedPuzzling\Web\Message\ProposeImportMappings;
 use SpeedPuzzling\Web\Message\ReadImportFile;
 use SpeedPuzzling\Web\Message\StartImport;
 use SpeedPuzzling\Web\MessageHandler\ParseImportSheetHandler;
+use SpeedPuzzling\Web\Query\GetImportAddScreen;
+use SpeedPuzzling\Web\Results\ImportAddSummary;
 use SpeedPuzzling\Web\MessageHandler\ProposeImportMappingsHandler;
 use SpeedPuzzling\Web\MessageHandler\ReadImportFileHandler;
 use SpeedPuzzling\Web\Services\DataImport\ImportFileStorage;
@@ -163,7 +166,7 @@ final class ImportAddScreensTest extends WebTestCase
         self::assertCount(4, $sample);
         self::assertSame('Zq Review Lighthouse', self::spaced($sample->eq(0)->filter('[data-testid="add-row-puzzle"]')->text()));
         self::assertSame('1:02:03 · Mar 1, 2024 · solo · first try', self::spaced($sample->eq(0)->filter('[data-testid="add-row-said"]')->text()));
-        self::assertSame('1:30:00 · Mar 2, 2024 · pair · with Ben <b>Bold</b> (as guests)', self::spaced($sample->eq(1)->filter('[data-testid="add-row-said"]')->text()));
+        self::assertSame('1:30:00 · Mar 2, 2024 · pair · with Ben <b>Bold</b>', self::spaced($sample->eq(1)->filter('[data-testid="add-row-said"]')->text()));
         // A name's markup is text, never markup - and nothing of the file is in an address
         self::assertStringContainsString('Ben &lt;b&gt;Bold&lt;/b&gt;', (string) $this->browser->getResponse()->getContent());
         self::assertStringNotContainsString('<b>Bold</b>', (string) $this->browser->getResponse()->getContent());
@@ -1060,14 +1063,15 @@ SQL, ['importId' => $importId, 'now' => TestClock::FROZEN_NOW]);
         self::assertCount(10, $this->browser->request('GET', '/en/import/' . $importId . '/added?page=99')->filter('[data-testid="import-added-row"]'));
 
         // What the screens themselves read, on top of what every signed-in page loads: the review - the import, the
-        // summary, the sheets, the sample, the equal rows, the rows already yours (6); the done page - the import and
+        // summary, the sheets, the sample, the equal rows, the rows already yours, the people of the file (stage 6d);
+        // the done page - the import and
         // the batch (2; +1 with rows that could not be added)
         // the batch (2; +1 with rows that could not be added); a list - the import, its counts, a page of rows (3);
         // the step before an Undo - the import, the batch, what would be taken back (3); an Undo - the import and
         // the Undo (2; +1 with results it kept); Imports home - the imports and what each added (2)
         $signedIn = $budgets['few']['home'] - 2;
         self::assertSame(
-            ['review' => $signedIn + 4, 'done' => $signedIn + 2, 'added' => $signedIn + 3, 'not-added' => $signedIn + 5, 'undo-step' => $signedIn + 3, 'undone' => $signedIn + 2],
+            ['review' => $signedIn + 5, 'done' => $signedIn + 2, 'added' => $signedIn + 3, 'not-added' => $signedIn + 5, 'undo-step' => $signedIn + 3, 'undone' => $signedIn + 2],
             array_intersect_key($budgets['few'], ['review' => 1, 'done' => 1, 'added' => 1, 'not-added' => 1, 'undo-step' => 1, 'undone' => 1]),
         );
         // The progress the live line asks for: one statement on top of the session's own
@@ -1136,40 +1140,204 @@ SQL, ['importId' => $importId, 'now' => TestClock::FROZEN_NOW]);
         return [$player, $import->id->toString(), $rowIds];
     }
 
+    public function testASheetCalledPairsAsksIsNeverSoloByDefaultAndIsAddedAsPairResultsWithThePartner(): void
+    {
+        $player = $this->seedPairingPlayer('pairsheet');
+        $partner = $this->seedPairingPlayer('pairpartner');
+        $puzzle = $this->seedCataloguePuzzle('Zq Pairs Puzzle', 500, $this->seedBrand('Zqpairs'));
+        $playerId = $player->id->toString();
+
+        // "500 piece Pairs": no column for the partner - the sandbox's own case
+        $importId = $this->importedWorkbook($player, [
+            ['Zq Pairs Puzzle', 500, '2023-04-01', 3001],
+            ['Zq Pairs Puzzle', 500, '2023-04-02', 3101],
+        ], '500 piece Pairs');
+        $sheetId = $this->onlySheetId($importId);
+        self::assertSame(['sheet_solving_type' => ['choices' => '["solo", "duo", "team"]', 'suggested' => 'duo']], $this->sheetQuestions($importId));
+
+        // Until it is answered the results wait - they are neither solo nor ready
+        self::assertSame(
+            [['type_open', 'true'], ['type_open', 'true']],
+            $this->database->fetchAllNumeric("SELECT problems -> 0 ->> 'code', problems -> 0 ->> 'waiting' FROM data_import_row WHERE import_id = :id AND row_number > 1 ORDER BY row_number", ['id' => $importId]),
+        );
+        $this->pair($importId);
+        $this->database->update('data_import_puzzle', ['choice' => 'catalogue', 'puzzle_id' => $puzzle], ['import_id' => $importId]);
+        TestingLogin::asPlayer($this->browser, $playerId);
+        self::assertSame(0, $this->addSummary($importId, $playerId)->rowsReady);
+
+        // The sheet's page asks, by the sheet's name, with nothing chosen - and takes the partner on the same card
+        $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/sheets/' . $sheetId);
+        self::assertResponseIsSuccessful();
+        $question = $crawler->filter('[data-testid="import-question"][data-question="sheet_solving_type"]');
+        self::assertStringContainsString('This sheet is called “500 piece Pairs”. Are these pair or team results?', self::spaced($question->text()));
+        self::assertCount(0, $question->filter('input[type="radio"][checked]'));
+        self::assertCount(1, $question->filter('input[name="sheet_partner"]'));
+        self::assertCount(1, $crawler->filter('input[name="sheet_partner"]'));
+
+        // "Pair results", with the partner's code for the whole sheet
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new ConfirmImportMapping(
+            $importId,
+            $playerId,
+            $sheetId,
+            $this->pairingCount('SELECT mapping_version FROM data_import_sheet WHERE id = :id', ['id' => $sheetId]),
+            answers: ['sheet_solving_type' => 'duo'],
+            sheetWide: ['partner' => '#' . $partner->code],
+        ));
+        $this->workImportsQueue();
+        self::assertSame(
+            [['duo', '#' . $partner->code, null], ['duo', '#' . $partner->code, null]],
+            $this->database->fetchAllNumeric("SELECT parsed ->> 'type', parsed -> 'people' ->> 0, problems FROM data_import_row WHERE import_id = :id AND row_number > 1 ORDER BY row_number", ['id' => $importId]),
+        );
+        $this->pair($importId);
+        $this->database->update('data_import_puzzle', ['choice' => 'catalogue', 'puzzle_id' => $puzzle], ['import_id' => $importId]);
+
+        // The review says what the sheet is added as, before the tap - and who the people are
+        $crawler = $this->browser->request('GET', '/en/import/' . $importId . '/add');
+        self::assertResponseIsSuccessful();
+        $as = $crawler->filter('[data-testid="import-add-sheet-as"]');
+        self::assertSame(['2', '0', '2', '0'], [$as->attr('data-results'), $as->attr('data-solo'), $as->attr('data-duo'), $as->attr('data-team')]);
+        self::assertSame('2 results · pair · with #' . $partner->code, self::spaced($as->text()));
+        $people = $crawler->filter('[data-testid="import-add-people"]');
+        self::assertSame(['1', '1', '0'], [$people->attr('data-people'), $people->attr('data-players'), $people->attr('data-unanswered')]);
+        self::assertSame('/en/import/' . $importId . '/people', $people->filter('[data-testid="import-add-people-link"]')->attr('href'));
+
+        $this->addAndWork($importId, $playerId);
+
+        $results = $this->resultsOf($playerId);
+        self::assertSame(['duo', 'duo'], array_column($results, 'puzzling_type'));
+        self::assertSame(2, $this->pairingCount(
+            'SELECT COUNT(*) FROM puzzling_team_member member INNER JOIN puzzle_solving_time result ON result.puzzling_team_id = member.team_id WHERE member.player_id = :partner AND result.player_id = :player',
+            ['partner' => $partner->id->toString(), 'player' => $playerId],
+        ));
+    }
+
+    public function testAPeopleColumnWinsOverTheSheetsTitleAndAnAnswerOfSoloIsNotAskedAgain(): void
+    {
+        $player = $this->seedPairingPlayer('titlecolumn');
+        $this->seedCataloguePuzzle('Zq Title Puzzle', 500, $this->seedBrand('Zqtitle'));
+        $playerId = $player->id->toString();
+
+        // A column names the people: the rows say it themselves, the title is not asked about
+        $withColumn = $this->importedWorkbook($player, [
+            ['Zq Title Puzzle', 500, '2023-04-01', 3001, 'Ana'],
+            ['Zq Title Puzzle', 500, '2023-04-02', 3101, 'Ana, Ben'],
+            ['Zq Title Puzzle', 500, '2023-04-03', 3201],
+        ], 'Pairs', 'With');
+        self::assertSame([], $this->sheetQuestions($withColumn));
+        self::assertSame(['duo', 'team', 'solo'], $this->database->fetchFirstColumn("SELECT parsed ->> 'type' FROM data_import_row WHERE import_id = :id AND row_number > 1 ORDER BY row_number", ['id' => $withColumn]));
+
+        // A title that says nothing asks nothing; "Solo" neither
+        foreach (['Results', 'Solo 2023'] as $title) {
+            $quiet = $this->importedWorkbook($this->seedPairingPlayer('titlequiet'), [['Zq Title Puzzle', 500, '2023-05-01', 3301]], $title);
+            self::assertSame([], $this->sheetQuestions($quiet), $title);
+            self::assertSame(['solo'], $this->database->fetchFirstColumn("SELECT parsed ->> 'type' FROM data_import_row WHERE import_id = :id AND row_number > 1", ['id' => $quiet]), $title);
+        }
+
+        // "Týmy": asked - and "solo" is an answer like any other, kept: the sheet does not ask again
+        $player = $this->seedPairingPlayer('titleteams');
+        $playerId = $player->id->toString();
+        $teams = $this->importedWorkbook($player, [['Zq Title Puzzle', 500, '2023-06-01', 3401]], 'Týmy');
+        $sheetId = $this->onlySheetId($teams);
+        self::assertSame('team', $this->sheetQuestions($teams)['sheet_solving_type']['suggested'] ?? null);
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new ConfirmImportMapping($teams, $playerId, $sheetId, $this->pairingCount('SELECT mapping_version FROM data_import_sheet WHERE id = :id', ['id' => $sheetId]), answers: ['sheet_solving_type' => 'solo']));
+        $this->workImportsQueue();
+        self::assertSame([], $this->sheetQuestions($teams));
+        self::assertSame([['solo', null]], $this->database->fetchAllNumeric("SELECT parsed ->> 'type', problems FROM data_import_row WHERE import_id = :id AND row_number > 1", ['id' => $teams]));
+    }
+
+    private function onlySheetId(string $importId): string
+    {
+        $sheetId = $this->database->fetchOne('SELECT id FROM data_import_sheet WHERE import_id = :id', ['id' => $importId]);
+        self::assertIsString($sheetId);
+
+        return $sheetId;
+    }
+
+    /**
+     * What the import's one sheet asks: question type => its choices (as stored) and what it suggests.
+     *
+     * @return array<string, array{choices: string, suggested: null|string}>
+     */
+    private function sheetQuestions(string $importId): array
+    {
+        /** @var list<array{type: string, choices: string, suggested: null|string}> $questions */
+        $questions = $this->database->fetchAllAssociative(
+            "SELECT question ->> 'type' AS type, CAST(question -> 'choices' AS TEXT) AS choices, question ->> 'suggested' AS suggested FROM data_import_sheet sheet CROSS JOIN LATERAL jsonb_array_elements(sheet.mapping -> 'questions') AS question WHERE sheet.import_id = :id",
+            ['id' => $importId],
+        );
+        $asked = [];
+
+        foreach ($questions as $question) {
+            $asked[$question['type']] = ['choices' => $question['choices'], 'suggested' => $question['suggested']];
+        }
+
+        return $asked;
+    }
+
+    private function addSummary(string $importId, string $playerId): ImportAddSummary
+    {
+        return self::getContainer()->get(GetImportAddScreen::class)->summary($importId, $playerId);
+    }
+
     /**
      * An import of the player read from a made-up workbook by the real handlers: one sheet "Results" with the
      * columns Puzzle, Pieces, Date, Time and the rows given (from row 2 on).
      *
-     * @param list<array{string, int, string, int}> $rows name, pieces, day, seconds
+     * @param list<array{0: string, 1: int, 2: string, 3: int, 4?: string}> $rows name, pieces, day, seconds - and,
+     *        with $peopleHeader, who it was solved with
+     * @param string $title the sheet's title
+     * @param null|string $peopleHeader the header of a fifth column naming the people - null: no such column
      */
-    private function importedWorkbook(Player $player, array $rows): string
+    private function importedWorkbook(Player $player, array $rows, string $title = 'Results', null|string $peopleHeader = null): string
     {
         $text = RawXlsx::inline(...);
         $cells = [1 => ['A' => $text('Puzzle'), 'B' => $text('Pieces'), 'C' => $text('Date'), 'D' => $text('Time')]];
 
-        foreach ($rows as $index => [$name, $pieces, $day, $seconds]) {
+        if ($peopleHeader !== null) {
+            $cells[1]['E'] = $text($peopleHeader);
+        }
+
+        foreach ($rows as $index => $row) {
+            [$name, $pieces, $day, $seconds] = $row;
             $cells[$index + 2] = [
                 'A' => $text($name),
                 'B' => RawXlsx::n((string) $pieces),
                 'C' => RawXlsx::n((string) (intdiv((int) (new DateTimeImmutable($day . ' UTC'))->format('U'), 86400) + 25569), 2),
                 'D' => RawXlsx::n((string) ($seconds / 86400), 1),
             ];
+
+            if ($peopleHeader !== null && isset($row[4])) {
+                $cells[$index + 2]['E'] = $text($row[4]);
+            }
         }
 
         $path = tempnam(sys_get_temp_dir(), 'msp-import-test');
         assert($path !== false);
-        (new RawXlsx())->styles(['[h]:mm:ss', 'yyyy-mm-dd'])->sheet('Results', RawXlsx::worksheet($cells))->save($path);
+        (new RawXlsx())->styles(['[h]:mm:ss', 'yyyy-mm-dd'])->sheet($title, RawXlsx::worksheet($cells))->save($path);
         $content = (string) file_get_contents($path);
         unlink($path);
 
         $bus = self::getContainer()->get(MessageBusInterface::class);
-        $queue = self::getContainer()->get('messenger.transport.imports');
-        self::assertInstanceOf(InMemoryTransport::class, $queue);
         $importId = Uuid::uuid7()->toString();
         $playerId = $player->id->toString();
         $bus->dispatch(new StartImport($importId, $playerId, 'Times.xlsx', strlen($content)));
         self::getContainer()->get(Filesystem::class)->write(ImportFileStorage::objectKey($playerId, $importId, DataImportFileKind::Xlsx), $content);
         $bus->dispatch(new ConfirmImportUploaded($importId, $playerId));
+        $this->workImportsQueue();
+
+        return $importId;
+    }
+
+    /**
+     * The `imports` worker for reading, proposing and parsing - until nothing of them waits (the pairing's own
+     * messages are let go: pair() runs them).
+     */
+    private function workImportsQueue(): void
+    {
+        $queue = self::getContainer()->get('messenger.transport.imports');
+        self::assertInstanceOf(InMemoryTransport::class, $queue);
 
         for ($round = 0; $round < 20; $round++) {
             $messages = array_values(array_filter(
@@ -1199,8 +1367,6 @@ SQL, ['importId' => $importId, 'now' => TestClock::FROZEN_NOW]);
         }
 
         $queue->reset();
-
-        return $importId;
     }
 
     private function latestBatchId(string $importId): string

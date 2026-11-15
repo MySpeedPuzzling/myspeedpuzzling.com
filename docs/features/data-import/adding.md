@@ -86,8 +86,9 @@ it is asked for by its id or its puzzle's - the player fixed or answered somethi
   one import never stand in front of other players' jobs on `async`. A chunk that fails is rolled back and done
   again by the next turn.
 - **`FinishImportBatch`** - a small transaction under the batch's lock, so two deliveries finish it once:
-  `ImportedResultsFollowUp::forPeople()` (the importer's achievements once; one `BackfillSolvingTimePredictions`
-  when a solo result waits for its prediction - an imported result has one registered person), the batch's counts
+  `ImportedResultsFollowUp::forPeople()` (the achievements of the importer and of every registered partner, once
+  each; one `BackfillSolvingTimePredictions` when a solo result waits for its prediction), the registered
+  partners' one notification each, the batch's counts
   from its rows, ONE `ImportRowsAdded` notification, ONE `SendImportAddedEmail` when `player.import_emails` is on.
   **A batch an Undo stopped tells nothing.** More than a tenth of the rows failed on our side → a warning.
 
@@ -133,6 +134,8 @@ After an Undo a row is `waiting` again (the README's "ready"; `DataImportRowStat
 | `unusual_time` | The time verification finds the time unusual for this player and puzzle, fast or slow (`ImportRowTimeCheck`) |
 | `equal_row_not_added` | The row it is the same result as was not added |
 | `comment_too_long` | An owned puzzle's comment over 500 characters |
+| `too_many_partners` | The "Add" already put results on 20 registered partners and this row names another ([people.md](people.md) "Limits") |
+| `partner_daily_limit` | A registered partner of the row already got 200 results from this player's imports today |
 
 The three questions of "never twice" (`similar_result_exists`, `somebody_elses_result`,
 `said_already_on_profile`) and `unusual_time` are waved through per row by the player's answer
@@ -161,10 +164,11 @@ result and an owned puzzle whose result is refused adds no collection item.
      the player (`earlier_import`) - the writer's questions, asked first;
    - the player has the same result on the profile, not spoken for (`profile`);
    - the questions above, and **the time verification's judgement** of the row's time (`unusual_time`, below);
-     then `ImportedResultWriter::write()` - `groupPlayers` are the row's people, one per entry, **guests every one
-     of them** (README D12: `ImportRowAdder::people()` takes a leading `#` off, so the writer never resolves a
-     player's code - an imported pair/team result has exactly one registered member, the importer); no time = no
-     first try; the row's comment is the public comment;
+     then `ImportedResultWriter::write()` - `groupPlayers` are the row's people, one per entry, as the import's
+     people are decided when the row is added (stage 6d, [people.md](people.md): **a code of the file that resolved,
+     or a name the importing player mapped, is that registered player; everybody else is a guest**; the importing
+     player's own name is left out) - then the two limits that protect a registered partner; no time = no first
+     try; the row's comment is the public comment;
    - two equal rows the player confirmed as two (`add_as_separate`) get a `ResultDuplicatePrevention`
      (`saved_anyway`, via `spreadsheet_import`).
 4. **The collection puzzle** (kind owned / both): the player's **system collection**; an item that is there makes
@@ -233,9 +237,11 @@ signed one-click unsubscribe (`ImportEmailsUnsubscribeUrl`, `/{_locale}/import-e
 `player.import_emails` (default on; the switch is in "Messaging & Notifications" of the profile settings). All 6
 locales.
 
-Nobody else is told anything: the writer takes `PuzzleSolved` off every result (no follower notification, no
-duplicate case, no per-result statistics), nothing is published per row but the progress to the player's own
-private topic, and a collection item's event is taken off too.
+A registered partner on the batch's results is told once per batch ("<importer> added N results with you from a
+spreadsheet" - [people.md](people.md) "What the partner is told"). No follower is told anything: the writer takes
+`PuzzleSolved` off every result (no follower notification, no duplicate case, no per-result statistics), nothing is
+published per row but the progress to the player's own private topic, and a collection item's event is taken off
+too.
 
 ## Time verification
 
@@ -301,8 +307,8 @@ with the reason ("We took back N results your import had added. Reason: …" - `
 - the result the row made: deleted through `PuzzleSolvingTimeRepository::delete(…, ImportUndo)` - graveyard,
   tombstones for API clients (`GET …/deleted`; a re-added result has a new id, so no tombstone names a living
   result), the puzzle's statistics by the delete's own event - then as `DeletePuzzleSolvingTimeHandler`:
-  `CompensateXpForDeletedSolve` per result, `RecalculateBadgesForPlayer` (partners per result, the owner once at
-  the end);
+  `CompensateXpForDeletedSolve` per result, `RecalculateBadgesForPlayer` once per person when the Undo is
+  through - the owner, and each registered partner (`data_import_undo.partner_player_ids`);
 - the collection item and the wish list item the row created;
 - wish list items the row removed ("remove when solved / when added to my collection"): back with their id and
   date, unless the puzzle is on the list again;

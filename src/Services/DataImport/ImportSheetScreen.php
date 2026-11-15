@@ -130,6 +130,7 @@ final readonly class ImportSheetScreen
             'row_meaning' => $rowMeaning !== '' ? $rowMeaning : $mapping->rowMeaning->value,
             'row_meanings' => self::rowMeanings($mapping),
             'solving_type' => $solvingType,
+            'sheet_partner' => $submitted !== null && $submitted->has('sheet_partner') ? $submitted->getString('sheet_partner') : ($options->partner ?? ''),
             'solving_types' => array_map(static fn (PuzzlingType $type): string => $type->value, PuzzlingType::cases()),
             'layout' => $mapping->layout,
             'table' => $mapping->table(),
@@ -250,6 +251,15 @@ final readonly class ImportSheetScreen
 
             if ($solvingType !== ($options->solvingType->value ?? '')) {
                 $sheetWide = ['solvingType' => $solvingType === '' ? null : $solvingType];
+            }
+        }
+
+        // "Who was your partner on this sheet?" (docs/features/data-import/people.md "A sheet called Pairs")
+        if ($form->has('sheet_partner')) {
+            $partner = trim($form->getString('sheet_partner'));
+
+            if ($partner !== (self::optionsOf($sheet)->partner ?? '')) {
+                $sheetWide = [...($sheetWide ?? []), 'partner' => $partner === '' ? null : mb_substr($partner, 0, 200)];
             }
         }
 
@@ -499,6 +509,7 @@ final readonly class ImportSheetScreen
                 ImportQuestionType::ShortDates => 'data_import.columns.answer.short_dates.' . $choice,
                 ImportQuestionType::TypedDates => 'data_import.columns.answer.typed_dates.' . $choice,
                 ImportQuestionType::Year => $choice === ImportQuestion::YEAR_AS_STORED ? 'data_import.columns.answer.year.stored' : null,
+                ImportQuestionType::SheetSolvingType => 'data_import.columns.answer.sheet_solving_type.' . $choice,
             },
             'readings' => $readings,
         ];

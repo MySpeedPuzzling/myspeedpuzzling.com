@@ -100,6 +100,13 @@ final class DataImportLimits
 
     /** Results one player's imports add per day, UTC (README Q4) - the rest is offered tomorrow */
     public const int MAX_RESULTS_ADDED_PER_DAY = 2000;
+    /**
+     * Registered players - other than the importing one - that one "Add" puts results on at most
+     * (docs/features/data-import/people.md "Limits"); a row naming one more waits with the reason
+     */
+    public const int MAX_PARTNERS_PER_BATCH = 20;
+    /** Results one player's imports put on one registered partner per day, UTC - the rest waits: nobody is flooded */
+    public const int MAX_RESULTS_PER_PARTNER_PER_DAY = 200;
     /** Rows of an "Add" or an Undo the worker goes through before it gives the queue to the next job */
     public const int ROWS_PER_TURN = 50;
     /** ... or after so many seconds (README "no message works longer than about ten seconds") */

@@ -89,7 +89,7 @@ each value reader takes.
 
 | `kind` | When | `rowMeaning` |
 |---|---|---|
-| `not_puzzles` | no puzzle name column (a drill log, statistics, a brand list, an empty sheet) | - |
+| `not_puzzles` | no puzzle name column (a drill log, statistics, a brand list, an empty sheet). Its rows are left out (`sheet_left_out`) by the same parse | - |
 | `results` | a time, a solve date or an attempt number | `result` |
 | `results` / `owned` | a status column ("Completed?", a status of words): the column says per row what the row is | `by_column` |
 | `wish_list` | a list of puzzles whose sheet name says so (wish, wishlist, přání, Wunschliste, deseos, souhaits, ほしい) | `wish_list` |
@@ -119,7 +119,8 @@ count) but no name is a problem to fix (`no_name`), not left out.**
 ## Known exports - `KnownExportLayout`
 
 Recognised by a set of identifying headers (compared as `HeaderMatcher::words()`); every column is `certain`,
-`reason: known_export`; nothing is mapped by hand and nothing is asked.
+`reason: known_export`; nothing is mapped by hand and nothing is asked. A header that stands in the file twice
+(a second "Notes") is held to the one-column-per-field rule too: the later one is unknown, `reason: duplicate`.
 
 | `layout` | Identified by | Says |
 |---|---|---|
@@ -167,8 +168,7 @@ picture may be fetched from (`pictureHosts`, empty - stage 7 fetches).
  "solvingType": null, "lookupSheetId": null, "collectionLabel": null}
 ```
 
-`by` says who settled it: `rows`, `most_rows` (no order fits every row - the one most rows follow; the others are
-row problems), `header` (a unit in the header), `sheet_name`, `known_export`, `player`. What the player or a known
+`by` says who settled it: `rows`, `header` (a unit in the header), `sheet_name`, `known_export`, `player`. What the player or a known
 export said is kept whenever the mapping changes; what the rows settled is worked out again.
 
 `data_import_sheet.value_answers`: `{"<column number>": {"<word, folded>": "<ImportWordMeaning>"}}` - what a word
@@ -185,7 +185,7 @@ question is not parsed**; its page line says "Waiting for your answer".
 |---|---|---|
 | `duration_shape` (`duration_shape.<shape>`) | a shape of the time column has several readings and the rows' pace does not settle it (`17:36`, a bare `237`, a time cell `1:02`, `45:30:00` …) - one question per shape | a `DurationReadingRule` of `choices` |
 | `short_dates` | every `Jan 23` / `10/23` can be a day or a month of a year | `day_of_month` · `month_of_year` |
-| `date_order` | several orders make every date real and read some differently | `dmy` · `mdy` · `ymd` (those left) |
+| `date_order` | several orders make every date real and read some differently · rows that can only be day first stand beside rows that can only be month first (always asked, a row of each shown; the rows that do not follow the answer get `date_other_order`) · day first against month first rests on fewer than 3 rows that can only be read that way **and** on less than 30 % of the column's dates (one `25/3` among hundreds of dates that read both ways may be the typo) | `dmy` · `mdy` · `ymd` (those left) |
 | `typed_dates` | typed dates beside day-first text dates, all with a day ≤ 12: turned around by the spreadsheet? | `yes` · `no` |
 | `year` | dates without a year (`20-Sep`, a cell showing `m/d`) and the sheet's name says no year - or another than the cells store | a year 1950-2100 · `stored` ("the year each cell stores", offered when every such date is a cell) |
 
@@ -211,7 +211,14 @@ Per row, for one `mapping_version` of its sheet: `kind` (`result`, `owned`, `bot
 ```
 
 Only what the row has is there. `source_key` is the key of what the row first of all makes - its result, else its
-owned puzzle, else its wish; a row that is a result and owned has both in `parsed.keys`.
+owned puzzle, else its wish; a row that is a result and owned has both in `parsed.keys` (only the first is in the
+column rows are linked by - `docs/TODO.md`).
+
+**`source_row_id` is not part of `source_key`.** The README ("Keys, exactly") makes the source's own id the row's
+identity *within one source*, beside the keys and winning over them when a file is read again - a key stays a pure
+function of what the row says (the same result typed into another file must meet it). So an edited time in a
+newer export has another `source_key` and the same `source_row_id`; matching rows of a new version by the id first
+is the versions stage's.
 
 - **Problems** (`code`, per `field`): `no_name`, `lookup_ambiguous` · `pieces_multipack` / `_unknown` /
   `_possibly_thousands` / `_not_whole` / `_zero` / `_negative` / `_too_many` / `_unreadable` · `time_unreadable`,
@@ -233,6 +240,9 @@ owned puzzle, else its wish; a row that is a result and owned has both in `parse
 
 ### Equal rows - `ImportEqualRows`, `same_as_row_id`
 
+- Groups are found by `data_import_row.equal_key` - the row's key before numbering, which the numbering never
+  changes - a page of whole groups at a time (never a cut one), from the rows' light facts; so numbering a sheet
+  again, or beside another job, gives the same.
 - Rows of **one sheet** equal in all a key holds are numbered 1, 2, 3 … by a stable order (the attempt number, then
   the row's content - never its place on the sheet); the number is the result key's occurrence. Each is linked to
   the first of them - **one result unless the player says two** - except rows that both carry an attempt number
@@ -248,7 +258,15 @@ owned puzzle, else its wish; a row that is a result and owned has both in `parse
 (and when the sheet it looks puzzles up in changes). `parsed_version` = the version whose parse ran to its end;
 `data_import_row.parsed_version` = the version a row was written for.
 
-Every write of a parse (`RecordParsedImportRows`, `RecordImportSheetParsed`) takes the import's advisory lock -
+**A parse of a sheet and a version happens once.** `ParseImportSheet` first claims it (`BeginImportSheetParse`,
+under the import's lock): not when the sheet is parsed for that version, not while another job's claim is fresh
+(`parsing_version`, `parsing_started_at` - every batch renews it; dead after 15 minutes without news), and after
+three starts that never ended the sheet is given up: `set_up_failure = parse_failed`, logged once, shown on the page
+("We could not work this sheet out"), never queued again until the player confirms a mapping. The same end for a
+proposal that can not be stored (`mapping_invalid` - that sheet only) and for one asked for three times that never
+arrived (`proposal_failed`).
+
+Every write of a parse (`RecordParsedImportRows`, `RecordEqualImportRows`, `RecordImportSheetParsed`) takes the import's advisory lock -
 which `ConfirmImportMapping` and a discard take too - reads the sheet on fresh entity state and is refused unless
 the sheet's version is the job's and the import is being set up. So a late job of version 1 stops at its next
 batch and has written nothing over version 2. Two jobs of the same version write the same (the parser is pure).
@@ -281,7 +299,7 @@ itself yet; the screen of the next slice will).
 
 `myspeedpuzzling:read-waiting-imports` (every 5 minutes, 3b) also finds imports in `setting_up` that wrote nothing
 for 15 minutes while a sheet still waits for a step that runs by itself - no mapping yet, or not parsed for its
-version and no question - and queues that step again (`RequestImportSetUp`), for a week after the read (a step
+version, no question and no fresh claim - and queues that step again (`RequestImportSetUp`), for a week after the read (a step
 that fails every time is not tried for ever). It covers a lost message and the imports read before this stage
 shipped.
 
@@ -291,9 +309,10 @@ shipped.
 |---|---|
 | Sample for recognising | the first 300 rows of a sheet + 60 rows under the header of each of its first 40 Excel tables further down; 200 values per column |
 | Rows that settle times and dates | the first 5,000 of the table |
-| Parse batch | 500 rows, one transaction each; memory does not grow with the sheet |
+| Parse batch | 500 rows **or** 4 MiB of cells (`BYTES_PER_BATCH`), whichever comes first - the page read, the batch written and the batch of numbered rows alike; memory does not grow with the sheet |
 | Mapped table | 60 columns; 200 tables listed per sheet |
-| Equal rows numbered per sheet | 5,000 |
+| Equal rows numbered per sheet | all of them, 200 keys a page |
+| Rows a table's questions are settled from | read by query from the table's first row to its last, 5,000 at most |
 | Lookup | 50,000 names |
 
 ## Messages, migration
@@ -301,8 +320,8 @@ shipped.
 | | |
 |---|---|
 | On `imports` | `ProposeImportMappings`, `ParseImportSheet` |
-| Handled at once | `RecordImportMappings`, `RecordParsedImportRows`, `RecordImportSheetParsed`, `LinkEqualImportRows`, `RequestImportSetUp`, `ConfirmImportMapping` |
-| Migration (generated) | `data_import_sheet`: `mapping_version`, `parsed_version`, `rows_understood`, `rows_need_look`; `data_import_row`: `puzzle_key`, `parsed_version`, index `(import_id, source_key)` |
+| Handled at once | `RecordImportMappings`, `BeginImportSheetParse`, `RecordParsedImportRows`, `RecordEqualImportRows`, `RecordImportSheetParsed`, `LinkEqualImportRows`, `RequestImportSetUp`, `ConfirmImportMapping` |
+| Migrations (two, generated) | `data_import_sheet`: `mapping_version`, `parsed_version`, `rows_understood`, `rows_need_look`, `parsing_version`, `parsing_started_at`, `set_up_attempts`, `set_up_failure`; `data_import_row`: `puzzle_key`, `parsed_version`, `equal_key`, index `(import_id, source_key)` |
 
 ## The four shapes
 

@@ -66,6 +66,13 @@ class DataImportRow
     #[Column(length: 80, nullable: true)]
     public null|string $puzzleKey = null;
 
+    /**
+     * What rows of one sheet are equal by: the row's key before equal rows are numbered (a result's key with
+     * occurrence 1). It never changes with the numbering, so numbering a sheet again finds the same groups.
+     */
+    #[Column(length: 80, nullable: true)]
+    public null|string $equalKey = null;
+
     /** The sheet's mapping version the row was last parsed for */
     #[Column(nullable: true)]
     public null|int $parsedVersion = null;
@@ -140,6 +147,7 @@ class DataImportRow
         $this->problems = $record['problems'] === [] ? null : $record['problems'];
         $this->puzzleKey = $record['puzzleKey'];
         $this->sourceKey = $record['sourceKey'];
+        $this->equalKey = $record['sourceKey'];
         $this->sourceRowId = $record['sourceRowId'];
         $this->sameAsRow = null;
         $this->state = $record['leftOut'] ? DataImportRowState::LeftOut : DataImportRowState::Waiting;
@@ -154,7 +162,7 @@ class DataImportRow
         $parsed = $this->parsed ?? [];
         $parsed['occurrence'] = $occurrence;
 
-        if ($sourceKey !== null) {
+        if ($sourceKey !== null && $this->equalKey !== null) {
             $keys = is_array($parsed['keys'] ?? null) ? $parsed['keys'] : [];
             $keys['result'] = $sourceKey;
             $parsed['keys'] = $keys;

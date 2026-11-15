@@ -49,6 +49,8 @@ readonly final class RecordParsedImportRowsHandler
             }
         }
 
+        // The claim stays fresh while batches arrive
+        $sheet->parseGoesOn($this->clock->now());
         $import->workedOn($this->clock->now());
 
         return true;

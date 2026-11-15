@@ -84,7 +84,7 @@ readonly final class ProposeImportMappingsHandler
                     $proposal->mapping,
                     $proposal->options,
                     $titles[$sheetId],
-                    $this->rows->rows($sheetId, DataImportLimits::MAX_ROWS),
+                    $this->rows->rows($sheetId, DataImportLimits::COLUMN_DECISION_ROWS, $proposal->mapping->table()->firstRow ?? 1, $proposal->mapping->table()?->lastRow),
                 );
                 $proposal = $proposal->with($proposal->mapping, $options, $questions);
                 $recorded[$sheetId] = [

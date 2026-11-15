@@ -11833,6 +11833,7 @@ data_import:
             not_puzzles: "Pas des puzzles"
             somebody_else: "À quelqu'un d'autre"
         recognising: "Nous cherchons ce qu'elle contient…"
+        failed: "Nous n'avons pas pu traiter cette feuille - l'erreur vient de nous"
         waiting_for_answer: "En attente de votre réponse"
         parsing: "Lecture de ses lignes…"
         understood: "Lignes comprises : %understood% · à regarder : %look%"

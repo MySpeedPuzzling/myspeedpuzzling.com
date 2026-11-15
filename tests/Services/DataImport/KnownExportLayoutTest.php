@@ -13,8 +13,10 @@ use SpeedPuzzling\Web\Tests\Services\DataImport\ImportTestKit as Kit;
 use SpeedPuzzling\Web\Value\DataImport\ColumnCertainty;
 use SpeedPuzzling\Web\Value\DataImport\ImportColumnRole;
 use SpeedPuzzling\Web\Value\DataImport\ImportField;
+use SpeedPuzzling\Web\Value\DataImport\ImportMapping;
 use SpeedPuzzling\Web\Value\DataImport\KnownExportLayout;
 use SpeedPuzzling\Web\Value\DataImport\MappedColumn;
+use SpeedPuzzling\Web\Value\DataImport\SheetSample;
 use SpeedPuzzling\Web\Value\DataImportRowKind;
 use SpeedPuzzling\Web\Value\ExportFormat;
 use SpeedPuzzling\Web\Value\Spreadsheet\SpreadsheetFormat;
@@ -93,6 +95,26 @@ final class KnownExportLayoutTest extends TestCase
         foreach ($rows as $row) {
             self::assertSame([], $row->problems);
         }
+    }
+
+    public function testAKnownExportWithAHeaderTwiceKeepsOneColumnPerField(): void
+    {
+        $sheet = ImportShapes::puzzleTrackerExport()[0];
+        $rows = $sheet->rows;
+        // Somebody added a second "Notes" and a second "ID" column to the export
+        $rows[1][24] = Kit::text('Notes');
+        $rows[2][24] = Kit::text('more notes');
+        $rows[1][25] = Kit::text('ID');
+        $rows[2][25] = Kit::text('another id');
+
+        $mapping = (new Kit())->analyser->analyse(new SheetSample('', $rows, null, count($rows)))->mapping;
+
+        self::assertSame(KnownExportLayout::PUZZLE_TRACKER, $mapping->layout);
+        self::assertSame([null, null, ColumnCertainty::Unknown, MappedColumn::BY_DUPLICATE], [$mapping->columns[23]->field, $mapping->columns[23]->role, $mapping->columns[23]->certainty, $mapping->columns[23]->reason]);
+        self::assertSame([null, null, MappedColumn::BY_DUPLICATE], [$mapping->columns[24]->field, $mapping->columns[24]->role, $mapping->columns[24]->reason]);
+        self::assertSame(ImportColumnRole::SourceRowId, $mapping->columns[0]->role);
+        // ... and so it is a mapping that can be stored
+        self::assertSame($mapping->toArray(), ImportMapping::fromArray($mapping->toArray())->toArray());
     }
 
     public function testAFileThatLacksOneOfTheIdentifyingHeadersIsNobodysExport(): void

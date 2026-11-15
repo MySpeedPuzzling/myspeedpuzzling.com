@@ -18,12 +18,18 @@ use SpeedPuzzling\Web\Message\ParseImportSheet;
 use SpeedPuzzling\Web\Message\ProposeImportMappings;
 use SpeedPuzzling\Web\Message\ReadImportFile;
 use SpeedPuzzling\Web\Message\ReadWaitingImports;
+use Psr\Log\NullLogger;
+use SpeedPuzzling\Web\Message\RecordImportMappings;
 use SpeedPuzzling\Web\Message\RecordParsedImportRows;
 use SpeedPuzzling\Web\Message\StartImport;
 use SpeedPuzzling\Web\MessageHandler\ParseImportSheetHandler;
 use SpeedPuzzling\Web\MessageHandler\ProposeImportMappingsHandler;
 use SpeedPuzzling\Web\MessageHandler\ReadImportFileHandler;
+use SpeedPuzzling\Web\Query\GetImportSheetRows;
 use SpeedPuzzling\Web\Services\DataImport\ImportFileStorage;
+use SpeedPuzzling\Web\Services\DataImport\ImportProgress;
+use SpeedPuzzling\Web\Services\DataImport\ImportRowParser;
+use SpeedPuzzling\Web\Services\DataImport\SheetLookupFactory;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\Services\SpreadsheetReader\RawXlsx;
 use SpeedPuzzling\Web\Tests\TestClock;
@@ -68,9 +74,9 @@ final class ImportParsingTest extends WebTestCase
         $importId = $this->uploaded('Training.xlsx', self::workbook());
         $handled = $this->work();
 
-        // Read → recognised → every sheet that is data and asks nothing parsed; nothing for "Stats" and "2023"
+        // Read → recognised → every sheet that asks nothing parsed (the rows of "Stats" are left out); "2023" waits
         self::assertSame(
-            ['read', 'propose', 'parse Puzzle List v1', 'parse Results v1', 'parse Competitions v1'],
+            ['read', 'propose', 'parse Puzzle List v1', 'parse Results v1', 'parse Competitions v1', 'parse Stats v1'],
             $this->named($importId, $handled),
         );
         self::assertSame('setting_up', $this->database->fetchOne('SELECT status FROM data_import WHERE id = :id', ['id' => $importId]));
@@ -80,7 +86,7 @@ final class ImportParsingTest extends WebTestCase
                 'Puzzle List' => ['puzzle_list', 1, 1, 4, 0, 1, 0, 'A1:C'],
                 'Results' => ['results', 1, 1, 5, 1, 2, 0, 'A1:E'],
                 'Competitions' => ['results', 1, 1, 2, 0, 1, 0, 'A1:C'],
-                'Stats' => ['not_puzzles', 1, 1, 0, 0, 0, 0, 'A1:B'],
+                'Stats' => ['not_puzzles', 1, 1, 0, 0, 2, 0, 'A1:B'],
                 '2023' => ['results', 1, null, 0, 0, 0, 1, 'A1:C'],
             ],
             $this->sheets($importId),
@@ -107,8 +113,9 @@ final class ImportParsingTest extends WebTestCase
         self::assertSame(['owned', $kites], [$rows['Puzzle List'][2]['kind'], $rows['Puzzle List'][2]['puzzle_key']]);
         self::assertSame(ImportSourceKey::owned($kites), $rows['Puzzle List'][2]['source_key']);
 
-        // A sheet that waits and a sheet that is not puzzles: nothing parsed
-        self::assertSame([null, null], [$rows['2023'][2]['kind'], $rows['Stats'][2]['kind']]);
+        // A sheet that waits: nothing parsed. A sheet that is not puzzles: its rows are left out, as after a confirm
+        self::assertSame([null, 'waiting'], [$rows['2023'][2]['kind'], $rows['2023'][2]['state']]);
+        self::assertSame(['not_a_puzzle', 'left_out', ['leftOut' => 'sheet_left_out']], [$rows['Stats'][2]['kind'], $rows['Stats'][2]['state'], $rows['Stats'][2]['parsed']]);
 
         // The page says it - read only
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
@@ -181,11 +188,153 @@ final class ImportParsingTest extends WebTestCase
             self::assertSame(1, $sheets[$untouched][1]);
         }
 
-        // Parsed again for the same mapping - a second delivery, the rescue - every row is what it was: keys,
-        // occurrences and links included
+        // A second delivery for a sheet that is parsed: nothing is parsed again - not even started
         $this->parse($importId, $this->sheetId($importId, 'Results'), 1);
-        $this->parse($importId, $this->sheetId($importId, 'Competitions'), 1);
         self::assertSame($after, $this->rows($importId));
+        self::assertSame(1, $this->database->fetchOne("SELECT set_up_attempts FROM data_import_sheet WHERE import_id = :id AND title = 'Results'", ['id' => $importId]));
+
+        // Parsed again for the same mapping after a parse that died half-way - groups of equal rows taken one at a
+        // time: every row is what it was, keys, occurrences and links included
+        $this->database->executeStatement("UPDATE data_import_sheet SET parsed_version = NULL, parsing_started_at = NULL WHERE import_id = :id AND title IN ('Results', 'Competitions')", ['id' => $importId]);
+        // What the dead job left: one of two equal rows numbered, the other not yet
+        $this->database->executeStatement("UPDATE data_import_row SET source_key = equal_key WHERE import_id = :id AND row_number = 4 AND sheet_id = :sheet", ['id' => $importId, 'sheet' => $this->sheetId($importId, 'Results')]);
+        $container = self::getContainer();
+        $onePageAtATime = new ParseImportSheetHandler(
+            $container->get(GetImportSheetRows::class),
+            $container->get(ImportRowParser::class),
+            $container->get(SheetLookupFactory::class),
+            $this->bus,
+            $container->get(ImportProgress::class),
+            new NullLogger(),
+            1,
+        );
+        $container->get(EntityManagerInterface::class)->clear();
+        $onePageAtATime(new ParseImportSheet($importId, $this->sheetId($importId, 'Results'), 1));
+        $container->get(EntityManagerInterface::class)->clear();
+        $this->parse($importId, $this->sheetId($importId, 'Competitions'), 1);
+
+        self::assertSame($after, $this->rows($importId));
+        self::assertSame(2, $this->database->fetchOne("SELECT set_up_attempts FROM data_import_sheet WHERE import_id = :id AND title = 'Results'", ['id' => $importId]));
+    }
+
+    public function testAParseIsClaimedOnceAndGivenUpAfterThreeStartsThatNeverEnded(): void
+    {
+        $importId = $this->uploaded('Training.xlsx', self::workbook());
+        $this->work();
+        $sheetId = $this->sheetId($importId, 'Results');
+        $rows = $this->rows($importId);
+        $claim = function (null|int $minutesAgo, int $attempts) use ($importId, $sheetId): void {
+            $this->database->executeStatement('UPDATE data_import_sheet SET parsed_version = NULL, parsing_version = 1, parsing_started_at = :at, set_up_attempts = :attempts WHERE id = :id', [
+                'at' => $minutesAgo === null ? null : TestClock::now()->modify('-' . $minutesAgo . ' minutes')->format('Y-m-d H:i:s'),
+                'attempts' => $attempts,
+                'id' => $sheetId,
+            ]);
+            $this->database->executeStatement('UPDATE data_import SET last_activity_at = :at WHERE id = :id', ['at' => TestClock::now()->modify('-16 minutes')->format('Y-m-d H:i:s'), 'id' => $importId]);
+        };
+        $state = fn (): array => array_values((array) $this->database->fetchAssociative('SELECT parsed_version, set_up_attempts, set_up_failure FROM data_import_sheet WHERE id = :id', ['id' => $sheetId]));
+
+        // Another job is at it (it gave news a minute ago): this one leaves it alone, and so does the safety net
+        $claim(1, 1);
+        $this->parse($importId, $sheetId, 1);
+        self::assertSame([null, 1, null], $state());
+        $this->bus->dispatch(new ReadWaitingImports());
+        self::assertSame([], $this->queued());
+
+        // That job is dead (no news for a quarter of an hour): the safety net queues the parse, and it is taken over
+        $claim(16, 1);
+        $this->bus->dispatch(new ReadWaitingImports());
+        self::assertSame(['parse Results v1'], $this->named($importId, $this->work()));
+        self::assertSame([1, 2, null], $state());
+        self::assertSame($rows, $this->rows($importId));
+
+        // Started three times and never ended - a worker that dies on it: given up, visibly, and queued no more
+        $claim(16, 3);
+        $this->bus->dispatch(new ReadWaitingImports());
+        self::assertSame(['parse Results v1'], $this->named($importId, $this->work()));
+        self::assertSame([null, 3, 'parse_failed'], $state());
+        $this->database->executeStatement('UPDATE data_import SET last_activity_at = :at WHERE id = :id', ['at' => TestClock::now()->modify('-16 minutes')->format('Y-m-d H:i:s'), 'id' => $importId]);
+        $this->bus->dispatch(new ReadWaitingImports());
+        self::assertSame([], $this->queued());
+
+        TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
+        $crawler = $this->browser->request('GET', '/en/import/' . $importId);
+        self::assertSame('We could not work this sheet out - a fault on our side', trim($crawler->filter('[data-testid="import-sheet-failed"]')->text()));
+        self::assertCount(0, $crawler->filter('[data-testid="import-sheets-working"]'));
+
+        // A mapping the player confirms starts over
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+        $this->bus->dispatch(new ConfirmImportMapping($importId, PlayerFixture::PLAYER_REGULAR, $sheetId, 1, sheetWide: ['solvingType' => 'solo']));
+        $this->work();
+        self::assertSame([2, 1, null], $state());
+    }
+
+    public function testAProposalThatCanNotBeStoredFailsItsSheetOnlyAndIsNotAskedForAgain(): void
+    {
+        $importId = $this->uploaded('Training.xlsx', self::workbook());
+        $this->read($importId);
+        $this->queue()->reset();
+
+        $notPuzzles = ['shape' => 1, 'layout' => null, 'kind' => 'not_puzzles', 'kindCertainty' => 'certain', 'rowMeaning' => 'result', 'region' => 0, 'regions' => [], 'columns' => [], 'questions' => []];
+        $proposals = [];
+
+        foreach (['Puzzle List', 'Results', 'Competitions', 'Stats', '2023'] as $title) {
+            // One of them is no mapping at all (a bug of ours)
+            $proposals[$this->sheetId($importId, $title)] = ['mapping' => $title === 'Results' ? ['shape' => 99] : $notPuzzles, 'options' => [], 'valueAnswers' => [], 'headerSignature' => null];
+        }
+
+        $this->bus->dispatch(new RecordImportMappings($importId, $proposals));
+
+        self::assertSame(
+            ['Puzzle List' => [1, null], 'Results' => [0, 'mapping_invalid'], 'Competitions' => [1, null], 'Stats' => [1, null], '2023' => [1, null]],
+            array_map(
+                static fn (array $sheet): array => [$sheet['mapping_version'], $sheet['set_up_failure']],
+                array_column($this->database->fetchAllAssociative('SELECT title, mapping_version, set_up_failure FROM data_import_sheet WHERE import_id = :id ORDER BY position', ['id' => $importId]), null, 'title'),
+            ),
+        );
+        self::assertCount(4, $this->work());
+
+        // Nothing asks for the failed sheet's proposal again
+        $this->database->executeStatement('UPDATE data_import SET last_activity_at = :at WHERE id = :id', ['at' => TestClock::now()->modify('-16 minutes')->format('Y-m-d H:i:s'), 'id' => $importId]);
+        $this->bus->dispatch(new ReadWaitingImports());
+        self::assertSame([], $this->queued());
+    }
+
+    public function testAProposalThatNeverArrivesIsAskedForThreeTimesThenTheSheetsAreFailed(): void
+    {
+        $importId = $this->uploaded('Training.xlsx', self::workbook());
+        $this->read($importId);
+
+        foreach ([['propose'], ['propose'], ['propose'], []] as $expected) {
+            $this->queue()->reset();
+            $this->database->executeStatement('UPDATE data_import SET last_activity_at = :at WHERE id = :id', ['at' => TestClock::now()->modify('-16 minutes')->format('Y-m-d H:i:s'), 'id' => $importId]);
+            $this->bus->dispatch(new ReadWaitingImports());
+            self::assertSame($expected, $this->named($importId, $this->queued()));
+        }
+
+        self::assertSame(5, $this->database->fetchOne("SELECT COUNT(*) FROM data_import_sheet WHERE import_id = :id AND set_up_failure = 'proposal_failed'", ['id' => $importId]));
+    }
+
+    public function testRowsAreReadInPagesBoundedByBytesAndOnlyWithinATable(): void
+    {
+        $importId = $this->uploaded('Training.xlsx', self::workbook());
+        $this->read($importId);
+        $rows = self::getContainer()->get(GetImportSheetRows::class);
+        $sheetId = $this->sheetId($importId, 'Results');
+        $numbers = static fn (array $page): array => array_column($page, 'number');
+
+        self::assertSame([1, 2, 3, 4, 5, 6, 7, 8], $numbers($rows->page($sheetId, 0, 500)));
+        self::assertSame([3, 4], $numbers($rows->page($sheetId, 2, 2)));
+        // A byte bound smaller than a row: one row a page - never none while a row is left
+        self::assertSame([3], $numbers($rows->page($sheetId, 2, 500, null, 1)));
+        // The first row's worth of cells and a byte: the second row crosses the bound and is the page's last
+        $firstRow = $this->database->fetchOne('SELECT octet_length(cells::text) FROM data_import_row WHERE sheet_id = :sheet AND row_number = 1', ['sheet' => $sheetId]);
+        self::assertIsInt($firstRow);
+        self::assertSame([1, 2], $numbers($rows->page($sheetId, 0, 500, null, $firstRow + 1)));
+        self::assertSame([], $rows->page($sheetId, 8, 500));
+
+        // What settles a table's questions reads the table's rows only, capped
+        self::assertSame([2, 3, 4, 5], array_keys(iterator_to_array($rows->rows($sheetId, 5000, 2, 5))));
+        self::assertSame([2, 3, 4], array_keys(iterator_to_array($rows->rows($sheetId, 3, 2))));
     }
 
     public function testAJobOfAnOlderMappingWritesNothing(): void
@@ -266,6 +415,11 @@ final class ImportParsingTest extends WebTestCase
                 new ConfirmImportMapping($importId, PlayerFixture::PLAYER_REGULAR, $sheetId, 1, sheetWide: ['lookupSheetId' => Uuid::uuid7()->toString()]),
                 new ConfirmImportMapping($importId, PlayerFixture::PLAYER_REGULAR, $sheetId, 1, sheetWide: ['solvingType' => 'quartet']),
                 new ConfirmImportMapping($importId, PlayerFixture::PLAYER_REGULAR, $sheetId, 1, valueAnswers: ['4' => ['pb' => 'personal best']]),
+                // More words than a column can have, a word longer than a word, a column that is not the table's
+                new ConfirmImportMapping($importId, PlayerFixture::PLAYER_REGULAR, $sheetId, 1, valueAnswers: ['4' => array_fill_keys(array_map(static fn (int $word): string => 'word ' . $word, range(1, 501)), 'solo')]),
+                new ConfirmImportMapping($importId, PlayerFixture::PLAYER_REGULAR, $sheetId, 1, valueAnswers: ['4' => [str_repeat('x', 201) => 'solo']]),
+                new ConfirmImportMapping($importId, PlayerFixture::PLAYER_REGULAR, $sheetId, 1, valueAnswers: ['40' => ['pb' => 'solo']]),
+                new ConfirmImportMapping($importId, PlayerFixture::PLAYER_REGULAR, $sheetId, 1, valueAnswers: array_fill(1, 61, ['pb' => 'solo'])),
                 new ConfirmImportMapping($importId, PlayerFixture::PLAYER_REGULAR, $sheetId, 1, ['columns' => [['role' => 'source_row_id', 'field' => null] + $mapping['columns'][3], ...array_slice($mapping['columns'], 0, 3)]] + $mapping),
             ],
         ];
@@ -382,7 +536,7 @@ final class ImportParsingTest extends WebTestCase
         $this->queue()->reset();
         $standing($this->database);
         $this->bus->dispatch(new ReadWaitingImports());
-        self::assertEqualsCanonicalizing(['parse Puzzle List v1', 'parse Results v1', 'parse Competitions v1'], $this->named($importId, $this->queued()));
+        self::assertEqualsCanonicalizing(['parse Puzzle List v1', 'parse Results v1', 'parse Competitions v1', 'parse Stats v1'], $this->named($importId, $this->queued()));
 
         // Everything done (a sheet that waits for an answer is nobody's lost step): nothing is queued
         $this->work();

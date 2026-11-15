@@ -152,7 +152,9 @@
                                     {% endif %}
                                     {# What the import takes the sheet for and how its rows fared (docs/features/data-import/columns.md) - read only #}
                                     <div class="fs-sm text-muted" data-testid="import-sheet-state">
-                                        {% if not sheet.mapped %}
+                                        {% if sheet.failed %}
+                                            <span class="badge bg-faded-danger text-danger" data-testid="import-sheet-failed"><i class="bi bi-exclamation-triangle me-1"></i>{{ 'data_import.sheets.failed'|trans }}</span>
+                                        {% elseif not sheet.mapped %}
                                             <span data-testid="import-sheet-recognising">{{ 'data_import.sheets.recognising'|trans }}</span>
                                         {% else %}
                                             {% if sheet.kind is not null %}
@@ -160,6 +162,8 @@
                                             {% endif %}
                                             {% if sheet.waitsForAnAnswer %}
                                                 <span class="badge bg-faded-warning text-warning ms-1" data-testid="import-sheet-waiting"><i class="bi bi-question-circle me-1"></i>{{ 'data_import.sheets.waiting_for_answer'|trans }}</span>
+                                            {% elseif not sheet.parsed %}
+                                                <div data-testid="import-sheet-parsing">{{ 'data_import.sheets.parsing'|trans }}</div>
                                             {% elseif sheet.kind is not null and sheet.kind.value not in ['not_puzzles', 'somebody_else'] %}
                                                 {% if sheet.parsed %}
                                                     <div data-testid="import-sheet-parsed">
@@ -180,7 +184,7 @@
                     </tbody>
                 </table>
             </div>
-            {% if sheets|filter(sheet => not sheet.mapped or (not sheet.parsed and not sheet.waitsForAnAnswer and sheet.kind is not null and sheet.kind.value not in ['not_puzzles', 'somebody_else']))|length > 0 %}
+            {% if sheets|filter(sheet => not sheet.failed and (not sheet.mapped or (not sheet.parsed and not sheet.waitsForAnAnswer)))|length > 0 %}
                 <div class="card-body pt-2 fs-sm text-muted" data-testid="import-sheets-working">
                     <i class="bi bi-arrow-clockwise me-1"></i>{{ 'data_import.sheets.refresh_hint'|trans }}
                     <a href="{{ path('data_import_detail', {importId: import.importId}) }}" data-turbo="false">{{ 'data_import.reading.refresh'|trans }}</a>

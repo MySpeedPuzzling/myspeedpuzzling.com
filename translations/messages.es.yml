@@ -11838,6 +11838,7 @@ data_import:
             not_puzzles: "No son puzzles"
             somebody_else: "De otra persona"
         recognising: "Averiguando qué contiene…"
+        failed: "No pudimos procesar esta hoja: el fallo es nuestro"
         waiting_for_answer: "Esperando tu respuesta"
         parsing: "Recorriendo sus filas…"
         understood: "Filas entendidas: %understood% · para revisar: %look%"

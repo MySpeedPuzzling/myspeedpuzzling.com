@@ -5,17 +5,21 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Log\LoggerInterface;
+use SpeedPuzzling\Web\Message\BeginImportSheetParse;
 use SpeedPuzzling\Web\Message\LinkEqualImportRows;
 use SpeedPuzzling\Web\Message\ParseImportSheet;
+use SpeedPuzzling\Web\Message\RecordEqualImportRows;
 use SpeedPuzzling\Web\Message\RecordImportSheetParsed;
 use SpeedPuzzling\Web\Message\RecordParsedImportRows;
 use SpeedPuzzling\Web\Query\GetImportSheetRows;
+use SpeedPuzzling\Web\Services\DataImport\ImportEqualRows;
 use SpeedPuzzling\Web\Services\DataImport\ImportProgress;
 use SpeedPuzzling\Web\Services\DataImport\ImportRowParser;
 use SpeedPuzzling\Web\Services\DataImport\SheetLookupFactory;
 use SpeedPuzzling\Web\Value\DataImport\ImportMapping;
 use SpeedPuzzling\Web\Value\DataImport\ImportSheetOptions;
 use SpeedPuzzling\Web\Value\DataImportLimits;
+use SpeedPuzzling\Web\Value\DataImportRowKind;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
@@ -43,6 +47,8 @@ readonly final class ParseImportSheetHandler
         private MessageBusInterface $messageBus,
         private ImportProgress $progress,
         private LoggerInterface $logger,
+        /** An argument only so that a test can page through groups one at a time */
+        private int $equalKeysPerPage = DataImportLimits::EQUAL_KEYS_PER_PAGE,
     ) {
     }
 
@@ -63,7 +69,8 @@ readonly final class ParseImportSheetHandler
 
             $mapping = ImportMapping::fromArray($sheet['mapping']);
 
-            if ($mapping->needsAnAnswer()) {
+            // Once per sheet and version: a second delivery, the safety net or a job beside a running one stops here
+            if ($mapping->needsAnAnswer() || $this->ask(new BeginImportSheetParse($message->importId, $message->sheetId, $message->mappingVersion)) !== true) {
                 return;
             }
 
@@ -79,8 +86,8 @@ readonly final class ParseImportSheetHandler
             $leftOut = 0;
             $after = 0;
 
-            do {
-                $page = $this->rows->page($message->sheetId, $after, DataImportLimits::ROWS_PER_BATCH);
+            // A page is bounded by rows and by bytes (GetImportSheetRows::page()): the last one is the empty one
+            while (($page = $this->rows->page($message->sheetId, $after, DataImportLimits::ROWS_PER_BATCH)) !== []) {
                 $records = [];
 
                 foreach ($page as $row) {
@@ -95,12 +102,16 @@ readonly final class ParseImportSheetHandler
                     };
                 }
 
-                if ($records !== [] && $this->ask(new RecordParsedImportRows($message->importId, $message->sheetId, $message->mappingVersion, $records)) !== true) {
+                if ($this->ask(new RecordParsedImportRows($message->importId, $message->sheetId, $message->mappingVersion, $records)) !== true) {
                     return;
                 }
 
                 $this->progress->publish($message->importId, always: false);
-            } while (count($page) === DataImportLimits::ROWS_PER_BATCH);
+            }
+
+            if ($this->numberEqualRows($message) === false) {
+                return;
+            }
 
             if ($this->ask(new RecordImportSheetParsed($message->importId, $message->sheetId, $message->mappingVersion, $understood, $needLook, $leftOut)) === true) {
                 $this->messageBus->dispatch(new LinkEqualImportRows($message->importId));
@@ -115,6 +126,68 @@ readonly final class ParseImportSheetHandler
         } finally {
             $this->progress->publish($message->importId);
         }
+    }
+
+    /**
+     * Rows of the sheet that are equal in all a key holds are numbered and linked (ImportEqualRows): whole groups,
+     * a page of keys at a time, from each group's light facts - the rows' cells are not read. Written in batches
+     * bounded like the parse's own. The groups are found by `equal_key`, which the numbering never changes: done
+     * twice, it gives the same.
+     *
+     * @return bool false: the sheet's mapping moved on - nothing more is written
+     */
+    private function numberEqualRows(ParseImportSheet $message): bool
+    {
+        $after = '';
+
+        while (($keys = $this->rows->sharedEqualKeys($message->sheetId, $after, $this->equalKeysPerPage)) !== []) {
+            $after = $keys[array_key_last($keys)];
+            $groups = [];
+
+            foreach ($this->rows->rowsEqualBy($message->sheetId, $keys) as $row) {
+                $groups[$row['equalKey']][$row['id']] = $row;
+            }
+
+            $batch = [];
+            $bytes = 0;
+
+            foreach ($groups as $rows) {
+                $facts = [];
+
+                foreach ($rows as $id => $row) {
+                    $attempt = $row['parsed']['attempt'] ?? null;
+                    $content = $row['parsed']['content'] ?? '';
+                    $facts[] = ['id' => $id, 'attempt' => is_int($attempt) ? $attempt : null, 'content' => is_string($content) ? $content : '', 'rowNumber' => $row['rowNumber']];
+                }
+
+                foreach (ImportEqualRows::number($facts) as $id => $numbered) {
+                    $row = $rows[$id];
+                    $isResult = $row['kind'] === DataImportRowKind::Result->value || $row['kind'] === DataImportRowKind::Both->value;
+                    $batch[$id] = [
+                        'occurrence' => $numbered['occurrence'],
+                        // Only a result's key holds the occurrence: two rows for one owned puzzle are one puzzle
+                        'sourceKey' => $isResult && $row['puzzleKey'] !== null ? ImportEqualRows::resultKey($row['parsed'], $row['puzzleKey'], $numbered['occurrence']) : null,
+                        'sameAs' => $numbered['sameAs'],
+                    ];
+                    $bytes += $row['bytes'];
+
+                    if (count($batch) >= DataImportLimits::ROWS_PER_BATCH || $bytes >= DataImportLimits::BYTES_PER_BATCH) {
+                        if ($this->ask(new RecordEqualImportRows($message->importId, $message->sheetId, $message->mappingVersion, $batch)) !== true) {
+                            return false;
+                        }
+
+                        $batch = [];
+                        $bytes = 0;
+                    }
+                }
+            }
+
+            if ($batch !== [] && $this->ask(new RecordEqualImportRows($message->importId, $message->sheetId, $message->mappingVersion, $batch)) !== true) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function ask(object $message): mixed

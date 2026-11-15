@@ -259,6 +259,7 @@ SELECT
     data_import_sheet.rows_understood,
     data_import_sheet.rows_need_look,
     data_import_sheet.rows_left_out,
+    data_import_sheet.set_up_failure IS NOT NULL AS failed,
     jsonb_array_length(COALESCE(data_import_sheet.mapping -> 'questions', '[]'::jsonb)) AS questions
 FROM data_import_sheet
 INNER JOIN data_import ON data_import.id = data_import_sheet.import_id
@@ -268,7 +269,7 @@ WHERE data_import_sheet.import_id = :importId
 ORDER BY data_import_sheet.position
 SQL;
 
-        /** @var list<array{position: int, title: string, hidden: bool, rows_total: int, columns_total: int, kind: null|string, mapping_version: int, parsed_version: null|int, rows_understood: int, rows_need_look: int, rows_left_out: int, questions: int}> $rows */
+        /** @var list<array{position: int, title: string, hidden: bool, rows_total: int, columns_total: int, kind: null|string, mapping_version: int, parsed_version: null|int, rows_understood: int, rows_need_look: int, rows_left_out: int, failed: bool, questions: int}> $rows */
         $rows = $this->database->executeQuery($query, [
             'importId' => $importId,
             'playerId' => $playerId,
@@ -288,6 +289,7 @@ SQL;
             rowsUnderstood: $row['rows_understood'],
             rowsNeedLook: $row['rows_need_look'],
             rowsLeftOut: $row['rows_left_out'],
+            failed: $row['failed'],
         ), $rows);
     }
 }

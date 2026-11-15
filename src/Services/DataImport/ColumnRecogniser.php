@@ -101,7 +101,8 @@ final readonly class ColumnRecogniser
             $columns[] = $mapped;
         }
 
-        return $layout !== null ? $columns : self::oneColumnPerField($columns, $strength);
+        // A known export with a header twice (two "Notes" columns) is held to the rule too: the first one stands
+        return self::oneColumnPerField($columns, $strength);
     }
 
     /**
@@ -302,7 +303,7 @@ final readonly class ColumnRecogniser
         $holder = [];
 
         foreach ($columns as $index => $column) {
-            $slot = $column->isSingleValued() ? $column->slot() : null;
+            $slot = $column->role !== null || $column->isSingleValued() ? $column->slot() : null;
 
             if ($slot === null) {
                 continue;

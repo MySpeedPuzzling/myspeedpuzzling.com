@@ -85,8 +85,24 @@ final class ImportColumnDecisionsTest extends TestCase
         self::assertSame(['3/4/2021', '5/6/2021'], $questions[0]->examples);
     }
 
-    public function testNoOrderFitsEveryRowTheOneMostRowsFollowIsTakenWithoutAQuestion(): void
+    public function testRowsThatCanOnlyBeDayFirstBesideRowsThatCanOnlyBeMonthFirstAreAlwaysAsked(): void
     {
+        $rows = [1 => ['Puzzle', 'Date'], 2 => ['Plum Orchard', '25/3/2023'], 3 => ['Chalk Cliffs', '3/25/2023']];
+
+        // One of each among hundreds that read both ways: a tie no count may settle
+        for ($row = 4; $row <= 300; $row++) {
+            $rows[$row] = ['Puzzle ' . $row, sprintf('%d/%d/2023', 1 + $row % 12, 1 + $row % 11)];
+        }
+
+        [$options, $questions] = $this->settle(Kit::sheet('Mixed', $rows));
+
+        self::assertNull($options->dateOrder);
+        self::assertSame(['date_order'], array_map(static fn (ImportQuestion $question): string => $question->id(), $questions));
+        self::assertEqualsCanonicalizing(['dmy', 'mdy'], $questions[0]->choices);
+        // A row of each is shown
+        self::assertSame(['25/3/2023', '3/25/2023'], $questions[0]->examples);
+
+        // Also when most rows go one way: the others are not outvoted silently
         [$options, $questions] = $this->settle(Kit::sheet('Mixed', [
             1 => ['Puzzle', 'Date'],
             2 => ['Plum Orchard', '30/01/2021'],
@@ -94,8 +110,31 @@ final class ImportColumnDecisionsTest extends TestCase
             4 => ['Yellow Bicycles', '12/31/2021'],
         ]));
 
+        self::assertNull($options->dateOrder);
+        self::assertSame(['dmy', ['30/01/2021', '14/02/2021', '12/31/2021']], [$questions[0]->suggested, $questions[0]->examples]);
+    }
+
+    public function testOneValueAmongHundredsThatReadBothWaysDoesNotSettleTheOrder(): void
+    {
+        $rows = [1 => ['Puzzle', 'Date'], 2 => ['Plum Orchard', '25/3/2023']];
+
+        for ($row = 3; $row <= 300; $row++) {
+            $rows[$row] = ['Puzzle ' . $row, sprintf('%d/%d/2023', 1 + $row % 12, 1 + $row % 11)];
+        }
+
+        [$options, $questions] = $this->settle(Kit::sheet('Long', $rows));
+
+        // Asked, with the order the one value points to offered first
+        self::assertNull($options->dateOrder);
+        self::assertSame(['date_order', ['dmy', 'mdy'], 'dmy'], [$questions[0]->id(), $questions[0]->choices, $questions[0]->suggested]);
+
+        // Three such values are evidence
+        $rows[3] = ['Chalk Cliffs', '26/3/2023'];
+        $rows[4] = ['Tin Robots', '27/3/2023'];
+        [$options, $questions] = $this->settle(Kit::sheet('Long', $rows));
+
         self::assertSame([], $questions);
-        self::assertSame(['order' => DateOrder::DayMonthYear, 'by' => ImportSheetOptions::BY_MOST_ROWS], $options->dateOrder);
+        self::assertSame(['order' => DateOrder::DayMonthYear, 'by' => ImportSheetOptions::BY_ROWS], $options->dateOrder);
     }
 
     public function testShortDatesAreAskedWhenEveryValueCanBeADayOrAYear(): void

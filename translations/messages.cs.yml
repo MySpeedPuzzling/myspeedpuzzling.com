@@ -11840,6 +11840,7 @@ data_import:
             not_puzzles: "Nejsou to puzzle"
             somebody_else: "Patří někomu jinému"
         recognising: "Zjišťujeme, co obsahuje…"
+        failed: "Tento list se nám nepodařilo zpracovat - chyba je na naší straně"
         waiting_for_answer: "Čeká na vaši odpověď"
         parsing: "Procházíme jeho řádky…"
         understood: "Řádky, kterým rozumíme: %understood% · ke kontrole: %look%"

@@ -11837,6 +11837,7 @@ data_import:
             not_puzzles: "Keine Puzzles"
             somebody_else: "Gehört jemand anderem"
         recognising: "Wir finden heraus, was es enthält…"
+        failed: "Dieses Blatt konnten wir nicht auswerten - der Fehler liegt bei uns"
         waiting_for_answer: "Wartet auf deine Antwort"
         parsing: "Die Zeilen werden durchgegangen…"
         understood: "Verstandene Zeilen: %understood% · zum Ansehen: %look%"

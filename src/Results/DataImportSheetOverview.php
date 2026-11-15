@@ -32,6 +32,8 @@ readonly final class DataImportSheetOverview
         /** Rows that are puzzles and wait with something to look at */
         public int $rowsNeedLook = 0,
         public int $rowsLeftOut = 0,
+        /** Its set-up ended without its rows (a fault of ours) - nothing more happens to it by itself */
+        public bool $failed = false,
     ) {
     }
 }

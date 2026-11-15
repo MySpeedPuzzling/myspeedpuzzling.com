@@ -8,7 +8,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\DataImport;
 use SpeedPuzzling\Web\Entity\DataImportRow;
 use SpeedPuzzling\Web\Entity\DataImportSheet;
-use SpeedPuzzling\Web\Value\DataImportLimits;
 
 readonly final class DataImportRowRepository
 {
@@ -54,35 +53,12 @@ readonly final class DataImportRowRepository
     }
 
     /**
-     * The rows of a sheet that share their key with another row of the same sheet, key by key - at most
-     * DataImportLimits::MAX_EQUAL_ROWS_PER_SHEET of them.
-     *
-     * @return list<DataImportRow>
+     * A row by its id without loading it - for pointing another row at it.
      */
-    public function withAKeySharedOnTheirSheet(DataImportSheet $sheet): array
+    public function reference(string $rowId): DataImportRow
     {
-        $shared = $this->entityManager->createQueryBuilder()
-            ->select('twin.sourceKey')
-            ->from(DataImportRow::class, 'twin')
-            ->where('twin.sheet = :sheet')
-            ->andWhere('twin.sourceKey IS NOT NULL')
-            ->groupBy('twin.sourceKey')
-            ->having('COUNT(twin.id) > 1');
-
-        /** @var list<DataImportRow> $rows */
-        $rows = $this->entityManager->createQueryBuilder()
-            ->select('r')
-            ->from(DataImportRow::class, 'r')
-            ->where('r.sheet = :sheet')
-            ->andWhere('r.sourceKey IN (' . $shared->getDQL() . ')')
-            ->orderBy('r.sourceKey', 'ASC')
-            ->addOrderBy('r.rowNumber', 'ASC')
-            ->setParameter('sheet', $sheet)
-            ->setMaxResults(DataImportLimits::MAX_EQUAL_ROWS_PER_SHEET)
-            ->getQuery()
-            ->getResult();
-
-        return $rows;
+        return $this->entityManager->getReference(DataImportRow::class, $rowId)
+            ?? throw new \LogicException('A reference is always given.');
     }
 
     /**

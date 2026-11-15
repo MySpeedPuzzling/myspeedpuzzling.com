@@ -170,11 +170,13 @@ WHERE data_import.status = :status
         SELECT 1
         FROM data_import_sheet sheet
         WHERE sheet.import_id = data_import.id
+            AND sheet.set_up_failure IS NULL
             AND (
                 sheet.mapping_version = 0
                 OR (
                     sheet.parsed_version IS DISTINCT FROM sheet.mapping_version
                     AND jsonb_array_length(COALESCE(sheet.mapping -> 'questions', '[]'::jsonb)) = 0
+                    AND (sheet.parsing_started_at IS NULL OR sheet.parsing_started_at < :since)
                 )
             )
     )

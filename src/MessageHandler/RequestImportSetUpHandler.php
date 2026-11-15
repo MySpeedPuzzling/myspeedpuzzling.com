@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\ParseImportSheet;
 use SpeedPuzzling\Web\Message\ProposeImportMappings;
@@ -13,6 +14,7 @@ use SpeedPuzzling\Web\Repository\DataImportRepository;
 use SpeedPuzzling\Web\Repository\DataImportSheetRepository;
 use SpeedPuzzling\Web\Services\Doctrine\IdLock;
 use SpeedPuzzling\Web\Value\DataImport\ImportMapping;
+use SpeedPuzzling\Web\Value\DataImportLimits;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -30,6 +32,7 @@ readonly final class RequestImportSetUpHandler
         private MessageBusInterface $messageBus,
         private IdLock $idLock,
         private ClockInterface $clock,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -45,10 +48,32 @@ readonly final class RequestImportSetUpHandler
         $propose = false;
         $queued = false;
 
+        $now = $this->clock->now();
+        $deadBefore = $now->modify('-' . DataImportLimits::PARSE_CLAIM_SECONDS . ' seconds');
+
         foreach ($this->dataImportSheetRepository->ofImport($import) as $sheet) {
+            if ($sheet->setUpFailure !== null) {
+                continue;
+            }
+
             if ($sheet->mappingVersion === 0) {
-                $propose = true;
-            } elseif ($sheet->isParsed() === false && ImportMapping::fromArray($sheet->mapping ?? [])->needsAnAnswer() === false) {
+                // Asked for a few times, then given up: a proposal that fails every time is not queued for ever
+                if ($sheet->proposalRequestedAgain()) {
+                    $propose = true;
+                } else {
+                    $this->logger->error('The mapping of a sheet of an import was asked for several times and never arrived - given up', [
+                        'import_id' => $message->importId,
+                        'sheet_id' => $sheet->id->toString(),
+                    ]);
+                }
+
+                continue;
+            }
+
+            // A parse somebody is at (its claim is fresh) is left alone; the job itself counts its starts
+            $claimed = $sheet->parsingVersion === $sheet->mappingVersion && $sheet->parsingStartedAt !== null && $sheet->parsingStartedAt > $deadBefore;
+
+            if ($sheet->waitsForItsParse() && $claimed === false && ImportMapping::fromArray($sheet->mapping ?? [])->needsAnAnswer() === false) {
                 $this->messageBus->dispatch(new ParseImportSheet($message->importId, $sheet->id->toString(), $sheet->mappingVersion));
                 $queued = true;
             }
@@ -58,7 +83,7 @@ readonly final class RequestImportSetUpHandler
             $this->messageBus->dispatch(new ProposeImportMappings($message->importId));
         }
 
-        $import->workedOn($this->clock->now());
+        $import->workedOn($now);
 
         return $propose || $queued;
     }

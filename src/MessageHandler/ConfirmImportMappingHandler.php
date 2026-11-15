@@ -95,7 +95,8 @@ readonly final class ConfirmImportMappingHandler
             $mapping,
             $options,
             $sheet->title,
-            $this->rows->rows($sheet->id->toString(), DataImportLimits::MAX_ROWS),
+            // Only the table's own rows, and only as many as are looked at: this runs under the import's lock
+            $this->rows->rows($sheet->id->toString(), DataImportLimits::COLUMN_DECISION_ROWS, $mapping->table()->firstRow ?? 1, $mapping->table()?->lastRow),
         );
 
         $mapping = $mapping->withQuestions($questions);
@@ -230,6 +231,10 @@ readonly final class ConfirmImportMappingHandler
     {
         $columns = array_map(static fn (MappedColumn $column): int => $column->column, $mapping->columns);
         $answers = [];
+
+        if (count($submitted) > DataImportLimits::MAX_REGION_COLUMNS) {
+            throw new InvalidImportMapping('The meanings of words belong to columns of the table.');
+        }
 
         foreach ($submitted as $column => $words) {
             if (in_array((int) $column, $columns, true) === false || is_array($words) === false || count($words) > self::MAX_WORDS_PER_COLUMN) {

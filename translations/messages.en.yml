@@ -12084,6 +12084,7 @@ data_import:
             not_puzzles: "Not puzzles"
             somebody_else: "Somebody else's"
         recognising: "Working out what it holds…"
+        failed: "We could not work this sheet out - a fault on our side"
         waiting_for_answer: "Waiting for your answer"
         parsing: "Reading through its rows…"
         understood: "Rows understood: %understood% · need a look: %look%"

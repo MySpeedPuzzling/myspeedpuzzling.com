@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Entity;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
@@ -17,6 +18,7 @@ use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Value\DataImport\ImportMapping;
 use SpeedPuzzling\Web\Value\DataImport\ImportSheetOptions;
 use SpeedPuzzling\Web\Value\DataImport\ImportSheetProposal;
+use SpeedPuzzling\Web\Value\DataImportLimits;
 use SpeedPuzzling\Web\Value\DataImportRowMeaning;
 use SpeedPuzzling\Web\Value\DataImportSheetKind;
 
@@ -30,6 +32,17 @@ use SpeedPuzzling\Web\Value\DataImportSheetKind;
 #[Index(columns: ['import_id', 'position'])]
 class DataImportSheet
 {
+    /** The proposed mapping could not be stored */
+    public const string SET_UP_MAPPING_INVALID = 'mapping_invalid';
+    /** The proposal was started DataImportLimits::MAX_SET_UP_ATTEMPTS times and never arrived */
+    public const string SET_UP_PROPOSAL_FAILED = 'proposal_failed';
+    /** The parse of the current mapping was started that often and never ended */
+    public const string SET_UP_PARSE_FAILED = 'parse_failed';
+
+    public const string PARSE_CLAIMED = 'claimed';
+    public const string PARSE_NOT_NEEDED = 'not_needed';
+    public const string PARSE_GIVEN_UP = 'given_up';
+
     #[Column(length: 100, nullable: true)]
     public null|string $googleGid = null;
 
@@ -100,6 +113,21 @@ class DataImportSheet
     #[Column(nullable: true)]
     public null|int $parsedVersion = null;
 
+    /** The mapping version a parse was last started for, and when it last gave news - the claim of ParseImportSheet */
+    #[Column(nullable: true)]
+    public null|int $parsingVersion = null;
+
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $parsingStartedAt = null;
+
+    /** How often the step the sheet waits for (its proposal, the parse of its current mapping) was started */
+    #[Column(options: ['default' => 0])]
+    public int $setUpAttempts = 0;
+
+    /** Why the sheet's set-up ended without its rows: SET_UP_* - null while nothing failed */
+    #[Column(length: 32, nullable: true)]
+    public null|string $setUpFailure = null;
+
     /** Rows that are puzzles and hold nothing unclear */
     #[Column(options: ['default' => 0])]
     public int $rowsUnderstood = 0;
@@ -159,6 +187,77 @@ class DataImportSheet
     public function lookedUpSheetChanged(): void
     {
         $this->mappingVersion++;
+        $this->startsOver();
+    }
+
+    /**
+     * A parse of the current mapping wants to start (ParseImportSheet): it may once. Not when the sheet is parsed
+     * for this version, when its set-up failed, or while another job's claim is fresh (it gave news after
+     * $deadBefore). Started DataImportLimits::MAX_SET_UP_ATTEMPTS times without ever ending, the sheet is given up.
+     *
+     * @return self::PARSE_*
+     */
+    public function claimParse(int $mappingVersion, DateTimeImmutable $now, DateTimeImmutable $deadBefore): string
+    {
+        if ($mappingVersion !== $this->mappingVersion || $this->isParsed() || $this->setUpFailure !== null) {
+            return self::PARSE_NOT_NEEDED;
+        }
+
+        if ($this->parsingVersion === $mappingVersion && $this->parsingStartedAt !== null && $this->parsingStartedAt > $deadBefore) {
+            return self::PARSE_NOT_NEEDED;
+        }
+
+        if ($this->setUpAttempts >= DataImportLimits::MAX_SET_UP_ATTEMPTS) {
+            $this->setUpFailure = self::SET_UP_PARSE_FAILED;
+
+            return self::PARSE_GIVEN_UP;
+        }
+
+        $this->setUpAttempts++;
+        $this->parsingVersion = $mappingVersion;
+        $this->parsingStartedAt = $now;
+
+        return self::PARSE_CLAIMED;
+    }
+
+    /**
+     * The running parse wrote a batch: its claim stays fresh.
+     */
+    public function parseGoesOn(DateTimeImmutable $now): void
+    {
+        $this->parsingStartedAt = $now;
+    }
+
+    /**
+     * The proposal of the sheet's mapping is asked for again (the safety net) - false: asked too often, given up.
+     */
+    public function proposalRequestedAgain(): bool
+    {
+        if ($this->setUpAttempts >= DataImportLimits::MAX_SET_UP_ATTEMPTS) {
+            $this->setUpFailure = self::SET_UP_PROPOSAL_FAILED;
+
+            return false;
+        }
+
+        $this->setUpAttempts++;
+
+        return true;
+    }
+
+    /**
+     * The sheet's set-up ends here, visibly - nothing queues it again until the player changes its mapping.
+     */
+    public function setUpFailed(string $failure): void
+    {
+        $this->setUpFailure = $failure;
+    }
+
+    /**
+     * Whether a step that runs by itself may still be queued for the sheet.
+     */
+    public function waitsForItsParse(): bool
+    {
+        return $this->mappingVersion > 0 && $this->isParsed() === false && $this->setUpFailure === null;
     }
 
     public function isParsed(): bool
@@ -169,6 +268,8 @@ class DataImportSheet
     public function parsed(int $mappingVersion, int $understood, int $needLook, int $leftOut): void
     {
         $this->parsedVersion = $mappingVersion;
+        $this->parsingVersion = null;
+        $this->parsingStartedAt = null;
         $this->rowsUnderstood = $understood;
         $this->rowsNeedLook = $needLook;
         $this->rowsLeftOut = $leftOut;
@@ -187,6 +288,18 @@ class DataImportSheet
         $this->rowMeaning = $mapping->rowMeaning;
         $this->region = $table?->range();
         $this->headerRow = $table?->headerRow;
+        $this->startsOver();
+    }
+
+    /**
+     * A new mapping version: nothing of the last one's attempts, claim or failure counts for it.
+     */
+    private function startsOver(): void
+    {
+        $this->setUpAttempts = 0;
+        $this->setUpFailure = null;
+        $this->parsingVersion = null;
+        $this->parsingStartedAt = null;
     }
 
     /**

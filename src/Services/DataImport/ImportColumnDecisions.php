@@ -21,6 +21,7 @@ use SpeedPuzzling\Web\Value\DataImport\ImportMapping;
 use SpeedPuzzling\Web\Value\DataImport\ImportQuestion;
 use SpeedPuzzling\Web\Value\DataImport\ImportQuestionType;
 use SpeedPuzzling\Web\Value\DataImport\ImportSheetOptions;
+use SpeedPuzzling\Web\Value\DataImport\ReadDate;
 use SpeedPuzzling\Web\Value\DataImport\ShortDateMeaning;
 use SpeedPuzzling\Web\Value\DataImportLimits;
 
@@ -38,6 +39,10 @@ use SpeedPuzzling\Web\Value\DataImportLimits;
 final readonly class ImportColumnDecisions
 {
     private const int EXAMPLES = 3;
+    /** Rows that can only be read in the winning order, for day first against month first to be taken unasked ... */
+    private const int ROWS_TO_SETTLE_THE_ORDER = 3;
+    /** ... or this share of the column's dates (a column of three dates is settled by one) */
+    private const float SHARE_TO_SETTLE_THE_ORDER = 0.3;
 
     public function __construct(
         private DurationReader $durationReader,
@@ -49,7 +54,8 @@ final readonly class ImportColumnDecisions
     }
 
     /**
-     * @param iterable<int, array<int, array<string, mixed>>> $rows the sheet's rows: row number => cells by column
+     * @param iterable<int, array<int, array<string, mixed>>> $rows the table's rows in their order: row number =>
+     *        cells by column (GetImportSheetRows::rows() from the table's first row to its last, capped)
      *
      * @return array{ImportSheetOptions, list<ImportQuestion>}
      */
@@ -78,11 +84,12 @@ final readonly class ImportColumnDecisions
         $seen = 0;
 
         foreach ($rows as $number => $cells) {
-            if ($table->holdsRow($number) === false) {
+            if ($number < $table->firstRow) {
                 continue;
             }
 
-            if (++$seen > DataImportLimits::COLUMN_DECISION_ROWS) {
+            // Past the table, or past what is looked at: nothing more is read (the caller hands over a stream)
+            if ($table->holdsRow($number) === false || ++$seen > DataImportLimits::COLUMN_DECISION_ROWS) {
                 break;
             }
 
@@ -180,7 +187,7 @@ final readonly class ImportColumnDecisions
     }
 
     /**
-     * @param list<\SpeedPuzzling\Web\Value\DataImport\ReadDate> $dates
+     * @param list<ReadDate> $dates
      * @param list<string> $texts
      * @param list<null|int> $storedYears the year a date cell stores although its format hides it
      * @param list<ImportQuestion> $questions
@@ -206,6 +213,9 @@ final readonly class ImportColumnDecisions
         }
 
         if ($options->dateOrder === null) {
+            $meaning = $short->meaning;
+            $settled = array_map(static fn (ReadDate $date): ReadDate => $meaning === null ? $date : $date->asShort($meaning), $dates);
+
             if ($resolution->state === DateOrderState::Ambiguous) {
                 $questions[] = new ImportQuestion(
                     ImportQuestionType::DateOrder,
@@ -216,11 +226,51 @@ final readonly class ImportColumnDecisions
                     rows: $resolution->rows,
                 );
             } elseif ($resolution->state === DateOrderState::Mixed) {
+                // Rows that can only be day first beside rows that can only be month first: never chosen for the
+                // player - asked, with a row of each. The rows that do not follow the answer are row problems
+                $alive = array_keys(array_filter($resolution->rowsByOrder));
                 $most = $resolution->rowsByOrder;
                 arsort($most);
-                $options = $options->withDateOrder(DateOrder::from((string) array_key_first($most)), ImportSheetOptions::BY_MOST_ROWS);
+                $examples = [];
+
+                foreach ($alive as $order) {
+                    $examples = [...$examples, ...array_slice(self::rowsOnlyIn(DateOrder::from($order), $alive, $settled), 0, 2)];
+                }
+
+                $questions[] = new ImportQuestion(
+                    ImportQuestionType::DateOrder,
+                    $column,
+                    array_map(strval(...), $alive),
+                    (string) array_key_first($most),
+                    self::examples($texts, $examples),
+                    rows: $resolution->rows,
+                );
             } elseif ($resolution->orders !== []) {
-                $options = $options->withDateOrder($resolution->orders[0], ImportSheetOptions::BY_ROWS);
+                $order = $resolution->orders[0];
+                $other = match ($order) {
+                    DateOrder::DayMonthYear => DateOrder::MonthDayYear,
+                    DateOrder::MonthDayYear => DateOrder::DayMonthYear,
+                    default => null,
+                };
+                $evidence = $other === null || ($resolution->rowsByOrder[$other->value] ?? 0) === 0
+                    ? null
+                    : count(self::rowsOnlyIn($order, [$order->value, $other->value], $settled));
+
+                // One value settles a short column; in a long one a single "25/3" among hundreds of dates that read
+                // both ways may be the typo - so day first against month first is taken from the rows only on some
+                // evidence, and asked otherwise (with the order the evidence points to offered first)
+                if ($evidence === null || $evidence >= self::ROWS_TO_SETTLE_THE_ORDER || $evidence >= self::SHARE_TO_SETTLE_THE_ORDER * $resolution->rows) {
+                    $options = $options->withDateOrder($order, ImportSheetOptions::BY_ROWS);
+                } else {
+                    $questions[] = new ImportQuestion(
+                        ImportQuestionType::DateOrder,
+                        $column,
+                        [$order->value, $other->value],
+                        $order->value,
+                        self::examples($texts, array_keys(array_filter($settled, static fn (ReadDate $date): bool => $date->allows($order) && $date->allows($other)))),
+                        rows: $resolution->rows,
+                    );
+                }
             }
         }
 
@@ -288,6 +338,35 @@ final readonly class ImportColumnDecisions
         );
 
         return [$options, $questions];
+    }
+
+    /**
+     * The rows (their indexes) written in numbers that can be read in one order and in none of the others.
+     *
+     * @param list<int|string> $among the orders compared (DateOrder's values)
+     * @param array<int, ReadDate> $dates
+     *
+     * @return list<int>
+     */
+    private static function rowsOnlyIn(DateOrder $order, array $among, array $dates): array
+    {
+        $rows = [];
+
+        foreach ($dates as $index => $date) {
+            if ($date->possibleOrders === [] || $date->allows($order) === false) {
+                continue;
+            }
+
+            foreach ($among as $other) {
+                if ($other !== $order->value && $date->allows(DateOrder::from((string) $other))) {
+                    continue 2;
+                }
+            }
+
+            $rows[] = $index;
+        }
+
+        return $rows;
     }
 
     /**

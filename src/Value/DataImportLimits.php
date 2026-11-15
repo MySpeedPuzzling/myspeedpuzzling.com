@@ -61,6 +61,12 @@ final class DataImportLimits
     public const int MAX_EQUAL_ROWS_PER_SHEET = 5000;
     /** A read import's lost or failed step (its mapping, a sheet's parse) is queued again for this long after the read */
     public const int SET_UP_RETRIED_FOR_DAYS = 7;
+    /** A sheet's parse that gave no news for this long is taken to be dead: another job may take it over */
+    public const int PARSE_CLAIM_SECONDS = 900;
+    /** How often a sheet's step that runs by itself (its proposal, its parse) is started before the sheet is failed */
+    public const int MAX_SET_UP_ATTEMPTS = 3;
+    /** Keys shared by several rows of a sheet that are numbered in one go (whole groups, never a cut one) */
+    public const int EQUAL_KEYS_PER_PAGE = 200;
     /** Names a puzzle list is looked up by */
     public const int MAX_LOOKUP_NAMES = 50_000;
 

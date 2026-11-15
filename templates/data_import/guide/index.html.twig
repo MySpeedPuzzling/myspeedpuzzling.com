@@ -1,0 +1,272 @@
+{% extends 'base.html.twig' %}
+
+{#
+    "How the import works" - the public guide of the spreadsheet import (docs/features/data-import/guided-flow.md
+    §13, entry-points.md): one small sample spreadsheet of invented puzzles followed through the five steps, each
+    example real HTML in the look of the screens and with the screens' own texts (a renamed button renames itself
+    here), then "Questions people ask" and what the steps did not say. All 6 locales, no screenshots. The anchors
+    are linked from the flow's footer and from elsewhere - ImportGuideControllerTest pins them. Nothing here is
+    interactive and nothing is read: `sample` is ImportGuideSample.
+#}
+
+{% set questions = 1..11 %}
+{# Came from a screen of an import ("How this step works"): the way back is the first line (docs/features/return-url.md) #}
+{% set back_path = safe_return_url(app.request.query.get('return')) %}
+{% set back_path = back_path is not null and back_path matches '#^/(en|cs|de|es|fr|ja)/import(/[A-Za-z0-9/_-]*)?$#' ? back_path : null %}
+
+{% block title %}{{ 'import_guide.meta.title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'import_guide.meta.description'|trans }}{% endblock %}
+{% block robots %}
+    {% if app.request.query.count > 0 %}
+        <meta name="robots" content="noindex, follow">
+    {% else %}
+        <meta name="robots" content="index, follow">
+    {% endif %}
+{% endblock %}
+
+{% block json_ld %}
+{{ parent() }}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+        {% for number in questions %}
+        {
+            "@type": "Question",
+            "name": {{ ('import_guide.questions.q' ~ number)|trans|json_ld }},
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": {{ ('import_guide.questions.a' ~ number)|trans|json_ld }}
+            }
+        }{% if not loop.last %},{% endif %}
+
+        {% endfor %}
+    ]
+}
+</script>
+{% endblock %}
+
+{% block content %}
+    {% set anchor_style = 'scroll-margin-top: calc(var(--header-height, 100px) + 1rem);' %}
+
+    <div class="mx-auto pb-4" style="max-width: 720px;" data-testid="import-guide">
+        {% if back_path is not null %}
+            <a href="{{ back_path }}" class="d-inline-flex align-items-center fs-sm mb-2" style="min-height: 44px;" rel="nofollow" data-testid="import-guide-back">
+                <i class="bi bi-chevron-left me-1" aria-hidden="true"></i>{{ 'import_guide.back'|trans }}
+            </a>
+        {% endif %}
+
+        <header class="mb-4">
+            <h1 class="h2 mb-2">{{ 'import_guide.to_guide'|trans }}</h1>
+            <p class="fs-lg text-muted mb-3">{{ 'import_guide.lead'|trans }}</p>
+            {{ block('start_buttons') }}
+        </header>
+
+        {{ include('data_import/guide/_sample.html.twig', {sample: sample}, with_context = false) }}
+
+        {# 1 Your file #}
+        <section class="mb-5" id="step-file" style="{{ anchor_style }}">
+            <h2 class="h4 d-flex align-items-center gap-2"><span class="guide-step-marker" aria-hidden="true">1</span>{{ 'data_import.flow.step.file'|trans }}</h2>
+            <p>{{ 'import_guide.steps.file'|trans }}</p>
+            {{ include('data_import/guide/_figure_open.html.twig', {name: 'file', step: 1}, with_context = false) }}
+                <div class="fw-medium text-break">my-puzzles.xlsx</div>
+                <div class="fs-sm text-muted">{{ 'data_import.reading.rows'|trans({'%count%': sample|length}) }}</div>
+            </figure>
+            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.file'|trans({'%days%': keep_days}), testid: 'guide-explain-file'}, with_context = false) }}
+        </section>
+
+        {# 2 Check #}
+        <section class="mb-5" id="step-check" style="{{ anchor_style }}">
+            <h2 class="h4 d-flex align-items-center gap-2"><span class="guide-step-marker" aria-hidden="true">2</span>{{ 'data_import.flow.step.check'|trans }}</h2>
+            <p>{{ 'import_guide.steps.check.text'|trans }}</p>
+            <p>{{ 'import_guide.steps.check.detail'|trans }}</p>
+            <p>{{ 'import_guide.steps.check.once'|trans({'%button%': 'data_import.flow.looks_right'|trans}) }}</p>
+            {{ include('data_import/guide/_figure_open.html.twig', {name: 'check', step: 2}, with_context = false) }}
+                <div class="bg-white border rounded-2 p-2 mb-2">
+                    <div class="fw-medium mb-1">{{ 'import_guide.steps.check.question'|trans }}</div>
+                    <div class="d-flex align-items-center gap-2 py-1"><i class="bi bi-circle text-muted" aria-hidden="true"></i><span>{{ 'import_guide.steps.check.hours'|trans }} <span class="text-muted">→ 3:26:00</span></span></div>
+                    <div class="d-flex align-items-center gap-2 py-1"><i class="bi bi-circle text-muted" aria-hidden="true"></i><span>{{ 'import_guide.steps.check.minutes'|trans }} <span class="text-muted">→ 0:03:26</span></span></div>
+                </div>
+                <div class="fs-sm"><i class="bi bi-check-circle text-success me-1" aria-hidden="true"></i>{{ 'import_guide.steps.check.summary'|trans }}</div>
+                <div class="fs-sm text-muted mt-1">{{ 'import_guide.steps.check.month'|trans({'%cell%': 'import_guide.sample.month'|trans}) }}</div>
+                <span class="btn btn-primary w-100 text-wrap mt-2" aria-disabled="true">{{ 'data_import.flow.looks_right'|trans }}</span>
+            </figure>
+        </section>
+
+        {# 3 People #}
+        <section class="mb-5" id="step-people" style="{{ anchor_style }}">
+            <h2 class="h4 d-flex align-items-center gap-2"><span class="guide-step-marker" aria-hidden="true">3</span>{{ 'data_import.flow.step.people'|trans }}</h2>
+            <p>{{ 'import_guide.steps.people'|trans }}</p>
+            {{ include('data_import/guide/_figure_open.html.twig', {name: 'people', step: 3}, with_context = false) }}
+                <div class="bg-white border rounded-2 p-2">
+                    <div class="d-flex justify-content-between gap-2"><span class="fw-medium">Anna</span><span class="fs-sm text-muted">{{ 'data_import.people.rows'|trans({'%count%': 1}) }}</span></div>
+                    <div class="fs-sm fw-medium mt-2">{{ 'data_import.people.who'|trans({'%name%': 'Anna'}) }}</div>
+                    <div class="d-flex align-items-center gap-2 py-1"><i class="bi bi-record-circle text-primary" aria-hidden="true"></i><span>{{ 'data_import.people.answer.guest'|trans }}</span></div>
+                    <div class="d-flex align-items-center gap-2 py-1"><i class="bi bi-circle text-muted" aria-hidden="true"></i><span>{{ 'data_import.people.answer.code'|trans }}</span></div>
+                </div>
+            </figure>
+            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.guest'|trans, testid: 'guide-explain-guest'}, with_context = false) }}
+            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.player_partner'|trans, fold: true, summary: 'data_import.explain.player_partner_summary'|trans, testid: 'guide-explain-player'}, with_context = false) }}
+        </section>
+
+        {# 4 Puzzles #}
+        <section class="mb-5" id="step-puzzles" style="{{ anchor_style }}">
+            <h2 class="h4 d-flex align-items-center gap-2"><span class="guide-step-marker" aria-hidden="true">4</span>{{ 'data_import.flow.step.puzzles'|trans }}</h2>
+            <p>{{ 'import_guide.steps.puzzles.text'|trans }}</p>
+            {{ include('data_import/guide/_figure_open.html.twig', {name: 'puzzles', step: 4}, with_context = false) }}
+                <div class="fw-medium">{{ 'data_import.puzzles.group.found.title'|trans }} (4)</div>
+                <p class="fs-sm text-muted mb-2">{{ 'import_guide.steps.puzzles.matched'|trans }}</p>
+                {{ include('data_import/guide/_puzzle.html.twig', {row: sample[0], state: 'data_import.puzzles.card.state.catalogue'|trans}, with_context = false) }}
+
+                <div class="fw-medium mt-3">{{ 'data_import.puzzles.group.probably.title'|trans }} (1)</div>
+                <p class="fs-sm text-muted mb-2">{{ 'import_guide.steps.puzzles.looks'|trans }}</p>
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-check-square-fill text-primary fs-4 flex-shrink-0" aria-hidden="true"></i>
+                    <div class="flex-grow-1" style="min-width: 0;">{{ include('data_import/guide/_puzzle.html.twig', {row: sample[4]|merge({brand: 'Pinewood'})}, with_context = false) }}</div>
+                </div>
+
+                <div class="fw-medium mt-3">{{ 'data_import.puzzles.group.not_found.title'|trans }} (1)</div>
+                <p class="fs-sm text-muted mb-2">{{ 'import_guide.steps.puzzles.not_in_db'|trans }}</p>
+                {{ include('data_import/guide/_puzzle.html.twig', {row: sample[5], state: 'data_import.puzzles.card.state.unlisted'|trans, state_class: 'bg-secondary'}, with_context = false) }}
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                    <span class="btn btn-sm btn-outline-primary" aria-disabled="true">{{ 'data_import.puzzles.chooser.unlisted'|trans }}</span>
+                    <span class="btn btn-sm btn-outline-secondary" aria-disabled="true">{{ 'data_import.puzzles.chooser.leave_out'|trans }}</span>
+                </div>
+            </figure>
+            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.unlisted'|trans, more: 'data_import.explain.unlisted_more'|trans, testid: 'guide-explain-unlisted'}, with_context = false) }}
+        </section>
+
+        {# 5 Check and add #}
+        <section class="mb-5" id="step-add" style="{{ anchor_style }}">
+            <h2 class="h4 d-flex align-items-center gap-2"><span class="guide-step-marker" aria-hidden="true">5</span>{{ 'data_import.add.title'|trans }}</h2>
+            <p>{{ 'import_guide.steps.add.text'|trans }}</p>
+            {{ include('data_import/guide/_figure_open.html.twig', {name: 'add', step: 5}, with_context = false) }}
+                <div class="fw-medium mb-2">{{ 'import_guide.steps.add.ready'|trans }}</div>
+                {% for row in sample|slice(0, 3) %}
+                    <div class="d-flex align-items-center gap-2 mb-1{{ loop.index == 2 ? ' opacity-50' }}">
+                        <i class="bi {{ loop.index == 2 ? 'bi-square' : 'bi-check-square-fill text-primary' }} fs-5 flex-shrink-0" aria-hidden="true"></i>
+                        <div class="flex-grow-1" style="min-width: 0;">{{ include('data_import/guide/_puzzle.html.twig', {row: row, state: loop.index == 2 ? 'data_import.columns.field.none'|trans : row.time, state_class: loop.index == 2 ? 'bg-secondary' : 'bg-light text-dark border'}, with_context = false) }}</div>
+                    </div>
+                {% endfor %}
+                <span class="btn btn-primary w-100 text-wrap mt-2" aria-disabled="true">{{ 'data_import.add.button'|trans({'%number%': 5}) }}</span>
+            </figure>
+            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.dont_import'|trans, testid: 'guide-explain-dont-import'}, with_context = false) }}
+            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.daily_limit'|trans({'%number%': daily_limit|format_number}), testid: 'guide-explain-daily-limit'}, with_context = false) }}
+        </section>
+
+        {# What ends up on the profile #}
+        <section class="mb-5" id="on-your-profile" style="{{ anchor_style }}">
+            <h2 class="h4">{{ 'import_guide.profile.title'|trans }}</h2>
+            {{ include('data_import/guide/_figure_open.html.twig', {name: 'profile'}, with_context = false) }}
+                <ul class="list-unstyled mb-0">
+                    {% for row in sample %}
+                        <li class="d-flex gap-2 py-2{{ loop.last ? '' : ' border-bottom' }}" data-testid="guide-profile-row">
+                            <span class="text-muted fs-sm flex-shrink-0 text-nowrap">{{ 'import_guide.sample.row'|trans({'%number%': row.number}) }}</span>
+                            <span>
+                                <span class="fw-medium d-block">{{ ('import_guide.sample.puzzle' ~ row.number)|trans }}</span>
+                                <span class="fs-sm">{{ ('import_guide.profile.row' ~ row.number)|trans({'%cell%': 'import_guide.sample.month'|trans}) }}</span>
+                            </span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </figure>
+            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.add'|trans, testid: 'guide-explain-add'}, with_context = false) }}
+        </section>
+
+        {# Undo #}
+        <section class="mb-5" id="take-back" style="{{ anchor_style }}">
+            <h2 class="h4">{{ 'data_import.undo.title'|trans }}</h2>
+            <p>{{ 'data_import.explain.undo'|trans }} {{ 'data_import.explain.undo_more'|trans }}</p>
+            <p>{{ 'import_guide.several'|trans({'%page%': 'data_import.added.title'|trans, '%select%': 'data_import.after.list.select'|trans}) }}</p>
+            {{ include('data_import/guide/_figure_open.html.twig', {name: 'undo'}, with_context = false) }}
+                <div class="d-flex align-items-center gap-2">
+                    <div class="flex-grow-1" style="min-width: 0;">{{ include('data_import/guide/_puzzle.html.twig', {row: sample[0]}, with_context = false) }}</div>
+                    <span class="btn btn-sm btn-outline-secondary flex-shrink-0" aria-disabled="true">{{ 'data_import.undo.row'|trans }}</span>
+                </div>
+            </figure>
+        </section>
+
+        {# Questions people ask #}
+        <section class="mb-5" id="questions" style="{{ anchor_style }}">
+            <h2 class="h4 mb-3">{{ 'import_guide.questions.title'|trans }}</h2>
+            {% for number in questions %}
+                <details class="border-bottom py-1" open data-testid="guide-question">
+                    <summary class="fw-medium d-flex align-items-center" style="min-height: 44px; cursor: pointer;">{{ ('import_guide.questions.q' ~ number)|trans }}</summary>
+                    <p class="mb-2">{{ ('import_guide.questions.a' ~ number)|trans }}</p>
+                </details>
+            {% endfor %}
+        </section>
+
+        {# What the steps did not say #}
+        <section class="mb-4" id="what" style="{{ anchor_style }}">
+            <h2 class="h5">{{ 'import_guide.what.title'|trans }}</h2>
+            <ul class="mb-0 ps-3">
+                {% for item in ['results', 'owned', 'wish_list', 'formats', 'apps', 'fields'] %}
+                    <li class="mb-1">{{ ('import_guide.what.' ~ item)|trans }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+
+        <section class="mb-4" id="your-file" style="{{ anchor_style }}">
+            <h2 class="h5">{{ 'import_guide.file.title'|trans }}</h2>
+            <ul class="mb-0 ps-3">
+                <li class="mb-1">{{ 'data_import.explain.file'|trans({'%days%': keep_days}) }}</li>
+                <li class="mb-1">{{ 'import_guide.file.google'|trans }}</li>
+                <li class="mb-1">{{ 'import_guide.file.discard'|trans }}</li>
+                <li class="mb-1">{{ 'import_guide.steps.add.finish'|trans }}</li>
+            </ul>
+        </section>
+
+        <section class="mb-4" id="never-twice" style="{{ anchor_style }}">
+            <h2 class="h5">{{ 'import_guide.never_twice.title'|trans }}</h2>
+            <p class="mb-0">{{ 'import_guide.never_twice.text'|trans }}</p>
+        </section>
+
+        <section class="mb-4" id="imported-result" style="{{ anchor_style }}">
+            <h2 class="h5">{{ 'import_guide.result.title'|trans }}</h2>
+            <ul class="mb-0 ps-3">
+                <li class="mb-1">{{ 'data_import.explain.add'|trans }}</li>
+                <li class="mb-1">{{ 'import_guide.result.dated'|trans }}</li>
+                <li class="mb-1">{{ 'data_import.explain.no_photo'|trans }}</li>
+                <li class="mb-1">{{ 'import_guide.result.partners'|trans }}</li>
+                <li class="mb-1">{{ 'data_import.explain.unusual_time'|trans }}</li>
+                <li class="mb-1">{{ 'data_import.explain.daily_limit'|trans({'%number%': daily_limit|format_number}) }}</li>
+            </ul>
+        </section>
+
+        <section class="mb-4" id="unlisted" style="{{ anchor_style }}">
+            <h2 class="h5">{{ 'unlisted_puzzles.title'|trans }}</h2>
+            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.unlisted'|trans, more: 'data_import.explain.unlisted_more'|trans, testid: 'guide-explain-unlisted-section'}, with_context = false) }}
+        </section>
+
+        <section class="mb-5" id="not-yet" style="{{ anchor_style }}">
+            <h2 class="h5">{{ 'import_guide.not_yet.title'|trans }}</h2>
+            <ul class="mb-0 ps-3">
+                {% for item in ['old_formats', 'photos', 'lists', 'events', 'own_columns', 'unlisted', 'sync'] %}
+                    <li class="mb-1">{{ ('import_guide.not_yet.' ~ item)|trans }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+
+        <section id="start" style="{{ anchor_style }}">
+            <h2 class="h5">{{ 'import_guide.start.title'|trans }}</h2>
+            <p>{{ 'data_import.nothing_until_add'|trans }}</p>
+            {{ block('start_buttons') }}
+        </section>
+    </div>
+{% endblock %}
+
+{# The way in: a player goes to the import; a guest signs up (or in) with `return` = the import's own path, checked
+   again where it is used (docs/features/return-url.md; sign-up lands on the welcome screen with the import first) #}
+{% block start_buttons %}
+    <div class="d-grid d-sm-flex flex-wrap align-items-center gap-2" data-testid="import-guide-start">
+        {% if logged_user.profile is not null %}
+            <a class="btn btn-primary text-wrap" href="{{ path('data_imports') }}"><i class="bi bi-upload me-1" aria-hidden="true"></i>{{ 'data_import.home.import_button'|trans }}</a>
+        {% else %}
+            <a class="btn btn-primary text-wrap" rel="nofollow" href="{{ path('register', {return: path('data_imports')}) }}">{{ 'import_guide.start_guest'|trans }}</a>
+            <a class="btn btn-link text-wrap" rel="nofollow" href="{{ path('login', {return: path('data_imports')}) }}">{{ 'import_guide.sign_in'|trans }}</a>
+        {% endif %}
+        <span class="fs-sm text-muted">{{ 'import_guide.free'|trans }}</span>
+    </div>
+{% endblock %}

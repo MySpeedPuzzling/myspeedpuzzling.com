@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Message\RegisterUser;
 use SpeedPuzzling\Web\Message\SendEmailVerificationLink;
 use SpeedPuzzling\Web\Security\LoginFormAuthenticator;
 use SpeedPuzzling\Web\Security\UserAccountProvider;
+use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Form\FormError;
@@ -144,7 +145,11 @@ final class RegisterController extends AbstractController
                 ),
             );
 
-            return $this->redirectToRoute('registration_welcome');
+            // Where the visitor was heading when they signed up (docs/features/return-url.md): carried to the welcome
+            // screen, which offers it as a button - the welcome screen stays the landing. Checked here and again there.
+            $return = ReturnUrl::tryFrom($request->request->getString('return'));
+
+            return $this->redirectToRoute('registration_welcome', $return !== null ? ['return' => $return->path] : []);
         }
 
         return $this->render('register.html.twig', [

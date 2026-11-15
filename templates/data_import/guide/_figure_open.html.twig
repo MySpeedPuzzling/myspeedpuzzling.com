@@ -1,0 +1,19 @@
+{#
+    The frame of one example of the guide (docs/features/data-import/guided-flow.md §13 "Examples as real HTML"):
+    not interactive - `inert`, no form, no id, no Turbo frame - and labelled "Example". Closed by `</figure>` in the
+    including template. Variables: name (the example's test id), optional step (1-5: the flow's dots above it).
+#}
+<figure class="guide-example card card-body shadow-sm bg-light p-3 my-3" data-testid="guide-example-{{ name }}" inert>
+    <figcaption class="fs-xs text-uppercase text-muted fw-semibold mb-2">{{ 'import_guide.example'|trans }}</figcaption>
+    {% if step|default(null) is not null %}
+        {% set keys = {1: 'file', 2: 'check', 3: 'people', 4: 'puzzles', 5: 'add'} %}
+        <div class="d-flex align-items-center mb-1" aria-hidden="true">
+            {% for number in 1..5 %}
+                <span class="rounded-circle d-inline-flex align-items-center justify-content-center fs-sm fw-semibold flex-shrink-0 {{ number == step ? 'bg-primary text-white' : (number < step ? 'bg-success text-white' : 'border text-muted') }}" style="width: 28px; height: 28px;">
+                    {%- if number < step %}<i class="bi bi-check-lg"></i>{% else %}{{ number }}{% endif -%}
+                </span>
+                {% if not loop.last %}<span class="flex-grow-1 border-top mx-1"></span>{% endif %}
+            {% endfor %}
+        </div>
+        <div class="fs-sm text-muted mb-2">{{ 'data_import.flow.step_of'|trans({'%step%': step, '%name%': ('data_import.flow.step.' ~ keys[step])|trans}) }}</div>
+    {% endif %}

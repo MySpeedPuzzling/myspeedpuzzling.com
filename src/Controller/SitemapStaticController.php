@@ -62,6 +62,8 @@ final class SitemapStaticController extends AbstractController
         'wjpc_hub',
         'puzzle_picker',
         'getting_started',
+        // The spreadsheet import's public guide (docs/features/data-import/entry-points.md) - the import itself is noindex
+        'import_guide',
     ];
 
     public function __construct(

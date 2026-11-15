@@ -1061,6 +1061,8 @@ competition_referees:
   "answer_button_start_solving": "<p class=\"mb-0\">Ouvre le chronomètre pour les puzzles sélectionnés. Lancez-le lorsque vous commencez à assembler votre vrai puzzle chez vous, puis enregistrez le temps dans votre profil une fois terminé. L'assemblage ne se fait pas sur le site.</p>\n"
   "question_button_add_my_time": "Que fait le bouton <a class=\"btn btn-accent btn-sm mx-2\"><i class=\"ci-add\"></i> Ajouter mon temps</a> ?"
   "answer_button_add_my_time": "<p class=\"mb-0\">Ouvre l'ajout de votre temps aux puzzles sélectionnés - adapté si vous utilisez votre propre chronomètre et venez de terminer l'assemblage. Si vous avez assemblé dans le passé et voulez enregistrer le temps, vous avez la possibilité de spécifier également la date d'assemblage.</p>\n"
+  "question_import_spreadsheet": "Je tiens mes temps ou ma collection dans un tableur. Puis-je l'apporter ?"
+  "answer_import_spreadsheet": "<p>Oui, et c'est gratuit. Importez un fichier Excel ou CSV ou une feuille Google Sheets : MySpeedPuzzling le lit, vous vérifiez ce qu'il a compris, puis vous l'ajoutez à votre profil. Rien n'est jamais ajouté deux fois, et vous pouvez annuler. <a href=\"%import_guide_link%\">Comment fonctionne l'import</a></p>"
   "question_helping": "Voulez-vous un coup de main ?"
   "answer_helping": "<p class=\"mb-0\">Bien sûr ! Connectez-vous avec nous, idéalement avec une idée de comment vous aimeriez vous impliquer dans la construction de la communauté speed puzzling, nous mettrons nos têtes ensemble et trouverons sûrement quelque chose.</p>\n"
   "question_what_is_speed_puzzling": "Qu'est-ce que le speed puzzling ?"
@@ -11781,6 +11783,7 @@ data_import:
         continue_later: "Continuer - je répondrai plus tard"
         looks_right: "C'est correct - continuer"
         saved: "Tout est enregistré au fur et à mesure. Vous pouvez partir et revenir à tout moment."
+        how_step_works: "Comment fonctionne cette étape"
         add_ready_now: "Ou ajoutez dès maintenant ce qui est prêt (%number%) - vous pourrez revenir au reste à tout moment."
         add_ready: "Ou ajoutez dès maintenant ce qui est prêt - vous pourrez revenir au reste à tout moment."
         state:
@@ -12851,7 +12854,6 @@ data_import:
         taken_back: "{0}Nous avons annulé ce que votre import de %file% avait ajouté.|{1}Nous avons annulé 1 résultat que votre import de %file% avait ajouté.|]1,Inf[Nous avons annulé %count% résultats que votre import de %file% avait ajoutés."
         taken_back_reason: "Raison : %reason%"
 
-# Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
         with_you: "{1}%player% a ajouté un résultat avec vous depuis un tableur.|[0,Inf[%player% a ajouté %count% résultats avec vous depuis un tableur."
         with_you_open: "Duos et équipes"
         leave: "Ce ne sont pas les miens - retirez-moi"
@@ -12989,6 +12991,149 @@ data_import:
             left_out_puzzle: "{0,1}%number% ligne n'est pas importée. Vous pouvez la remettre.|[2,Inf[%number% lignes ne sont pas importées. Vous pouvez remettre chacune d'elles."
             left_out_sheet: "Les lignes de « %title% » ne sont pas importées. Vous pouvez le modifier à l'étape 2, « Comment nous avons lu votre fichier »."
             changed_meanwhile: "Cela a changé entre-temps - voici où on en est maintenant. Rien n'a été enregistré."
+
+# The public guide of the spreadsheet import and its entry points (docs/features/data-import/entry-points.md)
+import_guide:
+    meta:
+        title: "Importez votre tableur de puzzles - temps, collection, liste de souhaits"
+        description: "Apportez sur MySpeedPuzzling les temps et la collection de puzzles que vous teniez dans Excel, un CSV ou Google Sheets. Gratuit : nous lisons le fichier, vous vérifiez, et rien n'est jamais ajouté deux fois."
+    lead: "Vos résultats ou votre collection sont dans un tableur ? Apportez le fichier - nous le lisons, vous le vérifiez, et il est sur votre profil. Voici un petit tableur, suivi de bout en bout."
+    free: "Gratuit pour tout le monde."
+    back: "Retour à votre import"
+    example: "Exemple"
+    start_guest: "Créer un compte gratuit et commencer"
+    sign_in: "J'ai déjà un compte - me connecter"
+    to_guide: "Comment fonctionne l'import"
+    what:
+        title: "Ce que vous pouvez apporter"
+        results: "Résultats - les puzzles que vous avez faits, avec ou sans temps. Un résultat a besoin d'une date - un jour, ou seulement le mois ou l'année ; sans aucune date, il attend que vous lui en donniez une."
+        owned: "Les puzzles que vous possédez - ils vont dans votre collection principale."
+        wish_list: "Votre liste de souhaits - les lignes que votre fichier marque comme souhaitées."
+        formats: "Depuis un fichier Excel (.xlsx), un fichier CSV ou TSV, ou le lien d'une feuille Google Sheets. Un fichier peut faire jusqu'à 25 Mo, 50 000 lignes et 100 feuilles."
+        apps: "Vous venez de l'application Puzzle Tracker ? Son export CSV est reconnu tout seul, comme l'export de résultats de MySpeedPuzzling - aucune colonne à régler."
+        fields: "Vos propres notes - une note, un prix, le lieu d'achat : ces colonnes peuvent aller dans des champs privés prêts à l'emploi, que vous seul voyez."
+    file:
+        title: "Ce que devient votre fichier"
+        google: "Une feuille Google Sheets doit être partagée avec « Tous les utilisateurs disposant du lien » pendant que nous la récupérons. Une fois arrivée, vous pouvez couper le partage."
+        discard: "Tant que vous n'avez pas appuyé sur Ajouter, vous pouvez abandonner un import et il disparaît aussitôt ; ensuite, vous annulez ce qu'il a ajouté, ou vous le marquez comme terminé. Tout disparaît si vous supprimez votre compte."
+    never_twice:
+        title: "Rien n'est jamais ajouté deux fois"
+        text: "Apportez le même fichier une seconde fois : rien de nouveau n'est ajouté. Ajoutez trente lignes à votre tableur et apportez-le de nouveau : les trente sont ajoutées. Un résultat déjà saisi sur MySpeedPuzzling avec le même jour et le même temps est reconnu lui aussi et n'est pas ajouté de nouveau."
+    result:
+        title: "Ce qu'est un résultat importé"
+        dated: "Il porte le jour indiqué par votre fichier. Si le fichier ne connaît que le mois ou l'année, c'est ce qui est affiché - nous n'inventons jamais un jour."
+        partners: "Un code de joueur dans votre fichier devient ce joueur ; les noms restent des invités tant que vous ne dites pas qui ils sont."
+    not_yet:
+        title: "Pas encore"
+        old_formats: "Les anciens fichiers Excel (.xls) et les fichiers OpenDocument (.ods) - enregistrez-les d'abord en .xlsx ou en CSV."
+        photos: "Photos et images : aucune n'est reprise d'un fichier ni des liens qu'il contient."
+        lists: "Les listes de prêts et de vente/échange - une note comme « prêté à … » reste une note."
+        events: "L'événement ou la compétition d'un résultat - on peut l'indiquer plus tard en modifiant le résultat."
+        own_columns: "Une colonne qui ne correspond à aucun des champs prêts à l'emploi n'est pas importée pour l'instant."
+        unlisted: "Un puzzle conservé rien que pour vous ne peut pas encore être modifié ni proposé à notre base de données depuis sa page ; ses notes et ses champs personnels ne sont pas conservés, et un résultat sans date y reste quand le puzzle est associé."
+        sync: "Une feuille Google Sheets est lue une fois, quand vous l'apportez - ses changements ne sont pas suivis."
+    start:
+        title: "On y va ?"
+    entry:
+        question: "Vous tenez déjà un tableur ?"
+        bring: "Apportez-le ici"
+        many_results: "Beaucoup de résultats dans un tableur ?"
+        import_them: "Importez-les"
+        puzzles_question: "Vous tenez vos puzzles dans un tableur ?"
+    newcomer:
+        title: "Importez vos données d'ailleurs"
+        hint: "Un tableur ou l'export d'une autre application - résultats, collection, liste de souhaits"
+        text: "Vous tenez déjà vos temps ou votre collection dans un tableur ou une autre application ? Inutile de tout retaper. Apportez un fichier Excel ou CSV ou une feuille Google Sheets, vérifiez ce que nous avons compris et ajoutez-le à votre profil - rien n'est ajouté deux fois et vous pouvez annuler."
+        where: "Votre menu, en haut de chaque page : <strong>Importer un tableur</strong>."
+    export_card:
+        title: "Apporter des données"
+        text: "Vous teniez vos résultats ou votre collection dans un tableur ? Importez un fichier Excel ou CSV ou une feuille Google Sheets - vous vérifiez tout avant que quoi que ce soit soit ajouté."
+    first:
+        file:
+            title: "Un fichier"
+            text: "Un fichier Excel (.xlsx) ou CSV depuis votre téléphone ou votre ordinateur."
+        google:
+            title: "Un lien Google Sheets"
+            text: "Partagez la feuille avec toute personne disposant du lien et collez le lien - pratique sur un téléphone."
+        tracker:
+            title: "Vous venez de Puzzle Tracker ?"
+            text: "Exportez vos puzzles dans l'application en fichier CSV et apportez ce fichier ici. Nous connaissons ses colonnes - rien à régler."
+    sample:
+        caption: "Le tableur d'exemple : six lignes, chacune là pour une raison."
+        col:
+            puzzle: "Puzzle"
+            brand: "Marque"
+            pieces: "Pièces"
+            time: "Temps"
+            date: "Date"
+            with: "Avec"
+        puzzle1: "Port à l'aube"
+        puzzle2: "Marché d'automne"
+        puzzle3: "Lac de montagne"
+        puzzle4: "Train de nuit"
+        puzzle5: "La cuisine de grand-mère"
+        puzzle6: "Phare n° 7"
+        own_brand: "Découpé main, perso"
+        month: "mars 2021"
+        row: "Ligne %number%"
+    steps:
+        file: "Choisissez le fichier ou collez un lien Google Sheets. Excel, CSV, TSV - n'importe quel ordre de colonnes, n'importe quels noms de colonnes, jusqu'à 25 Mo."
+        check:
+            text: "Nous déterminons ce qu'est chaque colonne. Nous ne demandons que ce que nous ne pouvons pas savoir."
+            detail: "La ligne 2 dit « 1h 05 » - cela ne se lit que d'une façon, donc nous ne demandons rien. Une colonne comme « 3:26 » peut être des heures et minutes ou des minutes et secondes : nous montrons alors vos propres valeurs lues des deux façons, et vous choisissez."
+            once: "Une question est posée une seule fois pour tout le fichier. Quand il ne reste rien à demander, un appui sur « %button% » fait continuer."
+            question: "Comment lire « 3:26 » ?"
+            hours: "3 heures 26 minutes"
+            minutes: "3 minutes 26 secondes"
+            summary: "6 résultats - en solo, ou avec la personne nommée"
+            month: "« %cell% » n'a pas de jour : il est ajouté comme %cell%."
+        people: "La ligne 4 nomme Anna. Elle est ajoutée comme invitée - simplement un nom sur votre résultat - sauf si vous dites que c'est une joueuse que vous connaissez. Un code de joueur dans votre fichier devient ce joueur ; les noms restent des invités tant que vous ne dites pas qui ils sont."
+        puzzles:
+            text: "Nous cherchons chaque puzzle de votre fichier dans notre base de données. Un résultat va dans un classement public, donc nous ne choisissons jamais entre deux puzzles à votre place."
+            matched: "Lignes 1-4 : trouvés par nom, nombre de pièces et marque."
+            looks: "La ligne 5 n'a pas de marque dans le fichier : un puzzle correspond, et rien n'est associé tant que vous ne le dites pas."
+            not_in_db: "La ligne 6 est un puzzle découpé main - nous ne l'avons pas. Vous le gardez rien que pour vous, ou vous ne l'importez pas."
+        add:
+            text: "Avant tout ajout, vous voyez tout - et pouvez laisser de côté n'importe quelle ligne. Rien n'est sur votre profil tant que vous n'avez pas appuyé sur le bouton."
+            ready: "5 résultats prêts à être ajoutés · 1 puzzle conservé rien que pour vous"
+            finish: "Vous en avez fini avec un fichier ? Marquez l'import comme terminé : il laisse la place à un autre, et ce qu'il a ajouté reste sur votre profil."
+    profile:
+        title: "Ce qui arrive sur votre profil"
+        row1: "Un résultat solo, 0:47:12 - au classement du puzzle."
+        row2: "« 1h 05 » devient 1:05:00."
+        row3: "Daté de %cell% - il compte partout sauf là où un jour est nécessaire, comme le calendrier et les séries."
+        row4: "Un résultat en duo avec Anna (invitée)."
+        row5: "Un résultat sur le puzzle que vous avez confirmé."
+        row6: "Vous seul le voyez, jusqu'à ce qu'il soit associé à un puzzle de notre base de données."
+    several: "Sur la page « %page% », « %select% » permet de cocher plusieurs lignes et de les annuler ensemble."
+    questions:
+        title: "Questions fréquentes"
+        q1: "Est-ce que des choses seront ajoutées deux fois ?"
+        a1: "Non. Si vous apportez le même fichier une seconde fois, seules les lignes qui ne sont pas encore sur votre profil sont ajoutées. Un résultat que vous avez saisi vous-même avec le même jour et le même temps est reconnu lui aussi."
+        q2: "Puis-je annuler ?"
+        a2: "Oui - une ligne, plusieurs lignes, un ajout, ou tout ce qu'un import a ajouté. Vous voyez d'abord ce qui disparaît. Un résultat que vous avez modifié ensuite est conservé, sauf si vous en décidez autrement."
+        q3: "Qui voit mon fichier ?"
+        a3: "Vous seul. Nous le conservons 30 jours, puis il est supprimé ; ce que vous avez ajouté reste sur votre profil."
+        q4: "Et les puzzles que vous n'avez pas ?"
+        a4: "Ils sont conservés, avec leurs résultats, sur une page que vous seul voyez. Ils ne comptent pas dans les statistiques ni les classements tant qu'ils ne sont pas associés à un puzzle de notre base de données - nous vous prévenons quand il en apparaît un."
+        q5: "Mon partenaire est sur MySpeedPuzzling - reçoit-il aussi le résultat ?"
+        a5: "Si votre fichier contient son code de joueur, oui. Un simple nom est un invité tant que vous ne dites pas qui c'est ; il est alors prévenu une fois et le résultat est aussi sur son profil."
+        q6: "Mes colonnes sont dans ma langue et mon ordre - est-ce un problème ?"
+        a6: "Non. Nous reconnaissons les en-têtes dans six langues et demandons en cas de doute. La prochaine fois, un fichier avec les mêmes en-têtes est lu de la même façon, tout seul."
+        q7: "Je ne connais que le mois ou l'année de certains résultats."
+        a7: "Ils sont ajoutés avec seulement le mois ou l'année. Un résultat sans aucune date attend que vous lui en donniez une."
+        q8: "Mes abonnés vont-ils recevoir des centaines de notifications ?"
+        a8: "Non. Personne n'est prévenu, et les résultats gardent le jour où vous les avez faits - ils n'apparaissent pas comme une nouvelle activité."
+        q9: "J'ai des milliers de résultats."
+        a9: "Jusqu'à 2 000 par jour sont ajoutés ; le reste est prêt le lendemain - appuyez de nouveau sur Ajouter. Vous pouvez aussi ajouter en plusieurs fois et revenir quand vous voulez."
+        q10: "Dois-je tout finir d'un coup ?"
+        a10: "Non. Tout est enregistré au fur et à mesure. Partez et revenez - l'import vous attend tant que le fichier est conservé."
+        q11: "Un temps qui paraît trop rapide sera-t-il refusé ?"
+        a11: "Nous posons la question, nous ne refusons pas. Dites qu'il est juste et il est ajouté ; comme tout résultat, il peut être examiné par les modérateurs."
+    more:
+        title: "Bon à savoir"
+
+# Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
 unlisted_puzzles:
     title: "Puzzles hors catalogue"
     link: "Vos puzzles hors catalogue"

@@ -1510,6 +1510,8 @@ faq:
     answer_button_add_my_time: |
         <p class="mb-0">Opens adding your time to selected puzzles - suitable if you use your own stopwatch and have just finished assembling. If you assembled in the past and want to record the time, you have the option to also specify the date you assembled.</p>
 
+    question_import_spreadsheet: "I keep my times or my collection in a spreadsheet. Can I bring it in?"
+    answer_import_spreadsheet: "<p>Yes, and it is free. Import an Excel or CSV file or a Google sheet: MySpeedPuzzling reads it, you check what it understood, and then you add it to your profile. Nothing is ever added twice, and you can undo it. <a href=\"%import_guide_link%\">How the import works</a></p>"
     question_helping: Do you want a helping hand?
     answer_helping: |
         <p class="mb-0">Sure! Connect with us, ideally with an idea of how you would like to get involved in building the speed puzzling community, we'll put our heads together and surely come up with something.</p>
@@ -12032,6 +12034,7 @@ data_import:
         continue_later: "Continue - I'll answer later"
         looks_right: "Looks right - continue"
         saved: "Everything is saved as you go. You can leave and come back any time."
+        how_step_works: "How this step works"
         add_ready_now: "Or add what is ready now (%number%) - you can come back to the rest any time."
         add_ready: "Or add what is ready now - you can come back to the rest any time."
         state:
@@ -13102,7 +13105,6 @@ data_import:
         taken_back: "{0}We took back what your import of %file% had added.|{1}We took back 1 result your import of %file% had added.|]1,Inf[We took back %count% results your import of %file% had added."
         taken_back_reason: "Reason: %reason%"
 
-# Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
         with_you: "{1}%player% added a result with you from a spreadsheet.|[0,Inf[%player% added %count% results with you from a spreadsheet."
         with_you_open: "Pairs & teams"
         leave: "These are not mine - take me off them"
@@ -13240,6 +13242,149 @@ data_import:
             left_out_puzzle: "{1}1 row is not imported. You can put it back.|[0,Inf[%number% rows are not imported. You can put each of them back."
             left_out_sheet: "The rows of “%title%” are not imported. You can change this in step 2, “How we read your file”."
             changed_meanwhile: "This changed in the meantime - here is how it stands now. Nothing was saved."
+
+# The public guide of the spreadsheet import and its entry points (docs/features/data-import/entry-points.md)
+import_guide:
+    meta:
+        title: "Import your puzzle spreadsheet - times, collection, wish list"
+        description: "Bring the puzzle times and the collection you kept in Excel, CSV or Google Sheets to MySpeedPuzzling. Free: we read the file, you check it, and nothing is ever added twice."
+    lead: "Have your results or your collection in a spreadsheet? Bring the file - we read it, you check it, and it is on your profile. Here is one small spreadsheet, followed all the way."
+    free: "Free for everyone."
+    back: "Back to your import"
+    example: "Example"
+    start_guest: "Create a free account and start"
+    sign_in: "I have an account - sign in"
+    to_guide: "How the import works"
+    what:
+        title: "What you can bring"
+        results: "Results - the puzzles you solved, with or without a time. A result needs a date - a day, or just the month or the year; one without any waits until you give it one."
+        owned: "Puzzles you own - they go to your main collection."
+        wish_list: "Your wish list - rows your file marks as wanted."
+        formats: "From an Excel file (.xlsx), a CSV or TSV file, or a link to a Google sheet. A file can be up to 25 MB, 50,000 rows and 100 sheets."
+        apps: "Coming from the app Puzzle Tracker? Its CSV export is recognised by itself, and so is MySpeedPuzzling's own results export - there are no columns to set up."
+        fields: "Your own notes - a rating, a price, where you bought it: such columns can go to ready-made private fields that only you see."
+    file:
+        title: "What happens to your file"
+        google: "A Google sheet has to be shared with “Anyone with the link” while we fetch it. Once it is here, you can switch the sharing off again."
+        discard: "Until you press Add you can discard an import and it is gone at once; afterwards you undo what it added, or mark it as finished. Everything goes when you delete your account."
+    never_twice:
+        title: "It never adds anything twice"
+        text: "Bring the same file again and nothing new is added. Add thirty rows to your spreadsheet and bring it again: the thirty are added. A result you already typed into MySpeedPuzzling with the same day and time is recognised too and not added again."
+    result:
+        title: "What an imported result is"
+        dated: "It carries the day your file says. When the file knows only the month or the year, that is what is shown - we never make up a day."
+        partners: "A player code in your file becomes that player; names stay guests unless you say who they are."
+    not_yet:
+        title: "Not yet"
+        old_formats: "Old Excel files (.xls) and OpenDocument files (.ods) - save them as .xlsx or CSV first."
+        photos: "Photos and pictures: none is taken from a file or from links in it."
+        lists: "Lending and sell/swap lists - a note like “lent to …” stays a note."
+        events: "The event or competition of a result - it can be set later by editing the result."
+        own_columns: "A column that fits none of the ready-made fields is not imported for now."
+        unlisted: "A puzzle kept just for you can not be edited or proposed for our database from its page yet; its notes and own fields are not kept, and a result without a date stays there when the puzzle is matched."
+        sync: "A Google sheet is read once, when you bring it - it is not watched for changes."
+    start:
+        title: "Ready?"
+    entry:
+        question: "Already tracking in a spreadsheet?"
+        bring: "Bring it over"
+        many_results: "Have many results in a spreadsheet?"
+        import_them: "Import them"
+        puzzles_question: "Kept your puzzles in a spreadsheet?"
+    newcomer:
+        title: "Import your data from elsewhere"
+        hint: "A spreadsheet or another app's export - results, collection, wish list"
+        text: "Already keep your times or your collection in a spreadsheet or another app? You do not have to type it again. Bring an Excel or CSV file or a Google sheet, check what we understood, and add it to your profile - nothing is added twice and you can undo it."
+        where: "Your menu at the top of every page: <strong>Import a spreadsheet</strong>."
+    export_card:
+        title: "Bring data in"
+        text: "Kept your results or your collection in a spreadsheet? Import an Excel or CSV file or a Google sheet - you check everything before anything is added."
+    first:
+        file:
+            title: "A file"
+            text: "An Excel file (.xlsx) or a CSV file from your phone or computer."
+        google:
+            title: "A Google Sheets link"
+            text: "Share the sheet with anyone who has the link and paste the link - handy on a phone."
+        tracker:
+            title: "Coming from Puzzle Tracker?"
+            text: "Export your puzzles in the app as a CSV file and bring that file here. We know its columns - there is nothing to set up."
+    sample:
+        caption: "The sample spreadsheet: six rows, each there for a reason."
+        col:
+            puzzle: "Puzzle"
+            brand: "Brand"
+            pieces: "Pieces"
+            time: "Time"
+            date: "Date"
+            with: "With"
+        puzzle1: "Harbour at Dawn"
+        puzzle2: "Autumn Market"
+        puzzle3: "Mountain Lake"
+        puzzle4: "Night Train"
+        puzzle5: "Grandma's Kitchen"
+        puzzle6: "Lighthouse No. 7"
+        own_brand: "Hand-cut, own"
+        month: "March 2021"
+        row: "Row %number%"
+    steps:
+        file: "Choose the file or paste a Google Sheets link. Excel, CSV, TSV - any arrangement of columns, any column names, up to 25 MB."
+        check:
+            text: "We work out what each column is. We ask only what we can not know."
+            detail: "Row 2 says “1h 05” - that reads only one way, so we do not ask. A column like “3:26” could be hours and minutes or minutes and seconds: then we show your own values read each way, and you choose."
+            once: "A question is asked once for the whole file. When nothing is left to ask, one tap on “%button%” moves on."
+            question: "How should we read “3:26”?"
+            hours: "3 hours 26 minutes"
+            minutes: "3 minutes 26 seconds"
+            summary: "6 results - solo, or with the person named"
+            month: "“%cell%” has no day: it is added as %cell%."
+        people: "Row 4 names Anna. She is added as a guest - just a name on your result - unless you say she is a player you know. A player code in your file becomes that player; names stay guests unless you say who they are."
+        puzzles:
+            text: "We look each puzzle of your file up in our database. A result goes on a public leaderboard, so we never choose between two puzzles for you."
+            matched: "Rows 1-4: found by name, pieces and brand."
+            looks: "Row 5 has no brand in the file: one puzzle fits, and nothing is matched until you say so."
+            not_in_db: "Row 6 is hand-cut - we do not have it. You keep it just for you, or you do not import it."
+        add:
+            text: "Before anything is added you see all of it - and can untick any row. Nothing is on your profile until you press the button."
+            ready: "5 results ready to add · 1 puzzle kept just for you"
+            finish: "Done with a file? Mark the import as finished: it makes room for another one, and what it added stays on your profile."
+    profile:
+        title: "What ends up on your profile"
+        row1: "A solo result, 0:47:12 - on the puzzle's leaderboard."
+        row2: "“1h 05” becomes 1:05:00."
+        row3: "Dated %cell% - it counts everywhere except where a day is needed, like the calendar and streaks."
+        row4: "A pair result with Anna (guest)."
+        row5: "A result on the puzzle you confirmed."
+        row6: "Only you see it, until it is matched with a puzzle in our database."
+    several: "On the page “%page%”, “%select%” lets you tick several rows and undo them together."
+    questions:
+        title: "Questions people ask"
+        q1: "Will it add things twice?"
+        a1: "No. Bring the same file again and only rows that are not on your profile yet are added. A result you typed yourself with the same day and time is recognised too."
+        q2: "Can I undo it?"
+        a2: "Yes - one row, several rows, one adding, or everything an import added. You see first what goes. A result you changed afterwards is kept unless you say otherwise."
+        q3: "Who sees my file?"
+        a3: "Only you. We keep it for 30 days, then it is removed; what you added stays on your profile."
+        q4: "What about puzzles you don't have?"
+        a4: "They are kept on a page only you see, with their results. They do not count in statistics or rankings until matched with a puzzle in our database - we tell you when one appears."
+        q5: "My partner is on MySpeedPuzzling - do they get the result too?"
+        a5: "If your file has their player code, yes. A plain name is a guest unless you say who it is; then they are told once and the result is on their profile too."
+        q6: "My columns are in my own language and order - does that matter?"
+        a6: "No. We recognise headers in six languages and ask when unsure. Next time a file with the same headers is read the same way by itself."
+        q7: "I only know the month or the year of some results."
+        a7: "They are added with just the month or the year. A result with no date at all waits until you give it one."
+        q8: "Do my followers get hundreds of notifications?"
+        a8: "No. Nobody is notified, and results keep the day you solved them - they do not appear as new activity."
+        q9: "I have thousands of results."
+        a9: "Up to 2,000 a day are added; the rest is ready the next day - press Add again. You can also add in parts and come back any time."
+        q10: "Do I have to finish in one go?"
+        a10: "No. Everything is saved as you go. Leave and come back - the import waits for you while the file is kept."
+        q11: "Will a time that looks too fast be refused?"
+        a11: "It is asked about, not refused. Say it is right and it is added; like every result it can be looked at by the moderators."
+    more:
+        title: "Good to know"
+
+# Puzzles of a spreadsheet that are not in the catalogue (docs/features/data-import/unlisted-puzzles.md)
 unlisted_puzzles:
     title: "Unlisted puzzles"
     link: "Your unlisted puzzles"

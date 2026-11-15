@@ -17,7 +17,7 @@
 {% set waiting_cards = in_progress|filter(card => not card.quiet) %}
 <div class="mx-auto" style="max-width: 720px;" data-testid="data-imports-page">
     <h1 class="h3 mb-2"><i class="bi bi-file-earmark-spreadsheet me-2" aria-hidden="true"></i>{{ 'data_import.home.title'|trans }}</h1>
-    <p class="text-muted">{{ 'data_import.after.home.lead'|trans }}</p>
+    <p class="text-muted">{{ 'data_import.after.home.lead'|trans }} <a href="{{ path('import_guide') }}" class="text-nowrap" data-testid="import-guide-link">{{ 'import_guide.to_guide'|trans }}</a></p>
 
     {% if places_taken %}
         {# Three in progress: the sentence instead of the button - each card leads to where one is finished or discarded #}
@@ -33,8 +33,8 @@
     {% endif %}
 
     {% if in_progress is empty and finished is empty %}
-        {# The first visit. Stage 8 puts its introduction here, in place of this sentence (guided-flow.md §5.1) #}
-        <p class="text-muted" data-testid="no-imports">{{ 'data_import.after.home.empty'|trans }}</p>
+        {# The first visit: what the import is and the ways to bring a file (docs/features/data-import/entry-points.md) #}
+        {{ include('data_import/_first_visit.html.twig', with_context = false) }}
     {% endif %}
 
     {% if in_progress is not empty %}

@@ -30,6 +30,17 @@
                 </li>
             {% endif %}
             <li><hr class="dropdown-divider"></li>
+            {# The owner's data as a table and the spreadsheet import (docs/features/data-import/entry-points.md) - rendered in header and bar, so no ids #}
+            <li>
+                <a class="dropdown-item" href="{{ path('my_data') }}">
+                    <i class="bi bi-table me-1" aria-hidden="true"></i> {{ 'my_data.title'|trans }}
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item" href="{{ path('data_imports') }}">
+                    <i class="bi bi-file-earmark-spreadsheet me-1" aria-hidden="true"></i> {{ 'data_import.home.import_button'|trans }}
+                </a>
+            </li>
             <li>
                 <a class="dropdown-item" href="{{ path('export_puzzler_data', {playerId: player.playerId}) }}">
                     <i class="bi bi-download me-1" aria-hidden="true"></i> {{ 'menu.export_data'|trans }}

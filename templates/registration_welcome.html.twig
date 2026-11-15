@@ -27,8 +27,24 @@
             <p class="fs-lg mb-3">{{ 'onboarding.welcome.question'|trans }}</p>
         </div>
 
+        {# "Import your data from elsewhere" is one of the choices (docs/features/data-import/entry-points.md). Signed up
+           from the import's guide (a valid ?return= to the import): it comes first and is the highlighted one #}
+        {% set return_path = safe_return_url(app.request.query.get('return')) %}
+        {% set continues_to_import = return_path is not null and return_path matches '#^/(en|cs|de|es|fr|ja)/import$#' %}
+        {% set import_choice %}
+            <a class="btn {{ continues_to_import ? 'btn-primary' : 'btn-outline-primary' }} btn-lg onboarding-choice" href="{{ continues_to_import ? return_path : path('data_imports') }}" data-testid="welcome-import">
+                <i class="bi bi-file-earmark-spreadsheet"></i>
+                <span>
+                    {{ 'import_guide.newcomer.title'|trans }}
+                    <small class="d-block fw-normal opacity-75">{{ 'import_guide.newcomer.hint'|trans }}</small>
+                </span>
+            </a>
+        {% endset %}
+
         <div class="d-grid gap-2">
-            <a class="btn btn-primary btn-lg onboarding-choice" href="{{ path('puzzle_add') }}">
+            {% if continues_to_import %}{{ import_choice }}{% endif %}
+
+            <a class="btn {{ continues_to_import ? 'btn-outline-primary' : 'btn-primary' }} btn-lg onboarding-choice" href="{{ path('puzzle_add') }}">
                 <i class="ci-time"></i>
                 <span>{{ 'onboarding.welcome.log_puzzle'|trans }}</span>
             </a>
@@ -45,6 +61,8 @@
                     <small class="d-block fw-normal opacity-75">{{ 'onboarding.welcome.finish_profile_hint'|trans }}</small>
                 </span>
             </a>
+
+            {% if not continues_to_import %}{{ import_choice }}{% endif %}
         </div>
 
         <div class="text-center mt-3">

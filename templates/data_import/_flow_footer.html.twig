@@ -49,6 +49,21 @@
 
     <p class="fs-sm text-muted mt-3 mb-0" data-testid="import-flow-saved">{{ 'data_import.flow.saved'|trans }}</p>
 
+    {# "How this step works" → the guide's section of the screen's step (guided-flow.md §13 "Links from the flow"),
+       with the way back here. The step is the screen's route - the footer is included without the page's context. #}
+    {% set guide_anchors = {
+        data_import_columns: 'step-check', data_import_sheet: 'step-check', data_import_sheet_rows: 'step-check', data_import_to_fix: 'step-check', data_import_row: 'step-check',
+        data_import_people: 'step-people',
+        data_import_puzzles: 'step-puzzles', data_import_puzzle_group: 'step-puzzles', data_import_puzzle_choose: 'step-puzzles',
+        data_import_add: 'step-add', data_import_add_list: 'step-add', data_import_add_times: 'step-add', data_import_batch: 'step-add', data_import_group_answer: 'step-add',
+        data_import_not_added: 'step-add', data_import_not_added_times: 'step-add', data_import_added: 'step-add',
+        data_import_undo: 'take-back', data_import_undo_progress: 'take-back',
+    } %}
+    {% set guide_anchor = guide_anchors[app.request.attributes.get('_route')] ?? null %}
+    <a href="{{ path('import_guide', {return: app.request.pathInfo}) }}{{ guide_anchor is not null ? '#' ~ guide_anchor }}" class="fs-sm d-inline-flex align-items-center mt-1" style="min-height: 44px;" rel="nofollow" data-testid="import-flow-guide">
+        <i class="bi bi-info-circle me-1" aria-hidden="true"></i>{{ 'data_import.flow.how_step_works'|trans }}
+    </a>
+
     {% if back is defined and back is not null %}
         <a href="{{ back.url }}" class="btn btn-link px-0 mt-2 d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-flow-back-link">
             <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ back.label }}

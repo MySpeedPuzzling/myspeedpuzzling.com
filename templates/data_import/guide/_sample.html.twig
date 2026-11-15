@@ -1,0 +1,29 @@
+{# The sample as a small spreadsheet: grey header row, row numbers, scrolls sideways inside its card - never the page. Variables: sample. #}
+{{ include('data_import/guide/_figure_open.html.twig', {name: 'sample'}, with_context = false) }}
+    <div class="table-responsive">
+        <table class="table table-sm table-bordered bg-white fs-sm mb-2 text-nowrap">
+            <thead class="table-secondary">
+                <tr>
+                    <th scope="col" class="text-muted fw-normal"></th>
+                    {% for column in ['puzzle', 'brand', 'pieces', 'time', 'date', 'with'] %}
+                        <th scope="col">{{ ('import_guide.sample.col.' ~ column)|trans }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in sample %}
+                    <tr data-testid="guide-sample-row">
+                        <th scope="row" class="table-secondary text-muted fw-normal">{{ row.number }}</th>
+                        <td>{{ ('import_guide.sample.puzzle' ~ row.number)|trans }}</td>
+                        <td>{{ row.own_brand ? 'import_guide.sample.own_brand'|trans : row.brand }}</td>
+                        <td>{{ row.pieces }}</td>
+                        <td>{{ row.time }}</td>
+                        <td>{{ row.date ?? 'import_guide.sample.month'|trans }}</td>
+                        <td>{{ row.with }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="fs-sm text-muted mb-0">{{ 'import_guide.sample.caption'|trans }}</p>
+</figure>

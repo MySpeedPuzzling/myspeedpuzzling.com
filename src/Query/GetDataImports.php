@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
 use SpeedPuzzling\Web\Results\DataImportOverview;
 use SpeedPuzzling\Web\Results\DataImportProgress;
 use SpeedPuzzling\Web\Results\DataImportSheetOverview;
+use SpeedPuzzling\Web\Value\DataImport\RememberedLayout;
 use SpeedPuzzling\Web\Value\DataImportLimits;
 use SpeedPuzzling\Web\Value\DataImportReadFailure;
 use SpeedPuzzling\Web\Value\DataImportSheetKind;
@@ -308,7 +309,10 @@ SELECT
     data_import_sheet.rows_waiting,
     data_import_sheet.set_up_failure IS NOT NULL AS failed,
     data_import_sheet.set_up_failure,
-    jsonb_array_length(COALESCE(data_import_sheet.mapping -> 'questions', '[]'::jsonb)) AS questions
+    jsonb_array_length(COALESCE(data_import_sheet.mapping -> 'questions', '[]'::jsonb)) AS questions,
+    data_import_sheet.mapping -> 'remembered' ->> 'how' AS remembered_how,
+    data_import_sheet.mapping -> 'remembered' ->> 'id' AS remembered_id,
+    data_import_sheet.mapping -> 'remembered' ->> 'name' AS remembered_name
 FROM data_import_sheet
 INNER JOIN data_import ON data_import.id = data_import_sheet.import_id
 WHERE data_import_sheet.import_id = :importId
@@ -317,7 +321,7 @@ WHERE data_import_sheet.import_id = :importId
 ORDER BY data_import_sheet.position
 SQL;
 
-        /** @var list<array{id: string, position: int, title: string, hidden: bool, rows_total: int, columns_total: int, kind: null|string, mapping_version: int, parsed_version: null|int, rows_understood: int, rows_need_look: int, rows_left_out: int, rows_waiting: int, failed: bool, set_up_failure: null|string, questions: int}> $rows */
+        /** @var list<array{id: string, position: int, title: string, hidden: bool, rows_total: int, columns_total: int, kind: null|string, mapping_version: int, parsed_version: null|int, rows_understood: int, rows_need_look: int, rows_left_out: int, rows_waiting: int, failed: bool, set_up_failure: null|string, questions: int, remembered_how: null|string, remembered_id: null|string, remembered_name: null|string}> $rows */
         $rows = $this->database->executeQuery($query, [
             'importId' => $importId,
             'playerId' => $playerId,
@@ -343,6 +347,7 @@ SQL;
             failure: $row['set_up_failure'],
             rowsWaiting: $row['rows_waiting'],
             questions: $row['questions'],
+            rememberedLayout: $row['remembered_how'] === null ? null : new RememberedLayout($row['remembered_how'], $row['remembered_id'] ?? '', $row['remembered_name'] ?? ''),
         ), $rows);
     }
 }

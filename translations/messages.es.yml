@@ -11773,6 +11773,33 @@ my_fields:
 
 # Data import: upload and the imports pages (docs/features/data-import/upload.md)
 data_import:
+    layouts:
+        title: "Tus diseños guardados"
+        intro: "Cuando confirmas las columnas de una hoja, las recordamos. La próxima hoja con los mismos encabezados se configura sola de la misma manera. Tus diseños son solo tuyos: nadie más los ve ni los usa."
+        link: "Tus diseños guardados (%number%)"
+        empty: "Todavía no hay nada guardado. Confirma las columnas de una hoja y las recordaremos para la próxima vez."
+        unnamed: "Diseño sin nombre"
+        columns: "Columnas: %number%"
+        times_used: "Usado de nuevo: %number%×"
+        last_used: "Último uso: %date%"
+        rename: "Cambiar el nombre"
+        name_label: "Nombre"
+        save_name: "Guardar el nombre"
+        forget: "Olvidar este diseño"
+        forget_hint: "La próxima hoja con estos encabezados se configurará desde cero. Las hojas ya configuradas se quedan como están."
+        back: "Volver"
+        start_over: "Empezar de nuevo con esta hoja"
+        start_over_hint: "Revisamos esta hoja otra vez como si nunca hubieras configurado una igual. Tu diseño guardado se queda como está."
+        column_check: "La última vez configuraste una columna con este nombre como «%field%», pero los valores de aquí no lo parecen. Revísalo, por favor."
+        notice:
+            remembered: "Hemos usado lo que configuraste la última vez (%name%): cambia lo que sea distinto."
+            remembered_partly: "La mayoría de los encabezados son los mismos que la última vez (%name%), así que esas columnas están configuradas como entonces: revisa el resto, por favor."
+            meaning_kept: "Lo que es esta hoja - resultados, puzzles que tienes o una lista de deseos, en solitario o con otras personas - se ha dejado tal como se deduce de la propia hoja, porque es distinto de la última vez. Revísalo abajo, por favor."
+        flash:
+            started_over: "Hemos revisado esta hoja desde cero. Sus filas se están leyendo de nuevo."
+            renamed: "El diseño tiene su nuevo nombre."
+            forgotten: "El diseño se ha olvidado."
+            name_needed: "Escribe un nombre para el diseño, por favor."
     pairing:
         title: "Puzzles"
         puzzles: "Puzzles distintos en tu archivo: %number%"

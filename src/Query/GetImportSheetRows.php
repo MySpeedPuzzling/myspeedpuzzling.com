@@ -30,7 +30,7 @@ readonly final class GetImportSheetRows
     /**
      * The sheets of an import that was read and is being set up, in the file's order - none for any other import.
      *
-     * @return list<array{id: string, position: int, title: string, mappingVersion: int, mapping: null|array<mixed>, options: null|array<mixed>, valueAnswers: null|array<mixed>, rowsTotal: int}>
+     * @return list<array{id: string, position: int, title: string, mappingVersion: int, mapping: null|array<mixed>, options: null|array<mixed>, valueAnswers: null|array<mixed>, rowsTotal: int, confirmedByPlayer: bool}>
      */
     public function sheetsBeingSetUp(string $importId): array
     {
@@ -38,9 +38,9 @@ readonly final class GetImportSheetRows
             return [];
         }
 
-        /** @var list<array{id: string, position: int, title: string, mapping_version: int, mapping: null|string, options: null|string, value_answers: null|string, rows_total: int}> $rows */
+        /** @var list<array{id: string, position: int, title: string, mapping_version: int, mapping: null|string, options: null|string, value_answers: null|string, rows_total: int, confirmed_by_player: bool}> $rows */
         $rows = $this->database->executeQuery(<<<SQL
-SELECT sheet.id, sheet.position, sheet.title, sheet.mapping_version, sheet.mapping, sheet.options, sheet.value_answers, sheet.rows_total
+SELECT sheet.id, sheet.position, sheet.title, sheet.mapping_version, sheet.mapping, sheet.options, sheet.value_answers, sheet.rows_total, sheet.confirmed_by_player
 FROM data_import_sheet sheet
 INNER JOIN data_import ON data_import.id = sheet.import_id
 WHERE sheet.import_id = :importId
@@ -57,6 +57,7 @@ SQL, ['importId' => $importId, 'settingUp' => DataImportStatus::SettingUp->value
             'options' => self::json($row['options']),
             'valueAnswers' => self::json($row['value_answers']),
             'rowsTotal' => $row['rows_total'],
+            'confirmedByPlayer' => $row['confirmed_by_player'],
         ], $rows);
     }
 

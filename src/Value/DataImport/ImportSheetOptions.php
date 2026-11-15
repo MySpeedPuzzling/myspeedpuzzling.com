@@ -77,6 +77,26 @@ final readonly class ImportSheetOptions
         );
     }
 
+    /**
+     * Without anything a player said about times and dates - for a sheet the player never confirmed, whose answers
+     * can only have come from a layout shared with it (docs/features/data-import/layouts.md "One workbook").
+     */
+    public function withoutPlayerAnswers(): self
+    {
+        $kept = static fn (null|array $setting): bool => $setting !== null && $setting['by'] !== self::BY_PLAYER;
+
+        return new self(
+            array_filter($this->durations, $kept),
+            $kept($this->dateOrder) ? $this->dateOrder : null,
+            $kept($this->shortDates) ? $this->shortDates : null,
+            null,
+            $kept($this->year) ? $this->year : null,
+            $this->solvingType,
+            $this->lookupSheetId,
+            $this->collectionLabel,
+        );
+    }
+
     public function withDuration(DurationShape $shape, DurationReadingRule $rule, string $by): self
     {
         return $this->with(['durations' => [...$this->durations, $shape->value => ['rule' => $rule, 'by' => $by]]]);

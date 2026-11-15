@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\DataImport;
 
 use SpeedPuzzling\Web\Query\GetDataImports;
+use SpeedPuzzling\Web\Query\GetImportLayouts;
 use SpeedPuzzling\Web\Results\DataImportSheetOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\DataImportStatus;
@@ -18,13 +19,15 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * "Sheets and columns" of the signed-in player's import (docs/features/data-import/columns-screen.md): every sheet of
  * the file as a card - what MySpeedPuzzling takes it for, changeable with one tap, and how its rows fared - the
  * sheets that wait for an answer first. Another player's import is a 404; an import that is not read yet (or is past
- * its set-up) shows its own page. Two statements whatever the number of sheets.
+ * its set-up) shows its own page. Three statements whatever the number of sheets (the third counts the player's saved
+ * layouts - docs/features/data-import/layouts.md).
  */
 final class ImportColumnsController extends AbstractController
 {
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetDataImports $getDataImports,
+        readonly private GetImportLayouts $getImportLayouts,
     ) {
     }
 
@@ -61,6 +64,7 @@ final class ImportColumnsController extends AbstractController
             'revision' => $progress->revision,
             // "We found N of these puzzles" and the way to them - numbers the progress statement holds already
             'pairing' => $progress->pairing,
+            'saved_layouts' => $this->getImportLayouts->countOfPlayer($player->playerId),
         ]);
     }
 

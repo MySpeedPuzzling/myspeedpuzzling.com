@@ -56,6 +56,12 @@
 
                     {{ include('data_import/_sheet_state.html.twig', {state: state, understood: sheet.rowsUnderstood, look: sheet.rowsNeedLook, left_out: sheet.rowsLeftOut, waiting: sheet.rowsWaiting}) }}
 
+                    {% if sheet.rememberedLayout is not null %}
+                        <p class="fs-sm text-muted mb-0 mt-2 text-break" data-testid="sheet-card-remembered">
+                            <i class="bi bi-bookmark-check me-1"></i>{{ ('data_import.layouts.notice.' ~ sheet.rememberedLayout.how)|trans({'%name%': sheet.rememberedLayout.name != '' ? sheet.rememberedLayout.name : 'data_import.layouts.unnamed'|trans}) }}
+                        </p>
+                    {% endif %}
+
                     {% if sheet.mapped and sheet.kind is not null %}
                         {# One tap changes what the sheet is: the choices fold out, each a button of the same form #}
                         <details class="mt-3" data-testid="sheet-card-kind">
@@ -96,6 +102,13 @@
             </div>
         {% endfor %}
     </turbo-frame>
+
+    {% if saved_layouts > 0 %}
+        <a href="{{ path('data_import_layouts', {return: path('data_import_columns', {importId: import.importId})}) }}"
+           class="btn btn-link px-0 d-flex align-items-center" style="min-height: 44px;" data-testid="import-saved-layouts">
+            <i class="bi bi-bookmarks me-1"></i>{{ 'data_import.layouts.link'|trans({'%number%': saved_layouts|format_number}) }}
+        </a>
+    {% endif %}
 
     <div class="alert alert-info fs-sm d-flex gap-2" data-testid="import-soon">
         <i class="bi bi-info-circle flex-shrink-0"></i>

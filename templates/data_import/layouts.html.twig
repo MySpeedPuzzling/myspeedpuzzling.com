@@ -1,0 +1,66 @@
+{% extends 'base.html.twig' %}
+
+{#
+    "Your saved layouts" (docs/features/data-import/layouts.md): what the player set up for a sheet once, kept by
+    its header row - the name, when it was last used, how often - with Rename and Forget. Phone first: one column of
+    cards, every target 44 px. Every form posts to its own route.
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
+
+{% block title %}{{ 'data_import.layouts.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{{ include('_page_crumbs.html.twig', {levels: [
+    {name: 'data_import.home.title'|trans, url: path('data_imports')},
+]}) }}
+
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-layouts-page">
+    <h1 class="h3 mb-2">{{ 'data_import.layouts.title'|trans }}</h1>
+    <p class="text-muted fs-sm">{{ 'data_import.layouts.intro'|trans }}</p>
+
+    {% for layout in layouts %}
+        <div class="card shadow-sm mb-3" data-testid="import-layout" data-layout-id="{{ layout.layoutId }}">
+            <div class="card-body">
+                <h2 class="h5 mb-1 text-break" data-testid="import-layout-name">
+                    {%- if layout.name != '' %}{{ layout.name }}{% else %}{{ 'data_import.layouts.unnamed'|trans }}{% endif -%}
+                </h2>
+                <p class="fs-sm text-muted mb-0" data-testid="import-layout-facts">
+                    {{ 'data_import.layouts.columns'|trans({'%number%': layout.columns|format_number}) }}
+                    · {{ 'data_import.layouts.last_used'|trans({'%date%': layout.lastUsedAt|format_date('long')}) }}
+                    · {{ 'data_import.layouts.times_used'|trans({'%number%': layout.timesUsed|format_number}) }}
+                </p>
+
+                <details class="mt-2" data-testid="import-layout-rename">
+                    <summary class="d-flex align-items-center text-primary fs-sm" style="min-height: 44px; cursor: pointer;">
+                        <i class="bi bi-pencil me-1"></i>{{ 'data_import.layouts.rename'|trans }}
+                    </summary>
+                    <form action="{{ path('data_import_layout_rename', {layoutId: layout.layoutId}) }}" method="post" class="d-grid gap-2 mt-1">
+                        <input type="hidden" name="_token" value="{{ csrf }}">
+                        <label class="form-label fs-sm mb-0" for="layout-name-{{ loop.index }}">{{ 'data_import.layouts.name_label'|trans }}</label>
+                        <input type="text" name="name" id="layout-name-{{ loop.index }}" value="{{ layout.name }}" maxlength="200" required
+                               class="form-control" style="min-height: 44px; font-size: 16px;">
+                        <button type="submit" class="btn btn-primary text-wrap" style="min-height: 44px;">{{ 'data_import.layouts.save_name'|trans }}</button>
+                    </form>
+                </details>
+
+                <form action="{{ path('data_import_layout_forget', {layoutId: layout.layoutId}) }}" method="post" class="mt-2">
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <button type="submit" class="btn btn-outline-danger w-100 text-wrap" style="min-height: 44px;" data-testid="import-layout-forget">
+                        <i class="bi bi-trash me-1"></i>{{ 'data_import.layouts.forget'|trans }}
+                    </button>
+                    <p class="fs-xs text-muted mb-0 mt-1">{{ 'data_import.layouts.forget_hint'|trans }}</p>
+                </form>
+            </div>
+        </div>
+    {% else %}
+        <div class="alert alert-info fs-sm" data-testid="import-layouts-empty">{{ 'data_import.layouts.empty'|trans }}</div>
+    {% endfor %}
+
+    <a href="{{ back ?? path('data_imports') }}" class="btn btn-link px-0" style="min-height: 44px;">
+        <i class="bi bi-arrow-left me-1"></i>{{ 'data_import.layouts.back'|trans }}
+    </a>
+</div>
+{% endblock %}

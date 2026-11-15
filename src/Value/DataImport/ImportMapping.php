@@ -38,6 +38,8 @@ final readonly class ImportMapping
         public array $questions = [],
         /** A known export's id (KnownExportLayout) - its columns need no mapping */
         public null|string $layout = null,
+        /** A layout the player saved earlier was applied (docs/features/data-import/layouts.md) - the screen says so */
+        public null|RememberedLayout $remembered = null,
     ) {
     }
 
@@ -96,12 +98,17 @@ final readonly class ImportMapping
      */
     public function withQuestions(array $questions): self
     {
-        return new self($this->kind, $this->kindCertainty, $this->rowMeaning, $this->regions, $this->region, $this->columns, $questions, $this->layout);
+        return new self($this->kind, $this->kindCertainty, $this->rowMeaning, $this->regions, $this->region, $this->columns, $questions, $this->layout, $this->remembered);
     }
 
     public function withKind(DataImportSheetKind $kind, ColumnCertainty $certainty): self
     {
-        return new self($kind, $certainty, $this->rowMeaning, $this->regions, $this->region, $this->columns, $this->questions, $this->layout);
+        return new self($kind, $certainty, $this->rowMeaning, $this->regions, $this->region, $this->columns, $this->questions, $this->layout, $this->remembered);
+    }
+
+    public function withRemembered(null|RememberedLayout $remembered): self
+    {
+        return new self($this->kind, $this->kindCertainty, $this->rowMeaning, $this->regions, $this->region, $this->columns, $this->questions, $this->layout, $remembered);
     }
 
     /**
@@ -109,7 +116,7 @@ final readonly class ImportMapping
      */
     public function toArray(): array
     {
-        return [
+        $stored = [
             'shape' => self::SHAPE,
             'layout' => $this->layout,
             'kind' => $this->kind->value,
@@ -120,6 +127,13 @@ final readonly class ImportMapping
             'columns' => array_map(static fn (MappedColumn $column): array => $column->toArray(), $this->columns),
             'questions' => array_map(static fn (ImportQuestion $question): array => $question->toArray(), $this->questions),
         ];
+
+        // Only where a layout was applied: every other stored mapping keeps the shape it always had
+        if ($this->remembered !== null) {
+            $stored['remembered'] = $this->remembered->toArray();
+        }
+
+        return $stored;
     }
 
     /**
@@ -139,6 +153,11 @@ final readonly class ImportMapping
         $columns = array_map(MappedColumn::fromArray(...), StoredShape::items($data, 'columns', DataImportLimits::MAX_REGION_COLUMNS));
         $questions = array_map(ImportQuestion::fromArray(...), StoredShape::items($data, 'questions', 20));
         $layout = StoredShape::nullableString($data, 'layout', 60);
+        $remembered = $data['remembered'] ?? null;
+
+        if ($remembered !== null && is_array($remembered) === false) {
+            throw new InvalidImportMapping('"remembered" must be an object.');
+        }
 
         $mapping = new self(
             StoredShape::enum($data, 'kind', DataImportSheetKind::class),
@@ -149,6 +168,7 @@ final readonly class ImportMapping
             $columns,
             $questions,
             $layout,
+            $remembered === null ? null : RememberedLayout::fromArray($remembered),
         );
 
         $table = $mapping->table();

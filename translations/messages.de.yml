@@ -11772,6 +11772,33 @@ my_fields:
 
 # Data import: upload and the imports pages (docs/features/data-import/upload.md)
 data_import:
+    layouts:
+        title: "Deine gespeicherten Layouts"
+        intro: "Wenn du die Spalten eines Blatts bestätigst, merken wir sie uns. Das nächste Blatt mit denselben Überschriften wird dann von selbst genauso eingerichtet. Deine Layouts gehören nur dir - niemand sonst sieht oder verwendet sie."
+        link: "Deine gespeicherten Layouts (%number%)"
+        empty: "Noch nichts gespeichert. Bestätige die Spalten eines Blatts, dann merken wir sie uns für das nächste Mal."
+        unnamed: "Layout ohne Namen"
+        columns: "Spalten: %number%"
+        times_used: "Erneut verwendet: %number%×"
+        last_used: "Zuletzt verwendet: %date%"
+        rename: "Umbenennen"
+        name_label: "Name"
+        save_name: "Namen speichern"
+        forget: "Dieses Layout vergessen"
+        forget_hint: "Das nächste Blatt mit diesen Überschriften wird dann von Grund auf eingerichtet. Bereits eingerichtete Blätter bleiben, wie sie sind."
+        back: "Zurück"
+        start_over: "Bei diesem Blatt neu anfangen"
+        start_over_hint: "Wir gehen dieses Blatt noch einmal durch, als hättest du noch nie ein solches eingerichtet. Dein gespeichertes Layout bleibt, wie es ist."
+        column_check: "Beim letzten Mal hast du eine Spalte mit diesem Namen als „%field%“ eingerichtet, aber die Werte hier sehen nicht danach aus. Bitte prüfe das."
+        notice:
+            remembered: "Wir haben verwendet, was du beim letzten Mal eingerichtet hast (%name%) - ändere alles, was anders ist."
+            remembered_partly: "Die meisten Überschriften sind dieselben wie beim letzten Mal (%name%), deshalb sind diese Spalten so eingerichtet wie damals - bitte prüfe den Rest."
+            meaning_kept: "Was dieses Blatt ist - Ergebnisse, Puzzles, die du besitzt, oder eine Wunschliste, allein oder mit anderen - haben wir so gelassen, wie es sich aus dem Blatt selbst ergibt, weil es sich vom letzten Mal unterscheidet. Bitte prüfe es unten."
+        flash:
+            started_over: "Wir sind dieses Blatt von Grund auf durchgegangen. Seine Zeilen werden neu gelesen."
+            renamed: "Das Layout hat seinen neuen Namen."
+            forgotten: "Das Layout ist vergessen."
+            name_needed: "Bitte gib einen Namen für das Layout ein."
     pairing:
         title: "Puzzles"
         puzzles: "Verschiedene Puzzles in deiner Datei: %number%"

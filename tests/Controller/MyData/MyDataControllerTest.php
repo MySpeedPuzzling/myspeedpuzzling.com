@@ -580,8 +580,8 @@ final class MyDataControllerTest extends WebTestCase
         // The direction of the sort is a link beside the select: the newest first by default, one tap turns it round
         self::assertSame('/en/my-data?dir=asc', $crawler->filter('[data-testid="my-data-direction"]')->attr('href'));
         self::assertCount(0, $crawler->filter('[data-testid="my-data-filters"] [name="dir"]'));
-        // A row opens the existing result detail
-        self::assertStringStartsWith('/en/result/', (string) $crawler->filter('[data-testid="my-data-item"]')->first()->attr('href'));
+        // A row opens its row sheet (MyDataEditRowTest)
+        self::assertStringStartsWith('/en/my-data/result/', (string) $crawler->filter('[data-testid="my-data-item"]')->first()->attr('href'));
     }
 
     public function testTheExportPageLinksToIt(): void

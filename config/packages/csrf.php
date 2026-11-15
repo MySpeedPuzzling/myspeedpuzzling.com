@@ -97,6 +97,9 @@ return App::config([
                 'photo_upload',
                 // The column chooser of "My data" (docs/features/my-data.md): a small preference form on an owner-only page
                 'my_data_columns',
+                // Editing one row of "My data" (docs/features/my-data.md "Editing one row"): the row sheets' forms and the
+                // cells edited in place (sent as the X-CSRF-Token header) - the table stays open while it is worked on
+                'my_data_edit',
             ],
         ],
     ],

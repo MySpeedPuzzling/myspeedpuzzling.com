@@ -1,0 +1,181 @@
+{#
+    The row sheet of one result in "My data" (docs/features/my-data.md "Editing one row") - shared by the modal
+    (_result_row_modal.html.twig) and the page (result_row.html.twig).
+
+    Edits the time, the day, first try, the comment and the signed-in player's own fields; the puzzle, who solved it,
+    the photo and the event are read-only here (the full edit form changes them).
+
+    The action is explicit: in the modal frame a form without one posts to the page under the modal.
+
+    The checks are the edit form's (MyDataResultEditor) and so are the questions: the notice is the edit form's own
+    partial, and its buttons talk to the edit form's own Stimulus controller (first-try-check), which also asks the
+    live check while the fields change. The hidden group_players[] inputs only tell that live check who solved the
+    result - the save never reads them.
+
+    Variables: time (SolvedPuzzleDetail), editable, edit (MyDataResultEdit), outcome (MyDataResultEditOutcome),
+    first_try_resolution, duplicate_confirmed, group_players, my_fields (CustomFieldsForm), context (source,
+    needsVerification, importId), return_url, in_modal
+#}
+{% set timed = time.time is not null %}
+{% set exact = time.datePrecision.value == 'day' %}
+{% set date = time.finishedAt ?? time.trackedAt %}
+{% set others = time.players ?? [] %}
+
+<form action="{{ path('my_data_result_row', {timeId: time.timeId}) }}" method="post" data-testid="my-data-row-form"
+    {% if editable and timed %}
+        data-controller="first-try-check"
+        data-first-try-check-url-value="{{ path('first_try_check') }}"
+        data-first-try-check-puzzle-value="{{ time.puzzleId }}"
+        data-first-try-check-time-value="{{ time.timeId }}"
+        data-first-try-check-pace-value="true"
+    {% endif %}>
+    <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\MyData\\MyDataResultRowController::CSRF_TOKEN_ID')) }}">
+    <input type="hidden" name="return" value="{{ return_url }}">
+
+    {# What the sheet does not edit #}
+    <div class="border rounded-2 p-3 mb-3 fs-sm" data-testid="my-data-row-context">
+        <p class="fw-semibold mb-1">
+            <a href="{{ path('puzzle_detail', {puzzleId: time.puzzleId}) }}" data-turbo-frame="_top" class="text-reset">{{ time.puzzleName }}</a>
+        </p>
+        <p class="text-muted mb-1">{{ time.manufacturerName }} · {{ time.piecesCount|format_number }}</p>
+        <p class="mb-1">
+            {{ ('my_data.type.' ~ (others|length == 0 ? 'solo' : (others|length == 1 ? 'duo' : 'team')))|trans }}
+            {%- if others is not empty %} {{ 'my_data.cell.with'|trans({'%names%': others|map(person => person.isPrivate ? 'secret_puzzler_name'|trans : person.playerName)|join(', ')}) }}{% endif %}
+        </p>
+        {% if context.source is not null %}
+            <p class="mb-1">
+                <span class="text-muted">{{ 'my_data.column.source'|trans }}:</span> {{ ('my_data.source.' ~ context.source.value)|trans }}
+                {%- if context.importId is not null %} · <a href="{{ path('data_import_detail', {importId: context.importId}) }}" data-turbo-frame="_top" data-testid="my-data-row-import">{{ 'my_data.row.from_import'|trans }}</a>{% endif %}
+            </p>
+        {% endif %}
+        {% if context.needsVerification %}
+            <p class="mb-1"><span class="badge bg-warning text-dark fw-normal">{{ 'my_data.cell.needs_verification'|trans }}</span></p>
+        {% endif %}
+        <p class="mb-0">
+            <a href="{{ path('puzzle_result_detail', {timeId: time.timeId}) }}" data-turbo-frame="_top">{{ 'my_data.row.view_result'|trans }}</a>
+        </p>
+    </div>
+
+    {% if outcome.errors[''] is defined %}
+        <div class="alert alert-danger fs-sm" role="alert" data-testid="my-data-row-error">{{ outcome.errors[''] }}</div>
+    {% endif %}
+
+    {% if not editable %}
+        <p class="text-muted fs-sm" data-testid="my-data-row-read-only"><i class="bi bi-lock me-1" aria-hidden="true"></i>{{ 'my_data.edit.read_only'|trans }}</p>
+        <dl class="row fs-sm mb-3">
+            <dt class="col-5 col-sm-4 fw-normal text-muted">{{ 'my_data.column.time'|trans }}</dt>
+            <dd class="col-7 col-sm-8">{% if timed %}{{ time.time|puzzlingTime }}{% else %}{{ 'my_data.cell.no_time'|trans }}{% endif %}</dd>
+            {% if date is not null %}
+                <dt class="col-5 col-sm-4 fw-normal text-muted">{{ 'my_data.column.date'|trans }}</dt>
+                <dd class="col-7 col-sm-8">{{ result_date(date, time.finishedAt is not null ? time.datePrecision : null) }}</dd>
+            {% endif %}
+            {% if time.comment %}
+                <dt class="col-5 col-sm-4 fw-normal text-muted">{{ 'my_data.column.comment'|trans }}</dt>
+                <dd class="col-7 col-sm-8">{{ time.comment }}</dd>
+            {% endif %}
+        </dl>
+    {% else %}
+        {% if timed %}
+            <fieldset class="mb-3">
+                <legend class="form-label fs-base mb-1">{{ 'my_data.column.time'|trans }}</legend>
+                <div class="d-flex align-items-end gap-2">
+                    {% for part in [
+                        {name: 'hours', label: 'forms.hours_short', max: 999, value: edit.hours},
+                        {name: 'minutes', label: 'forms.minutes_short', max: 59, value: edit.minutes},
+                        {name: 'seconds', label: 'forms.seconds_short', max: 59, value: edit.seconds},
+                    ] %}
+                        <div style="flex: 1 1 0; max-width: 110px;">
+                            <label class="form-label fs-xs text-muted mb-0" for="my-data-row-{{ part.name }}">{{ part.label|trans }}</label>
+                            <input type="number" inputmode="numeric" min="0" max="{{ part.max }}" step="1" name="{{ part.name }}" id="my-data-row-{{ part.name }}" value="{{ part.value }}"
+                                   class="form-control text-center{{ outcome.errors.time is defined ? ' is-invalid' }}" style="font-size: 16px; min-height: 44px;"
+                                   data-first-try-check-target="{{ part.name }}">
+                        </div>
+                    {% endfor %}
+                </div>
+                {% if outcome.errors.time is defined %}
+                    <div class="invalid-feedback d-block" data-testid="my-data-row-time-error">{{ outcome.errors.time }}</div>
+                {% endif %}
+            </fieldset>
+        {% endif %}
+
+        {# In the modal the field arrives after the page's date pickers were made - it asks for its own #}
+        <div class="mb-3"{% if in_modal %} data-controller="datepicker"{% endif %}>
+            <label class="form-label" for="my-data-row-day">{{ (exact or time.finishedAt is null ? 'forms.date_finished' : 'my_data.row.exact_day')|trans }}</label>
+            <input type="text" name="day" id="my-data-row-day" value="{{ edit.day }}" autocomplete="off" placeholder="{{ 'my_data.row.day_placeholder'|trans }}"
+                   class="form-control date-picker{{ outcome.errors.date is defined ? ' is-invalid' }}" style="font-size: 16px; min-height: 44px;"
+                   data-datepicker-options='{"altInput": true, "dateFormat": "d.m.Y", "maxDate": "today"}'
+                   {% if timed %}data-first-try-check-target="date"{% endif %}>
+            {% if not exact and time.finishedAt is not null %}
+                <div class="form-text" data-testid="my-data-row-period">{{ 'my_data.row.period_help'|trans({'%period%': result_date(time.finishedAt, time.datePrecision)}) }}</div>
+            {% endif %}
+            {% if outcome.errors.date is defined %}
+                <div class="invalid-feedback d-block" data-testid="my-data-row-date-error">{{ outcome.errors.date }}</div>
+            {% endif %}
+        </div>
+
+        {% if timed %}
+            <div class="form-check form-switch mb-2">
+                <input type="checkbox" class="form-check-input" name="first_try" id="my-data-row-first-try" value="1"{{ edit.firstAttempt ? ' checked' }} data-first-try-check-target="checkbox">
+                <label class="form-check-label" for="my-data-row-first-try">{{ 'forms.first_attempt'|trans }}</label>
+                <div class="form-text">{{ 'forms.first_attempt_help'|trans }}</div>
+            </div>
+
+            {# Only for the live check: who solved the result - the save reads the stored people, never these #}
+            {% for group_player in group_players %}
+                <input type="hidden" name="group_players[]" value="{{ group_player }}">
+            {% endfor %}
+
+            {# docs/features/first-try-integrity.md, duplicate-results.md, suspicious-time-review.md - the edit form's answers #}
+            <input type="hidden" name="first_try_resolution" value="{{ first_try_resolution }}" data-first-try-check-target="resolution">
+            <input type="hidden" name="duplicate_confirmed" value="{{ duplicate_confirmed ? '1' : '' }}" data-first-try-check-target="duplicateConfirmed">
+            <input type="hidden" name="pace_confirmed" value="{{ outcome.paceConfirmed and outcome.paceCheck is not null ? outcome.paceCheck.confirmationKey : '' }}" data-first-try-check-target="paceConfirmed">
+            <div data-first-try-check-target="notice" data-testid="my-data-row-notice">
+                {%- if outcome.firstTry is not null or outcome.check.duplicates is not null or outcome.paceCheck is not null -%}
+                    {{ include('first_try/_notice.html.twig', {assessment: outcome.firstTry, resolution: first_try_resolution, duplicates: outcome.check.duplicates, duplicate_confirmed: duplicate_confirmed, pace_check: outcome.paceCheck, pace_confirmed: outcome.paceConfirmed}) }}
+                {%- endif -%}
+            </div>
+        {% endif %}
+
+        <div class="mb-3 mt-3">
+            <label class="form-label" for="my-data-row-comment">{{ 'my_data.column.comment'|trans }}</label>
+            <textarea class="form-control" name="comment" id="my-data-row-comment" rows="2" style="font-size: 16px; min-height: 44px;">{{ edit.comment }}</textarea>
+        </div>
+    {% endif %}
+
+    {# The signed-in player's own fields on this result - their own row of values, whoever else is on the result #}
+    {% if my_fields.fields is not empty %}
+        <div class="border-top pt-3 mb-3" data-testid="my-data-row-my-fields">
+            <p class="fw-semibold mb-1"><i class="bi bi-lock me-1" aria-hidden="true"></i>{{ 'my_fields.title'|trans }}</p>
+            <p class="form-text mt-0 mb-3">{{ 'my_fields.private_note'|trans }}</p>
+
+            {% if my_fields.problems is not empty %}
+                <div class="alert alert-danger fs-sm" role="alert">{{ 'my_fields.values.not_saved'|trans }}</div>
+            {% endif %}
+
+            {{ include('my_fields/_inputs.html.twig', {my_fields: my_fields, id_prefix: 'my-data-row-field'}) }}
+        </div>
+    {% endif %}
+
+    {% if editable or my_fields.fields is not empty %}
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            {% if in_modal %}
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="min-height: 44px;">{{ 'forms.cancel'|trans }}</button>
+            {% else %}
+                <a href="{{ return_url }}" class="btn btn-secondary d-inline-flex align-items-center" style="min-height: 44px;">{{ 'forms.cancel'|trans }}</a>
+            {% endif %}
+            <button type="submit" class="btn btn-primary text-wrap" style="min-height: 44px;" data-testid="my-data-row-save">
+                <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ 'forms.save'|trans }}
+            </button>
+        </div>
+    {% endif %}
+
+    <p class="form-text mb-0 mt-3">
+        {% if editable %}
+            <a href="{{ path('edit_time', {timeId: time.timeId}) }}" data-turbo-frame="_top" data-testid="my-data-row-full-form">{{ 'my_data.row.full_form'|trans }}</a>
+            {{ 'my_data.row.full_form_help'|trans }}
+        {% endif %}
+        {% if my_fields.fields is empty %}
+            <a href="{{ path('my_fields') }}" data-turbo-frame="_top">{{ 'my_fields.manage_link'|trans }}</a>
+        {% endif %}
+    </p>
+</form>

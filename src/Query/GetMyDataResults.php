@@ -206,6 +206,13 @@ SELECT
     pst.puzzlers_count,
     pst.created_via,
     pst.suspicious,
+    -- Nobody else registered is on it: the player tracked it, alone or with guests (cells are edited in place only then)
+    (pst.player_id = :playerId AND NOT EXISTS (
+        SELECT 1
+        FROM json_array_elements(pst.team -> 'puzzlers') AS member(player)
+        WHERE (member.player ->> 'player_id') IS NOT NULL
+            AND (member.player ->> 'player_id') IS DISTINCT FROM :playerId
+    )) AS only_registered_member,
     (
         SELECT json_agg(
             json_build_object(

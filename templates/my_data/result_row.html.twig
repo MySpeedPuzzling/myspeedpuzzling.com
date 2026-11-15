@@ -1,0 +1,24 @@
+{% extends 'base.html.twig' %}
+
+{# The row sheet of one result as a page (phones, and a refused save without the modal) - see _result_row_form.html.twig #}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'my_data.row.title_result'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+<div class="mb-2">
+    <a href="{{ return_url }}" class="btn btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;" data-testid="my-data-row-back">
+        <i class="ci-arrow-left me-1"></i> <small class="text-muted">{{ 'back_to'|trans }}</small> {{ 'my_data.title'|trans }}
+    </a>
+</div>
+
+<div class="mx-auto" style="max-width: 720px;">
+    <h1 class="h3 mb-3"><i class="bi bi-pencil me-2" aria-hidden="true"></i>{{ 'my_data.row.title_result'|trans }}</h1>
+
+    <div class="card card-body shadow-sm">
+        {{ include('my_data/_result_row_form.html.twig') }}
+    </div>
+</div>
+{% endblock %}

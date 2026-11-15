@@ -1,6 +1,11 @@
 {#
     The puzzles of the player's collections (tab "puzzles") or their wish list (tab "wishlist"): a real table from
-    992 px, a compact list below it. Both are rendered; CSS shows one. A row opens the puzzle's page.
+    992 px, a compact list below it. Both are rendered; CSS shows one. A collection puzzle opens its row sheet
+    (docs/features/my-data.md "Editing one row": in the modal from the table, as a page from the list), a wish opens
+    the puzzle's page - a wish has nothing to edit.
+
+    On the table the comment and the own fields of a collection puzzle are edited in place
+    (my_data_edit_controller.js) - see _results.html.twig.
 
     The cells of the player's own fields are texts OwnFieldsInMyData worded for the signed-in player alone - they are
     on this owner-only page and nowhere on a collection's own page.
@@ -16,6 +21,11 @@
     {% endif %}
 {% endmacro %}
 
+{# The attributes of a cell edited in place - none for a value of several lines (the row sheet's textarea keeps them) #}
+{% macro edit(type, value) %}
+    {%- if '\n' not in value %} data-edit="{{ type }}" data-value="{{ value }}" tabindex="0" data-action="dblclick->my-data-edit#open keydown->my-data-edit#key"{% endif -%}
+{% endmacro %}
+
 {% macro solved(row) %}
     {%- if row.solved is not null -%}
         {{ 'my_data.cell.solved'|trans({'%count%': row.solved.solvedCount|format_number}) }}
@@ -26,8 +36,18 @@
 {% endmacro %}
 
 {% set sorts = {brand: 'brand', pieces: 'pieces', added: 'added'} %}
+{# Where a saved row sheet goes back to: this page of the table, in its state #}
+{% set here = path('my_data', criteria.query({page: page.page > 1 ? page.page : null})) %}
+{% set editing = tab == 'puzzles' %}
 
-<div class="my-data-scroll d-none d-lg-block" data-testid="my-data-table">
+<div class="my-data-scroll d-none d-lg-block" data-testid="my-data-table"
+     {% if editing %}
+         data-controller="my-data-edit"
+         data-my-data-edit-token-value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\MyData\\MyDataResultRowController::CSRF_TOKEN_ID')) }}"
+         data-my-data-edit-open-row-value="{{ 'my_data.row.open'|trans }}"
+         data-my-data-edit-failed-value="{{ 'my_data.edit.not_saved'|trans }}"
+         data-my-data-edit-hint-value="{{ 'my_data.edit.cell_hint'|trans }}"
+     {% endif %}>
     <table class="table table-sm align-middle mb-0">
         <thead>
             <tr>
@@ -35,7 +55,7 @@
                 {% for column, shown in columns %}
                     {% if shown %}
                         {% if own_fields.columns[column] is defined %}
-                            <th scope="col" data-column="{{ column }}" data-own-field>{{ own_fields.columns[column] }}</th>
+                            <th scope="col" data-column="{{ column }}" data-own-field{% if own_fields.editors[column] is defined %} data-edit-options="{{ own_fields.editors[column].options|json_encode }}"{% endif %}>{{ own_fields.columns[column] }}</th>
                         {% else %}
                             {{ _self.head(criteria, column, sorts[column] ?? null) }}
                         {% endif %}
@@ -45,9 +65,10 @@
         </thead>
         <tbody>
             {% for row in page.rows %}
-                <tr data-testid="my-data-row" data-row-id="{{ row.itemId }}">
+                {% set row_url = editing ? path('my_data_puzzle_row', {itemId: row.itemId, return: here}) : null %}
+                <tr data-testid="my-data-row" data-row-id="{{ row.itemId }}"{% if editing %} data-row-url="{{ row_url }}" data-cell-url="{{ path('my_data_cell', {kind: 'puzzle', id: row.itemId}) }}"{% endif %}>
                     <th scope="row" class="my-data-puzzle">
-                        <a href="{{ path('puzzle_detail', {puzzleId: row.puzzle.puzzleId}) }}" class="d-flex align-items-center gap-2 text-reset">
+                        <a href="{{ row_url ?? path('puzzle_detail', {puzzleId: row.puzzle.puzzleId}) }}" {% if editing %}data-turbo-frame="modal-frame" rel="nofollow" data-testid="my-data-open-row"{% endif %} class="d-flex align-items-center gap-2 text-reset">
                             {{ lazy_puzzle_image(row.imagePath, 'puzzle_small', 'puzzle_img_alt'|trans({'%puzzle%': (row.puzzle.brandName ?? '') ~ ' ' ~ row.puzzle.name}), loop.index, 40, 'rounded-1 flex-shrink-0') }}
                             <span class="d-block" style="min-width: 0;">
                                 <span class="d-block fw-medium">{{ row.puzzle.name }}</span>
@@ -58,7 +79,7 @@
                     {% for column, shown in columns %}
                         {% if shown %}
                             {% if own_fields.columns[column] is defined %}
-                                <td data-column="{{ column }}" class="my-data-text">{{ own_fields.cell(row.itemId, column) }}</td>
+                                <td data-column="{{ column }}" class="my-data-text"{% if editing and own_fields.editors[column] is defined %}{{ _self.edit(own_fields.editors[column].type, own_fields.input(row.itemId, column)) }}{% endif %}>{{ own_fields.cell(row.itemId, column) }}</td>
                             {% elseif column == 'brand' %}
                                 <td data-column="brand">{{ row.puzzle.brandName }}</td>
                             {% elseif column == 'pieces' %}
@@ -68,7 +89,7 @@
                             {% elseif column == 'added' %}
                                 <td data-column="added" class="text-nowrap"><time datetime="{{ row.addedAt|date('Y-m-d') }}">{{ result_date(row.addedAt) }}</time></td>
                             {% elseif column == 'comment' %}
-                                <td data-column="comment" class="my-data-text">{{ row.comment }}</td>
+                                <td data-column="comment" class="my-data-text"{% if editing %}{{ _self.edit('text', row.comment ?? '') }}{% endif %}>{{ row.comment }}</td>
                             {% elseif column == 'solved' %}
                                 <td data-column="solved" class="text-nowrap">{{ _self.solved(row) }}</td>
                             {% elseif column == 'lent' %}
@@ -85,7 +106,7 @@
 <ul class="my-data-list list-unstyled d-lg-none mb-0" data-testid="my-data-list">
     {% for row in page.rows %}
         <li>
-            <a href="{{ path('puzzle_detail', {puzzleId: row.puzzle.puzzleId}) }}" class="my-data-item text-reset" data-testid="my-data-item" data-row-id="{{ row.itemId }}">
+            <a href="{{ editing ? path('my_data_puzzle_row', {itemId: row.itemId, return: here}) : path('puzzle_detail', {puzzleId: row.puzzle.puzzleId}) }}"{% if editing %} rel="nofollow"{% endif %} class="my-data-item text-reset" data-testid="my-data-item" data-row-id="{{ row.itemId }}">
                 {{ lazy_puzzle_image(row.imagePath, 'puzzle_small', 'puzzle_img_alt'|trans({'%puzzle%': (row.puzzle.brandName ?? '') ~ ' ' ~ row.puzzle.name}), loop.index, 48, 'rounded-1 flex-shrink-0') }}
                 <span class="my-data-item-main">
                     <span class="d-block fw-medium text-truncate">{{ row.puzzle.name }}</span>

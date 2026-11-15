@@ -115,3 +115,71 @@
         white-space: nowrap;
     }
 }
+
+// Editing one cell in place (my_data_edit_controller.js) - the wide table only
+.my-data {
+    td[data-edit] {
+        cursor: cell;
+
+        &:focus-visible {
+            outline: 2px solid var(--bs-primary);
+            outline-offset: -2px;
+        }
+    }
+
+    td.my-data-editing {
+        position: relative;
+        padding: 2px;
+        min-width: 150px;
+        white-space: normal;
+        cursor: auto;
+        // The note under it lies over the rows below
+        overflow: visible;
+    }
+
+    td[data-edit] {
+        position: relative;
+    }
+
+    .my-data-editor {
+        text-align: left;
+
+        .form-control,
+        .form-select {
+            min-width: 120px;
+        }
+    }
+
+    // Why a cell was not saved (and the way to its row sheet): a small box hanging under the cell, as wide as the text
+    // needs - a narrow cell (the time) would cut it off after three words
+    .my-data-cell-note {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: 3;
+        width: max-content;
+        max-width: min(320px, 80vw);
+        margin-top: 2px;
+        padding: .375rem .5rem;
+        border: 1px solid var(--bs-danger-border-subtle, #f1aeb5);
+        border-radius: .375rem;
+        background: var(--bs-body-bg, #fff);
+        box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .15);
+        font-size: .75rem;
+        font-weight: 400;
+        line-height: 1.35;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        text-align: left;
+        color: var(--bs-danger-text-emphasis, #a52a2a);
+
+        a {
+            margin-top: .25rem;
+        }
+    }
+
+    .my-data-cell-note-end {
+        left: auto;
+        right: 0;
+    }
+}

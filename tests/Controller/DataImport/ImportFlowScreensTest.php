@@ -71,9 +71,16 @@ final class ImportFlowScreensTest extends WebTestCase
         $this->assertScreen($base . '/people', 3, 1, 'Continue');
         $this->assertScreen($base . '/puzzles', 4, 1, 'Start with “Looks like a match”');
         $this->assertScreen($base . '/puzzles/found', 4, 1, 'Continue');
-        $this->assertScreen($base . '/puzzles/probably', 4, 1, 'Yes, this one is right');
+        // The piles (slice 3): a screen of tiles confirmed with one tap, a round of one puzzle per screen, one answer
+        // for all - and each pile's list by its page
+        $this->assertScreen($base . '/puzzles/probably', 4, 1, 'Yes, the ticked ones are right');
+        $this->assertScreen($base . '/puzzles/probably?part=differs', 4, 1, 'Continue');
+        $this->assertScreen($base . '/puzzles/probably?page=1', 4, 1, 'Continue');
         $this->assertScreen($base . '/puzzles/choose', 4, 1, 'Do the next 20');
-        $this->assertScreen($base . '/puzzles/not-found', 4, 1, 'Do the next 20');
+        $this->assertScreen($base . '/puzzles/choose?done=20', 4, 1, 'Do 1 more');
+        $this->assertScreen($base . '/puzzles/choose?page=1', 4, 1, 'Continue');
+        $this->assertScreen($base . '/puzzles/not-found', 4, 1, 'Continue');
+        $this->assertScreen($base . '/puzzles/not-found?page=1', 4, 1, 'Continue');
         $this->assertScreen($base . '/puzzles/remembered', 4, 1, 'Continue');
         // A tap on a puzzle's card is the answer of the chooser: it has no primary button of its own
         $this->assertScreen($base . '/puzzle/' . $twin['id'], 4, 0);

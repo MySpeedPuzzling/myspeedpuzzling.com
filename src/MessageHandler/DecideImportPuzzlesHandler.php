@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Repository\DataImportPuzzleRepository;
 use SpeedPuzzling\Web\Repository\DataImportRepository;
 use SpeedPuzzling\Web\Repository\ImportPuzzleDecisionRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Services\DataImport\ImportPuzzleBulkConfirm;
 use SpeedPuzzling\Web\Services\Doctrine\IdLock;
 use SpeedPuzzling\Web\Value\ImportPuzzleChoice;
 use SpeedPuzzling\Web\Value\ImportPuzzleDecidedHow;
@@ -32,7 +33,11 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * - a chosen catalogue puzzle exists and may be a candidate for this player (GetImportPuzzleCandidates::sqlCandidate()
  *   - what the player finds by searching passes the same check);
  * - a catalogue puzzle whose piece count is not the file's (more than one apart) is chosen alone, never in a group,
- *   and only with the player's explicit yes (`confirmedOtherPieces`).
+ *   and only with the player's explicit yes (`confirmedOtherPieces`);
+ * - **several catalogue puzzles at once** ("Yes, these N are right", `bulkConfirm`) only where each is the same
+ *   puzzle with less proof (ImportPuzzleBulkConfirm::isPartA()): one possible puzzle, found by the whole name, the
+ *   barcode or the brand's code, neither the brand nor the piece count differs, and it still waits. Anything else
+ *   in the set refuses the whole message - it is confirmed on its own, after a look (guided-flow.md §6.1).
  *
  * Then each puzzle takes the decision as the player's, and the player's remembered decision for its key is written
  * (a pairing taken back is remembered as "not this puzzle"; anything else taken back is forgotten). The counters of "where the rules end" move by what changed - the
@@ -133,8 +138,23 @@ readonly final class DecideImportPuzzlesHandler
             }
         }
 
-        // Checked - from here on nothing refuses
         $puzzles = $this->puzzleRepository->findByIds($chosenIds);
+        $confirmedTogether = $message->bulkConfirm || count(array_filter($message->decisions, static fn ($decision): bool => $decision->puzzleId !== null)) > 1;
+
+        foreach ($confirmedTogether ? $message->decisions : [] as $decision) {
+            if ($decision->puzzleId === null && $message->bulkConfirm === false) {
+                continue;
+            }
+
+            $puzzle = $decision->puzzleId === null ? null : ($puzzles[strtolower($decision->puzzleId)] ?? null);
+
+            // "These are right" names a puzzle for each - and only one that needs no closer look
+            if ($puzzle === null || ImportPuzzleBulkConfirm::isPartA($importPuzzles[strtolower($decision->importPuzzleId)], $puzzle) === false) {
+                throw new ImportPuzzleChoiceRefused(ImportPuzzleChoiceRefused::NEEDS_A_CLOSER_LOOK, $decision->importPuzzleId);
+            }
+        }
+
+        // Checked - from here on nothing refuses
         $keys = [];
 
         foreach ($message->decisions as $decision) {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\DataImport;
 
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetDataImports;
 use SpeedPuzzling\Web\Query\GetImportPuzzleScreen;
 use SpeedPuzzling\Web\Results\DataImportOverview;
@@ -65,6 +66,7 @@ final class ImportPuzzleChooserController extends AbstractController
             $this->getImportPuzzleScreen->rowsOf($importId, $player->playerId, $importPuzzleId, self::ROWS_SHOWN),
             null,
             null,
+            last: $request->query->getString('last'),
         ));
     }
 
@@ -72,6 +74,7 @@ final class ImportPuzzleChooserController extends AbstractController
      * @param list<ImportSheetRow> $rows
      * @param null|list<ImportCataloguePuzzle> $found what the player's search found - null: nothing was searched
      * @param null|ImportCataloguePuzzle $askOtherPieces the puzzle of another piece count the player tapped - asked about once more
+     * @param string $last the puzzle decided just before, as the address says it
      *
      * @return array<string, mixed>
      */
@@ -85,6 +88,7 @@ final class ImportPuzzleChooserController extends AbstractController
         null|array $found,
         bool $searchTooShort = false,
         null|ImportCataloguePuzzle $askOtherPieces = null,
+        string $last = '',
     ): array {
         $flow = in_array($flow, GetImportPuzzleScreen::GROUPS, true) ? $flow : null;
 
@@ -100,6 +104,8 @@ final class ImportPuzzleChooserController extends AbstractController
             'search_too_short' => $searchTooShort,
             // "Your file says 500 pieces, this puzzle has 1,000 - choose it anyway?" (DecideImportPuzzlesController)
             'ask_other_pieces' => $askOtherPieces,
+            // The puzzle decided just before in this round: "Undo the last one" leads to it (an id - nothing else)
+            'last' => $flow !== null && Uuid::isValid($last) && strtolower($last) !== strtolower($card->importPuzzleId) ? strtolower($last) : null,
         ];
     }
 }

@@ -1543,6 +1543,10 @@ A player's report of 2026-11-15, the part about single rows and the columns. The
 - **No time.** "No time - I didn't time this one" beside the time's input, and "Import these without a time (N)"
   for a group of unreadable times: the row is what an empty time cell makes it - a result without a time. Never
   offered (nor taken) for a row of a shelf whose time cell is empty: it must not say "solved" by itself.
+- **Said where the player lands.** "Row 14 is saved" is fixed in view on the screen the save leads to (that screen
+  is scrolled to the row or group), and anchored rows land below the sticky header.
+- **One answer for every time we could not read**: "Import all of them without a time (N)" above the groups while
+  more than one group is about a time.
 - **No jumping on "Rows we could not read".** Group answers and "Import after all" are answered in place with Turbo
   Streams; the redirect stays as the fallback without a script.
 

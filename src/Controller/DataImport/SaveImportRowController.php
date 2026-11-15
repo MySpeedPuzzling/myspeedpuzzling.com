@@ -41,6 +41,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final class SaveImportRowController extends AbstractController
 {
+    /**
+     * "Row 14 is saved" - a flash of its own: the screen it is shown on is scrolled to the row or group the player
+     * came from, so it is said fixed in view (data_import/_saved_notice.html.twig) and not at the top of the page
+     */
+    public const string SAVED_FLASH = 'data_import_saved';
+
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetDataImports $getDataImports,
@@ -124,7 +130,7 @@ final class SaveImportRowController extends AbstractController
 
         if ($action === 'take_in') {
             // Put back to be looked at: the row stays open
-            $this->addFlash('success', $this->translator->trans('data_import.row.flash.taken_in', $number));
+            $this->addFlash(self::SAVED_FLASH, $this->translator->trans('data_import.row.flash.taken_in', $number));
 
             return $back;
         }
@@ -133,11 +139,11 @@ final class SaveImportRowController extends AbstractController
         $now = $this->getImportRowsToFix->row($importId, $player->playerId, $rowId)->row;
 
         if ($action === 'leave_out') {
-            $this->addFlash('success', $this->translator->trans('data_import.row.flash.left_out', $number));
+            $this->addFlash(self::SAVED_FLASH, $this->translator->trans('data_import.row.flash.left_out', $number));
         } else {
             // Nothing unclear is left, or something still is
             $unclear = array_filter($now->problems, static fn (array $problem): bool => $problem['waiting'] === false);
-            $this->addFlash('success', $this->translator->trans($unclear === [] ? 'data_import.row.flash.saved' : 'data_import.row.flash.saved_needs_look', $number));
+            $this->addFlash(self::SAVED_FLASH, $this->translator->trans($unclear === [] ? 'data_import.row.flash.saved' : 'data_import.row.flash.saved_needs_look', $number));
 
             // Still needs a look, and no screen to go back to: the player stays with this row
             if ($unclear !== [] && $origin === null && $action === 'save') {
@@ -175,6 +181,17 @@ final class SaveImportRowController extends AbstractController
      */
     private function onwards(string $importId, string $playerId, string $rowId, null|ImportRowOrigin $origin, bool $next): Response
     {
+        // The group the player came from is gone (its last row was just answered): the list of groups instead, so
+        // that the page still lands where the player was
+        $anchor = $origin?->anchor();
+
+        if (
+            $origin !== null && $origin->screen === 'to_fix' && $anchor !== null && str_starts_with($anchor, 'group-')
+            && $this->getImportRowsToFix->groups($importId, $playerId, 1, 0, substr($anchor, 6))['groups'] === []
+        ) {
+            $origin = $origin->at('import-to-fix-groups');
+        }
+
         if ($origin !== null && $next === false) {
             return $this->redirect($origin->url);
         }

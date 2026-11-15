@@ -28,7 +28,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * One answer for every row of a group of "To fix" (docs/features/data-import/pairing-screens.md "To fix"): the value
  * typed for the group's field, "Import these without a time" (a group of the time's field - the answer
  * ImportRowAnswers::NO_TIME), or "Leave these rows out" - and a row the player left out taken in again. One message
- * (AnswerImportRows). POST + CSRF. The group is named by its key, never by its value.
+ * (AnswerImportRows). POST + CSRF. The group is named by its key, never by its value. "Import all of them without a
+ * time" (`no_time_all`) gives that answer to every group about a time at once - a message a group.
  *
  * Answered in place when the request takes Turbo Streams (_to_fix.stream.html.twig): the answered group gives way to a
  * short confirmation where it stood (or stands again with what is left of it), the count and the rows not imported
@@ -71,6 +72,10 @@ final class AnswerImportRowsController extends AbstractController
         $key = $form->getString('group');
         $typed = trim(mb_substr($form->getString('answer'), 0, 500));
         $rowId = $form->getString('row');
+
+        if ($action === 'no_time_all') {
+            return $this->allTimesWithoutATime($request, $importId, $player->playerId, $pageNumber, $back);
+        }
 
         if ($action === 'take_in') {
             $message = new AnswerImportRows($importId, $player->playerId, [$rowId], leaveOut: false);
@@ -146,6 +151,76 @@ final class AnswerImportRowsController extends AbstractController
         if ($more !== null) {
             $this->addFlash('info', $more);
         }
+
+        return $back;
+    }
+
+    /**
+     * "Import all of them without a time": the answer ImportRowAnswers::NO_TIME for every group about a time that
+     * shares an answer (the cell holds a text nobody could read) - a message a group, each with the group's own
+     * guard (only the rows that still carry its problem), at most ImportRowAnswers::MAX_ROWS rows a request.
+     */
+    private function allTimesWithoutATime(Request $request, string $importId, string $playerId, int $pageNumber, Response $back): Response
+    {
+        // Checks whose import it is: a 404 for anybody else's
+        $this->page->parameters($importId, $playerId, $pageNumber);
+
+        $changed = 0;
+        $left = ImportRowAnswers::MAX_ROWS;
+
+        foreach ($this->getImportRowsToFix->timeGroups($importId, $playerId) as $group) {
+            if ($left <= 0) {
+                break;
+            }
+
+            $rowIds = $this->getImportRowsToFix->rowIdsOfGroup($importId, $playerId, $group['key'], $left);
+
+            if ($rowIds === []) {
+                continue;
+            }
+
+            try {
+                $fixed = $this->messageBus
+                    ->dispatch(new AnswerImportRows($importId, $playerId, $rowIds, ['time' => ImportRowAnswers::NO_TIME], onlyWithProblem: $group['key']))
+                    ->last(HandledStamp::class)
+                    ?->getResult();
+            } catch (HandlerFailedException $exception) {
+                $cause = $exception->getPrevious();
+
+                // The sheet is being read again, or the rows were answered meanwhile: what was done stays done
+                if ($cause instanceof ImportRowAnswerRefused || $cause instanceof ImportRowsChangedMeanwhile) {
+                    break;
+                }
+
+                throw $exception;
+            }
+
+            $changed += is_int($fixed) ? $fixed : 0;
+            $left -= count($rowIds);
+        }
+
+        if ($changed === 0) {
+            $this->addFlash('warning', $this->translator->trans('data_import.to_fix.flash.changed_meanwhile'));
+
+            return $back;
+        }
+
+        $notice = $this->translator->trans('data_import.to_fix.flash.no_time', ['%number%' => $changed]);
+
+        if ($request->getPreferredFormat() === TurboBundle::STREAM_FORMAT) {
+            $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+            return $this->render('data_import/_to_fix.stream.html.twig', [
+                ...$this->page->parameters($importId, $playerId, $pageNumber),
+                'notice' => $notice,
+                'answered_key' => null,
+                'answered_group' => null,
+                'taken_in_row' => null,
+                'all_times' => true,
+            ]);
+        }
+
+        $this->addFlash('success', $notice);
 
         return $back;
     }

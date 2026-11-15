@@ -1,0 +1,29 @@
+// The spreadsheet import's screens (templates/data_import/, docs/features/data-import/pairing-screens.md
+// "The way back"): what a save in the row's editor needs on the screen it leads back to.
+
+// A row, a group or a puzzle the browser scrolls to (`#row-…`, `#group-…`, `#puzzle-…`, the list of groups) lands
+// below the sticky site header, not under it - also where the element carries a smaller margin of its own
+[data-import-flow-screen] [id^="row-"],
+[data-import-flow-screen] [id^="group-"],
+[data-import-flow-screen] [id^="puzzle-"],
+[data-import-flow-screen] [id^="left-out-row-"],
+#import-to-fix-groups {
+    scroll-margin-top: 124px !important;
+}
+
+// "Row 14 is saved": said where the player lands - fixed in view, whatever the page scrolled to
+.import-saved-notice {
+    position: fixed;
+    left: 50%;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+    width: min(520px, calc(100vw - 32px));
+    margin: 0;
+    z-index: 1080;
+}
+
+// An answered group of "Rows we could not read" keeps its place for a moment, then gives it up slowly
+// (data_import_settle_controller.js) - the next card's button never jumps under the finger
+.import-settling {
+    transition: min-height 0.6s ease;
+}

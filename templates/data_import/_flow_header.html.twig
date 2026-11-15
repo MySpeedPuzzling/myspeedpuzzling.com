@@ -23,6 +23,9 @@
 {% set keys = {1: 'file', 2: 'check', 3: 'people', 4: 'puzzles', 5: 'add'} %}
 {% set flow_csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
 
+{# "Row 14 is saved", fixed in view on the screen a save in the row's editor leads to #}
+{{ include('data_import/_saved_notice.html.twig') }}
+
 <nav class="mx-auto mb-3" style="max-width: 720px;" aria-label="{{ 'data_import.flow.steps_label'|trans }}" data-testid="import-flow-header" data-step="{{ current }}">
     <div class="d-flex align-items-center gap-1">
         <a href="{{ path('data_imports') }}" class="d-inline-flex align-items-center flex-shrink-0 text-nowrap text-decoration-none fs-sm" style="min-height: 44px;" data-testid="import-flow-back">

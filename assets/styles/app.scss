@@ -165,6 +165,8 @@
 
 // "My data": the player's own results and puzzles as a table (docs/features/my-data.md)
 @import "my-data";
+// The spreadsheet import: where a save in the row's editor lands (docs/features/data-import/pairing-screens.md)
+@import "data-import";
 
 // One conversation: full-height chat, composer pinned to the bottom (templates/messaging/conversation_detail.html.twig)
 @import "conversation-page";

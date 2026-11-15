@@ -1677,6 +1677,10 @@ Mirrored in [#212](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues
   and on again after the browser's Back), the Turbo
   Stream answers on "Rows we could not read" (confirmation in place, the 422 card, "Don't import them" with its
   confirm), and the anchors after a save (`#group-<key>`, `#row-<id>`).
+- [ ] "Where you are" (`detail.html.twig`, the flow's own page): after the live re-read the list of steps is up to
+  date but the flow header above it keeps "Step 2 of 5 · Check" until the page is loaded again - the header stands
+  outside the `import-detail-live` frame. Let the frame's answer carry the header too (a `turbo-stream` replacing
+  it inside the frame works), with the overview's owner.
 - [ ] A row that is in two groups of "Rows we could not read" and is left out through one still counts in the other
   group's card until the page is loaded again (the stream replaces the answered group only).
 - [ ] "Save and fix the next one" walks the rows in the file's order; the groups' order of the list (largest first)

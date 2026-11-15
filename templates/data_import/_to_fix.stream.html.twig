@@ -2,12 +2,15 @@
     An answer on "Rows we could not read" given in place (AnswerImportRowsController, for a request that takes Turbo
     Streams): the answered group gives way to a short confirmation where it stood - or stands again, with what is
     left of it or with why the answer was refused; a row put back gives way to its confirmation and the groups are
-    listed anew (it may be in one again). The count and the rows not imported follow. Nothing else of the page moves.
+    listed anew (it may be in a group again); "Import all of them without a time" lists the groups anew under its
+    confirmation. The count, the pager (an answer may make the list a page shorter), the one answer for all times and
+    the rows not imported with their count follow; a block that became empty goes. Nothing else of the page moves.
 
     Variables: those of to_fix.html.twig (ImportToFixPage) + notice, answered_key, answered_group, taken_in_row,
-    refused (optional).
+    all_times (optional), refused (optional).
 #}
 {% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
+{% set all_times = all_times|default(false) %}
 {% if answered_key is not null %}
     <turbo-stream action="replace" target="group-{{ answered_key }}">
         <template>
@@ -39,6 +42,14 @@
                 </template>
             </turbo-stream>
         {% endif %}
+    {% elseif not all_times %}
+        <turbo-stream action="replace" target="import-to-fix-left-out">
+            <template>
+                {{ include('data_import/_to_fix_left_out.html.twig', {import_id: import.importId, page: page, csrf: csrf, left_out: left_out}, with_context = false) }}
+            </template>
+        </turbo-stream>
+    {% endif %}
+    {% if taken_in_row is not null or all_times %}
         <turbo-stream action="update" target="import-to-fix-groups">
             <template>
                 {% for group in groups %}
@@ -46,13 +57,12 @@
                 {% endfor %}
             </template>
         </turbo-stream>
-    {% else %}
-        <turbo-stream action="replace" target="import-to-fix-left-out">
-            <template>
-                {{ include('data_import/_to_fix_left_out.html.twig', {import_id: import.importId, page: page, csrf: csrf, left_out: left_out}, with_context = false) }}
-            </template>
-        </turbo-stream>
     {% endif %}
+    <turbo-stream action="replace" target="import-to-fix-all-no-time">
+        <template>
+            {{ include('data_import/_to_fix_all_no_time.html.twig', {import_id: import.importId, page: page, csrf: csrf, time_groups: time_groups, notice: all_times ? notice : null}, with_context = false) }}
+        </template>
+    </turbo-stream>
     <turbo-stream action="update" target="import-to-fix-pages">
         <template>
             {{ include('data_import/_pages.html.twig', {page: page, pages: pages, route: 'data_import_to_fix', parameters: {importId: import.importId}, label: 'data_import.to_fix.title'|trans}, with_context = false) }}

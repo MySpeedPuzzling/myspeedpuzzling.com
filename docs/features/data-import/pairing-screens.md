@@ -187,6 +187,13 @@ the sheet decides - **grouped by field, what is unclear and the value as the she
   time" for a puzzle solved casually): every row of the group becomes a result without a time (the answer
   `ImportRowAnswers::NO_TIME`, see "No time" below). Refused for a group of any other field.
 
+- **Import all of them without a time (N)** - one answer above the groups, offered while **more than one** group
+  is about a time: the groups are told apart by the cell's text, so "casual", "no timer" and "relaxed" are three
+  groups of one row and one thing to say. `action=no_time_all` gives the answer `NO_TIME` to every group about a
+  time that shares an answer (`GetImportRowsToFix::timeGroups()`: the cell holds a text) - a message a group, each
+  with the group's own guard, at most 500 rows a request; in place the groups are listed anew under the
+  confirmation (`#import-to-fix-all-no-time`).
+
 **Answered in place.** The forms are plain POSTs. Turbo sends them asking for streams, and
 `AnswerImportRowsController` then answers with `_to_fix.stream.html.twig` instead of a redirect - the page does not
 load again and does not jump:
@@ -198,6 +205,10 @@ load again and does not jump:
 | "Import after all" on a row not imported | `#left-out-row-<id>` gives way to its confirmation and `#import-to-fix-left-out-title` counts anew - or, when it was the last one, the whole block gives way to the confirmation; `#import-to-fix-groups` is listed anew (the row may be in a group again); the count |
 | a value nobody can read | the group's card alone, with the reason at its field and what was typed - a **422** stream |
 | changed meanwhile | a redirect to the list as it stands, with the notice (for a stream request too) |
+
+**Nothing jumps under the finger** (`data_import_settle_controller.js`, on the page): what replaces a group's card
+or a row not imported keeps the height of what it replaced for a moment (1.6 s) and then gives it up slowly, and is
+scrolled into view (`block: 'nearest'`) only when it is under the sticky header or below the screen.
 
 Without a script the same POST redirects back to the list (PRG) with the same words as a flash, and a refused value
 is the whole page with a 422 - as before. Known limit: a row that is in two groups (two things unclear) and is left
@@ -265,6 +276,13 @@ back to `/add`), another row's editor, or a path that merely starts like the imp
 (`data_import.row.back_to.<screen>`: "Back to your puzzles", "Back to “What will be added”" …). Anything else is no
 origin: the back link is "Back to “Rows we could not read”", as before. Both forms of the page carry the origin as a
 hidden `return`, so it survives a refused save (422) and the redirect after a save.
+
+**Said where the player lands.** The page a save leads to is scrolled to the row or group the player came from, so
+"Row 14 is saved" is a flash of its own (`SaveImportRowController::SAVED_FLASH`) that the flow header renders
+**fixed in view** at the bottom of the screen (`_saved_notice.html.twig`, `.import-saved-notice`) - on every screen
+of an import, at any width - instead of at the top of the page. Anchored rows, groups and puzzles land below the
+sticky site header (`assets/styles/_data-import.scss`: `scroll-margin-top` 124 px). A group the player came from
+that is gone after the save (its last row was the one fixed) gives way to `#import-to-fix-groups`, the list itself.
 
 **After a save** (PRG, the flash names the row - "Row 14 is saved. We can read all of it now." or "… Something in it
 still needs a look.", "Row 14 is not imported."):
@@ -389,7 +407,7 @@ Statements on top of what every signed-in page loads, whatever the number of puz
 | the summary | 3 - the import, the overview (one statement: every count, the rows that need a look, the rows already yours), the live line's progress |
 | a list | 4 - those, and the page of cards with their catalogue puzzles (one statement) |
 | the chooser | 3 - the import, the puzzle with its candidates, three of its rows (+1 for a search) |
-| To fix | 3 - the import, a page of groups, the rows left out |
+| To fix | 4 - the import, a page of groups, the groups about a time, the rows left out |
 | the row sheet | 3 - the row with its sheet's mapping, the import, whether another row needs a look |
 
 To look at on production before it is opened to many (none of these was run there):

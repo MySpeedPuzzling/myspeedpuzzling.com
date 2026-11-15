@@ -48,6 +48,24 @@ final readonly class ImportRowOrigin
     ) {
     }
 
+    /**
+     * The same screen at another place of it - for a row or a group that is not there any more.
+     */
+    public function at(string $anchor): self
+    {
+        return new self(substr($this->url, 0, strcspn($this->url, '#')) . '#' . $anchor, $this->screen);
+    }
+
+    /**
+     * The anchor the screen was left at - null: none.
+     */
+    public function anchor(): null|string
+    {
+        $at = strpos($this->url, '#');
+
+        return $at === false ? null : substr($this->url, $at + 1);
+    }
+
     public static function tryFrom(null|string $value, string $importId): null|self
     {
         $url = ReturnUrl::tryFrom($value)?->path;

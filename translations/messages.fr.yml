@@ -12467,6 +12467,9 @@ data_import:
         row_of: "Ligne %row% · %sheet%"
         no_time: "Importer ces lignes sans temps (%number%)"
         groups_left: "Groupes qui attendent encore une réponse : %number%"
+        all_no_time:
+            text: "Lignes dont nous n'avons pas pu lire le temps : %number%. Si vous n'avez pas chronométré ces puzzles, une seule réponse suffit pour toutes."
+            use: "Importer toutes ces lignes sans temps (%number%)"
         error:
             empty: "Veuillez d'abord saisir une valeur."
             unreadable: "Nous n'avons pas pu lire cela avec certitude. Veuillez l'écrire autrement."

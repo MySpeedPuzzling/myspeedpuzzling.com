@@ -12718,6 +12718,9 @@ data_import:
         row_of: "Row %row% · %sheet%"
         no_time: "Import these without a time (%number%)"
         groups_left: "Groups still to answer: %number%"
+        all_no_time:
+            text: "Rows whose time we could not read: %number%. If you did not time these puzzles, one answer is enough for all of them."
+            use: "Import all of them without a time (%number%)"
         error:
             empty: "Please fill in a value first."
             unreadable: "We could not read this for sure. Please write it another way."

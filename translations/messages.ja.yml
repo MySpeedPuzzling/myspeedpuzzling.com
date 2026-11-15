@@ -12461,6 +12461,9 @@ data_import:
         row_of: "行 %row% · %sheet%"
         no_time: "タイムなしでインポートする(%number%)"
         groups_left: "まだ回答を待っているグループ: %number%"
+        all_no_time:
+            text: "タイムを読み取れなかった行: %number%。これらのパズルのタイムを計っていない場合は、1つの回答ですべてに対応できます。"
+            use: "すべてタイムなしでインポートする(%number%)"
         error:
             empty: "先に値を入力してください。"
             unreadable: "確実に読み取れませんでした。別の書き方でお試しください。"

@@ -8,7 +8,8 @@
 
     The forms are plain POSTs; Turbo sends them asking for streams, and the answer then changes the page in place
     (_to_fix.stream.html.twig: `#group-<key>`, `#import-to-fix-count`, `#import-to-fix-left-out`,
-    `#left-out-row-<id>`, `#import-to-fix-left-out-title`, `#import-to-fix-groups`, `#import-to-fix-pages`). Without a script the same POST redirects back here.
+    `#left-out-row-<id>`, `#import-to-fix-left-out-title`, `#import-to-fix-groups`, `#import-to-fix-pages`, `#import-to-fix-all-no-time`); data_import_settle_controller.js
+    keeps what replaces a card at the card's height for a moment, so nothing jumps under the finger. Without a script the same POST redirects back here.
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -21,11 +22,13 @@
 {% block content %}
 {{ include('data_import/_flow_header.html.twig', {import: import, step: 2}) }}
 
-<div class="mx-auto" style="max-width: 720px;" data-testid="import-to-fix-page" data-import-flow-screen="to_fix">
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-to-fix-page" data-import-flow-screen="to_fix" data-controller="data-import-settle">
     <h1 class="h3 mb-2">{{ 'data_import.to_fix.title'|trans }}</h1>
     <p class="text-muted fs-sm">{{ 'data_import.to_fix.intro'|trans }}</p>
 
     {{ include('data_import/_to_fix_count.html.twig', {total: total, shown: groups|length}, with_context = false) }}
+
+    {{ include('data_import/_to_fix_all_no_time.html.twig', {import_id: import.importId, page: page, csrf: csrf, time_groups: time_groups}, with_context = false) }}
 
     <div id="import-to-fix-groups">
         {% for group in groups %}

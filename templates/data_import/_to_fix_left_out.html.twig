@@ -19,7 +19,10 @@
             <summary class="fw-semibold d-flex align-items-center" style="min-height: 44px; cursor: pointer;"><span id="import-to-fix-left-out-title">{{ 'data_import.to_fix.left_out_title'|trans({'%number%': left_out.total|format_number}) }}</span></summary>
             {% for row in left_out.rows %}
                 <div class="d-flex align-items-center justify-content-between gap-2 py-2 border-top" id="left-out-row-{{ row.rowId }}" data-testid="import-to-fix-left-out-row">
-                    <a href="{{ path('data_import_row', {importId: import_id, rowId: row.rowId, return: list_url}) }}" class="text-break">{{ 'data_import.to_fix.row_of'|trans({'%row%': row.rowNumber|format_number, '%sheet%': row.sheetTitle}) }}</a>
+                    <a href="{{ path('data_import_row', {importId: import_id, rowId: row.rowId, return: list_url}) }}" class="text-break">
+                        {#- A file without sheet names (a CSV): the row's number alone, no dot with nothing after it -#}
+                        {{- row.sheetTitle|default('')|trim != '' ? 'data_import.to_fix.row_of'|trans({'%row%': row.rowNumber|format_number, '%sheet%': row.sheetTitle}) : 'data_import.row.title'|trans({'%number%': row.rowNumber|format_number}) -}}
+                    </a>
                     <form action="{{ path('data_import_rows_answer', {importId: import_id}) }}" method="post" class="flex-shrink-0">
                         <input type="hidden" name="_token" value="{{ csrf }}">
                         <input type="hidden" name="row" value="{{ row.rowId }}">

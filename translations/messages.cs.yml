@@ -12474,6 +12474,9 @@ data_import:
         row_of: "Řádek %row% · %sheet%"
         no_time: "Importovat tyto řádky bez času (%number%)"
         groups_left: "Skupiny, které ještě čekají na odpověď: %number%"
+        all_no_time:
+            text: "Řádky, ve kterých se nám nepodařilo přečíst čas: %number%. Pokud jste si u těchto puzzle čas neměřili, stačí jedna odpověď pro všechny."
+            use: "Importovat všechny bez času (%number%)"
         error:
             empty: "Nejdřív prosím vyplňte hodnotu."
             unreadable: "Tohle jsme nedokázali přečíst s jistotou. Napište to prosím jinak."

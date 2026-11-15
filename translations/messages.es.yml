@@ -12472,6 +12472,9 @@ data_import:
         row_of: "Fila %row% · %sheet%"
         no_time: "Importar estas sin tiempo (%number%)"
         groups_left: "Grupos que aún esperan respuesta: %number%"
+        all_no_time:
+            text: "Filas cuyo tiempo no hemos podido leer: %number%. Si no cronometraste estos puzzles, basta una respuesta para todas."
+            use: "Importar todas sin tiempo (%number%)"
         error:
             empty: "Escribe primero un valor."
             unreadable: "No pudimos leer esto con seguridad. Escríbelo de otra forma."

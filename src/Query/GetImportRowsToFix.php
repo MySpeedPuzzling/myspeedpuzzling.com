@@ -119,6 +119,35 @@ SQL, array_filter([
     }
 
     /**
+     * The groups about a time that share an answer (the cell holds a text nobody could read as a time) - "Import
+     * all of them without a time" answers them at once. The largest first, at most $limit. One statement.
+     *
+     * @return list<array{key: string, rows: int}>
+     */
+    public function timeGroups(string $importId, string $playerId, int $limit = 200): array
+    {
+        if (Uuid::isValid($importId) === false || Uuid::isValid($playerId) === false) {
+            return [];
+        }
+
+        $rows = self::ROWS;
+        $key = self::KEY;
+
+        /** @var list<array{key: string, rows: int}> $groups */
+        $groups = $this->database->executeQuery(<<<SQL
+SELECT {$key} AS key, COUNT(*) AS rows
+{$rows}
+    AND problem.item ->> 'field' = 'time'
+    AND COALESCE(problem.item ->> 'value', '') <> ''
+GROUP BY problem.item ->> 'field', problem.item ->> 'code', problem.item ->> 'value'
+ORDER BY COUNT(*) DESC, {$key}
+LIMIT :limit
+SQL, ['importId' => $importId, 'playerId' => $playerId, 'discarded' => DataImportStatus::Discarded->value, 'limit' => $limit])->fetchAllAssociative();
+
+        return $groups;
+    }
+
+    /**
      * The rows of one group, at most $limit of them. One statement.
      *
      * @return list<string> ids

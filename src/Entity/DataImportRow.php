@@ -348,6 +348,30 @@ class DataImportRow
     }
 
     /**
+     * The player's word "add it anyway" to questions an "Add" asks about this row (ImportRowRefusal's values -
+     * docs/features/data-import/adding.md "Refusals": a similar result exists, somebody else's result, the file says
+     * it is on MySpeedPuzzling, an unusual time). Kept with the row's other answers, so every later parse keeps it.
+     *
+     * @param list<string> $codes
+     */
+    public function addAnyway(array $codes): void
+    {
+        $answers = $this->answers ?? [];
+        $waved = is_array($answers['addAnyway'] ?? null) ? array_values(array_filter($answers['addAnyway'], is_string(...))) : [];
+        $answers['addAnyway'] = array_values(array_unique([...$waved, ...$codes]));
+        $this->answers = $answers;
+    }
+
+    /**
+     * "One result or two?" (README D6): a row that is the same result as another row of the file is counted on its
+     * own when the player says so - and as that row's result again when they take it back.
+     */
+    public function countOnItsOwn(bool $separate): void
+    {
+        $this->addAsSeparate = $separate && $this->sameAsRow !== null;
+    }
+
+    /**
      * What a page that shows the row sends back with a change: another stamp in the database means the row was
      * parsed for another mapping or answered meanwhile.
      */

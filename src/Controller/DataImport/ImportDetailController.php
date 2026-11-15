@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller\DataImport;
 
 use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
 use SpeedPuzzling\Web\Query\GetDataImports;
+use SpeedPuzzling\Web\Query\GetImportAddScreen;
 use SpeedPuzzling\Web\Query\GetImportPairing;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\DataImportLimits;
@@ -18,8 +19,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * One import of the signed-in player: its file, its state, the reading's live progress, the sheets the file has once
- * it is read - or why it was not (docs/features/data-import/reading.md). Another player's import - or a discarded
- * one - is a 404.
+ * it is read - or why it was not (docs/features/data-import/reading.md) - and, once its puzzles are paired, what is
+ * ready to be added to the profile (docs/features/data-import/adding-screens.md "Ready to add"). Another player's
+ * import - or a discarded one - is a 404.
  */
 final class ImportDetailController extends AbstractController
 {
@@ -27,6 +29,7 @@ final class ImportDetailController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetDataImports $getDataImports,
         readonly private GetImportPairing $getImportPairing,
+        readonly private GetImportAddScreen $getImportAddScreen,
         readonly private TranslatorInterface $translator,
     ) {
     }
@@ -71,6 +74,8 @@ final class ImportDetailController extends AbstractController
             'summary' => ImportColumnsController::summary($sheets),
             // Its distinct puzzles and how far their pairing with the catalogue is - one statement, read only
             'pairing' => $this->getImportPairing->summary($importId),
+            // What is ready to be added, what is not and why, and what the import added so far - one statement
+            'add' => $this->getImportAddScreen->summary($importId, $player->playerId),
             // What the page's live line starts from: it follows the reading of the rows and the pairing by itself
             'live' => ImportPuzzlesController::live($this->getDataImports->progressOfPlayer($importId, $player->playerId)),
             'keep_days' => DataImportLimits::KEEP_FILE_DAYS,

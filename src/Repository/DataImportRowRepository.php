@@ -198,6 +198,35 @@ readonly final class DataImportRowRepository
     }
 
     /**
+     * The rows of the import that are the same result as this row - an equal row of its sheet, the same row on a
+     * later sheet, at most two steps away (README D6). The row that stands for them is not among them.
+     *
+     * @return list<DataImportRow>
+     */
+    public function equalRowsOf(DataImport $import, string $standingRowId): array
+    {
+        if (Uuid::isValid($standingRowId) === false) {
+            return [];
+        }
+
+        /** @var list<DataImportRow> $rows */
+        $rows = $this->entityManager->createQueryBuilder()
+            ->select('r')
+            ->from(DataImportRow::class, 'r')
+            ->join('r.sameAsRow', 'same')
+            ->where('r.import = :import')
+            ->andWhere('same.id = :standing OR IDENTITY(same.sameAsRow) = :standing')
+            ->orderBy('r.id')
+            ->setParameter('import', $import)
+            ->setParameter('standing', $standingRowId)
+            ->setMaxResults(500)
+            ->getQuery()
+            ->getResult();
+
+        return $rows;
+    }
+
+    /**
      * A row by its id without loading it - for pointing another row at it.
      */
     public function reference(string $rowId): DataImportRow

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\DataImport;
 
 use SpeedPuzzling\Web\Query\GetDataImports;
+use SpeedPuzzling\Web\Query\GetImportAddScreen;
 use SpeedPuzzling\Web\Query\GetImportPuzzleScreen;
 use SpeedPuzzling\Web\Results\DataImportProgress;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -17,8 +18,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 /**
  * The Puzzles summary of one import (docs/features/data-import/pairing-screens.md "The summary"): how many different
  * puzzles the file holds and the groups the pairing put them in, each a big row with its counts - and the next thing
- * that needs the player. It follows a running pairing by itself. Another player's import is a 404. Three statements
- * whatever the import's size.
+ * that needs the player - and what is ready to be added. It follows a running pairing by itself. Another player's
+ * import is a 404. Four statements whatever the import's size.
  */
 final class ImportPuzzlesController extends AbstractController
 {
@@ -26,6 +27,7 @@ final class ImportPuzzlesController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetDataImports $getDataImports,
         readonly private GetImportPuzzleScreen $getImportPuzzleScreen,
+        readonly private GetImportAddScreen $getImportAddScreen,
     ) {
     }
 
@@ -51,6 +53,8 @@ final class ImportPuzzlesController extends AbstractController
         return $this->render('data_import/puzzles.html.twig', [
             'import' => $import,
             'overview' => $overview,
+            // What is ready to be added (docs/features/data-import/adding-screens.md "Ready to add") - one statement
+            'add' => $this->getImportAddScreen->summary($importId, $player->playerId),
             'live' => self::live($this->getDataImports->progressOfPlayer($importId, $player->playerId)),
         ]);
     }

@@ -1,0 +1,77 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The rows the import added (docs/features/data-import/adding-screens.md "The lists"): fifty a page, each with
+    the puzzle, what the row says, what it made and "Take back" - which leads to the step that says what is
+    removed. The page number and a batch's id are all the address holds.
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
+
+{% block title %}{{ 'data_import.added.title'|trans }} - {{ import_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{{ include('_page_crumbs.html.twig', {levels: [
+    {name: 'data_import.home.title'|trans, url: path('data_imports')},
+    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
+]}) }}
+
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-added-page" data-rows="{{ counts.added }}">
+    <h1 class="h3 mb-2">{{ 'data_import.added.title'|trans }}</h1>
+    <p class="text-muted fs-sm">{{ (batch_id is null ? 'data_import.added.intro' : 'data_import.added.intro_batch')|trans({'%number%': counts.added|format_number}) }}</p>
+
+    {% if rows is empty %}
+        <p class="text-muted" data-testid="import-added-none">{{ 'data_import.added.none'|trans }}</p>
+    {% else %}
+        <div class="d-flex flex-column gap-2">
+            {% for row in rows %}
+                <div class="card card-body shadow-sm p-3" data-testid="import-added-row" data-row-id="{{ row.rowId }}">
+                    {{ include('data_import/_add_row.html.twig', {row: row}) }}
+                    <div class="fs-sm mt-2">
+                        {% if row.solvingTimeId is not null %}<span class="badge bg-faded-success text-success me-1">{{ 'data_import.added.made.result'|trans }}</span>{% endif %}
+                        {% if row.madeCollectionItem %}<span class="badge bg-faded-success text-success me-1">{{ 'data_import.added.made.collection'|trans }}</span>{% endif %}
+                        {% if row.madeWishListItem %}<span class="badge bg-faded-success text-success me-1">{{ 'data_import.added.made.wish_list'|trans }}</span>{% endif %}
+                        {% if row.addedAt is not null %}<span class="text-muted">{{ row.addedAt|format_date('medium') }}</span>{% endif %}
+                    </div>
+                    {% if row.keptByUndo %}
+                        <p class="fs-sm text-muted mt-2 mb-0" data-testid="import-added-kept">{{ 'data_import.added.kept'|trans }}</p>
+                    {% endif %}
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        {% if row.solvingTimeId is not null %}
+                            <a href="{{ path('puzzle_result_detail', {timeId: row.solvingTimeId}) }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-added-result">
+                                <i class="bi bi-stopwatch me-1" aria-hidden="true"></i>{{ 'data_import.added.see_result'|trans }}
+                            </a>
+                        {% endif %}
+                        {% if row.beingTakenBack %}
+                            <span class="fs-sm text-muted d-inline-flex align-items-center" style="min-height: 44px;">{{ 'data_import.added.being_taken_back'|trans }}</span>
+                        {% else %}
+                            <a href="{{ path('data_import_undo', {importId: import.importId, row: row.rowId}) }}" class="btn btn-outline-danger btn-sm d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-added-take-back" rel="nofollow">
+                                <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ 'data_import.undo.row'|trans }}
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        {{ include('data_import/_pages.html.twig', {page: page, pages: pages, route: 'data_import_added', parameters: batch_id is null ? {importId: import.importId} : {importId: import.importId, batch: batch_id}, label: 'data_import.added.title'|trans}) }}
+
+        <div class="d-flex flex-column gap-2 mt-4">
+            {% if batch_id is not null %}
+                <a href="{{ path('data_import_undo', {importId: import.importId, batch: batch_id}) }}" class="btn btn-outline-danger text-wrap d-flex align-items-center justify-content-center" style="min-height: 44px;" data-testid="import-undo-batch" rel="nofollow">
+                    <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ 'data_import.undo.batch'|trans }}
+                </a>
+            {% endif %}
+            <a href="{{ path('data_import_undo', {importId: import.importId}) }}" class="btn btn-link text-danger text-wrap d-flex align-items-center justify-content-center" style="min-height: 44px;" data-testid="import-undo-import" rel="nofollow">
+                {{ 'data_import.undo.import'|trans }}
+            </a>
+        </div>
+    {% endif %}
+
+    <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="btn btn-link px-0 d-inline-flex align-items-center mt-3" style="min-height: 44px;">
+        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.columns.back_to_import'|trans }}
+    </a>
+</div>
+{% endblock %}

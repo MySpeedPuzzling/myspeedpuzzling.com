@@ -1,0 +1,82 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The times that need a word before adding (docs/features/data-import/adding-screens.md "Unusual times") - a page
+    of its own whose frame the review loads. Each unusual time with what was expected, "It is right" (for one row,
+    or for all shown) and "Leave out". The forms leave the frame (`_top`): their answer is the review, with what
+    was saved said on it.
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
+
+{% block title %}{{ 'data_import.add.times.title'|trans }} - {{ import_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{{ include('_page_crumbs.html.twig', {levels: [
+    {name: 'data_import.home.title'|trans, url: path('data_imports')},
+    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
+    {name: 'data_import.add.title'|trans, url: path('data_import_add', {importId: import.importId})},
+]}) }}
+
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-add-times-page">
+    <turbo-frame id="import-add-times">
+        <div class="card card-body shadow-sm mb-3" data-testid="import-add-times" data-unusual="{{ unusual|length }}" data-checked="{{ checked }}">
+            <h2 class="h6 mb-1">{{ 'data_import.add.times.title'|trans }}</h2>
+            {% if unusual is empty %}
+                <p class="fs-sm text-muted mb-0" data-testid="import-add-times-none">
+                    <i class="bi bi-check-circle me-1 text-success" aria-hidden="true"></i>{{ (all_checked ? 'data_import.add.times.none' : 'data_import.add.times.none_so_far')|trans({'%number%': checked|format_number}) }}
+                </p>
+            {% else %}
+                <p class="fs-sm text-muted mb-2">{{ 'data_import.add.times.hint'|trans }}</p>
+                <div class="d-flex flex-column gap-3">
+                    {% for item in unusual %}
+                        <div class="border rounded-3 p-2" data-testid="import-add-unusual" data-row-id="{{ item.row.rowId }}" data-direction="{{ item.direction }}">
+                            {{ include('data_import/_add_row.html.twig', {row: item.row}) }}
+                            <p class="fs-sm mt-2 mb-2" data-testid="import-add-unusual-why">
+                                <i class="bi bi-eye me-1 text-warning" aria-hidden="true"></i>
+                                {%- if item.expected is not null -%}
+                                    {{ (item.direction == 'slow' ? 'data_import.add.times.slow_expected' : 'data_import.add.times.fast_expected')|trans({'%expected%': '%d:%02d:%02d'|format(item.expected // 3600, (item.expected % 3600) // 60, item.expected % 60)}) }}
+                                {%- else -%}
+                                    {{ (item.direction == 'slow' ? 'data_import.add.times.slow' : 'data_import.add.times.fast')|trans }}
+                                {%- endif -%}
+                            </p>
+                            <form action="{{ path('data_import_add_confirm', {importId: import.importId}) }}" method="post" class="d-flex flex-wrap gap-2" data-turbo-frame="_top">
+                                <input type="hidden" name="_token" value="{{ csrf }}">
+                                <input type="hidden" name="rows[]" value="{{ item.row.rowId }}">
+                                <button type="submit" name="action" value="right" class="btn btn-primary text-wrap" style="min-height: 44px;" data-testid="import-add-unusual-right">
+                                    <i class="bi bi-check2 me-1" aria-hidden="true"></i>{{ 'data_import.add.times.right'|trans }}
+                                </button>
+                                <button type="submit" name="action" value="leave_out" class="btn btn-outline-secondary text-wrap" style="min-height: 44px;" data-testid="import-add-unusual-leave-out">
+                                    {{ 'data_import.add.times.leave_out'|trans }}
+                                </button>
+                                <a href="{{ path('data_import_row', {importId: import.importId, rowId: item.row.rowId}) }}" class="btn btn-link text-wrap d-inline-flex align-items-center" style="min-height: 44px;" data-turbo-frame="_top">
+                                    {{ 'data_import.add.times.fix'|trans }}
+                                </a>
+                            </form>
+                        </div>
+                    {% endfor %}
+                </div>
+                {% if unusual|length > 1 %}
+                    <form action="{{ path('data_import_add_confirm', {importId: import.importId}) }}" method="post" class="mt-3" data-turbo-frame="_top">
+                        <input type="hidden" name="_token" value="{{ csrf }}">
+                        {% for item in unusual %}<input type="hidden" name="rows[]" value="{{ item.row.rowId }}">{% endfor %}
+                        <button type="submit" name="action" value="right" class="btn btn-outline-primary w-100 text-wrap" style="min-height: 44px;" data-testid="import-add-unusual-all-right">
+                            <i class="bi bi-check2-all me-1" aria-hidden="true"></i>{{ 'data_import.add.times.all_right'|trans({'%number%': unusual|length|format_number}) }}
+                        </button>
+                    </form>
+                {% endif %}
+                {% if not all_checked %}
+                    <p class="fs-sm text-muted mt-2 mb-0">{{ 'data_import.add.times.more_later'|trans({'%number%': checked|format_number}) }}</p>
+                {% endif %}
+            {% endif %}
+        </div>
+    </turbo-frame>
+
+    <a href="{{ path('data_import_add', {importId: import.importId}) }}" class="btn btn-link px-0 d-inline-flex align-items-center" style="min-height: 44px;">
+        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.add.back_to_review'|trans }}
+    </a>
+</div>
+{% endblock %}

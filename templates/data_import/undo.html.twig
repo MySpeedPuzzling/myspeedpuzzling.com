@@ -1,0 +1,110 @@
+{% extends 'base.html.twig' %}
+
+{#
+    One Undo of an import (docs/features/data-import/adding-screens.md "Undo"): the live line while the rows are
+    taken back, then what happened: taken back, kept because it was changed since - each such result with "Remove
+    it too" - that the rows are ready again, and "choose the puzzle again" for a row that had landed on the wrong
+    puzzle.
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
+
+{% block title %}{{ 'data_import.undo.title'|trans }} - {{ import_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{{ include('_page_crumbs.html.twig', {levels: [
+    {name: 'data_import.home.title'|trans, url: path('data_imports')},
+    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
+]}) }}
+
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-undo-page" data-state="{{ undo.running ? 'running' : 'finished' }}">
+    <h1 class="h3 mb-3">{{ (undo.running ? 'data_import.undo.running' : 'data_import.undo.done')|trans }}</h1>
+
+    {% if undo.running %}
+        {{ include('data_import/_adding_live.html.twig', {
+            url: path('data_import_undo_progress_json', {importId: import.importId, undoId: undo.id}),
+            batch_id: '',
+            total: undo.rows,
+            done: undo.done,
+            line: 'data_import.undo.line',
+            finishing: 'data_import.undo.finishing',
+            paused: false,
+            refresh_url: path('data_import_undo_progress', {importId: import.importId, undoId: undo.id}),
+        }) }}
+    {% else %}
+        <div class="card card-body shadow-sm mb-3" data-testid="import-undo-outcome"
+             data-rows="{{ undo.rowsUndone }}" data-results="{{ undo.resultsDeleted }}" data-kept="{{ undo.resultsKeptEdited }}">
+            <ul class="list-unstyled mb-0">
+                <li class="d-flex justify-content-between gap-2 py-1"><span>{{ 'data_import.undo.outcome.results'|trans }}</span><strong>{{ undo.resultsDeleted|format_number }}</strong></li>
+                {% if undo.collectionItemsRemoved > 0 %}<li class="d-flex justify-content-between gap-2 py-1"><span>{{ 'data_import.undo.outcome.collection'|trans }}</span><strong>{{ undo.collectionItemsRemoved|format_number }}</strong></li>{% endif %}
+                {% if undo.wishListItemsRemoved > 0 %}<li class="d-flex justify-content-between gap-2 py-1"><span>{{ 'data_import.undo.outcome.wish_list'|trans }}</span><strong>{{ undo.wishListItemsRemoved|format_number }}</strong></li>{% endif %}
+                {% if undo.wishListItemsRestored > 0 %}<li class="d-flex justify-content-between gap-2 py-1 text-muted"><span>{{ 'data_import.undo.confirm.restores'|trans }}</span><span>{{ undo.wishListItemsRestored|format_number }}</span></li>{% endif %}
+                {% if undo.resultsKeptEdited > 0 %}<li class="d-flex justify-content-between gap-2 py-1"><span>{{ 'data_import.undo.outcome.kept_edited'|trans }}</span><strong>{{ undo.resultsKeptEdited|format_number }}</strong></li>{% endif %}
+                {% if undo.collectionItemsKept > 0 %}<li class="d-flex justify-content-between gap-2 py-1 text-muted"><span>{{ 'data_import.undo.outcome.kept_moved'|trans }}</span><span>{{ undo.collectionItemsKept|format_number }}</span></li>{% endif %}
+                {% if undo.rowsFailed > 0 %}<li class="d-flex justify-content-between gap-2 py-1 text-muted"><span>{{ 'data_import.undo.outcome.failed'|trans }}</span><span>{{ undo.rowsFailed|format_number }}</span></li>{% endif %}
+            </ul>
+            <p class="fs-sm text-muted mt-2 mb-0">{{ 'data_import.undo.outcome.ready_again'|trans({'%number%': undo.rowsUndone|format_number}) }}</p>
+        </div>
+
+        {% if kept is not empty %}
+            <div class="card card-body shadow-sm mb-3" data-testid="import-undo-kept">
+                <h2 class="h6 mb-1">{{ 'data_import.undo.kept.title'|trans }}</h2>
+                <p class="fs-sm text-muted mb-2">{{ 'data_import.undo.kept.hint'|trans }}</p>
+                <div class="d-flex flex-column gap-3">
+                    {% for row in kept %}
+                        <div class="border rounded-3 p-2" data-testid="import-undo-kept-row" data-row-id="{{ row.rowId }}">
+                            {{ include('data_import/_add_row.html.twig', {row: row}) }}
+                            <div class="d-flex flex-wrap gap-2 mt-2">
+                                {% if row.solvingTimeId is not null %}
+                                    <a href="{{ path('puzzle_result_detail', {timeId: row.solvingTimeId}) }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center" style="min-height: 44px;">
+                                        {{ 'data_import.added.see_result'|trans }}
+                                    </a>
+                                {% endif %}
+                                <form action="{{ path('data_import_undo_start', {importId: import.importId}) }}" method="post">
+                                    <input type="hidden" name="_token" value="{{ csrf }}">
+                                    <input type="hidden" name="request_id" value="{{ request_ids[row.rowId] }}">
+                                    <input type="hidden" name="scope" value="rows">
+                                    <input type="hidden" name="row" value="{{ row.rowId }}">
+                                    <input type="hidden" name="include_edited" value="1">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm text-wrap" style="min-height: 44px;" data-testid="import-undo-remove-too">
+                                        {{ 'data_import.undo.kept.remove_too'|trans }}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="card card-body shadow-sm mb-3 fs-sm" data-testid="import-undo-wrong-puzzle">
+            <h2 class="h6 mb-1">{{ 'data_import.undo.wrong_puzzle.title'|trans }}</h2>
+            {% if row_pairing is not null and row_pairing.decided and row_id is not null %}
+                <p class="text-muted mb-2">{{ 'data_import.undo.wrong_puzzle.row_hint'|trans }}</p>
+                <form action="{{ path('data_import_forget_pairing', {importId: import.importId, rowId: row_id}) }}" method="post">
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <button type="submit" class="btn btn-outline-primary text-wrap" style="min-height: 44px;" data-testid="import-forget-pairing">
+                        <i class="bi bi-hand-index-thumb me-1" aria-hidden="true"></i>{{ 'data_import.undo.wrong_puzzle.forget'|trans }}
+                    </button>
+                </form>
+            {% else %}
+                <p class="text-muted mb-2">{{ 'data_import.undo.wrong_puzzle.hint'|trans }}</p>
+                <a href="{{ path('data_import_puzzles', {importId: import.importId}) }}" class="btn btn-outline-primary text-wrap d-inline-flex align-items-center align-self-start" style="min-height: 44px;">
+                    <i class="bi bi-puzzle me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.open'|trans }}
+                </a>
+            {% endif %}
+        </div>
+
+        <a href="{{ path('data_import_add', {importId: import.importId}) }}" class="btn btn-primary w-100 text-wrap d-flex align-items-center justify-content-center mb-3" style="min-height: 48px;" data-testid="import-undo-review-again">
+            <i class="bi bi-check2-square me-1" aria-hidden="true"></i>{{ 'data_import.add.ready.review'|trans }}
+        </a>
+    {% endif %}
+
+    <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="btn btn-link px-0 d-inline-flex align-items-center" style="min-height: 44px;">
+        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.columns.back_to_import'|trans }}
+    </a>
+</div>
+{% endblock %}

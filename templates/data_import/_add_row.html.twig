@@ -1,0 +1,49 @@
+{#
+    One row of an import as the "Add" screens list it (docs/features/data-import/adding-screens.md): the catalogue
+    puzzle it was paired with - picture, name, brand, pieces - and what the row says: time, day, solo / pair / team
+    with the people as guests, first try. Everything the row says is the player's own text: escaped, never part of
+    a URL. Variables: row (ImportAddRow).
+#}
+{% set said = row.said %}
+{% set title = row.puzzleName ?? said.text('name') %}
+<div class="d-flex gap-2" data-testid="add-row" data-row-id="{{ row.rowId }}">
+    {% if row.puzzleId is not null %}
+        <span class="flex-shrink-0" style="width: 64px;">
+            {{ lazy_puzzle_image(row.image, 'puzzle_small', 'puzzle_img_alt'|trans({'%puzzle%': (row.brandName ?? '') ~ ' ' ~ row.puzzleName}), 999, 64, 'rounded-2', 64, row.imageRatio) }}
+        </span>
+    {% endif %}
+    <div class="flex-grow-1" style="min-width: 0;">
+        <div class="fw-medium text-break" data-testid="add-row-puzzle">
+            {%- if title is not null %}{{ title }}{% else %}<span class="text-muted fw-normal">{{ 'data_import.columns.row.no_name'|trans }}</span>{% endif -%}
+        </div>
+        <div class="fs-sm text-muted text-break">
+            {%- if row.puzzleId is not null -%}
+                {%- if row.brandName is not null %}{{ row.brandName }} · {% endif -%}
+                {{ 'data_import.columns.row.pieces'|trans({'%number%': row.piecesCount|format_number}) }}
+            {%- else -%}
+                {%- if said.text('brand') is not null %}{{ said.text('brand') }}{% endif -%}
+                {%- if said.pieces is not null %}{% if said.text('brand') is not null %} · {% endif %}{{ 'data_import.columns.row.pieces'|trans({'%number%': said.pieces|format_number}) }}{% endif -%}
+            {%- endif -%}
+        </div>
+        <div class="fs-sm text-break" data-testid="add-row-said">
+            {%- set facts = [] -%}
+            {%- if said.time is not null %}{% set facts = facts|merge([said.time]) %}{% endif -%}
+            {%- if said.day is not null %}
+                {%- set facts = facts|merge([said.day|format_date('medium', timezone='UTC')]) -%}
+            {%- elseif said.text('date') is not null %}
+                {%- set facts = facts|merge([said.text('date')]) -%}
+            {%- endif -%}
+            {%- if said.kind in ['result', 'both'] and row.type is not null %}{% set facts = facts|merge([('data_import.add.type.' ~ row.type)|trans]) %}{% endif -%}
+            {%- if said.people is not empty %}{% set facts = facts|merge(['data_import.add.with_guests'|trans({'%people%': said.people|join(', ')})]) %}{% endif -%}
+            {%- if row.firstTry %}{% set facts = facts|merge(['data_import.add.first_try'|trans]) %}{% endif -%}
+            {%- if said.kind == 'owned' %}{% set facts = facts|merge(['data_import.columns.row.kind.owned'|trans]) %}{% endif -%}
+            {%- if said.kind == 'both' %}{% set facts = facts|merge(['data_import.columns.row.kind.owned'|trans]) %}{% endif -%}
+            {%- if said.kind == 'wish_list' %}{% set facts = facts|merge(['data_import.columns.row.kind.wish_list'|trans]) %}{% endif -%}
+            {{ facts|join(' · ') }}
+        </div>
+        <div class="fs-xs text-muted text-break">
+            {%- if said.sheetTitle is not null and said.sheetTitle != '' %}{{ said.sheetTitle }} · {% endif -%}
+            {{ 'data_import.columns.row.number'|trans({'%number%': said.rowNumber|format_number}) }}
+        </div>
+    </div>
+</div>

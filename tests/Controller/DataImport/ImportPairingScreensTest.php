@@ -95,8 +95,14 @@ final class ImportPairingScreensTest extends WebTestCase
         self::assertSame('probably', $crawler->filter('[data-testid="import-puzzles-next"]')->attr('data-next'));
         self::assertSame('/en/import/' . $importId . '/puzzles/probably', $crawler->filter('[data-testid="import-puzzles-next"] a')->attr('href'));
         self::assertSame('0', $crawler->filter('[data-testid="import-puzzles-to-fix"]')->attr('data-rows'));
-        // The honest line: nothing is added yet - and no button that adds
-        self::assertStringContainsString('arrives soon', $crawler->filter('[data-testid="import-soon"]')->text());
+        // What is ready is added from its own review (docs/features/data-import/adding-screens.md): the card leads
+        // there - nothing is added from this page, and nothing "arrives soon" any more
+        // (this file's rows carry no day, so none is ready: the card says what waits and where it is settled)
+        self::assertSame('nothing', $crawler->filter('[data-testid="import-ready"]')->attr('data-state'));
+        self::assertCount(0, $crawler->filter('[data-testid="import-review-and-add"]'));
+        self::assertSame('2', $crawler->filter('[data-testid="not-ready-exact-day"]')->attr('data-rows'));
+        self::assertSame('/en/import/' . $importId . '/puzzles', $crawler->filter('[data-testid="not-ready-undecided"] a')->attr('href'));
+        self::assertStringNotContainsString('arrives soon', (string) $this->browser->getResponse()->getContent());
         self::assertStringNotContainsString('Add all', (string) $this->browser->getResponse()->getContent());
 
         // The pairing rests: the live line is there for the script, hidden - in its pairing mode
@@ -978,11 +984,12 @@ final class ImportPairingScreensTest extends WebTestCase
 
         self::assertSame($budgets['few'], $budgets['many'], 'the number of statements must not grow with puzzles or rows');
 
-        // What each screen reads on top of what every signed-in page loads: the import, the overview and the live
-        // line's progress (3); those and a page of cards (4); the import, the puzzle and its rows (3)
-        $signedIn = $budgets['few']['summary'] - 3;
+        // What each screen reads on top of what every signed-in page loads: the import, the overview, the live
+        // line's progress and what is ready to be added (4 - docs/features/data-import/adding-screens.md "Ready to
+        // add"); the first three and a page of cards (4); the import, the puzzle and its rows (3)
+        $signedIn = $budgets['few']['summary'] - 4;
         self::assertLessThanOrEqual(8, $signedIn, 'what every signed-in page loads');
-        self::assertSame(['summary' => $signedIn + 3, 'list' => $signedIn + 4, 'chooser' => $signedIn + 3], $budgets['few']);
+        self::assertSame(['summary' => $signedIn + 4, 'list' => $signedIn + 4, 'chooser' => $signedIn + 3], $budgets['few']);
     }
 
     public function testToFixAndTheRowSheetCostTheSameStatementsForALargerSheet(): void
@@ -1004,9 +1011,10 @@ final class ImportPairingScreensTest extends WebTestCase
         self::assertCount(1, $this->browser->getCrawler()->filter('[data-testid="import-pages-next"]'));
         self::assertSame($budgets['few'], $budgets['many'], 'the number of statements must not grow with rows or groups');
 
-        // The import, a page of groups and the rows left out (3); the row and the import (2); the summary (3)
-        $signedIn = $budgets['few']['summary'] - 3;
-        self::assertSame(['to-fix' => $signedIn + 3, 'row' => $signedIn + 2, 'summary' => $signedIn + 3], $budgets['few']);
+        // The import, a page of groups and the rows left out (3); the row and the import (2); the summary (3) and
+        // what is ready to be added (1 - docs/features/data-import/adding-screens.md "Ready to add")
+        $signedIn = $budgets['few']['summary'] - 4;
+        self::assertSame(['to-fix' => $signedIn + 3, 'row' => $signedIn + 2, 'summary' => $signedIn + 4], $budgets['few']);
     }
 
     /**

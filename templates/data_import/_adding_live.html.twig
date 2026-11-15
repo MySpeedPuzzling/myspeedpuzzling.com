@@ -1,0 +1,39 @@
+{#
+    The live line of one "Add" or one Undo (docs/features/data-import/adding-screens.md "The live line"): "Adding…
+    320 of 1,240" with a bar, moved by the player's private Mercure topic and by asking the JSON endpoint
+    (data_import_adding_controller.js); when the work is through the page is loaded again. Numbers only.
+    Variables: url, batch_id ('' for an Undo), total, done, line (the translation key of "… %done% of %total%"),
+    finishing (key), paused (bool), refresh_url.
+#}
+{% set percent = total > 0 ? (done / total * 100)|round : 0 %}
+<div class="card card-body shadow-sm mb-3" data-testid="import-adding-live"
+     data-controller="data-import-adding"
+     data-data-import-adding-url-value="{{ url }}"
+     data-data-import-adding-batch-id-value="{{ batch_id }}"
+     data-data-import-adding-total-value="{{ total }}"
+     data-data-import-adding-done-value="{{ done }}"
+     data-data-import-adding-line-text-value="{{ line|trans }}"
+     data-data-import-adding-finishing-text-value="{{ finishing|trans }}">
+    <div class="d-flex align-items-center gap-2">
+        <div class="spinner-border spinner-border-sm text-primary flex-shrink-0" aria-hidden="true" data-data-import-adding-target="spinner"></div>
+        <strong role="status" data-data-import-adding-target="line" data-testid="import-adding-line">
+            {{- done >= total ? finishing|trans : line|trans({'%done%': done|format_number, '%total%': total|format_number}) -}}
+        </strong>
+    </div>
+    <div class="progress mt-2" style="height: 8px;" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ percent }}">
+        <div class="progress-bar" style="width: {{ percent }}%;" data-data-import-adding-target="bar"></div>
+    </div>
+    <p class="fs-sm mt-2 mb-0" data-data-import-adding-target="paused" data-testid="import-adding-paused"{% if not paused %} hidden{% endif %}>
+        <i class="bi bi-pause-circle me-1" aria-hidden="true"></i>{{ 'data_import.add.paused_running'|trans }}
+    </p>
+    <p class="fs-sm text-muted mb-0 mt-2">{{ 'data_import.batch.leave'|trans }}</p>
+    <div class="alert alert-warning fs-sm mt-3 mb-0" data-data-import-adding-target="stale" role="status" hidden>
+        <p class="mb-2">{{ 'data_import.reading.stale'|trans }}</p>
+        <a href="{{ refresh_url }}" class="btn btn-outline-primary text-wrap d-inline-flex align-items-center" style="min-height: 44px;" data-turbo="false">
+            <i class="bi bi-arrow-clockwise me-1" aria-hidden="true"></i>{{ 'data_import.reading.refresh'|trans }}
+        </a>
+    </div>
+    <noscript>
+        <a href="{{ refresh_url }}" class="btn btn-outline-primary mt-2" style="min-height: 44px;">{{ 'data_import.reading.refresh'|trans }}</a>
+    </noscript>
+</div>

@@ -1,0 +1,188 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The review before adding (docs/features/data-import/adding-screens.md "Review before adding"): what will be
+    added to the profile - counts by kind, a line per sheet, the first results as they will appear - the groups
+    that need a word first (unusual times in their own frame, rows that are the same result), the rows already on
+    the profile, what an import does and does not do, what is not ready yet - and the button. Nothing is added by
+    opening the page and nothing starts by itself. Phone first: one column, every target 44 px.
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
+
+{% block title %}{{ 'data_import.add.title'|trans }} - {{ import_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{{ include('_page_crumbs.html.twig', {levels: [
+    {name: 'data_import.home.title'|trans, url: path('data_imports')},
+    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
+]}) }}
+
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-add-page">
+    <h1 class="h3 mb-2">{{ 'data_import.add.title'|trans }}</h1>
+    <p class="text-muted fs-sm">{{ 'data_import.add.intro'|trans }}</p>
+
+    {% if add.paused %}
+        <div class="alert alert-info fs-sm d-flex gap-2" data-testid="import-add-paused">
+            <i class="bi bi-pause-circle flex-shrink-0" aria-hidden="true"></i>
+            <span>{{ 'data_import.add.paused'|trans }}</span>
+        </div>
+    {% endif %}
+
+    {% if add.runningBatchId is not null %}
+        <div class="alert alert-info fs-sm" data-testid="import-add-running">
+            <p class="mb-2">{{ 'data_import.add.ready.adding'|trans }}</p>
+            <a href="{{ path('data_import_batch', {importId: import.importId, batchId: add.runningBatchId}) }}" class="btn btn-outline-primary text-wrap d-inline-flex align-items-center" style="min-height: 44px;">
+                <i class="bi bi-activity me-1" aria-hidden="true"></i>{{ 'data_import.add.ready.follow'|trans }}
+            </a>
+        </div>
+    {% endif %}
+
+    {# --- What will be added --- #}
+    <div class="card card-body shadow-sm mb-3" data-testid="import-add-counts"
+         data-rows="{{ add.rowsToTake }}" data-results="{{ add.results }}" data-owned="{{ add.owned }}" data-wish-list="{{ add.wishList }}" data-already-yours="{{ add.alreadyYours }}">
+        <h2 class="h5 mb-2">{{ 'data_import.add.will_add'|trans }}</h2>
+        {% if add.rowsReady == 0 %}
+            <p class="text-muted mb-0" data-testid="import-add-nothing">{{ 'data_import.add.ready.nothing'|trans }}</p>
+        {% else %}
+            <ul class="list-unstyled mb-0">
+                <li class="d-flex justify-content-between gap-2 py-1"><span><i class="bi bi-stopwatch me-2" aria-hidden="true"></i>{{ 'data_import.add.kind.results'|trans }}</span><strong>{{ add.results|format_number }}</strong></li>
+                <li class="d-flex justify-content-between gap-2 py-1"><span><i class="bi bi-box-seam me-2" aria-hidden="true"></i>{{ 'data_import.add.kind.owned'|trans }}</span><strong>{{ add.owned|format_number }}</strong></li>
+                <li class="d-flex justify-content-between gap-2 py-1"><span><i class="bi bi-heart me-2" aria-hidden="true"></i>{{ 'data_import.add.kind.wish_list'|trans }}</span><strong>{{ add.wishList|format_number }}</strong></li>
+                {% if add.alreadyYours > 0 %}
+                    <li class="d-flex justify-content-between gap-2 py-1 text-muted"><span><i class="bi bi-person-check me-2" aria-hidden="true"></i>{{ 'data_import.add.kind.already_yours'|trans }}</span><span>{{ add.alreadyYours|format_number }}</span></li>
+                {% endif %}
+                {% if add.equalRows > 0 %}
+                    <li class="d-flex justify-content-between gap-2 py-1 text-muted"><span><i class="bi bi-files me-2" aria-hidden="true"></i>{{ 'data_import.add.kind.equal_rows'|trans }}</span><span>{{ add.equalRows|format_number }}</span></li>
+                {% endif %}
+            </ul>
+            {% if add.overDailyLimit > 0 %}
+                <p class="fs-sm text-muted mt-2 mb-0" data-testid="import-add-daily-limit">
+                    <i class="bi bi-calendar-day me-1" aria-hidden="true"></i>{{ 'data_import.add.daily_limit'|trans({'%limit%': daily_limit|format_number, '%today%': add.resultsLeftToday|format_number, '%later%': add.overDailyLimit|format_number}) }}
+                </p>
+            {% endif %}
+            {% if sheets|length > 0 %}
+                <ul class="list-unstyled fs-sm text-muted border-top mt-2 pt-2 mb-0" data-testid="import-add-sheets">
+                    {% for sheet in sheets %}
+                        <li class="d-flex justify-content-between gap-2 py-1" data-testid="import-add-sheet">
+                            <span class="text-break">{% if sheet.title != '' %}{{ sheet.title }}{% else %}{{ 'data_import.sheets.untitled'|trans }}{% endif %}</span>
+                            <span class="text-nowrap">{{ 'data_import.add.sheet_rows'|trans({'%number%': sheet.ready|format_number}) }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    {# --- The first results as they will appear --- #}
+    {% if sample is not empty %}
+        <div class="card card-body shadow-sm mb-3" data-testid="import-add-sample">
+            <h2 class="h6 mb-1">{{ 'data_import.add.sample.title'|trans }}</h2>
+            <p class="fs-sm text-muted mb-2">{{ 'data_import.add.sample.hint'|trans }}</p>
+            <div class="d-flex flex-column gap-3">
+                {% for row in sample %}
+                    {{ include('data_import/_add_row.html.twig', {row: row}) }}
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    {# --- Unusual times: looked up apart, into this frame (ImportAddTimesController) --- #}
+    {% if add.readyResultRows > 0 %}
+        <div id="unusual-times">
+            <turbo-frame id="import-add-times" src="{{ path('data_import_add_times', {importId: import.importId}) }}" loading="lazy" data-testid="import-add-times-frame">
+                <div class="card card-body shadow-sm mb-3">
+                    <h2 class="h6 mb-1">{{ 'data_import.add.times.title'|trans }}</h2>
+                    <p class="fs-sm text-muted mb-2">{{ 'data_import.add.times.loading'|trans }}</p>
+                    <a href="{{ path('data_import_add_times', {importId: import.importId}) }}" class="btn btn-outline-primary text-wrap d-inline-flex align-items-center align-self-start" style="min-height: 44px;" data-turbo-frame="_top" rel="nofollow">
+                        {{ 'data_import.add.times.open'|trans }}
+                    </a>
+                </div>
+            </turbo-frame>
+        </div>
+    {% endif %}
+
+    {# --- The same result on several rows: one result or three? --- #}
+    {% if equal_groups is not empty %}
+        <div class="card card-body shadow-sm mb-3" id="equal-rows" data-testid="import-add-equal">
+            <h2 class="h6 mb-1">{{ 'data_import.add.equal.title'|trans }}</h2>
+            <p class="fs-sm text-muted mb-2">{{ 'data_import.add.equal.hint'|trans }}</p>
+            <div class="d-flex flex-column gap-3">
+                {% for row in equal_groups %}
+                    <div class="border rounded-3 p-2" data-testid="import-add-equal-group" data-rows="{{ row.equalRows }}" data-separate="{{ row.addAsSeparate ? 'true' : 'false' }}">
+                        {{ include('data_import/_add_row.html.twig', {row: row}) }}
+                        <p class="fs-sm fw-medium mt-2 mb-2" data-testid="import-add-equal-state">
+                            {{ (row.addAsSeparate ? 'data_import.add.equal.separate' : 'data_import.add.equal.one')|trans({'%number%': row.equalRows|format_number}) }}
+                        </p>
+                        <form action="{{ path('data_import_add_confirm', {importId: import.importId}) }}" method="post">
+                            <input type="hidden" name="_token" value="{{ csrf }}">
+                            <input type="hidden" name="group" value="{{ row.rowId }}">
+                            <button type="submit" name="action" value="{{ row.addAsSeparate ? 'one' : 'separate' }}" class="btn btn-outline-primary text-wrap" style="min-height: 44px;" data-testid="import-add-equal-switch">
+                                {{ (row.addAsSeparate ? 'data_import.add.equal.make_one' : 'data_import.add.equal.make_separate')|trans({'%number%': row.equalRows|format_number}) }}
+                            </button>
+                        </form>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    {# --- Already on the profile: nothing to do, folded --- #}
+    {% if add.alreadyYours > 0 %}
+        <details class="card card-body shadow-sm mb-3 py-0" data-testid="import-add-known" data-rows="{{ add.alreadyYours }}">
+            <summary class="d-flex align-items-center gap-2 py-3" style="min-height: 56px; cursor: pointer;">
+                <i class="bi bi-person-check text-muted" aria-hidden="true"></i>
+                <span class="fw-semibold">{{ 'data_import.add.known.title'|trans({'%number%': add.alreadyYours|format_number}) }}</span>
+            </summary>
+            <p class="fs-sm text-muted">{{ 'data_import.add.known.hint'|trans }}</p>
+            <div class="d-flex flex-column gap-3 pb-3">
+                {% for row in known %}
+                    {{ include('data_import/_add_row.html.twig', {row: row}) }}
+                {% endfor %}
+            </div>
+            {# The rows that repeat another row of the file are in their own group above #}
+            {% set more_known = add.alreadyYours - add.equalRows - known|length %}
+            {% if more_known > 0 %}
+                <p class="fs-sm text-muted">{{ 'data_import.add.known.more'|trans({'%number%': more_known|format_number}) }}</p>
+            {% endif %}
+        </details>
+    {% endif %}
+
+    {# --- What an import does, and what it does not --- #}
+    <div class="card card-body shadow-sm mb-3 fs-sm" data-testid="import-add-what">
+        <p class="mb-1"><i class="bi bi-check2 me-1 text-success" aria-hidden="true"></i>{{ 'data_import.add.does.public'|trans }}</p>
+        <p class="mb-1"><i class="bi bi-check2 me-1 text-success" aria-hidden="true"></i>{{ 'data_import.add.does.undo'|trans }}</p>
+        <p class="mb-1"><i class="bi bi-dash me-1 text-muted" aria-hidden="true"></i>{{ 'data_import.add.does_not.followers'|trans }}</p>
+        <p class="mb-0"><i class="bi bi-dash me-1 text-muted" aria-hidden="true"></i>{{ 'data_import.add.does_not.dated'|trans }}</p>
+    </div>
+
+    {# --- Not ready yet --- #}
+    {% if add.hasNotReady %}
+        <div class="card card-body shadow-sm mb-3" data-testid="import-add-not-ready">
+            <h2 class="h6 mb-1">{{ 'data_import.add.not_ready.title'|trans }}</h2>
+            <p class="fs-sm text-muted mb-1">{{ 'data_import.add.not_ready.hint'|trans }}</p>
+            {{ include('data_import/_not_ready.html.twig', {add: add, import_id: import.importId, daily_limit: daily_limit}) }}
+        </div>
+    {% endif %}
+
+    {# --- The button: a real POST, one id per press --- #}
+    {% if add.rowsToTake > 0 and not add.paused and add.runningBatchId is null %}
+        <form action="{{ path('data_import_add_start', {importId: import.importId}) }}" method="post" class="mb-3" data-testid="import-add-form">
+            <input type="hidden" name="_token" value="{{ csrf }}">
+            <input type="hidden" name="request_id" value="{{ request_id }}">
+            <button type="submit" class="btn btn-primary btn-lg w-100 text-wrap" style="min-height: 52px;" data-testid="import-add-button">
+                <i class="bi bi-plus-circle me-2" aria-hidden="true"></i>
+                {%- if add.toAdd > 0 %}{{ 'data_import.add.button'|trans({'%number%': add.toAdd|format_number}) }}{% else %}{{ 'data_import.add.button_settle'|trans({'%number%': add.rowsToTake|format_number}) }}{% endif -%}
+            </button>
+            <p class="fs-sm text-muted text-center mt-2 mb-0">{{ 'data_import.add.button_hint'|trans }}</p>
+        </form>
+    {% endif %}
+
+    <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="btn btn-link px-0 d-inline-flex align-items-center" style="min-height: 44px;">
+        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.columns.back_to_import'|trans }}
+    </a>
+</div>
+{% endblock %}

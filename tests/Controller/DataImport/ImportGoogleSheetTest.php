@@ -118,7 +118,7 @@ final class ImportGoogleSheetTest extends WebTestCase
         self::assertSame('data-import-progress', $line->attr('data-controller'));
         self::assertSame('Fetching the sheet from Google…', $line->attr('data-data-import-progress-fetching-text-value'));
         self::assertSame('Fetching the sheet from Google…', $crawler->filter('[data-testid="import-reading-state"]')->text());
-        self::assertCount(0, $crawler->filter('[data-testid="import-soon"]'), 'No file is kept yet');
+        self::assertCount(0, $crawler->filter('[data-testid="import-file-kept"]'), 'No file is kept yet');
 
         $this->browser->request('GET', '/en/import/' . $importId . '/progress');
         self::assertSame(['fetching', true], [$this->json()['status'] ?? null, $this->json()['moving'] ?? null]);
@@ -169,7 +169,7 @@ final class ImportGoogleSheetTest extends WebTestCase
         self::assertSame('My puzzles.xlsx', $crawler->filter('h1')->text());
         self::assertCount(1, $crawler->filter('[data-testid="import-sheets"]'));
         self::assertStringContainsString('switch its sharing off', $crawler->filter('[data-testid="import-sharing-off"]')->text());
-        self::assertCount(1, $crawler->filter('[data-testid="import-soon"]'));
+        self::assertCount(1, $crawler->filter('[data-testid="import-file-kept"]'));
     }
 
     public function testTheFormSentTwiceIsOneImport(): void

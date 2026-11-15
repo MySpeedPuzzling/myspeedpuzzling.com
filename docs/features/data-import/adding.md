@@ -1,9 +1,9 @@
 # Adding an import's rows to the profile (stage 6b-1)
 
 The engine of "Add": the ready rows of a player's import become results, collection puzzles and wish list puzzles -
-in the background, never twice, with Undo, a safety switch and an audit page. **No player-facing button calls it
-yet** (stage 6b-2 wires the screens); what exists here is messages, handlers, the worker's jobs, the admin page and
-the tests.
+in the background, never twice, with Undo, a safety switch and an audit page. What is here is messages, handlers,
+the worker's jobs, the admin page and their tests; **the player's screens on top of it - the review, the button, the
+progress, Undo - are stage 6b-2's: [adding-screens.md](adding-screens.md)**.
 
 The add-result form is not touched: results are written only by stage 6a's `ImportedResultWriter` and what is owed
 for them only by `ImportedResultsFollowUp` ([writer.md](writer.md)); a result is deleted only through

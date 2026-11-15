@@ -20,7 +20,7 @@ sandbox from the stage that can read them.
 | 4 | Columns and values | **4a value readers live 2026-11-14** (#348; nothing calls them yet). **4b-1 live 2026-11-15** (#353: recognise + parse, known exports); **4b-2 live 2026-11-15** (#354: the screen); **4c live 2026-11-15** (#357: remembered layouts). Stage 4 is complete | #348, #353, #354, #357 | yes | deploy green |
 | 5 | Pairing and review | **5a live 2026-11-15** (#356: the data, the matcher, decisions; production plans checked); **5b live 2026-11-15** (#358: the screens). Stage 5 is complete | #356, #358 | yes | sandbox: tiers on the real catalogue for two sample files |
 | 6a | The import's writer beside the add form's (handlers untouched) | **merged 2026-11-15, dormant** - nothing calls it | #355 | yes | parity test in CI |
-| 6b | Add, never twice, Undo | **6b-1 live 2026-11-15** (#359: the engine, the switch, `/admin/imports` - no player button); **6b-2 live 2026-11-15** (#360: review, add, take back); **6b-3 + 6b-4 live** (#361 group answers, #362 the moderators' card for an import) | #359, #360, #361, #362 | yes | sandbox: two real files added to a made-up player (see the log) |
+| 6b | Add, never twice, Undo | **6b-1 live 2026-11-15** (#359: the engine, the switch, `/admin/imports` - no player button); **6b-2 live 2026-11-15** (#360: review, add, take back); **6b-3 + 6b-4 live** (#361, #362), **6d live** (#369: the people of a file) | #359-#362, #369 | yes | sandbox: two real files added to a made-up player (see the log) |
 | 6c | Date precision | **live 2026-11-15** | #364 | yes | production pages after the deploy (see the log) |
 | 7 | Unlisted puzzles | **live 2026-11-15** | #363 | yes | sandbox: kept, added, listed (see the log) |
 | 2a-c | My data | **2a live 2026-11-15** (#365, read-only); **2b live 2026-11-15** (#367: edit a row); 2c (many at once) not started | #365, #367 | yes | sandbox: 1,466 results, 890 puzzles |
@@ -55,6 +55,19 @@ player data in the repository (fixtures copy shapes with invented puzzles); noth
 committed with `git add -A`; one destructive command per call, never the dev database; production data is only read.
 
 ## Log
+
+- 2026-11-15 - **stage 6d live** (#369): the people of a file. A `#code` becomes the player by itself (the add
+  form's rule + never across a block, checked again at write time); a name is a guest unless the importing player
+  says who it is (`…/import/{id}/people`; suggestions only among players they are connected to; a remembered
+  name → player answer asks again in every import; the importer's own name is asked, never assumed). A sheet whose
+  title says pair or team asks ("This sheet is called '500 piece Pairs' …", nothing preselected, one partner for
+  the sheet or per row) - the pairs-as-solo defect is closed. Partners: one notification per importer and day,
+  "These are not mine - take me off them" (they stay as a guest; that importer no longer resolves them), limits
+  that an Undo does not reset (`data_import_daily_count`: 200 a day per partner from one importer, 500 from
+  everybody, 20 partners an Add). Tried on the branch: the real training workbook's pairs sheet asks; an invented
+  file's people page; a blocked code stays a guest silently. Jan's three testers get a message when the first
+  guided-flow slice is live; the test imports of their files on the sandbox are to be taken back first.
+- 2026-11-15 - building: guided flow slice 1 (the spine).
 
 - 2026-11-15 - **stage 2b live** (#367): My data - edit a row. The row sheet (a result: time, day, first try,
   comment, own fields; a collection puzzle: comment, own fields, collection) and editing in place on the wide table

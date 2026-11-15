@@ -145,9 +145,7 @@ final class ImportGoogleSheetTest extends WebTestCase
         // The folder is shared by every test process of a parallel run: another worker's file may be there for a
         // moment, so the folder gets a few seconds to be empty
         $folder = rtrim(sys_get_temp_dir(), '/') . '/' . ReadImportFileHandler::TEMPORARY_FOLDER . '/*';
-        $deadline = microtime(true) + 5.0;
-
-        while (glob($folder) !== [] && microtime(true) < $deadline) {
+        for ($attempt = 0; $attempt < 50 && glob($folder) !== []; $attempt++) {
             usleep(100_000);
         }
 

@@ -425,6 +425,12 @@ return static function (ContainerConfigurator $configurator): void {
         ->factory([HttpClient::class, 'create'])
         ->args([['timeout' => 5, 'max_redirects' => 0]]);
 
+    // Google Sheets' export for the data import (GoogleSheetFile; tests swap it, config/services_test.php): no redirect
+    // is followed by the client - every hop is checked by hand - and every time bound is given per request
+    $services->set('data_import.google_http_client', HttpClientInterface::class)
+        ->factory([HttpClient::class, 'create'])
+        ->args([['max_redirects' => 0]]);
+
     // Cloudflare's siteverify for the Turnstile check (tests swap it, config/services_test.php)
     $services->set('turnstile.http_client', HttpClientInterface::class)
         ->factory([HttpClient::class, 'create'])

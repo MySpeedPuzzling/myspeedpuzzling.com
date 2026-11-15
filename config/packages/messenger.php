@@ -28,6 +28,7 @@ use SpeedPuzzling\Web\Message\SendPartnerRequestEmail;
 use SpeedPuzzling\Web\Message\SendPartnerTeamedUpEmail;
 use SpeedPuzzling\Web\Message\SendPlayerContentDigest;
 use SpeedPuzzling\Web\Message\SettleXpBonuses;
+use SpeedPuzzling\Web\Message\StartImportFromGoogleSheet;
 use SpeedPuzzling\Web\Message\VerifyOnlineMedia;
 use Symfony\Component\Mailer\Messenger\SendEmailMessage;
 
@@ -140,6 +141,9 @@ return App::config([
                 // transaction (HandledOutsideTransaction), writes through small messages of its own - not routed:
                 // handled at once, each in its transaction (docs/features/data-import/reading.md)
                 ReadImportFile::class => 'imports',
+                // Fetching a Google sheet's export for an import: waits for Google outside a transaction, then hands
+                // the file to the reading above (docs/features/data-import/google-sheets.md)
+                StartImportFromGoogleSheet::class => 'imports',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)
                 'SpeedPuzzling\Web\Events\PuzzleBorrowed' => 'sync',
                 'SpeedPuzzling\Web\Events\PuzzleAddedToCollection' => 'sync',

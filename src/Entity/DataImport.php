@@ -43,9 +43,26 @@ class DataImport
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     public null|DateTimeImmutable $fileRemovedAt = null;
 
-    #[Immutable]
+    /**
+     * The document's id of an import that came as a Google Sheets link - the id only, never the pasted link: what
+     * "Try again" (and, later, "Look for new rows") fetches again
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(length: 100, nullable: true)]
     public null|string $googleSpreadsheetId = null;
+
+    /** The worker took the import for fetching from Google - a second copy of the message finds nothing to do */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $fetchStartedAt = null;
+
+    /**
+     * Raised every time a fetch starts: what a fetch writes carries its number, so a fetch that was given up can not
+     * write into the next one.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(options: ['default' => 0])]
+    public int $fetchAttempt = 0;
 
     /** Reading the same source again raises it */
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
@@ -131,14 +148,18 @@ class DataImport
         #[Immutable]
         #[Column(length: 16, enumType: DataImportSource::class)]
         public DataImportSource $source,
-        #[Immutable]
+        /** '' for a Google sheet whose title is not known (yet) - the pages say "Google sheet" then */
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: Types::TEXT)]
         public string $fileName,
         #[Immutable]
         #[Column(length: 8, nullable: true, enumType: DataImportFileKind::class)]
         public null|DataImportFileKind $fileKind,
-        /** The size the upload was signed for - the object must have exactly this many bytes */
-        #[Immutable]
+        /**
+         * The size the upload was signed for - the object must have exactly this many bytes. Of a Google sheet: what
+         * arrived, known once it was fetched
+         */
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: Types::BIGINT, nullable: true)]
         public null|int $fileSize,
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
@@ -165,6 +186,104 @@ class DataImport
         DateTimeImmutable $now,
     ): self {
         return new self($id, $player, DataImportSource::File, $fileName, $fileKind, $fileSize, $fileKey, $now);
+    }
+
+    /**
+     * A Google sheet the worker is about to fetch (docs/features/data-import/google-sheets.md) - nothing is stored
+     * yet. The key is known from the start, so a discard (and the prune after it) removes whatever a fetch stored
+     * behind it.
+     */
+    public static function ofGoogleSheet(
+        UuidInterface $id,
+        Player $player,
+        string $spreadsheetId,
+        string $fileKey,
+        DateTimeImmutable $now,
+    ): self {
+        $import = new self($id, $player, DataImportSource::GoogleSheet, '', DataImportFileKind::Xlsx, null, $fileKey, $now);
+        $import->status = DataImportStatus::Fetching;
+        $import->googleSpreadsheetId = $spreadsheetId;
+
+        return $import;
+    }
+
+    /**
+     * The worker takes the Google sheet. Only an import that waits for it.
+     *
+     * @return bool false: nothing to fetch (being fetched already, fetched, failed, discarded)
+     */
+    public function fetchStarted(DateTimeImmutable $now): bool
+    {
+        if ($this->status !== DataImportStatus::Fetching || $this->fetchStartedAt !== null || $this->googleSpreadsheetId === null || $this->fileKey === null) {
+            return false;
+        }
+
+        $this->fetchAttempt++;
+        $this->fetchStartedAt = $now;
+        $this->lastActivityAt = $now;
+
+        return true;
+    }
+
+    /**
+     * Whether what the fetch of this number brought may still be recorded.
+     */
+    public function isBeingFetchedBy(int $fetchAttempt): bool
+    {
+        return $this->status === DataImportStatus::Fetching && $this->fetchStartedAt !== null && $this->fetchAttempt === $fetchAttempt;
+    }
+
+    /**
+     * The export is in object storage under the import's key: from here on it is an uploaded file like any other.
+     * Reading is asked for by RequestImportRead right after - `readRequestedAt` stays empty until then, so an import
+     * whose request got lost is found by the safety net like one nobody ever asked for.
+     *
+     * @param null|string $fileName the document's title as Google named the download - null when it gave none
+     */
+    public function fetched(null|string $fileName, int $fileSize, DateTimeImmutable $now): void
+    {
+        if ($this->status !== DataImportStatus::Fetching) {
+            return;
+        }
+
+        $this->status = DataImportStatus::Uploaded;
+        $this->fileName = $fileName ?? $this->fileName;
+        $this->fileSize = $fileSize;
+        $this->readError = null;
+        $this->uploadedAt = $now;
+        $this->readRequestedAt = null;
+        $this->lastActivityAt = $now;
+    }
+
+    /**
+     * @param string $reason a GoogleSheetFetchFailure's value, or DataImportReadFailure::OUR_SIDE / ::STALLED
+     */
+    public function fetchFailed(string $reason, DateTimeImmutable $now): void
+    {
+        if ($this->status !== DataImportStatus::Fetching) {
+            return;
+        }
+
+        $this->status = DataImportStatus::FetchFailed;
+        $this->readError = $reason;
+        $this->lastActivityAt = $now;
+    }
+
+    /**
+     * "Try again": a sheet Google did not hand over waits for the worker once more.
+     */
+    public function fetchAgain(DateTimeImmutable $now): bool
+    {
+        if ($this->status !== DataImportStatus::FetchFailed || $this->googleSpreadsheetId === null || $this->fileKey === null) {
+            return false;
+        }
+
+        $this->status = DataImportStatus::Fetching;
+        $this->readError = null;
+        $this->fetchStartedAt = null;
+        $this->lastActivityAt = $now;
+
+        return true;
     }
 
     public function isOwnedBy(string $playerId): bool

@@ -150,6 +150,30 @@ readonly final class DataImportRepository
     }
 
     /**
+     * Google sheets "being fetched" - waiting for the worker or with it - without any news since the moment given:
+     * the message was lost or the worker died.
+     *
+     * @return list<string> ids
+     */
+    public function idsFetchingWithoutProgressSince(DateTimeImmutable $since, int $limit): array
+    {
+        /** @var list<array{id: UuidInterface}> $rows */
+        $rows = $this->entityManager->createQueryBuilder()
+            ->select('i.id')
+            ->from(DataImport::class, 'i')
+            ->where('i.status = :status')
+            ->andWhere('i.lastActivityAt < :since')
+            ->setParameter('status', DataImportStatus::Fetching)
+            ->setParameter('since', $since)
+            ->orderBy('i.lastActivityAt', 'ASC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_map(static fn (array $row): string => $row['id']->toString(), $rows);
+    }
+
+    /**
      * Uploads the browser never confirmed.
      *
      * @return list<DataImport>
@@ -187,7 +211,8 @@ readonly final class DataImportRepository
             ->where('i.fileKey IS NOT NULL')
             ->andWhere('i.status NOT IN (:statuses)')
             ->andWhere('i.createdAt < :before')
-            ->setParameter('statuses', [DataImportStatus::Uploading, DataImportStatus::Discarded])
+            // … nor a Google sheet that was never fetched: it has no file, and its key must stay for "Try again"
+            ->setParameter('statuses', [DataImportStatus::Uploading, DataImportStatus::Fetching, DataImportStatus::FetchFailed, DataImportStatus::Discarded])
             ->setParameter('before', $before)
             ->orderBy('i.createdAt', 'ASC')
             ->setMaxResults($limit)

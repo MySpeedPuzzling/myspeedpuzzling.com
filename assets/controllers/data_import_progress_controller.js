@@ -3,7 +3,7 @@ import { Controller } from '@hotwired/stimulus';
 import { visit } from '@hotwired/turbo';
 
 /**
- * The live line of an import whose file waits for the worker or is being read
+ * The live line of an import whose Google sheet is being fetched, or whose file waits for the worker or is being read
  * (docs/features/data-import/reading.md "Progress").
  *
  * Progress arrives by the player's own private Mercure topic: `mercure_hub_controller.js` hands every JSON message
@@ -32,6 +32,7 @@ export default class extends Controller {
     static values = {
         importId: String,
         url: String,
+        fetchingText: String,
         waitingText: String,
         readingText: String,
         sheetsText: String,
@@ -159,7 +160,10 @@ export default class extends Controller {
 
     show(data) {
         if (this.hasStateTarget) {
-            this.stateTarget.textContent = data.status === 'uploaded' ? this.waitingTextValue : this.readingTextValue;
+            // A Google sheet is fetched first (docs/features/data-import/google-sheets.md), then it waits like an upload
+            this.stateTarget.textContent = data.status === 'fetching'
+                ? this.fetchingTextValue
+                : (data.status === 'uploaded' ? this.waitingTextValue : this.readingTextValue);
         }
 
         if (this.hasSheetsTarget && Number.isInteger(data.sheetsTotal)) {

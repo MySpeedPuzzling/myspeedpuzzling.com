@@ -69,6 +69,11 @@ return App::config([
                 'limit' => 100000,
                 'interval' => '1 hour',
             ],
+            'data_import_google' => [
+                'policy' => 'sliding_window',
+                'limit' => 100000,
+                'interval' => '1 hour',
+            ],
             // Fixture players start photo uploads in many tests and runs
             'photo_upload' => [
                 'policy' => 'sliding_window',

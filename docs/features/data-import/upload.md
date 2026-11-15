@@ -68,6 +68,8 @@ counted for direct starts and fallback posts alike.
 
 `DataImportStatus`: `uploading` → `uploaded` → `reading` → `setting_up` or `read_failed` ([reading.md](reading.md))
 → (later stages: `reviewing`, `done`), and `discarded`. `uploading` and `uploaded` are this stage's.
+A Google Sheets link starts at `fetching` instead of `uploading` and joins at `uploaded` - or ends in `fetch_failed`
+([google-sheets.md](google-sheets.md)).
 
 ## Tables
 

@@ -69,13 +69,19 @@
     <form action="{{ path('data_import_people_decide', {importId: import.importId}) }}" method="post" class="border-top pt-2" data-import-answer data-testid="import-person-form">
         <input type="hidden" name="_token" value="{{ csrf }}">
         <input type="hidden" name="person" value="{{ person.personId }}">
+        {# The code answer as it stands: the code that could not be taken (kept, to be corrected) - or the code of
+           the player this person is, when that player is none of the ones offered above #}
+        {% set is_refused = refused_person_id == person.personId and (refused_code|default('')) != '' %}
+        {% set offered_ids = person.suggestions|map(suggestion => suggestion.playerId) %}
+        {% set by_code = is_refused or (person.isPlayer and person.playerId not in offered_ids and (person.playerCode ?? '') != '') %}
+        {% set typed_code = is_refused ? refused_code : (by_code ? '#' ~ person.playerCode|upper : '') %}
         <fieldset>
             <legend class="fs-sm fw-medium mb-1">{{ 'data_import.people.who'|trans({'%name%': person.name}) }}</legend>
 
             {% for suggestion in person.suggestions %}
                 {% set suggestion_label = suggestion.name ?? ('#' ~ suggestion.code|upper) %}
                 <label class="d-flex align-items-center gap-2 py-1" style="min-height: 44px;" data-testid="import-person-suggestion" data-player="{{ suggestion.playerId }}" data-exact="{{ suggestion.exact ? 'true' : 'false' }}">
-                    <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="{{ suggestion.playerId }}" {{ person.playerId == suggestion.playerId or (person.rememberedPlayerId == suggestion.playerId and person.rememberedChoice is not null) ? 'checked' }}>
+                    <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="{{ suggestion.playerId }}" {{ not is_refused and (person.playerId == suggestion.playerId or (person.rememberedPlayerId == suggestion.playerId and person.rememberedChoice is not null)) ? 'checked' }}>
                     <span class="text-break">
                         {{ 'data_import.people.answer.player'|trans({'%player%': suggestion_label, '%code%': suggestion.code|upper}) }}
                         {% if not suggestion.exact %}<span class="badge bg-light text-dark border ms-1">{{ 'data_import.people.maybe'|trans }}</span>{% endif %}
@@ -85,20 +91,20 @@
             {% endfor %}
 
             <label class="d-flex align-items-center gap-2 py-1" style="min-height: 44px;">
-                <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="guest" {{ not person.isPlayer and person.choice.value != 'me' and person.rememberedChoice is null ? 'checked' }}>
+                <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="guest" {{ not by_code and not person.isPlayer and person.choice.value != 'me' and person.rememberedChoice is null ? 'checked' }}>
                 <span>{{ 'data_import.people.answer.guest'|trans }}</span>
             </label>
 
             <div class="d-flex flex-wrap align-items-center gap-2 py-1" style="min-height: 44px;">
                 <label class="d-flex align-items-center gap-2 mb-0">
-                    <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="code">
+                    <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="code" {{ by_code ? 'checked' }}>
                     <span>{{ 'data_import.people.answer.code'|trans }}</span>
                 </label>
-                <input type="text" name="code" class="form-control" style="max-width: 160px; min-height: 44px;" maxlength="9" placeholder="#abc123" autocapitalize="off" autocomplete="off" aria-label="{{ 'data_import.people.answer.code'|trans }}" data-testid="import-person-code">
+                <input type="text" name="code" value="{{ typed_code }}" data-action="input->data-import-answers#pick" data-import-answers-picks="code" class="form-control" style="max-width: 160px; min-height: 44px;" maxlength="9" placeholder="#abc123" autocapitalize="off" autocomplete="off" aria-label="{{ 'data_import.people.answer.code'|trans }}" data-testid="import-person-code">
             </div>
 
             <label class="d-flex align-items-center gap-2 py-1" style="min-height: 44px;">
-                <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="me" {{ person.choice.value == 'me' or (person.rememberedChoice is not null and person.rememberedChoice.value == 'me') ? 'checked' }}>
+                <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="me" {{ not is_refused and (person.choice.value == 'me' or (person.rememberedChoice is not null and person.rememberedChoice.value == 'me')) ? 'checked' }}>
                 <span>{{ 'data_import.people.answer.me'|trans }}</span>
             </label>
         </fieldset>

@@ -40,8 +40,24 @@ registerHooks({
 const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'https://example.test/en/import/1/puzzles/probably?part=differs', pretendToBeVisual: true });
 const { window } = dom;
 
-for (const name of ['window', 'document', 'MutationObserver', 'Element', 'HTMLElement', 'HTMLFormElement', 'HTMLInputElement', 'HTMLImageElement', 'Node', 'Event', 'CustomEvent', 'FormData', 'URLSearchParams', 'URL']) {
+for (const name of ['window', 'document', 'MutationObserver', 'Element', 'HTMLElement', 'HTMLFormElement', 'HTMLInputElement', 'HTMLImageElement', 'Node', 'Event', 'CustomEvent', 'KeyboardEvent', 'MouseEvent', 'FormData', 'URLSearchParams', 'URL']) {
     globalThis[name] = name === 'window' ? window : window[name];
+}
+
+// A browser lets a control's name shadow the form's own property: with `<button name="action">` in it, `form.action`
+// is the button, not the address (jsdom does not do this by itself - and every answer form has such a button)
+for (const property of ['action', 'method']) {
+    const own = Object.getOwnPropertyDescriptor(window.HTMLFormElement.prototype, property);
+
+    Object.defineProperty(window.HTMLFormElement.prototype, property, {
+        configurable: true,
+        get() {
+            return this.elements.namedItem(property) ?? own.get.call(this);
+        },
+        set(value) {
+            own.set.call(this, value);
+        },
+    });
 }
 
 // jsdom lays nothing out: what is brought into view is recorded
@@ -125,6 +141,11 @@ async function mount() {
                 </form>
             </div>
             <form id="plain" action="/en/import/1/elsewhere" method="post"><button type="submit" data-plain>Plain</button></form>
+            <form id="person" action="/en/import/1/people" method="post" data-import-answer>
+                <input type="radio" name="answer" value="guest" checked><input type="radio" name="answer" value="code">
+                <input type="text" name="code" data-action="input->data-import-answers#pick" data-import-answers-picks="code">
+                <button type="submit" data-save>Save</button>
+            </form>
             <div id="import-answer-said"></div>
         </div>`;
     document.addEventListener('submit', (event) => {
@@ -293,6 +314,44 @@ const scenarios = {
         await settle();
 
         return { sent, kept, counted, focused: focusedAfter, fresh: state() };
+    },
+    // The last card of the screen is answered: what the screen says now and its ONE way on are brought into view
+    async ended() {
+        await mount();
+        tap('#one [data-yes]');
+        await settle();
+        world.pending.shift().resolve(streams(`<turbo-stream action="replace" target="import-pile"><template><div id="import-pile"><p>Nothing left here.</p><a class="btn btn-primary" href="/next" id="continue">Continue</a></div></template></turbo-stream>${said('1 matched.', '<form data-import-answer><button>Undo the last one</button></form>')}`));
+        await settle();
+
+        return { focused: focused(), scrolledTo: world.scrolledTo };
+    },
+    // An answer for the whole screen that could not be saved is said in the line that stays in view - and the
+    // line's "Close", and "No" on a question asked in place, take their part away without sending anything
+    async inView() {
+        await mount();
+        tap('#whole [data-all]');
+        await settle();
+        world.pending.shift().reject(new TypeError('Failed to fetch'));
+        await settle();
+        const saidLine = document.getElementById('import-answer-said');
+        const failed = { inSaid: saidLine.querySelectorAll('[data-import-answers-failed]').length, inForm: document.querySelectorAll('#whole [data-import-answers-failed]').length, text: saidLine.textContent.trim(), button: document.querySelector('[data-all]').disabled };
+        saidLine.innerHTML = '<div data-import-answers-dismissable><span>1 matched.</span><button type="button" data-action="data-import-answers#dismiss" data-close>x</button></div>';
+        await settle();
+        tap('[data-close]');
+        await settle();
+
+        return { failed, closed: saidLine.childElementCount, calls: world.calls.length };
+    },
+    // Typing a code picks "It is the player with this code" - the code is never sent beside "keep as a guest"
+    async code() {
+        await mount();
+        const field = document.querySelector('#person input[name="code"]');
+        field.value = '#abc123';
+        field.dispatchEvent(new window.Event('input', { bubbles: true }));
+        tap('#person [data-save]');
+        await settle();
+
+        return { url: world.calls[0].url, body: world.calls[0].body };
     },
     // A form that is not marked is not the script's: the browser (Turbo) sends it
     async plain() {

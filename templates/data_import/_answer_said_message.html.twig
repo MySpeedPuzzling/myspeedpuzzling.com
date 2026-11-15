@@ -1,7 +1,8 @@
 {#
     What the last answer did, in one small card (_answer_said.html.twig): the sentence; for "Keep it just for me"
     where the puzzle will be; "Undo the last one" - a plain form that takes the answer back, with the version the
-    answer left; and, when nothing waits any more, the way to the next step.
+    answer left; "Close"; and, when nothing waits any more, the way to the next step. One or two short lines on a
+    phone - it lies over the screen.
 
     Variables: said -
       type        success, warning or info
@@ -12,18 +13,22 @@
       step_done   (optional) no puzzle of the import waits any more
 #}
 {% set colours = {success: 'border-success', warning: 'border-warning', info: 'border-primary'} %}
-<div class="card shadow {{ colours[said.type] ?? 'border-primary' }} my-2" data-testid="import-answer-said-message" data-type="{{ said.type }}">
-    <div class="card-body py-2 px-3">
-        <div class="d-flex flex-wrap align-items-center gap-2">
+<div class="card shadow {{ colours[said.type] ?? 'border-primary' }} my-2" data-testid="import-answer-said-message" data-type="{{ said.type }}" data-import-answers-dismissable>
+    <div class="card-body py-1 px-3">
+        <div class="d-flex align-items-center gap-2">
             <div class="flex-grow-1 fs-sm" style="min-width: 0;">
                 <span class="fw-medium" data-testid="import-answer-said-text">
                     <i class="bi {{ said.type == 'success' ? 'bi-check-circle text-success' : (said.type == 'warning' ? 'bi-exclamation-triangle text-warning' : 'bi-info-circle text-primary') }} me-1" aria-hidden="true"></i>{{ said.text }}
                 </span>
                 {% if said.kept|default(false) %}
-                    <span class="d-block text-muted" data-testid="import-kept-where">
-                        {{ 'data_import.puzzles.said.kept_where'|trans }}
-                        <a href="{{ path('unlisted_puzzles') }}">{{ 'unlisted_puzzles.link'|trans }}</a>
-                    </span>
+                    {# One short line on a phone: where the puzzle will be is a tap away, not three lines over the next puzzle #}
+                    <details class="d-inline-block align-top" data-testid="import-kept-where">
+                        <summary class="text-decoration-underline" style="cursor: pointer;">{{ 'data_import.puzzles.said.where'|trans }}</summary>
+                        <span class="d-block text-muted">
+                            {{ 'data_import.puzzles.said.kept_where'|trans }}
+                            <a href="{{ path('unlisted_puzzles') }}">{{ 'unlisted_puzzles.link'|trans }}</a>
+                        </span>
+                    </details>
                 {% endif %}
             </div>
             {% if said.undo|default(null) is not null %}
@@ -37,6 +42,7 @@
                     </button>
                 </form>
             {% endif %}
+            <button type="button" class="btn-close flex-shrink-0" style="min-width: 44px; min-height: 44px; background-size: 0.75em;" aria-label="{{ 'data_import.in_place.close'|trans }}" data-action="data-import-answers#dismiss" data-testid="import-answer-said-close"></button>
         </div>
         {% if said.step_done|default(false) %}
             <p class="fs-sm fw-medium mt-2 mb-2" data-testid="import-answer-step-done">{{ 'data_import.puzzles.next.nothing'|trans }}</p>

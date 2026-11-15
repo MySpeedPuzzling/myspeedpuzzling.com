@@ -38,7 +38,7 @@
 
     {% if ask_other_pieces is not null %}
         {# A puzzle of another piece count was tapped: asked once more, by the server - only "Yes" takes it #}
-        <div class="alert alert-warning" role="alert" data-testid="import-chooser-ask-pieces">
+        <div class="alert alert-warning" role="alert" data-testid="import-chooser-ask-pieces" data-import-answers-dismissable>
             <p class="fw-semibold mb-2">{{ 'data_import.puzzles.pieces_differ_confirm'|trans({'%file%': card.piecesCount|format_number, '%puzzle%': ask_other_pieces.piecesCount|format_number}) }}</p>
             {{ include('data_import/_catalogue_puzzle.html.twig', {puzzle: ask_other_pieces, file_pieces: card.piecesCount}, with_context = false) }}
             <form action="{{ decide }}" method="post" data-import-answer class="d-flex flex-wrap gap-2 mt-3">
@@ -48,7 +48,7 @@
                 <button type="submit" name="action" value="catalogue" class="btn btn-primary text-wrap" style="min-height: 44px;" data-testid="import-chooser-ask-pieces-yes">
                     <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.chooser.confirm_yes'|trans }}
                 </button>
-                <a href="{{ path('data_import_puzzle_choose', {importId: import.importId, importPuzzleId: card.importPuzzleId}|merge(flow is not null ? {flow: flow, done: done} : {})) }}" class="btn btn-outline-secondary d-inline-flex align-items-center text-wrap" style="min-height: 44px;" data-testid="import-chooser-ask-pieces-no">{{ 'data_import.puzzles.chooser.confirm_no'|trans }}</a>
+                <a href="{{ path('data_import_puzzle_choose', {importId: import.importId, importPuzzleId: card.importPuzzleId}|merge(flow is not null ? {flow: flow, done: done} : {})) }}" class="btn btn-outline-secondary d-inline-flex align-items-center text-wrap" style="min-height: 44px;" data-action="data-import-answers#dismiss" data-testid="import-chooser-ask-pieces-no">{{ 'data_import.puzzles.chooser.confirm_no'|trans }}</a>
             </form>
         </div>
     {% endif %}

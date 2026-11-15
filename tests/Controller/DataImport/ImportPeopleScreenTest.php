@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\DataImport\ImportPersonChoice;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
@@ -231,6 +232,24 @@ final class ImportPeopleScreenTest extends WebTestCase
             self::assertSame('guest', $this->database->fetchOne('SELECT choice FROM data_import_person WHERE id = :id', ['id' => $personId]));
         }
 
+        // A code typed while "keep as a guest" is still the selected answer is the code answer - refused here, with
+        // the typed code kept in its field and its answer selected; never silently saved as a guest
+        $this->browser->request('POST', $path, ['_token' => $token, 'person' => $personId, 'answer' => 'guest', 'code' => '#zz9zz9'], server: self::AS_TURBO);
+        $card = self::streams($this->browser)['person-' . $personId]['part']->filter('#person-' . $personId);
+        self::assertCount(1, $card->filter('[data-testid="import-person-refused"]'));
+        self::assertSame('#zz9zz9', $card->filter('[data-testid="import-person-code"]')->attr('value'));
+        self::assertSame(['code'], $card->filter('input[type="radio"][checked]')->each(static fn (Crawler $radio): string => (string) $radio->attr('value')));
+        self::assertSame('code', $card->filter('[data-testid="import-person-code"]')->attr('data-import-answers-picks'));
+
+        // ... and taken with a code somebody has: the card in place is the card a reload shows - the code in its
+        // field, its answer selected
+        $this->browser->request('POST', $path, ['_token' => $token, 'person' => $personId, 'answer' => 'guest', 'code' => '#' . $other->code], server: self::AS_TURBO);
+        $card = self::streams($this->browser)['person-' . $personId]['part']->filter('#person-' . $personId);
+        $state = static fn (Crawler $card): array => [$card->attr('data-choice'), $card->attr('data-player'), $card->filter('[data-testid="import-person-code"]')->attr('value'), $card->filter('input[type="radio"][checked]')->each(static fn (Crawler $radio): string => (string) $radio->attr('value'))];
+        self::assertSame(['player', $other->id->toString(), '#' . strtoupper($other->code), ['code']], $state($card));
+        self::assertSame($state($card), $state($this->browser->request('GET', $path)->filter('#person-' . $personId)));
+        self::assertSame($other->id->toString(), $this->database->fetchOne('SELECT player_id FROM data_import_person WHERE id = :id', ['id' => $personId]));
+
         // Taken: that person's card as it stands now - the other card is not sent - and "Saved." in view
         $this->browser->request('POST', $path, ['_token' => $token, 'person' => $personId, 'answer' => $friend->id->toString()], server: self::AS_TURBO);
         $streams = self::streams($this->browser);
@@ -247,7 +266,9 @@ final class ImportPeopleScreenTest extends WebTestCase
 
         // "That is me", in place - and the same answer without Turbo is the redirect to the person, as before
         $this->browser->request('POST', $path, ['_token' => $token, 'person' => $otherPersonId, 'answer' => 'me'], server: self::AS_TURBO);
-        self::assertSame('me', self::streams($this->browser)['person-' . $otherPersonId]['part']->filter('#person-' . $otherPersonId)->attr('data-choice'));
+        $card = self::streams($this->browser)['person-' . $otherPersonId]['part']->filter('#person-' . $otherPersonId);
+        self::assertSame('me', $card->attr('data-choice'));
+        self::assertSame(['me'], $card->filter('input[type="radio"][checked]')->each(static fn (Crawler $radio): string => (string) $radio->attr('value')));
         self::assertSame('me', $this->database->fetchOne('SELECT choice FROM data_import_person WHERE id = :id', ['id' => $otherPersonId]));
         $this->browser->request('POST', $path, ['_token' => $token, 'person' => $otherPersonId, 'answer' => 'guest']);
         self::assertResponseRedirects($path . '#person-' . $otherPersonId);

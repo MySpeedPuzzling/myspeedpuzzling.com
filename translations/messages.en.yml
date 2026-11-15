@@ -12575,6 +12575,7 @@ data_import:
             empty: "No puzzles here."
             tick_all: "{1}Yes, this one is right|[0,Inf[Yes, these %number% are right"
             next_20: "Do the next 20"
+            next_n: "{1}Do the next one|[0,Inf[Do the next %number%"
             one_by_one_hint: "One puzzle per screen. Every tap is saved, and you can stop at any time."
         card:
             in_file: "In your file"
@@ -12632,6 +12633,7 @@ data_import:
             decided_as: "Decided:"
             take_back: "Undo this decision"
         said:
+            where: "Where do I find it?"
             kept_where: "After you add the import, you find puzzles kept just for you under My data → Unlisted puzzles. There you can match them with a puzzle in our database, or add them to our database later."
         flash:
             nothing: "Nothing was changed."
@@ -12643,7 +12645,7 @@ data_import:
             taken_back: "Undone. The puzzle waits for you again."
             group_done: "Nothing else waits for you in this group."
         bulk:
-            rejected: "You said this is not it."
+            rejected: "You took this match back."
             nothing_left: "Nothing left here."
             see_all: "See the whole pile (%number%)"
             working: "Saving your answer… Puzzles left: %number%"
@@ -13146,6 +13148,7 @@ data_import:
         leave: "These are not mine - take me off them"
         left: "{0}You were on none of those results any more. This player's imports will no longer add you.|{1}You were taken off 1 result. This player's imports will no longer add you.|[0,Inf[You were taken off %count% results. This player's imports will no longer add you."
     in_place:
+        close: "Close"
         failed: "That did not save. Check your connection and try again."
         working: "Saving…"
     people:
@@ -13280,6 +13283,7 @@ data_import:
             put_back: "Put back. It is in the list again as soon as its puzzle is matched - usually at once."
             left_out_puzzle: "{1}1 row is not imported. You can put it back.|[0,Inf[%number% rows are not imported. You can put each of them back."
             left_out_sheet: "The rows of “%title%” are not imported. You can change this in step 2, “How we read your file”."
+            left_out_file: "The rows of the whole file are not imported. You can change this in step 2, “How we read your file”."
             changed_meanwhile: "This changed in the meantime - here is how it stands now. Nothing was saved."
 
 # The public guide of the spreadsheet import and its entry points (docs/features/data-import/entry-points.md)

@@ -66,8 +66,11 @@
     </a>
 
     {% if back is defined and back is not null %}
-        <a href="{{ back.url }}" class="btn btn-link px-0 mt-2 d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-flow-back-link">
-            <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ back.label }}
-        </a>
+        {# On a line of its own: beside the guide's link the two did not stand on one base line #}
+        <div>
+            <a href="{{ back.url }}" class="btn btn-link px-0 d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-flow-back-link">
+                <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ back.label }}
+            </a>
+        </div>
     {% endif %}
 </div>

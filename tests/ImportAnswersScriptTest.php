@@ -91,6 +91,29 @@ final class ImportAnswersScriptTest extends TestCase
         );
     }
 
+    public function testTheAddressIsTheFormsAttributeAndTheEndOfAScreenAndAFailureAreInView(): void
+    {
+        ['answered' => $answered, 'ended' => $ended, 'inView' => $inView, 'code' => $code] = $this->scenarios(['answered', 'ended', 'inView', 'code']);
+
+        // Every answer form holds `<button name="action">`: in a browser `form.action` is then that button (the
+        // harness does what a browser does) - the address is read from the attribute
+        self::assertSame('https://example.test/en/import/1/puzzles/decide', self::at($answered, 'calls', 0, 'url'));
+        self::assertSame('https://example.test/en/import/1/people', $code['url']);
+        $script = (string) file_get_contents(__DIR__ . '/../assets/controllers/data_import_answers_controller.js');
+        self::assertDoesNotMatchRegularExpression('/\bform\.(action|method|id|name|target)\b/', $script, 'a control of that name shadows the property - use getAttribute()');
+
+        // The last card answered: the way on is brought into view and focused - not "Undo the last one"
+        self::assertSame(['continue a Continue', ['continue']], [$ended['focused'], $ended['scrolledTo']]);
+
+        // An answer for the whole screen that failed: said in the line that stays in view, not at the form's end
+        self::assertSame(['inSaid' => 1, 'inForm' => 0, 'text' => 'NOT SAVED', 'button' => false], $inView['failed']);
+        // "Close" takes the line away and sends nothing
+        self::assertSame([0, 1], [$inView['closed'], $inView['calls']]);
+
+        // A typed code picks its answer
+        self::assertSame(['answer' => 'code', 'code' => '#abc123'], $code['body']);
+    }
+
     public function testWhatThePlayerSetAndDidNotSendStaysWhenTheScreenIsRenderedAgain(): void
     {
         ['unsaved' => $unsaved] = $this->scenarios(['unsaved']);

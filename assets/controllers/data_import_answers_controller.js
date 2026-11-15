@@ -70,6 +70,9 @@ export default class extends Controller {
         }
 
         const submitter = event.submitter instanceof HTMLElement ? event.submitter : null;
+        // The attribute, never the form's property of that name: these forms hold `<button name="action">`, and a
+        // control's name shadows the property (it is then the button, not the address)
+        const url = new URL((submitter && submitter.getAttribute('formaction')) || form.getAttribute('action') || '', window.location.href).href;
         const body = new URLSearchParams(new FormData(form));
 
         if (submitter !== null && submitter.getAttribute('name')) {
@@ -89,10 +92,11 @@ export default class extends Controller {
         }
 
         this.queue = this.queue
-            .then(() => this.send(form.action, body))
+            .then(() => this.send(url, body))
             .then(async (answer) => {
                 if (answer.kind === 'streams') {
-                    const chosen = this.chosen();
+                    // What the player set on the screen and did not send - an answered card is the server's now
+                    const chosen = this.chosen(key === null ? null : scope);
                     Turbo.renderStreamMessage(answer.html);
                     await this.rendered();
                     this.chooseAgain(chosen);
@@ -157,7 +161,7 @@ export default class extends Controller {
      * everything back as it was.
      */
     hold(scope, submitter) {
-        scope.querySelectorAll('[data-import-answers-failed]').forEach((line) => line.remove());
+        this.element.querySelectorAll('[data-import-answers-failed]').forEach((line) => line.remove());
 
         const buttons = [...scope.querySelectorAll('button, input[type="submit"]')].filter((button) => !button.disabled);
         let spinner = null;
@@ -202,17 +206,24 @@ export default class extends Controller {
      * pile, the folded parts they opened. A screen rendered again comes with the server's defaults - these are the
      * player's, and stay.
      */
-    chosen() {
+    chosen(answered) {
         return {
             boxes: [...this.element.querySelectorAll('input[type="checkbox"], input[type="radio"]')]
-                .filter((box) => box.id !== '' || box.name !== '')
+                .filter((box) => (box.id !== '' || box.name !== '') && (answered === null || !answered.contains(box)))
                 .map((box) => ({ key: this.boxKey(box), checked: box.checked })),
             opened: [...this.element.querySelectorAll('details[open][data-testid]')].map((part) => part.getAttribute('data-testid')),
         };
     }
 
     boxKey(box) {
-        return box.id !== '' ? `#${box.id}` : `${box.type}|${box.name}|${box.value}`;
+        if (box.id !== '') {
+            return `#${box.id}`;
+        }
+
+        // A name is only one of its card ("answer" of every person): the card's id is part of the key
+        const card = box.closest('[data-import-answers-scope][id]');
+
+        return `${card === null ? '' : card.id}|${box.type}|${box.name}|${box.value}`;
     }
 
     chooseAgain(chosen) {
@@ -239,6 +250,42 @@ export default class extends Controller {
                 part.setAttribute('open', '');
             }
         });
+    }
+
+    /**
+     * "Close" on the line that stays in view, "No" on a question asked in place: the part goes, nothing is sent.
+     */
+    dismiss(event) {
+        const part = event.currentTarget.closest('[data-import-answers-dismissable]');
+
+        if (part === null) {
+            return;
+        }
+
+        event.preventDefault();
+
+        const back = part.closest('#import-answer-said') === null ? this.element.querySelector('#import-chooser h1, #import-chooser h2') : null;
+
+        part.remove();
+        this.address();
+
+        if (back !== null) {
+            this.focus(back);
+        }
+    }
+
+    /**
+     * Typing in a field that belongs to one answer picks that answer ("It is the player with this code:" - the
+     * typed code is never sent beside another answer).
+     */
+    pick(event) {
+        const field = event.currentTarget;
+        const form = field.closest('form');
+        const answer = form === null ? null : form.querySelector(`input[type="radio"][value="${field.getAttribute('data-import-answers-picks')}"]`);
+
+        if (answer !== null && field.value.trim() !== '') {
+            answer.checked = true;
+        }
     }
 
     release(key) {
@@ -283,7 +330,15 @@ export default class extends Controller {
             }
         });
 
-        // The screen in the element is another one now (the next puzzle of a round): the address says so
+        this.address();
+        this.afterAddress(key, around);
+    }
+
+    /**
+     * The screen in the element may be another one now (the next puzzle of a round, the next twenty): the address
+     * says which, so loading the page again shows it.
+     */
+    address() {
         const screen = this.element.querySelector('[data-import-answers-url]');
 
         if (screen !== null) {
@@ -301,6 +356,9 @@ export default class extends Controller {
             }
         }
 
+    }
+
+    afterAddress(key, around) {
         // A new screen: its beginning is brought into view and focused
         const fresh = this.element.querySelector('[data-import-answers-show]');
 
@@ -329,6 +387,17 @@ export default class extends Controller {
 
                 return;
             }
+        }
+
+        // No card is left on the screen: what the screen says now - "Nothing left here" and its ONE way on - is
+        // brought into view (the page got shorter under the player) and the way on is focused
+        const wayOn = this.element.querySelector('#import-answer-said a.btn-primary, #import-pile a.btn-primary, #import-pile button.btn-primary:not([disabled])');
+
+        if (key !== null && wayOn !== null) {
+            wayOn.scrollIntoView({ block: 'center' });
+            wayOn.focus({ preventScroll: true });
+
+            return;
         }
 
         // Nothing of the kind is left: the line that says what happened - its button, or the line itself
@@ -361,12 +430,22 @@ export default class extends Controller {
         }
 
         const line = document.createElement('div');
-        line.className = 'alert alert-warning fs-sm py-2 mt-2 mb-0';
         line.setAttribute('role', 'alert');
         line.setAttribute('data-import-answers-failed', '');
         line.setAttribute('data-testid', 'import-answer-failed');
         line.textContent = this.failedValue;
-        scope.append(line);
+
+        // A card says it under its own buttons. A form of the whole screen (the grid, a pile, the chooser) can be
+        // taller than the phone: there it is said in the line that stays in view
+        const said = scope.hasAttribute('data-import-answers-scope') ? null : this.element.querySelector('#import-answer-said');
+
+        if (said !== null && !said.contains(scope)) {
+            line.className = 'card shadow border-warning my-2 py-2 px-3 fs-sm fw-medium';
+            said.replaceChildren(line);
+        } else {
+            line.className = 'alert alert-warning fs-sm py-2 mt-2 mb-0';
+            scope.append(line);
+        }
 
         if (submitter !== null && submitter.isConnected) {
             submitter.focus({ preventScroll: true });

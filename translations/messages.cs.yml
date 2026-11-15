@@ -12331,6 +12331,7 @@ data_import:
             empty: "Žádná puzzle tu nejsou."
             tick_all: "{1}Ano, toto je správně|[2,4]Ano, tato %number% jsou správně|[0,Inf[Ano, těchto %number% je správně"
             next_20: "Projít dalších 20"
+            next_n: "{1}Projít další|[2,4]Projít další %number%|[0,Inf[Projít dalších %number%"
             one_by_one_hint: "Jedno puzzle na obrazovku. Každé klepnutí se uloží a kdykoli můžete přestat."
         card:
             in_file: "Ve vašem souboru"
@@ -12388,6 +12389,7 @@ data_import:
             decided_as: "Rozhodnuto:"
             take_back: "Vrátit toto rozhodnutí zpět"
         said:
+            where: "Kde ho najdu?"
             kept_where: "Po přidání importu najdete puzzle ponechané jen pro vás v části Moje data → Puzzle mimo databázi. Tam je můžete později přiřadit k puzzle v naší databázi, nebo je do naší databáze přidat."
         flash:
             nothing: "Nic se nezměnilo."
@@ -12399,7 +12401,7 @@ data_import:
             taken_back: "Vráceno zpět. Puzzle na vás znovu čeká."
             group_done: "V této skupině už na vás nic nečeká."
         bulk:
-            rejected: "Řekli jste, že tohle to není."
+            rejected: "Toto přiřazení jste vzali zpět."
             nothing_left: "Tady už nic nezbývá."
             see_all: "Zobrazit celou hromádku (%number%)"
             working: "Ukládáme vaši odpověď… Zbývá puzzle: %number%"
@@ -12902,6 +12904,7 @@ data_import:
         leave: "Tyto výsledky nejsou moje - odeberte mě z nich"
         left: "{0}Na žádném z těch výsledků už jste nebyli. Importy tohoto hráče vás už nepřidají.|{1}Byli jste odebráni z 1 výsledku. Importy tohoto hráče vás už nepřidají.|[2,4]Byli jste odebráni ze %count% výsledků. Importy tohoto hráče vás už nepřidají.|[0,Inf[Byli jste odebráni z %count% výsledků. Importy tohoto hráče vás už nepřidají."
     in_place:
+        close: "Zavřít"
         failed: "Nepodařilo se to uložit. Zkontrolujte připojení a zkuste to znovu."
         working: "Ukládáme…"
     people:
@@ -13036,6 +13039,7 @@ data_import:
             put_back: "Vráceno. V seznamu bude znovu, jakmile se přiřadí jeho puzzle - obvykle hned."
             left_out_puzzle: "{1}1 řádek se neimportuje. Můžete ho vrátit.|[2,4]%number% řádky se neimportují. Každý můžete vrátit.|[0,Inf[%number% řádků se neimportuje. Každý můžete vrátit."
             left_out_sheet: "Řádky listu „%title%“ se neimportují. Změnit to můžete v kroku 2, „Jak jsme váš soubor přečetli“."
+            left_out_file: "Řádky celého souboru se neimportují. Změnit to můžete v kroku 2, „Jak jsme váš soubor přečetli“."
             changed_meanwhile: "Mezitím se to změnilo - takto to vypadá teď. Nic se neuložilo."
 
 # The public guide of the spreadsheet import and its entry points (docs/features/data-import/entry-points.md)

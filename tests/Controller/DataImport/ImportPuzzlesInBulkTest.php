@@ -665,7 +665,7 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         self::assertCount(0, $grid->filter('[data-testid="import-puzzle-tick-all"]'));
         $closer = $grid->filter('[data-testid="import-puzzle-closer"] #puzzle-' . $first['id']);
         self::assertCount(1, $closer, 'the grid has nothing left: the screen is the cards to look at closer');
-        self::assertSame('You said this is not it.', self::spaced($closer->filter('[data-testid="catalogue-puzzle-rejected"]')->text()));
+        self::assertSame('You took this match back.', self::spaced($closer->filter('[data-testid="catalogue-puzzle-rejected"]')->text()));
         // A form that still holds its tile gets nothing through
         $this->browser->request('POST', $decide, [...$form, 'cards' => self::crafted($this->importPuzzle($importId, 'Zq9i Grid 01 <b>'), $first['candidates'][0]['puzzleId'])]);
         self::assertResponseRedirects($base . '?part=same');
@@ -748,14 +748,15 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         self::assertSame('3 puzzles left in this pile.', self::spaced($start->filter('[data-testid="import-pile-left"]')->text()));
         self::assertSame('Rows of your file with the next 3 puzzles: 6', self::spaced($start->filter('[data-testid="import-pile-round"]')->text()));
         self::assertCount(0, $start->filter('[data-testid="import-pile-done"]'));
-        self::assertSame('Do the next 20', self::spaced($start->filter('[data-testid="import-puzzle-next-20"]')->text()));
+        // Three wait: the button says three, not twenty
+        self::assertSame('Do the next 3', self::spaced($start->filter('[data-testid="import-puzzle-next-20"]')->text()));
         self::assertStringContainsString('so we never pick for you', $start->filter('[data-testid="import-explain-pick"]')->text());
 
         // The round: the puzzle with the most rows first - not the first by name
         $this->browser->request('GET', $base . '/puzzles/choose/next');
         self::assertResponseRedirects($base . '/puzzle/' . $zebra['id'] . '?flow=choose&done=0');
         $chooser = $this->browser->followRedirect();
-        self::assertSame('This round: 0 of 20', self::spaced($chooser->filter('[data-testid="import-chooser-portion"]')->text()));
+        self::assertSame('This round: 0 of 3', self::spaced($chooser->filter('[data-testid="import-chooser-portion"]')->text()));
 
         // Nothing is chosen for the player: the best fit only stands first - no card is marked, ticked or primary
         $cards = $chooser->filter('[data-testid="import-chooser-candidate"]');
@@ -1205,7 +1206,7 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         self::assertSame($base . '/puzzle/' . $mango['id'] . '?flow=choose&done=1&last=' . $zebra['id'], $next->attr('data-import-answers-url'));
         self::assertNotNull($next->attr('data-import-answers-show'));
         self::assertSame('Zq9t Twin Mango', self::spaced($next->filter('[data-testid="import-puzzle-name"]')->text()));
-        self::assertSame('This round: 1 of 20', self::spaced($next->filter('[data-testid="import-chooser-portion"]')->text()));
+        self::assertSame('This round: 1 of 3', self::spaced($next->filter('[data-testid="import-chooser-portion"]')->text()));
         self::assertSame(['1', $mango['id']], [$next->filter('[data-testid="import-chooser-candidate"]')->first()->closest('form')?->filter('input[name="done"]')->attr('value'), $next->filter('[data-testid="import-chooser-candidate"]')->first()->closest('form')?->filter('input[name="puzzle"]')->attr('value')]);
         self::assertSame($zebra['candidates'][1]['puzzleId'], $this->importPuzzle($importId, 'Zq9t Twin Zebra')['puzzle_id']);
 

@@ -36,7 +36,7 @@
         ready: ready,
         hint: 'data_import.puzzles.list.one_by_one_hint'|trans,
         primary: {
-            label: done > 0 ? 'data_import.puzzles.bulk.choose.more'|trans({'%number%': min(portion, open)|format_number}) : 'data_import.puzzles.list.next_20'|trans,
+            label: done > 0 ? 'data_import.puzzles.bulk.choose.more'|trans({'%number%': min(portion, open)|format_number}) : (open < portion ? 'data_import.puzzles.list.next_n'|trans({'%count%': open, '%number%': open|format_number}) : 'data_import.puzzles.list.next_20'|trans),
             url: path('data_import_puzzle_next', {importId: import.importId, group: group}),
             icon: 'bi-play-fill', nofollow: true, testid: 'import-puzzle-next-20',
         },

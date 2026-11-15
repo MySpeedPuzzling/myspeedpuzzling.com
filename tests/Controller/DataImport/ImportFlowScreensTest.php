@@ -77,7 +77,7 @@ final class ImportFlowScreensTest extends WebTestCase
         $this->assertScreen($base . '/puzzles/probably', 4, 1, 'Yes, the ticked ones are right');
         $this->assertScreen($base . '/puzzles/probably?part=differs', 4, 1, 'Continue');
         $this->assertScreen($base . '/puzzles/probably?page=1', 4, 1, 'Continue');
-        $this->assertScreen($base . '/puzzles/choose', 4, 1, 'Do the next 20');
+        $this->assertScreen($base . '/puzzles/choose', 4, 1, 'Do the next one');
         $this->assertScreen($base . '/puzzles/choose?done=20', 4, 1, 'Do 1 more');
         $this->assertScreen($base . '/puzzles/choose?page=1', 4, 1, 'Continue');
         $this->assertScreen($base . '/puzzles/not-found', 4, 1, 'Continue');

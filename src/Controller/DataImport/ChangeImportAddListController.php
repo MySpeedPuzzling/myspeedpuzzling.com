@@ -185,6 +185,9 @@ final class ChangeImportAddListController extends AbstractController
             sheetWide: $submission['sheetWide'],
         ));
 
-        return $this->translator->trans('data_import.add_list.flash.left_out_sheet', ['%title%' => $sheet->title]);
+        // A file without sheets (a CSV) has one sheet without a name: "the whole file"
+        return trim($sheet->title) === ''
+            ? $this->translator->trans('data_import.add_list.flash.left_out_file')
+            : $this->translator->trans('data_import.add_list.flash.left_out_sheet', ['%title%' => $sheet->title]);
     }
 }

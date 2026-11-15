@@ -210,10 +210,28 @@ another screen took the place (`data-import-answers-show`).
 `?part=…&after=…`, `?done=…`, `?page=…`), like the chooser; after an answer shown in place the script puts it in
 the address bar, so loading the page again shows the screen the player was on.
 
+**A card that comes back by "Undo the last one"** carries the handler's memory of it: a match taken back is
+remembered as "not this puzzle" (pairing.md) - there is no neutral take-back - so the card says **"You took this
+match back."** (it said "You said this is not it.", which was not true for an Undo; the same words now stand on a
+card after "Wrong puzzle").
+
+**A round says its real size:** "Do the next 3" and "This round: 1 of 3" when fewer than twenty wait
+(`ImportPuzzleChooserController::portion()` - one statement, inside a round only).
+
 **No "Undo" for one answer for several.** The handler would take twenty decisions back in one message, but it is
 not an undo: a match taken back is remembered as "not this puzzle", and such a puzzle may no longer be confirmed
 with others (`ImportPuzzleBulkConfirm`) - the twenty would come back as cards to look at closer, not as the grid
 they were. An answer for a pile can run on the worker for thousands. Each puzzle is taken back on its own card.
+
+The line lies over the screen, so it is **one or two short lines on a phone** and has a "Close" button (the script's
+`dismiss`): where a kept puzzle will be is behind "Where do I find it?" (a `<details>`), not three lines over the
+next puzzle's pictures.
+
+**Found in a real browser (2026-11), and why the script reads attributes:** every answer form holds
+`<button name="action">`, and in a browser a control's name shadows the form's property - `form.action` is the
+button, the request went to `…/[object HTMLButtonElement]` and nothing was saved. The address is
+`form.getAttribute('action')`; the jsdom harness now shadows `action` / `method` the way a browser does, and
+`ImportAnswersScriptTest` refuses `form.action|method|id|name|target` in the script's source.
 
 **"Keep it just for me" says where the puzzle goes**, at the moment it is picked: "After you add the import, you
 find puzzles kept just for you under My data → Unlisted puzzles. There you can match them … or add them to our
@@ -238,7 +256,11 @@ overview.
   twice (so its flash is not lost);
 - no connection, a timeout (20 s), an error page (403 of a token that ran out, 422, 500) → **nothing changes**: the
   card as it was, its buttons on again, one line under them ("That did not save. Check your connection and try
-  again.", `role="alert"`), focus back on the button.
+  again.", `role="alert"`), focus back on the button. For a form of the whole screen (the grid, a pile, the chooser
+  - taller than a phone) the line is put in the line that stays in view instead;
+- the last card of a screen answered: the screen's ONE way on (`#import-pile .btn-primary`, or the next step's
+  button in the line) is brought into view and focused - the page got shorter under the player;
+- "No" on the piece-count question takes the question away in place (`dismiss`), nothing is sent.
 
 Before the script has loaded (it is lazy) Turbo sends the form and puts the same streams in place - without the
 waiting state and the focus. `assets/app.js` puts `loaded` back on a lazy picture a morph kept

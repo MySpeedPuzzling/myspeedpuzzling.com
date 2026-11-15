@@ -377,7 +377,7 @@ final class ImportPairingScreensTest extends WebTestCase
         self::assertSame('Zq5b Twin Anchor', $crawler->filter('[data-testid="import-chooser-search-input"]')->attr('value'));
         self::assertCount(1, $crawler->filter('[data-testid="import-chooser-unlisted"]'));
         self::assertCount(1, $crawler->filter('[data-testid="import-chooser-leave-out"]'));
-        self::assertSame('This round: 0 of 20', self::spaced($crawler->filter('[data-testid="import-chooser-portion"]')->text()));
+        self::assertSame('This round: 0 of 2', self::spaced($crawler->filter('[data-testid="import-chooser-portion"]')->text()));
         // Skipping leads to the next one without deciding
         self::assertSame('/en/import/' . $importId . '/puzzles/choose/next?after=' . $anchor['id'] . '&done=0', $crawler->filter('[data-testid="import-chooser-skip"]')->attr('href'));
         $token = $this->token($crawler);

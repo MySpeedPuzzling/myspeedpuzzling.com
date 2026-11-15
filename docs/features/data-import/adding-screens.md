@@ -295,7 +295,9 @@ On "What will be added" every "Don't import" / "Put back" - a row, every row of 
 whole sheet too - names the list's frame (`data-turbo-frame="import-add-list"`): the redirect is followed inside the
 frame, the list and its bar are swapped and the page stays where it is. An answer that does not hold the frame (the
 last sheet went and nothing can be added any more → "Where you are") becomes a full visit
-(`data_import_times_frame_controller.js`).
+(`data_import_times_frame_controller.js`). What the tap did is said **in the list's sticky bar** (inside the frame),
+not above the list - a notice at the top moved every row under the finger. A file without sheets has one sheet
+without a name: "The rows of the whole file are not imported."
 
 ### Who did you solve these with?
 

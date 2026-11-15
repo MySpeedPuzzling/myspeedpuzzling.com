@@ -68,6 +68,7 @@ final class DecideImportPuzzlesController extends AbstractController
         readonly private ImportPuzzlePile $pile,
         readonly private ImportPuzzleGroupController $groupScreen,
         readonly private NextImportPuzzleController $next,
+        readonly private ImportPuzzleChooserController $chooserScreen,
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
     ) {
@@ -318,6 +319,7 @@ final class DecideImportPuzzlesController extends AbstractController
                 last: $where['last'] ?? '',
             );
             $chooser['fresh'] = $fresh;
+            $chooser['portion'] = $this->chooserScreen->portion($importId, $playerId, (string) $where['flow'], $where['done']);
             $screenRoute = 'data_import_puzzle_choose';
             $screenPath = $this->generateUrl('data_import_puzzle_choose', ['importId' => $importId, 'importPuzzleId' => $where['puzzle']]);
         } else {
@@ -407,7 +409,7 @@ final class DecideImportPuzzlesController extends AbstractController
             return $this->render('data_import/_puzzles_answer.stream.html.twig', [
                 'import_id' => $importId,
                 'pile' => null,
-                'chooser' => ['fresh' => true] + $chooser,
+                'chooser' => ['fresh' => true, 'portion' => $this->chooserScreen->portion($importId, $playerId, $flow, $done)] + $chooser,
                 'card' => null,
                 'counts' => null,
                 'said' => null,

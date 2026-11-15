@@ -119,6 +119,13 @@ nothing was written), `update #import-people-list` with every card for "Yes, sti
 view (`#import-answer-said`). What is written is what the redirect's answer writes; a plain post still gets the 302
 / 422 above. The consent form "Ask <player>" posts to Pairs & teams and is not part of it.
 
+The card in place is the card a reload renders: the answer that stands is the selected one - also "It is the player
+with this code", with the code in its field, when the person is a player who is none of those offered - and a code
+that could not be taken stays in its field (`refused_code`) with its answer selected. **A typed code is never
+dropped:** typing in the field selects its answer (the script's `pick`), and the server reads a non-empty code that
+arrives beside "keep as a guest" (the answer selected by itself) as the code answer - taken, or refused with its
+notice.
+
 ### Suggestions
 
 `GetImportPeople::suggestable()` - **only among players the importing player is already connected to**:

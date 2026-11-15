@@ -63,6 +63,13 @@ final class DecideImportPersonController extends AbstractController
 
         $personId = $request->request->getString('person');
         $answer = $request->request->getString('answer');
+        $code = trim($request->request->getString('code'));
+
+        // A code typed beside the answer that is selected by itself ("keep as a guest"): the player typed a code -
+        // it is the code answer (taken, or refused with its notice), never silently a guest
+        if ($code !== '' && in_array($answer, ['guest', ''], true)) {
+            $answer = 'code';
+        }
 
         $message = match (true) {
             // "Yes, still right" - what the player answered for the name in an earlier file; for one name, or all
@@ -70,7 +77,7 @@ final class DecideImportPersonController extends AbstractController
             $answer === 'remembered_all' => new DecideImportPerson($importId, $player->playerId, '', ImportPersonChoice::Guest, allRemembered: true),
             $answer === 'guest' => new DecideImportPerson($importId, $player->playerId, $personId, ImportPersonChoice::Guest),
             $answer === 'me' => new DecideImportPerson($importId, $player->playerId, $personId, ImportPersonChoice::Me),
-            $answer === 'code' => new DecideImportPerson($importId, $player->playerId, $personId, ImportPersonChoice::Player, code: $request->request->getString('code')),
+            $answer === 'code' => new DecideImportPerson($importId, $player->playerId, $personId, ImportPersonChoice::Player, code: $code),
             default => new DecideImportPerson($importId, $player->playerId, $personId, ImportPersonChoice::Player, targetPlayerId: $answer),
         };
 
@@ -85,7 +92,8 @@ final class DecideImportPersonController extends AbstractController
                 throw $exception;
             }
 
-            $page = $this->peoplePage->page($importId, $player->playerId, $personId, $cause->reason);
+            // The code that could not be taken stays in its field, to be corrected
+            $page = $this->peoplePage->page($importId, $player->playerId, $personId, $cause->reason) + ['refused_code' => $answer === 'code' ? mb_substr($code, 0, 9) : ''];
 
             if ($inPlace) {
                 // Nothing was written: the person's card again, with why

@@ -31,11 +31,6 @@
 
     {# The list and its bar are one frame: a "Don't import" swaps them and leaves the page where it is #}
     <turbo-frame id="import-add-list" target="_top" data-testid="import-add-list" data-total="{{ total }}" data-will-add="{{ add.toAdd }}" data-rows-taken="{{ add.rowsTaken }}">
-        {# What the last "Don't import" / "Put back" did: said here, inside the frame, so a frame swap shows it too #}
-        {% for message in app.request.hasPreviousSession ? app.flashes(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ChangeImportAddListController::FLASH')) : [] %}
-            <div class="alert alert-info fs-sm py-2" role="status" data-testid="import-add-list-flash">{{ message }}</div>
-        {% endfor %}
-
         {# A sheet whose reading changed (one was just set to "not puzzles") is read again in the background: until
            it is settled none of its rows is ready, so none is listed - said, so nothing seems to have gone missing #}
         {% if add.sheetsNotSetUp > 0 %}
@@ -191,6 +186,11 @@
 
         {# The bar: what an "Add" would add now - it moves with every "Don't import" - and the way back to the button #}
         <div class="bg-body border-top py-2 mt-3" style="position: sticky; bottom: 0; z-index: 20;" data-testid="import-add-list-bar">
+            {# What the last "Don't import" / "Put back" did: said here, in the bar that stays in view inside the
+               frame - a notice at the top of the list moved every row under the finger #}
+            {% for message in app.request.hasPreviousSession ? app.flashes(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ChangeImportAddListController::FLASH')) : [] %}
+                <p class="fs-sm mb-1" role="status" data-testid="import-add-list-flash"><i class="bi bi-info-circle text-primary me-1" aria-hidden="true"></i>{{ message }}</p>
+            {% endfor %}
             <p class="fw-semibold mb-2" data-testid="import-add-list-will-add">{{ 'data_import.add_list.bar.will_add'|trans({'%count%': add.toAdd, '%number%': add.toAdd|format_number}) }}</p>
             <a href="{{ path('data_import_add', {importId: import.importId}) }}" class="btn btn-primary btn-lg w-100 text-wrap d-flex align-items-center justify-content-center" style="min-height: 52px;" data-testid="import-add-list-done">
                 {{ 'data_import.add_list.bar.done'|trans }}

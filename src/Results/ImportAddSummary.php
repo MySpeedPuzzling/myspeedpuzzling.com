@@ -59,7 +59,7 @@ readonly final class ImportAddSummary
          * The review's own parts (GetImportAddScreen::summary() with $forReview): the ready rows per sheet, and the
          * rows it shows first
          *
-         * @var list<array{title: string, ready: int, results: int, solo: int, duo: int, team: int, people: list<string>}>
+         * @var list<ImportAddSheetLine>
          */
         public array $sheets = [],
         /** @var list<string> the first new results */

@@ -78,6 +78,7 @@ final class ImportFlowScreensTest extends WebTestCase
         // A tap on a puzzle's card is the answer of the chooser: it has no primary button of its own
         $this->assertScreen($base . '/puzzle/' . $twin['id'], 4, 0);
         $this->assertScreen($base . '/add', 5, 1, 'Add 3 to my profile');
+        $this->assertScreen($base . '/add/list', 5, 1, 'Done - back to the check');
         $this->assertScreen($base . '/add/times', 5, 1, 'Back to “Check and add”');
 
         // ---- An Add ran: the screens after it ----
@@ -116,7 +117,8 @@ final class ImportFlowScreensTest extends WebTestCase
         self::assertSame('/en/import', $header->filter('[data-testid="import-flow-back"]')->attr('href'));
         self::assertSame('Step 4 of 5 · Puzzles', self::spaced($header->filter('[data-testid="import-flow-step-name"]')->text()));
         self::assertSame(
-            [['1', 'done'], ['2', 'done'], ['3', 'ahead'], ['4', 'open'], ['5', 'open']],
+            // Step 3: the file names nobody else - passed by itself
+            [['1', 'done'], ['2', 'done'], ['3', 'done'], ['4', 'open'], ['5', 'open']],
             $header->filter('[data-testid="import-flow-step"]')->each(static fn (Crawler $step): array => [$step->attr('data-number'), $step->attr('data-state')]),
         );
         self::assertSame(
@@ -190,14 +192,15 @@ final class ImportFlowScreensTest extends WebTestCase
         $signedIn = $this->statements('/en/import') - 2;
 
         // The import, its sheets, the matching of its puzzles, what is ready to add, the live line's start: the five
-        // statements the import's page ran before it became "Where you are" - the flow is worked out from them
-        self::assertSame($signedIn + 5, $this->statements('/en/import/' . $importId));
+        // statements the import's page ran before it became "Where you are" - the flow is worked out from them - and
+        // one more since slice 2: the people the file names, so that step 3 says "Nobody else is named." or who they are
+        self::assertSame($signedIn + 6, $this->statements('/en/import/' . $importId));
 
         // "Continue" works its target out from the same - and renders nothing
         $this->browser->request('GET', '/en/import/' . $importId . '?after=check');
         $this->startCountingQueries($this->browser);
         $this->browser->request('GET', '/en/import/' . $importId . '?after=check');
-        self::assertLessThanOrEqual($signedIn + 4, $this->queryCount($this->browser));
+        self::assertLessThanOrEqual($signedIn + 5, $this->queryCount($this->browser));
     }
 
     public function testEveryTemplateOfAnImportsScreenCarriesTheFlowHeader(): void
@@ -225,7 +228,7 @@ final class ImportFlowScreensTest extends WebTestCase
         sort($screens);
         self::assertSame(
             [
-                'add.html.twig', 'add_times.html.twig', 'added_rows.html.twig', 'batch.html.twig', 'columns.html.twig', 'detail.html.twig',
+                'add.html.twig', 'add_list.html.twig', 'add_times.html.twig', 'added_rows.html.twig', 'batch.html.twig', 'columns.html.twig', 'detail.html.twig',
                 'group_answer.html.twig', 'not_added_rows.html.twig', 'not_added_times.html.twig', 'people.html.twig', 'puzzle_choose.html.twig',
                 'puzzle_group.html.twig', 'puzzles.html.twig', 'row.html.twig', 'sheet.html.twig', 'sheet_rows.html.twig', 'to_fix.html.twig',
                 'undo.html.twig', 'undo_confirm.html.twig',

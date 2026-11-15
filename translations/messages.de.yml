@@ -11859,6 +11859,22 @@ data_import:
         discard: "Die Datei und alles, was daraus gelesen wurde, werden gelöscht. An deinem Profil ändert sich nichts - es wurde noch nichts hinzugefügt."
         kept: "Er bleibt in deiner Liste, damit dieselben Zeilen nie doppelt hinzugefügt werden und du sie rückgängig machen kannst."
         file: "Nur du siehst die Datei. Wir bewahren sie %days% Tage auf, dann wird sie entfernt - was hinzugefügt wurde, bleibt in deinem Profil."
+        # Slice 2 of the guided flow: "Check and add" and "What will be added"
+        on_profile: "Diese Ergebnisse sind schon auf MySpeedPuzzling - dasselbe Puzzle, derselbe Tag und dieselbe Zeit. Sie werden kein zweites Mal hinzugefügt."
+        on_profile_summary: "Was bedeutet „schon in deinem Profil“?"
+        repeat: "In deiner Datei stehen dasselbe Puzzle, derselbe Tag und dieselbe Zeit in mehreren Zeilen. Wir zählen sie als ein Ergebnis - sag es, wenn es getrennte Durchgänge sind."
+        repeat_summary: "Was ist eine Zeile, die eine andere wiederholt?"
+        dont_import: "Die Zeilen bleiben hier in deiner Datei und werden nicht hinzugefügt. Du kannst sie jederzeit zurücknehmen."
+        player_partner: "Das Ergebnis erscheint auch in ihrem Profil, als Paar- oder Team-Ergebnis mit dir. Sie erfahren es einmal und können sich selbst entfernen."
+        player_partner_summary: "Was passiert, wenn ein Partner ein Spieler ist?"
+        month_only: "Deine Datei nennt keinen genauen Tag. Das Ergebnis wird als „März 2021“ hinzugefügt - es zählt überall, außer wo ein Tag gebraucht wird, etwa im Kalender und bei Serien."
+        month_only_summary: "Was ist mit einem Ergebnis, das nur einen Monat oder ein Jahr hat?"
+        no_date: "Ein Ergebnis braucht mindestens ein Jahr, um hinzugefügt zu werden. Gib diesen einen Tag, einen Monat oder ein Jahr - sonst bleiben sie hier."
+        unusual_time: "Viel schneller oder langsamer, als deine anderen Ergebnisse für dieses Puzzle erwarten lassen. Wir fragen, damit kein Tippfehler in einer Bestenliste landet - wenn die Zeit stimmt, sag es, und sie wird hinzugefügt."
+        unusual_time_summary: "Was ist eine ungewöhnliche Zeit?"
+        daily_limit: "Aus Tabellen fügen wir höchstens %number% Ergebnisse pro Tag hinzu, damit Bestenlisten und Statistiken mitkommen. Der Rest ist morgen bereit - drück dann wieder auf Hinzufügen. Nichts geht verloren."
+        add: "Ein importiertes Ergebnis zählt wie eines, das du eintippst: in deinem Profil und - wenn es eine Zeit hat - in der Bestenliste des Puzzles. Es behält den Tag, an dem du es gelöst hast, erscheint also nicht als neue Aktivität, und deine Follower werden nicht benachrichtigt."
+        no_photo: "Importierte Ergebnisse haben kein Foto. Du kannst später zu jedem Ergebnis eines hinzufügen."
     group:
         title: "Wir gehen deine Zeilen durch"
         line: "Wir gehen deine Zeilen durch… %done% von %total%"
@@ -11912,13 +11928,11 @@ data_import:
         intro: "Sieh dir an, was deinem Profil hinzugefügt wird. Es wird nichts hinzugefügt, bevor du unten auf den Button drückst."
         paused: "Das Hinzufügen ist von unserem Team kurz pausiert. Alles, was du eingerichtet hast, bleibt erhalten und nichts geht verloren - du kannst weiter Puzzles zuordnen und Zeilen ansehen und sie hinzufügen, sobald das Hinzufügen wieder eingeschaltet ist."
         paused_running: "Das Hinzufügen ist von unserem Team kurz pausiert. Es geht von selbst weiter - nichts geht verloren."
-        will_add: "Das wird deinem Profil hinzugefügt"
         counts: "Ergebnisse: %results% · Puzzles, die dir gehören: %owned% · Wunschliste: %wish_list%"
         added_so_far: "Bisher hinzugefügt - Ergebnisse: %results% · Puzzles, die dir gehören: %owned% · Wunschliste: %wish_list%"
         see_added: "Ansehen, was hinzugefügt wurde"
         back_to_review: "Zurück zu „Prüfen und hinzufügen“"
-        sheet_rows: "Bereit zum Hinzufügen: %number%"
-        daily_limit: "Aus Tabellen werden höchstens %limit% Ergebnisse pro Tag hinzugefügt. Heute: %today%. Die übrigen %later% sind morgen bereit - nichts geht verloren."
+        daily_limit: "Wir fügen höchstens %limit% Ergebnisse pro Tag hinzu. Heute: %today%. Die übrigen %later% können morgen hinzugefügt werden - nichts geht verloren."
         with_guests: "mit %people%"
         first_try: "erster Versuch"
         button: "%number% zu meinem Profil hinzufügen"
@@ -11944,8 +11958,6 @@ data_import:
             results: "Ergebnisse"
             owned: "Puzzles, die dir gehören"
             wish_list: "Puzzles für die Wunschliste"
-            already_yours: "Schon in deinem Profil - wird nicht doppelt hinzugefügt"
-            equal_rows: "Zeilen, die eine andere Zeile wiederholen - einmal gezählt"
         sample:
             title: "Die ersten Ergebnisse, wie sie aussehen werden"
             hint: "Prüfe Puzzle, Zeit und Datum. Wenn hier etwas nicht stimmt, stimmt es wahrscheinlich auch in den anderen Zeilen nicht."
@@ -11981,11 +11993,7 @@ data_import:
             hint: "Nichts zu tun. Diese Zeilen werden kein zweites Mal hinzugefügt."
             more: "Und weitere: %number%."
         does:
-            public: "Ergebnisse erscheinen auf deinem Profil und in der Rangliste jedes Puzzles - wie die, die du eintippst. Ein Spielercode in deiner Datei wird zu diesem Spieler; Namen bleiben Gäste, bis du sagst, wer sie sind."
             undo: "Du kannst eine einzelne Zeile, ein Hinzufügen oder alles, was dieser Import hinzugefügt hat, rückgängig machen."
-        does_not:
-            followers: "Deine Follower werden nicht benachrichtigt."
-            dated: "Ergebnisse tragen das Datum des Tages, an dem du gepuzzelt hast - sie erscheinen nicht als neue Aktivität."
         flash:
             nothing_chosen: "Es wurde nichts ausgewählt."
             changed_meanwhile: "Diese Zeilen haben sich inzwischen geändert - es wurde nichts gespeichert. So stehen sie jetzt."
@@ -12001,15 +12009,7 @@ data_import:
             not_addable: "Aus diesem Import können im Moment keine Zeilen hinzugefügt werden."
             daily_limit: "Die %number% Ergebnisse aus Tabellen für heute sind aufgebraucht. Der Rest ist morgen bereit - nichts geht verloren."
         sheet_as:
-            results: "{1}1 Ergebnis|[0,Inf[%count% Ergebnisse"
-            all_solo: "Solo"
-            all_duo: "Paar"
-            all_team: "Team"
-            some_solo: "%count% Solo"
-            some_duo: "%count% Paar"
-            some_team: "%count% Team"
             with: "mit %people%"
-            hint: "Prüfe jedes Blatt: Solo, Paar oder Team - und dass die Ergebnisse deine sind, nicht die von jemand anderem."
     batch:
         how:
             owned: "Zeilen, deren Puzzle du schon hattest - aus einer anderen Zeile der Datei oder von früher: %number%"
@@ -12749,6 +12749,94 @@ data_import:
         own_name:
             question: "„%name%“ ist dein eigener Name. Bist du das?"
             yes: "Ja, das bin ich"
+    # --- Guided flow, slice 2: "Check and add" says everything (add_review), "What will be added" (add_list) ---
+    add_review:
+        ready_title: "Bereit zum Hinzufügen"
+        quoted: "„%text%“"
+        reading_again: "Ein Blatt wird gerade neu gelesen - einen Moment. Seine Zeilen zählen hier nicht mit, bis es gelesen ist."
+        line:
+            results: "{1}1 Ergebnis|[0,Inf[%number% Ergebnisse"
+            owned: "{1}1 Puzzle für deine Sammlung|[0,Inf[%number% Puzzles für deine Sammlung"
+            wish_list: "{1}1 Puzzle für deine Wunschliste|[0,Inf[%number% Puzzles für deine Wunschliste"
+            unlisted: "{1}1 Zeile, die nur für dich behalten wird|[0,Inf[%number% Zeilen, die nur für dich behalten werden"
+            already_yours: "{1}1 Zeile ist schon in deinem Profil - sie wird nicht doppelt hinzugefügt.|[0,Inf[%number% Zeilen sind schon in deinem Profil - sie werden nicht doppelt hinzugefügt."
+            equal_rows: "{1}1 Zeile wiederholt eine andere Zeile - einmal gezählt.|[0,Inf[%number% Zeilen wiederholen eine andere Zeile - einmal gezählt."
+            show: "Anzeigen"
+        see_all: "{1}Ansehen - und den Haken entfernen, wenn du magst|[0,Inf[Alle %number% ansehen und Haken entfernen, wo du willst"
+        how:
+            hint: "Prüfe jedes Blatt: Solo, Paar oder Team, mit wem - und dass die Ergebnisse deine sind, nicht die von jemand anderem."
+            change: "Stimmt etwas nicht? Ändern, wie die Datei gelesen wird"
+        as:
+            solo: "{1}1 Solo-Ergebnis|[0,Inf[%number% Solo-Ergebnisse"
+            duo: "{1}1 Paar-Ergebnis|[0,Inf[%number% Paar-Ergebnisse"
+            team: "{1}1 Team-Ergebnis|[0,Inf[%number% Team-Ergebnisse"
+            also_owned: "{1}Das Puzzle kommt auch in deine Sammlung.|[0,Inf[Die Puzzles kommen auch in deine Sammlung (%number%)."
+            owned: "{1}1 Puzzle, das dir gehört|[0,Inf[%number% Puzzles, die dir gehören"
+            collection: "Puzzles, die dir gehören, kommen in deine Sammlung."
+            who:
+                guest: "%name% (Gast)"
+                player: "%name% (Spieler)"
+        read:
+            date_order:
+                dmy: "Datum: Tag zuerst - 03/04/2023 ist der 3. April 2023."
+                mdy: "Datum: Monat zuerst - 03/04/2023 ist der 4. März 2023."
+                ymd: "Datum: Jahr zuerst - 2023/04/03 ist der 3. April 2023."
+            duration: "Zeiten werden gelesen als: %reading%"
+            short_dates: "Kurze Daten wie „Jan 23“ werden gelesen als: %reading%"
+            year: "Daten ohne Jahr: %year%."
+            coarse: "{1}1 Ergebnis hat nur einen Monat oder ein Jahr - so wird es hinzugefügt.|[0,Inf[%number% Ergebnisse haben nur einen Monat oder ein Jahr - so werden sie hinzugefügt."
+            example: "Zum Beispiel Zeile %row%."
+            in_file: "In deiner Datei steht %said%, hinzugefügt wird:"
+        sample_more: "{1}1 weiteres|[0,Inf[%number% weitere"
+        verb:
+            match: "Zuordnen"
+            look: "Ansehen"
+            check: "Prüfen"
+            answer: "Antworten"
+        what_adding_does: "Was das Hinzufügen bewirkt"
+    add_list:
+        title: "Was hinzugefügt wird"
+        intro: "Alles, was ein Klick auf Hinzufügen jetzt hinzufügen würde, in der Reihenfolge deiner Datei. Entferne den Haken bei einer Zeile, die du nicht möchtest - das wird sofort gespeichert."
+        tab:
+            all: "Alle"
+            results: "Ergebnisse"
+            collection: "Sammlung"
+            wish: "Wunschliste"
+        search:
+            label: "Puzzle suchen"
+            go: "Los"
+            clear: "Wieder alles zeigen"
+        sheet:
+            label: "Blatt"
+            all: "Alle Blätter"
+            rows: "{1}1 Zeile|[0,Inf[%number% Zeilen"
+            leave_out: "Keine importieren"
+            confirm: "{1}Die 1 Zeile von „%title%“ nicht importieren? Das kannst du in Schritt 2 ändern.|[0,Inf[Die %number% Zeilen von „%title%“ nicht importieren? Das kannst du in Schritt 2 ändern."
+            confirm_button: "Ja, dieses Blatt nicht importieren"
+        row:
+            leave_out: "Diese Zeile nicht importieren"
+            not_imported: "Nicht importiert"
+            put_back: "Zurücknehmen"
+            open: "Zeile öffnen"
+            plus_collection: "+ Sammlung"
+            unlisted: "Nur für dich behalten"
+            repeats: "Wiederholt eine andere Zeile - einmal gezählt"
+            on_profile: "Schon in deinem Profil - wird nicht doppelt hinzugefügt"
+        puzzle:
+            leave_out: "{1}Dieses Puzzle nicht importieren (1 Zeile)|[0,Inf[Nichts von diesem Puzzle importieren (%number% Zeilen)"
+        bar:
+            will_add: "{0}Nichts wird hinzugefügt|{1}1 wird hinzugefügt|[2,Inf[%number% werden hinzugefügt"
+            done: "Fertig - zurück zum Prüfen"
+        empty: "Noch ist nichts zum Hinzufügen bereit."
+        no_hit: "Keine Zeile mit diesem Puzzle."
+        reading_again: "Ein Blatt wird gerade neu gelesen - einen Moment. Seine Zeilen zählen hier nicht mit, bis es gelesen ist."
+        refresh: "Aktualisieren"
+        flash:
+            left_out: "Nicht importiert. Mit „Zurücknehmen“ holst du die Zeile wieder herein."
+            put_back: "Zurückgenommen. Die Zeile steht wieder in der Liste, sobald ihr Puzzle zugeordnet ist - meist sofort."
+            left_out_puzzle: "{1}1 Zeile wird nicht importiert. Du kannst sie zurücknehmen.|[0,Inf[%number% Zeilen werden nicht importiert. Du kannst jede zurücknehmen."
+            left_out_sheet: "Die Zeilen von „%title%“ werden nicht importiert. Ändern kannst du das in Schritt 2, „So haben wir deine Datei gelesen“."
+            changed_meanwhile: "Das hat sich inzwischen geändert - so steht es jetzt. Nichts wurde gespeichert."
 unlisted_puzzles:
     title: "Nicht gelistete Puzzles"
     link: "Deine nicht gelisteten Puzzles"
@@ -12773,7 +12861,6 @@ unlisted_puzzles:
         left: "Noch nicht gelistet: %number%. Der Grund steht jeweils unten."
         try_again: "Den Rest erneut hinzufügen"
     add:
-        kind: "Zeilen, die nur für dich behalten werden"
         ready: "Zeilen, die nur für dich behalten werden: %number% - nur du siehst sie."
     batch:
         kept: "Zeilen, die nur für dich behalten werden: %number%. Nur du siehst sie, und sie zählen erst, wenn sie zugeordnet sind."

@@ -1204,3 +1204,80 @@ started; everything below is **[UI]**: no query, message, handler or route chang
 | §5.2 "Bring your file", §5.1 Imports home, `places_taken`, `layouts` | Untouched (no flow header). | Not screens of one import; §5.1 is slice 5, §5.2 is not in slice 1. |
 | §13 "How this step works" | No link in the footer. | The guide's route is not on `main`. |
 | My data, a time that needs a word | The **cell** now says "Please check the time - if it is right, open the row and confirm it there." (`my_data.edit.time_check_in_row`); the row's sheet and the add-result form keep "…confirm it below". | A table cell has nothing below it; the add-result form's text is not touched. |
+
+## As built - slice 2 (step 5 says everything; "What will be added")
+
+What shipped with slice 2, and where it differs from §5.9 and §7 - each with its reason. No table, no migration:
+`ImportRowAdder`, `ImportResultQuestions`, the writer, the batches and Undo are untouched. One rule of "ready" was
+tightened (a sheet must be settled - below); apart from it an "Add" adds exactly what it added before.
+
+**Built**
+
+- **"Check and add"** (`add.html.twig`, `ImportAddReviewController`) in the order of §5.9: "Ready to add" as one
+  number a line, zeros left out, with "See all N and untick any" → the list; the muted lines for rows on the profile
+  already and rows that repeat another row; the daily limit's line; **"How we read your file"** - per sheet what its
+  rows are *added as* (solo / pair / team results **with whom, each a guest or a player**, results whose puzzle also
+  goes to the collection, puzzles owned, wishes), every reading the sheet's options hold (date order, short dates,
+  the year of dates without one, how times are read - whoever settled it: the rows, a header, a known export or the
+  player), the results that know only a month or a year, and **one row of the sheet as the example** with what its
+  time and date cells say in the file beside what it is added as; where owned puzzles go; "Something off? Change" →
+  step 2. The first results (one open, the rest unfold), the unusual-times frame, the rows that repeat, the rows on
+  the profile already keep their behaviour. "Not added this time" with a verb a line (Match / Look / Check / Answer).
+  "What adding does" folded - open until the import's first Add. ONE primary: "Add N to my profile".
+- **`GetImportAddScreen::summary($forReview)`** **[small]**: the per-sheet line is `Results\ImportAddSheetLine` -
+  sheet id and mapping version, counts per solo / pair / team, owned, both, wishes, month-or-year-only dates, the
+  people named, the readings (`Services\DataImport\ImportSheetReadings`, read from `data_import_sheet.options`), the
+  example row with its time and date cells. Still one statement. `GetImportPeople::whoAre()` says who the named
+  people are (one statement, only when a sheet names somebody).
+- **"What will be added"** - `data_import_add_list` (`GET …/import/{id}/add/list`, `ImportAddListController`,
+  `add_list.html.twig`): `GetImportAddScreen::readyRows()` is `judged.taken` on top of
+  `DataImportRowRepository::sqlReadyRows()` - the very CTEs "Add" queues with, never a second definition
+  (`ImportAddListTest::testTheListIsExactlyWhatAnAddThenQueues()` compares the list with the batch's rows). Fifty a
+  page in SQL, under each sheet's name; tabs by what a row makes (with counts), a GET search (the player's own
+  text - the only thing of a file an address holds; the catalogue's names through `PuzzleTextSearch`, the file's
+  name as typed), a sheet filter; each row with picture, puzzle, time, date (`result_date()`), solo / pair / team
+  and people, and what it would *not* add ("On your profile already", "Repeats another row", "Kept just for you").
+  The sticky bar says what an "Add" would add and leads back to the check - the Add button stays on step 5.
+- **"Don't import" / "Put back"** - `data_import_add_list_change` (`POST …/add/list`,
+  `ChangeImportAddListController`): CSRF, the import checked to be the player's first (404), answered with a 303
+  back to the same list (page, filters, the row's anchor). **No state of its own:**
+  - a row → `AnswerImportRows(leaveOut: true / false)` - `data_import_row.answers.leftOut`, the row `left_out` by
+    the player: the very state of "Rows we could not read" and of the row's page, so a row left out here is listed
+    there with "Import after all", and the other way round;
+  - every ready row of one puzzle (offered where a search narrowed the list to one puzzle) → the same message for
+    those rows (`readyRowIdsOfPuzzle()`, at most `ImportRowAnswers::MAX_ROWS`);
+  - a whole sheet → `ConfirmImportMapping` with the sheet's kind "not puzzles" (the one-tap change of "How we read
+    your file", built by `ImportSheetScreen::submission()`), after a confirm that names the sheet and the number.
+  A row that is not imported stays in its place in the list, with what its name, time and date cells say, and
+  "Put back". Without a script every tap is a page; with Turbo the list and its bar are one frame
+  (`import-add-list`), so a tap swaps them and the page stays where it is.
+- **A sheet must be settled for its rows to be ready** - the one engine-side change of the slice, in the shared
+  definition `DataImportRowRepository::sqlReadyRows()`: a row is ready only when its sheet is parsed for its current
+  mapping (`parsed_version = mapping_version`) and is of a kind whose rows are imported. A sheet the player just
+  changed ("not puzzles", another column) is read again in the background; until then none of its rows is listed,
+  counted in "Add N" or taken by an "Add" - the review and the list say "A sheet is being read again - a moment".
+  So "Don't import this sheet" holds from the moment it is said (tested: an "Add" dispatched before the worker ran
+  queues none of the sheet's rows). A single row's "Don't import" needs no such guard: the row is read again inside
+  the request itself and is `left_out` when the answer comes back.
+- **"Where you are"**: `ImportDetailController` passes `GetImportPeople::counts()` - step 3 says "Nobody else is
+  named." or the exact counts, and is the next action while a name has no answer. One statement more on that page
+  (six of its own now; `ImportFlowScreensTest`).
+- **Explanations in place** (§12, the exact texts, six locales): on your profile already, rows that repeat, don't
+  import, guest, a player as your partner, a result with only a month or a year, results with no date, unusual
+  time, the daily limit, what an imported result is, no photo.
+
+**Differences from the specification**
+
+| Where | As built | Why |
+|---|---|---|
+| §7 the checkbox, "Save this page" without JS | The tick box of a row **is a submit button** (`role="checkbox"`): a tap saves that row at once, with and without a script. No page-wide form, no "Save this page". | One mechanism for both cases, nothing to forget to save, and no script needed for the essentials. |
+| §7 "a form in a Turbo Frame per row" | One frame around the list and the bar. | The bar's number must move with every tap; a frame per row could not move it. |
+| §7 per puzzle → `DecideImportPuzzles(left_out)` | The puzzle's ready rows are left out through `AnswerImportRows`, like single rows. | A puzzle decided as "left out" loses its match - "Put back" would send it to step 4 to be matched again. Rows put back are ready again as they were. One state for a row that is not imported. |
+| §7 order "by puzzle name then date" | The file's order (sheet, row). | It is the order the "Add" takes rows in, and a row that is not imported keeps nothing but its place in the file - by name it could not stay "in place". |
+| §7 tabs Results · Collection · Wish list | An "All" tab first; the three follow where they have something. | "All" is exactly what an "Add" queues - rows that add nothing (on the profile already, repeats) and rows kept just for the player are queued too and belong to no other tab. |
+| §7 a sheet's "Don't import any" is undone in the list | Undone in step 2 (as the confirm says). | The sheet's former kind is not stored; step 2 is where a sheet's kind is chosen. |
+| §5.9 "Dates: day first - 03/04/2023 is 3 April 2023" with the player's own value | The sentence names the rule with a fixed example; the player's own values are the sheet's example row ("Your file says “45:10” · “03/04/2023”, added as: …"). | A question's stored examples are gone once it is answered, and a sheet's first row need not be of the shape a rule is about - the example row is always true. |
+| §5.9 "94 results with no date - Give >" | The line has its explanation, no link. | No screen lists these rows yet; each is given a date on its own row's page. |
+| §5.9 "Quick questions before adding" | Not built. | Slice 6. |
+| §5.9 "What adding does" open "on a player's first import" | Open until this import's first Add. | The page does not count the player's imports. |
+| §7 "What this import added" with search, filters, "Undo the ticked" | Not built. | Slice 5. |

@@ -1,0 +1,64 @@
+{#
+    The screen of one pile of an import's puzzles, as ONE element (docs/features/data-import/pairing-screens.md
+    "Answers in place"): the page shows it (puzzle_group.html.twig), and an answer given on it - one answer for the
+    pile, "Yes, these N are right", a card of "to look at closer" - gets it back as it stands after the answer
+    (puzzles_answer.stream.html.twig), so nothing scrolls and nothing is loaded twice.
+
+    Variables: what ImportPuzzleGroupController::screen() gives; `notices` (optional) - what the answer did, said at
+    the top of the screen: a list of {type, text}; `fresh` (optional) - the screen is another one than the answer was
+    given on (the next twenty): its beginning is shown.
+#}
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
+{% set group_title = ('data_import.puzzles.group.' ~ group|replace({'-': '_'}) ~ '.title')|trans %}
+{% set summary_url = path('data_import_puzzles', {importId: import.importId}) %}
+{% set pile_url = path('data_import_puzzle_group', {importId: import.importId, group: group}) %}
+{% set back_to_summary = {label: 'data_import.puzzles.back_to_summary'|trans, url: summary_url} %}
+{# Nothing waits in any pile, and nothing is looked up any more: the step is done - Continue leads to the next step #}
+{% set step_done = overview.puzzles > 0 and overview.open == 0 and overview.searching == 0 and not live.working %}
+{% set continue = step_done ? null : {label: 'data_import.flow.continue'|trans, url: summary_url, testid: 'import-flow-continue'} %}
+{% set continue_after = step_done ? 'puzzles' : null %}
+<div id="import-pile" data-testid="import-pile" data-group="{{ group }}" data-step-done="{{ step_done ? 'true' : 'false' }}"{% if fresh|default(false) %} data-import-answers-show{% endif %}>
+    {% for notice in notices|default([]) %}
+        <div class="alert alert-{{ notice.type }} fs-sm py-2" role="status" data-testid="import-pile-notice" data-type="{{ notice.type }}">
+            {{ notice.text }}
+            {% if notice.kept|default(false) %}
+                <span class="d-block mt-1" data-testid="import-kept-where">{{ 'data_import.puzzles.said.kept_where'|trans }} <a href="{{ path('unlisted_puzzles') }}" class="alert-link">{{ 'unlisted_puzzles.link'|trans }}</a></span>
+            {% endif %}
+        </div>
+    {% endfor %}
+    {% if step_done %}
+        <p class="alert alert-success fs-sm" data-testid="import-step-done"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.next.nothing'|trans }}</p>
+    {% endif %}
+
+    {% if is_running %}
+        {# An answer for the whole pile runs on the worker: the part below is loaded again every few seconds #}
+        <div hidden data-controller="data-import-pile" data-data-import-pile-frame-value="import-puzzle-list-live"></div>
+    {% endif %}
+
+    {% if as_list %}
+        <h1 class="h3 mb-2">{{ group_title }}</h1>
+        {% if group == 'found' %}
+            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.matched'|trans, testid: 'import-explain-matched'}, with_context = false) }}
+            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.wrong_puzzle'|trans, fold: true, summary: 'data_import.explain.wrong_puzzle_summary'|trans, testid: 'import-explain-wrong-puzzle'}, with_context = false) }}
+        {% else %}
+            <p class="text-muted fs-sm mb-2">{{ ('data_import.puzzles.group.' ~ group|replace({'-': '_'}) ~ '.hint')|trans }}</p>
+        {% endif %}
+
+        <turbo-frame id="import-puzzle-list-live" data-import-live target="_top">
+            {{ include('data_import/_pile_counts.html.twig', {total: total, open: open}, with_context = false) }}
+            {{ include('data_import/_pile_list.html.twig') }}
+        </turbo-frame>
+
+        {% if group in ['found', 'remembered'] %}
+            {{ include('data_import/_flow_footer.html.twig', {import: import, primary: continue, continue_after: continue_after}, with_context = false) }}
+        {% else %}
+            {{ include('data_import/_flow_footer.html.twig', {import: import, primary: continue, continue_after: continue_after, back: {label: group_title, url: pile_url}}, with_context = false) }}
+        {% endif %}
+    {% elseif group == 'probably' %}
+        {{ include('data_import/_pile_probably.html.twig') }}
+    {% elseif group == 'choose' %}
+        {{ include('data_import/_pile_choose.html.twig') }}
+    {% else %}
+        {{ include('data_import/_pile_not_found.html.twig') }}
+    {% endif %}
+</div>

@@ -5,8 +5,9 @@
     fifty a page, in the file's order under its sheet's name - puzzle, time, date, solo / pair / team - each with
     "Don't import"; a row the player said that about stays in its place, muted, with "Put back". By what a row
     makes (the tabs), by sheet and by a part of the puzzle's name - plain links and a GET form, so the address is
-    the list. Every "Don't import" / "Put back" is a small POST of its own: without a script it answers with this
-    page again, with Turbo only the list's frame is swapped. Nothing is added from here - the Add button is on
+    the list. Every "Don't import" / "Put back" - a row, every row of a puzzle, a whole sheet - is a small POST of
+    its own: without a script it answers with this page again, with Turbo only the list's frame is swapped and the
+    page stays where it is. Nothing is added from here - the Add button is on
     "Check and add" only. Phone first: one column, every target 44 px.
 #}
 
@@ -118,7 +119,7 @@
                             {# The whole sheet: asked once more, by name and number, before anything is saved #}
                             <details data-testid="import-add-list-sheet-leave-out">
                                 <summary class="fs-sm d-inline-flex align-items-center text-muted" style="min-height: 44px; cursor: pointer;">{{ 'data_import.add_list.sheet.leave_out'|trans }}</summary>
-                                <form action="{{ change_url }}" method="post" class="card card-body shadow-sm p-2 mb-2">
+                                <form action="{{ change_url }}" method="post" class="card card-body shadow-sm p-2 mb-2" data-turbo-frame="import-add-list">
                                     <input type="hidden" name="_token" value="{{ csrf }}">
                                     <input type="hidden" name="sheet" value="{{ item.sheetId }}">
                                     <input type="hidden" name="version" value="{{ sheet_line.mappingVersion }}">

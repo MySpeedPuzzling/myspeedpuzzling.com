@@ -255,6 +255,9 @@ final class ImportAddListTest extends WebTestCase
         $sheet = $older->filter('[data-testid="import-add-list-sheet-leave-out"]');
         self::assertStringContainsString("Don't import the 2 rows of “Older”? You can change this in step 2.", self::spaced($sheet->text()));
         $sheetId = (string) $sheet->filter('input[name="sheet"]')->attr('value');
+        // Every "Don't import" / "Put back" of the list swaps the list's frame only - the page stays where it is
+        self::assertSame('import-add-list', $sheet->filter('form')->attr('data-turbo-frame'));
+        self::assertCount(0, $crawler->filter('turbo-frame#import-add-list form[method="post"]:not([data-turbo-frame="import-add-list"])'));
         $version = (int) $sheet->filter('input[name="version"]')->attr('value');
 
         // Changed meanwhile (another tab changed the sheet): nothing is saved, said plainly

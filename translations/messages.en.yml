@@ -12631,6 +12631,8 @@ data_import:
             back_to_list: "Back to the list"
             decided_as: "Decided:"
             take_back: "Undo this decision"
+        said:
+            kept_where: "After you add the import, you find puzzles kept just for you under My data → Unlisted puzzles. There you can match them with a puzzle in our database, or add them to our database later."
         flash:
             nothing: "Nothing was changed."
             decided_meanwhile: "This was decided meanwhile - in another tab, or by a new look-up of your puzzles. Nothing was changed; here is how it stands now."
@@ -13143,6 +13145,9 @@ data_import:
         with_you_open: "Pairs & teams"
         leave: "These are not mine - take me off them"
         left: "{0}You were on none of those results any more. This player's imports will no longer add you.|{1}You were taken off 1 result. This player's imports will no longer add you.|[0,Inf[You were taken off %count% results. This player's imports will no longer add you."
+    in_place:
+        failed: "That did not save. Check your connection and try again."
+        working: "Saving…"
     people:
         title: "People in your file"
         intro: "These are the people your file names in pair and team results. A player code (#abc123) in the file becomes that player. A name stays a guest unless you say who it is."

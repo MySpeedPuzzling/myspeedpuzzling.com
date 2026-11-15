@@ -12387,6 +12387,8 @@ data_import:
             back_to_list: "Zpět na seznam"
             decided_as: "Rozhodnuto:"
             take_back: "Vrátit toto rozhodnutí zpět"
+        said:
+            kept_where: "Po přidání importu najdete puzzle ponechané jen pro vás v části Moje data → Puzzle mimo databázi. Tam je můžete později přiřadit k puzzle v naší databázi, nebo je do naší databáze přidat."
         flash:
             nothing: "Nic se nezměnilo."
             decided_meanwhile: "Mezitím o tom bylo rozhodnuto - v jiné záložce, nebo novým vyhledáním vašich puzzle. Nic se nezměnilo; takhle to vypadá teď."
@@ -12899,6 +12901,9 @@ data_import:
         with_you_open: "Dvojice a týmy"
         leave: "Tyto výsledky nejsou moje - odeberte mě z nich"
         left: "{0}Na žádném z těch výsledků už jste nebyli. Importy tohoto hráče vás už nepřidají.|{1}Byli jste odebráni z 1 výsledku. Importy tohoto hráče vás už nepřidají.|[2,4]Byli jste odebráni ze %count% výsledků. Importy tohoto hráče vás už nepřidají.|[0,Inf[Byli jste odebráni z %count% výsledků. Importy tohoto hráče vás už nepřidají."
+    in_place:
+        failed: "Nepodařilo se to uložit. Zkontrolujte připojení a zkuste to znovu."
+        working: "Ukládáme…"
     people:
         title: "Lidé ve vašem souboru"
         intro: "Tohle jsou lidé, které váš soubor jmenuje u výsledků dvojic a týmů. Kód hráče (#abc123) v souboru se stane tím hráčem. Jméno zůstane hostem, dokud neřeknete, kdo to je."

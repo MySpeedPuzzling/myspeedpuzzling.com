@@ -9,7 +9,7 @@
     <p class="alert alert-info fs-sm" data-testid="import-puzzle-group-empty">{{ 'data_import.puzzles.list.empty'|trans }}</p>
 {% else %}
     {% for card in cards %}
-        {{ include('data_import/_puzzle_card.html.twig', {card: card, import_id: import.importId, group: group, page: page, csrf: csrf}, with_context = false) }}
+        {{ include('data_import/_puzzle_card.html.twig', {card: card, import_id: import.importId, group: group, page: page, csrf: csrf, in_pile: not as_list}, with_context = false) }}
     {% endfor %}
 
     {{ include('data_import/_pages.html.twig', {page: page, pages: pages, route: 'data_import_puzzle_group', parameters: {importId: import.importId, group: group}, label: group_title}, with_context = false) }}

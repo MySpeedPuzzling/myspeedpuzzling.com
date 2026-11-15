@@ -44,6 +44,7 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
 {
     use QueryCountAssertions;
     use ImportAddingScenario;
+    use TurboStreamAnswers;
 
     private const array LOCALES = ['en', 'cs', 'de', 'es', 'fr', 'ja'];
 
@@ -918,6 +919,330 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         foreach (self::LOCALES as $locale) {
             yield $locale => [$locale];
         }
+    }
+
+    // ---- Answers in place (docs/features/data-import/pairing-screens.md "Answers in place") ----
+
+    public function testACardToLookAtCloserIsAnsweredInPlaceItLeavesTheNextMovesUpAndUndoPutsItBack(): void
+    {
+        $player = $this->seedPairingPlayer('inplace-closer');
+        $importId = $this->importWithAGrid($player, 'Zq9p', 3);
+        TestingLogin::asPlayer($this->browser, $player->id->toString());
+        $base = '/en/import/' . $importId . '/puzzles/probably';
+        $decide = '/en/import/' . $importId . '/puzzles/decide';
+        $first = $this->importPuzzle($importId, 'Zq9p Other Brand 1');
+        $second = $this->importPuzzle($importId, 'Zq9p Other Brand 2');
+
+        $page = $this->browser->request('GET', $base . '?part=differs');
+        $token = $this->token($page);
+        // The screen is one element, its forms are marked for the script, and the line that stays in view is empty
+        self::assertCount(1, $page->filter('[data-controller="data-import-answers"] #import-pile'));
+        self::assertCount(2, $page->filter('#import-pile [data-testid="import-puzzle-card"] form[data-import-answer]'));
+        self::assertSame('', trim($page->filter('#import-answer-said')->text()));
+        self::assertSame('polite', $page->filter('#import-answer-said')->attr('aria-live'));
+        $yes = ['_token' => $token, 'action' => 'catalogue', 'puzzle' => $first['id'], 'version' => '0', 'catalogue' => $first['candidates'][0]['puzzleId'], 'group' => 'probably', 'page' => '1', 'part' => 'differs'];
+
+        // Without Turbo: the redirect, as before - and the decision is the same one
+        $this->browser->request('POST', $decide, $yes);
+        self::assertResponseRedirects($base . '?part=differs');
+        self::assertSame(['catalogue', 'player'], $this->choices($importId)['Zq9p Other Brand 1']);
+        $this->browser->request('POST', $decide, ['_token' => $token, 'action' => 'undecided', 'puzzle' => $first['id'], 'version' => '1', 'group' => 'probably', 'page' => '1', 'part' => 'differs']);
+        self::assertResponseRedirects($base . '?part=differs');
+        self::assertSame('undecided', $this->choices($importId)['Zq9p Other Brand 1'][0]);
+
+        // With Turbo: the screen as it stands after the answer - the card is gone, the other one stays, the count is right
+        $this->browser->request('POST', $decide, ['version' => '2'] + $yes, server: self::AS_TURBO);
+        $streams = self::streams($this->browser);
+        self::assertSame(['import-pile', 'import-answer-said'], array_keys($streams));
+        self::assertSame(['replace', 'morph'], [$streams['import-pile']['action'], $streams['import-pile']['method']]);
+        $pile = $streams['import-pile']['part'];
+        self::assertCount(1, $pile->filter('#import-pile'));
+        self::assertCount(0, $pile->filter('#puzzle-' . $first['id']));
+        self::assertCount(1, $pile->filter('#puzzle-' . $second['id']));
+        self::assertSame('1', $pile->filter('[data-testid="import-grid-position"]')->attr('data-waiting'));
+        self::assertNull($pile->filter('#import-pile')->attr('data-import-answers-show'), 'the same screen: nothing is scrolled');
+        self::assertSame(['catalogue', 'player'], $this->choices($importId)['Zq9p Other Brand 1']);
+        self::assertSame($first['candidates'][0]['puzzleId'], $this->importPuzzle($importId, 'Zq9p Other Brand 1')['puzzle_id']);
+
+        // What it did stays in view, with "Undo the last one": the puzzle, the version the answer left, the screen
+        $said = $streams['import-answer-said'];
+        self::assertSame('update', $said['action']);
+        self::assertSame('1 matched.', self::spaced($said['part']->filter('[data-testid="import-answer-said-text"]')->text()));
+        self::assertCount(0, $said['part']->filter('[data-testid="import-answer-step-done"]'));
+        $undo = $said['part']->filter('form[data-import-answer][data-testid="import-answer-undo"]');
+        self::assertSame($decide, $undo->attr('action'));
+        self::assertSame('Undo the last one', self::spaced($undo->filter('button[name="action"][value="undecided"]')->text()));
+        $fields = [];
+        $undo->filter('input')->each(static function (Crawler $input) use (&$fields): void {
+            $fields[(string) $input->attr('name')] = (string) $input->attr('value');
+        });
+        self::assertSame(['puzzle' => $first['id'], 'version' => '3', 'group' => 'probably', 'page' => '1', 'part' => 'differs'], array_diff_key($fields, ['_token' => true]));
+
+        // A second tap that still got through (the same version): nothing is written, the screen as it stands, and why
+        $this->browser->request('POST', $decide, ['version' => '2'] + $yes, server: self::AS_TURBO);
+        $streams = self::streams($this->browser);
+        self::assertStringContainsString('This was decided meanwhile', $streams['import-answer-said']['part']->filter('[data-testid="import-answer-said-message"][data-type="warning"]')->text());
+        self::assertCount(0, $streams['import-answer-said']['part']->filter('[data-testid="import-answer-undo"]'));
+        self::assertCount(0, $streams['import-pile']['part']->filter('#puzzle-' . $first['id']));
+        self::assertSame(3, $this->importPuzzle($importId, 'Zq9p Other Brand 1')['decision_version']);
+
+        // Undo: the card stands on the screen again
+        $this->browser->request('POST', $decide, ['action' => 'undecided'] + $fields, server: self::AS_TURBO);
+        $streams = self::streams($this->browser);
+        self::assertCount(1, $streams['import-pile']['part']->filter('#puzzle-' . $first['id'] . '[data-choice="undecided"]'));
+        self::assertSame('2', $streams['import-pile']['part']->filter('[data-testid="import-grid-position"]')->attr('data-waiting'));
+        self::assertSame('Undone. The puzzle waits for you again.', self::spaced($streams['import-answer-said']['part']->filter('[data-testid="import-answer-said-text"]')->text()));
+        self::assertCount(0, $streams['import-answer-said']['part']->filter('[data-testid="import-answer-undo"]'));
+        self::assertSame('undecided', $this->choices($importId)['Zq9p Other Brand 1'][0]);
+
+        // Both answered: the screen says nothing is left here, with ONE way on - other piles still wait
+        foreach (['Zq9p Other Brand 1' => $first, 'Zq9p Other Brand 2' => $second] as $name => $puzzle) {
+            $now = $this->importPuzzle($importId, $name);
+            $this->browser->request('POST', $decide, ['puzzle' => $puzzle['id'], 'catalogue' => $puzzle['candidates'][0]['puzzleId'], 'version' => (string) $now['decision_version']] + $yes, server: self::AS_TURBO);
+            $streams = self::streams($this->browser);
+        }
+
+        $pile = $streams['import-pile']['part'];
+        self::assertCount(0, $pile->filter('[data-testid="import-puzzle-card"]'));
+        self::assertCount(1, $pile->filter('[data-testid="import-grid-end"]'));
+        self::assertSame('false', $pile->filter('#import-pile')->attr('data-step-done'));
+        self::assertCount(1, $pile->filter('a.btn-primary'));
+        // The link to the guide comes back to the screen - not to the address the form was posted to
+        self::assertStringContainsString('return=/en/import/' . $importId . '/puzzles/probably#', (string) $pile->filter('[data-testid="import-flow-guide"]')->attr('href'));
+        self::assertStringEndsWith('#step-puzzles', (string) $pile->filter('[data-testid="import-flow-guide"]')->attr('href'));
+    }
+
+    public function testTheGridIsConfirmedInPlaceAndTheNextScreenTakesItsPlace(): void
+    {
+        $player = $this->seedPairingPlayer('inplace-grid');
+        $importId = $this->importWithAGrid($player, 'Zq9r', 3);
+        TestingLogin::asPlayer($this->browser, $player->id->toString());
+        $decide = '/en/import/' . $importId . '/puzzles/decide';
+        $otherBrand = $this->importPuzzle($importId, 'Zq9r Other Brand 1');
+
+        $grid = $this->browser->request('GET', '/en/import/' . $importId . '/puzzles/probably');
+        self::assertNotNull($grid->filter('[data-testid="import-puzzle-tick-all"]')->attr('data-import-answer'));
+        $cards = self::tiles($grid);
+        self::assertCount(3, $cards);
+        $form = ['_token' => $this->token($grid), 'action' => 'tick_all', 'group' => 'probably', 'part' => 'same', 'last' => (string) $grid->filter('input[name="last"]')->attr('value')];
+
+        // A set that holds what needs a closer look: refused whole - the grid as it stands, and why, on the screen
+        $this->browser->request('POST', $decide, [...$form, 'cards' => self::crafted($otherBrand, $otherBrand['candidates'][0]['puzzleId']) + $cards], server: self::AS_TURBO);
+        $streams = self::streams($this->browser);
+        self::assertStringContainsString('needs a closer look', $streams['import-pile']['part']->filter('[data-testid="import-pile-notice"][data-type="warning"]')->text());
+        self::assertCount(3, $streams['import-pile']['part']->filter('[data-testid="import-puzzle-tile"]'));
+        self::assertSame('', trim($streams['import-answer-said']['html']));
+        self::assertSame(0, $this->decidedByThePlayer($importId));
+
+        // Two of the three ticked: those two are matched; the screen after this one takes its place and is shown
+        $unticked = array_key_last($cards);
+        unset($cards[$unticked]['tick']);
+        $this->browser->request('POST', $decide, [...$form, 'cards' => $cards], server: self::AS_TURBO);
+        $streams = self::streams($this->browser);
+        $pile = $streams['import-pile']['part'];
+        self::assertSame(['replace', 'morph'], [$streams['import-pile']['action'], $streams['import-pile']['method']]);
+        self::assertSame('2 matched.', self::spaced($pile->filter('[data-testid="import-pile-notice"][data-type="success"]')->text()));
+        self::assertNotNull($pile->filter('#import-pile')->attr('data-import-answers-show'));
+        self::assertCount(0, $pile->filter('[data-testid="import-puzzle-tile"]'));
+        // What was unticked waits, and what needs a closer look comes next - one primary
+        self::assertSame('1', $pile->filter('[data-testid="import-grid-end"]')->attr('data-waiting'));
+        self::assertCount(1, $pile->filter('[data-testid="import-grid-closer"]'));
+        self::assertSame(2, $this->decidedByThePlayer($importId));
+        self::assertSame(
+            ['Zq9r Grid 01 <b>' => 'catalogue', 'Zq9r Grid 02 <b>' => 'catalogue', 'Zq9r Grid 03 <b>' => 'undecided'],
+            array_map(static fn (array $choice): string => $choice[0], array_filter($this->choices($importId), static fn (string $name): bool => str_contains($name, 'Grid'), ARRAY_FILTER_USE_KEY)),
+        );
+    }
+
+    public function testOneAnswerForAPileAndTheCardsOfAListAreShownInPlaceUntilTheStepIsDone(): void
+    {
+        $player = $this->seedPairingPlayer('inplace-pile');
+        $importId = $this->importWithPiles($player, 'Zq9s');
+        TestingLogin::asPlayer($this->browser, $player->id->toString());
+        $base = '/en/import/' . $importId;
+        $decide = $base . '/puzzles/decide';
+        $nobody = $this->importPuzzle($importId, 'Zq9s Nobody Knows Qxv 1');
+        $meadow = $this->importPuzzle($importId, 'Zq9s Looks Like Meadow');
+        $harbour = $this->importPuzzle($importId, 'Zq9s Found Harbour');
+
+        $page = $this->browser->request('GET', $base . '/puzzles/not-found');
+        $token = $this->token($page);
+        self::assertNotNull($page->filter('[data-testid="import-pile-answer"]')->attr('data-import-answer'));
+        self::assertNull($page->filter('[data-testid="import-pile-see"]')->attr('open'));
+        // "Keep it just for me", from the puzzle's chooser: where the puzzle will be is said at that moment
+        $this->browser->request('POST', $decide, ['_token' => $token, 'from' => 'chooser', 'action' => 'unlisted', 'puzzle' => $nobody['id'], 'version' => '0', 'group' => 'not-found'], server: self::AS_TURBO);
+        $streams = self::streams($this->browser);
+        self::assertSame('unlisted', $streams['import-chooser']['part']->filter('#import-chooser')->attr('data-choice'));
+        $said = $streams['import-answer-said']['part'];
+        self::assertSame('1 puzzle kept just for you.', self::spaced($said->filter('[data-testid="import-answer-said-text"]')->text()));
+        self::assertStringContainsString('under My data → Unlisted puzzles', $said->filter('[data-testid="import-kept-where"]')->text());
+        self::assertStringContainsString('match them with a puzzle in our database, or add them to our database later', $said->filter('[data-testid="import-kept-where"]')->text());
+        self::assertSame('/en/unlisted-puzzles', $said->filter('[data-testid="import-kept-where"] a')->attr('href'));
+        self::assertSame(['unlisted', 'player'], $this->choices($importId)['Zq9s Nobody Knows Qxv 1']);
+
+        // Its card in the pile's folded list: "Take back" - the pile's screen as it stands, the list still open,
+        // the title counting it again
+        $page = $this->browser->request('GET', $base . '/puzzles/not-found');
+        self::assertSame('2 puzzles are not in our database', self::spaced($page->filter('[data-testid="import-pile-title"]')->text()));
+        self::assertSame('1', $page->filter('[data-testid="import-pile-see"] #puzzle-' . $nobody['id'] . ' form[data-import-answer] input[name="in_pile"]')->attr('value'));
+        $this->browser->request('POST', $decide, ['_token' => $token, 'action' => 'undecided', 'puzzle' => $nobody['id'], 'version' => '1', 'group' => 'not-found', 'page' => '1', 'in_pile' => '1'], server: self::AS_TURBO);
+        $streams = self::streams($this->browser);
+        self::assertSame(['import-pile', 'import-answer-said'], array_keys($streams));
+        $pile = $streams['import-pile']['part'];
+        self::assertSame('3 puzzles are not in our database', self::spaced($pile->filter('[data-testid="import-pile-title"]')->text()));
+        self::assertNotNull($pile->filter('[data-testid="import-pile-see"]')->attr('open'));
+        self::assertSame('undecided', $pile->filter('#puzzle-' . $nobody['id'])->attr('data-choice'));
+        self::assertSame('undecided', $this->choices($importId)['Zq9s Nobody Knows Qxv 1'][0]);
+
+        // Without Turbo "Keep it just for me" says where in the notice of the page it redirects to
+        $this->browser->request('POST', $decide, ['_token' => $token, 'action' => 'unlisted', 'puzzle' => $nobody['id'], 'version' => '2', 'group' => 'not-found', 'page' => '1']);
+        self::assertResponseRedirects($base . '/puzzles/not-found?page=1#puzzle-' . $nobody['id']);
+        self::assertStringContainsString('Saved. After you add the import, you find puzzles kept just for you under My data → Unlisted puzzles.', $this->browser->followRedirect()->filter('body')->text());
+
+        // One answer for the pile: the pile's screen - nothing left here, where the kept ones will be, one way on
+        $revision = (string) $page->filter('[data-testid="import-pile-answer"] input[name="revision"]')->attr('value');
+        $this->browser->request('POST', $decide, ['_token' => $token, 'action' => 'all_in_pile', 'pile' => 'not-found', 'choice' => 'unlisted', 'revision' => $revision], server: self::AS_TURBO);
+        $streams = self::streams($this->browser);
+        self::assertSame(['import-pile', 'import-answer-said'], array_keys($streams));
+        $pile = $streams['import-pile']['part'];
+        self::assertStringContainsString('2 puzzles kept just for you.', $pile->filter('[data-testid="import-pile-notice"][data-type="success"]')->text());
+        self::assertSame('/en/unlisted-puzzles', $pile->filter('[data-testid="import-pile-notice"] [data-testid="import-kept-where"] a')->attr('href'));
+        self::assertCount(1, $pile->filter('[data-testid="import-pile-nothing-left"]'));
+        self::assertCount(0, $pile->filter('[data-testid="import-pile-answer"]'));
+        self::assertSame('false', $pile->filter('#import-pile')->attr('data-step-done'));
+        self::assertSame($base . '/puzzles', $pile->filter('[data-testid="import-flow-continue"]')->attr('href'));
+        self::assertSame('', trim($streams['import-answer-said']['html']));
+        self::assertSame(3, $this->decidedByThePlayer($importId));
+
+        // Sent again: nothing waits in the pile - nothing changes, and the screen says so
+        $this->browser->request('POST', $decide, ['_token' => $token, 'action' => 'all_in_pile', 'pile' => 'not-found', 'choice' => 'left_out', 'revision' => $revision], server: self::AS_TURBO);
+        self::assertStringContainsString('Nothing was changed.', self::streams($this->browser)['import-pile']['part']->filter('[data-testid="import-pile-notice"][data-type="info"]')->text());
+        self::assertSame('unlisted', $this->choices($importId)['Zq9s Nobody Knows Qxv 2'][0]);
+
+        // A list: "Wrong puzzle" on a matched card - the card where it stands, and the list's count
+        $list = $this->browser->request('GET', $base . '/puzzles/found');
+        self::assertSame(['1', '0'], [$list->filter('#import-puzzle-group-counts')->attr('data-total'), $list->filter('#import-puzzle-group-counts')->attr('data-open')]);
+        self::assertCount(0, $list->filter('#puzzle-' . $harbour['id'] . ' input[name="in_pile"]'));
+        $this->browser->request('POST', $decide, ['_token' => $token, 'action' => 'undecided', 'puzzle' => $harbour['id'], 'version' => (string) $harbour['decision_version'], 'group' => 'found', 'page' => '1'], server: self::AS_TURBO);
+        $streams = self::streams($this->browser);
+        self::assertSame(['puzzle-' . $harbour['id'], 'import-puzzle-group-counts', 'import-answer-said'], array_keys($streams));
+        self::assertSame(['replace', null], [$streams['puzzle-' . $harbour['id']]['action'], $streams['puzzle-' . $harbour['id']]['method']]);
+        $card = $streams['puzzle-' . $harbour['id']]['part']->filter('#puzzle-' . $harbour['id']);
+        self::assertSame('undecided', $card->attr('data-choice'));
+        self::assertSame(['1', '1'], [$streams['import-puzzle-group-counts']['part']->filter('#import-puzzle-group-counts')->attr('data-total'), $streams['import-puzzle-group-counts']['part']->filter('#import-puzzle-group-counts')->attr('data-open')]);
+        self::assertSame('undecided', $this->choices($importId)['Zq9s Found Harbour'][0]);
+
+        // ... and matched again from the list of "Looks like a match"; the pile to pick from is kept in one answer
+        $harbour = $this->importPuzzle($importId, 'Zq9s Found Harbour');
+        $this->browser->request('POST', $decide, ['_token' => $token, 'action' => 'catalogue', 'puzzle' => $harbour['id'], 'version' => (string) $harbour['decision_version'], 'catalogue' => $harbour['candidates'][0]['puzzleId'], 'group' => 'found', 'page' => '1'], server: self::AS_TURBO);
+        $streams = self::streams($this->browser);
+        self::assertSame('catalogue', $streams['puzzle-' . $harbour['id']]['part']->filter('#puzzle-' . $harbour['id'])->attr('data-choice'));
+        self::assertCount(0, $streams['import-answer-said']['part']->filter('[data-testid="import-answer-step-done"]'), 'two piles still wait');
+        $this->browser->request('POST', $decide, ['_token' => $token, 'action' => 'all_in_pile', 'pile' => 'choose', 'choice' => 'unlisted', 'revision' => $revision], server: self::AS_TURBO);
+        self::assertSame('false', self::streams($this->browser)['import-pile']['part']->filter('#import-pile')->attr('data-step-done'));
+        self::assertSame('unlisted', $this->choices($importId)['Zq9s Twin Lighthouse'][0]);
+
+        // The last puzzle that waited, answered on a list: the line that stays in view leads to the next step
+        $this->browser->request('POST', $decide, ['_token' => $token, 'action' => 'catalogue', 'puzzle' => $meadow['id'], 'version' => '0', 'catalogue' => $meadow['candidates'][0]['puzzleId'], 'group' => 'probably', 'page' => '1'], server: self::AS_TURBO);
+        $streams = self::streams($this->browser);
+        self::assertSame('0', $streams['import-puzzle-group-counts']['part']->filter('#import-puzzle-group-counts')->attr('data-open'));
+        $said = $streams['import-answer-said']['part'];
+        self::assertSame('Nothing waits for you here.', self::spaced($said->filter('[data-testid="import-answer-step-done"]')->text()));
+        self::assertSame($base . '?after=puzzles', $said->filter('[data-testid="import-answer-next-step"]')->attr('href'));
+        self::assertCount(1, $said->filter('[data-testid="import-answer-undo"]'));
+
+        // ... and every screen of the piles says the same, with the button to the next step
+        foreach (['probably', 'choose', 'not-found', 'found?page=1'] as $screen) {
+            $pile = $this->browser->request('GET', $base . '/puzzles/' . $screen);
+            self::assertSame('true', $pile->filter('#import-pile')->attr('data-step-done'), $screen);
+            self::assertCount(1, $pile->filter('[data-testid="import-step-done"]'), $screen);
+            self::assertSame($base . '?after=puzzles', $pile->filter('[data-testid="import-flow-continue"]')->attr('href'), $screen);
+        }
+    }
+
+    public function testTheChooserAnswersInPlaceTheNextPuzzleTakesItsPlaceAndUndoBringsTheLastOneBack(): void
+    {
+        $player = $this->seedPairingPlayer('inplace-round');
+        [$import, $sheet] = $this->importOf($player);
+
+        foreach (['Zq9t Twin Apple' => 1, 'Zq9t Twin Mango' => 2, 'Zq9t Twin Zebra' => 3] as $name => $rows) {
+            $this->seedCataloguePuzzle($name, 1000, $this->seedBrand('Zq9tone' . substr($name, -3)));
+            $this->seedCataloguePuzzle($name, 1000, $this->seedBrand('Zq9ttwo' . substr($name, -3)));
+
+            for ($row = 0; $row < $rows; $row++) {
+                $this->seedRow($import, $sheet, $name, 1000);
+            }
+        }
+
+        $importId = $this->settled($import);
+        $apple = $this->importPuzzle($importId, 'Zq9t Twin Apple');
+        $mango = $this->importPuzzle($importId, 'Zq9t Twin Mango');
+        $zebra = $this->importPuzzle($importId, 'Zq9t Twin Zebra');
+        TestingLogin::asPlayer($this->browser, $player->id->toString());
+        $base = '/en/import/' . $importId;
+        $decide = $base . '/puzzles/decide';
+
+        $chooser = $this->browser->request('GET', $base . '/puzzle/' . $zebra['id'] . '?flow=choose&done=0');
+        $token = $this->token($chooser);
+        self::assertCount(1, $chooser->filter('[data-controller="data-import-answers"] #import-chooser'));
+        self::assertSame($base . '/puzzle/' . $zebra['id'] . '?flow=choose&done=0', $chooser->filter('#import-chooser')->attr('data-import-answers-url'));
+        self::assertCount(0, $chooser->filter('#import-chooser form[action="' . $decide . '"]:not([data-import-answer])'));
+        $round = ['_token' => $token, 'from' => 'chooser', 'group' => 'choose', 'flow' => 'choose'];
+
+        // A tap in a round: saved - and the next puzzle (the one with the most rows that waits) takes the place
+        $this->browser->request('POST', $decide, ['action' => 'catalogue', 'puzzle' => $zebra['id'], 'version' => '0', 'catalogue' => $zebra['candidates'][1]['puzzleId'], 'done' => '0'] + $round, server: self::AS_TURBO);
+        $streams = self::streams($this->browser);
+        self::assertSame(['import-chooser', 'import-answer-said'], array_keys($streams));
+        self::assertSame(['replace', null], [$streams['import-chooser']['action'], $streams['import-chooser']['method']]);
+        $next = $streams['import-chooser']['part']->filter('#import-chooser');
+        self::assertSame($base . '/puzzle/' . $mango['id'] . '?flow=choose&done=1&last=' . $zebra['id'], $next->attr('data-import-answers-url'));
+        self::assertNotNull($next->attr('data-import-answers-show'));
+        self::assertSame('Zq9t Twin Mango', self::spaced($next->filter('[data-testid="import-puzzle-name"]')->text()));
+        self::assertSame('This round: 1 of 20', self::spaced($next->filter('[data-testid="import-chooser-portion"]')->text()));
+        self::assertSame(['1', $mango['id']], [$next->filter('[data-testid="import-chooser-candidate"]')->first()->closest('form')?->filter('input[name="done"]')->attr('value'), $next->filter('[data-testid="import-chooser-candidate"]')->first()->closest('form')?->filter('input[name="puzzle"]')->attr('value')]);
+        self::assertSame($zebra['candidates'][1]['puzzleId'], $this->importPuzzle($importId, 'Zq9t Twin Zebra')['puzzle_id']);
+
+        // "Undo the last one" stays in view: the puzzle just answered, where the round stood
+        $undo = $streams['import-answer-said']['part']->filter('[data-testid="import-answer-undo"]');
+        $fields = [];
+        $undo->filter('input')->each(static function (Crawler $input) use (&$fields): void {
+            $fields[(string) $input->attr('name')] = (string) $input->attr('value');
+        });
+        self::assertSame(['puzzle' => $zebra['id'], 'version' => '1', 'group' => 'choose', 'page' => '1', 'from' => 'chooser', 'flow' => 'choose', 'done' => '0'], array_diff_key($fields, ['_token' => true]));
+        $this->browser->request('POST', $decide, ['action' => 'undecided'] + $fields, server: self::AS_TURBO);
+        $streams = self::streams($this->browser);
+        $back = $streams['import-chooser']['part']->filter('#import-chooser');
+        self::assertSame(['undecided', $base . '/puzzle/' . $zebra['id'] . '?flow=choose&done=0'], [$back->attr('data-choice'), $back->attr('data-import-answers-url')]);
+        self::assertCount(0, $back->filter('[data-testid="import-chooser-decided"]'));
+        self::assertSame('undecided', $this->choices($importId)['Zq9t Twin Zebra'][0]);
+
+        // "Keep it just for me" on the chooser: where it will be is said with the answer
+        $this->browser->request('POST', $decide, ['action' => 'unlisted', 'puzzle' => $zebra['id'], 'version' => '2', 'done' => '0'] + $round, server: self::AS_TURBO);
+        $streams = self::streams($this->browser);
+        self::assertSame('/en/unlisted-puzzles', $streams['import-answer-said']['part']->filter('[data-testid="import-kept-where"] a')->attr('href'));
+        self::assertSame('Zq9t Twin Mango', self::spaced($streams['import-chooser']['part']->filter('[data-testid="import-puzzle-name"]')->text()));
+
+        // Outside a round (opened from a card): the same puzzle, as it stands now
+        $this->browser->request('POST', $decide, ['_token' => $token, 'from' => 'chooser', 'group' => 'choose', 'action' => 'left_out', 'puzzle' => $mango['id'], 'version' => '0'], server: self::AS_TURBO);
+        $streams = self::streams($this->browser);
+        $same = $streams['import-chooser']['part']->filter('#import-chooser');
+        self::assertSame(['left_out', $base . '/puzzle/' . $mango['id']], [$same->attr('data-choice'), $same->attr('data-import-answers-url')]);
+        self::assertNull($same->attr('data-import-answers-show'));
+        self::assertCount(1, $same->filter('[data-testid="import-chooser-decided"]'));
+        self::assertSame('1 puzzle will not be imported.', self::spaced($streams['import-answer-said']['part']->filter('[data-testid="import-answer-said-text"]')->text()));
+
+        // The last one of the round: nothing waits any more - that is another screen, so the answer is the redirect
+        $this->browser->request('POST', $decide, ['action' => 'catalogue', 'puzzle' => $apple['id'], 'version' => '0', 'catalogue' => $apple['candidates'][0]['puzzleId'], 'done' => '1'] + $round, server: self::AS_TURBO);
+        self::assertResponseRedirects($base . '/puzzles/choose/next?after=' . $apple['id'] . '&done=2&last=' . $apple['id']);
+        self::assertSame(['catalogue', 'player'], $this->choices($importId)['Zq9t Twin Apple']);
+
+        // Somebody else's import: not found, with Turbo too - and nothing without the token
+        TestingLogin::asPlayer($this->browser, $this->seedPairingPlayer('inplace-round-other')->id->toString());
+        $this->browser->request('POST', $decide, ['action' => 'undecided', 'puzzle' => $apple['id'], 'version' => '1'] + $round, server: self::AS_TURBO);
+        self::assertResponseStatusCodeSame(404);
+        $this->browser->request('POST', $decide, ['_token' => 'nonsense'] + ['action' => 'undecided', 'puzzle' => $apple['id'], 'version' => '1'] + $round, server: self::AS_TURBO);
+        self::assertResponseStatusCodeSame(403);
+        self::assertSame('catalogue', $this->choices($importId)['Zq9t Twin Apple'][0]);
     }
 
     /**

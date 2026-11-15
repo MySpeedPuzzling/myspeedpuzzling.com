@@ -1,0 +1,7 @@
+{#
+    How many puzzles a list holds and how many of them still wait - one line with an id, so an answer given on the
+    list can put the new numbers in its place. Variables: total, open.
+#}
+<p class="fs-sm fw-medium" id="import-puzzle-group-counts" data-testid="import-puzzle-group-counts" data-total="{{ total }}" data-open="{{ open }}">
+    {{ (open > 0 ? 'data_import.puzzles.group_counts' : 'data_import.puzzles.group_all_done')|trans({'%total%': total|format_number, '%open%': open|format_number}) }}
+</p>

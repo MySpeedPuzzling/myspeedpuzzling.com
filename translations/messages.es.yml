@@ -12385,6 +12385,8 @@ data_import:
             back_to_list: "Volver a la lista"
             decided_as: "Decidido:"
             take_back: "Deshacer esta decisión"
+        said:
+            kept_where: "Cuando añadas la importación, encontrarás los puzzles guardados solo para ti en Mis datos → Puzzles fuera del catálogo. Allí podrás emparejarlos más adelante con un puzzle de nuestra base de datos o añadirlos a ella."
         flash:
             nothing: "No se ha cambiado nada."
             decided_meanwhile: "Esto se decidió mientras tanto, en otra pestaña o por una nueva búsqueda de tus puzzles. No se ha cambiado nada; así está ahora."
@@ -12897,6 +12899,9 @@ data_import:
         with_you_open: "Parejas y equipos"
         leave: "Estos no son míos - quítame de ellos"
         left: "{0}Ya no estabas en ninguno de esos resultados. Las importaciones de este jugador ya no te añadirán.|{1}Se te quitó de 1 resultado. Las importaciones de este jugador ya no te añadirán.|[0,Inf[Se te quitó de %count% resultados. Las importaciones de este jugador ya no te añadirán."
+    in_place:
+        failed: "No se ha guardado. Comprueba tu conexión e inténtalo de nuevo."
+        working: "Guardando…"
     people:
         title: "Personas en tu archivo"
         intro: "Estas son las personas que tu archivo nombra en resultados de pareja y de equipo. Un código de jugador (#abc123) en el archivo se convierte en ese jugador. Un nombre se queda como invitado hasta que digas quién es."

@@ -50,7 +50,7 @@
             nofollow: true, testid: 'import-grid-closer',
         }}, with_context = false) }}
     {% else %}
-        {{ include('data_import/_flow_footer.html.twig', {import: import, primary: continue}, with_context = false) }}
+        {{ include('data_import/_flow_footer.html.twig', {import: import, primary: continue, continue_after: continue_after}, with_context = false) }}
     {% endif %}
 {% elseif is_same %}
     <p class="fs-sm text-muted">{{ 'data_import.puzzles.bulk.grid.intro'|trans }}</p>
@@ -61,7 +61,7 @@
         {% set labels = labels|merge(['data_import.puzzles.list.tick_all'|trans({'%count%': number, '%number%': number|format_number})]) %}
     {% endfor %}
 
-    <form action="{{ path('data_import_puzzles_decide', {importId: import.importId}) }}" method="post" data-testid="import-puzzle-tick-all"
+    <form action="{{ path('data_import_puzzles_decide', {importId: import.importId}) }}" method="post" data-import-answer data-testid="import-puzzle-tick-all"
           data-controller="data-import-ticks" data-data-import-ticks-labels-value="{{ labels|json_encode }}">
         <input type="hidden" name="_token" value="{{ csrf }}">
         <input type="hidden" name="group" value="probably">
@@ -103,7 +103,7 @@
         </a>
     {% endif %}
 
-    {{ include('data_import/_flow_footer.html.twig', {import: import, primary: continue, offer_add: true}, with_context = false) }}
+    {{ include('data_import/_flow_footer.html.twig', {import: import, primary: continue, continue_after: continue_after, offer_add: true}, with_context = false) }}
 {% endif %}
 
 {% if total > 0 %}

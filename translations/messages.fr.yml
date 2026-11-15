@@ -12380,6 +12380,8 @@ data_import:
             back_to_list: "Retour à la liste"
             decided_as: "Décidé :"
             take_back: "Annuler cette décision"
+        said:
+            kept_where: "Une fois l'import ajouté, vous trouverez les puzzles conservés rien que pour vous dans Mes données → Puzzles hors catalogue. Vous pourrez alors les associer plus tard à un puzzle de notre base de données, ou les y ajouter."
         flash:
             nothing: "Rien n'a été modifié."
             decided_meanwhile: "Cela a été décidé entre-temps - dans un autre onglet, ou par une nouvelle recherche de vos puzzles. Rien n'a été modifié ; voici où cela en est."
@@ -12892,6 +12894,9 @@ data_import:
         with_you_open: "Duos et équipes"
         leave: "Ce ne sont pas les miens - retirez-moi"
         left: "{0}Vous n'étiez plus sur aucun de ces résultats. Les imports de ce joueur ne vous ajouteront plus.|{1}Vous avez été retiré de 1 résultat. Les imports de ce joueur ne vous ajouteront plus.|[0,Inf[Vous avez été retiré de %count% résultats. Les imports de ce joueur ne vous ajouteront plus."
+    in_place:
+        failed: "Cela n'a pas été enregistré. Vérifiez votre connexion et réessayez."
+        working: "Enregistrement…"
     people:
         title: "Les personnes de votre fichier"
         intro: "Voici les personnes que votre fichier nomme dans les résultats en duo et en équipe. Un code joueur (#abc123) dans le fichier devient ce joueur. Un nom reste un invité tant que vous ne dites pas qui c'est."

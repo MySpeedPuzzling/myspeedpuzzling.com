@@ -1,0 +1,48 @@
+{#
+    What the last answer did, in one small card (_answer_said.html.twig): the sentence; for "Keep it just for me"
+    where the puzzle will be; "Undo the last one" - a plain form that takes the answer back, with the version the
+    answer left; and, when nothing waits any more, the way to the next step.
+
+    Variables: said -
+      type        success, warning or info
+      text        the sentence
+      kept        (optional) the answer was "Keep it just for me": where such a puzzle is after adding
+      undo        (optional) the fields of the form that takes the answer back (name => value)
+      import_id
+      step_done   (optional) no puzzle of the import waits any more
+#}
+{% set colours = {success: 'border-success', warning: 'border-warning', info: 'border-primary'} %}
+<div class="card shadow {{ colours[said.type] ?? 'border-primary' }} my-2" data-testid="import-answer-said-message" data-type="{{ said.type }}">
+    <div class="card-body py-2 px-3">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <div class="flex-grow-1 fs-sm" style="min-width: 0;">
+                <span class="fw-medium" data-testid="import-answer-said-text">
+                    <i class="bi {{ said.type == 'success' ? 'bi-check-circle text-success' : (said.type == 'warning' ? 'bi-exclamation-triangle text-warning' : 'bi-info-circle text-primary') }} me-1" aria-hidden="true"></i>{{ said.text }}
+                </span>
+                {% if said.kept|default(false) %}
+                    <span class="d-block text-muted" data-testid="import-kept-where">
+                        {{ 'data_import.puzzles.said.kept_where'|trans }}
+                        <a href="{{ path('unlisted_puzzles') }}">{{ 'unlisted_puzzles.link'|trans }}</a>
+                    </span>
+                {% endif %}
+            </div>
+            {% if said.undo|default(null) is not null %}
+                <form action="{{ path('data_import_puzzles_decide', {importId: said.import_id}) }}" method="post" class="flex-shrink-0" data-import-answer data-testid="import-answer-undo">
+                    <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) }}">
+                    {% for name, value in said.undo %}
+                        <input type="hidden" name="{{ name }}" value="{{ value }}">
+                    {% endfor %}
+                    <button type="submit" name="action" value="undecided" class="btn btn-outline-secondary btn-sm text-wrap d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-answer-undo-button">
+                        <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.bulk.chooser.undo_last'|trans }}
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+        {% if said.step_done|default(false) %}
+            <p class="fs-sm fw-medium mt-2 mb-2" data-testid="import-answer-step-done">{{ 'data_import.puzzles.next.nothing'|trans }}</p>
+            <a href="{{ path('data_import_detail', {importId: said.import_id, after: 'puzzles'}) }}" class="btn btn-primary w-100 text-wrap d-flex align-items-center justify-content-center mb-1" style="min-height: 48px;" rel="nofollow" data-testid="import-answer-next-step">
+                {{ 'data_import.flow.continue'|trans }}<i class="bi bi-arrow-right ms-2" aria-hidden="true"></i>
+            </a>
+        {% endif %}
+    </div>
+</div>

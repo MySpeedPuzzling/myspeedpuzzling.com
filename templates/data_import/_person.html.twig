@@ -1,0 +1,121 @@
+{#
+    One person of "People in your file" (people.html.twig says what is on it), as ONE element (`#person-<id>`): the
+    page lists them, and an answer about a person gets the card back as it stands after the answer - who they are
+    now, or why the answer could not be taken (people_answer.stream.html.twig, docs/features/data-import/people.md
+    "Answers in place").
+
+    Variables: person (ImportPersonCard), import, examples, rows_added, csrf, refused_person_id, refusal.
+#}
+{% set player_label = person.playerName ?? ('#' ~ (person.playerCode ?? '')|upper) %}
+<div class="card card-body shadow-sm mb-3" id="person-{{ person.personId }}" data-testid="import-person" data-import-answers-scope
+     data-name="{{ person.name }}" data-choice="{{ person.choice.value }}" data-how="{{ person.decidedHow.value }}" data-rows="{{ person.rowsCount }}" data-player="{{ person.playerId }}">
+    <div class="d-flex justify-content-between align-items-start gap-2">
+        <h2 class="h5 mb-1 text-break">{% if person.writtenAsPlayer and person.name matches '/^[a-zA-Z0-9]{3,8}$/' %}#{% endif %}{{ person.name }}</h2>
+        <span class="badge bg-light text-dark border text-nowrap">{{ 'data_import.people.rows'|trans({'%count%': person.rowsCount}) }}</span>
+    </div>
+
+    <p class="fs-sm mb-2" data-testid="import-person-state">
+        {% if person.isPlayer %}
+            <i class="bi bi-person-check text-success me-1" aria-hidden="true"></i>
+            {{ ('data_import.people.state.player_' ~ person.decidedHow.value)|trans({'%player%': player_label}) }}
+        {% elseif person.choice.value == 'me' %}
+            <i class="bi bi-person-fill text-primary me-1" aria-hidden="true"></i>{{ 'data_import.people.state.me'|trans }}
+        {% else %}
+            <i class="bi bi-person text-muted me-1" aria-hidden="true"></i>
+            {{ (person.isRemembered ? 'data_import.people.state.guest_remembered' : 'data_import.people.state.guest')|trans }}
+        {% endif %}
+    </p>
+
+    {% if person.exampleRowIds is not empty %}
+        <div class="d-flex flex-column gap-2 border-top pt-2 mb-2" data-testid="import-person-examples">
+            {% for row_id in person.exampleRowIds %}
+                {% if examples[row_id] is defined %}
+                    {{ include('data_import/_add_row.html.twig', {row: examples[row_id]}) }}
+                {% endif %}
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {# Answered in an earlier file: the name stays a guest for adding until the player says "still right" here #}
+    {% if person.rememberedChoice is not null %}
+        <form action="{{ path('data_import_people_decide', {importId: import.importId}) }}" method="post" class="alert alert-primary py-2 mb-2" data-import-answer data-testid="import-person-remembered" data-remembered="{{ person.rememberedChoice.value }}" data-player="{{ person.rememberedPlayerId }}">
+            <input type="hidden" name="_token" value="{{ csrf }}">
+            <input type="hidden" name="person" value="{{ person.personId }}">
+            <p class="fs-sm mb-2">
+                {%- if person.rememberedChoice.value == 'me' -%}
+                    {{ 'data_import.people.remembered.me'|trans({'%name%': person.name}) }}
+                {%- else -%}
+                    {{ 'data_import.people.remembered.player'|trans({'%name%': person.name, '%player%': person.rememberedPlayerName ?? ('#' ~ (person.rememberedPlayerCode ?? '')|upper)}) }}
+                {%- endif -%}
+            </p>
+            <button type="submit" name="answer" value="remembered" class="btn btn-outline-primary text-wrap" style="min-height: 44px;" data-testid="import-person-remembered-yes">{{ 'data_import.people.remembered.yes'|trans }}</button>
+        </form>
+    {% elseif person.isOwnName %}
+        {# The importing player's own name: asked, never assumed #}
+        <form action="{{ path('data_import_people_decide', {importId: import.importId}) }}" method="post" class="alert alert-primary py-2 mb-2" data-import-answer data-testid="import-person-own-name">
+            <input type="hidden" name="_token" value="{{ csrf }}">
+            <input type="hidden" name="person" value="{{ person.personId }}">
+            <p class="fs-sm mb-2">{{ 'data_import.people.own_name.question'|trans({'%name%': person.name}) }}</p>
+            <button type="submit" name="answer" value="me" class="btn btn-outline-primary text-wrap" style="min-height: 44px;" data-testid="import-person-own-name-yes">{{ 'data_import.people.own_name.yes'|trans }}</button>
+        </form>
+    {% endif %}
+
+    {% if refused_person_id == person.personId %}
+        <div class="alert alert-warning fs-sm py-2" role="alert" data-testid="import-person-refused">
+            {{ ('data_import.people.refused.' ~ (refusal in ['unknown_player', 'invalid'] ? refusal : 'invalid'))|trans }}
+        </div>
+    {% endif %}
+
+    <form action="{{ path('data_import_people_decide', {importId: import.importId}) }}" method="post" class="border-top pt-2" data-import-answer data-testid="import-person-form">
+        <input type="hidden" name="_token" value="{{ csrf }}">
+        <input type="hidden" name="person" value="{{ person.personId }}">
+        <fieldset>
+            <legend class="fs-sm fw-medium mb-1">{{ 'data_import.people.who'|trans({'%name%': person.name}) }}</legend>
+
+            {% for suggestion in person.suggestions %}
+                {% set suggestion_label = suggestion.name ?? ('#' ~ suggestion.code|upper) %}
+                <label class="d-flex align-items-center gap-2 py-1" style="min-height: 44px;" data-testid="import-person-suggestion" data-player="{{ suggestion.playerId }}" data-exact="{{ suggestion.exact ? 'true' : 'false' }}">
+                    <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="{{ suggestion.playerId }}" {{ person.playerId == suggestion.playerId or (person.rememberedPlayerId == suggestion.playerId and person.rememberedChoice is not null) ? 'checked' }}>
+                    <span class="text-break">
+                        {{ 'data_import.people.answer.player'|trans({'%player%': suggestion_label, '%code%': suggestion.code|upper}) }}
+                        {% if not suggestion.exact %}<span class="badge bg-light text-dark border ms-1">{{ 'data_import.people.maybe'|trans }}</span>{% endif %}
+                        {% if suggestion.solvedTogether %}<span class="fs-xs text-muted d-block">{{ 'data_import.people.solved_together'|trans }}</span>{% endif %}
+                    </span>
+                </label>
+            {% endfor %}
+
+            <label class="d-flex align-items-center gap-2 py-1" style="min-height: 44px;">
+                <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="guest" {{ not person.isPlayer and person.choice.value != 'me' and person.rememberedChoice is null ? 'checked' }}>
+                <span>{{ 'data_import.people.answer.guest'|trans }}</span>
+            </label>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 py-1" style="min-height: 44px;">
+                <label class="d-flex align-items-center gap-2 mb-0">
+                    <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="code">
+                    <span>{{ 'data_import.people.answer.code'|trans }}</span>
+                </label>
+                <input type="text" name="code" class="form-control" style="max-width: 160px; min-height: 44px;" maxlength="9" placeholder="#abc123" autocapitalize="off" autocomplete="off" aria-label="{{ 'data_import.people.answer.code'|trans }}" data-testid="import-person-code">
+            </div>
+
+            <label class="d-flex align-items-center gap-2 py-1" style="min-height: 44px;">
+                <input class="form-check-input mt-0 flex-shrink-0" type="radio" name="answer" value="me" {{ person.choice.value == 'me' or (person.rememberedChoice is not null and person.rememberedChoice.value == 'me') ? 'checked' }}>
+                <span>{{ 'data_import.people.answer.me'|trans }}</span>
+            </label>
+        </fieldset>
+        <button type="submit" class="btn btn-outline-primary text-wrap mt-2" style="min-height: 44px;" data-testid="import-person-save">{{ 'data_import.people.save'|trans }}</button>
+    </form>
+
+    {# Results that are added already are not rewritten: for those, the consent flow of "Pairs & teams → Guests"
+       (the guest of that name becomes the player only when that player says yes) #}
+    {% if rows_added > 0 and person.isPlayer and person.isGuestOfTheirs %}
+        <form action="{{ path('pairs_and_teams_link_guest') }}" method="post" class="border-top pt-2 mt-2" data-testid="import-person-ask">
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\PairsAndTeams\\PairsAndTeamsController::CSRF_TOKEN_ID')) }}">
+            <input type="hidden" name="guest" value="{{ person.personKey }}">
+            <input type="hidden" name="code" value="{{ person.playerCode }}">
+            <p class="fs-sm text-muted mb-2">{{ 'data_import.people.ask_hint'|trans({'%guest%': person.name}) }}</p>
+            <button type="submit" class="btn btn-outline-secondary text-wrap" style="min-height: 44px;">
+                {{ 'data_import.people.ask'|trans({'%player%': player_label, '%guest%': person.name}) }}
+            </button>
+        </form>
+    {% endif %}
+</div>

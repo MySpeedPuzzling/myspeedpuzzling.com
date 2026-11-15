@@ -51,6 +51,7 @@ final class ImportPairingScreensTest extends WebTestCase
 {
     use QueryCountAssertions;
     use ImportPairingScenario;
+    use TurboStreamAnswers;
 
     private KernelBrowser $browser;
     private Connection $database;
@@ -524,6 +525,15 @@ final class ImportPairingScreensTest extends WebTestCase
         self::assertStringContainsString('Your file says 300 pieces, this puzzle has 2,000. Pick it anyway?', self::spaced($question->text()));
         self::assertSame('1', $question->filter('input[name="confirmed_other_pieces"]')->attr('value'));
         self::assertSame($survivor, $question->filter('input[name="catalogue"]')->attr('value'));
+        self::assertSame('undecided', $this->importPuzzle($importId, 'Zq5b Nothing Like This Qxv')['choice']);
+
+        // To Turbo the same question takes its place on the chooser (shown in place) - and still nothing is written
+        $this->browser->request('POST', '/en/import/' . $importId . '/puzzles/decide', $choice, server: self::AS_TURBO);
+        $streams = self::streams($this->browser);
+        self::assertSame(['import-chooser', 'import-answer-said'], array_keys($streams));
+        $question = $streams['import-chooser']['part']->filter('#import-chooser[data-import-answers-show] [data-testid="import-chooser-ask-pieces"]');
+        self::assertStringContainsString('Your file says 300 pieces, this puzzle has 2,000. Pick it anyway?', self::spaced($question->text()));
+        self::assertSame([$survivor, '1'], [$question->filter('form[data-import-answer] input[name="catalogue"]')->attr('value'), $question->filter('input[name="confirmed_other_pieces"]')->attr('value')]);
         self::assertSame('undecided', $this->importPuzzle($importId, 'Zq5b Nothing Like This Qxv')['choice']);
 
         // Only the button that says yes takes it - and it is the survivor that is stored

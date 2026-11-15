@@ -1,0 +1,27 @@
+{#
+    An answer of "People in your file", shown in place (DecideImportPersonController::shown(),
+    docs/features/data-import/people.md "Answers in place"): the card of the person as it stands after the answer
+    (#person-<id>) - or every card, for the one answer that is about all of them, and the offer of that answer as it
+    stands now - and the line that stays in view (#import-answer-said).
+#}
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
+{% if person is not null %}
+<turbo-stream action="replace" target="person-{{ person.personId }}">
+    <template>{{ include('data_import/_person.html.twig') }}</template>
+</turbo-stream>
+{% else %}
+<turbo-stream action="update" target="import-people-list">
+    <template>
+        {% for person in people %}
+            {{ include('data_import/_person.html.twig') }}
+        {% endfor %}
+    </template>
+</turbo-stream>
+{% endif %}
+{# "Yes, still right - for all of them" is offered while more than one remembered name waits #}
+{% if people|filter(person => person.rememberedChoice is not null)|length < 2 %}
+<turbo-stream action="remove" target="import-people-remembered"></turbo-stream>
+{% endif %}
+<turbo-stream action="update" target="import-answer-said">
+    <template>{% if said is not null %}{{ include('data_import/_answer_said_message.html.twig', {said: said}, with_context = false) }}{% endif %}</template>
+</turbo-stream>

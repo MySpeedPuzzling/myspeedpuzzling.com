@@ -10,7 +10,8 @@ import * as Turbo from '@hotwired/turbo';
  * - the tapped button shows it is working, and neither it nor the other buttons of its card can be tapped again
  *   until the answer is back - a second tap never sends a second answer;
  * - the server answers with Turbo Streams: the card, the pile or the screen as it stands after the answer. They are
- *   put in place; the page does not move. Focus goes to the next thing to answer - the first button of the card
+ *   put in place; the page does not move. What the player set on the screen and did not send - boxes unticked, the
+ *   answer picked for a pile, folded parts opened - stays as they set it. Focus goes to the next thing to answer - the first button of the card
  *   that moved up, the card itself where it stayed, the beginning of a new screen - so a keyboard or a screen reader
  *   is not left on a button that is gone;
  * - an answer that could not be saved - no connection, a timeout, an error page - changes nothing on the screen:
@@ -91,8 +92,10 @@ export default class extends Controller {
             .then(() => this.send(form.action, body))
             .then(async (answer) => {
                 if (answer.kind === 'streams') {
+                    const chosen = this.chosen();
                     Turbo.renderStreamMessage(answer.html);
                     await this.rendered();
+                    this.chooseAgain(chosen);
                     // What the streams left where it was works again; what they replaced is gone anyway
                     held.letGo();
                     this.release(key);
@@ -192,6 +195,50 @@ export default class extends Controller {
                 });
             },
         };
+    }
+
+    /**
+     * What the player set on the screen and did not send yet: boxes unticked or ticked, the answer picked for a
+     * pile, the folded parts they opened. A screen rendered again comes with the server's defaults - these are the
+     * player's, and stay.
+     */
+    chosen() {
+        return {
+            boxes: [...this.element.querySelectorAll('input[type="checkbox"], input[type="radio"]')]
+                .filter((box) => box.id !== '' || box.name !== '')
+                .map((box) => ({ key: this.boxKey(box), checked: box.checked })),
+            opened: [...this.element.querySelectorAll('details[open][data-testid]')].map((part) => part.getAttribute('data-testid')),
+        };
+    }
+
+    boxKey(box) {
+        return box.id !== '' ? `#${box.id}` : `${box.type}|${box.name}|${box.value}`;
+    }
+
+    chooseAgain(chosen) {
+        // Another screen took the place (the next twenty, the next puzzle): it starts as the server rendered it
+        if (this.element.querySelector('[data-import-answers-show]') !== null) {
+            return;
+        }
+
+        const before = new Map(chosen.boxes.map((box) => [box.key, box.checked]));
+
+        this.element.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach((box) => {
+            const checked = before.get(this.boxKey(box));
+
+            if (checked !== undefined && box.checked !== checked) {
+                box.checked = checked;
+                // Whoever counts the boxes counts again
+                box.dispatchEvent(new Event('input', { bubbles: true }));
+                box.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
+
+        this.element.querySelectorAll('details[data-testid]:not([open])').forEach((part) => {
+            if (chosen.opened.includes(part.getAttribute('data-testid'))) {
+                part.setAttribute('open', '');
+            }
+        });
     }
 
     release(key) {

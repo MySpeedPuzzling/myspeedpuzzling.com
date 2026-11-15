@@ -1634,7 +1634,11 @@ looked at. To try on a phone (390 px) and a desktop, with an import that has all
 - [ ] Offline (DevTools) and a slow network: the button turns, a second tap does nothing, "That did not save…"
       appears under the card and the next tap works.
 - [ ] A keyboard and VoiceOver: where focus lands after each answer, and that the line at the bottom is read.
-- [ ] "Undo the last one" after one answer for several (the grid, a pile) - not built; decide whether it is wanted.
+- [ ] "Undo the last one" after one answer for several (the grid, a pile) - not built: it needs a handler that
+      takes a set back without remembering "not this puzzle" (pairing-screens.md). Decide whether it is wanted.
+- [ ] The grid: untick two tiles, send a set that is refused - the two stay unticked, the button's number is right,
+      the warning is in view. A pile: pick "Don't import them", take a card back in the folded list - still picked.
+- [ ] After answers on a pile's screen, reload: the same screen (`after=` in the address).
 - [ ] `add/list` rows: the waiting state and the "did not save" line of the script (they use the frame, with
       Turbo's own waiting state only).
 

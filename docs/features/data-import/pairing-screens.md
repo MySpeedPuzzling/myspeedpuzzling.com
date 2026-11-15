@@ -188,14 +188,32 @@ the screens' own queries after the message was handled, never returned by the ha
 
 Where the answer leads to **another screen** - the round rests after twenty, nothing waits in the pile any more, the
 import is past its set-up - the answer is the redirect it always was. Another piece count tapped on the chooser: the
-question takes its place at the top of the chooser (a stream; 422 with the page for a plain post).
+question takes its place at the top of the chooser (a stream; 422 with the page for a plain post). Tapped on a card
+(only a stale one can): a redirect to the chooser with `?ask=<catalogue puzzle>`, which asks the same question
+(`ImportPuzzleChooserController` - the id is checked like every puzzle that is offered) - never a 422 page the script
+could only call "not saved".
 
 **The line that stays in view** (`_answer_said.html.twig`, `#import-answer-said`, `position: sticky; bottom: 0`,
 `aria-live="polite"`): what the answer did ("1 matched.", "1 puzzle kept just for you.", "This was decided
 meanwhile …"), **"Undo the last one"** - a form with the puzzle, the version the answer left and the fields that
 lead back to the screen it was given on - and, when the answer was the last puzzle that waited, "Nothing waits for
-you here." with the button to the next step (`?after=puzzles`). An answer for several (the grid, a pile) is said at
-the top of the screen it renders instead, and the line is cleared.
+you here." with the button to the next step (`?after=puzzles`). An answer for several that was **taken** (the grid, a pile) is said at the top of the screen it renders instead -
+that screen is a new one, shown from its beginning - and the line is cleared; one that was **refused** (a set that
+holds a puzzle needing a closer look, a stale tile) is said in the line, because the grid's button is at the bottom.
+
+**What the player set and did not send stays.** A screen rendered again comes with the server's defaults; the
+script puts back the boxes the player unticked (and has them counted again - the tick counter also recounts on
+`turbo:morph-element`), the answer picked for a pile ("Don't import them") and the folded parts they opened - unless
+another screen took the place (`data-import-answers-show`).
+
+**The address stays true.** `#import-pile` says the address of the screen it shows (`data-import-answers-url`:
+`?part=…&after=…`, `?done=…`, `?page=…`), like the chooser; after an answer shown in place the script puts it in
+the address bar, so loading the page again shows the screen the player was on.
+
+**No "Undo" for one answer for several.** The handler would take twenty decisions back in one message, but it is
+not an undo: a match taken back is remembered as "not this puzzle", and such a puzzle may no longer be confirmed
+with others (`ImportPuzzleBulkConfirm`) - the twenty would come back as cards to look at closer, not as the grid
+they were. An answer for a pile can run on the worker for thousands. Each puzzle is taken back on its own card.
 
 **"Keep it just for me" says where the puzzle goes**, at the moment it is picked: "After you add the import, you
 find puzzles kept just for you under My data → Unlisted puzzles. There you can match them … or add them to our

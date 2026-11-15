@@ -253,6 +253,47 @@ const scenarios = {
 
         return { first, second, between, left: document.querySelectorAll('.card[id]').length, focused: focused() };
     },
+    // The screen is rendered again around what the player set and did not send (a refused "Yes, these are right",
+    // a card answered in a pile): an unticked box stays unticked and is counted again, the answer picked for the
+    // pile stays picked, a folded part they opened stays open
+    async unsaved() {
+        await mount();
+        const pile = (boxes) => `<div id="import-pile">${card('one')}
+            <form id="grid" action="/en/import/1/puzzles/decide" method="post" data-import-answer>
+                <input type="checkbox" id="tile-a" name="cards[a][tick]" value="1" ${boxes}><input type="checkbox" id="tile-b" name="cards[b][tick]" value="1" checked>
+                <input type="radio" name="choice" value="unlisted" checked><input type="radio" name="choice" value="left_out">
+                <button type="submit" name="action" value="tick_all" data-grid>Yes</button>
+            </form>
+            <details data-testid="import-pile-see"><summary>See</summary></details>
+            <details data-testid="import-pile-not-kept"><summary>Not kept</summary></details>
+        </div>`;
+        document.getElementById('import-pile').outerHTML = pile('checked');
+        let counted = 0;
+        document.addEventListener('input', () => { counted += 1; });
+        document.getElementById('tile-a').checked = false;
+        document.querySelector('input[value="left_out"]').checked = true;
+        document.querySelector('[data-testid="import-pile-see"]').setAttribute('open', '');
+        tap('#grid [data-grid]');
+        await settle();
+        const sent = world.calls[0].body;
+        // The server's screen: every box ticked, the default answer, everything folded
+        world.pending.shift().resolve(streams(`<turbo-stream action="replace" target="import-pile"><template>${pile('checked')}</template></turbo-stream>${said('Needs a closer look. Nothing was changed.')}`));
+        await settle();
+        const state = () => ({
+            ticked: [document.getElementById('tile-a').checked, document.getElementById('tile-b').checked],
+            choice: document.querySelector('input[name="choice"]:checked').value,
+            open: [...document.querySelectorAll('details')].map((part) => part.hasAttribute('open')),
+        });
+        const kept = state();
+        const focusedAfter = focused();
+        // Another screen in its place starts as the server rendered it
+        tap('#grid [data-grid]');
+        await settle();
+        world.pending.shift().resolve(streams(`<turbo-stream action="replace" target="import-pile"><template>${pile('checked').replace('id="import-pile"', 'id="import-pile" data-import-answers-show')}</template></turbo-stream>${said('')}`));
+        await settle();
+
+        return { sent, kept, counted, focused: focusedAfter, fresh: state() };
+    },
     // A form that is not marked is not the script's: the browser (Turbo) sends it
     async plain() {
         await mount();

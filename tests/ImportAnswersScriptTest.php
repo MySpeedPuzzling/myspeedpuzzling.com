@@ -91,6 +91,22 @@ final class ImportAnswersScriptTest extends TestCase
         );
     }
 
+    public function testWhatThePlayerSetAndDidNotSendStaysWhenTheScreenIsRenderedAgain(): void
+    {
+        ['unsaved' => $unsaved] = $this->scenarios(['unsaved']);
+
+        // Only the ticked box and the picked answer were sent
+        self::assertSame(['cards[b][tick]' => '1', 'choice' => 'left_out', 'action' => 'tick_all'], $unsaved['sent']);
+        // The server's screen came with every box ticked, the default answer and everything folded: the unticked
+        // box is still unticked - and counted again -, "Don't import" still picked, the opened part still open
+        self::assertSame(['ticked' => [false, true], 'choice' => 'left_out', 'open' => [true, false]], $unsaved['kept']);
+        self::assertGreaterThanOrEqual(1, $unsaved['counted']);
+        // The refusal is in the line that stays in view, and focus is on it
+        self::assertSame('import-answer-said div Needs a closer look. Nothing was changed.', $unsaved['focused']);
+        // Another screen in its place (the next twenty) starts as the server rendered it
+        self::assertSame(['ticked' => [true, true], 'choice' => 'unlisted', 'open' => [false, false]], $unsaved['fresh']);
+    }
+
     /**
      * @param array<mixed> $facts
      */

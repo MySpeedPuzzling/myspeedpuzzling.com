@@ -961,6 +961,7 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         self::assertCount(1, $pile->filter('#puzzle-' . $second['id']));
         self::assertSame('1', $pile->filter('[data-testid="import-grid-position"]')->attr('data-waiting'));
         self::assertNull($pile->filter('#import-pile')->attr('data-import-answers-show'), 'the same screen: nothing is scrolled');
+        self::assertSame($base . '?part=differs', $pile->filter('#import-pile')->attr('data-import-answers-url'));
         self::assertSame(['catalogue', 'player'], $this->choices($importId)['Zq9p Other Brand 1']);
         self::assertSame($first['candidates'][0]['puzzleId'], $this->importPuzzle($importId, 'Zq9p Other Brand 1')['puzzle_id']);
 
@@ -1029,9 +1030,12 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         // A set that holds what needs a closer look: refused whole - the grid as it stands, and why, on the screen
         $this->browser->request('POST', $decide, [...$form, 'cards' => self::crafted($otherBrand, $otherBrand['candidates'][0]['puzzleId']) + $cards], server: self::AS_TURBO);
         $streams = self::streams($this->browser);
-        self::assertStringContainsString('needs a closer look', $streams['import-pile']['part']->filter('[data-testid="import-pile-notice"][data-type="warning"]')->text());
+        // ... said in the line that stays in view (the button is at the bottom of the grid), on the same screen
+        self::assertStringContainsString('needs a closer look', $streams['import-answer-said']['part']->filter('[data-testid="import-answer-said-message"][data-type="warning"]')->text());
+        self::assertCount(0, $streams['import-pile']['part']->filter('[data-testid="import-pile-notice"]'));
+        self::assertNull($streams['import-pile']['part']->filter('#import-pile')->attr('data-import-answers-show'));
         self::assertCount(3, $streams['import-pile']['part']->filter('[data-testid="import-puzzle-tile"]'));
-        self::assertSame('', trim($streams['import-answer-said']['html']));
+        self::assertSame('/en/import/' . $importId . '/puzzles/probably?part=same', $streams['import-pile']['part']->filter('#import-pile')->attr('data-import-answers-url'));
         self::assertSame(0, $this->decidedByThePlayer($importId));
 
         // Two of the three ticked: those two are matched; the screen after this one takes its place and is shown
@@ -1044,6 +1048,9 @@ final class ImportPuzzlesInBulkTest extends WebTestCase
         self::assertSame('2 matched.', self::spaced($pile->filter('[data-testid="import-pile-notice"][data-type="success"]')->text()));
         self::assertNotNull($pile->filter('#import-pile')->attr('data-import-answers-show'));
         self::assertCount(0, $pile->filter('[data-testid="import-puzzle-tile"]'));
+        // The address of the screen that took the place: loading the page again shows this screen
+        self::assertSame('/en/import/' . $importId . '/puzzles/probably?part=same&after=' . $form['last'], $pile->filter('#import-pile')->attr('data-import-answers-url'));
+        self::assertCount(1, $this->browser->request('GET', (string) $pile->filter('#import-pile')->attr('data-import-answers-url'))->filter('[data-testid="import-grid-end"][data-waiting="1"]'));
         // What was unticked waits, and what needs a closer look comes next - one primary
         self::assertSame('1', $pile->filter('[data-testid="import-grid-end"]')->attr('data-waiting'));
         self::assertCount(1, $pile->filter('[data-testid="import-grid-closer"]'));

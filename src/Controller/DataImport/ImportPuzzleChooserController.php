@@ -57,6 +57,12 @@ final class ImportPuzzleChooserController extends AbstractController
         }
 
         $card = $this->getImportPuzzleScreen->one($importId, $player->playerId, $importPuzzleId);
+        // "Your file says 500 pieces, this puzzle has 1,000 - choose it anyway?" for a puzzle tapped elsewhere
+        // (an answer shown in place leads here with it): an id, checked like every puzzle that is offered
+        $ask = $request->query->getString('ask');
+        $asked = Uuid::isValid($ask) && $card->isDecided() === false
+            ? $this->getImportPuzzleScreen->offered($player->playerId, $ask, $card->piecesCount, $card->manufacturerId)
+            : null;
 
         return $this->render('data_import/puzzle_choose.html.twig', self::parameters(
             $request->query->getString('flow'),
@@ -66,6 +72,7 @@ final class ImportPuzzleChooserController extends AbstractController
             $this->getImportPuzzleScreen->rowsOf($importId, $player->playerId, $importPuzzleId, self::ROWS_SHOWN),
             null,
             null,
+            askOtherPieces: $asked !== null && $asked->piecesDiffer ? $asked : null,
             last: $request->query->getString('last'),
         ));
     }

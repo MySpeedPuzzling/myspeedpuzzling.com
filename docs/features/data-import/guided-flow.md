@@ -1577,7 +1577,7 @@ people.md "Answers in place".
 | Where | As built | Why |
 |---|---|---|
 | "the step header's status sentence updates" | The flow's header has no sentence about the step on these screens (only "Where you are" has `ImportFlow`); what updates are the screen's own counts - a list's "N of M wait", the grid's "1-20 of 34", a pile's title - and the line that stays in view says when the step is done. | Nothing to update; `ImportFlow` is another builder's. |
-| "Undo the last one" for one answer for several | Not offered after "Yes, these N are right" or an answer for a pile: the screen says what was done, and each puzzle is taken back on its card ("Matched - see them", "Kept just for you - change"). | One Undo for twenty decisions needs their versions and a message that takes back a set - a decision's own "take back" exists per puzzle. |
+| "Undo the last one" for one answer for several | Not offered after "Yes, these N are right" or an answer for a pile: the screen says what was done, and each puzzle is taken back on its card ("Matched - see them", "Kept just for you - change"). | Taking twenty back in one message works, but is no undo: a match taken back is remembered as "not this puzzle" and may then only be confirmed on its own - the twenty would return as cards to look at closer. A pile's answer can run on the worker. |
 | Where the round rests or ends | A redirect (a page load), as before. | It is another screen with another address; only "the next puzzle" is the same screen. |
 | "What will be added" | Stays the list's `<turbo-frame>` (a redirect inside the frame), not streams. | It already did not scroll; the whole sheet's form joined the frame. Its buttons have Turbo's own waiting state only. |
 

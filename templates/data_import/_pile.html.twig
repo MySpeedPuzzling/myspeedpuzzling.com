@@ -17,7 +17,10 @@
 {% set step_done = overview.puzzles > 0 and overview.open == 0 and overview.searching == 0 and not live.working %}
 {% set continue = step_done ? null : {label: 'data_import.flow.continue'|trans, url: summary_url, testid: 'import-flow-continue'} %}
 {% set continue_after = step_done ? 'puzzles' : null %}
-<div id="import-pile" data-testid="import-pile" data-group="{{ group }}" data-step-done="{{ step_done ? 'true' : 'false' }}"{% if fresh|default(false) %} data-import-answers-show{% endif %}>
+{# The address of the screen as it stands (ids and numbers only): after an answer shown in place the script puts
+   it in the address bar, so loading the page again shows this screen #}
+{% set screen_query = as_list ? {page: page} : (group == 'probably' ? {part: part}|merge(after is not null ? {after: after} : {}) : (group == 'choose' and done > 0 ? {done: done} : {})) %}
+<div id="import-pile" data-testid="import-pile" data-group="{{ group }}" data-import-answers-url="{{ path('data_import_puzzle_group', {importId: import.importId, group: group}|merge(screen_query)) }}" data-step-done="{{ step_done ? 'true' : 'false' }}"{% if fresh|default(false) %} data-import-answers-show{% endif %}>
     {% for notice in notices|default([]) %}
         <div class="alert alert-{{ notice.type }} fs-sm py-2" role="status" data-testid="import-pile-notice" data-type="{{ notice.type }}">
             {{ notice.text }}

@@ -144,14 +144,11 @@ final class DecideImportPuzzlesController extends AbstractController
             'tick_all' => self::tickedTilesOfTheScreen($form->all('cards')),
             default => [],
         };
-        // One answer for several (the grid): said on the screen itself - an answer for one puzzle: in the line that stays in view
-        $several = $action === 'tick_all';
-
         if ($decisions === []) {
             $text = $this->translator->trans('data_import.puzzles.flash.nothing');
 
             if ($inPlace) {
-                return $this->shown($request, $where, ['type' => 'info', 'text' => $text], $here, $several);
+                return $this->shown($request, $where, ['type' => 'info', 'text' => $text], $here);
             }
 
             $this->addFlash('info', $text);
@@ -169,7 +166,7 @@ final class DecideImportPuzzlesController extends AbstractController
                 $text = $this->translator->trans('data_import.puzzles.flash.decided_meanwhile');
             } elseif ($cause instanceof ImportPuzzleChoiceRefused && $cause->reason === ImportPuzzleChoiceRefused::OTHER_PIECE_COUNT_UNCONFIRMED && $action === 'catalogue') {
                 // Asked about once more only where one puzzle was tapped - a set is refused, never asked about
-                $asked = $this->askAboutTheOtherPieceCount($request, $inPlace && $fromChooser, $importId, $player->playerId, $importPuzzleId, $form->getString('catalogue'), (string) $flow, $done);
+                $asked = $this->askAboutTheOtherPieceCount($request, $inPlace, $fromChooser, $importId, $player->playerId, $importPuzzleId, $form->getString('catalogue'), (string) $flow, $done);
 
                 if ($asked !== null) {
                     return $asked;
@@ -190,8 +187,9 @@ final class DecideImportPuzzlesController extends AbstractController
             }
 
             if ($inPlace) {
-                // Nothing was written: the screen as it stands now, and why
-                return $this->shown($request, $where, ['type' => 'warning', 'text' => $text], $here, $several);
+                // Nothing was written: the screen as it stands now, and why - in the line that stays in view, for
+                // the grid too (its button is at the bottom of the screen; a notice at its top would not be seen)
+                return $this->shown($request, $where, ['type' => 'warning', 'text' => $text], $here);
             }
 
             $this->addFlash('warning', $text);
@@ -376,7 +374,7 @@ final class DecideImportPuzzlesController extends AbstractController
      * "your file says 500 pieces, this puzzle has 1,000 - choose it anyway?" and the button that says yes. Asked by
      * the server, so it is asked without a script too.
      */
-    private function askAboutTheOtherPieceCount(Request $request, bool $inPlace, string $importId, string $playerId, string $importPuzzleId, string $cataloguePuzzleId, string $flow, int $done): null|Response
+    private function askAboutTheOtherPieceCount(Request $request, bool $inPlace, bool $fromChooser, string $importId, string $playerId, string $importPuzzleId, string $cataloguePuzzleId, string $flow, int $done): null|Response
     {
         $card = $this->getImportPuzzleScreen->one($importId, $playerId, $importPuzzleId);
         $asked = $this->getImportPuzzleScreen->offered($playerId, $cataloguePuzzleId, $card->piecesCount, $card->manufacturerId);
@@ -395,6 +393,12 @@ final class DecideImportPuzzlesController extends AbstractController
             null,
             askOtherPieces: $asked,
         );
+
+        if ($inPlace && $fromChooser === false) {
+            // Tapped on a card (a stale one - a card never offers another piece count): the question is the
+            // chooser's, so the answer leads there - a page, not a 422 the script could only call "not saved"
+            return $this->redirectToRoute('data_import_puzzle_choose', ['importId' => $importId, 'importPuzzleId' => $importPuzzleId, 'ask' => strtolower($cataloguePuzzleId)]);
+        }
 
         if ($inPlace) {
             // Asked on the chooser itself: the question takes its place at the top of the screen, and is shown

@@ -536,6 +536,17 @@ final class ImportPairingScreensTest extends WebTestCase
         self::assertSame([$survivor, '1'], [$question->filter('form[data-import-answer] input[name="catalogue"]')->attr('value'), $question->filter('input[name="confirmed_other_pieces"]')->attr('value')]);
         self::assertSame('undecided', $this->importPuzzle($importId, 'Zq5b Nothing Like This Qxv')['choice']);
 
+        // Tapped on a card (a stale one) the answer shown in place leads to the chooser, which asks - a page, never
+        // a 422 the script could only call "not saved"
+        $this->browser->request('POST', '/en/import/' . $importId . '/puzzles/decide', ['from' => '', 'page' => '1'] + $choice, server: self::AS_TURBO);
+        self::assertResponseRedirects('/en/import/' . $importId . '/puzzle/' . $nothing['id'] . '?ask=' . $survivor);
+        $question = $this->browser->followRedirect()->filter('[data-testid="import-chooser-ask-pieces"]');
+        self::assertResponseIsSuccessful();
+        self::assertSame([$survivor, '1'], [$question->filter('input[name="catalogue"]')->attr('value'), $question->filter('input[name="confirmed_other_pieces"]')->attr('value')]);
+        // ... and an id that is no puzzle to ask about asks nothing
+        self::assertCount(0, $this->browser->request('GET', '/en/import/' . $importId . '/puzzle/' . $nothing['id'] . '?ask=' . $nothing['id'])->filter('[data-testid="import-chooser-ask-pieces"]'));
+        self::assertSame('undecided', $this->importPuzzle($importId, 'Zq5b Nothing Like This Qxv')['choice']);
+
         // Only the button that says yes takes it - and it is the survivor that is stored
         $this->browser->request('POST', '/en/import/' . $importId . '/puzzles/decide', [...$choice, 'confirmed_other_pieces' => '1']);
         self::assertResponseRedirects();

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\DataImportNotFound;
@@ -172,6 +173,45 @@ WHERE person.import_id = :importId
 SQL, ['importId' => $importId, 'playerId' => $playerId])->fetchAssociative();
 
         return $row === false ? ['people' => 0, 'players' => 0, 'unanswered' => 0] : $row;
+    }
+
+    /**
+     * Who some of the people the file names are decided to be - `player`, `guest` or `me` - for "Check and add",
+     * which says it beside each sheet's line before anything is added. As the page of the people shows them: a
+     * player who may not be added any more is a guest. One statement; nothing for another player's import.
+     *
+     * @param list<string> $personKeys ImportPersonText's keys
+     *
+     * @return array<string, string> by person key
+     */
+    public function whoAre(string $importId, string $playerId, array $personKeys): array
+    {
+        $personKeys = array_values(array_unique($personKeys));
+
+        if ($personKeys === [] || Uuid::isValid($importId) === false || Uuid::isValid($playerId) === false) {
+            return [];
+        }
+
+        $noBlock = self::sqlNoBlockBetween('linked.id');
+
+        /** @var array<string, string> $who */
+        $who = $this->database->executeQuery(<<<SQL
+SELECT
+    person.person_key,
+    CASE
+        WHEN person.choice = 'me' THEN 'me'
+        WHEN linked.id IS NOT NULL THEN 'player'
+        ELSE 'guest'
+    END AS who
+FROM data_import_person person
+INNER JOIN data_import ON data_import.id = person.import_id
+LEFT JOIN player linked ON linked.id = person.player_id AND person.choice = 'player' AND {$noBlock}
+WHERE person.import_id = :importId
+    AND data_import.player_id = :playerId
+    AND person.person_key IN (:personKeys)
+SQL, ['importId' => $importId, 'playerId' => $playerId, 'personKeys' => $personKeys], ['personKeys' => ArrayParameterType::STRING])->fetchAllKeyValue();
+
+        return $who;
     }
 
     /**

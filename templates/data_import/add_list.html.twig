@@ -1,0 +1,202 @@
+{% extends 'base.html.twig' %}
+
+{#
+    "What will be added" (docs/features/data-import/guided-flow.md §7): every row an "Add" would take right now,
+    fifty a page, in the file's order under its sheet's name - puzzle, time, date, solo / pair / team - each with
+    "Don't import"; a row the player said that about stays in its place, muted, with "Put back". By what a row
+    makes (the tabs), by sheet and by a part of the puzzle's name - plain links and a GET form, so the address is
+    the list. Every "Don't import" / "Put back" is a small POST of its own: without a script it answers with this
+    page again, with Turbo only the list's frame is swapped. Nothing is added from here - the Add button is on
+    "Check and add" only. Phone first: one column, every target 44 px.
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
+{% set here = {importId: import.importId}|merge(filters) %}
+{% set change_url = path('data_import_add_list_change', {importId: import.importId}) %}
+{% set filtered = filters.q is defined or filters.makes is defined %}
+
+{% block title %}{{ 'data_import.add_list.title'|trans }} - {{ import_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{{ include('data_import/_flow_header.html.twig', {import: import, step: 5}) }}
+
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-add-list-page" data-import-flow-screen="add_list" data-controller="data-import-times-frame">
+    <h1 class="h3 mb-2">{{ 'data_import.add_list.title'|trans }}</h1>
+    <p class="text-muted fs-sm mb-2">{{ 'data_import.add_list.intro'|trans }}</p>
+    {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.dont_import'|trans, testid: 'import-explain-dont-import'}, with_context = false) }}
+
+    {# The list and its bar are one frame: a "Don't import" swaps them and leaves the page where it is #}
+    <turbo-frame id="import-add-list" target="_top" data-testid="import-add-list" data-total="{{ total }}" data-will-add="{{ add.toAdd }}" data-rows-taken="{{ add.rowsTaken }}">
+        {# What the last "Don't import" / "Put back" did: said here, inside the frame, so a frame swap shows it too #}
+        {% for message in app.request.hasPreviousSession ? app.flashes(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ChangeImportAddListController::FLASH')) : [] %}
+            <div class="alert alert-info fs-sm py-2" role="status" data-testid="import-add-list-flash">{{ message }}</div>
+        {% endfor %}
+
+        {# A sheet whose reading changed (one was just set to "not puzzles") is read again in the background: until
+           then its rows are still here - said, so the list and what was just answered never seem to disagree #}
+        {% if add.sheetsNotSetUp > 0 %}
+            <div class="alert alert-info fs-sm py-2 d-flex flex-wrap align-items-center gap-2" role="status" data-testid="import-add-list-reading-again">
+                <span>{{ 'data_import.add_list.reading_again'|trans }}</span>
+                <a href="{{ path('data_import_add_list', here|merge({page: page})) }}" class="d-inline-flex align-items-center fw-medium" style="min-height: 44px;" rel="nofollow">{{ 'data_import.add_list.refresh'|trans }}</a>
+            </div>
+        {% endif %}
+
+        {# What a row makes #}
+        <nav class="d-flex flex-wrap gap-2 mb-2" aria-label="{{ 'data_import.add_list.title'|trans }}" data-testid="import-add-list-tabs">
+            {% set tabs = [
+                {makes: null, label: 'data_import.add_list.tab.all'|trans, count: add.rowsTaken},
+                {makes: 'results', label: 'data_import.add_list.tab.results'|trans, count: add.results},
+                {makes: 'collection', label: 'data_import.add_list.tab.collection'|trans, count: add.owned},
+                {makes: 'wish', label: 'data_import.add_list.tab.wish'|trans, count: add.wishList},
+            ] %}
+            {% for tab in tabs %}
+                {% if tab.makes is null or tab.count > 0 or filters.makes|default(null) == tab.makes %}
+                    {% set active = filters.makes|default(null) == tab.makes %}
+                    {% set target = {importId: import.importId}|merge(filters|filter((value, key) => key != 'makes'))|merge(tab.makes is null ? {} : {makes: tab.makes}) %}
+                    <a href="{{ path('data_import_add_list', target) }}" class="btn btn-sm {{ active ? 'btn-secondary' : 'btn-outline-secondary' }} d-inline-flex align-items-center" style="min-height: 44px;"
+                       data-testid="import-add-list-tab" data-makes="{{ tab.makes ?? 'all' }}" data-count="{{ tab.count }}"{% if active %} aria-current="page"{% endif %}>
+                        {{ tab.label }} <span class="ms-1{{ active ? '' : ' text-muted' }}">{{ tab.count|format_number }}</span>
+                    </a>
+                {% endif %}
+            {% endfor %}
+        </nav>
+
+        {# Search and sheet: a plain GET form - the player's own text is the only thing of a file an address holds #}
+        <form action="{{ path('data_import_add_list', {importId: import.importId}) }}" method="get" class="mb-3" data-testid="import-add-list-search" role="search">
+            {% if filters.makes is defined %}<input type="hidden" name="makes" value="{{ filters.makes }}">{% endif %}
+            <div class="d-flex gap-2">
+                <input type="search" name="q" value="{{ filters.q|default('') }}" maxlength="100" class="form-control" style="min-height: 44px;"
+                       placeholder="{{ 'data_import.add_list.search.label'|trans }}" aria-label="{{ 'data_import.add_list.search.label'|trans }}" autocomplete="off" data-testid="import-add-list-q">
+                <button type="submit" class="btn btn-outline-primary flex-shrink-0" style="min-height: 44px;" data-testid="import-add-list-go">{{ 'data_import.add_list.search.go'|trans }}</button>
+            </div>
+            {% if sheets|length > 1 %}
+                <label class="fs-sm text-muted mt-2 mb-1" for="import-add-list-sheet">{{ 'data_import.add_list.sheet.label'|trans }}</label>
+                <select name="sheet" id="import-add-list-sheet" class="form-select" style="min-height: 44px;" data-testid="import-add-list-sheet">
+                    <option value="">{{ 'data_import.add_list.sheet.all'|trans }}</option>
+                    {% for sheet in sheets %}
+                        <option value="{{ sheet.sheetId }}"{% if filters.sheet|default('') == sheet.sheetId %} selected{% endif %}>{% if sheet.title != '' %}{{ sheet.title }}{% else %}{{ 'data_import.sheets.untitled'|trans }}{% endif %} ({{ sheet.ready|format_number }})</option>
+                    {% endfor %}
+                </select>
+            {% elseif filters.sheet is defined %}
+                <input type="hidden" name="sheet" value="{{ filters.sheet }}">
+            {% endif %}
+            {% if filters.q is defined or filters.sheet is defined %}
+                <a href="{{ path('data_import_add_list', {importId: import.importId}|merge(filters.makes is defined ? {makes: filters.makes} : {})) }}" class="d-inline-flex align-items-center fs-sm mt-1" style="min-height: 44px;" data-testid="import-add-list-clear">{{ 'data_import.add_list.search.clear'|trans }}</a>
+            {% endif %}
+        </form>
+
+        {% if rows is empty %}
+            <p class="text-muted" data-testid="import-add-list-none">{{ (filters.q is defined ? 'data_import.add_list.no_hit' : 'data_import.add_list.empty')|trans }}</p>
+        {% else %}
+            {# A search that narrowed the list to the rows of one puzzle: one tap for all of them #}
+            {% if one_puzzle is not null %}
+                <form action="{{ change_url }}" method="post" class="mb-3" data-turbo-frame="import-add-list" data-testid="import-add-list-puzzle" data-rows="{{ one_puzzle.rows }}">
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <input type="hidden" name="puzzle" value="{{ one_puzzle.id }}">
+                    {% for name, value in filters %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+                    <button type="submit" name="action" value="leave_out_puzzle" class="btn btn-outline-secondary text-wrap" style="min-height: 44px;" data-testid="import-add-list-puzzle-leave-out">
+                        {{ 'data_import.add_list.puzzle.leave_out'|trans({'%count%': one_puzzle.rows, '%number%': one_puzzle.rows|format_number}) }}
+                    </button>
+                </form>
+            {% endif %}
+
+            {% set current_sheet = null %}
+            {% for item in rows %}
+                {% if item.sheetId != current_sheet %}
+                    {% if current_sheet is not null %}</div>{% endif %}
+                    {% set current_sheet = item.sheetId %}
+                    {% set sheet_line = sheets|filter(sheet => sheet.sheetId == item.sheetId)|first %}
+                    <div class="mt-3 mb-1" data-testid="import-add-list-sheet-heading" data-sheet-id="{{ item.sheetId }}">
+                        <h2 class="h6 mb-0 text-break pt-2">
+                            {{ 'data_import.add_review.quoted'|trans({'%text%': item.sheetTitle != '' ? item.sheetTitle : 'data_import.sheets.untitled'|trans}) }}
+                            {%- if sheet_line and not filtered %} <span class="fw-normal text-muted">- {{ 'data_import.add_list.sheet.rows'|trans({'%count%': sheet_line.ready, '%number%': sheet_line.ready|format_number}) }}</span>{% endif %}
+                        </h2>
+                        {% if sheet_line %}
+                            {# The whole sheet: asked once more, by name and number, before anything is saved #}
+                            <details data-testid="import-add-list-sheet-leave-out">
+                                <summary class="fs-sm d-inline-flex align-items-center text-muted" style="min-height: 44px; cursor: pointer;">{{ 'data_import.add_list.sheet.leave_out'|trans }}</summary>
+                                <form action="{{ change_url }}" method="post" class="card card-body shadow-sm p-2 mb-2">
+                                    <input type="hidden" name="_token" value="{{ csrf }}">
+                                    <input type="hidden" name="sheet" value="{{ item.sheetId }}">
+                                    <input type="hidden" name="version" value="{{ sheet_line.mappingVersion }}">
+                                    {% if filters.makes is defined %}<input type="hidden" name="makes" value="{{ filters.makes }}">{% endif %}
+                                    <p class="fs-sm mb-2 text-break">{{ 'data_import.add_list.sheet.confirm'|trans({'%count%': sheet_line.ready, '%number%': sheet_line.ready|format_number, '%title%': item.sheetTitle != '' ? item.sheetTitle : 'data_import.sheets.untitled'|trans}) }}</p>
+                                    <button type="submit" name="action" value="leave_out_sheet" class="btn btn-outline-secondary btn-sm text-wrap align-self-start" style="min-height: 44px;" data-testid="import-add-list-sheet-confirm">{{ 'data_import.add_list.sheet.confirm_button'|trans }}</button>
+                                </form>
+                            </details>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex flex-column gap-2" data-testid="import-add-list-rows">
+                {% endif %}
+
+                {# A row is its own small form: the tick box is the button. Ticked = an "Add" takes it; a tap unticks it
+                   ("Don't import"), saved at once; an unticked row stays in its place with "Put back" #}
+                <div class="card card-body shadow-sm p-2{{ item.notImported ? ' bg-light' : '' }}" id="row-{{ item.row.rowId }}" data-testid="import-add-list-row" data-row-id="{{ item.row.rowId }}" data-state="{{ item.notImported ? 'not-imported' : 'ready' }}">
+                    <form action="{{ change_url }}" method="post" class="d-flex align-items-start gap-1" data-turbo-frame="import-add-list">
+                        <input type="hidden" name="_token" value="{{ csrf }}">
+                        <input type="hidden" name="row" value="{{ item.row.rowId }}">
+                        <input type="hidden" name="page" value="{{ page }}">
+                        {% for name, value in filters %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+                        {% if item.notImported %}
+                            <button type="submit" name="action" value="put_back" class="btn btn-link p-0 flex-shrink-0 d-inline-flex align-items-center justify-content-center text-muted" style="min-width: 44px; min-height: 44px;"
+                                    role="checkbox" aria-checked="false" aria-label="{{ 'data_import.add_list.row.put_back'|trans }}" title="{{ 'data_import.add_list.row.put_back'|trans }}" data-testid="import-add-list-tick">
+                                <i class="bi bi-square fs-4" aria-hidden="true"></i>
+                            </button>
+                            <div class="flex-grow-1 text-muted" style="min-width: 0;">
+                                <div class="fw-medium text-break text-decoration-line-through" data-testid="import-add-list-file-says">
+                                    {%- if item.fileSays is not empty %}{{ item.fileSays|join(' · ') }}{% else %}{{ 'data_import.to_fix.row_of'|trans({'%row%': item.rowNumber|format_number, '%sheet%': item.sheetTitle}) }}{% endif -%}
+                                </div>
+                                <div class="fs-xs text-break">{{ 'data_import.to_fix.row_of'|trans({'%row%': item.rowNumber|format_number, '%sheet%': item.sheetTitle}) }}</div>
+                                <div class="fs-sm d-flex align-items-center flex-wrap gap-2">
+                                    <span class="fw-medium" data-testid="import-add-list-not-imported">{{ 'data_import.add_list.row.not_imported'|trans }}</span>
+                                    <button type="submit" name="action" value="put_back" class="btn btn-outline-primary btn-sm text-nowrap" style="min-height: 44px;" data-testid="import-add-list-put-back">
+                                        <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ 'data_import.add_list.row.put_back'|trans }}
+                                    </button>
+                                </div>
+                            </div>
+                        {% else %}
+                            <button type="submit" name="action" value="leave_out" class="btn btn-link p-0 flex-shrink-0 d-inline-flex align-items-center justify-content-center" style="min-width: 44px; min-height: 44px;"
+                                    role="checkbox" aria-checked="true" aria-label="{{ 'data_import.add_list.row.leave_out'|trans }}" title="{{ 'data_import.add_list.row.leave_out'|trans }}" data-testid="import-add-list-leave-out">
+                                <i class="bi bi-check-square-fill fs-4" aria-hidden="true"></i>
+                            </button>
+                            <div class="flex-grow-1" style="min-width: 0;">
+                                {{ include('data_import/_add_row.html.twig', {row: item.row}) }}
+                                {% set notes = [] %}
+                                {% if item.newResult and item.newOwned %}{% set notes = notes|merge(['data_import.add_list.row.plus_collection'|trans]) %}{% endif %}
+                                {% if item.unlisted %}{% set notes = notes|merge(['data_import.add_list.row.unlisted'|trans]) %}{% endif %}
+                                {% if item.repeats %}{% set notes = notes|merge(['data_import.add_list.row.repeats'|trans]) %}{% endif %}
+                                {% if item.onProfileAlready %}{% set notes = notes|merge(['data_import.add_list.row.on_profile'|trans]) %}{% endif %}
+                                {% if notes is not empty %}
+                                    <div class="fs-xs text-muted mt-1" data-testid="import-add-list-note">{{ notes|join(' · ') }}</div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </form>
+                    <div class="d-flex flex-wrap align-items-center gap-3 ps-5">
+                        <a href="{{ path('data_import_row', {importId: import.importId, rowId: item.row.rowId}) }}" class="fs-xs d-inline-flex align-items-center" style="min-height: 44px;" data-testid="import-add-list-open" rel="nofollow">{{ 'data_import.add_list.row.open'|trans }}</a>
+                        {% if not item.notImported and item.row.said.period is not null %}
+                            {{ include('data_import/_explain.html.twig', {text: 'data_import.explain.month_only'|trans, fold: true, summary: 'data_import.explain.month_only_summary'|trans, testid: 'import-explain-month-only'}, with_context = false) }}
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+            {% if current_sheet is not null %}</div>{% endif %}
+
+            {{ include('data_import/_pages.html.twig', {page: page, pages: pages, route: 'data_import_add_list', parameters: here, label: 'data_import.add_list.title'|trans}, with_context = false) }}
+        {% endif %}
+
+        {# The bar: what an "Add" would add now - it moves with every "Don't import" - and the way back to the button #}
+        <div class="bg-body border-top py-2 mt-3" style="position: sticky; bottom: 0; z-index: 20;" data-testid="import-add-list-bar">
+            <p class="fw-semibold mb-2" data-testid="import-add-list-will-add">{{ 'data_import.add_list.bar.will_add'|trans({'%count%': add.toAdd, '%number%': add.toAdd|format_number}) }}</p>
+            <a href="{{ path('data_import_add', {importId: import.importId}) }}" class="btn btn-primary btn-lg w-100 text-wrap d-flex align-items-center justify-content-center" style="min-height: 52px;" data-testid="import-add-list-done">
+                {{ 'data_import.add_list.bar.done'|trans }}
+            </a>
+        </div>
+    </turbo-frame>
+
+    {{ include('data_import/_flow_footer.html.twig', {import: import}, with_context = false) }}
+</div>
+{% endblock %}

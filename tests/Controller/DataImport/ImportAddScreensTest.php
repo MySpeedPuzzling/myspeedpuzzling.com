@@ -7,42 +7,26 @@ namespace SpeedPuzzling\Web\Tests\Controller\DataImport;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
-use League\Flysystem\Filesystem;
-use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\DataImportRow;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Message\AnswerImportRows;
-use SpeedPuzzling\Web\Message\BuildImportPuzzles;
 use SpeedPuzzling\Web\Message\ChangeImportAddingPaused;
 use SpeedPuzzling\Web\Message\ConfirmImportMapping;
-use SpeedPuzzling\Web\Message\ConfirmImportUploaded;
-use SpeedPuzzling\Web\Message\MatchImportPuzzlesFuzzy;
-use SpeedPuzzling\Web\Message\ParseImportSheet;
-use SpeedPuzzling\Web\Message\ProposeImportMappings;
-use SpeedPuzzling\Web\Message\ReadImportFile;
-use SpeedPuzzling\Web\Message\StartImport;
-use SpeedPuzzling\Web\MessageHandler\ParseImportSheetHandler;
 use SpeedPuzzling\Web\Query\GetImportAddScreen;
 use SpeedPuzzling\Web\Results\ImportAddSummary;
-use SpeedPuzzling\Web\MessageHandler\ProposeImportMappingsHandler;
-use SpeedPuzzling\Web\MessageHandler\ReadImportFileHandler;
-use SpeedPuzzling\Web\Services\DataImport\ImportFileStorage;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\MessageHandler\DataImport\ImportAddingScenario;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
-use SpeedPuzzling\Web\Tests\Services\SpreadsheetReader\RawXlsx;
 use SpeedPuzzling\Web\Tests\TestClock;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\DataImport\ImportedResultRefusal;
 use SpeedPuzzling\Web\Value\DataImport\ImportRowRefusal;
-use SpeedPuzzling\Web\Value\DataImportFileKind;
 use SpeedPuzzling\Web\Value\DataImportRowKind;
 use SpeedPuzzling\Web\Value\DataImportUndoScope;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Messenger\MessageBusInterface;
-use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 /**
  * docs/features/data-import/adding-screens.md - the player's "Add": the ready card, the review before adding, the
@@ -54,6 +38,7 @@ final class ImportAddScreensTest extends WebTestCase
 {
     use QueryCountAssertions;
     use ImportAddingScenario;
+    use ImportedWorkbookScenario;
 
     private KernelBrowser $browser;
     private Connection $database;
@@ -169,7 +154,27 @@ final class ImportAddScreensTest extends WebTestCase
             ['9', '4', '2', '1', '3'],
             [$counts->attr('data-rows'), $counts->attr('data-results'), $counts->attr('data-owned'), $counts->attr('data-wish-list'), $counts->attr('data-already-yours')],
         );
-        self::assertSame(['Results', 'Ready to add: 9'], [self::spaced($crawler->filter('[data-testid="import-add-sheet"] span')->eq(0)->text()), self::spaced($crawler->filter('[data-testid="import-add-sheet"] span')->eq(1)->text())]);
+        // One number a line, zeros left out - and the way to the list of all of it
+        self::assertSame(
+            ['4 results', '2 puzzles for your collection', '1 puzzle for your wish list'],
+            $counts->filter('[data-testid="import-add-lines"] li')->each(static fn (Crawler $line): string => self::spaced($line->text())),
+        );
+        self::assertSame(['/en/import/' . $importId . '/add/list', 'See all 9 and untick any'], [$counts->filter('[data-testid="import-add-see-all"]')->attr('href'), self::spaced($counts->filter('[data-testid="import-add-see-all"]')->text())]);
+        self::assertSame('1 row is on your profile already - not added twice.', self::spaced($counts->filter('[data-testid="import-add-line-already-yours"]')->text()));
+        self::assertStringContainsString('2 rows repeat another row - counted once.', self::spaced($counts->filter('[data-testid="import-add-line-equal-rows"]')->text()));
+        self::assertStringContainsString('These results are on MySpeedPuzzling already - the same puzzle, day and time.', $counts->filter('[data-testid="import-explain-on-profile"]')->text());
+        self::assertStringContainsString('We count them as one result - say so if they are separate solves.', $counts->filter('[data-testid="import-explain-repeat"]')->text());
+
+        // How the file was read: the sheet, what its rows are added as, and one row of it as the example
+        $sheet = $crawler->filter('[data-testid="import-add-sheet"]');
+        self::assertSame(['“Results”', '9'], [self::spaced($sheet->filter('[data-testid="import-add-sheet-title"]')->text()), $sheet->attr('data-ready')]);
+        self::assertSame(
+            ['6 solo results', '1 pair result with Ben <b>Bold</b> (guest)', 'Its puzzle goes to your collection too.', '1 puzzle you own', '1 puzzle for your wish list'],
+            $sheet->filter('[data-testid="import-add-sheet-as"] li')->each(static fn (Crawler $line): string => self::spaced($line->text())),
+        );
+        self::assertSame('Zq Review Lighthouse', self::spaced($sheet->filter('[data-testid="import-add-example"] [data-testid="add-row-puzzle"]')->text()));
+        self::assertSame('Puzzles you own go to your collection.', self::spaced($crawler->filter('[data-testid="import-add-collection"]')->text()));
+        self::assertSame('/en/import/' . $importId . '/columns', $crawler->filter('[data-testid="import-add-how-change"]')->attr('href'));
 
         // The first results as they will appear: the catalogue puzzle, time, day, kind, the people as guests, first try
         $sample = $crawler->filter('[data-testid="import-add-sample"] [data-testid="add-row"]');
@@ -195,8 +200,12 @@ final class ImportAddScreensTest extends WebTestCase
         self::assertCount(1, $known->filter('[data-testid="add-row"]'), 'The row typed before; the two that repeat a row are in their own group');
 
         // What an import does not do, in two short lines
-        self::assertStringContainsString('Your followers are not notified.', $crawler->filter('[data-testid="import-add-what"]')->text());
-        self::assertStringContainsString('Results are dated by the day you solved them', $crawler->filter('[data-testid="import-add-what"]')->text());
+        // What adding does - open before the import's first Add
+        $what = $crawler->filter('details[data-testid="import-add-what"]');
+        self::assertNotNull($what->attr('open'));
+        self::assertStringContainsString("An imported result counts like one you type: on your profile and - when it has a time - on the puzzle's leaderboard.", $what->text());
+        self::assertStringContainsString('It keeps the day you solved it, so it does not show up as new activity, and your followers are not notified.', $what->text());
+        self::assertStringContainsString('Imported results have no photo.', $what->text());
 
         // Nothing was added by looking, and nothing starts by itself
         self::assertSame(1, $this->pairingCount('SELECT COUNT(*) FROM puzzle_solving_time WHERE player_id = :id', ['id' => $player->id->toString()]));
@@ -592,7 +601,7 @@ SQL, ['importId' => $importId, 'now' => TestClock::FROZEN_NOW]);
         $counts = $crawler->filter('[data-testid="import-add-counts"]');
         self::assertSame(['3', '3', '2'], [$counts->attr('data-rows'), $counts->attr('data-results'), $counts->attr('data-later')]);
         self::assertSame('Add 3 of 5 now - the rest tomorrow', self::spaced($crawler->filter('[data-testid="import-add-button"]')->text()));
-        self::assertStringContainsString('At most 2,000 results a day are added from spreadsheets. Today: 3.', self::spaced($crawler->filter('[data-testid="import-add-daily-limit"]')->text()));
+        self::assertStringContainsString('We add up to 2,000 results a day. Today: 3. The other 2 can be added tomorrow - nothing is lost.', self::spaced($crawler->filter('[data-testid="import-add-daily-limit"]')->text()));
 
         $this->browser->request('POST', '/en/import/' . $importId . '/add', ['_token' => $this->token($crawler), 'request_id' => (string) $crawler->filter('input[name="request_id"]')->attr('value')]);
         $batchId = $this->pairingDatabase()->fetchOne('SELECT id FROM data_import_batch WHERE import_id = :id', ['id' => $importId]);
@@ -1208,7 +1217,8 @@ SQL, ['importId' => $importId, 'now' => TestClock::FROZEN_NOW]);
         self::assertResponseIsSuccessful();
         $as = $crawler->filter('[data-testid="import-add-sheet-as"]');
         self::assertSame(['2', '0', '2', '0'], [$as->attr('data-results'), $as->attr('data-solo'), $as->attr('data-duo'), $as->attr('data-team')]);
-        self::assertSame('2 results · pair · with #' . $partner->code, self::spaced($as->text()));
+        self::assertSame('2 pair results with #' . $partner->code . ' (player)', self::spaced($as->text()));
+        self::assertStringContainsString('The result also appears on their profile, as a pair or team result with you.', $crawler->filter('[data-testid="import-explain-player-partner"]')->text());
         $people = $crawler->filter('[data-testid="import-add-people"]');
         self::assertSame(['1', '1', '0'], [$people->attr('data-people'), $people->attr('data-players'), $people->attr('data-unanswered')]);
         self::assertSame('/en/import/' . $importId . '/people', $people->filter('[data-testid="import-add-people-link"]')->attr('href'));
@@ -1298,94 +1308,6 @@ SQL, ['importId' => $importId, 'now' => TestClock::FROZEN_NOW]);
     private function addSummary(string $importId, string $playerId): ImportAddSummary
     {
         return self::getContainer()->get(GetImportAddScreen::class)->summary($importId, $playerId);
-    }
-
-    /**
-     * An import of the player read from a made-up workbook by the real handlers: one sheet "Results" with the
-     * columns Puzzle, Pieces, Date, Time and the rows given (from row 2 on).
-     *
-     * @param list<array{0: string, 1: int, 2: string, 3: int, 4?: string}> $rows name, pieces, day, seconds - and,
-     *        with $peopleHeader, who it was solved with
-     * @param string $title the sheet's title
-     * @param null|string $peopleHeader the header of a fifth column naming the people - null: no such column
-     */
-    private function importedWorkbook(Player $player, array $rows, string $title = 'Results', null|string $peopleHeader = null): string
-    {
-        $text = RawXlsx::inline(...);
-        $cells = [1 => ['A' => $text('Puzzle'), 'B' => $text('Pieces'), 'C' => $text('Date'), 'D' => $text('Time')]];
-
-        if ($peopleHeader !== null) {
-            $cells[1]['E'] = $text($peopleHeader);
-        }
-
-        foreach ($rows as $index => $row) {
-            [$name, $pieces, $day, $seconds] = $row;
-            $cells[$index + 2] = [
-                'A' => $text($name),
-                'B' => RawXlsx::n((string) $pieces),
-                'C' => RawXlsx::n((string) (intdiv((int) (new DateTimeImmutable($day . ' UTC'))->format('U'), 86400) + 25569), 2),
-                'D' => RawXlsx::n((string) ($seconds / 86400), 1),
-            ];
-
-            if ($peopleHeader !== null && isset($row[4])) {
-                $cells[$index + 2]['E'] = $text($row[4]);
-            }
-        }
-
-        $path = tempnam(sys_get_temp_dir(), 'msp-import-test');
-        assert($path !== false);
-        (new RawXlsx())->styles(['[h]:mm:ss', 'yyyy-mm-dd'])->sheet($title, RawXlsx::worksheet($cells))->save($path);
-        $content = (string) file_get_contents($path);
-        unlink($path);
-
-        $bus = self::getContainer()->get(MessageBusInterface::class);
-        $importId = Uuid::uuid7()->toString();
-        $playerId = $player->id->toString();
-        $bus->dispatch(new StartImport($importId, $playerId, 'Times.xlsx', strlen($content)));
-        self::getContainer()->get(Filesystem::class)->write(ImportFileStorage::objectKey($playerId, $importId, DataImportFileKind::Xlsx), $content);
-        $bus->dispatch(new ConfirmImportUploaded($importId, $playerId));
-        $this->workImportsQueue();
-
-        return $importId;
-    }
-
-    /**
-     * The `imports` worker for reading, proposing and parsing - until nothing of them waits (the pairing's own
-     * messages are let go: pair() runs them).
-     */
-    private function workImportsQueue(): void
-    {
-        $queue = self::getContainer()->get('messenger.transport.imports');
-        self::assertInstanceOf(InMemoryTransport::class, $queue);
-
-        for ($round = 0; $round < 20; $round++) {
-            $messages = array_values(array_filter(
-                array_map(static fn ($envelope): object => $envelope->getMessage(), $queue->getSent()),
-                static fn (object $message): bool => $message instanceof BuildImportPuzzles === false && $message instanceof MatchImportPuzzlesFuzzy === false,
-            ));
-
-            if ($messages === []) {
-                break;
-            }
-
-            $queue->reset();
-
-            foreach ($messages as $message) {
-                $handler = self::getContainer()->get(match (true) {
-                    $message instanceof ReadImportFile => ReadImportFileHandler::class,
-                    $message instanceof ProposeImportMappings => ProposeImportMappingsHandler::class,
-                    $message instanceof ParseImportSheet => ParseImportSheetHandler::class,
-                    default => self::fail('Nothing handles ' . $message::class),
-                });
-                self::assertIsCallable($handler);
-                $entityManager = self::getContainer()->get(EntityManagerInterface::class);
-                $entityManager->clear();
-                $handler($message);
-                $entityManager->clear();
-            }
-        }
-
-        $queue->reset();
     }
 
     private function latestBatchId(string $importId): string

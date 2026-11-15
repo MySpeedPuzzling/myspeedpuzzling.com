@@ -12106,6 +12106,22 @@ data_import:
         discard: "The file and everything read from it are deleted. Nothing on your profile changes - nothing was added yet."
         kept: "It stays in your list so the same rows are never added twice and you can undo them."
         file: "Only you see the file. We keep it for %days% days, then it is removed - what was added stays on your profile."
+        # Slice 2 of the guided flow: "Check and add" and "What will be added"
+        on_profile: "These results are on MySpeedPuzzling already - the same puzzle, day and time. They are not added a second time."
+        on_profile_summary: "What does “on your profile already” mean?"
+        repeat: "Your file has the same puzzle, day and time on several rows. We count them as one result - say so if they are separate solves."
+        repeat_summary: "What is a row that repeats another row?"
+        dont_import: "The rows stay in your file here and are not added. You can put them back at any time."
+        player_partner: "The result also appears on their profile, as a pair or team result with you. They are told once, and can remove themselves."
+        player_partner_summary: "What happens when a partner is a player?"
+        month_only: "Your file gives no exact day. The result is added as “March 2021” - it counts everywhere except in things that need a day, like the calendar and streaks."
+        month_only_summary: "What about a result with only a month or a year?"
+        no_date: "A result needs at least a year to be added. Give these a day, a month or a year - or they stay here."
+        unusual_time: "Much faster or slower than your other results suggest for this puzzle. We ask so a typing slip does not end up on a leaderboard - if it is right, say so and it is added."
+        unusual_time_summary: "What is an unusual time?"
+        daily_limit: "We add up to %number% results a day from spreadsheets, so that leaderboards and statistics keep up. The rest is ready tomorrow - press Add again then. Nothing is lost."
+        add: "An imported result counts like one you type: on your profile and - when it has a time - on the puzzle's leaderboard. It keeps the day you solved it, so it does not show up as new activity, and your followers are not notified."
+        no_photo: "Imported results have no photo. You can add one to any result afterwards."
     group:
         title: "Going through your rows"
         line: "Going through your rows… %done% of %total%"
@@ -12159,13 +12175,11 @@ data_import:
         intro: "Have a look at what will be added to your profile. Nothing is added until you press the button at the bottom."
         paused: "Adding is paused for a moment by our team. Everything you set up is kept and nothing is lost - you can go on matching puzzles and looking at rows, and add them when adding is switched on again."
         paused_running: "Adding is paused for a moment by our team. It goes on by itself - nothing is lost."
-        will_add: "This will be added to your profile"
         counts: "Results: %results% · Puzzles you own: %owned% · Wish list: %wish_list%"
         added_so_far: "Added so far - results: %results% · puzzles you own: %owned% · wish list: %wish_list%"
         see_added: "See what was added"
         back_to_review: "Back to “Check and add”"
-        sheet_rows: "Ready to add: %number%"
-        daily_limit: "At most %limit% results a day are added from spreadsheets. Today: %today%. The remaining %later% are ready tomorrow - nothing is lost."
+        daily_limit: "We add up to %limit% results a day. Today: %today%. The other %later% can be added tomorrow - nothing is lost."
         with_guests: "with %people%"
         first_try: "first try"
         button: "Add %number% to my profile"
@@ -12191,8 +12205,6 @@ data_import:
             results: "Results"
             owned: "Puzzles you own"
             wish_list: "Wish-list puzzles"
-            already_yours: "On your profile already - not added twice"
-            equal_rows: "Rows that repeat another row - counted once"
         sample:
             title: "The first results, as they will look"
             hint: "Check the puzzle, the time and the date. If something is off here, it is probably off in the other rows too."
@@ -12228,11 +12240,7 @@ data_import:
             hint: "Nothing to do. These rows are not added a second time."
             more: "And %number% more."
         does:
-            public: "Results appear on your profile and on each puzzle's leaderboard, like the ones you type. A player code in your file becomes that player; names stay guests unless you say who they are."
             undo: "You can undo a single row, one adding, or everything this import added."
-        does_not:
-            followers: "Your followers are not notified."
-            dated: "Results are dated by the day you solved them - they do not show up as new activity."
         flash:
             nothing_chosen: "Nothing was chosen."
             changed_meanwhile: "These rows changed meanwhile - nothing was saved. Here is how they stand now."
@@ -12248,15 +12256,7 @@ data_import:
             not_addable: "Rows can not be added from this import right now."
             daily_limit: "Today's %number% results from spreadsheets are used up. The rest is ready tomorrow - nothing is lost."
         sheet_as:
-            results: "{1}1 result|[0,Inf[%count% results"
-            all_solo: "solo"
-            all_duo: "pair"
-            all_team: "team"
-            some_solo: "%count% solo"
-            some_duo: "%count% pair"
-            some_team: "%count% team"
             with: "with %people%"
-            hint: "Check each sheet: solo, pair or team - and that the results are yours, not somebody else's."
     batch:
         how:
             owned: "Rows whose puzzle you already had - from another row of the file, or from before: %number%"
@@ -12996,6 +12996,93 @@ data_import:
         own_name:
             question: "“%name%” is your own name. Is this you?"
             yes: "Yes, that is me"
+    # --- Guided flow, slice 2: "Check and add" says everything (add_review), "What will be added" (add_list) ---
+    add_review:
+        ready_title: "Ready to add"
+        quoted: "“%text%”"
+        line:
+            results: "{1}1 result|[0,Inf[%number% results"
+            owned: "{1}1 puzzle for your collection|[0,Inf[%number% puzzles for your collection"
+            wish_list: "{1}1 puzzle for your wish list|[0,Inf[%number% puzzles for your wish list"
+            unlisted: "{1}1 row kept just for you|[0,Inf[%number% rows kept just for you"
+            already_yours: "{1}1 row is on your profile already - not added twice.|[0,Inf[%number% rows are on your profile already - not added twice."
+            equal_rows: "{1}1 row repeats another row - counted once.|[0,Inf[%number% rows repeat another row - counted once."
+            show: "Show"
+        see_all: "{1}See it and untick it if you like|[0,Inf[See all %number% and untick any"
+        how:
+            hint: "Check each sheet: solo, pair or team, with whom - and that the results are yours, not somebody else's."
+            change: "Something off? Change how it is read"
+        as:
+            solo: "{1}1 solo result|[0,Inf[%number% solo results"
+            duo: "{1}1 pair result|[0,Inf[%number% pair results"
+            team: "{1}1 team result|[0,Inf[%number% team results"
+            also_owned: "{1}Its puzzle goes to your collection too.|[0,Inf[Their puzzles go to your collection too (%number%)."
+            owned: "{1}1 puzzle you own|[0,Inf[%number% puzzles you own"
+            collection: "Puzzles you own go to your collection."
+            who:
+                guest: "%name% (guest)"
+                player: "%name% (player)"
+        read:
+            date_order:
+                dmy: "Dates: day first - 03/04/2023 is 3 April 2023."
+                mdy: "Dates: month first - 03/04/2023 is 4 March 2023."
+                ymd: "Dates: year first - 2023/04/03 is 3 April 2023."
+            duration: "Times are read as: %reading%"
+            short_dates: "Short dates like “Jan 23” are read as: %reading%"
+            year: "Dates written without a year: %year%."
+            coarse: "{1}1 result has only a month or a year - it is added that way.|[0,Inf[%number% results have only a month or a year - they are added that way."
+            example: "For example, row %row%."
+            in_file: "Your file says %said%, added as:"
+        sample_more: "{1}1 more|[0,Inf[%number% more"
+        verb:
+            match: "Match"
+            look: "Look"
+            check: "Check"
+            answer: "Answer"
+        what_adding_does: "What adding does"
+    add_list:
+        title: "What will be added"
+        intro: "Everything that pressing Add would add right now, in the order of your file. Untick a row to keep it out - it is saved at once."
+        tab:
+            all: "All"
+            results: "Results"
+            collection: "Collection"
+            wish: "Wish list"
+        search:
+            label: "Search a puzzle"
+            go: "Go"
+            clear: "Show everything again"
+        sheet:
+            label: "Sheet"
+            all: "All sheets"
+            rows: "{1}1 row|[0,Inf[%number% rows"
+            leave_out: "Don't import any"
+            confirm: "{1}Don't import the 1 row of “%title%”? You can change this in step 2.|[0,Inf[Don't import the %number% rows of “%title%”? You can change this in step 2."
+            confirm_button: "Yes, don't import this sheet"
+        row:
+            leave_out: "Don't import this row"
+            not_imported: "Not imported"
+            put_back: "Put back"
+            open: "Open the row"
+            plus_collection: "+ collection"
+            unlisted: "Kept just for you"
+            repeats: "Repeats another row - counted once"
+            on_profile: "On your profile already - not added twice"
+        puzzle:
+            leave_out: "{1}Don't import this puzzle (1 row)|[0,Inf[Don't import any of this puzzle (%number% rows)"
+        bar:
+            will_add: "{0}Nothing will be added|{1}1 will be added|[2,Inf[%number% will be added"
+            done: "Done - back to the check"
+        empty: "Nothing is ready to add yet."
+        no_hit: "No row with that puzzle."
+        reading_again: "A sheet is being read again - this list follows in a moment."
+        refresh: "Refresh"
+        flash:
+            left_out: "Not imported. “Put back” brings the row back."
+            put_back: "Put back. It is in the list again as soon as its puzzle is matched - usually at once."
+            left_out_puzzle: "{1}1 row is not imported. You can put it back.|[0,Inf[%number% rows are not imported. You can put each of them back."
+            left_out_sheet: "The rows of “%title%” are not imported. You can change this in step 2, “How we read your file”."
+            changed_meanwhile: "This changed in the meantime - here is how it stands now. Nothing was saved."
 unlisted_puzzles:
     title: "Unlisted puzzles"
     link: "Your unlisted puzzles"
@@ -13020,7 +13107,6 @@ unlisted_puzzles:
         left: "Still unlisted here: %number%. Each says why below."
         try_again: "Try to add the rest again"
     add:
-        kind: "Rows kept just for you"
         ready: "Rows kept just for you: %number% - only you see them."
     batch:
         kept: "Rows kept just for you: %number%. Only you see them, and they do not count until matched."

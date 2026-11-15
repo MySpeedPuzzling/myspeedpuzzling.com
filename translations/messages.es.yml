@@ -11860,6 +11860,22 @@ data_import:
         discard: "Se eliminan el archivo y todo lo que se leyó de él. En tu perfil no cambia nada - todavía no se había añadido nada."
         kept: "Se queda en tu lista para que las mismas filas nunca se añadan dos veces y puedas deshacerlas."
         file: "Solo tú ves el archivo. Lo guardamos %days% días y después se elimina - lo que se añadió se queda en tu perfil."
+        # Slice 2 of the guided flow: "Check and add" and "What will be added"
+        on_profile: "Estos resultados ya están en MySpeedPuzzling - el mismo puzzle, día y tiempo. No se añaden una segunda vez."
+        on_profile_summary: "¿Qué significa «ya está en tu perfil»?"
+        repeat: "Tu archivo tiene el mismo puzzle, día y tiempo en varias filas. Las contamos como un solo resultado - dinos si son resoluciones distintas."
+        repeat_summary: "¿Qué es una fila que repite otra fila?"
+        dont_import: "Las filas se quedan aquí, en tu archivo, y no se añaden. Puedes volver a incluirlas cuando quieras."
+        player_partner: "El resultado aparece también en su perfil, como resultado en pareja o en equipo contigo. Se le avisa una vez y puede quitarse."
+        player_partner_summary: "¿Qué pasa cuando un compañero es un jugador?"
+        month_only: "Tu archivo no da el día exacto. El resultado se añade como «marzo de 2021» - cuenta en todo salvo en lo que necesita un día, como el calendario y las rachas."
+        month_only_summary: "¿Y un resultado que solo tiene mes o año?"
+        no_date: "Un resultado necesita al menos un año para añadirse. Dales un día, un mes o un año - o se quedan aquí."
+        unusual_time: "Mucho más rápido o más lento de lo que sugieren tus otros resultados para este puzzle. Preguntamos para que un error al teclear no acabe en una clasificación - si está bien, dilo y se añade."
+        unusual_time_summary: "¿Qué es un tiempo poco habitual?"
+        daily_limit: "Añadimos como máximo %number% resultados al día desde hojas de cálculo, para que las clasificaciones y las estadísticas sigan el ritmo. El resto estará listo mañana - pulsa Añadir otra vez entonces. No se pierde nada."
+        add: "Un resultado importado cuenta como uno que escribes tú: en tu perfil y - si tiene tiempo - en la clasificación del puzzle. Conserva el día en que lo resolviste, así que no aparece como actividad nueva, y a tus seguidores no se les avisa."
+        no_photo: "Los resultados importados no tienen foto. Puedes añadirla después a cualquier resultado."
     group:
         title: "Repasando tus filas"
         line: "Repasando tus filas… %done% de %total%"
@@ -11913,13 +11929,11 @@ data_import:
         intro: "Echa un vistazo a lo que se va a añadir a tu perfil. No se añade nada hasta que pulses el botón de abajo."
         paused: "Nuestro equipo ha pausado un momento el añadido. Todo lo que has preparado se conserva y no se pierde nada - puedes seguir emparejando puzzles y revisando filas, y añadirlas cuando el añadido vuelva a activarse."
         paused_running: "Nuestro equipo ha pausado un momento el añadido. Continuará solo; no se pierde nada."
-        will_add: "Esto se añadirá a tu perfil"
         counts: "Resultados: %results% · Puzzles que tienes: %owned% · Lista de deseos: %wish_list%"
         added_so_far: "Añadido hasta ahora - resultados: %results% · puzzles que tienes: %owned% · lista de deseos: %wish_list%"
         see_added: "Ver lo que se añadió"
         back_to_review: "Volver a «Revisar y añadir»"
-        sheet_rows: "Listo para añadir: %number%"
-        daily_limit: "Desde hojas de cálculo se añaden como máximo %limit% resultados al día. Hoy: %today%. Los %later% restantes estarán listos mañana; no se pierde nada."
+        daily_limit: "Añadimos como máximo %limit% resultados al día. Hoy: %today%. Los otros %later% se pueden añadir mañana - no se pierde nada."
         with_guests: "con %people%"
         first_try: "primer intento"
         button: "Añadir %number% a mi perfil"
@@ -11945,8 +11959,6 @@ data_import:
             results: "Resultados"
             owned: "Puzzles que tienes"
             wish_list: "Puzzles para la lista de deseos"
-            already_yours: "Ya está en tu perfil - no se añade dos veces"
-            equal_rows: "Filas que repiten otra fila - se cuentan una vez"
         sample:
             title: "Los primeros resultados, tal como se verán"
             hint: "Comprueba el puzzle, el tiempo y la fecha. Si aquí algo no cuadra, probablemente tampoco cuadre en las demás filas."
@@ -11982,11 +11994,7 @@ data_import:
             hint: "No hay nada que hacer. Estas filas no se añaden por segunda vez."
             more: "Y %number% más."
         does:
-            public: "Los resultados aparecen en tu perfil y en la clasificación de cada puzzle, igual que los que escribes a mano. Un código de jugador en tu archivo se convierte en ese jugador; los nombres se quedan como invitados hasta que digas quiénes son."
             undo: "Puedes deshacer una sola fila, una tanda o todo lo que añadió esta importación."
-        does_not:
-            followers: "No se avisa a tus seguidores."
-            dated: "Los resultados llevan la fecha del día en que montaste el puzzle: no aparecen como actividad nueva."
         flash:
             nothing_chosen: "No se eligió nada."
             changed_meanwhile: "Estas filas han cambiado entretanto: no se guardó nada. Así están ahora."
@@ -12002,15 +12010,7 @@ data_import:
             not_addable: "Ahora mismo no se pueden añadir filas de esta importación."
             daily_limit: "Los %number% resultados de hoy desde hojas de cálculo ya se han usado. El resto estará listo mañana; no se pierde nada."
         sheet_as:
-            results: "{1}1 resultado|[0,Inf[%count% resultados"
-            all_solo: "individual"
-            all_duo: "pareja"
-            all_team: "equipo"
-            some_solo: "%count% individual"
-            some_duo: "%count% pareja"
-            some_team: "%count% equipo"
             with: "con %people%"
-            hint: "Revisa cada hoja: individual, pareja o equipo - y que los resultados sean tuyos, no de otra persona."
     batch:
         how:
             owned: "Filas cuyo puzzle ya tenías, por otra fila del archivo o de antes: %number%"
@@ -12750,6 +12750,93 @@ data_import:
         own_name:
             question: "«%name%» es tu propio nombre. ¿Eres tú?"
             yes: "Sí, soy yo"
+    # --- Guided flow, slice 2: "Check and add" says everything (add_review), "What will be added" (add_list) ---
+    add_review:
+        ready_title: "Listo para añadir"
+        quoted: "«%text%»"
+        line:
+            results: "{1}1 resultado|[0,Inf[%number% resultados"
+            owned: "{1}1 puzzle para tu colección|[0,Inf[%number% puzzles para tu colección"
+            wish_list: "{1}1 puzzle para tu lista de deseos|[0,Inf[%number% puzzles para tu lista de deseos"
+            unlisted: "{1}1 fila guardada solo para ti|[0,Inf[%number% filas guardadas solo para ti"
+            already_yours: "{1}1 fila ya está en tu perfil - no se añade dos veces.|[0,Inf[%number% filas ya están en tu perfil - no se añaden dos veces."
+            equal_rows: "{1}1 fila repite otra fila - se cuenta una vez.|[0,Inf[%number% filas repiten otra fila - se cuentan una vez."
+            show: "Mostrar"
+        see_all: "{1}Verla y desmarcarla si quieres|[0,Inf[Ver las %number% y desmarcar las que quieras"
+        how:
+            hint: "Revisa cada hoja: individual, pareja o equipo, con quién - y que los resultados sean tuyos, no de otra persona."
+            change: "¿Algo no cuadra? Cambiar cómo se lee el archivo"
+        as:
+            solo: "{1}1 resultado individual|[0,Inf[%number% resultados individuales"
+            duo: "{1}1 resultado en pareja|[0,Inf[%number% resultados en pareja"
+            team: "{1}1 resultado en equipo|[0,Inf[%number% resultados en equipo"
+            also_owned: "{1}Su puzzle también va a tu colección.|[0,Inf[Sus puzzles también van a tu colección (%number%)."
+            owned: "{1}1 puzzle que tienes|[0,Inf[%number% puzzles que tienes"
+            collection: "Los puzzles que tienes van a tu colección."
+            who:
+                guest: "%name% (invitado)"
+                player: "%name% (jugador)"
+        read:
+            date_order:
+                dmy: "Fechas: primero el día - 03/04/2023 es el 3 de abril de 2023."
+                mdy: "Fechas: primero el mes - 03/04/2023 es el 4 de marzo de 2023."
+                ymd: "Fechas: primero el año - 2023/04/03 es el 3 de abril de 2023."
+            duration: "Los tiempos se leen como: %reading%"
+            short_dates: "Las fechas cortas como «Jan 23» se leen como: %reading%"
+            year: "Fechas escritas sin año: %year%."
+            coarse: "{1}1 resultado solo tiene mes o año - se añade así.|[0,Inf[%number% resultados solo tienen mes o año - se añaden así."
+            example: "Por ejemplo, la fila %row%."
+            in_file: "Tu archivo dice %said%, se añade como:"
+        sample_more: "{1}1 más|[0,Inf[%number% más"
+        verb:
+            match: "Emparejar"
+            look: "Ver"
+            check: "Revisar"
+            answer: "Responder"
+        what_adding_does: "Qué hace añadir"
+    add_list:
+        title: "Qué se va a añadir"
+        intro: "Todo lo que se añadiría ahora mismo al pulsar Añadir, en el orden de tu archivo. Desmarca una fila para dejarla fuera - se guarda al momento."
+        tab:
+            all: "Todo"
+            results: "Resultados"
+            collection: "Colección"
+            wish: "Lista de deseos"
+        search:
+            label: "Buscar un puzzle"
+            go: "Ir"
+            clear: "Mostrar todo otra vez"
+        sheet:
+            label: "Hoja"
+            all: "Todas las hojas"
+            rows: "{1}1 fila|[0,Inf[%number% filas"
+            leave_out: "No importar ninguna"
+            confirm: "{1}¿No importar la fila de «%title%»? Puedes cambiarlo en el paso 2.|[0,Inf[¿No importar las %number% filas de «%title%»? Puedes cambiarlo en el paso 2."
+            confirm_button: "Sí, no importar esta hoja"
+        row:
+            leave_out: "No importar esta fila"
+            not_imported: "No se importa"
+            put_back: "Volver a incluir"
+            open: "Abrir la fila"
+            plus_collection: "+ colección"
+            unlisted: "Guardada solo para ti"
+            repeats: "Repite otra fila - se cuenta una vez"
+            on_profile: "Ya está en tu perfil - no se añade dos veces"
+        puzzle:
+            leave_out: "{1}No importar este puzzle (1 fila)|[0,Inf[No importar nada de este puzzle (%number% filas)"
+        bar:
+            will_add: "{0}No se añadirá nada|{1}Se añadirá 1|[2,Inf[Se añadirán %number%"
+            done: "Hecho - volver a la revisión"
+        empty: "Todavía no hay nada listo para añadir."
+        no_hit: "Ninguna fila con ese puzzle."
+        reading_again: "Se está leyendo de nuevo una hoja - esta lista se pondrá al día en un momento."
+        refresh: "Actualizar"
+        flash:
+            left_out: "No se importa. Con «Volver a incluir» la fila vuelve."
+            put_back: "Incluida de nuevo. Vuelve a la lista en cuanto su puzzle esté emparejado - normalmente al momento."
+            left_out_puzzle: "{1}1 fila no se importa. Puedes volver a incluirla.|[0,Inf[%number% filas no se importan. Puedes volver a incluir cada una."
+            left_out_sheet: "Las filas de «%title%» no se importan. Puedes cambiarlo en el paso 2, «Cómo hemos leído tu archivo»."
+            changed_meanwhile: "Esto ha cambiado mientras tanto - así está ahora. No se ha guardado nada."
 unlisted_puzzles:
     title: "Puzzles fuera del catálogo"
     link: "Tus puzzles fuera del catálogo"
@@ -12774,7 +12861,6 @@ unlisted_puzzles:
         left: "Siguen fuera del catálogo: %number%. Abajo se indica el motivo de cada uno."
         try_again: "Intentar añadir el resto de nuevo"
     add:
-        kind: "Filas guardadas solo para ti"
         ready: "Filas guardadas solo para ti: %number% - solo tú las ves."
     batch:
         kept: "Filas guardadas solo para ti: %number%. Solo tú las ves, y no cuentan hasta que se emparejen."

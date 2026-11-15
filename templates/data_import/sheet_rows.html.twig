@@ -33,7 +33,7 @@
         <p class="fs-sm text-muted">{{ 'data_import.columns.rows.intro'|trans }}</p>
 
         {% for row in rows %}
-            {{ include('data_import/_parsed_row.html.twig', {row: row}) }}
+            {{ include('data_import/_parsed_row.html.twig', {row: row, open_row_import_id: import_id}) }}
         {% endfor %}
 
         {% if pages > 1 %}

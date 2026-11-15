@@ -1,0 +1,13 @@
+{#
+    A puzzle of the import as the file says it: name, brand, pieces, how many rows. The player's own text - escaped,
+    never part of an address. Variables: card (ImportPuzzleCard), heading (the tag of the name, default div).
+#}
+<div class="fs-xs text-uppercase text-muted mb-1">{{ 'data_import.puzzles.card.in_file'|trans }}</div>
+<{{ heading|default('div') }} class="{{ heading is defined ? 'h4' : 'fw-medium' }} mb-0 text-break" data-testid="import-puzzle-name">{{ card.name }}</{{ heading|default('div') }}>
+<div class="fs-sm text-muted text-break" data-testid="import-puzzle-said">
+    {%- set said = [] -%}
+    {%- if card.brandText is not null and card.brandText != '' %}{% set said = said|merge([card.brandText]) %}{% endif -%}
+    {%- if card.piecesCount is not null %}{% set said = said|merge(['data_import.columns.row.pieces'|trans({'%number%': card.piecesCount|format_number})]) %}{% endif -%}
+    {%- set said = said|merge(['data_import.puzzles.card.rows'|trans({'%number%': card.rows|format_number})]) -%}
+    {{ said|join(' · ') }}
+</div>

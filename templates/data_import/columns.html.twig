@@ -30,6 +30,16 @@
             {{ 'data_import.columns.summary'|trans({'%ready%': summary.ready|format_number, '%look%': summary.look|format_number, '%waiting%': summary.waiting|format_number, '%left_out%': summary.left_out|format_number}) }}
         </p>
 
+        {# Right after the first layout: what the pairing found, and the way to it (pairing-screens.md "We found N") #}
+        {% if pairing.puzzles > 0 %}
+            <div class="card card-body shadow-sm mb-3 border-primary" data-testid="import-found-puzzles">
+                <p class="fw-medium mb-2">{{ 'data_import.puzzles.we_found'|trans({'%found%': pairing.found|format_number, '%puzzles%': pairing.puzzles|format_number}) }}</p>
+                <a href="{{ path('data_import_puzzles', {importId: import.importId}) }}" class="btn btn-primary w-100 text-wrap d-flex align-items-center justify-content-center" style="min-height: 44px;" data-testid="import-found-puzzles-open">
+                    <i class="bi bi-puzzle me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.open'|trans }}
+                </a>
+            </div>
+        {% endif %}
+
         {% for sheet in sheets %}
             {% set state = sheet.state %}
             <div class="card shadow-sm mb-3{{ sheet.asksThePlayer ? ' border-warning' : '' }}" data-testid="sheet-card" data-sheet-state="{{ state }}">
@@ -102,7 +112,7 @@
 
     <div class="alert alert-info fs-sm d-flex gap-2" data-testid="import-soon">
         <i class="bi bi-info-circle flex-shrink-0"></i>
-        <span>{{ 'data_import.columns.soon'|trans }}</span>
+        <span>{{ 'data_import.puzzles.soon'|trans }}</span>
     </div>
 
     <a href="{{ path('data_import_detail', {importId: import.importId}) }}" class="btn btn-link px-0" style="min-height: 44px;">

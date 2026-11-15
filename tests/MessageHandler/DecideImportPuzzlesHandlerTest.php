@@ -301,8 +301,12 @@ final class DecideImportPuzzlesHandlerTest extends KernelTestCase
         ]));
         self::assertSame(['undecided', 'undecided'], [$this->importPuzzle($import, 'Zq my five hundred')['choice'], $this->importPuzzle($import, 'Zq my other five hundred')['choice']]);
 
-        // ... only one by one
-        $this->decide($import, $player->id->toString(), [new ImportPuzzleDecisionChange($mine['id'], ImportPuzzleChoice::Catalogue, $thousand, 0)]);
+        // ... only one by one, and only with the player's yes to "choose it anyway?"
+        self::assertSame(ImportPuzzleChoiceRefused::OTHER_PIECE_COUNT_UNCONFIRMED, $this->refusal($import, $player->id->toString(), [
+            new ImportPuzzleDecisionChange($mine['id'], ImportPuzzleChoice::Catalogue, $thousand, 0),
+        ]));
+        self::assertSame('undecided', $this->importPuzzle($import, 'Zq my five hundred')['choice']);
+        $this->decide($import, $player->id->toString(), [new ImportPuzzleDecisionChange($mine['id'], ImportPuzzleChoice::Catalogue, $thousand, 0, confirmedOtherPieces: true)]);
         self::assertSame(['catalogue', $thousand], [$this->importPuzzle($import, 'Zq my five hundred')['choice'], $this->importPuzzle($import, 'Zq my five hundred')['puzzle_id']]);
     }
 

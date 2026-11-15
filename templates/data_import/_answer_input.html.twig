@@ -1,0 +1,27 @@
+{#
+    The editor of one field of an import row (docs/features/data-import/pairing-screens.md "The row sheet") - what
+    "To fix" answers a group with, and what a later "My data" row sheet reuses. 16 px so that iOS does not zoom,
+    44 px tall.
+
+    Variables: name, id, input (ImportRowAnswers::INPUTS: text, number, code, date, time, type, yes_no, status),
+    value, choices (for the select kinds), empty_label (the select's first option), invalid (bool), described_by.
+#}
+{% set invalid = invalid|default(false) %}
+{% set described_by = described_by|default('') %}
+{% if input in ['type', 'yes_no', 'status'] %}
+    <select id="{{ id }}" name="{{ name }}" class="form-select{{ invalid ? ' is-invalid' : '' }}" style="font-size: 16px; min-height: 44px;"
+            {% if described_by != '' %}aria-describedby="{{ described_by }}"{% endif %} {% if invalid %}aria-invalid="true"{% endif %} data-testid="import-answer-input">
+        <option value="">{{ empty_label }}</option>
+        {% for choice in choices %}
+            <option value="{{ choice }}"{{ value == choice ? ' selected' : '' }}>{{ ('data_import.answer.choice.' ~ choice)|trans }}</option>
+        {% endfor %}
+    </select>
+{% else %}
+    <input type="{{ input == 'date' ? 'date' : 'text' }}" id="{{ id }}" name="{{ name }}" value="{{ value }}"
+           class="form-control{{ invalid ? ' is-invalid' : '' }}" style="font-size: 16px; min-height: 44px;" autocomplete="off"
+           {% if input != 'date' %}maxlength="500"{% endif %}
+           {% if input in ['number', 'code'] %}inputmode="numeric"{% endif %}
+           {% if input == 'time' %}placeholder="1:15:00"{% endif %}
+           {% if described_by != '' %}aria-describedby="{{ described_by }}"{% endif %} {% if invalid %}aria-invalid="true"{% endif %}
+           data-testid="import-answer-input">
+{% endif %}

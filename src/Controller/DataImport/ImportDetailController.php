@@ -71,6 +71,8 @@ final class ImportDetailController extends AbstractController
             'summary' => ImportColumnsController::summary($sheets),
             // Its distinct puzzles and how far their pairing with the catalogue is - one statement, read only
             'pairing' => $this->getImportPairing->summary($importId),
+            // What the page's live line starts from: it follows the reading of the rows and the pairing by itself
+            'live' => ImportPuzzlesController::live($this->getDataImports->progressOfPlayer($importId, $player->playerId)),
             'keep_days' => DataImportLimits::KEEP_FILE_DAYS,
             'limits' => [
                 '%megabytes%' => intdiv(DataImportLimits::MAX_FILE_BYTES, 1024 * 1024),

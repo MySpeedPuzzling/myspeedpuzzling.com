@@ -48,7 +48,7 @@ readonly final class MatchImportPuzzlesFuzzyHandler
         $now = $this->clock->now();
 
         if ($this->matcher->searchSimilarNames($import, $now) >= ImportPuzzleMatcher::SEARCH_CHUNK) {
-            $import->workedOn($now);
+            $import->pairingGoesOn($now);
             $this->messageBus->dispatch(new MatchImportPuzzlesFuzzy($message->importId, $message->pairingRun));
 
             return;

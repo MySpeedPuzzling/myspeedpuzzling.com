@@ -22,6 +22,11 @@ readonly final class ImportPuzzleDecisionChange
         public ImportPuzzleChoice $choice,
         public null|string $puzzleId,
         public int $seenVersion,
+        /**
+         * The player was asked "your file says 500 pieces, this puzzle has 1,000 - choose it anyway?" and said yes.
+         * Without it a catalogue puzzle of another piece count is refused, also alone
+         */
+        public bool $confirmedOtherPieces = false,
     ) {
     }
 }

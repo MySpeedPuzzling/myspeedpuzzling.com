@@ -1,0 +1,123 @@
+{% extends 'base.html.twig' %}
+
+{#
+    "To fix" of one import (docs/features/data-import/pairing-screens.md "To fix"): the rows that need a look,
+    grouped by what is unclear and the value as the sheet has it - "14 rows where the time is 1:15ish". One answer
+    for all rows of a value, or "Leave these rows out"; a link opens one of the rows. A group is named by a key in
+    its form, never by its value; the value is the player's own text, shown escaped.
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
+{% set answer_url = path('data_import_rows_answer', {importId: import.importId}) %}
+
+{% block title %}{{ 'data_import.to_fix.title'|trans }} - {{ import_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{{ include('_page_crumbs.html.twig', {levels: [
+    {name: 'data_import.home.title'|trans, url: path('data_imports')},
+    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
+    {name: 'data_import.puzzles.title'|trans, url: path('data_import_puzzles', {importId: import.importId})},
+]}) }}
+
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-to-fix-page">
+    <h1 class="h3 mb-2">{{ 'data_import.to_fix.title'|trans }}</h1>
+    <p class="text-muted fs-sm">{{ 'data_import.to_fix.intro'|trans }}</p>
+
+    {% if groups is empty %}
+        <p class="alert alert-success fs-sm" data-testid="import-to-fix-empty"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{{ 'data_import.to_fix.empty'|trans }}</p>
+    {% endif %}
+
+    {% for group in groups %}
+        {% set error = errors[group.key] ?? null %}
+        {% set sentence = ('data_import.columns.problem.' ~ group.code)|trans %}
+        <div class="card shadow-sm mb-3{{ error is not null ? ' border-danger' : '' }}" id="group-{{ group.key }}" style="scroll-margin-top: 90px;"
+             data-testid="import-to-fix-group" data-code="{{ group.code }}" data-field="{{ group.field }}" data-rows="{{ group.rows }}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <h2 class="h6 mb-1">
+                        {%- if group.field != '' %}{{ ('data_import.columns.field.' ~ group.field)|trans }}{% else %}{{ 'data_import.to_fix.no_field'|trans }}{% endif -%}
+                    </h2>
+                    <span class="badge bg-faded-warning text-warning flex-shrink-0" data-testid="import-to-fix-rows">{{ 'data_import.puzzles.card.rows'|trans({'%number%': group.rows|format_number}) }}</span>
+                </div>
+                <p class="mb-2 text-break">
+                    {% if group.value != '' %}<mark class="px-1 rounded" data-testid="import-to-fix-value">{{ group.value }}</mark>{% endif %}
+                    <span class="fs-sm">{{ sentence == 'data_import.columns.problem.' ~ group.code ? 'data_import.columns.problem.other'|trans : sentence }}</span>
+                </p>
+
+                {% if group.input is not null %}
+                    <form action="{{ answer_url }}" method="post" class="mb-2" data-testid="import-to-fix-answer">
+                        <input type="hidden" name="_token" value="{{ csrf }}">
+                        <input type="hidden" name="group" value="{{ group.key }}">
+                        <input type="hidden" name="page" value="{{ page }}">
+                        <label for="answer-{{ group.key }}" class="form-label fs-sm fw-medium mb-1">{{ 'data_import.to_fix.answer_label'|trans }}</label>
+                        {{ include('data_import/_answer_input.html.twig', {
+                            name: 'answer',
+                            id: 'answer-' ~ group.key,
+                            input: group.input,
+                            value: typed[group.key] ?? group.proposal ?? '',
+                            choices: {type: ['solo', 'duo', 'team'], yes_no: ['yes', 'no'], status: ['result', 'owned', 'both', 'wish_list']}[group.input] ?? [],
+                            empty_label: 'data_import.answer.choose'|trans,
+                            invalid: error is not null,
+                            described_by: 'answer-help-' ~ group.key,
+                        }, with_context = false) }}
+                        {% if error is not null %}
+                            <div class="text-danger fs-sm mt-1" role="alert" data-testid="import-to-fix-error">{{ ('data_import.to_fix.error.' ~ error)|trans }}</div>
+                        {% endif %}
+                        <div class="form-text" id="answer-help-{{ group.key }}">
+                            {% set hint = ('data_import.to_fix.hint.' ~ group.input)|trans %}
+                            {{ hint == 'data_import.to_fix.hint.' ~ group.input ? '' : hint }}
+                            {% if group.proposal is not null and typed[group.key] is not defined %}{{ 'data_import.to_fix.proposal_hint'|trans }}{% endif %}
+                        </div>
+                        <button type="submit" name="action" value="answer" class="btn btn-primary w-100 mt-2 text-wrap" style="min-height: 44px;" data-testid="import-to-fix-use">
+                            <i class="bi bi-check-lg me-1" aria-hidden="true"></i>{{ 'data_import.to_fix.use'|trans({'%number%': group.rows|format_number}) }}
+                        </button>
+                    </form>
+                {% else %}
+                    <p class="fs-sm text-muted" data-testid="import-to-fix-not-answerable">{{ 'data_import.to_fix.not_answerable'|trans }}</p>
+                {% endif %}
+
+                <div class="d-flex flex-wrap gap-2">
+                    <form action="{{ answer_url }}" method="post" class="d-inline">
+                        <input type="hidden" name="_token" value="{{ csrf }}">
+                        <input type="hidden" name="group" value="{{ group.key }}">
+                        <input type="hidden" name="page" value="{{ page }}">
+                        <button type="submit" name="action" value="leave_out" class="btn btn-outline-secondary text-wrap" style="min-height: 44px;" data-testid="import-to-fix-leave-out"
+                                data-turbo-confirm="{{ 'data_import.to_fix.leave_out_confirm'|trans({'%number%': group.rows|format_number}) }}">
+                            <i class="bi bi-dash-circle me-1" aria-hidden="true"></i>{{ 'data_import.to_fix.leave_out'|trans }}
+                        </button>
+                    </form>
+                    <a href="{{ path('data_import_row', {importId: import.importId, rowId: group.sampleRowId}) }}" class="btn btn-outline-primary d-inline-flex align-items-center text-wrap" style="min-height: 44px;" data-testid="import-to-fix-open-row">
+                        <i class="bi bi-card-text me-1" aria-hidden="true"></i>{{ 'data_import.to_fix.open_row'|trans }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+
+    {{ include('data_import/_pages.html.twig', {page: page, pages: pages, route: 'data_import_to_fix', parameters: {importId: import.importId}, label: 'data_import.to_fix.title'|trans}, with_context = false) }}
+
+    {% if left_out.total > 0 %}
+        <details class="card card-body shadow-sm mt-3" data-testid="import-to-fix-left-out">
+            <summary class="fw-semibold d-flex align-items-center" style="min-height: 44px; cursor: pointer;">{{ 'data_import.to_fix.left_out_title'|trans({'%number%': left_out.total|format_number}) }}</summary>
+            {% for row in left_out.rows %}
+                <div class="d-flex align-items-center justify-content-between gap-2 py-2 border-top" data-testid="import-to-fix-left-out-row">
+                    <a href="{{ path('data_import_row', {importId: import.importId, rowId: row.rowId}) }}" class="text-break">{{ 'data_import.to_fix.row_of'|trans({'%row%': row.rowNumber|format_number, '%sheet%': row.sheetTitle}) }}</a>
+                    <form action="{{ answer_url }}" method="post" class="flex-shrink-0">
+                        <input type="hidden" name="_token" value="{{ csrf }}">
+                        <input type="hidden" name="row" value="{{ row.rowId }}">
+                        <input type="hidden" name="page" value="{{ page }}">
+                        <button type="submit" name="action" value="take_in" class="btn btn-outline-primary btn-sm" style="min-height: 44px;" data-testid="import-to-fix-take-in">{{ 'data_import.to_fix.take_in'|trans }}</button>
+                    </form>
+                </div>
+            {% endfor %}
+        </details>
+    {% endif %}
+
+    <a href="{{ path('data_import_puzzles', {importId: import.importId}) }}" class="btn btn-link px-0 mt-3" style="min-height: 44px;">
+        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.back_to_summary'|trans }}
+    </a>
+</div>
+{% endblock %}

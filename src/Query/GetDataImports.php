@@ -42,6 +42,9 @@ readonly final class GetDataImports
     data_import.rows_read
 SQL;
 
+    /** How long after its last sign of life a pairing run is still followed by an open page */
+    private const int PAIRING_FOLLOWED_MINUTES = 20;
+
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
@@ -202,6 +205,23 @@ SELECT
     (SELECT COUNT(*) FROM data_import_sheet sheet WHERE sheet.import_id = data_import.id AND sheet.set_up_failure IS NULL AND (sheet.mapping_version = 0 OR (sheet.parsed_version IS DISTINCT FROM sheet.mapping_version))) AS sheets_working,
     (SELECT COALESCE(SUM(sheet.rows_total), 0) FROM data_import_sheet sheet WHERE sheet.import_id = data_import.id AND sheet.set_up_failure IS NULL AND sheet.mapping_version > 0 AND sheet.parsed_version IS DISTINCT FROM sheet.mapping_version) AS rows_to_parse,
     (SELECT COUNT(*) FROM data_import_sheet sheet INNER JOIN data_import_row parsed_row ON parsed_row.sheet_id = sheet.id AND parsed_row.parsed_version = sheet.mapping_version WHERE sheet.import_id = data_import.id AND sheet.set_up_failure IS NULL AND sheet.mapping_version > 0 AND sheet.parsed_version IS DISTINCT FROM sheet.mapping_version) AS rows_parsed,
+    -- The pairing of the import's puzzles with the catalogue (docs/features/data-import/pairing-screens.md "The live
+    -- line"): numbers by what is left for the player to do, as GetImportPairing::summary() counts them
+    data_import.pairing_run,
+    data_import.paired_at IS NOT NULL AS paired,
+    (
+        data_import.paired_at IS NULL
+        AND data_import.cells_wiped_at IS NULL
+        AND data_import.pairing_requeues < :maxRequeues
+        AND COALESCE(data_import.pairing_alive_at, data_import.last_activity_at) > :pairingAliveSince
+        AND EXISTS (SELECT 1 FROM data_import_sheet sheet WHERE sheet.import_id = data_import.id AND sheet.parsed_version IS NOT NULL)
+    ) AS pairing_running,
+    (SELECT COUNT(*) FROM data_import_puzzle puzzle WHERE puzzle.import_id = data_import.id) AS puzzles,
+    (SELECT COUNT(*) FROM data_import_puzzle puzzle WHERE puzzle.import_id = data_import.id AND puzzle.choice = 'catalogue') AS puzzles_found,
+    (SELECT COUNT(*) FROM data_import_puzzle puzzle WHERE puzzle.import_id = data_import.id AND puzzle.choice = 'undecided' AND puzzle.tier = 'probably') AS puzzles_probably,
+    (SELECT COUNT(*) FROM data_import_puzzle puzzle WHERE puzzle.import_id = data_import.id AND puzzle.choice = 'undecided' AND puzzle.tier IN ('choose', 'found')) AS puzzles_choose,
+    (SELECT COUNT(*) FROM data_import_puzzle puzzle WHERE puzzle.import_id = data_import.id AND (puzzle.choice = 'unlisted' OR (puzzle.choice = 'undecided' AND puzzle.tier = 'none'))) AS puzzles_not_found,
+    (SELECT COUNT(*) FROM data_import_puzzle puzzle WHERE puzzle.import_id = data_import.id AND puzzle.choice = 'undecided' AND puzzle.tier IS NULL) AS puzzles_searching,
     -- Changes whenever a sheet's state does: the screen loads its lists again when it sees another one
     (SELECT md5(COALESCE(string_agg(sheet.id::text || ':' || sheet.mapping_version || ':' || COALESCE(sheet.parsed_version, 0) || ':' || COALESCE(sheet.set_up_failure, ''), ',' ORDER BY sheet.position), '')) FROM data_import_sheet sheet WHERE sheet.import_id = data_import.id) AS revision
 FROM data_import
@@ -212,10 +232,13 @@ LEFT JOIN data_import same_file
 WHERE data_import.id = :importId
 SQL;
 
-        /** @var false|array{id: string, player_id: string, status: string, read_error: null|string, sheets_total: null|int, sheets_read: int, rows_read: int, same_file_as: null|string, sheets_mapped: int, sheets_parsed: int, sheets_waiting: int, sheets_working: int, rows_to_parse: int|string, rows_parsed: int, revision: string} $row */
+        /** @var false|array{id: string, player_id: string, status: string, read_error: null|string, sheets_total: null|int, sheets_read: int, rows_read: int, same_file_as: null|string, sheets_mapped: int, sheets_parsed: int, sheets_waiting: int, sheets_working: int, rows_to_parse: int|string, rows_parsed: int, revision: string, pairing_run: int, paired: bool, pairing_running: bool, puzzles: int, puzzles_found: int, puzzles_probably: int, puzzles_choose: int, puzzles_not_found: int, puzzles_searching: int} $row */
         $row = $this->database->executeQuery($query, [
             'importId' => $importId,
             'discarded' => DataImportStatus::Discarded->value,
+            'maxRequeues' => DataImportLimits::MAX_SET_UP_ATTEMPTS,
+            // A run that wrote nothing for this long is not waited for by a page - the safety net tries it again
+            'pairingAliveSince' => $this->clock->now()->modify('-' . self::PAIRING_FOLLOWED_MINUTES . ' minutes')->format('Y-m-d H:i:s'),
         ])->fetchAssociative();
 
         if ($row === false) {
@@ -244,6 +267,17 @@ SQL;
             rowsToParse: (int) $row['rows_to_parse'],
             rowsParsed: $row['rows_parsed'],
             revision: $row['revision'],
+            pairing: [
+                'running' => $row['status'] === DataImportStatus::SettingUp->value && $row['pairing_running'],
+                'puzzles' => $row['puzzles'],
+                'found' => $row['puzzles_found'],
+                'probably' => $row['puzzles_probably'],
+                'choose' => $row['puzzles_choose'],
+                'notFound' => $row['puzzles_not_found'],
+                'searching' => $row['puzzles_searching'],
+                // Another one whenever a run starts or comes to rest: the puzzles' pages load their lists again
+                'revision' => $row['pairing_run'] . ':' . ($row['paired'] ? '1' : '0'),
+            ],
         );
     }
 

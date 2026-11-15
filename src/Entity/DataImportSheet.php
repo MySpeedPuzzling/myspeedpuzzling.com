@@ -319,6 +319,18 @@ class DataImportSheet
     }
 
     /**
+     * Some of its rows were read again after the player's word about them (AnswerImportRows): the counts move by
+     * what those rows were and are now. The sheet stays parsed for its mapping.
+     */
+    public function rowsReadAgain(int $understood, int $needLook, int $leftOut, int $waiting): void
+    {
+        $this->rowsUnderstood = max(0, $this->rowsUnderstood + $understood);
+        $this->rowsNeedLook = max(0, $this->rowsNeedLook + $needLook);
+        $this->rowsLeftOut = max(0, $this->rowsLeftOut + $leftOut);
+        $this->rowsWaiting = max(0, $this->rowsWaiting + $waiting);
+    }
+
+    /**
      * @param array<array-key, mixed> $valueAnswers
      */
     private function mapped(ImportMapping $mapping, ImportSheetOptions $options, array $valueAnswers): void

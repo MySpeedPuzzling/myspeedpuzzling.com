@@ -31,7 +31,8 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * - three-way: each puzzle's `decision_version` is still what the page saw;
  * - a chosen catalogue puzzle exists and may be a candidate for this player (GetImportPuzzleCandidates::sqlCandidate()
  *   - what the player finds by searching passes the same check);
- * - a catalogue puzzle whose piece count is not the file's (more than one apart) is chosen alone, never in a group.
+ * - a catalogue puzzle whose piece count is not the file's (more than one apart) is chosen alone, never in a group,
+ *   and only with the player's explicit yes (`confirmedOtherPieces`).
  *
  * Then each puzzle takes the decision as the player's, and the player's remembered decision for its key is written
  * (a pairing taken back is remembered as "not this puzzle"; anything else taken back is forgotten). The counters of "where the rules end" move by what changed - the
@@ -124,6 +125,11 @@ readonly final class DecideImportPuzzlesHandler
 
             if ($said !== null && abs($pieces - $said) > 1 && count($message->decisions) > 1) {
                 throw new ImportPuzzleChoiceRefused(ImportPuzzleChoiceRefused::OTHER_PIECE_COUNT_IN_GROUP, $decision->importPuzzleId);
+            }
+
+            // Alone, and only after the player's yes to the question - asked by the server, not by a script
+            if ($said !== null && abs($pieces - $said) > 1 && $decision->confirmedOtherPieces === false) {
+                throw new ImportPuzzleChoiceRefused(ImportPuzzleChoiceRefused::OTHER_PIECE_COUNT_UNCONFIRMED, $decision->importPuzzleId);
             }
         }
 

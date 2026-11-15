@@ -1,0 +1,79 @@
+{% extends 'base.html.twig' %}
+
+{#
+    One group of an import's puzzles as a list (docs/features/data-import/pairing-screens.md "The lists"): fifty
+    cards a page (_puzzle_card.html.twig). "Probably" has "Tick all I see here" - one message with every waiting
+    card of this page and the version each showed, never pre-ticked; "Choose" and "Not found" lead into the
+    one-puzzle-per-screen chooser ("Do the next 20"). The page number is the only thing in the address.
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set import_name = import.fileName != '' ? import.fileName : 'data_import.google.unnamed'|trans %}
+{% set csrf = csrf_token(constant('SpeedPuzzling\\Web\\Controller\\DataImport\\ImportsHomeController::CSRF_TOKEN_ID')) %}
+{% set group_title = ('data_import.puzzles.group.' ~ group|replace({'-': '_'}) ~ '.title')|trans %}
+
+{% block title %}{{ group_title }} - {{ import_name }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+{{ include('_page_crumbs.html.twig', {levels: [
+    {name: 'data_import.home.title'|trans, url: path('data_imports')},
+    {name: import_name, url: path('data_import_detail', {importId: import.importId})},
+    {name: 'data_import.puzzles.title'|trans, url: path('data_import_puzzles', {importId: import.importId})},
+]}) }}
+
+<div class="mx-auto" style="max-width: 720px;" data-testid="import-puzzle-group-page" data-group="{{ group }}">
+    <h1 class="h3 mb-2">{{ group_title }}</h1>
+    <p class="text-muted fs-sm mb-2">{{ ('data_import.puzzles.group.' ~ group|replace({'-': '_'}) ~ '.hint')|trans }}</p>
+
+    {{ include('data_import/_setup_live.html.twig', {import_id: import.importId, working: live.working, revision: live.revision, pairing: true}) }}
+
+    <turbo-frame id="import-puzzle-list-live" data-import-live target="_top">
+        <p class="fs-sm fw-medium" data-testid="import-puzzle-group-counts">
+            {{ (open > 0 ? 'data_import.puzzles.group_counts' : 'data_import.puzzles.group_all_done')|trans({'%total%': total|format_number, '%open%': open|format_number}) }}
+        </p>
+
+        {% if cards is empty %}
+            <p class="alert alert-info fs-sm" data-testid="import-puzzle-group-empty">{{ 'data_import.puzzles.list.empty'|trans }}</p>
+        {% else %}
+            {% if group in ['choose', 'not-found'] and open > 0 %}
+                <div class="card card-body shadow-sm mb-3">
+                    <a href="{{ path('data_import_puzzle_next', {importId: import.importId, group: group}) }}" class="btn btn-primary w-100 text-wrap d-flex align-items-center justify-content-center" style="min-height: 48px;" rel="nofollow" data-testid="import-puzzle-next-20">
+                        <i class="bi bi-play-fill me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.list.next_20'|trans }}
+                    </a>
+                    <p class="fs-sm text-muted mt-2 mb-0">{{ 'data_import.puzzles.list.one_by_one_hint'|trans }}</p>
+                </div>
+            {% endif %}
+
+            {% set tickable = group == 'probably' ? cards|filter(card => card.canBeTickedInAGroup) : [] %}
+
+            {% for card in cards %}
+                {{ include('data_import/_puzzle_card.html.twig', {card: card, import_id: import.importId, group: group, page: page, csrf: csrf}, with_context = false) }}
+            {% endfor %}
+
+            {% if tickable|length > 0 %}
+                {# After the cards: the player has seen what they tick. Nothing is ticked for them #}
+                <form action="{{ path('data_import_puzzles_decide', {importId: import.importId}) }}" method="post" class="card card-body shadow-sm mt-3" data-testid="import-puzzle-tick-all">
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <input type="hidden" name="group" value="{{ group }}">
+                    <input type="hidden" name="page" value="{{ page }}">
+                    {% for card in tickable %}
+                        <input type="hidden" name="cards[{{ card.importPuzzleId }}][version]" value="{{ card.decisionVersion }}">
+                        <input type="hidden" name="cards[{{ card.importPuzzleId }}][catalogue]" value="{{ card.shown.puzzleId }}">
+                    {% endfor %}
+                    <button type="submit" name="action" value="tick_all" class="btn btn-primary w-100 text-wrap" style="min-height: 48px;" data-testid="import-puzzle-tick-all-button">
+                        <i class="bi bi-check-all me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.list.tick_all'|trans({'%number%': tickable|length}) }}
+                    </button>
+                    <p class="fs-sm text-muted mt-2 mb-0">{{ 'data_import.puzzles.list.tick_all_hint'|trans }}</p>
+                </form>
+            {% endif %}
+
+            {{ include('data_import/_pages.html.twig', {page: page, pages: pages, route: 'data_import_puzzle_group', parameters: {importId: import.importId, group: group}, label: group_title}, with_context = false) }}
+        {% endif %}
+    </turbo-frame>
+
+    <a href="{{ path('data_import_puzzles', {importId: import.importId}) }}" class="btn btn-link px-0 mt-3" style="min-height: 44px;">
+        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.back_to_summary'|trans }}
+    </a>
+</div>
+{% endblock %}

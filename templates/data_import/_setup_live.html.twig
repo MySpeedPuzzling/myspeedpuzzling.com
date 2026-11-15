@@ -7,7 +7,12 @@
 
     Variables: import_id, working (something still happens by itself), revision (the sheets' states as the page was
     rendered - what the script compares the progress with from its first moment).
+
+    On a puzzles' page (docs/features/data-import/pairing-screens.md "The live line") `pairing` is true: the line
+    follows the pairing of the import's puzzles with the database too ("Looking for similar names… puzzles left:
+    120"), `working` and `revision` include it, and `searching` is how many puzzles the search has not come to.
 #}
+{% set follows_pairing = pairing|default(false) %}
 <div class="card card-body shadow-sm mb-3 py-2" data-testid="import-setup-live"
      data-controller="data-import-setup"
      data-data-import-setup-import-id-value="{{ import_id }}"
@@ -17,10 +22,15 @@
      data-data-import-setup-fallback-url-value="{{ path('data_import_detail', {importId: import_id}) }}"
      data-data-import-setup-working-text-value="{{ 'data_import.columns.live.working'|trans }}"
      data-data-import-setup-rows-text-value="{{ 'data_import.columns.live.rows'|trans }}"
+     {% if follows_pairing %}
+         data-data-import-setup-pairing-value="true"
+         data-data-import-setup-pairing-text-value="{{ 'data_import.puzzles.live.pairing'|trans }}"
+         data-data-import-setup-searching-text-value="{{ 'data_import.puzzles.live.searching'|trans }}"
+     {% endif %}
      {% if not working %}hidden{% endif %}>
     <div class="d-flex align-items-center gap-2">
         <div class="spinner-border spinner-border-sm text-primary flex-shrink-0" aria-hidden="true" data-data-import-setup-target="spinner"></div>
-        <span class="fs-sm fw-medium" role="status" data-data-import-setup-target="line" data-testid="import-setup-line">{{ 'data_import.columns.live.working'|trans }}</span>
+        <span class="fs-sm fw-medium" role="status" data-data-import-setup-target="line" data-testid="import-setup-line">{{ (follows_pairing ? 'data_import.puzzles.live.pairing' : 'data_import.columns.live.working')|trans }}</span>
     </div>
     <div class="fs-sm text-muted mt-2" data-data-import-setup-target="stale" hidden>
         {{ 'data_import.reading.stale'|trans }}

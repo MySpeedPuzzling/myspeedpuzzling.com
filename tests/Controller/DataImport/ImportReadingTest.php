@@ -139,8 +139,10 @@ final class ImportReadingTest extends WebTestCase
         $last = end($published);
         self::assertSame(
             ['type' => 'import_progress', 'importId' => $importId, 'status' => 'setting_up', 'moving' => false, 'sheetsTotal' => 2, 'sheetsRead' => 2, 'rowsRead' => 4, 'sheetsMapped' => 0, 'sheetsParsed' => 0, 'sheetsWaiting' => 0, 'working' => true, 'rowsToParse' => 0, 'rowsParsed' => 0],
-            array_diff_key($last, ['revision' => true]),
+            array_diff_key($last, ['revision' => true, 'pairing' => true]),
         );
+        // ... and of the pairing that follows the parse, numbers only (docs/features/data-import/pairing-screens.md "The live line")
+        self::assertSame(['running' => false, 'puzzles' => 0, 'found' => 0, 'probably' => 0, 'choose' => 0, 'notFound' => 0, 'searching' => 0, 'revision' => '0:0'], $last['pairing']);
         // What the "Sheets and columns" screen loads its lists again by: a sign of the sheets' states, nothing of the file
         self::assertIsString($last['revision']);
         self::assertMatchesRegularExpression('/^[0-9a-f]{32}$/', $last['revision']);
@@ -173,7 +175,7 @@ final class ImportReadingTest extends WebTestCase
         self::assertCount(0, $listed->eq(0)->filter('[data-testid="import-sheet-hidden"]'));
         self::assertStringContainsString('Old notes', $listed->eq(1)->text());
         self::assertCount(1, $listed->eq(1)->filter('[data-testid="import-sheet-hidden"]'));
-        self::assertStringContainsString('arrive soon', $crawler->filter('[data-testid="import-soon"]')->text());
+        self::assertStringContainsString('arrives soon', $crawler->filter('[data-testid="import-soon"]')->text());
 
         $this->browser->request('GET', '/en/import/' . $importId . '/progress');
         $this->assertResponseIsSuccessful();

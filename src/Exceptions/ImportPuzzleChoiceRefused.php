@@ -21,6 +21,8 @@ final class ImportPuzzleChoiceRefused extends \DomainException
     public const string NOT_CHOOSABLE = 'not_choosable';
     public const string INVALID = 'invalid';
     public const string OTHER_PIECE_COUNT_IN_GROUP = 'other_piece_count_in_group';
+    /** A puzzle of another piece count chosen alone, without the player's explicit yes to the question */
+    public const string OTHER_PIECE_COUNT_UNCONFIRMED = 'other_piece_count_unconfirmed';
 
     public function __construct(
         public readonly string $reason,

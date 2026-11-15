@@ -39,6 +39,11 @@ export default class extends Controller {
         fallbackUrl: String,
         workingText: String,
         rowsText: String,
+        // The puzzles' pages (docs/features/data-import/pairing-screens.md "The live line"): the pairing of the
+        // import's puzzles with the database is followed too - `data.pairing` of the same payload
+        pairing: Boolean,
+        pairingText: String,
+        searchingText: String,
     };
 
     connect() {
@@ -169,21 +174,34 @@ export default class extends Controller {
 
     show(data) {
         const wasWorking = this.working;
-        const changed = this.revision !== null && typeof data.revision === 'string' && data.revision !== this.revision;
+        // On a puzzles' page the pairing counts too: its run and whether it came to rest are part of the revision
+        const pairing = this.pairingValue && data.pairing && typeof data.pairing === 'object' ? data.pairing : null;
+        const revision = typeof data.revision === 'string'
+            ? (pairing !== null ? `${data.revision}|${pairing.revision}` : data.revision)
+            : null;
+        const changed = this.revision !== null && revision !== null && revision !== this.revision;
 
-        if (typeof data.revision === 'string') {
-            this.revision = data.revision;
+        if (revision !== null) {
+            this.revision = revision;
         }
 
-        this.working = data.working === true;
+        const reading = data.working === true;
+
+        this.working = reading || (pairing !== null && pairing.running === true);
         this.element.hidden = !this.working;
 
         if (this.working && this.hasLineTarget) {
-            this.lineTarget.textContent = Number.isInteger(data.rowsToParse) && data.rowsToParse > 0
-                ? this.rowsTextValue
-                    .replace('%done%', this.numbers.format(data.rowsParsed || 0))
-                    .replace('%total%', this.numbers.format(data.rowsToParse))
-                : this.workingTextValue;
+            if (reading || pairing === null) {
+                this.lineTarget.textContent = Number.isInteger(data.rowsToParse) && data.rowsToParse > 0
+                    ? this.rowsTextValue
+                        .replace('%done%', this.numbers.format(data.rowsParsed || 0))
+                        .replace('%total%', this.numbers.format(data.rowsToParse))
+                    : this.workingTextValue;
+            } else {
+                this.lineTarget.textContent = Number.isInteger(pairing.searching) && pairing.searching > 0 && this.searchingTextValue
+                    ? this.searchingTextValue.replace('%left%', this.numbers.format(pairing.searching))
+                    : this.pairingTextValue;
+            }
         }
 
         if (changed || wasWorking !== this.working) {

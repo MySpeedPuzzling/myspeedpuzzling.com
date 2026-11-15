@@ -22,6 +22,9 @@ readonly final class ImportSheetRow
         public string $kind,
         public array $parsed,
         public array $problems,
+        /** Where the row can be opened (the row sheet) - only where a list gives it */
+        public null|string $rowId = null,
+        public null|string $sheetTitle = null,
     ) {
     }
 

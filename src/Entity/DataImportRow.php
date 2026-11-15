@@ -190,6 +190,45 @@ class DataImportRow
     }
 
     /**
+     * What the player said about this very row (Services\DataImport\ImportRowAnswers): values typed for its fields,
+     * "leave it out". The row is parsed again right after (AnswerImportRowsHandler) - and every later parse reads
+     * the answers with the cells.
+     *
+     * @param array<string, mixed> $answers
+     */
+    public function answered(array $answers): void
+    {
+        $this->answers = $answers === [] ? null : $answers;
+    }
+
+    /**
+     * What a page that shows the row sends back with a change: another stamp in the database means the row was
+     * parsed for another mapping or answered meanwhile.
+     */
+    public function stamp(): string
+    {
+        return self::stampOf($this->parsedVersion, $this->answers);
+    }
+
+    /**
+     * @param null|array<mixed> $answers
+     */
+    public static function stampOf(null|int $parsedVersion, null|array $answers): string
+    {
+        $answers ??= [];
+        ksort($answers);
+
+        foreach ($answers as $field => $answer) {
+            if (is_array($answer)) {
+                ksort($answer);
+                $answers[$field] = $answer;
+            }
+        }
+
+        return md5(($parsedVersion ?? 0) . ':' . json_encode($answers, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
+    }
+
+    /**
      * One of several rows of its sheet that are equal in all a key holds: which one it is, and whether it stands for
      * itself (ImportEqualRows).
      */

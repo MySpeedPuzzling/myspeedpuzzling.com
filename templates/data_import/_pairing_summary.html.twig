@@ -1,5 +1,5 @@
-{# The import's distinct puzzles and where their pairing with the catalogue stands - read only; the lists and the
-   chooser arrive with the next stage (docs/features/data-import/pairing.md "The summary") #}
+{# The import's distinct puzzles and where their pairing with the catalogue stands, and the way to its screens
+   (docs/features/data-import/pairing.md "The summary", pairing-screens.md). Variables: pairing, import_id. #}
 {% if pairing.puzzles > 0 %}
     <div class="card card-body shadow-sm mb-3" data-testid="import-pairing-summary">
         <h2 class="h6 mb-1">{{ 'data_import.pairing.title'|trans }}</h2>
@@ -14,5 +14,8 @@
                 {{ (pairing.paired ? 'data_import.pairing.searching' : 'data_import.pairing.running')|trans({'%number%': pairing.searching|format_number}) }}
             </p>
         {% endif %}
+        <a href="{{ path('data_import_puzzles', {importId: import_id}) }}" class="btn btn-primary w-100 mt-2 text-wrap d-flex align-items-center justify-content-center" style="min-height: 44px;" data-testid="import-open-puzzles">
+            <i class="bi bi-puzzle me-1" aria-hidden="true"></i>{{ 'data_import.puzzles.open'|trans }}
+        </a>
     </div>
 {% endif %}

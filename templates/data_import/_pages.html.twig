@@ -1,0 +1,21 @@
+{#
+    Previous / "Page 2 of 7" / Next of a list of the import. The page number is the only thing in the address.
+    Variables: page, pages, route, parameters (without the page), label.
+#}
+{% if pages > 1 %}
+    <nav class="d-flex align-items-center justify-content-between gap-2 mt-3" aria-label="{{ label }}" data-testid="import-pages">
+        {% if page > 1 %}
+            <a class="btn btn-outline-primary d-inline-flex align-items-center" style="min-height: 44px;" rel="prev" data-testid="import-pages-previous"
+               href="{{ path(route, parameters|merge({page: page - 1})) }}"><i class="bi bi-chevron-left me-1"></i>{{ 'data_import.columns.rows.previous'|trans }}</a>
+        {% else %}
+            <span></span>
+        {% endif %}
+        <span class="fs-sm text-muted text-center">{{ 'data_import.columns.rows.page'|trans({'%page%': page|format_number, '%pages%': pages|format_number}) }}</span>
+        {% if page < pages %}
+            <a class="btn btn-outline-primary d-inline-flex align-items-center" style="min-height: 44px;" rel="next" data-testid="import-pages-next"
+               href="{{ path(route, parameters|merge({page: page + 1})) }}">{{ 'data_import.columns.rows.next'|trans }}<i class="bi bi-chevron-right ms-1"></i></a>
+        {% else %}
+            <span></span>
+        {% endif %}
+    </nav>
+{% endif %}

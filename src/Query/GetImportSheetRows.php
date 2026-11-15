@@ -133,13 +133,13 @@ SQL, ['importId' => $importId, 'settingUp' => DataImportStatus::SettingUp->value
      * of cells (the row that crosses the bound is the page's last; a page always holds a row while one is left):
      * a row may hold megabytes, and five hundred of them must never be in memory at once.
      *
-     * @return list<array{id: string, number: int, cells: array<int, array<string, mixed>>}>
+     * @return list<array{id: string, number: int, cells: array<int, array<string, mixed>>, answers: array<mixed>}>
      */
     public function page(string $sheetId, int $afterRowNumber, int $limit, null|int $throughRow = null, int $maxBytes = DataImportLimits::BYTES_PER_BATCH): array
     {
-        /** @var list<array{id: string, row_number: int, cells: null|string}> $rows */
+        /** @var list<array{id: string, row_number: int, cells: null|string, answers: null|string}> $rows */
         $rows = $this->database->executeQuery(<<<SQL
-SELECT sized.id, sized.row_number, stored.cells
+SELECT sized.id, sized.row_number, stored.cells, stored.answers
 FROM (
     SELECT next.id, next.row_number, COALESCE(SUM(next.bytes) OVER (ORDER BY next.row_number ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0) AS bytes_before
     FROM (
@@ -161,8 +161,63 @@ SQL, ['sheetId' => $sheetId, 'after' => $afterRowNumber, 'through' => $throughRo
             /** @var array<int, array<string, mixed>> $cells */
             $cells = self::json($row['cells']) ?? [];
 
-            return ['id' => $row['id'], 'number' => $row['row_number'], 'cells' => $cells];
+            // What the player said about the row itself (AnswerImportRows) is read with it: every parse honours it
+            return ['id' => $row['id'], 'number' => $row['row_number'], 'cells' => $cells, 'answers' => self::json($row['answers']) ?? []];
         }, $rows);
+    }
+
+    /**
+     * One column's cells of a sheet, in the sheet's order, streamed - nothing else of the rows (what a puzzle list's
+     * names are read from when only a few of them are needed).
+     *
+     * @return \Generator<int, array<string, mixed>> row number => the cell
+     */
+    public function cellsOfColumn(string $sheetId, int $column): \Generator
+    {
+        $rows = $this->database->executeQuery(
+            'SELECT row_number, cells -> CAST(:column AS TEXT) AS cell FROM data_import_row WHERE sheet_id = :sheetId AND jsonb_exists(cells, CAST(:column AS TEXT)) ORDER BY row_number',
+            ['sheetId' => $sheetId, 'column' => (string) $column],
+        );
+
+        foreach ($rows->iterateAssociative() as $row) {
+            $cell = is_string($row['cell']) ? self::json($row['cell']) : null;
+
+            if ($cell !== null && is_int($row['row_number'])) {
+                /** @var array<string, mixed> $cell */
+                yield $row['row_number'] => $cell;
+            }
+        }
+    }
+
+    /**
+     * Some rows of a sheet by their numbers, as they are stored.
+     *
+     * @param list<int> $rowNumbers
+     *
+     * @return array<int, array<int, array<string, mixed>>> row number => cells by column
+     */
+    public function rowsByNumbers(string $sheetId, array $rowNumbers): array
+    {
+        if ($rowNumbers === []) {
+            return [];
+        }
+
+        /** @var list<array{row_number: int, cells: null|string}> $rows */
+        $rows = $this->database->executeQuery(
+            'SELECT row_number, cells FROM data_import_row WHERE sheet_id = :sheetId AND row_number IN (:numbers) ORDER BY row_number',
+            ['sheetId' => $sheetId, 'numbers' => $rowNumbers],
+            ['numbers' => ArrayParameterType::INTEGER],
+        )->fetchAllAssociative();
+
+        $byNumber = [];
+
+        foreach ($rows as $row) {
+            /** @var array<int, array<string, mixed>> $cells */
+            $cells = self::json($row['cells']) ?? [];
+            $byNumber[$row['row_number']] = $cells;
+        }
+
+        return $byNumber;
     }
 
     /**

@@ -91,6 +91,8 @@ final readonly class ImportRowParser
      * @param array<int, array<string, mixed>> $cells the stored row: column (1 = A) => cell
      * @param array<array-key, mixed> $valueAnswers `data_import_sheet.value_answers`: column number => folded word =>
      *        ImportWordMeaning's value
+     * @param array<array-key, mixed> $rowAnswers `data_import_row.answers`: what the player said about this very row
+     *        (ImportRowAnswers) - a value typed for a field stands instead of the cell's, "leave it out" leaves it out
      */
     public function parse(
         int $rowNumber,
@@ -99,6 +101,7 @@ final readonly class ImportRowParser
         ImportSheetOptions $options,
         array $valueAnswers = [],
         null|SheetLookup $lookup = null,
+        array $rowAnswers = [],
     ): ParsedImportRow {
         $headers = [];
 
@@ -110,6 +113,10 @@ final readonly class ImportRowParser
 
         if ($leftOut !== null) {
             return ParsedImportRow::leftOut($leftOut);
+        }
+
+        if (ImportRowAnswers::leavesOut($rowAnswers)) {
+            return ParsedImportRow::leftOut(ImportRowLeftOut::ByPlayer);
         }
 
         $layout = $mapping->layout === null ? null : KnownExportLayout::byId($mapping->layout);
@@ -133,6 +140,9 @@ final readonly class ImportRowParser
             // A word or a tag the player (or a known export) gave a meaning
             $this->words($text, $valueAnswers[$column->column] ?? null, $column->field === ImportField::ReadyMadeField ? $layout : null, $column->is(ImportField::Status), $row);
         }
+
+        // The player's own word about a field of this row stands instead of what its cell says
+        ImportRowAnswers::apply($rowAnswers, $row);
 
         if ($lookup !== null && $row->name !== null && ($row->brand === null || $row->pieces === null)) {
             $found = $lookup->find($row->name);

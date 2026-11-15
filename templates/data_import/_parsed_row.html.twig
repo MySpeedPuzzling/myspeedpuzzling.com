@@ -3,7 +3,8 @@
     need a look"): the puzzle, pieces, time and date as understood, and - in plain words, with the value as the sheet
     has it - what could not be read. Everything here is the player's own text: escaped, never part of a URL.
 
-    Variables: row (ImportSheetRow).
+    Variables: row (ImportSheetRow); open_row_import_id (optional) - the import's id where the card links to the
+    row sheet, on which the row can be fixed (docs/features/data-import/pairing-screens.md "The row sheet").
 #}
 <div class="card card-body shadow-sm mb-2 py-2 px-3" data-testid="parsed-row" data-row="{{ row.rowNumber }}">
     <div class="d-flex justify-content-between align-items-baseline gap-2">
@@ -41,4 +42,9 @@
             </span>
         </div>
     {% endfor %}
+    {% if open_row_import_id|default(null) is not null and row.rowId is not null %}
+        <a href="{{ path('data_import_row', {importId: open_row_import_id, rowId: row.rowId}) }}" class="btn btn-outline-primary btn-sm mt-2 d-inline-flex align-items-center align-self-start" style="min-height: 44px;" data-testid="parsed-row-open">
+            <i class="bi bi-pencil me-1" aria-hidden="true"></i>{{ 'data_import.row.open'|trans }}
+        </a>
+    {% endif %}
 </div>

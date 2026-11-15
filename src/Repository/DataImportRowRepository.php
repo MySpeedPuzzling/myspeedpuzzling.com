@@ -127,6 +127,73 @@ readonly final class DataImportRowRepository
     }
 
     /**
+     * Rows of one import by their ids, with their sheets - whatever sheet each is on (AnswerImportRows).
+     *
+     * @param list<string> $rowIds
+     *
+     * @return array<string, DataImportRow> by id
+     */
+    public function ofImportByIds(DataImport $import, array $rowIds): array
+    {
+        $rowIds = array_values(array_filter($rowIds, Uuid::isValid(...)));
+
+        if ($rowIds === []) {
+            return [];
+        }
+
+        /** @var list<DataImportRow> $rows */
+        $rows = $this->entityManager->createQueryBuilder()
+            ->select('r', 's')
+            ->from(DataImportRow::class, 'r')
+            ->join('r.sheet', 's')
+            ->where('r.import = :import')
+            ->andWhere('r.id IN (:ids)')
+            ->orderBy('r.id')
+            ->setParameter('import', $import)
+            ->setParameter('ids', $rowIds)
+            ->getQuery()
+            ->getResult();
+
+        $byId = [];
+
+        foreach ($rows as $row) {
+            $byId[$row->id->toString()] = $row;
+        }
+
+        return $byId;
+    }
+
+    /**
+     * The rows of a sheet that are equal by one of these keys **as the database has them** - a row changed in
+     * memory is still found by the key it had (and handed back as the loaded object).
+     *
+     * @param list<string> $equalKeys
+     *
+     * @return list<DataImportRow>
+     */
+    public function ofSheetByEqualKeys(DataImportSheet $sheet, array $equalKeys, int $limit): array
+    {
+        if ($equalKeys === []) {
+            return [];
+        }
+
+        /** @var list<DataImportRow> $rows */
+        $rows = $this->entityManager->createQueryBuilder()
+            ->select('r')
+            ->from(DataImportRow::class, 'r')
+            ->where('r.sheet = :sheet')
+            ->andWhere('r.equalKey IN (:keys)')
+            ->orderBy('r.rowNumber')
+            ->setMaxResults($limit)
+            ->setParameter('sheet', $sheet)
+            ->setParameter('keys', $equalKeys)
+            ->getQuery()
+            ->getResult();
+
+        return $rows;
+    }
+
+    /**
      * A row by its id without loading it - for pointing another row at it.
      */
     public function reference(string $rowId): DataImportRow

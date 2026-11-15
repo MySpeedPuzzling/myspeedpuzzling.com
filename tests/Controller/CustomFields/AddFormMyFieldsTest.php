@@ -71,16 +71,33 @@ final class AddFormMyFieldsTest extends WebTestCase
             }
         }
 
-        // With the feature switched off entirely the page is the same, byte for byte (the ids and tokens of the
-        // request aside) - so for a player without fields the feature adds nothing to it
+        // What the feature does add for everybody: one area with the "Add your own field" line and the empty dialog
+        // it opens (AddFormMyFieldsPanelTest) - once, inside the result's form
+        foreach ($pages as $url => $page) {
+            self::assertSame(1, substr_count($page, 'data-testid="own-fields-area"'), $url);
+            self::assertCount(1, (new Crawler($page))->filter('form[name="puzzle_add_form"] [data-testid="own-fields-area"] [data-testid="own-fields-invite"]'), $url);
+        }
+
+        // With the feature switched off entirely the page is the same without that area, byte for byte (the ids and
+        // tokens of the request aside) - so for a player without fields the feature adds nothing else to it
         $this->overrideFeatureFlagEnv('CUSTOM_FIELDS_IN_ADD_FORM', false);
 
         foreach ($pages as $url => $withTheFeature) {
             $browser->request('GET', $url);
             self::assertResponseIsSuccessful();
+            $switchedOff = (string) $browser->getResponse()->getContent();
 
-            self::assertSame(self::withoutRequestIds((string) $browser->getResponse()->getContent()), self::withoutRequestIds($withTheFeature), $url);
+            self::assertStringNotContainsString('own-fields', $switchedOff, $url);
+            self::assertSame(self::withoutRequestIds($switchedOff), self::withoutRequestIds(self::withoutOwnFieldsArea($withTheFeature)), $url);
         }
+    }
+
+    private static function withoutOwnFieldsArea(string $html): string
+    {
+        $without = preg_replace('#<style>\s*\.own-fields-area.*?</dialog>\s*</div>\n#s', '', $html, count: $count);
+        self::assertSame(1, $count);
+
+        return (string) $without;
     }
 
     public function testAPlayerWithoutFieldsPaysOneStatementOncePerSessionAndNoneAfter(): void
@@ -122,8 +139,11 @@ final class AddFormMyFieldsTest extends WebTestCase
         self::assertCount(1, $block);
         // Inside the form, right after the event section and before the comment
         self::assertCount(1, $crawler->filter('form[name="puzzle_add_form"] [data-testid="add-form-my-fields"]'));
-        self::assertNotNull($block->previousAll()->filter('[data-puzzle-add-form-target="competitionSection"]')->first()->attr('data-puzzle-add-form-target'));
-        self::assertSame('commonSection', $block->nextAll()->first()->attr('data-puzzle-add-form-target'));
+        // (the block lives in the area every player has - the invite line and the dialog follow it there)
+        $area = $crawler->filter('[data-testid="own-fields-area"]');
+        self::assertCount(1, $area->filter('[data-testid="add-form-my-fields"]'));
+        self::assertNotNull($area->previousAll()->filter('[data-puzzle-add-form-target="competitionSection"]')->first()->attr('data-puzzle-add-form-target'));
+        self::assertSame('commonSection', $area->nextAll()->first()->attr('data-puzzle-add-form-target'));
         // Closed: the button shows, the inputs wait behind it
         self::assertStringNotContainsString('hidden', (string) $block->filter('button[data-action="click->toggle#toggle"]')->attr('class'));
         self::assertStringContainsString('hidden', (string) $block->filter('[data-toggle-target="myFields"]')->attr('class'));

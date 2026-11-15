@@ -1,0 +1,16 @@
+{#
+    "My fields" inside the add-result form's dialog (docs/features/custom-fields.md "Making and managing fields from
+    the add form"): the manage page's own body in a Turbo Frame, adding first. Asked for with the header
+    `Turbo-Frame: my-fields-panel` - every form in it navigates this frame only, the form behind the dialog is never
+    touched.
+#}
+<turbo-frame id="my-fields-panel">
+    <div data-testid="my-fields-panel">
+        <h2 class="h4 mb-1"><i class="bi bi-stars me-2"></i>{{ 'my_fields.title'|trans }}</h2>
+        <p class="fs-sm text-muted">{{ 'my_fields.private_note'|trans }}</p>
+
+        {{ include('my_fields/_panel_flashes.html.twig') }}
+
+        {{ include('my_fields/_manage.html.twig', {add_first: true}) }}
+    </div>
+</turbo-frame>

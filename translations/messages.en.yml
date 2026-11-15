@@ -11895,6 +11895,7 @@ my_fields:
     archive_help: "Archiving hides a field everywhere. What you wrote in it is kept and comes back when you restore the field."
     archived_title: "Archived (%count%)"
     ready_made:
+        more_for_collection: "More ready-made fields, for the puzzles in your collection (%count%)"
         title: "Ready-made fields"
         intro: "One tap adds a field. Its name follows the language of the page."
         add: "Add %field%"
@@ -11963,6 +11964,12 @@ my_fields:
         title: "My fields"
         some_not_saved: "Your result is saved. These fields of yours could not be saved: %fields%. You can fill them in on the result."
         not_saved: "Your result is saved. Your own fields could not be saved - you can fill them in on the result."
+        invite: "Add your own field"
+        invite_note: "a note, a rating, tags - only you see it"
+        dialog_label: "Your own fields"
+        dialog_loading: "Loading…"
+        dialog_unavailable: "This could not be opened here."
+        dialog_done: "Done"
     values:
         title: "My fields on this result"
         saved: "Your fields were saved."

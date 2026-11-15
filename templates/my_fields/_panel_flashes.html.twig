@@ -1,0 +1,6 @@
+{# What the last change said - in the panel there is no page around it that would show the flash #}
+{% for type, messages in app.flashes %}
+    {% for message in messages %}
+        <div class="alert alert-{{ type in ['success', 'warning', 'danger'] ? type : 'info' }} fs-sm py-2" role="status" data-testid="my-fields-panel-flash">{{ message }}</div>
+    {% endfor %}
+{% endfor %}

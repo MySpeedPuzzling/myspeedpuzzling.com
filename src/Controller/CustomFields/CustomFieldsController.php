@@ -35,6 +35,17 @@ final class CustomFieldsController extends AbstractController
     public const string CSRF_TOKEN_ID = 'my_fields';
     public const string LOCALES = 'en|cs|de|es|fr|ja';
 
+    /**
+     * The Turbo Frame of the add-result form's dialog: asked for with this frame, the page answers with its body
+     * alone (templates/my_fields/panel.html.twig) - same data, same forms, same routes.
+     */
+    public const string PANEL_FRAME = 'my-fields-panel';
+
+    public static function isPanelRequest(Request $request): bool
+    {
+        return $request->headers->get('Turbo-Frame') === self::PANEL_FRAME;
+    }
+
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetCustomFields $getCustomFields,
@@ -91,7 +102,7 @@ final class CustomFieldsController extends AbstractController
             $this->viewerResultFields->fieldsChanged($request);
         }
 
-        return $this->render('my_fields/index.html.twig', [
+        $response = $this->render(self::isPanelRequest($request) ? 'my_fields/panel.html.twig' : 'my_fields/index.html.twig', [
             'form' => $form,
             'active_fields' => $active,
             'archived_fields' => array_values(array_filter($fields, static fn (CustomFieldOverview $field): bool => $field->archived)),
@@ -107,5 +118,9 @@ final class CustomFieldsController extends AbstractController
             'total_limit' => CustomField::MAX_PER_PLAYER,
             'total_limit_reached' => count($fields) >= CustomField::MAX_PER_PLAYER,
         ]);
+
+        $response->setVary('Turbo-Frame', false);
+
+        return $response;
     }
 }

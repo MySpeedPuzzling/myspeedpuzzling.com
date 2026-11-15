@@ -203,6 +203,42 @@ The add-result form is the most important form of the app. The fields are **besi
 
 The edit form has no fields and no link - values are edited from the result detail.
 
+### Making and managing fields from the add form
+
+Since 2026-11-15 the add page has a place for the fields for **everybody** (`templates/my_fields/_add_form_area.html.twig`,
+included by `_solving_time_form.html.twig` when the add page passes `my_fields_invite: my_fields_in_add_form()` - the
+kill switch read through a Twig function, so `PuzzleAddController` has no word about it; the edit form never passes it):
+
+- the "My fields" block of a player who has fields (as before, now inside the area),
+- one quiet line for every player: "Add your own field" - static, no statement for a player without fields,
+- an empty `<dialog>`. The line and the block's "Manage my fields" open it (`my_fields_panel_controller.js`).
+
+**The dialog holds the manage page itself.** `GET /{_locale}/custom-fields` asked for with `Turbo-Frame: my-fields-panel`
+answers with its body alone (`panel.html.twig` → the shared `_manage.html.twig`; the edit page likewise,
+`panel_edit.html.twig`). Every form in it posts to the routes it always did and is answered with the same redirect to
+`my_fields` - the frame follows it, so the five controllers do not know the difference (only the two that render pick
+the template, `CustomFieldsController::isPanelRequest()`). In the panel the ready-made fields for results come first,
+the ones for collection puzzles wait behind "More", the list of fields in use follows, and flashes are shown inside.
+
+**Nothing in it can touch the form behind it** - Jan's condition: making a field must never disturb adding a result or
+lose anything typed.
+
+- The area is inside the result's `<form>`, and a form can not hold a form: the dialog is rendered empty (a test pins:
+  no form, no input, no name in it) and the controller moves it out of the form on connect - into `.modal-content`
+  when the form is in a Bootstrap modal (a modal takes the focus back from anything outside it), else to `<body>` -
+  before anything is loaded into it.
+- A native `<dialog>` (`showModal()`, top layer), not the site's `modal-frame`: that frame may be what holds the form.
+- Closing it (Done, ×, Esc, the backdrop) fetches `my_fields_add_form_block` (`AddFormMyFieldsBlockController`: the
+  block alone, empty inputs, never a value, `no-store`, clears the session's "has none" memo) and swaps it into the
+  form; what was typed into the old inputs is put back by input name (a choice taken off the list is not).
+- Anything failing leaves the form as it was: no `<dialog>` support or no JavaScript = the links open the manage page
+  in a new tab (as "Manage my fields" always did); a panel that can not load (signed out) says so with that link; a
+  block that can not be fetched keeps the old block.
+- `CUSTOM_FIELDS_IN_ADD_FORM=0` removes the whole area and 404s the block route.
+
+No page puts the area into a modal today (the add form is always a page; the edit form, which does open in
+`modal-frame`, has no fields). The modal path was tried in a browser by moving the add form into the site's modal.
+
 ### What it costs
 
 `Services\CustomFields\ViewerResultFields` loads the fields for the add form and the result detail: one statement.
